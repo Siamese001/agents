@@ -1,3 +1,12 @@
+import sys
+
+print(
+    "\n" + "=" * 78 + "\n"
+    "WARNING: apps_lic is DEPRECATED and has been superseded by apps_lic_v2.\n"
+    "Please use 'python -m apps_lic_v2' for the active standalone subsystem.\n"
+    + "=" * 78 + "\n",
+    file=sys.stderr,
+)
 """Canonical entrypoint for apps_lic — product runtime is canonical_dispatch only.
 
 Usage:
@@ -301,3 +310,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+
