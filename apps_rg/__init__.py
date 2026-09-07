@@ -1,5 +1,15 @@
-"""apps_rg package."""
+"""apps_rg package (DEPRECATED - Moved to Siamese001/apps_rg_v2)."""
 from __future__ import annotations
+
+import warnings
+
+warnings.warn(
+    "apps_rg in Agentic-Workflow is deprecated and frozen as of August 2026. "
+    "Active development, evaluation, and production runtime have graduated to Siamese001/apps_rg_v2. "
+    "See apps_rg/DEPRECATED.md for details.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 __version__ = "0.1.0"
 

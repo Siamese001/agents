@@ -992,6 +992,16 @@ def main(argv: list[str] | None = None) -> int:  # noqa: C901
 
     Returns exit code (0 = success, 7 = cursor-prompts sentinel).
     """
+    sys.stderr.write(
+        "\n"
+        + "=" * 78
+        + "\n"
+        + "WARNING: apps_rg in Agentic-Workflow is DEPRECATED and FROZEN.\n"
+        + "Active resume generation and evaluation have moved to Siamese001/apps_rg_v2.\n"
+        + "See apps_rg/DEPRECATED.md for details.\n"
+        + "=" * 78
+        + "\n\n"
+    )
     _argv = list(argv) if argv is not None else None
     # Diagnostic subcommands intercept the flat run-parser: they own a minimal arg surface and
     # must run on a clean checkout without the full generation schema (G1/G2-preflight,
