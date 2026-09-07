@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "projectName": "apps_lic_v2",
+  "worktreeRoot": "..",
+  "pythonLauncher": "py",
+  "pythonVersion": "3.12",
+  "defaultTimeoutSeconds": 600,
+  "lockFiles": [],
+  "allowedSecretEnvironment": [
+    "ANTHROPIC_API_KEY",
+    "OPENAI_API_KEY",
+    "GOOGLE_API_KEY",
+    "GEMINI_API_KEY"
+  ],
+  "environmentPaths": {
+    "PYTHONPATH": "src",
+    "XDG_CACHE_HOME": ".runtime/cache",
+    "PIP_CACHE_DIR": ".runtime/pip"
+  }
+}
