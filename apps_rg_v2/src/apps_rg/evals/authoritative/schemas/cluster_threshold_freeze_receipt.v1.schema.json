@@ -1,0 +1,111 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentic-workflow.local/apps_rg/authoritative/cluster_threshold_freeze_receipt.v1.schema.json",
+  "title": "Apps RG calibration-only cluster threshold freeze",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "status", "completion_marker", "logical_retrieval_unit",
+    "source_commit", "calibration_query_ids", "frozen_thresholds", "runtime_top_k",
+    "positive_relevance_floor", "deployment_bindings_digest", "input_digests",
+    "release_authorizing", "unknown_reasons", "record_digest"
+  ],
+  "properties": {
+    "schema_version": {"const": "apps_rg.cluster_threshold_freeze_receipt.v1"},
+    "status": {"enum": ["PASS", "UNKNOWN"]},
+    "completion_marker": {
+      "anyOf": [{"const": "CLUSTER_CALIBRATION_THRESHOLDS_FROZEN"}, {"type": "null"}]
+    },
+    "logical_retrieval_unit": {"const": "graph_evidence_cluster"},
+    "source_commit": {
+      "anyOf": [{"type": "string", "pattern": "^[0-9a-f]{40}$"}, {"type": "null"}]
+    },
+    "calibration_query_ids": {"$ref": "#/$defs/stringList"},
+    "frozen_thresholds": {
+      "anyOf": [{"$ref": "#/$defs/metricThresholds"}, {"$ref": "#/$defs/emptyObject"}]
+    },
+    "runtime_top_k": {
+      "anyOf": [{"type": "integer", "minimum": 1}, {"type": "null"}]
+    },
+    "positive_relevance_floor": {
+      "anyOf": [{"type": "number", "exclusiveMinimum": 0}, {"type": "null"}]
+    },
+    "deployment_bindings_digest": {
+      "anyOf": [{"$ref": "#/$defs/digest"}, {"type": "null"}]
+    },
+    "input_digests": {
+      "anyOf": [{"$ref": "#/$defs/inputDigests"}, {"$ref": "#/$defs/emptyObject"}]
+    },
+    "release_authorizing": {"const": false},
+    "unknown_reasons": {"$ref": "#/$defs/stringList"},
+    "record_digest": {"$ref": "#/$defs/digest"}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"status": {"const": "PASS"}}},
+      "then": {
+        "properties": {
+          "completion_marker": {"const": "CLUSTER_CALIBRATION_THRESHOLDS_FROZEN"},
+          "source_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+          "calibration_query_ids": {"minItems": 1},
+          "frozen_thresholds": {"$ref": "#/$defs/metricThresholds"},
+          "runtime_top_k": {"type": "integer", "minimum": 1},
+          "positive_relevance_floor": {"type": "number", "exclusiveMinimum": 0, "maximum": 3},
+          "deployment_bindings_digest": {"$ref": "#/$defs/digest"},
+          "input_digests": {"$ref": "#/$defs/inputDigests"},
+          "unknown_reasons": {"maxItems": 0}
+        }
+      },
+      "else": {
+        "properties": {
+          "completion_marker": {"type": "null"},
+          "source_commit": {"type": "null"},
+          "calibration_query_ids": {"maxItems": 0},
+          "frozen_thresholds": {"$ref": "#/$defs/emptyObject"},
+          "runtime_top_k": {"type": "null"},
+          "positive_relevance_floor": {"type": "null"},
+          "deployment_bindings_digest": {"type": "null"},
+          "input_digests": {"$ref": "#/$defs/emptyObject"},
+          "unknown_reasons": {"minItems": 1}
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "rate": {"type": "number", "minimum": 0, "maximum": 1},
+    "emptyObject": {"type": "object", "maxProperties": 0},
+    "metricThresholds": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "recall_at_runtime_k_minimum", "ndcg_at_runtime_k_minimum", "mrr_minimum",
+        "hard_negative_rejection_rate_minimum", "top_k_redundancy_rate_maximum"
+      ],
+      "properties": {
+        "recall_at_runtime_k_minimum": {"$ref": "#/$defs/rate"},
+        "ndcg_at_runtime_k_minimum": {"$ref": "#/$defs/rate"},
+        "mrr_minimum": {"$ref": "#/$defs/rate"},
+        "hard_negative_rejection_rate_minimum": {"$ref": "#/$defs/rate"},
+        "top_k_redundancy_rate_maximum": {"$ref": "#/$defs/rate"}
+      }
+    },
+    "inputDigests": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "calibration_retrieval", "threshold_policy", "completed_qrel_review",
+        "split_policy"
+      ],
+      "properties": {
+        "calibration_retrieval": {"$ref": "#/$defs/digest"},
+        "threshold_policy": {"$ref": "#/$defs/digest"},
+        "completed_qrel_review": {"$ref": "#/$defs/digest"},
+        "split_policy": {"$ref": "#/$defs/digest"}
+      }
+    },
+    "stringList": {
+      "type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true
+    }
+  }
+}

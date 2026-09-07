@@ -1,0 +1,265 @@
+provider_profile_registry_id: apps_rg::provider_profiles::v1
+app_id: apps_rg
+version: "1.0.0"
+status: active
+
+# apps_rg routing authority. Shared model catalogs may describe provider capabilities,
+# but they must not select an apps_rg generator, proof judge, or selector. Environment
+# variables may supply credentials/endpoints only; model identities resolve from this file.
+model_pin_ownership:
+  routing_ssot: apps_rg/config/provider_profiles.yaml
+  shared_catalog_role: capability_metadata_only
+  environment_model_override_allowed: false
+  receipt_identity_source: observed_provider_response
+  role_paths:
+    generation: profiles.*.model_by_section
+    generation_backup: profiles.external_openai_generator.anthropic_limit_backup_model_by_section
+    proof_judge: judge_models
+    selector: selector_models
+    selector_backup: selector_models.*.anthropic_limit_backup
+
+wave10a_policy:
+  default_provider: external_claude
+  external_default_status: claude_default_for_apps_rg_e2e
+
+profiles:
+  external_openai_generator:
+    profile_id: apps_rg::provider::external_openai_generator::v1
+    provider_profile: external_openai
+    provider_class: external_api
+    pin_owner: apps_rg.section_generation.openai
+    pin_review_after: "2026-11-07"
+    # Explicit OpenAI generation pins. No provider-level default model is allowed for
+    # proof-bearing apps_rg lanes.
+    model_by_section:
+      slalom_narrative: gpt-5.6-luna
+      unify_narrative: gpt-5.6-luna
+      ibm_narrative: gpt-5.6-luna
+      insurtech_narrative: gpt-5.6-luna
+      ey_narrative: gpt-5.6-luna
+    # Governed backup pins used only when the explicit Anthropic-limit preflight
+    # is active. They do not change the default/primary provider for these lanes.
+    anthropic_limit_backup_model_by_section:
+      competencies: gpt-5.6-luna
+      slalom_bullets: gpt-5.6-luna
+      unify_bullets: gpt-5.6-luna
+      ibm_bullets: gpt-5.6-luna
+      insurtech_bullets: gpt-5.6-luna
+      ey_bullets: gpt-5.6-luna
+      headline: gpt-5.6-luna
+      executive_summary: gpt-5.6-luna
+    effort_by_section:
+      slalom_narrative: low
+      unify_narrative: medium
+      ibm_narrative: medium
+      insurtech_narrative: low
+      ey_narrative: low
+    anthropic_limit_backup_effort_by_section:
+      competencies: low
+      slalom_bullets: low
+      unify_bullets: low
+      ibm_bullets: low
+      insurtech_bullets: low
+      ey_bullets: low
+      headline: low
+      executive_summary: medium
+    endpoint_env_var: APPS_RG_EXTERNAL_OPENAI_BASE_URL
+    api_key_env_var: OPENAI_API_KEY
+    capabilities:
+      - text_generation
+      - structured_json_generation
+    default: false
+    wave10a_status: selectable_for_parity_not_default
+
+  external_claude_generator:
+    profile_id: apps_rg::provider::external_claude_generator::v1
+    provider_profile: external_claude
+    provider_class: external_api
+    pin_owner: apps_rg.section_generation.claude
+    pin_review_after: "2026-11-07"
+    # Explicit Claude generation pins. No provider-level default model is allowed for
+    # proof-bearing apps_rg lanes.
+    model_by_section:
+      competencies: claude-sonnet-5
+      slalom_bullets: claude-sonnet-5
+      unify_bullets: claude-sonnet-5
+      ibm_bullets: claude-sonnet-5
+      insurtech_bullets: claude-sonnet-5
+      ey_bullets: claude-sonnet-5
+      headline: claude-sonnet-5
+      executive_summary: claude-sonnet-5
+    effort_by_section:
+      # Sonnet 5 adaptive reasoning shares max_tokens with the emitted JSON.
+      # Live W1 evidence showed medium/high consuming the entire 4096-token
+      # governed output room as thinking, leaving no section payload. These
+      # compact schema-bound generation calls therefore use low effort.
+      competencies: low
+      slalom_bullets: low
+      unify_bullets: low
+      ibm_bullets: low
+      insurtech_bullets: low
+      ey_bullets: low
+      headline: low
+      executive_summary: low
+    endpoint_env_var: APPS_RG_EXTERNAL_CLAUDE_BASE_URL
+    api_key_env_var: ANTHROPIC_API_KEY
+    capabilities:
+      - text_generation
+      - structured_json_generation
+    default: true
+    wave10a_status: default_for_apps_rg_e2e
+
+  external_default_generator:
+    profile_id: apps_rg::provider::external_default_generator::v1
+    provider_profile: external_default
+    provider_class: external_api
+    capabilities:
+      - text_generation
+      - structured_json_generation
+    default: false
+    wave10a_status: target_only_after_wave10b_parity
+
+  deterministic_grader:
+    profile_id: apps_rg::provider::deterministic_grader::v1
+    provider_profile: deterministic_grader
+    provider_class: deterministic
+    capabilities:
+      - deterministic_grading
+    endpoint_env_var: null
+    api_key_env_var: null
+    default: false
+
+  llm_judge_stub:
+    profile_id: apps_rg::provider::llm_judge_stub::v1
+    provider_profile: llm_judge_stub
+    provider_class: stub
+    capabilities:
+      - judge_grade_only
+    endpoint_env_var: null
+    api_key_env_var: null
+    default: false
+
+  executive_positioning_judge_stub:
+    profile_id: apps_rg::provider::executive_positioning_judge_stub::v1
+    provider_profile: executive_positioning_judge_stub
+    provider_class: stub
+    capabilities:
+      - executive_positioning_judge
+    endpoint_env_var: null
+    api_key_env_var: null
+    default: false
+
+# Per-tier x provider proof-judge models. SSOT-of-record for the apps_rg judge model
+# per tier; section_judge_profile resolves this block directly and fails closed when
+# the SSOT is unreadable or incomplete.
+judge_models:
+  enhanced:
+    gemini_pro: gemini-3.6-flash
+    openai_chatgpt: gpt-5.6-sol
+  standard:
+    gemini_pro: gemini-3.6-flash
+    openai_chatgpt: gpt-5.6-sol
+
+judge_model_governance:
+  owner: apps_rg.section_proof_judges
+  review_after: "2026-11-07"
+  proof_eligible: true
+
+# Selector models are live provider calls that choose among self-consistency pools.
+# They are advisory/non-proof receipts and must never satisfy X1D proof gates.
+selector_models:
+  competencies_graph_pool_selector:
+    provider_key: anthropic_claude
+    model: claude-sonnet-5
+    # The selector has the same 4096-token governed output room and must leave
+    # capacity for its compact JSON selection payload.
+    reasoning_effort: low
+    anthropic_limit_backup:
+      provider_key: openai_chatgpt
+      model: gpt-5.6-sol
+      reasoning_effort: medium
+    role: advisory_selector
+    owner: apps_rg.competencies_graph_pool
+    review_after: "2026-11-07"
+    proof_eligible: false
+  employment_bullet_pool_selector:
+    provider_key: anthropic_claude
+    model: claude-sonnet-5
+    reasoning_effort: low
+    anthropic_limit_backup:
+      provider_key: openai_chatgpt
+      model: gpt-5.6-sol
+      reasoning_effort: medium
+    role: advisory_selector
+    owner: apps_rg.employment_bullet_pool
+    review_after: "2026-11-07"
+    proof_eligible: false
+
+runtime_limits:
+  section_context_window: 131072
+  # W1 external-model spend guard.  This is a conservative reservation of
+  # estimated input plus requested maximum output, not a truncation policy.
+  # It prevents a malformed loop from consuming unbounded paid capacity.
+  model_token_governor:
+    chars_per_token_estimate: 3
+    safety_multiplier: 1.12
+    max_input_tokens_per_attempt: 48000
+    # The required executive-summary path can reserve one generation attempt plus
+    # four two-provider judge rounds (~253k on the Anthropic partnership fixture).
+    # 300k admits that finite proof path while still stopping malformed loops.
+    max_reserved_tokens_per_run: 300000
+  executive_summary:
+    scratch_max_output_tokens: 4096
+    regen_max_output_tokens: 4096
+    hard_cap_scratch_max_output_tokens: 8192
+    reserved_system_schema_tokens: 512
+    first_pass_input_utilization_max: 0.95
+    chars_per_token_estimate: 3
+    estimate_safety_multiplier: 1.12
+    briefing_input_share_fraction: 0.15
+    bullet_selector_input_share_fraction: 0.09
+  judge:
+    # Compatibility baseline for flat consumers; section-specific runtime profiles below drive
+    # the actual lane-calibrated retry/token policy.
+    x1d_max_output_tokens: 4096
+    x1d_max_output_tokens_hard_cap: 8192
+    x1d_max_attempts: 3
+    retry_backoff_base_seconds: 0.5
+    retry_backoff_max_seconds: 4.0
+    gemini_proof_thinking_level: high
+    openai_proof_reasoning_effort: high
+    runtime_profiles:
+      optional_advisory_taxonomy_only:
+        judge_weight: 1
+        max_output_tokens: 4096
+        max_output_tokens_hard_cap: 8192
+        max_attempts: 1
+        retry_backoff_base_seconds: 0.25
+        retry_backoff_max_seconds: 0.25
+        # W3 pilot setting for Gemini 3 grade-only JSON judges.  It is only
+        # sent when APPS_RG_GEMINI_GRADE_ONLY_THINKING=1 is explicitly set.
+        gemini_thinking_level: low
+      standard_reasoning:
+        judge_weight: 2
+        max_output_tokens: 4096
+        max_output_tokens_hard_cap: 8192
+        max_attempts: 2
+        retry_backoff_base_seconds: 0.5
+        retry_backoff_max_seconds: 1.0
+        gemini_thinking_level: low
+      bullet_rewrite_quality:
+        judge_weight: 2
+        max_output_tokens: 4096
+        max_output_tokens_hard_cap: 8192
+        max_attempts: 2
+        retry_backoff_base_seconds: 0.5
+        retry_backoff_max_seconds: 1.0
+        gemini_thinking_level: low
+      enhanced_reasoning:
+        judge_weight: 3
+        max_output_tokens: 8192
+        max_output_tokens_hard_cap: 8192
+        max_attempts: 3
+        retry_backoff_base_seconds: 0.5
+        retry_backoff_max_seconds: 4.0
+        gemini_thinking_level: medium

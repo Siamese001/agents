@@ -92,6 +92,8 @@ google/
 licenses/
 pip/
 src/
+!apps_rg_v2/src/
+!apps_lic_v2/src/
 
 # Data & Logs
 logs/

@@ -1,0 +1,45 @@
+{
+  "section_id": "headline",
+  "run_id": "headline_20260809_123340",
+  "prompt_hash": "c76211b5d54d038d",
+  "compiled_prompt_ref": "C:/Git/apps_rg_v2-worktrees/codex-e2e-defect-remediation-w0/artifacts/apps_rg/runs/w8_anthropic_positive_final_20260809/e2e_20260809T122324Z_db242077/modular_r4/sections/headline/compiled_prompt.txt",
+  "compiled_prompt_artifact_ref": "C:/Git/apps_rg_v2-worktrees/codex-e2e-defect-remediation-w0/artifacts/apps_rg/runs/w8_anthropic_positive_final_20260809/e2e_20260809T122324Z_db242077/modular_r4/sections/headline/compiled_prompt_artifact.json",
+  "sealed_artifact_ref": "C:/Git/apps_rg_v2-worktrees/codex-e2e-defect-remediation-w0/artifacts/apps_rg/runs/w8_anthropic_positive_final_20260809/e2e_20260809T122324Z_db242077/modular_r4/sections/headline/headline_output.txt",
+  "x1_refs": "C:/Git/apps_rg_v2-worktrees/codex-e2e-defect-remediation-w0/artifacts/apps_rg/runs/w8_anthropic_positive_final_20260809/e2e_20260809T122324Z_db242077/modular_r4/sections/headline/x1d_llm_judge_outputs.json",
+  "x2_refs": "C:/Git/apps_rg_v2-worktrees/codex-e2e-defect-remediation-w0/artifacts/apps_rg/runs/w8_anthropic_positive_final_20260809/e2e_20260809T122324Z_db242077/modular_r4/sections/headline/x2_gate_outputs.json",
+  "x3_ref": "C:/Git/apps_rg_v2-worktrees/codex-e2e-defect-remediation-w0/artifacts/apps_rg/runs/w8_anthropic_positive_final_20260809/e2e_20260809T122324Z_db242077/modular_r4/sections/headline/x3_disposition.json",
+  "claim_ledger_ref": "C:/Git/apps_rg_v2-worktrees/codex-e2e-defect-remediation-w0/artifacts/apps_rg/runs/w8_anthropic_positive_final_20260809/e2e_20260809T122324Z_db242077/modular_r4/sections/headline/claim_ledger.json",
+  "selected_fact_plan_ref": "C:/Git/apps_rg_v2-worktrees/codex-e2e-defect-remediation-w0/artifacts/apps_rg/runs/w8_anthropic_positive_final_20260809/e2e_20260809T122324Z_db242077/modular_r4/sections/headline/selected_fact_plan.json",
+  "evidence_refs": [
+    "C:/Git/apps_rg_v2-worktrees/codex-e2e-defect-remediation-w0/artifacts/apps_rg/runs/w8_anthropic_positive_final_20260809/e2e_20260809T122324Z_db242077/modular_r4/sections/headline/runtime_payload.json",
+    "C:/Git/apps_rg_v2-worktrees/codex-e2e-defect-remediation-w0/artifacts/apps_rg/runs/w8_anthropic_positive_final_20260809/e2e_20260809T122324Z_db242077/modular_r4/sections/headline/prompt_selection_trace.json",
+    "C:/Git/apps_rg_v2-worktrees/codex-e2e-defect-remediation-w0/artifacts/apps_rg/runs/w8_anthropic_positive_final_20260809/e2e_20260809T122324Z_db242077/modular_r4/sections/headline/fact_check_result.json"
+  ],
+  "model_output_ref": "C:/Git/apps_rg_v2-worktrees/codex-e2e-defect-remediation-w0/artifacts/apps_rg/runs/w8_anthropic_positive_final_20260809/e2e_20260809T122324Z_db242077/modular_r4/sections/headline/provider_response.json",
+  "final_headline_line": "SVP Engineering | Runtime Telemetry Governance | Alliance Co-Sell Leadership | Enterprise Portfolio Expansion",
+  "offline_only": true,
+  "current_run_effect": false,
+  "runtime_disposition_unchanged": true,
+  "observed_failures": [],
+  "support_coverage_findings": [
+    "claim_ledger_fact_union=['reb_ibm_aws_alliance_partner_cosell_gtm', 'reb_ibm_revenue_sales_target_execution', 'reb_unify_runtime_reliability_governance']",
+    "candidate_fact_pool_size=14"
+  ],
+  "proof_misuse_findings": [],
+  "banned_content_findings": [],
+  "phrasing_quality_findings": [],
+  "future_run_recommendations": [],
+  "promotion_candidate": false,
+  "handoff_packet_repo_relative": "C:/Git/apps_rg_v2-worktrees/codex-e2e-defect-remediation-w0/artifacts/apps_rg/runs/w8_anthropic_positive_final_20260809/e2e_20260809T122324Z_db242077/modular_r4/sections/headline/l6_shadow_eval_package.json",
+  "l2_output_ref": "C:/Git/apps_rg_v2-worktrees/codex-e2e-defect-remediation-w0/artifacts/apps_rg/runs/w8_anthropic_positive_final_20260809/e2e_20260809T122324Z_db242077/modular_r4/sections/headline/l2_output.json",
+  "prompt_control_receipt_findings": [],
+  "raw_schema_findings": [],
+  "self_check_findings": [],
+  "reasoning_execution_receipt_summary": {
+    "present": false,
+    "quality_certification_denied": false,
+    "aggregate_blocked": false,
+    "proof_blocking_reasons": [],
+    "blocks_proof_eligible_lane": false
+  }
+}

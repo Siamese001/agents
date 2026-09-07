@@ -1,0 +1,995 @@
+"""Spine C0/FEC compose — RouteContract + proof pool → section PA (d8f4a2).
+
+Product-visible section PA consumes ``final_evidence_contract.json`` (spine C0 compose)
+or canonical ``FinalEvidenceContract``. Raw ``proof_pool_metadata`` is not PA authority.
+"""
+from __future__ import annotations
+
+import json
+import os
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
+
+from apps_rg.runtime.proof_pool_resolver import SectionProofPool
+from apps_rg.runtime.section_spine_terminology import (
+    CANONICAL_SPINE_CHAIN,
+    section_lane_spine_classification,
+)
+from apps_rg.runtime.spine.front_contracts import (
+    SectionFrontSpineBridge,
+    fixture_dev_bypass_active,
+)
+
+FEC_BRIDGE_ARTIFACT = "final_evidence_contract.json"
+FEC_BRIDGE_RECEIPT = "c0_fec_compose_receipt.json"
+FEC_BRIDGE_MODE_SECTION = "spine_c0_fec_compose"
+FEC_BRIDGE_AUTHORITY_SCOPE = "apps_rg_c0_fec_bridge_shape_only_not_canonical_fec"
+CANONICAL_FEC_AUTHORITY_SCOPE = "apps_rg_final_evidence_contract"
+# Legacy receipt/compiled-prompt alias (W4/W5 tests, one-spine certification).
+FEC_BRIDGE_MODE_LEGACY = "section_fec_bridge"
+_ACCEPTED_FEC_BRIDGE_MODES = frozenset({FEC_BRIDGE_MODE_SECTION, FEC_BRIDGE_MODE_LEGACY})
+
+OBSERVED_CHAIN_WITH_FEC_BRIDGE: tuple[str, ...] = (
+    "CLI",
+    "apps_rg_spine_run",
+    "U0",
+    "L1",
+    "L0",
+    "c0_retrieve_apps_rg",
+    "spine_c0_fec_compose",
+    "pa_compose_apps_rg",
+    "l2_execute_apps_rg",
+    "ExitEvalPipeline",
+    "section_L6_shadow",
+)
+
+_PA_AUTHORITY_KEYS: tuple[str, ...] = (
+    "evidence_authority",
+    "selection_scope",
+    "layout_context",
+    "proof_pool_type",
+    "proof_pool_type_role",
+    "proof_source",
+    "claim_evidence_source_type",
+    "augmented_skills_graph_present",
+    "graph_ref",
+    "graph_version",
+    "graph_digest",
+    "skills_source_authority_status",
+    "legacy_skills_ledger_ref",
+    "broad_skills_ledger_ref",
+    "binding_kind",
+    "fec_shape_only",
+    "c03_graphrag_bound_status",
+    "support_status",
+    "graph_lineage_refs",
+    "graph_expansion_refs",
+    "fec_bridge_mode",
+    "route_contract_ref",
+    "proof_pool_ref",
+    "proof_pool_digest",
+    "resume_graph_allocation_scope",
+    "resume_graph_allocation_plan_id",
+    "resume_graph_allocation_plan_digest",
+    "resume_graph_global_uniqueness_claimed",
+    "final_graph_evidence_contract",
+    "final_graph_evidence_contract_digest",
+    "durable_graph_state_mutated",
+)
+
+# Graph bundle consumption flags + packet refs (attach_*_to_proof_pool_metadata).
+_PA_GRAPH_BUNDLE_AUTHORITY_KEYS: tuple[str, ...] = (
+    "competency_capability_bundle_consumption",
+    "competency_capability_bundle_consumption_mode",
+    "competency_capability_bundles",
+    "competency_bundle_ids",
+    "competency_capability_section_packet",
+    "graph_expansion_consumes_competency_bundles",
+    "flat_taxonomy_only_graph_context_forbidden",
+    "headline_positioning_bundle_consumption",
+    "headline_positioning_bundle_consumption_mode",
+    "headline_positioning_bundles",
+    "headline_positioning_bundle_ids",
+    "headline_positioning_section_packet",
+    "graph_expansion_consumes_headline_positioning_bundles",
+    "flat_skill_only_graph_context_forbidden",
+    "role_episode_bundle_consumption",
+    "role_episode_bundle_consumption_mode",
+    "role_episode_bundles",
+    "role_episode_bundle_ids",
+    "unify_role_episode_section_packet",
+    "ibm_role_episode_section_packet",
+    "graph_expansion_consumes_role_episode_bundles",
+    "approved_metric_outcome_ids",
+)
+
+
+class SectionFecBridgePreconditionError(RuntimeError):
+    """Raised when product-visible PA runs without FEC bridge or canonical FEC."""
+
+
+@dataclass(frozen=True, slots=True)
+class SectionFecBridge:
+    """FEC bridge bundle between proof_pool resolution and section PA."""
+
+    section_id: str
+    bridge_doc: dict[str, Any]
+    product_visible: bool = True
+    fixture_dev_only_bypass: bool = False
+    non_product_certified: bool = False
+
+
+def _bind_allocation_authority_fields(
+    bridge: SectionFecBridge,
+    *,
+    pool: SectionProofPool,
+) -> SectionFecBridge:
+    metadata = pool.proof_pool_metadata
+    fields = {
+        key: metadata.get(key)
+        for key in (
+            "resume_graph_allocation_scope",
+            "resume_graph_allocation_plan_id",
+            "resume_graph_allocation_plan_digest",
+            "resume_graph_global_uniqueness_claimed",
+            "final_graph_evidence_contract_digest",
+        )
+        if metadata.get(key) is not None
+    }
+    if not fields:
+        return bridge
+    document = dict(bridge.bridge_doc)
+    for key, value in fields.items():
+        observed = document.get(key)
+        if observed is not None and observed != value:
+            raise SectionFecBridgePreconditionError(
+                f"{bridge.section_id}: conflicting {key} in final evidence contract"
+            )
+        document[key] = value
+    return SectionFecBridge(
+        section_id=bridge.section_id,
+        bridge_doc=document,
+        product_visible=bridge.product_visible,
+        fixture_dev_only_bypass=bridge.fixture_dev_only_bypass,
+        non_product_certified=bridge.non_product_certified,
+    )
+
+
+def fec_bridge_kill_switch_enabled() -> bool:
+    """Product runs always require FEC bridge; test harness may bypass."""
+    from apps_rg.runtime.c0.product_runtime_guards import product_fec_bridge_mandatory
+
+    return product_fec_bridge_mandatory() or os.environ.get(
+        "APPS_RG_SECTION_FEC_BRIDGE_KILL_SWITCH", "1"
+    ).strip() not in ("0", "false", "no")
+
+
+def _utc_now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _extract_support_status(pp_meta: dict[str, Any]) -> str:
+    c03 = pp_meta.get("c03_graphrag_bound")
+    if isinstance(c03, dict):
+        st = str(c03.get("support_status") or "").strip()
+        if st:
+            return st
+    st = str(pp_meta.get("support_status") or "").strip()
+    return st or "SUPPORTED"
+
+
+def _build_pa_proof_authority_metadata(
+    pp_meta: dict[str, Any],
+    *,
+    pool: SectionProofPool,
+    route_contract_ref: str,
+) -> dict[str, Any]:
+    out: dict[str, Any] = {
+        "fec_bridge_mode": FEC_BRIDGE_MODE_SECTION,
+        "route_contract_ref": route_contract_ref,
+        "proof_pool_ref": pool.proof_pool_ref,
+        "proof_pool_digest": pool.proof_pool_digest,
+        "proof_source": pool.proof_source,
+    }
+    for key in _PA_AUTHORITY_KEYS + _PA_GRAPH_BUNDLE_AUTHORITY_KEYS:
+        if key in pp_meta and key not in out:
+            out[key] = pp_meta[key]
+    c03 = pp_meta.get("c03_graphrag_bound")
+    if isinstance(c03, dict):
+        for key in ("graph_lineage_refs", "graph_expansion_refs", "binding_kind", "fec_shape_only"):
+            if key in c03 and key not in out:
+                out[key] = c03[key]
+    native_pa = pp_meta.get("c03_pa_metadata")
+    if isinstance(native_pa, dict):
+        for key, val in native_pa.items():
+            out[key] = val
+        if "c03_graphrag_bound_status" not in out:
+            if isinstance(c03, dict):
+                out["c03_graphrag_bound_status"] = c03.get("c03_graphrag_bound_status")
+            else:
+                out["c03_graphrag_bound_status"] = pp_meta.get("native_c03_status")
+    ea = pp_meta.get("evidence_authority")
+    if isinstance(ea, dict) and ea and "evidence_authority" not in out:
+        out["evidence_authority"] = dict(ea)
+    if isinstance(pp_meta.get("selection_scope"), dict) and "selection_scope" not in out:
+        out["selection_scope"] = dict(pp_meta["selection_scope"])
+    if isinstance(pp_meta.get("layout_context"), dict) and "layout_context" not in out:
+        out["layout_context"] = dict(pp_meta["layout_context"])
+    return out
+
+
+def build_spine_c0_fec_artifact(
+    *,
+    section_id: str,
+    front_spine: SectionFrontSpineBridge,
+    pool: SectionProofPool,
+    route_contract_ref: str = "route_contract.json",
+    proof_pool_ref: str | None = None,
+) -> SectionFecBridge:
+    """Build section FEC bridge — spine ``c0_retrieve_apps_rg`` when required (W4)."""
+    if front_spine is None or front_spine.route is None:
+        raise SectionFecBridgePreconditionError(
+            "section FEC bridge requires RouteContract from section front spine"
+        )
+
+    from apps_rg.runtime.spine.section_c0_retrieve import (
+        invoke_section_spine_c0_retrieve,
+        merge_spine_fec_into_bridge_doc,
+        section_spine_c0_retrieve_required,
+    )
+
+    spine_result = None
+    if section_spine_c0_retrieve_required(front_spine):
+        spine_result = invoke_section_spine_c0_retrieve(
+            front_spine=front_spine,
+            section_id=section_id,
+        )
+
+    pp_meta = dict(pool.proof_pool_metadata or {})
+    c03 = pp_meta.get("c03_graphrag_bound")
+    fec_snap: dict[str, Any] = {}
+    evidence_items: list[dict[str, Any]] = []
+    graph_lineage_refs: list[str] = []
+    graph_expansion_refs: list[str] = []
+
+    if isinstance(c03, dict):
+        snap = c03.get("final_evidence_contract_snapshot")
+        if isinstance(snap, dict):
+            fec_snap = dict(snap)
+            evidence_items = list(snap.get("evidence_items") or [])
+        graph_lineage_refs = list(c03.get("graph_lineage_refs") or fec_snap.get("graph_lineage_refs") or [])
+        graph_expansion_refs = list(c03.get("graph_expansion_refs") or fec_snap.get("graph_expansion_refs") or [])
+
+    if not evidence_items:
+        for fid in pool.allowed_fact_ids_ordered:
+            evidence_items.append(
+                {
+                    "evidence_id": f"evidence:section:{fid}",
+                    "source_fact_id": fid,
+                    "source_class": pool.proof_source,
+                    "proof_pool_ref": pool.proof_pool_ref,
+                }
+            )
+
+    if section_id == "executive_summary":
+        from apps_rg.runtime.c0.c03_allowlist_coherence import (
+            _fact_id_from_evidence_item,
+            fact_id_in_allowed_pool,
+        )
+
+        allowed_set = set(pool.allowed_fact_ids)
+        evidence_items = [
+            it
+            for it in evidence_items
+            if isinstance(it, dict)
+            and (
+                not _fact_id_from_evidence_item(it)
+                or fact_id_in_allowed_pool(_fact_id_from_evidence_item(it), allowed_set)
+            )
+        ]
+
+    support_status = _extract_support_status(pp_meta)
+    pa_meta = _build_pa_proof_authority_metadata(
+        pp_meta, pool=pool, route_contract_ref=route_contract_ref
+    )
+    ts = _utc_now()
+    bridge_doc: dict[str, Any] = {
+        "schema_version": "section_fec_bridge_v1",
+        "generated_at_utc": ts,
+        "bridge_type": "FinalEvidenceContractBridge",
+        "contract_type": "FinalEvidenceContractBridge",
+        "authority_scope": FEC_BRIDGE_AUTHORITY_SCOPE,
+        "artifact_authority_scope": FEC_BRIDGE_AUTHORITY_SCOPE,
+        "fec_bridge_mode": FEC_BRIDGE_MODE_SECTION,
+        "producer_stage": "section_fec_bridge",
+        "consumer_stage": "section_PA",
+        "section_id": section_id,
+        "route_contract_ref": route_contract_ref,
+        "validated_request_ref": "validated_request.json",
+        "l1_plan_contract_ref": "l1_plan_contract.json",
+        "proof_pool_ref": proof_pool_ref or pool.proof_pool_ref,
+        "proof_pool_digest": pool.proof_pool_digest,
+        "source_fact_ids": list(pool.allowed_fact_ids_ordered),
+        "evidence_items": evidence_items,
+        "citation_lineage_refs": graph_lineage_refs + graph_expansion_refs,
+        "graph_lineage_refs": graph_lineage_refs,
+        "graph_expansion_refs": graph_expansion_refs,
+        "srfs_ref": pool.srfs_ref if pool.srfs_present else "",
+        "support_status": support_status,
+        "canonical_c0_2_claimed": False,
+        "canonical_c0_3_claimed": False,
+        "canonical_c0_5_claimed": False,
+        "canonical_c0_5_fec": False,
+        "final_evidence_contract_authoritative": False,
+        "canonical_final_evidence_contract_ref": None,
+        "canonical_authority_scope": CANONICAL_FEC_AUTHORITY_SCOPE,
+        "fec_shape_only": True,
+        "section_c03_graph_binding": isinstance(c03, dict),
+        "binding_kind": str(
+            pp_meta.get("binding_kind")
+            or (c03.get("binding_kind") if isinstance(c03, dict) else "")
+            or ("section_c03_graph_binding" if isinstance(c03, dict) else "")
+        ),
+        "final_evidence_contract": fec_snap,
+        "proof_pool_type": pp_meta.get("proof_pool_type"),
+        "proof_source": pool.proof_source,
+        "resume_graph_allocation_scope": pp_meta.get(
+            "resume_graph_allocation_scope"
+        ),
+        "resume_graph_allocation_plan_id": pp_meta.get(
+            "resume_graph_allocation_plan_id"
+        ),
+        "resume_graph_allocation_plan_digest": pp_meta.get(
+            "resume_graph_allocation_plan_digest"
+        ),
+        "resume_graph_global_uniqueness_claimed": pp_meta.get(
+            "resume_graph_global_uniqueness_claimed"
+        ),
+        "final_graph_evidence_contract_digest": pp_meta.get(
+            "final_graph_evidence_contract_digest"
+        ),
+        "durable_graph_state_mutated": bool(
+            pp_meta.get("durable_graph_state_mutated", False)
+        ),
+        "pa_proof_authority_metadata": pa_meta,
+        "raw_proof_pool_direct_to_pa": False,
+        "product_certification": "NOT_CLAIMED",
+        "explicit_non_claims": [
+            "not canonical C0.2 dense retrieval unless spine Chroma dense path ran",
+            "not canonical C0.3 governed graph traverse unless spine traverse ran",
+            "not canonical C0.5 FinalEvidenceContract unless spine C0 emitted FEC",
+        ],
+        "proof_pool_shim_only": spine_result is None,
+    }
+    if spine_result is not None:
+        bridge_doc = merge_spine_fec_into_bridge_doc(
+            bridge_doc,
+            spine=spine_result,
+            pool_allowed_fact_ids=list(pool.allowed_fact_ids_ordered),
+        )
+
+    fixture_dev = bool(front_spine.fixture_dev_only_bypass or fixture_dev_bypass_active())
+    return SectionFecBridge(
+        section_id=section_id,
+        bridge_doc=bridge_doc,
+        product_visible=front_spine.product_visible,
+        fixture_dev_only_bypass=fixture_dev,
+        non_product_certified=bool(front_spine.non_product_certified or fixture_dev),
+    )
+
+
+def build_spine_c0_fec_receipt(bridge: SectionFecBridge) -> dict[str, Any]:
+    doc = bridge.bridge_doc
+    spine = section_lane_spine_classification()
+    route_ok = bool(str(doc.get("route_contract_ref") or "").strip())
+    precond_pass = route_ok and bool(doc.get("source_fact_ids"))
+    fixture_dev = bool(bridge.fixture_dev_only_bypass or fixture_dev_bypass_active())
+    return {
+        "schema_version": "c0_fec_bridge_receipt_v1",
+        "generated_at_utc": _utc_now(),
+        "plan_slug": "one-canonical-spine",
+        "wave": 4,
+        "section_id": bridge.section_id,
+        "product_visible": bridge.product_visible,
+        "fixture_dev_only": fixture_dev,
+        "non_product_certified": bridge.non_product_certified,
+        "product_certification": "NOT_CLAIMED",
+        "fec_bridge_mode": FEC_BRIDGE_MODE_SECTION,
+        "authority_scope": FEC_BRIDGE_AUTHORITY_SCOPE,
+        "artifact_authority_scope": FEC_BRIDGE_AUTHORITY_SCOPE,
+        "fec_bridge_status": "PASS" if precond_pass else "FAIL",
+        "precondition_status": "PASS" if precond_pass else "FAIL",
+        "final_evidence_contract_bridge_ref": FEC_BRIDGE_ARTIFACT,
+        "route_contract_ref": doc.get("route_contract_ref"),
+        "proof_pool_ref": doc.get("proof_pool_ref"),
+        "proof_pool_digest": doc.get("proof_pool_digest"),
+        "support_status": doc.get("support_status"),
+        "canonical_c0_2_claimed": False,
+        "canonical_c0_3_claimed": False,
+        "canonical_c0_5_claimed": False,
+        "pa_entry_allowed": precond_pass,
+        "raw_proof_pool_direct_to_pa": False,
+        "fec_bridge_kill_switch_enabled": fec_bridge_kill_switch_enabled(),
+        "observed_chain": list(OBSERVED_CHAIN_WITH_FEC_BRIDGE),
+        "canonical_spine_target": list(CANONICAL_SPINE_CHAIN),
+        "downstream_classification": spine,
+        "explicit_non_claims": list(doc.get("explicit_non_claims") or []),
+    }
+
+
+def emit_spine_c0_fec_artifacts(
+    artifact_dir: Path,
+    bridge: SectionFecBridge,
+) -> dict[str, Path]:
+    artifact_dir.mkdir(parents=True, exist_ok=True)
+    paths: dict[str, Path] = {}
+    p_bridge = artifact_dir / FEC_BRIDGE_ARTIFACT
+    payload = json.dumps(bridge.bridge_doc, indent=2, ensure_ascii=False) + "\n"
+    p_bridge.write_text(payload, encoding="utf-8")
+    paths["final_evidence_contract"] = p_bridge
+    # Backward-compat alias for certification / metrics readers (same bytes, spine SSOT name).
+    p_legacy = artifact_dir / "final_evidence_contract_bridge.json"
+    if p_legacy.name != p_bridge.name:
+        p_legacy.write_text(payload, encoding="utf-8")
+        paths["final_evidence_contract_bridge"] = p_legacy
+    receipt = build_spine_c0_fec_receipt(bridge)
+    p_receipt = artifact_dir / FEC_BRIDGE_RECEIPT
+    p_receipt.write_text(json.dumps(receipt, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    paths["c0_fec_bridge_receipt"] = p_receipt
+    fec_inner = bridge.bridge_doc.get("final_evidence_contract")
+    if isinstance(fec_inner, dict) and fec_inner:
+        p_legacy = artifact_dir / "final_evidence_contract_snapshot.json"
+        p_legacy.write_text(json.dumps(fec_inner, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        paths["final_evidence_contract_snapshot"] = p_legacy
+
+    from apps_rg.runtime.spine.spine_span_emit import emit_spine_span_event
+
+    emit_spine_span_event(
+        artifact_dir,
+        layer_key="C0",
+        binding_seam="apps_rg/runtime/spine/section_c0_retrieve.py",
+        product_visible=bridge.product_visible,
+        extra={"fec_bridge_mode": bridge.bridge_doc.get("fec_bridge_mode")},
+    )
+    from apps_rg.runtime.spine.c0_graph_lane_receipt import (
+        build_c0_graph_lane_receipt_from_bridge,
+        build_c0_graph_lane_receipt_from_spine_retrieve,
+        emit_c0_graph_lane_receipt,
+    )
+
+    section_key = str(bridge.bridge_doc.get("section_id") or "")
+    spine_rec = bridge.bridge_doc.get("spine_c0_retrieve_receipt")
+    if isinstance(spine_rec, dict) and spine_rec.get("canonical_c0_3_graph_claimed"):
+        graph_receipt = build_c0_graph_lane_receipt_from_spine_retrieve(
+            spine_rec,
+            section_id=section_key,
+        )
+    else:
+        graph_receipt = build_c0_graph_lane_receipt_from_bridge(
+            bridge.bridge_doc,
+            section_id=section_key,
+        )
+    emit_c0_graph_lane_receipt(artifact_dir, graph_receipt)
+    return paths
+
+
+def assert_section_pa_fec_preconditions(
+    runtime_payload: dict[str, Any],
+    *,
+    product_visible: bool | None = None,
+    fixture_dev_only_bypass: bool = False,
+    non_product_certified: bool = False,
+) -> None:
+    """Fail closed before section PA compile in product-visible mode."""
+    if fixture_dev_only_bypass or fixture_dev_bypass_active():
+        return
+    if non_product_certified:
+        return
+    pv = product_visible if product_visible is not None else bool(
+        runtime_payload.get("product_visible", True)
+    )
+    if not pv:
+        return
+    from apps_rg.runtime.c0.product_runtime_guards import product_fec_bridge_mandatory
+
+    if not product_fec_bridge_mandatory() and not fec_bridge_kill_switch_enabled():
+        return
+
+    bridge = runtime_payload.get("section_fec_bridge")
+    canonical_ref = str(runtime_payload.get("canonical_final_evidence_contract_ref") or "").strip()
+    if not bridge and not canonical_ref:
+        raise SectionFecBridgePreconditionError(
+            "product-visible section PA requires section_fec_bridge or canonical FinalEvidenceContract"
+        )
+    if runtime_payload.get("raw_proof_pool_direct_to_pa") is True:
+        raise SectionFecBridgePreconditionError(
+            "raw_proof_pool_direct_to_pa is forbidden for product-visible section PA"
+        )
+    if isinstance(bridge, dict):
+        mode = str(bridge.get("fec_bridge_mode") or "")
+        if mode and mode not in _ACCEPTED_FEC_BRIDGE_MODES:
+            raise SectionFecBridgePreconditionError(
+                f"unsupported fec_bridge_mode for product-visible PA: {mode!r}"
+            )
+        if not str(bridge.get("route_contract_ref") or "").strip():
+            raise SectionFecBridgePreconditionError(
+                "section FEC bridge missing route_contract_ref"
+            )
+        if str(bridge.get("contract_type") or "") == "FinalEvidenceContractBridge":
+            if bridge.get("final_evidence_contract_authoritative") is True:
+                raise SectionFecBridgePreconditionError(
+                    "FinalEvidenceContractBridge cannot claim canonical FEC authority"
+                )
+            # A bare canonical_c0_5 claim is forbidden overreach — UNLESS it is backed by a
+            # genuine spine-emitted FinalEvidenceContract (canonical_c0_5_fec=True, set together by
+            # merge_spine_fec_into_bridge_doc when the spine actually ran C0.5). A shape-only bridge
+            # sets canonical_c0_5_claimed without canonical_c0_5_fec and is still rejected here; the
+            # separate final_evidence_contract_authoritative guard above blocks claiming to BE the
+            # canonical authority regardless.
+            if bool(bridge.get("canonical_c0_5_claimed")) and not bool(
+                bridge.get("canonical_c0_5_fec")
+            ):
+                raise SectionFecBridgePreconditionError(
+                    "FinalEvidenceContractBridge cannot set canonical_c0_5_claimed "
+                    "without a spine-emitted canonical_c0_5_fec"
+                )
+
+
+def resolve_pa_proof_authority_for_compile(
+    runtime_payload: dict[str, Any],
+) -> tuple[dict[str, Any], bool]:
+    """Return (metadata_for_PA, consumed_via_fec_bridge)."""
+    assert_section_pa_fec_preconditions(runtime_payload)
+    if fixture_dev_bypass_active():
+        return dict(runtime_payload.get("proof_pool_metadata") or {}), False
+
+    bridge = runtime_payload.get("section_fec_bridge")
+    if isinstance(bridge, dict):
+        pa = bridge.get("pa_proof_authority_metadata") or bridge.get("pa_proof_authority")
+        if isinstance(pa, dict) and pa:
+            safe = dict(pa)
+            if safe.get("receipt_only_json_expansion_excluded_from_pa"):
+                safe.pop("graph_expansion_refs", None)
+            return safe, True
+        safe_bridge = dict(bridge)
+        if safe_bridge.get("receipt_only_json_expansion_excluded_from_pa"):
+            safe_bridge.pop("graph_expansion_refs", None)
+        return safe_bridge, True
+
+    canonical = runtime_payload.get("canonical_final_evidence_contract")
+    if isinstance(canonical, dict):
+        return dict(canonical), True
+
+    raise SectionFecBridgePreconditionError(
+        "no FEC bridge or canonical FinalEvidenceContract on runtime payload"
+    )
+
+
+def _attach_l1_cognitive_c0_revision(
+    *,
+    artifact_dir: Path,
+    front_spine: SectionFrontSpineBridge,
+    runtime_payload: dict[str, Any],
+    c0_required: bool,
+) -> None:
+    """Attach one C0-bound L1 revision before the section PA prompt is compiled.
+
+    The original L1 projection governs broad coverage.  Once C0 has completed,
+    this second, narrower projection prevents the same provider attempt from
+    turning failed evidence obligations into claims.  It is not a retry and it
+    does not alter retrieval, route, or execution authority.
+    """
+
+    from apps_rg.runtime.bindings.l1_cognitive_consumption import (
+        build_l1_cognitive_revision_advisory,
+        extract_l1_cognitive_plan,
+    )
+    from apps_rg.runtime.bindings.l1_planning_capsule_v2 import (
+        extract_verified_planning_capsule_v2,
+    )
+    from apps_rg.runtime.contracts.l1_cognitive_c0_outcome_receipt import (
+        build_l1_cognitive_revision_from_c0_outcome,
+    )
+    from apps_rg.runtime.dispatch import spine_stage_receipts as sr
+
+    cognitive_plan = extract_l1_cognitive_plan(front_spine.l1_plan, required=False)
+    if cognitive_plan is None:
+        return
+    obligation_path = artifact_dir / sr.FILENAME_L1_EVIDENCE_OBLIGATION_RECEIPT
+    outcome_path = artifact_dir / sr.FILENAME_L1_COGNITIVE_C0_OUTCOME_RECEIPT
+    if not obligation_path.is_file() or not outcome_path.is_file():
+        if c0_required:
+            raise SectionFecBridgePreconditionError(
+                "C0 completed without the L1 cognitive outcome receipts required "
+                "for the v3 treatment"
+            )
+        return
+    try:
+        obligation_receipt = json.loads(obligation_path.read_text(encoding="utf-8"))
+        outcome_receipt = json.loads(outcome_path.read_text(encoding="utf-8"))
+        if not isinstance(obligation_receipt, dict) or not isinstance(outcome_receipt, dict):
+            raise ValueError("C0 cognitive outcome inputs are not objects")
+        v2_capsule, _verification = extract_verified_planning_capsule_v2(
+            front_spine.l1_plan,
+            required=True,
+        )
+        revision = build_l1_cognitive_revision_from_c0_outcome(
+            cognitive_plan=cognitive_plan,
+            outcome_receipt=outcome_receipt,
+            outcome_receipt_ref=sr.FILENAME_L1_COGNITIVE_C0_OUTCOME_RECEIPT,
+            v2_capsule=v2_capsule,
+            c0_obligation_receipt=obligation_receipt,
+        )
+        revision_advisory = build_l1_cognitive_revision_advisory(
+            cognitive_plan=cognitive_plan,
+            revision=revision,
+            c0_outcome_receipt_digest=str(outcome_receipt["receipt_digest"]),
+        )
+    except (KeyError, OSError, TypeError, ValueError, json.JSONDecodeError) as exc:
+        raise SectionFecBridgePreconditionError(
+            "L1 cognitive C0 revision could not be source-bound"
+        ) from exc
+    sr.write_stage_receipt(
+        artifact_dir / sr.FILENAME_L1_COGNITIVE_REVISION,
+        revision,
+    )
+    sr.write_stage_receipt(
+        artifact_dir / sr.FILENAME_L1_COGNITIVE_REVISION_ADVISORY,
+        revision_advisory,
+    )
+    runtime_payload["l1_cognitive_revision"] = revision
+    runtime_payload["l1_cognitive_revision_advisory"] = revision_advisory
+    runtime_payload["l1_cognitive_revision_ref"] = sr.FILENAME_L1_COGNITIVE_REVISION
+    runtime_payload["l1_cognitive_revision_advisory_ref"] = (
+        sr.FILENAME_L1_COGNITIVE_REVISION_ADVISORY
+    )
+    runtime_payload["l1_cognitive_revision_outcome_ref"] = (
+        sr.FILENAME_L1_COGNITIVE_C0_OUTCOME_RECEIPT
+    )
+    runtime_payload["l1_cognitive_c0_outcome_receipt_digest"] = str(
+        outcome_receipt["receipt_digest"]
+    )
+
+
+def wire_spine_c0_fec_for_section(
+    *,
+    artifact_dir: Path,
+    section_id: str,
+    front_spine: SectionFrontSpineBridge,
+    pool: SectionProofPool,
+    runtime_payload: dict[str, Any],
+) -> SectionFecBridge:
+    """Emit front-spine + FEC bridge artifacts and attach bridge to runtime_payload."""
+    from apps_rg.runtime.spine.front_contracts import emit_section_front_spine_receipts
+
+    emit_section_front_spine_receipts(artifact_dir, front_spine)
+    # Contracts persist under artifact_dir; do not stash dataclass objects on runtime_payload
+    # (executive_summary_lane hashes/writes runtime_payload.json via json.dumps).
+    from apps_rg.runtime.spine.spine_span_emit import emit_spine_span_event
+
+    for layer_key, seam in (
+        ("U0", "apps_rg/runtime/bindings/u0_binding.py"),
+        ("L1", "apps_rg/runtime/bindings/l1_binding.py"),
+        ("L0", "apps_rg/runtime/bindings/l0_binding.py"),
+    ):
+        emit_spine_span_event(
+            artifact_dir,
+            layer_key=layer_key,
+            binding_seam=seam,
+            product_visible=front_spine.product_visible,
+        )
+    from apps_rg.runtime.c0.evidence_room import (
+        run_section_c0_evidence_room,
+        section_c0_evidence_room_enabled,
+    )
+    from apps_rg.runtime.c0.product_runtime_guards import assert_canonical_product_section_env
+
+    assert_canonical_product_section_env(section_id)
+    runtime_payload["artifact_dir"] = str(Path(artifact_dir).resolve())
+    from apps_rg.runtime.bindings.l1_cognitive_consumption import (
+        build_l1_cognitive_consumer_advisory,
+        extract_l1_cognitive_plan,
+    )
+
+    cognitive_plan = extract_l1_cognitive_plan(front_spine.l1_plan, required=False)
+    if cognitive_plan is not None:
+        cognitive_advisory = build_l1_cognitive_consumer_advisory(front_spine.l1_plan)
+        if cognitive_advisory is None:
+            raise SectionFecBridgePreconditionError(
+                "L1 cognitive plan did not produce a consumer advisory"
+            )
+        # The v3 plan has no raw JD text.  Retaining it with the advisory lets PA
+        # revalidate source binding before it changes a provider-visible prompt.
+        runtime_payload["l1_cognitive_v3_plan"] = cognitive_plan
+        runtime_payload["l1_cognitive_advisory"] = cognitive_advisory
+        runtime_payload["l1_cognitive_advisory_ref"] = (
+            "l1_plan_contract.json#task_spec.apps_rg_cognitive_v3_plan"
+        )
+    if section_c0_evidence_room_enabled(section_id):
+        bridge = run_section_c0_evidence_room(
+            artifact_dir=artifact_dir,
+            section_id=section_id,
+            front_spine=front_spine,
+            pool=pool,
+            runtime_payload=runtime_payload,
+        )
+    else:
+        bridge = build_spine_c0_fec_artifact(
+            section_id=section_id,
+            front_spine=front_spine,
+            pool=pool,
+        )
+    bridge = _bind_allocation_authority_fields(bridge, pool=pool)
+    from apps_rg.runtime.spine.section_c0_retrieve import (
+        apply_spine_c03_overlay_to_bridge_doc,
+        assert_no_stop_as_evidence_gap,
+        grounding_required_for_section,
+        invoke_section_spine_c0_retrieve,
+        merge_spine_fec_into_bridge_doc,
+        section_spine_c0_retrieve_required,
+        write_spine_c0_retrieve_receipt,
+    )
+
+    evidence_room_producer = bridge.bridge_doc.get("producer_stage") == "section_c0_evidence_room"
+
+    if section_spine_c0_retrieve_required(front_spine):
+        # Defer grounding to the authoritative post-overlay/merge assert below: the spine
+        # retrieve is non-authoritative enrichment, and for evidence_room_producer sections
+        # the section's own FEC (overlaid next) is the grounding authority. The assert at
+        # the end of this block re-checks grounding on the merged/overlaid support, so the
+        # spine retrieve's WEAK must not prematurely STOP a section whose own FEC rated PASS.
+        spine_res = invoke_section_spine_c0_retrieve(
+            front_spine=front_spine,
+            section_id=section_id,
+            artifact_dir=artifact_dir,
+            assert_grounding=False,
+        )
+        write_spine_c0_retrieve_receipt(artifact_dir, spine_res.receipt)
+        runtime_payload["spine_c0_retrieve_receipt"] = spine_res.receipt
+        if evidence_room_producer:
+            merged_doc = apply_spine_c03_overlay_to_bridge_doc(
+                bridge.bridge_doc,
+                spine=spine_res,
+            )
+        else:
+            merged_doc = merge_spine_fec_into_bridge_doc(
+                bridge.bridge_doc,
+                spine=spine_res,
+                pool_allowed_fact_ids=list(pool.allowed_fact_ids_ordered),
+            )
+        bridge = SectionFecBridge(
+            section_id=bridge.section_id,
+            bridge_doc=merged_doc,
+            product_visible=bridge.product_visible,
+            fixture_dev_only_bypass=bridge.fixture_dev_only_bypass,
+            non_product_certified=bridge.non_product_certified,
+        )
+        snap = bridge.bridge_doc.get("final_evidence_contract_snapshot") or {}
+        support = str(snap.get("support_status") or bridge.bridge_doc.get("support_status") or "")
+        if support:
+            from apps_rg.runtime.spine_contracts import (
+                FinalEvidenceContract,
+            )
+            from apps_rg.runtime.bindings.c0_binding import APPS_RG_C0_CERT_REF
+
+            l5_ref = str(
+                snap.get("l5_certification_ref")
+                or bridge.bridge_doc.get("l5_certification_ref")
+                or APPS_RG_C0_CERT_REF
+            )
+            fec_check = FinalEvidenceContract(
+                request_id=str(snap.get("request_id") or ""),
+                run_id=str(snap.get("run_id") or ""),
+                app_id="apps_rg",
+                trace_id="",
+                support_status=support,
+                support_target_met=support in ("PASS",),
+                l5_certification_ref=l5_ref,
+            )
+            assert_no_stop_as_evidence_gap(
+                grounding_required=grounding_required_for_section(front_spine),
+                fec=fec_check,
+                section_id=section_id,
+            )
+
+    _attach_l1_cognitive_c0_revision(
+        artifact_dir=artifact_dir,
+        front_spine=front_spine,
+        runtime_payload=runtime_payload,
+        c0_required=section_spine_c0_retrieve_required(front_spine),
+    )
+    runtime_payload["section_fec_bridge"] = bridge.bridge_doc
+    runtime_payload["fec_bridge_ref"] = FEC_BRIDGE_ARTIFACT
+    runtime_payload["final_evidence_contract_ref"] = FEC_BRIDGE_ARTIFACT
+    runtime_payload["c0_fec_bridge_receipt_ref"] = FEC_BRIDGE_RECEIPT
+    runtime_payload["raw_proof_pool_direct_to_pa"] = False
+    runtime_payload["product_visible"] = bridge.product_visible
+    from apps_rg.runtime.bindings.section_lane_c0_metrics import emit_section_lane_c0_metrics
+
+    emit_section_lane_c0_metrics(
+        artifact_dir,
+        section_id=section_id,
+        runtime_payload=runtime_payload,
+        front_spine=front_spine,
+    )
+    from apps_rg.runtime.evidence.canonical_section_evidence_set import (
+        apply_canonical_section_evidence_materialization,
+    )
+
+    apply_canonical_section_evidence_materialization(
+        pool=pool,
+        runtime_payload=runtime_payload,
+        bridge=bridge,
+    )
+    # Write the final bridge after canonical materialization so disk, runtime payload,
+    # and the in-memory bridge doc all describe the same allowlist.
+    emit_spine_c0_fec_artifacts(artifact_dir, bridge)
+    emit_spine_span_event(
+        artifact_dir,
+        layer_key="C0",
+        binding_seam="apps_rg/runtime/spine/section_c0_retrieve.py",
+        product_visible=bridge.product_visible,
+        extra={"fec_bridge_mode": bridge.bridge_doc.get("fec_bridge_mode")},
+    )
+    return bridge
+
+
+def merge_compiled_prompt_artifact_fec_fields(
+    base: dict[str, Any],
+    runtime_payload: dict[str, Any],
+) -> dict[str, Any]:
+    """Merge PA FEC consumption proof fields into compiled_prompt_artifact.json body."""
+    out = dict(base)
+    out.update(pa_consumption_receipt_fields(runtime_payload))
+    return out
+
+
+def pa_consumption_receipt_fields(runtime_payload: dict[str, Any]) -> dict[str, Any]:
+    """Fields merged into compiled_prompt_artifact.json."""
+    bridge = runtime_payload.get("section_fec_bridge")
+    via_fec = isinstance(bridge, dict) and bool(bridge)
+    proof_pool_metadata = runtime_payload.get("proof_pool_metadata")
+    pp = proof_pool_metadata if isinstance(proof_pool_metadata, dict) else {}
+    cognitive_plan = runtime_payload.get("l1_cognitive_v3_plan")
+    cognitive_advisory = runtime_payload.get("l1_cognitive_advisory")
+    cognitive_revision = runtime_payload.get("l1_cognitive_revision")
+    cognitive_revision_advisory = runtime_payload.get(
+        "l1_cognitive_revision_advisory"
+    )
+
+    def allocation_field(key: str) -> Any:
+        if key in pp:
+            return pp.get(key)
+        if isinstance(bridge, dict):
+            if key in bridge:
+                return bridge.get(key)
+            pa = bridge.get("pa_proof_authority_metadata")
+            if isinstance(pa, dict):
+                return pa.get(key)
+        return None
+
+    return {
+        "fec_bridge_ref": runtime_payload.get("fec_bridge_ref") or FEC_BRIDGE_ARTIFACT,
+        "final_evidence_contract_ref": runtime_payload.get("final_evidence_contract_ref")
+        or FEC_BRIDGE_ARTIFACT,
+        "c0_fec_bridge_receipt_ref": runtime_payload.get("c0_fec_bridge_receipt_ref")
+        or FEC_BRIDGE_RECEIPT,
+        "evidence_contract_consumed": via_fec
+        or bool(runtime_payload.get("canonical_final_evidence_contract"))
+        or bool(runtime_payload.get("canonical_final_evidence_contract_snapshot")),
+        "raw_proof_pool_direct_to_pa": False if via_fec else bool(
+            runtime_payload.get("raw_proof_pool_direct_to_pa")
+        ),
+        "fec_bridge_mode": (
+            str(bridge.get("fec_bridge_mode") or FEC_BRIDGE_MODE_SECTION)
+            if isinstance(bridge, dict)
+            else ""
+        ),
+        "fec_authority_scope": (
+            str(bridge.get("authority_scope") or FEC_BRIDGE_AUTHORITY_SCOPE)
+            if isinstance(bridge, dict)
+            else CANONICAL_FEC_AUTHORITY_SCOPE
+            if runtime_payload.get("canonical_final_evidence_contract")
+            else ""
+        ),
+        "final_evidence_contract_authoritative": (
+            bool(bridge.get("final_evidence_contract_authoritative"))
+            if isinstance(bridge, dict)
+            else bool(runtime_payload.get("canonical_final_evidence_contract"))
+        ),
+        "canonical_c0_5_claimed": (
+            bool(bridge.get("canonical_c0_5_claimed"))
+            if isinstance(bridge, dict)
+            else False
+        ),
+        "canonical_c0_2_claimed": (
+            bool(bridge.get("canonical_c0_2_claimed"))
+            if isinstance(bridge, dict)
+            else False
+        ),
+        "canonical_c0_3_claimed": (
+            bool(bridge.get("canonical_c0_3_claimed"))
+            if isinstance(bridge, dict)
+            else False
+        ),
+        "c07_handoff_safe": (
+            bool((bridge.get("c0_evidence_room") or {}).get("c07", {}).get("handoff_safe"))
+            if isinstance(bridge, dict)
+            else None
+        ),
+        "resume_graph_allocation_scope": allocation_field(
+            "resume_graph_allocation_scope"
+        ),
+        "resume_graph_allocation_plan_id": allocation_field(
+            "resume_graph_allocation_plan_id"
+        ),
+        "resume_graph_allocation_plan_digest": allocation_field(
+            "resume_graph_allocation_plan_digest"
+        ),
+        "resume_graph_global_uniqueness_claimed": allocation_field(
+            "resume_graph_global_uniqueness_claimed"
+        ),
+        "final_graph_evidence_contract_digest": allocation_field(
+            "final_graph_evidence_contract_digest"
+        ),
+        "durable_graph_state_mutated": bool(
+            allocation_field("durable_graph_state_mutated")
+        ),
+        # These are execution-observation bindings only.  C0 still controls
+        # evidence and the revision remains non-retrying planning advisory.
+        "l1_cognitive_plan_digest": (
+            str(cognitive_plan.get("plan_digest") or "")
+            if isinstance(cognitive_plan, dict)
+            else ""
+        ),
+        "l1_cognitive_advisory_digest": (
+            str(cognitive_advisory.get("advisory_digest") or "")
+            if isinstance(cognitive_advisory, dict)
+            else ""
+        ),
+        "l1_cognitive_revision_ref": str(
+            runtime_payload.get("l1_cognitive_revision_ref") or ""
+        ),
+        "l1_cognitive_revision_digest": (
+            str(cognitive_revision.get("revision_digest") or "")
+            if isinstance(cognitive_revision, dict)
+            else ""
+        ),
+        "l1_cognitive_revision_advisory_digest": (
+            str(cognitive_revision_advisory.get("advisory_digest") or "")
+            if isinstance(cognitive_revision_advisory, dict)
+            else ""
+        ),
+        "l1_cognitive_revision_advisory_ref": str(
+            runtime_payload.get("l1_cognitive_revision_advisory_ref") or ""
+        ),
+        "l1_cognitive_c0_outcome_receipt_digest": str(
+            runtime_payload.get("l1_cognitive_c0_outcome_receipt_digest") or ""
+        ),
+        "l1_cognitive_revision_outcome_ref": str(
+            runtime_payload.get("l1_cognitive_revision_outcome_ref") or ""
+        ),
+    }
+
+
+__all__ = [
+    "FEC_BRIDGE_ARTIFACT",
+    "CANONICAL_FEC_AUTHORITY_SCOPE",
+    "FEC_BRIDGE_AUTHORITY_SCOPE",
+    "FEC_BRIDGE_MODE_SECTION",
+    "FEC_BRIDGE_RECEIPT",
+    "OBSERVED_CHAIN_WITH_FEC_BRIDGE",
+    "SectionFecBridge",
+    "SectionFecBridgePreconditionError",
+    "assert_section_pa_fec_preconditions",
+    "build_spine_c0_fec_artifact",
+    "build_spine_c0_fec_receipt",
+    "emit_spine_c0_fec_artifacts",
+    "fec_bridge_kill_switch_enabled",
+    "merge_compiled_prompt_artifact_fec_fields",
+    "pa_consumption_receipt_fields",
+    "resolve_pa_proof_authority_for_compile",
+    "wire_spine_c0_fec_for_section",
+]

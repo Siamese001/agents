@@ -1,0 +1,249 @@
+{
+  "schema_version": "apps_rg.c03_graph_evidence_cluster_contract.v1",
+  "contract_id": "C03_GRAPH_EVIDENCE_CLUSTER_EMBEDDING",
+  "wave": "W0",
+  "status": "FROZEN",
+  "authority_invariants": {
+    "graph_ids_are_only_claim_authority": true,
+    "embedding_similarity_is_claim_authority": false,
+    "retrieval_may_narrow_but_not_add_evidence": true,
+    "exact_graph_rehydration_required": true,
+    "legacy_one_vector_per_skill_is_promotable": false,
+    "replacement_generation_requires_legacy_artifact_retirement": true
+  },
+  "node_contract": {
+    "required_fields": [
+      "node_id",
+      "node_type",
+      "label",
+      "description",
+      "support_level",
+      "visibility_rule",
+      "activation_status",
+      "evidence_risk",
+      "projection_behavior",
+      "external_claim_policy",
+      "source_refs"
+    ],
+    "claim_bearing_node_types": [
+      "employment",
+      "skill",
+      "skill_row"
+    ],
+    "claim_bearing_required_fields": [
+      "canonical_assertion_text",
+      "authority_refs"
+    ],
+    "structural_node_types": [
+      "capability_domain",
+      "career_epoch",
+      "career_track",
+      "domain_pillar",
+      "identity_north_star",
+      "metric",
+      "metric_bucket"
+    ],
+    "policy_node_types": [
+      "policy",
+      "policy_rule"
+    ],
+    "forbidden_description_values": [
+      "",
+      "[",
+      "]",
+      "{",
+      "}",
+      "[]",
+      "{}",
+      "null",
+      "none",
+      "n/a",
+      "tbd",
+      "todo",
+      "unknown"
+    ],
+    "forbidden_authority_sentinels": [
+      "fact_missing"
+    ],
+    "acceptance_rules": [
+      "Claim-bearing nodes must state a concrete action, mechanism, scope, or outcome.",
+      "Claim-bearing nodes must resolve to current evidence authority or be explicitly held/internal-only.",
+      "Structural nodes must define their semantic boundary rather than merely repeat their label.",
+      "Policy nodes must identify an enforceable predicate and policy version.",
+      "Intentional graph-node and skill-row differences require a registered reconciliation rule."
+    ]
+  },
+  "edge_contract": {
+    "required_fields": [
+      "edge_id",
+      "edge_type",
+      "source_node_id",
+      "target_node_id",
+      "canonical_assertion_text",
+      "assertion_basis",
+      "projection_behavior",
+      "external_claim_policy",
+      "validation_status"
+    ],
+    "assertion_basis_kinds": [
+      "evidence_reference",
+      "source_field_derivation",
+      "taxonomy_rule",
+      "policy_predicate",
+      "non_causal_bridge",
+      "operator_confirmation"
+    ],
+    "edge_families": {
+      "evidence": [
+        "employment_hosts_fact",
+        "skill_supported_by_fact",
+        "skill_supported_by_repo_evidence",
+        "skill_supported_by_source_concept"
+      ],
+      "taxonomy": [
+        "capability_domain_contains_skill",
+        "career_track_contains_capability_domain",
+        "career_track_contains_epoch",
+        "career_track_contains_pillar",
+        "epoch_contains_pillar",
+        "epoch_contains_skill",
+        "identity_supported_by_epoch",
+        "identity_supported_by_pillar",
+        "metric_bucket_contains_metric",
+        "pillar_contains_capability_domain"
+      ],
+      "policy_and_projection": [
+        "jd_briefing_targeting_only",
+        "pillar_section_eligibility",
+        "projection_excludes_blocked_skill",
+        "section_blocks_pending_source_skill",
+        "section_blocks_skill_without_fact",
+        "section_can_select_skill",
+        "skill_allowed_in_section",
+        "skill_external_claim_eligible",
+        "skill_projection_only_internal",
+        "skill_requires_human_confirmation",
+        "srfs_requires_fact_id_only"
+      ],
+      "relationship": [
+        "career_track_precedes_career_track",
+        "employment_in_career_track",
+        "employment_produces_skill",
+        "pillar_phase_bridge",
+        "skill_can_surface_metric",
+        "skill_has_metric_bucket",
+        "skill_reinforces_skill"
+      ]
+    },
+    "acceptance_rules": [
+      "Every assertion basis must identify the exact authority field, evidence reference, policy predicate, taxonomy rule, or operator confirmation that creates the edge.",
+      "A non-empty or templated rationale alone cannot validate an edge.",
+      "Every source and target must resolve through the registered endpoint-type authority.",
+      "Every edge signature must match its registered source and target types.",
+      "Validated edges touching non-active endpoints require an explicit lifecycle disposition.",
+      "Declared graph hop paths must be traversable through registered edges."
+    ]
+  },
+  "cluster_contract": {
+    "logical_retrieval_unit": "graph_evidence_cluster",
+    "cluster_kinds": [
+      "role_episode",
+      "capability_evidence"
+    ],
+    "required_fields": [
+      "cluster_id",
+      "cluster_kind",
+      "canonical_embedding_text",
+      "member_node_ids",
+      "member_edge_ids",
+      "linked_fact_ids",
+      "linked_metric_ids",
+      "allowed_sections",
+      "activation_status",
+      "external_claim_policy",
+      "authority_envelope_sha256"
+    ],
+    "primary_root_field": "role_episode_bundle_id",
+    "secondary_cluster_constraints": {
+      "minimum_normal_member_count": 2,
+      "maximum_normal_member_count": 8,
+      "singleton_requires_explicit_exception": true,
+      "shared_evidence_anchor_required": true,
+      "coherent_career_or_employment_context_required": true,
+      "coherent_claim_intent_required": true,
+      "compatible_section_policy_required": true
+    },
+    "semantic_text_includes": [
+      "claim_action",
+      "claim_scope",
+      "claim_outcome",
+      "operating_context",
+      "concrete_capability_summaries",
+      "approved_evidence_summaries"
+    ],
+    "semantic_text_excludes": [
+      "raw_ids",
+      "digests",
+      "lifecycle_boilerplate",
+      "policy_boilerplate",
+      "section_allowlist_tokens"
+    ],
+    "vector_policy": {
+      "initial_vectors_per_logical_cluster": 1,
+      "facet_vectors_require_qrel_improvement": true,
+      "facets_must_collapse_to_cluster_id": true,
+      "per_node_vector_default_forbidden": true
+    }
+  },
+  "lifecycle_contract": {
+    "states": [
+      "DRAFT",
+      "HELD",
+      "ACTIVE",
+      "ACTIVE_CONFIRMED",
+      "RETIRED"
+    ],
+    "retrievable_states": [
+      "ACTIVE",
+      "ACTIVE_CONFIRMED"
+    ],
+    "rules": [
+      "DRAFT and HELD records cannot enter a release-authorizing cluster projection.",
+      "RETIRED records remain auditable but cannot be retrieved.",
+      "Cluster activation is the intersection of cluster, member-node, member-edge, fact, section, and policy authority.",
+      "A cluster cannot promote an otherwise ineligible member node."
+    ]
+  },
+  "embedding_contract": {
+    "model_id": "BAAI/bge-m3",
+    "model_revision": "5617a9f61b028005a4858fdac845db406aefb181",
+    "dimension": 1024,
+    "normalization": "l2",
+    "network_allowed": false,
+    "fallback_allowed": false,
+    "bounded_top_k_required": true,
+    "top_k_must_not_equal_corpus_size": true
+  },
+  "activation_contract": {
+    "required_env": "APPS_RG_GRAPH_EVIDENCE_CLUSTER_EMBEDDINGS_REQUIRED",
+    "required_qualification_sha256_env": "APPS_RG_GRAPH_EVIDENCE_CLUSTER_QUALIFICATION_SHA256",
+    "active_manifest_path": "artifacts/apps_rg/c03/graph_evidence_cluster_embeddings/graph_evidence_cluster_embedding_activation_manifest.json",
+    "manifest_schema_version": "apps_rg.graph_evidence_cluster_embedding_activation_manifest.v2",
+    "qualification_receipt_schema_version": "apps_rg.cluster_release_qualification_receipt.v1",
+    "qualification_receipt_required": true,
+    "self_declared_release_authority_accepted": false,
+    "completion_marker": "GRAPH_EVIDENCE_CLUSTER_EMBEDDINGS_QUALIFIED",
+    "release_authorizing_required": true,
+    "default_enabled": false,
+    "missing_or_invalid_manifest_behavior": "FAIL_CLOSED"
+  },
+  "wave0_acceptance": {
+    "required_legacy_artifact_inventory": true,
+    "required_source_digest_inventory": true,
+    "required_current_graph_profile": true,
+    "required_open_gate_inventory": true,
+    "legacy_artifact_deletion_authorized": false,
+    "replacement_vector_generation_authorized": false,
+    "production_promotion_authorized": false
+  }
+}

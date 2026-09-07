@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.agentic-workflow.local/apps_rg/benchmark_case_manifest.v1.schema.json",
+  "title": "Apps RG W2 benchmark case manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "benchmark_id", "minimum_cases_per_lane", "minimum_cases_per_required_slice", "slice_policy", "power_plan", "calibration_cases", "holdout_commitment"],
+  "properties": {
+    "schema_version": {"const": "apps_rg.benchmark_case_manifest.v1"},
+    "benchmark_id": {"type": "string", "minLength": 1},
+    "minimum_cases_per_lane": {"type": "integer", "minimum": 1},
+    "minimum_cases_per_required_slice": {"type": "integer", "minimum": 1},
+    "slice_policy": {"$ref": "#/$defs/slice_policy"},
+    "power_plan": {"$ref": "#/$defs/power_plan"},
+    "calibration_cases": {"type": "array", "items": {"$ref": "#/$defs/case"}},
+    "holdout_commitment": {"$ref": "#/$defs/holdout_commitment"}
+  },
+  "$defs": {
+    "slice_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["role_family", "target_profile", "evidence_density", "hard_negative", "binding_challenge", "protected_risk_slice"],
+      "properties": {
+        "role_family": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "target_profile": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "evidence_density": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"enum": ["sparse", "rich"]}},
+        "hard_negative": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "boolean"}},
+        "binding_challenge": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"enum": ["date", "number"]}},
+        "protected_risk_slice": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"enum": ["privacy", "counterfactual"]}}
+      }
+    },
+    "power_plan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["method", "alpha", "power", "minimum_detectable_effect", "baseline_variance", "minimum_pairs"],
+      "properties": {
+        "method": {"const": "paired_normal_approximation"},
+        "alpha": {"type": "number", "exclusiveMinimum": 0, "exclusiveMaximum": 1},
+        "power": {"type": "number", "exclusiveMinimum": 0, "exclusiveMaximum": 1},
+        "minimum_detectable_effect": {"type": "number", "exclusiveMinimum": 0},
+        "baseline_variance": {"type": "number", "exclusiveMinimum": 0},
+        "minimum_pairs": {"type": ["integer", "null"], "minimum": 1}
+      }
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["case_id", "source_bundle_digest", "source_family_digest", "profile_digest", "job_description_digest", "target_request_digest", "research_handoff_digest", "baseline_output_digest", "expected_output_digest", "prompt_configuration_digest", "runtime_configuration_digest", "lanes", "role_family", "employer", "target_profile", "evidence_density", "hard_negative", "binding_challenges", "protected_risk_slices", "apps_research_u0"],
+      "properties": {
+        "case_id": {"type": "string", "minLength": 1},
+        "source_bundle_digest": {"type": "string", "minLength": 1},
+        "source_family_digest": {"type": "string", "minLength": 1},
+        "profile_digest": {"type": "string", "minLength": 1},
+        "job_description_digest": {"type": "string", "minLength": 1},
+        "target_request_digest": {"type": "string", "minLength": 1},
+        "research_handoff_digest": {"type": "string", "minLength": 1},
+        "baseline_output_digest": {"type": "string", "minLength": 1},
+        "expected_output_digest": {"type": "string", "minLength": 1},
+        "prompt_configuration_digest": {"type": "string", "minLength": 1},
+        "runtime_configuration_digest": {"type": "string", "minLength": 1},
+        "lanes": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "role_family": {"type": "string", "minLength": 1},
+        "employer": {"type": "string", "minLength": 1},
+        "target_profile": {"type": "string", "minLength": 1},
+        "evidence_density": {"enum": ["sparse", "rich"]},
+        "hard_negative": {"type": "boolean"},
+        "binding_challenges": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"enum": ["date", "number"]}},
+        "protected_risk_slices": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"enum": ["privacy", "counterfactual"]}},
+        "apps_research_u0": {"$ref": "#/$defs/apps_research_u0"}
+      }
+    },
+    "apps_research_u0": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "observed", "valid", "status", "receipt_digest"],
+      "properties": {
+        "schema_version": {"const": "apps_rg.apps_research_handoff_validation_receipt.v2"},
+        "observed": {"type": "boolean"},
+        "valid": {"type": "boolean"},
+        "status": {"enum": ["PASS", "BLOCKED"]},
+        "receipt_digest": {"type": "string", "minLength": 1}
+      }
+    },
+    "holdout_commitment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "external_authority_ref", "sealed_index_digest", "case_count", "development_access"],
+      "properties": {
+        "status": {"enum": ["PENDING_EXTERNAL_SEAL", "SEALED"]},
+        "external_authority_ref": {"type": "string"},
+        "sealed_index_digest": {"type": "string"},
+        "case_count": {"type": "integer", "minimum": 0},
+        "development_access": {"const": "external_authority_only"}
+      }
+    }
+  }
+}

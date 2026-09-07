@@ -1,0 +1,19 @@
+{
+  "schema_version": "apps_rg.receipt_catalog.v1",
+  "catalog_id": "apps_rg_v2_current_qualification",
+  "required_receipt_kinds": [
+    "G1",
+    "G2",
+    "G3",
+    "G4",
+    "G5",
+    "G6",
+    "P1",
+    "P2",
+    "unsupported_material_claim_count",
+    "critical_binding_error_count",
+    "critical_run_divergence_count"
+  ],
+  "minimum_authority_tier": "human_qualified",
+  "entries": []
+}

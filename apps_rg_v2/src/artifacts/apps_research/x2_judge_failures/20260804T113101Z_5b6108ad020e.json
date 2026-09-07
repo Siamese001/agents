@@ -1,0 +1,67 @@
+{
+  "brief_text_sha256": "68473073876d1da8bbe8358b5bc207fa4e5c4bddf5dae4b695cef3264129e4ed",
+  "company_name": "Brown & Brown",
+  "emitted_at_utc": "2026-08-04T11:31:01.332518+00:00",
+  "handoff_authorized": false,
+  "jd_text_sha256": "6f3833fae9ad038a82fde25de41ab0ebaad5da14a612c29a7d9427fb1a94a21d",
+  "schema_version": "apps_research.x2_blocked_receipt.v1",
+  "source_register": [
+    {
+      "char_count": 3013,
+      "family": "adoption_motion",
+      "has_content": true
+    },
+    {
+      "char_count": 2281,
+      "family": "company_basics",
+      "has_content": true
+    },
+    {
+      "char_count": 1863,
+      "family": "competitive_landscape",
+      "has_content": true
+    },
+    {
+      "char_count": 2116,
+      "family": "leadership_and_org",
+      "has_content": true
+    },
+    {
+      "char_count": 2281,
+      "family": "recent_news_and_signals",
+      "has_content": true
+    },
+    {
+      "char_count": 2231,
+      "family": "regulatory_and_legal",
+      "has_content": true
+    },
+    {
+      "char_count": 408,
+      "family": "role_context",
+      "has_content": true
+    },
+    {
+      "char_count": 2166,
+      "family": "tech_stack_and_tools",
+      "has_content": true
+    }
+  ],
+  "x2_judge_receipt": {
+    "attempt_count": 1,
+    "gate_id": "X2_RESEARCH_SEMANTIC_GATE",
+    "judge_model": "gemini-3.1-pro-preview",
+    "judge_name": "gemini_pro",
+    "judge_provider": "gemini_pro",
+    "model_backed": true,
+    "provider_status": "MODEL_BACKED_FAIL",
+    "reason": "Hallucinates acquisitions and decentralized operating model not found in sources.",
+    "retry_count": 0,
+    "retryable_provider_error": false,
+    "schema_version": "apps_research.apps_rg_handoff_x2_judge_receipt.v1",
+    "score": 0.0,
+    "status": "FAIL",
+    "threshold": 0.75,
+    "verdict": "FAIL"
+  }
+}

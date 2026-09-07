@@ -1,0 +1,15 @@
+{
+  "schema_version": "apps_rg.e2e_operational_manifest.v1",
+  "evaluation_id": "apps_rg_v2_w6_operational",
+  "required_lanes": [
+    "competencies", "slalom_bullets", "unify_bullets", "ibm_bullets", "insurtech_bullets", "ey_bullets",
+    "slalom_narrative", "unify_narrative", "ibm_narrative", "insurtech_narrative", "ey_narrative", "executive_summary", "headline"
+  ],
+  "slo": {
+    "completion_rate_min": null,
+    "latency_p95_ms_max": null,
+    "cost_per_completed_resume_max": null,
+    "provider_error_rate_max": null
+  },
+  "attempts": []
+}

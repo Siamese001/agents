@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.agentic-workflow.local/apps_rg/p1_blind_review_ledger.v1.schema.json",
+  "title": "Apps RG blinded P1 finished-resume review ledger",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "evaluation_id", "source_identity", "cohort", "synthetic_grades_created", "pairs"],
+  "properties": {
+    "schema_version": {"const": "apps_rg.p1_blind_review_ledger.v1"},
+    "evaluation_id": {"type": "string", "minLength": 1},
+    "source_identity": {"$ref": "#/$defs/source_identity"},
+    "cohort": {"$ref": "#/$defs/cohort"},
+    "synthetic_grades_created": {"const": false},
+    "pairs": {"type": "array", "items": {"$ref": "#/$defs/pair"}}
+  },
+  "$defs": {
+    "source_identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["lane_contract_digest", "evaluator_version"],
+      "properties": {
+        "lane_contract_digest": {"type": ["string", "null"]},
+        "evaluator_version": {"const": "apps_rg.p1_blind_review_ledger.v1"}
+      }
+    },
+    "cohort": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "cohort_id", "data_split", "frozen_pair_ids", "frozen_pair_ids_digest", "baseline_policy_digest", "blind_mapping_receipt_digest"],
+      "properties": {
+        "status": {"enum": ["PENDING", "FROZEN"]},
+        "cohort_id": {"type": "string"},
+        "data_split": {"enum": ["calibration", "holdout", null]},
+        "frozen_pair_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "frozen_pair_ids_digest": {"type": ["string", "null"]},
+        "baseline_policy_digest": {"type": ["string", "null"]},
+        "blind_mapping_receipt_digest": {"type": ["string", "null"]}
+      }
+    },
+    "pair": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pair_id", "source_attempt_id", "source_attempt_record_digest", "input_digest", "baseline_output_digest", "candidate_output_digest", "review_packet_digest", "slice_values", "primary_reviews", "adjudication"],
+      "properties": {
+        "pair_id": {"type": "string", "minLength": 1},
+        "source_attempt_id": {"type": "string", "minLength": 1},
+        "source_attempt_record_digest": {"type": "string", "minLength": 1},
+        "input_digest": {"type": "string", "minLength": 1},
+        "baseline_output_digest": {"type": "string", "minLength": 1},
+        "candidate_output_digest": {"type": "string", "minLength": 1},
+        "review_packet_digest": {"type": "string", "minLength": 1},
+        "slice_values": {"type": "object", "additionalProperties": {"type": "string", "minLength": 1}},
+        "primary_reviews": {"type": "array", "items": {"$ref": "#/$defs/primary_review"}},
+        "adjudication": {"$ref": "#/$defs/adjudication"}
+      }
+    },
+    "primary_review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["review_id", "reviewer_identity_digest", "submitted_at", "review_packet_digest", "blind_preference", "rationale", "source_locator", "independent_review", "record_digest"],
+      "properties": {
+        "review_id": {"type": "string", "minLength": 1},
+        "reviewer_identity_digest": {"type": "string", "minLength": 1},
+        "submitted_at": {"type": "string", "minLength": 1},
+        "review_packet_digest": {"type": "string", "minLength": 1},
+        "blind_preference": {"enum": ["A", "B", "TIE"]},
+        "rationale": {"type": "string", "minLength": 1},
+        "source_locator": {"type": "string", "minLength": 1},
+        "independent_review": {"const": true},
+        "record_digest": {"type": "string", "minLength": 1}
+      }
+    },
+    "adjudication": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["adjudication_id", "adjudicator_identity_digest", "submitted_at", "review_packet_digest", "primary_review_ids", "primary_review_record_digests", "resolved_preference", "candidate_material_regression", "dimension_deltas", "rationale", "source_locator", "record_digest"],
+      "properties": {
+        "adjudication_id": {"type": "string", "minLength": 1},
+        "adjudicator_identity_digest": {"type": "string", "minLength": 1},
+        "submitted_at": {"type": "string", "minLength": 1},
+        "review_packet_digest": {"type": "string", "minLength": 1},
+        "primary_review_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "primary_review_record_digests": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "resolved_preference": {"enum": ["CANDIDATE", "BASELINE", "TIE"]},
+        "candidate_material_regression": {"type": "boolean"},
+        "dimension_deltas": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["authenticity", "grounding", "ats", "readability", "concision", "target_relevance"],
+          "properties": {
+            "authenticity": {"type": "number"},
+            "grounding": {"type": "number"},
+            "ats": {"type": "number"},
+            "readability": {"type": "number"},
+            "concision": {"type": "number"},
+            "target_relevance": {"type": "number"}
+          }
+        },
+        "rationale": {"type": "string", "minLength": 1},
+        "source_locator": {"type": "string", "minLength": 1},
+        "record_digest": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}

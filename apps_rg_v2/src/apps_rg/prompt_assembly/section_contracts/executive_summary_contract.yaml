@@ -1,0 +1,81 @@
+version: "1.0"
+section: executive_summary
+description: >
+  Declarative contract for the executive_summary section.
+  Canonical runtime: ``python -m apps_rg --section executive_summary`` via
+  apps_rg_canonical_section_runtime (section PA + ledger + X2/X1D/X3).
+  All fields encode prompt-level guidance for the model; hard gates live in X2/X3.
+
+structure:
+  lead_with_seniority: required
+  lead_clause_note: >
+    Open with seniority/operating identity as first clause (engineering executive register).
+    Do NOT open with: Seasoned, Dynamic, Proven, Passionate, Dedicated, Results-driven,
+    Innovative, Accomplished, Visionary, Detail-oriented, Strategic, Forward-thinking.
+
+proof_points:
+  min: 1
+  max: 5
+  source: selected_base_resume_facts_only
+  note: >
+    Every material claim in resume_display_text must be backed by claim_ledger rows
+    whose source_fact_ids are drawn only from allowed selected facts (proof substrate).
+    JD_TEXT, company_brief, target title, and briefing are targeting context only —
+    never proof.
+
+length:
+  display_text_sentence_band:
+    min: 6
+    max: 6
+  paragraph_max_words: 150
+  max_words_per_sentence: 45
+  length_policy: fit_to_evidence
+  x2_bounds_gate_ids:
+    - x2_exec_summary_sentence_count_6
+    - x2_exec_summary_paragraph_max_words
+  note: >
+    Product shape: **exactly six period-delimited sentences** forming one polished executive
+    paragraph (fit_to_evidence; max 150 words — ceiling only, no word minimum). Legacy
+    4–5 and 2–3 sentence modes are retired. SelectedRoleFactSet controls allowed facts only.
+
+naturalness_guidance_ref: "forbidden_ai_phrases.yaml#generic_openers"
+naturalness_note: >
+  Phrases declared discouraged in the prompt are guidance for the model;
+  deterministic blocking is via X2 where applicable.
+
+discouraged_adjectives:
+  - proven
+  - accomplished
+  - seasoned
+  - dynamic
+  - results-driven
+  - passionate
+  - dedicated
+
+pre_output_checklist_required: true
+
+# Runtime resume display: recruiter-facing prose only. Proof and fact IDs live in
+# claim_ledger + runtime selected_fact_plan artifact — not as inline tags in
+# resume_display_text.
+proof_authority:
+  canonical_binding: claim_ledger
+  display_text: clean_prose_only_no_inline_source_tags
+  selected_fact_plan_artifact: runtime_owned_json
+  note: >
+    Material claims must be reifiable via claim_ledger rows (source_fact_ids from
+    selected facts only). gap_notes documents unsupported JD asks. The model must
+    not echo selected_fact_plan in JSON output; runtime materializes that artifact.
+
+jd_mirror_guidance_fraction: 0.20
+jd_mirror_note: >
+  Verbatim JD phrasing stays low; JD_TEXT and BRIEFING prioritize among **selected**
+  base-résumé facts (targeting only, not proof). Voice matches canonical base résumé:
+  dense platform/runtime/governance/commercial nouns from facts — no keyword stuffing.
+
+briefing_targeting_note: >
+  Operator briefing steers emphasis (regulated context, modernization, governance)
+  like JD_TEXT: **targeting context only**; substantive claims remain selected-fact-backed.
+
+north_star_note: >
+  Executive summary is a polished SVP / agentic-AI-platform paragraph: synthesized
+  narrative, not bullet stacks, not label/colon stitching, not one-sentence-per-fact proof.

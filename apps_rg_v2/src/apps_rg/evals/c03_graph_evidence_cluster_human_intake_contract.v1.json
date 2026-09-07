@@ -1,0 +1,43 @@
+{
+  "schema_version": "apps_rg.c03_graph_evidence_cluster_human_intake_contract.v1",
+  "wave": "W9",
+  "status": "FROZEN",
+  "purpose": "Validate authorized human cluster-relevance returns and adjudications, then emit W7-compatible QRELs only from complete human evidence.",
+  "source_authority": {
+    "wave8_receipt_required": true,
+    "sealed_mapping_required": true,
+    "packet_and_ranking_digests_must_match": true
+  },
+  "human_authority": {
+    "externally_pinned_authority_receipt_required": true,
+    "two_distinct_primary_humans_required": true,
+    "distinct_human_adjudicator_required": true,
+    "synthetic_model_agent_bot_or_automated_identities_forbidden": true
+  },
+  "human_denominator": {
+    "reviewer_count": 2,
+    "adjudicator_count": 1,
+    "query_section_count": 48,
+    "candidate_judgment_count": 456,
+    "reviewer_judgment_slot_count": 912,
+    "adjudication_count": 456,
+    "full_candidate_coverage_required": true,
+    "nonempty_rationale_required": true
+  },
+  "machine_boundary": {
+    "machine_labels_allowed": false,
+    "machine_authority_allowed": false,
+    "machine_may_validate_and_join_opaque_ids": true,
+    "machine_may_emit_qrels_only_after_complete_human_pass": true
+  },
+  "platform_boundary": {
+    "official_finalization_requires_posix_owner_checks": true,
+    "windows_readiness_receipt_is_non_authorizing": true
+  },
+  "activation_boundary": {
+    "qualification_is_not_activation": true,
+    "semantic_retrieval_qualified_by_w9_readiness": false,
+    "activation_manifest_created": false,
+    "production_promotion_authorized": false
+  }
+}

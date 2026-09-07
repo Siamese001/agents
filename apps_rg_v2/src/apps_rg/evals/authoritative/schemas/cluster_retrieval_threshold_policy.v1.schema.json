@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentic-workflow.local/apps_rg/authoritative/cluster_retrieval_threshold_policy.v1.schema.json",
+  "title": "Apps RG graph-evidence cluster retrieval threshold policy",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "logical_retrieval_unit", "runtime_top_k",
+    "positive_relevance_floor", "metric_thresholds", "authority_bindings",
+    "record_digest"
+  ],
+  "properties": {
+    "schema_version": {"const": "apps_rg.authoritative_cluster_retrieval_threshold_policy.v1"},
+    "logical_retrieval_unit": {"const": "graph_evidence_cluster"},
+    "runtime_top_k": {"type": "integer", "minimum": 1},
+    "positive_relevance_floor": {"type": "number", "exclusiveMinimum": 0, "maximum": 3},
+    "metric_thresholds": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "recall_at_runtime_k_minimum", "ndcg_at_runtime_k_minimum", "mrr_minimum",
+        "hard_negative_rejection_rate_minimum", "top_k_redundancy_rate_maximum"
+      ],
+      "properties": {
+        "recall_at_runtime_k_minimum": {"$ref": "#/$defs/rate"},
+        "ndcg_at_runtime_k_minimum": {"$ref": "#/$defs/rate"},
+        "mrr_minimum": {"$ref": "#/$defs/rate"},
+        "hard_negative_rejection_rate_minimum": {"$ref": "#/$defs/rate"},
+        "top_k_redundancy_rate_maximum": {"$ref": "#/$defs/rate"}
+      }
+    },
+    "authority_bindings": {"$ref": "#/$defs/staticBindings"},
+    "record_digest": {"$ref": "#/$defs/digest"}
+  },
+  "$defs": {
+    "digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "rate": {"type": "number", "minimum": 0, "maximum": 1},
+    "staticBindings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "graph_sha256", "cluster_registry_sha256", "corpus_sha256",
+        "model_artifact_sha256", "projection_sha256", "runtime_config_sha256",
+        "authority_envelope_sha256"
+      ],
+      "properties": {
+        "graph_sha256": {"$ref": "#/$defs/digest"},
+        "cluster_registry_sha256": {"$ref": "#/$defs/digest"},
+        "corpus_sha256": {"$ref": "#/$defs/digest"},
+        "model_artifact_sha256": {"$ref": "#/$defs/digest"},
+        "projection_sha256": {"$ref": "#/$defs/digest"},
+        "runtime_config_sha256": {"$ref": "#/$defs/digest"},
+        "authority_envelope_sha256": {"$ref": "#/$defs/digest"}
+      }
+    }
+  }
+}

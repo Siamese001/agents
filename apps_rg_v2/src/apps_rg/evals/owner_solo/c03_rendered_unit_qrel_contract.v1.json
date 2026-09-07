@@ -1,0 +1,45 @@
+{
+  "schema_version": "apps_rg.owner_solo_rendered_unit_qrel_contract.v1",
+  "status": "FROZEN",
+  "result_label": "OWNER_SOLO_PROVISIONAL",
+  "purpose": "Retrieval-first evaluation in which the human reviewer grades a complete rendered resume unit that is cryptographically bound to graph provenance, an embedding identity, and a frozen ranking.",
+  "review_unit": "rendered_resume_retrieval_unit",
+  "required_scope": {
+    "target_count": 6,
+    "calibration_target_count": 3,
+    "holdout_target_count": 3,
+    "section_count": 11,
+    "query_section_case_count": 66,
+    "target_ids": [
+      "brown_brown_svp_it_strategy_innovation",
+      "anthropic_manager_applied_ai_architecture_partnerships",
+      "neo4j_vp_product_management_agentic_ai",
+      "openai_partner_ade",
+      "truist_head_agentic_ai_engineering",
+      "aveva_distinguished_ai_tech_lead_initiatives"
+    ]
+  },
+  "human_review": {
+    "grades": [0, 1, 2, 3],
+    "nonempty_rationale_required": true,
+    "relevant_threshold": 2,
+    "reviewer_must_see": ["target_context", "resume_section", "complete_rendered_resume_unit"],
+    "reviewer_must_not_see": ["rank", "score", "split", "cluster_id", "embedding_id", "model_choice", "sealed_mapping"]
+  },
+  "binding_requirements": {
+    "final_text_digest_required": true,
+    "source_assertion_ids_required": true,
+    "graph_bundle_ids_required": true,
+    "embedding_text_digest_required": true,
+    "embedding_identity_required": true,
+    "frozen_ranking_identity_required": true,
+    "full_finite_candidate_universe_required": true,
+    "partial_top_k_judging_forbidden": true
+  },
+  "authority_boundary": {
+    "one_reviewer_provisional_only": true,
+    "existing_two_reviewer_contract_unchanged": true,
+    "release_authorizing": false,
+    "production_promotion_authorized": false
+  }
+}

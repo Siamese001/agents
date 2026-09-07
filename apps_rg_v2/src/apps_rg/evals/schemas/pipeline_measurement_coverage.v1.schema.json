@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.agentic-workflow.local/apps_rg/pipeline_measurement_coverage.v1.schema.json",
+  "title": "Apps RG source-bound pipeline measurement coverage",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "title", "source_contracts", "coverage"],
+  "properties": {
+    "schema_version": {"const": "apps_rg.pipeline_measurement_coverage.v1"},
+    "title": {"type": "string", "minLength": 1},
+    "source_contracts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["lane_contract", "stage_microstep_contract", "success_metric_contract"],
+      "properties": {
+        "lane_contract": {"type": "string", "minLength": 1},
+        "stage_microstep_contract": {"type": "string", "minLength": 1},
+        "success_metric_contract": {"type": "string", "minLength": 1}
+      }
+    },
+    "coverage": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/coverage"}
+    }
+  },
+  "$defs": {
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["element_id", "scope", "stage_id", "required", "artifact_roles", "metric_links", "slice_keys", "recertification_triggers"],
+      "properties": {
+        "element_id": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
+        "scope": {"enum": ["prerequisite", "global", "lane", "cross_run"]},
+        "stage_id": {"type": "string", "minLength": 1},
+        "required": {"type": "boolean"},
+        "artifact_roles": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "metric_links": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/metric_link"}
+        },
+        "slice_keys": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "recertification_triggers": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "metric_link": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["metric_id", "role", "authority_required"],
+      "properties": {
+        "metric_id": {"type": "string", "minLength": 1},
+        "role": {"enum": ["outcome", "prerequisite", "diagnostic", "guardrail", "regression"]},
+        "authority_required": {"enum": ["technical_validation", "human_qualified", "release_authorized", "production_authorized", "regression_diagnostic"]}
+      }
+    }
+  }
+}

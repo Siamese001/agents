@@ -1,0 +1,40 @@
+schema_version: apps_rg.l1_cognitive_outcome_protocol.v1
+experiment_id: apps_rg_l1_cognitive_v3_vs_v2
+app_scope: APPS_RG_V2_ONLY
+
+control:
+  treatment_id: l1_v2_control
+  required_lineage:
+    - apps_rg_planning_v2_capsule
+    - apps_rg_l1_cognitive_treatment_execution
+candidate:
+  treatment_id: l1_cognitive_v3
+  required_lineage:
+    - apps_rg_cognitive_v3_plan
+    - apps_rg_l1_cognitive_consumer_advisory
+    - apps_rg_l1_cognitive_c0_outcome
+    - apps_rg_l1_cognitive_revision
+    - apps_rg_l1_cognitive_treatment_execution
+
+paired_execution:
+  frozen_input_required: true
+  provider_model_configuration_matched: true
+  tool_configuration_matched: true
+  candidate_c0_outcome_before_pa_required: true
+  run_bound_input_configuration_required: true
+  preserve_all_attempts_in_denominator: true
+  automatic_promotion_forbidden: true
+
+outcomes:
+  P1: blind_finished_resume_utility_delta
+  P2: grounded_decision_ready_completion_rate
+guardrails:
+  - unsupported_material_claim_count
+  - critical_binding_error_count
+  - critical_run_divergence_count
+human_review:
+  blinded: true
+  independent_primary_reviewers_per_pair: 2
+  independent_adjudicators_per_pair: 1
+  human_labels_may_not_be_generated: true
+protected_holdout_commitment_ref: apps_rg/evals/fixtures/l1_v2_protected_holdout_commitment.v1.json

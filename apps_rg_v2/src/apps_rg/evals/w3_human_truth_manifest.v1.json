@@ -1,0 +1,24 @@
+{
+  "schema_version": "apps_rg.w3_human_truth_manifest.v1",
+  "manifest_id": "apps_rg_v2_w3_human_truth",
+  "qrel_review": {
+    "status": "PENDING",
+    "required_primary_reviews_per_item": 2,
+    "required_adjudications_per_item": 1,
+    "observed_primary_reviews": 0,
+    "observed_adjudications": 0,
+    "external_authority_receipt_sha256": "",
+    "completed_receipt_digest": "",
+    "synthetic_grades_created": false
+  },
+  "proof_review": {
+    "status": "PENDING",
+    "required_primary_reviews_per_item": 2,
+    "required_adjudications_per_item": 1,
+    "observed_primary_reviews": 0,
+    "observed_adjudications": 0,
+    "external_authority_receipt_sha256": "",
+    "completed_receipt_digest": "",
+    "synthetic_grades_created": false
+  }
+}

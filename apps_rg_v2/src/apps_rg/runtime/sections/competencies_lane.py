@@ -1,0 +1,85 @@
+"""Professional Competencies section lane — **canonical** path: ``python -m apps_rg --section competencies``.
+
+Delegates to :func:`apps_rg.runtime.sections.competencies_lane_execution.run_competencies_lane_execution`.
+The dispatch package holds shared compile/runtime helpers and a compatibility
+``run_competencies_execution`` re-export; legacy ``-m ...competencies_dispatch`` is deprecated.
+"""
+from __future__ import annotations
+
+from pathlib import Path
+from types import SimpleNamespace
+from typing import Any
+
+from apps_rg.runtime.sections.competencies_lane_defaults import (
+    BRIEFING_DEFAULT,
+    COMPETENCIES_TEMP_DEFAULT,
+    JD_TEXT_DEFAULT,
+    PROMPT_ID,
+    TARGET_COMPANY_DEFAULT,
+    TARGET_TITLE_DEFAULT,
+)
+from apps_rg.runtime.sections.competencies_lane_execution import (
+    run_competencies_lane_execution as _execute_competencies_lane,
+)
+
+LANE_KEY = "competencies"
+
+__all__ = [
+    "BRIEFING_DEFAULT",
+    "COMPETENCIES_TEMP_DEFAULT",
+    "JD_TEXT_DEFAULT",
+    "LANE_KEY",
+    "PROMPT_ID",
+    "TARGET_COMPANY_DEFAULT",
+    "TARGET_TITLE_DEFAULT",
+    "build_competencies_lane_args",
+    "run_competencies_lane_execution",
+]
+
+
+def build_competencies_lane_args(
+    *,
+    provider: str,
+    temperature: float,
+    x1d_judges: str,
+    mock_judges: bool,
+    allow_test_mock_judges: bool = False,
+    target_title: str,
+    target_company: str,
+    jd_text: str,
+    briefing: str,
+    target_role: str | None = None,
+    base_resume_ref: str = "",
+) -> SimpleNamespace:
+    """Namespace compatible with competencies lane execution."""
+    ns = SimpleNamespace(
+        provider=str(provider).strip() or "external_openai",
+        temperature=float(temperature),
+        x1d_judges=str(x1d_judges),
+        mock_judges=bool(mock_judges),
+        allow_test_mock_judges=bool(allow_test_mock_judges),
+        target_title=str(target_title).strip() or TARGET_TITLE_DEFAULT,
+        target_company=str(target_company).strip() or TARGET_COMPANY_DEFAULT,
+        jd_text=str(jd_text).strip() or JD_TEXT_DEFAULT,
+        briefing=str(briefing).strip() or BRIEFING_DEFAULT,
+        target_role=(str(target_role).strip() if target_role else None),
+        base_resume_ref=str(base_resume_ref or ""),
+    )
+    return ns
+
+
+def run_competencies_lane_execution(
+    args: SimpleNamespace,
+    *,
+    artifact_dir_override: Path | None = None,
+) -> dict[str, Any]:
+    """PA → provider → deterministic repairs → X2 → X1D → X3 → L6 under runtime_proofs layout."""
+    return _execute_competencies_lane(
+        args,
+        artifact_dir_override=artifact_dir_override,
+        # The public full-run CLI owns stdout and emits only its three
+        # operator-facing outputs after the sealed product result exists.
+        # Keep the detailed lane transcript in command_output.txt instead of
+        # streaming the large competency JSON during orchestration.
+        print_output=False,
+    )

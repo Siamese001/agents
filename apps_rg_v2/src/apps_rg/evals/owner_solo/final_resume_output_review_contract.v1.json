@@ -1,0 +1,34 @@
+{
+  "schema_version": "apps_rg.owner_solo_final_resume_output_review_contract.v1",
+  "lane": "OWNER_SOLO_PROVISIONAL_FINAL_RESUME_OUTPUT",
+  "purpose": "Human assessment of source-bound finished resume text, including complete resume bullets and their rendered section context.",
+  "unit_of_human_judgment": "A finished rendered resume output unit, never a graph node, graph evidence cluster, retrieval candidate, rank, or embedding score.",
+  "required_source_conditions": {
+    "final_resume_output_contract_schema": "apps_rg.final_resume_output.v1",
+    "final_resume_output_contract_status": "PASS",
+    "all_final_output_gates_pass": true,
+    "final_resume_json_digest_matches_contract": true,
+    "rendered_resume_text_digest_matches_contract": true,
+    "explicit_gap_markers_forbidden": true,
+    "target_company_role_and_job_description_required": true
+  },
+  "reviewer_controls": {
+    "explicit_integer_grade_required": [0, 1, 2, 3],
+    "nonempty_human_rationale_required": true,
+    "append_only_event_ledger_required": true,
+    "section_context_visible": true,
+    "raw_graph_retrieval_material_hidden": true
+  },
+  "interpretation": {
+    "measure": "Owner judgment of final resume-output usefulness for the shown target job.",
+    "does_not_measure": [
+      "BGE-M3 retrieval relevance",
+      "Recall@10",
+      "nDCG@10",
+      "MRR",
+      "independent release qualification"
+    ],
+    "release_authorizing": false,
+    "production_promotion_authorized": false
+  }
+}

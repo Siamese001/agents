@@ -1,0 +1,41 @@
+{
+  "schema_version": "apps_rg.graph_evolution_author_gate_contract.v1",
+  "contract_id": "APPS_RG_GRAPH_EVOLUTION_AUTHOR_GATE",
+  "wave": "GE_W2",
+  "status": "FROZEN",
+  "input": {
+    "candidate_schema_version": "apps_rg.graph_evolution_candidate_assertion.v1",
+    "accepted_candidate_statuses": ["STAGED", "HOLD"],
+    "current_base_graph_digest_required": true
+  },
+  "human_review": {
+    "identity_prefix": "human-reviewer://",
+    "required_roles": ["EVIDENCE_REVIEWER", "GRAPH_STEWARD"],
+    "distinct_reviewer_identities_required": true,
+    "review_decisions": ["APPROVE", "HOLD", "REJECT"],
+    "approval_checks": ["source_fidelity", "assertion_atomicity", "graph_linkage_fit", "claim_policy_fit"],
+    "candidate_digest_binding_required": true
+  },
+  "adjudication": {
+    "required_for_candidate_hold_or_reviewer_disagreement": true,
+    "adjudicator_must_be_distinct_from_reviewers": true,
+    "resolutions": ["APPROVE", "HOLD", "REJECT"],
+    "candidate_digest_binding_required": true
+  },
+  "outcomes": {
+    "APPROVE": "AUTHOR_APPROVED",
+    "HOLD": "HOLD",
+    "REJECT": "REJECTED",
+    "invalid_review_or_graph_drift": "BLOCKED"
+  },
+  "ge_w2_exit": {
+    "completion_marker": "GE_W2_AUTHOR_GATE_DECIDED",
+    "next_gate_after_approval": "UWG_COMMIT",
+    "canonical_graph_mutated": false,
+    "cluster_registry_mutated": false,
+    "cluster_projection_mutated": false,
+    "uwg_called": false,
+    "embedding_materialized": false,
+    "activation_created": false
+  }
+}

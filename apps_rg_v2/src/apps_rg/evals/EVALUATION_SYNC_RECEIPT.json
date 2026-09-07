@@ -1,0 +1,50 @@
+{
+  "schema_version": "apps_rg_v2.evaluation_sync_receipt.v1",
+  "source": {
+    "repository": "C:\\Git\\Agentic-Workflow-FRESH",
+    "worktree": "C:\\Git\\Agentic-Workflow-FRESH-worktrees\\codex-apps-rg-evals-hardening-main",
+    "commit": "38796dc6cb66b273c682182cd7ed3fc5c14c84c8",
+    "root": "apps_rg/evals",
+    "file_count": 120,
+    "normalized_tree_digest": "b18a22266354e0976e15f3fd5b467742143a629df31bef35cb2f6d3bf123d735"
+  },
+  "target": {
+    "repository": "C:\\Git\\apps_rg_v2",
+    "branch": "main",
+    "root": "src/apps_rg/evals",
+    "shared_file_count": 120,
+    "normalized_exact_match_count": 119,
+    "shared_normalized_tree_digest": "70d8911bc5283e86f3bb816d17e0f8ffc21752e314e4ff07a6bab23dd86c8416"
+  },
+  "normalization": "UTF-8 text with CRLF converted to LF and one terminal LF",
+  "intentional_differences": [
+    {
+      "path": "resume_graph/metrics/retrieval.py",
+      "change": "removed unused critical_hard_negatives local",
+      "reason": "standalone Ruff F841; no runtime or metric behavior change"
+    }
+  ],
+  "preserved_target_only_files": [
+    "c03_graph_embedding_qualification.py",
+    "IMPLEMENTATION_PLAN.md",
+    "EVALUATION_SYNC_RECEIPT.json"
+  ],
+  "validation": {
+    "owned_tests": "128 passed",
+    "ruff": "PASS",
+    "compileall": "PASS",
+    "repeatability_cli_test_control": "PASS",
+    "meta_eval_cli": "PASS",
+    "sealed_receipt_ci_cli_test_control": "PASS",
+    "legacy_compatible_slice": "137 passed, 3 failed",
+    "legacy_collection_limit": "the governed target-case manifest retains old monorepo paths and digest-bound excluded fixtures; three other legacy files require deliberately excluded ops_scripts and the parent conftest assumes monorepo package topology"
+  },
+  "authority": {
+    "runtime_changed": false,
+    "apps_rg_imported": false,
+    "human_labels_created": false,
+    "release_authorizing": false,
+    "real_g5_qualification_claimed": false
+  },
+  "record_digest": "391f7cd6605eb6af252e5bafe75b0fac09d92f991282122feca403548bdd35a3"
+}

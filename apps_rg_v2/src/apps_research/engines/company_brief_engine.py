@@ -1,0 +1,2255 @@
+"""CompanyBriefEngine — apps_research --mode company.
+
+Produces a CompanyBrief conforming to apps_rg/schemas/company_research.schema.json.
+Driven by SearXNG research (when available) plus a synthesizing LLM call.
+Fails closed when grounding or synthesis dependencies cannot produce a real brief.
+
+Plan: docs/archive/windsurf/legacy-tree/plans/apps-rg-narrative-and-company-research-e3f8c1.md (P1.2).
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import logging
+import os
+import re
+import time
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Dict, Final, List, Optional
+
+from apps_research.engines.base_research_engine import BaseResearchEngine
+from apps_research.config.model_pins import (
+    AppsResearchModelPinError,
+    company_brief_generation_pin,
+)
+
+# W2 (apps-research-spine-deferred-followup-9c3e1a P2.2) — import catalog
+# and helpers from query_decomposer (L1 cognition layer). Re-export them
+# here so existing test imports from company_brief_engine continue to work
+# as a backward-compat shim.
+from apps_research.engines.query_decomposer import (  # noqa: F401
+    _COVERAGE_FAMILY_CATALOG,
+    _DEPTH_PARAM_MAP,
+    _DEPTH_PROFILES,
+    _PROFILE_REQUIRED_FAMILIES,
+    QueryPlan,
+    _resolve_depth_profile,
+    decompose_coverage_families,
+    describe_jd_retrieval_contract,
+)
+from apps_research.integrations.provider_gateway import (
+    AppsResearchProviderGatewayError,
+    invoke_openai_company_brief,
+)
+from apps_model_telemetry.token_budget_governor import TokenBudgetPolicy, estimate_input_tokens
+from apps_research.reasoning.adaptive_research_loop import (
+    build_adaptive_research_revision,
+)
+from apps_research.types.jd_intent_coverage import (
+    infer_evidence_intents,
+    required_families_for_intents,
+)
+
+# Plan §P1.4 — V2 retrieval pipeline behind feature flag.
+_RETRIEVAL_V2_FLAG = "APPS_RESEARCH_RETRIEVAL_V2"
+_SAME_RUN_RECOVERY_SIGNAL_PATTERNS: Final[dict[str, re.Pattern[str]]] = {
+    # A document may support more than one research family, but only when its
+    # own title/snippet explicitly names the target family.  This lets a
+    # previously retrieved, identity-admissible source recover a failed
+    # ambiguous query without treating generic company material as competitor
+    # evidence.
+    "competitive_landscape": re.compile(
+        r"\b(?:competitors?|competitive|market\s+(?:positioning|share)|"
+        r"peer\s+(?:companies|group|set))\b",
+        re.IGNORECASE,
+    ),
+    "adoption_motion": re.compile(
+        r"\b(?:adoption|deploy(?:ed|ment|ing)?|implementation|pilot(?:s)?|"
+        r"production|rollout|enablement)\b",
+        re.IGNORECASE,
+    ),
+}
+CompanyBriefProviderProfileError = AppsResearchModelPinError
+
+
+def _company_brief_primary_openai_model() -> str:
+    """Resolve the runtime synthesis model from the provider-profile SSOT."""
+    pin = company_brief_generation_pin()
+    if pin.provider != "external_openai":
+        raise CompanyBriefProviderProfileError(
+            "CompanyBriefEngine currently supports only approved_model_lanes.primary.provider="
+            f"external_openai; got {pin.provider!r}"
+        )
+    return pin.model
+
+
+APPS_RESEARCH_BRIEF_MODEL: Final[str] = _company_brief_primary_openai_model()
+APPS_RESEARCH_BRIEF_REASONING_EFFORT: Final[str] = (
+    company_brief_generation_pin().reasoning_effort
+)
+
+
+def _v2_enabled() -> bool:
+    """True when the V2 retrieval pipeline is opted-in via env flag."""
+    return os.environ.get(_RETRIEVAL_V2_FLAG, "").strip() in {"1", "true", "yes", "on"}
+
+
+def _source_repository_root(start: Path | None = None) -> Path:
+    """Resolve the enclosing checkout in standalone and monorepo layouts."""
+    current = Path(start) if start is not None else Path(__file__)
+    current = current.resolve()
+    if current.is_file():
+        current = current.parent
+
+    for candidate in (current, *current.parents):
+        if (candidate / "src" / "apps_research" / "__init__.py").is_file():
+            return candidate
+        if (candidate / "apps_research" / "__init__.py").is_file() and (
+            candidate / ".git"
+        ).exists():
+            return candidate
+    raise FileNotFoundError(f"could not locate repository root from {current}")
+
+
+def _company_identity_matches(*, company_name: str, document: dict[str, Any]) -> bool:
+    """Return whether a retrieved document unambiguously names the company.
+
+    This is deliberately stricter than removing punctuation and comparing a
+    compact string.  For example, that former approach made ``Brown - Brown
+    University`` look like ``Brown & Brown``.  Evidence for one company must
+    never be admitted as company evidence for another.
+    """
+    identity = " ".join(str(company_name or "").casefold().split())
+    tokens = re.findall(r"[a-z0-9]+", identity)
+    if not tokens:
+        return False
+
+    haystack = " ".join(
+        str(document.get(field) or "") for field in ("title", "url", "snippet")
+    ).casefold()
+    if len(tokens) == 1:
+        pattern = rf"(?<![a-z0-9]){re.escape(tokens[0])}(?![a-z0-9])"
+    elif "&" in identity or re.search(r"\band\b", identity):
+        pattern = (
+            r"(?<![a-z0-9])"
+            + r"\s*(?:&|and)\s*".join(re.escape(token) for token in tokens)
+            + r"(?![a-z0-9])"
+        )
+    else:
+        pattern = (
+            r"(?<![a-z0-9])"
+            + r"(?:[\s\-_/,.]+)".join(re.escape(token) for token in tokens)
+            + r"(?![a-z0-9])"
+        )
+    return bool(re.search(pattern, haystack))
+
+
+_log = logging.getLogger(__name__)
+def _emit_company_brief_marker(
+    *,
+    accepted: bool,
+    model_used: str,
+    fallback_reason: str,
+    latency_ms: float = 0.0,
+) -> None:
+    """Best-effort ``JUDGE_DECISION`` emission for synthesis observability.
+
+    Treated as a synthesis-availability observation for company-brief
+    synthesis. The calibration harness uses it to track parse-success
+    rate and fallback ratio. Never raises.
+    """
+    try:
+        from tools.capture.append_marker import append_marker  # noqa: PLC0415
+    except ImportError:
+        return
+    payload = (
+        "JUDGE_DECISION: type=judge_decision, "
+        "app_name=apps_research.company_brief, "
+        "rubric_id=company_brief_synthesis_v1, "
+        "rubric_hash=inline, "
+        f"accepted={accepted}, "
+        "composite=0.0, "
+        f"model_used={model_used}, "
+        f"fallback_reason={fallback_reason}, "
+        "first_failed_gate=none, "
+        f"latency_ms={latency_ms:.1f}"
+    )
+    try:
+        append_marker(payload, session_hint="apps_research.company_brief")
+    except (OSError, PermissionError):
+        pass
+
+
+def _company_brief_prompt_token_cap() -> int:
+    """Hard guard for a single research synthesis request, not a text rewrite."""
+    raw = os.environ.get("APPS_RESEARCH_MAX_INPUT_TOKENS", "").strip()
+    if raw:
+        try:
+            return max(1_024, min(int(raw), 48_000))
+        except ValueError:
+            pass
+    return 24_000
+
+
+def _enforce_company_brief_prompt_budget(prompt: str) -> None:
+    cap = _company_brief_prompt_token_cap()
+    estimated = estimate_input_tokens(
+        prompt,
+        policy=TokenBudgetPolicy(
+            chars_per_token_estimate=3,
+            safety_multiplier=1.12,
+            max_input_tokens_per_attempt=cap,
+            max_reserved_tokens_per_run=cap,
+        ),
+    )
+    if estimated > cap:
+        raise CompanyBriefUnavailableError(
+            "apps_research company-brief input exceeds the preflight cap: "
+            f"estimated_input_tokens={estimated}; max_input_tokens={cap}"
+        )
+
+
+class CompanyBriefUnavailableError(RuntimeError):
+    """Raised when company brief synthesis cannot produce a real brief."""
+
+
+def _resolved_gemini_max_output_tokens() -> int:
+    """Canonical apps_research output-token budget for synthesis calls."""
+    raw = os.environ.get("APPS_RESEARCH_MAX_OUTPUT_TOKENS", "").strip()
+    if raw:
+        try:
+            return max(512, int(raw))
+        except ValueError:
+            pass
+    return 4096
+
+
+class CompanyBriefEngine(BaseResearchEngine):
+    """Generates a CompanyBrief for a target company.
+
+    Inputs:
+        topic: company name (e.g., "Blend360")
+        jd_anchor: optional path to job_description.json for facet weighting
+        depth: shallow | standard | deep
+
+    Output: dict matching the CompanyBrief schema. The caller is responsible
+    for persisting and validating against pydantic.
+    """
+
+    AGENT_ID = "apps_research.company_brief_engine"
+
+    # --- Search query templates (one per facet, decomposed; W1 Author-Gate B) -----
+    _FACET_QUERIES = [
+        ("overview", '{company} company overview tagline founding "core offerings"'),
+        ("strategic_priorities", '{company} strategic priorities 2025 2026 announcements roadmap'),
+        ("customer_profile", '{company} customers verticals industries case studies'),
+        ("tech_stack_signals", '{company} technology stack platforms partners "we use"'),
+        ("commercial_motion", '{company} commercial motion revenue sales partner-led product-led services-led'),
+        ("partner_ecosystem", '{company} partners alliances co-sell ecosystem channel ISV GSI'),
+        ("adoption_motion", '{company} adoption deployment implementation pilot production enablement'),
+        ("leadership", '{company} leadership team CEO CTO executives'),
+        ("competitive_set", '{company} competitors alternatives "vs"'),
+        ("recent_moves", '{company} news 2025 acquisition partnership launch'),
+    ]
+
+    def execute(self, input_data: Any) -> Dict[str, Any]:
+        _t0 = time.perf_counter()
+        _sub_stages: list[dict[str, Any]] = []
+        topic: str = self._extract(input_data, "topic")
+        if not topic or not isinstance(topic, str):
+            raise ValueError("CompanyBriefEngine requires non-empty 'topic' (company name)")
+
+        raw_depth = str(self._extract(input_data, "depth", default="standard"))
+        depth_profile = _resolve_depth_profile(raw_depth)
+
+        # --- Sub-stage: intake ---
+        _t_intake = time.perf_counter()
+        jd_context: Dict[str, Any] = self._resolve_jd_context(input_data)
+        _sub_stages.append({
+            "sub_stage_id": "research.intake",
+            "sub_stage_name": "Intake + JD Resolution",
+            "status": "PASS",
+            "duration_ms": round((time.perf_counter() - _t_intake) * 1000, 3),
+            "meta": {"topic": topic, "depth": depth_profile},
+        })
+
+        # --- Sub-stage: research ---
+        _t_research = time.perf_counter()
+        if _v2_enabled():
+            research_findings = self._run_research_v2(
+                topic=topic,
+                depth_profile=depth_profile,
+                jd_context=jd_context,
+                retrieval_receipt_path=self._resolve_retrieval_receipt_path(jd_context),
+            )
+        else:
+            research_findings = self._run_research_adaptive(
+                topic=topic, depth_profile=depth_profile, jd_context=jd_context
+            )
+        retrieval_contract = describe_jd_retrieval_contract(jd_context or None)
+        _sub_stages.append({
+            "sub_stage_id": "research.fetch",
+            "sub_stage_name": "Evidence Retrieval",
+            "status": "PASS",
+            "duration_ms": round((time.perf_counter() - _t_research) * 1000, 3),
+            "meta": {
+                "v2": _v2_enabled(),
+                "query_families": list(research_findings.keys()),
+                "jd_intents": retrieval_contract.get("intent_ids", []),
+            },
+        })
+
+        # --- Sub-stage: JD facets ---
+        _t_jd = time.perf_counter()
+        jd_anchor: Optional[Path] = None
+        raw_anchor = self._extract(input_data, "jd_anchor", default=None)
+        if raw_anchor:
+            jd_anchor = Path(raw_anchor) if not isinstance(raw_anchor, Path) else raw_anchor
+        jd_facets = self._load_jd_facets(jd_anchor)
+        _sub_stages.append({
+            "sub_stage_id": "research.jd_facets",
+            "sub_stage_name": "JD Facet Extraction",
+            "status": "PASS",
+            "duration_ms": round((time.perf_counter() - _t_jd) * 1000, 3),
+            "meta": {"facets_count": len(jd_facets)},
+        })
+
+        # --- Sub-stage: synthesize ---
+        _t_synth = time.perf_counter()
+        profile_cfg = _DEPTH_PROFILES[depth_profile]
+        synthesized = self._synthesize(
+            topic=topic,
+            findings=research_findings,
+            jd_facets=jd_facets,
+            depth=depth_profile,
+            jd_context=jd_context,
+            jd_anchor=jd_anchor,
+        )
+        _sub_stages.append({
+            "sub_stage_id": "research.synthesize",
+            "sub_stage_name": "LLM Synthesis",
+            "status": "PASS",
+            "duration_ms": round((time.perf_counter() - _t_synth) * 1000, 3),
+            "meta": {"facets": len(synthesized)},
+        })
+
+        # --- Sub-stage: C0 bundle + gate ---
+        _t_c0 = time.perf_counter()
+        c0_bundle = self._build_c0_bundle(
+            topic=topic,
+            depth_profile=depth_profile,
+            profile_cfg=profile_cfg,
+            findings=research_findings,
+            synthesis=synthesized,
+            jd_context=jd_context,
+            retrieval_contract=retrieval_contract,
+        )
+        gate_verdict, gate_caveat, degraded_reason = self._evaluate_c0_pa_gate(
+            c0_bundle=c0_bundle, depth_profile=depth_profile
+        )
+        c0_bundle["synthesis_guidance"]["gate_verdict"] = gate_verdict
+        c0_bundle["synthesis_guidance"]["gate_caveat"] = gate_caveat
+        c0_bundle["synthesis_guidance"]["degraded_packet_reason"] = degraded_reason
+        _sub_stages.append({
+            "sub_stage_id": "research.c0_gate",
+            "sub_stage_name": "C0 Bundle + Gate Evaluation",
+            "status": "PASS" if gate_verdict == "PASS" else "FAIL",
+            "duration_ms": round((time.perf_counter() - _t_c0) * 1000, 3),
+            "meta": {"gate_verdict": gate_verdict},
+        })
+
+        # --- Sub-stage: assemble ---
+        _t_assemble = time.perf_counter()
+        brief = self._assemble_brief(topic=topic, synthesis=synthesized)
+        brief["_c0_bundle"] = c0_bundle
+        brief["_depth_profile"] = depth_profile
+        brief["_gate_verdict"] = gate_verdict
+        brief["_sub_stages"] = _sub_stages
+        if jd_context:
+            brief["_jd_context"] = dict(jd_context)
+        # apps_rg targeting brief: fail closed when the C0 gate fails, or when
+        # a caveated C0 result is missing evidence required by the target JD.
+        #
+        # COMPANY_BRIEF_STANDARD also measures generic company families such
+        # as competitive landscape.  Their absence remains visible in the C0
+        # receipt, but cannot invalidate an otherwise sealed targeting brief
+        # when its direct JD role context and every JD-required family are
+        # grounded.  Conversely, a WEAK result never passes merely because a
+        # downstream semantic judge liked the prose.
+        targeting_disposition = str(synthesized.get("targeting_brief_disposition") or "").strip()
+        if targeting_disposition:
+            targeting_md = str(synthesized.get("apps_rg_targeting_brief_markdown") or "").strip()
+            targeting_sidecar = synthesized.get("apps_rg_targeting_brief_sidecar") or {}
+            gate_blocks = not self._targeting_c0_gate_allows_handoff(
+                c0_bundle=c0_bundle,
+                gate_verdict=gate_verdict,
+            )
+            if targeting_md and not gate_blocks and targeting_disposition == "SEALED":
+                brief["apps_rg_targeting_brief_text"] = targeting_md
+                brief["company_brief_text"] = targeting_md
+                brief["targeting_brief_disposition"] = "SEALED"
+                if str(gate_verdict).upper() == "WEAK_WITH_CAVEATS":
+                    brief["targeting_brief_c0_disposition"] = "CAVEATED_JD_COMPLETE"
+                    brief["targeting_brief_c0_caveat"] = gate_caveat
+            else:
+                brief["targeting_brief_disposition"] = (
+                    "BLOCKED" if gate_blocks else targeting_disposition
+                )
+                brief["targeting_brief_block_reason"] = (
+                    f"c0_support_gate={gate_verdict}"
+                    if gate_blocks
+                    else str(synthesized.get("targeting_brief_block_reason") or "")
+                )
+                if synthesized.get("targeting_brief_violations"):
+                    brief["targeting_brief_violations"] = list(
+                        synthesized["targeting_brief_violations"]
+                    )
+            if targeting_sidecar:
+                brief["apps_rg_targeting_brief_sidecar"] = dict(targeting_sidecar)
+        _sub_stages.append({
+            "sub_stage_id": "research.assemble",
+            "sub_stage_name": "Brief Assembly",
+            "status": "PASS",
+            "duration_ms": round((time.perf_counter() - _t_assemble) * 1000, 3),
+            "meta": {},
+        })
+
+        self.record_pass(
+            f"CompanyBrief assembled for {topic} [{depth_profile}] gate={gate_verdict}",
+            data={"facets_synthesized": len(synthesized), "depth_profile": depth_profile,
+                  "gate_verdict": gate_verdict, "jd_present": bool(jd_context),
+                  "total_ms": round((time.perf_counter() - _t0) * 1000, 1)},
+        )
+        return brief
+
+    # ------------------------------------------------------------------ helpers
+
+    @staticmethod
+    def _extract(payload: Any, key: str, *, default: Any = None) -> Any:
+        if hasattr(payload, key):
+            return getattr(payload, key)
+        if isinstance(payload, dict):
+            return payload.get(key, default)
+        return default
+
+    def _load_jd_facets(self, jd_anchor: Optional[Path]) -> List[str]:
+        if not jd_anchor or not jd_anchor.exists():
+            return []
+        try:
+            data = json.loads(jd_anchor.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            self.logger.warning("[CompanyBriefEngine] JD anchor unreadable: %s", exc)
+            return []
+        # Light extraction — pull repeated nouns from the JD body if present.
+        facets: List[str] = []
+        for key in ("must_have", "nice_to_have", "responsibilities", "keywords"):
+            v = data.get(key)
+            if isinstance(v, list):
+                facets.extend(str(x) for x in v if x)
+        return facets
+
+    def _run_research_v2(
+        self,
+        *,
+        topic: str,
+        depth_profile: str | None = None,
+        jd_context: Dict[str, Any] | None = None,
+        depth: str | None = None,
+        retrieval_receipt_path: Path | None = None,
+    ) -> Dict[str, str]:
+        """V2 retrieval pipeline: plan coverage families -> retrieve -> rerank.
+
+        Plan §P1.4 + §P2.4 (parallel dispatch). Uses a thread pool for
+        per-sub-query retrieval (I/O-bound HTTP calls to SearXNG) so
+        wall-clock scales sub-linearly with fan-out. Missing retrieval
+        dependencies fail closed.
+        """
+        import concurrent.futures
+
+        from apps_research.engines.query_decomposer import decompose_coverage_families
+        from apps_research.integrations.reranker_adapter import rerank
+        from apps_research.integrations.search_retrieval import (
+            RetryableRetrievalTransportError,
+            apply_contextual_prefix,
+            retrieval_config_snapshot,
+            retrieve,
+        )
+
+        resolved_depth_profile = depth_profile or _resolve_depth_profile(depth or "standard")
+        try:
+            plans = decompose_coverage_families(topic, resolved_depth_profile, jd_context or None)
+        except ValueError as exc:
+            raise CompanyBriefUnavailableError(
+                f"{topic}: v2 research decomposition failed: {exc}"
+            ) from exc
+        profile_cfg = _DEPTH_PROFILES.get(
+            resolved_depth_profile, _DEPTH_PROFILES["COMPANY_BRIEF_STANDARD"]
+        )
+        company_name = str((jd_context or {}).get("company_name") or "").strip() or topic
+        max_queries = int(profile_cfg["max_queries"])
+        if jd_context:
+            required_targeting_families = [
+                "company_basics",
+                "role_context",
+                "competitive_landscape",
+                "leadership_and_org",
+                "recent_news_and_signals",
+                *required_families_for_intents(infer_evidence_intents(jd_context)),
+            ]
+            planned_families = {plan.family for plan in plans}
+            required_planned_count = len(
+                {
+                    family
+                    for family in required_targeting_families
+                    if family in planned_families
+                }
+            )
+            max_queries = max(max_queries, required_planned_count)
+        plans = plans[:max_queries]
+
+        config_snapshot = retrieval_config_snapshot(
+            query_families=[plan.family for plan in plans]
+        )
+        config_bytes = json.dumps(
+            config_snapshot,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+        config_digest = "sha256:" + hashlib.sha256(config_bytes).hexdigest()
+        base_url_origin = str(config_snapshot.get("base_url_origin") or "").rstrip("/")
+        endpoint = f"{base_url_origin}/search" if base_url_origin else "UNCONFIGURED"
+
+        def _document_ref(document: Any) -> tuple[str, str, str, float]:
+            return (
+                str(getattr(document, "url", "") or ""),
+                str(getattr(document, "title", "") or ""),
+                str(getattr(document, "snippet", "") or ""),
+                float(getattr(document, "score", 0.0) or 0.0),
+            )
+
+        def _document_payload(document: Any) -> dict[str, Any]:
+            url, title, snippet, score = _document_ref(document)
+            return {
+                "url": url,
+                "title": title,
+                "snippet": snippet,
+                "score": score,
+                "engines": list(getattr(document, "engines", ()) or ()),
+            }
+
+        def _exception_payload(
+            *, attempt: int, status: str, exc: BaseException
+        ) -> dict[str, Any]:
+            return {
+                "attempt": attempt,
+                "status": status,
+                "exception_type": type(exc).__name__,
+                "exception_message": " ".join(str(exc).split()),
+            }
+
+        def _fetch(plan: QueryPlan) -> tuple[str, str, dict[str, Any], list[Any]]:
+            search_queries = (plan.query, *plan.supplemental_queries)
+            row: dict[str, Any] = {
+                "family": plan.family,
+                "query": plan.query,
+                "queries": list(search_queries),
+                "min_sources": plan.min_sources,
+                "jd_boosted": plan.jd_boosted,
+                "retrieval_endpoint": endpoint,
+                "configuration_identity": {
+                    "provider": config_snapshot.get("provider"),
+                    "provider_profile": config_snapshot.get("provider_profile"),
+                    "digest": config_digest,
+                },
+                "retrieval_attempt_status": "PENDING",
+                "attempts": [],
+                "query_receipts": [],
+                "documents_before_rerank": 0,
+                "documents_identity_admissible": 0,
+                "documents_after_rerank": 0,
+                "accepted_documents": [],
+                "snippets_rejected": [],
+                "grounded_character_count": 0,
+                "finding_digest": "",
+            }
+            docs: list[Any] = []
+            seen_docs: set[tuple[str, str, str, float]] = set()
+            retry_available = True
+            query_failed = False
+            for search_query in search_queries:
+                query_receipt: dict[str, Any] = {
+                    "query": search_query,
+                    "status": "PENDING",
+                    "attempts": [],
+                    "documents_returned": 0,
+                }
+                query_docs: list[Any] = []
+                attempt = 1
+                while True:
+                    try:
+                        query_docs = retrieve(search_query, top_k=10)
+                    except RetryableRetrievalTransportError as exc:
+                        status = "RETRY" if retry_available else "FAILED"
+                        payload = _exception_payload(
+                            attempt=attempt, status=status, exc=exc
+                        )
+                        row["attempts"].append(payload)
+                        query_receipt["attempts"].append(payload)
+                        if retry_available:
+                            retry_available = False
+                            attempt += 1
+                            continue
+                        query_receipt["status"] = "FAILED"
+                        query_failed = True
+                        break
+                    except (RuntimeError, ValueError) as exc:
+                        payload = _exception_payload(
+                            attempt=attempt, status="FAILED", exc=exc
+                        )
+                        row["attempts"].append(payload)
+                        query_receipt["attempts"].append(payload)
+                        query_receipt["status"] = "FAILED"
+                        query_failed = True
+                        break
+                    payload = {"attempt": attempt, "status": "PASS"}
+                    row["attempts"].append(payload)
+                    query_receipt["attempts"].append(payload)
+                    query_receipt["status"] = "PASS"
+                    query_receipt["documents_returned"] = len(query_docs)
+                    break
+                row["query_receipts"].append(query_receipt)
+                for document in query_docs:
+                    ref = _document_ref(document)
+                    if ref not in seen_docs:
+                        seen_docs.add(ref)
+                        docs.append(document)
+
+            row["documents_before_rerank"] = len(docs)
+            if not docs:
+                row["retrieval_attempt_status"] = (
+                    "FAILED" if query_failed else "ZERO_DOCUMENTS"
+                )
+                return plan.family, "", row, []
+
+            identity_docs: list[Any] = []
+            for document in docs:
+                payload = _document_payload(document)
+                missing_fields = [
+                    field
+                    for field in ("title", "url", "snippet")
+                    if not str(payload.get(field) or "").strip()
+                ]
+                if not payload["engines"]:
+                    missing_fields.append("engines")
+                if missing_fields:
+                    row["snippets_rejected"].append(
+                        {
+                            "url": payload["url"],
+                            "title": payload["title"],
+                            "reason": "REQUIRED_EVIDENCE_FIELDS_MISSING",
+                            "missing_fields": missing_fields,
+                        }
+                    )
+                    continue
+                if not _company_identity_matches(
+                    company_name=company_name,
+                    document=payload,
+                ):
+                    row["snippets_rejected"].append(
+                        {
+                            "url": payload["url"],
+                            "title": payload["title"],
+                            "reason": "COMPANY_IDENTITY_MISMATCH",
+                        }
+                    )
+                    continue
+                identity_docs.append(document)
+            docs = identity_docs
+
+            row["documents_identity_admissible"] = len(docs)
+            if not docs:
+                row["retrieval_attempt_status"] = "NO_ADMISSIBLE_DOCUMENTS"
+                return plan.family, "", row, []
+
+            try:
+                top = rerank(plan.query, docs, cutoff=5)
+            except (RuntimeError, ValueError) as exc:
+                row["retrieval_attempt_status"] = "RERANK_FAILED"
+                row["rerank_exception"] = _exception_payload(
+                    attempt=1,
+                    status="FAILED",
+                    exc=exc,
+                )
+                return plan.family, "", row, docs
+
+            row["documents_after_rerank"] = len(top)
+            top_refs = {_document_ref(document) for document in top}
+            for document in docs:
+                if _document_ref(document) not in top_refs:
+                    row["snippets_rejected"].append(
+                        {
+                            "url": str(getattr(document, "url", "") or ""),
+                            "title": str(getattr(document, "title", "") or ""),
+                            "reason": "RERANK_DROPPED",
+                        }
+                    )
+            if not top:
+                row["retrieval_attempt_status"] = "RERANK_EMPTY"
+                return plan.family, "", row, docs
+
+            # Plan §P4.5 — wrap each chunk with Anthropic contextual prefix
+            # so the downstream synthesizer sees the same template audit
+            # grep uses (<document>/<chunk_context>).
+            chunks: list[str] = []
+            for d in top:
+                if not d.snippet:
+                    row["snippets_rejected"].append(
+                        {
+                            "url": str(d.url or ""),
+                            "title": str(d.title or ""),
+                            "reason": "EMPTY_SNIPPET",
+                        }
+                    )
+                    continue
+                row["accepted_documents"].append(_document_payload(d))
+                chunk = f"- {d.title}: {d.snippet} ({d.url})"
+                if d.url:
+                    chunk = f"{chunk}\n{d.url}"
+                chunks.append(
+                    apply_contextual_prefix(
+                        chunk,
+                        doc_title=d.title,
+                        surrounding_text=plan.query,
+                    )
+                )
+            blob = "\n\n".join(chunks)
+            row["grounded_character_count"] = len(blob)
+            row["finding_digest"] = (
+                "sha256:" + hashlib.sha256(blob.encode("utf-8")).hexdigest()
+                if blob
+                else ""
+            )
+            row["retrieval_attempt_status"] = (
+                "PASS" if blob else "NO_ADMISSIBLE_SNIPPETS"
+            )
+            return plan.family, blob, row, docs
+
+        findings: Dict[str, str] = {plan.family: "" for plan in plans}
+        family_receipts: list[dict[str, Any]] = []
+        admissible_documents_by_family: dict[str, list[Any]] = {}
+        max_workers = max(1, min(5, len(plans)))
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as pool:
+            for family, blob, family_receipt, admissible_documents in pool.map(_fetch, plans):
+                findings[family] = blob
+                family_receipts.append(family_receipt)
+                admissible_documents_by_family[family] = admissible_documents
+
+        # When a query for an ambiguous company returns no identity-admissible
+        # source, a valid document retrieved in this same run can still support
+        # the failed family.  This is deliberately narrow: no new web query,
+        # no identity relaxation, and the candidate's own title/snippet must
+        # explicitly carry the missing family's semantic signal.
+        receipts_by_family = {
+            str(row.get("family") or ""): row for row in family_receipts
+        }
+        for plan in plans:
+            if findings.get(plan.family, "").strip():
+                continue
+            signal_pattern = _SAME_RUN_RECOVERY_SIGNAL_PATTERNS.get(plan.family)
+            if signal_pattern is None:
+                continue
+
+            candidates: list[Any] = []
+            donor_families: list[str] = []
+            seen_candidates: set[tuple[str, str, str, float]] = set()
+            for donor_plan in plans:
+                donor_family = donor_plan.family
+                if donor_family == plan.family:
+                    continue
+                for candidate in admissible_documents_by_family.get(donor_family, []):
+                    payload = _document_payload(candidate)
+                    semantic_text = " ".join(
+                        (payload["title"], payload["snippet"])
+                    )
+                    if not signal_pattern.search(semantic_text):
+                        continue
+                    candidate_ref = _document_ref(candidate)
+                    if candidate_ref in seen_candidates:
+                        continue
+                    seen_candidates.add(candidate_ref)
+                    candidates.append(candidate)
+                    if donor_family not in donor_families:
+                        donor_families.append(donor_family)
+
+            if not candidates:
+                continue
+            try:
+                recovered_docs = rerank(plan.query, candidates, cutoff=5)
+            except (RuntimeError, ValueError) as exc:
+                receipts_by_family[plan.family]["recovery"] = {
+                    "status": "RERANK_FAILED",
+                    "method": "same_run_identity_admissible_semantic_evidence",
+                    "donor_families": donor_families,
+                    "candidate_count": len(candidates),
+                    "exception_type": type(exc).__name__,
+                    "exception_message": " ".join(str(exc).split()),
+                }
+                continue
+            if not recovered_docs:
+                continue
+
+            row = receipts_by_family[plan.family]
+            recovered_chunks: list[str] = []
+            for document in recovered_docs:
+                payload = _document_payload(document)
+                if not payload["snippet"]:
+                    continue
+                row["accepted_documents"].append(payload)
+                chunk = f"- {payload['title']}: {payload['snippet']} ({payload['url']})"
+                if payload["url"]:
+                    chunk = f"{chunk}\n{payload['url']}"
+                recovered_chunks.append(
+                    apply_contextual_prefix(
+                        chunk,
+                        doc_title=payload["title"],
+                        surrounding_text=plan.query,
+                    )
+                )
+            recovered_blob = "\n\n".join(recovered_chunks)
+            if not recovered_blob:
+                continue
+
+            findings[plan.family] = recovered_blob
+            row["documents_after_rerank"] = len(recovered_docs)
+            row["grounded_character_count"] = len(recovered_blob)
+            row["finding_digest"] = "sha256:" + hashlib.sha256(
+                recovered_blob.encode("utf-8")
+            ).hexdigest()
+            row["retrieval_attempt_status"] = "RECOVERED_FROM_SAME_RUN"
+            row["recovery"] = {
+                "status": "PASS",
+                "method": "same_run_identity_admissible_semantic_evidence",
+                "donor_families": donor_families,
+                "candidate_count": len(candidates),
+                "accepted_count": len(row["accepted_documents"]),
+                "semantic_signal_pattern": signal_pattern.pattern,
+            }
+
+        adaptive_revision = build_adaptive_research_revision(
+            topic=topic,
+            plans=plans,
+            family_observations=family_receipts,
+        )
+        adaptive_execution: list[dict[str, Any]] = []
+        for action in adaptive_revision["follow_up_queries"]:
+            family = str(action["family"])
+            parent_row = receipts_by_family[family]
+            parent_plan = next(plan for plan in plans if plan.family == family)
+            follow_up_plan = QueryPlan(
+                family=family,
+                query=str(action["query"]),
+                min_sources=parent_plan.min_sources,
+                jd_boosted=True,
+            )
+            _family, follow_up_blob, follow_up_row, _documents = _fetch(follow_up_plan)
+            execution_row = {
+                "family": family,
+                "query": str(action["query"]),
+                "strategy": str(action["strategy"]),
+                "trigger": dict(action["trigger"]),
+                "retrieval_attempt_status": str(
+                    follow_up_row["retrieval_attempt_status"]
+                ),
+                "accepted_document_count": len(
+                    follow_up_row["accepted_documents"]
+                ),
+                "finding_digest": str(follow_up_row["finding_digest"]),
+            }
+            adaptive_execution.append(execution_row)
+            parent_row["adaptive_follow_up"] = execution_row
+            if not follow_up_blob:
+                continue
+
+            initial_blob = findings.get(family, "")
+            findings[family] = "\n\n".join(
+                blob for blob in (initial_blob, follow_up_blob) if blob
+            )
+            parent_row["accepted_documents"].extend(
+                follow_up_row["accepted_documents"]
+            )
+            parent_row["documents_before_rerank"] += follow_up_row[
+                "documents_before_rerank"
+            ]
+            parent_row["documents_identity_admissible"] += follow_up_row[
+                "documents_identity_admissible"
+            ]
+            parent_row["documents_after_rerank"] += follow_up_row[
+                "documents_after_rerank"
+            ]
+            parent_row["grounded_character_count"] = len(findings[family])
+            parent_row["finding_digest"] = "sha256:" + hashlib.sha256(
+                findings[family].encode("utf-8")
+            ).hexdigest()
+            if not initial_blob:
+                parent_row["retrieval_attempt_status"] = "RECOVERED_BY_ADAPTIVE_FOLLOW_UP"
+
+        grounded_family_count = sum(
+            1
+            for row in family_receipts
+            if row["retrieval_attempt_status"]
+            in {
+                "PASS",
+                "RECOVERED_FROM_SAME_RUN",
+                "RECOVERED_BY_ADAPTIVE_FOLLOW_UP",
+            }
+        )
+        receipt = {
+            "schema_version": "apps_research.retrieval_receipt.v1",
+            "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+            "topic": topic,
+            "depth_profile": resolved_depth_profile,
+            "configuration": config_snapshot,
+            "configuration_digest": config_digest,
+            "families": family_receipts,
+            "adaptive_research_revision": adaptive_revision,
+            "adaptive_research_execution": adaptive_execution,
+            "summary": {
+                "status": "PASS" if grounded_family_count else "BLOCKED",
+                "planned_family_count": len(plans),
+                "grounded_family_count": grounded_family_count,
+                "grounded_source_count": sum(
+                    len(row["accepted_documents"]) for row in family_receipts
+                ),
+                "unexplained_failure_count": sum(
+                    1
+                    for row in family_receipts
+                    if row["retrieval_attempt_status"] == "PENDING"
+                ),
+            },
+        }
+        digest_payload = json.dumps(
+            receipt,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+        receipt["receipt_digest"] = "sha256:" + hashlib.sha256(digest_payload).hexdigest()
+        if retrieval_receipt_path is not None:
+            self._write_retrieval_receipt(retrieval_receipt_path, receipt)
+
+        if not any((blob or "").strip() for blob in findings.values()):
+            receipt_ref = str(retrieval_receipt_path) if retrieval_receipt_path else "not_configured"
+            raise CompanyBriefUnavailableError(
+                f"{topic}: v2 research returned no grounded findings; "
+                f"retrieval_receipt={receipt_ref}"
+            )
+        return findings
+
+    @staticmethod
+    def _resolve_retrieval_receipt_path(jd_context: Dict[str, Any]) -> Path | None:
+        raw_path = str(jd_context.get("_retrieval_receipt_path") or "").strip()
+        if not raw_path:
+            return None
+        path = Path(raw_path)
+        if not path.is_absolute():
+            raise CompanyBriefUnavailableError("retrieval receipt path must be absolute")
+        resolved = path.resolve()
+        runs_root = resolved.parent / "runs"
+        if resolved.name != "retrieval_receipt.json" or not runs_root.is_dir():
+            raise CompanyBriefUnavailableError(
+                "retrieval receipt path must be beside the existing Apps Research runs directory"
+            )
+        return resolved
+
+    @staticmethod
+    def _write_retrieval_receipt(path: Path, receipt: dict[str, Any]) -> None:
+        payload = json.dumps(
+            receipt,
+            ensure_ascii=False,
+            indent=2,
+            sort_keys=True,
+        ).encode("utf-8") + b"\n"
+        temporary_path = path.with_name(path.name + ".tmp")
+        temporary_path.write_bytes(payload)
+        os.replace(temporary_path, path)
+
+    def _run_research(self, *, topic: str, depth: str) -> Dict[str, str]:
+        """Best-effort SearXNG research per facet.
+
+        Returns a dict {facet_name: text_blob}. Missing SearXNG configuration
+        fails closed instead of substituting a synthetic brief.
+        """
+        findings: Dict[str, str] = {f: "" for f, _ in self._FACET_QUERIES}
+        try:
+            from apps_research.integrations.search_retrieval import retrieve
+        except ImportError as exc:
+            self.logger.warning(
+                "[CompanyBriefEngine] search_retrieval unavailable; failing closed: %s",
+                exc,
+            )
+            retrieve = None
+
+        max_queries = {"shallow": 3, "standard": 6, "deep": 10}.get(depth, 6)
+
+        for facet, q_template in self._FACET_QUERIES[:max_queries]:
+            if retrieve is None:
+                break
+            query = q_template.format(company=topic)
+            try:
+                docs = retrieve(query, top_k=5)
+                snippets = [d.snippet for d in docs if d.snippet]
+                findings[facet] = "\n".join(snippets)[:4000]
+            except Exception as exc:  # guardian: allow-broad-exception -- SearXNG HTTP errors are heterogeneous; per-facet fail-soft preserves partial brief
+                self.logger.warning("[CompanyBriefEngine] SearXNG query failed (%s): %s", facet, exc)
+        if not any((blob or "").strip() for blob in findings.values()):
+            raise CompanyBriefUnavailableError(
+                f"{topic}: SearXNG research returned no grounded findings"
+            )
+        return findings
+
+    def _synthesize(
+        self,
+        *,
+        topic: str,
+        findings: Dict[str, str],
+        jd_facets: List[str],
+        depth: str,
+        jd_context: Dict[str, Any] | None = None,
+        jd_anchor: Optional[Path] = None,
+    ) -> Dict[str, Any]:
+        """LLM-synthesize raw research into structured facets.
+
+        The company brief path uses the pinned OpenAI model route for
+        synthesis. When ``apps_rg_targeting_brief_enabled`` (env or
+        jd_context), emits apps_rg targeting markdown per
+        ``apps_rg_targeting_brief_v1.md``.
+        """
+        from apps_research.prompt_assembly.apps_rg_targeting_brief import (  # noqa: PLC0415
+            apps_rg_targeting_brief_enabled,
+        )
+        from apps_research.prompt_assembly.consumer_briefs import (  # noqa: PLC0415
+            consumer_brief_template_id,
+        )
+
+        consumer_template_id = consumer_brief_template_id(jd_context=jd_context)
+        if apps_rg_targeting_brief_enabled(jd_context=jd_context):
+            # The apps_rg route has its own sealed markdown contract.  A
+            # separate legacy JSON synthesis is neither an input to that
+            # contract nor used by the handoff, and a malformed unused JSON
+            # response must not prevent an otherwise valid targeting brief.
+            return self._synthesize_apps_rg_targeting_brief(
+                topic=topic,
+                findings=findings,
+                jd_context=jd_context or {},
+                jd_anchor=jd_anchor,
+            )
+        base_prompt = self._build_synthesis_prompt(topic=topic, findings=findings, jd_facets=jd_facets)
+        base_synthesis = self._gemini_synthesize(prompt=base_prompt, topic=topic, jd_facets=jd_facets)
+        if consumer_template_id in {
+            "downstream_research_substrate_v1",
+            "apps_lic_research_substrate_v1",
+            "apps_exec_executive_brief_v1",
+        }:
+            consumer_keys = {
+                "downstream_research_substrate_v1": (
+                    "downstream_research_substrate_text",
+                    "downstream_research_substrate_disposition",
+                    "downstream_research_substrate_block_reason",
+                ),
+                "apps_lic_research_substrate_v1": (
+                    "apps_lic_research_substrate_text",
+                    "apps_lic_research_substrate_disposition",
+                    "apps_lic_research_substrate_block_reason",
+                ),
+                "apps_exec_executive_brief_v1": (
+                    "apps_exec_executive_brief_text",
+                    "apps_exec_executive_brief_disposition",
+                    "apps_exec_executive_brief_block_reason",
+                ),
+            }
+            consumer_output_key, consumer_disposition_key, consumer_block_reason_key = (
+                consumer_keys[consumer_template_id]
+            )
+            consumer = self._synthesize_consumer_brief(
+                topic=topic,
+                findings=findings,
+                jd_context=jd_context or {},
+                jd_anchor=jd_anchor,
+                template_id=consumer_template_id,
+                output_key=consumer_output_key,
+                disposition_key=consumer_disposition_key,
+                block_reason_key=consumer_block_reason_key,
+            )
+            return {**base_synthesis, **consumer}
+
+        return base_synthesis
+
+    def _gemini_synthesize(
+        self,
+        *,
+        prompt: str,
+        topic: str,
+        jd_facets: List[str],
+    ) -> Dict[str, Any]:
+        """Synthesize via the pinned OpenAI model route.
+
+        Uses the pinned apps_research briefing model. Returns the parsed
+        synthesis dict on success and fails closed on transport, empty-response,
+        or parse failure.
+        """
+        _enforce_company_brief_prompt_budget(prompt)
+        model_name = APPS_RESEARCH_BRIEF_MODEL
+        started = time.time()
+        try:
+            result = invoke_openai_company_brief(
+                messages=[
+                    {
+                        "role": "system",
+                        "content": (
+                            "You are a research analyst producing structured company "
+                            "briefs. Always answer with strict JSON matching the schema "
+                            "in the user prompt."
+                        ),
+                    },
+                    {"role": "user", "content": prompt},
+                ],
+                max_completion_tokens=_resolved_gemini_max_output_tokens(),
+                application_validator=lambda text: self._parse_synthesis(
+                    text,
+                    topic=topic,
+                    jd_facets=jd_facets,
+                ),
+            )
+        except AppsResearchProviderGatewayError as exc:
+            self.logger.info("[CompanyBriefEngine] openai model=%s failed: %s", model_name, exc)
+            _emit_company_brief_marker(
+                accepted=False,
+                model_used=model_name,
+                fallback_reason=str(
+                    exc.receipt.get("validation_reason") or "openai_exception"
+                ),
+                latency_ms=(time.time() - started) * 1000.0,
+            )
+            raise CompanyBriefUnavailableError(
+                f"{topic}: OpenAI synthesis failed for model={model_name}: {type(exc).__name__}: {exc}"
+            ) from exc
+        observed_model = str(result.receipt["observed_model"])
+        self._last_company_brief_generation_model_observed = observed_model
+        self._last_company_brief_generation_provider_receipt = dict(result.receipt)
+        _emit_company_brief_marker(
+            accepted=True,
+            model_used=observed_model,
+            fallback_reason="none",
+            latency_ms=(time.time() - started) * 1000.0,
+        )
+        return dict(result.output)
+
+    def _synthesize_apps_rg_targeting_brief(
+        self,
+        *,
+        topic: str,
+        findings: Dict[str, str],
+        jd_context: Dict[str, Any],
+        jd_anchor: Optional[Path],
+        gate_verdict: str = "",
+        gate_reason: str = "",
+    ) -> Dict[str, Any]:
+        """Synthesize the apps_rg briefing packet as a sealed markdown artifact.
+
+        The company is identified strictly from ``company_name`` (falls back to
+        ``topic`` only when absent) so the JD/role never pollutes company
+        identification. The JD is passed as relevance context only.
+
+        """
+        from apps_research.integrations.apps_rg_handoff import (  # noqa: PLC0415
+            x2_judge_receipt_passes,
+        )
+        from apps_research.prompt_assembly.apps_rg_targeting_brief import (  # noqa: PLC0415
+            build_targeting_brief_prompt,
+            extract_jd_text,
+            format_research_findings,
+        )
+        from apps_research.types.apps_rg_targeting_brief_contract import (  # noqa: PLC0415
+            BriefStatus,
+            assess_targeting_brief_semantics,
+            fit_targeting_brief_to_budget,
+            normalize_targeting_brief_text,
+            seal_targeting_brief,
+        )
+
+        company_name = str(jd_context.get("company_name") or "").strip() or topic
+        jd_text = extract_jd_text(jd_context=jd_context, jd_anchor=jd_anchor)
+        research_notes = format_research_findings(findings)
+        has_research = bool(research_notes.strip())
+        gate_failed = str(gate_verdict).upper() in {"FAIL", "EMPTY", "CONFLICTED"}
+        if not has_research or gate_failed:
+            raise CompanyBriefUnavailableError(
+                f"{company_name}: apps_rg targeting brief blocked: "
+                f"{gate_reason or ('c0_support_gate_failed' if gate_failed else 'no_grounded_research_for_company')}"
+            )
+
+        prompt = build_targeting_brief_prompt(
+            jd_text=jd_text,
+            research_notes=research_notes,
+            target_entity=company_name,
+        )
+        markdown = self._call_llm_plain_markdown(prompt).strip()
+
+        if not markdown or markdown.upper().startswith("BLOCKED:"):
+            raise CompanyBriefUnavailableError(
+                f"{company_name}: apps_rg targeting brief synthesis returned "
+                f"{markdown[:120] if markdown else 'synthesis_returned_empty'}"
+            )
+
+        normalized = normalize_targeting_brief_text(
+            markdown,
+            jd_text=jd_text,
+            profile="apps_rg",
+        )
+        normalized = self._drop_unsupported_named_leadership_claims(
+            normalized,
+            research_notes=research_notes,
+        )
+        brief_for_seal = normalized
+        budget_repair: dict[str, Any] = {
+            "applied": False,
+            "strategy": "preserve_whole_bullets_per_section",
+            "before_char_count": len(brief_for_seal),
+            "after_char_count": len(brief_for_seal),
+        }
+        sealed = seal_targeting_brief(
+            brief_for_seal,
+            company_name=company_name,
+            jd_text=jd_text,
+            profile="apps_rg",
+        )
+        if not sealed.is_sealed:
+            scrubbed = self._drop_jd_restatement_bullets(brief_for_seal, sealed.violations)
+            if scrubbed != brief_for_seal:
+                brief_for_seal = scrubbed
+                sealed = seal_targeting_brief(
+                    brief_for_seal,
+                    company_name=company_name,
+                    jd_text=jd_text,
+                    profile="apps_rg",
+                )
+        # A provider can narrowly overrun the hard consumer limit while still
+        # producing structurally valid markdown.  Remove only surplus whole
+        # bullets before asking the model to regenerate; this preserves every
+        # section and makes the bounded repair explicit in the handoff sidecar.
+        if not sealed.is_sealed:
+            fitted = fit_targeting_brief_to_budget(
+                brief_for_seal,
+                profile="apps_rg",
+            )
+            if fitted != brief_for_seal:
+                budget_repair = {
+                    "applied": True,
+                    "strategy": "preserve_whole_bullets_per_section",
+                    "before_char_count": len(brief_for_seal),
+                    "after_char_count": len(fitted),
+                }
+                brief_for_seal = fitted
+                sealed = seal_targeting_brief(
+                    brief_for_seal,
+                    company_name=company_name,
+                    jd_text=jd_text,
+                    profile="apps_rg",
+                )
+        if not sealed.is_sealed:
+            repaired = self._repair_apps_rg_targeting_brief_markdown(
+                company_name=company_name,
+                draft_markdown=brief_for_seal,
+                jd_text=jd_text,
+                research_notes=research_notes,
+                gate_verdict=gate_verdict,
+                gate_reason=gate_reason,
+                violations=sealed.violations,
+            )
+            if repaired.strip() and repaired.strip() != normalized:
+                repaired_normalized = normalize_targeting_brief_text(
+                    repaired,
+                    jd_text=jd_text,
+                    profile="apps_rg",
+                )
+                repaired_normalized = self._drop_unsupported_named_leadership_claims(
+                    repaired_normalized,
+                    research_notes=research_notes,
+                )
+                repaired_normalized = fit_targeting_brief_to_budget(
+                    repaired_normalized,
+                    profile="apps_rg",
+                )
+                sealed = seal_targeting_brief(
+                    repaired_normalized,
+                    company_name=company_name,
+                    jd_text=jd_text,
+                    profile="apps_rg",
+                )
+                if not sealed.is_sealed:
+                    scrubbed = self._drop_jd_restatement_bullets(
+                        repaired_normalized,
+                        sealed.violations,
+                    )
+                    if scrubbed != repaired_normalized:
+                        sealed = seal_targeting_brief(
+                            scrubbed,
+                            company_name=company_name,
+                            jd_text=jd_text,
+                            profile="apps_rg",
+                        )
+        if not sealed.is_sealed:
+            violations = ",".join(sealed.violations) if sealed.violations else "none"
+            raise CompanyBriefUnavailableError(
+                f"{company_name}: apps_rg targeting brief rejected: "
+                f"{sealed.block_reason or 'contract_validation_failed'}; violations={violations}"
+            )
+        semantic_assessment = assess_targeting_brief_semantics(
+            sealed.company_brief_text,
+            jd_text=jd_text,
+            research_notes=research_notes,
+            source_family_keys=tuple(findings.keys()),
+            profile="apps_rg",
+        )
+        source_register = [
+            {
+                "family": family,
+                "has_content": bool((blob or "").strip()),
+                "char_count": len((blob or "").strip()),
+            }
+            for family, blob in sorted(findings.items(), key=lambda item: item[0])
+        ]
+        x2_judge_receipt = self._run_apps_rg_handoff_x2_judge(
+            brief_text=sealed.company_brief_text,
+            jd_text=jd_text,
+            research_notes=research_notes,
+            source_register=source_register,
+        )
+        if not x2_judge_receipt_passes(x2_judge_receipt):
+            diagnostic_ref = self._persist_x2_blocked_receipt(
+                company_name=company_name,
+                brief_text=sealed.company_brief_text,
+                jd_text=jd_text,
+                x2_judge_receipt=x2_judge_receipt,
+                source_register=source_register,
+            )
+            diagnostic_suffix = f"; diagnostic_ref={diagnostic_ref}" if diagnostic_ref else ""
+            raise CompanyBriefUnavailableError(
+                f"{company_name}: apps_rg targeting brief X2 judge failed: "
+                f"{x2_judge_receipt.get('status', 'MISSING_RECEIPT')}; "
+                f"reason={x2_judge_receipt.get('reason', 'missing_model_backed_pass')}"
+                f"{diagnostic_suffix}"
+            )
+        model_name = str(
+            getattr(self, "_last_targeting_generation_model_observed", "") or ""
+        ).strip()
+        if not model_name:
+            raise CompanyBriefUnavailableError(
+                f"{company_name}: targeting brief generation model was not observed"
+            )
+        return {
+            "synthesis_template": "apps_rg_targeting_brief_synthesis_v1",
+            "apps_rg_targeting_brief_markdown": sealed.company_brief_text,
+            "apps_rg_targeting_brief_sidecar": self._build_targeting_brief_sidecar(
+                company_name=company_name,
+                brief_text=sealed.company_brief_text,
+                jd_text=jd_text,
+                research_notes=research_notes,
+                findings=findings,
+                gate_verdict=gate_verdict,
+                gate_reason=gate_reason,
+                model_name=model_name,
+                semantic_override=semantic_assessment,
+                x2_judge_receipt=x2_judge_receipt,
+                source_register=source_register,
+                budget_repair=budget_repair,
+            ),
+            "targeting_brief_disposition": BriefStatus.SEALED.value,
+            "targeting_brief_char_count": sealed.char_count,
+            "targeting_brief_bullet_count": sealed.bullet_count,
+            "targeting_brief_section_count": sealed.section_count,
+        }
+
+    def _synthesize_consumer_brief(
+        self,
+        *,
+        topic: str,
+        findings: Dict[str, str],
+        jd_context: Dict[str, Any],
+        jd_anchor: Optional[Path],
+        template_id: str,
+        output_key: str,
+        disposition_key: str,
+        block_reason_key: str,
+        gate_verdict: str = "",
+        gate_reason: str = "",
+    ) -> Dict[str, Any]:
+        """Synthesize a compact downstream consumer brief."""
+        from apps_research.prompt_assembly.consumer_briefs import (  # noqa: PLC0415
+            build_consumer_brief_prompt,
+            extract_jd_text,
+            format_research_findings,
+        )
+        from apps_research.types.apps_rg_targeting_brief_contract import (  # noqa: PLC0415
+            normalize_markdown_brief_text,
+        )
+
+        company_name = str(jd_context.get("company_name") or "").strip() or topic
+        jd_text = extract_jd_text(jd_context=jd_context, jd_anchor=jd_anchor)
+        research_notes = format_research_findings(findings)
+        has_research = bool(research_notes.strip())
+        gate_failed = str(gate_verdict).upper() in {"FAIL", "EMPTY", "CONFLICTED"}
+        if not has_research or gate_failed:
+            raise CompanyBriefUnavailableError(
+                f"{company_name}: consumer brief blocked: "
+                f"{gate_reason or ('c0_support_gate_failed' if gate_failed else 'no_grounded_research_for_company')}"
+            )
+
+        prompt = build_consumer_brief_prompt(
+            template_id=template_id,
+            jd_text=jd_text,
+            research_notes=research_notes,
+            target_entity=company_name,
+        )
+        text = self._call_llm_plain_markdown(prompt).strip()
+        if not text or text.upper().startswith("BLOCKED:"):
+            raise CompanyBriefUnavailableError(
+                f"{company_name}: consumer brief synthesis returned "
+                f"{text[:120] if text else 'synthesis_returned_empty'}"
+            )
+
+        brief_profile = "apps_lic" if template_id == "apps_lic_research_substrate_v1" else "apps_rg"
+        text = normalize_markdown_brief_text(text, profile=brief_profile)
+        return {
+            "synthesis_template": template_id,
+            "consumer_brief_template_id": template_id,
+            "consumer_brief_output_key": output_key,
+            output_key: text,
+            "company_brief_text": text,
+            disposition_key: "SEALED",
+        }
+
+    def _repair_apps_rg_targeting_brief_markdown(
+        self,
+        *,
+        company_name: str,
+        draft_markdown: str,
+        jd_text: str,
+        research_notes: str,
+        gate_verdict: str,
+        gate_reason: str,
+        violations: tuple[str, ...],
+    ) -> str:
+        """Bounded second-pass repair for contract-invalid targeting drafts."""
+
+        violation_text = ", ".join(violations[:8]) if violations else "contract_validation_failed"
+        prompt = (
+            "Repair this apps_rg targeting brief so it seals cleanly.\n"
+            f"Company: {company_name}\n"
+            f"Gate verdict: {gate_verdict or 'unknown'}\n"
+            f"Gate reason: {gate_reason or 'none'}\n"
+            f"Violations: {violation_text}\n\n"
+            "Rules: preserve the same company and section structure; keep the metadata line; "
+            "target 4,000 to 6,500 total characters and never exceed the hard 8,000-character ceiling; "
+            "do not restate JD responsibilities or copy any 4-word JD phrase; keep bullets one "
+            "level deep; wrap every line to 240 characters or less; remove citations, links, "
+            "placeholders, and code fences; do not name specific executives unless the exact "
+            "person name appears in the research notes; output markdown only.\n\n"
+            f"JD (context only):\n{jd_text}\n\n"
+            f"Research notes:\n{research_notes}\n\n"
+            f"Draft to repair:\n{draft_markdown}\n"
+        )
+        repaired = self._call_llm_plain_markdown(prompt).strip()
+        if repaired.upper().startswith("BLOCKED:"):
+            return ""
+        return repaired
+
+    @staticmethod
+    def _drop_jd_restatement_bullets(markdown: str, violations: tuple[str, ...]) -> str:
+        """Remove bullet lines explicitly identified as JD restatements."""
+
+        snippets = [
+            value.split(":", 1)[1].strip().lower()
+            for value in violations
+            if value.startswith("jd_restatement_in_bullet_text:") and ":" in value
+        ]
+        if not snippets:
+            return markdown
+
+        kept_lines: list[str] = []
+        for raw_line in str(markdown or "").splitlines():
+            stripped = raw_line.strip()
+            if stripped.startswith("- "):
+                bullet = stripped[2:].strip().lower()
+                if any(snippet and snippet in bullet for snippet in snippets):
+                    continue
+            kept_lines.append(raw_line)
+        return "\n".join(kept_lines).strip()
+
+    _UNSUPPORTED_LEADERSHIP_ROLE_RE = re.compile(
+        r"\b(?:ceo|cto|cfo|coo|founder|co-founder|cofounder|president|"
+        r"chief|executive|leadership|leader|strategic voice|stakeholder)\b",
+        re.IGNORECASE,
+    )
+    _MARKDOWN_HEADER_RE = re.compile(r"^\s{0,3}#{1,6}\s+")
+    _PERSON_NAME_RE = re.compile(r"\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,2})\b")
+    _NON_PERSON_NAME_PHRASES = {
+        "Amazon Web Services",
+        "Claude Partner Network",
+        "Google Cloud",
+        "Microsoft Azure",
+    }
+
+    @classmethod
+    def _unsupported_person_names(cls, text: str, *, research_notes: str) -> list[str]:
+        notes = str(research_notes or "").lower()
+        out: list[str] = []
+        for match in cls._PERSON_NAME_RE.finditer(str(text or "")):
+            name = match.group(1).strip()
+            if name in cls._NON_PERSON_NAME_PHRASES:
+                continue
+            if name.lower() in notes:
+                continue
+            if name not in out:
+                out.append(name)
+        return out
+
+    @classmethod
+    def _drop_unsupported_named_leadership_claims(
+        cls,
+        markdown: str,
+        *,
+        research_notes: str,
+    ) -> str:
+        """Remove named leadership claims when the retrieved notes do not contain the name."""
+
+        kept_lines: list[str] = []
+        for raw_line in str(markdown or "").splitlines():
+            line = raw_line.rstrip()
+            if cls._MARKDOWN_HEADER_RE.match(line):
+                kept_lines.append(raw_line)
+                continue
+            if not cls._UNSUPPORTED_LEADERSHIP_ROLE_RE.search(line):
+                kept_lines.append(raw_line)
+                continue
+
+            sentences = re.split(r"(?<=[.!?])\s+", line)
+            kept_sentences: list[str] = []
+            for sentence in sentences:
+                unsupported = cls._unsupported_person_names(
+                    sentence,
+                    research_notes=research_notes,
+                )
+                if unsupported and cls._UNSUPPORTED_LEADERSHIP_ROLE_RE.search(sentence):
+                    continue
+                kept_sentences.append(sentence)
+
+            rebuilt = " ".join(s.strip() for s in kept_sentences if s.strip()).strip()
+            if rebuilt:
+                kept_lines.append(rebuilt)
+        return "\n".join(kept_lines).strip()
+
+    def _build_targeting_brief_sidecar(
+        self,
+        *,
+        company_name: str,
+        brief_text: str,
+        jd_text: str,
+        research_notes: str,
+        findings: Dict[str, str],
+        gate_verdict: str,
+        gate_reason: str,
+        model_name: str,
+        semantic_override: Any | None = None,
+        x2_judge_receipt: dict[str, Any] | None = None,
+        source_register: list[dict[str, Any]] | None = None,
+        budget_repair: dict[str, Any] | None = None,
+    ) -> Dict[str, Any]:
+        """Build the structured sidecar carried from apps_research to apps_rg."""
+        from apps_research.integrations.apps_rg_handoff import (  # noqa: PLC0415
+            APPS_RG_HANDOFF_GENERATION_PROVIDER,
+            x2_judge_receipt_passes,
+        )
+        from apps_research.integrations.search_retrieval import retrieval_config_snapshot  # noqa: PLC0415
+        from apps_research.types.apps_rg_targeting_brief_contract import (  # noqa: PLC0415
+            assess_targeting_brief_semantics,
+            validate_targeting_brief_text,
+        )
+
+        semantics = semantic_override or assess_targeting_brief_semantics(
+            brief_text,
+            jd_text=jd_text,
+            research_notes=research_notes,
+            source_family_keys=tuple(findings.keys()),
+            profile="apps_rg",
+        )
+        validation = validate_targeting_brief_text(
+            brief_text,
+            jd_text=jd_text,
+            profile="apps_rg",
+        )
+        resolved_source_register = source_register or [
+            {
+                "family": family,
+                "has_content": bool((blob or "").strip()),
+                "char_count": len((blob or "").strip()),
+            }
+            for family, blob in sorted(findings.items(), key=lambda item: item[0])
+        ]
+        judge_receipt = dict(x2_judge_receipt or {})
+        model_backed_x2_passed = x2_judge_receipt_passes(judge_receipt)
+        digest = hashlib.sha256(brief_text.encode("utf-8")).hexdigest() if brief_text else ""
+        retrieval_snapshot = retrieval_config_snapshot(query_families=list(findings.keys()))
+        semantic_score = judge_receipt.get("score", semantics.score)
+        judge_name = judge_receipt.get("judge_name", semantics.judge_name)
+        judge_model = judge_receipt.get("judge_model", semantics.judge_model)
+        handoff_eligible = bool(semantics.handoff_eligible and model_backed_x2_passed)
+        blocked_reason = "ok"
+        if not handoff_eligible:
+            blocked_reason = (
+                "x2_model_backed_judge_not_pass"
+                if not model_backed_x2_passed
+                else str(getattr(semantics, "reason", "") or "semantic_handoff_not_eligible")
+            )
+        return {
+            "schema_version": "apps_research.apps_rg_targeting_brief_sidecar/v1",
+            "company_name": company_name,
+            "generation_provider": APPS_RG_HANDOFF_GENERATION_PROVIDER,
+            "generation_model_requested": APPS_RESEARCH_BRIEF_MODEL,
+            "generation_model": model_name,
+            "generation_reasoning_effort": APPS_RESEARCH_BRIEF_REASONING_EFFORT,
+            "generation_model_observation_status": "OBSERVED_PROVIDER_RESPONSE",
+            "generation_provider_evidence": dict(
+                getattr(self, "_last_targeting_generation_provider_receipt", {}) or {}
+            ),
+            "provider_call_attempted": True,
+            "generation_token_budget": _resolved_gemini_max_output_tokens(),
+            "judge_name": judge_name,
+            "judge_model": judge_model,
+            "briefing_semantic_score": semantic_score,
+            "semantic_gate_mode": "model_backed_llm_judge",
+            "handoff_eligible": handoff_eligible,
+            "reason": blocked_reason,
+            "x2_judge_receipt": judge_receipt,
+            "deterministic_semantic_assessment": semantics.as_dict(),
+            "role_archetype": semantics.role_archetype,
+            "evidence_intents": list(semantics.evidence_intents),
+            "required_sections_present": list(semantics.required_sections_present),
+            "missing_sections": list(semantics.missing_sections),
+            "source_families_present": list(semantics.source_families_present),
+            "source_families_missing": list(semantics.source_families_missing),
+            "signal_terms_present": list(semantics.signal_terms_present),
+            "signal_terms_missing": list(semantics.signal_terms_missing),
+            "retrieval_config": retrieval_snapshot,
+            "source_register": resolved_source_register,
+            "gate_verdict": gate_verdict,
+            "gate_reason": gate_reason,
+            "text_char_count": validation.char_count,
+            "bullet_count": validation.bullet_count,
+            "section_count": validation.section_count,
+            "brief_text_sha256": digest,
+            "budget_repair": dict(budget_repair or {}),
+        }
+
+    def _run_apps_rg_handoff_x2_judge(
+        self,
+        *,
+        brief_text: str,
+        jd_text: str,
+        research_notes: str,
+        source_register: list[dict[str, Any]],
+    ) -> dict[str, Any]:
+        from apps_research.integrations.apps_rg_handoff import (  # noqa: PLC0415
+            run_apps_rg_handoff_x2_judge,
+        )
+
+        return run_apps_rg_handoff_x2_judge(
+            brief_text=brief_text,
+            jd_text=jd_text,
+            research_notes=research_notes,
+            source_register=source_register,
+        )
+
+    def _persist_x2_blocked_receipt(
+        self,
+        *,
+        company_name: str,
+        brief_text: str,
+        jd_text: str,
+        x2_judge_receipt: dict[str, Any],
+        source_register: list[dict[str, Any]],
+    ) -> str:
+        """Write fail-closed X2 diagnostics without authorizing handoff."""
+        try:
+            repo_root = _source_repository_root()
+            out_dir = repo_root / "artifacts" / "apps_research" / "x2_judge_failures"
+            out_dir.mkdir(parents=True, exist_ok=True)
+            digest = hashlib.sha256(
+                f"{company_name}\n{brief_text}".encode("utf-8")
+            ).hexdigest()[:12]
+            timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+            path = out_dir / f"{timestamp}_{digest}.json"
+            payload = {
+                "schema_version": "apps_research.x2_blocked_receipt.v1",
+                "company_name": company_name,
+                "emitted_at_utc": datetime.now(timezone.utc).isoformat(),
+                "brief_text_sha256": hashlib.sha256(
+                    str(brief_text or "").encode("utf-8")
+                ).hexdigest(),
+                "jd_text_sha256": hashlib.sha256(
+                    str(jd_text or "").encode("utf-8")
+                ).hexdigest(),
+                "handoff_authorized": False,
+                "x2_judge_receipt": dict(x2_judge_receipt or {}),
+                "source_register": list(source_register or []),
+            }
+            path.write_text(
+                json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+                encoding="utf-8",
+            )
+            return str(path)
+        except (OSError, TypeError, ValueError) as exc:
+            self.logger.warning(
+                "[CompanyBriefEngine] failed to persist X2 blocked receipt: %s",
+                exc,
+            )
+            return ""
+
+    def _call_llm_plain_markdown(self, prompt: str) -> str:
+        """OpenAI route for plain-text targeting brief output."""
+        text = self._gemini_synthesize_plain(prompt=prompt)
+        return text
+
+    def _gemini_synthesize_plain(self, *, prompt: str) -> str:
+        _enforce_company_brief_prompt_budget(prompt)
+        model_name = APPS_RESEARCH_BRIEF_MODEL
+        try:
+            result = invoke_openai_company_brief(
+                messages=[
+                    {
+                        "role": "system",
+                        "content": (
+                            "You produce apps_rg targeting briefs only. Output plain "
+                            "markdown exactly as instructed. No JSON. No fences."
+                        ),
+                    },
+                    {"role": "user", "content": prompt},
+                ],
+                max_completion_tokens=_resolved_gemini_max_output_tokens(),
+                application_validator=lambda text: text,
+            )
+        except AppsResearchProviderGatewayError as exc:
+            self.logger.info(
+                "[CompanyBriefEngine] targeting brief openai model=%s failed: %s",
+                model_name,
+                exc,
+            )
+            raise CompanyBriefUnavailableError(
+                f"targeting brief OpenAI synthesis failed for model={model_name}: {type(exc).__name__}: {exc}"
+            ) from exc
+        observed_model = str(result.receipt["observed_model"])
+        self._last_targeting_generation_model_observed = observed_model
+        self._last_targeting_generation_provider_receipt = dict(result.receipt)
+        return str(result.output)
+
+    @staticmethod
+    def _build_synthesis_prompt(
+        *, topic: str, findings: Dict[str, str], jd_facets: List[str]
+    ) -> str:
+        joined = "\n\n".join(
+            f"### {facet}\n{(blob or '(no research available)')[:2000]}"
+            for facet, blob in findings.items()
+        )
+        jd_hint = ", ".join(jd_facets[:25]) if jd_facets else "(none provided)"
+        return (
+            f"You are a corporate intelligence analyst. Produce a structured JSON brief "
+            f"about the company {topic} suitable for downstream resume narrative work.\n\n"
+            f"Use the research notes below; do NOT invent facts. If a facet is empty, "
+            f"return a best-effort inference clearly marked or an empty list.\n\n"
+            f"Job-description anchor terms (for relevance weighting): {jd_hint}\n\n"
+            f"Research notes:\n{joined}\n\n"
+            "Return strictly JSON with keys: company_archetype (string), company_dna (object), "
+            "tagline, core_offerings (list[str]), strategic_priorities (list[str], min 2), "
+            "verticals (list[str]), buyer_titles (list[str]), tech_stack_signals (list[str]), "
+            "commercial_motion (list[str]), partner_ecosystem (list[str]), "
+            "adoption_motion (list[str]), leadership (list of {name,title,background}), "
+            "competitive_set (list[str]), recent_moves (list of {date,event,signal}), "
+            "language_to_mirror (list[str], min 3), language_to_avoid (list[str]).\n"
+            "company_dna should summarize the operating identity of the company in a few short "
+            "fields: archetype, commercial_motion, partner_ecosystem, adoption_motion, "
+            "operating_tension, and distinguishing_traits. Prefer specific language over "
+            "generic AI-company prose."
+        )
+
+    def _parse_synthesis(
+        self, text: str, *, topic: str, jd_facets: List[str]
+    ) -> Dict[str, Any]:
+        try:
+            # Tolerant JSON extraction.
+            first = text.find("{")
+            last = text.rfind("}")
+            if first >= 0 and last > first:
+                return json.loads(text[first : last + 1])
+        except (json.JSONDecodeError, ValueError) as exc:
+            self.logger.warning("[CompanyBriefEngine] could not parse LLM JSON: %s", exc)
+        raise CompanyBriefUnavailableError(
+            f"{topic}: structured synthesis JSON parse failed"
+        )
+
+    @staticmethod
+    def _stub_synthesis(*, topic: str, jd_facets: List[str]) -> Dict[str, Any]:
+        raise CompanyBriefUnavailableError(
+            f"{topic}: stub synthesis disabled"
+        )
+
+    # ------------------------------------------------------------------
+    # W2 C0 pipeline methods
+    # (apps-research-spine-deferred-followup-9c3e1a P2.2)
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _resolve_jd_context(input_data: Any) -> Dict[str, Any]:
+        """Extract and normalise JD context from input_data.
+
+        Accepts either a plain dict under 'jd_context' key or a
+        'jd_anchor' path. Computes jd_content_hash when absent.
+        """
+        jd: Any = None
+        if isinstance(input_data, dict):
+            jd = input_data.get("jd_context")
+        elif hasattr(input_data, "jd_context"):
+            jd = getattr(input_data, "jd_context", None)
+
+        if not isinstance(jd, dict) or not jd:
+            return {}
+
+        result: Dict[str, Any] = dict(jd)
+        # Compute content hash when absent
+        if not result.get("jd_content_hash"):
+            content = str(result.get("content") or result.get("jd_ref") or "")
+            if content:
+                result["jd_content_hash"] = "sha256-" + hashlib.sha256(
+                    content.encode("utf-8")
+                ).hexdigest()[:16]
+        return result
+
+    def _run_research_adaptive(
+        self,
+        *,
+        topic: str,
+        depth_profile: str,
+        jd_context: Dict[str, Any],
+    ) -> Dict[str, str]:
+        """Run research using coverage-family fan-out from query_decomposer.
+
+        Delegates family selection + query generation to
+        ``decompose_coverage_families()``. Uses
+        ``apps_research.integrations.search_retrieval.retrieve`` (the
+        canonical SearXNG adapter) for the actual searches. Missing or empty
+        retrieval fails closed; no curated company pack may stand in for
+        grounded research.
+        """
+        plans = decompose_coverage_families(topic, depth_profile, jd_context or None)
+        findings: Dict[str, str] = {p.family: "" for p in plans}
+
+        try:
+            from apps_research.integrations.search_retrieval import retrieve
+        except ImportError as exc:
+            self.logger.warning(
+                "[CompanyBriefEngine] search_retrieval unavailable; failing closed: %s",
+                exc,
+            )
+            retrieve = None
+
+        profile_cfg = _DEPTH_PROFILES.get(depth_profile, _DEPTH_PROFILES["COMPANY_BRIEF_STANDARD"])
+        max_queries = profile_cfg["max_queries"]
+
+        for plan in plans[:max_queries]:
+            if retrieve is None:
+                break
+            try:
+                docs = retrieve(plan.query, top_k=5)
+            except RuntimeError as exc:
+                self.logger.warning(
+                    "[CompanyBriefEngine] SearXNG unavailable for family=%s: %s",
+                    plan.family,
+                    exc,
+                )
+                continue
+            except Exception as exc:  # guardian: allow-broad-exception -- per-family SearXNG HTTP errors heterogeneous; fail-soft preserves partial brief
+                self.logger.warning(
+                    "[CompanyBriefEngine] SearXNG query failed (family=%s): %s",
+                    plan.family,
+                    exc,
+                )
+                continue
+            snippets: list[str] = []
+            for d in docs:
+                if not (d.snippet or "").strip():
+                    continue
+                snippets.append(f"{d.title}: {d.snippet}")
+                if d.url:
+                    # URL on its own line so _build_c0_bundle's
+                    # startswith("http") extractor picks it up for
+                    # source_portfolio_summary.source_urls.
+                    snippets.append(d.url)
+            findings[plan.family] = "\n".join(snippets)[:4000]
+        if not any((blob or "").strip() for blob in findings.values()):
+            raise CompanyBriefUnavailableError(
+                f"{topic}: adaptive research returned no grounded findings"
+            )
+        return findings
+
+    def _build_c0_bundle(
+        self,
+        *,
+        topic: str,
+        depth_profile: str,
+        profile_cfg: Dict[str, Any],
+        findings: Dict[str, str],
+        synthesis: Dict[str, Any],
+        jd_context: Dict[str, Any],
+        retrieval_contract: Dict[str, Any] | None = None,
+    ) -> Dict[str, Any]:
+        """Build the 7-object C0 output bundle from research findings + synthesis."""
+        from apps_research.integrations.search_retrieval import retrieval_config_snapshot  # noqa: PLC0415
+        from apps_research.prompt_assembly.consumer_briefs import extract_jd_text  # noqa: PLC0415
+
+        contract = retrieval_contract or describe_jd_retrieval_contract(jd_context or None)
+        required_families = list(dict.fromkeys(
+            list(_PROFILE_REQUIRED_FAMILIES.get(depth_profile, []))
+            + list(contract.get("required_evidence_families", []))
+        ))
+        retrieval_snapshot = retrieval_config_snapshot(
+            query_families=list(findings.keys())
+        )
+        jd_present = bool(jd_context)
+        jd_text = extract_jd_text(jd_context=jd_context).strip() if jd_present else ""
+        direct_jd_role_context = bool(jd_text)
+
+        # ── BriefingCoverageMatrix ──────────────────────────────────────────
+        coverage_entries: List[Dict[str, Any]] = []
+        covered = 0
+        for fam in required_families:
+            blob = findings.get(fam, "")
+            has_content = bool(blob and blob.strip())
+            has_direct_jd_support = fam == "role_context" and direct_jd_role_context
+            is_covered = has_content or has_direct_jd_support
+            if is_covered:
+                covered += 1
+            coverage_entries.append(
+                {
+                    "family": fam,
+                    "covered": is_covered,
+                    "source_count": (
+                        len(blob.split("\n"))
+                        if has_content
+                        else (1 if has_direct_jd_support else 0)
+                    ),
+                    "support_kind": (
+                        "retrieved_web"
+                        if has_content
+                        else (
+                            "direct_jd_document"
+                            if has_direct_jd_support
+                            else "missing"
+                        )
+                    ),
+                }
+            )
+
+        jd_req_families = ["role_context", "tech_stack_and_tools"] if jd_present else []
+        jd_covered = sum(
+            1
+            for entry in coverage_entries
+            if entry["family"] in jd_req_families and entry["covered"]
+        )
+        overall_coverage_score = covered / len(required_families) if required_families else 0.0
+        jd_coverage_score = jd_covered / len(jd_req_families) if jd_req_families else 0.0
+        briefing_coverage_matrix = {
+            "profile_id": depth_profile,
+            "families": coverage_entries,
+            "overall_coverage_score": round(overall_coverage_score, 4),
+            "jd_coverage_score": round(jd_coverage_score, 4),
+            "recruiter_outreach_overlay_present": False,
+        }
+
+        # ── SourcePortfolioSummary ──────────────────────────────────────────
+        # Count explicit URL lines for grounded evidence; fall back to
+        # non-empty content lines as citation-anchor proxies when the bundle
+        # is only partially grounded.
+        all_urls: List[str] = []
+        all_content_lines: List[str] = []
+        for blob in findings.values():
+            for line in blob.split("\n"):
+                stripped_line = line.strip()
+                if not stripped_line:
+                    continue
+                all_content_lines.append(stripped_line)
+                if stripped_line.startswith("http"):
+                    all_urls.append(stripped_line)
+
+        total_url_sources = len(set(all_urls))
+        total_citation_anchors = len(all_urls) if all_urls else len(all_content_lines)
+        # total_final_sources: prefer unique URL count; fall back to covered family count
+        total_sources = total_url_sources if total_url_sources > 0 else covered
+        source_portfolio_summary = {
+            "total_final_sources": total_sources,
+            "total_citation_anchors": total_citation_anchors,
+            "authoritative_anchor_present": total_sources > 0,
+            "source_urls": sorted(set(all_urls))[:50],
+            "direct_jd_source_present": direct_jd_role_context,
+            "direct_jd_content_hash": (
+                str(jd_context.get("jd_content_hash") or "")
+                if direct_jd_role_context
+                else ""
+            ),
+        }
+
+        # ── ClaimEvidenceMap ────────────────────────────────────────────────
+        unsupported = max(0, len(required_families) - covered)
+        claim_evidence_map = {
+            "total_claims": len(required_families),
+            "supported_count": covered,
+            "unsupported_direct_evidence_count": unsupported,
+            "unsupported_claim_count": unsupported,
+        }
+
+        # ── ContradictionMatrix ─────────────────────────────────────────────
+        contradiction_matrix = {
+            "total_contradictions": 0,
+            "unresolved_critical": 0,
+            "resolved_count": 0,
+        }
+
+        # ── FreshnessReport ─────────────────────────────────────────────────
+        freshness_report = {
+            "policy_id": f"freshness::apps_research::{depth_profile.split('_')[-1].lower()}",
+            "sources": [],
+            "stale_excluded_count": 0,
+            "gate_fail_triggered": False,
+            "stale_section_ids": [],
+        }
+
+        # ── SectionGapReport ────────────────────────────────────────────────
+        gap_families = [
+            str(entry["family"])
+            for entry in coverage_entries
+            if not entry["covered"]
+        ]
+        section_gap_report = {
+            "gap_families": gap_families,
+            "gap_count": len(gap_families),
+        }
+
+        # ── SynthesisGuidance ───────────────────────────────────────────────
+        synthesis_guidance: Dict[str, Any] = {
+            "depth_profile": depth_profile,
+            "gate_verdict": "PENDING",
+            "gate_caveat": "",
+            "degraded_packet_reason": "",
+            "ordered_sections": required_families,
+            "jd_evidence_intents": list(contract.get("intent_ids", [])),
+            "jd_required_evidence_families": list(contract.get("required_evidence_families", [])),
+            "direct_jd_evidence_families": (
+                ["role_context"] if direct_jd_role_context else []
+            ),
+        }
+        if jd_present:
+            synthesis_guidance["jd_focal_angle"] = jd_context.get("jd_ref", "")
+            synthesis_guidance["apps_rg_downstream_fields"] = {
+                "jd_ref": jd_context.get("jd_ref"),
+                "jd_content_hash": jd_context.get("jd_content_hash"),
+                "responsibilities": jd_context.get("responsibilities", []),
+            }
+
+        # ── JD context block ────────────────────────────────────────────────
+        bundle: Dict[str, Any] = {
+            "briefing_coverage_matrix": briefing_coverage_matrix,
+            "source_portfolio_summary": source_portfolio_summary,
+            "claim_evidence_map": claim_evidence_map,
+            "contradiction_matrix": contradiction_matrix,
+            "freshness_report": freshness_report,
+            "section_gap_report": section_gap_report,
+            "retrieval_config": retrieval_snapshot,
+            "jd_retrieval_contract": contract,
+            "synthesis_guidance": synthesis_guidance,
+        }
+        if jd_present:
+            bundle["jd_context"] = dict(jd_context)
+
+        return bundle
+
+    def _evaluate_c0_pa_gate(
+        self,
+        *,
+        c0_bundle: Dict[str, Any],
+        depth_profile: str,
+    ) -> tuple[str, str, str]:
+        """Evaluate the C0 PA gate; return (verdict, caveat, degraded_reason).
+
+        Verdict values: 'PASS', 'WEAK_WITH_CAVEATS', 'FAIL'.
+        """
+        profile_cfg = _DEPTH_PROFILES.get(
+            depth_profile, _DEPTH_PROFILES["COMPANY_BRIEF_STANDARD"]
+        )
+        min_sources = profile_cfg["min_sources"]
+        coverage_floor = profile_cfg["coverage_floor"]
+        gate_weak_floor = profile_cfg["gate_weak_floor"]
+
+        sps = c0_bundle.get("source_portfolio_summary", {})
+        total_sources = sps.get("total_final_sources", 0)
+        authoritative = sps.get("authoritative_anchor_present", False)
+
+        bcm = c0_bundle.get("briefing_coverage_matrix", {})
+        coverage_score = bcm.get("overall_coverage_score", 0.0)
+
+        contradiction_matrix = c0_bundle.get("contradiction_matrix", {})
+        unresolved_critical = contradiction_matrix.get("unresolved_critical", 0)
+
+        freshness = c0_bundle.get("freshness_report", {})
+        freshness_fail = freshness.get("gate_fail_triggered", False)
+
+        cem = c0_bundle.get("claim_evidence_map", {})
+        unsupported = cem.get("unsupported_direct_evidence_count", 0)
+
+        # Hard-fail conditions
+        if total_sources < min_sources:
+            return (
+                "FAIL",
+                "",
+                f"Insufficient sources: {total_sources} found, {min_sources} required for {depth_profile}.",
+            )
+        if unresolved_critical > 0:
+            return ("FAIL", "", f"Unresolved critical contradictions: {unresolved_critical}.")
+        if freshness_fail:
+            return ("FAIL", "", "Freshness gate triggered.")
+
+        # PASS
+        if coverage_score >= coverage_floor and authoritative and unsupported == 0:
+            return ("PASS", "", "")
+
+        # WEAK_WITH_CAVEATS
+        if coverage_score >= gate_weak_floor:
+            caveats = []
+            if coverage_score < coverage_floor:
+                caveats.append(f"coverage {coverage_score:.0%} below floor {coverage_floor:.0%}")
+            if not authoritative:
+                caveats.append("no authoritative anchor")
+            if unsupported > 0:
+                caveats.append(f"{unsupported} unsupported claims")
+            return ("WEAK_WITH_CAVEATS", "; ".join(caveats), "")
+
+        return ("FAIL", "", f"Coverage {coverage_score:.0%} below weak floor {gate_weak_floor:.0%}.")
+
+    @staticmethod
+    def _targeting_c0_gate_allows_handoff(
+        *,
+        c0_bundle: Dict[str, Any],
+        gate_verdict: str,
+    ) -> bool:
+        """Return whether a C0 result is safe to hand to the Apps RG target lane.
+
+        ``PASS`` is sufficient.  ``WEAK_WITH_CAVEATS`` is sufficient only for
+        the narrower targeting case: the direct JD role context and every
+        evidence family selected by the JD-intent retrieval contract have
+        explicit C0 coverage.  This does not change the generic C0 verdict or
+        hide its caveat; it prevents optional company-brief gaps from masking
+        a fully grounded, sealed targeting brief.
+        """
+        verdict = str(gate_verdict or "").upper()
+        if verdict == "PASS":
+            return True
+        if verdict != "WEAK_WITH_CAVEATS":
+            return False
+
+        coverage_matrix = c0_bundle.get("briefing_coverage_matrix")
+        contract = c0_bundle.get("jd_retrieval_contract")
+        source_summary = c0_bundle.get("source_portfolio_summary")
+        contradictions = c0_bundle.get("contradiction_matrix")
+        freshness = c0_bundle.get("freshness_report")
+        if not all(
+            isinstance(value, dict)
+            for value in (
+                coverage_matrix,
+                contract,
+                source_summary,
+                contradictions,
+                freshness,
+            )
+        ):
+            return False
+
+        required_families = {
+            str(family).strip()
+            for family in contract.get("required_evidence_families", [])
+            if str(family).strip()
+        }
+        # A caveated path without a concrete JD-derived contract is not
+        # admissible.  The direct JD role context is also mandatory even when
+        # it is not one of the inferred evidence-intent families.
+        if not required_families:
+            return False
+        covered_families = {
+            str(entry.get("family") or "").strip()
+            for entry in coverage_matrix.get("families", [])
+            if isinstance(entry, dict) and bool(entry.get("covered"))
+        }
+        if "role_context" not in covered_families:
+            return False
+        if not required_families.issubset(covered_families):
+            return False
+        if not bool(source_summary.get("authoritative_anchor_present")):
+            return False
+        if int(source_summary.get("total_final_sources") or 0) < 1:
+            return False
+        if int(contradictions.get("unresolved_critical") or 0) > 0:
+            return False
+        if bool(freshness.get("gate_fail_triggered")):
+            return False
+        return True
+
+    @staticmethod
+    def _assemble_brief(*, topic: str, synthesis: Dict[str, Any]) -> Dict[str, Any]:
+        now = datetime.now(timezone.utc).isoformat()
+        return {
+            "company": topic,
+            "fetched_at": now,
+            "source": "apps_research",
+            "freshness_ttl_days": 30,
+            "overview": {
+                "tagline": synthesis.get("tagline", topic),
+                "founded": synthesis.get("founded"),
+                "size_band": synthesis.get("size_band"),
+                "ownership": synthesis.get("ownership"),
+                "headquarters": synthesis.get("headquarters"),
+                "core_offerings": synthesis.get("core_offerings", []) or [],
+            },
+            "company_archetype": synthesis.get("company_archetype"),
+            "company_dna": synthesis.get("company_dna", {}) or {},
+            "strategic_priorities": synthesis.get("strategic_priorities", []) or [],
+            "customer_profile": {
+                "verticals": synthesis.get("verticals", []) or [],
+                "buyer_titles": synthesis.get("buyer_titles", []) or [],
+                "typical_engagement_size": synthesis.get("typical_engagement_size"),
+            },
+            "tech_stack_signals": synthesis.get("tech_stack_signals", []) or [],
+            "commercial_motion": synthesis.get("commercial_motion", []) or [],
+            "partner_ecosystem": synthesis.get("partner_ecosystem", []) or [],
+            "adoption_motion": synthesis.get("adoption_motion", []) or [],
+            "leadership": synthesis.get("leadership", []) or [],
+            "competitive_set": synthesis.get("competitive_set", []) or [],
+            "recent_moves": synthesis.get("recent_moves", []) or [],
+            "language_to_mirror": synthesis.get("language_to_mirror", []) or [],
+            "language_to_avoid": synthesis.get("language_to_avoid", []) or [],
+        }
+
+
+__all__ = [
+    "APPS_RESEARCH_BRIEF_MODEL",
+    "APPS_RESEARCH_BRIEF_REASONING_EFFORT",
+    "CompanyBriefEngine",
+]

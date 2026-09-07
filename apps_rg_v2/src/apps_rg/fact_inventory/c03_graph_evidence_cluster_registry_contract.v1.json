@@ -1,0 +1,68 @@
+{
+  "schema_version": "apps_rg.c03_graph_evidence_cluster_registry_contract.v1",
+  "contract_id": "C03_GRAPH_EVIDENCE_CLUSTER_REGISTRY_W4",
+  "wave": "W4",
+  "status": "FROZEN",
+  "source_authority": {
+    "canonical_graph_required": true,
+    "wave3_receipt_required": true,
+    "role_episode_bundle_files_required": true,
+    "candidate_fact_ledger_required": true,
+    "graph_ids_remain_only_claim_authority": true
+  },
+  "role_episode_materialization": {
+    "one_candidate_per_role_episode_bundle": true,
+    "linked_source_fact_required": true,
+    "minimum_compatible_member_count": 2,
+    "member_retrieval_eligibility_required": true,
+    "common_bundle_and_member_section_required": true,
+    "largest_compatible_section_cohort_selected": true,
+    "stable_lexical_tie_break_required": true,
+    "overlap_across_distinct_episode_meanings_allowed": true,
+    "primary_role_root_may_exceed_secondary_member_limit": true,
+    "primary_role_root_faceting_without_qrel_proof_forbidden": true
+  },
+  "capability_evidence_materialization": {
+    "only_skills_not_covered_by_active_role_episode_clusters": true,
+    "shared_primary_hardened_fact_edge_required": true,
+    "same_career_epoch_required": true,
+    "same_domain_or_pillar_required": true,
+    "exact_allowed_section_signature_required": true,
+    "minimum_member_count": 2,
+    "maximum_member_count": 8,
+    "singleton_embedding_forbidden": true,
+    "oversize_arbitrary_split_forbidden": true
+  },
+  "registry_shape": {
+    "active_clusters_only_in_clusters": true,
+    "held_candidates_separate_from_clusters": true,
+    "held_candidates_have_no_canonical_embedding_text": true,
+    "one_future_vector_per_active_cluster": true,
+    "facet_vectors_forbidden_without_qrel_improvement": true,
+    "exact_authority_envelope_digest_required": true,
+    "current_graph_rehydration_required": true
+  },
+  "semantic_text": {
+    "natural_language_only": true,
+    "claim_action_required": true,
+    "claim_scope_required": true,
+    "claim_outcome_required": true,
+    "operating_context_required": true,
+    "concrete_capabilities_required": true,
+    "approved_evidence_summary_required": true,
+    "raw_ids_forbidden": true,
+    "digests_forbidden": true,
+    "section_tokens_forbidden": true,
+    "lifecycle_and_policy_boilerplate_forbidden": true
+  },
+  "wave4_acceptance": {
+    "deterministic_registry_required": true,
+    "all_retrieval_eligible_skills_audited": true,
+    "active_cluster_members_have_hardened_fact_section_policy_edges": true,
+    "canonical_graph_must_remain_unchanged": true,
+    "legacy_embedding_artifacts_must_remain_unchanged": true,
+    "replacement_vector_generation_authorized": false,
+    "legacy_artifact_deletion_authorized": false,
+    "production_promotion_authorized": false
+  }
+}

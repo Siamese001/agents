@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentic-workflow.local/apps_rg/authoritative/cluster_system_ranking.v1.schema.json",
+  "title": "Apps RG graph-evidence cluster system ranking",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "query_id", "universe_digest", "logical_retrieval_unit",
+    "authority_bindings", "split", "gate_k", "ranking", "record_digest"
+  ],
+  "properties": {
+    "schema_version": {"const": "apps_rg.authoritative_cluster_system_ranking.v1"},
+    "query_id": {"type": "string", "minLength": 1},
+    "universe_digest": {"$ref": "#/$defs/digest"},
+    "logical_retrieval_unit": {"const": "graph_evidence_cluster"},
+    "authority_bindings": {"$ref": "#/$defs/caseBindings"},
+    "split": {"enum": ["CALIBRATION", "HOLDOUT"]},
+    "gate_k": {"type": "integer", "minimum": 1},
+    "ranking": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["cluster_id", "rank", "score"],
+        "properties": {
+          "cluster_id": {"type": "string", "minLength": 1},
+          "rank": {"type": "integer", "minimum": 1},
+          "score": {"type": "number"}
+        }
+      }
+    },
+    "record_digest": {"$ref": "#/$defs/digest"}
+  },
+  "$defs": {
+    "digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "caseBindings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "graph_sha256", "cluster_registry_sha256", "corpus_sha256",
+        "model_artifact_sha256", "projection_sha256", "runtime_config_sha256",
+        "query_sha256", "authority_envelope_sha256"
+      ],
+      "properties": {
+        "graph_sha256": {"$ref": "#/$defs/digest"},
+        "cluster_registry_sha256": {"$ref": "#/$defs/digest"},
+        "corpus_sha256": {"$ref": "#/$defs/digest"},
+        "model_artifact_sha256": {"$ref": "#/$defs/digest"},
+        "projection_sha256": {"$ref": "#/$defs/digest"},
+        "runtime_config_sha256": {"$ref": "#/$defs/digest"},
+        "query_sha256": {"$ref": "#/$defs/digest"},
+        "authority_envelope_sha256": {"$ref": "#/$defs/digest"}
+      }
+    }
+  }
+}

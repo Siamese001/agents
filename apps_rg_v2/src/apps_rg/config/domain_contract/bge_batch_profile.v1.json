@@ -1,0 +1,23 @@
+{
+  "schema_version": "apps_rg.bge_batch_profile.v1",
+  "workloads": {
+    "c02_fact_vector_ingest": {
+      "target_batch_size": 16,
+      "maximum_batch_size": 32
+    },
+    "c02_section_queries": {
+      "target_batch_size": 8,
+      "maximum_batch_size": 8
+    },
+    "c03_projection": {
+      "target_batch_size": 16,
+      "maximum_batch_size": 32
+    },
+    "r1b_projection": {
+      "target_batch_size": 64,
+      "maximum_batch_size": 64
+    }
+  },
+  "adaptive_growth_allowed": false,
+  "fallback_allowed": false
+}

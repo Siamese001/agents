@@ -1,0 +1,86 @@
+{
+  "schema_version": "apps_rg.graph_evolution_authority_contract.v1",
+  "contract_id": "APPS_RG_GRAPH_EVOLUTION_AUTHORITY",
+  "wave": "GE_W0",
+  "status": "FROZEN",
+  "canonical_graph": {
+    "authority_source": "augmented_skills_graph",
+    "artifact_path": "src/apps_rg/fact_inventory/master_skills_arsenal_ledger.json",
+    "loader": "apps_rg.fact_inventory.augmented_skills_graph.load_augmented_skills_graph",
+    "canonical_write_authority": "UWG_ONLY",
+    "active_pointer_authority": "OWNER_APPROVED_RELEASE_AUTHORITY_ONLY",
+    "runtime_source": "augmented_skills_graph_sqlite"
+  },
+  "claim_evidence_substrate": {
+    "source_type": "candidate_fact_ledger",
+    "runtime_claim_authority": false,
+    "may_propose_graph_mutation": true,
+    "requires_author_gate_before_uwg": true
+  },
+  "derived_surfaces": {
+    "graph_evidence_cluster_registry": {
+      "writer": "W4_DETERMINISTIC_MATERIALIZER",
+      "claim_authority": false,
+      "must_bind_current_graph_digest": true
+    },
+    "graph_evidence_cluster_projection": {
+      "writer": "W6_DETERMINISTIC_BGE_M3_GENERATOR",
+      "claim_authority": false,
+      "logical_retrieval_unit": "graph_evidence_cluster",
+      "must_bind_current_graph_digest": true,
+      "exact_current_graph_rehydration_required": true
+    },
+    "fact_vectors": {
+      "target_surface": "l4.apps_rg.fact_vectors",
+      "claim_authority": false,
+      "may_not_mutate_canonical_graph": true
+    },
+    "r1b_semantic_cache": {
+      "claim_authority": false,
+      "may_not_mutate_canonical_graph": true
+    }
+  },
+  "graph_version_states": [
+    "STAGED",
+    "AUTHOR_APPROVED",
+    "UWG_COMMITTED_CANDIDATE",
+    "GRAPH_VALIDATED",
+    "PROJECTION_BUILT",
+    "RETRIEVAL_QUALIFIED",
+    "ACTIVATED",
+    "RETIRED"
+  ],
+  "allowed_transitions": [
+    ["STAGED", "AUTHOR_APPROVED"],
+    ["AUTHOR_APPROVED", "UWG_COMMITTED_CANDIDATE"],
+    ["UWG_COMMITTED_CANDIDATE", "GRAPH_VALIDATED"],
+    ["GRAPH_VALIDATED", "PROJECTION_BUILT"],
+    ["PROJECTION_BUILT", "RETRIEVAL_QUALIFIED"],
+    ["RETRIEVAL_QUALIFIED", "ACTIVATED"],
+    ["UWG_COMMITTED_CANDIDATE", "RETIRED"],
+    ["GRAPH_VALIDATED", "RETIRED"],
+    ["PROJECTION_BUILT", "RETIRED"],
+    ["RETRIEVAL_QUALIFIED", "RETIRED"],
+    ["ACTIVATED", "RETIRED"]
+  ],
+  "qrel_binding": {
+    "frozen_graph_digest_required": true,
+    "frozen_registry_digest_required": true,
+    "frozen_projection_digest_required": true,
+    "full_candidate_universe_required": true,
+    "partial_top_k_judging_forbidden": true,
+    "graph_change_invalidates_prior_ranking_identity": true
+  },
+  "runtime_write_boundary": {
+    "u0_to_exit_cannot_mutate_canonical_graph": true,
+    "shadow_cannot_mutate_current_run": true,
+    "generated_or_targeting_text_cannot_be_claim_authority": true
+  },
+  "ge_w0_exit": {
+    "completion_marker": "GE_W0_AUTHORITY_LOCKED",
+    "canonical_graph_mutated": false,
+    "cluster_registry_mutated": false,
+    "cluster_projection_mutated": false,
+    "activation_created": false
+  }
+}

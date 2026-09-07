@@ -1,0 +1,30 @@
+{
+  "schema_version": "apps_rg.bge_observability_profile.v1",
+  "baseline": {
+    "wave": "W0",
+    "receipt_path": ".runtime/apps_rg/gpu-baseline-w0/w0-current-gpu/receipt.json",
+    "receipt_sha256": "c519d8f0964e9648a3476b974a2b2a68f733c60878c939f3998d25259166af50"
+  },
+  "expected_precision_profile_id": "fp16_candidate",
+  "rollback_precision_profile_id": "fp32_control",
+  "regression_thresholds": {
+    "maximum_warm_p50_ratio_to_w0": 1.1,
+    "minimum_warm_throughput_ratio_to_w0": 0.9,
+    "maximum_peak_allocated_ratio_to_w0": 1.1
+  },
+  "runtime_controls": {
+    "required_device": "cuda:0",
+    "maximum_resident_model_loads": 1,
+    "minimum_warm_repetitions": 3,
+    "local_files_only": true,
+    "network_allowed": false,
+    "fallback_allowed": false,
+    "telemetry_history_limit": 128
+  },
+  "scope": {
+    "technical_embedding_regression_only": true,
+    "retrieval_quality_measured": false,
+    "production_promotion_authorized": false,
+    "release_authorizing": false
+  }
+}

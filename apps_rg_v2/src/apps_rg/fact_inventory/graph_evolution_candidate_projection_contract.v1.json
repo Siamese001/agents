@@ -1,0 +1,35 @@
+{
+  "schema_version": "apps_rg.graph_evolution_candidate_projection_contract.v1",
+  "contract_id": "APPS_RG_GRAPH_EVOLUTION_CANDIDATE_PROJECTION",
+  "wave": "GE_W5",
+  "status": "FROZEN",
+  "input": {
+    "required_graph_validation_state": "GRAPH_VALIDATED",
+    "candidate_version_digest_binding_required": true,
+    "base_cluster_registry_required": true,
+    "full_candidate_universe_rebuild_required": true
+  },
+  "retrieval_unit": {
+    "logical_retrieval_unit": "graph_evidence_cluster",
+    "candidate_assertion_embedded_as_cluster": true,
+    "per_node_vectors_forbidden": true,
+    "per_skill_vectors_forbidden": true
+  },
+  "embedding": {
+    "model_id": "BAAI/bge-m3",
+    "dimension": 1024,
+    "normalization": "l2",
+    "fallback_allowed": false,
+    "runtime_proof_required": true
+  },
+  "ge_w5_exit": {
+    "completion_marker": "GE_W5_CANDIDATE_PROJECTION_BUILT",
+    "candidate_state": "PROJECTION_BUILT",
+    "next_gate": "QREL_CHANGE_IMPACT",
+    "active_runtime_pointer_changed": false,
+    "active_registry_mutated": false,
+    "active_projection_mutated": false,
+    "qrel_evaluation_run": false,
+    "activation_created": false
+  }
+}

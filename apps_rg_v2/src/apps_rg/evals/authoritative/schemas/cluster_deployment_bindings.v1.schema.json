@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentic-workflow.local/apps_rg/authoritative/cluster_deployment_bindings.v1.schema.json",
+  "title": "Apps RG cluster deployment bindings",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "source_commit", "graph_sha256", "cluster_registry_sha256",
+    "corpus_sha256", "model_artifact_sha256", "projection_sha256",
+    "runtime_config_sha256", "hardware_profile_sha256",
+    "candidate_activation_manifest_sha256", "cluster_count", "runtime_top_k",
+    "dimension", "normalization", "record_digest"
+  ],
+  "properties": {
+    "schema_version": {"const": "apps_rg.cluster_deployment_bindings.v1"},
+    "source_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "graph_sha256": {"$ref": "#/$defs/digest"},
+    "cluster_registry_sha256": {"$ref": "#/$defs/digest"},
+    "corpus_sha256": {"$ref": "#/$defs/digest"},
+    "model_artifact_sha256": {"$ref": "#/$defs/digest"},
+    "projection_sha256": {"$ref": "#/$defs/digest"},
+    "runtime_config_sha256": {"$ref": "#/$defs/digest"},
+    "hardware_profile_sha256": {"$ref": "#/$defs/digest"},
+    "candidate_activation_manifest_sha256": {"$ref": "#/$defs/digest"},
+    "cluster_count": {"type": "integer", "minimum": 2},
+    "runtime_top_k": {"type": "integer", "minimum": 1},
+    "dimension": {"const": 1024},
+    "normalization": {"const": "l2"},
+    "record_digest": {"$ref": "#/$defs/digest"}
+  },
+  "$defs": {
+    "digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+  }
+}

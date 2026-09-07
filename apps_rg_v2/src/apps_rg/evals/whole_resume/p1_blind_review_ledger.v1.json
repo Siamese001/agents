@@ -1,0 +1,19 @@
+{
+  "schema_version": "apps_rg.p1_blind_review_ledger.v1",
+  "evaluation_id": "apps_rg_p1_blind_review",
+  "source_identity": {
+    "lane_contract_digest": null,
+    "evaluator_version": "apps_rg.p1_blind_review_ledger.v1"
+  },
+  "cohort": {
+    "status": "PENDING",
+    "cohort_id": "",
+    "data_split": null,
+    "frozen_pair_ids": [],
+    "frozen_pair_ids_digest": null,
+    "baseline_policy_digest": null,
+    "blind_mapping_receipt_digest": null
+  },
+  "synthetic_grades_created": false,
+  "pairs": []
+}

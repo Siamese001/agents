@@ -1,0 +1,39 @@
+{
+  "schema_version": "apps_rg.graph_evolution_uwg_commit_contract.v1",
+  "contract_id": "APPS_RG_GRAPH_EVOLUTION_UWG_COMMIT",
+  "wave": "GE_W3",
+  "status": "FROZEN",
+  "input": {
+    "required_author_gate_status": "AUTHOR_APPROVED",
+    "required_author_gate_next_gate": "UWG_COMMIT",
+    "current_base_graph_digest_required": true,
+    "candidate_and_author_gate_digest_binding_required": true,
+    "l5_certification_ref_required": true
+  },
+  "write_authority": {
+    "authority": "UWG_ONLY",
+    "gateway": "apps_rg.L4_state.uwg.durable_write_gateway.DurableWriteGateway",
+    "target_surface": "l4.apps_rg.augmented_skills_graph_candidate_versions",
+    "operation_type": "version_insert",
+    "base_graph_file_overwrite_forbidden": true
+  },
+  "candidate_version": {
+    "immutable_after_admission": true,
+    "must_bind_parent_graph_digest": true,
+    "must_include_assertion_node_and_proposed_links": true,
+    "projection_state": "NOT_BUILT",
+    "retrieval_qualification_state": "NOT_RUN",
+    "active_runtime_pointer_changed": false
+  },
+  "ge_w3_exit": {
+    "completion_marker": "GE_W3_UWG_COMMITTED_CANDIDATE",
+    "next_gate": "GRAPH_VALIDATION",
+    "canonical_base_graph_mutated": false,
+    "active_runtime_pointer_changed": false,
+    "cluster_registry_mutated": false,
+    "cluster_projection_mutated": false,
+    "embedding_materialized": false,
+    "qrel_evaluation_run": false,
+    "activation_created": false
+  }
+}

@@ -1,0 +1,354 @@
+# apps_rg — canonical role-family taxonomy for adaptive fact selection (design / retrieval).
+# SSOT count: twenty role families (thirteen legacy + seven senior-role W0.5b additions).
+# Ledger JSON may reference legacy alias ids; normalize via role_family_id_aliases.
+
+schema_version: "1"
+description: >-
+  Canonical role-family labels for JD → retrieval prioritization against the candidate
+  fact ledger. JD and briefing texts are targeting inputs only; they never constitute proof.
+
+notes:
+  - >-
+    Canonical employment facts remain in apps_rg/resume/base/amit_ayer_base_resume_v1.json.
+    This taxonomy does not replace or overwrite that artifact.
+  - >-
+    Candidate ledger lives under artifacts/apps_rg/fact_inventory/ — facts are provisional
+    until promoted through human confirmation and deterministic gates.
+  - >-
+    CRO-targeting uses composite projection profile CHIEF_REVENUE_OFFICER_COMPOSITE
+    (apps_rg/config/domain_contract/composite_projection_profiles.yaml and arsenal ledger
+    role_family_projection_profiles). There is intentionally no standalone CRO role family id.
+
+role_families:
+  - id: ENGINEERING_PLATFORM
+    summary: >-
+      Agentic/platform engineering, microservices, cloud execution layers, deterministic
+      routing, and scalable ML engineering org dynamics.
+    jd_signal_keywords:
+      - platform
+      - engineering leadership
+      - microservices
+      - kubernetes
+      - agentic
+      - agentic ai
+      - multi-agent orchestration
+      - rag-enhanced
+      - tool-use
+      - lifecycle management
+      - global head
+      - operating model
+
+  - id: AI_SOLUTIONS_ARCHITECTURE
+    summary: >-
+      Architecture for AI/analytics/cloud solutions spanning design, rollout, stakeholder
+      translation, and field-facing technical strategy.
+    jd_signal_keywords:
+      - solutions architect
+      - field CTO
+      - AI architecture
+      - technical sales
+      - presales engineering
+
+  - id: PARTNERSHIPS_GTM
+    summary: >-
+      Alliances, co-sell, channel programs, ecosystem GTM, and partner-influenced revenue motion.
+    jd_signal_keywords:
+      - alliances
+      - partnerships
+      - channel
+      - co-sell
+      - ISV
+
+  - id: SALES_STRATEGIC_ACCOUNTS
+    summary: >-
+      Enterprise/strategic accounts, multimillion-dollar pursuits, geographic coverage leadership.
+    jd_signal_keywords:
+      - strategic accounts
+      - enterprise sales
+      - quota
+      - account executive
+
+  - id: REVENUE_OPERATIONS
+    summary: >-
+      Pipeline instrumentation, forecasting, Salesforce analytics, and revenue process design.
+    jd_signal_keywords:
+      - RevOps
+      - forecasting
+      - pipeline analytics
+      - Salesforce CPQ
+
+  - id: CUSTOMER_SUCCESS
+    summary: >-
+      Adoption, renewal, expansion, stakeholder alignment tied to measurable customer outcomes.
+    jd_signal_keywords:
+      - customer success
+      - adoption
+      - renewal rate
+      - expansion revenue
+
+  - id: PRODUCT_TECHNICAL_STRATEGY
+    summary: >-
+      Product strategy intersecting emerging tech, roadmaps, and commercialization primitives.
+    jd_signal_keywords:
+      - product strategy
+      - platform product
+      - roadmap
+      - commercialization
+
+  - id: AI_GOVERNANCE_RISK
+    summary: >-
+      Model governance, lineage, auditability, compliance checkpoints, regulatory reporting quality.
+    jd_signal_keywords:
+      - governance
+      - responsible AI
+      - model risk management
+      - compliance
+      - CCAR
+      - ai governance
+      - post-deployment
+      - model monitoring
+      - auditing
+      - safety guardrails
+      - performance telemetry
+
+  - id: DATA_ANALYTICS_LEADERSHIP
+    summary: >-
+      Data platforms, streaming analytics, risk metrics consistency, latency governance across BUs.
+    jd_signal_keywords:
+      - lakehouse
+      - streaming analytics
+      - BI
+      - data latency
+      - risk metrics
+      - data platforms
+      - data engineering
+      - data-driven capabilities
+
+  - id: STRATEGIC_FINANCE
+    summary: >-
+      Finance-facing analytics, planning, M&A modeling, synergy analysis, CFO alignment.
+    jd_signal_keywords:
+      - CFO
+      - budgeting
+      - M&A
+      - synergy
+      - forecasting model
+
+  - id: QUANT_TRADING_HPC
+    summary: >-
+      Quantitative workflows, derivatives, HPC, automated trading infra, latency-sensitive risk.
+    jd_signal_keywords:
+      - quantitative
+      - HPC
+      - derivatives
+      - stress testing
+      - latency
+
+  - id: CONSULTING_DELIVERY_LEADERSHIP
+    summary: >-
+      Large-scale transformations, modernization programs, client delivery organization leadership.
+    jd_signal_keywords:
+      - consulting
+      - transformation
+      - delivery excellence
+      - client engagement director
+      - professional services
+      - implementation delivery
+      - value realization
+      - customer onboarding
+      - post-sales
+      - services delivery
+      - systems integrator
+      - technical consulting
+      - time to value
+      - hands-on prototype
+      - gsi
+      - rsi
+      - solutions leader
+      - technical lead
+      - technical enablement
+
+  - id: EXECUTIVE_LEADERSHIP
+    summary: >-
+      Cross-functional C-suite partnering, organizational scaling narratives, portfolio leadership.
+    jd_signal_keywords:
+      - executive steering
+      - board
+      - C-suite alignment
+      - organizational scaling
+      - global head
+      - chief data officer
+      - c-level executives
+      - enterprise-wide
+
+  # --- Senior-role traversal families (W0.5b — JD targeting only; not proof) ---
+  - id: INSURANCE_CARRIER_TRANSFORMATION
+    summary: >-
+      Insurance carrier agentic AI transformation across underwriting, claims, operations,
+      and corporate functions — distinct from brokerage distribution and generic FS GTM.
+    jd_signal_keywords:
+      - insurance carrier
+      - carrier transformation
+      - insurance operations
+      - underwriting
+      - claims
+      - agentic ai transformation
+      - agentic AI transformation
+      - insurance industry
+      - global head of agentic
+      - agentic ai solutions
+      - process re-engineering
+      - policy administration
+      - companion agent
+      - automation agent
+      - lean
+      - six sigma
+      - operational excellence
+    proposed_pillar_ids:
+      - pillar_insurance_carrier_transformation
+      - pillar_underwriting_claims_ops_ai
+      - pillar_actuarial_foundation
+      - pillar_agentic_ai_platforms
+      - pillar_regulatory_governance
+
+  - id: INSURER_IT_AI_ENABLEMENT
+    summary: >-
+      Insurer IT strategy, AI enablement, enterprise architecture, data strategy, and
+      portfolio governance — forward-project actuarial foundation beyond early-career only.
+    jd_signal_keywords:
+      - IT strategy
+      - it strategy & innovation
+      - AI enablement
+      - enterprise architecture
+      - insurer
+      - insurance IT
+      - DevSecOps
+      - data governance
+      - portfolio management
+      - technology strategy
+      - innovation incubation
+      - data platforms
+      - CITO
+      - architectural standards
+      - modernization
+      - innovation programs
+      - innovation labs
+    proposed_pillar_ids:
+      - pillar_insurer_it_strategy_ai_enablement
+      - pillar_enterprise_portfolio_governance
+      - pillar_cloud_data_aws
+      - pillar_actuarial_foundation
+      - pillar_agentic_ai_platforms
+
+  - id: INSURANCE_BROKERAGE_IT_INNOVATION
+    summary: >-
+      Insurance brokerage and distribution technology, interoperability, and innovation —
+      not carrier underwriting/claims transformation.
+    jd_signal_keywords:
+      - insurance brokerage
+      - brokerage
+      - brown & brown
+      - distribution technology
+      - interoperability
+      - innovation incubation
+      - broker
+      - it strategy & innovation
+      - technology strategy
+      - enterprise innovation
+      - data-driven capabilities
+      - integration ecosystems
+      - innovation programs
+      - innovation labs
+      - pilots
+    proposed_pillar_ids:
+      - pillar_insurance_brokerage_distribution
+      - pillar_interoperability_integration_ecosystem
+      - pillar_gtm_presales_motion
+      - pillar_cloud_data_aws
+      - pillar_executive_leadership
+
+  - id: BANKING_PLATFORM_AI
+    summary: >-
+      Regulated banking AI platform and productization — platform/data services leadership;
+      not transaction-banking product claims without evidence.
+    jd_signal_keywords:
+      - banking platform
+      - platform and data services
+      - financial services platform
+      - regulated banking
+      - PDS
+      - banking AI
+    proposed_pillar_ids:
+      - pillar_banking_platform_responsible_ai
+      - pillar_regulatory_governance
+      - pillar_agentic_ai_platforms
+      - pillar_cloud_data_aws
+
+  - id: REGULATED_AI_GOVERNANCE
+    summary: >-
+      Basel, CCAR, lineage, auditability, model risk, and responsible AI governance —
+      split from generic engineering platform and banking productization.
+    jd_signal_keywords:
+      - Basel
+      - CCAR
+      - regulatory reporting
+      - data lineage
+      - auditability
+      - model risk
+      - responsible AI governance
+      - regulatory governance
+    proposed_pillar_ids:
+      - pillar_regulatory_governance
+      - pillar_banking_platform_responsible_ai
+      - pillar_enterprise_risk_controls
+      - pillar_risk_management
+
+  - id: PARTNER_APPLIED_AI_ARCHITECTURE
+    summary: >-
+      Partner applied AI architecture, joint solutions, reference architectures, and
+      partner engineering — distinct from generic partnerships GTM quota motion.
+    jd_signal_keywords:
+      - applied AI architecture
+      - partner engineering
+      - joint solution
+      - reference architecture
+      - partner-led
+      - alliances architecture
+      - deployment engineering
+      - ai deployment
+      - partner ade
+      - genai
+      - openai api
+      - systems integrator
+      - solutions architect
+      - prototype to production
+      - technical enablement
+      - architectural patterns
+      - solutions engineering
+    proposed_pillar_ids:
+      - pillar_applied_ai_partner_architecture
+      - pillar_partner_gtm_alliances
+      - pillar_presales_solutioning
+      - pillar_technical_presales_accelerators
+
+  - id: HYPERSCALER_MARKETPLACE_GTM
+    summary: >-
+      Hyperscaler, marketplace, GSI, and co-sell GTM — AWS/GCP/Azure only where evidence exists;
+      not exclusivity or unsupported marketplace claims.
+    jd_signal_keywords:
+      - hyperscaler
+      - marketplace
+      - GSI
+      - cloud marketplace
+      - co-sell
+      - AWS partner
+      - cloud partner ecosystem
+    proposed_pillar_ids:
+      - pillar_hyperscaler_marketplace_partner_gtm
+      - pillar_partner_gtm_alliances
+      - pillar_gtm_presales_motion
+      - pillar_cloud_data_aws
+
+# Ledger rows may cite FIELD_SOLUTIONS_ARCHITECTURE; fold into AI_SOLUTIONS_ARCHITECTURE for scoring.
+role_family_id_aliases:
+  FIELD_SOLUTIONS_ARCHITECTURE: AI_SOLUTIONS_ARCHITECTURE

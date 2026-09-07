@@ -1,0 +1,28 @@
+# Headline section contract — canonical runtime apps_rg.runtime.sections.headline_lane;
+# PA headline_tailor_v1 v1.5 (prompt_registry aligned) composed via strategic_tailor_v1.
+section_id: headline
+mode: COMPOSE_NEW
+apps_rg_prompt_template_ref: apps_rg/prompt_assembly/templates/headline_tailor_v1.yaml
+pa_template_ref: strategic_tailor_v1
+output_schema_ref: apps_rg/rg_output_schema.json
+claim_ledger_required: true
+display_text_source_tags_allowed: false
+jd_as_proof_allowed: false
+companion_context_allowed: true
+companion_context_authority: U_TIER_CONTEXT_ONLY
+x2_gate_profile_ref: apps_rg/runtime/validators/headline_x2.py
+product_shape_ssot_ref: apps_rg/runtime/sections/section_product_shape_ssot.py
+x1d_judge_profile_ref: apps_rg/runtime/judges/headline_x1d.py
+locked_fields: []
+llm_generation_allowed: true
+notes: >
+  Template headline_tailor_v1 v1.5: North Star SVP Engineering | X | Y | Z with creative fact-grounded X/Y/Z;
+  JD/briefing/target/companion are targeting-only; C0 + allowed_fact_ids are proof.
+  W8 ledger-only citations: resume display text must not contain inline source/citation tags.
+  Proof binds via claim_ledger / source_fact_ids / evidence_ids (and gap_notes when applicable).
+  jd_requirements / company_brief are targeting only, not proof.
+  Companion context is U-tier only, not proof.
+  Canonical CLI: python -m apps_rg --section headline.
+  When non-empty U-tier companion context is supplied to the PA, model JSON must include jd_alignment.companion_used_as_proof=false (X2 fail-closed).
+  Runtime freezes model jd_alignment into raw_jd_alignment before normalize for proof-boolean audit.
+  Runtime compile via strategic_tailor_v1 + headline_tailor_v1 slot_bodies; facts in C0, JD in c0_jd_requirements, companion U-tier only.

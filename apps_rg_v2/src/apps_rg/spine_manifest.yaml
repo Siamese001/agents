@@ -1,0 +1,154 @@
+# =============================================================================
+# apps_rg Agentic Spine Manifest
+# =============================================================================
+# CANONICAL_PA: This file defines the canonical Prompt Assembly registry for
+# the apps_rg (Resume Generation) application domain.
+#
+# The PA registry is the source of truth for template versioning, slot ordering,
+# and compilation constraints for all resume generation prompts.
+# =============================================================================
+
+app_id: apps_rg
+domain: resume_generation
+canonical_pa_version: "W10-2026-05-14"
+prompt_assembly: CANONICAL_PA
+
+# -----------------------------------------------------------------------------
+# PA Registry Reference
+# -----------------------------------------------------------------------------
+# The canonical PA registry defines all valid templates and their versions.
+# This manifest references but does not duplicate the registry.
+prompt_registry_ref: "apps_rg/prompt_assembly/prompt_registry.yaml"
+
+# -----------------------------------------------------------------------------
+# Template Registry (canonical list)
+# -----------------------------------------------------------------------------
+templates:
+  # E3 Templates (Primary User Flows)
+  - id: strategic_tailor_v1
+    version: "1.0.0"
+    slot_order: [S0, D0, I0, C0, E0, Y0, U0, R0]
+    required_slots: [S0, I0, C0, U0, R0]
+    description: "Tailor resume for strategic leadership roles"
+    
+  - id: tailor_existing_v1
+    version: "1.0.0"
+    slot_order: [S0, D0, I0, C0, E0, Y0, U0, R0]
+    required_slots: [S0, I0, C0, U0, R0]
+    description: "Tailor existing resume for specific role"
+    
+  - id: generate_scratch_v1
+    version: "1.0.0"
+    slot_order: [S0, D0, I0, C0, E0, Y0, U0, R0]
+    required_slots: [S0, I0, C0, U0, R0]
+    description: "Generate new resume from scratch"
+    
+  - id: enhance_current_v1
+    version: "1.0.0"
+    slot_order: [S0, D0, I0, C0, E0, Y0, U0, R0]
+    required_slots: [S0, I0, C0, U0, R0]
+    description: "Enhance current resume with additional context"
+    
+  # E4/E5 Templates (Specialized Analysis)
+  - id: resume_fact_check_v1
+    version: "1.0.0"
+    slot_order: [S0, D0, I0, C0, E0, Y0, U0, R0]
+    required_slots: [S0, I0, C0, U0, R0]
+    description: "Fact-check resume claims against evidence"
+    
+  - id: unsupported_claim_omission_v1
+    version: "1.0.0"
+    slot_order: [S0, D0, I0, C0, E0, Y0, U0, R0]
+    required_slots: [S0, I0, C0, U0, R0]
+    description: "Remove unsupported claims from resume"
+    
+  - id: bullet_diversity_repair_v1
+    version: "1.0.0"
+    slot_order: [S0, D0, I0, C0, E0, Y0, U0, R0]
+    required_slots: [S0, I0, C0, U0, R0]
+    description: "Repair bullet diversity and action verb variety"
+    
+  - id: docx_manifest_v1
+    version: "1.0.0"
+    slot_order: [S0, D0, I0, C0, E0, Y0, U0, R0]
+    required_slots: [S0, I0, C0, U0, R0]
+    description: "Generate DOCX formatting manifest"
+
+  - id: unify_v1
+    version: "1.0.0"
+    slot_order: [S0, D0, I0, C0, E0, Y0, U0, R0]
+    required_slots: [S0, I0, C0, U0, R0]
+    description: "Unify terminology and de-duplicate (E4)"
+
+  # W9: Full template SSOT is apps_rg/prompt_assembly/prompt_registry.yaml (section PA + TEST_ONLY rows).
+  - id: "executive_summary.generate_scratch_v1"
+    version: "1.0.0"
+    slot_order: [S0, D0, I0, C0, E0, Y0, U0, R0]
+    required_slots: [S0, I0, C0, U0, R0]
+    description: "Executive summary section PA"
+
+  - id: headline_tailor_v1
+    version: "1.0.0"
+    slot_order: [S0, D0, I0, C0, E0, Y0, U0, R0]
+    required_slots: [S0, I0, C0, U0, R0]
+    description: "Headline section PA"
+
+  - id: competency_selector_v2
+    version: "1.0.0"
+    slot_order: [S0, D0, I0, C0, E0, Y0, U0, R0]
+    required_slots: [S0, I0, C0, U0, R0]
+    description: "ENGINEERING & PLATFORM COMPETENCIES lane — PA SSOT path (W5)"
+
+  - id: unify_bullet_tailor_v1
+    version: "1.1.0"
+    slot_order: [S0, D0, I0, C0, E0, Y0, U0, R0]
+    required_slots: [S0, I0, C0, U0, R0]
+    description: "Unify bullets lane, current-role SVP Engineering targeting"
+    generation_order: 1
+    emits_dependency_for: [unify_position_narrative_v1]
+
+  - id: unify_position_narrative_v1
+    version: "1.1.0"
+    slot_order: [S0, D0, I0, C0, E0, Y0, U0, R0]
+    required_slots: [S0, I0, C0, U0, R0]
+    description: "Unify narrative lane, requires finalized Unify bullets"
+    generation_order: 2
+    depends_on: [unify_bullet_tailor_v1]
+
+  - id: strategic_tailor_v2
+    version: "1.0.0"
+    slot_order: [S0, D0, I0, C0, E0, Y0, U0, R0]
+    required_slots: [S0, I0, C0, U0, R0]
+    description: "TEST_ONLY planning fixture (contract tests)"
+
+# -----------------------------------------------------------------------------
+# Compilation Constraints
+# -----------------------------------------------------------------------------
+compilation:
+  max_response_tokens: 6000
+  require_json_output: true
+  enforce_slot_order: true
+  fail_on_missing_required: true
+
+# -----------------------------------------------------------------------------
+# Governance Invariants
+# -----------------------------------------------------------------------------
+governance:
+  # S0 must contain NO FABRICATION oath
+  requires_no_fabrication_oath: true
+  
+  # C0 must have source-separated evidence
+  requires_source_separation: true
+  
+  # All prompts must have deterministic hashes
+  requires_deterministic_hashes: true
+  
+  # Output must be valid JSON per schema
+  requires_schema_validation: true
+
+# -----------------------------------------------------------------------------
+# W11 Runtime Wiring (Future)
+# -----------------------------------------------------------------------------
+# NOTE: Runtime wiring to L0/L1/L2 is W11 scope and intentionally NOT present
+# in this W10 manifest. The PA layer remains compile-time only.
+runtime_wiring_status: "NOT_IMPLEMENTED_W11_FUTURE"

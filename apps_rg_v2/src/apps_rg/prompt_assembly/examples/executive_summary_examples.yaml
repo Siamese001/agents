@@ -1,0 +1,299 @@
+version: "1.0"
+section: executive_summary
+description: >
+  Multishot examples for the executive_summary section (product band exactly 6 sentences, max 150 words).
+  Proof substrate is always selected base-résumé facts + claim_ledger in runtime artifacts;
+  examples teach voice and structure only unless marked as STYLE_EXAMPLE_NOT_PROOF.
+
+examples:
+  - id: exec_summary_gold_base_resume_001
+    category: negative
+    authority: E0_NEGATIVE_FORBIDDEN_PHRASES
+    section: executive_summary
+    seniority_band: EXECUTIVE
+    xml_wrapped: true
+    before: null
+    after: |
+      Engineering executive building production-grade AI platforms and the runtime architecture that makes autonomous systems usable in regulated enterprise environments.
+      Designs and operates governed AI systems that combine deterministic routing, multi-agent orchestration, graph-aware retrieval, sandboxed execution, policy enforcement, replayable traces, evaluation discipline, and human escalation controls to improve reliability, auditability, and deployment speed.
+      Leads the full platform lifecycle across architecture, operating model, engineering scale-out, and commercialization, converting bespoke delivery into reusable platform services adopted across enterprise programs.
+      Generated $[X]M in productized AI revenue, expanded margins by [Y]%, and reclaimed $[Z]M in operating capacity across enterprise programs.
+      Reduced deployment cycles by turning complex AI capabilities into repeatable, production-ready infrastructure grounded in quantitative actuarial depth.
+      Distributed systems and regulated-risk analytics experience inform governance and commercialization balance when selected facts support those themes.
+    claim_ledger_grounded: false
+    annotation: >
+      VIOLATION: contains SRFS_FORBIDDEN_PHRASES — "engineering scale-out", "reusable platform services
+      adopted across enterprise programs", "converting bespoke delivery", "commercialization" (standalone).
+      Also contains mechanism-inventory S2 (comma-chain architecture list). Metric values are placeholders
+      ([X]/[Y]/[Z]) — never copy them; retrieve real values from C0 ALLOWED_SOURCE_FACT_IDS. (Literal "$22M / 20%
+      / gross margins" figures were de-anchored 2026-06-15 — they were echoed unsupported into non-strategy lanes,
+      tripping X2 north_star_style_echo.)
+      Previously category=positive_gold but excluded from compile; converted to negative 2026-05-27 to prevent
+      accidental re-inclusion via code change.
+
+  - id: exec_summary_pos_outcomes_led_001
+    category: positive_variant
+    authority: E0_STYLE_EXAMPLE_NOT_PROOF
+    section: executive_summary
+    seniority_band: EXECUTIVE
+    xml_wrapped: true
+    before: null
+    after: |
+      Generated $[X]M in productized platform revenue and expanded margins by [Y]% by turning complex capabilities into repeatable, production-ready platform services adopted across programs.
+      Engineering executive building production-grade governed platforms and runtime architecture for regulated enterprise environments.
+      Designs and operates systems that combine orchestration, policy enforcement, and traceability to improve reliability, auditability, and deployment speed.
+      Leads full platform lifecycle work across architecture, operating model, and commercial adoption.
+      Quantitative actuarial depth supports regulated delivery when those themes appear in the allowed pool.
+      Platform commercialization and governance themes stay woven into one narrative arc rather than stacked credential lists.
+    claim_ledger_grounded: false
+    annotation: >
+      STYLE VARIANT — outcomes-led narrative order (commercial arc first). Metric placeholders [X]/[Y]
+      are intentionally domain-transposed; do NOT copy them — retrieve real values from C0 ALLOWED_SOURCE_FACT_IDS.
+      Teaches reordering and emphasis without anchoring PROVIDER_MODEL to candidate-specific numbers.
+
+  - id: exec_summary_pos_integrated_cred_001
+    category: positive_variant
+    authority: E0_STYLE_EXAMPLE_NOT_PROOF
+    section: executive_summary
+    seniority_band: EXECUTIVE
+    xml_wrapped: true
+    before: null
+    after: |
+      Engineering executive building governed agentic AI platforms for regulated enterprise delivery with deterministic controls and traceable execution.
+      Leads platform lifecycle and commercialization, converting complex delivery into reusable services adopted across programs.
+      Generated proof-backed revenue and margin outcomes when selected facts support them.
+      Quantitative and platform depth inform governance and commercialization balance, woven into delivery context rather than listed as a separate credential inventory.
+      Delivery outcomes remain anchored in allowed facts without credential inventory blocks.
+      Regulated enterprise posture stays visible through governance and execution discipline when facts support those themes.
+    claim_ledger_grounded: false
+    annotation: >
+      STYLE VARIANT — credentials woven into a substantive sentence (not a fifth-slot cert dump).
+
+  - id: exec_summary_pos_credibility_implied_001
+    category: positive_variant
+    authority: E0_STYLE_EXAMPLE_NOT_PROOF
+    section: executive_summary
+    seniority_band: EXECUTIVE
+    xml_wrapped: true
+    before: null
+    after: |
+      Engineering executive building governed agentic AI platforms for regulated enterprise delivery with traceable execution and policy discipline.
+      Leads platform lifecycle and commercialization, converting complex capabilities into reusable services adopted across programs.
+      Generated proof-backed revenue and margin outcomes when selected facts support them.
+      Quantitative actuarial training and cloud data platform depth reinforce governance and delivery decisions without naming individual certifications.
+      Platform scale and operating discipline stay integrated with commercial outcomes when selected facts support them.
+      Credibility is implied through delivery context rather than certification label stacks in the display paragraph.
+    claim_ledger_grounded: false
+    annotation: >
+      STYLE VARIANT — passes x2_exec_summary_no_credential_dump: implies credibility without
+      AWS/Databricks/FSA/Basel/CCAR label stacks or a trailing cert sentence.
+
+  - id: exec_summary_pos_svp_it_strategy_001
+    category: positive_variant
+    authority: E0_STYLE_EXAMPLE_NOT_PROOF
+    section: executive_summary
+    seniority_band: EXECUTIVE
+    xml_wrapped: true
+    before: null
+    after: |
+      Enterprise technology leader who aligns governed AI platforms, regulatory lineage, and digital innovation into one IT strategy agenda for decentralized regulated enterprises.
+      Designs and operates platform runtime with deterministic controls and traceable execution so innovation scales without sacrificing validation-ready delivery.
+      Building on that foundation, supply-chain platform modernization generated $[X]M in efficiency capture and expanded operating margins by [Y]% while growing the platform engineering team from [A] to [B] specialists.
+      Against that delivery foundation, SOX and PCAOB lineage discipline reduced financial close errors by [Z]%, accelerating IT strategy velocity without turning compliance into a delivery bottleneck.
+      Chartered risk-management credential underpins stress-testing discipline, with containerized batch-processing practice shortening cycle times for capital planning decisions.
+      That quantitative and governance foundation enables innovation incubation and federated platform capabilities across decentralized operating units, preserving lineage discipline and investment rigor at enterprise scale.
+    claim_ledger_grounded: false
+    annotation: >
+      STYLE VARIANT — SVP IT strategy register (V11, structural-repair-f4a8c2): S1 uses
+      'digital innovation' framing — NOT 'commercialization'. NEVER copy 'commercialization'
+      into S1 unless an allowed source_fact_id explicitly carries a revenue/margin outcome fact;
+      an undelivered commercialization thread is a thesis_body_gap that Claude-class judges
+      score at 3.4 or below. S6 is forward-modal ('enables', 'preserving') — NEVER past-tense
+      ('Built', 'Applied', 'Directed'). METRICS INTENTIONALLY TRANSPOSED to a different domain
+      (supply-chain/finance) — do NOT copy [X]/[Y]/[A]/[B]/[Z] placeholders; retrieve real
+      values from C0 ALLOWED_SOURCE_FACT_IDS. Connective tissue: S2 opens with 'Designs',
+      S3-S5 each open with a thesis-referent bridge ('Building on', 'Against that').
+
+  - id: exec_summary_neg_thin_s6_recap_001
+    category: negative
+    section: executive_summary
+    seniority_band: EXECUTIVE
+    xml_wrapped: true
+    before: null
+    after: |
+      Technology strategy executive who aligns enterprise IT direction, governed AI platform delivery, and innovation programs for regulated enterprise scale. Building on that platform foundation, platform commercialization generated proof-backed revenue outcomes. Through that operating model, Basel III lineage frameworks reduced reporting errors. That regulatory lineage work extended to re-architecting monolithic risk analytics with containerized HPC microservices. Built advanced quantitative foundation through [FORBIDDEN: derivatives-pricing inventory], capital modeling, and FSA credential rigor. Governed platform delivery, engineering scale, and regulatory-grade controls extend that arc toward enterprise architecture modernization and data-driven innovation programs.
+    annotation: >
+      VIOLATION: Claude-fail bundle — thin S6 recap ("extend that arc toward"), S5 credential inventory, forced S3→S4 causal bridge, generic S1.
+
+  - id: exec_summary_neg_credential_dump_001
+    category: negative
+    section: executive_summary
+    seniority_band: EXECUTIVE
+    xml_wrapped: true
+    before: null
+    after: |
+      Engineering executive building governed platforms for enterprise delivery. Leads lifecycle and commercial adoption across programs. Delivery outcomes remain grounded in selected executive facts. AWS Certified Machine Learning Engineer, AWS Certified Solutions Architect, Databricks Lakehouse Fundamentals, and Fellow of the Society of Actuaries credentials reinforce senior IT strategy leadership.
+    annotation: >
+      VIOLATION: credential/certification inventory block; belongs in certifications section.
+
+  - id: exec_summary_neg_mechanism_inventory_001
+    category: negative
+    section: executive_summary
+    seniority_band: EXECUTIVE
+    xml_wrapped: true
+    before: null
+    after: |
+      Engineering executive building governed platforms. The leader delivers deterministic routing, multi-agent orchestration, GraphRAG retrieval, sandboxed execution, policy gating, validation controls, and replayable execution traces into enterprise capability. Platform lifecycle work spans architecture and operating model design. Outcomes stay grounded in selected executive facts.
+    annotation: >
+      VIOLATION: mechanism inventory sentence; comma-chain architecture list, not synthesis.
+
+  - id: exec_summary_neg_label_stitch_001
+    category: negative
+    section: executive_summary
+    seniority_band: EXECUTIVE
+    xml_wrapped: true
+    before: null
+    after: |
+      Enterprise Agentic AI Platform Architecture: designed and operationalized a governed agentic AI platform. Dependency Graph Accelerator: built software dependency graph intelligence.
+    annotation: >
+      VIOLATION: selected-fact label / title colon stitching; reads like artifact
+      labels pasted into prose instead of one executive paragraph.
+    ai_giveaway_markers:
+      - label_colon_stitching
+      - non_executive_register
+
+  - id: exec_summary_neg_meta_filler_001
+    category: negative
+    section: executive_summary
+    seniority_band: EXECUTIVE
+    xml_wrapped: true
+    before: null
+    after: |
+      Engineering executive across the scope described in selected facts with active-voice delivery and governance discipline.
+    annotation: >
+      VIOLATION: meta-scaffolding; prompt-compliance narration; not credible résumé prose.
+    ai_giveaway_markers:
+      - meta_filler
+      - selected_facts_phrase_leak
+
+  - id: exec_summary_neg_first_person_001
+    category: negative
+    section: executive_summary
+    seniority_band: EXECUTIVE
+    xml_wrapped: true
+    before: null
+    after: |
+      As an SVP IT Strategy leader, I align governed AI platforms and commercialization into one enterprise direction. I designed operational platforms with deterministic routing. I scaled the ML organization from 8 to 28 specialists. I implemented Basel III lineage frameworks. I generated $22M in platform revenue. I continue to drive innovation across programs.
+    annotation: >
+      VIOLATION: first-person voice (I/my) and "As an SVP" opener; fails x2_first_person_zero and executive register.
+
+  - id: exec_summary_neg_employer_inventory_001
+    category: negative
+    section: executive_summary
+    seniority_band: EXECUTIVE
+    xml_wrapped: true
+    before: null
+    after: |
+      Technology strategy executive operationalizing governed AI platforms for regulated enterprises. Platform commercialization generated proof-backed revenue outcomes. Basel III lineage frameworks reduced reporting errors. HPC microservices accelerated stress testing. Built quantitative foundation through [FORBIDDEN: derivatives-pricing inventory] and FSA credential across Towers Perrin, ING, and Aetna. Governed platform delivery connects execution discipline to measurable outcomes.
+    annotation: >
+      VIOLATION: employer/credential inventory in S5 (Towers Perrin/ING/Aetna line); sequential achievement stack without thesis.
+
+  - id: exec_summary_neg_sentence_stack_001
+    category: negative
+    section: executive_summary
+    seniority_band: EXECUTIVE
+    xml_wrapped: true
+    before: null
+    after: |
+      Engineering executive specializing in governed agentic AI platforms. Built deterministic routing. Built GraphRAG retrieval. Built telemetry instrumentation. Reduced deployment cycles.
+    annotation: >
+      VIOLATION: one short sentence per fact; proof stacking; lacks narrative synthesis.
+    ai_giveaway_markers:
+      - sentence_stacked_proof
+      - bullet_voice
+
+  - id: exec_summary_neg_001
+    category: negative
+    section: executive_summary
+    seniority_band: EXECUTIVE
+    xml_wrapped: true
+    before: null
+    after: |
+      Seasoned executive -- bringing 18+ years of cross-functional synergies and
+      dynamic leadership to enterprise AI transformations. Passionate about
+      fostering innovation across diverse, high-performing teams.
+    annotation: >
+      VIOLATION: opens with discouraged opener "Seasoned executive", uses double
+      hyphen substituting em dash, "cross-functional synergies" corporate
+      buzzword, "Passionate about" generic opener, no claim_ledger-ready proof, JD keyword
+      mirror, no concrete metrics.
+    ai_giveaway_markers:
+      - generic_opener
+      - corporate_buzzwords
+      - no_ledger_grounding
+      - keyword_mirror
+    anti_ai_compliance:
+      no_em_dash: false
+      no_pioneered_orchestrated: false
+      no_corporate_buzzwords: false
+      voice_variation_score: low
+
+  - id: exec_summary_neg_002
+    category: negative
+    section: executive_summary
+    seniority_band: SENIOR
+    xml_wrapped: true
+    before: null
+    after: |
+      Results-driven technology leader who is passionate about leveraging
+      synergies to drive meaningful impact across the dynamic landscape of
+      modern enterprise software. Proven track record of delivering value.
+    annotation: >
+      VIOLATION: "Results-driven" generic opener, "passionate about", "leveraging
+      synergies", "dynamic landscape", "drive meaningful impact", "Proven track
+      record" -- all AI-pattern phrases. Zero concrete evidence or ledger-ready proof.
+    ai_giveaway_markers:
+      - generic_opener
+      - corporate_buzzwords
+      - no_ledger_grounding
+      - no_metrics
+    anti_ai_compliance:
+      no_em_dash: true
+      no_pioneered_orchestrated: false
+      no_corporate_buzzwords: false
+      voice_variation_score: low
+
+  - id: exec_summary_repair_001
+    category: repair
+    section: executive_summary
+    seniority_band: EXECUTIVE
+    xml_wrapped: true
+    before: |
+      Visionary CTO -- pioneering AI transformation across enterprise clients
+      with a holistic approach to robust solution delivery. Spearheaded
+      cross-functional synergies resulting in paradigm-shifting outcomes.
+    after: |
+      CTO with 14 years building AI platforms for Fortune 500 clients.
+      Delivered $3.8M ARR growth through platform consolidation in 2022.
+      Scaled engineering org from 12 to 60 across three acquisitions.
+    repair_actions:
+      - Removed "Visionary" generic opener
+      - Removed em dash (--) and replaced sentence structure
+      - Replaced "pioneering AI transformation" with concrete role + years
+      - Removed "holistic approach", "robust solution", "cross-functional synergies", "paradigm-shifting"
+      - Bound metrics to claim_ledger rows (display prose stays free of inline source tags)
+      - Grounded claims in specific metrics
+    annotation: >
+      Repair converts AI-pattern opener + buzzword density into concrete,
+      ledger-grounded natural prose with seniority identity lead.
+    anti_ai_compliance:
+      no_em_dash: true
+      no_pioneered_orchestrated: true
+      no_corporate_buzzwords: true
+      voice_variation_score: high
+
+# Legacy weak positives (exec_summary_pos_001 / _002) removed — they pulled toward
+# shallow “years of experience” résumé filler.
+# exec_summary_gold_base_resume_001 converted from positive_gold to negative 2026-05-27:
+# contains SRFS_FORBIDDEN_PHRASES (engineering scale-out, reusable platform services adopted...,
+# converting bespoke delivery) and carries real candidate metrics ($22M/20%) that anchor PROVIDER_MODEL.

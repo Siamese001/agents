@@ -1,0 +1,61 @@
+{
+  "schema_version": "apps_rg.graph_evolution_candidate_comparison_contract.v1",
+  "contract_id": "APPS_RG_GRAPH_EVOLUTION_CANDIDATE_COMPARISON",
+  "wave": "GE_W7",
+  "status": "FROZEN",
+  "input": {
+    "ge_w6_change_impact_receipt_required": true,
+    "candidate_registry_projection_digest_binding_required": true,
+    "prelabel_full_ranking_freeze_required": true,
+    "full_finite_candidate_universe_required": true
+  },
+  "human_qrel_authority": {
+    "qrel_schema_version": "apps_rg.graph_evolution_candidate_cluster_qrels.v1",
+    "required_status": "FROZEN_HUMAN_ADJUDICATED",
+    "relevance_grades": [0, 1, 2, 3],
+    "relevant_grade_floor": 2,
+    "two_distinct_human_reviewers_required": true,
+    "separate_human_adjudicator_required": true,
+    "external_human_review_authority_receipt_required": true,
+    "synthetic_or_model_labels_forbidden": true
+  },
+  "retrieval_metrics": {
+    "required": ["Recall@10", "nDCG@10", "MRR"],
+    "aggregate": "macro by query-section pair; pooled Recall@10 also reported",
+    "holdout_quality_gates": {
+      "macro_recall_at_10_min": 0.95,
+      "pooled_recall_at_10_min": 0.95,
+      "macro_ndcg_at_10_min": 0.9,
+      "macro_reciprocal_rank_min": 0.9
+    }
+  },
+  "non_retrieval_evaluation": {
+    "required_metrics": [
+      "section_policy_leak_count",
+      "orphan_candidate_count",
+      "stale_candidate_count",
+      "authority_bypass_count",
+      "projection_issue_count",
+      "cold_six_query_encode_elapsed_ms",
+      "projection_search_p95_ms"
+    ],
+    "maximums": {
+      "section_policy_leak_count": 0,
+      "orphan_candidate_count": 0,
+      "stale_candidate_count": 0,
+      "authority_bypass_count": 0,
+      "projection_issue_count": 0,
+      "cold_six_query_encode_elapsed_ms": 15000.0,
+      "projection_search_p95_ms": 50.0
+    }
+  },
+  "ge_w7_exit": {
+    "blocked_state": "BLOCKED_QREL_AUTHORITY",
+    "failure_state": "FAIL",
+    "qualified_state": "QUALIFIED",
+    "candidate_state": "CANDIDATE_COMPARISON_EVALUATED",
+    "activation_created": false,
+    "active_runtime_pointer_changed": false,
+    "next_gate": "GE_W8_CONTROLLED_ACTIVATION"
+  }
+}

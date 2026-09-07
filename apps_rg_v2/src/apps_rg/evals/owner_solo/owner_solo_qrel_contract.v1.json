@@ -1,0 +1,45 @@
+{
+  "schema_version": "apps_rg.owner_solo_qrel_lane_contract.v1",
+  "lane": "OWNER_SOLO_PROVISIONAL",
+  "status": "FROZEN",
+  "purpose": "Owner-directed, blinded, provisional C0.3 graph-evidence-cluster review without independent QREL authority.",
+  "authoritative_lane": {
+    "existing_two_reviewer_contract_unchanged": true,
+    "existing_independent_adjudication_contract_unchanged": true,
+    "authoritative_release_qualification_may_not_be_satisfied": true
+  },
+  "owner_solo_exception": {
+    "external_exception_policy_required": true,
+    "one_human_owner_required": true,
+    "second_reviewer_waiver_must_be_explicit": true,
+    "independent_adjudicator_waiver_must_be_explicit": true,
+    "required_result_label": "OWNER_SOLO_PROVISIONAL"
+  },
+  "mandatory_controls": {
+    "full_finite_candidate_universe_required": true,
+    "rank_score_split_and_identity_blinding_required_during_scoring": true,
+    "explicit_integer_grade_required": true,
+    "nonempty_human_rationale_required": true,
+    "append_only_correction_ledger_required": true,
+    "calibration_holdout_separation_required": true,
+    "unknown_or_malformed_judgments_fail_closed": true
+  },
+  "denominator": {
+    "query_count": 6,
+    "calibration_query_count": 3,
+    "holdout_query_count": 3,
+    "section_count": 8,
+    "query_section_case_count": 48,
+    "candidate_judgment_count": 456,
+    "relevant_grade_floor": 2,
+    "partial_top_k_judging_forbidden": true
+  },
+  "publication_boundary": {
+    "status_after_finalization": "FROZEN_OWNER_SOLO_PROVISIONAL",
+    "independent_qrel_authority": false,
+    "inter_rater_reliability_claim": false,
+    "release_qualification": false,
+    "activation_manifest_created": false,
+    "production_promotion_authorized": false
+  }
+}

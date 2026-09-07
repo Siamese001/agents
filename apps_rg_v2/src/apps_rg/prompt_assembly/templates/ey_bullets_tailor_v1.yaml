@@ -1,0 +1,34 @@
+template_id: ey_bullets_tailor_v1
+section_id: ey_bullets
+purpose: >
+  EY experience is consolidated into Early Career/Foundation with 0 standalone bullets.
+  Standalone LLM generation for EY bullets is disabled. No standalone bul_ey bullets
+  are generated.
+methodology_contract:
+  role: CONSOLIDATED_EARLY_CAREER
+  bullets_prove_what_was_delivered: false
+  narrative_dependency: ey_narrative
+  companion_narrative_rule: >
+    EY experience is consolidated into Early Career foundation; no standalone EY bullets or narrative.
+  anti_patterns:
+    - "standalone EY bullet generation"
+    - "generic role summary instead of evidence-bound bullets"
+    - "JD or briefing used as claim evidence"
+    - "unsupported target-company claims"
+output_contract:
+  format: json_object
+  required_keys:
+    - bullets
+    - claim_ledger
+    - jd_alignment
+  bullets:
+    count: 0
+    fields: [bullet_id, bullet_text, source_fact_ids]
+    source_fact_id_prefix: bul_ey
+    uniqueness: "EY consolidated into Early Career; 0 standalone bullets"
+proof_contract:
+  source_fact_ids: optional
+  unique_source_fact_ids_required: false
+  targeting_only: true
+  jd_used_as_proof: false
+  retries_cannot_repair_missing_upstream_evidence: true

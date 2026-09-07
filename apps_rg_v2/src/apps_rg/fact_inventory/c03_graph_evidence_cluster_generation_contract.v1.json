@@ -1,0 +1,84 @@
+{
+  "schema_version": "apps_rg.c03_graph_evidence_cluster_generation_contract.v1",
+  "contract_id": "C03_GRAPH_EVIDENCE_CLUSTER_VECTOR_GENERATION",
+  "wave": "W6",
+  "status": "FROZEN",
+  "source_requirements": {
+    "wave5_receipt_required": true,
+    "wave5_retirement_marker_required": true,
+    "wave4_registry_required": true,
+    "canonical_graph_required": true,
+    "canonical_graph_preservation_required": true,
+    "wave4_registry_preservation_required": true,
+    "legacy_artifact_directory_absent_required": true
+  },
+  "retrieval_unit": {
+    "logical_retrieval_unit": "graph_evidence_cluster",
+    "exact_active_cluster_count": 38,
+    "one_vector_per_active_cluster": true,
+    "cluster_id_is_projection_primary_key": true,
+    "per_node_vectors_forbidden": true,
+    "per_skill_vectors_forbidden": true,
+    "held_candidate_vectors_forbidden": true,
+    "facet_vectors_forbidden_in_wave6": true,
+    "canonical_embedding_text_is_only_model_input": true
+  },
+  "embedding_runtime": {
+    "model_id": "BAAI/bge-m3",
+    "model_revision": "5617a9f61b028005a4858fdac845db406aefb181",
+    "dimension": 1024,
+    "normalization": "l2",
+    "float_storage": "little_endian_float32",
+    "network_allowed": false,
+    "fallback_allowed": false,
+    "local_model_manifest_required": true,
+    "runtime_proof_required": true
+  },
+  "projection_contract": {
+    "schema_version": "apps_rg.graph_evidence_cluster_embedding_projection.v1",
+    "immutable_generation_required": true,
+    "registry_digest_binding_required": true,
+    "graph_digest_binding_required": true,
+    "model_artifact_digest_binding_required": true,
+    "canonical_text_digest_binding_required": true,
+    "authority_envelope_digest_binding_required": true,
+    "allowed_section_binding_required": true,
+    "vector_digest_binding_required": true,
+    "candidate_payload_fields": [
+      "cluster_id",
+      "similarity"
+    ],
+    "exact_current_registry_rehydration_required": true,
+    "bounded_top_k_required": true,
+    "minimum_top_k": 1,
+    "maximum_top_k": 37,
+    "top_k_equal_to_corpus_size_forbidden": true
+  },
+  "artifact_contract": {
+    "artifact_directory": "artifacts/apps_rg/c03/graph_evidence_cluster_embeddings",
+    "immutable_model_manifest_required": true,
+    "immutable_sqlite_projection_required": true,
+    "immutable_generation_manifest_required": true,
+    "wave6_receipt_required": true,
+    "activation_manifest_created": false,
+    "legacy_environment_flag_repurposed": false
+  },
+  "wave6_acceptance": {
+    "exact_vector_count": 38,
+    "all_vectors_finite_and_normalized": true,
+    "all_active_clusters_have_exactly_one_vector": true,
+    "all_held_candidates_have_zero_vectors": true,
+    "all_skill_and_node_ids_have_zero_projection_rows": true,
+    "candidate_only_query_smoke_required": true,
+    "section_filter_query_smoke_required": true,
+    "current_authority_rehydration_smoke_required": true,
+    "semantic_retrieval_qualification_completed": false,
+    "activation_authorized": false,
+    "production_promotion_authorized": false
+  },
+  "post_wave6_open_gates": {
+    "semantic_retrieval_qualification": "OPEN",
+    "release_activation": "BLOCKED_UNTIL_QUALIFIED",
+    "production_promotion": "NOT_AUTHORIZED"
+  }
+}

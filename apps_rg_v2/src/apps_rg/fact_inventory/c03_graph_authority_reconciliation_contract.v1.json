@@ -1,0 +1,62 @@
+{
+  "schema_version": "apps_rg.c03_graph_authority_reconciliation_contract.v1",
+  "wave_id": "C03_CLUSTER_EMBEDDING_W3",
+  "status": "FROZEN",
+  "authority_order": [
+    "Current skill-row fields govern section, taxonomy, retrieval, lifecycle, and human-confirmation relationships.",
+    "Current graph-node fields govern structural node identity and may narrow a skill row through a fail-closed non-retrieval projection override.",
+    "When duplicated lifecycle or support fields conflict, reconciliation selects the less permissive value.",
+    "When duplicated evidence-risk fields conflict, reconciliation selects the higher risk.",
+    "No reconciliation rule may create a fact, enable retrieval, expand a section allowlist, or authorize an external claim."
+  ],
+  "reconciliation_rules": {
+    "w2_integrity_gap_edges": "retire_exact_registered_edge",
+    "taxonomy_membership": "retain_only_membership_resolved_by_current_skill_row_domain_or_pillar",
+    "skill_allowed_in_section": "exactly_materialize_current_skill_row_allowed_sections",
+    "section_can_select_skill": "retire_relationships_outside_current_skill_row_allowed_sections",
+    "retrieval_policy_partition": "exactly_one_external_edge_for_retrieval_eligible_rows_and_exactly_one_internal_edge_otherwise",
+    "human_confirmation_policy": "exactly_materialize_rows_where_human_confirmation_required_is_true",
+    "draft_projection_block": "exactly_materialize_rows_whose_activation_status_is_DRAFT",
+    "graph_hop_path": "rewrite_only_non_traversable_paths_through_registered_epoch_skill_and_optional_fact_edges",
+    "active_orphan_nodes": "retain_record_but_set_activation_status_to_RETIRED",
+    "historical_runtime_snapshots": "preserve_immutable_but_classify_as_stale_until_current_graph_id_rehydration"
+  },
+  "intentional_node_row_difference_rules": {
+    "node_type": "graph node taxonomy is authoritative when a skill row omits node_type or records skill_row while the registered graph node is skill",
+    "projection_behavior": "retrieval-ineligible graph nodes use non_retrieval_identity even when a legacy row records a more permissive behavior; a missing row value may use the registered node behavior",
+    "external_claim_policy": "retrieval-ineligible graph nodes use skill_projection_not_proof even when a legacy row records a more permissive policy; a missing row value may use the registered node policy"
+  },
+  "allowed_mutations": [
+    "retire contradictory or row-exceeding graph edges",
+    "add row-derived section and policy edges",
+    "refresh edge semantic and lifecycle fields against reconciled authority",
+    "align duplicated activation, support, and evidence-risk fields conservatively",
+    "rewrite broken graph_hop_path values through existing registered edges",
+    "set disconnected active graph nodes to RETIRED",
+    "add the Wave 3 reconciliation marker"
+  ],
+  "forbidden_mutations": [
+    "add or delete a skill row",
+    "add or delete a graph node",
+    "change a skill retrieval_eligible value",
+    "add a fact identifier or evidence reference",
+    "expand an allowed_sections field",
+    "delete or rewrite a legacy embedding artifact",
+    "generate replacement vectors",
+    "authorize production promotion"
+  ],
+  "acceptance": {
+    "w2_integrity_gap_count": 0,
+    "section_authority_drift_count": 0,
+    "retrieval_policy_partition_drift_count": 0,
+    "human_confirmation_policy_drift_count": 0,
+    "draft_projection_block_drift_count": 0,
+    "non_traversable_graph_hop_row_count": 0,
+    "active_orphan_node_count": 0,
+    "unregistered_node_row_difference_count": 0,
+    "legacy_embedding_artifacts_changed": false,
+    "replacement_vectors_generated": false,
+    "production_promotion_authorized": false
+  },
+  "next_wave": "C03_CLUSTER_EMBEDDING_W4_CLUSTER_REGISTRY_MATERIALIZATION"
+}

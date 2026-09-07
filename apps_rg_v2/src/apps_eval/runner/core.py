@@ -1,0 +1,2149 @@
+"""Snapshot-first deterministic evaluation runner."""
+
+from __future__ import annotations
+
+import csv
+import hashlib
+import io
+import json
+import os
+import platform
+import subprocess
+import sys
+from collections import Counter
+from dataclasses import replace
+from datetime import datetime, timezone
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as package_version
+from pathlib import Path
+from typing import Any, Mapping
+
+from apps_eval import _write_gateway as _wg
+from apps_eval.adapters import run_apps_lic_live, run_apps_rg_live
+from apps_eval.adapters.apps_rg import (
+    build_source_artifact_manifest,
+    source_artifact_manifest_digest,
+)
+from apps_eval.resources import resolve_apps_eval_resource
+from apps_eval.contracts import (
+    CURRENT_EVAL_MANIFEST_SCHEMA_VERSION,
+    CURRENT_EVAL_RECORD_SCHEMA_VERSION,
+    CURRENT_SCORER_VERSION,
+    AppOutputSnapshot,
+    CompletedEvalRecord,
+    DiagnosticObservationV1,
+    DiagnosticSummaryV1,
+    EvalFixture,
+    EvalRequest,
+    EvalRunMetadata,
+    EvalScenario,
+    FixtureProvenance,
+    L6EvalHandoff,
+    RegressionFlywheelSummary,
+    RegressionSummary,
+    Scorecard,
+    ScorecardRow,
+)
+from apps_eval.coverage import (
+    ANTHROPIC_DETERMINISTIC_FIXTURE_PROFILE_ID,
+    DEFAULT_APPS_RG_CONTRACT_PROFILE_ID,
+    apps_rg_contract_digest,
+    apps_rg_contract_profile,
+    build_apps_rg_microstep_evaluation,
+    is_fixture_only_apps_rg_profile,
+)
+from apps_eval.diagnostics import build_apps_rg_diagnostics
+from apps_eval.graders.deterministic import build_default_graders
+from apps_eval.outputs.render import render_record_markdown, render_report
+from apps_eval.registry import OLD_SUITE_NAMES, load_suite, load_thresholds_registry
+
+
+def _load_json(path: Path) -> dict[str, Any]:
+    with path.open(encoding="utf-8") as handle:
+        data = json.load(handle)
+    if not isinstance(data, dict):
+        raise ValueError(f"expected object in {path}")
+    return data
+
+
+def _canonical_digest(payload: Any) -> str:
+    raw = json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str)
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+
+def _stable_record_id(payload: dict[str, Any]) -> str:
+    return _canonical_digest(payload)[:16]
+
+
+def _path_json_digest(path: Path) -> str:
+    return _canonical_digest(_load_json(path))
+
+
+def _project_version() -> str:
+    try:
+        return package_version("agentic-workflow")
+    except PackageNotFoundError:
+        return "1.0.0"
+
+
+def _git_commit(repo_root: Path) -> str:
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=repo_root,
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=30,
+        )
+    except (OSError, subprocess.CalledProcessError):
+        return ""
+    return result.stdout.strip()
+
+
+def _run_started_at(deterministic_only: bool) -> str:
+    if deterministic_only:
+        return "1970-01-01T00:00:00Z"
+    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def _suite_digest(suite: dict[str, Any]) -> str:
+    payload = {
+        "app_id": suite.get("app_id", ""),
+        "split": suite.get("split", ""),
+        "task": suite.get("task", ""),
+        "rubric_id": suite.get("rubric_id", ""),
+        "fixture_root": suite.get("fixture_root", ""),
+        "scenarios": list(suite.get("scenarios", [])),
+    }
+    return _canonical_digest(payload)
+
+
+def _threshold_digest(thresholds: dict[str, Any]) -> str:
+    return _canonical_digest(thresholds)
+
+
+def _failure_family(failure_mode: str) -> str:
+    if not failure_mode:
+        return ""
+    return failure_mode.split(".", 1)[0]
+
+
+def _is_block_severity(severity: str) -> bool:
+    return str(severity or "").lower() == "block"
+
+
+def _passed(item: Any) -> bool:
+    value = getattr(item, "passed", None)
+    if isinstance(value, bool):
+        return value
+    verdict = str(getattr(item, "verdict", "") or "").upper()
+    return verdict in {"PASS", "NOT_APPLICABLE"}
+
+
+def _item_failure_mode(item: Any) -> str:
+    return str(getattr(item, "failure_mode", "") or getattr(item, "grader_id", "") or getattr(item, "microstep_id", ""))
+
+
+def _failure_mode_catalog(graders: list[Any]) -> list[dict[str, str]]:
+    return [
+        {
+            "grader_id": grader.grader_id,
+            "failure_mode": grader.failure_mode,
+            "severity": grader.severity,
+        }
+        for grader in graders
+    ]
+
+
+def _failure_mode_catalog_digest(graders: list[Any]) -> str:
+    return _canonical_digest(_failure_mode_catalog(graders))
+
+
+def _sorted_counter(counter: Counter[str]) -> dict[str, int]:
+    return {key: counter[key] for key in sorted(counter)}
+
+
+def _failure_mode_rollup(findings: list[Any]) -> dict[str, Any]:
+    failed = [finding for finding in findings if not _passed(finding)]
+    failure_mode_counts: Counter[str] = Counter()
+    block_failure_mode_counts: Counter[str] = Counter()
+    warn_failure_mode_counts: Counter[str] = Counter()
+    family_counts: Counter[str] = Counter()
+    for finding in failed:
+        failure_mode = _item_failure_mode(finding)
+        failure_mode_counts[failure_mode] += 1
+        family = _failure_family(failure_mode)
+        if family:
+            family_counts[family] += 1
+        if _is_block_severity(getattr(finding, "severity", "")):
+            block_failure_mode_counts[failure_mode] += 1
+        else:
+            warn_failure_mode_counts[failure_mode] += 1
+    dominant_mode = failure_mode_counts.most_common(1)[0][0] if failure_mode_counts else ""
+    dominant_family = family_counts.most_common(1)[0][0] if family_counts else ""
+    return {
+        "failed_findings": len(failed),
+        "failure_mode_counts": _sorted_counter(failure_mode_counts),
+        "failure_family_counts": _sorted_counter(family_counts),
+        "block_failure_mode_counts": _sorted_counter(block_failure_mode_counts),
+        "warn_failure_mode_counts": _sorted_counter(warn_failure_mode_counts),
+        "dominant_failure_mode": dominant_mode,
+        "dominant_failure_family": dominant_family,
+    }
+
+
+def _scenario_rollup(scenario_id: str, findings: list[Any], snapshot_ref: str, snapshot_digest: str, fixture_provenance_digest: str) -> dict[str, Any]:
+    rollup = _failure_mode_rollup(findings)
+    block_failures = sum(1 for finding in findings if not finding.passed and finding.severity == "block")
+    failed_findings = rollup["failed_findings"]
+    return {
+        "scenario_id": scenario_id,
+        "passed": block_failures == 0,
+        "block_failures": block_failures,
+        "failed_findings": failed_findings,
+        "snapshot_ref": snapshot_ref,
+        "snapshot_digest": snapshot_digest,
+        "fixture_provenance_digest": fixture_provenance_digest,
+        "failure_modes": list(rollup["failure_mode_counts"].keys()),
+        "failure_mode_counts": rollup["failure_mode_counts"],
+        "failure_family_counts": rollup["failure_family_counts"],
+        "block_failure_mode_counts": rollup["block_failure_mode_counts"],
+        "warn_failure_mode_counts": rollup["warn_failure_mode_counts"],
+        "dominant_failure_mode": rollup["dominant_failure_mode"],
+        "dominant_failure_family": rollup["dominant_failure_family"],
+        "findings": [finding.to_dict() for finding in findings],
+    }
+
+
+def _regression_flywheel_summary(
+    *,
+    record: CompletedEvalRecord,
+    findings: list[Any],
+    baseline_payload: dict[str, Any] | None,
+    comparison: RegressionSummary,
+    baseline_path: str = "",
+) -> RegressionFlywheelSummary:
+    rollup = _failure_mode_rollup(findings)
+    current_mode_counts = Counter(rollup["failure_mode_counts"])
+    baseline_mode_counts: Counter[str] = Counter()
+    baseline_family_counts: Counter[str] = Counter()
+    if baseline_payload:
+        baseline_flywheel = baseline_payload.get("regression_flywheel", {})
+        baseline_mode_counts.update(baseline_flywheel.get("current_failure_mode_counts", {}))
+        baseline_family_counts.update(baseline_flywheel.get("current_failure_family_counts", {}))
+        if not baseline_mode_counts and not baseline_family_counts:
+            baseline_scorecard = baseline_payload.get("scorecard", {})
+            if isinstance(baseline_scorecard, dict):
+                baseline_mode_counts.update(baseline_scorecard.get("failure_mode_counts", {}))
+                baseline_family_counts.update(baseline_scorecard.get("failure_family_counts", {}))
+    current_modes = set(current_mode_counts)
+    baseline_modes = set(baseline_mode_counts)
+    current_hotspots = sorted(
+        (
+            {
+                "scenario_id": scenario.get("scenario_id", ""),
+                "failed_findings": scenario.get("failed_findings", 0),
+                "block_failures": scenario.get("block_failures", 0),
+                "dominant_failure_mode": scenario.get("dominant_failure_mode", ""),
+                "dominant_failure_family": scenario.get("dominant_failure_family", ""),
+                "failure_modes": list(scenario.get("failure_modes", [])),
+            }
+            for scenario in record.scenario_results
+            if scenario.get("failed_findings", 0)
+        ),
+        key=lambda item: (-int(item["failed_findings"]), -int(item["block_failures"]), item["scenario_id"]),
+    )
+    return RegressionFlywheelSummary(
+        compared=comparison.compared,
+        baseline_path=baseline_path or comparison.baseline_path,
+        baseline_digest=comparison.baseline_digest,
+        current_score=comparison.current_score,
+        baseline_score=comparison.baseline_score,
+        delta=comparison.delta,
+        verdict=comparison.verdict,
+        current_failure_mode_counts=rollup["failure_mode_counts"],
+        current_failure_family_counts=rollup["failure_family_counts"],
+        baseline_failure_mode_counts=_sorted_counter(baseline_mode_counts),
+        baseline_failure_family_counts=_sorted_counter(baseline_family_counts),
+        dominant_failure_mode=rollup["dominant_failure_mode"],
+        dominant_failure_family=rollup["dominant_failure_family"],
+        new_failure_modes=sorted(current_modes - baseline_modes),
+        recovered_failure_modes=sorted(baseline_modes - current_modes),
+        repeated_failure_modes=sorted(mode for mode, count in current_mode_counts.items() if count > 1),
+        scenario_hotspots=current_hotspots[:10],
+    )
+
+
+def _load_fixture(suite_id: str, suite: dict[str, Any], scenario_id: str) -> EvalFixture:
+    scenario_dir = resolve_apps_eval_resource(suite["fixture_root"]) / scenario_id
+    scenario_path = scenario_dir / "scenario.yaml"
+    input_path = scenario_dir / "input" / "request.json"
+    expected_path = scenario_dir / "expected" / "expectations.json"
+    snapshot_path = scenario_dir / "snapshots" / "app_output_snapshot.json"
+    if not scenario_path.is_file():
+        raise FileNotFoundError(f"missing scenario.yaml: {scenario_path}")
+    if not input_path.is_file():
+        raise FileNotFoundError(f"missing request.json: {input_path}")
+    if not expected_path.is_file():
+        raise FileNotFoundError(f"missing expectations.json: {expected_path}")
+    if not snapshot_path.is_file():
+        raise FileNotFoundError(f"missing app_output_snapshot.json: {snapshot_path}")
+    with scenario_path.open(encoding="utf-8") as handle:
+        raw = json.load(handle)
+    scenario = EvalScenario(
+        scenario_id=scenario_id,
+        suite_id=suite_id,
+        app_id=str(suite["app_id"]),
+        description=str(raw.get("description", "")),
+        fixture_path=str(scenario_dir),
+        graders=tuple(raw.get("graders", [])),
+        rubric_id=str(suite["rubric_id"]),
+        holdout=suite.get("split") == "holdout",
+    )
+    provenance = FixtureProvenance(
+        scenario_id=scenario_id,
+        fixture_path=scenario_dir.as_posix(),
+        scenario_definition_digest=_canonical_digest(
+            {
+                "scenario": raw,
+                "scenario_id": scenario_id,
+                "suite_id": suite_id,
+                "app_id": suite["app_id"],
+                "rubric_id": suite["rubric_id"],
+                "holdout": suite.get("split") == "holdout",
+            }
+        ),
+        input_request_digest=_path_json_digest(input_path),
+        expected_digest=_path_json_digest(expected_path),
+        snapshot_digest=_path_json_digest(snapshot_path),
+    )
+    return EvalFixture(
+        scenario=scenario,
+        input_dir=str(scenario_dir / "input"),
+        expected_dir=str(scenario_dir / "expected"),
+        snapshot_path=str(snapshot_path),
+        artifacts_dir=str(scenario_dir / "snapshots" / "artifacts"),
+        expected=_load_json(expected_path),
+        provenance=provenance,
+    )
+
+
+def _load_snapshot(fixture: EvalFixture) -> AppOutputSnapshot:
+    return AppOutputSnapshot.from_dict(_load_json(Path(fixture.snapshot_path)))
+
+
+def _run_live(fixture: EvalFixture, run_dir: Path) -> AppOutputSnapshot:
+    payload = _load_json(Path(fixture.input_dir) / "request.json")
+    scenario_key = hashlib.sha256(fixture.scenario.scenario_id.encode("utf-8")).hexdigest()[:8]
+    if fixture.scenario.app_id == "apps_rg":
+        source_root = str(payload.get("existing_run_root") or "").strip()
+        if not source_root:
+            raise PermissionError(
+                "apps_rg live_adapter is read-only; provide existing_run_root for a sealed product run"
+            )
+        snapshot = run_apps_rg_live(
+            fixture.scenario.scenario_id,
+            payload,
+            Path(source_root),
+        )
+    elif fixture.scenario.app_id == "apps_lic":
+        artifact_dir = run_dir / "la" / scenario_key
+        snapshot = run_apps_lic_live(fixture.scenario.scenario_id, payload, artifact_dir)
+    else:
+        raise ValueError(f"unsupported app: {fixture.scenario.app_id}")
+    snapshot_dir = run_dir / "live_snapshots"
+    _wg.ensure_dir(snapshot_dir)
+    _wg.write_text(
+        snapshot_dir / f"{scenario_key}.json",
+        json.dumps(snapshot.to_dict(), indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
+    return snapshot
+
+
+def _score(
+    suite_id: str,
+    app_id: str,
+    scenario_count: int,
+    findings: list[Any],
+    *,
+    thresholds: dict[str, Any],
+    scorecard_rows: list[ScorecardRow] | None = None,
+    component_scorecards: list[dict[str, Any]] | None = None,
+    coverage_summary: dict[str, Any] | None = None,
+) -> Scorecard:
+    rows = scorecard_rows or []
+    required_rows = [row for row in rows if row.required]
+    finding_count = len(findings)
+    passed = sum(1 for finding in findings if finding.passed)
+    failed = finding_count - passed
+    row_passed = sum(1 for row in required_rows if row.verdict in {"PASS", "NOT_APPLICABLE"})
+    row_failed = len(required_rows) - row_passed
+    block_failures = sum(1 for finding in findings if not finding.passed and _is_block_severity(finding.severity))
+    block_failures += sum(1 for row in required_rows if row.verdict not in {"PASS", "NOT_APPLICABLE"} and _is_block_severity(str(row.severity)))
+    total_scored = finding_count + len(required_rows)
+    score = 1.0 if total_scored == 0 else (passed + row_passed) / total_scored
+    pass_score = float(thresholds.get("pass_score", 1.0))
+    coverage_blocks = bool((coverage_summary or {}).get("release_blocked"))
+    verdict = "pass" if score >= pass_score and block_failures == 0 and not coverage_blocks else "fail"
+    rollup = _failure_mode_rollup([*findings, *required_rows])
+    dim: dict[str, list[float]] = {}
+    for finding in findings:
+        dim.setdefault(finding.grader_id, []).append(finding.score)
+    dim_scores = {key: sum(vals) / len(vals) for key, vals in sorted(dim.items())}
+    return Scorecard(
+        suite_id=suite_id,
+        app_id=app_id,
+        scenario_count=scenario_count,
+        finding_count=finding_count,
+        passed_findings=passed,
+        failed_findings=failed + row_failed,
+        block_failures=block_failures,
+        score=round(score, 6),
+        verdict=verdict,
+        dimension_scores=dim_scores,
+        failure_mode_counts=rollup["failure_mode_counts"],
+        failure_family_counts=rollup["failure_family_counts"],
+        scorecard_rows=[row.to_dict() for row in rows],
+        component_scorecards=component_scorecards or [],
+        coverage_summary=coverage_summary or {},
+    )
+
+
+def _planned_eval_artifacts(run_dir: Path) -> dict[str, Any]:
+    root = run_dir.resolve()
+    return {
+        "__eval_artifact_root__": root.as_posix(),
+        "__emission_complete__": False,
+        "eval_record": (root / "eval_record.json").as_posix(),
+        "scorecard_rows": (root / "scorecard_rows.jsonl").as_posix(),
+        "diagnostic_rows": (root / "diagnostic_rows.jsonl").as_posix(),
+        "diagnostic_summary": (root / "diagnostic_summary.json").as_posix(),
+        "component_scorecards": [
+            (root / "component_scorecards.csv").as_posix(),
+            (root / "apps_rg_component_scorecard.json").as_posix(),
+        ],
+        "coverage_matrix": (root / "coverage_matrix.csv").as_posix(),
+        "regression_summary": [
+            (root / "regression.json").as_posix(),
+            (root / "regression_flywheel.json").as_posix(),
+        ],
+        "fixture_l6_handoff": (root / "apps_rg_l6_eval_handoff.json").as_posix(),
+    }
+
+
+def verify_apps_rg_eval_package_seal(run_dir: Path) -> tuple[bool, list[str]]:
+    """Verify the marker-last receipt over physically emitted Eval outputs."""
+
+    root = Path(run_dir).resolve()
+    seal_path = root / "apps_rg_eval_package_seal.json"
+    try:
+        seal = _load_json(seal_path)
+    except (OSError, ValueError, json.JSONDecodeError):
+        return False, ["eval_package_seal_unreadable"]
+    errors: list[str] = []
+    if seal.get("schema_version") != "apps_eval.apps_rg_eval_package_seal.v1":
+        errors.append("eval_package_seal_schema_mismatch")
+    if seal.get("status") != "PASS":
+        errors.append("eval_package_seal_not_passed")
+    body = {key: value for key, value in seal.items() if key != "manifest_sha256"}
+    expected_manifest_digest = "sha256:" + hashlib.sha256(
+        json.dumps(body, sort_keys=True, separators=(",", ":"), default=str).encode(
+            "utf-8"
+        )
+    ).hexdigest()
+    if seal.get("manifest_sha256") != expected_manifest_digest:
+        errors.append("eval_package_seal_manifest_digest_mismatch")
+    artifacts = seal.get("artifacts")
+    if not isinstance(artifacts, list) or not artifacts:
+        errors.append("eval_package_seal_artifacts_missing")
+        artifacts = []
+    seen_roles: set[str] = set()
+    for row in artifacts:
+        if not isinstance(row, dict):
+            errors.append("eval_package_seal_artifact_not_object")
+            continue
+        role = str(row.get("artifact_role") or "")
+        seen_roles.add(role)
+        ref = str(row.get("artifact_ref") or "")
+        candidate = (root / ref).resolve()
+        try:
+            candidate.relative_to(root)
+        except ValueError:
+            errors.append(f"eval_package_seal_artifact_outside_root:{role}")
+            continue
+        if not candidate.is_file():
+            errors.append(f"eval_package_seal_artifact_missing:{role}")
+            continue
+        raw = candidate.read_bytes()
+        observed = "sha256:" + hashlib.sha256(raw).hexdigest()
+        if row.get("sha256") != observed:
+            errors.append(f"eval_package_seal_artifact_digest_mismatch:{role}")
+        if row.get("byte_length") != len(raw):
+            errors.append(f"eval_package_seal_artifact_length_mismatch:{role}")
+    required_roles = {
+        "eval_record",
+        "scorecard_rows",
+        "component_scorecards",
+        "coverage_matrix",
+        "regression_summary",
+    }
+    missing_roles = sorted(required_roles - seen_roles)
+    errors.extend(f"eval_package_seal_role_missing:{role}" for role in missing_roles)
+    return not errors, errors
+
+
+def _seal_apps_rg_eval_package(
+    *,
+    run_dir: Path,
+    record_id: str,
+    planned_eval_artifacts: dict[str, Any],
+    contract_profile_id: str = "",
+    evidence_class: str = "",
+    product_eligible: bool | None = None,
+) -> Path:
+    if planned_eval_artifacts.get("__emission_complete__") is not True:
+        raise RuntimeError("Apps RG Eval package cannot seal before emission completes")
+    root = Path(run_dir).resolve()
+    entries: list[dict[str, Any]] = []
+    for role in (
+        "eval_record",
+        "scorecard_rows",
+        "component_scorecards",
+        "coverage_matrix",
+        "regression_summary",
+    ):
+        raw_refs = planned_eval_artifacts.get(role)
+        refs = raw_refs if isinstance(raw_refs, list) else [raw_refs]
+        if not refs or any(not str(ref or "").strip() for ref in refs):
+            raise RuntimeError(f"Apps RG Eval package has no planned artifact for {role}")
+        for ref in refs:
+            candidate = Path(str(ref)).resolve()
+            try:
+                relative = candidate.relative_to(root)
+            except ValueError as exc:
+                raise RuntimeError(
+                    f"Apps RG Eval package artifact escapes output root: {role}"
+                ) from exc
+            if not candidate.is_file():
+                raise RuntimeError(
+                    f"Apps RG Eval package artifact was not emitted: {role}:{relative}"
+                )
+            raw = candidate.read_bytes()
+            if not raw:
+                raise RuntimeError(
+                    f"Apps RG Eval package artifact is empty: {role}:{relative}"
+                )
+            if candidate.suffix.lower() == ".json":
+                try:
+                    json.loads(raw)
+                except json.JSONDecodeError as exc:
+                    raise RuntimeError(
+                        f"Apps RG Eval package JSON is invalid: {role}:{relative}"
+                    ) from exc
+            entries.append(
+                {
+                    "artifact_role": role,
+                    "artifact_ref": relative.as_posix(),
+                    "sha256": "sha256:" + hashlib.sha256(raw).hexdigest(),
+                    "byte_length": len(raw),
+                }
+            )
+    body = {
+        "schema_version": "apps_eval.apps_rg_eval_package_seal.v1",
+        "record_id": record_id,
+        "status": "PASS",
+        "emission_phase": "POST_EMISSION_REOPENED_AND_VALIDATED",
+        "artifacts": entries,
+    }
+    if contract_profile_id:
+        body.update(
+            {
+                "contract_profile_id": contract_profile_id,
+                "evidence_class": evidence_class,
+                "product_eligible": bool(product_eligible),
+            }
+        )
+    payload = {
+        **body,
+        "manifest_sha256": "sha256:"
+        + hashlib.sha256(
+            json.dumps(
+                body,
+                sort_keys=True,
+                separators=(",", ":"),
+                default=str,
+            ).encode("utf-8")
+        ).hexdigest(),
+    }
+    path = root / "apps_rg_eval_package_seal.json"
+    _wg.write_text(path, json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
+    valid, errors = verify_apps_rg_eval_package_seal(root)
+    if not valid:
+        raise RuntimeError("Apps RG Eval package seal verification failed: " + ";".join(errors))
+    return path
+
+
+def _snapshot_deterministic_hash(snapshot: AppOutputSnapshot) -> str:
+    data = snapshot.to_dict()
+    data.pop("deterministic_hash", None)
+    return _canonical_digest(data)
+
+
+def _enrich_apps_rg_snapshot(
+    snapshot: AppOutputSnapshot,
+    *,
+    registry_digest: str,
+) -> AppOutputSnapshot:
+    enriched = replace(
+        snapshot,
+        microstep_contract_digest=snapshot.microstep_contract_digest or registry_digest,
+        registry_digest=snapshot.registry_digest or registry_digest,
+    )
+    snapshot_digest = enriched.snapshot_digest or _snapshot_deterministic_hash(enriched)
+    enriched = replace(enriched, snapshot_digest=snapshot_digest)
+    return replace(enriched, deterministic_hash=_snapshot_deterministic_hash(enriched))
+
+
+def _uniform_bound_value(snapshots: list[AppOutputSnapshot], field_name: str) -> str:
+    if not snapshots:
+        return ""
+    values = [str(getattr(snapshot, field_name, "") or "").strip() for snapshot in snapshots]
+    if any(not value for value in values):
+        return ""
+    unique = set(values)
+    return values[0] if len(unique) == 1 else ""
+
+
+def _record_evidence_bindings(
+    snapshots: list[AppOutputSnapshot],
+    *,
+    record_id: str,
+    registry_digest: str,
+) -> dict[str, str]:
+    snapshot_digest = _uniform_bound_value(snapshots, "snapshot_digest")
+    if not snapshot_digest and snapshots and all(snapshot.snapshot_digest for snapshot in snapshots):
+        snapshot_digest = _canonical_digest(
+            [
+                {
+                    "scenario_id": snapshot.scenario_id,
+                    "snapshot_digest": snapshot.snapshot_digest,
+                }
+                for snapshot in sorted(snapshots, key=lambda item: item.scenario_id)
+            ]
+        )
+    return {
+        "parent_run_id": _uniform_bound_value(snapshots, "parent_run_id"),
+        "child_run_id": _uniform_bound_value(snapshots, "child_run_id"),
+        "section_attempt_id": _uniform_bound_value(snapshots, "section_attempt_id"),
+        "eval_record_id": record_id,
+        "runtime_exhaust_bundle_id": _uniform_bound_value(
+            snapshots, "runtime_exhaust_bundle_id"
+        ),
+        "microstep_contract_digest": registry_digest,
+        "registry_digest": registry_digest,
+        "snapshot_digest": snapshot_digest,
+    }
+
+
+def _assert_source_snapshot_unchanged(
+    snapshot: AppOutputSnapshot,
+    *,
+    require_manifest: bool = False,
+) -> None:
+    if not snapshot.run_root:
+        if require_manifest:
+            raise RuntimeError("apps_rg_source_manifest_unreadable:run_root_missing")
+        return
+    source_root = Path(snapshot.run_root)
+    if not source_root.is_dir() or not snapshot.source_artifact_manifest:
+        if require_manifest:
+            raise RuntimeError("apps_rg_source_manifest_unreadable")
+        return
+    sealed_manifest_digest = source_artifact_manifest_digest(
+        snapshot.source_artifact_manifest
+    )
+    if not snapshot.snapshot_digest or sealed_manifest_digest != snapshot.snapshot_digest:
+        raise RuntimeError(
+            "apps_rg_source_manifest_digest_invalid: "
+            f"sealed={sealed_manifest_digest} snapshot={snapshot.snapshot_digest}"
+        )
+    current_manifest = build_source_artifact_manifest(source_root)
+    if not current_manifest:
+        raise RuntimeError("apps_rg_source_manifest_unreadable")
+    current_digest = source_artifact_manifest_digest(current_manifest)
+    if current_digest != snapshot.snapshot_digest:
+        raise RuntimeError(
+            "source_run_mutated_during_apps_eval: "
+            f"expected={snapshot.snapshot_digest} observed={current_digest}"
+        )
+
+
+def _default_current_run_expected(snapshot: AppOutputSnapshot) -> dict[str, Any]:
+    return {
+        "required_output_keys": ["runtime", "sections"],
+        "required_artifacts": ["FINAL_RESUME_OUTPUT.json", "FINAL_RESUME_OUTPUT.txt"],
+        "expected_x3": "X3D_ALLOW_FINISH",
+        "forbidden_terms": [],
+        "grounded_claims_required": True,
+        "required_provenance": [],
+        "required_sections": ["executive_summary", "experience", "skills"],
+        "length_bounds": {"min_words": 50, "max_words": 5000},
+        "allow_side_effects": False,
+        "escalation_required": False,
+    }
+
+
+def _apps_rg_admission_summary(snapshot: AppOutputSnapshot) -> dict[str, Any]:
+    provenance = snapshot.provenance
+    preflight_errors = sorted(
+        {
+            str(error)
+            for error in provenance.get("preflight_verification_errors", [])
+            if str(error)
+        }
+    )
+    preflight_status = str(
+        provenance.get("preflight_verification_status") or ""
+    ).strip()
+    if not preflight_status:
+        preflight_status = (
+            "VERIFIED"
+            if provenance.get("preflight_verified") is True and not preflight_errors
+            else "INVALID"
+        )
+    preflight_pass = (
+        preflight_status == "VERIFIED"
+        and provenance.get("preflight_verified") is True
+        and not preflight_errors
+    )
+
+    product_authority_errors = sorted(
+        {
+            str(error)
+            for error in provenance.get("source_seal_verification_errors", [])
+            if str(error)
+        }
+    )
+    product_authority_pass = (
+        provenance.get("source_seal_verified") is True
+        and provenance.get("product_authorized") is True
+        and not product_authority_errors
+    )
+    missing_identity = sorted(
+        field
+        for field in ("parent_run_id", "child_run_id")
+        if not str(getattr(snapshot, field, "") or "").strip()
+    )
+
+    failures: list[str] = []
+    if not preflight_pass:
+        failures.append(
+            "preflight_verification_unverifiable_key_material"
+            if preflight_status == "UNVERIFIABLE_KEY_MATERIAL"
+            else "preflight_verification_invalid"
+        )
+    if not product_authority_pass:
+        failures.append("product_authority_invalid")
+    if missing_identity:
+        failures.append("source_identity_missing:" + ",".join(missing_identity))
+    return {
+        "schema_version": "apps_eval.apps_rg_admission.v1",
+        "status": "PASS" if not failures else "FAIL",
+        "preflight": {
+            "passed": preflight_pass,
+            "verification_status": preflight_status,
+            "verification_errors": preflight_errors,
+            "verifier_key_id": str(
+                provenance.get("preflight_verifier_key_id") or ""
+            ),
+            "verifier_key_source": str(
+                provenance.get("preflight_verifier_key_source") or ""
+            ),
+        },
+        "product_authority": {
+            "passed": product_authority_pass,
+            "verification_errors": product_authority_errors,
+            "corrected_product_authorized": bool(
+                provenance.get("product_authorized") is True
+            ),
+            "correction_disposition": str(
+                provenance.get("product_authorization_correction_disposition")
+                or ""
+            ),
+        },
+        "source_identity": {
+            "passed": not missing_identity,
+            "missing_fields": missing_identity,
+        },
+        "failures": failures,
+    }
+
+
+def _apps_rg_admission_rows(
+    *,
+    suite_id: str,
+    scenario_id: str,
+    run_id: str,
+    created_at: str,
+    snapshot: AppOutputSnapshot,
+    registry_digest: str,
+    admission: dict[str, Any],
+) -> list[ScorecardRow]:
+    provenance = snapshot.provenance
+    row_specs = (
+        {
+            "name": "preflight_verification",
+            "stage_id": "U0",
+            "artifact_role": "preflight_product_entry",
+            "artifact_ref": str(provenance.get("preflight_ref") or ""),
+            "evidence_digest": str(provenance.get("preflight_digest") or ""),
+            "passed": bool(admission["preflight"]["passed"]),
+            "failure_mode": (
+                "admission.preflight_unverifiable_key_material"
+                if admission["preflight"]["verification_status"]
+                == "UNVERIFIABLE_KEY_MATERIAL"
+                else "admission.preflight_signature_invalid"
+            ),
+            "observed": admission["preflight"],
+            "threshold": "VERIFIED",
+            "schema": "apps_rg.e2e_preflight_product_entry.v1",
+        },
+        {
+            "name": "product_authority",
+            "stage_id": "Exit",
+            "artifact_role": "product_authorization",
+            "artifact_ref": str(
+                provenance.get("product_authorization_correction_ref")
+                or provenance.get("product_authorization_ref")
+                or ""
+            ),
+            "evidence_digest": str(
+                provenance.get("product_authorization_correction_digest")
+                or provenance.get("product_authorization_digest")
+                or ""
+            ),
+            "passed": bool(admission["product_authority"]["passed"]),
+            "failure_mode": "admission.product_authority_invalid",
+            "observed": admission["product_authority"],
+            "threshold": "verified current product authorization",
+            "schema": "apps_rg.authorization_correction.v1",
+        },
+        {
+            "name": "source_identity",
+            "stage_id": "U0",
+            "artifact_role": "source_identity",
+            "artifact_ref": snapshot.run_root,
+            "evidence_digest": snapshot.snapshot_digest,
+            "passed": bool(admission["source_identity"]["passed"]),
+            "failure_mode": "admission.source_identity_missing",
+            "observed": admission["source_identity"],
+            "threshold": "complete parent_run_id and child_run_id",
+            "schema": "apps_research_rg_run_identity.v1",
+        },
+    )
+    rows: list[ScorecardRow] = []
+    for spec in row_specs:
+        passed = bool(spec["passed"])
+        name = str(spec["name"])
+        rows.append(
+            ScorecardRow(
+                suite_id=suite_id,
+                scenario_id=scenario_id,
+                app_id=snapshot.app_id,
+                row_id="admission-"
+                + _canonical_digest(
+                    {
+                        "suite_id": suite_id,
+                        "scenario_id": scenario_id,
+                        "run_id": run_id,
+                        "name": name,
+                    }
+                )[:16],
+                microstep_id=f"admission.{name}",
+                stage_id=str(spec["stage_id"]),
+                component_id="apps_rg.eval_admission",
+                subcomponent_id=name,
+                verdict="PASS" if passed else "FAIL",
+                score=1.0 if passed else 0.0,
+                severity="BLOCK",
+                required=True,
+                run_id=run_id,
+                artifact_role=str(spec["artifact_role"]),
+                artifact_ref=str(spec["artifact_ref"]),
+                evidence_ref=str(spec["artifact_ref"]),
+                evidence_digest=str(spec["evidence_digest"]),
+                failure_mode="" if passed else str(spec["failure_mode"]),
+                failure_family="" if passed else "admission",
+                observed_value=spec["observed"],
+                threshold=spec["threshold"],
+                decisive_reason=(
+                    f"{name} admission passed"
+                    if passed
+                    else f"{name} blocks release"
+                ),
+                source_system="apps_eval",
+                source_artifact_schema=str(spec["schema"]),
+                parent_run_id=snapshot.parent_run_id,
+                child_run_id=snapshot.child_run_id,
+                section_attempt_id=snapshot.section_attempt_id,
+                eval_record_id=run_id,
+                runtime_exhaust_bundle_id=snapshot.runtime_exhaust_bundle_id,
+                microstep_contract_digest=registry_digest,
+                registry_digest=registry_digest,
+                snapshot_digest=snapshot.snapshot_digest,
+                created_at=created_at,
+            )
+        )
+    return rows
+
+
+def _apps_rg_admission_components(
+    rows: list[ScorecardRow],
+) -> list[dict[str, Any]]:
+    components: list[dict[str, Any]] = []
+    for row in rows:
+        passed = row.verdict == "PASS"
+        components.append(
+            {
+                "suite_id": row.suite_id,
+                "app_id": row.app_id,
+                "scenario_id": row.scenario_id,
+                "component_id": row.component_id,
+                "subcomponent_id": row.subcomponent_id,
+                "stage_id": row.stage_id,
+                "lane_id": "",
+                "row_count": 1,
+                "required_count": 1,
+                "pass_count": int(passed),
+                "fail_count": int(not passed),
+                "warn_count": 0,
+                "unknown_count": 0,
+                "not_run_count": 0,
+                "blocking_failure_count": int(not passed),
+                "score": row.score,
+                "verdict": "pass" if passed else "fail",
+            }
+        )
+    return components
+
+
+def run_current_snapshot_eval(
+    snapshot: AppOutputSnapshot,
+    *,
+    suite_id: str = "apps_rg.current.resume_generation",
+    out_dir: str = "artifacts/apps_eval/runs",
+    deterministic_only: bool = True,
+    emit_l6_handoff: bool = True,
+    emit_l6_shadow_bridge: bool = True,
+    expected: dict[str, Any] | None = None,
+    threshold_suite_id: str = "apps_rg.dev.resume_generation",
+    git_commit_override: str | None = None,
+    platform_override: str | None = None,
+) -> CompletedEvalRecord:
+    """Evaluate one already-produced app snapshot.
+
+    This is the current-run counterpart to fixture-suite evaluation: apps_rg can
+    hand apps_eval the exact generated artifact after UWG promotion and receive
+    the same deterministic grader, microstep coverage, and L6 bridge artifacts.
+    """
+    if snapshot.app_id != "apps_rg":
+        raise ValueError(f"current snapshot eval supports apps_rg only, got {snapshot.app_id!r}")
+    if (
+        is_fixture_only_apps_rg_profile(snapshot.contract_profile_id)
+        or snapshot.provenance.get("fixture_only") is True
+        or snapshot.x3_disposition == "TEST_FIXTURE_ONLY"
+    ):
+        raise ValueError(
+            "apps_rg current-run eval requires a verified product authorization seal; "
+            "fixture-only evidence is ineligible"
+        )
+    if not emit_l6_handoff:
+        raise PermissionError("apps_rg current-run eval requires L6 shadow handoff")
+    if snapshot.provenance.get("source_unchanged") is not True:
+        raise ValueError(
+            "apps_rg current-run eval requires a read-only, byte-manifested source snapshot"
+        )
+    _assert_source_snapshot_unchanged(snapshot, require_manifest=True)
+
+    scenario_id = snapshot.scenario_id or "apps_rg_current_run"
+    app_microstep_contract_digest = apps_rg_contract_digest()
+    stable_snapshot = _enrich_apps_rg_snapshot(
+        snapshot,
+        registry_digest=app_microstep_contract_digest,
+    )
+    expected_payload = dict(expected or _default_current_run_expected(stable_snapshot))
+    expected_payload["expected_x3"] = "X3D_ALLOW_FINISH"
+    expected_payload["required_sections"] = ["executive_summary", "experience", "skills"]
+    created_at = _run_started_at(deterministic_only)
+    repo_root = Path(__file__).resolve().parents[2]
+    git_commit = (
+        _git_commit(repo_root)
+        if git_commit_override is None
+        else str(git_commit_override)
+    )
+    # The shared fixture graders describe the legacy ``resume.md`` product and
+    # use fixture-shaped claim/provenance fields.  They remain useful for their
+    # fixtures, but they are not valid current-run release evidence for Apps
+    # RG.  The V2 current path is governed by Apps RG-native microsteps,
+    # admission, the frozen input manifest, and the independent L6 audit.
+    graders: list[Any] = []
+    thresholds = load_thresholds_registry().get(
+        threshold_suite_id,
+        load_thresholds_registry().get("apps_rg.dev.resume_generation", {}),
+    )
+    fixture_path = stable_snapshot.run_root or ""
+    fixture = EvalFixture(
+        scenario=EvalScenario(
+            scenario_id=scenario_id,
+            suite_id=suite_id,
+            app_id=stable_snapshot.app_id,
+            description="current apps_rg run artifact evaluation",
+            fixture_path=fixture_path,
+            graders=tuple(grader.grader_id for grader in graders),
+            rubric_id="apps_rg_resume_generation_v1",
+            holdout=False,
+        ),
+        input_dir=fixture_path,
+        expected_dir=fixture_path,
+        snapshot_path="",
+        artifacts_dir=fixture_path,
+        expected=expected_payload,
+        provenance=FixtureProvenance(
+            scenario_id=scenario_id,
+            fixture_path=fixture_path,
+            scenario_definition_digest=_canonical_digest(
+                {
+                    "scenario_id": scenario_id,
+                    "suite_id": suite_id,
+                    "app_id": stable_snapshot.app_id,
+                    "rubric_id": "apps_rg_resume_generation_v1",
+                    "current_run": True,
+                }
+            ),
+            input_request_digest=_canonical_digest(stable_snapshot.provenance.get("resolved_inputs", {})),
+            expected_digest=_canonical_digest(expected_payload),
+            snapshot_digest=stable_snapshot.snapshot_digest,
+        ),
+    )
+
+    suite_digest = _canonical_digest(
+        {
+            "app_id": stable_snapshot.app_id,
+            "split": "current",
+            "task": "resume_generation",
+            "rubric_id": "apps_rg_resume_generation_v1",
+            "fixture_root": fixture_path,
+            "scenarios": [scenario_id],
+        }
+    )
+    threshold_digest = _threshold_digest(thresholds)
+    failure_mode_catalog_digest = _failure_mode_catalog_digest(graders)
+    record_seed = {
+        "schema_version": CURRENT_EVAL_RECORD_SCHEMA_VERSION,
+        "suite_id": suite_id,
+        "app_id": stable_snapshot.app_id,
+        "mode": "current_snapshot",
+        "deterministic_only": deterministic_only,
+        "with_judge": False,
+        "compare_baseline": False,
+        "baseline_digest": "",
+        "emit_l6_handoff": emit_l6_handoff,
+        "emit_l6_shadow_bridge": emit_l6_shadow_bridge,
+        "git_commit": git_commit,
+        "suite_digest": suite_digest,
+        "threshold_digest": threshold_digest,
+        "failure_mode_catalog_digest": failure_mode_catalog_digest,
+        "apps_rg_microstep_contract_digest": app_microstep_contract_digest,
+        "grader_ids": [grader.grader_id for grader in graders],
+        "scorer_version": CURRENT_SCORER_VERSION,
+        "fixture_provenance": [fixture.provenance.to_dict()],
+        "current_run_snapshot_digest": fixture.provenance.snapshot_digest,
+        "source_run_root": stable_snapshot.run_root,
+        "parent_run_id": stable_snapshot.parent_run_id,
+        "child_run_id": stable_snapshot.child_run_id,
+        "section_attempt_id": stable_snapshot.section_attempt_id,
+        "runtime_exhaust_bundle_id": stable_snapshot.runtime_exhaust_bundle_id,
+        "registry_digest": app_microstep_contract_digest,
+    }
+    admission = _apps_rg_admission_summary(stable_snapshot)
+    record_seed["admission"] = admission
+    if not deterministic_only:
+        record_seed["created_at"] = created_at
+
+    record_id = _stable_record_id(record_seed)
+    run_dir = Path(out_dir) / suite_id.replace(".", "_") / record_id
+    planned_eval_artifacts = _planned_eval_artifacts(run_dir)
+    admission_rows = _apps_rg_admission_rows(
+        suite_id=suite_id,
+        scenario_id=scenario_id,
+        run_id=record_id,
+        created_at=created_at,
+        snapshot=stable_snapshot,
+        registry_digest=app_microstep_contract_digest,
+        admission=admission,
+    )
+    admission_components = _apps_rg_admission_components(admission_rows)
+
+    findings = [grader.grade(fixture, stable_snapshot) for grader in graders]
+    microstep_eval = build_apps_rg_microstep_evaluation(
+        suite_id=suite_id,
+        scenario_id=scenario_id,
+        snapshot=stable_snapshot,
+        run_id=record_id,
+        created_at=created_at,
+        planned_eval_artifacts=planned_eval_artifacts,
+        snapshot_digest=stable_snapshot.snapshot_digest,
+    )
+    rows = _apps_rg_record_rows(
+        [*list(microstep_eval["rows"]), *admission_rows]
+    )
+    components = [
+        *[
+            component.to_dict()
+            for component in microstep_eval["component_scorecards"]
+        ],
+        *admission_components,
+    ]
+    coverage = microstep_eval["coverage_summary"].to_dict()
+    diagnostic_eval = build_apps_rg_diagnostics(
+        suite_id=suite_id,
+        scenario_id=scenario_id,
+        snapshot=stable_snapshot,
+        run_id=record_id,
+        scorecard_rows=rows,
+        snapshot_ref=stable_snapshot.run_root,
+        snapshot_digest=fixture.provenance.snapshot_digest,
+    )
+    diagnostic_rows = list(diagnostic_eval["rows"])
+    diagnostic_summary = _apps_rg_diagnostic_summary(
+        suite_id=suite_id,
+        app_id=stable_snapshot.app_id,
+        run_id=record_id,
+        observations=diagnostic_rows,
+    )
+    scenario_result = _scenario_rollup(
+        scenario_id,
+        findings,
+        stable_snapshot.run_root,
+        fixture.provenance.snapshot_digest,
+        _canonical_digest(fixture.provenance.to_dict()),
+    )
+    scenario_result["apps_rg_coverage_summary"] = coverage
+    scenario_result["apps_rg_admission"] = admission
+    suite_coverage = _apps_rg_suite_coverage(
+        suite_id=suite_id,
+        app_id=stable_snapshot.app_id,
+        rows=rows,
+        scenario_summaries=[coverage],
+    )
+    scorecard = _score(
+        suite_id,
+        stable_snapshot.app_id,
+        1,
+        findings,
+        thresholds=thresholds,
+        scorecard_rows=rows,
+        component_scorecards=components,
+        coverage_summary=suite_coverage,
+    )
+    regression = RegressionSummary(compared=False)
+    provisional = CompletedEvalRecord(
+        record_id=record_id,
+        created_at=created_at,
+        suite_id=suite_id,
+        app_id=stable_snapshot.app_id,
+        mode="current_snapshot",
+        deterministic_only=deterministic_only,
+        scenario_results=[scenario_result],
+        scorecard=scorecard,
+        regression=regression,
+        artifact_paths={},
+        rubric_ids=["apps_rg_resume_generation_v1"],
+        eval_execution_complete=True,
+        eval_verdict=scorecard.verdict,
+        release_blocked=bool(suite_coverage.get("release_blocked")),
+        admission_status=str(admission["status"]),
+        preflight_verification_status=str(
+            admission["preflight"]["verification_status"]
+        ),
+        admission_failures=list(admission["failures"]),
+        record_seed=record_seed,
+        run_metadata=EvalRunMetadata(
+            project_version=_project_version(),
+            git_commit=git_commit,
+            python_version=sys.version.split()[0],
+            platform=(
+                platform.platform()
+                if platform_override is None
+                else str(platform_override)
+            ),
+            cwd=Path.cwd().resolve().as_posix(),
+            scorer_version=CURRENT_SCORER_VERSION,
+            record_seed_digest=_canonical_digest(record_seed),
+            baseline_digest="",
+            mode="current_snapshot",
+            deterministic_only=deterministic_only,
+            with_judge=False,
+            compare_baseline=False,
+        ),
+        fixture_provenance=[fixture.provenance],
+        **_record_evidence_bindings(
+            [stable_snapshot],
+            record_id=record_id,
+            registry_digest=app_microstep_contract_digest,
+        ),
+    )
+    flywheel = _regression_flywheel_summary(
+        record=provisional,
+        findings=findings,
+        baseline_payload=None,
+        comparison=regression,
+    )
+    record = replace(provisional, regression_flywheel=flywheel)
+    # Phase 1 materializes the package. Package-presence microsteps are not
+    # allowed to pass from planned paths; they are rescored only after these
+    # files physically exist and can be reopened by the resolver.
+    _emit_artifacts(
+        record,
+        findings,
+        run_dir,
+        emit_l6_handoff,
+        diagnostic_rows=diagnostic_rows,
+        diagnostic_summary=diagnostic_summary,
+    )
+    planned_eval_artifacts["__emission_complete__"] = True
+    microstep_eval = build_apps_rg_microstep_evaluation(
+        suite_id=suite_id,
+        scenario_id=scenario_id,
+        snapshot=stable_snapshot,
+        run_id=record_id,
+        created_at=created_at,
+        planned_eval_artifacts=planned_eval_artifacts,
+        snapshot_digest=stable_snapshot.snapshot_digest,
+    )
+    rows = _apps_rg_record_rows(
+        [*list(microstep_eval["rows"]), *admission_rows]
+    )
+    components = [
+        *[
+            component.to_dict()
+            for component in microstep_eval["component_scorecards"]
+        ],
+        *admission_components,
+    ]
+    coverage = microstep_eval["coverage_summary"].to_dict()
+    diagnostic_eval = build_apps_rg_diagnostics(
+        suite_id=suite_id,
+        scenario_id=scenario_id,
+        snapshot=stable_snapshot,
+        run_id=record_id,
+        scorecard_rows=rows,
+        snapshot_ref=stable_snapshot.run_root,
+        snapshot_digest=fixture.provenance.snapshot_digest,
+    )
+    diagnostic_rows = list(diagnostic_eval["rows"])
+    diagnostic_summary = _apps_rg_diagnostic_summary(
+        suite_id=suite_id,
+        app_id=stable_snapshot.app_id,
+        run_id=record_id,
+        observations=diagnostic_rows,
+    )
+    scenario_result = _scenario_rollup(
+        scenario_id,
+        findings,
+        stable_snapshot.run_root,
+        fixture.provenance.snapshot_digest,
+        _canonical_digest(fixture.provenance.to_dict()),
+    )
+    scenario_result["apps_rg_coverage_summary"] = coverage
+    scenario_result["apps_rg_admission"] = admission
+    suite_coverage = _apps_rg_suite_coverage(
+        suite_id=suite_id,
+        app_id=stable_snapshot.app_id,
+        rows=rows,
+        scenario_summaries=[coverage],
+    )
+    scorecard = _score(
+        suite_id,
+        stable_snapshot.app_id,
+        1,
+        findings,
+        thresholds=thresholds,
+        scorecard_rows=rows,
+        component_scorecards=components,
+        coverage_summary=suite_coverage,
+    )
+    provisional = replace(
+        record,
+        scenario_results=[scenario_result],
+        scorecard=scorecard,
+        eval_verdict=scorecard.verdict,
+        release_blocked=bool(suite_coverage.get("release_blocked")),
+    )
+    record = replace(
+        provisional,
+        regression_flywheel=_regression_flywheel_summary(
+            record=provisional,
+            findings=findings,
+            baseline_payload=None,
+            comparison=regression,
+        ),
+    )
+    paths = _emit_artifacts(
+        record,
+        findings,
+        run_dir,
+        emit_l6_handoff,
+        diagnostic_rows=diagnostic_rows,
+        diagnostic_summary=diagnostic_summary,
+    )
+    record = replace(record, artifact_paths=paths)
+    _wg.write_text(Path(paths["eval_record"]), json.dumps(record.to_dict(), indent=2, sort_keys=True), encoding="utf-8")
+    _wg.write_text(Path(paths["report"]), render_report(record, findings), encoding="utf-8")
+    if emit_l6_handoff and emit_l6_shadow_bridge:
+        from apps_eval.l6_shadow_bridge import emit_completed_eval_l6_shadow_bridge
+
+        bridge_paths = emit_completed_eval_l6_shadow_bridge(
+            record,
+            run_dir,
+            eval_record_path=paths["eval_record"],
+            l6_handoff_path=paths.get("l6_handoff", ""),
+        )
+        paths.update(bridge_paths)
+        record = replace(record, artifact_paths=paths)
+        _wg.write_text(Path(paths["eval_record"]), json.dumps(record.to_dict(), indent=2, sort_keys=True), encoding="utf-8")
+        _wg.write_text(Path(paths["report"]), render_report(record, findings), encoding="utf-8")
+    _seal_apps_rg_eval_package(
+        run_dir=run_dir,
+        record_id=record_id,
+        planned_eval_artifacts=planned_eval_artifacts,
+    )
+    _assert_source_snapshot_unchanged(stable_snapshot, require_manifest=True)
+    return record
+
+
+def _apps_rg_suite_coverage(
+    *,
+    suite_id: str,
+    app_id: str,
+    rows: list[ScorecardRow],
+    scenario_summaries: list[dict[str, Any]],
+) -> dict[str, Any]:
+    required = [row for row in rows if row.required]
+    missing = sum(1 for row in required if row.failure_mode == "coverage.missing_required_artifact")
+    unknown = sum(1 for row in required if row.verdict == "UNKNOWN")
+    not_run = sum(1 for row in required if row.verdict == "NOT_RUN")
+    failed = sum(1 for row in required if row.verdict == "FAIL")
+    passed = sum(1 for row in required if row.verdict == "PASS")
+    release_blocked = any(row.verdict in {"FAIL", "UNKNOWN", "NOT_RUN"} for row in required)
+    coverage_complete = missing == 0 and unknown == 0 and not_run == 0
+    return {
+        "schema_version": "apps_eval.apps_rg_coverage_summary.v1",
+        "suite_id": suite_id,
+        "app_id": app_id,
+        "required_microsteps": len(required),
+        "emitted_rows": len(rows),
+        "passed_required": passed,
+        "failed_required": failed,
+        "missing_required_artifacts": missing,
+        "unknown_required": unknown,
+        "not_run_required": not_run,
+        "coverage_complete": coverage_complete,
+        "release_blocked": release_blocked,
+        "verdict": "fail" if release_blocked or not coverage_complete else "pass",
+        "scenario_summaries": scenario_summaries,
+    }
+
+
+def _apps_rg_record_rows(rows: list[ScorecardRow]) -> list[ScorecardRow]:
+    """Keep record-level scorecards stable by omitting absent optional evidence rows."""
+    return [row for row in rows if row.required or row.artifact_ref]
+
+
+def _apps_rg_diagnostic_summary(
+    *,
+    suite_id: str,
+    app_id: str,
+    run_id: str,
+    observations: list[DiagnosticObservationV1],
+) -> DiagnosticSummaryV1:
+    family_counts: Counter[str] = Counter(row.diagnostic_family for row in observations)
+    stage_counts: Counter[str] = Counter(str(row.stage_id) for row in observations)
+    lane_counts: Counter[str] = Counter(row.lane_id for row in observations if row.lane_id)
+    verdict_counts: Counter[str] = Counter(str(row.diagnostic_verdict) for row in observations)
+    promotion_counts: Counter[str] = Counter(str(row.promotion_state) for row in observations)
+    return DiagnosticSummaryV1(
+        suite_id=suite_id,
+        app_id=app_id,
+        run_id=run_id,
+        observation_count=len(observations),
+        family_counts=_sorted_counter(family_counts),
+        stage_counts=_sorted_counter(stage_counts),
+        lane_counts=_sorted_counter(lane_counts),
+        verdict_counts=_sorted_counter(verdict_counts),
+        promotion_state_counts=_sorted_counter(promotion_counts),
+    )
+
+
+def _csv_cell(value: Any) -> str:
+    if isinstance(value, (dict, list, tuple)):
+        return json.dumps(value, sort_keys=True, separators=(",", ":"), default=str)
+    if value is None:
+        return ""
+    return str(value)
+
+
+def compare_record_to_baseline(record: dict[str, Any], baseline: dict[str, Any]) -> RegressionSummary:
+    current = float(record.get("scorecard", {}).get("score", 0.0))
+    base = float(baseline.get("scorecard", baseline).get("score", 0.0))
+    delta = current - base
+    verdict = "regression" if delta < -0.000001 else "pass" if delta >= 0 else "warn"
+    return RegressionSummary(
+        compared=True,
+        baseline_digest=_canonical_digest(baseline),
+        current_score=current,
+        baseline_score=base,
+        delta=round(delta, 6),
+        verdict=verdict,
+    )
+
+
+def _emit_artifacts(
+    record: CompletedEvalRecord,
+    findings: list[Any],
+    run_dir: Path,
+    emit_l6_handoff: bool,
+    diagnostic_rows: list[DiagnosticObservationV1] | None = None,
+    diagnostic_summary: DiagnosticSummaryV1 | None = None,
+) -> dict[str, str]:
+    _wg.ensure_dir(run_dir)
+    paths = {
+        "eval_record": run_dir / "eval_record.json",
+        "scorecard": run_dir / "scorecard.csv",
+        "report": run_dir / "report.md",
+        "manifest": run_dir / "manifest.json",
+        "grader_findings": run_dir / "grader_findings.jsonl",
+        "regression": run_dir / "regression.json",
+        "regression_flywheel": run_dir / "regression_flywheel.json",
+    }
+    if record.app_id == "apps_rg":
+        paths.update(
+            {
+                "scorecard_rows": run_dir / "scorecard_rows.jsonl",
+                "component_scorecards": run_dir / "component_scorecards.csv",
+                "apps_rg_component_scorecard": run_dir / "apps_rg_component_scorecard.json",
+                "coverage_matrix": run_dir / "coverage_matrix.csv",
+                "missing_required_components": run_dir / "missing_required_components.csv",
+                "evidence_index": run_dir / "evidence_index.csv",
+                "apps_rg_l6_eval_handoff": run_dir / "apps_rg_l6_eval_handoff.json",
+                "diagnostic_rows": run_dir / "diagnostic_rows.jsonl",
+                "diagnostic_summary": run_dir / "diagnostic_summary.json",
+                "eval_package_seal": run_dir / "apps_rg_eval_package_seal.json",
+            }
+        )
+    _wg.write_text(paths["eval_record"], json.dumps(record.to_dict(), indent=2, sort_keys=True), encoding="utf-8")
+    scorecard_buffer = io.StringIO(newline="")
+    writer = csv.DictWriter(scorecard_buffer, fieldnames=["dimension", "score"])
+    writer.writeheader()
+    for key, value in sorted(record.scorecard.dimension_scores.items()):
+        writer.writerow({"dimension": key, "score": f"{value:.6f}"})
+    writer.writerow({"dimension": "overall", "score": f"{record.scorecard.score:.6f}"})
+    _wg.write_text(paths["scorecard"], scorecard_buffer.getvalue(), encoding="utf-8")
+    if record.app_id == "apps_rg":
+        row_dicts = list(record.scorecard.scorecard_rows)
+        component_dicts = list(record.scorecard.component_scorecards)
+        coverage_summary = dict(record.scorecard.coverage_summary)
+        _wg.write_text(
+            paths["scorecard_rows"],
+            "".join(json.dumps(row, sort_keys=True) + "\n" for row in row_dicts),
+            encoding="utf-8",
+        )
+        component_fields = [
+            "suite_id",
+            "app_id",
+            "scenario_id",
+            "component_id",
+            "subcomponent_id",
+            "stage_id",
+            "lane_id",
+            "row_count",
+            "required_count",
+            "pass_count",
+            "fail_count",
+            "warn_count",
+            "unknown_count",
+            "not_run_count",
+            "blocking_failure_count",
+            "score",
+            "verdict",
+        ]
+        component_buffer = io.StringIO(newline="")
+        component_writer = csv.DictWriter(component_buffer, fieldnames=component_fields)
+        component_writer.writeheader()
+        for row in component_dicts:
+            component_writer.writerow({field: _csv_cell(row.get(field)) for field in component_fields})
+        _wg.write_text(paths["component_scorecards"], component_buffer.getvalue(), encoding="utf-8")
+        component_payload = {
+            "schema_version": "apps_eval.apps_rg_component_scorecard.v1",
+            "suite_id": record.suite_id,
+            "app_id": record.app_id,
+            "record_id": record.record_id,
+            "coverage_summary": coverage_summary,
+            "component_scorecards": component_dicts,
+            "row_count": len(row_dicts),
+        }
+        _wg.write_text(
+            paths["apps_rg_component_scorecard"],
+            json.dumps(component_payload, indent=2, sort_keys=True),
+            encoding="utf-8",
+        )
+        coverage_fields = [
+            "row_id",
+            "suite_id",
+            "scenario_id",
+            "component_id",
+            "subcomponent_id",
+            "stage_id",
+            "lane_id",
+            "microstep_id",
+            "gate_id",
+            "artifact_role",
+            "artifact_ref",
+            "verdict",
+            "score",
+            "severity",
+            "failure_mode",
+            "decisive_reason",
+            "observed_value",
+            "threshold",
+            "evidence_digest",
+            "parent_run_id",
+            "child_run_id",
+            "section_attempt_id",
+            "eval_record_id",
+            "runtime_exhaust_bundle_id",
+            "microstep_contract_digest",
+            "registry_digest",
+            "contract_profile_id",
+            "snapshot_digest",
+        ]
+        coverage_buffer = io.StringIO(newline="")
+        coverage_writer = csv.DictWriter(coverage_buffer, fieldnames=coverage_fields)
+        coverage_writer.writeheader()
+        for row in row_dicts:
+            coverage_writer.writerow({field: _csv_cell(row.get(field)) for field in coverage_fields})
+        _wg.write_text(paths["coverage_matrix"], coverage_buffer.getvalue(), encoding="utf-8")
+        missing_buffer = io.StringIO(newline="")
+        missing_writer = csv.DictWriter(missing_buffer, fieldnames=coverage_fields)
+        missing_writer.writeheader()
+        for row in row_dicts:
+            if row.get("required") and row.get("verdict") in {"FAIL", "UNKNOWN", "NOT_RUN"}:
+                missing_writer.writerow({field: _csv_cell(row.get(field)) for field in coverage_fields})
+        _wg.write_text(paths["missing_required_components"], missing_buffer.getvalue(), encoding="utf-8")
+        evidence_fields = [
+            "row_id",
+            "microstep_id",
+            "lane_id",
+            "artifact_role",
+            "artifact_ref",
+            "evidence_ref",
+            "evidence_digest",
+            "parent_run_id",
+            "child_run_id",
+            "section_attempt_id",
+            "eval_record_id",
+            "runtime_exhaust_bundle_id",
+            "microstep_contract_digest",
+            "registry_digest",
+            "contract_profile_id",
+            "snapshot_digest",
+            "verdict",
+        ]
+        evidence_buffer = io.StringIO(newline="")
+        evidence_writer = csv.DictWriter(evidence_buffer, fieldnames=evidence_fields)
+        evidence_writer.writeheader()
+        for row in row_dicts:
+            evidence_writer.writerow({field: _csv_cell(row.get(field)) for field in evidence_fields})
+        _wg.write_text(paths["evidence_index"], evidence_buffer.getvalue(), encoding="utf-8")
+        rg_handoff = {
+            "schema_version": "apps_eval.apps_rg_l6_eval_handoff.v1",
+            "record_id": record.record_id,
+            "suite_id": record.suite_id,
+            "app_id": record.app_id,
+            "contract_profile_id": record.contract_profile_id,
+            "evidence_class": record.evidence_class,
+            "product_eligible": record.product_eligible,
+            "requested_action": "consume_completed_eval_artifacts_only",
+            "current_run_mutated": False,
+            "future_run_only": True,
+            "coverage_summary": coverage_summary,
+            "artifact_paths": {
+                "eval_record": str(paths["eval_record"]).replace("\\", "/"),
+                "scorecard_rows": str(paths["scorecard_rows"]).replace("\\", "/"),
+                "component_scorecard": str(paths["apps_rg_component_scorecard"]).replace("\\", "/"),
+                "coverage_matrix": str(paths["coverage_matrix"]).replace("\\", "/"),
+                "missing_required_components": str(paths["missing_required_components"]).replace("\\", "/"),
+                "diagnostic_rows": str(paths["diagnostic_rows"]).replace("\\", "/"),
+                "diagnostic_summary": str(paths["diagnostic_summary"]).replace("\\", "/"),
+            },
+        }
+        _wg.write_text(
+            paths["apps_rg_l6_eval_handoff"],
+            json.dumps(rg_handoff, indent=2, sort_keys=True),
+            encoding="utf-8",
+        )
+        diagnostic_row_dicts = [row.to_dict() for row in diagnostic_rows or []]
+        resolved_diagnostic_summary = diagnostic_summary or _apps_rg_diagnostic_summary(
+            suite_id=record.suite_id,
+            app_id=record.app_id,
+            run_id=record.record_id,
+            observations=diagnostic_rows or [],
+        )
+        _wg.write_text(
+            paths["diagnostic_rows"],
+            "".join(json.dumps(row, sort_keys=True) + "\n" for row in diagnostic_row_dicts),
+            encoding="utf-8",
+        )
+        _wg.write_text(
+            paths["diagnostic_summary"],
+            json.dumps(resolved_diagnostic_summary.to_dict(), indent=2, sort_keys=True),
+            encoding="utf-8",
+        )
+    _wg.write_text(paths["report"], render_report(record, findings), encoding="utf-8")
+    manifest = {
+        "schema_version": CURRENT_EVAL_MANIFEST_SCHEMA_VERSION,
+        "record_id": record.record_id,
+        "record_schema_version": record.schema_version,
+        "suite_id": record.suite_id,
+        "app_id": record.app_id,
+        "record_seed": record.record_seed,
+        "run_metadata": record.run_metadata.to_dict(),
+        "fixture_provenance": [provenance.to_dict() for provenance in record.fixture_provenance],
+        "regression_flywheel": record.regression_flywheel.to_dict(),
+        "artifacts": {k: str(v).replace("\\", "/") for k, v in paths.items()},
+    }
+    _wg.write_text(paths["manifest"], json.dumps(manifest, indent=2, sort_keys=True), encoding="utf-8")
+    grader_findings_jsonl = "".join(json.dumps(finding.to_dict(), sort_keys=True) + "\n" for finding in findings)
+    _wg.write_text(paths["grader_findings"], grader_findings_jsonl, encoding="utf-8")
+    _wg.write_text(paths["regression"], json.dumps(record.regression.to_dict(), indent=2, sort_keys=True), encoding="utf-8")
+    _wg.write_text(
+        paths["regression_flywheel"],
+        json.dumps(record.regression_flywheel.to_dict(), indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
+    live_snapshots = run_dir / "live_snapshots"
+    if live_snapshots.is_dir():
+        paths["live_snapshots"] = live_snapshots
+    if emit_l6_handoff:
+        handoff = L6EvalHandoff(
+            record_id=record.record_id,
+            suite_id=record.suite_id,
+            app_id=record.app_id,
+            eval_record_path=str(paths["eval_record"]).replace("\\", "/"),
+            score=record.scorecard.score,
+            verdict=record.scorecard.verdict,
+            finding_count=record.scorecard.finding_count,
+            block_failures=record.scorecard.block_failures,
+            contract_profile_id=record.contract_profile_id,
+            evidence_class=record.evidence_class,
+            product_eligible=record.product_eligible,
+        )
+        handoff_path = run_dir / "l6_handoff.json"
+        _wg.write_text(handoff_path, json.dumps(handoff.to_dict(), indent=2, sort_keys=True), encoding="utf-8")
+        paths["l6_handoff"] = handoff_path
+    return {k: str(v).replace("\\", "/") for k, v in paths.items()}
+
+
+def run_eval(
+    request: EvalRequest,
+    *,
+    snapshot_overrides: Mapping[str, AppOutputSnapshot] | None = None,
+) -> CompletedEvalRecord:
+    if request.suite_id in OLD_SUITE_NAMES:
+        raise ValueError(f"old suite name is rejected: {request.suite_id}")
+    if request.with_judge:
+        raise NotImplementedError("pinned rubric judge is not configured; run deterministic graders only")
+    suite = load_suite(request.suite_id)
+    if suite.get("app_id") not in {"apps_rg", "apps_lic"}:
+        raise ValueError(f"unsupported app: {suite.get('app_id')}")
+    contract_profile_id = str(
+        suite.get("apps_rg_contract_profile_id")
+        or DEFAULT_APPS_RG_CONTRACT_PROFILE_ID
+    )
+    profile = (
+        apps_rg_contract_profile(contract_profile_id)
+        if suite.get("app_id") == "apps_rg"
+        else {}
+    )
+    fixture_profile = (
+        suite.get("app_id") == "apps_rg"
+        and is_fixture_only_apps_rg_profile(contract_profile_id)
+    )
+    if fixture_profile:
+        if (
+            suite.get("split") != "fixture"
+            or suite.get("fixture_only") is not True
+            or request.mode != "snapshot"
+            or request.deterministic_only is not True
+            or request.with_judge
+            or request.compare_baseline
+            or os.environ.get("APPS_EVAL_RELEASE_GATE") == "1"
+            or str(os.environ.get("APPS_RG_TEST_HARNESS") or "").strip().lower()
+            not in {"1", "true", "yes", "on"}
+        ):
+            raise PermissionError(
+                "fixture-only Apps RG profile is limited to the deterministic test harness outside release gates"
+            )
+        if not snapshot_overrides:
+            raise PermissionError(
+                "fixture-only Apps RG profile requires a runtime-produced snapshot override"
+            )
+    elif snapshot_overrides:
+        raise PermissionError(
+            "runtime snapshot overrides are reserved for fixture-only Apps RG profiles"
+        )
+    l6_handoff_required = (
+        request.mode == "live_adapter"
+        or suite.get("split") == "holdout"
+        or os.environ.get("APPS_EVAL_RELEASE_GATE") == "1"
+    )
+    if l6_handoff_required and not request.emit_l6_handoff:
+        raise PermissionError(
+            "apps_eval L6 shadow handoff is required for live_adapter, holdout, and release-gate runs"
+        )
+    if suite.get("split") == "holdout" and os.environ.get("APPS_EVAL_RELEASE_GATE") != "1":
+        raise PermissionError("holdout suites require APPS_EVAL_RELEASE_GATE=1")
+    fixtures = [_load_fixture(request.suite_id, suite, scenario_id) for scenario_id in suite.get("scenarios", [])]
+    if not fixtures:
+        raise ValueError(f"suite has no fixtures: {request.suite_id}")
+    if fixture_profile:
+        expected_scenarios = {fixture.scenario.scenario_id for fixture in fixtures}
+        supplied_scenarios = set(snapshot_overrides or {})
+        if supplied_scenarios != expected_scenarios:
+            raise ValueError(
+                "fixture-only snapshot overrides must cover exactly the configured scenarios"
+            )
+        fixtures = [
+            replace(
+                fixture,
+                provenance=replace(
+                    fixture.provenance,
+                    contract_profile_id=contract_profile_id,
+                    evidence_class=str(profile.get("evidence_class") or ""),
+                    product_eligible=bool(profile.get("product_eligible")),
+                ),
+            )
+            for fixture in fixtures
+        ]
+    graders = build_default_graders()
+    thresholds = load_thresholds_registry().get(request.suite_id, {})
+    created_at = _run_started_at(request.deterministic_only)
+    git_commit = _git_commit(Path(__file__).resolve().parents[2])
+    suite_digest = _suite_digest(suite)
+    threshold_digest = _threshold_digest(thresholds)
+    failure_mode_catalog_digest = _failure_mode_catalog_digest(graders)
+    app_microstep_contract_digest = (
+        apps_rg_contract_digest(contract_profile_id)
+        if suite.get("app_id") == "apps_rg"
+        else ""
+    )
+    fixture_provenance = [fixture.provenance for fixture in fixtures]
+    baseline_digest = ""
+    baseline_payload: dict[str, Any] | None = None
+    if request.compare_baseline:
+        if not request.baseline_path:
+            raise ValueError("baseline_path is required when compare_baseline=true")
+        baseline_payload = _load_json(Path(request.baseline_path))
+        if baseline_payload.get("schema_version") != CURRENT_EVAL_RECORD_SCHEMA_VERSION:
+            raise ValueError(
+                f"baseline schema_version mismatch for {request.baseline_path}: "
+                f"expected {CURRENT_EVAL_RECORD_SCHEMA_VERSION!r}, found {baseline_payload.get('schema_version')!r}"
+            )
+        if "record_id" not in baseline_payload or "scorecard" not in baseline_payload:
+            raise ValueError(f"baseline missing required eval record fields: {request.baseline_path}")
+        baseline_digest = _canonical_digest(baseline_payload)
+    record_seed = {
+        "schema_version": CURRENT_EVAL_RECORD_SCHEMA_VERSION,
+        "suite_id": request.suite_id,
+        "app_id": suite["app_id"],
+        "mode": request.mode,
+        "deterministic_only": request.deterministic_only,
+        "with_judge": request.with_judge,
+        "compare_baseline": request.compare_baseline,
+        "baseline_digest": baseline_digest,
+        "emit_l6_handoff": request.emit_l6_handoff,
+        "git_commit": git_commit,
+        "suite_digest": suite_digest,
+        "threshold_digest": threshold_digest,
+        "failure_mode_catalog_digest": failure_mode_catalog_digest,
+        "apps_rg_microstep_contract_digest": app_microstep_contract_digest,
+        "grader_ids": [grader.grader_id for grader in graders],
+        "scorer_version": CURRENT_SCORER_VERSION,
+        "fixture_provenance": [provenance.to_dict() for provenance in fixture_provenance],
+    }
+    if fixture_profile:
+        record_seed.update(
+            {
+                "contract_profile_id": contract_profile_id,
+                "evidence_class": str(profile.get("evidence_class") or ""),
+                "product_eligible": bool(profile.get("product_eligible")),
+            }
+        )
+    if not request.deterministic_only:
+        record_seed["created_at"] = created_at
+    record_id = _stable_record_id(record_seed)
+    run_dir = Path(request.out_dir) / request.suite_id.replace(".", "_") / record_id
+    findings = []
+    apps_rg_scorecard_rows: list[ScorecardRow] = []
+    apps_rg_component_scorecards: list[dict[str, Any]] = []
+    apps_rg_scenario_coverages: list[dict[str, Any]] = []
+    apps_rg_diagnostic_rows: list[DiagnosticObservationV1] = []
+    apps_rg_snapshots: list[AppOutputSnapshot] = []
+    scenario_results = []
+    rubric_ids = sorted({fixture.scenario.rubric_id for fixture in fixtures})
+    planned_eval_artifacts = _planned_eval_artifacts(run_dir) if suite.get("app_id") == "apps_rg" else {}
+    for fixture in fixtures:
+        snapshot = (
+            (snapshot_overrides or {}).get(fixture.scenario.scenario_id)
+            if fixture_profile
+            else _load_snapshot(fixture)
+            if request.mode == "snapshot"
+            else _run_live(fixture, run_dir)
+        )
+        if snapshot is None:
+            raise ValueError(
+                f"missing runtime snapshot for fixture scenario {fixture.scenario.scenario_id}"
+            )
+        if suite.get("app_id") == "apps_rg":
+            snapshot = _enrich_apps_rg_snapshot(
+                snapshot,
+                registry_digest=app_microstep_contract_digest,
+            )
+            if fixture_profile:
+                fixture_hash_payload = snapshot.to_dict()
+                fixture_hash_payload.pop("deterministic_hash", None)
+                snapshot = replace(
+                    snapshot,
+                    deterministic_hash=_canonical_digest(fixture_hash_payload),
+                )
+            apps_rg_snapshots.append(snapshot)
+        snapshot_payload = snapshot.to_dict()
+        scenario_findings = [grader.grade(fixture, snapshot) for grader in graders]
+        findings.extend(scenario_findings)
+        scenario_result = _scenario_rollup(
+            fixture.scenario.scenario_id,
+            scenario_findings,
+            fixture.snapshot_path if request.mode == "snapshot" else str((run_dir / "live_snapshots" / f"{hashlib.sha256(fixture.scenario.scenario_id.encode('utf-8')).hexdigest()[:8]}.json").as_posix()),
+            _canonical_digest(snapshot_payload),
+            _canonical_digest(fixture.provenance.to_dict()),
+        )
+        if suite.get("app_id") == "apps_rg":
+            microstep_eval = build_apps_rg_microstep_evaluation(
+                suite_id=request.suite_id,
+                scenario_id=fixture.scenario.scenario_id,
+                snapshot=snapshot,
+                run_id=record_id,
+                created_at=created_at,
+                planned_eval_artifacts=planned_eval_artifacts,
+                snapshot_digest=snapshot.snapshot_digest,
+                contract_profile_id=contract_profile_id,
+            )
+            rows = _apps_rg_record_rows(list(microstep_eval["rows"]))
+            components = [component.to_dict() for component in microstep_eval["component_scorecards"]]
+            coverage = microstep_eval["coverage_summary"].to_dict()
+            diagnostic_eval = build_apps_rg_diagnostics(
+                suite_id=request.suite_id,
+                scenario_id=fixture.scenario.scenario_id,
+                snapshot=snapshot,
+                run_id=record_id,
+                scorecard_rows=rows,
+                snapshot_ref=fixture.snapshot_path if request.mode == "snapshot" else str((run_dir / "live_snapshots" / f"{hashlib.sha256(fixture.scenario.scenario_id.encode('utf-8')).hexdigest()[:8]}.json").as_posix()),
+                snapshot_digest=snapshot.snapshot_digest,
+            )
+            apps_rg_scorecard_rows.extend(rows)
+            apps_rg_component_scorecards.extend(components)
+            apps_rg_scenario_coverages.append(coverage)
+            apps_rg_diagnostic_rows.extend(list(diagnostic_eval["rows"]))
+            scenario_result["apps_rg_coverage_summary"] = coverage
+        scenario_results.append(scenario_result)
+    apps_rg_coverage_summary = (
+        _apps_rg_suite_coverage(
+            suite_id=request.suite_id,
+            app_id=str(suite["app_id"]),
+            rows=apps_rg_scorecard_rows,
+            scenario_summaries=apps_rg_scenario_coverages,
+        )
+        if suite.get("app_id") == "apps_rg"
+        else {}
+    )
+    scorecard = _score(
+        request.suite_id,
+        str(suite["app_id"]),
+        len(fixtures),
+        findings,
+        thresholds=thresholds,
+        scorecard_rows=apps_rg_scorecard_rows,
+        component_scorecards=apps_rg_component_scorecards,
+        coverage_summary=apps_rg_coverage_summary,
+    )
+    regression = RegressionSummary(compared=False)
+    if request.compare_baseline:
+        current = {"scorecard": scorecard.to_dict()}
+        base_summary = compare_record_to_baseline(current, baseline_payload or {})
+        regression = RegressionSummary(
+            **{
+                **base_summary.to_dict(),
+                "baseline_path": request.baseline_path,
+            }
+        )
+    provisional = CompletedEvalRecord(
+        record_id=record_id,
+        created_at=created_at,
+        suite_id=request.suite_id,
+        app_id=str(suite["app_id"]),
+        mode=request.mode,
+        deterministic_only=request.deterministic_only,
+        scenario_results=scenario_results,
+        scorecard=scorecard,
+        regression=regression,
+        artifact_paths={},
+        rubric_ids=rubric_ids,
+        record_seed=record_seed,
+        run_metadata=EvalRunMetadata(
+            project_version=_project_version(),
+            git_commit=git_commit,
+            python_version=sys.version.split()[0],
+            platform=platform.platform(),
+            cwd=Path.cwd().resolve().as_posix(),
+            scorer_version=CURRENT_SCORER_VERSION,
+            record_seed_digest=_canonical_digest(record_seed),
+            baseline_digest=baseline_digest,
+            mode=request.mode,
+            deterministic_only=request.deterministic_only,
+            with_judge=request.with_judge,
+            compare_baseline=request.compare_baseline,
+            contract_profile_id=(contract_profile_id if fixture_profile else ""),
+            evidence_class=(str(profile.get("evidence_class") or "") if fixture_profile else ""),
+            product_eligible=(bool(profile.get("product_eligible")) if fixture_profile else True),
+        ),
+        fixture_provenance=fixture_provenance,
+        **_record_evidence_bindings(
+            apps_rg_snapshots,
+            record_id=record_id,
+            registry_digest=app_microstep_contract_digest,
+        )
+        if suite.get("app_id") == "apps_rg"
+        else {"eval_record_id": record_id},
+        contract_profile_id=(contract_profile_id if fixture_profile else ""),
+        evidence_class=(str(profile.get("evidence_class") or "") if fixture_profile else ""),
+        product_eligible=(bool(profile.get("product_eligible")) if fixture_profile else True),
+    )
+    flywheel = _regression_flywheel_summary(
+        record=provisional,
+        findings=findings,
+        baseline_payload=baseline_payload,
+        comparison=regression,
+        baseline_path=request.baseline_path if request.compare_baseline else "",
+    )
+    record = replace(provisional, regression_flywheel=flywheel)
+    diagnostic_summary = (
+        _apps_rg_diagnostic_summary(
+            suite_id=request.suite_id,
+            app_id=str(suite["app_id"]),
+            run_id=record_id,
+            observations=apps_rg_diagnostic_rows,
+        )
+        if suite.get("app_id") == "apps_rg"
+        else None
+    )
+    if suite.get("app_id") == "apps_rg":
+        # Materialize first, then reopen and rescore Eval-owned package roles.
+        # This prevents intended output paths from satisfying presence gates.
+        _emit_artifacts(
+            record,
+            findings,
+            run_dir,
+            request.emit_l6_handoff,
+            diagnostic_rows=apps_rg_diagnostic_rows,
+            diagnostic_summary=diagnostic_summary,
+        )
+        planned_eval_artifacts["__emission_complete__"] = True
+        rescored_rows: list[ScorecardRow] = []
+        rescored_components: list[dict[str, Any]] = []
+        rescored_coverages: list[dict[str, Any]] = []
+        rescored_diagnostics: list[DiagnosticObservationV1] = []
+        rescored_scenarios = [dict(item) for item in scenario_results]
+        for index, (fixture, snapshot) in enumerate(zip(fixtures, apps_rg_snapshots)):
+            microstep_eval = build_apps_rg_microstep_evaluation(
+                suite_id=request.suite_id,
+                scenario_id=fixture.scenario.scenario_id,
+                snapshot=snapshot,
+                run_id=record_id,
+                created_at=created_at,
+                planned_eval_artifacts=planned_eval_artifacts,
+                snapshot_digest=snapshot.snapshot_digest,
+                contract_profile_id=contract_profile_id,
+            )
+            scenario_rows = _apps_rg_record_rows(list(microstep_eval["rows"]))
+            scenario_components = [
+                component.to_dict()
+                for component in microstep_eval["component_scorecards"]
+            ]
+            scenario_coverage = microstep_eval["coverage_summary"].to_dict()
+            diagnostic_eval = build_apps_rg_diagnostics(
+                suite_id=request.suite_id,
+                scenario_id=fixture.scenario.scenario_id,
+                snapshot=snapshot,
+                run_id=record_id,
+                scorecard_rows=scenario_rows,
+                snapshot_ref=(
+                    fixture.snapshot_path
+                    if request.mode == "snapshot"
+                    else str(
+                        (
+                            run_dir
+                            / "live_snapshots"
+                            / (
+                                hashlib.sha256(
+                                    fixture.scenario.scenario_id.encode("utf-8")
+                                ).hexdigest()[:8]
+                                + ".json"
+                            )
+                        ).as_posix()
+                    )
+                ),
+                snapshot_digest=snapshot.snapshot_digest,
+            )
+            rescored_rows.extend(scenario_rows)
+            rescored_components.extend(scenario_components)
+            rescored_coverages.append(scenario_coverage)
+            rescored_diagnostics.extend(list(diagnostic_eval["rows"]))
+            rescored_scenarios[index]["apps_rg_coverage_summary"] = scenario_coverage
+        apps_rg_coverage_summary = _apps_rg_suite_coverage(
+            suite_id=request.suite_id,
+            app_id=str(suite["app_id"]),
+            rows=rescored_rows,
+            scenario_summaries=rescored_coverages,
+        )
+        scorecard = _score(
+            request.suite_id,
+            str(suite["app_id"]),
+            len(fixtures),
+            findings,
+            thresholds=thresholds,
+            scorecard_rows=rescored_rows,
+            component_scorecards=rescored_components,
+            coverage_summary=apps_rg_coverage_summary,
+        )
+        if request.compare_baseline:
+            base_summary = compare_record_to_baseline(
+                {"scorecard": scorecard.to_dict()},
+                baseline_payload or {},
+            )
+            regression = RegressionSummary(
+                **{
+                    **base_summary.to_dict(),
+                    "baseline_path": request.baseline_path,
+                }
+            )
+        provisional = replace(
+            record,
+            scenario_results=rescored_scenarios,
+            scorecard=scorecard,
+            regression=regression,
+        )
+        record = replace(
+            provisional,
+            regression_flywheel=_regression_flywheel_summary(
+                record=provisional,
+                findings=findings,
+                baseline_payload=baseline_payload,
+                comparison=regression,
+                baseline_path=request.baseline_path if request.compare_baseline else "",
+            ),
+        )
+        apps_rg_diagnostic_rows = rescored_diagnostics
+        diagnostic_summary = _apps_rg_diagnostic_summary(
+            suite_id=request.suite_id,
+            app_id=str(suite["app_id"]),
+            run_id=record_id,
+            observations=apps_rg_diagnostic_rows,
+        )
+    paths = _emit_artifacts(
+        record,
+        findings,
+        run_dir,
+        request.emit_l6_handoff,
+        diagnostic_rows=apps_rg_diagnostic_rows,
+        diagnostic_summary=diagnostic_summary,
+    )
+    record = replace(record, artifact_paths=paths)
+    _wg.write_text(Path(paths["eval_record"]), json.dumps(record.to_dict(), indent=2, sort_keys=True), encoding="utf-8")
+    _wg.write_text(Path(paths["report"]), render_report(record, findings), encoding="utf-8")
+    if request.emit_l6_handoff:
+        from apps_eval.l6_shadow_bridge import emit_completed_eval_l6_shadow_bridge
+
+        bridge_paths = emit_completed_eval_l6_shadow_bridge(
+            record,
+            run_dir,
+            eval_record_path=paths["eval_record"],
+            l6_handoff_path=paths.get("l6_handoff", ""),
+        )
+        paths.update(bridge_paths)
+        record = replace(record, artifact_paths=paths)
+        _wg.write_text(Path(paths["eval_record"]), json.dumps(record.to_dict(), indent=2, sort_keys=True), encoding="utf-8")
+        _wg.write_text(Path(paths["report"]), render_report(record, findings), encoding="utf-8")
+    if suite.get("app_id") == "apps_rg":
+        _seal_apps_rg_eval_package(
+            run_dir=run_dir,
+            record_id=record_id,
+            planned_eval_artifacts=planned_eval_artifacts,
+            contract_profile_id=(contract_profile_id if fixture_profile else ""),
+            evidence_class=(str(profile.get("evidence_class") or "") if fixture_profile else ""),
+            product_eligible=(bool(profile.get("product_eligible")) if fixture_profile else None),
+        )
+    for snapshot in apps_rg_snapshots:
+        _assert_source_snapshot_unchanged(snapshot)
+    return record
+
+
+def run_anthropic_deterministic_fixture_eval(
+    snapshot: AppOutputSnapshot,
+    *,
+    out_dir: str = "artifacts/apps_eval/runs",
+) -> CompletedEvalRecord:
+    """Evaluate one runtime-produced Anthropic fixture snapshot.
+
+    The public helper fixes the only allowed suite/profile pairing and never
+    routes through product current-snapshot or live-adapter evaluation.
+    """
+
+    if snapshot.app_id != "apps_rg":
+        raise ValueError("Anthropic deterministic fixture eval supports apps_rg only")
+    if snapshot.contract_profile_id != ANTHROPIC_DETERMINISTIC_FIXTURE_PROFILE_ID:
+        raise ValueError("snapshot is not bound to the Anthropic fixture contract profile")
+    if (
+        snapshot.provenance.get("fixture_only") is not True
+        or snapshot.provenance.get("product_eligible") is not False
+        or snapshot.provenance.get("provider_call_attempted") is not False
+        or snapshot.provenance.get("network_call_attempted") is not False
+    ):
+        raise ValueError("snapshot does not prove the no-provider fixture boundary")
+    return run_eval(
+        EvalRequest(
+            suite_id="apps_rg.fixture.anthropic_deterministic_e2e",
+            mode="snapshot",
+            deterministic_only=True,
+            with_judge=False,
+            compare_baseline=False,
+            out_dir=out_dir,
+            emit_l6_handoff=True,
+        ),
+        snapshot_overrides={"anthropic_deterministic_fixture": snapshot},
+    )
+
+
+def render_record(record_path: str) -> str:
+    return render_record_markdown(_load_json(Path(record_path)))

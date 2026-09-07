@@ -1,0 +1,37 @@
+template_id: insurtech_bullets_tailor_v1
+section_id: insurtech_bullets
+purpose: >
+  Generate exactly 2 InsurTech bullets from the active FinalEvidenceContract
+  proof pool. Use only bul_insurtech source_fact_ids supplied by the section
+  runtime. JD and briefing material are targeting_only and may never become
+  claim evidence. These bullets do the hard proof work for the InsurTech role:
+  each bullet must carry one evidence-bound achievement that the companion
+  narrative can later synthesize without copying.
+methodology_contract:
+  role: PROOF_HEAVY_BULLETS
+  bullets_prove_what_was_delivered: true
+  narrative_dependency: insurtech_narrative
+  companion_narrative_rule: >
+    The later InsurTech narrative may use accepted bullets as primary synthesis
+    context after finalization, but not as copy text or independent proof.
+  anti_patterns:
+    - "generic role summary instead of evidence-bound bullets"
+    - "JD or briefing used as claim evidence"
+    - "unsupported target-company claims"
+output_contract:
+  format: json_object
+  required_keys:
+    - bullets
+    - claim_ledger
+    - jd_alignment
+  bullets:
+    count: 2
+    fields: [bullet_id, bullet_text, source_fact_ids]
+    source_fact_id_prefix: bul_insurtech
+    uniqueness: "choose 2 unique source_fact_ids; one final bullet per proof fact"
+proof_contract:
+  source_fact_ids: required
+  unique_source_fact_ids_required: true
+  targeting_only: true
+  jd_used_as_proof: false
+  retries_cannot_repair_missing_upstream_evidence: true

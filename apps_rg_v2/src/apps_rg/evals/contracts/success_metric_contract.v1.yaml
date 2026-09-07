@@ -1,0 +1,111 @@
+schema_version: apps_rg.success_metric_contract.v1
+title: Apps RG outcome success and authority contract
+receipt_schema: ../schemas/success_metric_receipt.v1.schema.json
+
+principles:
+  no_blended_overall_score: true
+  missing_evidence_is_pass: false
+  diagnostic_gate_pass_is_outcome_success: false
+  technical_validation_is_human_qualification: false
+  human_qualification_is_release_authorization: false
+  release_authorization_is_production_authorization: false
+  runtime_execution_or_mutation: forbidden
+
+state_semantics:
+  PASS:
+    meaning: All governed evidence required by the named metric is complete, valid, and satisfies its authorized threshold.
+    release_authorizing_by_itself: false
+  FAIL:
+    meaning: Sufficient valid evidence exists and the named metric or hard prerequisite does not satisfy its governed criteria.
+    release_authorizing_by_itself: false
+  UNKNOWN:
+    meaning: Required evidence is absent, incomplete, invalid, untrusted, or insufficient to decide the named metric.
+    release_authorizing_by_itself: false
+  NOT_MEASURED:
+    meaning: The metric has no implemented measurement lane in the current receipt.
+    release_authorizing_by_itself: false
+
+authority_tiers:
+  technical_validation:
+    permits: [contract_validation, regression_detection, prerequisite_readiness]
+    forbids: [human_qualification, release_authorization, production_authorization]
+  human_qualified:
+    requires: [independent_blinded_human_review, adjudication, frozen_denominator]
+    forbids: [release_authorization, production_authorization]
+  release_authorized:
+    requires: [human_qualified, authorized_threshold_receipt, release_approver]
+    forbids: [production_authorization]
+  production_authorized:
+    requires: [release_authorized, production_change_authority]
+
+hard_prerequisites:
+  apps_research_to_u0:
+    required_before: U0
+    source_receipt_schema: apps_rg.apps_research_handoff_validation_receipt.v2
+    required_conditions:
+      observed: true
+      valid: true
+      accepted_statuses: [PASS]
+      status_may_be_omitted_for_direct_validator_result: true
+    failure_disposition: FAIL
+    missing_evidence_disposition: UNKNOWN
+    rationale: A resume-generation attempt is not in the governed denominator unless the source research handoff was successfully validated before U0.
+
+primary_outcomes:
+  P1:
+    metric_id: blind_finished_resume_utility_delta
+    question: Does a completed Apps RG resume provide material, adjudicated utility over a frozen baseline?
+    unit_of_analysis: One blinded completed-resume pair across all governed quality lanes.
+    numerator: Pairs with adjudicated candidate utility materially higher than the frozen baseline and no material regression.
+    denominator: All completed, eligible blinded pairs in the frozen evaluation cohort.
+    required_evidence:
+      - frozen_baseline
+      - blinded_independent_human_reviews
+      - adjudication
+      - paired_slice_results
+      - uncertainty_interval
+    implementation_status: NOT_MEASURED
+    authority_required: human_qualified
+  P2:
+    metric_id: grounded_decision_ready_completion_rate
+    question: Do eligible end-to-end attempts complete with decision-ready, fully grounded outputs?
+    unit_of_analysis: One attempted end-to-end run that passed the Apps Research-to-U0 prerequisite.
+    numerator: Eligible attempted runs with complete outputs and governed PASS evidence for required grounding, binding, quality, and robustness lanes.
+    denominator: All eligible attempted runs, including failures and abstentions; excluded attempts must retain a governed exclusion reason.
+    required_evidence:
+      - apps_research_to_u0_validation_receipt
+      - frozen_attempt_denominator
+      - completed_output_or_governed_failure_receipt
+      - G1_to_G6_results
+      - slice_results
+      - uncertainty_interval
+    implementation_status: NOT_MEASURED
+    authority_required: human_qualified
+
+guardrails:
+  unsupported_material_claim_count:
+    question: Were any material claims unsupported or contradicted by exact evidence?
+    required_value: 0
+    threshold_authority: existing_G3_human_qualified_receipt
+  critical_binding_error_count:
+    question: Were any material employer, role, date, metric, credential, scope, or certainty bindings wrong?
+    required_value: 0
+    threshold_authority: existing_G2_human_qualified_receipt
+  critical_run_divergence_count:
+    question: Did equivalent sealed runs diverge on a critical grounding or final disposition decision?
+    required_value: 0
+    threshold_authority: existing_G5_governed_receipt
+
+diagnostic_gate_roles:
+  G1: {role: diagnostic, may_authorize_outcome: false}
+  G2: {role: diagnostic, may_authorize_outcome: false}
+  G3: {role: diagnostic, may_authorize_outcome: false}
+  G4: {role: diagnostic, may_authorize_outcome: false}
+  G5: {role: diagnostic, may_authorize_outcome: false}
+  G6: {role: diagnostic, may_authorize_outcome: false}
+
+threshold_and_promotion_rules:
+  calibration_receipt_required_for_nonzero_thresholds: true
+  current_run_release_authority: unchanged
+  promotion_scope: future_runs_only
+  promotion_requires: [P1_PASS, P2_PASS, all_guardrails_PASS, human_qualified, authorized_threshold_receipt, release_approver]

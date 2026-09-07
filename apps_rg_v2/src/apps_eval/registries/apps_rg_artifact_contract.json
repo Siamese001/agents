@@ -1,0 +1,300 @@
+{
+  "schema_version": "apps_eval.apps_rg_artifact_contract.v1",
+  "contract_version": "2026-06-27",
+  "app_id": "apps_rg",
+  "artifact_roles": {
+    "run_bundle_index": {
+      "required": true,
+      "source_artifact_schema": "apps_rg.run_bundle_index.v1",
+      "relative_paths": [
+        "RUN_BUNDLE_INDEX.json",
+        "run_bundle_index.json"
+      ]
+    },
+    "u0_runtime_package": {
+      "required": true,
+      "source_artifact_schema": "apps_rg.runtime_customization_package.v1",
+      "relative_paths": [
+        "u0_receipt.json",
+        "runtime_customization_package.yaml",
+        "runtime_customization_package.json",
+        "u0/runtime_customization_package.yaml"
+      ]
+    },
+    "l1_static_plan_profile": {
+      "required": true,
+      "source_artifact_schema": "apps_rg.l1_static_plan_profile.v1",
+      "relative_paths": [
+        "l1_planning_capsule.json",
+        "l1_plan_contract.json",
+        "l1_static_plan_profile.yaml",
+        "u0/l1_static_plan_profile.yaml",
+        "profiles/l1_static_plan_profile.yaml"
+      ]
+    },
+    "l0_route_profile": {
+      "required": true,
+      "source_artifact_schema": "apps_rg.l0_managed_route_profile.v1",
+      "relative_paths": [
+        "route_contract.json",
+        "l0_managed_route_profile.yaml",
+        "u0/l0_managed_route_profile.yaml",
+        "profiles/l0_managed_route_profile.yaml"
+      ]
+    },
+    "c0_evidence_manifest": {
+      "required": true,
+      "source_artifact_schema": "apps_rg.c0_evidence_manifest.v1",
+      "relative_paths": [
+        "apps_rg_whole_run_exit_review_packet.json",
+        "c0_bypass_receipt.json",
+        "r4_c0_bypass_receipt.json",
+        "c0_evidence_manifest.json",
+        "fec_receipt.json",
+        "c0/fec_receipt.json",
+        "FEC/fec_receipt.json"
+      ]
+    },
+    "pa_compiled_prompt": {
+      "required": true,
+      "source_artifact_schema": "apps_rg.prompt_assembly_receipt.v1",
+      "relative_paths": [
+        "apps_rg_whole_run_exit_review_packet.json",
+        "prompt_assembly_bypass_receipt.json",
+        "compiled_prompt.json",
+        "prompt_assembly_receipt.json",
+        "pa/compiled_prompt.json"
+      ]
+    },
+    "full_run_section_status": {
+      "required": true,
+      "source_artifact_schema": "apps_rg.full_run_section_status.v1",
+      "relative_paths": [
+        "full_run_section_status.json",
+        "FULL_RUN_SECTION_STATUS.json"
+      ]
+    },
+    "lane_l2_output": {
+      "required": true,
+      "source_artifact_schema": "apps_rg.l2_output.v1",
+      "relative_paths": [
+        "lanes/{lane}/l2_output.json",
+        "modular_r4/sections/{lane}/l2_output.json"
+      ]
+    },
+    "lane_runtime_payload": {
+      "required": true,
+      "source_artifact_schema": "apps_rg.runtime_payload.v1",
+      "relative_paths": [
+        "lanes/{lane}/runtime_payload.json",
+        "modular_r4/sections/{lane}/runtime_payload.json"
+      ]
+    },
+    "lane_x2_gate_outputs": {
+      "required": true,
+      "source_artifact_schema": "apps_rg.x2_gate_outputs.v1",
+      "relative_paths": [
+        "lanes/{lane}/x2_gate_outputs.json",
+        "modular_r4/sections/{lane}/x2_gate_outputs.json"
+      ]
+    },
+    "lane_x1d_llm_judge_outputs": {
+      "required": true,
+      "source_artifact_schema": "apps_rg.x1d_llm_judge_outputs.v1",
+      "relative_paths": [
+        "lanes/{lane}/x1d_llm_judge_outputs.json",
+        "modular_r4/sections/{lane}/x1d_llm_judge_outputs.json"
+      ]
+    },
+    "lane_x3_disposition": {
+      "required": true,
+      "source_artifact_schema": "apps_rg.x3_disposition.v1",
+      "relative_paths": [
+        "lanes/{lane}/x3_disposition.json",
+        "modular_r4/sections/{lane}/x3_disposition.json"
+      ]
+    },
+    "lane_l6_shadow_eval_package": {
+      "required": true,
+      "semantics": "Legacy lane-local L6 summary package. Required as lane evidence, advisory only, and not the governed v40 closure package.",
+      "source_artifact_schema": "apps_rg.l6_shadow_eval_package.v1",
+      "relative_paths": [
+        "lanes/{lane}/l6_shadow_eval_package.json",
+        "modular_r4/sections/{lane}/l6_shadow_eval_package.json"
+      ]
+    },
+    "cross_section_x2_gate_outputs": {
+      "required": true,
+      "source_artifact_schema": "apps_rg.cross_section_x2_gate_outputs.v1",
+      "relative_paths": [
+        "cross_section_x2_gate_outputs.json",
+        "modular_r4/final_resume_assembly/cross_section_x2_gate_outputs.json",
+        "final_resume_assembly/cross_section_x2_gate_outputs.json",
+        "assembly/cross_section_x2_gate_outputs.json"
+      ]
+    },
+    "final_resume_json": {
+      "required": true,
+      "source_artifact_schema": "apps_rg.final_resume.v1",
+      "relative_paths": [
+        "outputs/generated_resume.json",
+        "final_resume.json",
+        "outputs/final_resume.json",
+        "modular_r4/final_resume_assembly/final_resume.json",
+        "modular_r4/outputs/final_resume.json",
+        "final_resume_assembly/final_resume.json"
+      ]
+    },
+    "final_resume_x2_gate_outputs": {
+      "required": true,
+      "source_artifact_schema": "apps_rg.final_resume_x2_gate_outputs.v1",
+      "relative_paths": [
+        "final_resume_x2_gate_outputs.json",
+        "modular_r4/final_resume_assembly/final_resume_x2_gate_outputs.json",
+        "final_resume_assembly/final_resume_x2_gate_outputs.json",
+        "assembly/final_resume_x2_gate_outputs.json"
+      ]
+    },
+    "whole_run_exit_review_packet": {
+      "required": true,
+      "source_artifact_schema": "apps_rg.whole_run_exit_review_packet.v1",
+      "relative_paths": [
+        "exit_review_packet.json",
+        "apps_rg_whole_run_exit_review_packet.json",
+        "whole_run_exit_review_packet.json",
+        "exit/apps_rg_whole_run_exit_review_packet.json"
+      ]
+    },
+    "uwg_commit_request": {
+      "required": true,
+      "source_artifact_schema": "apps_rg.l4.uwg.commit_request.v1",
+      "relative_paths": [
+        "uwg/commit_request.json",
+        "commit_request.json"
+      ]
+    },
+    "uwg_validation_receipt": {
+      "required": true,
+      "source_artifact_schema": "apps_rg.l4.uwg.validation_receipt.v1",
+      "relative_paths": [
+        "uwg/uwg_validation_receipt.json",
+        "uwg_validation_receipt.json"
+      ]
+    },
+    "uwg_commit_receipt": {
+      "required": true,
+      "source_artifact_schema": "apps_rg.l4.uwg.commit_receipt.v1",
+      "relative_paths": [
+        "uwg/uwg_commit_receipt.json",
+        "uwg_commit_receipt.json"
+      ]
+    },
+    "trace_reconciliation": {
+      "required": false,
+      "source_artifact_schema": "apps_rg.trace_reconciliation.v1",
+      "relative_paths": [
+        "trace_reconciliation.json",
+        "observability/trace_reconciliation.json"
+      ]
+    },
+    "l6_trace_observability_summary": {
+      "required": false,
+      "source_artifact_schema": "apps_rg.l6_trace_observability_summary.v1",
+      "relative_paths": [
+        "l6_trace_observability_summary.json",
+        "observability/l6_trace_observability_summary.json"
+      ]
+    },
+    "l6_v40_shadow_eval_package": {
+      "required": false,
+      "semantics": "Governed v40 post-run L6 package. Additive completed-run observability evidence with no current-run rescue or direct L4 write authority.",
+      "source_artifact_schema": "apps_rg.l6_v40_shadow_eval.v1",
+      "relative_paths": [
+        "l6_v40_shadow_eval_package.json",
+        "l6/l6_v40_shadow_eval_package.json"
+      ]
+    },
+    "l6_observability_closure_receipt": {
+      "required": false,
+      "source_artifact_schema": "apps_rg.l6_observability_closure_receipt.v1",
+      "relative_paths": [
+        "l6_observability_closure_receipt.json",
+        "l6/l6_observability_closure_receipt.json"
+      ]
+    },
+    "l6_microstep_observations": {
+      "required": false,
+      "source_artifact_schema": "apps_rg.l6_microstep_observation.v1",
+      "relative_paths": [
+        "l6_microstep_observations.jsonl",
+        "l6_grain_parity/l6_microstep_observations.jsonl"
+      ]
+    },
+    "l6_apps_eval_alignment": {
+      "required": false,
+      "source_artifact_schema": "apps_rg.l6_apps_eval_alignment.v1",
+      "relative_paths": [
+        "l6_apps_eval_alignment.json",
+        "l6_grain_parity/l6_apps_eval_alignment.json"
+      ]
+    },
+    "l6_apps_eval_grain_parity": {
+      "required": false,
+      "source_artifact_schema": "apps_rg.l6_apps_eval_grain_parity.v1",
+      "relative_paths": [
+        "l6_apps_eval_grain_parity.json",
+        "l6_grain_parity/l6_apps_eval_grain_parity.json"
+      ]
+    },
+    "eval_record": {
+      "required": true,
+      "source_artifact_schema": "apps_eval.completed_eval.v3",
+      "relative_paths": [
+        "eval_record.json"
+      ]
+    },
+    "scorecard_rows": {
+      "required": true,
+      "source_artifact_schema": "apps_eval.scorecard_row.v1",
+      "relative_paths": [
+        "scorecard_rows.jsonl"
+      ]
+    },
+    "component_scorecards": {
+      "required": true,
+      "source_artifact_schema": "apps_eval.apps_rg_component_scorecard.v1",
+      "relative_paths": [
+        "apps_rg_component_scorecard.json",
+        "component_scorecards.csv"
+      ]
+    },
+    "coverage_matrix": {
+      "required": true,
+      "source_artifact_schema": "apps_eval.apps_rg_coverage_matrix.v1",
+      "relative_paths": [
+        "coverage_matrix.csv"
+      ]
+    },
+    "regression_summary": {
+      "required": true,
+      "source_artifact_schema": "apps_eval.regression_summary.v1",
+      "relative_paths": [
+        "regression.json",
+        "regression_flywheel.json"
+      ]
+    }
+  },
+  "extractor_priority": [
+    "RUN_BUNDLE_INDEX.json",
+    "full_run_section_status.json",
+    "lanes/{lane}/",
+    "final_resume_assembly/",
+    "whole_run_exit_review_packet.json",
+    "fallback scans are diagnostic only"
+  ],
+  "fail_closed_rules": [
+    "A required artifact role that cannot be resolved emits a FAIL row.",
+    "Fallback scans may populate artifact_ref diagnostics but may not turn UNKNOWN into PASS.",
+    "Artifact refs are evidence pointers only; apps_eval does not mutate product artifacts."
+  ]
+}

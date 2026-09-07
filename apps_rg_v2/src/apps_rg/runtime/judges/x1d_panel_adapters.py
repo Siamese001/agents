@@ -1,0 +1,167 @@
+"""apps_rg provider adapters for the local X1D panel runner."""
+
+from __future__ import annotations
+
+from apps_rg.runtime.judges.executive_summary_x1d import (
+    PROVIDERS,
+    _resolved_section_x1d_judge_max_output_tokens,
+)
+from apps_rg.runtime.judges.x1d_panel_context import X1dPanelProviderContext
+from apps_rg.runtime.judges.x1d_panel_harness import (
+    AdapterInvokeError,
+    CanonicalJudgeContract,
+    DeclaredTransportPolicy,
+    PanelJudgeOutcome,
+    TransportReceipt,
+)
+
+
+def _transport_receipt(
+    ctx: X1dPanelProviderContext,
+    contract: CanonicalJudgeContract,
+    *,
+    attempt: int,
+    finish_reason: str | None = "stop",
+    parse_status: str = "ok",
+) -> TransportReceipt:
+    max_tokens = _resolved_section_x1d_judge_max_output_tokens(ctx.section_id, attempt=attempt)
+    if ctx.provider_key == "gemini_pro":
+        json_lock = "responseSchema"
+    else:
+        json_lock = "json_object"
+    return TransportReceipt(
+        provider_key=ctx.provider_key,
+        contract_hash=contract.contract_hash(),
+        max_output_tokens=max_tokens,
+        temperature=None if ctx.provider_key == "gemini_pro" else 0.1,
+        thinking_level=(ctx.reasoning_effort if ctx.provider_key == "gemini_pro" else None),
+        json_output_lock=json_lock,
+        finish_or_stop_reason=finish_reason,
+        parse_status=parse_status,
+        attempt=attempt,
+    )
+
+
+def _panel_outcome_from_judge(
+    ctx: X1dPanelProviderContext,
+    contract: CanonicalJudgeContract,
+    *,
+    attempt: int,
+) -> tuple[PanelJudgeOutcome, TransportReceipt]:
+    out = ctx.last_judge_output
+    if out is None:
+        raise AdapterInvokeError(f"{ctx.provider_key} produced no JudgeOutput")
+
+    parse_status = "ok"
+    finish: str | None = "stop"
+    if out.provider_blocked or out.evaluator_mode.startswith("BLOCKED"):
+        parse_status = "blocked"
+        finish = None
+
+    panel = PanelJudgeOutcome(
+        provider_key=ctx.provider_key,
+        contract_hash=contract.contract_hash(),
+        input_hash=ctx.input_hash,
+        evaluator_mode=out.evaluator_mode,
+        provider_status=out.provider_status,
+        score=out.score,
+        score_scale=str(out.score_scale or "0_to_5"),
+        threshold=float(out.threshold),
+        pass_=out.pass_,
+        decisive_failure=out.decisive_failure,
+        findings=tuple(out.findings),
+        cited_sentence_indexes=tuple(out.cited_sentence_indexes),
+        remediation_suggestions=tuple(out.remediation_suggestions),
+        raw_body={"judge_output": out.to_dict()},
+    )
+    return panel, _transport_receipt(ctx, contract, attempt=attempt, finish_reason=finish, parse_status=parse_status)
+
+
+class AppsRgX1dPanelAdapter:
+    """Thin wrapper: core panel protocol → existing apps_rg _call_* transport."""
+
+    def __init__(self, ctx: X1dPanelProviderContext) -> None:
+        self._ctx = ctx
+
+    @property
+    def provider_key(self) -> str:
+        return self._ctx.provider_key
+
+    def declared_policy(self, *, attempt: int = 1) -> DeclaredTransportPolicy:
+        json_lock = "responseSchema" if self.provider_key == "gemini_pro" else "json_object"
+        return DeclaredTransportPolicy(
+            max_output_tokens=_resolved_section_x1d_judge_max_output_tokens(
+                self._ctx.section_id, attempt=attempt
+            ),
+            json_output_lock=json_lock,
+            temperature=None if self.provider_key == "gemini_pro" else 0.1,
+            thinking_level=(
+                self._ctx.reasoning_effort if self.provider_key == "gemini_pro" else None
+            ),
+        )
+
+    def invoke(
+        self,
+        contract: CanonicalJudgeContract,
+        *,
+        attempt: int = 1,
+    ) -> tuple[PanelJudgeOutcome, TransportReceipt]:
+        ctx = self._ctx
+        prompt = contract.user_prompt
+
+        from apps_rg.runtime.judges import executive_summary_x1d as x1d_mod
+
+        def _dispatch(attempt_no: int):
+            if ctx.provider_key == "openai_chatgpt":
+                return x1d_mod._call_openai(
+                    ctx.api_key,
+                    prompt,
+                    ctx.model,
+                    ctx.input_hash,
+                    ctx.provider_key,
+                    artifact_base=ctx.artifact_base,
+                    reasoning_effort=ctx.reasoning_effort,
+                    model_requested=ctx.model_requested,
+                    judge_receipt=ctx.judge_receipt,
+                    attempt=attempt_no,
+                    model_env_source=ctx.model_source,
+                    section_id=ctx.section_id,
+                )
+            if ctx.provider_key == "gemini_pro":
+                return x1d_mod._call_gemini(
+                    ctx.api_key,
+                    prompt,
+                    ctx.model,
+                    ctx.input_hash,
+                    ctx.provider_key,
+                    model_source=ctx.model_source,
+                    artifact_base=ctx.artifact_base,
+                    model_requested=ctx.model_requested,
+                    judge_receipt=ctx.judge_receipt,
+                    thinking_level=ctx.reasoning_effort,
+                    attempt=attempt_no,
+                    section_id=ctx.section_id,
+                )
+            raise AdapterInvokeError(f"Unsupported proof judge provider: {ctx.provider_key}")
+
+        try:
+            ctx.last_judge_output = _dispatch(attempt)
+        except Exception as exc:  # guardian: allow-broad-exception -- adapter boundary: normalize provider failures to AdapterInvokeError
+            raise AdapterInvokeError(str(exc)) from exc
+
+        out = ctx.last_judge_output
+        if out is None:
+            raise AdapterInvokeError(f"{ctx.provider_key} produced no JudgeOutput")
+        if x1d_mod._is_retriable_judge_output(out):
+            raise AdapterInvokeError(out.exact_provider_error or out.provider_status)
+
+        return _panel_outcome_from_judge(ctx, contract, attempt=attempt)
+
+
+def build_panel_adapter(ctx: X1dPanelProviderContext) -> AppsRgX1dPanelAdapter:  # guardian: allow-broad-exception -- P2 ADG burndown
+    if ctx.provider_key not in PROVIDERS:
+        raise KeyError(f"unknown provider key: {ctx.provider_key}")
+    return AppsRgX1dPanelAdapter(ctx)
+
+
+__all__ = ["AppsRgX1dPanelAdapter", "build_panel_adapter"]

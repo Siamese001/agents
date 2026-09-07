@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentic-workflow.local/apps_rg/authoritative/cluster_activation_manifest.v2.schema.json",
+  "title": "Apps RG qualified cluster embedding activation manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "status", "completion_marker", "release_authorizing",
+    "logical_retrieval_unit", "legacy_skill_vector_generation_active", "source_commit",
+    "qualification", "projection", "manifest_sha256"
+  ],
+  "properties": {
+    "schema_version": {"const": "apps_rg.graph_evidence_cluster_embedding_activation_manifest.v2"},
+    "status": {"const": "PASS"},
+    "completion_marker": {"const": "GRAPH_EVIDENCE_CLUSTER_EMBEDDINGS_QUALIFIED"},
+    "release_authorizing": {"const": true},
+    "logical_retrieval_unit": {"const": "graph_evidence_cluster"},
+    "legacy_skill_vector_generation_active": {"const": false},
+    "source_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "qualification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "file_sha256", "record_digest"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "file_sha256": {"$ref": "#/$defs/digest"},
+        "record_digest": {"$ref": "#/$defs/digest"}
+      }
+    },
+    "projection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path", "file_sha256", "cluster_registry_sha256", "corpus_sha256",
+        "model_artifact_sha256", "graph_sha256", "runtime_config_sha256",
+        "hardware_profile_sha256", "cluster_count", "top_k", "dimension",
+        "normalization", "exact_rehydration_required"
+      ],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "file_sha256": {"$ref": "#/$defs/digest"},
+        "cluster_registry_sha256": {"$ref": "#/$defs/digest"},
+        "corpus_sha256": {"$ref": "#/$defs/digest"},
+        "model_artifact_sha256": {"$ref": "#/$defs/digest"},
+        "graph_sha256": {"$ref": "#/$defs/digest"},
+        "runtime_config_sha256": {"$ref": "#/$defs/digest"},
+        "hardware_profile_sha256": {"$ref": "#/$defs/digest"},
+        "cluster_count": {"type": "integer", "minimum": 2},
+        "top_k": {"type": "integer", "minimum": 1},
+        "dimension": {"const": 1024},
+        "normalization": {"const": "l2"},
+        "exact_rehydration_required": {"const": true}
+      }
+    },
+    "manifest_sha256": {"$ref": "#/$defs/digest"}
+  },
+  "$defs": {
+    "digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+  }
+}

@@ -1,0 +1,80 @@
+{
+  "schema_version": "apps_rg.l1_cognitive_qa_development.v1",
+  "app_scope": "APPS_RG_V2_ONLY",
+  "corpus_id": "apps-rg-l1-cognitive-qa-development-v1",
+  "human_semantic_qualification": "HUMAN_REVIEW_REQUIRED",
+  "cases": [
+    {
+      "fixture_id": "l1-cognitive-atomic-and-v1",
+      "app_payload": {
+        "generation_mode": "strategic_tailor",
+        "target_company": "ExampleCo",
+        "target_role": "VP Engineering",
+        "target_level": "EXECUTIVE",
+        "source_resume_text": "Synthetic leadership evidence.",
+        "job_description_text": "Requirements\n- Must lead AI strategy and own platform governance."
+      },
+      "expectations": {
+        "minimum_atomic_requirement_count": 2,
+        "required_relation": "AND",
+        "required_planning_status": "READY"
+      },
+      "source_input_digest": "sha256:36f0115239bc06857bd847cf2067d7eab1a9950a5eeb60c31e565684f61678aa"
+    },
+    {
+      "fixture_id": "l1-cognitive-unknown-v1",
+      "app_payload": {
+        "generation_mode": "strategic_tailor",
+        "target_company": "ExampleCo",
+        "target_role": "VP Engineering",
+        "target_level": "EXECUTIVE",
+        "source_resume_text": "Synthetic leadership evidence.",
+        "job_description_text": "Requirements\n- Must demonstrate quantum-superiority governance."
+      },
+      "expectations": {
+        "minimum_atomic_requirement_count": 1,
+        "required_requirement_type": "UNKNOWN",
+        "required_planning_status": "BLOCKED"
+      },
+      "source_input_digest": "sha256:74d712dd4bcb2d954d3f892d10c529be8023a4593c151dfb749d2fb6da52fe09"
+    },
+    {
+      "fixture_id": "l1-cognitive-alternative-or-v1",
+      "app_payload": {
+        "generation_mode": "strategic_tailor",
+        "target_company": "ExampleCo",
+        "target_role": "VP Engineering",
+        "target_level": "EXECUTIVE",
+        "source_resume_text": "Synthetic leadership evidence.",
+        "job_description_text": "Requirements\n- Must lead platform strategy or own infrastructure governance."
+      },
+      "expectations": {
+        "minimum_atomic_requirement_count": 2,
+        "required_relation": "OR",
+        "required_planning_status": "BLOCKED"
+      },
+      "source_input_digest": "sha256:56c6afab433e53fe1ac5b56cb4dfe1d8bb2665fbc67f098925db1066ea17554c"
+    },
+    {
+      "fixture_id": "l1-cognitive-constraint-conflict-v1",
+      "app_payload": {
+        "generation_mode": "strategic_tailor",
+        "target_company": "ExampleCo",
+        "target_role": "VP Engineering",
+        "target_level": "EXECUTIVE",
+        "source_resume_text": "Synthetic leadership evidence.",
+        "job_description_text": "Requirements\n- Must lead platform engineering.",
+        "user_constraints": {
+          "conflicting_scope": "Synthetic product/engineering conflict."
+        }
+      },
+      "expectations": {
+        "minimum_atomic_requirement_count": 1,
+        "required_critique_code": "DECLARED_CONSTRAINT_CONFLICT",
+        "required_planning_status": "BLOCKED"
+      },
+      "source_input_digest": "sha256:8921368eebd453d0b195b70c2597b12cf12d5e8a1a65691aa92d86663b6e8b4c"
+    }
+  ],
+  "corpus_source_digest": "sha256:eba462e4f5bfa8b3a24f7137228ba2565a98d9035232c03cc290670ecd88ac81"
+}

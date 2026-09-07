@@ -1,0 +1,164 @@
+{
+  "schema": "graph_skills_x1d_rubric_baseline_w4_v1",
+  "plan_id": "graph-skills-quality-enhancement-c4e8a1",
+  "min_pass_threshold": 0.8,
+  "lane_families": {
+    "competencies": {
+      "lane_family": "competencies",
+      "lanes": [
+        {
+          "lane_id": "competencies",
+          "module_path": "apps_rg.runtime.judges.competencies_x1d",
+          "rubric_version": "competencies_x1d_v2",
+          "default_threshold": 0.8,
+          "rubric_sha256": "cef191feff7ab995aa8ab218178c756acad148c0277c907fda57e34e7ab3a00c",
+          "dimension_count": 7,
+          "decisive_trigger_count": 3,
+          "required_markers_present": true,
+          "missing_markers": []
+        }
+      ],
+      "masking_relaxed": false
+    },
+    "bullets": {
+      "lane_family": "bullets",
+      "lanes": [
+        {
+          "lane_id": "unify_bullets",
+          "module_path": "apps_rg.runtime.judges.unify_bullets_x1d",
+          "rubric_version": "unify_bullets_x1d_v4",
+          "default_threshold": 0.8,
+          "rubric_sha256": "c6020c9b1265c92049407330d54265a968fe1735ce439bbe01c5cd922c9e605b",
+          "dimension_count": 9,
+          "decisive_trigger_count": 6,
+          "required_markers_present": true,
+          "missing_markers": []
+        },
+        {
+          "lane_id": "ibm_bullets",
+          "module_path": "apps_rg.runtime.judges.ibm_bullets_x1d",
+          "rubric_version": "ibm_bullets_x1d_v4",
+          "default_threshold": 0.8,
+          "rubric_sha256": "e1c7b3389b518e3a8a4ab4dfda87363013fe9947360a0c14c7c1eecb5fdd858d",
+          "dimension_count": 10,
+          "decisive_trigger_count": 5,
+          "required_markers_present": true,
+          "missing_markers": []
+        }
+      ],
+      "masking_relaxed": false
+    },
+    "role_episode": {
+      "lane_family": "role_episode",
+      "lanes": [
+        {
+          "lane_id": "insurtech_bullets",
+          "module_path": "apps_rg.runtime.judges.role_episode_x1d",
+          "rubric_version": "role_episode_x1d_v1",
+          "default_threshold": 0.8,
+          "rubric_sha256": "b4093a5af1f5cca2d2e46943238f0248f8b422363e956b6ea63d66733e337128",
+          "dimension_count": 4,
+          "decisive_trigger_count": 5,
+          "required_markers_present": true,
+          "missing_markers": []
+        },
+        {
+          "lane_id": "ey_bullets",
+          "module_path": "apps_rg.runtime.judges.role_episode_x1d",
+          "rubric_version": "role_episode_x1d_v1",
+          "default_threshold": 0.8,
+          "rubric_sha256": "b4093a5af1f5cca2d2e46943238f0248f8b422363e956b6ea63d66733e337128",
+          "dimension_count": 4,
+          "decisive_trigger_count": 5,
+          "required_markers_present": true,
+          "missing_markers": []
+        },
+        {
+          "lane_id": "insurtech_narrative",
+          "module_path": "apps_rg.runtime.judges.role_episode_x1d",
+          "rubric_version": "role_episode_x1d_v1",
+          "default_threshold": 0.8,
+          "rubric_sha256": "b4093a5af1f5cca2d2e46943238f0248f8b422363e956b6ea63d66733e337128",
+          "dimension_count": 4,
+          "decisive_trigger_count": 5,
+          "required_markers_present": true,
+          "missing_markers": []
+        },
+        {
+          "lane_id": "ey_narrative",
+          "module_path": "apps_rg.runtime.judges.role_episode_x1d",
+          "rubric_version": "role_episode_x1d_v1",
+          "default_threshold": 0.8,
+          "rubric_sha256": "b4093a5af1f5cca2d2e46943238f0248f8b422363e956b6ea63d66733e337128",
+          "dimension_count": 4,
+          "decisive_trigger_count": 5,
+          "required_markers_present": true,
+          "missing_markers": []
+        }
+      ],
+      "masking_relaxed": false
+    },
+    "narrative": {
+      "lane_family": "narrative",
+      "lanes": [
+        {
+          "lane_id": "unify_narrative",
+          "module_path": "apps_rg.runtime.judges.unify_narrative_x1d",
+          "rubric_version": "unify_narrative_x1d_v3",
+          "default_threshold": 0.8,
+          "rubric_sha256": "3e703a9f9197ad6c82c9c24ca45cf67fd8a12e8393386540bedc21b774b20aea",
+          "dimension_count": 11,
+          "decisive_trigger_count": 5,
+          "required_markers_present": true,
+          "missing_markers": []
+        },
+        {
+          "lane_id": "ibm_narrative",
+          "module_path": "apps_rg.runtime.judges.ibm_narrative_x1d",
+          "rubric_version": "ibm_narrative_x1d_v3",
+          "default_threshold": 0.8,
+          "rubric_sha256": "a665f093e0d07e31ba1ea1cbb096a436adb48e5b5636a1e253ba10ff9fc99387",
+          "dimension_count": 11,
+          "decisive_trigger_count": 5,
+          "required_markers_present": true,
+          "missing_markers": []
+        }
+      ],
+      "masking_relaxed": false
+    },
+    "executive_summary": {
+      "lane_family": "executive_summary",
+      "lanes": [
+        {
+          "lane_id": "executive_summary",
+          "module_path": "apps_rg.runtime.judges.executive_summary_x1d",
+          "rubric_version": "executive_summary_x1d_v1",
+          "default_threshold": 0.8,
+          "rubric_sha256": "11aae11a67300525bc10237ff399aa7e2b263b548871b5eefa9bca5d2a9c5a9b",
+          "dimension_count": 8,
+          "decisive_trigger_count": 7,
+          "required_markers_present": true,
+          "missing_markers": []
+        }
+      ],
+      "masking_relaxed": false
+    },
+    "headline": {
+      "lane_family": "headline",
+      "lanes": [
+        {
+          "lane_id": "headline",
+          "module_path": "apps_rg.runtime.judges.headline_x1d",
+          "rubric_version": "headline_x1d_v4",
+          "default_threshold": 0.8,
+          "rubric_sha256": "62df87fe81fa9889503aeb2756cfe0fd2489c8aea7deb89b06ca456d02314fbc",
+          "dimension_count": 8,
+          "decisive_trigger_count": 8,
+          "required_markers_present": true,
+          "missing_markers": []
+        }
+      ],
+      "masking_relaxed": false
+    }
+  }
+}

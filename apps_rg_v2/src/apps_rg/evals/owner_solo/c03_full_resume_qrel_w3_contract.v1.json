@@ -1,0 +1,33 @@
+{
+  "schema_version": "apps_rg.owner_solo_full_resume_qrel_w3_contract.v1",
+  "wave": "W3",
+  "status": "FROZEN",
+  "result_label": "OWNER_SOLO_PROVISIONAL",
+  "purpose": "Build a blinded owner-review packet from W2 frozen full-resume graph-evidence-cluster rankings. W3 creates no human grade, QREL, metric, activation, release qualification, or production authority.",
+  "review_packet": {
+    "query_count": 6,
+    "section_count": 11,
+    "query_section_item_count": 66,
+    "candidate_judgment_count": 600,
+    "logical_retrieval_unit": "graph_evidence_cluster",
+    "full_finite_candidate_universe_required": true,
+    "partial_top_k_judging_forbidden": true,
+    "one_blinded_owner_packet_required": true
+  },
+  "blinding": {
+    "opaque_item_and_candidate_references_required": true,
+    "target_context_and_complete_cluster_text_required": true,
+    "ranks_scores_splits_cluster_ids_and_model_choice_forbidden": true,
+    "sealed_mapping_runtime_only": true
+  },
+  "authority_boundary": {
+    "existing_two_reviewer_contract_unchanged": true,
+    "existing_independent_adjudication_contract_unchanged": true,
+    "human_labels_created_by_w3": false,
+    "metrics_computable_by_w3": false,
+    "authoritative_release_qualification_satisfied": false,
+    "activation_manifest_created": false,
+    "production_promotion_authorized": false
+  },
+  "contract_sha256": "f3dab1825f596d3145b34fcb64322d4191a9736f53f81e2fe5918704348ebb58"
+}

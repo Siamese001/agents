@@ -1,0 +1,30 @@
+{
+  "schema_version": "apps_rg.benchmark_case_manifest.v1",
+  "benchmark_id": "apps_rg_v2_initial_benchmark",
+  "minimum_cases_per_lane": 2,
+  "minimum_cases_per_required_slice": 2,
+  "slice_policy": {
+    "role_family": ["executive_leadership", "technical_leadership"],
+    "target_profile": ["strategic_partnerships", "industrial_ai"],
+    "evidence_density": ["sparse", "rich"],
+    "hard_negative": [true, false],
+    "binding_challenge": ["date", "number"],
+    "protected_risk_slice": ["privacy", "counterfactual"]
+  },
+  "power_plan": {
+    "method": "paired_normal_approximation",
+    "alpha": 0.05,
+    "power": 0.8,
+    "minimum_detectable_effect": 0.1,
+    "baseline_variance": 0.25,
+    "minimum_pairs": null
+  },
+  "calibration_cases": [],
+  "holdout_commitment": {
+    "status": "PENDING_EXTERNAL_SEAL",
+    "external_authority_ref": "",
+    "sealed_index_digest": "",
+    "case_count": 0,
+    "development_access": "external_authority_only"
+  }
+}

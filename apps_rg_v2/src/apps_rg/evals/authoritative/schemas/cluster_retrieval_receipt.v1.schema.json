@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentic-workflow.local/apps_rg/authoritative/cluster_retrieval_receipt.v1.schema.json",
+  "title": "Apps RG graph-evidence cluster retrieval W1 receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "gate_id", "logical_retrieval_unit", "qualification_scope",
+    "status", "runtime_top_k", "metrics", "query_results", "slices",
+    "input_digests", "threshold_policy_digest", "generic_receipt_digest",
+    "failure_codes", "unknown_reasons", "authority", "record_digest"
+  ],
+  "properties": {
+    "schema_version": {"const": "apps_rg.authoritative_cluster_retrieval_receipt.v1"},
+    "gate_id": {"const": "G1"},
+    "logical_retrieval_unit": {"const": "graph_evidence_cluster"},
+    "qualification_scope": {"const": "EVAL_W1_CONTRACT_ONLY"},
+    "status": {"enum": ["PASS", "FAIL", "UNKNOWN"]},
+    "runtime_top_k": {"anyOf": [{"type": "integer", "minimum": 1}, {"type": "null"}]},
+    "metrics": {"type": "object"},
+    "query_results": {"type": "array", "items": {"type": "object"}},
+    "slices": {"type": "object"},
+    "input_digests": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["universe", "ranking", "qrels", "authority_envelope"],
+        "properties": {
+          "universe": {"$ref": "#/$defs/digest"},
+          "ranking": {"$ref": "#/$defs/digest"},
+          "qrels": {"$ref": "#/$defs/digest"},
+          "authority_envelope": {"$ref": "#/$defs/digest"}
+        }
+      }
+    },
+    "threshold_policy_digest": {"anyOf": [{"$ref": "#/$defs/digest"}, {"type": "null"}]},
+    "generic_receipt_digest": {"anyOf": [{"$ref": "#/$defs/digest"}, {"type": "null"}]},
+    "failure_codes": {"$ref": "#/$defs/stringList"},
+    "unknown_reasons": {"$ref": "#/$defs/stringList"},
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["measurement_scope", "human_authority_verified", "release_authorizing"],
+      "properties": {
+        "measurement_scope": {"const": "SOURCE_BOUND_CLUSTER_SYSTEM_VS_QRELS"},
+        "authority_receipt_digest": {"$ref": "#/$defs/digest"},
+        "authority_receipt_file_sha256": {"$ref": "#/$defs/digest"},
+        "human_authority_verified": {"type": "boolean"},
+        "release_authorizing": {"const": false},
+        "logical_retrieval_unit": {"const": "graph_evidence_cluster"}
+      }
+    },
+    "record_digest": {"$ref": "#/$defs/digest"}
+  },
+  "$defs": {
+    "digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "stringList": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "uniqueItems": true
+    }
+  }
+}

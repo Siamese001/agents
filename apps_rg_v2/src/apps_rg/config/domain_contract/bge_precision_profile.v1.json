@@ -1,0 +1,35 @@
+{
+  "schema_version": "apps_rg.bge_precision_profile.v1",
+  "selected_profile_id": "fp16_candidate",
+  "rollback_profile_id": "fp32_control",
+  "profiles": {
+    "fp32_control": {
+      "dtype": "float32",
+      "role": "control_and_rollback"
+    },
+    "fp16_candidate": {
+      "dtype": "float16",
+      "role": "measured_candidate"
+    },
+    "bf16_candidate": {
+      "dtype": "bfloat16",
+      "role": "measured_candidate"
+    }
+  },
+  "selection_controls": {
+    "minimum_throughput_speedup_ratio": 1.3,
+    "maximum_throughput_tie_gap_ratio": 0.02,
+    "minimum_same_index_cosine": 0.999,
+    "require_all_top10_sets_equal": true,
+    "measured_vram_ceiling_mib": 3200.0
+  },
+  "selection_basis": {
+    "wave": "W4",
+    "method": "matched_current_device_measurement",
+    "selected_reason": "highest eligible aggregate throughput with stronger cosine and rank preservation than the other lower-precision candidate",
+    "technical_rank_proxy_only": true,
+    "retrieval_quality_qualification": false
+  },
+  "fallback_allowed": false,
+  "network_allowed": false
+}

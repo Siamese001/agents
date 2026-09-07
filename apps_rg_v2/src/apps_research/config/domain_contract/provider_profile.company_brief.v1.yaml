@@ -1,0 +1,112 @@
+# Provider Profile for apps_research / company_brief
+#
+# Provider-specific configuration for L2 execution.
+# Defines the sole approved external model lane and fail-closed gateway behavior.
+
+profile_id: apps_research_provider_profile_company_brief_v1
+app_id: apps_research
+task_class: company_brief
+schema_version: "1.0"
+
+# Approved model lanes. CompanyBriefEngine implements exactly this primary lane.
+approved_model_lanes:
+  # Primary lane: OpenAI-compatible synthesis path used by CompanyBriefEngine.
+  primary:
+    lane_id: research_synthesis_primary
+    provider: external_openai
+    provider_key: openai_chatgpt
+    model: gpt-5.6-terra
+    reasoning_effort: medium
+    owner: apps_research.company_brief
+    review_after: "2026-11-07"
+    
+    capabilities:
+      - json_mode
+      - structured_output
+      - long_context
+    
+    capacity:
+      max_concurrent: 4
+      timeout_seconds: 120
+      
+    reliability:
+      credential_env_var: OPENAI_API_KEY
+      circuit_breaker_threshold: 3
+      
+# Lane selection policy
+lane_selection:
+  strategy: single_lane_fail_closed
+  executable_lane_count: 1
+
+# Gateway configuration
+gateway:
+  type: generic_approved_lane
+  implementation: provider_gateway_v1
+  
+  request_formatting:
+    method: chat_completions_api
+    message_structure:
+      system: S0+D0+I0+E0+M0 slots
+      user: U0 slot
+      context: C0 slot (marked data_only)
+    
+    response_format:
+      type: json_object
+      schema_binding: strict
+  
+  error_handling:
+    on_provider_error: fail_closed
+    on_timeout: fail_closed
+    on_invalid_json: attempt_repair
+    on_schema_violation: fail_closed
+  
+  retry_policy:
+    max_attempts_per_lane: 2
+    max_total_attempts: 2
+    backoff: exponential_jitter
+
+# Provider call constraints
+call_constraints:
+  # L2 may only call through generic gateway
+  direct_provider_calls_blocked: true
+  
+  # All calls must go through approved lanes
+  lane_verification_required: true
+  
+  # Call must include full execution context
+  context_preservation_required: true
+  
+  # Response must be validated before return
+  response_validation_required: true
+
+# Capacity management
+capacity:
+  external_api:
+    max_requests: 4
+    max_tokens_per_minute: 100000
+    queue_policy: fail_fast
+
+# Health monitoring
+health_monitoring:
+  enabled: true
+  
+  checks:
+    - credential_env_var: OPENAI_API_KEY
+      interval_seconds: 30
+      timeout_seconds: 5
+      
+  circuit_breaker:
+    failure_threshold: 3
+    recovery_timeout_seconds: 60
+    
+  metrics_to_emit:
+    - latency_p50
+    - latency_p99
+    - success_rate
+    - token_throughput
+
+# Cost/performance tradeoffs (for future budget controls)
+tradeoffs:
+  note: "External providers are metered; keep company-brief synthesis scoped to reviewed sources."
+  prioritize: quality_over_speed
+  accept_latency: up_to_30_seconds

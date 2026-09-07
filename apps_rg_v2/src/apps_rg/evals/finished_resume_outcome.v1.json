@@ -1,0 +1,52 @@
+{
+  "schema_version": "apps_rg.finished_resume_outcome.v1",
+  "outcome_id": "P1",
+  "required_lanes": [
+    "competencies",
+    "slalom_bullets",
+    "unify_bullets",
+    "ibm_bullets",
+    "insurtech_bullets",
+    "ey_bullets",
+    "slalom_narrative",
+    "unify_narrative",
+    "ibm_narrative",
+    "insurtech_narrative",
+    "ey_narrative",
+    "executive_summary",
+    "headline"
+  ],
+  "review_protocol": {
+    "blinded": true,
+    "independent_primary_reviewers_per_pair": 2,
+    "independent_adjudicators_per_pair": 1,
+    "frozen_baseline_required": true,
+    "candidate_preference_required": true,
+    "utility_superiority_required": true
+  },
+  "noninferiority_margins": {
+    "authenticity": null,
+    "grounding": null,
+    "ats": null,
+    "readability": null,
+    "concision": null,
+    "target_relevance": null
+  },
+  "p1_evidence": {
+    "status": "PENDING",
+    "pair_count": 0,
+    "primary_review_count": 0,
+    "adjudication_count": 0,
+    "external_authority_receipt_sha256": "",
+    "completed_review_receipt_digest": "",
+    "utility_effect": null,
+    "utility_ci_lower": null,
+    "candidate_preference_count": 0,
+    "baseline_preference_count": 0,
+    "dimension_ci_lowers": {},
+    "blind_review_ledger_path": "",
+    "blind_review_ledger_file_sha256": "",
+    "synthetic_grades_created": false
+  },
+  "owner_solo_status": "NOT_SUPPLIED"
+}

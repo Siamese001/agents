@@ -1,0 +1,65 @@
+{
+  "schema_version": "apps_rg.c03_graph_evidence_cluster_qualification_contract.v1",
+  "contract_id": "C03_GRAPH_EVIDENCE_CLUSTER_SEMANTIC_QUALIFICATION",
+  "wave": "W7",
+  "status": "FROZEN",
+  "source_requirements": {
+    "wave6_pass_receipt_required": true,
+    "immutable_projection_required": true,
+    "wave4_registry_required": true,
+    "canonical_graph_required": true,
+    "source_bound_query_manifest_required": true,
+    "historical_per_skill_qrels_forbidden_as_release_authority": true
+  },
+  "evaluation_denominator": {
+    "query_count": 6,
+    "calibration_query_count": 3,
+    "holdout_query_count": 3,
+    "section_count": 8,
+    "query_section_count": 48,
+    "full_finite_candidate_universe_required": true,
+    "expected_cluster_judgment_count": 456,
+    "partial_top_k_judging_forbidden": true,
+    "relevance_grades": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "relevant_grade_floor": 2
+  },
+  "human_authority": {
+    "two_distinct_human_reviewers_required": true,
+    "adjudication_required": true,
+    "external_human_review_authority_receipt_required": true,
+    "synthetic_or_model_labels_forbidden": true,
+    "unknown_labels_forbidden": true,
+    "reviewer_rank_and_score_blinding_required": true,
+    "prelabel_ranking_identity_freeze_required": true
+  },
+  "quality_gates": {
+    "holdout_macro_recall_at_10_min": 0.95,
+    "holdout_pooled_recall_at_10_min": 0.95,
+    "holdout_macro_ndcg_at_10_min": 0.9,
+    "holdout_macro_reciprocal_rank_min": 0.9,
+    "section_policy_leak_count_max": 0,
+    "orphan_candidate_count_max": 0,
+    "stale_candidate_count_max": 0,
+    "authority_bypass_count_max": 0,
+    "projection_issue_count_max": 0,
+    "cold_six_query_encode_elapsed_ms_max": 15000.0,
+    "projection_search_p95_ms_max": 50.0
+  },
+  "qualification_states": {
+    "qrels_absent": "BLOCKED_QREL_AUTHORITY",
+    "qrels_invalid": "BLOCKED_QREL_AUTHORITY",
+    "quality_gate_failed": "FAIL",
+    "all_gates_passed": "QUALIFIED"
+  },
+  "activation_boundary": {
+    "wave7_creates_activation_manifest": false,
+    "qualification_is_not_activation": true,
+    "release_activation_requires_later_explicit_wave": true,
+    "production_promotion_authorized": false
+  }
+}

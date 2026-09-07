@@ -1,0 +1,70 @@
+{
+  "schema_version": "1.0",
+  "profile_id": "runtime_gate_profile.resume_generation.v1",
+  "app_id": "apps_rg",
+  "task_class": "resume_generation",
+  "description": "Runtime gate profile for apps_rg resume_generation task class",
+  "gate_taxonomy_ref": "apps_rg/runtime/contracts/apps_rg_gate_taxonomy.yaml",
+  "stages": {
+    "C0": {
+      "stage_id": "C0",
+      "stage_name": "Grounding Retrieval",
+      "description": "C0 evidence collection from fact_vectors and manual brief",
+      "required_gates": [
+        {
+          "gate_id": "G_METADATA_FILTER",
+          "gate_name": "Metadata Filter",
+          "description": "Exact metadata filtering for fact_vectors retrieval",
+          "gate_class": "release_blocker",
+          "conditional": false,
+          "required": true
+        },
+        {
+          "gate_id": "G_SECTION_RETRIEVAL",
+          "gate_name": "Bounded Section Retrieval",
+          "description": "Per-section evidence retrieval from fact_vectors",
+          "gate_class": "release_blocker",
+          "conditional": true,
+          "condition_ref": "section_retrieval_enabled",
+          "required": false
+        },
+        {
+          "gate_id": "G_BRIEF_BYPASS",
+          "gate_name": "Briefing Bypass",
+          "description": "Manual brief evaluation for company research bypass",
+          "gate_class": "release_blocker",
+          "conditional": true,
+          "condition_ref": "manual_brief_path_present",
+          "required": false
+        }
+      ]
+    }
+  },
+  "conditional_gate_triggers": {
+    "G_BRIEF_BYPASS": {
+      "trigger": "manual_brief_path_present",
+      "bypass_scope": "company_research_lanes_only",
+      "preserved_lanes": ["candidate_profile", "project_evidence"],
+      "max_age_hours": 168,
+      "authority_classes": ["authoritative", "semi_authoritative", "unverified"]
+    },
+    "G_SECTION_RETRIEVAL": {
+      "trigger": "section_retrieval_enabled",
+      "requires": ["grounding_required=true", "fact_vectors_available"]
+    }
+  },
+  "source_classes": {
+    "allowed": ["candidate_profile", "project_evidence"],
+    "rejected": ["company_research", "rubrics", "governance_docs", "approved_examples", "receipts", "process_docs"]
+  },
+  "collections": {
+    "fact_vectors": {
+      "description": "Candidate-owned fact embeddings",
+      "allowed_source_classes": ["candidate_profile", "project_evidence"]
+    },
+    "process_docs": {
+      "description": "Governance and process documents",
+      "note": "Explicitly NOT used for C0 retrieval"
+    }
+  }
+}

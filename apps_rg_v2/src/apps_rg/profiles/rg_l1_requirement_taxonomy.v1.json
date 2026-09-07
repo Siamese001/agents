@@ -1,0 +1,96 @@
+{
+  "schema_version": "apps_rg.l1_requirement_taxonomy.v1",
+  "authority_class": "PLANNING_PRIOR_ONLY",
+  "requirement_types": [
+    "RESPONSIBILITY",
+    "HARD_REQUIREMENT",
+    "PREFERRED_QUALIFICATION",
+    "OUTCOME",
+    "SCOPE_SCALE",
+    "LEADERSHIP",
+    "DOMAIN",
+    "CREDENTIAL",
+    "UNKNOWN"
+  ],
+  "section_markers": [
+    {"contains": "responsibilit", "source_kind": "RESPONSIBILITY"},
+    {"contains": "you may be a good fit", "source_kind": "PREFERRED_QUALIFICATION"},
+    {"contains": "preferred qualification", "source_kind": "PREFERRED_QUALIFICATION"},
+    {"contains": "qualifications", "source_kind": "REQUIREMENT"},
+    {"contains": "requirements", "source_kind": "REQUIREMENT"}
+  ],
+  "rules": [
+    {
+      "rule_id": "credential_certification",
+      "requirement_type": "CREDENTIAL",
+      "target_unit_id": "certifications_block",
+      "confidence": "HIGH",
+      "rank": 100,
+      "patterns": ["\\b(?:certification|certified|credential)\\b"]
+    },
+    {
+      "rule_id": "credential_education",
+      "requirement_type": "CREDENTIAL",
+      "target_unit_id": "education_block",
+      "confidence": "HIGH",
+      "rank": 95,
+      "patterns": ["\\b(?:bachelor(?:'s)?|master(?:'s)?|ph\\.d\\.?|degree|education)\\b"]
+    },
+    {
+      "rule_id": "leadership",
+      "requirement_type": "LEADERSHIP",
+      "target_unit_id": "experience_block",
+      "confidence": "HIGH",
+      "rank": 90,
+      "patterns": ["\\b(?:lead|leading|leadership|manage|manager|mentor|hire|coach|executive|c-suite|team)\\b"]
+    },
+    {
+      "rule_id": "scope_scale",
+      "requirement_type": "SCOPE_SCALE",
+      "target_unit_id": "experience_block",
+      "confidence": "HIGH",
+      "rank": 85,
+      "patterns": ["\\b(?:portfolio|revenue|budget|global|multi-region|scale|million|billion|customers?)\\b"]
+    },
+    {
+      "rule_id": "outcome",
+      "requirement_type": "OUTCOME",
+      "target_unit_id": "experience_block",
+      "confidence": "MEDIUM",
+      "rank": 80,
+      "patterns": ["\\b(?:deliver|drive|increase|improve|launch|grow|achieve|own)\\b"]
+    },
+    {
+      "rule_id": "domain",
+      "requirement_type": "DOMAIN",
+      "target_unit_id": "competencies",
+      "confidence": "MEDIUM",
+      "rank": 70,
+      "patterns": ["\\b(?:ai|genai|llm|machine learning|cloud|api|platform|engineering|security|data)\\b"]
+    },
+    {
+      "rule_id": "experience_years",
+      "requirement_type": "HARD_REQUIREMENT",
+      "target_unit_id": "experience_block",
+      "confidence": "HIGH",
+      "rank": 88,
+      "patterns": ["\\b(?:\\d+\\+?\\s+years?|minimum\\s+of\\s+\\d+)\\b"]
+    },
+    {
+      "rule_id": "preferred",
+      "requirement_type": "PREFERRED_QUALIFICATION",
+      "target_unit_id": "",
+      "confidence": "MEDIUM",
+      "rank": 60,
+      "patterns": ["\\b(?:preferred|nice to have|bonus)\\b"]
+    },
+    {
+      "rule_id": "hard_requirement_unspecified",
+      "requirement_type": "HARD_REQUIREMENT",
+      "target_unit_id": "",
+      "confidence": "LOW",
+      "rank": 10,
+      "patterns": ["\\b(?:must|required|minimum|at least)\\b"]
+    }
+  ]
+}

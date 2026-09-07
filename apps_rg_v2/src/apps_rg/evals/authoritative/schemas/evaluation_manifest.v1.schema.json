@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentic-workflow.local/apps_rg/authoritative/evaluation_manifest.v1.schema.json",
+  "title": "Apps RG source-bound evaluation manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "evaluation_id", "source_commit", "corpus_digest", "graph_digest",
+    "authority_receipt_file_sha256", "truth_bundle_digests", "threshold_policy_digests",
+    "split_commitments", "score_groups", "release_authorizing", "record_digest"
+  ],
+  "properties": {
+    "schema_version": {"const": "apps_rg.authoritative_evaluation_manifest.v1"},
+    "evaluation_id": {"type": "string", "minLength": 1},
+    "source_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "corpus_digest": {"$ref": "#/$defs/digest"},
+    "graph_digest": {"$ref": "#/$defs/digest"},
+    "authority_receipt_file_sha256": {"$ref": "#/$defs/digest"},
+    "truth_bundle_digests": {"$ref": "#/$defs/scoreGroupDigestMap"},
+    "threshold_policy_digests": {"$ref": "#/$defs/scoreGroupDigestMap"},
+    "split_commitments": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["calibration", "holdout"],
+      "properties": {
+        "calibration": {"$ref": "#/$defs/digest"},
+        "holdout": {"$ref": "#/$defs/digest"}
+      }
+    },
+    "score_groups": {
+      "const": [
+        "retrieval_quality", "binding_accuracy", "factual_grounding", "section_quality",
+        "whole_resume_quality", "runtime_repeatability", "evaluator_validity"
+      ]
+    },
+    "release_authorizing": {"const": false},
+    "record_digest": {"$ref": "#/$defs/digest"}
+  },
+  "$defs": {
+    "digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "scoreGroupDigestMap": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "retrieval_quality", "binding_accuracy", "factual_grounding", "section_quality",
+        "whole_resume_quality", "runtime_repeatability", "evaluator_validity"
+      ],
+      "properties": {
+        "retrieval_quality": {"$ref": "#/$defs/digest"},
+        "binding_accuracy": {"$ref": "#/$defs/digest"},
+        "factual_grounding": {"$ref": "#/$defs/digest"},
+        "section_quality": {"$ref": "#/$defs/digest"},
+        "whole_resume_quality": {"$ref": "#/$defs/digest"},
+        "runtime_repeatability": {"$ref": "#/$defs/digest"},
+        "evaluator_validity": {"$ref": "#/$defs/digest"}
+      }
+    }
+  }
+}

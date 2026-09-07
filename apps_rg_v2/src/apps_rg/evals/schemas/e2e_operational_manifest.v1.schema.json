@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.agentic-workflow.local/apps_rg/e2e_operational_manifest.v1.schema.json",
+  "title": "Apps RG W6 source-bound operational evaluation manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "evaluation_id", "required_lanes", "slo", "attempts"],
+  "properties": {
+    "schema_version": {"const": "apps_rg.e2e_operational_manifest.v1"},
+    "evaluation_id": {"type": "string", "minLength": 1},
+    "required_lanes": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "slo": {
+      "type": "object", "additionalProperties": false,
+      "required": ["completion_rate_min", "latency_p95_ms_max", "cost_per_completed_resume_max", "provider_error_rate_max"],
+      "properties": {
+        "completion_rate_min": {"type": ["number", "null"], "minimum": 0},
+        "latency_p95_ms_max": {"type": ["number", "null"], "minimum": 0},
+        "cost_per_completed_resume_max": {"type": ["number", "null"], "minimum": 0},
+        "provider_error_rate_max": {"type": ["number", "null"], "minimum": 0}
+      }
+    },
+    "attempts": {"type": "array", "items": {"$ref": "#/$defs/attempt"}}
+  },
+  "$defs": {
+    "attempt": {
+      "type": "object", "additionalProperties": false,
+      "required": ["attempt_id", "input_digest", "apps_research_to_u0", "runtime", "status", "stage_ledger", "failed_stage", "failure_code", "abstained_stage", "abstention_code", "lanes", "operational", "document", "guardrails"],
+      "properties": {
+        "attempt_id": {"type": "string", "minLength": 1}, "input_digest": {"type": "string", "minLength": 1},
+        "apps_research_to_u0": {"$ref": "#/$defs/handoff"}, "runtime": {"$ref": "#/$defs/runtime"},
+        "status": {"enum": ["COMPLETE", "FAILED", "ABSTAINED"]}, "stage_ledger": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+        "failed_stage": {"type": ["string", "null"]}, "failure_code": {"type": ["string", "null"]},
+        "abstained_stage": {"type": ["string", "null"]}, "abstention_code": {"type": ["string", "null"]},
+        "lanes": {"type": "array", "items": {"$ref": "#/$defs/lane"}}, "operational": {"$ref": "#/$defs/operational"},
+        "document": {"$ref": "#/$defs/document"}, "guardrails": {"$ref": "#/$defs/guardrails"}
+      }
+    },
+    "handoff": {"type": "object", "additionalProperties": false, "required": ["observed", "valid", "status", "receipt_digest"], "properties": {"observed": {"type": "boolean"}, "valid": {"type": "boolean"}, "status": {"enum": ["PASS", "BLOCKED"]}, "receipt_digest": {"type": "string"}}},
+    "runtime": {"type": "object", "additionalProperties": false, "required": ["provider", "model", "configuration_digest", "cache_mode"], "properties": {"provider": {"type": "string"}, "model": {"type": "string"}, "configuration_digest": {"type": "string"}, "cache_mode": {"enum": ["COLD", "WARM"]}}},
+    "lane": {"type": "object", "additionalProperties": false, "required": ["lane_id", "status", "artifact_digest"], "properties": {"lane_id": {"type": "string"}, "status": {"enum": ["COMPLETE", "FAILED"]}, "artifact_digest": {"type": "string"}}},
+    "operational": {"type": "object", "additionalProperties": false, "required": ["latency_ms", "token_count", "provider_cost", "retry_count", "provider_error_count"], "properties": {"latency_ms": {"type": "number", "minimum": 0}, "token_count": {"type": "number", "minimum": 0}, "provider_cost": {"type": "number", "minimum": 0}, "retry_count": {"type": "number", "minimum": 0}, "provider_error_count": {"type": "number", "minimum": 0}}},
+    "document": {"type": "object", "additionalProperties": false, "required": ["status", "pdf_sha256", "docx_sha256", "source_text_digest", "parsed_pdf_text_digest", "parsed_docx_text_digest", "section_order_verified", "overflow_count"], "properties": {"status": {"enum": ["COMPLETE", "NOT_PRODUCED"]}, "pdf_sha256": {"type": "string"}, "docx_sha256": {"type": "string"}, "source_text_digest": {"type": "string"}, "parsed_pdf_text_digest": {"type": "string"}, "parsed_docx_text_digest": {"type": "string"}, "section_order_verified": {"type": "boolean"}, "overflow_count": {"type": "integer", "minimum": 0}}},
+    "guardrails": {"type": "object", "additionalProperties": false, "required": ["pii_leak_count", "counterfactual_status", "authority_bypass_count"], "properties": {"pii_leak_count": {"type": "integer", "minimum": 0}, "counterfactual_status": {"enum": ["PASS", "FAIL"]}, "authority_bypass_count": {"type": "integer", "minimum": 0}}}
+  }
+}

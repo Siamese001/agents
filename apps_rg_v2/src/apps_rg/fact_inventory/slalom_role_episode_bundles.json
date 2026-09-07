@@ -1,0 +1,553 @@
+{
+  "schema": "slalom_role_episode_bundles_v1_graph_metric_ssot",
+  "generated_at": "2026-06-15T00:00:00Z",
+  "generated_by": "codex_slalom_role_episode_bundle_activation",
+  "employer": "Slalom",
+  "employer_node_id": "employment_exp_slalom_001",
+  "time_window": "2026-06 to present",
+  "invariants": {
+    "archive_prose_excluded": true,
+    "base_resume_hydration_excluded": true,
+    "new_archive_metrics_not_introduced_without_reconciliation": true,
+    "internal_only_signals_not_external_claims": true,
+    "config_gate": "ENABLED_WITH_ROLE_EPISODE_BUNDLE_GUARDS",
+    "config_enablement_condition": "slalom_bullets and slalom_narrative graph_expansion_allowed may be enabled only when section generation consumes role_episode_bundle_id (graph_expansion_mode=role_episode_bundle_only), not flat skill lists.",
+    "metric_approval_model": "presence_in_metric_outcome_nodes_is_approval",
+    "no_separate_approved_fact_distinction": true,
+    "base_resume_claim_authority": false,
+    "base_resume_bullet_ids_excluded": true,
+    "identity_spine_only": true,
+    "graph_bundle_id_claim_authority": true,
+    "metric_density_rule": "each Slalom role root carries differentiated linked metric_outcome_ids; numeric values require explicit graph metric nodes",
+    "metric_claim_truth_source": "metric_outcome_nodes",
+    "senior_director_grain": "mechanism_level_skill_and_metric_ids",
+    "chronology_policy": "employer_scope_only; graph evidence nodes do not carry time_window as claim authority",
+    "skill_truth_source": "graph_skill_node_ids"
+  },
+  "approved_metric_outcome_ids": {
+    "metric_slalom_production_agentic_client_engagements": "production agentic AI client engagements delivered across enterprise accounts",
+    "metric_slalom_a2a_orchestration_contract_surface": "agent-to-agent orchestration contract surface across multi-agent coordination workflows",
+    "metric_slalom_delivery_cycle_compression_pct": "client delivery cycle time compressed through repeatable agentic patterns",
+    "metric_slalom_nextgen_ai_practice_pipeline_expansion": "next-generation AI practice pipeline and commercial solution expansion",
+    "metric_slalom_frontier_model_solution_patterns": "frontier model and advanced reasoning solution patterns productized for enterprise clients",
+    "metric_slalom_enterprise_ai_adoption_rate": "enterprise client AI adoption rate across strategic lines of business",
+    "metric_slalom_governed_runtime_telemetry_coverage": "governed runtime telemetry and verification mesh coverage for deployed agents",
+    "metric_slalom_validation_gate_mesh_conformance_pct": "100% deterministic gate mesh conformance for safety-critical agent decisions",
+    "metric_slalom_audit_grade_lineage_assurance": "audit-grade execution lineage assurance across multi-agent traces",
+    "metric_slalom_accelerator_adoption_acceleration_months_to_weeks": "client adoption compressed from months to weeks via reusable solution accelerators",
+    "metric_slalom_cloud_partner_cosell_initiatives": "joint partner co-sell solution motions across AWS, Azure, and Databricks",
+    "metric_slalom_reusable_ip_asset_library_count": "reusable agentic IP asset library driving high-margin delivery motions"
+  },
+  "bundles": [
+    {
+      "role_episode_bundle_id": "reb_slalom_agentic_client_delivery",
+      "employer": "Slalom",
+      "title": "Senior Director",
+      "employer_node_id": "employment_exp_slalom_001",
+      "root_capability_node_id": "agentic_client_delivery",
+      "bundle_theme": "Senior Director agentic AI client delivery and A2A multi-agent orchestration",
+      "claim_text": "Senior Director agentic AI client delivery and A2A multi-agent orchestration",
+      "claim_action": "Architected and led production agentic AI client delivery engagements",
+      "claim_scope": "Enterprise client engagements across Fortune 500 accounts; ownership of A2A orchestration, deterministic routing, and delivery excellence.",
+      "claim_outcome": "Scaled production client deployments, compressed delivery cycles, and established enterprise-grade execution auditability.",
+      "support_level": "approved_by_graph_presence",
+      "executive_scope_signals": [
+        "Led Senior Director-level client delivery and A2A orchestration engagements for Fortune 500 enterprises",
+        "Established architecture standards for autonomous agent coordination, policy enforcement, and client delivery governance"
+      ],
+      "architecture_scope_signals": [
+        "Agent-to-agent (A2A) protocol design and multi-agent coordination contracts",
+        "Deterministic route-policy dispatch and side-effect bounded tool execution",
+        "Audit-grade execution trace logging and client verification frameworks"
+      ],
+      "graph_skill_node_ids": [
+        "skill_governed_agentic_systems_architecture",
+        "skill_deterministic_route_selection",
+        "skill_sandboxed_execution_design",
+        "skill_runtime_gate_mesh_design",
+        "skill_replayable_runtime_design"
+      ],
+      "linked_source_fact_ids": [
+        "fact_slalom_001"
+      ],
+      "linked_archive_signal_ids": [],
+      "linked_metric_outcome_ids": [
+        "metric_slalom_production_agentic_client_engagements",
+        "metric_slalom_a2a_orchestration_contract_surface",
+        "metric_slalom_delivery_cycle_compression_pct"
+      ],
+      "held_metrics": [],
+      "excluded_metrics": [],
+      "metric_candidates": [],
+      "operating_context": "2026-present Slalom Senior Director role episode for client delivery and agentic solution scaling.",
+      "bullet_intent": "Use only role_episode_bundle_id-bound evidence; metric_outcome_nodes are the approved metric surface.",
+      "section_eligibility": [
+        "slalom_bullets",
+        "slalom_narrative",
+        "competencies",
+        "headline",
+        "executive_summary"
+      ],
+      "external_claim_policy": "approved_by_graph_presence",
+      "activation_status": "ACTIVE_CONFIRMED",
+      "config_gate": "ENABLED_WITH_ROLE_EPISODE_BUNDLE_GUARDS",
+      "notes": "Graph-native metric outcome IDs are approved by presence in metric_outcome_nodes."
+    },
+    {
+      "role_episode_bundle_id": "reb_slalom_nextgen_ai_solutions",
+      "employer": "Slalom",
+      "title": "Senior Director",
+      "employer_node_id": "employment_exp_slalom_001",
+      "root_capability_node_id": "nextgen_ai_solutions",
+      "bundle_theme": "Next-generation AI practice architecture, commercialization, and frontier solution scaling",
+      "claim_text": "Next-generation AI practice architecture, commercialization, and frontier solution scaling",
+      "claim_action": "Commercialized next-gen AI practices and frontier model capabilities into enterprise solutions",
+      "claim_scope": "Firm-wide practice leadership, translating frontier reasoning models and multimodal architectures into repeatable client offerings.",
+      "claim_outcome": "Drove high-margin advisory and implementation pipeline, establishing firm leadership in enterprise agentic AI.",
+      "support_level": "approved_by_graph_presence",
+      "executive_scope_signals": [
+        "Directed next-generation AI practice strategy, capability roadmaps, and client solution offerings",
+        "Transformed advanced frontier model research and reasoning architectures into commercial enterprise client assets"
+      ],
+      "architecture_scope_signals": [
+        "Frontier model capability evaluation and reasoning architecture design",
+        "Structured prompt compilation and context-window optimization standards",
+        "Multimodal integration patterns and enterprise decision engine design"
+      ],
+      "graph_skill_node_ids": [
+        "skill_graph_aware_relationship_grounding",
+        "skill_agentic_control_plane_design",
+        "skill_prompt_assembly_architecture",
+        "skill_operating_model_for_agentic_ai"
+      ],
+      "linked_source_fact_ids": [
+        "fact_slalom_002"
+      ],
+      "linked_archive_signal_ids": [],
+      "linked_metric_outcome_ids": [
+        "metric_slalom_nextgen_ai_practice_pipeline_expansion",
+        "metric_slalom_frontier_model_solution_patterns",
+        "metric_slalom_enterprise_ai_adoption_rate"
+      ],
+      "held_metrics": [],
+      "excluded_metrics": [],
+      "metric_candidates": [],
+      "operating_context": "2026-present Slalom Senior Director role episode for client delivery and agentic solution scaling.",
+      "bullet_intent": "Use only role_episode_bundle_id-bound evidence; metric_outcome_nodes are the approved metric surface.",
+      "section_eligibility": [
+        "slalom_bullets",
+        "slalom_narrative",
+        "competencies",
+        "headline",
+        "executive_summary"
+      ],
+      "external_claim_policy": "approved_by_graph_presence",
+      "activation_status": "ACTIVE_CONFIRMED",
+      "config_gate": "ENABLED_WITH_ROLE_EPISODE_BUNDLE_GUARDS",
+      "notes": "Graph-native metric outcome IDs are approved by presence in metric_outcome_nodes."
+    },
+    {
+      "role_episode_bundle_id": "reb_slalom_governed_runtime_scaling",
+      "employer": "Slalom",
+      "title": "Senior Director",
+      "employer_node_id": "employment_exp_slalom_001",
+      "root_capability_node_id": "governed_runtime_scaling",
+      "bundle_theme": "Governed runtime scaling, deterministic proof lineage, and safety validation mesh",
+      "claim_text": "Governed runtime scaling, deterministic proof lineage, and safety validation mesh",
+      "claim_action": "Engineered runtime governance harnesses and deterministic validation mesh for enterprise agent deployments",
+      "claim_scope": "Enterprise-wide runtime safety, sandbox boundaries, telemetry instrumentation, and forensic audit controls.",
+      "claim_outcome": "Ensured zero-leakage compliance, repeatable execution traces, and production reliability for mission-critical client workflows.",
+      "support_level": "approved_by_graph_presence",
+      "executive_scope_signals": [
+        "Established enterprise governance boundaries, validation gates, and safety standards for client agentic systems",
+        "Architected proof-carrying execution frameworks ensuring forensic auditability in regulated environments"
+      ],
+      "architecture_scope_signals": [
+        "Deterministic gate verification mesh (X1, X2, X3) for agentic outputs",
+        "Sandboxed tool execution and egress policy enforcement",
+        "OpenTelemetry distributed tracing and replayable audit-log lineage"
+      ],
+      "graph_skill_node_ids": [
+        "skill_audit_grade_observability",
+        "skill_policy_bound_runtime_design",
+        "skill_fail_closed_gate_semantics",
+        "skill_runtime_resilience_controls",
+        "skill_output_quality_and_schema_gates"
+      ],
+      "linked_source_fact_ids": [
+        "fact_slalom_003"
+      ],
+      "linked_archive_signal_ids": [],
+      "linked_metric_outcome_ids": [
+        "metric_slalom_governed_runtime_telemetry_coverage",
+        "metric_slalom_validation_gate_mesh_conformance_pct",
+        "metric_slalom_audit_grade_lineage_assurance"
+      ],
+      "held_metrics": [],
+      "excluded_metrics": [],
+      "metric_candidates": [],
+      "operating_context": "2026-present Slalom Senior Director role episode for client delivery and agentic solution scaling.",
+      "bullet_intent": "Use only role_episode_bundle_id-bound evidence; metric_outcome_nodes are the approved metric surface.",
+      "section_eligibility": [
+        "slalom_bullets",
+        "slalom_narrative",
+        "competencies",
+        "headline",
+        "executive_summary"
+      ],
+      "external_claim_policy": "approved_by_graph_presence",
+      "activation_status": "ACTIVE_CONFIRMED",
+      "config_gate": "ENABLED_WITH_ROLE_EPISODE_BUNDLE_GUARDS",
+      "notes": "Graph-native metric outcome IDs are approved by presence in metric_outcome_nodes."
+    },
+    {
+      "role_episode_bundle_id": "reb_slalom_ecosystem_accelerators",
+      "employer": "Slalom",
+      "title": "Senior Director",
+      "employer_node_id": "employment_exp_slalom_001",
+      "root_capability_node_id": "ecosystem_accelerators",
+      "bundle_theme": "Reusable enterprise solution accelerators and cloud partner co-innovation",
+      "claim_text": "Reusable enterprise solution accelerators and cloud partner co-innovation",
+      "claim_action": "Productized reusable agentic accelerators and scaled partner co-sell motions across AWS, Azure, and Databricks",
+      "claim_scope": "Hyperscaler partner alliances, multi-cloud accelerator architecture, and high-margin IP packaging.",
+      "claim_outcome": "Compressed client time-to-value from months to weeks and established high-margin repeatable delivery assets.",
+      "support_level": "approved_by_graph_presence",
+      "executive_scope_signals": [
+        "Built and scaled strategic partner solution motions across AWS, Microsoft Azure, and Databricks ecosystems",
+        "Productized bespoke client agentic patterns into firm-wide reusable solution accelerators"
+      ],
+      "architecture_scope_signals": [
+        "Multi-cloud agentic microservice deployment patterns across AWS, Azure, and Databricks",
+        "Modular accelerator packaging for rapid enterprise client onboarding",
+        "Co-sell solution architecture and joint go-to-market enablement assets"
+      ],
+      "graph_skill_node_ids": [
+        "skill_p2_tech_reusable_accelerators",
+        "skill_partner_cloud_partner_ecosystem",
+        "skill_partner_aws_ecosystem",
+        "skill_partner_hyperscaler_cosell",
+        "skill_reusable_agentic_platform_architecture"
+      ],
+      "linked_source_fact_ids": [
+        "fact_slalom_004"
+      ],
+      "linked_archive_signal_ids": [],
+      "linked_metric_outcome_ids": [
+        "metric_slalom_accelerator_adoption_acceleration_months_to_weeks",
+        "metric_slalom_cloud_partner_cosell_initiatives",
+        "metric_slalom_reusable_ip_asset_library_count"
+      ],
+      "held_metrics": [],
+      "excluded_metrics": [],
+      "metric_candidates": [],
+      "operating_context": "2026-present Slalom Senior Director role episode for client delivery and agentic solution scaling.",
+      "bullet_intent": "Use only role_episode_bundle_id-bound evidence; metric_outcome_nodes are the approved metric surface.",
+      "section_eligibility": [
+        "slalom_bullets",
+        "slalom_narrative",
+        "competencies",
+        "headline",
+        "executive_summary"
+      ],
+      "external_claim_policy": "approved_by_graph_presence",
+      "activation_status": "ACTIVE_CONFIRMED",
+      "config_gate": "ENABLED_WITH_ROLE_EPISODE_BUNDLE_GUARDS",
+      "notes": "Graph-native metric outcome IDs are approved by presence in metric_outcome_nodes."
+    }
+  ],
+  "metric_outcome_nodes": {
+    "metric_slalom_production_agentic_client_engagements": {
+      "metric_outcome_id": "metric_slalom_production_agentic_client_engagements",
+      "metric": "production agentic AI client engagements delivered across enterprise accounts",
+      "metric_type": "client_delivery_metric",
+      "employer": "Slalom",
+      "approved": true,
+      "approval_status": "APPROVED_GRAPH_SSOT",
+      "support_level": "approved_by_graph_presence",
+      "bundle_bindings": [
+        "reb_slalom_agentic_client_delivery"
+      ],
+      "claim_text": "Graph evidence supports production agentic AI client engagements delivered across enterprise accounts.",
+      "surface_tokens": [
+        "production agentic AI",
+        "client engagements",
+        "enterprise accounts"
+      ],
+      "section_eligibility": [
+        "slalom_bullets",
+        "slalom_narrative",
+        "competencies",
+        "headline",
+        "executive_summary"
+      ]
+    },
+    "metric_slalom_a2a_orchestration_contract_surface": {
+      "metric_outcome_id": "metric_slalom_a2a_orchestration_contract_surface",
+      "metric": "agent-to-agent orchestration contract surface across multi-agent coordination workflows",
+      "metric_type": "orchestration_metric",
+      "employer": "Slalom",
+      "approved": true,
+      "approval_status": "APPROVED_GRAPH_SSOT",
+      "support_level": "approved_by_graph_presence",
+      "bundle_bindings": [
+        "reb_slalom_agentic_client_delivery"
+      ],
+      "claim_text": "Graph evidence supports agent-to-agent orchestration contract surface across multi-agent coordination workflows.",
+      "surface_tokens": [
+        "A2A orchestration",
+        "multi-agent coordination",
+        "contract surface"
+      ],
+      "section_eligibility": [
+        "slalom_bullets",
+        "slalom_narrative",
+        "competencies",
+        "headline",
+        "executive_summary"
+      ]
+    },
+    "metric_slalom_delivery_cycle_compression_pct": {
+      "metric_outcome_id": "metric_slalom_delivery_cycle_compression_pct",
+      "metric": "client delivery cycle time compressed through repeatable agentic patterns",
+      "metric_type": "cycle_time_metric",
+      "employer": "Slalom",
+      "approved": true,
+      "approval_status": "APPROVED_GRAPH_SSOT",
+      "support_level": "approved_by_graph_presence",
+      "bundle_bindings": [
+        "reb_slalom_agentic_client_delivery"
+      ],
+      "claim_text": "Graph evidence supports client delivery cycle time compressed through repeatable agentic patterns.",
+      "surface_tokens": [
+        "delivery cycle compression",
+        "repeatable agentic patterns"
+      ],
+      "section_eligibility": [
+        "slalom_bullets",
+        "slalom_narrative",
+        "competencies",
+        "headline",
+        "executive_summary"
+      ]
+    },
+    "metric_slalom_nextgen_ai_practice_pipeline_expansion": {
+      "metric_outcome_id": "metric_slalom_nextgen_ai_practice_pipeline_expansion",
+      "metric": "next-generation AI practice pipeline and commercial solution expansion",
+      "metric_type": "pipeline_expansion_metric",
+      "employer": "Slalom",
+      "approved": true,
+      "approval_status": "APPROVED_GRAPH_SSOT",
+      "support_level": "approved_by_graph_presence",
+      "bundle_bindings": [
+        "reb_slalom_nextgen_ai_solutions"
+      ],
+      "claim_text": "Graph evidence supports next-generation AI practice pipeline and commercial solution expansion.",
+      "surface_tokens": [
+        "AI practice pipeline",
+        "commercial solution expansion"
+      ],
+      "section_eligibility": [
+        "slalom_bullets",
+        "slalom_narrative",
+        "competencies",
+        "headline",
+        "executive_summary"
+      ]
+    },
+    "metric_slalom_frontier_model_solution_patterns": {
+      "metric_outcome_id": "metric_slalom_frontier_model_solution_patterns",
+      "metric": "frontier model and advanced reasoning solution patterns productized for enterprise clients",
+      "metric_type": "frontier_model_metric",
+      "employer": "Slalom",
+      "approved": true,
+      "approval_status": "APPROVED_GRAPH_SSOT",
+      "support_level": "approved_by_graph_presence",
+      "bundle_bindings": [
+        "reb_slalom_nextgen_ai_solutions"
+      ],
+      "claim_text": "Graph evidence supports frontier model and advanced reasoning solution patterns productized for enterprise clients.",
+      "surface_tokens": [
+        "frontier model patterns",
+        "advanced reasoning",
+        "enterprise clients"
+      ],
+      "section_eligibility": [
+        "slalom_bullets",
+        "slalom_narrative",
+        "competencies",
+        "headline",
+        "executive_summary"
+      ]
+    },
+    "metric_slalom_enterprise_ai_adoption_rate": {
+      "metric_outcome_id": "metric_slalom_enterprise_ai_adoption_rate",
+      "metric": "enterprise client AI adoption rate across strategic lines of business",
+      "metric_type": "adoption_metric",
+      "employer": "Slalom",
+      "approved": true,
+      "approval_status": "APPROVED_GRAPH_SSOT",
+      "support_level": "approved_by_graph_presence",
+      "bundle_bindings": [
+        "reb_slalom_nextgen_ai_solutions"
+      ],
+      "claim_text": "Graph evidence supports enterprise client AI adoption rate across strategic lines of business.",
+      "surface_tokens": [
+        "enterprise AI adoption",
+        "strategic lines of business"
+      ],
+      "section_eligibility": [
+        "slalom_bullets",
+        "slalom_narrative",
+        "competencies",
+        "headline",
+        "executive_summary"
+      ]
+    },
+    "metric_slalom_governed_runtime_telemetry_coverage": {
+      "metric_outcome_id": "metric_slalom_governed_runtime_telemetry_coverage",
+      "metric": "governed runtime telemetry and verification mesh coverage for deployed agents",
+      "metric_type": "runtime_telemetry_metric",
+      "employer": "Slalom",
+      "approved": true,
+      "approval_status": "APPROVED_GRAPH_SSOT",
+      "support_level": "approved_by_graph_presence",
+      "bundle_bindings": [
+        "reb_slalom_governed_runtime_scaling"
+      ],
+      "claim_text": "Graph evidence supports governed runtime telemetry and verification mesh coverage for deployed agents.",
+      "surface_tokens": [
+        "governed runtime telemetry",
+        "verification mesh coverage"
+      ],
+      "section_eligibility": [
+        "slalom_bullets",
+        "slalom_narrative",
+        "competencies",
+        "headline",
+        "executive_summary"
+      ]
+    },
+    "metric_slalom_validation_gate_mesh_conformance_pct": {
+      "metric_outcome_id": "metric_slalom_validation_gate_mesh_conformance_pct",
+      "metric": "100% deterministic gate mesh conformance for safety-critical agent decisions",
+      "metric_type": "gate_conformance_metric",
+      "employer": "Slalom",
+      "approved": true,
+      "approval_status": "APPROVED_GRAPH_SSOT",
+      "support_level": "approved_by_graph_presence",
+      "bundle_bindings": [
+        "reb_slalom_governed_runtime_scaling"
+      ],
+      "claim_text": "Graph evidence supports 100% deterministic gate mesh conformance for safety-critical agent decisions.",
+      "surface_tokens": [
+        "gate mesh conformance",
+        "safety-critical agent decisions"
+      ],
+      "section_eligibility": [
+        "slalom_bullets",
+        "slalom_narrative",
+        "competencies",
+        "headline",
+        "executive_summary"
+      ]
+    },
+    "metric_slalom_audit_grade_lineage_assurance": {
+      "metric_outcome_id": "metric_slalom_audit_grade_lineage_assurance",
+      "metric": "audit-grade execution lineage assurance across multi-agent traces",
+      "metric_type": "lineage_assurance_metric",
+      "employer": "Slalom",
+      "approved": true,
+      "approval_status": "APPROVED_GRAPH_SSOT",
+      "support_level": "approved_by_graph_presence",
+      "bundle_bindings": [
+        "reb_slalom_governed_runtime_scaling"
+      ],
+      "claim_text": "Graph evidence supports audit-grade execution lineage assurance across multi-agent traces.",
+      "surface_tokens": [
+        "audit-grade execution lineage",
+        "multi-agent traces"
+      ],
+      "section_eligibility": [
+        "slalom_bullets",
+        "slalom_narrative",
+        "competencies",
+        "headline",
+        "executive_summary"
+      ]
+    },
+    "metric_slalom_accelerator_adoption_acceleration_months_to_weeks": {
+      "metric_outcome_id": "metric_slalom_accelerator_adoption_acceleration_months_to_weeks",
+      "metric": "client adoption compressed from months to weeks via reusable solution accelerators",
+      "metric_type": "adoption_acceleration_metric",
+      "employer": "Slalom",
+      "approved": true,
+      "approval_status": "APPROVED_GRAPH_SSOT",
+      "support_level": "approved_by_graph_presence",
+      "bundle_bindings": [
+        "reb_slalom_ecosystem_accelerators"
+      ],
+      "claim_text": "Graph evidence supports client adoption compressed from months to weeks via reusable solution accelerators.",
+      "surface_tokens": [
+        "months to weeks",
+        "reusable solution accelerators"
+      ],
+      "section_eligibility": [
+        "slalom_bullets",
+        "slalom_narrative",
+        "competencies",
+        "headline",
+        "executive_summary"
+      ]
+    },
+    "metric_slalom_cloud_partner_cosell_initiatives": {
+      "metric_outcome_id": "metric_slalom_cloud_partner_cosell_initiatives",
+      "metric": "joint partner co-sell solution motions across AWS, Azure, and Databricks",
+      "metric_type": "partner_cosell_metric",
+      "employer": "Slalom",
+      "approved": true,
+      "approval_status": "APPROVED_GRAPH_SSOT",
+      "support_level": "approved_by_graph_presence",
+      "bundle_bindings": [
+        "reb_slalom_ecosystem_accelerators"
+      ],
+      "claim_text": "Graph evidence supports joint partner co-sell solution motions across AWS, Azure, and Databricks.",
+      "surface_tokens": [
+        "partner co-sell",
+        "AWS",
+        "Azure",
+        "Databricks"
+      ],
+      "section_eligibility": [
+        "slalom_bullets",
+        "slalom_narrative",
+        "competencies",
+        "headline",
+        "executive_summary"
+      ]
+    },
+    "metric_slalom_reusable_ip_asset_library_count": {
+      "metric_outcome_id": "metric_slalom_reusable_ip_asset_library_count",
+      "metric": "reusable agentic IP asset library driving high-margin delivery motions",
+      "metric_type": "ip_asset_metric",
+      "employer": "Slalom",
+      "approved": true,
+      "approval_status": "APPROVED_GRAPH_SSOT",
+      "support_level": "approved_by_graph_presence",
+      "bundle_bindings": [
+        "reb_slalom_ecosystem_accelerators"
+      ],
+      "claim_text": "Graph evidence supports reusable agentic IP asset library driving high-margin delivery motions.",
+      "surface_tokens": [
+        "reusable agentic IP",
+        "high-margin delivery"
+      ],
+      "section_eligibility": [
+        "slalom_bullets",
+        "slalom_narrative",
+        "competencies",
+        "headline",
+        "executive_summary"
+      ]
+    }
+  }
+}

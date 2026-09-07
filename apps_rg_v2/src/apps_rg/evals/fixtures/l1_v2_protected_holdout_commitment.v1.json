@@ -1,0 +1,26 @@
+{
+  "schema_version": "apps_rg.l1_v2_protected_holdout_commitment.v1",
+  "holdout_id": "apps-rg-l1-v2-protected-holdout-v1",
+  "app_scope": "APPS_RG_V2_ONLY",
+  "development_access": "DENIED",
+  "external_seal_required": true,
+  "promotion_requires_external_holdout_results": true,
+  "commitments": [
+    {
+      "fixture_id": "l1-holdout-stale-brief-v1",
+      "scenario": "STALE_BRIEF",
+      "source_input_digest": "sha256:3e752f8617271ef44c7b66e0c178d8d3b1ed0994b07b6b3906c4854d499e4be6"
+    },
+    {
+      "fixture_id": "l1-holdout-conflicting-constraint-v1",
+      "scenario": "CONFLICTING_CONSTRAINT",
+      "source_input_digest": "sha256:4b5f856c2bc00150cf9ef82d4ec02d359257363277215a76a4ef68cccf29189e"
+    },
+    {
+      "fixture_id": "l1-holdout-absent-candidate-evidence-v1",
+      "scenario": "ABSENT_CANDIDATE_EVIDENCE",
+      "source_input_digest": "sha256:0163734c6c2e4fccf7bc97659a5488da8541b9df15a2d1c4e2a0dcc223dc8d93"
+    }
+  ],
+  "commitment_digest": "sha256:dee5581ba8ced88a4e3af3cd561a2cb00d2afa77a8fa1a259f5b03fc3d1b7ca2"
+}

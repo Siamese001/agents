@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentic-workflow.local/apps_rg/authoritative/cluster_runtime_receipt.v1.schema.json",
+  "title": "Apps RG graph-evidence cluster W3 runtime-quality receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "gate_id", "logical_retrieval_unit", "qualification_scope",
+    "status", "cluster_count", "runtime_top_k", "phase_metrics", "violation_counts", "checks",
+    "input_digests", "failure_codes", "unknown_reasons", "authority", "record_digest"
+  ],
+  "properties": {
+    "schema_version": {"const": "apps_rg.cluster_runtime_receipt.v1"},
+    "gate_id": {"const": "W3_RUNTIME_QUALITY"},
+    "logical_retrieval_unit": {"const": "graph_evidence_cluster"},
+    "qualification_scope": {"const": "EVAL_W3_NON_RELEASE_AUTHORIZING"},
+    "status": {"enum": ["PASS", "FAIL", "UNKNOWN"]},
+    "cluster_count": {
+      "anyOf": [{"type": "integer", "minimum": 2}, {"type": "null"}]
+    },
+    "runtime_top_k": {
+      "anyOf": [{"type": "integer", "minimum": 1}, {"type": "null"}]
+    },
+    "phase_metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["cold", "warm"],
+      "properties": {
+        "cold": {"$ref": "#/$defs/phase"},
+        "warm": {"$ref": "#/$defs/phase"}
+      }
+    },
+    "violation_counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "run_count_shortfall_count", "runtime_binding_mismatch_count",
+        "bounded_k_violation_count", "ranking_nondeterminism_count",
+        "rehydration_nondeterminism_count", "latency_threshold_violation_count",
+        "missing_failure_probe_count", "failure_probe_violation_count"
+      ],
+      "properties": {
+        "run_count_shortfall_count": {"type": "integer", "minimum": 0},
+        "runtime_binding_mismatch_count": {"type": "integer", "minimum": 0},
+        "bounded_k_violation_count": {"type": "integer", "minimum": 0},
+        "ranking_nondeterminism_count": {"type": "integer", "minimum": 0},
+        "rehydration_nondeterminism_count": {"type": "integer", "minimum": 0},
+        "latency_threshold_violation_count": {"type": "integer", "minimum": 0},
+        "missing_failure_probe_count": {"type": "integer", "minimum": 0},
+        "failure_probe_violation_count": {"type": "integer", "minimum": 0}
+      }
+    },
+    "checks": {"type": "object"},
+    "input_digests": {
+      "type": "object",
+      "additionalProperties": {"$ref": "#/$defs/digest"}
+    },
+    "failure_codes": {"$ref": "#/$defs/stringList"},
+    "unknown_reasons": {"$ref": "#/$defs/stringList"},
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["measurement_scope", "release_authorizing"],
+      "properties": {
+        "measurement_scope": {"const": "SOURCE_BOUND_CLUSTER_RUNTIME_QUALITY"},
+        "release_authorizing": {"const": false}
+      }
+    },
+    "record_digest": {"$ref": "#/$defs/digest"}
+  },
+  "$defs": {
+    "digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "stringList": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "uniqueItems": true
+    },
+    "numberOrNull": {
+      "anyOf": [{"type": "number", "minimum": 0}, {"type": "null"}]
+    },
+    "phase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "run_count", "query_observation_count", "retrieval_p50_ms",
+        "retrieval_p95_ms", "end_to_end_p50_ms", "end_to_end_p95_ms"
+      ],
+      "properties": {
+        "run_count": {"type": "integer", "minimum": 0},
+        "query_observation_count": {"type": "integer", "minimum": 0},
+        "retrieval_p50_ms": {"$ref": "#/$defs/numberOrNull"},
+        "retrieval_p95_ms": {"$ref": "#/$defs/numberOrNull"},
+        "end_to_end_p50_ms": {"$ref": "#/$defs/numberOrNull"},
+        "end_to_end_p95_ms": {"$ref": "#/$defs/numberOrNull"}
+      }
+    }
+  }
+}

@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentic-workflow.local/apps_rg/authoritative/cluster_authority_receipt.v1.schema.json",
+  "title": "Apps RG graph-evidence cluster W3 authority pipeline receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "gate_id", "logical_retrieval_unit", "qualification_scope",
+    "status", "query_count", "retrieved_cluster_count", "claim_count",
+    "violation_counts", "violation_maxima", "checks", "input_digests",
+    "failure_codes", "unknown_reasons", "authority", "record_digest"
+  ],
+  "properties": {
+    "schema_version": {"const": "apps_rg.cluster_authority_receipt.v1"},
+    "gate_id": {"const": "W3_AUTHORITY_PIPELINE"},
+    "logical_retrieval_unit": {"const": "graph_evidence_cluster"},
+    "qualification_scope": {"const": "EVAL_W3_NON_RELEASE_AUTHORIZING"},
+    "status": {"enum": ["PASS", "FAIL", "UNKNOWN"]},
+    "query_count": {"type": "integer", "minimum": 0},
+    "retrieved_cluster_count": {"type": "integer", "minimum": 0},
+    "claim_count": {"type": "integer", "minimum": 0},
+    "violation_counts": {"$ref": "#/$defs/violations"},
+    "violation_maxima": {"$ref": "#/$defs/violations"},
+    "checks": {"type": "object"},
+    "input_digests": {
+      "type": "object",
+      "additionalProperties": {"$ref": "#/$defs/digest"}
+    },
+    "failure_codes": {"$ref": "#/$defs/stringList"},
+    "unknown_reasons": {"$ref": "#/$defs/stringList"},
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["measurement_scope", "release_authorizing"],
+      "properties": {
+        "measurement_scope": {"const": "SOURCE_BOUND_CLUSTER_AUTHORITY_PIPELINE"},
+        "release_authorizing": {"const": false}
+      }
+    },
+    "record_digest": {"$ref": "#/$defs/digest"}
+  },
+  "$defs": {
+    "digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "stringList": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "uniqueItems": true
+    },
+    "violations": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stale_cluster_count", "orphan_cluster_count", "missing_member_node_count",
+        "missing_member_edge_count", "missing_fact_count", "missing_metric_count",
+        "lifecycle_leak_count", "section_policy_leak_count",
+        "external_policy_leak_count", "authority_bypass_count",
+        "duplicate_cluster_output_count", "facet_collapse_mismatch_count",
+        "unsupported_claim_count", "allocation_binding_mismatch_count"
+      ],
+      "properties": {
+        "stale_cluster_count": {"type": "integer", "minimum": 0},
+        "orphan_cluster_count": {"type": "integer", "minimum": 0},
+        "missing_member_node_count": {"type": "integer", "minimum": 0},
+        "missing_member_edge_count": {"type": "integer", "minimum": 0},
+        "missing_fact_count": {"type": "integer", "minimum": 0},
+        "missing_metric_count": {"type": "integer", "minimum": 0},
+        "lifecycle_leak_count": {"type": "integer", "minimum": 0},
+        "section_policy_leak_count": {"type": "integer", "minimum": 0},
+        "external_policy_leak_count": {"type": "integer", "minimum": 0},
+        "authority_bypass_count": {"type": "integer", "minimum": 0},
+        "duplicate_cluster_output_count": {"type": "integer", "minimum": 0},
+        "facet_collapse_mismatch_count": {"type": "integer", "minimum": 0},
+        "unsupported_claim_count": {"type": "integer", "minimum": 0},
+        "allocation_binding_mismatch_count": {"type": "integer", "minimum": 0}
+      }
+    }
+  }
+}

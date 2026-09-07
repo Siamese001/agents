@@ -1,0 +1,28 @@
+{
+  "schema_version": "apps_rg.graph_evolution_qrel_change_impact_contract.v1",
+  "contract_id": "APPS_RG_GRAPH_EVOLUTION_QREL_CHANGE_IMPACT",
+  "wave": "GE_W6",
+  "status": "FROZEN",
+  "input": {
+    "required_candidate_projection_state": "PROJECTION_BUILT",
+    "source_bound_query_manifest_required": true,
+    "full_finite_candidate_universe_required": true,
+    "candidate_registry_projection_digest_binding_required": true
+  },
+  "human_review": {
+    "relevance_grades": [0, 1, 2, 3],
+    "two_distinct_human_reviewers_required": true,
+    "adjudication_required": true,
+    "synthetic_or_model_labels_forbidden": true,
+    "metrics_before_frozen_human_qrels_forbidden": true
+  },
+  "ge_w6_exit": {
+    "completion_marker": "GE_W6_QREL_CHANGE_IMPACT_ASSESSED",
+    "candidate_state": "QREL_CHANGE_IMPACT_ASSESSED",
+    "next_gate": "BLINDED_QREL_REVIEW_AND_COMPARISON",
+    "qrel_grades_created": false,
+    "retrieval_metrics_computed": false,
+    "active_runtime_pointer_changed": false,
+    "activation_created": false
+  }
+}

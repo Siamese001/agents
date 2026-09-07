@@ -1,0 +1,37 @@
+{
+  "app_id": "apps_rg",
+  "artifacts": [
+    "generated_resume.json",
+    "resume.md"
+  ],
+  "claims": [
+    {
+      "id": "fixture_claim",
+      "source_ids": [
+        "fixture:anthropic-partnership"
+      ],
+      "supported": true,
+      "text": "Fixture-only boundary."
+    }
+  ],
+  "deterministic_hash": "1a0a31b55ebf52201a71534a0b49fb08033e179ffb1543d725a6bddf23f76aed",
+  "output": {
+    "runtime": {
+      "fixture_only": true
+    },
+    "sections": {
+      "executive_summary": "Fixture-only Anthropic partnership evidence.",
+      "experience": "No product output or provider invocation is represented.",
+      "skills": "Governance, partnerships, applied AI."
+    }
+  },
+  "provenance": {
+    "fixture_only": true
+  },
+  "scenario_id": "anthropic_deterministic_fixture",
+  "side_effects": {
+    "product_state_mutated": false,
+    "writes": []
+  },
+  "x3_disposition": "TEST_FIXTURE_ONLY"
+}

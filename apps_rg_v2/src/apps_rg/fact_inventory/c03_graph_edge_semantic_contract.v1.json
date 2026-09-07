@@ -1,0 +1,123 @@
+{
+  "schema_version": "apps_rg.c03_graph_edge_semantic_contract.v1",
+  "contract_id": "C03_GRAPH_EDGE_ASSERTION_HARDENING",
+  "wave": "W2",
+  "status": "FROZEN",
+  "parent_contract": {
+    "path": "src/apps_rg/fact_inventory/c03_graph_evidence_cluster_contract.v1.json",
+    "schema_version": "apps_rg.c03_graph_evidence_cluster_contract.v1"
+  },
+  "source_wave": {
+    "receipt_path": "artifacts/apps_rg/c03/graph_evidence_cluster_embeddings/wave1_node_semantic_hardening_receipt.json",
+    "completion_marker": "C03_CLUSTER_EMBEDDING_W1_NODE_SEMANTICS_HARDENED"
+  },
+  "required_fields_for_every_edge": [
+    "edge_semantic_contract_version",
+    "canonical_assertion_text",
+    "assertion_basis",
+    "assertion_basis_refs",
+    "edge_semantic_status",
+    "lifecycle_disposition",
+    "hardening_wave"
+  ],
+  "assertion_basis_kinds": [
+    "evidence_reference",
+    "source_field_derivation",
+    "taxonomy_rule",
+    "policy_predicate",
+    "non_causal_bridge",
+    "operator_confirmation"
+  ],
+  "basis_kind_by_edge_type": {
+    "employment_hosts_fact": "evidence_reference",
+    "skill_supported_by_fact": "evidence_reference",
+    "skill_supported_by_repo_evidence": "evidence_reference",
+    "skill_supported_by_source_concept": "source_field_derivation",
+    "capability_domain_contains_skill": "source_field_derivation",
+    "career_track_contains_capability_domain": "taxonomy_rule",
+    "career_track_contains_epoch": "taxonomy_rule",
+    "career_track_contains_pillar": "taxonomy_rule",
+    "epoch_contains_pillar": "taxonomy_rule",
+    "epoch_contains_skill": "source_field_derivation",
+    "identity_supported_by_epoch": "taxonomy_rule",
+    "identity_supported_by_pillar": "taxonomy_rule",
+    "metric_bucket_contains_metric": "source_field_derivation",
+    "pillar_contains_capability_domain": "taxonomy_rule",
+    "jd_briefing_targeting_only": "policy_predicate",
+    "pillar_section_eligibility": "policy_predicate",
+    "projection_excludes_blocked_skill": "policy_predicate",
+    "section_blocks_pending_source_skill": "policy_predicate",
+    "section_blocks_skill_without_fact": "policy_predicate",
+    "section_can_select_skill": "source_field_derivation",
+    "skill_allowed_in_section": "source_field_derivation",
+    "skill_external_claim_eligible": "policy_predicate",
+    "skill_projection_only_internal": "policy_predicate",
+    "skill_requires_human_confirmation": "policy_predicate",
+    "srfs_requires_fact_id_only": "policy_predicate",
+    "career_track_precedes_career_track": "non_causal_bridge",
+    "employment_in_career_track": "operator_confirmation",
+    "employment_produces_skill": "evidence_reference",
+    "pillar_phase_bridge": "non_causal_bridge",
+    "skill_can_surface_metric": "source_field_derivation",
+    "skill_has_metric_bucket": "source_field_derivation",
+    "skill_reinforces_skill": "non_causal_bridge"
+  },
+  "semantic_rules": [
+    "Every edge assertion must state the relationship, its traversal boundary, and whether it can authorize an external claim.",
+    "Templated labels and the legacy rationale field are not sufficient assertion bases.",
+    "Every assertion basis must resolve to the frozen edge rule plus exact node, skill-row, evidence, endpoint, or W1 baseline references.",
+    "Relationship bridges must be explicitly non-causal unless separately evidenced.",
+    "Embedding similarity cannot create, validate, or expand an edge assertion."
+  ],
+  "edge_semantic_statuses": [
+    "HARDENED",
+    "HELD_INTEGRITY_GAP"
+  ],
+  "lifecycle_dispositions": [
+    "ACTIVE_POLICY_GATED",
+    "INTERNAL_TRAVERSAL_ONLY",
+    "HELD_NON_ACTIVE_ENDPOINT",
+    "HELD_INTEGRITY_GAP"
+  ],
+  "lifecycle_rules": [
+    "A registered edge whose asserted relationship conflicts with its current source fields must be HELD_INTEGRITY_GAP pending W3 reconciliation.",
+    "An edge touching a DRAFT, HELD, RETIRED, or W1-held graph node must be HELD_NON_ACTIVE_ENDPOINT.",
+    "An explicit block, confirmation, targeting, fact-only, or internal-projection edge, an edge governed by an internal-only policy, or an edge touching a never-external endpoint must be INTERNAL_TRAVERSAL_ONLY unless held.",
+    "Only ACTIVE_POLICY_GATED edges may enter a future release-authorizing cluster after all later-wave gates pass.",
+    "A hardened edge never promotes an ineligible endpoint."
+  ],
+  "basis_reference_formats": [
+    "contract:edge_types/<edge_type>",
+    "baseline:graph_edges/<edge_id>",
+    "ledger:graph_nodes/<node_id>",
+    "ledger:graph_nodes/<node_id>/<field>",
+    "ledger:skill_rows/<skill_id>/<field>",
+    "evidence:<evidence_id>",
+    "endpoint:<registered_endpoint_id>"
+  ],
+  "mutation_boundaries": {
+    "edge_id_changes_allowed": false,
+    "edge_type_changes_allowed": false,
+    "edge_endpoint_changes_allowed": false,
+    "legacy_edge_field_changes_allowed": false,
+    "graph_node_changes_allowed": false,
+    "skill_row_changes_allowed": false,
+    "legacy_embedding_artifact_changes_allowed": false,
+    "replacement_embedding_generation_allowed": false,
+    "production_promotion_allowed": false
+  },
+  "acceptance_gates": {
+    "edge_count_preserved": true,
+    "edge_identity_set_preserved": true,
+    "edge_topology_preserved": true,
+    "legacy_edge_payload_preserved": true,
+    "node_payload_preserved": true,
+    "skill_row_payload_preserved": true,
+    "missing_edge_semantic_field_count": 0,
+    "generic_edge_assertion_count": 0,
+    "unresolved_assertion_basis_ref_count": 0,
+    "causal_bridge_violation_count": 0,
+    "lifecycle_disposition_violation_count": 0,
+    "integrity_gaps_must_be_explicitly_held": true
+  }
+}

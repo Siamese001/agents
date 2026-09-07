@@ -1,0 +1,45 @@
+# apps_research L0 cert-facing route registry.
+#
+# apps_research's PRODUCT routing lives in route_registry.yaml. This file
+# is a SIBLING dedicated to the apps_e2e certification harness:
+# apps_research is a SINGLE_STEP R3_SIMPLE_GROUNDED_READ app producing company
+# briefs, with C0 grounding and adaptive prompt assembly. The
+# cert entrypoint wraps the deterministic pipeline in
+# apps_shared.spine_emission.governed_run; this route additionally invokes
+# the v6 Exit pipeline so the 10-dim apps_research rubric executes.
+#
+# Plan: apps-runtime-domain-enforcement-a7e9d4 W2.P2 (2026-05-03).
+# Pairs with apps_research/config/domain_contract/rubric_output_map.yaml.
+# NOTE: C0 FEC producer already adopted via sibling plan
+# apps-research-c0-fec-producer-wiring-e7a2c3 — the v6 Exit hook now
+# consumes the producer's output via resolve_fec in __main__.py.
+
+app_name: apps_research
+schema_version: "apps_research.cert_route_registry/v1"
+
+routes:
+  - route_id: apps_research.company_brief_v1
+    execution_form: SINGLE_STEP
+    l3_required: false
+    # Opt-in flag — when true, the cert entrypoint MUST invoke the v6
+    # Exit pipeline against the sealed L2 artifact so the apps_research
+    # rubric executes. Closes APPS-DOM-002/003 for apps_research per
+    # plan apps-runtime-domain-enforcement-a7e9d4.
+    invoke_exit_eval: true
+    # Declarative rubric output map consumed by
+    # apps_shared.cert.rubric_output_mapper.map_l2_receipt_to_dim_scores.
+    # Engine is fail-soft; missing paths default to 0.0; evaluator
+    # fail-closes per rubric evidence_required=true.
+    rubric_output_map_path: apps_research/config/domain_contract/rubric_output_map.yaml
+    selected_capability: apps_research.company_brief_v1
+    description: >-
+      Direct R3_SIMPLE_GROUNDED_READ pipeline: U0 Intake -> L1 Plan ->
+      L0 Route Decision -> C0 Context Engine -> PA Prompt Assembly ->
+      L2 Execute (E1-E5) -> FEC Producer -> Exit v6 -> L6. Grounded by
+      retrieved citations via apps_research.cert.fec_producer.
+    bypass_reason_when_invoked: SINGLE_STEP_ROUTE
+    route_reason: >-
+      L0 selects R3_SIMPLE_GROUNDED_READ because apps_research is a
+      single-step grounded read path: no L3, no durable writes, no
+      CommitRequest. Adaptive coverage family selection drives section
+      composition; JD context (when present) drives facet weighting.

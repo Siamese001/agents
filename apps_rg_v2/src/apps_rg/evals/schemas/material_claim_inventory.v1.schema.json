@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.agentic-workflow.local/apps_rg/material_claim_inventory.v1.schema.json",
+  "title": "Apps RG independent material-claim inventory",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "output_text", "claims"],
+  "properties": {
+    "schema_version": {"const": "apps_rg.material_claim_inventory.v1"},
+    "output_text": {"type": "string", "minLength": 1},
+    "claims": {"type": "array", "items": {"$ref": "#/$defs/claim"}}
+  },
+  "$defs": {
+    "claim": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["claim_id", "claim_text", "output_start", "output_end", "materiality", "source_id", "source_excerpt_digest", "graph_path_id"],
+      "properties": {
+        "claim_id": {"type": "string", "minLength": 1},
+        "claim_text": {"type": "string", "minLength": 1},
+        "output_start": {"type": "integer", "minimum": 0},
+        "output_end": {"type": "integer", "minimum": 0},
+        "materiality": {"const": "MATERIAL"},
+        "source_id": {"type": "string", "minLength": 1},
+        "source_excerpt_digest": {"type": "string", "minLength": 1},
+        "graph_path_id": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}

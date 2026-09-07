@@ -1,0 +1,47 @@
+{
+  "schema_version": "apps_rg.c03_graph_evidence_cluster_review_packet_contract.v1",
+  "wave": "W8",
+  "status": "FROZEN",
+  "purpose": "Prepare the complete label-blind human-review input needed to unblock W7 without creating labels or activation authority.",
+  "source_authority": {
+    "wave7_receipt_required": true,
+    "frozen_ranking_identity_required": true,
+    "ranking_or_score_recomputation_must_match_wave7": true
+  },
+  "review_packet": {
+    "query_count": 6,
+    "section_count": 8,
+    "query_section_count_per_cohort": 48,
+    "candidate_judgment_count_per_cohort": 456,
+    "reviewer_cohort_count": 2,
+    "total_reviewer_judgment_slots": 912,
+    "full_candidate_denominator_required": true,
+    "independent_candidate_order_per_cohort_required": true
+  },
+  "blinding": {
+    "secret_nonce_file_required": true,
+    "opaque_query_and_candidate_ids_required": true,
+    "ranks_scores_and_model_selections_forbidden": true,
+    "graph_ids_forbidden_in_reviewer_payloads": true,
+    "other_reviewer_outputs_forbidden": true
+  },
+  "label_authority": {
+    "labels_created_by_wave8": false,
+    "human_review_authority_created_by_wave8": false,
+    "two_distinct_human_reviewers_still_required": true,
+    "distinct_human_adjudicator_still_required": true,
+    "synthetic_model_agent_or_bot_labels_forbidden": true
+  },
+  "publication_boundary": {
+    "full_packet_runtime_only": true,
+    "sealed_mapping_never_distributed": true,
+    "reviewer_payloads_committed": false,
+    "only_code_contract_tests_and_nonsensitive_receipt_committed": true
+  },
+  "activation_boundary": {
+    "qualification_is_not_activation": true,
+    "semantic_retrieval_qualified": false,
+    "activation_manifest_created": false,
+    "production_promotion_authorized": false
+  }
+}

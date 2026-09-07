@@ -1,0 +1,116 @@
+{
+  "schema_version": "apps_rg.l1_v2_comparison_development_corpus.v1",
+  "corpus_id": "apps-rg-l1-v2-development-v1",
+  "app_scope": "APPS_RG_V2_ONLY",
+  "thresholds": {
+    "minimum_critical_requirement_coverage_delta": 0.0,
+    "minimum_c0_obligation_reconciliation_rate": 1.0,
+    "maximum_v2_broad_target_mapping_rate": 0.0,
+    "promotion_requires_measured_false_broad_mapping": true,
+    "promotion_requires_measured_escalation_precision": true,
+    "promotion_requires_runtime_completion_cost_latency": true
+  },
+  "cases": [
+    {
+      "fixture_id": "l1-dev-straightforward-v1",
+      "scenario": "STRAIGHTFORWARD",
+      "fixture_conditions": {
+        "brief_freshness": "CURRENT",
+        "candidate_evidence_mode": "PRESENT"
+      },
+      "expected_deterministic_plan": {
+        "v1_requirement_count": 1,
+        "v2_requirement_count": 1,
+        "v2_requirement_type_counts": {
+          "LEADERSHIP": 1
+        }
+      },
+      "app_payload": {
+        "generation_mode": "strategic_tailor",
+        "target_company": "ExampleCo",
+        "target_role": "VP Product",
+        "target_level": "VP",
+        "source_resume_text": "Synthetic product leadership evidence.",
+        "job_description_text": "Requirements\n- Must lead product strategy."
+      },
+      "c0_evidence_items": [],
+      "source_input_digest": "sha256:1e57ab73066f027090732bd614ee29b50ae9f91073b8661ca7242f56182340fb"
+    },
+    {
+      "fixture_id": "l1-dev-compound-v1",
+      "scenario": "COMPOUND",
+      "fixture_conditions": {
+        "brief_freshness": "CURRENT",
+        "candidate_evidence_mode": "PRESENT"
+      },
+      "expected_deterministic_plan": {
+        "v1_requirement_count": 1,
+        "v2_requirement_count": 1,
+        "v2_requirement_type_counts": {
+          "LEADERSHIP": 1
+        }
+      },
+      "app_payload": {
+        "generation_mode": "strategic_tailor",
+        "target_company": "ExampleCo",
+        "target_role": "VP Product",
+        "target_level": "VP",
+        "source_resume_text": "Synthetic product leadership evidence.",
+        "job_description_text": "Requirements\n- Must lead product strategy and delivery."
+      },
+      "c0_evidence_items": [],
+      "source_input_digest": "sha256:55fcf8f7b9f2ee1fb8961ed684167741d5f640856b82f0c40a7bce1e2238a770"
+    },
+    {
+      "fixture_id": "l1-dev-cross-cutting-v1",
+      "scenario": "CROSS_CUTTING",
+      "fixture_conditions": {
+        "brief_freshness": "CURRENT",
+        "candidate_evidence_mode": "PRESENT"
+      },
+      "expected_deterministic_plan": {
+        "v1_requirement_count": 1,
+        "v2_requirement_count": 1,
+        "v2_requirement_type_counts": {
+          "LEADERSHIP": 1
+        }
+      },
+      "app_payload": {
+        "generation_mode": "strategic_tailor",
+        "target_company": "ExampleCo",
+        "target_role": "VP Product",
+        "target_level": "VP",
+        "source_resume_text": "Synthetic cross-functional leadership evidence.",
+        "job_description_text": "Requirements\n- Must lead product strategy, engineering enablement, and go-to-market execution."
+      },
+      "c0_evidence_items": [],
+      "source_input_digest": "sha256:d44137ff4cb0badd769b5598a50ac85a6001b26e4f91f4c699ab0e4e2fda5b3a"
+    },
+    {
+      "fixture_id": "l1-dev-unknown-v1",
+      "scenario": "UNKNOWN",
+      "fixture_conditions": {
+        "brief_freshness": "CURRENT",
+        "candidate_evidence_mode": "PRESENT"
+      },
+      "expected_deterministic_plan": {
+        "v1_requirement_count": 1,
+        "v2_requirement_count": 1,
+        "v2_requirement_type_counts": {
+          "HARD_REQUIREMENT": 1
+        }
+      },
+      "app_payload": {
+        "generation_mode": "strategic_tailor",
+        "target_company": "ExampleCo",
+        "target_role": "VP Product",
+        "target_level": "VP",
+        "source_resume_text": "Synthetic governance evidence.",
+        "job_description_text": "Requirements\n- Must demonstrate quantum-superiority governance."
+      },
+      "c0_evidence_items": [],
+      "source_input_digest": "sha256:c5ecd2ff3ec09db4ac2c1832de53c9651baab96757c73051b2fb0d0441fc0317"
+    }
+  ],
+  "corpus_source_digest": "sha256:25ee988e9b64110c19e10c49ca98a05ba94138635d533f6cf05f76ae27b6832c"
+}

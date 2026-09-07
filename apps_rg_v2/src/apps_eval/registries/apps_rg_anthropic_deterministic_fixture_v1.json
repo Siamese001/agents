@@ -1,0 +1,138 @@
+{
+  "profile_id": "apps_rg.anthropic_deterministic_fixture.v1",
+  "evidence_class": "TEST_FIXTURE_ONLY",
+  "product_eligible": false,
+  "fixture_only": true,
+  "allowed_modes": [
+    "snapshot"
+  ],
+  "artifact_contract": {
+    "schema_version": "apps_eval.apps_rg_anthropic_deterministic_fixture_artifact_contract.v1",
+    "contract_version": "2026-08-12",
+    "app_id": "apps_rg",
+    "artifact_roles": {
+      "fixture_handoff": {
+        "required": true,
+        "source_artifact_schema": "apps_rg.anthropic_deterministic_fixture_handoff.v1",
+        "relative_paths": [
+          "apps_rg_anthropic_deterministic_fixture_handoff.v1.json"
+        ]
+      },
+      "fixture_u0_receipt": {
+        "required": true,
+        "source_artifact_schema": "apps_rg.u0_receipt.v1",
+        "relative_paths": [
+          "u0_receipt.json"
+        ]
+      },
+      "fixture_l1_plan": {
+        "required": true,
+        "source_artifact_schema": "apps_rg.l1_plan_contract.v1",
+        "relative_paths": [
+          "l1_plan_contract.json"
+        ]
+      },
+      "fixture_l0_route": {
+        "required": true,
+        "source_artifact_schema": "apps_rg.route_contract.v1",
+        "relative_paths": [
+          "route_contract.json"
+        ]
+      },
+      "fixture_l2_output": {
+        "required": true,
+        "source_artifact_schema": "apps_rg.deterministic_fixture_l2_boundary.v1",
+        "relative_paths": [
+          "deterministic_l2_fixture.json"
+        ]
+      },
+      "fixture_l6_handoff": {
+        "required": true,
+        "source_artifact_schema": "apps_eval.apps_rg_l6_eval_handoff.v1",
+        "relative_paths": [
+          "apps_rg_l6_eval_handoff.json"
+        ]
+      }
+    }
+  },
+  "component_taxonomy": {
+    "schema_version": "apps_eval.apps_rg_anthropic_deterministic_fixture_taxonomy.v1",
+    "components": [
+      "apps_rg.fixture_handoff",
+      "apps_rg.fixture_orchestration",
+      "apps_rg.fixture_l2_boundary",
+      "apps_rg.fixture_l6"
+    ]
+  },
+  "lane_contract": {
+    "schema_version": "apps_eval.apps_rg_anthropic_deterministic_fixture_lanes.v1",
+    "generated_lanes": []
+  },
+  "microstep_contract": {
+    "schema_version": "apps_eval.apps_rg_anthropic_deterministic_fixture_microsteps.v1",
+    "global_microsteps": [
+      {
+        "microstep_id": "fixture_handoff_no_provider",
+        "stage_id": "U0",
+        "component_id": "apps_rg.fixture_handoff",
+        "subcomponent_id": "no_provider_provenance",
+        "gate_id": "fixture_handoff_no_provider",
+        "artifact_role": "fixture_handoff",
+        "required": true,
+        "severity": "BLOCK"
+      },
+      {
+        "microstep_id": "fixture_u0_identity_bound",
+        "stage_id": "U0",
+        "component_id": "apps_rg.fixture_orchestration",
+        "subcomponent_id": "u0",
+        "gate_id": "fixture_u0_identity_bound",
+        "artifact_role": "fixture_u0_receipt",
+        "required": true,
+        "severity": "BLOCK"
+      },
+      {
+        "microstep_id": "fixture_l1_identity_bound",
+        "stage_id": "L1",
+        "component_id": "apps_rg.fixture_orchestration",
+        "subcomponent_id": "l1",
+        "gate_id": "fixture_stage_identity_bound",
+        "artifact_role": "fixture_l1_plan",
+        "required": true,
+        "severity": "BLOCK"
+      },
+      {
+        "microstep_id": "fixture_l0_identity_bound",
+        "stage_id": "L0",
+        "component_id": "apps_rg.fixture_orchestration",
+        "subcomponent_id": "l0",
+        "gate_id": "fixture_stage_identity_bound",
+        "artifact_role": "fixture_l0_route",
+        "required": true,
+        "severity": "BLOCK"
+      },
+      {
+        "microstep_id": "fixture_l2_no_provider",
+        "stage_id": "L2",
+        "component_id": "apps_rg.fixture_l2_boundary",
+        "subcomponent_id": "external_seam",
+        "gate_id": "fixture_l2_no_provider",
+        "artifact_role": "fixture_l2_output",
+        "required": true,
+        "severity": "BLOCK"
+      },
+      {
+        "microstep_id": "fixture_l6_non_mutating",
+        "stage_id": "L6",
+        "component_id": "apps_rg.fixture_l6",
+        "subcomponent_id": "shadow_handoff",
+        "gate_id": "fixture_l6_non_mutating",
+        "artifact_role": "fixture_l6_handoff",
+        "required": true,
+        "severity": "BLOCK"
+      }
+    ],
+    "lane_microstep_templates": [],
+    "cross_run_microsteps": []
+  }
+}

@@ -1,0 +1,22 @@
+mode: company
+description: |
+  Company intelligence research producing a structured CompanyBrief
+  conforming to apps_rg/schemas/company_research.schema.json. Served via
+  the R3_SIMPLE_GROUNDED_READ route for downstream consumers (apps_rg narrative
+  generation, apps_lic outreach, etc.).
+required_inputs:
+  - topic
+optional_inputs:
+  - jd_anchor
+  - depth
+output_schema: apps_rg/schemas/company_research.schema.json
+governance:
+  inherits: governed_research_run
+  emit_artifacts:
+    - route_contract
+    - final_evidence_contract
+    - sealed_l2_artifact
+    - exit_review_packet
+defaults:
+  depth: standard
+  freshness_ttl_days: 30

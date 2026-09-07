@@ -1,0 +1,59 @@
+{
+  "schema_version": "apps_rg.measurement_validity_implementation_receipt.v1",
+  "branch": "codex/apps-rg-v2-eval-validity",
+  "base_commit": "860e3587a6d4fe58117850d12052202411dde11d",
+  "scope_root": "src/apps_rg/evals",
+  "implementation_status": "COMPLETE_CODE_ONLY",
+  "completed_waves": [
+    "E0_MEASUREMENT_ARCHITECTURE",
+    "E1_STANDALONE_TRUST_ROOTS",
+    "E2_SOURCE_BOUND_RETRIEVAL",
+    "E3_SOURCE_VERIFIED_GROUNDING",
+    "E4_AUTHORIZED_SECTION_REVIEW",
+    "E5_WHOLE_RESUME_G3_BINDING",
+    "E6_CONTROLLER_EXECUTED_REPEATABILITY",
+    "E7_HUMAN_CRITERION_VALIDITY",
+    "E8_SOURCE_BOUND_CI"
+  ],
+  "validation": [
+    {
+      "command": "PYTHONPATH=C:\\Git\\apps_rg_v2\\src python -m pytest -q src/apps_rg/evals",
+      "result": "136 passed in 2.76s"
+    },
+    {
+      "command": "PYTHONPATH=C:\\Git\\apps_rg_v2\\src python -m pytest -q tests/unit/apps_rg/evals/test_c03_graph_embedding_qualification.py",
+      "result": "3 passed in 0.14s"
+    },
+    {
+      "command": "PYTHONPATH=C:\\Git\\apps_rg_v2 python -m pytest -q tests/unit/tools/apps_rg_standalone",
+      "result": "24 passed in 2.13s"
+    },
+    {
+      "command": "PYTHONPATH=C:\\Git\\apps_rg_v2\\src python -m pytest -q tests/unit/apps_rg/runtime/c0/test_whole_resume_graph_evidence_w7.py",
+      "result": "4 passed in 0.15s"
+    },
+    {
+      "command": "python -m ruff check <changed Python scope>",
+      "result": "All checks passed"
+    },
+    {
+      "command": "python -m compileall -q src/apps_rg/evals/authoritative",
+      "result": "PASS"
+    }
+  ],
+  "legacy_collection": {
+    "collected_test_count": 134,
+    "acceptance_boundary": false,
+    "remaining_limits": [
+      "governed fixtures excluded from the standalone import",
+      "POSIX owner-mode assertions are not portable to the Windows checkout"
+    ]
+  },
+  "empirical_qualification": {
+    "status": "NOT_RUN",
+    "real_human_labels_created": false,
+    "real_corpus_qualified": false,
+    "release_authority_created": false
+  },
+  "record_digest": "090dc15fe95b790c86d6f1da7ebc6969c3bb902bfc8e9b5cbe72591770c25355"
+}

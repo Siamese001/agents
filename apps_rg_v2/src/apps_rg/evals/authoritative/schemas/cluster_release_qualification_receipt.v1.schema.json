@@ -1,0 +1,129 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentic-workflow.local/apps_rg/authoritative/cluster_release_qualification_receipt.v1.schema.json",
+  "title": "Apps RG cluster embedding W4 release qualification",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "status", "completion_marker", "logical_retrieval_unit",
+    "qualification_scope", "source_commit", "deployment_bindings",
+    "input_receipt_digests", "checks", "failure_codes", "unknown_reasons",
+    "legacy_regression_only_accepted", "release_authorizing", "record_digest"
+  ],
+  "properties": {
+    "schema_version": {"const": "apps_rg.cluster_release_qualification_receipt.v1"},
+    "status": {"enum": ["PASS", "FAIL", "UNKNOWN"]},
+    "completion_marker": {
+      "anyOf": [{"const": "GRAPH_EVIDENCE_CLUSTER_EMBEDDINGS_QUALIFIED"}, {"type": "null"}]
+    },
+    "logical_retrieval_unit": {"const": "graph_evidence_cluster"},
+    "qualification_scope": {"const": "EVAL_W4_RELEASE_HOLDOUT"},
+    "source_commit": {
+      "anyOf": [{"type": "string", "pattern": "^[0-9a-f]{40}$"}, {"type": "null"}]
+    },
+    "deployment_bindings": {
+      "anyOf": [{"$ref": "#/$defs/deployment"}, {"$ref": "#/$defs/emptyObject"}]
+    },
+    "input_receipt_digests": {
+      "anyOf": [{"$ref": "#/$defs/inputDigests"}, {"$ref": "#/$defs/emptyObject"}]
+    },
+    "checks": {
+      "anyOf": [{"$ref": "#/$defs/checks"}, {"$ref": "#/$defs/emptyObject"}]
+    },
+    "failure_codes": {"$ref": "#/$defs/stringList"},
+    "unknown_reasons": {"$ref": "#/$defs/stringList"},
+    "legacy_regression_only_accepted": {"const": false},
+    "release_authorizing": {"type": "boolean"},
+    "record_digest": {"$ref": "#/$defs/digest"}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"status": {"const": "PASS"}}},
+      "then": {
+        "properties": {
+          "completion_marker": {"const": "GRAPH_EVIDENCE_CLUSTER_EMBEDDINGS_QUALIFIED"},
+          "release_authorizing": {"const": true}
+        }
+      },
+      "else": {
+        "properties": {
+          "completion_marker": {"type": "null"},
+          "release_authorizing": {"const": false}
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "emptyObject": {"type": "object", "maxProperties": 0},
+    "deployment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_commit", "graph_sha256", "cluster_registry_sha256", "corpus_sha256",
+        "model_artifact_sha256", "projection_sha256", "runtime_config_sha256",
+        "hardware_profile_sha256", "candidate_activation_manifest_sha256",
+        "cluster_count", "runtime_top_k", "dimension", "normalization"
+      ],
+      "properties": {
+        "source_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "graph_sha256": {"$ref": "#/$defs/digest"},
+        "cluster_registry_sha256": {"$ref": "#/$defs/digest"},
+        "corpus_sha256": {"$ref": "#/$defs/digest"},
+        "model_artifact_sha256": {"$ref": "#/$defs/digest"},
+        "projection_sha256": {"$ref": "#/$defs/digest"},
+        "runtime_config_sha256": {"$ref": "#/$defs/digest"},
+        "hardware_profile_sha256": {"$ref": "#/$defs/digest"},
+        "candidate_activation_manifest_sha256": {"$ref": "#/$defs/digest"},
+        "cluster_count": {"type": "integer", "minimum": 2},
+        "runtime_top_k": {"type": "integer", "minimum": 1},
+        "dimension": {"const": 1024},
+        "normalization": {"const": "l2"}
+      }
+    },
+    "inputDigests": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "threshold_freeze", "qrel_review", "holdout_retrieval", "authority_pipeline",
+        "runtime_quality", "grounding", "repeatability", "evaluator_validity",
+        "holdout_controller"
+      ],
+      "properties": {
+        "threshold_freeze": {"$ref": "#/$defs/digest"},
+        "qrel_review": {"$ref": "#/$defs/digest"},
+        "holdout_retrieval": {"$ref": "#/$defs/digest"},
+        "authority_pipeline": {"$ref": "#/$defs/digest"},
+        "runtime_quality": {"$ref": "#/$defs/digest"},
+        "grounding": {"$ref": "#/$defs/digest"},
+        "repeatability": {"$ref": "#/$defs/digest"},
+        "evaluator_validity": {"$ref": "#/$defs/digest"},
+        "holdout_controller": {"$ref": "#/$defs/digest"}
+      }
+    },
+    "checks": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "calibration_thresholds_frozen", "human_qrels_complete",
+        "untouched_holdout_retrieval_passed", "authority_pipeline_zero_violations",
+        "runtime_quality_passed", "grounding_passed", "controller_repeatability_passed",
+        "evaluator_validity_passed", "holdout_controller_bound"
+      ],
+      "properties": {
+        "calibration_thresholds_frozen": {"type": "boolean"},
+        "human_qrels_complete": {"type": "boolean"},
+        "untouched_holdout_retrieval_passed": {"type": "boolean"},
+        "authority_pipeline_zero_violations": {"type": "boolean"},
+        "runtime_quality_passed": {"type": "boolean"},
+        "grounding_passed": {"type": "boolean"},
+        "controller_repeatability_passed": {"type": "boolean"},
+        "evaluator_validity_passed": {"type": "boolean"},
+        "holdout_controller_bound": {"type": "boolean"}
+      }
+    },
+    "stringList": {
+      "type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true
+    }
+  }
+}

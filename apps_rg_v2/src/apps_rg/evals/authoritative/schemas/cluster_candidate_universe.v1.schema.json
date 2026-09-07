@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentic-workflow.local/apps_rg/authoritative/cluster_candidate_universe.v1.schema.json",
+  "title": "Apps RG graph-evidence cluster candidate universe",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "query_id", "query_text", "target_profile", "section",
+    "graph_lane", "employer", "evidence_density", "logical_retrieval_unit",
+    "authority_bindings", "clusters", "record_digest"
+  ],
+  "properties": {
+    "schema_version": {"const": "apps_rg.authoritative_cluster_candidate_universe.v1"},
+    "query_id": {"type": "string", "minLength": 1},
+    "query_text": {"type": "string", "minLength": 1},
+    "target_profile": {"type": "string", "minLength": 1},
+    "section": {"type": "string", "minLength": 1},
+    "graph_lane": {"type": "string", "minLength": 1},
+    "employer": {"type": "string", "minLength": 1},
+    "evidence_density": {"enum": ["SPARSE", "MEDIUM", "DENSE"]},
+    "logical_retrieval_unit": {"const": "graph_evidence_cluster"},
+    "authority_bindings": {"$ref": "#/$defs/caseBindings"},
+    "clusters": {
+      "type": "array",
+      "minItems": 2,
+      "items": {"$ref": "#/$defs/cluster"}
+    },
+    "record_digest": {"$ref": "#/$defs/digest"}
+  },
+  "$defs": {
+    "digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "stringList": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "uniqueItems": true
+    },
+    "caseBindings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "graph_sha256", "cluster_registry_sha256", "corpus_sha256",
+        "model_artifact_sha256", "projection_sha256", "runtime_config_sha256",
+        "query_sha256", "authority_envelope_sha256"
+      ],
+      "properties": {
+        "graph_sha256": {"$ref": "#/$defs/digest"},
+        "cluster_registry_sha256": {"$ref": "#/$defs/digest"},
+        "corpus_sha256": {"$ref": "#/$defs/digest"},
+        "model_artifact_sha256": {"$ref": "#/$defs/digest"},
+        "projection_sha256": {"$ref": "#/$defs/digest"},
+        "runtime_config_sha256": {"$ref": "#/$defs/digest"},
+        "query_sha256": {"$ref": "#/$defs/digest"},
+        "authority_envelope_sha256": {"$ref": "#/$defs/digest"}
+      }
+    },
+    "cluster": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cluster_id", "cluster_kind", "cluster_authority_envelope_sha256",
+        "member_node_ids", "linked_fact_ids", "allowed_sections",
+        "activation_status", "external_claim_policy", "graph_path", "employer",
+        "role", "evidence_type", "metric_bearing"
+      ],
+      "properties": {
+        "cluster_id": {"type": "string", "minLength": 1},
+        "cluster_kind": {"enum": ["role_episode", "capability_evidence"]},
+        "cluster_authority_envelope_sha256": {"$ref": "#/$defs/digest"},
+        "member_node_ids": {"$ref": "#/$defs/stringList", "minItems": 1},
+        "linked_fact_ids": {"$ref": "#/$defs/stringList"},
+        "allowed_sections": {"$ref": "#/$defs/stringList"},
+        "activation_status": {"enum": ["DRAFT", "HELD", "ACTIVE", "ACTIVE_CONFIRMED", "RETIRED"]},
+        "external_claim_policy": {"type": "string", "minLength": 1},
+        "graph_path": {"$ref": "#/$defs/stringList", "minItems": 1},
+        "employer": {"type": "string", "minLength": 1},
+        "role": {"type": "string", "minLength": 1},
+        "evidence_type": {"type": "string", "minLength": 1},
+        "metric_bearing": {"type": "boolean"}
+      }
+    }
+  }
+}

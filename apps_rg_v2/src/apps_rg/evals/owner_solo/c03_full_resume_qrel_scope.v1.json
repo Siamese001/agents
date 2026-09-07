@@ -1,0 +1,115 @@
+{
+  "schema_version": "apps_rg.owner_solo_full_resume_qrel_scope.v1",
+  "status": "FROZEN_OWNER_SOLO_PROVISIONAL_SCOPE",
+  "result_label": "OWNER_SOLO_PROVISIONAL",
+  "purpose": "W0 scope for a blinded, owner-solo, full-resume C0.3 graph-evidence-cluster QREL evaluation. This freezes scope only; it creates no ranking, human grade, QREL, metric, activation, release qualification, or production authorization.",
+  "authoritative_lane_boundary": {
+    "existing_two_reviewer_contract_unchanged": true,
+    "existing_independent_adjudication_contract_unchanged": true,
+    "authoritative_release_qualification_not_satisfied": true
+  },
+  "review_unit": {
+    "logical_retrieval_unit": "graph_evidence_cluster",
+    "judgment_question": "Is this graph-evidence cluster appropriate source material for this target job and resume section?",
+    "final_resume_prose_evaluation_is_separate": true,
+    "human_grade_domain": [0, 1, 2, 3],
+    "human_rationale_required": true
+  },
+  "resume_sections": [
+    {"section_id": "headline", "c0_retrieval_qrel_required": true},
+    {"section_id": "executive_summary", "c0_retrieval_qrel_required": true},
+    {"section_id": "competencies", "c0_retrieval_qrel_required": true},
+    {"section_id": "unify_bullets", "c0_retrieval_qrel_required": true},
+    {"section_id": "unify_narrative", "c0_retrieval_qrel_required": true},
+    {"section_id": "ibm_bullets", "c0_retrieval_qrel_required": true},
+    {"section_id": "ibm_narrative", "c0_retrieval_qrel_required": true},
+    {"section_id": "ey_bullets", "c0_retrieval_qrel_required": true},
+    {"section_id": "ey_narrative", "c0_retrieval_qrel_required": true},
+    {"section_id": "insurtech_bullets", "c0_retrieval_qrel_required": true},
+    {"section_id": "insurtech_narrative", "c0_retrieval_qrel_required": true}
+  ],
+  "targets": [
+    {
+      "query_id": "brown_brown_svp_it_strategy_innovation",
+      "target_profile_id": "insurance_it_strategy_modernization",
+      "split": "CALIBRATION",
+      "jd_path": "src/apps_rg/config/targeting/brown_brown_svp_it_strategy_innovation_jd.txt",
+      "jd_sha256": "23b16bd0ae15188a4de4d533209e34ccff8fae6d12c96894a2dd90cc53bb4dfd",
+      "brief_path": "src/apps_rg/config/targeting/brown_brown_svp_it_strategy_innovation_briefing.md",
+      "brief_sha256": "b6e915e375587b42165b8036aaf8d36200ebc4e21eb6562fcc49d32f1235afe4"
+    },
+    {
+      "query_id": "anthropic_manager_applied_ai_architecture_partnerships",
+      "target_profile_id": "ai_partnerships_gtm",
+      "split": "CALIBRATION",
+      "jd_path": "src/apps_rg/config/targeting/anthropic_manager_applied_ai_architecture_partnerships_jd.txt",
+      "jd_sha256": "957c43a7df84e3c815b4b1e0284cb8c4132567f622d3124a21fcaeea979d4f01",
+      "brief_path": "docs/reports/apps_rg/fixtures/senior_roles/anthropic_partner_applied_ai_brief.txt",
+      "brief_sha256": "ceba31c900c06b72bf0b3aac11a41687ad5e6939ae8b93af3f3172bf42bc4e87"
+    },
+    {
+      "query_id": "neo4j_vp_product_management_agentic_ai",
+      "target_profile_id": "graph_ai_product_leadership",
+      "split": "CALIBRATION",
+      "jd_path": "src/apps_rg/config/targeting/neo4j_vp_product_management_agentic_ai_jd.txt",
+      "jd_sha256": "e387f8a5e2a3f83e4ee4c24e219fd3501019af5a74af6acde749a94374f5fe64",
+      "brief_path": "src/apps_rg/config/targeting/neo4j_vp_product_management_agentic_ai_briefing.md",
+      "brief_sha256": "f9ee17db50b82669daa60085c00d6c564609d423170f05300617fdf742e354d3"
+    },
+    {
+      "query_id": "openai_partner_ade",
+      "target_profile_id": "ai_partnerships_gtm",
+      "split": "HOLDOUT",
+      "jd_path": "src/apps_rg/config/targeting/openai_partner_ade_jd.txt",
+      "jd_sha256": "b8d82ac8d8f0043fe73f613fc3a34b9045576e3998995aa7a3548aedb009154d",
+      "brief_path": "src/apps_rg/config/targeting/openai_partner_ade_briefing.md",
+      "brief_sha256": "c31a99401eb527ea8425fce1b3423d83ac93adc2719f5e3c99dc09b7396feea1"
+    },
+    {
+      "query_id": "truist_head_agentic_ai_engineering",
+      "target_profile_id": "svp_agentic_engineering_platform",
+      "split": "HOLDOUT",
+      "jd_path": "src/apps_rg/config/targeting/truist_head_agentic_ai_engineering_jd.txt",
+      "jd_sha256": "7dddce9e166ee62432ee7e9443e90acc85199afb11efd84c29026ea230de40f0",
+      "brief_path": "src/apps_rg/config/targeting/truist_head_agentic_ai_engineering_briefing.md",
+      "brief_sha256": "d809c83ccd813b5d4d703f34c653ec541dd98a16e1961d9b04e2423dde498165"
+    },
+    {
+      "query_id": "aveva_distinguished_ai_tech_lead_initiatives",
+      "target_profile_id": "industrial_ai_technical_leadership",
+      "split": "HOLDOUT",
+      "jd_path": "src/apps_rg/config/targeting/aveva_distinguished_ai_tech_lead_initiatives_jd.txt",
+      "jd_sha256": "0f485add83ba21e2d49b454ca477cd9a0e97ac4971e8e289023a360e96b66a9c",
+      "brief_path": "src/apps_rg/config/targeting/aveva_distinguished_ai_tech_lead_initiatives_briefing.md",
+      "brief_sha256": "ba6471b432dd04537e4f8f64ab17bab2b80ceb719071f2d610772cc8b5e71f84"
+    }
+  ],
+  "planned_denominator": {
+    "query_count": 6,
+    "calibration_query_count": 3,
+    "holdout_query_count": 3,
+    "section_count": 11,
+    "query_section_case_count": 66,
+    "candidate_judgment_count": null,
+    "candidate_judgment_count_freezes_in_w1": true,
+    "full_finite_candidate_universe_required": true,
+    "partial_top_k_judging_forbidden": true,
+    "relevant_grade_floor": 2
+  },
+  "w1_prerequisites": {
+    "all_66_query_section_rankings_frozen_before_human_review": true,
+    "all_candidate_universes_enumerated_before_human_review": true,
+    "headline_and_ibm_c0_paths_must_be_validated": true,
+    "blinded_owner_reviewer_packet_required": true,
+    "no_human_grade_created_by_w0": true
+  },
+  "repository_binding": {
+    "repository": "Siamese001/apps_rg_v2",
+    "source_commit": "58fdf85ff903907aa0ebbfe545842fa0e03a3258",
+    "section_treatment_profile": {
+      "path": "src/apps_rg/config/domain_contract/resume_section_treatment_profile.v1.json",
+      "sha256": "8feee53f5d677398cd10527795dd9c8b4d95bd0649378d9903bba1a8a02553df"
+    }
+  },
+  "scope_manifest_sha256": "54f9fedb4906efe213afae4ddf7a4160297d55ba16a4268bb239cc7a247d981d"
+}

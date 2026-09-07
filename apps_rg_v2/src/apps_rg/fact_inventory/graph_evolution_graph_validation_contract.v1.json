@@ -1,0 +1,38 @@
+{
+  "schema_version": "apps_rg.graph_evolution_graph_validation_contract.v1",
+  "contract_id": "APPS_RG_GRAPH_EVOLUTION_GRAPH_VALIDATION",
+  "wave": "GE_W4",
+  "status": "FROZEN",
+  "input": {
+    "required_candidate_status": "UWG_COMMITTED_CANDIDATE",
+    "required_completion_marker": "GE_W3_UWG_COMMITTED_CANDIDATE",
+    "uwg_commit_receipt_required": true,
+    "candidate_version_digest_required": true,
+    "current_parent_graph_digest_required": true
+  },
+  "semantic_validation": {
+    "assertion_node_type": "atomic_proof_fact",
+    "assertion_text_must_match_source_backed_candidate": true,
+    "source_document_span_and_sha256_required": true,
+    "proposed_skill_links_must_exist_in_parent_graph": true,
+    "duplicate_assertion_against_parent_graph_forbidden": true
+  },
+  "output": {
+    "candidate_state": "GRAPH_VALIDATED",
+    "candidate_graph_write_forbidden": true,
+    "active_runtime_pointer_changed": false,
+    "projection_state": "NOT_BUILT",
+    "retrieval_qualification_state": "NOT_RUN"
+  },
+  "ge_w4_exit": {
+    "completion_marker": "GE_W4_CANDIDATE_GRAPH_VALIDATED",
+    "next_gate": "CLUSTER_AND_VECTOR_REBUILD",
+    "canonical_base_graph_mutated": false,
+    "active_runtime_pointer_changed": false,
+    "cluster_registry_mutated": false,
+    "cluster_projection_mutated": false,
+    "embedding_materialized": false,
+    "qrel_evaluation_run": false,
+    "activation_created": false
+  }
+}

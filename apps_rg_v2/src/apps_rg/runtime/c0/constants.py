@@ -1,0 +1,93 @@
+"""C0 evidence room constants and boundary law."""
+
+from __future__ import annotations
+
+from apps_rg.repository_layout import repository_root
+
+REPO_ROOT = repository_root(__file__)
+PRIOR_RESUME_MANIFEST_REL = "artifacts/apps_rg/c0/prior_resume_variant_fact_extraction_manifest.json"
+PRIOR_RESUME_STAGING_REL = "artifacts/apps_rg/c0/_prior_resume_extract_staging"
+
+CONFIDENCE_HIGH = "HIGH"
+CONFIDENCE_MEDIUM = "MEDIUM"
+CONFIDENCE_LOW = "LOW"
+CONFIDENCE_PENDING = "PENDING_TRACE"
+
+PROOF_ELIGIBLE = "proof_eligible"
+CLAIM_ELIGIBLE = "claim_eligible"
+TARGETING_ONLY = "targeting_only"
+NOT_PROOF = "not_proof"
+
+STRATUM_MUST_USE = "MUST_USE"
+STRATUM_SUPPORTING = "SUPPORTING"
+STRATUM_BACKGROUND = "BACKGROUND"
+STRATUM_CONTRADICTS = "CONTRADICTS"
+STRATUM_EXCLUDED = "EXCLUDED"
+
+REL_DIRECT_SUPPORT = "direct_support"
+REL_ADJACENCY_ONLY = "adjacency_only"
+REL_CONTRADICTION = "contradiction"
+REL_SUPERSEDED = "superseded"
+REL_SECTION_FIT = "section_fit"
+
+GRAPH_STRENGTH_DIRECT = "DIRECT"
+GRAPH_STRENGTH_ADJACENT_ONLY = "ADJACENT_ONLY"
+GRAPH_STRENGTH_CONTRADICTED = "CONTRADICTED"
+GRAPH_STRENGTH_NONE = "NONE"
+
+SOURCE_JD = "jd_payload"
+SOURCE_BRIEF = "briefing"
+SOURCE_PRIOR_VARIANT = "prior_resume_variant"
+SOURCE_SRFS = "selected_role_fact_set"
+SOURCE_LEDGER = "candidate_fact_ledger"
+SOURCE_PROOF_POOL = "proof_pool"
+# Canonical base resume employment bullets (the authoritative source document for InsurTech/EY/
+# IBM/Unify employment facts). Grounded — NOT in FORBIDDEN_PROOF_SOURCE_TYPES.
+SOURCE_BASE_RESUME = "base_resume"
+
+FORBIDDEN_PROOF_SOURCE_TYPES = frozenset(
+    {
+        SOURCE_JD,
+        "app_payload_inline",
+        "jd_payload_inline",
+        "briefing",
+        "generic_best_practice",
+        "company_research",
+        "rubrics",
+        "governance_docs",
+    }
+)
+
+# Import-light C0 authority modules must not import ``fact_vector_readiness``:
+# the application-owned runtime surface owns C0 adapters and creates a discovery
+# cycle when graph expansion is imported during core reachability checks.
+# Keep this immutable authority set explicit and parity-tested against the
+# orchestration lane registry.
+C0_SECTIONS_ENABLED: frozenset[str] = frozenset(
+    {
+        "competencies",
+        "slalom_bullets",
+        "unify_bullets",
+        "ibm_bullets",
+        "insurtech_bullets",
+        "ey_bullets",
+        "slalom_narrative",
+        "unify_narrative",
+        "ibm_narrative",
+        "insurtech_narrative",
+        "ey_narrative",
+        "executive_summary",
+        "headline",
+    }
+)
+
+C0_AUTHORITY_LEDGER_GRAPH_PRIMARY = "ledger_graph_primary"
+
+__all__ = [
+    "C0_AUTHORITY_LEDGER_GRAPH_PRIMARY",
+    "C0_SECTIONS_ENABLED",
+    "FORBIDDEN_PROOF_SOURCE_TYPES",
+    "PRIOR_RESUME_MANIFEST_REL",
+    "PRIOR_RESUME_STAGING_REL",
+    "REPO_ROOT",
+]

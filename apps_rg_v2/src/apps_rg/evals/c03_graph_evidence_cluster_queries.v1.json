@@ -1,0 +1,79 @@
+{
+  "schema_version": "apps_rg.c03_graph_evidence_cluster_queries.v1",
+  "wave": "W7",
+  "status": "FROZEN_UNLABELED",
+  "query_count": 6,
+  "section_ids": [
+    "competencies",
+    "executive_summary",
+    "ey_bullets",
+    "ey_narrative",
+    "insurtech_bullets",
+    "insurtech_narrative",
+    "unify_bullets",
+    "unify_narrative"
+  ],
+  "queries": [
+    {
+      "query_id": "insurance_brown",
+      "target_profile_id": "insurance_it_strategy_modernization",
+      "split": "CALIBRATION",
+      "jd_path": "src/apps_rg/config/targeting/brown_brown_svp_it_strategy_innovation_jd.txt",
+      "jd_sha256": "23b16bd0ae15188a4de4d533209e34ccff8fae6d12c96894a2dd90cc53bb4dfd",
+      "brief_path": "src/apps_rg/config/targeting/brown_brown_svp_it_strategy_innovation_briefing.md",
+      "brief_sha256": "b6e915e375587b42165b8036aaf8d36200ebc4e21eb6562fcc49d32f1235afe4"
+    },
+    {
+      "query_id": "insurance_lincoln",
+      "target_profile_id": "insurance_it_strategy_modernization",
+      "split": "HOLDOUT",
+      "jd_path": "docs/reports/apps_rg/fixtures/senior_roles/lincoln_insurer_it_ai_jd.txt",
+      "jd_sha256": "f6afad71e177b671597dc8e61234048c42bb9cd7747a23aa6a837d2cef0bb919",
+      "brief_path": "docs/reports/apps_rg/fixtures/senior_roles/lincoln_insurer_it_ai_brief.txt",
+      "brief_sha256": "8822f522d5f4801e039033c3fef91d49b80db8caa9e8139b42b8c7bbb7172e4c"
+    },
+    {
+      "query_id": "partnerships_anthropic",
+      "target_profile_id": "ai_partnerships_gtm",
+      "split": "CALIBRATION",
+      "jd_path": "src/apps_rg/config/targeting/anthropic_manager_applied_ai_architecture_partnerships_jd.txt",
+      "jd_sha256": "957c43a7df84e3c815b4b1e0284cb8c4132567f622d3124a21fcaeea979d4f01",
+      "brief_path": "docs/reports/apps_rg/fixtures/senior_roles/anthropic_partner_applied_ai_brief.txt",
+      "brief_sha256": "ceba31c900c06b72bf0b3aac11a41687ad5e6939ae8b93af3f3172bf42bc4e87"
+    },
+    {
+      "query_id": "partnerships_openai",
+      "target_profile_id": "ai_partnerships_gtm",
+      "split": "HOLDOUT",
+      "jd_path": "src/apps_rg/config/targeting/openai_partner_ade_jd.txt",
+      "jd_sha256": "b8d82ac8d8f0043fe73f613fc3a34b9045576e3998995aa7a3548aedb009154d",
+      "brief_path": "src/apps_rg/config/targeting/openai_partner_ade_briefing.md",
+      "brief_sha256": "c31a99401eb527ea8425fce1b3423d83ac93adc2719f5e3c99dc09b7396feea1"
+    },
+    {
+      "query_id": "platform_invesco",
+      "target_profile_id": "svp_agentic_engineering_platform",
+      "split": "CALIBRATION",
+      "jd_path": "src/apps_rg/config/targeting/invesco_global_head_advanced_engineering_jd.txt",
+      "jd_sha256": "15c24193c31d0b6c7833438dd9238ad393a09c22de82ea6988fd5229c85e08b0",
+      "brief_path": "src/apps_rg/config/targeting/invesco_global_head_advanced_engineering_briefing.md",
+      "brief_sha256": "11a99c283248790c33546abc131dc239dd73d599c79d60e98744e840443d7fc4"
+    },
+    {
+      "query_id": "platform_truist",
+      "target_profile_id": "svp_agentic_engineering_platform",
+      "split": "HOLDOUT",
+      "jd_path": "src/apps_rg/config/targeting/truist_head_agentic_ai_engineering_jd.txt",
+      "jd_sha256": "7dddce9e166ee62432ee7e9443e90acc85199afb11efd84c29026ea230de40f0",
+      "brief_path": "src/apps_rg/config/targeting/truist_head_agentic_ai_engineering_briefing.md",
+      "brief_sha256": "d809c83ccd813b5d4d703f34c653ec541dd98a16e1961d9b04e2423dde498165"
+    }
+  ],
+  "label_authority": {
+    "labels_present": false,
+    "legacy_skill_qrels_migrated": false,
+    "synthetic_labels_created": false,
+    "human_review_required": true
+  },
+  "query_manifest_sha256": "4d8ce879651426c6d6103a72b3dda0354cca8de4aaffdec4f06c1fd6e6edd2c6"
+}

@@ -1,0 +1,37 @@
+# W3: Research delegation profile
+# Configuration for briefing bypass and research delegation
+
+schema_version: "1.0"
+
+briefing_bypass:
+  enabled: true
+  max_age_hours: 168  # 7 days
+  
+  authority_classes:
+    - authoritative
+    - semi_authoritative
+    - unverified
+  
+  bypass_rules:
+    authoritative:
+      requires_fresh: true
+      allows_bypass: true
+      eligible_verdicts:
+        - PASS
+      ineligible_verdict: WEAK_WITH_CAVEATS
+    
+    semi_authoritative:
+      requires_fresh: true
+      allows_bypass: false
+      ineligible_verdict: WEAK_WITH_CAVEATS
+    
+    unverified:
+      requires_fresh: false
+      allows_bypass: false
+      ineligible_verdict: BLOCKED
+
+  preserved_lanes:
+    - candidate_profile
+    - project_evidence
+
+  bypass_scope: company_research_lanes_only

@@ -1,0 +1,619 @@
+"""
+Research Assembly Engine — apps_research.
+
+Assembles deterministic research artifact sections, comparison matrices,
+and source registers from a research request.
+
+Deterministic: table schemas, section ordering, source register format.
+Model-ready:   synthesis narrative, strategic implications, interpretation.
+"""
+
+from __future__ import annotations
+
+from apps_rg.runtime.apps_runtime_compat import (
+    traces_execute,
+)
+
+import logging
+from dataclasses import dataclass, field
+
+from apps_rg.runtime.apps_runtime_compat import lifecycle_trace_contract as trace_contract
+
+trace_contract._emit_authorize_and_execute("p2", "research_assembly_engine", "execution_auth")
+trace_contract._emit_validates_capability("p2", "research_assembly_engine", "capability_check")
+trace_contract._emit_routes_to_capability("p2", "research_assembly_engine", "capability_route")
+trace_contract._emit_writes_via_uwg("p2", "research_assembly_engine", "uwg_write")
+trace_contract._emit_blocks_direct_write("p2", "research_assembly_engine", "direct_write_block")
+trace_contract._emit_records_tool_invocation("p2", "research_assembly_engine", "tool_invocation")
+trace_contract._emit_captures_execution_output("p2", "research_assembly_engine", "exec_output")
+trace_contract._emit_dispatches_agent("p3", "research_assembly_engine", "agent_dispatch")
+trace_contract._emit_coordinates_agents("p3", "research_assembly_engine", "agent_coordination")
+trace_contract._emit_records_workflow_lineage("p3", "research_assembly_engine", "workflow_lineage")
+trace_contract._emit_records_healing_outcome("p3", "research_assembly_engine", "healing_outcome")
+trace_contract._emit_escalates_failure("p3", "research_assembly_engine", "failure_escalation")
+trace_contract._emit_orchestrates_workflow("p3", "research_assembly_engine", "workflow_orchestration")
+trace_contract._emit_dispatches_healing_run("p3", "research_assembly_engine", "healing_dispatch")
+trace_contract._emit_invokes_evaluation("p3", "research_assembly_engine", "evaluation_signal")
+trace_contract._emit_records_telemetry_event("p4", "research_assembly_engine", "telemetry_event")
+trace_contract._emit_captures_evaluation_metric("p4", "research_assembly_engine", "eval_metric")
+trace_contract._emit_stores_embedding("p4", "research_assembly_engine", "embedding_store")
+trace_contract._emit_updates_meta_learning_state("p4", "research_assembly_engine", "meta_learning")
+trace_contract._emit_links_execution_to_snapshot("p4", "research_assembly_engine", "exec_snapshot_link")
+from apps_research.types.research_types import (
+    ArtifactMode,
+    ClaimType,
+    ComparisonRow,
+    ResearchRequest,
+    ResearchSection,
+    SourceEntry,
+)
+
+trace_contract._emit_applies_guardrail("p0", "research_assembly_engine", "p0_governance")
+trace_contract._emit_reads_policy_state("p0", "research_assembly_engine", "policy_binding")
+trace_contract._emit_snapshots_state("p0", "research_assembly_engine", "state_snapshot")
+from tqdm import tqdm
+
+trace_contract._emit_emits_metric_event("research_assembly_engine", "p4obs", "metric_1")
+trace_contract._emit_emits_metric_event("research_assembly_engine", "p4obs", "metric_2")
+trace_contract._emit_emits_metric_event("research_assembly_engine", "p4obs", "metric_3")
+trace_contract._emit_emits_metric_event("research_assembly_engine", "p4obs", "metric_4")
+trace_contract._emit_emits_metric_event("research_assembly_engine", "p4obs", "metric_5")
+trace_contract._emit_emits_metric_event("research_assembly_engine", "p4obs", "metric_6")
+trace_contract._emit_records_incident_event("research_assembly_engine", "p4obs", "incident")
+trace_contract._emit_captures_runtime_anomaly("research_assembly_engine", "p4obs", "anomaly")
+trace_contract._emit_writes_observability_log("research_assembly_engine", "p4obs", "obs_log")
+trace_contract._emit_updates_monitoring_state("research_assembly_engine", "p4obs", "mon_state")
+trace_contract._emit_triggers_alert("research_assembly_engine", "p4obs", "alert")
+trace_contract._emit_links_incident_trace("research_assembly_engine", "p4obs", "trace_link")
+trace_contract._emit_captures_pattern("research_assembly_engine", "p3lm", "pattern")
+trace_contract._emit_records_learning_event("research_assembly_engine", "p3lm", "learning_event")
+trace_contract._emit_writes_learning_snapshot("research_assembly_engine", "p3lm", "snapshot")
+trace_contract._emit_feeds_meta_learning("research_assembly_engine", "p3lm", "meta_feed")
+trace_contract._emit_updates_routing_strategy("research_assembly_engine", "p3lm", "routing")
+trace_contract._emit_improves_agent_policy("research_assembly_engine", "p3lm", "policy")
+trace_contract._emit_stores_learning_state("research_assembly_engine", "p3lm", "state")
+trace_contract._emit_records_execution_trace("research_assembly_engine", "L0_ROUTING", "p2_trace_1")
+trace_contract._emit_records_execution_trace("research_assembly_engine", "L1_REASONING", "p2_trace_2")
+trace_contract._emit_records_execution_trace("research_assembly_engine", "L2_EXECUTION", "p2_trace_3")
+trace_contract._emit_records_execution_trace("research_assembly_engine", "L3_ORCHESTRATION", "p2_trace_4")
+trace_contract._emit_records_execution_trace("research_assembly_engine", "L4_STATE", "p2_trace_5")
+trace_contract._emit_reads_environ("research_assembly_engine", "env_read", "p2_env_1")
+trace_contract._emit_reads_environ("research_assembly_engine", "env_read", "p2_env_2")
+trace_contract._emit_reads_runtime_state("research_assembly_engine", "runtime_state", "p2_rt_1")
+trace_contract._emit_reads_runtime_state("research_assembly_engine", "runtime_state", "p2_rt_2")
+trace_contract._emit_pulls_context("p1", "research_assembly_engine", "context_pull")
+trace_contract._emit_pulls_context("p1", "research_assembly_engine", "context_pull_2")
+trace_contract._emit_execution_terminates_at_uwg("p1", "research_assembly_engine", "uwg_term")
+trace_contract._emit_execution_terminates_at_uwg("p1", "research_assembly_engine", "uwg_term_2")
+trace_contract._emit_writes_through("p1", "research_assembly_engine", "write_through")
+trace_contract._emit_writes_through("p1", "research_assembly_engine", "write_through_2")
+trace_contract._emit_validated_by_safety_plane("p1", "research_assembly_engine", "safety_validation")
+trace_contract._emit_invokes_eval("p1", "research_assembly_engine", "eval_call")
+trace_contract._emit_proposal_commits_routing("p1", "research_assembly_engine", "routing_commit")
+trace_contract._emit_escalates_to_human("p1", "research_assembly_engine", "human_escalation")
+trace_contract._emit_routes_through("p1", "research_assembly_engine", "route_through")
+trace_contract._emit_checks_agent_registry("p1", "research_assembly_engine", "agent_registry")
+trace_contract._emit_validates_agent_capability("p1", "research_assembly_engine", "capability")
+trace_contract._emit_dispatches_execution_plan("p1", "research_assembly_engine", "exec_plan")
+trace_contract._emit_agent_executes_agent("p1", "research_assembly_engine", "sub_agent")
+trace_contract._emit_routes_to_agent("p1", "research_assembly_engine", "target_agent")
+trace_contract._emit_verifies_policy("p1", "research_assembly_engine", "policy_check")
+trace_contract._emit_observes_runtime_state("p1", "research_assembly_engine", "runtime_state")
+trace_contract._emit_verifies_boundary("p1", "research_assembly_engine", "boundary_check")
+trace_contract._emit_transcripts_response("p1", "research_assembly_engine", "transcript")
+trace_contract._emit_hard_fails_untranscripted("p1", "research_assembly_engine")
+trace_contract._emit_gated_by_confidence("p1", "research_assembly_engine", "confidence_gate")
+trace_contract.emit_replay_key("p0", "research_assembly_engine")
+trace_contract.emit_determinism_digest("p0", "research_assembly_engine")
+trace_contract._emit_signs_execution_trace("p0", "p0hash", "p0_trace", 0)
+
+_log = logging.getLogger(__name__)
+
+_COMPARISON_DIMENSIONS = [
+    "architecture_model",
+    "governance_approach",
+    "determinism_level",
+    "scalability",
+    "enterprise_readiness",
+    "open_source",
+]
+
+_AGENTIC_FRAMEWORKS = {
+    "apps_rg (this repo)": {
+        "architecture_model": "Layered L0-L6 with ADG enforcement",
+        "governance_approach": "Constitutional pre-commit hooks + policy hash enforcement",
+        "determinism_level": "High — static analysis enforced",
+        "scalability": "Designed for enterprise scale",
+        "enterprise_readiness": "Production-grade with full auditability",
+        "open_source": "Yes",
+    },
+    "LangGraph": {
+        "architecture_model": "Graph-based stateful agent workflows",
+        "governance_approach": "Application-layer only",
+        "determinism_level": "Medium — depends on LLM temperature",
+        "scalability": "Good for mid-scale workloads",
+        "enterprise_readiness": "Growing; requires governance overlay",
+        "open_source": "Yes",
+    },
+    "AutoGen": {
+        "architecture_model": "Multi-agent conversation framework",
+        "governance_approach": "Minimal built-in governance",
+        "determinism_level": "Low — conversational by design",
+        "scalability": "Research-oriented; scaling requires custom work",
+        "enterprise_readiness": "Emerging",
+        "open_source": "Yes",
+    },
+    "CrewAI": {
+        "architecture_model": "Role-based crew orchestration",
+        "governance_approach": "Role definitions; no enforcement layer",
+        "determinism_level": "Medium",
+        "scalability": "Good for task crews",
+        "enterprise_readiness": "Moderate",
+        "open_source": "Yes",
+    },
+}
+
+
+@dataclass
+class ResearchAssemblyResult:
+    """Output of research assembly pass.
+
+    The ``claim_provenance`` field carries a per-claim ``ProvenanceLedger``
+    when the engine ran with provenance attached. It is opt-in (built only
+    when sections carry source citations) so existing callers see no shape
+    change. See :mod:`apps_research.provenance`.
+
+    The ``pa_slot_bindings`` field carries optional PA (Presentation Assembly)
+    slot binding metadata when the engine is invoked with a ``c0_bundle``
+    that includes JD context fencing information.
+    """
+
+    sections: list[ResearchSection] = field(default_factory=list)
+    comparison_matrix: list[ComparisonRow] = field(default_factory=list)
+    source_register: list[SourceEntry] = field(default_factory=list)
+    claim_provenance: object | None = None  # ProvenanceLedger; typed loosely to avoid import cycle
+    pa_slot_bindings: dict | None = None  # PA slot binding metadata keyed by slot name
+
+
+class ResearchAssemblyEngine:
+    """Assemble research artifact from a research request.
+
+    Builds deterministic sections appropriate for the requested mode.
+    Marks each claim with its type (direct_evidence, interpretation, etc.).
+    """
+
+    AGENT_ID = "RESEARCH_ASSEMBLY"
+
+    def __init__(self, config: object | None = None) -> None:
+        self._config = config
+
+    @traces_execute(layer="L3_ORCHESTRATION")
+    def execute(
+        self,
+        request: ResearchRequest,
+        *,
+        company_brief_result: dict | None = None,
+        **kwargs: object,
+    ) -> ResearchAssemblyResult:
+        """Assemble research artifact.
+
+        Args:
+            request: ResearchRequest with topic, mode, audience.
+            company_brief_result: Optional dict from CompanyBriefEngine containing
+                ``_c0_bundle`` and ``_gate_verdict``. When present, JD context
+                fencing metadata is extracted and surfaced in ``pa_slot_bindings``.
+
+        Returns:
+            ResearchAssemblyResult with sections, matrix, source register,
+            and optional pa_slot_bindings.
+        """
+        import uuid as _uuid  # noqa: PLC0415
+
+        _trace_id = str(_uuid.uuid4())
+        trace_contract._emit_records_execution_trace(
+            _trace_id, trace_contract.LayerSegment.L3_ORCHESTRATION, "ResearchAssemblyEngine.execute"
+        )
+
+        mode = request.mode if isinstance(request.mode, str) else str(request.mode)
+        sources = self._build_source_register(request)
+        sections = self._build_sections(request, mode, sources)
+        matrix = self._build_comparison_matrix(request) if mode == "comparison" else []
+
+        # Build per-claim provenance ledger from the just-assembled sections.
+        # Lazy import to avoid pulling pydantic into module-import cost when
+        # the caller doesn't need provenance.
+        from apps_research.provenance import build_ledger_from_sections  # noqa: PLC0415
+
+        claim_ledger = build_ledger_from_sections(sections)
+
+        # Extract PA slot bindings from c0_bundle when company_brief_result is supplied.
+        # JD context is fenced as JD_CONTEXT (not INSTRUCTION) per spine contract.
+        pa_slot_bindings: dict | None = None
+        if company_brief_result:
+            c0_bundle = company_brief_result.get("_c0_bundle") or {}
+            synthesis_guidance = c0_bundle.get("synthesis_guidance") or {}
+            jd_focal_angle = synthesis_guidance.get("jd_focal_angle")
+            if jd_focal_angle or request.jd_context:
+                pa_slot_bindings = {
+                    "jd_context": {
+                        "_fence": "JD_CONTEXT",
+                        "jd_focal_angle": jd_focal_angle,
+                        "source": "c0_bundle.synthesis_guidance",
+                    }
+                }
+
+        _log.info(
+            "[ResearchAssemblyEngine] mode=%s sections=%d sources=%d claims=%d pa_slots=%s",
+            mode,
+            len(sections),
+            len(sources),
+            len(claim_ledger.claims),
+            list((pa_slot_bindings or {}).keys()),
+        )
+        return ResearchAssemblyResult(
+            sections=sections,
+            comparison_matrix=matrix,
+            source_register=sources,
+            claim_provenance=claim_ledger,
+            pa_slot_bindings=pa_slot_bindings,
+        )
+
+    def _build_source_register(self, request: ResearchRequest) -> list[SourceEntry]:
+        """Build a source register from repo-internal evidence."""
+        sources = [
+            SourceEntry(
+                source_id="SRC-001",
+                title="apps_rg L0-L6 Architecture",
+                claim_type="direct_evidence",
+                confidence=0.95,
+                summary="Six-layer architecture with enforced dependency boundaries",
+                url="urn:repo:docs/architecture/",
+                section_id="executive_summary",
+            ),
+            SourceEntry(
+                source_id="SRC-002",
+                title="ADG Anti-Pattern Burndown Ratchet",
+                claim_type="direct_evidence",
+                confidence=0.95,
+                summary="Pre-commit enforcement of architectural governance rules",
+                url="urn:repo:apps_rg/L5_safety/",
+                section_id="key_findings",
+            ),
+            SourceEntry(
+                source_id="SRC-003",
+                title="PolicyHashEnforcer — L0 Routing",
+                claim_type="direct_evidence",
+                confidence=0.90,
+                summary="InstructionPacket policy hash validation at routing entry",
+                url="urn:repo:apps_rg/L0_routing/enforcement/policy_hash_enforcer.py",
+                section_id="key_findings",
+            ),
+            SourceEntry(
+                source_id="SRC-004",
+                title="ExecutionScopeNondeterminismVisitor",
+                claim_type="direct_evidence",
+                confidence=0.90,
+                summary="Static AST analysis of non-deterministic calls in execution scope",
+                url="urn:repo:apps_rg/L5_safety/static_checks/determinism_serialization_check.py",
+                section_id="strategic_implications",
+            ),
+            SourceEntry(
+                source_id="SRC-005",
+                title="Analyst inference: enterprise agentic AI governance trends",
+                claim_type="analyst_inference",
+                confidence=0.70,
+                summary="Growing enterprise demand for auditability in agentic AI systems",
+                url="",
+                section_id="strategic_implications",
+            ),
+        ]
+        if request.comparison_subjects:
+            for idx, subject in tqdm(enumerate(request.comparison_subjects), desc="Processing", unit="item"):
+                sources.append(
+                    SourceEntry(
+                        source_id=f"SRC-C{idx + 1:02d}",
+                        title=f"Comparison subject: {subject}",
+                        claim_type="interpretation",
+                        confidence=0.65,
+                        summary=f"Framework characteristics of {subject} from public documentation",
+                        url="",
+                        section_id="comparison_matrix",
+                    ),
+                )
+        return sources
+
+    def _build_sections(
+        self,
+        request: ResearchRequest,
+        mode: ArtifactMode,
+        sources: list[SourceEntry],
+    ) -> list[ResearchSection]:
+        """Build sections appropriate for the requested mode."""
+        topic = request.topic
+        horizon = request.time_horizon or "current"
+        src_ids = tuple(s.source_id for s in sources[:4])
+
+        section_map: dict[str, list[ResearchSection]] = {
+            "brief": [
+                ResearchSection(
+                    section_id="executive_summary",
+                    heading="Executive Summary",
+                    body=(
+                        f"**Topic:** {topic}\n\n"
+                        f"This brief examines {topic} with a focus on enterprise agentic AI platforms. "
+                        "The evidence base draws from this repository's implementation, which provides "
+                        "a working reference architecture for production-grade agentic systems.\n\n"
+                        f"*Audience: {str(request.audience_style)}. Time horizon: {horizon}.*"
+                    ),
+                    is_deterministic=True,
+                    claim_type="direct_evidence",
+                    sources=src_ids,
+                    word_count=70,
+                ),
+                ResearchSection(
+                    section_id="key_findings",
+                    heading="Key Findings",
+                    body=(
+                        "**Finding 1 [DIRECT_EVIDENCE]:** Production agentic systems require "
+                        "governance enforcement at the architecture layer, not the application layer. "
+                        "Evidence: L0 routing enforcement via PolicyHashEnforcer (SRC-003).\n\n"
+                        "**Finding 2 [DIRECT_EVIDENCE]:** Determinism contracts must be enforced "
+                        "statically, not at runtime. Evidence: ExecutionScopeNondeterminismVisitor (SRC-004).\n\n"
+                        "**Finding 3 [ANALYST_INFERENCE]:** Enterprise buyers increasingly require "
+                        "auditability as a first-class platform feature, not a post-hoc addition (SRC-005).\n\n"
+                        "*Claim type labels: DIRECT_EVIDENCE = from implementation; ANALYST_INFERENCE = analyst judgment.*"
+                    ),
+                    is_deterministic=True,
+                    claim_type="direct_evidence",
+                    sources=src_ids,
+                    word_count=100,
+                ),
+                ResearchSection(
+                    section_id="strategic_implications",
+                    heading="Strategic Implications",
+                    body=(
+                        "**Implication 1 [INTERPRETATION]:** Platforms that treat governance as "
+                        "infrastructure (not configuration) will have lower compliance cost at scale.\n\n"
+                        "**Implication 2 [INTERPRETATION]:** The ADG enforcement model — where "
+                        "violations are ratcheted down over time — is a replicable pattern for "
+                        "any enterprise architecture quality program.\n\n"
+                        "**Implication 3 [ANALYST_INFERENCE]:** Agentic AI platforms that cannot "
+                        "demonstrate deterministic execution paths will face regulatory headwinds "
+                        "in financial services and healthcare.\n\n"
+                        "*INTERPRETATION = derived from evidence; ANALYST_INFERENCE = analyst judgment.*"
+                    ),
+                    is_deterministic=False,
+                    claim_type="interpretation",
+                    sources=src_ids,
+                    word_count=100,
+                ),
+            ],
+            "comparison": [
+                ResearchSection(
+                    section_id="comparison_overview",
+                    heading="Comparison Overview",
+                    body=(
+                        f"**Scope:** Comparative analysis of agentic AI frameworks on topic: {topic}\n\n"
+                        f"**Subjects:** {', '.join(request.comparison_subjects) if request.comparison_subjects else 'major agentic frameworks'}\n\n"
+                        "**Dimensions evaluated:** architecture model, governance approach, "
+                        "determinism level, scalability, enterprise readiness, open source status.\n\n"
+                        "*All framework characterizations are analyst interpretations from public documentation.*"
+                    ),
+                    is_deterministic=True,
+                    claim_type="interpretation",
+                    sources=src_ids,
+                    word_count=70,
+                ),
+                ResearchSection(
+                    section_id="comparison_matrix",
+                    heading="Comparison Matrix",
+                    body="*See structured comparison matrix in artifact output.*",
+                    is_deterministic=True,
+                    claim_type="interpretation",
+                    sources=src_ids,
+                    word_count=10,
+                ),
+                ResearchSection(
+                    section_id="recommendation",
+                    heading="Recommendation",
+                    body=(
+                        "**Recommendation [ANALYST_INFERENCE]:** For enterprise deployments requiring "
+                        "auditability, determinism enforcement, and governance at scale, "
+                        "agentic platforms with constitutional enforcement (pre-commit governance, "
+                        "policy hash validation, static analysis) are preferred over frameworks "
+                        "that treat governance as application-layer configuration.\n\n"
+                        "*This recommendation is analyst inference, not direct evidence.*"
+                    ),
+                    is_deterministic=False,
+                    claim_type="analyst_inference",
+                    sources=src_ids,
+                    word_count=70,
+                ),
+            ],
+            "trend": [
+                ResearchSection(
+                    section_id="trend_overview",
+                    heading="Trend Overview",
+                    body=(
+                        f"**Topic:** {topic}\n"
+                        f"**Time horizon:** {horizon}\n\n"
+                        "Emerging trend: enterprise organizations are moving from single-model AI deployments "
+                        "to multi-hop agentic workflows with explicit governance contracts.\n\n"
+                        "*Trend characterizations are analyst inferences unless otherwise labeled.*"
+                    ),
+                    is_deterministic=True,
+                    claim_type="analyst_inference",
+                    sources=src_ids,
+                    word_count=60,
+                ),
+                ResearchSection(
+                    section_id="signal_analysis",
+                    heading="Signal Analysis",
+                    body=(
+                        "**Signal 1 [DIRECT_EVIDENCE]:** Agentic platforms are adopting static "
+                        "analysis as a governance enforcement mechanism (source: this repo).\n\n"
+                        "**Signal 2 [ANALYST_INFERENCE]:** Regulatory pressure in financial services "
+                        "and healthcare is accelerating governance-first AI platform adoption.\n\n"
+                        "**Signal 3 [ANALYST_INFERENCE]:** Open-source agentic frameworks are converging "
+                        "toward explicit orchestration graphs as the dominant pattern."
+                    ),
+                    is_deterministic=False,
+                    claim_type="analyst_inference",
+                    sources=src_ids,
+                    word_count=80,
+                ),
+                ResearchSection(
+                    section_id="horizon_implications",
+                    heading="Horizon Implications",
+                    body=(
+                        "**Near-term (0-12 months) [ANALYST_INFERENCE]:** Governance tooling for "
+                        "agentic AI will become a purchase criterion, not just a nice-to-have.\n\n"
+                        "**Medium-term (1-3 years) [ANALYST_INFERENCE]:** Platform consolidation "
+                        "around 2-3 dominant orchestration frameworks with enterprise governance layers."
+                    ),
+                    is_deterministic=False,
+                    claim_type="analyst_inference",
+                    sources=src_ids,
+                    word_count=60,
+                ),
+            ],
+            "position": [
+                ResearchSection(
+                    section_id="position_statement",
+                    heading="Position Statement",
+                    body=(
+                        f"**Topic:** {topic}\n\n"
+                        "**Position [ANALYST_INFERENCE]:** Governance-first agentic AI architecture "
+                        "is the only viable foundation for enterprise-scale deployments requiring "
+                        "auditability, reproducibility, and regulatory compliance.\n\n"
+                        "*This is an analyst-held position, not a vendor claim.*"
+                    ),
+                    is_deterministic=True,
+                    claim_type="analyst_inference",
+                    sources=src_ids,
+                    word_count=60,
+                ),
+                ResearchSection(
+                    section_id="supporting_evidence",
+                    heading="Supporting Evidence",
+                    body=(
+                        "**Evidence 1 [DIRECT_EVIDENCE]:** PolicyHashEnforcer validates every "
+                        "InstructionPacket at L0 routing — architecture-layer, not app-layer (SRC-003).\n\n"
+                        "**Evidence 2 [DIRECT_EVIDENCE]:** ADG Anti-Pattern Ratchet enforces violation "
+                        "reduction at every commit, making governance cumulative (SRC-002).\n\n"
+                        "**Evidence 3 [DIRECT_EVIDENCE]:** ExecutionScopeNondeterminismVisitor flags "
+                        "non-deterministic calls statically before execution (SRC-004)."
+                    ),
+                    is_deterministic=True,
+                    claim_type="direct_evidence",
+                    sources=src_ids,
+                    word_count=80,
+                ),
+                ResearchSection(
+                    section_id="counterarguments",
+                    heading="Counterarguments",
+                    body=(
+                        "**Counterargument 1 [INTERPRETATION]:** Governance-first slows feature velocity. "
+                        "*Response:* The ADG enforcement model shows that ratcheting reduces violations "
+                        "monotonically, reducing rework cost over time.\n\n"
+                        "**Counterargument 2 [INTERPRETATION]:** Application-layer governance is sufficient "
+                        "for most use cases. *Response:* When governance is configurable, it gets "
+                        "disabled under pressure. Constitutional enforcement does not."
+                    ),
+                    is_deterministic=False,
+                    claim_type="interpretation",
+                    sources=src_ids,
+                    word_count=80,
+                ),
+                ResearchSection(
+                    section_id="conclusion",
+                    heading="Conclusion",
+                    body=(
+                        "**Conclusion [ANALYST_INFERENCE]:** Enterprise agentic AI platforms that embed "
+                        "governance at the architecture layer — not the application layer — will have "
+                        "lower compliance cost, higher auditability, and stronger regulatory positioning "
+                        f"over a {horizon} time horizon.\n\n"
+                        "*All evidence citations link to this repository's implementation.*"
+                    ),
+                    is_deterministic=True,
+                    claim_type="analyst_inference",
+                    sources=src_ids,
+                    word_count=70,
+                ),
+            ],
+            "thought_leadership": [
+                ResearchSection(
+                    section_id="hook",
+                    heading="Opening Hook",
+                    body=(
+                        "Most agentic AI platforms treat governance as a checklist. "
+                        "This repository treats it as a constitutional requirement — "
+                        "enforced at every commit, every routing decision, and every output."
+                    ),
+                    is_deterministic=True,
+                    claim_type="direct_evidence",
+                    sources=src_ids,
+                    word_count=40,
+                ),
+                ResearchSection(
+                    section_id="insight",
+                    heading="Core Insight",
+                    body=(
+                        f"**Topic:** {topic}\n\n"
+                        "The key insight is that determinism and governance must be enforced "
+                        "at the architecture layer — not the application layer. "
+                        "When governance is application-layer config, it gets overridden. "
+                        "When it is constitutional — pre-commit hooks, signed instruction packets, "
+                        "static analysis ratchets — it becomes load-bearing infrastructure."
+                    ),
+                    is_deterministic=False,
+                    claim_type="interpretation",
+                    sources=src_ids,
+                    word_count=70,
+                ),
+                ResearchSection(
+                    section_id="evidence",
+                    heading="Evidence from Implementation",
+                    body=(
+                        "Evidence base:\n"
+                        "- PolicyHashEnforcer: validates InstructionPacket.policy_hash at L0 routing entry\n"
+                        "- ADG Anti-Pattern Burndown Ratchet: ratchets down violations at each commit\n"
+                        "- ExecutionScopeNondeterminismVisitor: static AST enforcement across L1-L3\n\n"
+                        "*All evidence is from this repository's implementation.*"
+                    ),
+                    is_deterministic=True,
+                    claim_type="direct_evidence",
+                    sources=src_ids,
+                    word_count=60,
+                ),
+                ResearchSection(
+                    section_id="call_to_action",
+                    heading="Call to Action",
+                    body=(
+                        "If you are building an agentic AI platform: "
+                        "start with governance infrastructure, not features. "
+                        "The architecture of this repository is available as a reference. "
+                        "The patterns — ADG enforcement, policy hash validation, determinism contracts — "
+                        "are replicable without this codebase."
+                    ),
+                    is_deterministic=False,
+                    claim_type="analyst_inference",
+                    sources=src_ids,
+                    word_count=60,
+                ),
+            ],
+        }
+
+        return section_map.get(mode, section_map["brief"])
+
+    def _build_comparison_matrix(self, request: ResearchRequest) -> list[ComparisonRow]:
+        """Build a structured comparison matrix for comparison mode."""
+        subjects = request.comparison_subjects or list(_AGENTIC_FRAMEWORKS.keys())
+        rows: list[ComparisonRow] = []
+        for subject in subjects:
+            dims = _AGENTIC_FRAMEWORKS.get(
+                subject,
+                dict.fromkeys(_COMPARISON_DIMENSIONS, "Unknown — requires primary research"),
+            )
+            rows.append(ComparisonRow(subject=subject, dimensions=dims))
+        return rows

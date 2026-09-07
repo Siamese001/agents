@@ -1,0 +1,39 @@
+{
+  "schema_version": "apps_rg.graph_evolution_controlled_activation_contract.v1",
+  "contract_id": "APPS_RG_GRAPH_EVOLUTION_CONTROLLED_ACTIVATION",
+  "wave": "GE_W8",
+  "status": "FROZEN",
+  "entry_requirements": {
+    "ge_w7_qualified_comparison_receipt_required": true,
+    "candidate_registry_projection_digest_binding_required": true,
+    "explicit_external_release_authority_required": true,
+    "uwg_required_for_any_active_pointer_change": true
+  },
+  "canary": {
+    "maximum_candidate_traffic_fraction": 0.05,
+    "minimum_shadow_request_count": 100,
+    "minimum_shadow_window_seconds": 3600,
+    "candidate_and_baseline_comparison_required": true,
+    "activation_is_reversible": true
+  },
+  "shadow_guardrails": {
+    "candidate_error_rate_delta_max": 0.01,
+    "candidate_p95_latency_ratio_max": 1.2,
+    "evidence_authority_bypass_count_max": 0,
+    "section_policy_leak_count_max": 0,
+    "projection_issue_count_max": 0
+  },
+  "rollback": {
+    "automatic_on_guardrail_breach": true,
+    "restore_prior_active_registry_required": true,
+    "candidate_retained_for_audit": true,
+    "rollback_requires_uwg": true
+  },
+  "ge_w8_exit": {
+    "plan_ready_state": "CANARY_PLAN_READY",
+    "continue_state": "CONTINUE_CANARY",
+    "rollback_state": "ROLLBACK_REQUIRED",
+    "full_promotion_created": false,
+    "next_gate": "EXPLICIT_UWG_CANARY_ACTIVATION"
+  }
+}

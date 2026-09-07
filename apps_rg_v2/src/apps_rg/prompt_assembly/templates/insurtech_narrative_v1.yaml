@@ -1,0 +1,33 @@
+template_id: insurtech_narrative_v1
+section_id: insurtech_narrative
+purpose: >
+  Generate exactly one sentence for the InsurTech role episode after finalized
+  bul_insurtech bullets exist. Keep the sentence within 58 words and 360
+  characters. Use only source_fact_ids from the active proof pool; targeting
+  context is targeting_only and jd_used_as_proof must remain false. The
+  sentence is a lightweight role-thesis synthesis above accepted bullets, not a
+  recap of the bullet list.
+methodology_contract:
+  role: ROLE_THESIS_NARRATIVE
+  finalized_bullets_are_primary_synthesis_context: true
+  proof_authority: active_proof_pool_and_claim_ledger_only
+  thesis_rule: >
+    State why the InsurTech role mattered at a higher level of abstraction; the
+    companion bullets prove what was delivered.
+  anti_patterns:
+    - "three-bullet recap"
+    - "comma-packed list of bullet topics"
+    - "new first-principles graph traversal in narrative"
+    - "JD or briefing used as claim evidence"
+output_contract:
+  format: json_object
+  required_keys:
+    - narrative_sentence
+    - claim_ledger
+    - jd_alignment
+proof_contract:
+  source_fact_ids: required
+  bullet_dependency: bul_insurtech
+  targeting_only: true
+  jd_used_as_proof: false
+  retries_cannot_repair_missing_upstream_evidence: true

@@ -1,0 +1,192 @@
+schema_version: apps_rg.pipeline_measurement_coverage.v1
+title: Apps RG source-bound pipeline measurement coverage
+source_contracts:
+  lane_contract: src/apps_eval/registries/apps_rg_lane_contract.json
+  stage_microstep_contract: src/apps_eval/registries/apps_rg_stage_microstep_contract.json
+  success_metric_contract: src/apps_rg/evals/contracts/success_metric_contract.v1.yaml
+coverage:
+  - element_id: apps_research_to_u0
+    scope: prerequisite
+    stage_id: apps_research
+    required: true
+    artifact_roles: [apps_research_handoff_validation_receipt]
+    metric_links:
+      - {metric_id: P1, role: prerequisite, authority_required: human_qualified}
+      - {metric_id: P2, role: prerequisite, authority_required: human_qualified}
+    slice_keys: [target_company, role_family, research_freshness]
+    recertification_triggers: [research_handoff, source_register, jd_digest]
+  - element_id: u0_ingress
+    scope: global
+    stage_id: U0
+    required: true
+    artifact_roles: [run_bundle_index, u0_runtime_package]
+    metric_links:
+      - {metric_id: P1, role: prerequisite, authority_required: human_qualified}
+      - {metric_id: P2, role: prerequisite, authority_required: human_qualified}
+      - {metric_id: G5, role: diagnostic, authority_required: technical_validation}
+    slice_keys: [target_company, role_family, request_shape]
+    recertification_triggers: [ingress_contract, runtime_package, request_schema]
+  - element_id: l1_planning
+    scope: global
+    stage_id: L1
+    required: false
+    artifact_roles: [l1_static_plan_profile]
+    metric_links:
+      - {metric_id: P2, role: outcome, authority_required: human_qualified}
+      - {metric_id: G5, role: diagnostic, authority_required: technical_validation}
+    slice_keys: [role_family, plan_profile, evidence_density]
+    recertification_triggers: [planning_profile, planner_version, profile_digest]
+  - element_id: l0_routing
+    scope: global
+    stage_id: L0
+    required: true
+    artifact_roles: [l0_route_profile]
+    metric_links:
+      - {metric_id: P2, role: outcome, authority_required: human_qualified}
+      - {metric_id: G5, role: diagnostic, authority_required: technical_validation}
+    slice_keys: [route_profile, provider, model]
+    recertification_triggers: [routing_policy, provider, model]
+  - element_id: c0_evidence
+    scope: global
+    stage_id: C0
+    required: false
+    artifact_roles: [c0_evidence_manifest]
+    metric_links:
+      - {metric_id: P2, role: outcome, authority_required: human_qualified}
+      - {metric_id: G1, role: diagnostic, authority_required: human_qualified}
+      - {metric_id: G2, role: diagnostic, authority_required: human_qualified}
+      - {metric_id: G3, role: diagnostic, authority_required: human_qualified}
+    slice_keys: [retrieval_mode, evidence_density, hard_negative]
+    recertification_triggers: [graph, retrieval_index, query_policy]
+  - element_id: pa_prompt_assembly
+    scope: global
+    stage_id: PA
+    required: false
+    artifact_roles: [pa_compiled_prompt]
+    metric_links:
+      - {metric_id: P2, role: outcome, authority_required: human_qualified}
+      - {metric_id: G2, role: diagnostic, authority_required: human_qualified}
+      - {metric_id: G3, role: diagnostic, authority_required: human_qualified}
+    slice_keys: [prompt_template, model, role_family]
+    recertification_triggers: [prompt_template, prompt_assembly, model]
+  - element_id: lane_l2_generation
+    scope: lane
+    stage_id: L2
+    required: true
+    artifact_roles: [lane_l2_output, lane_runtime_payload, l2_execution_packet, frozen_execution_context, prep_receipt, validation_receipt, attempt_receipt, seal_receipt, l2_receipt_bundle, sealed_l2_artifact, l2_handoff_receipt]
+    metric_links:
+      - {metric_id: P2, role: outcome, authority_required: human_qualified}
+      - {metric_id: G2, role: diagnostic, authority_required: human_qualified}
+      - {metric_id: G3, role: diagnostic, authority_required: human_qualified}
+      - {metric_id: G5, role: diagnostic, authority_required: technical_validation}
+    slice_keys: [lane_id, model, cache_mode, evidence_density]
+    recertification_triggers: [lane_implementation, model, provider, evidence_plan]
+  - element_id: lane_x2_validation
+    scope: lane
+    stage_id: X2
+    required: true
+    artifact_roles: [lane_x2_gate_outputs]
+    metric_links:
+      - {metric_id: P2, role: outcome, authority_required: human_qualified}
+      - {metric_id: G2, role: diagnostic, authority_required: human_qualified}
+      - {metric_id: G3, role: diagnostic, authority_required: human_qualified}
+      - {metric_id: unsupported_material_claim_count, role: guardrail, authority_required: human_qualified}
+      - {metric_id: critical_binding_error_count, role: guardrail, authority_required: human_qualified}
+    slice_keys: [lane_id, claim_type, evidence_density]
+    recertification_triggers: [x2_validator, claim_inventory, graph_authority]
+  - element_id: lane_x1d_review
+    scope: lane
+    stage_id: X1D
+    required: true
+    artifact_roles: [lane_x1d_llm_judge_outputs]
+    metric_links:
+      - {metric_id: P2, role: outcome, authority_required: human_qualified}
+      - {metric_id: G4, role: diagnostic, authority_required: human_qualified}
+      - {metric_id: G6, role: diagnostic, authority_required: technical_validation}
+    slice_keys: [lane_id, judge_id, model, role_family]
+    recertification_triggers: [judge_prompt, judge_model, judge_calibration]
+  - element_id: lane_x3_disposition
+    scope: lane
+    stage_id: X3
+    required: true
+    artifact_roles: [lane_x3_disposition]
+    metric_links:
+      - {metric_id: P2, role: outcome, authority_required: human_qualified}
+      - {metric_id: G4, role: diagnostic, authority_required: human_qualified}
+      - {metric_id: G5, role: diagnostic, authority_required: technical_validation}
+    slice_keys: [lane_id, disposition, failure_family]
+    recertification_triggers: [x3_policy, gate_precedence, disposition_policy]
+  - element_id: lane_l6_observability
+    scope: lane
+    stage_id: L6
+    required: true
+    artifact_roles: [lane_l6_shadow_eval_package]
+    metric_links:
+      - {metric_id: P2, role: outcome, authority_required: human_qualified}
+      - {metric_id: G5, role: diagnostic, authority_required: technical_validation}
+      - {metric_id: G6, role: diagnostic, authority_required: technical_validation}
+    slice_keys: [lane_id, observer_version, trace_coverage]
+    recertification_triggers: [shadow_schema, observer_version, trace_contract]
+  - element_id: cross_run_x2_assembly
+    scope: cross_run
+    stage_id: X2
+    required: true
+    artifact_roles: [cross_section_x2_gate_outputs, final_resume_json, final_resume_x2_gate_outputs]
+    metric_links:
+      - {metric_id: P1, role: outcome, authority_required: human_qualified}
+      - {metric_id: P2, role: outcome, authority_required: human_qualified}
+      - {metric_id: G4, role: diagnostic, authority_required: human_qualified}
+      - {metric_id: unsupported_material_claim_count, role: guardrail, authority_required: human_qualified}
+      - {metric_id: critical_binding_error_count, role: guardrail, authority_required: human_qualified}
+    slice_keys: [document_format, role_family, lane_mix]
+    recertification_triggers: [final_assembly, document_renderer, cross_section_validator]
+  - element_id: exit_whole_run
+    scope: cross_run
+    stage_id: EXIT
+    required: true
+    artifact_roles: [whole_run_exit_review_packet]
+    metric_links:
+      - {metric_id: P1, role: outcome, authority_required: human_qualified}
+      - {metric_id: P2, role: outcome, authority_required: human_qualified}
+      - {metric_id: G4, role: diagnostic, authority_required: human_qualified}
+      - {metric_id: critical_run_divergence_count, role: guardrail, authority_required: technical_validation}
+    slice_keys: [final_disposition, role_family, document_format]
+    recertification_triggers: [exit_policy, whole_run_review, final_disposition]
+  - element_id: uwg_durable_commit
+    scope: cross_run
+    stage_id: UWG
+    required: true
+    artifact_roles: [uwg_commit_receipt, uwg_commit_request, uwg_validation_receipt]
+    metric_links:
+      - {metric_id: G5, role: diagnostic, authority_required: technical_validation}
+      - {metric_id: G6, role: diagnostic, authority_required: technical_validation}
+    slice_keys: [commit_disposition, runtime_configuration]
+    recertification_triggers: [uwg_policy, durable_store, commit_schema]
+  - element_id: cross_run_l6_trace
+    scope: cross_run
+    stage_id: L6
+    required: false
+    artifact_roles: [trace_reconciliation]
+    metric_links:
+      - {metric_id: G5, role: diagnostic, authority_required: technical_validation}
+      - {metric_id: G6, role: diagnostic, authority_required: technical_validation}
+    slice_keys: [observer_version, trace_coverage, provider]
+    recertification_triggers: [otel_contract, trace_reconciliation, observer_version]
+  - element_id: package_evidence
+    scope: cross_run
+    stage_id: PACKAGE
+    required: true
+    artifact_roles: [component_scorecards, coverage_matrix, scorecard_rows]
+    metric_links:
+      - {metric_id: G6, role: diagnostic, authority_required: technical_validation}
+    slice_keys: [suite_id, evaluator_version, data_split]
+    recertification_triggers: [scorecard_schema, component_taxonomy, evaluator_version]
+  - element_id: regression_outputs
+    scope: cross_run
+    stage_id: REGRESSION
+    required: true
+    artifact_roles: [regression_summary]
+    metric_links:
+      - {metric_id: apps_eval_regression, role: regression, authority_required: regression_diagnostic}
+    slice_keys: [suite_id, data_split, snapshot_digest]
+    recertification_triggers: [fixture_snapshot, regression_baseline, grader_version]

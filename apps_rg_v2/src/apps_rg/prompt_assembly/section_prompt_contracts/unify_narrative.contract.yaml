@@ -1,0 +1,29 @@
+section_id: unify_narrative
+mode: SUMMARIZE_ROLE_SCOPE
+apps_rg_prompt_template_ref: apps_rg/prompt_assembly/templates/unify_position_narrative_v1.yaml
+pa_template_ref: strategic_tailor_v1
+output_schema_ref: apps_rg/rg_output_schema.json
+claim_ledger_required: true
+display_text_source_tags_allowed: false
+jd_as_proof_allowed: false
+companion_context_allowed: true
+companion_context_authority: U_TIER_CONTEXT_ONLY
+required_generation_order: 2
+requires_finalized_companion_context:
+  section_id: unify_bullets
+  required_status: ACCEPTED_FINALIZED
+  fail_closed_if_missing: true
+x2_gate_profile_ref: apps_rg/runtime/validators/unify_narrative_x2.py
+product_shape_ssot_ref: apps_rg/runtime/sections/section_product_shape_ssot.py
+x1d_judge_profile_ref: apps_rg/runtime/judges/unify_narrative_x1d.py
+locked_fields: []
+llm_generation_allowed: true
+notes: >
+  W8 ledger-only citations: resume display text must not contain inline source/citation tags.
+  Proof binds via claim_ledger / source_fact_ids / evidence_ids (and gap_notes when applicable).
+  jd_requirements / company_brief are targeting only, not proof.
+  North-star role capstone: platform roadmap, architecture, commercialization, reusable IP, enterprise deployment;
+  base anchor fact unify_narrative_base_* when role_narrative exists in canonical JSON.
+  Companion context is U-tier only, not proof.
+  Production narrative must run only after unify_bullets has X2/X1D/X3 evidence and product_quality_status PASS.
+  W7 mechanical migration hardened with bullet-first dependency enforcement.

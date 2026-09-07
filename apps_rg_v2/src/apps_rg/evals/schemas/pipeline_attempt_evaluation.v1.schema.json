@@ -1,0 +1,150 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.agentic-workflow.local/apps_rg/pipeline_attempt_evaluation.v1.schema.json",
+  "title": "Apps RG source-bound pipeline attempt evaluation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "evaluation_id", "source_identity", "cohort", "attempts"],
+  "properties": {
+    "schema_version": {"const": "apps_rg.pipeline_attempt_evaluation.v1"},
+    "evaluation_id": {"type": "string", "minLength": 1},
+    "source_identity": {"$ref": "#/$defs/source_identity"},
+    "cohort": {"$ref": "#/$defs/cohort"},
+    "attempts": {"type": "array", "items": {"$ref": "#/$defs/attempt"}}
+  },
+  "$defs": {
+    "source_identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["coverage_contract_digest", "source_contract_digests", "evaluator_version"],
+      "properties": {
+        "coverage_contract_digest": {"type": ["string", "null"]},
+        "source_contract_digests": {
+          "type": ["object", "null"],
+          "additionalProperties": {"type": "string"}
+        },
+        "evaluator_version": {"const": "apps_rg.pipeline_attempt_evaluation.v1"}
+      }
+    },
+    "cohort": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "cohort_id", "data_split", "frozen_member_ids", "frozen_member_ids_digest"],
+      "properties": {
+        "status": {"enum": ["PENDING", "FROZEN"]},
+        "cohort_id": {"type": "string"},
+        "data_split": {"enum": ["calibration", "holdout", null]},
+        "frozen_member_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "frozen_member_ids_digest": {"type": ["string", "null"]}
+      }
+    },
+    "attempt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["attempt_id", "cohort_member_id", "input_digest", "population_status", "exclusion_reason", "apps_research_to_u0", "runtime", "terminal_status", "terminal_stage", "terminal_reason", "slice_values", "element_evidence", "diagnostic_receipts", "guardrails"],
+      "properties": {
+        "attempt_id": {"type": "string", "minLength": 1},
+        "cohort_member_id": {"type": "string", "minLength": 1},
+        "input_digest": {"type": "string", "minLength": 1},
+        "population_status": {"enum": ["ELIGIBLE", "EXCLUDED"]},
+        "exclusion_reason": {"type": ["string", "null"]},
+        "apps_research_to_u0": {"$ref": "#/$defs/handoff"},
+        "runtime": {"anyOf": [{"$ref": "#/$defs/runtime"}, {"type": "null"}]},
+        "terminal_status": {"enum": ["COMPLETE", "FAILED", "ABSTAINED", "NOT_STARTED"]},
+        "terminal_stage": {"type": ["string", "null"]},
+        "terminal_reason": {"type": ["string", "null"]},
+        "slice_values": {"type": "object", "additionalProperties": {"type": "string", "minLength": 1}},
+        "element_evidence": {"type": "array", "items": {"$ref": "#/$defs/element_evidence"}},
+        "diagnostic_receipts": {"$ref": "#/$defs/diagnostic_receipts"},
+        "guardrails": {"$ref": "#/$defs/guardrails"}
+      }
+    },
+    "handoff": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["observed", "valid", "status", "receipt_digest"],
+      "properties": {
+        "observed": {"type": "boolean"},
+        "valid": {"type": "boolean"},
+        "status": {"enum": ["PASS", "FAIL", "UNKNOWN"]},
+        "receipt_digest": {"type": "string"}
+      }
+    },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider", "model", "configuration_digest", "cache_mode"],
+      "properties": {
+        "provider": {"type": "string", "minLength": 1},
+        "model": {"type": "string", "minLength": 1},
+        "configuration_digest": {"type": "string", "minLength": 1},
+        "cache_mode": {"enum": ["COLD", "WARM"]}
+      }
+    },
+    "element_evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["element_id", "scope", "stage_id", "lane_id", "status", "artifact_digests", "reason_codes"],
+      "properties": {
+        "element_id": {"type": "string", "minLength": 1},
+        "scope": {"enum": ["prerequisite", "global", "lane", "cross_run"]},
+        "stage_id": {"type": "string", "minLength": 1},
+        "lane_id": {"type": ["string", "null"]},
+        "status": {"enum": ["PASS", "FAIL", "ABSTAINED", "NOT_RUN", "UNKNOWN"]},
+        "artifact_digests": {
+          "type": "object",
+          "additionalProperties": {"type": "string"}
+        },
+        "reason_codes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "diagnostic_receipts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["G1", "G2", "G3", "G4", "G5", "G6"],
+      "properties": {
+        "G1": {"$ref": "#/$defs/receipt_reference"},
+        "G2": {"$ref": "#/$defs/receipt_reference"},
+        "G3": {"$ref": "#/$defs/receipt_reference"},
+        "G4": {"$ref": "#/$defs/receipt_reference"},
+        "G5": {"$ref": "#/$defs/receipt_reference"},
+        "G6": {"$ref": "#/$defs/receipt_reference"}
+      }
+    },
+    "receipt_reference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "record_digest", "authority_tier"],
+      "properties": {
+        "status": {"enum": ["PASS", "FAIL", "NOT_MEASURED", "UNKNOWN"]},
+        "record_digest": {"type": "string"},
+        "authority_tier": {"enum": ["technical_validation", "human_qualified"]}
+      }
+    },
+    "guardrails": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["unsupported_material_claim_count", "critical_binding_error_count", "critical_run_divergence_count"],
+      "properties": {
+        "unsupported_material_claim_count": {"$ref": "#/$defs/guardrail"},
+        "critical_binding_error_count": {"$ref": "#/$defs/guardrail"},
+        "critical_run_divergence_count": {"$ref": "#/$defs/guardrail"}
+      }
+    },
+    "guardrail": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "count", "record_digest", "authority_tier"],
+      "properties": {
+        "status": {"enum": ["PASS", "FAIL", "NOT_MEASURED", "UNKNOWN"]},
+        "count": {"type": ["integer", "null"], "minimum": 0},
+        "record_digest": {"type": "string"},
+        "authority_tier": {"enum": ["technical_validation", "human_qualified"]}
+      }
+    }
+  }
+}

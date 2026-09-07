@@ -1,0 +1,43 @@
+{
+  "schema_version": "apps_rg.c03_legacy_embedding_retirement_contract.v1",
+  "contract_id": "C03_LEGACY_GRAPH_SKILL_EMBEDDING_RETIREMENT_W5",
+  "wave": "W5",
+  "status": "FROZEN",
+  "source_requirements": {
+    "wave4_receipt_required": true,
+    "wave4_registry_required": true,
+    "exact_frozen_legacy_inventory_required": true,
+    "canonical_graph_preservation_required": true
+  },
+  "retirement_boundary": {
+    "retired_lane": "one_vector_per_skill_assertion",
+    "retired_artifact_directory": "artifacts/apps_rg/c03/graph_skill_embeddings",
+    "exact_frozen_artifact_count": 13,
+    "delete_every_frozen_artifact": true,
+    "unexpected_file_blocks_retirement": true,
+    "retirement_marker_required": true,
+    "runtime_loader_must_fail_closed": true,
+    "legacy_preflight_must_fail_closed": true,
+    "legacy_build_qualify_activate_rebuild_smoke_must_fail_closed": true,
+    "historical_receipts_remain_auditable": true,
+    "git_recovery_binding_required": true
+  },
+  "replacement_boundary": {
+    "wave4_cluster_registry_preserved": true,
+    "replacement_vectors_generated": false,
+    "cluster_embedding_activation_created": false,
+    "legacy_environment_flag_repurposed": false,
+    "production_promotion_authorized": false
+  },
+  "wave5_acceptance": {
+    "all_frozen_legacy_artifacts_absent": true,
+    "legacy_artifact_directory_empty_or_absent": true,
+    "retirement_marker_digest_valid": true,
+    "retired_loader_precedes_manifest_access": true,
+    "canonical_graph_byte_identical_to_wave4": true,
+    "cluster_registry_byte_identical_to_wave4": true,
+    "wave6_generation_gate_opened": true,
+    "wave6_generation_executed": false,
+    "production_promotion_authorized": false
+  }
+}

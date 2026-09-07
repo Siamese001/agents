@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.agentic-workflow.local/apps_rg/receipt_catalog.v1.schema.json",
+  "title": "Apps RG W1 receipt catalog manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "catalog_id",
+    "required_receipt_kinds",
+    "minimum_authority_tier",
+    "entries"
+  ],
+  "properties": {
+    "schema_version": {"const": "apps_rg.receipt_catalog.v1"},
+    "catalog_id": {"type": "string", "minLength": 1},
+    "required_receipt_kinds": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"enum": ["G1", "G2", "G3", "G4", "G5", "G6", "P1", "P2", "unsupported_material_claim_count", "critical_binding_error_count", "critical_run_divergence_count"]}
+    },
+    "minimum_authority_tier": {"enum": ["technical_validation", "human_qualified", "release_authorized", "production_authorized"]},
+    "entries": {"type": "array", "items": {"$ref": "#/$defs/entry"}}
+  },
+  "$defs": {
+    "entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["entry_id", "receipt_kind", "path", "expected_file_sha256", "input_digest", "evaluator_version", "data_split", "runtime_configuration_digest", "authority_tier"],
+      "properties": {
+        "entry_id": {"type": "string", "minLength": 1},
+        "receipt_kind": {"enum": ["G1", "G2", "G3", "G4", "G5", "G6", "P1", "P2", "unsupported_material_claim_count", "critical_binding_error_count", "critical_run_divergence_count", "apps_eval_regression"]},
+        "path": {"type": "string", "minLength": 1},
+        "expected_file_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "expected_record_digest": {"type": "string", "minLength": 1},
+        "expected_schema_version": {"type": "string", "minLength": 1},
+        "input_digest": {"type": "string", "minLength": 1},
+        "evaluator_version": {"type": "string", "minLength": 1},
+        "data_split": {"enum": ["calibration", "holdout"]},
+        "runtime_configuration_digest": {"type": "string", "minLength": 1},
+        "authority_tier": {"enum": ["technical_validation", "human_qualified", "release_authorized", "production_authorized", "regression_diagnostic"]}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"receipt_kind": {"const": "apps_eval_regression"}}, "required": ["receipt_kind"]},
+          "then": {"properties": {"authority_tier": {"const": "regression_diagnostic"}}}
+        },
+        {
+          "if": {"properties": {"receipt_kind": {"not": {"const": "apps_eval_regression"}}}, "required": ["receipt_kind"]},
+          "then": {"properties": {"authority_tier": {"enum": ["technical_validation", "human_qualified", "release_authorized", "production_authorized"]}}}
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,84 @@
+# W0 failure taxonomy for L1 plan-to-execution reconciliation.
+#
+# This is decision-support data only.  W0 records the suggested W2 replan
+# class; it does not retry, route, retrieve, generate, or authorize an exit.
+schema_version: apps_rg.plan_execution_failure_taxonomy.v1
+app_id: apps_rg
+task_class: resume_generation
+
+failure_codes:
+  - code: L1_PLAN_BLOCKED
+    failure_class: INGRESS_OR_AMBIGUITY
+    allowed_dispositions: [BLOCKED]
+    w2_replan_hint: CLARIFY_OR_REPAIR_INPUT
+  - code: UPSTREAM_EVIDENCE_MISSING
+    failure_class: UPSTREAM_EVIDENCE
+    allowed_dispositions: [BLOCKED, SKIPPED]
+    w2_replan_hint: REPLAN_EVIDENCE
+  - code: REQUIRED_PROOF_ABSENT
+    failure_class: UPSTREAM_EVIDENCE
+    allowed_dispositions: [BLOCKED, SKIPPED]
+    w2_replan_hint: REPLAN_EVIDENCE
+  - code: FEC_NOT_FINALIZED
+    failure_class: UPSTREAM_EVIDENCE
+    allowed_dispositions: [BLOCKED, SKIPPED]
+    w2_replan_hint: REPLAN_EVIDENCE
+  - code: REQUIRED_DEPENDENCY_EMPTY
+    failure_class: UPSTREAM_EVIDENCE
+    allowed_dispositions: [BLOCKED, SKIPPED]
+    w2_replan_hint: REPLAN_EVIDENCE
+  - code: RETRIEVAL_FAILED
+    failure_class: RETRIEVAL
+    allowed_dispositions: [FAILED]
+    w2_replan_hint: REPLAN_RETRIEVAL
+  - code: GENERATION_FAILED
+    failure_class: GENERATION
+    allowed_dispositions: [FAILED]
+    w2_replan_hint: REPAIR_OR_RETRY_GENERATION
+  - code: REQUIRED_CONTROL_EXECUTION_ABSENT
+    failure_class: EXECUTION_PROOF_GAP
+    allowed_dispositions: [BLOCKED]
+    w2_replan_hint: REPAIR_OR_RETRY_GENERATION
+  - code: POLICY_BLOCKED
+    failure_class: POLICY
+    allowed_dispositions: [BLOCKED, SKIPPED]
+    w2_replan_hint: TERMINAL_BLOCK
+
+# W5 consumes the same failure vocabulary, but it must cite observed causes
+# rather than treat an outcome code as enough evidence to retry.  These rows
+# declare the only advisory next-owner proposals that W5 may materialize.
+w5_diagnostic_policy:
+  schema_version: apps_rg.plan_execution_failure_diagnostic_policy.v1
+  max_advisory_revision_depth: 2
+  repeated_diagnostic_disposition: ESCALATE_TO_DESIGNATED_RESOLVER
+  diagnostic_codes:
+    C0_OBLIGATION_RECEIPT_UNBOUND:
+      strategy: REPLAN_EVIDENCE
+      next_governed_owner: C0
+      designated_resolver: C0
+      actionable: true
+    C0_OBLIGATION_UNRESOLVED:
+      strategy: REPLAN_EVIDENCE
+      next_governed_owner: C0
+      designated_resolver: C0
+      actionable: true
+    REQUIRED_CONTROL_EXECUTION_ABSENT:
+      strategy: REPAIR_GENERATION_AFTER_CONTROL_PROOF
+      next_governed_owner: L2
+      designated_resolver: L2
+      actionable: true
+    PROVIDER_OR_TRANSPORT_FAULT:
+      strategy: REPAIR_GENERATION_AFTER_PROVIDER_FAULT
+      next_governed_owner: L2
+      designated_resolver: L2
+      actionable: true
+    GRAPH_PREDECESSOR_UNMET:
+      strategy: AWAIT_PREDECESSOR_RECONCILIATION
+      next_governed_owner: L3
+      designated_resolver: L3
+      actionable: false
+    U0_UNCERTAINTY_OPEN:
+      strategy: CLARIFY_OR_REVIEW_INPUT
+      next_governed_owner: U0
+      designated_resolver: U0
+      actionable: true

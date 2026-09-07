@@ -1,0 +1,27 @@
+{
+  "schema_version": "apps_rg.bge_stability_profile.v1",
+  "baseline": {
+    "wave": "W5",
+    "receipt_path": ".runtime/apps_rg/gpu-embedding-observability-w5/current/receipt.json",
+    "receipt_sha256": "63618935c8a6a095072f62aa03e8e5144e9e1a7b0c3cdce059c9d1fa545a3569"
+  },
+  "stability_controls": {
+    "concurrent_acquisition_workers": 8,
+    "minimum_soak_cycles": 6,
+    "maximum_last_half_to_first_half_p50_ratio": 1.25,
+    "maximum_p50_ratio_to_w5": 1.5,
+    "maximum_peak_allocated_ratio_to_w5": 1.1,
+    "maximum_cycle_end_allocated_growth_mib": 32.0,
+    "required_model_load_count": 1,
+    "required_registry_size": 1,
+    "require_stable_vector_digests": true,
+    "fallback_allowed": false,
+    "network_allowed": false
+  },
+  "scope": {
+    "technical_runtime_stability_only": true,
+    "retrieval_quality_measured": false,
+    "production_promotion_authorized": false,
+    "release_authorizing": false
+  }
+}

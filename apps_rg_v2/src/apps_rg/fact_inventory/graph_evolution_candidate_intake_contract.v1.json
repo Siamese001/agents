@@ -1,0 +1,51 @@
+{
+  "schema_version": "apps_rg.graph_evolution_candidate_intake_contract.v1",
+  "contract_id": "APPS_RG_GRAPH_EVOLUTION_CANDIDATE_INTAKE",
+  "wave": "GE_W1",
+  "status": "FROZEN",
+  "purpose": "Stage source-backed proposed graph assertions for Author Gate review.",
+  "authority_binding": {
+    "base_authority_source": "augmented_skills_graph",
+    "base_graph_digest_required": true,
+    "canonical_graph_write_authority": "UWG_ONLY",
+    "candidate_runtime_claim_authority": false,
+    "candidate_may_not_activate_runtime": true
+  },
+  "operations": ["CREATE", "UPDATE", "RETIRE"],
+  "grounded_transforms": ["extract", "fuse", "enrich"],
+  "source_requirements": {
+    "proof_status": "proof_eligible",
+    "source_document_id_required": true,
+    "source_pointer_required": true,
+    "source_excerpt_required": true,
+    "source_file_sha256_required": true,
+    "fuse_requires_two_or_more_source_references": true
+  },
+  "outcomes": {
+    "grounded_candidate": "STAGED_OR_HOLD_FOR_AUTHOR_GATE",
+    "generated_or_targeting_text": "SEMANTIC_CACHE_ONLY",
+    "unproven_or_incomplete_input": "REJECTED"
+  },
+  "candidate_record": {
+    "embedding_materialization": "GE_W5_ONLY",
+    "must_include": [
+      "candidate_id",
+      "base_graph",
+      "operation",
+      "assertion_text",
+      "source",
+      "transform",
+      "proposed_links",
+      "status"
+    ],
+    "forbidden_fields": ["embedding", "vector", "embedding_id", "activation"]
+  },
+  "ge_w1_exit": {
+    "completion_marker": "GE_W1_CANDIDATE_STAGED",
+    "canonical_graph_mutated": false,
+    "cluster_registry_mutated": false,
+    "cluster_projection_mutated": false,
+    "uwg_called": false,
+    "activation_created": false
+  }
+}

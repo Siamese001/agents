@@ -1,0 +1,121 @@
+{
+  "schema_version": "apps_rg.c03_graph_node_semantic_contract.v1",
+  "contract_id": "C03_GRAPH_NODE_SEMANTIC_HARDENING",
+  "wave": "W1",
+  "status": "FROZEN",
+  "parent_contract": {
+    "path": "src/apps_rg/fact_inventory/c03_graph_evidence_cluster_contract.v1.json",
+    "schema_version": "apps_rg.c03_graph_evidence_cluster_contract.v1"
+  },
+  "required_fields_for_every_node": [
+    "semantic_contract_version",
+    "semantic_kind",
+    "canonical_assertion_text",
+    "authority_refs",
+    "semantic_hardening_status",
+    "hardening_wave"
+  ],
+  "semantic_kind_by_node_type": {
+    "employment": "claim_assertion",
+    "skill": "claim_assertion",
+    "skill_row": "claim_assertion",
+    "capability_domain": "structural_definition",
+    "career_epoch": "structural_definition",
+    "career_track": "structural_definition",
+    "domain_pillar": "structural_definition",
+    "identity_north_star": "structural_definition",
+    "metric": "structural_definition",
+    "metric_bucket": "structural_definition",
+    "policy": "policy_predicate",
+    "policy_rule": "policy_predicate"
+  },
+  "hardening_statuses": [
+    "HARDENED",
+    "HELD_INTERNAL_ONLY"
+  ],
+  "claim_assertion_rules": [
+    "HARDENED claim assertions require at least one non-ledger evidence authority reference.",
+    "Claims without evidence authority must be HELD_INTERNAL_ONLY.",
+    "HELD_INTERNAL_ONLY nodes cannot be retrieval eligible.",
+    "Node descriptions and canonical assertion text must be identical after normalization.",
+    "A skill identity or skill label alone is not a semantic assertion."
+  ],
+  "structural_definition_rules": [
+    "Structural definitions state their taxonomy, grouping, chronology, or measurement boundary.",
+    "Structural definitions do not become external claim proof.",
+    "Every structural definition binds to its canonical graph-node locator and any available source references."
+  ],
+  "policy_predicate_rules": [
+    "Policy predicates state an enforceable allow, deny, require, or fail-closed condition.",
+    "Policy predicates bind to their canonical graph-node locator.",
+    "Policy predicates are internal traversal authority and not resume claim proof."
+  ],
+  "forbidden_semantic_values": [
+    "",
+    "[",
+    "]",
+    "{",
+    "}",
+    "[]",
+    "{}",
+    "null",
+    "none",
+    "n/a",
+    "tbd",
+    "todo",
+    "unknown"
+  ],
+  "forbidden_description_prefixes": [
+    "Capability domain:",
+    "Career epoch:",
+    "Career track ",
+    "C0.3 graph-skill granularity node for "
+  ],
+  "forbidden_authority_sentinels": [
+    "fact_missing"
+  ],
+  "authority_reference_contract": {
+    "claim_authority_sources": [
+      "node.source_refs",
+      "node.source_fact_id",
+      "skill_row.fact_id_links",
+      "skill_row.source_resume_files",
+      "skill_row.repo_evidence_files"
+    ],
+    "structural_authority_sources": [
+      "node.source_refs",
+      "ledger:graph_nodes/<node_id>"
+    ],
+    "policy_authority_sources": [
+      "ledger:graph_nodes/<node_id>"
+    ],
+    "held_claim_authority_sources": [
+      "ledger:skill_rows/<skill_id>"
+    ],
+    "authority_refs_sorted_unique": true,
+    "unregistered_authority_refs_allowed": false
+  },
+  "mutation_boundaries": {
+    "node_id_changes_allowed": false,
+    "node_type_changes_allowed": false,
+    "graph_edge_changes_allowed": false,
+    "skill_row_identity_changes_allowed": false,
+    "graph_hop_fact_missing_removal_allowed": true,
+    "legacy_embedding_artifact_changes_allowed": false,
+    "replacement_embedding_generation_allowed": false,
+    "production_promotion_allowed": false
+  },
+  "acceptance_gates": {
+    "node_count_preserved": true,
+    "edge_count_preserved": true,
+    "edge_digest_preserved": true,
+    "skill_row_count_preserved": true,
+    "malformed_description_count": 0,
+    "scaffold_description_count": 0,
+    "label_only_description_count": 0,
+    "missing_semantic_field_count": 0,
+    "unresolved_authority_ref_count": 0,
+    "claim_without_evidence_or_hold_count": 0,
+    "fact_missing_graph_hop_count": 0
+  }
+}

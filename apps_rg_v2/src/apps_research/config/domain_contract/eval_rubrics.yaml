@@ -1,0 +1,124 @@
+# apps_research Fort Knox app-domain contract — generated from tools/apps_proof/generate_compact_app_contracts.py
+- eval_rubric_id: aer::apps_research::company_brief::v1
+  app_id: apps_research
+  task_class: company_brief
+  version: 1.0.0
+  status: active
+  policy_hash: policy://apps_research/v1
+  score_dimensions:
+  - dimension_id: factual_grounding
+    description: Every claim cites a source.
+    weight: 0.3
+    grader_type: deterministic
+    min_required_score: 0.95
+    evidence_required: true
+    fail_closed_if_unknown: true
+    taxonomy_class: regression
+  - dimension_id: source_quality
+    description: Sources are authoritative, not aggregator-only.
+    weight: 0.15
+    grader_type: hybrid
+    min_required_score: 0.65
+    evidence_required: true
+    fail_closed_if_unknown: true
+    taxonomy_class: capability
+  - dimension_id: freshness
+    description: Sources within freshness_class window.
+    weight: 0.15
+    grader_type: deterministic
+    min_required_score: 0.85
+    evidence_required: true
+    fail_closed_if_unknown: true
+    taxonomy_class: regression
+  - dimension_id: completeness
+    description: All required sections populated.
+    weight: 0.1
+    grader_type: deterministic
+    min_required_score: 0.9
+    evidence_required: false
+    fail_closed_if_unknown: true
+    taxonomy_class: regression
+  - dimension_id: balance
+    description: No single-source bias.
+    weight: 0.1
+    grader_type: hybrid
+    min_required_score: 0.55
+    evidence_required: false
+    fail_closed_if_unknown: true
+    taxonomy_class: capability
+  - dimension_id: concision
+    description: Respects research_depth budget.
+    weight: 0.05
+    grader_type: deterministic
+    min_required_score: 0.7
+    evidence_required: false
+    fail_closed_if_unknown: false
+    taxonomy_class: capability
+  - dimension_id: no_speculation
+    description: No claim presented as fact unless supported.
+    weight: 0.15
+    grader_type: deterministic
+    min_required_score: 0.95
+    evidence_required: true
+    fail_closed_if_unknown: true
+    taxonomy_class: regression
+  # DS-D W4 (apps-research-deferred-scope-2-f3a9c1) — coverage depth judge.
+  # Scores family coverage ratio + citation density relative to depth profile.
+  # IS_STUB=False, IS_CALIBRATED=True, deterministic heuristic.
+  - dimension_id: coverage_depth
+    description: Research coverage spans the required family set at the declared depth.
+    weight: 0.05
+    grader_type: llm_as_judge
+    min_required_score: 0.60
+    evidence_required: true
+    fail_closed_if_unknown: false
+    taxonomy_class: capability
+  # DS-1 W4 (apps-research-deferred-scope-b7e3d2) — citation quality judge.
+  # IS_CALIBRATED=True, Spearman rho=0.896 verified against 60-pair holdout at
+  # apps_eval/fixtures/holdout/citation_quality_holdout.json.
+  - dimension_id: citation_quality
+    description: Citations are dense, diverse, and from authoritative sources.
+    weight: 0.10
+    grader_type: llm_as_judge
+    min_required_score: 0.60
+    evidence_required: true
+    fail_closed_if_unknown: false
+    taxonomy_class: capability
+  # W3.P5 / apps-eval-harness-closeout-b7c9d2 W1.P1 - RAG metric dims with
+  # OpenAI canonical baselines (context_recall 0.85, context_precision 0.70,
+  # answer_relevancy 0.80). weight=0.0 keeps the existing weighted overall
+  # unchanged; these dims are tracked-only until upstream producers populate
+  # output[dim_scores][dim_id]. fail_closed_if_unknown=false prevents
+  # cascading fails on runs where the producer has not wired the metric yet.
+  - dimension_id: context_recall
+    description: RAG retrieval completeness (observed-evidence over needed-evidence).
+    weight: 0.0
+    grader_type: llm_as_judge
+    min_required_score: 0.85
+    evidence_required: true
+    fail_closed_if_unknown: false
+    taxonomy_class: tracked_metric
+    grader_roster:
+      - qna::context_recall_judge::v2
+  - dimension_id: context_precision
+    description: RAG retrieval precision (signal-to-noise in retrieved chunks).
+    weight: 0.0
+    grader_type: llm_as_judge
+    min_required_score: 0.70
+    evidence_required: true
+    fail_closed_if_unknown: false
+    taxonomy_class: tracked_metric
+    grader_roster:
+      - qna::context_precision_judge::v2
+  - dimension_id: answer_relevancy
+    description: Answer relevancy to the task intent.
+    weight: 0.0
+    grader_type: llm_as_judge
+    min_required_score: 0.80
+    evidence_required: true
+    fail_closed_if_unknown: false
+    taxonomy_class: tracked_metric
+    grader_roster:
+      - qna::answer_relevancy_judge::v2
+  source_app_config_ref: apps_eval/config/rubrics/
+  created_at: '2026-05-01'
