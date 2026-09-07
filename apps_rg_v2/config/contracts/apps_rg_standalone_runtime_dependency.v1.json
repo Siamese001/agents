@@ -1,0 +1,60 @@
+{
+  "schema_version": "apps_rg.standalone_runtime_dependency_contract.v1",
+  "contract_type": "StandaloneRuntimeDependencyContract",
+  "dependency": {
+    "import_name": "apps_rg",
+    "distribution_name": "apps-rg",
+    "resolution_mode": "EXTERNAL_SOURCE_RUNTIME"
+  },
+  "required_runtime_modules": [
+    {
+      "module": "apps_rg.runtime.contracts.apps_rg_ingress_payload",
+      "spine_stage": "U0"
+    },
+    {
+      "module": "apps_rg.runtime.contracts.l1_plan_contract",
+      "spine_stage": "L1"
+    },
+    {
+      "module": "apps_rg.runtime.contracts.route_contract",
+      "spine_stage": "L0"
+    },
+    {
+      "module": "apps_rg.runtime.contracts.final_evidence_contract",
+      "spine_stage": "C0"
+    },
+    {
+      "module": "apps_rg.runtime.contracts.compiled_prompt_artifact",
+      "spine_stage": "PA"
+    },
+    {
+      "module": "apps_rg.runtime.contracts.sealed_l2_artifact",
+      "spine_stage": "L2"
+    },
+    {
+      "module": "apps_rg.runtime.exit.exit_disposition",
+      "spine_stage": "Exit"
+    }
+  ],
+  "resolution_policy": {
+    "package_must_resolve_outside_standalone_checkout": true,
+    "required_modules_must_resolve_within_resolved_package": true,
+    "installed_distribution_metadata": "OPTIONAL",
+    "standalone_installability": "NOT_CLAIMED_EXTERNAL_RUNTIME_REQUIRED",
+    "prohibited_claims": [
+      "apps_rg_is_vendored_here",
+      "independent_installability",
+      "runtime_behavior_parity"
+    ]
+  },
+  "runtime_trust": {
+    "mode": "GIT_COMMIT_AND_PACKAGE_TREE_PIN",
+    "approved_repository_commit": "cba1303f044f24af364b888122971cab7a972457",
+    "approved_package_tree": "b94d65692da1890c07d8add5b75383ed10a67a36",
+    "package_relative_path": "apps_rg",
+    "require_clean_tracked_worktree": true,
+    "allowed_untracked_artifact_patterns": [
+      ".runtime/**"
+    ]
+  }
+}

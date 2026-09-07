@@ -1,0 +1,547 @@
+{
+  "artifact_dir": "C:\\Git\\apps_rg_v2\\artifacts\\apps_rg\\bare_runs\\bare_e2e_20260816T121922Z_afe0ef5a",
+  "command": "python -m apps_rg run --mode live",
+  "delivery": {
+    "docx_check": {
+      "employers": {
+        "Early Career Roles": true,
+        "Ernst & Young": true,
+        "IBM": true,
+        "InsurTech Cloud Solutions": true,
+        "Unify Consulting": true
+      },
+      "forbidden_headings": {
+        "TECHNICAL EXPERTISE": true
+      },
+      "headings": {
+        "CERTIFICATIONS": true,
+        "CORE COMPETENCIES": true,
+        "EDUCATION": true,
+        "EXECUTIVE SUMMARY": true,
+        "PROFESSIONAL EXPERIENCE": true
+      },
+      "missing": [],
+      "paragraph_count": 57,
+      "status": "PASS"
+    },
+    "written_outputs": [
+      "evaluation.json",
+      "l2_raw.md",
+      "outreach_email.md",
+      "plan.json",
+      "research.md",
+      "resume.docx",
+      "resume.md",
+      "sources.json",
+      "x3_input_base_resume.txt",
+      "x3_input_jd.txt",
+      "x3_raw.txt",
+      "x3_resume_manifest.json"
+    ]
+  },
+  "evaluation": {
+    "evaluation_type": "live_provider",
+    "reasoning": "The tailored resume aligns well with the JD, all facts are supported by the base resume, the research brief includes valid source URLs, and the outreach email targets Anthropic accurately without inventing claims.",
+    "retrieval_failures": [],
+    "score": 1.0,
+    "verdict": "PASS",
+    "x1": {
+      "outreach_email": {
+        "checks": {
+          "minimum_length": true,
+          "subject_line": true,
+          "target_company": true,
+          "target_role": true
+        },
+        "email_characters": 1308,
+        "missing": [],
+        "status": "PASS"
+      },
+      "resume": {
+        "checks": {
+          "core_competency_category_count": true,
+          "employers": {
+            "Early Career Roles": true,
+            "Ernst & Young": true,
+            "IBM": true,
+            "InsurTech Cloud Solutions": true,
+            "Unify Consulting": true
+          },
+          "header": true,
+          "headings": {
+            "CERTIFICATIONS": true,
+            "CORE COMPETENCIES": true,
+            "EDUCATION": true,
+            "EXECUTIVE SUMMARY": true,
+            "PROFESSIONAL EXPERIENCE": true
+          },
+          "ibm_bullet_count": true,
+          "minimum_length": true,
+          "outreach_email_not_embedded_in_resume": true,
+          "technical_expertise_not_separate_section": true,
+          "unify_bullet_count": true
+        },
+        "missing": [],
+        "required_employers": [
+          "Unify Consulting",
+          "IBM",
+          "InsurTech Cloud Solutions",
+          "Ernst & Young",
+          "Early Career Roles"
+        ],
+        "required_headings": [
+          "EXECUTIVE SUMMARY",
+          "CORE COMPETENCIES",
+          "PROFESSIONAL EXPERIENCE",
+          "EDUCATION",
+          "CERTIFICATIONS"
+        ],
+        "resume_characters": 7445,
+        "shape": {
+          "core_competency_category_count": {
+            "actual": 7,
+            "maximum": 8,
+            "minimum": 6
+          },
+          "employment_bullet_counts": {
+            "ibm_bullet_count": {
+              "actual": 5,
+              "required": 5
+            },
+            "unify_bullet_count": {
+              "actual": 6,
+              "required": 6
+            }
+          }
+        },
+        "status": "PASS"
+      },
+      "sources": {
+        "source_count": 6,
+        "status": "PASS"
+      },
+      "status": "PASS"
+    }
+  },
+  "finished_at_utc": "2026-08-16T12:19:59.779993+00:00",
+  "inputs": {
+    "jd_ref": "C:\\Git\\apps_rg_v2\\src\\apps_rg\\config\\targeting\\anthropic_manager_applied_ai_architecture_partnerships_jd.txt",
+    "jd_sha256": "sha256:7007d1c94751961bbca210c216339aaffe8a993bbce758b9fc86f43a68bac238",
+    "mode": "live",
+    "resume_ref": "DEFAULT_SSOT:apps_rg/resume/base/amit_ayer_base_resume_v1.json:C:\\Git\\apps_rg_v2\\src\\apps_rg\\resume\\base\\amit_ayer_base_resume_v1.json",
+    "resume_sha256": "sha256:8e7622c9528310e95288e97ddcb58a566b22b6a14435e389f0096f9aa10611e7"
+  },
+  "mode": "live",
+  "outcome_label": "LIVE_PROVIDER_PASS",
+  "outputs": {
+    "evaluation": "evaluation.json",
+    "l2_raw": "l2_raw.md",
+    "outreach_email": "outreach_email.md",
+    "plan": "plan.json",
+    "provider_calls": "provider_calls.json",
+    "research_brief": "research.md",
+    "resume_docx": "resume.docx",
+    "resume_markdown": "resume.md",
+    "sources": "sources.json",
+    "summary": "run_summary.json",
+    "x3_input_base_resume": "x3_input_base_resume.txt",
+    "x3_input_jd": "x3_input_jd.txt",
+    "x3_raw": "x3_raw.txt",
+    "x3_resume_manifest": "x3_resume_manifest.json"
+  },
+  "pipeline": "apps_rg_bare_e2e.v2",
+  "provider_call_count": 3,
+  "providers": {
+    "apps_research_openai": {
+      "input_characters": 0,
+      "observed_model": "gpt-5.6-terra",
+      "provider": "external_openai",
+      "provider_call_attempted": true,
+      "requested_model": "gpt-5.6-terra",
+      "response_id": "chatcmpl-EDU7i9isuTvJsnWmEYLTCAF1OcSK6",
+      "retry_count": 0,
+      "retry_reason": "",
+      "status": "SUCCESS",
+      "transport_attempt_count": 1,
+      "usage": {
+        "cache_write_tokens": null,
+        "cached_tokens": 0,
+        "output_tokens": 1270,
+        "prompt_tokens": 1262,
+        "thought_tokens": 0,
+        "total_tokens": 2532
+      }
+    },
+    "l2_openai": {
+      "input_characters": 0,
+      "observed_model": "gpt-5.6-terra",
+      "provider": "external_openai",
+      "provider_call_attempted": true,
+      "requested_model": "gpt-5.6-terra",
+      "response_id": "chatcmpl-EDU7vU2q4kfmiMNfhHWwfTObTOCf5",
+      "retry_count": 0,
+      "retry_reason": "",
+      "status": "SUCCESS",
+      "transport_attempt_count": 1,
+      "usage": {
+        "cache_write_tokens": null,
+        "cached_tokens": 0,
+        "output_tokens": 1852,
+        "prompt_tokens": 6885,
+        "thought_tokens": 176,
+        "total_tokens": 8737
+      }
+    },
+    "x3_gemini": {
+      "input_characters": 42644,
+      "observed_model": "gemini-3.6-flash",
+      "provider": "google_gemini",
+      "provider_call_attempted": true,
+      "requested_model": "gemini-3.6-flash",
+      "response_id": "6aqBas2NOPGtz7IPhcS4iAM",
+      "retry_count": 0,
+      "retry_reason": "",
+      "status": "SUCCESS",
+      "transport_attempt_count": 1,
+      "usage": {
+        "cache_write_tokens": null,
+        "cached_tokens": null,
+        "output_tokens": 54,
+        "prompt_tokens": 9780,
+        "thought_tokens": 973,
+        "total_tokens": 10807
+      }
+    }
+  },
+  "repository": {
+    "branch": "codex/x3-gemini-retry-recovery",
+    "commit_sha": "6aabf74d9774609570d9f72b63649e3b285530e3",
+    "head_is_ancestor_of_local_main": false,
+    "local_main_sha": "ba1cd280b6276cce6dbb0bc469b9ab1b2d5dd891",
+    "repository_root": "C:\\Git\\apps_rg_v2",
+    "worktree_dirty": true
+  },
+  "research": {
+    "retrieval_failure_count": 0,
+    "source_count": 6
+  },
+  "run_id": "bare_e2e_20260816T121922Z_afe0ef5a",
+  "section_checks": {
+    "outreach_email": {
+      "checks": {
+        "minimum_length": true,
+        "subject_line": true,
+        "target_company": true,
+        "target_role": true
+      },
+      "email_characters": 1308,
+      "missing": [],
+      "status": "PASS"
+    },
+    "resume": {
+      "checks": {
+        "core_competency_category_count": true,
+        "employers": {
+          "Early Career Roles": true,
+          "Ernst & Young": true,
+          "IBM": true,
+          "InsurTech Cloud Solutions": true,
+          "Unify Consulting": true
+        },
+        "header": true,
+        "headings": {
+          "CERTIFICATIONS": true,
+          "CORE COMPETENCIES": true,
+          "EDUCATION": true,
+          "EXECUTIVE SUMMARY": true,
+          "PROFESSIONAL EXPERIENCE": true
+        },
+        "ibm_bullet_count": true,
+        "minimum_length": true,
+        "outreach_email_not_embedded_in_resume": true,
+        "technical_expertise_not_separate_section": true,
+        "unify_bullet_count": true
+      },
+      "missing": [],
+      "required_employers": [
+        "Unify Consulting",
+        "IBM",
+        "InsurTech Cloud Solutions",
+        "Ernst & Young",
+        "Early Career Roles"
+      ],
+      "required_headings": [
+        "EXECUTIVE SUMMARY",
+        "CORE COMPETENCIES",
+        "PROFESSIONAL EXPERIENCE",
+        "EDUCATION",
+        "CERTIFICATIONS"
+      ],
+      "resume_characters": 7445,
+      "shape": {
+        "core_competency_category_count": {
+          "actual": 7,
+          "maximum": 8,
+          "minimum": 6
+        },
+        "employment_bullet_counts": {
+          "ibm_bullet_count": {
+            "actual": 5,
+            "required": 5
+          },
+          "unify_bullet_count": {
+            "actual": 6,
+            "required": 6
+          }
+        }
+      },
+      "status": "PASS"
+    },
+    "sources": {
+      "source_count": 6,
+      "status": "PASS"
+    },
+    "status": "PASS"
+  },
+  "stages": [
+    {
+      "details": {
+        "jd_loaded": true,
+        "repository_branch": "codex/x3-gemini-retry-recovery",
+        "repository_commit": "6aabf74d9774609570d9f72b63649e3b285530e3",
+        "required_employer_count": 5,
+        "resume_loaded": true
+      },
+      "finished_at_utc": "2026-08-16T12:19:23.019868+00:00",
+      "stage": "SETUP",
+      "started_at_utc": "2026-08-16T12:19:23.012462+00:00",
+      "status": "PASS"
+    },
+    {
+      "details": {
+        "retrieval_failure_count": 0,
+        "source_count": 6
+      },
+      "finished_at_utc": "2026-08-16T12:19:38.795722+00:00",
+      "stage": "APPS_RESEARCH",
+      "started_at_utc": "2026-08-16T12:19:23.019868+00:00",
+      "status": "PASS"
+    },
+    {
+      "details": {
+        "company": "Anthropic",
+        "jd_present": true,
+        "research_present": true,
+        "resume_present": true,
+        "role": "Manager of Applied AI Architecture, Partnerships"
+      },
+      "finished_at_utc": "2026-08-16T12:19:38.795722+00:00",
+      "stage": "U0",
+      "started_at_utc": "2026-08-16T12:19:38.795722+00:00",
+      "status": "PASS"
+    },
+    {
+      "details": {
+        "candidate_resume_sha256": "sha256:8e7622c9528310e95288e97ddcb58a566b22b6a14435e389f0096f9aa10611e7",
+        "goal": "tailor the candidate resume to the supplied role",
+        "source_count": 6
+      },
+      "finished_at_utc": "2026-08-16T12:19:38.795722+00:00",
+      "stage": "L1",
+      "started_at_utc": "2026-08-16T12:19:38.795722+00:00",
+      "status": "PASS"
+    },
+    {
+      "details": {
+        "route": "bare_live_provider_resume"
+      },
+      "finished_at_utc": "2026-08-16T12:19:38.795722+00:00",
+      "stage": "L0",
+      "started_at_utc": "2026-08-16T12:19:38.795722+00:00",
+      "status": "PASS"
+    },
+    {
+      "details": {
+        "source_count": 6,
+        "usable_source_url_count": 6
+      },
+      "finished_at_utc": "2026-08-16T12:19:38.795722+00:00",
+      "stage": "C0",
+      "started_at_utc": "2026-08-16T12:19:38.795722+00:00",
+      "status": "PASS"
+    },
+    {
+      "details": {
+        "prompt_inputs": [
+          "job_description",
+          "base_resume",
+          "research"
+        ],
+        "required_employer_count": 5,
+        "required_resume_headings": [
+          "EXECUTIVE SUMMARY",
+          "CORE COMPETENCIES",
+          "PROFESSIONAL EXPERIENCE",
+          "EDUCATION",
+          "CERTIFICATIONS"
+        ]
+      },
+      "finished_at_utc": "2026-08-16T12:19:38.795722+00:00",
+      "stage": "PA",
+      "started_at_utc": "2026-08-16T12:19:38.795722+00:00",
+      "status": "PASS"
+    },
+    {
+      "details": {
+        "email_characters": 1308,
+        "provider": "apps_research_openai",
+        "resume_characters": 7445
+      },
+      "finished_at_utc": "2026-08-16T12:19:53.663254+00:00",
+      "stage": "L2",
+      "started_at_utc": "2026-08-16T12:19:38.795722+00:00",
+      "status": "PASS"
+    },
+    {
+      "details": {
+        "outreach_email": {
+          "checks": {
+            "minimum_length": true,
+            "subject_line": true,
+            "target_company": true,
+            "target_role": true
+          },
+          "email_characters": 1308,
+          "missing": [],
+          "status": "PASS"
+        },
+        "resume": {
+          "checks": {
+            "core_competency_category_count": true,
+            "employers": {
+              "Early Career Roles": true,
+              "Ernst & Young": true,
+              "IBM": true,
+              "InsurTech Cloud Solutions": true,
+              "Unify Consulting": true
+            },
+            "header": true,
+            "headings": {
+              "CERTIFICATIONS": true,
+              "CORE COMPETENCIES": true,
+              "EDUCATION": true,
+              "EXECUTIVE SUMMARY": true,
+              "PROFESSIONAL EXPERIENCE": true
+            },
+            "ibm_bullet_count": true,
+            "minimum_length": true,
+            "outreach_email_not_embedded_in_resume": true,
+            "technical_expertise_not_separate_section": true,
+            "unify_bullet_count": true
+          },
+          "missing": [],
+          "required_employers": [
+            "Unify Consulting",
+            "IBM",
+            "InsurTech Cloud Solutions",
+            "Ernst & Young",
+            "Early Career Roles"
+          ],
+          "required_headings": [
+            "EXECUTIVE SUMMARY",
+            "CORE COMPETENCIES",
+            "PROFESSIONAL EXPERIENCE",
+            "EDUCATION",
+            "CERTIFICATIONS"
+          ],
+          "resume_characters": 7445,
+          "shape": {
+            "core_competency_category_count": {
+              "actual": 7,
+              "maximum": 8,
+              "minimum": 6
+            },
+            "employment_bullet_counts": {
+              "ibm_bullet_count": {
+                "actual": 5,
+                "required": 5
+              },
+              "unify_bullet_count": {
+                "actual": 6,
+                "required": 6
+              }
+            }
+          },
+          "status": "PASS"
+        },
+        "sources": {
+          "source_count": 6,
+          "status": "PASS"
+        },
+        "status": "PASS"
+      },
+      "finished_at_utc": "2026-08-16T12:19:53.672652+00:00",
+      "stage": "X1",
+      "started_at_utc": "2026-08-16T12:19:53.663254+00:00",
+      "status": "PASS"
+    },
+    {
+      "details": {
+        "provider": "x3_gemini",
+        "score": 1.0,
+        "verdict": "PASS"
+      },
+      "finished_at_utc": "2026-08-16T12:19:59.685957+00:00",
+      "stage": "X3",
+      "started_at_utc": "2026-08-16T12:19:53.672652+00:00",
+      "status": "PASS"
+    },
+    {
+      "details": {
+        "docx_check": {
+          "employers": {
+            "Early Career Roles": true,
+            "Ernst & Young": true,
+            "IBM": true,
+            "InsurTech Cloud Solutions": true,
+            "Unify Consulting": true
+          },
+          "forbidden_headings": {
+            "TECHNICAL EXPERTISE": true
+          },
+          "headings": {
+            "CERTIFICATIONS": true,
+            "CORE COMPETENCIES": true,
+            "EDUCATION": true,
+            "EXECUTIVE SUMMARY": true,
+            "PROFESSIONAL EXPERIENCE": true
+          },
+          "missing": [],
+          "paragraph_count": 57,
+          "status": "PASS"
+        },
+        "written_outputs": [
+          "evaluation.json",
+          "l2_raw.md",
+          "outreach_email.md",
+          "plan.json",
+          "research.md",
+          "resume.docx",
+          "resume.md",
+          "sources.json",
+          "x3_input_base_resume.txt",
+          "x3_input_jd.txt",
+          "x3_raw.txt",
+          "x3_resume_manifest.json"
+        ]
+      },
+      "finished_at_utc": "2026-08-16T12:19:59.779993+00:00",
+      "stage": "DELIVERY",
+      "started_at_utc": "2026-08-16T12:19:59.685957+00:00",
+      "status": "PASS"
+    }
+  ],
+  "status": "SUCCESS",
+  "target_company": "Anthropic",
+  "target_role": "Manager of Applied AI Architecture, Partnerships"
+}

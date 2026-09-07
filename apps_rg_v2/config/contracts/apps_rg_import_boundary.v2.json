@@ -1,0 +1,8 @@
+{
+  "schema_version": "apps_rg.import_boundary.v2",
+  "application_package": "apps_rg",
+  "apps_rg_contract_facade": "src/apps_rg/runtime/spine_contracts.py",
+  "forbidden_runtime_package_roots": [
+    "shared_runtime"
+  ]
+}

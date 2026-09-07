@@ -1,0 +1,19 @@
+{
+  "schema_version": "apps_rg.c03_embedding_runtime_contract.v1",
+  "python_major_minor": "3.12",
+  "packages": {
+    "torch": "2.12.0.dev20260228+cu128",
+    "sentence-transformers": "5.2.3"
+  },
+  "model": {
+    "model_id": "BAAI/bge-m3",
+    "revision": "5617a9f61b028005a4858fdac845db406aefb181",
+    "dimension": 1024,
+    "normalization": "l2"
+  },
+  "promoted_device": "cuda:0",
+  "local_files_only": true,
+  "network_allowed": false,
+  "fallback_allowed": false,
+  "contract_sha256": "ab2cacbff73801b52ab31a8f9016f3cec11e3e60551a16d4a2411cd6e2bb5c79"
+}

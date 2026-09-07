@@ -1,0 +1,66 @@
+{
+  "retrieval_failures": [],
+  "source_count": 6,
+  "sources": [
+    {
+      "engines": [
+        "bing"
+      ],
+      "family": "company",
+      "query": "Anthropic company overview official products",
+      "snippet": "Anthropic is an AI safety and research company that's working to build reliable, interpretable, and steerable AI systems.",
+      "title": "Home \\\\ Anthropic",
+      "url": "https://www.anthropic.com/"
+    },
+    {
+      "engines": [
+        "bing"
+      ],
+      "family": "company",
+      "query": "Anthropic company overview official products",
+      "snippet": "Anthropic is an AI safety and research company that's working to build reliable, interpretable, and steerable AI systems.",
+      "title": "Company \\ Anthropic",
+      "url": "https://www.anthropic.com/company"
+    },
+    {
+      "engines": [
+        "bing"
+      ],
+      "family": "company",
+      "query": "Anthropic company overview official products",
+      "snippet": "Anthropic, PBC[8][9] is an American artificial intelligence (AI) public benefit corporation headquartered in San Francisco, California, …",
+      "title": "Anthropic - Wikipedia",
+      "url": "https://en.wikipedia.org/wiki/Anthropic"
+    },
+    {
+      "engines": [
+        "bing"
+      ],
+      "family": "strategy",
+      "query": "Anthropic strategy partnerships enterprise AI 2025 2026",
+      "snippet": "Dec 9, 2025 · A partnership built on shared values The partnership is grounded in a shared commitment to responsible AI, combining …",
+      "title": "Accenture and Anthropic launch multi-year partnership to move ...",
+      "url": "https://www.anthropic.com/news/anthropic-accenture-partnership"
+    },
+    {
+      "engines": [
+        "bing"
+      ],
+      "family": "strategy",
+      "query": "Anthropic strategy partnerships enterprise AI 2025 2026",
+      "snippet": "Accelerate AI adoption with the Accenture + Anthropic partnership. Deploy faster with Claude experts, certified talent and low-risk …",
+      "title": "Accenture + Anthropic Partnership: Enterprise AI Deployment",
+      "url": "https://www.accenture.com/us-en/services/ecosystem-partners/anthropic"
+    },
+    {
+      "engines": [
+        "bing"
+      ],
+      "family": "strategy",
+      "query": "Anthropic strategy partnerships enterprise AI 2025 2026",
+      "snippet": "Nov 18, 2025 · NVIDIA and Microsoft to invest in Anthropic Today Microsoft, NVIDIA, and Anthropic announced new strategic …",
+      "title": "Microsoft, NVIDIA, and Anthropic announce strategic partnerships",
+      "url": "https://www.anthropic.com/news/microsoft-nvidia-anthropic-announce-strategic-partnerships"
+    }
+  ]
+}

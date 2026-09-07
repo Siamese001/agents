@@ -1,0 +1,316 @@
+{
+  "surface": "report",
+  "manifest": {
+    "version": 1,
+    "surface": "report",
+    "title": "Apps RG v2 evaluation success-metrics assessment and implementation plan",
+    "description": "Plan-only technical assessment of whether the current Apps RG v2 evaluations measure the metrics that dictate product success, with defended gaps and sequenced acceptance gates.",
+    "generatedAt": "2026-08-07T00:00:00-04:00",
+    "sources": [
+      {
+        "id": "evaluation-contract",
+        "label": "Authoritative G1-G6 evaluation contract",
+        "path": "src/apps_rg/evals/contracts/evaluation_contract.v2.yaml"
+      },
+      {
+        "id": "measurement-receipt",
+        "label": "Measurement-validity implementation receipt",
+        "path": "src/apps_rg/evals/MEASUREMENT_VALIDITY_IMPLEMENTATION_RECEIPT.json"
+      },
+      {
+        "id": "apps-eval-suite",
+        "label": "apps_eval suite registry",
+        "path": "src/apps_eval/registry/suites.yaml"
+      },
+      {
+        "id": "apps-eval-runner",
+        "label": "apps_eval scoring and execution",
+        "path": "src/apps_eval/runner/core.py"
+      },
+      {
+        "id": "apps-eval-rubric",
+        "label": "apps_eval resume-generation rubric",
+        "path": "src/apps_eval/rubrics/apps_rg_resume_generation_v1.yaml"
+      },
+      {
+        "id": "lane-contract",
+        "label": "Apps RG generated-lane contract",
+        "path": "src/apps_eval/registries/apps_rg_lane_contract.json"
+      },
+      {
+        "id": "section-constants",
+        "label": "G4 section benchmark constants",
+        "path": "src/apps_rg/evals/section_quality_benchmark/constants.py"
+      },
+      {
+        "id": "cluster-queries",
+        "label": "C0.3 graph-evidence cluster query manifest",
+        "path": "src/apps_rg/evals/c03_graph_evidence_cluster_queries.v1.json"
+      },
+      {
+        "id": "wave7-receipt",
+        "label": "Wave 7 semantic qualification receipt",
+        "path": "artifacts/apps_rg/c03/graph_evidence_cluster_embeddings/wave7_semantic_qualification_receipt.json"
+      },
+      {
+        "id": "wave8-receipt",
+        "label": "Wave 8 pre-label packet receipt",
+        "path": "artifacts/apps_rg/c03/graph_evidence_cluster_embeddings/wave8_prelabel_review_packet_receipt.json"
+      },
+      {
+        "id": "wave9-receipt",
+        "label": "Wave 9 human-review intake receipt",
+        "path": "artifacts/apps_rg/c03/graph_evidence_cluster_embeddings/wave9_human_review_intake_receipt.json"
+      },
+      {
+        "id": "whole-resume-pairwise",
+        "label": "Whole-resume pairwise evaluator",
+        "path": "src/apps_rg/evals/whole_resume/pairwise.py"
+      },
+      {
+        "id": "w9-rubric",
+        "label": "W9 resume-coach rubric",
+        "path": "src/apps_rg/evals/c03_human_eval/w9_resume_coach_rubric.v1.yaml"
+      },
+      {
+        "id": "owner-solo-contract",
+        "label": "Owner-solo final output review contract",
+        "path": "src/apps_rg/evals/owner_solo/final_resume_output_review_contract.v1.json"
+      },
+      {
+        "id": "rendered-unit-contract",
+        "label": "Owner-solo rendered-unit QREL contract",
+        "path": "src/apps_rg/evals/owner_solo/c03_rendered_unit_qrel_contract.v1.json"
+      },
+      {
+        "id": "full-resume-scope",
+        "label": "Owner-solo full-resume QREL frozen scope",
+        "path": "src/apps_rg/evals/owner_solo/c03_full_resume_qrel_scope.v1.json"
+      },
+      {
+        "id": "qualification-open-items",
+        "label": "Current judge and BGE-M3 qualification open items",
+        "path": "docs/QUALIFICATION_OPEN_ITEMS.md"
+      },
+      {
+        "id": "apps-research-handoff",
+        "label": "Canonical Apps Research to Apps RG handoff",
+        "path": "src/apps_research/integrations/apps_rg_handoff.py"
+      },
+      {
+        "id": "briefing-validator",
+        "label": "Apps RG U0 briefing prerequisite validator",
+        "path": "src/apps_rg/prerequisites/briefing_validator.py"
+      },
+      {
+        "id": "meta-eval",
+        "label": "Evaluator meta-evaluation",
+        "path": "src/apps_rg/evals/meta_eval/evaluation.py"
+      },
+      {
+        "id": "authoritative-validity",
+        "label": "Human-pilot evaluator-validity measurement",
+        "path": "src/apps_rg/evals/authoritative/validity.py"
+      },
+      {
+        "id": "activation-contract",
+        "label": "Controlled activation contract",
+        "path": "src/apps_rg/evals/graph_evolution_controlled_activation_contract.v1.json"
+      },
+      {
+        "id": "coverage-chart-source",
+        "label": "Reviewed lane-coverage audit rows",
+        "query": {
+          "engine": "ANSI SQL",
+          "language": "sql",
+          "id": "apps_rg_eval_lane_coverage_audit_2026_08_07",
+          "executed_at": "2026-08-07T00:00:00-04:00",
+          "description": "Materializes the reviewed count of declared runtime-generated lanes covered by four evaluation surfaces. The rows were transcribed from the lane contract, apps_eval fixture output shape, G4 constants, C0.3 query manifest, and provisional owner-solo contract; they are scope counts, not quality-pass results.",
+          "sql": "SELECT 'apps_eval' AS surface_short, 'apps_eval snapshot output' AS evaluation_surface, 3 AS covered_lanes, 11 AS total_runtime_lanes, 'regression fixture' AS authority_status\nUNION ALL SELECT 'G4', 'G4 section benchmark', 5, 11, 'technical benchmark'\nUNION ALL SELECT 'W7', 'W7 C0.3 retrieval manifest', 8, 11, 'blocked: 0 human QRELs'\nUNION ALL SELECT 'Owner-solo', 'Owner-solo rendered-unit scope', 11, 11, 'provisional scope only'",
+          "filters": [
+            "Population is the 11 generated lanes declared in src/apps_eval/registries/apps_rg_lane_contract.json.",
+            "A lane is counted only when it is explicitly named in the inspected surface.",
+            "Owner-solo coverage denotes declared scope, not completed or authoritative evidence."
+          ],
+          "metric_definitions": [
+            "covered_lanes = count of the 11 runtime-generated lane identifiers explicitly represented in the evaluation surface.",
+            "total_runtime_lanes = 11 for every row; the denominator comes from the runtime lane contract.",
+            "Coverage does not imply correctness, human qualification, release authorization, or production success."
+          ]
+        }
+      }
+    ],
+    "charts": [
+      {
+        "id": "lane-coverage-chart",
+        "title": "Declared evaluation coverage across 11 runtime-generated lanes",
+        "subtitle": "Counts are evaluation scope, not passed quality evidence; the 11-lane owner-solo surface remains provisional.",
+        "type": "bar",
+        "dataset": "lane_coverage",
+        "sourceId": "coverage-chart-source",
+        "encodings": {
+          "x": {
+            "field": "surface_short",
+            "type": "nominal",
+            "label": "Evaluation surface"
+          },
+          "y": {
+            "field": "covered_lanes",
+            "type": "quantitative",
+            "label": "Covered lanes",
+            "format": "number",
+            "unit": "of 11"
+          },
+          "tooltip": [
+            {
+              "field": "evaluation_surface",
+              "type": "text",
+              "label": "Evaluation surface"
+            },
+            {
+              "field": "total_runtime_lanes",
+              "type": "quantitative",
+              "label": "Runtime lanes"
+            },
+            {
+              "field": "authority_status",
+              "type": "text",
+              "label": "Authority status"
+            }
+          ]
+        },
+        "xAxisTitle": "Evaluation surface",
+        "yAxisTitle": "Covered lanes (of 11)",
+        "valueFormat": "number",
+        "maxRows": 4
+      }
+    ],
+    "blocks": [
+      {
+        "id": "title",
+        "type": "markdown",
+        "body": "# Apps RG v2 evaluation success-metrics assessment and implementation plan\n\n**Assessment date:** 2026-08-07\n\n**Scope:** plan artifacts only. No evaluator, runtime, label, release, or production changes."
+      },
+      {
+        "id": "technical-summary",
+        "type": "markdown",
+        "body": "## The eval architecture is technically strong, but the current evidence does not yet measure product success\n\n**Answer: not completely.** The G1-G6 framework measures the right *technical prerequisites*: retrieval quality, exact binding, factual grounding, section and whole-resume quality, repeatability, and evaluator validity. Its fail-closed `PASS`/`FAIL`/`UNKNOWN`/`NOT_MEASURED` model and explicit authority boundaries are the right foundation.\n\nCurrent local main also implements the canonical Apps Research handoff, U0 prerequisite validation, all-section judge routing, and a frozen 11-lane owner-solo rendered-unit QREL contract. Those are material improvements in control coverage. They do **not yet dictate success** because judge qualification and BGE-M3 QREL evidence remain open, the rendered-unit contract is explicitly one-reviewer provisional, and no qualified end-to-end outcome proves that the finished resume beats a frozen comparator while meeting latency, reliability, cost, document, privacy, and fairness guardrails.\n\nThe correct decision is therefore: **retain G1-G6 as diagnostic gates; do not treat their present test results, live transport proofs, or readiness contracts as product qualification; add two primary finished-product outcomes plus explicit guardrails and an authority-bearing protected-holdout path.**"
+      },
+      {
+        "id": "key-evidence",
+        "type": "markdown",
+        "body": "## Current evidence separates healthy code from absent qualification\n\n- Repository test execution passed: `src/apps_rg/evals` reported **185 passed**; `src/apps_eval/tests` reported **62 passed, 2 skipped**. These results validate code and contract behavior, not resume quality.\n- The broader current-main owner-solo/eval unit suite reported **216 passed, 22 skipped, 13 failed**. All 13 failures originate from a frozen full-resume QREL scope whose source commit and section-profile, target-brief, and target-JD digests no longer match current main. The new rendered-unit QREL test file passes **11 of 11**, isolating the failure to frozen-scope drift rather than its new validator.\n- A deterministic run of the shipped `apps_rg.dev.resume_generation` snapshot suite produced **score 0.096552**, **verdict fail**, **575 blocking failures**, **65 missing required artifacts**, and `release_blocked=true`. The harness works; the fixture is not qualifying runtime evidence.\n- The measurement receipt is explicitly `COMPLETE_CODE_ONLY`; empirical qualification is `NOT_RUN`, with real labels, corpus qualification, and release authority all false.\n- Current-main qualification documentation says `IMPLEMENTED, NOT FULLY QUALIFIED, NOT PRODUCTION-AUTHORIZED`; frozen judge packets, authorized human labels, QREL completion, adjudication, and separate promotion authority remain open.\n- W7 remains `BLOCKED_QREL_AUTHORITY` at **0 of 456** required judgments. W8 proves packet readiness, not human qualification. W9 remains blocked at **0 of 912** reviewer slots and **0 of 456** adjudications.\n- No tracked `artifacts/apps_eval/**/eval_record.json` was found on the planning base."
+      },
+      {
+        "id": "coverage-intro",
+        "type": "markdown",
+        "body": "## No completed authoritative surface covers the full generated output\n\nThe runtime contract declares 11 generated lanes. The existing evaluation surfaces cover different subsets; the frozen owner-solo rendered-unit QREL contract declares all 11 across 6 targets and 66 query-section cases, but it is explicitly one-reviewer provisional, creates no human grades, and is not release-authoritative. The chart is a scope comparison only and intentionally makes no claim that any lane passed."
+      },
+      {
+        "id": "lane-coverage",
+        "type": "chart",
+        "chartId": "lane-coverage-chart"
+      },
+      {
+        "id": "strengths",
+        "type": "markdown",
+        "body": "## Preserve these controls while closing the outcome gap\n\n1. **Fail-closed semantics.** Unknown or unmeasured evidence cannot silently become a pass.\n2. **Graph authority.** Graph IDs and source bytes remain sole claim authority; retrieval ranking only narrows candidate evidence.\n3. **Separated retrieval metrics.** Recall@k, pooled recall, nDCG, MRR, path accuracy, concept coverage, and hard-negative checks are correctly kept distinct.\n4. **Exact claim controls.** Employer, role, date, numeric, credential, scope, certainty, and path binding are measured separately from broad semantic support.\n5. **Calibration versus holdout.** The contract distinguishes calibration data from protected holdout data and includes split-leakage checks.\n6. **No synthetic human authority.** Technical fixtures, readiness packets, and receipts cannot create human QRELs or promotion authority.\n7. **Digest-bound receipts.** Evaluation inputs and outputs can be made immutable and auditable rather than inferred from transient runtime state.\n8. **Post-exit shadow observability is non-authorizing.** Judge-versus-human correlation may diagnose drift but cannot calibrate retrieval weights or qualify production."
+      },
+      {
+        "id": "gap-register-a",
+        "type": "markdown",
+        "body": "## Defended gap register: outcome, architecture, data, and authority\n\n**G01 — No primary product outcome.** G1-G6 are technical and quality gates, but no metric says whether the finished resume is more useful than a frozen comparator. A system may retrieve and ground correctly yet produce a resume a reviewer rejects. **Disposition:** define blind finished-resume preference/usefulness and grounded decision-ready completion as primary outcomes in Wave 0.\n\n**G02 — Two evaluation systems do not share one release authority.** `apps_eval` computes a row-weighted regression verdict while `apps_rg/evals` emits source-bound G1-G6 receipts. A green regression suite can be mistaken for human or production qualification. **Disposition:** keep both roles, mark `apps_eval` regression-only, and make the release catalog consume authoritative receipts in Waves 0-1.\n\n**G03 — Development cases are not representative.** Five dev scenarios reuse one request hash, four expected outputs are identical, and holdout has no cases. Repeated fixtures estimate harness consistency rather than generalization. **Disposition:** build distinct calibration and protected-holdout cases, slices, and a power plan in Wave 2.\n\n**G04 — Human truth is absent.** Qualification is `NOT_RUN`; W7 has 0/456 QRELs; W9 has 0/912 reviews and 0/456 adjudications. The new rendered-unit QREL contract explicitly creates no human grades. Retrieval, grounding, and human quality therefore remain unqualified. **Disposition:** complete blinded independent review and adjudication without inferred or synthetic grades in Waves 3-4.\n\n**G05 — Completed authoritative lane coverage is absent.** G4 names 5/11 lanes, W7 retrieval names 8/11, and apps_eval snapshots expose 3/11 output sections. The new rendered-unit contract closes the *declared scope* gap at 11/11, but remains provisional and unexecuted. **Disposition:** execute the 11-lane matrix with independent authority and explicit scope status in Waves 2-4.\n\n**G06 — Apps Research is a runtime prerequisite but not an end-to-end eval denominator.** Current main validates a canonical handoff before U0, while the authoritative evaluation stages still begin at U0 and do not score handoff freshness, source quality, failures, or retries. **Disposition:** include the digest-bound Apps Research stage in P2 and operational evaluation in Waves 0, 2, and 6.\n\n**G07 — Material-claim inventory is system-declared.** G3 evaluates supplied system-claim records, but no independent control proves that every material output span entered the inventory. An omitted claim can bypass grounding. **Disposition:** add independent claim-span extraction, reconciliation, and omission mutations with 100% coverage in Waves 3 and 5.\n\n**G08 — Release authority is fragmented.** Tests and live transport are technical evidence, QREL packets are readiness-only, owner-solo is provisional, and activation has a separate contract. A valid artifact can be mistaken for permission to deploy. **Disposition:** create one receipt catalog with explicit technical, human-qualified, release-authorized, and production-authorized states in Waves 0-1 and 8."
+      },
+      {
+        "id": "gap-register-b",
+        "type": "markdown",
+        "body": "## Defended gap register: scoring, validation, operations, and monitoring\n\n**G09 — The regression score is dominated by microstep row count.** `apps_eval` averages every finding and required scorecard row equally; 670 rows dominate 55 findings, and rubric weights are unused. Adding low-value rows can move the score without improving the resume. **Disposition:** use named gates for decisions and retain the scalar only as a regression diagnostic in Waves 0-1.\n\n**G10 — Thresholds are not empirically defended.** G4 uses 3/5 floors, release history allows `min_samples=2`, and W7/W9 targets lack a completed calibration/power receipt. Arbitrary thresholds can falsely promote or block a useful system. **Disposition:** pre-register thresholds from calibration, effect size, uncertainty, baseline variance, and decision loss in Waves 0 and 7.\n\n**G11 — Judge and evaluator calibration are incomplete.** The `apps_eval` judge option is unimplemented and its rubric records zero calibration samples; the current Gemini proof-judge migration has a live smoke proof but still lacks frozen packets, authorized labels, and adjudicated qualification; G6 mutations focus on G1-G3. **Disposition:** validate every release-affecting grader against authorized humans and remove stale metadata or seal proper calibration in Wave 5.\n\n**G12 — Whole-resume comparison does not require superiority.** Pairwise failures gate authenticity, naturalness, and relevance, but not every reported dimension; candidate preference is not a superiority gate. A tie or usefulness regression can appear acceptable. **Disposition:** gate critical dimensions and require preregistered preference/usefulness improvement or bounded non-inferiority in Wave 4.\n\n**G13 — End-to-end reliability, latency, and cost are incomplete.** Cluster runtime covers retrieval timing and activation covers error/p95 ratios, but no authoritative Apps Research-to-Exit completion/cost SLO exists. A good component can still time out, retry, or cost too much. **Disposition:** measure full completion, stage failures, retries, latency, tokens, provider cost, and cold/warm behavior in Wave 6.\n\n**G14 — ATS/document success is heuristic.** Existing checks inspect structure and separators rather than parser round-trips or rendered PDF/DOCX behavior. Text-valid output can fail in the delivered file. **Disposition:** add render, parse-back, section-order, text-loss, and overflow gates in Wave 6.\n\n**G15 — Privacy and fairness are narrow.** Fixtures prohibit several terms but do not test counterfactual protected attributes, PII leakage, or quality slices. Protected data may affect output or leak despite word filters. **Disposition:** add privacy leak tests, counterfactual invariance, and slice reporting as guardrails in Waves 2 and 6.\n\n**G16 — No causal bridge or working recertification loop.** Component metrics and final review lack a frozen baseline/ablation design, and current main already invalidates the frozen full-resume QREL scope: 13 tests fail on source-commit and profile/brief/JD digest drift. Retrieval gains may not improve the resume, and a previously ready packet can silently become stale. **Disposition:** add paired ablations plus automatic stale-scope blocking, controlled refreeze, drift, rollback, and recertification triggers in Waves 7-8."
+      },
+      {
+        "id": "metric-hierarchy",
+        "type": "markdown",
+        "body": "## Success should be decided by two primary outcomes and non-negotiable guardrails\n\n### Primary outcome P1 — Blind finished-resume utility delta\n\nCompare candidate and frozen baseline resumes for the same source bundle, target, runtime configuration, and review protocol. Independent blinded reviewers score all declared whole-resume dimensions and answer a forced pairwise preference question. Report overall and slice-level effect sizes with confidence intervals. Grounding/authenticity are non-inferiority guardrails even when overall utility improves.\n\n### Primary outcome P2 — Grounded decision-ready completion rate\n\n`completed runs with valid Apps Research handoff, all required stages, all 11 lanes accounted for, zero critical grounding/binding failures, valid rendered document, and no owner grade 0 or 1 / all eligible attempted runs`. Failed, timed-out, skipped-stage, and missing-artifact runs remain in the denominator.\n\n### Release guardrails\n\n- Unsupported material-claim rate, critical binding error rate, authority bypasses, protected-holdout leakage, and PII leakage: **zero tolerance** on the protected qualification set.\n- Full-pipeline completion, p95 latency, cost per completed resume, provider error/retry rate, and document parse/render quality: explicit SLOs derived from baseline and operating constraints.\n- Counterfactual/slice gaps: bounded before activation; no aggregate metric may hide a failing high-risk slice.\n\n### Diagnostic metrics\n\nKeep G1-G6, per-lane quality, mutation sensitivity, repeatability, and runtime component timing. They explain *why* the primary outcomes moved; they do not replace them. Application/interview conversion belongs in post-launch observational monitoring because labor-market and user-behavior confounding makes it unsuitable as the pre-release gate."
+      },
+      {
+        "id": "methodology",
+        "type": "markdown",
+        "body": "## Assessment method and decision rules\n\nThe assessment inspected the evaluation contracts, runtime lane registry, development suite, scoring implementation, human-review contracts, tracked qualification receipts, repeatability/meta-evaluation code, and activation contract. When local main advanced during drafting, the evaluation delta was re-audited; the plan was rebased to the new exact local-main tip and the added Apps Research, judge, and rendered-unit QREL controls were incorporated before closeout. The assessment ran both evaluation test suites and one deterministic snapshot evaluation.\n\nA metric was judged fit to dictate success only if it has: (1) a decision-relevant construct; (2) an explicit numerator, denominator, population, and slice policy; (3) representative source-bound data; (4) a frozen comparator or threshold with calibration rationale; (5) uncertainty or exact finite-universe coverage where applicable; (6) a validated evaluator; (7) a receipt that cannot be confused with human or release authority; and (8) a named owner for promotion.\n\nClaims here are descriptive and diagnostic. No causal product-quality claim is made from passing unit tests, and no production recommendation is inferred from missing human evidence."
+      },
+      {
+        "id": "limitations",
+        "type": "markdown",
+        "body": "## Uncertainty and robustness boundaries\n\n- This is a repository and local-runtime audit, not a completed human qualification. The absence of tracked eval records does not prove no external run exists; it proves the planning base does not contain one.\n- The deterministic snapshot run used the shipped fixture path and intentionally did not invoke providers or mutate governed evaluation data. Its failure validates fail-closed behavior, not live model quality.\n- Lane coverage counts measure declared scope only. They do not measure sample depth, correctness, or reviewer agreement.\n- Exact numeric thresholds for utility, latency, cost, fairness slices, and sample size remain intentionally unset. Freezing values without calibration data would create false rigor. Each is a Wave 0/2 design output and a Wave 7 preregistration input.\n- No chart of pass rates is provided because the available counts are from different contracts and denominators and would be analytically misleading.\n- Packaging validation and exact embedded-payload structural verification passed. The enhanced browser verifier exposed a portable-reader horizontal-overflow defect on this long report, so the self-contained semantic fallback is the verified reader path for this artifact."
+      },
+      {
+        "id": "waves-0-2",
+        "type": "markdown",
+        "body": "## Waves 0-2 establish one success contract and representative denominators\n\n### Wave 0 — Decision contract and metric hierarchy\n\n**Closes:** G01, G06, G08, G09, G10.  \n**Implement:** a versioned success-metric contract defining P1, P2, every guardrail, G1-G6 diagnostic roles, numerator/denominator, slices, comparator, uncertainty method, threshold-setting process, artifact authority, and promotion owner. Mark `apps_eval` explicitly regression-only. Make successful, fresh, source-complete Apps Research output a hard pre-U0 prerequisite.  \n**Acceptance:** schema-valid contract; every current receipt maps to exactly one authority tier; no scalar can override a critical gate; threshold fields require a calibration receipt rather than an undocumented literal.\n\n### Wave 1 — Harness convergence and receipt catalog\n\n**Closes:** G02, G08, G09.  \n**Implement:** preserve both harnesses but expose one catalog keyed by input digest, evaluator version, data split, runtime configuration, and authority. The release evaluator reads authoritative G1-G6, P1/P2, and guardrail receipts; `apps_eval` contributes regression diagnostics only. Remove or label unused rubric-weight metadata.  \n**Acceptance:** one command produces a fail-closed qualification summary from tracked receipts; a green regression suite with missing human/holdout evidence returns `NOT_MEASURED` or `BLOCKED`, never `PASS`; duplicate/stale/incompatible receipts are rejected.\n\n### Wave 2 — Benchmark, slice, holdout, and power design\n\n**Closes:** G03, G05, G06, G10, G15.  \n**Implement:** distinct source bundles and target requests across all 11 lanes, roles, employers, target profiles, evidence density, hard negatives, dates/numbers, and protected-risk slices. Add Apps Research handoff cases, immutable calibration/holdout separation, deduplication hashes, holdout access controls, sample-size/power calculations, and explicit missing-case policy.  \n**Acceptance:** no accidental duplicate request/expected-output hashes; every lane and required slice has a minimum justified sample count; holdout IDs are inaccessible to development code; the case manifest proves successful Apps Research entry before U0."
+      },
+      {
+        "id": "waves-3-5",
+        "type": "markdown",
+        "body": "## Waves 3-5 create human truth, final-output utility, and validated graders\n\n### Wave 3 — Human truth and complete material-claim authority\n\n**Closes:** G04, G05, G07.  \n**Implement:** complete blinded two-reviewer QREL/proof review with independent adjudication; preserve sealed ranks; add an independent material-claim span extractor and reconciliation against generated text; bind every claim to source bytes and graph paths; add missing-claim and omitted-inventory mutations. Do not infer or prefill human grades.  \n**Acceptance:** 100% of material output spans reconcile to the claim inventory; every required QREL/proof slot has authorized reviewer and adjudication evidence; graph IDs remain sole claim authority; no release metric is computed from incomplete labels.\n\n### Wave 4 — Finished-resume human outcome\n\n**Closes:** G01, G04, G05, G12.  \n**Implement:** blinded paired review of frozen baseline versus candidate across all 11 lanes and declared whole-resume dimensions; independent reviewers plus adjudicator; strict candidate preference/usefulness outcome; non-inferiority guards for authenticity, grounding, ATS, readability, concision, and target relevance; owner-solo review remains a complementary acceptance signal, not sole authority.  \n**Acceptance:** reviewer agreement and adjudication receipts are complete; P1 effect and interval meet preregistered criteria overall and for required slices; no critical dimension regresses beyond its margin; ties alone cannot establish superiority.\n\n### Wave 5 — Validate every release-affecting evaluator\n\n**Closes:** G07, G11.  \n**Implement:** extend G6 to G4, G5, whole-resume, ATS/document, Apps Research, privacy, fairness, and operational graders; compare automated decisions to authorized human truth; report exact agreement, false-pass/false-fail intervals, mutation recall, and slice coverage. Remove false calibration metadata or configure and calibrate a version-pinned judge. Keep rank correlation informational-only.  \n**Acceptance:** each release-affecting grader has a versioned card, mutation suite, human-pilot receipt, and threshold; critical false-pass upper bounds meet the preregistered limit; unvalidated graders emit `NOT_MEASURED`."
+      },
+      {
+        "id": "waves-6-8",
+        "type": "markdown",
+        "body": "## Waves 6-8 prove end-to-end behavior, then qualify and activate under human authority\n\n### Wave 6 — Real controller, document, operational, privacy, and fairness evaluation\n\n**Closes:** G06, G13, G14, G15.  \n**Implement:** execute source-bound Apps Research → U0 → all generated lanes → Exit runs with provider/model/config pins. Capture completion, stage failures, retries, tokens, cost, cold/warm and p50/p95 latency, artifact digests, and missing-stage failures. Render shipped PDF/DOCX outputs, parse them back, compare text/section order, inspect overflow, and run PII/counterfactual/slice guardrails.  \n**Acceptance:** every attempted case has a complete or explicitly failed lineage; P2 and operational guardrails are computable with failed attempts retained; rendered artifacts round-trip without material loss; zero critical privacy/authority failures.\n\n### Wave 7 — Frozen baseline, ablation, and protected-holdout qualification\n\n**Closes:** G10, G16.  \n**Implement:** freeze metric code, data, provider/model pins, comparator, effect sizes, margins, and decision rules before revealing holdout results. Add an explicit stale-scope state and controlled refreeze procedure for any source-commit or input-digest change. Run candidate versus baseline and ablations for retrieval, grounding, section generation, and whole-resume assembly. Evaluate P1, P2, G1-G6, all guardrails, intervals, and slices once on the protected holdout.  \n**Acceptance:** preregistration digest predates holdout access; the frozen scope validates at the exact source commit with zero digest mismatches; all primary outcomes and guardrails pass; causal attribution is limited to randomized/paired ablations; any metric or code change invalidates the receipt and requires a new sealed holdout. Passing does not itself authorize production.\n\n### Wave 8 — Shadow/canary monitoring and explicit promotion authority\n\n**Closes:** G08, G13, G16.  \n**Implement:** shadow then bounded canary with the existing minimum-request/error/p95 controls plus P1/P2 proxy monitoring, cost, stage failures, drift in source/target/query distributions, reviewer disagreement, and recertification triggers. Define rollback and incident artifacts. Promotion requires a named human authority receipt.  \n**Acceptance:** minimum traffic and observation windows are met; no guardrail or slice breach; rollback is rehearsed; monitoring proves artifact/config identity; any source/model/provider/graph drift automatically invalidates affected qualification receipts; the human owner signs production authorization separately from technical qualification."
+      },
+      {
+        "id": "definition-of-done",
+        "type": "markdown",
+        "body": "## Cross-wave definition of done prevents paper completion\n\nA wave closes only when its contract, implementation, tests, real evidence, and authority receipt all agree. A schema or fixture alone is not completion. Every acceptance receipt must include source/input digests, evaluator and schema versions, runtime/provider/model pins where applicable, population and denominator, missing/failed attempts, slice results, uncertainty method, status reason codes, and an explicit statement of what the receipt does **not** authorize.\n\nDependencies are strict: Wave 0 before scoring changes; Waves 1-2 before human execution; Wave 3 before retrieval/grounding qualification; Wave 4 before product-utility claims; Wave 5 before automated gates carry release weight; Wave 6 before end-to-end success claims; Wave 7 before any activation request; Wave 8 before production authorization."
+      },
+      {
+        "id": "further-questions",
+        "type": "markdown",
+        "body": "## Decisions to resolve during Wave 0, not by assumption\n\n1. What frozen comparator represents current acceptable quality: current local main, last human-approved resume, or an expert-edited baseline?\n2. Which target profiles and job families define the initial production population, and which remain explicitly unsupported?\n3. What operating constraints set p95 latency and cost-per-completed-resume guardrails?\n4. Which document formats are user-facing and therefore require render/parse certification?\n5. Which named humans may adjudicate QRELs, final-resume utility, and production promotion?\n6. What minimum practically important improvement and non-inferiority margins justify the human-review sample size?"
+      }
+    ]
+  },
+  "snapshot": {
+    "version": 1,
+    "generatedAt": "2026-08-07T00:00:00-04:00",
+    "status": "ready",
+    "datasets": {
+      "lane_coverage": [
+        {
+          "surface_short": "apps_eval",
+          "evaluation_surface": "apps_eval snapshot output",
+          "covered_lanes": 3,
+          "total_runtime_lanes": 11,
+          "authority_status": "regression fixture"
+        },
+        {
+          "surface_short": "G4",
+          "evaluation_surface": "G4 section benchmark",
+          "covered_lanes": 5,
+          "total_runtime_lanes": 11,
+          "authority_status": "technical benchmark"
+        },
+        {
+          "surface_short": "W7",
+          "evaluation_surface": "W7 C0.3 retrieval manifest",
+          "covered_lanes": 8,
+          "total_runtime_lanes": 11,
+          "authority_status": "blocked: 0 human QRELs"
+        },
+        {
+          "surface_short": "Owner-solo",
+          "evaluation_surface": "Owner-solo rendered-unit scope",
+          "covered_lanes": 11,
+          "total_runtime_lanes": 11,
+          "authority_status": "provisional scope only"
+        }
+      ]
+    }
+  },
+  "sources": [],
+  "package_info": {
+    "delivery_mode": "portable_html",
+    "audience": "technical",
+    "scope": "plan_only",
+    "branch": "codex/eval-success-metrics-plan",
+    "base_commit": "5487e33022dd4996065581279e73cb6461e4ca68"
+  }
+}

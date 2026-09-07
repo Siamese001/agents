@@ -1,0 +1,17 @@
+{
+  "boundary": "apps_research_handoff_precommit",
+  "bytes_read": 0,
+  "checkpoint_ref": "C:\\Git\\apps_rg_v2\\artifacts\\apps_research\\runs\\.apps-research-otel-2ae8gfgm\\otel_collector_checkpoint.json",
+  "collector_generation": 0,
+  "collector_source": "C:\\Git\\Agentic-Workflow-FRESH\\artifacts\\otel_collector_export\\spans.json",
+  "collector_source_configured": true,
+  "exporter_endpoint_configured": true,
+  "offset_end": 5400690,
+  "offset_start": 5400690,
+  "rotation_detected": false,
+  "runtime_active": false,
+  "schema_version": "apps.otel_trace_snapshot.v3",
+  "spans": [],
+  "status": "NO_MATCH",
+  "trace_id": "t1"
+}

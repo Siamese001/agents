@@ -1,0 +1,23 @@
+{
+  "artifact_hash": "sha256:eaff755a6273d2ad84b0e72d093b2725da99a6e9287ff86041140d0540aa9b7e",
+  "emitted_at": "2026-08-08T06:22:32Z",
+  "payload": {
+    "chain_kind": "R4_SINGLE_ACTION",
+    "l2_fault": "L2_EXECUTION_ERROR:RuntimeError:FAILED_MODULAR_R4: decisive='FAIL' failure='fatal_lane_recipe_policy:competencies:exception; unify_bullets:PHASE1_NO_RUN_DIR; ibm_bullets:PHASE1_NO_RUN_DIR; insurtech_bullets:PHASE1_NO_RUN_DIR; ey_bullets:PHASE1_NO_RUN_DIR; unify_narrative:PHASE1_NO_RUN_DIR; ibm_narrative:PHASE1_NO_RUN_DIR; insurtech_narrative:PHASE1_NO_RUN_DIR' schema_ok=False lane_ok=False",
+    "l5_certification_refs": [
+      "l5:runtime_certification_binding:783a7b429137d238"
+    ],
+    "request_id": "req-0db53a40c74244a2a2c112425142cb41",
+    "route_id": "R4_SINGLE_ACTION",
+    "run_id": "c219b2b6-0ffc-47bc-96c1-9d488ca21eab",
+    "runtime_mode": "fault",
+    "sealed_at_utc": "2026-08-08T06:22:32Z",
+    "synthetic_trace_detected": false,
+    "trace_root": "510be8e1-98db-43d3-8f88-4cee48bd6618",
+    "x3_disposition": "X3A"
+  },
+  "producer_component": "agentic_core.runtime.entrypoints.integrated_single_action_spine_run",
+  "producer_function_or_class": "run_integrated_single_action_spine",
+  "producer_module": "integrated_single_action_spine_run",
+  "upstream_artifact_ref": "sha256:2f4809dba5c3c651d92c00b62e95d90bece07b72a3e6657cb66c5ca42854b711"
+}

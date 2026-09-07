@@ -1,0 +1,26 @@
+{
+  "authority_contract_id": "apps_research_rg_e2e_authority",
+  "authority_validation_receipt": {
+    "allowed": true,
+    "forbidden_fields_detected": [],
+    "passed": true,
+    "timestamp_iso": "2026-09-06T11:49:17.276471+00:00"
+  },
+  "child_run_id": "bridge:rg_research_bridge:acc3fea8:t1",
+  "normalized_input_sha256": "sha256:de05f836976d3ed4903633ba1de8a5206e296a059d411620ce3accf533f12305",
+  "parent_run_id": "run1",
+  "raw_input_sha256": "sha256:71a86a198aae9f48a1c4020358348c711fecde3f6652159100d431ab48756b31",
+  "reflection_receipt": {
+    "authority_fields_present": [],
+    "forbidden_fields_checked": 13,
+    "legacy_authority_scan_passed": true,
+    "reflection_timestamp": "2026-09-06T11:49:17.276471+00:00",
+    "schema_version": "AG9.U0.1",
+    "task_class": "company_brief"
+  },
+  "request_id": "r1",
+  "schema_version": "apps_research.u0_receipt.v1",
+  "status": "PASS",
+  "tenant_id": "default",
+  "trace_root": "t1"
+}

@@ -1,0 +1,11 @@
+{
+  "schema_version": "apps_rg.c03_w9_human_authority_trust.v1",
+  "issuer_ref": "authority-issuer://evaluation-owner",
+  "signature": {
+    "algorithm": "HMAC-SHA256",
+    "key_id": "c03-w9-human-authority-v1",
+    "environment_variable": "APPS_RG_C03_W9_AUTHORITY_HMAC_KEY"
+  },
+  "machine_authority": false,
+  "production_promotion_authorized": false
+}

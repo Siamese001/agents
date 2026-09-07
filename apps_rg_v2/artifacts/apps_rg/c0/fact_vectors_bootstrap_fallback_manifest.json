@@ -1,0 +1,1523 @@
+{
+  "schema_version": "apps_rg.fact_vectors_bootstrap_manifest.v1",
+  "plan": "apps-rg-e2e-gap-remediation-7e2d9c",
+  "generated_at_utc": "2026-07-20T09:14:31.646322+00:00",
+  "source": "candidate_fact_ledger + base_resume_employment_bullets (tracked first-principles sources); generated output is never a live fact source",
+  "chroma_path": "C:\\Git\\Agentic-Workflow-FRESH-worktrees\\codex-apps-rg-source-refreeze\\data\\cache\\chromadb",
+  "dry_run": false,
+  "ledger_version_hash": "3aecaa0c2dcd942ac8e6c5070957704d",
+  "locked_deterministic_lanes": [],
+  "required_lanes": [
+    "competencies",
+    "unify_bullets",
+    "ibm_bullets",
+    "insurtech_bullets",
+    "ey_bullets",
+    "unify_narrative",
+    "ibm_narrative",
+    "insurtech_narrative",
+    "ey_narrative",
+    "executive_summary",
+    "headline"
+  ],
+  "missing_required_lane_targets": [],
+  "ledger_path": "C:/Git/Agentic-Workflow-FRESH-worktrees/codex-apps-rg-source-refreeze/artifacts/apps_rg/fact_inventory/master_candidate_skills_fact_ledger_20260518T1100Z.json",
+  "total_ledger_facts": 55,
+  "eligible_atoms": 45,
+  "skipped_count": 29,
+  "skipped": [
+    {
+      "fact_id": "fact_partnerships_gtm_001",
+      "reason": "requires_proof_eligible_or_high_confidence"
+    },
+    {
+      "fact_id": "fact_partnerships_gtm_002",
+      "reason": "requires_proof_eligible_or_high_confidence"
+    },
+    {
+      "fact_id": "fact_partnerships_gtm_003",
+      "reason": "requires_proof_eligible_or_high_confidence"
+    },
+    {
+      "fact_id": "fact_partnerships_gtm_004",
+      "reason": "requires_proof_eligible_or_high_confidence"
+    },
+    {
+      "fact_id": "fact_partnerships_gtm_005",
+      "reason": "requires_proof_eligible_or_high_confidence"
+    },
+    {
+      "fact_id": "fact_sales_accounts_001",
+      "reason": "requires_proof_eligible_or_high_confidence"
+    },
+    {
+      "fact_id": "fact_sales_accounts_002",
+      "reason": "requires_proof_eligible_or_high_confidence"
+    },
+    {
+      "fact_id": "fact_sales_accounts_003",
+      "reason": "requires_proof_eligible_or_high_confidence"
+    },
+    {
+      "fact_id": "fact_sales_accounts_004",
+      "reason": "pending_trace_not_ingested"
+    },
+    {
+      "fact_id": "fact_sales_accounts_005",
+      "reason": "pending_trace_not_ingested"
+    },
+    {
+      "fact_id": "fact_revenue_ops_001",
+      "reason": "requires_proof_eligible_or_high_confidence"
+    },
+    {
+      "fact_id": "fact_revenue_ops_002",
+      "reason": "requires_proof_eligible_or_high_confidence"
+    },
+    {
+      "fact_id": "fact_revenue_ops_003",
+      "reason": "requires_proof_eligible_or_high_confidence"
+    },
+    {
+      "fact_id": "fact_revenue_ops_004",
+      "reason": "requires_proof_eligible_or_high_confidence"
+    },
+    {
+      "fact_id": "fact_revenue_ops_005",
+      "reason": "requires_proof_eligible_or_high_confidence"
+    },
+    {
+      "fact_id": "fact_solutions_001",
+      "reason": "requires_proof_eligible_or_high_confidence"
+    },
+    {
+      "fact_id": "fact_solutions_002",
+      "reason": "requires_proof_eligible_or_high_confidence"
+    },
+    {
+      "fact_id": "fact_customer_success_001",
+      "reason": "requires_proof_eligible_or_high_confidence"
+    },
+    {
+      "fact_id": "fact_governance_001",
+      "reason": "requires_proof_eligible_or_high_confidence"
+    },
+    {
+      "fact_id": "fact_governance_002",
+      "reason": "requires_proof_eligible_or_high_confidence"
+    },
+    {
+      "fact_id": "fact_governance_004",
+      "reason": "requires_proof_eligible_or_high_confidence"
+    },
+    {
+      "fact_id": "fact_governance_005",
+      "reason": "requires_proof_eligible_or_high_confidence"
+    },
+    {
+      "fact_id": "fact_data_analytics_001",
+      "reason": "requires_proof_eligible_or_high_confidence"
+    },
+    {
+      "fact_id": "fact_data_analytics_002",
+      "reason": "requires_proof_eligible_or_high_confidence"
+    },
+    {
+      "fact_id": "fact_data_analytics_003",
+      "reason": "requires_proof_eligible_or_high_confidence"
+    },
+    {
+      "fact_id": "fact_data_analytics_004",
+      "reason": "requires_proof_eligible_or_high_confidence"
+    },
+    {
+      "fact_id": "fact_quant_hpc_004",
+      "reason": "requires_proof_eligible_or_high_confidence"
+    },
+    {
+      "fact_id": "fact_exec_001",
+      "reason": "requires_proof_eligible_or_high_confidence"
+    },
+    {
+      "fact_id": "fact_consulting_002",
+      "reason": "requires_proof_eligible_or_high_confidence"
+    }
+  ],
+  "per_section_target_counts": {
+    "competencies": 45,
+    "unify_bullets": 24,
+    "ibm_bullets": 8,
+    "insurtech_bullets": 4,
+    "ey_bullets": 11,
+    "unify_narrative": 24,
+    "ibm_narrative": 8,
+    "insurtech_narrative": 4,
+    "ey_narrative": 11,
+    "executive_summary": 45,
+    "headline": 45
+  },
+  "base_resume_path": "C:/Git/Agentic-Workflow-FRESH-worktrees/codex-apps-rg-source-refreeze/apps_rg/resume/base/amit_ayer_base_resume_v1.json",
+  "base_resume_digest": "cc576606cff2ecd3084408f8f900d71fe89fe7d905f373e40aa5e343964bfcc5",
+  "base_resume_employment_atoms": 19,
+  "base_resume_skipped": [],
+  "base_resume_per_section_counts": {
+    "competencies": 19,
+    "unify_bullets": 6,
+    "ibm_bullets": 5,
+    "insurtech_bullets": 3,
+    "ey_bullets": 5,
+    "unify_narrative": 6,
+    "ibm_narrative": 5,
+    "insurtech_narrative": 3,
+    "ey_narrative": 5,
+    "executive_summary": 19,
+    "headline": 19
+  },
+  "ledger_eligible_atoms": 26,
+  "chunks_built": 0,
+  "upserted_count": 0,
+  "collection_count_after": 45,
+  "sparse_sidecar_built": true,
+  "hydration_env": {
+    "schema_version": "apps_rg.fact_vector_hydration_env.v1",
+    "chroma_path": "C:\\Git\\Agentic-Workflow-FRESH-worktrees\\codex-apps-rg-source-refreeze\\data\\cache\\chromadb",
+    "embedding_enabled": true,
+    "embedding_model_id": "BAAI/bge-m3",
+    "embedding_model_path": "C:\\Users\\amita\\.cache\\huggingface\\hub\\models--BAAI--bge-m3\\snapshots\\5617a9f61b028005a4858fdac845db406aefb181",
+    "embedding_model_source": "local",
+    "device": "cuda:0",
+    "allow_cpu": false,
+    "applied_env": {}
+  },
+  "hydration_runtime": {
+    "schema_version": "apps_rg.fact_vector_hydration_runtime.v1",
+    "generated_at_utc": "2026-07-20T09:14:35.323387+00:00",
+    "status": "BLOCKED",
+    "block_code": "BLOCKED_FACT_VECTOR_HYDRATION_RUNTIME",
+    "reasons": [
+      "hydration_device_not_cuda:cuda:0"
+    ],
+    "dependency_failures": {},
+    "required_modules": [
+      "redis",
+      "yaml",
+      "chromadb",
+      "sentence_transformers",
+      "torch"
+    ],
+    "device": "cuda:0",
+    "require_cuda": true,
+    "torch_cuda_available": true,
+    "cuda_device_name": "NVIDIA GeForce RTX 5090",
+    "embedding_model_path": "C:\\Users\\amita\\.cache\\huggingface\\hub\\models--BAAI--bge-m3\\snapshots\\5617a9f61b028005a4858fdac845db406aefb181",
+    "embedding_model_path_present": true,
+    "offline_model_required": true,
+    "hf_hub_offline": true,
+    "transformers_offline": true
+  },
+  "hydration_fallback": {
+    "schema_version": "apps_rg.fact_vector_hydration_fallback.v1",
+    "decision": "USED_EXISTING_FACT_VECTOR_INDEX",
+    "fallback_mode": "existing_dense_sparse_fact_vectors_index",
+    "live_hydration_status": "BLOCKED",
+    "live_hydration_block_code": "BLOCKED_FACT_VECTOR_HYDRATION_RUNTIME",
+    "live_hydration_reasons": [
+      "hydration_device_not_cuda:cuda:0"
+    ],
+    "readiness": {
+      "schema_version": "apps_rg.fact_vector_readiness_gate.v1",
+      "gate_id": "pre_u0_fact_vector_readiness",
+      "block_code": "BLOCKED_PRE_U0_FACT_VECTOR_READINESS",
+      "generated_at_utc": "2026-07-20T09:14:35.333886+00:00",
+      "recorded_at": 1784538875.3338866,
+      "status": "PASS",
+      "allowed": true,
+      "reasons": [],
+      "repo_root": "C:\\Git\\Agentic-Workflow-FRESH-worktrees\\codex-apps-rg-source-refreeze",
+      "target_context": {
+        "phase": "bootstrap_hydration_fallback",
+        "block_stage": "hydration_runtime"
+      },
+      "policy": {
+        "fact_hydration_pipeline": "source_ingestion_or_bootstrap_before_u0",
+        "u0_write_authority": false,
+        "c0_write_authority": false,
+        "c0_comparison_authority": true,
+        "generated_output_route": "staging_or_delayed_promotion_only",
+        "live_write_during_c0": false
+      },
+      "collection": {
+        "available": true,
+        "path": "C:\\Git\\Agentic-Workflow-FRESH-worktrees\\codex-apps-rg-source-refreeze\\data\\cache\\chromadb\\chroma.sqlite3",
+        "collection_name": "fact_vectors",
+        "collection_dimension": 1024,
+        "collection_doc_count": 45,
+        "embedding_id_sample": [
+          "apps_rg:fv:fact_engineering_platform_001",
+          "apps_rg:fv:fact_engineering_platform_002",
+          "apps_rg:fv:fact_engineering_platform_003",
+          "apps_rg:fv:fact_engineering_platform_004",
+          "apps_rg:fv:fact_engineering_platform_005",
+          "apps_rg:fv:fact_engineering_platform_006",
+          "apps_rg:fv:fact_governance_003",
+          "apps_rg:fv:fact_quant_hpc_001"
+        ],
+        "model_counts": {
+          "BAAI/bge-m3": 45
+        },
+        "dim_counts": {
+          "1024": 45
+        },
+        "source_class_counts": {
+          "candidate_profile": 26,
+          "project_evidence": 19
+        },
+        "section_counts": {
+          "competencies": 45,
+          "executive_summary": 45,
+          "ey_bullets": 11,
+          "ey_narrative": 11,
+          "headline": 45,
+          "ibm_bullets": 8,
+          "ibm_narrative": 8,
+          "insurtech_bullets": 4,
+          "insurtech_narrative": 4,
+          "unify_bullets": 24,
+          "unify_narrative": 24
+        },
+        "section_source_ids": {
+          "competencies": [
+            "bul_ey_001",
+            "bul_ey_002",
+            "bul_ey_003",
+            "bul_ey_004",
+            "bul_ey_005",
+            "bul_ibm_001",
+            "bul_ibm_002",
+            "bul_ibm_003",
+            "bul_ibm_004",
+            "bul_ibm_005",
+            "bul_insurtech_001",
+            "bul_insurtech_002",
+            "bul_insurtech_003",
+            "bul_unify_001",
+            "bul_unify_002",
+            "bul_unify_003",
+            "bul_unify_004",
+            "bul_unify_005",
+            "bul_unify_006",
+            "fact_bcbs239_001",
+            "fact_certs_001",
+            "fact_consulting_001",
+            "fact_credit_001",
+            "fact_engineering_platform_001",
+            "fact_engineering_platform_002",
+            "fact_engineering_platform_003",
+            "fact_engineering_platform_004",
+            "fact_engineering_platform_005",
+            "fact_engineering_platform_006",
+            "fact_exec_002",
+            "fact_ey_guidewire_001",
+            "fact_governance_003",
+            "fact_insurance_liabilities_001",
+            "fact_insurance_software_001",
+            "fact_insurtech_aws_001",
+            "fact_quant_act_001",
+            "fact_quant_act_002",
+            "fact_quant_act_003",
+            "fact_quant_act_004",
+            "fact_quant_hpc_001",
+            "fact_quant_hpc_002",
+            "fact_quant_hpc_003",
+            "fact_rag_insurance_001",
+            "fact_solvency_001",
+            "fact_three_lines_001"
+          ],
+          "unify_bullets": [
+            "bul_unify_001",
+            "bul_unify_002",
+            "bul_unify_003",
+            "bul_unify_004",
+            "bul_unify_005",
+            "bul_unify_006",
+            "fact_bcbs239_001",
+            "fact_certs_001",
+            "fact_consulting_001",
+            "fact_credit_001",
+            "fact_engineering_platform_001",
+            "fact_engineering_platform_002",
+            "fact_engineering_platform_003",
+            "fact_engineering_platform_004",
+            "fact_engineering_platform_005",
+            "fact_engineering_platform_006",
+            "fact_exec_002",
+            "fact_ey_guidewire_001",
+            "fact_insurance_software_001",
+            "fact_insurtech_aws_001",
+            "fact_quant_act_003",
+            "fact_quant_hpc_001",
+            "fact_quant_hpc_002",
+            "fact_rag_insurance_001"
+          ],
+          "ibm_bullets": [
+            "bul_ibm_001",
+            "bul_ibm_002",
+            "bul_ibm_003",
+            "bul_ibm_004",
+            "bul_ibm_005",
+            "fact_consulting_001",
+            "fact_governance_003",
+            "fact_quant_hpc_001"
+          ],
+          "insurtech_bullets": [
+            "bul_insurtech_001",
+            "bul_insurtech_002",
+            "bul_insurtech_003",
+            "fact_insurtech_aws_001"
+          ],
+          "ey_bullets": [
+            "bul_ey_001",
+            "bul_ey_002",
+            "bul_ey_003",
+            "bul_ey_004",
+            "bul_ey_005",
+            "fact_bcbs239_001",
+            "fact_credit_001",
+            "fact_ey_guidewire_001",
+            "fact_insurance_software_001",
+            "fact_solvency_001",
+            "fact_three_lines_001"
+          ],
+          "unify_narrative": [
+            "bul_unify_001",
+            "bul_unify_002",
+            "bul_unify_003",
+            "bul_unify_004",
+            "bul_unify_005",
+            "bul_unify_006",
+            "fact_bcbs239_001",
+            "fact_certs_001",
+            "fact_consulting_001",
+            "fact_credit_001",
+            "fact_engineering_platform_001",
+            "fact_engineering_platform_002",
+            "fact_engineering_platform_003",
+            "fact_engineering_platform_004",
+            "fact_engineering_platform_005",
+            "fact_engineering_platform_006",
+            "fact_exec_002",
+            "fact_ey_guidewire_001",
+            "fact_insurance_software_001",
+            "fact_insurtech_aws_001",
+            "fact_quant_act_003",
+            "fact_quant_hpc_001",
+            "fact_quant_hpc_002",
+            "fact_rag_insurance_001"
+          ],
+          "ibm_narrative": [
+            "bul_ibm_001",
+            "bul_ibm_002",
+            "bul_ibm_003",
+            "bul_ibm_004",
+            "bul_ibm_005",
+            "fact_consulting_001",
+            "fact_governance_003",
+            "fact_quant_hpc_001"
+          ],
+          "insurtech_narrative": [
+            "bul_insurtech_001",
+            "bul_insurtech_002",
+            "bul_insurtech_003",
+            "fact_insurtech_aws_001"
+          ],
+          "ey_narrative": [
+            "bul_ey_001",
+            "bul_ey_002",
+            "bul_ey_003",
+            "bul_ey_004",
+            "bul_ey_005",
+            "fact_bcbs239_001",
+            "fact_credit_001",
+            "fact_ey_guidewire_001",
+            "fact_insurance_software_001",
+            "fact_solvency_001",
+            "fact_three_lines_001"
+          ],
+          "executive_summary": [
+            "bul_ey_001",
+            "bul_ey_002",
+            "bul_ey_003",
+            "bul_ey_004",
+            "bul_ey_005",
+            "bul_ibm_001",
+            "bul_ibm_002",
+            "bul_ibm_003",
+            "bul_ibm_004",
+            "bul_ibm_005",
+            "bul_insurtech_001",
+            "bul_insurtech_002",
+            "bul_insurtech_003",
+            "bul_unify_001",
+            "bul_unify_002",
+            "bul_unify_003",
+            "bul_unify_004",
+            "bul_unify_005",
+            "bul_unify_006",
+            "fact_bcbs239_001",
+            "fact_certs_001",
+            "fact_consulting_001",
+            "fact_credit_001",
+            "fact_engineering_platform_001",
+            "fact_engineering_platform_002",
+            "fact_engineering_platform_003",
+            "fact_engineering_platform_004",
+            "fact_engineering_platform_005",
+            "fact_engineering_platform_006",
+            "fact_exec_002",
+            "fact_ey_guidewire_001",
+            "fact_governance_003",
+            "fact_insurance_liabilities_001",
+            "fact_insurance_software_001",
+            "fact_insurtech_aws_001",
+            "fact_quant_act_001",
+            "fact_quant_act_002",
+            "fact_quant_act_003",
+            "fact_quant_act_004",
+            "fact_quant_hpc_001",
+            "fact_quant_hpc_002",
+            "fact_quant_hpc_003",
+            "fact_rag_insurance_001",
+            "fact_solvency_001",
+            "fact_three_lines_001"
+          ],
+          "headline": [
+            "bul_ey_001",
+            "bul_ey_002",
+            "bul_ey_003",
+            "bul_ey_004",
+            "bul_ey_005",
+            "bul_ibm_001",
+            "bul_ibm_002",
+            "bul_ibm_003",
+            "bul_ibm_004",
+            "bul_ibm_005",
+            "bul_insurtech_001",
+            "bul_insurtech_002",
+            "bul_insurtech_003",
+            "bul_unify_001",
+            "bul_unify_002",
+            "bul_unify_003",
+            "bul_unify_004",
+            "bul_unify_005",
+            "bul_unify_006",
+            "fact_bcbs239_001",
+            "fact_certs_001",
+            "fact_consulting_001",
+            "fact_credit_001",
+            "fact_engineering_platform_001",
+            "fact_engineering_platform_002",
+            "fact_engineering_platform_003",
+            "fact_engineering_platform_004",
+            "fact_engineering_platform_005",
+            "fact_engineering_platform_006",
+            "fact_exec_002",
+            "fact_ey_guidewire_001",
+            "fact_governance_003",
+            "fact_insurance_liabilities_001",
+            "fact_insurance_software_001",
+            "fact_insurtech_aws_001",
+            "fact_quant_act_001",
+            "fact_quant_act_002",
+            "fact_quant_act_003",
+            "fact_quant_act_004",
+            "fact_quant_hpc_001",
+            "fact_quant_hpc_002",
+            "fact_quant_hpc_003",
+            "fact_rag_insurance_001",
+            "fact_solvency_001",
+            "fact_three_lines_001"
+          ]
+        },
+        "section_source_class_counts": {
+          "competencies": {
+            "candidate_profile": 26,
+            "project_evidence": 19
+          },
+          "unify_bullets": {
+            "candidate_profile": 18,
+            "project_evidence": 6
+          },
+          "ibm_bullets": {
+            "candidate_profile": 3,
+            "project_evidence": 5
+          },
+          "insurtech_bullets": {
+            "candidate_profile": 1,
+            "project_evidence": 3
+          },
+          "ey_bullets": {
+            "candidate_profile": 6,
+            "project_evidence": 5
+          },
+          "unify_narrative": {
+            "candidate_profile": 18,
+            "project_evidence": 6
+          },
+          "ibm_narrative": {
+            "candidate_profile": 3,
+            "project_evidence": 5
+          },
+          "insurtech_narrative": {
+            "candidate_profile": 1,
+            "project_evidence": 3
+          },
+          "ey_narrative": {
+            "candidate_profile": 6,
+            "project_evidence": 5
+          },
+          "executive_summary": {
+            "candidate_profile": 26,
+            "project_evidence": 19
+          },
+          "headline": {
+            "candidate_profile": 26,
+            "project_evidence": 19
+          }
+        },
+        "section_tier_counts": {
+          "competencies": {
+            "seed": 45
+          },
+          "unify_bullets": {
+            "seed": 24
+          },
+          "ibm_bullets": {
+            "seed": 8
+          },
+          "insurtech_bullets": {
+            "seed": 4
+          },
+          "ey_bullets": {
+            "seed": 11
+          },
+          "unify_narrative": {
+            "seed": 24
+          },
+          "ibm_narrative": {
+            "seed": 8
+          },
+          "insurtech_narrative": {
+            "seed": 4
+          },
+          "ey_narrative": {
+            "seed": 11
+          },
+          "executive_summary": {
+            "seed": 45
+          },
+          "headline": {
+            "seed": 45
+          }
+        }
+      },
+      "sparse_sidecar": {
+        "path": "C:\\Git\\Agentic-Workflow-FRESH-worktrees\\codex-apps-rg-source-refreeze\\data\\cache\\sparse\\fact_vectors.db",
+        "available": true,
+        "doc_count": 45,
+        "error": ""
+      },
+      "bootstrap_manifest": {
+        "path": "C:\\Git\\Agentic-Workflow-FRESH-worktrees\\codex-apps-rg-source-refreeze\\artifacts\\apps_rg\\c0\\fact_vectors_bootstrap_manifest.json",
+        "present": true,
+        "schema_version": "apps_rg.fact_vectors_bootstrap_manifest.v1",
+        "generated_at_utc": "2026-07-20T08:53:19.438325+00:00",
+        "source": "candidate_fact_ledger + base_resume_employment_bullets (tracked first-principles sources); generated output is never a live fact source",
+        "dry_run": false,
+        "manifest_checksum": "a09329b289e273cbacb694b9695a8aced1a893318c0d7894666351bef734e1e2",
+        "required_lanes": [
+          "competencies",
+          "unify_bullets",
+          "ibm_bullets",
+          "insurtech_bullets",
+          "ey_bullets",
+          "unify_narrative",
+          "ibm_narrative",
+          "insurtech_narrative",
+          "ey_narrative",
+          "executive_summary",
+          "headline"
+        ],
+        "missing_required_lane_targets": [],
+        "locked_deterministic_lanes": [],
+        "per_section_target_counts": {
+          "competencies": 45,
+          "unify_bullets": 24,
+          "ibm_bullets": 8,
+          "insurtech_bullets": 4,
+          "ey_bullets": 11,
+          "unify_narrative": 24,
+          "ibm_narrative": 8,
+          "insurtech_narrative": 4,
+          "ey_narrative": 11,
+          "executive_summary": 45,
+          "headline": 45
+        },
+        "upserted_count": 45,
+        "collection_count_after": 45,
+        "sparse_sidecar_built": true
+      },
+      "authority_manifest": {
+        "competencies": {
+          "authority_mode": "direct_vector_proof",
+          "direct_vector_proof": true,
+          "inherited_bullet_proof": false,
+          "aggregate_section_proof": false,
+          "positioning_only": false,
+          "upstream_sections": [],
+          "product_hybrid_allowed": true
+        },
+        "executive_summary": {
+          "authority_mode": "aggregate_section_proof",
+          "direct_vector_proof": true,
+          "inherited_bullet_proof": false,
+          "aggregate_section_proof": true,
+          "positioning_only": false,
+          "upstream_sections": [
+            "competencies",
+            "unify_bullets",
+            "ibm_bullets",
+            "insurtech_bullets",
+            "ey_bullets",
+            "unify_narrative",
+            "ibm_narrative",
+            "insurtech_narrative",
+            "ey_narrative"
+          ],
+          "product_hybrid_allowed": true
+        },
+        "ey_bullets": {
+          "authority_mode": "direct_vector_proof",
+          "direct_vector_proof": true,
+          "inherited_bullet_proof": false,
+          "aggregate_section_proof": false,
+          "positioning_only": false,
+          "upstream_sections": [],
+          "product_hybrid_allowed": true
+        },
+        "ey_narrative": {
+          "authority_mode": "inherited_bullet_proof",
+          "direct_vector_proof": false,
+          "inherited_bullet_proof": true,
+          "aggregate_section_proof": false,
+          "positioning_only": false,
+          "upstream_sections": [
+            "ey_bullets"
+          ],
+          "product_hybrid_allowed": false
+        },
+        "headline": {
+          "authority_mode": "positioning_only",
+          "direct_vector_proof": true,
+          "inherited_bullet_proof": false,
+          "aggregate_section_proof": true,
+          "positioning_only": true,
+          "upstream_sections": [
+            "executive_summary",
+            "competencies",
+            "unify_bullets",
+            "ibm_bullets",
+            "insurtech_bullets",
+            "ey_bullets"
+          ],
+          "product_hybrid_allowed": true
+        },
+        "ibm_bullets": {
+          "authority_mode": "direct_vector_proof",
+          "direct_vector_proof": true,
+          "inherited_bullet_proof": false,
+          "aggregate_section_proof": false,
+          "positioning_only": false,
+          "upstream_sections": [],
+          "product_hybrid_allowed": true
+        },
+        "ibm_narrative": {
+          "authority_mode": "inherited_bullet_proof",
+          "direct_vector_proof": false,
+          "inherited_bullet_proof": true,
+          "aggregate_section_proof": false,
+          "positioning_only": false,
+          "upstream_sections": [
+            "ibm_bullets"
+          ],
+          "product_hybrid_allowed": false
+        },
+        "insurtech_bullets": {
+          "authority_mode": "direct_vector_proof",
+          "direct_vector_proof": true,
+          "inherited_bullet_proof": false,
+          "aggregate_section_proof": false,
+          "positioning_only": false,
+          "upstream_sections": [],
+          "product_hybrid_allowed": true
+        },
+        "insurtech_narrative": {
+          "authority_mode": "inherited_bullet_proof",
+          "direct_vector_proof": false,
+          "inherited_bullet_proof": true,
+          "aggregate_section_proof": false,
+          "positioning_only": false,
+          "upstream_sections": [
+            "insurtech_bullets"
+          ],
+          "product_hybrid_allowed": false
+        },
+        "unify_bullets": {
+          "authority_mode": "direct_vector_proof",
+          "direct_vector_proof": true,
+          "inherited_bullet_proof": false,
+          "aggregate_section_proof": false,
+          "positioning_only": false,
+          "upstream_sections": [],
+          "product_hybrid_allowed": true
+        },
+        "unify_narrative": {
+          "authority_mode": "inherited_bullet_proof",
+          "direct_vector_proof": false,
+          "inherited_bullet_proof": true,
+          "aggregate_section_proof": false,
+          "positioning_only": false,
+          "upstream_sections": [
+            "unify_bullets"
+          ],
+          "product_hybrid_allowed": false
+        }
+      },
+      "generated_lanes": [
+        "competencies",
+        "unify_bullets",
+        "ibm_bullets",
+        "insurtech_bullets",
+        "ey_bullets",
+        "unify_narrative",
+        "ibm_narrative",
+        "insurtech_narrative",
+        "ey_narrative",
+        "executive_summary",
+        "headline"
+      ],
+      "direct_vector_lanes": [
+        "competencies",
+        "unify_bullets",
+        "ibm_bullets",
+        "insurtech_bullets",
+        "ey_bullets",
+        "executive_summary",
+        "headline"
+      ],
+      "sections_in_scope": [
+        "competencies",
+        "unify_bullets",
+        "ibm_bullets",
+        "insurtech_bullets",
+        "ey_bullets",
+        "unify_narrative",
+        "ibm_narrative",
+        "insurtech_narrative",
+        "ey_narrative",
+        "executive_summary",
+        "headline"
+      ],
+      "direct_vector_lanes_in_scope": [
+        "competencies",
+        "unify_bullets",
+        "ibm_bullets",
+        "insurtech_bullets",
+        "ey_bullets",
+        "executive_summary",
+        "headline"
+      ],
+      "section_count": 11,
+      "direct_vector_section_count": 7,
+      "direct_vector_section_count_in_scope": 7,
+      "rows": [
+        {
+          "section_id": "competencies",
+          "status": "PASS",
+          "reasons": [],
+          "authority_mode": "direct_vector_proof",
+          "direct_vector_proof": true,
+          "inherited_bullet_proof": false,
+          "aggregate_section_proof": false,
+          "positioning_only": false,
+          "upstream_sections": [],
+          "direct_fact_vector_required": true,
+          "live_section_target_count": 45,
+          "manifest_section_target_count": 45,
+          "unique_source_document_count": 45,
+          "source_document_ids": [
+            "bul_ey_001",
+            "bul_ey_002",
+            "bul_ey_003",
+            "bul_ey_004",
+            "bul_ey_005",
+            "bul_ibm_001",
+            "bul_ibm_002",
+            "bul_ibm_003",
+            "bul_ibm_004",
+            "bul_ibm_005",
+            "bul_insurtech_001",
+            "bul_insurtech_002",
+            "bul_insurtech_003",
+            "bul_unify_001",
+            "bul_unify_002",
+            "bul_unify_003",
+            "bul_unify_004",
+            "bul_unify_005",
+            "bul_unify_006",
+            "fact_bcbs239_001",
+            "fact_certs_001",
+            "fact_consulting_001",
+            "fact_credit_001",
+            "fact_engineering_platform_001",
+            "fact_engineering_platform_002",
+            "fact_engineering_platform_003",
+            "fact_engineering_platform_004",
+            "fact_engineering_platform_005",
+            "fact_engineering_platform_006",
+            "fact_exec_002",
+            "fact_ey_guidewire_001",
+            "fact_governance_003",
+            "fact_insurance_liabilities_001",
+            "fact_insurance_software_001",
+            "fact_insurtech_aws_001",
+            "fact_quant_act_001",
+            "fact_quant_act_002",
+            "fact_quant_act_003",
+            "fact_quant_act_004",
+            "fact_quant_hpc_001",
+            "fact_quant_hpc_002",
+            "fact_quant_hpc_003",
+            "fact_rag_insurance_001",
+            "fact_solvency_001",
+            "fact_three_lines_001"
+          ],
+          "section_source_class_counts": {
+            "candidate_profile": 26,
+            "project_evidence": 19
+          },
+          "section_tier_counts": {
+            "seed": 45
+          },
+          "expected_source_slot_prefix": "",
+          "expected_source_slot_min_count": 0,
+          "source_slot_count": 0,
+          "source_slot_ids": [],
+          "model_dim_pass": true,
+          "pre_run_hydration_present": true,
+          "source_authority_pass": true,
+          "delayed_loop_policy_pass": true,
+          "write_authority": false,
+          "comparison_authority": true,
+          "same_run_write_policy": "forbidden_for_product_retrieval"
+        },
+        {
+          "section_id": "unify_bullets",
+          "status": "PASS",
+          "reasons": [],
+          "authority_mode": "direct_vector_proof",
+          "direct_vector_proof": true,
+          "inherited_bullet_proof": false,
+          "aggregate_section_proof": false,
+          "positioning_only": false,
+          "upstream_sections": [],
+          "direct_fact_vector_required": true,
+          "live_section_target_count": 24,
+          "manifest_section_target_count": 24,
+          "unique_source_document_count": 24,
+          "source_document_ids": [
+            "bul_unify_001",
+            "bul_unify_002",
+            "bul_unify_003",
+            "bul_unify_004",
+            "bul_unify_005",
+            "bul_unify_006",
+            "fact_bcbs239_001",
+            "fact_certs_001",
+            "fact_consulting_001",
+            "fact_credit_001",
+            "fact_engineering_platform_001",
+            "fact_engineering_platform_002",
+            "fact_engineering_platform_003",
+            "fact_engineering_platform_004",
+            "fact_engineering_platform_005",
+            "fact_engineering_platform_006",
+            "fact_exec_002",
+            "fact_ey_guidewire_001",
+            "fact_insurance_software_001",
+            "fact_insurtech_aws_001",
+            "fact_quant_act_003",
+            "fact_quant_hpc_001",
+            "fact_quant_hpc_002",
+            "fact_rag_insurance_001"
+          ],
+          "section_source_class_counts": {
+            "candidate_profile": 18,
+            "project_evidence": 6
+          },
+          "section_tier_counts": {
+            "seed": 24
+          },
+          "expected_source_slot_prefix": "bul_unify_",
+          "expected_source_slot_min_count": 6,
+          "source_slot_count": 6,
+          "source_slot_ids": [
+            "bul_unify_001",
+            "bul_unify_002",
+            "bul_unify_003",
+            "bul_unify_004",
+            "bul_unify_005",
+            "bul_unify_006"
+          ],
+          "model_dim_pass": true,
+          "pre_run_hydration_present": true,
+          "source_authority_pass": true,
+          "delayed_loop_policy_pass": true,
+          "write_authority": false,
+          "comparison_authority": true,
+          "same_run_write_policy": "forbidden_for_product_retrieval"
+        },
+        {
+          "section_id": "ibm_bullets",
+          "status": "PASS",
+          "reasons": [],
+          "authority_mode": "direct_vector_proof",
+          "direct_vector_proof": true,
+          "inherited_bullet_proof": false,
+          "aggregate_section_proof": false,
+          "positioning_only": false,
+          "upstream_sections": [],
+          "direct_fact_vector_required": true,
+          "live_section_target_count": 8,
+          "manifest_section_target_count": 8,
+          "unique_source_document_count": 8,
+          "source_document_ids": [
+            "bul_ibm_001",
+            "bul_ibm_002",
+            "bul_ibm_003",
+            "bul_ibm_004",
+            "bul_ibm_005",
+            "fact_consulting_001",
+            "fact_governance_003",
+            "fact_quant_hpc_001"
+          ],
+          "section_source_class_counts": {
+            "candidate_profile": 3,
+            "project_evidence": 5
+          },
+          "section_tier_counts": {
+            "seed": 8
+          },
+          "expected_source_slot_prefix": "bul_ibm_",
+          "expected_source_slot_min_count": 5,
+          "source_slot_count": 5,
+          "source_slot_ids": [
+            "bul_ibm_001",
+            "bul_ibm_002",
+            "bul_ibm_003",
+            "bul_ibm_004",
+            "bul_ibm_005"
+          ],
+          "model_dim_pass": true,
+          "pre_run_hydration_present": true,
+          "source_authority_pass": true,
+          "delayed_loop_policy_pass": true,
+          "write_authority": false,
+          "comparison_authority": true,
+          "same_run_write_policy": "forbidden_for_product_retrieval"
+        },
+        {
+          "section_id": "insurtech_bullets",
+          "status": "PASS",
+          "reasons": [],
+          "authority_mode": "direct_vector_proof",
+          "direct_vector_proof": true,
+          "inherited_bullet_proof": false,
+          "aggregate_section_proof": false,
+          "positioning_only": false,
+          "upstream_sections": [],
+          "direct_fact_vector_required": true,
+          "live_section_target_count": 4,
+          "manifest_section_target_count": 4,
+          "unique_source_document_count": 4,
+          "source_document_ids": [
+            "bul_insurtech_001",
+            "bul_insurtech_002",
+            "bul_insurtech_003",
+            "fact_insurtech_aws_001"
+          ],
+          "section_source_class_counts": {
+            "candidate_profile": 1,
+            "project_evidence": 3
+          },
+          "section_tier_counts": {
+            "seed": 4
+          },
+          "expected_source_slot_prefix": "bul_insurtech_",
+          "expected_source_slot_min_count": 3,
+          "source_slot_count": 3,
+          "source_slot_ids": [
+            "bul_insurtech_001",
+            "bul_insurtech_002",
+            "bul_insurtech_003"
+          ],
+          "model_dim_pass": true,
+          "pre_run_hydration_present": true,
+          "source_authority_pass": true,
+          "delayed_loop_policy_pass": true,
+          "write_authority": false,
+          "comparison_authority": true,
+          "same_run_write_policy": "forbidden_for_product_retrieval"
+        },
+        {
+          "section_id": "ey_bullets",
+          "status": "PASS",
+          "reasons": [],
+          "authority_mode": "direct_vector_proof",
+          "direct_vector_proof": true,
+          "inherited_bullet_proof": false,
+          "aggregate_section_proof": false,
+          "positioning_only": false,
+          "upstream_sections": [],
+          "direct_fact_vector_required": true,
+          "live_section_target_count": 11,
+          "manifest_section_target_count": 11,
+          "unique_source_document_count": 11,
+          "source_document_ids": [
+            "bul_ey_001",
+            "bul_ey_002",
+            "bul_ey_003",
+            "bul_ey_004",
+            "bul_ey_005",
+            "fact_bcbs239_001",
+            "fact_credit_001",
+            "fact_ey_guidewire_001",
+            "fact_insurance_software_001",
+            "fact_solvency_001",
+            "fact_three_lines_001"
+          ],
+          "section_source_class_counts": {
+            "candidate_profile": 6,
+            "project_evidence": 5
+          },
+          "section_tier_counts": {
+            "seed": 11
+          },
+          "expected_source_slot_prefix": "bul_ey_",
+          "expected_source_slot_min_count": 3,
+          "source_slot_count": 5,
+          "source_slot_ids": [
+            "bul_ey_001",
+            "bul_ey_002",
+            "bul_ey_003",
+            "bul_ey_004",
+            "bul_ey_005"
+          ],
+          "model_dim_pass": true,
+          "pre_run_hydration_present": true,
+          "source_authority_pass": true,
+          "delayed_loop_policy_pass": true,
+          "write_authority": false,
+          "comparison_authority": true,
+          "same_run_write_policy": "forbidden_for_product_retrieval"
+        },
+        {
+          "section_id": "unify_narrative",
+          "status": "PASS",
+          "reasons": [],
+          "authority_mode": "inherited_bullet_proof",
+          "direct_vector_proof": false,
+          "inherited_bullet_proof": true,
+          "aggregate_section_proof": false,
+          "positioning_only": false,
+          "upstream_sections": [
+            "unify_bullets"
+          ],
+          "direct_fact_vector_required": false,
+          "live_section_target_count": 24,
+          "manifest_section_target_count": 24,
+          "unique_source_document_count": 24,
+          "source_document_ids": [
+            "bul_unify_001",
+            "bul_unify_002",
+            "bul_unify_003",
+            "bul_unify_004",
+            "bul_unify_005",
+            "bul_unify_006",
+            "fact_bcbs239_001",
+            "fact_certs_001",
+            "fact_consulting_001",
+            "fact_credit_001",
+            "fact_engineering_platform_001",
+            "fact_engineering_platform_002",
+            "fact_engineering_platform_003",
+            "fact_engineering_platform_004",
+            "fact_engineering_platform_005",
+            "fact_engineering_platform_006",
+            "fact_exec_002",
+            "fact_ey_guidewire_001",
+            "fact_insurance_software_001",
+            "fact_insurtech_aws_001",
+            "fact_quant_act_003",
+            "fact_quant_hpc_001",
+            "fact_quant_hpc_002",
+            "fact_rag_insurance_001"
+          ],
+          "section_source_class_counts": {
+            "candidate_profile": 18,
+            "project_evidence": 6
+          },
+          "section_tier_counts": {
+            "seed": 24
+          },
+          "expected_source_slot_prefix": "",
+          "expected_source_slot_min_count": 0,
+          "source_slot_count": 0,
+          "source_slot_ids": [],
+          "model_dim_pass": true,
+          "pre_run_hydration_present": true,
+          "source_authority_pass": true,
+          "delayed_loop_policy_pass": true,
+          "write_authority": false,
+          "comparison_authority": true,
+          "same_run_write_policy": "not_applicable_inherited_upstream_proof"
+        },
+        {
+          "section_id": "ibm_narrative",
+          "status": "PASS",
+          "reasons": [],
+          "authority_mode": "inherited_bullet_proof",
+          "direct_vector_proof": false,
+          "inherited_bullet_proof": true,
+          "aggregate_section_proof": false,
+          "positioning_only": false,
+          "upstream_sections": [
+            "ibm_bullets"
+          ],
+          "direct_fact_vector_required": false,
+          "live_section_target_count": 8,
+          "manifest_section_target_count": 8,
+          "unique_source_document_count": 8,
+          "source_document_ids": [
+            "bul_ibm_001",
+            "bul_ibm_002",
+            "bul_ibm_003",
+            "bul_ibm_004",
+            "bul_ibm_005",
+            "fact_consulting_001",
+            "fact_governance_003",
+            "fact_quant_hpc_001"
+          ],
+          "section_source_class_counts": {
+            "candidate_profile": 3,
+            "project_evidence": 5
+          },
+          "section_tier_counts": {
+            "seed": 8
+          },
+          "expected_source_slot_prefix": "",
+          "expected_source_slot_min_count": 0,
+          "source_slot_count": 0,
+          "source_slot_ids": [],
+          "model_dim_pass": true,
+          "pre_run_hydration_present": true,
+          "source_authority_pass": true,
+          "delayed_loop_policy_pass": true,
+          "write_authority": false,
+          "comparison_authority": true,
+          "same_run_write_policy": "not_applicable_inherited_upstream_proof"
+        },
+        {
+          "section_id": "insurtech_narrative",
+          "status": "PASS",
+          "reasons": [],
+          "authority_mode": "inherited_bullet_proof",
+          "direct_vector_proof": false,
+          "inherited_bullet_proof": true,
+          "aggregate_section_proof": false,
+          "positioning_only": false,
+          "upstream_sections": [
+            "insurtech_bullets"
+          ],
+          "direct_fact_vector_required": false,
+          "live_section_target_count": 4,
+          "manifest_section_target_count": 4,
+          "unique_source_document_count": 4,
+          "source_document_ids": [
+            "bul_insurtech_001",
+            "bul_insurtech_002",
+            "bul_insurtech_003",
+            "fact_insurtech_aws_001"
+          ],
+          "section_source_class_counts": {
+            "candidate_profile": 1,
+            "project_evidence": 3
+          },
+          "section_tier_counts": {
+            "seed": 4
+          },
+          "expected_source_slot_prefix": "",
+          "expected_source_slot_min_count": 0,
+          "source_slot_count": 0,
+          "source_slot_ids": [],
+          "model_dim_pass": true,
+          "pre_run_hydration_present": true,
+          "source_authority_pass": true,
+          "delayed_loop_policy_pass": true,
+          "write_authority": false,
+          "comparison_authority": true,
+          "same_run_write_policy": "not_applicable_inherited_upstream_proof"
+        },
+        {
+          "section_id": "ey_narrative",
+          "status": "PASS",
+          "reasons": [],
+          "authority_mode": "inherited_bullet_proof",
+          "direct_vector_proof": false,
+          "inherited_bullet_proof": true,
+          "aggregate_section_proof": false,
+          "positioning_only": false,
+          "upstream_sections": [
+            "ey_bullets"
+          ],
+          "direct_fact_vector_required": false,
+          "live_section_target_count": 11,
+          "manifest_section_target_count": 11,
+          "unique_source_document_count": 11,
+          "source_document_ids": [
+            "bul_ey_001",
+            "bul_ey_002",
+            "bul_ey_003",
+            "bul_ey_004",
+            "bul_ey_005",
+            "fact_bcbs239_001",
+            "fact_credit_001",
+            "fact_ey_guidewire_001",
+            "fact_insurance_software_001",
+            "fact_solvency_001",
+            "fact_three_lines_001"
+          ],
+          "section_source_class_counts": {
+            "candidate_profile": 6,
+            "project_evidence": 5
+          },
+          "section_tier_counts": {
+            "seed": 11
+          },
+          "expected_source_slot_prefix": "",
+          "expected_source_slot_min_count": 0,
+          "source_slot_count": 0,
+          "source_slot_ids": [],
+          "model_dim_pass": true,
+          "pre_run_hydration_present": true,
+          "source_authority_pass": true,
+          "delayed_loop_policy_pass": true,
+          "write_authority": false,
+          "comparison_authority": true,
+          "same_run_write_policy": "not_applicable_inherited_upstream_proof"
+        },
+        {
+          "section_id": "executive_summary",
+          "status": "PASS",
+          "reasons": [],
+          "authority_mode": "aggregate_section_proof",
+          "direct_vector_proof": true,
+          "inherited_bullet_proof": false,
+          "aggregate_section_proof": true,
+          "positioning_only": false,
+          "upstream_sections": [
+            "competencies",
+            "unify_bullets",
+            "ibm_bullets",
+            "insurtech_bullets",
+            "ey_bullets",
+            "unify_narrative",
+            "ibm_narrative",
+            "insurtech_narrative",
+            "ey_narrative"
+          ],
+          "direct_fact_vector_required": true,
+          "live_section_target_count": 45,
+          "manifest_section_target_count": 45,
+          "unique_source_document_count": 45,
+          "source_document_ids": [
+            "bul_ey_001",
+            "bul_ey_002",
+            "bul_ey_003",
+            "bul_ey_004",
+            "bul_ey_005",
+            "bul_ibm_001",
+            "bul_ibm_002",
+            "bul_ibm_003",
+            "bul_ibm_004",
+            "bul_ibm_005",
+            "bul_insurtech_001",
+            "bul_insurtech_002",
+            "bul_insurtech_003",
+            "bul_unify_001",
+            "bul_unify_002",
+            "bul_unify_003",
+            "bul_unify_004",
+            "bul_unify_005",
+            "bul_unify_006",
+            "fact_bcbs239_001",
+            "fact_certs_001",
+            "fact_consulting_001",
+            "fact_credit_001",
+            "fact_engineering_platform_001",
+            "fact_engineering_platform_002",
+            "fact_engineering_platform_003",
+            "fact_engineering_platform_004",
+            "fact_engineering_platform_005",
+            "fact_engineering_platform_006",
+            "fact_exec_002",
+            "fact_ey_guidewire_001",
+            "fact_governance_003",
+            "fact_insurance_liabilities_001",
+            "fact_insurance_software_001",
+            "fact_insurtech_aws_001",
+            "fact_quant_act_001",
+            "fact_quant_act_002",
+            "fact_quant_act_003",
+            "fact_quant_act_004",
+            "fact_quant_hpc_001",
+            "fact_quant_hpc_002",
+            "fact_quant_hpc_003",
+            "fact_rag_insurance_001",
+            "fact_solvency_001",
+            "fact_three_lines_001"
+          ],
+          "section_source_class_counts": {
+            "candidate_profile": 26,
+            "project_evidence": 19
+          },
+          "section_tier_counts": {
+            "seed": 45
+          },
+          "expected_source_slot_prefix": "",
+          "expected_source_slot_min_count": 0,
+          "source_slot_count": 0,
+          "source_slot_ids": [],
+          "model_dim_pass": true,
+          "pre_run_hydration_present": true,
+          "source_authority_pass": true,
+          "delayed_loop_policy_pass": true,
+          "write_authority": false,
+          "comparison_authority": true,
+          "same_run_write_policy": "forbidden_for_product_retrieval"
+        },
+        {
+          "section_id": "headline",
+          "status": "PASS",
+          "reasons": [],
+          "authority_mode": "positioning_only",
+          "direct_vector_proof": true,
+          "inherited_bullet_proof": false,
+          "aggregate_section_proof": true,
+          "positioning_only": true,
+          "upstream_sections": [
+            "executive_summary",
+            "competencies",
+            "unify_bullets",
+            "ibm_bullets",
+            "insurtech_bullets",
+            "ey_bullets"
+          ],
+          "direct_fact_vector_required": true,
+          "live_section_target_count": 45,
+          "manifest_section_target_count": 45,
+          "unique_source_document_count": 45,
+          "source_document_ids": [
+            "bul_ey_001",
+            "bul_ey_002",
+            "bul_ey_003",
+            "bul_ey_004",
+            "bul_ey_005",
+            "bul_ibm_001",
+            "bul_ibm_002",
+            "bul_ibm_003",
+            "bul_ibm_004",
+            "bul_ibm_005",
+            "bul_insurtech_001",
+            "bul_insurtech_002",
+            "bul_insurtech_003",
+            "bul_unify_001",
+            "bul_unify_002",
+            "bul_unify_003",
+            "bul_unify_004",
+            "bul_unify_005",
+            "bul_unify_006",
+            "fact_bcbs239_001",
+            "fact_certs_001",
+            "fact_consulting_001",
+            "fact_credit_001",
+            "fact_engineering_platform_001",
+            "fact_engineering_platform_002",
+            "fact_engineering_platform_003",
+            "fact_engineering_platform_004",
+            "fact_engineering_platform_005",
+            "fact_engineering_platform_006",
+            "fact_exec_002",
+            "fact_ey_guidewire_001",
+            "fact_governance_003",
+            "fact_insurance_liabilities_001",
+            "fact_insurance_software_001",
+            "fact_insurtech_aws_001",
+            "fact_quant_act_001",
+            "fact_quant_act_002",
+            "fact_quant_act_003",
+            "fact_quant_act_004",
+            "fact_quant_hpc_001",
+            "fact_quant_hpc_002",
+            "fact_quant_hpc_003",
+            "fact_rag_insurance_001",
+            "fact_solvency_001",
+            "fact_three_lines_001"
+          ],
+          "section_source_class_counts": {
+            "candidate_profile": 26,
+            "project_evidence": 19
+          },
+          "section_tier_counts": {
+            "seed": 45
+          },
+          "expected_source_slot_prefix": "",
+          "expected_source_slot_min_count": 0,
+          "source_slot_count": 0,
+          "source_slot_ids": [],
+          "model_dim_pass": true,
+          "pre_run_hydration_present": true,
+          "source_authority_pass": true,
+          "delayed_loop_policy_pass": true,
+          "write_authority": false,
+          "comparison_authority": true,
+          "same_run_write_policy": "forbidden_for_product_retrieval"
+        }
+      ],
+      "failed_sections": [],
+      "summary": {
+        "collection_doc_count": 45,
+        "collection_dimension": 1024,
+        "model": "BAAI/bge-m3",
+        "expected_dim": 1024,
+        "manifest_present": true,
+        "sparse_sidecar_doc_count": 45,
+        "failed_section_count": 0,
+        "direct_vector_failed_section_count": 0
+      }
+    },
+    "policy": "Prefer live source-ingestion hydration. If that writer cannot run, generation may use the existing dense+sparse index only when read-only sufficiency passes without manifest alignment."
+  },
+  "status": "FALLBACK_ALLOWED",
+  "fallback_mode": "existing_dense_sparse_fact_vectors_index",
+  "manifest_checksum": "43765dc9739e6a7c456b6bcd35729c184d844875bf1c10ac8aa11d0eb44bc657"
+}

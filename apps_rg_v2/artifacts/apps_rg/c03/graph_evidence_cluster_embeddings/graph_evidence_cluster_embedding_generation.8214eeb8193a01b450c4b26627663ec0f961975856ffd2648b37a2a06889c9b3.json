@@ -1,0 +1,90 @@
+{
+  "schema_version": "apps_rg.graph_evidence_cluster_embedding_generation_manifest.v1",
+  "wave_id": "C03_CLUSTER_EMBEDDING_W6",
+  "status": "GENERATED_NOT_QUALIFIED",
+  "completion_marker": "C03_CLUSTER_EMBEDDING_W6_CLUSTER_VECTORS_GENERATED",
+  "logical_retrieval_unit": "graph_evidence_cluster",
+  "source_baseline": {
+    "commit": "ac828da46157271edaf7e9f745dfccf9436361ef",
+    "tree": "58a0d93fa2995d3c7be3e3001c38bebdfa1fcbfb",
+    "canonical_graph": {
+      "path": "src/apps_rg/fact_inventory/master_skills_arsenal_ledger.json",
+      "file_sha256": "db4d56665cdcaf37a9fe43263b7be7c4df3041dda9962ffa341369385a581d38",
+      "canonical_sha256": "47d41419a4235c588d622375fea9a37cabafe0db65728b6d78bf268eff8ef500"
+    },
+    "cluster_registry": {
+      "path": "artifacts/apps_rg/c03/graph_evidence_cluster_embeddings/graph_evidence_cluster_registry.v1.json",
+      "file_sha256": "a6b68d7c40f0efee2c41ce34aaa15d0bfd9964d4bf35a1fc4689ef1af1f97e27",
+      "registry_sha256": "8b135964929d48e9a2948a0c35af6d1f3d76c61523b4568f3bc36e73056c2824"
+    },
+    "wave5_receipt": {
+      "path": "artifacts/apps_rg/c03/graph_evidence_cluster_embeddings/wave5_legacy_artifact_retirement_receipt.json",
+      "file_sha256": "61b14e5c2ddca9132b5d6c8f74684a710d9c15e1c01e5b633add6ed1a408738f",
+      "receipt_sha256": "f8d56958b9baef3074f476175b64bf8178eb5f13a0fe46134bbbad8c3bba41e0"
+    },
+    "retirement_marker": {
+      "path": "artifacts/apps_rg/c03/graph_evidence_cluster_embeddings/legacy_graph_skill_embedding_retirement.v1.json",
+      "file_sha256": "e56b8f6f8ccabee979b28f23923050e3a9141db24b30893aa6585500acbf67ef",
+      "retirement_sha256": "cdff76c98f6e5a2b45c885cf05bd2e40b42305f2da090db046004fae08589906"
+    }
+  },
+  "model": {
+    "path": "artifacts/apps_rg/c03/graph_evidence_cluster_embeddings/bge_m3_model_manifest.38ccc2e093252ab0416eee16837c75c641f055b4f3def12091fba8ed94e2b263.json",
+    "manifest_file_sha256": "058b33e06bf78cf6fc456848e91e64a8c62661ff8beea6fb9aafc85f78bf1170",
+    "model_id": "BAAI/bge-m3",
+    "revision": "5617a9f61b028005a4858fdac845db406aefb181",
+    "artifact_sha256": "38ccc2e093252ab0416eee16837c75c641f055b4f3def12091fba8ed94e2b263",
+    "dimension": 1024,
+    "normalization": "l2"
+  },
+  "projection": {
+    "path": "artifacts/apps_rg/c03/graph_evidence_cluster_embeddings/graph_evidence_cluster_embeddings.b3258a70a65a4c7ed7783f17cb308a93b5469eb45ce99f4c30a2605d2c2b57cb.sqlite",
+    "file_sha256": "60093da9d045a16eb4bde91089c1b7ba2140b479c6e5196fa4f2b91a62e5d46e",
+    "generation_sha256": "b3258a70a65a4c7ed7783f17cb308a93b5469eb45ce99f4c30a2605d2c2b57cb",
+    "registry_sha256": "8b135964929d48e9a2948a0c35af6d1f3d76c61523b4568f3bc36e73056c2824",
+    "graph_sha256": "47d41419a4235c588d622375fea9a37cabafe0db65728b6d78bf268eff8ef500",
+    "model_artifact_sha256": "38ccc2e093252ab0416eee16837c75c641f055b4f3def12091fba8ed94e2b263",
+    "vector_count": 38,
+    "dimension": 1024,
+    "normalization": "l2",
+    "held_candidate_vector_count": 0,
+    "skill_or_node_vector_count": 0
+  },
+  "runtime_proof": {
+    "device": "cuda:0",
+    "python_major_minor": "3.12",
+    "torch_version": "2.12.0.dev20260228+cu128",
+    "sentence_transformers_version": "5.2.3",
+    "cuda_available": true,
+    "cuda_device_name": "NVIDIA GeForce RTX 5090",
+    "fallback_used": false,
+    "vector_count": 38,
+    "dimension": 1024
+  },
+  "smoke_proof": {
+    "candidate_only_query_passed": true,
+    "bounded_top_k_rejection_passed": true,
+    "section_filter_query_passed": true,
+    "current_authority_rehydration_passed": true,
+    "smoke_query_cluster_id": "cluster_capability_18ad5c0bd1b32273",
+    "smoke_query_top_similarity": 1.0000000881888724
+  },
+  "query_contract": {
+    "candidate_payload_fields": [
+      "cluster_id",
+      "similarity"
+    ],
+    "minimum_top_k": 1,
+    "maximum_top_k": 37,
+    "exact_current_registry_rehydration_required": true,
+    "similarity_is_claim_authority": false
+  },
+  "scope_guards": {
+    "cluster_vectors_generated": true,
+    "claim_authority_expanded": false,
+    "semantic_retrieval_qualification_completed": false,
+    "activation_manifest_created": false,
+    "production_promotion_authorized": false
+  },
+  "manifest_sha256": "8214eeb8193a01b450c4b26627663ec0f961975856ffd2648b37a2a06889c9b3"
+}

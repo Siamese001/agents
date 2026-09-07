@@ -1,0 +1,65 @@
+{
+  "activation_created": false,
+  "baseline_is_read_only": true,
+  "canonical_graph": {
+    "authority_source": "augmented_skills_graph",
+    "canonical_write_authority": "UWG_ONLY",
+    "file_sha256": "db4d56665cdcaf37a9fe43263b7be7c4df3041dda9962ffa341369385a581d38",
+    "graph_version": "master_skills_arsenal_graph_v1",
+    "path": "src/apps_rg/fact_inventory/master_skills_arsenal_ledger.json",
+    "payload_sha256": "47d41419a4235c588d622375fea9a37cabafe0db65728b6d78bf268eff8ef500",
+    "runtime_source": "augmented_skills_graph_sqlite"
+  },
+  "claim_evidence_substrate": {
+    "file_sha256": "8e29ef54c1c13a5d4e773ba5e2d575dabb354f278e64c0d247c0ff9bd62cee83",
+    "path": "artifacts/apps_rg/fact_inventory/master_candidate_skills_fact_ledger_20260518T1100Z.json",
+    "runtime_claim_authority": false,
+    "source_type": "candidate_fact_ledger"
+  },
+  "completion_marker": "GE_W0_AUTHORITY_LOCKED",
+  "contract": {
+    "canonical_sha256": "5820ee72b2b17f2a006b7a95573244f7e8eba2474ebb6ac731fc65602112bd9e",
+    "file_sha256": "0c4ec2bc7ad114f5996c0a2a529ef4b92628e7ba04c57815a830591b9804e5b5",
+    "path": "src/apps_rg/fact_inventory/graph_evolution_authority_contract.v1.json"
+  },
+  "derived_surfaces": {
+    "fact_vectors": {
+      "claim_authority": false,
+      "may_not_mutate_canonical_graph": true,
+      "target_surface": "l4.apps_rg.fact_vectors"
+    },
+    "graph_evidence_cluster_projection": {
+      "file_sha256": "60093da9d045a16eb4bde91089c1b7ba2140b479c6e5196fa4f2b91a62e5d46e",
+      "path": "artifacts/apps_rg/c03/graph_evidence_cluster_embeddings/graph_evidence_cluster_embeddings.b3258a70a65a4c7ed7783f17cb308a93b5469eb45ce99f4c30a2605d2c2b57cb.sqlite",
+      "receipt_file_sha256": "bbdb0094dc9c34d235a745ad3bb1d0c77f02ff84406bf22c4f031641f393dca0",
+      "receipt_path": "artifacts/apps_rg/c03/graph_evidence_cluster_embeddings/wave6_cluster_vector_generation_receipt.json"
+    },
+    "graph_evidence_cluster_registry": {
+      "file_sha256": "a6b68d7c40f0efee2c41ce34aaa15d0bfd9964d4bf35a1fc4689ef1af1f97e27",
+      "path": "artifacts/apps_rg/c03/graph_evidence_cluster_embeddings/graph_evidence_cluster_registry.v1.json",
+      "receipt_file_sha256": "5e630d5e7d00e25346448af8637d876604c38c4726a1ddb07af402be4d450545",
+      "receipt_path": "artifacts/apps_rg/c03/graph_evidence_cluster_embeddings/wave4_cluster_registry_receipt.json"
+    },
+    "r1b_semantic_cache": {
+      "claim_authority": false,
+      "may_not_mutate_canonical_graph": true
+    }
+  },
+  "qrel_binding": {
+    "frozen_graph_digest_required": true,
+    "frozen_projection_digest_required": true,
+    "frozen_registry_digest_required": true,
+    "full_candidate_universe_required": true,
+    "graph_change_invalidates_prior_ranking_identity": true,
+    "partial_top_k_judging_forbidden": true
+  },
+  "receipt_sha256": "ac6074ce6d9a0c7d82b90643b17beef4c8ab3847f64f26c216be4b1f44fa9a0a",
+  "runtime_write_boundary": {
+    "generated_or_targeting_text_cannot_be_claim_authority": true,
+    "shadow_cannot_mutate_current_run": true,
+    "u0_to_exit_cannot_mutate_canonical_graph": true
+  },
+  "schema_version": "apps_rg.graph_evolution_authority_baseline_receipt.v1",
+  "status": "PASS",
+  "wave": "GE_W0"
+}

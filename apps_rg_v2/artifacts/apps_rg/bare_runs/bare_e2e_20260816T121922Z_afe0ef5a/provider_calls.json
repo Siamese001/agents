@@ -1,0 +1,67 @@
+{
+  "mode": "live",
+  "provider_call_count": 3,
+  "providers": {
+    "apps_research_openai": {
+      "input_characters": 0,
+      "observed_model": "gpt-5.6-terra",
+      "provider": "external_openai",
+      "provider_call_attempted": true,
+      "requested_model": "gpt-5.6-terra",
+      "response_id": "chatcmpl-EDU7i9isuTvJsnWmEYLTCAF1OcSK6",
+      "retry_count": 0,
+      "retry_reason": "",
+      "status": "SUCCESS",
+      "transport_attempt_count": 1,
+      "usage": {
+        "cache_write_tokens": null,
+        "cached_tokens": 0,
+        "output_tokens": 1270,
+        "prompt_tokens": 1262,
+        "thought_tokens": 0,
+        "total_tokens": 2532
+      }
+    },
+    "l2_openai": {
+      "input_characters": 0,
+      "observed_model": "gpt-5.6-terra",
+      "provider": "external_openai",
+      "provider_call_attempted": true,
+      "requested_model": "gpt-5.6-terra",
+      "response_id": "chatcmpl-EDU7vU2q4kfmiMNfhHWwfTObTOCf5",
+      "retry_count": 0,
+      "retry_reason": "",
+      "status": "SUCCESS",
+      "transport_attempt_count": 1,
+      "usage": {
+        "cache_write_tokens": null,
+        "cached_tokens": 0,
+        "output_tokens": 1852,
+        "prompt_tokens": 6885,
+        "thought_tokens": 176,
+        "total_tokens": 8737
+      }
+    },
+    "x3_gemini": {
+      "input_characters": 42644,
+      "observed_model": "gemini-3.6-flash",
+      "provider": "google_gemini",
+      "provider_call_attempted": true,
+      "requested_model": "gemini-3.6-flash",
+      "response_id": "6aqBas2NOPGtz7IPhcS4iAM",
+      "retry_count": 0,
+      "retry_reason": "",
+      "status": "SUCCESS",
+      "transport_attempt_count": 1,
+      "usage": {
+        "cache_write_tokens": null,
+        "cached_tokens": null,
+        "output_tokens": 54,
+        "prompt_tokens": 9780,
+        "thought_tokens": 973,
+        "total_tokens": 10807
+      }
+    }
+  },
+  "schema_version": "apps_rg.provider_calls.v1"
+}

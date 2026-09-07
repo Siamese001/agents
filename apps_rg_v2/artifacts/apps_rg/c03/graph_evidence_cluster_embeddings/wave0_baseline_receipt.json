@@ -1,0 +1,484 @@
+{
+  "schema_version": "apps_rg.c03_cluster_embedding_wave0_receipt.v1",
+  "wave_id": "C03_CLUSTER_EMBEDDING_W0",
+  "status": "PASS",
+  "completion_marker": "C03_CLUSTER_EMBEDDING_WAVE0_BASELINE_FROZEN",
+  "scope": {
+    "repository": "apps_rg_v2",
+    "baseline_freeze_only": true,
+    "graph_mutated": false,
+    "legacy_artifacts_deleted": false,
+    "replacement_vectors_generated": false,
+    "production_promotion_authorized": false
+  },
+  "source_baseline": {
+    "ref": "origin/main",
+    "commit": "212244294f4a6fc5d33875460bc2ed4282c60b40",
+    "tree": "ecdf982bc5ae0f7c678dd45ee8a1f4a9f92919da"
+  },
+  "contract": {
+    "schema_version": "apps_rg.c03_graph_evidence_cluster_contract.v1",
+    "contract_id": "C03_GRAPH_EVIDENCE_CLUSTER_EMBEDDING",
+    "file_sha256": "9146e5eea60509b91b3992846378e68db82cf65b08024ca2af295844958697c0",
+    "canonical_sha256": "053b7b0f264719641bfc962c73f21cfd78303de1e73f63ea502784697db607db"
+  },
+  "source_inputs": {
+    "cluster_contract": {
+      "path": "src/apps_rg/fact_inventory/c03_graph_evidence_cluster_contract.v1.json",
+      "file_sha256": "9146e5eea60509b91b3992846378e68db82cf65b08024ca2af295844958697c0",
+      "size_bytes": 7985,
+      "canonical_sha256": "053b7b0f264719641bfc962c73f21cfd78303de1e73f63ea502784697db607db"
+    },
+    "canonical_graph": {
+      "path": "src/apps_rg/fact_inventory/master_skills_arsenal_ledger.json",
+      "file_sha256": "f47d73a9555158b0553e22301ab5883efb96eb348cdfd82f39e056f99fa2624e",
+      "size_bytes": 2550451,
+      "canonical_sha256": "d622c689984798ae7aa0dba83a0ab3571996c92b7ffc2f94f5d52bc67568a739"
+    },
+    "candidate_fact_ledger": {
+      "path": "artifacts/apps_rg/fact_inventory/master_candidate_skills_fact_ledger_20260518T1100Z.json",
+      "file_sha256": "3aecaa0c2dcd942ac8e6c5070957704dd27a088a11ce1678e2be039104718284",
+      "size_bytes": 129920,
+      "canonical_sha256": "8d51311d531d3adbeda76e89540372c40e084d1069e5aa708b012fb10a9a44c7"
+    },
+    "base_resume": {
+      "path": "src/apps_rg/resume/base/amit_ayer_base_resume_v1.json",
+      "file_sha256": "6b1afafd4cfd3dd6484d9fa72534670a4a7dd82cd936c64b9ec3b721a29541af",
+      "size_bytes": 20363,
+      "canonical_sha256": "33aec18cd70c68af14008655045cfa013d367892e1a9a8f605cd42e851761a89"
+    },
+    "role_episode_bundles": [
+      {
+        "path": "src/apps_rg/fact_inventory/ey_role_episode_bundles.json",
+        "file_sha256": "449a5406c2252ee2fdac8c29fd97c88d0b8c22a8962a93c11d6756c93ff64fd6",
+        "size_bytes": 44550,
+        "canonical_sha256": "48a91dc4cd09f9c69174b909d5a16a7138be4738ca4683022f7d6158867e9ae6"
+      },
+      {
+        "path": "src/apps_rg/fact_inventory/ibm_role_episode_bundles.json",
+        "file_sha256": "81088b92ff16980e5a3d1cf97de7024454811eec99f2682749327d1583a17fda",
+        "size_bytes": 53286,
+        "canonical_sha256": "50819e5423f314f8feaa6eedcc156b14eb3c11064fdf91c27719017e57a3b4d2"
+      },
+      {
+        "path": "src/apps_rg/fact_inventory/insurtech_role_episode_bundles.json",
+        "file_sha256": "635180ada98f20159751788d6210fffdc7223b7222169d8981619b7dad53168b",
+        "size_bytes": 70227,
+        "canonical_sha256": "7c93471f381f90007cc730cbb4336ff63c29e1e9522b9c69a03748360e26fcd0"
+      },
+      {
+        "path": "src/apps_rg/fact_inventory/unify_role_episode_bundles.json",
+        "file_sha256": "2780355c6980415b6d86acb05e38c3d40283eadf4441f00144190cb6bf21a955",
+        "size_bytes": 54123,
+        "canonical_sha256": "6f15b566255f661fd2890c000aa7cd193c14603816793ee5e9d9a0456ff552a7"
+      }
+    ],
+    "embedding_runtime_contract": {
+      "path": "tools/apps_rg_standalone/c03_embedding_runtime_contract.json",
+      "file_sha256": "1873936a4ddd8fec93eed180038ceaa06c8f8079f9c028b7055722dbcbd37414",
+      "size_bytes": 581,
+      "canonical_sha256": "98f8b650ef7a1042d21e4c014643fe9da55ab9efbd2e9f56b39429da0d0a6c02"
+    }
+  },
+  "graph_profile": {
+    "node_count": 375,
+    "edge_count": 2114,
+    "skill_row_count": 254,
+    "retrieval_eligible_skill_count": 198,
+    "non_retrieval_skill_count": 56,
+    "node_type_counts": {
+      "capability_domain": 23,
+      "career_epoch": 6,
+      "career_track": 3,
+      "domain_pillar": 29,
+      "employment": 5,
+      "identity_north_star": 1,
+      "metric": 22,
+      "metric_bucket": 16,
+      "policy": 2,
+      "policy_rule": 14,
+      "skill": 34,
+      "skill_row": 220
+    },
+    "edge_type_counts": {
+      "capability_domain_contains_skill": 282,
+      "career_track_contains_capability_domain": 6,
+      "career_track_contains_epoch": 6,
+      "career_track_contains_pillar": 29,
+      "career_track_precedes_career_track": 2,
+      "employment_hosts_fact": 7,
+      "employment_in_career_track": 5,
+      "employment_produces_skill": 6,
+      "epoch_contains_pillar": 30,
+      "epoch_contains_skill": 254,
+      "identity_supported_by_epoch": 6,
+      "identity_supported_by_pillar": 26,
+      "jd_briefing_targeting_only": 1,
+      "metric_bucket_contains_metric": 22,
+      "pillar_contains_capability_domain": 14,
+      "pillar_phase_bridge": 11,
+      "pillar_section_eligibility": 4,
+      "projection_excludes_blocked_skill": 10,
+      "section_blocks_pending_source_skill": 1,
+      "section_blocks_skill_without_fact": 1,
+      "section_can_select_skill": 64,
+      "skill_allowed_in_section": 569,
+      "skill_can_surface_metric": 22,
+      "skill_external_claim_eligible": 160,
+      "skill_has_metric_bucket": 16,
+      "skill_projection_only_internal": 28,
+      "skill_reinforces_skill": 15,
+      "skill_requires_human_confirmation": 9,
+      "skill_supported_by_fact": 301,
+      "skill_supported_by_repo_evidence": 63,
+      "skill_supported_by_source_concept": 130,
+      "srfs_requires_fact_id_only": 14
+    },
+    "activation_status_counts": {
+      "ACTIVE": 105,
+      "ACTIVE_CONFIRMED": 183,
+      "DRAFT": 87
+    },
+    "registered_shape_issue_count": 0,
+    "registered_shape_issues": [],
+    "semantic_hardening": {
+      "status": "BLOCKED",
+      "malformed_description_count": 142,
+      "malformed_description_samples": [
+        "skill_actuarial_actuarial_software",
+        "skill_actuarial_fsa_fellowship",
+        "skill_agent_to_human_handoff_design",
+        "skill_agentic_control_plane_design",
+        "skill_agentic_platform_productization",
+        "skill_ai_governance_certification",
+        "skill_ai_platform_commercialization",
+        "skill_app_overlay_runtime_binding",
+        "skill_app_specific_runtime_overlay_design",
+        "skill_approval_gated_workflow_design",
+        "skill_audit_grade_observability",
+        "skill_authority_and_registry_binding"
+      ],
+      "scaffold_description_count": 60,
+      "scaffold_description_samples": [
+        "domain_agentic_runtime_governance",
+        "domain_ai_platform_engineering",
+        "domain_enterprise_delivery_operating_model",
+        "domain_graph_retrieval_evidence",
+        "domain_partner_gtm_commercialization",
+        "domain_regulated_ai_controls",
+        "metric_answer_accuracy_uplift",
+        "metric_audit_finding_reduction",
+        "metric_bucket:adoption",
+        "metric_bucket:compliance_audit",
+        "metric_bucket:cost_takeout",
+        "metric_bucket:customer_outcome"
+      ]
+    },
+    "authority_reconciliation": {
+      "status": "BLOCKED",
+      "field_mismatch_counts": {
+        "node_type": 34,
+        "activation_status": 11,
+        "support_level": 2,
+        "visibility_rule": 0,
+        "evidence_risk": 1,
+        "projection_behavior": 59,
+        "external_claim_policy": 56,
+        "retrieval_eligible": 0
+      },
+      "field_mismatch_samples": {
+        "node_type": [
+          "skill:c03:actuarial_ai_risk_translation",
+          "skill:c03:agent_trace_observability",
+          "skill:c03:agentic_policy_gate_design",
+          "skill:c03:agentic_runtime_orchestration",
+          "skill:c03:ai_solution_value_story",
+          "skill:c03:compliance_audit_readiness",
+          "skill:c03:data_platform_lineage_architecture",
+          "skill:c03:delivery_governance_operating_rhythm",
+          "skill:c03:enterprise_adoption_enablement",
+          "skill:c03:evidence_binding_provenance",
+          "skill:c03:graph_retrieval_traversal_design",
+          "skill:c03:hyperscaler_partner_cosell"
+        ],
+        "activation_status": [
+          "skill_capital_reserving",
+          "skill_derivatives_structured_derivatives",
+          "skill_greeks_convexity",
+          "skill_greeks_delta",
+          "skill_greeks_rho",
+          "skill_insurance_liabilities_embedded_options",
+          "skill_insurance_liabilities_insurance_liabilities",
+          "skill_partner_partner_engineering",
+          "skill_partner_product_feedback_loops",
+          "skill_revops_salesforce_pipeline_analytics",
+          "skill_sr_insurance_systems_resilience_internal"
+        ],
+        "support_level": [
+          "skill_partner_cloud_vendor_joint_gtm",
+          "skill_partner_ibm_aws_alliance_joint_revenue"
+        ],
+        "visibility_rule": [],
+        "evidence_risk": [
+          "skill_revops_salesforce_pipeline_analytics"
+        ],
+        "projection_behavior": [
+          "skill:c03:actuarial_ai_risk_translation",
+          "skill:c03:agent_trace_observability",
+          "skill:c03:agentic_policy_gate_design",
+          "skill:c03:agentic_runtime_orchestration",
+          "skill:c03:ai_solution_value_story",
+          "skill:c03:compliance_audit_readiness",
+          "skill:c03:data_platform_lineage_architecture",
+          "skill:c03:delivery_governance_operating_rhythm",
+          "skill:c03:enterprise_adoption_enablement",
+          "skill:c03:evidence_binding_provenance",
+          "skill:c03:graph_retrieval_traversal_design",
+          "skill:c03:hyperscaler_partner_cosell"
+        ],
+        "external_claim_policy": [
+          "skill:c03:actuarial_ai_risk_translation",
+          "skill:c03:agent_trace_observability",
+          "skill:c03:agentic_policy_gate_design",
+          "skill:c03:agentic_runtime_orchestration",
+          "skill:c03:ai_solution_value_story",
+          "skill:c03:compliance_audit_readiness",
+          "skill:c03:data_platform_lineage_architecture",
+          "skill:c03:delivery_governance_operating_rhythm",
+          "skill:c03:enterprise_adoption_enablement",
+          "skill:c03:evidence_binding_provenance",
+          "skill:c03:graph_retrieval_traversal_design",
+          "skill:c03:hyperscaler_partner_cosell"
+        ],
+        "retrieval_eligible": []
+      },
+      "section_drift_row_count": 76,
+      "missing_section_edge_count": 153,
+      "extra_section_edge_count": 13,
+      "skill_without_section_edge_count": 52
+    },
+    "path_and_lifecycle_hardening": {
+      "status": "BLOCKED",
+      "non_traversable_graph_hop_row_count": 237,
+      "fact_missing_hop_row_count": 5,
+      "validated_edge_touching_draft_count": 661
+    },
+    "edge_assertion_hardening": {
+      "status": "BLOCKED",
+      "unique_rationale_count": 245,
+      "reused_rationale_edge_count": 1931,
+      "most_reused_rationales": [
+        {
+          "rationale": "InsurTech role episode graph traversal edge",
+          "edge_count": 368
+        },
+        {
+          "rationale": "Domain contains skill",
+          "edge_count": 152
+        },
+        {
+          "rationale": "Epoch contains skill",
+          "edge_count": 152
+        },
+        {
+          "rationale": "Conditionally eligible when fact active",
+          "edge_count": 114
+        },
+        {
+          "rationale": "Skill anchored to atomic proof fact",
+          "edge_count": 112
+        },
+        {
+          "rationale": "Exact canonical skill-row fact binding",
+          "edge_count": 110
+        },
+        {
+          "rationale": "Allowed in executive_summary",
+          "edge_count": 108
+        },
+        {
+          "rationale": "Allowed in competencies",
+          "edge_count": 108
+        },
+        {
+          "rationale": "Allowed in unify_bullets",
+          "edge_count": 93
+        },
+        {
+          "rationale": "section-scoped skill eligibility",
+          "edge_count": 64
+        },
+        {
+          "rationale": "Canonical skill-row career-epoch authority",
+          "edge_count": 56
+        },
+        {
+          "rationale": "Canonical skill-row domain authority",
+          "edge_count": 40
+        }
+      ]
+    }
+  },
+  "role_episode_cluster_candidates": {
+    "status": "CANDIDATES_ONLY",
+    "bundle_count": 35,
+    "bundle_count_by_file": {
+      "ey_role_episode_bundles.json": 5,
+      "ibm_role_episode_bundles.json": 10,
+      "insurtech_role_episode_bundles.json": 12,
+      "unify_role_episode_bundles.json": 8
+    },
+    "fact_backed_bundle_count": 33,
+    "factless_bundle_count": 2,
+    "factless_bundle_ids": [
+      "reb_ibm_cognitive_business_decision_support",
+      "reb_ibm_nlp_ml_decision_support"
+    ],
+    "unique_bundle_skill_count": 141,
+    "eligible_skill_covered_count": 113,
+    "eligible_skill_not_bundled_count": 85,
+    "bundled_skill_not_eligible_count": 28,
+    "cluster_registry_materialized": false
+  },
+  "legacy_embedding_artifacts": {
+    "status": "ACTIVE_LEGACY_NOT_ACCEPTABLE_FOR_CLUSTER_PROMOTION",
+    "artifact_directory": "artifacts/apps_rg/c03/graph_skill_embeddings",
+    "artifact_count": 13,
+    "artifacts": [
+      {
+        "path": "artifacts/apps_rg/c03/graph_skill_embeddings/bge_m3_model_manifest.38ccc2e093252ab0416eee16837c75c641f055b4f3def12091fba8ed94e2b263.json",
+        "file_sha256": "058b33e06bf78cf6fc456848e91e64a8c62661ff8beea6fb9aafc85f78bf1170",
+        "size_bytes": 2349,
+        "canonical_sha256": "0e51c56635bd79d55560456d737002d0109e99b00fe97011143320c6fb6c0dd8"
+      },
+      {
+        "path": "artifacts/apps_rg/c03/graph_skill_embeddings/graph_embedding_qualification.5b2b1dfb21a147644a97d662fed8bf422f4acb0ff5cec51461bb2d7559cd786f.json",
+        "file_sha256": "ab1eacb3d06e6332179b1ade37286da3b1168d891c384df76f07490702a68888",
+        "size_bytes": 21710,
+        "canonical_sha256": "21d3bb2177294623d59133c9222e95950fca9bc2453903439f1021bee35bb0dd"
+      },
+      {
+        "path": "artifacts/apps_rg/c03/graph_skill_embeddings/graph_embedding_qualification.d10426272e04e63230877ec4ba7ffb92fab2e17c3f33ddf780b2a8aaa530380a.json",
+        "file_sha256": "27e9d8b6715b61d3d597c352d2180ce81f16508dc04817877f6dd0b88a8be130",
+        "size_bytes": 17138,
+        "canonical_sha256": "13434a5db8fd0927f0fc78a447f344a65025639e153c0272303abd0141d6b05d"
+      },
+      {
+        "path": "artifacts/apps_rg/c03/graph_skill_embeddings/graph_embedding_qualification_manifest.1c83f256452f074ee2e5ce48df9c7b0e0668784430db154cb5bd9dbec9891750.json",
+        "file_sha256": "0279221ed2433cb33de29f36b23fc6eba16578555a6eec7d3771073d053133e1",
+        "size_bytes": 1359,
+        "canonical_sha256": "e5033e88ebd19fe8bd87be81e44e4a883cd349b196f2503c5f22823e9cdeae33"
+      },
+      {
+        "path": "artifacts/apps_rg/c03/graph_skill_embeddings/graph_embedding_qualification_manifest.json",
+        "file_sha256": "0279221ed2433cb33de29f36b23fc6eba16578555a6eec7d3771073d053133e1",
+        "size_bytes": 1359,
+        "canonical_sha256": "e5033e88ebd19fe8bd87be81e44e4a883cd349b196f2503c5f22823e9cdeae33"
+      },
+      {
+        "path": "artifacts/apps_rg/c03/graph_skill_embeddings/graph_embedding_qualification_thresholds.3bfda1a9eb216292781e081d7154e01d65f2b5c3f0bc9611963a02ce07c8a49f.json",
+        "file_sha256": "6b59b2de62d240db0d9ec6cb0d0f24e6e7b55307464bef89fcb302442f3f1cda",
+        "size_bytes": 863,
+        "canonical_sha256": "04bce8dec22dc3c1fbb6761806ffcd6663cd8ea36e7cbcaa860a84a5011f455a"
+      },
+      {
+        "path": "artifacts/apps_rg/c03/graph_skill_embeddings/graph_embedding_query_qrels.08f8865fcf693606fb0ee1d1cfff9b7c63ffef2dc2e7eef4ec4e5ee96340ba85.json",
+        "file_sha256": "2505e89d3675dadf73aab3183ec9021eda2ffa349a5f03e03c8e8b051deedc61",
+        "size_bytes": 18931,
+        "canonical_sha256": "775a7d58920dba32de7b524132b83c921a7f4cfcb55fedb2330c2e894d2f4266"
+      },
+      {
+        "path": "artifacts/apps_rg/c03/graph_skill_embeddings/graph_skill_assertions.efd9e01bf82df9324c9b5485bf93b7f5595e9260c60f848a4b1241411a9c2ca6.json",
+        "file_sha256": "f48d1ce54e06f2f88f1629572942782cffcaebd4034dac9c9813fe7805b1eb70",
+        "size_bytes": 529545,
+        "canonical_sha256": "d71e4610659353b68c9c49d7c8997ce2236a24c81255e4d9858fb421c9377b2c"
+      },
+      {
+        "path": "artifacts/apps_rg/c03/graph_skill_embeddings/graph_skill_embedding_activation.4ce00bdb4fc61c99984b7ec9b04b141d2087a70434c06ab31da1db401af040a5.json",
+        "file_sha256": "086351eaa89008c16101b085d48c6259b8a734b2b1a76c4ddb90ae0f3432eb0c",
+        "size_bytes": 1672,
+        "canonical_sha256": "31016062d97d988c3e066bb14b89bf54b29c0ff3b3164108957a860545544e7d"
+      },
+      {
+        "path": "artifacts/apps_rg/c03/graph_skill_embeddings/graph_skill_embedding_activation_manifest.json",
+        "file_sha256": "cf0b3c62b5949096fecebf87f98be47e576efb8610c3f033a6275d34dd2a84c3",
+        "size_bytes": 1356,
+        "canonical_sha256": "46a85f03e0c282e33ef1102493d86845b85d0c26dfa98cb2826f9575b180831d"
+      },
+      {
+        "path": "artifacts/apps_rg/c03/graph_skill_embeddings/graph_skill_embedding_manifest.a8609456b34b908557945675d8b3c2d5217c77f715e3e8d784b2ce893190e2bc.json",
+        "file_sha256": "bfe1fa9b48cf0972ca4dcd60bcb07efff6b1a994bfb77a65932cecbb980d99d0",
+        "size_bytes": 2661,
+        "canonical_sha256": "6aad97ebe184ae2e828820abfbaff567fe18be00da49348e2f84f877251a1f20"
+      },
+      {
+        "path": "artifacts/apps_rg/c03/graph_skill_embeddings/graph_skill_embedding_manifest.json",
+        "file_sha256": "bfe1fa9b48cf0972ca4dcd60bcb07efff6b1a994bfb77a65932cecbb980d99d0",
+        "size_bytes": 2661,
+        "canonical_sha256": "6aad97ebe184ae2e828820abfbaff567fe18be00da49348e2f84f877251a1f20"
+      },
+      {
+        "path": "artifacts/apps_rg/c03/graph_skill_embeddings/graph_skill_embeddings.68dc2043a5f7296259ec0de5878de4930093d4f30e602dd4adb96d6aa3e6c6e6.sqlite",
+        "file_sha256": "2d4fdce4a0a3dca99ca0c8c24bc186cf560114f9dec065c446e9c65510c3698e",
+        "size_bytes": 929792
+      }
+    ],
+    "active_generation_manifest_sha256": "a8609456b34b908557945675d8b3c2d5217c77f715e3e8d784b2ce893190e2bc",
+    "active_activation_status": "PASS",
+    "model_baseline": {
+      "model_id": "BAAI/bge-m3",
+      "revision": "5617a9f61b028005a4858fdac845db406aefb181",
+      "artifact_sha256": "38ccc2e093252ab0416eee16837c75c641f055b4f3def12091fba8ed94e2b263",
+      "dimension": 1024,
+      "normalization": "l2"
+    },
+    "assertion_count": 198,
+    "malformed_assertion_description_count": 139,
+    "malformed_assertion_samples": [
+      "skill_actuarial_actuarial_software",
+      "skill_actuarial_fsa_fellowship",
+      "skill_agent_to_human_handoff_design",
+      "skill_agentic_control_plane_design",
+      "skill_agentic_platform_productization",
+      "skill_ai_governance_certification",
+      "skill_ai_platform_commercialization",
+      "skill_app_overlay_runtime_binding",
+      "skill_app_specific_runtime_overlay_design",
+      "skill_approval_gated_workflow_design",
+      "skill_audit_grade_observability",
+      "skill_authority_and_registry_binding"
+    ],
+    "assertion_id_equals_skill_id_count": 198,
+    "logical_retrieval_unit": "skill",
+    "retirement_authorized_in_wave0": false,
+    "replacement_generation_authorized_in_wave0": false
+  },
+  "future_cluster_activation": {
+    "status": "FAIL_CLOSED_NOT_ACTIVE",
+    "required_env": "APPS_RG_GRAPH_EVIDENCE_CLUSTER_EMBEDDINGS_REQUIRED",
+    "active_manifest_path": "artifacts/apps_rg/c03/graph_evidence_cluster_embeddings/graph_evidence_cluster_embedding_activation_manifest.json",
+    "valid_release_authorizing_manifest_present": false
+  },
+  "wave_exit_gates": {
+    "baseline_authority_pinned": "PASS",
+    "legacy_artifact_inventory_complete": "PASS",
+    "target_contract_frozen": "PASS",
+    "node_semantic_hardening": "OPEN_W1",
+    "edge_assertion_hardening": "OPEN_W2",
+    "authority_reconciliation": "OPEN_W3",
+    "cluster_registry_materialization": "OPEN_W4",
+    "legacy_artifact_retirement": "OPEN_W5",
+    "cluster_embedding_generation": "OPEN_W6",
+    "release_authorizing_qualification": "OPEN_W8"
+  },
+  "open_gates": [
+    "Repair malformed and scaffold node semantics.",
+    "Replace rationale-only edge validation with exact assertion bases.",
+    "Reconcile graph-node, skill-row, section, path, policy, and lifecycle authority.",
+    "Materialize and validate role-episode and capability-evidence clusters.",
+    "Retire all digest-bound legacy skill-level embedding artifacts before replacement generation.",
+    "Generate and qualify a bounded top-k cluster projection before activation."
+  ],
+  "next_wave": "C03_CLUSTER_EMBEDDING_W1_NODE_HARDENING",
+  "receipt_sha256": "1e1f30d69945f1179581b85b29121b394bcb9787cc711ef707e7196fb5d772e9"
+}

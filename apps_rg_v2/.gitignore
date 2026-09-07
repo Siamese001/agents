@@ -1,0 +1,18 @@
+.runtime/
+.pytest_cache/
+.hypothesis/
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+data/cache/
+.coverage*
+htmlcov/
+artifacts/models/
+artifacts/apps_rg/runtime_proofs/full_resume_*
+artifacts/apps_rg/runtime_proofs/c03_graph_sqlite_context/
+
+# Runtime execution runs & proof dumps
+artifacts/apps_rg/runs/
+artifacts/**/runtime_proofs/
+artifacts/**/l1_cognitive_w4/

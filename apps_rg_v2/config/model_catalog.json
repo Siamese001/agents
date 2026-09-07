@@ -1,0 +1,119 @@
+{
+  "schema_version": "model_capability_catalog.v3",
+  "catalog_role": "capability_metadata_only",
+  "routing_allowed": false,
+  "models": {
+    "BAAI/bge-m3": {
+      "provider": "hugging_face",
+      "capability_class": "embedding",
+      "dimensions": 1024,
+      "endpoints": ["local_embeddings"],
+      "reasoning_efforts": [],
+      "temperature_parameter": "not_applicable",
+      "structured_output": false,
+      "proof_eligible": false,
+      "max_output_tokens_parameters": {}
+    },
+    "claude-sonnet-5": {
+      "provider": "anthropic",
+      "capability_class": "text_generation",
+      "endpoints": ["anthropic_messages"],
+      "reasoning_efforts": ["low", "medium", "high", "xhigh"],
+      "temperature_parameter": "omit",
+      "structured_output": true,
+      "proof_eligible": false,
+      "thinking_mode": "adaptive",
+      "max_output_tokens_parameters": {
+        "anthropic_messages": "max_tokens"
+      }
+    },
+    "gemini-3.6-flash": {
+      "provider": "google_gemini",
+      "capability_class": "text_generation_and_judging",
+      "endpoints": ["gemini_generate_content_v1beta"],
+      "reasoning_efforts": ["low", "medium", "high"],
+      "temperature_parameter": "omit",
+      "structured_output": true,
+      "proof_eligible": true,
+      "thinking_mode": "thinking_level",
+      "max_output_tokens_parameters": {
+        "gemini_generate_content_v1beta": "maxOutputTokens"
+      }
+    },
+    "gpt-5.6-terra": {
+      "provider": "openai",
+      "capability_class": "text_generation",
+      "endpoints": [
+        "responses",
+        "chat_completions"
+      ],
+      "reasoning_efforts": [
+        "none",
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max"
+      ],
+      "temperature_parameter": "omit",
+      "structured_output": true,
+      "proof_eligible": false,
+      "max_output_tokens_parameters": {
+        "responses": "max_output_tokens",
+        "chat_completions": "max_completion_tokens"
+      }
+    },
+    "gpt-5.6-luna": {
+      "provider": "openai",
+      "capability_class": "text_generation",
+      "endpoints": [
+        "responses",
+        "chat_completions"
+      ],
+      "reasoning_efforts": [
+        "none",
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max"
+      ],
+      "temperature_parameter": "omit",
+      "structured_output": true,
+      "proof_eligible": false,
+      "max_output_tokens_parameters": {
+        "responses": "max_output_tokens",
+        "chat_completions": "max_completion_tokens"
+      }
+    },
+    "gpt-5.6-sol": {
+      "provider": "openai",
+      "capability_class": "text_generation_and_judging",
+      "endpoints": [
+        "responses",
+        "chat_completions"
+      ],
+      "reasoning_efforts": [
+        "none",
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max"
+      ],
+      "temperature_parameter": "omit",
+      "structured_output": true,
+      "proof_eligible": true,
+      "max_output_tokens_parameters": {
+        "responses": "max_output_tokens",
+        "chat_completions": "max_completion_tokens"
+      }
+    }
+  },
+  "compatibility_policy": {
+    "legacy_provider_constant_owner": "external_apps_rg",
+    "generic_role_aliases_allowed": false,
+    "semantic_aliases_allowed": false,
+    "note": "This catalog describes capabilities only. App profiles own routing and receipts own observed identities."
+  }
+}

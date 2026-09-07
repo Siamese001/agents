@@ -1,0 +1,104 @@
+# Dynamic-dispatch anchors — modules that are legitimately imported
+# indirectly (plugin registries, importlib.import_module targets, entry-point
+# scripts, hook dispatch) and therefore appear orphan to the ADG static
+# reachability analysis.
+#
+# Used by G_REACH_archival gate to filter the G_REACH orphan set into:
+#   * dynamic  — matches one of these patterns -> kept, not a cleanup target
+#   * archival — no dynamic match -> real dead candidate
+#
+# Add entries cautiously. Every anchor is an escape hatch from
+# L0-reachability enforcement; document the reason inline.
+#
+# Schema:
+#   version: 1
+#   anchors:
+#     - pattern: glob-style path pattern (matched with fnmatch)
+#       reason:  short rationale
+#       issued:  YYYY-MM-DD (for auditing)
+
+version: 1
+anchors:
+  # ---------- Hook-dispatched scripts (Claude governance hooks) ----------
+  - pattern: ".codex/governance/scripts/post_agent_*.py"
+    reason: "Post-agent governance scripts invoked by dispatcher, not imported."
+    issued: 2026-06-08
+
+  # ---------- CI gate scripts (CLI invocation) ----------
+  - pattern: "ops_scripts/ci/check_*.py"
+    reason: "Gate scripts run as subprocess from CI workflows, not imported."
+    issued: 2026-04-23
+  - pattern: "ops_scripts/ci/run_contract_gates.py"
+    reason: "Meta-runner invoked from CI."
+    issued: 2026-04-23
+  - pattern: "ops_scripts/ci/wiring_gate_dashboard.py"
+    reason: "Dashboard CLI (W3)."
+    issued: 2026-04-23
+  - pattern: "ops_scripts/ci/adg_gates/*.py"
+    reason: "Per-gate scripts, CLI-invoked."
+    issued: 2026-04-23
+  - pattern: "ops_scripts/ci/decision_ledger/*.py"
+    reason: "Decision-ledger CI scripts (formerly author_gate)."
+    issued: 2026-04-23
+
+  # ---------- Dev-tool entry points ----------
+  - pattern: "ops_scripts/dev_tools/**/*.py"
+    reason: "Dev utilities, standalone CLIs."
+    issued: 2026-04-23
+  - pattern: "tools/debug/*.py"
+    reason: "Debug entry points (ad-hoc CLIs)."
+    issued: 2026-04-23
+  - pattern: "tools/diag/*.py"
+    reason: "Diagnostic entry points."
+    issued: 2026-04-23
+  - pattern: "tools/bench/*.py"
+    reason: "Benchmark entry points."
+    issued: 2026-04-23
+  - pattern: "tools/generate_full_adg.py"
+    reason: "ADG regenerator CLI."
+    issued: 2026-04-23
+
+  # ---------- __main__ modules (python -m) ----------
+  - pattern: "**/__main__.py"
+    reason: "python -m <pkg> entry point; bound by runtime, not static imports."
+    issued: 2026-04-23
+
+  # ---------- __init__.py tree markers ----------
+  - pattern: "**/__init__.py"
+    reason: "Package markers; always loaded by package import semantics."
+    issued: 2026-04-23
+
+  # ---------- Test files (owned by pytest) ----------
+  - pattern: "tests/**/*.py"
+    reason: "pytest-discovered; not statically imported by production."
+    issued: 2026-04-23
+
+  # ---------- Conftest files (pytest autoload) ----------
+  - pattern: "**/conftest.py"
+    reason: "pytest autoload; not statically imported."
+    issued: 2026-04-23
+
+  # ---------- W7.4: dynamic-dispatch subsystems (plan d7-anchor-tuning) ----------
+  # G_REACH_ARCHIVAL over-flagged these in the 2026-04-24 snapshot because
+  # static-import reachability misses ``_importlib.import_module(mod_name)``
+  # call sites. Each anchor below has a traceable dispatcher — the anchor is
+  # ONLY valid when that dispatcher exists. Remove the anchor if the
+  # dispatcher is deleted.
+  - pattern: "apps_rg/L3_orchestration/reasoning/engines/*.py"
+    reason: "Dispatched by AgentFactory via importlib.import_module at L339 of AgentFactory.py — module_path is resolved from agent_specs.json registry."
+    issued: 2026-04-24
+  - pattern: "apps_rg/L1_cognition/reasoning/ml_decision_support/**/*.py"
+    reason: "ML feature extractors loaded via config/model_registry.py + feature_schemas.py dispatch (registry pattern, not direct import)."
+    issued: 2026-04-24
+  - pattern: "apps_rg/L5_safety/enforcement/security/*.py"
+    reason: "Security enforcers loaded via signature_verifier / import_guard dynamic dispatch."
+    issued: 2026-04-24
+  - pattern: "apps_rg/L5_safety/enforcement/hitl/*.py"
+    reason: "HITL adapters loaded via registry per ADR-023 runtime exit-control plane."
+    issued: 2026-04-24
+  - pattern: "apps_rg/L5_safety/utils/runners/*.py"
+    reason: "Runner pattern — invoked as subprocess entry points, not imported."
+    issued: 2026-04-24
+  - pattern: "apps_rg/prompt_governance/security/detectors/*.py"
+    reason: "Injection-scan detector plugins loaded via detector registry."
+    issued: 2026-04-24

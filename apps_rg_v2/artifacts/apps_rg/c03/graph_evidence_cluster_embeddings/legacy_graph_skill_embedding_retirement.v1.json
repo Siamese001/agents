@@ -1,0 +1,129 @@
+{
+  "schema_version": "apps_rg.c03_legacy_embedding_retirement.v1",
+  "status": "RETIRED",
+  "completion_marker": "C03_LEGACY_GRAPH_SKILL_EMBEDDINGS_RETIRED",
+  "retired_lane": "one_vector_per_skill_assertion",
+  "retired_artifact_directory": "artifacts/apps_rg/c03/graph_skill_embeddings",
+  "retired_artifact_count": 13,
+  "retired_total_size_bytes": 1531396,
+  "retired_artifacts": [
+    {
+      "path": "artifacts/apps_rg/c03/graph_skill_embeddings/bge_m3_model_manifest.38ccc2e093252ab0416eee16837c75c641f055b4f3def12091fba8ed94e2b263.json",
+      "file_sha256": "058b33e06bf78cf6fc456848e91e64a8c62661ff8beea6fb9aafc85f78bf1170",
+      "size_bytes": 2349,
+      "canonical_sha256": "0e51c56635bd79d55560456d737002d0109e99b00fe97011143320c6fb6c0dd8",
+      "w4_git_blob_sha1": "8fcf7579b6d32fc2a53e4967569853b5f06f64e4"
+    },
+    {
+      "path": "artifacts/apps_rg/c03/graph_skill_embeddings/graph_embedding_qualification.5b2b1dfb21a147644a97d662fed8bf422f4acb0ff5cec51461bb2d7559cd786f.json",
+      "file_sha256": "ab1eacb3d06e6332179b1ade37286da3b1168d891c384df76f07490702a68888",
+      "size_bytes": 21710,
+      "canonical_sha256": "21d3bb2177294623d59133c9222e95950fca9bc2453903439f1021bee35bb0dd",
+      "w4_git_blob_sha1": "5b94d2d7951eeac4826a44c7d48d9273d9968534"
+    },
+    {
+      "path": "artifacts/apps_rg/c03/graph_skill_embeddings/graph_embedding_qualification.d10426272e04e63230877ec4ba7ffb92fab2e17c3f33ddf780b2a8aaa530380a.json",
+      "file_sha256": "27e9d8b6715b61d3d597c352d2180ce81f16508dc04817877f6dd0b88a8be130",
+      "size_bytes": 17138,
+      "canonical_sha256": "13434a5db8fd0927f0fc78a447f344a65025639e153c0272303abd0141d6b05d",
+      "w4_git_blob_sha1": "e84fdfcb53bef0f35d62ce23e1a2ffa8a2d1656a"
+    },
+    {
+      "path": "artifacts/apps_rg/c03/graph_skill_embeddings/graph_embedding_qualification_manifest.1c83f256452f074ee2e5ce48df9c7b0e0668784430db154cb5bd9dbec9891750.json",
+      "file_sha256": "0279221ed2433cb33de29f36b23fc6eba16578555a6eec7d3771073d053133e1",
+      "size_bytes": 1359,
+      "canonical_sha256": "e5033e88ebd19fe8bd87be81e44e4a883cd349b196f2503c5f22823e9cdeae33",
+      "w4_git_blob_sha1": "2d6a896fe231407d1ef85d4d178aed8398392ec5"
+    },
+    {
+      "path": "artifacts/apps_rg/c03/graph_skill_embeddings/graph_embedding_qualification_manifest.json",
+      "file_sha256": "0279221ed2433cb33de29f36b23fc6eba16578555a6eec7d3771073d053133e1",
+      "size_bytes": 1359,
+      "canonical_sha256": "e5033e88ebd19fe8bd87be81e44e4a883cd349b196f2503c5f22823e9cdeae33",
+      "w4_git_blob_sha1": "2d6a896fe231407d1ef85d4d178aed8398392ec5"
+    },
+    {
+      "path": "artifacts/apps_rg/c03/graph_skill_embeddings/graph_embedding_qualification_thresholds.3bfda1a9eb216292781e081d7154e01d65f2b5c3f0bc9611963a02ce07c8a49f.json",
+      "file_sha256": "6b59b2de62d240db0d9ec6cb0d0f24e6e7b55307464bef89fcb302442f3f1cda",
+      "size_bytes": 863,
+      "canonical_sha256": "04bce8dec22dc3c1fbb6761806ffcd6663cd8ea36e7cbcaa860a84a5011f455a",
+      "w4_git_blob_sha1": "6317c41f8559d35900beea37770741a6f8e8d995"
+    },
+    {
+      "path": "artifacts/apps_rg/c03/graph_skill_embeddings/graph_embedding_query_qrels.08f8865fcf693606fb0ee1d1cfff9b7c63ffef2dc2e7eef4ec4e5ee96340ba85.json",
+      "file_sha256": "2505e89d3675dadf73aab3183ec9021eda2ffa349a5f03e03c8e8b051deedc61",
+      "size_bytes": 18931,
+      "canonical_sha256": "775a7d58920dba32de7b524132b83c921a7f4cfcb55fedb2330c2e894d2f4266",
+      "w4_git_blob_sha1": "5dd47ef2dee4e40bfd8d119eb255ae5b2edc9e05"
+    },
+    {
+      "path": "artifacts/apps_rg/c03/graph_skill_embeddings/graph_skill_assertions.efd9e01bf82df9324c9b5485bf93b7f5595e9260c60f848a4b1241411a9c2ca6.json",
+      "file_sha256": "f48d1ce54e06f2f88f1629572942782cffcaebd4034dac9c9813fe7805b1eb70",
+      "size_bytes": 529545,
+      "canonical_sha256": "d71e4610659353b68c9c49d7c8997ce2236a24c81255e4d9858fb421c9377b2c",
+      "w4_git_blob_sha1": "1240d15b5e09919a4f59afde227ad50f8b325156"
+    },
+    {
+      "path": "artifacts/apps_rg/c03/graph_skill_embeddings/graph_skill_embedding_activation.4ce00bdb4fc61c99984b7ec9b04b141d2087a70434c06ab31da1db401af040a5.json",
+      "file_sha256": "086351eaa89008c16101b085d48c6259b8a734b2b1a76c4ddb90ae0f3432eb0c",
+      "size_bytes": 1672,
+      "canonical_sha256": "31016062d97d988c3e066bb14b89bf54b29c0ff3b3164108957a860545544e7d",
+      "w4_git_blob_sha1": "8469351e609aadb4a77d1ce59a8cde076930ed6c"
+    },
+    {
+      "path": "artifacts/apps_rg/c03/graph_skill_embeddings/graph_skill_embedding_activation_manifest.json",
+      "file_sha256": "cf0b3c62b5949096fecebf87f98be47e576efb8610c3f033a6275d34dd2a84c3",
+      "size_bytes": 1356,
+      "canonical_sha256": "46a85f03e0c282e33ef1102493d86845b85d0c26dfa98cb2826f9575b180831d",
+      "w4_git_blob_sha1": "9ff0814040adfc8f9c519430b31fdc352178c4a6"
+    },
+    {
+      "path": "artifacts/apps_rg/c03/graph_skill_embeddings/graph_skill_embedding_manifest.a8609456b34b908557945675d8b3c2d5217c77f715e3e8d784b2ce893190e2bc.json",
+      "file_sha256": "bfe1fa9b48cf0972ca4dcd60bcb07efff6b1a994bfb77a65932cecbb980d99d0",
+      "size_bytes": 2661,
+      "canonical_sha256": "6aad97ebe184ae2e828820abfbaff567fe18be00da49348e2f84f877251a1f20",
+      "w4_git_blob_sha1": "1c304caf9fc37a8ae1078ff71e6a0b8d34b22508"
+    },
+    {
+      "path": "artifacts/apps_rg/c03/graph_skill_embeddings/graph_skill_embedding_manifest.json",
+      "file_sha256": "bfe1fa9b48cf0972ca4dcd60bcb07efff6b1a994bfb77a65932cecbb980d99d0",
+      "size_bytes": 2661,
+      "canonical_sha256": "6aad97ebe184ae2e828820abfbaff567fe18be00da49348e2f84f877251a1f20",
+      "w4_git_blob_sha1": "1c304caf9fc37a8ae1078ff71e6a0b8d34b22508"
+    },
+    {
+      "path": "artifacts/apps_rg/c03/graph_skill_embeddings/graph_skill_embeddings.68dc2043a5f7296259ec0de5878de4930093d4f30e602dd4adb96d6aa3e6c6e6.sqlite",
+      "file_sha256": "2d4fdce4a0a3dca99ca0c8c24bc186cf560114f9dec065c446e9c65510c3698e",
+      "size_bytes": 929792,
+      "w4_git_blob_sha1": "842fa1438c15e569dc5489d7febae52407f09696"
+    }
+  ],
+  "recovery_authority": {
+    "source_commit": "3e2fcaf47d37789688ad4fd6b2cc7ce2972423b4",
+    "source_tree": "92d4d2e6887a20c3e7c23d626ce8d0a366e58131",
+    "recovery_command_template": "git show <source_commit>:<artifact_path>",
+    "recovery_is_for_audit_only": true,
+    "runtime_reactivation_forbidden": true
+  },
+  "source_authority": {
+    "wave4_receipt_sha256": "c7a78c411334e8a02ed50667db6b4a58bcaa2acfcd51e429da4921119f026752",
+    "wave4_registry_sha256": "8b135964929d48e9a2948a0c35af6d1f3d76c61523b4568f3bc36e73056c2824",
+    "canonical_graph_sha256": "47d41419a4235c588d622375fea9a37cabafe0db65728b6d78bf268eff8ef500"
+  },
+  "runtime_disposition": {
+    "legacy_loader": "FAIL_CLOSED_RETIRED",
+    "legacy_preflight": "FAIL_CLOSED_RETIRED",
+    "legacy_build": "FAIL_CLOSED_RETIRED",
+    "legacy_qualify": "FAIL_CLOSED_RETIRED",
+    "legacy_activate": "FAIL_CLOSED_RETIRED",
+    "legacy_rebuild": "FAIL_CLOSED_RETIRED",
+    "legacy_smoke": "FAIL_CLOSED_RETIRED"
+  },
+  "scope_guards": {
+    "replacement_vectors_generated": false,
+    "cluster_embedding_activation_created": false,
+    "legacy_environment_flag_repurposed": false,
+    "production_promotion_authorized": false
+  },
+  "retirement_sha256": "cdff76c98f6e5a2b45c885cf05bd2e40b42305f2da090db046004fae08589906"
+}

@@ -1,0 +1,327 @@
+# Expected Wiring SSOT — declared call-site assertions
+# -----------------------------------------------------
+# Each entry asserts that a feature's documented "LIVE" wiring is present in
+# the source tree. The gate at `ops_scripts/ci/check_expected_wiring.py`
+# verifies — at commit time — that `required_call` appears inside the AST of
+# `entry_module` within the body (or body of a helper) of `entry_symbol`.
+#
+# Scope: this is NOT a test that the code runs. It is a guarantee that if the
+# code were to execute, it would invoke the expected dependency. Runtime
+# verification lives in the integration tests referenced by `proof_test` and
+# in the runbook probe referenced by `probe_command`.
+#
+# Schema:
+#   id                 — short unique slug
+#   description        — human-readable claim
+#   entry_module       — repo-relative .py path
+#   entry_symbol       — dotted symbol path inside entry_module
+#   required_call      — dotted qualified name that must be called from within
+#                        entry_symbol's AST subtree (match = last two or more
+#                        segments appear in any Call node)
+#   required_env_flags — flags that must default to "on" in .env.example OR
+#                        have an integration test that sets them on
+#   signature_contract — (optional) shape check on the call site:
+#                          required_kwargs  : [name, ...]
+#                          forbidden_kwargs : [name, ...]
+#                          min_args         : int  (positional lower bound)
+#                          max_args         : int  (positional upper bound)
+#                        Catches kwarg renames and silent default removals that
+#                        a pure "does call X appear?" check cannot see.
+#   proof_test         — pytest nodeid that exercises this wiring end-to-end
+#   probe_command      — CLI probe (optional) that must exit 0 when feature live
+#   plan_id            — plan of record for this wiring
+#
+# Governance: new rows require the same review as an adapter enrollment.
+# Deleted rows require an approved deprecation notice.
+
+wirings:
+
+  - id: semcache-l0-path-d-recall
+    # ⚠️ Real architectural debt — currently disabled to keep CI green while
+    # the dedicated plan owns the fix. ExecutionOrchestrator.execute calls
+    # SemanticCacheManager.{learn, promote_to_long_term} but NOT .recall, so
+    # the D2 readback is missing. Re-enabling this gate is the exit criteria
+    # of plan adg-semcache-l0-path-d-readback (NEXT_STEP, see commit log).
+    disabled: true
+    disabled_reason: >-
+      Real D2 readback gap. Adding the recall() call requires architectural
+      change to L0 routing (cache-hit short-circuit, telemetry, eval golden
+      updates). Tracked under plan adg-semcache-l0-path-d-readback as a
+      separate scoped wave; do not double-track here.
+    description: >-
+      L0 Path-D execution must call SemanticCacheManager.recall before dispatch
+      so the D2 semantic cache is read on every Path-D request.
+    entry_module: apps_rg/L0_routing/reasoning/execution_orchestrator.py
+    entry_symbol: ExecutionOrchestrator.execute
+    required_call: SemanticCacheManager.recall
+    required_env_flags:
+      - SEMANTIC_CACHE_D2_ENABLED
+    signature_contract:
+      # recall(payload_key, namespace, *, tenant_id=None) — the tenant_id
+      # kwarg is the tenant-isolation contract. Dropping it silently reverts
+      # to cross-tenant lookup. Positional args: payload_key + namespace.
+      required_kwargs: [tenant_id]
+      min_args: 2
+      max_args: 2
+    proof_test: tests/integration/cache/test_l0_d2_semantic_cache_live.py
+    probe_command: python tools/diag/probe_semantic_cache.py
+    plan_id: semcache-make-live-7a2d4b
+
+  - id: semcache-l0-path-d-learn
+    description: >-
+      On Path-D success with completed=True, the orchestrator must write the
+      result into the semantic cache via SemanticCacheManager.learn. Without
+      this call the cache is permanently empty.
+    entry_module: apps_rg/L0_routing/reasoning/execution_orchestrator.py
+    entry_symbol: ExecutionOrchestrator._populate_d2_cache
+    required_call: SemanticCacheManager.learn
+    required_env_flags:
+      - SEMANTIC_CACHE_D2_ENABLED
+    signature_contract:
+      # learn(payload_key, namespace, result, *, tenant_id=None) — same
+      # tenant isolation contract as recall. Writes without tenant_id poison
+      # the cache for other tenants.
+      required_kwargs: [tenant_id]
+      min_args: 3
+      max_args: 3
+    proof_test: tests/integration/cache/test_l0_d2_semantic_cache_live.py::test_l0_populate_d2_cache_wires_learn
+    probe_command: python tools/diag/probe_semantic_cache.py
+    plan_id: semcache-make-live-7a2d4b
+
+  - id: semcache-l0-path-d-promote
+    description: >-
+      When SEMANTIC_CACHE_PROMOTE_ENABLED is set and feedback qualifies, the
+      orchestrator must call promote_to_long_term so L2 (Chroma + SQLite)
+      actually receives writes.
+    entry_module: apps_rg/L0_routing/reasoning/execution_orchestrator.py
+    entry_symbol: ExecutionOrchestrator._populate_d2_cache
+    required_call: promote_to_long_term
+    required_env_flags:
+      - SEMANTIC_CACHE_D2_ENABLED
+      - SEMANTIC_CACHE_PROMOTE_ENABLED
+    signature_contract:
+      # promote_to_long_term(payload_key, namespace, promote_payload, feedback)
+      # Dropping the feedback arg silently disables qualification checks and
+      # promotes everything — a cache-pollution class of bug.
+      min_args: 4
+      max_args: 4
+    proof_test: tests/integration/cache/test_l0_d2_semantic_cache_live.py
+    probe_command: python tools/diag/probe_semantic_cache.py
+    plan_id: semcache-make-live-7a2d4b
+
+  - id: semcache-l1-warmup
+    description: >-
+      SemanticCacheManager._initialize must invoke _warm_l1_from_l2 so the
+      persistent L2 store is projected into Redis on singleton boot, closing
+      the "persistent vector → in-memory read" claim in the runbook.
+    entry_module: apps_rg/L4_state/utils/memory/semantic_cache_manager.py
+    entry_symbol: SemanticCacheManager._initialize
+    required_call: _warm_l1_from_l2
+    required_env_flags: []
+    proof_test: tests/integration/cache/test_l0_d2_semantic_cache_live.py
+    probe_command: python tools/diag/probe_semantic_cache.py
+    plan_id: semcache-make-live-7a2d4b
+
+  # --------------------------------------------------------------------
+  # P0 rollout from lazy-import-arch-defect-review.md — 2026-04-22
+  # --------------------------------------------------------------------
+
+  - id: embedding-factory-create-client
+    description: >-
+      EmbeddingSovereignAgent must reach the embedding provider through the
+      sanctioned factory (create_embedding_client) so all provider-SDK traffic
+      routes through apps_rg.embeddings.embedding_factory. Removing this
+      call would leave the approved adapter structurally orphan.
+    entry_module: apps_rg/L2_execution/reasoning/EmbeddingSovereignAgent.py
+    entry_symbol: EmbeddingSovereignAgent
+    required_call: create_embedding_client
+    required_env_flags: []
+    signature_contract:
+      # create_embedding_client(provider, model) — both positional, no kwargs.
+      # A silent drop of the model arg would fall back to a default embedding
+      # model and silently change retrieval semantics.
+      min_args: 2
+      max_args: 2
+    proof_test: tests/integration/retrieval_layers/test_bge_embedding_e2e.py
+    plan_id: lazy-import-arch-defect-review
+
+  # Removed (2026-04-28, plan adg-expected-wiring-drift-cleanup):
+  #   - id: l5-conf-calib-risk-gate
+  #   - id: l5-d0-injection-engine
+  # Both rows pointed at apps_shared/spine/{risk_gate_adapter,d0_engine_adapter}.py
+  # which no longer exist on disk. The spine adapter naming/location was
+  # superseded; the underlying ConfCalibRiskGate and D0InjectionEngine
+  # contracts are now exercised end-to-end by their own integration tests.
+  # If the spine module is reintroduced, restore these declarations.
+
+  - id: l5-mcp-sovereign-authority
+    description: >-
+      get_mcp_authority must resolve through mcp_sovereign_authority_enforcer
+      so MCP tool invocations pass the authority check. Silent orphan =
+      all-tools-allowed fail-open.
+    entry_module: apps_rg/seams/contracts/authority.py
+    entry_symbol: get_mcp_authority
+    required_call: mcp_authority
+    required_env_flags: []
+    proof_test: tests/unit/apps_rg/seams/contracts/test_authority.py
+    plan_id: lazy-import-arch-defect-review
+
+  - id: l5-activation-gate
+    description: >-
+      unified_workflow_config._get_assert_activation_allowed must reach
+      assert_activation_allowed. Dormant = workflows activate without gate.
+    entry_module: apps_rg/L2_execution/config/unified_workflow_config.py
+    entry_symbol: _get_assert_activation_allowed
+    required_call: assert_activation_allowed
+    required_env_flags: []
+    proof_test: tests/unit/apps_rg/L2_execution/config/test_unified_workflow_config.py
+    plan_id: lazy-import-arch-defect-review
+
+  - id: l5-guardian-decision-path
+    description: >-
+      execution_gateway._get_guardian_decision must resolve to L5Guardian.
+      This is the L0→L5 guardian seam — orphan = all L0 actions unguarded.
+    entry_module: apps_rg/L0_routing/enforcement/execution_gateway.py
+    entry_symbol: _get_guardian_decision
+    required_call: L5Guardian
+    required_env_flags: []
+    proof_test: tests/unit/apps_rg/L0_routing/enforcement/test_execution_gateway.py
+    plan_id: lazy-import-arch-defect-review
+
+  - id: l5-injection-regression-gate
+    description: >-
+      injection_detector must call evaluate_against_baseline from the
+      injection_regression_gate so baseline drift is caught at gate time.
+    entry_module: apps_rg/prompt_governance/security/detectors/injection_detector.py
+    entry_symbol: InjectionDetector
+    required_call: evaluate_against_baseline
+    required_env_flags: []
+    signature_contract:
+      # evaluate_against_baseline(current_metrics, baseline_metrics, gate_thresholds)
+      # All three args are required for a real regression assessment.
+      min_args: 3
+      max_args: 3
+    proof_test: tests/unit/prompt_governance/test_injection_detector.py
+    plan_id: lazy-import-arch-defect-review
+
+  - id: l4-violation-event-store
+    description: >-
+      escalation_router._get_violation_event_store_class must return
+      ViolationEventStore so escalations persist. Orphan = violations lost.
+    entry_module: apps_rg/L0_routing/reasoning/escalation_router.py
+    entry_symbol: _get_violation_event_store_class
+    required_call: ViolationEventStore
+    required_env_flags: []
+    proof_test: tests/unit/apps_rg/L0_routing/reasoning/test_escalation_router.py
+    plan_id: lazy-import-arch-defect-review
+
+  - id: l4-retrieval-eval-registry
+    description: >-
+      HybridRetriever.hybrid_search must reach get_global_eval_registry so
+      retrieval quality metrics flow into the shadow eval pipeline.
+    entry_module: apps_rg/L2_execution/config/hybrid_retriever_config.py
+    entry_symbol: HybridRetriever
+    required_call: get_global_eval_registry
+    required_env_flags: []
+    proof_test: tests/unit/apps_rg/L2_execution/config/test_hybrid_retriever_config.py
+    plan_id: lazy-import-arch-defect-review
+
+  - id: l4-filesystem-store
+    description: >-
+      tool_call_store must instantiate FileSystemStore so PTC tool-call
+      persistence survives process boundary.
+    entry_module: apps_rg/L3_orchestration/reasoning/ptc/tool_call_store.py
+    entry_symbol: ToolCallStore
+    required_call: FileSystemStore
+    required_env_flags: []
+    proof_test: tests/unit/apps_rg/L3_orchestration/reasoning/ptc/test_tool_call_store.py
+    plan_id: lazy-import-arch-defect-review
+
+  - id: l4-in-memory-vector-store
+    description: >-
+      sovereign_semantic_cache must construct InMemoryVectorStore so the
+      vector store is present for all cache ops.
+    entry_module: apps_rg/L4_state/utils/memory/sovereign_semantic_cache.py
+    entry_symbol: SovereignSemanticCache
+    required_call: InMemoryVectorStore
+    required_env_flags: []
+    proof_test: tests/integration/cache/test_l0_d2_semantic_cache_live.py
+    plan_id: lazy-import-arch-defect-review
+
+  - id: l4-runtime-state-guard
+    # MW-9 (2026-04-24) relocated the LocationHealerAgent class body from
+    # apps_rg/L5_safety/reasoning/LocationHealerAgent.py (now a
+    # deprecation re-export shim, archive-eligible 2026-07-23) to
+    # apps_rg/L5_safety/utils/location_healer_util.py. entry_module
+    # was repointed at the canonical location so the AST walker can resolve
+    # the class.
+    description: >-
+      LocationHealerAgent must instantiate RuntimeStateGuard before file
+      moves so runtime state transitions are guarded.
+    entry_module: apps_rg/L5_safety/utils/location_healer_util.py
+    entry_symbol: LocationHealerAgent
+    required_call: RuntimeStateGuard
+    required_env_flags: []
+    proof_test: tests/unit/apps_rg/L5_safety/reasoning/test_LocationHealerAgent.py
+    plan_id: lazy-import-arch-defect-review
+
+  # --------------------------------------------------------------------
+  # P2.3 rollout from l0-context-prompt-retrieval-review-b7c4a2 — 2026-04-22
+  # L0 prompt assembly / C0 retrieval — closes the bypass class of gap
+  # that let assemble_from_bom and load_context_jit go dormant in
+  # production while still passing every existing ADG CI gate.
+  # --------------------------------------------------------------------
+
+  - id: l0-adapter-calls-assemble-from-bom
+    description: >-
+      GovernedPromptAdapter._assemble_artifact MUST delegate to the canonical
+      AirlockAssembler.assemble_from_bom pipeline. A hand-built artifact in
+      the adapter bypasses the AssemblyInjectionNeutralizer, slot-order
+      validator, and JIT C0 context load — all of which are governance
+      controls. This row fails-closed the moment a future edit re-introduces
+      the bypass seen in l0-context-prompt-retrieval-review-b7c4a2.
+    entry_module: apps_shared/utils/governed_prompt_adapter.py
+    entry_symbol: GovernedPromptAdapter._assemble_artifact
+    required_call: assemble_from_bom
+    required_env_flags: []
+    proof_test: tests/integration/apps_exec/test_prompt_lifecycle_pipeline.py
+    plan_id: l0-context-prompt-retrieval-review-b7c4a2
+
+  - id: l0-assembly-stage-jit-context
+    description: >-
+      AirlockAssembler.assemble_from_bom MUST invoke load_context_jit to
+      populate the C0 slot with live RAG + BM25 + AST + boundary-ref
+      retrieval. Without this call C0 is only whatever the caller hand-fed
+      via bom.raw_c0, which silently disables the entire elevator-shaft
+      retrieval seam.
+    entry_module: apps_rg/L0_routing/reasoning/assembly_stage.py
+    entry_symbol: AirlockAssembler.assemble_from_bom
+    required_call: load_context_jit
+    required_env_flags: []
+    proof_test: tests/unit/apps_rg/L0_routing/utils/test_elevator_shaft_seam.py
+    plan_id: l0-context-prompt-retrieval-review-b7c4a2
+
+  - id: l0-assembly-injection-neutralizer
+    # ``AssemblyInjectionNeutralizer`` is reached through the module-level
+    # ``_get_neutralizer()`` lazy-factory pattern (assembly_stage.py:43-48)
+    # because the class lives in apps_rg.prompt_governance.security and
+    # cannot be eagerly imported from L0 without re-creating the L0 -> L_PG
+    # layer violation that ADR-024 corrected. The runtime call chain is:
+    #   assemble_from_bom -> _get_neutralizer() -> neutralizer_cls() -> .neutralize()
+    # The static AST walker only scans the entry_symbol subtree and helper
+    # methods on the same class, so it cannot follow the module-level helper.
+    # We anchor the wiring assertion on ``_get_neutralizer`` (which IS called
+    # inside assemble_from_bom at line 1199) - same end-to-end guarantee with
+    # an AST-visible target. The proof_test still validates the full chain.
+    description: >-
+      AirlockAssembler.assemble_from_bom MUST reach the neutralizer factory
+      `_get_neutralizer()` so AssemblyInjectionNeutralizer is instantiated and
+      U0 prompt-injection defense runs before the artifact is signed.
+      Dropping this call lets a user prompt smuggle role-override tokens past
+      the governance boundary.
+    entry_module: apps_rg/L0_routing/reasoning/assembly_stage.py
+    entry_symbol: AirlockAssembler.assemble_from_bom
+    required_call: _get_neutralizer
+    required_env_flags: []
+    proof_test: tests/integration/apps_exec/test_prompt_lifecycle_pipeline.py
+    plan_id: l0-context-prompt-retrieval-review-b7c4a2

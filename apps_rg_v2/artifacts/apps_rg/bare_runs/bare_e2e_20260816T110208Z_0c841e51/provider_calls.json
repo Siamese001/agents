@@ -1,0 +1,58 @@
+{
+  "mode": "live",
+  "provider_call_count": 3,
+  "providers": {
+    "apps_research_openai": {
+      "observed_model": "gpt-5.6-terra",
+      "provider": "external_openai",
+      "provider_call_attempted": true,
+      "requested_model": "gpt-5.6-terra",
+      "response_id": "chatcmpl-EDSv05CmSxi65EQBgcEpbrhH9yuYa",
+      "status": "SUCCESS",
+      "usage": {
+        "cache_write_tokens": null,
+        "cached_tokens": 0,
+        "output_tokens": 1111,
+        "prompt_tokens": 1215,
+        "thought_tokens": 0,
+        "total_tokens": 2326
+      }
+    },
+    "l2_openai": {
+      "observed_model": "gpt-5.6-terra",
+      "provider": "external_openai",
+      "provider_call_attempted": true,
+      "requested_model": "gpt-5.6-terra",
+      "response_id": "chatcmpl-EDSvAoW1lSivAFjfjHNIjhVyyfN3y",
+      "status": "SUCCESS",
+      "usage": {
+        "cache_write_tokens": null,
+        "cached_tokens": 0,
+        "output_tokens": 1758,
+        "prompt_tokens": 6651,
+        "thought_tokens": 94,
+        "total_tokens": 8409
+      }
+    },
+    "x3_gemini": {
+      "error": "BarePipelineError: Gemini evaluation failed: Gemini HTTP timeout after 45.0s: The read operation timed out",
+      "failure_code": "TRANSPORT_TIMEOUT",
+      "failure_phase": "WAIT_RESPONSE_HEADERS",
+      "observed_model": "",
+      "provider": "google_gemini",
+      "provider_call_attempted": true,
+      "requested_model": "gemini-3.6-flash",
+      "response_id": "",
+      "status": "FAIL",
+      "usage": {
+        "cache_write_tokens": null,
+        "cached_tokens": null,
+        "output_tokens": null,
+        "prompt_tokens": null,
+        "thought_tokens": null,
+        "total_tokens": null
+      }
+    }
+  },
+  "schema_version": "apps_rg.provider_calls.v1"
+}

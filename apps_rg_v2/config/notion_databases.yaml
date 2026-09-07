@@ -1,0 +1,118 @@
+# Notion Workspace Map — SSOT for all Notion database IDs and routing triggers.
+#
+# Consumed by:
+#   - .codex/governance/scripts/sync_mcp_config.py  -> regenerates AGENTS.md NOTION-MAP autogen block
+#   - .codex/governance/scripts/post_write_mcp_config_sync.py -> picks MCP Registry DB ID
+#   - ops_scripts/ci/check_agents_md_sync.py -> fails PRs on drift
+#
+# NEVER hand-edit Notion DB IDs in AGENTS.md or post_write_mcp_config_sync.py.
+# Change them here and regenerate via: python .codex/governance/scripts/sync_mcp_config.py
+#
+# TWO IDs PER DATABASE (Notion 2025-09-03 API):
+#   - `id`         = data_source_id — use for API-query-data-source (reads)
+#   - `database_id`= parent database_id — use for API-post-page (writes/creates)
+# Conflating the two is the #1 reason auto-route writes 404.
+# Both are discovered via API-post-search (returns both on every data_source result).
+workspace:
+  bot: "Agentic-Workflow"
+  space: "Amit Ayer's Space"
+
+# Notion REST API surface — consumed by .codex/governance/scripts/_notion_constants.py
+# (NOTION_API_VERSION / NOTION_BASE / NOTION_HTTP_TIMEOUT_S). SSOT for these too as of
+# 2026-06-14 (notion-id-ssot-consolidation): scripts MUST NOT redefine these literals.
+api:
+  version: "2025-09-03"
+  base: "https://api.notion.com/v1"
+  http_timeout_s: 15.0
+
+databases:
+  # Renamed 2026-04-23 W6: Wave/Phase Convergence -> Backlog Items.
+  # Legacy `Priority` number property archived in same wave; P-Band is SSOT now.
+  - key: backlog_items
+    name: "Backlog Items"
+    id: "fc7f6bf4-6a73-43cd-a4e8-1ef23267dbe7"
+    database_id: "aa8d2507-101e-4384-81d9-60ea3fe33876"
+    read_trigger: '"plan status", "phase progress", "wave status", "what''s blocked" — **but prefer the Backlog Snapshot page for top-N/dashboard queries (see below)**'
+    write_trigger: "On wave/phase completion or status change. The DEFERRED_SCOPE/NEXT_STEP auto-post hooks were retired (enforcement-surface-consolidation-d8b3f6 W7); out-of-scope work now surfaces via native spawn_task (constitutional §24 / ADR-096). The deferred_scope_scorer P-Band engine is retained for batch backlog scoring."
+
+  - key: plans
+    name: "Plans"
+    id: "ac53d31b-3068-4039-9ebe-856c12caab32"
+    database_id: "6aba34d9-4d0b-4f4c-b956-b2bdea541ca9"
+    read_trigger: '"which plans exist", "plan status", "is this plan on disk" — relation target from Backlog Items.Plan'
+    write_trigger: "On new plan creation under `plans/<slug>-<6hex>.md` (repo-root SSOT). `.codex/plans/` is archive-only. Create Plans row with Status=Not Started, Exists On Disk=true, Plan File Path set."
+
+  - key: sc_ap_violation_backlog
+    name: "SC/AP Violation Backlog"
+    id: "803834e1-0af8-4c3c-b45a-f513f80a7fef"
+    database_id: "0a3b8072-eabd-4516-9473-3c321bb011ff"
+    archived: true
+    archived_date: "2026-05-02"
+    read_trigger: "\u274c **ARCHIVED 2026-05-02**"
+    write_trigger: "Filesystem SSOT: `artifacts/adg/*.sqlite` + violation JSON. No Notion write."
+
+  # HITL Decision Ledger RETIRED 2026-05-02 — superseded by SQLite SSOT at
+  # .codex/state/refactor_decisions/refactor_decision_ledger.sqlite (per
+  # constitutional §30). The Notion mirror at data_source 5b60fdde-7259-491e-9f2d-
+  # e088f1f741ef / database 18bb9145-1320-4191-8b14-6c309776bcf5 was a one-way
+  # projection only — every page carried `decision_id=dec_xxxxx` derived from the
+  # SQLite chain. tools/notion/sync_decision_ledger.py was disabled in the same
+  # turn. If decision-history search is needed, query the SQLite FTS index
+  # (`decisions_fts`) directly. Do NOT re-create the Notion mirror.
+
+  - key: constitutional_rules_registry
+    name: "Constitutional Rules Registry"
+    id: "9bd2523e-7a6e-434d-89a7-ce4166457069"
+    database_id: "1c1379bc-32ca-4216-898a-3672f0316f69"
+    archived: true
+    archived_date: "2026-05-02"
+    read_trigger: "\u274c **ARCHIVED 2026-05-02**"
+    write_trigger: "Filesystem SSOT: `.codex/rules/*.md`. No Notion write."
+
+  - key: mcp_registry
+    name: "MCP Registry"
+    id: "e7b149b4-0496-4e98-a5dd-074dbe31881b"
+    database_id: "59693bbc-71b1-4c63-bc9f-b31eb8b08a0e"
+    archived: true
+    archived_date: "2026-05-02"
+    read_trigger: "\u274c **ARCHIVED 2026-05-02**"
+    write_trigger: "Filesystem SSOT: root `.mcp.json` only. Deprecated compatibility copies are non-authoritative."
+
+  # ADR Registry RETIRED 2026-05-02 — consolidated in commit b11200e833
+  # "chore(notion): consolidate 4 mirror DBs; migrate value-add to SSOT".
+  # The on-disk ADR markdown files at docs/architecture/adr/ADR-NNN-*.md ARE the SSOT.
+  # No Notion mirror row is created on new ADR authoring. Removed from this SSOT on
+  # 2026-05-02 via deferred-scope-closeout-2026-05-02-e4f8a1 W1. If ADR search/filter
+  # becomes a need again, use ripgrep over docs/architecture/adr/ or add a code-side
+  # index — do NOT re-create the Notion mirror.
+
+  - key: antipattern_burndown
+    name: "Anti-Pattern Burndown"
+    id: "4599fe37-8c24-4d89-96af-438b99a967c4"
+    database_id: "80b30bc9-6622-4288-aa4c-6fc526b6a5c5"
+    archived: true
+    archived_date: "2026-05-11"
+    read_trigger: "❌ **ARCHIVED 2026-05-11** (404 confirmed — DB not accessible to integration)"
+    write_trigger: "Filesystem SSOT: `artifacts/adg/` ratchet files are canonical. No Notion write. (See .codex/rules/notion-archived-databases.md.)"
+
+  # ADR Registry — ARCHIVED 2026-05-02 (commit b11200e833). On-disk markdown is the SSOT.
+  # Structured row retained so _notion_constants.py can map ADR_REGISTRY_DB_ID / ADR_REGISTRY_DS_ID.
+  - key: adr_registry
+    name: "ADR Registry"
+    id: "e59d7640-dc09-48f9-8bdc-b0c94bf98c2a"
+    database_id: "6ed25e12-bd92-4352-ac7a-3a971311f024"
+    archived: true
+    archived_date: "2026-05-02"
+    read_trigger: "❌ **ARCHIVED 2026-05-02**"
+    write_trigger: "Filesystem SSOT: `docs/architecture/adr/ADR-NNN-*.md`. No Notion write."
+
+  # Author-Gate Decision Ledger — ARCHIVED 2026-05-02 (SQLite SSOT, constitutional §30).
+  # Structured row retained so _notion_constants.py can map AUTHOR_GATE_LEDGER_DB_ID / _DS_ID.
+  - key: author_gate_ledger
+    name: "Author-Gate Decision Ledger"
+    id: "5b60fdde-7259-491e-9f2d-e088f1f741ef"
+    database_id: "18bb9145-1320-4191-8b14-6c309776bcf5"
+    archived: true
+    archived_date: "2026-05-02"
+    read_trigger: "❌ **ARCHIVED 2026-05-02**"
+    write_trigger: "Filesystem SSOT: `.codex/state/refactor_decisions/refactor_decision_ledger.sqlite`. No Notion write."

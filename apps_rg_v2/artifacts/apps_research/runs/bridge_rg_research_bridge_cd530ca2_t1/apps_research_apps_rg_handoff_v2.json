@@ -1,0 +1,234 @@
+{
+  "artifact_manifest": {
+    "artifact_count": 13,
+    "artifacts": [
+      {
+        "artifact_id": "apps_research_gate_mesh_result_json",
+        "artifact_ref": "C:\\Git\\apps_rg_v2\\artifacts\\apps_research\\runs\\bridge_rg_research_bridge_cd530ca2_t1\\apps_research_gate_mesh_result.json",
+        "byte_length": 8892,
+        "media_type": "application/json",
+        "required": true,
+        "sha256": "sha256:dd31467d25699821ea45ee0657f6e76a1135b4ff5ce364f142db8d3157514e0f"
+      },
+      {
+        "artifact_id": "apps_research_handoff_otel_trace_snapshot_json",
+        "artifact_ref": "C:\\Git\\apps_rg_v2\\artifacts\\apps_research\\runs\\bridge_rg_research_bridge_cd530ca2_t1\\apps_research_handoff_otel_trace_snapshot.json",
+        "byte_length": 638,
+        "media_type": "application/json",
+        "required": true,
+        "sha256": "sha256:2954eb37d256d43d7922fdb1f3abee927036a41c91b604b94130c8e1077664ed"
+      },
+      {
+        "artifact_id": "apps_research_u0_receipt_json",
+        "artifact_ref": "C:\\Git\\apps_rg_v2\\artifacts\\apps_research\\runs\\bridge_rg_research_bridge_cd530ca2_t1\\apps_research_u0_receipt.json",
+        "byte_length": 944,
+        "media_type": "application/json",
+        "required": true,
+        "sha256": "sha256:6dffb1afef3bf8359abba67e13378330f787e9fcf30e99377755f4b638de7b2f"
+      },
+      {
+        "artifact_id": "briefing_md",
+        "artifact_ref": "C:\\Git\\apps_rg_v2\\artifacts\\apps_research\\runs\\bridge_rg_research_bridge_cd530ca2_t1\\briefing.md",
+        "byte_length": 4808,
+        "media_type": "text/markdown; charset=utf-8",
+        "required": true,
+        "sha256": "sha256:8adad229014fcb29b9aa3a3605807a3f507c9ef79b1432dec5d41e18993431ba"
+      },
+      {
+        "artifact_id": "company_brief_json",
+        "artifact_ref": "C:\\Git\\apps_rg_v2\\artifacts\\apps_research\\runs\\bridge_rg_research_bridge_cd530ca2_t1\\company_brief.json",
+        "byte_length": 13014,
+        "media_type": "application/json",
+        "required": true,
+        "sha256": "sha256:baed710a9ee4df044810d8fa9e11ec3b1a28a382e97f6f034332948ecb520e70"
+      },
+      {
+        "artifact_id": "exit_disposition_receipt_json",
+        "artifact_ref": "C:\\Git\\apps_rg_v2\\artifacts\\apps_research\\runs\\bridge_rg_research_bridge_cd530ca2_t1\\exit_disposition_receipt.json",
+        "byte_length": 1213,
+        "media_type": "application/json",
+        "required": true,
+        "sha256": "sha256:7ae26612a86c140f36f48169d1c7b7152f1ea770da2818ac31397164d0ed6b2e"
+      },
+      {
+        "artifact_id": "exit_review_packet_json",
+        "artifact_ref": "C:\\Git\\apps_rg_v2\\artifacts\\apps_research\\runs\\bridge_rg_research_bridge_cd530ca2_t1\\exit_review_packet.json",
+        "byte_length": 18131,
+        "media_type": "application/json",
+        "required": true,
+        "sha256": "sha256:b1dd505b7024085af65334b5a2ec915ac1d95ec310a4eed318aec2a25a72c6ce"
+      },
+      {
+        "artifact_id": "job_description_normalized_txt",
+        "artifact_ref": "C:\\Git\\apps_rg_v2\\artifacts\\apps_research\\runs\\bridge_rg_research_bridge_cd530ca2_t1\\job_description.normalized.txt",
+        "byte_length": 5300,
+        "media_type": "text/plain; charset=utf-8",
+        "required": true,
+        "sha256": "sha256:5521f18994254066f4b28b90eba6551c5c6a99df51128472f07de2ab0ca57035"
+      },
+      {
+        "artifact_id": "job_description_raw_txt",
+        "artifact_ref": "C:\\Git\\apps_rg_v2\\artifacts\\apps_research\\runs\\bridge_rg_research_bridge_cd530ca2_t1\\job_description.raw.txt",
+        "byte_length": 5299,
+        "media_type": "text/plain; charset=utf-8",
+        "required": true,
+        "sha256": "sha256:d2610c91959846232cd094afc388c0dc49b4c7e13b2bb585ea0f9bd44743657e"
+      },
+      {
+        "artifact_id": "provider_attempt_evidence_json",
+        "artifact_ref": "C:\\Git\\apps_rg_v2\\artifacts\\apps_research\\runs\\bridge_rg_research_bridge_cd530ca2_t1\\provider_attempt_evidence.json",
+        "byte_length": 4833,
+        "media_type": "application/json",
+        "required": true,
+        "sha256": "sha256:b5c658a4035d03368a2d7f9dc340c3a7ed605ca23bdb131eb9c21875465547dc"
+      },
+      {
+        "artifact_id": "run_metadata_json",
+        "artifact_ref": "C:\\Git\\apps_rg_v2\\artifacts\\apps_research\\runs\\bridge_rg_research_bridge_cd530ca2_t1\\run_metadata.json",
+        "byte_length": 2053,
+        "media_type": "application/json",
+        "required": true,
+        "sha256": "sha256:f4190f5704bb95cbebc3a545d04547a968be67451c9ec98f89a52b4b59a089b4"
+      },
+      {
+        "artifact_id": "runtime_exhaust_bundle_json",
+        "artifact_ref": "C:\\Git\\apps_rg_v2\\artifacts\\apps_research\\runs\\bridge_rg_research_bridge_cd530ca2_t1\\runtime_exhaust_bundle.json",
+        "byte_length": 676,
+        "media_type": "application/json",
+        "required": true,
+        "sha256": "sha256:becee9e78af82fcce260f0ab7a6994a2870964ef1c221bcbfe15ac220e1459b5"
+      },
+      {
+        "artifact_id": "sealed_workflow_package_json",
+        "artifact_ref": "C:\\Git\\apps_rg_v2\\artifacts\\apps_research\\runs\\bridge_rg_research_bridge_cd530ca2_t1\\sealed_workflow_package.json",
+        "byte_length": 6134,
+        "media_type": "application/json",
+        "required": true,
+        "sha256": "sha256:d0d045cd64c7b6388f71ad5136cc2e5471da974b7aaf7d068db35271aab961e3"
+      }
+    ],
+    "manifest_sha256": "sha256:cf71dea458e130c7e4a6eeae5a6a7086e556d2254f8e9f22520f9b710d85c22e"
+  },
+  "authority_contract_id": "apps_research_rg_e2e_authority",
+  "commit_protocol": {
+    "artifact_runs_root": "C:\\Git\\apps_rg_v2\\artifacts\\apps_research\\runs",
+    "commit_marker_ref": "C:\\Git\\apps_rg_v2\\artifacts\\apps_research\\runs\\bridge_rg_research_bridge_cd530ca2_t1\\bundle_commit_manifest.json",
+    "commit_marker_sha256": "sha256:3b29a54363911be1696f88356fb5c676163bba55dd6aeb40e8a9f17e2eac00ee",
+    "committed_bundle_ref": "C:\\Git\\apps_rg_v2\\artifacts\\apps_research\\runs\\bridge_rg_research_bridge_cd530ca2_t1",
+    "consumer_validation_receipt_name": "apps_research_handoff_validation_receipt.json",
+    "directory_fsync": {
+      "platform": "nt",
+      "root": "UNSUPPORTED",
+      "stage": "UNSUPPORTED"
+    },
+    "final_bundle_digest": "sha256:cf71dea458e130c7e4a6eeae5a6a7086e556d2254f8e9f22520f9b710d85c22e",
+    "protocol": "write_fsync_atomic_rename_marker.v1",
+    "temporary_bundle_ref": "C:\\Git\\apps_rg_v2\\artifacts\\apps_research\\runs\\.s-cdbef8970eab41caa9afeae0"
+  },
+  "created_at_utc": "2026-09-06T11:49:46.688919+00:00",
+  "exit_authorization": {
+    "output_artifact_sha256": "sha256:8adad229014fcb29b9aa3a3605807a3f507c9ef79b1432dec5d41e18993431ba",
+    "receipt_ref": "C:\\Git\\apps_rg_v2\\artifacts\\apps_research\\runs\\bridge_rg_research_bridge_cd530ca2_t1\\exit_disposition_receipt.json",
+    "receipt_sha256": "sha256:7ae26612a86c140f36f48169d1c7b7152f1ea770da2818ac31397164d0ed6b2e",
+    "x3_code": "X3D_ALLOW_FINISH"
+  },
+  "handoff_id": "apps-research-rg:bridge:rg_research_bridge:cd530ca2:t1",
+  "identity": {
+    "blueprint_hash": "sha256:a7f08177d75b419a70fadddc129c56aa2aaccc8e3801a9310f760cbcf4ff0e0c",
+    "brief_sha256": "sha256:8adad229014fcb29b9aa3a3605807a3f507c9ef79b1432dec5d41e18993431ba",
+    "child_run_id": "bridge:rg_research_bridge:cd530ca2:t1",
+    "consumer_app_id": "apps_rg",
+    "jd_sha256": "sha256:5521f18994254066f4b28b90eba6551c5c6a99df51128472f07de2ab0ca57035",
+    "parent_run_id": "run1",
+    "policy_hash": "sha256:9ab7764c2778fb8974d0359587a47f7593ef389ae5f8608abbea12b052d311f4",
+    "producer_app_id": "apps_research",
+    "request_id": "r1",
+    "schema_version": "apps_research_rg_run_identity.v1",
+    "target_company": "Anthropic",
+    "target_role": "Applied AI Research Engineer",
+    "tenant_id": "default",
+    "trace_root": "t1"
+  },
+  "mandatory_gate_receipts": {
+    "G21": {
+      "gate_id": "G21",
+      "receipt_ref": "C:\\Git\\apps_rg_v2\\artifacts\\apps_research\\runs\\bridge_rg_research_bridge_cd530ca2_t1\\apps_research_gate_mesh_result.json",
+      "receipt_sha256": "sha256:dd31467d25699821ea45ee0657f6e76a1135b4ff5ce364f142db8d3157514e0f",
+      "schema_version": "apps_research.apps_rg_handoff_gate_mesh.v1",
+      "status": "PASS"
+    },
+    "G24": {
+      "gate_id": "G24",
+      "receipt_ref": "C:\\Git\\apps_rg_v2\\artifacts\\apps_research\\runs\\bridge_rg_research_bridge_cd530ca2_t1\\apps_research_gate_mesh_result.json",
+      "receipt_sha256": "sha256:dd31467d25699821ea45ee0657f6e76a1135b4ff5ce364f142db8d3157514e0f",
+      "schema_version": "apps_research.apps_rg_handoff_gate_mesh.v1",
+      "status": "PASS"
+    },
+    "G26": {
+      "gate_id": "G26",
+      "receipt_ref": "C:\\Git\\apps_rg_v2\\artifacts\\apps_research\\runs\\bridge_rg_research_bridge_cd530ca2_t1\\apps_research_gate_mesh_result.json",
+      "receipt_sha256": "sha256:dd31467d25699821ea45ee0657f6e76a1135b4ff5ce364f142db8d3157514e0f",
+      "schema_version": "apps_research.apps_rg_handoff_gate_mesh.v1",
+      "status": "PASS"
+    },
+    "G5": {
+      "gate_id": "G5",
+      "receipt_ref": "C:\\Git\\apps_rg_v2\\artifacts\\apps_research\\runs\\bridge_rg_research_bridge_cd530ca2_t1\\apps_research_gate_mesh_result.json",
+      "receipt_sha256": "sha256:dd31467d25699821ea45ee0657f6e76a1135b4ff5ce364f142db8d3157514e0f",
+      "schema_version": "apps_research.apps_rg_handoff_gate_mesh.v1",
+      "status": "PASS"
+    },
+    "G6": {
+      "gate_id": "G6",
+      "receipt_ref": "C:\\Git\\apps_rg_v2\\artifacts\\apps_research\\runs\\bridge_rg_research_bridge_cd530ca2_t1\\apps_research_gate_mesh_result.json",
+      "receipt_sha256": "sha256:dd31467d25699821ea45ee0657f6e76a1135b4ff5ce364f142db8d3157514e0f",
+      "schema_version": "apps_research.apps_rg_handoff_gate_mesh.v1",
+      "status": "PASS"
+    },
+    "G7": {
+      "gate_id": "G7",
+      "receipt_ref": "C:\\Git\\apps_rg_v2\\artifacts\\apps_research\\runs\\bridge_rg_research_bridge_cd530ca2_t1\\apps_research_gate_mesh_result.json",
+      "receipt_sha256": "sha256:dd31467d25699821ea45ee0657f6e76a1135b4ff5ce364f142db8d3157514e0f",
+      "schema_version": "apps_research.apps_rg_handoff_gate_mesh.v1",
+      "status": "PASS"
+    }
+  },
+  "model_observations": {
+    "generation": {
+      "observed_model": "gpt-5.6-terra",
+      "provider": "external_openai",
+      "reasoning_effort": "medium",
+      "receipt_source": "provider_attempt_evidence.json",
+      "requested_model": "gpt-5.6-terra",
+      "role": "company_brief_generation",
+      "status": "OBSERVED_PROVIDER_RESPONSE"
+    },
+    "judge": {
+      "observed_model": "gemini-3.6-flash",
+      "provider": "google_gemini",
+      "reasoning_effort": "high",
+      "receipt_source": "provider_attempt_evidence.json",
+      "requested_model": "gemini-3.6-flash",
+      "role": "apps_rg_handoff_judge",
+      "status": "OBSERVED_PROVIDER_RESPONSE"
+    }
+  },
+  "normalized_input": {
+    "artifact_ref": "C:\\Git\\apps_rg_v2\\artifacts\\apps_research\\runs\\bridge_rg_research_bridge_cd530ca2_t1\\job_description.normalized.txt",
+    "byte_length": 5300,
+    "normalization_profile_hash": "sha256:4fe880691d367117dc28177e45ee4d4d69c652ea620b413285aa037d6da38dc9",
+    "raw_input_sha256": "sha256:d2610c91959846232cd094afc388c0dc49b4c7e13b2bb585ea0f9bd44743657e",
+    "sha256": "sha256:5521f18994254066f4b28b90eba6551c5c6a99df51128472f07de2ab0ca57035"
+  },
+  "producer": {
+    "attestation_sha256": "sha256:d97a41832e476cf26f3889474abe1d85dfbbe8e9a0ee0ec3c5e0c3646b6d58fb",
+    "producer_app_id": "apps_research",
+    "producer_run_id": "bridge:rg_research_bridge:cd530ca2:t1"
+  },
+  "raw_input": {
+    "artifact_ref": "C:\\Git\\apps_rg_v2\\artifacts\\apps_research\\runs\\bridge_rg_research_bridge_cd530ca2_t1\\job_description.raw.txt",
+    "byte_length": 5299,
+    "sha256": "sha256:d2610c91959846232cd094afc388c0dc49b4c7e13b2bb585ea0f9bd44743657e"
+  },
+  "schema_version": "apps_research.apps_rg_handoff.v2"
+}

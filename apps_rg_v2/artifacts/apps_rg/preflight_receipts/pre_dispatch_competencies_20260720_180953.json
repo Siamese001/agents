@@ -1,0 +1,20 @@
+{
+  "apps_research_handoff_v2": null,
+  "apps_research_handoff_validation": null,
+  "decisive_reason": "all_pre_dispatch_gates_passed",
+  "dispatch_started": true,
+  "jd_path": "inline:jd",
+  "jd_status": "PASS",
+  "lane_provider": "external_openai",
+  "manual_brief_path": "inline:manual_brief",
+  "manual_brief_status": "PASS",
+  "provider_health_status": "NOT_APPLICABLE",
+  "provider_model_ready_status": "NOT_APPLICABLE",
+  "provider_resolution_source": "CLI_OVERRIDE",
+  "recorded_at": 1784585393.237409,
+  "schema": "apps_rg.pre_dispatch_preflight.v1",
+  "section": "competencies",
+  "upstream_bullets_detail": "",
+  "upstream_bullets_lane": "",
+  "upstream_bullets_status": "NOT_APPLICABLE"
+}

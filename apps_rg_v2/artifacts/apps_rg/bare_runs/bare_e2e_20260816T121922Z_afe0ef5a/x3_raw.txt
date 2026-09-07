@@ -1,0 +1,1 @@
+{"verdict":"PASS","score":1.0,"reasoning":"The tailored resume aligns well with the JD, all facts are supported by the base resume, the research brief includes valid source URLs, and the outreach email targets Anthropic accurately without inventing claims."}

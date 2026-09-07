@@ -1,0 +1,148 @@
+# ============================================================================
+# Structure Policy — YAML-Only Enforcement (Method A)
+# ============================================================================
+# Single source of truth for repository structure validation.
+# Consumed by: ops_scripts/ci/check_structure_policy.py
+# Replaces: ~5,000 lines of Python enforcement in the old structure_blueprint
+#           package (_verify.py, _simulate_verify.py, sovereign_kernel.py,
+#           governance.py, enforcement/).
+#
+# Decision log (2026-04-10):
+#   - root_directories adjusted to match actual repo state (not aspirational).
+#   - infrastructure/, scripts/, templates/, test_artifacts/ added as allowed.
+#   - .ruff_cache added to excluded_directories.
+#   - cache, planning removed from flat_directories (contain subdirectories).
+#   - apps_* auto-allowed by prefix match in CI gate (not listed here).
+# ============================================================================
+
+# --- Root-level directory whitelist ---
+# Only these directories are allowed at the repo root.
+# Any directory not listed here is a violation.
+root_directories:
+  # Core source
+  - apps_rg
+  - apps_eval
+  - apps_exec
+  - apps_lic
+  - apps_research
+  - apps_rg
+  - apps_shared
+  - ops_scripts
+  - system_learning
+  - tools
+  # Test / docs / data
+  - tests
+  - docs
+  - data
+  - config
+  - plans            # relocated plans SSOT (repo root; superseded .codex/plans)
+  - memory           # native file-memory SSOT (constitutional §17 / ADR-095)
+  # Infrastructure / generated
+  - artifacts
+  - infrastructure
+  - logs
+  - scripts        # Fort Knox allowlist: verify_tier*_gate.py, verify_all_requirements_*.py, scripts/proof/**
+  - templates
+  - test_artifacts
+  # Hidden / IDE / VCS
+  - .git
+  - .github
+  - .gravity_state
+  - .backup
+  - .vscode
+  - .codex          # Claude Code governance tree (rules/hooks/skills/schemas) — SSOT
+  - .agents         # tracked local agent skill mirror used by Codex skill roots
+  - .locks           # git-lfs / xet lock directory (runtime artifact)
+  # git-xet extension working directory
+  - xet
+
+# --- Root-level allowed file patterns ---
+# Files at root must match one of these globs.
+root_file_patterns:
+  - "*.py"
+  - "*.toml"
+  - "*.yaml"
+  - "*.yml"
+  - "*.md"
+  - "*.json"
+  - "*.ini"
+  - "*.txt"
+  - "*.bat"
+  - "*.sh"
+  - "*.csv"
+  - "*.lock"        # uv.lock, poetry.lock, package-lock.json equivalents
+  - "CODEOWNERS"    # GitHub governance file (no extension by convention)
+  - "CACHEDIR.TAG"  # pip/pytest cache tag marker (no extension; pre-existing artifact)
+  - ".*"            # dotfiles (.gitignore, .env, etc.)
+
+# --- Layer structure ---
+# [deband 2026-06-15] Removed `layer_roots`: the check only asserted these dirs EXIST in
+# apps_rg — a tautology. They are permanent committed roots; deleting/renaming one would
+# break pytest collection + ADG generation with far louder, earlier signals than this gate. The
+# check was also one-directional (`missing = layer_roots - present`, never flags extras), so it
+# never caught the real drift — apps_rg has THREE L6 roots (L6_learning, L6_observability,
+# L6_system_learning) this list never modelled. Zero marginal signal → removed.
+# _check_layer_structure is now a no-op (candidate for gate-code removal in a future pass).
+# Runtime LAYER_ROOTS lives in path_constants, not this YAML.
+
+# [deband 2026-06-15] Removed `lcd_subfolders`: the gate's _check_layer_structure reads only
+# `layer_roots` (presence) — it never consumed lcd_subfolders, so it was dead config here. The
+# LCD-subfolder convention is enforced via REQUIRED_LCD_SUBFOLDERS (path_constants/ssot), not this YAML.
+
+# --- Flat directories ---
+# These directories must NOT contain subdirectories (only files).
+# [deband 2026-06-15] Removed `patterns` — no directory named `patterns` exists anywhere in the
+# repo (verified by tree walk), so the rule was a stale no-op. The remaining 5 are LIVE: each
+# exists and is currently flat; the rule actively prevents nesting them.
+flat_directories:
+  - base_agents
+  - embeddings
+  - gateway
+  - interfaces
+  - mixins
+
+# --- Excluded from scanning ---
+# Directories that are skipped entirely during validation.
+excluded_directories:
+  - __pycache__
+  - .git
+  - .ruff_cache
+  - .venv
+  - venv
+  - node_modules
+  - .pytest_cache
+  - .mypy_cache
+  - .hypothesis
+  - .tox
+  - dist
+  - build
+  - .egg-info
+  - agentic_workflow.egg-info  # setuptools build artifact (regenerated on `pip install -e .`)
+  # [deband 2026-06-15] `archives` removed from excluded — it is FORBIDDEN at the repo root
+  # (see forbidden_root_directories below), and the canonical artifacts/archives/ is already
+  # skipped via the `artifacts` exclusion. Listing it as both "exclude" and "forbid" was
+  # contradictory (root_dirs skipped it, forbidden flagged it). Now solely forbidden.
+  - logs
+  - artifacts
+  - .gravity_state
+  - .backup
+  - .windsurf
+
+# --- Forbidden root-level directories ---
+# Directories that must NEVER exist at the repo root.
+forbidden_root_directories:
+  - legacy_code
+  - legacy_engines
+  - legacy_resume_gen
+  - old_core
+  - inputs          # use data/fixtures/<app>/ or artifacts/<app>/runtime_inputs/
+  - include         # venv header leak — not a repo territory
+  - keys            # use artifacts/keys/ (private) + config/ (public PEM)
+  - lib             # venv site-packages leak — use .venv/
+  - requirements    # cross-app contracts: docs/requirements/contracts/
+  - models--BAAI--bge-m3  # HF cache: HF_HOME or data/cache/huggingface/
+  - certification         # inputs: data/certification/; review: artifacts/certification/review/
+  - chroma                # Chroma persist leak — use data/cache/chromadb/
+  - archives              # quarantine: artifacts/archives/
+  - reports               # durable reports: docs/reports/; generated output: artifacts/
+  - .playwright-mcp       # Playwright MCP output belongs under artifacts/mcp/playwright/

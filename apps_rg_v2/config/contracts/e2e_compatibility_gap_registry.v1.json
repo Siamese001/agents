@@ -1,0 +1,41 @@
+{
+  "schema_version": "apps_rg.e2e_compatibility_gap_registry_contract.v1",
+  "policy": {
+    "every_failed_probe_requires_open_gap": true,
+    "every_open_gap_requires_failed_probe": true,
+    "empty_open_gaps_requires_all_probes_pass": true,
+    "diagnostic_receipt_authorizes_product": false
+  },
+  "probes": [
+    {
+      "probe_id": "APP_RUNTIME_INDEPENDENCE",
+      "producer": "apps_rg.runtime.standalone_dependency_posture",
+      "verifier": "validate_app_runtime_independence_receipt"
+    },
+    {
+      "probe_id": "APPS_RESEARCH_HANDOFF_CONSUMER_RECEIPT",
+      "producer": "apps_research.integrations.apps_rg_handoff",
+      "verifier": "apps_rg.prerequisites.briefing_validator"
+    },
+    {
+      "probe_id": "CORE_RUNTIME_AUTHORITY",
+      "producer": "apps_rg.runtime.orchestration.core_runtime_authority",
+      "verifier": "verify_core_runtime_authority"
+    },
+    {
+      "probe_id": "RECEIPT_DERIVED_STAGE_LEDGER",
+      "producer": "apps_rg.runtime.e2e_stage_ledger",
+      "verifier": "verify_e2e_stage_ledger"
+    },
+    {
+      "probe_id": "MANDATORY_OUTPUT_BUNDLE",
+      "producer": "apps_rg.runtime.mandatory_run_outputs",
+      "verifier": "validate_mandatory_output_bundle"
+    },
+    {
+      "probe_id": "TERMINAL_MANIFEST_AND_CLOSEOUT",
+      "producer": "apps_rg.runtime.terminal_manifest",
+      "verifier": "verify_terminal_manifest"
+    }
+  ]
+}

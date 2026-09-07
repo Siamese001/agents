@@ -1,0 +1,53 @@
+{
+  "schema_version": "apps_rg.l1_plan_execution_receipt_fixture_matrix.v1",
+  "cases": [
+    {
+      "case_id": "ready_complete",
+      "plan_status": "READY",
+      "disposition": "COMPLETED",
+      "attempted": true,
+      "failure_code": "",
+      "expected_failure_class": ""
+    },
+    {
+      "case_id": "blocked_at_l1",
+      "plan_status": "BLOCKED",
+      "disposition": "BLOCKED",
+      "attempted": false,
+      "failure_code": "L1_PLAN_BLOCKED",
+      "expected_failure_class": "INGRESS_OR_AMBIGUITY"
+    },
+    {
+      "case_id": "missing_proof",
+      "plan_status": "READY",
+      "disposition": "BLOCKED",
+      "attempted": true,
+      "failure_code": "REQUIRED_PROOF_ABSENT",
+      "expected_failure_class": "UPSTREAM_EVIDENCE"
+    },
+    {
+      "case_id": "retrieval_failure",
+      "plan_status": "READY",
+      "disposition": "FAILED",
+      "attempted": true,
+      "failure_code": "RETRIEVAL_FAILED",
+      "expected_failure_class": "RETRIEVAL"
+    },
+    {
+      "case_id": "generation_failure",
+      "plan_status": "READY",
+      "disposition": "FAILED",
+      "attempted": true,
+      "failure_code": "GENERATION_FAILED",
+      "expected_failure_class": "GENERATION"
+    },
+    {
+      "case_id": "policy_block",
+      "plan_status": "READY",
+      "disposition": "BLOCKED",
+      "attempted": false,
+      "failure_code": "POLICY_BLOCKED",
+      "expected_failure_class": "POLICY"
+    }
+  ]
+}

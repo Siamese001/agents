@@ -1,0 +1,49 @@
+{
+  "retrieval_failures": [],
+  "source_count": 4,
+  "sources": [
+    {
+      "engines": [
+        "bing",
+        "duckduckgo"
+      ],
+      "family": "company",
+      "query": "Anthropic company overview official products",
+      "snippet": "Anthropic is an AI safety and research company that's working to build reliable, interpretable, and steerable AI systems.",
+      "title": "Home \\\\ Anthropic",
+      "url": "https://www.anthropic.com/"
+    },
+    {
+      "engines": [
+        "bing",
+        "duckduckgo"
+      ],
+      "family": "company",
+      "query": "Anthropic company overview official products",
+      "snippet": "Anthropic, PBC[8][9] is an American artificial intelligence (AI) public benefit corporation headquartered in San Francisco, California, founded with the goal of promoting AI safety. [10] Its flagship product is Claude, a series of large language models (LLMs). Anthropic was founded in 2021 by former members of OpenAI, including siblings Daniela Amodei and Dario Amodei, who are president and ...",
+      "title": "Anthropic - Wikipedia",
+      "url": "https://en.wikipedia.org/wiki/Anthropic"
+    },
+    {
+      "engines": [
+        "bing",
+        "duckduckgo"
+      ],
+      "family": "company",
+      "query": "Anthropic company overview official products",
+      "snippet": "Anthropic is an AI safety and research company. We build reliable, interpretable, and steerable AI systems. We believe AI will have a …",
+      "title": "Company \\ Anthropic",
+      "url": "https://www.anthropic.com/company"
+    },
+    {
+      "engines": [
+        "duckduckgo"
+      ],
+      "family": "strategy",
+      "query": "Anthropic strategy partnerships enterprise AI 2025 2026",
+      "snippet": "A partnership built on shared values The partnership is grounded in a shared commitment to responsible AI, combining Anthropic's constitutional AI principles with Accenture's AI governance expertise so that enterprises can use AI safely with confidence, transparency, and accountability.",
+      "title": "Accenture and Anthropic launch multi-year partnership to move ...",
+      "url": "https://www.anthropic.com/news/anthropic-accenture-partnership"
+    }
+  ]
+}

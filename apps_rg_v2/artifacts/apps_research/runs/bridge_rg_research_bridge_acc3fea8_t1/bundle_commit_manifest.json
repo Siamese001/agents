@@ -1,0 +1,9 @@
+{
+  "artifact_count": 13,
+  "artifact_manifest_sha256": "sha256:1cd2d75e9eb2ad89ad1b571fca7e9418e05f0d98c5afbb62b23b39504e970f76",
+  "authority_contract_id": "apps_research_rg_e2e_authority",
+  "created_at_utc": "2026-09-06T11:49:25.111556+00:00",
+  "handoff_id": "apps-research-rg:bridge:rg_research_bridge:acc3fea8:t1",
+  "schema_version": "apps_research.apps_rg_bundle_commit_manifest.v1",
+  "status": "COMMITTED"
+}

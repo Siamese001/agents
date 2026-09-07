@@ -1,0 +1,16 @@
+{
+  "artifact_hash": "sha256:60e5e9b1fc48ac9af5a06547d800d3d74af82b25f7fd4bd2139fe3005c3fa3e8",
+  "emitted_at": "2026-08-08T06:22:32Z",
+  "payload": {
+    "disposition": "X3A",
+    "emitted_at_utc": "2026-08-08T06:22:32Z",
+    "request_id": "req-0db53a40c74244a2a2c112425142cb41",
+    "run_id": "c219b2b6-0ffc-47bc-96c1-9d488ca21eab",
+    "trace_root": "510be8e1-98db-43d3-8f88-4cee48bd6618",
+    "unknown_never_pass": true
+  },
+  "producer_component": "agentic_core.runtime.entrypoints.integrated_single_action_spine_run",
+  "producer_function_or_class": "run_integrated_single_action_spine",
+  "producer_module": "integrated_single_action_spine_run",
+  "upstream_artifact_ref": "sha256:22fd0f78abefef6f975fea0e25167c92f4a57d576d42d0195449dbedd337ff89"
+}

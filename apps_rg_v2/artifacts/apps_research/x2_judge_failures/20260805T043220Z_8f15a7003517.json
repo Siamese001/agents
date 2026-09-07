@@ -1,0 +1,68 @@
+{
+  "brief_text_sha256": "c4eadc8b8ec33af5318e2e70277c5dbeaabad978b3a685baf93cfca35ec76f73",
+  "company_name": "Brown & Brown",
+  "emitted_at_utc": "2026-08-05T04:32:20.778847+00:00",
+  "handoff_authorized": false,
+  "jd_text_sha256": "6f3833fae9ad038a82fde25de41ab0ebaad5da14a612c29a7d9427fb1a94a21d",
+  "schema_version": "apps_research.x2_blocked_receipt.v1",
+  "source_register": [
+    {
+      "char_count": 3246,
+      "family": "adoption_motion",
+      "has_content": true
+    },
+    {
+      "char_count": 0,
+      "family": "company_basics",
+      "has_content": false
+    },
+    {
+      "char_count": 0,
+      "family": "competitive_landscape",
+      "has_content": false
+    },
+    {
+      "char_count": 2416,
+      "family": "leadership_and_org",
+      "has_content": true
+    },
+    {
+      "char_count": 3149,
+      "family": "recent_news_and_signals",
+      "has_content": true
+    },
+    {
+      "char_count": 2862,
+      "family": "regulatory_and_legal",
+      "has_content": true
+    },
+    {
+      "char_count": 3333,
+      "family": "role_context",
+      "has_content": true
+    },
+    {
+      "char_count": 3342,
+      "family": "tech_stack_and_tools",
+      "has_content": true
+    }
+  ],
+  "x2_judge_receipt": {
+    "attempt_count": 2,
+    "gate_id": "X2_RESEARCH_SEMANTIC_GATE",
+    "judge_model": "gemini-3.1-pro-preview",
+    "judge_name": "gemini_pro",
+    "judge_provider": "gemini_pro",
+    "model_backed": false,
+    "prompt_version": "apps_research.apps_rg_targeting_x2.v2",
+    "provider_status": "JUDGE_PROVIDER_ERROR",
+    "reason": "GraderError: judge HTTP 429 Too Many Requests: {\n  \"error\": {\n    \"code\": 429,\n    \"message\": \"Your project has exceeded its monthly spending cap. Please go to AI Studio at https://ai.studio/spend to manage your project spend cap. Learn more at https://ai.google.dev/gemini-api/docs/billing#project-spend-caps. \",\n    \"status\": \"RESOURCE_EXHAUSTED\"\n  }\n}\n",
+    "retry_count": 1,
+    "retryable_provider_error": true,
+    "schema_version": "apps_research.apps_rg_handoff_x2_judge_receipt.v1",
+    "score": 0.0,
+    "status": "FAIL",
+    "threshold": 0.75,
+    "verdict": "FAIL"
+  }
+}

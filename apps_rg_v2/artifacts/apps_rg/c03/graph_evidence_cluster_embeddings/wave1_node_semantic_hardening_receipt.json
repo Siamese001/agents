@@ -1,0 +1,206 @@
+{
+  "schema_version": "apps_rg.c03_cluster_embedding_w1_receipt.v1",
+  "wave_id": "C03_CLUSTER_EMBEDDING_W1",
+  "status": "PASS",
+  "completion_marker": "C03_CLUSTER_EMBEDDING_W1_NODE_SEMANTICS_HARDENED",
+  "source_baseline": {
+    "commit": "44d3c7d832e2924a40dbb7333c4bb3f94b3f6825",
+    "tree": "3dd9cd389d5288c57eb11a53c5714541ada75b57",
+    "wave0_receipt_sha256": "1e1f30d69945f1179581b85b29121b394bcb9787cc711ef707e7196fb5d772e9"
+  },
+  "contract": {
+    "path": "src/apps_rg/fact_inventory/c03_graph_node_semantic_contract.v1.json",
+    "schema_version": "apps_rg.c03_graph_node_semantic_contract.v1",
+    "canonical_sha256": "0b6715027380b32f0f64226fe08e5d43bfdf34ef35e8fe4376572ea77f8cf8b1"
+  },
+  "scope": {
+    "repository": "apps_rg_v2",
+    "node_semantics_hardened": true,
+    "graph_edges_changed": false,
+    "legacy_embedding_artifacts_changed": false,
+    "replacement_vectors_generated": false,
+    "production_promotion_authorized": false
+  },
+  "before": {
+    "graph_canonical_sha256": "d622c689984798ae7aa0dba83a0ab3571996c92b7ffc2f94f5d52bc67568a739",
+    "semantic_profile": {
+      "node_count": 375,
+      "edge_count": 2114,
+      "skill_row_count": 254,
+      "node_type_counts": {
+        "capability_domain": 23,
+        "career_epoch": 6,
+        "career_track": 3,
+        "domain_pillar": 29,
+        "employment": 5,
+        "identity_north_star": 1,
+        "metric": 22,
+        "metric_bucket": 16,
+        "policy": 2,
+        "policy_rule": 14,
+        "skill": 34,
+        "skill_row": 220
+      },
+      "sentinel_description_count": 142,
+      "generic_description_count": 235,
+      "held_internal_only_node_count": 0,
+      "fact_missing_graph_hop_count": 5,
+      "semantic_issue_count": null,
+      "graph_edges_sha256": "16cd10bfdd1498ea97f6b068f4a6b05b0ec096d150a5bc1d09eece3c5f2b3ab3"
+    }
+  },
+  "after": {
+    "graph_canonical_sha256": "b8c6e3ae63ff9c402be8a671b61c1736856db0c033e08dccebb6bee7dfee06e4",
+    "semantic_profile": {
+      "node_count": 375,
+      "edge_count": 2114,
+      "skill_row_count": 254,
+      "node_type_counts": {
+        "capability_domain": 23,
+        "career_epoch": 6,
+        "career_track": 3,
+        "domain_pillar": 29,
+        "employment": 5,
+        "identity_north_star": 1,
+        "metric": 22,
+        "metric_bucket": 16,
+        "policy": 2,
+        "policy_rule": 14,
+        "skill": 34,
+        "skill_row": 220
+      },
+      "sentinel_description_count": 0,
+      "generic_description_count": 0,
+      "held_internal_only_node_count": 34,
+      "fact_missing_graph_hop_count": 0,
+      "semantic_issue_count": 0,
+      "graph_edges_sha256": "16cd10bfdd1498ea97f6b068f4a6b05b0ec096d150a5bc1d09eece3c5f2b3ab3"
+    },
+    "changed_description_count": 293,
+    "changed_description_samples": [
+      "capability_metric_heterogeneity_selection",
+      "capability_reverse_graph_traversal",
+      "capability_sibling_rejection_receipts",
+      "domain_agentic_runtime_governance",
+      "domain_agentic_systems_architecture",
+      "domain_ai_platform_engineering",
+      "domain_context_engineering_grounding",
+      "domain_enterprise_delivery_operating_model",
+      "domain_execution_tool_sandbox",
+      "domain_graph_retrieval_evidence",
+      "domain_healing_retry_resilience",
+      "domain_hitl_escalation",
+      "domain_learning_calibration",
+      "domain_orchestration_managed_workflows",
+      "domain_partner_gtm_commercialization",
+      "domain_productization_enterprise_adoption",
+      "domain_prompt_assembly_boundaries",
+      "domain_reasoning_planning_decomposition",
+      "domain_regulated_ai_controls",
+      "domain_replay_observability_audit"
+    ]
+  },
+  "preservation": {
+    "node_id_set_preserved": true,
+    "node_count_preserved": true,
+    "edge_count_preserved": true,
+    "edge_digest_preserved": true,
+    "skill_row_count_preserved": true
+  },
+  "legacy_embedding_artifacts": {
+    "status": "STALE_FAIL_CLOSED_UNCHANGED_PENDING_W5_RETIREMENT",
+    "artifact_count": 13,
+    "artifacts": [
+      {
+        "path": "artifacts/apps_rg/c03/graph_skill_embeddings/bge_m3_model_manifest.38ccc2e093252ab0416eee16837c75c641f055b4f3def12091fba8ed94e2b263.json",
+        "file_sha256": "058b33e06bf78cf6fc456848e91e64a8c62661ff8beea6fb9aafc85f78bf1170",
+        "size_bytes": 2349,
+        "canonical_sha256": "0e51c56635bd79d55560456d737002d0109e99b00fe97011143320c6fb6c0dd8"
+      },
+      {
+        "path": "artifacts/apps_rg/c03/graph_skill_embeddings/graph_embedding_qualification.5b2b1dfb21a147644a97d662fed8bf422f4acb0ff5cec51461bb2d7559cd786f.json",
+        "file_sha256": "ab1eacb3d06e6332179b1ade37286da3b1168d891c384df76f07490702a68888",
+        "size_bytes": 21710,
+        "canonical_sha256": "21d3bb2177294623d59133c9222e95950fca9bc2453903439f1021bee35bb0dd"
+      },
+      {
+        "path": "artifacts/apps_rg/c03/graph_skill_embeddings/graph_embedding_qualification.d10426272e04e63230877ec4ba7ffb92fab2e17c3f33ddf780b2a8aaa530380a.json",
+        "file_sha256": "27e9d8b6715b61d3d597c352d2180ce81f16508dc04817877f6dd0b88a8be130",
+        "size_bytes": 17138,
+        "canonical_sha256": "13434a5db8fd0927f0fc78a447f344a65025639e153c0272303abd0141d6b05d"
+      },
+      {
+        "path": "artifacts/apps_rg/c03/graph_skill_embeddings/graph_embedding_qualification_manifest.1c83f256452f074ee2e5ce48df9c7b0e0668784430db154cb5bd9dbec9891750.json",
+        "file_sha256": "0279221ed2433cb33de29f36b23fc6eba16578555a6eec7d3771073d053133e1",
+        "size_bytes": 1359,
+        "canonical_sha256": "e5033e88ebd19fe8bd87be81e44e4a883cd349b196f2503c5f22823e9cdeae33"
+      },
+      {
+        "path": "artifacts/apps_rg/c03/graph_skill_embeddings/graph_embedding_qualification_manifest.json",
+        "file_sha256": "0279221ed2433cb33de29f36b23fc6eba16578555a6eec7d3771073d053133e1",
+        "size_bytes": 1359,
+        "canonical_sha256": "e5033e88ebd19fe8bd87be81e44e4a883cd349b196f2503c5f22823e9cdeae33"
+      },
+      {
+        "path": "artifacts/apps_rg/c03/graph_skill_embeddings/graph_embedding_qualification_thresholds.3bfda1a9eb216292781e081d7154e01d65f2b5c3f0bc9611963a02ce07c8a49f.json",
+        "file_sha256": "6b59b2de62d240db0d9ec6cb0d0f24e6e7b55307464bef89fcb302442f3f1cda",
+        "size_bytes": 863,
+        "canonical_sha256": "04bce8dec22dc3c1fbb6761806ffcd6663cd8ea36e7cbcaa860a84a5011f455a"
+      },
+      {
+        "path": "artifacts/apps_rg/c03/graph_skill_embeddings/graph_embedding_query_qrels.08f8865fcf693606fb0ee1d1cfff9b7c63ffef2dc2e7eef4ec4e5ee96340ba85.json",
+        "file_sha256": "2505e89d3675dadf73aab3183ec9021eda2ffa349a5f03e03c8e8b051deedc61",
+        "size_bytes": 18931,
+        "canonical_sha256": "775a7d58920dba32de7b524132b83c921a7f4cfcb55fedb2330c2e894d2f4266"
+      },
+      {
+        "path": "artifacts/apps_rg/c03/graph_skill_embeddings/graph_skill_assertions.efd9e01bf82df9324c9b5485bf93b7f5595e9260c60f848a4b1241411a9c2ca6.json",
+        "file_sha256": "f48d1ce54e06f2f88f1629572942782cffcaebd4034dac9c9813fe7805b1eb70",
+        "size_bytes": 529545,
+        "canonical_sha256": "d71e4610659353b68c9c49d7c8997ce2236a24c81255e4d9858fb421c9377b2c"
+      },
+      {
+        "path": "artifacts/apps_rg/c03/graph_skill_embeddings/graph_skill_embedding_activation.4ce00bdb4fc61c99984b7ec9b04b141d2087a70434c06ab31da1db401af040a5.json",
+        "file_sha256": "086351eaa89008c16101b085d48c6259b8a734b2b1a76c4ddb90ae0f3432eb0c",
+        "size_bytes": 1672,
+        "canonical_sha256": "31016062d97d988c3e066bb14b89bf54b29c0ff3b3164108957a860545544e7d"
+      },
+      {
+        "path": "artifacts/apps_rg/c03/graph_skill_embeddings/graph_skill_embedding_activation_manifest.json",
+        "file_sha256": "cf0b3c62b5949096fecebf87f98be47e576efb8610c3f033a6275d34dd2a84c3",
+        "size_bytes": 1356,
+        "canonical_sha256": "46a85f03e0c282e33ef1102493d86845b85d0c26dfa98cb2826f9575b180831d"
+      },
+      {
+        "path": "artifacts/apps_rg/c03/graph_skill_embeddings/graph_skill_embedding_manifest.a8609456b34b908557945675d8b3c2d5217c77f715e3e8d784b2ce893190e2bc.json",
+        "file_sha256": "bfe1fa9b48cf0972ca4dcd60bcb07efff6b1a994bfb77a65932cecbb980d99d0",
+        "size_bytes": 2661,
+        "canonical_sha256": "6aad97ebe184ae2e828820abfbaff567fe18be00da49348e2f84f877251a1f20"
+      },
+      {
+        "path": "artifacts/apps_rg/c03/graph_skill_embeddings/graph_skill_embedding_manifest.json",
+        "file_sha256": "bfe1fa9b48cf0972ca4dcd60bcb07efff6b1a994bfb77a65932cecbb980d99d0",
+        "size_bytes": 2661,
+        "canonical_sha256": "6aad97ebe184ae2e828820abfbaff567fe18be00da49348e2f84f877251a1f20"
+      },
+      {
+        "path": "artifacts/apps_rg/c03/graph_skill_embeddings/graph_skill_embeddings.68dc2043a5f7296259ec0de5878de4930093d4f30e602dd4adb96d6aa3e6c6e6.sqlite",
+        "file_sha256": "2d4fdce4a0a3dca99ca0c8c24bc186cf560114f9dec065c446e9c65510c3698e",
+        "size_bytes": 929792
+      }
+    ]
+  },
+  "wave_exit_gates": {
+    "node_semantic_hardening": "PASS",
+    "authority_reference_resolution": "PASS",
+    "fact_missing_sentinel_removal": "PASS",
+    "edge_digest_preservation": "PASS",
+    "edge_assertion_hardening": "OPEN_W2",
+    "authority_reconciliation": "OPEN_W3",
+    "cluster_registry_materialization": "OPEN_W4",
+    "legacy_artifact_retirement": "OPEN_W5",
+    "cluster_embedding_generation": "OPEN_W6"
+  },
+  "next_wave": "C03_CLUSTER_EMBEDDING_W2_EDGE_ASSERTION_HARDENING",
+  "receipt_sha256": "5f6b5e82b139dfae10732f0c166b0e11a720ae6be347cc77936ddc9ae22a25b6"
+}

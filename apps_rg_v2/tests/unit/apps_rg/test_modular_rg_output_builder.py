@@ -1,0 +1,733 @@
+"""Deterministic modular rg_output merge — no providers, fail-closed on gaps/mocks."""
+
+from __future__ import annotations
+
+import json
+import uuid
+from dataclasses import dataclass
+from pathlib import Path
+
+from apps_rg.l2_recipe.modular_rg_output_builder import (
+    _word_count,
+    build_rg_output_from_modular_sections,
+    load_lane_l2_from_section_refs,
+)
+from apps_rg.l2_recipe.modular_r4_generation_result import ModularR4GenerationResult
+from apps_rg.l2_recipe.rg_output_jsonschema_validate import validate_rg_output_object
+from apps_rg.runtime.locked_copy.locked_copy_manifest import find_repo_root
+from apps_rg.runtime.internal.generated_lane_rollup import GENERATED_LANES
+
+
+def _real_status() -> str:
+    return "REAL_LLM"
+
+
+def _lane_bundle() -> dict[str, dict]:
+    """Minimal valid L2 shapes for all generated lanes (REAL_LLM — not plumbing-only)."""
+    st = _real_status()
+    headline = {
+        "runtime_generation_status": st,
+        "headline_line": "SVP Engineering | Agentic AI platforms and governed enterprise delivery",
+    }
+    exec_summ = {
+        "runtime_generation_status": st,
+        "resume_display_text": (
+            "Executive leader delivering agentic AI platforms, retrieval systems, and "
+            "governed runtime controls for regulated enterprises with measurable outcomes."
+        ),
+    }
+    slalom_n = {
+        "runtime_generation_status": st,
+        "narrative_sentence": (
+            "At Slalom, scaled next-generation agentic AI practices and multi-agent orchestration "
+            "platforms across enterprise client delivery with governed runtime controls."
+        ),
+    }
+    uni_n = {
+        "runtime_generation_status": st,
+        "narrative_sentence": (
+            "At Unify, scaled governed agentic platforms with deterministic routing and "
+            "enterprise retrieval upgrades across regulated workflows."
+        ),
+    }
+    ibm_n = {
+        "runtime_generation_status": st,
+        "narrative_sentence": (
+            "At IBM, delivered cloud-native AI and analytics platforms with strong uptime "
+            "and modernization outcomes across financial services clients."
+        ),
+    }
+    insurtech_n = {
+        "runtime_generation_status": st,
+        "narrative_sentence": (
+            "At InsurTech Cloud Solutions, modernized regulated insurance platforms with "
+            "cloud controls, analytics enablement, and high-availability operations."
+        ),
+    }
+    ey_n = {
+        "runtime_generation_status": st,
+        "narrative_sentence": (
+            "At Ernst & Young, advised senior stakeholders on data, analytics, and "
+            "technology modernization programs for regulated enterprise clients."
+        ),
+    }
+    bullet = (
+        "Delivered measurable platform outcomes including reliability, cost reductions, "
+        "and revenue-facing modernization aligned to enterprise controls."
+    )
+    slalom_b = {
+        "runtime_generation_status": st,
+        "bullets": [
+            {"text": bullet, "source_fact_id": "bul_slalom_001", "has_metric": True},
+            {"text": bullet, "source_fact_id": "bul_slalom_002", "has_metric": True},
+            {"text": bullet, "source_fact_id": "bul_slalom_003", "has_metric": True},
+            {"text": bullet, "source_fact_id": "bul_slalom_004", "has_metric": True},
+        ],
+    }
+    uni_b = {
+        "runtime_generation_status": st,
+        "bullets": [
+            {"text": bullet, "source_fact_id": "bul_u1", "has_metric": True},
+            {"text": bullet, "source_fact_id": "bul_u2", "has_metric": True},
+            {"text": bullet, "source_fact_id": "bul_u3", "has_metric": True},
+        ],
+    }
+    ibm_b = {
+        "runtime_generation_status": st,
+        "bullets": [
+            {"text": bullet, "source_fact_id": "bul_i1", "has_metric": True},
+            {"text": bullet, "source_fact_id": "bul_i2", "has_metric": True},
+            {"text": bullet, "source_fact_id": "bul_i3", "has_metric": True},
+        ],
+    }
+    insurtech_b = {
+        "runtime_generation_status": st,
+        "bullets": [
+            {"text": bullet, "source_fact_id": "bul_it1", "has_metric": True},
+            {"text": bullet, "source_fact_id": "bul_it2", "has_metric": True},
+            {"text": bullet, "source_fact_id": "bul_it3", "has_metric": True},
+        ],
+    }
+    ey_b = {
+        "runtime_generation_status": st,
+        "bullets": [
+            {"text": bullet, "source_fact_id": "bul_ey1", "has_metric": True},
+            {"text": bullet, "source_fact_id": "bul_ey2", "has_metric": True},
+            {"text": bullet, "source_fact_id": "bul_ey3", "has_metric": True},
+        ],
+    }
+    comp = {
+        "runtime_generation_status": st,
+        "competencies": [
+            {
+                "category_label": "Platforms",
+                "terms": [
+                    {"text": "Agentic orchestration"},
+                    {"text": "Retrieval and GraphRAG"},
+                    {"text": "Policy gating"},
+                ],
+            }
+        ],
+    }
+    return {
+        "headline": headline,
+        "executive_summary": exec_summ,
+        "slalom_narrative": slalom_n,
+        "unify_narrative": uni_n,
+        "ibm_narrative": ibm_n,
+        "insurtech_narrative": insurtech_n,
+        "ey_narrative": ey_n,
+        "slalom_bullets": slalom_b,
+        "unify_bullets": uni_b,
+        "ibm_bullets": ibm_b,
+        "insurtech_bullets": insurtech_b,
+        "ey_bullets": ey_b,
+        "competencies": comp,
+    }
+
+
+@dataclass
+class _Pkg:
+    target_role: str = "SVP Engineering"
+    target_company: str = "Example Corp"
+
+
+def test_builder_positive_writes_schema_valid_final_resume(tmp_path: Path) -> None:
+    repo = find_repo_root()
+    art = tmp_path / "run"
+    art.mkdir()
+    modular_root = art / "modular_r4"
+    modular_root.mkdir()
+    base_path = repo / "tests" / "_fixtures" / "modular_rg_merge" / "base_resume_min_for_merge.json"
+    base = json.loads(base_path.read_text(encoding="utf-8"))
+    lanes = _lane_bundle()
+    res = build_rg_output_from_modular_sections(
+        lane_l2_by_id=lanes,
+        base_resume=base,
+        input_package=_Pkg(),
+        modular_root=modular_root,
+        artifact_dir=art,
+        run_id=f"pytest_{uuid.uuid4().hex[:8]}",
+        reject_mocked_lanes=True,
+        generated_at_utc="2026-05-16T12:00:00+00:00",
+    )
+    assert res.ok is True
+    assert res.schema_valid is True
+    assert res.rg_output is not None
+    ok, err = validate_rg_output_object(res.rg_output)
+    assert ok is True and err == ""
+    out = modular_root / "outputs" / "final_resume.json"
+    assert out.is_file()
+    disk_ok, disk_err = validate_rg_output_object(json.loads(out.read_text(encoding="utf-8")))
+    assert disk_ok is True and disk_err == ""
+    out_j = res.rg_output
+    assert out_j.get("headline_line")
+    assert out_j.get("contact_info", {}).get("email") == "amit.ayer@example.com"
+    unify = next(x for x in out_j["sections"]["experience"] if x.get("company") == "Unify Consulting")
+    ibm = next(x for x in out_j["sections"]["experience"] if x.get("company") == "IBM")
+    insur = next(x for x in out_j["sections"]["experience"] if x.get("company") == "InsurTech Cloud Solutions")
+    assert "At Unify" in (unify.get("role_narrative") or "")
+    assert "At IBM" in (ibm.get("role_narrative") or "")
+    insur_n = str(insur.get("role_narrative") or "").strip()
+    assert "At InsurTech Cloud Solutions" in insur_n
+    skill_cat = out_j["sections"]["skills"]["categories"][0]
+    assert skill_cat["name"] == "Platforms"
+    assert "Agentic orchestration" in skill_cat["items"]
+
+
+def test_missing_executive_summary_fails(tmp_path: Path) -> None:
+    repo = find_repo_root()
+    art = tmp_path / f"merge_neg_{uuid.uuid4().hex[:10]}"
+    art.mkdir(parents=True, exist_ok=True)
+    modular_root = art / "modular_r4"
+    modular_root.mkdir(parents=True, exist_ok=True)
+    base = json.loads(
+        (repo / "tests" / "_fixtures" / "modular_rg_merge" / "base_resume_min_for_merge.json").read_text(
+            encoding="utf-8",
+        ),
+    )
+    lanes = _lane_bundle()
+    lanes["executive_summary"] = {**lanes["executive_summary"], "resume_display_text": ""}
+    res = build_rg_output_from_modular_sections(
+        lane_l2_by_id=lanes,
+        base_resume=base,
+        input_package=_Pkg(),
+        modular_root=modular_root,
+        artifact_dir=art,
+        run_id="neg_exec",
+        reject_mocked_lanes=True,
+    )
+    assert res.ok is False
+    assert "executive" in res.failure_reason.lower() or res.failure_reason.startswith("missing_")
+
+
+def test_missing_headline_fails(tmp_path: Path) -> None:
+    repo = find_repo_root()
+    art = tmp_path / f"merge_neg_{uuid.uuid4().hex[:10]}"
+    art.mkdir(parents=True, exist_ok=True)
+    modular_root = art / "modular_r4"
+    modular_root.mkdir(parents=True, exist_ok=True)
+    base = json.loads(
+        (repo / "tests" / "_fixtures" / "modular_rg_merge" / "base_resume_min_for_merge.json").read_text(
+            encoding="utf-8",
+        ),
+    )
+    lanes = _lane_bundle()
+    lanes["headline"] = {**lanes["headline"], "headline_line": ""}
+    res = build_rg_output_from_modular_sections(
+        lane_l2_by_id=lanes,
+        base_resume=base,
+        input_package=_Pkg(),
+        modular_root=modular_root,
+        artifact_dir=art,
+        run_id="neg_hl",
+        reject_mocked_lanes=True,
+    )
+    assert res.ok is False
+    assert "headline" in res.failure_reason
+
+
+def test_missing_competencies_fails(tmp_path: Path) -> None:
+    repo = find_repo_root()
+    art = tmp_path / f"merge_neg_{uuid.uuid4().hex[:10]}"
+    art.mkdir(parents=True, exist_ok=True)
+    modular_root = art / "modular_r4"
+    modular_root.mkdir(parents=True, exist_ok=True)
+    base = json.loads(
+        (repo / "tests" / "_fixtures" / "modular_rg_merge" / "base_resume_min_for_merge.json").read_text(
+            encoding="utf-8",
+        ),
+    )
+    lanes = _lane_bundle()
+    lanes["competencies"] = {**lanes["competencies"], "competencies": []}
+    res = build_rg_output_from_modular_sections(
+        lane_l2_by_id=lanes,
+        base_resume=base,
+        input_package=_Pkg(),
+        modular_root=modular_root,
+        artifact_dir=art,
+        run_id="neg_comp",
+        reject_mocked_lanes=True,
+    )
+    assert res.ok is False
+    assert "competenc" in res.failure_reason
+
+
+def test_mocked_lane_rejected(tmp_path: Path) -> None:
+    repo = find_repo_root()
+    art = tmp_path / f"merge_neg_{uuid.uuid4().hex[:10]}"
+    art.mkdir(parents=True, exist_ok=True)
+    modular_root = art / "modular_r4"
+    modular_root.mkdir(parents=True, exist_ok=True)
+    base = json.loads(
+        (repo / "tests" / "_fixtures" / "modular_rg_merge" / "base_resume_min_for_merge.json").read_text(
+            encoding="utf-8",
+        ),
+    )
+    lanes = _lane_bundle()
+    lanes["headline"] = {**lanes["headline"], "runtime_generation_status": "MOCKED"}
+    res = build_rg_output_from_modular_sections(
+        lane_l2_by_id=lanes,
+        base_resume=base,
+        input_package=_Pkg(),
+        modular_root=modular_root,
+        artifact_dir=art,
+        run_id="neg_mock",
+        reject_mocked_lanes=True,
+    )
+    assert res.ok is False
+    assert "mocked_lane_rejected" in res.failure_reason
+
+
+def test_malformed_bullet_lane_fails(tmp_path: Path) -> None:
+    repo = find_repo_root()
+    art = tmp_path / f"merge_neg_{uuid.uuid4().hex[:10]}"
+    art.mkdir(parents=True, exist_ok=True)
+    modular_root = art / "modular_r4"
+    modular_root.mkdir(parents=True, exist_ok=True)
+    base = json.loads(
+        (repo / "tests" / "_fixtures" / "modular_rg_merge" / "base_resume_min_for_merge.json").read_text(
+            encoding="utf-8",
+        ),
+    )
+    lanes = _lane_bundle()
+    lanes["unify_bullets"] = {
+        "runtime_generation_status": _real_status(),
+        "bullets": [{"text": "short", "source_fact_id": "x"}],
+    }
+    res = build_rg_output_from_modular_sections(
+        lane_l2_by_id=lanes,
+        base_resume=base,
+        input_package=_Pkg(),
+        modular_root=modular_root,
+        artifact_dir=art,
+        run_id="neg_bul",
+        reject_mocked_lanes=True,
+    )
+    assert res.ok is False
+
+
+def test_ok_for_recipe_requires_lane_outputs_and_schema() -> None:
+    payload = {"schema_version": "master_resume_v2.16", "candidate_name": "X"}
+    no_lane = ModularR4GenerationResult(
+        generated_resume=payload,
+        section_provider_calls_ref="m",
+        section_output_refs={},
+        merge_receipt_ref="m",
+        schema_validation_receipt_ref="s",
+        final_schema_valid=True,
+        decisive_status="PASS",
+        failure_reason="",
+        provider_call_count=0,
+        locked_sections_provider_calls_detected=False,
+        lanes_executed=len(GENERATED_LANES),
+        lane_outputs_valid=False,
+        final_merge_attempted=True,
+    )
+    assert no_lane.ok_for_recipe_context() is False
+
+    no_schema = ModularR4GenerationResult(
+        generated_resume=payload,
+        section_provider_calls_ref="m",
+        section_output_refs={},
+        merge_receipt_ref="m",
+        schema_validation_receipt_ref="s",
+        final_schema_valid=False,
+        decisive_status="PASS",
+        failure_reason="",
+        provider_call_count=0,
+        locked_sections_provider_calls_detected=False,
+        lanes_executed=len(GENERATED_LANES),
+        lane_outputs_valid=True,
+        final_merge_attempted=True,
+    )
+    assert no_schema.ok_for_recipe_context() is False
+
+
+def test_early_career_included_with_single_locked_bullet(tmp_path: Path) -> None:
+    """``exp_early_career_001`` may carry one SSOT bullet and still map into rg_output."""
+    repo = find_repo_root()
+    art = tmp_path / "run_ec"
+    art.mkdir()
+    modular_root = art / "modular_r4"
+    modular_root.mkdir()
+    base_path = repo / "tests" / "_fixtures" / "modular_rg_merge" / "base_resume_with_compact_early_career.json"
+    base = json.loads(base_path.read_text(encoding="utf-8"))
+    lanes = _lane_bundle()
+    res = build_rg_output_from_modular_sections(
+        lane_l2_by_id=lanes,
+        base_resume=base,
+        input_package=_Pkg(),
+        modular_root=modular_root,
+        artifact_dir=art,
+        run_id=f"pytest_ec_{uuid.uuid4().hex[:8]}",
+        reject_mocked_lanes=True,
+        generated_at_utc="2026-05-16T12:00:00+00:00",
+    )
+    assert res.ok is True
+    rec = res.merge_receipt
+    assert rec.get("no_synthetic_bullets_assertion") is True
+    assert rec.get("locked_employment_source_count") == 4
+    assert rec.get("locked_employment_mapped_count") == 4
+    assert rec.get("compact_early_career_excluded_count") == 0
+    assert not (rec.get("excluded_locked_roles") or [])
+    assert res.rg_output is not None
+    exp = res.rg_output["sections"]["experience"]
+    assert len(exp) == 4
+    companies = {str(x.get("company")) for x in exp}
+    assert "Early Career Roles" in companies
+    early = next(x for x in exp if str(x.get("company")) == "Early Career Roles")
+    assert len(early.get("bullets") or []) == 1
+    base_early = next(e for e in base["facts"]["employment"] if e.get("fact_id") == "exp_early_career_001")
+    assert early["bullets"][0]["text"] == base_early["bullets"][0]["text"]
+
+
+def test_compact_early_career_maps_when_three_base_bullets(tmp_path: Path) -> None:
+    """If base later adds three facts for early career, map as a normal locked role."""
+    repo = find_repo_root()
+    art = tmp_path / "run_ec3"
+    art.mkdir()
+    modular_root = art / "modular_r4"
+    modular_root.mkdir()
+    base_path = repo / "tests" / "_fixtures" / "modular_rg_merge" / "base_resume_with_compact_early_career.json"
+    base = json.loads(base_path.read_text(encoding="utf-8"))
+    btxt = (
+        "Additional locked early-career achievement with sufficient characters for schema minimum length rules"
+    )
+    emp = base["facts"]["employment"]
+    early = next(e for e in emp if e.get("fact_id") == "exp_early_career_001")
+    early["start_date"] = "1998-06"
+    early["end_date"] = "2002-09"
+    early["bullets"] = [
+        early["bullets"][0],
+        {"bullet_id": "bul_early_career_002", "text": btxt, "has_metric": False},
+        {"bullet_id": "bul_early_career_003", "text": btxt, "has_metric": False},
+    ]
+    lanes = _lane_bundle()
+    res = build_rg_output_from_modular_sections(
+        lane_l2_by_id=lanes,
+        base_resume=base,
+        input_package=_Pkg(),
+        modular_root=modular_root,
+        artifact_dir=art,
+        run_id=f"pytest_ec3_{uuid.uuid4().hex[:8]}",
+        reject_mocked_lanes=True,
+        generated_at_utc="2026-05-16T12:00:00+00:00",
+    )
+    assert res.ok is True
+    assert res.merge_receipt.get("compact_early_career_excluded_count") == 0
+    exp = res.rg_output["sections"]["experience"] if res.rg_output else []
+    assert len(exp) == 4
+    assert any(str(x.get("company")) == "Early Career Roles" for x in exp)
+
+
+def test_non_compact_locked_role_still_fails_below_three_bullets(tmp_path: Path) -> None:
+    repo = find_repo_root()
+    art = tmp_path / "run_nb"
+    art.mkdir()
+    modular_root = art / "modular_r4"
+    modular_root.mkdir()
+    base = json.loads(
+        (repo / "tests" / "_fixtures" / "modular_rg_merge" / "base_resume_min_for_merge.json").read_text(
+            encoding="utf-8",
+        ),
+    )
+    base["facts"]["employment"].append(
+        {
+            "fact_id": "exp_other_lock_001",
+            "employer": "Other Corp",
+            "title": "Engineer",
+            "location": "Remote",
+            "start_date": "2010-01",
+            "end_date": "2011-01",
+            "is_current": False,
+            "bullets": [
+                {
+                    "bullet_id": "bul_o1",
+                    "text": "Single locked bullet with enough characters to pass minimum length threshold for schema",
+                    "has_metric": False,
+                }
+            ],
+        },
+    )
+    lanes = _lane_bundle()
+    res = build_rg_output_from_modular_sections(
+        lane_l2_by_id=lanes,
+        base_resume=base,
+        input_package=_Pkg(),
+        modular_root=modular_root,
+        artifact_dir=art,
+        run_id="neg_nb",
+        reject_mocked_lanes=True,
+    )
+    assert res.ok is False
+    assert "locked_employment_insufficient_bullets:exp_other_lock_001" in res.failure_reason
+
+
+def test_load_lane_l2_from_section_refs_reads_lane_files(tmp_path: Path) -> None:
+    repo = tmp_path
+    root = tmp_path / f"lane_ref_load_{uuid.uuid4().hex[:10]}"
+    root.mkdir(parents=True, exist_ok=True)
+    l2 = {"runtime_generation_status": "REAL_LLM", "headline_line": "SVP | Platforms"}
+    refs: dict[str, str] = {}
+    for ln in GENERATED_LANES:
+        d = root / "lanes" / ln
+        d.mkdir(parents=True, exist_ok=True)
+        if ln == "headline":
+            stub = l2
+        elif ln == "executive_summary":
+            stub = {"runtime_generation_status": "REAL_LLM", "resume_display_text": "x" * 80}
+        elif ln.endswith("narrative"):
+            stub = {"runtime_generation_status": "REAL_LLM", "narrative_sentence": "x" * 80}
+        elif ln.endswith("bullets"):
+            stub = {
+                "runtime_generation_status": "REAL_LLM",
+                "bullets": [{"text": "x" * 80, "source_fact_id": "b1", "has_metric": True}],
+            }
+        else:
+            stub = {
+                "runtime_generation_status": "REAL_LLM",
+                "competencies": [{"category_label": "P", "terms": [{"text": "Skill A"}]}],
+            }
+        (d / "l2_output.json").write_text(json.dumps(stub), encoding="utf-8")
+        refs[ln] = d.relative_to(repo).as_posix() + "/l2_output.json"
+    loaded, errs = load_lane_l2_from_section_refs(repo, refs, rollup_lanes=None)
+    assert not errs
+    assert loaded["headline"]["headline_line"] == l2["headline_line"]
+
+
+def test_load_lane_l2_from_section_refs_reports_missing_ref() -> None:
+    repo = find_repo_root()
+    loaded, errs = load_lane_l2_from_section_refs(repo, {"headline": ""})
+    assert "headline" in errs
+    assert not loaded
+
+
+def test_all_generated_lane_ids_required(tmp_path: Path) -> None:
+    repo = find_repo_root()
+    art = tmp_path / f"merge_neg_{uuid.uuid4().hex[:10]}"
+    art.mkdir(parents=True, exist_ok=True)
+    modular_root = art / "modular_r4"
+    modular_root.mkdir(parents=True, exist_ok=True)
+    base = json.loads(
+        (repo / "tests" / "_fixtures" / "modular_rg_merge" / "base_resume_min_for_merge.json").read_text(
+            encoding="utf-8",
+        ),
+    )
+    lanes = _lane_bundle()
+    del lanes["headline"]
+    res = build_rg_output_from_modular_sections(
+        lane_l2_by_id=lanes,
+        base_resume=base,
+        input_package=_Pkg(),
+        modular_root=modular_root,
+        artifact_dir=art,
+        run_id="neg_miss",
+        reject_mocked_lanes=True,
+    )
+    assert res.ok is False
+    assert "missing_required_lanes" in res.failure_reason
+    assert "headline" in res.failure_reason
+
+
+def _six_sentence_exec_text(word_repeat: int = 12) -> str:
+    clause = " ".join(["platform"] * word_repeat)
+    return (
+        f"Engineering executive delivers governed agentic AI platforms with {clause}. "
+        f"The leader scales deterministic routing and policy-gated execution with {clause}. "
+        f"Platform lifecycle work ties architecture to commercial adoption with {clause}. "
+        f"Delivery outcomes include measurable margin improvements with {clause}. "
+        f"Prior roles show quantitative depth across regulated programs with {clause}. "
+        f"Governed runtime delivery stays audit-ready without weakening velocity with {clause}."
+    )
+
+
+def test_export_accepts_six_sentence_exec_summary_61_to_140_words(tmp_path: Path) -> None:
+    repo = find_repo_root()
+    art = tmp_path / "export_band"
+    art.mkdir()
+    modular_root = art / "modular_r4"
+    modular_root.mkdir()
+    base = json.loads(
+        (repo / "tests" / "_fixtures" / "modular_rg_merge" / "base_resume_min_for_merge.json").read_text(
+            encoding="utf-8",
+        ),
+    )
+    lanes = _lane_bundle()
+    lanes["executive_summary"]["resume_display_text"] = _six_sentence_exec_text(word_repeat=3)
+    res = build_rg_output_from_modular_sections(
+        lane_l2_by_id=lanes,
+        base_resume=base,
+        input_package=_Pkg(),
+        modular_root=modular_root,
+        artifact_dir=art,
+        run_id=f"export_band_{uuid.uuid4().hex[:8]}",
+        reject_mocked_lanes=True,
+    )
+    assert res.ok is True, res.failure_reason
+    assert res.rg_output is not None
+    wc = res.rg_output["sections"]["summary"]["word_count"]
+    assert 61 <= wc <= 140
+
+
+def test_export_preserves_eight_competency_categories(tmp_path: Path) -> None:
+    repo = find_repo_root()
+    art = tmp_path / "export_comp"
+    art.mkdir()
+    modular_root = art / "modular_r4"
+    modular_root.mkdir()
+    base = json.loads(
+        (repo / "tests" / "_fixtures" / "modular_rg_merge" / "base_resume_min_for_merge.json").read_text(
+            encoding="utf-8",
+        ),
+    )
+    lanes = _lane_bundle()
+    lanes["competencies"]["competencies"] = [
+        {
+            "category_label": f"Category {i}",
+            "terms": [{"text": f"Skill {i}a"}, {"text": f"Skill {i}b"}, {"text": f"Skill {i}c"}],
+        }
+        for i in range(8)
+    ]
+    res = build_rg_output_from_modular_sections(
+        lane_l2_by_id=lanes,
+        base_resume=base,
+        input_package=_Pkg(),
+        modular_root=modular_root,
+        artifact_dir=art,
+        run_id=f"export_comp_{uuid.uuid4().hex[:8]}",
+        reject_mocked_lanes=True,
+    )
+    assert res.ok is True, res.failure_reason
+    cats = res.rg_output["sections"]["skills"]["categories"]
+    assert len(cats) == 8
+
+
+def test_word_count_uses_whitespace_tokenizer_not_regex_compounds() -> None:
+    r"""Regression (2026-06-11): ``\b\w+\b`` over-counted hyphen/slash compounds.
+
+    Lane word-budget rungs and X2 caps use ``len(text.split())``; the builder must
+    match that authority or a lane-certified 140-word summary gets rejected at export.
+    """
+    text = "AI-driven cloud-native platform delivery across regulated workloads"
+    assert _word_count(text) == len(text.split()) == 7
+
+
+def test_modular_builder_succeeds_with_exact_canonical_counts(tmp_path: Path) -> None:
+    """Adversarial debate regression: verify builder and schema pass with canonical counts:
+    Slalom=4, Unify=6, IBM=3, InsurTech=2, EY=0 (consolidated/omitted).
+    """
+    repo = find_repo_root()
+    art = tmp_path / "canonical_counts"
+    art.mkdir()
+    modular_root = art / "modular_r4"
+    modular_root.mkdir()
+    base_path = repo / "src" / "apps_rg" / "resume" / "base" / "amit_ayer_base_resume_v1.json"
+    base = json.loads(base_path.read_text(encoding="utf-8"))
+
+    lanes = _lane_bundle()
+    # Slalom: 4 bullets
+    assert len(lanes["slalom_bullets"]["bullets"]) == 4
+
+    # Unify: 6 bullets
+    bullet = (
+        "Delivered measurable platform outcomes including reliability, cost reductions, "
+        "and revenue-facing modernization aligned to enterprise controls."
+    )
+    lanes["unify_bullets"]["bullets"] = [
+        {"text": bullet, "source_fact_id": f"bul_u{i}", "has_metric": True}
+        for i in range(1, 7)
+    ]
+    assert len(lanes["unify_bullets"]["bullets"]) == 6
+
+    # IBM: 3 bullets
+    assert len(lanes["ibm_bullets"]["bullets"]) == 3
+
+    # InsurTech: 2 bullets
+    lanes["insurtech_bullets"]["bullets"] = lanes["insurtech_bullets"]["bullets"][:2]
+    assert len(lanes["insurtech_bullets"]["bullets"]) == 2
+
+    # EY: 0 bullets & empty narrative
+    lanes["ey_bullets"]["bullets"] = []
+    lanes["ey_narrative"]["narrative_sentence"] = ""
+
+    res = build_rg_output_from_modular_sections(
+        lane_l2_by_id=lanes,
+        base_resume=base,
+        input_package=_Pkg(),
+        modular_root=modular_root,
+        artifact_dir=art,
+        run_id=f"pytest_canon_{uuid.uuid4().hex[:8]}",
+        reject_mocked_lanes=True,
+        generated_at_utc="2026-05-16T12:00:00+00:00",
+    )
+    assert res.ok is True, f"Builder failed: {res.failure_reason}"
+    assert res.schema_valid is True, f"Schema error: {res.schema_error}"
+    assert res.rg_output is not None
+
+    exp = res.rg_output["sections"]["experience"]
+    companies = [(e.get("company"), len(e.get("bullets", []))) for e in exp]
+    assert ("Slalom", 4) in companies
+    assert ("Unify Consulting", 6) in companies
+    assert ("IBM", 3) in companies
+    assert ("InsurTech Cloud Solutions", 2) in companies
+    assert ("Early Career Roles", 1) in companies
+    # EY is consolidated / omitted as standalone card
+    assert not any(c == "Ernst & Young" for c, _ in companies)
+
+
+def test_schema_accepts_ey_zero_bullets_and_insurtech_two_bullets(tmp_path: Path) -> None:
+    """Explicitly verify that rg_output_schema accepts Ernst & Young with 0 bullets."""
+    repo = find_repo_root()
+    art = tmp_path / "schema_ey0"
+    art.mkdir()
+    modular_root = art / "modular_r4"
+    modular_root.mkdir()
+    base_path = repo / "tests" / "_fixtures" / "modular_rg_merge" / "base_resume_min_for_merge.json"
+    base = json.loads(base_path.read_text(encoding="utf-8"))
+
+    lanes = _lane_bundle()
+    lanes["insurtech_bullets"]["bullets"] = lanes["insurtech_bullets"]["bullets"][:2]
+
+    res = build_rg_output_from_modular_sections(
+        lane_l2_by_id=lanes,
+        base_resume=base,
+        input_package=_Pkg(),
+        modular_root=modular_root,
+        artifact_dir=art,
+        run_id=f"pytest_schema_{uuid.uuid4().hex[:8]}",
+        reject_mocked_lanes=True,
+    )
+    assert res.ok is True and res.rg_output is not None
+
+    # Inject an Ernst & Young experience card with 0 bullets
+    obj = json.loads(json.dumps(res.rg_output))
+    obj["sections"]["experience"].append({
+        "title": "Principal",
+        "company": "Ernst & Young",
+        "location": "New York, NY",
+        "dates": "2009 – 2014",
+        "bullets": [],
+    })
+    ok, err = validate_rg_output_object(obj)
+    assert ok is True, f"Schema validation failed for EY 0 bullets: {err}"

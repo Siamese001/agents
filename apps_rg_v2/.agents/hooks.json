@@ -1,0 +1,15 @@
+{
+  "defender-shell-gate": {
+    "PreToolUse": [
+      {
+        "matcher": "run_command",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "py -3.12 \".codex/hooks/defender_shell_gate.py\""
+          }
+        ]
+      }
+    ]
+  }
+}

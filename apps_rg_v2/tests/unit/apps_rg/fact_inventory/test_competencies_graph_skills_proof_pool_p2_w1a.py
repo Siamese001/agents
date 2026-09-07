@@ -1,0 +1,194 @@
+"""P2-W1A: competencies product authority is augmented_skills_graph only."""
+from __future__ import annotations
+
+import hashlib
+import json
+from pathlib import Path
+
+import pytest
+
+from apps_rg.fact_inventory.competencies_graph_skills_proof_pool import (
+    build_competencies_graph_skills_proof_payload,
+    validate_p2_w1a_default_graph_authority_receipt,
+    write_p2_w1a_default_graph_authority_receipt,
+    CompetenciesGraphProofPoolError,
+)
+from apps_rg.fact_inventory.track_weighted_graph_expansion import ROOT
+from apps_rg.runtime.legacy_proof_sources import PROOF_SOURCE_BROAD_SKILLS_LEDGER
+from apps_rg.runtime.proof_pool_resolver import (
+    PROOF_SOURCE_AUGMENTED_SKILLS_GRAPH,
+    resolve_section_proof_pool,
+)
+import apps_rg.runtime.proof_pool_resolver as proof_pool_resolver
+
+REPO = ROOT
+HYBRID_JD = (
+    "SVP Engineering — Agentic AI platform leader for regulated financial services. "
+    "Must show governed agentic runtime, GraphRAG, multi-agent orchestration, and policy gates. "
+    "Also value actuarial rigor, derivatives risk, and Basel/CCAR lineage plus "
+    "AWS cloud data platform and partner GTM co-sell experience."
+)
+
+
+def _write_test_upstream_receipts(base: Path) -> tuple[Path, Path]:
+    upstream_dir = base / "upstream"
+    upstream_dir.mkdir()
+    p1_w4 = upstream_dir / "career_track_p1_w4_closeout_receipt.json"
+    p1_w5 = upstream_dir / "career_track_p1_w5_track_balanced_sections_receipt.json"
+    p1_w4.write_text(
+        json.dumps(
+            {
+                "schema": "career_track_p1_w4_closeout_receipt_v1",
+                "receipt_mode": "TEST_ONLY_NONCANONICAL_OUTPUT",
+                "certification_eligible": False,
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    p1_w5.write_text(
+        json.dumps(
+            {
+                "schema": "career_track_p1_w5_track_balanced_sections_receipt_v1",
+                "receipt_mode": "TEST_ONLY_NONCANONICAL_OUTPUT",
+                "certification_eligible": False,
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    return p1_w4, p1_w5
+
+
+@pytest.fixture(autouse=True)
+def _proof_pool_fixture_dev_bypass() -> None:
+    from apps_rg.runtime.spine.front_contracts import (
+        activate_fixture_dev_bypass,
+        deactivate_fixture_dev_bypass,
+    )
+
+    activate_fixture_dev_bypass(non_product_certified=True)
+    yield
+    deactivate_fixture_dev_bypass()
+
+
+def test_default_competencies_resolves_augmented_skills_graph() -> None:
+    pool = resolve_section_proof_pool(
+        section="competencies",
+        repo_root=REPO,
+        target_role="SVP Engineering Agentic AI",
+        jd_text=HYBRID_JD,
+    )
+    assert pool.proof_source == PROOF_SOURCE_AUGMENTED_SKILLS_GRAPH
+    assert pool.proof_pool_metadata.get("proof_pool_type") == "augmented_skills_graph"
+    assert pool.broad_skills_ledger_present is False
+    assert pool.proof_pool_metadata.get("broad_skills_ledger_used_as_authority") is False
+
+
+def test_graph_proof_pool_supports_graph_8x8_product_shape() -> None:
+    from apps_rg.runtime.sections.competencies_rigor import (
+        CANDIDATE_CATEGORY_COUNT,
+        MAX_CATEGORY_COUNT,
+        MIN_CATEGORY_COUNT,
+    )
+
+    pool = resolve_section_proof_pool(
+        section="competencies",
+        repo_root=REPO,
+        target_role="SVP Engineering Agentic AI",
+        jd_text=HYBRID_JD,
+    )
+    assert MIN_CATEGORY_COUNT == 6
+    assert MAX_CATEGORY_COUNT == 8
+    # HBS/SVP alignment (2026-06): candidate pool is 8; final display emits adaptive 6-8.
+    assert CANDIDATE_CATEGORY_COUNT == 8
+    assert pool.proof_pool_metadata.get("proof_pool_type") == "augmented_skills_graph"
+    assert isinstance(pool.proof_pool_metadata.get("selected_skill_rows"), list)
+
+
+def test_no_path_selects_broad_skills_ledger_as_authority() -> None:
+    pool = resolve_section_proof_pool(section="competencies", repo_root=REPO, jd_text=HYBRID_JD)
+    assert pool.proof_source != PROOF_SOURCE_BROAD_SKILLS_LEDGER
+    assert pool.proof_pool_metadata.get("proof_pool_type") != "broad_skills_ledger_competencies"
+
+
+def test_legacy_broad_skills_flag_rejected() -> None:
+    with pytest.raises(ValueError, match="legacy_broad_skills_ledger"):
+        resolve_section_proof_pool(
+            section="competencies",
+            repo_root=REPO,
+            legacy_broad_skills_ledger=True,
+        )
+
+
+def test_legacy_allocate_from_ledger_removed_from_product_resolver() -> None:
+    assert not hasattr(proof_pool_resolver, "_allocate_from_ledger")
+
+
+def test_graph_unavailable_fails_closed(monkeypatch: pytest.MonkeyPatch) -> None:
+    def _blocked(*_a: object, **_k: object) -> dict:
+        return {
+            "skills_authority_status": "BLOCKED",
+            "skills_authority_block_reason": "test_block",
+        }
+
+    monkeypatch.setattr(
+        "apps_rg.runtime.proof_pool_resolver.resolve_augmented_skills_graph_authority",
+        _blocked,
+    )
+    with pytest.raises(ValueError, match="BLOCKED|graph-skills"):
+        resolve_section_proof_pool(section="competencies", repo_root=REPO, jd_text=HYBRID_JD)
+
+
+def test_p2_w1a_receipt(tmp_path) -> None:
+    # out_dir=tmp_path (RCA 2026-06-10): tests must never regenerate the tracked
+    # docs/reports receipts — that side effect kept the tree dirty and broke a stash pop.
+    p1_w4, p1_w5 = _write_test_upstream_receipts(tmp_path)
+    out_dir = tmp_path / "p2"
+    out = write_p2_w1a_default_graph_authority_receipt(
+        repo_root=REPO,
+        out_dir=out_dir,
+        p1_w4_closeout_path=p1_w4,
+        p1_w5_projection_path=p1_w5,
+    )
+    receipt_json = Path(out["receipt_json"])
+    assert receipt_json.is_file() and receipt_json.parent == out_dir
+    receipt = json.loads(receipt_json.read_text(encoding="utf-8"))
+    validate_p2_w1a_default_graph_authority_receipt(receipt, repo_root=REPO)
+    markdown = Path(out["receipt_md"]).read_text(encoding="utf-8")
+    assert "Receipt mode:** TEST_ONLY_NONCANONICAL_OUTPUT" in markdown
+    assert "Certification eligible:** False" in markdown
+    assert receipt["receipt_mode"] == "TEST_ONLY_NONCANONICAL_OUTPUT"
+    assert receipt["certification_eligible"] is False
+    assert receipt["p1_w4_closeout_receipt_ref"] == str(p1_w4.resolve())
+    assert receipt["p1_w4_closeout_receipt_raw_sha256"] == hashlib.sha256(
+        p1_w4.read_bytes()
+    ).hexdigest()
+    assert receipt["p1_w5_projection_receipt_ref"] == str(p1_w5.resolve())
+    assert receipt["p1_w5_projection_receipt_raw_sha256"] == hashlib.sha256(
+        p1_w5.read_bytes()
+    ).hexdigest()
+    assert receipt["deprecated_ledger_code_reachable_from_product_path"] is False
+    assert receipt["silent_fallback_possible"] is False
+    assert len(receipt["deprecated_ledger_code_paths_remaining"]) >= 1
+
+
+def test_p2_w1a_validator_rejects_tampered_upstream_digest(tmp_path: Path) -> None:
+    p1_w4, p1_w5 = _write_test_upstream_receipts(tmp_path)
+    out = write_p2_w1a_default_graph_authority_receipt(
+        repo_root=REPO,
+        out_dir=tmp_path / "p2",
+        p1_w4_closeout_path=p1_w4,
+        p1_w5_projection_path=p1_w5,
+    )
+    receipt = dict(out["receipt"])
+    receipt["p1_w4_closeout_receipt_raw_sha256"] = "0" * 64
+    with pytest.raises(CompetenciesGraphProofPoolError, match="raw_sha256 mismatch"):
+        validate_p2_w1a_default_graph_authority_receipt(receipt, repo_root=REPO)
+
+
+def test_every_skill_has_graph_support() -> None:
+    payload = build_competencies_graph_skills_proof_payload(repo_root=REPO)
+    for sk in payload.get("selected_skill_rows") or []:
+        assert sk.get("fact_id_links")
+        assert sk.get("graph_hop_path") or sk.get("graph_support_ref")

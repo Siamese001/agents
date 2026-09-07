@@ -1,0 +1,55 @@
+{
+  "schema_version": "apps_rg.c03_cluster_embedding_w9_receipt.v1",
+  "wave_id": "C03_CLUSTER_EMBEDDING_W9",
+  "status": "BLOCKED_HUMAN_REVIEW_INPUTS",
+  "completion_marker": "C03_CLUSTER_EMBEDDING_W9_INTAKE_READY_HUMAN_INPUTS_BLOCKED",
+  "source_baseline": {
+    "commit": "87499c22ae0bd8a366443f525356d40b9f4d7941",
+    "tree": "339931bb45d03b9fa889e8c6fc5c817ff2d064d3",
+    "wave8_receipt_sha256": "26766286e360a6c818cce18d6cd9b5c2674f143a1eb1b4d0fd94a71858aa0c06",
+    "packet_manifest_sha256": "edff77e752841e541c274c3bdd9568fa0af21b9c1eea9f8705d8b601b89fe1ca",
+    "packet_manifest_file_sha256": "5d10ed1c921d11b5916b9150ec4b43e78f10345784e49a47d730bd16b0b8a789",
+    "ranking_identity_sha256": "18fcfd7397b7abbd20867f2324ac1f2c9a8cb52f665975baea4e8d859624a29e"
+  },
+  "contract": {
+    "path": "src/apps_rg/evals/c03_graph_evidence_cluster_human_intake_contract.v1.json",
+    "canonical_sha256": "a5a421420bae256a88e60c7b187e0db21ddd57cf9b840c3f1b9811821ffa8357"
+  },
+  "intake_readiness": {
+    "validator_implemented": true,
+    "wave8_packet_verified": true,
+    "required_primary_humans": 2,
+    "observed_primary_humans": 0,
+    "required_adjudicators": 1,
+    "observed_adjudicators": 0,
+    "required_reviewer_judgment_slots": 912,
+    "observed_reviewer_judgment_slots": 0,
+    "required_adjudications": 456,
+    "observed_adjudications": 0,
+    "human_authority_receipt_present": false,
+    "adjudicated_qrels_created": false
+  },
+  "scope": {
+    "human_input_readiness_complete": true,
+    "human_qrels_frozen": false,
+    "semantic_retrieval_qualified": false,
+    "cluster_embedding_activation_created": false,
+    "production_promotion_authorized": false
+  },
+  "blocking_conditions": [
+    "EXTERNALLY_PINNED_HUMAN_AUTHORITY_RECEIPT_MISSING",
+    "TWO_COMPLETE_PRIMARY_HUMAN_REVIEWS_MISSING",
+    "DISTINCT_HUMAN_ADJUDICATION_MISSING",
+    "OFFICIAL_POSIX_CONTROL_STORAGE_REQUIRED"
+  ],
+  "wave_exit_gates": {
+    "prelabel_packet": "PASS_W8",
+    "human_review_intake": "BLOCKED_HUMAN_REVIEW_INPUTS",
+    "human_cluster_qrels": "OPEN_912_REVIEWS_PLUS_456_ADJUDICATIONS",
+    "semantic_retrieval_qualification": "BLOCKED_QREL_AUTHORITY",
+    "release_activation": "BLOCKED_UNTIL_QUALIFIED",
+    "production_promotion": "NOT_AUTHORIZED"
+  },
+  "next_action": "On controlled POSIX storage, obtain and externally pin the owner-issued three-human authority receipt, collect both complete reviewer returns and all adjudications, then run W9 finalization.",
+  "receipt_sha256": "f33abd72cead3e067e6534f28df78fd5226b85513d077a59da78ec99c7aab207"
+}

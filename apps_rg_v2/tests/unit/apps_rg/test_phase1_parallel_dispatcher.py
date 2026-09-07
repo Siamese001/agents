@@ -1,0 +1,377 @@
+"""Phase-1 parallel lane dispatcher (plan f2a8c4)."""
+from __future__ import annotations
+
+from collections.abc import Iterator
+import os
+from threading import Event
+
+import pytest
+
+from apps_rg.runtime.orchestration.managed_section_lane_dispatcher import (
+    dispatch_phase1_lanes_managed,
+)
+from apps_rg.runtime.orchestration.section_lane_concurrency import (
+    assert_section_dag_wave_order,
+    build_phase1_waves,
+    load_section_dag_manifest,
+    phase1_parallel_enabled,
+    section_dag_dependencies,
+)
+from apps_rg.runtime.orchestration.section_lane_executor import LaneExecutionContext
+from apps_rg.runtime.runtime_proof_layout import MODULAR_R4_SECTIONS_ROOT_ENV
+
+
+@pytest.fixture(autouse=True)
+def _restore_modular_sections_root_env() -> Iterator[None]:
+    prior = os.environ.get(MODULAR_R4_SECTIONS_ROOT_ENV)
+    try:
+        yield
+    finally:
+        if prior is None:
+            os.environ.pop(MODULAR_R4_SECTIONS_ROOT_ENV, None)
+        else:
+            os.environ[MODULAR_R4_SECTIONS_ROOT_ENV] = prior
+
+
+def test_build_phase1_waves_wave0_is_upstream_proof_bearing() -> None:
+    # Dependency-ordered DAG: wave 0 holds the upstream proof-bearing sections
+    # (competencies + bullets); executive_summary is downstream synthesis (later wave).
+    waves = build_phase1_waves()
+    assert waves
+    wave0 = waves[0]
+    assert set(wave0.lanes) == {
+        "competencies",
+        "unify_bullets",
+        "ibm_bullets",
+        "insurtech_bullets",
+        "ey_bullets",
+    }
+    assert "executive_summary" not in wave0.lanes
+
+
+def test_build_phase1_waves_exec_summary_is_downstream_solo() -> None:
+    waves = build_phase1_waves()
+    lane_wave = {lane: w.wave_id for w in waves for lane in w.lanes}
+    es_wave = next(w for w in waves if "executive_summary" in w.lanes)
+    assert es_wave.lanes == ("executive_summary",)
+    assert es_wave.max_parallel == 1
+    # exec_summary runs after every upstream proof-bearing + narrative lane.
+    for upstream in ("competencies", "unify_bullets", "ibm_bullets", "unify_narrative", "ibm_narrative"):
+        assert lane_wave[upstream] < lane_wave["executive_summary"]
+    # headline is final positioning, strictly after exec_summary.
+    assert lane_wave["executive_summary"] < lane_wave["headline"]
+
+
+def test_section_dag_narrative_never_precedes_companion_bullets() -> None:
+    """Plan f2a8c4: unify_narrative / ibm_narrative must schedule after bullets lanes."""
+    manifest = load_section_dag_manifest()
+    assert_section_dag_wave_order(manifest)
+
+    lane_wave: dict[str, int] = {}
+    for wave in manifest.get("waves") or []:
+        wid = int(wave["id"])
+        for lane in wave.get("lanes") or []:
+            lane_wave[str(lane)] = wid
+
+    assert lane_wave["unify_narrative"] > lane_wave["unify_bullets"]
+    assert lane_wave["ibm_narrative"] > lane_wave["ibm_bullets"]
+    # Narratives are never scheduled in the wave-0 (upstream proof-bearing) bucket.
+    wave0_lanes = manifest["waves"][0].get("lanes") or []
+    assert "ibm_narrative" not in wave0_lanes
+    assert "unify_narrative" not in wave0_lanes
+
+
+def test_build_phase1_waves_narratives_parallel_after_bullets() -> None:
+    # Wave-1 narratives run parallel (max_parallel:4). The 4 narratives are mutually
+    # independent — each depends only on its own bullets lane in wave 0 — and
+    # run_lane_in_context is lock-free (section_lane_executor.py), so they parallelize
+    # safely. This is the PR #325 parallel manifest (1.96x wall-clock: 704s vs 1383s);
+    # the 2026-06-14 serial re-pin was a regression and has been reverted.
+    waves = build_phase1_waves()
+    nar_wave = next(w for w in waves if "unify_narrative" in w.lanes)
+    assert set(nar_wave.lanes) == {
+        "unify_narrative",
+        "ibm_narrative",
+        "insurtech_narrative",
+        "ey_narrative",
+    }
+    # narratives parallel (4); throttle via APPS_RG_PHASE1_MAX_PARALLEL if needed.
+    assert nar_wave.max_parallel == 4
+
+
+def test_dag_dependencies_keep_overview_behind_all_section_inputs() -> None:
+    dependencies = section_dag_dependencies()
+    assert dependencies["unify_narrative"] == ("unify_bullets",)
+    assert dependencies["ibm_narrative"] == ("ibm_bullets",)
+    assert set(dependencies["executive_summary"]) == {
+        "competencies",
+        "unify_bullets",
+        "ibm_bullets",
+        "insurtech_bullets",
+        "ey_bullets",
+        "unify_narrative",
+        "ibm_narrative",
+        "insurtech_narrative",
+        "ey_narrative",
+    }
+    assert dependencies["headline"][0] == "executive_summary"
+
+
+def test_dispatch_serial_mock() -> None:
+    calls: list[str] = []
+
+    def _fn(**kwargs: object) -> dict[str, str]:
+        lane = str(kwargs.get("section") or "")
+        calls.append(lane)
+        return {"section": lane, "exit_status": "ok"}
+
+    ctx = LaneExecutionContext(
+        sections_root="/tmp/sections",
+        target_company="Acme",
+        target_role="VP",
+        job_description_ref="",
+        job_description_text="",
+        manual_brief="",
+        lane_provider="mock",
+        lane_x1d_judges=(),
+        lane_mock_judges=True,
+    )
+    lanes = ("headline", "competencies")
+    out = dispatch_phase1_lanes_managed(
+        lanes,
+        ctx,
+        dispatch_fn=_fn,
+        parallel=False,
+    )
+    assert set(out) == set(lanes)
+    assert calls == ["headline", "competencies"]
+
+
+def test_phase1_parallel_env_default_off(monkeypatch) -> None:
+    monkeypatch.delenv("APPS_RG_PARALLEL_PHASE1_LANES", raising=False)
+    assert phase1_parallel_enabled(profile_flag=False) is False
+    monkeypatch.setenv("APPS_RG_PARALLEL_PHASE1_LANES", "1")
+    assert phase1_parallel_enabled(profile_flag=False) is True
+
+
+def test_dispatch_serial_reports_lane_progress(monkeypatch) -> None:
+    """§16: lane dispatcher must tick ProgressReporter on each lane completion."""
+    ticks: list[tuple[str, bool]] = []
+
+    class _FakeReporter:
+        def __init__(self, total: int, label: str = "", unit: str = "") -> None:
+            self.total = total
+            self.label = label
+            self.unit = unit
+
+        def update(self, label: str = "") -> None:
+            ticks.append((label, False))
+
+        def done(self) -> None:
+            ticks.append(("done", True))
+
+    monkeypatch.setattr(
+        "apps_rg.runtime.orchestration.managed_section_lane_dispatcher.ProgressReporter",
+        _FakeReporter,
+    )
+
+    def _fn(**kwargs: object) -> dict[str, str]:
+        lane = str(kwargs.get("section") or "")
+        return {"section": lane, "exit_status": "ok"}
+
+    ctx = LaneExecutionContext(
+        sections_root="/tmp/sections",
+        target_company="Acme",
+        target_role="VP",
+        job_description_ref="",
+        job_description_text="",
+        manual_brief="",
+        lane_provider="mock",
+        lane_x1d_judges=(),
+        lane_mock_judges=True,
+    )
+    dispatch_phase1_lanes_managed(
+        ("headline", "competencies"),
+        ctx,
+        dispatch_fn=_fn,
+        parallel=False,
+    )
+    assert ticks[-1] == ("done", True)
+    assert any("headline" in label for label, _ in ticks)
+    assert any("competencies" in label for label, _ in ticks)
+
+
+def test_parallel_dispatch_skips_later_waves_after_abort() -> None:
+    """A later wave must not run when an earlier wave sets should_skip_remaining_waves (fail-closed parity).
+
+    Lanes are chosen to span two waves under build_phase1_waves(): unify_bullets is in
+    wave 0, unify_narrative in wave 1. Aborting on the wave-0 lane must skip the wave-1 lane.
+    """
+    calls: list[str] = []
+    aborted = False
+
+    def _fn(**kwargs: object) -> dict[str, str]:
+        lane = str(kwargs.get("section") or "")
+        calls.append(lane)
+        if lane == "unify_bullets":
+            nonlocal aborted
+            aborted = True
+            return {"section": lane, "exit_status": "error", "fault": "dispatch_failed"}
+        return {"section": lane, "exit_status": "ok"}
+
+    ctx = LaneExecutionContext(
+        sections_root="/tmp/sections",
+        target_company="Acme",
+        target_role="VP",
+        job_description_ref="",
+        job_description_text="",
+        manual_brief="",
+        lane_provider="mock",
+        lane_x1d_judges=(),
+        lane_mock_judges=True,
+    )
+    out = dispatch_phase1_lanes_managed(
+        ("unify_bullets", "unify_narrative"),
+        ctx,
+        dispatch_fn=_fn,
+        parallel=True,
+        max_parallel=2,
+        should_skip_remaining_waves=lambda: aborted,
+    )
+    assert "unify_narrative" not in calls
+    assert out["unify_narrative"].exec_status.startswith("pre_run_blocked:")
+    assert out["unify_narrative"].dispatch_result.get("prior_abort")
+    # A skipped wave never ran, so it must not carry a generic dispatch exit_status:
+    # that would let downstream status recompute mislabel it as LANE_DISPATCH_EXIT_ERROR
+    # instead of preserving the PHASE1_PRIOR_LANE_FAILED blocker (see PR #251 review).
+    assert out["unify_narrative"].dispatch_result.get("exit_status") is None
+
+
+def test_parallel_dispatch_starts_narrative_before_unrelated_root_finishes() -> None:
+    """A completed bullets receipt releases only its own narrative; no wave barrier."""
+    narrative_started = Event()
+    calls: list[str] = []
+
+    def _fn(**kwargs: object) -> dict[str, str]:
+        lane = str(kwargs.get("section") or "")
+        calls.append(lane)
+        if lane == "ey_bullets":
+            assert narrative_started.wait(timeout=2), "narrative remained behind a W0 barrier"
+        if lane == "unify_narrative":
+            narrative_started.set()
+        return {"section": lane, "exit_status": "success"}
+
+    ctx = LaneExecutionContext(
+        sections_root="/tmp/sections",
+        target_company="Acme",
+        target_role="VP",
+        job_description_ref="",
+        job_description_text="",
+        manual_brief="",
+        lane_provider="mock",
+        lane_x1d_judges=(),
+        lane_mock_judges=True,
+    )
+    lanes = (
+        "competencies",
+        "unify_bullets",
+        "ibm_bullets",
+        "insurtech_bullets",
+        "ey_bullets",
+        "unify_narrative",
+        "ibm_narrative",
+        "insurtech_narrative",
+        "ey_narrative",
+        "executive_summary",
+        "headline",
+    )
+    out = dispatch_phase1_lanes_managed(
+        lanes,
+        ctx,
+        dispatch_fn=_fn,
+        parallel=True,
+        max_parallel=5,
+    )
+    assert narrative_started.is_set()
+    assert set(out) == set(lanes)
+    assert out["executive_summary"].exec_status == "ok"
+    assert out["headline"].exec_status == "ok"
+
+
+def test_parallel_dispatch_blocks_only_descendants_of_failed_lane() -> None:
+    calls: list[str] = []
+
+    def _fn(**kwargs: object) -> dict[str, str]:
+        lane = str(kwargs.get("section") or "")
+        calls.append(lane)
+        if lane == "unify_bullets":
+            return {"section": lane, "exit_status": "error", "fault": "provider_timeout"}
+        return {"section": lane, "exit_status": "success"}
+
+    ctx = LaneExecutionContext(
+        sections_root="/tmp/sections",
+        target_company="Acme",
+        target_role="VP",
+        job_description_ref="",
+        job_description_text="",
+        manual_brief="",
+        lane_provider="mock",
+        lane_x1d_judges=(),
+        lane_mock_judges=True,
+    )
+    lanes = (
+        "competencies",
+        "unify_bullets",
+        "ibm_bullets",
+        "ibm_narrative",
+        "unify_narrative",
+        "executive_summary",
+        "headline",
+    )
+    out = dispatch_phase1_lanes_managed(
+        lanes,
+        ctx,
+        dispatch_fn=_fn,
+        parallel=True,
+        max_parallel=5,
+    )
+    assert "ibm_narrative" in calls
+    assert "unify_narrative" not in calls
+    assert "executive_summary" not in calls
+    assert "headline" not in calls
+    for lane in ("unify_narrative", "executive_summary", "headline"):
+        assert out[lane].exec_status == "pre_run_blocked:UPSTREAM_DEPENDENCY_FAILED"
+
+
+def test_parallel_dispatch_requires_app_readiness_before_dependent_submission() -> None:
+    calls: list[str] = []
+
+    def _fn(**kwargs: object) -> dict[str, str]:
+        lane = str(kwargs.get("section") or "")
+        calls.append(lane)
+        return {"section": lane, "exit_status": "success"}
+
+    ctx = LaneExecutionContext(
+        sections_root="/tmp/sections",
+        target_company="Acme",
+        target_role="VP",
+        job_description_ref="",
+        job_description_text="",
+        manual_brief="",
+        lane_provider="mock",
+        lane_x1d_judges=(),
+        lane_mock_judges=True,
+    )
+    out = dispatch_phase1_lanes_managed(
+        ("unify_bullets", "unify_narrative"),
+        ctx,
+        dispatch_fn=_fn,
+        parallel=True,
+        max_parallel=2,
+        dependency_ready_fn=lambda lane: (False, "BULLETS_NOT_CERTIFIED")
+        if lane == "unify_narrative"
+        else True,
+    )
+    assert calls == ["unify_bullets"]
+    assert out["unify_narrative"].exec_status == "pre_run_blocked:UPSTREAM_DEPENDENCY_FAILED"
+    assert out["unify_narrative"].dispatch_result["dependency_reason"] == "BULLETS_NOT_CERTIFIED"

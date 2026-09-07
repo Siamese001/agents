@@ -1,0 +1,11 @@
+{
+  "artifact_digests": {
+    "outreach_email.md": "sha256:379a7bfff91c73b02973abe6817a61ed0c06cf0efef58998ff0cc30a2f34e4b4",
+    "research.md": "sha256:50f4d85483eacdd00e166dc0a9b2c22288a8980d773b1382a15ddc03edab4c63",
+    "resume.md": "sha256:f7d17428643f26e2131dda7cfb662e2638aabc8df2119202976a089bc15dafb4",
+    "sources.json": "sha256:eb92bb83ea2377075507bffb8ac34ac8d19763db66779ad5e6509111b2e2fc74",
+    "x3_input_base_resume.txt": "sha256:c376863c057dc3125a4fdb5646250454b36133a5e8142b8642ea1d3439bca9e4",
+    "x3_input_jd.txt": "sha256:7ced99c6a9cba10fe2727d67954ebc4bdd5dbf2e14b417e34b617c70f7790074"
+  },
+  "schema_version": "apps_rg.x3_resume_manifest.v1"
+}

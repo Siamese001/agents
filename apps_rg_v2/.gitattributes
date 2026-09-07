@@ -1,0 +1,26 @@
+# Cross-platform authority receipts bind exact bytes. Keep all repository-owned
+# text deterministic so a Windows checkout cannot invalidate SHA-256 pins.
+* text=auto eol=lf
+*.json text eol=lf
+*.jsonl text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.md text eol=lf
+*.py text eol=lf
+*.txt text eol=lf
+*.toml text eol=lf
+*.ini text eol=lf
+
+# Binary artifacts must never be newline-normalized.
+*.bin binary
+*.sqlite binary
+*.sqlite3 binary
+*.sqlite3-shm binary
+*.sqlite3-wal binary
+*.db binary
+*.zip binary
+*.docx binary
+*.pdf binary
+*.png binary
+*.jpg binary
+*.jpeg binary

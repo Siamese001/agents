@@ -1,0 +1,218 @@
+"""Unit tests: synthesis regen monotonic acceptance."""
+
+from __future__ import annotations
+
+from apps_rg.runtime.sections.executive_summary_synthesis_contract import (
+    format_x2_gate_failures_reject_reason,
+    gate_ids_from_x2_reject_reason,
+)
+from apps_rg.runtime.sections.executive_summary_synthesis_monotonic import (
+    evaluate_synthesis_regen_monotonicity,
+)
+
+
+def _parsed(text: str, ledger_rows: int = 4, fact_prefix: str = "fact_") -> dict:
+    ledger = [
+        {
+            "claim_text": f"claim {i}",
+            "source_fact_ids": [f"{fact_prefix}{i:03d}"],
+        }
+        for i in range(ledger_rows)
+    ]
+    return {"resume_display_text": text, "claim_ledger": ledger}
+
+
+def test_monotonic_rejects_word_shrink_without_sentence_repair() -> None:
+    prior = _parsed(
+        "One two three four five six seven eight. "
+        "Two two three four five six seven eight. "
+        "Three two three four five six seven eight. "
+        "Four two three four five six seven eight."
+    )
+    post = _parsed(
+        "Short one. Short two. Short three. Short four."
+    )
+    ok, detail = evaluate_synthesis_regen_monotonicity(
+        prior_parsed=prior,
+        prior_reject_reason="Executive summary meta or filler scaffolding",
+        new_parsed=post,
+    )
+    assert ok is False
+    assert detail["rejection_reasons"]
+
+
+def test_monotonic_allows_shrink_when_prior_failed_sentence_count() -> None:
+    prior = _parsed("One. Two. Three.")
+    post = _parsed(
+        "One two three four five six seven eight. "
+        "Two two three four five six seven eight. "
+        "Three two three four five six seven eight. "
+        "Four two three four five six seven eight."
+    )
+    ok, _ = evaluate_synthesis_regen_monotonicity(
+        prior_parsed=prior,
+        prior_reject_reason="resume_display_text must have exactly 6 sentences; found 4",
+        new_parsed=post,
+    )
+    assert ok is True
+
+
+def test_monotonic_waives_shrink_when_ledger_rows_gain_on_utilization_repair() -> None:
+    prior = _parsed(
+        ("Word " * 100) + "end. " + ("Two " * 20) + "end. " + ("Three " * 20) + "end. " + ("Four " * 20) + "end.",
+        ledger_rows=4,
+    )
+    post = _parsed(
+        ("Alpha " * 15) + "end. " + ("Beta " * 15) + "end. " + ("Gamma " * 15) + "end. " + ("Delta " * 15) + "end.",
+        ledger_rows=5,
+        fact_prefix="fact_alt_",
+    )
+    ok, detail = evaluate_synthesis_regen_monotonicity(
+        prior_parsed=prior,
+        prior_reject_reason="claim_ledger_rows_4_with_pool_7_need_at_least_5",
+        new_parsed=post,
+    )
+    assert ok is True
+    assert detail.get("shrink_waived") is True
+
+
+def test_gate_ids_from_x2_reject_reason_parses_gate_id_segments() -> None:
+    reason = format_x2_gate_failures_reject_reason(
+        [
+            {"gate_id": "x2_exec_summary_sentence_count_6", "pass": False, "reason": "found 4"},
+            {"gate_id": "x2_no_inferred_bridge_claims", "pass": False, "reason": "bridge"},
+        ]
+    )
+    ids = gate_ids_from_x2_reject_reason(reason)
+    assert "x2_exec_summary_sentence_count_6" in ids
+    assert "x2_no_inferred_bridge_claims" in ids
+
+
+def test_judge_x2_repair_allows_fact_regression_when_fixing_bridge_and_synthesis() -> None:
+    """RCA: Brown & Brown cycle-2 blocked 7→6 facts with sentence/synthesis/bridge X2 fails."""
+    baseline_text = (
+        "Technology strategy executive who operationalizes governed agentic AI platforms for regulated "
+        "enterprise workflows, ensuring traceable execution and enterprise scale. "
+        "Platform commercialization generated twenty-two million in IP-led revenue and expanded margins. "
+        "Implemented Basel III and CCAR data lineage frameworks, cutting regulatory reporting errors. "
+        "Re-architected risk analytics with containerized microservices, enabling real-time stress testing. "
+        "Quantitative foundation through derivatives pricing supports enterprise technology direction. "
+        "Governed delivery stays audit-ready while preserving commercial velocity for enterprise programs."
+    )
+    repair_text = (
+        "Technology strategy executive operationalizes governed agentic AI for regulated enterprise "
+        "workflows with traceable execution at scale. "
+        "Platform commercialization generated proof-backed revenue while expanding gross margins materially. "
+        "Basel III and CCAR lineage frameworks reduced regulatory reporting errors for finance stakeholders. "
+        "Containerized microservices re-architecture accelerated stress testing for leadership decisions. "
+        "Derivatives pricing and capital modeling depth inform governance trade-offs across programs. "
+        "Integrated governance, innovation, and commercial posture align enterprise technology direction."
+    )
+    prior_ledger = []
+    for i in range(6):
+        fids = [f"fact_{i:03d}"]
+        if i == 0:
+            fids.append("fact_extra_001")
+        prior_ledger.append({"claim_text": f"claim {i}", "source_fact_ids": fids})
+    prior = {"resume_display_text": baseline_text, "claim_ledger": prior_ledger}
+    post_ledger = [
+        {"claim_text": f"claim {i}", "source_fact_ids": [f"fact_{i:03d}"]} for i in range(6)
+    ]
+    post = {"resume_display_text": repair_text, "claim_ledger": post_ledger}
+    reject = format_x2_gate_failures_reject_reason(
+        [
+            {"gate_id": "x2_exec_summary_sentence_count_6", "pass": False, "reason": "fail"},
+            {"gate_id": "x2_executive_summary_synthesis_quality", "pass": False, "reason": "fail"},
+            {"gate_id": "x2_no_inferred_bridge_claims", "pass": False, "reason": "fail"},
+        ]
+    )
+    gate_ids = gate_ids_from_x2_reject_reason(reject)
+    ok, detail = evaluate_synthesis_regen_monotonicity(
+        prior_parsed=prior,
+        prior_reject_reason=reject,
+        new_parsed=post,
+        failed_gate_ids=gate_ids,
+        repair_context="judge_x2_repair",
+    )
+    assert ok is True, detail
+    assert detail.get("allow_substance_regression") is True
+    assert detail.get("shrink_waived") is True
+
+
+def test_synthesis_regen_still_rejects_fact_regression_without_judge_x2_context() -> None:
+    text = (
+        "One two three four five six seven eight. "
+        "Two two three four five six seven eight. "
+        "Three two three four five six seven eight. "
+        "Four two three four five six seven eight."
+    )
+    prior = _parsed(text, ledger_rows=5)
+    post = _parsed(text, ledger_rows=5, fact_prefix="fact_alt_")
+    # force fewer unique facts
+    post["claim_ledger"] = post["claim_ledger"][:3]
+    ok, detail = evaluate_synthesis_regen_monotonicity(
+        prior_parsed=prior,
+        prior_reject_reason="meta filler",
+        new_parsed=post,
+        repair_context="synthesis_regen",
+    )
+    assert ok is False
+    assert detail["rejection_reasons"]
+    assert any(
+        r in ("unique_source_fact_ids_regressed", "claim_ledger_row_count_regressed")
+        for r in detail["rejection_reasons"]
+    )
+
+
+def test_synthesis_regen_allows_fact_density_reduction_for_cross_fact_repair() -> None:
+    text = (
+        "Executive leader aligns platform, governance, and alliance delivery for regulated enterprises. "
+        "Modernization programs moved insurance workloads into AWS reference architecture waves. "
+        "A governed agentic platform pairs route selection with controlled execution and auditability. "
+        "Regulatory cloud standards kept modernization aligned to control expectations. "
+        "Alliance co-sell produced measurable revenue growth through reusable accelerators. "
+        "Partner co-sell scaled joint solution architecture across hyperscaler ecosystems."
+    )
+    prior = _parsed(text, ledger_rows=6)
+    prior["claim_ledger"][4]["source_fact_ids"] = [
+        "reb_ibm_aws_alliance_partner_cosell_gtm",
+        "metric_ibm_20pct_joint_revenue_growth",
+        "metric_ibm_alliance_cosell_operating_cadence",
+        "metric_ibm_ai_driven_sales_frameworks",
+        "reb_ibm_offering_accelerator_management",
+    ]
+    post = _parsed(text, ledger_rows=6)
+    post["claim_ledger"][4]["source_fact_ids"] = [
+        "reb_ibm_aws_alliance_partner_cosell_gtm",
+        "metric_ibm_20pct_joint_revenue_growth",
+        "reb_ibm_offering_accelerator_management",
+    ]
+
+    ok, detail = evaluate_synthesis_regen_monotonicity(
+        prior_parsed=prior,
+        prior_reject_reason="cross_fact_display_conflation:too_many_source_fact_ids_in_one_sentence",
+        new_parsed=post,
+        repair_context="synthesis_regen",
+    )
+
+    assert ok is True, detail
+    assert detail["allow_substance_regression"] is True
+    assert detail["prior_needs_density_reduction"] is True
+
+
+def test_monotonic_rejects_ledger_row_regression() -> None:
+    text = (
+        "One two three four five six seven eight. "
+        "Two two three four five six seven eight. "
+        "Three two three four five six seven eight. "
+        "Four two three four five six seven eight."
+    )
+    prior = _parsed(text, ledger_rows=5)
+    post = _parsed(text, ledger_rows=3)
+    ok, detail = evaluate_synthesis_regen_monotonicity(
+        prior_parsed=prior,
+        prior_reject_reason="meta filler",
+        new_parsed=post,
+    )
+    assert ok is False
+    assert "claim_ledger_row_count_regressed" in detail["rejection_reasons"][0]

@@ -1,0 +1,17 @@
+{
+  "schema_version": "integrated_lane_pre_run_failure_v1",
+  "generated_at_utc": "2026-08-08T06:22:32.397597+00:00",
+  "lane_id": "competencies",
+  "status": "PRE_RUN_BLOCKED",
+  "blocker": "exception",
+  "lane_exec_status": "error:[Errno 22] Invalid argument|missing_pointer:no resolvable run_dir pointer for lane 'competencies' under C:\\Git\\apps_rg_v2-worktrees\\codex-otel-execution-evidence-plan\\artifacts\\apps_rg\\runs\\otel_verified\\e2e_20260808T062125Z_c9caf451\\modular_r4\\sections",
+  "integrated_run_id": "e2e_20260808T062125Z_c9caf451",
+  "sections_root_rel": "artifacts/apps_rg/runs/otel_verified/e2e_20260808T062125Z_c9caf451/modular_r4/sections",
+  "dispatch_result": {
+    "fault": "exception",
+    "error": "[Errno 22] Invalid argument"
+  },
+  "expected_run_dir_pattern": "artifacts/apps_rg/runs/otel_verified/e2e_20260808T062125Z_c9caf451/modular_r4/sections/competencies/real/<run_id>/"
+}
+
+

@@ -1,0 +1,87 @@
+{
+  "schema_version": "apps_rg.c03_cluster_embedding_w7_receipt.v1",
+  "wave_id": "C03_CLUSTER_EMBEDDING_W7",
+  "status": "BLOCKED_QREL_AUTHORITY",
+  "completion_marker": "C03_CLUSTER_EMBEDDING_W7_READINESS_COMPLETE_QUALIFICATION_BLOCKED",
+  "source_baseline": {
+    "commit": "1b2252734db24d5fcea8349cfb1f2abb204c4f47",
+    "tree": "f9cf794a23166949078571c2beb4eb4eaab238c7",
+    "wave6_receipt_sha256": "6eb34bf6ce4555655b2242f2fc370f5e537088d1f4dbd32b2d4e458d431f13e8",
+    "wave4_registry_sha256": "8b135964929d48e9a2948a0c35af6d1f3d76c61523b4568f3bc36e73056c2824",
+    "projection_generation_sha256": "b3258a70a65a4c7ed7783f17cb308a93b5469eb45ce99f4c30a2605d2c2b57cb"
+  },
+  "contract": {
+    "path": "src/apps_rg/evals/c03_graph_evidence_cluster_qualification_contract.v1.json",
+    "canonical_sha256": "1b20239c2ccaab07a27327583c312930796d319d174f689536bb8b0279221b44"
+  },
+  "query_manifest": {
+    "path": "src/apps_rg/evals/c03_graph_evidence_cluster_queries.v1.json",
+    "query_manifest_sha256": "4d8ce879651426c6d6103a72b3dda0354cca8de4aaffdec4f06c1fd6e6edd2c6",
+    "query_count": 6,
+    "calibration_query_count": 3,
+    "holdout_query_count": 3,
+    "section_count": 8,
+    "query_section_count": 48
+  },
+  "label_authority": {
+    "current_cluster_qrels_present": false,
+    "human_review_authority_receipt_present": false,
+    "required_judgment_count": 456,
+    "observed_judgment_count": 0,
+    "two_distinct_human_reviewers_required": true,
+    "adjudication_required": true,
+    "legacy_per_skill_qrels_release_authorizing": false,
+    "synthetic_labels_created": false
+  },
+  "diagnostic_proof": {
+    "projection_integrity_passed": true,
+    "candidate_only_payload_passed": true,
+    "section_policy_passed": true,
+    "current_authority_rehydration_passed": true,
+    "latency_gate_passed": true,
+    "query_count": 6,
+    "section_count": 8,
+    "query_section_count": 48,
+    "candidate_row_count": 456,
+    "expected_judgment_count": 456,
+    "ranking_identity_sha256": "18fcfd7397b7abbd20867f2324ac1f2c9a8cb52f665975baea4e8d859624a29e",
+    "cold_six_query_encode_elapsed_ms": 6444.745,
+    "projection_search_p50_ms": 0.567,
+    "projection_search_p95_ms": 1.112,
+    "projection_search_max_ms": 1.178,
+    "runtime_proof": {
+      "device": "cuda:0",
+      "python_major_minor": "3.12",
+      "torch_version": "2.12.0.dev20260228+cu128",
+      "sentence_transformers_version": "5.2.3",
+      "cuda_available": true,
+      "cuda_device_name": "NVIDIA GeForce RTX 5090",
+      "fallback_used": false,
+      "vector_count": 6,
+      "dimension": 1024
+    },
+    "quality_metrics_computed": false,
+    "quality_metrics_blocked_by": "CURRENT_CLUSTER_QRELS_MISSING",
+    "rankings_or_scores_published": false
+  },
+  "scope": {
+    "qualification_harness_ready": true,
+    "semantic_retrieval_qualified": false,
+    "cluster_embedding_activation_created": false,
+    "production_promotion_authorized": false
+  },
+  "wave_exit_gates": {
+    "cluster_embedding_generation": "PASS_W6",
+    "semantic_retrieval_qualification": "BLOCKED_QREL_AUTHORITY",
+    "human_cluster_qrels": "OPEN_456_JUDGMENTS",
+    "release_activation": "BLOCKED_UNTIL_QUALIFIED",
+    "production_promotion": "NOT_AUTHORIZED"
+  },
+  "blocking_conditions": [
+    "CURRENT_CLUSTER_QRELS_MISSING",
+    "HUMAN_REVIEW_AUTHORITY_RECEIPT_MISSING",
+    "TWO_REVIEWER_ADJUDICATION_MISSING"
+  ],
+  "next_action": "Complete two independent blinded human reviews and adjudication for all 456 query-section-cluster judgments, then rerun W7.",
+  "receipt_sha256": "34295e2d6aa3a1102023a59dfcc6c47102b5e61ff391b655b2ac8786be49c2f9"
+}

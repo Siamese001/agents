@@ -1,0 +1,21 @@
+{
+  "apps_research_apps_rg_handoff_v2_path": "C:\\Git\\apps_rg_v2\\artifacts\\apps_research\\runs\\bridge_rg_research_bridge_acc3fea8_t1\\apps_research_apps_rg_handoff_v2.json",
+  "apps_research_u0_receipt_path": "C:\\Git\\apps_rg_v2\\artifacts\\apps_research\\runs\\bridge_rg_research_bridge_acc3fea8_t1\\apps_research_u0_receipt.json",
+  "brief_sha256": "sha256:8adad229014fcb29b9aa3a3605807a3f507c9ef79b1432dec5d41e18993431ba",
+  "briefing_path": "C:\\Git\\apps_rg_v2\\artifacts\\apps_research\\runs\\bridge_rg_research_bridge_acc3fea8_t1\\briefing.md",
+  "bundle_commit_manifest_path": "C:\\Git\\apps_rg_v2\\artifacts\\apps_research\\runs\\bridge_rg_research_bridge_acc3fea8_t1\\bundle_commit_manifest.json",
+  "company_brief_path": "C:\\Git\\apps_rg_v2\\artifacts\\apps_research\\runs\\bridge_rg_research_bridge_acc3fea8_t1\\company_brief.json",
+  "depth_profile": "COMPANY_BRIEF_STANDARD",
+  "exit_disposition_receipt_digest": "804045830b9ea3ff3eccea18e2ed6bb798e3a4e8ddc804bffc2705fd6f2652a6",
+  "exit_disposition_receipt_path": "C:\\Git\\apps_rg_v2\\artifacts\\apps_research\\runs\\bridge_rg_research_bridge_acc3fea8_t1\\exit_disposition_receipt.json",
+  "exit_review_packet_path": "C:\\Git\\apps_rg_v2\\artifacts\\apps_research\\runs\\bridge_rg_research_bridge_acc3fea8_t1\\exit_review_packet.json",
+  "gate_mesh_result_path": "C:\\Git\\apps_rg_v2\\artifacts\\apps_research\\runs\\bridge_rg_research_bridge_acc3fea8_t1\\apps_research_gate_mesh_result.json",
+  "jd_sha256": "sha256:5521f18994254066f4b28b90eba6551c5c6a99df51128472f07de2ab0ca57035",
+  "mode": "brief",
+  "run_id": "bridge:rg_research_bridge:acc3fea8:t1",
+  "runtime_exhaust_bundle_path": "C:\\Git\\apps_rg_v2\\artifacts\\apps_research\\runs\\bridge_rg_research_bridge_acc3fea8_t1\\runtime_exhaust_bundle.json",
+  "sealed_workflow_package_path": "C:\\Git\\apps_rg_v2\\artifacts\\apps_research\\runs\\bridge_rg_research_bridge_acc3fea8_t1\\sealed_workflow_package.json",
+  "targeting_format": "apps_rg_targeting_brief_v1",
+  "topic": "Anthropic",
+  "x3_code": "X3D_ALLOW_FINISH"
+}

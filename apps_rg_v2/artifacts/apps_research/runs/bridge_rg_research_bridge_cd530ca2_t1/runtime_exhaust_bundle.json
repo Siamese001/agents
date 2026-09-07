@@ -1,0 +1,15 @@
+{
+  "created_after_exit": true,
+  "created_at": "2026-09-06T11:49:46.688919+00:00",
+  "current_run_closed": true,
+  "exit_disposition_ref": "253bfdb4ab72726fb7ea9ab9ffd4c3fdffe6bf6a160f098f8a65ba691d04e433",
+  "gate_mesh_result_ref": "df266ecbf7aa7462bdd39a103d885555218705fa9154f8c446355c77099c654b",
+  "learning_profile_ref": "",
+  "request_id": "r1",
+  "route_contract_ref": "apps_research.company_brief_v1",
+  "run_id": "bridge:rg_research_bridge:cd530ca2:t1",
+  "schema_version": "apps_rg.local_runtime_exhaust.v1",
+  "sealed_result_ref": "apps_research:bridge:rg_research_bridge:cd530ca2:t1:apps_rg_targeting_brief",
+  "trace_root": "t1",
+  "writeback_candidates": []
+}

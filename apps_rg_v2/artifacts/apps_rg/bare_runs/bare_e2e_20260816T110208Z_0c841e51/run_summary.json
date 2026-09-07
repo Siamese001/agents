@@ -1,0 +1,363 @@
+{
+  "artifact_dir": "C:\\Git\\apps_rg_v2\\artifacts\\apps_rg\\bare_runs\\bare_e2e_20260816T110208Z_0c841e51",
+  "command": "python -m apps_rg run --mode live",
+  "error": "BarePipelineError: Gemini evaluation failed: Gemini HTTP timeout after 45.0s: The read operation timed out",
+  "failure_stage": "X3",
+  "finished_at_utc": "2026-08-16T11:03:21.320912+00:00",
+  "inputs": {
+    "jd_ref": "C:\\Git\\apps_rg_v2\\src\\apps_rg\\config\\targeting\\anthropic_manager_applied_ai_architecture_partnerships_jd.txt",
+    "jd_sha256": "sha256:7007d1c94751961bbca210c216339aaffe8a993bbce758b9fc86f43a68bac238",
+    "mode": "live",
+    "resume_ref": "DEFAULT_SSOT:apps_rg/resume/base/amit_ayer_base_resume_v1.json:C:\\Git\\apps_rg_v2\\src\\apps_rg\\resume\\base\\amit_ayer_base_resume_v1.json",
+    "resume_sha256": "sha256:8e7622c9528310e95288e97ddcb58a566b22b6a14435e389f0096f9aa10611e7"
+  },
+  "mode": "live",
+  "outcome_label": "LIVE_PROVIDER_FAIL",
+  "outputs": {
+    "l2_raw": "l2_raw.md",
+    "outreach_email": "outreach_email.md",
+    "provider_calls": "provider_calls.json",
+    "research_brief": "research.md",
+    "resume_markdown": "resume.md",
+    "sources": "sources.json",
+    "summary": "run_summary.json"
+  },
+  "pipeline": "apps_rg_bare_e2e.v2",
+  "provider_call_count": 3,
+  "providers": {
+    "apps_research_openai": {
+      "observed_model": "gpt-5.6-terra",
+      "provider": "external_openai",
+      "provider_call_attempted": true,
+      "requested_model": "gpt-5.6-terra",
+      "response_id": "chatcmpl-EDSv05CmSxi65EQBgcEpbrhH9yuYa",
+      "status": "SUCCESS",
+      "usage": {
+        "cache_write_tokens": null,
+        "cached_tokens": 0,
+        "output_tokens": 1111,
+        "prompt_tokens": 1215,
+        "thought_tokens": 0,
+        "total_tokens": 2326
+      }
+    },
+    "l2_openai": {
+      "observed_model": "gpt-5.6-terra",
+      "provider": "external_openai",
+      "provider_call_attempted": true,
+      "requested_model": "gpt-5.6-terra",
+      "response_id": "chatcmpl-EDSvAoW1lSivAFjfjHNIjhVyyfN3y",
+      "status": "SUCCESS",
+      "usage": {
+        "cache_write_tokens": null,
+        "cached_tokens": 0,
+        "output_tokens": 1758,
+        "prompt_tokens": 6651,
+        "thought_tokens": 94,
+        "total_tokens": 8409
+      }
+    },
+    "x3_gemini": {
+      "error": "BarePipelineError: Gemini evaluation failed: Gemini HTTP timeout after 45.0s: The read operation timed out",
+      "failure_code": "TRANSPORT_TIMEOUT",
+      "failure_phase": "WAIT_RESPONSE_HEADERS",
+      "observed_model": "",
+      "provider": "google_gemini",
+      "provider_call_attempted": true,
+      "requested_model": "gemini-3.6-flash",
+      "response_id": "",
+      "status": "FAIL",
+      "usage": {
+        "cache_write_tokens": null,
+        "cached_tokens": null,
+        "output_tokens": null,
+        "prompt_tokens": null,
+        "thought_tokens": null,
+        "total_tokens": null
+      }
+    }
+  },
+  "repository": {
+    "branch": "main",
+    "commit_sha": "ba1cd280b6276cce6dbb0bc469b9ab1b2d5dd891",
+    "head_is_ancestor_of_local_main": true,
+    "local_main_sha": "ba1cd280b6276cce6dbb0bc469b9ab1b2d5dd891",
+    "repository_root": "C:\\Git\\apps_rg_v2",
+    "worktree_dirty": false
+  },
+  "research": {
+    "retrieval_failure_count": 0,
+    "source_count": 4
+  },
+  "run_id": "bare_e2e_20260816T110208Z_0c841e51",
+  "section_checks": {
+    "outreach_email": {
+      "checks": {
+        "minimum_length": true,
+        "subject_line": true,
+        "target_company": true,
+        "target_role": true
+      },
+      "email_characters": 1293,
+      "missing": [],
+      "status": "PASS"
+    },
+    "resume": {
+      "checks": {
+        "core_competency_category_count": true,
+        "employers": {
+          "Early Career Roles": true,
+          "Ernst & Young": true,
+          "IBM": true,
+          "InsurTech Cloud Solutions": true,
+          "Unify Consulting": true
+        },
+        "header": true,
+        "headings": {
+          "CERTIFICATIONS": true,
+          "CORE COMPETENCIES": true,
+          "EDUCATION": true,
+          "EXECUTIVE SUMMARY": true,
+          "PROFESSIONAL EXPERIENCE": true
+        },
+        "ibm_bullet_count": true,
+        "minimum_length": true,
+        "outreach_email_not_embedded_in_resume": true,
+        "technical_expertise_not_separate_section": true,
+        "unify_bullet_count": true
+      },
+      "missing": [],
+      "required_employers": [
+        "Unify Consulting",
+        "IBM",
+        "InsurTech Cloud Solutions",
+        "Ernst & Young",
+        "Early Career Roles"
+      ],
+      "required_headings": [
+        "EXECUTIVE SUMMARY",
+        "CORE COMPETENCIES",
+        "PROFESSIONAL EXPERIENCE",
+        "EDUCATION",
+        "CERTIFICATIONS"
+      ],
+      "resume_characters": 7443,
+      "shape": {
+        "core_competency_category_count": {
+          "actual": 8,
+          "maximum": 8,
+          "minimum": 6
+        },
+        "employment_bullet_counts": {
+          "ibm_bullet_count": {
+            "actual": 5,
+            "required": 5
+          },
+          "unify_bullet_count": {
+            "actual": 6,
+            "required": 6
+          }
+        }
+      },
+      "status": "PASS"
+    },
+    "sources": {
+      "source_count": 4,
+      "status": "PASS"
+    },
+    "status": "PASS"
+  },
+  "stages": [
+    {
+      "details": {
+        "jd_loaded": true,
+        "repository_branch": "main",
+        "repository_commit": "ba1cd280b6276cce6dbb0bc469b9ab1b2d5dd891",
+        "required_employer_count": 5,
+        "resume_loaded": true
+      },
+      "finished_at_utc": "2026-08-16T11:02:08.595863+00:00",
+      "stage": "SETUP",
+      "started_at_utc": "2026-08-16T11:02:08.593412+00:00",
+      "status": "PASS"
+    },
+    {
+      "details": {
+        "retrieval_failure_count": 0,
+        "source_count": 4
+      },
+      "finished_at_utc": "2026-08-16T11:02:24.334681+00:00",
+      "stage": "APPS_RESEARCH",
+      "started_at_utc": "2026-08-16T11:02:08.595863+00:00",
+      "status": "PASS"
+    },
+    {
+      "details": {
+        "company": "Anthropic",
+        "jd_present": true,
+        "research_present": true,
+        "resume_present": true,
+        "role": "Manager of Applied AI Architecture, Partnerships"
+      },
+      "finished_at_utc": "2026-08-16T11:02:24.341324+00:00",
+      "stage": "U0",
+      "started_at_utc": "2026-08-16T11:02:24.341324+00:00",
+      "status": "PASS"
+    },
+    {
+      "details": {
+        "candidate_resume_sha256": "sha256:8e7622c9528310e95288e97ddcb58a566b22b6a14435e389f0096f9aa10611e7",
+        "goal": "tailor the candidate resume to the supplied role",
+        "source_count": 4
+      },
+      "finished_at_utc": "2026-08-16T11:02:24.341324+00:00",
+      "stage": "L1",
+      "started_at_utc": "2026-08-16T11:02:24.341324+00:00",
+      "status": "PASS"
+    },
+    {
+      "details": {
+        "route": "bare_live_provider_resume"
+      },
+      "finished_at_utc": "2026-08-16T11:02:24.341324+00:00",
+      "stage": "L0",
+      "started_at_utc": "2026-08-16T11:02:24.341324+00:00",
+      "status": "PASS"
+    },
+    {
+      "details": {
+        "source_count": 4,
+        "usable_source_url_count": 4
+      },
+      "finished_at_utc": "2026-08-16T11:02:24.341324+00:00",
+      "stage": "C0",
+      "started_at_utc": "2026-08-16T11:02:24.341324+00:00",
+      "status": "PASS"
+    },
+    {
+      "details": {
+        "prompt_inputs": [
+          "job_description",
+          "base_resume",
+          "research"
+        ],
+        "required_employer_count": 5,
+        "required_resume_headings": [
+          "EXECUTIVE SUMMARY",
+          "CORE COMPETENCIES",
+          "PROFESSIONAL EXPERIENCE",
+          "EDUCATION",
+          "CERTIFICATIONS"
+        ]
+      },
+      "finished_at_utc": "2026-08-16T11:02:24.341324+00:00",
+      "stage": "PA",
+      "started_at_utc": "2026-08-16T11:02:24.341324+00:00",
+      "status": "PASS"
+    },
+    {
+      "details": {
+        "email_characters": 1293,
+        "provider": "apps_research_openai",
+        "resume_characters": 7443
+      },
+      "finished_at_utc": "2026-08-16T11:02:36.187777+00:00",
+      "stage": "L2",
+      "started_at_utc": "2026-08-16T11:02:24.341324+00:00",
+      "status": "PASS"
+    },
+    {
+      "details": {
+        "outreach_email": {
+          "checks": {
+            "minimum_length": true,
+            "subject_line": true,
+            "target_company": true,
+            "target_role": true
+          },
+          "email_characters": 1293,
+          "missing": [],
+          "status": "PASS"
+        },
+        "resume": {
+          "checks": {
+            "core_competency_category_count": true,
+            "employers": {
+              "Early Career Roles": true,
+              "Ernst & Young": true,
+              "IBM": true,
+              "InsurTech Cloud Solutions": true,
+              "Unify Consulting": true
+            },
+            "header": true,
+            "headings": {
+              "CERTIFICATIONS": true,
+              "CORE COMPETENCIES": true,
+              "EDUCATION": true,
+              "EXECUTIVE SUMMARY": true,
+              "PROFESSIONAL EXPERIENCE": true
+            },
+            "ibm_bullet_count": true,
+            "minimum_length": true,
+            "outreach_email_not_embedded_in_resume": true,
+            "technical_expertise_not_separate_section": true,
+            "unify_bullet_count": true
+          },
+          "missing": [],
+          "required_employers": [
+            "Unify Consulting",
+            "IBM",
+            "InsurTech Cloud Solutions",
+            "Ernst & Young",
+            "Early Career Roles"
+          ],
+          "required_headings": [
+            "EXECUTIVE SUMMARY",
+            "CORE COMPETENCIES",
+            "PROFESSIONAL EXPERIENCE",
+            "EDUCATION",
+            "CERTIFICATIONS"
+          ],
+          "resume_characters": 7443,
+          "shape": {
+            "core_competency_category_count": {
+              "actual": 8,
+              "maximum": 8,
+              "minimum": 6
+            },
+            "employment_bullet_counts": {
+              "ibm_bullet_count": {
+                "actual": 5,
+                "required": 5
+              },
+              "unify_bullet_count": {
+                "actual": 6,
+                "required": 6
+              }
+            }
+          },
+          "status": "PASS"
+        },
+        "sources": {
+          "source_count": 4,
+          "status": "PASS"
+        },
+        "status": "PASS"
+      },
+      "finished_at_utc": "2026-08-16T11:02:36.188811+00:00",
+      "stage": "X1",
+      "started_at_utc": "2026-08-16T11:02:36.187777+00:00",
+      "status": "PASS"
+    },
+    {
+      "error": "BarePipelineError: Gemini evaluation failed: Gemini HTTP timeout after 45.0s: The read operation timed out",
+      "finished_at_utc": "2026-08-16T11:03:21.320912+00:00",
+      "stage": "X3",
+      "started_at_utc": "2026-08-16T11:02:36.188811+00:00",
+      "status": "FAIL"
+    }
+  ],
+  "status": "FAIL",
+  "target_company": "Anthropic",
+  "target_role": "Manager of Applied AI Architecture, Partnerships"
+}

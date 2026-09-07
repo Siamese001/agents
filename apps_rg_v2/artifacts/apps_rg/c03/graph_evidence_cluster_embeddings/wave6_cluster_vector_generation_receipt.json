@@ -1,0 +1,53 @@
+{
+  "schema_version": "apps_rg.c03_cluster_embedding_w6_receipt.v1",
+  "wave_id": "C03_CLUSTER_EMBEDDING_W6",
+  "status": "PASS",
+  "completion_marker": "C03_CLUSTER_EMBEDDING_W6_CLUSTER_VECTORS_GENERATED",
+  "source_baseline": {
+    "commit": "ac828da46157271edaf7e9f745dfccf9436361ef",
+    "tree": "58a0d93fa2995d3c7be3e3001c38bebdfa1fcbfb",
+    "wave5_receipt_sha256": "f8d56958b9baef3074f476175b64bf8178eb5f13a0fe46134bbbad8c3bba41e0",
+    "wave4_registry_sha256": "8b135964929d48e9a2948a0c35af6d1f3d76c61523b4568f3bc36e73056c2824",
+    "canonical_graph_sha256": "47d41419a4235c588d622375fea9a37cabafe0db65728b6d78bf268eff8ef500"
+  },
+  "contract": {
+    "path": "src/apps_rg/fact_inventory/c03_graph_evidence_cluster_generation_contract.v1.json",
+    "schema_version": "apps_rg.c03_graph_evidence_cluster_generation_contract.v1",
+    "canonical_sha256": "c1e6227171a7958c49d6afd287393b0ee73f88ccb8f29e7b9dee5c0005f1909d"
+  },
+  "generation": {
+    "manifest_path": "artifacts/apps_rg/c03/graph_evidence_cluster_embeddings/graph_evidence_cluster_embedding_generation.8214eeb8193a01b450c4b26627663ec0f961975856ffd2648b37a2a06889c9b3.json",
+    "manifest_sha256": "8214eeb8193a01b450c4b26627663ec0f961975856ffd2648b37a2a06889c9b3",
+    "manifest_file_sha256": "e06a009b28602300a26aa06a82043e3e33f4073986267ede85a4780ba80710d3",
+    "projection_path": "artifacts/apps_rg/c03/graph_evidence_cluster_embeddings/graph_evidence_cluster_embeddings.b3258a70a65a4c7ed7783f17cb308a93b5469eb45ce99f4c30a2605d2c2b57cb.sqlite",
+    "projection_file_sha256": "60093da9d045a16eb4bde91089c1b7ba2140b479c6e5196fa4f2b91a62e5d46e",
+    "projection_generation_sha256": "b3258a70a65a4c7ed7783f17cb308a93b5469eb45ce99f4c30a2605d2c2b57cb",
+    "model_artifact_sha256": "38ccc2e093252ab0416eee16837c75c641f055b4f3def12091fba8ed94e2b263",
+    "vector_count": 38,
+    "active_cluster_count": 38,
+    "held_candidate_count": 94,
+    "held_candidate_vector_count": 0,
+    "skill_or_node_vector_count": 0
+  },
+  "scope": {
+    "cluster_vectors_generated": true,
+    "legacy_artifacts_remain_retired": true,
+    "claim_authority_expanded": false,
+    "semantic_retrieval_qualification_completed": false,
+    "cluster_embedding_activation_created": false,
+    "production_promotion_authorized": false
+  },
+  "wave_exit_gates": {
+    "node_semantic_hardening": "PASS_W1",
+    "edge_assertion_hardening": "PASS_W2",
+    "authority_reconciliation": "PASS_W3",
+    "cluster_registry_materialization": "PASS_W4",
+    "legacy_artifact_retirement": "PASS_W5",
+    "cluster_embedding_generation": "PASS_W6",
+    "semantic_retrieval_qualification": "OPEN_W7",
+    "release_activation": "BLOCKED_UNTIL_QUALIFIED",
+    "production_promotion": "NOT_AUTHORIZED"
+  },
+  "next_wave": "C03_CLUSTER_EMBEDDING_W7_SEMANTIC_RETRIEVAL_QUALIFICATION",
+  "receipt_sha256": "6eb34bf6ce4555655b2242f2fc370f5e537088d1f4dbd32b2d4e458d431f13e8"
+}

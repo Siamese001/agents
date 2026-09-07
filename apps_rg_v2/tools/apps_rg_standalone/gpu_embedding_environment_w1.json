@@ -1,0 +1,116 @@
+{
+  "schema_version": "apps_rg.gpu_embedding_environment_w1.v1",
+  "status": "CONTROL_LOCKED",
+  "platform": {
+    "python_implementation": "CPython",
+    "python_version": "3.12.10",
+    "python_abi": "cp312",
+    "operating_system": "Windows",
+    "machine": "AMD64"
+  },
+  "install": {
+    "lock_path": "tools/apps_rg_standalone/gpu_embedding_environment_w1.lock.txt",
+    "lock_sha256": "d920591a5d44d45aab54e692d8a269e72bdbc57a43f068003589efc8f4eaac46",
+    "install_mode": "python -m pip install --no-deps -r <lock_path>",
+    "primary_index": "https://pypi.org/simple",
+    "torch_index": "https://download.pytorch.org/whl/nightly/cu128",
+    "torch_wheel": "torch-2.12.0.dev20260228+cu128-cp312-cp312-win_amd64.whl",
+    "torch_wheel_url": "https://download-r2.pytorch.org/whl/nightly/cu128/torch-2.12.0.dev20260228%2Bcu128-cp312-cp312-win_amd64.whl",
+    "torch_wheel_size_bytes": 2796931922,
+    "torch_wheel_sha256": "674f46f71f9175edd8ba9db9c8c1b20b3e434dc48a00a889acd4334fee9ff236",
+    "isolated_environment_required": true,
+    "resolver_mutation_allowed": false
+  },
+  "critical_distributions": {
+    "torch": {
+      "version": "2.12.0.dev20260228+cu128",
+      "payload_sha256": "22e9d8d7896362805d24a230addce2c0228faf956d146d0ad7dc494f132f6ec4",
+      "module": "torch",
+      "module_relative_path": "torch/__init__.py"
+    },
+    "sentence-transformers": {
+      "version": "5.2.3",
+      "payload_sha256": "b51ff1143ee312877d63deba51325cbbf3b78eb3216d5fc8c9ff876bfcb2c43b",
+      "module": "sentence_transformers",
+      "module_relative_path": "sentence_transformers/__init__.py"
+    },
+    "transformers": {
+      "version": "5.2.0",
+      "payload_sha256": "f1bede59434a17d33a60b6112506fdcc89435df3456ed15244256f41c688b7c6",
+      "module": "transformers",
+      "module_relative_path": "transformers/__init__.py"
+    },
+    "chromadb": {
+      "version": "1.5.5",
+      "payload_sha256": "ca553c3c0d9342d2927e61e16b31097aec6d9a25996fa98dc53254adb14e64e2",
+      "module": "chromadb",
+      "module_relative_path": "chromadb/__init__.py"
+    },
+    "numpy": {
+      "version": "2.4.2",
+      "payload_sha256": "6d29c2f5ec13b0e66feb3ec3b69f78c3f01ef096b2fb65cd92bfe5eda088a0a0",
+      "module": "numpy",
+      "module_relative_path": "numpy/__init__.py"
+    },
+    "safetensors": {
+      "version": "0.7.0",
+      "payload_sha256": "689e7842928aff530c9221e83120c4600d03985613fec4c617f6073e4a3d2d22",
+      "module": "safetensors",
+      "module_relative_path": "safetensors/__init__.py"
+    },
+    "tokenizers": {
+      "version": "0.22.2",
+      "payload_sha256": "4d6124115996fce7291b7bc8c74dfd4756f7c7d184205cd1302d0824d79c9872",
+      "module": "tokenizers",
+      "module_relative_path": "tokenizers/__init__.py"
+    },
+    "huggingface-hub": {
+      "version": "1.5.0",
+      "payload_sha256": "c8bd02df4722719de7dbe8be8b67f8b75dd1c317a6e274b281b0c39c3fc4112c",
+      "module": "huggingface_hub",
+      "module_relative_path": "huggingface_hub/__init__.py"
+    }
+  },
+  "apps_rg_source": {
+    "source_relative_path": "src/apps_rg/__init__.py",
+    "tracked_source_tree_must_be_clean": true
+  },
+  "embedding_runtime": {
+    "runtime_contract_path": "tools/apps_rg_standalone/c03_embedding_runtime_contract.json",
+    "runtime_contract_file_sha256": "d831dfac4706176ef56c303fa8bbc8add265565713652d57bf961a79f8f5b2fa",
+    "cuda_runtime": "12.8",
+    "compiled_architecture_required": "sm_120",
+    "device": "cuda:0",
+    "local_files_only": true,
+    "network_allowed": false,
+    "fallback_allowed": false
+  },
+  "gpu": {
+    "name": "NVIDIA GeForce RTX 5090",
+    "compute_capability": [12, 0],
+    "minimum_driver_version": "591.86",
+    "minimum_total_memory_mib": 32000,
+    "minimum_free_memory_mib": 8192
+  },
+  "model": {
+    "model_id": "BAAI/bge-m3",
+    "revision": "5617a9f61b028005a4858fdac845db406aefb181",
+    "dimension": 1024,
+    "normalization": "l2",
+    "manifest_path": "artifacts/apps_rg/c03/graph_evidence_cluster_embeddings/bge_m3_model_manifest.38ccc2e093252ab0416eee16837c75c641f055b4f3def12091fba8ed94e2b263.json",
+    "manifest_file_sha256": "058b33e06bf78cf6fc456848e91e64a8c62661ff8beea6fb9aafc85f78bf1170",
+    "artifact_sha256": "38ccc2e093252ab0416eee16837c75c641f055b4f3def12091fba8ed94e2b263"
+  },
+  "offline_environment": {
+    "HF_HUB_OFFLINE": "1",
+    "TRANSFORMERS_OFFLINE": "1",
+    "HF_DATASETS_OFFLINE": "1"
+  },
+  "alternative_runtime_policy": {
+    "control_contract_is_immutable": true,
+    "candidate_environment_must_be_isolated": true,
+    "candidate_must_pass_w0_functional_and_performance_gates": true,
+    "automatic_promotion_allowed": false
+  },
+  "contract_sha256": "4f824e241a8ce37c9cd55fd0a242b6bbf19aa0d4ba4429eec282a2185f8291df"
+}

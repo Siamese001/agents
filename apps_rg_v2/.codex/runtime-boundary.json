@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "projectName": "apps_rg_v2",
+  "worktreeRoot": "..",
+  "pythonLauncher": "py",
+  "pythonVersion": "3.12",
+  "defaultTimeoutSeconds": 2700,
+  "lockFiles": [
+    "tools/apps_rg_standalone/gpu_embedding_environment_w1.lock.txt"
+  ],
+  "allowedSecretEnvironment": [
+    "ANTHROPIC_API_KEY",
+    "OPENAI_API_KEY",
+    "GOOGLE_API_KEY",
+    "GEMINI_API_KEY",
+    "APPS_RG_DOTENV"
+  ],
+  "environmentPaths": {
+    "AGENTIC_REPO_ROOT": ".",
+    "CHROMA_PERSIST_DIR": "data/cache/chromadb",
+    "APPS_RG_EMBEDDING_MODEL_PATH": "artifacts/models/BAAI/bge-m3",
+    "HF_HOME": ".runtime/huggingface",
+    "TRANSFORMERS_CACHE": ".runtime/huggingface",
+    "PYTHONPATH": "src",
+    "XDG_CACHE_HOME": ".runtime/cache",
+    "PIP_CACHE_DIR": ".runtime/pip"
+  }
+}

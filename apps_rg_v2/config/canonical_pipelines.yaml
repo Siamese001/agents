@@ -1,0 +1,83 @@
+# Canonical Pipeline Manifest
+# Schema: config/schemas/canonical_pipeline.schema.json
+# Consumed by: ops_scripts/ci/check_canonical_pipeline_wiring.py (gate J1)
+#
+# This manifest declares the architectural pipelines the codebase promises
+# to implement. Every 'active' stage must have at least one caller from an
+# allowed ingress layer; otherwise gate J1 fails CI.
+#
+# See plan: docs/archive/windsurf/legacy-tree/plans/adg-wiring-ci-hardening-7a5d84.md
+# See plan: docs/archive/windsurf/legacy-tree/plans/c0-context-engine-wiring-fix-9e42a1.md
+
+version: 1
+
+pipelines:
+  - id: C0_context_engine
+    doc: docs/reference/03_L0_Routing/C0 - Retrieval/C0 Context Engine.md
+    ingress_layer: L0
+    description: >
+      Context Engine (Ref Desk) — ingests L1_Plan + query_vec, produces an
+      Evidence Contract payload for dispatch to PA (Prompt Assembly).
+      Five stages: Plan (C0.1), Fetch (C0.2), Graph (C0.3), Shape (C0.4),
+      Contract (C0.5). C0.3 is currently deferred (no entity KG implementation).
+    # Note on `min_fanin_from_layers`: C0 retrieval modules under
+    # `apps_rg/knowledge/retrieval/*` form a coherent *knowledge subsystem*
+    # at layer L_PG with internal closed-loop wiring. They are reachable from
+    # production code paths via L_PG → L_PG (subsystem-internal) and from L3
+    # via `apps_rg/L3_orchestration/.../context_compaction.py` for
+    # evidence-binding. The pipeline's overall ingress remains L0 (the C0
+    # request is initiated from routing), but individual stage modules can
+    # legitimately be called from their natural layer (L_PG, L1, L3) inside
+    # the request's flow. Per ADR backing this decision (Author-Gate
+    # 2026-04-30, type=architecture_choice, selected=manifest_realignment):
+    # we accept any non-test production layer in [L0, L1, L3, L_PG] as a
+    # valid ingress caller. Future dedup of the L0 `c0_retrieval` and L_PG
+    # `knowledge/retrieval` parallel stacks is captured in the C0 wiring
+    # plan (`docs/archive/windsurf/legacy-tree/plans/c0-context-engine-wiring-fix-9e42a1.md`).
+    stages:
+      - id: C01_plan
+        description: "Plan: scope/policy/freshness/tenant-ACL."
+        module: apps_rg/knowledge/retrieval/retrieval_plan.py
+        min_fanin_from_layers: [L0, L1, L3, L_PG]
+        status: active
+
+      - id: C01_acl_gate
+        description: "Plan: pre-retrieval gate (ACL, tenant, freshness)."
+        module: apps_rg/knowledge/gates/__init__.py
+        # Activated 2026-04-30 (Author-Gate refactor_scope: finish_two_items
+        # _introduced_this_chat). Wired into apps_rg/L0_routing/
+        # c0_retrieval/dispatcher.py as new pipeline stage C0.0b
+        # (post-preflight, pre-plan). Two latent bugs that prevented prior
+        # adoption (FilterResult.result attribute error; missing `event`
+        # arg in telemetry emit) were fixed in the same change. The gate
+        # short-circuits with a sealed BLOCKED contract on DENY/REQUIRE_AUTH
+        # and threads ALLOW/RESTRICTED through to retrieval planning.
+        min_fanin_from_layers: [L0, L1, L3, L_PG]
+        status: active
+
+      - id: C02_recall
+        description: "Fetch: hybrid recall (dense + sparse + raw chunks)."
+        module: apps_rg/knowledge/retrieval/hybrid_recall_stage.py
+        min_fanin_from_layers: [L0, L1, L3, L_PG]
+        status: active
+
+      - id: C03_graph
+        description: "Graph: entity traversal (n-hop knowledge graph)."
+        module: null
+        status: deferred
+        defer_ref: >
+          DEFERRED_SCOPE 2026-04-23 — C0.3 entity KG unimplemented. See
+          Wave/Phase Convergence Notion row (Sub-Wave C0-W4-P2-AUTO).
+          Plan: c0-context-engine-wiring-fix-9e42a1.md
+
+      - id: C04_rerank
+        description: "Shape: rerank + dedup + consolidation."
+        module: apps_rg/knowledge/retrieval/senior_librarian_reranker.py
+        min_fanin_from_layers: [L0, L1, L3, L_PG]
+        status: active
+
+      - id: C05_evidence
+        description: "Contract: evidence binding + citation slip."
+        module: apps_rg/knowledge/retrieval/evidence_contract_builder.py
+        min_fanin_from_layers: [L0, L1, L3, L_PG]
+        status: active

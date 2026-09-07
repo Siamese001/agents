@@ -1,0 +1,53 @@
+{
+  "schema_version": "apps_rg.c03_cluster_embedding_w5_receipt.v1",
+  "wave_id": "C03_CLUSTER_EMBEDDING_W5",
+  "status": "PASS",
+  "completion_marker": "C03_CLUSTER_EMBEDDING_W5_LEGACY_ARTIFACTS_RETIRED",
+  "source_baseline": {
+    "commit": "3e2fcaf47d37789688ad4fd6b2cc7ce2972423b4",
+    "tree": "92d4d2e6887a20c3e7c23d626ce8d0a366e58131",
+    "wave4_receipt_sha256": "c7a78c411334e8a02ed50667db6b4a58bcaa2acfcd51e429da4921119f026752",
+    "wave4_registry_sha256": "8b135964929d48e9a2948a0c35af6d1f3d76c61523b4568f3bc36e73056c2824",
+    "canonical_graph_sha256": "47d41419a4235c588d622375fea9a37cabafe0db65728b6d78bf268eff8ef500"
+  },
+  "contract": {
+    "path": "src/apps_rg/fact_inventory/c03_legacy_embedding_retirement_contract.v1.json",
+    "schema_version": "apps_rg.c03_legacy_embedding_retirement_contract.v1",
+    "canonical_sha256": "8cc48f63faec15df24344b6ede98b51b71d1e86e77992202339eefb1b6820205"
+  },
+  "retirement": {
+    "marker_path": "artifacts/apps_rg/c03/graph_evidence_cluster_embeddings/legacy_graph_skill_embedding_retirement.v1.json",
+    "marker_sha256": "cdff76c98f6e5a2b45c885cf05bd2e40b42305f2da090db046004fae08589906",
+    "retired_artifact_directory": "artifacts/apps_rg/c03/graph_skill_embeddings",
+    "deleted_artifact_count": 13,
+    "deleted_total_size_bytes": 1531396,
+    "unexpected_file_count": 0,
+    "remaining_file_count": 0,
+    "git_recovery_bound": true,
+    "runtime_fail_closed": true
+  },
+  "preservation": {
+    "canonical_graph_byte_identical": true,
+    "wave4_registry_byte_identical": true,
+    "historical_receipts_preserved": true,
+    "legacy_environment_flag_repurposed": false
+  },
+  "scope": {
+    "legacy_artifacts_retired": true,
+    "claim_authority_expanded": false,
+    "replacement_vectors_generated": false,
+    "cluster_embedding_activation_created": false,
+    "production_promotion_authorized": false
+  },
+  "wave_exit_gates": {
+    "node_semantic_hardening": "PASS_W1",
+    "edge_assertion_hardening": "PASS_W2",
+    "authority_reconciliation": "PASS_W3",
+    "cluster_registry_materialization": "PASS_W4",
+    "legacy_artifact_retirement": "PASS_W5",
+    "cluster_embedding_generation": "OPEN_W6",
+    "production_promotion": "NOT_AUTHORIZED"
+  },
+  "next_wave": "C03_CLUSTER_EMBEDDING_W6_CLUSTER_VECTOR_GENERATION",
+  "receipt_sha256": "f8d56958b9baef3074f476175b64bf8178eb5f13a0fe46134bbbad8c3bba41e0"
+}

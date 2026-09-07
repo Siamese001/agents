@@ -1,0 +1,198 @@
+{
+  "authority_contract_id": "apps_research_rg_e2e_authority",
+  "entries": [
+    {
+      "artifact_bindings": [
+        {
+          "artifact_ref": "e2e_preflight_continuation_receipt.json",
+          "byte_length": 3806,
+          "sha256": "sha256:bfba528812d671d33d4a942d408beefe053eb2b900dd46db1854a93076cbe9ce"
+        },
+        {
+          "artifact_ref": "e2e_preflight_continuation_consumption_receipt.json",
+          "byte_length": 605,
+          "sha256": "sha256:4673b313f30d8a4224b21553f2c20122b2c211e0214a47df185ab7316a1eb682"
+        }
+      ],
+      "authoritative_receipt_ref": "e2e_preflight_product_entry_receipt.json",
+      "authoritative_receipt_schema_version": "apps_rg.e2e_preflight_product_entry.v1",
+      "authoritative_receipt_sha256": "sha256:1269b9828d7bf4b306711df3889abbd4648ccd5d5b553d6044bab04ddfe7569a",
+      "authority_plane": "current_run",
+      "completed_at_utc": "2026-08-08T06:22:28.988292+00:00",
+      "identity_sha256": "sha256:4ddfa0b8dc0c8dcaf149b2bc4ae02593c1153ab95a9e7041cbeb80df04b25810",
+      "next_stage_id": "APPS_RESEARCH_U0",
+      "sequence": 0,
+      "stage_id": "FRESH_PREFLIGHT",
+      "started_at_utc": "2026-08-08T06:22:28.988292+00:00",
+      "status": "PASS",
+      "status_derivation": "AUTHORITATIVE_RECEIPT_BYTES"
+    },
+    {
+      "artifact_bindings": [],
+      "authoritative_receipt_ref": "e2e_authority_sources/apps_research/apps_research_u0_receipt.json",
+      "authoritative_receipt_schema_version": "apps_research.u0_receipt.v1",
+      "authoritative_receipt_sha256": "sha256:646b4c7dd602b2db732c26e70f564c98fed798feac21a32ed25459a57c71ab1c",
+      "authority_plane": "current_run",
+      "completed_at_utc": "2026-08-08T06:22:28.988292+00:00",
+      "identity_sha256": "sha256:4ddfa0b8dc0c8dcaf149b2bc4ae02593c1153ab95a9e7041cbeb80df04b25810",
+      "next_stage_id": "APPS_RESEARCH_RUNTIME",
+      "sequence": 1,
+      "stage_id": "APPS_RESEARCH_U0",
+      "started_at_utc": "2026-08-08T06:22:28.988292+00:00",
+      "status": "PASS",
+      "status_derivation": "AUTHORITATIVE_RECEIPT_BYTES"
+    },
+    {
+      "artifact_bindings": [],
+      "authoritative_receipt_ref": "e2e_authority_sources/apps_research/runtime_exhaust_bundle.json",
+      "authoritative_receipt_schema_version": "W8.a3f7e2",
+      "authoritative_receipt_sha256": "sha256:9e3b707e93eb0ed4bb6c56d5afcc3335af1ec429ad97144bcc928b710e66da78",
+      "authority_plane": "current_run",
+      "completed_at_utc": "2026-08-08T06:22:28.998796+00:00",
+      "identity_sha256": "sha256:4ddfa0b8dc0c8dcaf149b2bc4ae02593c1153ab95a9e7041cbeb80df04b25810",
+      "next_stage_id": "APPS_RESEARCH_EXIT",
+      "sequence": 2,
+      "stage_id": "APPS_RESEARCH_RUNTIME",
+      "started_at_utc": "2026-08-08T06:22:28.998796+00:00",
+      "status": "PASS",
+      "status_derivation": "AUTHORITATIVE_RECEIPT_BYTES"
+    },
+    {
+      "artifact_bindings": [],
+      "authoritative_receipt_ref": "e2e_authority_sources/apps_research/exit_disposition_receipt.json",
+      "authoritative_receipt_schema_version": "W8.a3f7e2",
+      "authoritative_receipt_sha256": "sha256:93a2c93772fa1724b3944d5052a6febcccbe9c0c50f4ed792a5b169e39f7ad86",
+      "authority_plane": "current_run",
+      "completed_at_utc": "2026-08-08T06:22:28.998796+00:00",
+      "identity_sha256": "sha256:4ddfa0b8dc0c8dcaf149b2bc4ae02593c1153ab95a9e7041cbeb80df04b25810",
+      "next_stage_id": "HANDOFF_BUNDLE_COMMIT",
+      "sequence": 3,
+      "stage_id": "APPS_RESEARCH_EXIT",
+      "started_at_utc": "2026-08-08T06:22:28.998796+00:00",
+      "status": "PASS",
+      "status_derivation": "AUTHORITATIVE_RECEIPT_BYTES"
+    },
+    {
+      "artifact_bindings": [
+        {
+          "artifact_ref": "e2e_authority_sources/apps_research/bundle_commit_manifest.json",
+          "byte_length": 453,
+          "sha256": "sha256:a6ebd000f19b7dbd2439a1f23099e73610b6b247330540425c4c4e0f88e68c9b"
+        }
+      ],
+      "authoritative_receipt_ref": "e2e_authority_sources/apps_research/apps_research_apps_rg_handoff_v2.json",
+      "authoritative_receipt_schema_version": "apps_research.apps_rg_handoff.v2",
+      "authoritative_receipt_sha256": "sha256:d174e5ea3310d9ffed10876e4b71f0605feaebcc0241db2c508d052797b6de35",
+      "authority_plane": "current_run",
+      "completed_at_utc": "2026-08-08T06:22:28.872434+00:00",
+      "identity_sha256": "sha256:4ddfa0b8dc0c8dcaf149b2bc4ae02593c1153ab95a9e7041cbeb80df04b25810",
+      "next_stage_id": "APPS_RG_U0",
+      "sequence": 4,
+      "stage_id": "HANDOFF_BUNDLE_COMMIT",
+      "started_at_utc": "2026-08-08T06:22:28.872434+00:00",
+      "status": "PASS",
+      "status_derivation": "AUTHORITATIVE_RECEIPT_BYTES"
+    },
+    {
+      "artifact_bindings": [],
+      "authoritative_receipt_ref": "e2e_authority_sources/apps_research/apps_research_handoff_validation_receipt.json",
+      "authoritative_receipt_schema_version": "apps_rg.apps_research_handoff_validation_receipt.v2",
+      "authoritative_receipt_sha256": "sha256:04b81ebb00e93c66b2ba4b7889211b51eddbaa264f2cf6911e2a00c60b35b94b",
+      "authority_plane": "current_run",
+      "completed_at_utc": "2026-08-08T06:22:29.009133+00:00",
+      "identity_sha256": "sha256:4ddfa0b8dc0c8dcaf149b2bc4ae02593c1153ab95a9e7041cbeb80df04b25810",
+      "next_stage_id": "APPS_RG_L1",
+      "sequence": 5,
+      "stage_id": "APPS_RG_U0",
+      "started_at_utc": "2026-08-08T06:22:29.009133+00:00",
+      "status": "PASS",
+      "status_derivation": "AUTHORITATIVE_RECEIPT_BYTES"
+    },
+    {
+      "artifact_bindings": [],
+      "authoritative_receipt_ref": "l1_plan_contract.json",
+      "authoritative_receipt_schema_version": "apps_rg.l1_plan_contract.v1",
+      "authoritative_receipt_sha256": "sha256:4d0c80edc99cc952dfbc1ba3819fc89b3257d135c2dc193a5d22da4a1b097f06",
+      "authority_plane": "current_run",
+      "completed_at_utc": "2026-08-08T06:22:29.009133+00:00",
+      "identity_sha256": "sha256:4ddfa0b8dc0c8dcaf149b2bc4ae02593c1153ab95a9e7041cbeb80df04b25810",
+      "next_stage_id": "APPS_RG_L0",
+      "sequence": 6,
+      "stage_id": "APPS_RG_L1",
+      "started_at_utc": "2026-08-08T06:22:29.009133+00:00",
+      "status": "PASS",
+      "status_derivation": "AUTHORITATIVE_RECEIPT_BYTES"
+    },
+    {
+      "artifact_bindings": [],
+      "authoritative_receipt_ref": "route_contract.json",
+      "authoritative_receipt_schema_version": "apps_rg.route_contract.v1",
+      "authoritative_receipt_sha256": "sha256:6792b1b7d1140129a06b2cdd97a9ca89149dafccc054e6702306959ee59f3aa7",
+      "authority_plane": "current_run",
+      "completed_at_utc": "2026-08-08T06:22:29.014680+00:00",
+      "identity_sha256": "sha256:4ddfa0b8dc0c8dcaf149b2bc4ae02593c1153ab95a9e7041cbeb80df04b25810",
+      "next_stage_id": "APPS_RG_C0",
+      "sequence": 7,
+      "stage_id": "APPS_RG_L0",
+      "started_at_utc": "2026-08-08T06:22:29.014680+00:00",
+      "status": "PASS",
+      "status_derivation": "AUTHORITATIVE_RECEIPT_BYTES"
+    }
+  ],
+  "identity": {
+    "blueprint_hash": "sha256:3cc01784d2e937acc4f0f01723828367d2f8a3c1267b8a97556f45f9cfc452dd",
+    "brief_sha256": "sha256:1992f02cd77ed34075cc08e54d64492fb6d0e6eb7ef6d9bf2121ea9bc7cbc847",
+    "child_run_id": "bridge:rg_research_bridge:de41ac16:510be8e1-98db-43d3-8f88-4cee48bd6618",
+    "consumer_app_id": "apps_rg",
+    "jd_sha256": "sha256:eec782eeec09d5e789fba7dd79a9d1f6a52f7138ee0fd0729304f0fa87673b70",
+    "parent_run_id": "c219b2b6-0ffc-47bc-96c1-9d488ca21eab",
+    "policy_hash": "sha256:6435807a14dfac2009b80d9870af3ab5edf94485e7ab31f3da325fee19e2225f",
+    "producer_app_id": "apps_research",
+    "request_id": "req-0db53a40c74244a2a2c112425142cb41",
+    "schema_version": "apps_research_rg_run_identity.v1",
+    "target_company": "Anthropic",
+    "target_role": "Manager of Applied AI Architecture, Partnerships",
+    "tenant_id": "default",
+    "trace_root": "510be8e1-98db-43d3-8f88-4cee48bd6618"
+  },
+  "schema_version": "apps_rg.e2e_stage_ledger.v2",
+  "stage_graph": {
+    "contract_ref": "config/certification/apps_research_rg_e2e_authority_contract.v1.json",
+    "contract_sha256": "sha256:6435807a14dfac2009b80d9870af3ab5edf94485e7ab31f3da325fee19e2225f",
+    "stage_ids": [
+      "FRESH_PREFLIGHT",
+      "APPS_RESEARCH_U0",
+      "APPS_RESEARCH_RUNTIME",
+      "APPS_RESEARCH_EXIT",
+      "HANDOFF_BUNDLE_COMMIT",
+      "APPS_RG_U0",
+      "APPS_RG_L1",
+      "APPS_RG_L0",
+      "APPS_RG_C0",
+      "APPS_RG_PA",
+      "APPS_RG_L2",
+      "X1_REVIEW",
+      "X2_AGGREGATION",
+      "X3_DISPOSITION",
+      "PRODUCT_ELIGIBILITY",
+      "UWG_COMMIT",
+      "PRODUCT_AUTHORIZATION_CLOSE",
+      "APPS_EVAL",
+      "L6_SHADOW",
+      "INDEPENDENT_PARITY",
+      "PROMOTION_TERMINAL",
+      "MANDATORY_OUTPUTS",
+      "STAGE_LEDGER_SEAL",
+      "TERMINAL_MANIFEST_SEAL",
+      "PIPELINE_COMPLETION_CLOSE",
+      "TERMINAL_NON_PRODUCT"
+    ]
+  },
+  "terminal_state": {
+    "observability_repair_required": false,
+    "pipeline_complete": false,
+    "product_authorized": false
+  }
+}
+
+

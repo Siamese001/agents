@@ -1,0 +1,84 @@
+{
+  "evaluation_type": "live_provider",
+  "reasoning": "The tailored resume aligns well with the JD, all facts are supported by the base resume, the research brief includes valid source URLs, and the outreach email targets Anthropic accurately without inventing claims.",
+  "retrieval_failures": [],
+  "score": 1.0,
+  "verdict": "PASS",
+  "x1": {
+    "outreach_email": {
+      "checks": {
+        "minimum_length": true,
+        "subject_line": true,
+        "target_company": true,
+        "target_role": true
+      },
+      "email_characters": 1308,
+      "missing": [],
+      "status": "PASS"
+    },
+    "resume": {
+      "checks": {
+        "core_competency_category_count": true,
+        "employers": {
+          "Early Career Roles": true,
+          "Ernst & Young": true,
+          "IBM": true,
+          "InsurTech Cloud Solutions": true,
+          "Unify Consulting": true
+        },
+        "header": true,
+        "headings": {
+          "CERTIFICATIONS": true,
+          "CORE COMPETENCIES": true,
+          "EDUCATION": true,
+          "EXECUTIVE SUMMARY": true,
+          "PROFESSIONAL EXPERIENCE": true
+        },
+        "ibm_bullet_count": true,
+        "minimum_length": true,
+        "outreach_email_not_embedded_in_resume": true,
+        "technical_expertise_not_separate_section": true,
+        "unify_bullet_count": true
+      },
+      "missing": [],
+      "required_employers": [
+        "Unify Consulting",
+        "IBM",
+        "InsurTech Cloud Solutions",
+        "Ernst & Young",
+        "Early Career Roles"
+      ],
+      "required_headings": [
+        "EXECUTIVE SUMMARY",
+        "CORE COMPETENCIES",
+        "PROFESSIONAL EXPERIENCE",
+        "EDUCATION",
+        "CERTIFICATIONS"
+      ],
+      "resume_characters": 7445,
+      "shape": {
+        "core_competency_category_count": {
+          "actual": 7,
+          "maximum": 8,
+          "minimum": 6
+        },
+        "employment_bullet_counts": {
+          "ibm_bullet_count": {
+            "actual": 5,
+            "required": 5
+          },
+          "unify_bullet_count": {
+            "actual": 6,
+            "required": 6
+          }
+        }
+      },
+      "status": "PASS"
+    },
+    "sources": {
+      "source_count": 6,
+      "status": "PASS"
+    },
+    "status": "PASS"
+  }
+}

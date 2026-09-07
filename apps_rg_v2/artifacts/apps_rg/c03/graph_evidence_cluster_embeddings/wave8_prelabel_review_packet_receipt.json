@@ -1,0 +1,56 @@
+{
+  "schema_version": "apps_rg.c03_cluster_embedding_w8_receipt.v1",
+  "wave_id": "C03_CLUSTER_EMBEDDING_W8",
+  "status": "PASS_PRELABEL_PACKET_READY",
+  "completion_marker": "C03_CLUSTER_EMBEDDING_W8_PRELABEL_PACKET_READY",
+  "source_baseline": {
+    "commit": "05c5670632d160be1c4d9c7f80bf0a50e7d4e121",
+    "tree": "a62476e38b05a238e21e49b31fa9efbbfe30ec7c",
+    "wave7_receipt_sha256": "34295e2d6aa3a1102023a59dfcc6c47102b5e61ff391b655b2ac8786be49c2f9",
+    "query_manifest_sha256": "4d8ce879651426c6d6103a72b3dda0354cca8de4aaffdec4f06c1fd6e6edd2c6",
+    "wave4_registry_sha256": "8b135964929d48e9a2948a0c35af6d1f3d76c61523b4568f3bc36e73056c2824",
+    "projection_generation_sha256": "b3258a70a65a4c7ed7783f17cb308a93b5469eb45ce99f4c30a2605d2c2b57cb",
+    "ranking_identity_sha256": "18fcfd7397b7abbd20867f2324ac1f2c9a8cb52f665975baea4e8d859624a29e"
+  },
+  "contract": {
+    "path": "src/apps_rg/evals/c03_graph_evidence_cluster_review_packet_contract.v1.json",
+    "canonical_sha256": "04b3d9d4e99b39cf1d2e6c56d7d59161e17c1f868a873abe3643aacfcc158cde"
+  },
+  "controlled_packet": {
+    "packet_manifest_sha256": "edff77e752841e541c274c3bdd9568fa0af21b9c1eea9f8705d8b601b89fe1ca",
+    "packet_manifest_file_sha256": "5d10ed1c921d11b5916b9150ec4b43e78f10345784e49a47d730bd16b0b8a789",
+    "reviewer_cohort_manifest_sha256": {
+      "reviewer_a": "419b3bc6cd326e7a709c320fdf4e623ad2c2c6488ae465c959d7458da51554a0",
+      "reviewer_b": "c68f3f6f55b476c561e7d765df90be412ac2d53077216d39970d7cd60b4c3213"
+    },
+    "query_section_count_per_cohort": 48,
+    "candidate_judgment_count_per_cohort": 456,
+    "reviewer_cohort_count": 2,
+    "total_reviewer_judgment_slots": 912,
+    "sealed_mapping_present": true,
+    "sealed_mapping_distributed": false
+  },
+  "label_authority": {
+    "human_labels_present": false,
+    "synthetic_labels_created": false,
+    "reviewer_assignments_authorized": false,
+    "human_review_authority_receipt_present": false,
+    "adjudication_present": false
+  },
+  "scope": {
+    "blinded_full_denominator_packet_ready": true,
+    "semantic_retrieval_qualified": false,
+    "cluster_embedding_activation_created": false,
+    "production_promotion_authorized": false
+  },
+  "wave_exit_gates": {
+    "prelabel_packet": "PASS_W8",
+    "two_independent_human_reviews": "OPEN_912_REVIEWER_JUDGMENT_SLOTS",
+    "human_adjudication": "OPEN_456_ADJUDICATIONS",
+    "semantic_retrieval_qualification": "BLOCKED_QREL_AUTHORITY",
+    "release_activation": "BLOCKED_UNTIL_QUALIFIED",
+    "production_promotion": "NOT_AUTHORIZED"
+  },
+  "next_action": "Obtain evaluation-owner authority for two distinct human reviewers, distribute each cohort separately, collect complete reviews and 456 distinct-human adjudications, then rerun W7.",
+  "receipt_sha256": "26766286e360a6c818cce18d6cd9b5c2674f143a1eb1b4d0fd94a71858aa0c06"
+}

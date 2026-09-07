@@ -1,0 +1,169 @@
+{
+  "apps_research_u0_receipt_digest": "sha256:c10b1a04288d69c2d77ba062565375b9fd636e148e15c79aa693bf34627f3d87",
+  "brief_sha256": "sha256:8adad229014fcb29b9aa3a3605807a3f507c9ef79b1432dec5d41e18993431ba",
+  "company": "Anthropic",
+  "company_brief_text": "Anthropic - Applied AI Research Engineer targeting brief\n| Applied AI Research Engineer | $300,000-$400,000 | Applied AI Research Team, Applied AI (2026) |\n\n## JD Complement\nThe JD seeks an applied AI research engineer who sits at the intersection of core research, product development, and customer deployment. This is not purely theoretical research or traditional presales; it is hands-on capability discovery,\nevaluation design, agentic prototyping, and building the connective tissue between model releases and enterprise adoption. The engineer must test frontier models, design domain-specific evals, develop reference architectures, and funnel\nfield reality back to Product and Research to inform roadmap priorities.\n\n## Company DNA & Operating Model\nAnthropic’s core identity is building reliable, interpretable, and steerable AI systems with an uncompromising focus on safety, steerability, and enterprise trust. The operating model for Applied AI Research is cross-functional: researchers\ndiscover and push model capabilities, applied engineers prove them in high-stakes customer environments, and field teams scale them through repeatable playbooks. Mirroring this DNA requires deep technical rigor, empirical eval discipline,\nforward-deployed customer empathy, and the ability to articulate complex capability unlocks clearly.\n\n## Company Strategy & Operating Pressure\nAnthropic wins when customers successfully unlock novel, mission-critical workflows with Claude (Claude for Enterprise, Claude Code, API) faster and more reliably than with alternative foundation models. The operating pressure is ensuring\nnew model releases translate immediately into production-grade solutions without getting stalled on novel technical hurdles or safety concerns. This role directly accelerates time-to-value by solving difficult customer challenges hands-on\nand hardening those patterns into reusable assets.\n\n## Leadership & Stakeholder Map\nDario Amodei, Daniela Amodei, and the technical leadership team emphasize safety-first frontier research and empirical verification. The stakeholder web for this role connects Core Research, Product Management, Forward Deployed Engineers,\nSales, and technical leaders at strategic enterprise accounts. The engineer serves as the trusted field interpreter for Research and the technical champion for Customer Success.\n\n## AI, Data, Platform, Architecture Signals\nKey technical surfaces include Claude 3.5 / 3.7 / 3.8 Sonnet and Opus, Claude Code, tool use, extended thinking, multi-agent workflows, prompt caching, batch APIs, and model evaluation harnesses. Architectural focus areas include\ndeterministic eval benchmarks, hallucination mitigation, context window optimization, domain-specific prompt engineering, agentic orchestration, and runtime governance.\n\n## Partnership / Ecosystem Motion\nWhile centered on strategic customers and product teams, the role partners closely with Applied AI field teams, Solution Architects, and cloud partners (AWS Bedrock, Google Cloud Vertex AI) to scale reference architectures and enablement\nplaybooks across the broader ecosystem.\n\n## Recent Events & Urgency\nWith rapid frontier model iterations and increasing enterprise demand for complex agentic workflows, Anthropic faces intense urgency to bridge the gap between raw model capability and reliable enterprise deployment. The Applied AI Research\nEngineer ensures that novel challenges encountered by leading customers immediately inform model fine-tuning, product features, and field tooling.\n\n## apps_rg Positioning Themes (targeting only, not proof)\n- End-to-end LLM evaluation framework design and benchmark verification\n- Agentic AI workflow architecture, tool-use integration, and runtime governance\n- Hands-on technical problem solving for mission-critical enterprise AI deployments\n- Translating frontier model capabilities into repeatable reference architectures and enablement playbooks\n- Bi-directional feedback loops between production field reality and core research/product roadmaps\n- Empirical rigor in prompt governance, error boundary testing, and reliability assurance\n- Forward-deployed engineering leadership converting novel capability into commercial value\n\n## apps_lic Outreach Angles (targeting only, not proof)\n- Bridging frontier research and production enterprise deployments with empirical evaluation rigor\n- Designing domain evals and agentic prototypes that prove model capability on strategic customer challenges\n- Creating technical enablement and reference architectures that accelerate field adoption\n- Funneling high-signal production telemetry back into model and product roadmap decisions\n\n## Do Not Use As Proof\nThe JD and briefing are targeting inputs only. Candidate claims must still come from the governed resume proof graph.",
+  "confidence_score": 0.92,
+  "exit_disposition_receipt_digest": "804045830b9ea3ff3eccea18e2ed6bb798e3a4e8ddc804bffc2705fd6f2652a6",
+  "fec_run_context": {
+    "company_brief": {
+      "apps_rg_targeting_brief_sidecar": {
+        "brief_text_sha256": "33555daffae9d32761cf3b266e4f68cc44f5ac6e80687b19b1d17d87a0424a78",
+        "briefing_semantic_score": 0.91,
+        "company_name": "Anthropic",
+        "generation_model": "gpt-5.6-terra",
+        "generation_model_observation_status": "OBSERVED_PROVIDER_RESPONSE",
+        "generation_model_requested": "gpt-5.6-terra",
+        "generation_provider": "external_openai",
+        "generation_provider_evidence": {
+          "application_output_valid": true,
+          "attempt_id": "attempt-gen-bridge:r",
+          "gateway_id": "apps_research.provider_gateway_v1",
+          "ledger_event": {
+            "application_output_valid": true,
+            "attempt_id": "attempt-gen-bridge:r",
+            "event_digest": "50eec14999f7fd4f0983177218c5bd5abef61ec4b2526cb23d814fe3beac0f93",
+            "gateway_id": "apps_research.provider_gateway_v1",
+            "logical_attempt_id": "bridge:rg_research_bridge:acc3fea8:t1:logical:gen",
+            "model_pin_valid": true,
+            "observed_model": "gpt-5.6-terra",
+            "outcome": "SUCCESS",
+            "overall_success": true,
+            "provider": "external_openai",
+            "provider_role": "company_brief_generation",
+            "provider_status": "VALIDATED_SUCCESS",
+            "request_digest": "a169c1b206f280accd723886e10f74d4d9ea02bc5b6a76a362970a3c15fac312",
+            "requested_model": "gpt-5.6-terra",
+            "response_schema_valid": true,
+            "run_id": "bridge:rg_research_bridge:acc3fea8:t1",
+            "schema_version": "apps_model_telemetry.external_model_usage.v1",
+            "trace_id": "t1",
+            "transport_attempt_id": "bridge:rg_research_bridge:acc3fea8:t1:logical:gen:transport:1",
+            "transport_response_received": true
+          },
+          "ledger_event_digest": "50eec14999f7fd4f0983177218c5bd5abef61ec4b2526cb23d814fe3beac0f93",
+          "lifecycle": {
+            "local_dispatch_started": true,
+            "remote_outcome": "PROVIDER_RESPONDED"
+          },
+          "logical_attempt_id": "bridge:rg_research_bridge:acc3fea8:t1:logical:gen",
+          "model_pin_valid": true,
+          "observed_model": "gpt-5.6-terra",
+          "overall_success": true,
+          "provider": "external_openai",
+          "reasoning_effort": "medium",
+          "request_digest": "a169c1b206f280accd723886e10f74d4d9ea02bc5b6a76a362970a3c15fac312",
+          "requested_model": "gpt-5.6-terra",
+          "response_schema_valid": true,
+          "role": "company_brief_generation",
+          "run_id": "bridge:rg_research_bridge:acc3fea8:t1",
+          "schema_version": "apps_research.provider_attempt_validation.v1",
+          "terminal_status": "SUCCESS",
+          "trace_id": "t1",
+          "transport_attempt_id": "bridge:rg_research_bridge:acc3fea8:t1:logical:gen:transport:1",
+          "transport_response_received": true
+        },
+        "generation_reasoning_effort": "medium",
+        "generation_token_budget": 2048,
+        "handoff_eligible": true,
+        "judge_model": "gemini-3.6-flash",
+        "judge_name": "gemini_pro",
+        "missing_sections": [],
+        "provider_call_attempted": true,
+        "reason": "ok",
+        "required_sections_present": [
+          "strategic mandate"
+        ],
+        "role_archetype": "applied_ai_architecture",
+        "schema_version": "apps_research.apps_rg_targeting_brief_sidecar/v1",
+        "semantic_gate_mode": "model_backed_llm_judge",
+        "signal_terms_missing": [],
+        "signal_terms_present": [
+          "platform"
+        ],
+        "source_families_missing": [],
+        "source_families_present": [
+          "overview"
+        ],
+        "source_register": [
+          {
+            "family": "overview",
+            "has_content": true
+          }
+        ],
+        "x2_judge_receipt": {
+          "gate_id": "X2_RESEARCH_SEMANTIC_GATE",
+          "judge_model": "gemini-3.6-flash",
+          "judge_model_requested": "gemini-3.6-flash",
+          "judge_name": "gemini_pro",
+          "judge_provider": "google_gemini",
+          "model_backed": true,
+          "model_observation_status": "OBSERVED_PROVIDER_RESPONSE",
+          "provider_evidence": {
+            "application_output_valid": true,
+            "attempt_id": "attempt-judge-bridge:r",
+            "gateway_id": "apps_research.provider_gateway_v1",
+            "ledger_event": {
+              "application_output_valid": true,
+              "attempt_id": "attempt-judge-bridge:r",
+              "event_digest": "12555202b0189d131972ca6c8078399fc90e0a209549e0aefff5d9ad2ebe53fb",
+              "gateway_id": "apps_research.provider_gateway_v1",
+              "logical_attempt_id": "bridge:rg_research_bridge:acc3fea8:t1:logical:judge",
+              "model_pin_valid": true,
+              "observed_model": "gemini-3.6-flash",
+              "outcome": "SUCCESS",
+              "overall_success": true,
+              "provider": "google_gemini",
+              "provider_role": "apps_rg_handoff_judge",
+              "provider_status": "VALIDATED_SUCCESS",
+              "request_digest": "f415ecb9ed45a6ce5123b4962bc8d12f63dc426c060a6980bab4ee927f14f480",
+              "requested_model": "gemini-3.6-flash",
+              "response_schema_valid": true,
+              "run_id": "bridge:rg_research_bridge:acc3fea8:t1",
+              "schema_version": "apps_model_telemetry.external_model_usage.v1",
+              "trace_id": "t1",
+              "transport_attempt_id": "bridge:rg_research_bridge:acc3fea8:t1:logical:judge:transport:1",
+              "transport_response_received": true
+            },
+            "ledger_event_digest": "12555202b0189d131972ca6c8078399fc90e0a209549e0aefff5d9ad2ebe53fb",
+            "lifecycle": {
+              "local_dispatch_started": true,
+              "remote_outcome": "PROVIDER_RESPONDED"
+            },
+            "logical_attempt_id": "bridge:rg_research_bridge:acc3fea8:t1:logical:judge",
+            "model_pin_valid": true,
+            "observed_model": "gemini-3.6-flash",
+            "overall_success": true,
+            "provider": "google_gemini",
+            "reasoning_effort": "high",
+            "request_digest": "f415ecb9ed45a6ce5123b4962bc8d12f63dc426c060a6980bab4ee927f14f480",
+            "requested_model": "gemini-3.6-flash",
+            "response_schema_valid": true,
+            "role": "apps_rg_handoff_judge",
+            "run_id": "bridge:rg_research_bridge:acc3fea8:t1",
+            "schema_version": "apps_research.provider_attempt_validation.v1",
+            "terminal_status": "SUCCESS",
+            "trace_id": "t1",
+            "transport_attempt_id": "bridge:rg_research_bridge:acc3fea8:t1:logical:judge:transport:1",
+            "transport_response_received": true
+          },
+          "provider_status": "MODEL_BACKED_PASS",
+          "schema_version": "apps_research.apps_rg_handoff_x2_judge_receipt.v1",
+          "score": 0.91,
+          "status": "PASS",
+          "thinking_level": "high",
+          "threshold": 0.75,
+          "verdict": "PASS"
+        }
+      }
+    },
+    "research_depth_profile": "COMPANY_BRIEF_STANDARD"
+  },
+  "generated_at_utc": "2026-09-06T11:49:25.111556+00:00",
+  "hop_terminal_error": "Stage company_brief failed: CompanyBriefUnavailableError: targeting brief OpenAI synthesis failed for model=gpt-5.6-terra: AppsResearchProviderGatewayError: OpenAI client unavailable: ModuleNotFoundError: No module named 'openai'",
+  "run_id": "bridge:rg_research_bridge:acc3fea8:t1",
+  "schema_version": "apps_research.company_brief_artifact.v3",
+  "support_coverage": 0.92,
+  "targeting_format": "apps_rg_targeting_brief_v1",
+  "x3_code": "X3D_ALLOW_FINISH"
+}

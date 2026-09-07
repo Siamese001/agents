@@ -1,0 +1,10 @@
+{
+  "l0": {
+    "route": "bare_live_provider_resume"
+  },
+  "l1": {
+    "candidate_resume_sha256": "sha256:8e7622c9528310e95288e97ddcb58a566b22b6a14435e389f0096f9aa10611e7",
+    "goal": "tailor the candidate resume to the supplied role",
+    "source_count": 6
+  }
+}

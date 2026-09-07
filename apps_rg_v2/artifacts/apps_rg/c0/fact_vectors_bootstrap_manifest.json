@@ -1,0 +1,240 @@
+{
+  "schema_version": "apps_rg.fact_vectors_bootstrap_manifest.v1",
+  "plan": "apps-rg-e2e-gap-remediation-7e2d9c",
+  "generated_at_utc": "2026-08-11T01:44:51.777785+00:00",
+  "source": "candidate_fact_ledger + base_resume_employment_bullets (tracked first-principles sources); generated output is never a live fact source",
+  "chroma_path": "C:\\Git\\apps_rg_v2\\data\\cache\\chromadb",
+  "dry_run": false,
+  "ledger_version_hash": "3aecaa0c2dcd942ac8e6c5070957704d",
+  "locked_deterministic_lanes": [],
+  "required_lanes": [
+    "competencies",
+    "unify_bullets",
+    "ibm_bullets",
+    "insurtech_bullets",
+    "ey_bullets",
+    "unify_narrative",
+    "ibm_narrative",
+    "insurtech_narrative",
+    "ey_narrative",
+    "executive_summary",
+    "headline"
+  ],
+  "missing_required_lane_targets": [],
+  "ledger_path": "C:/Git/apps_rg_v2/artifacts/apps_rg/fact_inventory/master_candidate_skills_fact_ledger_20260518T1100Z.json",
+  "total_ledger_facts": 55,
+  "eligible_atoms": 45,
+  "skipped_count": 29,
+  "skipped": [
+    {
+      "fact_id": "fact_partnerships_gtm_001",
+      "reason": "requires_proof_eligible_or_high_confidence"
+    },
+    {
+      "fact_id": "fact_partnerships_gtm_002",
+      "reason": "requires_proof_eligible_or_high_confidence"
+    },
+    {
+      "fact_id": "fact_partnerships_gtm_003",
+      "reason": "requires_proof_eligible_or_high_confidence"
+    },
+    {
+      "fact_id": "fact_partnerships_gtm_004",
+      "reason": "requires_proof_eligible_or_high_confidence"
+    },
+    {
+      "fact_id": "fact_partnerships_gtm_005",
+      "reason": "requires_proof_eligible_or_high_confidence"
+    },
+    {
+      "fact_id": "fact_sales_accounts_001",
+      "reason": "requires_proof_eligible_or_high_confidence"
+    },
+    {
+      "fact_id": "fact_sales_accounts_002",
+      "reason": "requires_proof_eligible_or_high_confidence"
+    },
+    {
+      "fact_id": "fact_sales_accounts_003",
+      "reason": "requires_proof_eligible_or_high_confidence"
+    },
+    {
+      "fact_id": "fact_sales_accounts_004",
+      "reason": "pending_trace_not_ingested"
+    },
+    {
+      "fact_id": "fact_sales_accounts_005",
+      "reason": "pending_trace_not_ingested"
+    },
+    {
+      "fact_id": "fact_revenue_ops_001",
+      "reason": "requires_proof_eligible_or_high_confidence"
+    },
+    {
+      "fact_id": "fact_revenue_ops_002",
+      "reason": "requires_proof_eligible_or_high_confidence"
+    },
+    {
+      "fact_id": "fact_revenue_ops_003",
+      "reason": "requires_proof_eligible_or_high_confidence"
+    },
+    {
+      "fact_id": "fact_revenue_ops_004",
+      "reason": "requires_proof_eligible_or_high_confidence"
+    },
+    {
+      "fact_id": "fact_revenue_ops_005",
+      "reason": "requires_proof_eligible_or_high_confidence"
+    },
+    {
+      "fact_id": "fact_solutions_001",
+      "reason": "requires_proof_eligible_or_high_confidence"
+    },
+    {
+      "fact_id": "fact_solutions_002",
+      "reason": "requires_proof_eligible_or_high_confidence"
+    },
+    {
+      "fact_id": "fact_customer_success_001",
+      "reason": "requires_proof_eligible_or_high_confidence"
+    },
+    {
+      "fact_id": "fact_governance_001",
+      "reason": "requires_proof_eligible_or_high_confidence"
+    },
+    {
+      "fact_id": "fact_governance_002",
+      "reason": "requires_proof_eligible_or_high_confidence"
+    },
+    {
+      "fact_id": "fact_governance_004",
+      "reason": "requires_proof_eligible_or_high_confidence"
+    },
+    {
+      "fact_id": "fact_governance_005",
+      "reason": "requires_proof_eligible_or_high_confidence"
+    },
+    {
+      "fact_id": "fact_data_analytics_001",
+      "reason": "requires_proof_eligible_or_high_confidence"
+    },
+    {
+      "fact_id": "fact_data_analytics_002",
+      "reason": "requires_proof_eligible_or_high_confidence"
+    },
+    {
+      "fact_id": "fact_data_analytics_003",
+      "reason": "requires_proof_eligible_or_high_confidence"
+    },
+    {
+      "fact_id": "fact_data_analytics_004",
+      "reason": "requires_proof_eligible_or_high_confidence"
+    },
+    {
+      "fact_id": "fact_quant_hpc_004",
+      "reason": "requires_proof_eligible_or_high_confidence"
+    },
+    {
+      "fact_id": "fact_exec_001",
+      "reason": "requires_proof_eligible_or_high_confidence"
+    },
+    {
+      "fact_id": "fact_consulting_002",
+      "reason": "requires_proof_eligible_or_high_confidence"
+    }
+  ],
+  "per_section_target_counts": {
+    "competencies": 45,
+    "unify_bullets": 24,
+    "ibm_bullets": 8,
+    "insurtech_bullets": 4,
+    "ey_bullets": 11,
+    "unify_narrative": 24,
+    "ibm_narrative": 8,
+    "insurtech_narrative": 4,
+    "ey_narrative": 11,
+    "executive_summary": 45,
+    "headline": 45
+  },
+  "base_resume_path": "C:/Git/apps_rg_v2/src/apps_rg/resume/base/amit_ayer_base_resume_v1.json",
+  "base_resume_digest": "cc576606cff2ecd3084408f8f900d71fe89fe7d905f373e40aa5e343964bfcc5",
+  "base_resume_employment_atoms": 19,
+  "base_resume_skipped": [],
+  "base_resume_per_section_counts": {
+    "competencies": 19,
+    "unify_bullets": 6,
+    "ibm_bullets": 5,
+    "insurtech_bullets": 3,
+    "ey_bullets": 5,
+    "unify_narrative": 6,
+    "ibm_narrative": 5,
+    "insurtech_narrative": 3,
+    "ey_narrative": 5,
+    "executive_summary": 19,
+    "headline": 19
+  },
+  "ledger_eligible_atoms": 26,
+  "chunks_built": 45,
+  "upserted_count": 45,
+  "collection_count_after": 45,
+  "sparse_sidecar_built": true,
+  "hydration_env": {
+    "schema_version": "apps_rg.fact_vector_hydration_env.v1",
+    "chroma_path": "C:\\Git\\apps_rg_v2\\data\\cache\\chromadb",
+    "embedding_enabled": true,
+    "embedding_model_id": "BAAI/bge-m3",
+    "embedding_model_path": "C:\\Users\\amita\\.cache\\huggingface\\hub\\models--BAAI--bge-m3\\snapshots\\5617a9f61b028005a4858fdac845db406aefb181",
+    "embedding_model_source": "local",
+    "device": "cuda",
+    "allow_cpu": false,
+    "applied_env": {}
+  },
+  "hydration_runtime": {
+    "schema_version": "apps_rg.fact_vector_hydration_runtime.v1",
+    "generated_at_utc": "2026-08-11T01:44:54.886394+00:00",
+    "status": "PASS",
+    "block_code": "BLOCKED_FACT_VECTOR_HYDRATION_RUNTIME",
+    "reasons": [],
+    "dependency_failures": {},
+    "required_modules": [
+      "redis",
+      "yaml",
+      "chromadb",
+      "sentence_transformers",
+      "torch"
+    ],
+    "device": "cuda",
+    "require_cuda": true,
+    "torch_cuda_available": true,
+    "cuda_device_name": "NVIDIA GeForce RTX 5090",
+    "embedding_model_path": "C:\\Users\\amita\\.cache\\huggingface\\hub\\models--BAAI--bge-m3\\snapshots\\5617a9f61b028005a4858fdac845db406aefb181",
+    "embedding_model_path_present": true,
+    "offline_model_required": true,
+    "hf_hub_offline": true,
+    "transformers_offline": true
+  },
+  "hydration_lock": {
+    "schema_version": "apps_rg.fact_vector_hydration_lock.v1",
+    "lock_path": "C:\\Git\\apps_rg_v2\\data\\cache\\chromadb\\.apps_rg_fact_vector_hydration.lock",
+    "status": "ACQUIRED",
+    "block_code": "BLOCKED_FACT_VECTOR_HYDRATION_LOCK",
+    "token": "ae601c47511641be93e8693759a3db0e",
+    "acquired_at_utc": "2026-08-11T01:44:54.886394+00:00",
+    "released": true,
+    "reasons": [],
+    "pid": 2652,
+    "released_at_utc": "2026-08-11T01:44:58.095264+00:00"
+  },
+  "chroma_snapshot": {
+    "schema_version": "apps_rg.fact_vector_chroma_snapshot.v1",
+    "generated_at_utc": "2026-08-11T01:44:54.886394+00:00",
+    "source_path": "C:\\Git\\apps_rg_v2\\data\\cache\\chromadb",
+    "status": "PASS",
+    "snapshot_path": "C:\\Git\\apps_rg_v2\\artifacts\\apps_rg\\c0\\chroma_snapshots\\fact_vectors_chroma_20260810_214454_1786412694886394100",
+    "reasons": []
+  },
+  "chunk_skipped": [],
+  "sparse_doc_count": 45,
+  "sparse_term_count": 967,
+  "manifest_checksum": "0ac91949e1048a1785442254c7fb035c44b1d57598a5cb8e81ed411483af40d1"
+}
