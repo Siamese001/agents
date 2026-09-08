@@ -4,7 +4,7 @@ Memory runbook for auditing local branches/worktrees, merging approved work into
 `main` safely, and choosing detached-worktree or ours-merge paths when
 `C:\Git\Agentic-Workflow-FRESH` has a dirty main checkout or stale preservation
 branches. This is not an executable Codex skill; repo-owned skills live under
-`.codex/skills`.
+`.agents/skills`.
 
 Use this when:
 - The task is to merge a branch into `main` and push `origin/main` in `C:\Git\Agentic-Workflow-FRESH`.
@@ -60,7 +60,7 @@ Efficiency plan:
 1. Start with topology commands, not file-by-file branch exploration.
 2. Reuse one detached merge worktree for the full publish path when the primary checkout is dirty.
 3. Prefer the smallest verification selector that still covers the merged surface.
-4. Stop normal merge investigation early when conflict files cluster in `.codex/hooks/*`, `docs/reports/adg/*`, `ops_scripts/ci/baselines/*`, or `tools/git/*`; that pattern already justifies an `ours` merge for archival containment.
+4. Stop normal merge investigation early when conflict files cluster in `.antigravity/hooks/*`, `docs/reports/adg/*`, `ops_scripts/ci/baselines/*`, or `tools/git/*`; that pattern already justifies an `ours` merge for archival containment.
 
 Pitfalls and fixes:
 - Symptom: edits land in the wrong checkout or worktree.

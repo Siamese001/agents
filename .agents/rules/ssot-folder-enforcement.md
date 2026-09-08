@@ -5,7 +5,7 @@
 
 **Invariant (kept):** every NEW Python file lands in its canonical SSOT folder — `check_*`/`*_gate.py`
 → `ops_scripts/ci/`; calibration/binder/poller → `ops_scripts/calibration/`; `purge_*`/`cleanup_*` →
-`ops_scripts/maintenance/`; `pre_*`/`post_*` hooks → `.codex/governance/scripts/`; else →
+`ops_scripts/maintenance/`; `pre_*`/`post_*` hooks → `.agents/scripts/`; else →
 `tools/<domain>/`. Hook-prefix files misrouted = silent disable. Pre-existing files exempt.
 Constitutional §31.
 

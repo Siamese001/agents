@@ -254,8 +254,8 @@ Do not create another broad governance system. Put each invariant at the narrowe
 | --- | --- |
 | Root `AGENTS.md` | Add the objective lock, PR necessity gate, no-waiver rule, and main convergence definition |
 | `apps_rg/AGENTS.md` | Replace the current three-line working rules with the exact product completion gate |
-| `.codex/rules/apps-rg-execution-bias.md` | Explicitly state that waves stay on one branch and cannot each create a PR |
-| `.codex/rules/apps-rg-post-run-summary.md` | Make a fresh, same-SHA complete run mandatory before PASS or ready-for-review |
+| `.agents/rules/apps-rg-execution-bias.md` | Explicitly state that waves stay on one branch and cannot each create a PR |
+| `.agents/rules/apps-rg-post-run-summary.md` | Make a fresh, same-SHA complete run mandatory before PASS or ready-for-review |
 | PR creation hook/workflow | Block duplicate objective PRs, partial/wave PR titles, and branches not based on current `origin/main` |
 | Merge workflow | Block drafts, incomplete checks, missing objective/DoD packet, and relevant waived failures |
 | `stop_task_audit.py` | Treat product completion and publication convergence as independent mandatory proofs |

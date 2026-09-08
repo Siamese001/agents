@@ -1,6 +1,4 @@
 
-<!-- Converted from `.codex/rules/scope-containment.md`. Original legacy editor trigger: `always_on`. -->
-
 # Scope Containment — No Gold-Plating, One Task At A Time
 
 > ⛔ **Scope of the current response = (a) what the user asked for + (b) files in the active plan's `Files In Scope` + (c) files required to satisfy (a)+(b) transitively. Nothing else.**

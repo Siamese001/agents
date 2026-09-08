@@ -16,9 +16,9 @@ The user is operating a local Codex memory system on Windows + PowerShell and is
 
 ## General Tips
 
-- Environment baseline: Windows + PowerShell; Agentic Workflow project memory lives under `C:\Git\Agentic-Workflow-FRESH\memory\`; the global Codex memory path `C:\Users\amita\.codex\memories` and Codex product memories are for cross-project/user-level recall only, never project SSOT.
+- Environment baseline: Windows + PowerShell; Agentic Workflow project memory lives under `C:\Git\Agentic-Workflow-FRESH\memory\`; the global Codex memory path `C:\Users\amita\.agents\memories` and Codex product memories are for cross-project/user-level recall only, never project SSOT.
 - For repo-wide merge/publish work in `C:\Git\Agentic-Workflow-FRESH`, start with `git worktree list --porcelain` plus `git branch --merged/--no-merged origin/main` after fetch; search `MEMORY.md` for `branch containment`, `detached merge worktree`, or `git merge -s ours --no-ff`.
-- Use `runbooks/repo-main-merge-publish.md` as memory context for branch-to-main publication requests in this repo; executable repo skills live under `.codex/skills`.
+- Use `runbooks/repo-main-merge-publish.md` as memory context for branch-to-main publication requests in this repo; executable repo skills live under `.agents/skills`.
 - If `main` is dirty, prefer a detached merge worktree for publish steps; if `origin/main` advances mid-workflow, fetch again and merge the new remote tip before pushing.
 - Branch publication closeout means exact commit ancestry on `origin/main`: `git branch --no-merged origin/main` must be empty or explicitly retained, and deleted branches must pass `git merge-base --is-ancestor <branch> origin/main`. Patch-equivalent `git cherry -v` rows are evidence for a deliberate `git merge -s ours --no-ff <branch>`, not cleanup proof.
 - In `apps_rg` hotspot analysis, the useful fallback when `adg_sqlite` MCP is unavailable is local SQLite plus repo test inventory; search `MEMORY.md` for `adg_indexed_06152026_1043.sqlite`, `mv_hotspot_coverage_risk`, and `resolved_path`.

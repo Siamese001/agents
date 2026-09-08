@@ -18,7 +18,7 @@
 
 ## Plan-FIRST ≠ plan-PERSISTENCE
 
-Native plan mode (`EnterPlanMode`/`ExitPlanMode`) satisfies think-before-editing but writes to `~/.codex/plans/` — **it persists nothing to the repo SSOT**. Complexity, not session-span, decides persistence: a big change done in ONE session still deserves a durable `plans/<slug>-<6hex>.md` (RCA 2026-06-14 / ADR-104). Plans are **disk-only** (no Notion). Mint the disk plan for ≥2-wave or large/cross-layer work (request `PLAN_MINT_OK=1`); keep native plan mode for small work.
+Native plan mode (`EnterPlanMode`/`ExitPlanMode`) satisfies think-before-editing but writes to `deprecated IDE plan locations` — **it persists nothing to the repo SSOT**. Complexity, not session-span, decides persistence: a big change done in ONE session still deserves a durable `plans/<slug>-<6hex>.md` (RCA 2026-06-14 / ADR-104). Plans are **disk-only** (no Notion). Mint the disk plan for ≥2-wave or large/cross-layer work (request `PLAN_MINT_OK=1`); keep native plan mode for small work.
 
 ## The Four Anti-Reflex Rules
 
@@ -34,4 +34,4 @@ Native plan mode (`EnterPlanMode`/`ExitPlanMode`) satisfies think-before-editing
 
 ## References
 
-- `.codex/rules/apps-rg-execution-bias.md` · `.codex/rules/plan-location.md` · constitutional §24 (`spawn_task` — no `DEFERRED_SCOPE:` marker).
+- `.agents/rules/apps-rg-execution-bias.md` · `.agents/rules/plan-location.md` · constitutional §24 (`spawn_task` — no `DEFERRED_SCOPE:` marker).
