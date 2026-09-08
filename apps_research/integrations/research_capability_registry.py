@@ -1,8 +1,8 @@
-"""apps_research capability registry — agentic_core delegation contract.
+"""apps_research capability registry — apps_rg delegation contract.
 
 This module is the apps_research side of the core-owned route/capability
 resolution contract. It registers the 'apps_research.company_brief_v1'
-capability with the agentic_core runner and provides the resolution
+capability with the apps_rg runner and provides the resolution
 delegate used by the R3_SIMPLE_GROUNDED_READ route.
 
 Registration flow:
@@ -43,7 +43,7 @@ EXECUTION_FORM = "SINGLE_STEP"
 class CapabilityUnavailableError(RuntimeError):
     """Raised when the capability cannot be resolved.
 
-    Must be caught by the agentic_core runner and routed through
+    Must be caught by the apps_rg runner and routed through
     Exit v6 with reason_code=CAPABILITY_UNAVAILABLE — no generic brief fallback.
     """
 

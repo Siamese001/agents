@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["resume_graph_engine*", "outreach_engine*", "apps_exec*", "apps_research*", "apps_eval*"]
+include = ["resume_graph_engine*", "outreach_engine*", "apps_eval*", "apps_research*", "apps_model_telemetry*"]
 exclude = ["tests*", "ops_scripts*", "data*", "archives*", "artifacts*"]
 
 [project]
@@ -119,8 +119,8 @@ minversion = "7.0"
 # - 24 workers with worksteal (default for mixed pytest workloads)
 # - Fixture-heavy: 18 workers with loadscope
 # - File-isolated: 20 workers with loadfile
-addopts = "--cov=agentic_core --cov-branch --cov-report=term-missing --cov-report=html:artifacts/reports/coverage_html --cov-fail-under=100 -ra -v -n 24 --dist=worksteal --timeout=180"
-testpaths = ["tests"]
+addopts = "-ra -v -n 24 --dist=worksteal --timeout=180"
+testpaths = ["apps_eval/tests", "resume_graph_engine/tests", "outreach_engine/tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
@@ -293,3 +293,5 @@ exclude = [
     "stubs/",
     "tests/"
 ]
+
+

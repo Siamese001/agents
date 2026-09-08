@@ -16,7 +16,7 @@ from datetime import datetime, timedelta
 from enum import Enum
 from typing import Any, Callable
 
-from .implementation_plan import FourLayerContractError, FourLayerContractGuard, LayerType
+from infrastructure.config.implementation_plan import FourLayerContractError, FourLayerContractGuard, LayerType
 
 logger = logging.getLogger(__name__)
 
@@ -730,3 +730,5 @@ class CrossLayerCoherenceManager:
 
         logger.info(f"Cleaned up {expired_count} expired entries")
         return expired_count
+
+

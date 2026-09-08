@@ -1,20 +1,24 @@
 # Provider Profile for apps_research / company_brief
 #
 # Provider-specific configuration for L2 execution.
-# Defines approved external model lanes, fallback policies, and gateway behavior.
+# Defines the sole approved external model lane and fail-closed gateway behavior.
 
 profile_id: apps_research_provider_profile_company_brief_v1
 app_id: apps_research
 task_class: company_brief
 schema_version: "1.0"
 
-# Approved model lanes (from lowest to highest priority)
+# Approved model lanes. CompanyBriefEngine implements exactly this primary lane.
 approved_model_lanes:
   # Primary lane: OpenAI-compatible synthesis path used by CompanyBriefEngine.
   primary:
     lane_id: research_synthesis_primary
     provider: external_openai
-    model: gpt-5.4-mini-2026-03-17
+    provider_key: openai_chatgpt
+    model: gpt-5.6-terra
+    reasoning_effort: medium
+    owner: apps_research.company_brief
+    review_after: "2026-11-07"
     
     capabilities:
       - json_mode
@@ -29,29 +33,10 @@ approved_model_lanes:
       credential_env_var: OPENAI_API_KEY
       circuit_breaker_threshold: 3
       
-  # Fallback lane is documented for the future generic gateway path; the current
-  # CompanyBriefEngine resolver only permits the primary OpenAI synthesis lane.
-  fallback_1:
-    lane_id: research_synthesis_fallback
-    provider: external_claude
-    model: claude-sonnet-5
-    
-    modifications:
-      max_tokens: 2048
-      temperature: 0.2
-      
 # Lane selection policy
 lane_selection:
-  strategy: priority_order
-  
-  selection_criteria:
-    - lane_health_status
-    - current_capacity
-    - estimated_latency
-    
-  promotion_rules:
-    promote_on_primary_failure: true
-    promote_to_next_priority_after: 2_retries
+  strategy: single_lane_fail_closed
+  executable_lane_count: 1
 
 # Gateway configuration
 gateway:
@@ -70,14 +55,14 @@ gateway:
       schema_binding: strict
   
   error_handling:
-    on_provider_error: retry_with_fallback
-    on_timeout: promote_to_next_lane
+    on_provider_error: fail_closed
+    on_timeout: fail_closed
     on_invalid_json: attempt_repair
     on_schema_violation: fail_closed
   
   retry_policy:
     max_attempts_per_lane: 2
-    max_total_attempts: 4
+    max_total_attempts: 2
     backoff: exponential_jitter
 
 # Provider call constraints
@@ -106,7 +91,7 @@ health_monitoring:
   enabled: true
   
   checks:
-    - credential_env_var: ANTHROPIC_API_KEY
+    - credential_env_var: OPENAI_API_KEY
       interval_seconds: 30
       timeout_seconds: 5
       
@@ -119,12 +104,6 @@ health_monitoring:
     - latency_p99
     - success_rate
     - token_throughput
-
-# Fallback cascade
-fallback_cascade:
-  level_1: retry_same_lane_with_backoff
-  level_2: promote_to_next_priority_lane
-  level_3: fail_closed_with_receipt
 
 # Cost/performance tradeoffs (for future budget controls)
 tradeoffs:

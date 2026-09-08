@@ -52,7 +52,7 @@ def emit_verified_current_run_evidence(
 
     root = root.resolve()
     root.mkdir(parents=True, exist_ok=True)
-    secret = "apps-eval-test-route-secret"
+    secret = "apps-eval-test-route-secret-32-bytes-minimum"
     key_id = "apps-eval-test-key"
     monkeypatch.setenv("APPS_RG_ROUTE_HMAC_SECRET", secret)
     monkeypatch.setenv("APPS_RG_ROUTE_HMAC_KEY_ID", key_id)

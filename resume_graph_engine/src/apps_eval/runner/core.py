@@ -20,7 +20,7 @@ from typing import Any, Mapping
 
 from apps_eval import _write_gateway as _wg
 from apps_eval.adapters import run_apps_lic_live, run_apps_rg_live
-from apps_eval.adapters.apps_rg import (
+from apps_eval.adapters.resume_graph_engine import (
     build_source_artifact_manifest,
     source_artifact_manifest_digest,
 )
@@ -2147,3 +2147,4 @@ def run_anthropic_deterministic_fixture_eval(
 
 def render_record(record_path: str) -> str:
     return render_record_markdown(_load_json(Path(record_path)))
+

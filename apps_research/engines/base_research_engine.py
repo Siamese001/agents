@@ -6,28 +6,13 @@ Mirrors the shared base-engine pattern with research-specific contracts.
 
 from __future__ import annotations
 
-from agentic_core.runtime.contracts.runtime_telemetry_decorators import (
-    traces_execute,
-)
+from apps_rg.runtime.apps_runtime_compat import traces_execute
 
 import logging
 from abc import ABC, abstractmethod
 from typing import Any
 
-try:
-    from agentic_core.mixins.semantic_cache_mixin import SemanticCacheMixin
-except ImportError:  # guardian: allow-silent-swallow -- optional dependency
-
-    class SemanticCacheMixin:  # type: ignore[no-redef]
-        pass
-
-
-try:
-    from agentic_core.mixins.embedding_mixin import EmbeddingMixin
-except ImportError:
-
-    class EmbeddingMixin:  # type: ignore[no-redef]
-        pass
+from apps_research.runtime.core_dependencies import EmbeddingMixin, SemanticCacheMixin
 
 
 _log = logging.getLogger(__name__)
@@ -143,7 +128,7 @@ class BaseResearchEngine(SemanticCacheMixin, EmbeddingMixin, ABC):
 # Phase B (per-method spans on execute() paths) is tracked separately.
 # Pattern matches lifecycle_trace_contract.py and apps_research/engines.
 # ----------------------------------------------------------------------
-from agentic_core.runtime.contracts.lifecycle_trace_contract import (  # noqa: E402
+from apps_rg.runtime.apps_runtime_compat import (  # noqa: E402
     _emit_records_telemetry_event,
 )
 

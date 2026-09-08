@@ -110,12 +110,28 @@ def materialize_research_evidence(
     bundle: Any,
     request: Any,
     support_coverage: float,
+    company_brief: dict[str, Any] | None = None,
 ) -> tuple[ResearchEvidenceLineageItem, ...]:
-    """Prefer C0 bundle chunks; fall back to CompanyBriefEngine when C0 is empty."""
+    """Prefer C0 chunks, then the source portfolio already sealed with the brief.
+
+    The governed substrate and the company-brief hop have distinct C0 paths.
+    When the substrate's ``process_docs`` collection is empty, the hop can still
+    have produced a source-grounded CompanyBriefEngine ``_c0_bundle``.  Reusing
+    that sealed bundle preserves the exact sources that supported the brief;
+    it must be preferred over issuing a second, unbound retrieval.
+    """
     default_conf = max(0.0, min(1.0, float(support_coverage or 0.0)))
     items = evidence_from_c0_bundle(bundle, default_confidence=default_conf or 0.5)
     if items:
         return items
+
+    if isinstance(company_brief, dict):
+        sealed_brief_items = evidence_from_company_brief(
+            company_brief,
+            default_confidence=default_conf or 0.75,
+        )
+        if sealed_brief_items:
+            return sealed_brief_items
 
     topic = str(getattr(request, "topic", "") or "").strip()
     if not topic:

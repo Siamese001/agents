@@ -94,7 +94,7 @@ apps_research outputs are **stateless** — no durable side-effects beyond the r
 ## Escalation Contacts
 
 - **Primary on-call:** see `CODEOWNERS`
-- **L3 inference owner:** see `agentic_core/L3_orchestration/inference/CODEOWNERS`
+- **L3 inference owner:** see `apps_rg/L3_orchestration/inference/CODEOWNERS`
 - **SearXNG / retrieval owner:** see `infrastructure/sdks_mcps/CODEOWNERS`
 
 ## Eval Harness (apps-eval-harness-closeout-b7c9d2 W3.P1)

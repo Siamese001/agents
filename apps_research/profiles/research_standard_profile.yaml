@@ -59,7 +59,7 @@ evidence_sufficiency:
 
 # AG-RGGOV-1 Compliance Declaration
 runtime_authority: none  # This profile declares NO runtime authority
-implemented_by: agentic_core  # Runtime implementation in core only
+implemented_by: apps_rg  # Runtime implementation in core only
 
 # DS-4 Pilot Notes
 # This profile is part of the apps_research governance pilot.

@@ -7,7 +7,7 @@ for knowledge reuse, source validation, and quality benchmarking.
 
 from __future__ import annotations
 
-from agentic_core.runtime.contracts.runtime_telemetry_decorators import (
+from apps_rg.runtime.apps_runtime_compat import (
     traces_execute,
 )
 
@@ -18,7 +18,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
 
-from agentic_core.runtime.contracts.lifecycle_trace_contract import (
+from apps_rg.runtime.apps_runtime_compat import (
     _emit_pulls_context,
     _emit_reads_through,
     _emit_records_execution_trace,

@@ -9,7 +9,7 @@ SVP Standards:
 
 from __future__ import annotations
 
-from agentic_core.runtime.contracts.runtime_telemetry_decorators import (
+from apps_rg.runtime.apps_runtime_compat import (
     traces_execute,
 )
 
@@ -89,7 +89,7 @@ def _bundle_from_research_result(result: "ResearchResult") -> "EvidenceBundle": 
 
     No ChromaDB required — all signals derived from the app's own result contract.
     """
-    from agentic_core.L3_orchestration.reasoning.engines.evidence_shaper import (  # noqa: PLC0415
+    from apps_rg.L3_orchestration.reasoning.engines.evidence_shaper import (  # noqa: PLC0415
         CitationAnchor,
         ContradictionFlag,
         EvidenceBundle,
@@ -178,7 +178,7 @@ class GovernedExecutionSeam:
         l6_ingested = False
 
         try:
-            from agentic_core.L3_orchestration.reasoning.engines.evidence_eval_bridge import (  # noqa: PLC0415
+            from apps_rg.L3_orchestration.reasoning.engines.evidence_eval_bridge import (  # noqa: PLC0415
                 evaluate_and_emit,
             )
             from ops_scripts.reports.async_eval_packet import (  # noqa: PLC0415  # guardian: allow-layer-violation -- L_APP->L_OPS lazy eval ingest probe
@@ -316,7 +316,7 @@ class ExecutionAdapter:
 # Phase B (per-method spans on execute() paths) is tracked separately.
 # Pattern matches lifecycle_trace_contract.py and apps_research/engines.
 # ----------------------------------------------------------------------
-from agentic_core.runtime.contracts.lifecycle_trace_contract import (  # noqa: E402
+from apps_rg.runtime.apps_runtime_compat import (  # noqa: E402
     _emit_records_telemetry_event,
 )
 

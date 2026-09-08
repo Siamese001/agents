@@ -21,7 +21,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from agentic_core.runtime.contracts.lifecycle_trace_contract import (
+from apps_rg.runtime.apps_runtime_compat import (
     _emit_applies_guardrail,
     _emit_captures_pattern,
     _emit_coordinates_agents,
@@ -393,7 +393,7 @@ Assuming continued momentum, {topic} represents a key opportunity.
         return [
             {
                 "source_id": "SRC-001",
-                "title": "Agentic Core Documentation",
+                "title": "Apps RG runtime Documentation",
                 "claim_type": "direct_evidence",
                 "confidence": 0.95,
                 "summary": "Core platform capabilities",

@@ -46,6 +46,17 @@ def load_suites_registry() -> dict[str, Any]:
         app_id = suite.get("app_id")
         if app_id not in ALLOWED_APPS:
             raise ValueError(f"suite {suite_id} targets unsupported app {app_id}")
+        profile_id = str(suite.get("apps_rg_contract_profile_id") or "")
+        if profile_id:
+            if app_id != "apps_rg":
+                raise ValueError(f"suite {suite_id} declares an Apps RG profile for {app_id}")
+            if profile_id == "apps_rg.anthropic_deterministic_fixture.v1":
+                if suite.get("split") != "fixture" or suite.get("fixture_only") is not True:
+                    raise ValueError(
+                        f"fixture profile suite {suite_id} must be split=fixture and fixture_only=true"
+                    )
+            elif profile_id != "apps_rg.product.v1":
+                raise ValueError(f"suite {suite_id} declares unknown Apps RG profile {profile_id}")
     return suites
 
 

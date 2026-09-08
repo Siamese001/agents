@@ -2,7 +2,7 @@
 
 R3_SIMPLE_GROUNDED_READ = GROUNDED, meaning C0 retrieval is mandatory before
 any synthesis step. This adapter is the single delegation point between the
-apps_research spine and the agentic_core C0 context engine.
+apps_research spine and the apps_rg C0 context engine.
 
 Evidence contracts produced by this adapter are consumed by:
 - research_pa_compiler.py (prompt template hydration)
@@ -178,12 +178,12 @@ def evaluate_c0_gate(
 # ---------------------------------------------------------------------------
 
 class ResearchC0Adapter:
-    """Delegates C0 hybrid retrieval to the agentic_core C0 context engine.
+    """Delegates C0 hybrid retrieval to the apps_rg C0 context engine.
 
     Produces a BriefingEvidenceBundle carrying all 8 typed evidence contracts
     required by the E1-E5 step adapter pipeline.
 
-    In production, retrieval is delegated to the agentic_core hybrid search
+    In production, retrieval is delegated to the apps_rg hybrid search
     engine (ChromaDB collection + BM25 reranker). When the collection is
     unavailable the adapter degrades gracefully — returning an empty bundle
     that will fail the C0 gate and route through X3E_SAFE_ABSTAIN.
@@ -238,7 +238,7 @@ class ResearchC0Adapter:
     ) -> BriefingEvidenceBundle:
         """Run a C0 retrieval pass and return all 8 briefing-grade evidence contracts.
 
-        Delegates to the agentic_core C0 context engine (GovernedAppRunner
+        Delegates to the apps_rg C0 context engine (GovernedAppRunner
         substrate). When the collection is unavailable, degrades gracefully
         — the returned bundle will have empty coverage, triggering a
         FAIL_DEGRADE verdict from evaluate_c0_gate().
@@ -276,7 +276,7 @@ class ResearchC0Adapter:
         topic: str,
         query_plans: list[Any],
     ) -> list[dict[str, Any]]:
-        """Delegate to agentic_core C0 engine; degrade gracefully on failure."""
+        """Delegate to apps_rg C0 engine; degrade gracefully on failure."""
         try:
             from apps_shared.integrations.governed_app_runner import GovernedAppRunner  # noqa: PLC0415
             runner = GovernedAppRunner(collection=self._collection)

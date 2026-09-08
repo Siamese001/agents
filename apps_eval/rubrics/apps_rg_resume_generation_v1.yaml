@@ -10,6 +10,8 @@
 rubric_id: rub_apps_rg_resume_generation_v1
 rubric_version: "0.1.0"
 applies_to_spec_versions: ">=0.1.0,<1.0.0"
+evaluation_role: regression_diagnostic_only
+authority_boundary: This rubric's scalar and row scores cannot qualify human review, release, or production.
 
 judge_model_pin:
   provider: anthropic
@@ -18,7 +20,8 @@ judge_model_pin:
   temperature: 0
 
 human_calibration:
-  last_calibrated_at: "2026-04-29T00:00:00Z"
+  status: NOT_MEASURED
+  last_calibrated_at: null
   inter_rater_kappa: 0.0
   cadence: P30D
   n_calibration_samples: 0
@@ -75,10 +78,12 @@ scorecard:
     score: 0
     justification: ""
     evidence_pointer: ""
-  aggregate: weighted_sum
+  aggregate: weighted_sum_regression_diagnostic_only
+  weight_interpretation: Weights are diagnostic prioritization metadata, not a product-success or release decision rule.
   flags: []
 
 release_recommendation_inputs:
+  authority: regression_diagnostic_only
   auto_approve_if: "all weights met AND no hard_floor_violations AND no prohibited_features matched"
   bounded_revise_if: "single dimension below threshold by <= 1 AND no hard_floor_violations"
   hold_if: "hard_floor_violations OR overfit_risk >= 3"

@@ -128,7 +128,7 @@ class ResearchOrchestrator:
             self._specs = None
 
         try:
-            from agentic_core.adg.runtime.behavioral_index import ADGBehavioralIndex
+            from apps_rg.adg.runtime.behavioral_index import ADGBehavioralIndex
 
             _idx = ADGBehavioralIndex.from_latest(Path(__file__).resolve().parents[3])
             _profile = _idx.profile_for(Path(__file__).resolve()) if _idx else None

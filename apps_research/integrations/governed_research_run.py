@@ -34,7 +34,7 @@ from apps_shared.integrations.governed_app_runner import (
     build_app_record,
 )
 
-from agentic_core.runtime.contracts.runtime_telemetry_decorators import (
+from apps_rg.runtime.apps_runtime_compat import (
     traces_execute,
 )
 from apps_research.types.research_types import ResearchRequest
@@ -301,6 +301,7 @@ class GovernedResearchRun(GovernedAppRunner):
             bundle=self._last_c0_bundle,
             request=request,
             support_coverage=core.support_coverage,
+            company_brief=_find_company_brief_mapping(fec_ctx),
         )
         confidence_score = max(
             float(core.support_coverage or 0.0),
@@ -430,7 +431,7 @@ class GovernedResearchRun(GovernedAppRunner):
 # Phase B (per-method spans on execute() paths) is tracked separately.
 # Pattern matches lifecycle_trace_contract.py and apps_research/engines.
 # ----------------------------------------------------------------------
-from agentic_core.runtime.contracts.lifecycle_trace_contract import (  # noqa: E402
+from apps_rg.runtime.apps_runtime_compat import (  # noqa: E402
     _emit_records_telemetry_event,
 )
 

@@ -23,7 +23,7 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
 from datetime import datetime, timezone
 
-from agentic_core.runtime.contracts.judge_types import JudgeResult
+from apps_rg.runtime.apps_runtime_compat import JudgeResult
 
 
 @dataclass(frozen=True, slots=True)

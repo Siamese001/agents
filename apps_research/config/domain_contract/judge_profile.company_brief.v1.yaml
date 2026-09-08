@@ -5,6 +5,17 @@ profile_id: apps_research_company_brief_v1
 version: "W9.0.0"
 description: Judge profile for company brief evaluation
 
+# Executable model-backed judge used only for the governed apps_rg targeting
+# handoff. The generic W9 gateway below remains PROFILE_ONLY.
+apps_rg_handoff_judge:
+  provider_key: gemini_pro
+  provider: google_gemini
+  model: gemini-3.6-flash
+  reasoning_effort: high
+  owner: apps_research.apps_rg_handoff
+  review_after: "2026-11-07"
+  receipt_identity_source: observed_provider_response
+
 # Dimensions to evaluate (deterministic graders in core)
 dimensions:
   # G09: Source Quality

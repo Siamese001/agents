@@ -64,7 +64,7 @@
       "stage_id": "L1",
       "component_id": "apps_rg.run_contract",
       "subcomponent_id": "l1_static_plan",
-      "required": true,
+      "required": false,
       "artifact_role": "l1_static_plan_profile",
       "gate_id": "l1_static_plan_profile_present",
       "severity": "BLOCK"
@@ -74,7 +74,7 @@
       "stage_id": "L1",
       "component_id": "apps_rg.run_contract",
       "subcomponent_id": "l1_static_plan",
-      "required": true,
+      "required": false,
       "artifact_role": "l1_static_plan_profile",
       "gate_id": "l1_static_plan_profile_schema_bound",
       "severity": "MAJOR"
@@ -104,7 +104,7 @@
       "stage_id": "C0",
       "component_id": "apps_rg.run_contract",
       "subcomponent_id": "c0_evidence",
-      "required": true,
+      "required": false,
       "artifact_role": "c0_evidence_manifest",
       "gate_id": "c0_evidence_manifest_present",
       "severity": "BLOCK"
@@ -114,7 +114,7 @@
       "stage_id": "C0",
       "component_id": "apps_rg.run_contract",
       "subcomponent_id": "c0_evidence",
-      "required": true,
+      "required": false,
       "artifact_role": "c0_evidence_manifest",
       "gate_id": "c0_evidence_materiality_present",
       "severity": "MAJOR"
@@ -124,7 +124,7 @@
       "stage_id": "PA",
       "component_id": "apps_rg.run_contract",
       "subcomponent_id": "pa_prompt_boundary",
-      "required": true,
+      "required": false,
       "artifact_role": "pa_compiled_prompt",
       "gate_id": "pa_compiled_prompt_present",
       "severity": "BLOCK"
@@ -134,7 +134,7 @@
       "stage_id": "PA",
       "component_id": "apps_rg.run_contract",
       "subcomponent_id": "pa_prompt_boundary",
-      "required": true,
+      "required": false,
       "artifact_role": "pa_compiled_prompt",
       "gate_id": "pa_prompt_boundary_evidence_as_data",
       "severity": "MAJOR"

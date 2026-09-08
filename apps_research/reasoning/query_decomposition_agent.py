@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
-from agentic_core.runtime.contracts.lifecycle_trace_contract import (
+from apps_rg.runtime.apps_runtime_compat import (
     _emit_captures_pattern,
     _emit_pulls_context,
     _emit_records_execution_trace,

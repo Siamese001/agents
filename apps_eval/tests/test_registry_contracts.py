@@ -8,6 +8,7 @@ from apps_eval.registry import load_apps_registry, load_suite, load_suites_regis
 EXPECTED_SUITES = {
     "apps_rg.dev.resume_generation",
     "apps_rg.holdout.resume_generation",
+    "apps_rg.fixture.anthropic_deterministic_e2e",
     "apps_lic.dev.outreach_message",
     "apps_lic.holdout.outreach_message",
 }

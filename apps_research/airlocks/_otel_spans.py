@@ -10,13 +10,11 @@ import contextlib
 from typing import Any, Iterator
 
 try:
-    from opentelemetry import trace as _otel_trace
+    import opentelemetry  # noqa: F401
 
-    _tracer = _otel_trace.get_tracer("apps_research.airlocks")
     OTEL_AVAILABLE = True
 except ImportError:
     OTEL_AVAILABLE = False
-    _tracer = None  # type: ignore[assignment]
 
 
 @contextlib.contextmanager
@@ -30,11 +28,18 @@ def airlock_span(
     **attributes: Any,
 ) -> Iterator[Any]:
     """Context manager for apps_research airlock OTEL spans."""
-    if not OTEL_AVAILABLE or _tracer is None:
+    if not OTEL_AVAILABLE:
         yield None
         return
 
-    with _tracer.start_as_current_span(name) as span:
+    from apps_model_telemetry.otel_runtime import get_verified_tracer
+
+    tracer = get_verified_tracer("apps_research.airlocks")
+    if tracer is None:
+        yield None
+        return
+
+    with tracer.start_as_current_span(name) as span:
         span.set_attribute("airlock", airlock)
         if request_id:
             span.set_attribute("request_id", request_id)

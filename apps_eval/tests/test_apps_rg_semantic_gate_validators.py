@@ -5,6 +5,7 @@ from pathlib import Path
 
 from apps_eval.contracts import AppOutputSnapshot
 from apps_eval.coverage import build_apps_rg_microstep_evaluation
+from apps_eval.coverage.apps_rg import _l1_schema_bound_verdict, _x3_verdict
 
 
 def _row_by_gate(rows, gate_id: str):
@@ -60,6 +61,18 @@ def test_semantic_gate_passes_when_required_fields_are_present(tmp_path: Path) -
 
     row = _row_by_gate(evaluation["rows"], "l1_static_plan_profile_schema_bound")
     assert row.verdict == "PASS"
+
+
+def test_current_l1_capsule_schema_and_lane_x3_allow_are_accepted() -> None:
+    l1_verdict, _, _, _ = _l1_schema_bound_verdict(
+        {"schema_version": "apps_rg_l1_planning_capsule.v1"}
+    )
+    x3_verdict, _, observed, threshold = _x3_verdict({"x3_code": "X3_ALLOW"})
+
+    assert l1_verdict == "PASS"
+    assert x3_verdict == "PASS"
+    assert observed == "X3_ALLOW"
+    assert threshold == "X3_ALLOW"
 
 
 def test_current_integrated_receipts_satisfy_global_semantic_gates(tmp_path: Path) -> None:
@@ -186,4 +199,3 @@ def test_cross_section_graph_coherence_warn_with_material_support_passes_materia
     row = _row_by_gate(evaluation["rows"], "x2_cross_section_graph_coherence_materiality")
     assert row.verdict == "PASS"
     assert row.observed_value["support_count"] > 0
-

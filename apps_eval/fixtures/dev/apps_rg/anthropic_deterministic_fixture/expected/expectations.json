@@ -1,0 +1,25 @@
+{
+  "allow_side_effects": false,
+  "escalation_required": false,
+  "expected_x3": "TEST_FIXTURE_ONLY",
+  "forbidden_terms": [],
+  "grounded_claims_required": true,
+  "length_bounds": {
+    "max_words": 500,
+    "min_words": 1
+  },
+  "required_artifacts": [
+    "generated_resume.json",
+    "resume.md"
+  ],
+  "required_output_keys": [
+    "runtime",
+    "sections"
+  ],
+  "required_provenance": [],
+  "required_sections": [
+    "executive_summary",
+    "experience",
+    "skills"
+  ]
+}

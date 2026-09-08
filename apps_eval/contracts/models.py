@@ -88,6 +88,9 @@ class FixtureProvenance:
     input_request_digest: str = ""
     expected_digest: str = ""
     snapshot_digest: str = ""
+    contract_profile_id: str = ""
+    evidence_class: str = ""
+    product_eligible: bool = True
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -110,6 +113,9 @@ class EvalRunMetadata:
     deterministic_only: bool = True
     with_judge: bool = False
     compare_baseline: bool = False
+    contract_profile_id: str = ""
+    evidence_class: str = ""
+    product_eligible: bool = True
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -151,6 +157,7 @@ class AppOutputSnapshot:
     runtime_exhaust_bundle_id: str = ""
     microstep_contract_digest: str = ""
     registry_digest: str = ""
+    contract_profile_id: str = ""
     snapshot_digest: str = ""
     source_artifact_manifest: list[dict[str, Any]] = field(default_factory=list)
 
@@ -180,6 +187,7 @@ class AppOutputSnapshot:
             runtime_exhaust_bundle_id=str(data.get("runtime_exhaust_bundle_id") or ""),
             microstep_contract_digest=str(data.get("microstep_contract_digest") or ""),
             registry_digest=str(data.get("registry_digest") or ""),
+            contract_profile_id=str(data.get("contract_profile_id") or ""),
             snapshot_digest=str(data.get("snapshot_digest") or ""),
             source_artifact_manifest=list(data.get("source_artifact_manifest") or []),
         )
@@ -238,6 +246,7 @@ class ScorecardRow:
     runtime_exhaust_bundle_id: str = ""
     microstep_contract_digest: str = ""
     registry_digest: str = ""
+    contract_profile_id: str = ""
     snapshot_digest: str = ""
     created_at: str = ""
     schema_version: str = CURRENT_SCORECARD_ROW_SCHEMA_VERSION
@@ -604,6 +613,12 @@ class CompletedEvalRecord:
     regression: RegressionSummary
     artifact_paths: dict[str, str]
     rubric_ids: list[str]
+    eval_execution_complete: bool = False
+    eval_verdict: str = ""
+    release_blocked: bool = True
+    admission_status: str = ""
+    preflight_verification_status: str = ""
+    admission_failures: list[str] = field(default_factory=list)
     record_seed: dict[str, Any] = field(default_factory=dict)
     run_metadata: EvalRunMetadata = field(default_factory=EvalRunMetadata)
     fixture_provenance: list[FixtureProvenance] = field(default_factory=list)
@@ -615,6 +630,9 @@ class CompletedEvalRecord:
     runtime_exhaust_bundle_id: str = ""
     microstep_contract_digest: str = ""
     registry_digest: str = ""
+    contract_profile_id: str = ""
+    evidence_class: str = ""
+    product_eligible: bool = True
     snapshot_digest: str = ""
     schema_version: str = CURRENT_EVAL_RECORD_SCHEMA_VERSION
 
@@ -638,6 +656,9 @@ class L6EvalHandoff:
     block_failures: int
     current_run_mutated: bool = False
     requested_action: str = "consume_completed_eval_record_only"
+    contract_profile_id: str = ""
+    evidence_class: str = ""
+    product_eligible: bool = True
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

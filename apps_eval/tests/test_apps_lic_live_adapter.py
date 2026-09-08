@@ -1,11 +1,25 @@
 from __future__ import annotations
 
+import importlib.util
 from pathlib import Path
 
-from apps_eval.adapters.apps_lic import run_apps_lic_live
+import pytest
 
+_REPO_ROOT = Path(__file__).resolve().parents[3]
+_APPS_LIC_SPEC = importlib.util.find_spec("apps_lic")
+if (
+    _APPS_LIC_SPEC is None
+    or _APPS_LIC_SPEC.origin is None
+    or _REPO_ROOT not in Path(_APPS_LIC_SPEC.origin).resolve().parents
+):
+    pytest.skip(
+        "apps_lic runtime source is excluded from the apps_rg_v2 standalone scope",
+        allow_module_level=True,
+    )
 
 def test_apps_lic_live_adapter_forwards_redesign_inputs(monkeypatch, tmp_path: Path) -> None:
+    from apps_eval.adapters.apps_lic import run_apps_lic_live
+
     captured: dict[str, object] = {}
 
     def fake_build_cli_ingress_raw(**kwargs: object) -> dict[str, object]:

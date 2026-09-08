@@ -3,7 +3,7 @@
 ## Canonical Spine Route
 
 apps_research operates as a **direct R3_SIMPLE_GROUNDED_READ** path on the
-canonical `agentic_core` spine. SIMPLE = no L3 orchestration; GROUNDED = C0
+canonical `apps_rg` spine. SIMPLE = no L3 orchestration; GROUNDED = C0
 retrieval mandatory; READ = informational/briefing output only.
 
 - **R3_SIMPLE_GROUNDED_READ** — the primary execution path for all research
@@ -66,7 +66,7 @@ Stateless class. `execute(request: ResearchRequest) → ResearchAssemblyResult`
 
 **Source register:**
 - `_build_source_register(request) → list[SourceEntry]`
-- Core sources are repo-internal: `agentic_core` modules used as direct evidence
+- Core sources are repo-internal: `apps_rg` modules used as direct evidence
 - Comparison subjects create interpretation-typed source entries
 
 **Comparison matrix:**

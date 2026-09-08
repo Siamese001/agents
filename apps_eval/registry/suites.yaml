@@ -22,6 +22,18 @@
       "fixture_root": "apps_eval/fixtures/holdout/apps_rg",
       "scenarios": []
     },
+    "apps_rg.fixture.anthropic_deterministic_e2e": {
+      "app_id": "apps_rg",
+      "split": "fixture",
+      "task": "anthropic_deterministic_e2e",
+      "rubric_id": "apps_rg_resume_generation_v1",
+      "fixture_root": "apps_eval/fixtures/dev/apps_rg",
+      "scenarios": [
+        "anthropic_deterministic_fixture"
+      ],
+      "apps_rg_contract_profile_id": "apps_rg.anthropic_deterministic_fixture.v1",
+      "fixture_only": true
+    },
     "apps_lic.dev.outreach_message": {
       "app_id": "apps_lic",
       "split": "dev",

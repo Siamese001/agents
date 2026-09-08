@@ -1,0 +1,6 @@
+{
+  "fixture_only": true,
+  "job_description_ref": "src/apps_rg/config/targeting/jd_anthropic_partnerships_2026.json",
+  "target_company": "Anthropic",
+  "target_role": "Manager of Applied AI Architecture, Partnerships"
+}

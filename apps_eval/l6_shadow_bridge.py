@@ -9,16 +9,17 @@ post-boundary binder over persisted apps_rg L6 observations.
 from __future__ import annotations
 
 import hashlib
+import importlib
 import json
+from contextlib import contextmanager, nullcontext
 from dataclasses import asdict, is_dataclass
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Iterator, Mapping
 
-from agentic_core.L2_execution.utils import write_gateway as _wg
-from agentic_core.L6_observability.shadow_eval.grain_parity import (
+from apps_rg.runtime.apps_runtime_compat import (
     build_l6_apps_eval_grain_parity,
 )
-from agentic_core.L6_observability.shadow_eval.microsteps import (
+from apps_rg.runtime.apps_runtime_compat import (
     EVIDENCE_CLASS_CONTRACT_ONLY_ADVISORY,
     build_apps_eval_alignment,
     build_future_run_proposals,
@@ -27,12 +28,13 @@ from agentic_core.L6_observability.shadow_eval.microsteps import (
     build_microstep_rca,
     build_observations_from_eval_rows,
 )
-from agentic_core.L6_observability.shadow_eval.pipeline import (
+from apps_rg.runtime.apps_runtime_compat import (
     L6PipelineState,
     run_6a,
     run_observer,
 )
-from agentic_core.L6_observability.shadow_eval.span_export import write_span_artifacts
+from apps_rg.runtime.apps_runtime_compat import write_span_artifacts
+from apps_eval import _write_gateway as _wg
 from apps_eval.contracts import CURRENT_EVAL_RECORD_SCHEMA_VERSION, CompletedEvalRecord
 
 L6_SHADOW_BRIDGE_ARTIFACT = "l6_shadow_bridge.json"
@@ -45,6 +47,60 @@ L6_MICROSTEP_PATTERNS_ARTIFACT = "l6_microstep_patterns.json"
 L6_MICROSTEP_FUTURE_RUN_PROPOSALS_ARTIFACT = "l6_microstep_future_run_proposals.json"
 L6_APPS_EVAL_ALIGNMENT_ARTIFACT = "l6_apps_eval_alignment.json"
 L6_APPS_EVAL_GRAIN_PARITY_ARTIFACT = "l6_apps_eval_grain_parity.json"
+
+
+@contextmanager
+def _deterministic_l6_runtime(
+    *,
+    seed: str,
+    timestamp: str,
+) -> Iterator[None]:
+    """Make the imported core observer deterministic for artifact replay.
+
+    Core L6 correctly uses fresh UUIDs and wall-clock timestamps for ordinary
+    live observations.  Historical replay needs byte-stable evidence instead,
+    so this narrow bridge temporarily supplies digest-derived identifiers and
+    the completed record timestamp.  The patch is restored before returning
+    and is never used by the live apps_rg runtime.
+    """
+
+    ingest = importlib.import_module(
+        "apps_rg.L6_observability.shadow_eval.ingest"
+    )
+    observer = importlib.import_module(
+        "apps_rg.L6_observability.shadow_eval.observer"
+    )
+    span_export = importlib.import_module(
+        "apps_rg.L6_observability.shadow_eval.span_export"
+    )
+    originals = {
+        "ingest_id": ingest._gen_id,
+        "observer_id": observer._gen_id,
+        "observer_now": observer._now_iso,
+        "span_now": span_export._now_iso,
+    }
+    counters: dict[str, int] = {}
+
+    def _stable_id(prefix: str) -> str:
+        ordinal = counters.get(prefix, 0)
+        counters[prefix] = ordinal + 1
+        digest = hashlib.sha256(
+            f"{seed}:{prefix}:{ordinal}".encode("utf-8")
+        ).hexdigest()
+        return f"{prefix}-{digest[:32]}"
+
+    stable_timestamp = timestamp or "1970-01-01T00:00:00Z"
+    ingest._gen_id = _stable_id
+    observer._gen_id = _stable_id
+    observer._now_iso = lambda: stable_timestamp
+    span_export._now_iso = lambda: stable_timestamp
+    try:
+        yield
+    finally:
+        ingest._gen_id = originals["ingest_id"]
+        observer._gen_id = originals["observer_id"]
+        observer._now_iso = originals["observer_now"]
+        span_export._now_iso = originals["span_now"]
 
 
 def _jsonable(value: object) -> object:
@@ -189,6 +245,11 @@ def _emit_record_microstep_artifacts(
         record.artifact_paths.get("scorecard_rows") or (run_dir / "scorecard_rows.jsonl")
     ).replace("\\", "/")
     contract_digest = str(record.record_seed.get("apps_rg_microstep_contract_digest") or "")
+    registry_digest = str(
+        record.registry_digest
+        or record.record_seed.get("registry_digest")
+        or contract_digest
+    )
 
     alignment = build_apps_eval_alignment(
         run_id=record.record_id,
@@ -200,6 +261,7 @@ def _emit_record_microstep_artifacts(
         l6_observations=observation_dicts,
         alignment_source="contract_only_pseudo_rows",
         apps_eval_rows_bound=False,
+        registry_digest=registry_digest,
     )
     alignment.update(
         {
@@ -223,6 +285,7 @@ def _emit_record_microstep_artifacts(
         apps_eval_rows=scorecard_rows,
         l6_observations=observation_dicts,
         alignment_source="contract_only_pseudo_rows",
+        registry_digest=registry_digest,
     )
     parity.update(
         {
@@ -391,34 +454,49 @@ def emit_completed_eval_l6_shadow_bridge(
     *,
     eval_record_path: str,
     l6_handoff_path: str = "",
+    deterministic_replay: bool = False,
 ) -> dict[str, str]:
     raw_exhaust = build_completed_eval_shadow_exhaust(
         record,
         eval_record_path=eval_record_path,
         l6_handoff_path=l6_handoff_path,
     )
-    state = L6PipelineState()
-    ingest = run_6a(state, raw_exhaust)
-    readiness = run_observer(state)
-    state.recorder.assert_no_runtime_feedback_edge()
-    state.recorder.assert_pipeline_order()
-    span_paths = write_span_artifacts(
-        state.recorder.records,
-        run_dir,
-        json_name=L6_SHADOW_BRIDGE_SPANS_ARTIFACT,
-        jsonl_name=L6_SHADOW_BRIDGE_SPANS_JSONL_ARTIFACT,
-        source="apps_eval_l6_shadow_bridge",
+    runtime_context = (
+        _deterministic_l6_runtime(
+            seed=f"apps-eval-l6-shadow:{record.record_id}",
+            timestamp=record.created_at,
+        )
+        if deterministic_replay
+        else nullcontext()
     )
-    microstep_paths = _emit_record_microstep_artifacts(
-        record,
-        run_dir,
-        runtime_exhaust_bundle_id=ingest.bundle.runtime_exhaust_bundle_id,
-    )
+    with runtime_context:
+        state = L6PipelineState()
+        ingest = run_6a(state, raw_exhaust)
+        readiness = run_observer(state)
+        state.recorder.assert_no_runtime_feedback_edge()
+        state.recorder.assert_pipeline_order()
+        span_paths = write_span_artifacts(
+            state.recorder.records,
+            run_dir,
+            json_name=L6_SHADOW_BRIDGE_SPANS_ARTIFACT,
+            jsonl_name=L6_SHADOW_BRIDGE_SPANS_JSONL_ARTIFACT,
+            source="apps_eval_l6_shadow_bridge",
+        )
+        microstep_paths = _emit_record_microstep_artifacts(
+            record,
+            run_dir,
+            runtime_exhaust_bundle_id=ingest.bundle.runtime_exhaust_bundle_id,
+        )
     bridge = {
         "schema_version": "apps_eval.l6_shadow_bridge.v2",
         "record_id": record.record_id,
         "suite_id": record.suite_id,
         "app_id": record.app_id,
+        "contract_profile_id": record.contract_profile_id,
+        "evidence_class": (
+            record.evidence_class or EVIDENCE_CLASS_CONTRACT_ONLY_ADVISORY
+        ),
+        "product_eligible": record.product_eligible,
         "runtime_exhaust_bundle_id": ingest.bundle.runtime_exhaust_bundle_id,
         "readiness_decision": readiness.readiness_decision,
         "readiness_receipt": _jsonable(readiness),
@@ -427,7 +505,9 @@ def emit_completed_eval_l6_shadow_bridge(
         "span_export_ref": span_paths["span_export_json"].as_posix(),
         "span_export_jsonl_ref": span_paths["span_export_jsonl"].as_posix(),
         "l6_microstep_artifact_refs": dict(microstep_paths),
-        "evidence_class": EVIDENCE_CLASS_CONTRACT_ONLY_ADVISORY if microstep_paths else "",
+        "l6_projection_evidence_class": (
+            EVIDENCE_CLASS_CONTRACT_ONLY_ADVISORY if microstep_paths else ""
+        ),
         "projection_consistency_only": bool(microstep_paths),
         "independent_observation_required_for_bound_proof": True,
         "trace_reconciliation_refs": _trace_reconciliation_refs(record),
@@ -441,6 +521,7 @@ def emit_completed_eval_l6_shadow_bridge(
         "direct_l4_write_attempted": False,
         "durable_write_attempted": False,
         "future_run_only": True,
+        "deterministic_replay": deterministic_replay,
     }
     bridge_path = _write_json_artifact(run_dir / L6_SHADOW_BRIDGE_ARTIFACT, bridge)
     return {

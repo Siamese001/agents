@@ -16,14 +16,15 @@ from datetime import datetime, timezone
 from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as package_version
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
-from agentic_core.L2_execution.utils import write_gateway as _wg
+from apps_eval import _write_gateway as _wg
 from apps_eval.adapters import run_apps_lic_live, run_apps_rg_live
-from apps_eval.adapters.apps_rg import (
+from apps_eval.adapters.resume_graph_engine import (
     build_source_artifact_manifest,
     source_artifact_manifest_digest,
 )
+from apps_eval.resources import resolve_apps_eval_resource
 from apps_eval.contracts import (
     CURRENT_EVAL_MANIFEST_SCHEMA_VERSION,
     CURRENT_EVAL_RECORD_SCHEMA_VERSION,
@@ -43,7 +44,14 @@ from apps_eval.contracts import (
     Scorecard,
     ScorecardRow,
 )
-from apps_eval.coverage import apps_rg_contract_digest, build_apps_rg_microstep_evaluation
+from apps_eval.coverage import (
+    ANTHROPIC_DETERMINISTIC_FIXTURE_PROFILE_ID,
+    DEFAULT_APPS_RG_CONTRACT_PROFILE_ID,
+    apps_rg_contract_digest,
+    apps_rg_contract_profile,
+    build_apps_rg_microstep_evaluation,
+    is_fixture_only_apps_rg_profile,
+)
 from apps_eval.diagnostics import build_apps_rg_diagnostics
 from apps_eval.graders.deterministic import build_default_graders
 from apps_eval.outputs.render import render_record_markdown, render_report
@@ -218,7 +226,6 @@ def _regression_flywheel_summary(
 ) -> RegressionFlywheelSummary:
     rollup = _failure_mode_rollup(findings)
     current_mode_counts = Counter(rollup["failure_mode_counts"])
-    current_family_counts = Counter(rollup["failure_family_counts"])
     baseline_mode_counts: Counter[str] = Counter()
     baseline_family_counts: Counter[str] = Counter()
     if baseline_payload:
@@ -269,7 +276,7 @@ def _regression_flywheel_summary(
 
 
 def _load_fixture(suite_id: str, suite: dict[str, Any], scenario_id: str) -> EvalFixture:
-    scenario_dir = Path(suite["fixture_root"]) / scenario_id
+    scenario_dir = resolve_apps_eval_resource(suite["fixture_root"]) / scenario_id
     scenario_path = scenario_dir / "scenario.yaml"
     input_path = scenario_dir / "input" / "request.json"
     expected_path = scenario_dir / "expected" / "expectations.json"
@@ -422,6 +429,7 @@ def _planned_eval_artifacts(run_dir: Path) -> dict[str, Any]:
             (root / "regression.json").as_posix(),
             (root / "regression_flywheel.json").as_posix(),
         ],
+        "fixture_l6_handoff": (root / "apps_rg_l6_eval_handoff.json").as_posix(),
     }
 
 
@@ -491,6 +499,9 @@ def _seal_apps_rg_eval_package(
     run_dir: Path,
     record_id: str,
     planned_eval_artifacts: dict[str, Any],
+    contract_profile_id: str = "",
+    evidence_class: str = "",
+    product_eligible: bool | None = None,
 ) -> Path:
     if planned_eval_artifacts.get("__emission_complete__") is not True:
         raise RuntimeError("Apps RG Eval package cannot seal before emission completes")
@@ -546,6 +557,14 @@ def _seal_apps_rg_eval_package(
         "emission_phase": "POST_EMISSION_REOPENED_AND_VALIDATED",
         "artifacts": entries,
     }
+    if contract_profile_id:
+        body.update(
+            {
+                "contract_profile_id": contract_profile_id,
+                "evidence_class": evidence_class,
+                "product_eligible": bool(product_eligible),
+            }
+        )
     payload = {
         **body,
         "manifest_sha256": "sha256:"
@@ -569,7 +588,6 @@ def _seal_apps_rg_eval_package(
 def _snapshot_deterministic_hash(snapshot: AppOutputSnapshot) -> str:
     data = snapshot.to_dict()
     data.pop("deterministic_hash", None)
-    data.pop("snapshot_digest", None)
     return _canonical_digest(data)
 
 
@@ -629,10 +647,31 @@ def _record_evidence_bindings(
     }
 
 
-def _assert_source_snapshot_unchanged(snapshot: AppOutputSnapshot) -> None:
-    if not snapshot.run_root or not snapshot.source_artifact_manifest:
+def _assert_source_snapshot_unchanged(
+    snapshot: AppOutputSnapshot,
+    *,
+    require_manifest: bool = False,
+) -> None:
+    if not snapshot.run_root:
+        if require_manifest:
+            raise RuntimeError("apps_rg_source_manifest_unreadable:run_root_missing")
         return
-    current_manifest = build_source_artifact_manifest(Path(snapshot.run_root))
+    source_root = Path(snapshot.run_root)
+    if not source_root.is_dir() or not snapshot.source_artifact_manifest:
+        if require_manifest:
+            raise RuntimeError("apps_rg_source_manifest_unreadable")
+        return
+    sealed_manifest_digest = source_artifact_manifest_digest(
+        snapshot.source_artifact_manifest
+    )
+    if not snapshot.snapshot_digest or sealed_manifest_digest != snapshot.snapshot_digest:
+        raise RuntimeError(
+            "apps_rg_source_manifest_digest_invalid: "
+            f"sealed={sealed_manifest_digest} snapshot={snapshot.snapshot_digest}"
+        )
+    current_manifest = build_source_artifact_manifest(source_root)
+    if not current_manifest:
+        raise RuntimeError("apps_rg_source_manifest_unreadable")
     current_digest = source_artifact_manifest_digest(current_manifest)
     if current_digest != snapshot.snapshot_digest:
         raise RuntimeError(
@@ -644,7 +683,7 @@ def _assert_source_snapshot_unchanged(snapshot: AppOutputSnapshot) -> None:
 def _default_current_run_expected(snapshot: AppOutputSnapshot) -> dict[str, Any]:
     return {
         "required_output_keys": ["runtime", "sections"],
-        "required_artifacts": ["generated_resume.json", "resume.md"],
+        "required_artifacts": ["FINAL_RESUME_OUTPUT.json", "FINAL_RESUME_OUTPUT.txt"],
         "expected_x3": "X3D_ALLOW_FINISH",
         "forbidden_terms": [],
         "grounded_claims_required": True,
@@ -656,6 +695,240 @@ def _default_current_run_expected(snapshot: AppOutputSnapshot) -> dict[str, Any]
     }
 
 
+def _apps_rg_admission_summary(snapshot: AppOutputSnapshot) -> dict[str, Any]:
+    provenance = snapshot.provenance
+    preflight_errors = sorted(
+        {
+            str(error)
+            for error in provenance.get("preflight_verification_errors", [])
+            if str(error)
+        }
+    )
+    preflight_status = str(
+        provenance.get("preflight_verification_status") or ""
+    ).strip()
+    if not preflight_status:
+        preflight_status = (
+            "VERIFIED"
+            if provenance.get("preflight_verified") is True and not preflight_errors
+            else "INVALID"
+        )
+    preflight_pass = (
+        preflight_status == "VERIFIED"
+        and provenance.get("preflight_verified") is True
+        and not preflight_errors
+    )
+
+    product_authority_errors = sorted(
+        {
+            str(error)
+            for error in provenance.get("source_seal_verification_errors", [])
+            if str(error)
+        }
+    )
+    product_authority_pass = (
+        provenance.get("source_seal_verified") is True
+        and provenance.get("product_authorized") is True
+        and not product_authority_errors
+    )
+    missing_identity = sorted(
+        field
+        for field in ("parent_run_id", "child_run_id")
+        if not str(getattr(snapshot, field, "") or "").strip()
+    )
+
+    failures: list[str] = []
+    if not preflight_pass:
+        failures.append(
+            "preflight_verification_unverifiable_key_material"
+            if preflight_status == "UNVERIFIABLE_KEY_MATERIAL"
+            else "preflight_verification_invalid"
+        )
+    if not product_authority_pass:
+        failures.append("product_authority_invalid")
+    if missing_identity:
+        failures.append("source_identity_missing:" + ",".join(missing_identity))
+    return {
+        "schema_version": "apps_eval.apps_rg_admission.v1",
+        "status": "PASS" if not failures else "FAIL",
+        "preflight": {
+            "passed": preflight_pass,
+            "verification_status": preflight_status,
+            "verification_errors": preflight_errors,
+            "verifier_key_id": str(
+                provenance.get("preflight_verifier_key_id") or ""
+            ),
+            "verifier_key_source": str(
+                provenance.get("preflight_verifier_key_source") or ""
+            ),
+        },
+        "product_authority": {
+            "passed": product_authority_pass,
+            "verification_errors": product_authority_errors,
+            "corrected_product_authorized": bool(
+                provenance.get("product_authorized") is True
+            ),
+            "correction_disposition": str(
+                provenance.get("product_authorization_correction_disposition")
+                or ""
+            ),
+        },
+        "source_identity": {
+            "passed": not missing_identity,
+            "missing_fields": missing_identity,
+        },
+        "failures": failures,
+    }
+
+
+def _apps_rg_admission_rows(
+    *,
+    suite_id: str,
+    scenario_id: str,
+    run_id: str,
+    created_at: str,
+    snapshot: AppOutputSnapshot,
+    registry_digest: str,
+    admission: dict[str, Any],
+) -> list[ScorecardRow]:
+    provenance = snapshot.provenance
+    row_specs = (
+        {
+            "name": "preflight_verification",
+            "stage_id": "U0",
+            "artifact_role": "preflight_product_entry",
+            "artifact_ref": str(provenance.get("preflight_ref") or ""),
+            "evidence_digest": str(provenance.get("preflight_digest") or ""),
+            "passed": bool(admission["preflight"]["passed"]),
+            "failure_mode": (
+                "admission.preflight_unverifiable_key_material"
+                if admission["preflight"]["verification_status"]
+                == "UNVERIFIABLE_KEY_MATERIAL"
+                else "admission.preflight_signature_invalid"
+            ),
+            "observed": admission["preflight"],
+            "threshold": "VERIFIED",
+            "schema": "apps_rg.e2e_preflight_product_entry.v1",
+        },
+        {
+            "name": "product_authority",
+            "stage_id": "Exit",
+            "artifact_role": "product_authorization",
+            "artifact_ref": str(
+                provenance.get("product_authorization_correction_ref")
+                or provenance.get("product_authorization_ref")
+                or ""
+            ),
+            "evidence_digest": str(
+                provenance.get("product_authorization_correction_digest")
+                or provenance.get("product_authorization_digest")
+                or ""
+            ),
+            "passed": bool(admission["product_authority"]["passed"]),
+            "failure_mode": "admission.product_authority_invalid",
+            "observed": admission["product_authority"],
+            "threshold": "verified current product authorization",
+            "schema": "apps_rg.authorization_correction.v1",
+        },
+        {
+            "name": "source_identity",
+            "stage_id": "U0",
+            "artifact_role": "source_identity",
+            "artifact_ref": snapshot.run_root,
+            "evidence_digest": snapshot.snapshot_digest,
+            "passed": bool(admission["source_identity"]["passed"]),
+            "failure_mode": "admission.source_identity_missing",
+            "observed": admission["source_identity"],
+            "threshold": "complete parent_run_id and child_run_id",
+            "schema": "apps_research_rg_run_identity.v1",
+        },
+    )
+    rows: list[ScorecardRow] = []
+    for spec in row_specs:
+        passed = bool(spec["passed"])
+        name = str(spec["name"])
+        rows.append(
+            ScorecardRow(
+                suite_id=suite_id,
+                scenario_id=scenario_id,
+                app_id=snapshot.app_id,
+                row_id="admission-"
+                + _canonical_digest(
+                    {
+                        "suite_id": suite_id,
+                        "scenario_id": scenario_id,
+                        "run_id": run_id,
+                        "name": name,
+                    }
+                )[:16],
+                microstep_id=f"admission.{name}",
+                stage_id=str(spec["stage_id"]),
+                component_id="apps_rg.eval_admission",
+                subcomponent_id=name,
+                verdict="PASS" if passed else "FAIL",
+                score=1.0 if passed else 0.0,
+                severity="BLOCK",
+                required=True,
+                run_id=run_id,
+                artifact_role=str(spec["artifact_role"]),
+                artifact_ref=str(spec["artifact_ref"]),
+                evidence_ref=str(spec["artifact_ref"]),
+                evidence_digest=str(spec["evidence_digest"]),
+                failure_mode="" if passed else str(spec["failure_mode"]),
+                failure_family="" if passed else "admission",
+                observed_value=spec["observed"],
+                threshold=spec["threshold"],
+                decisive_reason=(
+                    f"{name} admission passed"
+                    if passed
+                    else f"{name} blocks release"
+                ),
+                source_system="apps_eval",
+                source_artifact_schema=str(spec["schema"]),
+                parent_run_id=snapshot.parent_run_id,
+                child_run_id=snapshot.child_run_id,
+                section_attempt_id=snapshot.section_attempt_id,
+                eval_record_id=run_id,
+                runtime_exhaust_bundle_id=snapshot.runtime_exhaust_bundle_id,
+                microstep_contract_digest=registry_digest,
+                registry_digest=registry_digest,
+                snapshot_digest=snapshot.snapshot_digest,
+                created_at=created_at,
+            )
+        )
+    return rows
+
+
+def _apps_rg_admission_components(
+    rows: list[ScorecardRow],
+) -> list[dict[str, Any]]:
+    components: list[dict[str, Any]] = []
+    for row in rows:
+        passed = row.verdict == "PASS"
+        components.append(
+            {
+                "suite_id": row.suite_id,
+                "app_id": row.app_id,
+                "scenario_id": row.scenario_id,
+                "component_id": row.component_id,
+                "subcomponent_id": row.subcomponent_id,
+                "stage_id": row.stage_id,
+                "lane_id": "",
+                "row_count": 1,
+                "required_count": 1,
+                "pass_count": int(passed),
+                "fail_count": int(not passed),
+                "warn_count": 0,
+                "unknown_count": 0,
+                "not_run_count": 0,
+                "blocking_failure_count": int(not passed),
+                "score": row.score,
+                "verdict": "pass" if passed else "fail",
+            }
+        )
+    return components
+
+
 def run_current_snapshot_eval(
     snapshot: AppOutputSnapshot,
     *,
@@ -663,8 +936,11 @@ def run_current_snapshot_eval(
     out_dir: str = "artifacts/apps_eval/runs",
     deterministic_only: bool = True,
     emit_l6_handoff: bool = True,
+    emit_l6_shadow_bridge: bool = True,
     expected: dict[str, Any] | None = None,
     threshold_suite_id: str = "apps_rg.dev.resume_generation",
+    git_commit_override: str | None = None,
+    platform_override: str | None = None,
 ) -> CompletedEvalRecord:
     """Evaluate one already-produced app snapshot.
 
@@ -674,35 +950,22 @@ def run_current_snapshot_eval(
     """
     if snapshot.app_id != "apps_rg":
         raise ValueError(f"current snapshot eval supports apps_rg only, got {snapshot.app_id!r}")
+    if (
+        is_fixture_only_apps_rg_profile(snapshot.contract_profile_id)
+        or snapshot.provenance.get("fixture_only") is True
+        or snapshot.x3_disposition == "TEST_FIXTURE_ONLY"
+    ):
+        raise ValueError(
+            "apps_rg current-run eval requires a verified product authorization seal; "
+            "fixture-only evidence is ineligible"
+        )
     if not emit_l6_handoff:
         raise PermissionError("apps_rg current-run eval requires L6 shadow handoff")
     if snapshot.provenance.get("source_unchanged") is not True:
         raise ValueError(
             "apps_rg current-run eval requires a read-only, byte-manifested source snapshot"
         )
-    if snapshot.provenance.get("source_seal_verified") is not True:
-        raise ValueError(
-            "apps_rg current-run eval requires a verified product authorization seal"
-        )
-    if snapshot.provenance.get("preflight_verified") is not True:
-        raise ValueError(
-            "apps_rg current-run eval requires signed, digest-bound preflight evidence"
-        )
-    missing_identity = [
-        field
-        for field in (
-            "parent_run_id",
-            "child_run_id",
-            "section_attempt_id",
-            "runtime_exhaust_bundle_id",
-        )
-        if not str(getattr(snapshot, field, "") or "").strip()
-    ]
-    if missing_identity:
-        raise ValueError(
-            "apps_rg current-run eval requires complete sealed source identity: "
-            + ",".join(missing_identity)
-        )
+    _assert_source_snapshot_unchanged(snapshot, require_manifest=True)
 
     scenario_id = snapshot.scenario_id or "apps_rg_current_run"
     app_microstep_contract_digest = apps_rg_contract_digest()
@@ -715,8 +978,17 @@ def run_current_snapshot_eval(
     expected_payload["required_sections"] = ["executive_summary", "experience", "skills"]
     created_at = _run_started_at(deterministic_only)
     repo_root = Path(__file__).resolve().parents[2]
-    git_commit = _git_commit(repo_root)
-    graders = build_default_graders()
+    git_commit = (
+        _git_commit(repo_root)
+        if git_commit_override is None
+        else str(git_commit_override)
+    )
+    # The shared fixture graders describe the legacy ``resume.md`` product and
+    # use fixture-shaped claim/provenance fields.  They remain useful for their
+    # fixtures, but they are not valid current-run release evidence for Apps
+    # RG.  The V2 current path is governed by Apps RG-native microsteps,
+    # admission, the frozen input manifest, and the independent L6 audit.
+    graders: list[Any] = []
     thresholds = load_thresholds_registry().get(
         threshold_suite_id,
         load_thresholds_registry().get("apps_rg.dev.resume_generation", {}),
@@ -778,6 +1050,7 @@ def run_current_snapshot_eval(
         "compare_baseline": False,
         "baseline_digest": "",
         "emit_l6_handoff": emit_l6_handoff,
+        "emit_l6_shadow_bridge": emit_l6_shadow_bridge,
         "git_commit": git_commit,
         "suite_digest": suite_digest,
         "threshold_digest": threshold_digest,
@@ -794,12 +1067,24 @@ def run_current_snapshot_eval(
         "runtime_exhaust_bundle_id": stable_snapshot.runtime_exhaust_bundle_id,
         "registry_digest": app_microstep_contract_digest,
     }
+    admission = _apps_rg_admission_summary(stable_snapshot)
+    record_seed["admission"] = admission
     if not deterministic_only:
         record_seed["created_at"] = created_at
 
     record_id = _stable_record_id(record_seed)
     run_dir = Path(out_dir) / suite_id.replace(".", "_") / record_id
     planned_eval_artifacts = _planned_eval_artifacts(run_dir)
+    admission_rows = _apps_rg_admission_rows(
+        suite_id=suite_id,
+        scenario_id=scenario_id,
+        run_id=record_id,
+        created_at=created_at,
+        snapshot=stable_snapshot,
+        registry_digest=app_microstep_contract_digest,
+        admission=admission,
+    )
+    admission_components = _apps_rg_admission_components(admission_rows)
 
     findings = [grader.grade(fixture, stable_snapshot) for grader in graders]
     microstep_eval = build_apps_rg_microstep_evaluation(
@@ -811,8 +1096,16 @@ def run_current_snapshot_eval(
         planned_eval_artifacts=planned_eval_artifacts,
         snapshot_digest=stable_snapshot.snapshot_digest,
     )
-    rows = _apps_rg_record_rows(list(microstep_eval["rows"]))
-    components = [component.to_dict() for component in microstep_eval["component_scorecards"]]
+    rows = _apps_rg_record_rows(
+        [*list(microstep_eval["rows"]), *admission_rows]
+    )
+    components = [
+        *[
+            component.to_dict()
+            for component in microstep_eval["component_scorecards"]
+        ],
+        *admission_components,
+    ]
     coverage = microstep_eval["coverage_summary"].to_dict()
     diagnostic_eval = build_apps_rg_diagnostics(
         suite_id=suite_id,
@@ -838,6 +1131,7 @@ def run_current_snapshot_eval(
         _canonical_digest(fixture.provenance.to_dict()),
     )
     scenario_result["apps_rg_coverage_summary"] = coverage
+    scenario_result["apps_rg_admission"] = admission
     suite_coverage = _apps_rg_suite_coverage(
         suite_id=suite_id,
         app_id=stable_snapshot.app_id,
@@ -867,12 +1161,24 @@ def run_current_snapshot_eval(
         regression=regression,
         artifact_paths={},
         rubric_ids=["apps_rg_resume_generation_v1"],
+        eval_execution_complete=True,
+        eval_verdict=scorecard.verdict,
+        release_blocked=bool(suite_coverage.get("release_blocked")),
+        admission_status=str(admission["status"]),
+        preflight_verification_status=str(
+            admission["preflight"]["verification_status"]
+        ),
+        admission_failures=list(admission["failures"]),
         record_seed=record_seed,
         run_metadata=EvalRunMetadata(
             project_version=_project_version(),
             git_commit=git_commit,
             python_version=sys.version.split()[0],
-            platform=platform.platform(),
+            platform=(
+                platform.platform()
+                if platform_override is None
+                else str(platform_override)
+            ),
             cwd=Path.cwd().resolve().as_posix(),
             scorer_version=CURRENT_SCORER_VERSION,
             record_seed_digest=_canonical_digest(record_seed),
@@ -917,9 +1223,15 @@ def run_current_snapshot_eval(
         planned_eval_artifacts=planned_eval_artifacts,
         snapshot_digest=stable_snapshot.snapshot_digest,
     )
-    rows = _apps_rg_record_rows(list(microstep_eval["rows"]))
+    rows = _apps_rg_record_rows(
+        [*list(microstep_eval["rows"]), *admission_rows]
+    )
     components = [
-        component.to_dict() for component in microstep_eval["component_scorecards"]
+        *[
+            component.to_dict()
+            for component in microstep_eval["component_scorecards"]
+        ],
+        *admission_components,
     ]
     coverage = microstep_eval["coverage_summary"].to_dict()
     diagnostic_eval = build_apps_rg_diagnostics(
@@ -946,6 +1258,7 @@ def run_current_snapshot_eval(
         _canonical_digest(fixture.provenance.to_dict()),
     )
     scenario_result["apps_rg_coverage_summary"] = coverage
+    scenario_result["apps_rg_admission"] = admission
     suite_coverage = _apps_rg_suite_coverage(
         suite_id=suite_id,
         app_id=stable_snapshot.app_id,
@@ -966,6 +1279,8 @@ def run_current_snapshot_eval(
         record,
         scenario_results=[scenario_result],
         scorecard=scorecard,
+        eval_verdict=scorecard.verdict,
+        release_blocked=bool(suite_coverage.get("release_blocked")),
     )
     record = replace(
         provisional,
@@ -987,7 +1302,7 @@ def run_current_snapshot_eval(
     record = replace(record, artifact_paths=paths)
     _wg.write_text(Path(paths["eval_record"]), json.dumps(record.to_dict(), indent=2, sort_keys=True), encoding="utf-8")
     _wg.write_text(Path(paths["report"]), render_report(record, findings), encoding="utf-8")
-    if emit_l6_handoff:
+    if emit_l6_handoff and emit_l6_shadow_bridge:
         from apps_eval.l6_shadow_bridge import emit_completed_eval_l6_shadow_bridge
 
         bridge_paths = emit_completed_eval_l6_shadow_bridge(
@@ -1005,7 +1320,7 @@ def run_current_snapshot_eval(
         record_id=record_id,
         planned_eval_artifacts=planned_eval_artifacts,
     )
-    _assert_source_snapshot_unchanged(stable_snapshot)
+    _assert_source_snapshot_unchanged(stable_snapshot, require_manifest=True)
     return record
 
 
@@ -1211,6 +1526,7 @@ def _emit_artifacts(
             "runtime_exhaust_bundle_id",
             "microstep_contract_digest",
             "registry_digest",
+            "contract_profile_id",
             "snapshot_digest",
         ]
         coverage_buffer = io.StringIO(newline="")
@@ -1241,6 +1557,7 @@ def _emit_artifacts(
             "runtime_exhaust_bundle_id",
             "microstep_contract_digest",
             "registry_digest",
+            "contract_profile_id",
             "snapshot_digest",
             "verdict",
         ]
@@ -1255,6 +1572,9 @@ def _emit_artifacts(
             "record_id": record.record_id,
             "suite_id": record.suite_id,
             "app_id": record.app_id,
+            "contract_profile_id": record.contract_profile_id,
+            "evidence_class": record.evidence_class,
+            "product_eligible": record.product_eligible,
             "requested_action": "consume_completed_eval_artifacts_only",
             "current_run_mutated": False,
             "future_run_only": True,
@@ -1326,6 +1646,9 @@ def _emit_artifacts(
             verdict=record.scorecard.verdict,
             finding_count=record.scorecard.finding_count,
             block_failures=record.scorecard.block_failures,
+            contract_profile_id=record.contract_profile_id,
+            evidence_class=record.evidence_class,
+            product_eligible=record.product_eligible,
         )
         handoff_path = run_dir / "l6_handoff.json"
         _wg.write_text(handoff_path, json.dumps(handoff.to_dict(), indent=2, sort_keys=True), encoding="utf-8")
@@ -1333,7 +1656,11 @@ def _emit_artifacts(
     return {k: str(v).replace("\\", "/") for k, v in paths.items()}
 
 
-def run_eval(request: EvalRequest) -> CompletedEvalRecord:
+def run_eval(
+    request: EvalRequest,
+    *,
+    snapshot_overrides: Mapping[str, AppOutputSnapshot] | None = None,
+) -> CompletedEvalRecord:
     if request.suite_id in OLD_SUITE_NAMES:
         raise ValueError(f"old suite name is rejected: {request.suite_id}")
     if request.with_judge:
@@ -1341,6 +1668,42 @@ def run_eval(request: EvalRequest) -> CompletedEvalRecord:
     suite = load_suite(request.suite_id)
     if suite.get("app_id") not in {"apps_rg", "apps_lic"}:
         raise ValueError(f"unsupported app: {suite.get('app_id')}")
+    contract_profile_id = str(
+        suite.get("apps_rg_contract_profile_id")
+        or DEFAULT_APPS_RG_CONTRACT_PROFILE_ID
+    )
+    profile = (
+        apps_rg_contract_profile(contract_profile_id)
+        if suite.get("app_id") == "apps_rg"
+        else {}
+    )
+    fixture_profile = (
+        suite.get("app_id") == "apps_rg"
+        and is_fixture_only_apps_rg_profile(contract_profile_id)
+    )
+    if fixture_profile:
+        if (
+            suite.get("split") != "fixture"
+            or suite.get("fixture_only") is not True
+            or request.mode != "snapshot"
+            or request.deterministic_only is not True
+            or request.with_judge
+            or request.compare_baseline
+            or os.environ.get("APPS_EVAL_RELEASE_GATE") == "1"
+            or str(os.environ.get("APPS_RG_TEST_HARNESS") or "").strip().lower()
+            not in {"1", "true", "yes", "on"}
+        ):
+            raise PermissionError(
+                "fixture-only Apps RG profile is limited to the deterministic test harness outside release gates"
+            )
+        if not snapshot_overrides:
+            raise PermissionError(
+                "fixture-only Apps RG profile requires a runtime-produced snapshot override"
+            )
+    elif snapshot_overrides:
+        raise PermissionError(
+            "runtime snapshot overrides are reserved for fixture-only Apps RG profiles"
+        )
     l6_handoff_required = (
         request.mode == "live_adapter"
         or suite.get("split") == "holdout"
@@ -1355,6 +1718,25 @@ def run_eval(request: EvalRequest) -> CompletedEvalRecord:
     fixtures = [_load_fixture(request.suite_id, suite, scenario_id) for scenario_id in suite.get("scenarios", [])]
     if not fixtures:
         raise ValueError(f"suite has no fixtures: {request.suite_id}")
+    if fixture_profile:
+        expected_scenarios = {fixture.scenario.scenario_id for fixture in fixtures}
+        supplied_scenarios = set(snapshot_overrides or {})
+        if supplied_scenarios != expected_scenarios:
+            raise ValueError(
+                "fixture-only snapshot overrides must cover exactly the configured scenarios"
+            )
+        fixtures = [
+            replace(
+                fixture,
+                provenance=replace(
+                    fixture.provenance,
+                    contract_profile_id=contract_profile_id,
+                    evidence_class=str(profile.get("evidence_class") or ""),
+                    product_eligible=bool(profile.get("product_eligible")),
+                ),
+            )
+            for fixture in fixtures
+        ]
     graders = build_default_graders()
     thresholds = load_thresholds_registry().get(request.suite_id, {})
     created_at = _run_started_at(request.deterministic_only)
@@ -1362,7 +1744,11 @@ def run_eval(request: EvalRequest) -> CompletedEvalRecord:
     suite_digest = _suite_digest(suite)
     threshold_digest = _threshold_digest(thresholds)
     failure_mode_catalog_digest = _failure_mode_catalog_digest(graders)
-    app_microstep_contract_digest = apps_rg_contract_digest() if suite.get("app_id") == "apps_rg" else ""
+    app_microstep_contract_digest = (
+        apps_rg_contract_digest(contract_profile_id)
+        if suite.get("app_id") == "apps_rg"
+        else ""
+    )
     fixture_provenance = [fixture.provenance for fixture in fixtures]
     baseline_digest = ""
     baseline_payload: dict[str, Any] | None = None
@@ -1397,6 +1783,14 @@ def run_eval(request: EvalRequest) -> CompletedEvalRecord:
         "scorer_version": CURRENT_SCORER_VERSION,
         "fixture_provenance": [provenance.to_dict() for provenance in fixture_provenance],
     }
+    if fixture_profile:
+        record_seed.update(
+            {
+                "contract_profile_id": contract_profile_id,
+                "evidence_class": str(profile.get("evidence_class") or ""),
+                "product_eligible": bool(profile.get("product_eligible")),
+            }
+        )
     if not request.deterministic_only:
         record_seed["created_at"] = created_at
     record_id = _stable_record_id(record_seed)
@@ -1411,12 +1805,29 @@ def run_eval(request: EvalRequest) -> CompletedEvalRecord:
     rubric_ids = sorted({fixture.scenario.rubric_id for fixture in fixtures})
     planned_eval_artifacts = _planned_eval_artifacts(run_dir) if suite.get("app_id") == "apps_rg" else {}
     for fixture in fixtures:
-        snapshot = _load_snapshot(fixture) if request.mode == "snapshot" else _run_live(fixture, run_dir)
+        snapshot = (
+            (snapshot_overrides or {}).get(fixture.scenario.scenario_id)
+            if fixture_profile
+            else _load_snapshot(fixture)
+            if request.mode == "snapshot"
+            else _run_live(fixture, run_dir)
+        )
+        if snapshot is None:
+            raise ValueError(
+                f"missing runtime snapshot for fixture scenario {fixture.scenario.scenario_id}"
+            )
         if suite.get("app_id") == "apps_rg":
             snapshot = _enrich_apps_rg_snapshot(
                 snapshot,
                 registry_digest=app_microstep_contract_digest,
             )
+            if fixture_profile:
+                fixture_hash_payload = snapshot.to_dict()
+                fixture_hash_payload.pop("deterministic_hash", None)
+                snapshot = replace(
+                    snapshot,
+                    deterministic_hash=_canonical_digest(fixture_hash_payload),
+                )
             apps_rg_snapshots.append(snapshot)
         snapshot_payload = snapshot.to_dict()
         scenario_findings = [grader.grade(fixture, snapshot) for grader in graders]
@@ -1437,6 +1848,7 @@ def run_eval(request: EvalRequest) -> CompletedEvalRecord:
                 created_at=created_at,
                 planned_eval_artifacts=planned_eval_artifacts,
                 snapshot_digest=snapshot.snapshot_digest,
+                contract_profile_id=contract_profile_id,
             )
             rows = _apps_rg_record_rows(list(microstep_eval["rows"]))
             components = [component.to_dict() for component in microstep_eval["component_scorecards"]]
@@ -1512,6 +1924,9 @@ def run_eval(request: EvalRequest) -> CompletedEvalRecord:
             deterministic_only=request.deterministic_only,
             with_judge=request.with_judge,
             compare_baseline=request.compare_baseline,
+            contract_profile_id=(contract_profile_id if fixture_profile else ""),
+            evidence_class=(str(profile.get("evidence_class") or "") if fixture_profile else ""),
+            product_eligible=(bool(profile.get("product_eligible")) if fixture_profile else True),
         ),
         fixture_provenance=fixture_provenance,
         **_record_evidence_bindings(
@@ -1521,6 +1936,9 @@ def run_eval(request: EvalRequest) -> CompletedEvalRecord:
         )
         if suite.get("app_id") == "apps_rg"
         else {"eval_record_id": record_id},
+        contract_profile_id=(contract_profile_id if fixture_profile else ""),
+        evidence_class=(str(profile.get("evidence_class") or "") if fixture_profile else ""),
+        product_eligible=(bool(profile.get("product_eligible")) if fixture_profile else True),
     )
     flywheel = _regression_flywheel_summary(
         record=provisional,
@@ -1566,6 +1984,7 @@ def run_eval(request: EvalRequest) -> CompletedEvalRecord:
                 created_at=created_at,
                 planned_eval_artifacts=planned_eval_artifacts,
                 snapshot_digest=snapshot.snapshot_digest,
+                contract_profile_id=contract_profile_id,
             )
             scenario_rows = _apps_rg_record_rows(list(microstep_eval["rows"]))
             scenario_components = [
@@ -1681,11 +2100,51 @@ def run_eval(request: EvalRequest) -> CompletedEvalRecord:
             run_dir=run_dir,
             record_id=record_id,
             planned_eval_artifacts=planned_eval_artifacts,
+            contract_profile_id=(contract_profile_id if fixture_profile else ""),
+            evidence_class=(str(profile.get("evidence_class") or "") if fixture_profile else ""),
+            product_eligible=(bool(profile.get("product_eligible")) if fixture_profile else None),
         )
     for snapshot in apps_rg_snapshots:
         _assert_source_snapshot_unchanged(snapshot)
     return record
 
 
+def run_anthropic_deterministic_fixture_eval(
+    snapshot: AppOutputSnapshot,
+    *,
+    out_dir: str = "artifacts/apps_eval/runs",
+) -> CompletedEvalRecord:
+    """Evaluate one runtime-produced Anthropic fixture snapshot.
+
+    The public helper fixes the only allowed suite/profile pairing and never
+    routes through product current-snapshot or live-adapter evaluation.
+    """
+
+    if snapshot.app_id != "apps_rg":
+        raise ValueError("Anthropic deterministic fixture eval supports apps_rg only")
+    if snapshot.contract_profile_id != ANTHROPIC_DETERMINISTIC_FIXTURE_PROFILE_ID:
+        raise ValueError("snapshot is not bound to the Anthropic fixture contract profile")
+    if (
+        snapshot.provenance.get("fixture_only") is not True
+        or snapshot.provenance.get("product_eligible") is not False
+        or snapshot.provenance.get("provider_call_attempted") is not False
+        or snapshot.provenance.get("network_call_attempted") is not False
+    ):
+        raise ValueError("snapshot does not prove the no-provider fixture boundary")
+    return run_eval(
+        EvalRequest(
+            suite_id="apps_rg.fixture.anthropic_deterministic_e2e",
+            mode="snapshot",
+            deterministic_only=True,
+            with_judge=False,
+            compare_baseline=False,
+            out_dir=out_dir,
+            emit_l6_handoff=True,
+        ),
+        snapshot_overrides={"anthropic_deterministic_fixture": snapshot},
+    )
+
+
 def render_record(record_path: str) -> str:
     return render_record_markdown(_load_json(Path(record_path)))
+

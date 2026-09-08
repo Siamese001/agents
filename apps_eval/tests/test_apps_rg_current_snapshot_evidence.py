@@ -91,8 +91,10 @@ def test_current_snapshot_record_is_identity_and_source_digest_bound(
     assert all(row["eval_record_id"] == record.record_id for row in required_rows)
     assert all(row["snapshot_digest"] == snapshot.snapshot_digest for row in required_rows)
     assert all(row["registry_digest"] == record.registry_digest for row in required_rows)
-    assert record.scorecard.dimension_scores["section_structure"] == 0.0
-    assert record.scorecard.dimension_scores["x3_disposition"] == 1.0
+    # Current Apps RG release evidence is the native microstep scorecard.  The
+    # generic resume graders (and their fixture-only dimensions) are excluded
+    # from this path rather than influencing a governed product decision.
+    assert record.scorecard.dimension_scores == {}
     assert Path(record.artifact_paths["eval_record"]).is_file()
     package_rows = [
         row

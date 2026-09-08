@@ -11,7 +11,7 @@ The review traced graph selection, proof-pool construction, section prompt autho
 Two limitations matter:
 
 1. Neither uploaded archive contains a conventional automated test suite (`tests/`, `test_*.py`, or `*_test.py`). Existing validators are runtime controls, not regression tests.
-2. A complete product E2E run could not be established from the archives alone. `apps_rg/fact_inventory/candidate_fact_ledger.py` points to `artifacts/apps_rg/fact_inventory/master_candidate_skills_fact_ledger_20260518T1100Z.json`, which is absent, and several paths import `agentic_core`, which is outside the uploaded archive. Findings based on direct source inspection and the selector probe are definitive for those surfaces. Any whole-run path conclusion is labeled as static path analysis.
+2. A complete product E2E run could not be established from the archives alone. `apps_rg/fact_inventory/candidate_fact_ledger.py` points to `artifacts/apps_rg/fact_inventory/master_candidate_skills_fact_ledger_20260518T1100Z.json`, which is absent, and several paths import `apps_rg`, which is outside the uploaded archive. Findings based on direct source inspection and the selector probe are definitive for those surfaces. Any whole-run path conclusion is labeled as static path analysis.
 
 The packaged source files are byte-for-byte copies of the uploaded files. This preserves the user's “do not implement changes” constraint while identifying the exact refactor surface. `REFACTOR_MANIFEST.json` records SHA-256 equality for every copied source file.
 
@@ -941,12 +941,12 @@ CI should publish the exact fixture digests and the machine receipts from the An
 
 - `apps_rg/fact_inventory/candidate_fact_ledger.py`
 - `apps_rg/runtime/proof_pool_resolver.py`
-- paths that import `agentic_core`
+- paths that import `apps_rg`
 - apps_rg preflight and artifact-manifest surfaces
 
 **Current behavior**
 
-`candidate_fact_ledger.py` references an artifact path outside the uploaded package, and that artifact is absent. Several runtime paths require `agentic_core`, also absent. The archive therefore cannot independently prove that all graph/fact authorities needed by a product run are present and digest-matched.
+`candidate_fact_ledger.py` references an artifact path outside the uploaded package, and that artifact is absent. Several runtime paths require `apps_rg`, also absent. The archive therefore cannot independently prove that all graph/fact authorities needed by a product run are present and digest-matched.
 
 **Why this is a real risk**
 
@@ -958,7 +958,7 @@ There is no package-level dependency manifest with required artifact paths, sche
 
 **How it could fail on the Anthropic partnership resume**
 
-The Anthropic run can behave differently across environments depending on which candidate ledger or `agentic_core` version is available. A graph receipt may identify one digest while the external proof substrate is missing or different.
+The Anthropic run can behave differently across environments depending on which candidate ledger or `apps_rg` version is available. A graph receipt may identify one digest while the external proof substrate is missing or different.
 
 **Smallest hardening slice**
 

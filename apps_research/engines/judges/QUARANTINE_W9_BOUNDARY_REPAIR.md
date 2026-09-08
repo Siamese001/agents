@@ -9,7 +9,7 @@ Plan: `apps-research-w9-judge-boundary-closure-c21951`
 ## A. Governance Boundary
 
 `apps_research` is **ingress-only** for judge execution. Judge execution authority is
-**core-only** (`agentic_core/evaluation/judges/`).
+**core-only** (`apps_rg/evaluation/judges/`).
 
 Apps_research judge files must NOT contain:
 - Local scoring or heuristic logic
@@ -19,14 +19,14 @@ Apps_research judge files must NOT contain:
 - Literal `def evaluate(` definitions
 - Literal `def grade(` definitions
 
-All executable judge logic must live in `agentic_core/evaluation/judges/`.
+All executable judge logic must live in `apps_rg/evaluation/judges/`.
 Apps own config only: rubrics, profiles, thresholds, and grader rosters.
 
 ---
 
 ## B. What W1 Fixed
 
-**File:** `agentic_core/evaluation/judges/llm_judge_gateway.py`
+**File:** `apps_rg/evaluation/judges/llm_judge_gateway.py`
 
 **Fix:** Renamed `LLMJudgeMode` → `LLMGatewayMode` (1-line rename).
 
@@ -79,14 +79,14 @@ boundary test forbids any literal `def grade(` inside `apps_research`.
 **Solution:** The run_context coverage-depth scoring implementation was added to core:
 
 ```
-agentic_core/evaluation/judges/deterministic_graders.py
+apps_rg/evaluation/judges/deterministic_graders.py
 ```
 
 as `grade_coverage_depth_run_context`. The `coverage_depth_judge.py` file was then
 rewritten as a **core-backed compatibility facade**:
 
 ```python
-from agentic_core.evaluation.judges.deterministic_graders import (
+from apps_rg.runtime.apps_runtime_compat import (
     grade_coverage_depth_run_context as grade,
 )
 IS_STUB: bool = False  # core-backed, not a hollow stub
@@ -124,8 +124,8 @@ python -c "from pathlib import Path; ..."  →  [] exit 0
 2. **Do not add `def grade(` to any file under `apps_research/engines/judges/`.**
 3. Do not move scoring logic back into `apps_research`.
 4. If a legacy app-level import is required, expose a core-backed alias or facade only
-   (no local execution logic). Pattern: `from agentic_core... import <symbol> as grade`.
-5. If new judge behavior is needed, implement it in `agentic_core/evaluation/judges/`,
+   (no local execution logic). Pattern: `from apps_rg... import <symbol> as grade`.
+5. If new judge behavior is needed, implement it in `apps_rg/evaluation/judges/`,
    then expose only compatibility references in `apps_research` if required.
 6. `coverage_depth_judge.py` is a compatibility facade. Its `grade` symbol must always
    resolve to a core-owned callable in `deterministic_graders.py`. Any scoring changes
@@ -155,9 +155,9 @@ python -c "from pathlib import Path; ..."  →  [] exit 0
 
 | File | Purpose |
 |---|---|
-| `agentic_core/evaluation/judges/deterministic_graders.py` | Core-owned deterministic graders including `grade_coverage_depth_run_context` |
-| `agentic_core/evaluation/judges/llm_judge_gateway.py` | Core-owned LLM gateway (PROFILE_ONLY, fixed W1) |
-| `agentic_core/evaluation/judges/gate_evidence_mapper.py` | Core-owned gate mapping |
+| `apps_rg/evaluation/judges/deterministic_graders.py` | Core-owned deterministic graders including `grade_coverage_depth_run_context` |
+| `apps_rg/evaluation/judges/llm_judge_gateway.py` | Core-owned LLM gateway (PROFILE_ONLY, fixed W1) |
+| `apps_rg/evaluation/judges/gate_evidence_mapper.py` | Core-owned gate mapping |
 
 ---
 

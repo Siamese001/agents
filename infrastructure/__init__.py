@@ -1,12 +1,17 @@
-"""Infrastructure package — system hardening and cross-cutting optimization modules."""
+"""Infrastructure package - system hardening and cross-cutting optimization modules."""
 
 from __future__ import annotations
 
-from agentic_core.runtime.contracts import lifecycle_trace_contract as trace_contract
+try:
+    from agentic_core.runtime.contracts import lifecycle_trace_contract as trace_contract
+except ImportError:
+    trace_contract = None
 
 
 def emit_package_boot_telemetry() -> None:
     """Emit package boot telemetry explicitly instead of at import time."""
+    if trace_contract is None:
+        return
     # P0: Evidence emission
     trace_contract.emit_replay_key("p0", "infrastructure")
     trace_contract.emit_determinism_digest("p0", "infrastructure")

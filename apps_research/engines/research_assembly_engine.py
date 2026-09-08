@@ -10,14 +10,14 @@ Model-ready:   synthesis narrative, strategic implications, interpretation.
 
 from __future__ import annotations
 
-from agentic_core.runtime.contracts.runtime_telemetry_decorators import (
+from apps_rg.runtime.apps_runtime_compat import (
     traces_execute,
 )
 
 import logging
 from dataclasses import dataclass, field
 
-from agentic_core.runtime.contracts import lifecycle_trace_contract as trace_contract
+from apps_rg.runtime.apps_runtime_compat import lifecycle_trace_contract as trace_contract
 
 trace_contract._emit_authorize_and_execute("p2", "research_assembly_engine", "execution_auth")
 trace_contract._emit_validates_capability("p2", "research_assembly_engine", "capability_check")
@@ -119,7 +119,7 @@ _COMPARISON_DIMENSIONS = [
 ]
 
 _AGENTIC_FRAMEWORKS = {
-    "agentic_core (this repo)": {
+    "apps_rg (this repo)": {
         "architecture_model": "Layered L0-L6 with ADG enforcement",
         "governance_approach": "Constitutional pre-commit hooks + policy hash enforcement",
         "determinism_level": "High — static analysis enforced",
@@ -263,7 +263,7 @@ class ResearchAssemblyEngine:
         sources = [
             SourceEntry(
                 source_id="SRC-001",
-                title="agentic_core L0-L6 Architecture",
+                title="apps_rg L0-L6 Architecture",
                 claim_type="direct_evidence",
                 confidence=0.95,
                 summary="Six-layer architecture with enforced dependency boundaries",
@@ -276,7 +276,7 @@ class ResearchAssemblyEngine:
                 claim_type="direct_evidence",
                 confidence=0.95,
                 summary="Pre-commit enforcement of architectural governance rules",
-                url="urn:repo:agentic_core/L5_safety/",
+                url="urn:repo:apps_rg/L5_safety/",
                 section_id="key_findings",
             ),
             SourceEntry(
@@ -285,7 +285,7 @@ class ResearchAssemblyEngine:
                 claim_type="direct_evidence",
                 confidence=0.90,
                 summary="InstructionPacket policy hash validation at routing entry",
-                url="urn:repo:agentic_core/L0_routing/enforcement/policy_hash_enforcer.py",
+                url="urn:repo:apps_rg/L0_routing/enforcement/policy_hash_enforcer.py",
                 section_id="key_findings",
             ),
             SourceEntry(
@@ -294,7 +294,7 @@ class ResearchAssemblyEngine:
                 claim_type="direct_evidence",
                 confidence=0.90,
                 summary="Static AST analysis of non-deterministic calls in execution scope",
-                url="urn:repo:agentic_core/L5_safety/static_checks/determinism_serialization_check.py",
+                url="urn:repo:apps_rg/L5_safety/static_checks/determinism_serialization_check.py",
                 section_id="strategic_implications",
             ),
             SourceEntry(

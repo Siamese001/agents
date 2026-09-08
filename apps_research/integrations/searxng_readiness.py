@@ -119,7 +119,15 @@ def _probe_json_search(base_url: str, *, timeout: int = 20) -> tuple[bool, str]:
         return False, "JSON response was not an object"
     if "results" not in parsed:
         return False, "JSON response missing results"
-    return True, f"results={len(parsed.get('results') or [])}"
+    results = parsed.get("results")
+    if not isinstance(results, list):
+        return False, "JSON response results was not a list"
+    if not results:
+        # HTTP 200 plus an empty result array only proves that the container can
+        # serialize JSON.  Apps Research requires grounded documents, so this
+        # state must fail preflight and use the existing bounded restart path.
+        return False, "results=0"
+    return True, f"results={len(results)}"
 
 
 def build_report(
@@ -223,7 +231,7 @@ def ensure_runtime_ready(
     *,
     container_name: str = DEFAULT_CONTAINER_NAME,
     base_url: str | None = None,
-    force_restart: bool = True,
+    force_restart: bool = False,
     probe_timeout: int = 20,
     restart_wait_seconds: float = 8.0,
 ) -> SearxngReadinessReport:

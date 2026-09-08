@@ -29,7 +29,7 @@ def _noop(*_args: Any, **_kwargs: Any) -> None:
 
 def _resolve_emit(name: str) -> Callable[..., None]:
     try:
-        from agentic_core.runtime.contracts import lifecycle_trace_contract as ssot
+        from apps_rg.runtime.contracts import lifecycle_trace_contract as ssot
     except ImportError:
         resolved = _noop
     else:

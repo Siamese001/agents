@@ -106,7 +106,7 @@ _COVERAGE_FAMILY_CATALOG: Dict[str, Dict[str, Any]] = {
         "min_sources": 1,
     },
     "tech_stack_and_tools": {
-        "query_template": "{topic} technology stack tools infrastructure engineering",
+        "query_template": "{topic} AI technology innovation",
         "min_sources": 1,
     },
     "culture_and_values": {

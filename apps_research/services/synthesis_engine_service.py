@@ -10,12 +10,12 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from agentic_core.L2_execution.enforcement.synthesis_bridge import (
+from apps_rg.runtime.apps_runtime_compat import (
     SynthesisProvenance,
     wrap_synthesis_output,
 )
-from agentic_core.L2_execution.reasoning.compiled_artifact import AuthoritySlot
-from agentic_core.runtime.contracts.lifecycle_trace_contract import (
+from apps_rg.runtime.apps_runtime_compat import AuthoritySlot
+from apps_rg.runtime.apps_runtime_compat import (
     LayerSegment,
     _emit_records_execution_trace,
     _emit_records_telemetry_event,
@@ -131,7 +131,7 @@ class SynthesisEngineService:
         """Wrap a synthesis result as a governed C0 AuthoritySlot.
 
         Phase RH6B.2 adoption of
-        :func:`agentic_core.L2_execution.enforcement.synthesis_bridge.wrap_synthesis_output`.
+        :func:`apps_rg.L2_execution.enforcement.synthesis_bridge.wrap_synthesis_output`.
         Opt-in: existing callers of :meth:`synthesize_findings` are unaffected.
 
         Renders the synthesis dict to a human-readable text block (mode +

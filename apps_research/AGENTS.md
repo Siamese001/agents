@@ -1,6 +1,6 @@
 # Apps_research — App Customization Rules
 
-> `apps_research` owns domain customization for Company Research Brief generation. All app-specific behavior lives here; `agentic_core` provides generic enforcement engines.
+> `apps_research` owns domain customization for Company Research Brief generation. All app-specific behavior lives here; `apps_rg` provides generic enforcement engines.
 
 ## App Ownership
 
@@ -26,15 +26,15 @@
 
 `apps_research` **must NOT**:
 
-1. **Implement separate Exit** — only `agentic_core` Exit emits X3
+1. **Implement separate Exit** — only `apps_rg` Exit emits X3
 2. **Emit X3 directly** — use Exit profile (data), not Exit implementation
 3. **Write L4 directly** — all durable writes go through Exit X3C → CommitRequest → UWG → L4
 4. **Send directly or perform forbidden side effects** — must route through governed spine and clear Exit
-5. **Add app-specific code to `agentic_core`** — use U0 package refs instead
+5. **Add app-specific code to `apps_rg`** — use U0 package refs instead
 
 ## U0 Runtime Customization Package
 
-`apps_research` behavior enters `agentic_core` **only** through:
+`apps_research` behavior enters `apps_rg` **only** through:
 
 ```
 apps_research/
@@ -79,7 +79,7 @@ refs:
 
 ## Existing Core Bindings
 
-`apps_research` has temporary bindings in `agentic_core/`:
+`apps_research` has temporary bindings in `apps_rg/`:
 
 | Binding | Layer | Status | Migration Target |
 |---------|-------|--------|------------------|
@@ -111,6 +111,6 @@ When adding new `apps_research` behavior:
 ## Related
 
 - Root `AGENTS.md` — Architecture law
-- `agentic_core/AGENTS.md` — Core boundary rules
+- `apps_rg/AGENTS.md` — Core boundary rules
 - `.codex/rules/apps-customization.md` — App customization guidance
 - `.codex/rules/boundary-audit-required.md` — Audit triggers

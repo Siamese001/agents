@@ -1,0 +1,17 @@
+{
+  "description": "Runtime-produced Anthropic Partnership no-provider fixture boundary.",
+  "graders": [
+    "schema",
+    "artifact_presence",
+    "x3_disposition",
+    "forbidden_content",
+    "grounded_claim",
+    "provenance",
+    "section_structure",
+    "length_bounds",
+    "side_effect",
+    "escalation",
+    "determinism"
+  ],
+  "scenario_id": "anthropic_deterministic_fixture"
+}

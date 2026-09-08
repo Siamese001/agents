@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from apps_eval.registry import load_graders_registry, load_suite
+from apps_eval.resources import resolve_apps_eval_resource
 
 _SCENARIO_ID = re.compile(r"^[a-z0-9][a-z0-9_]{2,80}$")
 _DEFAULT_APPS_RG_FIXTURE_ROOT = Path("apps_eval/fixtures/dev/apps_rg")
@@ -153,7 +154,7 @@ def scaffold_apps_rg_scenario(
 
     if not _SCENARIO_ID.fullmatch(scenario_id):
         raise ValueError("scenario_id must be lowercase snake_case, 3-81 characters")
-    root = Path(fixture_root) / scenario_id
+    root = resolve_apps_eval_resource(fixture_root) / scenario_id
     if root.exists() and any(root.iterdir()) and not overwrite:
         raise FileExistsError(f"scenario already exists: {root}")
 
@@ -214,7 +215,7 @@ def validate_suite_fixtures(suite_id: str) -> list[str]:
     problems: list[str] = []
     known_graders = set(load_graders_registry())
     suite_app_id = str(suite["app_id"])
-    root = Path(str(suite["fixture_root"]))
+    root = resolve_apps_eval_resource(str(suite["fixture_root"]))
     for scenario_id in suite.get("scenarios", []):
         scenario_root = root / scenario_id
         required = [

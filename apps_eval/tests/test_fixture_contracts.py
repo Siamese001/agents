@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import hashlib
 import json
-from pathlib import Path
 
 from apps_eval.registry import load_suites_registry
+from apps_eval.resources import resolve_apps_eval_resource
 
 
 def _stable_hash(data: dict) -> str:
@@ -19,7 +19,7 @@ def test_dev_fixtures_have_required_contract_files() -> None:
     for suite_id, suite in suites.items():
         if suite["split"] != "dev":
             continue
-        root = Path(suite["fixture_root"])
+        root = resolve_apps_eval_resource(suite["fixture_root"])
         for scenario_id in suite["scenarios"]:
             scenario_root = root / scenario_id
             assert (scenario_root / "scenario.yaml").is_file(), suite_id
@@ -35,6 +35,11 @@ def test_snapshot_hashes_match_fixture_content() -> None:
         if suite["split"] != "dev":
             continue
         for scenario_id in suite["scenarios"]:
-            path = Path(suite["fixture_root"]) / scenario_id / "snapshots" / "app_output_snapshot.json"
+            path = (
+                resolve_apps_eval_resource(suite["fixture_root"])
+                / scenario_id
+                / "snapshots"
+                / "app_output_snapshot.json"
+            )
             data = json.loads(path.read_text(encoding="utf-8"))
             assert data["deterministic_hash"] == _stable_hash(data)

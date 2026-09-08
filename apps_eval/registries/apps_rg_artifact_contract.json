@@ -13,7 +13,7 @@
     },
     "u0_runtime_package": {
       "required": true,
-      "source_artifact_schema": "agentic_core.runtime_customization_package.v1",
+      "source_artifact_schema": "apps_rg.runtime_customization_package.v1",
       "relative_paths": [
         "u0_receipt.json",
         "runtime_customization_package.yaml",
@@ -25,6 +25,7 @@
       "required": true,
       "source_artifact_schema": "apps_rg.l1_static_plan_profile.v1",
       "relative_paths": [
+        "l1_planning_capsule.json",
         "l1_plan_contract.json",
         "l1_static_plan_profile.yaml",
         "u0/l1_static_plan_profile.yaml",
@@ -45,6 +46,7 @@
       "required": true,
       "source_artifact_schema": "apps_rg.c0_evidence_manifest.v1",
       "relative_paths": [
+        "apps_rg_whole_run_exit_review_packet.json",
         "c0_bypass_receipt.json",
         "r4_c0_bypass_receipt.json",
         "c0_evidence_manifest.json",
@@ -57,6 +59,7 @@
       "required": true,
       "source_artifact_schema": "apps_rg.prompt_assembly_receipt.v1",
       "relative_paths": [
+        "apps_rg_whole_run_exit_review_packet.json",
         "prompt_assembly_bypass_receipt.json",
         "compiled_prompt.json",
         "prompt_assembly_receipt.json",
@@ -164,7 +167,7 @@
     },
     "uwg_commit_request": {
       "required": true,
-      "source_artifact_schema": "agentic_core.l4.uwg.commit_request.v1",
+      "source_artifact_schema": "apps_rg.l4.uwg.commit_request.v1",
       "relative_paths": [
         "uwg/commit_request.json",
         "commit_request.json"
@@ -172,7 +175,7 @@
     },
     "uwg_validation_receipt": {
       "required": true,
-      "source_artifact_schema": "agentic_core.l4.uwg.validation_receipt.v1",
+      "source_artifact_schema": "apps_rg.l4.uwg.validation_receipt.v1",
       "relative_paths": [
         "uwg/uwg_validation_receipt.json",
         "uwg_validation_receipt.json"
@@ -180,7 +183,7 @@
     },
     "uwg_commit_receipt": {
       "required": true,
-      "source_artifact_schema": "agentic_core.l4.uwg.commit_receipt.v1",
+      "source_artifact_schema": "apps_rg.l4.uwg.commit_receipt.v1",
       "relative_paths": [
         "uwg/uwg_commit_receipt.json",
         "uwg_commit_receipt.json"
@@ -221,7 +224,7 @@
     },
     "l6_microstep_observations": {
       "required": false,
-      "source_artifact_schema": "agentic_core.l6_microstep_observation.v1",
+      "source_artifact_schema": "apps_rg.l6_microstep_observation.v1",
       "relative_paths": [
         "l6_microstep_observations.jsonl",
         "l6_grain_parity/l6_microstep_observations.jsonl"
@@ -229,7 +232,7 @@
     },
     "l6_apps_eval_alignment": {
       "required": false,
-      "source_artifact_schema": "agentic_core.l6_apps_eval_alignment.v1",
+      "source_artifact_schema": "apps_rg.l6_apps_eval_alignment.v1",
       "relative_paths": [
         "l6_apps_eval_alignment.json",
         "l6_grain_parity/l6_apps_eval_alignment.json"
@@ -237,7 +240,7 @@
     },
     "l6_apps_eval_grain_parity": {
       "required": false,
-      "source_artifact_schema": "agentic_core.l6_apps_eval_grain_parity.v1",
+      "source_artifact_schema": "apps_rg.l6_apps_eval_grain_parity.v1",
       "relative_paths": [
         "l6_apps_eval_grain_parity.json",
         "l6_grain_parity/l6_apps_eval_grain_parity.json"

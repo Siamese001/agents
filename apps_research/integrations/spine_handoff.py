@@ -2,7 +2,7 @@
 
 Surfaces the canonical R3 contract chain (per
 ``docs/reference/APP_OVERLAY_VS_CORE_ONLY_RUNTIME.md``) directly from
-``agentic_core`` so the runtime-mode scanner
+``apps_rg`` so the runtime-mode scanner
 (``tools.analysis.apps_spine_coverage``) can verify the delegation
 evidence statically. Today these contracts flow into apps_research
 **transitively** through
@@ -56,25 +56,25 @@ import logging
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Mapping
 
-from agentic_core.L0_routing.c0_retrieval.final_contract import (
+from apps_rg.runtime.apps_runtime_compat import (
     FinalEvidenceContract,
 )
-from agentic_core.L0_routing.c0_retrieval.plan import RetrievalPlan
-from agentic_core.L0_routing.c0_retrieval.route_contract import RouteContract
+from apps_rg.runtime.apps_runtime_compat import RetrievalPlan
+from apps_rg.runtime.apps_runtime_compat import RouteContract
 
 # ---------------------------------------------------------------------------
-# R3 contract chain -- direct imports from agentic_core.
+# R3 contract chain -- direct imports from apps_rg.
 # These imports are the load-bearing static evidence the scanner
 # (tools.analysis.apps_spine_coverage) consumes. Do NOT remove or
 # replace with local re-imports / aliases.
 # ---------------------------------------------------------------------------
-from agentic_core.L0_routing.intake.validated_request import ValidatedRequest
-from agentic_core.L1_cognition.types.plan_contract_types import L1PlanContract
-from agentic_core.L2_execution.reasoning.compiled_artifact import (
+from apps_rg.runtime.apps_runtime_compat import ValidatedRequest
+from apps_rg.runtime.apps_runtime_compat import L1PlanContract
+from apps_rg.runtime.apps_runtime_compat import (
     CompiledPromptArtifact,
 )
-from agentic_core.L3_orchestration.exit_eval.v6.types import ExitReviewPacket
-from agentic_core.L5_safety.eval_spine.exit_eval import SealedArtifact
+from apps_rg.runtime.apps_runtime_compat import ExitReviewPacket
+from apps_rg.runtime.apps_runtime_compat import SealedArtifact
 
 if TYPE_CHECKING:  # pragma: no cover -- type-only imports
     from apps_research.integrations.governed_research_run import (

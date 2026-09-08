@@ -35,7 +35,10 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Callable
 
 if TYPE_CHECKING:
-    from agentic_core.L2_execution.reasoning.prompt_messages import PromptMessages
+    try:
+        from agentic_core.L2_execution.reasoning.prompt_messages import PromptMessages
+    except ImportError:
+        PromptMessages = Any  # type: ignore[misc]
 
 
 DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
@@ -395,3 +398,4 @@ __all__ = [
     "GeminiResponse",
     "GeminiStreamChunk",
 ]
+

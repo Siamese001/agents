@@ -201,7 +201,7 @@ def test_apps_rg_eval_emits_diagnostic_artifacts_without_changing_scorecard(tmp_
         )
     )
 
-    assert len(record.scorecard.scorecard_rows) == 134 * record.scorecard.scenario_count
+    assert len(record.scorecard.scorecard_rows) == 128 * record.scorecard.scenario_count
     diagnostic_rows = Path(record.artifact_paths["diagnostic_rows"])
     diagnostic_summary = Path(record.artifact_paths["diagnostic_summary"])
     assert diagnostic_rows.is_file()

@@ -1,7 +1,7 @@
 # Runtime Package Registry for apps_research
 # 
 # App-owned registry for resolving default runtime customization packages.
-# Core agentic_core does not hardcode these values - they are loaded from this registry.
+# Core apps_rg does not hardcode these values - they are loaded from this registry.
 
 app_id: apps_research
 schema_version: "1.0"

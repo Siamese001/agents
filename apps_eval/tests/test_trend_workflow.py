@@ -4,7 +4,7 @@ import json
 import time
 from pathlib import Path
 
-from apps_eval.__main__ import main
+from apps_eval.cli import main
 from apps_eval.contracts import EvalRequest
 from apps_eval.runner.core import run_eval
 

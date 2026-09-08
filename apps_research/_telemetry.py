@@ -1,6 +1,6 @@
 """Optional telemetry bridge for standalone-safe imports.
 
-This keeps apps_research importable even when agentic_core is absent.
+This keeps apps_research importable even when apps_rg is absent.
 All emitters degrade to no-op functions in standalone mode.
 """
 
@@ -80,7 +80,7 @@ def _noop(*_args: Any, **_kwargs: Any) -> None:
 
 def _bind_trace_contract() -> None:
     try:
-        from agentic_core.runtime.contracts import lifecycle_trace_contract as trace_contract
+        from apps_rg.runtime.contracts import lifecycle_trace_contract as trace_contract
     except ImportError:
         trace_contract = None
 

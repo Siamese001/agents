@@ -13,27 +13,23 @@ from pathlib import Path
 from typing import Any, Mapping
 from uuid import uuid4
 
-from agentic_core.L0_routing.apps_research_l0_binding import l0_route_apps_research
-from agentic_core.L1_cognition.apps_research_l1_binding import l1_plan_apps_research
-from agentic_core.L2_execution.apps_research_l2_binding import (
+from apps_rg.runtime.apps_runtime_compat import l0_route_apps_research
+from apps_rg.runtime.apps_runtime_compat import l1_plan_apps_research
+from apps_rg.runtime.apps_runtime_compat import (
     APPS_RESEARCH_L2_CERT_REF,
     l2_execute_apps_research,
 )
-from agentic_core.prompt_governance import pa_assemble_prompt_package_driven
-from agentic_core.runtime.c0.apps_research_c0_binding import c0_retrieve_apps_research
-from agentic_core.runtime.contracts.apps_rg_ingress_payload import (
-    AppsRgIngressPayload,
-    RequestEnvelope,
-)
-from agentic_core.runtime.contracts.compiled_prompt_artifact import (
+from apps_rg.runtime.apps_runtime_compat import pa_assemble_prompt_package_driven
+from apps_rg.runtime.apps_runtime_compat import c0_retrieve_apps_research
+from apps_research.runtime.app_contracts import AppsRgIngressPayload, AppRuntimeProfile, RequestEnvelope
+from apps_rg.runtime.apps_runtime_compat import (
     CompiledPromptArtifact,
 )
-from agentic_core.runtime.contracts.sealed_l2_artifact import (
+from apps_rg.runtime.apps_runtime_compat import (
     SealedL2Artifact as ContractSealedL2Artifact,
 )
-from agentic_core.runtime.contracts.x3_disposition import X3Disposition
-from agentic_core.runtime.entry.app_ingress_runner import AppRuntimeProfile
-from agentic_core.runtime.exit.apps_research_exit_binding import (
+from apps_rg.runtime.apps_runtime_compat import X3Disposition
+from apps_rg.runtime.apps_runtime_compat import (
     exit_finalize_apps_research,
 )
 from apps_research.runtime.u0.binding import (

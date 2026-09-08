@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
-from agentic_core.L0_routing.c0_retrieval.c0_3_enhanced.adapter import (
+from apps_rg.runtime.apps_runtime_compat import (
     AmbiguousAnchorResolution,
     GraphAdapterHealth,
     GraphNeighbor,
@@ -26,7 +26,7 @@ from agentic_core.L0_routing.c0_retrieval.c0_3_enhanced.adapter import (
     ProjectionManifest,
     UnresolvedAnchorResolution,
 )
-from agentic_core.L0_routing.c0_retrieval.c0_3_enhanced.contracts import (
+from apps_rg.runtime.apps_runtime_compat import (
     AnchorCandidate,
     ResolvedGraphAnchor,
 )
@@ -68,7 +68,7 @@ def build_research_graph_traverse_input(
     """Build a GraphTraverseInput-compatible dict for apps_research.
 
     W4N: returns a typed dict — live ``GraphTraverseInput`` construction is
-    deferred until C0.3 adapter registry is wired (requires agentic_core
+    deferred until C0.3 adapter registry is wired (requires apps_rg
     GENERIC_INFRA_EDIT).  This function does not invoke the traversal engine.
 
     Args:
@@ -104,7 +104,7 @@ def build_research_graph_traverse_input(
         "hydrated_candidates": hydrated_candidates,
         "graph_adapter_ref": "apps_research.integrations.c0_graph_adapter",
         "live_wiring_deferred": True,
-        "wiring_gate": "GRAPH_TRAVERSE_POLICY_AGENTIC_CORE_REQUIRED",
+        "wiring_gate": "GRAPH_TRAVERSE_POLICY_APP_RUNTIME_REQUIRED",
     }
 
 

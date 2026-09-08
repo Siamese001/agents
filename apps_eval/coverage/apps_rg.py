@@ -17,6 +17,10 @@ from apps_eval.contracts import (
 )
 
 _REGISTRY_DIR = Path(__file__).resolve().parents[1] / "registries"
+DEFAULT_APPS_RG_CONTRACT_PROFILE_ID = "apps_rg.product.v1"
+ANTHROPIC_DETERMINISTIC_FIXTURE_PROFILE_ID = (
+    "apps_rg.anthropic_deterministic_fixture.v1"
+)
 _STAGE_ORDER = {
     "U0": 0,
     "L1": 1,
@@ -35,7 +39,11 @@ _STAGE_ORDER = {
 }
 _PASSISH = {"PASS", "NOT_APPLICABLE"}
 _BLOCKING = {"FAIL", "UNKNOWN", "NOT_RUN"}
-_ALLOW_X3 = {"X3D_ALLOW_FINISH"}
+# A lane earns its local X3 gate as ``X3_ALLOW``.  The whole-resume exit is a
+# distinct, later gate and must be the canonical ``X3D_ALLOW_FINISH``.  Using
+# the final whole-run token for each lane incorrectly converts an authorized
+# product into eleven synthetic evaluation failures.
+_ALLOW_LANE_X3 = {"X3_ALLOW", "X3D_ALLOW_FINISH"}
 _PRESENCE_GATES = {
     "u0_run_bundle_index_present",
     "u0_runtime_package_present",
@@ -63,17 +71,72 @@ def _canonical_digest(payload: Any) -> str:
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
-def load_apps_rg_contracts() -> dict[str, Any]:
-    return {
-        "artifact_contract": _load_json(_REGISTRY_DIR / "apps_rg_artifact_contract.json"),
-        "component_taxonomy": _load_json(_REGISTRY_DIR / "apps_rg_component_taxonomy.json"),
-        "lane_contract": _load_json(_REGISTRY_DIR / "apps_rg_lane_contract.json"),
-        "microstep_contract": _load_json(_REGISTRY_DIR / "apps_rg_stage_microstep_contract.json"),
-    }
+def apps_rg_contract_profile(profile_id: str = DEFAULT_APPS_RG_CONTRACT_PROFILE_ID) -> dict[str, Any]:
+    """Return declared profile metadata without changing the product default."""
+
+    resolved = str(profile_id or DEFAULT_APPS_RG_CONTRACT_PROFILE_ID)
+    if resolved == DEFAULT_APPS_RG_CONTRACT_PROFILE_ID:
+        return {
+            "profile_id": DEFAULT_APPS_RG_CONTRACT_PROFILE_ID,
+            "evidence_class": "PRODUCT_CONTRACT",
+            "product_eligible": True,
+            "fixture_only": False,
+            "allowed_modes": ["snapshot", "live_adapter", "current_snapshot"],
+        }
+    if resolved == ANTHROPIC_DETERMINISTIC_FIXTURE_PROFILE_ID:
+        profile = _load_json(
+            _REGISTRY_DIR / "apps_rg_anthropic_deterministic_fixture_v1.json"
+        )
+        return {
+            key: profile[key]
+            for key in (
+                "profile_id",
+                "evidence_class",
+                "product_eligible",
+                "fixture_only",
+                "allowed_modes",
+            )
+        }
+    raise KeyError(f"unknown Apps RG contract profile: {resolved}")
 
 
-def apps_rg_contract_digest() -> str:
-    return _canonical_digest(load_apps_rg_contracts())
+def load_apps_rg_contracts(
+    profile_id: str = DEFAULT_APPS_RG_CONTRACT_PROFILE_ID,
+) -> dict[str, Any]:
+    resolved = str(profile_id or DEFAULT_APPS_RG_CONTRACT_PROFILE_ID)
+    if resolved == DEFAULT_APPS_RG_CONTRACT_PROFILE_ID:
+        return {
+            "artifact_contract": _load_json(_REGISTRY_DIR / "apps_rg_artifact_contract.json"),
+            "component_taxonomy": _load_json(_REGISTRY_DIR / "apps_rg_component_taxonomy.json"),
+            "lane_contract": _load_json(_REGISTRY_DIR / "apps_rg_lane_contract.json"),
+            "microstep_contract": _load_json(_REGISTRY_DIR / "apps_rg_stage_microstep_contract.json"),
+        }
+    if resolved == ANTHROPIC_DETERMINISTIC_FIXTURE_PROFILE_ID:
+        profile = _load_json(
+            _REGISTRY_DIR / "apps_rg_anthropic_deterministic_fixture_v1.json"
+        )
+        return {
+            key: profile[key]
+            for key in (
+                "artifact_contract",
+                "component_taxonomy",
+                "lane_contract",
+                "microstep_contract",
+            )
+        }
+    raise KeyError(f"unknown Apps RG contract profile: {resolved}")
+
+
+def apps_rg_contract_digest(
+    profile_id: str = DEFAULT_APPS_RG_CONTRACT_PROFILE_ID,
+) -> str:
+    return _canonical_digest(load_apps_rg_contracts(profile_id))
+
+
+def is_fixture_only_apps_rg_profile(profile_id: str) -> bool:
+    return bool(
+        apps_rg_contract_profile(profile_id).get("fixture_only") is True
+    )
 
 
 def _iter_microsteps(contracts: dict[str, Any]) -> list[dict[str, Any]]:
@@ -153,9 +216,9 @@ def _x3_verdict(payload: Any) -> tuple[str, str, Any, Any]:
         code = payload.strip()
     if not code or code.upper() == "UNKNOWN":
         return "UNKNOWN", "x3 code missing or UNKNOWN", code, "earned X3 code"
-    if code in _ALLOW_X3:
-        return "PASS", "x3 disposition is exact canonical allow-finish", code, "X3D_ALLOW_FINISH"
-    return "FAIL", f"x3 disposition is not exact X3D_ALLOW_FINISH: {code}", code, "X3D_ALLOW_FINISH"
+    if code in _ALLOW_LANE_X3:
+        return "PASS", "x3 disposition earned the local allow gate", code, "X3_ALLOW"
+    return "FAIL", f"x3 disposition is not a local allow code: {code}", code, "X3_ALLOW"
 
 
 def _l6_non_mutating_verdict(payload: Any) -> tuple[str, str, Any, Any]:
@@ -290,6 +353,9 @@ def _l1_schema_bound_verdict(payload: Any) -> tuple[str, str, Any, Any]:
     data = _dict_payload(payload)
     if data is None:
         return "UNKNOWN", "l1 profile exists but could not be parsed as an object", payload, "schema-bound L1 profile object"
+    plan_contract = data.get("plan_contract")
+    if isinstance(plan_contract, dict):
+        data = plan_contract
     explicit = _bool_field(data, "schema_bound", "profile_schema_bound", "l1_schema_bound")
     observed = {
         "schema_bound": explicit,
@@ -303,7 +369,7 @@ def _l1_schema_bound_verdict(payload: Any) -> tuple[str, str, Any, Any]:
     }
     if explicit is False:
         return "FAIL", "l1 profile explicitly reports schema_bound=false", observed, "schema_bound true"
-    if explicit is True or str(observed["schema_version"] or "").startswith("apps_rg."):
+    if explicit is True or str(observed["schema_version"] or "").startswith(("apps_rg.", "apps_rg_")):
         return "PASS", "l1 profile is schema-bound", observed, "schema version or schema_bound true"
     if observed["route_id_present"] and observed["task_spec_present"] and observed["query_spec_present"]:
         return "PASS", "l1 plan contract binds route, task, and query", observed, "schema-bound route/task/query contract"
@@ -335,6 +401,7 @@ def _c0_materiality_verdict(payload: Any) -> tuple[str, str, Any, Any]:
     data = _dict_payload(payload)
     if data is None:
         return "UNKNOWN", "c0 evidence manifest exists but could not be parsed as an object", payload, "material evidence manifest object"
+    signals = data.get("signals") if isinstance(data.get("signals"), dict) else {}
     explicit = _bool_field(data, "materiality_present", "evidence_materiality_present", "has_material_evidence")
     c0_required = _bool_field(data, "c0_required")
     bypass_reason = str(data.get("c0_bypass_reason") or "").strip()
@@ -346,7 +413,7 @@ def _c0_materiality_verdict(payload: Any) -> tuple[str, str, Any, Any]:
         + _count_nonempty(data.get("claims"))
         + _count_nonempty(data.get("facts"))
     )
-    materiality_count = data.get("materiality_count")
+    materiality_count = data.get("materiality_count") or signals.get("c0_evidence_item_count")
     try:
         support += int(materiality_count or 0)
     except (TypeError, ValueError):
@@ -361,7 +428,7 @@ def _c0_materiality_verdict(payload: Any) -> tuple[str, str, Any, Any]:
     }
     if explicit is False:
         return "FAIL", "c0 evidence manifest explicitly reports missing materiality", observed, "material support count > 0"
-    if explicit is True or support > 0:
+    if explicit is True or support > 0 or signals.get("c0_support_status") == "PASS":
         return "PASS", "c0 evidence materiality is present", observed, "material support count > 0"
     if c0_required is False and bypass_reason and deterministic_digest:
         return "PASS", "c0 receipt explicitly records deterministic preloaded-context bypass", observed, "material evidence or explicit deterministic bypass"
@@ -372,6 +439,7 @@ def _pa_evidence_as_data_verdict(payload: Any) -> tuple[str, str, Any, Any]:
     data = _dict_payload(payload)
     if data is None:
         return "UNKNOWN", "compiled prompt artifact exists but could not be parsed as an object", payload, "prompt assembly receipt object"
+    signals = data.get("signals") if isinstance(data.get("signals"), dict) else {}
     explicit = _bool_field(data, "evidence_as_data", "evidence_as_data_bound", "pa_evidence_as_data")
     wrong_slot = _bool_field(data, "evidence_in_instruction_slot", "evidence_in_system_slot", "evidence_as_instruction")
     prompt_required = _bool_field(data, "prompt_assembly_required")
@@ -393,6 +461,12 @@ def _pa_evidence_as_data_verdict(payload: Any) -> tuple[str, str, Any, Any]:
         return "FAIL", "prompt assembly places evidence in an authority/instruction slot", observed, "evidence bound as data"
     if explicit is True or observed["evidence_slot_present"]:
         return "PASS", "prompt assembly binds evidence as data", observed, "evidence bound as data"
+    if (
+        signals.get("pa_consumed_c0") is True
+        and signals.get("pa_evidence_data_only") is True
+        and signals.get("pa_schema_bound") is True
+    ):
+        return "PASS", "whole-run evidence confirms every section prompt binds C0 as data", observed, "evidence bound as data"
     if prompt_required is False and bypass_reason and deterministic_digest:
         return "PASS", "prompt assembly receipt explicitly records deterministic no-model bypass", observed, "evidence bound as data or explicit deterministic bypass"
     return "FAIL", "prompt assembly is missing evidence-as-data binding fields", observed, "evidence bound as data"
@@ -456,12 +530,105 @@ def _l6_grain_parity_verdict(payload: Any) -> tuple[str, str, Any, Any]:
     return "UNKNOWN", "l6 grain parity status missing or unbound", observed, "PASS with apps_eval_rows_bound"
 
 
+def _fixture_identity(payload: Any) -> dict[str, Any]:
+    data = _dict_payload(payload) or {}
+    identity = data.get("identity")
+    return dict(identity) if isinstance(identity, dict) else {}
+
+
+def _fixture_no_provider_verdict(payload: Any) -> tuple[str, str, Any, Any]:
+    data = _dict_payload(payload)
+    if data is None:
+        return "UNKNOWN", "fixture evidence is not an object", payload, "fixture evidence object"
+    identity = _fixture_identity(data)
+    observed = {
+        "evidence_class": data.get("evidence_class"),
+        "fixture_policy_id": data.get("fixture_policy_id"),
+        "product_eligible": data.get("product_eligible"),
+        "provider_call_attempted": data.get("provider_call_attempted"),
+        "network_call_attempted": data.get("network_call_attempted"),
+        "identity_bound": bool(identity.get("parent_run_id") and identity.get("child_run_id")),
+    }
+    if (
+        observed["evidence_class"] == "TEST_FIXTURE_ONLY"
+        and observed["fixture_policy_id"] == ANTHROPIC_DETERMINISTIC_FIXTURE_PROFILE_ID
+        and observed["product_eligible"] is False
+        and observed["provider_call_attempted"] is False
+        and observed["network_call_attempted"] is False
+        and observed["identity_bound"]
+    ):
+        return "PASS", "fixture evidence proves the no-provider test boundary", observed, "TEST_FIXTURE_ONLY and all provider flags false"
+    return "FAIL", "fixture evidence lacks the required no-provider boundary", observed, "TEST_FIXTURE_ONLY and all provider flags false"
+
+
+def _fixture_u0_bound_verdict(payload: Any) -> tuple[str, str, Any, Any]:
+    data = _dict_payload(payload)
+    identity = _fixture_identity(data)
+    observed = {
+        "status": data.get("status") if data else None,
+        "producer_app_id": identity.get("producer_app_id"),
+        "consumer_app_id": identity.get("consumer_app_id"),
+        "parent_run_id": identity.get("parent_run_id"),
+        "child_run_id": identity.get("child_run_id"),
+    }
+    if (
+        data is not None
+        and observed["status"] == "PASS"
+        and observed["producer_app_id"] == "apps_rg.deterministic_test_fixture"
+        and observed["consumer_app_id"] == "apps_rg"
+        and observed["parent_run_id"]
+        and observed["child_run_id"]
+    ):
+        return "PASS", "real U0 receipt is bound to the fixture handoff identity", observed, "PASS and fixture identity binding"
+    return "FAIL", "U0 receipt is not bound to the fixture handoff identity", observed, "PASS and fixture identity binding"
+
+
+def _fixture_stage_identity_verdict(payload: Any) -> tuple[str, str, Any, Any]:
+    data = _dict_payload(payload)
+    identity = _fixture_identity(data)
+    observed = {
+        "status": data.get("status") if data else None,
+        "parent_run_id": identity.get("parent_run_id"),
+        "child_run_id": identity.get("child_run_id"),
+    }
+    if data is not None and observed["status"] == "PASS" and all(observed.values()):
+        return "PASS", "real orchestration stage receipt carries the fixture identity", observed, "PASS and fixture identity binding"
+    return "FAIL", "orchestration stage receipt is missing fixture identity binding", observed, "PASS and fixture identity binding"
+
+
+def _fixture_l6_non_mutating_verdict(payload: Any) -> tuple[str, str, Any, Any]:
+    data = _dict_payload(payload)
+    if data is None:
+        return "UNKNOWN", "fixture L6 handoff is not an object", payload, "non-mutating fixture L6 handoff"
+    observed = {
+        "contract_profile_id": data.get("contract_profile_id"),
+        "evidence_class": data.get("evidence_class"),
+        "product_eligible": data.get("product_eligible"),
+        "current_run_mutated": data.get("current_run_mutated"),
+        "future_run_only": data.get("future_run_only"),
+    }
+    if (
+        observed["contract_profile_id"] == ANTHROPIC_DETERMINISTIC_FIXTURE_PROFILE_ID
+        and observed["evidence_class"] == "TEST_FIXTURE_ONLY"
+        and observed["product_eligible"] is False
+        and observed["current_run_mutated"] is False
+        and observed["future_run_only"] is True
+    ):
+        return "PASS", "fixture L6 handoff is profile-bound and non-mutating", observed, "fixture-only non-mutating L6 handoff"
+    return "FAIL", "fixture L6 handoff is not profile-bound/non-mutating", observed, "fixture-only non-mutating L6 handoff"
+
+
 _SEMANTIC_VALIDATORS = {
     "l1_static_plan_profile_schema_bound": _l1_schema_bound_verdict,
     "l0_dispatch_profile_canonical": _l0_dispatch_canonical_verdict,
     "c0_evidence_materiality_present": _c0_materiality_verdict,
     "pa_prompt_boundary_evidence_as_data": _pa_evidence_as_data_verdict,
     "x2_cross_section_graph_coherence_materiality": _x2_graph_coherence_materiality_verdict,
+    "fixture_handoff_no_provider": _fixture_no_provider_verdict,
+    "fixture_u0_identity_bound": _fixture_u0_bound_verdict,
+    "fixture_stage_identity_bound": _fixture_stage_identity_verdict,
+    "fixture_l2_no_provider": _fixture_no_provider_verdict,
+    "fixture_l6_non_mutating": _fixture_l6_non_mutating_verdict,
 }
 
 
@@ -563,6 +730,7 @@ def _make_row(
     source_artifact_schema: str,
     identity: dict[str, str],
     microstep_contract_digest: str,
+    contract_profile_id: str,
     snapshot_digest: str,
 ) -> ScorecardRow:
     microstep_id = str(item["microstep_id"])
@@ -600,6 +768,7 @@ def _make_row(
         runtime_exhaust_bundle_id=identity.get("runtime_exhaust_bundle_id", ""),
         microstep_contract_digest=microstep_contract_digest,
         registry_digest=microstep_contract_digest,
+        contract_profile_id=contract_profile_id,
         snapshot_digest=snapshot_digest,
         created_at=created_at,
     )
@@ -608,10 +777,19 @@ def _make_row(
 def _payload_identity_value(payload: Any, key: str) -> str:
     if not isinstance(payload, dict):
         return ""
+    source_identity = payload.get("source_identity")
+    if isinstance(source_identity, dict) and str(source_identity.get(key) or "").strip():
+        return str(source_identity.get(key)).strip()
     direct = str(payload.get(key) or "").strip()
     if direct:
         return direct
-    for wrapper in ("identity", "run_identity", "payload", "runtime_exhaust"):
+    for wrapper in (
+        "identity",
+        "run_identity",
+        "source_identity",
+        "payload",
+        "runtime_exhaust",
+    ):
         found = _payload_identity_value(payload.get(wrapper), key)
         if found:
             return found
@@ -621,6 +799,9 @@ def _payload_identity_value(payload: Any, key: str) -> str:
 def _bound_row_identity(snapshot: AppOutputSnapshot, payload: Any) -> tuple[dict[str, str], list[str]]:
     identity: dict[str, str] = {}
     mismatches: list[str] = []
+    payload_attempt = _payload_identity_value(payload, "section_attempt_id")
+    payload_exhaust = _payload_identity_value(payload, "runtime_exhaust_bundle_id")
+    lane_scoped = bool(payload_attempt and payload_exhaust)
     for key in (
         "parent_run_id",
         "child_run_id",
@@ -629,11 +810,16 @@ def _bound_row_identity(snapshot: AppOutputSnapshot, payload: Any) -> tuple[dict
     ):
         snapshot_value = str(getattr(snapshot, key, "") or "").strip()
         payload_value = _payload_identity_value(payload, key)
-        if snapshot_value and payload_value and snapshot_value != payload_value:
+        # A product snapshot has one research handoff child, while every lane
+        # has its own child/attempt/exhaust identity.  The lane parent must
+        # still equal the sealed product parent; lane-local fields come from
+        # the closure-bound package injected by the adapter.
+        compare_snapshot = key == "parent_run_id" or not lane_scoped
+        if compare_snapshot and snapshot_value and payload_value and snapshot_value != payload_value:
             mismatches.append(key)
             identity[key] = ""
         else:
-            identity[key] = payload_value or snapshot_value
+            identity[key] = payload_value or ("" if lane_scoped else snapshot_value)
     return identity, mismatches
 
 
@@ -710,8 +896,9 @@ def build_apps_rg_microstep_evaluation(
     created_at: str,
     planned_eval_artifacts: dict[str, Any] | None = None,
     snapshot_digest: str = "",
+    contract_profile_id: str = DEFAULT_APPS_RG_CONTRACT_PROFILE_ID,
 ) -> dict[str, Any]:
-    contracts = load_apps_rg_contracts()
+    contracts = load_apps_rg_contracts(contract_profile_id)
     contract_digest = _canonical_digest(contracts)
     artifact_contract = contracts["artifact_contract"]
     planned = planned_eval_artifacts or {}
@@ -724,7 +911,10 @@ def build_apps_rg_microstep_evaluation(
     registry_mismatch = any(
         digest != contract_digest for digest in declared_registry_digests
     )
-    identity_binding_required = snapshot.provenance.get("source_unchanged") is True
+    identity_binding_required = (
+        snapshot.provenance.get("source_unchanged") is True
+        and snapshot.provenance.get("fixture_only") is not True
+    )
     rows: list[ScorecardRow] = []
     prior_blocked: dict[str, bool] = defaultdict(bool)
 
@@ -750,7 +940,14 @@ def build_apps_rg_microstep_evaluation(
             required=bool(item.get("required", True)),
         )
         identity, identity_mismatches = _bound_row_identity(snapshot, payload)
-        missing_identity = sorted(key for key, value in identity.items() if not value)
+        required_identity_keys = (
+            ("parent_run_id", "child_run_id", "section_attempt_id", "runtime_exhaust_bundle_id")
+            if lane
+            else ("parent_run_id", "child_run_id")
+        )
+        missing_identity = sorted(
+            key for key in required_identity_keys if not identity.get(key)
+        )
         if not artifact_ref and resolved.failure_reason:
             reason = f"{reason}: {resolved.failure_reason}"
             observed = {"resolution_failure": resolved.failure_reason}
@@ -811,6 +1008,7 @@ def build_apps_rg_microstep_evaluation(
             source_artifact_schema=str(role_contract.get("source_artifact_schema", "")),
             identity=identity,
             microstep_contract_digest=contract_digest,
+            contract_profile_id=contract_profile_id,
             snapshot_digest=bound_snapshot_digest,
         )
         rows.append(row)
@@ -833,6 +1031,7 @@ def build_apps_rg_microstep_evaluation(
             "runtime_exhaust_bundle_id": row.runtime_exhaust_bundle_id,
             "microstep_contract_digest": row.microstep_contract_digest,
             "registry_digest": row.registry_digest,
+            "contract_profile_id": row.contract_profile_id,
             "snapshot_digest": row.snapshot_digest,
             "verdict": row.verdict,
         }
@@ -841,6 +1040,7 @@ def build_apps_rg_microstep_evaluation(
     return {
         "contracts": contracts,
         "contract_digest": contract_digest,
+        "contract_profile_id": contract_profile_id,
         "rows": rows,
         "component_scorecards": components,
         "coverage_summary": coverage,

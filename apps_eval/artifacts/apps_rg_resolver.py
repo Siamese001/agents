@@ -25,6 +25,7 @@ _EVAL_OUTPUT_ROLES = frozenset(
         "component_scorecards",
         "coverage_matrix",
         "regression_summary",
+        "fixture_l6_handoff",
     }
 )
 
@@ -106,6 +107,29 @@ def _payload_for_verified_path(path: Path) -> tuple[Any, str]:
     if payload is None:
         return None, "unreadable_json_artifact"
     return payload, ""
+
+
+def _with_index_source_identity(payload: Any, index_value: Any) -> Any:
+    """Retain the frozen manifest identity supplied by the live adapter.
+
+    The resolver re-opens a file after validating an artifact-index entry.
+    That re-open previously discarded the lane identity injected into the
+    entry, reverting every lane row to whole-run identity.  The injected
+    identity is a byte-bound manifest assertion, not a mutable product claim.
+    """
+
+    if not isinstance(payload, dict) or not isinstance(index_value, dict):
+        return payload
+    indexed_payload = index_value.get("payload")
+    indexed_payload = (
+        indexed_payload if isinstance(indexed_payload, dict) else {}
+    )
+    identity = indexed_payload.get("source_identity")
+    if not isinstance(identity, dict):
+        return payload
+    enriched = dict(payload)
+    enriched["source_identity"] = dict(identity)
+    return enriched
 
 
 def _missing(
@@ -264,12 +288,28 @@ def resolve_apps_rg_artifact(
                 expected_refs=expected_refs,
                 reason=payload_error,
             )
+        # The Apps RG live adapter verifies lane identity against separate,
+        # sealed RuntimeExhaust and L6 handoff receipts.  Preserve that
+        # verified binding while reopening the selected artifact bytes here;
+        # otherwise every lane payload loses its identity at this resolver
+        # boundary and coverage treats valid production evidence as anonymous.
+        if isinstance(first, dict):
+            indexed_payload = first.get("payload")
+            if (
+                isinstance(payload, dict)
+                and isinstance(indexed_payload, dict)
+                and isinstance(indexed_payload.get("source_identity"), dict)
+            ):
+                payload = {
+                    **payload,
+                    "source_identity": dict(indexed_payload["source_identity"]),
+                }
         return ResolvedAppsRgArtifact(
             artifact_role=role,
             artifact_ref=candidate.as_posix(),
             evidence_ref=rel,
             evidence_digest=observed_digest,
-            payload=payload,
+            payload=_with_index_source_identity(payload, first),
             resolution_source="snapshot_artifact_index",
             source_artifact_schema=source_schema,
             expected_refs=expected_refs,
@@ -302,6 +342,42 @@ def resolve_apps_rg_artifact(
                         expected_refs=expected_refs,
                         reason=payload_error,
                     )
+                if lane_id and isinstance(payload, dict) and "source_identity" not in payload:
+                    lane_identity_found = None
+                    for key_candidate in (
+                        f"{lane_id}:lane_runtime_payload",
+                        f"{lane_id}:lane_x2_gate_outputs",
+                        f"{lane_id}:lane_l2_output",
+                        f"{lane_id}:lane_x3_disposition",
+                    ):
+                        entry = (snapshot.artifact_index or {}).get(key_candidate)
+                        if isinstance(entry, dict) and isinstance(entry.get("payload"), dict):
+                            ident = entry["payload"].get("source_identity")
+                            if isinstance(ident, dict) and ident.get("section_attempt_id"):
+                                lane_identity_found = ident
+                                break
+                    if not lane_identity_found and root is not None:
+                        for candidate_name in (
+                            "apps_rg_section_runtime_exhaust_bundle.json",
+                            "l6_v40_shadow_eval_package.json",
+                            "l6_shadow_eval_package.json",
+                        ):
+                            exhaust_candidate = root / "lanes" / lane_id / candidate_name
+                            if exhaust_candidate.is_file():
+                                p = json_payload(exhaust_candidate)
+                                if isinstance(p, dict) and p.get("section_id") == lane_id:
+                                    lane_identity_found = {
+                                        "parent_run_id": str(p.get("parent_run_id") or ""),
+                                        "child_run_id": str(p.get("child_run_id") or ""),
+                                        "section_attempt_id": str(p.get("section_attempt_id") or ""),
+                                        "runtime_exhaust_bundle_id": str(p.get("runtime_exhaust_bundle_id") or ""),
+                                    }
+                                    if all(lane_identity_found.values()):
+                                        break
+                                    lane_identity_found = None
+                    if lane_identity_found:
+                        payload = dict(payload)
+                        payload["source_identity"] = dict(lane_identity_found)
                 return ResolvedAppsRgArtifact(
                     artifact_role=role,
                     artifact_ref=candidate.as_posix(),

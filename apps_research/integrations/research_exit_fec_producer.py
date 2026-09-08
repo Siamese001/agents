@@ -35,7 +35,7 @@ EXECUTION_FORM = "SINGLE_STEP"
 class ResearchFinalEvidenceContract:
     """FinalEvidenceContract for apps_research.
 
-    This is the apps_research-specific FEC shape. The agentic_core
+    This is the apps_research-specific FEC shape. The apps_rg
     FEC validator requires all fields to be non-empty at E4 emit time.
     """
 

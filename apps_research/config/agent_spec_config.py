@@ -16,7 +16,7 @@ from pydantic import BaseModel, Field, model_validator
 
 from apps_shared.config.prompt_reception_spec import PromptReceptionSpec
 
-from agentic_core.runtime.contracts import lifecycle_trace_contract as trace_contract
+from apps_rg.runtime.apps_runtime_compat import lifecycle_trace_contract as trace_contract
 
 # P0: Foundation Governance
 trace_contract._emit_applies_guardrail("p0", "agent_spec_config", "p0_governance")

@@ -9,7 +9,7 @@ U0 is the FIRST stage. Its job is to:
 3. Verify package digest.
 4. Emit ValidatedRequest with preserved package + validation receipt.
 
-apps_research is INGRESS-ONLY — runtime authority belongs to agentic_core.
+apps_research is INGRESS-ONLY — runtime authority belongs to apps_rg.
 """
 from __future__ import annotations
 
@@ -22,21 +22,21 @@ from datetime import datetime, timezone
 from typing import Any, Mapping
 from uuid import uuid4
 
-from agentic_core.runtime.contracts.apps_research_runtime_package import (
+from apps_research.runtime.app_contracts import (
     PackageDigestMismatchError,
     PackageValidationReceipt,
     RuntimeCustomizationPackage,
     TaskClass,
     UnknownPackageFieldError,
 )
-from agentic_core.runtime.contracts.apps_rg_ingress_payload import (
+from apps_research.runtime.app_contracts import (
     RequestEnvelope,
     ValidatedRequest,
 )
-from agentic_core.runtime.contracts.apps_rg_runtime_authority_policy import (
+from apps_research.runtime.app_contracts import (
     AuthorityValidationReceipt,
 )
-from agentic_core.runtime.contracts.posture import POSTURE_READ_ONLY
+from apps_rg.runtime.apps_runtime_compat import POSTURE_READ_ONLY
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -224,7 +224,7 @@ def u0_validate_apps_research(envelope: RequestEnvelope) -> ValidatedRequest:
                 f"apps_research ingress payload contains {len(forbidden_found)} "
                 f"forbidden authority field(s): {forbidden_found!r}. "
                 "apps_research is INGRESS-ONLY — runtime authority belongs to "
-                "agentic_core."
+                "apps_rg."
             ),
         )
 
