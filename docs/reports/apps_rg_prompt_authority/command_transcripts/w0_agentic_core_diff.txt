@@ -1,4 +1,0 @@
-(no paths)
-EXIT_GIT=0
-EXIT_GIT=0
-EXIT_GIT=0
