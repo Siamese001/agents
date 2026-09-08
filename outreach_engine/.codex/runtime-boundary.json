@@ -1,6 +1,6 @@
-{
+﻿{
   "schemaVersion": 1,
-  "projectName": "apps_lic_v2",
+  "projectName": "outreach_engine",
   "worktreeRoot": "..",
   "pythonLauncher": "py",
   "pythonVersion": "3.12",

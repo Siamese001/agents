@@ -1,10 +1,10 @@
-[build-system]
+﻿[build-system]
 requires = ["setuptools>=45", "wheel", "setuptools_scm[toml]>=6.2"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["apps_rg_v2*", "apps_lic_v2*", "apps_exec*", "apps_research*", "apps_eval*"]
+include = ["apps_rg_v2*", "outreach_engine*", "apps_exec*", "apps_research*", "apps_eval*"]
 exclude = ["tests*", "ops_scripts*", "data*", "archives*", "artifacts*"]
 
 [project]
