@@ -1,0 +1,24 @@
+{
+  "mcpServers": {
+    "tavily": {
+      "args": [
+        "-y",
+        "@tavily/mcp-server"
+      ],
+      "command": "npx",
+      "env": {
+        "TAVILY_API_KEY": "YOUR_TAVILY_API_KEY_HERE"
+      }
+    },
+    "notion": {
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-notion"
+      ],
+      "command": "npx",
+      "env": {
+        "NOTION_API_TOKEN": "YOUR_NOTION_API_TOKEN_HERE"
+      }
+    }
+  }
+}
