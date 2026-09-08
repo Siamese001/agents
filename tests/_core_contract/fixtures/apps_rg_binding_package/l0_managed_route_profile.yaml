@@ -1,3 +1,0 @@
-route_profiles_authority_path: tests/_core_contract/fixtures/apps_rg_binding_package/fixture_route_profiles.yaml
-binding_v1_posture:
-  forbids_routes_matching: []
