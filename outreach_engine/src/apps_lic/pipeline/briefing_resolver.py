@@ -1,6 +1,6 @@
 """Governed Multi-Path Briefing Resolver for outreach_engine.
 
-Coordinates resolution across 4 paths matching apps_rg_v2:
+Coordinates resolution across 4 paths matching resume_graph_engine:
 1. Manual explicit brief / mission fixture (Path A)
 2. Local cached brief hit (Path B)
 3. Live autonomous research via apps_research + Adversarial Injection Airlock (Path C)

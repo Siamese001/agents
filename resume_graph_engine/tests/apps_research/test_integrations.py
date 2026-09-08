@@ -10,7 +10,7 @@ try:
     from apps_research.integrations import ExecutionAdapter, ObservabilityAdapter
 except ImportError:
     pytest.skip(
-        "the retired ExecutionAdapter/ObservabilityAdapter API is not part of apps_rg_v2",
+        "the retired ExecutionAdapter/ObservabilityAdapter API is not part of resume_graph_engine",
         allow_module_level=True,
     )
 from apps_research.types import (

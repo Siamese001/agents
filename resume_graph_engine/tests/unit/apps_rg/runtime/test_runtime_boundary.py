@@ -37,7 +37,7 @@ def _policy(repo: Path) -> Path:
 
 
 def test_boundary_rejects_foreign_cache_before_mutating_environment(tmp_path: Path) -> None:
-    repo = tmp_path / "apps_rg_v2"
+    repo = tmp_path / "resume_graph_engine"
     repo.mkdir()
     policy = _policy(repo)
     env = {"CHROMA_PERSIST_DIR": str(tmp_path / "foreign" / "chromadb")}
@@ -50,7 +50,7 @@ def test_boundary_rejects_foreign_cache_before_mutating_environment(tmp_path: Pa
 
 
 def test_boundary_sets_only_worktree_owned_paths_and_writes_receipt(tmp_path: Path) -> None:
-    repo = tmp_path / "apps_rg_v2"
+    repo = tmp_path / "resume_graph_engine"
     repo.mkdir()
     policy = _policy(repo)
     env: dict[str, str] = {}
@@ -67,7 +67,7 @@ def test_boundary_sets_only_worktree_owned_paths_and_writes_receipt(tmp_path: Pa
 
 
 def test_boundary_detects_later_path_mutation(tmp_path: Path) -> None:
-    repo = tmp_path / "apps_rg_v2"
+    repo = tmp_path / "resume_graph_engine"
     repo.mkdir()
     policy = _policy(repo)
     env: dict[str, str] = {}

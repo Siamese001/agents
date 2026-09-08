@@ -32,7 +32,7 @@ PROMPT_PROFILE_PATH = (
     / "prompt_profile.company_brief.v1.yaml"
 )
 APP_RUNTIME_STANDALONE_SKIP = pytest.mark.skip(
-    reason="standalone boundary: apps_rg is excluded from the apps_rg_v2 source baseline"
+    reason="standalone boundary: apps_rg is excluded from the resume_graph_engine source baseline"
 )
 
 

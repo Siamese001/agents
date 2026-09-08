@@ -1,1 +1,1 @@
-"""Standalone test-support helpers for apps_rg_v2."""
+"""Standalone test-support helpers for resume_graph_engine."""
