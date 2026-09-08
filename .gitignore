@@ -92,7 +92,7 @@ google/
 licenses/
 pip/
 src/
-!apps_rg_v2/src/
+!resume_graph_engine/src/
 !apps_lic_v2/src/
 !outreach_engine/src/
 
@@ -211,5 +211,3 @@ plans/
 .zero_loss_backups/
 memory/
 
-# Legacy apps_rg_v2 compatibility junction (migrated to resume_graph_engine)
-/apps_rg_v2/
