@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "projectName": "apps_rg_v2",
+  "projectName": "resume_graph_engine",
   "worktreeRoot": "..",
   "pythonLauncher": "py",
   "pythonVersion": "3.12",
@@ -13,7 +13,18 @@
     "OPENAI_API_KEY",
     "GOOGLE_API_KEY",
     "GEMINI_API_KEY",
-    "APPS_RG_DOTENV"
+    "APPS_RG_DOTENV",
+    "APPS_RG_ANTHROPIC_PROMPT_CACHE",
+    "APPS_RG_ANTHROPIC_PROMPT_CACHE_TELEMETRY",
+    "APPS_RG_ENABLE_R1B_SEMANTIC_CACHE",
+    "APPS_RG_ROUTE_HMAC_SECRET",
+    "APPS_RG_ROUTE_HMAC_KEY_ID",
+    "SEMANTIC_CACHE_D2_ENABLED",
+    "APPS_RG_POLICY_HASH",
+    "APPS_RG_BLUEPRINT_HASH",
+    "APPS_RG_E2E_BASELINE_REF",
+    "APPS_RG_EMBEDDING_ENABLED",
+    "APPS_RG_FORCE_LIVE_PROVIDERS"
   ],
   "environmentPaths": {
     "AGENTIC_REPO_ROOT": ".",

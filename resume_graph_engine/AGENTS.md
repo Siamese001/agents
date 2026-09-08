@@ -10,9 +10,9 @@
 - Tests are opt-in: run them only when the user requests validation or after an in-scope code change, using the smallest relevant selector first.
 - Do not run a broad `pytest` command, create a virtual environment, or install dependencies merely because a workspace opens or changes branches. An explicit user instruction to do so takes precedence.
 
-## Runtime boundary and Defender
+## Runtime boundary
 
-- For explicit Apps RG runtime work, use `codex-defender run --policy .codex/runtime-boundary.json --command ...`. The Defender is the machine-global owner of the worktree-scoped venv, clean process environment, timeout, and child-process tree.
-- Provision and synchronize a managed environment only as an explicit requested operation. A Defender run never performs installation implicitly; the checked-in GPU lock remains the dependency authority.
-- Do not bypass the Defender with a direct `python`, `py`, `pytest`, `pip`, or evaluation command. A Codex pre-tool hook rejects those commands; the product independently rejects foreign runtime paths.
-- The checked-in runtime-boundary policy is authoritative for writable caches, artifacts, model bytes, and runtime root. A foreign inherited path is a `PATH_AUTHORITY_VIOLATION`, not a reason to relax an evaluation, exit, or judge gate.
+- For explicit Apps RG runtime work, the checked-in runtime-boundary policy (`.antigravity/runtime-boundary.json`) is authoritative for writable caches, artifacts, model bytes, and runtime root.
+- In-process path authority is enforced by `apps_rg.runtime.runtime_boundary`. A foreign inherited path or foreign cache outside the workspace is rejected as `PATH_AUTHORITY_VIOLATION`.
+- External `codex-defender` wrappers are deprecated. Execute runtime commands directly in the workspace virtual environment (`.venv`).
+

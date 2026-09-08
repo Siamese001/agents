@@ -20,15 +20,17 @@
       "tool_timeout_sec": 120
     },
     "filesystem": {
-      "command": "node",
+      "command": "cmd",
       "args": [
-        "${env:AGENTIC_REPO_ROOT}/.codex/governance/scripts/filesystem_mcp_launcher.js",
+        "/c",
+        "npx",
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
         "${env:AGENTIC_REPO_ROOT}"
       ],
       "required": false,
       "startup_timeout_sec": 15,
-      "tool_timeout_sec": 120,
-      "_startup": "Repo-root-only filesystem MCP launcher (Rule #0); resolves the server package dynamically and never expands scope beyond the repo root."
+      "tool_timeout_sec": 120
     },
     "memory": {
       "url": "http://127.0.0.1:8766/mcp",

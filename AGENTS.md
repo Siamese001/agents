@@ -2,9 +2,9 @@
 
 ## Plan First. Execute Second.
 
-Root `AGENTS.md` is the Codex-facing execution adapter. Codex is the primary local execution surface for readiness, run evidence, and verification receipts. Primary enforcement is Codex-owned, and `.codex` is the only repo governance tree. Do not recreate any legacy non-Codex governance directory.
+Root AGENTS.md is the primary agent execution adapter. Repo governance, rules, and skills live under .agents/ and .antigravity/.
 
-**T2/T3** (2+ files, cross-layer, architecture, multi-file debug): enter native plan mode and present the plan for approval before any edit. Use the `structured-reasoning` skill only as decomposition / retrieval guidance inside that plan-mode workflow. See `.codex/rules/plan-first-enforcement.md`.
+**T2/T3** (2+ files, cross-layer, architecture, multi-file debug): enter native plan mode and present the plan for approval before any edit. Use the `structured-reasoning` skill only as decomposition / retrieval guidance inside that plan-mode workflow. See `.agents/rules/plan-first-enforcement.md`.
 
 **T0/T1**: single file ≤20 lines or questions — answer/edit directly.
 
@@ -38,19 +38,19 @@ Required behavior:
 
 | Server ID | Use For | Example Tools | Notes | Skill |
 |---|---|---|---|---|
-| `GitKraken` | Git operations, GitLens, pull requests, issues | `git_status, git_add_or_commit, git_log_or_diff, pull_request_create` | Use as the git/PR authority. | [`mcp-integration`](.codex/skills/mcp-integration/SKILL.md) |
-| `adg_sqlite` | Dependency graph, blast radius, layer analysis, refactoring hotspots, graph-layer primitives (mv_*, v_p*, semantic edges) | `adg_health, adg_edge_fanout, adg_edge_fanin, adg_nodes_by_file, adg_nodes_by_layer, adg_violations, adg_p0_wave_plan` | Structural deps + T2/T3 plans; §22 graph layer (mv_*, P-views, semantic edges). | [`adg-sqlite`](.codex/skills/adg-sqlite/SKILL.md) |
-| `deepwiki` | External GitHub repository docs and wiki Q&A | `read_wiki_structure, read_wiki_contents, ask_question` | Do not use for this repo's own code. | [`mcp-integration`](.codex/skills/mcp-integration/SKILL.md) |
-| `filesystem` | Filesystem MCP operations and directory traversal | `read_text_file, read_multiple_files, directory_tree, write_file` | Prefer native reads for ordinary file reads when available. | [`mcp-integration`](.codex/skills/mcp-integration/SKILL.md) |
-| `memory` | Persistent cross-session knowledge graph | `mem_recall_session_start, create_entities, add_observations, search_nodes` | Read at session start; write back major decisions. | [`mcp-integration`](.codex/skills/mcp-integration/SKILL.md) |
-| `vector_db` | Semantic search and embeddings | `semantic_search, query_collection, vector_stats, list_collections` | Not for structural dependency analysis. | [`mcp-integration`](.codex/skills/mcp-integration/SKILL.md) |
-| `playwright` | Browser automation, accessibility snapshots, end-to-end UI verification | `browser_navigate, browser_snapshot, browser_click, browser_fill_form, browser_evaluate, browser_take_screenshot` | Live UI/E2E; output in artifacts/mcp/playwright/ (gitignored). Close tabs after use. | [`mcp-integration`](.codex/skills/mcp-integration/SKILL.md) |
-| `notion` | Notion pages and project-management databases | `API-query-data-source, API-retrieve-a-page, API-patch-page` | Manual page/DB read+write only; no plan-status enforcement (Notion plan/wave/status governance removed). | [`mcp-integration`](.codex/skills/mcp-integration/SKILL.md) |
-| `context7` | Up-to-date, versioned official documentation for external libraries | `resolve-library-id, get-library-docs` | External package docs; not this repo. CONTEXT7_API_KEY optional. | [`mcp-integration`](.codex/skills/mcp-integration/SKILL.md) |
+| `GitKraken` | Git operations, GitLens, pull requests, issues | `git_status, git_add_or_commit, git_log_or_diff, pull_request_create` | Use as the git/PR authority. | [mcp-integration](.agents/skills/mcp-integration/SKILL.md) |
+| `adg_sqlite` | Dependency graph, blast radius, layer analysis, refactoring hotspots, graph-layer primitives (mv_*, v_p*, semantic edges) | `adg_health, adg_edge_fanout, adg_edge_fanin, adg_nodes_by_file, adg_nodes_by_layer, adg_violations, adg_p0_wave_plan` | Structural deps + T2/T3 plans; §22 graph layer (mv_*, P-views, semantic edges). | [dg-sqlite](.agents/skills/adg-sqlite/SKILL.md) |
+| `deepwiki` | External GitHub repository docs and wiki Q&A | `read_wiki_structure, read_wiki_contents, ask_question` | Do not use for this repo's own code. | [mcp-integration](.agents/skills/mcp-integration/SKILL.md) |
+| `filesystem` | Filesystem MCP operations and directory traversal | `read_text_file, read_multiple_files, directory_tree, write_file` | Prefer native reads for ordinary file reads when available. | [mcp-integration](.agents/skills/mcp-integration/SKILL.md) |
+| `memory` | Persistent cross-session knowledge graph | `mem_recall_session_start, create_entities, add_observations, search_nodes` | Read at session start; write back major decisions. | [mcp-integration](.agents/skills/mcp-integration/SKILL.md) |
+| `vector_db` | Semantic search and embeddings | `semantic_search, query_collection, vector_stats, list_collections` | Not for structural dependency analysis. | [mcp-integration](.agents/skills/mcp-integration/SKILL.md) |
+| `playwright` | Browser automation, accessibility snapshots, end-to-end UI verification | `browser_navigate, browser_snapshot, browser_click, browser_fill_form, browser_evaluate, browser_take_screenshot` | Live UI/E2E; output in artifacts/mcp/playwright/ (gitignored). Close tabs after use. | [mcp-integration](.agents/skills/mcp-integration/SKILL.md) |
+| `notion` | Notion pages and project-management databases | `API-query-data-source, API-retrieve-a-page, API-patch-page` | Manual page/DB read+write only; no plan-status enforcement (Notion plan/wave/status governance removed). | [mcp-integration](.agents/skills/mcp-integration/SKILL.md) |
+| `context7` | Up-to-date, versioned official documentation for external libraries | `resolve-library-id, get-library-docs` | External package docs; not this repo. CONTEXT7_API_KEY optional. | [mcp-integration](.agents/skills/mcp-integration/SKILL.md) |
 
 <!-- MCP-QUICK-REFERENCE:END -->
 
-Server-specific MCP procedures are indexed by [`mcp-integration`](.codex/skills/mcp-integration/SKILL.md) sections §1–§13. `adg-sqlite` remains the dedicated structural-analysis skill.
+Server-specific MCP procedures are indexed by [mcp-integration](.agents/skills/mcp-integration/SKILL.md) sections §1–§13. `adg-sqlite` remains the dedicated structural-analysis skill.
 
 ## Notion Workspace Map
 
@@ -74,13 +74,13 @@ Bot: **Agentic-Workflow** | Workspace: **Amit Ayer's Space**
 
 <!-- NOTION-MAP:END -->
 
-Procedural routing + manual-Notion-use note: [agents-tier1-companion.md](.codex/skills/mcp-integration/agents-tier1-companion.md). (Notion plan-status / wave / registration enforcement removed — `notion-wave-enforcement-removal`.)
+Procedural routing + manual-Notion-use note: [agents-tier1-companion.md](.agents/skills/mcp-integration/agents-tier1-companion.md). (Notion plan-status / wave / registration enforcement removed — `notion-wave-enforcement-removal`.)
 
 ## Memory
 
 At session start, load native file memory from `memory/MEMORY.md`. For non-trivial work, also read `memory/codex/memory_summary.md` when Codex-specific run history, branch workflow memory, or repo-specific Codex skills could affect the task.
 
-The knowledge-graph Memory MCP is optional for graph queries or writeback when its transport is healthy; if it fails, continue from file memory and do not retry-loop on the transport. Treat `C:\Users\amita\.codex\memories` and Codex product memories as global/user memory only; do not make them the SSOT for Agentic Workflow project memory.
+The knowledge-graph Memory MCP is optional for graph queries or writeback when its transport is healthy; if it fails, continue from file memory and do not retry-loop on the transport. Treat external global memories as user memory only; do not make them the SSOT for Agentic Workflow project memory.
 
 ## Constitutional floor
 
@@ -93,7 +93,7 @@ The knowledge-graph Memory MCP is optional for graph queries or writeback when i
 
 ## Plans
 
-Lookup: `.codex/rules/codex-config-lookup.md` and `.codex/rules/plan-location.md`. New plans are disk-only under `plans/<name>-<6hex>.md`; `.codex/plans/` is an archive of migrated historical plans, not the write target for new work.
+Lookup: `.agents/rules/codex-config-lookup.md` and `.agents/rules/plan-location.md`. New plans are disk-only under `plans/<name>-<6hex>.md`; `.codex/plans/` is an archive of migrated historical plans, not the write target for new work.
 
 ## Pytest
 
@@ -105,7 +105,7 @@ Apps customize inputs; core enforces contracts. No app leakage in `agentic_core`
 
 ## Rules & Skills SSOT
 
-Procedural MCP / Notion / ledgers: `scripts/governance/**`, `.codex/**`, and `docs/reports/codex/**` cover the active Codex flow. Plan location (disk-only): [`plan-location.md`](.codex/rules/plan-location.md).
+Procedural MCP / Notion / ledgers: `scripts/governance/**`, `.codex/**`, and `docs/reports/codex/**` cover the active Codex flow. Plan location (disk-only): [`plan-location.md`](.agents/rules/plan-location.md).
 
 | Layer | Path | Notes |
 |-------|------|-------|
@@ -120,30 +120,12 @@ Procedural MCP / Notion / ledgers: `scripts/governance/**`, `.codex/**`, and `do
 
 Governance inventory: [`governance_tier_inventory.json`](docs/reports/cursor/governance_tier_inventory.json) · dedup audit: [`governance_dedup_audit_20260526.md`](docs/reports/cursor/governance_dedup_audit_20260526.md) · closeout plan: [`governance-dedup-closeout-e8a4c2.md`](plans/governance-dedup-closeout-e8a4c2.md).
 
-## Codex primary execution adapter
+## Antigravity Execution Adapter
 
-Codex is the primary local execution surface for this repo. Repo-owned governance files remain the versioned rule inputs; Codex owns run readiness, execution evidence, and closeout receipts.
+Google Antigravity is the primary execution surface for this repository. Repo-owned governance assets live under .agents and .antigravity:
 
-- Primary contract: [`docs/codex-primary-execution.md`](docs/codex-primary-execution.md).
-- Repo-specific Codex enforcement files, including cadence automation contracts, live under `.codex/automations/`. The user profile at `C:\Users\amita\.codex\automations` may contain only generated launcher mirrors with repo path and digest metadata. Mirrors may carry UI/runtime fields copied from the repo contract (`prompt`, `model`, `reasoning_effort`, `execution_environment`, `cwds`) so Codex Desktop can display and run them, but they must validate exactly against the repo-owned contract and must not carry hand-edited or stale payloads, handoff metadata, runtime optimization metadata, or other independent contract authority.
-- Before long Codex-primary runs, execute `python scripts/governance/codex_readiness.py --json`; add `--require-clean-worktree --fail-duplicate-processes` for strict proof/eval preflight.
-- For post-publication closeout, use `python scripts/governance/codex_main_closeout.py --check --json --publication-only`; local cleanup may use `--apply` only for clean, ancestor-contained branches/worktrees.
-- Direct PR completion commands (`gh pr merge` or push-to-main) must chain `codex_main_closeout.py --apply --fetch --json --publication-only` and `codex_main_closeout.py --check --fetch --json --publication-only` in the same shell command, then run strict topology closeout as evidence.
-- Validate the repo-owned enforcement home with `python scripts/governance/verify_codex_enforcement_home.py --json`.
-- Validate and run Codex preflights with `python scripts/governance/codex_readiness.py --json`; primary enforcement must not depend on any legacy non-Codex governance directory or hook parity path.
-- Codex must ask a plain-text clarifying question directly in the assistant response before editing whenever a turn cannot proceed safely without a user choice; do not assume a branch or defer to a missing prompt surface.
-- Substantial Codex runs should emit a JSON run receipt and validate it with `python scripts/governance/verify_codex_run_receipt.py <receipt.json>`.
-- Validate this primary adapter with `python scripts/governance/verify_codex_primary.py` after changing Codex execution docs or scripts.
-- Do not create a second rule or MCP registry. Codex consumes repo-owned rules under `.codex` and records live route evidence under `docs/reports/codex/`.
-
-## Codex-Only Enforcement
-
-The repo must stay Codex-only:
-
-- Legacy non-Codex governance directories are forbidden.
-- Active hook registration lives in `.codex/hooks.json`.
-- Active hook entrypoints live in `.codex/hooks/**`.
-- Active repo Codex governance assets live in `.codex/rules`, `.codex/skills`, `.codex/governance`, `.codex/schemas`, `.codex/templates`, and `.codex/state`.
-- Active skills live only under `.codex/skills`; root `.agents` and `memory/codex/skills` must not contain Agentic-Workflow execution surfaces.
-- Active plan files live under repo-root `plans/`; `.codex/plans` is archive-only.
-- `scripts/governance/verify_codex_primary.py` is the guard for this contract and must pass after governance changes.
+- Active rule sets live in .agents/rules/*.md.
+- Active skills live in .agents/skills/*/SKILL.md.
+- Active MCP server configuration is maintained in root .mcp.json and .agents/mcp_config.json.
+- Workspace runtime boundaries and path containment policies live in .antigravity/runtime-boundary.json.
+- Plans are disk-only under plans/<name>-<6hex>.md.

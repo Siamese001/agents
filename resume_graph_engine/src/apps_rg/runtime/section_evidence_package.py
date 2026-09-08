@@ -111,18 +111,12 @@ def _sha256_file(path: Path) -> str:
 
 
 def mirror_preferred_section_shim_names(artifact_dir: Path) -> list[dict[str, str]]:
-    """Dual-write preferred app-owned names for legacy section shim receipts."""
+    """No-op: legacy shim that used to dual-write ``apps_rg_section_*`` copies.
 
-    mirrored: list[dict[str, str]] = []
-    for legacy, preferred in APPS_RG_SECTION_SHIM_PREFERRED_NAMES.items():
-        legacy_path = artifact_dir / legacy
-        preferred_path = artifact_dir / preferred
-        if not legacy_path.is_file():
-            continue
-        if not preferred_path.exists():
-            _wg.write_bytes(preferred_path, legacy_path.read_bytes())
-        mirrored.append({"legacy": legacy, "preferred": preferred})
-    return mirrored
+    The prefixed copies were never read by any downstream code path.
+    Retired to save ~70 MB per run (11 files × 13 lanes of byte-copies).
+    """
+    return []
 
 
 def _load_json(path: Path) -> dict[str, Any]:

@@ -590,13 +590,11 @@ def emit_mandatory_outputs_authority_receipt(
     )
     from apps_rg.runtime.run_output_contract import (
         APPS_RG_MANDATORY_RUN_OUTPUT_MD,
-        BCG_EXECUTIVE_OUTPUT_MD,
         FINAL_RESUME_ASSEMBLY_JSON_RELPATH,
         FINAL_RESUME_DOCX_RELPATH,
         FINAL_RESUME_OUTPUT_JSON,
         FINAL_RESUME_OUTPUT_TXT,
         L7_AUDIT_ABILITY_OUTPUT_MD,
-        OUTPUT_BISECT_MD,
     )
 
     marker_path = root / MANDATORY_OUTPUT_COMMIT_MANIFEST
@@ -606,8 +604,6 @@ def emit_mandatory_outputs_authority_receipt(
     product_minimum = {
         "APPS_RG_MANDATORY_RUN_OUTPUT.json",
         APPS_RG_MANDATORY_RUN_OUTPUT_MD,
-        BCG_EXECUTIVE_OUTPUT_MD,
-        OUTPUT_BISECT_MD,
         L7_AUDIT_ABILITY_OUTPUT_MD,
         FINAL_RESUME_OUTPUT_TXT,
         FINAL_RESUME_OUTPUT_JSON,

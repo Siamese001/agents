@@ -79,7 +79,7 @@ def test_bootstrap_does_not_enable_r1b_but_preserves_graph_c0_env(monkeypatch, t
     monkeypatch.setattr(
         emb,
         "_resolve_local_bge_path",
-        lambda _model_id: (str(tmp_path), True, "local"),
+        lambda _model_id, **_kw: (str(tmp_path), True, "local"),
     )
     applied = emb.bootstrap_apps_rg_embedding_env(repo_root=tmp_path)
     assert "SEMANTIC_CACHE_D2_ENABLED" not in applied

@@ -21,9 +21,6 @@ FINAL_RESUME_DOCX_RELPATH = "outputs/resume.docx"
 FINAL_RESUME_ASSEMBLY_JSON_RELPATH = "modular_r4/final_resume_assembly/final_resume.json"
 
 MANDATORY_OUTPUT_FILENAMES: tuple[str, ...] = (
-    BCG_EXECUTIVE_OUTPUT_MD,
-    OUTPUT_BISECT_MD,
-    APPS_RG_MANDATORY_RUN_OUTPUT_MD,
     APPS_RG_MANDATORY_RUN_OUTPUT_JSON,
     L7_AUDIT_ABILITY_OUTPUT_MD,
     FINAL_RESUME_OUTPUT_TXT,
@@ -33,8 +30,13 @@ MANDATORY_OUTPUT_FILENAMES: tuple[str, ...] = (
     FULL_RUN_SECTION_STATUS_MD,
     FULL_RUN_SECTION_STATUS_JSON,
     REVIEW_INDEX_FILENAME,
-    REVIEW_BUNDLE_FILENAME,
 )
+
+# Removed from mandatory validation (dead outputs with zero consumers):
+#   BCG_EXECUTIVE_OUTPUT_MD — consulting-style summary never read downstream
+#   OUTPUT_BISECT_MD — debug artifact; emitted conditionally on failure only
+#   APPS_RG_MANDATORY_RUN_OUTPUT_MD — duplicate of JSON data in section status
+#   REVIEW_BUNDLE_FILENAME — ZIP of the run dir you already have
 
 __all__ = [
     "APPS_RG_MANDATORY_RUN_OUTPUT_JSON",

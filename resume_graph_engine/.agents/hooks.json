@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "py -3.12 \".codex/hooks/defender_shell_gate.py\""
+            "command": "py -3.12 \".antigravity/hooks/defender_shell_gate.py\""
           }
         ]
       }

@@ -1,4 +1,4 @@
-﻿"""CLI entrypoint for section_quality_benchmark."""
+"""CLI entrypoint for section_quality_benchmark."""
 from __future__ import annotations
 from .cli import main
 

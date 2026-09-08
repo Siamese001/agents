@@ -56,7 +56,8 @@ class BriefingCache:
 
         # Check disk if configured
         if self._cache_dir is not None:
-            path = self._cache_dir / f"{key}.json"
+            safe_key = key.replace(":", "_")
+            path = self._cache_dir / f"{safe_key}.json"
             if path.is_file():
                 try:
                     payload = json.loads(path.read_text(encoding="utf-8"))
@@ -83,7 +84,8 @@ class BriefingCache:
         if self._cache_dir is not None:
             try:
                 self._cache_dir.mkdir(parents=True, exist_ok=True)
-                path = self._cache_dir / f"{key}.json"
+                safe_key = key.replace(":", "_")
+                path = self._cache_dir / f"{safe_key}.json"
                 tmp = path.with_name(f".{path.name}.tmp")
                 tmp.write_text(json.dumps(asdict(briefing), indent=2), encoding="utf-8")
                 tmp.replace(path)

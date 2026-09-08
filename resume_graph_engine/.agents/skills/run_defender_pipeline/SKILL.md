@@ -1,26 +1,38 @@
 ---
 name: run-defender-pipeline
-description: Standard operating procedure for executing the canonical apps_rg resume pipeline or evaluation suite through the global Defender runtime boundary.
+description: Standard operating procedure for executing the canonical apps_rg resume pipeline or evaluation suite through the Antigravity runtime boundary.
 ---
 
-# Running the Apps RG Pipeline via Defender
+# Running the Apps RG Pipeline
 
 ## Canonical Resume Run
 The sole public Apps RG resume command is:
 
 ```powershell
-C:\Users\amita\.codex\defender\bin\codex-defender.cmd run --policy .codex/runtime-boundary.json --command python -m apps_rg run
+python -m apps_rg run
+```
+
+Or using the workspace virtual environment:
+
+```powershell
+& "..\.venv\Scripts\python.exe" -m apps_rg run
 ```
 
 ## Running Evaluations
 The offline evaluation suite under `src/apps_rg/evals` evaluates the G1-G6 measurement contract.
-To run evaluations through the Defender boundary:
+To run evaluations:
 
 ```powershell
-C:\Users\amita\.codex\defender\bin\codex-defender.cmd run --policy .codex/runtime-boundary.json --command python -m pytest -q src/apps_rg/evals
+python -m pytest -q src/apps_rg/evals
+```
+
+Or using the workspace virtual environment:
+
+```powershell
+& "..\.venv\Scripts\python.exe" -m pytest -q src/apps_rg/evals
 ```
 
 ## Policy Boundaries
-- Never run `python` or `pytest` directly from the shell without wrapping in `codex-defender`.
-- The runtime policy is governed by `.codex/runtime-boundary.json`.
-- The Defender ensures process environment cleanliness, timeout safety, and path isolation.
+- The runtime policy is governed by `.antigravity/runtime-boundary.json` and enforced in-process by `apps_rg.runtime.runtime_boundary`.
+- The runtime boundary verifies workspace path containment, sets offline hub guards (`HF_HUB_OFFLINE=1`), and prevents foreign cache inheritance.
+- External `codex-defender` wrappers are deprecated and retired.

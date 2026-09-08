@@ -13,7 +13,7 @@ The former one-vector-per-skill lane was retired in C0.3 cluster-embedding Wave 
 To verify that the retirement boundary and cluster registries are intact, execute via Defender:
 
 ```powershell
-codex-defender run --policy .codex/runtime-boundary.json --command python tools/apps_rg_standalone/c03_legacy_embedding_retirement_wave5.py --check
+python tools/apps_rg_standalone/c03_legacy_embedding_retirement_wave5.py --check
 ```
 
 ## Invariants

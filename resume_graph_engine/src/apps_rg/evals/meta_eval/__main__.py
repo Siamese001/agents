@@ -1,4 +1,4 @@
-﻿"""CLI entrypoint for meta_eval."""
+"""CLI entrypoint for meta_eval."""
 from __future__ import annotations
 from .cli import main
 

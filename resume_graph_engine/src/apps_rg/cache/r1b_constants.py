@@ -21,6 +21,8 @@ CHUNK_TYPE_INSURTECH_BULLETS = "insurtech_bullets_output"
 CHUNK_TYPE_INSURTECH_NARRATIVE = "insurtech_narrative_output"
 CHUNK_TYPE_EY_BULLETS = "ey_bullets_output"
 CHUNK_TYPE_EY_NARRATIVE = "ey_narrative_output"
+CHUNK_TYPE_SLALOM_BULLETS = "slalom_bullets_output"
+CHUNK_TYPE_SLALOM_NARRATIVE = "slalom_narrative_output"
 CHUNK_TYPE_AGGREGATION = "aggregation_summary"
 CHUNK_TYPE_CLAIM_LEDGER = "claim_ledger_entry"
 CHUNK_TYPE_SECTION_PROOF = "section_proof_summary"
@@ -38,6 +40,8 @@ SECTION_CHUNK_TYPES: frozenset[str] = frozenset(
         CHUNK_TYPE_INSURTECH_NARRATIVE,
         CHUNK_TYPE_EY_BULLETS,
         CHUNK_TYPE_EY_NARRATIVE,
+        CHUNK_TYPE_SLALOM_BULLETS,
+        CHUNK_TYPE_SLALOM_NARRATIVE,
     }
 )
 

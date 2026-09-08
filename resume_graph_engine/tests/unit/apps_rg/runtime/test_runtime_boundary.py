@@ -16,7 +16,7 @@ from apps_rg.runtime.runtime_boundary import (
 
 
 def _policy(repo: Path) -> Path:
-    policy = repo / ".codex" / "runtime-boundary.json"
+    policy = repo / ".antigravity" / "runtime-boundary.json"
     policy.parent.mkdir()
     policy.write_text(
         json.dumps(

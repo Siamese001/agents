@@ -17,7 +17,7 @@ from typing import Mapping, MutableMapping
 
 from apps_rg.runtime.runtime_proof_layout import find_repo_root
 
-RUNTIME_BOUNDARY_POLICY_RELATIVE = Path(".codex") / "runtime-boundary.json"
+RUNTIME_BOUNDARY_POLICY_RELATIVE = Path(".antigravity") / "runtime-boundary.json"
 RUNTIME_BOUNDARY_RECEIPT_NAME = "apps_rg_runtime_boundary_receipt.json"
 RUNTIME_BOUNDARY_MARKER = "APPS_RG_RUNTIME_BOUNDARY_ENFORCED"
 
@@ -59,7 +59,13 @@ def _canonical(path_text: str) -> Path:
 def _load_policy(*, repo_root: Path, policy_path: Path | None = None) -> tuple[Path, dict[str, object], str]:
     path = (policy_path or repo_root / RUNTIME_BOUNDARY_POLICY_RELATIVE).resolve()
     if not path.is_file():
-        raise RuntimeBoundaryViolation(f"PATH_AUTHORITY_POLICY_MISSING:{path}")
+        alt = (
+            repo_root / (".antigravity" if ".codex" in str(path) else ".codex") / "runtime-boundary.json"
+        ).resolve()
+        if alt.is_file():
+            path = alt
+        else:
+            raise RuntimeBoundaryViolation(f"PATH_AUTHORITY_POLICY_MISSING:{path}")
     try:
         raw_text = path.read_text(encoding="utf-8")
         raw = json.loads(raw_text)

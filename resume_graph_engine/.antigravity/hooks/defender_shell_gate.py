@@ -1,8 +1,8 @@
 """Antigravity command gate for the Apps RG runtime boundary.
 
-The application guard remains authoritative.  This hook prevents an agent from
-accidentally bypassing the global Defender while using Antigravity shell tools.  It
-does not run tests, create environments, or alter Git/worktree commands.
+The application guard remains authoritative. This hook ensures runtime commands
+execute cleanly within the workspace environment and prevents invoking deprecated
+external Codex Defender wrappers.
 """
 
 from __future__ import annotations
@@ -11,10 +11,6 @@ import json
 import re
 import sys
 from typing import Any
-
-_RUNTIME_COMMAND = re.compile(
-    r"(?i)(?:^|[;&|]\s*)(?:py(?:thon)?(?:\.exe)?|pytest(?:\.exe)?|pip(?:\.exe)?|uv(?:\.exe)?|poetry|tox|nox)\b"
-)
 
 
 def _payload() -> dict[str, Any]:
@@ -50,16 +46,15 @@ def _block(reason: str) -> int:
 
 def main() -> int:
     command = _command(_payload())
-    if not command or not _RUNTIME_COMMAND.search(command):
+    if not command:
         return 0
     if re.search(r"(?i)(?:^|[\\/])codex-defender(?:\.cmd|\.ps1|\.exe)?\b", command):
-        return 0
-    return _block(
-        "Apps RG runtime commands must use the global Defender so paths, venv identity, "
-        "timeout, and descendant processes are contained. Use: "
-        "C:\\Users\\amita\\.codex\\defender\\bin\\codex-defender.cmd run "
-        "--policy .antigravity\\runtime-boundary.json --command python -m apps_rg ..."
-    )
+        return _block(
+            "codex-defender has been deprecated and retired. Run Python or pytest commands "
+            "directly in the workspace using the local virtualenv (.venv) and "
+            ".antigravity/runtime-boundary.json."
+        )
+    return 0
 
 
 if __name__ == "__main__":

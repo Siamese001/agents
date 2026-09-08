@@ -1,4 +1,4 @@
-﻿"""CLI entrypoint for c03_human_eval."""
+"""CLI entrypoint for c03_human_eval."""
 from __future__ import annotations
 from .cli import main
 

@@ -334,12 +334,9 @@ def test_mandatory_output_bundle_fails_each_missing_required_artifact(tmp_path: 
             "missing_or_incomplete": [],
         },
     }
+    # BCG_EXECUTIVE_OUTPUT_MD and OUTPUT_BISECT_MD are no longer mandatory-
+    # validated; their absence does not cause a validation failure.
     contents = {
-        BCG_EXECUTIVE_OUTPUT_MD: (
-            "# BCG Executive Output\n## Executive Answer\nOK\n"
-            "## Board-Level Readout\nOK\n## Issue Tree\nOK\n## Evidence Map\nOK\n"
-        ),
-        OUTPUT_BISECT_MD: "# apps_rg Output Bisect\nNo failed-section bisect was required.\n",
         MANDATORY_RUN_OUTPUT_MD: "# apps_rg Mandatory Run Output\n## Section Lane Summary\nOK\n",
         L7_AUDIT_ABILITY_OUTPUT_MD: "## 3. L7 Audit Ability Output\nAudit evidence rendered.\n",
         MANDATORY_RUN_OUTPUT_JSON: json.dumps(payload),
@@ -373,7 +370,7 @@ def test_mandatory_output_bundle_rejects_empty_and_malformed_artifacts(tmp_path:
     gate = validate_mandatory_output_bundle(run, payload)
 
     assert gate["pass"] is False
-    assert f"missing_or_empty:{BCG_EXECUTIVE_OUTPUT_MD}" in gate["errors"]
+    # BCG_EXECUTIVE_OUTPUT_MD no longer mandatory-validated
     assert any(error.startswith(f"missing_marker:{MANDATORY_RUN_OUTPUT_MD}") for error in gate["errors"])
     assert any(error.startswith(f"missing_marker:{L7_AUDIT_ABILITY_OUTPUT_MD}") for error in gate["errors"])
     assert f"malformed_json:{MANDATORY_RUN_OUTPUT_JSON}" in gate["errors"]

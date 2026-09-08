@@ -4146,14 +4146,10 @@ def validate_mandatory_output_bundle(
     """Validate mandatory closeout artifacts and failed-section comparisons."""
     root = Path(run_root).resolve()
     errors: list[str] = []
+    # BCG and output_bisect removed from mandatory validation — dead outputs
+    # with zero downstream consumers.  Files are still emitted (opt-in removal
+    # in a later wave) but their absence no longer blocks the pipeline.
     required_text = {
-        BCG_EXECUTIVE_OUTPUT_MD: (
-            "## Executive Answer",
-            "## Board-Level Readout",
-            "## Issue Tree",
-            "## Evidence Map",
-        ),
-        OUTPUT_BISECT_MD: ("# apps_rg Output Bisect",),
         MANDATORY_RUN_OUTPUT_MD: ("# apps_rg Mandatory Run Output", "## Section Lane Summary"),
         L7_AUDIT_ABILITY_OUTPUT_MD: ("## 3. L7 Audit Ability Output",),
     }
@@ -4309,8 +4305,6 @@ def validate_mandatory_output_bundle(
         "pass": not errors,
         "errors": errors,
         "required_artifacts": [
-            BCG_EXECUTIVE_OUTPUT_MD,
-            OUTPUT_BISECT_MD,
             MANDATORY_RUN_OUTPUT_MD,
             L7_AUDIT_ABILITY_OUTPUT_MD,
             MANDATORY_RUN_OUTPUT_JSON,

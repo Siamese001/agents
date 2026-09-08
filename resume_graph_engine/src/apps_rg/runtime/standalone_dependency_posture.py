@@ -42,7 +42,7 @@ def _source_inventory(root: Path) -> dict[str, int]:
     import_count = 0
     local_import_count = 0
     for path in python_files:
-        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        tree = ast.parse(path.read_text(encoding="utf-8-sig"), filename=str(path))
         for node in ast.walk(tree):
             if isinstance(node, ast.ImportFrom):
                 import_count += 1

@@ -354,9 +354,8 @@ def test_emit_runtime_exhaust_artifacts_writes_payload_refs_and_guard_receipts(
     span_coverage = _read_json(artifact_dir / SPINE_SPAN_COVERAGE_RECEIPT)
 
     assert bundle["x3_code"] == "X3_ALLOW"
-    preferred_bundle = artifact_dir / "apps_rg_section_runtime_exhaust_bundle.json"
-    assert preferred_bundle.is_file()
-    assert _read_json(preferred_bundle) == bundle
+    # apps_rg_section_* prefixed duplicates are no longer created
+    # (mirror_preferred_section_shim_names retired — zero downstream readers)
     assert receipt["exhaust_spine_status"] == "PASS"
     assert handoff["observed_x3_code"] == "X3_ALLOW"
     assert eval_receipt["promotion_allowed"] is False

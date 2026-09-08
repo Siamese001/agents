@@ -1,4 +1,4 @@
-﻿"""CLI entrypoint for repeatability."""
+"""CLI entrypoint for repeatability."""
 from __future__ import annotations
 from .cli import main
 
