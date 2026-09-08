@@ -1,1 +1,0 @@
-# Tests fixtures package marker.

@@ -1,9 +1,0 @@
-{
-  "gate_id": "A1_orphan_module_ratchet",
-  "count": 3219,
-  "seeded_at": "2026-05-17T11:04:02.089846+00:00",
-  "snapshot": "adg_indexed_05172026_0651.sqlite",
-  "zero_run_streak": 0,
-  "last_run_at": "2026-05-17T12:14:55.459953+00:00",
-  "last_run_snapshot": "adg_indexed_05172026_0651.sqlite"
-}

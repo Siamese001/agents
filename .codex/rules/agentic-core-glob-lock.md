@@ -1,3 +1,0 @@
-# agentic_core Editing Guard — stub
-
-> On-demand when editing `agentic_core/` (plan `always-on-rule-surface-cut-c7f3a1`); enforcement unchanged. Before any `agentic_core/**` edit, classify the file; BLOCKED (require migration, not in-place): adding `if app_id ==`, app route/cache/Exit literals, extending `*_binding.py` with app logic. Generic-infra changes allowed with a receipt under `artifacts/governance/migration_receipts/`. Detail: [`boundary-enforcement`](../skills/boundary-enforcement/SKILL.md) skill, siblings `agentic-core-static.md` / `boundary-audit-required.md`. Bypass: `AGENTIC_CORE_EDIT_BYPASS=1`.

@@ -1,1 +1,0 @@
-# tests/_apps_contract/__init__.py
