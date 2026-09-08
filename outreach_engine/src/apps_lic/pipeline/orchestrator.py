@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from apps_lic.domain.models import (
     CandidateProfile,
@@ -19,6 +19,8 @@ from apps_lic.domain.validators import (
     QuestionEndingValidator,
     SpamTriggerValidator,
 )
+from apps_lic.judges.evaluator import EvaluationReport, RubricJudgeEvaluator
+from apps_lic.pipeline.briefing_resolver import GovernedBriefingResolver, SealedBriefingResolution
 from apps_lic.pipeline.compiler import PromptCompiler
 from apps_lic.pipeline.touch_sequence import TouchSequencePlanner
 
@@ -33,28 +35,74 @@ class OutreachOrchestrator:
         self.length_validator = ChannelLengthValidator()
         self.question_validator = QuestionEndingValidator()
         self.grounding_validator = GroundingValidator()
+        self.judge = RubricJudgeEvaluator()
+
+    def resolve_opportunity_briefing(
+        self,
+        opportunity: TargetOpportunity,
+        *,
+        auto_research: bool = True,
+        research_bridge: Any | None = None,
+        job_description_text: str = "",
+        trace_id: str = "",
+    ) -> TargetOpportunity:
+        """Resolves target briefing via GovernedBriefingResolver if not already sealed."""
+        if opportunity.sealed_resolution is not None:
+            return opportunity
+
+        resolution: SealedBriefingResolution = GovernedBriefingResolver.resolve(
+            company_name=opportunity.company_name,
+            target_role=opportunity.role_title,
+            manual_brief_or_fixture=opportunity.briefing_text,
+            strategic_priorities=opportunity.strategic_priorities,
+            job_description_text=job_description_text,
+            auto_research=auto_research,
+            research_bridge=research_bridge,
+            trace_id=trace_id,
+        )
+
+        priorities = list(opportunity.strategic_priorities)
+        if not priorities and resolution.strategic_priorities:
+            priorities = list(resolution.strategic_priorities)
+
+        return TargetOpportunity(
+            opportunity_id=opportunity.opportunity_id,
+            company_name=opportunity.company_name,
+            role_title=opportunity.role_title,
+            industry=opportunity.industry,
+            recipient_name=opportunity.recipient_name,
+            recipient_title=opportunity.recipient_title,
+            recipient_class=opportunity.recipient_class,
+            relationship_distance=opportunity.relationship_distance,
+            strategic_priorities=priorities,
+            briefing_text=resolution.briefing_text,
+            research_digest=resolution.digest,
+            evidence_items=list(resolution.metadata.get("evidence_items", [])),
+            sealed_resolution=resolution.to_dict(),
+        )
 
     def generate_single_draft(
         self,
         candidate: CandidateProfile,
         opportunity: TargetOpportunity,
         channel: ChannelType = ChannelType.LINKEDIN_INMAIL,
+        *,
+        auto_research: bool = True,
+        research_bridge: Any | None = None,
+        job_description_text: str = "",
+        trace_id: str = "",
     ) -> tuple[OutreachMessageDraft, ValidationResult]:
-        """Generates and validates a single grounded outreach draft."""
-        context = self.compiler.assemble_context(candidate, opportunity, channel)
-        
-        # Assemble message body
-        lead_fact = candidate.verified_facts[0] if candidate.verified_facts else None
-        fact_statement = lead_fact.statement if lead_fact else candidate.executive_summary
-        fact_ids = [lead_fact.fact_id] if lead_fact else []
-
-        subject = f"{opportunity.company_name} / {opportunity.role_title} - Strategic Alignment"
-        body = (
-            f"Hi {opportunity.recipient_name},\n\n"
-            f"I have been following {opportunity.company_name}'s work in {opportunity.industry}. "
-            f"In my recent work as {candidate.target_title}, {fact_statement}.\n\n"
-            f"Given your focus, would you be open to a brief conversation next week?"
+        """Generates and validates a single grounded outreach draft with governed briefing."""
+        opp = self.resolve_opportunity_briefing(
+            opportunity,
+            auto_research=auto_research,
+            research_bridge=research_bridge,
+            job_description_text=job_description_text,
+            trace_id=trace_id,
         )
+
+        context = self.compiler.assemble_context(candidate, opp, channel)
+        subject, body, fact_ids = self.compiler.render_draft_message(candidate, opp, channel)
 
         draft = OutreachMessageDraft(
             draft_id=f"draft_{uuid.uuid4().hex[:8]}",
@@ -62,10 +110,14 @@ class OutreachOrchestrator:
             subject=subject,
             body=body,
             grounded_facts_used=fact_ids,
-            metadata={"context_keys": list(context.keys())},
+            research_metadata={
+                "resolution_source": opp.sealed_resolution.get("resolution_source") if opp.sealed_resolution else "none",
+                "research_digest": opp.research_digest,
+                "evidence_count": len(opp.evidence_items),
+            },
+            metadata={"context_keys": list(context.keys()), "template_id": context.get("template_id")},
         )
 
-        # Run multi-gate validation
         validation = self.validate_draft(draft, candidate)
         return draft, validation
 
@@ -112,11 +164,34 @@ class OutreachOrchestrator:
             },
         )
 
+    def evaluate_draft(
+        self,
+        draft: OutreachMessageDraft,
+        candidate: CandidateProfile,
+        opportunity: TargetOpportunity,
+    ) -> EvaluationReport:
+        """Evaluates draft against the 4 canonical rubric judges."""
+        return self.judge.evaluate(draft, candidate, opportunity)
+
     def generate_full_campaign(
         self,
         candidate: CandidateProfile,
         opportunity: TargetOpportunity,
         primary_channel: ChannelType = ChannelType.LINKEDIN_INMAIL,
+        *,
+        auto_research: bool = True,
+        research_bridge: Any | None = None,
+        job_description_text: str = "",
+        trace_id: str = "",
     ) -> TouchSequence:
-        """Generates a complete validated multi-touch sequence."""
-        return self.sequence_planner.plan_sequence(candidate, opportunity, primary_channel)
+        """Generates a complete validated multi-touch sequence with governed briefing."""
+        opp = self.resolve_opportunity_briefing(
+            opportunity,
+            auto_research=auto_research,
+            research_bridge=research_bridge,
+            job_description_text=job_description_text,
+            trace_id=trace_id,
+        )
+        sequence = self.sequence_planner.plan_sequence(candidate, opp, primary_channel)
+        sequence.sealed_resolution = opp.sealed_resolution
+        return sequence

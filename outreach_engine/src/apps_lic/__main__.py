@@ -1,4 +1,4 @@
-"""CLI entrypoint for apps_lic_v2."""
+"""CLI entrypoint for outreach_engine / apps_lic."""
 
 from __future__ import annotations
 
@@ -15,89 +15,17 @@ from apps_lic.domain.models import (
     RelationshipDistance,
     TargetOpportunity,
 )
+from apps_lic.pipeline.mission_loader import MissionLoader
 from apps_lic.pipeline.orchestrator import OutreachOrchestrator
 
 
-def load_mission_from_file(brief_path: Path) -> tuple[CandidateProfile, TargetOpportunity]:
-    """Loads candidate and target opportunity from a JSON mission fixture."""
-    with open(brief_path, "r", encoding="utf-8") as f:
-        data = json.load(f)
-
-    # Handle charles_truist_mission.json structure
-    if "sender_profile" in data and "recipient_profile" in data:
-        sp = data["sender_profile"]
-        rp = data["recipient_profile"]
-        jd = data.get("job_description", {})
-
-        candidate = CandidateProfile(
-            candidate_id="cand_amit",
-            full_name=sp.get("name", "Amit Ayer"),
-            target_title=sp.get("title", "AI/ML Engineering Leader"),
-            executive_summary=sp.get("background", "Enterprise AI systems architect."),
-            verified_facts=[
-                CandidateFact(
-                    fact_id="fact_01",
-                    category="architecture",
-                    statement="architected layered agentic systems (L0 routing through L6 observability) with AST dependency governance",
-                ),
-                CandidateFact(
-                    fact_id="fact_02",
-                    category="delivery",
-                    statement="delivered multi-MCP enterprise agentic tooling for frontline banking care operations",
-                ),
-            ],
-            key_competencies=["Agentic AI", "Enterprise Architecture", "LLM Guardrails", "HITL Systems"],
-        )
-
-        opportunity = TargetOpportunity(
-            opportunity_id="opp_truist_mission",
-            company_name=rp.get("company", jd.get("company", "Truist")),
-            role_title=jd.get("title", "Head of Enterprise Agentic Strategy"),
-            industry="Banking & Financial Services",
-            recipient_name=rp.get("name", "Charles Morris"),
-            recipient_title=rp.get("title", "SVP, Agentic Enterprise Strategy"),
-            recipient_class=RecipientClass.EXECUTIVE_PEER,
-            relationship_distance=RelationshipDistance.COLD,
-            strategic_priorities=[
-                jd.get("summary", "Care Center frontline adoption and reusable agentic primitives"),
-            ],
-        )
-        return candidate, opportunity
-
-    # Handle truist_pascal_brief.json structure
-    if "recipient_company" in data:
-        candidate = CandidateProfile(
-            candidate_id="cand_001",
-            full_name="Alex Mercer",
-            target_title=data.get("target_role", "VP of Engineering"),
-            executive_summary="Senior enterprise technology executive.",
-            verified_facts=[
-                CandidateFact(
-                    fact_id="fact_01",
-                    category="scale",
-                    statement="scaled enterprise core platform processing high-volume financial transactions",
-                )
-            ],
-        )
-        opportunity = TargetOpportunity(
-            opportunity_id="opp_pascal",
-            company_name=data.get("recipient_company", "Truist"),
-            role_title=data.get("target_role", "Engineering Leader"),
-            industry="Financial Services",
-            recipient_name=data.get("recipient_name", "Pascal"),
-            recipient_title=data.get("recipient_title", "Head of Enterprise Engineering"),
-            recipient_class=RecipientClass.HIRING_MANAGER,
-            relationship_distance=RelationshipDistance.COLD,
-            strategic_priorities=["Core platform modernization"],
-        )
-        return candidate, opportunity
-
-    raise ValueError(f"Unrecognized brief structure in {brief_path}")
-
-
 def main() -> int:
-    parser = argparse.ArgumentParser(description="apps_lic_v2: Standalone Outreach Generator")
-    parser.add_argument("--brief", help="Path to opportunity brief / mission JSON fixture")
+    parser = argparse.ArgumentParser(description="outreach_engine: Grounded Executive Outreach Generator")
+    parser.add_argument("--brief", "--mission", dest="brief", help="Path to opportunity brief / mission JSON fixture")
+    parser.add_argument("--company", help="Target company name (enables autonomous briefing resolution)")
+    parser.add_argument("--role", default="Engineering Leader", help="Target role title")
+    parser.add_argument("--research", action="store_true", default=True, help="Enable autonomous research resolution")
+    parser.add_argument("--demo", action="store_true", help="Run with demo mission fixture")
     parser.add_argument(
         "--channel",
         choices=["inmail", "connection_note", "email", "follow_up"],
@@ -106,26 +34,48 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    print("[apps_lic_v2] Starting Standalone Outreach Generator...")
+    print("[outreach_engine] Starting Grounded Outreach Generator...")
 
-    if args.brief:
-        brief_file = Path(args.brief)
-        if not brief_file.is_file():
-            # Try resolving relative to package repo root
-            repo_root = Path(__file__).resolve().parent.parent.parent.parent
-            brief_file = repo_root / args.brief
-        if not brief_file.is_file():
-            print(f"Error: Brief file not found: {args.brief}", file=sys.stderr)
-            return 1
-        print(f"[apps_lic_v2] Ingesting mission brief from {brief_file.name}...")
-        candidate, opportunity = load_mission_from_file(brief_file)
+    brief_path = args.brief
+    if args.demo and not brief_path:
+        fixture_path = Path(__file__).resolve().parent.parent.parent / "data" / "fixtures" / "charles_truist_mission.json"
+        if fixture_path.is_file():
+            brief_path = str(fixture_path)
+
+    if brief_path:
+        print(f"[outreach_engine] Ingesting mission brief from {brief_path}...")
+        candidate, opportunity = MissionLoader.load_from_file(brief_path)
+    elif args.company:
+        print(f"[outreach_engine] Target company specified: {args.company} ({args.role})...")
+        candidate = CandidateProfile(
+            candidate_id="cand_exec",
+            full_name="Alex Mercer",
+            target_title=args.role,
+            executive_summary="Enterprise technology executive specializing in modern distributed platforms.",
+            verified_facts=[
+                CandidateFact(
+                    fact_id="fact_01",
+                    category="scale",
+                    statement="scaled enterprise core platform processing high-volume transactions with 99.995% reliability",
+                    metric="99.995%",
+                ),
+            ],
+        )
+        opportunity = TargetOpportunity(
+            opportunity_id=f"opp_{args.company.lower()}",
+            company_name=args.company,
+            role_title=args.role,
+            industry="Enterprise Technology",
+            recipient_name="Hiring Leader",
+            recipient_title=f"Head of {args.role}",
+            recipient_class=RecipientClass.HIRING_MANAGER,
+        )
     else:
-        # Default sample profile
         candidate = CandidateProfile(
             candidate_id="cand_001",
             full_name="Alex Mercer",
             target_title="VP of Enterprise Engineering",
-            executive_summary="Executive technology leader specializing in modern distributed systems and enterprise modernization.",
+            executive_summary="Executive technology leader specializing in modern distributed systems.",
             verified_facts=[
                 CandidateFact(
                     fact_id="fact_01",
@@ -154,9 +104,14 @@ def main() -> int:
 
     channel = ChannelType(args.channel)
     orchestrator = OutreachOrchestrator()
-    
-    draft, val = orchestrator.generate_single_draft(candidate, opportunity, channel)
-    
+
+    draft, val = orchestrator.generate_single_draft(
+        candidate,
+        opportunity,
+        channel,
+        auto_research=args.research,
+    )
+
     print("\n" + "=" * 60)
     print(f"OUTREACH DRAFT ({channel.value.upper()}):")
     print("=" * 60)
@@ -164,8 +119,9 @@ def main() -> int:
     print("-" * 60)
     print(draft.body)
     print("=" * 60)
-    print(f"Template Used: {draft.metadata.get('context_keys', ['default'])[0]}")
+    print(f"Template Used: {draft.metadata.get('template_id', 'default')}")
     print(f"Character Count: {draft.character_count}")
+    print(f"Research Resolution: {draft.research_metadata.get('resolution_source', 'none')}")
     print(f"Validation Status: {'PASSED' if val.is_valid else 'FAILED'}")
     if val.violations:
         print(f"Violations: {val.violations}")
@@ -173,8 +129,12 @@ def main() -> int:
         print(f"Warnings: {val.warnings}")
     print("=" * 60)
 
-    # Campaign sequence
-    sequence = orchestrator.generate_full_campaign(candidate, opportunity, channel)
+    sequence = orchestrator.generate_full_campaign(
+        candidate,
+        opportunity,
+        channel,
+        auto_research=args.research,
+    )
     print(f"\nGenerated Multi-Touch Campaign with {len(sequence.touches)} planned touches:")
     for t in sequence.touches:
         print(f"  - Touch {t.touch_number} (Day {t.day_offset}) via {t.channel.value}: {t.objective}")

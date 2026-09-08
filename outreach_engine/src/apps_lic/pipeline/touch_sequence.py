@@ -29,9 +29,10 @@ class TouchSequencePlanner:
 
         # Touch 1 (Day 1): Initial Hook & Alignment
         primary_fact = candidate.verified_facts[0].statement if candidate.verified_facts else candidate.executive_summary
+        hook = opportunity.strategic_priorities[0] if opportunity.strategic_priorities else opportunity.industry
         t1_body = (
             f"Hi {opportunity.recipient_name},\n\n"
-            f"Noticed {opportunity.company_name}'s focus on {opportunity.strategic_priorities[0] if opportunity.strategic_priorities else opportunity.industry}.\n"
+            f"Noticed {opportunity.company_name}'s focus on {hook}.\n"
             f"In my work as {candidate.target_title}, {primary_fact}.\n\n"
             f"Would you be open to exchanging brief perspectives next week?"
         )
@@ -41,6 +42,7 @@ class TouchSequencePlanner:
             subject=f"{opportunity.company_name} / {opportunity.role_title} perspective",
             body=t1_body,
             grounded_facts_used=[candidate.verified_facts[0].fact_id] if candidate.verified_facts else [],
+            research_metadata={"research_digest": opportunity.research_digest},
         )
         touches.append(
             TouchPoint(
@@ -69,6 +71,7 @@ class TouchSequencePlanner:
             subject=f"Re: {opportunity.company_name} / {opportunity.role_title} perspective",
             body=t2_body,
             grounded_facts_used=[candidate.verified_facts[1].fact_id] if len(candidate.verified_facts) > 1 else [],
+            research_metadata={"research_digest": opportunity.research_digest},
         )
         touches.append(
             TouchPoint(
@@ -92,6 +95,7 @@ class TouchSequencePlanner:
             subject=f"Checking in: {opportunity.company_name}",
             body=t3_body,
             grounded_facts_used=[],
+            research_metadata={"research_digest": opportunity.research_digest},
         )
         touches.append(
             TouchPoint(
@@ -108,4 +112,5 @@ class TouchSequencePlanner:
             candidate_id=candidate.candidate_id,
             opportunity_id=opportunity.opportunity_id,
             touches=touches,
+            sealed_resolution=opportunity.sealed_resolution,
         )

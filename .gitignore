@@ -94,6 +94,7 @@ pip/
 src/
 !apps_rg_v2/src/
 !apps_lic_v2/src/
+!outreach_engine/src/
 
 # Data & Logs
 logs/

@@ -61,6 +61,10 @@ class TargetOpportunity:
     recipient_class: RecipientClass = RecipientClass.HIRING_MANAGER
     relationship_distance: RelationshipDistance = RelationshipDistance.COLD
     strategic_priorities: List[str] = field(default_factory=list)
+    briefing_text: str = ""
+    research_digest: str = ""
+    evidence_items: List[Dict[str, Any]] = field(default_factory=list)
+    sealed_resolution: Optional[Dict[str, Any]] = None
 
 
 @dataclass
@@ -73,6 +77,7 @@ class OutreachMessageDraft:
     character_count: int = 0
     word_count: int = 0
     grounded_facts_used: List[str] = field(default_factory=list)
+    research_metadata: Dict[str, Any] = field(default_factory=dict)
     metadata: Dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
@@ -109,3 +114,4 @@ class TouchSequence:
     candidate_id: str
     opportunity_id: str
     touches: List[TouchPoint] = field(default_factory=list)
+    sealed_resolution: Optional[Dict[str, Any]] = None

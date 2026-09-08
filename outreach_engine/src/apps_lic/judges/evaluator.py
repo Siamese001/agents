@@ -23,6 +23,16 @@ class EvaluationReport:
     hop8_narrative_score: float
     feedback: List[str]
 
+    def to_dict(self) -> dict:
+        return {
+            "passed": self.passed,
+            "hop1_classifier_score": self.hop1_classifier_score,
+            "hop2_grounding_score": self.hop2_grounding_score,
+            "hop6_alignment_score": self.hop6_alignment_score,
+            "hop8_narrative_score": self.hop8_narrative_score,
+            "feedback": list(self.feedback),
+        }
+
 
 class RubricJudgeEvaluator:
     """Automated judge applying the 4 canonical evaluation rubrics."""
@@ -78,3 +88,6 @@ class RubricJudgeEvaluator:
             hop8_narrative_score=hop8_score,
             feedback=feedback,
         )
+
+
+__all__ = ["RubricJudgeEvaluator", "EvaluationReport"]

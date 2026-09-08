@@ -14,7 +14,6 @@ class PromptCompiler:
 
     def __init__(self, templates_dir: str | Path | None = None) -> None:
         if templates_dir is None:
-            # Default to config/prompt_templates relative to package root
             repo_root = Path(__file__).resolve().parent.parent.parent.parent
             self.templates_dir = repo_root / "config" / "prompt_templates"
         else:
@@ -24,7 +23,6 @@ class PromptCompiler:
         """Loads a YAML prompt template definition."""
         tmpl_file = self.templates_dir / f"{template_name}.yaml"
         if not tmpl_file.is_file():
-            # Try direct file match
             tmpl_file = self.templates_dir / template_name
         if tmpl_file.is_file():
             try:
@@ -59,7 +57,6 @@ class PromptCompiler:
         template_id = self.select_template_for_channel(channel, opportunity.recipient_class)
         template_spec = self.load_template(template_id)
 
-        # Persona tone selection based on recipient class
         tone_map = {
             RecipientClass.TALENT_PARTNER: "concise, direct, alignment-focused",
             RecipientClass.HIRING_MANAGER: "strategic, metrics-driven, problem-solving",
@@ -92,8 +89,53 @@ class PromptCompiler:
             "role_title": opportunity.role_title,
             "industry": opportunity.industry,
             "strategic_priorities": priorities_block,
+            "briefing_summary": opportunity.briefing_text[:300] if opportunity.briefing_text else "",
+            "research_digest": opportunity.research_digest,
             "tone": tone_map.get(opportunity.recipient_class, "professional"),
             "channel": channel.value,
             "forbidden_behaviors": forbidden,
         }
         return context
+
+    def render_draft_message(
+        self,
+        candidate: CandidateProfile,
+        opportunity: TargetOpportunity,
+        channel: ChannelType,
+    ) -> tuple[str, str, list[str]]:
+        """Renders subject, body, and used fact IDs using template guidance."""
+        context = self.assemble_context(candidate, opportunity, channel)
+        template_id = context["template_id"]
+
+        lead_fact = candidate.verified_facts[0] if candidate.verified_facts else None
+        fact_statement = lead_fact.statement if lead_fact else candidate.executive_summary
+        fact_ids = [lead_fact.fact_id] if lead_fact else []
+
+        hook = opportunity.strategic_priorities[0] if opportunity.strategic_priorities else opportunity.industry
+
+        if template_id == "exec_positioning":
+            subject = f"{opportunity.company_name} / {opportunity.role_title} - Executive Alignment"
+            body = (
+                f"Hi {opportunity.recipient_name},\n\n"
+                f"I have been following {opportunity.company_name}'s focus on {hook}. "
+                f"In my recent work as {candidate.target_title}, {fact_statement}.\n\n"
+                f"Given your focus, would you be open to a brief conversation next week?"
+            )
+        elif template_id == "compact_recruiter_arc":
+            subject = f"{candidate.full_name} -> {opportunity.company_name} ({opportunity.role_title})"
+            body = (
+                f"Hi {opportunity.recipient_name},\n\n"
+                f"Reaching out regarding {opportunity.company_name}'s priorities in {hook}. "
+                f"As {candidate.target_title}, {fact_statement}.\n\n"
+                f"Would you be open to connecting on this role?"
+            )
+        else:
+            subject = f"{opportunity.company_name} / {opportunity.role_title} - Strategic Alignment"
+            body = (
+                f"Hi {opportunity.recipient_name},\n\n"
+                f"I have been following {opportunity.company_name}'s work in {opportunity.industry}. "
+                f"In my recent work as {candidate.target_title}, {fact_statement}.\n\n"
+                f"Given your focus, would you be open to a brief conversation next week?"
+            )
+
+        return subject, body, fact_ids
