@@ -1,7 +1,7 @@
-"""Codex-only command gate for the Apps RG runtime boundary.
+"""Antigravity command gate for the Apps RG runtime boundary.
 
 The application guard remains authoritative.  This hook prevents an agent from
-accidentally bypassing the global Defender while using Codex shell tools.  It
+accidentally bypassing the global Defender while using Antigravity shell tools.  It
 does not run tests, create environments, or alter Git/worktree commands.
 """
 
@@ -58,7 +58,7 @@ def main() -> int:
         "Apps RG runtime commands must use the global Defender so paths, venv identity, "
         "timeout, and descendant processes are contained. Use: "
         "C:\\Users\\amita\\.codex\\defender\\bin\\codex-defender.cmd run "
-        "--policy .codex\\runtime-boundary.json --command python -m apps_rg ..."
+        "--policy .antigravity\\runtime-boundary.json --command python -m apps_rg ..."
     )
 
 
