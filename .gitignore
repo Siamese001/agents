@@ -205,3 +205,8 @@ apps_rg/scripts/generated_resume_*.json
 
 # Worktree-per-chat opt-out marker — per-worktree local file (added 2026-06-14, worktree-lifecycle-streamline)
 .keep-worktree
+# Antigravity Ephemeral / State
+artifacts/
+plans/
+.zero_loss_backups/
+memory/

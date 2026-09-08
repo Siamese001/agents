@@ -1,4 +1,0 @@
-# Nested routing dev subtree — no Git LFS (2026-05-17 policy).
-# Large / generated data must live outside git (.gitignore, artifacts policy, object storage).
-* text=auto eol=lf
-*.json text

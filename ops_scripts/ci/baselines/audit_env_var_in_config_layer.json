@@ -1,9 +1,0 @@
-{
-  "gate_id": "AUDIT_5_env_var_in_config_layer",
-  "count": 126,
-  "seeded_at": "2026-05-24T02:03:54.704421+00:00",
-  "snapshot": "adg_indexed_05232026_2140.sqlite",
-  "zero_run_streak": 0,
-  "last_run_at": "2026-05-24T02:03:55.045472+00:00",
-  "last_run_snapshot": "adg_indexed_05232026_2140.sqlite"
-}

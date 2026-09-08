@@ -1,9 +1,0 @@
-{
-  "gate_id": "D_dead_folder_detector",
-  "count": 6,
-  "seeded_at": "2026-05-17T11:20:16.355772+00:00",
-  "snapshot": "adg_indexed_05172026_0651.sqlite",
-  "zero_run_streak": 0,
-  "last_run_at": "2026-05-17T12:14:57.351094+00:00",
-  "last_run_snapshot": "adg_indexed_05172026_0651.sqlite"
-}
