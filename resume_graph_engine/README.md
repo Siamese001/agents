@@ -1,4 +1,19 @@
-# Apps RG V2
+# Resume Graph Engine (`resume_graph_engine`)
+
+> **Autonomous, Graph-Grounded Career Intelligence & Synthesis Engine**  
+> Fusing deterministic knowledge graph reasoning, dense BGE-M3 + BM25 reciprocal-rank retrieval, hallucination-free assertion ledgers, and multi-layer agentic evaluation.
+
+---
+
+### Key Architectural Highlights (For Engineering Leads & Technical Recruiters)
+
+- **Factual Assertion Knowledge Graph (C0.3)**: Every career claim is grounded in a verified factual assertion graph with 38 multi-node evidence clusters, preventing generative LLM hallucinations.
+- **Hybrid Neural & Lexical Retrieval (RRF)**: Fuses dense BGE-M3 vector embeddings with deterministic BM25 lexical rankings via Reciprocal Rank Fusion, dynamically rehydrating assertion IDs through graph constraints before allocation.
+- **Layered Cognitive Pipeline (U0 → L1 → L0 → C0 → PA → L2 → Exit)**: Structured agentic workflow executing planning capsules, section-level synthesis, multi-judge proof panels, and cryptographic execution receipts.
+- **Rigorous Offline Evaluation Surface (G1–G6)**: Production-grade measurement contract with modular graph metrics, whole-resume quality scoring, stored-run repeatability, and critical-grader mutation testing.
+- **Shadow Canary Promotion**: Automated SLO monitoring (p95 latency, error-rate deltas, stage failure rates, distribution drift) prior to production release.
+
+---
 
 ## Canonical resume workflow
 

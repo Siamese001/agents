@@ -210,3 +210,6 @@ artifacts/
 plans/
 .zero_loss_backups/
 memory/
+
+# Legacy apps_rg_v2 compatibility junction (migrated to resume_graph_engine)
+/apps_rg_v2/

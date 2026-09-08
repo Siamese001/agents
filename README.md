@@ -64,7 +64,7 @@ This repository demonstrates:
                     ┌──────────────┴──────────────┐
                     ▼                             ▼
         ┌───────────────────────┐     ┌───────────────────────┐
-        │      apps_rg_v2       │     │    outreach_engine    │
+        │  resume_graph_engine  │     │    outreach_engine    │
         │   Autonomous Resume   │     │ Lifecycle Intelligence│
         │   Generation Engine   │     │  & Outbound Synthesis │
         └───────────┬───────────┘     └───────────┬───────────┘
@@ -98,7 +98,7 @@ Following a comprehensive forensic audit, legacy monolithic framework layers (`a
 
 | Application | Subsystem Focus | Key Architectural Patterns | Status / Links |
 | :--- | :--- | :--- | :--- |
-| [`apps_rg_v2`](apps_rg_v2/) | **Autonomous Executive Resume Engine** | Offline BGE-M3 vector qualification, Slalom-activated graph orchestration, bounded Agent-to-Agent loops, deterministic LaTeX compilation. | **Production Ready**<br>[README](apps_rg_v2/README.md) • [Docs](apps_rg_v2/docs/) |
+| [`resume_graph_engine`](resume_graph_engine/) | **Resume Graph Engine (Autonomous Career Intelligence)** | Offline BGE-M3 + BM25 RRF, factual assertion graphs, multi-judge proof panels, deterministic LaTeX compilation. | **Production Ready**<br>[README](resume_graph_engine/README.md) • [Docs](resume_graph_engine/docs/) |
 | [`outreach_engine`](outreach_engine/) | **Lifecycle Intelligence & Communication** | Grounded executive outbound authoring, dynamic YAML prompt resolution, forbidden claims assertions, mission fixture ingestion, multi-touch cadence planner. | **Production Ready**<br>[README](outreach_engine/README.md) |
 | [`apps_exec`](apps_exec/) | **Executive Brief Generator** | High-level executive synthesis, strategic narrative condensation, and portfolio briefs. | Governed Subsystem |
 | [`apps_research`](apps_research/) | **Autonomous Research Substrate** | Structured target company profiling, executive dossier extraction, and deep topic synthesis. | [README](apps_research/README.md) |
@@ -107,7 +107,7 @@ Following a comprehensive forensic audit, legacy monolithic framework layers (`a
 
 > [!NOTE]
 > **Dual Deployment Parity**: Both [`apps_rg_v2`](apps_rg_v2/) and [`outreach_engine`](outreach_engine/) maintain complete standalone independence. They can be executed directly within this monorepo or deployed as fully autonomous, standalone repositories:
-> - [`apps_rg_v2` Standalone](https://github.com/Siamese001/apps_rg_v2)
+> - [`resume_graph_engine` (formerly `apps_rg_v2`)](resume_graph_engine/)
 > - [`apps_lic_v2` / `outreach_engine` Standalone](https://github.com/Siamese001/apps_lic_v2)
 
 ---
@@ -135,8 +135,8 @@ Following a comprehensive forensic audit, legacy monolithic framework layers (`a
 ## Repository Directory Layout
 
 ```
-Agentic-Workflow/
-├── apps_rg_v2/           # Standalone Executive Resume Engine (Slalom graph, BGE-M3, LaTeX)
+agents/
+├── resume_graph_engine/  # Autonomous Resume Graph Engine (BGE-M3 + BM25, C0.3 assertions)
 ├── outreach_engine/      # Standalone Lifecycle Intelligence (Grounded Outreach & Cadences)
 ├── apps_exec/            # Executive Brief Generation & Portfolio Synthesis
 ├── apps_research/        # Deep Research Substrate & Target Company Profiling
@@ -164,8 +164,8 @@ Agentic-Workflow/
 
 ### 1. Clone & Setup
 ```bash
-git clone https://github.com/Siamese001/Agentic-Workflow.git
-cd Agentic-Workflow
+git clone https://github.com/Siamese001/agents.git
+cd agents
 
 # Create and activate virtual environment
 python -m venv .venv
@@ -175,9 +175,9 @@ source .venv/bin/activate    # On Windows: .venv\Scripts\Activate.ps1
 pip install -e .
 ```
 
-### 2. Run the Autonomous Resume Engine (`apps_rg_v2`)
+### 2. Run the Resume Graph Engine (`resume_graph_engine`)
 ```bash
-cd apps_rg_v2
+cd resume_graph_engine
 
 # Run resume generation pipeline with candidate brief
 python -m apps_rg.entrypoints.cli --profile data/fixtures/executive_candidate.json
@@ -214,7 +214,7 @@ In September 2026, this repository underwent an extensive forensic audit to elim
 
 - **Eradicated Legacy Monolith:** The legacy `agentic_core/` (3,711 files) and `apps_shared/` (284 files) frameworks were permanently decommissioned, along with ~2,700 obsolete tests.
 - **Retired Prototypes:** Legacy `apps_rg/`, `apps_lic/`, `apps_qna/`, and `apps_underwriting_ai/` were purged.
-- **Embraced Modern Subsystems:** All capabilities were refactored into high-velocity, modular v2 engines (`apps_rg_v2`, `outreach_engine`) with self-contained dependencies, pristine type contracts, and zero framework overhead.
+- **Embraced Modern Subsystems:** All capabilities were refactored into high-velocity, modular v2 engines (`resume_graph_engine`, `outreach_engine`) with self-contained dependencies, pristine type contracts, and zero framework overhead.
 
 ---
 
