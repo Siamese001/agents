@@ -45,6 +45,6 @@ Every changed file must have a direct outcome, build, test, or graph-backed reas
 
 ## References
 
-- Always-on rule: `.codex/rules/scope-containment.md`
-- Structural scope: `.codex/skills/graph-analysis/SKILL.md`
-- Destructive phases: `.codex/skills/operational-gates/SKILL.md`
+- Always-on rule: `.agents/rules/scope-containment.md`
+- Structural scope: `.agents/skills/graph-analysis/SKILL.md`
+- Destructive phases: `.agents/skills/operational-gates/SKILL.md`

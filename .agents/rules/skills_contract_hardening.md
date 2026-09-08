@@ -5,12 +5,12 @@ Date: 2026-07-13
 ## Decision
 
 Repository-owned Codex skills are procedural, on-demand adapters. Always-on policy remains in
-`AGENTS.md`, `.codex/rules/`, hooks, and CI. A skill may explain how to comply with a rule, but skill
+`AGENTS.md`, `.agents/rules/`, hooks, and CI. A skill may explain how to comply with a rule, but skill
 activation is not itself proof that the rule was enforced.
 
 ## Active catalog
 
-- Remove deprecated per-server redirect skills from `.codex/skills`.
+- Remove deprecated per-server redirect skills from `.agents/skills`.
 - Route configured MCP use through `mcp-integration`; keep `adg-sqlite` separate for structural graph
   analysis.
 - Keep templates and planned-only capability rosters outside the active skill namespace.
@@ -28,6 +28,6 @@ Canonical entrypoint: `python ops_scripts/ci/run_skill_contract_gates.py`.
 
 ## Authoring
 
-New skills use `.codex/templates/skill-template.md`, include only reusable procedural knowledge, and
+New skills use `.agents/templates/skill-template.md`, include only reusable procedural knowledge, and
 add `agents/openai.yaml` plus `evals/` when the skill is user-facing or high risk. Detailed variants
 belong in one-level-deep references rather than the main `SKILL.md`.

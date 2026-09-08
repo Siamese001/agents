@@ -18,13 +18,8 @@
       "command": "cmd",
       "args": [
         "/c",
-        "npx",
-        "-y",
-        "@modelcontextprotocol/server-github"
-      ],
-      "env": {
-        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}"
-      }
+        "if defined GITHUB_PERSONAL_ACCESS_TOKEN (npx -y @modelcontextprotocol/server-github) else (for /f %i in ('gh auth token') do @set GITHUB_PERSONAL_ACCESS_TOKEN=%i&& npx -y @modelcontextprotocol/server-github)"
+      ]
     },
     "filesystem": {
       "command": "cmd",
@@ -43,10 +38,7 @@
         "npx",
         "-y",
         "@notionhq/notion-mcp-server"
-      ],
-      "env": {
-        "NOTION_TOKEN": "${NOTION_TOKEN}"
-      }
+      ]
     },
     "context7": {
       "command": "cmd",
@@ -82,6 +74,8 @@
     "sqlite": {
       "command": "uvx",
       "args": [
+        "--with",
+        "mcp<2",
         "mcp-server-sqlite",
         "--db-path",
         "C:\\Git\\agentic\\artifacts\\apps_rg\\fact_inventory\\augmented_skills_graph.sqlite"
