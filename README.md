@@ -98,14 +98,24 @@ This is the same architectural pattern deployed in the [Decision Intelligence En
 
 The repository is organized into independent, highly cohesive engines ordered by enterprise applicability:
 
+### Active Platform Engines
+
 | Subsystem | Mission & Architecture | Key Technical Primitives |
 | :--- | :--- | :--- |
-| [`apps_architect/`](apps_architect/) | **Architecture Governance Engine**<br>Enforces compile-time architectural integrity across all platform code. Prevents the layer boundary violations that cause AI codebases to become unmaintainable. | • Static AST Dependency Graph<br>• Anti-Pattern Burndown<br>• Write Bypass Detectors |
 | [`apps_eval/`](apps_eval/) | **Evaluation Lab & Model Benchmark Surface**<br>Rigorous offline grading, metric delta ratcheting, and multi-dimensional LLM judge calibration. Ensures model quality doesn't silently regress between releases. | • Automated LLM Graders & Rubrics<br>• Regression & Mutation Test Suites<br>• CI Ratcheting |
 | [`apps_research/`](apps_research/) | **Grounded Deep Research Substrate**<br>Autonomous company profiling, competitive intelligence, and executive dossier synthesis — all evidence-grounded through the Factual Assertion Graph. | • Local Search Integration<br>• Autonomous Dossier Extractor<br>• Grounded Evidence Collector |
-| [`apps_exec/`](apps_exec/) | **Executive Brief & Narrative Synthesizer**<br>Condenses multi-source organizational signals into Board-level strategic summaries. Complements the Decision Intelligence Engine's executive recap pipeline. | • Structural Blueprint Schemas<br>• Context Compression |
+| [`apps_model_telemetry/`](apps_model_telemetry/) | **Model Telemetry & Observability Substrate**<br>Real-time execution telemetry, token consumption, latency profiling, and cross-model performance observability across agent pipelines. | • OpenTelemetry Instrumentation<br>• Token & Latency Profiling<br>• Real-Time Spend Tracking |
 | [`outreach_engine/`](outreach_engine/) | **Autonomous Lifecycle & Engagement Intelligence**<br>Orchestrates hyper-personalized executive engagement with multi-touch cadence sequencing. Demonstrates the governance primitives applied to external communication. | • Adversarial Briefing Injection Airlock<br>• Forbidden-Claims Linting<br>• Multi-Touch State Machine |
 | [`resume_graph_engine/`](resume_graph_engine/) | **Career & Skill Intelligence Engine**<br>Constructs mathematically grounded, hallucination-proof professional narratives. A focused demonstration of the Factual Assertion Graph applied to career data. | • Factual Assertion Graph<br>• Dense + BM25 Reciprocal Rank Fusion<br>• Multi-Judge Proof Panels |
+
+### Foundational & Archived Governance Engines
+
+The architectural and executive governance engines are preserved in [`docs/archive/legacy_apps/`](docs/archive/legacy_apps/) as part of package single-source-of-truth consolidation:
+
+| Subsystem | Mission & Architectural Heritage | Key Technical Primitives |
+| :--- | :--- | :--- |
+| [`apps_architect/`](docs/archive/legacy_apps/apps_architect/) | **Architecture Governance Engine**<br>Enforces compile-time architectural integrity across platform code. Prevents the layer boundary violations that cause AI codebases to decay. | • Static AST Dependency Graph<br>• Anti-Pattern Burndown<br>• Write Bypass Detectors |
+| [`apps_exec/`](docs/archive/legacy_apps/apps_exec/) | **Executive Brief & Narrative Synthesizer**<br>Condenses multi-source organizational signals into Board-level strategic summaries. Complements the Decision Intelligence Engine's executive recap pipeline. | • Structural Blueprint Schemas<br>• Context Compression |
 
 ---
 
