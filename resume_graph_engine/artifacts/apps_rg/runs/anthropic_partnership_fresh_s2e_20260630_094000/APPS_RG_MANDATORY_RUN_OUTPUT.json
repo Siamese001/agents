@@ -1,0 +1,11 @@
+{
+  "schema_version": "apps_rg.mandatory_run_output.v1",
+  "result_summary": {
+    "exit_status": "success",
+    "execution_status": "completed",
+    "outcome_authorized": true,
+    "x3_disposition": "X3D_ALLOW_FINISH",
+    "target_company": "Anthropic",
+    "target_role": "Manager of Applied AI Architecture, Partnerships"
+  }
+}

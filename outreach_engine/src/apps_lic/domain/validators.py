@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import re
+import sys
+from pathlib import Path
 from typing import Final, List, Optional
 
 from apps_lic.domain.models import ChannelType, OutreachMessageDraft, ValidationResult
 
-# Curated spam triggers based on apps_lic/config/spam_trigger_phrases.py
+# Curated spam triggers fallback based on apps_lic/config/spam_trigger_phrases.py
 _CRITICAL_SPAM_TRIGGERS: Final[List[re.Pattern[str]]] = [
     re.compile(r"\bact now\b", re.IGNORECASE),
     re.compile(r"\burgent response needed\b", re.IGNORECASE),
@@ -40,13 +42,38 @@ _CHANNEL_MAX_CHARS: Final[dict[ChannelType, int]] = {
 }
 
 
+def _load_canonical_spam_phrases() -> dict[str, list[re.Pattern[str]]]:
+    """Load canonical spam triggers from config/spam_trigger_phrases.py if available."""
+    try:
+        config_path = Path(__file__).resolve().parent.parent.parent.parent / "config"
+        if str(config_path) not in sys.path:
+            sys.path.insert(0, str(config_path))
+        from spam_trigger_phrases import SPAM_TRIGGER_PHRASES
+
+        compiled: dict[str, list[re.Pattern[str]]] = {}
+        for cat, phrases in SPAM_TRIGGER_PHRASES.items():
+            compiled[cat] = [
+                re.compile(r"\b" + re.escape(p) + r"\b", re.IGNORECASE) for p in phrases
+            ]
+        return compiled
+    except Exception:
+        return {
+            "pushy_cta": _HIGH_SPAM_TRIGGERS + _CRITICAL_SPAM_TRIGGERS,
+            "generic_opener": _GENERIC_OPENER_TRIGGERS,
+        }
+
+
 class SpamTriggerValidator:
     """Scans text for aggressive CTAs, false urgency, or generic cliches."""
+
+    def __init__(self) -> None:
+        self._categories = _load_canonical_spam_phrases()
 
     def validate(self, text: str) -> tuple[bool, List[str], List[str]]:
         violations: List[str] = []
         warnings: List[str] = []
 
+        # 1. Critical hardcoded patterns (for backward compatibility)
         for pat in _CRITICAL_SPAM_TRIGGERS:
             if pat.search(text):
                 violations.append(f"Critical spam trigger matched: '{pat.pattern}'")
@@ -58,6 +85,27 @@ class SpamTriggerValidator:
         for pat in _GENERIC_OPENER_TRIGGERS:
             if pat.search(text):
                 warnings.append(f"Generic cliche opener matched: '{pat.pattern}'")
+
+        # 2. Canonical categories from config
+        pushy = self._categories.get("pushy_cta", [])
+        for pat in pushy:
+            if pat.search(text) and not any(pat.pattern in v for v in violations):
+                violations.append(f"Pushy sales CTA matched: '{pat.pattern}'")
+
+        urgency = self._categories.get("false_urgency", [])
+        for pat in urgency:
+            if pat.search(text) and not any(pat.pattern in v for v in violations):
+                violations.append(f"False urgency phrase matched: '{pat.pattern}'")
+
+        cliches = self._categories.get("corporate_cliche", [])
+        for pat in cliches:
+            if pat.search(text) and not any(pat.pattern in w for w in warnings):
+                warnings.append(f"Corporate cliche matched: '{pat.pattern}'")
+
+        openers = self._categories.get("generic_opener", [])
+        for pat in openers:
+            if pat.search(text) and not any(pat.pattern in w for w in warnings):
+                warnings.append(f"Formulaic generic opener matched: '{pat.pattern}'")
 
         is_valid = len(violations) == 0
         return is_valid, violations, warnings
@@ -81,7 +129,7 @@ class QuestionEndingValidator:
         stripped = body.strip()
         if not stripped:
             return False, "Empty message body."
-        
+
         # Check if last non-whitespace sentence ends with '?'
         if not stripped.endswith("?"):
             return False, "Message does not conclude with a low-friction question mark."
@@ -99,3 +147,11 @@ class GroundingValidator:
             if fid not in allowed_fact_ids:
                 violations.append(f"Ungrounded fact referenced: '{fid}'")
         return len(violations) == 0, violations
+
+
+__all__ = [
+    "ChannelLengthValidator",
+    "GroundingValidator",
+    "QuestionEndingValidator",
+    "SpamTriggerValidator",
+]

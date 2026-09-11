@@ -50,6 +50,7 @@ def test_provider_profiles_config_uses_external_claude_default() -> None:
     profiles = data["profiles"]
     assert "default_model" not in profiles["external_openai_generator"]
     assert profiles["external_openai_generator"]["model_by_section"] == {
+        "slalom_narrative": "gpt-5.6-luna",
         "unify_narrative": "gpt-5.6-luna",
         "ibm_narrative": "gpt-5.6-luna",
         "insurtech_narrative": "gpt-5.6-luna",
@@ -60,6 +61,7 @@ def test_provider_profiles_config_uses_external_claude_default() -> None:
     assert "default_model" not in profiles["external_claude_generator"]
     assert profiles["external_claude_generator"]["model_by_section"] == {
         "competencies": "claude-sonnet-5",
+        "slalom_bullets": "claude-sonnet-5",
         "unify_bullets": "claude-sonnet-5",
         "ibm_bullets": "claude-sonnet-5",
         "insurtech_bullets": "claude-sonnet-5",

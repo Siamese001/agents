@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import json
 import uuid
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from apps_lic.domain.models import (
@@ -44,6 +46,7 @@ class OutreachOrchestrator:
         auto_research: bool = True,
         research_bridge: Any | None = None,
         job_description_text: str = "",
+        artifact_runs_root: Path | None = None,
         trace_id: str = "",
     ) -> TargetOpportunity:
         """Resolves target briefing via GovernedBriefingResolver if not already sealed."""
@@ -58,6 +61,7 @@ class OutreachOrchestrator:
             job_description_text=job_description_text,
             auto_research=auto_research,
             research_bridge=research_bridge,
+            artifact_runs_root=artifact_runs_root,
             trace_id=trace_id,
         )
 
@@ -90,14 +94,19 @@ class OutreachOrchestrator:
         auto_research: bool = True,
         research_bridge: Any | None = None,
         job_description_text: str = "",
+        artifact_dir: Path | str | None = None,
         trace_id: str = "",
     ) -> tuple[OutreachMessageDraft, ValidationResult]:
         """Generates and validates a single grounded outreach draft with governed briefing."""
+        a_dir = Path(artifact_dir) if artifact_dir else None
+        artifact_runs_root = (a_dir / "apps_research" / "runs") if a_dir else None
+
         opp = self.resolve_opportunity_briefing(
             opportunity,
             auto_research=auto_research,
             research_bridge=research_bridge,
             job_description_text=job_description_text,
+            artifact_runs_root=artifact_runs_root,
             trace_id=trace_id,
         )
 
@@ -119,6 +128,33 @@ class OutreachOrchestrator:
         )
 
         validation = self.validate_draft(draft, candidate)
+
+        if a_dir is not None:
+            a_dir.mkdir(parents=True, exist_ok=True)
+            draft_dict = {
+                "draft_id": draft.draft_id,
+                "channel": draft.channel.value,
+                "subject": draft.subject,
+                "body": draft.body,
+                "character_count": draft.character_count,
+                "grounded_facts_used": draft.grounded_facts_used,
+                "research_metadata": draft.research_metadata,
+            }
+            (a_dir / "outreach_draft.json").write_text(json.dumps(draft_dict, indent=2) + "\n", encoding="utf-8")
+            (a_dir / "outreach_draft.md").write_text(
+                f"# Outreach Draft: {draft.channel.value.upper()}\n\n"
+                f"**Subject**: {draft.subject}\n\n"
+                f"```text\n{draft.body}\n```\n",
+                encoding="utf-8",
+            )
+            val_dict = {
+                "is_valid": validation.is_valid,
+                "violations": validation.violations,
+                "warnings": validation.warnings,
+                "scores": validation.scores,
+            }
+            (a_dir / "validation_report.json").write_text(json.dumps(val_dict, indent=2) + "\n", encoding="utf-8")
+
         return draft, validation
 
     def validate_draft(
@@ -169,9 +205,18 @@ class OutreachOrchestrator:
         draft: OutreachMessageDraft,
         candidate: CandidateProfile,
         opportunity: TargetOpportunity,
+        *,
+        artifact_dir: Path | str | None = None,
     ) -> EvaluationReport:
         """Evaluates draft against the 4 canonical rubric judges."""
-        return self.judge.evaluate(draft, candidate, opportunity)
+        report = self.judge.evaluate(draft, candidate, opportunity)
+        if artifact_dir is not None:
+            a_dir = Path(artifact_dir)
+            a_dir.mkdir(parents=True, exist_ok=True)
+            (a_dir / "evaluation_report.json").write_text(
+                json.dumps(report.to_dict(), indent=2) + "\n", encoding="utf-8"
+            )
+        return report
 
     def generate_full_campaign(
         self,
@@ -182,16 +227,48 @@ class OutreachOrchestrator:
         auto_research: bool = True,
         research_bridge: Any | None = None,
         job_description_text: str = "",
+        artifact_dir: Path | str | None = None,
         trace_id: str = "",
     ) -> TouchSequence:
         """Generates a complete validated multi-touch sequence with governed briefing."""
+        a_dir = Path(artifact_dir) if artifact_dir else None
+        artifact_runs_root = (a_dir / "apps_research" / "runs") if a_dir else None
+
         opp = self.resolve_opportunity_briefing(
             opportunity,
             auto_research=auto_research,
             research_bridge=research_bridge,
             job_description_text=job_description_text,
+            artifact_runs_root=artifact_runs_root,
             trace_id=trace_id,
         )
         sequence = self.sequence_planner.plan_sequence(candidate, opp, primary_channel)
         sequence.sealed_resolution = opp.sealed_resolution
+
+        if a_dir is not None:
+            a_dir.mkdir(parents=True, exist_ok=True)
+            seq_dict = {
+                "sequence_id": sequence.sequence_id,
+                "candidate_id": sequence.candidate_id,
+                "opportunity_id": sequence.opportunity_id,
+                "touch_count": len(sequence.touches),
+                "touches": [
+                    {
+                        "touch_number": t.touch_number,
+                        "day_offset": t.day_offset,
+                        "channel": t.channel.value,
+                        "objective": t.objective,
+                        "subject": t.draft.subject,
+                        "body": t.draft.body,
+                    }
+                    for t in sequence.touches
+                ],
+            }
+            (a_dir / "campaign_sequence.json").write_text(
+                json.dumps(seq_dict, indent=2) + "\n", encoding="utf-8"
+            )
+
         return sequence
+
+
+__all__ = ["OutreachOrchestrator"]

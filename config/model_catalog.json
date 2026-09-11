@@ -59,9 +59,10 @@
     }
   },
   "gemini": {
-    "flash": "gemini-3-flash-preview",
+    "flash": "gemini-3.8-flash",
     "pro": "gemini-3.1-pro-preview",
     "legacy": {
+      "flash_36": "gemini-3.6-flash",
       "gemini_pro": "gemini-pro",
       "flash_15": "gemini-1.5-flash",
       "flash_15_002": "gemini-1.5-flash-002",

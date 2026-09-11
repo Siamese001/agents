@@ -50,8 +50,8 @@ profiles:
       executive_summary: gpt-5.6-luna
     effort_by_section:
       slalom_narrative: low
-      unify_narrative: medium
-      ibm_narrative: medium
+      unify_narrative: low
+      ibm_narrative: low
       insurtech_narrative: low
       ey_narrative: low
     anthropic_limit_backup_effort_by_section:
@@ -154,10 +154,10 @@ profiles:
 # the SSOT is unreadable or incomplete.
 judge_models:
   enhanced:
-    gemini_pro: gemini-3.6-flash
+    gemini_pro: gemini-3.8-flash
     openai_chatgpt: gpt-5.6-sol
   standard:
-    gemini_pro: gemini-3.6-flash
+    gemini_pro: gemini-3.8-flash
     openai_chatgpt: gpt-5.6-sol
 
 judge_model_governance:
@@ -176,8 +176,8 @@ selector_models:
     reasoning_effort: low
     anthropic_limit_backup:
       provider_key: openai_chatgpt
-      model: gpt-5.6-sol
-      reasoning_effort: medium
+      model: gpt-5.6-luna
+      reasoning_effort: low
     role: advisory_selector
     owner: apps_rg.competencies_graph_pool
     review_after: "2026-11-07"
@@ -188,8 +188,8 @@ selector_models:
     reasoning_effort: low
     anthropic_limit_backup:
       provider_key: openai_chatgpt
-      model: gpt-5.6-sol
-      reasoning_effort: medium
+      model: gpt-5.6-luna
+      reasoning_effort: low
     role: advisory_selector
     owner: apps_rg.employment_bullet_pool
     review_after: "2026-11-07"

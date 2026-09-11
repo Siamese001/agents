@@ -15,7 +15,7 @@ authority_boundary: This rubric's scalar and row scores cannot qualify human rev
 
 judge_model_pin:
   provider: anthropic
-  model: claude-sonnet-4.5
+  model: claude-sonnet-5
   version: "20260901"
   temperature: 0
 

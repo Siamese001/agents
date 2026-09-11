@@ -95,7 +95,7 @@ class CareerThesisAlignmentAgent:
         provider: str | None = None,
     ) -> None:
         self.model_name = model_name or os.environ.get(
-            "APPS_RG_L15_MODEL", "claude-3-5-sonnet-20241022"
+            "APPS_RG_L15_MODEL", "claude-sonnet-5"
         )
         self.provider = provider or os.environ.get("APPS_RG_L15_PROVIDER", "anthropic")
 

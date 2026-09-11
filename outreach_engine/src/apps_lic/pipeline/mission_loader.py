@@ -66,10 +66,10 @@ class MissionLoader:
             company_context = jd.get("company_context", "")
 
             priorities = []
+            if jd.get("responsibilities"):
+                priorities.extend(jd["responsibilities"])
             if jd.get("summary"):
                 priorities.append(jd["summary"])
-            if jd.get("responsibilities"):
-                priorities.extend(jd["responsibilities"][:2])
 
             opportunity = TargetOpportunity(
                 opportunity_id=f"opp_{default_id}",
@@ -87,30 +87,56 @@ class MissionLoader:
 
         # Structure 2: Simple brief (e.g. truist_pascal_brief.json)
         if "recipient_company" in data:
+            from apps_lic.integrations.apps_research_bridge import _extract_priorities_from_text
+
+            freeform = str(data.get("freeform_text", "")).strip()
+            priorities = data.get("strategic_priorities") or []
+            if not priorities and freeform:
+                priorities = _extract_priorities_from_text(freeform)
+            if not priorities:
+                priorities = ["Core platform modernization"]
+
+            # Classify recipient
+            recipient_title = data.get("recipient_title", "Head of Engineering")
+            lower_title = recipient_title.lower()
+            if any(k in lower_title for k in ("chief", "caio", "cio", "cto", "c-level", "evp", "svp")):
+                r_class = RecipientClass.EXECUTIVE_PEER
+            elif "talent" in lower_title or "recruiter" in lower_title:
+                r_class = RecipientClass.TALENT_PARTNER
+            else:
+                r_class = RecipientClass.HIRING_MANAGER
+
             candidate = CandidateProfile(
                 candidate_id=f"cand_{default_id}",
-                full_name=data.get("candidate_name", "Alex Mercer"),
-                target_title=data.get("target_role", "VP of Engineering"),
-                executive_summary="Senior enterprise technology executive.",
+                full_name=data.get("candidate_name", "Amit Ayer"),
+                target_title=data.get("target_role", "Head of AI Enablement"),
+                executive_summary="Executive technology leader specializing in enterprise AI platforms and governed agentic architectures.",
                 verified_facts=[
                     CandidateFact(
                         fact_id="fact_01",
                         category="scale",
-                        statement="scaled enterprise core platform processing high-volume financial transactions",
-                    )
+                        statement="scaled enterprise core platform processing high-volume transactions with 99.995% reliability",
+                        metric="99.995%",
+                    ),
+                    CandidateFact(
+                        fact_id="fact_02",
+                        category="architecture",
+                        statement="architected layered agentic systems (L0 routing through L6 observability) with AST dependency governance",
+                    ),
                 ],
+                key_competencies=["Agentic Systems", "Enterprise AI Architecture", "Human-in-the-loop Governance"],
             )
             opportunity = TargetOpportunity(
                 opportunity_id=f"opp_{default_id}",
                 company_name=data.get("recipient_company", "Target Company"),
                 role_title=data.get("target_role", "Engineering Leader"),
-                industry="Financial Services",
+                industry="Financial Services & Banking",
                 recipient_name=data.get("recipient_name", "Hiring Leader"),
-                recipient_title=data.get("recipient_title", "Head of Engineering"),
-                recipient_class=RecipientClass.HIRING_MANAGER,
+                recipient_title=recipient_title,
+                recipient_class=r_class,
                 relationship_distance=RelationshipDistance.COLD,
-                strategic_priorities=["Core platform modernization"],
-                briefing_text=data.get("freeform_text", ""),
+                strategic_priorities=priorities,
+                briefing_text=freeform,
             )
             return candidate, opportunity
 

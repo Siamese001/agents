@@ -6,6 +6,7 @@ Coordinates resolution across 4 paths matching resume_graph_engine:
 3. Live autonomous research via apps_research + Adversarial Injection Airlock (Path C)
 4. Hermetic Tier-1 context fallback (Path D)
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -62,7 +63,7 @@ _log = logging.getLogger(__name__)
 class SealedBriefingResolution:
     briefing_text: str
     digest: str
-    resolution_source: str  # MANUAL, CACHE_HIT, WEB_RESEARCH, HERMETIC_FALLBACK
+    resolution_source: str  # MANUAL, CACHE_HIT, WEB_RESEARCH, CANONICAL_FIXTURE, HERMETIC_FALLBACK
     company_name: str
     target_role: str
     confidence_score: float
@@ -71,6 +72,8 @@ class SealedBriefingResolution:
     strategic_priorities: tuple[str, ...] = ()
     fallback_reason: str = ""
     producer_handoff_ref: str = ""
+    research_artifact_dir: str = ""
+    briefing_artifact_path: str = ""
     metadata: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -86,6 +89,8 @@ class SealedBriefingResolution:
             "strategic_priorities": list(self.strategic_priorities),
             "fallback_reason": self.fallback_reason,
             "producer_handoff_ref": self.producer_handoff_ref,
+            "research_artifact_dir": self.research_artifact_dir,
+            "briefing_artifact_path": self.briefing_artifact_path,
             "metadata": self.metadata,
         }
 
@@ -106,30 +111,43 @@ class GovernedBriefingResolver:
         job_description_text: str = "",
         auto_research: bool = True,
         research_bridge: Any | None = None,
+        artifact_runs_root: Path | None = None,
         trace_id: str = "",
     ) -> SealedBriefingResolution:
         # PATH A: Explicit Manual Brief or Mission Fixture context
         if manual_brief_or_fixture or strategic_priorities:
-            content = str(manual_brief_or_fixture or "").strip()
+            raw_content = str(manual_brief_or_fixture or "").strip()
             priorities = tuple(strategic_priorities)
-            if not content and priorities:
-                content = f"Target Company: {company_name}\nStrategic Priorities:\n" + "\n".join(f"- {p}" for p in priorities)
-            digest = "sha256:" + hashlib.sha256(content.encode("utf-8")).hexdigest()
+            if not raw_content and priorities:
+                raw_content = (
+                    f"Target Company: {company_name}\n"
+                    f"Strategic Priorities:\n"
+                    + "\n".join(f"- {p}" for p in priorities)
+                )
+
+            # Sanitize all manual input through the Adversarial Injection Airlock
+            clean_brief, receipt = sanitize_briefing_content(raw_content, trace_id=trace_id)
+
             return SealedBriefingResolution(
-                briefing_text=content,
-                digest=digest,
+                briefing_text=clean_brief,
+                digest=receipt.clean_digest,
                 resolution_source="MANUAL",
                 company_name=company_name,
                 target_role=target_role,
                 confidence_score=1.0,
                 evidence_count=len(priorities) or 1,
-                airlock_sanitized=False,
+                airlock_sanitized=receipt.sanitized,
                 strategic_priorities=priorities,
-                metadata={"source": "manual_fixture"},
+                metadata={
+                    "source": "manual_fixture",
+                    "signals_flagged": list(receipt.injection_signals_detected),
+                },
             )
 
         # Compute cache key
-        cache_key = hashlib.sha256(f"{company_name}::{target_role}::{job_description_text}".encode("utf-8")).hexdigest()
+        cache_key = hashlib.sha256(
+            f"{company_name}::{target_role}::{job_description_text}".encode("utf-8")
+        ).hexdigest()
 
         # PATH B: Cache Hit
         if cache_key in cls._cache:
@@ -144,49 +162,69 @@ class GovernedBriefingResolver:
                 evidence_count=cached.get("evidence_count", 1),
                 airlock_sanitized=cached.get("airlock_sanitized", False),
                 strategic_priorities=tuple(cached.get("strategic_priorities", ())),
+                research_artifact_dir=cached.get("research_artifact_dir", ""),
+                briefing_artifact_path=cached.get("briefing_artifact_path", ""),
                 metadata={"cache_key": cache_key},
             )
 
         # PATH C: Autonomous Research via AppsResearchBridge
         if auto_research:
             from apps_lic.integrations.apps_research_bridge import AppsResearchBridge
+            from apps_lic.integrations.managed_research_delegation import (
+                OutreachBriefingReady,
+                RequestForOutreachBriefing,
+                dispatch_outreach_research_briefing,
+            )
 
-            bridge = research_bridge or AppsResearchBridge()
-            try:
-                res = bridge.fetch(
-                    company_name=company_name,
-                    job_title=target_role,
-                    trace_id=trace_id,
-                    job_description_text=job_description_text,
+            bridge = research_bridge or AppsResearchBridge(artifact_runs_root=artifact_runs_root)
+            req = RequestForOutreachBriefing(
+                request_id=f"req-brief-{trace_id[:8] or 'default'}",
+                run_id=f"run-{trace_id[:8] or 'default'}",
+                trace_id=trace_id or "trace-default",
+                company_name=company_name,
+                job_title=target_role,
+                job_description_text=job_description_text,
+                artifact_runs_root=artifact_runs_root,
+            )
+
+            dispatch_res = dispatch_outreach_research_briefing(req, bridge=bridge)
+            if isinstance(dispatch_res, OutreachBriefingReady):
+                clean_brief, receipt = sanitize_briefing_content(
+                    dispatch_res.briefing_text, trace_id=trace_id
                 )
-                if not res.is_blocked and res.company_brief_text:
-                    clean_brief, receipt = sanitize_briefing_content(res.company_brief_text, trace_id=trace_id)
-                    priorities = res.strategic_priorities or ()
-                    cls._cache[cache_key] = {
-                        "briefing_text": clean_brief,
-                        "digest": receipt.clean_digest,
-                        "evidence_count": len(res.evidence_items),
-                        "airlock_sanitized": receipt.sanitized,
-                        "strategic_priorities": priorities,
-                    }
-                    return SealedBriefingResolution(
-                        briefing_text=clean_brief,
-                        digest=receipt.clean_digest,
-                        resolution_source="WEB_RESEARCH",
-                        company_name=company_name,
-                        target_role=target_role,
-                        confidence_score=res.confidence_score,
-                        evidence_count=len(res.evidence_items),
-                        airlock_sanitized=receipt.sanitized,
-                        strategic_priorities=priorities,
-                        producer_handoff_ref=res.audit_ref,
-                        metadata={
-                            "signals_flagged": list(receipt.injection_signals_detected),
-                            "duration_ms": res.fetch_duration_ms,
-                        },
-                    )
-            except Exception as exc:  # noqa: BLE001
-                _log.warning("Autonomous research path failed: %s; falling back to hermetic", exc)
+                priorities = dispatch_res.strategic_priorities or ()
+                cls._cache[cache_key] = {
+                    "briefing_text": clean_brief,
+                    "digest": receipt.clean_digest,
+                    "evidence_count": dispatch_res.research_evidence_count,
+                    "airlock_sanitized": receipt.sanitized,
+                    "strategic_priorities": priorities,
+                    "research_artifact_dir": dispatch_res.research_artifact_dir,
+                    "briefing_artifact_path": dispatch_res.research_briefing_path,
+                }
+                return SealedBriefingResolution(
+                    briefing_text=clean_brief,
+                    digest=receipt.clean_digest,
+                    resolution_source=dispatch_res.resolution_source,
+                    company_name=company_name,
+                    target_role=target_role,
+                    confidence_score=dispatch_res.confidence_score,
+                    evidence_count=dispatch_res.research_evidence_count,
+                    airlock_sanitized=receipt.sanitized,
+                    strategic_priorities=priorities,
+                    producer_handoff_ref=dispatch_res.result_hash,
+                    research_artifact_dir=dispatch_res.research_artifact_dir,
+                    briefing_artifact_path=dispatch_res.research_briefing_path,
+                    metadata={
+                        "signals_flagged": list(receipt.injection_signals_detected),
+                        "duration_ms": dispatch_res.dispatch_duration_ms,
+                    },
+                )
+            else:
+                _log.warning(
+                    "Autonomous research path failed: %s; falling back to hermetic",
+                    dispatch_res.detail,
+                )
 
         # PATH D: Hermetic Offline Fallback
         fallback_priorities = (

@@ -21,6 +21,8 @@ from apps_rg.runtime.section_judge_policy import REQUIRED_JUDGE_PROVIDER_KEYS
 _REPO_ROOT = Path(__file__).resolve().parents[3]
 _MODEL_LITERAL_CONTRACT_TESTS = {
     "tests/unit/apps_research/test_model_pin_governance.py",
+    "tests/unit/apps_rg/test_bare_pipeline_modes.py",
+    "tests/unit/apps_rg/test_full_resume_llm_coherence.py",
     "tests/unit/apps_rg/test_judge_models_ssot.py",
     "tests/unit/apps_rg/test_model_capabilities.py",
     "tests/unit/apps_rg/test_model_pin_ownership.py",
@@ -125,7 +127,7 @@ def test_active_manifest_includes_governed_selectors_and_apps_research() -> None
         "standard.gemini_pro",
         "apps_rg_handoff_judge",
     }
-    assert all(row["model"] == "gemini-3.6-flash" for row in gemini_rows)
+    assert all(row["model"] == "gemini-3.8-flash" for row in gemini_rows)
     assert all(row["effort"] == "high" for row in gemini_rows)
 
 

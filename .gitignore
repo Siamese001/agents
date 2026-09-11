@@ -79,6 +79,10 @@ artifacts/apps_rg/*
 !artifacts/apps_rg/prompt_authority/
 artifacts/apps_rg/prompt_authority/*
 !artifacts/apps_rg/prompt_authority/*.json
+!artifacts/apps_rg/runs/
+artifacts/apps_rg/runs/*
+!artifacts/apps_rg/runs/anthropic_partnership_fresh_s2e_20260630_094000/
+!artifacts/apps_rg/runs/anthropic_partnership_fresh_s2e_20260630_094000/*
 
 # IDE & Editor
 .DS_Store/
@@ -206,7 +210,6 @@ apps_rg/scripts/generated_resume_*.json
 # Worktree-per-chat opt-out marker — per-worktree local file (added 2026-06-14, worktree-lifecycle-streamline)
 .keep-worktree
 # Antigravity Ephemeral / State
-artifacts/
 plans/
 .zero_loss_backups/
 memory/

@@ -11,7 +11,7 @@ applies_to_spec_versions: ">=0.1.0,<1.0.0"
 
 judge_model_pin:
   provider: anthropic
-  model: claude-sonnet-4.5
+  model: claude-sonnet-5
   version: "20260901"
   temperature: 0
 

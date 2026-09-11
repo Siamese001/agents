@@ -40,6 +40,19 @@
         "gemini_generate_content_v1beta": "maxOutputTokens"
       }
     },
+    "gemini-3.8-flash": {
+      "provider": "google_gemini",
+      "capability_class": "text_generation_and_judging",
+      "endpoints": ["gemini_generate_content_v1beta"],
+      "reasoning_efforts": ["low", "medium", "high"],
+      "temperature_parameter": "omit",
+      "structured_output": true,
+      "proof_eligible": true,
+      "thinking_mode": "thinking_level",
+      "max_output_tokens_parameters": {
+        "gemini_generate_content_v1beta": "maxOutputTokens"
+      }
+    },
     "gpt-5.6-terra": {
       "provider": "openai",
       "capability_class": "text_generation",

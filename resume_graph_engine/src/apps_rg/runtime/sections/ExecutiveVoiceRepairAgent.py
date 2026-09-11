@@ -19,7 +19,7 @@ from apps_rg.runtime.judges.x1d_panel_harness import extract_x1d_diagnostic
 
 EXECUTIVE_VOICE_REPAIR_AGENT_ENABLED_DEFAULT = True
 EXECUTIVE_VOICE_REPAIR_MAX_ATTEMPTS = 1
-DEFAULT_REPAIR_MODEL = "claude-3-5-sonnet-20241022"
+DEFAULT_REPAIR_MODEL = "claude-sonnet-5"
 
 
 @dataclass(frozen=True)
@@ -468,8 +468,8 @@ def repair_section_with_executive_voice_agent(
             targeting_context,
         )
         # O2: Socratic Voice Refinement (A2A Loop)
-        # Turn 1: Executive Voice Drafter (Claude 3.5 Sonnet)
-        resp = _call_llm_repair(sec, prompt, model="claude-3-5-sonnet-20241022")
+        # Turn 1: Executive Voice Drafter (Claude Sonnet 5)
+        resp = _call_llm_repair(sec, prompt, model=DEFAULT_REPAIR_MODEL)
         
         if resp and isinstance(resp.get("repaired_text"), str):
             proposed_text = resp["repaired_text"].strip()
@@ -495,7 +495,7 @@ def repair_section_with_executive_voice_agent(
             allowed_facts,
             targeting_context,
         )
-        resp = _call_llm_repair(sec, prompt, model="claude-3-5-sonnet-20241022")
+        resp = _call_llm_repair(sec, prompt, model=DEFAULT_REPAIR_MODEL)
         if resp and isinstance(resp.get("repaired_headline"), str):
             hl = resp["repaired_headline"].strip()
             parts = [p.strip() for p in hl.split("|")]
@@ -523,7 +523,7 @@ def repair_section_with_executive_voice_agent(
                 allowed_facts,
                 targeting_context,
             )
-            resp = _call_llm_repair(sec, prompt, model="claude-3-5-sonnet-20241022")
+            resp = _call_llm_repair(sec, prompt, model=DEFAULT_REPAIR_MODEL)
             if resp and isinstance(resp.get("repaired_competencies"), list):
                 comps = resp["repaired_competencies"]
                 if 6 <= len(comps) <= 8:

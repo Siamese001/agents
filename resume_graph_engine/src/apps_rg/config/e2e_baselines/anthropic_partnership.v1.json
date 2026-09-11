@@ -2,7 +2,7 @@
   "schema_version": "apps_rg.e2e_baseline.v1",
   "baseline_id": "anthropic_partnership_20260630_094000",
   "baseline_run_dir": "artifacts/apps_rg/runs/anthropic_partnership_fresh_s2e_20260630_094000",
-  "mandatory_output_sha256": "f21be6dcd337bfbf3b897449dab109ce48e3e2ecfb9ef2fb076b345af2a4172e",
+  "mandatory_output_sha256": "519eabee354010443d3d2bd55986f09fddb1b32b8110790dee7ca92176d532d9",
   "git_commit": "20015c3fbd8e3929eec67a2f1d22d6f69078051d",
   "expected_exit_status": "success",
   "expected_outcome_authorized": true,

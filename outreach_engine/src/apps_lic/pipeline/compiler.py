@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 import yaml
@@ -97,6 +98,61 @@ class PromptCompiler:
         }
         return context
 
+    def _format_strategic_hook(self, raw_hook: str) -> str:
+        """Format and condense a raw priority or JD bullet into a clean conversational phrase."""
+        clean = (raw_hook or "").strip().rstrip(".!?:;")
+        # If multi-sentence, take the first sentence
+        for sep in (". ", "; ", " - "):
+            if sep in clean:
+                clean = clean.split(sep)[0].strip()
+        # Strip leading bullet, numbering markers, or executive prefixes
+        clean = re.sub(r"^(?:\d+[\.\)]\s*|[-*•]\s*|signal:\s*|focus:\s*)", "", clean, flags=re.IGNORECASE).strip()
+        clean = re.sub(r"^[A-Za-z\s]+(?:’s|\x27s)\s+immediate mandate is to\s*", "", clean, flags=re.IGNORECASE).strip()
+        clean = re.sub(r"^[A-Za-z\s]+(?:’s|\x27s)\s+organizational priorities revolve around\s*", "", clean, flags=re.IGNORECASE).strip()
+        clean = re.sub(r"^(?:A\s+)?core priority will be\s*", "", clean, flags=re.IGNORECASE).strip()
+        clean = re.sub(r"^From an architectural standpoint,\s*(?:he|she|they) (?:is|are) focused on\s*", "", clean, flags=re.IGNORECASE).strip()
+
+        # Convert common leading verbs to -ing gerund for natural sentence flow after "focus on ..."
+        verb_map = {
+            "translate": "translating",
+            "deliver": "delivering",
+            "drive": "driving",
+            "navigate": "navigating",
+            "build": "building",
+            "scale": "scaling",
+            "lead": "leading",
+            "integrate": "integrating",
+            "standardize": "standardizing",
+            "move": "moving",
+            "generate": "generating",
+            "accelerate": "accelerating",
+            "expand": "expanding",
+            "advance": "advancing",
+            "establish": "establishing",
+        }
+        for v, g in verb_map.items():
+            if re.match(rf"^{v}\b", clean, flags=re.IGNORECASE):
+                clean = re.sub(rf"^{v}\b", g, clean, count=1, flags=re.IGNORECASE)
+                break
+
+        # If first word is capitalized, lowercase if it is not an acronym or proper noun
+        if clean and clean[0].isupper() and (len(clean) == 1 or clean[1].islower()):
+            first_word = clean.split()[0].lower()
+            if first_word not in ("truist", "aws", "azure", "ai", "ml", "the"):
+                clean = clean[0].lower() + clean[1:]
+
+        # Truncate gracefully at word boundary if overly verbose
+        if len(clean) > 90:
+            words = clean.split()
+            truncated = ""
+            for w in words:
+                if len(truncated) + len(w) + 1 > 85:
+                    break
+                truncated = f"{truncated} {w}" if truncated else w
+            clean = truncated if truncated else " ".join(words[:10])
+
+        return clean.strip().rstrip(".!?:;")
+
     def render_draft_message(
         self,
         candidate: CandidateProfile,
@@ -111,7 +167,8 @@ class PromptCompiler:
         fact_statement = lead_fact.statement if lead_fact else candidate.executive_summary
         fact_ids = [lead_fact.fact_id] if lead_fact else []
 
-        hook = opportunity.strategic_priorities[0] if opportunity.strategic_priorities else opportunity.industry
+        raw_hook = opportunity.strategic_priorities[0] if opportunity.strategic_priorities else opportunity.industry
+        hook = self._format_strategic_hook(raw_hook)
 
         if template_id == "exec_positioning":
             subject = f"{opportunity.company_name} / {opportunity.role_title} - Executive Alignment"

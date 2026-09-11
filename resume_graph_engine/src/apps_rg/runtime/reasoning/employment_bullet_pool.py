@@ -78,7 +78,7 @@ FINAL_BULLET_COUNT: Final[dict[str, int]] = {
     "slalom_bullets": len(SLALOM_BULLET_IDS),
     "unify_bullets": len(UNIFY_BULLET_IDS),
     "ibm_bullets": len(IBM_BULLET_IDS),
-    "insurtech_bullets": 2,
+    "insurtech_bullets": 3,
     "ey_bullets": 0,
 }
 
@@ -90,7 +90,7 @@ REQUIRED_BULLET_IDS: Final[dict[str, tuple[str, ...]]] = {
     "slalom_bullets": SLALOM_BULLET_IDS,
     "unify_bullets": UNIFY_BULLET_IDS,
     "ibm_bullets": IBM_BULLET_IDS,
-    "insurtech_bullets": ("bul_insurtech_001", "bul_insurtech_002"),
+    "insurtech_bullets": ("bul_insurtech_001", "bul_insurtech_002", "bul_insurtech_003"),
     "ey_bullets": (),
 }
 

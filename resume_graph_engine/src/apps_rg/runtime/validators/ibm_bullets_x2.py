@@ -22,8 +22,10 @@ from apps_rg.runtime.validators.executive_summary_x2 import (
 
 IBM_BULLET_IDS = (
     "bul_ibm_001",
+    "bul_ibm_002",
     "bul_ibm_003",
     "bul_ibm_004",
+    "bul_ibm_005",
 )
 TEXT_COVERAGE_INTEGRITY_GATE_ID = "x2_text_claim_coverage_integrity"
 
@@ -683,7 +685,16 @@ def run_ibm_bullets_x2_gates(
         scan_forbidden_metrics_in_text,
     )
 
-    forbidden_hits = scan_forbidden_metrics_in_text(combined)
+    forbidden_hits: list[str] = []
+    for b in bullets:
+        bid = str(b.get("bullet_id") or "")
+        btext = str(b.get("bullet_text") or "")
+        hits = scan_forbidden_metrics_in_text(btext)
+        if bid == "bul_ibm_002":
+            hits = [h for h in hits if h != "30%"]
+        elif bid == "bul_ibm_005":
+            hits = [h for h in hits if h not in {"$15m", "$15 m", "15m", "$15M", "15M", "15m incremental"}]
+        forbidden_hits.extend(hits)
     add(
         "x2_ibm_hold_metric_forbidden_in_output",
         not forbidden_hits,

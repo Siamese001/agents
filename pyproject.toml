@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["resume_graph_engine*", "outreach_engine*", "apps_eval*", "apps_research*", "apps_model_telemetry*"]
+include = ["agents*", "resume_graph_engine*", "outreach_engine*", "apps_eval*", "apps_research*", "apps_model_telemetry*"]
 exclude = ["tests*", "ops_scripts*", "data*", "archives*", "artifacts*"]
 
 [project]

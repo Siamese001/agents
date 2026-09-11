@@ -51,7 +51,11 @@ def _repository_artifact_isolation(
         / "augmented_skills_graph.sqlite"
     )
     isolated_graph = session_root / "augmented_skills_graph.sqlite"
-    shutil.copy2(source_graph, isolated_graph)
+    if source_graph.is_file():
+        shutil.copy2(source_graph, isolated_graph)
+    else:
+        import sqlite3
+        sqlite3.connect(isolated_graph).close()
 
     isolated_env = {
         "APPS_RG_AUGMENTED_SKILLS_GRAPH_SQLITE_PATH": str(isolated_graph),

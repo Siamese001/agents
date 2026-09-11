@@ -48,7 +48,7 @@ def test_provider_and_judge_profiles_are_the_only_requested_pin_sources() -> Non
     )
     assert generation.reasoning_effort == "medium"
     assert judge.role == "apps_rg_handoff_judge"
-    assert judge.model == "gemini-3.6-flash"
+    assert judge.model == "gemini-3.8-flash"
     assert (judge.provider_key, judge.provider) == ("gemini_pro", "google_gemini")
     assert judge.model == judge_profile["apps_rg_handoff_judge"]["model"]
     assert judge.reasoning_effort == "high"

@@ -363,7 +363,7 @@ def test_competencies_policy_requires_llm_judge_for_proof() -> None:
     assert p.required_judge_providers == ("gemini_pro", "openai_chatgpt")
     assert "anthropic_claude" not in p.required_judge_providers
     gemini = resolve_section_proof_judge_model("competencies", "gemini_pro", {})
-    assert gemini.model_actual == "gemini-3.6-flash"
+    assert gemini.model_actual == "gemini-3.8-flash"
     assert gemini.reasoning_effort == "high"
     assert gemini.proof_eligible_judge is True
     openai = resolve_section_proof_judge_model("competencies", "openai_chatgpt", {})
