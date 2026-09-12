@@ -15,12 +15,12 @@ global:
 
 judges:
   gemini:
-    model: gemini-2.5-flash
+    model: gemini-3.8-flash
     est_cost_per_eval_usd: 0.002
     max_calls_per_eval: 8  # 4 dims * 2 (retry headroom)
 
   claude:
-    model: claude-sonnet-4-5
+    model: claude-sonnet-5
     est_cost_per_eval_usd: 0.020
     max_calls_per_eval: 8
 

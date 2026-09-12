@@ -147,6 +147,7 @@ def test_parallel_phase1_whole_run_uses_certified_dependency_scheduler(
 ) -> None:
     """The whole-run seam supplies the app acceptance gate to the rolling L3 scheduler."""
     monkeypatch.setenv("APPS_RG_TEST_HARNESS", "1")
+    monkeypatch.delenv("APPS_RG_PHASE1_MAX_PARALLEL", raising=False)
     captured: list[str] = []
 
     def _stub_lane_dispatch(**kwargs: object) -> dict[str, object]:

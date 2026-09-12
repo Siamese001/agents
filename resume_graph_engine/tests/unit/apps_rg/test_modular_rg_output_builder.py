@@ -691,7 +691,7 @@ def test_modular_builder_succeeds_with_exact_canonical_counts(tmp_path: Path) ->
     assert ("Unify Consulting", 6) in companies
     assert ("IBM", 3) in companies
     assert ("InsurTech Cloud Solutions", 2) in companies
-    assert ("Early Career Roles", 1) in companies
+    assert any("Early Career" in str(c) and cnt == 4 for c, cnt in companies)
     # EY is consolidated / omitted as standalone card
     assert not any(c == "Ernst & Young" for c, _ in companies)
 
@@ -731,3 +731,35 @@ def test_schema_accepts_ey_zero_bullets_and_insurtech_two_bullets(tmp_path: Path
     })
     ok, err = validate_rg_output_object(obj)
     assert ok is True, f"Schema validation failed for EY 0 bullets: {err}"
+
+
+def test_builder_succeeds_when_ey_lanes_omitted(tmp_path: Path) -> None:
+    """Verify that omitting ey_bullets and ey_narrative completely from lane_l2_by_id succeeds."""
+    repo = find_repo_root()
+    art = tmp_path / "omitted_ey"
+    art.mkdir()
+    modular_root = art / "modular_r4"
+    modular_root.mkdir()
+    base_path = repo / "src" / "apps_rg" / "resume" / "base" / "amit_ayer_base_resume_v1.json"
+    base = json.loads(base_path.read_text(encoding="utf-8"))
+
+    lanes = _lane_bundle()
+    del lanes["ey_bullets"]
+    del lanes["ey_narrative"]
+
+    res = build_rg_output_from_modular_sections(
+        lane_l2_by_id=lanes,
+        base_resume=base,
+        input_package=_Pkg(),
+        modular_root=modular_root,
+        artifact_dir=art,
+        run_id=f"pytest_omit_{uuid.uuid4().hex[:8]}",
+        reject_mocked_lanes=True,
+    )
+    assert res.ok is True, f"Builder failed: {res.failure_reason}"
+    assert res.schema_valid is True
+    assert res.rg_output is not None
+    exp = res.rg_output["sections"]["experience"]
+    assert len(exp) == 5
+    assert any("Early Career" in str(e.get("company")) for e in exp)
+

@@ -81,6 +81,9 @@
     }
   },
   "qwen": {
+    "local_27b_mlx": "mlx-community/Qwen3.8-27B-4bit",
+    "local_27b_gguf": "unsloth/Qwen3.8-27B-GGUF",
+    "local_model_id": "qwen-3.8-27b",
     "local_32b_awq": "Qwen/Qwen2.5-32B-Instruct-AWQ",
     "vllm_label": "Qwen/vLLM"
   },

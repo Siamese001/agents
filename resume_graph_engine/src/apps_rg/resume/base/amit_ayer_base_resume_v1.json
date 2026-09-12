@@ -203,18 +203,18 @@
         ]
       },
       {
-        "fact_id": "exp_ey_001",
-        "employer": "Ernst & Young",
-        "title": "Principal",
-        "location": "New York, NY",
-        "start_date": "2009-10",
+        "fact_id": "exp_early_career_001",
+        "employer": "Ernst & Young / Early Career Roles",
+        "title": "Principal / Actuarial & Quantitative Consultant",
+        "location": "New York, NY / Philadelphia, PA",
+        "start_date": "2002-10",
         "end_date": "2014-03",
         "is_current": false,
-        "role_narrative": "Led a $18M regulatory analytics modernization program for global banks, transforming cost-center audit functions into value-added predictive risk capabilities with stronger lineage and controls.",
+        "role_narrative": "Led regulatory analytics, predictive risk modeling, and capital optimization programs at Ernst & Young following early-career quantitative finance and actuarial roles at Towers Perrin, ING, and Aetna.",
         "bullets": [
           {
             "bullet_id": "bul_ey_001",
-            "text": "Regulatory Analytics Modernization: Directed a $15M transformation program that improved lineage, controls, and predictive risk capabilities across audit and regulatory workflows.",
+            "text": "Regulatory Analytics Modernization (Ernst & Young): Directed a $15M transformation program that improved lineage, controls, and predictive risk capabilities across audit and regulatory workflows.",
             "has_metric": true,
             "metric_raw": "$15M transformation program",
             "technologies": ["predictive risk modeling", "data lineage", "audit workflows"],
@@ -222,7 +222,7 @@
           },
           {
             "bullet_id": "bul_ey_002",
-            "text": "Commercial Turnaround: Achieved a 40% reduction in audit remediation costs by implementing automated data lineage and predictive risk modeling across regulatory workflows.",
+            "text": "Commercial Turnaround (Ernst & Young): Achieved a 40% reduction in audit remediation costs by implementing automated data lineage and predictive risk modeling across regulatory workflows.",
             "has_metric": true,
             "metric_raw": "40% cost reduction",
             "technologies": ["automated lineage", "risk modeling", "regulatory workflows"],
@@ -230,37 +230,12 @@
           },
           {
             "bullet_id": "bul_ey_003",
-            "text": "Capital Optimization: Optimized capital reserve requirements under Solvency II and AG43, reducing redundant capital holdings for insurance clients by 12% while maintaining full compliance.",
+            "text": "Capital Optimization (Ernst & Young): Optimized capital reserve requirements under Solvency II and AG43, reducing redundant capital holdings for insurance clients by 12% while maintaining full compliance.",
             "has_metric": true,
             "metric_raw": "12% capital reduction",
             "technologies": ["Solvency II", "AG43", "actuarial modeling"],
             "domain": "actuarial"
           },
-          {
-            "bullet_id": "bul_ey_004",
-            "text": "Insurance Core Modernization: Delivered Guidewire core-system implementations for insurance carriers, automating claims processing and modernizing policy administration to retire legacy platforms and accelerate product delivery.",
-            "has_metric": false,
-            "technologies": ["Guidewire", "ClaimCenter", "PolicyCenter", "claims automation", "policy administration"],
-            "domain": "insurance core platform"
-          },
-          {
-            "bullet_id": "bul_ey_005",
-            "text": "Enterprise Risk Management Transformation: Architected three-lines-of-defense risk-governance operating models and BCBS 239-aligned risk-data aggregation programs for global financial institutions, centralizing data lineage and metadata standards to deliver consistent, auditable risk metrics.",
-            "has_metric": false,
-            "technologies": ["three lines of defense", "BCBS 239", "risk data aggregation", "data lineage", "risk governance"],
-            "domain": "enterprise risk management"
-          }
-        ]
-      },
-      {
-        "fact_id": "exp_early_career_001",
-        "employer": "Early Career Roles",
-        "title": "Actuarial Consultant and Quantitative Roles",
-        "location": "Philadelphia, PA",
-        "start_date": "2002-10",
-        "end_date": "2009-09",
-        "is_current": false,
-        "bullets": [
           {
             "bullet_id": "bul_early_career_001",
             "text": "Actuarial & Quantitative Foundation: Priced exotic derivatives and structured multi-Greek hedging strategies, built stochastic capital models, and supported HPC-based valuation frameworks for scenario testing and capital adequacy — quantitative rigor and risk discipline that now underpin my work in AI platform architecture and runtime governance.",

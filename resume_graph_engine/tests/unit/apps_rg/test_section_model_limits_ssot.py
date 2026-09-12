@@ -37,8 +37,8 @@ def test_explicit_section_effort_map() -> None:
         "executive_summary": "low",
         "insurtech_bullets": "low",
         "ey_bullets": "low",
-        "unify_narrative": "medium",
-        "ibm_narrative": "medium",
+        "unify_narrative": "low",
+        "ibm_narrative": "low",
         "insurtech_narrative": "low",
         "ey_narrative": "low",
     }

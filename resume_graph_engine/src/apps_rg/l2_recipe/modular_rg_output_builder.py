@@ -30,6 +30,7 @@ from apps_rg.runtime.sections.section_product_shape_export_bounds import (
 # populate ``rg_output.sections.experience[*].bullets``. Default minimum is three (schema);
 # ``exp_early_career_001`` is allowed one bullet per résumé SSOT.
 _MIN_LOCKED_BULLETS_BY_FACT_ID: Final[Mapping[str, int]] = {"exp_early_career_001": 1}
+OPTIONAL_GENERATED_LANES: Final[frozenset[str]] = frozenset({"ey_bullets", "ey_narrative"})
 
 _MONTHS: Final[tuple[str, ...]] = (
     "Jan",
@@ -331,7 +332,7 @@ def build_rg_output_from_modular_sections(
                     receipt,
                 )
 
-    missing = [lk for lk in GENERATED_LANES if lk not in lane_l2_by_id]
+    missing = [lk for lk in GENERATED_LANES if lk not in lane_l2_by_id and lk not in OPTIONAL_GENERATED_LANES]
     if missing:
         r = f"missing_required_lanes:{','.join(missing)}"
         receipt["failure"] = r
@@ -347,11 +348,11 @@ def build_rg_output_from_modular_sections(
     ibm_n = lane_l2_by_id["ibm_narrative"]
     insurtech_b = lane_l2_by_id["insurtech_bullets"]
     insurtech_n = lane_l2_by_id["insurtech_narrative"]
-    ey_b = lane_l2_by_id["ey_bullets"]
-    ey_n = lane_l2_by_id["ey_narrative"]
+    ey_b = lane_l2_by_id.get("ey_bullets") or {}
+    ey_n = lane_l2_by_id.get("ey_narrative") or {}
     comp_l2 = lane_l2_by_id["competencies"]
 
-    for label, blob in (
+    validation_targets: list[tuple[str, Any]] = [
         ("headline", headline),
         ("executive_summary", exec_l2),
         ("slalom_bullets", slalom_b),
@@ -362,10 +363,14 @@ def build_rg_output_from_modular_sections(
         ("ibm_narrative", ibm_n),
         ("insurtech_bullets", insurtech_b),
         ("insurtech_narrative", insurtech_n),
-        ("ey_bullets", ey_b),
-        ("ey_narrative", ey_n),
         ("competencies", comp_l2),
-    ):
+    ]
+    if "ey_bullets" in lane_l2_by_id:
+        validation_targets.append(("ey_bullets", ey_b))
+    if "ey_narrative" in lane_l2_by_id:
+        validation_targets.append(("ey_narrative", ey_n))
+
+    for label, blob in validation_targets:
         if not isinstance(blob, dict):
             receipt["failure"] = f"lane_payload_invalid:{label}"
             return RgOutputBuildResult(None, False, receipt["failure"], False, receipt["failure"], receipt)
@@ -441,7 +446,7 @@ def build_rg_output_from_modular_sections(
     ibm_lane_bullets, ierr = _lane_bullets_to_rg(
         list(ibm_b.get("bullets") or []),
         max_bullets=5,
-        min_bullets=FINAL_BULLET_COUNT.get("ibm_bullets", 3),
+        min_bullets=min(3, FINAL_BULLET_COUNT.get("ibm_bullets", 3)),
         export_warnings=export_warnings,
     )
     if ibm_lane_bullets is None:
@@ -451,7 +456,7 @@ def build_rg_output_from_modular_sections(
     insurtech_lane_bullets, inerr = _lane_bullets_to_rg(
         list(insurtech_b.get("bullets") or []),
         max_bullets=5,
-        min_bullets=FINAL_BULLET_COUNT.get("insurtech_bullets", 2),
+        min_bullets=min(2, FINAL_BULLET_COUNT.get("insurtech_bullets", 2)),
         export_warnings=export_warnings,
     )
     if insurtech_lane_bullets is None:

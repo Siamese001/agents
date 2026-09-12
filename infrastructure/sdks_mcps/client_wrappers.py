@@ -10,6 +10,8 @@ __all__ = [
     "create_anthropic_client",
     "create_vertex_client",
     "create_gemini_model",
+    "create_local_openai_client",
+    "create_local_openai_sync_client",
     "OpenAIClient",
     "AnthropicClient",
     "VertexClient",
@@ -17,6 +19,7 @@ __all__ = [
     "AnthropicConfig",
     "VertexConfig",
 ]
+
 
 
 def create_openai_client():
@@ -37,6 +40,24 @@ def create_openai_sync_client():
     if not api_key:
         raise ValueError("OPENAI_API_KEY missing")
     return openai.OpenAI(api_key=api_key)
+
+
+def create_local_openai_client():
+    """Create an async OpenAI client configured for a local MLX/vLLM M5 server."""
+    import openai
+
+    api_key = os.getenv("LOCAL_OPENAI_API_KEY") or "sk-local-dev-key"
+    base_url = os.getenv("LOCAL_OPENAI_BASE_URL") or "http://localhost:8000/v1"
+    return openai.AsyncOpenAI(api_key=api_key, base_url=base_url)
+
+
+def create_local_openai_sync_client():
+    """Create a sync OpenAI client configured for a local MLX/vLLM M5 server."""
+    import openai
+
+    api_key = os.getenv("LOCAL_OPENAI_API_KEY") or "sk-local-dev-key"
+    base_url = os.getenv("LOCAL_OPENAI_BASE_URL") or "http://localhost:8000/v1"
+    return openai.OpenAI(api_key=api_key, base_url=base_url)
 
 
 def create_anthropic_client():

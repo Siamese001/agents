@@ -25,9 +25,10 @@ def _write_lane_product_bundle(
     sections_root: Path,
     lane: str,
 ) -> None:
+    repo_resolved = repo.resolve()
     run_dir = (sections_root / lane).resolve()
     run_dir.mkdir(parents=True, exist_ok=True)
-    run_rel = run_dir.relative_to(repo).as_posix()
+    run_rel = run_dir.relative_to(repo_resolved).as_posix()
     l2 = {
         "section_id": lane,
         "runtime_generation_status": "REAL_LLM",
@@ -35,7 +36,7 @@ def _write_lane_product_bundle(
     }
     (run_dir / "l2_output.json").write_text(json.dumps(l2), encoding="utf-8")
     (run_dir / "provider_request.json").write_text(
-        json.dumps({"provider_requested": "retired_provider_profile", "provider_attempted": True}),
+        json.dumps({"provider_requested": "external_claude", "provider_attempted": True}),
         encoding="utf-8",
     )
     (run_dir / "x3_disposition.json").write_text(
@@ -51,6 +52,8 @@ def test_phase1_resolves_executive_summary_despite_dispatch_exit_error(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     """RC-2: on-disk exec_summary pointer must materialize even if dispatch dict says error."""
+    monkeypatch.setenv("APPS_RG_TEST_HARNESS", "1")
+    monkeypatch.setenv("APPS_RG_PARALLEL_PHASE1_LANES", "0")
     repo = materialize_standalone_repo_view(tmp_path)
     art = repo / f"phase1_resolve_{uuid.uuid4().hex[:10]}"
     art.mkdir(parents=True, exist_ok=True)
@@ -80,6 +83,7 @@ def test_phase1_resolves_executive_summary_despite_dispatch_exit_error(
             "pytest_resolve_abort",
             ModularResumeProfile(
                 phase1_invoke_real_lanes=True,
+                parallel_phase1_lanes=False,
                 run_phase0_synthetic_assembly=False,
                 validate_rg_output_fixture=False,
             ),
@@ -103,6 +107,8 @@ def test_phase1_materialize_runs_all_lanes_when_first_missing_pointer(
     later lane that wrote its bundle still materializes — the invariant the dependency-ordered
     serial loop must preserve regardless of which lane is first.
     """
+    monkeypatch.setenv("APPS_RG_TEST_HARNESS", "1")
+    monkeypatch.setenv("APPS_RG_PARALLEL_PHASE1_LANES", "0")
     repo = materialize_standalone_repo_view(tmp_path)
     art = repo / f"phase1_resolve_{uuid.uuid4().hex[:10]}"
     art.mkdir(parents=True, exist_ok=True)
@@ -124,6 +130,7 @@ def test_phase1_materialize_runs_all_lanes_when_first_missing_pointer(
             "pytest_order",
             ModularResumeProfile(
                 phase1_invoke_real_lanes=True,
+                parallel_phase1_lanes=False,
                 run_phase0_synthetic_assembly=False,
                 validate_rg_output_fixture=False,
             ),

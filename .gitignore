@@ -214,3 +214,11 @@ plans/
 .zero_loss_backups/
 memory/
 
+# Sensitive environment credentials
+env_agents
+.DS_Store
+
+# Test run output artifacts & scratch
+resume_graph_engine/artifacts/test_runs/
+scratch/
+
