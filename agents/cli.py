@@ -134,8 +134,22 @@ def run_e2e(args: argparse.Namespace) -> int:
         "stages": {},
     }
 
-    # Stage 1: Upstream Company & Role Research (apps_research)
-    if research_enabled:
+    from agents.orchestration.engine import WorkflowExecutionEngine
+    from agents.orchestration.primitives import OrchestrationPrimitive, WorkflowStep
+
+    engine = WorkflowExecutionEngine(run_id, artifact_dir=base_dir)
+
+    def _stage_research(ctx: dict[str, Any]) -> dict[str, Any]:
+        if not research_enabled:
+            if not args.json:
+                print(f">>> [Stage 1/4] Upstream Company Research: {research_label} (governed decoupled status).")
+            summary_payload["stages"]["company_research"] = {
+                "configured_status": research_label,
+                "status": "SKIPPED",
+                "reason": "Research stage explicitly disabled or decoupled in current CLI profile",
+            }
+            return {"status": "SKIPPED"}
+
         if not args.json:
             print(">>> [Stage 1/4] Running Upstream Company Research (apps_research)...")
         try:
@@ -149,7 +163,8 @@ def run_e2e(args: argparse.Namespace) -> int:
             }
             if res_code != 0:
                 sys.stderr.write("[agents e2e] Error: Research stage returned non-zero exit code.\n")
-                return res_code
+                raise RuntimeError(f"Research stage returned non-zero exit code: {res_code}")
+            return {"status": "PASSED", "exit_code": res_code}
         except Exception as exc:
             summary_payload["stages"]["company_research"] = {
                 "configured_status": research_label,
@@ -157,20 +172,15 @@ def run_e2e(args: argparse.Namespace) -> int:
                 "error": str(exc),
             }
             sys.stderr.write(f"[agents e2e] Error: Upstream research failed fail-closed: {exc}\n")
-            return 1
-    else:
-        if not args.json:
-            print(f">>> [Stage 1/4] Upstream Company Research: {research_label} (governed decoupled status).")
-        summary_payload["stages"]["company_research"] = {
-            "configured_status": research_label,
-            "status": "SKIPPED",
-            "reason": "Research stage explicitly disabled or decoupled in current CLI profile",
-        }
+            raise
 
-    # Stage 2: Resume Tailoring (apps_rg)
-    resume_artifact_dir = base_dir / "resume"
-    tailored_resume_path = None
-    if not args.skip_resume:
+    def _stage_resume(ctx: dict[str, Any]) -> dict[str, Any]:
+        if args.skip_resume:
+            if not args.json:
+                print("\n>>> [Stage 2/4] Resume tailoring skipped (--skip-resume).")
+            summary_payload["stages"]["resume_tailoring"] = {"status": "SKIPPED"}
+            return {"status": "SKIPPED"}
+
         if not args.json:
             print("\n>>> [Stage 2/4] Tailoring Executive Resume via Resume Graph Engine (apps_rg)...")
         from apps_rg.__main__ import main as resume_main
@@ -186,48 +196,76 @@ def run_e2e(args: argparse.Namespace) -> int:
             resume_args.extend(["--resume", args.resume])
 
         rg_code = resume_main(resume_args)
+        status_str = "PASSED" if rg_code == 0 else "FAILED"
         summary_payload["stages"]["resume_tailoring"] = {
             "exit_code": rg_code,
-            "status": "PASSED" if rg_code == 0 else "FAILED",
+            "status": status_str,
         }
         if rg_code != 0:
             if not args.json:
                 sys.stderr.write("[agents e2e] Warning: Resume generation returned non-zero exit code.\n")
-    else:
+        return {"status": status_str, "exit_code": rg_code}
+
+    def _stage_outreach(ctx: dict[str, Any]) -> dict[str, Any]:
+        from apps_lic.__main__ import main as outreach_main
+
+        outreach_artifact_dir = base_dir / "outreach"
+        outreach_args = [
+            "run",
+            "--artifact-dir",
+            str(outreach_artifact_dir),
+        ]
+        if args.brief:
+            outreach_args.extend(["--brief", args.brief])
+        elif args.demo:
+            outreach_args.append("--demo")
+        else:
+            outreach_args.extend(["--company", company, "--role", role])
+
+        if args.json:
+            outreach_args.append("--json")
+
         if not args.json:
-            print("\n>>> [Stage 2/4] Resume tailoring skipped (--skip-resume).")
-        summary_payload["stages"]["resume_tailoring"] = {"status": "SKIPPED"}
+            print("\n>>> [Stage 3/4] Generating Grounded Executive Outreach (outreach_engine)...")
 
-    # Stage 3: Executive Outreach Generation (outreach_engine)
-    from apps_lic.__main__ import main as outreach_main
+        oe_code = outreach_main(outreach_args)
+        status_str = "PASSED" if oe_code == 0 else "FAILED"
+        summary_payload["stages"]["executive_outreach"] = {
+            "exit_code": oe_code,
+            "status": status_str,
+        }
+        if oe_code != 0:
+            sys.stderr.write("[agents e2e] Outreach generation returned non-zero exit code.\n")
+            raise RuntimeError(f"Outreach generation returned non-zero exit code: {oe_code}")
+        return {"status": status_str, "exit_code": oe_code}
 
-    outreach_artifact_dir = base_dir / "outreach"
-    outreach_args = [
-        "run",
-        "--artifact-dir",
-        str(outreach_artifact_dir),
+    steps = [
+        WorkflowStep(
+            step_id="company_research",
+            primitive=OrchestrationPrimitive.BRANCH,
+            handler=_stage_research,
+            optional=not research_enabled,
+        ),
+        WorkflowStep(
+            step_id="resume_tailoring",
+            primitive=OrchestrationPrimitive.SEQUENCE,
+            handler=_stage_resume,
+            depends_on=("company_research",),
+            optional=bool(args.skip_resume),
+        ),
+        WorkflowStep(
+            step_id="executive_outreach",
+            primitive=OrchestrationPrimitive.SEQUENCE,
+            handler=_stage_outreach,
+            depends_on=("resume_tailoring",),
+            optional=False,
+        ),
     ]
-    if args.brief:
-        outreach_args.extend(["--brief", args.brief])
-    elif args.demo:
-        outreach_args.append("--demo")
-    else:
-        outreach_args.extend(["--company", company, "--role", role])
 
-    if args.json:
-        outreach_args.append("--json")
+    report = engine.execute_plan(steps)
 
-    if not args.json:
-        print("\n>>> [Stage 3/4] Generating Grounded Executive Outreach (outreach_engine)...")
-
-    oe_code = outreach_main(outreach_args)
-    summary_payload["stages"]["executive_outreach"] = {
-        "exit_code": oe_code,
-        "status": "PASSED" if oe_code == 0 else "FAILED",
-    }
-    if oe_code != 0:
-        sys.stderr.write("[agents e2e] Outreach generation returned non-zero exit code.\n")
-        return oe_code
+    summary_payload["workflow_status"] = report.final_status.value
+    summary_payload["workflow_state_ref"] = "workflow_state.json"
 
     # Stage 4: Lifecycle Sealing & Manifest
     summary_path = base_dir / "e2e_lifecycle_summary.json"
@@ -235,9 +273,10 @@ def run_e2e(args: argparse.Namespace) -> int:
 
     if not args.json:
         print("\n>>> [Stage 4/4] Lifecycle artifacts validated and sealed.")
-        print(f"[agents e2e] Sealed summary manifest at: {summary_path}\n")
+        print(f"[agents e2e] Sealed summary manifest at: {summary_path}")
+        print(f"[agents e2e] Workflow state audit at: {base_dir / 'workflow_state.json'}\n")
 
-    return 0
+    return 0 if report.success else 1
 
 
 def main(argv: Sequence[str] | None = None) -> int:
