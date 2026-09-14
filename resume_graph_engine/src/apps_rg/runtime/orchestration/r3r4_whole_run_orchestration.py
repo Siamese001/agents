@@ -204,6 +204,14 @@ def _research_bridge(*, artifact_runs_root: Path) -> Any:
         "true",
         "yes",
     ):
+        from apps_rg.runtime.product_output_policy import is_apps_rg_test_harness
+
+        if not is_apps_rg_test_harness() and not (
+            "pytest" in sys.modules or os.environ.get("PYTEST_CURRENT_TEST")
+        ):
+            raise RuntimeError(
+                "MOCK_RESEARCH_VIOLATION: APPS_RG_MOCK_RESEARCH is strictly forbidden in production runtime."
+            )
         MockAppsResearchBridge = importlib.import_module("apps_rg.integrations.apps_research_bridge").MockAppsResearchBridge
         return MockAppsResearchBridge(
             confidence_score=0.88,

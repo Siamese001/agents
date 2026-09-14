@@ -16,10 +16,13 @@ from pathlib import Path
 from typing import Any, Sequence
 
 from apps_rg.runtime.bindings.l1_cognitive_treatment import L1_COGNITIVE_V2_CONTROL_ARM
+from apps_rg.runtime.env_bootstrap import bootstrap_apps_rg_env
+from apps_rg.runtime.live_judge_only_guard import assert_production_runtime
 from apps_rg.runtime.orchestration.canonical_dispatch import (
     run_canonical_apps_rg_from_cli_primitives,
 )
 from apps_rg.runtime.runtime_boundary import RuntimeBoundaryViolation
+from apps_rg.runtime.runtime_proof_layout import find_repo_root
 
 DEFAULT_TARGET_COMPANY = "Anthropic"
 DEFAULT_TARGET_ROLE = "Manager of Applied AI Architecture, Partnerships"
@@ -499,6 +502,9 @@ def main(argv: list[str] | None = None) -> int:
 
     parser = _build_parser()
     args = parser.parse_args(_normalize_argv(argv))
+    _repo_root = find_repo_root()
+    bootstrap_apps_rg_env(repo_root=_repo_root)
+    assert_production_runtime(context="python -m apps_rg", args=args)
     action = args.action or "run"
     try:
         if action == "run":

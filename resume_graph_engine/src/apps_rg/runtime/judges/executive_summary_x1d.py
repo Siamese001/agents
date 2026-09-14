@@ -9,6 +9,7 @@ import hashlib
 import json
 import os
 import re
+import sys
 import time
 import urllib.error
 import urllib.request
@@ -483,13 +484,14 @@ def resolve_x1d_provider_credentials(provider_key: str, environ: Mapping[str, st
                 continue
             consulted.append(name)
             raw = str(environ.get(name) or "").strip()
-            if raw:
+            if raw and not any(p in raw.lower() for p in ("placeholder", "dummy", "replace_me", "sk-local-dev-key")):
                 return raw, consulted
         return "", consulted if consulted else ([primary] if primary else [])
 
     if primary:
         consulted.append(primary)
-        return str(environ.get(primary) or "").strip(), consulted
+        val = str(environ.get(primary) or "").strip()
+        return ("" if any(p in val.lower() for p in ("placeholder", "dummy", "replace_me", "sk-local-dev-key")) else val), consulted
     return "", consulted
 
 
@@ -1728,6 +1730,10 @@ def _mocked_output(provider_key: str, input_hash: str) -> JudgeOutput:
     )
 
 
+def _is_test_environment() -> bool:
+    return bool(os.environ.get("PYTEST_CURRENT_TEST") or ("pytest" in sys.modules))
+
+
 def run_llm_judges(
     *,
     resume_display_text: str,
@@ -1844,6 +1850,8 @@ def run_llm_judges(
             continue
 
         if mode == "mocked":
+            if not _is_test_environment():
+                raise RuntimeError("MOCK_JUDGE_FORBIDDEN: mode='mocked' is strictly forbidden in production runtime.")
             outputs.append(_mocked_output(key, input_hash))
             continue
 

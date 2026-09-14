@@ -50,6 +50,24 @@ def classify_provider_run_mode(
     if _pytest_active():
         return ProviderRunMode.TEST_STUB
 
+    from apps_rg.runtime.live_judge_only_guard import is_test_harness
+
+    if not is_test_harness():
+        if cli_explicit_stub:
+            raise AppsRgEnvelopeProviderResolutionError(
+                "LIVE_EXECUTION_ENFORCEMENT: cli_explicit_stub is forbidden in production runtime without APPS_RG_TEST_HARNESS=1."
+            )
+        norm = normalize_resume_artifact_contract_mode(resume_artifact_contract_mode)
+        if norm in (MODE_STUB_RECEIPT, MODE_DIAGNOSTIC):
+            raise AppsRgEnvelopeProviderResolutionError(
+                f"LIVE_EXECUTION_ENFORCEMENT: contract_mode={norm!r} is forbidden in production runtime without APPS_RG_TEST_HARNESS=1."
+            )
+        raw = (os.environ.get("APPS_RG_L2_PROVIDER_MODE") or "").strip().lower()
+        if raw in ("stub_only", "stub", "off", "0", "false", "no"):
+            raise AppsRgEnvelopeProviderResolutionError(
+                "LIVE_EXECUTION_ENFORCEMENT: APPS_RG_L2_PROVIDER_MODE=stub is forbidden in production runtime without APPS_RG_TEST_HARNESS=1."
+            )
+
     if cli_explicit_stub:
         return ProviderRunMode.EXPLICIT_STUB
 
