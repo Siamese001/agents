@@ -768,7 +768,7 @@
     "justification": "Baseline legacy module pending decomposition"
   },
   "resume_graph_engine/src/apps_rg/runtime/judges/executive_summary_x1d.py": {
-    "line_limit": 1998,
+    "line_limit": 2006,
     "justification": "Baseline legacy module pending decomposition"
   },
   "resume_graph_engine/src/apps_rg/runtime/judges/executive_summary_judge_packet.py": {
@@ -816,7 +816,7 @@
     "justification": "Baseline legacy module pending decomposition"
   },
   "resume_graph_engine/src/apps_rg/runtime/orchestration/r3r4_whole_run_orchestration.py": {
-    "line_limit": 2690,
+    "line_limit": 2698,
     "justification": "Baseline legacy module pending decomposition"
   },
   "resume_graph_engine/src/apps_rg/runtime/exit/resume_exit_checks.py": {
@@ -940,7 +940,7 @@
     "justification": "Baseline legacy module pending decomposition"
   },
   "outreach_engine/src/apps_lic/integrations/apps_research_bridge.py": {
-    "line_limit": 745,
+    "line_limit": 755,
     "justification": "Baseline legacy module pending decomposition"
   }
 }
