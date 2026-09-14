@@ -63,15 +63,28 @@ def _manual_parse_env_file(path: Path, override: bool = False) -> bool:
         return False
 
 
-def load_agent_environment(repo_root: Path | None = None, override: bool = False) -> None:
-    """Load env_agents or .env into os.environ once without clobbering existing exports."""
-    root = repo_root or Path.cwd()
+CENTRAL_SSOT_FILE = Path.home() / ".config" / "ai_env" / "common.env"
+FALLBACK_SSOT_FILE = Path.home() / "env" / "common.env"
 
+
+def load_agent_environment(repo_root: Path | None = None, override: bool = False) -> None:
+    """Load central workstation SSOT and repo-specific env_agents into os.environ."""
+    # 1. Load central workstation SSOT first (shared baseline)
+    central_path = CENTRAL_SSOT_FILE if CENTRAL_SSOT_FILE.is_file() else (FALLBACK_SSOT_FILE if FALLBACK_SSOT_FILE.is_file() else None)
+    if central_path:
+        if load_dotenv is not None:
+            try:
+                load_dotenv(central_path, override=False)
+            except Exception:
+                _manual_parse_env_file(central_path, override=False)
+        else:
+            _manual_parse_env_file(central_path, override=False)
+
+    # 2. Load repo-specific env_agents
+    root = repo_root or Path.cwd()
     candidate_files = [
         root / "env_agents",
         root / ".env",
-        root.parent / "env_agents",
-        root.parent / ".env",
     ]
 
     for candidate in candidate_files:

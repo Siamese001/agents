@@ -122,27 +122,11 @@ infra = [
     "graphviz>=0.20.0",
 ]
 
-[tool.pytest.ini_options]
-minversion = "7.0"
-# Workload-aware defaults for AMD 9950X3D:
-# - 24 workers with worksteal (default for mixed pytest workloads)
-# - Fixture-heavy: 18 workers with loadscope
-# - File-isolated: 20 workers with loadfile
-addopts = "-ra -v -n 24 --dist=worksteal --timeout=180"
-testpaths = ["apps_eval/tests", "resume_graph_engine/tests", "outreach_engine/tests"]
-python_files = ["test_*.py"]
-python_classes = ["Test*"]
-python_functions = ["test_*"]
-asyncio_mode = "auto"
-markers = [
-    "unit: Individual component tests",
-    "integration: Zero-loss merge and transactional tests",
-    "e2e: End-to-end workflow tests",
-    "slow: Long-running tests",
-    "guardian: Architectural integrity checks",
-    "manual: Manual verification tests that create temporary violations",
-    "serial: Tests that must run serially (shared Redis state, not xdist-safe)",
-]
+# [tool.pytest.ini_options]
+# Note: pytest.ini is the authoritative SSOT for pytest configuration across this repository.
+# To prevent pytest from emitting duplicate/ignored configuration warnings, tool.pytest.ini_options
+# is deferred to pytest.ini.
+
 
 [tool.coverage.run]
 branch = true

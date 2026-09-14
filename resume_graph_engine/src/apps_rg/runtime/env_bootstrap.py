@@ -34,7 +34,13 @@ APPS_RG_DOTENV_ENV_VAR = "APPS_RG_DOTENV"
 
 
 def canonical_home_dotenv() -> Path:
-    """Repo-independent SSOT default: ``~/env/.env`` (final fallback)."""
+    """Repo-independent SSOT default: ~/.config/ai_env/common.env or ~/env/common.env."""
+    central = Path.home() / ".config" / "ai_env" / "common.env"
+    if central.is_file():
+        return central
+    fallback = Path.home() / "env" / "common.env"
+    if fallback.is_file():
+        return fallback
     return Path.home() / "env" / ".env"
 
 
