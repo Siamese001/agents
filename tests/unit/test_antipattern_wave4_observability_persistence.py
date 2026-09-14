@@ -333,3 +333,60 @@ def test_telemetry_event_adaptation() -> None:
     assert envelope.event_type == AgentEventType.PHASE_TRANSITION
     assert envelope.sequence == 1
     assert envelope.verify_integrity() is True
+
+
+def test_event_chain_failure_modes() -> None:
+    run_id = "run-fail-modes"
+    corr_id = "corr-fail-modes"
+
+    e1 = create_event_envelope(
+        event_type=AgentEventType.PHASE_TRANSITION,
+        run_id=run_id,
+        correlation_id=corr_id,
+        sequence=1,
+        producer="engine",
+        payload={"phase": "CREATED"},
+    )
+    e2 = create_event_envelope(
+        event_type=AgentEventType.PHASE_TRANSITION,
+        run_id=run_id,
+        correlation_id=corr_id,
+        sequence=2,
+        producer="engine",
+        payload={"phase": "RUNNING"},
+        previous_event_digest=e1.event_digest,
+    )
+    e3 = create_event_envelope(
+        event_type=AgentEventType.PHASE_TRANSITION,
+        run_id=run_id,
+        correlation_id=corr_id,
+        sequence=3,
+        producer="engine",
+        payload={"phase": "COMPLETED"},
+        previous_event_digest=e2.event_digest,
+    )
+
+    # 1. Missing event (e.g. e2 skipped -> e1 followed by e3)
+    skip_res = verify_event_chain([e1, e3])
+    assert skip_res.is_valid is False
+    assert "previous_event_digest" in skip_res.error_message
+
+    # 2. Reordered events (e2 before e1)
+    reordered_res = verify_event_chain([e2, e1])
+    assert reordered_res.is_valid is False
+
+
+def test_persistence_domain_isolation() -> None:
+    import inspect
+    import agents.orchestration.state_contracts as sc
+    import agents.orchestration.feedback_controller as fc
+
+    sc_source = inspect.getsource(sc)
+    fc_source = inspect.getsource(fc)
+
+    # Domain contracts must not directly import sqlite3 or concrete persistence modules
+    assert "import sqlite3" not in sc_source
+    assert "import sqlite3" not in fc_source
+    assert "agents.persistence.sqlite" not in sc_source
+    assert "agents.persistence.sqlite" not in fc_source
+
