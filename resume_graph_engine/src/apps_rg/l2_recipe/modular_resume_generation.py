@@ -33,6 +33,7 @@ from apps_rg.l2_recipe.modular_rg_output_builder import (
 )
 from apps_rg.l2_recipe.rg_output_jsonschema_validate import validate_rg_output_object
 from apps_rg.runtime.assembly.final_resume_manifest import FinalResumePaths
+from apps_rg.runtime.env_bootstrap import temporary_env_override
 from apps_rg.runtime.internal.final_resume_assembler import assemble_final_resume
 from apps_rg.runtime.internal.generated_lane_rollup import (
     GENERATED_LANES,
@@ -555,20 +556,16 @@ def _assemble_modular_final_resume(
     plumbing_mode: bool,
 ) -> dict[str, Any]:
     """Phase 0 / mock Phase 1: structural assembly only. Real Phase 1: aggregate full-resume judge."""
-    saved: dict[str, str | None] = {}
-    if plumbing_mode:
-        for key in ("APPS_RG_ASSEMBLY_STRUCTURAL_ONLY", "APPS_RG_FULL_RESUME_LLM_COHERENCE_REVIEW"):
-            saved[key] = os.environ.get(key)
-        os.environ["APPS_RG_ASSEMBLY_STRUCTURAL_ONLY"] = "1"
-        os.environ["APPS_RG_FULL_RESUME_LLM_COHERENCE_REVIEW"] = "0"
-    try:
+    overrides = (
+        {
+            "APPS_RG_ASSEMBLY_STRUCTURAL_ONLY": "1",
+            "APPS_RG_FULL_RESUME_LLM_COHERENCE_REVIEW": "0",
+        }
+        if plumbing_mode
+        else {}
+    )
+    with temporary_env_override(overrides):
         return assemble_final_resume(paths, skip_preflight=plumbing_mode)
-    finally:
-        for key, val in saved.items():
-            if val is None:
-                os.environ.pop(key, None)
-            else:
-                os.environ[key] = val
 
 
 def run_modular_resume_generation(
@@ -640,7 +637,7 @@ def run_modular_resume_generation(
         except OSError as exc:
             log_sections_manifest_write_failed("run_modular_resume_generation_phase1", exc)
             raise
-        prev_env = os.environ.get(MODULAR_R4_SECTIONS_ROOT_ENV)
+        prev_env = os.environ.get(MODULAR_R4_SECTIONS_ROOT_ENV)  # ssot: exempt(DIRECT_ENV_ACCESS)
         os.environ[MODULAR_R4_SECTIONS_ROOT_ENV] = str(sections_root.resolve())
         lane_argv = build_modular_lane_argv(
             provider=profile.phase1_lane_provider,
@@ -810,14 +807,14 @@ def run_modular_resume_generation(
             _lane_provider_for_lane(lane_key)
             return phase1_lane_provider_source_by_lane[lane_key]
 
-        prev_whole_run_env = os.environ.get("APPS_RG_WHOLE_RUN_ENVELOPE")
-        prev_corr_env = os.environ.get("APPS_RG_CORRELATED_CLI_RUN")
+        prev_whole_run_env = os.environ.get("APPS_RG_WHOLE_RUN_ENVELOPE")  # ssot: exempt(DIRECT_ENV_ACCESS)
+        prev_corr_env = os.environ.get("APPS_RG_CORRELATED_CLI_RUN")  # ssot: exempt(DIRECT_ENV_ACCESS)
         prev_graph_allocation_env = {
-            ALLOCATION_PLAN_ENV: os.environ.get(ALLOCATION_PLAN_ENV),
-            ALLOCATION_USAGE_LEDGER_ENV: os.environ.get(ALLOCATION_USAGE_LEDGER_ENV),
-            SECTION_EVIDENCE_CONTRACTS_ENV: os.environ.get(SECTION_EVIDENCE_CONTRACTS_ENV),
-            SECTION_SOURCE_PLANS_ENV: os.environ.get(SECTION_SOURCE_PLANS_ENV),
-            GRAPH_SKILL_EMBEDDING_ALLOWLISTS_ENV: os.environ.get(
+            ALLOCATION_PLAN_ENV: os.environ.get(ALLOCATION_PLAN_ENV),  # ssot: exempt(DIRECT_ENV_ACCESS)
+            ALLOCATION_USAGE_LEDGER_ENV: os.environ.get(ALLOCATION_USAGE_LEDGER_ENV),  # ssot: exempt(DIRECT_ENV_ACCESS)
+            SECTION_EVIDENCE_CONTRACTS_ENV: os.environ.get(SECTION_EVIDENCE_CONTRACTS_ENV),  # ssot: exempt(DIRECT_ENV_ACCESS)
+            SECTION_SOURCE_PLANS_ENV: os.environ.get(SECTION_SOURCE_PLANS_ENV),  # ssot: exempt(DIRECT_ENV_ACCESS)
+            GRAPH_SKILL_EMBEDDING_ALLOWLISTS_ENV: os.environ.get(  # ssot: exempt(DIRECT_ENV_ACCESS)
                 GRAPH_SKILL_EMBEDDING_ALLOWLISTS_ENV
             ),
         }

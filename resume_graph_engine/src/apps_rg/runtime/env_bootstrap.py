@@ -22,8 +22,10 @@ worktree, ``.env`` is resolved in this order (first existing file wins):
 from __future__ import annotations
 
 import os
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Iterator, Mapping
 
 from apps_rg.runtime.runtime_proof_layout import find_repo_root
 
@@ -102,10 +104,30 @@ def bootstrap_process_env_if_needed(environ: object) -> AppsRgEnvBootstrapResult
     return None
 
 
+@contextmanager
+def temporary_env_override(updates: Mapping[str, str | None]) -> Iterator[None]:
+    """Context manager to temporarily override environment variables and cleanly restore original state."""
+    saved: dict[str, str | None] = {k: os.environ.get(k) for k in updates}
+    try:
+        for k, v in updates.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+        yield
+    finally:
+        for k, v in saved.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+
+
 __all__ = [
     "APPS_RG_DOTENV_ENV_VAR",
     "AppsRgEnvBootstrapResult",
     "bootstrap_apps_rg_env",
     "bootstrap_process_env_if_needed",
     "canonical_home_dotenv",
+    "temporary_env_override",
 ]
