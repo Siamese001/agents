@@ -76,6 +76,24 @@ class SSOTASTVisitor(ast.NodeVisitor):
             return self.exemption_mgr.has_inline_exemption(line, rule_id)
         return False
 
+    @staticmethod
+    def _is_process_or_sync_timeout_call(node: ast.Call) -> bool:
+        """Ignore timeouts on process execution or low-level locks (e.g. subprocess.run, sqlite3.connect)."""
+        func = node.func
+        if isinstance(func, ast.Attribute):
+            attr = func.attr
+            if attr in {"run", "call", "check_output", "Popen", "check_call"}:
+                return True
+            if attr == "connect" and isinstance(func.value, ast.Name) and "sqlite" in func.value.id.lower():
+                return True
+            if (
+                attr in {"wait", "acquire"}
+                and isinstance(func.value, ast.Name)
+                and func.value.id in {"barrier", "lock", "event"}
+            ):
+                return True
+        return False
+
     def visit_Constant(self, node: ast.Constant) -> None:
         """Inspect string constants for hardcoded model literals."""
         if not self.is_bootstrap and isinstance(node.value, str):
@@ -149,7 +167,11 @@ class SSOTASTVisitor(ast.NodeVisitor):
             if arg in {"timeout", "timeout_s", "timeout_seconds"}:
                 if isinstance(kw.value, ast.Constant) and isinstance(kw.value.value, (int, float)):
                     num_val = kw.value.value
-                    if num_val > 0 and not self.is_bootstrap:
+                    if (
+                        num_val > 0
+                        and not self.is_bootstrap
+                        and not self._is_process_or_sync_timeout_call(node)
+                    ):
                         if not self._is_inline_exempt(kw.value.lineno, ViolationType.HARDCODED_TIMEOUT.value):
                             owner = self.registry.get_owner(ConfigDomain.RUNTIME_LIMITS)
                             self.violations.append(

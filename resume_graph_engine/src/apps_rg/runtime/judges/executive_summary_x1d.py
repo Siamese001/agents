@@ -2,6 +2,7 @@
 
 Provider-backed judges with full normalization per X1D adapter spec.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -33,6 +34,13 @@ JUDGE_INPUT_PROMPT_VERSION = "executive_summary_x1d_system_contract_once_v2"
 DEFAULT_THRESHOLD = 0.80
 VALID_SCORE_SCALES = frozenset({"0_to_1", "0_to_5"})
 JUDGE_REQUIRED_FIELDS = ("score_scale", "score", "threshold", "pass")
+
+
+def _judge_http_timeout() -> int:
+    try:
+        return runtime_limit_int("judge_http.timeout_seconds")
+    except Exception:
+        return 60  # ssot: exempt(HARDCODED_TIMEOUT)
 
 
 def _record_x1d_external_usage(
@@ -129,8 +137,7 @@ def _openai_chat_uses_max_completion_tokens(model: str) -> bool:
         capabilities
         and capabilities.provider == "openai"
         and capabilities.supports_endpoint("chat_completions")
-        and capabilities.max_output_tokens_parameter_for("chat_completions")
-        == "max_completion_tokens"
+        and capabilities.max_output_tokens_parameter_for("chat_completions") == "max_completion_tokens"
     )
 
 
@@ -223,11 +230,7 @@ def _invoke_judge_with_bounded_retries(
     provider_key: str,
     section_id: str | None = None,
 ) -> JudgeOutput:
-    max_attempts = (
-        _section_x1d_judge_max_attempts(section_id)
-        if section_id
-        else _x1d_judge_max_attempts()
-    )
+    max_attempts = _section_x1d_judge_max_attempts(section_id) if section_id else _x1d_judge_max_attempts()
     last: JudgeOutput | None = None
     for attempt in range(1, max_attempts + 1):
         last = invoke(attempt)
@@ -242,6 +245,7 @@ def _invoke_judge_with_bounded_retries(
         )
     assert last is not None
     return last
+
 
 JUDGE_COMPACT_OUTPUT = """
 Return ONLY one compact JSON object. No markdown fences, no prose before or after, no nested objects.
@@ -275,6 +279,7 @@ def build_x1d_judge_system_prompt(*, compact: bool = True) -> str:
             f"{JUDGE_COMPACT_OUTPUT}\n\n{JUDGE_SCORE_SCHEMA}"
         )
     return f"You are a strict executive resume judge. Return JSON only.\n\n{JUDGE_SCORE_SCHEMA}"
+
 
 def build_judge_response_schema(
     dimension_ids: tuple[str, ...] | None = None,
@@ -311,15 +316,14 @@ def _gemini_compatible_response_schema(schema: Mapping[str, Any]) -> dict[str, A
     def convert(value: Any) -> Any:
         if isinstance(value, Mapping):
             return {
-                str(key): convert(child)
-                for key, child in value.items()
-                if str(key) != "additionalProperties"
+                str(key): convert(child) for key, child in value.items() if str(key) != "additionalProperties"
             }
         if isinstance(value, list):
             return [convert(child) for child in value]
         return value
 
     return convert(schema)
+
 
 JUDGE_SCORE_SCHEMA = """
 Score contract (mandatory - every judge response MUST comply):
@@ -329,6 +333,7 @@ Score contract (mandatory - every judge response MUST comply):
 - Forbidden: 0_to_10 scales, percentage scores (0–100), or values like score=9.2 with threshold=8.0.
 - Do not infer scale from magnitude; declare score_scale explicitly and keep score/threshold within that scale.
 """.strip()
+
 
 def _build_rubric(*, include_score_schema: bool = True) -> str:
     """Build the authoritative rubric, optionally omitting a system-owned copy."""
@@ -350,6 +355,7 @@ JUDGE_USER_PROMPT_RUBRIC = _build_rubric(include_score_schema=False)
 @dataclass
 class JudgeOutput:
     """Complete judge output with provider status tracking."""
+
     judge_id: str
     provider_name: str
     provider_key: str
@@ -458,12 +464,7 @@ def _policy_model_name(provider_key: str, section_id: str, fallback: str = "unkn
         resolution = resolve_section_proof_judge_model(section_id, provider_key)
     except (ImportError, AttributeError, KeyError, RuntimeError, TypeError, ValueError):
         return fallback or "unknown"
-    return (
-        resolution.model_requested
-        or resolution.model_actual
-        or fallback
-        or "unknown"
-    )
+    return resolution.model_requested or resolution.model_actual or fallback or "unknown"
 
 
 def resolve_x1d_provider_credentials(provider_key: str, environ: Mapping[str, str]) -> tuple[str, list[str]]:
@@ -529,8 +530,7 @@ def _validate_judge_score_contract(
     """Validate declared score_scale and numeric ranges; never infer scale from magnitude."""
     if not declared or declared not in VALID_SCORE_SCALES:
         return None, (
-            f"Invalid or missing score_scale: {declared!r}; "
-            f"must be one of {sorted(VALID_SCORE_SCALES)}"
+            f"Invalid or missing score_scale: {declared!r}; must be one of {sorted(VALID_SCORE_SCALES)}"
         )
     if declared == "0_to_1":
         if not (0.0 <= raw_score <= 1.0 and 0.0 <= raw_threshold <= 1.0):
@@ -645,9 +645,7 @@ def _gemini_generation_config(
         "thinkingConfig": {"thinkingLevel": resolved_thinking_level},
         "maxOutputTokens": max_tokens,
         "responseMimeType": "application/json",
-        "responseSchema": _gemini_compatible_response_schema(
-            response_schema or GEMINI_JUDGE_RESPONSE_SCHEMA
-        ),
+        "responseSchema": _gemini_compatible_response_schema(response_schema or GEMINI_JUDGE_RESPONSE_SCHEMA),
     }
 
 
@@ -731,7 +729,9 @@ def _parse_gemini_retry_delay_seconds(error_body: str) -> float | None:
                 try:
                     delay = float(s)
                     break
-                except ValueError:  # guardian: allow-silent-swallow -- P2 burndown: fail-soft optional boundary
+                except (
+                    ValueError
+                ):  # guardian: allow-silent-swallow -- P2 burndown: fail-soft optional boundary
                     continue
     if delay is None and msg:
         m = re.search(r"retry\s+in\s+([0-9]+(?:\.[0-9]+)?)\s*s", msg, flags=re.I)
@@ -796,13 +796,13 @@ def _extract_gemini_text(data: dict[str, Any]) -> tuple[str, str | None]:
 def _extract_json_from_text(text: str) -> dict[str, Any] | None:
     """Robust JSON extraction from text with markdown code blocks."""
     text = text.strip()
-    
+
     # Try direct JSON parse first
     try:
         return json.loads(text)
     except json.JSONDecodeError:  # guardian: allow-silent-swallow -- P2 burndown: fail-soft optional boundary
         pass
-    
+
     # Try removing markdown code blocks
     patterns = [
         r"```json\s*(.*?)\s*```",
@@ -816,16 +816,16 @@ def _extract_json_from_text(text: str) -> dict[str, Any] | None:
                 return json.loads(match.group(1).strip())
             except json.JSONDecodeError:
                 continue
-    
+
     # Try to find JSON object boundaries
     try:
         start = text.find("{")
         end = text.rfind("}")
         if start != -1 and end != -1 and end > start:
-            return json.loads(text[start:end+1])
+            return json.loads(text[start : end + 1])
     except json.JSONDecodeError:  # guardian: allow-silent-swallow -- P2 burndown: fail-soft optional boundary
         pass
-    
+
     return None
 
 
@@ -877,9 +877,12 @@ def _make_blocked_output(
     fallback_model: str | None = None,
 ) -> JudgeOutput:
     """Create a blocked judge output with full context."""
-    meta = PROVIDERS.get(provider_key, {
-        "provider_name": provider_key,
-    })
+    meta = PROVIDERS.get(
+        provider_key,
+        {
+            "provider_name": provider_key,
+        },
+    )
     evidence_model = model_name or _policy_model_name(provider_key, "executive_summary")
     return JudgeOutput(
         judge_id=f"x1d_{provider_key}_exec_summary",
@@ -929,9 +932,7 @@ def _make_model_backed_output(
             reconcile_grade_only_judge_result,
         )
 
-        result = reconcile_grade_only_judge_result(
-            result, deterministic_gate_summary, section_id=section_id
-        )
+        result = reconcile_grade_only_judge_result(result, deterministic_gate_summary, section_id=section_id)
     result, _dv_inferred = ensure_dimension_verdicts(
         result, deterministic_gate_summary=deterministic_gate_summary
     )
@@ -961,9 +962,7 @@ def _make_model_backed_output(
 
     assert score_scale is not None  # validated above
     try:
-        normalized_score, normalized_threshold = _compute_normalized(
-            raw_score, raw_threshold, score_scale
-        )
+        normalized_score, normalized_threshold = _compute_normalized(raw_score, raw_threshold, score_scale)
     except ValueError as exc:
         return _make_blocked_output(
             provider_key,
@@ -1098,7 +1097,9 @@ def _call_openai(
         if section_id
         else _resolved_x1d_judge_max_output_tokens(attempt=attempt)
     )
-    judge_max_attempts = _section_x1d_judge_max_attempts(section_id) if section_id else _x1d_judge_max_attempts()
+    judge_max_attempts = (
+        _section_x1d_judge_max_attempts(section_id) if section_id else _x1d_judge_max_attempts()
+    )
     uses_responses_api = _openai_judge_uses_responses_api(model)
     if not uses_responses_api:
         raise ValueError(f"Unsupported OpenAI proof judge model for Responses transport: {model!r}")
@@ -1136,7 +1137,7 @@ def _call_openai(
     )
     if budget_block is not None:
         return budget_block
-    
+
     # Write request artifact
     req_path = _artifact_path(provider_key, "provider_request", artifact_base=artifact_base)
     req_doc: dict[str, Any] = {
@@ -1162,7 +1163,7 @@ def _call_openai(
     if judge_receipt:
         req_doc["judge_receipt"] = judge_receipt
     _write_artifact(req_path, req_doc)
-    
+
     req = urllib.request.Request(
         "https://api.openai.com/v1/responses",
         data=json.dumps(payload).encode(),
@@ -1179,13 +1180,15 @@ def _call_openai(
         )
 
     try:
-        with urllib.request.urlopen(req, timeout=60) as response:
+        with urllib.request.urlopen(req, timeout=_judge_http_timeout()) as response:
             raw_response = response.read().decode()
     except urllib.error.HTTPError as e:
         error_body = e.read().decode()
         # Write error response artifact
         err_path = _artifact_path(provider_key, "provider_response_raw", artifact_base=artifact_base)
-        _write_artifact(err_path, {"error": True, "status_code": e.code, "body": error_body, "input_hash": input_hash})
+        _write_artifact(
+            err_path, {"error": True, "status_code": e.code, "body": error_body, "input_hash": input_hash}
+        )
         _record_x1d_external_usage(
             artifact_base=artifact_base,
             provider="openai",
@@ -1199,15 +1202,19 @@ def _call_openai(
             raw_response_ref=str(err_path),
         )
         return _make_blocked_output(
-            provider_key, input_hash, "BLOCKED_PROVIDER_UNAVAILABLE",
-            "BLOCKED_PROVIDER_UNAVAILABLE", f"OpenAI API error {e.code}: {error_body}",
-            raw_response_ref=str(err_path), model_name=model
+            provider_key,
+            input_hash,
+            "BLOCKED_PROVIDER_UNAVAILABLE",
+            "BLOCKED_PROVIDER_UNAVAILABLE",
+            f"OpenAI API error {e.code}: {error_body}",
+            raw_response_ref=str(err_path),
+            model_name=model,
         )
-    
+
     # Write raw response artifact
     raw_path = _artifact_path(provider_key, "provider_response_raw", artifact_base=artifact_base)
     _write_artifact(raw_path, {"raw_response": raw_response, "input_hash": input_hash})
-    
+
     try:
         data = json.loads(raw_response)
         usage_doc = data if isinstance(data, Mapping) else {}
@@ -1356,12 +1363,15 @@ def _finish_judge_text_parse(
     }
     if finish_reason and str(finish_reason).upper() not in allowed_finish_reasons.get(provider_key, set()):
         parse_err_path = _artifact_path(provider_key, "provider_parse_result", artifact_base=artifact_base)
-        _write_artifact(parse_err_path, {
-            "error": "finish_reason",
-            "finish_reason": finish_reason,
-            "text_preview": text[:500],
-            "raw_response_ref": str(raw_path),
-        })
+        _write_artifact(
+            parse_err_path,
+            {
+                "error": "finish_reason",
+                "finish_reason": finish_reason,
+                "text_preview": text[:500],
+                "raw_response_ref": str(raw_path),
+            },
+        )
         return _make_blocked_output(
             provider_key,
             input_hash,
@@ -1392,11 +1402,14 @@ def _finish_judge_text_parse(
     result = _extract_json_from_text(text)
     if result is None:
         parse_err_path = _artifact_path(provider_key, "provider_parse_result", artifact_base=artifact_base)
-        _write_artifact(parse_err_path, {
-            "error": "json_extraction",
-            "text_preview": text[:500],
-            "raw_response_ref": str(raw_path),
-        })
+        _write_artifact(
+            parse_err_path,
+            {
+                "error": "json_extraction",
+                "text_preview": text[:500],
+                "raw_response_ref": str(raw_path),
+            },
+        )
         return _make_blocked_output(
             provider_key,
             input_hash,
@@ -1416,12 +1429,15 @@ def _finish_judge_text_parse(
         return blocked
 
     parse_path = _artifact_path(provider_key, "provider_parse_result", artifact_base=artifact_base)
-    _write_artifact(parse_path, {
-        "result": result,
-        "raw_response_ref": str(raw_path),
-        "original_model": original_model,
-        "fallback_model": fallback_model,
-    })
+    _write_artifact(
+        parse_path,
+        {
+            "result": result,
+            "raw_response_ref": str(raw_path),
+            "original_model": original_model,
+            "fallback_model": fallback_model,
+        },
+    )
 
     gate_summary = (judge_receipt or {}).get("deterministic_gate_summary") if judge_receipt else None
     section_id = (judge_receipt or {}).get("section_id") if judge_receipt else None
@@ -1457,7 +1473,9 @@ def _call_gemini(
 ) -> JudgeOutput:
     """Call Gemini API with full artifact preservation."""
     logical_attempt = attempt
-    judge_max_attempts = _section_x1d_judge_max_attempts(section_id) if section_id else _x1d_judge_max_attempts()
+    judge_max_attempts = (
+        _section_x1d_judge_max_attempts(section_id) if section_id else _x1d_judge_max_attempts()
+    )
     max_tokens = (
         _resolved_section_x1d_judge_max_output_tokens(section_id, attempt=attempt)
         if section_id
@@ -1534,7 +1552,9 @@ def _call_gemini(
         artifact_body["redacted_query_param_names"] = list(omitted_q)
     _write_artifact(req_path, artifact_body)
 
-    req = urllib.request.Request(url, data=json.dumps(payload).encode(), headers={"Content-Type": "application/json"}, method="POST")
+    req = urllib.request.Request(
+        url, data=json.dumps(payload).encode(), headers={"Content-Type": "application/json"}, method="POST"
+    )
     raw_response = ""
 
     if not _judge_live_https_allowed_under_pytest():
@@ -1547,7 +1567,7 @@ def _call_gemini(
 
     for transport_attempt in range(retries + 1):
         try:
-            with urllib.request.urlopen(req, timeout=60) as response:
+            with urllib.request.urlopen(req, timeout=_judge_http_timeout()) as response:
                 raw_response = response.read().decode()
             break
         except urllib.error.HTTPError as e:
@@ -1606,20 +1626,23 @@ def _call_gemini(
                 raw_response_ref=str(err_path),
                 model_name=model,
             )
-    
+
     # Write raw response artifact
     raw_path = _artifact_path(provider_key, "provider_response_raw", artifact_base=artifact_base)
     _write_artifact(raw_path, {"raw_response": raw_response, "input_hash": input_hash})
-    
+
     try:
         data = json.loads(raw_response)
     except json.JSONDecodeError as e:
         parse_err_path = _artifact_path(provider_key, "provider_parse_result", artifact_base=artifact_base)
-        _write_artifact(parse_err_path, {
-            "error": "response_structure",
-            "detail": str(e),
-            "raw_response_ref": str(raw_path),
-        })
+        _write_artifact(
+            parse_err_path,
+            {
+                "error": "response_structure",
+                "detail": str(e),
+                "raw_response_ref": str(raw_path),
+            },
+        )
         _record_x1d_external_usage(
             artifact_base=artifact_base,
             provider="gemini",
@@ -1633,9 +1656,13 @@ def _call_gemini(
             raw_response_ref=str(raw_path),
         )
         return _make_blocked_output(
-            provider_key, input_hash, "BLOCKED_RESPONSE_PARSE_ERROR",
-            "BLOCKED_RESPONSE_PARSE_ERROR", f"Gemini response envelope parse error: {e}",
-            raw_response_ref=str(raw_path), model_name=model,
+            provider_key,
+            input_hash,
+            "BLOCKED_RESPONSE_PARSE_ERROR",
+            "BLOCKED_RESPONSE_PARSE_ERROR",
+            f"Gemini response envelope parse error: {e}",
+            raw_response_ref=str(raw_path),
+            model_name=model,
         )
 
     usage_doc = data if isinstance(data, Mapping) else {}
@@ -1746,7 +1773,11 @@ def run_llm_judges(
             if str(judge_packet.get("judge_packet_version", "")).startswith("executive_summary")
             else _generic_render_packet
         )
-        hash_packet = _exec_hash if "executive_summary" in str(judge_packet.get("judge_packet_version", "")) else _generic_hash
+        hash_packet = (
+            _exec_hash
+            if "executive_summary" in str(judge_packet.get("judge_packet_version", ""))
+            else _generic_hash
+        )
     else:
         render_packet = _generic_render_packet
         hash_packet = _generic_hash
@@ -1801,31 +1832,40 @@ def run_llm_judges(
     model_tier: str | None = None
     for key in judge_keys:
         if key not in PROVIDERS:
-            outputs.append(_make_blocked_output(
-                key, input_hash, "BLOCKED_PROVIDER_UNAVAILABLE",
-                "BLOCKED_PROVIDER_UNAVAILABLE", f"Unknown judge provider key: {key}"
-            ))
+            outputs.append(
+                _make_blocked_output(
+                    key,
+                    input_hash,
+                    "BLOCKED_PROVIDER_UNAVAILABLE",
+                    "BLOCKED_PROVIDER_UNAVAILABLE",
+                    f"Unknown judge provider key: {key}",
+                )
+            )
             continue
-        
+
         if mode == "mocked":
             outputs.append(_mocked_output(key, input_hash))
             continue
-        
+
         meta = PROVIDERS[key]
         api_key, env_checked = resolve_x1d_provider_credentials(key, os.environ)
         if not api_key:
-            outputs.append(_make_blocked_output(
-                key, input_hash, "BLOCKED_PROVIDER_UNAVAILABLE",
-                "BLOCKED_PROVIDER_UNAVAILABLE",
-                (
-                    f"No non-empty API credential in {env_checked}; "
-                    f"Gemini resolves GOOGLE_API_KEY then deprecated GEMINI_API_KEY alias."
-                    if key == "gemini_pro"
-                    else f"{meta['env']} environment variable not set"
-                ),
-            ))
+            outputs.append(
+                _make_blocked_output(
+                    key,
+                    input_hash,
+                    "BLOCKED_PROVIDER_UNAVAILABLE",
+                    "BLOCKED_PROVIDER_UNAVAILABLE",
+                    (
+                        f"No non-empty API credential in {env_checked}; "
+                        f"Gemini resolves GOOGLE_API_KEY then deprecated GEMINI_API_KEY alias."
+                        if key == "gemini_pro"
+                        else f"{meta['env']} environment variable not set"
+                    ),
+                )
+            )
             continue
-        
+
         reasoning_effort: str | None = None
         model_requested = ""
         if use_grade_only_packet:
@@ -1944,10 +1984,15 @@ def run_llm_judges(
             urllib.error.URLError,
         ) as exc:
             # Catch any unexpected errors and mark as blocked
-            outputs.append(_make_blocked_output(
-                key, input_hash, "BLOCKED_PROVIDER_UNAVAILABLE",
-                "BLOCKED_PROVIDER_UNAVAILABLE", f"{meta['provider_name']} judge call failed: {type(exc).__name__}: {exc}",
-                model_name=model
-            ))
-    
+            outputs.append(
+                _make_blocked_output(
+                    key,
+                    input_hash,
+                    "BLOCKED_PROVIDER_UNAVAILABLE",
+                    "BLOCKED_PROVIDER_UNAVAILABLE",
+                    f"{meta['provider_name']} judge call failed: {type(exc).__name__}: {exc}",
+                    model_name=model,
+                )
+            )
+
     return outputs

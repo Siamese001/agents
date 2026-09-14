@@ -72,13 +72,16 @@ _BASE_RESUME_EMPLOYER_LANES: tuple[tuple[tuple[str, ...], list[str]], ...] = (
 
 MANIFEST_REL = "artifacts/apps_rg/c0/fact_vectors_bootstrap_manifest.json"
 FALLBACK_MANIFEST_NAME = "fact_vectors_bootstrap_fallback_manifest.json"
+from apps_rg.runtime.core_model_catalog import BGE_M3_MODEL_ID
+
 BLOCKED_FACT_VECTOR_HYDRATION_RUNTIME = "BLOCKED_FACT_VECTOR_HYDRATION_RUNTIME"
 BLOCKED_FACT_VECTOR_HYDRATION_LOCK = "BLOCKED_FACT_VECTOR_HYDRATION_LOCK"
 HYDRATION_LOCK_FILENAME = ".apps_rg_fact_vector_hydration.lock"
 HYDRATION_SNAPSHOT_ROOT_REL = "artifacts/apps_rg/c0/chroma_snapshots"
 _REQUIRED_HYDRATION_IMPORTS = ("redis", "yaml", "chromadb", "sentence_transformers", "torch")
-_CANONICAL_BGE_HF_ID = "BAAI/bge-m3"
+_CANONICAL_BGE_HF_ID = BGE_M3_MODEL_ID
 _DEFAULT_EMBEDDING_MODEL_ID_SLUG = "bge-m3-v1"
+
 
 
 def _repo_root() -> Path:

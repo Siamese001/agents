@@ -42,6 +42,7 @@ from apps_research.integrations.provider_gateway import (
 )
 from apps_research.integrations.search_retrieval import retrieve
 from apps_research.integrations.searxng_readiness import runtime_base_url
+from apps_rg.runtime.section_model_limits import runtime_limit_int
 from apps_rg.runtime.resume_resolution import resolve_resume_for_lanes
 from apps_rg.runtime.sections.section_product_shape_export_bounds import (
     COMPETENCIES_EXPORT_MAX_CATEGORIES,
@@ -438,8 +439,7 @@ def _validate_tailored_resume(
     }
     competency_count = _markdown_bullet_count(_markdown_section(text, "CORE COMPETENCIES", level=2))
     technical_expertise_absent = all(
-        not re.search(rf"(?im)^##\s+{re.escape(heading)}\s*$", text)
-        for heading in FORBIDDEN_RESUME_HEADINGS
+        not re.search(rf"(?im)^##\s+{re.escape(heading)}\s*$", text) for heading in FORBIDDEN_RESUME_HEADINGS
     )
     outreach_email_not_embedded = not re.search(r"(?im)^\s*subject\s*:\s*\S+", text)
     role_shape_checks: dict[str, bool] = {}
@@ -464,9 +464,7 @@ def _validate_tailored_resume(
         "employers": employer_checks,
         "minimum_length": len(text) >= 700,
         "core_competency_category_count": (
-            COMPETENCIES_EXPORT_MIN_CATEGORIES
-            <= competency_count
-            <= COMPETENCIES_EXPORT_MAX_CATEGORIES
+            COMPETENCIES_EXPORT_MIN_CATEGORIES <= competency_count <= COMPETENCIES_EXPORT_MAX_CATEGORIES
         ),
         "technical_expertise_not_separate_section": technical_expertise_absent,
         "outreach_email_not_embedded_in_resume": outreach_email_not_embedded,
@@ -589,8 +587,10 @@ def _resolve_text_input(value: str, *, default_path: Path | None = None) -> tupl
 
 
 def _allocate_run_dir(artifact_root: str, *, repo_root: Path) -> Path:
-    root = Path(str(artifact_root or "").strip()) if str(artifact_root or "").strip() else (
-        repo_root / "artifacts" / "apps_rg" / "bare_runs"
+    root = (
+        Path(str(artifact_root or "").strip())
+        if str(artifact_root or "").strip()
+        else (repo_root / "artifacts" / "apps_rg" / "bare_runs")
     )
     if not root.is_absolute():
         root = (repo_root / root).resolve()
@@ -598,10 +598,7 @@ def _allocate_run_dir(artifact_root: str, *, repo_root: Path) -> Path:
         root = root.resolve()
     root.mkdir(parents=True, exist_ok=True)
     run_dir = root / (
-        "bare_e2e_"
-        + datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-        + "_"
-        + uuid.uuid4().hex[:8]
+        "bare_e2e_" + datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + "_" + uuid.uuid4().hex[:8]
     )
     run_dir.mkdir(parents=False, exist_ok=False)
     return run_dir
@@ -611,10 +608,7 @@ def _require_live_provider_credentials() -> None:
     missing: list[str] = []
     if not os.environ.get("OPENAI_API_KEY", "").strip():
         missing.append("OPENAI_API_KEY")
-    if not (
-        os.environ.get("GOOGLE_API_KEY", "").strip()
-        or os.environ.get("GEMINI_API_KEY", "").strip()
-    ):
+    if not (os.environ.get("GOOGLE_API_KEY", "").strip() or os.environ.get("GEMINI_API_KEY", "").strip()):
         missing.append("GOOGLE_API_KEY")
     if missing:
         raise BarePipelineError("missing live provider credential(s): " + ", ".join(missing))
@@ -659,26 +653,21 @@ def _retrieve_sources(company: str, role: str) -> tuple[list[dict[str, Any]], li
             )
     if not sources:
         detail = "; ".join(f"{row['family']}={row['error']}" for row in failures)
-        raise BarePipelineError("Apps Research returned no source material" + (f": {detail}" if detail else ""))
+        raise BarePipelineError(
+            "Apps Research returned no source material" + (f": {detail}" if detail else "")
+        )
     return sources, failures
 
 
 def _sources_for_prompt(sources: list[dict[str, Any]]) -> str:
     rows: list[str] = []
     for index, source in enumerate(sources, start=1):
-        rows.append(
-            f"[{index}] {source['title']}\n"
-            f"URL: {source['url']}\n"
-            f"Evidence: {source['snippet']}"
-        )
+        rows.append(f"[{index}] {source['title']}\nURL: {source['url']}\nEvidence: {source['snippet']}")
     return "\n\n".join(rows)
 
 
 def _sources_markdown(sources: list[dict[str, Any]]) -> str:
-    return "\n".join(
-        f"- [{source['title']}]({source['url']}) — {source['family']}"
-        for source in sources
-    )
+    return "\n".join(f"- [{source['title']}]({source['url']}) — {source['family']}" for source in sources)
 
 
 def _call_openai(*, system: str, user: str, max_completion_tokens: int) -> tuple[str, dict[str, Any]]:
@@ -768,9 +757,13 @@ def _provider_failure_summary(
         current = current.__cause__ or current.__context__
 
     receipt = gateway_error.receipt if gateway_error is not None else {}
-    summary = _provider_summary(receipt) if receipt else _provider_attempt_summary(
-        provider=provider,
-        requested_model=requested_model,
+    summary = (
+        _provider_summary(receipt)
+        if receipt
+        else _provider_attempt_summary(
+            provider=provider,
+            requested_model=requested_model,
+        )
     )
     summary.update(
         {
@@ -997,12 +990,9 @@ def _validate_resume_docx(
         return {"status": "FAIL", "error": f"{type(exc).__name__}: {exc}"}
     paragraphs = [paragraph.text.strip() for paragraph in document.paragraphs if paragraph.text.strip()]
     heading_checks = {heading: heading in paragraphs for heading in REQUIRED_RESUME_HEADINGS}
-    forbidden_heading_checks = {
-        heading: heading not in paragraphs for heading in FORBIDDEN_RESUME_HEADINGS
-    }
+    forbidden_heading_checks = {heading: heading not in paragraphs for heading in FORBIDDEN_RESUME_HEADINGS}
     employer_checks = {
-        employer: any(employer in paragraph for paragraph in paragraphs)
-        for employer in required_employers
+        employer: any(employer in paragraph for paragraph in paragraphs) for employer in required_employers
     }
     missing = [f"heading:{heading}" for heading, passed in heading_checks.items() if not passed]
     missing.extend(
@@ -1063,10 +1053,7 @@ def _read_x3_resume_manifest(run_dir: Path) -> dict[str, Any]:
 
 
 def _require_x3_provider_credential() -> None:
-    if not (
-        os.environ.get("GOOGLE_API_KEY", "").strip()
-        or os.environ.get("GEMINI_API_KEY", "").strip()
-    ):
+    if not (os.environ.get("GOOGLE_API_KEY", "").strip() or os.environ.get("GEMINI_API_KEY", "").strip()):
         raise BarePipelineError("GOOGLE_API_KEY is required for X3 evaluation resume")
 
 
@@ -1219,6 +1206,7 @@ def run_bare_live_e2e(
     resume_source = ""
     required_employers: tuple[str, ...] = ()
     try:
+
         def setup() -> dict[str, Any]:
             nonlocal jd_text, jd_ref, resume_source, required_employers
             _require_live_provider_credentials()
@@ -1273,7 +1261,7 @@ def run_bare_live_e2e(
                         "Produce useful, factual markdown only."
                     ),
                     user=research_prompt,
-                    max_completion_tokens=2400,
+                    max_completion_tokens=runtime_limit_int("bare_pipeline.research_max_tokens"),
                 ),
             )
             if len(brief) < 240:
@@ -1328,9 +1316,10 @@ def run_bare_live_e2e(
         run_stage("C0", c0)
 
         def prompt_assembly() -> str:
-            employer_outline = "\n".join(
-                f"### {employer}" for employer in required_employers
-            ) or "### Each employer represented in the base resume"
+            employer_outline = (
+                "\n".join(f"### {employer}" for employer in required_employers)
+                or "### Each employer represented in the base resume"
+            )
             return (
                 f"Target company: {company}\nTarget role: {role}\n\n"
                 "JOB DESCRIPTION:\n<<<JD_START>>>\n"
@@ -1385,7 +1374,7 @@ def run_bare_live_e2e(
                         "Never invent candidate achievements, employers, titles, dates, metrics, certifications, or tools."
                     ),
                     user=l2_prompt,
-                    max_completion_tokens=5000,
+                    max_completion_tokens=runtime_limit_int("bare_pipeline.tailored_resume_max_tokens"),
                 ),
             )
             _write_text(run_dir / "l2_raw.md", raw_output)
@@ -1443,9 +1432,7 @@ def run_bare_live_e2e(
                 raise BarePipelineError(
                     "X1 output completeness check failed: "
                     + ", ".join(
-                        resume_check["missing"]
-                        + email_check["missing"]
-                        + ([] if sources else ["sources"])
+                        resume_check["missing"] + email_check["missing"] + ([] if sources else ["sources"])
                     )
                 )
             return value
@@ -1495,6 +1482,7 @@ def run_bare_live_e2e(
             },
         )
         outputs["x3_raw"] = "x3_raw.txt"
+
         def delivery() -> dict[str, Any]:
             return _write_live_delivery(
                 run_dir=run_dir,
@@ -1548,8 +1536,10 @@ def resume_bare_live_x3(*, resume_run_dir: str | Path) -> dict[str, Any]:
         raise BarePipelineError(f"cannot read sealed X3 resume input: {type(exc).__name__}: {exc}") from exc
     sources_payload = _read_json_object(run_dir / "sources.json")
     source_rows = sources_payload.get("sources")
-    if not isinstance(source_rows, list) or not source_rows or not all(
-        isinstance(row, Mapping) for row in source_rows
+    if (
+        not isinstance(source_rows, list)
+        or not source_rows
+        or not all(isinstance(row, Mapping) for row in source_rows)
     ):
         raise BarePipelineError("sealed X3 resume sources are incomplete")
     sources = [dict(row) for row in source_rows]
@@ -1857,6 +1847,7 @@ def run_bare_deterministic_e2e(
     resume_source = ""
     required_employers: tuple[str, ...] = ()
     try:
+
         def setup() -> dict[str, Any]:
             nonlocal jd_text, resume_source, required_employers
             jd_text, jd_ref = _resolve_text_input(jd, default_path=_default_jd_path())
@@ -1946,7 +1937,9 @@ def run_bare_deterministic_e2e(
         route = run_stage("L0", lambda: {"route": "bare_deterministic_local"})
 
         def c0() -> dict[str, Any]:
-            usable_source_urls = sum(1 for source in sources if str(source.get("url") or "").startswith("http"))
+            usable_source_urls = sum(
+                1 for source in sources if str(source.get("url") or "").startswith("http")
+            )
             if not usable_source_urls:
                 raise BarePipelineError("C0 found no usable deterministic source URLs")
             return {"source_count": len(sources), "usable_source_url_count": usable_source_urls}
@@ -2020,9 +2013,7 @@ def run_bare_deterministic_e2e(
                 raise BarePipelineError(
                     "X1 output completeness check failed: "
                     + ", ".join(
-                        resume_check["missing"]
-                        + email_check["missing"]
-                        + ([] if sources else ["sources"])
+                        resume_check["missing"] + email_check["missing"] + ([] if sources else ["sources"])
                     )
                 )
             return value
@@ -2049,7 +2040,9 @@ def run_bare_deterministic_e2e(
             },
         )
         outputs["x3_raw"] = "x3_raw.txt"
-        _write_provider_call_report(run_dir / "provider_calls.json", mode="deterministic", providers=providers)
+        _write_provider_call_report(
+            run_dir / "provider_calls.json", mode="deterministic", providers=providers
+        )
         outputs["provider_calls"] = "provider_calls.json"
 
         def delivery() -> dict[str, Any]:
@@ -2278,11 +2271,7 @@ def _live_provider_check(root: Path, summary: Mapping[str, Any]) -> dict[str, An
                 row = json.loads(line)
             except json.JSONDecodeError:
                 continue
-            if (
-                row.get("stage") == "X3"
-                and row.get("section_id") == "X3"
-                and row.get("outcome") == "SUCCESS"
-            ):
+            if row.get("stage") == "X3" and row.get("section_id") == "X3" and row.get("outcome") == "SUCCESS":
                 x3_terminal = True
                 break
     if not x3_terminal:
@@ -2427,9 +2416,7 @@ def read_bare_artifact(run_dir: str | Path, artifact: str) -> str:
     """Return an exact requested artifact for the single public ``show`` command."""
     filename = _SHOW_ARTIFACTS.get(str(artifact or "").strip().casefold())
     if not filename:
-        raise BarePipelineError(
-            "unsupported artifact; choose one of: " + ", ".join(sorted(_SHOW_ARTIFACTS))
-        )
+        raise BarePipelineError("unsupported artifact; choose one of: " + ", ".join(sorted(_SHOW_ARTIFACTS)))
     path = _resolve_run_dir(run_dir) / filename
     if not path.is_file():
         raise BarePipelineError(f"run artifact does not exist: {path}")

@@ -299,18 +299,21 @@ def validate_owner_solo_execution_manifest(manifest: Mapping[str, Any]) -> list[
         issues.append("EXECUTION_MANIFEST_STATUS")
     if not _digest_matches(manifest, "record_digest"):
         issues.append("EXECUTION_MANIFEST_DIGEST")
+    from apps_rg.runtime.core_model_catalog import BGE_M3_EMBEDDING_DIMENSION, BGE_M3_MODEL_ID
+
     runtime = manifest.get("runtime_binding")
     expected_runtime = {
-        "model_id": "BAAI/bge-m3",
+        "model_id": BGE_M3_MODEL_ID,
         "model_revision": "5617a9f61b028005a4858fdac845db406aefb181",
         "model_artifact_sha256": "38ccc2e093252ab0416eee16837c75c641f055b4f3def12091fba8ed94e2b263",
-        "dimension": 1024,
+        "dimension": BGE_M3_EMBEDDING_DIMENSION,
         "normalization": "l2",
         "logical_retrieval_unit": "graph_evidence_cluster",
         "active_cluster_count": 38,
         "network_allowed": False,
         "fallback_allowed": False,
     }
+
     if not isinstance(runtime, Mapping) or any(
         runtime.get(field) != value for field, value in expected_runtime.items()
     ):

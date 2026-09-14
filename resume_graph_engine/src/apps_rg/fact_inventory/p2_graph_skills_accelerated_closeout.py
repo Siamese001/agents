@@ -1,4 +1,5 @@
 """P2-ACCELERATED-CLOSEOUT: all-section graph-skills authority receipts and validators."""
+
 from __future__ import annotations
 
 import hashlib
@@ -189,9 +190,7 @@ def _build_wave_receipt_bindings(*, repo_root: Path) -> dict[str, dict[str, Any]
         payload = _read_json(path)
         expected_schema = _WAVE_SCHEMAS[wave]
         if payload.get("schema") != expected_schema:
-            raise P2CloseoutValidationError(
-                f"{wave} receipt schema must be {expected_schema}: {path}"
-            )
+            raise P2CloseoutValidationError(f"{wave} receipt schema must be {expected_schema}: {path}")
         status = _semantic_status(payload)
         mode = str(payload.get("receipt_mode") or "")
         eligible = payload.get("certification_eligible")
@@ -215,9 +214,7 @@ def _build_wave_receipt_bindings(*, repo_root: Path) -> dict[str, dict[str, Any]
 
 
 def _aggregate_wave_status(bindings: dict[str, dict[str, Any]]) -> str:
-    statuses = {
-        str(binding.get("status") or "").upper() for binding in bindings.values()
-    }
+    statuses = {str(binding.get("status") or "").upper() for binding in bindings.values()}
     if "FAIL" in statuses:
         return "FAIL"
     if "BLOCKED" in statuses:
@@ -249,9 +246,7 @@ def validate_p2_closeout_receipt(
     if mode != expected_mode:
         errors.append(f"terminal receipt_mode must be {expected_mode}")
     if eligible is not expected_eligible:
-        errors.append(
-            f"terminal certification_eligible must be {str(expected_eligible).lower()}"
-        )
+        errors.append(f"terminal certification_eligible must be {str(expected_eligible).lower()}")
 
     waves = receipt.get("waves")
     bindings = receipt.get("wave_receipt_bindings")
@@ -300,9 +295,7 @@ def validate_p2_closeout_receipt(
             errors.append(f"{wave} bound status mismatch")
         if binding.get("receipt_mode") != payload.get("receipt_mode"):
             errors.append(f"{wave} bound receipt_mode mismatch")
-        if binding.get("certification_eligible") is not payload.get(
-            "certification_eligible"
-        ):
+        if binding.get("certification_eligible") is not payload.get("certification_eligible"):
             errors.append(f"{wave} bound certification_eligible mismatch")
         expected_wave_mode, expected_wave_eligible = _receipt_posture(
             resolved,
@@ -325,9 +318,7 @@ def validate_p2_closeout_receipt(
         errors.append("terminal PASS requires every P2 wave binding to validate")
 
     competencies_ref = str(receipt.get("competencies_p2_w1a_receipt") or "").strip()
-    competencies_digest = str(
-        receipt.get("competencies_p2_w1a_receipt_raw_sha256") or ""
-    ).strip()
+    competencies_digest = str(receipt.get("competencies_p2_w1a_receipt_raw_sha256") or "").strip()
     if not competencies_ref:
         errors.append("missing competencies_p2_w1a_receipt")
     else:
@@ -349,17 +340,12 @@ def validate_p2_closeout_receipt(
             competencies_eligible = competencies_payload.get("certification_eligible")
             if receipt.get("competencies_p2_w1a_receipt_mode") != competencies_mode:
                 errors.append("competencies P2-W1A bound receipt_mode mismatch")
-            if (
-                receipt.get("competencies_p2_w1a_certification_eligible")
-                is not competencies_eligible
-            ):
+            if receipt.get("competencies_p2_w1a_certification_eligible") is not competencies_eligible:
                 errors.append("competencies P2-W1A bound certification_eligible mismatch")
             if competencies_mode != mode:
                 errors.append("competencies P2-W1A receipt mode differs from terminal mode")
             if status == _SEMANTIC_PASS and competencies_eligible is not True:
-                errors.append(
-                    "terminal PASS requires certification-eligible competencies P2-W1A"
-                )
+                errors.append("terminal PASS requires certification-eligible competencies P2-W1A")
     if errors:
         raise P2CloseoutValidationError("; ".join(errors))
 
@@ -484,9 +470,7 @@ def write_p2_w1a_all_sections(
     )
     ledger_any = any(s.get("broad_skills_ledger_used_as_authority") for s in sections.values())
     blocked_sections = sorted(
-        section
-        for section, row in sections.items()
-        if str(row.get("status") or "").upper() != _SEMANTIC_PASS
+        section for section, row in sections.items() if str(row.get("status") or "").upper() != _SEMANTIC_PASS
     )
     all_graph = all(
         s.get("proof_source") == "augmented_skills_graph"
@@ -705,10 +689,7 @@ def _classify_provider(run_dir: Path) -> str:
     if runtime_status == "REAL_LLM":
         return "REAL_LLM"
     name = str(
-        manifest.get("provider_name")
-        or manifest.get("provider")
-        or manifest.get("provider_requested")
-        or ""
+        manifest.get("provider_name") or manifest.get("provider") or manifest.get("provider_requested") or ""
     ).strip()
     if not name:
         return "UNKNOWN"
@@ -777,7 +758,9 @@ def _enrich_live_row_from_run(
     pp_meta = payload.get("proof_pool_metadata") or usage.get("proof_pool_metadata") or {}
     c03_doc = pp_meta.get("c03_graphrag_bound")
     if isinstance(c03_doc, dict):
-        hop_count = int(c03_doc.get("graph_hop_paths_count") or len(c03_doc.get("graph_expansion_refs") or []))
+        hop_count = int(
+            c03_doc.get("graph_hop_paths_count") or len(c03_doc.get("graph_expansion_refs") or [])
+        )
     else:
         hop_count = int(pp_meta.get("c03_graph_hop_paths_count") or 0)
 
@@ -791,9 +774,7 @@ def _enrich_live_row_from_run(
         c03_status = c03_raw or "UNKNOWN"
 
     cmd_out = run_dir / "command_output.txt"
-    cmd_out_rel = (
-        str(cmd_out.relative_to(repo_root)).replace("\\", "/") if cmd_out.is_file() else ""
-    )
+    cmd_out_rel = str(cmd_out.relative_to(repo_root)).replace("\\", "/") if cmd_out.is_file() else ""
 
     row["exit_code"] = exit_code if exit_code is not None else row.get("exit_code", 0)
     row["latest_run_dir"] = str(run_dir)
@@ -810,8 +791,10 @@ def _enrich_live_row_from_run(
     row["proof_pool_type"] = pp_meta.get("proof_pool_type") or payload.get("proof_source")
     row["command_output_path"] = cmd_out_rel
     row["artifact_paths"] = list((manifest.get("artifact_links") or {}).values())
-    row["validator_status"] = "PASS" if row.get("status") == "PASS" and row["x2_status"] == "PASS" else row.get(
-        "validator_status", "UNKNOWN"
+    row["validator_status"] = (
+        "PASS"
+        if row.get("status") == "PASS" and row["x2_status"] == "PASS"
+        else row.get("validator_status", "UNKNOWN")
     )
 
     x3_upper = str(row["x3_disposition"]).upper()
@@ -970,10 +953,10 @@ def _executive_summary_accepted_live_row(*, repo_root: Path) -> dict[str, Any]:
             "section": "executive_summary",
             "command": (
                 "python -m apps_rg --section executive_summary --allow-non-allow-exit-zero "
-                "--target-company TargetCo --target-role \"SVP Engineering Agentic AI\" "
-                "--jd \"SVP Engineering Agentic AI platform leader for regulated financial services "
-                "with GraphRAG and governed agentic runtime.\" "
-                "--manual-brief \"Enterprise SaaS positioning.\""
+                '--target-company TargetCo --target-role "SVP Engineering Agentic AI" '
+                '--jd "SVP Engineering Agentic AI platform leader for regulated financial services '
+                'with GraphRAG and governed agentic runtime." '
+                '--manual-brief "Enterprise SaaS positioning."'
             ),
             "status": "PASS",
         },
@@ -1110,12 +1093,9 @@ def write_p2_w9_live_matrix_closeout(
     live_allow = [s for s, r in sections.items() if r.get("live_x3_allow_claimed")]
     proof_eligible = [s for s, r in sections.items() if r.get("proof_eligible") is True]
     section_statuses = {
-        section: str((sections.get(section) or {}).get("status") or "").upper()
-        for section in ALL_SECTIONS
+        section: str((sections.get(section) or {}).get("status") or "").upper() for section in ALL_SECTIONS
     }
-    blocked = sorted(
-        section for section, status in section_statuses.items() if status != _SEMANTIC_PASS
-    )
+    blocked = sorted(section for section, status in section_statuses.items() if status != _SEMANTIC_PASS)
     broad_authority_used = any(
         bool(r.get("broad_skills_ledger_used_as_authority")) for r in sections.values()
     )
@@ -1169,15 +1149,11 @@ def write_p2_w9_live_matrix_closeout(
             "live_x3_allow_claimed_sections": live_allow,
             "proof_eligible_sections": proof_eligible,
             "blocked_or_partial_sections": blocked,
-            "competencies_p2_w1a_receipt": prior_closeout.get(
-                "competencies_p2_w1a_receipt"
-            ),
+            "competencies_p2_w1a_receipt": prior_closeout.get("competencies_p2_w1a_receipt"),
             "competencies_p2_w1a_receipt_raw_sha256": prior_closeout.get(
                 "competencies_p2_w1a_receipt_raw_sha256"
             ),
-            "competencies_p2_w1a_receipt_mode": prior_closeout.get(
-                "competencies_p2_w1a_receipt_mode"
-            ),
+            "competencies_p2_w1a_receipt_mode": prior_closeout.get("competencies_p2_w1a_receipt_mode"),
             "competencies_p2_w1a_certification_eligible": prior_closeout.get(
                 "competencies_p2_w1a_certification_eligible"
             ),
@@ -1222,9 +1198,7 @@ def write_p2_w9_live(*, repo_root: Path | None = None, skip_live: bool = False) 
         sections[section] = run_canonical_section_live(section, repo_root=root, skip_live=skip_live)
     live_allow = [s for s, r in sections.items() if r.get("live_x3_allow_claimed")]
     blocked = sorted(
-        section
-        for section, row in sections.items()
-        if str(row.get("status") or "").upper() != _SEMANTIC_PASS
+        section for section, row in sections.items() if str(row.get("status") or "").upper() != _SEMANTIC_PASS
     )
     doc = {
         "schema": "canonical_live_section_proofs_p2_w9_v1",
@@ -1296,17 +1270,18 @@ def run_full_closeout(
         p1_w4_closeout_path,
         p1_w5_projection_path,
     )
-    if any(value is not None for value in test_chain) and not all(
-        value is not None for value in test_chain
-    ):
+    if any(value is not None for value in test_chain) and not all(value is not None for value in test_chain):
         raise ValueError(
-            "competencies_out_dir, p1_w4_closeout_path, and "
-            "p1_w5_projection_path must be supplied together"
+            "competencies_out_dir, p1_w4_closeout_path, and p1_w5_projection_path must be supplied together"
         )
-    if all(value is not None for value in test_chain) and _receipt_posture(
-        CLOSEOUT_JSON,
-        semantic_pass=False,
-    )[0] != _TEST_ONLY_RECEIPT_MODE:
+    if (
+        all(value is not None for value in test_chain)
+        and _receipt_posture(
+            CLOSEOUT_JSON,
+            semantic_pass=False,
+        )[0]
+        != _TEST_ONLY_RECEIPT_MODE
+    ):
         raise ValueError("TEST_ONLY competencies upstream overrides require noncanonical P2 outputs")
     del preserve_w9_live_matrix  # stale W9 reuse is intentionally disabled
     rebaseline = write_p2_rebaseline(repo_root=root)
@@ -1361,9 +1336,7 @@ def run_full_closeout(
                 "p1_w5_projection_path": p1_w5_projection_path,
             }
         )
-    competencies_p2_w1a = write_p2_w1a_default_graph_authority_receipt(
-        **competencies_kwargs
-    )
+    competencies_p2_w1a = write_p2_w1a_default_graph_authority_receipt(**competencies_kwargs)
     competencies_receipt_path = Path(competencies_p2_w1a["receipt_json"])
     competencies_receipt = dict(competencies_p2_w1a.get("receipt") or {})
 
@@ -1385,17 +1358,12 @@ def run_full_closeout(
             section
             for source in (w1a, w10)
             for section in (
-                source.get("blocked_sections")
-                or source.get("unsupported_or_blocked_sections")
-                or []
+                source.get("blocked_sections") or source.get("unsupported_or_blocked_sections") or []
             )
         }
     )
     in_memory_status = _aggregate_wave_status(
-        {
-            wave: {"status": _semantic_status(doc)}
-            for wave, doc in wave_docs.items()
-        }
+        {wave: {"status": _semantic_status(doc)} for wave, doc in wave_docs.items()}
     )
 
     bindings = _build_wave_receipt_bindings(repo_root=root)
@@ -1421,13 +1389,9 @@ def run_full_closeout(
             competencies_receipt_path,
             repo_root=root,
         ),
-        "competencies_p2_w1a_receipt_raw_sha256": _raw_sha256(
-            competencies_receipt_path
-        ),
+        "competencies_p2_w1a_receipt_raw_sha256": _raw_sha256(competencies_receipt_path),
         "competencies_p2_w1a_receipt_mode": competencies_receipt.get("receipt_mode"),
-        "competencies_p2_w1a_certification_eligible": competencies_receipt.get(
-            "certification_eligible"
-        ),
+        "competencies_p2_w1a_certification_eligible": competencies_receipt.get("certification_eligible"),
         "live_x3_allow_claimed": False,
         "global_c03_bound_claimed": False,
     }
@@ -1499,8 +1463,9 @@ def main() -> None:
         out = write_p2_w9_live_matrix_closeout(
             run_live=True,
             sections_to_run=P2_W9_IBM_UNIFY_SECTIONS,
-            timeout_s=600,
+            timeout_s=600,  # ssot: exempt(HARDCODED_TIMEOUT)
         )
+
         print(json.dumps({"status": out["status"], "closeout": str(CLOSEOUT_JSON)}, indent=2))
     elif args.w9_live_matrix_only:
         out = write_p2_w9_live_matrix_closeout(run_live=True)

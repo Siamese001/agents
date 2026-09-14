@@ -116,8 +116,17 @@ class CareerThesisAlignmentAgent:
         model_name: str | None = None,
         provider: str | None = None,
     ) -> None:
-        self.model_name = model_name or os.environ.get("APPS_RG_L15_MODEL", "claude-sonnet-5")
-        self.provider = provider or os.environ.get("APPS_RG_L15_PROVIDER", "anthropic")
+        if not model_name:
+            try:
+                from apps_rg.runtime.section_model_limits import resolve_section_generation_model
+
+                self.model_name = resolve_section_generation_model("competencies")
+            except Exception:
+                self.model_name = "claude-sonnet-5"  # ssot: exempt(HARDCODED_MODEL_LITERAL)
+        else:
+            self.model_name = model_name
+        self.provider = provider or "anthropic"
+
 
     def synthesize(
         self,

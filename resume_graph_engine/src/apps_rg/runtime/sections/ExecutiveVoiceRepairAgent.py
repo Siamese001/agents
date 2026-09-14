@@ -19,7 +19,12 @@ from apps_rg.runtime.judges.x1d_panel_harness import extract_x1d_diagnostic
 
 EXECUTIVE_VOICE_REPAIR_AGENT_ENABLED_DEFAULT = True
 EXECUTIVE_VOICE_REPAIR_MAX_ATTEMPTS = 1
-DEFAULT_REPAIR_MODEL = "claude-sonnet-5"
+try:
+    from apps_rg.runtime.section_model_limits import resolve_section_generation_model
+
+    DEFAULT_REPAIR_MODEL = resolve_section_generation_model("executive_summary")
+except Exception:
+    DEFAULT_REPAIR_MODEL = "claude-sonnet-5"  # ssot: exempt(HARDCODED_MODEL_LITERAL)
 
 
 @dataclass(frozen=True)
@@ -361,7 +366,16 @@ def _call_llm_repair(
             headers=headers,
             method="POST",
         )
-        with urllib.request.urlopen(req, timeout=30) as resp:
+
+        def _repair_http_timeout() -> int:
+            try:
+                from apps_rg.runtime.section_model_limits import runtime_limit_int
+
+                return runtime_limit_int("bare_pipeline.http_timeout_seconds")
+            except Exception:
+                return 30  # ssot: exempt(HARDCODED_TIMEOUT)
+
+        with urllib.request.urlopen(req, timeout=_repair_http_timeout()) as resp:
             data = json.loads(resp.read().decode("utf-8"))
             content_blocks = data.get("content", [])
             raw_text = "".join(
@@ -517,9 +531,9 @@ def repair_section_with_executive_voice_agent(
         if resp and isinstance(resp.get("repaired_text"), str):
             proposed_text = resp["repaired_text"].strip()
 
-            # Turn 2: Adversarial Factual Auditor (Claude 3.5 Haiku)
+            # Turn 2: Adversarial Factual Auditor
             auditor_prompt = f"Audit the following revision against ALLOWED FACTS: {json.dumps(allowed_facts)}. Draft: {proposed_text}"
-            audit_resp = _call_llm_repair(sec, auditor_prompt, model="claude-3-5-haiku-20241022")
+            audit_resp = _call_llm_repair(sec, auditor_prompt, model=DEFAULT_REPAIR_MODEL)
 
             # Evaluate Auditor's decision
             if audit_resp and audit_resp.get("disposition") == "PASS":

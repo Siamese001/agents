@@ -39,16 +39,19 @@ def validate_generation_contract(contract: Mapping[str, Any]) -> None:
         issues.append("retrieval_unit.logical_retrieval_unit")
     if unit.get("exact_active_cluster_count") != 38:
         issues.append("retrieval_unit.exact_active_cluster_count")
+    from apps_rg.runtime.core_model_catalog import BGE_M3_EMBEDDING_DIMENSION, BGE_M3_MODEL_ID
+
     runtime = contract.get("embedding_runtime") or {}
     expected_runtime = {
-        "model_id": "BAAI/bge-m3",
+        "model_id": BGE_M3_MODEL_ID,
         "model_revision": "5617a9f61b028005a4858fdac845db406aefb181",
-        "dimension": 1024,
+        "dimension": BGE_M3_EMBEDDING_DIMENSION,
         "normalization": "l2",
         "float_storage": "little_endian_float32",
         "network_allowed": False,
         "fallback_allowed": False,
     }
+
     for field, value in expected_runtime.items():
         if runtime.get(field) != value:
             issues.append(f"embedding_runtime.{field}")

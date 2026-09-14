@@ -29,8 +29,11 @@ from apps_rg.runtime.graph_skill_embedding_projection import (
     validate_embedding_projection,
 )
 
-MODEL_ID = "BAAI/bge-m3"
-MODEL_DIMENSION = 1024
+from apps_rg.runtime.core_model_catalog import BGE_M3_EMBEDDING_DIMENSION, BGE_M3_MODEL_ID
+
+MODEL_ID = BGE_M3_MODEL_ID
+MODEL_DIMENSION = BGE_M3_EMBEDDING_DIMENSION
+
 
 
 class SkillEmbeddingBuildError(RuntimeError):

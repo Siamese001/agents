@@ -21,10 +21,13 @@ from importlib.metadata import version
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
-MODEL_ID = "BAAI/bge-m3"
+from apps_rg.runtime.core_model_catalog import BGE_M3_EMBEDDING_DIMENSION, BGE_M3_MODEL_ID
+
+MODEL_ID = BGE_M3_MODEL_ID
 MODEL_REVISION = "5617a9f61b028005a4858fdac845db406aefb181"
-MODEL_DIMENSION = 1024
+MODEL_DIMENSION = BGE_M3_EMBEDDING_DIMENSION
 RECEIPT_SCHEMA = "apps_rg.gpu_embedding_baseline_w0.v1"
+
 
 RUNTIME_CONTRACT_PATH = Path("tools/apps_rg_standalone/c03_embedding_runtime_contract.json")
 QUERY_MANIFEST_PATH = Path("src/apps_rg/evals/c03_graph_evidence_cluster_queries.v1.json")

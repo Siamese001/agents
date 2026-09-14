@@ -64,16 +64,19 @@ DEFAULT_PACKET_DIR = RUNTIME_DIR / "prelabel_packet"
 OWNER_COHORT = "owner_solo"
 CONTRACT_PATH = Path("src/apps_rg/evals/owner_solo/c03_full_resume_qrel_w3_contract.v1.json")
 
+from apps_rg.runtime.core_model_catalog import BGE_M3_EMBEDDING_DIMENSION, BGE_M3_MODEL_ID
+
 _NONCE_RE = re.compile(r"[0-9a-f]{64}")
 _OPAQUE_ITEM_RE = re.compile(r"item-[0-9a-f]{24}")
 _OPAQUE_CANDIDATE_RE = re.compile(r"candidate-[0-9a-f]{24}")
 _PINNED_MODEL = {
-    "model_id": "BAAI/bge-m3",
+    "model_id": BGE_M3_MODEL_ID,
     "revision": "5617a9f61b028005a4858fdac845db406aefb181",
     "artifact_sha256": ("38ccc2e093252ab0416eee16837c75c641f055b4f3def12091fba8ed94e2b263"),
-    "dimension": 1024,
+    "dimension": BGE_M3_EMBEDDING_DIMENSION,
     "normalization": "l2",
 }
+
 _SECTION_TITLES = {
     "headline": "Headline",
     "executive_summary": "Executive Summary",

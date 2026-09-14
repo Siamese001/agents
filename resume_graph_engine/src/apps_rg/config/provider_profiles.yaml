@@ -197,7 +197,14 @@ selector_models:
 
 runtime_limits:
   section_context_window: 131072
+  bare_pipeline:
+    research_max_tokens: 2400
+    tailored_resume_max_tokens: 5000
+    http_timeout_seconds: 30
+  judge_http:
+    timeout_seconds: 60
   # W1 external-model spend guard.  This is a conservative reservation of
+
   # estimated input plus requested maximum output, not a truncation policy.
   # It prevents a malformed loop from consuming unbounded paid capacity.
   model_token_governor:

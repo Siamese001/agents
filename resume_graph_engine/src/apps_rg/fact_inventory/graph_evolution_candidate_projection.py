@@ -12,6 +12,7 @@ from typing import Any
 from apps_rg.runtime.core_io import write_gateway as _wg
 
 from apps_rg.fact_inventory.graph_evolution_authority import build_ge_w0_authority_baseline
+from apps_rg.runtime.core_model_catalog import BGE_M3_EMBEDDING_DIMENSION, BGE_M3_MODEL_ID
 
 GE_W5_CONTRACT_RELATIVE_PATH = Path(
     "src/apps_rg/fact_inventory/graph_evolution_candidate_projection_contract.v1.json"
@@ -90,8 +91,8 @@ def validate_ge_w5_candidate_projection_contract(contract: Mapping[str, Any]) ->
     embedding = contract.get("embedding")
     if (
         not isinstance(embedding, Mapping)
-        or embedding.get("model_id") != "BAAI/bge-m3"
-        or embedding.get("dimension") != 1024
+        or embedding.get("model_id") != BGE_M3_MODEL_ID
+        or embedding.get("dimension") != BGE_M3_EMBEDDING_DIMENSION
         or embedding.get("normalization") != "l2"
         or embedding.get("fallback_allowed") is not False
         or embedding.get("runtime_proof_required") is not True
@@ -225,8 +226,8 @@ def build_candidate_cluster_projection(
     if issues:
         return {"route": "BLOCKED", "reason": "GE_W5_PRECONDITION_FAILED", "issues": issues}
     if (
-        model_manifest.get("model_id") != "BAAI/bge-m3"
-        or model_manifest.get("dimension") != 1024
+        model_manifest.get("model_id") != BGE_M3_MODEL_ID
+        or model_manifest.get("dimension") != BGE_M3_EMBEDDING_DIMENSION
         or model_manifest.get("normalization") != "l2"
         or not _text(model_manifest.get("artifact_sha256"))
     ):
