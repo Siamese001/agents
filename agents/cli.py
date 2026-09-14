@@ -26,6 +26,13 @@ for p in (_REPO_ROOT, _RG_SRC, _OE_SRC):
         sys.path.insert(0, str(p))
 
 
+# Bootstrap environment from env_agents / .env SSOT
+try:
+    from apps_rg.runtime.env_bootstrap import bootstrap_apps_rg_env
+    bootstrap_apps_rg_env(repo_root=_REPO_ROOT)
+except Exception:
+    pass
+
 # Ensure local dev route signing secrets exist if not supplied in environment
 if not os.environ.get("APPS_RG_ROUTE_HMAC_SECRET"):
     os.environ["APPS_RG_ROUTE_HMAC_SECRET"] = "agents-local-dev-session-secret"
@@ -115,6 +122,21 @@ def run_e2e(args: argparse.Namespace) -> int:
     research_enabled = getattr(args, "with_research", False) or getattr(args, "research_status", "disabled") == "enabled"
     research_optional = getattr(args, "research_status", "disabled") == "optional"
     research_label = "ENABLED" if research_enabled else ("OPTIONAL" if research_optional else "DISABLED")
+
+    # Live execution preflight: ensure authorized credentials exist before starting lifecycle
+    try:
+        from agents.live_preflight import assert_engine_live_preflight
+
+        assert_engine_live_preflight(
+            "agents e2e",
+            providers=("openai", "anthropic", "google"),
+            is_demo=bool(getattr(args, "demo", False)),
+        )
+    except Exception as exc:
+        sys.stderr.write(f"[agents e2e] Preflight Credential Failure:\n{exc}\n")
+        if getattr(args, "json", False):
+            print(json.dumps({"status": "FAILED", "error": str(exc)}, indent=2))
+        return 2
 
     if not args.json:
         print("\n" + "=" * 65)
@@ -316,11 +338,19 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     # Handle unified engine dispatch
     if engine in {"resume", "resume_engine", "resume_graph_engine", "apps_rg"}:
+        from agents.live_preflight import assert_engine_live_preflight
+
+        assert_engine_live_preflight("agents resume", providers=("openai",))
         from apps_rg.__main__ import main as resume_main
+
         return resume_main(sub_args)
 
     if engine in {"outreach", "outreach_engine", "apps_lic"}:
+        from agents.live_preflight import assert_engine_live_preflight
+
+        assert_engine_live_preflight("agents outreach", providers=("openai",))
         from apps_lic.__main__ import main as outreach_main
+
         return outreach_main(sub_args)
 
     if engine == "e2e":
