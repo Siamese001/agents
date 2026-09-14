@@ -11,6 +11,13 @@ from datetime import datetime, timezone
 from typing import Any
 
 from agents.orchestration.primitives import WorkflowStatus
+from agents.orchestration.state_contracts import (
+    ResumeRunState,
+    RunCheckpoint,
+    RunPhase,
+    validate_and_transition,
+    workflow_status_to_run_phase,
+)
 
 
 class InvalidStateTransitionError(ValueError):
@@ -74,15 +81,40 @@ class StateTransitionRecord:
 class WorkflowStateMachine:
     """State machine governing workflow lifecycle transitions and audit logging."""
 
-    def __init__(self, workflow_id: str, *, initial_status: WorkflowStatus = WorkflowStatus.CREATED) -> None:
+    def __init__(
+        self,
+        workflow_id: str,
+        *,
+        initial_status: WorkflowStatus = WorkflowStatus.CREATED,
+        run_state: ResumeRunState | None = None,
+    ) -> None:
         self.workflow_id = workflow_id
         self._current_status = initial_status
         self._history: list[StateTransitionRecord] = []
         self._created_at_utc = datetime.now(timezone.utc).isoformat()
+        self._run_state: ResumeRunState = run_state or ResumeRunState(
+            run_id=workflow_id,
+            workflow_id=workflow_id,
+            phase=workflow_status_to_run_phase(initial_status),
+        )
+        self._checkpoint_seq: int = 0
 
     @property
     def current_status(self) -> WorkflowStatus:
         return self._current_status
+
+    @property
+    def current_phase(self) -> RunPhase:
+        return self._run_state.phase
+
+    @property
+    def run_state(self) -> ResumeRunState:
+        return self._run_state
+
+    def checkpoint(self) -> RunCheckpoint:
+        """Return an immutable cryptographic checkpoint of current run state."""
+        self._checkpoint_seq += 1
+        return self._run_state.create_checkpoint(sequence=self._checkpoint_seq)
 
     @property
     def history(self) -> tuple[StateTransitionRecord, ...]:
@@ -123,6 +155,30 @@ class WorkflowStateMachine:
         )
         self._history.append(record)
         self._current_status = target_status
+
+        # Synchronize typed RunPhase if it changes
+        target_phase = workflow_status_to_run_phase(target_status)
+        if target_phase != self._run_state.phase:
+            try:
+                self._run_state = validate_and_transition(
+                    self._run_state,
+                    target_phase,
+                    payload_updates={"last_reason": reason} if reason else None,
+                )
+            except Exception:
+                # Direct jump allowed at state machine level (e.g. from WAITING)
+                self._run_state = ResumeRunState(
+                    run_id=self._run_state.run_id,
+                    workflow_id=self._run_state.workflow_id,
+                    phase=target_phase,
+                    step_index=self._run_state.step_index + 1,
+                    payload=self._run_state.payload,
+                    counters=self._run_state.counters,
+                    budget=self._run_state.budget,
+                    context_digest=self._run_state.context_digest,
+                    last_failure=self._run_state.last_failure,
+                )
+
         return record
 
     def as_dict(self) -> dict[str, Any]:
@@ -130,6 +186,8 @@ class WorkflowStateMachine:
         return {
             "workflow_id": self.workflow_id,
             "current_status": self._current_status.value,
+            "current_phase": self.current_phase.value,
+            "checkpoint_digest": self._run_state.compute_digest(),
             "created_at_utc": self._created_at_utc,
             "updated_at_utc": self._history[-1].timestamp_utc if self._history else self._created_at_utc,
             "is_terminal": self._current_status.is_terminal,

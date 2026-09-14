@@ -209,7 +209,7 @@ class ResumeRunState:
         ]
         return hashlib.sha256(";".join(components).encode("utf-8")).hexdigest()
 
-    def create_checkpoint(self, sequence: int) -> RunCheckpoint:
+    def create_checkpoint(self, sequence: int = 0) -> RunCheckpoint:
         """Generate a tamper-evident, monotonically sequenced checkpoint."""
         digest = self.compute_digest()
         checkpoint_id = f"chk-{self.run_id[:8]}-{sequence:04d}"
@@ -220,6 +220,10 @@ class ResumeRunState:
             state_digest=digest,
             timestamp=time.time(),
         )
+
+    def to_checkpoint(self, sequence: int = 0) -> RunCheckpoint:
+        """Alias for create_checkpoint."""
+        return self.create_checkpoint(sequence=sequence)
 
 
 @dataclass(frozen=True, slots=True)
@@ -232,10 +236,25 @@ class RunCheckpoint:
     state_digest: str
     timestamp: float = field(default_factory=time.time)
 
+    @property
+    def digest(self) -> str:
+        return self.state_digest
+
     def verify_integrity(self) -> bool:
         """Verify that state payload matches the recorded SHA-256 digest."""
         computed = self.state.compute_digest()
         return computed == self.state_digest
+
+    def as_dict(self) -> dict[str, Any]:
+        """Serialize checkpoint metadata for telemetry persistence."""
+        return {
+            "checkpoint_id": self.checkpoint_id,
+            "sequence": self.sequence,
+            "phase": self.state.phase.value,
+            "step_index": self.state.step_index,
+            "state_digest": self.state_digest,
+            "timestamp": self.timestamp,
+        }
 
 
 class IllegalPhaseTransitionError(Exception):
@@ -300,3 +319,23 @@ def validate_and_transition(
         created_at=current.created_at,
         updated_at=time.time(),
     )
+
+
+def workflow_status_to_run_phase(status: Any) -> RunPhase:
+    """Convert a WorkflowStatus or status string to its corresponding RunPhase."""
+    val = status.value if hasattr(status, "value") else str(status)
+    mapping = {
+        "CREATED": RunPhase.CREATED,
+        "PLANNED": RunPhase.CREATED,
+        "RUNNING": RunPhase.RUNNING,
+        "WAITING": RunPhase.WAITING,
+        "REVIEWING": RunPhase.RUNNING,
+        "REPAIRING": RunPhase.REPAIRING,
+        "REVISING": RunPhase.REVISING,
+        "REPLANNING": RunPhase.REPLANNING,
+        "PAUSED": RunPhase.WAITING,
+        "CANCELLED": RunPhase.CANCELLED,
+        "FAILED": RunPhase.FAILED,
+        "COMPLETED": RunPhase.COMPLETED,
+    }
+    return mapping.get(val, RunPhase.RUNNING)

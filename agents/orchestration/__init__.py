@@ -16,6 +16,11 @@ from agents.orchestration.failure_taxonomy import (
     RevisionRequest,
     derive_recovery_action,
 )
+from agents.orchestration.feedback_controller import (
+    ControllerAction,
+    FeedbackController,
+    FeedbackDecision,
+)
 from agents.orchestration.primitives import (
     ExecutionRetry,
     OrchestrationPrimitive,
@@ -40,9 +45,12 @@ from agents.orchestration.state_machine import (
 )
 
 __all__ = [
+    "ControllerAction",
     "ExecutionFailure",
     "ExecutionRetry",
     "FailureKind",
+    "FeedbackController",
+    "FeedbackDecision",
     "IllegalPhaseTransitionError",
     "InvalidStateTransitionError",
     "OrchestrationPrimitive",

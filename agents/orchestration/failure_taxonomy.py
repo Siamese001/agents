@@ -101,9 +101,29 @@ def derive_recovery_action(kind: FailureKind, attempt: int, max_limit: int) -> R
             return RecoveryAction.SEMANTIC_REVISION
         case FailureKind.PLANNING:
             return RecoveryAction.COGNITIVE_REPLAN
-        case FailureKind.POLICY:
-            return RecoveryAction.TERMINAL_FAIL
-        case FailureKind.PROVIDER:
-            return RecoveryAction.TRANSPORT_RETRY
         case _:
             return RecoveryAction.TERMINAL_FAIL
+
+
+def classify_failure(exc: Exception) -> FailureKind:
+    """Classify an exception into an authoritative FailureKind."""
+    msg = str(exc).lower()
+    if any(token in msg for token in ("timeout", "rate limit", "connection reset", "503", "504", "transient")):
+        return FailureKind.TRANSPORT
+    if any(token in msg for token in ("json", "schema", "validation", "pydantic", "missing key")):
+        return FailureKind.SCHEMA
+    if any(token in msg for token in ("policy", "denied", "prohibited", "forbidden", "unauthorized")):
+        return FailureKind.POLICY
+    if any(token in msg for token in ("replan", "goal", "strategy", "task plan")):
+        return FailureKind.PLANNING
+    return FailureKind.PROVIDER
+
+
+__all__ = [
+    "ExecutionFailure",
+    "FailureKind",
+    "RecoveryAction",
+    "RevisionRequest",
+    "classify_failure",
+    "derive_recovery_action",
+]

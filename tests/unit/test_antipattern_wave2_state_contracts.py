@@ -195,3 +195,54 @@ def test_resume_run_state_immutability() -> None:
     )
     with pytest.raises(FrozenInstanceError):
         state.phase = RunPhase.RUNNING  # type: ignore[misc]
+
+
+def test_state_machine_and_engine_wave2_integration(tmp_path) -> None:
+    """Verify state machine and engine integration with RunPhase and checkpoints."""
+    from agents.orchestration.primitives import (
+        ExecutionRetry,
+        OrchestrationPrimitive,
+        Replan,
+        SemanticRepair,
+        WorkflowStatus,
+        WorkflowStep,
+    )
+    from agents.orchestration.state_machine import WorkflowStateMachine
+    from agents.orchestration.engine import WorkflowExecutionEngine
+
+    # 1. Primitives recovery action mapping
+    assert ExecutionRetry(attempt=0).recovery_action == "TRANSPORT_RETRY"
+    assert SemanticRepair().recovery_action == "SCHEMA_REPAIR"
+    assert Replan(cycle=0).recovery_action == "COGNITIVE_REPLAN"
+
+    # 2. State machine RunPhase and checkpoint
+    sm = WorkflowStateMachine("wf-integration-001")
+    assert sm.current_phase == RunPhase.CREATED
+    chk = sm.checkpoint()
+    assert chk.state_digest != ""
+
+    sm.transition_to(WorkflowStatus.PLANNED)
+    sm.transition_to(WorkflowStatus.RUNNING)
+    assert sm.current_phase == RunPhase.RUNNING
+    chk2 = sm.checkpoint()
+    assert chk2.sequence >= chk.sequence
+
+    # 3. Engine execution and state persistence
+    engine = WorkflowExecutionEngine(
+        "wf-integration-002",
+        artifact_dir=tmp_path,
+    )
+    step = WorkflowStep(
+        step_id="step-1",
+        primitive=OrchestrationPrimitive.SEQUENCE,
+        handler=lambda ctx: {"data": "ok"},
+    )
+    report = engine.execute_plan([step])
+    assert report.success is True
+    assert report.final_status == WorkflowStatus.COMPLETED
+
+    # Checkpoint exists in persisted artifact
+    import json
+    saved = json.loads((tmp_path / "workflow_state.json").read_text())
+    assert "checkpoint" in saved
+    assert saved["final_phase"] == "COMPLETED"

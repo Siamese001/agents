@@ -78,6 +78,10 @@ class ExecutionRetry:
     def can_retry(self) -> bool:
         return self.attempt < self.max_attempts
 
+    @property
+    def recovery_action(self) -> str:
+        return "TRANSPORT_RETRY"
+
 
 @dataclass(frozen=True, slots=True)
 class SemanticRepair:
@@ -91,6 +95,10 @@ class SemanticRepair:
     validation_errors: tuple[str, ...] = ()
     repair_action: str = ""
     repaired_payload: Mapping[str, Any] | None = None
+
+    @property
+    def recovery_action(self) -> str:
+        return "SCHEMA_REPAIR"
 
 
 @dataclass(frozen=True, slots=True)
@@ -111,6 +119,10 @@ class Replan:
     @property
     def can_replan(self) -> bool:
         return self.cycle < self.max_cycles
+
+    @property
+    def recovery_action(self) -> str:
+        return "COGNITIVE_REPLAN"
 
 
 @dataclass(slots=True)

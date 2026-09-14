@@ -15,6 +15,13 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable
 
+from agents.orchestration.failure_taxonomy import (
+    ExecutionFailure,
+    FailureKind,
+    RecoveryAction,
+    classify_failure,
+    derive_recovery_action,
+)
 from agents.orchestration.primitives import (
     ExecutionRetry,
     OrchestrationPrimitive,
@@ -201,13 +208,23 @@ class WorkflowExecutionEngine:
                     break
                 except Exception as exc:
                     step_err = str(exc)
+                    failure_kind = classify_failure(exc)
+                    recovery = derive_recovery_action(failure_kind, retries, max_retries)
                     # Check if error is transient technical retry
-                    if retries < max_retries and self._is_transient_error(exc):
+                    if retries < max_retries and (
+                        recovery == RecoveryAction.TRANSPORT_RETRY or self._is_transient_error(exc)
+                    ):
                         retries += 1
                         self.emitter.emit(
                             TelemetryEventType.STEP_RECOVERY,
                             step_corr,
-                            {"step_id": step_id, "retry_count": retries, "error": step_err},
+                            {
+                                "step_id": step_id,
+                                "retry_count": retries,
+                                "error": step_err,
+                                "failure_kind": failure_kind.value,
+                                "recovery_action": recovery.value,
+                            },
                         )
                         time.sleep(0.05 * retries)
                         continue
@@ -296,6 +313,8 @@ class WorkflowExecutionEngine:
                 "workflow_id": self.workflow_id,
                 "correlation": self.correlation.to_dict(),
                 "final_status": self.state_machine.current_status.value,
+                "final_phase": self.state_machine.current_phase.value,
+                "checkpoint": self.state_machine.checkpoint().as_dict(),
                 "success": overall_success,
                 "telemetry_events_count": len(self.emitter.events),
                 "steps": {k: v.as_dict() for k, v in step_results.items()},
