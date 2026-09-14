@@ -1,1 +1,0 @@
-resume_tailor_grounding artifact

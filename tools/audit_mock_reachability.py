@@ -13,11 +13,11 @@ from typing import Sequence
 _FORBIDDEN_PRODUCTION_PATTERNS = [
     (
         re.compile(r'(?:or\s*|=\s*|\breturn\s+)["\']sk-local-dev-key["\']'),
-        "Hardcoded fallback or assignment of 'sk-local-dev-key'",
+        "MR004: Hardcoded fallback or assignment of 'sk-local-dev-key'",
     ),
     (
         re.compile(r'(?:or\s*|=\s*|\breturn\s+)["\']http://localhost:8000/v1["\']'),
-        "Hardcoded fallback or assignment of 'http://localhost:8000/v1'",
+        "MR005: Hardcoded fallback or assignment of 'http://localhost:8000/v1'",
     ),
 ]
 
@@ -28,6 +28,55 @@ _PRODUCTION_ROOTS = [
     "outreach_engine/src/apps_lic",
     "infrastructure",
 ]
+
+
+class _MockReachabilityVisitor(ast.NodeVisitor):
+    """AST visitor to detect unguarded mock branches and bypass flags in production."""
+
+    def __init__(self, rel_path: str) -> None:
+        self.rel_path = rel_path
+        self.violations: list[str] = []
+
+    def visit_If(self, node: ast.If) -> None:
+        # Check if condition checks for mode == "mocked"
+        is_mocked_check = False
+        if isinstance(node.test, ast.Compare):
+            left = node.test.left
+            comparators = node.test.comparators
+            # mode == "mocked"
+            if isinstance(left, ast.Name) and left.id == "mode":
+                for comp in comparators:
+                    if isinstance(comp, ast.Constant) and comp.value == "mocked":
+                        is_mocked_check = True
+            elif isinstance(left, ast.Constant) and left.value == "mocked":
+                for comp in comparators:
+                    if isinstance(comp, ast.Name) and comp.id == "mode":
+                        is_mocked_check = True
+
+        if is_mocked_check:
+            # Verify if this mocked block contains a guard against production runtime
+            # e.g., calling _is_test_environment(), is_test_harness(), or checking APPS_RG_PRODUCTION_RUN
+            has_guard = False
+            for stmt in node.body:
+                stmt_str = ast.dump(stmt)
+                if any(g in stmt_str for g in (
+                    "_is_test_environment",
+                    "is_test_harness",
+                    "APPS_RG_PRODUCTION_RUN",
+                    "MOCK_JUDGE_FORBIDDEN",
+                    "MOCK_PANEL_FORBIDDEN",
+                    "LIVE_SELECTOR_ENFORCEMENT",
+                    "raise",
+                )):
+                    has_guard = True
+                    break
+
+            if not has_guard:
+                self.violations.append(
+                    f"{self.rel_path}:{node.lineno}: MR001: Unguarded 'mode == \"mocked\"' branch without production runtime check"
+                )
+
+        self.generic_visit(node)
 
 
 def audit_production_file(file_path: Path, repo_root: Path) -> list[str]:
@@ -47,7 +96,6 @@ def audit_production_file(file_path: Path, repo_root: Path) -> list[str]:
 
     lines = content.splitlines()
     for idx, line in enumerate(lines, start=1):
-        # Skip comments
         stripped = line.strip()
         if stripped.startswith("#"):
             continue
@@ -59,6 +107,15 @@ def audit_production_file(file_path: Path, repo_root: Path) -> list[str]:
         for pattern, desc in _FORBIDDEN_PRODUCTION_PATTERNS:
             if pattern.search(line):
                 violations.append(f"{rel_str}:{idx}: {desc}: {line.strip()[:80]}")
+
+    # AST checks
+    try:
+        tree = ast.parse(content, filename=str(file_path))
+        visitor = _MockReachabilityVisitor(rel_str)
+        visitor.visit(tree)
+        violations.extend(visitor.violations)
+    except SyntaxError:
+        pass
 
     return violations
 

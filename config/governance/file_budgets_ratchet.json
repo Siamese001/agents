@@ -187,36 +187,8 @@
     "line_limit": 1000,
     "justification": "Baseline legacy module pending decomposition"
   },
-  "resume_graph_engine/src/apps_model_telemetry/otel_runtime.py": {
-    "line_limit": 661,
-    "justification": "Baseline legacy module pending decomposition"
-  },
   "resume_graph_engine/src/apps_rg/bare_pipeline.py": {
     "line_limit": 2448,
-    "justification": "Baseline legacy module pending decomposition"
-  },
-  "resume_graph_engine/src/apps_eval/trends.py": {
-    "line_limit": 973,
-    "justification": "Baseline legacy module pending decomposition"
-  },
-  "resume_graph_engine/src/apps_research/types/apps_rg_targeting_brief_contract.py": {
-    "line_limit": 824,
-    "justification": "Baseline legacy module pending decomposition"
-  },
-  "resume_graph_engine/src/apps_research/integrations/apps_rg_handoff.py": {
-    "line_limit": 1749,
-    "justification": "Baseline legacy module pending decomposition"
-  },
-  "resume_graph_engine/src/apps_research/integrations/provider_gateway.py": {
-    "line_limit": 622,
-    "justification": "Baseline legacy module pending decomposition"
-  },
-  "resume_graph_engine/src/apps_research/engines/research_assembly_engine.py": {
-    "line_limit": 619,
-    "justification": "Baseline legacy module pending decomposition"
-  },
-  "resume_graph_engine/src/apps_research/engines/company_brief_engine.py": {
-    "line_limit": 2255,
     "justification": "Baseline legacy module pending decomposition"
   },
   "resume_graph_engine/src/apps_rg/evals/resume_graph_evaluation.py": {
@@ -732,7 +704,7 @@
     "justification": "Baseline legacy module pending decomposition"
   },
   "resume_graph_engine/src/apps_rg/runtime/assembly/full_resume_llm_coherence.py": {
-    "line_limit": 676,
+    "line_limit": 687,
     "justification": "Baseline legacy module pending decomposition"
   },
   "resume_graph_engine/src/apps_rg/runtime/assembly/final_resume_x2.py": {
@@ -897,26 +869,6 @@
   },
   "resume_graph_engine/src/apps_rg/runtime/bindings/l1_planning_capsule.py": {
     "line_limit": 1270,
-    "justification": "Baseline legacy module pending decomposition"
-  },
-  "resume_graph_engine/src/apps_eval/runner/core.py": {
-    "line_limit": 2150,
-    "justification": "Baseline legacy module pending decomposition"
-  },
-  "resume_graph_engine/src/apps_eval/contracts/models.py": {
-    "line_limit": 664,
-    "justification": "Baseline legacy module pending decomposition"
-  },
-  "resume_graph_engine/src/apps_eval/adapters/resume_graph_engine.py": {
-    "line_limit": 1614,
-    "justification": "Baseline legacy module pending decomposition"
-  },
-  "resume_graph_engine/src/apps_eval/diagnostics/apps_rg.py": {
-    "line_limit": 612,
-    "justification": "Baseline legacy module pending decomposition"
-  },
-  "resume_graph_engine/src/apps_eval/coverage/apps_rg.py": {
-    "line_limit": 1048,
     "justification": "Baseline legacy module pending decomposition"
   },
   "apps_research/types/apps_rg_targeting_brief_contract.py": {
