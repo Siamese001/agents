@@ -32,7 +32,8 @@ class RecoveryAction(str, Enum):
     SCHEMA_REPAIR = "SCHEMA_REPAIR"              # Deterministic patch or targeted re-parse; no model re-prompt
     SEMANTIC_REVISION = "SEMANTIC_REVISION"      # Multi-turn model turn with structured RevisionRequest feedback
     COGNITIVE_REPLAN = "COGNITIVE_REPLAN"        # Plan-level redesign or strategy alternation
-    TERMINAL_FAIL = "TERMINAL_FAIL"              # Escalation to fatal run status; unrecoverable failure
+    TERMINAL_ESCALATION = "TERMINAL_ESCALATION"  # Escalation to fatal run status; unrecoverable failure
+    TERMINAL_FAIL = "TERMINAL_ESCALATION"        # Backward-compatible alias to TERMINAL_ESCALATION
 
 
 @dataclass(frozen=True, slots=True)
@@ -87,10 +88,10 @@ def derive_recovery_action(kind: FailureKind, attempt: int, max_limit: int) -> R
     - Schema -> SCHEMA_REPAIR
     - Deterministic Quality & Factual Conflict -> SEMANTIC_REVISION
     - Planning -> COGNITIVE_REPLAN
-    - Policy -> TERMINAL_FAIL (Policy denials are never auto-revised)
+    - Policy -> TERMINAL_ESCALATION (Policy denials are never auto-revised)
     """
     if attempt >= max_limit:
-        return RecoveryAction.TERMINAL_FAIL
+        return RecoveryAction.TERMINAL_ESCALATION
 
     match kind:
         case FailureKind.TRANSPORT:
@@ -102,7 +103,7 @@ def derive_recovery_action(kind: FailureKind, attempt: int, max_limit: int) -> R
         case FailureKind.PLANNING:
             return RecoveryAction.COGNITIVE_REPLAN
         case _:
-            return RecoveryAction.TERMINAL_FAIL
+            return RecoveryAction.TERMINAL_ESCALATION
 
 
 def classify_failure(exc: Exception) -> FailureKind:

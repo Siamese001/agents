@@ -115,12 +115,14 @@ def test_failure_taxonomy_and_recovery_derivation() -> None:
     action_plan = derive_recovery_action(FailureKind.PLANNING, attempt=0, max_limit=1)
     assert action_plan == RecoveryAction.COGNITIVE_REPLAN
 
-    # Policy denial ALWAYS maps to TERMINAL_FAIL
+    # Policy denial ALWAYS maps to TERMINAL_ESCALATION
     action_policy = derive_recovery_action(FailureKind.POLICY, attempt=0, max_limit=5)
+    assert action_policy == RecoveryAction.TERMINAL_ESCALATION
     assert action_policy == RecoveryAction.TERMINAL_FAIL
 
-    # Limit reached maps to TERMINAL_FAIL
+    # Limit reached maps to TERMINAL_ESCALATION
     action_exhausted = derive_recovery_action(FailureKind.TRANSPORT, attempt=3, max_limit=3)
+    assert action_exhausted == RecoveryAction.TERMINAL_ESCALATION
     assert action_exhausted == RecoveryAction.TERMINAL_FAIL
 
 

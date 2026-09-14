@@ -292,7 +292,7 @@ def validate_and_transition(
         raise IllegalPhaseTransitionError(current.phase, target_phase)
 
     new_counters = current.counters
-    if recovery_action and recovery_action != RecoveryAction.TERMINAL_FAIL:
+    if recovery_action and recovery_action not in (RecoveryAction.TERMINAL_ESCALATION, RecoveryAction.TERMINAL_FAIL):
         if current.counters.is_exhausted(current.budget, recovery_action):
             raise ValueError(
                 f"Recovery budget exhausted for {recovery_action.value}: limit {current.budget.limit_for(recovery_action)} reached."
