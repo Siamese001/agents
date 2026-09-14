@@ -522,6 +522,25 @@ def _run_section_spine_exit_eval(
     """Exit disposition + section receipts — requires ``sealed_l2_artifact.json`` on disk."""
     run_id = str(runtime_payload.get("run_id") or "")
     request_id = str(runtime_payload.get("request_id") or run_id)
+    # Authoritative L1 Post-L2 Review Gate: Exit cannot authorize if L1 review rejected observation
+    l1_review_payload = runtime_payload.get("l1_post_tool_review")
+    if not l1_review_payload:
+        rev_path = artifact_dir / "l1_post_tool_review.json"
+        if rev_path.is_file():
+            try:
+                l1_review_payload = json.loads(rev_path.read_text(encoding="utf-8"))
+            except Exception:
+                l1_review_payload = None
+
+    if l1_review_payload is not None:
+        verdict = str(l1_review_payload.get("verdict", "")).upper()
+        if verdict and verdict != "SUFFICIENT":
+            x3_doc["pass_"] = False
+            x3_doc["blocked_by_gate"] = "l1_post_tool_review"
+            x3_doc["x3_code"] = f"X3_BLOCK_L1_REVIEW_{verdict}"
+            _write_json(artifact_dir / "x3_disposition.json", x3_doc)
+            runtime_payload["l1_review_blocked"] = True
+
     receipts: dict[str, Any] = {
         "run_id": run_id,
         "request_id": request_id,
