@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import hashlib
 from pathlib import Path
+import sqlite3
 import pytest
 
 from agents.observability import (
@@ -22,6 +23,8 @@ from agents.observability import (
     AgentEventType,
     ArtifactDigest,
     ArtifactManifest,
+    DeterministicReplayEngine,
+    ReplayRequest,
     ReplayVerifier,
     create_artifact_manifest,
     create_event_envelope,
@@ -389,4 +392,108 @@ def test_persistence_domain_isolation() -> None:
     assert "import sqlite3" not in fc_source
     assert "agents.persistence.sqlite" not in sc_source
     assert "agents.persistence.sqlite" not in fc_source
+
+
+def test_sqlite_event_store_concurrency_and_duplicates() -> None:
+    store = SqliteEventStore(":memory:")
+    run_id = "run-sql-dups"
+
+    e1 = create_event_envelope(
+        event_type=AgentEventType.PHASE_TRANSITION,
+        run_id=run_id,
+        correlation_id="corr-sql-dup",
+        sequence=1,
+        producer="test",
+        payload={"phase": "CREATED"},
+    )
+    store.append(e1)
+
+    # Attempt to append duplicate sequence for the same run_id must raise sqlite3.IntegrityError
+    duplicate_e1 = create_event_envelope(
+        event_type=AgentEventType.FEEDBACK_DECISION,
+        run_id=run_id,
+        correlation_id="corr-sql-dup",
+        sequence=1,
+        producer="test",
+        payload={"action": "CONFLICT"},
+    )
+    with pytest.raises(sqlite3.IntegrityError):
+        store.append(duplicate_e1)
+
+    store.close()
+
+
+def test_adversarial_replay_scenarios() -> None:
+    run_id = "run-adversarial"
+    corr_id = "corr-adversarial"
+
+    e1 = create_event_envelope(
+        event_type=AgentEventType.PHASE_TRANSITION,
+        run_id=run_id,
+        correlation_id=corr_id,
+        sequence=1,
+        producer="engine",
+        payload={"previous_phase": "CREATED", "next_phase": "RUNNING"},
+    )
+
+    # Valid artifact manifest and content
+    content = b"Candidate Resume v1.0"
+    manifest = create_artifact_manifest(
+        run_id=run_id,
+        artifact_id="art-adv-01",
+        artifact_type="text_resume",
+        producer="builder",
+        raw_bytes=content,
+    )
+
+    engine = DeterministicReplayEngine()
+
+    # Scenario 1: Missing artifact manifest
+    bad_req_1 = ReplayRequest(
+        run_id=run_id,
+        events=[e1],
+        artifacts={"art-adv-01": content},
+        manifests=[],
+    )
+    res_1 = engine.replay_run(bad_req_1)
+    assert res_1.is_replayable is False
+    assert any("Missing manifest" in err for err in res_1.errors)
+
+    # Scenario 2: Content tampering (byte hash mismatch against manifest)
+    tampered_bytes = b"Tampered Content!"
+    bad_req_2 = ReplayRequest(
+        run_id=run_id,
+        events=[e1],
+        artifacts={"art-adv-01": tampered_bytes},
+        manifests=[manifest],
+    )
+    res_2 = engine.replay_run(bad_req_2)
+    assert res_2.is_replayable is False
+    assert any("hash mismatch" in err for err in res_2.errors)
+
+
+def test_schema_version_and_metadata_invariants() -> None:
+    e = create_event_envelope(
+        event_type=AgentEventType.PHASE_TRANSITION,
+        run_id="run-schema-01",
+        correlation_id="corr-schema-01",
+        sequence=1,
+        producer="engine",
+        payload={"phase": "CREATED"},
+        metadata={"tenant": "acme", "environment": "production"},
+    )
+    assert e.schema_version == 1
+    assert e.metadata["tenant"] == "acme"
+    assert e.verify_integrity() is True
+
+    manifest = create_artifact_manifest(
+        run_id="run-schema-01",
+        artifact_id="art-schema-01",
+        artifact_type="audit_log",
+        producer="logger",
+        raw_bytes=b"log bytes",
+    )
+    assert manifest.schema_version == 1
+    assert manifest.verify_integrity() is True
+
 
