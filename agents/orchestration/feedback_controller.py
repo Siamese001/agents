@@ -34,7 +34,8 @@ class ControllerAction(str, Enum):
     DETERMINISTIC_NORMALIZE = "DETERMINISTIC_NORMALIZE" # Local deterministic fix applied; no LLM call
     REQUEST_SEMANTIC_REVISION = "REQUEST_SEMANTIC_REVISION" # Structured revision packet sent to model
     COGNITIVE_REPLAN = "COGNITIVE_REPLAN"               # Plan-level redesign or routing alternative
-    TERMINAL_FAIL = "TERMINAL_FAIL"                     # Budget exhausted or unrecoverable policy failure
+    TERMINAL_ESCALATION = "TERMINAL_ESCALATION"         # Budget exhausted or unrecoverable policy failure
+    TERMINAL_FAIL = "TERMINAL_ESCALATION"               # Backward-compatible terminal alias
 
 
 @dataclass(frozen=True, slots=True)
