@@ -78,6 +78,17 @@ def _build_parser() -> argparse.ArgumentParser:
     e2e_parser.add_argument("--resume", default="", help="Optional base-resume JSON, Markdown, or text path")
     e2e_parser.add_argument("--brief", help="Optional path to briefing JSON fixture")
     e2e_parser.add_argument("--demo", action="store_true", help="Run with canonical demo fixtures")
+    e2e_parser.add_argument(
+        "--research-status",
+        choices=("disabled", "optional", "enabled"),
+        default="disabled",
+        help="Lifecycle governance status for upstream company research (apps_research). Default: disabled",
+    )
+    e2e_parser.add_argument(
+        "--with-research",
+        action="store_true",
+        help="Explicitly enable upstream company & role research via apps_research",
+    )
     e2e_parser.add_argument("--skip-resume", action="store_true", help="Skip Stage 2 resume tailoring")
     e2e_parser.add_argument("--artifact-dir", help="Directory to persist run outputs")
     e2e_parser.add_argument("--json", action="store_true", help="Output machine-readable JSON result")
@@ -101,12 +112,17 @@ def run_e2e(args: argparse.Namespace) -> int:
         company = "Anthropic"
         role = "Manager of Applied AI Architecture, Partnerships"
 
+    research_enabled = getattr(args, "with_research", False) or getattr(args, "research_status", "disabled") == "enabled"
+    research_optional = getattr(args, "research_status", "disabled") == "optional"
+    research_label = "ENABLED" if research_enabled else ("OPTIONAL" if research_optional else "DISABLED")
+
     if not args.json:
         print("\n" + "=" * 65)
         print("SOVEREIGN AGENTIC PLATFORM: UNIFIED E2E CAREER LIFECYCLE")
         print("=" * 65)
         print(f"Target Company : {company}")
         print(f"Target Role    : {role}")
+        print(f"Research Stage : {research_label}")
         print(f"Artifact Dir   : {base_dir}")
         print("=" * 65 + "\n")
 
@@ -118,12 +134,45 @@ def run_e2e(args: argparse.Namespace) -> int:
         "stages": {},
     }
 
-    # Stage 1 & 2: Resume Tailoring (apps_rg)
+    # Stage 1: Upstream Company & Role Research (apps_research)
+    if research_enabled:
+        if not args.json:
+            print(">>> [Stage 1/4] Running Upstream Company Research (apps_research)...")
+        try:
+            from apps_research.__main__ import main as research_main
+            research_artifact_dir = base_dir / "research"
+            res_code = research_main(["run", "--company", company, "--role", role, "--artifact-dir", str(research_artifact_dir)])
+            summary_payload["stages"]["company_research"] = {
+                "configured_status": research_label,
+                "exit_code": res_code,
+                "status": "PASSED" if res_code == 0 else "FAILED",
+            }
+            if res_code != 0:
+                sys.stderr.write("[agents e2e] Error: Research stage returned non-zero exit code.\n")
+                return res_code
+        except Exception as exc:
+            summary_payload["stages"]["company_research"] = {
+                "configured_status": research_label,
+                "status": "FAILED",
+                "error": str(exc),
+            }
+            sys.stderr.write(f"[agents e2e] Error: Upstream research failed fail-closed: {exc}\n")
+            return 1
+    else:
+        if not args.json:
+            print(f">>> [Stage 1/4] Upstream Company Research: {research_label} (governed decoupled status).")
+        summary_payload["stages"]["company_research"] = {
+            "configured_status": research_label,
+            "status": "SKIPPED",
+            "reason": "Research stage explicitly disabled or decoupled in current CLI profile",
+        }
+
+    # Stage 2: Resume Tailoring (apps_rg)
     resume_artifact_dir = base_dir / "resume"
     tailored_resume_path = None
     if not args.skip_resume:
         if not args.json:
-            print(">>> [Stage 1/3] Tailoring Executive Resume via Resume Graph Engine (apps_rg)...")
+            print("\n>>> [Stage 2/4] Tailoring Executive Resume via Resume Graph Engine (apps_rg)...")
         from apps_rg.__main__ import main as resume_main
 
         resume_args = [
@@ -146,7 +195,7 @@ def run_e2e(args: argparse.Namespace) -> int:
                 sys.stderr.write("[agents e2e] Warning: Resume generation returned non-zero exit code.\n")
     else:
         if not args.json:
-            print(">>> [Stage 1/3] Resume tailoring skipped (--skip-resume).")
+            print("\n>>> [Stage 2/4] Resume tailoring skipped (--skip-resume).")
         summary_payload["stages"]["resume_tailoring"] = {"status": "SKIPPED"}
 
     # Stage 3: Executive Outreach Generation (outreach_engine)
@@ -169,7 +218,7 @@ def run_e2e(args: argparse.Namespace) -> int:
         outreach_args.append("--json")
 
     if not args.json:
-        print("\n>>> [Stage 2/3] Generating Grounded Executive Outreach (outreach_engine)...")
+        print("\n>>> [Stage 3/4] Generating Grounded Executive Outreach (outreach_engine)...")
 
     oe_code = outreach_main(outreach_args)
     summary_payload["stages"]["executive_outreach"] = {
@@ -185,7 +234,7 @@ def run_e2e(args: argparse.Namespace) -> int:
     summary_path.write_text(json.dumps(summary_payload, indent=2), encoding="utf-8")
 
     if not args.json:
-        print("\n>>> [Stage 3/3] Lifecycle artifacts validated and sealed.")
+        print("\n>>> [Stage 4/4] Lifecycle artifacts validated and sealed.")
         print(f"[agents e2e] Sealed summary manifest at: {summary_path}\n")
 
     return 0
