@@ -91,6 +91,12 @@ The knowledge-graph Memory MCP is optional for graph queries or writeback when i
 - ADG before grep for structure (§28); grep for literals/TODOs only
 - Full rules: `AGENTS.md` + `docs/codex-primary-execution.md` · expanded lists: legacy compatibility notes only
 
+## Production Derivation Integrity
+
+> Every domain-bearing production artifact must be derived from runtime source inputs plus approved configuration through the declared execution path. Golden outputs, expected answers, reference graphs, pinned evaluations, benchmark fixtures, and precomputed domain conclusions may be used for testing/evaluation but must not substitute for production generation, reasoning, evaluation, or publication.
+
+No production-executable directory may evade applicable architecture governance merely because of directory placement.
+
 ## Plans
 
 Lookup: `.agents/rules/codex-config-lookup.md` and `.agents/rules/plan-location.md`. New plans are disk-only under `plans/<name>-<6hex>.md`; `.codex/plans/` is an archive of migrated historical plans, not the write target for new work.

@@ -15,6 +15,7 @@ import sys
 from pathlib import Path
 from typing import Any, Sequence
 
+from apps_rg.runtime.bindings.l1_cognitive_treatment import L1_COGNITIVE_V2_CONTROL_ARM
 from apps_rg.runtime.orchestration.canonical_dispatch import (
     run_canonical_apps_rg_from_cli_primitives,
 )
@@ -59,6 +60,11 @@ def _build_parser() -> argparse.ArgumentParser:
             "The single Apps RG governed resume pipeline. Run the full live product flow, "
             "inspect a completed run, or print an exact output artifact."
         ),
+    )
+    parser.add_argument(
+        "--l1-cognitive-treatment-arm",
+        default=L1_COGNITIVE_V2_CONTROL_ARM,
+        help="Apps RG-local experiment arm assignment.",
     )
     subparsers = parser.add_subparsers(dest="action", metavar="ACTION")
 

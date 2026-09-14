@@ -24,6 +24,8 @@ from agents.orchestration.primitives import (
     WorkflowStep,
 )
 from agents.orchestration.state_machine import WorkflowStateMachine
+from agents.telemetry.correlation import CorrelationContext, get_current_correlation
+from agents.telemetry.events import TelemetryEmitter, TelemetryEventType
 
 
 @dataclass(slots=True)
@@ -76,12 +78,25 @@ class WorkflowExecutionReport:
 class WorkflowExecutionEngine:
     """Engine executing declared multi-agent workflow plans."""
 
-    def __init__(self, workflow_id: str, *, artifact_dir: Path | str | None = None) -> None:
+    def __init__(
+        self,
+        workflow_id: str,
+        *,
+        artifact_dir: Path | str | None = None,
+        correlation: CorrelationContext | None = None,
+        emitter: TelemetryEmitter | None = None,
+    ) -> None:
         self.workflow_id = workflow_id
         self.state_machine = WorkflowStateMachine(workflow_id)
         self.artifact_dir = Path(artifact_dir).resolve() if artifact_dir else None
         if self.artifact_dir:
             self.artifact_dir.mkdir(parents=True, exist_ok=True)
+        self.correlation = (
+            correlation
+            or get_current_correlation()
+            or CorrelationContext(run_id=workflow_id, workflow_id=workflow_id)
+        )
+        self.emitter = emitter or TelemetryEmitter(artifact_dir=self.artifact_dir)
 
     def execute_plan(
         self,
@@ -92,6 +107,13 @@ class WorkflowExecutionEngine:
         """Execute a sequence of workflow steps under strict state machine governance."""
         ctx = dict(context or {})
         step_results: dict[str, StepExecutionResult] = {}
+
+        # Telemetry: Workflow Start
+        self.emitter.emit(
+            TelemetryEventType.WORKFLOW_START,
+            self.correlation,
+            {"step_count": len(steps), "steps": [s.step_id for s in steps]},
+        )
 
         # 1. State: PLANNED
         self.state_machine.transition_to(
@@ -112,6 +134,17 @@ class WorkflowExecutionEngine:
         for step in steps:
             step_id = step.step_id
             primitive = step.primitive
+            step_corr = self.correlation.new_child(
+                step_name=step_id,
+                metadata={"primitive": primitive.value},
+            )
+
+            # Telemetry: Step Start
+            self.emitter.emit(
+                TelemetryEventType.STEP_START,
+                step_corr,
+                {"step_id": step_id, "optional": step.optional, "primitive": primitive.value},
+            )
 
             # Check if optional step is explicitly disabled
             if step.optional and step.metadata.get("disabled", False):
@@ -120,6 +153,11 @@ class WorkflowExecutionEngine:
                     status="SKIPPED",
                     primitive=primitive.value,
                     metadata={"reason": "Step marked disabled/optional"},
+                )
+                self.emitter.emit(
+                    TelemetryEventType.STEP_COMPLETE,
+                    step_corr,
+                    {"step_id": step_id, "status": "SKIPPED", "reason": "disabled/optional"},
                 )
                 continue
 
@@ -134,6 +172,11 @@ class WorkflowExecutionEngine:
                     status="SKIPPED",
                     primitive=primitive.value,
                     error=f"Prerequisite steps failed: {deps_failed}",
+                )
+                self.emitter.emit(
+                    TelemetryEventType.STEP_COMPLETE,
+                    step_corr,
+                    {"step_id": step_id, "status": "SKIPPED", "error": f"Prerequisite steps failed: {deps_failed}"},
                 )
                 if not step.optional:
                     overall_success = False
@@ -161,6 +204,11 @@ class WorkflowExecutionEngine:
                     # Check if error is transient technical retry
                     if retries < max_retries and self._is_transient_error(exc):
                         retries += 1
+                        self.emitter.emit(
+                            TelemetryEventType.STEP_RECOVERY,
+                            step_corr,
+                            {"step_id": step_id, "retry_count": retries, "error": step_err},
+                        )
                         time.sleep(0.05 * retries)
                         continue
                     else:
@@ -182,6 +230,11 @@ class WorkflowExecutionEngine:
                     retry_count=retries,
                     replan_count=replans,
                 )
+                self.emitter.emit(
+                    TelemetryEventType.STEP_COMPLETE,
+                    step_corr,
+                    {"step_id": step_id, "status": "PASSED", "retries": retries},
+                )
                 # Store step output into shared context if dict
                 if isinstance(step_output, dict):
                     ctx[f"step_{step_id}"] = step_output
@@ -197,6 +250,11 @@ class WorkflowExecutionEngine:
                     error=step_err,
                     retry_count=retries,
                     replan_count=replans,
+                )
+                self.emitter.emit(
+                    TelemetryEventType.STEP_FAILED,
+                    step_corr,
+                    {"step_id": step_id, "status": "FAILED", "error": step_err, "retries": retries},
                 )
                 if not step.optional:
                     overall_success = False
@@ -214,10 +272,20 @@ class WorkflowExecutionEngine:
                 WorkflowStatus.COMPLETED,
                 reason="All required steps completed successfully",
             )
+            self.emitter.emit(
+                TelemetryEventType.WORKFLOW_COMPLETE,
+                self.correlation,
+                {"success": True, "step_count": len(steps)},
+            )
         else:
             self.state_machine.transition_to(
                 WorkflowStatus.FAILED,
                 reason=fatal_error_msg or "One or more required steps failed",
+            )
+            self.emitter.emit(
+                TelemetryEventType.WORKFLOW_FAILED,
+                self.correlation,
+                {"success": False, "error": fatal_error_msg},
             )
 
         # Persist workflow_state.json if artifact directory is provided
@@ -226,8 +294,10 @@ class WorkflowExecutionEngine:
             out_file = self.artifact_dir / "workflow_state.json"
             report_dict = {
                 "workflow_id": self.workflow_id,
+                "correlation": self.correlation.to_dict(),
                 "final_status": self.state_machine.current_status.value,
                 "success": overall_success,
+                "telemetry_events_count": len(self.emitter.events),
                 "steps": {k: v.as_dict() for k, v in step_results.items()},
                 "state_machine": self.state_machine.as_dict(),
             }

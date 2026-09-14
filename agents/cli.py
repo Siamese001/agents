@@ -126,18 +126,34 @@ def run_e2e(args: argparse.Namespace) -> int:
         print(f"Artifact Dir   : {base_dir}")
         print("=" * 65 + "\n")
 
+    from agents.orchestration.engine import WorkflowExecutionEngine
+    from agents.orchestration.primitives import OrchestrationPrimitive, WorkflowStep
+    from agents.telemetry.correlation import CorrelationContext
+    from agents.telemetry.events import TelemetryEmitter
+
+    correlation_ctx = CorrelationContext(
+        run_id=run_id,
+        workflow_id=run_id,
+        metadata={"company": company, "role": role},
+    )
+    emitter = TelemetryEmitter(artifact_dir=base_dir)
+
     summary_payload: dict[str, Any] = {
         "run_id": run_id,
+        "workflow_id": run_id,
+        "correlation": correlation_ctx.to_dict(),
         "company": company,
         "role": role,
         "artifact_dir": str(base_dir),
         "stages": {},
     }
 
-    from agents.orchestration.engine import WorkflowExecutionEngine
-    from agents.orchestration.primitives import OrchestrationPrimitive, WorkflowStep
-
-    engine = WorkflowExecutionEngine(run_id, artifact_dir=base_dir)
+    engine = WorkflowExecutionEngine(
+        run_id,
+        artifact_dir=base_dir,
+        correlation=correlation_ctx,
+        emitter=emitter,
+    )
 
     def _stage_research(ctx: dict[str, Any]) -> dict[str, Any]:
         if not research_enabled:
@@ -266,6 +282,8 @@ def run_e2e(args: argparse.Namespace) -> int:
 
     summary_payload["workflow_status"] = report.final_status.value
     summary_payload["workflow_state_ref"] = "workflow_state.json"
+    summary_payload["telemetry_ref"] = "telemetry.jsonl"
+    summary_payload["telemetry_events_count"] = len(emitter.events)
 
     # Stage 4: Lifecycle Sealing & Manifest
     summary_path = base_dir / "e2e_lifecycle_summary.json"

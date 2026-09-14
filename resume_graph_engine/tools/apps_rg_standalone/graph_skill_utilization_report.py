@@ -1,4 +1,4 @@
-﻿"""Report-only graph-skill utilization for an apps_rg run (non-blocking).
+"""Report-only graph-skill utilization for an apps_rg run (non-blocking).
 
 Wires the existing D8 anti-gaming scorer
 (``apps_rg.runtime.graph_skills_utilization_scorer.score_graph_skills_utilization``)
