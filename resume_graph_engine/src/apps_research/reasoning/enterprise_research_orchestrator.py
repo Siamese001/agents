@@ -221,6 +221,8 @@ class EnterpriseResearchOrchestrator:
                 validations, gates = await self._step_validate(
                     request.topic,
                     request.artifact_mode,
+                    generated_content=gen_results.get("content") if isinstance(gen_results, dict) else None,
+                    generated_sources=gen_results.get("sources") if isinstance(gen_results, dict) else None,
                 )
                 result.validation_results = validations
                 result.gate_results = gates
@@ -348,19 +350,31 @@ class EnterpriseResearchOrchestrator:
         self,
         topic: str,
         artifact_mode: str,
+        generated_content: str | None = None,
+        generated_sources: list[dict[str, Any]] | None = None,
     ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
         """Step 4: Validate research (L5)."""
         _emit_applies_guardrail("enterprise", "step_validate", "L5")
 
-        # Generate mock research content and source register for validation
-        mock_content = self._generate_mock_research_content(topic, artifact_mode)
-        mock_sources = self._generate_mock_source_register()
+        import os
+        import sys
+
+        content = generated_content
+        sources = generated_sources
+        if not content or not sources:
+            is_test = bool(os.environ.get("PYTEST_CURRENT_TEST")) or ("pytest" in sys.modules) or (os.environ.get("APPS_RG_TEST_HARNESS") == "1")
+            if not is_test:
+                raise RuntimeError(
+                    "LIVE_VALIDATION_ERROR: Real generated research content and sources required for validation in production."
+                )
+            content = content or self._generate_mock_research_content(topic, artifact_mode)
+            sources = sources or self._generate_mock_source_register()
 
         required_sections = self._get_required_sections(artifact_mode)
 
         validation, gates = self.validation_agent.validate_research(
-            mock_content,
-            mock_sources,
+            content,
+            sources,
             required_sections,
         )
 

@@ -161,7 +161,23 @@ class InMemoryResearchStore:
         return sorted(results, key=lambda x: x.timestamp, reverse=True)[:limit]
 
     def _mock_embed(self, text: str) -> list[float]:
-        """Generate mock embedding from text."""
+        """Generate embedding from text. In production runtime, requires live embedding."""
+        import os
+        import sys
+
+        is_test = bool(os.environ.get("PYTEST_CURRENT_TEST")) or ("pytest" in sys.modules) or (os.environ.get("APPS_RG_TEST_HARNESS") == "1")
+        if not is_test:
+            try:
+                from infrastructure.live_execution import api_key
+                import openai
+
+                key = api_key("openai")
+                client = openai.OpenAI(api_key=key)
+                resp = client.embeddings.create(model="text-embedding-3-small", input=text[:8000])
+                return resp.data[0].embedding
+            except Exception as exc:
+                raise RuntimeError(f"LIVE_EMBEDDING_REQUIRED: Failed to generate live embedding in production: {exc}") from exc
+
         hash_val = hashlib.sha256(text.encode()).hexdigest()
         return [int(hash_val[i : i + 2], 16) / 255.0 for i in range(0, 20, 2)]
 
