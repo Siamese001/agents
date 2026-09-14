@@ -91,6 +91,8 @@ def _packet_from_payload(payload: Mapping[str, Any]) -> SignedAppsRgL2ExecutionP
         "allowed_networks",
         "allowed_file_roots",
         "signature_chain",
+        "success_criteria_refs",
+        "evidence_requirement_refs",
     ):
         body[name] = _tuple_field(body, name)
     body["budget"] = dict(body.get("budget") or {})
