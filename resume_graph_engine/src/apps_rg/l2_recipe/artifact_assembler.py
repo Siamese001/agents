@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -78,6 +79,15 @@ class ArtifactAssembler:
     @staticmethod
     def minimal_l2_blob(lane: str, *, run_id: str) -> dict[str, Any]:
         """Generate a minimal L2 section output blob for synthetic phase 0."""
+        from apps_rg.runtime.live_judge_only_guard import is_test_harness
+
+        if not is_test_harness() and os.environ.get("APPS_RG_PRODUCTION_RUN", "").strip() == "1":
+            from apps_rg.runtime.providers.provider_run_mode import AppsRgEnvelopeProviderResolutionError
+
+            raise AppsRgEnvelopeProviderResolutionError(
+                f"LIVE_REQUIRED_ENFORCEMENT: Synthetic phase0 minimal_l2_blob for lane={lane!r} is forbidden in production runtime"
+            )
+
         common = {
             "run_id": run_id,
             "section_id": lane,

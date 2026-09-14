@@ -3,9 +3,17 @@
 from __future__ import annotations
 
 import json
+import os
+import sys
 from dataclasses import asdict, replace
 from pathlib import Path
 from typing import Any
+
+
+def _is_test_environment() -> bool:
+    if os.environ.get("APPS_RG_PRODUCTION_RUN", "").strip() == "1":
+        return False
+    return bool(os.environ.get("PYTEST_CURRENT_TEST") or ("pytest" in sys.modules))
 
 from apps_rg.runtime.judges.executive_summary_judge_packet import (
     judge_contract_hash as exec_judge_contract_hash,
@@ -158,6 +166,10 @@ def run_grade_only_judges_via_core_panel(
             continue
 
         if mode == "mocked":
+            if not _is_test_environment():
+                raise RuntimeError(
+                    "MOCK_PANEL_FORBIDDEN: mode='mocked' is strictly forbidden in production runtime."
+                )
             outputs.append(_mocked_output(key, input_hash))
             continue
 

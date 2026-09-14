@@ -780,7 +780,7 @@
     "justification": "Baseline legacy module pending decomposition"
   },
   "resume_graph_engine/src/apps_rg/runtime/judges/bullet_pool_claude_selector.py": {
-    "line_limit": 2275,
+    "line_limit": 2288,
     "justification": "Baseline legacy module pending decomposition"
   },
   "resume_graph_engine/src/apps_rg/runtime/observability/trace_reconciliation.py": {
@@ -864,7 +864,7 @@
     "justification": "Baseline legacy module pending decomposition"
   },
   "resume_graph_engine/src/apps_rg/runtime/bindings/l2_envelope_adapter.py": {
-    "line_limit": 1687,
+    "line_limit": 1692,
     "justification": "Baseline legacy module pending decomposition"
   },
   "resume_graph_engine/src/apps_rg/runtime/bindings/exit_binding.py": {

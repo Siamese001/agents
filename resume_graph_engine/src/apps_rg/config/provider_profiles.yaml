@@ -138,6 +138,7 @@ profiles:
     endpoint_env_var: null
     api_key_env_var: null
     default: false
+    production_permitted: false
 
   executive_positioning_judge_stub:
     profile_id: apps_rg::provider::executive_positioning_judge_stub::v1
@@ -148,6 +149,7 @@ profiles:
     endpoint_env_var: null
     api_key_env_var: null
     default: false
+    production_permitted: false
 
 # Per-tier x provider proof-judge models. SSOT-of-record for the apps_rg judge model
 # per tier; section_judge_profile resolves this block directly and fails closed when

@@ -600,14 +600,19 @@ def _provider_profile_for_cpa(
                 sandbox_safe=False,
                 requires_network=True,
             )
-        if run_mode == ProviderRunMode.LIVE_REQUIRED:
+        if run_mode == ProviderRunMode.LIVE_REQUIRED or os.environ.get("APPS_RG_PRODUCTION_RUN", "").strip() == "1":
             raise AppsRgEnvelopeProviderResolutionError(
                 f"LIVE_REQUIRED: unknown external target_provider={tp!r} for live_allowed mode"
             )
 
-    elif run_mode == ProviderRunMode.LIVE_REQUIRED:
+    elif run_mode == ProviderRunMode.LIVE_REQUIRED or os.environ.get("APPS_RG_PRODUCTION_RUN", "").strip() == "1":
         raise AppsRgEnvelopeProviderResolutionError(
             f"LIVE_REQUIRED: target_provider={tp!r} is not a resolved live lane under {provider_mode}"
+        )
+
+    if run_mode == ProviderRunMode.LIVE_REQUIRED or os.environ.get("APPS_RG_PRODUCTION_RUN", "").strip() == "1":
+        raise AppsRgEnvelopeProviderResolutionError(
+            f"LIVE_REQUIRED: fallback to apps_rg_envelope_stub is forbidden in live/production runtime for target_provider={tp!r}"
         )
 
     return ProviderProfile(

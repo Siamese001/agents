@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
+import os
 from typing import Any, Mapping
 
 
@@ -109,6 +110,13 @@ class ProviderGateway:
                 "Apps RG provider mode permits only the explicit stub profile"
             )
         if profile.provider_kind == ProviderKind.STUB:
+            if (
+                self.provider_mode == ProviderMode.LIVE_ALLOWED
+                or os.environ.get("APPS_RG_PRODUCTION_RUN", "").strip() == "1"
+            ):
+                raise ProviderModeBlockedError(
+                    f"Stub provider profile {profile.profile_id!r} is strictly prohibited when ProviderMode is LIVE_ALLOWED or during production runtime: mode={self.provider_mode.value!r}"
+                )
             text = '{"stub_receipt": true, "request_id": "' + request.request_id + '"}'
             return ProviderResponse(
                 success=True,

@@ -2094,6 +2094,15 @@ def run_claude_bullet_pool_selection(
             os.environ.get("APPS_RG_ALLOW_SINGLE_PATH_SELECTOR_BYPASS", "0").strip().lower()
             in ("1", "true", "yes")
         )
+        if os.environ.get("APPS_RG_PRODUCTION_RUN", "").strip() == "1":
+            if allow_selector_bypass:
+                raise RuntimeError(
+                    "LIVE_SELECTOR_ENFORCEMENT: APPS_RG_ALLOW_SINGLE_PATH_SELECTOR_BYPASS is strictly forbidden in production runtime."
+                )
+            if mode == "mocked":
+                raise RuntimeError(
+                    "LIVE_SELECTOR_ENFORCEMENT: mode='mocked' is strictly forbidden in production runtime."
+                )
         if len(valid_paths) == 1 and (mode == "mocked" or allow_selector_bypass):
             fast_result = _fallback_first_complete_path(
                 valid_paths,
@@ -2130,6 +2139,10 @@ def run_claude_bullet_pool_selection(
     )
 
     if mode == "mocked" and not competencies_selector:
+        if os.environ.get("APPS_RG_PRODUCTION_RUN", "").strip() == "1":
+            raise RuntimeError(
+                "LIVE_SELECTOR_ENFORCEMENT: fallback mock selection is strictly forbidden in production runtime."
+            )
         return _fallback_first_complete_path(
             valid_paths,
             slot_kind=slot_kind,
