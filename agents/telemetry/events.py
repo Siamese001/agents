@@ -48,6 +48,42 @@ class TelemetryEvent:
             "payload": dict(self.payload),
         }
 
+    def to_agent_event_envelope(
+        self,
+        sequence: int = 1,
+        producer: str = "telemetry_emitter",
+        previous_event_digest: str | None = None,
+    ) -> Any:
+        """Convert to canonical AgentEventEnvelope."""
+        from agents.observability.events import AgentEventType, create_event_envelope
+
+        event_type_map = {
+            TelemetryEventType.WORKFLOW_START: AgentEventType.PHASE_TRANSITION,
+            TelemetryEventType.WORKFLOW_COMPLETE: AgentEventType.PHASE_TRANSITION,
+            TelemetryEventType.WORKFLOW_FAILED: AgentEventType.PHASE_TRANSITION,
+            TelemetryEventType.STEP_START: AgentEventType.PHASE_TRANSITION,
+            TelemetryEventType.STEP_COMPLETE: AgentEventType.PHASE_TRANSITION,
+            TelemetryEventType.STEP_FAILED: AgentEventType.PHASE_TRANSITION,
+            TelemetryEventType.STEP_RECOVERY: AgentEventType.FEEDBACK_DECISION,
+            TelemetryEventType.EVALUATION_VERDICT: AgentEventType.FEEDBACK_DECISION,
+        }
+        canonical_type = event_type_map.get(self.event_type, AgentEventType.FEEDBACK_DECISION)
+        corr_id = getattr(self.correlation, "correlation_id", None) or getattr(self.correlation, "span_id", self.correlation.run_id)
+        return create_event_envelope(
+            event_type=canonical_type,
+            run_id=self.correlation.run_id,
+            correlation_id=corr_id,
+            sequence=sequence,
+            producer=producer,
+            payload={
+                "telemetry_event_type": self.event_type.value,
+                **self.payload,
+            },
+            previous_event_digest=previous_event_digest,
+            event_id=self.event_id,
+            occurred_at=self.timestamp,
+        )
+
 
 class TelemetryEmitter:
     """Emits structured telemetry events to in-memory audit logs and persistent JSONL."""
