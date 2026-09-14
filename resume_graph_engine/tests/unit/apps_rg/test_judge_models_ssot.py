@@ -28,7 +28,7 @@ def test_judge_models_block_present_and_complete():
     assert set(jm) >= {"enhanced", "standard"}
     for tier in ("enhanced", "standard"):
         assert set(jm[tier]) == {"gemini_pro", "openai_chatgpt"}
-        assert jm[tier]["openai_chatgpt"] == "gpt-5.6-sol"
+        assert jm[tier]["openai_chatgpt"] == "gpt-5.6-luna"
 
 
 def test_code_profiles_do_not_carry_model_fallbacks():

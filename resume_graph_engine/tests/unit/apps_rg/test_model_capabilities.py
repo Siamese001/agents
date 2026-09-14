@@ -18,7 +18,7 @@ def test_luna_generation_capabilities_are_exact() -> None:
         structured_output_required=True,
     )
     assert capability.temperature_parameter == "omit"
-    assert capability.proof_eligible is False
+    assert capability.proof_eligible is True
     assert capability.max_output_tokens_parameter_for("responses") == "max_output_tokens"
     assert (
         capability.max_output_tokens_parameter_for("chat_completions")

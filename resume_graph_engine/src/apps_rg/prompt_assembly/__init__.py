@@ -24,6 +24,14 @@ from .compiler import (
     PROTECTED_SLOTS,
 )
 
+from .prompt_segment import (
+    PromptScope,
+    PromptSegment,
+    canonical_prompt_json,
+    classify_slot_scope,
+    compute_stable_prefix_hash,
+)
+
 __all__ = [
     # Contracts
     "PromptAssemblyInput",
@@ -44,6 +52,12 @@ __all__ = [
     "OVERRIDE_ATTEMPT_PATTERNS",
     "LOWER_AUTHORITY_SLOTS",
     "PROTECTED_SLOTS",
+    # Prompt Caching & Segments
+    "PromptScope",
+    "PromptSegment",
+    "canonical_prompt_json",
+    "classify_slot_scope",
+    "compute_stable_prefix_hash",
 ]
 
 __version__ = "1.0.0"

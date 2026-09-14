@@ -155,10 +155,10 @@ profiles:
 judge_models:
   enhanced:
     gemini_pro: gemini-3.8-flash
-    openai_chatgpt: gpt-5.6-sol
+    openai_chatgpt: gpt-5.6-luna
   standard:
     gemini_pro: gemini-3.8-flash
-    openai_chatgpt: gpt-5.6-sol
+    openai_chatgpt: gpt-5.6-luna
 
 judge_model_governance:
   owner: apps_rg.section_proof_judges
@@ -227,7 +227,7 @@ runtime_limits:
     retry_backoff_base_seconds: 0.5
     retry_backoff_max_seconds: 4.0
     gemini_proof_thinking_level: high
-    openai_proof_reasoning_effort: high
+    openai_proof_reasoning_effort: xhigh
     runtime_profiles:
       optional_advisory_taxonomy_only:
         judge_weight: 1

@@ -367,8 +367,8 @@ def test_competencies_policy_requires_llm_judge_for_proof() -> None:
     assert gemini.reasoning_effort == "high"
     assert gemini.proof_eligible_judge is True
     openai = resolve_section_proof_judge_model("competencies", "openai_chatgpt", {})
-    assert openai.model_actual == "gpt-5.6-sol"
-    assert openai.reasoning_effort == "high"
+    assert openai.model_actual == "gpt-5.6-luna"
+    assert openai.reasoning_effort == "xhigh"
     assert openai.proof_eligible_judge is True
     rubric = ""
     from apps_rg.runtime.judges import competencies_x1d
