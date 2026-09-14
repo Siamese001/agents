@@ -646,6 +646,16 @@ class MockAppsResearchBridge(AppsResearchBridge):
         capability_ref: str = "apps_research.v1",
         artifact_runs_root: Path | None = None,
     ) -> None:
+        import os
+        import sys
+
+        is_test = bool(os.environ.get("PYTEST_CURRENT_TEST")) or ("pytest" in sys.modules) or (os.environ.get("APPS_RG_TEST_HARNESS") == "1")
+        if not is_test:
+            raise RuntimeError(
+                "MOCK_BRIDGE_FORBIDDEN: MockAppsResearchBridge is strictly forbidden in production runtime. "
+                "Use live AppsResearchBridge or supply an authorized briefing artifact."
+            )
+
         super().__init__(
             capability_ref=capability_ref,
             artifact_runs_root=artifact_runs_root,
