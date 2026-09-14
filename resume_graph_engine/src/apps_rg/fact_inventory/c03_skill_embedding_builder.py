@@ -47,7 +47,9 @@ def _assert_legacy_generation_not_retired(repository_root: Path) -> None:
             raise LegacyEmbeddingRetirementWave5Error("marker is not an object")
         validate_retirement_marker(marker)
     except (OSError, json.JSONDecodeError, LegacyEmbeddingRetirementWave5Error) as exc:
-        raise SkillEmbeddingBuildError(f"legacy embedding retirement marker is invalid: {marker_path}") from exc
+        raise SkillEmbeddingBuildError(
+            f"legacy embedding retirement marker is invalid: {marker_path}"
+        ) from exc
     raise SkillEmbeddingBuildError(
         f"legacy one-vector-per-skill generation is retired by {RETIREMENT_MARKER}; use the graph-evidence cluster pipeline"
     )

@@ -49,16 +49,13 @@ FINAL_QREL_STATUS = "FROZEN_OWNER_SOLO_PROVISIONAL"
 RUNTIME_ROOT = Path(".runtime/c03-owner-solo-qrel")
 QUERY_MANIFEST_PATH = Path("src/apps_rg/evals/c03_graph_evidence_cluster_queries.v1.json")
 REGISTRY_PATH = Path(
-    "artifacts/apps_rg/c03/graph_evidence_cluster_embeddings/"
-    "graph_evidence_cluster_registry.v1.json"
+    "artifacts/apps_rg/c03/graph_evidence_cluster_embeddings/graph_evidence_cluster_registry.v1.json"
 )
 W6_RECEIPT_PATH = Path(
-    "artifacts/apps_rg/c03/graph_evidence_cluster_embeddings/"
-    "wave6_cluster_vector_generation_receipt.json"
+    "artifacts/apps_rg/c03/graph_evidence_cluster_embeddings/wave6_cluster_vector_generation_receipt.json"
 )
 W7_RECEIPT_PATH = Path(
-    "artifacts/apps_rg/c03/graph_evidence_cluster_embeddings/"
-    "wave7_semantic_qualification_receipt.json"
+    "artifacts/apps_rg/c03/graph_evidence_cluster_embeddings/wave7_semantic_qualification_receipt.json"
 )
 
 
@@ -127,11 +124,7 @@ def _digest_matches(value: Mapping[str, Any], field: str) -> bool:
 
 def _runtime_path(repo_root: Path, path: Path | str, label: str) -> Path:
     candidate = Path(path)
-    resolved = (
-        candidate.resolve()
-        if candidate.is_absolute()
-        else (repo_root / candidate).resolve()
-    )
+    resolved = candidate.resolve() if candidate.is_absolute() else (repo_root / candidate).resolve()
     runtime = (repo_root / ".runtime").resolve()
     try:
         resolved.relative_to(runtime)
@@ -202,14 +195,18 @@ def validate_owner_solo_contract(contract: Mapping[str, Any]) -> list[str]:
     ):
         issues.append("CONTRACT_DENOMINATOR")
     publication = contract.get("publication_boundary")
-    if not isinstance(publication, Mapping) or publication.get("status_after_finalization") != FINAL_QREL_STATUS or any(
-        publication.get(field) is not False
-        for field in (
-            "independent_qrel_authority",
-            "inter_rater_reliability_claim",
-            "release_qualification",
-            "activation_manifest_created",
-            "production_promotion_authorized",
+    if (
+        not isinstance(publication, Mapping)
+        or publication.get("status_after_finalization") != FINAL_QREL_STATUS
+        or any(
+            publication.get(field) is not False
+            for field in (
+                "independent_qrel_authority",
+                "inter_rater_reliability_claim",
+                "release_qualification",
+                "activation_manifest_created",
+                "production_promotion_authorized",
+            )
         )
     ):
         issues.append("CONTRACT_PUBLICATION_BOUNDARY")
@@ -226,12 +223,33 @@ def validate_owner_solo_exception_policy(policy: Mapping[str, Any]) -> list[str]
     if not _digest_matches(policy, "record_digest"):
         issues.append("POLICY_DIGEST")
     owner = policy.get("owner_reviewer")
-    if not isinstance(owner, Mapping) or not str(owner.get("identity_ref") or "").startswith("human-reviewer://") or owner.get("roles") != ["primary_reviewer", "self_adjudicator"] or owner.get("human_only") is not True:
+    if (
+        not isinstance(owner, Mapping)
+        or not str(owner.get("identity_ref") or "").startswith("human-reviewer://")
+        or owner.get("roles") != ["primary_reviewer", "self_adjudicator"]
+        or owner.get("human_only") is not True
+    ):
         issues.append("POLICY_OWNER")
     exception = policy.get("exception")
-    if not isinstance(exception, Mapping) or exception.get("independent_second_reviewer_required") is not False or exception.get("independent_adjudicator_required") is not False:
+    if (
+        not isinstance(exception, Mapping)
+        or exception.get("independent_second_reviewer_required") is not False
+        or exception.get("independent_adjudicator_required") is not False
+    ):
         issues.append("POLICY_EXPLICIT_WAIVER")
-    elif not {"inter_rater_agreement", "independent_disagreement_resolution", "three_distinct_human_authority"}.issubset(set(exception.get("waived_controls") or [])) or not {"full_finite_candidate_universe", "rank_and_score_blinding", "explicit_integer_grade_0_1_2_3", "nonempty_human_rationale", "calibration_holdout_separation", "immutable_query_registry_projection_and_ranking_bindings", "unknown_is_not_pass"}.issubset(set(exception.get("controls_not_waived") or [])):
+    elif not {
+        "inter_rater_agreement",
+        "independent_disagreement_resolution",
+        "three_distinct_human_authority",
+    }.issubset(set(exception.get("waived_controls") or [])) or not {
+        "full_finite_candidate_universe",
+        "rank_and_score_blinding",
+        "explicit_integer_grade_0_1_2_3",
+        "nonempty_human_rationale",
+        "calibration_holdout_separation",
+        "immutable_query_registry_projection_and_ranking_bindings",
+        "unknown_is_not_pass",
+    }.issubset(set(exception.get("controls_not_waived") or [])):
         issues.append("POLICY_CONTROL_BOUNDARY")
     boundary = policy.get("authority_boundary")
     required_may_not = {
@@ -240,7 +258,11 @@ def validate_owner_solo_exception_policy(policy: Mapping[str, Any]) -> list[str]
         "release-quality qualification under the existing authoritative contract",
         "production promotion",
     }
-    if not isinstance(boundary, Mapping) or boundary.get("required_result_label") != RESULT_LABEL or not required_may_not.issubset(set(boundary.get("may_not_support") or [])):
+    if (
+        not isinstance(boundary, Mapping)
+        or boundary.get("required_result_label") != RESULT_LABEL
+        or not required_may_not.issubset(set(boundary.get("may_not_support") or []))
+    ):
         issues.append("POLICY_AUTHORITY_BOUNDARY")
     binding = policy.get("repository_binding")
     required_binding = {
@@ -258,9 +280,12 @@ def validate_owner_solo_exception_policy(policy: Mapping[str, Any]) -> list[str]
     }
     if not isinstance(binding, Mapping) or set(binding) != required_binding:
         issues.append("POLICY_REPOSITORY_BINDING_FIELDS")
-    elif binding.get("repository") != "Siamese001/apps_rg_v2" or not _is_git_sha(binding.get("source_commit")) or any(
-        not _is_sha256(binding.get(field))
-        for field in required_binding - {"repository", "source_commit"}
+    elif (
+        binding.get("repository") != "Siamese001/apps_rg_v2"
+        or not _is_git_sha(binding.get("source_commit"))
+        or any(
+            not _is_sha256(binding.get(field)) for field in required_binding - {"repository", "source_commit"}
+        )
     ):
         issues.append("POLICY_REPOSITORY_BINDING_VALUES")
     return sorted(set(issues))
@@ -307,7 +332,11 @@ def validate_owner_solo_execution_manifest(manifest: Mapping[str, Any]) -> list[
     ):
         issues.append("EXECUTION_MANIFEST_DENOMINATOR")
     seed = manifest.get("seed_label_set")
-    if not isinstance(seed, Mapping) or seed.get("explicit_grade_count") != 50 or seed.get("qrel_status") != "UNBOUND_DEVELOPMENT_SEED_NOT_FORMAL_QRELS":
+    if (
+        not isinstance(seed, Mapping)
+        or seed.get("explicit_grade_count") != 50
+        or seed.get("qrel_status") != "UNBOUND_DEVELOPMENT_SEED_NOT_FORMAL_QRELS"
+    ):
         issues.append("EXECUTION_MANIFEST_SEED_BOUNDARY")
     return sorted(set(issues))
 
@@ -409,7 +438,9 @@ def _binding_issues(
         if runtime.get(field) != expected.get(field):
             issues.append(f"RUNTIME_BINDING:{field}")
     source_commit = str(policy_binding.get("source_commit") or "")
-    if source_commit != execution_binding.get("source_commit") or not _git_commit_is_available(repo_root, source_commit):
+    if source_commit != execution_binding.get("source_commit") or not _git_commit_is_available(
+        repo_root, source_commit
+    ):
         issues.append("SOURCE_COMMIT")
     return sorted(set(issues))
 
@@ -432,7 +463,10 @@ def _packet_content(
         issues.append("PACKET_MANIFEST_DIGEST")
     if manifest.get("manifest_sha256") != expected["binding"].get("w8_packet_manifest_sha256"):
         issues.append("PACKET_MANIFEST_AUTHORITY_BINDING")
-    if manifest.get("schema_version") != "apps_rg.c03_graph_evidence_cluster_packet_manifest.v1" or manifest.get("status") != "FROZEN_UNLABELED_PRELABEL":
+    if (
+        manifest.get("schema_version") != "apps_rg.c03_graph_evidence_cluster_packet_manifest.v1"
+        or manifest.get("status") != "FROZEN_UNLABELED_PRELABEL"
+    ):
         issues.append("PACKET_MANIFEST_SCHEMA_OR_STATUS")
     expected_packet_bindings = {
         "wave7_receipt_sha256": expected["binding"].get("w7_receipt_sha256"),
@@ -444,7 +478,10 @@ def _packet_content(
         issues.append("PACKET_AUTHORITY_BINDINGS")
     if manifest.get("ranking_identity_sha256") != expected["binding"].get("ranking_identity_sha256"):
         issues.append("PACKET_RANKING_IDENTITY")
-    if manifest.get("query_section_count_per_cohort") != 48 or manifest.get("candidate_judgment_count_per_cohort") != 456:
+    if (
+        manifest.get("query_section_count_per_cohort") != 48
+        or manifest.get("candidate_judgment_count_per_cohort") != 456
+    ):
         issues.append("PACKET_DENOMINATOR")
     if manifest.get("sealed_mapping_distribution_forbidden") is not True:
         issues.append("PACKET_SEALED_MAPPING_BOUNDARY")
@@ -457,11 +494,22 @@ def _packet_content(
         packet_cohort = (manifest.get("cohorts") or {}).get(cohort) or {}
         if _file_sha256(reviewer_manifest_path) != packet_cohort.get("manifest_file_sha256"):
             issues.append(f"{cohort}:MANIFEST_FILE_DIGEST")
-        if not _digest_matches(reviewer_manifest, "manifest_sha256") or reviewer_manifest.get("manifest_sha256") != packet_cohort.get("manifest_sha256"):
+        if not _digest_matches(reviewer_manifest, "manifest_sha256") or reviewer_manifest.get(
+            "manifest_sha256"
+        ) != packet_cohort.get("manifest_sha256"):
             issues.append(f"{cohort}:MANIFEST_DIGEST")
-        if reviewer_manifest.get("reviewer_cohort") != cohort or reviewer_manifest.get("query_section_count") != 48 or reviewer_manifest.get("candidate_judgment_count") != 456:
+        if (
+            reviewer_manifest.get("reviewer_cohort") != cohort
+            or reviewer_manifest.get("query_section_count") != 48
+            or reviewer_manifest.get("candidate_judgment_count") != 456
+        ):
             issues.append(f"{cohort}:MANIFEST_DENOMINATOR")
-        for field in ("model_ranks_or_scores_present", "graph_ids_present", "labels_present", "other_cohort_outputs_present"):
+        for field in (
+            "model_ranks_or_scores_present",
+            "graph_ids_present",
+            "labels_present",
+            "other_cohort_outputs_present",
+        ):
             if reviewer_manifest.get(field) is not False:
                 issues.append(f"{cohort}:MANIFEST_LEAKAGE_FLAG:{field}")
         items_path = cohort_dir / "review_items.jsonl"
@@ -470,9 +518,7 @@ def _packet_content(
             issues.append(f"{cohort}:REVIEW_ITEMS_DIGEST")
         cohorts[cohort] = _read_jsonl(items_path)
         cohort_metadata[cohort] = {
-            "reviewer_manifest_sha256": str(
-                reviewer_manifest.get("manifest_sha256") or ""
-            ),
+            "reviewer_manifest_sha256": str(reviewer_manifest.get("manifest_sha256") or ""),
             "reviewer_manifest_file_sha256": _file_sha256(reviewer_manifest_path),
             "review_items_file_sha256": review_items_file_sha256,
         }
@@ -594,9 +640,7 @@ def _final_qrel_path(context: Mapping[str, Any]) -> Path:
 
 def _ensure_not_finalized(context: Mapping[str, Any]) -> None:
     if _final_qrel_path(context).exists():
-        raise OwnerSoloQrelError(
-            "Owner-solo QRELs are frozen; append a new review only in a new review run"
-        )
+        raise OwnerSoloQrelError("Owner-solo QRELs are frozen; append a new review only in a new review run")
 
 
 def _event_issues(
@@ -715,9 +759,7 @@ def _owner_identity(context: Mapping[str, Any]) -> str:
     return identity
 
 
-def packet_validation_receipt(
-    context: Mapping[str, Any], *, write: bool = True
-) -> dict[str, Any]:
+def packet_validation_receipt(context: Mapping[str, Any], *, write: bool = True) -> dict[str, Any]:
     """Record the successful W8 validation without showing it to a reviewer."""
     packet = context["packet"]
     manifest = packet["packet_manifest"]
@@ -732,21 +774,13 @@ def packet_validation_receipt(
         "packet_manifest_sha256": manifest["manifest_sha256"],
         "canonical_packet_manifest_digest_valid": True,
         "reviewer_a_manifest_sha256": reviewer_a["reviewer_manifest_sha256"],
-        "reviewer_a_manifest_file_sha256": reviewer_a[
-            "reviewer_manifest_file_sha256"
-        ],
-        "reviewer_a_review_items_file_sha256": reviewer_a[
-            "review_items_file_sha256"
-        ],
+        "reviewer_a_manifest_file_sha256": reviewer_a["reviewer_manifest_file_sha256"],
+        "reviewer_a_review_items_file_sha256": reviewer_a["review_items_file_sha256"],
         "sealed_mapping_file_sha256": packet["sealed_mapping_file_sha256"],
         "ranking_identity_sha256": manifest["ranking_identity_sha256"],
-        "query_manifest_sha256": context["repository"]["binding"][
-            "query_manifest_sha256"
-        ],
+        "query_manifest_sha256": context["repository"]["binding"]["query_manifest_sha256"],
         "registry_sha256": context["repository"]["binding"]["registry_sha256"],
-        "projection_generation_sha256": context["repository"]["binding"][
-            "projection_generation_sha256"
-        ],
+        "projection_generation_sha256": context["repository"]["binding"]["projection_generation_sha256"],
         "reviewer_a_item_count": len(packet["reviewer_a_items"]),
         "reviewer_a_candidate_judgment_count": len(visible),
         "sealed_mapping_candidate_judgment_count": len(sealed),
@@ -940,9 +974,7 @@ def finalize_owner_solo_qrels(context: Mapping[str, Any]) -> dict[str, Any]:
     if issues:
         raise OwnerSoloQrelError("Cannot finalize invalid ledger: " + "; ".join(issues))
     if len(active) != 456:
-        raise OwnerSoloQrelError(
-            f"Cannot finalize before 456 active explicit grades; observed {len(active)}"
-        )
+        raise OwnerSoloQrelError(f"Cannot finalize before 456 active explicit grades; observed {len(active)}")
     mapping = _sealed_lookup(context)
     if set(active) != set(mapping):
         raise OwnerSoloQrelError("Visible-to-sealed candidate conservation failed")
@@ -976,12 +1008,8 @@ def finalize_owner_solo_qrels(context: Mapping[str, Any]) -> dict[str, Any]:
             "projection_generation_sha256": binding["projection_generation_sha256"],
             "ranking_identity_sha256": binding["ranking_identity_sha256"],
             "w8_packet_manifest_sha256": binding["w8_packet_manifest_sha256"],
-            "w8_packet_manifest_file_sha256": context["packet"][
-                "packet_manifest_file_sha256"
-            ],
-            "sealed_mapping_file_sha256": context["packet"]["packet_manifest"][
-                "sealed_mapping_file_sha256"
-            ],
+            "w8_packet_manifest_file_sha256": context["packet"]["packet_manifest_file_sha256"],
+            "sealed_mapping_file_sha256": context["packet"]["packet_manifest"]["sealed_mapping_file_sha256"],
             "owner_solo_policy_digest": context["policy"]["record_digest"],
             "append_only_ledger_file_sha256": _ledger_file_sha256(context),
             "append_only_ledger_event_count": len(events),
@@ -1049,7 +1077,12 @@ def compute_owner_solo_metrics(context: Mapping[str, Any]) -> dict[str, Any]:
     """Compute diagnostics after private finalization; never release qualification."""
     qrel_path = _final_qrel_path(context)
     qrels = _read_json(qrel_path)
-    if qrels.get("schema_version") != QREL_SCHEMA_VERSION or qrels.get("status") != FINAL_QREL_STATUS or qrels.get("result_label") != RESULT_LABEL or qrels.get("non_release_authorizing") is not True:
+    if (
+        qrels.get("schema_version") != QREL_SCHEMA_VERSION
+        or qrels.get("status") != FINAL_QREL_STATUS
+        or qrels.get("result_label") != RESULT_LABEL
+        or qrels.get("non_release_authorizing") is not True
+    ):
         raise OwnerSoloQrelError("Owner-solo QREL artifact is not provisional-only")
     if not _digest_matches(qrels, "qrel_digest") or qrels.get("judgment_count") != 456:
         raise OwnerSoloQrelError("Owner-solo QREL artifact digest or denominator invalid")
@@ -1061,27 +1094,31 @@ def compute_owner_solo_metrics(context: Mapping[str, Any]) -> dict[str, Any]:
         "projection_generation_sha256": binding["projection_generation_sha256"],
         "ranking_identity_sha256": binding["ranking_identity_sha256"],
         "w8_packet_manifest_sha256": binding["w8_packet_manifest_sha256"],
-        "w8_packet_manifest_file_sha256": context["packet"][
-            "packet_manifest_file_sha256"
-        ],
-        "sealed_mapping_file_sha256": context["packet"]["packet_manifest"][
-            "sealed_mapping_file_sha256"
-        ],
+        "w8_packet_manifest_file_sha256": context["packet"]["packet_manifest_file_sha256"],
+        "sealed_mapping_file_sha256": context["packet"]["packet_manifest"]["sealed_mapping_file_sha256"],
         "owner_solo_policy_digest": context["policy"]["record_digest"],
     }
     source = qrels.get("source_authority") or {}
     if any(source.get(field) != value for field, value in expected_source.items()):
         raise OwnerSoloQrelError("Owner-solo QREL source binding mismatch")
-    if (
-        source.get("append_only_ledger_file_sha256") != _ledger_file_sha256(context)
-        or source.get("append_only_ledger_event_count") != len(_load_ledger(context))
-    ):
+    if source.get("append_only_ledger_file_sha256") != _ledger_file_sha256(context) or source.get(
+        "append_only_ledger_event_count"
+    ) != len(_load_ledger(context)):
         raise OwnerSoloQrelError("Owner-solo QREL append-only ledger binding mismatch")
     labels: dict[tuple[str, str, str], int] = {}
     for row in qrels.get("judgments") or []:
-        key = (str(row.get("query_id") or ""), str(row.get("section_id") or ""), str(row.get("cluster_id") or ""))
+        key = (
+            str(row.get("query_id") or ""),
+            str(row.get("section_id") or ""),
+            str(row.get("cluster_id") or ""),
+        )
         grade = row.get("relevance_grade")
-        if key in labels or not isinstance(grade, int) or isinstance(grade, bool) or grade not in {0, 1, 2, 3}:
+        if (
+            key in labels
+            or not isinstance(grade, int)
+            or isinstance(grade, bool)
+            or grade not in {0, 1, 2, 3}
+        ):
             raise OwnerSoloQrelError("Owner-solo QREL contains invalid labels")
         labels[key] = grade
     ranking_by_pair: dict[str, list[str]] = {}
@@ -1094,8 +1131,7 @@ def compute_owner_solo_metrics(context: Mapping[str, Any]) -> dict[str, Any]:
         section_id = values[0]["section_id"]
         pair = f"{query_id}|{section_id}"
         ranking_by_pair[pair] = [
-            str(row["cluster_id"])
-            for row in sorted(values, key=lambda row: int(row["frozen_rank"]))
+            str(row["cluster_id"]) for row in sorted(values, key=lambda row: int(row["frozen_rank"]))
         ]
     if ranking_identity_sha256(ranking_by_pair) != binding["ranking_identity_sha256"]:
         raise OwnerSoloQrelError("Frozen ranking identity mismatch during metric computation")
@@ -1124,7 +1160,9 @@ def compute_owner_solo_metrics(context: Mapping[str, Any]) -> dict[str, Any]:
             (2.0**grade - 1.0) / math.log2(rank + 1.0)
             for rank, grade in enumerate(sorted(relevance.values(), reverse=True)[:10], start=1)
         )
-        first = next((rank for rank, cluster_id in enumerate(ranking, start=1) if cluster_id in relevant), None)
+        first = next(
+            (rank for rank, cluster_id in enumerate(ranking, start=1) if cluster_id in relevant), None
+        )
         pair_rows.append(
             {
                 "query_id": query_id,
@@ -1170,8 +1208,12 @@ def compute_owner_solo_metrics(context: Mapping[str, Any]) -> dict[str, Any]:
         "relevant_grade_floor": 2,
         "query_level": pair_rows,
         "aggregate": {name: _aggregate_pair_metrics(rows) for name, rows in scopes.items()},
-        "by_target_profile": {name: _aggregate_pair_metrics(rows) for name, rows in sorted(profile_rows.items())},
-        "by_resume_section": {name: _aggregate_pair_metrics(rows) for name, rows in sorted(section_rows.items())},
+        "by_target_profile": {
+            name: _aggregate_pair_metrics(rows) for name, rows in sorted(profile_rows.items())
+        },
+        "by_resume_section": {
+            name: _aggregate_pair_metrics(rows) for name, rows in sorted(section_rows.items())
+        },
         "by_relevance_grade": {
             str(grade): {
                 "judgment_count": grades[grade],
@@ -1195,7 +1237,9 @@ def compute_owner_solo_metrics(context: Mapping[str, Any]) -> dict[str, Any]:
         "production_promotion_authorized": False,
     }
     receipt["receipt_digest"] = canonical_sha256(receipt)
-    _write_json(Path(context["runtime_dir"]) / "finalized" / "owner_solo_metrics.v1.json", receipt, create_once=False)
+    _write_json(
+        Path(context["runtime_dir"]) / "finalized" / "owner_solo_metrics.v1.json", receipt, create_once=False
+    )
     return receipt
 
 

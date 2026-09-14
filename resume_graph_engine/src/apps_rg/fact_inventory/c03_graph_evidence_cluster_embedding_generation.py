@@ -10,22 +10,16 @@ from apps_rg.fact_inventory.c03_graph_node_semantic_hardening import (
     canonical_sha256,
 )
 
-CONTRACT_PATH = Path(
-    "src/apps_rg/fact_inventory/c03_graph_evidence_cluster_generation_contract.v1.json"
-)
+CONTRACT_PATH = Path("src/apps_rg/fact_inventory/c03_graph_evidence_cluster_generation_contract.v1.json")
 GRAPH_PATH = Path("src/apps_rg/fact_inventory/master_skills_arsenal_ledger.json")
 ARTIFACT_DIR = Path("artifacts/apps_rg/c03/graph_evidence_cluster_embeddings")
 REGISTRY_PATH = ARTIFACT_DIR / "graph_evidence_cluster_registry.v1.json"
-RETIREMENT_MARKER_PATH = (
-    ARTIFACT_DIR / "legacy_graph_skill_embedding_retirement.v1.json"
-)
+RETIREMENT_MARKER_PATH = ARTIFACT_DIR / "legacy_graph_skill_embedding_retirement.v1.json"
 W5_RECEIPT_PATH = ARTIFACT_DIR / "wave5_legacy_artifact_retirement_receipt.json"
 W6_RECEIPT_PATH = ARTIFACT_DIR / "wave6_cluster_vector_generation_receipt.json"
 
 CONTRACT_SCHEMA_VERSION = "apps_rg.c03_graph_evidence_cluster_generation_contract.v1"
-GENERATION_SCHEMA_VERSION = (
-    "apps_rg.graph_evidence_cluster_embedding_generation_manifest.v1"
-)
+GENERATION_SCHEMA_VERSION = "apps_rg.graph_evidence_cluster_embedding_generation_manifest.v1"
 RECEIPT_SCHEMA_VERSION = "apps_rg.c03_cluster_embedding_w6_receipt.v1"
 W6_COMPLETION_MARKER = "C03_CLUSTER_EMBEDDING_W6_CLUSTER_VECTORS_GENERATED"
 
@@ -249,9 +243,7 @@ def build_w6_receipt(
             "tree": source_tree,
             "wave5_receipt_sha256": w5_receipt.get("receipt_sha256"),
             "wave4_registry_sha256": registry.get("registry_sha256"),
-            "canonical_graph_sha256": (registry.get("source_authority") or {}).get(
-                "canonical_graph_sha256"
-            ),
+            "canonical_graph_sha256": (registry.get("source_authority") or {}).get("canonical_graph_sha256"),
         },
         "contract": {
             "path": CONTRACT_PATH.as_posix(),

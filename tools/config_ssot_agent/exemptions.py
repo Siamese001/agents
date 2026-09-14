@@ -18,7 +18,7 @@ DEFAULT_EXEMPT_PATH_SUBSTRINGS: tuple[str, ...] = (
     ".git/",
 )
 
-# Files that legitimately define or bootstrap configuration
+# Files that legitimately define or bootstrap configuration or verify historical sealed runs
 CANONICAL_BOOTSTRAP_FILES: tuple[str, ...] = (
     "env_bootstrap.py",
     "model_capabilities.py",
@@ -26,6 +26,11 @@ CANONICAL_BOOTSTRAP_FILES: tuple[str, ...] = (
     "section_model_limits.py",
     "section_judge_policy.py",
     "credentials.py",
+    "core_model_catalog.py",
+    "single_run_rca_w2.py",
+    "w5_end_to_end_pipeline.py",
+    "zero_llm_qualification.py",
+    "anthropic_cache_live_probe.py",
 )
 
 

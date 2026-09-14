@@ -17,10 +17,32 @@ logger = logging.getLogger(__name__)
 CAREER_THESIS_ALIGNMENT_SCHEMA = "apps_rg_l15_strategic_fit_v1"
 CAREER_THESIS_ALIGNMENT_FILENAME = "l15_strategic_fit_plan.json"
 
-_STOPWORDS = frozenset({
-    "of", "and", "in", "to", "for", "the", "with", "from", "at", "by", "on",
-    "a", "an", "is", "are", "as", "or", "be", "has", "have", "had", "will",
-})
+_STOPWORDS = frozenset(
+    {
+        "of",
+        "and",
+        "in",
+        "to",
+        "for",
+        "the",
+        "with",
+        "from",
+        "at",
+        "by",
+        "on",
+        "a",
+        "an",
+        "is",
+        "are",
+        "as",
+        "or",
+        "be",
+        "has",
+        "have",
+        "had",
+        "will",
+    }
+)
 
 
 @dataclass
@@ -94,9 +116,7 @@ class CareerThesisAlignmentAgent:
         model_name: str | None = None,
         provider: str | None = None,
     ) -> None:
-        self.model_name = model_name or os.environ.get(
-            "APPS_RG_L15_MODEL", "claude-sonnet-5"
-        )
+        self.model_name = model_name or os.environ.get("APPS_RG_L15_MODEL", "claude-sonnet-5")
         self.provider = provider or os.environ.get("APPS_RG_L15_PROVIDER", "anthropic")
 
     def synthesize(
@@ -157,10 +177,7 @@ class CareerThesisAlignmentAgent:
             for item in raw_reqs:
                 if isinstance(item, Mapping):
                     text = str(
-                        item.get("requirement_text")
-                        or item.get("text")
-                        or item.get("name")
-                        or ""
+                        item.get("requirement_text") or item.get("text") or item.get("name") or ""
                     ).strip()
                     req_id = str(item.get("id") or item.get("requirement_id") or "")
                 else:
@@ -194,10 +211,7 @@ class CareerThesisAlignmentAgent:
             if isinstance(item, Mapping):
                 ev_id = str(item.get("assertion_id") or item.get("id") or f"ev_{idx:03d}")
                 text = str(
-                    item.get("fact_text")
-                    or item.get("text")
-                    or item.get("canonical_bullet")
-                    or ""
+                    item.get("fact_text") or item.get("text") or item.get("canonical_bullet") or ""
                 ).strip()
                 skills = list(item.get("matched_skills") or item.get("skills") or [])
                 domain = str(item.get("domain") or "")
@@ -207,12 +221,14 @@ class CareerThesisAlignmentAgent:
                 skills = []
                 domain = ""
             if text or skills:
-                normalized.append({
-                    "id": ev_id,
-                    "text": text,
-                    "skills": [str(s) for s in skills],
-                    "domain": domain,
-                })
+                normalized.append(
+                    {
+                        "id": ev_id,
+                        "text": text,
+                        "skills": [str(s) for s in skills],
+                        "domain": domain,
+                    }
+                )
         return normalized
 
     def _synthesize_career_thesis(
@@ -266,10 +282,7 @@ class CareerThesisAlignmentAgent:
         evidence: list[dict[str, Any]],
     ) -> list[EvidenceGapMitigation]:
         mitigations: list[EvidenceGapMitigation] = []
-        evidence_texts = [
-            (ev["id"], (ev["text"] + " " + " ".join(ev["skills"])).lower())
-            for ev in evidence
-        ]
+        evidence_texts = [(ev["id"], (ev["text"] + " " + " ".join(ev["skills"])).lower()) for ev in evidence]
 
         for req in requirements:
             req_text = req["text"]
@@ -317,7 +330,7 @@ class CareerThesisAlignmentAgent:
         """
         # Turn 1: Strategist Proposal (simulated for architectural blueprint)
         strategist_proposal = self._call_strategist_agent(thesis, requirements, evidence)
-        
+
         # Turn 2: Arbiter Audit & Finalization
         final_allocation = self._call_asset_arbiter_agent(strategist_proposal, evidence)
 
@@ -327,7 +340,9 @@ class CareerThesisAlignmentAgent:
 
         return final_allocation
 
-    def _call_strategist_agent(self, thesis: CareerThesis, requirements: list[dict[str, Any]], evidence: list[dict[str, Any]]) -> dict[str, Any]:
+    def _call_strategist_agent(
+        self, thesis: CareerThesis, requirements: list[dict[str, Any]], evidence: list[dict[str, Any]]
+    ) -> dict[str, Any]:
         """Simulate Turn 1: Career Thesis Strategist."""
         # In production, this issues an LLM call to Claude 3.5 Sonnet
         # Prompt: "Propose a single-sentence Career Thesis, Headline Pillars, and Fact Reservations..."
@@ -336,23 +351,32 @@ class CareerThesisAlignmentAgent:
             "executive_summary_focus": thesis.key_themes[:3] if thesis.key_themes else [],
             "proposed_lane_allocations": {
                 "unify_bullets": ["ev_001", "ev_002"],
-                "ibm_bullets": ["ev_003"] # Strategist tries to hoard facts
-            }
+                "ibm_bullets": ["ev_003"],  # Strategist tries to hoard facts
+            },
         }
 
-    def _call_asset_arbiter_agent(self, strategist_proposal: dict[str, Any], evidence: list[dict[str, Any]]) -> ThematicAllocation | None:
+    def _call_asset_arbiter_agent(
+        self, strategist_proposal: dict[str, Any], evidence: list[dict[str, Any]]
+    ) -> ThematicAllocation | None:
         """Simulate Turn 2: Section Asset Arbiter."""
         # In production, this issues an LLM call to Claude 3.5 Haiku
         # Prompt: "Audit proposed fact allocations against downstream chronological lane density floors..."
-        
-        # Arbiter detects ibm_bullets is starved (needs >= 2). 
+
+        # Arbiter detects ibm_bullets is starved (needs >= 2).
         # Reallocates facts deterministically/semantically to satisfy constraints.
         all_skills = [s for ev in evidence for s in ev.get("skills", [])]
-        comp_focus = sorted(list(dict.fromkeys(all_skills)))[:9] if all_skills else [
-            "Strategic Technology Planning", "Distributed Systems Architecture",
-            "Cross-Functional Leadership", "Cloud-Native Infrastructure",
-            "Product & Engineering Alignment", "Risk Governance & Security",
-        ]
+        comp_focus = (
+            sorted(list(dict.fromkeys(all_skills)))[:9]
+            if all_skills
+            else [
+                "Strategic Technology Planning",
+                "Distributed Systems Architecture",
+                "Cross-Functional Leadership",
+                "Cloud-Native Infrastructure",
+                "Product & Engineering Alignment",
+                "Risk Governance & Security",
+            ]
+        )
 
         # Arbiter negotiated allocation
         return ThematicAllocation(
@@ -362,11 +386,15 @@ class CareerThesisAlignmentAgent:
             bullet_lanes_focus={
                 "unify_bullets": ["Scale, distributed architectures, and platform velocity"],
                 "ibm_bullets": ["Enterprise client outcomes, revenue generation, and technical governance"],
-                "narrative": ["Strategic career progression, organizational leverage, and executive sponsorship"],
+                "narrative": [
+                    "Strategic career progression, organizational leverage, and executive sponsorship"
+                ],
             },
         )
 
-    def _deterministic_fallback_allocation(self, thesis: CareerThesis, evidence: list[dict[str, Any]]) -> ThematicAllocation:
+    def _deterministic_fallback_allocation(
+        self, thesis: CareerThesis, evidence: list[dict[str, Any]]
+    ) -> ThematicAllocation:
         """Deterministic fallback if A2A loop fails."""
 
 

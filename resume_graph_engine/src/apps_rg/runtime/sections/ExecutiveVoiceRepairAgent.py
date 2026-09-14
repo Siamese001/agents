@@ -78,7 +78,7 @@ def _build_executive_summary_repair_prompt(
     t_role = (targeting_context or {}).get("target_role", "Executive")
     t_company = (targeting_context or {}).get("target_company", "Enterprise")
 
-    numbered_sentences = "\n".join(f"[{i+1}] {s}" for i, s in enumerate(sentences))
+    numbered_sentences = "\n".join(f"[{i + 1}] {s}" for i, s in enumerate(sentences))
 
     prompt = f"""You are an elite executive resume editor. Your task is to surgically repair an Executive Summary draft based on strict review feedback.
 
@@ -91,7 +91,7 @@ CURRENT DRAFT (Numbered by sentence):
 
 DIAGNOSTIC FEEDBACK FROM ADVERSARIAL JUDGES:
 - Findings: {json.dumps(findings)}
-- Flagged Sentence Numbers (1-based): {[i+1 for i in flagged_idx] if flagged_idx else "General voice/flow"}
+- Flagged Sentence Numbers (1-based): {[i + 1 for i in flagged_idx] if flagged_idx else "General voice/flow"}
 - Suggested Remediation: {json.dumps(suggestions)}
 
 ALLOWED GROUNDED FACTS (Do NOT introduce external ungrounded metrics or facts):
@@ -209,7 +209,9 @@ def _mock_repair(
         findings_str = " ".join(diagnostic.get("findings") or []).lower()
 
         while len(sentences) < 6:
-            sentences.append("Delivered measurable engineering leverage and operational velocity across enterprise platforms.")
+            sentences.append(
+                "Delivered measurable engineering leverage and operational velocity across enterprise platforms."
+            )
         sentences = sentences[:6]
 
         if 4 in flagged or 5 in flagged or "credential dump" in findings_str or "sentence 5" in findings_str:
@@ -235,14 +237,18 @@ def _mock_repair(
             cleaned = []
             for item in comps:
                 if isinstance(item, dict):
-                    cat = str(
-                        item.get("category_label")
-                        or item.get("resume_display_label")
-                        or item.get("display_label")
-                        or item.get("category")
-                        or item.get("name")
-                        or ""
-                    ).replace("—", ":").strip()
+                    cat = (
+                        str(
+                            item.get("category_label")
+                            or item.get("resume_display_label")
+                            or item.get("display_label")
+                            or item.get("category")
+                            or item.get("name")
+                            or ""
+                        )
+                        .replace("—", ":")
+                        .strip()
+                    )
                     cleaned_item = dict(item)
                     cleaned_item["category"] = cat
                     cleaned_item["category_label"] = cat
@@ -262,29 +268,63 @@ def _mock_repair(
                             cleaned_terms.append(str(t).replace("—", ":").strip())
                     cleaned_item["terms"] = cleaned_terms
                     cleaned_item["skills"] = [
-                        str(t.get("term") or t.get("text") if isinstance(t, dict) else t).replace("—", ":").strip()
+                        str(t.get("term") or t.get("text") if isinstance(t, dict) else t)
+                        .replace("—", ":")
+                        .strip()
                         for t in cleaned_terms
                     ]
                     cleaned.append(cleaned_item)
                 elif isinstance(item, str):
                     cleaned.append(item.replace("—", ":").strip())
             while len(cleaned) < 6:
-                cleaned.append({
-                    "category": "Strategic Leadership",
-                    "category_label": "Strategic Leadership",
-                    "terms": ["Executive Alignment", "Talent Governance"],
-                    "skills": ["Executive Alignment", "Talent Governance"],
-                })
+                cleaned.append(
+                    {
+                        "category": "Strategic Leadership",
+                        "category_label": "Strategic Leadership",
+                        "terms": ["Executive Alignment", "Talent Governance"],
+                        "skills": ["Executive Alignment", "Talent Governance"],
+                    }
+                )
             cleaned = cleaned[:8]
             updated["competencies"] = cleaned
         else:
             updated["competencies"] = [
-                {"category": "Enterprise Architecture", "category_label": "Enterprise Architecture", "skills": ["Cloud Infrastructure", "Distributed Systems"], "terms": ["Cloud Infrastructure", "Distributed Systems"]},
-                {"category": "Strategic AI Delivery", "category_label": "Strategic AI Delivery", "skills": ["LLM Evaluation", "Agentic Systems"], "terms": ["LLM Evaluation", "Agentic Systems"]},
-                {"category": "Engineering Operations", "category_label": "Engineering Operations", "skills": ["DevOps Governance", "FinOps Optimization"], "terms": ["DevOps Governance", "FinOps Optimization"]},
-                {"category": "Executive Leadership", "category_label": "Executive Leadership", "skills": ["Talent Density", "Board Communications"], "terms": ["Talent Density", "Board Communications"]},
-                {"category": "Security & Resilience", "category_label": "Security & Resilience", "skills": ["Zero-Trust Posture", "SOC2 Governance"], "terms": ["Zero-Trust Posture", "SOC2 Governance"]},
-                {"category": "Product Alignment", "category_label": "Product Alignment", "skills": ["Technical Roadmapping", "Commercial Velocity"], "terms": ["Technical Roadmapping", "Commercial Velocity"]},
+                {
+                    "category": "Enterprise Architecture",
+                    "category_label": "Enterprise Architecture",
+                    "skills": ["Cloud Infrastructure", "Distributed Systems"],
+                    "terms": ["Cloud Infrastructure", "Distributed Systems"],
+                },
+                {
+                    "category": "Strategic AI Delivery",
+                    "category_label": "Strategic AI Delivery",
+                    "skills": ["LLM Evaluation", "Agentic Systems"],
+                    "terms": ["LLM Evaluation", "Agentic Systems"],
+                },
+                {
+                    "category": "Engineering Operations",
+                    "category_label": "Engineering Operations",
+                    "skills": ["DevOps Governance", "FinOps Optimization"],
+                    "terms": ["DevOps Governance", "FinOps Optimization"],
+                },
+                {
+                    "category": "Executive Leadership",
+                    "category_label": "Executive Leadership",
+                    "skills": ["Talent Density", "Board Communications"],
+                    "terms": ["Talent Density", "Board Communications"],
+                },
+                {
+                    "category": "Security & Resilience",
+                    "category_label": "Security & Resilience",
+                    "skills": ["Zero-Trust Posture", "SOC2 Governance"],
+                    "terms": ["Zero-Trust Posture", "SOC2 Governance"],
+                },
+                {
+                    "category": "Product Alignment",
+                    "category_label": "Product Alignment",
+                    "skills": ["Technical Roadmapping", "Commercial Velocity"],
+                    "terms": ["Technical Roadmapping", "Commercial Velocity"],
+                },
             ]
         return updated, True, "deterministic_fast_path"
 
@@ -303,6 +343,7 @@ def _call_llm_repair(
 
     try:
         import urllib.request
+
         headers = {
             "x-api-key": api_key,
             "anthropic-version": "2023-06-01",
@@ -439,8 +480,10 @@ def repair_section_with_executive_voice_agent(
             repair_mechanism=mech,
             diagnostic_summary=diagnostic,
             repaired_fields=(
-                ("resume_display_text",) if sec == "executive_summary"
-                else ("headline_line",) if sec == "headline"
+                ("resume_display_text",)
+                if sec == "executive_summary"
+                else ("headline_line",)
+                if sec == "headline"
                 else ("competencies",)
             ),
             original_snippet=original_snippet,
@@ -470,14 +513,14 @@ def repair_section_with_executive_voice_agent(
         # O2: Socratic Voice Refinement (A2A Loop)
         # Turn 1: Executive Voice Drafter (Claude Sonnet 5)
         resp = _call_llm_repair(sec, prompt, model=DEFAULT_REPAIR_MODEL)
-        
+
         if resp and isinstance(resp.get("repaired_text"), str):
             proposed_text = resp["repaired_text"].strip()
-            
+
             # Turn 2: Adversarial Factual Auditor (Claude 3.5 Haiku)
             auditor_prompt = f"Audit the following revision against ALLOWED FACTS: {json.dumps(allowed_facts)}. Draft: {proposed_text}"
             audit_resp = _call_llm_repair(sec, auditor_prompt, model="claude-3-5-haiku-20241022")
-            
+
             # Evaluate Auditor's decision
             if audit_resp and audit_resp.get("disposition") == "PASS":
                 if len(_split_into_sentences(proposed_text)) == 6:
@@ -507,10 +550,7 @@ def repair_section_with_executive_voice_agent(
     elif sec == "competencies":
         comps_in = list(candidate_data.get("competencies") or [])
         has_structured_terms = any(
-            isinstance(t, dict)
-            for c in comps_in
-            if isinstance(c, dict)
-            for t in (c.get("terms") or [])
+            isinstance(t, dict) for c in comps_in if isinstance(c, dict) for t in (c.get("terms") or [])
         )
         if has_structured_terms:
             # Canonical structured graph competencies must preserve their C0 fact
@@ -549,8 +589,10 @@ def repair_section_with_executive_voice_agent(
         repair_mechanism=mech,
         diagnostic_summary=diagnostic,
         repaired_fields=(
-            ("resume_display_text",) if sec == "executive_summary"
-            else ("headline_line",) if sec == "headline"
+            ("resume_display_text",)
+            if sec == "executive_summary"
+            else ("headline_line",)
+            if sec == "headline"
             else ("competencies",)
         ),
         original_snippet=original_snippet,

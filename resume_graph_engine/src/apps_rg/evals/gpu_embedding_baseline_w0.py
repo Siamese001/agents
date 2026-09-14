@@ -26,20 +26,14 @@ MODEL_REVISION = "5617a9f61b028005a4858fdac845db406aefb181"
 MODEL_DIMENSION = 1024
 RECEIPT_SCHEMA = "apps_rg.gpu_embedding_baseline_w0.v1"
 
-RUNTIME_CONTRACT_PATH = Path(
-    "tools/apps_rg_standalone/c03_embedding_runtime_contract.json"
-)
-QUERY_MANIFEST_PATH = Path(
-    "src/apps_rg/evals/c03_graph_evidence_cluster_queries.v1.json"
-)
+RUNTIME_CONTRACT_PATH = Path("tools/apps_rg_standalone/c03_embedding_runtime_contract.json")
+QUERY_MANIFEST_PATH = Path("src/apps_rg/evals/c03_graph_evidence_cluster_queries.v1.json")
 PINNED_MODEL_MANIFEST_PATH = Path(
     "artifacts/apps_rg/c03/graph_evidence_cluster_embeddings/"
     "bge_m3_model_manifest.38ccc2e093252ab0416eee16837c75c641f055b4f3def12091fba8ed94e2b263.json"
 )
 BASE_RESUME_PATH = Path("src/apps_rg/resume/base/amit_ayer_base_resume_v1.json")
-C02_SECTION_PROFILE_PATH = Path(
-    "src/apps_rg/config/domain_contract/section_retrieval_profile.yaml"
-)
+C02_SECTION_PROFILE_PATH = Path("src/apps_rg/config/domain_contract/section_retrieval_profile.yaml")
 HARNESS_PATH = Path("src/apps_rg/evals/gpu_embedding_baseline_w0.py")
 DEFAULT_OUTPUT_ROOT = Path(".runtime/apps_rg/gpu-baseline-w0")
 
@@ -59,9 +53,7 @@ class EmbeddingWorkload:
 
 
 def _canonical_bytes(value: Any) -> bytes:
-    return json.dumps(
-        value, ensure_ascii=False, sort_keys=True, separators=(",", ":")
-    ).encode("utf-8")
+    return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
 
 
 def canonical_sha256(value: Any) -> str:
@@ -104,9 +96,7 @@ def resolve_output_path(repository_root: Path | str, output: Path | str | None) 
     try:
         resolved.relative_to(runtime_root)
     except ValueError as exc:
-        raise GpuEmbeddingBaselineError(
-            f"W0 receipt must remain beneath {runtime_root}: {resolved}"
-        ) from exc
+        raise GpuEmbeddingBaselineError(f"W0 receipt must remain beneath {runtime_root}: {resolved}") from exc
     return resolved
 
 
@@ -127,15 +117,11 @@ def _source_binding(root: Path, path: Path) -> dict[str, str]:
     except ValueError as exc:
         raise GpuEmbeddingBaselineError(f"source escapes repository: {path}") from exc
     if not absolute.is_file():
-        raise GpuEmbeddingBaselineError(
-            f"tracked workload source is missing: {relative}"
-        )
+        raise GpuEmbeddingBaselineError(f"tracked workload source is missing: {relative}")
     return {"path": relative, "sha256": file_sha256(absolute)}
 
 
-def _representative_r1b_texts(
-    base_resume: Mapping[str, Any], intent_text: str
-) -> list[str]:
+def _representative_r1b_texts(base_resume: Mapping[str, Any], intent_text: str) -> list[str]:
     texts = [intent_text]
     employment = (base_resume.get("facts") or {}).get("employment") or []
     for role in employment:
@@ -167,9 +153,7 @@ def _representative_c02_queries(root: Path, jd_text: str) -> list[tuple[str, str
     try:
         profile = yaml.safe_load(profile_path.read_text(encoding="utf-8"))
     except (OSError, yaml.YAMLError) as exc:
-        raise GpuEmbeddingBaselineError(
-            f"cannot load C0.2 section profile: {profile_path}"
-        ) from exc
+        raise GpuEmbeddingBaselineError(f"cannot load C0.2 section profile: {profile_path}") from exc
     if not isinstance(profile, Mapping):
         raise GpuEmbeddingBaselineError("C0.2 section profile is not an object")
     payload = {"jd_payload": {"jd_text": jd_text}}
@@ -191,9 +175,7 @@ def _representative_c02_queries(root: Path, jd_text: str) -> list[tuple[str, str
         if section_id and query:
             rows.append((section_id, query))
     if not rows:
-        raise GpuEmbeddingBaselineError(
-            "C0.2 profile produced no representative queries"
-        )
+        raise GpuEmbeddingBaselineError("C0.2 profile produced no representative queries")
     return rows
 
 
@@ -215,9 +197,7 @@ def build_workloads(repository_root: Path | str) -> list[EmbeddingWorkload]:
     validate_query_manifest(query_manifest, repository_root=root)
     frozen_queries = build_query_texts(query_manifest, repository_root=root)
     ordered_query_ids = sorted(frozen_queries)
-    representative = min(
-        query_manifest["queries"], key=lambda row: str(row["query_id"])
-    )
+    representative = min(query_manifest["queries"], key=lambda row: str(row["query_id"]))
     query_id = str(representative["query_id"])
     jd_path = Path(str(representative["jd_path"]))
     brief_path = Path(str(representative["brief_path"]))
@@ -248,9 +228,7 @@ def build_workloads(repository_root: Path | str) -> list[EmbeddingWorkload]:
         "brief_hash": str(representative["brief_sha256"]),
         "resume_hash": file_sha256(root / BASE_RESUME_PATH),
     }
-    r1b_texts = _representative_r1b_texts(
-        base_resume, intent_text_from_request(r1b_request)
-    )
+    r1b_texts = _representative_r1b_texts(base_resume, intent_text_from_request(r1b_request))
 
     query_source_bindings = {
         "query_manifest": _source_binding(root, QUERY_MANIFEST_PATH),
@@ -277,9 +255,7 @@ def build_workloads(repository_root: Path | str) -> list[EmbeddingWorkload]:
             batch_size=len(ALL_EMBEDDING_LANES),
             source_bindings={
                 **representative_bindings,
-                "constructor": (
-                    "apps_rg.runtime.c0.graph_skill_embedding_allocation._query_text"
-                ),
+                "constructor": ("apps_rg.runtime.c0.graph_skill_embedding_allocation._query_text"),
                 "ordered_section_ids": list(ALL_EMBEDDING_LANES),
             },
         ),
@@ -304,9 +280,7 @@ def build_workloads(repository_root: Path | str) -> list[EmbeddingWorkload]:
             source_bindings={
                 **representative_bindings,
                 "base_resume": _source_binding(root, BASE_RESUME_PATH),
-                "intent_constructor": (
-                    "apps_rg.cache.r1b_intent_vector.intent_text_from_request"
-                ),
+                "intent_constructor": ("apps_rg.cache.r1b_intent_vector.intent_text_from_request"),
                 "batch_shape": "intent_plus_seven_resume_chunks",
             },
         ),
@@ -328,9 +302,7 @@ def _token_length_stats(model: Any, texts: Sequence[str]) -> dict[str, Any]:
         "p95": int(percentile(lengths, 0.95)),
         "max": max(lengths),
         "model_max_length": model_max,
-        "over_model_max_count": sum(length > model_max for length in lengths)
-        if 0 < model_max < 10**9
-        else 0,
+        "over_model_max_count": sum(length > model_max for length in lengths) if 0 < model_max < 10**9 else 0,
     }
 
 
@@ -442,9 +414,7 @@ def _git_identity(root: Path) -> dict[str, Any]:
     }
 
 
-def _validate_runtime_contract(
-    contract: Mapping[str, Any], *, torch: Any, device: str
-) -> None:
+def _validate_runtime_contract(contract: Mapping[str, Any], *, torch: Any, device: str) -> None:
     unsigned = dict(contract)
     supplied_digest = str(unsigned.pop("contract_sha256", ""))
     if canonical_sha256(unsigned) != supplied_digest:
@@ -457,9 +427,7 @@ def _validate_runtime_contract(
     expected = {
         "python_major_minor": str(contract.get("python_major_minor") or ""),
         "torch": str((contract.get("packages") or {}).get("torch") or ""),
-        "sentence-transformers": str(
-            (contract.get("packages") or {}).get("sentence-transformers") or ""
-        ),
+        "sentence-transformers": str((contract.get("packages") or {}).get("sentence-transformers") or ""),
     }
     if observed != expected:
         raise GpuEmbeddingBaselineError(
@@ -492,9 +460,7 @@ def run_baseline(
     root = Path(repository_root).resolve()
     resolved_model = Path(model_path).resolve()
     if not resolved_model.is_dir():
-        raise GpuEmbeddingBaselineError(
-            f"local BGE-M3 directory missing: {resolved_model}"
-        )
+        raise GpuEmbeddingBaselineError(f"local BGE-M3 directory missing: {resolved_model}")
     os.environ["HF_HUB_OFFLINE"] = "1"
     os.environ["TRANSFORMERS_OFFLINE"] = "1"
     os.environ["HF_DATASETS_OFFLINE"] = "1"
@@ -505,13 +471,9 @@ def run_baseline(
         import torch
         from sentence_transformers import SentenceTransformer
     except ImportError as exc:
-        raise GpuEmbeddingBaselineError(
-            "BGE-M3 runtime dependencies are unavailable"
-        ) from exc
+        raise GpuEmbeddingBaselineError("BGE-M3 runtime dependencies are unavailable") from exc
     if not device.startswith("cuda") or not torch.cuda.is_available():
-        raise GpuEmbeddingBaselineError(
-            "W0 requires the pinned CUDA device; CPU is not valid"
-        )
+        raise GpuEmbeddingBaselineError("W0 requires the pinned CUDA device; CPU is not valid")
 
     contract = _load_json_object(root / RUNTIME_CONTRACT_PATH)
     _validate_runtime_contract(contract, torch=torch, device=device)
@@ -522,22 +484,17 @@ def run_baseline(
 
     observed_manifest = build_local_model_manifest(resolved_model)
     if observed_manifest != pinned_manifest:
-        raise GpuEmbeddingBaselineError(
-            "local BGE-M3 artifact does not match the pinned manifest"
-        )
+        raise GpuEmbeddingBaselineError("local BGE-M3 artifact does not match the pinned manifest")
     model_contract = contract.get("model") or {}
     if any(
         (
             observed_manifest.get("model_id") != model_contract.get("model_id"),
             observed_manifest.get("revision") != model_contract.get("revision"),
             observed_manifest.get("dimension") != model_contract.get("dimension"),
-            observed_manifest.get("normalization")
-            != model_contract.get("normalization"),
+            observed_manifest.get("normalization") != model_contract.get("normalization"),
         )
     ):
-        raise GpuEmbeddingBaselineError(
-            "pinned model manifest/runtime contract mismatch"
-        )
+        raise GpuEmbeddingBaselineError("pinned model manifest/runtime contract mismatch")
 
     workloads = build_workloads(root)
     cuda_index = _cuda_index(device)
@@ -548,15 +505,11 @@ def run_baseline(
     torch.cuda.reset_peak_memory_stats(cuda_index)
     _synchronize(torch, device)
     load_started = time.perf_counter()
-    model = SentenceTransformer(
-        str(resolved_model), device=device, local_files_only=True
-    )
+    model = SentenceTransformer(str(resolved_model), device=device, local_files_only=True)
     _synchronize(torch, device)
     model_load_ms = (time.perf_counter() - load_started) * 1000.0
     if str(model.device) != device:
-        raise GpuEmbeddingBaselineError(
-            f"model device mismatch: expected {device}, observed {model.device}"
-        )
+        raise GpuEmbeddingBaselineError(f"model device mismatch: expected {device}, observed {model.device}")
     model_load_memory = {
         "peak_allocated_mib": _memory_mib(torch.cuda.max_memory_allocated(cuda_index)),
         "peak_reserved_mib": _memory_mib(torch.cuda.max_memory_reserved(cuda_index)),
@@ -622,12 +575,8 @@ def run_baseline(
                 "cuda_memory": {
                     "before_allocated_mib": _memory_mib(before_allocated),
                     "before_reserved_mib": _memory_mib(before_reserved),
-                    "peak_allocated_mib": _memory_mib(
-                        torch.cuda.max_memory_allocated(cuda_index)
-                    ),
-                    "peak_reserved_mib": _memory_mib(
-                        torch.cuda.max_memory_reserved(cuda_index)
-                    ),
+                    "peak_allocated_mib": _memory_mib(torch.cuda.max_memory_allocated(cuda_index)),
+                    "peak_reserved_mib": _memory_mib(torch.cuda.max_memory_reserved(cuda_index)),
                 },
                 "vector_proof": vector_proof,
             }
@@ -728,9 +677,7 @@ def validate_receipt(receipt: Mapping[str, Any]) -> None:
         "c02_section_retrieval_representative",
         "r1b_projection_representative",
     }
-    if {
-        row.get("workload_id") for row in workloads if isinstance(row, Mapping)
-    } != expected_ids:
+    if {row.get("workload_id") for row in workloads if isinstance(row, Mapping)} != expected_ids:
         issues.append("workload_ids")
     source = receipt.get("source") or {}
     harness = source.get("harness") or {}
@@ -774,9 +721,7 @@ def validate_receipt(receipt: Mapping[str, Any]) -> None:
     if canonical_sha256(unsigned) != supplied_digest:
         issues.append("receipt_sha256")
     if issues:
-        raise GpuEmbeddingBaselineError(
-            f"invalid W0 GPU embedding receipt: {sorted(set(issues))}"
-        )
+        raise GpuEmbeddingBaselineError(f"invalid W0 GPU embedding receipt: {sorted(set(issues))}")
 
 
 def write_receipt(path: Path | str, receipt: Mapping[str, Any]) -> None:
