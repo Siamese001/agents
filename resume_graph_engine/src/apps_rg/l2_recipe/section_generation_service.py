@@ -82,9 +82,9 @@ from apps_rg.runtime.sections_root_manifest import (
     emit_sections_root_manifest,
     log_sections_manifest_write_failed,
 )
+from apps_rg.runtime.validators import companion_bullet_finalization
 from apps_rg.runtime.validators.companion_bullet_finalization import (
     PRE_RUN_UPSTREAM_NOT_FINALIZED_BLOCKER,
-    companion_accepted_in_modular_sections_root,
 )
 
 
@@ -494,7 +494,7 @@ class SectionGenerationService:
                 upstream_spec = narrative_upstream.get(lane)
                 if upstream_spec is not None:
                     upstream_lane, expected_ids = upstream_spec
-                    if not companion_accepted_in_modular_sections_root(
+                    if not companion_bullet_finalization.companion_accepted_in_modular_sections_root(
                         repo,
                         sections_root,
                         upstream_section_id=upstream_lane,
@@ -525,7 +525,7 @@ class SectionGenerationService:
                 if upstream_spec is None:
                     return True, ""
                 upstream_lane, expected_ids = upstream_spec
-                accepted = companion_accepted_in_modular_sections_root(
+                accepted = companion_bullet_finalization.companion_accepted_in_modular_sections_root(
                     repo,
                     sections_root,
                     upstream_section_id=upstream_lane,
@@ -597,7 +597,7 @@ class SectionGenerationService:
                     upstream_spec = narrative_upstream.get(lane)
                     if upstream_spec is not None:
                         upstream_lane, expected_ids = upstream_spec
-                        if not companion_accepted_in_modular_sections_root(
+                        if not companion_bullet_finalization.companion_accepted_in_modular_sections_root(
                             repo,
                             sections_root,
                             upstream_section_id=upstream_lane,
