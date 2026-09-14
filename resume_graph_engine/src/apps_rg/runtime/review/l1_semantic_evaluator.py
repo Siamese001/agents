@@ -53,7 +53,14 @@ def _evaluate_subgoal_coverage(subgoal: str, content: str) -> tuple[bool, float]
         return True, 1.0
 
     content_lower = content.lower()
-    matches = sum(1 for kw in keywords if kw in content_lower)
+    matches = 0
+    for kw in keywords:
+        if kw in content_lower:
+            matches += 1
+        elif len(kw) > 5 and kw[:5] in content_lower:
+            # Stemming fallback for inflected forms (e.g. architect / architecture / architected)
+            matches += 1
+
     ratio = matches / len(keywords)
     # Require at least 50% keyword presence for subgoal fulfillment
     return ratio >= 0.5, ratio
