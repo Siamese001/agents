@@ -23,6 +23,8 @@ import pytest
 from tools.config_ssot_agent import (
     ConfigDomain,
     ExemptionManager,
+    SSOTRatchetGate,
+    SSOTRatchetThresholds,
     SSOTRegistry,
     SSOTReporter,
     SSOTScanner,
@@ -210,3 +212,78 @@ def test_cli_check_subcommand(tmp_path: Path, capsys: pytest.CaptureFixture):
     assert ret == 1
     captured = capsys.readouterr()
     assert "Pre-commit Config SSOT Gate Failed" in captured.out
+
+
+def test_ratchet_gate_evaluation(tmp_path: Path):
+    """Verify SSOTRatchetGate enforces baseline thresholds and zero-tolerance categories."""
+    dirty_file = tmp_path / "sample.py"
+    dirty_file.write_text("import os\nval = os.environ['FOO']\n", encoding="utf-8")
+
+    scanner = SSOTScanner()
+    result = scanner.scan([dirty_file])
+
+    # Allow up to 1 env read -> should pass
+    ratchet_file = tmp_path / "ratchet.json"
+    ratchet_file.write_text(
+        json.dumps({"max_total_violations": 1, "max_direct_env_access": 1}),
+        encoding="utf-8",
+    )
+    gate = SSOTRatchetGate(ratchet_file)
+    ok, failures = gate.evaluate(result)
+    assert ok is True
+    assert len(failures) == 0
+
+    # Strict ceiling exceeded -> should fail
+    strict_ratchet = tmp_path / "strict_ratchet.json"
+    strict_ratchet.write_text(
+        json.dumps({"max_total_violations": 0, "max_direct_env_access": 0}),
+        encoding="utf-8",
+    )
+    strict_gate = SSOTRatchetGate(strict_ratchet)
+    ok, failures = strict_gate.evaluate(result)
+    assert ok is False
+    assert any("exceeded ratchet baseline ceiling" in f for f in failures)
+
+
+def test_ratchet_save_baseline(tmp_path: Path):
+    """Verify save_baseline persists scan stats into json file."""
+    dirty_file = tmp_path / "sample.py"
+    dirty_file.write_text("import os\nval = os.environ['FOO']\n", encoding="utf-8")
+
+    scanner = SSOTScanner()
+    result = scanner.scan([dirty_file])
+
+    ratchet_file = tmp_path / "saved_ratchet.json"
+    gate = SSOTRatchetGate(ratchet_file)
+    gate.save_baseline(result)
+
+    assert ratchet_file.is_file()
+    saved = json.loads(ratchet_file.read_text(encoding="utf-8"))
+    assert saved["max_total_violations"] == 1
+    assert saved["max_direct_env_access"] == 1
+    assert saved["max_hardcoded_models"] == 0
+    assert saved["max_hardcoded_timeouts"] == 0
+
+
+def test_cli_ratchet_enforcement(tmp_path: Path, capsys: pytest.CaptureFixture):
+    """Verify CLI scan subcommand respects --ratchet and --strict flags."""
+    sample_file = tmp_path / "sample.py"
+    sample_file.write_text("x = 'gpt-5.6'\n", encoding="utf-8")
+
+    ratchet_file = tmp_path / "cli_ratchet.json"
+    ratchet_file.write_text(
+        json.dumps({"max_total_violations": 0, "max_hardcoded_models": 0}),
+        encoding="utf-8",
+    )
+
+    # Violating ratchet baseline should cause scan to exit with code 1
+    ret = main(["scan", "-p", str(sample_file), "--ratchet", str(ratchet_file)])
+    assert ret == 1
+    captured = capsys.readouterr()
+    assert "Config SSOT Ratchet Gate FAILED" in captured.out
+
+    # Clean file with --strict should pass
+    clean_file = tmp_path / "clean.py"
+    clean_file.write_text("a = 1\n", encoding="utf-8")
+    assert main(["scan", "-p", str(clean_file), "--strict"]) == 0
+
