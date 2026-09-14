@@ -19,11 +19,13 @@ class ConfigDomain(str, Enum):
     ROUTE_IDENTITY = "route_identity"
     ENVIRONMENT_NAMES = "environment_names"
     CREDENTIAL_LOCATIONS = "credential_locations"
+    EMBEDDING_SETTINGS = "embedding_settings"
 
     # Aliases
     MODELS = MODEL_IDENTITY
     TIMEOUTS = RUNTIME_LIMITS
     ENV_VARS = ENVIRONMENT_NAMES
+    EMBEDDINGS = EMBEDDING_SETTINGS
 
 
 @dataclass(frozen=True)
@@ -78,6 +80,14 @@ DEFAULT_OWNERS: dict[ConfigDomain, DomainOwner] = {
         canonical_reader="apps_rg.runtime.env_bootstrap.bootstrap_apps_rg_env",
         description="SSOT for discovering and loading runtime credentials into process environment.",
         target_keys=(),
+    ),
+    ConfigDomain.EMBEDDING_SETTINGS: DomainOwner(
+        domain=ConfigDomain.EMBEDDING_SETTINGS,
+        owner_relative_path="resume_graph_engine/src/apps_rg/runtime/embedding_settings.py",
+        format="python",
+        canonical_reader="apps_rg.runtime.embedding_settings.resolve_apps_rg_embedding_settings",
+        description="SSOT for embedding models, Chroma vector-DB paths, and BGE settings.",
+        target_keys=("CHROMA_PERSIST_DIR", "APPS_RG_EMBEDDING_MODEL_PATH", "EMBEDDING_MODEL_ID"),
     ),
 }
 

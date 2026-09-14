@@ -134,6 +134,16 @@ repos:
         require_serial: true
         types: [python]
 
+      # -- T3b: Config SSOT Enforcement Gate ---------------------------------------
+      - id: config-ssot-enforcement
+        name: "T3b: Config SSOT Enforcement"
+        entry: py -m tools.config_ssot_agent check
+        language: system
+        pass_filenames: true
+        always_run: false
+        require_serial: true
+        types: [python]
+
   # ============================================================================
   # TIER 4+: Structural checks, config validation, style (staged-file-only)
   # ============================================================================

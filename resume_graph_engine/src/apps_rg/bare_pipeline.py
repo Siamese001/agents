@@ -605,10 +605,14 @@ def _allocate_run_dir(artifact_root: str, *, repo_root: Path) -> Path:
 
 
 def _require_live_provider_credentials() -> None:
+    bootstrap_apps_rg_env()
     missing: list[str] = []
-    if not os.environ.get("OPENAI_API_KEY", "").strip():
+    if not os.environ.get("OPENAI_API_KEY", "").strip():  # ssot: exempt(DIRECT_ENV_ACCESS)
         missing.append("OPENAI_API_KEY")
-    if not (os.environ.get("GOOGLE_API_KEY", "").strip() or os.environ.get("GEMINI_API_KEY", "").strip()):
+    if not (
+        os.environ.get("GOOGLE_API_KEY", "").strip()  # ssot: exempt(DIRECT_ENV_ACCESS)
+        or os.environ.get("GEMINI_API_KEY", "").strip()  # ssot: exempt(DIRECT_ENV_ACCESS)
+    ):
         missing.append("GOOGLE_API_KEY")
     if missing:
         raise BarePipelineError("missing live provider credential(s): " + ", ".join(missing))
@@ -624,7 +628,7 @@ def _research_queries(company: str, role: str) -> tuple[tuple[str, str], ...]:
 
 
 def _retrieve_sources(company: str, role: str) -> tuple[list[dict[str, Any]], list[dict[str, str]]]:
-    if not os.environ.get("SEARXNG_BASE_URL", "").strip():
+    if not os.environ.get("SEARXNG_BASE_URL", "").strip():  # ssot: exempt(DIRECT_ENV_ACCESS)
         os.environ["SEARXNG_BASE_URL"] = runtime_base_url()
     sources: list[dict[str, Any]] = []
     failures: list[dict[str, str]] = []
@@ -856,7 +860,11 @@ def _run_gemini_evaluation(
     sources: list[dict[str, Any]],
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     pin = apps_rg_handoff_judge_pin()
-    key = os.environ.get("GOOGLE_API_KEY", "").strip() or os.environ.get("GEMINI_API_KEY", "").strip()
+    bootstrap_apps_rg_env()
+    key = (
+        os.environ.get("GOOGLE_API_KEY", "").strip()  # ssot: exempt(DIRECT_ENV_ACCESS)
+        or os.environ.get("GEMINI_API_KEY", "").strip()  # ssot: exempt(DIRECT_ENV_ACCESS)
+    )
     if not key:
         raise BarePipelineError("GOOGLE_API_KEY is required for X3 evaluation")
     evidence = _sources_for_prompt(sources)
@@ -1053,7 +1061,11 @@ def _read_x3_resume_manifest(run_dir: Path) -> dict[str, Any]:
 
 
 def _require_x3_provider_credential() -> None:
-    if not (os.environ.get("GOOGLE_API_KEY", "").strip() or os.environ.get("GEMINI_API_KEY", "").strip()):
+    bootstrap_apps_rg_env()
+    if not (
+        os.environ.get("GOOGLE_API_KEY", "").strip()  # ssot: exempt(DIRECT_ENV_ACCESS)
+        or os.environ.get("GEMINI_API_KEY", "").strip()  # ssot: exempt(DIRECT_ENV_ACCESS)
+    ):
         raise BarePipelineError("GOOGLE_API_KEY is required for X3 evaluation resume")
 
 

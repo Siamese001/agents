@@ -56,6 +56,23 @@ def build_parser() -> argparse.ArgumentParser:
         help="Print detailed file-by-file violation listings.",
     )
 
+    # check subcommand (for pre-commit on staged files)
+    check_parser = subparsers.add_parser(
+        "check", help="Check specific files for SSOT violations (fails on any violation)"
+    )
+    check_parser.add_argument(
+        "files",
+        nargs="*",
+        help="List of files to check (passed by pre-commit).",
+    )
+    check_parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        default=False,
+        help="Print detailed file-by-file violation listings.",
+    )
+
     return parser
 
 
@@ -98,6 +115,25 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.fail_on_violation and result.stats.total_violations > 0:
             return 1
 
+        return 0
+
+    if args.subcommand == "check":
+        files = args.files or []
+        if not files:
+            return 0
+        registry = SSOTRegistry()
+        exemption_mgr = ExemptionManager()
+        scanner = SSOTScanner(registry=registry, exemption_manager=exemption_mgr)
+        result = scanner.scan(files)
+        if result.violations:
+            reporter = SSOTReporter(result)
+            print(reporter.render_cli_summary())
+            print("\n[!] Pre-commit Config SSOT Gate Failed! Violations found in checked files:")
+            for v in result.violations:
+                print(f"  {v.file_path}:{v.line}:{v.column} [{v.violation_type.value}] {v.message}")
+                if v.suggested_ssot:
+                    print(f"    --> Suggestion: {v.suggested_ssot}")
+            return 1
         return 0
 
     parser.print_help()

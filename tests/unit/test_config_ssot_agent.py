@@ -3,7 +3,20 @@
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
+
+repo_root = Path(__file__).resolve().parents[2]
+if str(repo_root) not in sys.path:
+    sys.path.insert(0, str(repo_root))
+
+try:
+    import tools
+
+    if hasattr(tools, "__path__") and str(repo_root / "tools") not in tools.__path__:
+        tools.__path__.append(str(repo_root / "tools"))
+except ImportError:
+    pass
 
 import pytest
 
@@ -157,3 +170,43 @@ x = "gpt-5.6"
 
     captured = capsys.readouterr()
     assert "CONFIG SSOT ENFORCEMENT SCAN SUMMARY" in captured.out
+
+
+def test_ast_direct_env_access_store_ignored(tmp_path: Path):
+    """Verify os.environ[...] assignment/store is ignored, but reading/load is flagged."""
+    code = """
+import os
+
+os.environ["SET_VAR"] = "value"
+read_var = os.environ["READ_VAR"]
+"""
+    test_file = tmp_path / "env_store_sample.py"
+    test_file.write_text(code, encoding="utf-8")
+
+    scanner = SSOTScanner()
+    violations = scanner.scan_file(test_file)
+
+    env_viols = [v for v in violations if v.violation_type == ViolationType.DIRECT_ENV_ACCESS]
+    assert len(env_viols) == 1
+    assert "READ_VAR" in env_viols[0].detected_value
+
+
+def test_cli_check_subcommand(tmp_path: Path, capsys: pytest.CaptureFixture):
+    """Verify CLI check subcommand exits 0 on clean files and 1 on violations."""
+    clean_file = tmp_path / "clean.py"
+    clean_file.write_text("x = 1\n", encoding="utf-8")
+
+    dirty_file = tmp_path / "dirty.py"
+    dirty_file.write_text("m = 'gpt-5.6'\n", encoding="utf-8")
+
+    # Clean file passes
+    assert main(["check", str(clean_file)]) == 0
+
+    # Empty list passes
+    assert main(["check"]) == 0
+
+    # Dirty file fails
+    ret = main(["check", str(dirty_file)])
+    assert ret == 1
+    captured = capsys.readouterr()
+    assert "Pre-commit Config SSOT Gate Failed" in captured.out

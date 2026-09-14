@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Sequence
+from typing import Any, Sequence
 
 DEFAULT_EXEMPT_PATH_SUBSTRINGS: tuple[str, ...] = (
     "/tests/",
@@ -27,6 +27,9 @@ CANONICAL_BOOTSTRAP_FILES: tuple[str, ...] = (
     "section_judge_policy.py",
     "credentials.py",
     "core_model_catalog.py",
+    "embedding_settings.py",
+    "fact_vectors_bootstrap.py",
+    "executive_summary_repair_policy.py",
     "single_run_rca_w2.py",
     "w5_end_to_end_pipeline.py",
     "zero_llm_qualification.py",

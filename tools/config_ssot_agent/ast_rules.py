@@ -1,30 +1,28 @@
-"""Python AST visitors detecting Single Source of Truth configuration violations."""
+"""AST visitors and violation detection rules for SSOT enforcement."""
 
 from __future__ import annotations
 
 import ast
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Any, Sequence
+from typing import Sequence
 
 from .exemptions import ExemptionManager
 from .registry import ConfigDomain, SSOTRegistry
 
 
 class ViolationType(str, Enum):
-    """Specific category of SSOT violation."""
+    """Types of configuration SSOT violations."""
 
     HARDCODED_MODEL_LITERAL = "HARDCODED_MODEL_LITERAL"
     HARDCODED_TIMEOUT = "HARDCODED_TIMEOUT"
     HARDCODED_TOKEN_LIMIT = "HARDCODED_TOKEN_LIMIT"
     DIRECT_ENV_ACCESS = "DIRECT_ENV_ACCESS"
-    DUPLICATE_CONFIG_DECLARATION = "DUPLICATE_CONFIG_DECLARATION"
+    DUPLICATE_CONFIG = "DUPLICATE_CONFIG"
 
 
 class ViolationSeverity(str, Enum):
-    """Impact level of a detected violation."""
-
     ERROR = "error"
     WARNING = "warning"
     INFO = "info"
@@ -32,7 +30,7 @@ class ViolationSeverity(str, Enum):
 
 @dataclass(frozen=True)
 class SSOTViolation:
-    """Detailed record of a configuration SSOT violation."""
+    """Individual SSOT violation record."""
 
     file_path: str
     line: int
@@ -44,23 +42,30 @@ class SSOTViolation:
     suggested_ssot: str
     rule_id: str
 
-    def to_dict(self) -> dict[str, Any]:
-        d = asdict(self)
-        d["violation_type"] = self.violation_type.value
-        d["severity"] = self.severity.value
-        return d
+    def to_dict(self) -> dict[str, str | int]:
+        return {
+            "file_path": self.file_path,
+            "line": self.line,
+            "column": self.column,
+            "violation_type": self.violation_type.value,
+            "severity": self.severity.value,
+            "detected_value": self.detected_value,
+            "message": self.message,
+            "suggested_ssot": self.suggested_ssot,
+            "rule_id": self.rule_id,
+        }
 
 
 class SSOTASTVisitor(ast.NodeVisitor):
-    """AST visitor identifying hardcoded models, timeouts, limits, and raw env reads."""
+    """AST visitor traversing Python source to flag SSOT configuration violations."""
 
     def __init__(
         self,
-        file_path: Path,
+        file_path: Path | str,
         source_lines: Sequence[str],
         registry: SSOTRegistry,
-        exemption_mgr: ExemptionManager | None = None,
         exemption_manager: ExemptionManager | None = None,
+        exemption_mgr: ExemptionManager | None = None,
     ) -> None:
         self.file_path = file_path
         self.file_str = str(file_path).replace("\\", "/")
@@ -95,7 +100,7 @@ class SSOTASTVisitor(ast.NodeVisitor):
         return False
 
     def visit_Constant(self, node: ast.Constant) -> None:
-        """Inspect string constants for hardcoded model literals."""
+        """Inspect string constants for hardcoded model IDs."""
         if not self.is_bootstrap and isinstance(node.value, str):
             val = node.value.strip()
             if self.registry.is_known_model_literal(val):
@@ -214,7 +219,7 @@ class SSOTASTVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_Subscript(self, node: ast.Subscript) -> None:
-        """Inspect subscripts for os.environ[...] or os.environ.get(...)."""
+        """Inspect subscripts for os.environ[...] loads."""
         if not self.is_bootstrap:
             is_environ = False
             # node.value is os.environ
@@ -224,7 +229,7 @@ class SSOTASTVisitor(ast.NodeVisitor):
             elif isinstance(node.value, ast.Name) and node.value.id == "environ":
                 is_environ = True
 
-            if is_environ:
+            if is_environ and isinstance(node.ctx, ast.Load):
                 if not self._is_inline_exempt(node.lineno, ViolationType.DIRECT_ENV_ACCESS.value):
                     owner = self.registry.get_owner(ConfigDomain.ENVIRONMENT_NAMES)
                     key_val = (
