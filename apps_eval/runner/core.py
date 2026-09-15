@@ -586,8 +586,13 @@ def _seal_apps_rg_eval_package(
 
 
 def _snapshot_deterministic_hash(snapshot: AppOutputSnapshot) -> str:
+    from apps_eval.graders.deterministic.core import EXTENDED_SNAPSHOT_FIELDS
+
     data = snapshot.to_dict()
     data.pop("deterministic_hash", None)
+    for key in EXTENDED_SNAPSHOT_FIELDS:
+        if key in data and not data[key]:
+            data.pop(key, None)
     return _canonical_digest(data)
 
 
