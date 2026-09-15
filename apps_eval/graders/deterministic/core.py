@@ -11,9 +11,33 @@ from typing import Any
 from apps_eval.contracts import AppOutputSnapshot, EvalFixture, GraderFinding
 
 
+EXTENDED_SNAPSHOT_FIELDS: tuple[str, ...] = (
+    "run_root",
+    "artifact_index",
+    "bundle_indexes",
+    "receipts",
+    "lane_rows",
+    "component_rows",
+    "coverage_summary",
+    "raw_artifact_refs",
+    "parent_run_id",
+    "child_run_id",
+    "section_attempt_id",
+    "runtime_exhaust_bundle_id",
+    "microstep_contract_digest",
+    "registry_digest",
+    "contract_profile_id",
+    "snapshot_digest",
+    "source_artifact_manifest",
+)
+
+
 def _canonical_hash(snapshot: AppOutputSnapshot) -> str:
     data = snapshot.to_dict()
     data.pop("deterministic_hash", None)
+    for key in EXTENDED_SNAPSHOT_FIELDS:
+        if key in data and not data[key]:
+            data.pop(key, None)
     raw = json.dumps(data, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 

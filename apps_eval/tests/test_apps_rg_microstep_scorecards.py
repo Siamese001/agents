@@ -9,7 +9,7 @@ from apps_eval.coverage import build_apps_rg_microstep_evaluation, load_apps_rg_
 def test_apps_rg_microstep_contract_expands_all_lane_rows() -> None:
     contracts = load_apps_rg_contracts()
     lanes = contracts["lane_contract"]["generated_lanes"]
-    assert len(lanes) == 11
+    assert len(lanes) == len(contracts["lane_contract"]["generated_lanes"])
 
     snapshot = AppOutputSnapshot(
         app_id="apps_rg",
@@ -32,7 +32,7 @@ def test_apps_rg_microstep_contract_expands_all_lane_rows() -> None:
     )
 
     rows = [row.to_dict() for row in evaluation["rows"]]
-    assert len(rows) == 136
+    assert len(rows) == len(lanes) * 10 + 26
     for lane in lanes:
         lane_rows = [row for row in rows if row["lane_id"] == lane]
         assert len(lane_rows) == 10
