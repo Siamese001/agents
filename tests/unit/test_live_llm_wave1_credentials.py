@@ -19,9 +19,9 @@ from infrastructure.sdks_mcps.client_wrappers import (
 
 def test_api_key_resolution_success():
     """Verify api_key successfully resolves configured providers."""
-    openai_key = "sk-real-openai-key-12345"  # allow-secret
-    ant_key = "sk-ant-real-anthropic-key-12345"  # allow-secret
-    goog_key = "AIzaSyRealGoogleKey12345"  # allow-secret
+    openai_key = "live-sample-openai-credential-12345"
+    ant_key = "live-sample-anthropic-credential-12345"
+    goog_key = "live-sample-google-credential-12345"
     mock_env = {
         "OPENAI_API_KEY": openai_key,
         "ANTHROPIC_API_KEY": ant_key,
@@ -59,7 +59,7 @@ def test_reject_mock_environment():
 
 def test_key_fingerprint_deterministic():
     """Verify fingerprint is consistent and non-leaking."""
-    key = "sk-test-secret-key"
+    key = "live-sample-fingerprint-key-99999"
     fp1 = key_fingerprint(key)
     fp2 = key_fingerprint(key)
     assert fp1 == fp2

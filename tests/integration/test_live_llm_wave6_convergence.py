@@ -96,7 +96,7 @@ class TestWave6TelemetryLock:
     """Validate authentic telemetry capture and fail-closed production enforcement."""
 
     def test_records_authentic_receipt_with_key_fingerprint(self):
-        raw_key = "sk-real-valid-openai-live-key-4321"  # allow-secret
+        raw_key = "live-sample-openai-credential-4321"
         receipt = LiveTelemetryLock.record_receipt(
             provider="openai",
             model="gpt-5.6-luna",

@@ -30,7 +30,7 @@ def test_perform_live_preflight_rejects_missing_key():
 
 def test_perform_live_preflight_succeeds_with_keys():
     """Verify live preflight returns safe key fingerprints when keys exist."""
-    openai_key = "sk-real-test-openai-key-54321"  # allow-secret
+    openai_key = "live-sample-openai-credential-54321"
     with mock.patch.dict(os.environ, {"OPENAI_API_KEY": openai_key, "APPS_RG_L2_FORCE_STUB": ""}):
         fingerprints = perform_live_preflight(providers=("openai",))
         assert "openai" in fingerprints

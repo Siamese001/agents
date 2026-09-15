@@ -33,9 +33,9 @@ class TestWave1UnifiedCredentials:
     """Test Wave 1: Centralized credential resolution and mock environment detection."""
 
     def test_live_keys_load_successfully(self):
-        openai_key = "sk-real-valid-key-openai-12345"  # allow-secret
-        ant_key = "sk-ant-real-valid-key-54321"  # allow-secret
-        goog_key = "AIzaSyRealGoogleKey67890"  # allow-secret
+        openai_key = "live-sample-openai-credential-12345"
+        ant_key = "live-sample-anthropic-credential-54321"
+        goog_key = "live-sample-google-credential-67890"
         env = {
             "OPENAI_API_KEY": openai_key,
             "ANTHROPIC_API_KEY": ant_key,
@@ -119,9 +119,9 @@ class TestWave5UnifiedCLIPreflight:
 
     def test_preflight_validates_pipeline(self):
         env = {
-            "OPENAI_API_KEY": "sk-valid-key-openai-99999",  # allow-secret
-            "ANTHROPIC_API_KEY": "sk-ant-valid-key-88888",  # allow-secret
-            "GOOGLE_API_KEY": "AIzaSyValidKey77777",  # allow-secret
+            "OPENAI_API_KEY": "live-sample-openai-credential-99999",
+            "ANTHROPIC_API_KEY": "live-sample-anthropic-credential-88888",
+            "GOOGLE_API_KEY": "live-sample-google-credential-77777",
         }
         with mock.patch.dict(os.environ, env):
             fps = perform_live_preflight(providers=("openai", "anthropic", "google"))

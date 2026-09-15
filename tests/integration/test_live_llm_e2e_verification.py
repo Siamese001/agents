@@ -54,9 +54,9 @@ def test_full_resume_llm_coherence_blocks_mocked_in_production():
 def test_e2e_preflight_validates_env_agents_credentials():
     """Verify perform_live_preflight validates required live keys and returns fingerprints."""
     env = {
-        "OPENAI_API_KEY": "sk-real-openai-live-key-99999",  # allow-secret
-        "ANTHROPIC_API_KEY": "sk-ant-real-live-key-88888",  # allow-secret
-        "GOOGLE_API_KEY": "AIzaSyRealGoogleKey-77777",  # allow-secret
+        "OPENAI_API_KEY": "live-sample-openai-credential-99999",
+        "ANTHROPIC_API_KEY": "live-sample-anthropic-credential-88888",
+        "GOOGLE_API_KEY": "live-sample-google-credential-77777",
     }
     with mock.patch.dict(os.environ, env):
         fingerprints = perform_live_preflight(providers=("openai", "anthropic", "google"))
