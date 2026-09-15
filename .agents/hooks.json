@@ -81,12 +81,12 @@
     {
       "id": "agents-hitl-atomic-guard",
       "event": "pre_tool_call",
-      "description": "Before presenting an interactive HITL decision to the operator, verify atomic single-question presentation, enumerated options, and that the ambiguity margin between top options is less than 25%.",
+      "description": "Before presenting an interactive HITL decision to the operator, verify atomic single-question presentation, enumerated options, and that the ambiguity margin between top options is within the calibrated 20% threshold (delta <= 20%).",
       "match": {
         "tool": "ask_question"
       },
       "action": "verify_and_warn",
-      "instructions": "For ask_question calls: (1) verify only ONE decision is presented at a time (never bundle multiple questions), (2) verify discrete mutually exclusive options are enumerated as tool arguments, (3) verify that margin between top two options is delta < 25%. If delta >= 25%, proceed autonomously under audit receipt.",
+      "instructions": "For ask_question calls: (1) verify only ONE decision is presented at a time (never bundle multiple questions), (2) verify discrete mutually exclusive options are enumerated as tool arguments, (3) verify that margin between top two options is delta <= 20%. If delta > 20%, proceed autonomously under audit receipt.",
       "severity": "blocking"
     },
     {

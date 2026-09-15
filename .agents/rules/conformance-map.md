@@ -89,10 +89,10 @@ Traces every `AGENTS.md` section to enforceable rules, skills, hooks, tools, and
 ### §"HITL Decisions & Ambiguity Gating"
 | Type | Path | Coverage |
 | :--- | :--- | :--- |
-| Rule | `.agents/rules/hitl-decisions.md` | Atomic presentation, 25% margin rule, synthetic approval firewall |
-| Tool | `tools/hitl_governance.py` | 25% margin evaluator and synthetic origin scanner |
+| Rule | `.agents/rules/hitl-decisions.md` | Atomic presentation, 20% calibrated margin rule, multi-factor confidence, synthetic firewall |
+| Tool | `tools/hitl_governance.py` | Calibrated margin evaluator, multi-factor confidence model, SQLite persistent store |
 | Hook | `.agents/hooks.json` → `agents-hitl-atomic-guard` | Pre-tool check on ask_question |
-| Test | `tests/test_hitl_governance_enforcement.py` | Unit tests for margin calculation and origin validation |
+| Test | `tests/test_hitl_governance_enforcement.py` | Unit tests for margin calculation, persistent store, and origin validation |
 
 ### §"Model-Neutral Artifact Naming"
 | Type | Path | Coverage |

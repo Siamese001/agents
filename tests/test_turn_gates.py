@@ -39,33 +39,33 @@ class TurnGatesValidationTests(unittest.TestCase):
         self.assertEqual(checks["tier1_tools"]["status"], "PASS")
         self.assertEqual(checks["conformance_map"]["status"], "PASS")
 
-    def test_hitl_ambiguity_autonomous_proceed_when_delta_ge_25(self) -> None:
-        """When delta >= 25%, the gate must select PROCEED_AUTONOMOUSLY."""
+    def test_hitl_ambiguity_autonomous_proceed_when_delta_gt_20(self) -> None:
+        """When delta > 20%, the gate must select PROCEED_AUTONOMOUSLY."""
         options = [
             {"label": "Option A (Recommended)", "confidence_score": 0.85},
             {"label": "Option B", "confidence_score": 0.55},
         ]
-        # Delta = 0.85 - 0.55 = 0.30 >= 0.25
+        # Delta = 0.85 - 0.55 = 0.30 > 0.20
         eval_result = evaluate_hitl_ambiguity(options)
         self.assertFalse(eval_result["requires_hitl"])
         self.assertEqual(eval_result["action"], "PROCEED_AUTONOMOUSLY")
         self.assertAlmostEqual(eval_result["margin"], 0.30)
         self.assertEqual(eval_result["top_option"]["label"], "Option A (Recommended)")
 
-    def test_hitl_ambiguity_surface_atomic_when_delta_lt_25(self) -> None:
-        """When delta < 25%, the gate must require SURFACE_HITL_ATOMIC."""
+    def test_hitl_ambiguity_surface_atomic_when_delta_le_20(self) -> None:
+        """When delta <= 20%, the gate must require SURFACE_HITL_ATOMIC."""
         options = [
             {"label": "Option A", "confidence_score": 0.70},
             {"label": "Option B", "confidence_score": 0.60},
         ]
-        # Delta = 0.70 - 0.60 = 0.10 < 0.25
+        # Delta = 0.70 - 0.60 = 0.10 <= 0.20
         eval_result = evaluate_hitl_ambiguity(options)
         self.assertTrue(eval_result["requires_hitl"])
         self.assertEqual(eval_result["action"], "SURFACE_HITL_ATOMIC")
         self.assertAlmostEqual(eval_result["margin"], 0.10)
 
     def test_post_turn_gate_rejects_unnecessary_hitl_interruption(self) -> None:
-        """Post-turn gate fails if a turn surfaced HITL when delta was >= 25%."""
+        """Post-turn gate fails if a turn surfaced HITL when delta was > 20%."""
         options = [
             {"label": "Option A (Strong)", "confidence_score": 0.90},
             {"label": "Option B (Weak)", "confidence_score": 0.50},
@@ -80,7 +80,7 @@ class TurnGatesValidationTests(unittest.TestCase):
         self.assertTrue(any("Must proceed autonomously" in issue for issue in result["issues"]))
 
     def test_post_turn_gate_passes_on_compliant_autonomous_resolution(self) -> None:
-        """Post-turn gate passes when delta >= 25% and agent proceeded autonomously."""
+        """Post-turn gate passes when delta > 20% and agent proceeded autonomously."""
         options = [
             {"label": "Option A (Strong)", "confidence_score": 0.90},
             {"label": "Option B (Weak)", "confidence_score": 0.50},

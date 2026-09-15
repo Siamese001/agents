@@ -150,13 +150,13 @@ def validate_agent_operating_contract(repo_root: Path | None = None) -> dict[str
 
 def evaluate_hitl_ambiguity(
     options: Sequence[dict[str, Any]],
-    margin_threshold: float = 0.25,
+    margin_threshold: float = 0.20,
 ) -> dict[str, Any]:
-    """Evaluate candidate HITL options against the 25% ambiguity margin rule.
+    """Evaluate candidate HITL options against the calibrated 20% ambiguity margin rule.
 
-    If delta = c_top - c_second >= margin_threshold:
+    If delta = c_top - c_second > margin_threshold:
         Decision is decisively resolved; agent should proceed autonomously.
-    If delta < margin_threshold:
+    If delta <= margin_threshold:
         Decision is genuinely ambiguous; agent must surface atomic HITL.
     """
     if not options:
@@ -178,7 +178,7 @@ def evaluate_hitl_ambiguity(
     second_score = scored[1][0] if len(scored) > 1 else 0.0
     margin = round(top_score - second_score, 4)
 
-    requires_hitl = margin < margin_threshold
+    requires_hitl = margin <= margin_threshold
     return {
         "requires_hitl": requires_hitl,
         "margin": margin,
@@ -188,9 +188,9 @@ def evaluate_hitl_ambiguity(
         "top_score": top_score,
         "action": "SURFACE_HITL_ATOMIC" if requires_hitl else "PROCEED_AUTONOMOUSLY",
         "recommendation": (
-            f"Margin Δ = {margin:.2%} is less than {margin_threshold:.0%}: surface atomic HITL decision."
+            f"Margin Δ = {margin:.2%} is within {margin_threshold:.0%}: surface atomic HITL decision."
             if requires_hitl
-            else f"Margin Δ = {margin:.2%} is >= {margin_threshold:.0%}: proceed autonomously with top option."
+            else f"Margin Δ = {margin:.2%} is > {margin_threshold:.0%}: proceed autonomously with top option."
         ),
     }
 
@@ -251,7 +251,7 @@ def validate_post_turn_gate(
         if not hitl_eval["requires_hitl"] and candidate_response:
             if "### HITL Decision" in candidate_response:
                 issues.append(
-                    f"Surfaced HITL decision when margin was {hitl_eval['margin']:.2%} (>= 25%). "
+                    f"Surfaced HITL decision when margin was {hitl_eval['margin']:.2%} (> 20%). "
                     "Must proceed autonomously under recorded receipt."
                 )
 
