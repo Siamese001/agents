@@ -117,10 +117,25 @@ def compute_stable_prefix_hash(segments: Sequence[PromptSegment], *, max_scope: 
     return hashlib.sha256(joined.encode("utf-8")).hexdigest()[:16]
 
 
+CACHE_ALIGNED_SLOT_ORDER = [
+    "S0",  # SYSTEM_AUTHORITY - sovereign, must be first
+    "D0",  # BINDING_AUTHORITY - security fences
+    "I0",  # GOVERNED_AUTHORITY - domain instructions
+    "R0",  # SCHEMA_AUTHORITY - output contract
+    "E0",  # EXAMPLE_AUTHORITY - approved examples
+    "Y0",  # STYLE_AUTHORITY - synthesis preferences (advisory)
+    "C0",  # INFORMATIONAL_AUTHORITY - evidence data (source-separated)
+    "U0",  # ZERO_AUTHORITY - user intent only
+    "H0",  # REPAIR_HINTS - healing guidance
+    "M0",  # PROVIDER_RENDER_CONTROL - model/token control
+]
+
 __all__ = [
+    "CACHE_ALIGNED_SLOT_ORDER",
     "PromptScope",
     "PromptSegment",
     "canonical_prompt_json",
     "classify_slot_scope",
     "compute_stable_prefix_hash",
 ]
+

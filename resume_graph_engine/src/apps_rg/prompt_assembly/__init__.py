@@ -19,6 +19,7 @@ from .compiler import (
     compile_prompt,
     map_slots,
     CANONICAL_SLOT_ORDER,
+    CACHE_ALIGNED_SLOT_ORDER,
     OVERRIDE_ATTEMPT_PATTERNS,
     LOWER_AUTHORITY_SLOTS,
     PROTECTED_SLOTS,
@@ -48,6 +49,7 @@ __all__ = [
     "compile_prompt",
     "map_slots",
     "CANONICAL_SLOT_ORDER",
+    "CACHE_ALIGNED_SLOT_ORDER",
     # W7: Negative controls
     "OVERRIDE_ATTEMPT_PATTERNS",
     "LOWER_AUTHORITY_SLOTS",

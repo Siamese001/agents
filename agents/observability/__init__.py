@@ -31,6 +31,13 @@ from agents.observability.replay import (
     ReplayResult,
     ReplayVerifier,
 )
+from agents.observability.prompt_cache import (
+    chat_usage_metrics,
+    json_text,
+    normalize_static_template,
+    prefix_fingerprint,
+    routing_key,
+)
 
 __all__ = [
     "AgentEventEnvelope",
@@ -45,11 +52,16 @@ __all__ = [
     "ResponseProvenance",
     "VerificationResult",
     "canonical_json_dumps",
+    "chat_usage_metrics",
     "compute_digest",
     "create_artifact_manifest",
     "create_event_envelope",
     "create_request_provenance",
     "create_response_provenance",
+    "json_text",
+    "normalize_static_template",
+    "prefix_fingerprint",
+    "routing_key",
     "sanitize_provenance_metadata",
     "verify_event_chain",
 ]
