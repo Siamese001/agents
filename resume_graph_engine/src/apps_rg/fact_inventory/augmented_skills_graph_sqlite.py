@@ -90,6 +90,80 @@ RAW_TO_CANONICAL_NODE_TYPE: dict[str, str] = {
     "targeting_input": "graph_ref",
 }
 
+CANONICAL_CAREER_EPOCHS: tuple[str, ...] = (
+    "epoch_actuarial_financial_engineering",
+    "epoch_enterprise_risk_governance",
+    "epoch_cloud_data_platform_engineering",
+    "epoch_partner_gtm_revenue_leadership",
+    "epoch_agentic_ai_runtime_architecture",
+    "epoch_ai_platform_commercialization",
+)
+
+EPOCH_ORDINAL: dict[str, int] = {
+    "epoch_actuarial_financial_engineering": 1,
+    "epoch_enterprise_risk_governance": 2,
+    "epoch_cloud_data_platform_engineering": 3,
+    "epoch_partner_gtm_revenue_leadership": 4,
+    "epoch_agentic_ai_runtime_architecture": 5,
+    "epoch_ai_platform_commercialization": 6,
+}
+
+ORDINAL_TO_EPOCH: dict[int, str] = {v: k for k, v in EPOCH_ORDINAL.items()}
+
+EPOCH_LABELS: dict[str, str] = {
+    "epoch_actuarial_financial_engineering": "Actuarial & Financial Engineering",
+    "epoch_enterprise_risk_governance": "Enterprise Risk & Governance",
+    "epoch_cloud_data_platform_engineering": "Cloud & Data Platform Engineering",
+    "epoch_partner_gtm_revenue_leadership": "Partner GTM & Revenue Leadership",
+    "epoch_agentic_ai_runtime_architecture": "Agentic AI Runtime Architecture",
+    "epoch_ai_platform_commercialization": "AI Platform Commercialization",
+}
+
+P6_SKILLS: frozenset[str] = frozenset(
+    {
+        "skill_agentic_platform_productization",
+        "skill_reusable_ai_ip_design",
+        "skill_app_specific_runtime_overlay_design",
+        "skill_enterprise_workflow_adoption",
+        "skill_operating_model_for_agentic_ai",
+        "skill_ai_platform_commercialization",
+    }
+)
+
+LEGACY_SKILL_EPOCHS: dict[str, str] = {
+    "skill_meddpicc_sales_qualification": "epoch_partner_gtm_revenue_leadership",
+    "skill_cpq_deal_velocity_automation": "epoch_ai_platform_commercialization",
+    "skill_soc2_zero_trust_security": "epoch_enterprise_risk_governance",
+    "skill_saas_arr_ltv_cac_metrics": "epoch_ai_platform_commercialization",
+    "skill_confluent_streaming_platforms": "epoch_cloud_data_platform_engineering",
+    "skill_watson_studio_fraud_aml": "epoch_cloud_data_platform_engineering",
+    "skill_nps_customer_health_scoring": "epoch_ai_platform_commercialization",
+    "skill_credit_adjudication_default_risk": "epoch_enterprise_risk_governance",
+}
+
+EMPLOYMENT_PHASES: dict[str, tuple[int, int]] = {
+    "employment_exp_early_career_001": (1, 1),
+    "employment_exp_ey_001": (2, 2),
+    "employment_exp_insurtech_001": (3, 3),
+    "employment_exp_ibm_001": (3, 4),
+    "employment_exp_unify_001": (5, 6),
+}
+
+
+def canonical_career_epoch_and_ordinal(skill_id: str, raw_epoch: str | None) -> tuple[str, int | None]:
+    """Map a skill ID and its raw career_epoch into canonical career_epoch and 1..6 ordinal."""
+    sid = str(skill_id or "").strip()
+    raw = str(raw_epoch or "").strip()
+    if sid in LEGACY_SKILL_EPOCHS:
+        epoch = LEGACY_SKILL_EPOCHS[sid]
+    elif sid in P6_SKILLS:
+        epoch = "epoch_ai_platform_commercialization"
+    else:
+        epoch = raw
+    ordinal = EPOCH_ORDINAL.get(epoch)
+    return epoch, ordinal
+
+
 
 def project_registered_graph_node_type(raw_type: str) -> str:
     """Project one registered canonical node type into the SQLite type system."""
@@ -326,6 +400,8 @@ DDL_STATEMENTS: tuple[str, ...] = (
         support_level TEXT NOT NULL DEFAULT '',
         confidence TEXT NOT NULL DEFAULT '',
         external_eligible INTEGER NOT NULL DEFAULT 0 CHECK (external_eligible IN (0, 1)),
+        career_epoch TEXT NOT NULL DEFAULT '',
+        phase_ordinal INTEGER DEFAULT NULL,
         source_authority TEXT NOT NULL DEFAULT 'augmented_skills_graph',
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL
@@ -400,6 +476,8 @@ DDL_STATEMENTS: tuple[str, ...] = (
         subpillar TEXT NOT NULL DEFAULT '',
         domain_id TEXT NOT NULL DEFAULT '',
         career_track_id TEXT NOT NULL DEFAULT '',
+        career_epoch TEXT NOT NULL DEFAULT '',
+        phase_ordinal INTEGER DEFAULT NULL,
         skill_family TEXT NOT NULL DEFAULT '',
         metric_bucket TEXT NOT NULL DEFAULT 'general_business_outcome',
         role_family_weights TEXT NOT NULL DEFAULT '{}',
@@ -542,6 +620,8 @@ DDL_STATEMENTS: tuple[str, ...] = (
     )
     """,
     "CREATE INDEX IF NOT EXISTS idx_graph_nodes_type ON graph_nodes(node_type)",
+    "CREATE INDEX IF NOT EXISTS idx_graph_nodes_phase ON graph_nodes(phase_ordinal)",
+    "CREATE INDEX IF NOT EXISTS idx_graph_nodes_epoch ON graph_nodes(career_epoch)",
     "CREATE INDEX IF NOT EXISTS idx_graph_edges_type ON graph_edges(edge_type)",
     "CREATE INDEX IF NOT EXISTS idx_graph_edges_src ON graph_edges(source_node_id)",
     "CREATE INDEX IF NOT EXISTS idx_graph_edges_tgt ON graph_edges(target_node_id)",
@@ -552,6 +632,8 @@ DDL_STATEMENTS: tuple[str, ...] = (
     "CREATE INDEX IF NOT EXISTS idx_c03_skill_selection_metric ON c03_skill_selection_features(metric_bucket)",
     "CREATE INDEX IF NOT EXISTS idx_c03_skill_selection_pillar ON c03_skill_selection_features(pillar)",
     "CREATE INDEX IF NOT EXISTS idx_c03_skill_selection_family ON c03_skill_selection_features(skill_family)",
+    "CREATE INDEX IF NOT EXISTS idx_c03_skill_selection_phase ON c03_skill_selection_features(phase_ordinal)",
+    "CREATE INDEX IF NOT EXISTS idx_c03_skill_selection_epoch ON c03_skill_selection_features(career_epoch)",
     "CREATE INDEX IF NOT EXISTS idx_c03_role_family_skill_weights_role ON c03_role_family_skill_weights(role_family_key)",
     "CREATE INDEX IF NOT EXISTS idx_c03_role_family_skill_weights_skill ON c03_role_family_skill_weights(skill_id)",
     "CREATE INDEX IF NOT EXISTS idx_graph_paths_start ON graph_paths(start_node_id)",
@@ -1533,6 +1615,8 @@ def _ensure_policy_nodes(
             "support_level": "POLICY",
             "confidence": "",
             "external_eligible": 0,
+            "career_epoch": "",
+            "phase_ordinal": None,
             "source_authority": "augmented_skills_graph",
             "created_at": ts,
             "updated_at": ts,
@@ -1685,6 +1769,8 @@ def _ensure_fact_node(
         "support_level": "FACT_SUBSTRATE",
         "confidence": "HIGH",
         "external_eligible": 0,
+        "career_epoch": "",
+        "phase_ordinal": None,
         "source_authority": "augmented_skills_graph",
         "created_at": ts,
         "updated_at": ts,
@@ -1737,19 +1823,40 @@ def materialize_augmented_skills_graph_sqlite(
             continue
         ntype = resolve_node_type(nid, str(raw.get("node_type") or ""))
         skill_row = skill_rows_by_id.get(nid) if ntype == "skill" else None
+        epoch = ""
+        ordinal = None
+        act_status = str(raw.get("activation_status") or "")
+        conf = (
+            confidence_grade_for_skill_row(skill_row, candidate_registry=candidate_registry)
+            if skill_row
+            else _confidence_from_node(raw, candidate_registry=candidate_registry)
+        )
+        if ntype == "career_epoch":
+            epoch = nid
+            ordinal = EPOCH_ORDINAL.get(nid)
+            act_status = "ACTIVE"
+            conf = "HIGH"
+        elif ntype == "employment":
+            phases = EMPLOYMENT_PHASES.get(nid)
+            ordinal = phases[0] if phases else None
+        elif ntype == "skill":
+            raw_epoch = skill_row.get("career_epoch") if skill_row else raw.get("career_epoch")
+            epoch, ordinal = canonical_career_epoch_and_ordinal(nid, raw_epoch)
+        else:
+            epoch = str(raw.get("career_epoch") or "")
+            ordinal = raw.get("phase_ordinal")
+
         node_rows[nid] = {
             "node_id": nid,
             "node_type": ntype,
             "label": str(raw.get("label") or nid),
             "description": str(raw.get("description") or ""),
-            "activation_status": str(raw.get("activation_status") or ""),
+            "activation_status": act_status,
             "support_level": str(raw.get("support_level") or ""),
-            "confidence": (
-                confidence_grade_for_skill_row(skill_row, candidate_registry=candidate_registry)
-                if skill_row
-                else _confidence_from_node(raw, candidate_registry=candidate_registry)
-            ),
+            "confidence": conf,
             "external_eligible": 0,
+            "career_epoch": epoch,
+            "phase_ordinal": ordinal,
             "source_authority": "augmented_skills_graph",
             "created_at": ts,
             "updated_at": ts,
@@ -1769,6 +1876,8 @@ def materialize_augmented_skills_graph_sqlite(
             "support_level": "PROJECTION",
             "confidence": "",
             "external_eligible": 0,
+            "career_epoch": "",
+            "phase_ordinal": None,
             "source_authority": "augmented_skills_graph",
             "created_at": ts,
             "updated_at": ts,
@@ -1804,15 +1913,33 @@ def materialize_augmented_skills_graph_sqlite(
                 eid_s,
                 ("skill" if skill_row else registered_raw_type or infer_node_type_from_id(eid_s)),
             )
+            epoch = ""
+            ordinal = None
+            act_status = str(skill_row.get("activation_status") if skill_row else "")
+            conf = _confidence_from_node({}, skill_row=skill_row) if skill_row else ""
+            if ntype == "career_epoch":
+                epoch = eid_s
+                ordinal = EPOCH_ORDINAL.get(eid_s)
+                act_status = "ACTIVE"
+                conf = "HIGH"
+            elif ntype == "employment":
+                phases = EMPLOYMENT_PHASES.get(eid_s)
+                ordinal = phases[0] if phases else None
+            elif ntype == "skill":
+                raw_epoch = skill_row.get("career_epoch") if skill_row else ""
+                epoch, ordinal = canonical_career_epoch_and_ordinal(eid_s, raw_epoch)
+
             node_rows[eid_s] = {
                 "node_id": eid_s,
                 "node_type": ntype,
                 "label": str(skill_row.get("capability") if skill_row else eid_s),
                 "description": "",
-                "activation_status": str(skill_row.get("activation_status") if skill_row else ""),
+                "activation_status": act_status,
                 "support_level": str(skill_row.get("support_level") if skill_row else ""),
-                "confidence": _confidence_from_node({}, skill_row=skill_row) if skill_row else "",
+                "confidence": conf,
                 "external_eligible": 0,
+                "career_epoch": epoch,
+                "phase_ordinal": ordinal,
                 "source_authority": "augmented_skills_graph",
                 "created_at": ts,
                 "updated_at": ts,
@@ -1821,6 +1948,14 @@ def materialize_augmented_skills_graph_sqlite(
         _ensure_endpoint(src)
         _ensure_endpoint(tgt)
         weight = float(raw.get("weight") or 1.0)
+        edge_conf = str(raw.get("validation_status") or "validated")
+        edge_rationale = str(raw.get("rationale") or "")
+        edge_claim_policy = str(raw.get("external_claim_policy") or "")
+        if et == "epoch_contains_skill":
+            edge_conf = "HIGH"
+            edge_rationale = str(raw.get("rationale") or f"The career epoch {src} contains skill {tgt}.")
+            edge_claim_policy = str(raw.get("external_claim_policy") or "skill_projection_not_proof")
+
         edge_by_id[eid] = {
             "edge_id": eid,
             "source_node_id": src,
@@ -1828,14 +1963,14 @@ def materialize_augmented_skills_graph_sqlite(
             "edge_family": str(raw.get("bridge_edge_family") or ""),
             "edge_type": et,
             "weight": weight,
-            "confidence": str(raw.get("validation_status") or "validated"),
+            "confidence": edge_conf,
             "directional": 1 if str(raw.get("direction") or "forward") != "bidirectional" else 0,
             "evidence_status": str(raw.get("validation_status") or ""),
             "section_fit": _parse_section_id(tgt) if tgt.startswith("section_") else "",
             "source_authority": "augmented_skills_graph",
-            "rationale": str(raw.get("rationale") or ""),
+            "rationale": edge_rationale,
             "projection_behavior": str(raw.get("projection_behavior") or ""),
-            "external_claim_policy": str(raw.get("external_claim_policy") or ""),
+            "external_claim_policy": edge_claim_policy,
             "validation_status": str(raw.get("validation_status") or ""),
             "edge_note": str(raw.get("edge_note") or raw.get("note") or ""),
             "operator_note": str(raw.get("operator_note") or ""),
@@ -1915,6 +2050,7 @@ def materialize_augmented_skills_graph_sqlite(
     for sid, row in skill_rows_by_id.items():
         if sid in FORBIDDEN_SKILL_NODE_IDS:
             continue
+        epoch, ordinal = canonical_career_epoch_and_ordinal(sid, row.get("career_epoch"))
         if sid not in node_rows:
             node_rows[sid] = {
                 "node_id": sid,
@@ -1925,6 +2061,8 @@ def materialize_augmented_skills_graph_sqlite(
                 "support_level": str(row.get("support_level") or ""),
                 "confidence": _confidence_from_node(row, skill_row=row),
                 "external_eligible": 0,
+                "career_epoch": epoch,
+                "phase_ordinal": ordinal,
                 "source_authority": "augmented_skills_graph",
                 "created_at": ts,
                 "updated_at": ts,
@@ -1960,6 +2098,7 @@ def materialize_augmented_skills_graph_sqlite(
         grade = confidence_grade_for_skill_row(
             row, has_fact_link=has_link, candidate_registry=candidate_registry
         )
+        epoch, ordinal = canonical_career_epoch_and_ordinal(sid, row.get("career_epoch"))
         if sid not in node_rows:
             node_rows[sid] = {
                 "node_id": sid,
@@ -1970,6 +2109,8 @@ def materialize_augmented_skills_graph_sqlite(
                 "support_level": str(row.get("support_level") or ""),
                 "confidence": grade,
                 "external_eligible": 0,
+                "career_epoch": epoch,
+                "phase_ordinal": ordinal,
                 "source_authority": "augmented_skills_graph",
                 "created_at": ts,
                 "updated_at": ts,
@@ -1978,6 +2119,8 @@ def materialize_augmented_skills_graph_sqlite(
             node_rows[sid]["confidence"] = grade
             node_rows[sid]["support_level"] = str(row.get("support_level") or "")
             node_rows[sid]["activation_status"] = str(row.get("activation_status") or "")
+            node_rows[sid]["career_epoch"] = epoch
+            node_rows[sid]["phase_ordinal"] = ordinal
         node_rows[sid]["external_eligible"] = (
             1 if _skill_external_eligible(row, has_fact_link=has_link) else 0
         )
@@ -2029,6 +2172,8 @@ def materialize_augmented_skills_graph_sqlite(
             raise ValueError(
                 f"metric_outcome materialization: id collision with existing graph_node {_nid!r}"
             )
+        _row.setdefault("career_epoch", "")
+        _row.setdefault("phase_ordinal", None)
         node_rows[_nid] = _row
     for _edge in _mo_edge_rows:
         _ensure_endpoint(str(_edge.get("source_node_id") or ""))
@@ -2088,6 +2233,7 @@ def materialize_augmented_skills_graph_sqlite(
         domain_id = str(row.get("domain_id") or row.get("domain") or "").strip()
         subpillar = str(row.get("subpillar") or "").strip()
         family = pillar or domain_id or subpillar or "unclassified"
+        epoch, ordinal = canonical_career_epoch_and_ordinal(sid, row.get("career_epoch"))
         selection_feature_rows.append(
             {
                 "skill_id": sid,
@@ -2095,6 +2241,8 @@ def materialize_augmented_skills_graph_sqlite(
                 "subpillar": subpillar,
                 "domain_id": domain_id,
                 "career_track_id": str(row.get("career_track_id") or "").strip(),
+                "career_epoch": epoch,
+                "phase_ordinal": ordinal,
                 "skill_family": family,
                 "metric_bucket": metric_bucket_for_row(row),
                 "role_family_weights": json.dumps(row.get("role_family_weights") or {}, sort_keys=True),
@@ -2237,14 +2385,19 @@ def materialize_augmented_skills_graph_sqlite(
     try:
         for stmt in DDL_STATEMENTS:
             conn.execute(stmt)
+        for nr in node_rows.values():
+            nr.setdefault("career_epoch", "")
+            nr.setdefault("phase_ordinal", None)
         conn.executemany(
             """
             INSERT INTO graph_nodes (
                 node_id, node_type, label, description, activation_status, support_level,
-                confidence, external_eligible, source_authority, created_at, updated_at
+                confidence, external_eligible, career_epoch, phase_ordinal,
+                source_authority, created_at, updated_at
             ) VALUES (
                 :node_id, :node_type, :label, :description, :activation_status, :support_level,
-                :confidence, :external_eligible, :source_authority, :created_at, :updated_at
+                :confidence, :external_eligible, :career_epoch, :phase_ordinal,
+                :source_authority, :created_at, :updated_at
             )
             """,
             list(node_rows.values()),
@@ -2302,15 +2455,15 @@ def materialize_augmented_skills_graph_sqlite(
         conn.executemany(
             """
             INSERT INTO c03_skill_selection_features (
-                skill_id, pillar, subpillar, domain_id, career_track_id, skill_family,
-                metric_bucket, role_family_weights, allowed_sections, source_fact_count,
-                confidence, activation_status, support_level, external_eligible,
-                source_authority, source_trace, updated_at
+                skill_id, pillar, subpillar, domain_id, career_track_id, career_epoch,
+                phase_ordinal, skill_family, metric_bucket, role_family_weights,
+                allowed_sections, source_fact_count, confidence, activation_status,
+                support_level, external_eligible, source_authority, source_trace, updated_at
             ) VALUES (
-                :skill_id, :pillar, :subpillar, :domain_id, :career_track_id, :skill_family,
-                :metric_bucket, :role_family_weights, :allowed_sections, :source_fact_count,
-                :confidence, :activation_status, :support_level, :external_eligible,
-                :source_authority, :source_trace, :updated_at
+                :skill_id, :pillar, :subpillar, :domain_id, :career_track_id, :career_epoch,
+                :phase_ordinal, :skill_family, :metric_bucket, :role_family_weights,
+                :allowed_sections, :source_fact_count, :confidence, :activation_status,
+                :support_level, :external_eligible, :source_authority, :source_trace, :updated_at
             )
             """,
             selection_feature_rows,
@@ -2695,10 +2848,39 @@ def validate_materialized_sqlite(
         graph_neighborhood_count = conn.execute("SELECT COUNT(*) FROM graph_neighborhoods").fetchone()[0]
         graph_sibling_link_count = conn.execute("SELECT COUNT(*) FROM graph_sibling_links").fetchone()[0]
         section_budget_count = conn.execute("SELECT COUNT(*) FROM section_evidence_budget").fetchone()[0]
+        epoch_nodes = conn.execute(
+            """
+            SELECT node_id, activation_status, confidence, phase_ordinal
+            FROM graph_nodes
+            WHERE node_type = 'career_epoch'
+            """
+        ).fetchall()
+        skills_missing_phase = conn.execute(
+            """
+            SELECT skill_id FROM c03_skill_selection_features
+            WHERE (phase_ordinal IS NULL OR phase_ordinal NOT BETWEEN 1 AND 6)
+              AND career_epoch <> 'cross_career'
+            """
+        ).fetchall()
     finally:
         conn.close()
 
     issues: list[str] = []
+    found_epoch_ids = set()
+    for eid, act, conf, ord_val in epoch_nodes:
+        found_epoch_ids.add(eid)
+        if eid in EPOCH_ORDINAL:
+            if act != "ACTIVE":
+                issues.append(f"epoch_node_not_active:{eid}:{act}")
+            if conf != "HIGH":
+                issues.append(f"epoch_node_not_high_confidence:{eid}:{conf}")
+            if ord_val != EPOCH_ORDINAL[eid]:
+                issues.append(f"epoch_node_ordinal_mismatch:{eid}:{ord_val}!={EPOCH_ORDINAL[eid]}")
+    missing_epochs = set(EPOCH_ORDINAL) - found_epoch_ids
+    if missing_epochs:
+        issues.append(f"missing_canonical_epochs:{sorted(missing_epochs)}")
+    if skills_missing_phase:
+        issues.append(f"skills_missing_phase_ordinal:{len(skills_missing_phase)}")
     if dup_nodes:
         issues.append(f"duplicate_node_ids:{len(dup_nodes)}")
     if dup_edges:
@@ -2983,7 +3165,304 @@ def validate_hardened_materialized_sqlite(
     }
 
 
+def get_skills_by_career_phase(
+    conn: sqlite3.Connection | None = None,
+    *,
+    phase_ordinal: int | None = None,
+    epoch_id: str | None = None,
+    min_confidence: str = "LOW",
+    section_id: str | None = None,
+    repo_root: Path | None = None,
+) -> dict[str, Any]:
+    """Retrieve skills, supporting assertions, connective edges, and calibrated confidence for a career phase.
+
+    Args:
+        conn: Optional active SQLite connection to augmented_skills_graph.sqlite.
+        phase_ordinal: 1..6 phase number.
+        epoch_id: Canonical career epoch ID (e.g. 'epoch_agentic_ai_runtime_architecture').
+        min_confidence: Minimum skill confidence grade ('LOW', 'MEDIUM', 'HIGH'). Default 'LOW'.
+        section_id: Optional resume section filter ('executive_summary', 'experience', etc.).
+        repo_root: Optional repository root path.
+
+    Returns:
+        Structured dictionary containing:
+          - career_phase: metadata for the epoch
+          - skills: list of matching skills with attributes and fact/metric links
+          - supporting_assertions: proof facts, metric outcomes, and employment nodes
+          - edges: connective edges for skills in this phase
+          - calibrated_confidence_summary: quantitative breakdown of confidence and eligibility
+    """
+    if phase_ordinal is not None:
+        if phase_ordinal not in ORDINAL_TO_EPOCH:
+            raise ValueError(f"Invalid phase_ordinal {phase_ordinal}. Must be between 1 and 6.")
+        resolved_epoch = ORDINAL_TO_EPOCH[phase_ordinal]
+        resolved_ordinal = phase_ordinal
+    elif epoch_id is not None:
+        norm_epoch = str(epoch_id or "").strip()
+        if norm_epoch not in EPOCH_ORDINAL:
+            raise ValueError(
+                f"Invalid epoch_id {epoch_id}. Must be one of {sorted(EPOCH_ORDINAL.keys())}."
+            )
+        resolved_epoch = norm_epoch
+        resolved_ordinal = EPOCH_ORDINAL[norm_epoch]
+    else:
+        raise ValueError("Either phase_ordinal or epoch_id must be provided.")
+
+    close_conn = False
+    if conn is None:
+        conn = open_graph_sqlite(repo_root=repo_root)
+        close_conn = True
+
+    try:
+        min_rank = CONFIDENCE_GRADE_RANK.get(min_confidence.upper(), 1)
+
+        # 1. Fetch career phase metadata
+        epoch_row = conn.execute(
+            """
+            SELECT node_id, node_type, label, description, activation_status, confidence, phase_ordinal
+            FROM graph_nodes
+            WHERE node_id = ?
+            """,
+            (resolved_epoch,),
+        ).fetchone()
+
+        epoch_label = EPOCH_LABELS.get(resolved_epoch, resolved_epoch)
+        if epoch_row:
+            career_phase_meta = {
+                "epoch_id": epoch_row[0],
+                "label": epoch_row[2] or epoch_label,
+                "description": epoch_row[3] or f"Career phase {resolved_ordinal}: {epoch_label}",
+                "activation_status": epoch_row[4] or "ACTIVE",
+                "confidence": epoch_row[5] or "HIGH",
+                "phase_ordinal": epoch_row[6] if epoch_row[6] is not None else resolved_ordinal,
+            }
+        else:
+            career_phase_meta = {
+                "epoch_id": resolved_epoch,
+                "label": epoch_label,
+                "description": f"Career phase {resolved_ordinal}: {epoch_label}",
+                "activation_status": "ACTIVE",
+                "confidence": "HIGH",
+                "phase_ordinal": resolved_ordinal,
+            }
+
+        # 2. Fetch skills
+        query = """
+            SELECT 
+                f.skill_id, n.label, n.description, f.career_epoch, f.phase_ordinal,
+                f.pillar, f.subpillar, f.domain_id, f.metric_bucket, f.confidence,
+                f.support_level, f.activation_status, f.external_eligible,
+                f.source_fact_count, f.allowed_sections
+            FROM c03_skill_selection_features f
+            JOIN graph_nodes n ON n.node_id = f.skill_id
+            WHERE (f.phase_ordinal = ? OR f.career_epoch = ?)
+        """
+        params: list[Any] = [resolved_ordinal, resolved_epoch]
+
+        if section_id:
+            query += """
+                AND EXISTS (
+                    SELECT 1 FROM section_eligibility se
+                    WHERE se.node_id = f.skill_id AND se.section_id = ? AND se.allowed = 1
+                )
+            """
+            params.append(section_id)
+
+        query += " ORDER BY f.confidence DESC, f.skill_id ASC"
+        skill_rows = conn.execute(query, tuple(params)).fetchall()
+
+        skills: list[dict[str, Any]] = []
+        skill_ids: list[str] = []
+        conf_counts = {"HIGH": 0, "MEDIUM": 0, "LOW": 0, "BLOCKED": 0}
+        external_eligible_count = 0
+
+        for r in skill_rows:
+            sid = r[0]
+            conf = str(r[9] or "LOW").upper()
+            rank = CONFIDENCE_GRADE_RANK.get(conf, 1)
+            if rank < min_rank:
+                continue
+
+            skill_ids.append(sid)
+            conf_counts[conf] = conf_counts.get(conf, 0) + 1
+            if r[12]:
+                external_eligible_count += 1
+
+            skills.append({
+                "skill_id": sid,
+                "label": r[1],
+                "description": r[2],
+                "career_epoch": r[3],
+                "phase_ordinal": r[4],
+                "pillar": r[5],
+                "subpillar": r[6],
+                "domain_id": r[7],
+                "metric_bucket": r[8],
+                "confidence": conf,
+                "confidence_numeric": 0.90 if conf == "HIGH" else (0.75 if conf == "MEDIUM" else 0.50),
+                "support_level": r[10],
+                "activation_status": r[11],
+                "external_eligible": int(r[12] or 0),
+                "source_fact_count": int(r[13] or 0),
+                "allowed_sections": json.loads(r[14]) if r[14] else [],
+            })
+
+        # 3. Supporting assertions: facts, metrics, employments
+        supporting_facts: list[dict[str, Any]] = []
+        supporting_metrics: list[dict[str, Any]] = []
+        supporting_employments: list[dict[str, Any]] = []
+        edges: list[dict[str, Any]] = []
+
+        if skill_ids:
+            # Fact links
+            placeholders = ",".join("?" for _ in skill_ids)
+            fact_rows = conn.execute(
+                f"""
+                SELECT DISTINCT fn.node_id, fn.node_type, fn.label, fn.description,
+                                fn.activation_status, fn.support_level, fn.confidence,
+                                l.skill_id
+                FROM skill_fact_links l
+                JOIN graph_nodes fn ON fn.node_id = l.fact_id
+                WHERE l.skill_id IN ({placeholders})
+                ORDER BY fn.node_id
+                """,
+                tuple(skill_ids),
+            ).fetchall()
+
+            seen_facts: set[str] = set()
+            for fr in fact_rows:
+                if fr[0] not in seen_facts:
+                    seen_facts.add(fr[0])
+                    supporting_facts.append({
+                        "node_id": fr[0],
+                        "node_type": fr[1],
+                        "label": fr[2],
+                        "description": fr[3],
+                        "activation_status": fr[4],
+                        "support_level": fr[5],
+                        "confidence": fr[6],
+                        "linked_skill_id": fr[7],
+                    })
+
+            # Connective edges
+            edge_rows = conn.execute(
+                f"""
+                SELECT edge_id, source_node_id, target_node_id, edge_type, weight,
+                       confidence, evidence_status, rationale, external_claim_policy
+                FROM graph_edges
+                WHERE source_node_id = ? OR target_node_id = ?
+                   OR source_node_id IN ({placeholders})
+                   OR target_node_id IN ({placeholders})
+                """,
+                (resolved_epoch, resolved_epoch, *skill_ids, *skill_ids),
+            ).fetchall()
+
+            for er in edge_rows:
+                edges.append({
+                    "edge_id": er[0],
+                    "source_node_id": er[1],
+                    "target_node_id": er[2],
+                    "edge_type": er[3],
+                    "weight": er[4],
+                    "confidence": er[5],
+                    "evidence_status": er[6],
+                    "rationale": er[7],
+                    "external_claim_policy": er[8],
+                })
+
+            # Metric nodes
+            metric_rows = conn.execute(
+                f"""
+                SELECT DISTINCT mn.node_id, mn.node_type, mn.label, mn.description, mn.confidence
+                FROM graph_edges e
+                JOIN graph_nodes mn ON (mn.node_id = e.target_node_id OR mn.node_id = e.source_node_id)
+                WHERE (e.source_node_id IN ({placeholders}) OR e.target_node_id IN ({placeholders}))
+                  AND mn.node_type IN ('metric', 'metric_outcome', 'metric_bucket')
+                """,
+                (*skill_ids, *skill_ids),
+            ).fetchall()
+            for mr in metric_rows:
+                supporting_metrics.append({
+                    "node_id": mr[0],
+                    "node_type": mr[1],
+                    "label": mr[2],
+                    "description": mr[3],
+                    "confidence": mr[4],
+                })
+
+        # Employment nodes matching this phase
+        emp_ids = [
+            eid for eid, (min_p, max_p) in EMPLOYMENT_PHASES.items()
+            if min_p <= resolved_ordinal <= max_p
+        ]
+        if emp_ids:
+            emp_placeholders = ",".join("?" for _ in emp_ids)
+            emp_rows = conn.execute(
+                f"""
+                SELECT node_id, node_type, label, description, activation_status, confidence
+                FROM graph_nodes
+                WHERE node_id IN ({emp_placeholders})
+                """,
+                tuple(emp_ids),
+            ).fetchall()
+            for em in emp_rows:
+                supporting_employments.append({
+                    "node_id": em[0],
+                    "node_type": em[1],
+                    "label": em[2],
+                    "description": em[3],
+                    "activation_status": em[4],
+                    "confidence": em[5],
+                })
+
+        # 4. Calibrated confidence summary
+        total_filtered = len(skills)
+        calibrated_avg = (
+            round(
+                (conf_counts["HIGH"] * 0.92 + conf_counts["MEDIUM"] * 0.70 + conf_counts["LOW"] * 0.35)
+                / max(total_filtered, 1),
+                3,
+            )
+            if total_filtered > 0
+            else 0.0
+        )
+
+        return {
+            "career_phase": career_phase_meta,
+            "skills": skills,
+            "supporting_assertions": {
+                "facts": supporting_facts,
+                "metrics": supporting_metrics,
+                "employment_nodes": supporting_employments,
+                "employments": supporting_employments,
+            },
+            "edges": edges,
+            "calibrated_confidence_summary": {
+                "total_skills": total_filtered,
+                "high_confidence_count": conf_counts["HIGH"],
+                "medium_confidence_count": conf_counts["MEDIUM"],
+                "low_confidence_count": conf_counts["LOW"],
+                "blocked_count": conf_counts["BLOCKED"],
+                "external_eligible_count": external_eligible_count,
+                "calibrated_average_confidence": calibrated_avg,
+                "average_confidence": calibrated_avg,
+            },
+        }
+    finally:
+        if close_conn:
+            conn.close()
+
+
 __all__ = [
+    "CANONICAL_CAREER_EPOCHS",
+    "EPOCH_ORDINAL",
+    "ORDINAL_TO_EPOCH",
+    "EPOCH_LABELS",
+    "P6_SKILLS",
+    "LEGACY_SKILL_EPOCHS",
+    "EMPLOYMENT_PHASES",
+    "canonical_career_epoch_and_ordinal",
+    "get_skills_by_career_phase",
     "CANONICAL_NODE_TYPES",
     "C03_SQLITE_MATERIALIZER_CODE_VERSION",
     "DDL_STATEMENTS",

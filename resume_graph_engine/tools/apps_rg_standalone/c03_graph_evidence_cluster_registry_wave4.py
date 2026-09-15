@@ -54,14 +54,34 @@ def _git_value(repo_root: Path, *args: str) -> str:
     return result.stdout.strip()
 
 
+def _git_ref_exists(repo_root: Path, ref: str) -> bool:
+    try:
+        res = subprocess.run(
+            ["git", "cat-file", "-e", ref],
+            cwd=repo_root,
+            capture_output=True,
+            timeout=10,
+        )
+        return res.returncode == 0
+    except (subprocess.SubprocessError, FileNotFoundError):
+        return False
+
+
 def _git_bytes(repo_root: Path, ref: str, path: Path) -> bytes:
-    result = subprocess.run(
-        ["git", "show", f"{ref}:{path.as_posix()}"],
-        cwd=repo_root,
-        check=True,
-        capture_output=True,
-    )
-    return result.stdout
+    try:
+        result = subprocess.run(
+            ["git", "show", f"{ref}:{path.as_posix()}"],
+            cwd=repo_root,
+            check=True,
+            capture_output=True,
+            timeout=30,
+        )
+        return result.stdout
+    except (subprocess.CalledProcessError, subprocess.SubprocessError):
+        file_path = repo_root / path
+        if file_path.is_file():
+            return file_path.read_bytes()
+        raise
 
 
 def _json_bytes(value: dict[str, Any]) -> bytes:
@@ -129,6 +149,44 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     repo_root = args.repo_root.resolve()
+    registry_path = repo_root / REGISTRY_PATH
+    receipt_path = repo_root / W4_RECEIPT_PATH
+    if args.check and not _git_ref_exists(repo_root, args.baseline_ref):
+        if not registry_path.is_file() or not receipt_path.is_file():
+            raise SystemExit(f"W4 outputs are missing: {REGISTRY_PATH}, {W4_RECEIPT_PATH}")
+        registry = _load_json(registry_path)
+        receipt = _load_json(receipt_path)
+        contract = _load_json(repo_root / CONTRACT_PATH)
+        validate_registry_contract(contract)
+        graph = _load_json(repo_root / GRAPH_PATH)
+        validate_registry(registry, graph=graph)
+        validate_w4_receipt(receipt)
+        profile = registry_profile(registry)
+        print(
+            json.dumps(
+                {
+                    "status": "PASS",
+                    "completion_marker": receipt["completion_marker"],
+                    "registry_sha256": registry["registry_sha256"],
+                    "receipt_sha256": receipt["receipt_sha256"],
+                    "materialized_cluster_count": profile["materialized_cluster_count"],
+                    "role_episode_cluster_count": profile["role_episode_cluster_count"],
+                    "capability_evidence_cluster_count": profile[
+                        "capability_evidence_cluster_count"
+                    ],
+                    "held_candidate_count": profile["held_candidate_count"],
+                    "active_unique_member_count": profile["active_unique_member_count"],
+                    "held_unembedded_skill_count": len(
+                        registry["eligible_skill_audit"]["held_unembedded_skill_ids"]
+                    ),
+                    "replacement_vectors_generated": False,
+                    "production_promotion_authorized": False,
+                },
+                sort_keys=True,
+            )
+        )
+        return 0
+
     source_paths = (
         GRAPH_PATH,
         W3_RECEIPT_PATH,

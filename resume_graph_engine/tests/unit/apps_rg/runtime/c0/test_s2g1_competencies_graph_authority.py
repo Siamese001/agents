@@ -1453,7 +1453,8 @@ def test_anthropic_allocation_recovery_emits_distinct_graph_bound_surfaces() -> 
             "skill_id": "skill_partner_customer_deal_support",
             "fact_id": "fact_revenue_ops_004",
             "root_bundle_theme": "Customer success and value-realization operating cadence",
-            "root_claim_outcome": "Client success cadence and value-realization leadership.",
+            "root_claim_action": "Client value realization operating cadence for expansion across partner accounts.",
+            "root_claim_outcome": "Client success cadence, risk removal, and expansion readiness.",
         },
         {
             "section_id": "competencies",
@@ -1474,6 +1475,7 @@ def test_anthropic_allocation_recovery_emits_distinct_graph_bound_surfaces() -> 
             "role_episode_bundle_id": row["root_id"],
             "fact_id": row["fact_id"],
             "domain": row.get("root_claim_scope", ""),
+            "claim_action": row.get("root_claim_action", ""),
             "claim_text": row.get("root_bundle_theme", ""),
             "claim_outcome": row.get("root_claim_outcome", ""),
         }
@@ -1507,7 +1509,7 @@ def test_anthropic_allocation_recovery_emits_distinct_graph_bound_surfaces() -> 
         "Agentic platform route-policy dispatch architecture",
         "GraphRAG context pack grounding for governed execution",
         "Partner AI solution architecture and co-sell execution",
-        "Partner value-realization operating cadence and deal support",
+        "client value realization operating cadence for expansion",
         "AI co-sell bundling with strategic partners",
     }
     assert "AI Partnerships, Co-Sell Channel & Alliance GTM" not in visible

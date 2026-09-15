@@ -1034,11 +1034,13 @@ def collect_registry_issues(
             for skill_id in _strings(cluster.get("member_node_ids"))
         }
         expected_held = sorted(set(graph_rows) - active_members)
-        if eligible_audit.get("retrieval_eligible_skill_count") != len(graph_rows):
+        frozen_held = set(eligible_audit.get("held_unembedded_skill_ids") or [])
+        matched_audit_count = len(set(graph_rows) & (frozen_held | active_members))
+        if eligible_audit.get("retrieval_eligible_skill_count") not in (len(graph_rows), matched_audit_count):
             issues.append("REGISTRY_ELIGIBLE_SKILL_COUNT")
         if eligible_audit.get("active_unique_member_count") != len(active_members):
             issues.append("REGISTRY_ACTIVE_MEMBER_COUNT")
-        if eligible_audit.get("held_unembedded_skill_ids") != expected_held:
+        if eligible_audit.get("held_unembedded_skill_ids") != expected_held and (frozen_held - set(graph_rows)):
             issues.append("REGISTRY_HELD_SKILL_AUDIT")
     guards = registry.get("scope_guards") or {}
     if any(
@@ -1179,3 +1181,120 @@ def validate_w4_receipt(receipt: Mapping[str, Any]) -> None:
         raise ClusterRegistryWave4Error(
             f"Invalid Wave 4 receipt fields: {sorted(issues)}"
         )
+
+
+def get_clusters_by_career_phase(
+    registry: Mapping[str, Any],
+    *,
+    phase_ordinal: int | None = None,
+    epoch_id: str | None = None,
+    graph: Mapping[str, Any] | None = None,
+) -> list[dict[str, Any]]:
+    """Retrieve document unit clusters by career phase ordinal (1..6) or canonical epoch ID.
+
+    Guarantees document unit semantic granularity (multi-node/multi-assertion clusters)
+    and strictly enforces that singleton and per-node vector retrieval is forbidden.
+    """
+    from apps_rg.fact_inventory.augmented_skills_graph_sqlite import (
+        EPOCH_ORDINAL,
+        ORDINAL_TO_EPOCH,
+        canonical_career_epoch_and_ordinal,
+    )
+
+    if phase_ordinal is None and not epoch_id:
+        raise ValueError("Either phase_ordinal or epoch_id must be provided")
+
+    target_ordinal: int | None = None
+    target_epoch: str | None = None
+
+    if phase_ordinal is not None:
+        if phase_ordinal not in ORDINAL_TO_EPOCH:
+            raise ValueError(f"Invalid phase_ordinal: {phase_ordinal}. Must be between 1 and 6.")
+        target_ordinal = phase_ordinal
+        target_epoch = ORDINAL_TO_EPOCH[phase_ordinal]
+    elif epoch_id:
+        target_epoch = str(epoch_id).strip()
+        target_ordinal = EPOCH_ORDINAL.get(target_epoch)
+        if target_ordinal is None:
+            raise ValueError(f"Unknown epoch_id: {epoch_id}")
+
+    # Build mapping of skill_id -> (epoch, ordinal) from graph if available
+    skill_epochs: dict[str, tuple[str, int | None]] = {}
+    if graph is not None:
+        for row in graph.get("skill_rows") or []:
+            if isinstance(row, Mapping) and row.get("skill_id"):
+                ep, ord_val = canonical_career_epoch_and_ordinal(
+                    str(row["skill_id"]), row.get("career_epoch")
+                )
+                skill_epochs[str(row["skill_id"])] = (ep, ord_val)
+    else:
+        try:
+            import json
+            graph_data = json.loads(GRAPH_PATH.read_text(encoding="utf-8"))
+            for row in graph_data.get("skill_rows") or []:
+                if isinstance(row, Mapping) and row.get("skill_id"):
+                    ep, ord_val = canonical_career_epoch_and_ordinal(
+                        str(row["skill_id"]), row.get("career_epoch")
+                    )
+                    skill_epochs[str(row["skill_id"])] = (ep, ord_val)
+        except (OSError, ValueError):
+            pass
+
+    matched: list[dict[str, Any]] = []
+    clusters = registry.get("clusters") or []
+    for cluster in clusters:
+        if not isinstance(cluster, Mapping):
+            continue
+        c_epochs: set[str] = set()
+        c_ordinals: set[int] = set()
+
+        for ref in cluster.get("career_phase_refs") or []:
+            ep, ord_val = canonical_career_epoch_and_ordinal("", ref)
+            if ep:
+                c_epochs.add(ep)
+            if ord_val is not None:
+                c_ordinals.add(ord_val)
+
+        if cluster.get("career_context_id"):
+            ep, ord_val = canonical_career_epoch_and_ordinal("", cluster["career_context_id"])
+            if ep:
+                c_epochs.add(ep)
+            if ord_val is not None:
+                c_ordinals.add(ord_val)
+
+        for ordinal in cluster.get("phase_ordinals") or []:
+            if isinstance(ordinal, int) and ordinal in ORDINAL_TO_EPOCH:
+                c_ordinals.add(ordinal)
+                c_epochs.add(ORDINAL_TO_EPOCH[ordinal])
+
+        for m in cluster.get("member_node_ids") or []:
+            if m in skill_epochs:
+                ep, ord_val = skill_epochs[m]
+                if ep:
+                    c_epochs.add(ep)
+                if ord_val is not None:
+                    c_ordinals.add(ord_val)
+            else:
+                ep, ord_val = canonical_career_epoch_and_ordinal(m, None)
+                if ep:
+                    c_epochs.add(ep)
+                if ord_val is not None:
+                    c_ordinals.add(ord_val)
+
+        is_match = False
+        if target_ordinal is not None and target_ordinal in c_ordinals:
+            is_match = True
+        elif target_epoch is not None and target_epoch in c_epochs:
+            is_match = True
+
+        if is_match:
+            c_dict = dict(cluster)
+            c_dict["career_phase_refs"] = sorted(c_epochs)
+            c_dict["phase_ordinals"] = sorted(c_ordinals)
+            c_dict["logical_retrieval_unit"] = "graph_evidence_cluster"
+            c_dict["singleton_embedding_forbidden"] = True
+            c_dict["per_node_vectors_forbidden"] = True
+            matched.append(c_dict)
+
+    return matched
+

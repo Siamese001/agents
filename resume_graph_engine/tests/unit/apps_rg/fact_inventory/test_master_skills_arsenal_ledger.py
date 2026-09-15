@@ -67,8 +67,8 @@ def _has_issue(issues: list[str], code: str) -> bool:
 def test_canonical_graph_issue_collector_accepts_reconciled_authority(ledger: dict) -> None:
     issues = collect_canonical_graph_issues(ledger)
     assert issues == []
-    assert ledger["graph_metadata"]["node_count"] == len(ledger["graph_nodes"]) == 375
-    assert ledger["graph_metadata"]["edge_count"] == len(ledger["graph_edges"]) == 2315
+    assert ledger["graph_metadata"]["node_count"] == len(ledger["graph_nodes"]) == 376
+    assert ledger["graph_metadata"]["edge_count"] == len(ledger["graph_edges"]) == 2316
 
 
 def test_canonical_graph_issue_collector_rejects_duplicate_ids_and_logical_triples(
