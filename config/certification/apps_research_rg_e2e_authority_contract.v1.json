@@ -46,7 +46,7 @@
     "missing_field_disposition": "BLOCKED"
   },
   "x3_taxonomy": {
-    "schema_owner": "agentic_core/runtime/exit/exit_disposition.py",
+    "schema_owner": "apps_rg/runtime/exit/exit_disposition.py",
     "codes": [
       {
         "code": "X3A_DENY_REROUTE",
@@ -147,18 +147,18 @@
       "authoritative_receipt": "e2e_preflight_product_entry_receipt.json",
       "schema_ref": "apps_rg/runtime/e2e_preflight.py#apps_rg.e2e_preflight_product_entry.v1",
       "identity_profile": "apps_research_rg_run_identity.v1",
-      "allowed_next": ["APPS_RESEARCH_U0", "APPS_RG_U0"],
+      "allowed_next": ["APPS_RESEARCH_U0", "APPS_RG_U0", "TERMINAL_NON_PRODUCT"],
       "pass_derivation": "signed_continuation_and_consume_once_bytes_revalidated_then_bound_to_committed_producer_identity"
     },
     {
       "stage_id": "APPS_RESEARCH_U0",
       "authority_plane": "current_run",
-      "producer": "agentic_core/runtime/entry/app_ingress_runner.py:AppIngressRunner",
+      "producer": "apps_rg/runtime/entry/app_ingress_runner.py:AppIngressRunner",
       "consumer": "apps_research/integrations/governed_research_run.py:GovernedResearchRun",
       "authoritative_receipt": "apps_research_u0_receipt.json",
       "schema_ref": "apps_research/config/domain_contract/runtime_customization_package.company_brief.v1.json",
       "identity_profile": "apps_research_rg_run_identity.v1",
-      "allowed_next": ["APPS_RESEARCH_RUNTIME"],
+      "allowed_next": ["APPS_RESEARCH_RUNTIME", "TERMINAL_NON_PRODUCT"],
       "pass_derivation": "u0_authority_and_package_receipt_pass"
     },
     {
@@ -169,8 +169,8 @@
       "authoritative_receipt": "runtime_exhaust_bundle.json",
       "schema_ref": "apps_research/config/domain_contract/output_schema.company_brief.v1.json",
       "identity_profile": "apps_research_rg_run_identity.v1",
-      "allowed_next": ["APPS_RESEARCH_EXIT"],
-      "pass_derivation": "required_runtime_receipts_complete"
+      "allowed_next": ["APPS_RESEARCH_EXIT", "TERMINAL_NON_PRODUCT"],
+      "pass_derivation": "required_runtime_receipts_complete_and_provider_gateway_outcomes_valid"
     },
     {
       "stage_id": "APPS_RESEARCH_EXIT",
@@ -178,9 +178,9 @@
       "producer": "apps_research/integrations/apps_rg_handoff.py:run_apps_rg_handoff_exit_authorization",
       "consumer": "apps_research/integrations/apps_rg_handoff.py:persist_apps_rg_targeting_brief_artifacts",
       "authoritative_receipt": "exit_disposition_receipt.json",
-      "schema_ref": "agentic_core/runtime/exit/exit_disposition.py#W8.a3f7e2",
+      "schema_ref": "apps_rg/runtime/exit/exit_disposition.py#W8.a3f7e2",
       "identity_profile": "apps_research_rg_run_identity.v1",
-      "allowed_next": ["HANDOFF_BUNDLE_COMMIT"],
+      "allowed_next": ["HANDOFF_BUNDLE_COMMIT", "TERMINAL_NON_PRODUCT"],
       "pass_derivation": "x3_code_exactly_X3D_ALLOW_FINISH"
     },
     {
@@ -191,8 +191,8 @@
       "authoritative_receipt": "apps_research_apps_rg_handoff_v2.json",
       "schema_ref": "apps_research.apps_rg_handoff.v2",
       "identity_profile": "apps_research_rg_run_identity.v1",
-      "allowed_next": ["APPS_RG_U0"],
-      "pass_derivation": "atomic_bundle_manifest_and_all_artifact_bytes_match"
+      "allowed_next": ["APPS_RG_U0", "TERMINAL_NON_PRODUCT"],
+      "pass_derivation": "atomic_bundle_manifest_provider_attempt_evidence_otel_correlation_and_all_artifact_bytes_match"
     },
     {
       "stage_id": "APPS_RG_U0",
@@ -202,7 +202,7 @@
       "authoritative_receipt": "apps_research_handoff_validation_receipt.json",
       "schema_ref": "apps_research.apps_rg_handoff.v2#/$defs/ConsumerValidationReceipt",
       "identity_profile": "apps_research_rg_run_identity.v1",
-      "allowed_next": ["APPS_RG_L1"],
+      "allowed_next": ["APPS_RG_L1", "TERMINAL_NON_PRODUCT"],
       "pass_derivation": "consumer_validation_receipt_pass"
     },
     {
@@ -211,9 +211,9 @@
       "producer": "apps_rg/runtime/bindings/l1_binding.py",
       "consumer": "apps_rg/runtime/bindings/l0_binding.py",
       "authoritative_receipt": "l1_plan_contract.json",
-      "schema_ref": "agentic_core/runtime/contracts/l1_plan_contract.py",
+      "schema_ref": "apps_rg/runtime/contracts/l1_plan_contract.py",
       "identity_profile": "apps_research_rg_run_identity.v1",
-      "allowed_next": ["APPS_RG_L0"],
+      "allowed_next": ["APPS_RG_L0", "TERMINAL_NON_PRODUCT"],
       "pass_derivation": "authoritative_receipt_status_pass"
     },
     {
@@ -222,73 +222,73 @@
       "producer": "apps_rg/runtime/bindings/l0_binding.py",
       "consumer": "apps_rg/runtime/bindings/c0_binding.py",
       "authoritative_receipt": "route_contract.json",
-      "schema_ref": "agentic_core/runtime/contracts/route_contract.py",
+      "schema_ref": "apps_rg/runtime/contracts/route_contract.py",
       "identity_profile": "apps_research_rg_run_identity.v1",
-      "allowed_next": ["APPS_RG_C0"],
+      "allowed_next": ["APPS_RG_C0", "TERMINAL_NON_PRODUCT"],
       "pass_derivation": "authoritative_receipt_status_pass"
     },
     {
       "stage_id": "APPS_RG_C0",
       "authority_plane": "current_run",
-      "producer": "apps_rg/runtime/bindings/c0_binding.py",
+      "producer": "apps_rg/runtime/whole_run_exit.py",
       "consumer": "apps_rg/runtime/bindings/pa_binding.py",
-      "authoritative_receipt": "final_evidence_contract.json",
-      "schema_ref": "agentic_core/runtime/contracts/final_evidence_contract.py",
+      "authoritative_receipt": "apps_rg_whole_run_exit_review_packet.json",
+      "schema_ref": "apps_rg/runtime/whole_run_exit.py#apps_rg.whole_run_exit_review_packet.v1",
       "identity_profile": "apps_research_rg_run_identity.v1",
-      "allowed_next": ["APPS_RG_PA"],
-      "pass_derivation": "support_and_provenance_receipts_pass"
+      "allowed_next": ["APPS_RG_PA", "TERMINAL_NON_PRODUCT"],
+      "pass_derivation": "all_section_c0_support_and_bound_evidence_receipts_pass"
     },
     {
       "stage_id": "APPS_RG_PA",
       "authority_plane": "current_run",
-      "producer": "apps_rg/runtime/bindings/pa_binding.py",
+      "producer": "apps_rg/runtime/whole_run_exit.py",
       "consumer": "apps_rg/runtime/bindings/l2_binding.py",
-      "authoritative_receipt": "compiled_prompt_artifact.json",
-      "schema_ref": "agentic_core/runtime/contracts/compiled_prompt_artifact.py",
+      "authoritative_receipt": "apps_rg_whole_run_exit_review_packet.json",
+      "schema_ref": "apps_rg/runtime/whole_run_exit.py#apps_rg.whole_run_exit_review_packet.v1",
       "identity_profile": "apps_research_rg_run_identity.v1",
-      "allowed_next": ["APPS_RG_L2"],
-      "pass_derivation": "compiled_prompt_digest_and_policy_pass"
+      "allowed_next": ["APPS_RG_L2", "TERMINAL_NON_PRODUCT"],
+      "pass_derivation": "all_section_compiled_prompts_consume_bound_c0_evidence_as_data"
     },
     {
       "stage_id": "APPS_RG_L2",
       "authority_plane": "current_run",
-      "producer": "apps_rg/runtime/bindings/l2_binding.py",
-      "consumer": "agentic_core/runtime/exit/x1_checkout_runner.py",
-      "authoritative_receipt": "sealed_l2_artifact.json",
-      "schema_ref": "agentic_core/runtime/contracts/sealed_l2_artifact.py",
+      "producer": "apps_rg/runtime/orchestration/integrated_spine_runner.py",
+      "consumer": "apps_rg/runtime/exit/x1_checkout_runner.py",
+      "authoritative_receipt": "apps_rg_whole_run_exit_review_packet.json",
+      "schema_ref": "apps_rg/runtime/whole_run_exit.py#apps_rg.whole_run_exit_review_packet.v1",
       "identity_profile": "apps_research_rg_run_identity.v1",
-      "allowed_next": ["X1_REVIEW"],
-      "pass_derivation": "sealed_artifact_and_l5_binding_valid"
+      "allowed_next": ["X1_REVIEW", "TERMINAL_NON_PRODUCT"],
+      "pass_derivation": "outer_l2_transport_and_all_section_l2_quality_gates_pass"
     },
     {
       "stage_id": "X1_REVIEW",
       "authority_plane": "current_run",
-      "producer": "agentic_core/runtime/exit/x1_checkout_runner.py",
-      "consumer": "agentic_core/runtime/exit/x2_aggregator.py",
-      "authoritative_receipt": "exit_review_packet.json",
-      "schema_ref": "agentic_core/runtime/exit/exit_disposition.py#ExitReviewPacket",
+      "producer": "apps_rg/runtime/whole_run_exit.py",
+      "consumer": "apps_rg/runtime/whole_run_exit.py",
+      "authoritative_receipt": "apps_rg_whole_run_exit_review_packet.json",
+      "schema_ref": "apps_rg/runtime/whole_run_exit.py#apps_rg.whole_run_exit_review_packet.v1",
       "identity_profile": "apps_research_rg_run_identity.v1",
-      "allowed_next": ["X2_AGGREGATION"],
-      "pass_derivation": "x1_overall_pass_from_checks"
+      "allowed_next": ["X2_AGGREGATION", "TERMINAL_NON_PRODUCT"],
+      "pass_derivation": "aggregate_x1d_model_backed_quorum_pass"
     },
     {
       "stage_id": "X2_AGGREGATION",
       "authority_plane": "current_run",
-      "producer": "agentic_core/runtime/exit/x2_aggregator.py",
-      "consumer": "agentic_core/runtime/exit/exit_package_driven_binding.py",
-      "authoritative_receipt": "x2_aggregation_result.json",
-      "schema_ref": "agentic_core/runtime/exit/exit_disposition.py#X2AggregationResult",
+      "producer": "apps_rg/runtime/whole_run_exit.py",
+      "consumer": "apps_rg/runtime/whole_run_exit.py",
+      "authoritative_receipt": "apps_rg_whole_run_exit_review_packet.json",
+      "schema_ref": "apps_rg/runtime/whole_run_exit.py#apps_rg.whole_run_exit_review_packet.v1",
       "identity_profile": "apps_research_rg_run_identity.v1",
-      "allowed_next": ["X3_DISPOSITION"],
-      "pass_derivation": "all_required_gate_and_judge_receipts_pass"
+      "allowed_next": ["X3_DISPOSITION", "TERMINAL_NON_PRODUCT"],
+      "pass_derivation": "all_section_and_final_resume_x2_receipts_pass"
     },
     {
       "stage_id": "X3_DISPOSITION",
       "authority_plane": "current_run",
-      "producer": "agentic_core/runtime/exit/exit_package_driven_binding.py",
+      "producer": "apps_rg/runtime/whole_run_exit.py",
       "consumer": "apps_rg/runtime/package/apps_rg_full_resume_x3_eligibility.py",
-      "authoritative_receipt": "x3_disposition_receipt.json",
-      "schema_ref": "agentic_core/runtime/exit/exit_disposition.py#ExitDispositionReceipt",
+      "authoritative_receipt": "apps_rg_whole_run_exit_review_packet.json",
+      "schema_ref": "apps_rg/runtime/whole_run_exit.py#apps_rg.whole_run_exit_review_packet.v1",
       "identity_profile": "apps_research_rg_run_identity.v1",
       "allowed_next": ["PRODUCT_ELIGIBILITY", "TERMINAL_NON_PRODUCT"],
       "pass_derivation": "exact_canonical_x3_code"
@@ -301,18 +301,18 @@
       "authoritative_receipt": "apps_rg_product_eligibility_receipt.json",
       "schema_ref": "apps_rg/runtime/package/apps_rg_full_resume_x3_eligibility.py",
       "identity_profile": "apps_research_rg_run_identity.v1",
-      "allowed_next": ["UWG_COMMIT"],
+      "allowed_next": ["UWG_COMMIT", "TERMINAL_NON_PRODUCT"],
       "pass_derivation": "eligibility_receipt_pass_and_x3d"
     },
     {
       "stage_id": "UWG_COMMIT",
       "authority_plane": "current_run",
-      "producer": "agentic_core/L4_state/uwg/durable_write_gateway.py",
+      "producer": "apps_rg/L4_state/uwg/durable_write_gateway.py",
       "consumer": "apps_rg/runtime/post_x3_completion.py:complete_apps_rg_post_x3",
       "authoritative_receipt": "uwg_commit_receipt.json",
-      "schema_ref": "agentic_core/L4_state/contracts/records.py#CommitReceipt",
+      "schema_ref": "apps_rg/L4_state/contracts/records.py#CommitReceipt",
       "identity_profile": "apps_research_rg_run_identity.v1",
-      "allowed_next": ["PRODUCT_AUTHORIZATION_CLOSE"],
+      "allowed_next": ["PRODUCT_AUTHORIZATION_CLOSE", "TERMINAL_NON_PRODUCT"],
       "pass_derivation": "commit_receipt_and_exact_output_digest_match"
     },
     {
@@ -323,7 +323,7 @@
       "authoritative_receipt": "apps_rg_product_authorization_receipt.json",
       "schema_ref": "apps_rg.e2e_terminal_manifest.v1",
       "identity_profile": "apps_research_rg_run_identity.v1",
-      "allowed_next": ["APPS_EVAL"],
+      "allowed_next": ["APPS_EVAL", "TERMINAL_NON_PRODUCT"],
       "pass_derivation": "terminal_semantics_product_authorized_true"
     },
     {
@@ -341,9 +341,9 @@
       "stage_id": "L6_SHADOW",
       "authority_plane": "post_boundary",
       "producer": "apps_rg/runtime/spine/l6_shadow_eval_runner.py:run_l6_v40_shadow_eval_for_section",
-      "consumer": "agentic_core/L6_observability/shadow_eval/independent_parity.py",
+      "consumer": "apps_rg/L6_observability/shadow_eval/independent_parity.py",
       "authoritative_receipt": "observability_closure_receipt.json",
-      "schema_ref": "agentic_core/L6_observability/shadow_eval/contracts.py",
+      "schema_ref": "apps_rg/L6_observability/shadow_eval/contracts.py",
       "identity_profile": "apps_research_rg_run_identity.v1",
       "allowed_next": ["INDEPENDENT_PARITY"],
       "pass_derivation": "closure_recomputed_and_valid"
@@ -351,10 +351,10 @@
     {
       "stage_id": "INDEPENDENT_PARITY",
       "authority_plane": "post_boundary",
-      "producer": "agentic_core/L6_observability/shadow_eval/independent_parity.py",
-      "consumer": "agentic_core/L6_system_learning/promotion/generic_l6_profile_consumer.py",
+      "producer": "apps_rg/L6_observability/shadow_eval/independent_parity.py",
+      "consumer": "apps_rg/L6_system_learning/promotion/generic_l6_profile_consumer.py",
       "authoritative_receipt": "l6_apps_eval_binding_closure_receipt.json",
-      "schema_ref": "agentic_core/L6_observability/shadow_eval/independent_parity.py",
+      "schema_ref": "apps_rg/L6_observability/shadow_eval/independent_parity.py",
       "identity_profile": "apps_research_rg_run_identity.v1",
       "allowed_next": ["PROMOTION_TERMINAL"],
       "pass_derivation": "identity_and_exact_source_byte_digests_equal"
@@ -362,10 +362,10 @@
     {
       "stage_id": "PROMOTION_TERMINAL",
       "authority_plane": "post_boundary",
-      "producer": "agentic_core/L6_system_learning/promotion/generic_l6_profile_consumer.py",
+      "producer": "apps_rg/L6_system_learning/promotion/generic_l6_profile_consumer.py",
       "consumer": "apps_rg/runtime/mandatory_run_outputs.py",
       "authoritative_receipt": "future_run_promotion_terminal_receipt.json",
-      "schema_ref": "agentic_core/runtime/contracts/future_run_promotion.py",
+      "schema_ref": "apps_rg/runtime/contracts/future_run_promotion.py",
       "identity_profile": "apps_research_rg_run_identity.v1",
       "allowed_next": ["MANDATORY_OUTPUTS"],
       "pass_derivation": "explicit_terminal_status_present"
@@ -419,13 +419,13 @@
     {
       "stage_id": "TERMINAL_NON_PRODUCT",
       "authority_plane": "current_run",
-      "producer": "agentic_core/runtime/exit/exit_package_driven_binding.py",
+      "producer": "apps_rg/runtime/product_stage_authority.py:emit_terminal_non_product_authority_receipt",
       "consumer": "CALLER",
-      "authoritative_receipt": "x3_disposition_receipt.json",
-      "schema_ref": "agentic_core/runtime/exit/exit_disposition.py#ExitDispositionReceipt",
+      "authoritative_receipt": "terminal_non_product_authority_receipt.json",
+      "schema_ref": "apps_rg.e2e_stage_authority.terminal_non_product.v1",
       "identity_profile": "apps_research_rg_run_identity.v1",
       "allowed_next": [],
-      "pass_derivation": "canonical_non_product_x3_terminal"
+      "pass_derivation": "decisive_failed_stage_and_receipt_snapshot_bound"
     }
   ],
   "entrypoints": [
@@ -538,9 +538,9 @@
       "current_gap_ids": []
     },
     {
-      "entrypoint_id": "agentic_core_apps_rg_dispatch",
+      "entrypoint_id": "apps_rg_apps_rg_dispatch",
       "surface": "dispatch_apps_rg_run",
-      "implementation": "agentic_core/runtime/entry/apps_rg_dispatch.py:dispatch_apps_rg_run",
+      "implementation": "apps_rg/runtime/entry/apps_rg_dispatch.py:dispatch_apps_rg_run",
       "classification": "product",
       "authority_plane": "current_run",
       "authority_contract_id": "apps_research_rg_e2e_authority",
@@ -550,9 +550,9 @@
       "current_gap_ids": []
     },
     {
-      "entrypoint_id": "agentic_core_single_action_spine",
+      "entrypoint_id": "apps_rg_single_action_spine",
       "surface": "run_integrated_single_action_spine",
-      "implementation": "agentic_core/runtime/entrypoints/integrated_single_action_spine_run.py:run_integrated_single_action_spine",
+      "implementation": "apps_rg/runtime/entrypoints/integrated_single_action_spine_run.py:run_integrated_single_action_spine",
       "classification": "test",
       "authority_plane": "none",
       "authority_contract_id": "apps_research_rg_e2e_authority",

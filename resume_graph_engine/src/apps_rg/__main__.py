@@ -54,6 +54,11 @@ def _add_run_arguments(parser: argparse.ArgumentParser) -> None:
             "The governed product run rejects any other destination."
         ),
     )
+    parser.add_argument(
+        "--briefing",
+        default="",
+        help="Optional briefing file path or inline text.",
+    )
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -446,11 +451,19 @@ def _read_product_artifact(run_dir: Path, artifact: str) -> str:
 def _run_product_from_cli(args: argparse.Namespace) -> dict[str, Any]:
     jd_text = _read_input_text(args.jd, default_path=_DEFAULT_JD_PATH, label="job description")
     resume_text = _read_input_text(args.resume, default_path=_DEFAULT_RESUME_PATH, label="base resume")
+    brief_text = ""
+    if getattr(args, "briefing", ""):
+        brief_path = Path(str(args.briefing).strip()).expanduser()
+        if brief_path.is_file():
+            brief_text = brief_path.read_text(encoding="utf-8")
+        else:
+            brief_text = str(args.briefing).strip()
     result = run_canonical_apps_rg_from_cli_primitives(
         target_company=args.target_company,
         target_role=args.target_role,
         jd=jd_text,
         job_description_text=jd_text,
+        manual_brief=brief_text,
         source_resume_text=resume_text,
         artifact_dir=args.artifact_dir,
     )
@@ -481,6 +494,11 @@ def _run_product_from_cli(args: argparse.Namespace) -> dict[str, Any]:
 def main(argv: list[str] | None = None) -> int:
     """Run the sole supported Apps RG resume workflow or its inspection actions."""
     raw_argv = list(sys.argv[1:] if argv is None else argv)
+    if raw_argv and raw_argv[0] == "bootstrap":
+        from apps_rg.runtime.fact_vectors_bootstrap import run_bootstrap_cli
+
+        return int(run_bootstrap_cli(raw_argv[1:]))
+
     if any(arg == "--patch-run" or arg.startswith("--patch-run=") for arg in raw_argv):
         from apps_rg.runtime.orchestration.patch_run import main as patch_main
 

@@ -564,6 +564,36 @@ def build_base_resume_employment_atoms(
         if not lanes:
             continue
         targets = sorted((set(lanes) | set(CROSS_SECTION_TARGETS)) & set(GENERATED_LANES))
+        career_phase_refs: list[str] = []
+        graph_node_refs: list[str] = []
+        if any(n in label for n in ("slalom",)):
+            career_phase_refs = [
+                "epoch_agentic_ai_runtime_architecture",
+                "epoch_ai_platform_commercialization",
+            ]
+            graph_node_refs = ["employment_exp_slalom_001"]
+        elif any(n in label for n in ("unify",)):
+            career_phase_refs = [
+                "epoch_agentic_ai_runtime_architecture",
+                "epoch_ai_platform_commercialization",
+            ]
+            graph_node_refs = ["employment_exp_unify_001"]
+        elif any(n in label for n in ("ibm",)):
+            career_phase_refs = [
+                "epoch_cloud_data_platform_engineering",
+                "epoch_partner_gtm_revenue_leadership",
+            ]
+            graph_node_refs = ["employment_exp_ibm_001"]
+        elif any(n in label for n in ("insurtech",)):
+            career_phase_refs = ["epoch_cloud_data_platform_engineering"]
+            graph_node_refs = ["employment_exp_insurtech_001"]
+        elif any(n in label for n in ("ernst", "young", "ey")):
+            career_phase_refs = ["epoch_enterprise_risk_governance"]
+            graph_node_refs = ["employment_exp_ey_001"]
+        elif any(n in label for n in ("early", "actuarial")):
+            career_phase_refs = ["epoch_actuarial_financial_engineering"]
+            graph_node_refs = ["employment_exp_early_career_001"]
+
         for bullet in block.get("bullets") or []:
             if not isinstance(bullet, dict):
                 continue
@@ -582,8 +612,8 @@ def build_base_resume_employment_atoms(
                 "domain_tags": [str(bullet.get("domain"))] if bullet.get("domain") else [],
                 "skill_tags": [str(t) for t in (bullet.get("technologies") or []) if str(t).strip()],
                 "metric_refs": [str(bullet.get("metric_raw"))] if bullet.get("metric_raw") else [],
-                "career_phase_refs": [],
-                "graph_node_refs": [],
+                "career_phase_refs": list(career_phase_refs),
+                "graph_node_refs": list(graph_node_refs),
                 "allowed_sections": targets,
                 "blocked_sections": [],
                 "proof_status": PROOF_ELIGIBLE,

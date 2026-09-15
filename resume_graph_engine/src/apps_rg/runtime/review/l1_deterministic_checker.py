@@ -92,9 +92,51 @@ def l1_post_l2_deterministic_check(
     checked_assertions: dict[str, bool] = {}
 
     # 1. Extract sealed artifact attributes
-    raw_status = _get_attr_or_key(sealed_artifact, "execution_status", "")
+    raw_status = _get_attr_or_key(sealed_artifact, "execution_status", None)
+    if not raw_status:
+        raw_status = _get_attr_or_key(sealed_artifact, "status", None)
+    if not raw_status and isinstance(sealed_artifact, Mapping):
+        for candidate_key in ("section_result", "payload", "result"):
+            nested = sealed_artifact.get(candidate_key)
+            if isinstance(nested, Mapping):
+                raw_status = nested.get("execution_status") or nested.get("status")
+                if raw_status:
+                    break
+    if not raw_status and isinstance(sealed_artifact, Mapping):
+        step_results = sealed_artifact.get("step_results")
+        if isinstance(step_results, list) and step_results:
+            step_statuses = []
+            for s in step_results:
+                if isinstance(s, Mapping):
+                    sec_res = s.get("section_result")
+                    if isinstance(sec_res, Mapping) and sec_res.get("execution_status"):
+                        step_statuses.append(str(sec_res.get("execution_status")).strip().lower())
+                    elif s.get("status"):
+                        step_statuses.append(str(s.get("status")).strip().lower())
+                    elif s.get("execution_status"):
+                        step_statuses.append(str(s.get("execution_status")).strip().lower())
+            if step_statuses and all(st in SUCCESS_EXECUTION_STATUSES for st in step_statuses):
+                raw_status = "completed"
+
     execution_status = str(raw_status).strip().lower() if raw_status is not None else ""
     generated_content = str(_get_attr_or_key(sealed_artifact, "generated_content", "") or "")
+    if not generated_content and isinstance(sealed_artifact, Mapping):
+        for k in ("output_text", "content", "result"):
+            val = sealed_artifact.get(k)
+            if val and isinstance(val, str):
+                generated_content = val
+                break
+        if not generated_content:
+            step_results = sealed_artifact.get("step_results")
+            if isinstance(step_results, list) and step_results:
+                for step in step_results:
+                    if isinstance(step, Mapping):
+                        sec_res = step.get("section_result")
+                        if isinstance(sec_res, Mapping):
+                            for k, v in sec_res.items():
+                                if (k.endswith("_cli_output_text") or k in ("output_text", "content")) and isinstance(v, str) and v.strip():
+                                    generated_content = v
+                                    break
     raw_state_diff = _get_attr_or_key(sealed_artifact, "proposed_state_diff", {})
     proposed_state_diff: Mapping[str, Any] = raw_state_diff if isinstance(raw_state_diff, Mapping) else {}
     sovereign_receipt = str(_get_attr_or_key(sealed_artifact, "sovereign_execution_receipt", "") or "")

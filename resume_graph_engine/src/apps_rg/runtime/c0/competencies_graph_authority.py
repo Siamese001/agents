@@ -45,13 +45,17 @@ _ALLOCATION_VISIBLE_SURFACE_COMPOSITIONS: Mapping[tuple[str, str], str] = {
         "skill_partner_aws_ecosystem",
     ): "Enterprise hyperscaler partner AWS accelerator ecosystem",
     (
+        "reb_slalom_ecosystem_accelerators",
+        "skill_reusable_agentic_platform_architecture",
+    ): "reusable accelerator assets for agentic platforms",
+    (
         "reb_ey_ccar_capital_liquidity_stress_testing",
         "skill_capital_capital_modeling",
-    ): "Regulated capital liquidity stress testing validation",
+    ): "Regulated model risk governance and validation",
     (
         "reb_ey_capital_optimization_solvency",
         "skill_risk_greek_stress_testing",
-    ): "Insurance derivatives Greek stress testing validation",
+    ): "Insurance regulatory capital stress testing validation",
     (
         "reb_unify_agentic_platform_architecture",
         "skill_unify_agentic_l0_route_policy_dispatch",
@@ -65,9 +69,13 @@ _ALLOCATION_VISIBLE_SURFACE_COMPOSITIONS: Mapping[tuple[str, str], str] = {
         "skill_partner_cloud_vendor_joint_gtm",
     ): "Partner AI solution architecture and co-sell execution",
     (
+        "reb_slalom_agentic_client_delivery",
+        "skill_runtime_gate_mesh_design",
+    ): "runtime gate mesh design for agentic execution",
+    (
         "reb_ibm_customer_success_value_realization",
         "skill_partner_customer_deal_support",
-    ): "Partner value-realization operating cadence and deal support",
+    ): "client value realization operating cadence for expansion",
     (
         "reb_ibm_customer_success_value_realization",
         "skill_p2_gtm_presales_delivery_handoff",
@@ -319,6 +327,10 @@ _ALLOCATION_SURFACE_CATEGORY_OVERRIDES: Mapping[tuple[str, str], str] = {
         "skill_p2_gtm_presales_delivery_handoff",
     ): "Engineering & Delivery Leadership",
     (
+        "reb_slalom_agentic_client_delivery",
+        "skill_runtime_gate_mesh_design",
+    ): "Governance, Risk & Compliance",
+    (
         "reb_ibm_customer_success_value_realization",
         "skill_partner_customer_deal_support",
     ): "Commercial & Operating Impact",
@@ -342,8 +354,8 @@ _ALLOCATION_SURFACE_CATEGORY_OVERRIDES: Mapping[tuple[str, str], str] = {
     ("reb_insurtech_regulated_aws_control_implementation", "skill_soc2_zero_trust_security"): "Governance, Risk & Compliance",
     ("reb_ey_insurance_core_modernization", "skill_insurance_core_to_bi_reporting_handoff"): "Data & Analytics Modernization",
     ("reb_slalom_ecosystem_accelerators", "skill_partner_aws_ecosystem"): "Cloud & Partner Ecosystems",
-    ("reb_ey_ccar_capital_liquidity_stress_testing", "skill_capital_capital_modeling"): "LLMOps & Reliability",
-    ("reb_ey_capital_optimization_solvency", "skill_risk_greek_stress_testing"): "Technology Strategy & Innovation",
+    ("reb_ey_ccar_capital_liquidity_stress_testing", "skill_capital_capital_modeling"): "Governance, Risk & Compliance",
+    ("reb_ey_capital_optimization_solvency", "skill_risk_greek_stress_testing"): "Governance, Risk & Compliance",
 }
 _SURFACE_COMPOSITION_CONNECTIVES = frozenset(
     {"and", "for", "of", "the", "to", "with", "through", "across", "via"}
@@ -383,7 +395,7 @@ _INSURANCE_IT_STRATEGY_FROZEN_ALLOCATION_LAYOUT: tuple[Mapping[str, Any], ...] =
     {
         "category_id": "governance_risk_compliance",
         "category_label": "Governance, Risk & Compliance",
-        "resume_display_label": "AI Runtime Governance & Control Gates",
+        "resume_display_label": "Model Risk Governance & AI Runtime Control Gates",
         "competency_bundle_id": "ccb_runtime_governance",
         "generic_anchor_phrase": "policy enforcement across agent execution paths",
         "assignment_keys": (
@@ -864,6 +876,7 @@ def _partner_gtm_allocation_display_ceiling(
         "Engineering & Delivery Leadership",
         "Technology Strategy & Innovation",
         "LLMOps & Reliability",
+        "AI Platform Leadership",
     } and str(assignment.get("root_id") or "").strip() in {
         "reb_unify_partner_channel_cosell",
         "reb_ibm_aws_alliance_partner_cosell_gtm",

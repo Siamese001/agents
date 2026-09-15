@@ -279,10 +279,10 @@ VISIBLE_GRAPH_SURFACE_TERM_OVERRIDES: dict[str, tuple[str, ...]] = {
     "ccb_agentic_platforms": (
         "governed multi-agent orchestration control planes",
         "agentic workflow routing across enterprise systems",
-        "policy-bound execution architecture for AI agents",
+        "reusable accelerator assets for agentic platforms",
     ),
     "ccb_runtime_governance": (
-        "fail-closed runtime control gate design",
+        "fail-closed policy authorization gates for runtime execution",
         "policy enforcement across agent execution paths",
         "sandboxed decision workflows with audit trails",
     ),
@@ -292,64 +292,82 @@ VISIBLE_GRAPH_SURFACE_TERM_OVERRIDES: dict[str, tuple[str, ...]] = {
         "authority-ordered prompt context assembly pipelines",
     ),
     "ccb_platform_productization": (
-        "demoable AI accelerators for executive buyers",
-        "reusable AI platform commercialization for adoption",
+        "demoable AI platform prototypes for executive buyers",
+        "reusable AI product commercialization for enterprise adoption",
         "production-to-adoption platform value realization operating model",
     ),
     "ccb_llmops_reliability": (
-        "audit-ready agent reliability evidence for governed systems",
-        "evaluation gauntlets for behavior assurance",
-        "production reliability lifecycle for agentic workflows",
+        "audit-ready agent reliability evidence for enterprise systems",
+        "model behavior evaluation and schema validation pipelines",
+        "fail-closed provider recovery for resilient agent workflows",
     ),
     "ccb_distributed_systems_engineering": (
-        "cloud-native AI data reference architectures",
-        "microservices integration for regulated ecosystems",
-        "lakehouse modernization for decision intelligence",
+        "regulated cloud-native data architecture reference patterns",
+        "event-driven microservices platform for distributed ecosystems",
+        "enterprise lakehouse platform modernization for decision intelligence",
     ),
     "ccb_engineering_leadership": (
-        "executive-aligned technical discovery operating cadences",
-        "cross-functional enterprise solution architecture delivery governance",
-        "enterprise pursuit operating model scale-out",
+        "enterprise operating model for governed agentic delivery",
+        "executive investment decision governance for portfolio scale",
+        "engineering organization scale-out for enterprise delivery",
     ),
 }
 
 COMPETENCY_BUNDLE_FAMILY_ROOT_HINTS: dict[str, tuple[str, ...]] = {
     "agentic_platforms": (
+        "reb_slalom_agentic_client_delivery",
+        "reb_slalom_nextgen_ai_solutions",
         "reb_unify_agentic_platform_architecture",
         "reb_unify_production_adoption_lifecycle",
         "reb_unify_distributed_ecosystem_engineering",
     ),
     "runtime_governance": (
+        "reb_slalom_governed_runtime_scaling",
+        "reb_slalom_agentic_client_delivery",
         "reb_unify_agentic_platform_architecture",
         "reb_unify_production_adoption_lifecycle",
         "reb_unify_distributed_ecosystem_engineering",
     ),
     "retrieval_context_engineering": (
+        "reb_slalom_agentic_client_delivery",
         "reb_unify_agentic_platform_architecture",
         "reb_unify_distributed_ecosystem_engineering",
     ),
-    "llmops_reliability": ("reb_unify_distributed_ecosystem_engineering",),
+    "llmops_reliability": (
+        "reb_slalom_governed_runtime_scaling",
+        "reb_unify_agentic_platform_architecture",
+        "reb_slalom_agentic_client_delivery",
+        "reb_unify_distributed_ecosystem_engineering",
+    ),
     "distributed_systems_engineering": (
+        "reb_ibm_aws_alliance_partner_cosell_gtm",
         "reb_unify_distributed_ecosystem_engineering",
         "reb_ibm_aws_modernization_architecture",
         "reb_ibm_data_modeling_bi_decision_support",
     ),
     "platform_productization": (
+        "reb_unify_partner_channel_cosell",
+        "reb_ibm_customer_success_value_realization",
+        "reb_slalom_ecosystem_accelerators",
         "reb_unify_agentic_platform_architecture",
         "reb_unify_production_adoption_lifecycle",
-        "reb_unify_partner_channel_cosell",
     ),
     "partner_applied_ai_architecture": (
         "reb_unify_partner_channel_cosell",
         "reb_ibm_aws_alliance_partner_cosell_gtm",
+        "reb_slalom_agentic_client_delivery",
+        "reb_slalom_ecosystem_accelerators",
         "reb_ibm_presales_solution_engineering",
     ),
     "partnerships_ecosystem_execution": (
+        "reb_slalom_ecosystem_accelerators",
         "reb_ibm_aws_alliance_partner_cosell_gtm",
     ),
     "engineering_leadership": (
-        "reb_unify_distributed_ecosystem_engineering",
+        "reb_ibm_customer_success_value_realization",
         "reb_unify_production_adoption_lifecycle",
+        "reb_slalom_agentic_client_delivery",
+        "reb_unify_distributed_ecosystem_engineering",
         "reb_ibm_presales_solution_engineering",
         "reb_ibm_data_modeling_bi_decision_support",
     ),
@@ -853,6 +871,19 @@ def _bundle_allowed_linked_facts(
         fact_skills = {str(s).strip() for s in (fact.get("graph_skill_node_ids") or []) if str(s).strip()}
         if skill_ids and fact_skills and not skill_ids.intersection(fact_skills):
             continue
+        root_id = str(fact.get("fact_id") or fact.get("role_episode_bundle_id") or "").strip()
+        if rec.get("capability_family") == "partner_applied_ai_architecture" and not root_id.startswith(
+            ("reb_unify_", "reb_ibm_", "fact_partnerships_gtm_", "fact_solutions_", "exp_unify_", "exp_ibm_")
+        ):
+            continue
+        if rec.get("capability_family") in {
+            "llmops_reliability",
+            "agentic_platforms",
+            "runtime_governance",
+            "retrieval_context_engineering",
+            "engineering_leadership",
+        } and root_id.startswith(("reb_ey_", "exp_ey_")):
+            continue
         _append_allowed_source_fact(out, fact.get("fact_id") or fact.get("role_episode_bundle_id"), allowed=allowed)
         for fid in fact.get("source_fact_ids") or []:
             _append_allowed_source_fact(out, fid, allowed=allowed)
@@ -1118,6 +1149,19 @@ def _plan_fact_ids_for_bundle(
         fact_skills = {str(x).strip() for x in (fact.get("graph_skill_node_ids") or []) if str(x).strip()}
         if bundle_skills and fact_skills and not bundle_skills.intersection(fact_skills):
             continue
+        root_id = str(fact.get("fact_id") or fact.get("role_episode_bundle_id") or "").strip()
+        if rec.get("capability_family") == "partner_applied_ai_architecture" and not root_id.startswith(
+            ("reb_unify_", "reb_ibm_", "fact_partnerships_gtm_", "fact_solutions_", "exp_unify_", "exp_ibm_")
+        ):
+            continue
+        if rec.get("capability_family") in {
+            "llmops_reliability",
+            "agentic_platforms",
+            "runtime_governance",
+            "retrieval_context_engineering",
+            "engineering_leadership",
+        } and root_id.startswith(("reb_ey_", "exp_ey_")):
+            continue
         _append(fact.get("fact_id"))
         _append(fact.get("role_episode_bundle_id"))
         for fid in fact.get("source_fact_ids") or []:
@@ -1126,6 +1170,24 @@ def _plan_fact_ids_for_bundle(
             _append(mid)
     for linked in rec.get("linked_source_fact_ids") or []:
         _append(linked)
+    if out:
+        return out
+
+    for root_id in COMPETENCY_BUNDLE_FAMILY_ROOT_HINTS.get(str(rec.get("capability_family") or ""), ()):
+        for fact in plan.get("facts") or []:
+            if not isinstance(fact, dict):
+                continue
+            if root_id not in {
+                str(fact.get("fact_id") or ""),
+                str(fact.get("role_episode_bundle_id") or ""),
+            }:
+                continue
+            _append(fact.get("fact_id"))
+            _append(fact.get("role_episode_bundle_id"))
+            for fid in fact.get("source_fact_ids") or []:
+                _append(fid)
+            for mid in fact.get("metric_outcome_ids") or []:
+                _append(mid)
     if out:
         return out
 
@@ -1171,6 +1233,14 @@ def _plan_fact_ids_for_bundle(
         root_id = str(
             fact.get("role_episode_bundle_id") or fact.get("fact_id") or ""
         ).strip()
+        if rec.get("capability_family") in {
+            "llmops_reliability",
+            "agentic_platforms",
+            "runtime_governance",
+            "retrieval_context_engineering",
+            "engineering_leadership",
+        } and root_id.startswith(("reb_ey_", "exp_ey_")):
+            continue
         fact_text = " ".join(
             str(fact.get(field) or "")
             for field in ("domain", "bundle_theme", "claim_text", "claim_action", "claim_scope")

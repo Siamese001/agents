@@ -258,6 +258,10 @@ def _build_cli_ingress_envelope(
             _jd_is_path = False
         if _jd_is_path:
             job_description_ref = jd_cli
+            try:
+                job_description_text = Path(jd_cli).expanduser().read_text(encoding="utf-8")
+            except OSError:
+                pass
         else:
             job_description_text = jd_cli
     app_payload: dict[str, Any] = {

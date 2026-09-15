@@ -52,10 +52,48 @@ def _ledger_by_id(repo_root: Path) -> dict[str, dict[str, Any]]:
     return out
 
 
+def _resolve_career_phase_refs(label_or_section: str) -> tuple[list[str], list[str]]:
+    norm = str(label_or_section or "").lower()
+    phases: list[str] = []
+    nodes: list[str] = []
+    if "unify" in norm or "tradersense" in norm or "slalom" in norm:
+        for p in ["epoch_agentic_ai_runtime_architecture", "epoch_ai_platform_commercialization"]:
+            if p not in phases:
+                phases.append(p)
+        if "slalom" in norm and "employment_exp_slalom_001" not in nodes:
+            nodes.append("employment_exp_slalom_001")
+        if ("unify" in norm or "tradersense" in norm) and "employment_exp_unify_001" not in nodes:
+            nodes.append("employment_exp_unify_001")
+    if "ibm" in norm:
+        for p in ["epoch_cloud_data_platform_engineering", "epoch_partner_gtm_revenue_leadership"]:
+            if p not in phases:
+                phases.append(p)
+        if "employment_exp_ibm_001" not in nodes:
+            nodes.append("employment_exp_ibm_001")
+    if "insurtech" in norm:
+        if "epoch_cloud_data_platform_engineering" not in phases:
+            phases.append("epoch_cloud_data_platform_engineering")
+        if "employment_exp_insurtech_001" not in nodes:
+            nodes.append("employment_exp_insurtech_001")
+    if "ey" in norm or "ernst" in norm or "young" in norm:
+        if "epoch_enterprise_risk_governance" not in phases:
+            phases.append("epoch_enterprise_risk_governance")
+        if "employment_exp_ey_001" not in nodes:
+            nodes.append("employment_exp_ey_001")
+    if "early" in norm or "actuarial" in norm:
+        if "epoch_actuarial_financial_engineering" not in phases:
+            phases.append("epoch_actuarial_financial_engineering")
+        if "employment_exp_early_career_001" not in nodes:
+            nodes.append("employment_exp_early_career_001")
+    return phases, nodes
+
+
 def _atom_from_ledger_row(row: dict[str, Any], *, section_id: str) -> C02Atom:
     fid = str(row.get("candidate_fact_id") or "").strip()
     conf = str(row.get("confidence") or "MEDIUM").upper()
     proof = PROOF_ELIGIBLE if conf == "HIGH" else CLAIM_ELIGIBLE
+    company = str(row.get("company") or "")
+    career_phase_refs, graph_node_refs = _resolve_career_phase_refs(f"{company} {section_id}")
     return {
         "fact_id": fid,
         "text_to_embed": str(row.get("claim_text") or "")[:2000],
@@ -66,8 +104,8 @@ def _atom_from_ledger_row(row: dict[str, Any], *, section_id: str) -> C02Atom:
         "domain_tags": [str(row.get("domain_family") or "")] if row.get("domain_family") else [],
         "skill_tags": list(row.get("capability_tags") or []),
         "metric_refs": [str(m) for m in (row.get("metric_values") or [])],
-        "career_phase_refs": [],
-        "graph_node_refs": [],
+        "career_phase_refs": career_phase_refs,
+        "graph_node_refs": graph_node_refs,
         "allowed_sections": [section_id],
         "blocked_sections": [],
         "proof_status": proof,
@@ -86,6 +124,8 @@ def _atom_from_manifest_row(row: dict[str, Any], *, section_id: str) -> C02Atom 
     matched = row.get("matched_existing_fact_id")
     fid = str(matched) if matched else f"prior_variant:{hashlib.sha256(atom_text.encode()).hexdigest()[:16]}"
     conf = str(row.get("confidence") or CONFIDENCE_PENDING)
+    source_variant = str(row.get("source_resume_variant") or "")
+    career_phase_refs, graph_node_refs = _resolve_career_phase_refs(f"{source_variant} {section_id}")
     return {
         "fact_id": fid,
         "text_to_embed": atom_text,
@@ -96,8 +136,8 @@ def _atom_from_manifest_row(row: dict[str, Any], *, section_id: str) -> C02Atom 
         "domain_tags": [str(row.get("variant_family") or "")],
         "skill_tags": [],
         "metric_refs": [],
-        "career_phase_refs": [],
-        "graph_node_refs": [],
+        "career_phase_refs": career_phase_refs,
+        "graph_node_refs": graph_node_refs,
         "allowed_sections": [section_id],
         "blocked_sections": [],
         "proof_status": str(row.get("proof_status") or CLAIM_ELIGIBLE),

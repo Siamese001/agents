@@ -153,14 +153,13 @@ def test_insurtech_bullet_parser_rejects_malformed_provider_output_and_normalize
     assert [b["bullet_id"] for b in normalized["bullets"]] == [
         "bul_insurtech_001",
         "bul_insurtech_002",
-        "bul_insurtech_003",
     ]
     assert normalized["claim_ledger"] == [
         {"claim_text": b["bullet_text"], "source_fact_ids": b["source_fact_ids"]}
         for b in normalized["bullets"]
     ]
     assert _gate_pass(gates, "x2_insurtech_bullets_source_fact_ids_supported") is True
-    assert _gate_pass(gates, "x2_insurtech_bullets_bullet_count_3") is True
+    assert _gate_pass(gates, "x2_insurtech_bullets_bullet_count_2") is True
 
 
 def test_unify_narrative_specificity_rejects_generic_text_and_accepts_mechanism_bound_text() -> None:

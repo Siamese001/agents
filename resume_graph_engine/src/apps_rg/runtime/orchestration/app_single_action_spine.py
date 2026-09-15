@@ -396,8 +396,39 @@ def run_apps_rg_single_action_spine(*args: Any, **kwargs: Any) -> AppsRgSingleAc
         from apps_rg.runtime.review.l1_semantic_evaluator import evaluate_l1_post_l2_review
         from apps_rg.runtime.contracts.l1_post_tool_review_contracts import L1ReviewVerdict
 
+        sealed_for_l1 = l2_result
+        if isinstance(l2_result, Mapping):
+            if not l2_result.get("execution_status"):
+                step_results = l2_result.get("step_results")
+                if isinstance(step_results, list) and step_results:
+                    first_step = step_results[0]
+                    if isinstance(first_step, Mapping):
+                        sec_res = first_step.get("section_result")
+                        if isinstance(sec_res, Mapping) and sec_res.get("execution_status"):
+                            sealed_for_l1 = {**l2_result, "execution_status": sec_res.get("execution_status")}
+                        elif first_step.get("status") in ("ok", "success", "completed"):
+                            sealed_for_l1 = {**l2_result, "execution_status": "completed"}
+                        elif first_step.get("execution_status"):
+                            sealed_for_l1 = {**l2_result, "execution_status": first_step.get("execution_status")}
+
+        sealed_l2_file = root / "sealed_l2_artifact.json"
+        if sealed_l2_file.is_file():
+            try:
+                disk_sealed = json.loads(sealed_l2_file.read_text(encoding="utf-8"))
+                if isinstance(disk_sealed, Mapping):
+                    if not disk_sealed.get("execution_status"):
+                        disk_sealed = dict(disk_sealed)
+                        disk_sealed["execution_status"] = (
+                            sealed_for_l1.get("execution_status", "completed")
+                            if isinstance(sealed_for_l1, Mapping)
+                            else "completed"
+                        )
+                    sealed_for_l1 = disk_sealed
+            except Exception:
+                pass
+
         l1_review = evaluate_l1_post_l2_review(
-            sealed_artifact=l2_result,
+            sealed_artifact=sealed_for_l1,
             execution_packet=raw_request.get("l2_execution_packet"),
             l1_plan=raw_request.get("l1_plan"),
             review_cycle=1,

@@ -86,9 +86,9 @@ def _company_brief_primary_openai_model() -> str:
 
 
 APPS_RESEARCH_BRIEF_MODEL: Final[str] = _company_brief_primary_openai_model()
-APPS_RESEARCH_BRIEF_REASONING_EFFORT: Final[str] = (
-    company_brief_generation_pin().reasoning_effort
-)
+APPS_RESEARCH_BRIEF_REASONING_EFFORT: Final[str] = company_brief_generation_pin().reasoning_effort
+from apps_research.prompt_assembly.company_brief_prompts import COMPANY_BRIEF_STATIC_SYSTEM_PROMPT
+
 
 
 def _v2_enabled() -> bool:
@@ -1108,11 +1108,7 @@ class CompanyBriefEngine(BaseResearchEngine):
                 messages=[
                     {
                         "role": "system",
-                        "content": (
-                            "You are a research analyst producing structured company "
-                            "briefs. Always answer with strict JSON matching the schema "
-                            "in the user prompt."
-                        ),
+                        "content": COMPANY_BRIEF_STATIC_SYSTEM_PROMPT,
                     },
                     {"role": "user", "content": prompt},
                 ],
@@ -1765,23 +1761,10 @@ class CompanyBriefEngine(BaseResearchEngine):
         )
         jd_hint = ", ".join(jd_facets[:25]) if jd_facets else "(none provided)"
         return (
-            f"You are a corporate intelligence analyst. Produce a structured JSON brief "
-            f"about the company {topic} suitable for downstream resume narrative work.\n\n"
-            f"Use the research notes below; do NOT invent facts. If a facet is empty, "
-            f"return a best-effort inference clearly marked or an empty list.\n\n"
+            f"Target company: {topic}\n"
             f"Job-description anchor terms (for relevance weighting): {jd_hint}\n\n"
             f"Research notes:\n{joined}\n\n"
-            "Return strictly JSON with keys: company_archetype (string), company_dna (object), "
-            "tagline, core_offerings (list[str]), strategic_priorities (list[str], min 2), "
-            "verticals (list[str]), buyer_titles (list[str]), tech_stack_signals (list[str]), "
-            "commercial_motion (list[str]), partner_ecosystem (list[str]), "
-            "adoption_motion (list[str]), leadership (list of {name,title,background}), "
-            "competitive_set (list[str]), recent_moves (list of {date,event,signal}), "
-            "language_to_mirror (list[str], min 3), language_to_avoid (list[str]).\n"
-            "company_dna should summarize the operating identity of the company in a few short "
-            "fields: archetype, commercial_motion, partner_ecosystem, adoption_motion, "
-            "operating_tension, and distinguishing_traits. Prefer specific language over "
-            "generic AI-company prose."
+            "Synthesize and return the structured JSON company brief matching the required system schema."
         )
 
     def _parse_synthesis(
@@ -2251,5 +2234,6 @@ class CompanyBriefEngine(BaseResearchEngine):
 __all__ = [
     "APPS_RESEARCH_BRIEF_MODEL",
     "APPS_RESEARCH_BRIEF_REASONING_EFFORT",
+    "COMPANY_BRIEF_STATIC_SYSTEM_PROMPT",
     "CompanyBriefEngine",
 ]

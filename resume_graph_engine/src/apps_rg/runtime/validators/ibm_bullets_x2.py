@@ -5,7 +5,7 @@ import json
 import re
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Mapping, Sequence
 
 from apps_rg.runtime.validators.executive_summary_x2 import (
     EM_DASH,
@@ -81,8 +81,9 @@ def build_ibm_bullets_text_claim_coverage(
     bullets: list[dict[str, Any]],
     claim_ledger: list[dict[str, Any]],
     allowed_fact_ids: set[str],
+    active_bullet_ids: Sequence[str] | None = None,
 ) -> dict[str, Any]:
-    """Structural bullet↔ledger coverage for IBM bullets (``bul_ibm_001``..``005`` only).
+    """Structural bullet↔ledger coverage for IBM bullets (active/allocated bullets or ``bul_ibm_001``..``005``).
 
     Mirrors unify_bullets structural coverage shape without embedding ``bul_unify_*`` placeholders
     that would false-trigger ``x2_no_unify_fact_leakage`` on serialized ``parsed_output``.
@@ -115,7 +116,13 @@ def build_ibm_bullets_text_claim_coverage(
         overall_pass = False
         integrity_notes.append(f"ledger_rows_missing_ibm_root:{unresolved_roots}")
 
-    for ordinal, bid in enumerate(IBM_BULLET_IDS, start=1):
+    if active_bullet_ids is not None and active_bullet_ids:
+        target_bullet_ids = tuple(active_bullet_ids)
+    else:
+        extracted = tuple(str(b.get("bullet_id")) for b in bullets if b.get("bullet_id"))
+        target_bullet_ids = extracted if extracted else IBM_BULLET_IDS
+
+    for ordinal, bid in enumerate(target_bullet_ids, start=1):
         bullet = by_bullet_id.get(bid)
         ledger_row = ledger_by_root.get(bid)
         btxt = str((bullet or {}).get("bullet_text") or "").strip()
@@ -206,9 +213,12 @@ def check_ibm_bullets_text_claim_coverage_integrity(
     claim_ledger: list[dict[str, Any]],
     text_claim_coverage: dict[str, Any] | None,
     allowed_fact_ids: set[str],
+    active_bullet_ids: Sequence[str] | None = None,
 ) -> tuple[bool, str | None]:
     """Deterministic gate: stored coverage must match a structural rebuild (no stale loops)."""
-    expected = build_ibm_bullets_text_claim_coverage(bullets, claim_ledger, allowed_fact_ids)
+    expected = build_ibm_bullets_text_claim_coverage(
+        bullets, claim_ledger, allowed_fact_ids, active_bullet_ids=active_bullet_ids
+    )
     actual = text_claim_coverage if isinstance(text_claim_coverage, dict) else {}
     if actual.get("sentences") != expected.get("sentences"):
         return False, "text_claim_coverage.sentences mismatch vs structural rebuild"
@@ -565,7 +575,52 @@ def run_ibm_bullets_x2_gates(
     combined = _combined_bullet_text(bullets)
     combined_lower = combined.lower()
 
-    add("x2_ibm_bullet_count_5", len(bullets) == len(IBM_BULLET_IDS), len(bullets), len(IBM_BULLET_IDS), f"Must output exactly {len(IBM_BULLET_IDS)} IBM bullets.")
+    expected_bullet_ids = IBM_BULLET_IDS
+    plan = (
+        (parsed_output or {}).get("selected_fact_plan")
+        or (runtime_payload or {}).get("selected_fact_plan")
+        or {}
+    )
+    if isinstance(plan, dict):
+        if "facts" in plan:
+            p_facts = [
+                str(f.get("fact_id", "") if isinstance(f, dict) else f).strip()
+                for f in (plan.get("facts") or [])
+                if str(f.get("fact_id", "") if isinstance(f, dict) else f).strip().startswith("bul_ibm_")
+            ]
+        else:
+            p_facts = [
+                str(k).strip()
+                for k in plan.keys()
+                if str(k).strip().startswith("bul_ibm_")
+            ]
+        if p_facts:
+            expected_bullet_ids = tuple(p_facts)
+    elif runtime_payload and runtime_payload.get("allowed_fact_ids"):
+        p_facts = [
+            str(fid).strip()
+            for fid in runtime_payload.get("allowed_fact_ids", [])
+            if str(fid).strip().startswith("bul_ibm_")
+        ]
+        if p_facts:
+            expected_bullet_ids = tuple(p_facts)
+
+    expected_count = len(expected_bullet_ids)
+    add(
+        f"x2_ibm_bullet_count_{expected_count}",
+        len(bullets) == expected_count,
+        len(bullets),
+        expected_count,
+        f"Must output exactly {expected_count} IBM bullets.",
+    )
+    if expected_count != 5:
+        add(
+            "x2_ibm_bullet_count_5",
+            len(bullets) == expected_count,
+            len(bullets),
+            expected_count,
+            f"Must output exactly {expected_count} IBM bullets (allocated count).",
+        )
 
     semantic_overlap = ibm_cross_bullet_semantic_overlap_violations(bullets)
     add(
@@ -650,6 +705,7 @@ def run_ibm_bullets_x2_gates(
         claim_ledger=claim_ledger,
         text_claim_coverage=cov_gate_payload,
         allowed_fact_ids=allowed_fact_ids,
+        active_bullet_ids=expected_bullet_ids,
     )
     add(
         TEXT_COVERAGE_INTEGRITY_GATE_ID,
@@ -1028,7 +1084,7 @@ def run_ibm_bullets_x2_gates(
         coverage_threshold = "active_pool_bullet_ids"
         coverage_msg = "Every output bullet_id and ledger root must be in active proof pool."
     else:
-        required_bullet_ids = set(IBM_BULLET_IDS)
+        required_bullet_ids = set(expected_bullet_ids)
         coverage_ok = required_bullet_ids <= output_ids and required_bullet_ids <= ledger_roots
         coverage_threshold = sorted(required_bullet_ids)
         coverage_msg = "Every bul_ibm_* bullet must appear in output and claim_ledger."

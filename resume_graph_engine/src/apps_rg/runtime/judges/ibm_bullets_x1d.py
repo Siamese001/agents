@@ -47,10 +47,22 @@ def run_ibm_bullets_judges(
     display = _bullets_display_text(bullets)
     candidate = {"bullets": bullets, "resume_display_text": display}
     packet_path = (artifact_base / "ibm_bullets_judge_packet.json") if artifact_base else None
+    active_bids = [str(b.get("bullet_id")) for b in bullets if b.get("bullet_id")]
+    if active_bids:
+        b_count = len(active_bids)
+        b_range = ", ".join(active_bids)
+    else:
+        b_count = len(IBM_BULLET_IDS)
+        b_range = ", ".join(IBM_BULLET_IDS)
+    rubric = grade_only_rubric_text(
+        "ibm_bullets",
+        bullet_count=b_count,
+        bullet_id_range=b_range,
+    )
     outputs = run_policy_section_judges(
         "ibm_bullets",
         candidate_output=candidate,
-        section_rubric=IBM_RUBRIC,
+        section_rubric=rubric,
         rubric_ref=JUDGE_RUBRIC_REF,
         claim_ledger=claim_ledger,
         judge_keys=judge_keys,

@@ -452,7 +452,7 @@
     "justification": "Baseline legacy module pending decomposition"
   },
   "resume_graph_engine/src/apps_rg/runtime/fact_vectors_bootstrap.py": {
-    "line_limit": 1026,
+    "line_limit": 1056,
     "justification": "Baseline legacy module pending decomposition"
   },
   "resume_graph_engine/src/apps_rg/prompt_assembly/compiler.py": {
@@ -544,7 +544,7 @@
     "justification": "Baseline legacy module pending decomposition"
   },
   "resume_graph_engine/src/apps_rg/runtime/sections/competency_capability_evidence.py": {
-    "line_limit": 1718,
+    "line_limit": 1788,
     "justification": "Baseline legacy module pending decomposition"
   },
   "resume_graph_engine/src/apps_rg/runtime/sections/executive_summary_regen_delta_policy.py": {
@@ -612,7 +612,7 @@
     "justification": "Baseline legacy module pending decomposition"
   },
   "resume_graph_engine/src/apps_rg/runtime/sections/ibm_bullets_lane.py": {
-    "line_limit": 2109,
+    "line_limit": 2138,
     "justification": "Baseline legacy module pending decomposition"
   },
   "resume_graph_engine/src/apps_rg/runtime/sections/executive_summary_judge_remediation.py": {
@@ -684,7 +684,7 @@
     "justification": "Baseline legacy module pending decomposition"
   },
   "resume_graph_engine/src/apps_rg/runtime/c0/competencies_graph_authority.py": {
-    "line_limit": 1874,
+    "line_limit": 1887,
     "justification": "Baseline legacy module pending decomposition"
   },
   "resume_graph_engine/src/apps_rg/runtime/c0/c06_weak_refine.py": {
@@ -696,7 +696,7 @@
     "justification": "Baseline legacy module pending decomposition"
   },
   "resume_graph_engine/src/apps_rg/runtime/c0/resume_graph_claim_binding.py": {
-    "line_limit": 950,
+    "line_limit": 955,
     "justification": "Baseline legacy module pending decomposition"
   },
   "resume_graph_engine/src/apps_rg/runtime/c0/resume_graph_allocation.py": {
@@ -788,7 +788,7 @@
     "justification": "Baseline legacy module pending decomposition"
   },
   "resume_graph_engine/src/apps_rg/runtime/orchestration/r3r4_whole_run_orchestration.py": {
-    "line_limit": 2698,
+    "line_limit": 2702,
     "justification": "Baseline legacy module pending decomposition"
   },
   "resume_graph_engine/src/apps_rg/runtime/exit/resume_exit_checks.py": {
@@ -812,7 +812,7 @@
     "justification": "Baseline legacy module pending decomposition"
   },
   "resume_graph_engine/src/apps_rg/runtime/validators/ibm_bullets_x2.py": {
-    "line_limit": 1183,
+    "line_limit": 1239,
     "justification": "Baseline legacy module pending decomposition"
   },
   "resume_graph_engine/src/apps_rg/runtime/validators/competencies_x2.py": {

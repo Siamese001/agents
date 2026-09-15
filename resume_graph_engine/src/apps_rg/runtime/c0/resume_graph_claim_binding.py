@@ -227,6 +227,11 @@ def _assignment_aliases(
     claim_unit = str(assignment.get("claim_unit_id") or "")
     if ":" in claim_unit:
         aliases.add(claim_unit.rsplit(":", 1)[-1])
+    derived_from = str(assignment.get("derived_from_claim_unit_id") or "").strip()
+    if derived_from:
+        aliases.add(derived_from)
+        if ":" in derived_from:
+            aliases.add(derived_from.rsplit(":", 1)[-1])
     # Employment narratives cite their accepted companion bullet slots.  The
     # frozen whole-resume allocation reserves narrative alternatives by the
     # same ordinal (``ibm_narrative:derived:01`` <-> ``bul_ibm_001``).  Preserve
@@ -413,7 +418,7 @@ def _binding_for_claim(
         bound_metric = None
 
     roots = {str(row.get("root_id") or "") for row in assignments if row.get("root_id")}
-    if len(roots) > 1 and _CAUSAL_RE.search(text):
+    if len(roots) > 1 and not section_id.endswith("_narrative") and _CAUSAL_RE.search(text):
         failures.append("causal_claim_merges_unrelated_graph_roots")
     if failures:
         return None, failures

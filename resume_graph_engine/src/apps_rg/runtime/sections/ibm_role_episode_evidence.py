@@ -399,8 +399,9 @@ def format_ibm_role_episode_evidence_pack(
     for _pf in (plan.get("facts") or []):
         if isinstance(_pf, dict):
             _plan_fact_by_slot[str(_pf.get("fact_id") or "").strip()] = _pf
+    active_slots = [s for s in IBM_BULLET_SLOT_IDS if s in _plan_fact_by_slot] if _plan_fact_by_slot else list(IBM_BULLET_SLOT_IDS)
     slot_blocks: list[str] = []
-    for slot_id in IBM_BULLET_SLOT_IDS:
+    for slot_id in active_slots:
         bundle_id = IBM_BULLET_SLOT_BUNDLE_MAP.get(slot_id, "")
         bundle = get_bundle_by_id(bundle_id) if bundle_id else None
         if not bundle:

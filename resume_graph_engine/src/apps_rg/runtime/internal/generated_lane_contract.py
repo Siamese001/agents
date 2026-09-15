@@ -9,12 +9,10 @@ GENERATED_LANES: tuple[str, ...] = (
     "unify_bullets",
     "ibm_bullets",
     "insurtech_bullets",
-    "ey_bullets",
     "slalom_narrative",
     "unify_narrative",
     "ibm_narrative",
     "insurtech_narrative",
-    "ey_narrative",
     "executive_summary",
     "headline",
 )

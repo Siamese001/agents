@@ -10,7 +10,6 @@ from unittest.mock import patch
 import pytest
 
 from apps_rg.l2_recipe.modular_resume_generation import (
-    GENERATED_LANES,
     ModularResumeInputPackage,
     ModularResumeProfile,
     run_modular_resume_generation,
@@ -28,6 +27,7 @@ from apps_rg.runtime.integrated_lane_evidence_packaging import (
     emit_integrated_lane_pre_run_failure,
 )
 from apps_rg.runtime.internal.generated_lane_rollup import GENERATED_LANES as ROLLUP_GENERATED_LANES
+from apps_rg.runtime.internal.generated_lane_contract import GENERATED_LANES
 from apps_rg.runtime.locked_copy.locked_copy_manifest import find_repo_root
 from apps_rg.runtime.orchestration.canonical_dispatch import (
     _read_optional_brief,
@@ -38,7 +38,7 @@ from apps_rg.runtime.orchestration.canonical_dispatch import (
 def test_generated_lanes_registry_includes_executive_summary() -> None:
     assert "executive_summary" in GENERATED_LANES
     assert "executive_summary" in ROLLUP_GENERATED_LANES
-    assert GENERATED_LANES.index("executive_summary") > GENERATED_LANES.index("ey_narrative")
+    assert GENERATED_LANES.index("executive_summary") > GENERATED_LANES.index("slalom_narrative")
     assert GENERATED_LANES[-1] == "headline"
 
 
