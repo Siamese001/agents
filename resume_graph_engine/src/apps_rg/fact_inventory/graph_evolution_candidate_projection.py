@@ -12,6 +12,7 @@ from typing import Any
 from apps_rg.runtime.core_io import write_gateway as _wg
 
 from apps_rg.fact_inventory.graph_evolution_authority import build_ge_w0_authority_baseline
+from apps_rg.runtime.core_model_catalog import BGE_M3_EMBEDDING_DIMENSION, BGE_M3_MODEL_ID
 
 GE_W5_CONTRACT_RELATIVE_PATH = Path(
     "src/apps_rg/fact_inventory/graph_evolution_candidate_projection_contract.v1.json"
@@ -60,24 +61,59 @@ def validate_ge_w5_candidate_projection_contract(contract: Mapping[str, Any]) ->
     if contract.get("wave") != "GE_W5" or contract.get("status") != "FROZEN":
         issues.append("WAVE_OR_STATUS")
     source = contract.get("input")
-    if not isinstance(source, Mapping) or source.get("required_graph_validation_state") != "GRAPH_VALIDATED" or any(
-        source.get(key) is not True
-        for key in ("candidate_version_digest_binding_required", "base_cluster_registry_required", "full_candidate_universe_rebuild_required")
+    if (
+        not isinstance(source, Mapping)
+        or source.get("required_graph_validation_state") != "GRAPH_VALIDATED"
+        or any(
+            source.get(key) is not True
+            for key in (
+                "candidate_version_digest_binding_required",
+                "base_cluster_registry_required",
+                "full_candidate_universe_rebuild_required",
+            )
+        )
     ):
         issues.append("INPUT")
     unit = contract.get("retrieval_unit")
-    if not isinstance(unit, Mapping) or unit.get("logical_retrieval_unit") != "graph_evidence_cluster" or any(
-        unit.get(key) is not expected
-        for key, expected in (("candidate_assertion_embedded_as_cluster", True), ("per_node_vectors_forbidden", True), ("per_skill_vectors_forbidden", True))
+    if (
+        not isinstance(unit, Mapping)
+        or unit.get("logical_retrieval_unit") != "graph_evidence_cluster"
+        or any(
+            unit.get(key) is not expected
+            for key, expected in (
+                ("candidate_assertion_embedded_as_cluster", True),
+                ("per_node_vectors_forbidden", True),
+                ("per_skill_vectors_forbidden", True),
+            )
+        )
     ):
         issues.append("RETRIEVAL_UNIT")
     embedding = contract.get("embedding")
-    if not isinstance(embedding, Mapping) or embedding.get("model_id") != "BAAI/bge-m3" or embedding.get("dimension") != 1024 or embedding.get("normalization") != "l2" or embedding.get("fallback_allowed") is not False or embedding.get("runtime_proof_required") is not True:
+    if (
+        not isinstance(embedding, Mapping)
+        or embedding.get("model_id") != BGE_M3_MODEL_ID
+        or embedding.get("dimension") != BGE_M3_EMBEDDING_DIMENSION
+        or embedding.get("normalization") != "l2"
+        or embedding.get("fallback_allowed") is not False
+        or embedding.get("runtime_proof_required") is not True
+    ):
         issues.append("EMBEDDING")
     exit_gate = contract.get("ge_w5_exit")
-    if not isinstance(exit_gate, Mapping) or exit_gate.get("completion_marker") != GE_W5_COMPLETION_MARKER or exit_gate.get("candidate_state") != "PROJECTION_BUILT" or exit_gate.get("next_gate") != "QREL_CHANGE_IMPACT" or any(
-        exit_gate.get(key) is not False
-        for key in ("active_runtime_pointer_changed", "active_registry_mutated", "active_projection_mutated", "qrel_evaluation_run", "activation_created")
+    if (
+        not isinstance(exit_gate, Mapping)
+        or exit_gate.get("completion_marker") != GE_W5_COMPLETION_MARKER
+        or exit_gate.get("candidate_state") != "PROJECTION_BUILT"
+        or exit_gate.get("next_gate") != "QREL_CHANGE_IMPACT"
+        or any(
+            exit_gate.get(key) is not False
+            for key in (
+                "active_runtime_pointer_changed",
+                "active_registry_mutated",
+                "active_projection_mutated",
+                "qrel_evaluation_run",
+                "activation_created",
+            )
+        )
     ):
         issues.append("GE_W5_EXIT")
     return issues
@@ -85,7 +121,11 @@ def validate_ge_w5_candidate_projection_contract(contract: Mapping[str, Any]) ->
 
 def _validate_w4_receipt(version: Mapping[str, Any], receipt: Mapping[str, Any]) -> list[str]:
     issues: list[str] = []
-    if receipt.get("status") != "PASS" or receipt.get("candidate_state") != "GRAPH_VALIDATED" or receipt.get("completion_marker") != "GE_W4_CANDIDATE_GRAPH_VALIDATED":
+    if (
+        receipt.get("status") != "PASS"
+        or receipt.get("candidate_state") != "GRAPH_VALIDATED"
+        or receipt.get("completion_marker") != "GE_W4_CANDIDATE_GRAPH_VALIDATED"
+    ):
         issues.append("GE_W4_STATE")
     if _text(receipt.get("candidate_version_sha256")) != _text(version.get("version_sha256")):
         issues.append("GE_W4_VERSION_BINDING")
@@ -99,9 +139,15 @@ def _candidate_cluster(version: Mapping[str, Any], graph: Mapping[str, Any]) -> 
     delta = version["proposed_graph_delta"]
     assertion = delta["assertion_nodes"][0]
     edges = delta["assertion_edges"]
-    rows = {str(row.get("skill_id") or ""): row for row in graph.get("skill_rows") or [] if isinstance(row, Mapping)}
+    rows = {
+        str(row.get("skill_id") or ""): row
+        for row in graph.get("skill_rows") or []
+        if isinstance(row, Mapping)
+    }
     skills = sorted(str(edge["source_node_id"]) for edge in edges)
-    allowed_sections = sorted({str(section) for skill in skills for section in (rows.get(skill, {}).get("allowed_sections") or [])})
+    allowed_sections = sorted(
+        {str(section) for skill in skills for section in (rows.get(skill, {}).get("allowed_sections") or [])}
+    )
     text = "\n".join(
         [
             "Graph-evidence cluster: source-backed candidate assertion",
@@ -129,7 +175,9 @@ def _candidate_cluster(version: Mapping[str, Any], graph: Mapping[str, Any]) -> 
 
 def _check_vectors(vectors: Sequence[Sequence[float]], *, expected_count: int) -> None:
     if len(vectors) != expected_count:
-        raise GraphEvolutionCandidateProjectionError("BGE-M3 vector count does not match candidate cluster universe")
+        raise GraphEvolutionCandidateProjectionError(
+            "BGE-M3 vector count does not match candidate cluster universe"
+        )
     for index, vector in enumerate(vectors):
         if len(vector) != 1024 or not all(math.isfinite(float(value)) for value in vector):
             raise GraphEvolutionCandidateProjectionError(f"BGE-M3 vector contract invalid at index {index}")
@@ -138,7 +186,9 @@ def _check_vectors(vectors: Sequence[Sequence[float]], *, expected_count: int) -
             raise GraphEvolutionCandidateProjectionError(f"BGE-M3 vector not L2 normalized at index {index}")
 
 
-def bge_m3_embedder(*, model_path: Path | str, device: str) -> Callable[[list[str]], tuple[Mapping[str, Any], Sequence[Sequence[float]]]]:
+def bge_m3_embedder(
+    *, model_path: Path | str, device: str
+) -> Callable[[list[str]], tuple[Mapping[str, Any], Sequence[Sequence[float]]]]:
     """Return the explicit offline BGE-M3 encoder used for a real GE-W5 rebuild."""
 
     from apps_rg.fact_inventory.c03_skill_embedding_builder import encode_bge_m3
@@ -149,7 +199,9 @@ def bge_m3_embedder(*, model_path: Path | str, device: str) -> Callable[[list[st
         raise GraphEvolutionCandidateProjectionError("GE-W5 requires a local BGE-M3 model path and device")
 
     def encode(texts: list[str]) -> tuple[Mapping[str, Any], Sequence[Sequence[float]]]:
-        return encode_bge_m3(texts, model_path=resolved_model_path, device=resolved_device, batch_size=len(texts))
+        return encode_bge_m3(
+            texts, model_path=resolved_model_path, device=resolved_device, batch_size=len(texts)
+        )
 
     return encode
 
@@ -173,7 +225,12 @@ def build_candidate_cluster_projection(
     issues = _validate_w4_receipt(version, graph_validation_receipt)
     if issues:
         return {"route": "BLOCKED", "reason": "GE_W5_PRECONDITION_FAILED", "issues": issues}
-    if model_manifest.get("model_id") != "BAAI/bge-m3" or model_manifest.get("dimension") != 1024 or model_manifest.get("normalization") != "l2" or not _text(model_manifest.get("artifact_sha256")):
+    if (
+        model_manifest.get("model_id") != BGE_M3_MODEL_ID
+        or model_manifest.get("dimension") != BGE_M3_EMBEDDING_DIMENSION
+        or model_manifest.get("normalization") != "l2"
+        or not _text(model_manifest.get("artifact_sha256"))
+    ):
         return {"route": "BLOCKED", "reason": "GE_W5_MODEL_MANIFEST_INVALID"}
     root = Path(repo_root).resolve()
     output = Path(output_dir).resolve()
@@ -190,7 +247,11 @@ def build_candidate_cluster_projection(
         "schema_version": "apps_rg.graph_evolution_candidate_cluster_registry.v1",
         "status": "MATERIALIZED_NOT_ACTIVATED",
         "logical_retrieval_unit": "graph_evidence_cluster",
-        "source": {"candidate_version_sha256": version["version_sha256"], "parent_graph_sha256": version["parent_graph"]["payload_sha256"], "base_registry_sha256": base_registry.get("registry_sha256")},
+        "source": {
+            "candidate_version_sha256": version["version_sha256"],
+            "parent_graph_sha256": version["parent_graph"]["payload_sha256"],
+            "base_registry_sha256": base_registry.get("registry_sha256"),
+        },
         "clusters": clusters,
         "held_candidates": list(base_registry.get("held_candidates") or []),
         "active_runtime_pointer_changed": False,
@@ -198,7 +259,11 @@ def build_candidate_cluster_projection(
     registry["registry_sha256"] = _canonical_sha256(registry)
     texts = [str(cluster["canonical_embedding_text"]) for cluster in clusters]
     runtime, vectors = embedder(texts)
-    if runtime.get("fallback_used") is not False or runtime.get("vector_count") != len(clusters) or runtime.get("dimension") != 1024:
+    if (
+        runtime.get("fallback_used") is not False
+        or runtime.get("vector_count") != len(clusters)
+        or runtime.get("dimension") != 1024
+    ):
         return {"route": "BLOCKED", "reason": "GE_W5_RUNTIME_PROOF_INVALID"}
     try:
         _check_vectors(vectors, expected_count=len(clusters))
@@ -213,7 +278,11 @@ def build_candidate_cluster_projection(
         "model": dict(model_manifest),
         "runtime_proof": dict(runtime),
         "vectors": [
-            {"cluster_id": cluster["cluster_id"], "vector": [float(value) for value in vector], "vector_sha256": _canonical_sha256([float(value) for value in vector])}
+            {
+                "cluster_id": cluster["cluster_id"],
+                "vector": [float(value) for value in vector],
+                "vector_sha256": _canonical_sha256([float(value) for value in vector]),
+            }
             for cluster, vector in zip(clusters, vectors, strict=True)
         ],
         "active_runtime_pointer_changed": False,
@@ -225,9 +294,34 @@ def build_candidate_cluster_projection(
     if registry_file.exists() or projection_file.exists():
         return {"route": "BLOCKED", "reason": "GE_W5_IMMUTABLE_OUTPUT_EXISTS"}
     _wg.ensure_dir(output)
-    _wg.write_text(registry_file, json.dumps(registry, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    _wg.write_text(projection_file, json.dumps(projection, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    return {"route": "PROJECTION_BUILT", "reason": GE_W5_COMPLETION_MARKER, "registry_path": str(registry_file), "projection_path": str(projection_file), "cluster_count": len(clusters), "active_runtime_pointer_changed": False, "activation_created": False}
+    _wg.write_text(
+        registry_file,
+        json.dumps(registry, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    _wg.write_text(
+        projection_file,
+        json.dumps(projection, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    return {
+        "route": "PROJECTION_BUILT",
+        "reason": GE_W5_COMPLETION_MARKER,
+        "registry_path": str(registry_file),
+        "projection_path": str(projection_file),
+        "cluster_count": len(clusters),
+        "active_runtime_pointer_changed": False,
+        "activation_created": False,
+    }
 
 
-__all__ = ["GE_W5_COMPLETION_MARKER", "GE_W5_CONTRACT_RELATIVE_PATH", "GE_W5_CONTRACT_SCHEMA_VERSION", "GraphEvolutionCandidateProjectionError", "bge_m3_embedder", "build_candidate_cluster_projection", "load_ge_w5_candidate_projection_contract", "validate_ge_w5_candidate_projection_contract"]
+__all__ = [
+    "GE_W5_COMPLETION_MARKER",
+    "GE_W5_CONTRACT_RELATIVE_PATH",
+    "GE_W5_CONTRACT_SCHEMA_VERSION",
+    "GraphEvolutionCandidateProjectionError",
+    "bge_m3_embedder",
+    "build_candidate_cluster_projection",
+    "load_ge_w5_candidate_projection_contract",
+    "validate_ge_w5_candidate_projection_contract",
+]

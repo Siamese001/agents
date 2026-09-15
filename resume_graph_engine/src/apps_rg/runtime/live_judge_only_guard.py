@@ -89,6 +89,10 @@ def assert_production_runtime(
 ) -> None:
     """Product default: no mock-judge CLI flags (X1D judges are always live)."""
     assert_production_cli_no_mock_judge_flags(argv, args=args)
+    if not is_test_harness() and not ("pytest" in sys.modules or os.environ.get("PYTEST_CURRENT_TEST")):
+        from apps_rg.runtime.env_bootstrap import assert_live_credentials_present
+
+        assert_live_credentials_present(providers=("openai",))
 
 
 __all__ = [

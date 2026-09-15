@@ -171,6 +171,55 @@ def finalize_section_l2_after_output(
         section_id=section_id,
         runtime_payload=runtime_payload,
     )
+
+    # --- L1 Post-L2 Feedback Loop Interception ---
+    import json
+    from apps_rg.runtime.review.l1_semantic_evaluator import evaluate_l1_post_l2_review
+    from apps_rg.runtime.contracts.l1_post_tool_review_contracts import L1ReviewVerdict
+
+    sealed_path = paths.get("sealed_l2_artifact") or (artifact_dir / "sealed_l2_artifact.json")
+    sealed_data: Any = {}
+    if sealed_path and Path(sealed_path).is_file():
+        try:
+            sealed_data = json.loads(Path(sealed_path).read_text(encoding="utf-8"))
+        except Exception:
+            sealed_data = {}
+
+    execution_packet = runtime_payload.get("l2_execution_packet")
+    l1_plan = runtime_payload.get("l1_plan")
+
+    review_contract = evaluate_l1_post_l2_review(
+        sealed_artifact=sealed_data,
+        execution_packet=execution_packet,
+        l1_plan=l1_plan,
+        review_cycle=int(runtime_payload.get("l1_review_cycle", 1)),
+    )
+
+    review_path = artifact_dir / "l1_post_tool_review.json"
+    review_path.write_text(
+        json.dumps(review_contract.as_dict(), indent=2, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+    paths["l1_post_tool_review"] = review_path
+    runtime_payload["l1_post_tool_review"] = review_contract.as_dict()
+    runtime_payload["l1_post_tool_review_verdict"] = review_contract.verdict.value
+
+    from apps_rg.runtime.spine.spine_span_emit import emit_spine_span_event
+    emit_spine_span_event(
+        artifact_dir,
+        layer_key="L1_REVIEW",
+        binding_seam="apps_rg/runtime/review/l1_semantic_evaluator.py",
+        status=review_contract.verdict.value,
+        product_visible=_product_visible(runtime_payload),
+        extra={
+            "verdict": review_contract.verdict.value,
+            "review_digest": review_contract.review_contract_digest,
+        },
+    )
+
+    if review_contract.verdict != L1ReviewVerdict.SUFFICIENT:
+        runtime_payload["l1_review_blocked"] = True
+
     apply_l1_cognitive_output_disposition_to_x3_mirror(artifact_dir)
 
     from apps_rg.runtime.spine.section_x3_finalize import (

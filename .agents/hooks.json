@@ -1,0 +1,126 @@
+{
+  "hooks": [
+    {
+      "id": "agents-pre-edit-plan-guard",
+      "event": "pre_tool_call",
+      "description": "Before any file edit on core or apps production paths, verify that an approved implementation plan exists if the task touches 2+ files, cross-layer architecture, or multi-file debugging (T2/T3).",
+      "match": {
+        "tool": "write_to_file",
+        "also_match": [
+          {"tool": "replace_file_content"},
+          {"tool": "multi_replace_file_content"}
+        ],
+        "path_patterns": [
+          "agentic_core/",
+          "apps_rg/",
+          "apps_research/",
+          "apps_lic/",
+          "system_learning/"
+        ]
+      },
+      "action": "verify_and_warn",
+      "instructions": "Before executing a file edit on production code: verify (1) an approved plan exists in plans/ or implementation_plan.md for T2/T3 tasks, (2) the edit is within the currently approved wave scope, (3) the change adheres to unidirectional layer contracts.",
+      "severity": "blocking"
+    },
+    {
+      "id": "agents-pytest-scope-guard",
+      "event": "pre_tool_call",
+      "description": "Before any pytest invocation: enforce scoped test execution and mandatory --timeout=180. Block un-scoped full-suite runs (bare pytest or pytest tests/) without explicit operator authorization.",
+      "match": {
+        "tool": "run_command",
+        "command_patterns": [
+          "pytest",
+          "-m pytest"
+        ]
+      },
+      "action": "verify_and_warn",
+      "instructions": "Before running pytest: (1) verify scope is targeted to specific test files or wave verification targets (reject bare 'pytest' or 'pytest tests/' unless explicitly authorized by user), (2) verify that '--timeout=180' is present on the invocation, (3) preserve autoload ON (do not set PYTEST_DISABLE_PLUGIN_AUTOLOAD=1).",
+      "severity": "blocking"
+    },
+    {
+      "id": "agents-background-task-reaper",
+      "event": "post_tool_call",
+      "description": "After any run_command that went to the background, monitor task status and kill orphaned ghost processes exceeding timeout (2 minutes for pytest, 5 minutes for general commands).",
+      "match": {
+        "tool": "run_command",
+        "command_patterns": [
+          "pytest",
+          "python -m",
+          ".venv"
+        ]
+      },
+      "action": "verify_and_warn",
+      "instructions": "After a run_command that was sent to the background: (1) check task status immediately via manage_task status, (2) if the task exceeds expected runtime (2 min for pytest), call manage_task kill immediately to prevent resource starvation, (3) report partial log output.",
+      "severity": "blocking"
+    },
+    {
+      "id": "agents-model-neutral-artifact-guard",
+      "event": "pre_tool_call",
+      "description": "Before writing, modifying, moving, or generating files or persistent artifacts, verify that the target path does not embed LLM model tags or provider branding (gpt*, astra, luna, sol, terra, claude*, gemini*, llama*).",
+      "match": {
+        "tool": "write_to_file",
+        "also_match": [
+          {"tool": "replace_file_content"},
+          {"tool": "multi_replace_file_content"},
+          {"tool": "run_command"}
+        ],
+        "command_patterns": [
+          "touch",
+          "mv",
+          "git mv",
+          "cp",
+          "reports/",
+          "plans/",
+          "docs/"
+        ]
+      },
+      "action": "verify_and_warn",
+      "instructions": "Before creating or renaming files: verify target path does not contain model names or reasoning tier tags. Place model identifiers exclusively inside internal JSON metadata fields (e.g. 'model_id') or execution scratchpads, never in the filesystem namespace.",
+      "severity": "blocking"
+    },
+    {
+      "id": "agents-hitl-atomic-guard",
+      "event": "pre_tool_call",
+      "description": "Before presenting an interactive HITL decision to the operator, verify atomic single-question presentation, enumerated options, and that the ambiguity margin between top options is within the calibrated 20% threshold (delta <= 20%).",
+      "match": {
+        "tool": "ask_question"
+      },
+      "action": "verify_and_warn",
+      "instructions": "For ask_question calls: (1) verify only ONE decision is presented at a time (never bundle multiple questions), (2) verify discrete mutually exclusive options are enumerated as tool arguments, (3) verify that margin between top two options is delta <= 20%. If delta > 20%, proceed autonomously under audit receipt.",
+      "severity": "blocking"
+    },
+    {
+      "id": "agents-implementation-plan-guard",
+      "event": "pre_tool_call",
+      "description": "Before writing or editing any implementation plan (implementation_plan.md or plans/*.md), verify that the plan is wave-based, sequentially numbered, and defines explicit milestones/deliverables, acceptance criteria, and runtime receipt completion gates for every wave.",
+      "match": {
+        "tool": "write_to_file",
+        "also_match": [
+          {"tool": "replace_file_content"},
+          {"tool": "multi_replace_file_content"}
+        ],
+        "path_patterns": [
+          "implementation_plan.md",
+          "plans/"
+        ]
+      },
+      "action": "verify_and_warn",
+      "instructions": "Before writing or modifying an implementation plan: (1) verify the plan is wave-based with sequential '## Wave 1', '## Wave 2' headings, (2) verify every wave declares 'Milestones & Deliverables' with itemized outputs, 'Acceptance Criteria', and 'Runtime Receipt & Completion Gate', (3) run 'python tools/validate_implementation_plan.py' to verify schema compliance. Block the write if any requirement is violated.",
+      "severity": "blocking"
+    },
+    {
+      "id": "agents-subagent-delegation-guard",
+      "event": "pre_tool_call",
+      "description": "Before delegating work to any sub-agent (browser_subagent or invoke_subagent), enforce the 10-field delegation contract and bounded execution budget.",
+      "match": {
+        "tool": "browser_subagent",
+        "also_match": [
+          {"tool": "invoke_subagent"}
+        ]
+      },
+      "action": "verify_and_warn",
+      "instructions": "Before spawning a sub-agent: (1) verify the delegation defines the 10 mandatory fields (task_id, parent_task_id, objective, scope_in, scope_out, allowed_tools, deliverable, definition_of_done, budget, escalation_rule), (2) verify budget declares concrete limits (max_turns, timeout_seconds), (3) verify no contradictory overlap between scope_in and scope_out. Block unconstrained sub-agent launches.",
+      "severity": "blocking"
+    }
+  ]
+}

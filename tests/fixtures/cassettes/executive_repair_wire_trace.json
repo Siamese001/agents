@@ -1,0 +1,81 @@
+{
+  "schema_version": "hermetic_wire_cassette.v1",
+  "recorded_count": 1,
+  "exchanges": [
+    {
+      "signature_hash": "37996d14adb2cbbad6afbea059b9014a6d1bd8d965dda9b190bd7c766a898e79",
+      "request": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "headers": {
+          "content-type": "application/json",
+          "authorization": "[REDACTED]"
+        },
+        "body": {
+          "model": "gpt-5.6-luna",
+          "messages": [
+            {
+              "role": "system",
+              "content": "You are the Executive Voice Repair Agent. Align executive summary and competencies to high-rigor corporate narrative."
+            },
+            {
+              "role": "user",
+              "content": "Repair the following unaligned section: Leadership and engineering execution across multi-agent workflows."
+            }
+          ],
+          "response_format": {
+            "type": "json_object"
+          },
+          "reasoning_effort": "medium"
+        }
+      },
+      "response": {
+        "status_code": 200,
+        "headers": {
+          "content-type": "application/json",
+          "openai-model": "gpt-5.6-luna",
+          "openai-processing-ms": "1840",
+          "x-request-id": "req_replay_8f3a2c"
+        },
+        "body": {
+          "id": "chatcmpl-luna-replay-8f3a2c991e",
+          "object": "chat.completion",
+          "created": 1726372800,
+          "model": "gpt-5.6-luna",
+          "choices": [
+            {
+              "index": 0,
+              "message": {
+                "role": "assistant",
+                "content": "{\"status\": \"REPAIRED\", \"executive_summary\": \"Architected and delivered multi-agent autonomous execution frameworks, driving cross-functional alignment and scalable production engineering across enterprise systems.\", \"competencies\": [{\"category\": \"Enterprise Architecture\", \"terms\": [\"Autonomous Workflows\", \"Agentic Orchestration\"]}, {\"category\": \"Engineering Leadership\", \"terms\": [\"System Scaling\", \"Production Resilience\"]}], \"confidence_score\": 0.96}"
+              },
+              "finish_reason": "stop"
+            }
+          ],
+          "usage": {
+            "prompt_tokens": 128,
+            "completion_tokens": 84,
+            "total_tokens": 212,
+            "completion_tokens_details": {
+              "reasoning_tokens": 48
+            }
+          }
+        },
+        "elapsed_seconds": 1.84
+      },
+      "meta": {
+        "model": "gpt-5.6-luna",
+        "reasoning_effort": "medium",
+        "lane": "executive_voice_repair",
+        "token_usage": {
+          "prompt_tokens": 128,
+          "completion_tokens": 84,
+          "total_tokens": 212,
+          "completion_tokens_details": {
+            "reasoning_tokens": 48
+          }
+        }
+      }
+    }
+  ]
+}

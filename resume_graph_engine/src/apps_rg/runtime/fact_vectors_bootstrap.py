@@ -72,13 +72,16 @@ _BASE_RESUME_EMPLOYER_LANES: tuple[tuple[tuple[str, ...], list[str]], ...] = (
 
 MANIFEST_REL = "artifacts/apps_rg/c0/fact_vectors_bootstrap_manifest.json"
 FALLBACK_MANIFEST_NAME = "fact_vectors_bootstrap_fallback_manifest.json"
+from apps_rg.runtime.core_model_catalog import BGE_M3_MODEL_ID
+
 BLOCKED_FACT_VECTOR_HYDRATION_RUNTIME = "BLOCKED_FACT_VECTOR_HYDRATION_RUNTIME"
 BLOCKED_FACT_VECTOR_HYDRATION_LOCK = "BLOCKED_FACT_VECTOR_HYDRATION_LOCK"
 HYDRATION_LOCK_FILENAME = ".apps_rg_fact_vector_hydration.lock"
 HYDRATION_SNAPSHOT_ROOT_REL = "artifacts/apps_rg/c0/chroma_snapshots"
 _REQUIRED_HYDRATION_IMPORTS = ("redis", "yaml", "chromadb", "sentence_transformers", "torch")
-_CANONICAL_BGE_HF_ID = "BAAI/bge-m3"
+_CANONICAL_BGE_HF_ID = BGE_M3_MODEL_ID
 _DEFAULT_EMBEDDING_MODEL_ID_SLUG = "bge-m3-v1"
+
 
 
 def _repo_root() -> Path:
@@ -132,8 +135,7 @@ def _embedding_explicitly_disabled() -> bool:
 
 def _embedding_env_unset() -> bool:
     return not any(
-        os.environ.get(name, "").strip()
-        for name in ("EMBEDDING_ENABLED", "APPS_RG_EMBEDDING_ENABLED")
+        os.environ.get(name, "").strip() for name in ("EMBEDDING_ENABLED", "APPS_RG_EMBEDDING_ENABLED")
     )
 
 
@@ -191,8 +193,7 @@ def prepare_fact_vector_hydration_env(
         repo = Path(repo_root).resolve()
     else:
         env_root = (
-            os.environ.get("APPS_RG_REPO_ROOT", "").strip()
-            or os.environ.get("AGENTIC_REPO_ROOT", "").strip()
+            os.environ.get("APPS_RG_REPO_ROOT", "").strip() or os.environ.get("AGENTIC_REPO_ROOT", "").strip()
         )
         if env_root:
             repo = Path(env_root).resolve()
@@ -434,11 +435,7 @@ def snapshot_chroma_before_hydration(
         receipt["reasons"].append("chroma_path_missing")
         return receipt
     stamp = time.strftime("%Y%m%d_%H%M%S")
-    dest = (
-        repo_root
-        / HYDRATION_SNAPSHOT_ROOT_REL
-        / f"fact_vectors_chroma_{stamp}_{time.time_ns()}"
-    )
+    dest = repo_root / HYDRATION_SNAPSHOT_ROOT_REL / f"fact_vectors_chroma_{stamp}_{time.time_ns()}"
     try:
         shutil.copytree(
             source,
@@ -502,9 +499,7 @@ def build_section_atoms(*, repo_root: Path | None = None) -> tuple[list[dict[str
         # Dense-lane grounding requires BOTH candidate_profile AND project_evidence source classes
         # (c0_binding fv_normative). Quantified-achievement facts (with metrics) are project_evidence;
         # capability/profile facts are candidate_profile — so each section's dense atoms span both.
-        atom["source_class"] = (
-            "project_evidence" if (row.get("metric_values") or []) else "candidate_profile"
-        )
+        atom["source_class"] = "project_evidence" if (row.get("metric_values") or []) else "candidate_profile"
         ok, reason = c02_atom_ingest_eligible(atom)
         if not ok:
             skipped.append({"fact_id": atom["fact_id"], "reason": reason})
@@ -569,6 +564,36 @@ def build_base_resume_employment_atoms(
         if not lanes:
             continue
         targets = sorted((set(lanes) | set(CROSS_SECTION_TARGETS)) & set(GENERATED_LANES))
+        career_phase_refs: list[str] = []
+        graph_node_refs: list[str] = []
+        if any(n in label for n in ("slalom",)):
+            career_phase_refs = [
+                "epoch_agentic_ai_runtime_architecture",
+                "epoch_ai_platform_commercialization",
+            ]
+            graph_node_refs = ["employment_exp_slalom_001"]
+        elif any(n in label for n in ("unify",)):
+            career_phase_refs = [
+                "epoch_agentic_ai_runtime_architecture",
+                "epoch_ai_platform_commercialization",
+            ]
+            graph_node_refs = ["employment_exp_unify_001"]
+        elif any(n in label for n in ("ibm",)):
+            career_phase_refs = [
+                "epoch_cloud_data_platform_engineering",
+                "epoch_partner_gtm_revenue_leadership",
+            ]
+            graph_node_refs = ["employment_exp_ibm_001"]
+        elif any(n in label for n in ("insurtech",)):
+            career_phase_refs = ["epoch_cloud_data_platform_engineering"]
+            graph_node_refs = ["employment_exp_insurtech_001"]
+        elif any(n in label for n in ("ernst", "young", "ey")):
+            career_phase_refs = ["epoch_enterprise_risk_governance"]
+            graph_node_refs = ["employment_exp_ey_001"]
+        elif any(n in label for n in ("early", "actuarial")):
+            career_phase_refs = ["epoch_actuarial_financial_engineering"]
+            graph_node_refs = ["employment_exp_early_career_001"]
+
         for bullet in block.get("bullets") or []:
             if not isinstance(bullet, dict):
                 continue
@@ -585,12 +610,10 @@ def build_base_resume_employment_atoms(
                 "source_span_ref": f"base_resume:{bid}",
                 "confidence": "HIGH",
                 "domain_tags": [str(bullet.get("domain"))] if bullet.get("domain") else [],
-                "skill_tags": [
-                    str(t) for t in (bullet.get("technologies") or []) if str(t).strip()
-                ],
+                "skill_tags": [str(t) for t in (bullet.get("technologies") or []) if str(t).strip()],
                 "metric_refs": [str(bullet.get("metric_raw"))] if bullet.get("metric_raw") else [],
-                "career_phase_refs": [],
-                "graph_node_refs": [],
+                "career_phase_refs": list(career_phase_refs),
+                "graph_node_refs": list(graph_node_refs),
                 "allowed_sections": targets,
                 "blocked_sections": [],
                 "proof_status": PROOF_ELIGIBLE,
@@ -701,9 +724,7 @@ def _collection_count(chroma_path: str, collection_name: str = "fact_vectors") -
 
 
 def _sha256_json(payload: dict[str, Any]) -> str:
-    return hashlib.sha256(
-        json.dumps(payload, sort_keys=True, ensure_ascii=False).encode("utf-8")
-    ).hexdigest()
+    return hashlib.sha256(json.dumps(payload, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest()
 
 
 def _write_manifest(
@@ -867,7 +888,9 @@ def run_bootstrap_fact_vectors(
                 )
                 manifest["hydration_fallback"] = fallback
                 if fallback.get("decision") == "USED_EXISTING_FACT_VECTOR_INDEX":
-                    readiness = fallback.get("readiness") if isinstance(fallback.get("readiness"), dict) else {}
+                    readiness = (
+                        fallback.get("readiness") if isinstance(fallback.get("readiness"), dict) else {}
+                    )
                     summary = readiness.get("summary") if isinstance(readiness.get("summary"), dict) else {}
                     manifest["status"] = "FALLBACK_ALLOWED"
                     manifest["fallback_mode"] = "existing_dense_sparse_fact_vectors_index"
@@ -903,14 +926,22 @@ def run_bootstrap_fact_vectors(
                         )
                         manifest["hydration_fallback"] = fallback
                         if fallback.get("decision") == "USED_EXISTING_FACT_VECTOR_INDEX":
-                            readiness = fallback.get("readiness") if isinstance(fallback.get("readiness"), dict) else {}
-                            summary = readiness.get("summary") if isinstance(readiness.get("summary"), dict) else {}
+                            readiness = (
+                                fallback.get("readiness")
+                                if isinstance(fallback.get("readiness"), dict)
+                                else {}
+                            )
+                            summary = (
+                                readiness.get("summary") if isinstance(readiness.get("summary"), dict) else {}
+                            )
                             manifest["status"] = "FALLBACK_ALLOWED"
                             manifest["fallback_mode"] = "existing_dense_sparse_fact_vectors_index"
                             manifest["upserted_count"] = 0
                             manifest["chunks_built"] = 0
                             manifest["collection_count_after"] = int(summary.get("collection_doc_count") or 0)
-                            manifest["sparse_sidecar_built"] = int(summary.get("sparse_sidecar_doc_count") or 0) > 0
+                            manifest["sparse_sidecar_built"] = (
+                                int(summary.get("sparse_sidecar_doc_count") or 0) > 0
+                            )
                             _finalize_manifest(root=root, manifest=manifest)
                             return manifest, EXIT_SUCCESS
                     manifest["status"] = "BLOCKED"
@@ -937,9 +968,7 @@ def run_bootstrap_fact_vectors(
         except FactVectorHydrationRuntimeError as exc:
             manifest["hydration_lock"] = exc.receipt
             manifest["status"] = "BLOCKED"
-            manifest["block_code"] = (
-                str(exc.receipt.get("block_code") or BLOCKED_FACT_VECTOR_HYDRATION_LOCK)
-            )
+            manifest["block_code"] = str(exc.receipt.get("block_code") or BLOCKED_FACT_VECTOR_HYDRATION_LOCK)
             _finalize_manifest(root=root, manifest=manifest, blocked=True)
             return manifest, EXIT_GENERIC_FAILURE
 
@@ -970,7 +999,9 @@ def run_bootstrap_cli(argv: list[str]) -> int:
     )
     parser.add_argument("--strict", action="store_true", help="Exit non-zero on an empty/unpopulated build.")
     parser.add_argument("--reset", action="store_true", help="Delete the collection before ingest.")
-    parser.add_argument("--dry-run", action="store_true", help="Build + report atoms without writing to Chroma.")
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Build + report atoms without writing to Chroma."
+    )
     parser.add_argument("--chroma-path", default=None, help="Override CHROMA_PERSIST_DIR for this build.")
     parser.add_argument(
         "--disable-existing-index-fallback",

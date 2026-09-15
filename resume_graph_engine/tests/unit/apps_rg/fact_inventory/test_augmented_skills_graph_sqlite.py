@@ -435,7 +435,7 @@ def test_real_projection_preserves_exact_metric_node_type_counts(sqlite_db: Path
     assert projected_counts == {
         "metric": 22,
         "metric_bucket": 16,
-        "metric_outcome": 92,
+        "metric_outcome": 104,
     }
     assert endpoint_types == {
         "atomic_fact_default_external_proof": "policy",

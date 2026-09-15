@@ -2803,7 +2803,7 @@ def run_executive_summary_execution(
         or runtime_payload["run_id"]
     )
     judge_keys = [j.strip() for j in args.x1d_judges.split(",") if j.strip()]
-    judge_mode = "mocked" if args.mock_judges else "blocked_if_unavailable"
+    judge_mode = "mocked" if (args.mock_judges and getattr(args, "allow_test_mock_judges", False)) else "blocked_if_unavailable"
     _judge_jd = _bundle_mat.jd_text_frozen
     _judge_briefing = _bundle_mat.briefing_text_frozen
     x1d: list[dict[str, Any]] = []

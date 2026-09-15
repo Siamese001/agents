@@ -10,22 +10,16 @@ from apps_rg.fact_inventory.c03_graph_node_semantic_hardening import (
     canonical_sha256,
 )
 
-CONTRACT_PATH = Path(
-    "src/apps_rg/fact_inventory/c03_graph_evidence_cluster_generation_contract.v1.json"
-)
+CONTRACT_PATH = Path("src/apps_rg/fact_inventory/c03_graph_evidence_cluster_generation_contract.v1.json")
 GRAPH_PATH = Path("src/apps_rg/fact_inventory/master_skills_arsenal_ledger.json")
 ARTIFACT_DIR = Path("artifacts/apps_rg/c03/graph_evidence_cluster_embeddings")
 REGISTRY_PATH = ARTIFACT_DIR / "graph_evidence_cluster_registry.v1.json"
-RETIREMENT_MARKER_PATH = (
-    ARTIFACT_DIR / "legacy_graph_skill_embedding_retirement.v1.json"
-)
+RETIREMENT_MARKER_PATH = ARTIFACT_DIR / "legacy_graph_skill_embedding_retirement.v1.json"
 W5_RECEIPT_PATH = ARTIFACT_DIR / "wave5_legacy_artifact_retirement_receipt.json"
 W6_RECEIPT_PATH = ARTIFACT_DIR / "wave6_cluster_vector_generation_receipt.json"
 
 CONTRACT_SCHEMA_VERSION = "apps_rg.c03_graph_evidence_cluster_generation_contract.v1"
-GENERATION_SCHEMA_VERSION = (
-    "apps_rg.graph_evidence_cluster_embedding_generation_manifest.v1"
-)
+GENERATION_SCHEMA_VERSION = "apps_rg.graph_evidence_cluster_embedding_generation_manifest.v1"
 RECEIPT_SCHEMA_VERSION = "apps_rg.c03_cluster_embedding_w6_receipt.v1"
 W6_COMPLETION_MARKER = "C03_CLUSTER_EMBEDDING_W6_CLUSTER_VECTORS_GENERATED"
 
@@ -45,16 +39,19 @@ def validate_generation_contract(contract: Mapping[str, Any]) -> None:
         issues.append("retrieval_unit.logical_retrieval_unit")
     if unit.get("exact_active_cluster_count") != 38:
         issues.append("retrieval_unit.exact_active_cluster_count")
+    from apps_rg.runtime.core_model_catalog import BGE_M3_EMBEDDING_DIMENSION, BGE_M3_MODEL_ID
+
     runtime = contract.get("embedding_runtime") or {}
     expected_runtime = {
-        "model_id": "BAAI/bge-m3",
+        "model_id": BGE_M3_MODEL_ID,
         "model_revision": "5617a9f61b028005a4858fdac845db406aefb181",
-        "dimension": 1024,
+        "dimension": BGE_M3_EMBEDDING_DIMENSION,
         "normalization": "l2",
         "float_storage": "little_endian_float32",
         "network_allowed": False,
         "fallback_allowed": False,
     }
+
     for field, value in expected_runtime.items():
         if runtime.get(field) != value:
             issues.append(f"embedding_runtime.{field}")
@@ -249,9 +246,7 @@ def build_w6_receipt(
             "tree": source_tree,
             "wave5_receipt_sha256": w5_receipt.get("receipt_sha256"),
             "wave4_registry_sha256": registry.get("registry_sha256"),
-            "canonical_graph_sha256": (registry.get("source_authority") or {}).get(
-                "canonical_graph_sha256"
-            ),
+            "canonical_graph_sha256": (registry.get("source_authority") or {}).get("canonical_graph_sha256"),
         },
         "contract": {
             "path": CONTRACT_PATH.as_posix(),

@@ -254,15 +254,7 @@ _SECTION_POLICIES: dict[str, SectionJudgePolicy] = {
         judge_packet_required=True,
         grade_only_required=True,
     ),
-    "ey_bullets": SectionJudgePolicy(
-        section_name="ey_bullets",
-        generator_model_class=GeneratorModelClass.EXTERNAL_CLAUDE,
-        judge_required_for_proof=True,
-        judge_tier=JudgeTier.BULLET_REWRITE_QUALITY,
-        required_judge_providers=_standard_providers(),
-        judge_packet_required=True,
-        grade_only_required=True,
-    ),
+
     "unify_narrative": SectionJudgePolicy(
         section_name="unify_narrative",
         generator_model_class=GeneratorModelClass.EXTERNAL_OPENAI,
@@ -290,15 +282,7 @@ _SECTION_POLICIES: dict[str, SectionJudgePolicy] = {
         judge_packet_required=True,
         grade_only_required=True,
     ),
-    "ey_narrative": SectionJudgePolicy(
-        section_name="ey_narrative",
-        generator_model_class=GeneratorModelClass.EXTERNAL_OPENAI,
-        judge_required_for_proof=True,
-        judge_tier=JudgeTier.STANDARD_REASONING,
-        required_judge_providers=_standard_providers(),
-        judge_packet_required=True,
-        grade_only_required=True,
-    ),
+
     "competencies": SectionJudgePolicy(
         section_name="competencies",
         generator_model_class=GeneratorModelClass.EXTERNAL_CLAUDE,

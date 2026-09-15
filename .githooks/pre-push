@@ -1,0 +1,31 @@
+#!/bin/sh
+# Native Pre-Push Hook for Antigravity Governance
+set -e
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT"
+
+echo "=== [Git Hook] Running Pre-Push Governance Verification ==="
+
+# 1. Turn gates (all modes)
+echo "-> 1. Validating all turn gates..."
+python3 tools/validate_turn_gates.py --mode all
+
+# 2. Active plan validation
+echo "-> 2. Validating active implementation plan..."
+python3 tools/validate_implementation_plan.py
+
+# 3. Tier 1 commit gate
+echo "-> 3. Running Tier 1 verify_commit..."
+.venv/bin/python tools/verify_commit.py
+
+# 4. Comprehensive test suite
+echo "-> 4. Running governance test suite..."
+.venv/bin/pytest tests/test_turn_gates.py \
+  tests/test_implementation_plan_governance.py \
+  tests/test_hitl_governance_enforcement.py \
+  tests/test_model_neutral_naming.py \
+  tests/test_unified_agent_architecture.py \
+  --timeout=60
+
+echo "=== [Git Hook] All Pre-Push Checks PASSED ==="

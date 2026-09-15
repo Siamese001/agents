@@ -75,6 +75,9 @@ class SignedAppsRgL2ExecutionPacket:
     signature_chain_digest: str
     packet_signature_algorithm: str = "HMAC-SHA256"
     packet_signing_key_ref: str = "APPS_RG_ROUTE_HMAC_SECRET"
+    expected_output_schema_ref: str = ""
+    success_criteria_refs: tuple[str, ...] = ()
+    evidence_requirement_refs: tuple[str, ...] = ()
     packet_signature: str = ""
     packet_digest: str = ""
 

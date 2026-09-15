@@ -193,8 +193,8 @@ class ResearchRunSummary(BaseModel):
         """Export as dictionary."""
         return self.model_dump()
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "trace_id": "RES-2024-001",
                 "app": "apps_research",
@@ -207,3 +207,4 @@ class ResearchRunSummary(BaseModel):
                 "quality_score": 0.82,
             },
         }
+    )

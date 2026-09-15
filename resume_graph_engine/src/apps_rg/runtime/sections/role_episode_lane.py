@@ -2186,7 +2186,7 @@ def run_role_episode_lane_execution(
                     section_lane=sid,
                 ),
                 judge_mode="mocked"
-                if bool(getattr(args, "mock_judges", False))
+                if bool(getattr(args, "mock_judges", False) and getattr(args, "allow_test_mock_judges", False))
                 else "blocked_if_unavailable",
                 use_sc_path=True,
                 provider_profile=str(args.provider),

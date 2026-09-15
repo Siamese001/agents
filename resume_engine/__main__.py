@@ -6,13 +6,7 @@ import os
 import sys
 from pathlib import Path
 
-_REPO_ROOT = Path(__file__).resolve().parent.parent
-_SRC_ROOT = _REPO_ROOT / "resume_graph_engine" / "src"
-
-if str(_SRC_ROOT) not in sys.path:
-    sys.path.insert(0, str(_SRC_ROOT))
-if str(_REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(_REPO_ROOT))
+import resume_graph_engine
 
 # Ensure local dev route signing secrets exist if not supplied in environment
 if not os.environ.get("APPS_RG_ROUTE_HMAC_SECRET"):

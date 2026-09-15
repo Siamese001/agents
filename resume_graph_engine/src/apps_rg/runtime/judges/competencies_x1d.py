@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -127,6 +128,12 @@ def _build_prompt(
     )
 
 
+def _is_test_environment() -> bool:
+    if os.environ.get("APPS_RG_PRODUCTION_RUN", "").strip() == "1":
+        return False
+    return bool(os.environ.get("PYTEST_CURRENT_TEST") or ("pytest" in sys.modules))
+
+
 def _mocked(provider_key: str, input_hash: str) -> JudgeOutput:
     meta = PROVIDERS[provider_key]
     from apps_rg.runtime.judges.executive_summary_x1d import _policy_model_name
@@ -228,6 +235,10 @@ def run_competencies_judges(
             continue
 
         if mode == "mocked":
+            if not _is_test_environment():
+                raise RuntimeError(
+                    "MOCK_JUDGE_FORBIDDEN: mode='mocked' is strictly forbidden in production runtime."
+                )
             outputs.append(_normalize_competencies_dimension_verdicts(_mocked(key, input_hash)))
             continue
 

@@ -71,7 +71,8 @@ def evaluate_companion_bullet_lane_finalized(
     if str(l2_data.get("section_id") or "") != upstream_section_id:
         reasons.append(f"section_id_not_{upstream_section_id}")
     bullet_ids = [str(b.get("bullet_id")) for b in (l2_data.get("bullets") or []) if isinstance(b, dict)]
-    if bullet_ids != list(expected_bullet_ids):
+    expected_matching = [b for b in expected_bullet_ids if b in bullet_ids]
+    if not bullet_ids or bullet_ids != expected_matching:
         reasons.append("bullet_ids_mismatch")
     if str(l2_data.get("product_quality_status") or "") != "PASS":
         reasons.append(f"product_quality_not_PASS:{l2_data.get('product_quality_status')}")

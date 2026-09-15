@@ -60,7 +60,10 @@ def _section_projection_parity() -> dict[str, Any]:
 
 
 def _w14b_traversal_parity() -> dict[str, Any]:
-    cmd = [sys.executable, "apps_rg/fact_inventory/run_w14_senior_role_offline_traversal.py"]
+    cmd = [
+        sys.executable,
+        str(SOURCE_ROOT / "apps_rg/fact_inventory/run_w14_senior_role_offline_traversal.py"),
+    ]
     run = _run_cmd(cmd)
     status = "PASS" if run["exit_code"] == 0 else "FAIL"
     return {"status": status, "command_run": run}

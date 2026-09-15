@@ -32,8 +32,6 @@ def product_fail_closed_runtime() -> bool:
     """
     if is_apps_rg_test_harness():
         return False
-    if _env_on("APPS_RG_ALLOW_PRODUCT_SHORTCUTS"):
-        return False
     return True
 
 

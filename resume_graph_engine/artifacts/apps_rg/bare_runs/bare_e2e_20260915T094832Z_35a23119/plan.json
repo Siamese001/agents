@@ -1,0 +1,25 @@
+{
+  "l0": {
+    "route": "bare_deterministic_local"
+  },
+  "l1": {
+    "candidate_resume_sha256": "sha256:8f042fae144d0fb4dfb92ee27f37f9a25c147f04c455c1a232a12fcfa247c149",
+    "goal": "tailor the candidate resume to the supplied role",
+    "source_count": 4
+  },
+  "pa": {
+    "prompt_inputs": [
+      "job_description",
+      "base_resume",
+      "deterministic_research"
+    ],
+    "required_employer_count": 5,
+    "required_resume_headings": [
+      "EXECUTIVE SUMMARY",
+      "CORE COMPETENCIES",
+      "PROFESSIONAL EXPERIENCE",
+      "EDUCATION",
+      "CERTIFICATIONS"
+    ]
+  }
+}

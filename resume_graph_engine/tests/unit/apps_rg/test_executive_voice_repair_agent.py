@@ -232,5 +232,33 @@ class TestExecutiveVoiceRepairAgent(unittest.TestCase):
         self.assertTrue(receipt.repair_succeeded)
 
 
+    def test_fail_closed_without_live_key_in_production(self) -> None:
+        candidate = {"resume_display_text": "Bad text."}
+        diagnostic = {"repair_needed": True}
+        old_test = os.environ.pop("PYTEST_CURRENT_TEST", None)
+        old_key = os.environ.pop("ANTHROPIC_API_KEY", None)
+        old_harness = os.environ.pop("APPS_RG_TEST_HARNESS", None)
+        try:
+            import sys
+            from unittest import mock
+            with mock.patch.dict(sys.modules):
+                sys.modules.pop("pytest", None)
+                with self.assertRaises(RuntimeError) as ctx:
+                    repair_section_with_executive_voice_agent(
+                        section_id="executive_summary",
+                        candidate_data=candidate,
+                        diagnostic=diagnostic,
+                        mock_mode=False,
+                    )
+                self.assertIn("LIVE_REPAIR_KEY_REQUIRED", str(ctx.exception))
+        finally:
+            if old_test:
+                os.environ["PYTEST_CURRENT_TEST"] = old_test
+            if old_key:
+                os.environ["ANTHROPIC_API_KEY"] = old_key
+            if old_harness:
+                os.environ["APPS_RG_TEST_HARNESS"] = old_harness
+
+
 if __name__ == "__main__":
     unittest.main()

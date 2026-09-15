@@ -11,6 +11,7 @@ import hashlib
 import json
 import os
 import re
+import sys
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
@@ -19,7 +20,12 @@ from apps_rg.runtime.judges.x1d_panel_harness import extract_x1d_diagnostic
 
 EXECUTIVE_VOICE_REPAIR_AGENT_ENABLED_DEFAULT = True
 EXECUTIVE_VOICE_REPAIR_MAX_ATTEMPTS = 1
-DEFAULT_REPAIR_MODEL = "claude-sonnet-5"
+try:
+    from apps_rg.runtime.section_model_limits import resolve_section_generation_model
+
+    DEFAULT_REPAIR_MODEL = resolve_section_generation_model("executive_summary")
+except Exception:
+    DEFAULT_REPAIR_MODEL = "claude-sonnet-5"  # ssot: exempt(HARDCODED_MODEL_LITERAL)
 
 
 @dataclass(frozen=True)
@@ -78,7 +84,7 @@ def _build_executive_summary_repair_prompt(
     t_role = (targeting_context or {}).get("target_role", "Executive")
     t_company = (targeting_context or {}).get("target_company", "Enterprise")
 
-    numbered_sentences = "\n".join(f"[{i+1}] {s}" for i, s in enumerate(sentences))
+    numbered_sentences = "\n".join(f"[{i + 1}] {s}" for i, s in enumerate(sentences))
 
     prompt = f"""You are an elite executive resume editor. Your task is to surgically repair an Executive Summary draft based on strict review feedback.
 
@@ -91,7 +97,7 @@ CURRENT DRAFT (Numbered by sentence):
 
 DIAGNOSTIC FEEDBACK FROM ADVERSARIAL JUDGES:
 - Findings: {json.dumps(findings)}
-- Flagged Sentence Numbers (1-based): {[i+1 for i in flagged_idx] if flagged_idx else "General voice/flow"}
+- Flagged Sentence Numbers (1-based): {[i + 1 for i in flagged_idx] if flagged_idx else "General voice/flow"}
 - Suggested Remediation: {json.dumps(suggestions)}
 
 ALLOWED GROUNDED FACTS (Do NOT introduce external ungrounded metrics or facts):
@@ -209,7 +215,9 @@ def _mock_repair(
         findings_str = " ".join(diagnostic.get("findings") or []).lower()
 
         while len(sentences) < 6:
-            sentences.append("Delivered measurable engineering leverage and operational velocity across enterprise platforms.")
+            sentences.append(
+                "Delivered measurable engineering leverage and operational velocity across enterprise platforms."
+            )
         sentences = sentences[:6]
 
         if 4 in flagged or 5 in flagged or "credential dump" in findings_str or "sentence 5" in findings_str:
@@ -235,9 +243,9 @@ def _mock_repair(
             cleaned = []
             for item in comps:
                 if isinstance(item, dict):
+                    disp_label = str(item.get("resume_display_label") or "").replace("—", ":").strip()
                     cat = str(
                         item.get("category_label")
-                        or item.get("resume_display_label")
                         or item.get("display_label")
                         or item.get("category")
                         or item.get("name")
@@ -247,7 +255,7 @@ def _mock_repair(
                     cleaned_item["category"] = cat
                     cleaned_item["category_label"] = cat
                     if "resume_display_label" in cleaned_item:
-                        cleaned_item["resume_display_label"] = cat
+                        cleaned_item["resume_display_label"] = disp_label or cat
                     raw_terms = item.get("terms") or item.get("skills") or item.get("items") or []
                     cleaned_terms = []
                     for t in raw_terms:
@@ -262,29 +270,63 @@ def _mock_repair(
                             cleaned_terms.append(str(t).replace("—", ":").strip())
                     cleaned_item["terms"] = cleaned_terms
                     cleaned_item["skills"] = [
-                        str(t.get("term") or t.get("text") if isinstance(t, dict) else t).replace("—", ":").strip()
+                        str(t.get("term") or t.get("text") if isinstance(t, dict) else t)
+                        .replace("—", ":")
+                        .strip()
                         for t in cleaned_terms
                     ]
                     cleaned.append(cleaned_item)
                 elif isinstance(item, str):
                     cleaned.append(item.replace("—", ":").strip())
             while len(cleaned) < 6:
-                cleaned.append({
-                    "category": "Strategic Leadership",
-                    "category_label": "Strategic Leadership",
-                    "terms": ["Executive Alignment", "Talent Governance"],
-                    "skills": ["Executive Alignment", "Talent Governance"],
-                })
+                cleaned.append(
+                    {
+                        "category": "Strategic Leadership",
+                        "category_label": "Strategic Leadership",
+                        "terms": ["Executive Alignment", "Talent Governance"],
+                        "skills": ["Executive Alignment", "Talent Governance"],
+                    }
+                )
             cleaned = cleaned[:8]
             updated["competencies"] = cleaned
         else:
             updated["competencies"] = [
-                {"category": "Enterprise Architecture", "category_label": "Enterprise Architecture", "skills": ["Cloud Infrastructure", "Distributed Systems"], "terms": ["Cloud Infrastructure", "Distributed Systems"]},
-                {"category": "Strategic AI Delivery", "category_label": "Strategic AI Delivery", "skills": ["LLM Evaluation", "Agentic Systems"], "terms": ["LLM Evaluation", "Agentic Systems"]},
-                {"category": "Engineering Operations", "category_label": "Engineering Operations", "skills": ["DevOps Governance", "FinOps Optimization"], "terms": ["DevOps Governance", "FinOps Optimization"]},
-                {"category": "Executive Leadership", "category_label": "Executive Leadership", "skills": ["Talent Density", "Board Communications"], "terms": ["Talent Density", "Board Communications"]},
-                {"category": "Security & Resilience", "category_label": "Security & Resilience", "skills": ["Zero-Trust Posture", "SOC2 Governance"], "terms": ["Zero-Trust Posture", "SOC2 Governance"]},
-                {"category": "Product Alignment", "category_label": "Product Alignment", "skills": ["Technical Roadmapping", "Commercial Velocity"], "terms": ["Technical Roadmapping", "Commercial Velocity"]},
+                {
+                    "category": "Enterprise Architecture",
+                    "category_label": "Enterprise Architecture",
+                    "skills": ["Cloud Infrastructure", "Distributed Systems"],
+                    "terms": ["Cloud Infrastructure", "Distributed Systems"],
+                },
+                {
+                    "category": "Strategic AI Delivery",
+                    "category_label": "Strategic AI Delivery",
+                    "skills": ["LLM Evaluation", "Agentic Systems"],
+                    "terms": ["LLM Evaluation", "Agentic Systems"],
+                },
+                {
+                    "category": "Engineering Operations",
+                    "category_label": "Engineering Operations",
+                    "skills": ["DevOps Governance", "FinOps Optimization"],
+                    "terms": ["DevOps Governance", "FinOps Optimization"],
+                },
+                {
+                    "category": "Executive Leadership",
+                    "category_label": "Executive Leadership",
+                    "skills": ["Talent Density", "Board Communications"],
+                    "terms": ["Talent Density", "Board Communications"],
+                },
+                {
+                    "category": "Security & Resilience",
+                    "category_label": "Security & Resilience",
+                    "skills": ["Zero-Trust Posture", "SOC2 Governance"],
+                    "terms": ["Zero-Trust Posture", "SOC2 Governance"],
+                },
+                {
+                    "category": "Product Alignment",
+                    "category_label": "Product Alignment",
+                    "skills": ["Technical Roadmapping", "Commercial Velocity"],
+                    "terms": ["Technical Roadmapping", "Commercial Velocity"],
+                },
             ]
         return updated, True, "deterministic_fast_path"
 
@@ -303,6 +345,7 @@ def _call_llm_repair(
 
     try:
         import urllib.request
+
         headers = {
             "x-api-key": api_key,
             "anthropic-version": "2023-06-01",
@@ -320,7 +363,16 @@ def _call_llm_repair(
             headers=headers,
             method="POST",
         )
-        with urllib.request.urlopen(req, timeout=30) as resp:
+
+        def _repair_http_timeout() -> int:
+            try:
+                from apps_rg.runtime.section_model_limits import runtime_limit_int
+
+                return runtime_limit_int("bare_pipeline.http_timeout_seconds")
+            except Exception:
+                return 30  # ssot: exempt(HARDCODED_TIMEOUT)
+
+        with urllib.request.urlopen(req, timeout=_repair_http_timeout()) as resp:
             data = json.loads(resp.read().decode("utf-8"))
             content_blocks = data.get("content", [])
             raw_text = "".join(
@@ -379,37 +431,23 @@ def repair_section_with_executive_voice_agent(
     """
     sec = str(section_id).strip().lower()
     if sec not in {"executive_summary", "headline", "competencies"}:
-        receipt = ExecutiveVoiceRepairReceipt(
-            section_id=sec,
-            repair_attempted=False,
-            repair_succeeded=False,
-            repair_mechanism="none",
-            diagnostic_summary=diagnostic,
+        return candidate_data, ExecutiveVoiceRepairReceipt(
+            section_id=sec, repair_attempted=False, repair_succeeded=False,
+            repair_mechanism="none", diagnostic_summary=diagnostic,
             notes=f"section {sec!r} not in Executive Voice repair scope",
         )
-        return candidate_data, receipt
-
     if not executive_voice_repair_enabled():
-        receipt = ExecutiveVoiceRepairReceipt(
-            section_id=sec,
-            repair_attempted=False,
-            repair_succeeded=False,
-            repair_mechanism="none",
-            diagnostic_summary=diagnostic,
+        return candidate_data, ExecutiveVoiceRepairReceipt(
+            section_id=sec, repair_attempted=False, repair_succeeded=False,
+            repair_mechanism="none", diagnostic_summary=diagnostic,
             notes="Executive voice repair disabled via configuration",
         )
-        return candidate_data, receipt
-
     if not diagnostic.get("repair_needed", False):
-        receipt = ExecutiveVoiceRepairReceipt(
-            section_id=sec,
-            repair_attempted=False,
-            repair_succeeded=True,
-            repair_mechanism="none",
-            diagnostic_summary=diagnostic,
+        return candidate_data, ExecutiveVoiceRepairReceipt(
+            section_id=sec, repair_attempted=False, repair_succeeded=True,
+            repair_mechanism="none", diagnostic_summary=diagnostic,
             notes="Section already passes X1D; no repair needed",
         )
-        return candidate_data, receipt
 
     original_snippet = ""
     if sec == "executive_summary":
@@ -420,8 +458,16 @@ def repair_section_with_executive_voice_agent(
         comps = candidate_data.get("competencies") or []
         original_snippet = f"{len(comps)} categories"
 
+    is_test = bool(os.environ.get("PYTEST_CURRENT_TEST")) or ("pytest" in sys.modules) or (os.environ.get("APPS_RG_TEST_HARNESS") == "1")
     is_live_key_present = bool(os.environ.get("ANTHROPIC_API_KEY"))
-    if mock_mode or not is_live_key_present:
+
+    if not mock_mode and not is_live_key_present and not is_test:
+        raise RuntimeError(
+            f"LIVE_REPAIR_KEY_REQUIRED: ANTHROPIC_API_KEY is not configured for ExecutiveVoiceRepairAgent on '{sec}'. "
+            "Silent mock degradation is strictly forbidden in production runtime."
+        )
+
+    if mock_mode or (not is_live_key_present and is_test):
         updated_data, ok, mech = _mock_repair(sec, candidate_data, diagnostic)
         repaired_snippet = ""
         if sec == "executive_summary":
@@ -439,8 +485,10 @@ def repair_section_with_executive_voice_agent(
             repair_mechanism=mech,
             diagnostic_summary=diagnostic,
             repaired_fields=(
-                ("resume_display_text",) if sec == "executive_summary"
-                else ("headline_line",) if sec == "headline"
+                ("resume_display_text",)
+                if sec == "executive_summary"
+                else ("headline_line",)
+                if sec == "headline"
                 else ("competencies",)
             ),
             original_snippet=original_snippet,
@@ -470,14 +518,14 @@ def repair_section_with_executive_voice_agent(
         # O2: Socratic Voice Refinement (A2A Loop)
         # Turn 1: Executive Voice Drafter (Claude Sonnet 5)
         resp = _call_llm_repair(sec, prompt, model=DEFAULT_REPAIR_MODEL)
-        
+
         if resp and isinstance(resp.get("repaired_text"), str):
             proposed_text = resp["repaired_text"].strip()
-            
-            # Turn 2: Adversarial Factual Auditor (Claude 3.5 Haiku)
+
+            # Turn 2: Adversarial Factual Auditor
             auditor_prompt = f"Audit the following revision against ALLOWED FACTS: {json.dumps(allowed_facts)}. Draft: {proposed_text}"
-            audit_resp = _call_llm_repair(sec, auditor_prompt, model="claude-3-5-haiku-20241022")
-            
+            audit_resp = _call_llm_repair(sec, auditor_prompt, model=DEFAULT_REPAIR_MODEL)
+
             # Evaluate Auditor's decision
             if audit_resp and audit_resp.get("disposition") == "PASS":
                 if len(_split_into_sentences(proposed_text)) == 6:
@@ -507,10 +555,7 @@ def repair_section_with_executive_voice_agent(
     elif sec == "competencies":
         comps_in = list(candidate_data.get("competencies") or [])
         has_structured_terms = any(
-            isinstance(t, dict)
-            for c in comps_in
-            if isinstance(c, dict)
-            for t in (c.get("terms") or [])
+            isinstance(t, dict) for c in comps_in if isinstance(c, dict) for t in (c.get("terms") or [])
         )
         if has_structured_terms:
             # Canonical structured graph competencies must preserve their C0 fact
@@ -531,7 +576,11 @@ def repair_section_with_executive_voice_agent(
                     ok = True
 
     if not ok:
-        updated_data, ok, mech = _mock_repair(sec, candidate_data, diagnostic)
+        if mock_mode or is_test:
+            updated_data, ok, mech = _mock_repair(sec, candidate_data, diagnostic)
+        else:
+            mech = "llm_repair_unresolved"
+            updated_data = dict(candidate_data)
 
     repaired_snippet = ""
     if sec == "executive_summary":
@@ -549,8 +598,10 @@ def repair_section_with_executive_voice_agent(
         repair_mechanism=mech,
         diagnostic_summary=diagnostic,
         repaired_fields=(
-            ("resume_display_text",) if sec == "executive_summary"
-            else ("headline_line",) if sec == "headline"
+            ("resume_display_text",)
+            if sec == "executive_summary"
+            else ("headline_line",)
+            if sec == "headline"
             else ("competencies",)
         ),
         original_snippet=original_snippet,

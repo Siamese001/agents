@@ -23,6 +23,7 @@ from .contracts import (
     PromptSlotPayload,
     SlotAuthority,
 )
+from .prompt_segment import CACHE_ALIGNED_SLOT_ORDER
 
 
 # =============================================================================
@@ -387,7 +388,7 @@ class PromptCompiler:
                 },
             )
     
-    def compile(self, input_data: PromptAssemblyInput) -> CompiledPromptArtifact:
+    def compile(self, input_data: PromptAssemblyInput, *, cache_aligned: bool = False) -> CompiledPromptArtifact:
         """Compile PromptAssemblyInput into CompiledPromptArtifact."""
         # Validate required fields
         if not input_data.template_id:
@@ -414,11 +415,12 @@ class PromptCompiler:
         # Get required slots from template
         required_slots = template_def.get("required_slots", [])
         
-        # Build slot payloads in canonical order
+        # Build slot payloads in slot order (canonical or cache-aligned)
         slot_payloads = []
         slot_contents = {}
+        slot_order = CACHE_ALIGNED_SLOT_ORDER if cache_aligned else CANONICAL_SLOT_ORDER
         
-        for slot_id in CANONICAL_SLOT_ORDER:
+        for slot_id in slot_order:
             content = self._get_slot_content(input_data, slot_id)
             if content is not None:
                 # W7: Detect override attempts in lower-authority slots
@@ -587,13 +589,11 @@ class PromptCompiler:
 # Module-level convenience functions
 # =============================================================================
 
-def compile_prompt(input_data: PromptAssemblyInput, base_path: Optional[Path] = None) -> CompiledPromptArtifact:
-    """Compile a PromptAssemblyInput into a CompiledPromptArtifact.
-    
-    Convenience function that creates a PromptCompiler and compiles the input.
-    """
-    compiler = PromptCompiler(base_path=base_path)
-    return compiler.compile(input_data)
+def compile_prompt(
+    input_data: PromptAssemblyInput, base_path: Optional[Path] = None, *, cache_aligned: bool = False
+) -> CompiledPromptArtifact:
+    """Compile a PromptAssemblyInput into a CompiledPromptArtifact."""
+    return PromptCompiler(base_path=base_path).compile(input_data, cache_aligned=cache_aligned)
 
 
 def map_slots(input_data: PromptAssemblyInput) -> dict[str, str]:

@@ -91,6 +91,12 @@ The knowledge-graph Memory MCP is optional for graph queries or writeback when i
 - ADG before grep for structure (§28); grep for literals/TODOs only
 - Full rules: `AGENTS.md` + `docs/codex-primary-execution.md` · expanded lists: legacy compatibility notes only
 
+## Production Derivation Integrity
+
+> Every domain-bearing production artifact must be derived from runtime source inputs plus approved configuration through the declared execution path. Golden outputs, expected answers, reference graphs, pinned evaluations, benchmark fixtures, and precomputed domain conclusions may be used for testing/evaluation but must not substitute for production generation, reasoning, evaluation, or publication.
+
+No production-executable directory may evade applicable architecture governance merely because of directory placement.
+
 ## Plans
 
 Lookup: `.agents/rules/codex-config-lookup.md` and `.agents/rules/plan-location.md`. New plans are disk-only under `plans/<name>-<6hex>.md`; `.codex/plans/` is an archive of migrated historical plans, not the write target for new work.
@@ -105,27 +111,30 @@ Apps customize inputs; core enforces contracts. No app leakage in `agentic_core`
 
 ## Rules & Skills SSOT
 
-Procedural MCP / Notion / ledgers: `scripts/governance/**`, `.codex/**`, and `docs/reports/codex/**` cover the active Codex flow. Plan location (disk-only): [`plan-location.md`](.agents/rules/plan-location.md).
+Procedural MCP / Notion / ledgers: Root `.mcp.json`, `.agents/`, and `tools/` cover active Antigravity execution. Plan location (disk-only): [`plan-location.md`](.agents/rules/plan-location.md).
 
 | Layer | Path | Notes |
 |-------|------|-------|
-| Always-on rules | `AGENTS.md` + `docs/codex-primary-execution.md` | Active Codex governance contract and rule floor |
-| On-demand rules | `.codex/rules/*.md` + `scripts/governance/**` | Load by task surface and file scope |
-| Skills | `.codex/skills/*/SKILL.md` | Repo-owned Codex procedural adapters |
-| Hooks | `.codex/hooks.json` + `.codex/hooks/**` | Native Codex hook registry and hook entrypoints |
-| Index | `docs/reports/codex/` + historical rule-index references | Generated route evidence and historical references only |
-| Deprecated compatibility shims | docs/archive and `_legacy_*` shims | Non-authoritative compatibility/archive only; edit Codex-owned files |
+| Always-on rules | `AGENTS.md` + `docs/refactoring-wave-protocol.md` | Active Antigravity governance contract and rule floor |
+| On-demand rules | `.agents/rules/*.md` | Load by task surface and file scope |
+| Skills | `.agents/skills/*/SKILL.md` | Reusable procedural adapters and cheatsheets |
+| Lifecycle Hooks | `.agents/hooks.json` | Native Antigravity lifecycle hook registry (pre/post-tool guards) |
+| Turn-Gate Validator | `tools/validate_turn_gates.py` | Mechanical pre-turn & post-turn gate validator |
+| Tier 1 Pre-Commit Gate | `tools/verify_commit.py` | Deterministic file budgets, layer imports, model neutrality, secrets |
+| Deprecated compatibility shims | `docs/archive/` and `_legacy_*` shims | Non-authoritative compatibility/archive only |
 
-**Dedup:** Do not restate always-on invariants in compatibility stubs or hook reminders. Active procedure lives in `AGENTS.md` and `docs/codex-primary-execution.md`; retired rule and skill names remain historical only.
+**Dedup:** Do not restate always-on invariants in compatibility stubs or hook reminders. Active procedure lives in `AGENTS.md` and `.agents/rules/*.md`.
 
-Governance inventory: [`governance_tier_inventory.json`](docs/reports/cursor/governance_tier_inventory.json) · dedup audit: [`governance_dedup_audit_20260526.md`](docs/reports/cursor/governance_dedup_audit_20260526.md) · closeout plan: [`governance-dedup-closeout-e8a4c2.md`](plans/governance-dedup-closeout-e8a4c2.md).
+Governance inventory: [`governance_tier_inventory.json`](docs/reports/cursor/governance_tier_inventory.json) · dedup audit: [`governance_dedup_audit_20260526.md`](docs/reports/cursor/governance_dedup_audit_20260526.md).
 
 ## Antigravity Execution Adapter
 
-Google Antigravity is the primary execution surface for this repository. Repo-owned governance assets live under .agents and .antigravity:
+Google Antigravity is the primary execution surface for this repository. Repo-owned governance assets live under `.agents/` and `.antigravity/`:
 
-- Active rule sets live in .agents/rules/*.md.
-- Active skills live in .agents/skills/*/SKILL.md.
-- Active MCP server configuration is maintained in root .mcp.json and .agents/mcp_config.json.
-- Workspace runtime boundaries and path containment policies live in .antigravity/runtime-boundary.json.
-- Plans are disk-only under plans/<name>-<6hex>.md.
+- Active rule sets live in `.agents/rules/*.md`.
+- Active skills live in `.agents/skills/*/SKILL.md`.
+- Native lifecycle hooks live in `.agents/hooks.json`.
+- Mechanical turn gates execute via `python tools/validate_turn_gates.py --mode [pre-turn|post-turn|all]`.
+- Active MCP server configuration is maintained in root `.mcp.json` and `.agents/mcp_config.json`.
+- Workspace runtime boundaries and path containment policies live in `.antigravity/runtime-boundary.json`.
+- Plans are disk-only under `plans/<name>-<6hex>.md`.

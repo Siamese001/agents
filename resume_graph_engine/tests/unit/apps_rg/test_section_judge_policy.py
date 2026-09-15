@@ -363,12 +363,12 @@ def test_competencies_policy_requires_llm_judge_for_proof() -> None:
     assert p.required_judge_providers == ("gemini_pro", "openai_chatgpt")
     assert "anthropic_claude" not in p.required_judge_providers
     gemini = resolve_section_proof_judge_model("competencies", "gemini_pro", {})
-    assert gemini.model_actual == "gemini-3.8-flash"
-    assert gemini.reasoning_effort == "high"
+    assert gemini.model_actual == _yaml_judge_model("standard", "gemini_pro")
+    assert gemini.reasoning_effort == _yaml_runtime_limit("judge.gemini_proof_thinking_level")
     assert gemini.proof_eligible_judge is True
     openai = resolve_section_proof_judge_model("competencies", "openai_chatgpt", {})
-    assert openai.model_actual == "gpt-5.6-sol"
-    assert openai.reasoning_effort == "high"
+    assert openai.model_actual == _yaml_judge_model("standard", "openai_chatgpt")
+    assert openai.reasoning_effort == _yaml_runtime_limit("judge.openai_proof_reasoning_effort")
     assert openai.proof_eligible_judge is True
     rubric = ""
     from apps_rg.runtime.judges import competencies_x1d

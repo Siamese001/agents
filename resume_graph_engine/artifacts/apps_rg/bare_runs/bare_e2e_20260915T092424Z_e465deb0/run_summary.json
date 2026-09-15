@@ -1,0 +1,57 @@
+{
+  "artifact_dir": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/bare_runs/bare_e2e_20260915T092424Z_e465deb0",
+  "command": "internal: apps_rg.bare_pipeline.run_bare_e2e(mode=deterministic)",
+  "error": "BarePipelineError: deterministic source pack supports only 'Anthropic' / 'Manager of Applied AI Architecture, Partnerships'; requested 'Blend' / 'SVP, Agentic Transformation'",
+  "failure_stage": "APPS_RESEARCH",
+  "finished_at_utc": "2000-01-01T00:00:00+00:00",
+  "inputs": {
+    "jd_ref": "inline",
+    "jd_sha256": "sha256:c4133cdee8f2c18410032159a4812ad5c6baa05bea49f3d8388ca318008b2c98",
+    "mode": "deterministic",
+    "resume_ref": "DEFAULT_SSOT:apps_rg/resume/base/amit_ayer_base_resume_v1.json:/Users/amitayer/Git/agents/resume_graph_engine/src/apps_rg/resume/base/amit_ayer_base_resume_v1.json",
+    "resume_sha256": "sha256:8f042fae144d0fb4dfb92ee27f37f9a25c147f04c455c1a232a12fcfa247c149"
+  },
+  "mode": "deterministic",
+  "outcome_label": "DETERMINISTIC_OFFLINE_FAIL",
+  "outputs": {
+    "summary": "run_summary.json"
+  },
+  "pipeline": "apps_rg_bare_e2e.v2",
+  "provider_call_count": 0,
+  "providers": {},
+  "repository": {
+    "branch": "feature/graph-skills-career-phase-semantic-units",
+    "commit_sha": "14160373e3613d2a05e23a89ad938587f98f80b0",
+    "head_is_ancestor_of_local_main": false,
+    "local_main_sha": "1ea5615f5a1340d5d45a73a0596324f8420d8254",
+    "repository_root": "/Users/amitayer/Git/agents/resume_graph_engine",
+    "worktree_dirty": true
+  },
+  "run_id": "bare_e2e_20260915T092424Z_e465deb0",
+  "stages": [
+    {
+      "details": {
+        "jd_loaded": true,
+        "provider_credentials_read": false,
+        "repository_branch": "feature/graph-skills-career-phase-semantic-units",
+        "repository_commit": "14160373e3613d2a05e23a89ad938587f98f80b0",
+        "required_employer_count": 5,
+        "resume_loaded": true
+      },
+      "finished_at_utc": "2000-01-01T00:00:00+00:00",
+      "stage": "SETUP",
+      "started_at_utc": "2000-01-01T00:00:00+00:00",
+      "status": "PASS"
+    },
+    {
+      "error": "BarePipelineError: deterministic source pack supports only 'Anthropic' / 'Manager of Applied AI Architecture, Partnerships'; requested 'Blend' / 'SVP, Agentic Transformation'",
+      "finished_at_utc": "2000-01-01T00:00:00+00:00",
+      "stage": "APPS_RESEARCH",
+      "started_at_utc": "2000-01-01T00:00:00+00:00",
+      "status": "FAIL"
+    }
+  ],
+  "status": "FAIL",
+  "target_company": "Blend",
+  "target_role": "SVP, Agentic Transformation"
+}

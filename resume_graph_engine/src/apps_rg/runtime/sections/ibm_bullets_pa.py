@@ -28,10 +28,13 @@ from apps_rg.runtime.validators.ibm_bullets_x2 import IBM_BULLET_IDS
 GRAPH_BULLET_EVIDENCE_PACK_MARKER = IBM_ROLE_EPISODE_EVIDENCE_MARKER
 
 
-def _legacy_i0(runtime_payload: dict[str, Any]) -> str:
+def _legacy_i0(
+    runtime_payload: dict[str, Any],
+    active_bullet_ids: tuple[str, ...] = IBM_BULLET_IDS,
+) -> str:
     header = runtime_payload["ibm_header"]
-    bullet_ids_str = ", ".join(IBM_BULLET_IDS)
-    bullet_count = len(IBM_BULLET_IDS)
+    bullet_ids_str = ", ".join(active_bullet_ids)
+    bullet_count = len(active_bullet_ids)
     return (
         "<!-- UNIFY_IBM_PROMPT_CORE_LAW_V3 — section I0; X2 gate IDs in PRODUCT_SHAPE only -->\n\n"
         "# Role\n"
@@ -127,6 +130,14 @@ def compile_ibm_bullets_prompt(
     *,
     run_id: str,
 ) -> SectionCompiledPrompt:
+    plan = runtime_payload.get("selected_fact_plan") or {}
+    plan_facts = [
+        str(f.get("fact_id") or "").strip()
+        for f in (plan.get("facts") or [])
+        if isinstance(f, dict) and str(f.get("fact_id") or "").strip().startswith("bul_ibm_")
+    ]
+    active_bullet_ids = tuple(plan_facts) if plan_facts else IBM_BULLET_IDS
+
     slots = load_w7_shell_slot_bodies()
     c0_body = format_ibm_role_episode_evidence_pack(runtime_payload, section_id="ibm_bullets")
     assembly = PromptAssemblyInput(
@@ -138,7 +149,7 @@ def compile_ibm_bullets_prompt(
         d0_fences=slots["D0"],
         e0_examples=resolve_e0_for_section("ibm_bullets", slots.get("E0")),
         y0_style_preferences=slots["Y0"],
-        i0_instructions=_legacy_i0(runtime_payload),
+        i0_instructions=_legacy_i0(runtime_payload, active_bullet_ids=active_bullet_ids),
         c0_candidate_facts=EvidenceSource(
             source_type="candidate_facts",
             content=c0_body,
@@ -152,10 +163,10 @@ def compile_ibm_bullets_prompt(
             source_tag="jd_requirements",
         ),
         u0_user_task=(
-            f"Synthesize exactly {len(IBM_BULLET_IDS)} IBM bullets ({', '.join(IBM_BULLET_IDS)}) by composing proof from "
+            f"Synthesize exactly {len(active_bullet_ids)} IBM bullets ({', '.join(active_bullet_ids)}) by composing proof from "
             f"{GRAPH_BULLET_EVIDENCE_PACK_MARKER} and bound_skills. "
             "Use TARGET_TITLE, JD_TEXT, and BRIEFING only for emphasis and ordering — not as proof. "
-            f"Return one JSON object with bullets[{len(IBM_BULLET_IDS)}], complete claim_ledger, jd_alignment (themes + "
+            f"Return one JSON object with bullets[{len(active_bullet_ids)}], complete claim_ledger, jd_alignment (themes + "
             "targeting_only flags), change_log with graph_skill_node_ids/fact_ids_used per slot, and self_check."
         ),
         r0_response_schema=BULLETS_R0,

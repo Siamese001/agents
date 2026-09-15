@@ -52,15 +52,9 @@ from apps_rg.fact_inventory.c03_graph_node_semantic_hardening import (
 
 PACKET_SCHEMA_VERSION = "apps_rg.owner_solo_full_resume_qrel_w3_packet.v1"
 CONTRACT_SCHEMA_VERSION = "apps_rg.owner_solo_full_resume_qrel_w3_contract.v1"
-REVIEW_ITEM_SCHEMA_VERSION = (
-    "apps_rg.owner_solo_full_resume_qrel_w3_review_item.v1"
-)
-SEALED_MAPPING_SCHEMA_VERSION = (
-    "apps_rg.owner_solo_full_resume_qrel_w3_sealed_mapping.v1"
-)
-REVIEWER_MANIFEST_SCHEMA_VERSION = (
-    "apps_rg.owner_solo_full_resume_qrel_w3_reviewer_manifest.v1"
-)
+REVIEW_ITEM_SCHEMA_VERSION = "apps_rg.owner_solo_full_resume_qrel_w3_review_item.v1"
+SEALED_MAPPING_SCHEMA_VERSION = "apps_rg.owner_solo_full_resume_qrel_w3_sealed_mapping.v1"
+REVIEWER_MANIFEST_SCHEMA_VERSION = "apps_rg.owner_solo_full_resume_qrel_w3_reviewer_manifest.v1"
 RECEIPT_SCHEMA_VERSION = "apps_rg.owner_solo_full_resume_qrel_w3_receipt.v1"
 
 PACKET_STATUS = "FROZEN_UNLABELED_OWNER_SOLO_BLINDED_PACKET"
@@ -70,18 +64,19 @@ DEFAULT_PACKET_DIR = RUNTIME_DIR / "prelabel_packet"
 OWNER_COHORT = "owner_solo"
 CONTRACT_PATH = Path("src/apps_rg/evals/owner_solo/c03_full_resume_qrel_w3_contract.v1.json")
 
+from apps_rg.runtime.core_model_catalog import BGE_M3_EMBEDDING_DIMENSION, BGE_M3_MODEL_ID
+
 _NONCE_RE = re.compile(r"[0-9a-f]{64}")
 _OPAQUE_ITEM_RE = re.compile(r"item-[0-9a-f]{24}")
 _OPAQUE_CANDIDATE_RE = re.compile(r"candidate-[0-9a-f]{24}")
 _PINNED_MODEL = {
-    "model_id": "BAAI/bge-m3",
+    "model_id": BGE_M3_MODEL_ID,
     "revision": "5617a9f61b028005a4858fdac845db406aefb181",
-    "artifact_sha256": (
-        "38ccc2e093252ab0416eee16837c75c641f055b4f3def12091fba8ed94e2b263"
-    ),
-    "dimension": 1024,
+    "artifact_sha256": ("38ccc2e093252ab0416eee16837c75c641f055b4f3def12091fba8ed94e2b263"),
+    "dimension": BGE_M3_EMBEDDING_DIMENSION,
     "normalization": "l2",
 }
+
 _SECTION_TITLES = {
     "headline": "Headline",
     "executive_summary": "Executive Summary",
@@ -161,9 +156,7 @@ def validate_w3_review_contract(contract: Mapping[str, Any]) -> None:
         if (contract.get(section) or {}).get(key) is not False:
             issues.append(f"{section}.{key}")
     if issues:
-        raise FullResumeQrelW3Error(
-            f"Invalid W3 review contract: {sorted(set(issues))}"
-        )
+        raise FullResumeQrelW3Error(f"Invalid W3 review contract: {sorted(set(issues))}")
 
 
 def load_w3_review_contract(repo_root: Path | str) -> dict[str, Any]:
@@ -193,9 +186,7 @@ def _read_jsonl(path: Path) -> list[dict[str, Any]]:
                 continue
             value = json.loads(line)
             if not isinstance(value, dict):
-                raise FullResumeQrelW3Error(
-                    f"JSON object required at {path}:{line_no}"
-                )
+                raise FullResumeQrelW3Error(f"JSON object required at {path}:{line_no}")
             rows.append(value)
     except json.JSONDecodeError as exc:
         raise FullResumeQrelW3Error(f"Malformed JSONL: {path}") from exc
@@ -253,25 +244,19 @@ def _immutable_bytes(path: Path, data: bytes) -> str:
 
 
 def _immutable_json(path: Path, payload: Mapping[str, Any]) -> str:
-    return _immutable_bytes(
-        path, (json.dumps(payload, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
-    )
+    return _immutable_bytes(path, (json.dumps(payload, ensure_ascii=False, indent=2) + "\n").encode("utf-8"))
 
 
 def _jsonl_bytes(rows: Sequence[Mapping[str, Any]]) -> bytes:
-    return (
-        "".join(
-            json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n" for row in rows
-        )
-    ).encode("utf-8")
+    return ("".join(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n" for row in rows)).encode(
+        "utf-8"
+    )
 
 
 def blinding_nonce_commitment(nonce: str) -> str:
     value = str(nonce or "").strip()
     if not _NONCE_RE.fullmatch(value):
-        raise FullResumeQrelW3Error(
-            "W3 blinding nonce must contain exactly 64 lowercase hex characters"
-        )
+        raise FullResumeQrelW3Error("W3 blinding nonce must contain exactly 64 lowercase hex characters")
     return hashlib.sha256(
         b"apps_rg.owner_solo.full_resume_qrel.w3.nonce.v1\x00" + bytes.fromhex(value)
     ).hexdigest()
@@ -328,15 +313,9 @@ def _expected_bindings(
         "scope_manifest_sha256": str(source.get("scope_manifest_sha256") or ""),
         "query_manifest_sha256": str(query_manifest.get("query_manifest_sha256") or ""),
         "combined_registry_sha256": str(source.get("combined_registry_sha256") or ""),
-        "projection_generation_sha256": str(
-            source.get("projection_generation_sha256") or ""
-        ),
-        "ranking_artifact_sha256": str(
-            ranking_artifact.get("ranking_artifact_sha256") or ""
-        ),
-        "ranking_identity_sha256": str(
-            ranking_artifact.get("ranking_identity_sha256") or ""
-        ),
+        "projection_generation_sha256": str(source.get("projection_generation_sha256") or ""),
+        "ranking_artifact_sha256": str(ranking_artifact.get("ranking_artifact_sha256") or ""),
+        "ranking_identity_sha256": str(ranking_artifact.get("ranking_identity_sha256") or ""),
     }
     if not all(_is_sha256(value) for value in expected.values()):
         raise FullResumeQrelW3Error("W3 source bindings are malformed")
@@ -379,9 +358,7 @@ def build_w3_packet_content(
         if isinstance(row, Mapping)
     }
     clusters = {
-        str(row.get("cluster_id") or ""): str(
-            row.get("canonical_embedding_text") or ""
-        )
+        str(row.get("cluster_id") or ""): str(row.get("canonical_embedding_text") or "")
         for row in combined_registry.get("clusters") or []
         if isinstance(row, Mapping)
     }
@@ -392,9 +369,7 @@ def build_w3_packet_content(
         query = queries.get(query_id)
         if query is None or section_id not in EXPECTED_SECTION_IDS:
             raise FullResumeQrelW3Error("W3 ranking is outside frozen scope")
-        item_ref = "item-" + _blind_digest(
-            blinding_nonce, "owner-item", query_id, section_id
-        )[:24]
+        item_ref = "item-" + _blind_digest(blinding_nonce, "owner-item", query_id, section_id)[:24]
         candidate_rows: list[tuple[str, str, str, int]] = []
         candidates = ranking.get("candidates")
         if not isinstance(candidates, list):
@@ -407,9 +382,10 @@ def build_w3_packet_content(
             text = clusters.get(cluster_id)
             if not cluster_id or not text or not isinstance(frozen_rank, int):
                 raise FullResumeQrelW3Error("W3 cluster source binding is invalid")
-            candidate_ref = "candidate-" + _blind_digest(
-                blinding_nonce, "owner-candidate", query_id, section_id, cluster_id
-            )[:24]
+            candidate_ref = (
+                "candidate-"
+                + _blind_digest(blinding_nonce, "owner-candidate", query_id, section_id, cluster_id)[:24]
+            )
             blind_order = _blind_digest(
                 blinding_nonce, "owner-candidate-order", query_id, section_id, cluster_id
             )
@@ -443,9 +419,7 @@ def build_w3_packet_content(
                 for _, candidate_ref, cluster_id, frozen_rank in candidate_rows
             ],
         }
-        item_order = _blind_digest(
-            blinding_nonce, "owner-item-order", query_id, section_id
-        )
+        item_order = _blind_digest(blinding_nonce, "owner-item-order", query_id, section_id)
         items_with_order.append((item_order, item, sealed))
 
     items_with_order.sort(key=lambda row: row[0])
@@ -462,9 +436,7 @@ def build_w3_packet_content(
         "reviewer": {
             "cohort": OWNER_COHORT,
             "item_count": len(items_with_order),
-            "candidate_judgment_count": sum(
-                int(item["candidate_count"]) for _, item, _ in items_with_order
-            ),
+            "candidate_judgment_count": sum(int(item["candidate_count"]) for _, item, _ in items_with_order),
             "logical_retrieval_unit": "graph_evidence_cluster",
         },
         "reviewer_items": [item for _, item, _ in items_with_order],
@@ -521,8 +493,7 @@ def validate_w3_packet_content(
     if (
         not _is_sha256(blinding.get("nonce_commitment"))
         or blinding.get("opaque_query_and_candidate_references") is not True
-        or blinding.get("ranks_scores_splits_cluster_ids_and_model_choice_forbidden")
-        is not True
+        or blinding.get("ranks_scores_splits_cluster_ids_and_model_choice_forbidden") is not True
     ):
         issues.append("BLINDING_CONTRACT")
     if (packet.get("scope_guards") or {}) != {
@@ -540,9 +511,7 @@ def validate_w3_packet_content(
         if isinstance(row, Mapping)
     }
     clusters = {
-        str(row.get("cluster_id") or ""): str(
-            row.get("canonical_embedding_text") or ""
-        )
+        str(row.get("cluster_id") or ""): str(row.get("canonical_embedding_text") or "")
         for row in combined_registry.get("clusters") or []
         if isinstance(row, Mapping)
     }
@@ -568,8 +537,7 @@ def validate_w3_packet_content(
         or not isinstance(sealed_items, list)
         or sealed_mapping.get("schema_version") != SEALED_MAPPING_SCHEMA_VERSION
         or sealed_mapping.get("distribution_forbidden") is not True
-        or sealed_mapping.get("ranking_identity_sha256")
-        != ranking_artifact.get("ranking_identity_sha256")
+        or sealed_mapping.get("ranking_identity_sha256") != ranking_artifact.get("ranking_identity_sha256")
     ):
         issues.append("PACKET_SHAPE")
         items = []
@@ -581,20 +549,18 @@ def validate_w3_packet_content(
     if reviewer.get("candidate_judgment_count") != 600:
         issues.append("DECLARED_CANDIDATE_DENOMINATOR")
 
-    sealed_by_item = {
-        str(row.get("item_ref") or ""): row
-        for row in sealed_items
-        if isinstance(row, Mapping)
-    }
+    sealed_by_item = {str(row.get("item_ref") or ""): row for row in sealed_items if isinstance(row, Mapping)}
     if len(sealed_by_item) != len(sealed_items):
         issues.append("SEALED_ITEM_REFS")
     visible_item_refs: set[str] = set()
     observed_pairs: set[tuple[str, str]] = set()
     observed_rankings: dict[str, list[str]] = {}
     candidate_count = 0
-    forbidden_values = set(queries) | set(clusters) | {
-        str(query.get("target_profile_id") or "") for query in queries.values()
-    }
+    forbidden_values = (
+        set(queries)
+        | set(clusters)
+        | {str(query.get("target_profile_id") or "") for query in queries.values()}
+    )
     forbidden_values.discard("")
     for item in items:
         if not isinstance(item, Mapping):
@@ -656,9 +622,7 @@ def validate_w3_packet_content(
                 continue
             candidate_ref = str(visible.get("candidate_ref") or "")
             cluster_id = str(sealed_candidate.get("cluster_id") or "")
-            if set(visible) != _VISIBLE_CANDIDATE_KEYS or not _OPAQUE_CANDIDATE_RE.fullmatch(
-                candidate_ref
-            ):
+            if set(visible) != _VISIBLE_CANDIDATE_KEYS or not _OPAQUE_CANDIDATE_RE.fullmatch(candidate_ref):
                 issues.append(f"VISIBLE_CANDIDATE_KEYS:{item_ref}")
             if candidate_ref != str(sealed_candidate.get("candidate_ref") or ""):
                 issues.append(f"CANDIDATE_REFERENCE_BINDING:{item_ref}")
@@ -687,14 +651,10 @@ def validate_w3_packet_content(
         issues.append("PAIR_DENOMINATOR")
     if candidate_count != 600:
         issues.append("CANDIDATE_DENOMINATOR")
-    if ranking_identity_sha256(observed_rankings) != ranking_artifact.get(
-        "ranking_identity_sha256"
-    ):
+    if ranking_identity_sha256(observed_rankings) != ranking_artifact.get("ranking_identity_sha256"):
         issues.append("RANKING_IDENTITY")
     if issues:
-        raise FullResumeQrelW3Error(
-            f"Invalid W3 blinded packet: {sorted(set(issues))}"
-        )
+        raise FullResumeQrelW3Error(f"Invalid W3 blinded packet: {sorted(set(issues))}")
 
 
 def _validate_w2_receipt(receipt: Mapping[str, Any]) -> None:
@@ -723,13 +683,9 @@ def _w2_receipt_path(root: Path, supplied: Path | str | None) -> Path:
         if not path.is_file():
             raise FullResumeQrelW3Error(f"W2 receipt is missing: {path}")
         return path
-    candidates = sorted(
-        (root / ".runtime/c03-owner-solo-qrel/w2").glob("w2_ranking_receipt.*.json")
-    )
+    candidates = sorted((root / ".runtime/c03-owner-solo-qrel/w2").glob("w2_ranking_receipt.*.json"))
     if len(candidates) != 1:
-        raise FullResumeQrelW3Error(
-            "exactly one W2 receipt is required; pass --w2-receipt explicitly"
-        )
+        raise FullResumeQrelW3Error("exactly one W2 receipt is required; pass --w2-receipt explicitly")
     return candidates[0]
 
 
@@ -764,12 +720,9 @@ def load_w3_source_context(
     ):
         raise FullResumeQrelW3Error("W2 query manifest is invalid")
     if (
-        query_manifest.get("query_manifest_sha256")
-        != query_record.get("query_manifest_sha256")
-        or ranking_artifact.get("ranking_artifact_sha256")
-        != ranking_record.get("ranking_artifact_sha256")
-        or ranking_artifact.get("ranking_identity_sha256")
-        != ranking_record.get("ranking_identity_sha256")
+        query_manifest.get("query_manifest_sha256") != query_record.get("query_manifest_sha256")
+        or ranking_artifact.get("ranking_artifact_sha256") != ranking_record.get("ranking_artifact_sha256")
+        or ranking_artifact.get("ranking_identity_sha256") != ranking_record.get("ranking_identity_sha256")
     ):
         raise FullResumeQrelW3Error("W2 receipt identity binding failed")
     if (
@@ -779,9 +732,7 @@ def load_w3_source_context(
         raise FullResumeQrelW3Error("W2 frozen ranking status is invalid")
 
     source = ranking_artifact.get("source_authority") or {}
-    w1c_receipt_path = _resolve_repository_path(
-        root, str(source.get("w1c_receipt_path") or "")
-    )
+    w1c_receipt_path = _resolve_repository_path(root, str(source.get("w1c_receipt_path") or ""))
     w1c_receipt = _read_json(w1c_receipt_path)
     w1c_unsigned = dict(w1c_receipt)
     w1c_digest = w1c_unsigned.pop("receipt_sha256", None)
@@ -793,23 +744,15 @@ def load_w3_source_context(
         raise FullResumeQrelW3Error("W1C receipt binding failed")
     combined_record = w1c_receipt.get("combined_registry") or {}
     combined_path = _resolve_repository_path(root, str(combined_record.get("path") or ""))
-    if (
-        not combined_path.is_file()
-        or _file_sha256(combined_path) != combined_record.get("file_sha256")
-    ):
+    if not combined_path.is_file() or _file_sha256(combined_path) != combined_record.get("file_sha256"):
         raise FullResumeQrelW3Error("W1C combined registry file binding failed")
     combined_registry = _read_json(combined_path)
     combined_issues = validate_combined_registry(combined_registry, root)
     if combined_issues:
-        raise FullResumeQrelW3Error(
-            f"W1C combined registry is invalid: {combined_issues}"
-        )
-    if (
-        combined_registry.get("combined_registry_sha256")
-        != combined_record.get("combined_registry_sha256")
-        or combined_registry.get("combined_registry_sha256")
-        != source.get("combined_registry_sha256")
-    ):
+        raise FullResumeQrelW3Error(f"W1C combined registry is invalid: {combined_issues}")
+    if combined_registry.get("combined_registry_sha256") != combined_record.get(
+        "combined_registry_sha256"
+    ) or combined_registry.get("combined_registry_sha256") != source.get("combined_registry_sha256"):
         raise FullResumeQrelW3Error("W1C combined registry digest binding failed")
     projection = w1c_receipt.get("projection") or {}
     w1c_context = {
@@ -826,9 +769,7 @@ def load_w3_source_context(
         repo_root=root,
     )
     if ranking_issues:
-        raise FullResumeQrelW3Error(
-            f"W2 frozen ranking is invalid: {ranking_issues}"
-        )
+        raise FullResumeQrelW3Error(f"W2 frozen ranking is invalid: {ranking_issues}")
     return {
         "root": root,
         "contract": contract,
@@ -863,9 +804,7 @@ def _packet_manifest(
         "sealed_mapping": {
             "schema_version": SEALED_MAPPING_SCHEMA_VERSION,
             "distribution_forbidden": True,
-            "ranking_identity_sha256": content["authority_bindings"][
-                "ranking_identity_sha256"
-            ],
+            "ranking_identity_sha256": content["authority_bindings"]["ranking_identity_sha256"],
         },
         "files": {
             "review_items_file_sha256": review_items_file_sha256,
@@ -879,17 +818,13 @@ def _packet_manifest(
     return payload
 
 
-def _reviewer_manifest(
-    content: Mapping[str, Any], *, review_items_file_sha256: str
-) -> dict[str, Any]:
+def _reviewer_manifest(content: Mapping[str, Any], *, review_items_file_sha256: str) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "schema_version": REVIEWER_MANIFEST_SCHEMA_VERSION,
         "status": PACKET_STATUS,
         "cohort": OWNER_COHORT,
         "review_item_count": int(content["reviewer"]["item_count"]),
-        "candidate_judgment_count": int(
-            content["reviewer"]["candidate_judgment_count"]
-        ),
+        "candidate_judgment_count": int(content["reviewer"]["candidate_judgment_count"]),
         "review_items_file_sha256": review_items_file_sha256,
         "reviewer_visible_only": True,
         "ranks_scores_splits_cluster_ids_and_model_choice_present": False,
@@ -916,20 +851,14 @@ def _receipt(
             "w2_receipt_sha256": context["w2_receipt"]["receipt_sha256"],
             "query_manifest_sha256": context["query_manifest"]["query_manifest_sha256"],
             "ranking_artifact_sha256": context["ranking_artifact"]["ranking_artifact_sha256"],
-            "ranking_identity_sha256": context["ranking_artifact"][
-                "ranking_identity_sha256"
-            ],
-            "combined_registry_sha256": context["combined_registry"][
-                "combined_registry_sha256"
-            ],
+            "ranking_identity_sha256": context["ranking_artifact"]["ranking_identity_sha256"],
+            "combined_registry_sha256": context["combined_registry"]["combined_registry_sha256"],
         },
         "packet": {
             "packet_manifest_sha256": packet_manifest["packet_manifest_sha256"],
             "packet_manifest_file_sha256": packet_manifest_file_sha256,
             "review_item_count": packet_manifest["reviewer"]["item_count"],
-            "candidate_judgment_count": packet_manifest["reviewer"][
-                "candidate_judgment_count"
-            ],
+            "candidate_judgment_count": packet_manifest["reviewer"]["candidate_judgment_count"],
             "reviewer_visible_rank_score_split_cluster_or_model_leakage": False,
             "sealed_mapping_distributed": False,
         },
@@ -966,17 +895,11 @@ def _validate_w3_receipt(
         packet_manifest=packet_manifest,
         packet_manifest_file_sha256=packet_manifest_file_sha256,
     )
-    if (
-        not isinstance(supplied, str)
-        or canonical_sha256(unsigned) != supplied
-        or receipt != expected
-    ):
+    if not isinstance(supplied, str) or canonical_sha256(unsigned) != supplied or receipt != expected:
         raise FullResumeQrelW3Error("W3 packet receipt is invalid")
 
 
-def _validate_reviewer_manifest(
-    manifest: Mapping[str, Any], *, items_file_sha256: str
-) -> None:
+def _validate_reviewer_manifest(manifest: Mapping[str, Any], *, items_file_sha256: str) -> None:
     unsigned = dict(manifest)
     supplied = unsigned.pop("reviewer_manifest_sha256", None)
     expected = {
@@ -1023,9 +946,7 @@ def _packet_paths(packet_dir: Path, packet_manifest_sha256: str | None = None) -
         "packet_manifest": packet_manifest,
         "review_items": reviewer_dir / "review_items.jsonl",
         "reviewer_manifest": reviewer_manifests[0],
-        "sealed_mapping": packet_dir
-        / "sealed_internal"
-        / "identity_and_rank_mapping.v1.json",
+        "sealed_mapping": packet_dir / "sealed_internal" / "identity_and_rank_mapping.v1.json",
         "nonce": packet_dir / "sealed_internal" / "blinding_nonce.v1.txt",
     }
 
@@ -1052,40 +973,28 @@ def validate_w3_packet_on_disk(
         "review_items.jsonl",
         paths["reviewer_manifest"].name,
     }
-    observed_visible_files = {
-        path.name for path in (directory / OWNER_COHORT).iterdir() if path.is_file()
-    }
+    observed_visible_files = {path.name for path in (directory / OWNER_COHORT).iterdir() if path.is_file()}
     if observed_visible_files != expected_visible_files:
         raise FullResumeQrelW3Error("W3 reviewer directory contains an unexpected file")
     files = manifest.get("files") or {}
-    if (
-        _file_sha256(paths["packet_manifest"])
-        != manifest.get("packet_manifest_file_sha256", _file_sha256(paths["packet_manifest"]))
+    if _file_sha256(paths["packet_manifest"]) != manifest.get(
+        "packet_manifest_file_sha256", _file_sha256(paths["packet_manifest"])
     ):
         # The optional field is not used in the immutable canonical digest.  This
         # branch only protects a malformed hand-edited manifest.
         raise FullResumeQrelW3Error("W3 packet manifest file digest is invalid")
     if (
-        _file_sha256(paths["review_items"])
-        != files.get("review_items_file_sha256")
-        or _file_sha256(paths["sealed_mapping"])
-        != files.get("sealed_mapping_file_sha256")
-        or _file_sha256(paths["reviewer_manifest"])
-        != files.get("reviewer_manifest_file_sha256")
+        _file_sha256(paths["review_items"]) != files.get("review_items_file_sha256")
+        or _file_sha256(paths["sealed_mapping"]) != files.get("sealed_mapping_file_sha256")
+        or _file_sha256(paths["reviewer_manifest"]) != files.get("reviewer_manifest_file_sha256")
     ):
         raise FullResumeQrelW3Error("W3 packet file digest binding failed")
     reviewer_manifest = _read_json(paths["reviewer_manifest"])
-    _validate_reviewer_manifest(
-        reviewer_manifest, items_file_sha256=_file_sha256(paths["review_items"])
-    )
-    if reviewer_manifest.get("reviewer_manifest_sha256") != files.get(
-        "reviewer_manifest_sha256"
-    ):
+    _validate_reviewer_manifest(reviewer_manifest, items_file_sha256=_file_sha256(paths["review_items"]))
+    if reviewer_manifest.get("reviewer_manifest_sha256") != files.get("reviewer_manifest_sha256"):
         raise FullResumeQrelW3Error("W3 reviewer manifest digest binding failed")
     nonce = paths["nonce"].read_text(encoding="utf-8").strip()
-    if blinding_nonce_commitment(nonce) != (manifest.get("blinding") or {}).get(
-        "nonce_commitment"
-    ):
+    if blinding_nonce_commitment(nonce) != (manifest.get("blinding") or {}).get("nonce_commitment"):
         raise FullResumeQrelW3Error("W3 blinding nonce commitment failed")
     items = _read_jsonl(paths["review_items"])
     sealed = _read_json(paths["sealed_mapping"])
@@ -1112,9 +1021,7 @@ def validate_w3_packet_on_disk(
         "packet_manifest_sha256": manifest["packet_manifest_sha256"],
         "packet_manifest_file_sha256": _file_sha256(paths["packet_manifest"]),
         "reviewer_item_count": len(items),
-        "candidate_judgment_count": sum(
-            int(item["candidate_count"]) for item in items
-        ),
+        "candidate_judgment_count": sum(int(item["candidate_count"]) for item in items),
         "reviewer_visible_rank_score_split_cluster_or_model_leakage": False,
         "human_grades_present": False,
         "paths": {key: _repository_path(root, value) for key, value in paths.items()},
@@ -1132,9 +1039,7 @@ def validate_w3_readiness_receipt(
     context = load_w3_source_context(repo_root, w2_receipt_path=w2_receipt_path)
     root = context["root"]
     directory = _resolve_repository_path(root, packet_dir or DEFAULT_PACKET_DIR)
-    validation = validate_w3_packet_on_disk(
-        root, packet_dir=directory, w2_receipt_path=w2_receipt_path
-    )
+    validation = validate_w3_packet_on_disk(root, packet_dir=directory, w2_receipt_path=w2_receipt_path)
     manifest_path = directory / f"packet_manifest.{validation['packet_manifest_sha256']}.json"
     packet_manifest = _read_json(manifest_path)
     matching_receipts: list[tuple[Path, dict[str, Any]]] = []
@@ -1172,9 +1077,7 @@ def materialize_w3_packet(
     root = context["root"]
     directory = _resolve_repository_path(root, packet_dir or DEFAULT_PACKET_DIR)
     if directory.exists() and any(directory.iterdir()):
-        validation = validate_w3_packet_on_disk(
-            root, packet_dir=directory, w2_receipt_path=w2_receipt_path
-        )
+        validation = validate_w3_packet_on_disk(root, packet_dir=directory, w2_receipt_path=w2_receipt_path)
         manifest = _read_json(directory / f"packet_manifest.{validation['packet_manifest_sha256']}.json")
         if manifest.get("authority_bindings") != _expected_bindings(
             context["query_manifest"], context["ranking_artifact"]
@@ -1185,9 +1088,9 @@ def materialize_w3_packet(
         matching_receipts: list[tuple[Path, dict[str, Any]]] = []
         for candidate in sorted(directory.parent.glob("w3_packet_receipt.*.json")):
             receipt_candidate = _read_json(candidate)
-            if (receipt_candidate.get("packet") or {}).get(
+            if (receipt_candidate.get("packet") or {}).get("packet_manifest_sha256") == validation[
                 "packet_manifest_sha256"
-            ) == validation["packet_manifest_sha256"]:
+            ]:
                 matching_receipts.append((candidate, receipt_candidate))
         if len(matching_receipts) != 1:
             raise FullResumeQrelW3Error("Existing W3 packet receipt is missing or ambiguous")
@@ -1199,8 +1102,7 @@ def materialize_w3_packet(
             packet_manifest_file_sha256=_file_sha256(manifest_path),
         )
         return receipt, {
-            key: _resolve_repository_path(root, value)
-            for key, value in validation["paths"].items()
+            key: _resolve_repository_path(root, value) for key, value in validation["paths"].items()
         }
 
     nonce_path = directory / "sealed_internal" / "blinding_nonce.v1.txt"
@@ -1215,21 +1117,13 @@ def materialize_w3_packet(
     )
     review_items_path = directory / OWNER_COHORT / "review_items.jsonl"
     sealed_path = directory / "sealed_internal" / "identity_and_rank_mapping.v1.json"
-    review_items_sha = _immutable_bytes(
-        review_items_path, _jsonl_bytes(content["reviewer_items"])
-    )
+    review_items_sha = _immutable_bytes(review_items_path, _jsonl_bytes(content["reviewer_items"]))
     sealed_sha = _immutable_json(sealed_path, content["sealed_mapping"])
-    reviewer_manifest = _reviewer_manifest(
-        content, review_items_file_sha256=review_items_sha
-    )
+    reviewer_manifest = _reviewer_manifest(content, review_items_file_sha256=review_items_sha)
     reviewer_manifest_path = (
-        directory
-        / OWNER_COHORT
-        / f"reviewer_manifest.{reviewer_manifest['reviewer_manifest_sha256']}.json"
+        directory / OWNER_COHORT / f"reviewer_manifest.{reviewer_manifest['reviewer_manifest_sha256']}.json"
     )
-    reviewer_manifest_file_sha = _immutable_json(
-        reviewer_manifest_path, reviewer_manifest
-    )
+    reviewer_manifest_file_sha = _immutable_json(reviewer_manifest_path, reviewer_manifest)
     manifest = _packet_manifest(
         content,
         review_items_file_sha256=review_items_sha,
@@ -1246,9 +1140,7 @@ def materialize_w3_packet(
     )
     receipt_path = directory.parent / f"w3_packet_receipt.{receipt['receipt_sha256']}.json"
     _immutable_json(receipt_path, receipt)
-    validation = validate_w3_packet_on_disk(
-        root, packet_dir=directory, w2_receipt_path=w2_receipt_path
-    )
+    validation = validate_w3_packet_on_disk(root, packet_dir=directory, w2_receipt_path=w2_receipt_path)
     if validation["packet_manifest_sha256"] != manifest["packet_manifest_sha256"]:
         raise FullResumeQrelW3Error("W3 packet validation returned another packet")
     _validate_w3_receipt(

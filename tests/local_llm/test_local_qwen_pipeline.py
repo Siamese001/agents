@@ -63,8 +63,10 @@ def test_chat_completions_role_narrative(client):
     assert data["usage"]["total_tokens"] > 0
 
 
-def test_local_openai_client_wrapper_contract():
-    # Verify environment variable default fallback
+def test_local_openai_client_wrapper_contract(monkeypatch):
+    # Verify environment variable configuration and wrapper contracts
+    monkeypatch.setenv("LOCAL_OPENAI_API_KEY", "test-local-key")
+    monkeypatch.setenv("LOCAL_OPENAI_BASE_URL", "http://localhost:8000/v1")
     client = create_local_openai_client()
     assert client.base_url.host in ("localhost", "127.0.0.1")
     assert client.base_url.port in (8000, 11434, 8080)

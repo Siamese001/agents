@@ -29,8 +29,11 @@ from apps_rg.runtime.graph_skill_embedding_projection import (
     validate_embedding_projection,
 )
 
-MODEL_ID = "BAAI/bge-m3"
-MODEL_DIMENSION = 1024
+from apps_rg.runtime.core_model_catalog import BGE_M3_EMBEDDING_DIMENSION, BGE_M3_MODEL_ID
+
+MODEL_ID = BGE_M3_MODEL_ID
+MODEL_DIMENSION = BGE_M3_EMBEDDING_DIMENSION
+
 
 
 class SkillEmbeddingBuildError(RuntimeError):
@@ -47,7 +50,9 @@ def _assert_legacy_generation_not_retired(repository_root: Path) -> None:
             raise LegacyEmbeddingRetirementWave5Error("marker is not an object")
         validate_retirement_marker(marker)
     except (OSError, json.JSONDecodeError, LegacyEmbeddingRetirementWave5Error) as exc:
-        raise SkillEmbeddingBuildError(f"legacy embedding retirement marker is invalid: {marker_path}") from exc
+        raise SkillEmbeddingBuildError(
+            f"legacy embedding retirement marker is invalid: {marker_path}"
+        ) from exc
     raise SkillEmbeddingBuildError(
         f"legacy one-vector-per-skill generation is retired by {RETIREMENT_MARKER}; use the graph-evidence cluster pipeline"
     )

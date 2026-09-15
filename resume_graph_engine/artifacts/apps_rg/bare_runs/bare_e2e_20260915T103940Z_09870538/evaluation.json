@@ -1,0 +1,84 @@
+{
+  "evaluation_type": "deterministic_local",
+  "reasoning": "All required resume sections, base-resume employers, email fields, and local source records passed.",
+  "retrieval_failures": [],
+  "score": 1.0,
+  "verdict": "PASS",
+  "x1": {
+    "outreach_email": {
+      "checks": {
+        "minimum_length": true,
+        "subject_line": true,
+        "target_company": true,
+        "target_role": true
+      },
+      "email_characters": 874,
+      "missing": [],
+      "status": "PASS"
+    },
+    "resume": {
+      "checks": {
+        "core_competency_category_count": true,
+        "employers": {
+          "Ernst & Young / Early Career Roles": true,
+          "IBM": true,
+          "InsurTech Cloud Solutions": true,
+          "Slalom": true,
+          "Unify Consulting": true
+        },
+        "header": true,
+        "headings": {
+          "CERTIFICATIONS": true,
+          "CORE COMPETENCIES": true,
+          "EDUCATION": true,
+          "EXECUTIVE SUMMARY": true,
+          "PROFESSIONAL EXPERIENCE": true
+        },
+        "ibm_bullet_count": true,
+        "minimum_length": true,
+        "outreach_email_not_embedded_in_resume": true,
+        "technical_expertise_not_separate_section": true,
+        "unify_bullet_count": true
+      },
+      "missing": [],
+      "required_employers": [
+        "Slalom",
+        "Unify Consulting",
+        "IBM",
+        "InsurTech Cloud Solutions",
+        "Ernst & Young / Early Career Roles"
+      ],
+      "required_headings": [
+        "EXECUTIVE SUMMARY",
+        "CORE COMPETENCIES",
+        "PROFESSIONAL EXPERIENCE",
+        "EDUCATION",
+        "CERTIFICATIONS"
+      ],
+      "resume_characters": 10213,
+      "shape": {
+        "core_competency_category_count": {
+          "actual": 8,
+          "maximum": 8,
+          "minimum": 6
+        },
+        "employment_bullet_counts": {
+          "ibm_bullet_count": {
+            "actual": 5,
+            "required": 5
+          },
+          "unify_bullet_count": {
+            "actual": 6,
+            "required": 6
+          }
+        }
+      },
+      "status": "PASS"
+    },
+    "sources": {
+      "source_count": 4,
+      "status": "PASS"
+    },
+    "status": "PASS"
+  }
+}

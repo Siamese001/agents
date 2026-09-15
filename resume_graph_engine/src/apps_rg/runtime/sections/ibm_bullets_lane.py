@@ -459,6 +459,13 @@ _IBM_FROZEN_ALLOCATION_DISPLAY_COMPOSITIONS: dict[tuple[str, str], str] = {
         "Architected AWS cloud modernization reference architectures for regulated financial-services workloads, "
         "converting on-prem legacy constraints into repeatable cloud-native delivery patterns."
     ),
+    (
+        "reb_ibm_customer_success_value_realization",
+        "skill_p2_tech_adoption_derisking",
+    ): (
+        "Directed enterprise customer success value-realization motions across regulated financial-services pursuits, "
+        "derisking technology adoption and aligning stakeholder governance to accelerate expansion readiness."
+    ),
 }
 
 
@@ -497,7 +504,8 @@ def _materialize_ibm_bullets_from_frozen_allocation(
                 "bullet_text": display,
                 "metric_text": metric,
             }
-    if set(allocation_by_bullet) != set(IBM_BULLET_IDS):
+    active_bullet_ids = [b for b in IBM_BULLET_IDS if b in allocation_by_bullet] or sorted(allocation_by_bullet.keys())
+    if not active_bullet_ids:
         return False
 
     bullets = [dict(row) for row in parsed.get("bullets") or [] if isinstance(row, dict)]
@@ -510,7 +518,7 @@ def _materialize_ibm_bullets_from_frozen_allocation(
     # whether that sealed slot disappears from the resume.  Recreate a missing
     # row from the already-approved allocation below.  This keeps recovery
     # evidence-bound rather than guessing from the base resume or a preset.
-    for bullet_id in IBM_BULLET_IDS:
+    for bullet_id in active_bullet_ids:
         by_bullet.setdefault(
             bullet_id,
             {
@@ -520,7 +528,7 @@ def _materialize_ibm_bullets_from_frozen_allocation(
         )
 
     ordered: list[dict[str, Any]] = []
-    for bullet_id in IBM_BULLET_IDS:
+    for bullet_id in active_bullet_ids:
         row = by_bullet[bullet_id]
         allocation = allocation_by_bullet[bullet_id]
         row["bullet_text"] = allocation["bullet_text"]
@@ -1305,6 +1313,23 @@ def run_ibm_bullets_execution(
     tagged = tag_reasoning_lane(provider_payload, LANE_KEY)
     req_model = str(tagged.get("model", section_model))
     judge_mode = "mocked" if getattr(args, "mock_judges", False) else "blocked_if_unavailable"
+    plan_obj = runtime_payload.get("selected_fact_plan") or {}
+    if isinstance(plan_obj, dict) and "facts" in plan_obj:
+        plan_facts = [
+            str(f.get("fact_id", "")).strip()
+            for f in (plan_obj.get("facts") or [])
+            if isinstance(f, dict) and str(f.get("fact_id", "")).strip().startswith("bul_ibm_")
+        ]
+    elif isinstance(plan_obj, dict):
+        plan_facts = [
+            str(k).strip()
+            for k in plan_obj.keys()
+            if str(k).strip().startswith("bul_ibm_")
+        ]
+    else:
+        plan_facts = []
+    active_bullet_ids = tuple(plan_facts) if plan_facts else IBM_BULLET_IDS
+
     result, raw_output, parsed, parse_error, gen_meta = generate_bullet_lane_with_sc_and_claude(
         section_lane=LANE_KEY,
         slot_kind="bullets",
@@ -1315,7 +1340,7 @@ def run_ibm_bullets_execution(
         run_id=str(runtime_payload.get("run_id") or ""),
         temperature_bounds=IBM_TEMP_RANGE,
         base_temperature=float(args.temperature) if args.provider == "external_claude" else IBM_TEMP_DEFAULT,
-        required_bullet_ids=IBM_BULLET_IDS,
+        required_bullet_ids=active_bullet_ids,
         targeting_context=build_employment_targeting_context(runtime_payload, section_lane=LANE_KEY),
         judge_mode=judge_mode,
         provider_profile=str(args.provider),
@@ -1435,7 +1460,9 @@ def run_ibm_bullets_execution(
         )
 
     claim_ledger = claim_ledger_raw
-    coverage = build_ibm_bullets_text_claim_coverage(bullets, claim_ledger, allowed_fact_ids)
+    coverage = build_ibm_bullets_text_claim_coverage(
+        bullets, claim_ledger, allowed_fact_ids, active_bullet_ids=active_bullet_ids
+    )
     from apps_rg.runtime.reasoning.employment_bullet_output_sanitize import (
         strip_employment_bullet_intensity_model,
     )
@@ -1721,7 +1748,9 @@ def run_ibm_bullets_execution(
             invalid_reason=new_invalid if new_parse_status != "OK" else None,
             claim_id_prefix="ibm_bullets_claim",
         )
-        new_coverage = build_ibm_bullets_text_claim_coverage(new_bullets, new_ledger, allowed_fact_ids)
+        new_coverage = build_ibm_bullets_text_claim_coverage(
+            new_bullets, new_ledger, allowed_fact_ids, active_bullet_ids=active_bullet_ids
+        )
         new_parsed_for_x2 = strip_employment_bullet_intensity_model(
             {**new_parsed, "text_claim_coverage": new_coverage}
         ) or {"text_claim_coverage": new_coverage}
@@ -1838,7 +1867,7 @@ def run_ibm_bullets_execution(
         artifact_dir=artifact_dir,
         section_id="ibm_bullets",
         run_id=str(runtime_payload["run_id"]),
-        required_bullet_ids=IBM_BULLET_IDS,
+        required_bullet_ids=active_bullet_ids,
         parsed=parsed,
         bullets=bullets,
         claim_ledger=claim_ledger,

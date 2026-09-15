@@ -78,7 +78,7 @@
     },
     "gpt-5.6-luna": {
       "provider": "openai",
-      "capability_class": "text_generation",
+      "capability_class": "text_generation_and_judging",
       "endpoints": [
         "responses",
         "chat_completions"
@@ -93,7 +93,7 @@
       ],
       "temperature_parameter": "omit",
       "structured_output": true,
-      "proof_eligible": false,
+      "proof_eligible": true,
       "max_output_tokens_parameters": {
         "responses": "max_output_tokens",
         "chat_completions": "max_completion_tokens"

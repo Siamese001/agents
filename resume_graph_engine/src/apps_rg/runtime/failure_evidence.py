@@ -76,10 +76,7 @@ def exception_failure_envelope(
     identity_doc = dict(identity) if isinstance(identity, Mapping) else {}
     span_identity = current_span_identity()
     trace_root = str(
-        identity_doc.get("trace_root")
-        or identity_doc.get("trace_id")
-        or span_identity["otel_trace_id"]
-        or ""
+        identity_doc.get("trace_root") or identity_doc.get("trace_id") or span_identity["otel_trace_id"] or ""
     )
     envelope: dict[str, Any] = {
         "schema_version": "apps_rg.runtime_failure_envelope.v1",
@@ -97,9 +94,7 @@ def exception_failure_envelope(
         "artifact_dir": str(Path(artifact_dir).resolve()),
         "sections_root": str(Path(sections_root).resolve()) if sections_root else "",
         "integrated_artifact_dir": (
-            str(Path(integrated_artifact_dir).resolve())
-            if integrated_artifact_dir
-            else ""
+            str(Path(integrated_artifact_dir).resolve()) if integrated_artifact_dir else ""
         ),
         "run_id": str(run_id or identity_doc.get("child_run_id") or ""),
         "request_id": str(identity_doc.get("request_id") or ""),
@@ -138,7 +133,7 @@ def capture_failure_otel_evidence(
         result = capture_collector_snapshot(
             artifact_dir=artifact_dir,
             trace_id=str(trace_root or ""),
-            timeout_seconds=0.5,
+            timeout_seconds=0.5,  # ssot: exempt(HARDCODED_TIMEOUT)
             filename=filename,
             boundary=f"failure:{stage}",
         )

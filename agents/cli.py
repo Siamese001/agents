@@ -26,6 +26,13 @@ for p in (_REPO_ROOT, _RG_SRC, _OE_SRC):
         sys.path.insert(0, str(p))
 
 
+# Bootstrap environment from env_agents / .env SSOT
+try:
+    from apps_rg.runtime.env_bootstrap import bootstrap_apps_rg_env
+    bootstrap_apps_rg_env(repo_root=_REPO_ROOT)
+except Exception:
+    pass
+
 # Ensure local dev route signing secrets exist if not supplied in environment
 if not os.environ.get("APPS_RG_ROUTE_HMAC_SECRET"):
     os.environ["APPS_RG_ROUTE_HMAC_SECRET"] = "agents-local-dev-session-secret"
@@ -78,6 +85,17 @@ def _build_parser() -> argparse.ArgumentParser:
     e2e_parser.add_argument("--resume", default="", help="Optional base-resume JSON, Markdown, or text path")
     e2e_parser.add_argument("--brief", help="Optional path to briefing JSON fixture")
     e2e_parser.add_argument("--demo", action="store_true", help="Run with canonical demo fixtures")
+    e2e_parser.add_argument(
+        "--research-status",
+        choices=("disabled", "optional", "enabled"),
+        default="disabled",
+        help="Lifecycle governance status for upstream company research (apps_research). Default: disabled",
+    )
+    e2e_parser.add_argument(
+        "--with-research",
+        action="store_true",
+        help="Explicitly enable upstream company & role research via apps_research",
+    )
     e2e_parser.add_argument("--skip-resume", action="store_true", help="Skip Stage 2 resume tailoring")
     e2e_parser.add_argument("--artifact-dir", help="Directory to persist run outputs")
     e2e_parser.add_argument("--json", action="store_true", help="Output machine-readable JSON result")
@@ -101,29 +119,108 @@ def run_e2e(args: argparse.Namespace) -> int:
         company = "Anthropic"
         role = "Manager of Applied AI Architecture, Partnerships"
 
+    research_enabled = getattr(args, "with_research", False) or getattr(args, "research_status", "disabled") == "enabled"
+    research_optional = getattr(args, "research_status", "disabled") == "optional"
+    research_label = "ENABLED" if research_enabled else ("OPTIONAL" if research_optional else "DISABLED")
+
+    # Live execution preflight: ensure authorized credentials exist before starting lifecycle
+    try:
+        from agents.live_preflight import assert_engine_live_preflight
+
+        assert_engine_live_preflight(
+            "agents e2e",
+            providers=("openai", "anthropic", "google"),
+            is_demo=bool(getattr(args, "demo", False)),
+        )
+    except Exception as exc:
+        sys.stderr.write(f"[agents e2e] Preflight Credential Failure:\n{exc}\n")
+        if getattr(args, "json", False):
+            print(json.dumps({"status": "FAILED", "error": str(exc)}, indent=2))
+        return 2
+
     if not args.json:
         print("\n" + "=" * 65)
         print("SOVEREIGN AGENTIC PLATFORM: UNIFIED E2E CAREER LIFECYCLE")
         print("=" * 65)
         print(f"Target Company : {company}")
         print(f"Target Role    : {role}")
+        print(f"Research Stage : {research_label}")
         print(f"Artifact Dir   : {base_dir}")
         print("=" * 65 + "\n")
 
+    from agents.orchestration.engine import WorkflowExecutionEngine
+    from agents.orchestration.primitives import OrchestrationPrimitive, WorkflowStep
+    from agents.telemetry.correlation import CorrelationContext
+    from agents.telemetry.events import TelemetryEmitter
+
+    correlation_ctx = CorrelationContext(
+        run_id=run_id,
+        workflow_id=run_id,
+        metadata={"company": company, "role": role},
+    )
+    emitter = TelemetryEmitter(artifact_dir=base_dir)
+
     summary_payload: dict[str, Any] = {
         "run_id": run_id,
+        "workflow_id": run_id,
+        "correlation": correlation_ctx.to_dict(),
         "company": company,
         "role": role,
         "artifact_dir": str(base_dir),
         "stages": {},
     }
 
-    # Stage 1 & 2: Resume Tailoring (apps_rg)
-    resume_artifact_dir = base_dir / "resume"
-    tailored_resume_path = None
-    if not args.skip_resume:
+    engine = WorkflowExecutionEngine(
+        run_id,
+        artifact_dir=base_dir,
+        correlation=correlation_ctx,
+        emitter=emitter,
+    )
+
+    def _stage_research(ctx: dict[str, Any]) -> dict[str, Any]:
+        if not research_enabled:
+            if not args.json:
+                print(f">>> [Stage 1/4] Upstream Company Research: {research_label} (governed decoupled status).")
+            summary_payload["stages"]["company_research"] = {
+                "configured_status": research_label,
+                "status": "SKIPPED",
+                "reason": "Research stage explicitly disabled or decoupled in current CLI profile",
+            }
+            return {"status": "SKIPPED"}
+
         if not args.json:
-            print(">>> [Stage 1/3] Tailoring Executive Resume via Resume Graph Engine (apps_rg)...")
+            print(">>> [Stage 1/4] Running Upstream Company Research (apps_research)...")
+        try:
+            from apps_research.__main__ import main as research_main
+            research_artifact_dir = base_dir / "research"
+            res_code = research_main(["run", "--company", company, "--role", role, "--artifact-dir", str(research_artifact_dir)])
+            summary_payload["stages"]["company_research"] = {
+                "configured_status": research_label,
+                "exit_code": res_code,
+                "status": "PASSED" if res_code == 0 else "FAILED",
+            }
+            if res_code != 0:
+                sys.stderr.write("[agents e2e] Error: Research stage returned non-zero exit code.\n")
+                raise RuntimeError(f"Research stage returned non-zero exit code: {res_code}")
+            return {"status": "PASSED", "exit_code": res_code}
+        except Exception as exc:
+            summary_payload["stages"]["company_research"] = {
+                "configured_status": research_label,
+                "status": "FAILED",
+                "error": str(exc),
+            }
+            sys.stderr.write(f"[agents e2e] Error: Upstream research failed fail-closed: {exc}\n")
+            raise
+
+    def _stage_resume(ctx: dict[str, Any]) -> dict[str, Any]:
+        if args.skip_resume:
+            if not args.json:
+                print("\n>>> [Stage 2/4] Resume tailoring skipped (--skip-resume).")
+            summary_payload["stages"]["resume_tailoring"] = {"status": "SKIPPED"}
+            return {"status": "SKIPPED"}
+
+        if not args.json:
+            print("\n>>> [Stage 2/4] Tailoring Executive Resume via Resume Graph Engine (apps_rg)...")
         from apps_rg.__main__ import main as resume_main
 
         resume_args = [
@@ -137,58 +234,89 @@ def run_e2e(args: argparse.Namespace) -> int:
             resume_args.extend(["--resume", args.resume])
 
         rg_code = resume_main(resume_args)
+        status_str = "PASSED" if rg_code == 0 else "FAILED"
         summary_payload["stages"]["resume_tailoring"] = {
             "exit_code": rg_code,
-            "status": "PASSED" if rg_code == 0 else "FAILED",
+            "status": status_str,
         }
         if rg_code != 0:
             if not args.json:
                 sys.stderr.write("[agents e2e] Warning: Resume generation returned non-zero exit code.\n")
-    else:
+        return {"status": status_str, "exit_code": rg_code}
+
+    def _stage_outreach(ctx: dict[str, Any]) -> dict[str, Any]:
+        from apps_lic.__main__ import main as outreach_main
+
+        outreach_artifact_dir = base_dir / "outreach"
+        outreach_args = [
+            "run",
+            "--artifact-dir",
+            str(outreach_artifact_dir),
+        ]
+        if args.brief:
+            outreach_args.extend(["--brief", args.brief])
+        elif args.demo:
+            outreach_args.append("--demo")
+        else:
+            outreach_args.extend(["--company", company, "--role", role])
+
+        if args.json:
+            outreach_args.append("--json")
+
         if not args.json:
-            print(">>> [Stage 1/3] Resume tailoring skipped (--skip-resume).")
-        summary_payload["stages"]["resume_tailoring"] = {"status": "SKIPPED"}
+            print("\n>>> [Stage 3/4] Generating Grounded Executive Outreach (outreach_engine)...")
 
-    # Stage 3: Executive Outreach Generation (outreach_engine)
-    from apps_lic.__main__ import main as outreach_main
+        oe_code = outreach_main(outreach_args)
+        status_str = "PASSED" if oe_code == 0 else "FAILED"
+        summary_payload["stages"]["executive_outreach"] = {
+            "exit_code": oe_code,
+            "status": status_str,
+        }
+        if oe_code != 0:
+            sys.stderr.write("[agents e2e] Outreach generation returned non-zero exit code.\n")
+            raise RuntimeError(f"Outreach generation returned non-zero exit code: {oe_code}")
+        return {"status": status_str, "exit_code": oe_code}
 
-    outreach_artifact_dir = base_dir / "outreach"
-    outreach_args = [
-        "run",
-        "--artifact-dir",
-        str(outreach_artifact_dir),
+    steps = [
+        WorkflowStep(
+            step_id="company_research",
+            primitive=OrchestrationPrimitive.BRANCH,
+            handler=_stage_research,
+            optional=not research_enabled,
+        ),
+        WorkflowStep(
+            step_id="resume_tailoring",
+            primitive=OrchestrationPrimitive.SEQUENCE,
+            handler=_stage_resume,
+            depends_on=("company_research",),
+            optional=bool(args.skip_resume),
+        ),
+        WorkflowStep(
+            step_id="executive_outreach",
+            primitive=OrchestrationPrimitive.SEQUENCE,
+            handler=_stage_outreach,
+            depends_on=("resume_tailoring",),
+            optional=False,
+        ),
     ]
-    if args.brief:
-        outreach_args.extend(["--brief", args.brief])
-    elif args.demo:
-        outreach_args.append("--demo")
-    else:
-        outreach_args.extend(["--company", company, "--role", role])
 
-    if args.json:
-        outreach_args.append("--json")
+    report = engine.execute_plan(steps)
 
-    if not args.json:
-        print("\n>>> [Stage 2/3] Generating Grounded Executive Outreach (outreach_engine)...")
-
-    oe_code = outreach_main(outreach_args)
-    summary_payload["stages"]["executive_outreach"] = {
-        "exit_code": oe_code,
-        "status": "PASSED" if oe_code == 0 else "FAILED",
-    }
-    if oe_code != 0:
-        sys.stderr.write("[agents e2e] Outreach generation returned non-zero exit code.\n")
-        return oe_code
+    summary_payload["workflow_status"] = report.final_status.value
+    summary_payload["workflow_state_ref"] = "workflow_state.json"
+    summary_payload["telemetry_ref"] = "telemetry.jsonl"
+    summary_payload["telemetry_events_count"] = len(emitter.events)
 
     # Stage 4: Lifecycle Sealing & Manifest
     summary_path = base_dir / "e2e_lifecycle_summary.json"
     summary_path.write_text(json.dumps(summary_payload, indent=2), encoding="utf-8")
 
     if not args.json:
-        print("\n>>> [Stage 3/3] Lifecycle artifacts validated and sealed.")
-        print(f"[agents e2e] Sealed summary manifest at: {summary_path}\n")
+        print("\n>>> [Stage 4/4] Lifecycle artifacts validated and sealed.")
+        print(f"[agents e2e] Sealed summary manifest at: {summary_path}")
+        print(f"[agents e2e] Workflow state audit at: {base_dir / 'workflow_state.json'}\n")
 
-    return 0
+    return 0 if report.success else 1
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -210,11 +338,19 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     # Handle unified engine dispatch
     if engine in {"resume", "resume_engine", "resume_graph_engine", "apps_rg"}:
+        from agents.live_preflight import assert_engine_live_preflight
+
+        assert_engine_live_preflight("agents resume", providers=("openai",))
         from apps_rg.__main__ import main as resume_main
+
         return resume_main(sub_args)
 
     if engine in {"outreach", "outreach_engine", "apps_lic"}:
+        from agents.live_preflight import assert_engine_live_preflight
+
+        assert_engine_live_preflight("agents outreach", providers=("openai",))
         from apps_lic.__main__ import main as outreach_main
+
         return outreach_main(sub_args)
 
     if engine == "e2e":

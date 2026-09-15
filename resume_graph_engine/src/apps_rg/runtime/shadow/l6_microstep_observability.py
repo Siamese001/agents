@@ -60,9 +60,16 @@ def _load_json(path: Path) -> dict[str, Any]:
 
 
 def load_apps_rg_microstep_contracts(repo_root: Path) -> dict[str, Any]:
-    registry_dir = repo_root / "apps_eval" / "registries"
-    if not registry_dir.is_dir():
-        registry_dir = Path(__file__).resolve().parents[3] / "apps_eval" / "registries"
+    candidates = [
+        repo_root / "apps_eval" / "registries",
+        repo_root / "src" / "apps_eval" / "registries",
+        repo_root.parent / "apps_eval" / "registries",
+    ]
+    for parent in Path(__file__).resolve().parents:
+        candidates.append(parent / "apps_eval" / "registries")
+        candidates.append(parent / "src" / "apps_eval" / "registries")
+
+    registry_dir = next((c for c in candidates if c.is_dir()), repo_root / "apps_eval" / "registries")
     return {
         name: _load_json(registry_dir / filename)
         for name, filename in _REGISTRY_FILES.items()

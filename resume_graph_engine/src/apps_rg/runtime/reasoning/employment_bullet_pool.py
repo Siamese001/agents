@@ -77,8 +77,8 @@ REGEN_EXTRA_PATHS_BY_LANE: Final[dict[str, int]] = {
 FINAL_BULLET_COUNT: Final[dict[str, int]] = {
     "slalom_bullets": len(SLALOM_BULLET_IDS),
     "unify_bullets": len(UNIFY_BULLET_IDS),
-    "ibm_bullets": len(IBM_BULLET_IDS),
-    "insurtech_bullets": 3,
+    "ibm_bullets": 3,
+    "insurtech_bullets": 2,
     "ey_bullets": 0,
 }
 
@@ -89,8 +89,8 @@ PROOF_UNIQUE_SOURCE_FACT_LANES: Final[frozenset[str]] = frozenset(
 REQUIRED_BULLET_IDS: Final[dict[str, tuple[str, ...]]] = {
     "slalom_bullets": SLALOM_BULLET_IDS,
     "unify_bullets": UNIFY_BULLET_IDS,
-    "ibm_bullets": IBM_BULLET_IDS,
-    "insurtech_bullets": ("bul_insurtech_001", "bul_insurtech_002", "bul_insurtech_003"),
+    "ibm_bullets": ("bul_ibm_001", "bul_ibm_003", "bul_ibm_004"),
+    "insurtech_bullets": ("bul_insurtech_001", "bul_insurtech_002"),
     "ey_bullets": (),
 }
 
@@ -308,12 +308,9 @@ def evaluate_employment_selection_quality(
     merged_parsed: dict[str, Any],
     min_score: float | None = None,
 ) -> EmploymentSelectionGate:
-    """True when all required slots have passes=true and score >= min_score threshold."""
     lane = str(section_lane or "").strip().lower()
     threshold = min_score if min_score is not None else min_selection_score_for_lane(lane)
-    n_final = FINAL_BULLET_COUNT.get(lane, len(required_bullet_ids))
-    if n_final == 0 and required_bullet_ids:
-        n_final = len(required_bullet_ids)
+    n_final = len(required_bullet_ids) if required_bullet_ids else FINAL_BULLET_COUNT.get(lane, 0)
     bullets = merged_parsed.get("bullets") or []
     bullets_n = len(bullets) if isinstance(bullets, list) else 0
     source_ids_by_slot = _bullet_source_fact_ids_by_slot(bullets if isinstance(bullets, list) else [])
