@@ -43,7 +43,10 @@
    "graph_skill_node_ids": [
     "skill_governed_agentic_systems_architecture",
     "skill_reusable_agentic_platform_architecture",
-    "skill_agentic_control_plane_design"
+    "skill_agentic_control_plane_design",
+    "skill_dual_artery_compute_topology",
+    "skill_multimodal_intake_dag_and_roster_gating",
+    "skill_contract_bound_subagent_delegation"
    ],
    "linked_source_fact_ids": [
     "fact_engineering_platform_001"
@@ -63,16 +66,16 @@
    "technical_density_signal": "high",
    "commercial_or_operating_scope_signal": "platform_operating_model",
    "target_relevance_rationale": "SVP Engineering agentic AI posture requires governed multi-agent platform architecture as the lead capability family.",
-    "vocabulary_anchors": [
-      "governed multi-agent orchestration control planes",
-      "agentic workflow routing across enterprise systems",
-      "policy-bound execution architecture for AI agents"
+   "vocabulary_anchors": [
+    "governed multi-agent orchestration control planes",
+    "agentic workflow routing across enterprise systems",
+    "policy-bound execution architecture for AI agents"
    ]
   },
   {
    "competency_bundle_id": "ccb_runtime_governance",
    "capability_family": "runtime_governance",
-   "display_label_candidate": "AI Runtime Governance & Control Gates",
+   "display_label_candidate": "Model Risk Governance & AI Runtime Control Gates",
    "target_taxonomy_category_ids": [
     "governance_risk_compliance"
    ],
@@ -80,7 +83,11 @@
     "skill_runtime_gate_mesh_design",
     "skill_fail_closed_gate_semantics",
     "skill_x1_x2_x3_exit_control",
-    "skill_policy_bound_runtime_design"
+    "skill_policy_bound_runtime_design",
+    "skill_calibrated_hitl_ambiguity_gating",
+    "skill_synthetic_approval_origin_firewall",
+    "skill_policy_before_retrieval_isolation",
+    "skill_adversarial_pipeline_red_teaming"
    ],
    "linked_source_fact_ids": [
     "fact_engineering_platform_001"
@@ -98,10 +105,10 @@
    "technical_density_signal": "high",
    "commercial_or_operating_scope_signal": "policy_gated_operating_controls",
    "target_relevance_rationale": "Runtime governance, deterministic gate meshes, and fail-closed exit control differentiate engineering leadership for regulated agentic AI.",
-    "vocabulary_anchors": [
-      "fail-closed runtime control gate design",
-      "policy enforcement across agent execution paths",
-      "sandboxed decision workflows with audit trails"
+   "vocabulary_anchors": [
+    "fail-closed runtime control gate design",
+    "policy enforcement across agent execution paths",
+    "sandboxed decision workflows with audit trails"
    ]
   },
   {
@@ -116,7 +123,9 @@
     "skill_context_engineering",
     "skill_dense_sparse_exact_retrieval_design",
     "skill_graph_aware_relationship_grounding",
-    "skill_prompt_assembly_architecture"
+    "skill_prompt_assembly_architecture",
+    "skill_quad_engine_hybrid_retrieval",
+    "skill_multi_gate_retrieval_release_qualification"
    ],
    "linked_source_fact_ids": [
     "fact_engineering_platform_003"
@@ -134,10 +143,10 @@
    "technical_density_signal": "high",
    "commercial_or_operating_scope_signal": "grounded_generation_quality",
    "target_relevance_rationale": "Dense/sparse/exact retrieval design and graph-aware grounding are core to context engineering for agentic platforms.",
-    "vocabulary_anchors": [
-      "relationship-grounded context retrieval for enterprise workflows",
-      "dense-sparse retrieval with relationship-aware ranking",
-      "authority-ordered prompt context assembly pipelines"
+   "vocabulary_anchors": [
+    "relationship-grounded context retrieval for enterprise workflows",
+    "dense-sparse retrieval with relationship-aware ranking",
+    "authority-ordered prompt context assembly pipelines"
    ]
   },
   {
@@ -153,7 +162,9 @@
     "skill_audit_grade_observability",
     "skill_output_quality_and_schema_gates",
     "skill_fail_closed_gate_semantics",
-    "skill_runtime_resilience_controls"
+    "skill_runtime_resilience_controls",
+    "skill_multi_provider_judge_panels",
+    "skill_local_streaming_acoustic_pipeline"
    ],
    "linked_source_fact_ids": [
     "fact_engineering_platform_003",
@@ -172,10 +183,10 @@
    "technical_density_signal": "high",
    "commercial_or_operating_scope_signal": "production_reliability_operating_model",
    "target_relevance_rationale": "Evaluation gauntlets, judge calibration, and audit-grade observability anchor LLMOps reliability for runtime agentic systems.",
-    "vocabulary_anchors": [
-      "audit-ready agent reliability evidence for governed systems",
-      "evaluation gauntlets for behavior assurance",
-      "production reliability lifecycle for agentic workflows"
+   "vocabulary_anchors": [
+    "audit-ready agent reliability evidence for governed systems",
+    "evaluation gauntlets for behavior assurance",
+    "production reliability lifecycle for agentic workflows"
    ]
   },
   {
@@ -212,10 +223,10 @@
    "technical_density_signal": "high",
    "commercial_or_operating_scope_signal": "cloud_native_platform_scale",
    "target_relevance_rationale": "Cloud-native microservices, reference architectures, and data platform engineering underpin distributed systems leadership.",
-    "vocabulary_anchors": [
-      "cloud-native AI data reference architectures",
-      "microservices integration for regulated ecosystems",
-      "lakehouse modernization for decision intelligence"
+   "vocabulary_anchors": [
+    "cloud-native AI data reference architectures",
+    "microservices integration for regulated ecosystems",
+    "lakehouse modernization for decision intelligence"
    ]
   },
   {
@@ -249,11 +260,11 @@
    "technical_density_signal": "medium_high",
    "commercial_or_operating_scope_signal": "ip_led_platform_commercialization",
    "target_relevance_rationale": "Reusable platform IP and demoable accelerators convert engineering capability into commercialized platform products.",
-    "vocabulary_anchors": [
-      "demoable AI accelerators for executive buyers",
-      "reusable AI platform commercialization for adoption",
-      "production-to-adoption platform value realization operating model"
-  ]
+   "vocabulary_anchors": [
+    "demoable AI accelerators for executive buyers",
+    "reusable AI platform commercialization for adoption",
+    "production-to-adoption platform value realization operating model"
+   ]
   },
   {
    "competency_bundle_id": "ccb_partner_applied_ai_architecture",
@@ -398,10 +409,10 @@
    "technical_density_signal": "medium",
    "commercial_or_operating_scope_signal": "board_level_operating_model",
    "target_relevance_rationale": "Engineering organization scale-out and board-level operating alignment establish the senior engineering leadership posture.",
-    "vocabulary_anchors": [
-      "executive-aligned technical discovery operating cadences",
-      "cross-functional enterprise solution architecture delivery governance",
-      "enterprise pursuit operating model scale-out"
+   "vocabulary_anchors": [
+    "executive-aligned technical discovery operating cadences",
+    "cross-functional enterprise solution architecture delivery governance",
+    "enterprise pursuit operating model scale-out"
    ]
   },
   {
@@ -526,6 +537,78 @@
     "FSA",
     "regulated insurers",
     "insurance platform modernization"
+   ]
+  },
+  {
+   "competency_bundle_id": "ccb_universal_write_gateway_memory",
+   "capability_family": "distributed_systems_engineering",
+   "display_label_candidate": "Universal Write Gateway & Deterministic Enterprise Memory",
+   "target_taxonomy_category_ids": [
+    "engineering_delivery_leadership",
+    "data_analytics_modernization"
+   ],
+   "graph_skill_node_ids": [
+    "skill_universal_write_gateway_design",
+    "skill_decoupled_wal_streaming_memory"
+   ],
+   "linked_source_fact_ids": [
+    "fact_engineering_platform_001"
+   ],
+   "employer_bindings": [],
+   "role_episode_bindings": [
+    "reb_unify_agentic_platform_architecture"
+   ],
+   "allowed_sections": [
+    "competencies"
+   ],
+   "evidence_strength": "STRONG",
+   "external_claim_policy": "skill_projection_not_proof",
+   "activation_status": "ACTIVE",
+   "base_rigor_family_match": "Distributed Systems Engineering",
+   "seniority_signal": "distributed_write_gateway_architecture",
+   "technical_density_signal": "high",
+   "commercial_or_operating_scope_signal": "transactional_memory_governance",
+   "target_relevance_rationale": "Universal Write Gateway with transactional generation snapshots and decoupled WAL streaming memory ensures zero-leakage enterprise state persistence.",
+   "vocabulary_anchors": [
+    "universal write gateway generational snapshots",
+    "decoupled WAL streaming memory architecture",
+    "fail-closed transactional state mutation boundaries"
+   ]
+  },
+  {
+   "competency_bundle_id": "ccb_decision_intelligence_strategic_reasoning",
+   "capability_family": "agentic_platforms",
+   "display_label_candidate": "Decision Intelligence & Calibrated Strategic Reasoning",
+   "target_taxonomy_category_ids": [
+    "ai_platform_leadership",
+    "tech_strategy_innovation"
+   ],
+   "graph_skill_node_ids": [
+    "skill_dialectical_strategic_decision_reasoning",
+    "skill_executive_briefing_and_action_registry_synthesis"
+   ],
+   "linked_source_fact_ids": [
+    "fact_engineering_platform_001"
+   ],
+   "employer_bindings": [],
+   "role_episode_bindings": [
+    "reb_unify_agentic_platform_architecture"
+   ],
+   "allowed_sections": [
+    "competencies"
+   ],
+   "evidence_strength": "STRONG",
+   "external_claim_policy": "skill_projection_not_proof",
+   "activation_status": "ACTIVE",
+   "base_rigor_family_match": "Agentic AI Platforms",
+   "seniority_signal": "executive_decision_intelligence",
+   "technical_density_signal": "high",
+   "commercial_or_operating_scope_signal": "board_level_strategic_synthesis",
+   "target_relevance_rationale": "Dialectical strategic reasoning across closed terminal states and machine-actionable action registry synthesis drive C-suite alignment.",
+   "vocabulary_anchors": [
+    "dialectical strategic decision reasoning",
+    "machine-actionable executive action registry synthesis",
+    "calibrated ambiguity gating for strategic decision workflows"
    ]
   }
  ]

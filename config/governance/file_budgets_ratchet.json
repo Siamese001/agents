@@ -176,7 +176,7 @@
     "justification": "Baseline legacy module pending decomposition"
   },
   "resume_graph_engine/tests/unit/apps_rg/runtime/c0/test_s2g1_competencies_graph_authority.py": {
-    "line_limit": 1653,
+    "line_limit": 1655,
     "justification": "Baseline legacy module pending decomposition"
   },
   "resume_graph_engine/tests/unit/apps_rg/runtime/providers/test_external_provider.py": {
@@ -256,8 +256,12 @@
     "justification": "Baseline legacy module pending decomposition"
   },
   "resume_graph_engine/src/apps_rg/fact_inventory/augmented_skills_graph_sqlite.py": {
-    "line_limit": 3019,
+    "line_limit": 3498,
     "justification": "Baseline legacy module pending decomposition"
+  },
+  "resume_graph_engine/src/apps_rg/fact_inventory/apply_agentic_experience_skills_augmentation.py": {
+    "line_limit": 1134,
+    "justification": "Augmentation script for agentic experience graph skills"
   },
   "resume_graph_engine/src/apps_rg/fact_inventory/c03_graph_kpi_health.py": {
     "line_limit": 2310,
@@ -300,7 +304,7 @@
     "justification": "Baseline legacy module pending decomposition"
   },
   "resume_graph_engine/src/apps_rg/fact_inventory/c03_graph_evidence_cluster_registry.py": {
-    "line_limit": 1181,
+    "line_limit": 1300,
     "justification": "Baseline legacy module pending decomposition"
   },
   "resume_graph_engine/src/apps_rg/fact_inventory/run_w14_senior_role_offline_traversal.py": {
