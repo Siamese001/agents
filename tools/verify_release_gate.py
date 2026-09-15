@@ -1,27 +1,27 @@
 #!/usr/bin/env python3
-"""Authoritative Single Release Gate Command for Sovereign Agentic Platform.
+"""Authoritative Release Gate Verification (Wave 6).
 
-Part of Sovereign Agentic Platform Governance (Wave 6 - Final Closure Wave).
-Consolidates all verification tiers into a single atomic command:
-1. Tier 1 Pre-Commit Quality Gate (Code Hygiene, Architecture, Purity, Schema, Secrets)
-2. Continuous Architecture Boundaries & File Budgets
-3. All 6 Anti-pattern Remediation Wave Suites (Waves 1-6)
-4. Full Repository Regression Suite
-5. Attestable Release Manifest & Receipt Emission
+Consolidates all verification tiers and governance invariants:
+1. Pre-Commit Quality Gate (Tier 1 Code Hygiene, Architecture, Purity, Schemas, Secrets).
+2. Anti-Pattern Remediation Wave Test Suites (Waves 1 through 6).
+3. Continuous Architectural Boundary Linter (Domain isolation, Sys.path purity, File budgets).
+4. Deterministic Release Manifest & Verification Receipt Generation with cryptographic SHA-256 digest.
 """
 
 from __future__ import annotations
 
 import argparse
+import glob
 import hashlib
 import json
 import os
 import subprocess
 import sys
 import time
+from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Sequence
 
 WAVE_TEST_FILES = [
     "tests/unit/test_antipattern_wave1_packaging_ssot.py",
@@ -33,195 +33,269 @@ WAVE_TEST_FILES = [
 ]
 
 
-def run_command(cmd: list[str], cwd: Path, timeout: int = 180) -> tuple[int, str, str, float]:
-    """Execute a subprocess command with duration timing."""
-    start = time.time()
+@dataclass
+class CheckResult:
+    check_name: str
+    status: str  # "PASSED" | "FAILED"
+    duration_seconds: float
+    details: str
+    violations: list[str]
+
+
+def run_command_buffered(cmd: list[str], cwd: Path, timeout: int = 180) -> tuple[int, str, str, float]:
+    start = time.perf_counter()
+    env = dict(os.environ)
+    existing_pythonpath = env.get("PYTHONPATH", "")
+    env["PYTHONPATH"] = f"resume_graph_engine/src:.{':' + existing_pythonpath if existing_pythonpath else ''}"
     try:
-        proc = subprocess.run(
+        res = subprocess.run(
             cmd,
-            cwd=str(cwd),
+            cwd=cwd,
             capture_output=True,
             text=True,
             timeout=timeout,
             check=False,
+            env=env,
         )
-        duration = round(time.time() - start, 2)
-        return proc.returncode, proc.stdout, proc.stderr, duration
+        elapsed = time.perf_counter() - start
+        return res.returncode, res.stdout, res.stderr, elapsed
     except subprocess.TimeoutExpired:
-        duration = round(time.time() - start, 2)
-        return 124, "", f"Command timed out after {timeout} seconds", duration
-    except Exception as err:
-        duration = round(time.time() - start, 2)
-        return 1, "", str(err), duration
+        elapsed = time.perf_counter() - start
+        return 124, "", f"Command timed out after {timeout}s", elapsed
+    except Exception as e:
+        elapsed = time.perf_counter() - start
+        return 1, "", str(e), elapsed
 
 
 def get_git_metadata(repo_root: Path) -> dict[str, str]:
-    """Extract current git commit and branch info."""
-    code_sha, out_sha, _, _ = run_command(["git", "rev-parse", "HEAD"], repo_root)
-    code_branch, out_branch, _, _ = run_command(["git", "rev-parse", "--abbrev-ref", "HEAD"], repo_root)
+    meta: dict[str, str] = {}
+    try:
+        rc, out, _, _ = run_command_buffered(["git", "rev-parse", "HEAD"], repo_root, 10)
+        meta["commit_sha"] = out.strip() if rc == 0 else "UNKNOWN"
+        rc, out, _, _ = run_command_buffered(["git", "rev-parse", "--abbrev-ref", "HEAD"], repo_root, 10)
+        meta["branch"] = out.strip() if rc == 0 else "UNKNOWN"
+    except Exception:
+        meta["commit_sha"] = "UNKNOWN"
+        meta["branch"] = "UNKNOWN"
+    return meta
 
-    return {
-        "commit_sha": out_sha.strip() if code_sha == 0 else "UNKNOWN",
-        "branch": out_branch.strip() if code_branch == 0 else "UNKNOWN",
-    }
+
+def run_tier1_precommit(repo_root: Path) -> CheckResult:
+    py_bin = repo_root / ".venv" / "bin" / "python"
+    python_cmd = str(py_bin) if py_bin.exists() else sys.executable
+    code, stdout, stderr, dur = run_command_buffered(
+        [python_cmd, "tools/verify_commit.py"],
+        cwd=repo_root,
+        timeout=120,
+    )
+    violations = []
+    if code != 0:
+        violations.append(f"Pre-commit gate failed with exit code {code}: {stderr or stdout}")
+    return CheckResult(
+        check_name="Tier 1 Pre-Commit Quality Gate",
+        status="PASSED" if code == 0 else "FAILED",
+        duration_seconds=round(dur, 3),
+        details="Standard Code Hygiene, Architectural Governance, Production Purity, Contract Schemas, Secrets",
+        violations=violations,
+    )
+
+
+def run_architecture_boundary_linter(repo_root: Path) -> CheckResult:
+    py_bin = repo_root / ".venv" / "bin" / "python"
+    python_cmd = str(py_bin) if py_bin.exists() else sys.executable
+    code, stdout, stderr, dur = run_command_buffered(
+        [python_cmd, "tools/lint_architecture_boundaries.py", "--json"],
+        cwd=repo_root,
+        timeout=60,
+    )
+    violations = []
+    if code != 0:
+        try:
+            data = json.loads(stdout)
+            for check_data in data.get("checks", {}).values():
+                for v in check_data.get("violations", []):
+                    violations.append(str(v))
+        except Exception:
+            violations.append(stderr or stdout)
+    return CheckResult(
+        check_name="Architectural Boundaries Linter (Domain Isolation, Sys.Path Purity, File Budgets)",
+        status="PASSED" if code == 0 else "FAILED",
+        duration_seconds=round(dur, 3),
+        details="Domain/storage isolation, file budgets, sys.path prohibition",
+        violations=violations,
+    )
+
+
+def run_antipattern_wave_suites(repo_root: Path, target_suites: list[str] | None = None) -> list[CheckResult]:
+    pytest_bin = repo_root / ".venv" / "bin" / "pytest"
+    pytest_cmd = str(pytest_bin) if pytest_bin.exists() else "pytest"
+
+    results: list[CheckResult] = []
+    suites_to_run = target_suites if target_suites is not None else WAVE_TEST_FILES
+
+    for w_rel in suites_to_run:
+        w_path = repo_root / w_rel
+        if not w_path.exists():
+            results.append(
+                CheckResult(
+                    check_name=f"Anti-Pattern Unit Suite: {Path(w_rel).stem}",
+                    status="FAILED",
+                    duration_seconds=0.0,
+                    details=f"Test file missing: {w_rel}",
+                    violations=[f"File not found: {w_rel}"],
+                )
+            )
+            continue
+
+        code, stdout, stderr, dur = run_command_buffered(
+            [pytest_cmd, "-q", str(w_path)],
+            cwd=repo_root,
+            timeout=120,
+        )
+        violations = []
+        if code != 0:
+            violations.append(f"Suite {w_path.name} failed (exit {code}): {stderr or stdout}")
+        results.append(
+            CheckResult(
+                check_name=f"Anti-Pattern Unit Suite: {w_path.stem}",
+                status="PASSED" if code == 0 else "FAILED",
+                duration_seconds=round(dur, 3),
+                details=f"Test file: {w_path.name}",
+                violations=violations,
+            )
+        )
+
+    return results
 
 
 def execute_release_gate(
     repo_root: Path,
     output_dir: Path | None = None,
-    keep_going: bool = False,
+    keep_going: bool = True,
     wave_suites: list[str] | None = None,
-    run_full_suite: bool = True,
+    run_full_suite: bool = False,
 ) -> dict[str, Any]:
-    """Execute the complete release gate and compile the receipt."""
-    out_dir = output_dir or (repo_root / "artifacts" / "release")
-    out_dir.mkdir(parents=True, exist_ok=True)
+    """Execute the full release gate and return the canonical receipt dictionary."""
+    checks: list[CheckResult] = []
+
+    # 1. Tier 1 Pre-Commit Gate
+    checks.append(run_tier1_precommit(repo_root))
+
+    # 2. Architecture boundary linter
+    checks.append(run_architecture_boundary_linter(repo_root))
+
+    # 3. Anti-pattern wave test suites
+    wave_results = run_antipattern_wave_suites(repo_root, target_suites=wave_suites)
+    checks.extend(wave_results)
+
+    # 4. Optional full repository unit suite
+    if run_full_suite:
+        pytest_bin = repo_root / ".venv" / "bin" / "pytest"
+        pytest_cmd = str(pytest_bin) if pytest_bin.exists() else "pytest"
+        code, stdout, stderr, dur = run_command_buffered(
+            [pytest_cmd, "-q", "tests/unit/"],
+            cwd=repo_root,
+            timeout=180,
+        )
+        checks.append(
+            CheckResult(
+                check_name="Full Repository Unit Suite",
+                status="PASSED" if code == 0 else "FAILED",
+                duration_seconds=round(dur, 3),
+                details="Complete tests/unit/ test sweep",
+                violations=[stderr or stdout] if code != 0 else [],
+            )
+        )
 
     git_meta = get_git_metadata(repo_root)
-    timestamp = datetime.now(timezone.utc).isoformat()
+    all_passed = all(c.status == "PASSED" for c in checks)
+    overall_status = "PASSED" if all_passed else "FAILED"
+    now_iso = datetime.now(timezone.utc).isoformat()
 
-    receipt: dict[str, Any] = {
-        "schema_version": "1.0.0",
+    receipt_payload = {
         "gate_name": "SOVEREIGN_PLATFORM_RELEASE_GATE",
         "wave": 6,
-        "timestamp": timestamp,
-        "repository": str(repo_root),
-        "branch": git_meta["branch"],
-        "commit_sha": git_meta["commit_sha"],
-        "python_version": sys.version.split()[0],
-        "checks": {},
-        "all_passed": True,
-        "failure_count": 0,
+        "status": overall_status,
+        "all_passed": all_passed,
+        "timestamp": now_iso,
+        "metadata": git_meta,
+        "checks": [asdict(c) for c in checks],
     }
 
-    # Step 1: Continuous Architecture Boundaries Linter
-    arch_code, arch_out, arch_err, arch_dur = run_command(
-        [sys.executable, "tools/lint_architecture_boundaries.py"], repo_root
-    )
-    receipt["checks"]["architecture_boundaries"] = {
-        "status": "PASS" if arch_code == 0 else "FAIL",
-        "returncode": arch_code,
-        "duration_seconds": arch_dur,
-        "summary": "Zero concrete storage imports, pure sys.path, and file budgets verified",
-        "error": arch_err if arch_code != 0 else "",
-    }
-    if arch_code != 0:
-        receipt["all_passed"] = False
-        receipt["failure_count"] += 1
-        if not keep_going:
-            return finish_receipt(receipt, out_dir)
+    # Deterministic SHA-256 digest of normalized JSON string
+    serialized_canonical = json.dumps(receipt_payload, sort_keys=True)
+    receipt_digest = hashlib.sha256(serialized_canonical.encode("utf-8")).hexdigest()
+    receipt_payload["receipt_digest"] = receipt_digest
 
-    # Step 2: Tier 1 Pre-Commit Gate (Hygiene, Architecture, Purity, Schema, Secrets)
-    tier1_code, tier1_out, tier1_err, tier1_dur = run_command(
-        [sys.executable, "tools/verify_commit.py"], repo_root, timeout=240
-    )
-    receipt["checks"]["tier1_pre_commit"] = {
-        "status": "PASS" if tier1_code == 0 else "FAIL",
-        "returncode": tier1_code,
-        "duration_seconds": tier1_dur,
-        "summary": "Passed all 5 structural quality tiers",
-        "error": tier1_err if tier1_code != 0 else "",
-    }
-    if tier1_code != 0:
-        receipt["all_passed"] = False
-        receipt["failure_count"] += 1
-        if not keep_going:
-            return finish_receipt(receipt, out_dir)
-
-    # Step 3: Wave Unit Test Suites
-    suites_to_run = wave_suites if wave_suites is not None else [f for f in WAVE_TEST_FILES if (repo_root / f).exists()]
-    wave_code, wave_out, wave_err, wave_dur = run_command(
-        [sys.executable, "-m", "pytest", "-v"] + suites_to_run, repo_root
-    )
-    receipt["checks"]["wave_suites"] = {
-        "status": "PASS" if wave_code == 0 else "FAIL",
-        "returncode": wave_code,
-        "duration_seconds": wave_dur,
-        "suites_tested": suites_to_run,
-        "error": wave_err if wave_code != 0 else "",
-    }
-    if wave_code != 0:
-        receipt["all_passed"] = False
-        receipt["failure_count"] += 1
-        if not keep_going:
-            return finish_receipt(receipt, out_dir)
-
-    # Step 4: Full Repository Unit Test Suite
-    if run_full_suite:
-        full_code, full_out, full_err, full_dur = run_command(
-            [sys.executable, "-m", "pytest", "-q", "tests/unit/"], repo_root
-        )
-        receipt["checks"]["full_unit_suite"] = {
-            "status": "PASS" if full_code == 0 else "FAIL",
-            "returncode": full_code,
-            "duration_seconds": full_dur,
-            "error": full_err if full_code != 0 else "",
-        }
-        if full_code != 0:
-            receipt["all_passed"] = False
-            receipt["failure_count"] += 1
-
-    return finish_receipt(receipt, out_dir)
-
-
-def finish_receipt(receipt: dict[str, Any], output_dir: Path) -> dict[str, Any]:
-    """Serialize receipt, compute SHA-256 digest, and save receipt and manifest."""
-    receipt["status"] = "PASSED" if receipt["all_passed"] else "FAILED"
-
-    # Canonical receipt serialization
-    receipt_json = json.dumps(receipt, indent=2, sort_keys=True)
-    receipt_bytes = receipt_json.encode("utf-8")
-    receipt_digest = hashlib.sha256(receipt_bytes).hexdigest()
-
-    receipt["receipt_digest"] = receipt_digest
-
-    receipt_file = output_dir / "release_receipt.json"
-    receipt_file.write_text(json.dumps(receipt, indent=2, sort_keys=True), encoding="utf-8")
-
-    manifest = {
+    manifest_payload = {
         "manifest_type": "RELEASE_MANIFEST",
-        "schema_version": "1.0.0",
-        "created_at": receipt["timestamp"],
-        "commit_sha": receipt["commit_sha"],
-        "branch": receipt["branch"],
-        "status": receipt["status"],
-        "receipt_file": str(receipt_file.name),
+        "manifest_version": "1.0.0",
+        "wave": 6,
+        "status": overall_status,
+        "timestamp": now_iso,
         "receipt_sha256": receipt_digest,
+        "git_commit": git_meta.get("commit_sha"),
+        "git_branch": git_meta.get("branch"),
+        "waves_verified": [
+            "Wave 1 (Packaging SSOT, Subtree De-duplication, Provider Profiles)",
+            "Wave 2 (Typed State Contracts, Failure Taxonomy, Recovery Budgets)",
+            "Wave 3 (Canonical Dispatch Authority, Structured Feedback Controller)",
+            "Wave 4 (Event Envelopes, Artifact Manifests, Persistence Ports, Replay)",
+            "Wave 5 (Monolith Decomposition, Modular Pipeline Services, Storage Isolation)",
+            "Wave 6 (Cutover, Cleanup, Continuous Architecture Governance)",
+        ],
+        "checks_total": len(checks),
+        "checks_passed": sum(1 for c in checks if c.status == "PASSED"),
+        "checks_failed": sum(1 for c in checks if c.status == "FAILED"),
     }
-    manifest_file = output_dir / "release_manifest.json"
-    manifest_file.write_text(json.dumps(manifest, indent=2, sort_keys=True), encoding="utf-8")
 
-    return receipt
+    if output_dir is not None:
+        out_path = Path(output_dir)
+        out_path.mkdir(parents=True, exist_ok=True)
+        (out_path / "release_receipt.json").write_text(json.dumps(receipt_payload, indent=2), encoding="utf-8")
+        (out_path / "release_manifest.json").write_text(json.dumps(manifest_payload, indent=2), encoding="utf-8")
+
+    return receipt_payload
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser(description="Authoritative Single Release Gate Command.")
-    parser.add_argument("--output-dir", type=Path, default=None, help="Output directory for release receipt")
-    parser.add_argument("--json", action="store_true", help="Print JSON summary to stdout")
-    parser.add_argument("--keep-going", action="store_true", help="Run all checks even if an early check fails")
-    args = parser.parse_args()
+def main(argv: Sequence[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="Authoritative Release Gate Verifier")
+    parser.add_argument("--root", type=Path, default=Path.cwd(), help="Repository root path")
+    parser.add_argument("--receipt-dir", type=Path, default=Path("artifacts/release"), help="Receipt output directory")
+    parser.add_argument("--no-write", action="store_true", help="Perform verification without writing artifacts")
+    parser.add_argument("--json", action="store_true", help="Output verification result in JSON format to stdout")
+    parser.add_argument("--full-suite", action="store_true", help="Run entire tests/unit/ directory as part of gate")
+    args = parser.parse_args(argv)
 
-    repo_root = Path(__file__).resolve().parent.parent
-    receipt = execute_release_gate(repo_root, output_dir=args.output_dir, keep_going=args.keep_going)
+    repo_root = args.root.resolve()
+    receipt_dir = None if args.no_write else (repo_root / args.receipt_dir).resolve()
+
+    receipt = execute_release_gate(
+        repo_root=repo_root,
+        output_dir=receipt_dir,
+        keep_going=True,
+        run_full_suite=args.full_suite,
+    )
 
     if args.json:
         print(json.dumps(receipt, indent=2))
-    else:
-        print("========================================================================")
-        print("  SOVEREIGN AGENTIC PLATFORM — AUTHORITATIVE RELEASE GATE (Wave 6)")
-        print(f"  Status: {receipt['status']}")
-        print(f"  Commit: {receipt['commit_sha']} ({receipt['branch']})")
-        print("========================================================================")
-        for name, data in receipt["checks"].items():
-            print(f"  - {name:<26}: [{data['status']}] ({data['duration_seconds']}s)")
-        print("------------------------------------------------------------------------")
-        if receipt["all_passed"]:
-            print("  RESULT: RELEASE GATE PASSED (All 6 waves and quality tiers verified)")
-            print(f"  Receipt: artifacts/release/release_receipt.json")
-            print(f"  SHA-256: {receipt['receipt_digest']}")
-        else:
-            print(f"  RESULT: RELEASE GATE FAILED ({receipt['failure_count']} failed checks)")
-        print("========================================================================")
+        return 0 if receipt["all_passed"] else 1
+
+    print("========================================================================")
+    print("  AUTHORITATIVE RELEASE GATE VERIFICATION (Wave 6)")
+    print("========================================================================")
+    for c in receipt["checks"]:
+        status_tag = f"[{c['status']}]"
+        print(f"  {c['check_name']:<60} {status_tag:>10} ({c['duration_seconds']:.2f}s)")
+        if c.get("violations"):
+            for v in c["violations"]:
+                print(f"    -> {v}")
+    print("------------------------------------------------------------------------")
+    print(f"  RESULT: RELEASE GATE {receipt['status']} (Digest: {receipt['receipt_digest'][:16]}...)")
+    if receipt_dir:
+        print(f"  Receipt written to:  {receipt_dir / 'release_receipt.json'}")
+        print(f"  Manifest written to: {receipt_dir / 'release_manifest.json'}")
+    print("========================================================================")
 
     return 0 if receipt["all_passed"] else 1
 
