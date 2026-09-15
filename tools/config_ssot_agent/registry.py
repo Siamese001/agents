@@ -100,7 +100,6 @@ CORE_KNOWN_MODELS: tuple[str, ...] = (
     "gpt-5.6-luna",
     "gpt-5.6-sol",
     "gpt-5.6-terra",
-    "gpt-6-astra",
     "claude-sonnet-5",
     "claude-sonnet-4-5",
     "claude-3-7-sonnet",

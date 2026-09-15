@@ -11,6 +11,7 @@ import hashlib
 import json
 import os
 import re
+import sys
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
@@ -242,23 +243,19 @@ def _mock_repair(
             cleaned = []
             for item in comps:
                 if isinstance(item, dict):
-                    cat = (
-                        str(
-                            item.get("category_label")
-                            or item.get("resume_display_label")
-                            or item.get("display_label")
-                            or item.get("category")
-                            or item.get("name")
-                            or ""
-                        )
-                        .replace("—", ":")
-                        .strip()
-                    )
+                    disp_label = str(item.get("resume_display_label") or "").replace("—", ":").strip()
+                    cat = str(
+                        item.get("category_label")
+                        or item.get("display_label")
+                        or item.get("category")
+                        or item.get("name")
+                        or ""
+                    ).replace("—", ":").strip()
                     cleaned_item = dict(item)
                     cleaned_item["category"] = cat
                     cleaned_item["category_label"] = cat
                     if "resume_display_label" in cleaned_item:
-                        cleaned_item["resume_display_label"] = cat
+                        cleaned_item["resume_display_label"] = disp_label or cat
                     raw_terms = item.get("terms") or item.get("skills") or item.get("items") or []
                     cleaned_terms = []
                     for t in raw_terms:
@@ -434,37 +431,23 @@ def repair_section_with_executive_voice_agent(
     """
     sec = str(section_id).strip().lower()
     if sec not in {"executive_summary", "headline", "competencies"}:
-        receipt = ExecutiveVoiceRepairReceipt(
-            section_id=sec,
-            repair_attempted=False,
-            repair_succeeded=False,
-            repair_mechanism="none",
-            diagnostic_summary=diagnostic,
+        return candidate_data, ExecutiveVoiceRepairReceipt(
+            section_id=sec, repair_attempted=False, repair_succeeded=False,
+            repair_mechanism="none", diagnostic_summary=diagnostic,
             notes=f"section {sec!r} not in Executive Voice repair scope",
         )
-        return candidate_data, receipt
-
     if not executive_voice_repair_enabled():
-        receipt = ExecutiveVoiceRepairReceipt(
-            section_id=sec,
-            repair_attempted=False,
-            repair_succeeded=False,
-            repair_mechanism="none",
-            diagnostic_summary=diagnostic,
+        return candidate_data, ExecutiveVoiceRepairReceipt(
+            section_id=sec, repair_attempted=False, repair_succeeded=False,
+            repair_mechanism="none", diagnostic_summary=diagnostic,
             notes="Executive voice repair disabled via configuration",
         )
-        return candidate_data, receipt
-
     if not diagnostic.get("repair_needed", False):
-        receipt = ExecutiveVoiceRepairReceipt(
-            section_id=sec,
-            repair_attempted=False,
-            repair_succeeded=True,
-            repair_mechanism="none",
-            diagnostic_summary=diagnostic,
+        return candidate_data, ExecutiveVoiceRepairReceipt(
+            section_id=sec, repair_attempted=False, repair_succeeded=True,
+            repair_mechanism="none", diagnostic_summary=diagnostic,
             notes="Section already passes X1D; no repair needed",
         )
-        return candidate_data, receipt
 
     original_snippet = ""
     if sec == "executive_summary":
@@ -475,8 +458,16 @@ def repair_section_with_executive_voice_agent(
         comps = candidate_data.get("competencies") or []
         original_snippet = f"{len(comps)} categories"
 
+    is_test = bool(os.environ.get("PYTEST_CURRENT_TEST")) or ("pytest" in sys.modules) or (os.environ.get("APPS_RG_TEST_HARNESS") == "1")
     is_live_key_present = bool(os.environ.get("ANTHROPIC_API_KEY"))
-    if mock_mode or not is_live_key_present:
+
+    if not mock_mode and not is_live_key_present and not is_test:
+        raise RuntimeError(
+            f"LIVE_REPAIR_KEY_REQUIRED: ANTHROPIC_API_KEY is not configured for ExecutiveVoiceRepairAgent on '{sec}'. "
+            "Silent mock degradation is strictly forbidden in production runtime."
+        )
+
+    if mock_mode or (not is_live_key_present and is_test):
         updated_data, ok, mech = _mock_repair(sec, candidate_data, diagnostic)
         repaired_snippet = ""
         if sec == "executive_summary":
@@ -585,7 +576,11 @@ def repair_section_with_executive_voice_agent(
                     ok = True
 
     if not ok:
-        updated_data, ok, mech = _mock_repair(sec, candidate_data, diagnostic)
+        if mock_mode or is_test:
+            updated_data, ok, mech = _mock_repair(sec, candidate_data, diagnostic)
+        else:
+            mech = "llm_repair_unresolved"
+            updated_data = dict(candidate_data)
 
     repaired_snippet = ""
     if sec == "executive_summary":
