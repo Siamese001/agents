@@ -249,7 +249,7 @@ runtime_limits:
         max_attempts: 2
         retry_backoff_base_seconds: 0.5
         retry_backoff_max_seconds: 1.0
-        gemini_thinking_level: high
+        gemini_thinking_level: low
       bullet_rewrite_quality:
         judge_weight: 2
         max_output_tokens: 4096
@@ -257,7 +257,7 @@ runtime_limits:
         max_attempts: 2
         retry_backoff_base_seconds: 0.5
         retry_backoff_max_seconds: 1.0
-        gemini_thinking_level: high
+        gemini_thinking_level: low
       enhanced_reasoning:
         judge_weight: 3
         max_output_tokens: 8192
@@ -265,4 +265,4 @@ runtime_limits:
         max_attempts: 3
         retry_backoff_base_seconds: 0.5
         retry_backoff_max_seconds: 4.0
-        gemini_thinking_level: high
+        gemini_thinking_level: medium

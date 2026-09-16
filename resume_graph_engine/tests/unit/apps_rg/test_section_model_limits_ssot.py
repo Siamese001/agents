@@ -31,16 +31,16 @@ def test_generation_profiles_have_no_default_model() -> None:
 def test_explicit_section_effort_map() -> None:
     expected = {
         "competencies": "low",
+        "slalom_bullets": "low",
         "unify_bullets": "low",
         "ibm_bullets": "low",
+        "insurtech_bullets": "low",
         "headline": "low",
         "executive_summary": "low",
-        "insurtech_bullets": "low",
-        "ey_bullets": "low",
+        "slalom_narrative": "low",
         "unify_narrative": "low",
         "ibm_narrative": "low",
         "insurtech_narrative": "low",
-        "ey_narrative": "low",
     }
     assert {
         section_id: sml.resolve_section_generation_effort(section_id)
@@ -51,10 +51,10 @@ def test_explicit_section_effort_map() -> None:
 def test_explicit_claude_section_pins() -> None:
     for section_id in (
         "competencies",
+        "slalom_bullets",
         "unify_bullets",
         "ibm_bullets",
         "insurtech_bullets",
-        "ey_bullets",
         "headline",
         "executive_summary",
     ):
@@ -66,7 +66,7 @@ def test_explicit_claude_section_pins() -> None:
 
 
 def test_explicit_openai_section_pins() -> None:
-    for section_id in ("unify_narrative", "ibm_narrative", "insurtech_narrative", "ey_narrative"):
+    for section_id in ("slalom_narrative", "unify_narrative", "ibm_narrative", "insurtech_narrative"):
         assert (
             sml.external_openai_generation_model(section_id=section_id)
             == _yaml_openai_section_model(section_id)

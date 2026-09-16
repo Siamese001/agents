@@ -21,12 +21,12 @@ def test_wave9_minimized_defaults_match_lane_x2_requirements(monkeypatch) -> Non
 
     # All bullets + all narratives -> single cross-provider judge.
     for section_id in (
+        "slalom_bullets",
         "insurtech_bullets",
-        "ey_bullets",
+        "slalom_narrative",
         "unify_narrative",
         "ibm_narrative",
         "insurtech_narrative",
-        "ey_narrative",
     ):
         assert resolve_section_default_x1d_judges(section_id) == "gemini_pro"
 
@@ -70,14 +70,14 @@ def test_wave9_policy_summary_is_rare_non_repairing_and_compact(monkeypatch) -> 
     ]
     # Single-judge lanes: all 4 bullets + all 4 narratives.
     assert set(minimized) == {
+        "slalom_bullets",
         "unify_bullets",
         "ibm_bullets",
         "insurtech_bullets",
-        "ey_bullets",
+        "slalom_narrative",
         "unify_narrative",
         "ibm_narrative",
         "insurtech_narrative",
-        "ey_narrative",
     }
     assert all(row["repair_allowed"] is False for row in summary.values())
     assert all(row["packet_scope"] == "compact_grade_only" for row in summary.values())

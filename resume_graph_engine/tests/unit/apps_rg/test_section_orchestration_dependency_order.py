@@ -43,12 +43,10 @@ _EXPECTED_ORDER = (
     "unify_bullets",
     "ibm_bullets",
     "insurtech_bullets",
-    "ey_bullets",
     "slalom_narrative",
     "unify_narrative",
     "ibm_narrative",
     "insurtech_narrative",
-    "ey_narrative",
     "executive_summary",
     "headline",
 )
@@ -60,8 +58,8 @@ def test_generated_lanes_is_dependency_order() -> None:
     assert GENERATED_CONTENT_LANES == _EXPECTED_ORDER
 
 
-def test_generated_lanes_has_exactly_thirteen_content_sections() -> None:
-    assert len(glr.GENERATED_LANES) == 13
+def test_generated_lanes_has_exactly_eleven_content_sections() -> None:
+    assert len(glr.GENERATED_LANES) == 11
     assert set(glr.GENERATED_LANES) == set(_EXPECTED_ORDER)
 
 
@@ -71,7 +69,6 @@ def test_bullets_precede_their_narratives_in_serial_order() -> None:
     assert order.index("unify_bullets") < order.index("unify_narrative")
     assert order.index("ibm_bullets") < order.index("ibm_narrative")
     assert order.index("insurtech_bullets") < order.index("insurtech_narrative")
-    assert order.index("ey_bullets") < order.index("ey_narrative")
 
 
 def test_executive_summary_after_all_bullets_and_narratives() -> None:
@@ -83,12 +80,10 @@ def test_executive_summary_after_all_bullets_and_narratives() -> None:
         "unify_bullets",
         "ibm_bullets",
         "insurtech_bullets",
-        "ey_bullets",
         "slalom_narrative",
         "unify_narrative",
         "ibm_narrative",
         "insurtech_narrative",
-        "ey_narrative",
     ):
         assert order.index(upstream) < es, f"{upstream} must precede executive_summary"
 
@@ -114,16 +109,14 @@ def test_wave_dag_bullets_before_narratives_before_exec_before_headline() -> Non
     assert lane_wave["unify_bullets"] < lane_wave["unify_narrative"]
     assert lane_wave["ibm_bullets"] < lane_wave["ibm_narrative"]
     assert lane_wave["insurtech_bullets"] < lane_wave["insurtech_narrative"]
-    assert lane_wave["ey_bullets"] < lane_wave["ey_narrative"]
     assert lane_wave["slalom_narrative"] < lane_wave["executive_summary"]
     assert lane_wave["unify_narrative"] < lane_wave["executive_summary"]
     assert lane_wave["ibm_narrative"] < lane_wave["executive_summary"]
     assert lane_wave["insurtech_narrative"] < lane_wave["executive_summary"]
-    assert lane_wave["ey_narrative"] < lane_wave["executive_summary"]
     assert lane_wave["executive_summary"] < lane_wave["headline"]
 
 
-def test_wave_dag_covers_all_thirteen_lanes() -> None:
+def test_wave_dag_covers_all_eleven_lanes() -> None:
     waves = build_phase1_waves()
     covered = {lane for w in waves for lane in w.lanes}
     assert covered == set(_EXPECTED_ORDER)
@@ -151,7 +144,6 @@ def test_new_role_bullets_default_to_single_composite_judge(monkeypatch) -> None
     monkeypatch.delenv("APPS_RG_E2E_X1D_JUDGES", raising=False)
     # Claude-base recalibration: single cross-provider judge (no anthropic_claude self-judge).
     assert resolve_cli_x1d_judges(None, section_id="insurtech_bullets") == "gemini_pro"
-    assert resolve_cli_x1d_judges(None, section_id="ey_bullets") == "gemini_pro"
 
 
 def test_explicit_x1d_judges_override_wins_for_ibm_adjudicator() -> None:
@@ -190,16 +182,16 @@ def test_wave9_policy_summary_marks_compact_non_repairing_defaults(monkeypatch) 
         "ibm_narrative",
         "insurtech_bullets",
         "insurtech_narrative",
-        "ey_bullets",
-        "ey_narrative",
+        "slalom_bullets",
+        "slalom_narrative",
         "unify_bullets",
         "unify_narrative",
         "final_aggregate_resume",
     }
+    assert policy["slalom_bullets"]["default_judge_count"] == 1
     assert policy["unify_bullets"]["default_judge_count"] == 1
     assert policy["ibm_bullets"]["default_judge_count"] == 1
     assert policy["insurtech_bullets"]["default_judge_count"] == 1
-    assert policy["ey_bullets"]["default_judge_count"] == 1
     assert policy["competencies"]["default_judge_count"] == 2
     # Claude-base recalibration: headline / executive_summary -> dual cross-provider panel.
     assert policy["headline"]["default_judge_count"] == 2

@@ -95,14 +95,12 @@ _SECTION_DEFAULT_PROVIDER: Final[dict[str, str]] = {
     "unify_bullets": "external_claude",
     "ibm_bullets": "external_claude",
     "insurtech_bullets": "external_claude",
-    "ey_bullets": "external_claude",
     "headline": "external_claude",
     "executive_summary": "external_claude",
     "slalom_narrative": "external_openai",
     "unify_narrative": "external_openai",
     "ibm_narrative": "external_openai",
     "insurtech_narrative": "external_openai",
-    "ey_narrative": "external_openai",
 }
 
 
@@ -127,7 +125,6 @@ SLALOM_BULLETS_DEFAULT_X1D_JUDGES: Final[str] = BULLET_COMPOSITE_DEFAULT_X1D_JUD
 UNIFY_BULLETS_DEFAULT_X1D_JUDGES: Final[str] = BULLET_COMPOSITE_DEFAULT_X1D_JUDGES
 IBM_BULLETS_DEFAULT_X1D_JUDGES: Final[str] = BULLET_COMPOSITE_DEFAULT_X1D_JUDGES
 INSURTECH_BULLETS_DEFAULT_X1D_JUDGES: Final[str] = BULLET_COMPOSITE_DEFAULT_X1D_JUDGES
-EY_BULLETS_DEFAULT_X1D_JUDGES: Final[str] = BULLET_COMPOSITE_DEFAULT_X1D_JUDGES
 
 # Recalibrated judge panels (Claude Sonnet 5 base for Claude-primary lanes):
 #   competencies policy resolver -> 2 required proof judges (gemini_pro + openai_chatgpt)
@@ -141,12 +138,10 @@ _SECTION_DEFAULT_X1D_JUDGES: Final[dict[str, str]] = {
     "unify_bullets": UNIFY_BULLETS_DEFAULT_X1D_JUDGES,
     "ibm_bullets": IBM_BULLETS_DEFAULT_X1D_JUDGES,
     "insurtech_bullets": INSURTECH_BULLETS_DEFAULT_X1D_JUDGES,
-    "ey_bullets": EY_BULLETS_DEFAULT_X1D_JUDGES,
     "slalom_narrative": _SINGLE_X1D_JUDGE,
     "unify_narrative": _SINGLE_X1D_JUDGE,
     "ibm_narrative": _SINGLE_X1D_JUDGE,
     "insurtech_narrative": _SINGLE_X1D_JUDGE,
-    "ey_narrative": _SINGLE_X1D_JUDGE,
     "headline": _DUAL_X1D_JUDGES,
     "executive_summary": _DUAL_X1D_JUDGES,
     "final_aggregate_resume": _DUAL_X1D_JUDGES,
@@ -158,12 +153,10 @@ _SECTION_X1D_DEFAULT_REASON: Final[dict[str, str]] = {
     "unify_bullets": "single_cross_provider_bullet_judge_claude_base_recalibrated",
     "ibm_bullets": "single_cross_provider_bullet_judge_claude_base_recalibrated",
     "insurtech_bullets": "single_cross_provider_bullet_judge_claude_base_recalibrated",
-    "ey_bullets": "single_cross_provider_bullet_judge_claude_base_recalibrated",
     "slalom_narrative": "single_cross_provider_narrative_judge_claude_base_recalibrated",
     "unify_narrative": "single_cross_provider_narrative_judge_claude_base_recalibrated",
     "ibm_narrative": "single_cross_provider_narrative_judge_claude_base_recalibrated",
     "insurtech_narrative": "single_cross_provider_narrative_judge_claude_base_recalibrated",
-    "ey_narrative": "single_cross_provider_narrative_judge_claude_base_recalibrated",
     "headline": "dual_cross_provider_panel_claude_base_recalibrated",
     "executive_summary": "dual_cross_provider_panel_claude_base_recalibrated",
     "final_aggregate_resume": "dual_cross_provider_panel_claude_base_recalibrated",

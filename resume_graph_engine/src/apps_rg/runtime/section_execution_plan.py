@@ -43,7 +43,6 @@ BULLET_LANES: Final[tuple[str, ...]] = (
     "unify_bullets",
     "ibm_bullets",
     "insurtech_bullets",
-    "ey_bullets",
 )
 
 NARRATIVE_LANES: Final[tuple[str, ...]] = (
@@ -51,7 +50,6 @@ NARRATIVE_LANES: Final[tuple[str, ...]] = (
     "unify_narrative",
     "ibm_narrative",
     "insurtech_narrative",
-    "ey_narrative",
 )
 
 NARRATIVE_UPSTREAM_BULLET_LANE: Final[dict[str, str]] = {
@@ -59,7 +57,6 @@ NARRATIVE_UPSTREAM_BULLET_LANE: Final[dict[str, str]] = {
     "unify_narrative": "unify_bullets",
     "ibm_narrative": "ibm_bullets",
     "insurtech_narrative": "insurtech_bullets",
-    "ey_narrative": "ey_bullets",
 }
 
 SECTION_EXECUTION_POLICIES: Final[dict[str, SectionExecutionPolicy]] = {
@@ -116,17 +113,6 @@ SECTION_EXECUTION_POLICIES: Final[dict[str, SectionExecutionPolicy]] = {
         composite_judge_default=True,
         optional_adjudicator=True,
     ),
-    "ey_bullets": SectionExecutionPolicy(
-        section_id="ey_bullets",
-        execution_order=50,
-        dependency_level="upstream_proof",
-        reasoning_intensity="medium",
-        sc_paths=DEFAULT_ACTIVE_SC_PATHS,
-        attempts=MAX_SECTION_ATTEMPTS,
-        mode="role_episode_bullet_generation",
-        composite_judge_default=True,
-        optional_adjudicator=True,
-    ),
     "slalom_narrative": SectionExecutionPolicy(
         section_id="slalom_narrative",
         execution_order=55,
@@ -166,16 +152,6 @@ SECTION_EXECUTION_POLICIES: Final[dict[str, SectionExecutionPolicy]] = {
         attempts=MAX_SECTION_ATTEMPTS,
         mode="upstream_bullet_narrative",
         dependencies=("insurtech_bullets",),
-    ),
-    "ey_narrative": SectionExecutionPolicy(
-        section_id="ey_narrative",
-        execution_order=90,
-        dependency_level="consumes_ey_bullets",
-        reasoning_intensity="medium",
-        sc_paths=DEFAULT_ACTIVE_SC_PATHS,
-        attempts=MAX_SECTION_ATTEMPTS,
-        mode="upstream_bullet_narrative",
-        dependencies=("ey_bullets",),
     ),
     "executive_summary": SectionExecutionPolicy(
         section_id="executive_summary",

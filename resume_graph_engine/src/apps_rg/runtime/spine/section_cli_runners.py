@@ -987,8 +987,6 @@ def _run_section_role_episode_spine(
         "ibm_narrative_cli_output_text": "",
         "insurtech_bullets_cli_output_text": "",
         "insurtech_narrative_cli_output_text": "",
-        "ey_bullets_cli_output_text": "",
-        "ey_narrative_cli_output_text": "",
     }
     out[output_field] = str(ctx.get("output_text") or "")
     return out
@@ -1035,8 +1033,6 @@ SECTION_LANE_RUNNERS: dict[str, Any] = {
     "ibm_narrative": run_section_ibm_narrative_spine,
     "insurtech_bullets": run_section_insurtech_bullets_spine,
     "insurtech_narrative": run_section_insurtech_narrative_spine,
-    "ey_bullets": run_section_ey_bullets_spine,
-    "ey_narrative": run_section_ey_narrative_spine,
     "competencies": run_section_competencies_spine,
 }
 

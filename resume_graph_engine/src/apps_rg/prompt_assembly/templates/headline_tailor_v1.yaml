@@ -30,7 +30,7 @@ slot_bodies:
     Format: SVP Engineering | X | Y | Z — three non-overlapping executive phrases. Each of X, Y, Z MUST
     be 3 words (4 only when a 4-word phrase reads cleaner and total stays ≤13). Two-word segments are
     NEVER acceptable: the overall headline word_count MUST land in 10-13 inclusive (SVP Engineering = 2
-    words + 8-11 words across X/Y/Z). If a draft segment is 2 words, expand it with ONE specific modifier
+    words, leaving 8 through 11 words total across X/Y/Z). If a draft segment is 2 words, expand it with ONE specific modifier
     drawn from its cited fact's claim_text before emitting (NOT a generic framing noun -- segments built
     only of generic stoplist words are rejected as ungrounded by the literal-grounding floor).
     Every segment (including segment 4 / Z) MUST include an executive operating pattern or terminate in an

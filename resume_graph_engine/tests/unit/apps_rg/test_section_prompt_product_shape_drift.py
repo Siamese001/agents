@@ -97,8 +97,8 @@ def test_headline_word_band_ssot() -> None:
     assert f"{HEADLINE_WORD_MIN}-{HEADLINE_WORD_MAX}" in shape.shape_summary
 
 
-@pytest.mark.parametrize("lane", ["insurtech_bullets", "ey_bullets"])
-def test_role_episode_bullet_prompts_require_unique_source_fact_ids(lane: str) -> None:
+@pytest.mark.parametrize("lane,expected_count", [("slalom_bullets", 4), ("insurtech_bullets", 2)])
+def test_role_episode_bullet_prompts_require_unique_source_fact_ids(lane: str, expected_count: int) -> None:
     from apps_rg.runtime.sections.section_prompt_authority_ssot import (
         collect_executable_prompt_corpus,
     )
@@ -107,7 +107,7 @@ def test_role_episode_bullet_prompts_require_unique_source_fact_ids(lane: str) -
     block = " ".join((shape.shape_summary, *shape.compile_hints))
     corpus = collect_executable_prompt_corpus(lane)
 
-    assert "3 unique source_fact_ids" in block
+    assert f"{expected_count} unique source_fact_ids" in block
     assert "duplicate selections are not a pass" in block
     assert "unique_source_fact_ids_required" in corpus
     assert "one final bullet per proof fact" in corpus
