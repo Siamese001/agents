@@ -94,7 +94,7 @@ profiles:
       ibm_bullets: low
       insurtech_bullets: low
       headline: low
-      executive_summary: medium
+      executive_summary: low
     endpoint_env_var: APPS_RG_EXTERNAL_CLAUDE_BASE_URL
     api_key_env_var: ANTHROPIC_API_KEY
     capabilities:
