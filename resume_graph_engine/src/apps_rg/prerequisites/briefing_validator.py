@@ -1015,7 +1015,7 @@ def _validate_v2_handoff(
     repo_root = Path(__file__).resolve().parents[3]
     policy_path = repo_root / "config/certification/apps_research_rg_e2e_authority_contract.v1.json"
     bp = repo_root.parent / "apps_research/config/domain_contract/runtime_customization_package.company_brief.v1.json"
-    blueprint_path = bp if bp.is_file() else repo_root / "src/apps_research/config/domain_contract/runtime_customization_package.company_brief.v1.json"
+    blueprint_path = bp if bp.is_file() else repo_root / "apps_research/config/domain_contract/runtime_customization_package.company_brief.v1.json"
     expected_policy = _sha256_bytes(policy_path.read_bytes())
     expected_blueprint = _sha256_bytes(blueprint_path.read_bytes())
     if identity.get("policy_hash") != expected_policy:
