@@ -414,189 +414,130 @@ def assemble_final_resume(
 
 
     assemble_idx = 0
-
     for sid in CANONICAL_ASSEMBLED_SECTION_ORDER:
-
         if sid in GENERATED_LANE_IDS:
-
             lane = lanes.get(sid)
-
             gap_reason: str | None = None
-
             run_dir: Path | None = None
-
             l2_path: Path | None = None
-
-            if not isinstance(lane, dict):
-
+            is_consolidated = sid in ("ey_narrative", "ey_bullets") and not isinstance(lane, dict)
+            if is_consolidated:
+                snapshot = {
+                    "runtime_generation_status": "CONSOLIDATED",
+                    "consolidated_into": "early_career",
+                    "section_id": sid,
+                    "resume_graph_allocation_plan_digest": str(
+                        rollup_blob.get("resume_graph_allocation_plan_digest") or ""
+                    ),
+                    "claim_ledger": [],
+                    "graph_claim_bindings": [],
+                }
+                sec_hash = sha256_utf8(canonical_json_sorted(snapshot))
+                section_digest = sha256_utf8(f"{sid}:consolidated_into_early_career")
+                source_refs = {
+                    "generated_lane_rollup_json": rollup_rel,
+                    "consolidated_into": "early_career",
+                }
+                disp_gen = {
+                    "rollup_lane_key": str(sid),
+                    "runtime_generation_status": "CONSOLIDATED",
+                    "consolidated_into": "early_career",
+                    "assembly_gap": False,
+                }
+                omitted_projection_paths = []
+            elif not isinstance(lane, dict):
                 gap_reason = f"rollup missing lane {sid}"
-
             else:
-
                 rd = lane.get("latest_successful_real_artifact_path") or lane.get("rollup_source_run_dir")
-
                 if not isinstance(rd, str) or not rd.strip():
-
                     gap_reason = f"lane {sid} missing latest_successful_real_artifact_path"
-
                 else:
-
                     run_dir = _resolved_run_dir(repo, rd)
-
                     l2_path = run_dir / "l2_output.json"
-
                     if not l2_path.is_file():
-
                         gap_reason = f"lane {sid} missing l2_output.json"
 
-            if gap_reason:
-
-                snapshot = _generated_lane_assembly_gap_snapshot(sid, gap_reason)
-
-                sec_hash = sha256_utf8(canonical_json_sorted(snapshot))
-
-                section_digest = sha256_utf8(gap_reason)
-
-                source_refs = {
-
-                    "generated_lane_rollup_json": rollup_rel,
-
-                    "assembly_gap_reason": gap_reason,
-
-                }
-
-                disp_gen = {
-
-                    "rollup_lane_key": str(sid),
-
-                    "assembly_gap": True,
-
-                    "assembly_gap_reason": gap_reason,
-
-                }
-
-            else:
-
-                assert run_dir is not None and l2_path is not None and isinstance(lane, dict)
-
-                source_l2 = json.loads(l2_path.read_text(encoding="utf-8"))
-
-                binding_contract = None
-                binding_ref = str(
-                    source_l2.get("graph_claim_bindings_ref") or ""
-                ).strip()
-                if binding_ref:
-                    if Path(binding_ref).name != binding_ref:
-                        raise ValueError(
-                            f"lane {sid} graph binding ref must be a local filename"
-                        )
-                    binding_path = run_dir / binding_ref
-                    binding_contract = json.loads(
-                        binding_path.read_text(encoding="utf-8")
+            if not is_consolidated:
+                if gap_reason:
+                    snapshot = _generated_lane_assembly_gap_snapshot(sid, gap_reason)
+                    sec_hash = sha256_utf8(canonical_json_sorted(snapshot))
+                    section_digest = sha256_utf8(gap_reason)
+                    source_refs = {
+                        "generated_lane_rollup_json": rollup_rel,
+                        "assembly_gap_reason": gap_reason,
+                    }
+                    disp_gen = {
+                        "rollup_lane_key": str(sid),
+                        "assembly_gap": True,
+                        "assembly_gap_reason": gap_reason,
+                    }
+                else:
+                    assert run_dir is not None and l2_path is not None and isinstance(lane, dict)
+                    source_l2 = json.loads(l2_path.read_text(encoding="utf-8"))
+                    binding_contract = None
+                    binding_ref = str(source_l2.get("graph_claim_bindings_ref") or "").strip()
+                    if binding_ref:
+                        if Path(binding_ref).name != binding_ref:
+                            raise ValueError(f"lane {sid} graph binding ref must be a local filename")
+                        binding_path = run_dir / binding_ref
+                        binding_contract = json.loads(binding_path.read_text(encoding="utf-8"))
+                    snapshot = project_l2_output_for_final_resume(
+                        source_l2,
+                        graph_claim_binding_contract=binding_contract,
                     )
-
-                snapshot = project_l2_output_for_final_resume(
-                    source_l2,
-                    graph_claim_binding_contract=binding_contract,
-                )
-
-                omitted_projection_paths = omitted_l2_projection_paths(source_l2)
-
-                sec_hash = sha256_utf8(canonical_json_sorted(snapshot))
-
-                section_digest = _sha256_file_digest(l2_path)
-
-            raw_refs = (lane or {}).get("artifact_refs") or {}
-
-            if not isinstance(raw_refs, dict):
-
-                raw_refs = {}
-
-            if not gap_reason:
-
-                source_refs = build_extended_source_artifact_refs(
-
-                    repo,
-
-                    run_dir=run_dir,
-
-                    rollup_refs={str(k): str(v) for k, v in raw_refs.items() if v},
-
-                    rollup_json_rel=rollup_rel,
-
-                )
-
-                x3_disp = source_refs.get("x3_disposition.json") or paths.rel(run_dir / "x3_disposition.json")
-                final_contract_ref = source_refs.get(
-                    FINAL_MATERIALIZED_ACCEPTANCE_CONTRACT
-                ) or paths.rel(run_dir / FINAL_MATERIALIZED_ACCEPTANCE_CONTRACT)
-
-                disp_gen = {
-
-                    "rollup_lane_key": str(sid),
-
-                    "accepted_real_evidence_resolution": str(
-
-                        lane.get("accepted_real_evidence_resolution") or "",
-
-                    ),
-
-                    "latest_successful_real_artifact_dir": paths.rel(run_dir),
-
-                    "x3_disposition_json": x3_disp,
-
-                    "final_materialized_acceptance_contract_json": final_contract_ref,
-
-                    "rollup_artifact_refs": {
-
-                        k: v for k, v in source_refs.items() if k != "generated_lane_rollup_json"
-
-                    },
-
-                }
-
-                canon_path = run_dir / "canonical_claim_ledger_v2.json"
-
-                if canon_path.is_file():
-
-                    per_lane_claim_ledger_digests[sid] = _sha256_file_digest(canon_path)
-
-                elif (run_dir / "claim_ledger.json").is_file():
-
-                    per_lane_claim_ledger_digests[sid] = _sha256_file_digest(run_dir / "claim_ledger.json")
-
-
+                    omitted_projection_paths = omitted_l2_projection_paths(source_l2)
+                    sec_hash = sha256_utf8(canonical_json_sorted(snapshot))
+                    section_digest = _sha256_file_digest(l2_path)
+                    raw_refs = (lane or {}).get("artifact_refs") or {}
+                    if not isinstance(raw_refs, dict):
+                        raw_refs = {}
+                    source_refs = build_extended_source_artifact_refs(
+                        repo,
+                        run_dir=run_dir,
+                        rollup_refs={str(k): str(v) for k, v in raw_refs.items() if v},
+                        rollup_json_rel=rollup_rel,
+                    )
+                    x3_disp = source_refs.get("x3_disposition.json") or paths.rel(run_dir / "x3_disposition.json")
+                    final_contract_ref = source_refs.get(
+                        FINAL_MATERIALIZED_ACCEPTANCE_CONTRACT
+                    ) or paths.rel(run_dir / FINAL_MATERIALIZED_ACCEPTANCE_CONTRACT)
+                    disp_gen = {
+                        "rollup_lane_key": str(sid),
+                        "accepted_real_evidence_resolution": str(
+                            lane.get("accepted_real_evidence_resolution") or ""
+                        ),
+                        "latest_successful_real_artifact_dir": paths.rel(run_dir),
+                        "x3_disposition_json": x3_disp,
+                        "final_materialized_acceptance_contract_json": final_contract_ref,
+                        "rollup_artifact_refs": {
+                            k: v for k, v in source_refs.items() if k != "generated_lane_rollup_json"
+                        },
+                    }
+                    canon_path = run_dir / "canonical_claim_ledger_v2.json"
+                    if canon_path.is_file():
+                        per_lane_claim_ledger_digests[sid] = _sha256_file_digest(canon_path)
+                    elif (run_dir / "claim_ledger.json").is_file():
+                        per_lane_claim_ledger_digests[sid] = _sha256_file_digest(run_dir / "claim_ledger.json")
 
             sections_out.append(
-
                 {
-
                     "assemble_order": assemble_idx,
-
                     "section_id": sid,
-
                     "section_kind": "generated_lane",
-
                     "l2_output_snapshot": snapshot,
-
                     "l2_output_snapshot_schema": (
-                        L2_SNAPSHOT_PROJECTION_SCHEMA if not gap_reason else "assembly_gap_v1"
+                        "consolidated_v1" if is_consolidated else (
+                            L2_SNAPSHOT_PROJECTION_SCHEMA if not gap_reason else "assembly_gap_v1"
+                        )
                     ),
-
                     "l2_output_omitted_paths": (
-                        omitted_projection_paths if not gap_reason else []
+                        omitted_projection_paths if (is_consolidated or not gap_reason) else []
                     ),
-
                     "section_hash": sec_hash,
-
                     "section_digest": section_digest,
-
                     "source_artifact_refs": source_refs,
-
                     "disposition_refs": {"generated_lane": disp_gen},
-
                 },
-
             )
 
         elif sid in LOCKED_EMBEDDED_ORDER_IDS:
