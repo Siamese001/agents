@@ -157,7 +157,7 @@ def test_preflight_blocks_failed_final_materialized_contract(tmp_path: Path) -> 
             "x2_source_fact_pool_receipt.json",
         ):
             (run_dir / name).write_text("{}", encoding="utf-8")
-        _write_final_materialized_contract(run_dir, lane, pass_=lane != "ey_bullets")
+        _write_final_materialized_contract(run_dir, lane, pass_=lane != "insurtech_bullets")
         lanes[lane] = {
             "latest_successful_real_artifact_path": rel,
             "x2_failed": 0,
@@ -188,7 +188,7 @@ def test_preflight_blocks_failed_final_materialized_contract(tmp_path: Path) -> 
         r for r in results if r.gate_id == "x2_preflight_final_materialized_acceptance_contracts_pass"
     )
     assert gate.pass_ is False
-    assert gate.observed == ["ey_bullets:final_materialized_acceptance_contract_failed"]
+    assert gate.observed == ["insurtech_bullets:final_materialized_acceptance_contract_failed"]
 
 
 def test_preflight_blocks_pass_true_contract_without_x2_binding_proof(tmp_path: Path) -> None:

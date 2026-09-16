@@ -104,18 +104,74 @@ def _label(row: Mapping[str, Any], node: Mapping[str, Any]) -> str:
     raise SkillAssertionCorpusError("skill assertion has no semantic label")
 
 
+_DISCLAIMERS = [
+    re.compile(
+        r";?\s*this structural support does not independently authorize identity claims\.?",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r";?\s*this taxonomy relationship scopes chronology and is not independent claim proof\.?",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r";?\s*this pillar is a taxonomy boundary; external claims still require linked evidence authority\.?",
+        re.IGNORECASE,
+    ),
+]
+
+_METRIC_PATTERNS = [
+    re.compile(r"\$[\d,.]+[BMKbmk]?"),
+    re.compile(r"\b\d+(?:\.\d+)?%"),
+    re.compile(r"\b\d+\s+to\s+\d+\b"),
+    re.compile(r"\b\d+x\b", re.IGNORECASE),
+]
+
+
+def _clean_search_text(text: str) -> str:
+    cleaned = text
+    for pattern in _DISCLAIMERS:
+        cleaned = pattern.sub("", cleaned)
+    return re.sub(r"\s+", " ", cleaned).strip(" ;.")
+
+
+def _extract_metrics(texts: Iterable[str]) -> list[str]:
+    found: set[str] = set()
+    for text in texts:
+        if not text:
+            continue
+        for pattern in _METRIC_PATTERNS:
+            for match in pattern.findall(str(text)):
+                cleaned = match.strip()
+                if cleaned:
+                    found.add(cleaned)
+    return sorted(found)
+
+
 def _embedding_text(semantic_card: Mapping[str, Any]) -> str:
+    cleaned_desc = _clean_search_text(str(semantic_card.get("description") or ""))
+    cleaned_summaries = [
+        _clean_search_text(s) for s in semantic_card.get("evidence_summaries") or []
+    ]
+    cleaned_summaries = [s for s in cleaned_summaries if s]
+
     fields = [
         f"Skill: {semantic_card['label']}",
         f"Capability: {semantic_card['capability']}",
-        f"Description: {semantic_card['description']}",
-        f"Allowed phrases: {'; '.join(semantic_card['allowed_phrases'])}",
-        f"Pillar: {semantic_card['pillar']}",
-        f"Domain: {semantic_card['domain_id']}",
-        f"Career epoch: {semantic_card['career_epoch']}",
-        f"Career track: {semantic_card['career_track_id']}",
-        f"Evidence: {'; '.join(semantic_card['evidence_summaries'])}",
+        f"Description: {cleaned_desc}",
+        f"Allowed phrases: {'; '.join(semantic_card.get('allowed_phrases') or [])}",
     ]
+    metrics = semantic_card.get("quantified_metrics")
+    if metrics:
+        fields.append(f"Metrics: {'; '.join(metrics)}")
+    fields.extend(
+        [
+            f"Pillar: {semantic_card['pillar']}",
+            f"Domain: {semantic_card['domain_id']}",
+            f"Career epoch: {semantic_card['career_epoch']}",
+            f"Career track: {semantic_card['career_track_id']}",
+            f"Evidence: {'; '.join(cleaned_summaries)}",
+        ]
+    )
     return "\n".join(fields)
 
 
