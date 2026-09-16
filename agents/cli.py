@@ -177,6 +177,21 @@ def run_e2e(args: argparse.Namespace) -> int:
         emitter=emitter,
     )
 
+    from concurrent.futures import Future, ThreadPoolExecutor
+
+    prewarm_executor: ThreadPoolExecutor | None = None
+    prewarm_future: Future[None] | None = None
+    if not args.skip_resume and research_enabled:
+        def _prewarm_resume() -> None:
+            try:
+                import apps_rg
+                import apps_rg.__main__
+            except Exception:
+                pass
+
+        prewarm_executor = ThreadPoolExecutor(max_workers=1)
+        prewarm_future = prewarm_executor.submit(_prewarm_resume)
+
     def _stage_research(ctx: dict[str, Any]) -> dict[str, Any]:
         if not research_enabled:
             if not args.json:
@@ -221,6 +236,15 @@ def run_e2e(args: argparse.Namespace) -> int:
 
         if not args.json:
             print("\n>>> [Stage 2/4] Tailoring Executive Resume via Resume Graph Engine (apps_rg)...")
+
+        if prewarm_future is not None:
+            try:
+                prewarm_future.result(timeout=2.0)
+            except Exception:
+                pass
+            if prewarm_executor is not None:
+                prewarm_executor.shutdown(wait=False)
+
         from apps_rg.__main__ import main as resume_main
 
         resume_args = [

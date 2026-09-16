@@ -94,6 +94,14 @@ def audit_production_file(file_path: Path, repo_root: Path) -> list[str]:
     except Exception as exc:
         return [f"{rel_str}: Failed to read file: {exc}"]
 
+    # Fast pre-check: if file does not contain mock keywords or forbidden endpoints, skip parsing
+    if (
+        "mocked" not in content
+        and "sk-local-dev-key" not in content
+        and "localhost:8000" not in content
+    ):
+        return []
+
     lines = content.splitlines()
     for idx, line in enumerate(lines, start=1):
         stripped = line.strip()

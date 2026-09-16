@@ -35,7 +35,7 @@ class SqliteStateRepository(StateRepository):
         self.db_path = str(db_path)
         self._conn = sqlite3.connect(self.db_path, check_same_thread=False)
         self._conn.row_factory = sqlite3.Row
-        initialize_schema(self._conn)
+        initialize_schema(self._conn, self.db_path)
 
     def close(self) -> None:
         """Close SQLite database connection."""

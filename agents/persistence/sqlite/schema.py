@@ -59,10 +59,29 @@ CREATE INDEX IF NOT EXISTS idx_events_run ON agent_events(run_id, sequence);
 """
 
 
-def initialize_schema(conn: sqlite3.Connection) -> None:
-    """Initialize database tables and indexes."""
+def tune_connection_pragmas(conn: sqlite3.Connection, db_path: str = "") -> None:
+    """Configure high-performance SQLite pragmas (WAL, NORMAL sync, memory cache, busy timeout)."""
+    try:
+        if db_path and db_path != ":memory:":
+            conn.execute("PRAGMA journal_mode = WAL;")
+            conn.execute("PRAGMA synchronous = NORMAL;")
+            conn.execute("PRAGMA cache_size = -32000;")
+            conn.execute("PRAGMA temp_store = MEMORY;")
+            conn.execute("PRAGMA busy_timeout = 5000;")
+        else:
+            conn.execute("PRAGMA synchronous = OFF;")
+            conn.execute("PRAGMA temp_store = MEMORY;")
+            conn.execute("PRAGMA busy_timeout = 5000;")
+    except Exception:
+        pass
+
+
+def initialize_schema(conn: sqlite3.Connection, db_path: str = "") -> None:
+    """Initialize database tables, indexes, and performance pragmas."""
+    tune_connection_pragmas(conn, db_path)
     with conn:
         conn.execute(CREATE_STATE_TABLE)
         conn.execute(CREATE_CHECKPOINTS_TABLE)
         conn.execute(CREATE_EVENTS_TABLE)
         conn.executescript(CREATE_INDEXES)
+

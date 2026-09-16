@@ -69,6 +69,8 @@ class ModelCapabilityGateway:
                 output_tokens=response.output_tokens or max(1, len(response.content) // 4),
                 latency_ms=elapsed_ms,
                 error_message=response.error_message,
+                batch_id=request.batch_id or response.batch_id,
+                correlation_id=request.correlation_id or response.correlation_id,
             )
         except Exception as exc:
             elapsed_ms = (time.perf_counter() - start_time) * 1000.0
@@ -81,7 +83,50 @@ class ModelCapabilityGateway:
                 output_tokens=0,
                 latency_ms=elapsed_ms,
                 error_message=str(exc),
+                batch_id=request.batch_id,
+                correlation_id=request.correlation_id,
             )
+
+    def execute_batch(
+        self,
+        requests: Sequence[CapabilityRequest],
+        max_workers: int = 4,
+        batch_id: str | None = None,
+    ) -> list[CapabilityResponse]:
+        """Dispatch a sequence of capability requests concurrently across a thread pool."""
+        if not requests:
+            return []
+
+        if batch_id:
+            import dataclasses
+            requests = [
+                dataclasses.replace(req, batch_id=req.batch_id or batch_id)
+                for req in requests
+            ]
+
+        if len(requests) == 1:
+            return [self.execute(requests[0])]
+
+        from concurrent.futures import ThreadPoolExecutor
+
+        workers = min(max_workers, len(requests))
+        with ThreadPoolExecutor(max_workers=workers) as executor:
+            return list(executor.map(self.execute, requests))
+
+    async def async_execute(self, request: CapabilityRequest) -> CapabilityResponse:
+        """Asynchronously dispatch capability request non-blockingly."""
+        import asyncio
+        return await asyncio.to_thread(self.execute, request)
+
+    async def async_execute_batch(
+        self,
+        requests: Sequence[CapabilityRequest],
+        max_workers: int = 4,
+        batch_id: str | None = None,
+    ) -> list[CapabilityResponse]:
+        """Asynchronously dispatch batch of capability requests."""
+        import asyncio
+        return await asyncio.to_thread(self.execute_batch, requests, max_workers=max_workers, batch_id=batch_id)
 
     @staticmethod
     def _default_adapter(request: CapabilityRequest) -> CapabilityResponse:
@@ -101,3 +146,4 @@ __all__ = [
     "GatewayPreCommitValidationError",
     "ModelCapabilityGateway",
 ]
+

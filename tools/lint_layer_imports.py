@@ -80,6 +80,8 @@ def is_production_path(path: Path | str, repo_root: Path) -> bool:
 def check_file_layer_imports(
     file_path: Path,
     repo_root: Path,
+    tree: ast.AST | None = None,
+    lines: list[str] | None = None,
 ) -> list[tuple[int, str, str]]:
     """Inspect Python file AST for layer boundary violations.
 
@@ -89,13 +91,15 @@ def check_file_layer_imports(
     if not file_path.exists() or not is_production_path(file_path, repo_root):
         return []
 
-    lines = file_path.read_text(encoding="utf-8", errors="replace").splitlines()
+    if lines is None:
+        lines = file_path.read_text(encoding="utf-8", errors="replace").splitlines()
     violations: list[tuple[int, str, str]] = []
 
-    try:
-        tree = ast.parse("\n".join(lines), filename=str(file_path))
-    except SyntaxError:
-        return []
+    if tree is None:
+        try:
+            tree = ast.parse("\n".join(lines), filename=str(file_path))
+        except SyntaxError:
+            return []
 
     for node in ast.walk(tree):
         imported_names = []

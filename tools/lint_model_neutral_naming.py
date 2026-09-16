@@ -153,6 +153,8 @@ def is_production_file(path: Path, repo_root: Path) -> bool:
 def check_file_model_neutrality(
     file_path: Path,
     repo_root: Path,
+    tree: ast.AST | None = None,
+    lines: list[str] | None = None,
 ) -> list[tuple[int, str, str]]:
     """Scan a Python file for hardcoded model literals and filename branding."""
     if not file_path.exists() or not is_production_file(file_path, repo_root):
@@ -173,12 +175,14 @@ def check_file_model_neutrality(
     if any(file_path.name == b or file_path.name.endswith(b) for b in CANONICAL_MODEL_CATALOG_FILES):
         return violations
 
-    lines = file_path.read_text(encoding="utf-8", errors="replace").splitlines()
+    if lines is None:
+        lines = file_path.read_text(encoding="utf-8", errors="replace").splitlines()
 
-    try:
-        tree = ast.parse("\n".join(lines), filename=str(file_path))
-    except SyntaxError:
-        return violations
+    if tree is None:
+        try:
+            tree = ast.parse("\n".join(lines), filename=str(file_path))
+        except SyntaxError:
+            return violations
 
     for node in ast.walk(tree):
         if isinstance(node, ast.Constant) and isinstance(node.value, str):

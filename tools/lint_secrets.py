@@ -55,6 +55,20 @@ DUMMY_SECRET_MARKERS: tuple[str, ...] = (
 )
 
 
+FAST_SECRET_TRIGGERS: tuple[str, ...] = (
+    "private key",
+    "akia",
+    "sk-",
+    "ghp_",
+    "github_pat_",
+    "api_key",
+    "apikey",
+    "secret_key",
+    "auth_token",
+    "access_token",
+)
+
+
 def is_shannon_entropy_high(s: str, threshold: float = 3.5) -> bool:
     """Calculate Shannon entropy to filter low-entropy strings."""
     if not s or len(s) < 16:
@@ -78,9 +92,13 @@ def check_file_for_secrets(file_path: Path, repo_root: Path) -> list[tuple[int, 
     if not file_path.exists() or file_path.is_dir():
         return []
 
+    # Fast relative path calculation
     try:
-        rel = str(file_path.resolve().relative_to(repo_root.resolve())).replace("\\", "/")
-    except ValueError:
+        rel = file_path.as_posix()
+        root_posix = repo_root.as_posix()
+        if rel.startswith(root_posix):
+            rel = rel[len(root_posix):].lstrip("/")
+    except Exception:
         rel = str(file_path)
 
     if any(part in rel.split("/") for part in EXCLUDED_DIR_PARTS):
@@ -90,15 +108,24 @@ def check_file_for_secrets(file_path: Path, repo_root: Path) -> list[tuple[int, 
         return []
 
     try:
-        lines = file_path.read_text(encoding="utf-8", errors="replace").splitlines()
+        content = file_path.read_text(encoding="utf-8", errors="replace")
     except Exception:
         return []
 
+    content_lower = content.lower()
+    if not any(trigger in content_lower for trigger in FAST_SECRET_TRIGGERS):
+        return []
+
+    lines = content.splitlines()
     violations: list[tuple[int, str, str]] = []
 
     for idx, line in enumerate(lines, start=1):
         # Check for inline exemption
         if "# allow-secret" in line or "# pragma: allow-secret" in line or "guardian: allow-secret" in line:
+            continue
+
+        line_lower = line.lower()
+        if not any(trigger in line_lower for trigger in FAST_SECRET_TRIGGERS):
             continue
 
         for secret_name, pattern in SECRET_PATTERNS:
@@ -134,18 +161,35 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.files:
         files_to_scan = [Path(f) if Path(f).is_absolute() else repo_root / f for f in args.files]
     else:
-        # Scan source files and config files
-        files_to_scan = []
-        for ext in ("*.py", "*.json", "*.yaml", "*.yml", "*.sh"):
-            for f in repo_root.rglob(ext):
-                files_to_scan.append(f)
+        # Scan source files and config files with fast pruned os.walk
+        import os
+        from concurrent.futures import ThreadPoolExecutor
 
-    for f in files_to_scan:
-        if f.is_file():
-            v = check_file_for_secrets(f, repo_root)
-            for lineno, stype, msg in v:
-                rel = str(f.relative_to(repo_root)) if f.is_relative_to(repo_root) else str(f)
-                violations.append((rel, lineno, stype, msg))
+        files_to_scan = []
+        excluded_parts_set = set(EXCLUDED_DIR_PARTS)
+        for root, dirs, files_in_dir in os.walk(repo_root):
+            dirs[:] = [d for d in dirs if d not in excluded_parts_set]
+            for f in files_in_dir:
+                ext = Path(f).suffix.lower()
+                if ext in (".py", ".json", ".yaml", ".yml", ".sh"):
+                    files_to_scan.append(Path(root) / f)
+
+    def scan_one(f: Path) -> list[tuple[str, int, str, str]]:
+        if not f.is_file():
+            return []
+        v = check_file_for_secrets(f, repo_root)
+        try:
+            rel = str(f.relative_to(repo_root))
+        except ValueError:
+            rel = str(f)
+        return [(rel, lineno, stype, msg) for lineno, stype, msg in v]
+
+    import os
+    from concurrent.futures import ThreadPoolExecutor
+    with ThreadPoolExecutor(max_workers=min(8, os.cpu_count() or 4)) as executor:
+        results = executor.map(scan_one, files_to_scan)
+        for res in results:
+            violations.extend(res)
 
     if violations:
         print(f"[FAIL] Secrets detected ({len(violations)} occurrences):", file=sys.stderr)
