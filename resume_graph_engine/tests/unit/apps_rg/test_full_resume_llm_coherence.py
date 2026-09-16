@@ -7,6 +7,8 @@ from pathlib import Path
 
 from apps_rg.runtime.assembly.final_resume_x2 import gate_x2_full_resume_llm_coherence_aggregation
 from apps_rg.runtime.assembly.full_resume_llm_coherence import (
+    FULL_RESUME_COHERENCE_RUBRIC_VERSION,
+    LENS_DEFINITIONS,
     aggregate_full_resume_coherence,
     build_full_resume_evidence_packet,
     emit_full_resume_llm_coherence_review,
@@ -470,3 +472,4 @@ def test_candidate_evidence_packet_preserves_unique_metric_authority_without_dia
     assert "CANDIDATE_EVIDENCE_PACKET (candidate proof)" in prompt
     assert "TARGETING_CONTEXT (not proof)" in prompt
     assert "surface-text repetition is not required" in prompt
+

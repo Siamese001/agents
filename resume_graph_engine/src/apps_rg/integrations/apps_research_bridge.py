@@ -50,52 +50,60 @@ class ResearchResult:
     apps_research_u0_receipt: dict[str, Any] | None = None
 
 
+_CANONICAL_TARGETING_BRIEF_CACHE: dict[tuple[str, str], tuple[str, str]] = {}
+
+
+def clear_canonical_targeting_brief_cache() -> None:
+    """Clear canonical targeting brief cache for tests or hot reload."""
+    _CANONICAL_TARGETING_BRIEF_CACHE.clear()
+
+
 def _resolve_canonical_targeting_brief(
     *,
     company_name: str,
     job_title: str = "",
 ) -> tuple[str, str]:
-    """Find and load the canonical targeting brief matching company/role, if present.
+    """Find and load the canonical targeting brief matching company/role, if present."""
+    company_norm = re.sub(r"[^a-z0-9]+", "_", company_name.lower()).strip("_")
+    role_norm = re.sub(r"[^a-z0-9]+", "_", job_title.lower()).strip("_")
+    cache_key = (company_norm, role_norm)
+    if cache_key in _CANONICAL_TARGETING_BRIEF_CACHE:
+        return _CANONICAL_TARGETING_BRIEF_CACHE[cache_key]
 
-    Returns (brief_text, brief_path_str) or ("", "").
-    """
     targeting_dir = Path(__file__).resolve().parent.parent / "config" / "targeting"
     if not targeting_dir.is_dir():
         return "", ""
 
-    company_norm = re.sub(r"[^a-z0-9]+", "_", company_name.lower()).strip("_")
-    role_norm = re.sub(r"[^a-z0-9]+", "_", job_title.lower()).strip("_")
     candidates = sorted(targeting_dir.glob("*_briefing.md"))
 
     def _load(path: Path) -> tuple[str, str]:
         try:
             content = path.read_text(encoding="utf-8").strip()
             if content:
-                from apps_research.types.apps_rg_targeting_brief_contract import (
-                    normalize_targeting_brief_text,
-                )
+                from apps_research.types.apps_rg_targeting_brief_contract import normalize_targeting_brief_text
                 return normalize_targeting_brief_text(content, profile="apps_rg"), str(path)
         except OSError:
             pass
         return "", ""
 
-    # Priority 1: Exact company + role match
     role_tokens = [tok for tok in role_norm.split("_") if len(tok) > 3]
     for candidate in candidates:
         stem = candidate.stem.lower()
         if company_norm in stem and any(tok in stem for tok in role_tokens):
             brief, path_str = _load(candidate)
             if brief:
+                _CANONICAL_TARGETING_BRIEF_CACHE[cache_key] = (brief, path_str)
                 return brief, path_str
 
-    # Priority 2: Company match
     for candidate in candidates:
         stem = candidate.stem.lower()
         if company_norm and company_norm in stem:
             brief, path_str = _load(candidate)
             if brief:
+                _CANONICAL_TARGETING_BRIEF_CACHE[cache_key] = (brief, path_str)
                 return brief, path_str
 
+    _CANONICAL_TARGETING_BRIEF_CACHE[cache_key] = ("", "")
     return "", ""
 
 
@@ -116,37 +124,24 @@ def _build_canonical_sidecar(
         _sha256_json,
     )
 
-    gen_pin = company_brief_generation_pin()
-    judge_pin = apps_rg_handoff_judge_pin()
+    gen_pin, judge_pin = company_brief_generation_pin(), apps_rg_handoff_judge_pin()
     normalized = str(brief_text or "").strip()
     brief_sha = hashlib.sha256(normalized.encode("utf-8")).hexdigest()
 
     def _make_evidence(pin: Any, suffix: str) -> dict[str, Any]:
         req_digest = hashlib.sha256(f"req-{suffix}-{brief_sha[:16]}".encode("utf-8")).hexdigest()
         attempt_id = f"attempt-{suffix}-{run_id[:8]}"
-        logical_attempt_id = f"{run_id}:logical:{suffix}"
-        transport_attempt_id = f"{run_id}:logical:{suffix}:transport:1"
+        logical_attempt_id, transport_attempt_id = f"{run_id}:logical:{suffix}", f"{run_id}:logical:{suffix}:transport:1"
 
         event_body = {
             "schema_version": "apps_model_telemetry.external_model_usage.v1",
-            "gateway_id": GATEWAY_ID,
-            "provider_role": pin.role,
-            "provider": pin.provider,
-            "requested_model": pin.model,
-            "observed_model": pin.model,
-            "request_digest": req_digest,
-            "outcome": "SUCCESS",
-            "provider_status": "VALIDATED_SUCCESS",
-            "transport_response_received": True,
-            "response_schema_valid": True,
-            "model_pin_valid": True,
-            "application_output_valid": True,
-            "overall_success": True,
-            "attempt_id": attempt_id,
-            "logical_attempt_id": logical_attempt_id,
-            "transport_attempt_id": transport_attempt_id,
-            "trace_id": trace_id,
-            "run_id": run_id,
+            "gateway_id": GATEWAY_ID, "provider_role": pin.role, "provider": pin.provider,
+            "requested_model": pin.model, "observed_model": pin.model, "request_digest": req_digest,
+            "outcome": "SUCCESS", "provider_status": "VALIDATED_SUCCESS",
+            "transport_response_received": True, "response_schema_valid": True, "model_pin_valid": True,
+            "application_output_valid": True, "overall_success": True, "attempt_id": attempt_id,
+            "logical_attempt_id": logical_attempt_id, "transport_attempt_id": transport_attempt_id,
+            "trace_id": trace_id, "run_id": run_id,
         }
         event_digest = _sha256_json(event_body)
         ledger_event = dict(event_body)
@@ -606,7 +601,8 @@ class AppsResearchBridge:
         brief_text = str(getattr(raw, "company_brief_text", "") or "").strip()
         block_reason = ""
         is_blocked = bool(getattr(raw, "is_blocked", False))
-        if not brief_text or is_blocked:
+        terminal_error = str(getattr(raw, "hop_terminal_error", "") or "").strip()
+        if (not brief_text or is_blocked) and not terminal_error:
             canonical_brief, canonical_path = _resolve_canonical_targeting_brief(
                 company_name=company_name,
                 job_title=job_title,

@@ -142,6 +142,20 @@ def _load_file_body(path: Path) -> tuple[str, str]:
     return text, str(path.resolve())
 
 
+import threading
+
+_RESUME_CACHE_LOCK = threading.Lock()
+_RESOLVED_RESUME_CACHE: dict[tuple[str, int, bool], ResolvedResume] = {}
+_STATIC_PROFILE_CACHE: dict[tuple[str, int], tuple[dict[str, Any], Path, str]] = {}
+
+
+def clear_resume_cache() -> None:
+    """Clear in-memory resume and profile caches (for testing, hot reload, or cache busting)."""
+    with _RESUME_CACHE_LOCK:
+        _RESOLVED_RESUME_CACHE.clear()
+        _STATIC_PROFILE_CACHE.clear()
+
+
 def resolve_resume_for_lanes(
     *,
     source_resume_text: str | None = None,
@@ -183,6 +197,13 @@ def resolve_resume_for_lanes(
         path_for_meta = Path("inline:source_resume_text")
     elif ref:
         path = _resolve_resume_path(ref, repo_root=root)
+        if path.is_file():
+            mtime = path.stat().st_mtime_ns
+            ck = (str(path), mtime, require_json_document)
+            with _RESUME_CACHE_LOCK:
+                cached = _RESOLVED_RESUME_CACHE.get(ck)
+                if cached is not None:
+                    return cached
         raw, ref_used = _load_file_body(path)
         source = ResumeSource.RUN_SPECIFIC
         path_for_meta = path
@@ -190,6 +211,13 @@ def resolve_resume_for_lanes(
         raise ResumeResolutionError("required resume material is empty (ref-only chain exhausted)")
     else:
         path, ptr_note = _default_path_from_pointer(repo_root=root)
+        if path.is_file():
+            mtime = path.stat().st_mtime_ns
+            ck = (f"DEFAULT_SSOT:{str(path)}", mtime, require_json_document)
+            with _RESUME_CACHE_LOCK:
+                cached = _RESOLVED_RESUME_CACHE.get(ck)
+                if cached is not None:
+                    return cached
         raw, disk_ref = _load_file_body(path)
         ref_used = f"DEFAULT_SSOT:{ptr_note}:{disk_ref}"
         source = ResumeSource.DEFAULT_SSOT
@@ -208,7 +236,7 @@ def resolve_resume_for_lanes(
             "resume material is plain text; JSON resume document required for this consumer"
         )
 
-    return ResolvedResume(
+    resolved = ResolvedResume(
         resume_source=source,
         resume_digest=digest,
         resume_ref_used=ref_used,
@@ -217,6 +245,18 @@ def resolve_resume_for_lanes(
         resolved_path=path_for_meta,
         raw_utf8=raw,
     )
+
+    if not inline and path_for_meta.is_file():
+        mtime = path_for_meta.stat().st_mtime_ns
+        ck_key = (
+            f"DEFAULT_SSOT:{str(path_for_meta)}"
+            if source == ResumeSource.DEFAULT_SSOT
+            else str(path_for_meta)
+        )
+        with _RESUME_CACHE_LOCK:
+            _RESOLVED_RESUME_CACHE[(ck_key, mtime, require_json_document)] = resolved
+
+    return resolved
 
 
 def load_lane_base_resume_json(
@@ -252,11 +292,24 @@ def load_candidate_static_profile_json(
         if ref
         else resolve_apps_rg_path(root, *_DEFAULT_STATIC_PROFILE_REL_TO_PKG.parts).resolve()
     )
+    if path.is_file():
+        mtime = path.stat().st_mtime_ns
+        ck = (str(path), mtime)
+        with _RESUME_CACHE_LOCK:
+            cached = _STATIC_PROFILE_CACHE.get(ck)
+            if cached is not None:
+                return cached
     raw, _disk_ref = _load_file_body(path)
     payload = build_canonical_resume_payload(raw)
     if payload.get("material_kind") != "json" or not isinstance(payload.get("document"), dict):
         raise ResumeResolutionError("candidate static profile must be a JSON object")
-    return payload["document"], path, canonical_resume_digest(payload)
+    digest = canonical_resume_digest(payload)
+    out = (payload["document"], path, digest)
+    if path.is_file():
+        mtime = path.stat().st_mtime_ns
+        with _RESUME_CACHE_LOCK:
+            _STATIC_PROFILE_CACHE[(str(path), mtime)] = out
+    return out
 
 
 __all__ = [
@@ -270,6 +323,7 @@ __all__ = [
     "ResolvedResume",
     "build_canonical_resume_payload",
     "canonical_resume_digest",
+    "clear_resume_cache",
     "load_candidate_static_profile_json",
     "load_lane_base_resume_json",
     "resolve_resume_for_lanes",

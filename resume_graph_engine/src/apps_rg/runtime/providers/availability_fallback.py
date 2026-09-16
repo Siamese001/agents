@@ -43,7 +43,8 @@ _RETRY_ALLOWED_REASON_CATEGORIES = frozenset(
 
 def _bounded_retry_attempts(environ: Mapping[str, str] | None) -> int:
     raw = str(
-        (environ or os.environ).get("APPS_RG_CLAUDE_AVAILABILITY_RETRY_ATTEMPTS", "1")
+        (environ or os.environ).get("APPS_RG_AVAILABILITY_RETRY_ATTEMPTS")
+        or (environ or os.environ).get("APPS_RG_CLAUDE_AVAILABILITY_RETRY_ATTEMPTS", "1")
     ).strip()
     try:
         attempts = int(raw)
@@ -95,13 +96,24 @@ def _availability_failure_category(result: ProviderResult) -> str | None:
     return None
 
 
-def is_claude_generation_availability_failure(result: ProviderResult) -> bool:
-    """True only for Claude generation transport/API availability failures."""
-    if str(result.provider_requested or "").strip().lower() != ProviderProfile.EXTERNAL_CLAUDE.value:
+def is_generation_availability_failure(result: ProviderResult) -> bool:
+    """True for Claude or OpenAI generation transport/API availability failures."""
+    prov = str(result.provider_requested or "").strip().lower()
+    if prov not in (
+        ProviderProfile.EXTERNAL_CLAUDE.value,
+        ProviderProfile.EXTERNAL_OPENAI.value,
+    ):
         return False
     if result.runtime_generation_status != "BLOCKED" or not result.provider_attempted:
         return False
     return _availability_failure_category(result) in _RETRY_ALLOWED_REASON_CATEGORIES
+
+
+def is_claude_generation_availability_failure(result: ProviderResult) -> bool:
+    """True only for Claude generation transport/API availability failures."""
+    if str(result.provider_requested or "").strip().lower() != ProviderProfile.EXTERNAL_CLAUDE.value:
+        return False
+    return is_generation_availability_failure(result)
 
 
 def _attempt_started_at(result: ProviderResult) -> str | None:
@@ -164,12 +176,12 @@ def maybe_retry_claude_availability_same_provider(
     environ: Mapping[str, str] | None = None,
     section_id: str | None = None,
 ) -> ProviderResult:
-    """Retry Claude generation once for transport availability failures.
+    """Retry generation for transport availability failures (Claude or OpenAI).
 
     This preserves grade-only/no-replacement policy: the retry uses the same provider family
     and section-pinned model, and it runs only before parsing or quality validation.
     """
-    if not is_claude_generation_availability_failure(initial_result):
+    if not is_generation_availability_failure(initial_result):
         return initial_result
 
     sid = str(section_id or "").strip().lower() or None
@@ -184,8 +196,14 @@ def maybe_retry_claude_availability_same_provider(
     if reason_category not in _RETRY_ALLOWED_REASON_CATEGORIES:
         return initial_result
 
+    prov_str = str(initial_result.provider_requested or "").strip().lower()
+    if prov_str == ProviderProfile.EXTERNAL_OPENAI.value:
+        profile_enum = ProviderProfile.EXTERNAL_OPENAI
+    else:
+        profile_enum = ProviderProfile.EXTERNAL_CLAUDE
+
     model = resolve_section_generation_model(
-        sid, provider_profile=ProviderProfile.EXTERNAL_CLAUDE
+        sid, provider_profile=profile_enum
     )
     current = initial_result
     spans = [
@@ -212,7 +230,7 @@ def maybe_retry_claude_availability_same_provider(
 
     for attempt_index in range(1, max_retries + 1):
         provider = ExternalProvider(
-            provider_profile=ProviderProfile.EXTERNAL_CLAUDE,
+            provider_profile=profile_enum,
             model=model,
             environ=environ,
         )
@@ -252,12 +270,12 @@ def maybe_retry_claude_availability_same_provider(
             }
         )
         receipt = {
-            "policy": "apps_rg_generation_claude_availability_same_provider_retry",
+            "policy": f"apps_rg_generation_{profile_enum.value}_availability_same_provider_retry",
             "scope": "apps_rg_generation_only",
             "receipt_created_at_utc": _utc_now(),
             "retry_allowed": True,
             "retry_reason_category": reason_category,
-            "retry_provider": ProviderProfile.EXTERNAL_CLAUDE.value,
+            "retry_provider": profile_enum.value,
             "retry_model": model,
             "retry_section_id": sid,
             "max_retries": max_retries,
@@ -275,7 +293,7 @@ def maybe_retry_claude_availability_same_provider(
         current = retry_result
         if retry_accepted:
             return _with_availability_retry_receipt(retry_result, receipt)
-        if not is_claude_generation_availability_failure(current):
+        if not is_generation_availability_failure(current):
             break
 
     if receipt:
@@ -283,7 +301,11 @@ def maybe_retry_claude_availability_same_provider(
     return current
 
 
+maybe_retry_generation_availability_same_provider = maybe_retry_claude_availability_same_provider
+
 __all__ = [
     "is_claude_generation_availability_failure",
+    "is_generation_availability_failure",
     "maybe_retry_claude_availability_same_provider",
+    "maybe_retry_generation_availability_same_provider",
 ]

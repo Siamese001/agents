@@ -179,6 +179,20 @@ def _load_ref_body(ref: str) -> tuple[str, str]:
     return ref.strip(), "inline:ref"
 
 
+import threading
+
+_JD_CACHE_LOCK = threading.Lock()
+_RESOLVED_JD_CACHE: dict[tuple[str, int, str, str], ResolvedJD] = {}
+_DEFAULT_SSOT_JD_CACHE: dict[tuple[int, str, str], ResolvedJD] = {}
+
+
+def clear_jd_cache() -> None:
+    """Clear in-memory JD caches (for testing, hot reload, or cache busting)."""
+    with _JD_CACHE_LOCK:
+        _RESOLVED_JD_CACHE.clear()
+        _DEFAULT_SSOT_JD_CACHE.clear()
+
+
 def resolve_jd_for_lanes(
     *,
     job_description_ref: str | None = None,
@@ -201,9 +215,33 @@ def resolve_jd_for_lanes(
     inline = str(job_description_text or "").strip()
     ref = str(job_description_ref or "").strip()
     data = str(jd_data or "").strip()
+    tc = str(target_company or "").strip()
+    tr = str(target_role or "").strip()
 
     if require_run_specific and not (inline or ref or data):
         raise JdResolutionError("required job description material is empty (ref, text, and jd_data)")
+
+    # Fast cache check for file-backed ref
+    if not inline and ref and not ref.startswith(("http://", "https://")):
+        p_ref = Path(ref)
+        if p_ref.is_file():
+            _allowed_local_suffix(p_ref)
+            ref_resolved = str(p_ref.resolve())
+            mtime = p_ref.stat().st_mtime_ns
+            ck = (ref_resolved, mtime, tc, tr)
+            with _JD_CACHE_LOCK:
+                cached = _RESOLVED_JD_CACHE.get(ck)
+                if cached is not None:
+                    return cached
+
+    # Fast cache check for DEFAULT_SSOT
+    if not inline and not ref and not data:
+        mtime = _DEFAULT_FILE.stat().st_mtime_ns if _DEFAULT_FILE.is_file() else 0
+        ck_default = (mtime, tc, tr)
+        with _JD_CACHE_LOCK:
+            cached_default = _DEFAULT_SSOT_JD_CACHE.get(ck_default)
+            if cached_default is not None:
+                return cached_default
 
     raw: str
     ref_used: str
@@ -230,7 +268,7 @@ def resolve_jd_for_lanes(
         # `JD_TEXT_DEFAULT = resolve_jd_for_lanes()` constants call this with no run context (empty
         # company/role) purely to compute the fallback string — emitting the warning there at import
         # time is noise that misleads diagnosis (G23). Gate on run-context presence.
-        if str(target_company or "").strip() or str(target_role or "").strip():
+        if tc or tr:
             logger.warning(
                 "jd targeting DEFAULT_SSOT: no run-specific JD provided; "
                 "resume will target the generic role profile. "
@@ -247,7 +285,7 @@ def resolve_jd_for_lanes(
         raise JdResolutionError("resolved job description body is empty after normalization")
 
     digest = canonical_jd_digest(payload)
-    return ResolvedJD(
+    resolved = ResolvedJD(
         description=description,
         title=payload["title"],
         company=payload["company"],
@@ -255,6 +293,19 @@ def resolve_jd_for_lanes(
         jd_digest=digest,
         ref_used=ref_used,
     )
+
+    if source == JdSource.DEFAULT_SSOT:
+        mtime = _DEFAULT_FILE.stat().st_mtime_ns if _DEFAULT_FILE.is_file() else 0
+        with _JD_CACHE_LOCK:
+            _DEFAULT_SSOT_JD_CACHE[(mtime, tc, tr)] = resolved
+    elif ref and not ref.startswith(("http://", "https://")):
+        p_ref = Path(ref)
+        if p_ref.is_file():
+            mtime = p_ref.stat().st_mtime_ns
+            with _JD_CACHE_LOCK:
+                _RESOLVED_JD_CACHE[(str(p_ref.resolve()), mtime, tc, tr)] = resolved
+
+    return resolved
 
 
 __all__ = [
@@ -265,6 +316,7 @@ __all__ = [
     "ResolvedJD",
     "build_canonical_jd_payload",
     "canonical_jd_digest",
+    "clear_jd_cache",
     "default_jd_targeting_text",
     "normalize_jd_material_to_fields",
     "resolve_jd_for_lanes",

@@ -203,25 +203,13 @@ def _is_retriable_judge_output(output: JudgeOutput) -> bool:
     """True when another bounded judge attempt may recover (parse/empty/schema)."""
     if not output.provider_blocked:
         return False
-    status = str(output.provider_status or "")
-    err = str(output.exact_provider_error or "").lower()
+    status, err = str(output.provider_status or ""), str(output.exact_provider_error or "").lower()
     if status == "BLOCKED_RESPONSE_PARSE_ERROR":
-        return any(
-            needle in err
-            for needle in (
-                "extract json",
-                "parse error",
-                "no judge text",
-                "empty",
-                "finish_reason",
-                "finishreason",
-                "incomplete judge json",
-                "completion token",
-                "reasoning",
-            )
-        )
+        return any(n in err for n in ("extract json", "parse error", "no judge text", "empty", "finish_reason", "finishreason", "incomplete judge json", "completion token", "reasoning"))
     if status == "BLOCKED_SCHEMA_VALIDATION_ERROR":
         return True
+    if status == "BLOCKED_PROVIDER_UNAVAILABLE":
+        return any(n in err for n in ("timeout", "timed out", "urlerror", "connection reset", "connection refused", "connection aborted", "errno 8", "nodename nor servname", "remote end closed", "temporarily unavailable", "sslerror", "503", "502", "504", "429"))
     return False
 
 
