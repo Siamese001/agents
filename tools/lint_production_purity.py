@@ -323,16 +323,20 @@ class ProductionPurityVisitor(ast.NodeVisitor):
 def check_file_production_purity(
     file_path: Path,
     repo_root: Path,
+    tree: ast.AST | None = None,
+    lines: list[str] | None = None,
 ) -> list[tuple[int, str, str]]:
     """Scan a production file for production purity violations."""
     if not file_path.exists() or not is_production_file(file_path, repo_root):
         return []
 
-    lines = file_path.read_text(encoding="utf-8", errors="replace").splitlines()
-    try:
-        tree = ast.parse("\n".join(lines), filename=str(file_path))
-    except SyntaxError:
-        return []
+    if lines is None:
+        lines = file_path.read_text(encoding="utf-8", errors="replace").splitlines()
+    if tree is None:
+        try:
+            tree = ast.parse("\n".join(lines), filename=str(file_path))
+        except SyntaxError:
+            return []
 
     try:
         rel = str(file_path.resolve().relative_to(repo_root.resolve())).replace("\\", "/")

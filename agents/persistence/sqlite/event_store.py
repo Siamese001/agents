@@ -28,7 +28,7 @@ class SqliteEventStore(EventStore):
         self.db_path = str(db_path)
         self._conn = sqlite3.connect(self.db_path, check_same_thread=False)
         self._conn.row_factory = sqlite3.Row
-        initialize_schema(self._conn)
+        initialize_schema(self._conn, self.db_path)
 
     def close(self) -> None:
         """Close SQLite database connection."""
@@ -63,9 +63,35 @@ class SqliteEventStore(EventStore):
             )
 
     def append_many(self, events: Sequence[AgentEventEnvelope]) -> None:
-        """Append multiple events in order."""
-        for event in events:
-            self.append(event)
+        """Append multiple events in order within a single atomic transaction."""
+        if not events:
+            return
+        query = """
+        INSERT INTO agent_events (
+            event_id, run_id, correlation_id, sequence, event_type,
+            occurred_at, producer, payload_json, metadata_json,
+            previous_event_digest, event_digest, schema_version
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+        """
+        rows = [
+            (
+                event.event_id,
+                event.run_id,
+                event.correlation_id,
+                event.sequence,
+                event.event_type.value,
+                event.occurred_at,
+                event.producer,
+                json.dumps(dict(event.payload)),
+                json.dumps(dict(event.metadata)),
+                event.previous_event_digest,
+                event.event_digest,
+                event.schema_version,
+            )
+            for event in events
+        ]
+        with self._conn:
+            self._conn.executemany(query, rows)
 
     def get_run_events(self, run_id: str) -> Sequence[AgentEventEnvelope]:
         """Retrieve all events recorded for a run in monotonic sequence."""

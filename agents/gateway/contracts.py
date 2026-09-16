@@ -40,6 +40,8 @@ class CapabilityRequest:
     timeout_seconds: float = 30.0
     allowed_providers: tuple[str, ...] = ("openai", "anthropic", "google")
     metadata: dict[str, Any] = field(default_factory=dict)
+    batch_id: str | None = None
+    correlation_id: str | None = None
 
     @property
     def request_digest(self) -> str:
@@ -49,6 +51,8 @@ class CapabilityRequest:
             "model_tier": self.model_tier.value,
             "temperature": self.temperature,
             "max_output_tokens": self.max_output_tokens,
+            "batch_id": self.batch_id,
+            "correlation_id": self.correlation_id,
         }
         return sha256_hex(body)
 
@@ -66,6 +70,8 @@ class CapabilityResponse:
     latency_ms: float = 0.0
     error_message: str = ""
     observation_digest: str = ""
+    batch_id: str | None = None
+    correlation_id: str | None = None
 
     def __post_init__(self) -> None:
         if not self.observation_digest:
@@ -75,6 +81,8 @@ class CapabilityResponse:
                 "model_id": self.model_id,
                 "status": self.status,
                 "error_message": self.error_message,
+                "batch_id": self.batch_id,
+                "correlation_id": self.correlation_id,
             }
             object.__setattr__(self, "observation_digest", sha256_hex(body))
 
