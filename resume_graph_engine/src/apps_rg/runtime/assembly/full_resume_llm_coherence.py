@@ -27,49 +27,19 @@ from apps_rg.runtime.sections.competencies_certification_contract import (
     check_competencies_no_reserved_certification_category,
 )
 
-FULL_RESUME_COHERENCE_RUBRIC_VERSION = "full_resume_llm_coherence_v2"
+from apps_rg.runtime.assembly.full_resume_llm_coherence_rubric import (
+    FULL_RESUME_COHERENCE_RUBRIC,
+    FULL_RESUME_COHERENCE_RUBRIC_VERSION,
+    LENS_DEFINITIONS,
+    _categorize_finding_by_lens,
+    build_lens_analysis,
+)
 # Judge panel SSOT = section_judge_policy.REQUIRED_JUDGE_PROVIDER_KEYS (the recalibrated cross-provider
 # dual panel gemini_pro + openai_chatgpt; anthropic_claude dropped as a self-judge since Claude is the
 # generator). Sourced from the SSOT — NOT a separate hardcoded roster that can silently diverge.
 DEFAULT_JUDGE_ROSTER: tuple[str, ...] = REQUIRED_JUDGE_PROVIDER_KEYS
 DEFAULT_QUORUM = int(os.environ.get("APPS_RG_FULL_RESUME_COHERENCE_QUORUM", "2"))
 DEFAULT_PASS_THRESHOLD = DEFAULT_THRESHOLD
-
-FULL_RESUME_COHERENCE_RUBRIC = """
-You are evaluating a COMPLETE assembled executive resume (all sections) for release coherence.
-Deterministic X2 gates are authoritative for hard proof; your verdict informs full_resume_coherence_pass only when aggregated with quorum.
-
-Return JSON only with: score_scale, score, threshold, pass, decisive_failure, findings, cited_sentence_indexes, remediation_suggestions.
-
-Evaluate:
-1. narrative_coherence: headline → executive summary → experience → competencies tell one SVP/platform story.
-2. section_ownership: certifications/credentials appear ONLY under CERTIFICATIONS & CREDENTIALS — never duplicated inside competencies.
-3. redundancy: competencies do not restate bullets or executive summary as keyword laundry.
-4. seniority_tone: executive-grade; no junior/generic filler.
-5. role_fit: alignment to target role without JD/briefing-as-proof (JD is targeting context only).
-6. unsupported_claims: flag JD-only or briefing-only phrasing presented as candidate proof.
-7. readability_density: scannable, not stuffed.
-8. cross_section_consistency: titles, dates, metrics, claims consistent across sections.
-9. competencies_quality: executive capability clusters (3–6 items per category), not credential relisting or bare metrics-as-skills; preserve high-signal C0.3 graph-skills evidence without repeating EY/IBM/summary bullets.
-10. cross_section_overlap: minimize redundancy between executive summary, experience bullets, and competencies while keeping locked verbatim blocks (EY, InsurTech, early career, education, certifications) intact.
-
-CANDIDATE_EVIDENCE_PACKET is candidate proof, not targeting context. Graph IDs and source-fact IDs in that packet are the claim-authority spine. A globally unique metric or skill may be intentionally allocated to one rendered section; do not call it unsupported merely because the same wording is not duplicated in professional experience. Still flag a claim when the packet provides no candidate-evidence binding or when the rendered claim conflicts with its evidence.
-
-AUTHORITATIVE CANDIDATE PROFILE & TARGETING BAR:
-- The candidate is an executive technology leader (SVP Engineering / CTO / Partner).
-- When targeting technical, platform, or applied research roles (such as "Applied AI Research Engineer" at Anthropic or similar frontier labs), the candidate's executive platform posture (platform architecture, GTM alliance co-sell, runtime governance telemetry, model eval frameworks, and enterprise portfolio expansion) is authoritative, intentional, and required.
-- The Anthropic Applied AI role explicitly specifies owning the technical<>GTM handshake, enterprise reference architectures, and translating customer adoption into research/product feedback.
-- For dimension `ats_alignment_without_keyword_stuffing` and `role_fit`: Do NOT mark TARGET_ROLE_MISMATCH or penalize the resume for maintaining executive SVP engineering leadership rather than an individual contributor (IC) junior researcher persona. Downward title/scope distortion or asking for an IC hands-on research downgrade is explicitly forbidden by the `seniority_downgrade` blocker. Evaluate role fit on how well executive platform/GTM leadership meets the enterprise scale, governance, and adoption scope of the role.
-- For dimension `resume_voice`: Technical platform terminology (e.g., runtime governance telemetry, control planes, model evaluation frameworks) is expected at the SVP Engineering bar; do not cite it as negative jargon density unless genuinely vacuous buzzwords.
-
-Lines marked [NOT COMPLETED: <section> — <reason>] are intentional gaps — do not score as prose; judge flow/overlap only on completed sections.
-
-Decisive failure (blockers):
-- Credential names duplicated in ENGINEERING & PLATFORM COMPETENCIES
-- JD/briefing language used as primary proof for unsupported skills
-- Severe incoherence or seniority downgrade vs SVP engineering/platform bar
-- Competencies section is keyword stuffing with no executive clusters
-""".strip()
 
 
 def full_resume_coherence_review_enabled() -> bool:
@@ -561,6 +531,9 @@ def aggregate_full_resume_coherence(
         )
     )
 
+    # Multi-Lens Talent Acquisition & Strategic Briefing Analysis
+    lens_analysis = build_lens_analysis(judge_outputs)
+
     return {
         "criteria_scores": criteria_scores,
         "judge_verdicts": [o.to_dict() for o in judge_outputs],
@@ -574,6 +547,7 @@ def aggregate_full_resume_coherence(
         "warnings": warnings,
         "decisive_reason": decisive_reason,
         "full_resume_coherence_pass": full_pass,
+        "lens_analysis": lens_analysis,
     }
 
 
@@ -679,6 +653,7 @@ def emit_full_resume_llm_coherence_review(
             "decisive_reason": review.get("decisive_reason"),
             "blockers": review.get("blockers"),
             "warnings": review.get("warnings"),
+            "lens_analysis": review.get("lens_analysis"),
         },
         "explicit_non_claims": review.get("explicit_non_claims") or [],
     }
