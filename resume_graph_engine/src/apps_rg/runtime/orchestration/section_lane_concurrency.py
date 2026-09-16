@@ -25,10 +25,14 @@ class LaneWave:
     max_parallel: int
 
 
+import functools
+
+
 def _repo_root() -> Path:
     return repository_root(Path(__file__))
 
 
+@functools.lru_cache(maxsize=1)
 def load_section_dag_manifest() -> dict[str, Any]:
     path = resolve_repository_path(_repo_root(), _MANIFEST_REL)
     raw = yaml.safe_load(path.read_text(encoding="utf-8"))

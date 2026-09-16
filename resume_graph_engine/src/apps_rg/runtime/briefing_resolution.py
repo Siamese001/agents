@@ -61,6 +61,21 @@ def _fetch_uri(ref: str) -> tuple[str, str | None]:
     )
 
 
+import threading
+
+_BRIEFING_CACHE_LOCK = threading.Lock()
+_RESOLVED_BRIEFING_CACHE: dict[tuple[str, int], ResolvedBriefing] = {}
+_DEFAULT_SSOT_BRIEFING_CACHE: tuple[int, ResolvedBriefing] | None = None
+
+
+def clear_briefing_cache() -> None:
+    """Clear in-memory briefing caches (for testing, hot reload, or cache busting)."""
+    global _DEFAULT_SSOT_BRIEFING_CACHE
+    with _BRIEFING_CACHE_LOCK:
+        _RESOLVED_BRIEFING_CACHE.clear()
+        _DEFAULT_SSOT_BRIEFING_CACHE = None
+
+
 def resolve_briefing_for_lanes(
     *,
     briefing_artifact_ref: str | None,
@@ -79,14 +94,23 @@ def resolve_briefing_for_lanes(
     if not ref:
         if require_run_specific:
             raise BriefingResolutionError("required briefing_artifact_ref is empty")
+        global _DEFAULT_SSOT_BRIEFING_CACHE
+        default_p = DEFAULT_TARGETING_BRIEFING_PATH
+        mtime = default_p.stat().st_mtime_ns if default_p.is_file() else 0
+        with _BRIEFING_CACHE_LOCK:
+            if _DEFAULT_SSOT_BRIEFING_CACHE is not None and _DEFAULT_SSOT_BRIEFING_CACHE[0] == mtime:
+                return _DEFAULT_SSOT_BRIEFING_CACHE[1]
         text = default_targeting_briefing_text()
         digest = _sha256_utf8(text)
-        return ResolvedBriefing(
+        resolved = ResolvedBriefing(
             text=text,
             briefing_source=BriefingSource.DEFAULT_SSOT,
             briefing_digest=digest,
             ref_used=f"DEFAULT_SSOT:{DEFAULT_TARGETING_BRIEFING_PATH.as_posix()}",
         )
+        with _BRIEFING_CACHE_LOCK:
+            _DEFAULT_SSOT_BRIEFING_CACHE = (mtime, resolved)
+        return resolved
 
     if ref.startswith(("http://", "https://")):
         body, _ctype = _fetch_uri(ref)
@@ -103,18 +127,29 @@ def resolve_briefing_for_lanes(
     p = Path(ref)
     if p.is_file():
         _allowed_local_suffix(p)
+        resolved_str = str(p.resolve())
+        mtime = p.stat().st_mtime_ns
+        cache_key = (resolved_str, mtime)
+        with _BRIEFING_CACHE_LOCK:
+            cached = _RESOLVED_BRIEFING_CACHE.get(cache_key)
+            if cached is not None:
+                return cached
         try:
             text = p.read_text(encoding="utf-8").strip()
         except OSError as exc:
             raise BriefingResolutionError(f"cannot read briefing file {p}: {exc}") from exc
         if not text:
             raise BriefingResolutionError(f"briefing file is empty: {p}")
-        return ResolvedBriefing(
+        digest = _sha256_utf8(text)
+        resolved = ResolvedBriefing(
             text=text,
             briefing_source=BriefingSource.RUN_SPECIFIC,
-            briefing_digest=_sha256_utf8(text),
-            ref_used=str(p.resolve()),
+            briefing_digest=digest,
+            ref_used=resolved_str,
         )
+        with _BRIEFING_CACHE_LOCK:
+            _RESOLVED_BRIEFING_CACHE[cache_key] = resolved
+        return resolved
 
     if _looks_like_filesystem_ref(ref):
         raise BriefingResolutionError(f"briefing artifact path does not exist or is not a file: {ref!r}")
@@ -132,5 +167,6 @@ __all__ = [
     "BriefingResolutionError",
     "BriefingSource",
     "ResolvedBriefing",
+    "clear_briefing_cache",
     "resolve_briefing_for_lanes",
 ]

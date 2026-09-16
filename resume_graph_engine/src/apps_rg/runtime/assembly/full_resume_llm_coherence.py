@@ -33,6 +33,7 @@ from apps_rg.runtime.assembly.full_resume_llm_coherence_rubric import (
     LENS_DEFINITIONS,
     _categorize_finding_by_lens,
     build_lens_analysis,
+    build_recruitment_readiness_scorecard,
 )
 # Judge panel SSOT = section_judge_policy.REQUIRED_JUDGE_PROVIDER_KEYS (the recalibrated cross-provider
 # dual panel gemini_pro + openai_chatgpt; anthropic_claude dropped as a self-judge since Claude is the
@@ -533,6 +534,7 @@ def aggregate_full_resume_coherence(
 
     # Multi-Lens Talent Acquisition & Strategic Briefing Analysis
     lens_analysis = build_lens_analysis(judge_outputs)
+    scorecard = build_recruitment_readiness_scorecard(lens_analysis, criteria_scores, full_pass)
 
     return {
         "criteria_scores": criteria_scores,
@@ -548,6 +550,7 @@ def aggregate_full_resume_coherence(
         "decisive_reason": decisive_reason,
         "full_resume_coherence_pass": full_pass,
         "lens_analysis": lens_analysis,
+        "recruitment_readiness_scorecard": scorecard,
     }
 
 
@@ -654,6 +657,7 @@ def emit_full_resume_llm_coherence_review(
             "blockers": review.get("blockers"),
             "warnings": review.get("warnings"),
             "lens_analysis": review.get("lens_analysis"),
+            "recruitment_readiness_scorecard": review.get("recruitment_readiness_scorecard"),
         },
         "explicit_non_claims": review.get("explicit_non_claims") or [],
     }

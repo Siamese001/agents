@@ -154,6 +154,84 @@ def build_lens_analysis(judge_outputs: Sequence[Any]) -> dict[str, Any]:
     }
 
 
+LENS_METADATA: dict[str, dict[str, str]] = {
+    "narrative_coherence": {
+        "name": "Executive Leadership Storyline",
+        "description": "End-to-end headline, summary, and experience alignment.",
+    },
+    "hr_recruiter_first_impression": {
+        "name": "6-Second Initial Screen",
+        "description": "Visual rhythm, scannability, and immediate value proposition.",
+    },
+    "ats_semantic_taxonomy": {
+        "name": "Machine Parseability & Structure",
+        "description": "Standard technology taxonomy and competency clustering.",
+    },
+    "jd_briefing_resonance": {
+        "name": "Strategic Alignment without Claim Invention",
+        "description": "Enterprise context resonance without unsupported claims.",
+    },
+    "knockout_and_risk_vectors": {
+        "name": "Credibility & Skeptical Screener",
+        "description": "Metric believability, lack of vanity claims, trajectory integrity.",
+    },
+    "altitude_and_band_calibration": {
+        "name": "Executive Leveling",
+        "description": "Calibration to target executive band without IC downgrade.",
+    },
+}
+
+
+def build_recruitment_readiness_scorecard(
+    lens_analysis: dict[str, Any],
+    criteria_scores: dict[str, float],
+    full_resume_coherence_pass: bool,
+) -> dict[str, Any]:
+    lens_status = lens_analysis.get("lens_status") or {}
+    lens_findings_count = lens_analysis.get("lens_findings_count") or {}
+
+    lens_summaries = {}
+    has_blockers = False
+    for lens_key in LENS_DEFINITIONS:
+        meta = LENS_METADATA.get(lens_key, {"name": lens_key, "description": ""})
+        status = lens_status.get(lens_key, "CLEAR")
+        if status == "BLOCKER":
+            has_blockers = True
+        lens_summaries[lens_key] = {
+            "name": meta["name"],
+            "status": status,
+            "finding_count": lens_findings_count.get(lens_key, 0),
+            "description": meta["description"],
+        }
+
+    if full_resume_coherence_pass and not has_blockers:
+        readiness_tier = "STRONG_HIRE_INTERVIEW_READY"
+        recruiter_verdict = (
+            "Clear signal: candidate exhibits authoritative executive platform scope "
+            "with strong targeting resonance and zero critical blockers."
+        )
+    elif full_resume_coherence_pass and has_blockers:
+        readiness_tier = "QUALIFIED_WITH_FLAGGED_RISKS"
+        recruiter_verdict = (
+            "Quorum passed, but specific recruitment lenses identified non-fatal risks "
+            "that require interview probing."
+        )
+    else:
+        readiness_tier = "NEEDS_REMEDIATION"
+        recruiter_verdict = (
+            "Resume failed coherence quorum or triggered decisive blockers; "
+            "review detailed observations before submission."
+        )
+
+    return {
+        "readiness_tier": readiness_tier,
+        "full_pass": full_resume_coherence_pass,
+        "mean_normalized_score": criteria_scores.get("mean_normalized_score", 0.0),
+        "recruiter_verdict": recruiter_verdict,
+        "lens_summaries": lens_summaries,
+    }
+
+
 FULL_RESUME_COHERENCE_RUBRIC = """
 You are evaluating a COMPLETE assembled executive resume (all sections) for release coherence, talent acquisition resonance, and strategic target alignment.
 Deterministic X2 gates are authoritative for hard proof; your verdict informs full_resume_coherence_pass only when aggregated with quorum.
@@ -216,4 +294,5 @@ __all__ = [
     "LENS_DEFINITIONS",
     "_categorize_finding_by_lens",
     "build_lens_analysis",
+    "build_recruitment_readiness_scorecard",
 ]
