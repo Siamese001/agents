@@ -998,22 +998,24 @@ def smoke_query(
             section_id=section_id,
         )
     bm25_documents = {
-        str(assertion.get("assertion_id") or ""): str(assertion.get("embedding_text") or "")
-        for assertion in authority["_corpus_payload"].get("assertions") or []
-        if isinstance(assertion, Mapping)
-        and section_id in (assertion.get("allowed_sections") or [])
+        str(a.get("assertion_id") or ""): str(a.get("embedding_text") or "")
+        for a in authority["_corpus_payload"].get("assertions") or []
+        if isinstance(a, Mapping) and section_id in (a.get("allowed_sections") or [])
+    }
+    authority_boosts = {
+        str(a.get("assertion_id") or ""): 0.05
+        for a in authority["_corpus_payload"].get("assertions") or []
+        if isinstance(a, Mapping) and (a.get("semantic_card") or {}).get("quantified_metrics")
     }
     fused_candidates = fuse_dense_bm25(
         dense_candidates,
         bm25_rank(query_text, bm25_documents),
         assertion_ids=set(bm25_documents),
         rank_constant=int(QUALIFICATION_THRESHOLDS["rrf_rank_constant"]),
+        authority_boosts=authority_boosts,
     )[:k]
     hydrated = rehydrate_assertion_candidates(
-        [
-            {"assertion_id": str(row["assertion_id"]), "similarity": float(row["rrf_score"])}
-            for row in fused_candidates
-        ],
+        [{"assertion_id": str(r["assertion_id"]), "similarity": float(r["rrf_score"])} for r in fused_candidates],
         corpus=authority["_corpus_payload"],
         graph_payload=authority["_graph_payload"],
         section_id=section_id,
@@ -1026,12 +1028,10 @@ def smoke_query(
         "candidate_count": len(hydrated),
         "candidates": [
             {
-                "assertion_id": row["assertion_id"],
-                "rrf_score": row["similarity"],
+                "assertion_id": row["assertion_id"], "rrf_score": row["similarity"],
                 "dense_similarity": fused_candidates[position]["dense_similarity"],
                 "bm25_score": fused_candidates[position]["bm25_score"],
-                "dense_rank": fused_candidates[position]["dense_rank"],
-                "bm25_rank": fused_candidates[position]["bm25_rank"],
+                "dense_rank": fused_candidates[position]["dense_rank"], "bm25_rank": fused_candidates[position]["bm25_rank"],
                 "label": row["semantic_card"]["label"],
             }
             for position, row in enumerate(hydrated)

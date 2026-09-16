@@ -3,8 +3,22 @@
 from __future__ import annotations
 
 import os
+import sys
+from pathlib import Path
 
 import pytest
+
+_RG_ROOT = Path(__file__).resolve().parents[1]
+if str(_RG_ROOT) not in sys.path:
+    sys.path.insert(0, str(_RG_ROOT))
+try:
+    import tools
+
+    _tools_dir = str(_RG_ROOT / "tools")
+    if hasattr(tools, "__path__") and _tools_dir not in tools.__path__:
+        tools.__path__.append(_tools_dir)
+except ImportError:
+    pass
 
 
 _OTEL_HOME_DOTENV_KEYS = (

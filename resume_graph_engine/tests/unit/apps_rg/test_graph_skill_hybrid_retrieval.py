@@ -68,3 +68,47 @@ def test_fusion_rejects_candidate_outside_authority_set() -> None:
             [{"assertion_id": "skill_a", "bm25_score": 1.0}],
             assertion_ids={"skill_a"},
         )
+
+
+def test_dense_bm25_rrf_applies_authority_boosts() -> None:
+    # skill_a is ranked 1 in both dense and BM25; skill_b is ranked 2
+    # with an authority boost of +0.05 (metric proof), skill_b overtakes skill_a
+    base_fused = fuse_dense_bm25(
+        [
+            {"assertion_id": "skill_a", "similarity": 0.9},
+            {"assertion_id": "skill_b", "similarity": 0.8},
+        ],
+        [
+            {"assertion_id": "skill_a", "bm25_score": 4.0},
+            {"assertion_id": "skill_b", "bm25_score": 3.0},
+        ],
+        assertion_ids={"skill_a", "skill_b"},
+    )
+    assert [row["assertion_id"] for row in base_fused] == ["skill_a", "skill_b"]
+
+    boosted_fused = fuse_dense_bm25(
+        [
+            {"assertion_id": "skill_a", "similarity": 0.9},
+            {"assertion_id": "skill_b", "similarity": 0.8},
+        ],
+        [
+            {"assertion_id": "skill_a", "bm25_score": 4.0},
+            {"assertion_id": "skill_b", "bm25_score": 3.0},
+        ],
+        assertion_ids={"skill_a", "skill_b"},
+        authority_boosts={"skill_b": 0.05},
+    )
+    assert [row["assertion_id"] for row in boosted_fused] == ["skill_b", "skill_a"]
+    assert boosted_fused[0]["assertion_id"] == "skill_b"
+    assert boosted_fused[0]["rrf_score"] == pytest.approx(1 / 62 + 1 / 62 + 0.05)
+
+
+def test_fusion_rejects_invalid_authority_boosts() -> None:
+    with pytest.raises(GraphSkillHybridRetrievalError, match="authority boosts"):
+        fuse_dense_bm25(
+            [{"assertion_id": "skill_a", "similarity": 1.0}],
+            [{"assertion_id": "skill_a", "bm25_score": 1.0}],
+            assertion_ids={"skill_a"},
+            authority_boosts={"skill_a": -0.1},
+        )
+

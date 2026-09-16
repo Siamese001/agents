@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from collections.abc import Iterable, Mapping
 from typing import Any
 
@@ -242,16 +243,20 @@ def build_skill_assertion_corpus(
         if node is None:
             raise SkillAssertionCorpusError(f"{skill_id}: graph identity missing")
         label = _label(row, node)
+        desc = str(node.get("description") or "").strip()
+        summaries_set = sorted(set(summaries))
+        metrics = _extract_metrics(summaries_set + [desc])
         semantic_card = {
             "label": label,
             "capability": str(row.get("capability") or row.get("subpillar") or label),
-            "description": str(node.get("description") or "").strip(),
+            "description": desc,
             "allowed_phrases": _strings(row.get("allowed_phrases")),
             "pillar": str(row.get("pillar") or "").strip(),
             "domain_id": str(row.get("domain_id") or "").strip(),
             "career_epoch": str(row.get("career_epoch") or "").strip(),
             "career_track_id": str(row.get("career_track_id") or "").strip(),
-            "evidence_summaries": sorted(set(summaries)),
+            "evidence_summaries": summaries_set,
+            "quantified_metrics": metrics,
         }
         allowed_sections = _strings(row.get("allowed_sections"))
         authority_envelope = {
