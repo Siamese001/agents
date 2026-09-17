@@ -2,8 +2,12 @@
 from __future__ import annotations
 
 import logging
+import os
+import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Callable
+
+from tqdm import tqdm
 
 from apps_rg.runtime.orchestration.section_lane_concurrency import LaneWave, section_dag_dependencies
 from apps_rg.runtime.orchestration.section_lane_executor import (
@@ -16,26 +20,74 @@ from apps_rg.runtime.product_output_policy import PHASE1_PRIOR_LANE_FAILED_BLOCK
 
 
 class ProgressReporter:  # pragma: no cover - exercised via the public dispatcher
-    """App-owned progress fallback; it carries no workflow authority."""
+    """App-owned progress reporter rendering a live tqdm progress bar on stderr with logger fallback."""
 
-    def __init__(self, total: int, label: str = "", unit: str = "") -> None:
-        self.total = total
-        self.label = label
-        self.unit = unit
+    def __init__(self, total: int, label: str = "apps_rg section lanes", unit: str = "lane") -> None:
+        self.total = max(int(total or 1), 1)
+        self.label = label or "apps_rg section lanes"
+        self.unit = unit or "lane"
         self.completed = 0
+        self._disabled = str(os.environ.get("APPS_RG_DISABLE_PROGRESS", "")).strip().lower() in (
+            "1",
+            "true",
+            "yes",
+            "on",
+        )
+        self._pbar: Any | None = None
+        if not self._disabled:
+            try:
+                self._pbar = tqdm(
+                    total=self.total,
+                    desc=self.label,
+                    unit=self.unit,
+                    file=sys.stderr,
+                    dynamic_ncols=True,
+                    leave=True,
+                    mininterval=0.1,
+                )
+            except Exception:
+                self._pbar = None
+
+    def set_status(self, text: str) -> None:
+        """Update the active in-progress status string without incrementing count."""
+        clean = str(text or "").strip()
+        if self._pbar is not None and clean:
+            try:
+                self._pbar.set_postfix_str(clean)
+                sys.stderr.flush()
+            except Exception:
+                pass
 
     def update(self, label: str = "") -> None:
+        """Advance progress by one completed unit with an optional status label."""
         self.completed += 1
+        clean = str(label or "").strip()
+        if self._pbar is not None:
+            try:
+                if clean:
+                    self._pbar.set_postfix_str(clean)
+                self._pbar.update(1)
+                sys.stderr.flush()
+            except Exception:
+                pass
         logging.getLogger(__name__).info(
             "%s: %s/%s %s %s",
             self.label,
             self.completed,
             self.total,
             self.unit,
-            label,
+            clean,
         )
 
     def done(self) -> None:
+        """Finalize and close the progress bar."""
+        if self._pbar is not None:
+            try:
+                self._pbar.close()
+                sys.stderr.flush()
+            except Exception:
+                pass
+            self._pbar = None
         logging.getLogger(__name__).info(
             "%s: complete (%s/%s %s)",
             self.label,
@@ -155,6 +207,8 @@ def dispatch_phase1_lanes_managed(
             if should_skip_remaining_waves and should_skip_remaining_waves():
                 _record(lane, _skipped_prior_lane_abort(lane))
                 continue
+            if hasattr(reporter, "set_status"):
+                reporter.set_status(f"running {lane}")
             _record(lane, run_lane_in_context(ctx, lane, dispatch_fn=dispatch_fn))
         reporter.done()
         return outcomes
@@ -204,6 +258,8 @@ def dispatch_phase1_lanes_managed(
                 pending.remove(lane)
                 fut = pool.submit(run_lane_in_context, ctx, lane, dispatch_fn=dispatch_fn)
                 running[fut] = lane
+                if hasattr(reporter, "set_status"):
+                    reporter.set_status(f"running: {', '.join(running.values())}")
                 made_progress = True
 
             if running:
