@@ -321,9 +321,11 @@
     "employment_exp_insurtech_001",
     "employment_exp_ey_001",
     "reb_insurtech_cloud_modernization",
-    "reb_ey_data_governance"
+    "reb_ey_data_governance",
+    "reb_slalom_agentic_client_delivery",
+    "reb_slalom_ecosystem_accelerators"
    ],
-   "root_binding_policy": "Partner architecture wording may bind only to Unify and IBM source facts or role episodes. InsurTech and EY roots are forbidden for partner-scaling claims.",
+   "root_binding_policy": "Partner architecture wording may bind only to Unify and IBM source facts or role episodes. Slalom, InsurTech, and EY roots are forbidden for partner-scaling claims.",
    "vocabulary_anchors": [
     "partner-ready applied AI reference architectures",
     "co-developed AI solution patterns for partners",

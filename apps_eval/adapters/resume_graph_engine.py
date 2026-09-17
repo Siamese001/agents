@@ -354,6 +354,8 @@ def _normalize_sections(generated_resume: dict[str, Any]) -> dict[str, str]:
         experience_parts = [
             rendered_lane(section_id)
             for section_id in (
+                "slalom_narrative",
+                "slalom_bullets",
                 "unify_narrative",
                 "unify_bullets",
                 "ibm_narrative",

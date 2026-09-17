@@ -1055,20 +1055,40 @@ def _proof_authorized_narrative_from_selection(
     parsed: dict[str, Any],
     facts: list[dict[str, Any]],
     allowed: list[str],
-) -> tuple[str, list[str], str]:
+) -> tuple[str, list[str], str, bool]:
     proof_by_id = _proof_fact_by_id(facts, allowed)
     source_ids = _source_ids_from_parsed_claim_ledger(parsed, allowed)
     selected_source = "llm_source_fact_ids"
     if not source_ids:
         source_ids = [fid for fid in allowed if fid in proof_by_id][:1]
         selected_source = "selected_fact_plan_order"
+    candidate_text = _narrative_from_parsed(parsed)
+    if candidate_text:
+        for _t_label, _t_pat in _TARGETING_ONLY_EXPERIENCE_MARKERS:
+            if _t_pat.search(candidate_text):
+                if _t_label == "frontier_ai_as_experience":
+                    candidate_text = _t_pat.sub("enterprise AI", candidate_text)
+                elif _t_label == "partner_led_deployment_as_experience":
+                    candidate_text = _t_pat.sub("enterprise client deployments", candidate_text)
+        for fid in source_ids:
+            fact = proof_by_id.get(fid)
+            if fact:
+                bound, _ = _model_bullet_surface_binding(candidate_text, fact)
+                if bound:
+                    bound_ids = [
+                        s_id
+                        for s_id in source_ids
+                        if s_id in proof_by_id
+                        and _model_bullet_surface_binding(candidate_text, proof_by_id[s_id])[0]
+                    ]
+                    return candidate_text, bound_ids or [fid], selected_source, True
     for fid in source_ids:
         fact = proof_by_id.get(fid)
         if fact:
             text = _proof_fact_text(fact)
             if text:
-                return text, [fid], selected_source
-    return "", [], selected_source
+                return text, [fid], selected_source, False
+    return "", [], selected_source, False
 
 
 def _llm_generation_status(
@@ -1380,11 +1400,12 @@ def _compiled_prompt(cfg: RoleEpisodeLaneConfig, runtime_payload: dict[str, Any]
         "or narrative sentence in bullet form."
         if cfg.is_bullet_lane
         else "Return JSON with narrative_sentence, claim_ledger:[{claim_text, source_fact_ids}], "
-        "jd_alignment:{targeting_only:true,jd_used_as_proof:false}. The narrative is exactly one sentence "
-        f"of at most {NARRATIVE_MAX_WORDS} words and {NARRATIVE_MAX_CHARS} characters, "
-        "in first-person-implied resume voice: start with a past-tense action verb and never use a "
-        "third-person subject such as 'the candidate' or the candidate's name. It must be a role thesis, "
-        "not a recap of all three bullets."
+        "jd_alignment:{targeting_only:true,jd_used_as_proof:false}. The narrative is exactly one complete, inspiring executive sentence "
+        f"of between 20 and {NARRATIVE_MAX_WORDS} words (at most {NARRATIVE_MAX_CHARS} characters), "
+        "in first-person-implied resume voice: MUST start with an executive past-tense action verb (e.g. Led, Directed, Architected, Spearheaded, Championed, Owned) and NEVER start with a title fragment ('Senior Director ...') or third-person subject. "
+        "Do NOT use targeting buzzwords like 'frontier AI' as an experience claim (use 'enterprise AI' or 'next-generation AI'). "
+        "It must be an inspiring role thesis conveying executive consulting leadership and client transformation stature, "
+        "not a recap of the bullets."
     )
 
     # JD-targeted tailoring path: when role-episode graph bundles are attached, steer prose by the
@@ -1737,6 +1758,16 @@ def _x2_gates(
         sent = str(l2.get("narrative_sentence") or "").strip()
         sent_ok, sent_count, _sent_reason = check_narrative_exactly_one_sentence(sent)
         is_ey_narrative = (cfg.section_id == "ey_narrative")
+        words = sent.split()
+        first_word = words[0].rstrip(",.:;") if words else ""
+        _FORBIDDEN_OPENERS = {"senior", "director", "vp", "svp", "the", "he", "she", "amit", "candidate", "in", "as"}
+        action_verb_ok = (not sent) or bool(first_word and first_word.lower() not in _FORBIDDEN_OPENERS)
+        min_words_ok = (len(words) == 0) if is_ey_narrative else (len(words) >= 15 if cfg.section_id == "slalom_narrative" else len(words) >= 10)
+        word_budget_ok = (
+            (len(words) == 0 or (8 <= len(words) <= NARRATIVE_MAX_WORDS))
+            if is_ey_narrative
+            else (min_words_ok and len(words) <= NARRATIVE_MAX_WORDS)
+        )
         gates.extend(
             [
                 _x2_gate(
@@ -1747,15 +1778,21 @@ def _x2_gates(
                 ),
                 _x2_gate(
                     f"x2_{cfg.section_id}_word_budget",
-                    (len(sent.split()) == 0 or (0 < len(sent.split()) <= NARRATIVE_MAX_WORDS)) if is_ey_narrative else (0 < len(sent.split()) <= NARRATIVE_MAX_WORDS),
-                    "narrative outside word budget",
-                    len(sent.split()),
+                    word_budget_ok,
+                    f"narrative outside word budget (min 15 words for {cfg.section_id}, max {NARRATIVE_MAX_WORDS})",
+                    len(words),
                 ),
                 _x2_gate(
                     f"x2_{cfg.section_id}_char_budget",
                     (len(sent) == 0 or (0 < len(sent) <= NARRATIVE_MAX_CHARS)) if is_ey_narrative else (0 < len(sent) <= NARRATIVE_MAX_CHARS),
                     "narrative outside char budget",
                     len(sent),
+                ),
+                _x2_gate(
+                    f"x2_{cfg.section_id}_executive_action_verb",
+                    action_verb_ok,
+                    f"narrative must start with an executive action verb, not a title or filler token (got {first_word!r})",
+                    first_word,
                 ),
             ]
         )
@@ -2286,6 +2323,7 @@ def run_role_episode_lane_execution(
             l2["generation_meta"] = generation_meta
         l2["generation_receipt"] = dict(generation_receipt)
     else:
+        model_surface_used = False
         if sid == "ey_narrative":
             narrative_from_model = False
             narrative = ""
@@ -2295,7 +2333,7 @@ def run_role_episode_lane_execution(
             claim_ledger = []
         else:
             narrative_from_model = _narrative_from_parsed(parsed or {})
-            narrative, source_ids, narrative_selection_source = _proof_authorized_narrative_from_selection(
+            narrative, source_ids, narrative_selection_source, model_surface_used = _proof_authorized_narrative_from_selection(
                 parsed=parsed or {},
                 facts=facts,
                 allowed=allowed_fact_ids,
@@ -2325,18 +2363,37 @@ def run_role_episode_lane_execution(
                 llm_status = "invalid_output"
             else:
                 llm_status = "usable_output"
+        display_auth = (
+            "model_selected_graph_bound_surface"
+            if model_surface_used
+            else "selected_fact_plan_claim_text"
+            if narrative
+            else ""
+        )
         generation_receipt = {
-            "generation_method": "llm_selected_proof_render" if narrative_from_model else "deterministic_graph_render",
+            "generation_method": (
+                "llm_selected_graph_bound_surface"
+                if model_surface_used
+                else "llm_selected_proof_render"
+                if narrative_from_model
+                else "deterministic_graph_render"
+            ),
             "llm_generation_status": llm_status,
-            "llm_output_used": False,
+            "llm_output_used": bool(model_surface_used),
             "llm_selection_used": bool(narrative_from_model and narrative),
-            "model_display_text_discarded": bool(narrative_from_model),
-            "display_text_authority": "selected_fact_plan_claim_text" if narrative else "",
+            "model_display_text_discarded": bool(narrative_from_model and not model_surface_used),
+            "display_text_authority": display_auth,
             "selection_source": narrative_selection_source,
             "evidence_authority": "augmented_skills_graph",
             "source_fact_ids": source_ids if narrative else [],
             "graph_packet_digest": str(pool.proof_pool_digest or ""),
-            "renderer_version": ROLE_EPISODE_PROOF_TEXT_RENDERER_VERSION if narrative else "",
+            "renderer_version": (
+                "model_selected_graph_bound_surface.v1"
+                if model_surface_used
+                else ROLE_EPISODE_PROOF_TEXT_RENDERER_VERSION
+                if narrative
+                else ""
+            ),
             "lane_contract_allows_deterministic_graph_render": False,
             "allowed_graph_packet_fact_count": len(allowed_fact_ids),
             "rendered_source_fact_ids_within_allowed_packet": set(source_ids).issubset(set(allowed_fact_ids)),

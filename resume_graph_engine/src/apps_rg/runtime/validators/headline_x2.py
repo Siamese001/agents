@@ -337,6 +337,14 @@ def _extract_plan_fact_text_map(
         if not fid:
             continue
         text = str(f.get("claim_text") or "").strip()
+        skill_nodes = f.get("graph_skill_node_ids") or f.get("allowed_graph_evidence_ids") or []
+        extra_skills = [
+            _skill_id_to_grounding_text(str(s))
+            for s in skill_nodes
+            if str(s).startswith("skill_")
+        ]
+        if extra_skills:
+            text = f"{text} {' '.join(extra_skills)}".strip()
         if text:
             out[fid] = text
             base = fid.split("_metric_")[0]
@@ -842,7 +850,7 @@ def headline_runtime_self_check_truth(
     sep_count = h.count(sep)
     parts = [p.strip() for p in h.split(sep)] if sep_count >= 3 else []
     segment_count = len(parts) if sep_count == 3 else 0
-    fixed_prefix = h.startswith("SVP Engineering | ")
+    fixed_prefix = any(h.startswith(f"{p} | ") for p in ("SVP Engineering", "SVP Agentic Transformation", "SVP Transformation", "SVP Enterprise AI", "SVP Technology Strategy")) or (h.startswith("SVP ") and " | " in h)
     hl_lower = h.lower()
     tc = (target_company or "").strip().lower()
     tc_bad = bool(tc) and len(tc) >= 6 and tc in hl_lower
@@ -987,23 +995,29 @@ def run_headline_x2_gates(
     _sep = " | "
     pipe_ok = False
     pipe_reason = None
+    _ALLOWED_HEADLINE_PREFIXES = (
+        "SVP Engineering",
+        "SVP Agentic Transformation",
+        "SVP Transformation",
+        "SVP Technology Strategy",
+        "SVP Enterprise AI",
+        "SVP Agentic AI Platforms",
+    )
     if h.count(_sep) != 3:
         pipe_reason = f'must have exactly three {_sep!r} separators (four segments)'
-    elif not h.startswith("SVP Engineering | "):
-        pipe_reason = 'headline_line must start with exact prefix "SVP Engineering | "'
     else:
         parts = [p.strip() for p in h.split(_sep)]
         if len(parts) != 4 or not all(parts):
             pipe_reason = "four non-empty segments required when splitting on ' | '"
-        elif parts[0] != "SVP Engineering":
-            pipe_reason = "first segment must be exactly SVP Engineering"
+        elif not (parts[0] in _ALLOWED_HEADLINE_PREFIXES or (parts[0].startswith("SVP ") and len(parts[0].split()) in (2, 3))):
+            pipe_reason = f'first segment must be an approved executive title prefix (got {parts[0]!r})'
         else:
             pipe_ok = True
     add(
         "x2_headline_pipe_four_segments",
         pipe_ok,
         pipe_reason or "ok",
-        "SVP Engineering | X | Y | Z",
+        "SVP Engineering | X | Y | Z (or approved SVP title prefix)",
         None if pipe_ok else pipe_reason,
     )
 

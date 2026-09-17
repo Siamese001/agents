@@ -69,7 +69,7 @@ def _final_resume_blob() -> dict:
                 "phone": "+1-917-239-3830",
                 "email": "amitayer1@gmail.com",
                 "linkedin": "linkedin.com/in/amitayer1",
-                "github": "github.com/Siamese001/Agentic-Workflow",
+                "github": "https://github.com/Siamese001/agents",
                 "location": "Boca Raton, FL",
             },
         },

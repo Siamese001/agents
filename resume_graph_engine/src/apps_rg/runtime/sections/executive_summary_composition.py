@@ -138,12 +138,12 @@ def _filter_required_display_fact_ids(role: str, req_ids: list[str]) -> list[str
 def _classify_fact_brushstroke_role(fact_id: str, claim_text: str) -> str:
     fid = _fact_id_base(fact_id).lower()
     low = claim_text.lower()
+    if any(x in fid for x in ("exec", "leadership", "partner", "transformation")) or ("organization" in low and "ml engineering" in low):
+        return "B1_executive_identity"
     if any(x in fid for x in ("revenue", "sales", "commercial", "margin", "ops")):
         return "B4_business_role_fit"
     if any(x in fid for x in ("cert", "quant", "hpc", "actuarial")):
         return "B4_business_role_fit"
-    if any(x in fid for x in ("exec", "leadership")) or "organization" in low and "ml engineering" in low:
-        return "B1_executive_identity"
     if any(x in fid for x in ("governance", "regulatory", "risk", "ccar", "basel", "lineage", "validation")):
         return "B3_control_evidence_discipline"
     if any(
@@ -234,7 +234,14 @@ def _brushstroke_for_role(
         if isinstance(f, dict) and _classify_fact_brushstroke_role(str(f.get("fact_id") or ""), str(f.get("claim_text") or "")) == role
     ]
     if not role_facts and role == "B1_executive_identity" and facts:
-        role_facts = [facts[0]]
+        preferred_b1 = [
+            f for f in facts
+            if isinstance(f, dict) and any(
+                k in str(f.get("fact_id") or "").lower()
+                for k in ("slalom", "unify", "ibm", "partner", "leadership", "transformation")
+            )
+        ]
+        role_facts = [preferred_b1[0]] if preferred_b1 else [facts[0]]
     req_ids = _filter_required_display_fact_ids(
         role,
         sorted(

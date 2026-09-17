@@ -1,24 +1,29 @@
 template_id: slalom_narrative_v1
 section_id: slalom_narrative
 purpose: >
-  Generate exactly one sentence for the Slalom role episode after finalized
-  bul_slalom bullets exist. Keep the sentence within 58 words and 360
-  characters. Use only source_fact_ids from the active proof pool; targeting
-  context is targeting_only and jd_used_as_proof must remain false. The
-  sentence is a lightweight role-thesis synthesis above accepted bullets, not a
-  recap of the bullet list.
+  Generate exactly one complete, inspiring executive sentence for the Slalom role episode
+  after finalized bul_slalom bullets exist. Keep the sentence between 20 and 58 words and
+  within 360 characters. MUST start with a strong past-tense action verb (e.g. Led, Directed,
+  Architected, Spearheaded, Championed). NEVER start with a title fragment ('Senior Director ...')
+  or uninspiring headless phrase. Use only source_fact_ids from the active proof pool; targeting
+  context is targeting_only and jd_used_as_proof must remain false. The sentence is an inspiring
+  executive role thesis conveying senior consulting leadership, C-suite advisory, and A2A orchestration.
 methodology_contract:
   role: ROLE_THESIS_NARRATIVE
   finalized_bullets_are_primary_synthesis_context: true
   proof_authority: active_proof_pool_and_claim_ledger_only
   thesis_rule: >
-    State why the Slalom role mattered at a higher level of abstraction; the
-    companion bullets prove what was delivered.
+    State why the Slalom executive consulting role mattered at a strategic level: leading
+    enterprise transformation advisory, client executive engagement, and enterprise agentic
+    delivery; the companion bullets prove what was delivered.
   anti_patterns:
+    - "headless title fragment (e.g. starting with 'Senior Director ...' without an action verb)"
+    - "short uninspiring fragment under 15 words"
     - "four-bullet recap"
     - "comma-packed list of bullet topics"
     - "new first-principles graph traversal in narrative"
     - "JD or briefing used as claim evidence"
+    - "using prohibited targeting-only phrases as historical claims, specifically 'frontier AI', 'partner-led deployment', 'Anthropic', or 'target company/role' (use 'enterprise AI' or 'next-generation AI' instead)"
 output_contract:
   format: json_object
   required_keys:

@@ -75,8 +75,29 @@ def competency_display_rows(snapshot: dict[str, Any]) -> list[tuple[str, list[st
     if not categories:
         return []
 
+    # When the snapshot contains a rich, evidence-backed set of distinct categories (>= 6),
+    # display each category directly so all 6-8 categories are visible on the finished résumé.
+    if len(categories) >= 6:
+        rows: list[tuple[str, list[str]]] = []
+        for category in categories:
+            label = str(
+                category.get("resume_display_label") or category.get("category_label") or "Capabilities"
+            ).strip()
+            terms: list[str] = []
+            seen: set[str] = set()
+            for term in category.get("terms") or []:
+                text = _term_text(term)
+                norm = _normalised(text)
+                if text and norm not in seen:
+                    seen.add(norm)
+                    terms.append(text)
+            if label and terms:
+                rows.append((label, terms))
+        if len(rows) >= 6:
+            return rows
+
     claimed_ids: set[int] = set()
-    rows: list[tuple[str, list[str]]] = []
+    rows = []
     for label, category_ids in _DISPLAY_GROUPS:
         selected = [
             category

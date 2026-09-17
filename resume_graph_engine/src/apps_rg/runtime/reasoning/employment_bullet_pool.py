@@ -77,7 +77,7 @@ REGEN_EXTRA_PATHS_BY_LANE: Final[dict[str, int]] = {
 FINAL_BULLET_COUNT: Final[dict[str, int]] = {
     "slalom_bullets": len(SLALOM_BULLET_IDS),
     "unify_bullets": len(UNIFY_BULLET_IDS),
-    "ibm_bullets": 3,
+    "ibm_bullets": len(IBM_BULLET_IDS),
     "insurtech_bullets": 2,
     "ey_bullets": 0,
 }
@@ -89,7 +89,7 @@ PROOF_UNIQUE_SOURCE_FACT_LANES: Final[frozenset[str]] = frozenset(
 REQUIRED_BULLET_IDS: Final[dict[str, tuple[str, ...]]] = {
     "slalom_bullets": SLALOM_BULLET_IDS,
     "unify_bullets": UNIFY_BULLET_IDS,
-    "ibm_bullets": ("bul_ibm_001", "bul_ibm_003", "bul_ibm_004"),
+    "ibm_bullets": IBM_BULLET_IDS,
     "insurtech_bullets": ("bul_insurtech_001", "bul_insurtech_002"),
     "ey_bullets": (),
 }

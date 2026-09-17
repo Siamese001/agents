@@ -59,7 +59,7 @@ def test_section_judge_policy_matrix() -> None:
         "max_attempts": 3,
         "retry_backoff_base_seconds": 0.5,
         "retry_backoff_max_seconds": 4.0,
-        "gemini_thinking_level": "high",
+        "gemini_thinking_level": "medium",
     }
     assert matrix["headline"]["judge_tier"] == JudgeTier.STANDARD_REASONING.value
     assert matrix["headline"]["judge_runtime_profile"] == {
@@ -69,7 +69,7 @@ def test_section_judge_policy_matrix() -> None:
         "max_attempts": 2,
         "retry_backoff_base_seconds": 0.5,
         "retry_backoff_max_seconds": 1.0,
-        "gemini_thinking_level": "high",
+        "gemini_thinking_level": "low",
     }
     assert matrix["slalom_bullets"]["judge_tier"] == JudgeTier.BULLET_REWRITE_QUALITY.value
     assert matrix["unify_bullets"]["judge_tier"] == JudgeTier.BULLET_REWRITE_QUALITY.value
@@ -83,7 +83,7 @@ def test_section_judge_policy_matrix() -> None:
         "max_attempts": 2,
         "retry_backoff_base_seconds": 0.5,
         "retry_backoff_max_seconds": 1.0,
-        "gemini_thinking_level": "high",
+        "gemini_thinking_level": "low",
     }
     assert matrix["slalom_narrative"]["judge_tier"] == JudgeTier.STANDARD_REASONING.value
     assert matrix["unify_narrative"]["judge_tier"] == JudgeTier.STANDARD_REASONING.value

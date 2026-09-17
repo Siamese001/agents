@@ -355,12 +355,10 @@ COMPETENCY_BUNDLE_FAMILY_ROOT_HINTS: dict[str, tuple[str, ...]] = {
     "partner_applied_ai_architecture": (
         "reb_unify_partner_channel_cosell",
         "reb_ibm_aws_alliance_partner_cosell_gtm",
-        "reb_slalom_agentic_client_delivery",
-        "reb_slalom_ecosystem_accelerators",
         "reb_ibm_presales_solution_engineering",
     ),
     "partnerships_ecosystem_execution": (
-        "reb_slalom_ecosystem_accelerators",
+        "reb_unify_partner_channel_cosell",
         "reb_ibm_aws_alliance_partner_cosell_gtm",
     ),
     "engineering_leadership": (

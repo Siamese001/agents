@@ -13,7 +13,7 @@
     "phone": "+1-917-239-3830",
     "email": "amitayer1@gmail.com",
     "linkedin": "linkedin.com/in/amitayer1",
-    "github": "github.com/Siamese001/Agentic-Workflow",
+    "github": "https://github.com/Siamese001/agents",
     "location": "Boca Raton, FL"
   },
   "facts": {
@@ -214,7 +214,7 @@
         "bullets": [
           {
             "bullet_id": "bul_ey_001",
-            "text": "Regulatory Analytics Modernization (Ernst & Young): Directed a $15M transformation program that improved lineage, controls, and predictive risk capabilities across audit and regulatory workflows.",
+            "text": "Regulatory Analytics Modernization: Directed a $15M transformation program that improved lineage, controls, and predictive risk capabilities across audit and regulatory workflows.",
             "has_metric": true,
             "metric_raw": "$15M transformation program",
             "technologies": ["predictive risk modeling", "data lineage", "audit workflows"],
@@ -222,7 +222,7 @@
           },
           {
             "bullet_id": "bul_ey_002",
-            "text": "Commercial Turnaround (Ernst & Young): Achieved a 40% reduction in audit remediation costs by implementing automated data lineage and predictive risk modeling across regulatory workflows.",
+            "text": "Commercial Turnaround: Achieved a 40% reduction in audit remediation costs by implementing automated data lineage and predictive risk modeling across regulatory workflows.",
             "has_metric": true,
             "metric_raw": "40% cost reduction",
             "technologies": ["automated lineage", "risk modeling", "regulatory workflows"],
@@ -230,7 +230,7 @@
           },
           {
             "bullet_id": "bul_ey_003",
-            "text": "Capital Optimization (Ernst & Young): Optimized capital reserve requirements under Solvency II and AG43, reducing redundant capital holdings for insurance clients by 12% while maintaining full compliance.",
+            "text": "Capital Optimization: Optimized capital reserve requirements under Solvency II and AG43, reducing redundant capital holdings for insurance clients by 12% while maintaining full compliance.",
             "has_metric": true,
             "metric_raw": "12% capital reduction",
             "technologies": ["Solvency II", "AG43", "actuarial modeling"],

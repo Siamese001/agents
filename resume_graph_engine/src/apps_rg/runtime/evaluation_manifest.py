@@ -18,14 +18,14 @@ CANDIDATE_EVALUATION_MANIFEST_SCHEMA = "apps_rg.candidate_evaluation_manifest.v2
 
 EXPECTED_LANES: tuple[str, ...] = (
     "competencies",
+    "slalom_bullets",
     "unify_bullets",
     "ibm_bullets",
     "insurtech_bullets",
-    "ey_bullets",
+    "slalom_narrative",
     "unify_narrative",
     "ibm_narrative",
     "insurtech_narrative",
-    "ey_narrative",
     "executive_summary",
     "headline",
 )

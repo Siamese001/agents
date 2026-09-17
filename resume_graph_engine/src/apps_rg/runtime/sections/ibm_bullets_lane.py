@@ -1170,6 +1170,7 @@ def run_ibm_bullets_execution(
         briefing=args.briefing,
     )
     runtime_payload["proof_pool_metadata"] = proof_pool_metadata
+    runtime_payload["max_tokens"] = IBM_MAX_OUTPUT_TOKENS
     placement_bucket = resolve_lane_placement_bucket(
         args.provider,
         mock_judges=bool(getattr(args, "mock_judges", False)),

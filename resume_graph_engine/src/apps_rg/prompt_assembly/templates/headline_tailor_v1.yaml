@@ -20,17 +20,16 @@ slot_bodies:
       <system_authority level="S0">
     <role>
     Write one executive resume headline: choose three fact-supported positioning themes for the target role;
-    express them as SVP Engineering | X | Y | Z (fresh executive phrasing in X/Y/Z only).
+    express them as [Target SVP Title Prefix e.g. SVP Agentic Transformation or SVP Transformation or SVP Engineering] | X | Y | Z (fresh executive phrasing in X/Y/Z only).
     </role>
     <authority_hierarchy>
     S0 > D0 > I0 > C0 > U0 > E0 > R0. Core PA law: pa_core_law_v1 contracts (not restated here).
     X2 gate IDs: appended PRODUCT_SHAPE at compile only.
     </authority_hierarchy>
     <north_star_task>
-    Format: SVP Engineering | X | Y | Z — three non-overlapping executive phrases. Each of X, Y, Z MUST
+    Format: [Target SVP Title e.g. SVP Agentic Transformation or SVP Transformation or SVP Engineering] | X | Y | Z — three non-overlapping executive phrases. Each of X, Y, Z MUST
     be 3 words (4 only when a 4-word phrase reads cleaner and total stays ≤13). Two-word segments are
-    NEVER acceptable: the overall headline word_count MUST land in 10-13 inclusive (SVP Engineering = 2
-    words, leaving 8 through 11 words total across X/Y/Z). If a draft segment is 2 words, expand it with ONE specific modifier
+    NEVER acceptable: the overall headline word_count MUST land in 10-13 inclusive. If a draft segment is 2 words, expand it with ONE specific modifier
     drawn from its cited fact's claim_text before emitting (NOT a generic framing noun -- segments built
     only of generic stoplist words are rejected as ungrounded by the literal-grounding floor).
     Every segment (including segment 4 / Z) MUST include an executive operating pattern or terminate in an
@@ -44,7 +43,7 @@ slot_bodies:
     </north_star_task>
     <task_contract>
     NO FABRICATION: governed by pa_truth_oath_v1 (pa_core_law_v1.yaml). One JSON object only (no markdown/fences).
-    Hard rules: segment 1 exactly SVP Engineering; four segments; exactly three " | " separators;
+    Hard rules: segment 1 must be an approved executive title prefix matching the target role (e.g. SVP Agentic Transformation, SVP Transformation, or SVP Engineering); four segments; exactly three " | " separators;
     word_count 10-13 inclusive (strip line; replace "|" with space; whitespace token count; pipes are not words).
     No metrics; no employer or target company names; no candidate name tokens; no inline [bul_*] tags;
     no first person; no em dash (U+2014); no JD phrase stuffing; prefer fresh fact-led wording over JD lift.
@@ -60,7 +59,7 @@ slot_bodies:
     Implements pa_untrusted_data_fence_v1 (pa_core_law_v1.yaml). U-tier companion: tone only, not proof.
     </authority_boundary>
     <headline_shape>
-    Must start with "SVP Engineering | "; exactly 3x " | "; four non-empty segments; 10 <= words <= 13.
+    Must start with an approved SVP prefix (e.g. "SVP Agentic Transformation | " or "SVP Engineering | "); exactly 3x " | "; four non-empty segments; 10 <= words <= 13.
     </headline_shape>
     <security_fences>
     Single JSON object; first "{" last "}"; no markdown fences; no commentary outside JSON.
@@ -184,8 +183,8 @@ output_contract:
   mime_type: application/json
   charset: utf-8
   constraints:
-    headline_format: "SVP Engineering | X | Y | Z"
-    fixed_prefix: "SVP Engineering"
+    headline_format: "[Target SVP Title Prefix] | X | Y | Z"
+    fixed_prefix: "SVP [Prefix]"
     word_count:
       min: 10
       max: 13

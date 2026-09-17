@@ -310,7 +310,7 @@ def test_real_graph_whole_resume_allocation_covers_all_lanes_and_is_order_invari
     ]
     assert plan["uniqueness_receipt"]["pass"] is True
     assert plan["global_uniqueness_claimed"] is True
-    assert len(plan["assignments"]) == 44
+    assert len(plan["assignments"]) == 48
     assert set(forward["section_final_evidence_contracts"]) == set(
         forward["section_plans"]
     )

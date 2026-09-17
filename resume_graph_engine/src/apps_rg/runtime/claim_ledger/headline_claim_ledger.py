@@ -34,12 +34,25 @@ def build_headline_canonical_claim_ledger_v2(
     )
 
 
+_ALLOWED_HEADLINE_PREFIXES: tuple[str, ...] = (
+    "SVP Engineering",
+    "SVP Agentic Transformation",
+    "SVP Transformation",
+    "SVP Technology Strategy",
+    "SVP Enterprise AI",
+    "SVP Agentic AI Platforms",
+)
+
+
 def _headline_positioning_segments(headline_line: str) -> tuple[str, str, str] | None:
     hl = (headline_line or "").strip()
-    if hl.count(_HEADLINE_SEP) != 3 or not hl.startswith("SVP Engineering | "):
+    if hl.count(_HEADLINE_SEP) != 3:
         return None
     parts = [p.strip() for p in hl.split(_HEADLINE_SEP)]
-    if len(parts) != 4 or not all(parts) or parts[0] != "SVP Engineering":
+    if len(parts) != 4 or not all(parts):
+        return None
+    seg0 = parts[0]
+    if not (seg0 in _ALLOWED_HEADLINE_PREFIXES or (seg0.startswith("SVP ") and len(seg0.split()) in (2, 3))):
         return None
     return parts[1], parts[2], parts[3]
 

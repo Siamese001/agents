@@ -163,18 +163,18 @@ def test_keyword_repair_matches_x2_limit_and_preserves_frozen_allocation_term() 
             "category_label": "Protected Allocation",
             "terms": [
                 {
-                    "text": "Revenue target execution and quota-aligned solution leadership",
+                    "text": "Revenue target cadence and quota-aligned solution leadership",
                     "allocation_claim_unit_id": "competencies:skill:06",
                 },
-                {"text": "Policy execution oversight across regulated ecosystems"},
+                {"text": "Policy cadence oversight across regulated ecosystems"},
                 {"text": "Board-ready operating model governance cadence"},
             ],
         },
         {
             "category_label": "Optional Supporting Terms",
             "terms": [
-                {"text": "Organization scale-out for platform execution"},
-                {"text": "Agent execution readiness across customer journeys"},
+                {"text": "Organization scale-out for platform cadence"},
+                {"text": "Agent readiness across customer journeys"},
                 {"text": "Cross-functional capability portfolio design"},
                 {"text": "Enterprise adoption signal measurement"},
             ],
@@ -193,9 +193,9 @@ def test_keyword_repair_matches_x2_limit_and_preserves_frozen_allocation_term() 
             for category in parsed[surface]
             for term in category["terms"]
         ]
-        assert "Revenue target execution and quota-aligned solution leadership" in terms
-        assert "Organization scale-out for platform execution" not in terms
-        assert sum("execution" in term.lower().split() for term in terms) == 3
+        assert "Revenue target cadence and quota-aligned solution leadership" in terms
+        assert "Organization scale-out for platform cadence" not in terms
+        assert sum("cadence" in term.lower().split() for term in terms) == 3
 
 
 def test_rebuild_claim_ledger_preserves_explicit_allocation_identity() -> None:
