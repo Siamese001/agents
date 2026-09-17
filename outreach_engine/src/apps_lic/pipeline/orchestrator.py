@@ -279,6 +279,7 @@ class OutreachOrchestrator:
         opportunity: TargetOpportunity,
         primary_channel: ChannelType = ChannelType.LINKEDIN_INMAIL,
         *,
+        audience_persona: Optional[AudiencePersona] = None,
         auto_research: bool = True,
         research_bridge: Any | None = None,
         job_description_text: str = "",
@@ -297,7 +298,12 @@ class OutreachOrchestrator:
             artifact_runs_root=artifact_runs_root,
             trace_id=trace_id,
         )
-        sequence = self.sequence_planner.plan_sequence(candidate, opp, primary_channel)
+        sequence = self.sequence_planner.plan_sequence(
+            candidate,
+            opp,
+            primary_channel,
+            audience_persona=audience_persona,
+        )
         sequence.sealed_resolution = opp.sealed_resolution
 
         if a_dir is not None:
