@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 from typing import Any, Sequence
@@ -59,13 +60,19 @@ def _add_run_arguments(parser: argparse.ArgumentParser) -> None:
         default="",
         help="Optional briefing file path or inline text.",
     )
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        default=False,
+        help="Emit structured JSON output containing status, evaluation, and runtime details.",
+    )
 
 
-def _build_parser() -> argparse.ArgumentParser:
+def _build_parser(prog: str = "python -m apps_rg") -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="python -m apps_rg",
+        prog=prog,
         description=(
-            "The single Apps RG governed resume pipeline. Run the full live product flow, "
+            "The single governed resume pipeline. Run the full live product flow, "
             "inspect a completed run, or print an exact output artifact."
         ),
     )
@@ -326,24 +333,10 @@ def _inline_evaluations(result: dict[str, Any]) -> dict[str, Any]:
 def _runtime_details(result: dict[str, Any]) -> dict[str, Any]:
     """Render the operational receipt without duplicating the full resume."""
     keys = (
-        "pipeline",
-        "command",
-        "run_id",
-        "status",
-        "mode",
-        "outcome_label",
-        "failure_stage",
-        "error",
-        "repository",
-        "target_company",
-        "target_role",
-        "inputs",
-        "outputs",
-        "provider_call_count",
-        "providers",
-        "stages",
-        "delivery",
-        "finished_at_utc",
+        "pipeline", "command", "run_id", "status", "mode", "outcome_label",
+        "failure_stage", "error", "repository", "target_company", "target_role",
+        "inputs", "outputs", "provider_call_count", "providers", "stages",
+        "delivery", "finished_at_utc",
     )
     return {key: result[key] for key in keys if key in result}
 
@@ -370,15 +363,33 @@ def _print_inline_run_outputs(result: dict[str, Any]) -> None:
     print(resume.rstrip() if resume is not None else f"UNAVAILABLE: {resume_error}", flush=True)
     print("```", flush=True)
 
-    print("EVALS", flush=True)
-    print("```json", flush=True)
-    print(json.dumps(_inline_evaluations(result), ensure_ascii=False, indent=2, sort_keys=True), flush=True)
-    print("```", flush=True)
+    for title, val in (("EVALS", _inline_evaluations(result)), ("RUNTIME_DETAILS", _runtime_details(result))):
+        print(f"{title}\n```json\n{json.dumps(val, ensure_ascii=False, indent=2, sort_keys=True)}\n```", flush=True)
 
-    print("RUNTIME_DETAILS", flush=True)
-    print("```json", flush=True)
-    print(json.dumps(_runtime_details(result), ensure_ascii=False, indent=2, sort_keys=True), flush=True)
-    print("```", flush=True)
+
+def _print_json_result(result: dict[str, Any]) -> None:
+    """Print clean machine-readable execution receipt for automated agents and CI/CD."""
+    run_dir = _completed_run_path(result)
+    resume_file = None
+    if run_dir is not None:
+        for candidate in ("FINAL_RESUME_OUTPUT.txt", "outputs/resume.md", "resume.md"):
+            p = run_dir / candidate
+            if p.is_file():
+                resume_file = str(p)
+                break
+
+    success = result.get("status") == "SUCCESS"
+    payload = {
+        "status": result.get("status", "FAIL"),
+        "mode": result.get("mode", "live"),
+        "outcome": result.get("outcome_label", ""),
+        "run_dir": str(result.get("artifact_dir") or ""),
+        "exit_code": 0 if success else 1,
+        "resume_artifact": resume_file,
+        "evaluation": _inline_evaluations(result),
+        "runtime_details": _runtime_details(result),
+    }
+    print(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True), flush=True)
 
 
 def _print_result(result: dict[str, Any]) -> None:
@@ -491,8 +502,8 @@ def _run_product_from_cli(args: argparse.Namespace) -> dict[str, Any]:
     return out
 
 
-def main(argv: list[str] | None = None) -> int:
-    """Run the sole supported Apps RG resume workflow or its inspection actions."""
+def main(argv: list[str] | None = None, prog: str | None = None) -> int:
+    """Run the sole supported resume workflow or its inspection actions."""
     raw_argv = list(sys.argv[1:] if argv is None else argv)
     if raw_argv and raw_argv[0] == "bootstrap":
         from apps_rg.runtime.fact_vectors_bootstrap import run_bootstrap_cli
@@ -518,16 +529,42 @@ def main(argv: list[str] | None = None) -> int:
                 patch_args.append(a)
         return patch_main(patch_args)
 
-    parser = _build_parser()
+    # Ensure local dev route signing secrets exist if not supplied in environment
+    if not os.environ.get("APPS_RG_ROUTE_HMAC_SECRET"):
+        os.environ["APPS_RG_ROUTE_HMAC_SECRET"] = "agents-local-dev-session-secret"
+    if not os.environ.get("APPS_RG_ROUTE_HMAC_KEY_ID"):
+        os.environ["APPS_RG_ROUTE_HMAC_KEY_ID"] = "agents-local-dev-key"
+
+    if prog is None:
+        prog = "python -m resume_engine" if (len(sys.argv) > 0 and "resume_engine" in sys.argv[0]) else "python -m apps_rg"
+
+    parser = _build_parser(prog=prog)
     args = parser.parse_args(_normalize_argv(argv))
     _repo_root = find_repo_root()
     bootstrap_apps_rg_env(repo_root=_repo_root)
-    assert_production_runtime(context="python -m apps_rg", args=args)
+
+    assert_production_runtime(context=prog, args=args)
     action = args.action or "run"
     try:
         if action == "run":
+            # Live execution preflight
+            try:
+                from agents.live_preflight import assert_engine_live_preflight
+
+                assert_engine_live_preflight(prog, providers=("openai",))
+            except ImportError:
+                pass
+            except Exception as exc:
+                if getattr(args, "json", False):
+                    print(json.dumps({"status": "FAILED", "error": str(exc)}, indent=2), flush=True)
+                sys.stderr.write(f"[{prog}] Preflight Credential Failure:\n{exc}\n")
+                return 2
+
             result = _run_product_from_cli(args)
-            _print_result(result)
+            if getattr(args, "json", False):
+                _print_json_result(result)
+            else:
+                _print_result(result)
             return 0 if result.get("status") == "SUCCESS" else 1
         if action == "eval":
             report = _evaluate_product_run(Path(args.run_dir).expanduser().resolve())

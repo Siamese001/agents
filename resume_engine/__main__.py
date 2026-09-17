@@ -6,6 +6,13 @@ import os
 import sys
 from pathlib import Path
 
+_REPO_ROOT = Path(__file__).resolve().parent.parent
+_RG_SRC = _REPO_ROOT / "resume_graph_engine" / "src"
+
+for p in (_REPO_ROOT, _RG_SRC):
+    if p.is_dir() and str(p) not in sys.path:
+        sys.path.insert(0, str(p))
+
 import resume_graph_engine
 
 # Ensure local dev route signing secrets exist if not supplied in environment
@@ -17,4 +24,4 @@ if not os.environ.get("APPS_RG_ROUTE_HMAC_KEY_ID"):
 from apps_rg.__main__ import main
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv[1:]))
+    sys.exit(main(sys.argv[1:], prog="python -m resume_engine"))

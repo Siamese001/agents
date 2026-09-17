@@ -367,7 +367,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         assert_engine_live_preflight("agents resume", providers=("openai",))
         from apps_rg.__main__ import main as resume_main
 
-        return resume_main(sub_args)
+        return resume_main(sub_args, prog="python -m agents resume")
 
     if engine in {"outreach", "outreach_engine", "apps_lic"}:
         from agents.live_preflight import assert_engine_live_preflight
