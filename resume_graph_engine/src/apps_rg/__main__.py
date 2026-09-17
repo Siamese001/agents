@@ -460,6 +460,11 @@ def _read_product_artifact(run_dir: Path, artifact: str) -> str:
 
 
 def _run_product_from_cli(args: argparse.Namespace) -> dict[str, Any]:
+    sys.stderr.write(
+        f"[resume_engine] Target Company: {args.target_company} | Role: {args.target_role}\n"
+    )
+    sys.stderr.write("[resume_engine] Initializing inputs and governed pipeline...\n")
+    sys.stderr.flush()
     jd_text = _read_input_text(args.jd, default_path=_DEFAULT_JD_PATH, label="job description")
     resume_text = _read_input_text(args.resume, default_path=_DEFAULT_RESUME_PATH, label="base resume")
     brief_text = ""
@@ -469,6 +474,8 @@ def _run_product_from_cli(args: argparse.Namespace) -> dict[str, Any]:
             brief_text = brief_path.read_text(encoding="utf-8")
         else:
             brief_text = str(args.briefing).strip()
+    sys.stderr.write("[resume_engine] Dispatching canonical resume generation...\n")
+    sys.stderr.flush()
     result = run_canonical_apps_rg_from_cli_primitives(
         target_company=args.target_company,
         target_role=args.target_role,
@@ -478,6 +485,8 @@ def _run_product_from_cli(args: argparse.Namespace) -> dict[str, Any]:
         source_resume_text=resume_text,
         artifact_dir=args.artifact_dir,
     )
+    sys.stderr.write("[resume_engine] Evaluating product output and receipts...\n")
+    sys.stderr.flush()
     out = dict(result)
     product_evaluation = _inline_evaluations(out)
     # The post-X3 completion receipt, bound whole-run X3 result, and Apps Eval

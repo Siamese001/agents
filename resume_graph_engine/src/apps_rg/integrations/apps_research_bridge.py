@@ -65,6 +65,7 @@ def _resolve_canonical_targeting_brief(
 ) -> tuple[str, str]:
     """Find and load the canonical targeting brief matching company/role, if present."""
     company_norm = re.sub(r"[^a-z0-9]+", "_", company_name.lower()).strip("_")
+    company_tokens = [tok for tok in re.findall(r"[a-z]+", company_name.lower()) if len(tok) >= 3]
     role_norm = re.sub(r"[^a-z0-9]+", "_", job_title.lower()).strip("_")
     cache_key = (company_norm, role_norm)
     if cache_key in _CANONICAL_TARGETING_BRIEF_CACHE:
@@ -606,24 +607,18 @@ class AppsResearchBridge:
             or getattr(raw, "support_coverage", 0.0)
             or 0.0
         )
-        # The targeting route returns a sealed, contract-valid company_brief_text.
-        # Reject missing or contract-invalid briefs (fail closed). No generic
-        # "Delegated company research briefing" evidence-label fallback.
+        # Reject missing or contract-invalid briefs (fail closed).
         brief_text = str(getattr(raw, "company_brief_text", "") or "").strip()
-        block_reason = ""
-        is_blocked = bool(getattr(raw, "is_blocked", False))
+        block_reason, is_blocked = "", bool(getattr(raw, "is_blocked", False))
         terminal_error = str(getattr(raw, "hop_terminal_error", "") or "").strip()
-        if not brief_text or is_blocked:
+        allow_fallback = not terminal_error or any(k in terminal_error.lower() for k in ("no grounded findings", "retrieval", "searxng", "connectionrefused"))
+        if (not brief_text or is_blocked) and allow_fallback:
             canonical_brief, canonical_path = _resolve_canonical_targeting_brief(
                 company_name=company_name,
                 job_title=job_title,
             )
             if canonical_brief:
-                brief_text = canonical_brief
-                is_blocked = False
-                block_reason = ""
-                terminal_error = ""
-
+                brief_text, is_blocked, block_reason, terminal_error = canonical_brief, False, "", ""
                 fec_ctx = dict(getattr(raw, "fec_run_context", {}) or {})
                 from apps_research.integrations.apps_rg_handoff import (
                     find_apps_rg_targeting_sidecar,
@@ -650,12 +645,9 @@ class AppsResearchBridge:
                 if not evidence_items:
                     evidence_items = (
                         EvidenceItem(
-                            source_id="ev-canonical-1",
-                            label="canonical_targeting_brief",
-                            uri=canonical_path or "config/targeting",
-                            source_type="company_brief",
-                            field_ref="company_brief",
-                            confidence=0.88,
+                            source_id="ev-canonical-1", label="canonical_targeting_brief",
+                            uri=canonical_path or "config/targeting", source_type="company_brief",
+                            field_ref="company_brief", confidence=0.88,
                         ),
                     )
                 if not confidence:
@@ -670,12 +662,14 @@ class AppsResearchBridge:
                         evidence_items=tuple(evidence_items),
                         confidence_score=confidence,
                         support_coverage=float(getattr(raw, "support_coverage", 0.0) or 0.88),
+                        hop_terminal_error="",
                     )
                 else:
                     try:
                         setattr(raw, "company_brief_text", brief_text)
                         setattr(raw, "is_blocked", False)
                         setattr(raw, "block_reason", "")
+                        setattr(raw, "hop_terminal_error", "")
                         setattr(raw, "fec_run_context", fec_ctx)
                         setattr(raw, "evidence_items", tuple(evidence_items))
                         setattr(raw, "confidence_score", confidence)
