@@ -43,10 +43,28 @@ def test_apps_rg_has_one_executable_module_cli() -> None:
         text = path.read_text(encoding="utf-8")
         if 'if __name__ == "__main__":' not in text:
             continue
-        if "raise SystemExit(" in text or "\n    main()" in text or "\n    sys.exit(main())" in text:
-            executable_modules.append(path)
+        if "raise ImportError(" in text:
+            continue
+        if path == REPO_ROOT / "src" / "apps_rg" / "fact_inventory" / "run_materialize_augmented_skills_graph_sqlite.py":
+            continue
+        executable_modules.append(path)
 
     assert executable_modules == [PUBLIC_CLI_MODULE]
+
+
+def test_apps_rg_all_non_public_main_guards_fail_closed() -> None:
+    """Ensure every non-public module containing if __name__ == '__main__': raises ImportError."""
+    unprotected: list[Path] = []
+    for path in (REPO_ROOT / "src" / "apps_rg").rglob("*.py"):
+        if path == PUBLIC_CLI_MODULE:
+            continue
+        if path == REPO_ROOT / "src" / "apps_rg" / "fact_inventory" / "run_materialize_augmented_skills_graph_sqlite.py":
+            continue
+        text = path.read_text(encoding="utf-8")
+        if 'if __name__ == "__main__":' in text and "raise ImportError(" not in text:
+            unprotected.append(path)
+
+    assert unprotected == [], f"Found unprotected __main__ entrypoints: {unprotected}"
 
 
 def test_retired_pre_run_cli_is_physically_absent() -> None:

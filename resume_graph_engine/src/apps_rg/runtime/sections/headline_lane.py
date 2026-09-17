@@ -45,6 +45,7 @@ from apps_rg.runtime.sections.resume_employment_bullets import collect_employmen
 from apps_rg.runtime.sections.headline_pa import compile_headline_prompt
 from apps_rg.runtime.claim_ledger.canonical_exec_summary_v2 import classify_ledger_parse_state
 from apps_rg.runtime.claim_ledger.headline_claim_ledger import (
+    _headline_positioning_segments,
     build_headline_canonical_claim_ledger_v2,
     build_headline_text_claim_coverage,
     normalize_headline_claim_ledger,
@@ -417,18 +418,6 @@ def _resolve_canonical_source_fact_id(fid: str, allowed_fact_ids: set[str]) -> s
     return None
 
 
-_HEADLINE_SEGMENT_SEP = " | "
-
-
-def _headline_positioning_segments(headline_line: str) -> tuple[str, str, str] | None:
-    """Segments 2–4 (X, Y, Z) when headline_line matches the fixed four-part pipe shape."""
-    hl = (headline_line or "").strip()
-    if hl.count(_HEADLINE_SEGMENT_SEP) != 3 or not hl.startswith("SVP Engineering | "):
-        return None
-    parts = [p.strip() for p in hl.split(_HEADLINE_SEGMENT_SEP)]
-    if len(parts) != 4 or not all(parts) or parts[0] != "SVP Engineering":
-        return None
-    return parts[1], parts[2], parts[3]
 
 
 def headline_resume_native_clarity_report(headline_line: str) -> dict[str, Any]:

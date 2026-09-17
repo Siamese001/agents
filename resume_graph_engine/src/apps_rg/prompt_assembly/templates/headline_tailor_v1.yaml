@@ -36,9 +36,11 @@ slot_bodies:
     approved executive abstraction noun (such as Platform, Architecture, Systems, Governance, Ecosystem,
     Commercialization, Infrastructure, Controls, or Operating Model).
     Distinctness rule: partner/alliance/channel/co-sell/hyperscaler ecosystem language may appear in
-    at most ONE of X/Y/Z. If one segment uses that family, the other two must use different capability
-    families such as runtime governance, regulated systems, platform productization, or distributed
-    infrastructure.
+    at most ONE of X/Y/Z. The three segments X, Y, Z MUST span at least two distinct capability families
+    (such as runtime governance, regulated systems, enterprise AI architecture, platform productization,
+    or distributed infrastructure). AT LEAST ONE segment MUST explicitly incorporate a runtime governance
+    or regulated systems capability (e.g. Runtime Governance, Governed AI Systems, Deterministic Controls,
+    or Regulated Enterprise AI).
     Rank by JD/briefing relevance (ranking only, never proof). Prefer strong nouns over adjectives.
     </north_star_task>
     <task_contract>

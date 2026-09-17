@@ -1129,6 +1129,5 @@ def apply_augmentation() -> None:
     ledger_path.write_text(json.dumps(ledger, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
     print("Updated master_skills_arsenal_ledger.json successfully.")
 
-
 if __name__ == "__main__":
-    apply_augmentation()
+    raise ImportError("This module is not an operator CLI entrypoint. Use: python -m apps_rg run")

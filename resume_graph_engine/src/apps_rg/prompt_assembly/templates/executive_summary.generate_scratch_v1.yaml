@@ -106,8 +106,9 @@ slot_bodies:
     **S2–S5 connective tissue:** Open S2-S5 with thesis-referent connectors, not bare achievement-verb openers; avoid an achievement bullet stack.
     **S6:** Forward capstone grounded in cited source_fact_ids; may use composition_plan TARGETING_FORWARD_ANCHOR as targeting-only. Forbid "Looking ahead," "extend that arc toward", "this leadership profile", "can translate into", S2-S5 recap, and unsupported "audit/audit-ready." Open with modal/future-forward language, not past-tense delivery verbs.
     **Connectives:** At most **two** stock openers (`Building on` / `Through that` / `Complementing` / `With that governance` / `Against that` / `From that`) in S2-S5; vary bridge nouns. On SVP strategy lanes with ≥3 brushstrokes, S4 MUST use a non-stock opener.
-    **Meta-filler ban:** no "governance discipline", "active-voice delivery", "selected facts" scaffolding.
+    **Meta-filler ban:** no "governance discipline", "with active-voice delivery and governance discipline", "active-voice delivery", "selected facts", "this individual", "this executive", "proven track record", "seasoned executive" scaffolding.
     **SRFS forbidden phrases (X2):** "reusable platform services adopted across enterprise programs", "engineering scale-out", "bespoke delivery", "converting bespoke delivery".
+    **Attribution discipline (X2 cross_fact_conflation):** Each of the 6 sentences must focus on a single coherent proof theme (1-2 related facts max per sentence). Never merge unrelated root capabilities (e.g. governed AI platform vs Basel/CCAR error reduction vs commercial revenue growth) into one causal sentence.
     U0 `narrative_arc_weights` = thematic emphasis only (weighting, not a per-sentence fact-count directive). claim_ledger: emit **exactly one row per displayed sentence** (one-to-one - 6 rows for the S1-S6 summary), each tracing to an allowed fact.
     </judge_alignment_contract>
 
