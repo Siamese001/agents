@@ -88,13 +88,13 @@ profiles:
       # Live W1 evidence showed medium/high consuming the entire 4096-token
       # governed output room as thinking, leaving no section payload. These
       # compact schema-bound generation calls therefore use low effort.
-      competencies: medium
+      competencies: low
       slalom_bullets: low
       unify_bullets: low
       ibm_bullets: low
       insurtech_bullets: low
       headline: low
-      executive_summary: medium
+      executive_summary: low
     endpoint_env_var: APPS_RG_EXTERNAL_CLAUDE_BASE_URL
     api_key_env_var: ANTHROPIC_API_KEY
     capabilities:
@@ -198,7 +198,7 @@ runtime_limits:
     tailored_resume_max_tokens: 5000
     http_timeout_seconds: 30
   judge_http:
-    timeout_seconds: 60
+    timeout_seconds: 120
   # W1 external-model spend guard.  This is a conservative reservation of
 
   # estimated input plus requested maximum output, not a truncation policy.
@@ -230,7 +230,7 @@ runtime_limits:
     retry_backoff_base_seconds: 0.5
     retry_backoff_max_seconds: 4.0
     gemini_proof_thinking_level: high
-    openai_proof_reasoning_effort: xhigh
+    openai_proof_reasoning_effort: medium
     runtime_profiles:
       optional_advisory_taxonomy_only:
         judge_weight: 1

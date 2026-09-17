@@ -8,22 +8,31 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from apps_lic.domain.models import (
+    AudiencePersona,
     CandidateProfile,
     ChannelType,
     OutreachMessageDraft,
+    RecipientClass,
     TargetOpportunity,
     TouchSequence,
     ValidationResult,
 )
 from apps_lic.domain.validators import (
     ChannelLengthValidator,
+    EmDashValidator,
     GroundingValidator,
+    MarkdownLinkValidator,
     QuestionEndingValidator,
     SpamTriggerValidator,
+    SubordinateToneValidator,
 )
 from apps_lic.judges.evaluator import EvaluationReport, RubricJudgeEvaluator
 from apps_lic.pipeline.briefing_resolver import GovernedBriefingResolver, SealedBriefingResolution
-from apps_lic.pipeline.compiler import PromptCompiler
+from apps_lic.pipeline.compiler import (
+    PromptCompiler,
+    get_executive_signature_block,
+    get_recruiter_signature_block,
+)
 from apps_lic.pipeline.touch_sequence import TouchSequencePlanner
 
 
@@ -37,6 +46,9 @@ class OutreachOrchestrator:
         self.length_validator = ChannelLengthValidator()
         self.question_validator = QuestionEndingValidator()
         self.grounding_validator = GroundingValidator()
+        self.em_dash_validator = EmDashValidator()
+        self.md_link_validator = MarkdownLinkValidator()
+        self.tone_validator = SubordinateToneValidator()
         self.judge = RubricJudgeEvaluator()
 
     def resolve_opportunity_briefing(
@@ -91,6 +103,7 @@ class OutreachOrchestrator:
         opportunity: TargetOpportunity,
         channel: ChannelType = ChannelType.LINKEDIN_INMAIL,
         *,
+        audience_persona: Optional[AudiencePersona] = None,
         auto_research: bool = True,
         research_bridge: Any | None = None,
         job_description_text: str = "",
@@ -110,21 +123,43 @@ class OutreachOrchestrator:
             trace_id=trace_id,
         )
 
-        context = self.compiler.assemble_context(candidate, opp, channel)
-        subject, body, fact_ids = self.compiler.render_draft_message(candidate, opp, channel)
+        # Resolve audience persona
+        if audience_persona is None:
+            if opp.recipient_class == RecipientClass.TALENT_PARTNER:
+                persona = AudiencePersona.EXECUTIVE_RECRUITER
+            else:
+                persona = AudiencePersona.EXECUTIVE_CONTACT
+        else:
+            persona = audience_persona
+
+        context = self.compiler.assemble_context(candidate, opp, channel, audience_persona=persona)
+        subject, body, fact_ids = self.compiler.render_draft_message(candidate, opp, channel, audience_persona=persona)
+
+        signature = ""
+        if channel in (ChannelType.LINKEDIN_INMAIL, ChannelType.EMAIL):
+            if persona == AudiencePersona.EXECUTIVE_RECRUITER:
+                signature = get_recruiter_signature_block(candidate.full_name)
+            else:
+                signature = get_executive_signature_block(candidate.full_name)
 
         draft = OutreachMessageDraft(
             draft_id=f"draft_{uuid.uuid4().hex[:8]}",
             channel=channel,
             subject=subject,
             body=body,
+            signature_block=signature,
+            audience_persona=persona,
             grounded_facts_used=fact_ids,
             research_metadata={
                 "resolution_source": opp.sealed_resolution.get("resolution_source") if opp.sealed_resolution else "none",
                 "research_digest": opp.research_digest,
                 "evidence_count": len(opp.evidence_items),
             },
-            metadata={"context_keys": list(context.keys()), "template_id": context.get("template_id")},
+            metadata={
+                "context_keys": list(context.keys()),
+                "template_id": context.get("template_id"),
+                "audience_persona": persona.value,
+            },
         )
 
         validation = self.validate_draft(draft, candidate)
@@ -134,17 +169,20 @@ class OutreachOrchestrator:
             draft_dict = {
                 "draft_id": draft.draft_id,
                 "channel": draft.channel.value,
+                "audience_persona": persona.value,
                 "subject": draft.subject,
                 "body": draft.body,
+                "signature_block": draft.signature_block,
                 "character_count": draft.character_count,
                 "grounded_facts_used": draft.grounded_facts_used,
                 "research_metadata": draft.research_metadata,
             }
             (a_dir / "outreach_draft.json").write_text(json.dumps(draft_dict, indent=2) + "\n", encoding="utf-8")
+            draft_body_full = f"{draft.body}\n\n{draft.signature_block}" if draft.signature_block else draft.body
             (a_dir / "outreach_draft.md").write_text(
                 f"# Outreach Draft: {draft.channel.value.upper()}\n\n"
                 f"**Subject**: {draft.subject}\n\n"
-                f"```text\n{draft.body}\n```\n",
+                f"```text\n{draft_body_full}\n```\n",
                 encoding="utf-8",
             )
             val_dict = {
@@ -160,7 +198,7 @@ class OutreachOrchestrator:
     def validate_draft(
         self, draft: OutreachMessageDraft, candidate: CandidateProfile
     ) -> ValidationResult:
-        """Runs all 4 validation gates over the draft."""
+        """Runs all 7 validation gates over the draft."""
         violations: List[str] = []
         warnings: List[str] = []
 
@@ -186,6 +224,20 @@ class OutreachOrchestrator:
         )
         violations.extend(g_viol)
 
+        # 5. Em dashes
+        dash_valid, dash_err = self.em_dash_validator.validate(draft.body)
+        if not dash_valid and dash_err:
+            violations.append(dash_err)
+
+        # 6. Markdown links
+        link_valid, link_err = self.md_link_validator.validate(draft.body)
+        if not link_valid and link_err:
+            violations.append(link_err)
+
+        # 7. Subordinate tone
+        tone_valid, tone_viols = self.tone_validator.validate(draft.body)
+        violations.extend(tone_viols)
+
         hard_passed = len(violations) == 0
         return ValidationResult(
             is_valid=hard_passed,
@@ -197,6 +249,9 @@ class OutreachOrchestrator:
                 "length_score": 1.0 if len_valid else 0.0,
                 "question_score": 1.0 if q_valid else 0.0,
                 "grounding_score": 1.0 if g_valid else 0.0,
+                "dash_score": 1.0 if dash_valid else 0.0,
+                "link_score": 1.0 if link_valid else 0.0,
+                "tone_score": 1.0 if tone_valid else 0.0,
             },
         )
 
