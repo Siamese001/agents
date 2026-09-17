@@ -150,10 +150,30 @@ class OutreachModelRegistry:
         return result
 
     @classmethod
+    def list_approved_models(cls, config_path: Path | str | None = None) -> set[str]:
+        """Returns the complete set of approved primary and backup model names."""
+        profiles_doc = cls.get_profiles(config_path)
+        profiles = profiles_doc.get("profiles", {})
+        approved: set[str] = set()
+        for _, entry in profiles.items():
+            if isinstance(entry, dict):
+                if "model" in entry and entry["model"]:
+                    approved.add(str(entry["model"]))
+                if "backup_model" in entry and entry["backup_model"]:
+                    approved.add(str(entry["backup_model"]))
+        return approved
+
+    @classmethod
     def validate_model(cls, model_name: str, config_path: Path | str | None = None) -> bool:
-        """Validates that a model ID is registered in the SSOT."""
-        active = cls.list_active_models(config_path).values()
-        return model_name in active
+        """Validates that a model ID is registered in the SSOT (primary or backup)."""
+        approved = cls.list_approved_models(config_path)
+        return model_name in approved
+
+    @classmethod
+    def is_env_override_allowed(cls, config_path: Path | str | None = None) -> bool:
+        """Checks if provider profiles allows environment variable model overrides."""
+        profiles_doc = cls.get_profiles(config_path)
+        return bool(profiles_doc.get("environment_model_override_allowed", False))
 
     @classmethod
     def clear_cache(cls) -> None:

@@ -168,7 +168,7 @@ class PromptCompiler:
         }
         return context
 
-    def _format_strategic_hook(self, raw_hook: str) -> str:
+    def _format_strategic_hook(self, raw_hook: str, company_name: Optional[str] = None) -> str:
         """Format and condense a raw priority or JD bullet into a clean conversational phrase."""
         clean = (raw_hook or "").strip().rstrip(".!?:;")
         # If multi-sentence, take the first sentence
@@ -185,8 +185,18 @@ class PromptCompiler:
         # Convert common leading verbs to -ing gerund for natural sentence flow after "focus on ..."
         verb_map = {
             "translate": "translating",
+            "modernize": "modernizing",
+            "transform": "transforming",
+            "optimize": "optimizing",
+            "execute": "executing",
             "deliver": "delivering",
             "drive": "driving",
+            "accelerate": "accelerating",
+            "architect": "architecting",
+            "deploy": "deploying",
+            "migrate": "migrating",
+            "consolidate": "consolidating",
+            "streamline": "streamlining",
             "navigate": "navigating",
             "build": "building",
             "scale": "scaling",
@@ -195,7 +205,6 @@ class PromptCompiler:
             "standardize": "standardizing",
             "move": "moving",
             "generate": "generating",
-            "accelerate": "accelerating",
             "expand": "expanding",
             "advance": "advancing",
             "establish": "establishing",
@@ -208,7 +217,11 @@ class PromptCompiler:
         # If first word is capitalized, lowercase if it is not an acronym or proper noun
         if clean and clean[0].isupper() and (len(clean) == 1 or clean[1].islower()):
             first_word = clean.split()[0].lower()
-            if first_word not in ("truist", "aws", "azure", "ai", "ml", "the"):
+            preserved_terms = {"aws", "azure", "gcp", "ai", "ml", "the"}
+            if company_name:
+                for tok in re.findall(r"\b[A-Za-z]{3,}\b", company_name.lower()):
+                    preserved_terms.add(tok)
+            if first_word not in preserved_terms:
                 clean = clean[0].lower() + clean[1:]
 
         # Truncate gracefully at word boundary if overly verbose
@@ -239,7 +252,7 @@ class PromptCompiler:
         fact_ids = [lead_fact.fact_id] if lead_fact else []
 
         raw_hook = opportunity.strategic_priorities[0] if opportunity.strategic_priorities else opportunity.industry
-        hook = self._format_strategic_hook(raw_hook)
+        hook = self._format_strategic_hook(raw_hook, company_name=opportunity.company_name)
 
         # Connection notes have a 300-char limit
         if channel == ChannelType.LINKEDIN_CONNECTION:

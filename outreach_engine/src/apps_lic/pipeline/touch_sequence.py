@@ -95,11 +95,25 @@ class TouchSequencePlanner:
                 f"Would you be open to exchanging brief perspectives next week?"
             )
 
+        from apps_lic.pipeline.compiler import (
+            get_executive_signature_block,
+            get_recruiter_signature_block,
+        )
+
+        sig_block = ""
+        if effective_primary in (ChannelType.LINKEDIN_INMAIL, ChannelType.EMAIL):
+            sig_block = (
+                get_recruiter_signature_block(candidate)
+                if persona == AudiencePersona.EXECUTIVE_RECRUITER
+                else get_executive_signature_block(candidate)
+            )
+
         t1_draft = OutreachMessageDraft(
             draft_id=f"{sequence_id}_t1",
             channel=effective_primary,
             subject=f"{opportunity.company_name} / {opportunity.role_title} perspective",
             body=t1_body,
+            signature_block=sig_block,
             grounded_facts_used=[candidate.verified_facts[0].fact_id] if candidate.verified_facts else [],
             research_metadata={"research_digest": opportunity.research_digest},
             audience_persona=persona,
