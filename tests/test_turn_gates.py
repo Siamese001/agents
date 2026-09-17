@@ -162,6 +162,28 @@ Response content delivered cleanly.
         self.assertEqual(result["status"], "FAIL")
         self.assertTrue(any("references unapproved model token 'gpt-6.5-luna'" in err for err in result["issues"]))
 
+    def test_post_turn_gate_verifies_wave_completion_table_when_waves_claimed(self) -> None:
+        """Verify post-turn gate flags responses claiming wave completion without table."""
+        claiming_without_table = "All tasks are done! Wave 1 completed successfully."
+        result = validate_post_turn_gate(repo_root=ROOT, candidate_response=claiming_without_table)
+        self.assertEqual(result["status"], "FAIL")
+        self.assertTrue(any("mandatory Wave Summary Table" in issue for issue in result["issues"]))
+
+    def test_post_turn_gate_passes_when_wave_table_is_rendered(self) -> None:
+        """Verify post-turn gate passes when response properly includes Wave Summary Table."""
+        response_with_table = """
+### Wave Summary Table: sample_plan.md
+
+| Wave # | Description / Scope | Status | Check/Open |
+| :--- | :--- | :--- | :--- |
+| Wave 1 | Setup foundation | COMPLETED | [x] CHECK |
+
+Wave 1 completed cleanly!
+"""
+        result = validate_post_turn_gate(repo_root=ROOT, candidate_response=response_with_table)
+        self.assertEqual(result["status"], "PASS")
+
 
 if __name__ == "__main__":
     unittest.main()
+

@@ -15,4 +15,9 @@ if not os.environ.get("APPS_RG_ROUTE_HMAC_KEY_ID"):
 from apps_rg.__main__ import main
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv[1:], prog="python -m resume_engine"))
+    print(
+        "[SSOT NOTICE] Canonical resume pipeline entrypoint is: python -m apps_rg run\n"
+        "[SSOT NOTICE] Delegating to apps_rg.__main__...",
+        file=sys.stderr,
+    )
+    sys.exit(main(sys.argv[1:], prog="python -m apps_rg"))

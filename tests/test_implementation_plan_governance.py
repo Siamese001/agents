@@ -17,6 +17,7 @@ from tools.validate_implementation_plan import (
     DEFAULT_LEGACY_EXEMPTIONS,
     extract_wave_summary_entries,
     get_active_plan_file,
+    render_markdown_wave_summary_table,
     render_wave_summary_table,
     validate_file,
     validate_plan_content,
@@ -435,6 +436,37 @@ No items specified here just free text with no deliverables.
         self.assertIsNotNone(active)
         self.assertTrue(active.is_file())
         self.assertTrue(active.name.endswith(".md"))
+
+    def test_render_markdown_wave_summary_table_formats_gfm(self) -> None:
+        """Verify render_markdown_wave_summary_table generates valid GitHub-flavored markdown table."""
+        entries = [
+            {"wave": "Wave 1", "description": "Foundation", "status": "COMPLETED", "check_open": "[x] CHECK"},
+            {"wave": "Wave 2", "description": "Integration", "status": "PENDING", "check_open": "[ ] OPEN"},
+        ]
+        md_table = render_markdown_wave_summary_table("test_plan.md", entries)
+        self.assertIn("### Wave Summary Table: test_plan.md", md_table)
+        self.assertIn("| Wave # | Description / Scope | Status | Check/Open |", md_table)
+        self.assertIn("| Wave 1 | Foundation | COMPLETED | [x] CHECK |", md_table)
+        self.assertIn("| Wave 2 | Integration | PENDING | [ ] OPEN |", md_table)
+
+    def test_get_active_plan_file_respects_env_variable(self) -> None:
+        """Verify get_active_plan_file discovers plan via ANTIGRAVITY_ARTIFACTS_DIR env."""
+        import os
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            plan_path = Path(tmp_dir) / "implementation_plan.md"
+            plan_path.write_text("# Temp Plan\n", encoding="utf-8")
+            old_val = os.environ.get("ANTIGRAVITY_ARTIFACTS_DIR")
+            try:
+                os.environ["ANTIGRAVITY_ARTIFACTS_DIR"] = tmp_dir
+                discovered = get_active_plan_file(ROOT)
+                self.assertEqual(discovered, plan_path)
+            finally:
+                if old_val is not None:
+                    os.environ["ANTIGRAVITY_ARTIFACTS_DIR"] = old_val
+                else:
+                    os.environ.pop("ANTIGRAVITY_ARTIFACTS_DIR", None)
 
 
 if __name__ == "__main__":

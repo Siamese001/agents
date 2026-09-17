@@ -187,8 +187,12 @@ def validate_unified_architecture_governance(repo_root: Path | None = None) -> l
     else:
         try:
             data = json.loads(hooks_file.read_text(encoding="utf-8"))
-            hooks = data.get("hooks", [])
-            hook_ids = {h.get("id") for h in hooks}
+            if isinstance(data, dict) and "hooks" in data and isinstance(data["hooks"], list):
+                hook_ids = {h.get("id") for h in data["hooks"] if isinstance(h, dict)}
+            elif isinstance(data, dict):
+                hook_ids = set(data.keys())
+            else:
+                hook_ids = set()
             expected_essential = {"agents-pre-edit-plan-guard", "agents-pytest-scope-guard", "agents-hitl-atomic-guard"}
             missing_hooks = expected_essential - hook_ids
             if missing_hooks:

@@ -250,7 +250,7 @@ def run_headline_positioning_x2_gates(
         "x2_headline_seniority_floor_met",
         sen0.passed,
         sen0.observed_value,
-        "segment 0 == 'SVP Engineering'",
+        "segment 0 is approved SVP prefix",
         sen0.failure_reason,
     )
 

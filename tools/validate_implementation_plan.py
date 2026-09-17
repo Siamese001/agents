@@ -11,6 +11,7 @@ Enforces governance rules defined in AGENTS.md and docs/refactoring-wave-protoco
 from __future__ import annotations
 
 import argparse
+import os
 import re
 import subprocess
 import sys
@@ -479,13 +480,60 @@ def render_wave_summary_table(plan_name: str, entries: List[dict]) -> str:
     return "\n".join(lines)
 
 
+def render_markdown_wave_summary_table(plan_name: str, entries: List[dict]) -> str:
+    """Render mandatory wave summary table in standard GitHub-flavored Markdown for chat responses."""
+    if not entries:
+        return f"No wave summary entries found for {plan_name}."
+
+    lines = [
+        f"### Wave Summary Table: {plan_name}",
+        "",
+        "| Wave # | Description / Scope | Status | Check/Open |",
+        "| :--- | :--- | :--- | :--- |",
+    ]
+    for e in entries:
+        desc = e["description"].replace("|", "\\|")
+        lines.append(f"| {e['wave']} | {desc} | {e['status']} | {e['check_open']} |")
+    lines.append("")
+    return "\n".join(lines)
+
+
 def get_active_plan_file(repo_root: Optional[Path] = None) -> Optional[Path]:
-    """Discover the active implementation plan file on disk."""
+    """Discover the active implementation plan file on disk, prioritizing workspace and IDE artifacts."""
     root = (repo_root or ROOT).resolve()
+
+    # 1. Check workspace repo root implementation_plan.md
     imp_plan = root / "implementation_plan.md"
     if imp_plan.is_file():
         return imp_plan
 
+    # 2. Check explicit environment variables
+    for env_var in ("ANTIGRAVITY_ARTIFACTS_DIR", "ARTIFACT_DIRECTORY_PATH"):
+        val = os.environ.get(env_var)
+        if val:
+            cand = Path(val) / "implementation_plan.md"
+            if cand.is_file():
+                return cand
+
+    # 3. Check Antigravity IDE brain artifacts directory (~/.gemini/antigravity-ide/brain/*)
+    ide_brain_dir = Path.home() / ".gemini" / "antigravity-ide" / "brain"
+    if ide_brain_dir.is_dir():
+        recent_brain_plans = sorted(
+            ide_brain_dir.glob("*/implementation_plan.md"),
+            key=lambda p: p.stat().st_mtime,
+            reverse=True,
+        )
+        if recent_brain_plans:
+            latest_brain = recent_brain_plans[0]
+            # Compare with repo plans; if brain plan is more recent, prefer it
+            plans_dir = root / "plans"
+            if plans_dir.is_dir():
+                recent_plans = sorted(plans_dir.glob("*.md"), key=lambda p: p.stat().st_mtime, reverse=True)
+                if recent_plans and recent_plans[0].stat().st_mtime > latest_brain.stat().st_mtime:
+                    return recent_plans[0]
+            return latest_brain
+
+    # 4. Fall back to plans/ directory
     plans_dir = root / "plans"
     if plans_dir.is_dir():
         recent_plans = sorted(plans_dir.glob("*.md"), key=lambda p: p.stat().st_mtime, reverse=True)
@@ -541,6 +589,11 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         default=ROOT,
         help="Repository root directory.",
     )
+    parser.add_argument(
+        "--markdown",
+        action="store_true",
+        help="Render wave summary table in standard Markdown format for chat responses.",
+    )
     args = parser.parse_args(argv)
 
     root = args.repository_root.resolve()
@@ -585,7 +638,10 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         try:
             entries, _ = extract_wave_summary_entries(plan_file.read_text(encoding="utf-8"))
             if entries:
-                print(render_wave_summary_table(plan_file.name, entries))
+                if args.markdown:
+                    print(render_markdown_wave_summary_table(plan_file.name, entries))
+                else:
+                    print(render_wave_summary_table(plan_file.name, entries))
         except Exception:
             pass
 

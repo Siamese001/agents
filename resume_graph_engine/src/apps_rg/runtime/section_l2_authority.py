@@ -205,27 +205,17 @@ def prepare_section_l2_authority(
             "L1PlanContract, and FinalEvidenceContract"
         )
     route, plan, fec, validated_request = loaded
-    prompt_artifact = governed_pa_compose_integrated(route, plan, fec, validated_request)
-    effective_provider = str(provider_lane or prompt_artifact.target_provider or "").strip()
-    effective_model = str(model_lane or prompt_artifact.target_model or "").strip()
-    prompt_artifact = replace(
-        prompt_artifact,
-        target_provider=effective_provider,
-        target_model=effective_model,
-        allowed_models=(effective_model,) if effective_model else (),
-    )
+    pa = governed_pa_compose_integrated(route, plan, fec, validated_request)
+    eff_prov = str(provider_lane or pa.target_provider or "").strip()
+    eff_mod = str(model_lane or pa.target_model or "").strip()
+    tok_b = int(runtime_payload.get("max_tokens") or (8192 if ("bullets" in section_id or section_id in ("competencies", "executive_summary")) else getattr(pa, "max_tokens", 4096)) or 4096)
+    prompt_artifact = replace(pa, target_provider=eff_prov, target_model=eff_mod, allowed_models=(eff_mod,) if eff_mod else (), max_tokens=tok_b)
 
     packet = build_signed_execution_packet(
-        prompt_artifact,
-        route,
-        validated_request,
-        attempt_number=1,
+        prompt_artifact, route, validated_request, attempt_number=1
     )
     gate_receipts = validate_execution_packet(
-        packet,
-        prompt_artifact,
-        route,
-        validated_request,
+        packet, prompt_artifact, route, validated_request
     )
     frozen_room = freeze_execution_room(packet)
     prep_receipt = {

@@ -87,9 +87,20 @@ def _resolve_canonical_targeting_brief(
         return "", ""
 
     role_tokens = [tok for tok in role_norm.split("_") if len(tok) > 3]
+    company_tokens = [
+        tok
+        for tok in re.findall(r"[a-z]+|\d+", company_name.lower())
+        if len(tok) >= 3 and not tok.isdigit()
+    ]
+
+    def _matches_company(stem: str) -> bool:
+        if company_norm and company_norm in stem:
+            return True
+        return any(tok in stem or stem.startswith(tok) for tok in company_tokens)
+
     for candidate in candidates:
         stem = candidate.stem.lower()
-        if company_norm in stem and any(tok in stem for tok in role_tokens):
+        if _matches_company(stem) and any(tok in stem for tok in role_tokens):
             brief, path_str = _load(candidate)
             if brief:
                 _CANONICAL_TARGETING_BRIEF_CACHE[cache_key] = (brief, path_str)
@@ -97,7 +108,7 @@ def _resolve_canonical_targeting_brief(
 
     for candidate in candidates:
         stem = candidate.stem.lower()
-        if company_norm and company_norm in stem:
+        if _matches_company(stem):
             brief, path_str = _load(candidate)
             if brief:
                 _CANONICAL_TARGETING_BRIEF_CACHE[cache_key] = (brief, path_str)
@@ -602,7 +613,7 @@ class AppsResearchBridge:
         block_reason = ""
         is_blocked = bool(getattr(raw, "is_blocked", False))
         terminal_error = str(getattr(raw, "hop_terminal_error", "") or "").strip()
-        if (not brief_text or is_blocked) and not terminal_error:
+        if not brief_text or is_blocked:
             canonical_brief, canonical_path = _resolve_canonical_targeting_brief(
                 company_name=company_name,
                 job_title=job_title,
@@ -611,6 +622,7 @@ class AppsResearchBridge:
                 brief_text = canonical_brief
                 is_blocked = False
                 block_reason = ""
+                terminal_error = ""
 
                 fec_ctx = dict(getattr(raw, "fec_run_context", {}) or {})
                 from apps_research.integrations.apps_rg_handoff import (

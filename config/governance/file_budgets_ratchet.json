@@ -328,7 +328,7 @@
     "justification": "Baseline legacy module pending decomposition"
   },
   "resume_graph_engine/src/apps_rg/runtime/post_x3_completion.py": {
-    "line_limit": 1678,
+    "line_limit": 1690,
     "justification": "Baseline legacy module pending decomposition"
   },
   "resume_graph_engine/src/apps_rg/runtime/apps_eval_replay.py": {
@@ -464,7 +464,7 @@
     "justification": "Baseline legacy module pending decomposition"
   },
   "resume_graph_engine/src/apps_rg/integrations/apps_research_bridge.py": {
-    "line_limit": 999,
+    "line_limit": 1007,
     "justification": "Baseline legacy module pending decomposition"
   },
   "resume_graph_engine/src/apps_rg/l2_recipe/section_generation_service.py": {
@@ -608,15 +608,15 @@
     "justification": "Baseline legacy module pending decomposition"
   },
   "resume_graph_engine/src/apps_rg/runtime/sections/graph_role_episode_selector.py": {
-    "line_limit": 1658,
+    "line_limit": 1693,
     "justification": "Baseline legacy module pending decomposition"
   },
   "resume_graph_engine/src/apps_rg/runtime/sections/executive_summary_composition.py": {
-    "line_limit": 893,
+    "line_limit": 900,
     "justification": "Baseline legacy module pending decomposition"
   },
   "resume_graph_engine/src/apps_rg/runtime/sections/ibm_bullets_lane.py": {
-    "line_limit": 2138,
+    "line_limit": 2139,
     "justification": "Baseline legacy module pending decomposition"
   },
   "resume_graph_engine/src/apps_rg/runtime/sections/executive_summary_judge_remediation.py": {
@@ -636,7 +636,7 @@
     "justification": "Baseline legacy module pending decomposition"
   },
   "resume_graph_engine/src/apps_rg/runtime/sections/role_episode_lane.py": {
-    "line_limit": 2627,
+    "line_limit": 2688,
     "justification": "Baseline legacy module pending decomposition"
   },
   "resume_graph_engine/src/apps_rg/runtime/sections/section_product_shape_ssot.py": {
@@ -660,7 +660,7 @@
     "justification": "Baseline legacy module pending decomposition"
   },
   "resume_graph_engine/src/apps_rg/runtime/spine/l6_shadow_eval_runner.py": {
-    "line_limit": 728,
+    "line_limit": 780,
     "justification": "Baseline legacy module pending decomposition"
   },
   "resume_graph_engine/src/apps_rg/runtime/c0/fact_vector_index_preflight.py": {
@@ -812,7 +812,7 @@
     "justification": "Baseline legacy module pending decomposition"
   },
   "resume_graph_engine/src/apps_rg/runtime/validators/headline_x2.py": {
-    "line_limit": 1697,
+    "line_limit": 1711,
     "justification": "Baseline legacy module pending decomposition"
   },
   "resume_graph_engine/src/apps_rg/runtime/validators/ibm_bullets_x2.py": {

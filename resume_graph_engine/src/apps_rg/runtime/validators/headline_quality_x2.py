@@ -144,12 +144,22 @@ def _tokenize(text: str) -> list[str]:
     return _TOKEN_RE.findall(text.lower())
 
 
+_ALLOWED_HEADLINE_PREFIXES: tuple[str, ...] = (
+    "SVP Engineering",
+    "SVP Agentic Transformation",
+    "SVP Transformation",
+    "SVP Technology Strategy",
+    "SVP Enterprise AI",
+    "SVP Agentic AI Platforms",
+)
+
+
 def _segments_xyz(headline_line: str) -> list[str]:
     """Return X, Y, Z segments (2-4) if pipe format valid, else full text."""
     h = (headline_line or "").strip()
-    if h.count(" | ") == 3 and h.startswith("SVP Engineering | "):
+    if h.count(" | ") == 3 and (h.startswith("SVP ") and " | " in h):
         parts = [p.strip() for p in h.split(" | ")]
-        if len(parts) == 4:
+        if len(parts) == 4 and (parts[0] in _ALLOWED_HEADLINE_PREFIXES or (parts[0].startswith("SVP ") and len(parts[0].split()) in (2, 3))):
             return parts[1:]
     return [h]
 
@@ -212,22 +222,22 @@ def check_headline_positioning_families(
 
 
 def check_headline_seniority_floor(headline_line: str) -> HeadlineQualityResult:
-    """Segment 0 must be exactly 'SVP Engineering'."""
+    """Segment 0 must be an approved SVP prefix (e.g. 'SVP Engineering', 'SVP Agentic Transformation')."""
     h = (headline_line or "").strip()
     parts = [p.strip() for p in h.split(" | ")] if " | " in h else [h]
     seg0 = parts[0] if parts else ""
-    passed = seg0 == "SVP Engineering"
+    passed = seg0 in _ALLOWED_HEADLINE_PREFIXES or (seg0.startswith("SVP ") and len(seg0.split()) in (2, 3))
     return HeadlineQualityResult(
         gate_id="x2_headline_seniority_floor",
         passed=passed,
         observed_value=seg0,
-        threshold="SVP Engineering",
+        threshold="SVP [Engineering/Transformation/Strategy]",
         failure_reason=(
             None
             if passed
             else (
-                f"First segment {seg0!r} is not 'SVP Engineering'. "
-                "Headline must open with the senior engineering title to preserve seniority posture."
+                f"First segment {seg0!r} is not an approved SVP prefix. "
+                "Headline must open with a senior SVP title to preserve seniority posture."
             )
         ),
         signals=["svp_engineering_present"] if passed else [],

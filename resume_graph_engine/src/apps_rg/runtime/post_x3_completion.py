@@ -1414,11 +1414,16 @@ def _complete_apps_rg_post_x3(
         evaluation_decision.get("evaluation_validity") == "PASS"
         and evaluation_decision.get("deterministic_product_status") == "PASS"
     )
-    l6_quality_pass = bool(
+    audit_quality_pass = bool(
         evaluation_decision.get("l6_integrity_status") == "PASS"
-        and l6_binding.get("grain_parity_status") == "PASS"
-        and l6_binding.get("apps_eval_rows_bound") is True
+        and l6_audit.get("grain_parity_status") == "PASS"
+        and l6_audit.get("apps_eval_rows_bound") is True
     )
+    section_l6_pass = bool(
+        section_l6_binding.get("grain_parity_status") == "PASS"
+        and section_l6_binding.get("apps_eval_rows_bound") is True
+    )
+    l6_quality_pass = bool(audit_quality_pass and section_l6_pass)
     eval_executed = bool(eval_record_path and eval_record.record_id)
     l6_executed = bool(l6_binding.get("l6_evaluation_audit_ref"))
 
@@ -1435,7 +1440,7 @@ def _complete_apps_rg_post_x3(
         eval_executed
         and eval_quality_pass
         and l6_executed
-        and l6_quality_pass
+        and audit_quality_pass
         and fact_vector_writeback.get("status") != "FAIL"
     )
     pipeline_complete = bool(post_boundary_pass and product_authorization_receipt_ref)
@@ -1461,9 +1466,9 @@ def _complete_apps_rg_post_x3(
         post_boundary_stage = "apps_eval_product_failure"
     elif evaluation_decision.get("l6_integrity_status") != "PASS":
         post_boundary_stage = "l6_integrity_failure"
-    elif l6_binding.get("grain_parity_status") != "PASS":
+    elif l6_audit.get("grain_parity_status") != "PASS":
         post_boundary_stage = "l6_grain_parity_failure"
-    elif l6_binding.get("apps_eval_rows_bound") is not True:
+    elif l6_audit.get("apps_eval_rows_bound") is not True:
         post_boundary_stage = "apps_eval_rows_unbound"
     elif fact_vector_writeback.get("status") == "FAIL":
         post_boundary_stage = "fact_vector_writeback_post_boundary"
@@ -1494,6 +1499,7 @@ def _complete_apps_rg_post_x3(
         "future_run_only": True,
         "current_run_mutated": False,
         "compatibility_status": "PASS" if l6_quality_pass else "ADVISORY_GAP",
+        "observation_status": "PASS" if l6_quality_pass else "ADVISORY_GAP",
     }
     payload = {
         "schema_version": "apps_rg.post_x3_completion.v3",

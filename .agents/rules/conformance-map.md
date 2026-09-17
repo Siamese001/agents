@@ -21,8 +21,11 @@ Traces every `AGENTS.md` section to enforceable rules, skills, hooks, tools, and
 | :--- | :--- | :--- |
 | Policy | `docs/refactoring-wave-protocol.md` | 6-wave maximum, sequential scope, receipt validation |
 | Hook | `.agents/hooks.json` → `agents-implementation-plan-guard` | Implementation status table and wave plan validation before writing |
-| Tool | `tools/validate_implementation_plan.py` | Mechanical status table and wave plan validator |
+| Hook | `.agents/hooks.json` → `agents-wave-completion-guard` | Stop hook wave completion summary table display |
+| Dispatcher | `tools/hook_dispatch.py` | Antigravity native lifecycle hook dispatcher and wave table generator |
+| Tool | `tools/validate_implementation_plan.py` | Mechanical status table, brain plan discovery, and markdown table validator |
 | Test | `tests/test_implementation_plan_governance.py` | Plan governance and status table invariant tests |
+| Test | `tests/test_hook_dispatch.py` | Antigravity hook dispatcher and wave summary tests |
 
 ### §"MCP Quick Reference"
 | Type | Path | Coverage |

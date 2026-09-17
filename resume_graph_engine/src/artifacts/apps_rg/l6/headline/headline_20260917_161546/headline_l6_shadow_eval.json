@@ -1,0 +1,45 @@
+{
+  "section_id": "headline",
+  "run_id": "headline_20260917_161546",
+  "prompt_hash": "5ee232a47e88dc13",
+  "compiled_prompt_ref": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_e7baee422eba/lanes/headline/compiled_prompt.txt",
+  "compiled_prompt_artifact_ref": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_e7baee422eba/lanes/headline/compiled_prompt_artifact.json",
+  "sealed_artifact_ref": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_e7baee422eba/lanes/headline/headline_output.txt",
+  "x1_refs": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_e7baee422eba/lanes/headline/x1d_llm_judge_outputs.json",
+  "x2_refs": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_e7baee422eba/lanes/headline/x2_gate_outputs.json",
+  "x3_ref": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_e7baee422eba/lanes/headline/x3_disposition.json",
+  "claim_ledger_ref": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_e7baee422eba/lanes/headline/claim_ledger.json",
+  "selected_fact_plan_ref": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_e7baee422eba/lanes/headline/selected_fact_plan.json",
+  "evidence_refs": [
+    "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_e7baee422eba/lanes/headline/runtime_payload.json",
+    "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_e7baee422eba/lanes/headline/prompt_selection_trace.json",
+    "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_e7baee422eba/lanes/headline/fact_check_result.json"
+  ],
+  "model_output_ref": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_e7baee422eba/lanes/headline/provider_response.json",
+  "final_headline_line": "SVP Engineering | Governed Policy Administration Systems | Partner Co-Innovation Platform | Distributed Execution Infrastructure",
+  "offline_only": true,
+  "current_run_effect": false,
+  "runtime_disposition_unchanged": true,
+  "observed_failures": [],
+  "support_coverage_findings": [
+    "claim_ledger_fact_union=['reb_insurtech_aws_migration_execution', 'reb_slalom_ecosystem_accelerators', 'reb_unify_distributed_ecosystem_engineering', 'skill_partner_hyperscaler_cosell', 'skill_sr_insurtech_legacy_cloud_modernization', 'skill_sr_w12_databricks_lakehouse_fundamentals']",
+    "candidate_fact_pool_size=9"
+  ],
+  "proof_misuse_findings": [],
+  "banned_content_findings": [],
+  "phrasing_quality_findings": [],
+  "future_run_recommendations": [],
+  "promotion_candidate": false,
+  "handoff_packet_repo_relative": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_e7baee422eba/lanes/headline/l6_shadow_eval_package.json",
+  "l2_output_ref": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_e7baee422eba/lanes/headline/l2_output.json",
+  "prompt_control_receipt_findings": [],
+  "raw_schema_findings": [],
+  "self_check_findings": [],
+  "reasoning_execution_receipt_summary": {
+    "present": false,
+    "quality_certification_denied": false,
+    "aggregate_blocked": false,
+    "proof_blocking_reasons": [],
+    "blocks_proof_eligible_lane": false
+  }
+}

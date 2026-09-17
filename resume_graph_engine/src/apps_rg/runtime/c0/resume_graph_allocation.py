@@ -77,7 +77,7 @@ _EXACT_METRIC_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
 CANONICAL_BULLET_CLAIM_UNITS: Mapping[str, tuple[str, ...]] = {
     "slalom_bullets": tuple(f"bul_slalom_{index:03d}" for index in range(1, 5)),
     "unify_bullets": tuple(f"bul_unify_{index:03d}" for index in range(1, 7)),
-    "ibm_bullets": ("bul_ibm_001", "bul_ibm_003", "bul_ibm_004"),
+    "ibm_bullets": tuple(f"bul_ibm_{index:03d}" for index in range(1, 6)),
     "insurtech_bullets": ("bul_insurtech_001", "bul_insurtech_002"),
     "ey_bullets": (),
 }
