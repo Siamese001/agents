@@ -19,6 +19,7 @@ from apps_lic.domain.models import (
     AudiencePersona,
     CandidateFact,
     CandidateProfile,
+    CandidateProfileLoader,
     ChannelType,
     RecipientClass,
     RelationshipDistance,
@@ -111,25 +112,11 @@ def _handle_run(args: argparse.Namespace) -> int:
         candidate, opportunity = MissionLoader.load_from_file(brief_path)
     elif args.company:
         log(f"[outreach_engine] Target company specified: {args.company} ({args.role})...")
-        candidate = CandidateProfile(
-            candidate_id="cand_exec",
-            full_name="Amit Ayer",
-            target_title=args.role,
-            executive_summary="Enterprise technology executive specializing in modern distributed platforms and governed agentic architectures.",
-            verified_facts=[
-                CandidateFact(
-                    fact_id="fact_01",
-                    category="scale",
-                    statement="scaled enterprise core platform processing high-volume transactions with 99.995% reliability",
-                    metric="99.995%",
-                ),
-                CandidateFact(
-                    fact_id="fact_02",
-                    category="architecture",
-                    statement="architected layered agentic systems (L0 routing through L6 observability) with AST dependency governance",
-                ),
-            ],
-            key_competencies=["Agentic Systems", "Enterprise AI Architecture", "Human-in-the-loop Governance"],
+        candidate = CandidateProfileLoader.load_default(
+            overrides={
+                "candidate_id": "cand_exec",
+                "target_title": args.role,
+            }
         )
         opportunity = TargetOpportunity(
             opportunity_id=f"opp_{args.company.lower()}",
@@ -143,26 +130,11 @@ def _handle_run(args: argparse.Namespace) -> int:
             strategic_priorities=[],
         )
     else:
-        candidate = CandidateProfile(
-            candidate_id="cand_001",
-            full_name="Amit Ayer",
-            target_title="VP of Enterprise Engineering",
-            executive_summary="Executive technology leader specializing in modern distributed systems.",
-            verified_facts=[
-                CandidateFact(
-                    fact_id="fact_01",
-                    category="scale",
-                    statement="scaled distributed platform processing $4.2B annual volume at 99.995% reliability",
-                    metric="$4.2B",
-                ),
-                CandidateFact(
-                    fact_id="fact_02",
-                    category="efficiency",
-                    statement="reduced infrastructure operating expenditures by 38% via cloud governance",
-                    metric="38%",
-                ),
-            ],
-            key_competencies=["Agentic Systems", "Cloud Governance", "Platform Scaling"],
+        candidate = CandidateProfileLoader.load_default(
+            overrides={
+                "candidate_id": "cand_001",
+                "target_title": "VP of Enterprise Engineering",
+            }
         )
         opportunity = TargetOpportunity(
             opportunity_id="opp_truist_01",

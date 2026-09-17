@@ -1,0 +1,65 @@
+provider_profile_registry_id: outreach_engine::provider_profiles::v1
+app_id: outreach_engine
+version: "1.0.0"
+status: active
+
+# outreach_engine model and provider routing SSOT.
+# Models and reasoning parameters resolve exclusively through this registry.
+model_pin_ownership:
+  routing_ssot: outreach_engine/config/provider_profiles.yaml
+  shared_catalog_role: capability_metadata_only
+  environment_model_override_allowed: false
+  receipt_identity_source: observed_provider_response
+
+profiles:
+  executive_outreach_generator:
+    profile_id: outreach_engine::provider::executive_outreach_generator::v1
+    provider: openai
+    provider_class: external_api
+    model: gpt-5.6-luna
+    reasoning_effort: low
+    pin_owner: outreach_engine.generator.executive
+    pin_review_after: "2026-11-07"
+    description: "Peer-to-peer executive outreach draft synthesis"
+
+  recruiter_outreach_generator:
+    profile_id: outreach_engine::provider::recruiter_outreach_generator::v1
+    provider: openai
+    provider_class: external_api
+    model: gpt-5.6-luna
+    reasoning_effort: low
+    pin_owner: outreach_engine.generator.recruiter
+    pin_review_after: "2026-11-07"
+    description: "Scannable executive recruiter outreach synthesis"
+
+  rubric_judge_panel:
+    profile_id: outreach_engine::provider::rubric_judge_panel::v1
+    provider: anthropic
+    provider_class: external_api
+    model: claude-3-5-sonnet-20241022
+    backup_provider: google
+    backup_model: gemini-3.8-flash
+    reasoning_effort: low
+    pin_owner: outreach_engine.judges.panel
+    pin_review_after: "2026-11-07"
+    description: "Multi-lens executive outreach rubric evaluator"
+
+  company_brief_generation:
+    profile_id: outreach_engine::provider::company_brief_generation::v1
+    provider: openai
+    provider_class: external_api
+    model: gpt-5.6-terra
+    reasoning_effort: low
+    pin_owner: outreach_engine.research.generation
+    pin_review_after: "2026-11-07"
+    description: "Company intelligence targeting brief generation"
+
+  handoff_judge:
+    profile_id: outreach_engine::provider::handoff_judge::v1
+    provider: google
+    provider_class: external_api
+    model: gemini-3.8-flash
+    reasoning_effort: low
+    pin_owner: outreach_engine.research.judge
+    pin_review_after: "2026-11-07"
+    description: "Research handoff semantic gate judge"

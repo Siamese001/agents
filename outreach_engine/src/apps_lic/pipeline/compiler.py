@@ -17,24 +17,45 @@ from apps_lic.domain.models import (
 )
 
 
-def get_executive_signature_block(candidate_name: str = "Amit Ayer") -> str:
-    """Standard executive signature block compliant with exec_positioning.yaml."""
-    return (
-        f"{candidate_name}\n"
-        "Chief Agentic AI Officer\n"
-        "www.linkedin.com/in/amitayer1/\n"
-        "www.github.com/Siamese001/Agentic-Workflow\n"
-        "+1-917-239-3830"
-    )
+def get_executive_signature_block(candidate: CandidateProfile | str | None = None) -> str:
+    """Standard executive signature block compliant with exec_positioning.yaml and CandidateProfile SSOT."""
+    from apps_lic.domain.models import CandidateProfileLoader
+    if isinstance(candidate, CandidateProfile):
+        profile = candidate
+    elif isinstance(candidate, str) and candidate.strip():
+        profile = CandidateProfileLoader.load_default(overrides={"full_name": candidate.strip()})
+    else:
+        profile = CandidateProfileLoader.load_default()
+
+    lines = [profile.full_name]
+    title = profile.current_title or profile.target_title
+    if title:
+        lines.append(title)
+    if profile.linkedin_url:
+        lines.append(profile.linkedin_url)
+    if profile.github_url:
+        lines.append(profile.github_url)
+    if profile.phone:
+        lines.append(profile.phone)
+    return "\n".join(lines)
 
 
-def get_recruiter_signature_block(candidate_name: str = "Amit Ayer") -> str:
-    """Compact signature block for recruiter communications."""
-    return (
-        f"{candidate_name}\n"
-        "www.linkedin.com/in/amitayer1/\n"
-        "+1-917-239-3830"
-    )
+def get_recruiter_signature_block(candidate: CandidateProfile | str | None = None) -> str:
+    """Compact signature block for recruiter communications compliant with CandidateProfile SSOT."""
+    from apps_lic.domain.models import CandidateProfileLoader
+    if isinstance(candidate, CandidateProfile):
+        profile = candidate
+    elif isinstance(candidate, str) and candidate.strip():
+        profile = CandidateProfileLoader.load_default(overrides={"full_name": candidate.strip()})
+    else:
+        profile = CandidateProfileLoader.load_default()
+
+    lines = [profile.full_name]
+    if profile.linkedin_url:
+        lines.append(profile.linkedin_url)
+    if profile.phone:
+        lines.append(profile.phone)
+    return "\n".join(lines)
 
 
 @functools.lru_cache(maxsize=32)
