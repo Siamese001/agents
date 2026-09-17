@@ -11,9 +11,10 @@ echo "=== [Git Hook] Running Pre-Commit Governance Gates ==="
 echo "-> 1. Validating turn gates..."
 python3 tools/validate_turn_gates.py --mode pre-turn
 
-# 2. Staged implementation plans validation
-echo "-> 2. Validating staged implementation plans..."
+# 2. Implementation plan & mandatory wave summary table validation
+echo "-> 2. Validating implementation plan & confirming wave summary table..."
 python3 tools/validate_implementation_plan.py --staged
+
 
 # 3. Tier 1 quality check (verify_commit.py)
 echo "-> 3. Verifying commit invariants (Tier 1)..."

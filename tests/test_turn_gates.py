@@ -38,6 +38,10 @@ class TurnGatesValidationTests(unittest.TestCase):
         self.assertEqual(checks["runtime_boundary"]["status"], "PASS")
         self.assertEqual(checks["tier1_tools"]["status"], "PASS")
         self.assertEqual(checks["conformance_map"]["status"], "PASS")
+        self.assertEqual(checks["implementation_plan"]["status"], "PASS")
+        self.assertGreater(checks["implementation_plan"]["wave_count"], 0)
+        self.assertIn("wave_summary", checks["implementation_plan"])
+
 
     def test_hitl_ambiguity_autonomous_proceed_when_delta_gt_20(self) -> None:
         """When delta > 20%, the gate must select PROCEED_AUTONOMOUSLY."""

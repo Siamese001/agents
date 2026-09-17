@@ -15,9 +15,13 @@ from pathlib import Path
 
 from tools.validate_implementation_plan import (
     DEFAULT_LEGACY_EXEMPTIONS,
+    extract_wave_summary_entries,
+    get_active_plan_file,
+    render_wave_summary_table,
     validate_file,
     validate_plan_content,
 )
+
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -385,6 +389,54 @@ No items specified here just free text with no deliverables.
         is_valid, errors = validate_plan_content(good_model_plan, "good_model.md")
         self.assertTrue(is_valid, f"Plan should pass, but failed with: {errors}")
 
+    def test_extract_wave_summary_entries_from_status_table(self) -> None:
+        """Verify extraction of wave number, description, status, and check/open status."""
+        plan_text = """# Test Plan
+## Implementation Status Table
+| Wave / Component | Description / Scope | Status | Deliverables / Receipts |
+|---|---|---|---|
+| Wave 1: Core Foundation | Build foundation | COMPLETED | `out.py` |
+| Wave 2: Integration | Connect components | IN_PROGRESS | `int.py` |
+| Wave 3: Verification | Full test sweep | PLANNED | `test.py` |
+"""
+        entries, issues = extract_wave_summary_entries(plan_text)
+        self.assertEqual(len(entries), 3)
+        self.assertEqual(entries[0]["wave"], "Wave 1")
+        self.assertEqual(entries[0]["description"], "Build foundation")
+        self.assertEqual(entries[0]["status"], "COMPLETED")
+        self.assertEqual(entries[0]["check_open"], "[x] CHECK")
+        self.assertTrue(entries[0]["is_checked"])
+
+        self.assertEqual(entries[1]["wave"], "Wave 2")
+        self.assertEqual(entries[1]["check_open"], "[ ] OPEN")
+        self.assertFalse(entries[1]["is_checked"])
+
+        self.assertEqual(entries[2]["wave"], "Wave 3")
+        self.assertEqual(entries[2]["check_open"], "[ ] OPEN")
+        self.assertFalse(entries[2]["is_checked"])
+
+    def test_render_wave_summary_table_contains_all_required_columns(self) -> None:
+        """Verify rendered table includes Wave #, Description / Scope, Status, and Check/Open."""
+        entries = [
+            {"wave": "Wave 1", "description": "Foundation", "status": "COMPLETED", "check_open": "[x] CHECK"},
+            {"wave": "Wave 2", "description": "Integration", "status": "PLANNED", "check_open": "[ ] OPEN"},
+        ]
+        table_output = render_wave_summary_table("sample_plan.md", entries)
+        self.assertIn("Wave #", table_output)
+        self.assertIn("Description / Scope", table_output)
+        self.assertIn("Status", table_output)
+        self.assertIn("Check/Open", table_output)
+        self.assertIn("[x] CHECK", table_output)
+        self.assertIn("[ ] OPEN", table_output)
+
+    def test_get_active_plan_file_finds_recent_plan(self) -> None:
+        """Verify get_active_plan_file returns a valid markdown plan file."""
+        active = get_active_plan_file(ROOT)
+        self.assertIsNotNone(active)
+        self.assertTrue(active.is_file())
+        self.assertTrue(active.name.endswith(".md"))
+
 
 if __name__ == "__main__":
     unittest.main()
+

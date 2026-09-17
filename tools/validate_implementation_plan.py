@@ -54,20 +54,11 @@ RE_RECEIPT_GATE = re.compile(
 RE_ITEM = re.compile(r"^\s*(?:[-*+]|\d+\.)\s+(.+)$")
 
 VALID_STATUS_TOKENS = (
-    "COMPLETED",
-    "COMPLETE",
-    "DONE",
-    "IN_PROGRESS",
-    "IN PROGRESS",
-    "PENDING_APPROVAL",
-    "PENDING APPROVAL",
-    "PENDING",
-    "OPEN",
-    "BLOCKED",
-    "NOT_STARTED",
-    "NOT STARTED",
-    "PLANNED",
+    "COMPLETED", "COMPLETE", "DONE", "IN_PROGRESS", "IN PROGRESS",
+    "PENDING_APPROVAL", "PENDING APPROVAL", "PENDING", "OPEN",
+    "BLOCKED", "NOT_STARTED", "NOT STARTED", "PLANNED",
 )
+
 
 
 def normalize_status(val: str) -> Optional[str]:
@@ -403,6 +394,106 @@ def validate_file(
     return validate_plan_content(content, filename=str(path.name), repo_root=repo_root or ROOT)
 
 
+def extract_wave_summary_entries(content: str) -> Tuple[List[dict], List[str]]:
+    """Extract wave summary records (wave, description, status, check_open) from plan content."""
+    lines = content.splitlines()
+    tables = parse_markdown_tables(lines)
+    status_table, col_indices, _ = find_status_table(tables)
+    if not status_table or not col_indices:
+        waves: List[dict] = []
+        for line in lines:
+            m = RE_WAVE_HEADER.match(line.strip())
+            if m:
+                w_num = f"Wave {m.group(2)}"
+                w_title = (m.group(3) or "").strip()
+                waves.append({
+                    "wave": w_num,
+                    "description": w_title,
+                    "status": "OPEN",
+                    "check_open": "[ ] OPEN",
+                    "is_checked": False,
+                })
+        return waves, ["Parsed from wave headers (no status table)"] if waves else ["No waves found"]
+
+    wave_idx = col_indices["wave_idx"]
+    desc_idx = col_indices["desc_idx"]
+    status_idx = col_indices["status_idx"]
+
+    entries: List[dict] = []
+    for line_no, cells in status_table.rows:
+        wave_cell = cells[wave_idx] if wave_idx < len(cells) else f"Row {line_no}"
+        desc_cell = cells[desc_idx] if desc_idx < len(cells) else ""
+        raw_status = cells[status_idx] if status_idx < len(cells) else "UNKNOWN"
+        norm_status = normalize_status(raw_status) or raw_status.strip()
+
+        is_checked = norm_status.upper() in ("COMPLETED", "COMPLETE", "DONE")
+        check_open = "[x] CHECK" if is_checked else "[ ] OPEN"
+
+        m = re.match(r"^(Wave\s+\d+)", wave_cell, re.IGNORECASE)
+        wave_num = m.group(1).title() if m else wave_cell.strip()
+
+        entries.append({
+            "wave": wave_num,
+            "wave_full": wave_cell.strip(),
+            "description": desc_cell.strip(),
+            "status": norm_status,
+            "check_open": check_open,
+            "is_checked": is_checked,
+        })
+    return entries, []
+
+
+def render_wave_summary_table(plan_name: str, entries: List[dict]) -> str:
+    """Render mandatory wave summary table confirming wave number, description, and check/open status."""
+    if not entries:
+        return f"No wave summary entries found for {plan_name}."
+
+    headers = ["Wave #", "Description / Scope", "Status", "Check/Open"]
+    rows = []
+    for e in entries:
+        desc = e["description"]
+        if len(desc) > 65:
+            desc = desc[:62] + "..."
+        rows.append([e["wave"], desc, e["status"], e["check_open"]])
+
+    col_widths = [len(h) for h in headers]
+    for r in rows:
+        for i, val in enumerate(r):
+            col_widths[i] = max(col_widths[i], len(val))
+
+    sep = "+-" + "-+-".join("-" * w for w in col_widths) + "-+"
+    header_str = "| " + " | ".join(h.ljust(col_widths[i]) for i, h in enumerate(headers)) + " |"
+
+    lines = [
+        f"\n================================================================================",
+        f"  MANDATORY WAVE SUMMARY TABLE: {plan_name}",
+        f"================================================================================",
+        sep,
+        header_str,
+        sep,
+    ]
+    for r in rows:
+        row_str = "| " + " | ".join(r[i].ljust(col_widths[i]) for i in range(len(headers))) + " |"
+        lines.append(row_str)
+    lines.append(sep)
+    return "\n".join(lines)
+
+
+def get_active_plan_file(repo_root: Optional[Path] = None) -> Optional[Path]:
+    """Discover the active implementation plan file on disk."""
+    root = (repo_root or ROOT).resolve()
+    imp_plan = root / "implementation_plan.md"
+    if imp_plan.is_file():
+        return imp_plan
+
+    plans_dir = root / "plans"
+    if plans_dir.is_dir():
+        recent_plans = sorted(plans_dir.glob("*.md"), key=lambda p: p.stat().st_mtime, reverse=True)
+        if recent_plans:
+            return recent_plans[0]
+    return None
+
+
 def get_staged_plan_files(repo_root: Path) -> List[Path]:
     """Retrieve staged markdown files matching implementation plan naming patterns."""
     try:
@@ -458,26 +549,25 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     if args.file:
         target_files.append(args.file if args.file.is_absolute() else root / args.file)
     elif args.staged:
-        target_files.extend(get_staged_plan_files(root))
-        if not target_files:
-            print("No implementation plan files currently staged.")
-            return 0
+        staged_files = get_staged_plan_files(root)
+        if staged_files:
+            target_files.extend(staged_files)
+        else:
+            active_plan = get_active_plan_file(root)
+            if active_plan:
+                print(f"[Pre-Commit] Validating active plan: {active_plan.name}")
+                target_files.append(active_plan)
+            else:
+                print("No implementation plan files currently staged or active.")
+                return 0
     elif args.all_plans:
         plans_dir = root / "plans"
         if plans_dir.is_dir():
             target_files.extend(sorted(plans_dir.glob("*.md")))
     else:
-        # Default: validate implementation_plan.md in root or brain artifact dir if present
-        imp_plan = root / "implementation_plan.md"
-        if imp_plan.is_file():
-            target_files.append(imp_plan)
-        else:
-            # check recent plans in plans/
-            plans_dir = root / "plans"
-            if plans_dir.is_dir():
-                recent_plans = sorted(plans_dir.glob("*.md"), key=lambda p: p.stat().st_mtime, reverse=True)
-                if recent_plans:
-                    target_files.append(recent_plans[0])
+        active_plan = get_active_plan_file(root)
+        if active_plan:
+            target_files.append(active_plan)
 
     if not target_files:
         print("No implementation plan files to validate.")
@@ -485,20 +575,24 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     all_passed = True
     for plan_file in target_files:
-        passed, issues = validate_file(plan_file)
-        if passed:
-            print(f"[PASS] {plan_file.name}")
-            for issue in issues:
-                if issue.startswith("[EXEMPT]"):
-                    print(f"       {issue}")
-        else:
+        passed, issues = validate_file(plan_file, repo_root=root)
+        prefix = "[PASS]" if passed else "[FAIL]"
+        print(f"{prefix} {plan_file.name}")
+        for err in issues:
+            print(f"       - {err}" if not passed else f"       {err}")
+        if not passed:
             all_passed = False
-            print(f"[FAIL] {plan_file.name}")
-            for err in issues:
-                print(f"       - {err}")
+        try:
+            entries, _ = extract_wave_summary_entries(plan_file.read_text(encoding="utf-8"))
+            if entries:
+                print(render_wave_summary_table(plan_file.name, entries))
+        except Exception:
+            pass
 
     return 0 if all_passed else 1
 
 
 if __name__ == "__main__":
     sys.exit(main())
+
+
