@@ -17,20 +17,12 @@ from apps_rg.runtime.assembly.l2_snapshot_projection import (
 from apps_rg.runtime.spine.section_x3_finalize import FINAL_MATERIALIZED_ACCEPTANCE_CONTRACT
 
 CANONICAL_ASSEMBLED_SECTION_ORDER: tuple[str, ...] = (
-    "headline",
-    "executive_summary",
-    "competencies",
-    "slalom_narrative",
-    "slalom_bullets",
-    "unify_narrative",
-    "unify_bullets",
-    "ibm_narrative",
-    "ibm_bullets",
-    "insurtech_narrative",
-    "insurtech_bullets",
-    "early_career",
-    "education",
-    "certifications",
+    "headline", "executive_summary", "competencies",
+    "slalom_narrative", "slalom_bullets",
+    "unify_narrative", "unify_bullets",
+    "ibm_narrative", "ibm_bullets",
+    "insurtech_narrative", "insurtech_bullets",
+    "early_career", "education", "certifications",
 )
 
 LOCKED_EMBEDDED_ORDER_IDS: tuple[str, ...] = (
@@ -68,18 +60,13 @@ ASSEMBLY_ALLOWED_ARTIFACT_FILES: frozenset[str] = frozenset(
 )
 
 GENERATED_LANE_IDS: tuple[str, ...] = (
-    "headline",
-    "executive_summary",
-    "competencies",
-    "slalom_narrative",
-    "slalom_bullets",
-    "unify_narrative",
-    "unify_bullets",
-    "ibm_narrative",
-    "ibm_bullets",
-    "insurtech_narrative",
-    "insurtech_bullets",
+    "headline", "executive_summary", "competencies",
+    "slalom_narrative", "slalom_bullets",
+    "unify_narrative", "unify_bullets",
+    "ibm_narrative", "ibm_bullets",
+    "insurtech_narrative", "insurtech_bullets",
 )
+OPTIONAL_GENERATED_LANES: frozenset[str] = frozenset({"ey_bullets", "ey_narrative"})
 
 
 def canonical_json_sorted(value: Any) -> str:
@@ -236,6 +223,8 @@ def run_final_resume_x2_gates(
     gen_ok = True
     gen_reason = "ok"
     for lane in GENERATED_LANE_IDS:
+        if lane in OPTIONAL_GENERATED_LANES and lane not in lanes:
+            continue
         row = lanes.get(lane)
         if not isinstance(row, dict):
             gen_ok = False
@@ -264,6 +253,8 @@ def run_final_resume_x2_gates(
     final_contract_failures: list[str] = []
     final_contract_observed: list[str] = []
     for lane in GENERATED_LANE_IDS:
+        if lane in OPTIONAL_GENERATED_LANES and lane not in lanes:
+            continue
         row = lanes.get(lane)
         if not isinstance(row, dict):
             obs = f"{lane}:missing_rollup_lane"
@@ -314,6 +305,8 @@ def run_final_resume_x2_gates(
             continue
         sid = str(sec.get("section_id", ""))
         if sec.get("section_kind") != "generated_lane":
+            continue
+        if sid in OPTIONAL_GENERATED_LANES and sid not in lanes:
             continue
         if sid not in GENERATED_LANE_IDS:
             continue
@@ -536,6 +529,8 @@ def run_final_resume_x2_gates(
             if isinstance(snap, dict) and snap.get("assembly_gap"):
                 if not isinstance(gl, dict) or not gl.get("assembly_gap"):
                     disp_ok_all = False
+                continue
+            if isinstance(snap, dict) and snap.get("runtime_generation_status") == "CONSOLIDATED":
                 continue
             if (
                 not isinstance(gl, dict)

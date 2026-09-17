@@ -342,12 +342,16 @@ def build_competencies_assembly_input(
         "Families 4 (LLMOps) and 5 (Distributed Infra) are frequently under-covered; include them when "
         "the JD/briefing and graph bundle make them high signal, and otherwise preserve their strongest "
         "fact-supported mechanisms inside a related selected category when that is more concise.\n"
-        "- PARTNER-APPLIED AI ARCHITECTURE: when ccb_partner_applied_ai_architecture is present, include "
+        "- PARTNER-APPLIED AI ARCHITECTURE LAW: when ccb_partner_applied_ai_architecture is present, include "
         "one category bound to that bundle. Use mechanism plus partner-facing outcome, such as "
         "reference architecture, joint AI solution pattern, partner deployment enablement, or safe reuse. "
-        "Do not infer partner scaling from InsurTech or EY roots. Partner, alliance, co-sell, solution "
-        "accelerator, and reference architecture terms must bind to the approved Unify or IBM partner "
-        "architecture roots in the evidence pack.\n"
+        "Partner, alliance, co-sell, solution accelerator, and reference architecture terms MUST bind ONLY "
+        "to valid Unify (bul_unify_*) or IBM (bul_ibm_*) roots in the evidence pack. "
+        "NEVER bind partner architecture terms to Slalom (bul_slalom_*), InsurTech, or EY roots.\n"
+        "- RUNTIME GOVERNANCE LAW: Runtime Governance must focus strictly on runtime policy gates, "
+        "deterministic guardrails, model risk, and sandboxed execution backed by modern AI/enterprise platform "
+        "facts (Unify/IBM/Slalom AI). Do NOT combine or pollute Runtime Governance with legacy insurance capital, "
+        "statutory reserves, or insurance balance sheet facts from InsurTech.\n"
     )
 
     return PromptAssemblyInput(

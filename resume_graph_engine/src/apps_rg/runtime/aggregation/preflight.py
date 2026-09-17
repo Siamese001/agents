@@ -7,7 +7,10 @@ from pathlib import Path
 import json
 from typing import Any
 
-from apps_rg.runtime.assembly.final_resume_x2 import GENERATED_LANE_IDS
+from apps_rg.runtime.assembly.final_resume_x2 import (
+    GENERATED_LANE_IDS,
+    OPTIONAL_GENERATED_LANES,
+)
 from apps_rg.runtime.aggregation.section_sealed_index import GENERATED_LANE_PROOF_FILES
 from apps_rg.runtime.spine.section_x3_finalize import FINAL_MATERIALIZED_ACCEPTANCE_CONTRACT
 
@@ -133,6 +136,8 @@ def run_aggregation_preflight(
     blocked_lanes: list[str] = []
 
     for lane in GENERATED_LANE_IDS:
+        if lane in OPTIONAL_GENERATED_LANES and lane not in lanes:
+            continue
         row = lanes.get(lane)
         ptr = pointers.get(lane)
         if not isinstance(row, dict):

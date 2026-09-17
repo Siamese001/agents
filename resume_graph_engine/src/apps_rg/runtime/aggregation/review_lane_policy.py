@@ -6,7 +6,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from apps_rg.runtime.assembly.final_resume_x2 import GENERATED_LANE_IDS
+from apps_rg.runtime.assembly.final_resume_x2 import (
+    GENERATED_LANE_IDS,
+    OPTIONAL_GENERATED_LANES,
+)
 
 POLICY_SCHEMA = "apps_rg.review_lane_policy.v1"
 
@@ -119,6 +122,8 @@ def evaluate_review_lane_policy(
 
     per_lane: list[dict[str, Any]] = []
     for lane in GENERATED_LANE_IDS:
+        if lane in OPTIONAL_GENERATED_LANES and (not isinstance(lanes, dict) or lane not in lanes):
+            continue
         row = lanes.get(lane) if isinstance(lanes, dict) else None
         ptr = pointers.get(lane) or {}
         rd = ""
@@ -153,7 +158,11 @@ def evaluate_review_lane_policy(
     blocked_lanes = [p["lane"] for p in per_lane if p["disposition_class"] == "BLOCKED"]
     mock_lanes = [p["lane"] for p in per_lane if p["disposition_class"] == "MOCK_PLUMBING_ONLY"]
 
-    all_allow = len(allow_lanes) == len(GENERATED_LANE_IDS)
+    expected_lanes = [
+        l for l in GENERATED_LANE_IDS
+        if l not in OPTIONAL_GENERATED_LANES or (isinstance(lanes, dict) and l in lanes)
+    ]
+    all_allow = len(allow_lanes) == len(expected_lanes)
     any_review = bool(review_lanes)
     any_mock = bool(mock_lanes)
     any_blocked = bool(blocked_lanes)

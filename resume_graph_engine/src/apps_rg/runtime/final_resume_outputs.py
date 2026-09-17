@@ -382,15 +382,12 @@ def _base_header_gate(text: str, final_resume: dict[str, Any]) -> tuple[bool, di
     expected = base_role_header_lines_from_final_resume(final_resume)
     observed: dict[str, Any] = {"role_headers": {}, "positions": {}}
     valid_keys = {"slalom", "unify", "ibm", "insurtech", "ey", "early_career"}
-    if not set(expected).issubset(valid_keys) or not set(expected) >= {"unify", "ibm", "insurtech", "early_career"}:
+    has_ey_or_early = bool({"ey", "early_career"} & set(expected))
+    if not set(expected).issubset(valid_keys) or not set(expected) >= {"unify", "ibm", "insurtech"} or not has_ey_or_early:
         observed["role_headers"] = expected
         return False, observed
-    ey_consolidated = _is_ey_consolidated(final_resume)
     canonical_order = ("slalom", "unify", "ibm", "insurtech", "ey", "early_career")
-    roles_to_check = [
-        rk for rk in canonical_order
-        if rk in expected and not (rk == "ey" and ey_consolidated)
-    ]
+    roles_to_check = [rk for rk in canonical_order if rk in expected]
     last = -1
     for role_key in roles_to_check:
         lines = expected.get(role_key) or []
