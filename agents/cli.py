@@ -30,7 +30,7 @@ for p in (_REPO_ROOT, _RG_SRC, _OE_SRC):
 try:
     from apps_rg.runtime.env_bootstrap import bootstrap_apps_rg_env
     bootstrap_apps_rg_env(repo_root=_REPO_ROOT)
-except Exception:
+except Exception:  # guardian: allow-silent-swallow -- env bootstrap is best-effort in CLI entrypoint
     pass
 
 # Ensure local dev route signing secrets exist if not supplied in environment
@@ -186,7 +186,7 @@ def run_e2e(args: argparse.Namespace) -> int:
             try:
                 import apps_rg
                 import apps_rg.__main__
-            except Exception:
+            except Exception:  # guardian: allow-silent-swallow -- background prewarm is best-effort optimization
                 pass
 
         prewarm_executor = ThreadPoolExecutor(max_workers=1)
@@ -240,7 +240,7 @@ def run_e2e(args: argparse.Namespace) -> int:
         if prewarm_future is not None:
             try:
                 prewarm_future.result(timeout=2.0)
-            except Exception:
+            except Exception:  # guardian: allow-silent-swallow -- prewarm timeout/cancellation is non-fatal
                 pass
             if prewarm_executor is not None:
                 prewarm_executor.shutdown(wait=False)

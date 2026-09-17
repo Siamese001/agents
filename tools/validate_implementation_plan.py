@@ -412,6 +412,7 @@ def get_staged_plan_files(repo_root: Path) -> List[Path]:
             capture_output=True,
             text=True,
             check=True,
+            timeout=30,
         )
         staged: List[Path] = []
         for line in res.stdout.splitlines():

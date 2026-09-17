@@ -175,6 +175,7 @@ def test_removed_local_generator_has_zero_executable_code_matches() -> None:
             capture_output=True,
             text=True,
             check=False,
+            timeout=60,
         )
         assert result.returncode == 1, result.stdout
 

@@ -46,7 +46,7 @@ class SSOTRatchetGate:
             try:
                 data = json.loads(self.ratchet_path.read_text(encoding="utf-8"))
                 return SSOTRatchetThresholds.from_dict(data)
-            except Exception:
+            except Exception:  # guardian: allow-silent-swallow -- fallback to default ratchet threshold if file is missing/unreadable
                 pass
         return SSOTRatchetThresholds(max_total_violations=249)
 

@@ -29,6 +29,7 @@ def test_rg_smoke_bundle_gate_cli_exits_zero() -> None:
         text=True,
         check=False,
         env=env,
+        timeout=60,
     )
     assert proc.returncode == 0, proc.stdout + proc.stderr
 
@@ -50,6 +51,7 @@ def test_integrated_smoke_has_modular_sections_root_default_when_env_clean() -> 
         text=True,
         check=False,
         env=env,
+        timeout=60,
     )
     assert proc.returncode == 0, proc.stdout + proc.stderr
     assert "[RG-SMOKE-BUNDLE] FAIL" not in proc.stdout

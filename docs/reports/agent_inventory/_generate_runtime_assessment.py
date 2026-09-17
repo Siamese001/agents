@@ -89,7 +89,7 @@ def load_taxonomy() -> dict[str, dict]:
 
 def git_grep_count(pattern: str, path: str = "agentic_core") -> int:
     cmd = ["git", "grep", "-l", "-E", pattern, "--", path]
-    r = subprocess.run(cmd, cwd=REPO, capture_output=True, text=True)
+    r = subprocess.run(cmd, cwd=REPO, capture_output=True, text=True, timeout=60)
     if r.returncode not in (0, 1):
         return 0
     return len([ln for ln in (r.stdout or "").splitlines() if ln.strip()])
@@ -466,6 +466,7 @@ print(json.dumps({'fault': r.fault, 'run_id': r.run_id, 'x3': r.x3_disposition})
         cwd=str(REPO),
         capture_output=True,
         text=True,
+        timeout=60,
     )
     result["exit_code"] = proc.returncode
     if proc.returncode != 0:

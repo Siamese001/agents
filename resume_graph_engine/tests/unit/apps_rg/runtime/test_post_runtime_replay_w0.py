@@ -107,7 +107,7 @@ def test_guard_scrubs_credentials_and_blocks_every_escape_path(
         with pytest.raises(NetworkExecutionBlocked):
             socket.getaddrinfo("example.invalid", 443)
         with pytest.raises(SubprocessExecutionBlocked):
-            subprocess.run([sys.executable, "-c", "print('blocked')"], check=False)
+            subprocess.run([sys.executable, "-c", "print('blocked')"], check=False, timeout=60)
         with pytest.raises(ProviderExecutionBlocked):
             guard.block_attempt("provider", "unit.provider")
         with pytest.raises(ProviderExecutionBlocked):
@@ -175,6 +175,7 @@ def test_cli_enters_clean_guard_before_apps_rg_package_import(tmp_path: Path) ->
         check=False,
         capture_output=True,
         text=True,
+        timeout=60,
     )
 
     assert completed.returncode == 0, completed.stderr

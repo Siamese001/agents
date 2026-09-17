@@ -348,17 +348,11 @@ def _git_commit_is_available(repo_root: Path, commit: str) -> bool:
     try:
         present = subprocess.run(
             ["git", "cat-file", "-e", f"{commit}^{{commit}}"],
-            cwd=repo_root,
-            check=False,
-            capture_output=True,
-            text=True,
+            cwd=repo_root, check=False, capture_output=True, text=True, timeout=60,
         )
         ancestor = subprocess.run(
             ["git", "merge-base", "--is-ancestor", commit, "HEAD"],
-            cwd=repo_root,
-            check=False,
-            capture_output=True,
-            text=True,
+            cwd=repo_root, check=False, capture_output=True, text=True, timeout=60,
         )
     except OSError:
         return False

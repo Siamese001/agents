@@ -36,6 +36,7 @@ def test_script_bootstraps_src_without_preconfigured_pythonpath() -> None:
         capture_output=True,
         text=True,
         check=False,
+        timeout=60,
     )
 
     assert completed.returncode == 0, completed.stderr
@@ -158,6 +159,7 @@ def test_legacy_cli_commands_report_retirement(command: str, tmp_path: Path) -> 
         capture_output=True,
         text=True,
         check=False,
+        timeout=60,
     )
 
     assert completed.returncode == 2

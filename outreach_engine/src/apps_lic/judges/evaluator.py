@@ -108,7 +108,7 @@ class ExecutiveOutreachJudgePanel:
                 data = yaml.safe_load(f.read_text(encoding="utf-8"))
                 if isinstance(data, dict) and "rubric_id" in data:
                     rubrics[data["rubric_id"]] = data
-            except Exception:
+            except Exception:  # guardian: allow-silent-swallow -- skip invalid or malformed rubric yaml files
                 pass
         return rubrics
 
@@ -121,7 +121,7 @@ class ExecutiveOutreachJudgePanel:
                 data = yaml.safe_load(v3_file.read_text(encoding="utf-8"))
                 if isinstance(data, dict):
                     return data
-            except Exception:
+            except Exception:  # guardian: allow-silent-swallow -- fallback to empty dict if v3 rubric yaml is unreadable
                 pass
         return {}
 

@@ -61,7 +61,7 @@ def _payload_contains_evidence(
             dumped = json.dumps(state_diff, default=str)
             if ev_str in dumped:
                 return True
-        except Exception:
+        except Exception:  # guardian: allow-silent-swallow -- fallback to False if state_diff is not json-serializable
             pass
 
     return False
@@ -256,7 +256,7 @@ def l1_post_l2_deterministic_check(
                     parsed = json.loads(generated_content)
                     if isinstance(parsed, Mapping) and key in parsed:
                         found_in_json = True
-                except Exception:
+                except Exception:  # guardian: allow-silent-swallow -- fallback if generated_content is not JSON
                     pass
             if not found_in_json:
                 missing_fields.append(f"field:{key}")

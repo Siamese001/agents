@@ -32,6 +32,7 @@ def test_bare_python_prefers_local_src_packages() -> None:
         capture_output=True,
         text=True,
         check=False,
+        timeout=60,
     )
 
     assert result.returncode == 0, result.stderr

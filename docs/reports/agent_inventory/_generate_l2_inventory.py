@@ -13,7 +13,7 @@ ADG_SNAPSHOT = "05172026_0651"
 
 def git_grep(pattern: str, *scopes: str) -> list[str]:
     cmd = ["git", "grep", "-n", "-E", pattern, "--", *scopes]
-    r = subprocess.run(cmd, capture_output=True, text=True, cwd=REPO)
+    r = subprocess.run(cmd, capture_output=True, text=True, cwd=REPO, timeout=60)
     return [ln for ln in (r.stdout or "").splitlines() if ln.strip()]
 
 
@@ -142,8 +142,9 @@ def main() -> None:
         cwd=REPO,
         capture_output=True,
         text=True,
+        timeout=60,
     )
-    status_r = subprocess.run(["git", "status", "--short"], cwd=REPO, capture_output=True, text=True)
+    status_r = subprocess.run(["git", "status", "--short"], cwd=REPO, capture_output=True, text=True, timeout=60)
 
     agent_hits = len(git_grep(
         r"class .*Agent|class .*Healer|class .*Judge|class .*Executor|class .*Validator",

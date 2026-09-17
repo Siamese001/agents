@@ -603,24 +603,12 @@ def test_repeatability_requires_actual_controller_receipts(tmp_path: Path) -> No
     assert scenario_registry_digest()
     workdir = tmp_path / "controller-workdir"
     workdir.mkdir()
-    subprocess.run(["git", "-C", str(workdir), "init"], check=True, capture_output=True)
-    subprocess.run(
-        ["git", "-C", str(workdir), "config", "user.email", "tests@example.invalid"],
-        check=True,
-        capture_output=True,
-    )
-    subprocess.run(
-        ["git", "-C", str(workdir), "config", "user.name", "Apps RG tests"],
-        check=True,
-        capture_output=True,
-    )
+    subprocess.run(["git", "-C", str(workdir), "init"], check=True, capture_output=True, timeout=60)
+    subprocess.run(["git", "-C", str(workdir), "config", "user.email", "tests@example.invalid"], check=True, capture_output=True, timeout=60)
+    subprocess.run(["git", "-C", str(workdir), "config", "user.name", "Apps RG tests"], check=True, capture_output=True, timeout=60)
     (workdir / "controller-source.txt").write_text("controller source\n", encoding="utf-8")
-    subprocess.run(["git", "-C", str(workdir), "add", "."], check=True, capture_output=True)
-    subprocess.run(
-        ["git", "-C", str(workdir), "commit", "-m", "controller source"],
-        check=True,
-        capture_output=True,
-    )
+    subprocess.run(["git", "-C", str(workdir), "add", "."], check=True, capture_output=True, timeout=60)
+    subprocess.run(["git", "-C", str(workdir), "commit", "-m", "controller source"], check=True, capture_output=True, timeout=60)
     source_commit = subprocess.check_output(
         ["git", "-C", str(workdir), "rev-parse", "HEAD"], text=True
     ).strip()

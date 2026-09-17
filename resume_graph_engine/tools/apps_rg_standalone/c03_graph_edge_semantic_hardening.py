@@ -44,6 +44,7 @@ def _git_value(repo_root: Path, *args: str) -> str:
         check=True,
         capture_output=True,
         text=True,
+        timeout=60,
     )
     return result.stdout.strip()
 
@@ -54,6 +55,7 @@ def _git_json(repo_root: Path, ref: str, path: Path) -> dict[str, Any]:
         cwd=repo_root,
         check=True,
         capture_output=True,
+        timeout=60,
     )
     value = json.loads(result.stdout.decode("utf-8"))
     if not isinstance(value, dict):

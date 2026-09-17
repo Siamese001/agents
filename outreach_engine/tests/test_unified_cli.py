@@ -15,6 +15,7 @@ def _run_cli(args: list[str]) -> subprocess.CompletedProcess[str]:
         cwd=str(repo_root),
         capture_output=True,
         text=True,
+        timeout=60,
     )
 
 

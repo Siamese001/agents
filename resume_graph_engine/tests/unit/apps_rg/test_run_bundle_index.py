@@ -438,6 +438,7 @@ def test_render_run_summary_succeeds_on_fixture_dir(tmp_path: Path) -> None:
         capture_output=True,
         text=True,
         check=False,
+        timeout=60,
     )
     assert proc.returncode == 0, proc.stderr
     assert "apps_rg Run Summary" in proc.stdout

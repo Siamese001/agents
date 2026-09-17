@@ -456,6 +456,7 @@ def test_apps_rg_runtime_diff_empty() -> None:
         capture_output=True,
         text=True,
         check=False,
+        timeout=60,
     )
     assert result.returncode == 0
     if result.stdout.strip() and os.environ.get("CI") != "true":

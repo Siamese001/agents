@@ -1517,7 +1517,7 @@ class HistoricalBriefingValidator:
                         ),
                         freshness_hours=age_hours,
                     )
-            except Exception:
+            except Exception:  # guardian: allow-silent-swallow -- fallback if freshness timestamp is invalid or unparseable
                 pass
 
         missing = self.required_sections - set(briefing.keys())

@@ -96,21 +96,14 @@ def _file_sha256(path: Path) -> str:
 
 def _git_value(repo_root: Path, *args: str) -> str:
     result = subprocess.run(
-        ["git", *args],
-        cwd=repo_root,
-        check=True,
-        capture_output=True,
-        text=True,
+        ["git", *args], cwd=repo_root, check=True, capture_output=True, text=True, timeout=60
     )
     return result.stdout.strip()
 
 
 def _git_bytes(repo_root: Path, ref: str, path: Path) -> bytes:
     result = subprocess.run(
-        ["git", "show", f"{ref}:{path.as_posix()}"],
-        cwd=repo_root,
-        check=True,
-        capture_output=True,
+        ["git", "show", f"{ref}:{path.as_posix()}"], cwd=repo_root, check=True, capture_output=True, timeout=60
     )
     return result.stdout
 

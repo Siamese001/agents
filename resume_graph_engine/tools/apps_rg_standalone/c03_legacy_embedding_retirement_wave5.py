@@ -43,6 +43,7 @@ def _git_value(repo_root: Path, *args: str) -> str:
         check=True,
         capture_output=True,
         text=True,
+        timeout=60,
     )
     return result.stdout.strip()
 
@@ -53,6 +54,7 @@ def _git_bytes(repo_root: Path, ref: str, path: Path) -> bytes:
         cwd=repo_root,
         check=True,
         capture_output=True,
+        timeout=60,
     )
     return result.stdout
 

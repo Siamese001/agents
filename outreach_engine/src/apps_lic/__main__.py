@@ -285,7 +285,7 @@ def _handle_eval(args: argparse.Namespace) -> int:
     if val_file.is_file():
         try:
             val_data = json.loads(val_file.read_text(encoding="utf-8"))
-        except Exception:
+        except Exception:  # guardian: allow-silent-swallow -- fallback to empty val_data if report is corrupt
             pass
 
     if args.json:

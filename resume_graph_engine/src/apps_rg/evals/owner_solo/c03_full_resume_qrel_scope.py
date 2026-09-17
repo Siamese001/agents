@@ -85,6 +85,7 @@ def _head_commit(repo_root: Path) -> str | None:
             check=True,
             capture_output=True,
             text=True,
+            timeout=60,
         )
     except (OSError, subprocess.CalledProcessError):
         return None
