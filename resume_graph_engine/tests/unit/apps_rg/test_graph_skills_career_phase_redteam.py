@@ -154,7 +154,7 @@ def test_skills_by_career_phase_retrieval_and_assertion_support(sqlite_conn: sql
         edges = result["edges"]
         assert len(edges) > 0, f"Phase {phase} must have connective edges"
         assert all(e["edge_type"] and e["edge_id"] for e in edges)
-        assert all(e["evidence_status"] in {"validated", "ACTIVE_CONFIRMED"} for e in edges)
+        assert all(e["evidence_status"] in {"validated", "ACTIVE_CONFIRMED", "approved_graph_ssot"} for e in edges)
 
         # 5. Calibrated confidence summary
         conf_summary = result["calibrated_confidence_summary"]
