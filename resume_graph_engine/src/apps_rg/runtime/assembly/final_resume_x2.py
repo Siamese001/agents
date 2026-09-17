@@ -127,7 +127,8 @@ def _explicit_run_dir_is_real_authorized(row: dict[str, Any]) -> bool:
     """Patch-run explicit lane dirs are acceptable when the lane itself is real X3_ALLOW."""
     if str(row.get("runtime_generation_status") or "") != "REAL_LLM":
         return False
-    if str(row.get("x3_code") or "") != "X3_ALLOW":
+    x3_code = str(row.get("x3_code") or row.get("x3_mirror_code") or "")
+    if x3_code != "X3_ALLOW":
         return False
     try:
         x2_failed = int(row.get("x2_failed") or 0)

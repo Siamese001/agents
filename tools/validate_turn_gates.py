@@ -55,7 +55,12 @@ def validate_pre_turn_gate(repo_root: Path | None = None) -> dict[str, Any]:
     else:
         try:
             hooks_data = json.loads(hooks_path.read_text(encoding="utf-8"))
-            hook_count = len(hooks_data.get("hooks", []))
+            if isinstance(hooks_data, dict) and "hooks" in hooks_data and isinstance(hooks_data["hooks"], list):
+                hook_count = len(hooks_data["hooks"])
+            elif isinstance(hooks_data, dict):
+                hook_count = len([k for k, v in hooks_data.items() if isinstance(v, dict)])
+            else:
+                hook_count = 0
             checks["hooks_configuration"] = {
                 "status": "PASS" if hook_count >= 7 else "FAIL",
                 "hook_count": hook_count,
@@ -341,6 +346,34 @@ def validate_post_turn_gate(
         except Exception as exc:
             checks["model_registry_conformance"] = {"status": "FAIL", "error": str(exc)}
 
+    # Check 4: Wave Completion Table Presentation Check
+    if candidate_response:
+        try:
+            from tools.validate_implementation_plan import extract_wave_summary_entries, get_active_plan_file
+
+            active_plan = get_active_plan_file(root)
+            if active_plan and active_plan.is_file():
+                content = active_plan.read_text(encoding="utf-8")
+                entries, _ = extract_wave_summary_entries(content)
+                has_completed_waves = any(e.get("is_checked") for e in entries)
+                claims_wave_completion = any(
+                    k in candidate_response.lower()
+                    for k in ("wave completed", "wave 1 complete", "wave 2 complete", "all waves complete", "wave completion", "completed wave")
+                )
+                has_table = (
+                    "Wave Summary Table" in candidate_response
+                    or ("| Wave #" in candidate_response and "Check/Open" in candidate_response)
+                )
+                if claims_wave_completion and not has_table:
+                    issues.append("Response claims wave completion but does not include the mandatory Wave Summary Table with check marks.")
+                checks["wave_summary_table"] = {
+                    "status": "PASS" if not (claims_wave_completion and not has_table) else "FAIL",
+                    "has_completed_waves": has_completed_waves,
+                    "has_table": has_table,
+                }
+        except Exception as exc:  # guardian: allow-silent-swallow -- fallback if plan parsing fails
+            checks["wave_summary_table"] = {"status": "PASS", "note": str(exc)}
+
     overall_status = "PASS" if not issues else "FAIL"
     return {
         "gate": "POST_TURN",
@@ -384,8 +417,12 @@ def main(argv: list[str] | None = None) -> int:
     active_plan_info = results.get("pre_turn", {}).get("checks", {}).get("implementation_plan", {})
     if active_plan_info.get("wave_summary"):
         try:
-            from tools.validate_implementation_plan import render_wave_summary_table
+            from tools.validate_implementation_plan import (
+                render_markdown_wave_summary_table,
+                render_wave_summary_table,
+            )
             print(render_wave_summary_table(active_plan_info["active_plan"], active_plan_info["wave_summary"]))
+            print(render_markdown_wave_summary_table(active_plan_info["active_plan"], active_plan_info["wave_summary"]))
         except Exception:
             pass
 

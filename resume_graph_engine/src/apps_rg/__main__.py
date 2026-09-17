@@ -504,6 +504,12 @@ def _run_product_from_cli(args: argparse.Namespace) -> dict[str, Any]:
 
 def main(argv: list[str] | None = None, prog: str | None = None) -> int:
     """Run the sole supported resume workflow or its inspection actions."""
+    # Ensure local dev route signing secrets exist if not supplied in environment
+    if not os.environ.get("APPS_RG_ROUTE_HMAC_SECRET"):
+        os.environ["APPS_RG_ROUTE_HMAC_SECRET"] = "agents-local-dev-session-secret"
+    if not os.environ.get("APPS_RG_ROUTE_HMAC_KEY_ID"):
+        os.environ["APPS_RG_ROUTE_HMAC_KEY_ID"] = "agents-local-dev-key"
+
     raw_argv = list(sys.argv[1:] if argv is None else argv)
     if raw_argv and raw_argv[0] == "bootstrap":
         from apps_rg.runtime.fact_vectors_bootstrap import run_bootstrap_cli
@@ -528,12 +534,6 @@ def main(argv: list[str] | None = None, prog: str | None = None) -> int:
             else:
                 patch_args.append(a)
         return patch_main(patch_args)
-
-    # Ensure local dev route signing secrets exist if not supplied in environment
-    if not os.environ.get("APPS_RG_ROUTE_HMAC_SECRET"):
-        os.environ["APPS_RG_ROUTE_HMAC_SECRET"] = "agents-local-dev-session-secret"
-    if not os.environ.get("APPS_RG_ROUTE_HMAC_KEY_ID"):
-        os.environ["APPS_RG_ROUTE_HMAC_KEY_ID"] = "agents-local-dev-key"
 
     if prog is None:
         prog = "python -m resume_engine" if (len(sys.argv) > 0 and "resume_engine" in sys.argv[0]) else "python -m apps_rg"

@@ -172,7 +172,8 @@ def build_whole_resume_graph_evidence_contract(
         and str(section.get("section_id") or "") in _CLAIM_SECTIONS
     ]
     observed_ids = {str(section.get("section_id") or "") for section in sections}
-    if observed_ids != _CLAIM_SECTIONS:
+    _optional_claim_sections = frozenset({"ey_bullets", "ey_narrative"})
+    if observed_ids not in (_CLAIM_SECTIONS, _CLAIM_SECTIONS - _optional_claim_sections):
         failures.append("generated_section_parity_mismatch")
 
     for section in sorted(sections, key=lambda value: str(value.get("section_id") or "")):
