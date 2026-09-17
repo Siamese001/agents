@@ -44,7 +44,7 @@ def test_build_phase1_waves_wave0_is_upstream_proof_bearing() -> None:
         "unify_bullets",
         "ibm_bullets",
         "insurtech_bullets",
-        "ey_bullets",
+        "slalom_bullets",
     }
     assert "executive_summary" not in wave0.lanes
 
@@ -93,7 +93,7 @@ def test_build_phase1_waves_narratives_parallel_after_bullets() -> None:
         "unify_narrative",
         "ibm_narrative",
         "insurtech_narrative",
-        "ey_narrative",
+        "slalom_narrative",
     }
     # narratives parallel (4); throttle via APPS_RG_PHASE1_MAX_PARALLEL if needed.
     assert nar_wave.max_parallel == 4
@@ -108,11 +108,11 @@ def test_dag_dependencies_keep_overview_behind_all_section_inputs() -> None:
         "unify_bullets",
         "ibm_bullets",
         "insurtech_bullets",
-        "ey_bullets",
+        "slalom_bullets",
         "unify_narrative",
         "ibm_narrative",
         "insurtech_narrative",
-        "ey_narrative",
+        "slalom_narrative",
     }
     assert dependencies["headline"][0] == "executive_summary"
 
@@ -375,3 +375,43 @@ def test_parallel_dispatch_requires_app_readiness_before_dependent_submission() 
     assert calls == ["unify_bullets"]
     assert out["unify_narrative"].exec_status == "pre_run_blocked:UPSTREAM_DEPENDENCY_FAILED"
     assert out["unify_narrative"].dispatch_result["dependency_reason"] == "BULLETS_NOT_CERTIFIED"
+
+
+def test_progress_reporter_renders_tqdm_on_stderr(capsys) -> None:
+    """Verify ProgressReporter renders a real tqdm bar on sys.stderr without touching stdout."""
+    from apps_rg.runtime.orchestration.managed_section_lane_dispatcher import ProgressReporter
+
+    reporter = ProgressReporter(total=3, label="test_lane_progress", unit="lane")
+    assert reporter.total == 3
+    assert reporter.completed == 0
+
+    reporter.set_status("running: headline")
+    reporter.update("headline [done]")
+    assert reporter.completed == 1
+
+    reporter.set_status("running: competencies")
+    reporter.update("competencies [done]")
+    assert reporter.completed == 2
+
+    reporter.done()
+
+    captured = capsys.readouterr()
+    assert captured.out == ""  # sys.stdout must stay clean for json/markdown payloads
+    assert "test_lane_progress" in captured.err
+    assert "headline [done]" in captured.err
+    assert "competencies [done]" in captured.err
+
+
+def test_progress_reporter_respects_disable_env(capsys, monkeypatch) -> None:
+    """Verify APPS_RG_DISABLE_PROGRESS disables tqdm progress bar rendering."""
+    from apps_rg.runtime.orchestration.managed_section_lane_dispatcher import ProgressReporter
+
+    monkeypatch.setenv("APPS_RG_DISABLE_PROGRESS", "1")
+    reporter = ProgressReporter(total=2, label="disabled_progress", unit="lane")
+    reporter.set_status("running: headline")
+    reporter.update("headline [done]")
+    reporter.done()
+
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert "disabled_progress:" not in captured.err  # No tqdm bar drawn
