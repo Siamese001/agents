@@ -8,7 +8,33 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 import yaml
 
-from apps_lic.domain.models import CandidateProfile, ChannelType, RecipientClass, TargetOpportunity
+from apps_lic.domain.models import (
+    AudiencePersona,
+    CandidateProfile,
+    ChannelType,
+    RecipientClass,
+    TargetOpportunity,
+)
+
+
+def get_executive_signature_block(candidate_name: str = "Amit Ayer") -> str:
+    """Standard executive signature block compliant with exec_positioning.yaml."""
+    return (
+        f"{candidate_name}\n"
+        "Chief Agentic AI Officer\n"
+        "www.linkedin.com/in/amitayer1/\n"
+        "www.github.com/Siamese001/Agentic-Workflow\n"
+        "+1-917-239-3830"
+    )
+
+
+def get_recruiter_signature_block(candidate_name: str = "Amit Ayer") -> str:
+    """Compact signature block for recruiter communications."""
+    return (
+        f"{candidate_name}\n"
+        "www.linkedin.com/in/amitayer1/\n"
+        "+1-917-239-3830"
+    )
 
 
 @functools.lru_cache(maxsize=32)
@@ -44,12 +70,20 @@ class PromptCompiler:
                 pass
         return {}
 
-    def select_template_for_channel(self, channel: ChannelType, recipient_class: RecipientClass) -> str:
-        """Selects the optimal production template based on channel and tier."""
-        if recipient_class in (RecipientClass.EXECUTIVE_PEER, RecipientClass.BOARD_MEMBER):
-            return "exec_positioning"
-        if recipient_class == RecipientClass.TALENT_PARTNER:
+    def select_template_for_channel(
+        self,
+        channel: ChannelType,
+        recipient_class: RecipientClass,
+        audience_persona: Optional[AudiencePersona] = None,
+    ) -> str:
+        """Selects the optimal production template based on channel, tier, and persona."""
+        if audience_persona == AudiencePersona.EXECUTIVE_RECRUITER or recipient_class == RecipientClass.TALENT_PARTNER:
             return "compact_recruiter_arc"
+        if audience_persona == AudiencePersona.EXECUTIVE_CONTACT or recipient_class in (
+            RecipientClass.EXECUTIVE_PEER,
+            RecipientClass.BOARD_MEMBER,
+        ):
+            return "exec_positioning"
         return "outreach_draft_v2"
 
     def assemble_context(
@@ -57,6 +91,7 @@ class PromptCompiler:
         candidate: CandidateProfile,
         opportunity: TargetOpportunity,
         channel: ChannelType,
+        audience_persona: Optional[AudiencePersona] = None,
     ) -> Dict[str, Any]:
         """Assembles verified context slots with zero hallucinated facts."""
         facts_block = "\n".join(
@@ -66,7 +101,7 @@ class PromptCompiler:
 
         priorities_block = "\n".join(f"- {p}" for p in opportunity.strategic_priorities)
 
-        template_id = self.select_template_for_channel(channel, opportunity.recipient_class)
+        template_id = self.select_template_for_channel(channel, opportunity.recipient_class, audience_persona)
         template_spec = self.load_template(template_id)
 
         tone_map = {
@@ -81,6 +116,9 @@ class PromptCompiler:
             "DO NOT invent application or interview stage status.",
             "DO NOT fabricate company initiatives not mentioned in strategic priorities.",
             "DO NOT make claims or quote metrics absent from verified facts.",
+            "DO NOT use em dashes.",
+            "DO NOT use markdown link syntax.",
+            "DO NOT use subordinate or deferential job-seeker language.",
         ]
         if template_spec.get("forbidden_behaviors"):
             for b in template_spec["forbidden_behaviors"]:
@@ -169,9 +207,10 @@ class PromptCompiler:
         candidate: CandidateProfile,
         opportunity: TargetOpportunity,
         channel: ChannelType,
+        audience_persona: Optional[AudiencePersona] = None,
     ) -> tuple[str, str, list[str]]:
         """Renders subject, body, and used fact IDs using template guidance."""
-        context = self.assemble_context(candidate, opportunity, channel)
+        context = self.assemble_context(candidate, opportunity, channel, audience_persona)
         template_id = context["template_id"]
 
         lead_fact = candidate.verified_facts[0] if candidate.verified_facts else None
@@ -180,6 +219,33 @@ class PromptCompiler:
 
         raw_hook = opportunity.strategic_priorities[0] if opportunity.strategic_priorities else opportunity.industry
         hook = self._format_strategic_hook(raw_hook)
+
+        # Connection notes have a 300-char limit
+        if channel == ChannelType.LINKEDIN_CONNECTION:
+            subject = ""
+            if template_id == "compact_recruiter_arc":
+                body = (
+                    f"Hi {opportunity.recipient_name},\n\n"
+                    f"Following {opportunity.company_name}'s {opportunity.role_title} search in {hook}. "
+                    f"As {candidate.target_title}, {fact_statement}.\n\n"
+                    f"Open to connecting?"
+                )
+            else:
+                body = (
+                    f"Hi {opportunity.recipient_name},\n\n"
+                    f"Noticed {opportunity.company_name}'s focus on {hook}. "
+                    f"In my work as {candidate.target_title}, {fact_statement}.\n\n"
+                    f"Open to exchanging perspectives?"
+                )
+            if len(body) > 295:
+                body = (
+                    f"Hi {opportunity.recipient_name},\n\n"
+                    f"Following {opportunity.company_name}'s focus on {hook}. "
+                    f"In my work as {candidate.target_title}, {fact_statement[:110]}...\n\n"
+                    f"Open to connecting?"
+                )
+            body = body.replace("—", ", ").replace("\u2014", ", ")
+            return subject, body, fact_ids
 
         if template_id == "exec_positioning":
             subject = f"{opportunity.company_name} / {opportunity.role_title} - Executive Alignment"
@@ -205,5 +271,9 @@ class PromptCompiler:
                 f"In my recent work as {candidate.target_title}, {fact_statement}.\n\n"
                 f"Given your focus, would you be open to a brief conversation next week?"
             )
+
+        # Enforce no em dashes
+        body = body.replace("—", ", ").replace("\u2014", ", ")
+        subject = subject.replace("—", "-").replace("\u2014", "-")
 
         return subject, body, fact_ids

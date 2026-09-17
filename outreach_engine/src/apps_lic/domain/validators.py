@@ -175,7 +175,9 @@ class SubordinateToneValidator:
         re.compile(r"\bthink I(?:'d| would) be a (?:great|perfect) fit\b", re.IGNORECASE),
         re.compile(r"\bhoping for an? (?:opportunity|interview|chance)\b", re.IGNORECASE),
         re.compile(r"\bgive me a (?:chance|shot)\b", re.IGNORECASE),
-        re.compile(r"\bplease consider my application\b", re.IGNORECASE),
+        re.compile(r"\bplease consider my (?:application|resume|c\.?v\.?)\b", re.IGNORECASE),
+        re.compile(r"\bseeking a (?:role|job|position)\b", re.IGNORECASE),
+        re.compile(r"\bgrateful for any (?:role|job|position|opportunity)\b", re.IGNORECASE),
         re.compile(r"\bhire me\b", re.IGNORECASE),
         re.compile(r"\byou must hire\b", re.IGNORECASE),
     ]

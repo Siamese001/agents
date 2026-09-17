@@ -57,3 +57,28 @@ def test_grounding_validator_blocks_hallucinated_facts():
     assert not invalid
     assert len(viols_inv) == 1
     assert "unverified_patent_claim" in viols_inv[0]
+
+
+def test_em_dash_validator():
+    from apps_lic.domain.validators import EmDashValidator
+
+    val = EmDashValidator()
+    assert val.validate("Standard hyphen - is allowed")[0] is True
+    assert val.validate("Em dash — is forbidden")[0] is False
+
+
+def test_markdown_link_validator():
+    from apps_lic.domain.validators import MarkdownLinkValidator
+
+    val = MarkdownLinkValidator()
+    assert val.validate("Visit https://linkedin.com/in/amitayer1 for details")[0] is True
+    assert val.validate("Check [profile](https://linkedin.com/in/amitayer1)")[0] is False
+
+
+def test_subordinate_tone_validator():
+    from apps_lic.domain.validators import SubordinateToneValidator
+
+    val = SubordinateToneValidator()
+    assert val.validate("I would love to learn more about this role")[0] is False
+    assert val.validate("I think I'd be a great fit for your team")[0] is False
+    assert val.validate("Open to exchanging perspectives next week?")[0] is True

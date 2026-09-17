@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Any, Sequence
 
 from apps_lic.domain.models import (
+    AudiencePersona,
     CandidateFact,
     CandidateProfile,
     ChannelType,
@@ -59,6 +60,12 @@ def _build_parser() -> argparse.ArgumentParser:
         choices=["inmail", "connection_note", "email", "follow_up"],
         default="inmail",
         help="Target channel for outreach draft",
+    )
+    run_parser.add_argument(
+        "--audience",
+        choices=["executive", "recruiter"],
+        default="executive",
+        help="Target audience persona: executive contact (peer-to-peer) or executive recruiter (scannable scale)",
     )
     run_parser.add_argument(
         "--artifact-dir",
@@ -179,12 +186,18 @@ def _handle_run(args: argparse.Namespace) -> int:
     artifact_dir.mkdir(parents=True, exist_ok=True)
 
     channel = ChannelType(args.channel)
+    persona = (
+        AudiencePersona.EXECUTIVE_CONTACT
+        if getattr(args, "audience", "executive") == "executive"
+        else AudiencePersona.EXECUTIVE_RECRUITER
+    )
     orchestrator = OutreachOrchestrator()
 
     draft, val = orchestrator.generate_single_draft(
         candidate,
         opportunity,
         channel,
+        audience_persona=persona,
         auto_research=args.research,
         artifact_dir=artifact_dir,
     )
@@ -200,6 +213,7 @@ def _handle_run(args: argparse.Namespace) -> int:
         candidate,
         opportunity,
         channel,
+        audience_persona=persona,
         auto_research=args.research,
         artifact_dir=artifact_dir,
     )
@@ -209,6 +223,7 @@ def _handle_run(args: argparse.Namespace) -> int:
             "run_id": run_id,
             "artifact_dir": str(artifact_dir),
             "status": "PASSED" if val.is_valid and evaluation.passed else "FAILED",
+            "audience_persona": persona.value,
             "resolution_source": draft.research_metadata.get("resolution_source", "none"),
             "draft": {
                 "channel": channel.value,
@@ -216,6 +231,7 @@ def _handle_run(args: argparse.Namespace) -> int:
                 "body": draft.body,
                 "character_count": draft.character_count,
                 "template_id": draft.metadata.get("template_id", "default"),
+                "signature_block": draft.signature_block,
             },
             "validation": {
                 "is_valid": val.is_valid,
@@ -237,11 +253,14 @@ def _handle_run(args: argparse.Namespace) -> int:
         return 0 if val.is_valid else 1
 
     print("\n" + "=" * 60)
-    print(f"OUTREACH DRAFT ({channel.value.upper()}):")
+    print(f"OUTREACH DRAFT ({channel.value.upper()} | {persona.value.upper()}):")
     print("=" * 60)
     print(f"Subject: {draft.subject}")
     print("-" * 60)
     print(draft.body)
+    if draft.signature_block:
+        print("-" * 60)
+        print(draft.signature_block)
     print("=" * 60)
     print(f"Template Used: {draft.metadata.get('template_id', 'default')}")
     print(f"Character Count: {draft.character_count}")
@@ -252,6 +271,14 @@ def _handle_run(args: argparse.Namespace) -> int:
     if val.warnings:
         print(f"Warnings: {val.warnings}")
     print(f"Rubric Judge Score: {'PASSED' if evaluation.passed else 'FAILED'}")
+    print(f"  - Lens 1 (Altitude & Persona): {evaluation.lens1_altitude_score:.2f}")
+    print(f"  - Lens 2 (Grounding):          {evaluation.lens2_grounding_score:.2f}")
+    print(f"  - Lens 3 (Resonance):          {evaluation.lens3_resonance_score:.2f}")
+    print(f"  - Lens 4 (Low-Friction CTA):   {evaluation.lens4_cta_score:.2f}")
+    print(f"  - Lens 5 (Anti-Spam & Cliche): {evaluation.lens5_anti_spam_score:.2f}")
+    print(f"  - Lens 6 (Constraints):        {evaluation.lens6_constraints_score:.2f}")
+    if evaluation.feedback:
+        print(f"Feedback: {evaluation.feedback}")
     print("=" * 60)
 
     print(f"\nGenerated Multi-Touch Campaign with {len(sequence.touches)} planned touches:")
@@ -297,10 +324,14 @@ def _handle_eval(args: argparse.Namespace) -> int:
     print(f"EVALUATION REPORT FOR RUN: {run_dir.name}")
     print("=" * 60)
     print(f"Rubric Judge Status: {'PASSED' if eval_data.get('passed') else 'FAILED'}")
-    print(f"Hop 1 Classifier Score: {eval_data.get('hop1_classifier_score')}")
-    print(f"Hop 2 Grounding Score:  {eval_data.get('hop2_grounding_score')}")
-    print(f"Hop 6 Alignment Score:  {eval_data.get('hop6_alignment_score')}")
-    print(f"Hop 8 Narrative Score:  {eval_data.get('hop8_narrative_score')}")
+    if "lens_scores" in eval_data and eval_data["lens_scores"]:
+        for k, v in eval_data["lens_scores"].items():
+            print(f"  - {k}: {v:.2f}" if isinstance(v, (int, float)) else f"  - {k}: {v}")
+    else:
+        print(f"Hop 1 Classifier Score: {eval_data.get('hop1_classifier_score')}")
+        print(f"Hop 2 Grounding Score:  {eval_data.get('hop2_grounding_score')}")
+        print(f"Hop 6 Alignment Score:  {eval_data.get('hop6_alignment_score')}")
+        print(f"Hop 8 Narrative Score:  {eval_data.get('hop8_narrative_score')}")
     if eval_data.get("feedback"):
         print(f"Feedback: {eval_data['feedback']}")
     if eval_data.get("remediation_hints"):
