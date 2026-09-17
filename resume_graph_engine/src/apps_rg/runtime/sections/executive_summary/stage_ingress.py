@@ -543,7 +543,7 @@ def run_ingress_stage(
     ctx["proof_pool_metadata"] = proof_pool_metadata
     ctx["targeting_ingress"] = targeting_ingress
     ctx["messages"] = messages
-    ctx["req"] = req
+    ctx["req"] = provider_req
     ctx["scratch_max_tokens"] = scratch_max_tokens
     ctx["token_budget_receipt"] = token_budget_receipt
     ctx["usage_doc"] = usage_doc
