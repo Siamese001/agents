@@ -53,8 +53,8 @@ def phase1_parallel_enabled(*, profile_flag: bool = False) -> bool:
 def resolve_max_parallel(*, default: int = 2) -> int:
     raw = str(os.environ.get(_ENV_MAX_PARALLEL, "")).strip()
     if raw.isdigit():
-        return max(1, min(7, int(raw)))
-    return max(1, min(7, default))
+        return max(1, min(12, int(raw)))
+    return max(1, min(12, default))
 
 
 def assert_section_dag_wave_order(manifest: dict[str, Any]) -> None:

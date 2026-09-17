@@ -185,6 +185,12 @@ def main() -> int:
     return 0 if receipt["STATUS"] == "PASS" else 1
 
 
+def _cli_entrypoint() -> None:
+    exit_code = main()
+    if exit_code != 0:
+        os._exit(exit_code)
+
+
 if __name__ == "__main__":
-    raise SystemExit(main())
+    _cli_entrypoint()
 

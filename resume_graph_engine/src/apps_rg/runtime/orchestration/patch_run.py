@@ -1941,8 +1941,3 @@ __all__ = [
     "run_patch_from_cli",
     "select_patch_lanes",
 ]
-
-
-if __name__ == "__main__":
-    import sys
-    raise SystemExit(main())
