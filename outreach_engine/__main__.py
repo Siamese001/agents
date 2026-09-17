@@ -9,4 +9,4 @@ import outreach_engine
 from apps_lic.__main__ import main
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv[1:]))
+    sys.exit(main(sys.argv[1:], prog="python -m outreach_engine"))

@@ -290,7 +290,7 @@ def run_e2e(args: argparse.Namespace) -> int:
         if not args.json:
             print("\n>>> [Stage 3/4] Generating Grounded Executive Outreach (outreach_engine)...")
 
-        oe_code = outreach_main(outreach_args)
+        oe_code = outreach_main(outreach_args, prog="python -m agents e2e")
         status_str = "PASSED" if oe_code == 0 else "FAILED"
         summary_payload["stages"]["executive_outreach"] = {
             "exit_code": oe_code,
@@ -375,7 +375,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         assert_engine_live_preflight("agents outreach", providers=("openai",))
         from apps_lic.__main__ import main as outreach_main
 
-        return outreach_main(sub_args)
+        return outreach_main(sub_args, prog="python -m agents outreach")
 
     if engine == "e2e":
         parser = _build_parser()

@@ -60,6 +60,8 @@ from apps_lic.runtime.model_registry import (
     OutreachModelRegistryError,
 )
 
+from apps_lic.__main__ import main
+
 __all__ = [
     "AudiencePersona",
     "CandidateFact",
@@ -90,4 +92,6 @@ __all__ = [
     "OutreachModelRegistryError",
     "get_executive_signature_block",
     "get_recruiter_signature_block",
+    "main",
 ]
+
