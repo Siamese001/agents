@@ -172,6 +172,9 @@ class GenerateResumeStep(BaseRecipeStep):
         from apps_rg.runtime.orchestration.canonical_identity_context import (
             canonical_identity_for_recipe_context,
         )
+        from apps_rg.runtime.orchestration.section_lane_concurrency import (
+            resolve_max_parallel,
+        )
 
         art_raw = context.get("artifact_dir")
         if art_raw is None or not str(art_raw).strip():
@@ -202,7 +205,7 @@ class GenerateResumeStep(BaseRecipeStep):
             run_phase0_synthetic_assembly=False,
             validate_rg_output_fixture=False,
             parallel_phase1_lanes=True,
-            phase1_max_parallel=4,
+            phase1_max_parallel=resolve_max_parallel(default=8),
             phase1_allow_non_allow_exit_zero=_phase1_allow_flag_from_recipe_context(context),
         )
         mr = run_modular_resume_generation(
