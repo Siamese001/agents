@@ -2,12 +2,23 @@
 
 from __future__ import annotations
 
+import functools
 import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 import yaml
 
 from apps_lic.domain.models import CandidateProfile, ChannelType, RecipientClass, TargetOpportunity
+
+
+@functools.lru_cache(maxsize=32)
+def _load_cached_yaml_template(file_path_str: str, mtime: float) -> Dict[str, Any]:
+    """Parse and cache a YAML template file, keyed by path and mtime."""
+    try:
+        with open(file_path_str, "r", encoding="utf-8") as f:
+            return yaml.safe_load(f) or {}
+    except Exception:
+        return {}
 
 
 class PromptCompiler:
@@ -21,14 +32,14 @@ class PromptCompiler:
             self.templates_dir = Path(templates_dir)
 
     def load_template(self, template_name: str) -> Dict[str, Any]:
-        """Loads a YAML prompt template definition."""
+        """Loads a YAML prompt template definition with mtime-aware caching."""
         tmpl_file = self.templates_dir / f"{template_name}.yaml"
         if not tmpl_file.is_file():
             tmpl_file = self.templates_dir / template_name
         if tmpl_file.is_file():
             try:
-                with open(tmpl_file, "r", encoding="utf-8") as f:
-                    return yaml.safe_load(f) or {}
+                mtime = tmpl_file.stat().st_mtime
+                return dict(_load_cached_yaml_template(str(tmpl_file.resolve()), mtime))
             except Exception:
                 pass
         return {}

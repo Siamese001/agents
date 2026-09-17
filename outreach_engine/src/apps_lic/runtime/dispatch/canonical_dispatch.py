@@ -40,11 +40,11 @@ def run_canonical_apps_lic_spine(
 
     ch_str = str(raw_ingress.get("channel") or "inmail").lower()
     if "connect" in ch_str:
-        channel = ChannelType.LINKEDIN_CONNECTION_NOTE
+        channel = ChannelType.LINKEDIN_CONNECTION
     elif "follow" in ch_str:
-        channel = ChannelType.EMAIL_FOLLOW_UP
-    elif "cold" in ch_str and "email" in ch_str:
-        channel = ChannelType.EMAIL_COLD
+        channel = ChannelType.FOLLOW_UP
+    elif "email" in ch_str:
+        channel = ChannelType.EMAIL
     else:
         channel = ChannelType.LINKEDIN_INMAIL
 
@@ -52,12 +52,15 @@ def run_canonical_apps_lic_spine(
         candidate_id=str(raw_ingress.get("candidate_id") or "cand_live"),
         full_name="Amit Ayer",
         target_title=str(lead.get("role_context") or "Engineering Leader"),
+        executive_summary="Enterprise technology executive specializing in modern distributed platforms and governed agentic architectures.",
     )
     opportunity = TargetOpportunity(
         opportunity_id=str(raw_ingress.get("opportunity_id") or "opp_live"),
         company_name=str(raw_ingress.get("company") or "Target Company"),
         role_title=str(lead.get("role_context") or "Engineering Leader"),
+        industry=str(raw_ingress.get("industry") or "Enterprise Technology"),
         recipient_name=str(lead.get("name") or "Jordan"),
+        recipient_title=str(lead.get("title") or "Talent Partner"),
         recipient_class=recipient_class,
         briefing_text=str(raw_ingress.get("manual_brief") or ""),
     )

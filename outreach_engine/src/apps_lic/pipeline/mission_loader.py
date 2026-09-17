@@ -52,14 +52,28 @@ class MissionLoader:
                         fact_id="fact_01",
                         category="architecture",
                         statement="architected layered agentic systems (L0 routing through L6 observability) with AST dependency governance",
+                        metric="L0-L6 AST",
                     ),
                     CandidateFact(
                         fact_id="fact_02",
                         category="delivery",
                         statement="delivered multi-MCP enterprise agentic tooling for frontline banking care operations",
+                        metric="Enterprise Care Centers",
+                    ),
+                    CandidateFact(
+                        fact_id="fact_scale_01",
+                        category="scale",
+                        statement="scaled distributed enterprise platform processing $4.2B annual volume with 99.995% reliability",
+                        metric="$4.2B / 99.995%",
+                    ),
+                    CandidateFact(
+                        fact_id="fact_efficiency_04",
+                        category="efficiency",
+                        statement="reduced infrastructure operating expenditures by 38% through governed platform automation",
+                        metric="38%",
                     ),
                 ],
-                key_competencies=["Agentic AI", "Enterprise Architecture", "LLM Guardrails", "HITL Systems"],
+                key_competencies=["Agentic AI", "Enterprise Architecture", "LLM Guardrails", "HITL Systems", "Cloud Transformation"],
             )
 
             company_name = rp.get("company") or jd.get("company") or "Target Company"
@@ -122,9 +136,22 @@ class MissionLoader:
                         fact_id="fact_02",
                         category="architecture",
                         statement="architected layered agentic systems (L0 routing through L6 observability) with AST dependency governance",
+                        metric="L0-L6 AST",
+                    ),
+                    CandidateFact(
+                        fact_id="fact_scale_01",
+                        category="scale",
+                        statement="scaled distributed enterprise platform processing $4.2B annual volume with 99.995% reliability",
+                        metric="$4.2B / 99.995%",
+                    ),
+                    CandidateFact(
+                        fact_id="fact_efficiency_04",
+                        category="efficiency",
+                        statement="reduced infrastructure operating expenditures by 38% through governed platform automation",
+                        metric="38%",
                     ),
                 ],
-                key_competencies=["Agentic Systems", "Enterprise AI Architecture", "Human-in-the-loop Governance"],
+                key_competencies=["Agentic Systems", "Enterprise AI Architecture", "Human-in-the-loop Governance", "Cloud Transformation"],
             )
             opportunity = TargetOpportunity(
                 opportunity_id=f"opp_{default_id}",

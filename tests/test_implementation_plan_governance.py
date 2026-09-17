@@ -27,6 +27,13 @@ class ImplementationPlanGovernanceTests(unittest.TestCase):
         """Verify that a properly structured wave-based plan passes validation."""
         valid_plan = """# Implementation Plan: Example Feature
 
+## Implementation Status Table
+
+| Wave / Component | Description | Status | Deliverables / Receipts |
+|---|---|---|---|
+| Wave 1: Core Foundation & Tooling | Initial tool and config updates | COMPLETED | `tools/example_tool.py` |
+| Wave 2: Downstream Integration | Integration into agentic core | IN_PROGRESS | `agentic_core/integration.py` |
+
 ## Wave 1: Core Foundation & Tooling
 ### Milestones & Deliverables
 - [NEW] `tools/example_tool.py`
@@ -187,6 +194,153 @@ No items specified here just free text with no deliverables.
             is_valid, errors = validate_file(exempt_file, legacy_exemptions=DEFAULT_LEGACY_EXEMPTIONS)
             self.assertTrue(is_valid)
             self.assertTrue(any("[EXEMPT]" in e for e in errors))
+
+    def test_plan_with_valid_status_table_passes(self) -> None:
+        """Verify that a plan with a valid implementation status table passes."""
+        plan = """# Implementation Plan: Status Table Feature
+
+## Status Table
+
+| Wave | Scope | Status | Deliverables |
+|---|---|---|---|
+| Wave 1 | Setup and scaffolding | COMPLETED | `tools/setup.py` |
+| Wave 2 | Core functionality | IN_PROGRESS | `tools/core.py` |
+| Wave 3 | Validation | PENDING | Test results |
+
+## Wave 1: Setup
+### Milestones & Deliverables
+- [NEW] `tools/setup.py`
+
+### Acceptance Criteria
+- Passes.
+
+### Runtime Receipt & Completion Gate
+- Passes.
+
+## Wave 2: Core
+### Milestones & Deliverables
+- [NEW] `tools/core.py`
+
+### Acceptance Criteria
+- Passes.
+
+### Runtime Receipt & Completion Gate
+- Passes.
+
+## Wave 3: Validation
+### Milestones & Deliverables
+- [NEW] `tests/test_core.py`
+
+### Acceptance Criteria
+- Passes.
+
+### Runtime Receipt & Completion Gate
+- Passes.
+"""
+        is_valid, errors = validate_plan_content(plan, "status_table_plan.md")
+        self.assertTrue(is_valid, f"Expected valid plan, got errors: {errors}")
+
+    def test_missing_status_table_is_rejected(self) -> None:
+        """Verify that a wave plan lacking an implementation status table is rejected."""
+        no_table_plan = """# Plan Without Status Table
+
+## Wave 1: Setup
+### Milestones & Deliverables
+- [NEW] `tools/setup.py`
+
+### Acceptance Criteria
+- Passes.
+
+### Runtime Receipt & Completion Gate
+- Passes.
+"""
+        is_valid, errors = validate_plan_content(no_table_plan, "no_table.md")
+        self.assertFalse(is_valid)
+        self.assertTrue(any("Missing mandatory Implementation Status Table" in err for err in errors))
+
+    def test_status_table_missing_columns_is_rejected(self) -> None:
+        """Verify that a status table missing required columns is rejected."""
+        missing_cols_plan = """# Plan With Incomplete Table
+
+## Status Table
+| Wave | Deliverables |
+|---|---|
+| Wave 1 | `tools/setup.py` |
+
+## Wave 1: Setup
+### Milestones & Deliverables
+- [NEW] `tools/setup.py`
+
+### Acceptance Criteria
+- Passes.
+
+### Runtime Receipt & Completion Gate
+- Passes.
+"""
+        is_valid, errors = validate_plan_content(missing_cols_plan, "missing_cols.md")
+        self.assertFalse(is_valid)
+        self.assertTrue(any("missing required column(s)" in err for err in errors))
+
+    def test_status_table_invalid_status_is_rejected(self) -> None:
+        """Verify that a status table with unrecognized status values is rejected."""
+        invalid_status_plan = """# Plan With Bad Status
+
+## Status Table
+| Wave | Description | Status |
+|---|---|---|
+| Wave 1 | Core implementation | MAYBE_LATER |
+
+## Wave 1: Core
+### Milestones & Deliverables
+- [NEW] `tools/core.py`
+
+### Acceptance Criteria
+- Passes.
+
+### Runtime Receipt & Completion Gate
+- Passes.
+"""
+        is_valid, errors = validate_plan_content(invalid_status_plan, "bad_status.md")
+        self.assertFalse(is_valid)
+        self.assertTrue(any("Invalid status 'MAYBE_LATER'" in err for err in errors))
+
+    def test_status_table_missing_declared_wave_is_rejected(self) -> None:
+        """Verify that omitting a declared wave from the status table is rejected."""
+        missing_wave_in_table = """# Plan Missing Wave In Table
+
+## Status Table
+| Wave | Description | Status |
+|---|---|---|
+| Wave 1 | Wave 1 scope | COMPLETED |
+
+## Wave 1: First
+### Milestones & Deliverables
+- [NEW] `tools/first.py`
+
+### Acceptance Criteria
+- Passes.
+
+### Runtime Receipt & Completion Gate
+- Passes.
+
+## Wave 2: Second
+### Milestones & Deliverables
+- [NEW] `tools/second.py`
+
+### Acceptance Criteria
+- Passes.
+
+### Runtime Receipt & Completion Gate
+- Passes.
+"""
+        is_valid, errors = validate_plan_content(missing_wave_in_table, "missing_wave.md")
+        self.assertFalse(is_valid)
+        self.assertTrue(
+            any(
+                "Wave 2 (declared at line" in err and "missing from the Implementation Status Table" in err
+                for err in errors
+            )
+        )
 
 
 if __name__ == "__main__":

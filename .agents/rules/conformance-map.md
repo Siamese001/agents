@@ -20,9 +20,9 @@ Traces every `AGENTS.md` section to enforceable rules, skills, hooks, tools, and
 | Type | Path | Coverage |
 | :--- | :--- | :--- |
 | Policy | `docs/refactoring-wave-protocol.md` | 6-wave maximum, sequential scope, receipt validation |
-| Hook | `.agents/hooks.json` → `agents-implementation-plan-guard` | AST wave plan validation before writing |
-| Tool | `tools/validate_implementation_plan.py` | Mechanical markdown/AST implementation plan validator |
-| Test | `tests/test_implementation_plan_governance.py` | Plan governance invariant tests |
+| Hook | `.agents/hooks.json` → `agents-implementation-plan-guard` | Implementation status table and wave plan validation before writing |
+| Tool | `tools/validate_implementation_plan.py` | Mechanical status table and wave plan validator |
+| Test | `tests/test_implementation_plan_governance.py` | Plan governance and status table invariant tests |
 
 ### §"MCP Quick Reference"
 | Type | Path | Coverage |

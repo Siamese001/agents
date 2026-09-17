@@ -14,6 +14,11 @@ class ChannelType(str, Enum):
     FOLLOW_UP = "follow_up"
 
 
+class AudiencePersona(str, Enum):
+    EXECUTIVE_CONTACT = "executive_contact"
+    EXECUTIVE_RECRUITER = "executive_recruiter"
+
+
 class RecipientClass(str, Enum):
     TALENT_PARTNER = "talent_partner"
     HIRING_MANAGER = "hiring_manager"
@@ -44,7 +49,7 @@ class CandidateProfile:
     candidate_id: str
     full_name: str
     target_title: str
-    executive_summary: str
+    executive_summary: str = ""
     verified_facts: List[CandidateFact] = field(default_factory=list)
     key_competencies: List[str] = field(default_factory=list)
 
@@ -79,6 +84,8 @@ class OutreachMessageDraft:
     grounded_facts_used: List[str] = field(default_factory=list)
     research_metadata: Dict[str, Any] = field(default_factory=dict)
     metadata: Dict[str, Any] = field(default_factory=dict)
+    signature_block: str = ""
+    audience_persona: Optional[AudiencePersona] = None
 
     def __post_init__(self) -> None:
         if not self.character_count:

@@ -131,9 +131,61 @@ class QuestionEndingValidator:
             return False, "Empty message body."
 
         # Check if last non-whitespace sentence ends with '?'
-        if not stripped.endswith("?"):
-            return False, "Message does not conclude with a low-friction question mark."
+        lines = [line.strip() for line in stripped.splitlines() if line.strip()]
+        if lines[-1].endswith("?"):
+            return True, None
+
+        # Check if the line before a signature block ends with '?'
+        for line in reversed(lines):
+            lower = line.lower()
+            if any(tok in lower for tok in ("linkedin.com", "github.com", "+1-", "officer", "director", "partner", "vp", "chief", "ayer")):
+                continue
+            if line.endswith("?"):
+                return True, None
+            break
+
+        return False, "Message does not conclude with a low-friction question mark."
+
+
+class EmDashValidator:
+    """Verifies message body contains no em dashes (rule: no_em_dash)."""
+
+    def validate(self, body: str) -> tuple[bool, Optional[str]]:
+        if "—" in body or "\u2014" in body:
+            return False, "Forbidden em dash detected; use standard punctuation or commas."
         return True, None
+
+
+class MarkdownLinkValidator:
+    """Verifies message body uses plain text links rather than markdown links."""
+
+    _MD_LINK_PAT = re.compile(r"\[([^\]]+)\]\((https?://[^\)]+)\)")
+
+    def validate(self, body: str) -> tuple[bool, Optional[str]]:
+        if self._MD_LINK_PAT.search(body):
+            return False, "Forbidden markdown link syntax detected; use plain text URLs only."
+        return True, None
+
+
+class SubordinateToneValidator:
+    """Detects deferential or desperate subordinate phrasing in executive outreach."""
+
+    _SUBORDINATE_PATTERNS = [
+        re.compile(r"\bwould love to learn more\b", re.IGNORECASE),
+        re.compile(r"\bthink I(?:'d| would) be a (?:great|perfect) fit\b", re.IGNORECASE),
+        re.compile(r"\bhoping for an? (?:opportunity|interview|chance)\b", re.IGNORECASE),
+        re.compile(r"\bgive me a (?:chance|shot)\b", re.IGNORECASE),
+        re.compile(r"\bplease consider my application\b", re.IGNORECASE),
+        re.compile(r"\bhire me\b", re.IGNORECASE),
+        re.compile(r"\byou must hire\b", re.IGNORECASE),
+    ]
+
+    def validate(self, body: str) -> tuple[bool, List[str]]:
+        violations: List[str] = []
+        for pat in self._SUBORDINATE_PATTERNS:
+            if pat.search(body):
+                violations.append(f"Subordinate or deferential phrasing detected: '{pat.pattern}'")
+        return len(violations) == 0, violations
 
 
 class GroundingValidator:
@@ -151,7 +203,10 @@ class GroundingValidator:
 
 __all__ = [
     "ChannelLengthValidator",
+    "EmDashValidator",
     "GroundingValidator",
+    "MarkdownLinkValidator",
     "QuestionEndingValidator",
     "SpamTriggerValidator",
+    "SubordinateToneValidator",
 ]

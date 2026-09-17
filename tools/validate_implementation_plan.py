@@ -46,6 +46,124 @@ RE_RECEIPT_GATE = re.compile(
 )
 RE_ITEM = re.compile(r"^\s*(?:[-*+]|\d+\.)\s+(.+)$")
 
+VALID_STATUS_TOKENS = (
+    "COMPLETED",
+    "COMPLETE",
+    "DONE",
+    "IN_PROGRESS",
+    "IN PROGRESS",
+    "PENDING_APPROVAL",
+    "PENDING APPROVAL",
+    "PENDING",
+    "OPEN",
+    "BLOCKED",
+    "NOT_STARTED",
+    "NOT STARTED",
+    "PLANNED",
+)
+
+
+def normalize_status(val: str) -> Optional[str]:
+    """Normalize and match candidate status text against canonical status tokens."""
+    clean = val.strip()
+    # Strip leading/trailing markdown decorators, backticks, asterisks, brackets, emojis
+    clean = re.sub(r"^[`*#_\[\]\s\W]+", "", clean).strip()
+    clean = re.sub(r"[`*_\[\]]+$", "", clean).strip()
+    upper = clean.upper()
+    for token in VALID_STATUS_TOKENS:
+        if (
+            upper == token
+            or upper.startswith(token + " ")
+            or upper.startswith(token + ":")
+            or upper.startswith(token + "-")
+            or upper.startswith(token + "(")
+            or upper.startswith(token + "_")
+        ):
+            return token
+    return None
+
+
+class MarkdownTable:
+    """Represents a parsed markdown table."""
+
+    def __init__(self, headers: List[str], start_line: int):
+        self.headers = headers
+        self.start_line = start_line
+        self.rows: List[Tuple[int, List[str]]] = []  # (line_number, cell_values)
+
+
+def parse_markdown_tables(lines: List[str]) -> List[MarkdownTable]:
+    """Extract all markdown tables from lines of markdown text."""
+    tables: List[MarkdownTable] = []
+    idx = 0
+    while idx < len(lines):
+        raw_line = lines[idx].strip()
+        if raw_line.count("|") >= 2:
+            if idx + 1 < len(lines):
+                sep_raw = lines[idx + 1].strip()
+                if sep_raw.count("|") >= 2:
+                    sep_cells = [c.strip() for c in sep_raw.strip("|").split("|")]
+                    if sep_cells and all(c and re.match(r"^[\s:\-]+$", c) and "-" in c for c in sep_cells):
+                        raw_headers = [c.strip() for c in raw_line.strip("|").split("|")]
+                        table = MarkdownTable(headers=raw_headers, start_line=idx + 1)
+                        idx += 2
+                        while idx < len(lines):
+                            row_raw = lines[idx].strip()
+                            if row_raw.count("|") >= 2:
+                                cells = [c.strip() for c in row_raw.strip("|").split("|")]
+                                table.rows.append((idx + 1, cells))
+                                idx += 1
+                            else:
+                                break
+                        tables.append(table)
+                        continue
+        idx += 1
+    return tables
+
+
+def find_status_table(
+    tables: List[MarkdownTable],
+) -> Tuple[Optional[MarkdownTable], Optional[dict], List[Tuple[MarkdownTable, List[str]]]]:
+    """Locate the Implementation Status Table among parsed tables."""
+    candidate_diagnostics: List[Tuple[MarkdownTable, List[str]]] = []
+    for tbl in tables:
+        h_lowers = [h.lower() for h in tbl.headers]
+        wave_idx = next(
+            (i for i, h in enumerate(h_lowers) if any(k in h for k in ("wave", "component", "phase"))),
+            None,
+        )
+        desc_idx = next(
+            (
+                i
+                for i, h in enumerate(h_lowers)
+                if i != wave_idx and any(k in h for k in ("description", "scope", "objective", "summary", "details"))
+            ),
+            None,
+        )
+        status_idx = next(
+            (
+                i
+                for i, h in enumerate(h_lowers)
+                if i not in (wave_idx, desc_idx) and any(k in h for k in ("status", "state", "progress"))
+            ),
+            None,
+        )
+
+        missing: List[str] = []
+        if wave_idx is None:
+            missing.append("Wave/Component")
+        if desc_idx is None:
+            missing.append("Description/Scope")
+        if status_idx is None:
+            missing.append("Status")
+
+        if not missing:
+            return tbl, {"wave_idx": wave_idx, "desc_idx": desc_idx, "status_idx": status_idx}, candidate_diagnostics
+        elif len(missing) < 3 and (wave_idx is not None or status_idx is not None):
+            candidate_diagnostics.append((tbl, missing))
+
+    return None, None, candidate_diagnostics
+
 
 class WaveSection:
     """Represents a parsed wave block within an implementation plan."""
@@ -189,6 +307,57 @@ def validate_plan_content(content: str, filename: str = "plan.md") -> Tuple[bool
                 f"{prefix}: Missing required 'Runtime Receipt & Completion Gate' section "
                 f"(expected '### Runtime Receipt & Completion Gate', '### Exit Gate', or '**Runtime Receipt**')."
             )
+
+    # 5. Validate Mandatory Implementation Status Table
+    tables = parse_markdown_tables(lines)
+    status_table, col_indices, candidates = find_status_table(tables)
+
+    if status_table is None:
+        if candidates:
+            cand_tbl, missing_cols = candidates[0]
+            errors.append(
+                f"{filename}: Implementation Status Table at line {cand_tbl.start_line} missing required "
+                f"column(s): {', '.join(missing_cols)}. Required columns: 'Wave', 'Description', and 'Status'."
+            )
+        else:
+            errors.append(
+                f"{filename}: Missing mandatory Implementation Status Table. Plans must include a markdown "
+                "table with columns for Wave/Component, Description/Scope, and Status (e.g. COMPLETED, IN_PROGRESS, PENDING, OPEN, BLOCKED)."
+            )
+    else:
+        wave_idx = col_indices["wave_idx"]
+        status_idx = col_indices["status_idx"]
+
+        if not status_table.rows:
+            errors.append(f"{filename}: Line {status_table.start_line}: Implementation Status Table has no rows.")
+        else:
+            # Check valid status in each row
+            for row_line, cells in status_table.rows:
+                if status_idx >= len(cells):
+                    errors.append(f"{filename}: Line {row_line}: Implementation Status Table row missing Status cell.")
+                    continue
+                raw_status = cells[status_idx]
+                norm_status = normalize_status(raw_status)
+                if not norm_status:
+                    errors.append(
+                        f"{filename}: Line {row_line}: Invalid status '{raw_status}' in Implementation Status Table. "
+                        "Valid statuses are: COMPLETED, IN_PROGRESS, PENDING, OPEN, BLOCKED, NOT_STARTED, PLANNED."
+                    )
+
+            # Check that all declared waves are represented in the status table
+            for w in waves:
+                wave_pattern = re.compile(rf"\b(?:wave\s+)?{w.number}\b", re.IGNORECASE)
+                matched = False
+                for _, cells in status_table.rows:
+                    wave_cell = cells[wave_idx] if wave_idx < len(cells) else ""
+                    if wave_pattern.search(wave_cell) or wave_pattern.search(" ".join(cells)):
+                        matched = True
+                        break
+                if not matched:
+                    errors.append(
+                        f"{filename}: Wave {w.number} (declared at line {w.start_line}) is missing from the "
+                        "Implementation Status Table."
+                    )
 
     return len(errors) == 0, errors
 
