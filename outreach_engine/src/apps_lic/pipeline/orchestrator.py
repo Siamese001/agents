@@ -138,9 +138,9 @@ class OutreachOrchestrator:
         signature = ""
         if channel in (ChannelType.LINKEDIN_INMAIL, ChannelType.EMAIL):
             if persona == AudiencePersona.EXECUTIVE_RECRUITER:
-                signature = get_recruiter_signature_block(candidate.full_name)
+                signature = get_recruiter_signature_block(candidate)
             else:
-                signature = get_executive_signature_block(candidate.full_name)
+                signature = get_executive_signature_block(candidate)
 
         draft = OutreachMessageDraft(
             draft_id=f"draft_{uuid.uuid4().hex[:8]}",

@@ -9,6 +9,7 @@ from typing import Any, Dict, Tuple
 from apps_lic.domain.models import (
     CandidateFact,
     CandidateProfile,
+    CandidateProfileLoader,
     RecipientClass,
     RelationshipDistance,
     TargetOpportunity,
@@ -41,39 +42,48 @@ class MissionLoader:
             sp = data["sender_profile"]
             rp = data["recipient_profile"]
             jd = data.get("job_description", {})
+            default_cand = CandidateProfileLoader.load_default()
+
+            facts = [
+                CandidateFact(
+                    fact_id="fact_01",
+                    category="architecture",
+                    statement="architected layered agentic systems (L0 routing through L6 observability) with AST dependency governance",
+                    metric="L0-L6 AST",
+                ),
+                CandidateFact(
+                    fact_id="fact_02",
+                    category="delivery",
+                    statement="delivered multi-MCP enterprise agentic tooling for frontline banking care operations",
+                    metric="Enterprise Care Centers",
+                ),
+                CandidateFact(
+                    fact_id="fact_scale_01",
+                    category="scale",
+                    statement="scaled distributed enterprise platform processing $4.2B annual volume with 99.995% reliability",
+                    metric="$4.2B / 99.995%",
+                ),
+                CandidateFact(
+                    fact_id="fact_efficiency_04",
+                    category="efficiency",
+                    statement="reduced infrastructure operating expenditures by 38% through governed platform automation",
+                    metric="38%",
+                ),
+            ]
 
             candidate = CandidateProfile(
                 candidate_id=f"cand_{default_id}",
-                full_name=sp.get("name", "Executive Candidate"),
+                full_name=sp.get("name") or default_cand.full_name,
                 target_title=sp.get("title", jd.get("title", "Engineering Leader")),
-                executive_summary=sp.get("background", "Senior enterprise systems leader."),
-                verified_facts=[
-                    CandidateFact(
-                        fact_id="fact_01",
-                        category="architecture",
-                        statement="architected layered agentic systems (L0 routing through L6 observability) with AST dependency governance",
-                        metric="L0-L6 AST",
-                    ),
-                    CandidateFact(
-                        fact_id="fact_02",
-                        category="delivery",
-                        statement="delivered multi-MCP enterprise agentic tooling for frontline banking care operations",
-                        metric="Enterprise Care Centers",
-                    ),
-                    CandidateFact(
-                        fact_id="fact_scale_01",
-                        category="scale",
-                        statement="scaled distributed enterprise platform processing $4.2B annual volume with 99.995% reliability",
-                        metric="$4.2B / 99.995%",
-                    ),
-                    CandidateFact(
-                        fact_id="fact_efficiency_04",
-                        category="efficiency",
-                        statement="reduced infrastructure operating expenditures by 38% through governed platform automation",
-                        metric="38%",
-                    ),
-                ],
+                current_title=sp.get("current_title") or default_cand.current_title,
+                executive_summary=sp.get("background") or default_cand.executive_summary,
+                verified_facts=facts,
                 key_competencies=["Agentic AI", "Enterprise Architecture", "LLM Guardrails", "HITL Systems", "Cloud Transformation"],
+                linkedin_url=sp.get("linkedin_url") or default_cand.linkedin_url,
+                github_url=sp.get("github_url") or default_cand.github_url,
+                phone=sp.get("phone") or default_cand.phone,
+                email=sp.get("email") or default_cand.email,
+                location=sp.get("location") or default_cand.location,
             )
 
             company_name = rp.get("company") or jd.get("company") or "Target Company"
@@ -120,38 +130,13 @@ class MissionLoader:
             else:
                 r_class = RecipientClass.HIRING_MANAGER
 
-            candidate = CandidateProfile(
-                candidate_id=f"cand_{default_id}",
-                full_name=data.get("candidate_name", "Amit Ayer"),
-                target_title=data.get("target_role", "Head of AI Enablement"),
-                executive_summary="Executive technology leader specializing in enterprise AI platforms and governed agentic architectures.",
-                verified_facts=[
-                    CandidateFact(
-                        fact_id="fact_01",
-                        category="scale",
-                        statement="scaled enterprise core platform processing high-volume transactions with 99.995% reliability",
-                        metric="99.995%",
-                    ),
-                    CandidateFact(
-                        fact_id="fact_02",
-                        category="architecture",
-                        statement="architected layered agentic systems (L0 routing through L6 observability) with AST dependency governance",
-                        metric="L0-L6 AST",
-                    ),
-                    CandidateFact(
-                        fact_id="fact_scale_01",
-                        category="scale",
-                        statement="scaled distributed enterprise platform processing $4.2B annual volume with 99.995% reliability",
-                        metric="$4.2B / 99.995%",
-                    ),
-                    CandidateFact(
-                        fact_id="fact_efficiency_04",
-                        category="efficiency",
-                        statement="reduced infrastructure operating expenditures by 38% through governed platform automation",
-                        metric="38%",
-                    ),
-                ],
-                key_competencies=["Agentic Systems", "Enterprise AI Architecture", "Human-in-the-loop Governance", "Cloud Transformation"],
+            default_cand = CandidateProfileLoader.load_default()
+            candidate = CandidateProfileLoader.load_default(
+                overrides={
+                    "candidate_id": f"cand_{default_id}",
+                    "full_name": data.get("candidate_name") or default_cand.full_name,
+                    "target_title": data.get("target_role") or default_cand.target_title,
+                }
             )
             opportunity = TargetOpportunity(
                 opportunity_id=f"opp_{default_id}",
@@ -170,18 +155,13 @@ class MissionLoader:
         # Structure 3: apps_research handoff envelope format
         if "payload" in data and "company_brief" in data.get("payload", {}):
             payload = data["payload"]
-            candidate = CandidateProfile(
-                candidate_id=f"cand_{default_id}",
-                full_name="Alex Mercer",
-                target_title="VP of Engineering",
-                executive_summary="Enterprise engineering leader.",
-                verified_facts=[
-                    CandidateFact(
-                        fact_id="fact_01",
-                        category="scale",
-                        statement="scaled core enterprise platforms with 99.995% reliability",
-                    )
-                ],
+            candidate = CandidateProfileLoader.load_default(
+                overrides={
+                    "candidate_id": f"cand_{default_id}",
+                    "full_name": payload.get("candidate_name", "Alex Mercer"),
+                    "target_title": payload.get("target_title", "VP of Engineering"),
+                    "executive_summary": payload.get("executive_summary", "Enterprise engineering leader."),
+                }
             )
             opportunity = TargetOpportunity(
                 opportunity_id=f"opp_{default_id}",

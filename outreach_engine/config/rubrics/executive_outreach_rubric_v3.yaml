@@ -1,0 +1,61 @@
+rubric_id: "executive_outreach_rubric_v3"
+rubric_version: "3.0.0"
+judge_name: "ExecutiveOutreachJudgePanel"
+description: >
+  Authoritative 6-lens evaluation rubric for executive outreach drafts,
+  adapted from apps_rg Rubric v3 and parameterized for declarative evaluation.
+
+passing_criteria:
+  all_lenses_must_pass: true
+  min_composite_score: 0.75
+
+score_bands:
+  - min_score: 0.00
+    band: "FAIL"
+  - min_score: 0.70
+    band: "ACCEPTABLE"
+  - min_score: 0.85
+    band: "EXEMPLARY"
+
+lenses:
+  lens1_altitude:
+    name: "Altitude, Persona & Peer Framing"
+    description: "Peer-to-peer executive framing; eliminates subordinate job-seeking phrases and verifies channel appropriateness."
+    threshold: 0.70
+    weight: 0.15
+    remediation_hint: "Adopt peer-to-peer executive framing; eliminate subordinate job-seeking phrases."
+
+  lens2_grounding:
+    name: "Zero-Hallucination Grounding & Fact Binding"
+    description: "All claims, metrics, and statements must map strictly to verified candidate facts."
+    threshold: 0.99
+    weight: 0.25
+    remediation_hint: "All claims must map directly to verified candidate facts."
+
+  lens3_resonance:
+    name: "Strategic Briefing Resonance"
+    description: "Outreach anchors to verified company strategic priorities, challenges, or mandate."
+    threshold: 0.70
+    weight: 0.20
+    remediation_hint: "Anchor message to verified strategic priorities from company briefing."
+
+  lens4_cta:
+    name: "Friction & Call-to-Action Calibration"
+    description: "Low-friction inquiry concluding with a question mark without high-friction demands."
+    threshold: 0.70
+    weight: 0.15
+    remediation_hint: "Conclude message with a low-friction inquiry ending with a question mark."
+
+  lens5_anti_spam:
+    name: "Anti-Spam, Anti-Cliche & Tone Guardrails"
+    description: "Zero sales urgency, zero spam buzzwords, avoids corporate cliches, and complies with em-dash styling."
+    threshold: 0.70
+    weight: 0.15
+    remediation_hint: "Eliminate sales urgency, corporate cliches, and aggressive pitching language."
+
+  lens6_constraints:
+    name: "Channel & Constraint Compliance"
+    description: "Strict channel character ceilings, zero markdown links, and channel-appropriate structure."
+    threshold: 0.70
+    weight: 0.10
+    remediation_hint: "Trim message to stay within strict channel character ceilings and use plain URLs."
