@@ -510,6 +510,12 @@ def main(argv: list[str] | None = None, prog: str | None = None) -> int:
 
         return int(run_bootstrap_cli(raw_argv[1:]))
 
+    # Ensure local dev route signing secrets exist if not supplied in environment
+    if not os.environ.get("APPS_RG_ROUTE_HMAC_SECRET"):
+        os.environ["APPS_RG_ROUTE_HMAC_SECRET"] = "agents-local-dev-session-secret"
+    if not os.environ.get("APPS_RG_ROUTE_HMAC_KEY_ID"):
+        os.environ["APPS_RG_ROUTE_HMAC_KEY_ID"] = "agents-local-dev-key"
+
     if any(arg == "--patch-run" or arg.startswith("--patch-run=") for arg in raw_argv):
         from apps_rg.runtime.orchestration.patch_run import main as patch_main
 
@@ -528,12 +534,6 @@ def main(argv: list[str] | None = None, prog: str | None = None) -> int:
             else:
                 patch_args.append(a)
         return patch_main(patch_args)
-
-    # Ensure local dev route signing secrets exist if not supplied in environment
-    if not os.environ.get("APPS_RG_ROUTE_HMAC_SECRET"):
-        os.environ["APPS_RG_ROUTE_HMAC_SECRET"] = "agents-local-dev-session-secret"
-    if not os.environ.get("APPS_RG_ROUTE_HMAC_KEY_ID"):
-        os.environ["APPS_RG_ROUTE_HMAC_KEY_ID"] = "agents-local-dev-key"
 
     if prog is None:
         prog = "python -m resume_engine" if (len(sys.argv) > 0 and "resume_engine" in sys.argv[0]) else "python -m apps_rg"

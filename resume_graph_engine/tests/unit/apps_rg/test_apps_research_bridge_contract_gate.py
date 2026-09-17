@@ -319,3 +319,40 @@ def test_delegation_fails_closed_on_blocked_brief() -> None:
     outcome = dispatch_resume_research_briefing(req, bridge=bridge)
     assert isinstance(outcome, ResearchDispatchFailure)
     assert outcome.r5_reason_code in {"APPS_RESEARCH_BLOCKED", "APPS_RESEARCH_EMPTY"}
+
+
+def test_bridge_falls_back_to_canonical_brief_on_retrieval_failure(tmp_path: Path) -> None:
+    runs_root = tmp_path / "apps_research"
+    runs_root.mkdir(parents=True)
+    raw = SimpleNamespace(
+        run_id="research-run-1",
+        trace_root="trace-1",
+        trace_id="trace-1",
+        is_blocked=False,
+        block_reason="",
+        company_brief_text="",
+        hop_terminal_error="Stage company_brief failed: CompanyBriefUnavailableError: Blend: v2 research returned no grounded findings",
+        hop_checkpoints=(),
+        fec_run_context={},
+        evidence_items=(),
+        confidence_score=0.0,
+        support_coverage=0.0,
+        is_stale=False,
+        age_days=0.0,
+    )
+    bridge = AppsResearchBridge(artifact_runs_root=runs_root)
+
+    result = bridge._translate(
+        raw=raw,
+        run_id="parent-run",
+        trace_id="trace-1",
+        request_id="request-1",
+        t_start=0.0,
+        company_name="Blend360",
+        job_title="SVP, Agentic Transformation",
+    )
+
+    assert result.is_blocked is False
+    assert result.company_brief_text != ""
+    assert "Blend" in result.company_brief_text
+
