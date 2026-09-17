@@ -92,6 +92,7 @@ Traces every `AGENTS.md` section to enforceable rules, skills, hooks, tools, and
 | Rule | `.agents/rules/hitl-decisions.md` | Atomic presentation, 20% calibrated margin rule, multi-factor confidence, synthetic firewall |
 | Tool | `tools/hitl_governance.py` | Calibrated margin evaluator, multi-factor confidence model, SQLite persistent store |
 | Hook | `.agents/hooks.json` → `agents-hitl-atomic-guard` | Pre-tool check on ask_question |
+| Hook | `.agents/hooks.json` → `agents-model-registry-conformance-guard` | Pre-tool check verifying model tokens resolve to config/provider_profiles.yaml |
 | Test | `tests/test_hitl_governance_enforcement.py` | Unit tests for margin calculation, persistent store, and origin validation |
 
 ### §"Model-Neutral Artifact Naming"

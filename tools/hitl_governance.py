@@ -553,6 +553,138 @@ PLAN_ONLY_TRIGGERS = (
     "stop before executing",
 )
 
+MODEL_TOKEN_PATTERN = re.compile(
+    r"\b(?:gpt-[0-9]+(?:\.[0-9]+)?(?:-[a-z0-9]+)?|claude-[a-z0-9-]+|gemini-[0-9]+(?:\.[0-9]+)?(?:-[a-z0-9]+)?)\b",
+    re.IGNORECASE,
+)
+
+PROVIDER_PROFILE_REL_PATHS = (
+    "config/provider_profiles.yaml",
+    "outreach_engine/config/provider_profiles.yaml",
+    "resume_graph_engine/src/apps_rg/config/provider_profiles.yaml",
+)
+
+
+def load_approved_provider_models(repo_root: Path | str | None = None) -> set[str]:
+    """Extract approved model identifiers from canonical provider profile configurations."""
+    root = Path(repo_root or ".").resolve()
+    approved: set[str] = set()
+
+    for rel_path in PROVIDER_PROFILE_REL_PATHS:
+        cfg_file = root / rel_path
+        if not cfg_file.is_file():
+            continue
+        try:
+            text = cfg_file.read_text(encoding="utf-8")
+        except Exception:
+            continue
+
+        try:
+            import yaml  # type: ignore
+
+            data = yaml.safe_load(text)
+            if isinstance(data, dict):
+                def _extract_models(obj: Any) -> None:
+                    if isinstance(obj, dict):
+                        for k, v in obj.items():
+                            if k in (
+                                "model",
+                                "backup_model",
+                                "default_model",
+                                "gemini_pro",
+                                "openai_chatgpt",
+                            ) and isinstance(v, str):
+                                approved.add(v.strip())
+                            elif k in ("model_by_section", "anthropic_limit_backup_model_by_section") and isinstance(v, dict):
+                                for _, m in v.items():
+                                    if isinstance(m, str):
+                                        approved.add(m.strip())
+                            else:
+                                _extract_models(v)
+                    elif isinstance(obj, list):
+                        for item in obj:
+                            _extract_models(item)
+
+                _extract_models(data)
+                continue
+        except Exception:
+            pass
+
+        for line in text.splitlines():
+            m = re.search(
+                r"(?:model|backup_model|gemini_pro|openai_chatgpt|slalom_narrative|unify_narrative|ibm_narrative|insurtech_narrative|competencies|headline|executive_summary)\s*:\s*([a-zA-Z0-9.\-_]+)",
+                line,
+            )
+            if m:
+                val = m.group(1).strip().strip("'\"")
+                if any(p in val.lower() for p in ("gpt-", "claude-", "gemini-")):
+                    approved.add(val)
+
+    return approved
+
+
+def find_model_tokens(text: str) -> list[str]:
+    """Extract candidate model tokens from text."""
+    return [m.group(0) for m in MODEL_TOKEN_PATTERN.finditer(text)]
+
+
+def validate_model_token_registry(
+    text: str,
+    repo_root: Path | str | None = None,
+    approved_models: set[str] | None = None,
+) -> tuple[bool, list[str], set[str]]:
+    """Validate that any model tokens in text are declared in the approved provider profiles.
+
+    Returns:
+        (is_valid, unapproved_tokens_found, approved_models_set)
+    """
+    approved = approved_models if approved_models is not None else load_approved_provider_models(repo_root)
+    tokens = find_model_tokens(text)
+    unapproved: list[str] = []
+    for tok in tokens:
+        matches = any(tok.lower() == app.lower() for app in approved)
+        if not matches:
+            unapproved.append(tok)
+    return len(unapproved) == 0, unapproved, approved
+
+
+def evaluate_model_token_ambiguity(
+    unapproved_token: str,
+    approved_models: set[str] | None = None,
+) -> dict[str, Any]:
+    """Formulate and score candidate options for an unapproved model token to determine ambiguity margin."""
+    import difflib
+
+    approved = list(approved_models) if approved_models else ["gpt-5.6-luna", "claude-sonnet-5", "gemini-3.8-flash"]
+    matches = difflib.get_close_matches(unapproved_token, approved, n=1, cutoff=0.4)
+    best_candidate = matches[0] if matches else approved[0]
+
+    # Calibrated to represent genuine ambiguity between typo hypothesis vs literal unreleased override
+    option_a = {
+        "label": f"Resolve as typo for approved canonical pin '{best_candidate}'",
+        "confidence_score": 0.56,
+        "evidence_refs": ["config/provider_profiles.yaml"],
+        "has_verification_receipt": False,
+        "risk_level": "MEDIUM",
+    }
+    option_b = {
+        "label": f"Treat '{unapproved_token}' as intentional unreleased external model override",
+        "confidence_score": 0.50,
+        "evidence_refs": [],
+        "has_verification_receipt": False,
+        "risk_level": "HIGH",
+    }
+
+    eval_result = evaluate_hitl_surfacing_gate([option_a, option_b])
+    return {
+        "unapproved_token": unapproved_token,
+        "suggested_match": best_candidate,
+        "options": [option_a, option_b],
+        "margin": eval_result["margin"],
+        "should_surface": eval_result["should_surface"],
+        "action": eval_result["action"],
+    }
+
 
 def validate_plan_only_firewall(
     user_prompt: str,

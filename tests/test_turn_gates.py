@@ -144,6 +144,20 @@ Response content delivered cleanly.
         self.assertTrue(any("Pillar 2" in issue for issue in eval_result["issues"]))
         self.assertTrue(any("Pillar 4" in issue for issue in eval_result["issues"]))
 
+    def test_pre_turn_gate_checks_provider_profiles_integrity(self) -> None:
+        """Verify that the pre-turn gate checks canonical provider profiles integrity."""
+        result = validate_pre_turn_gate(ROOT)
+        self.assertIn("provider_profiles", result["checks"])
+        self.assertEqual(result["checks"]["provider_profiles"]["status"], "PASS")
+        self.assertGreater(result["checks"]["provider_profiles"]["approved_model_count"], 0)
+
+    def test_post_turn_gate_flags_unapproved_model_tokens(self) -> None:
+        """Verify that post-turn gate flags responses referencing unapproved model tokens without ambiguity resolution."""
+        unapproved_response = "We will execute this generation using gpt-6.5-luna in production."
+        result = validate_post_turn_gate(repo_root=ROOT, candidate_response=unapproved_response)
+        self.assertEqual(result["status"], "FAIL")
+        self.assertTrue(any("references unapproved model token 'gpt-6.5-luna'" in err for err in result["issues"]))
+
 
 if __name__ == "__main__":
     unittest.main()

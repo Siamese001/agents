@@ -121,6 +121,28 @@
       "action": "verify_and_warn",
       "instructions": "Before spawning a sub-agent: (1) verify the delegation defines the 10 mandatory fields (task_id, parent_task_id, objective, scope_in, scope_out, allowed_tools, deliverable, definition_of_done, budget, escalation_rule), (2) verify budget declares concrete limits (max_turns, timeout_seconds), (3) verify no contradictory overlap between scope_in and scope_out. Block unconstrained sub-agent launches.",
       "severity": "blocking"
+    },
+    {
+      "id": "agents-model-registry-conformance-guard",
+      "event": "pre_tool_call",
+      "description": "Before writing plans, editing code, or executing tools, verify that all model identifiers resolve to canonical provider configurations in config/provider_profiles.yaml. Unapproved or misspelled model tokens (e.g. gpt-6.5-luna) mandate atomic HITL clarification.",
+      "match": {
+        "tool": "write_to_file",
+        "also_match": [
+          {"tool": "replace_file_content"},
+          {"tool": "multi_replace_file_content"}
+        ],
+        "path_patterns": [
+          "implementation_plan.md",
+          "plans/",
+          "agentic_core/",
+          "apps_rg/",
+          "outreach_engine/"
+        ]
+      },
+      "action": "verify_and_warn",
+      "instructions": "Verify that any referenced model tokens match approved provider profiles in config/provider_profiles.yaml. If an unapproved token or typo is detected, block autonomous execution and require atomic HITL clarification via ask_question.",
+      "severity": "blocking"
     }
   ]
 }

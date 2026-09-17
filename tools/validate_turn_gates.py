@@ -112,6 +112,25 @@ def validate_pre_turn_gate(repo_root: Path | None = None) -> dict[str, Any]:
         if has_stale_headers:
             issues.append("Conformance map contains stale hardcoded line-number headers.")
 
+    # Check 6: Provider Profiles Registry SSOT integrity
+    provider_profiles_path = root / "config" / "provider_profiles.yaml"
+    if not provider_profiles_path.is_file():
+        issues.append(f"Canonical provider profiles missing: {provider_profiles_path}")
+        checks["provider_profiles"] = {"status": "FAIL"}
+    else:
+        try:
+            from tools.hitl_governance import load_approved_provider_models
+            approved_models = load_approved_provider_models(root)
+            checks["provider_profiles"] = {
+                "status": "PASS" if len(approved_models) > 0 else "FAIL",
+                "approved_model_count": len(approved_models),
+            }
+            if not approved_models:
+                issues.append("Provider profiles registry contains zero approved models.")
+        except Exception as exc:
+            issues.append(f"Failed parsing provider profiles: {exc}")
+            checks["provider_profiles"] = {"status": "FAIL", "error": str(exc)}
+
     overall_status = "PASS" if not issues else "FAIL"
     return {
         "gate": "PRE_TURN",
@@ -260,6 +279,28 @@ def validate_post_turn_gate(
         scratchpad_eval = validate_scratchpad_transparency(candidate_response)
         checks["scratchpad_transparency"] = scratchpad_eval
         issues.extend(scratchpad_eval["issues"])
+
+    # Check 3: Model Token Registry Conformance Check
+    if candidate_response:
+        try:
+            from tools.hitl_governance import validate_model_token_registry
+
+            is_valid, unapproved_tokens, _ = validate_model_token_registry(candidate_response, repo_root=root)
+            if not is_valid:
+                # If the response is an RCA, debugging report, or explicitly discusses unapproved models, permit it
+                lower = candidate_response.lower()
+                is_rca_or_clarification = any(k in lower for k in ("unapproved", "typo", "rca", "incident", "investigat"))
+                if not is_rca_or_clarification:
+                    for tok in unapproved_tokens:
+                        issues.append(
+                            f"Post-turn response references unapproved model token '{tok}' without ambiguity clarification."
+                        )
+            checks["model_registry_conformance"] = {
+                "status": "PASS" if is_valid or is_rca_or_clarification else "FAIL",
+                "unapproved_tokens": unapproved_tokens,
+            }
+        except Exception as exc:
+            checks["model_registry_conformance"] = {"status": "FAIL", "error": str(exc)}
 
     overall_status = "PASS" if not issues else "FAIL"
     return {

@@ -342,6 +342,49 @@ No items specified here just free text with no deliverables.
             )
         )
 
+    def test_plan_with_unapproved_model_token_is_rejected(self) -> None:
+        """Verify that plans referencing unapproved model tokens like gpt-6.5-luna fail validation."""
+        bad_model_plan = """# Plan With Unapproved Model
+## Implementation Status Table
+| Wave | Description | Status | Deliverables / Receipts |
+|---|---|---|---|
+| Wave 1: Evaluation | Run gpt-6.5-luna evaluation | COMPLETED | `receipt.json` |
+
+## Wave 1: Evaluation
+### Milestones & Deliverables
+- [NEW] `receipt.json`
+
+### Acceptance Criteria
+- Run under gpt-6.5-luna evaluator.
+
+### Runtime Receipt & Completion Gate
+- Verification receipt emitted.
+"""
+        is_valid, errors = validate_plan_content(bad_model_plan, "bad_model.md")
+        self.assertFalse(is_valid)
+        self.assertTrue(any("References unapproved model token 'gpt-6.5-luna'" in err for err in errors))
+
+    def test_plan_with_approved_model_token_passes(self) -> None:
+        """Verify that plans referencing approved canonical model tokens like gpt-5.6-luna pass validation."""
+        good_model_plan = """# Plan With Approved Model
+## Implementation Status Table
+| Wave | Description | Status | Deliverables / Receipts |
+|---|---|---|---|
+| Wave 1: Evaluation | Run gpt-5.6-luna evaluation | COMPLETED | `receipt.json` |
+
+## Wave 1: Evaluation
+### Milestones & Deliverables
+- [NEW] `receipt.json`
+
+### Acceptance Criteria
+- Run under gpt-5.6-luna evaluator.
+
+### Runtime Receipt & Completion Gate
+- Verification receipt emitted.
+"""
+        is_valid, errors = validate_plan_content(good_model_plan, "good_model.md")
+        self.assertTrue(is_valid, f"Plan should pass, but failed with: {errors}")
+
 
 if __name__ == "__main__":
     unittest.main()

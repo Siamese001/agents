@@ -18,6 +18,13 @@ from pathlib import Path
 from typing import List, Optional, Sequence, Tuple
 
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+try:
+    from tools.hitl_governance import validate_model_token_registry
+except ImportError:
+    from hitl_governance import validate_model_token_registry  # type: ignore
 
 # Historical / frozen plans grandfathered from strict wave schema
 DEFAULT_LEGACY_EXEMPTIONS = {
@@ -214,7 +221,11 @@ class WaveSection:
                     self.deliverable_items.append(content)
 
 
-def validate_plan_content(content: str, filename: str = "plan.md") -> Tuple[bool, List[str]]:
+def validate_plan_content(
+    content: str,
+    filename: str = "plan.md",
+    repo_root: Optional[Path] = None,
+) -> Tuple[bool, List[str]]:
     """Validate markdown implementation plan text against wave-based governance schema.
 
     Returns:
@@ -359,10 +370,23 @@ def validate_plan_content(content: str, filename: str = "plan.md") -> Tuple[bool
                         "Implementation Status Table."
                     )
 
+    # 6. Model Provider Registry Conformance
+    is_model_valid, unapproved_tokens, _ = validate_model_token_registry(content, repo_root=repo_root or ROOT)
+    if not is_model_valid:
+        for tok in unapproved_tokens:
+            errors.append(
+                f"{filename}: References unapproved model token '{tok}'. Models in implementation plans must resolve "
+                "to canonical approved provider profiles in config/provider_profiles.yaml."
+            )
+
     return len(errors) == 0, errors
 
 
-def validate_file(path: Path, legacy_exemptions: Optional[set[str]] = None) -> Tuple[bool, List[str]]:
+def validate_file(
+    path: Path,
+    legacy_exemptions: Optional[set[str]] = None,
+    repo_root: Optional[Path] = None,
+) -> Tuple[bool, List[str]]:
     """Validate a single implementation plan file on disk."""
     exemptions = legacy_exemptions or DEFAULT_LEGACY_EXEMPTIONS
     if path.name in exemptions:
@@ -376,7 +400,7 @@ def validate_file(path: Path, legacy_exemptions: Optional[set[str]] = None) -> T
     except Exception as exc:
         return False, [f"Failed reading {path}: {exc}"]
 
-    return validate_plan_content(content, filename=str(path.name))
+    return validate_plan_content(content, filename=str(path.name), repo_root=repo_root or ROOT)
 
 
 def get_staged_plan_files(repo_root: Path) -> List[Path]:

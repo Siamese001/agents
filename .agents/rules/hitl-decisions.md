@@ -51,6 +51,11 @@ Governs Human-in-the-Loop (HITL) decisions, approvals, and clarifications across
      - $\Delta > 20\%$ so the agent can autonomously proceed with the top option and record an audit receipt.
    - No implementation plan artifact may present a `Proceed` button while unscored design decisions remain inline as prose.
 
+8. **Model & Provider Registry Ambiguity Gating (Non-Bypassable)**
+   - Model identifiers and provider routing tokens (e.g. `gpt-*`, `claude-*`, `gemini-*`, or brand tags like `luna`, `astra`, `sol`, `terra`) present in operator prompts, plans, or code must strictly resolve against the SSOT provider catalog (`config/provider_profiles.yaml`).
+   - An unrecognized, misspelled, or unapproved model identifier (e.g. `gpt-6.5-luna`) is **strictly classified as a blocking architectural ambiguity**, NEVER as a cosmetic posture, persona flair, or deferrable clarification.
+   - When an unapproved or ambiguous model identifier is encountered, the agent MUST halt and present an atomic HITL decision via `ask_question` with discrete resolution options (e.g. typo resolution to approved pin vs external override). Autonomous execution without operator sign-off on an unapproved model token is strictly prohibited.
+
 ## Decision Structure
 
 Use the `ask_question` tool with the following parameters:

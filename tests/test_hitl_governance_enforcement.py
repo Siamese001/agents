@@ -11,9 +11,12 @@ from tools.hitl_governance import (
     HITLDecisionStore,
     calculate_calibrated_confidence,
     evaluate_hitl_surfacing_gate,
+    evaluate_model_token_ambiguity,
+    load_approved_provider_models,
     parse_confidence_score,
     validate_approval_origin,
     validate_hitl_presentation,
+    validate_model_token_registry,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -262,6 +265,35 @@ class HitlGovernanceEnforcementTests(unittest.TestCase):
             self.assertEqual(eval_learned["action"], "PROCEED_AUTONOMOUSLY")
 
             store.close()
+
+    def test_load_approved_provider_models(self) -> None:
+        """Verify that load_approved_provider_models correctly loads canonical provider pins."""
+        models = load_approved_provider_models(ROOT)
+        self.assertIn("gpt-5.6-luna", models)
+        self.assertIn("claude-sonnet-5", models)
+        self.assertIn("gemini-3.8-flash", models)
+        self.assertNotIn("gpt-6.5-luna", models)
+
+    def test_validate_model_token_registry(self) -> None:
+        """Verify that unapproved model tokens are detected and approved tokens pass."""
+        text_bad = "Please run audit using gpt-6.5-luna (max)"
+        is_valid, unapproved, approved = validate_model_token_registry(text_bad, repo_root=ROOT)
+        self.assertFalse(is_valid)
+        self.assertEqual(unapproved, ["gpt-6.5-luna"])
+
+        text_good = "Please run audit using gpt-5.6-luna (medium)"
+        is_valid_good, unapproved_good, _ = validate_model_token_registry(text_good, repo_root=ROOT)
+        self.assertTrue(is_valid_good)
+        self.assertEqual(unapproved_good, [])
+
+    def test_evaluate_model_token_ambiguity_surfaces_hitl(self) -> None:
+        """Verify that typo gpt-6.5-luna calculates ambiguity margin <= 20% requiring atomic HITL."""
+        res = evaluate_model_token_ambiguity("gpt-6.5-luna")
+        self.assertEqual(res["unapproved_token"], "gpt-6.5-luna")
+        self.assertEqual(res["suggested_match"], "gpt-5.6-luna")
+        self.assertTrue(res["should_surface"])
+        self.assertEqual(res["action"], "SURFACE_HITL_ATOMIC")
+        self.assertLessEqual(res["margin"], DEFAULT_AMBIGUITY_THRESHOLD)
 
 
 if __name__ == "__main__":
