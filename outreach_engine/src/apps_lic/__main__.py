@@ -42,9 +42,9 @@ def _normalize_argv(argv: Sequence[str] | None) -> list[str]:
     return values
 
 
-def _build_parser() -> argparse.ArgumentParser:
+def _build_parser(prog: str = "python -m outreach_engine") -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="python -m outreach_engine",
+        prog=prog,
         description="Grounded Executive Outreach Engine: Generate, evaluate, and inspect grounded multi-touch campaigns.",
     )
     subparsers = parser.add_subparsers(dest="action", metavar="ACTION")
@@ -93,7 +93,24 @@ def _build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _handle_run(args: argparse.Namespace) -> int:
+def _handle_run(args: argparse.Namespace, prog: str = "python -m outreach_engine") -> int:
+    # Live execution preflight
+    try:
+        from agents.live_preflight import assert_engine_live_preflight
+
+        assert_engine_live_preflight(
+            prog,
+            providers=("openai",),
+            is_demo=bool(getattr(args, "demo", False)),
+        )
+    except ImportError:
+        pass
+    except Exception as exc:
+        if getattr(args, "json", False):
+            print(json.dumps({"status": "FAILED", "error": str(exc)}, indent=2), flush=True)
+        sys.stderr.write(f"[{prog}] Preflight Credential Failure:\n{exc}\n")
+        return 2
+
     def log(msg: str) -> None:
         if not getattr(args, "json", False):
             print(msg)
@@ -359,13 +376,15 @@ def _handle_show(args: argparse.Namespace) -> int:
     return 0
 
 
-def main(argv: Sequence[str] | None = None) -> int:
+def main(argv: Sequence[str] | None = None, prog: str | None = None) -> int:
     normalized = _normalize_argv(argv)
-    parser = _build_parser()
+    if prog is None:
+        prog = "python -m apps_lic" if (len(sys.argv) > 0 and "apps_lic" in sys.argv[0]) else "python -m outreach_engine"
+    parser = _build_parser(prog=prog)
     args = parser.parse_args(normalized)
 
     if args.action == "run":
-        return _handle_run(args)
+        return _handle_run(args, prog=prog)
     elif args.action == "eval":
         return _handle_eval(args)
     elif args.action == "show":
