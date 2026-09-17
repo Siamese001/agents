@@ -279,6 +279,7 @@ class OutreachOrchestrator:
         opportunity: TargetOpportunity,
         primary_channel: ChannelType = ChannelType.LINKEDIN_INMAIL,
         *,
+        channel: ChannelType | None = None,
         audience_persona: Optional[AudiencePersona] = None,
         auto_research: bool = True,
         research_bridge: Any | None = None,
@@ -287,6 +288,7 @@ class OutreachOrchestrator:
         trace_id: str = "",
     ) -> TouchSequence:
         """Generates a complete validated multi-touch sequence with governed briefing."""
+        effective_channel = channel if channel is not None else primary_channel
         a_dir = Path(artifact_dir) if artifact_dir else None
         artifact_runs_root = (a_dir / "apps_research" / "runs") if a_dir else None
 
@@ -301,7 +303,7 @@ class OutreachOrchestrator:
         sequence = self.sequence_planner.plan_sequence(
             candidate,
             opp,
-            primary_channel,
+            effective_channel,
             audience_persona=audience_persona,
         )
         sequence.sealed_resolution = opp.sealed_resolution
