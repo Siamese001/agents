@@ -1,39 +1,34 @@
-"""Executive Summary Package.
+"""Executive Summary Modular Sub-Package.
 
-Decomposes monolithic voice repair into declarative rules, tokenization,
-deterministic repair engine, and policy validation.
+Modularized stage handlers, context assembler, prompt builders, and repair engines.
 """
+from __future__ import annotations
 
-from apps_rg.runtime.sections.executive_summary.parsing import (
-    count_words,
-    extract_bullets,
-    tokenize_sentences,
-)
-from apps_rg.runtime.sections.executive_summary.policy import VoiceRepairPolicy
-from apps_rg.runtime.sections.executive_summary.repair import (
-    ExecutiveSummaryRepairEngine,
-    RepairAuditEntry,
-    RepairResult,
-)
-from apps_rg.runtime.sections.executive_summary.rules import (
-    DEFAULT_REPAIR_RULES,
-    RepairRule,
-)
-from apps_rg.runtime.sections.executive_summary.validation import (
-    ExecutiveSummaryValidator,
-    ValidationOutcome,
-)
+from .lane_constants import *
+from .context_assembler import *
+from .prompt_builder import *
+from .synthesis_shape_repair import *
+from .synthesis_retry import *
+from .synthesis_repair import *
+from .word_budget_repair import *
+from .lane_runner import run_executive_summary_execution
+from .parsing import count_words, extract_bullets, tokenize_sentences
+from .policy import VoiceRepairPolicy
+from .repair import ExecutiveSummaryRepairEngine, RepairAuditEntry, RepairResult
+from .rules import DEFAULT_REPAIR_RULES, RepairRule
+from .validation import ExecutiveSummaryValidator, ValidationOutcome
 
 __all__ = [
+    "run_executive_summary_execution",
+    "VoiceRepairPolicy",
+    "RepairRule",
     "DEFAULT_REPAIR_RULES",
     "ExecutiveSummaryRepairEngine",
-    "ExecutiveSummaryValidator",
     "RepairAuditEntry",
     "RepairResult",
-    "RepairRule",
+    "ExecutiveSummaryValidator",
     "ValidationOutcome",
-    "VoiceRepairPolicy",
-    "count_words",
-    "extract_bullets",
     "tokenize_sentences",
+    "extract_bullets",
+    "count_words",
 ]
