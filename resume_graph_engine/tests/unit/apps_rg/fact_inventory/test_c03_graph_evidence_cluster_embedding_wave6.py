@@ -185,6 +185,7 @@ def test_w6_cli_check_is_read_only() -> None:
         check=True,
         capture_output=True,
         text=True,
+        timeout=60,
     )
 
     output = json.loads(result.stdout)

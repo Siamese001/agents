@@ -252,6 +252,7 @@ def test_w4_cli_check_is_deterministic_and_non_mutating() -> None:
         check=True,
         capture_output=True,
         text=True,
+        timeout=60,
     )
 
     output = json.loads(result.stdout)

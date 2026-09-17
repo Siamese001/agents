@@ -31,6 +31,7 @@ def _git_value(repo_root: Path, *args: str) -> str:
         check=True,
         capture_output=True,
         text=True,
+        timeout=60,
     )
     return result.stdout.strip()
 

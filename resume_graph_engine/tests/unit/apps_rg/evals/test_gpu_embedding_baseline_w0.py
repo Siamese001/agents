@@ -148,6 +148,7 @@ def test_standalone_cli_help_needs_no_preconfigured_pythonpath() -> None:
         check=False,
         capture_output=True,
         text=True,
+        timeout=60,
     )
 
     assert result.returncode == 0, result.stderr

@@ -403,11 +403,7 @@ def _gpu_identity(torch: Any, device: str) -> dict[str, Any]:
 def _git_identity(root: Path) -> dict[str, Any]:
     def value(*args: str) -> str:
         return subprocess.run(
-            ["git", *args],
-            cwd=root,
-            check=True,
-            capture_output=True,
-            text=True,
+            ["git", *args], cwd=root, check=True, capture_output=True, text=True, timeout=60
         ).stdout.strip()
 
     return {

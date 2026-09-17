@@ -607,7 +607,7 @@ def load_approved_provider_models(repo_root: Path | str | None = None) -> set[st
 
                 _extract_models(data)
                 continue
-        except Exception:
+        except Exception:  # guardian: allow-silent-swallow -- fallback to regex parser on unparseable YAML/JSON
             pass
 
         for line in text.splitlines():

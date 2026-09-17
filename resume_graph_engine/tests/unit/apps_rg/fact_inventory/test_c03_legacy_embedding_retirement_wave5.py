@@ -65,6 +65,7 @@ def _git_bytes(relative_path: str) -> bytes:
         cwd=ROOT,
         check=True,
         capture_output=True,
+        timeout=60,
     )
     return result.stdout
 
@@ -106,6 +107,7 @@ def test_w5_deletes_exact_w4_inventory_and_no_other_artifacts() -> None:
                 check=True,
                 capture_output=True,
                 text=True,
+                timeout=60,
             ).stdout.strip()
         }
         for record in frozen
@@ -209,6 +211,7 @@ def test_w5_cli_check_is_deterministic_and_non_mutating() -> None:
         check=True,
         capture_output=True,
         text=True,
+        timeout=60,
     )
 
     output = json.loads(result.stdout)

@@ -131,6 +131,7 @@ def _git_value(repo: Path, *args: str) -> str:
             check=False,
             capture_output=True,
             text=True,
+            timeout=60,
         )
     except OSError:
         return ""
@@ -152,6 +153,7 @@ def _repository_identity(repo: Path) -> dict[str, Any]:
                     check=False,
                     capture_output=True,
                     text=True,
+                    timeout=60,
                 ).returncode
                 == 0
             )

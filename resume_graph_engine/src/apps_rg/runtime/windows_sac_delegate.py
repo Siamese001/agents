@@ -90,7 +90,8 @@ def delegate_apps_rg_to_wsl(argv: list[str] | None = None) -> int:
         flush=True,
     )
     proc = subprocess.run(  # guardian: allow-chokepoint-bypass -- Windows SAC workaround delegates to WSL bash; same argv contract as direct run
-        ["wsl", "-e", "bash", "-lc", inner], shell=False
+        ["wsl", "-e", "bash", "-lc", inner], shell=False,
+        timeout=60,
     )
     return int(proc.returncode)
 

@@ -72,7 +72,7 @@ def tune_connection_pragmas(conn: sqlite3.Connection, db_path: str = "") -> None
             conn.execute("PRAGMA synchronous = OFF;")
             conn.execute("PRAGMA temp_store = MEMORY;")
             conn.execute("PRAGMA busy_timeout = 5000;")
-    except Exception:
+    except Exception:  # guardian: allow-silent-swallow -- pragma tuning is best-effort optimization; database remains functional
         pass
 
 

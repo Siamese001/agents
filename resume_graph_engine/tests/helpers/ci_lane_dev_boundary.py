@@ -31,6 +31,7 @@ def run_git_cmd(
         check=False,
         shell=False,
         env=env,
+        timeout=60,
     )
 
 

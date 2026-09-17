@@ -72,7 +72,7 @@ for pdir in prod_dirs:
                 elif isinstance(node, ast.ImportFrom):
                     if node.module and 'bare_pipeline' in node.module:
                         bare_pipeline_importers.append((str(py_file), node.module))
-        except Exception:
+        except Exception:  # guardian: allow-silent-swallow -- skip unparseable or syntax-errored test fixtures
             pass
 
 routing_audit_report = (
