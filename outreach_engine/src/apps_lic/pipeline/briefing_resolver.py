@@ -99,8 +99,24 @@ class SealedBriefingResolution:
 class GovernedBriefingResolver:
     """Resolves briefing context for outreach through governed multi-path resolution."""
 
+    MAX_CACHE_SIZE: int = 128
     _cache: dict[str, dict[str, Any]] = {}
     _lock = threading.Lock()
+
+    @classmethod
+    def _save_to_cache(cls, key: str, value: dict[str, Any]) -> None:
+        """Stores entry in cache with bounded FIFO eviction."""
+        with cls._lock:
+            if len(cls._cache) >= cls.MAX_CACHE_SIZE:
+                oldest_key = next(iter(cls._cache))
+                cls._cache.pop(oldest_key, None)
+            cls._cache[key] = value
+
+    @classmethod
+    def clear_cache(cls) -> None:
+        """Clears in-memory resolution cache for testing or memory isolation."""
+        with cls._lock:
+            cls._cache.clear()
 
     @classmethod
     def resolve(
@@ -129,14 +145,14 @@ class GovernedBriefingResolver:
 
             # Check if manual_brief_or_fixture is a local file path to capture mtime
             mtime = 0.0
-            if len(raw_content) < 500:
-                p = Path(raw_content)
-                if p.is_file():
-                    try:
+            if len(raw_content) < 300 and "\n" not in raw_content and "\0" not in raw_content:
+                try:
+                    p = Path(raw_content)
+                    if p.is_file():
                         mtime = p.stat().st_mtime
                         raw_content = p.read_text(encoding="utf-8").strip()
-                    except OSError:
-                        pass
+                except (OSError, ValueError):
+                    pass
 
             manual_cache_key = hashlib.sha256(
                 f"MANUAL::{company_name}::{target_role}::{mtime}::{raw_content}::{priorities}".encode("utf-8")
@@ -176,14 +192,16 @@ class GovernedBriefingResolver:
                     "signals_flagged": list(receipt.injection_signals_detected),
                 },
             )
-            with cls._lock:
-                cls._cache[manual_cache_key] = {
+            cls._save_to_cache(
+                manual_cache_key,
+                {
                     "briefing_text": clean_brief,
                     "digest": receipt.clean_digest,
                     "evidence_count": len(priorities) or 1,
                     "airlock_sanitized": receipt.sanitized,
                     "metadata": res.metadata,
-                }
+                },
+            )
             return res
 
         # Compute cache key
@@ -236,8 +254,9 @@ class GovernedBriefingResolver:
                     dispatch_res.briefing_text, trace_id=trace_id
                 )
                 priorities = dispatch_res.strategic_priorities or ()
-                with cls._lock:
-                    cls._cache[cache_key] = {
+                cls._save_to_cache(
+                    cache_key,
+                    {
                         "briefing_text": clean_brief,
                         "digest": receipt.clean_digest,
                         "evidence_count": dispatch_res.research_evidence_count,
@@ -245,7 +264,8 @@ class GovernedBriefingResolver:
                         "strategic_priorities": priorities,
                         "research_artifact_dir": dispatch_res.research_artifact_dir,
                         "briefing_artifact_path": dispatch_res.research_briefing_path,
-                    }
+                    },
+                )
                 return SealedBriefingResolution(
                     briefing_text=clean_brief,
                     digest=receipt.clean_digest,

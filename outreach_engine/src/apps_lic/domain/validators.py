@@ -141,13 +141,50 @@ class QuestionEndingValidator:
             return True, None
 
         # Check if the line before a signature block ends with '?'
-        for line in reversed(lines):
-            lower = line.lower()
-            if any(tok in lower for tok in ("linkedin.com", "github.com", "+1-", "officer", "director", "partner", "vp", "chief", "ayer")):
-                continue
+        signature_tokens = (
+            "linkedin.com",
+            "github.com",
+            "+1-",
+            "+1 ",
+            "@",
+            "officer",
+            "director",
+            "partner",
+            "vp",
+            "chief",
+            "lead",
+            "architect",
+            "engineer",
+            "regards",
+            "sincerely",
+            "best,",
+            "best regards",
+            "--",
+            "__",
+            "tel:",
+            "phone:",
+            "email:",
+        )
+        # Check if an inquiry ends with '?' and all trailing lines form a signature block
+        for i, line in enumerate(lines):
             if line.endswith("?"):
-                return True, None
-            break
+                trailing = lines[i + 1:]
+                if not trailing:
+                    return True, None
+                is_signature = True
+                for t in trailing:
+                    t_lower = t.lower().strip()
+                    has_sig_token = any(tok in t_lower for tok in signature_tokens)
+                    is_short_name = (
+                        len(t.split()) <= 4
+                        and len(t) <= 40
+                        and not t.endswith((".", "!", ";", "?"))
+                    )
+                    if not (has_sig_token or is_short_name or t.startswith(("--", "—", "-"))):
+                        is_signature = False
+                        break
+                if is_signature:
+                    return True, None
 
         return False, "Message does not conclude with a low-friction question mark."
 

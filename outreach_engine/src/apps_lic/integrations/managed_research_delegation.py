@@ -296,9 +296,18 @@ def dispatch_outreach_research_briefing(
             json.dumps(resp_receipt, indent=2) + "\n", encoding="utf-8"
         )
 
-        if research_result.briefing_artifact_path and Path(research_result.briefing_artifact_path).is_file():
-            delegated_brief_path = c_dir / "delegated_briefing.md"
-            shutil.copyfile(research_result.briefing_artifact_path, delegated_brief_path)
+        if research_result.briefing_artifact_path:
+            try:
+                b_path = Path(research_result.briefing_artifact_path).resolve()
+                if b_path.is_file():
+                    delegated_brief_path = c_dir / "delegated_briefing.md"
+                    shutil.copyfile(b_path, delegated_brief_path)
+            except (OSError, ValueError) as exc:
+                _log.warning(
+                    "Could not copy briefing artifact from %s: %s",
+                    research_result.briefing_artifact_path,
+                    exc,
+                )
 
     lineage = tuple(
         {

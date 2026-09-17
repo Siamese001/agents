@@ -95,7 +95,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
 def _handle_run(args: argparse.Namespace) -> int:
     def log(msg: str) -> None:
-        if not args.json:
+        if not getattr(args, "json", False):
             print(msg)
 
     run_id = f"run_{uuid.uuid4().hex[:8]}"
@@ -190,7 +190,7 @@ def _handle_run(args: argparse.Namespace) -> int:
         artifact_dir=artifact_dir,
     )
 
-    if args.json:
+    if getattr(args, "json", False):
         result_payload = {
             "run_id": run_id,
             "artifact_dir": str(artifact_dir),
@@ -222,7 +222,7 @@ def _handle_run(args: argparse.Namespace) -> int:
             ],
         }
         print(json.dumps(result_payload, indent=2))
-        return 0 if val.is_valid else 1
+        return 0 if (val.is_valid and evaluation.passed) else 1
 
     print("\n" + "=" * 60)
     print(f"OUTREACH DRAFT ({channel.value.upper()} | {persona.value.upper()}):")
@@ -242,7 +242,7 @@ def _handle_run(args: argparse.Namespace) -> int:
         print(f"Violations: {val.violations}")
     if val.warnings:
         print(f"Warnings: {val.warnings}")
-    print(f"Rubric Judge Score: {'PASSED' if evaluation.passed else 'FAILED'}")
+    print(f"Rubric Judge Score: {'PASSED' if evaluation.passed else 'FAILED'} (Composite: {evaluation.composite_score:.2f} [{evaluation.score_band}])")
     print(f"  - Lens 1 (Altitude & Persona): {evaluation.lens1_altitude_score:.2f}")
     print(f"  - Lens 2 (Grounding):          {evaluation.lens2_grounding_score:.2f}")
     print(f"  - Lens 3 (Resonance):          {evaluation.lens3_resonance_score:.2f}")
@@ -259,7 +259,7 @@ def _handle_run(args: argparse.Namespace) -> int:
 
     print(f"\n[outreach_engine] Artifacts sealed at: {artifact_dir}")
 
-    return 0 if val.is_valid else 1
+    return 0 if (val.is_valid and evaluation.passed) else 1
 
 
 def _handle_eval(args: argparse.Namespace) -> int:

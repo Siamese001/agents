@@ -37,6 +37,8 @@ class EvaluationReport:
     lens4_cta_score: float = 1.0
     lens5_anti_spam_score: float = 1.0
     lens6_constraints_score: float = 1.0
+    composite_score: float = 1.0
+    score_band: str = "EXEMPLARY"
     # Backward compatibility fields for legacy callers
     hop1_classifier_score: float = 1.0
     hop2_grounding_score: float = 1.0
@@ -60,6 +62,8 @@ class EvaluationReport:
     def to_dict(self) -> dict[str, Any]:
         return {
             "passed": self.passed,
+            "composite_score": self.composite_score,
+            "score_band": self.score_band,
             "lens1_altitude_score": self.lens1_altitude_score,
             "lens2_grounding_score": self.lens2_grounding_score,
             "lens3_resonance_score": self.lens3_resonance_score,
@@ -131,6 +135,25 @@ class ExecutiveOutreachJudgePanel:
                 pass
         return default
 
+    def get_lens_weight(self, lens_key: str, default: float) -> float:
+        lenses = self._active_rubric.get("lenses", {})
+        lens_spec = lenses.get(lens_key, {})
+        if isinstance(lens_spec, dict) and "weight" in lens_spec:
+            try:
+                return float(lens_spec["weight"])
+            except (ValueError, TypeError):
+                pass
+        return default
+
+    def get_min_composite_score(self, default: float = 0.75) -> float:
+        criteria = self._active_rubric.get("passing_criteria", {})
+        if isinstance(criteria, dict) and "min_composite_score" in criteria:
+            try:
+                return float(criteria["min_composite_score"])
+            except (ValueError, TypeError):
+                pass
+        return default
+
     def get_remediation_hint(self, lens_key: str, default: str) -> str:
         lenses = self._active_rubric.get("lenses", {})
         lens_spec = lenses.get(lens_key, {})
@@ -182,6 +205,18 @@ class ExecutiveOutreachJudgePanel:
         subject_lower = draft.subject.lower()
 
         has_company_ref = company_lower in body_lower or company_lower in subject_lower
+        if not has_company_ref:
+            # Extract brand tokens, stripping common corporate legal suffixes
+            clean_company = re.sub(r"[,.\(\)\'\"\-\/]", " ", company_lower)
+            legal_suffixes = {
+                "inc", "incorporated", "corp", "corporation", "co", "company",
+                "llc", "ltd", "limited", "technologies", "technology", "enterprise",
+                "group", "holdings", "financial", "services", "the", "and"
+            }
+            brand_tokens = [tok for tok in clean_company.split() if tok and tok not in legal_suffixes and len(tok) >= 3]
+            if any(tok in body_lower or tok in subject_lower for tok in brand_tokens):
+                has_company_ref = True
+
         has_priority_ref = False
         for p in opportunity.strategic_priorities:
             tokens = [t.lower() for t in re.findall(r"\b[A-Za-z]{4,}\b", p)]
@@ -252,7 +287,25 @@ class ExecutiveOutreachJudgePanel:
         t_lens5 = self.get_threshold("lens5_anti_spam", 0.70)
         t_lens6 = self.get_threshold("lens6_constraints", 0.70)
 
-        passed = (
+        w_lens1 = self.get_lens_weight("lens1_altitude", 0.15)
+        w_lens2 = self.get_lens_weight("lens2_grounding", 0.25)
+        w_lens3 = self.get_lens_weight("lens3_resonance", 0.20)
+        w_lens4 = self.get_lens_weight("lens4_cta", 0.15)
+        w_lens5 = self.get_lens_weight("lens5_anti_spam", 0.15)
+        w_lens6 = self.get_lens_weight("lens6_constraints", 0.10)
+
+        composite_score = round(
+            lens1_score * w_lens1
+            + lens2_score * w_lens2
+            + lens3_score * w_lens3
+            + lens4_score * w_lens4
+            + lens5_score * w_lens5
+            + lens6_score * w_lens6,
+            4,
+        )
+        min_composite = self.get_min_composite_score(0.75)
+
+        all_lenses_passed = (
             lens1_score >= t_lens1
             and lens2_score >= t_lens2
             and lens3_score >= t_lens3
@@ -260,6 +313,19 @@ class ExecutiveOutreachJudgePanel:
             and lens5_score >= t_lens5
             and lens6_score >= t_lens6
         )
+        passed = all_lenses_passed and (composite_score >= min_composite)
+
+        if not (composite_score >= min_composite):
+            feedback.append(
+                f"Composite Score Failure: {composite_score:.2f} is below minimum threshold {min_composite:.2f}."
+            )
+
+        if composite_score >= 0.85:
+            score_band = "EXEMPLARY"
+        elif composite_score >= 0.70:
+            score_band = "ACCEPTABLE"
+        else:
+            score_band = "FAIL"
 
         hop1 = min(lens1_score, lens6_score)
         hop2 = lens2_score
@@ -274,6 +340,8 @@ class ExecutiveOutreachJudgePanel:
             lens4_cta_score=lens4_score,
             lens5_anti_spam_score=lens5_score,
             lens6_constraints_score=lens6_score,
+            composite_score=composite_score,
+            score_band=score_band,
             hop1_classifier_score=hop1,
             hop2_grounding_score=hop2,
             hop6_alignment_score=hop6,
