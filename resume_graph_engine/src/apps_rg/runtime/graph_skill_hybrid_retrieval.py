@@ -159,6 +159,15 @@ def fuse_dense_bm25(
         for row in fused
     ]
     if metric_bearing_assertion_ids is not None:
+        if not math.isfinite(float(metric_boost)) or float(metric_boost) < 0.0 or float(metric_boost) > 0.20:
+            raise GraphSkillHybridRetrievalError(
+                "metric_boost must be non-negative, finite, and <= 0.20"
+            )
+        invalid_metric_aids = set(metric_bearing_assertion_ids) - assertion_ids
+        if invalid_metric_aids:
+            raise GraphSkillHybridRetrievalError(
+                f"metric_bearing_assertion_ids contains unauthorized IDs: {sorted(invalid_metric_aids)}"
+            )
         boosted = []
         for r in result:
             aid = str(r["assertion_id"])
