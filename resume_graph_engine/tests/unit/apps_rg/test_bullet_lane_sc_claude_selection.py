@@ -316,15 +316,16 @@ def test_sc_parallel_policy_for_competencies_unify_ibm_only(monkeypatch) -> None
     monkeypatch.delenv("APPS_RG_EMPLOYMENT_BULLET_SC_MAX_PARALLEL", raising=False)
 
     assert self_consistency_parallel_enabled("competencies") is True
-    assert self_consistency_max_parallel("competencies", 8) == 1
+    assert self_consistency_max_parallel("competencies", 8) == 2
     assert self_consistency_parallel_enabled("unify_bullets") is True
     assert self_consistency_parallel_enabled("ibm_bullets") is True
-    assert self_consistency_max_parallel("unify_bullets", 4) == 2
+    assert self_consistency_max_parallel("unify_bullets", 4) == 3
     assert self_consistency_max_parallel("ibm_bullets", 2) == 2
 
-    assert self_consistency_parallel_enabled("insurtech_bullets") is False
+    assert self_consistency_parallel_enabled("insurtech_bullets") is True
+    assert self_consistency_parallel_enabled("slalom_bullets") is True
     assert self_consistency_parallel_enabled("ey_bullets") is False
-    assert self_consistency_max_parallel("insurtech_bullets", 2) == 1
+    assert self_consistency_max_parallel("insurtech_bullets", 2) == 2
     assert self_consistency_max_parallel("ey_bullets", 2) == 1
 
 
@@ -341,7 +342,7 @@ def test_employment_bullet_sc_parallel_env_disable_and_cap(monkeypatch) -> None:
     assert self_consistency_max_parallel("ibm_bullets", 4) == 1
 
     monkeypatch.setenv("APPS_RG_EMPLOYMENT_BULLET_SC_MAX_PARALLEL", "not-an-int")
-    assert self_consistency_max_parallel("unify_bullets", 4) == 2
+    assert self_consistency_max_parallel("unify_bullets", 4) == 3
 
 
 def test_unify_bullets_adaptive_sc_stops_after_two_paths_when_selector_passes(tmp_path) -> None:
@@ -1124,7 +1125,6 @@ def test_role_episode_normalization_uses_proof_fact_id_for_out_of_order_ey_rows(
 _LIVE_DUAL_OBJECT_SELECTOR_RESPONSE = """{"score_scale":"0_to_5","score":0.0,"threshold":4.0,"pass":true,"decisive_failure":false,"findings":["bul_ibm_001 best variant is PATH 2/4/5 (Salesforce pipeline analytics, $10M ARR, no unify/runtime vocab, clean outcome)","bul_ibm_002 best variant is PATH 4 (budget dashboards, microservices, cost optimization, no stuffing, clean discipline)","bul_ibm_003 best variant is PATH 4/5 (M&A due diligence, synergy models, CFO-level, integration costs/revenue, grounded)","bul_ibm_004 best variant is PATH 4 (Fortune 500, monolithic to containerized microservices, AWS/Kubernetes, risk/compliance/data, cloud-native governed analytics)","bul_ibm_005 best variant is PATH 4 (IBM-AWS alliance P&L, AI co-sell frameworks, 20% joint revenue, concise, no stuffing)"],"cited_sentence_indexes":[],"remediation_suggestions":[],"dimension_verdicts":{"claim_ledger_grounding":{"pass":true,"severity":"none","codes":["all five bullets grounded in skills-graph facts: Salesforce GTM, budget dashboards, M&A due diligence, legacy modernization, IBM-AWS alliance"]},"bullet_line_discipline":{"pass":true,"severity":"none","codes":["all selected variants are single-line, action-verb-led, outcome-terminated, no run-on constructions"]},"jd_briefing_targeting_discipline":{"pass":true,"severity":"none","codes":["JD phrases not copied verbatim; bullets emphasize financial-services transformation, cloud-native, AI co-sell, M&A — aligned to AIG targeting"]},"keyword_discipline_without_stuffing":{"pass":true,"severity":"none","codes":["Salesforce, microservices, Kubernetes, AWS, containerized, ARR, P&L — relevant and not over-stacked"]},"cross_bullet_outcome_diversity":{"pass":true,"severity":"none","codes":["GTM revenue, cost optimization, M&A investment thesis, cloud modernization, alliance P&L — five distinct outcome types"]},"foundation_enterprise_credibility":{"pass":true,"severity":"none","codes":["Fortune 500 financial institutions, CFO-level buyers, IBM-AWS alliance, enterprise-scope M&A — credible enterprise signals"]},"no_unify_runtime_vocabulary":{"pass":true,"severity":"none","codes":["no unify, runtime, agentic, or disallowed vocabulary present in any selected variant"]}}}
 
 {"selections":[{"bullet_id":"bul_ibm_001","path_index":4,"score":0.84,"passes":true,"rationale":"PATH 4 is clean and concise: 'Architected Salesforce-driven pipeline analytics to systematically prioritize high-potential enterprise deals, refining GTM strategies across the financial-services portfolio and generating $10M in new annual recurring revenue.' Strong claim_ledger_grounding ($10M ARR, Salesforce), no stuffing, no unify/runtime vocab, single tight line, outcome-terminated. Scores PATH 2 and 5 equally but PATH 4 hyphenates financial-services consistently and avoids the slightly weaker 'refining GTM strategies' placement of PATH 5."},{"bullet_id":"bul_ibm_002","path_index":4,"score":0.83,"passes":true,"rationale":"PATH 4: 'Deployed transparent budget dashboards and microservices architecture for senior finance teams to surface underused resource pools, enabling data-driven reallocation decisions and measurable cost optimization across enterprise cloud investments.' Best balance of claim grounding (dashboards, microservices, cost optimization), no keyword stuffing, clean line discipline, CFO/finance stakeholder credibility, and no disallowed vocabulary."},{"bullet_id":"bul_ibm_003","path_index":4,"score":0.85,"passes":true,"rationale":"PATH 4: 'Led enterprise-scope M&A technology due diligence and built synergy models quantifying integration costs and revenue opportunities, equipping CFO-level buyers with executive value propositions to support go-to-market investment decisions.' Tightest construction across paths — dual outcomes (costs + revenue), CFO-level credibility, no JD phrase copying, no stuffing, grounded in skills-graph M&A due diligence fact."},{"bullet_id":"bul_ibm_004","path_index":4,"score":0.86,"passes":true,"rationale":"PATH 4: 'Directed large-scale legacy modernization programs for Fortune 500 financial institutions, replacing monolithic risk calculation engines with containerized microservices on AWS and Kubernetes to enable cloud-native governed analytics across risk, compliance, and data domains.' Strongest variant — Fortune 500 credibility, specific technical transformation (monolithic→containerized), named platforms (AWS, Kubernetes), governed analytics outcome, no unify/runtime vocab, no stuffing."},{"bullet_id":"bul_ibm_005","path_index":4,"score":0.84,"passes":true,"rationale":"PATH 4: 'Owned P&L accountability for the IBM-AWS financial services alliance and designed AI-driven co-sell frameworks that expanded joint revenue by 20% across cloud transformation pursuits.' Most concise variant — P&L accountability, named alliance (IBM-AWS), quantified outcome (20%), AI co-sell grounded in skills graph, no disallowed vocabulary, no stuffing, clean line discipline."}],"pool_summary":{"paths_scored":7,"final_bullet_count":5,"min_score_threshold":0.72,"selector":"anthropic_claude"}}"""
-
 
 def test_parse_selections_recovers_selections_from_live_dual_object_response() -> None:
     """The exact live raw response (rubric object + selections object) must parse."""
