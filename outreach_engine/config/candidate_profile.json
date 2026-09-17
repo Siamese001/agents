@@ -1,0 +1,50 @@
+{
+  "schema_version": "outreach_engine::candidate_profile::v1",
+  "candidate_id": "cand_amit_ayer",
+  "full_name": "Amit Ayer",
+  "target_title": "Chief Agentic AI Officer",
+  "current_title": "Chief Agentic AI Officer",
+  "email": "amitayer1@gmail.com",
+  "phone": "+1-917-239-3830",
+  "linkedin_url": "www.linkedin.com/in/amitayer1/",
+  "github_url": "www.github.com/Siamese001/Agentic-Workflow",
+  "location": "Boca Raton, FL",
+  "executive_summary": "Enterprise technology executive specializing in modern distributed platforms, governed agentic architectures, and high-scale production systems.",
+  "key_competencies": [
+    "Agentic Systems",
+    "Enterprise AI Architecture",
+    "Human-in-the-loop Governance",
+    "High-Scale Distributed Systems",
+    "Executive Technology Leadership"
+  ],
+  "verified_facts": [
+    {
+      "fact_id": "fact_01",
+      "category": "architecture",
+      "statement": "architected layered agentic systems (L0 routing through L6 observability) with AST dependency governance",
+      "metric": "L0-L6 AST",
+      "source_reference": "canonical_architecture_profile"
+    },
+    {
+      "fact_id": "fact_02",
+      "category": "delivery",
+      "statement": "delivered multi-MCP enterprise agentic tooling for frontline banking care operations",
+      "metric": "Enterprise Care Centers",
+      "source_reference": "canonical_care_profile"
+    },
+    {
+      "fact_id": "fact_scale_01",
+      "category": "scale",
+      "statement": "scaled distributed enterprise platform processing $4.2B annual volume with 99.995% reliability",
+      "metric": "$4.2B / 99.995%",
+      "source_reference": "canonical_platform_profile"
+    },
+    {
+      "fact_id": "fact_efficiency_04",
+      "category": "efficiency",
+      "statement": "reduced infrastructure operating expenditures by 38% through governed platform automation",
+      "metric": "38%",
+      "source_reference": "canonical_efficiency_profile"
+    }
+  ]
+}

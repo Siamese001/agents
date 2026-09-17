@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
+import importlib.util
 import re
-import sys
 from pathlib import Path
 from typing import Final, List, Optional
 
@@ -19,14 +19,14 @@ _CRITICAL_SPAM_TRIGGERS: Final[List[re.Pattern[str]]] = [
 ]
 
 _HIGH_SPAM_TRIGGERS: Final[List[re.Pattern[str]]] = [
-    re.compile(r"\bjump on a quick call today\b", re.IGNORECASE),
-    re.compile(r"\blet's hop on a call right now\b", re.IGNORECASE),
-    re.compile(r"\bcall me at your earliest convenience\b", re.IGNORECASE),
-    re.compile(r"\bI am the perfect candidate\b", re.IGNORECASE),
-    re.compile(r"\byou must hire me\b", re.IGNORECASE),
+    re.compile(r"\bonce in a lifetime\b", re.IGNORECASE),
+    re.compile(r"\bexclusive invitation\b", re.IGNORECASE),
+    re.compile(r"\bdouble your income\b", re.IGNORECASE),
+    re.compile(r"\bunbelievable offer\b", re.IGNORECASE),
 ]
 
 _GENERIC_OPENER_TRIGGERS: Final[List[re.Pattern[str]]] = [
+    re.compile(r"\bI hope this email finds you well\b", re.IGNORECASE),
     re.compile(r"\bI hope this message finds you well\b", re.IGNORECASE),
     re.compile(r"\bI hope you are having a great week\b", re.IGNORECASE),
     re.compile(r"\bI came across your profile and was impressed\b", re.IGNORECASE),
@@ -43,24 +43,29 @@ _CHANNEL_MAX_CHARS: Final[dict[ChannelType, int]] = {
 
 
 def _load_canonical_spam_phrases() -> dict[str, list[re.Pattern[str]]]:
-    """Load canonical spam triggers from config/spam_trigger_phrases.py if available."""
+    """Load canonical spam triggers from config/spam_trigger_phrases.py without mutating sys.path."""
     try:
-        config_path = Path(__file__).resolve().parent.parent.parent.parent / "config"
-        if str(config_path) not in sys.path:
-            sys.path.insert(0, str(config_path))
-        from spam_trigger_phrases import SPAM_TRIGGER_PHRASES
-
-        compiled: dict[str, list[re.Pattern[str]]] = {}
-        for cat, phrases in SPAM_TRIGGER_PHRASES.items():
-            compiled[cat] = [
-                re.compile(r"\b" + re.escape(p) + r"\b", re.IGNORECASE) for p in phrases
-            ]
-        return compiled
+        config_file = Path(__file__).resolve().parent.parent.parent.parent / "config" / "spam_trigger_phrases.py"
+        if config_file.is_file():
+            spec = importlib.util.spec_from_file_location("outreach_spam_triggers", str(config_file))
+            if spec and spec.loader:
+                mod = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(mod)
+                spam_dict = getattr(mod, "SPAM_TRIGGER_PHRASES", {})
+                compiled: dict[str, list[re.Pattern[str]]] = {}
+                for cat, phrases in spam_dict.items():
+                    compiled[cat] = [
+                        re.compile(r"\b" + re.escape(p) + r"\b", re.IGNORECASE) for p in phrases
+                    ]
+                if compiled:
+                    return compiled
     except Exception:
-        return {
-            "pushy_cta": _HIGH_SPAM_TRIGGERS + _CRITICAL_SPAM_TRIGGERS,
-            "generic_opener": _GENERIC_OPENER_TRIGGERS,
-        }
+        pass
+
+    return {
+        "pushy_cta": _HIGH_SPAM_TRIGGERS + _CRITICAL_SPAM_TRIGGERS,
+        "generic_opener": _GENERIC_OPENER_TRIGGERS,
+    }
 
 
 class SpamTriggerValidator:

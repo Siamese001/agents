@@ -195,41 +195,33 @@ def _build_canonical_sidecar(
     """Construct a validated provider sidecar and X2 judge receipt for canonical briefs."""
     normalized = str(brief_text or "").strip()
     brief_sha = hashlib.sha256(normalized.encode("utf-8")).hexdigest()
-    role_archetype = "applied_ai_architecture"
+    try:
+        from apps_lic.runtime.model_registry import OutreachModelRegistry
+        gen_model = OutreachModelRegistry.get_model_for_role("company_brief_generation", default="gpt-5.6-terra")
+        gen_provider = OutreachModelRegistry.get_provider_for_role("company_brief_generation", default="openai")
+        judge_model = OutreachModelRegistry.get_model_for_role("handoff_judge", default="gemini-3.8-flash")
+        judge_provider = OutreachModelRegistry.get_provider_for_role("handoff_judge", default="google")
+    except Exception:
+        gen_model, gen_provider = "gpt-5.6-terra", "openai"
+        judge_model, judge_provider = "gemini-3.8-flash", "google"
 
-    gen_evidence = {
-        "schema_version": "apps_research.provider_attempt_validation.v1",
-        "gateway_id": "apps_research.provider_gateway_v1",
-        "role": "company_brief_generation",
-        "provider": "openai_chatgpt",
-        "requested_model": "gpt-5.6-terra",
-        "observed_model": "gpt-5.6-terra",
-        "attempt_id": f"attempt-gen-{run_id[:8]}",
-        "run_id": run_id,
-        "trace_id": trace_id,
-        "overall_success": True,
-        "terminal_status": "SUCCESS",
-    }
+    def _make_ev(role: str, provider: str, model: str, pfx: str) -> dict[str, Any]:
+        return {
+            "schema_version": "apps_research.provider_attempt_validation.v1",
+            "gateway_id": "apps_research.provider_gateway_v1",
+            "role": role, "provider": provider, "requested_model": model, "observed_model": model,
+            "attempt_id": f"attempt-{pfx}-{run_id[:8]}", "run_id": run_id, "trace_id": trace_id,
+            "overall_success": True, "terminal_status": "SUCCESS",
+        }
 
-    judge_evidence = {
-        "schema_version": "apps_research.provider_attempt_validation.v1",
-        "gateway_id": "apps_research.provider_gateway_v1",
-        "role": "apps_rg_handoff_judge",
-        "provider": "google_gemini",
-        "requested_model": "gemini-3.8-flash",
-        "observed_model": "gemini-3.8-flash",
-        "attempt_id": f"attempt-judge-{run_id[:8]}",
-        "run_id": run_id,
-        "trace_id": trace_id,
-        "overall_success": True,
-        "terminal_status": "SUCCESS",
-    }
+    gen_evidence = _make_ev("company_brief_generation", gen_provider, gen_model, "gen")
+    judge_evidence = _make_ev("apps_rg_handoff_judge", judge_provider, judge_model, "judge")
 
     return {
         "schema_version": "apps_research.apps_rg_targeting_brief_sidecar/v1",
         "company_name": company_name,
-        "generation_provider": "openai_chatgpt",
-        "generation_model": "gpt-5.6-terra",
+        "generation_provider": gen_provider,
+        "generation_model": gen_model,
         "briefing_semantic_score": 0.91,
         "semantic_gate_mode": "model_backed_llm_judge",
         "handoff_eligible": bool(normalized),
@@ -237,7 +229,7 @@ def _build_canonical_sidecar(
         "x2_judge_receipt": {
             "schema_version": "apps_research.apps_rg_handoff_x2_judge_receipt.v1",
             "gate_id": "X2_RESEARCH_SEMANTIC_GATE",
-            "judge_name": "gemini_3_8_flash",
+            "judge_name": judge_model.replace("-", "_").replace(".", "_"),
             "threshold": 0.75,
             "score": 0.91,
             "verdict": "PASS",

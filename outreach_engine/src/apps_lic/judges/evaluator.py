@@ -86,6 +86,7 @@ class ExecutiveOutreachJudgePanel:
         else:
             self.rubrics_dir = Path(rubrics_dir)
         self._rubrics = self._load_rubrics()
+        self._active_rubric = self._resolve_active_rubric()
         self._spam_validator = SpamTriggerValidator()
         self._length_validator = ChannelLengthValidator()
         self._question_validator = QuestionEndingValidator()
@@ -106,6 +107,36 @@ class ExecutiveOutreachJudgePanel:
             except Exception:
                 pass
         return rubrics
+
+    def _resolve_active_rubric(self) -> dict[str, Any]:
+        if "executive_outreach_rubric_v3" in self._rubrics:
+            return self._rubrics["executive_outreach_rubric_v3"]
+        v3_file = self.rubrics_dir / "executive_outreach_rubric_v3.yaml"
+        if v3_file.is_file():
+            try:
+                data = yaml.safe_load(v3_file.read_text(encoding="utf-8"))
+                if isinstance(data, dict):
+                    return data
+            except Exception:
+                pass
+        return {}
+
+    def get_threshold(self, lens_key: str, default: float) -> float:
+        lenses = self._active_rubric.get("lenses", {})
+        lens_spec = lenses.get(lens_key, {})
+        if isinstance(lens_spec, dict) and "threshold" in lens_spec:
+            try:
+                return float(lens_spec["threshold"])
+            except (ValueError, TypeError):
+                pass
+        return default
+
+    def get_remediation_hint(self, lens_key: str, default: str) -> str:
+        lenses = self._active_rubric.get("lenses", {})
+        lens_spec = lenses.get(lens_key, {})
+        if isinstance(lens_spec, dict) and "remediation_hint" in lens_spec:
+            return str(lens_spec["remediation_hint"])
+        return default
 
     def evaluate(
         self,
@@ -214,13 +245,20 @@ class ExecutiveOutreachJudgePanel:
             feedback.append(f"Lens 6 (Constraints) Failure: {link_err}")
             hints.append("Use plain-text URLs instead of markdown link syntax.")
 
+        t_lens1 = self.get_threshold("lens1_altitude", 0.70)
+        t_lens2 = self.get_threshold("lens2_grounding", 0.99)
+        t_lens3 = self.get_threshold("lens3_resonance", 0.70)
+        t_lens4 = self.get_threshold("lens4_cta", 0.70)
+        t_lens5 = self.get_threshold("lens5_anti_spam", 0.70)
+        t_lens6 = self.get_threshold("lens6_constraints", 0.70)
+
         passed = (
-            lens1_score >= 0.70
-            and lens2_score >= 0.99
-            and lens3_score >= 0.70
-            and lens4_score >= 0.70
-            and lens5_score >= 0.70
-            and lens6_score >= 0.70
+            lens1_score >= t_lens1
+            and lens2_score >= t_lens2
+            and lens3_score >= t_lens3
+            and lens4_score >= t_lens4
+            and lens5_score >= t_lens5
+            and lens6_score >= t_lens6
         )
 
         hop1 = min(lens1_score, lens6_score)

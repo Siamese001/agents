@@ -8,6 +8,7 @@ from typing import Any
 
 from apps_lic.domain.models import (
     CandidateProfile,
+    CandidateProfileLoader,
     ChannelType,
     RecipientClass,
     RelationshipDistance,
@@ -48,11 +49,11 @@ def run_canonical_apps_lic_spine(
     else:
         channel = ChannelType.LINKEDIN_INMAIL
 
-    candidate = CandidateProfile(
-        candidate_id=str(raw_ingress.get("candidate_id") or "cand_live"),
-        full_name="Amit Ayer",
-        target_title=str(lead.get("role_context") or "Engineering Leader"),
-        executive_summary="Enterprise technology executive specializing in modern distributed platforms and governed agentic architectures.",
+    candidate = CandidateProfileLoader.load_default(
+        overrides={
+            "candidate_id": str(raw_ingress.get("candidate_id") or "cand_live"),
+            "target_title": str(lead.get("role_context") or "Engineering Leader"),
+        }
     )
     opportunity = TargetOpportunity(
         opportunity_id=str(raw_ingress.get("opportunity_id") or "opp_live"),
