@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from apps_research.config.hop_pipeline import REGISTRY
 from apps_research.reasoning.ResearchHopOrchestrator import ResearchHopOrchestrator
-from apps_shared.orchestration import HopRunRecord, StageStatus
+from apps_research.orchestration import HopRunRecord, StageStatus
 
 
 def test_registry_has_three_stages() -> None:

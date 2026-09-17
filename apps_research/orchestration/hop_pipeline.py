@@ -1,6 +1,6 @@
-"""HOP pipeline substrate — shared inner-DAG executor for apps_*.
+"""HOP pipeline substrate — inner-DAG executor for apps_research.
 
-Standalone implementation for apps_rg_v2 without agentic_core dependencies.
+Self-contained orchestration engine for multi-stage research workflows.
 """
 
 from __future__ import annotations
@@ -72,6 +72,9 @@ class HopRegistry:
         return self
 
     def stages(self) -> list[HopStageSpec]:
+        return list(self._stages)
+
+    def ordered(self) -> list[HopStageSpec]:
         return list(self._stages)
 
 

@@ -1,4 +1,4 @@
-"""Token-aware chunker with overlap."""
+"""Token-aware chunker with overlap for apps_research."""
 
 from __future__ import annotations
 

@@ -72,7 +72,7 @@ def ingest(path: Path, chunk_tokens: int = 512, overlap_tokens: int = 50) -> lis
     else:
         raise ValueError(f"unsupported reference-doc extension: {suffix}")
 
-    from apps_shared.chunking import chunk_text
+    from apps_research.utils.chunking import chunk_text
 
     pieces = chunk_text(raw, chunk_tokens=chunk_tokens, overlap_tokens=overlap_tokens)
     return [

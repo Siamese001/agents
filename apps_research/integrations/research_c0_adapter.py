@@ -278,7 +278,7 @@ class ResearchC0Adapter:
     ) -> list[dict[str, Any]]:
         """Delegate to apps_rg C0 engine; degrade gracefully on failure."""
         try:
-            from apps_shared.integrations.governed_app_runner import GovernedAppRunner  # noqa: PLC0415
+            from apps_research.integrations.governed_app_runner import GovernedAppRunner  # noqa: PLC0415
             runner = GovernedAppRunner(collection=self._collection)
             chunks: list[dict[str, Any]] = []
             for plan in query_plans:

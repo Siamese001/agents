@@ -1,10 +1,4 @@
-"""Shared governed-app runner — standalone reusable L1 L0 C0 L2 L5+L6 pipeline base.
-
-Standalone implementation for apps_rg_v2 without agentic_core dependencies.
-All governed apps subclass GovernedAppRunner and configure via class
-attributes (APP_NAME, CAPABILITY_TOKEN, ROUTING_TARGET, ROUTING_KEYWORDS)
-plus constructor args (collection).
-"""
+"""Governed app runner — L1 L0 C0 L2 L5+L6 pipeline base for apps_research."""
 
 from __future__ import annotations
 
@@ -50,11 +44,7 @@ class _RouteOutput:
 
 @dataclass(frozen=True)
 class GovernedAppRunRecord:
-    """Sealed record of one governed app E2E pipeline run.
-
-    App-specific runners translate this into their own result types before
-    returning to callers (see GovernedResearchRun).
-    """
+    """Sealed record of one governed app E2E pipeline run."""
 
     run_id: str
     app_name: str
@@ -103,7 +93,6 @@ def build_app_record(
         if hasattr(core, mapped_name):
             kwargs[f.name] = getattr(core, mapped_name)
             continue
-        # Field has default value or default_factory
         if f.default is not dataclasses.MISSING:
             kwargs[f.name] = f.default
         elif f.default_factory is not dataclasses.MISSING:
@@ -113,12 +102,7 @@ def build_app_record(
 
 
 class GovernedAppRunner:
-    """Shared base for the governed-app L1 L0 C0 L2 L5+L6 pipeline.
-
-    Subclasses declare their app identity via class attributes and call
-    ``run_governed_core()`` from their app-specific ``run_governed_e2e()``
-    method to execute the common governed substrate.
-    """
+    """Governed pipeline runner for apps_research."""
 
     APP_NAME: str = ""
     CAPABILITY_TOKEN: str = ""

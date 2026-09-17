@@ -10,9 +10,21 @@ uniformly with other ``apps_*`` surfaces.
 
 from __future__ import annotations
 
+from typing import Optional
 from pydantic import BaseModel, Field
 
-from apps_shared.config.prompt_reception_spec import PromptReceptionSpec
+
+class PromptReceptionSpec:
+    """Prompt-reception AgentSpec fields."""
+
+    adapter_version: str = Field(
+        default="v2",
+        description="Prompt adapter version to use for this app",
+    )
+    exemplar_task_class: Optional[str] = Field(
+        default=None,
+        description="Task class name for exemplar retrieval (E0), or None if ineligible",
+    )
 
 
 class RgDomainContractSpec(BaseModel):

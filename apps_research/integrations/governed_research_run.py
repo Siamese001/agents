@@ -28,7 +28,7 @@ import uuid
 from dataclasses import dataclass
 from typing import Any
 
-from apps_shared.integrations.governed_app_runner import (
+from apps_research.integrations.governed_app_runner import (
     GovernedAppRunner,
     GovernedAppRunRecord,
     build_app_record,

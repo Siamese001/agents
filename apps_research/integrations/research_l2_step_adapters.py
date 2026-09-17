@@ -495,7 +495,7 @@ class E5ExitAdapter:
             _log.warning("E5: FEC validation failed (%s); invoking Exit with incomplete FEC", exc)
 
         try:
-            from apps_shared.cert import maybe_invoke_exit_eval  # noqa: PLC0415
+            from apps_research.cert import maybe_invoke_exit_eval  # noqa: PLC0415
             synthesis_text = ""
             synthesis_provider = "stub"
             if isinstance(output, dict):

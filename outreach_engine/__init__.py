@@ -16,13 +16,9 @@ _REPO_ROOT = _PKG_ROOT.parent
 if str(_SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(_SRC_ROOT))
 
-# Ensure repo root and apps_shared (under resume_graph_engine/src) are discoverable
+# Ensure repo root is discoverable
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
-
-_SHARED_SRC = _REPO_ROOT / "resume_graph_engine" / "src"
-if _SHARED_SRC.is_dir() and str(_SHARED_SRC) not in sys.path:
-    sys.path.insert(0, str(_SHARED_SRC))
 
 # Re-export canonical domain and pipeline models
 from apps_lic.domain.models import (
