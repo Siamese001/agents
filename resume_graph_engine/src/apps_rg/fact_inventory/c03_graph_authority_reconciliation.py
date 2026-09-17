@@ -16,27 +16,27 @@ RECONCILIATION_VERSION = "apps_rg.c03_graph_authority_reconciliation.v1"
 # catalog. They classify graph structure only; they do not create claim proof.
 C03_DOMAIN_TAXONOMY: dict[str, tuple[str, str]] = {
     "domain_agentic_runtime_governance": (
-        "track_genai_agentic",
+        "TRACK_GENAI_AGENTIC",
         "epoch_agentic_ai_runtime_architecture",
     ),
     "domain_graph_retrieval_evidence": (
-        "track_genai_agentic",
+        "TRACK_GENAI_AGENTIC",
         "epoch_agentic_ai_runtime_architecture",
     ),
     "domain_ai_platform_engineering": (
-        "track_data_tech_cloud_ml",
+        "TRACK_DATA_TECH_CLOUD_ML",
         "epoch_cloud_data_platform_engineering",
     ),
     "domain_regulated_ai_controls": (
-        "track_actuarial_risk_derivatives",
+        "TRACK_ACTUARIAL_RISK_DERIVATIVES",
         "epoch_enterprise_risk_governance",
     ),
     "domain_partner_gtm_commercialization": (
-        "track_data_tech_cloud_ml",
+        "TRACK_DATA_TECH_CLOUD_ML",
         "epoch_partner_gtm_revenue_leadership",
     ),
     "domain_enterprise_delivery_operating_model": (
-        "track_data_tech_cloud_ml",
+        "TRACK_DATA_TECH_CLOUD_ML",
         "epoch_ai_platform_commercialization",
     ),
 }
@@ -94,7 +94,7 @@ def _domain_taxonomy(
     for node in nodes:
         domain_id = str(node.get("node_id") or "").strip()
         track = str(node.get("career_track") or "").strip()
-        if domain_id in taxonomy and track and taxonomy[domain_id][0] != track:
+        if domain_id in taxonomy and track and taxonomy[domain_id][0].upper() != track.upper():
             raise GraphAuthorityReconciliationError(
                 f"catalog track drift for {domain_id}: {track}"
             )

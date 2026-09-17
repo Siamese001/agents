@@ -149,31 +149,29 @@ def _extract_metrics(texts: Iterable[str]) -> list[str]:
 
 
 def _embedding_text(semantic_card: Mapping[str, Any]) -> str:
-    cleaned_desc = _clean_search_text(str(semantic_card.get("description") or ""))
-    cleaned_summaries = [
-        _clean_search_text(s) for s in semantic_card.get("evidence_summaries") or []
+    parts = [
+        f"[Capability] {semantic_card['capability']}",
     ]
-    cleaned_summaries = [s for s in cleaned_summaries if s]
-
-    fields = [
-        f"Skill: {semantic_card['label']}",
-        f"Capability: {semantic_card['capability']}",
-        f"Description: {cleaned_desc}",
-        f"Allowed phrases: {'; '.join(semantic_card.get('allowed_phrases') or [])}",
-    ]
-    metrics = semantic_card.get("quantified_metrics")
+    raw_desc = str(semantic_card.get("description") or "").strip()
+    desc = _clean_search_text(raw_desc) if raw_desc else ""
+    if desc:
+        parts.append(f"[Description] {desc}")
+    phrases = semantic_card.get("allowed_phrases") or []
+    if phrases:
+        parts.append(f"[Keywords] {'; '.join(phrases)}")
+    pillar = str(semantic_card.get("pillar") or "").strip()
+    domain = str(semantic_card.get("domain_id") or "").strip()
+    if pillar or domain:
+        parts.append(f"[Domain] {pillar} / {domain}".strip(" /"))
+    metrics = semantic_card.get("metric_summaries") or semantic_card.get("quantified_metrics") or []
     if metrics:
-        fields.append(f"Metrics: {'; '.join(metrics)}")
-    fields.extend(
-        [
-            f"Pillar: {semantic_card['pillar']}",
-            f"Domain: {semantic_card['domain_id']}",
-            f"Career epoch: {semantic_card['career_epoch']}",
-            f"Career track: {semantic_card['career_track_id']}",
-            f"Evidence: {'; '.join(cleaned_summaries)}",
-        ]
-    )
-    return "\n".join(fields)
+        parts.append(f"[Metrics] {'; '.join(metrics)}")
+    evidence = semantic_card.get("evidence_summaries") or []
+    cleaned_ev = [_clean_search_text(s) for s in evidence if s]
+    cleaned_ev = [s for s in cleaned_ev if s]
+    if cleaned_ev:
+        parts.append(f"[Evidence] {'; '.join(cleaned_ev)}")
+    return " | ".join(parts)
 
 
 def build_skill_assertion_corpus(
@@ -257,6 +255,7 @@ def build_skill_assertion_corpus(
             "career_track_id": str(row.get("career_track_id") or "").strip(),
             "evidence_summaries": summaries_set,
             "quantified_metrics": metrics,
+            "metric_summaries": _strings(row.get("linked_metric_outcome_ids")),
         }
         allowed_sections = _strings(row.get("allowed_sections"))
         authority_envelope = {

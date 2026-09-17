@@ -517,8 +517,8 @@
       "source_w2_marker_sha256": "37b38a2dbb9d0dbbaca59e7cb1c318fad89cd405eea18afc49639f246da4cd3a",
       "current_edge_count": 2316,
       "current_graph_edges_sha256": "360eea5689c347f13a73b250f832548ecd6b23c00a52da797ad4175787e99a74",
-      "current_graph_nodes_sha256": "b9bcb945706e2973ef4ce30a157fbfd3885fe1163f32d5c0832c6b0aed02a2ec",
-      "current_skill_rows_sha256": "8f23526a32a4c02c2a7b37223fe43190fe2f0c298f52229a41d8984df6325234",
+      "current_graph_nodes_sha256": "10725cf41cb2611a0f96c87bd521b6dc5910afb82db4e07108936b9e77b3abc7",
+      "current_skill_rows_sha256": "26a7be233e1a6e1bee4f289e3906c93a64320b699075017f6f4ffa5c192bc38d",
       "retired_edge_count": 122,
       "retired_edge_reason_counts": {
         "EXTERNAL_ELIGIBLE_EDGE_CONFLICTS_WITH_INELIGIBLE_ROW": 24,
@@ -11375,7 +11375,7 @@
       "node_type": "capability_domain",
       "label": "Agentic runtime governance",
       "hardening_wave": "C03_CLUSTER_EMBEDDING_W1",
-      "career_track": "track_genai_agentic",
+      "career_track": "TRACK_GENAI_AGENTIC",
       "description": "Defines the Agentic runtime governance capability boundary for Agent trace observability, Agentic policy gate design, Agentic runtime orchestration, metric-heterogeneous graph evidence selection, and 2 more; membership is limited to registered capability-domain edges.",
       "support_level": "INTERNAL_ONLY",
       "visibility_rule": "never_external",
@@ -11400,7 +11400,7 @@
       "node_type": "capability_domain",
       "label": "Graph retrieval and evidence binding",
       "hardening_wave": "C03_CLUSTER_EMBEDDING_W1",
-      "career_track": "track_genai_agentic",
+      "career_track": "TRACK_GENAI_AGENTIC",
       "description": "Defines the Graph retrieval and evidence binding capability boundary for Evidence binding provenance, Graph retrieval traversal design, Retrieval quality guardrails; membership is limited to registered capability-domain edges.",
       "support_level": "INTERNAL_ONLY",
       "visibility_rule": "never_external",
@@ -11425,7 +11425,7 @@
       "node_type": "capability_domain",
       "label": "AI platform engineering",
       "hardening_wave": "C03_CLUSTER_EMBEDDING_W1",
-      "career_track": "track_data_tech_cloud_ml",
+      "career_track": "TRACK_DATA_TECH_CLOUD_ML",
       "description": "Defines the AI platform engineering capability boundary for Data platform lineage architecture, LLM platform latency engineering, MLOps release governance; membership is limited to registered capability-domain edges.",
       "support_level": "INTERNAL_ONLY",
       "visibility_rule": "never_external",
@@ -11450,7 +11450,7 @@
       "node_type": "capability_domain",
       "label": "Regulated AI controls",
       "hardening_wave": "C03_CLUSTER_EMBEDDING_W1",
-      "career_track": "track_actuarial_risk_derivatives",
+      "career_track": "TRACK_ACTUARIAL_RISK_DERIVATIVES",
       "description": "Defines the Regulated AI controls capability boundary for Actuarial AI risk translation, Compliance audit readiness, Model risk control design; membership is limited to registered capability-domain edges.",
       "support_level": "INTERNAL_ONLY",
       "visibility_rule": "never_external",
@@ -11475,7 +11475,7 @@
       "node_type": "capability_domain",
       "label": "Partner GTM commercialization",
       "hardening_wave": "C03_CLUSTER_EMBEDDING_W1",
-      "career_track": "track_data_tech_cloud_ml",
+      "career_track": "TRACK_DATA_TECH_CLOUD_ML",
       "description": "Defines the Partner GTM commercialization capability boundary for AI solution value story, Hyperscaler partner co-sell; membership is limited to registered capability-domain edges.",
       "support_level": "INTERNAL_ONLY",
       "visibility_rule": "never_external",
@@ -11500,7 +11500,7 @@
       "node_type": "capability_domain",
       "label": "Enterprise delivery operating model",
       "hardening_wave": "C03_CLUSTER_EMBEDDING_W1",
-      "career_track": "track_data_tech_cloud_ml",
+      "career_track": "TRACK_DATA_TECH_CLOUD_ML",
       "description": "Defines the Enterprise delivery operating model capability boundary for Delivery governance operating rhythm, Enterprise adoption enablement; membership is limited to registered capability-domain edges.",
       "support_level": "INTERNAL_ONLY",
       "visibility_rule": "never_external",
@@ -72446,7 +72446,7 @@
         "fact_quant_hpc_003": "primary"
       },
       "source_ledger_ref": "fact_quant_hpc_003",
-      "career_track_id": "track_actuarial_risk_derivatives",
+      "career_track_id": "TRACK_ACTUARIAL_RISK_DERIVATIVES",
       "retrieval_eligible": true
     },
     {
@@ -72506,7 +72506,7 @@
         "fact_quant_hpc_003": "primary"
       },
       "source_ledger_ref": "fact_quant_hpc_003",
-      "career_track_id": "track_actuarial_risk_derivatives",
+      "career_track_id": "TRACK_ACTUARIAL_RISK_DERIVATIVES",
       "retrieval_eligible": false,
       "retrieval_ineligibility_reason": "LIFECYCLE_NOT_ACTIVE"
     },
@@ -72571,7 +72571,7 @@
         "fact_insurance_liabilities_001": "primary"
       },
       "source_ledger_ref": "fact_insurance_liabilities_001",
-      "career_track_id": "track_data_tech_cloud_ml",
+      "career_track_id": "TRACK_DATA_TECH_CLOUD_ML",
       "retrieval_eligible": false,
       "retrieval_ineligibility_reason": "LIFECYCLE_NOT_ACTIVE"
     },
@@ -72634,7 +72634,7 @@
         "fact_insurance_liabilities_001": "primary"
       },
       "source_ledger_ref": "fact_insurance_liabilities_001",
-      "career_track_id": "track_data_tech_cloud_ml",
+      "career_track_id": "TRACK_DATA_TECH_CLOUD_ML",
       "retrieval_eligible": false,
       "retrieval_ineligibility_reason": "LIFECYCLE_NOT_ACTIVE"
     },
@@ -72700,7 +72700,7 @@
         "fact_quant_hpc_003": "primary"
       },
       "source_ledger_ref": "fact_quant_hpc_003",
-      "career_track_id": "track_actuarial_risk_derivatives",
+      "career_track_id": "TRACK_ACTUARIAL_RISK_DERIVATIVES",
       "retrieval_eligible": true
     },
     {
@@ -72764,7 +72764,7 @@
         "fact_quant_hpc_003": "primary"
       },
       "source_ledger_ref": "fact_quant_hpc_003",
-      "career_track_id": "track_actuarial_risk_derivatives",
+      "career_track_id": "TRACK_ACTUARIAL_RISK_DERIVATIVES",
       "retrieval_eligible": true
     },
     {
@@ -72827,7 +72827,7 @@
         "fact_quant_hpc_003": "primary"
       },
       "source_ledger_ref": "fact_quant_hpc_003",
-      "career_track_id": "track_actuarial_risk_derivatives",
+      "career_track_id": "TRACK_ACTUARIAL_RISK_DERIVATIVES",
       "retrieval_eligible": true
     },
     {
@@ -72890,7 +72890,7 @@
         "fact_quant_hpc_003": "primary"
       },
       "source_ledger_ref": "fact_quant_hpc_003",
-      "career_track_id": "track_actuarial_risk_derivatives",
+      "career_track_id": "TRACK_ACTUARIAL_RISK_DERIVATIVES",
       "retrieval_eligible": false,
       "retrieval_ineligibility_reason": "LIFECYCLE_NOT_ACTIVE"
     },
@@ -72954,7 +72954,7 @@
         "fact_quant_hpc_003": "primary"
       },
       "source_ledger_ref": "fact_quant_hpc_003",
-      "career_track_id": "track_actuarial_risk_derivatives",
+      "career_track_id": "TRACK_ACTUARIAL_RISK_DERIVATIVES",
       "retrieval_eligible": false,
       "retrieval_ineligibility_reason": "LIFECYCLE_NOT_ACTIVE"
     },
@@ -73017,7 +73017,7 @@
         "fact_quant_hpc_003": "primary"
       },
       "source_ledger_ref": "fact_quant_hpc_003",
-      "career_track_id": "track_actuarial_risk_derivatives",
+      "career_track_id": "TRACK_ACTUARIAL_RISK_DERIVATIVES",
       "retrieval_eligible": false,
       "retrieval_ineligibility_reason": "LIFECYCLE_NOT_ACTIVE"
     },
@@ -73104,7 +73104,7 @@
         "fact_quant_hpc_001": "primary"
       },
       "source_ledger_ref": "fact_quant_hpc_001",
-      "career_track_id": "track_actuarial_risk_derivatives",
+      "career_track_id": "TRACK_ACTUARIAL_RISK_DERIVATIVES",
       "retrieval_eligible": true
     },
     {
@@ -73174,7 +73174,11 @@
     },
     {
       "skill_id": "skill_capital_reserving",
-      "fact_id_links": [],
+      "fact_id_links": [
+        "fact_insurance_liabilities_001",
+        "fact_quant_act_002",
+        "fact_quant_act_003"
+      ],
       "pillar": "pillar_capital_modeling",
       "subpillar": "reserving",
       "career_stage": "early_career",
@@ -73229,9 +73233,13 @@
       ],
       "link_class_by_fact": {},
       "source_ledger_ref": "skill_capital_reserving",
-      "career_track_id": "track_actuarial_risk_derivatives",
+      "career_track_id": "TRACK_ACTUARIAL_RISK_DERIVATIVES",
       "retrieval_eligible": false,
-      "retrieval_ineligibility_reason": "LIFECYCLE_NOT_ACTIVE"
+      "retrieval_ineligibility_reason": "LIFECYCLE_NOT_ACTIVE",
+      "linked_metric_outcome_ids": [
+        "metric_ey_capital_liquidity_assumption_sets_count",
+        "metric_ey_derivative_model_family_count"
+      ]
     },
     {
       "skill_id": "skill_capital_pricing_actuarial",
@@ -73292,7 +73300,7 @@
         "fact_quant_act_001": "primary"
       },
       "source_ledger_ref": "fact_quant_act_001",
-      "career_track_id": "track_actuarial_risk_derivatives",
+      "career_track_id": "TRACK_ACTUARIAL_RISK_DERIVATIVES",
       "retrieval_eligible": true
     },
     {
@@ -73424,7 +73432,7 @@
         "fact_insurance_software_001": "primary"
       },
       "source_ledger_ref": "fact_insurance_software_001",
-      "career_track_id": "track_actuarial_risk_derivatives",
+      "career_track_id": "TRACK_ACTUARIAL_RISK_DERIVATIVES",
       "retrieval_eligible": true
     },
     {
@@ -73554,7 +73562,7 @@
         "fact_quant_hpc_002": "primary"
       },
       "source_ledger_ref": "fact_quant_hpc_002",
-      "career_track_id": "track_actuarial_risk_derivatives",
+      "career_track_id": "TRACK_ACTUARIAL_RISK_DERIVATIVES",
       "retrieval_eligible": true
     },
     {
@@ -73761,7 +73769,7 @@
         "fact_partnerships_gtm_002": "primary"
       },
       "source_ledger_ref": "fact_partnerships_gtm_002",
-      "career_track_id": "track_data_tech_cloud_ml",
+      "career_track_id": "TRACK_DATA_TECH_CLOUD_ML",
       "retrieval_eligible": true
     },
     {
@@ -73837,7 +73845,7 @@
         "fact_partnerships_gtm_002": "primary"
       },
       "source_ledger_ref": "fact_partnerships_gtm_002",
-      "career_track_id": "track_data_tech_cloud_ml",
+      "career_track_id": "TRACK_DATA_TECH_CLOUD_ML",
       "retrieval_eligible": true
     },
     {
@@ -73914,7 +73922,7 @@
         "fact_partnerships_gtm_001": "primary"
       },
       "source_ledger_ref": "fact_partnerships_gtm_001",
-      "career_track_id": "track_data_tech_cloud_ml",
+      "career_track_id": "TRACK_DATA_TECH_CLOUD_ML",
       "retrieval_eligible": true
     },
     {
@@ -73985,7 +73993,10 @@
     },
     {
       "skill_id": "skill_partner_partner_engineering",
-      "fact_id_links": [],
+      "fact_id_links": [
+        "fact_partnerships_gtm_001",
+        "fact_partnerships_gtm_002"
+      ],
       "pillar": "pillar_cosell_partner_engineering",
       "subpillar": "partner_engineering",
       "career_stage": "cross_career",
@@ -74038,7 +74049,7 @@
       ],
       "link_class_by_fact": {},
       "source_ledger_ref": "skill_partner_partner_engineering",
-      "career_track_id": "track_data_tech_cloud_ml",
+      "career_track_id": "TRACK_DATA_TECH_CLOUD_ML",
       "retrieval_eligible": false,
       "retrieval_ineligibility_reason": "LIFECYCLE_NOT_ACTIVE"
     },
@@ -74115,7 +74126,7 @@
         "fact_solutions_001": "primary"
       },
       "source_ledger_ref": "fact_solutions_001",
-      "career_track_id": "track_data_tech_cloud_ml",
+      "career_track_id": "TRACK_DATA_TECH_CLOUD_ML",
       "retrieval_eligible": true
     },
     {
@@ -74252,7 +74263,7 @@
         "fact_solutions_001": "primary"
       },
       "source_ledger_ref": "fact_solutions_001",
-      "career_track_id": "track_data_tech_cloud_ml",
+      "career_track_id": "TRACK_DATA_TECH_CLOUD_ML",
       "retrieval_eligible": true
     },
     {
@@ -74404,7 +74415,7 @@
         "fact_partnerships_gtm_005": "primary"
       },
       "source_ledger_ref": "fact_partnerships_gtm_005",
-      "career_track_id": "track_data_tech_cloud_ml",
+      "career_track_id": "TRACK_DATA_TECH_CLOUD_ML",
       "retrieval_eligible": true
     },
     {
@@ -74543,7 +74554,7 @@
         "fact_partnerships_gtm_001": "primary"
       },
       "source_ledger_ref": "fact_partnerships_gtm_001",
-      "career_track_id": "track_data_tech_cloud_ml",
+      "career_track_id": "TRACK_DATA_TECH_CLOUD_ML",
       "retrieval_eligible": true
     },
     {
@@ -74613,7 +74624,10 @@
     },
     {
       "skill_id": "skill_partner_product_feedback_loops",
-      "fact_id_links": [],
+      "fact_id_links": [
+        "fact_partnerships_gtm_001",
+        "fact_solutions_001"
+      ],
       "pillar": "pillar_partner_gtm_alliances",
       "subpillar": "product_feedback_loops",
       "career_stage": "cross_career",
@@ -74665,7 +74679,7 @@
       ],
       "link_class_by_fact": {},
       "source_ledger_ref": "skill_partner_product_feedback_loops",
-      "career_track_id": "track_data_tech_cloud_ml",
+      "career_track_id": "TRACK_DATA_TECH_CLOUD_ML",
       "retrieval_eligible": false,
       "retrieval_ineligibility_reason": "LIFECYCLE_NOT_ACTIVE"
     },
@@ -74739,7 +74753,7 @@
         "fact_partnerships_gtm_001": "primary"
       },
       "source_ledger_ref": "fact_partnerships_gtm_001",
-      "career_track_id": "track_data_tech_cloud_ml",
+      "career_track_id": "TRACK_DATA_TECH_CLOUD_ML",
       "retrieval_eligible": true
     },
     {
@@ -75090,7 +75104,7 @@
         "fact_revenue_ops_001": "primary"
       },
       "source_ledger_ref": "fact_revenue_ops_001",
-      "career_track_id": "track_data_tech_cloud_ml",
+      "career_track_id": "TRACK_DATA_TECH_CLOUD_ML",
       "retrieval_eligible": true
     },
     {
@@ -75167,7 +75181,7 @@
         "fact_revenue_ops_001": "primary"
       },
       "source_ledger_ref": "fact_revenue_ops_001",
-      "career_track_id": "track_data_tech_cloud_ml",
+      "career_track_id": "TRACK_DATA_TECH_CLOUD_ML",
       "retrieval_eligible": true
     },
     {
@@ -76210,7 +76224,10 @@
     },
     {
       "skill_id": "skill_customer_nrr_predictive_analytics_20pct",
-      "fact_id_links": [],
+      "fact_id_links": [
+        "fact_revenue_ops_001",
+        "fact_revenue_ops_002"
+      ],
       "pillar": "pillar_customer_stakeholder",
       "subpillar": "net_revenue_retention_predictive_analytics",
       "career_stage": "cross_career",
@@ -76273,13 +76290,16 @@
       ],
       "link_class_by_fact": {},
       "source_ledger_ref": "skill_customer_nrr_predictive_analytics_20pct",
-      "career_track_id": "track_data_tech_cloud_ml",
+      "career_track_id": "TRACK_DATA_TECH_CLOUD_ML",
       "retrieval_eligible": false,
       "retrieval_ineligibility_reason": "LIFECYCLE_NOT_ACTIVE"
     },
     {
       "skill_id": "skill_customer_satisfaction_nps_25pct",
-      "fact_id_links": [],
+      "fact_id_links": [
+        "fact_sales_accounts_001",
+        "fact_solutions_001"
+      ],
       "pillar": "pillar_customer_stakeholder",
       "subpillar": "customer_satisfaction_nps_program",
       "career_stage": "cross_career",
@@ -76342,7 +76362,7 @@
       ],
       "link_class_by_fact": {},
       "source_ledger_ref": "skill_customer_satisfaction_nps_25pct",
-      "career_track_id": "track_data_tech_cloud_ml",
+      "career_track_id": "TRACK_DATA_TECH_CLOUD_ML",
       "retrieval_eligible": false,
       "retrieval_ineligibility_reason": "LIFECYCLE_NOT_ACTIVE"
     },
@@ -76420,7 +76440,7 @@
         "fact_exec_001": "primary"
       },
       "source_ledger_ref": "fact_exec_001",
-      "career_track_id": "track_data_tech_cloud_ml",
+      "career_track_id": "TRACK_DATA_TECH_CLOUD_ML",
       "retrieval_eligible": true
     },
     {
@@ -76497,7 +76517,7 @@
         "fact_revenue_ops_001": "primary"
       },
       "source_ledger_ref": "fact_revenue_ops_001",
-      "career_track_id": "track_data_tech_cloud_ml",
+      "career_track_id": "TRACK_DATA_TECH_CLOUD_ML",
       "retrieval_eligible": true
     },
     {
@@ -76847,7 +76867,7 @@
         "fact_consulting_001": "primary"
       },
       "source_ledger_ref": "fact_consulting_001",
-      "career_track_id": "track_data_tech_cloud_ml",
+      "career_track_id": "TRACK_DATA_TECH_CLOUD_ML",
       "retrieval_eligible": true
     },
     {
@@ -76988,7 +77008,7 @@
         "fact_consulting_002": "primary"
       },
       "source_ledger_ref": "fact_consulting_002",
-      "career_track_id": "track_data_tech_cloud_ml",
+      "career_track_id": "TRACK_DATA_TECH_CLOUD_ML",
       "retrieval_eligible": true
     },
     {
@@ -77339,7 +77359,7 @@
         "fact_engineering_platform_006": "primary"
       },
       "source_ledger_ref": "fact_engineering_platform_006",
-      "career_track_id": "track_data_tech_cloud_ml",
+      "career_track_id": "TRACK_DATA_TECH_CLOUD_ML",
       "retrieval_eligible": true
     },
     {
@@ -77480,7 +77500,7 @@
         "fact_solutions_001": "primary"
       },
       "source_ledger_ref": "fact_solutions_001",
-      "career_track_id": "track_data_tech_cloud_ml",
+      "career_track_id": "TRACK_DATA_TECH_CLOUD_ML",
       "retrieval_eligible": true
     },
     {
@@ -77556,7 +77576,7 @@
         "fact_solutions_002": "primary"
       },
       "source_ledger_ref": "fact_solutions_002",
-      "career_track_id": "track_data_tech_cloud_ml",
+      "career_track_id": "TRACK_DATA_TECH_CLOUD_ML",
       "retrieval_eligible": true
     },
     {
@@ -77758,7 +77778,7 @@
         "fact_consulting_001": "primary"
       },
       "source_ledger_ref": "bul_insurtech_003",
-      "career_track_id": "track_data_tech_cloud_ml",
+      "career_track_id": "TRACK_DATA_TECH_CLOUD_ML",
       "retrieval_eligible": false,
       "retrieval_ineligibility_reason": "LIFECYCLE_NOT_ACTIVE"
     },
@@ -78168,7 +78188,7 @@
         "fact_sales_accounts_003": "primary"
       },
       "source_ledger_ref": "fact_sales_accounts_003",
-      "career_track_id": "track_actuarial_risk_derivatives",
+      "career_track_id": "TRACK_ACTUARIAL_RISK_DERIVATIVES",
       "retrieval_eligible": true
     },
     {
@@ -83473,7 +83493,10 @@
     },
     {
       "skill_id": "skill_meddpicc_sales_qualification",
-      "fact_id_links": [],
+      "fact_id_links": [
+        "fact_partnerships_gtm_001",
+        "fact_sales_accounts_001"
+      ],
       "pillar": "pillar_gtm_presales_motion",
       "subpillar": "enterprise_deal_qualification",
       "career_stage": "senior",
@@ -83546,7 +83569,10 @@
     },
     {
       "skill_id": "skill_cpq_deal_velocity_automation",
-      "fact_id_links": [],
+      "fact_id_links": [
+        "fact_revenue_ops_001",
+        "fact_revenue_ops_003"
+      ],
       "pillar": "pillar_revenue_operations",
       "subpillar": "cpq_and_deal_automation",
       "career_stage": "senior",
@@ -83704,7 +83730,10 @@
     },
     {
       "skill_id": "skill_saas_arr_ltv_cac_metrics",
-      "fact_id_links": [],
+      "fact_id_links": [
+        "fact_revenue_ops_001",
+        "fact_revenue_ops_002"
+      ],
       "pillar": "pillar_strategic_finance_saas",
       "subpillar": "saas_growth_metrics",
       "career_stage": "senior",
@@ -84048,7 +84077,10 @@
     },
     {
       "skill_id": "skill_nps_customer_health_scoring",
-      "fact_id_links": [],
+      "fact_id_links": [
+        "fact_sales_accounts_001",
+        "fact_solutions_001"
+      ],
       "pillar": "pillar_customer_stakeholder",
       "subpillar": "customer_health_and_retention",
       "career_stage": "senior",
@@ -84722,7 +84754,7 @@
         "fact_quant_act_001": "primary"
       },
       "source_ledger_ref": "fact_quant_act_001",
-      "career_track_id": "track_actuarial_risk_derivatives",
+      "career_track_id": "TRACK_ACTUARIAL_RISK_DERIVATIVES",
       "retrieval_eligible": true
     },
     {
@@ -84785,7 +84817,7 @@
         "fact_quant_act_002": "primary"
       },
       "source_ledger_ref": "fact_quant_act_002",
-      "career_track_id": "track_actuarial_risk_derivatives",
+      "career_track_id": "TRACK_ACTUARIAL_RISK_DERIVATIVES",
       "retrieval_eligible": true
     },
     {
@@ -84849,7 +84881,7 @@
         "fact_quant_act_003": "primary"
       },
       "source_ledger_ref": "fact_quant_act_003",
-      "career_track_id": "track_actuarial_risk_derivatives",
+      "career_track_id": "TRACK_ACTUARIAL_RISK_DERIVATIVES",
       "retrieval_eligible": true
     },
     {
@@ -85158,7 +85190,7 @@
         "fact_insurtech_aws_001": "primary"
       },
       "source_ledger_ref": "fact_insurtech_aws_001",
-      "career_track_id": "track_actuarial_risk_derivatives",
+      "career_track_id": "TRACK_ACTUARIAL_RISK_DERIVATIVES",
       "retrieval_eligible": true
     },
     {
@@ -89770,7 +89802,7 @@
       },
       "source_ledger_ref": "fact_engineering_platform_001",
       "domain_id": "domain_agentic_runtime_governance",
-      "career_track_id": "track_genai_agentic",
+      "career_track_id": "TRACK_GENAI_AGENTIC",
       "career_epoch": "epoch_agentic_ai_runtime_architecture",
       "retrieval_eligible": true
     },
@@ -89828,7 +89860,7 @@
       },
       "source_ledger_ref": "fact_engineering_platform_001",
       "domain_id": "domain_agentic_runtime_governance",
-      "career_track_id": "track_genai_agentic",
+      "career_track_id": "TRACK_GENAI_AGENTIC",
       "career_epoch": "epoch_agentic_ai_runtime_architecture",
       "retrieval_eligible": true
     },
@@ -89886,7 +89918,7 @@
       },
       "source_ledger_ref": "fact_engineering_platform_003",
       "domain_id": "domain_agentic_runtime_governance",
-      "career_track_id": "track_genai_agentic",
+      "career_track_id": "TRACK_GENAI_AGENTIC",
       "career_epoch": "epoch_agentic_ai_runtime_architecture",
       "retrieval_eligible": true
     },
@@ -89904,7 +89936,7 @@
       ],
       "activation_status": "ACTIVE_CONFIRMED",
       "support_level": "INTERNAL_ONLY",
-      "pillar": "domain_agentic_runtime_governance",
+      "pillar": "pillar_agentic_ai_platforms",
       "subpillar": "platform_reliability",
       "metric_bucket": "platform_reliability",
       "metric_option_ids": [
@@ -89958,10 +89990,14 @@
       },
       "source_ledger_ref": "fact_engineering_platform_006",
       "domain_id": "domain_agentic_runtime_governance",
-      "career_track_id": "track_genai_agentic",
+      "career_track_id": "TRACK_GENAI_AGENTIC",
       "career_epoch": "epoch_agentic_ai_runtime_architecture",
       "retrieval_eligible": false,
-      "retrieval_ineligibility_reason": "NOT_EXTERNAL_CLAIM_ELIGIBLE"
+      "retrieval_ineligibility_reason": "NOT_EXTERNAL_CLAIM_ELIGIBLE",
+      "linked_metric_outcome_ids": [
+        "metric_insurtech_cloud_migration_velocity_sprints",
+        "metric_unify_event_stream_throughput_rps"
+      ]
     },
     {
       "skill_id": "skill:c03:agentic_policy_gate_design",
@@ -89977,7 +90013,7 @@
       ],
       "activation_status": "ACTIVE_CONFIRMED",
       "support_level": "INTERNAL_ONLY",
-      "pillar": "domain_agentic_runtime_governance",
+      "pillar": "pillar_agentic_ai_platforms",
       "subpillar": "risk_control",
       "metric_bucket": "risk_control",
       "metric_option_ids": [
@@ -90032,7 +90068,7 @@
       },
       "source_ledger_ref": "fact_quant_hpc_003",
       "domain_id": "domain_agentic_runtime_governance",
-      "career_track_id": "track_genai_agentic",
+      "career_track_id": "TRACK_GENAI_AGENTIC",
       "career_epoch": "epoch_agentic_ai_runtime_architecture",
       "retrieval_eligible": false,
       "retrieval_ineligibility_reason": "NOT_EXTERNAL_CLAIM_ELIGIBLE"
@@ -90051,7 +90087,7 @@
       ],
       "activation_status": "ACTIVE_CONFIRMED",
       "support_level": "INTERNAL_ONLY",
-      "pillar": "domain_agentic_runtime_governance",
+      "pillar": "pillar_agentic_ai_platforms",
       "subpillar": "operational_resilience",
       "metric_bucket": "operational_resilience",
       "metric_option_ids": [
@@ -90105,7 +90141,7 @@
       },
       "source_ledger_ref": "bul_insurtech_003",
       "domain_id": "domain_agentic_runtime_governance",
-      "career_track_id": "track_genai_agentic",
+      "career_track_id": "TRACK_GENAI_AGENTIC",
       "career_epoch": "epoch_agentic_ai_runtime_architecture",
       "retrieval_eligible": false,
       "retrieval_ineligibility_reason": "NOT_EXTERNAL_CLAIM_ELIGIBLE"
@@ -90124,7 +90160,7 @@
       ],
       "activation_status": "ACTIVE_CONFIRMED",
       "support_level": "INTERNAL_ONLY",
-      "pillar": "domain_graph_retrieval_evidence",
+      "pillar": "pillar_agentic_ai_platforms",
       "subpillar": "data_lineage",
       "metric_bucket": "data_lineage",
       "metric_option_ids": [
@@ -90178,7 +90214,7 @@
       },
       "source_ledger_ref": "fact_partnerships_gtm_002",
       "domain_id": "domain_graph_retrieval_evidence",
-      "career_track_id": "track_genai_agentic",
+      "career_track_id": "TRACK_GENAI_AGENTIC",
       "career_epoch": "epoch_agentic_ai_runtime_architecture",
       "retrieval_eligible": false,
       "retrieval_ineligibility_reason": "NOT_EXTERNAL_CLAIM_ELIGIBLE"
@@ -90197,7 +90233,7 @@
       ],
       "activation_status": "ACTIVE_CONFIRMED",
       "support_level": "INTERNAL_ONLY",
-      "pillar": "domain_graph_retrieval_evidence",
+      "pillar": "pillar_agentic_ai_platforms",
       "subpillar": "compliance_audit",
       "metric_bucket": "compliance_audit",
       "metric_option_ids": [
@@ -90251,7 +90287,7 @@
       },
       "source_ledger_ref": "bul_insurtech_002",
       "domain_id": "domain_graph_retrieval_evidence",
-      "career_track_id": "track_genai_agentic",
+      "career_track_id": "TRACK_GENAI_AGENTIC",
       "career_epoch": "epoch_agentic_ai_runtime_architecture",
       "retrieval_eligible": false,
       "retrieval_ineligibility_reason": "NOT_EXTERNAL_CLAIM_ELIGIBLE"
@@ -90270,7 +90306,7 @@
       ],
       "activation_status": "ACTIVE_CONFIRMED",
       "support_level": "INTERNAL_ONLY",
-      "pillar": "domain_graph_retrieval_evidence",
+      "pillar": "pillar_agentic_ai_platforms",
       "subpillar": "quality_accuracy",
       "metric_bucket": "quality_accuracy",
       "metric_option_ids": [
@@ -90321,7 +90357,7 @@
       },
       "source_ledger_ref": "fact_engineering_platform_003",
       "domain_id": "domain_graph_retrieval_evidence",
-      "career_track_id": "track_genai_agentic",
+      "career_track_id": "TRACK_GENAI_AGENTIC",
       "career_epoch": "epoch_agentic_ai_runtime_architecture",
       "retrieval_eligible": false,
       "retrieval_ineligibility_reason": "NOT_EXTERNAL_CLAIM_ELIGIBLE"
@@ -90340,7 +90376,7 @@
       ],
       "activation_status": "ACTIVE_CONFIRMED",
       "support_level": "INTERNAL_ONLY",
-      "pillar": "domain_ai_platform_engineering",
+      "pillar": "pillar_agentic_ai_platforms",
       "subpillar": "latency",
       "metric_bucket": "latency",
       "metric_option_ids": [
@@ -90389,10 +90425,14 @@
       },
       "source_ledger_ref": "fact_quant_hpc_002",
       "domain_id": "domain_ai_platform_engineering",
-      "career_track_id": "track_data_tech_cloud_ml",
+      "career_track_id": "TRACK_DATA_TECH_CLOUD_ML",
       "career_epoch": "epoch_cloud_data_platform_engineering",
       "retrieval_eligible": false,
-      "retrieval_ineligibility_reason": "NOT_EXTERNAL_CLAIM_ELIGIBLE"
+      "retrieval_ineligibility_reason": "NOT_EXTERNAL_CLAIM_ELIGIBLE",
+      "linked_metric_outcome_ids": [
+        "metric_insurtech_cloud_data_lake_scale_tb",
+        "metric_insurtech_cloud_migration_velocity_sprints"
+      ]
     },
     {
       "skill_id": "skill:c03:mlops_release_governance",
@@ -90408,7 +90448,7 @@
       ],
       "activation_status": "ACTIVE_CONFIRMED",
       "support_level": "INTERNAL_ONLY",
-      "pillar": "domain_ai_platform_engineering",
+      "pillar": "pillar_agentic_ai_platforms",
       "subpillar": "delivery_throughput",
       "metric_bucket": "delivery_throughput",
       "metric_option_ids": [
@@ -90462,10 +90502,14 @@
       },
       "source_ledger_ref": "fact_consulting_002",
       "domain_id": "domain_ai_platform_engineering",
-      "career_track_id": "track_data_tech_cloud_ml",
+      "career_track_id": "TRACK_DATA_TECH_CLOUD_ML",
       "career_epoch": "epoch_cloud_data_platform_engineering",
       "retrieval_eligible": false,
-      "retrieval_ineligibility_reason": "NOT_EXTERNAL_CLAIM_ELIGIBLE"
+      "retrieval_ineligibility_reason": "NOT_EXTERNAL_CLAIM_ELIGIBLE",
+      "linked_metric_outcome_ids": [
+        "metric_unify_message_processing_latency_p99_ms",
+        "metric_unify_pipeline_ingestion_data_volume_daily"
+      ]
     },
     {
       "skill_id": "skill:c03:data_platform_lineage_architecture",
@@ -90481,7 +90525,7 @@
       ],
       "activation_status": "ACTIVE_CONFIRMED",
       "support_level": "INTERNAL_ONLY",
-      "pillar": "domain_ai_platform_engineering",
+      "pillar": "pillar_agentic_ai_platforms",
       "subpillar": "data_lineage",
       "metric_bucket": "data_lineage",
       "metric_option_ids": [
@@ -90535,7 +90579,7 @@
       },
       "source_ledger_ref": "fact_partnerships_gtm_002",
       "domain_id": "domain_ai_platform_engineering",
-      "career_track_id": "track_data_tech_cloud_ml",
+      "career_track_id": "TRACK_DATA_TECH_CLOUD_ML",
       "career_epoch": "epoch_cloud_data_platform_engineering",
       "retrieval_eligible": false,
       "retrieval_ineligibility_reason": "NOT_EXTERNAL_CLAIM_ELIGIBLE"
@@ -90554,7 +90598,7 @@
       ],
       "activation_status": "ACTIVE_CONFIRMED",
       "support_level": "INTERNAL_ONLY",
-      "pillar": "domain_regulated_ai_controls",
+      "pillar": "pillar_regulatory_governance",
       "subpillar": "risk_control",
       "metric_bucket": "risk_control",
       "metric_option_ids": [
@@ -90609,10 +90653,14 @@
       },
       "source_ledger_ref": "fact_quant_hpc_003",
       "domain_id": "domain_regulated_ai_controls",
-      "career_track_id": "track_actuarial_risk_derivatives",
+      "career_track_id": "TRACK_ACTUARIAL_RISK_DERIVATIVES",
       "career_epoch": "epoch_enterprise_risk_governance",
       "retrieval_eligible": false,
-      "retrieval_ineligibility_reason": "NOT_EXTERNAL_CLAIM_ELIGIBLE"
+      "retrieval_ineligibility_reason": "NOT_EXTERNAL_CLAIM_ELIGIBLE",
+      "linked_metric_outcome_ids": [
+        "metric_ey_model_risk_findings_remediated_count",
+        "metric_ey_model_validation_variant_count"
+      ]
     },
     {
       "skill_id": "skill:c03:actuarial_ai_risk_translation",
@@ -90628,7 +90676,7 @@
       ],
       "activation_status": "ACTIVE_CONFIRMED",
       "support_level": "INTERNAL_ONLY",
-      "pillar": "domain_regulated_ai_controls",
+      "pillar": "pillar_regulatory_governance",
       "subpillar": "governance_maturity",
       "metric_bucket": "governance_maturity",
       "metric_option_ids": [
@@ -90682,7 +90730,7 @@
       },
       "source_ledger_ref": "fact_partnerships_gtm_005",
       "domain_id": "domain_regulated_ai_controls",
-      "career_track_id": "track_actuarial_risk_derivatives",
+      "career_track_id": "TRACK_ACTUARIAL_RISK_DERIVATIVES",
       "career_epoch": "epoch_enterprise_risk_governance",
       "retrieval_eligible": false,
       "retrieval_ineligibility_reason": "NOT_EXTERNAL_CLAIM_ELIGIBLE"
@@ -90701,7 +90749,7 @@
       ],
       "activation_status": "ACTIVE_CONFIRMED",
       "support_level": "INTERNAL_ONLY",
-      "pillar": "domain_regulated_ai_controls",
+      "pillar": "pillar_regulatory_governance",
       "subpillar": "compliance_audit",
       "metric_bucket": "compliance_audit",
       "metric_option_ids": [
@@ -90755,10 +90803,14 @@
       },
       "source_ledger_ref": "bul_insurtech_002",
       "domain_id": "domain_regulated_ai_controls",
-      "career_track_id": "track_actuarial_risk_derivatives",
+      "career_track_id": "TRACK_ACTUARIAL_RISK_DERIVATIVES",
       "career_epoch": "epoch_enterprise_risk_governance",
       "retrieval_eligible": false,
-      "retrieval_ineligibility_reason": "NOT_EXTERNAL_CLAIM_ELIGIBLE"
+      "retrieval_ineligibility_reason": "NOT_EXTERNAL_CLAIM_ELIGIBLE",
+      "linked_metric_outcome_ids": [
+        "metric_ey_audit_control_automation_workflows_count",
+        "metric_ey_bcbs239_risk_data_domain_count"
+      ]
     },
     {
       "skill_id": "skill:c03:hyperscaler_partner_cosell",
@@ -90774,7 +90826,7 @@
       ],
       "activation_status": "ACTIVE_CONFIRMED",
       "support_level": "INTERNAL_ONLY",
-      "pillar": "domain_partner_gtm_commercialization",
+      "pillar": "pillar_hyperscaler_marketplace_partner_gtm",
       "subpillar": "partner_gtm",
       "metric_bucket": "partner_gtm",
       "metric_option_ids": [
@@ -90828,10 +90880,14 @@
       },
       "source_ledger_ref": "fact_partnerships_gtm_002",
       "domain_id": "domain_partner_gtm_commercialization",
-      "career_track_id": "track_data_tech_cloud_ml",
+      "career_track_id": "TRACK_DATA_TECH_CLOUD_ML",
       "career_epoch": "epoch_partner_gtm_revenue_leadership",
       "retrieval_eligible": false,
-      "retrieval_ineligibility_reason": "NOT_EXTERNAL_CLAIM_ELIGIBLE"
+      "retrieval_ineligibility_reason": "NOT_EXTERNAL_CLAIM_ELIGIBLE",
+      "linked_metric_outcome_ids": [
+        "metric_ibm_cloud_catalog_asset_download_count",
+        "metric_ibm_partner_cosell_pipeline_deal_count"
+      ]
     },
     {
       "skill_id": "skill:c03:ai_solution_value_story",
@@ -90847,7 +90903,7 @@
       ],
       "activation_status": "ACTIVE_CONFIRMED",
       "support_level": "INTERNAL_ONLY",
-      "pillar": "domain_partner_gtm_commercialization",
+      "pillar": "pillar_hyperscaler_marketplace_partner_gtm",
       "subpillar": "revenue_growth",
       "metric_bucket": "revenue_growth",
       "metric_option_ids": [
@@ -90902,7 +90958,7 @@
       },
       "source_ledger_ref": "fact_sales_accounts_001",
       "domain_id": "domain_partner_gtm_commercialization",
-      "career_track_id": "track_data_tech_cloud_ml",
+      "career_track_id": "TRACK_DATA_TECH_CLOUD_ML",
       "career_epoch": "epoch_partner_gtm_revenue_leadership",
       "retrieval_eligible": false,
       "retrieval_ineligibility_reason": "NOT_EXTERNAL_CLAIM_ELIGIBLE"
@@ -90921,7 +90977,7 @@
       ],
       "activation_status": "ACTIVE_CONFIRMED",
       "support_level": "INTERNAL_ONLY",
-      "pillar": "domain_enterprise_delivery_operating_model",
+      "pillar": "pillar_executive_leadership",
       "subpillar": "adoption",
       "metric_bucket": "adoption",
       "metric_option_ids": [
@@ -90975,10 +91031,14 @@
       },
       "source_ledger_ref": "fact_sales_accounts_001",
       "domain_id": "domain_enterprise_delivery_operating_model",
-      "career_track_id": "track_data_tech_cloud_ml",
+      "career_track_id": "TRACK_DATA_TECH_CLOUD_ML",
       "career_epoch": "epoch_ai_platform_commercialization",
       "retrieval_eligible": false,
-      "retrieval_ineligibility_reason": "NOT_EXTERNAL_CLAIM_ELIGIBLE"
+      "retrieval_ineligibility_reason": "NOT_EXTERNAL_CLAIM_ELIGIBLE",
+      "linked_metric_outcome_ids": [
+        "metric_ibm_client_briefing_session_count",
+        "metric_unify_engineering_team_size_engineers"
+      ]
     },
     {
       "skill_id": "skill:c03:delivery_governance_operating_rhythm",
@@ -90994,7 +91054,7 @@
       ],
       "activation_status": "ACTIVE_CONFIRMED",
       "support_level": "INTERNAL_ONLY",
-      "pillar": "domain_enterprise_delivery_operating_model",
+      "pillar": "pillar_executive_leadership",
       "subpillar": "cycle_time",
       "metric_bucket": "cycle_time",
       "metric_option_ids": [
@@ -91049,10 +91109,14 @@
       },
       "source_ledger_ref": "fact_quant_hpc_003",
       "domain_id": "domain_enterprise_delivery_operating_model",
-      "career_track_id": "track_data_tech_cloud_ml",
+      "career_track_id": "TRACK_DATA_TECH_CLOUD_ML",
       "career_epoch": "epoch_ai_platform_commercialization",
       "retrieval_eligible": false,
-      "retrieval_ineligibility_reason": "NOT_EXTERNAL_CLAIM_ELIGIBLE"
+      "retrieval_ineligibility_reason": "NOT_EXTERNAL_CLAIM_ELIGIBLE",
+      "linked_metric_outcome_ids": [
+        "metric_unify_engineering_team_size_engineers",
+        "metric_unify_platform_services_migrated_count"
+      ]
     }
   ],
   "actuarial_career_matrix": [

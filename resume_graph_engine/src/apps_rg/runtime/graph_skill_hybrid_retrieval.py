@@ -116,6 +116,8 @@ def fuse_dense_bm25(
     assertion_ids: set[str],
     rank_constant: int = 60,
     authority_boosts: Mapping[str, float] | None = None,
+    metric_bearing_assertion_ids: set[str] | None = None,
+    metric_boost: float = 0.05,
 ) -> list[dict[str, float | int | str | None]]:
     """Fuse dense and BM25 rankings with component scores retained for audit."""
     dense_scores: dict[str, float] = {}
@@ -146,7 +148,7 @@ def fuse_dense_bm25(
         rank_constant=rank_constant,
         authority_boosts=authority_boosts,
     )
-    return [
+    result = [
         row
         | {
             "dense_similarity": dense_scores.get(str(row["assertion_id"])),
@@ -156,6 +158,21 @@ def fuse_dense_bm25(
         }
         for row in fused
     ]
+    if metric_bearing_assertion_ids is not None:
+        boosted = []
+        for r in result:
+            aid = str(r["assertion_id"])
+            boost = metric_boost if aid in metric_bearing_assertion_ids else 0.0
+            boosted.append(
+                r
+                | {
+                    "metric_authority_boost": boost,
+                    "final_score": round(float(r["rrf_score"]) + boost, 6),
+                }
+            )
+        boosted.sort(key=lambda r: (-float(r["final_score"]), str(r["assertion_id"])))
+        return boosted
+    return result
 
 
 __all__ = [

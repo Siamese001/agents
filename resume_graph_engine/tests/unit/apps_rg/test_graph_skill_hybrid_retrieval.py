@@ -112,3 +112,24 @@ def test_fusion_rejects_invalid_authority_boosts() -> None:
             authority_boosts={"skill_a": -0.1},
         )
 
+
+def test_fusion_applies_stage2_metric_authority_boost() -> None:
+    fused = fuse_dense_bm25(
+        [
+            {"assertion_id": "skill_a", "similarity": 0.90},
+            {"assertion_id": "skill_b", "similarity": 0.85},
+        ],
+        [
+            {"assertion_id": "skill_a", "bm25_score": 2.0},
+            {"assertion_id": "skill_b", "bm25_score": 2.0},
+        ],
+        assertion_ids={"skill_a", "skill_b"},
+        metric_bearing_assertion_ids={"skill_b"},
+        metric_boost=0.05,
+    )
+    # skill_b receives +0.05 metric boost, overtaking skill_a
+    assert fused[0]["assertion_id"] == "skill_b"
+    assert fused[0]["metric_authority_boost"] == 0.05
+    assert fused[1]["assertion_id"] == "skill_a"
+    assert fused[1]["metric_authority_boost"] == 0.0
+

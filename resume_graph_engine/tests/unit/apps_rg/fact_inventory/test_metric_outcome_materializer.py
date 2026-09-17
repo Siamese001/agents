@@ -52,16 +52,24 @@ def test_metric_prefix_infers_to_metric_outcome() -> None:
 
 
 def test_metric_outcome_edge_types_disjoint_from_existing_taxonomy() -> None:
-    """W2.0 edge types are net-additive — do not collide with any pre-existing edge_type."""
-    # All 3 new edge types share the ``metric_outcome_`` prefix.
+    """W2.0 and multi-hop metric edge types are net-additive and contain metric_outcome."""
     for edge_type in METRIC_OUTCOME_EDGE_TYPES:
-        assert edge_type.startswith("metric_outcome_"), edge_type
+        assert "metric_outcome" in edge_type, edge_type
     assert set(METRIC_OUTCOME_EDGE_SIGNATURES) == set(METRIC_OUTCOME_EDGE_TYPES)
     assert METRIC_OUTCOME_EDGE_SIGNATURES == {
         "metric_outcome_anchors_bundle": frozenset({("metric_outcome", "graph_ref")}),
         "metric_outcome_section_eligible": frozenset({("metric_outcome", "graph_ref")}),
         "metric_outcome_bound_to_employer": frozenset({("metric_outcome", "employment")}),
+        "fact_has_metric_outcome": frozenset(
+            {
+                ("fact", "metric_outcome"),
+                ("employment", "metric_outcome"),
+                ("locked_bullet", "metric_outcome"),
+            }
+        ),
+        "skill_surfaces_metric_outcome": frozenset({("skill", "metric_outcome")}),
     }
+
 
 
 def test_discover_role_episode_bundle_files(repo_root: Path) -> None:
@@ -72,6 +80,7 @@ def test_discover_role_episode_bundle_files(repo_root: Path) -> None:
         "ey_role_episode_bundles.json",
         "ibm_role_episode_bundles.json",
         "insurtech_role_episode_bundles.json",
+        "slalom_role_episode_bundles.json",
         "unify_role_episode_bundles.json",
     ]
 

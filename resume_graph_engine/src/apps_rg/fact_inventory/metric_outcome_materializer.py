@@ -43,6 +43,8 @@ METRIC_OUTCOME_EDGE_TYPES: frozenset[str] = frozenset(
         "metric_outcome_anchors_bundle",
         "metric_outcome_section_eligible",
         "metric_outcome_bound_to_employer",
+        "fact_has_metric_outcome",
+        "skill_surfaces_metric_outcome",
     }
 )
 
@@ -53,6 +55,14 @@ METRIC_OUTCOME_EDGE_SIGNATURES: dict[str, frozenset[tuple[str, str]]] = {
     "metric_outcome_anchors_bundle": frozenset({("metric_outcome", "graph_ref")}),
     "metric_outcome_section_eligible": frozenset({("metric_outcome", "graph_ref")}),
     "metric_outcome_bound_to_employer": frozenset({("metric_outcome", "employment")}),
+    "fact_has_metric_outcome": frozenset(
+        {
+            ("fact", "metric_outcome"),
+            ("employment", "metric_outcome"),
+            ("locked_bullet", "metric_outcome"),
+        }
+    ),
+    "skill_surfaces_metric_outcome": frozenset({("skill", "metric_outcome")}),
 }
 
 #: Glob pattern for per-employer role_episode_bundle JSON files.
@@ -289,7 +299,73 @@ def metric_outcome_node_and_edge_rows(
     for mid, metric in rows.items():
         node_rows.append(_metric_outcome_to_node_row(mid, metric, ts=ts))
         edge_rows.extend(_metric_outcome_to_edge_rows(mid, metric, known_node_ids=known_node_ids))
-    return node_rows, edge_rows
+
+    # Multi-hop metric outcomes: link bundle facts and skills to candidate metrics
+    for path in discover_role_episode_bundle_files(repo_root):
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        bundles = payload.get("bundles") or []
+        for bundle in bundles:
+            if not isinstance(bundle, dict):
+                continue
+            mids = bundle.get("linked_metric_outcome_ids") or []
+            fids = bundle.get("linked_source_fact_ids") or []
+            sids = bundle.get("graph_skill_node_ids") or []
+            for mid in mids:
+                mid_s = str(mid).strip()
+                if not mid_s or mid_s not in rows:
+                    continue
+                for fid in fids:
+                    fid_s = str(fid).strip()
+                    if not fid_s:
+                        continue
+                    edge_rows.append(
+                        {
+                            "edge_id": f"edge_fact_has_metric_outcome__{fid_s}__{mid_s}",
+                            "source_node_id": fid_s,
+                            "target_node_id": mid_s,
+                            "edge_family": "fact_metric",
+                            "edge_type": "fact_has_metric_outcome",
+                            "weight": 1.0,
+                            "confidence": "HIGH",
+                            "directional": 1,
+                            "evidence_status": "approved_graph_ssot",
+                            "section_fit": "ALL",
+                            "source_authority": "augmented_skills_graph",
+                        }
+                    )
+                for sid in sids:
+                    sid_s = str(sid).strip()
+                    if not sid_s:
+                        continue
+                    edge_rows.append(
+                        {
+                            "edge_id": f"edge_skill_surfaces_metric_outcome__{sid_s}__{mid_s}",
+                            "source_node_id": sid_s,
+                            "target_node_id": mid_s,
+                            "edge_family": "skill_metric",
+                            "edge_type": "skill_surfaces_metric_outcome",
+                            "weight": 1.0,
+                            "confidence": "HIGH",
+                            "directional": 1,
+                            "evidence_status": "approved_graph_ssot",
+                            "section_fit": "ALL",
+                            "source_authority": "augmented_skills_graph",
+                        }
+                    )
+
+    # Deduplicate edge_rows by edge_id
+    seen_edge_ids: set[str] = set()
+    unique_edge_rows: list[dict[str, Any]] = []
+    for edge in edge_rows:
+        eid = edge["edge_id"]
+        if eid not in seen_edge_ids:
+            seen_edge_ids.add(eid)
+            unique_edge_rows.append(edge)
+
+    return node_rows, unique_edge_rows
 
 
 def resolve_metric_outcome_graph_node(conn: Any, metric_id: str) -> dict[str, Any] | None:
