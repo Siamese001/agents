@@ -21,6 +21,11 @@ from agents.orchestration.feedback_controller import (
     FeedbackController,
     FeedbackDecision,
 )
+from agents.orchestration.learning_store import (
+    FeedbackLearningStore,
+    compute_failure_signature,
+    normalize_constraint_key,
+)
 from agents.orchestration.primitives import (
     ExecutionRetry,
     OrchestrationPrimitive,
@@ -51,6 +56,7 @@ __all__ = [
     "FailureKind",
     "FeedbackController",
     "FeedbackDecision",
+    "FeedbackLearningStore",
     "IllegalPhaseTransitionError",
     "InvalidStateTransitionError",
     "OrchestrationPrimitive",
@@ -70,6 +76,8 @@ __all__ = [
     "WorkflowStateMachine",
     "WorkflowStatus",
     "WorkflowStep",
+    "compute_failure_signature",
     "derive_recovery_action",
+    "normalize_constraint_key",
     "validate_and_transition",
 ]

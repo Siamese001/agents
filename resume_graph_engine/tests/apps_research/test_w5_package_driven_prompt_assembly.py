@@ -16,7 +16,12 @@ import pytest
 import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-APPS_RESEARCH_ROOT = REPO_ROOT / "src" / "apps_research"
+WORKSPACE_ROOT = Path(__file__).resolve().parents[3]
+APPS_RESEARCH_ROOT = (
+    WORKSPACE_ROOT / "apps_research"
+    if (WORKSPACE_ROOT / "apps_research").is_dir()
+    else REPO_ROOT / "src" / "apps_research"
+)
 RUNTIME_PACKAGE_PATH = (
     APPS_RESEARCH_ROOT
     / "config"

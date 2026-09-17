@@ -83,7 +83,51 @@ class TokenBudget:
         )
 
 
+class TrajectoryExemplarIndex:
+    """Index of mined golden trajectory exemplars that converts to prompt ContextItems."""
+
+    def __init__(self) -> None:
+        self._exemplars: list[Any] = []
+
+    def add_exemplar(self, exemplar: Any) -> None:
+        self._exemplars.append(exemplar)
+
+    def to_context_items(self, task_type: str = "general", max_items: int = 2) -> list[ContextItem]:
+        """Convert matching exemplars to ContextItem records for token budgeted context compilation."""
+        from agents.context.provenance import ContextItem, ContextSourceType
+
+        items: list[ContextItem] = []
+        matching = [
+            e
+            for e in self._exemplars
+            if getattr(e, "task_type", "general") == task_type or task_type == "general"
+        ]
+        sorted_matching = sorted(
+            matching, key=lambda e: getattr(e, "efficiency_score", 0.0), reverse=True
+        )
+
+        for ex in sorted_matching[:max_items]:
+            cid = getattr(ex, "exemplar_id", f"ex_{len(items)}")
+            content = (
+                f"[Golden Trajectory Exemplar: {cid}]\n"
+                f"Task: {getattr(ex, 'task_type', 'general')}\n"
+                f"Summary: {getattr(ex, 'summary_text', '')}\n"
+                f"Steps: {' -> '.join(getattr(ex, 'step_sequence', ()))}"
+            )
+            items.append(
+                ContextItem(
+                    source_id=f"trajectory_exemplar_{cid}",
+                    source_type=ContextSourceType.RETRIEVED_EVIDENCE,
+                    content=content,
+                    authority="verified",
+                    relevance_score=float(getattr(ex, "efficiency_score", 0.90)),
+                )
+            )
+        return items
+
+
 __all__ = [
     "TokenBudget",
     "TokenBudgetExceededError",
+    "TrajectoryExemplarIndex",
 ]

@@ -11,9 +11,10 @@ echo "=== [Git Hook] Running Pre-Push Governance Verification ==="
 echo "-> 1. Validating all turn gates..."
 python3 tools/validate_turn_gates.py --mode all
 
-# 2. Active plan validation
-echo "-> 2. Validating active implementation plan..."
+# 2. Active plan validation & wave summary
+echo "-> 2. Validating active implementation plan & confirming wave summary table..."
 python3 tools/validate_implementation_plan.py
+
 
 # 3. Tier 1 commit gate
 echo "-> 3. Running Tier 1 verify_commit..."

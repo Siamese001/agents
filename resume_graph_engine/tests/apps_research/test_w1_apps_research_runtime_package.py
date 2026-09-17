@@ -302,8 +302,13 @@ class TestPackageSchemaCompliance:
         """Declarative YAML package file exists."""
         from pathlib import Path
         
-        yaml_path = Path("src/apps_research/config/domain_contract/runtime_customization_package.company_brief.v1.yaml")
-        assert yaml_path.exists(), "YAML package file should exist"
+        rel = "config/domain_contract/runtime_customization_package.company_brief.v1.yaml"
+        candidates = [
+            Path("apps_research") / rel,
+            Path("src/apps_research") / rel,
+            Path(__file__).resolve().parents[3] / "apps_research" / rel,
+        ]
+        assert any(p.exists() for p in candidates), "YAML package file should exist"
 
 
 if __name__ == "__main__":

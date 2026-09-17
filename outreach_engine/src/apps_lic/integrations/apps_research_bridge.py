@@ -21,14 +21,10 @@ from typing import Any
 
 _log = logging.getLogger(__name__)
 
-# Ensure repository root and resume_graph_engine/src (for apps_shared) are on sys.path
+# Ensure repository root is on sys.path
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent.parent
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
-
-_SHARED_SRC = _REPO_ROOT / "resume_graph_engine" / "src"
-if _SHARED_SRC.is_dir() and str(_SHARED_SRC) not in sys.path:
-    sys.path.insert(0, str(_SHARED_SRC))
 
 
 @dataclass(frozen=True)

@@ -73,8 +73,13 @@ class FeedbackController:
     5. Exceeded recovery budgets strictly yield ControllerAction.TERMINAL_FAIL.
     """
 
-    def __init__(self, default_budget: RecoveryBudget | None = None) -> None:
+    def __init__(
+        self,
+        default_budget: RecoveryBudget | None = None,
+        learning_store: Any | None = None,
+    ) -> None:
         self.default_budget = default_budget or RecoveryBudget()
+        self.learning_store = learning_store
 
     def evaluate_result(
         self,
@@ -172,12 +177,29 @@ class FeedbackController:
                 retryable=True,
                 evidence=tuple(evidence),
             )
+            # Query empirical repair hints from persistent learning store
+            empirical_hint = ""
+            if self.learning_store:
+                try:
+                    for err in errors:
+                        self.learning_store.record_failure(
+                            failure_kind, err, run_id=state.run_id if state else ""
+                        )
+                    hints: list[str] = []
+                    for err in errors:
+                        hints.extend(self.learning_store.get_repair_hints(failure_kind, err))
+                    if hints:
+                        empirical_hint = f"Empirical hint from prior runs: {'; '.join(hints[:3])}"
+                except Exception:
+                    pass
+
             return FeedbackDecision(
                 action=ControllerAction.REQUEST_SEMANTIC_REVISION,
                 revision_request=req,
                 failure=failure,
                 diagnostic=f"Semantic revision requested (attempt {current_revisions + 1}/{max_revisions}).",
                 can_retry=True,
+                repair_hint=empirical_hint,
             )
 
         # Planning failures trigger cognitive replanning
@@ -242,3 +264,29 @@ class FeedbackController:
             diagnostic=f"Transport retry eligible ({current_retries + 1}/{max_retries}).",
             can_retry=True,
         )
+
+    def record_resolution_outcome(
+        self,
+        failure_kind: FailureKind,
+        constraint: str,
+        *,
+        run_id: str = "",
+        action_taken: str = "SEMANTIC_REVISION",
+        repair_hint: str = "",
+        outcome: str = "SUCCESS",
+    ) -> None:
+        """Record resolution efficacy into learning store if configured."""
+        if self.learning_store:
+            try:
+                from agents.orchestration.learning_store import compute_failure_signature
+
+                sig_hash = compute_failure_signature(failure_kind, constraint)
+                self.learning_store.record_resolution(
+                    sig_hash,
+                    run_id=run_id,
+                    action_taken=action_taken,
+                    repair_hint=repair_hint,
+                    outcome=outcome,
+                )
+            except Exception:
+                pass

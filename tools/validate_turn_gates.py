@@ -131,6 +131,44 @@ def validate_pre_turn_gate(repo_root: Path | None = None) -> dict[str, Any]:
             issues.append(f"Failed parsing provider profiles: {exc}")
             checks["provider_profiles"] = {"status": "FAIL", "error": str(exc)}
 
+    # Check 7: Implementation Plan & Mandatory Wave Summary Table validation
+    try:
+        from tools.validate_implementation_plan import (
+            extract_wave_summary_entries,
+            get_active_plan_file,
+            validate_file,
+        )
+
+        active_plan = get_active_plan_file(root)
+        if active_plan:
+            is_valid, plan_issues = validate_file(active_plan, repo_root=root)
+            entries, _ = extract_wave_summary_entries(active_plan.read_text(encoding="utf-8"))
+            checks["implementation_plan"] = {
+                "status": "PASS" if is_valid else "FAIL",
+                "active_plan": active_plan.name,
+                "wave_count": len(entries),
+                "wave_summary": [
+                    {
+                        "wave": e["wave"],
+                        "description": e["description"],
+                        "status": e["status"],
+                        "check_open": e["check_open"],
+                    }
+                    for e in entries
+                ],
+            }
+            if not is_valid:
+                issues.extend([f"Plan {active_plan.name}: {iss}" for iss in plan_issues])
+        else:
+            checks["implementation_plan"] = {
+                "status": "PASS",
+                "active_plan": None,
+                "note": "No active implementation plan found.",
+            }
+    except Exception as exc:
+        checks["implementation_plan"] = {"status": "FAIL", "error": str(exc)}
+        issues.append(f"Failed validating implementation plan: {exc}")
+
     overall_status = "PASS" if not issues else "FAIL"
     return {
         "gate": "PRE_TURN",
@@ -138,6 +176,7 @@ def validate_pre_turn_gate(repo_root: Path | None = None) -> dict[str, Any]:
         "issues": issues,
         "checks": checks,
     }
+
 
 
 def validate_agent_operating_contract(repo_root: Path | None = None) -> dict[str, Any]:
@@ -342,8 +381,17 @@ def main(argv: list[str] | None = None) -> int:
         if post_result["status"] != "PASS":
             exit_code = 1
 
+    active_plan_info = results.get("pre_turn", {}).get("checks", {}).get("implementation_plan", {})
+    if active_plan_info.get("wave_summary"):
+        try:
+            from tools.validate_implementation_plan import render_wave_summary_table
+            print(render_wave_summary_table(active_plan_info["active_plan"], active_plan_info["wave_summary"]))
+        except Exception:
+            pass
+
     print(json.dumps(results, indent=2))
     return exit_code
+
 
 
 if __name__ == "__main__":
