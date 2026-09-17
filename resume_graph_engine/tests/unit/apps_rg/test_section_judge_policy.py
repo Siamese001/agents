@@ -59,7 +59,7 @@ def test_section_judge_policy_matrix() -> None:
         "max_attempts": 3,
         "retry_backoff_base_seconds": 0.5,
         "retry_backoff_max_seconds": 4.0,
-        "gemini_thinking_level": "medium",
+        "gemini_thinking_level": "high",
     }
     assert matrix["headline"]["judge_tier"] == JudgeTier.STANDARD_REASONING.value
     assert matrix["headline"]["judge_runtime_profile"] == {
@@ -69,12 +69,12 @@ def test_section_judge_policy_matrix() -> None:
         "max_attempts": 2,
         "retry_backoff_base_seconds": 0.5,
         "retry_backoff_max_seconds": 1.0,
-        "gemini_thinking_level": "low",
+        "gemini_thinking_level": "high",
     }
+    assert matrix["slalom_bullets"]["judge_tier"] == JudgeTier.BULLET_REWRITE_QUALITY.value
     assert matrix["unify_bullets"]["judge_tier"] == JudgeTier.BULLET_REWRITE_QUALITY.value
     assert matrix["ibm_bullets"]["judge_tier"] == JudgeTier.BULLET_REWRITE_QUALITY.value
     assert matrix["insurtech_bullets"]["judge_tier"] == JudgeTier.BULLET_REWRITE_QUALITY.value
-    assert matrix["ey_bullets"]["judge_tier"] == JudgeTier.BULLET_REWRITE_QUALITY.value
     assert matrix["unify_bullets"]["judge_runtime_profile"] == matrix["ibm_bullets"]["judge_runtime_profile"]
     assert matrix["unify_bullets"]["judge_runtime_profile"] == {
         "judge_weight": 2,
@@ -83,12 +83,12 @@ def test_section_judge_policy_matrix() -> None:
         "max_attempts": 2,
         "retry_backoff_base_seconds": 0.5,
         "retry_backoff_max_seconds": 1.0,
-        "gemini_thinking_level": "low",
+        "gemini_thinking_level": "high",
     }
+    assert matrix["slalom_narrative"]["judge_tier"] == JudgeTier.STANDARD_REASONING.value
     assert matrix["unify_narrative"]["judge_tier"] == JudgeTier.STANDARD_REASONING.value
     assert matrix["ibm_narrative"]["judge_tier"] == JudgeTier.STANDARD_REASONING.value
     assert matrix["insurtech_narrative"]["judge_tier"] == JudgeTier.STANDARD_REASONING.value
-    assert matrix["ey_narrative"]["judge_tier"] == JudgeTier.STANDARD_REASONING.value
     assert matrix["unify_narrative"]["judge_runtime_profile"] == matrix["unify_bullets"]["judge_runtime_profile"]
     assert matrix["competencies"]["judge_runtime_profile"] == matrix["unify_bullets"]["judge_runtime_profile"]
     assert matrix["competencies"]["judge_required_for_proof"] is True
