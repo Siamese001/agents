@@ -133,3 +133,27 @@ def test_fusion_applies_stage2_metric_authority_boost() -> None:
     assert fused[1]["assertion_id"] == "skill_a"
     assert fused[1]["metric_authority_boost"] == 0.0
 
+
+def test_fusion_rejects_invalid_metric_boost_values() -> None:
+    for invalid_boost in (-0.05, 0.25, float("nan"), float("inf")):
+        with pytest.raises(GraphSkillHybridRetrievalError, match="metric_boost"):
+            fuse_dense_bm25(
+                [{"assertion_id": "skill_a", "similarity": 0.90}],
+                [{"assertion_id": "skill_a", "bm25_score": 2.0}],
+                assertion_ids={"skill_a"},
+                metric_bearing_assertion_ids={"skill_a"},
+                metric_boost=invalid_boost,
+            )
+
+
+def test_fusion_rejects_unauthorized_metric_bearing_assertion_ids() -> None:
+    with pytest.raises(GraphSkillHybridRetrievalError, match="unauthorized IDs"):
+        fuse_dense_bm25(
+            [{"assertion_id": "skill_a", "similarity": 0.90}],
+            [{"assertion_id": "skill_a", "bm25_score": 2.0}],
+            assertion_ids={"skill_a"},
+            metric_bearing_assertion_ids={"skill_rogue"},
+            metric_boost=0.05,
+        )
+
+

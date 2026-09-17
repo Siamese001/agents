@@ -356,13 +356,16 @@ def metric_outcome_node_and_edge_rows(
                         }
                     )
 
-    # Deduplicate edge_rows by edge_id
+    # Deduplicate edge_rows by edge_id and endpoint signature tuple
     seen_edge_ids: set[str] = set()
+    seen_endpoints: set[tuple[str, str, str]] = set()
     unique_edge_rows: list[dict[str, Any]] = []
     for edge in edge_rows:
-        eid = edge["edge_id"]
-        if eid not in seen_edge_ids:
+        eid = str(edge["edge_id"])
+        ep = (str(edge["source_node_id"]), str(edge["target_node_id"]), str(edge["edge_type"]))
+        if eid not in seen_edge_ids and ep not in seen_endpoints:
             seen_edge_ids.add(eid)
+            seen_endpoints.add(ep)
             unique_edge_rows.append(edge)
 
     return node_rows, unique_edge_rows
