@@ -30,6 +30,21 @@ refactors spanning files, ADG / dependency analysis, test-strategy design. NOT r
   scope. Ask again only when the requested action would exceed that scope.
 - T0/T1 ⇒ proceed directly.
 
+## Mandatory Implementation Status Table
+
+Every implementation plan (`implementation_plan.md` or `plans/*.md`) must include a top-level **Implementation Status Table** providing an immediate visual dashboard of wave progression:
+
+| Wave / Component | Description | Status | Deliverables / Receipts |
+|---|---|---|---|
+| Wave 1: Foundation | Core schema updates | COMPLETED | `tools/validator.py` |
+| Wave 2: Integration | Downstream wiring | IN_PROGRESS | `agentic_core/` |
+| Wave 3: Verification | Full regression run | PENDING | Test receipts |
+
+- **Required Columns**: Wave/Component, Description/Scope, Status, Deliverables/Receipts.
+- **Canonical Statuses**: `COMPLETED`, `COMPLETE`, `DONE`, `IN_PROGRESS`, `PENDING`, `OPEN`, `BLOCKED`, `NOT_STARTED`, `PLANNED`.
+- **Wave Coverage**: Every wave declared in the plan body (`## Wave <N>`) must have a corresponding row in the table.
+- **Mechanical Validation**: Enforced by `tools/validate_implementation_plan.py` and `agents-implementation-plan-guard`.
+
 ## Retrieval discipline at T2/T3 (unchanged)
 
 Before synthesis, pull evidence in this order: local repo guidance + nearby docs → exact files /

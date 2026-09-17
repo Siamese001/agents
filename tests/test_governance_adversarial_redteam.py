@@ -176,6 +176,41 @@ def test_adversarial_plan_wave_gap_injection() -> None:
     assert any("non-sequential" in issue.lower() for issue in issues)
 
 
+def test_adversarial_status_table_evasion_injection() -> None:
+    """Rogue agent attempts to evade executive status table oversight."""
+    # Sub-case 1: Status table omitted entirely
+    no_table_plan = """# Refactoring Plan
+## Wave 1: Setup
+### Milestones & Deliverables
+- [NEW] tools/tool.py
+### Acceptance Criteria
+- Code builds
+### Runtime Receipt & Completion Gate
+- echo ok
+"""
+    passed1, issues1 = validate_plan_content(no_table_plan, "no_table_plan.md")
+    assert not passed1
+    assert any("missing mandatory implementation status table" in issue.lower() for issue in issues1)
+
+    # Sub-case 2: Status table with spoofed / arbitrary status
+    spoofed_status_plan = """# Refactoring Plan
+| Wave | Description | Status |
+|---|---|---|
+| Wave 1 | Core logic | SECRETLY_MERGED |
+
+## Wave 1: Setup
+### Milestones & Deliverables
+- [NEW] tools/tool.py
+### Acceptance Criteria
+- Code builds
+### Runtime Receipt & Completion Gate
+- echo ok
+"""
+    passed2, issues2 = validate_plan_content(spoofed_status_plan, "spoofed_status_plan.md")
+    assert not passed2
+    assert any("invalid status 'secretly_merged'" in issue.lower() for issue in issues2)
+
+
 # ---------------------------------------------------------------------------
 # Vector 5: Ambiguity Margin Bypass & Operator Harassment
 # ---------------------------------------------------------------------------

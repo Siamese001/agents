@@ -14,6 +14,7 @@ import json
 import logging
 import os
 import sys
+import threading
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -99,6 +100,7 @@ class GovernedBriefingResolver:
     """Resolves briefing context for outreach through governed multi-path resolution."""
 
     _cache: dict[str, dict[str, Any]] = {}
+    _lock = threading.Lock()
 
     @classmethod
     def resolve(
@@ -125,10 +127,41 @@ class GovernedBriefingResolver:
                     + "\n".join(f"- {p}" for p in priorities)
                 )
 
+            # Check if manual_brief_or_fixture is a local file path to capture mtime
+            mtime = 0.0
+            if len(raw_content) < 500:
+                p = Path(raw_content)
+                if p.is_file():
+                    try:
+                        mtime = p.stat().st_mtime
+                        raw_content = p.read_text(encoding="utf-8").strip()
+                    except OSError:
+                        pass
+
+            manual_cache_key = hashlib.sha256(
+                f"MANUAL::{company_name}::{target_role}::{mtime}::{raw_content}::{priorities}".encode("utf-8")
+            ).hexdigest()
+
+            with cls._lock:
+                if manual_cache_key in cls._cache:
+                    cached = cls._cache[manual_cache_key]
+                    return SealedBriefingResolution(
+                        briefing_text=cached["briefing_text"],
+                        digest=cached["digest"],
+                        resolution_source="MANUAL",
+                        company_name=company_name,
+                        target_role=target_role,
+                        confidence_score=1.0,
+                        evidence_count=cached["evidence_count"],
+                        airlock_sanitized=cached["airlock_sanitized"],
+                        strategic_priorities=priorities,
+                        metadata=dict(cached.get("metadata", {})),
+                    )
+
             # Sanitize all manual input through the Adversarial Injection Airlock
             clean_brief, receipt = sanitize_briefing_content(raw_content, trace_id=trace_id)
 
-            return SealedBriefingResolution(
+            res = SealedBriefingResolution(
                 briefing_text=clean_brief,
                 digest=receipt.clean_digest,
                 resolution_source="MANUAL",
@@ -143,6 +176,15 @@ class GovernedBriefingResolver:
                     "signals_flagged": list(receipt.injection_signals_detected),
                 },
             )
+            with cls._lock:
+                cls._cache[manual_cache_key] = {
+                    "briefing_text": clean_brief,
+                    "digest": receipt.clean_digest,
+                    "evidence_count": len(priorities) or 1,
+                    "airlock_sanitized": receipt.sanitized,
+                    "metadata": res.metadata,
+                }
+            return res
 
         # Compute cache key
         cache_key = hashlib.sha256(
@@ -150,22 +192,23 @@ class GovernedBriefingResolver:
         ).hexdigest()
 
         # PATH B: Cache Hit
-        if cache_key in cls._cache:
-            cached = cls._cache[cache_key]
-            return SealedBriefingResolution(
-                briefing_text=cached["briefing_text"],
-                digest=cached["digest"],
-                resolution_source="CACHE_HIT",
-                company_name=company_name,
-                target_role=target_role,
-                confidence_score=0.90,
-                evidence_count=cached.get("evidence_count", 1),
-                airlock_sanitized=cached.get("airlock_sanitized", False),
-                strategic_priorities=tuple(cached.get("strategic_priorities", ())),
-                research_artifact_dir=cached.get("research_artifact_dir", ""),
-                briefing_artifact_path=cached.get("briefing_artifact_path", ""),
-                metadata={"cache_key": cache_key},
-            )
+        with cls._lock:
+            if cache_key in cls._cache:
+                cached = cls._cache[cache_key]
+                return SealedBriefingResolution(
+                    briefing_text=cached["briefing_text"],
+                    digest=cached["digest"],
+                    resolution_source="CACHE_HIT",
+                    company_name=company_name,
+                    target_role=target_role,
+                    confidence_score=0.90,
+                    evidence_count=cached.get("evidence_count", 1),
+                    airlock_sanitized=cached.get("airlock_sanitized", False),
+                    strategic_priorities=tuple(cached.get("strategic_priorities", ())),
+                    research_artifact_dir=cached.get("research_artifact_dir", ""),
+                    briefing_artifact_path=cached.get("briefing_artifact_path", ""),
+                    metadata={"cache_key": cache_key},
+                )
 
         # PATH C: Autonomous Research via AppsResearchBridge
         if auto_research:
@@ -193,15 +236,16 @@ class GovernedBriefingResolver:
                     dispatch_res.briefing_text, trace_id=trace_id
                 )
                 priorities = dispatch_res.strategic_priorities or ()
-                cls._cache[cache_key] = {
-                    "briefing_text": clean_brief,
-                    "digest": receipt.clean_digest,
-                    "evidence_count": dispatch_res.research_evidence_count,
-                    "airlock_sanitized": receipt.sanitized,
-                    "strategic_priorities": priorities,
-                    "research_artifact_dir": dispatch_res.research_artifact_dir,
-                    "briefing_artifact_path": dispatch_res.research_briefing_path,
-                }
+                with cls._lock:
+                    cls._cache[cache_key] = {
+                        "briefing_text": clean_brief,
+                        "digest": receipt.clean_digest,
+                        "evidence_count": dispatch_res.research_evidence_count,
+                        "airlock_sanitized": receipt.sanitized,
+                        "strategic_priorities": priorities,
+                        "research_artifact_dir": dispatch_res.research_artifact_dir,
+                        "briefing_artifact_path": dispatch_res.research_briefing_path,
+                    }
                 return SealedBriefingResolution(
                     briefing_text=clean_brief,
                     digest=receipt.clean_digest,

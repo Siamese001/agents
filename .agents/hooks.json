@@ -92,7 +92,7 @@
     {
       "id": "agents-implementation-plan-guard",
       "event": "pre_tool_call",
-      "description": "Before writing or editing any implementation plan (implementation_plan.md or plans/*.md), verify that the plan is wave-based, sequentially numbered, and defines explicit milestones/deliverables, acceptance criteria, and runtime receipt completion gates for every wave.",
+      "description": "Before writing or editing any implementation plan (implementation_plan.md or plans/*.md), verify that the plan contains a mandatory Implementation Status Table (with Wave/Component, Description/Scope, Status, and Deliverables), is wave-based, sequentially numbered, and defines explicit milestones/deliverables, acceptance criteria, and runtime receipt completion gates for every wave.",
       "match": {
         "tool": "write_to_file",
         "also_match": [
@@ -105,7 +105,7 @@
         ]
       },
       "action": "verify_and_warn",
-      "instructions": "Before writing or modifying an implementation plan: (1) verify the plan is wave-based with sequential '## Wave 1', '## Wave 2' headings, (2) verify every wave declares 'Milestones & Deliverables' with itemized outputs, 'Acceptance Criteria', and 'Runtime Receipt & Completion Gate', (3) run 'python tools/validate_implementation_plan.py' to verify schema compliance. Block the write if any requirement is violated.",
+      "instructions": "Before writing or modifying an implementation plan: (1) verify the plan declares an Implementation Status Table with columns for Wave/Component, Description/Scope, Status (e.g. COMPLETED, IN_PROGRESS, PENDING, OPEN, BLOCKED), and Deliverables/Receipts, (2) verify the plan is wave-based with sequential '## Wave 1', '## Wave 2' headings, (3) verify every wave declares 'Milestones & Deliverables' with itemized outputs, 'Acceptance Criteria', and 'Runtime Receipt & Completion Gate', (4) run 'python tools/validate_implementation_plan.py' to verify schema compliance. Block the write if any requirement is violated.",
       "severity": "blocking"
     },
     {
