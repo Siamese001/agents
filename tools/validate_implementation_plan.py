@@ -515,25 +515,37 @@ def get_active_plan_file(repo_root: Optional[Path] = None) -> Optional[Path]:
             if cand.is_file():
                 return cand
 
-    # 3. Check Antigravity IDE brain artifacts directory (~/.gemini/antigravity-ide/brain/*)
+    # 3. Check Antigravity IDE conversation-specific brain artifacts directory
+    conv_id = os.environ.get("ANTIGRAVITY_CONVERSATION_ID")
     ide_brain_dir = Path.home() / ".gemini" / "antigravity-ide" / "brain"
-    if ide_brain_dir.is_dir():
+    if conv_id and ide_brain_dir.is_dir():
+        conv_plan = ide_brain_dir / conv_id / "implementation_plan.md"
+        if conv_plan.is_file():
+            return conv_plan
+
+    # 4. Check recent brain plans if they belong to this repository
+    if not conv_id and ide_brain_dir.is_dir():
         recent_brain_plans = sorted(
             ide_brain_dir.glob("*/implementation_plan.md"),
             key=lambda p: p.stat().st_mtime,
             reverse=True,
         )
-        if recent_brain_plans:
-            latest_brain = recent_brain_plans[0]
-            # Compare with repo plans; if brain plan is more recent, prefer it
-            plans_dir = root / "plans"
-            if plans_dir.is_dir():
-                recent_plans = sorted(plans_dir.glob("*.md"), key=lambda p: p.stat().st_mtime, reverse=True)
-                if recent_plans and recent_plans[0].stat().st_mtime > latest_brain.stat().st_mtime:
-                    return recent_plans[0]
-            return latest_brain
+        for cand in recent_brain_plans:
+            try:
+                content = cand.read_text(encoding="utf-8")
+                git_dir_matches = re.findall(r"/Users/[^/\s]+/Git/([^/\s\"'\`\)]+)", content)
+                if git_dir_matches and not any(m == root.name for m in git_dir_matches):
+                    continue
+                plans_dir = root / "plans"
+                if plans_dir.is_dir():
+                    recent_plans = sorted(plans_dir.glob("*.md"), key=lambda p: p.stat().st_mtime, reverse=True)
+                    if recent_plans and recent_plans[0].stat().st_mtime > cand.stat().st_mtime:
+                        return recent_plans[0]
+                return cand
+            except Exception:
+                continue
 
-    # 4. Fall back to plans/ directory
+    # 5. Fall back to plans/ directory
     plans_dir = root / "plans"
     if plans_dir.is_dir():
         recent_plans = sorted(plans_dir.glob("*.md"), key=lambda p: p.stat().st_mtime, reverse=True)
