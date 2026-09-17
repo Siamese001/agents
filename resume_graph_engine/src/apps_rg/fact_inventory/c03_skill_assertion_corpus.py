@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from collections.abc import Iterable, Mapping
 from typing import Any
 
@@ -104,19 +105,73 @@ def _label(row: Mapping[str, Any], node: Mapping[str, Any]) -> str:
     raise SkillAssertionCorpusError("skill assertion has no semantic label")
 
 
+_DISCLAIMERS = [
+    re.compile(
+        r";?\s*this structural support does not independently authorize identity claims\.?",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r";?\s*this taxonomy relationship scopes chronology and is not independent claim proof\.?",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r";?\s*this pillar is a taxonomy boundary; external claims still require linked evidence authority\.?",
+        re.IGNORECASE,
+    ),
+]
+
+_METRIC_PATTERNS = [
+    re.compile(r"\$[\d,.]+[BMKbmk]?"),
+    re.compile(r"\b\d+(?:\.\d+)?%"),
+    re.compile(r"\b\d+\s+to\s+\d+\b"),
+    re.compile(r"\b\d+x\b", re.IGNORECASE),
+]
+
+
+def _clean_search_text(text: str) -> str:
+    cleaned = text
+    for pattern in _DISCLAIMERS:
+        cleaned = pattern.sub("", cleaned)
+    return re.sub(r"\s+", " ", cleaned).strip(" ;.")
+
+
+def _extract_metrics(texts: Iterable[str]) -> list[str]:
+    found: set[str] = set()
+    for text in texts:
+        if not text:
+            continue
+        for pattern in _METRIC_PATTERNS:
+            for match in pattern.findall(str(text)):
+                cleaned = match.strip()
+                if cleaned:
+                    found.add(cleaned)
+    return sorted(found)
+
+
 def _embedding_text(semantic_card: Mapping[str, Any]) -> str:
-    fields = [
-        f"Skill: {semantic_card['label']}",
-        f"Capability: {semantic_card['capability']}",
-        f"Description: {semantic_card['description']}",
-        f"Allowed phrases: {'; '.join(semantic_card['allowed_phrases'])}",
-        f"Pillar: {semantic_card['pillar']}",
-        f"Domain: {semantic_card['domain_id']}",
-        f"Career epoch: {semantic_card['career_epoch']}",
-        f"Career track: {semantic_card['career_track_id']}",
-        f"Evidence: {'; '.join(semantic_card['evidence_summaries'])}",
+    parts = [
+        f"[Capability] {semantic_card['capability']}",
     ]
-    return "\n".join(fields)
+    raw_desc = str(semantic_card.get("description") or "").strip()
+    desc = _clean_search_text(raw_desc) if raw_desc else ""
+    if desc:
+        parts.append(f"[Description] {desc}")
+    phrases = semantic_card.get("allowed_phrases") or []
+    if phrases:
+        parts.append(f"[Keywords] {'; '.join(phrases)}")
+    pillar = str(semantic_card.get("pillar") or "").strip()
+    domain = str(semantic_card.get("domain_id") or "").strip()
+    if pillar or domain:
+        parts.append(f"[Domain] {pillar} / {domain}".strip(" /"))
+    metrics = semantic_card.get("metric_summaries") or semantic_card.get("quantified_metrics") or []
+    if metrics:
+        parts.append(f"[Metrics] {'; '.join(metrics)}")
+    evidence = semantic_card.get("evidence_summaries") or []
+    cleaned_ev = [_clean_search_text(s) for s in evidence if s]
+    cleaned_ev = [s for s in cleaned_ev if s]
+    if cleaned_ev:
+        parts.append(f"[Evidence] {'; '.join(cleaned_ev)}")
+    return " | ".join(parts)
 
 
 def build_skill_assertion_corpus(
@@ -186,16 +241,21 @@ def build_skill_assertion_corpus(
         if node is None:
             raise SkillAssertionCorpusError(f"{skill_id}: graph identity missing")
         label = _label(row, node)
+        desc = str(node.get("description") or "").strip()
+        summaries_set = sorted(set(summaries))
+        metrics = _extract_metrics(summaries_set + [desc])
         semantic_card = {
             "label": label,
             "capability": str(row.get("capability") or row.get("subpillar") or label),
-            "description": str(node.get("description") or "").strip(),
+            "description": desc,
             "allowed_phrases": _strings(row.get("allowed_phrases")),
             "pillar": str(row.get("pillar") or "").strip(),
             "domain_id": str(row.get("domain_id") or "").strip(),
             "career_epoch": str(row.get("career_epoch") or "").strip(),
             "career_track_id": str(row.get("career_track_id") or "").strip(),
-            "evidence_summaries": sorted(set(summaries)),
+            "evidence_summaries": summaries_set,
+            "quantified_metrics": metrics,
+            "metric_summaries": _strings(row.get("linked_metric_outcome_ids")),
         }
         allowed_sections = _strings(row.get("allowed_sections"))
         authority_envelope = {

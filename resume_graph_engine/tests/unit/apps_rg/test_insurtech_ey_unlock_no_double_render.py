@@ -24,15 +24,21 @@ from apps_rg.runtime.locked_copy.locked_copy_manifest import LOCKED_SECTION_IDS
 GENERATED_ROLE_SECTIONS = (
     "insurtech_bullets",
     "insurtech_narrative",
-    "ey_bullets",
-    "ey_narrative",
+    "slalom_bullets",
+    "slalom_narrative",
 )
 
 
-def test_generated_insurtech_ey_sections_are_generated_lanes() -> None:
+def test_generated_role_sections_are_generated_lanes() -> None:
     for sid in GENERATED_ROLE_SECTIONS:
         assert sid in GENERATED_LANE_IDS, f"{sid} must be a generated lane"
         assert sid in CANONICAL_ASSEMBLED_SECTION_ORDER, f"{sid} must be in the assembled order"
+
+
+def test_ey_consolidated_into_locked_early_career() -> None:
+    assert "ey_bullets" not in GENERATED_LANE_IDS
+    assert "ey_narrative" not in GENERATED_LANE_IDS
+    assert "early_career" in CANONICAL_ASSEMBLED_SECTION_ORDER
 
 
 def test_locked_employer_names_not_in_assembled_order() -> None:

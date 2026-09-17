@@ -84,3 +84,24 @@ def test_corpus_is_deterministic_and_self_validating() -> None:
     unsigned = dict(first)
     digest = unsigned.pop("corpus_sha256")
     assert digest == canonical_sha256(unsigned)
+
+
+def test_assertions_extract_metrics_and_strip_boilerplate_disclaimers() -> None:
+    _graph, corpus = _corpus()
+    total_metrics = 0
+    for assertion in corpus["assertions"]:
+        card = assertion["semantic_card"]
+        assert "quantified_metrics" in card
+        assert isinstance(card["quantified_metrics"], list)
+        total_metrics += len(card["quantified_metrics"])
+
+        text = assertion["embedding_text"]
+        assert (
+            "this structural support does not independently authorize identity claims"
+            not in text
+        )
+        assert "this taxonomy relationship scopes chronology" not in text
+        assert "this pillar is a taxonomy boundary" not in text
+
+    assert total_metrics > 0
+

@@ -8,9 +8,16 @@ from pathlib import Path
 
 import pytest
 
+ROOT = Path(__file__).resolve().parents[4]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+import tools
+if str(ROOT / "tools") not in tools.__path__:
+    tools.__path__.append(str(ROOT / "tools"))
+
 from tools.apps_rg_standalone import c03_embeddings
 
-ROOT = Path(__file__).resolve().parents[4]
 ACTIVE = ROOT / "artifacts/apps_rg/c03/graph_skill_embeddings"
 
 

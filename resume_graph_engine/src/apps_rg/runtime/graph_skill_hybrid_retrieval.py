@@ -72,10 +72,17 @@ def reciprocal_rank_fusion(
     *,
     assertion_ids: set[str],
     rank_constant: int = 60,
+    authority_boosts: Mapping[str, float] | None = None,
 ) -> list[dict[str, float | int | str | None]]:
-    """Fuse ranked assertion IDs without exposing anything beyond IDs/scores."""
+    """Fuse ranked assertion IDs with optional calibrated authority boosts."""
     if rank_constant <= 0:
         raise GraphSkillHybridRetrievalError("RRF rank constant must be positive")
+    if authority_boosts:
+        for _aid, boost in authority_boosts.items():
+            if not math.isfinite(float(boost)) or float(boost) < 0:
+                raise GraphSkillHybridRetrievalError(
+                    "authority boosts must be non-negative and finite"
+                )
     scores = dict.fromkeys(assertion_ids, 0.0)
     ranks: dict[str, list[int | None]] = {
         assertion_id: [None] * len(rankings) for assertion_id in assertion_ids
@@ -87,6 +94,10 @@ def reciprocal_rank_fusion(
                 scores[assertion_id] += 1.0 / (rank_constant + rank)
                 ranks[assertion_id][source_index] = rank
                 seen.add(assertion_id)
+    if authority_boosts:
+        for assertion_id, boost in authority_boosts.items():
+            if assertion_id in scores and boost > 0:
+                scores[assertion_id] += float(boost)
     ordered = sorted(assertion_ids, key=lambda assertion_id: (-scores[assertion_id], assertion_id))
     return [
         {
@@ -104,6 +115,9 @@ def fuse_dense_bm25(
     *,
     assertion_ids: set[str],
     rank_constant: int = 60,
+    authority_boosts: Mapping[str, float] | None = None,
+    metric_bearing_assertion_ids: set[str] | None = None,
+    metric_boost: float = 0.05,
 ) -> list[dict[str, float | int | str | None]]:
     """Fuse dense and BM25 rankings with component scores retained for audit."""
     dense_scores: dict[str, float] = {}
@@ -132,8 +146,9 @@ def fuse_dense_bm25(
         [list(dense_scores), list(bm25_scores)],
         assertion_ids=assertion_ids,
         rank_constant=rank_constant,
+        authority_boosts=authority_boosts,
     )
-    return [
+    result = [
         row
         | {
             "dense_similarity": dense_scores.get(str(row["assertion_id"])),
@@ -143,6 +158,21 @@ def fuse_dense_bm25(
         }
         for row in fused
     ]
+    if metric_bearing_assertion_ids is not None:
+        boosted = []
+        for r in result:
+            aid = str(r["assertion_id"])
+            boost = metric_boost if aid in metric_bearing_assertion_ids else 0.0
+            boosted.append(
+                r
+                | {
+                    "metric_authority_boost": boost,
+                    "final_score": round(float(r["rrf_score"]) + boost, 6),
+                }
+            )
+        boosted.sort(key=lambda r: (-float(r["final_score"]), str(r["assertion_id"])))
+        return boosted
+    return result
 
 
 __all__ = [

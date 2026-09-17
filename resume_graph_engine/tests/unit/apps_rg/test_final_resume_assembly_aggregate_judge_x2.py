@@ -148,7 +148,7 @@ def test_final_resume_x2_rejects_failed_final_materialized_contract(tmp_path: Pa
                 rollup_source_run_dir=_write_final_materialized_contract(
                     repo,
                     lane,
-                    pass_=lane != "ey_bullets",
+                    pass_=lane != "insurtech_bullets",
                 ),
             )
             for lane in GENERATED_LANE_IDS
@@ -167,7 +167,7 @@ def test_final_resume_x2_rejects_failed_final_materialized_contract(tmp_path: Pa
 
     gate = _gate(results, "x2_generated_sections_final_materialized_contracts_pass")
     assert gate.pass_ is False
-    assert "ey_bullets:final_materialized_acceptance_contract_failed" in str(gate.observed_value)
+    assert "insurtech_bullets:final_materialized_acceptance_contract_failed" in str(gate.observed_value)
 
 
 def test_final_resume_x2_rejects_pass_true_contract_without_x2_binding_proof(tmp_path: Path):
