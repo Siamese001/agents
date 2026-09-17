@@ -1,7 +1,7 @@
-"""apps_shared orchestration primitives."""
+"""apps_research orchestration primitives."""
 from __future__ import annotations
 
-from apps_shared.orchestration.hop_pipeline import (
+from apps_research.orchestration.hop_pipeline import (
     Checkpoint,
     HopPipelineExecutor,
     HopRegistry,

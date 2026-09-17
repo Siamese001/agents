@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from apps_shared.spine.base_spine_adapter import BaseSpineAdapter
+from apps_research.spine.base_spine_adapter import BaseSpineAdapter
 
 _RESEARCH_PREFIX = "rsch-"
 

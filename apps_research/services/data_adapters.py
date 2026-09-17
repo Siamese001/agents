@@ -1,4 +1,4 @@
-"""apps_shared data adapters."""
+"""Data adapters for apps_research."""
 
 from __future__ import annotations
 

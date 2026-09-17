@@ -1,10 +1,10 @@
-"""Auto-wrap concrete engine `execute` methods with `seal_step()`."""
+"""Auto-wrap concrete engine `execute` methods with `seal_step()` for apps_research."""
 
 from __future__ import annotations
 
 import functools
 import inspect
-from typing import Any, Callable
+from typing import Any
 
 _WRAPPED_ATTR = "__seal_step_wrapped__"
 

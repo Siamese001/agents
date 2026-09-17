@@ -13,7 +13,7 @@ import json
 import re
 from pathlib import Path
 
-from apps_shared.contracts.cross_app.research_brief import (
+from apps_research.contracts.cross_app.research_brief import (
     ResearchBriefEnvelope,
     ResearchBriefPayload,
     ResearchClaimRow,

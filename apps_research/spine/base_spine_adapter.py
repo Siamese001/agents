@@ -1,4 +1,4 @@
-"""Base spine adapter for apps_shared."""
+"""Base spine adapter for apps_research."""
 
 from __future__ import annotations
 

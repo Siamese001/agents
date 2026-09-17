@@ -6,7 +6,7 @@ from typing import ClassVar, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from apps_shared.contracts.cross_app.base import CrossAppEnvelope
+from apps_research.contracts.cross_app.base import CrossAppEnvelope
 
 
 class ResearchClaimRow(BaseModel):

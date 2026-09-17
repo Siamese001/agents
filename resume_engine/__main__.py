@@ -4,15 +4,6 @@ from __future__ import annotations
 
 import os
 import sys
-from pathlib import Path
-
-_REPO_ROOT = Path(__file__).resolve().parent.parent
-_RG_SRC = _REPO_ROOT / "resume_graph_engine" / "src"
-
-for p in (_REPO_ROOT, _RG_SRC):
-    if p.is_dir() and str(p) not in sys.path:
-        sys.path.insert(0, str(p))
-
 import resume_graph_engine
 
 # Ensure local dev route signing secrets exist if not supplied in environment

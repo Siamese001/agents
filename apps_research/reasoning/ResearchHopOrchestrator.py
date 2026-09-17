@@ -18,7 +18,7 @@ from __future__ import annotations
 from typing import Any
 
 from apps_research.config.hop_pipeline import REGISTRY
-from apps_shared.orchestration import (
+from apps_research.orchestration import (
     Checkpoint,
     HopPipelineExecutor,
     HopRunRecord,

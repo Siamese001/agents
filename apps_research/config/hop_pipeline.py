@@ -20,7 +20,7 @@ Plan: docs/archive/windsurf/legacy-tree/plans/apps-hop-substrate-four-apps-b4a2c
 
 from __future__ import annotations
 
-from apps_shared.orchestration import HopRegistry, HopStageSpec
+from apps_research.orchestration import HopRegistry, HopStageSpec
 
 _STAGE_SPECS: list[HopStageSpec] = [
     HopStageSpec(

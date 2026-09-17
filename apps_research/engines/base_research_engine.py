@@ -33,7 +33,7 @@ class BaseResearchEngine(SemanticCacheMixin, EmbeddingMixin, ABC):
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
-        from apps_shared.utils.engine_seal_step_mixin import (  # noqa: PLC0415
+        from apps_research.utils.engine_seal_step_mixin import (  # noqa: PLC0415
             install_seal_step_autowrap,
         )
 
