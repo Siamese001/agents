@@ -37,9 +37,7 @@ from apps_rg.runtime.section_execution_plan import BULLET_LANES
 ParseFn = Callable[[str], tuple[dict[str, Any] | None, str]]
 
 BULLET_POOL_LANES: frozenset[str] = frozenset((*BULLET_LANES, "competencies"))
-PARALLEL_EMPLOYMENT_BULLET_SC_LANES: frozenset[str] = frozenset(
-    ("unify_bullets", "ibm_bullets")
-)
+PARALLEL_EMPLOYMENT_BULLET_SC_LANES: frozenset[str] = frozenset(EMPLOYMENT_BULLET_LANES)
 _DISABLE_FLAGS = frozenset(("0", "false", "no", "off"))
 
 
@@ -152,10 +150,10 @@ def self_consistency_max_parallel(section_lane: str, path_count: int) -> int:
     lane = str(section_lane or "").strip().lower()
     if lane == "competencies":
         env_name = "APPS_RG_COMPETENCIES_SC_MAX_PARALLEL"
-        default = 1
+        default = 2
     elif lane in PARALLEL_EMPLOYMENT_BULLET_SC_LANES:
         env_name = "APPS_RG_EMPLOYMENT_BULLET_SC_MAX_PARALLEL"
-        default = 2
+        default = 3
     else:
         return 1
     raw = os.environ.get(env_name, "").strip()

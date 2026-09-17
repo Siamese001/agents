@@ -41,10 +41,10 @@ def test_build_phase1_waves_wave0_is_upstream_proof_bearing() -> None:
     wave0 = waves[0]
     assert set(wave0.lanes) == {
         "competencies",
+        "slalom_bullets",
         "unify_bullets",
         "ibm_bullets",
         "insurtech_bullets",
-        "ey_bullets",
     }
     assert "executive_summary" not in wave0.lanes
 
@@ -56,7 +56,7 @@ def test_build_phase1_waves_exec_summary_is_downstream_solo() -> None:
     assert es_wave.lanes == ("executive_summary",)
     assert es_wave.max_parallel == 1
     # exec_summary runs after every upstream proof-bearing + narrative lane.
-    for upstream in ("competencies", "unify_bullets", "ibm_bullets", "unify_narrative", "ibm_narrative"):
+    for upstream in ("competencies", "slalom_bullets", "unify_bullets", "ibm_bullets", "slalom_narrative", "unify_narrative", "ibm_narrative"):
         assert lane_wave[upstream] < lane_wave["executive_summary"]
     # headline is final positioning, strictly after exec_summary.
     assert lane_wave["executive_summary"] < lane_wave["headline"]
@@ -90,10 +90,10 @@ def test_build_phase1_waves_narratives_parallel_after_bullets() -> None:
     waves = build_phase1_waves()
     nar_wave = next(w for w in waves if "unify_narrative" in w.lanes)
     assert set(nar_wave.lanes) == {
+        "slalom_narrative",
         "unify_narrative",
         "ibm_narrative",
         "insurtech_narrative",
-        "ey_narrative",
     }
     # narratives parallel (4); throttle via APPS_RG_PHASE1_MAX_PARALLEL if needed.
     assert nar_wave.max_parallel == 4
@@ -105,14 +105,14 @@ def test_dag_dependencies_keep_overview_behind_all_section_inputs() -> None:
     assert dependencies["ibm_narrative"] == ("ibm_bullets",)
     assert set(dependencies["executive_summary"]) == {
         "competencies",
+        "slalom_bullets",
         "unify_bullets",
         "ibm_bullets",
         "insurtech_bullets",
-        "ey_bullets",
+        "slalom_narrative",
         "unify_narrative",
         "ibm_narrative",
         "insurtech_narrative",
-        "ey_narrative",
     }
     assert dependencies["headline"][0] == "executive_summary"
 

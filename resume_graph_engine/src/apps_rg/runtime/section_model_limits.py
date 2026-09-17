@@ -374,7 +374,7 @@ def selector_role_for_section(section_id: str, *, slot_kind: str | None = None) 
     kind = str(slot_kind or "").strip().lower()
     if sid == "competencies" and kind == "competencies":
         return "competencies_graph_pool_selector"
-    if sid in {"slalom_bullets", "unify_bullets", "ibm_bullets", "insurtech_bullets"}:
+    if sid in {"slalom_bullets", "unify_bullets", "ibm_bullets", "insurtech_bullets", "ey_bullets"}:
         return "employment_bullet_pool_selector"
     raise SectionModelSSOTError(f"No selector model configured for section={sid!r} slot_kind={kind!r}")
 
