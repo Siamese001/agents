@@ -61,7 +61,7 @@ and this X1D judge must pass before competencies can be product proof eligible.
 Return JSON only with: score_scale, score, threshold, pass, decisive_failure, findings, cited_sentence_indexes, remediation_suggestions.
 
 Score contract:
-- score_scale must be "0_to_10", "0_to_5", or "0_to_1" (default standard: "0_to_10"). Required pass is 9.0/10.
+- score_scale must be "0_to_1" or "0_to_5". Do not omit score_scale. Required pass is 4.0/5.
 
 Rubric dimensions:
 1. factual_support: terms align with claim_ledger and allowed bul_* resume facts only; graph-skill support may inform phrasing, but JD/briefing never become proof.
