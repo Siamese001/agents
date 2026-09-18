@@ -12,7 +12,7 @@ from typing import Any
 from apps_rg.runtime.internal.generated_lane_rollup import GENERATED_LANES
 
 PLAN_ID = "graph-skills-quality-enhancement-c4e8a1"
-MIN_PASS_THRESHOLD = 0.80
+MIN_PASS_THRESHOLD = 0.90
 NON_CLAIM_NO_MASKING = (
     "Rubric port did not relax groundedness, specificity, or citation thresholds."
 )

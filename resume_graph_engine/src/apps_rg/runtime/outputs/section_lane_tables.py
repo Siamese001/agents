@@ -38,7 +38,9 @@ def _row_from_single_section(
         threshold = _score_text(j.get("threshold"))
         status = "PASS" if j.get("pass") is True else "FAIL" if j.get("pass") is False else "UNKNOWN"
         score_scale = str(j.get("score_scale") or "").strip().lower()
-        if score_scale == "0_to_1":
+        if score_scale == "0_to_10":
+            scale_denom = "10"
+        elif score_scale == "0_to_1":
             scale_denom = "1"
         elif score_scale == "0_to_100":
             scale_denom = "100"
@@ -47,9 +49,14 @@ def _row_from_single_section(
         else:
             try:
                 t_val = float(j.get("threshold") or 0.0)
-                scale_denom = "1" if 0 < t_val <= 1.0 else "5"
+                if t_val > 5.0:
+                    scale_denom = "10"
+                elif 0 < t_val <= 1.0:
+                    scale_denom = "1"
+                else:
+                    scale_denom = "5"
             except (ValueError, TypeError):
-                scale_denom = "5"
+                scale_denom = "10"
         summary_cells.append(f"{provider}{role_tag}{model_suffix}: {score}/{scale_denom} vs {threshold} {status}")
     judge_summary = "; ".join(summary_cells)
     return LaneSectionStatusRow(

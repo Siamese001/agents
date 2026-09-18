@@ -55,7 +55,7 @@ SHARED_EMPLOYMENT_BULLET_DIMENSIONS: Final[tuple[BulletJudgeDimension, ...]] = (
     ),
     BulletJudgeDimension(
         "jd_briefing_targeting_discipline",
-        "JD and briefing shape emphasis and relevance — ensure bullet selection emphasizes candidate's verified achievements addressing target role priorities (e.g. commercial expansion, M&A due diligence, and operating models for advisory mandates; platform scale and runtime governance for technical mandates); never use JD or briefing as fake candidate experience proof.",
+        "JD and briefing shape emphasis and relevance — ensure bullet selection emphasizes candidate's verified achievements addressing target role priorities (e.g. commercial expansion, M&A due diligence, and operating models for advisory mandates; platform scale and runtime governance for technical mandates); never use JD or briefing as fake candidate experience proof (never JD-as-proof, briefing-as-proof).",
     ),
     BulletJudgeDimension(
         "keyword_discipline_without_stuffing",

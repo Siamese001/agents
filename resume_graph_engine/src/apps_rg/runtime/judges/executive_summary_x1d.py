@@ -32,8 +32,8 @@ from apps_model_telemetry.external_model_usage import append_external_model_usag
 
 JUDGE_RUBRIC_VERSION = "executive_summary_x1d_v1"
 JUDGE_INPUT_PROMPT_VERSION = "executive_summary_x1d_system_contract_once_v2"
-DEFAULT_THRESHOLD = 0.80
-VALID_SCORE_SCALES = frozenset({"0_to_1", "0_to_5"})
+DEFAULT_THRESHOLD = 0.90
+VALID_SCORE_SCALES = frozenset({"0_to_1", "0_to_5", "0_to_10"})
 JUDGE_REQUIRED_FIELDS = ("score_scale", "score", "threshold", "pass")
 
 
@@ -239,7 +239,7 @@ def _invoke_judge_with_bounded_retries(
 JUDGE_COMPACT_OUTPUT = """
 Return ONLY one compact JSON object. No markdown fences, no prose before or after, no nested objects.
 Required shape (findings and remediation_suggestions must be arrays of short strings only):
-{"score_scale":"0_to_5","score":0.0,"threshold":4.0,"pass":true,"decisive_failure":false,"findings":["..."],"cited_sentence_indexes":[1],"remediation_suggestions":[],"dimension_verdicts":{...8 rubric keys...}}
+{"score_scale":"0_to_10","score":0.0,"threshold":9.0,"pass":true,"decisive_failure":false,"findings":["..."],"cited_sentence_indexes":[1],"remediation_suggestions":[],"dimension_verdicts":{...8 rubric keys...}}
 At most 6 short strings in findings and 4 in remediation_suggestions.
 cited_sentence_indexes: 1-based indexes (S1=1 … S6=6) for every sentence your findings ask to change.
 Include dimension_verdicts with all eight rubric dimension ids (pass/severity/codes per dimension).
@@ -276,7 +276,7 @@ def build_judge_response_schema(
     """Build the strict structured-output schema for one section's rubric."""
 
     properties = {
-        "score_scale": {"type": "string", "enum": ["0_to_1", "0_to_5"]},
+        "score_scale": {"type": "string", "enum": ["0_to_1", "0_to_5", "0_to_10"]},
         "score": {"type": "number"},
         "threshold": {"type": "number"},
         "pass": {"type": "boolean"},
@@ -316,10 +316,10 @@ def _gemini_compatible_response_schema(schema: Mapping[str, Any]) -> dict[str, A
 
 JUDGE_SCORE_SCHEMA = """
 Score contract (mandatory - every judge response MUST comply):
-- Include score_scale as exactly one of: "0_to_1" or "0_to_5". Do not omit score_scale.
-- If score_scale is "0_to_1": score and threshold MUST each be a number from 0.0 through 1.0 inclusive.
+- Include score_scale as exactly one of: "0_to_10", "0_to_5", or "0_to_1". Default standard is "0_to_10". Do not omit score_scale.
+- If score_scale is "0_to_10": score and threshold MUST each be a number from 0.0 through 10.0 inclusive. The required pass threshold is 9.0.
 - If score_scale is "0_to_5": score and threshold MUST each be a number from 0.0 through 5.0 inclusive.
-- Forbidden: 0_to_10 scales, percentage scores (0–100), or values like score=9.2 with threshold=8.0.
+- If score_scale is "0_to_1": score and threshold MUST each be a number from 0.0 through 1.0 inclusive.
 - Do not infer scale from magnitude; declare score_scale explicitly and keep score/threshold within that scale.
 """.strip()
 
@@ -532,6 +532,11 @@ def _validate_judge_score_contract(
             return None, (
                 f"score/threshold out of range for 0_to_5: score={raw_score}, threshold={raw_threshold}"
             )
+    elif declared == "0_to_10":
+        if not (0.0 <= raw_score <= 10.0 and 0.0 <= raw_threshold <= 10.0):
+            return None, (
+                f"score/threshold out of range for 0_to_10: score={raw_score}, threshold={raw_threshold}"
+            )
     return declared, None
 
 
@@ -545,6 +550,8 @@ def _compute_normalized(
         return raw_score, raw_threshold
     if score_scale == "0_to_5":
         return raw_score / 5.0, raw_threshold / 5.0
+    if score_scale == "0_to_10":
+        return raw_score / 10.0, raw_threshold / 10.0
     raise ValueError(f"invalid score_scale: {score_scale}")
 
 

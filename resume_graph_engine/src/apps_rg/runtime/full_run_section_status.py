@@ -132,7 +132,9 @@ def _judge_summary(judges: list[dict[str, Any]]) -> str:
         status = "PASS" if judge.get("pass") is True else "FAIL" if judge.get("pass") is False else "UNKNOWN"
         model_suffix = f" `{model}`" if model else ""
         score_scale = str(judge.get("score_scale") or "").strip().lower()
-        if score_scale == "0_to_1":
+        if score_scale == "0_to_10":
+            scale_denom = "10"
+        elif score_scale == "0_to_1":
             scale_denom = "1"
         elif score_scale == "0_to_100":
             scale_denom = "100"
@@ -141,9 +143,14 @@ def _judge_summary(judges: list[dict[str, Any]]) -> str:
         else:
             try:
                 t_val = float(judge.get("threshold") or 0.0)
-                scale_denom = "1" if 0 < t_val <= 1.0 else "5"
+                if t_val > 5.0:
+                    scale_denom = "10"
+                elif 0 < t_val <= 1.0:
+                    scale_denom = "1"
+                else:
+                    scale_denom = "5"
             except (ValueError, TypeError):
-                scale_denom = "5"
+                scale_denom = "10"
         cells.append(f"{provider}{role_tag}{model_suffix}: {score}/{scale_denom} vs {threshold} {status}")
     return "; ".join(cells)
 

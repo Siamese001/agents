@@ -1,7 +1,7 @@
 gate: X1D
 version: X1D@v2
 composition: weighted
-aggregate_threshold: 0.80
+aggregate_threshold: 0.90
 metadata:
   description: >
     Answer good? v2 closes the X1D groundedness gap identified in the
@@ -39,7 +39,7 @@ dimensions:
     scale: [0.0, 1.0]
     weight: 0.5
     is_hard_gate: false
-    threshold: 0.80
+    threshold: 0.90
     abstain_allowed: true
   - name: citation_support
     grader_class: code_based
@@ -52,5 +52,5 @@ dimensions:
     scale: [0.0, 1.0]
     weight: 0.3
     is_hard_gate: false
-    threshold: 0.70
+    threshold: 0.90
     abstain_allowed: true

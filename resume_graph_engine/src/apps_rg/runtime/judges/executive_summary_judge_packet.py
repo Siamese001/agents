@@ -157,12 +157,12 @@ def _required_judge_output_schema_text() -> str:
 
     return f"""
 Return ONLY one compact JSON object:
-{{"score_scale":"0_to_5","score":0.0,"threshold":4.0,"pass":true,"decisive_failure":false,
+{{"score_scale":"0_to_10","score":0.0,"threshold":9.0,"pass":true,"decisive_failure":false,
  "findings":["short strings"],"cited_sentence_indexes":[1],
  "remediation_suggestions":[],"rationale":"one short paragraph",
  "fail_reasons":[],"unsupported_claims":[],"quality_flags":[],
  {required_judge_output_dimension_block()}}}
-score_scale must be 0_to_5 or 0_to_1 with in-range score/threshold.
+score_scale must be 0_to_10 with in-range score/threshold (0.0 to 10.0, required pass >= 9.0).
 """.strip()
 
 
