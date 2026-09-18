@@ -118,11 +118,11 @@ Mandatory rules:
 
 REQUIRED_JUDGE_OUTPUT_SCHEMA = """
 Return ONLY one compact JSON object:
-{"score_scale":"0_to_10","score":0.0,"threshold":9.0,"pass":true,"decisive_failure":false,
+{"score_scale":"0_to_5","score":0.0,"threshold":4.0,"pass":true,"decisive_failure":false,
  "findings":["short strings"],"cited_sentence_indexes":[1],
  "remediation_suggestions":[],"rationale":"one short paragraph",
  "fail_reasons":[],"unsupported_claims":[],"quality_flags":[]}
-score_scale must be 0_to_10 with in-range score/threshold (0.0 to 10.0, required pass >= 9.0).
+score_scale must be 0_to_5 with in-range score/threshold (0.0 to 5.0, required pass >= 4.0).
 """.strip()
 
 

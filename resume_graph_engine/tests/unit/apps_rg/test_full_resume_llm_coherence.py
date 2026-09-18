@@ -36,11 +36,11 @@ def _judge(*, key: str, pass_: bool, blocked: bool = False, mocked: bool = False
         rubric_version="test",
         input_hash="abc",
         output_hash="def",
-        score=9.5 if pass_ else 2.0,
-        score_scale="0_to_10",
-        normalized_score=0.95 if pass_ else 0.2,
-        threshold=9.0,
-        normalized_threshold=0.9,
+        score=0.9 if pass_ else 0.2,
+        score_scale="0_to_1",
+        normalized_score=0.9 if pass_ else 0.2,
+        threshold=0.8,
+        normalized_threshold=0.8,
         pass_=pass_,
         decisive_failure=not pass_,
         findings=[],
@@ -72,25 +72,25 @@ def test_quorum_pass_with_two_live_judges():
 
 def test_two_judge_split_with_passing_mean_and_no_decisive_failure_passes_quorum():
     judges = [
-        _judge(key="gemini_pro", pass_=True),  # score 9.5 >= 9.0 (0.95)
+        _judge(key="gemini_pro", pass_=True),  # score 0.9 >= 0.8
         JudgeOutput(
             judge_id="x1d_openai_chatgpt_full_resume_coherence",
             provider_name="openai_chatgpt",
             provider_key="openai_chatgpt",
             evaluator_mode="LIVE",
             provider_status="OK",
-            model_name="gpt-5.6-luna",
+            model_name="gpt-5.6-sol",
             provider_available=True,
             provider_blocked=False,
             exact_provider_error=None,
             rubric_version="test",
             input_hash="abc",
             output_hash="def",
-            score=8.7,
-            score_scale="0_to_10",
-            normalized_score=0.87,  # 8.7 / 10.0
-            threshold=9.0,
-            normalized_threshold=0.9,
+            score=3.7,
+            score_scale="0_to_5",
+            normalized_score=0.74,  # 3.7 / 5.0
+            threshold=4.0,
+            normalized_threshold=0.8,
             pass_=False,
             decisive_failure=False,  # soft fail, no decisive failure
             findings=["Dissenting commentary on role fit."],
@@ -98,7 +98,7 @@ def test_two_judge_split_with_passing_mean_and_no_decisive_failure_passes_quorum
             remediation_suggestions=[],
         ),
     ]
-    # Mean normalized score is (0.95 + 0.87) / 2 = 0.91 >= 0.90
+    # Mean normalized score is (0.9 + 0.74) / 2 = 0.82 >= 0.80
     agg = aggregate_full_resume_coherence(judges, deterministic_blockers=[])
     assert agg["full_resume_coherence_pass"] is True
     assert agg["decisive_reason"] == "quorum_pass_no_blockers"

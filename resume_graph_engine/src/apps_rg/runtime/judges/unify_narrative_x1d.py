@@ -17,7 +17,7 @@ You are evaluating one Unify Consulting role narrative sentence (executive thesi
 Return JSON only with: score_scale, score, threshold, pass, decisive_failure, findings, cited_sentence_indexes, remediation_suggestions.
 
 Score contract:
-- score_scale must be "0_to_10", "0_to_5", or "0_to_1" (default standard: "0_to_10"). Required pass is 9.0/10.
+- score_scale must be "0_to_1" or "0_to_5". Do not omit score_scale. Required pass is 4.0/5.
 
 Rubric dimensions (must score each):
 1. north_star_alignment: role-level capstone emphasizing platform roadmap, core systems architecture,

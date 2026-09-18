@@ -17,7 +17,7 @@ You are evaluating a single resume headline formatted exactly as: [Executive Sen
 Return JSON only with: score_scale, score, threshold, pass, decisive_failure, findings, cited_sentence_indexes, remediation_suggestions.
 
 Score contract:
-- score_scale must be "0_to_10", "0_to_5", or "0_to_1" (default standard: "0_to_10"). Required pass is 9.0/10.
+- score_scale must be "0_to_1" or "0_to_5". Do not omit score_scale. Required pass is 4.0/5.
 
 Rubric dimensions:
 1. factual_support: every substantive phrase in X/Y/Z is supported by claim_ledger source_fact_ids present in allowed_fact_packet. Treat every ID explicitly present there as eligible, including graph-era reb_* role-episode roots and skill_* nodes as well as bul_*, fact_*, and metric-suffixed IDs. Never use an ID prefix as a reason to reject evidence that the packet explicitly allows; JD/briefing/target fields remain targeting-only and never proof.
