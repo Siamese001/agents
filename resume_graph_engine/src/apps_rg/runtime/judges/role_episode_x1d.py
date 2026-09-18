@@ -10,7 +10,7 @@ from apps_rg.runtime.judges.policy_backed_section_judges import run_policy_secti
 from apps_rg.runtime.sections.section_product_shape_ssot import NARRATIVE_MAX_CHARS, NARRATIVE_MAX_WORDS
 
 JUDGE_RUBRIC_VERSION = "role_episode_x1d_v2"
-DEFAULT_THRESHOLD = 0.80
+DEFAULT_THRESHOLD = 0.90
 JUDGE_RUBRIC_REF = "apps_rg/runtime/judges/role_episode_x1d.py#ROLE_EPISODE_RUBRIC"
 
 ROLE_EPISODE_RUBRIC = f"""
@@ -19,8 +19,8 @@ or exactly one narrative sentence. Return JSON only with: score_scale, score, th
 pass, decisive_failure, findings, cited_sentence_indexes, remediation_suggestions.
 
 Score contract:
-- score_scale must be "0_to_1" or "0_to_5" only.
-- threshold is 0.80 unless policy overrides it.
+- score_scale must be "0_to_10", "0_to_5", or "0_to_1". Default standard is "0_to_10".
+- threshold is 9.0 (on 0_to_10 scale, or 0.90 normalized) unless policy overrides it.
 
 Rubric dimensions:
 1. factual_support: every material claim maps to claim_ledger and source_fact_ids from the allowed proof pool.

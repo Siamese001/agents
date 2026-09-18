@@ -745,6 +745,8 @@ def _scrub_foreign_ibm_metric_tokens(text: str, own_root: str) -> str:
     for needles, root in IBM_METRIC_ANCHOR_RULES:
         if root == own_root:
             continue
+        if {root, own_root} <= {"bul_ibm_004", "bul_ibm_005"} and any("20%" in n for n in needles):
+            continue
         for needle in needles:
             out = re.sub(re.escape(needle), "", out, flags=re.IGNORECASE)
     for pat in _IBM_FOREIGN_METRIC_SCRUB_RE:
@@ -875,6 +877,41 @@ def inject_ibm_locked_metric_anchors(
             {
                 "operation": "inject_ibm_locked_metric_anchors",
                 "reason": f"inject_metric_token:{root}",
+            }
+        )
+    for f in plan_facts or []:
+        if not isinstance(f, dict):
+            continue
+        bid = str(f.get("fact_id") or "").strip()
+        if not bid or any(bid == r for _, r in IBM_METRIC_ANCHOR_RULES):
+            continue
+        plan_metric = str(f.get("metric_raw") or "").strip()
+        if not plan_metric:
+            continue
+        plan_token = _plan_metric_display_token(plan_metric)
+        if not plan_token:
+            continue
+        bullet = next((b for b in bullets if str(b.get("bullet_id")) == bid), None)
+        if not isinstance(bullet, dict):
+            continue
+        text = str(bullet.get("bullet_text") or "").strip()
+        tl = text.lower()
+        if plan_token.lower() in tl:
+            continue
+        cleaned = _scrub_foreign_ibm_metric_tokens(text, bid)
+        base_text = cleaned or text
+        bullet["bullet_text"] = _append_metric_clause(base_text, plan_token)
+        bullet["has_metric"] = True
+        bullet["metric_raw"] = plan_metric
+        src = list(bullet.get("source_fact_ids") or [])
+        if bid not in src:
+            src.insert(0, bid)
+        bullet["source_fact_ids"] = src
+        repaired_any = True
+        changelog.append(
+            {
+                "operation": "inject_ibm_plan_fact_metric",
+                "reason": f"surface_plan_metric:{bid}:{plan_token}",
             }
         )
     if repaired_any:
@@ -1024,6 +1061,8 @@ def _plan_metric_display_token(plan_metric: str) -> str:
     token from the first ``|``-delimited metric segment. Empty when no numeric token is present.
     """
     seg = str(plan_metric or "").split("|")[0].strip()
+    if "weeks to hours" in seg.lower():
+        return "weeks to hours"
     m = re.search(r"[\$\d][\$\d.,%]*[A-Za-z%]?", seg)
     return m.group(0).strip() if m else ""
 

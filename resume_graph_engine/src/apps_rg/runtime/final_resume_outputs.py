@@ -12,8 +12,11 @@ from pathlib import Path
 from typing import Any
 from xml.etree import ElementTree
 
-from apps_rg.runtime.assembly.full_resume_text import (
+from apps_rg.runtime.section_display_labels import (
+    ALLOWED_COMPETENCIES_HEADINGS,
     ENGINEERING_PLATFORM_COMPETENCIES_HEADING,
+)
+from apps_rg.runtime.assembly.full_resume_text import (
     base_role_header_lines_from_final_resume,
     base_role_headers_from_final_resume,
     flatten_final_resume_to_text,
@@ -355,9 +358,13 @@ def _positions(text: str, needles: list[str]) -> dict[str, int]:
 
 
 def _order_gate(text: str) -> tuple[bool, dict[str, int]]:
+    comp_heading = next(
+        (h for h in ALLOWED_COMPETENCIES_HEADINGS if h in text),
+        ENGINEERING_PLATFORM_COMPETENCIES_HEADING,
+    )
     needles = [
         "EXECUTIVE SUMMARY",
-        ENGINEERING_PLATFORM_COMPETENCIES_HEADING,
+        comp_heading,
         "PROFESSIONAL EXPERIENCE",
         "EDUCATION",
         "CERTIFICATIONS",

@@ -426,3 +426,51 @@ def test_persist_writes_md_and_json(tmp_path: Path):
     assert aggregate["aggregation_method"] == "quorum_majority_model_backed"
     assert len(aggregate["judges"]) == 2
     assert out["markdown_path"].name == FULL_RUN_SECTION_STATUS_MD
+
+
+def test_judge_summary_formats_normalized_scales_and_advisory_tag(tmp_path: Path):
+    run_root = tmp_path / "full_resume_selector_scale"
+    lane_dir = run_root / "lanes" / "slalom_bullets"
+    lane_dir.mkdir(parents=True, exist_ok=True)
+    (lane_dir / "slalom_bullets_output.txt").write_text("- bullet\n", encoding="utf-8")
+    (lane_dir / "x3_disposition.json").write_text('{"x3_code": "X3_ALLOW", "product_quality_status": "PASS"}\n', encoding="utf-8")
+    (lane_dir / "x2_gate_outputs.json").write_text('{"gates": [{"gate_id": "x2_smoke", "pass": true}]}\n', encoding="utf-8")
+    (lane_dir / "run_manifest.json").write_text('{"runtime_generation_status": "REAL_LLM"}\n', encoding="utf-8")
+    (lane_dir / "x1d_llm_judge_outputs.json").write_text(
+        json.dumps({
+            "judges": [
+                {
+                    "judge_id": "x1d_gemini_pro_slalom_bullets",
+                    "provider_name": "Google Gemini 3.6 Flash",
+                    "model_name": "gemini-3.8-flash",
+                    "score": 5.0,
+                    "threshold": 4.0,
+                    "score_scale": "0_to_5",
+                    "pass": True,
+                    "proof_eligible_judge": True,
+                    "advisory_only": False,
+                },
+                {
+                    "judge_id": "x1d_anthropic_claude_bullet_pool_selector",
+                    "provider_name": "Anthropic Claude",
+                    "model_name": "claude-sonnet-5",
+                    "score": 0.8,
+                    "threshold": 0.72,
+                    "score_scale": "0_to_1",
+                    "pass": True,
+                    "proof_eligible_judge": False,
+                    "advisory_only": True,
+                    "judge_role": "employment_bullet_pool_selector",
+                },
+            ]
+        }) + "\n",
+        encoding="utf-8",
+    )
+
+    rows = collect_full_run_section_status(run_root, repo_root=tmp_path)
+    slalom_row = {r.lane: r for r in rows}["slalom_bullets"]
+
+    assert "Google Gemini 3.6 Flash `gemini-3.8-flash`: 5/5 vs 4 PASS" in slalom_row.judge_summary
+    assert "Anthropic Claude (Advisory Selector) `claude-sonnet-5`: 0.8/1 vs 0.72 PASS" in slalom_row.judge_summary
+    assert "0.8/5" not in slalom_row.judge_summary
+

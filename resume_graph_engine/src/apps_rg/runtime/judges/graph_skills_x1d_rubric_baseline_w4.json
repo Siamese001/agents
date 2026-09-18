@@ -1,7 +1,7 @@
 {
   "schema": "graph_skills_x1d_rubric_baseline_w4_v1",
   "plan_id": "graph-skills-quality-enhancement-c4e8a1",
-  "min_pass_threshold": 0.8,
+  "min_pass_threshold": 0.9,
   "lane_families": {
     "competencies": {
       "lane_family": "competencies",

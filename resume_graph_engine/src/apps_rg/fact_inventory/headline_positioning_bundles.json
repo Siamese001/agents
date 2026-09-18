@@ -22,7 +22,11 @@
     "enterprise_ai_architecture",
     "partner_applied_ai_architecture",
     "platform_productization",
-    "regulated_ai_systems"
+    "regulated_ai_systems",
+    "executive_transformation_strategy",
+    "pe_due_diligence_value_creation",
+    "enterprise_operating_model",
+    "csuite_transformation_advisory"
   ],
   "bundles": [
     {
@@ -209,6 +213,88 @@
       "platform_signal": "regulated_runtime_controls",
       "governance_signal": "regulated_enterprise_ai_governance",
       "target_relevance_rationale": "Regulated enterprise AI systems positioning for financial-services / regulated targets.",
+      "allowed_sections": ["headline"],
+      "activation_status": "ACTIVE",
+      "external_claim_policy": "skill_projection_not_proof"
+    },
+    {
+      "headline_positioning_bundle_id": "hpb_executive_transformation_strategy",
+      "positioning_family": "executive_transformation_strategy",
+      "display_phrase_candidate": "Executive Transformation Strategy",
+      "source_competency_bundle_ids": ["ccb_engineering_leadership", "ccb_decision_intelligence_strategic_reasoning"],
+      "graph_skill_node_ids": [
+        "skill_commercial_board_level_stakeholder_alignment",
+        "skill_svp_it_strategy_innovation",
+        "skill_executive_briefing_and_action_registry_synthesis"
+      ],
+      "linked_source_fact_ids": ["fact_exec_001", "fact_consulting_001"],
+      "graph_lineage_refs": ["ccb_engineering_leadership", "reb_slalom_ecosystem_accelerators"],
+      "seniority_signal": "executive_transformation_leadership",
+      "technical_specificity_signal": "high",
+      "platform_signal": "enterprise_operating_model",
+      "governance_signal": "board_level_operating_governance",
+      "target_relevance_rationale": "Anchors C-suite and board-level agentic transformation strategy and executive operating models.",
+      "allowed_sections": ["headline"],
+      "activation_status": "ACTIVE",
+      "external_claim_policy": "skill_projection_not_proof"
+    },
+    {
+      "headline_positioning_bundle_id": "hpb_pe_due_diligence_value_creation",
+      "positioning_family": "pe_due_diligence_value_creation",
+      "display_phrase_candidate": "Private Equity Value Creation",
+      "source_competency_bundle_ids": ["ccb_engineering_leadership", "ccb_partner_applied_ai_architecture"],
+      "graph_skill_node_ids": [
+        "skill_p2_tech_adoption_derisking",
+        "skill_commercial_gtm_investment_pipeline",
+        "skill_partner_pnl_oversight"
+      ],
+      "linked_source_fact_ids": ["bul_ibm_001", "bul_ibm_003"],
+      "graph_lineage_refs": ["ccb_engineering_leadership", "reb_ibm_presales_solution_engineering"],
+      "seniority_signal": "pe_portfolio_value_creation",
+      "technical_specificity_signal": "high",
+      "platform_signal": "commercial_expansion_and_ebitda",
+      "governance_signal": "m_and_a_due_diligence_governance",
+      "target_relevance_rationale": "Private equity portfolio tech due diligence, M&A integration, and enterprise value realization.",
+      "allowed_sections": ["headline"],
+      "activation_status": "ACTIVE",
+      "external_claim_policy": "skill_projection_not_proof"
+    },
+    {
+      "headline_positioning_bundle_id": "hpb_enterprise_operating_model",
+      "positioning_family": "enterprise_operating_model",
+      "display_phrase_candidate": "Enterprise Operating Model Redesign",
+      "source_competency_bundle_ids": ["ccb_engineering_leadership", "ccb_platform_productization"],
+      "graph_skill_node_ids": [
+        "skill_agentic_platform_productization",
+        "skill_commercial_board_level_stakeholder_alignment"
+      ],
+      "linked_source_fact_ids": ["fact_exec_001", "fact_engineering_platform_006"],
+      "graph_lineage_refs": ["ccb_engineering_leadership", "ccb_platform_productization"],
+      "seniority_signal": "operating_model_leadership",
+      "technical_specificity_signal": "medium_high",
+      "platform_signal": "target_operating_model",
+      "governance_signal": "operating_model_governance",
+      "target_relevance_rationale": "Enterprise operating model redesign bridging legacy organizational structures to autonomous agentic execution.",
+      "allowed_sections": ["headline"],
+      "activation_status": "ACTIVE",
+      "external_claim_policy": "skill_projection_not_proof"
+    },
+    {
+      "headline_positioning_bundle_id": "hpb_csuite_transformation_advisory",
+      "positioning_family": "csuite_transformation_advisory",
+      "display_phrase_candidate": "C-Suite Transformation Governance",
+      "source_competency_bundle_ids": ["ccb_engineering_leadership", "ccb_runtime_governance"],
+      "graph_skill_node_ids": [
+        "skill_commercial_board_level_stakeholder_alignment",
+        "skill_runtime_gate_mesh_design"
+      ],
+      "linked_source_fact_ids": ["fact_exec_001", "fact_engineering_platform_001"],
+      "graph_lineage_refs": ["ccb_engineering_leadership", "ccb_runtime_governance"],
+      "seniority_signal": "csuite_executive_governance",
+      "technical_specificity_signal": "high",
+      "platform_signal": "governed_transformation_architecture",
+      "governance_signal": "board_level_transformation_governance",
+      "target_relevance_rationale": "C-suite transformation governance and executive stakeholder alignment for enterprise AI programs.",
       "allowed_sections": ["headline"],
       "activation_status": "ACTIVE",
       "external_claim_policy": "skill_projection_not_proof"

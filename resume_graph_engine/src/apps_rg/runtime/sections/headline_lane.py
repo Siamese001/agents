@@ -95,6 +95,7 @@ from apps_rg.runtime.validators.headline_positioning_x2 import (
 from apps_rg.runtime.validators.headline_quality_x2 import POSITIONING_FAMILIES
 from apps_rg.runtime.validators.headline_x2 import (
     evaluate_headline_literal_grounding,
+    has_valid_headline_prefix,
     headline_executive_abstraction_report,
     headline_segment_theme_overlap_issues,
     headline_runtime_self_check_truth,
@@ -888,7 +889,7 @@ def deterministic_headline_word_count_expand(headline_line: str) -> str:
     wc = headline_word_count(hl)
     if HEADLINE_WORD_MIN <= wc <= HEADLINE_WORD_MAX:
         return hl
-    if wc >= 10 or not hl.startswith("SVP Engineering | ") or hl.count(" | ") != 3:
+    if wc >= 10 or not has_valid_headline_prefix(hl) or hl.count(" | ") != 3:
         return hl
     parts = [p.strip() for p in hl.split(" | ")]
     if len(parts) != 4:
@@ -1142,7 +1143,7 @@ def retry_headline_word_and_pipe(
             "role": "user",
             "content": (
                 f"DETERMINISTIC_REVISION: {reason}. "
-                "headline_line must start with the exact prefix 'SVP Engineering | ', "
+                "headline_line must start with an approved executive prefix (such as 'SVP Agentic Transformation | ', 'SVP Engineering | ', or matching the target role), "
                 "must contain exactly three ' | ' separators (four segments), "
                 "must be 10 to 13 total words (each X/Y/Z segment must be 3 to 4 words; 2-word segments are strictly forbidden), "
                 "each segment (specifically segment 4) must include or terminate in an approved executive abstraction noun "
@@ -1808,7 +1809,8 @@ def apply_headline_content_signal_repair(
                         new_segs[i] = " ".join(words[:3])
                         modified = True
             if modified:
-                candidate_line = f"SVP Engineering | {' | '.join(new_segs)}"
+                prefix = hl_pre.split(" | ")[0] if " | " in hl_pre else "SVP Engineering"
+                candidate_line = f"{prefix} | {' | '.join(new_segs)}"
                 new_clarity = headline_resume_native_clarity_report(candidate_line)
                 new_gov = governance_signal_families_matched(candidate_line)
                 new_spec = positioning_families_matched(candidate_line)
@@ -2426,6 +2428,7 @@ def run_headline_execution(
     headline_repair_receipt: dict[str, Any] | None = None
     headline_repair_provider_call_made = False
     headline_content_signal_repair_accepted = False
+    headline_format_repair_accepted = False
 
     from apps_rg.runtime.spine.exit_lane_hooks import finalize_section_exit_after_l2
     from apps_rg.runtime.section_l2_lane_integration import (
@@ -2571,7 +2574,7 @@ def run_headline_execution(
                 raw_output = json.dumps(parsed, sort_keys=True, separators=(",", ":"))
             hl = str(parsed.get("headline_line", "")).strip()
             wc = headline_word_count(hl)
-            if hl.count(" | ") != 3 or not hl.startswith("SVP Engineering | ") or not (HEADLINE_WORD_MIN <= wc <= HEADLINE_WORD_MAX):
+            if hl.count(" | ") != 3 or not has_valid_headline_prefix(hl) or not (HEADLINE_WORD_MIN <= wc <= HEADLINE_WORD_MAX):
                 headline_repair_provider_call_made = True
                 raw_output, parsed, rsnap = retry_headline_word_and_pipe(
                     messages,
@@ -2594,6 +2597,7 @@ def run_headline_execution(
                         replaced_l2=True,
                     )
                     parsed_raw_pre_normalize = rsnap
+                    headline_format_repair_accepted = True
                 if parsed is not None:
                     raw_output = json.dumps(parsed, sort_keys=True, separators=(",", ":"))
             raw_output, parsed, _cs_snap, headline_content_signal_repair_accepted = (
@@ -3008,16 +3012,12 @@ def run_headline_execution(
         after_l2_source=str(_hl_ledger.get("authoritative_l2_source") or "initial_llm"),
         x2_gates=x2,
     )
-    if (headline_proof_retry_attempted or headline_content_signal_repair_accepted) and not [g for g in x2 if not g.get("pass")]:
-        set_authoritative_attempt(
-            artifact_dir,
-            2,
-            reason=(
-                "headline_proof_shape_retry_x2_pass"
-                if headline_proof_retry_attempted
-                else "headline_content_signal_repair_x2_pass"
-            ),
-        )
+    _repairs = list(_hl_ledger.get("repairs") or [])
+    _regen_replaced = any(r.get("kind") == "regen_llm" and r.get("replaced_l2") for r in _repairs)
+    _rep_ok = headline_proof_retry_attempted or headline_content_signal_repair_accepted or headline_format_repair_accepted or _regen_replaced
+    if _rep_ok and not [g for g in x2 if not g.get("pass")]:
+        _reason = "headline_proof_shape_retry_x2_pass" if headline_proof_retry_attempted else ("headline_format_repair_x2_pass" if headline_format_repair_accepted else "headline_content_signal_repair_x2_pass")
+        set_authoritative_attempt(artifact_dir, 2, reason=_reason)
     write_json(
         artifact_dir / "fact_check_result.json",
         {"passed": not [g for g in x2 if not g["pass"]], "failed_gates": [g["gate_id"] for g in x2 if not g["pass"]]},

@@ -183,6 +183,7 @@ def build_headline_assembly_input(
         )
     from apps_rg.runtime.sections.headline_positioning_evidence import (
         format_headline_positioning_evidence_pack,
+        infer_headline_prefix,
     )
 
     positioning_block = (
@@ -209,10 +210,12 @@ def build_headline_assembly_input(
         "These lines may shape emphasis but cannot prove claims."
     )
 
+    prefix = infer_headline_prefix(t_title)
+
     u0_parts = [
-        "<role>You are writing one executive resume headline for an SVP Engineering candidate: "
-        "pick the three strongest fact-supported positioning themes for the target role; express them as SVP Engineering | X | Y | Z.</role>\n",
-        "North Star: headline_line MUST be exactly SVP Engineering | X | Y | Z — X/Y/Z are creative executive phrases from the fact ledger, ranked by JD/briefing relevance only (never proof).\n",
+        f"<role>You are writing one executive resume headline for an executive candidate: "
+        f"pick the three strongest fact-supported positioning themes for the target role; express them as {prefix} | X | Y | Z.</role>\n",
+        f"North Star: headline_line MUST be exactly {prefix} | X | Y | Z — X/Y/Z are creative executive phrases from the fact ledger, ranked by JD/briefing relevance only (never proof).\n",
         "Headline display policy: X/Y/Z MUST be executive positioning labels backed by grounded proof, not raw vendor/tool architecture. "
         "Prefer abstractions such as Enterprise AI Platforms, Cloud Data Platforms, Runtime Governance Architecture, Partner AI Ecosystems, "
         "Platform Commercialization, and Regulated AI Systems. Vendor/product names such as Databricks, AWS, Snowflake, Anthropic, or OpenAI "
@@ -222,7 +225,7 @@ def build_headline_assembly_input(
         "Return RAW JSON only: first character {, last character }. No markdown fences.\n",
         "Anti-copy: do not default-copy examples, identity-reference lines, JD title, JD phrases, briefing phrases, or the base resume headline verbatim — "
         "prefer fresh fact-led wording unless verbatim text is truly best and still compliant.\n",
-        "headline_line MUST use exact prefix 'SVP Engineering | ', exactly three ' | ' separators (four non-empty segments), 10–13 words total, ",
+        f"headline_line MUST use exact prefix '{prefix} | ', exactly three ' | ' separators (four non-empty segments), 10–13 words total, ",
         "no metrics, no employer or target company names, no candidate names, no inline source tags, no first person, no em dash.\n",
         "claim_ledger MUST be an array of OBJECT rows with claim_text (non-empty string) and ",
         "source_fact_ids (non-empty string array drawn exactly from ALLOWED_SOURCE_FACT_IDS; graph-era reb_* and skill_* IDs are valid when explicitly allowed). ",

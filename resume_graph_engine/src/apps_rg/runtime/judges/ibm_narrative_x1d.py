@@ -17,7 +17,7 @@ You are evaluating one IBM employment narrative sentence: the executive thesis a
 Return JSON only with: score_scale, score, threshold, pass, decisive_failure, findings, cited_sentence_indexes, remediation_suggestions.
 
 Score contract:
-- score_scale must be "0_to_1" or "0_to_5" only.
+- score_scale must be "0_to_10", "0_to_5", or "0_to_1" (default standard: "0_to_10"). Required pass is 9.0/10.
 
 Rubric dimensions:
 1. factual_support: claims align with claim_ledger and bul_ibm_* source facts only.

@@ -88,7 +88,7 @@ _SHARED_SECTION_ELIGIBILITY = {
 
 _ROLE_EMPLOYER_WEIGHTS: dict[str, dict[str, float]] = {
     "svp_agentic_engineering": {"slalom": 1.00, "unify": 0.90, "ibm": 0.65, "insurtech": 0.35, "ey": 0.20},
-    "executive_agentic_transformation": {"slalom": 1.00, "unify": 0.95, "ibm": 0.95, "insurtech": 0.50, "ey": 0.50},
+    "executive_agentic_transformation": {"slalom": 1.00, "unify": 1.00, "ibm": 1.00, "ey": 0.90, "insurtech": 0.60},
     "ai_partnerships_gtm": {"slalom": 1.00, "unify": 0.95, "ibm": 0.90, "insurtech": 0.35, "ey": 0.10},
     "insurance_it_strategy": {"insurtech": 1.00, "ey": 0.70, "ibm": 0.55, "unify": 0.30, "slalom": 0.25},
     "balanced_enterprise_ai": {"slalom": 0.85, "unify": 0.75, "ibm": 0.70, "insurtech": 0.55, "ey": 0.45},
@@ -145,7 +145,8 @@ _HEADLINE_FAMILIES_BY_PROFILE: dict[str, tuple[str, ...]] = {
         "executive_transformation_strategy",
         "agentic_ai_platforms",
         "enterprise_operating_model",
-        "partner_applied_ai_architecture",
+        "pe_due_diligence_value_creation",
+        "csuite_transformation_advisory",
     ),
     "ai_partnerships_gtm": (
         "svp_engineering_leadership",

@@ -27,6 +27,30 @@ HEADLINE_POSITIONING_EVIDENCE_PACK_MARKER = "HEADLINE_POSITIONING_EVIDENCE_PACK"
 HEADLINE_SENIORITY_FLOOR = "SVP Engineering"
 HEADLINE_TECHNICAL_SPECIFICITY_FLOOR = 2  # >=2 positioning families in X/Y/Z
 
+
+def infer_headline_prefix(target_title: str | None) -> str:
+    """Infer executive title prefix from target title, defaulting to HEADLINE_SENIORITY_FLOOR."""
+    t = (target_title or "").strip().replace(",", "")
+    for pref in (
+        "SVP Agentic Transformation",
+        "SVP Transformation",
+        "SVP Technology Strategy",
+        "SVP Enterprise AI",
+        "SVP Agentic AI Platforms",
+        "SVP Engineering",
+        "Senior Vice President",
+        "Executive Director",
+        "Managing Director",
+        "Partner",
+    ):
+        if t.lower().startswith(pref.lower()):
+            return pref
+    if t.lower().startswith("svp"):
+        words = t.split()
+        if len(words) >= 2:
+            return " ".join(words[:3]) if len(words) >= 3 and words[1].lower() in ("agentic", "enterprise", "digital", "technology") else " ".join(words[:2])
+    return HEADLINE_SENIORITY_FLOOR
+
 _AUTHORITY_HEADER_LINES: tuple[str, ...] = (
     "proof_authority = graph_positioning_bundles_plus_linked_source_facts",
     "base_headline_usage = calibration_only",
@@ -259,12 +283,14 @@ def format_headline_positioning_evidence_pack(
     runtime_payload["headline_positioning_bundle_ids"] = packet["headline_positioning_bundle_ids"]
 
     jd = str(runtime_payload.get("jd_text") or "").strip()
+    t_title = str(runtime_payload.get("target_title") or "")
+    eff_prefix = infer_headline_prefix(t_title)
 
     header_lines = [
         f"{HEADLINE_POSITIONING_EVIDENCE_PACK_MARKER} "
-        "(proof substrate — compose SVP Engineering | X | Y | Z from positioning bundles):",
+        f"(proof substrate — compose {eff_prefix} | X | Y | Z from positioning bundles):",
         *_AUTHORITY_HEADER_LINES,
-        f"- seniority_floor: {packet['seniority_floor']} (segment 0 must be exactly this).",
+        f"- seniority_floor: {eff_prefix} (segment 0 must be exactly this).",
         f"- technical_specificity_floor: >= {packet['technical_specificity_floor']} positioning families across X/Y/Z.",
         "- governance_floor: at least one of X/Y/Z MUST carry a governance or regulated-AI signal "
         "(vocabulary: governance, governed, runtime, gates, policy, deterministic, regulated, "

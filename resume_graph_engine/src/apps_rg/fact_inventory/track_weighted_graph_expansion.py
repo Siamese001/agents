@@ -429,6 +429,29 @@ def infer_projection_role_family_key(
         taxonomy=taxonomy,
     )
     corp = f"{target_role}\n{jd_text}\n{briefing_text}".lower()
+    transformation_signals = (
+        "agentic transformation",
+        "transformation",
+        "private equity",
+        "operating model redesign",
+        "management consulting",
+        "c-suite advisory",
+        "steering committee",
+        "commercial expansion",
+        "pe advisory",
+    )
+    trans_hits = sum(1 for sig in transformation_signals if sig in corp)
+    if priorities and (trans_hits >= 3 or ("transformation" in target_role.lower() and "consulting" in corp)):
+        consulting = next(
+            (p for p in priorities if p.role_family == "CONSULTING_DELIVERY_LEADERSHIP"),
+            None,
+        )
+        if consulting and consulting.score > 0:
+            top = priorities[0]
+            if top.role_family != "CONSULTING_DELIVERY_LEADERSHIP" and consulting.score >= top.score - 1:
+                priorities = (consulting,) + tuple(
+                    p for p in priorities if p.role_family != consulting.role_family
+                )
     ade_signals = (
         "deployment engineering",
         "partner ade",

@@ -24,7 +24,7 @@ from typing import Any, Mapping, Sequence
 
 # Section-level accept floor for the composite judge (normalized). A judge below this is not an
 # accept regardless of X2. Kept conservative; the judge's own threshold still governs pass/fail.
-DEFAULT_PASS_THRESHOLD = 0.72
+DEFAULT_PASS_THRESHOLD = 0.90
 
 # Minimum normalized gap between the composite judge score and its threshold for the accept to be
 # "confident". Below this gap the section is borderline -> adjudicate.

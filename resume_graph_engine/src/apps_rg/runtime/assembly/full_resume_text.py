@@ -8,6 +8,7 @@ from typing import Any
 from apps_rg.runtime.section_display_labels import (
     CERTIFICATIONS_AND_CREDENTIALS_HEADING,
     ENGINEERING_PLATFORM_COMPETENCIES_HEADING,
+    resolve_competencies_heading,
 )
 from apps_rg.runtime.assembly.competencies_display import competency_display_rows
 
@@ -240,11 +241,24 @@ def _append_generated_role(
         lines.extend(_not_generated_lines(missing_label, "missing_generated_role_section"))
 
 
-def _append_competencies(*, lines: list[str], by_id: dict[str, dict[str, Any]]) -> None:
-    comp = (by_id.get("competencies") or {}).get("l2_output_snapshot") or {}
+def _append_competencies(
+    *,
+    lines: list[str],
+    by_id: dict[str, dict[str, Any]],
+    target_role_profile: str | None = None,
+) -> None:
+    comp_sec = by_id.get("competencies") or {}
+    comp = comp_sec.get("l2_output_snapshot") or {}
     cats = comp.get("competencies") or []
     display_text = str(comp.get("resume_display_text") or "").strip()
-    lines.append(ENGINEERING_PLATFORM_COMPETENCIES_HEADING)
+    profile = (
+        target_role_profile
+        or comp_sec.get("target_role_profile")
+        or comp.get("target_role_profile")
+        or (by_id.get("headline") or {}).get("target_role_profile")
+        or (by_id.get("headline") or {}).get("l2_output_snapshot", {}).get("target_role_profile")
+    )
+    lines.append(resolve_competencies_heading(profile))
     if cats:
         for label, terms in competency_display_rows(comp):
             if terms:
@@ -297,7 +311,8 @@ def flatten_final_resume_to_text(final_resume: dict[str, Any]) -> str:
     else:
         lines.extend(_not_generated_lines("executive_summary", "missing_or_empty_executive_summary"))
 
-    _append_competencies(lines=lines, by_id=by_id)
+    target_role_profile = final_resume.get("target_role_profile")
+    _append_competencies(lines=lines, by_id=by_id, target_role_profile=target_role_profile)
 
     lines.append("PROFESSIONAL EXPERIENCE")
     lines.append("")

@@ -221,9 +221,9 @@ def _mocked(provider_key: str, input_hash: str) -> JudgeOutput:
         input_hash=input_hash,
         output_hash="mocked-output",
         score=0.0,
-        score_scale="0_to_1",
+        score_scale="0_to_10",
         normalized_score=0.0,
-        threshold=DEFAULT_PASS_THRESHOLD,
+        threshold=9.0,
         normalized_threshold=DEFAULT_PASS_THRESHOLD,
         pass_=False,
         decisive_failure=True,
@@ -385,20 +385,16 @@ def _deterministic_preflight_blockers(final_resume: dict[str, Any]) -> list[str]
         blockers.append(f"credential_duplication_in_competencies:{reason}")
 
     flat = flatten_final_resume_to_text(final_resume)
-    comp_heading = "ENGINEERING & PLATFORM COMPETENCIES"
-    if comp_heading in flat:
-        comp_block = _block_after_heading(
-            flat,
-            comp_heading,
-            stop_headings=(
-                "PROFESSIONAL EXPERIENCE",
-                "EDUCATION",
-                "CERTIFICATIONS",
-            ),
-        )
-        for needle in ("AWS Certified", "Databricks Lakehouse Fundamentals", "Fellow of the Society"):
-            if needle in comp_block:
-                blockers.append(f"credential_name_in_competencies_block:{needle}")
+    for comp_heading in (
+        "ENGINEERING & PLATFORM COMPETENCIES", "EXECUTIVE & TRANSFORMATION COMPETENCIES", "CORE COMPETENCIES"
+    ):
+        if comp_heading in flat:
+            comp_block = _block_after_heading(
+                flat, comp_heading, stop_headings=("PROFESSIONAL EXPERIENCE", "EDUCATION", "CERTIFICATIONS")
+            )
+            for needle in ("AWS Certified", "Databricks Lakehouse Fundamentals", "Fellow of the Society"):
+                if needle in comp_block:
+                    blockers.append(f"credential_name_in_competencies_block:{needle}")
     certification_heading = "CERTIFICATIONS & CREDENTIALS"
     if certification_heading in flat:
         before_certifications, certification_block = flat.split(
@@ -478,10 +474,17 @@ def aggregate_full_resume_coherence(
         in ("1", "true", "yes", "on")
     )
     if not quorum_met and allow_mean_quorum and len(model_backed) >= 2:
+        div_keys = ("target mandate", "mandate divergence", "role mismatch", "target role mismatch", "wrong domain")
+        has_mandate_divergence = any(
+            any(k in str(f).lower() for k in div_keys)
+            for o in model_backed for f in o.findings or []
+            if not o.pass_ or o.decisive_failure
+        )
         if (
             len(passing) >= 1
             and criteria_scores.get("mean_normalized_score", 0.0) >= pass_threshold
             and not any(o.decisive_failure for o in model_backed)
+            and not has_mandate_divergence
         ):
             quorum_met = True
 
@@ -495,13 +498,6 @@ def aggregate_full_resume_coherence(
     warnings: list[str] = []
     for o in model_backed:
         if o.pass_ and not o.decisive_failure:
-            # A passing judge's findings are commentary, not failure evidence. The
-            # keyword scan below is polarity-blind: anthropic's PRAISE "No credential
-            # names are duplicated inside ... COMPETENCIES" matched the cert/competency
-            # heuristic and blocked a 3/3-pass resume (patch_run_17, 2026-06-11). The
-            # authoritative cert-duplication detector is the deterministic preflight
-            # (check_competencies_no_reserved_certification_category + needle scan),
-            # which feeds deterministic_blockers above and is unaffected here.
             continue
         warnings.append(f"judge_dissent:{o.judge_id}")
         for f in o.findings or []:
@@ -512,6 +508,10 @@ def aggregate_full_resume_coherence(
                 blockers.append(f"unsupported_briefing_proof:{o.judge_id}")
             elif "certification" in low and "competenc" in low:
                 blockers.append(f"cert_duplication_judge:{o.judge_id}")
+            elif any(k in low for k in ("target mandate", "mandate divergence", "target role mismatch", "role mismatch", "no connection to jd", "wrong domain")):
+                blockers.append(f"target_mandate_divergence:{o.judge_id}")
+            elif "jd" in low and any(k in low for k in ("resonance", "disconnect", "unaligned", "unresponsive", "fails to address")):
+                blockers.append(f"jd_resonance_failure:{o.judge_id}")
 
     if blocked:
         warnings.append(f"provider_blocked_count={len(blocked)}")

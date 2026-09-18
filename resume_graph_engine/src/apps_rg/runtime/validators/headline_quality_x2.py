@@ -62,6 +62,25 @@ POSITIONING_FAMILIES: dict[str, frozenset[str]] = {
         "partner applied ai", "partner ecosystems", "partner co-sell",
         "co-sell channel", "alliance gtm", "alliance partnerships",
     }),
+    "executive_transformation_strategy": frozenset({
+        "executive transformation", "transformation strategy", "agentic transformation",
+        "enterprise transformation", "transformation advisory", "strategic transformation",
+        "enterprise agentic transformation",
+    }),
+    "pe_due_diligence_value_creation": frozenset({
+        "private equity", "portfolio value creation", "value creation",
+        "m&a due diligence", "technology due diligence", "pe advisory", "due diligence",
+        "private equity value creation", "portfolio value",
+    }),
+    "enterprise_operating_model": frozenset({
+        "operating model", "enterprise operating model", "operating model redesign",
+        "target operating model", "autonomous operating model", "agentic operating model",
+    }),
+    "csuite_transformation_advisory": frozenset({
+        "c-suite advisory", "board governance", "c-suite transformation",
+        "executive advisory", "board steering", "board alignment", "transformation governance",
+        "c-suite transformation governance",
+    }),
 }
 
 # A broader set of signal tokens used for fuzzy multi-token matching
@@ -75,6 +94,10 @@ _POSITIONING_SIGNAL_TOKENS: dict[str, frozenset[str]] = {
     "partner_applied_ai_architecture": frozenset(
         {"partner", "partners", "partnership", "partnerships", "alliance", "co-sell", "cosell"}
     ),
+    "executive_transformation_strategy": frozenset({"transformation", "advisory", "strategic"}),
+    "pe_due_diligence_value_creation": frozenset({"equity", "portfolio", "ebitda", "synergy", "synergies", "merger", "mergers", "acquisition", "acquisitions", "diligence"}),
+    "enterprise_operating_model": frozenset({"operating", "model"}),
+    "csuite_transformation_advisory": frozenset({"c-suite", "board", "executive", "steering"}),
 }
 
 # ---------------------------------------------------------------------------
@@ -151,15 +174,23 @@ _ALLOWED_HEADLINE_PREFIXES: tuple[str, ...] = (
     "SVP Technology Strategy",
     "SVP Enterprise AI",
     "SVP Agentic AI Platforms",
+    "Senior Vice President",
+    "Partner",
+    "Executive Director",
+    "Managing Director",
 )
 
 
 def _segments_xyz(headline_line: str) -> list[str]:
     """Return X, Y, Z segments (2-4) if pipe format valid, else full text."""
     h = (headline_line or "").strip()
-    if h.count(" | ") == 3 and (h.startswith("SVP ") and " | " in h):
+    if h.count(" | ") == 3 and (h.startswith("SVP ") or any(h.startswith(f"{p} ") for p in ("Senior Vice President", "Executive Director", "Managing Director", "Partner"))):
         parts = [p.strip() for p in h.split(" | ")]
-        if len(parts) == 4 and (parts[0] in _ALLOWED_HEADLINE_PREFIXES or (parts[0].startswith("SVP ") and len(parts[0].split()) in (2, 3))):
+        if len(parts) == 4 and (
+            parts[0] in _ALLOWED_HEADLINE_PREFIXES
+            or (parts[0].startswith("SVP ") and len(parts[0].split()) in (2, 3, 4))
+            or (parts[0].startswith(("Senior Vice President", "Executive Director", "Managing Director", "Partner")) and len(parts[0].split()) <= 4)
+        ):
             return parts[1:]
     return [h]
 
@@ -226,7 +257,12 @@ def check_headline_seniority_floor(headline_line: str) -> HeadlineQualityResult:
     h = (headline_line or "").strip()
     parts = [p.strip() for p in h.split(" | ")] if " | " in h else [h]
     seg0 = parts[0] if parts else ""
-    passed = seg0 in _ALLOWED_HEADLINE_PREFIXES or (seg0.startswith("SVP ") and len(seg0.split()) in (2, 3))
+    is_narrowing = any(label in seg0.lower() for label in ("it strategy", "it transformation", "it modernization", "data modernization", "cloud transformation", "digital transformation", "innovation leadership"))
+    passed = not is_narrowing and (
+        seg0 in _ALLOWED_HEADLINE_PREFIXES
+        or (seg0.startswith("SVP ") and len(seg0.split()) in (2, 3, 4))
+        or (seg0.startswith(("Senior Vice President", "Executive Director", "Managing Director", "Partner")) and len(seg0.split()) <= 4)
+    )
     return HeadlineQualityResult(
         gate_id="x2_headline_seniority_floor",
         passed=passed,

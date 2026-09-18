@@ -8,24 +8,24 @@ from typing import Any
 from apps_rg.runtime.judges.executive_summary_x1d import JudgeOutput
 from apps_rg.runtime.judges.policy_backed_section_judges import run_policy_section_judges
 
-JUDGE_RUBRIC_VERSION = "headline_x1d_v5"
+JUDGE_RUBRIC_VERSION = "headline_x1d_v6"
 JUDGE_RUBRIC_REF = "apps_rg/runtime/judges/headline_x1d.py#HEADLINE_GRADE_ONLY_RUBRIC"
 
 HEADLINE_RUBRIC = """
-You are evaluating a single resume headline formatted exactly as: SVP Engineering | X | Y | Z
-(space-pipe-space separators; exactly four segments; first segment exactly "SVP Engineering"; 10-13 total words).
+You are evaluating a single resume headline formatted exactly as: [Executive Seniority Prefix] | X | Y | Z
+(space-pipe-space separators; exactly four segments; first segment is an approved executive seniority prefix such as "SVP Agentic Transformation", "SVP Engineering", "SVP Transformation", "Senior Vice President", or "Partner"; 10-13 total words).
 Return JSON only with: score_scale, score, threshold, pass, decisive_failure, findings, cited_sentence_indexes, remediation_suggestions.
 
 Score contract:
-- score_scale must be "0_to_1" or "0_to_5" only.
+- score_scale must be "0_to_10", "0_to_5", or "0_to_1" (default standard: "0_to_10"). Required pass is 9.0/10.
 
 Rubric dimensions:
 1. factual_support: every substantive phrase in X/Y/Z is supported by claim_ledger source_fact_ids present in allowed_fact_packet. Treat every ID explicitly present there as eligible, including graph-era reb_* role-episode roots and skill_* nodes as well as bul_*, fact_*, and metric-suffixed IDs. Never use an ID prefix as a reason to reject evidence that the packet explicitly allows; JD/briefing/target fields remain targeting-only and never proof.
-2. fixed_prefix_compliance: headline_line starts with "SVP Engineering | " and uses exactly three " | " separators.
+2. fixed_prefix_compliance: headline_line starts with an approved executive seniority prefix (such as "SVP Agentic Transformation | ", "SVP Engineering | ", or role-aligned executive prefix) and uses exactly three " | " separators.
 3. base_identity_fidelity: authentic to the base resume headline anchor; not rewritten to chase the JD.
 4. anti_keyword_stuffing: no ATS keyword bags, list-like segments, or semantically redundant variants of the same positioning theme across X/Y/Z.
-5. JD targeting discipline: JD relevance without copying JD phrasing or treating JD as authority; preserve senior platform, governance, and runtime signals; ask whether a Head of Talent Acquisition at the target company would forward it.
-6. executive_authenticity: reads as a senior platform/engineering leader, not generic leadership filler or juniorized IT labeling; no AI-authenticity dead giveaways such as em dashes, buzzword soup, template cadence, or machine-generated phrasing.
+5. JD targeting discipline: JD relevance without copying JD phrasing or treating JD as authority; preserve senior platform, governance, transformation, and runtime signals; ask whether a Head of Talent Acquisition at the target company would forward it.
+6. executive_authenticity: reads as a senior platform/engineering/transformation leader, not generic leadership filler or juniorized IT labeling; no AI-authenticity dead giveaways such as em dashes, buzzword soup, template cadence, or machine-generated phrasing.
 7. no_title_inflation: first segment is not replaced or subverted; no "SVP at TargetCo" framing.
 8. natural human resume sound: concise, human, resume-native phrasing; each segment should add a distinct signal, not a synonym, and the whole line should survive a skeptical TA screen.
 
@@ -34,7 +34,7 @@ Adversarial review lens:
 - AI authenticity pass: no em dashes, no buzzword soup, no template phrasing, no generic AI tells.
 
 Decisive failure triggers (if any, set decisive_failure true and pass false):
-- missing fixed prefix "SVP Engineering" as segment 1
+- missing approved executive seniority prefix as segment 1
 - not exactly four non-empty segments or not exactly three " | " separators
 - word count outside 10-13 (inclusive)
 - unsupported proof relative to claim_ledger / resume facts

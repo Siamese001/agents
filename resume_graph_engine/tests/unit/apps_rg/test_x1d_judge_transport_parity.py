@@ -508,9 +508,9 @@ def test_frozen_001344_transport_parity() -> None:
 
 
 def test_shared_judge_contract_strings_defined() -> None:
-    assert "0_to_5" in JUDGE_COMPACT_OUTPUT
+    assert "0_to_10" in JUDGE_COMPACT_OUTPUT or "0_to_5" in JUDGE_COMPACT_OUTPUT
     assert "score_scale" in JUDGE_SCORE_SCHEMA.lower()
-    assert "0_to_5" in GENERIC_REQUIRED_SCHEMA
+    assert "0_to_10" in GENERIC_REQUIRED_SCHEMA or "0_to_5" in GENERIC_REQUIRED_SCHEMA
     assert JUDGE_COMPACT_SYSTEM
     assert "retired" in JUDGE_GRADE_ONLY_AUTHORITY.lower()
     system = build_x1d_judge_system_prompt(compact=True)

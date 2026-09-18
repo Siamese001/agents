@@ -230,7 +230,7 @@ runtime_limits:
     retry_backoff_base_seconds: 0.5
     retry_backoff_max_seconds: 4.0
     gemini_proof_thinking_level: high
-    openai_proof_reasoning_effort: medium
+    openai_proof_reasoning_effort: high
     runtime_profiles:
       optional_advisory_taxonomy_only:
         judge_weight: 1
