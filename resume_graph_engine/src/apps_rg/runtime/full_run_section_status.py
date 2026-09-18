@@ -122,11 +122,29 @@ def _judge_summary(judges: list[dict[str, Any]]) -> str:
     for judge in judges:
         provider = str(judge.get("provider_name") or judge.get("provider_key") or "judge")
         model = str(judge.get("model_name") or judge.get("model_actual") or "").strip()
+        is_selector = bool(
+            "selector" in str(judge.get("judge_role") or "").lower()
+            or "selector" in str(judge.get("judge_id") or "").lower()
+        )
+        role_tag = " (Advisory Selector)" if is_selector else ""
         score = _score_text(judge.get("score"))
         threshold = _score_text(judge.get("threshold"))
         status = "PASS" if judge.get("pass") is True else "FAIL" if judge.get("pass") is False else "UNKNOWN"
         model_suffix = f" `{model}`" if model else ""
-        cells.append(f"{provider}{model_suffix}: {score}/5 vs {threshold} {status}")
+        score_scale = str(judge.get("score_scale") or "").strip().lower()
+        if score_scale == "0_to_1":
+            scale_denom = "1"
+        elif score_scale == "0_to_100":
+            scale_denom = "100"
+        elif score_scale == "0_to_5":
+            scale_denom = "5"
+        else:
+            try:
+                t_val = float(judge.get("threshold") or 0.0)
+                scale_denom = "1" if 0 < t_val <= 1.0 else "5"
+            except (ValueError, TypeError):
+                scale_denom = "5"
+        cells.append(f"{provider}{role_tag}{model_suffix}: {score}/{scale_denom} vs {threshold} {status}")
     return "; ".join(cells)
 
 
@@ -153,6 +171,10 @@ def _lane_judge_details(lane_dir: Path) -> tuple[dict[str, Any], ...]:
                 "raw_response_ref": judge.get("raw_response_ref"),
                 "decisive_failure": judge.get("decisive_failure"),
                 "error": judge.get("error"),
+                "score_scale": judge.get("score_scale"),
+                "proof_eligible_judge": judge.get("proof_eligible_judge"),
+                "advisory_only": judge.get("advisory_only"),
+                "judge_role": judge.get("judge_role"),
             }
         )
     return tuple(rows)
@@ -236,6 +258,10 @@ def _collect_final_aggregation_status(root: Path, repo: Path) -> LaneSectionStat
                 "pass": j.get("pass"),
                 "provider_status": j.get("provider_status"),
                 "raw_response_ref": j.get("raw_response_ref"),
+                "score_scale": j.get("score_scale"),
+                "proof_eligible_judge": j.get("proof_eligible_judge"),
+                "advisory_only": j.get("advisory_only"),
+                "judge_role": j.get("judge_role"),
             }
             for j in judges
         ),

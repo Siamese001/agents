@@ -126,7 +126,7 @@ def format_allowed_source_fact_ids_contract(allowed_ids: list[str]) -> str:
 
 
 def is_strategy_executive_target_title(target_title: str) -> bool:
-    """True when TARGET_TITLE signals IT strategy / innovation SVP-style positioning."""
+    """True when TARGET_TITLE signals IT strategy / innovation / transformation SVP-style positioning."""
     blob = str(target_title or "").strip().lower()
     if not blob:
         return False
@@ -140,9 +140,13 @@ def is_strategy_executive_target_title(target_title: str) -> bool:
         "cito",
         "enterprise architecture",
         "digital innovation",
+        "transformation",
+        "agentic transformation",
+        "advisory",
+        "consulting",
     )
     return any(m in blob for m in markers) or (
-        "svp" in blob and ("strategy" in blob or "innovation" in blob)
+        "svp" in blob and ("strategy" in blob or "innovation" in blob or "transformation" in blob or "advisory" in blob)
     )
 
 

@@ -61,10 +61,8 @@ Rubric dimensions (SRFS executive summary — product shape **exactly 6 sentence
 1. factual_support: claims supported by allowed_fact_packet and candidate claim_ledger source_fact_ids.
 2. executive_signal: SVP-level platform/governance/partner-motion synthesis, not bullet stacks.
 3. resume_voice: credible third-person executive prose; penalize recruiter filler, "this individual", "Additionally/Furthermore" chains, generic AI-company prose, and anything that would fail a Head of Talent Acquisition screen.
-4. ats_alignment_without_keyword_stuffing: JD shapes emphasis only; no JD-as-proof. When allowed facts
-   lack EA/interop/federated proof IDs, penalize only if prose invents those themes or ignores documented
-   gap_notes — not for absence alone when generation_law_digest requires gap_notes. Reward company-DNA specificity when the
-   packet supports partner ecosystem, adoption motion, commercial fit, or a clean Head of Talent Acquisition screen.
+4. ats_alignment_without_keyword_stuffing: JD shapes strategic emphasis; no JD-as-proof. Evaluate whether the summary narrative
+   connects verified graph facts to target JD priorities (consulting/PE EBITDA vs platform systems architecture).
 5. anti_overfit: no unsupported metrics/credentials; no target company as candidate experience; no repeated metric inventory
    or company-name mirroring; no AI-authenticity dead giveaways such as em dashes, buzzword soup, or template phrasing.
 6. synthesis_quality: **exactly six** integrated sentences with optional composition themes (identity, platform/governance,
@@ -86,6 +84,7 @@ Retired criteria (do NOT fail the candidate for these alone):
 - Requiring Fellow of the Society of Actuaries or cert list in the paragraph
 
 Decisive failure triggers (must be supported by allowed facts and deterministic_gate_summary failures when cited):
+- target mandate divergence (e.g. generating systems plumbing summary when JD specifies executive consulting/PE advisory)
 - unsupported business metric or credential in prose
 - JD or briefing used as proof
 - first-person narrative
@@ -123,10 +122,8 @@ Rubric dimensions (graph-only C0.3 augmented skills graph authority, non-SRFS la
    override + graph skill refs).**
 2. executive_signal: SVP-level platform/governance/partner-motion synthesis, not bullet stacks.
 3. resume_voice: credible executive prose; no recruiter filler, meta narration, or generic AI-company prose, and nothing that would fail a Head of Talent Acquisition screen.
-4. ats_alignment_without_keyword_stuffing: JD shapes emphasis only; no JD-as-proof. When allowed facts
-   lack EA/interop/federated proof IDs, penalize only if prose invents those themes or ignores documented
-   gap_notes — not for absence alone when generation_law_digest requires gap_notes. Reward company-DNA specificity when the
-   packet supports partner ecosystem, adoption motion, commercial fit, or a clean Head of Talent Acquisition screen.
+4. ats_alignment_without_keyword_stuffing: JD shapes strategic emphasis; no JD-as-proof. Evaluate whether the summary narrative
+   connects verified graph facts to target JD priorities (consulting/PE EBITDA vs platform systems architecture).
 5. anti_overfit: no unsupported metrics/credentials; no target company as candidate experience; no repeated metric inventory
    or company-name mirroring; no AI-authenticity dead giveaways such as em dashes, buzzword soup, or template phrasing.
    **`display_override_text` content is NOT an unsupported credential/metric — it is X2-authorized
@@ -146,6 +143,7 @@ Residual quality (always in scope — not closed by X2 alone):
 - executive clarity, narrative coherence, commercial fit, usefulness, unsupported phrasing outside ledger scope.
 
 Decisive failure triggers (must align with deterministic_gate_summary failures when cited):
+- target mandate divergence (e.g. generating systems plumbing summary when JD specifies executive consulting/PE advisory)
 - unsupported business metric or credential (when x2 gates failed or decisive unsupported claim)
 - JD or briefing used as proof
 - first-person narrative

@@ -23,7 +23,7 @@ from apps_rg.runtime.validators.headline_quality_x2 import (
 )
 
 
-GOVERNANCE_SIGNAL_FAMILIES: tuple[str, ...] = ("runtime_governance", "regulated_ai_systems")
+GOVERNANCE_SIGNAL_FAMILIES: tuple[str, ...] = ("runtime_governance", "regulated_ai_systems", "csuite_transformation_advisory")
 
 # Floor enforced by x2_headline_technical_specificity_floor_met (>= this many families).
 POSITIONING_FAMILY_FLOOR: int = 2
@@ -257,7 +257,16 @@ def run_headline_positioning_x2_gates(
     # Platform OR runtime signal present (HARD)
     blob = " ".join(headline_line.split(" | ")[1:]).lower() if " | " in headline_line else headline_line.lower()
     tokens = set(blob.replace("|", " ").split())
-    platform_runtime_families = ("agentic_ai_platforms", "distributed_ai_infrastructure", "runtime_governance", "platform_productization", "enterprise_ai_architecture")
+    platform_runtime_families = (
+        "agentic_ai_platforms",
+        "distributed_ai_infrastructure",
+        "runtime_governance",
+        "platform_productization",
+        "enterprise_ai_architecture",
+        "executive_transformation_strategy",
+        "pe_due_diligence_value_creation",
+        "enterprise_operating_model",
+    )
     pr_hit = _families_matched(blob, tokens, platform_runtime_families)
     add(
         "x2_headline_platform_or_runtime_signal_required",

@@ -111,6 +111,11 @@ class TestSeniorityDemotionFails:
         result = check_headline_seniority_floor(hl)
         assert result.passed
 
+    def test_svp_agentic_transformation_prefix_passes(self):
+        hl = "SVP Agentic Transformation | Enterprise Operating Model Redesign | Private Equity Value Creation | Governed AI Architecture"
+        result = check_headline_seniority_floor(hl)
+        assert result.passed, f"SVP Agentic Transformation should pass seniority floor: {result.failure_reason}"
+
     def test_cto_prefix_fails(self):
         hl = "CTO | Agentic AI Platforms | Runtime Governance | Regulated Systems"
         result = check_headline_seniority_floor(hl)
@@ -128,6 +133,14 @@ class TestPositioningFamilyPreservedPasses:
         result = check_headline_positioning_families(hl, min_families=2)
         assert result.passed, f"Should detect ≥2 positioning families: {result.observed_value}"
         assert len(result.signals) >= 2
+
+    def test_transformation_pe_operating_model_passes(self):
+        hl = "SVP Agentic Transformation | Enterprise Operating Model Redesign | Private Equity Value Creation | C-Suite Transformation Governance"
+        result = check_headline_positioning_families(hl, min_families=2)
+        assert result.passed, f"Should detect ≥2 positioning families: {result.observed_value}"
+        assert "enterprise_operating_model" in result.observed_value
+        assert "pe_due_diligence_value_creation" in result.observed_value
+        assert "csuite_transformation_advisory" in result.observed_value
 
     def test_distributed_productization_passes(self):
         hl = "SVP Engineering | Distributed AI Infrastructure | Retrieval Context Engineering | Platform Productization"

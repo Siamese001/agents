@@ -110,7 +110,6 @@ JD_TEXT_DEFAULT = resolve_jd_for_lanes().description
 BRIEFING_DEFAULT = resolve_briefing_for_lanes(briefing_artifact_ref=None).text
 ACCEPTED_COMPANION_STATUS = "ACCEPTED_FINALIZED"
 
-
 def _shell_jd_alignment() -> dict[str, Any]:
     return {
         "targeting_only": True,
@@ -121,7 +120,6 @@ def _shell_jd_alignment() -> dict[str, Any]:
         "targeting_rationale": "",
     }
 
-
 def _find_repo_root() -> Path:
     here = Path(__file__).resolve()
     for parent in [here.parent, *here.parents]:
@@ -129,18 +127,15 @@ def _find_repo_root() -> Path:
             return parent
     return Path.cwd()
 
-
 REPO_ROOT = _find_repo_root()
 LANE_KEY = "unify_narrative"
 PROMPT_TEMPLATE = (
     REPO_ROOT / "apps_rg" / "prompt_assembly" / "templates" / "unify_position_narrative_v1.yaml"
 )
 
-
 def sha16(value: str | bytes) -> str:
     data = value.encode("utf-8") if isinstance(value, str) else value
     return hashlib.sha256(data).hexdigest()[:16]
-
 
 def write_json(path: Path, data: Any) -> None:
     _wg.ensure_dir(path.parent)
@@ -522,14 +517,19 @@ def build_runtime_payload(
 
 
 def parse_model_json(raw: str) -> tuple[dict[str, Any] | None, str]:
-    text = raw.strip()
-    text = re.sub(r"^```(?:json)?", "", text).strip()
-    text = re.sub(r"```$", "", text).strip()
+    text = re.sub(r"^```(?:json)?", "", raw.strip()).rstrip("`").strip()
     try:
         parsed = json.loads(text)
         if isinstance(parsed, dict):
             return parsed, ""
     except json.JSONDecodeError as exc:
+        try:
+            repaired = re.sub(r'(:\s*)(?!(?:true|false|null|-?\d+(?:\.\d+)?)\b)([a-zA-Z_]\w*)(\s*[,}])', r"""\g<1>"\g<2>"\g<3>""", text)
+            parsed = json.loads(repaired)
+            if isinstance(parsed, dict):
+                return parsed, ""
+        except json.JSONDecodeError:
+            pass
         return None, f"JSON parse failed: {exc}"
     return None, "Model output was not a JSON object."
 
@@ -1118,10 +1118,15 @@ def run_unify_narrative_execution(
         write_json(artifact_dir / "provider_response.json", provider_result_data)
     if runtime_generation_status in ("REAL_LLM", "MOCKED"):
         parsed_in, parse_error = parse_model_json(raw_output)
-        if parsed_in is None and runtime_generation_status == "REAL_LLM" and str(args.provider) == "external_claude":
+        if parsed_in is None and runtime_generation_status == "REAL_LLM":
             raw_output, parsed_in, parse_error = retry_provider_for_parse(
                 messages, provider_payload, raw_output, parse_error
             )
+        elif parsed_in is not None and raw_output and "```" not in raw_output:
+            try:
+                json.loads(raw_output.strip())
+            except json.JSONDecodeError:
+                raw_output = re.sub(r'(:\s*)(?!(?:true|false|null|-?\d+(?:\.\d+)?)\b)([a-zA-Z_]\w*)(\s*[,}])', r"""\g<1>"\g<2>"\g<3>""", raw_output.strip())
             if parsed_in is not None:
                 from apps_rg.runtime.section_repair_ledger import KIND_MECHANICAL, record_repair
 

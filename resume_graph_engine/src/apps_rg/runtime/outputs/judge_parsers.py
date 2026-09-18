@@ -37,6 +37,11 @@ def _judge_rows_from_blob(blob: dict[str, Any]) -> list[dict[str, Any]]:
                     if isinstance(judge.get("dimension_verdicts"), dict)
                     else {}
                 ),
+                "score_scale": judge.get("score_scale"),
+                "proof_eligible_judge": judge.get("proof_eligible_judge"),
+                "advisory_only": judge.get("advisory_only"),
+                "judge_role": judge.get("judge_role"),
+                "judge_id": judge.get("judge_id"),
             }
         )
     return rows
@@ -69,6 +74,11 @@ def _normalize_judge_record(judge: dict[str, Any]) -> dict[str, Any]:
             if isinstance(judge.get("dimension_verdicts"), dict)
             else {}
         ),
+        "score_scale": judge.get("score_scale"),
+        "proof_eligible_judge": judge.get("proof_eligible_judge"),
+        "advisory_only": judge.get("advisory_only"),
+        "judge_role": judge.get("judge_role"),
+        "judge_id": judge.get("judge_id"),
     }
 
 

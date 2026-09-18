@@ -5,7 +5,7 @@ allowed_stage: "L2_EXEC"
 rewrite_intent: "COMPETENCY_SELECTOR"
 
 purpose: |
-  Target-aware, fact-constrained SELECTION and GROUPING for ENGINEERING & PLATFORM COMPETENCIES (graph_8x8 product mode).
+  Target-aware, fact-constrained SELECTION and GROUPING for executive capability competencies (graph_8x8 product mode).
   Rank the 8 executive capability category candidates from VERIFIED_SKILL_INVENTORY_PROJECTION (augmented_skills_graph)
   and employment-bullet facts; emit only the highest-signal 6-8 categories that pass graph/fact reality checks.
   Never seed categories or terms from locked base-resume `facts.skills` rows or copy base competency tables as proof.

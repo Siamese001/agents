@@ -20,6 +20,14 @@ _BRIEFING_THEME_KEYWORDS: dict[str, tuple[str, ...]] = {
         "priorities",
         "pressure",
         "business model",
+        "private equity",
+        "pe-backed",
+        "due diligence",
+        "m&a",
+        "ebitda",
+        "transformation",
+        "c-suite",
+        "board-level",
     ),
     "commercial_motion": (
         "product-led",
@@ -32,6 +40,10 @@ _BRIEFING_THEME_KEYWORDS: dict[str, tuple[str, ...]] = {
         "gtm",
         "motion",
         "archetype",
+        "advisory",
+        "consulting",
+        "value creation",
+        "portfolio",
     ),
     "partner_ecosystem": (
         "partner",
@@ -304,6 +316,10 @@ def _rank_section(
     else:
         theme_rank = 99
     if "INSURANCE_BROKERAGE" in rf and any(k in sid for k in _INSURANCE_BROKERAGE_SECTION_BOOST):
+        return (0, 0, sid)
+    if ("TRANSFORMATION" in rf or "CONSULTING" in rf or "EXECUTIVE" in rf) and any(
+        k in sid for k in ("transform", "advis", "operating_model", "partner", "positioning_themes", "jd_complement", "strategy", "dna")
+    ):
         return (0, 0, sid)
     if any(k in sid for k in ("target", "role", "company", "priority", "must")):
         return (0 if theme_rank >= 99 else theme_rank, 1, sid)

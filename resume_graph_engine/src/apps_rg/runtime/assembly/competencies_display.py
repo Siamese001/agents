@@ -75,13 +75,16 @@ def competency_display_rows(snapshot: dict[str, Any]) -> list[tuple[str, list[st
     if not categories:
         return []
 
-    # When the snapshot contains a rich, evidence-backed set of distinct categories (>= 6),
+    # When the snapshot contains a rich, evidence-backed set of distinct categories (>= 6) with explicit labels,
     # display each category directly so all 6-8 categories are visible on the finished résumé.
-    if len(categories) >= 6:
+    has_explicit_labels = sum(
+        1 for c in categories if (c.get("resume_display_label") or c.get("category_label"))
+    ) >= 6
+    if has_explicit_labels:
         rows: list[tuple[str, list[str]]] = []
         for category in categories:
             label = str(
-                category.get("resume_display_label") or category.get("category_label") or "Capabilities"
+                category.get("resume_display_label") or category.get("category_label") or ""
             ).strip()
             terms: list[str] = []
             seen: set[str] = set()

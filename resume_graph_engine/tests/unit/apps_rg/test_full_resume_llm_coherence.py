@@ -473,3 +473,37 @@ def test_candidate_evidence_packet_preserves_unique_metric_authority_without_dia
     assert "TARGETING_CONTEXT (not proof)" in prompt
     assert "surface-text repetition is not required" in prompt
 
+
+def test_target_mandate_divergence_blocks_release_even_with_high_mean():
+    judges = [
+        _judge(key="gemini_pro", pass_=True),  # score 0.9 >= 0.8
+        JudgeOutput(
+            judge_id="x1d_openai_chatgpt_full_resume_coherence",
+            provider_name="openai_chatgpt",
+            provider_key="openai_chatgpt",
+            evaluator_mode="LIVE",
+            provider_status="OK",
+            model_name="gpt-5.6-luna",
+            provider_available=True,
+            provider_blocked=False,
+            exact_provider_error=None,
+            rubric_version="test",
+            input_hash="abc",
+            output_hash="def",
+            score=3.6,
+            score_scale="0_to_5",
+            normalized_score=0.72,
+            threshold=4.0,
+            normalized_threshold=0.8,
+            pass_=False,
+            decisive_failure=False,
+            findings=["Target mandate divergence: generated engineering platform resume for consulting/PE role."],
+            cited_sentence_indexes=[],
+            remediation_suggestions=[],
+        ),
+    ]
+    agg = aggregate_full_resume_coherence(judges, deterministic_blockers=[])
+    assert agg["full_resume_coherence_pass"] is False
+    assert any("target_mandate_divergence" in b for b in agg["blockers"])
+
+

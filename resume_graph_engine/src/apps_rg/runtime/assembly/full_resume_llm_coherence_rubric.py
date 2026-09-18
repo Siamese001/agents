@@ -242,7 +242,7 @@ EVALUATION LENSES & CORE DIMENSIONS:
 Evaluate the resume across these six distinct recruitment, screening, and strategic alignment lenses:
 
 1. narrative_coherence (Executive Leadership Storyline):
-   - End-to-end alignment: headline -> executive summary -> professional experience -> competencies tell one coherent, authoritative SVP/CTO/Platform story.
+   - End-to-end alignment: headline -> executive summary -> professional experience -> competencies tell one coherent, authoritative executive leadership story calibrated to the target role and domain mandate.
    - Cross-section consistency: titles, dates, metrics, employers, and scope remain consistent across sections.
    - Section ownership: credentials appear ONLY under CERTIFICATIONS & CREDENTIALS — never duplicated inside competencies.
 
@@ -257,7 +257,7 @@ Evaluate the resume across these six distinct recruitment, screening, and strate
    - Non-duplication: competencies do not restate bullets or executive summary verbatim.
 
 4. jd_briefing_resonance (Strategic Alignment without Claim Invention):
-   - Strategic alignment: resonance with the company's enterprise challenges, platform architecture, co-sell motions, and transformation imperatives outlined in the JD briefing.
+   - Strategic alignment: active resonance with the company's enterprise challenges, platform architecture, co-sell motions, or transformation imperatives outlined in the JD briefing. The resume must genuinely tailor candidate emphasis to the target role rather than defaulting to disconnected generic platform language.
    - TARGETING CONTEXT ONLY: JD briefing informs strategic framing and altitude, NEVER candidate proof.
    - Flag unsupported claims: reject any JD-only or briefing-only phrasing presented as candidate proof without backing in the candidate evidence packet.
 
@@ -267,25 +267,27 @@ Evaluate the resume across these six distinct recruitment, screening, and strate
    - Trajectory integrity: career progression is stable, logical, and senior.
 
 6. altitude_and_band_calibration (Executive Leveling):
-   - Calibration to target executive band: platform architecture, GTM alliance co-sell, runtime governance, model evaluation frameworks, and enterprise portfolio leadership matching executive requirements.
-   - No IC downgrade: do NOT penalize maintaining SVP engineering leadership rather than an individual contributor (IC) junior researcher persona. Downward title/scope distortion is strictly forbidden.
+   - Calibration to target executive band: enterprise architecture, C-suite advisory, operating model transformation, GTM alliance co-sell, or runtime governance matching executive requirements of the target role.
+   - No IC downgrade: do NOT penalize maintaining senior executive leadership (Partner / SVP / CTO) rather than an individual contributor (IC) junior researcher persona. Downward title/scope distortion is strictly forbidden.
 
 CANDIDATE_EVIDENCE_PACKET is candidate proof, not targeting context. Graph IDs and source-fact IDs in that packet are the claim-authority spine. A globally unique metric or skill may be intentionally allocated to one rendered section; do not call it unsupported merely because the same wording is not duplicated in professional experience. Still flag a claim when the packet provides no candidate-evidence binding or when the rendered claim conflicts with its evidence.
 
 AUTHORITATIVE CANDIDATE PROFILE & TARGETING BAR:
-- The candidate is an executive technology leader (SVP Engineering / CTO / Partner).
-- When targeting technical, platform, or applied research roles (such as "Applied AI Research Engineer" at Anthropic or similar frontier labs), the candidate's executive platform posture (platform architecture, GTM alliance co-sell, runtime governance telemetry, model eval frameworks, and enterprise portfolio expansion) is authoritative, intentional, and required.
-- The Anthropic Applied AI role explicitly specifies owning the technical<>GTM handshake, enterprise reference architectures, and translating customer adoption into research/product feedback.
-- For dimension `ats_alignment_without_keyword_stuffing` and `role_fit`: Do NOT mark TARGET_ROLE_MISMATCH or penalize the resume for maintaining executive SVP engineering leadership rather than an individual contributor (IC) junior researcher persona. Downward title/scope distortion or asking for an IC hands-on research downgrade is explicitly forbidden by the `seniority_downgrade` blocker. Evaluate role fit on how well executive platform/GTM leadership meets the enterprise scale, governance, and adoption scope of the role.
-- For dimension `resume_voice`: Technical platform terminology (e.g., runtime governance telemetry, control planes, model evaluation frameworks) is expected at the SVP Engineering bar; do not cite it as negative jargon density unless genuinely vacuous buzzwords.
+- The candidate is an executive leader with 20+ years spanning top-tier management consulting (EY Principal, IBM Partner, Slalom) and frontier technology/platform leadership (Unify SVP Engineering / CTO).
+- Dynamic Target Mandate Alignment: The resume must actively frame and weight candidate experience to answer the specific mandate of the target company and role as specified in TARGETING_CONTEXT.
+  - When targeting Management Consulting / Private Equity Advisory / Enterprise Transformation roles (such as Blend360): The narrative must lead with partner-level advisory gravitas, operating model redesign, C-suite governance, commercial growth ($10M+ ARR), and M&A / PE value creation, with agentic AI positioned as an economic value driver.
+  - When targeting Technical Platform / Frontier Systems roles: The narrative appropriately emphasizes distributed systems architecture, runtime governance, model evaluation frameworks, and technical co-sell.
+- Evaluate role fit on how authentically executive leadership meets the specific enterprise mandate and domain scope of the role.
+- For dimension `resume_voice`: Technical platform terminology (e.g., runtime governance telemetry, control planes, model evaluation frameworks) is expected at the executive bar; do not cite it as negative jargon density unless genuinely vacuous buzzwords.
 
 Lines marked [NOT COMPLETED: <section> — <reason>] are intentional gaps — do not score as prose; judge flow/overlap only on completed sections.
 
 Decisive failure (blockers):
-- Credential names duplicated in ENGINEERING & PLATFORM COMPETENCIES
+- Target mandate divergence: presenting an engineering platform/systems resume for an executive management consulting, PE value creation, or organizational advisory mandate (or vice-versa)
+- Credential names duplicated in competencies
 - JD/briefing language used as primary proof for unsupported skills
-- Severe incoherence or seniority downgrade vs SVP engineering/platform bar
-- Competencies section is keyword stuffing with no executive clusters
+- Severe incoherence or seniority downgrade vs executive bar
+- Competencies section is keyword stuffing with no executive clusters or unaligned domain taxonomy
 """.strip()
 
 __all__ = [

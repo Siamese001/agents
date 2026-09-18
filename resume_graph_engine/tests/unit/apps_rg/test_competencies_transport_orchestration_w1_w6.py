@@ -630,7 +630,7 @@ def test_competencies_self_consistency_defaults_to_serial_with_bounded_budget(
         DEFAULT_COMPETENCIES_SC_OUTPUT_TOKENS,
     )
 
-    monkeypatch.delenv("APPS_RG_COMPETENCIES_SC_PARALLEL", raising=False)
+    monkeypatch.setenv("APPS_RG_COMPETENCIES_SC_PARALLEL", "0")
     monkeypatch.delenv("APPS_RG_COMPETENCIES_SC_MAX_PARALLEL", raising=False)
     seen_budgets: list[int | None] = []
 
@@ -679,7 +679,7 @@ def test_competencies_self_consistency_stops_after_zero_output_provider_timeout(
     import apps_rg.runtime.reasoning.bullet_lane_self_consistency as scmod
     from apps_rg.runtime.providers.provider_contract import ProviderResult
 
-    monkeypatch.delenv("APPS_RG_COMPETENCIES_SC_PARALLEL", raising=False)
+    monkeypatch.setenv("APPS_RG_COMPETENCIES_SC_PARALLEL", "0")
     calls = {"count": 0}
 
     def fake_call(profile, payload, *, artifact_dir=None, run_id=None, temperature_override=None, token_budget=None):

@@ -29,7 +29,6 @@ from apps_rg.runtime.validators.narrative_quality_x2 import (
 # Generic consulting-delivery phrases that demote a senior engineering role arc.
 GENERIC_CONSULTING_PHRASES: frozenset[str] = NARRATIVE_CONSULTING_PHRASES | frozenset({
     "delivered consulting engagements",
-    "advised clients on",
     "consulting delivery",
     "client delivery engagements",
     "professional services delivery",

@@ -15,9 +15,12 @@ from pathlib import Path
 from typing import Any
 from xml.etree import ElementTree
 
-from apps_rg.runtime.assembly.full_resume_text import (
+from apps_rg.runtime.section_display_labels import (
+    ALLOWED_COMPETENCIES_HEADINGS,
     CERTIFICATIONS_AND_CREDENTIALS_HEADING,
     ENGINEERING_PLATFORM_COMPETENCIES_HEADING,
+)
+from apps_rg.runtime.assembly.full_resume_text import (
     flatten_final_resume_to_text,
 )
 
@@ -109,7 +112,7 @@ def _document_xml(text: str) -> bytes:
     heading_lines = {
         "HEADLINE",
         "EXECUTIVE SUMMARY",
-        ENGINEERING_PLATFORM_COMPETENCIES_HEADING,
+        *ALLOWED_COMPETENCIES_HEADINGS,
         "PROFESSIONAL EXPERIENCE",
         "EDUCATION",
         CERTIFICATIONS_AND_CREDENTIALS_HEADING,

@@ -53,14 +53,15 @@ NARRATIVE_STRONG_VERBS: frozenset[str] = frozenset({
     "launched", "modernized", "forged", "built", "standardized", "unified",
     "accelerated", "transformed", "generated", "delivered", "implemented",
     "oversaw", "managed", "steered", "pioneered", "defined", "spearheaded",
-    "led", "created",
+    "led", "created", "advised", "guided",
 })
 
 # Authority scope signals
 NARRATIVE_AUTHORITY_SIGNALS: frozenset[str] = frozenset({
     "platform", "enterprise", "mandate", "roadmap", "infrastructure", "organization",
     "architecture", "governance", "production", "regulated", "commercialization",
-    "productization", "strategy", "operating", "model",
+    "productization", "strategy", "operating", "model", "c-suite", "board",
+    "executive", "portfolio", "diligence", "transformation", "advisory",
 })
 
 # Mechanism vocabulary for technical specificity
@@ -78,6 +79,8 @@ MECHANISM_VOCAB: frozenset[str] = frozenset({
     # Domain-specific
     "ccar", "basel", "insuretech", "underwriting", "actuarial", "hpc",
     "hyperscaler", "hyperscalers",
+    # Enterprise commercial / transformation mechanisms
+    "salesforce", "m&a", "ebitda", "valuation", "synergy", "synergies",
 })
 
 BASE_NGRAM_THRESHOLD = 0.25

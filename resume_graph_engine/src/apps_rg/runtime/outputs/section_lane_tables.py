@@ -24,15 +24,34 @@ def _row_from_single_section(
     l2 = _load_json(run_root / "l2_output.json")
     display_name, display_abs = _resolve_display(run_root, section_id)
     judges = _judge_rows_from_blob(_load_json(run_root / "x1d_llm_judge_outputs.json"))
-    judge_summary = "; ".join(
-        (
-            f"{j['provider']}"
-            f"{' `' + str(j['model']) + '`' if j.get('model') else ''}: "
-            f"{_score_text(j.get('score'))}/5 vs {_score_text(j.get('threshold'))} "
-            f"{'PASS' if j.get('pass') is True else 'FAIL' if j.get('pass') is False else 'UNKNOWN'}"
+    summary_cells = []
+    for j in judges:
+        provider = str(j.get("provider") or j.get("provider_name") or j.get("provider_key") or "judge")
+        model = str(j.get("model") or j.get("model_name") or "").strip()
+        model_suffix = f" `{model}`" if model else ""
+        is_selector = bool(
+            "selector" in str(j.get("judge_role") or "").lower()
+            or "selector" in str(j.get("judge_id") or "").lower()
         )
-        for j in judges
-    )
+        role_tag = " (Advisory Selector)" if is_selector else ""
+        score = _score_text(j.get("score"))
+        threshold = _score_text(j.get("threshold"))
+        status = "PASS" if j.get("pass") is True else "FAIL" if j.get("pass") is False else "UNKNOWN"
+        score_scale = str(j.get("score_scale") or "").strip().lower()
+        if score_scale == "0_to_1":
+            scale_denom = "1"
+        elif score_scale == "0_to_100":
+            scale_denom = "100"
+        elif score_scale == "0_to_5":
+            scale_denom = "5"
+        else:
+            try:
+                t_val = float(j.get("threshold") or 0.0)
+                scale_denom = "1" if 0 < t_val <= 1.0 else "5"
+            except (ValueError, TypeError):
+                scale_denom = "5"
+        summary_cells.append(f"{provider}{role_tag}{model_suffix}: {score}/{scale_denom} vs {threshold} {status}")
+    judge_summary = "; ".join(summary_cells)
     return LaneSectionStatusRow(
         lane=section_id,
         lane_dir=_repo_rel(run_root, repo_root),

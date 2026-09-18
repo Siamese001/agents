@@ -69,11 +69,12 @@ _STANDALONE_VENDOR_ARCHITECTURE_RE = re.compile(
 )
 
 _EXECUTIVE_ABSTRACTION_RE = re.compile(
-    r"(?:\bplatforms?\b|\barchitecture\b|\barchitectures\b|\bgovernance\b|"
+    r"(?:\bplatforms?\b|\barchitecture\b|\barchitectures\b|\bgovernance\b|\bgoverned\b|"
+    r"\bmodernization\b|\bmodernizations?\b|\btransformations?\b|\bvalue\s+creation\b|"
     r"\becosystems?\b|\bcommercialization\b|\bregulated\b|\bsystems?\b|"
     r"\badoption\b|\boperating\s+model\b|\bco-?sell\b|\bmotions?\b|"
     r"\bpartners?\b|\bpartnerships?\b|\balliances?\b|\benterprise\b|\bruntime\b|\binfrastructure\b|"
-    r"\bproductization\b|\bcontrols?\b|\bcloud\s+data\b)",
+    r"\bproductization\b|\bcontrols?\b|\bcloud\s+data\b|\baccelerators?\b|\badvisory\b)",
     re.IGNORECASE,
 )
 
@@ -837,6 +838,35 @@ def validate_raw_headline_claim_ledger(parsed: dict[str, Any] | None) -> tuple[b
     return True, "ok", None
 
 
+def has_valid_headline_prefix(headline_line: str) -> bool:
+    """Check if headline starts with an approved executive seniority prefix."""
+    h = (headline_line or "").strip()
+    return any(
+        h.startswith(f"{p} | ")
+        for p in (
+            "SVP Engineering",
+            "SVP Agentic Transformation",
+            "SVP Transformation",
+            "SVP Enterprise AI",
+            "SVP Technology Strategy",
+            "SVP Agentic AI Platforms",
+            "Senior Vice President",
+            "Partner",
+            "Executive Director",
+            "Managing Director",
+        )
+    ) or (
+        (
+            h.startswith("SVP ")
+            or any(
+                h.startswith(f"{p} ")
+                for p in ("Senior Vice President", "Executive Director", "Managing Director", "Partner")
+            )
+        )
+        and " | " in h
+    )
+
+
 def headline_runtime_self_check_truth(
     headline_line: str,
     *,
@@ -845,13 +875,13 @@ def headline_runtime_self_check_truth(
 ) -> dict[str, Any]:
     """Deterministic self-check slice comparable to model ``self_check`` JSON."""
     h = (headline_line or "").strip()
+    hl_lower = h.lower()
     wc = headline_word_count(h)
     sep = " | "
     sep_count = h.count(sep)
     parts = [p.strip() for p in h.split(sep)] if sep_count >= 3 else []
     segment_count = len(parts) if sep_count == 3 else 0
-    fixed_prefix = any(h.startswith(f"{p} | ") for p in ("SVP Engineering", "SVP Agentic Transformation", "SVP Transformation", "SVP Enterprise AI", "SVP Technology Strategy")) or (h.startswith("SVP ") and " | " in h)
-    hl_lower = h.lower()
+    fixed_prefix = has_valid_headline_prefix(h)
     tc = (target_company or "").strip().lower()
     tc_bad = bool(tc) and len(tc) >= 6 and tc in hl_lower
     emp_hit = False
@@ -1002,6 +1032,10 @@ def run_headline_x2_gates(
         "SVP Technology Strategy",
         "SVP Enterprise AI",
         "SVP Agentic AI Platforms",
+        "Senior Vice President",
+        "Partner",
+        "Executive Director",
+        "Managing Director",
     )
     if h.count(_sep) != 3:
         pipe_reason = f'must have exactly three {_sep!r} separators (four segments)'
@@ -1009,7 +1043,11 @@ def run_headline_x2_gates(
         parts = [p.strip() for p in h.split(_sep)]
         if len(parts) != 4 or not all(parts):
             pipe_reason = "four non-empty segments required when splitting on ' | '"
-        elif not (parts[0] in _ALLOWED_HEADLINE_PREFIXES or (parts[0].startswith("SVP ") and len(parts[0].split()) in (2, 3))):
+        elif not (
+            parts[0] in _ALLOWED_HEADLINE_PREFIXES
+            or (parts[0].startswith("SVP ") and len(parts[0].split()) in (2, 3, 4))
+            or (parts[0].startswith(("Senior Vice President", "Executive Director", "Managing Director", "Partner")) and len(parts[0].split()) <= 4)
+        ):
             pipe_reason = f'first segment must be an approved executive title prefix (got {parts[0]!r})'
         else:
             pipe_ok = True
@@ -1700,6 +1738,7 @@ __all__ = [
     "evaluate_headline_literal_grounding",
     "headline_executive_abstraction_report",
     "headline_segment_theme_overlap_issues",
+    "has_valid_headline_prefix",
     "headline_runtime_self_check_truth",
     "headline_word_count",
     "polish_claim_text_when_headline_has_no_metrics",

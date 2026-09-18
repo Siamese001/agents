@@ -25,35 +25,19 @@ VALID_SEVERITIES: frozenset[str] = frozenset({"none", "minor", "major"})
 # Stable codes for matrix/regen (subset; models may emit these in verdict.codes).
 DIMENSION_VERDICT_CODES: frozenset[str] = frozenset(
     {
-        "bullet_stack_prose",
-        "weak_domain_targeting",
-        "thin_closing_sentence",
-        "metric_inventory",
-        "repeated_metric_surface",
-        "weak_synthesis",
-        "recruiter_filler",
-        "generic_ai_prose",
-        "head_of_talent_acquisition_screen",
-        "ai_authenticity_failure",
-        "buzzword_soup",
-        "em_dash_usage",
-        "template_phrasing",
-        "company_dna_thin",
-        "partner_motion_missing",
-        "adoption_motion_missing",
-        "jd_as_proof_risk",
-        "unsupported_claim",
-        "underused_facts",
-        "x2_gate_failure",
-        "residual_executive_clarity",
-        "residual_narrative_coherence",
-        "residual_commercial_fit",
+        "bullet_stack_prose", "weak_domain_targeting", "thin_closing_sentence", "metric_inventory",
+        "repeated_metric_surface", "weak_synthesis", "recruiter_filler", "generic_ai_prose",
+        "head_of_talent_acquisition_screen", "ai_authenticity_failure", "buzzword_soup", "em_dash_usage",
+        "template_phrasing", "company_dna_thin", "partner_motion_missing", "adoption_motion_missing",
+        "jd_as_proof_risk", "unsupported_claim", "underused_facts", "target_mandate_divergence",
+        "x2_gate_failure", "residual_executive_clarity", "residual_narrative_coherence", "residual_commercial_fit",
     }
 )
 
 _FLAG_TO_DIMENSIONS: dict[str, tuple[str, ...]] = {
     "bullet_stack_prose": ("executive_signal", "synthesis_quality"),
     "weak_domain_targeting": ("ats_alignment_without_keyword_stuffing",),
+    "target_mandate_divergence": ("ats_alignment_without_keyword_stuffing", "executive_signal"),
     "thin_closing_sentence": ("synthesis_quality",),
     "s1_s2_redundancy": ("synthesis_quality",),
     "metric_inventory": ("executive_signal", "synthesis_quality"),
@@ -90,6 +74,8 @@ _TEXT_HINTS: tuple[tuple[str, tuple[str, ...]], ...] = (
             "insurance",
             "domain alignment",
             "targeting",
+            "mandate",
+            "divergence",
             "interoperability",
             "company dna",
             "partner ecosystem",
@@ -171,8 +157,9 @@ _EXEC_SUMMARY_RUBRIC_DIMENSION_PROSE: dict[str, str] = {
         "generic AI-company prose, or a paragraph that would fail a Head of Talent Acquisition screen."
     ),
     "ats_alignment_without_keyword_stuffing": (
-        "relevant to target role via emphasis only; no JD mirroring or stuffing. Reward company-DNA specificity "
-        "when evidence supports partner ecosystem, adoption motion, commercial fit, and an ATS/TA screen that stays clean."
+        "relevant to target role via emphasis and strategic mandate; no JD mirroring or stuffing. "
+        "Reward company-DNA and mandate specificity when evidence supports the target problem (e.g. consulting advisory, "
+        "operating model transformation, partner ecosystem, commercial fit), and an ATS/TA screen that stays clean."
     ),
     "anti_overfit": (
         "no JD-as-proof, no briefing-as-proof, no target company as candidate experience, "
