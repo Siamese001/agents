@@ -14,9 +14,7 @@ from infrastructure.live_execution import (
 
 
 def _is_test_mode() -> bool:
-    if os.environ.get("PYTEST_CURRENT_TEST") or ("pytest" in sys.modules):
-        return True
-    return os.environ.get("APPS_RG_TEST_HARNESS") == "1"
+    return bool(os.environ.get("PYTEST_CURRENT_TEST") or ("pytest" in sys.modules))
 
 
 def perform_live_preflight(
@@ -39,7 +37,7 @@ def assert_engine_live_preflight(
 ) -> dict[str, str]:
     """Validate live posture for CLI command invocation.
 
-    In test environments (pytest or APPS_RG_TEST_HARNESS=1), validation is bypassed.
+    In test environments (active pytest runner), validation is bypassed.
     In production environments, any missing credential or mock flag raises LiveExecutionError.
     """
     if _is_test_mode():

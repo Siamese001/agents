@@ -1,11 +1,4 @@
-"""The sole public Apps RG whole-resume command.
-
-Use one command surface only:
-
-``python -m apps_rg run``
-``python -m apps_rg eval``
-``python -m apps_rg show``
-"""
+"""The sole public Apps RG whole-resume command (run, eval, show)."""
 
 from __future__ import annotations
 
@@ -37,35 +30,11 @@ __all__ = ["_build_parser", "main"]
 def _add_run_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--target-company", default=DEFAULT_TARGET_COMPANY)
     parser.add_argument("--target-role", default=DEFAULT_TARGET_ROLE)
-    parser.add_argument(
-        "--jd",
-        default="",
-        help="Optional JD file path or inline text. Defaults to the canonical Anthropic JD.",
-    )
-    parser.add_argument(
-        "--resume",
-        default="",
-        help="Optional base-resume JSON, Markdown, or text path. Defaults to the canonical base resume.",
-    )
-    parser.add_argument(
-        "--artifact-dir",
-        default="",
-        help=(
-            "Optional fresh output directory beneath artifacts/apps_rg/runtime_proofs. "
-            "The governed product run rejects any other destination."
-        ),
-    )
-    parser.add_argument(
-        "--briefing",
-        default="",
-        help="Optional briefing file path or inline text.",
-    )
-    parser.add_argument(
-        "--json",
-        action="store_true",
-        default=False,
-        help="Emit structured JSON output containing status, evaluation, and runtime details.",
-    )
+    parser.add_argument("--jd", default="", help="Optional JD file path or inline text. Defaults to the canonical Anthropic JD.")
+    parser.add_argument("--resume", default="", help="Optional base-resume JSON, Markdown, or text path. Defaults to the canonical base resume.")
+    parser.add_argument("--artifact-dir", default="", help="Optional fresh output directory beneath artifacts/apps_rg/runtime_proofs. The governed product run rejects any other destination.")
+    parser.add_argument("--briefing", default="", help="Optional briefing file path or inline text.")
+    parser.add_argument("--json", action="store_true", default=False, help="Emit structured JSON output containing status, evaluation, and runtime details.")
 
 
 def _build_parser(prog: str = "python -m apps_rg") -> argparse.ArgumentParser:
@@ -511,13 +480,36 @@ def _run_product_from_cli(args: argparse.Namespace) -> dict[str, Any]:
     return out
 
 
+def _run_preflight(prog: str, json_out: bool = False) -> int | None:
+    try:
+        from agents.live_preflight import assert_engine_live_preflight
+
+        assert_engine_live_preflight(prog, providers=("openai",))
+        return None
+    except ImportError as err:
+        if json_out:
+            print(json.dumps({"status": "FAILED", "error": f"Preflight import failure: {err}"}, indent=2), flush=True)
+        sys.stderr.write(f"[{prog}] FATAL: Preflight module import failed:\n{err}\n")
+        return 2
+    except Exception as exc:
+        if json_out:
+            print(json.dumps({"status": "FAILED", "error": str(exc)}, indent=2), flush=True)
+        sys.stderr.write(f"[{prog}] Preflight Credential Failure:\n{exc}\n")
+        return 2
+
+
 def main(argv: list[str] | None = None, prog: str | None = None) -> int:
     """Run the sole supported resume workflow or its inspection actions."""
+    import secrets
+
     # Ensure local dev route signing secrets exist if not supplied in environment
     if not os.environ.get("APPS_RG_ROUTE_HMAC_SECRET"):
-        os.environ["APPS_RG_ROUTE_HMAC_SECRET"] = "agents-local-dev-session-secret"
+        os.environ["APPS_RG_ROUTE_HMAC_SECRET"] = secrets.token_hex(32)
     if not os.environ.get("APPS_RG_ROUTE_HMAC_KEY_ID"):
-        os.environ["APPS_RG_ROUTE_HMAC_KEY_ID"] = "agents-local-dev-key"
+        os.environ["APPS_RG_ROUTE_HMAC_KEY_ID"] = f"session-key-{secrets.token_hex(8)}"
+
+    _repo_root = find_repo_root()
+    bootstrap_apps_rg_env(repo_root=_repo_root)
 
     raw_argv = list(sys.argv[1:] if argv is None else argv)
     if raw_argv and raw_argv[0] == "bootstrap":
@@ -526,6 +518,9 @@ def main(argv: list[str] | None = None, prog: str | None = None) -> int:
         return int(run_bootstrap_cli(raw_argv[1:]))
 
     if any(arg == "--patch-run" or arg.startswith("--patch-run=") for arg in raw_argv):
+        pf = _run_preflight("python -m apps_rg patch-run")
+        if pf is not None:
+            return pf
         from apps_rg.runtime.orchestration.patch_run import main as patch_main
 
         patch_args: list[str] = []
@@ -533,8 +528,7 @@ def main(argv: list[str] | None = None, prog: str | None = None) -> int:
         for i, a in enumerate(raw_argv):
             if skip_next:
                 skip_next = False
-                continue
-            if a == "--patch-run":
+            elif a == "--patch-run":
                 if i + 1 < len(raw_argv):
                     patch_args.append(raw_argv[i + 1])
                     skip_next = True
@@ -549,25 +543,14 @@ def main(argv: list[str] | None = None, prog: str | None = None) -> int:
 
     parser = _build_parser(prog=prog)
     args = parser.parse_args(_normalize_argv(argv))
-    _repo_root = find_repo_root()
-    bootstrap_apps_rg_env(repo_root=_repo_root)
 
     assert_production_runtime(context=prog, args=args)
     action = args.action or "run"
     try:
         if action == "run":
-            # Live execution preflight
-            try:
-                from agents.live_preflight import assert_engine_live_preflight
-
-                assert_engine_live_preflight(prog, providers=("openai",))
-            except ImportError:
-                pass
-            except Exception as exc:
-                if getattr(args, "json", False):
-                    print(json.dumps({"status": "FAILED", "error": str(exc)}, indent=2), flush=True)
-                sys.stderr.write(f"[{prog}] Preflight Credential Failure:\n{exc}\n")
-                return 2
+            pf = _run_preflight(prog, getattr(args, "json", False))
+            if pf is not None:
+                return pf
 
             result = _run_product_from_cli(args)
             if getattr(args, "json", False):

@@ -118,5 +118,7 @@ def test_resume_engine_route_hmac_env_injection() -> None:
         except SystemExit:
             pass
 
-        assert os.environ.get("APPS_RG_ROUTE_HMAC_SECRET") == "agents-local-dev-session-secret"
-        assert os.environ.get("APPS_RG_ROUTE_HMAC_KEY_ID") == "agents-local-dev-key"
+        secret = os.environ.get("APPS_RG_ROUTE_HMAC_SECRET")
+        key_id = os.environ.get("APPS_RG_ROUTE_HMAC_KEY_ID")
+        assert secret and len(secret) >= 32
+        assert key_id and key_id.startswith("session-key-")

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import sys
 from unittest import mock
 
 import pytest
@@ -43,3 +44,34 @@ def test_assert_engine_live_preflight_in_production():
         with mock.patch.dict(os.environ, {"APPS_RG_L2_FORCE_STUB": "1"}):
             with pytest.raises(LiveExecutionError, match="PROHIBITED_MOCK_ENV"):
                 assert_engine_live_preflight("agents resume", providers=("openai",))
+
+
+def test_is_test_mode_rejects_apps_rg_test_harness_outside_pytest():
+    """Verify APPS_RG_TEST_HARNESS does not enable test mode outside pytest."""
+    from agents.live_preflight import _is_test_mode
+
+    with mock.patch.dict(os.environ, {"PYTEST_CURRENT_TEST": "", "APPS_RG_TEST_HARNESS": "1"}):
+        with mock.patch("sys.modules", {k: v for k, v in sys.modules.items() if k != "pytest"}):
+            assert not _is_test_mode()
+
+
+def test_apps_rg_cli_fails_closed_on_preflight_import_error():
+    """Verify apps_rg CLI exits with code 2 if preflight import fails."""
+    import sys
+    from apps_rg.__main__ import main
+
+    with mock.patch.dict(os.environ, {"OPENAI_API_KEY": "test-live-key-sample-12345"}):
+        with mock.patch.dict(sys.modules, {"agents.live_preflight": None}):
+            ret = main(["run"])
+            assert ret == 2
+
+
+def test_apps_lic_cli_fails_closed_on_preflight_import_error():
+    """Verify apps_lic CLI exits with code 2 if preflight import fails."""
+    import sys
+    from apps_lic.__main__ import main
+
+    with mock.patch.dict(os.environ, {"OPENAI_API_KEY": "test-live-key-sample-12345"}):
+        with mock.patch.dict(sys.modules, {"agents.live_preflight": None}):
+            ret = main(["run"])
+            assert ret == 2
