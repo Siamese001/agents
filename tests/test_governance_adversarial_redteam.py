@@ -312,8 +312,8 @@ def test_adversarial_environment_smuggling_test_harness(monkeypatch: pytest.Monk
         assert _is_test_mode() is False
 
     with mock.patch("agents.live_preflight._is_test_mode", return_value=False):
-        monkeypatch.delenv("OPENAI_API_KEY", raising=False)
-        with pytest.raises(LiveExecutionError):
+        monkeypatch.setenv("APPS_RG_L2_FORCE_STUB", "1")
+        with pytest.raises(LiveExecutionError, match="PROHIBITED_MOCK_ENV"):
             assert_engine_live_preflight("adversarial_runner", providers=("openai",))
 
 
