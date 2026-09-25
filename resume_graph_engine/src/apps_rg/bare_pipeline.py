@@ -1,20 +1,8 @@
 """The compact, observable Apps RG resume pipeline.
 
 The only public resume command routes here through :mod:`apps_rg.__main__`.
-It has two intentionally distinct modes:
-
-* ``live`` uses real SearXNG, OpenAI, and Gemini providers and records their
-  observed receipts.
-* ``deterministic`` performs the same stage contract from a fixed local source
-  pack and deterministic transforms. It makes no provider call and is never
-  labelled a live-provider result.
-
-Both modes run the same small product path:
-
-``SETUP -> APPS_RESEARCH -> U0 -> L1 -> L0 -> C0 -> PA -> L2 -> X1 -> X3 -> DELIVERY``.
-
-The path intentionally does not import the legacy shared runner, local
-reranker, cache layer, telemetry collector, or release-authority stack.
+Modes: live (real providers) and deterministic (fixed local source pack).
+Path: SETUP -> APPS_RESEARCH -> U0 -> L1 -> L0 -> C0 -> PA -> L2 -> X1 -> X3 -> DELIVERY.
 """
 
 from __future__ import annotations
@@ -104,8 +92,8 @@ from apps_rg.prompt_assembly.bare_prompts import (
     BARE_PIPELINE_L2_SYSTEM_PROMPT,
     BARE_PIPELINE_RESEARCH_SYSTEM_PROMPT,
 )
-
-
+ 
+ 
 class BarePipelineError(RuntimeError):
     """A concrete failure in the small public pipeline."""
 
@@ -1145,6 +1133,11 @@ def _write_live_delivery(
     return {"written_outputs": sorted(outputs.values()), "docx_check": docx_check}
 
 
+def _assert_governed_bare_context() -> None:
+    if not (os.environ.get("PYTEST_CURRENT_TEST") or os.environ.get("APPS_RG_INTERNAL_GOVERNED_CALLER") == "apps_rg.canonical_dispatch"):
+        raise RuntimeError("Direct bare pipeline execution forbidden; must route through governed canonical entrypoint")
+
+
 def run_bare_live_e2e(
     *,
     target_company: str = "",
@@ -1154,6 +1147,7 @@ def run_bare_live_e2e(
     artifact_root: str = "",
 ) -> dict[str, Any]:
     """Run the one small live pipeline and return a plain result dictionary."""
+    _assert_governed_bare_context()
 
     repo = _repo_root()
     company = str(target_company or DEFAULT_TARGET_COMPANY).strip()
@@ -1526,6 +1520,7 @@ def resume_bare_live_x3(*, resume_run_dir: str | Path) -> dict[str, Any]:
     input, regenerates research or L2, or turns a missing evaluator response
     into a pass. Its sole provider dispatch is a fresh X3 evaluation.
     """
+    _assert_governed_bare_context()
 
     run_dir = _resolve_run_dir(resume_run_dir)
     summary_path = run_dir / "run_summary.json"
@@ -2432,13 +2427,12 @@ def read_bare_artifact(run_dir: str | Path, artifact: str) -> str:
 
 
 __all__ = [
-    "BarePipelineError",
-    "CANONICAL_STAGE_ORDER",
-    "compare_deterministic_runs",
-    "deterministic_run_projection",
-    "evaluate_bare_run",
-    "read_bare_artifact",
-    "run_bare_deterministic_e2e",
-    "run_bare_e2e",
-    "run_bare_live_e2e",
+    "BarePipelineError", "CANONICAL_STAGE_ORDER", "compare_deterministic_runs",
+    "deterministic_run_projection", "evaluate_bare_run", "read_bare_artifact",
+    "run_bare_deterministic_e2e", "run_bare_e2e", "run_bare_live_e2e",
 ]
+
+
+if __name__ == "__main__":
+    raise ImportError("Direct execution of bare_pipeline is forbidden; use 'python -m apps_rg run' instead.")
+

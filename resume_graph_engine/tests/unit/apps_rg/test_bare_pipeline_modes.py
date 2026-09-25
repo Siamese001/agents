@@ -460,3 +460,18 @@ def test_replay_detects_tampered_resume_artifact(tmp_path: Path) -> None:
 
     assert report["status"] == "FAIL"
     assert report["checks"]["resume_markdown"]["status"] == "FAIL"
+
+
+def test_direct_bare_live_execution_fails_without_governed_context(monkeypatch) -> None:
+    monkeypatch.delenv("PYTEST_CURRENT_TEST", raising=False)
+    monkeypatch.delenv("APPS_RG_INTERNAL_GOVERNED_CALLER", raising=False)
+    with pytest.raises(RuntimeError, match="Direct bare pipeline execution forbidden"):
+        bare_pipeline.run_bare_live_e2e()
+
+
+def test_direct_bare_live_x3_resume_fails_without_governed_context(monkeypatch) -> None:
+    monkeypatch.delenv("PYTEST_CURRENT_TEST", raising=False)
+    monkeypatch.delenv("APPS_RG_INTERNAL_GOVERNED_CALLER", raising=False)
+    with pytest.raises(RuntimeError, match="Direct bare pipeline execution forbidden"):
+        bare_pipeline.resume_bare_live_x3(resume_run_dir="/tmp/test_nonexistent")
+

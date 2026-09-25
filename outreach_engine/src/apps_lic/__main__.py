@@ -103,8 +103,11 @@ def _handle_run(args: argparse.Namespace, prog: str = "python -m outreach_engine
             providers=("openai",),
             is_demo=bool(getattr(args, "demo", False)),
         )
-    except ImportError:
-        pass
+    except ImportError as err:
+        if getattr(args, "json", False):
+            print(json.dumps({"status": "FAILED", "error": f"Preflight import failure: {err}"}, indent=2), flush=True)
+        sys.stderr.write(f"[{prog}] FATAL: Preflight module import failed:\n{err}\n")
+        return 2
     except Exception as exc:
         if getattr(args, "json", False):
             print(json.dumps({"status": "FAILED", "error": str(exc)}, indent=2), flush=True)

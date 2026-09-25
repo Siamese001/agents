@@ -276,5 +276,68 @@ Primary adapter.
 
     result = validate_agent_operating_contract(tmp_path)
     assert result["status"] == "FAIL"
-    assert any("Plan First. Execute Second." in issue for issue in result["issues"])
+    assert any("Plan First. Execute Section." in issue or "Plan First. Execute Second." in issue for issue in result["issues"])
     assert any("Constitutional floor" in issue for issue in result["issues"])
+
+
+# ---------------------------------------------------------------------------
+# Vector 7: Single Governed Entrypoint & Shadow Runner Evasion Defense
+# ---------------------------------------------------------------------------
+
+def test_adversarial_shadow_runner_bare_pipeline_bypass(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Rogue agent attempts to invoke bare_pipeline directly to evade canonical preflights."""
+    from apps_rg.bare_pipeline import run_bare_live_e2e, resume_bare_live_x3
+
+    monkeypatch.delenv("PYTEST_CURRENT_TEST", raising=False)
+    monkeypatch.delenv("APPS_RG_INTERNAL_GOVERNED_CALLER", raising=False)
+
+    with pytest.raises(RuntimeError, match="Direct bare pipeline execution forbidden"):
+        run_bare_live_e2e()
+
+    with pytest.raises(RuntimeError, match="Direct bare pipeline execution forbidden"):
+        resume_bare_live_x3(resume_run_dir="/tmp/rogue_run")
+
+
+def test_adversarial_environment_smuggling_test_harness(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Rogue agent attempts to bypass live preflight credentials via APPS_RG_TEST_HARNESS."""
+    import sys
+    from unittest import mock
+    from agents.live_preflight import _is_test_mode, assert_engine_live_preflight
+    from infrastructure.live_execution import LiveExecutionError
+
+    monkeypatch.delenv("PYTEST_CURRENT_TEST", raising=False)
+    monkeypatch.setenv("APPS_RG_TEST_HARNESS", "1")
+
+    with mock.patch("sys.modules", {k: v for k, v in sys.modules.items() if k != "pytest"}):
+        assert _is_test_mode() is False
+
+    with mock.patch("agents.live_preflight._is_test_mode", return_value=False):
+        monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+        with pytest.raises(LiveExecutionError):
+            assert_engine_live_preflight("adversarial_runner", providers=("openai",))
+
+
+def test_adversarial_patch_run_preflight_shortcircuit(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Rogue agent attempts to invoke --patch-run to bypass preflight credential validation."""
+    from unittest import mock
+    from apps_rg.__main__ import main
+
+    # When preflight fails, main returns exit code 2 without running patch_main
+    with mock.patch("agents.live_preflight.assert_engine_live_preflight", side_effect=RuntimeError("Missing credential")):
+        code = main(["--patch-run", "/tmp/fake_dir"])
+        assert code == 2
+
+
+def test_adversarial_preflight_import_error_suppression(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Rogue agent attempts to break preflight module import to cause silent execution bypass."""
+    import os
+    import sys
+    from unittest import mock
+    from apps_rg.__main__ import main as rg_main
+    from apps_lic.__main__ import main as lic_main
+
+    with mock.patch.dict(sys.modules, {"agents.live_preflight": None}):
+        with mock.patch.dict(os.environ, {"OPENAI_API_KEY": "test-key-54321"}):
+            assert rg_main(["run"]) == 2
+            assert lic_main(["run"]) == 2
+
