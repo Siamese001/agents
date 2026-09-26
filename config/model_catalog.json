@@ -58,8 +58,8 @@
     "legacy": {
       "sonnet_35_latest": "claude-3-5-sonnet-latest",
       "sonnet_35_20241022": "claude-3-5-sonnet-20241022",
-      "haiku_3": "claude-3-haiku",
-      "haiku_3_20240307": "claude-3-haiku-20240307"
+      "haiku_3": "claude-haiku-4-5-20251001",
+      "haiku_3_20240307": "claude-haiku-4-5-20251001"
     }
   },
   "gemini": {

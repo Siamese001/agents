@@ -245,3 +245,16 @@ def test_model_neutral_naming_prohibits_astra_token() -> None:
     violating_plan = Path("plans/astra_latency_optimization.md")
     violations_plan = check_path_model_neutrality(violating_plan, ROOT)
     assert len(violations_plan) > 0
+
+
+def test_retired_claude_haiku3_banned_from_model_catalogs() -> None:
+    """Verify that retired 'claude-3-haiku-20240307' is strictly purged from config/model_catalog.json."""
+    catalog_path = ROOT / "config" / "model_catalog.json"
+    if catalog_path.is_file():
+        catalog_raw = catalog_path.read_text(encoding="utf-8")
+        assert "claude-3-haiku-20240307" not in catalog_raw
+        data = json.loads(catalog_raw)
+        legacy_anthropic = data.get("anthropic", {}).get("legacy", {})
+        assert legacy_anthropic.get("haiku_3_20240307") != "claude-3-haiku-20240307"
+        assert legacy_anthropic.get("haiku_3") != "claude-3-haiku"
+
