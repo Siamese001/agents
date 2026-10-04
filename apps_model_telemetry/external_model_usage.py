@@ -235,6 +235,14 @@ def append_external_model_usage(
         return None
     scope = _usage_context.get() or {}
     normalized = normalize_usage(provider, usage)
+    cost_usd = None
+    pricing_version = None
+    try:
+        from apps_model_telemetry.pricing import price_usage
+
+        cost_usd, pricing_version, _ = price_usage(str(model or ""), normalized, provider=str(provider or ""))
+    except Exception:
+        pass
     event: dict[str, Any] = {
         "schema_version": EVENT_SCHEMA_VERSION,
         "event_id": uuid.uuid4().hex,
@@ -244,6 +252,8 @@ def append_external_model_usage(
         "section_id": str(section_id if section_id is not None else scope.get("section_id") or ""),
         "provider": str(provider or ""),
         "model": str(model or ""),
+        "cost_usd": cost_usd,
+        "pricing_version": pricing_version,
         "request_digest": str(request_digest or ""),
         "outcome": str(outcome or ""),
         "provider_status": str(provider_status or ""),

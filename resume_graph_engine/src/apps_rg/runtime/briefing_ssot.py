@@ -8,9 +8,9 @@ Role-specific briefings use ``apps_rg/config/targeting/*_briefing.md`` (GFM tabl
 from __future__ import annotations
 
 import functools
-from pathlib import Path
+from apps_rg.config_root import get_default_briefing_path
 
-_DEFAULT_FILE = Path(__file__).resolve().parents[1] / "config" / "default_targeting_briefing.txt"
+_DEFAULT_FILE = get_default_briefing_path()
 
 # Exposed for runbooks, tests, and tooling that need the filesystem path.
 DEFAULT_TARGETING_BRIEFING_PATH: Path = _DEFAULT_FILE

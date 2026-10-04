@@ -1,0 +1,812 @@
+schema_version: model_registry.v2
+registry_id: apps_rg::model_registry::v2
+version: "2.0.0"
+status: active
+
+policy:
+  environment_model_override_allowed: false
+  aliases_allowed: false
+  receipt_identity_source: observed_provider_response
+
+providers:
+  external_openai:
+    profile_id: apps_rg::provider::external_openai::v1
+    provider_profile: external_openai
+    provider_class: external_api
+    endpoint_env_var: APPS_RG_EXTERNAL_OPENAI_BASE_URL
+    api_key_env_var: OPENAI_API_KEY
+    capabilities:
+      - text_generation
+      - structured_json_generation
+      - judge_grade_only
+    default: false
+    production_permitted: true
+
+  external_claude:
+    profile_id: apps_rg::provider::external_claude::v1
+    provider_profile: external_claude
+    provider_class: external_api
+    endpoint_env_var: APPS_RG_EXTERNAL_CLAUDE_BASE_URL
+    api_key_env_var: ANTHROPIC_API_KEY
+    capabilities:
+      - text_generation
+      - structured_json_generation
+      - advisory_selector
+    default: true
+    production_permitted: true
+
+  gemini_pro:
+    profile_id: apps_rg::provider::gemini_pro::v1
+    provider_profile: gemini_pro
+    provider_class: external_api
+    endpoint_env_var: APPS_RG_GEMINI_BASE_URL
+    api_key_env_var: GEMINI_API_KEY
+    capabilities:
+      - text_generation
+      - structured_json_generation
+      - judge_grade_only
+    default: false
+    production_permitted: true
+
+  openai_chatgpt:
+    profile_id: apps_rg::provider::openai_chatgpt::v1
+    provider_profile: openai_chatgpt
+    provider_class: external_api
+    endpoint_env_var: APPS_RG_EXTERNAL_OPENAI_BASE_URL
+    api_key_env_var: OPENAI_API_KEY
+    capabilities:
+      - text_generation
+      - structured_json_generation
+      - judge_grade_only
+    default: false
+    production_permitted: true
+
+  anthropic_claude:
+    profile_id: apps_rg::provider::anthropic_claude::v1
+    provider_profile: anthropic_claude
+    provider_class: external_api
+    endpoint_env_var: APPS_RG_EXTERNAL_CLAUDE_BASE_URL
+    api_key_env_var: ANTHROPIC_API_KEY
+    capabilities:
+      - text_generation
+      - structured_json_generation
+      - advisory_selector
+    default: false
+    production_permitted: true
+
+  hugging_face:
+    profile_id: apps_rg::provider::hugging_face::v1
+    provider_profile: hugging_face
+    provider_class: local
+    endpoint_env_var: null
+    api_key_env_var: null
+    capabilities:
+      - embedding
+    default: false
+    production_permitted: true
+
+  deterministic_grader:
+    profile_id: apps_rg::provider::deterministic_grader::v1
+    provider_profile: deterministic_grader
+    provider_class: deterministic
+    endpoint_env_var: null
+    api_key_env_var: null
+    capabilities:
+      - deterministic_grading
+    default: false
+    production_permitted: true
+
+  llm_judge_stub:
+    profile_id: apps_rg::provider::llm_judge_stub::v1
+    provider_profile: llm_judge_stub
+    provider_class: stub
+    endpoint_env_var: null
+    api_key_env_var: null
+    capabilities:
+      - judge_grade_only
+    default: false
+    production_permitted: false
+
+  executive_positioning_judge_stub:
+    profile_id: apps_rg::provider::executive_positioning_judge_stub::v1
+    provider_profile: executive_positioning_judge_stub
+    provider_class: stub
+    endpoint_env_var: null
+    api_key_env_var: null
+    capabilities:
+      - executive_positioning_judge
+    default: false
+    production_permitted: false
+
+models:
+  gpt-5.6-luna:
+    provider: openai
+    snapshot_id: gpt-5.6-luna
+    status: active
+    deprecated_on: null
+    retire_after: null
+    replacement: null
+    capabilities:
+      - text_generation
+      - structured_json_generation
+      - judge_grade_only
+    context_window: 131072
+    tokenizer_family: o200k_base
+    pricing:
+      input_cost_per_mtok: 2.50
+      output_cost_per_mtok: 10.00
+      cached_input_cost_per_mtok: 1.25
+      cache_write_multiplier: 1.00
+      pricing_version: "2026-10-01"
+      effective_date: "2026-10-01"
+      source: openai_pricing_v2
+    hf_revision: null
+    artifact_sha256: null
+
+  claude-sonnet-5:
+    provider: anthropic
+    snapshot_id: claude-sonnet-5
+    status: active
+    deprecated_on: null
+    retire_after: null
+    replacement: null
+    capabilities:
+      - text_generation
+      - structured_json_generation
+      - advisory_selector
+    context_window: 200000
+    tokenizer_family: claude_bpe
+    pricing:
+      input_cost_per_mtok: 3.00
+      output_cost_per_mtok: 15.00
+      cached_input_cost_per_mtok: 0.30
+      cache_write_multiplier: 1.25
+      pricing_version: "2026-10-01"
+      effective_date: "2026-10-01"
+      source: anthropic_pricing_v2
+    hf_revision: null
+    artifact_sha256: null
+
+  gemini-3.8-flash:
+    provider: google_gemini
+    snapshot_id: gemini-3.8-flash
+    status: active
+    deprecated_on: null
+    retire_after: null
+    replacement: null
+    capabilities:
+      - text_generation
+      - structured_json_generation
+      - judge_grade_only
+    context_window: 1048576
+    tokenizer_family: gemini_tokenizer
+    pricing:
+      input_cost_per_mtok: 0.15
+      output_cost_per_mtok: 0.60
+      cached_input_cost_per_mtok: 0.0375
+      cache_write_multiplier: 1.00
+      pricing_version: "2026-10-01"
+      effective_date: "2026-10-01"
+      source: google_gemini_pricing_v2
+    hf_revision: null
+    artifact_sha256: null
+
+  gpt-5.6-terra:
+    provider: openai
+    snapshot_id: gpt-5.6-terra
+    status: active
+    deprecated_on: null
+    retire_after: null
+    replacement: null
+    capabilities:
+      - text_generation
+      - structured_json_generation
+    context_window: 131072
+    tokenizer_family: o200k_base
+    pricing:
+      input_cost_per_mtok: 2.50
+      output_cost_per_mtok: 10.00
+      cached_input_cost_per_mtok: 1.25
+      cache_write_multiplier: 1.00
+      pricing_version: "2026-10-01"
+      effective_date: "2026-10-01"
+      source: openai_pricing_v2
+    hf_revision: null
+    artifact_sha256: null
+
+  gpt-5.6-sol:
+    provider: openai
+    snapshot_id: gpt-5.6-sol
+    status: active
+    deprecated_on: null
+    retire_after: null
+    replacement: null
+    capabilities:
+      - text_generation
+      - structured_json_generation
+      - judge_grade_only
+    context_window: 131072
+    tokenizer_family: o200k_base
+    pricing:
+      input_cost_per_mtok: 2.50
+      output_cost_per_mtok: 10.00
+      cached_input_cost_per_mtok: 1.25
+      cache_write_multiplier: 1.00
+      pricing_version: "2026-10-01"
+      effective_date: "2026-10-01"
+      source: openai_pricing_v2
+    hf_revision: null
+    artifact_sha256: null
+
+  BAAI/bge-m3:
+    provider: hugging_face
+    snapshot_id: "5617a9f61b028005a4858fdac845db406aefb181"
+    status: active
+    deprecated_on: null
+    retire_after: null
+    replacement: null
+    capabilities:
+      - embedding
+    context_window: 8192
+    tokenizer_family: bert_bge
+    pricing:
+      input_cost_per_mtok: 0.0
+      output_cost_per_mtok: 0.0
+      cached_input_cost_per_mtok: 0.0
+      cache_write_multiplier: 0.0
+      pricing_version: "2026-10-01"
+      effective_date: "2026-10-01"
+      source: local_execution
+    hf_revision: "5617a9f61b028005a4858fdac845db406aefb181"
+    artifact_sha256: "38ccc2e093252ab0416eee16837c75c641f055b4f3def12091fba8ed94e2b263"
+
+  claude-haiku-4-5-20251001:
+    provider: anthropic
+    snapshot_id: "claude-haiku-4-5-20251001"
+    status: active
+    deprecated_on: null
+    retire_after: null
+    replacement: null
+    capabilities:
+      - text_generation
+      - structured_json_generation
+    context_window: 200000
+    tokenizer_family: claude_bpe
+    pricing:
+      input_cost_per_mtok: 0.80
+      output_cost_per_mtok: 4.00
+      cached_input_cost_per_mtok: 0.08
+      cache_write_multiplier: 1.25
+      pricing_version: "2026-10-01"
+      effective_date: "2025-10-01"
+      source: anthropic_pricing_v2
+    hf_revision: null
+    artifact_sha256: null
+
+  claude-3-haiku-20240307:
+    provider: anthropic
+    snapshot_id: "claude-3-haiku-20240307"
+    status: retired
+    deprecated_on: "2025-10-01"
+    retire_after: "2026-01-01"
+    replacement: "claude-haiku-4-5-20251001"
+    capabilities:
+      - text_generation
+    context_window: 200000
+    tokenizer_family: claude_bpe
+    pricing:
+      input_cost_per_mtok: 0.25
+      output_cost_per_mtok: 1.25
+      cached_input_cost_per_mtok: 0.025
+      cache_write_multiplier: 1.25
+      pricing_version: legacy
+      effective_date: "2024-03-07"
+      source: anthropic_retired
+    hf_revision: null
+    artifact_sha256: null
+
+model_tiers:
+  frontier:
+    description: High capability frontier reasoning and generation models
+    recommended_effort: low
+    max_cost_per_mtok: 20.0
+
+  mid:
+    description: Fast and economical generation and judging models
+    recommended_effort: low
+    max_cost_per_mtok: 5.0
+
+  small:
+    description: Ultra lightweight classification and routing models
+    recommended_effort: none
+    max_cost_per_mtok: 1.0
+
+  deterministic:
+    description: Zero LLM cost deterministic evaluators and rule engines
+    recommended_effort: none
+    max_cost_per_mtok: 0.0
+
+roles:
+  # Primary generation roles by section
+  generation.slalom_narrative:
+    model: gpt-5.6-luna
+    provider: external_openai
+    tier: frontier
+    proof_eligible: true
+    owner: apps_rg.section_generation.openai
+    review_after: "2026-11-07"
+    backup_role: null
+    params:
+      effort: low
+      temperature: null
+
+  generation.unify_narrative:
+    model: gpt-5.6-luna
+    provider: external_openai
+    tier: frontier
+    proof_eligible: true
+    owner: apps_rg.section_generation.openai
+    review_after: "2026-11-07"
+    backup_role: null
+    params:
+      effort: low
+      temperature: null
+
+  generation.ibm_narrative:
+    model: gpt-5.6-luna
+    provider: external_openai
+    tier: frontier
+    proof_eligible: true
+    owner: apps_rg.section_generation.openai
+    review_after: "2026-11-07"
+    backup_role: null
+    params:
+      effort: low
+      temperature: null
+
+  generation.insurtech_narrative:
+    model: gpt-5.6-luna
+    provider: external_openai
+    tier: frontier
+    proof_eligible: true
+    owner: apps_rg.section_generation.openai
+    review_after: "2026-11-07"
+    backup_role: null
+    params:
+      effort: low
+      temperature: null
+
+  generation.competencies:
+    model: claude-sonnet-5
+    provider: external_claude
+    tier: frontier
+    proof_eligible: true
+    owner: apps_rg.section_generation.claude
+    review_after: "2026-11-07"
+    backup_role: generation_backup.competencies
+    params:
+      effort: low
+      temperature: null
+
+  generation.slalom_bullets:
+    model: claude-sonnet-5
+    provider: external_claude
+    tier: frontier
+    proof_eligible: true
+    owner: apps_rg.section_generation.claude
+    review_after: "2026-11-07"
+    backup_role: generation_backup.slalom_bullets
+    params:
+      effort: low
+      temperature: null
+
+  generation.unify_bullets:
+    model: claude-sonnet-5
+    provider: external_claude
+    tier: frontier
+    proof_eligible: true
+    owner: apps_rg.section_generation.claude
+    review_after: "2026-11-07"
+    backup_role: generation_backup.unify_bullets
+    params:
+      effort: low
+      temperature: null
+
+  generation.ibm_bullets:
+    model: claude-sonnet-5
+    provider: external_claude
+    tier: frontier
+    proof_eligible: true
+    owner: apps_rg.section_generation.claude
+    review_after: "2026-11-07"
+    backup_role: generation_backup.ibm_bullets
+    params:
+      effort: low
+      temperature: null
+
+  generation.insurtech_bullets:
+    model: claude-sonnet-5
+    provider: external_claude
+    tier: frontier
+    proof_eligible: true
+    owner: apps_rg.section_generation.claude
+    review_after: "2026-11-07"
+    backup_role: generation_backup.insurtech_bullets
+    params:
+      effort: low
+      temperature: null
+
+  generation.headline:
+    model: claude-sonnet-5
+    provider: external_claude
+    tier: frontier
+    proof_eligible: true
+    owner: apps_rg.section_generation.claude
+    review_after: "2026-11-07"
+    backup_role: generation_backup.headline
+    params:
+      effort: low
+      temperature: null
+
+  generation.executive_summary:
+    model: claude-sonnet-5
+    provider: external_claude
+    tier: frontier
+    proof_eligible: true
+    owner: apps_rg.section_generation.claude
+    review_after: "2026-11-07"
+    backup_role: generation_backup.executive_summary
+    params:
+      effort: low
+      temperature: null
+
+  # Anthropic limit backup roles
+  generation_backup.competencies:
+    model: gpt-5.6-luna
+    provider: external_openai
+    tier: frontier
+    proof_eligible: true
+    owner: apps_rg.section_generation.openai
+    review_after: "2026-11-07"
+    backup_role: null
+    params:
+      effort: low
+      temperature: null
+
+  generation_backup.slalom_bullets:
+    model: gpt-5.6-luna
+    provider: external_openai
+    tier: frontier
+    proof_eligible: true
+    owner: apps_rg.section_generation.openai
+    review_after: "2026-11-07"
+    backup_role: null
+    params:
+      effort: low
+      temperature: null
+
+  generation_backup.unify_bullets:
+    model: gpt-5.6-luna
+    provider: external_openai
+    tier: frontier
+    proof_eligible: true
+    owner: apps_rg.section_generation.openai
+    review_after: "2026-11-07"
+    backup_role: null
+    params:
+      effort: low
+      temperature: null
+
+  generation_backup.ibm_bullets:
+    model: gpt-5.6-luna
+    provider: external_openai
+    tier: frontier
+    proof_eligible: true
+    owner: apps_rg.section_generation.openai
+    review_after: "2026-11-07"
+    backup_role: null
+    params:
+      effort: low
+      temperature: null
+
+  generation_backup.insurtech_bullets:
+    model: gpt-5.6-luna
+    provider: external_openai
+    tier: frontier
+    proof_eligible: true
+    owner: apps_rg.section_generation.openai
+    review_after: "2026-11-07"
+    backup_role: null
+    params:
+      effort: low
+      temperature: null
+
+  generation_backup.headline:
+    model: gpt-5.6-luna
+    provider: external_openai
+    tier: frontier
+    proof_eligible: true
+    owner: apps_rg.section_generation.openai
+    review_after: "2026-11-07"
+    backup_role: null
+    params:
+      effort: low
+      temperature: null
+
+  generation_backup.executive_summary:
+    model: gpt-5.6-luna
+    provider: external_openai
+    tier: frontier
+    proof_eligible: true
+    owner: apps_rg.section_generation.openai
+    review_after: "2026-11-07"
+    backup_role: null
+    params:
+      effort: medium
+      temperature: null
+
+  # Proof judges
+  proof_judge.enhanced.gemini_pro:
+    model: gemini-3.8-flash
+    provider: gemini_pro
+    tier: mid
+    proof_eligible: true
+    owner: apps_rg.section_proof_judges
+    review_after: "2026-11-07"
+    backup_role: null
+    params:
+      thinking_level: medium
+      max_output_tokens: 8192
+
+  proof_judge.enhanced.openai_chatgpt:
+    model: gpt-5.6-luna
+    provider: openai_chatgpt
+    tier: frontier
+    proof_eligible: true
+    owner: apps_rg.section_proof_judges
+    review_after: "2026-11-07"
+    backup_role: null
+    params:
+      reasoning_effort: high
+      max_output_tokens: 8192
+
+  proof_judge.standard.gemini_pro:
+    model: gemini-3.8-flash
+    provider: gemini_pro
+    tier: mid
+    proof_eligible: true
+    owner: apps_rg.section_proof_judges
+    review_after: "2026-11-07"
+    backup_role: null
+    params:
+      thinking_level: low
+      max_output_tokens: 4096
+
+  proof_judge.standard.openai_chatgpt:
+    model: gpt-5.6-luna
+    provider: openai_chatgpt
+    tier: frontier
+    proof_eligible: true
+    owner: apps_rg.section_proof_judges
+    review_after: "2026-11-07"
+    backup_role: null
+    params:
+      reasoning_effort: high
+      max_output_tokens: 4096
+
+  # Selectors
+  selector.competencies_graph_pool_selector:
+    model: claude-sonnet-5
+    provider: anthropic_claude
+    tier: frontier
+    proof_eligible: false
+    owner: apps_rg.competencies_graph_pool
+    review_after: "2026-11-07"
+    backup_role: selector_backup.competencies_graph_pool_selector
+    params:
+      reasoning_effort: low
+
+  selector_backup.competencies_graph_pool_selector:
+    model: gpt-5.6-luna
+    provider: openai_chatgpt
+    tier: frontier
+    proof_eligible: false
+    owner: apps_rg.competencies_graph_pool
+    review_after: "2026-11-07"
+    backup_role: null
+    params:
+      reasoning_effort: low
+
+  selector.employment_bullet_pool_selector:
+    model: claude-sonnet-5
+    provider: anthropic_claude
+    tier: frontier
+    proof_eligible: false
+    owner: apps_rg.employment_bullet_pool
+    review_after: "2026-11-07"
+    backup_role: selector_backup.employment_bullet_pool_selector
+    params:
+      reasoning_effort: low
+
+  selector_backup.employment_bullet_pool_selector:
+    model: gpt-5.6-luna
+    provider: openai_chatgpt
+    tier: frontier
+    proof_eligible: false
+    owner: apps_rg.employment_bullet_pool
+    review_after: "2026-11-07"
+    backup_role: null
+    params:
+      reasoning_effort: low
+
+  # Embedding
+  embedding.bge_m3:
+    model: BAAI/bge-m3
+    provider: hugging_face
+    tier: deterministic
+    proof_eligible: false
+    owner: apps_rg.embedding
+    review_after: "2026-11-07"
+    backup_role: null
+    params: {}
+
+  # Voice repair and thesis alignment
+  repair.executive_voice:
+    model: claude-sonnet-5
+    provider: external_claude
+    tier: frontier
+    proof_eligible: true
+    owner: apps_rg.executive_voice_repair
+    review_after: "2026-11-07"
+    backup_role: null
+    params:
+      effort: low
+      temperature: null
+      max_tokens: 1024
+
+  reasoning.career_thesis_alignment:
+    model: claude-sonnet-5
+    provider: external_claude
+    tier: frontier
+    proof_eligible: true
+    owner: apps_rg.career_thesis_alignment
+    review_after: "2026-11-07"
+    backup_role: null
+    params:
+      effort: low
+      temperature: null
+
+  # Research
+  apps_research.company_brief:
+    model: gpt-5.6-terra
+    provider: openai
+    tier: frontier
+    proof_eligible: false
+    owner: apps_research.company_brief
+    review_after: "2026-11-07"
+    backup_role: null
+    params:
+      reasoning_effort: medium
+
+  apps_research.company_brief_generation:
+    model: gpt-5.6-terra
+    provider: openai
+    tier: frontier
+    proof_eligible: false
+    owner: apps_research.company_brief
+    review_after: "2026-11-07"
+    backup_role: null
+    params:
+      reasoning_effort: medium
+
+  apps_research.apps_rg_handoff_judge:
+    model: gemini-3.8-flash
+    provider: google_gemini
+    tier: mid
+    proof_eligible: false
+    owner: apps_research.apps_rg_handoff
+    review_after: "2026-11-07"
+    backup_role: null
+    params:
+      reasoning_effort: high
+
+runtime_limits:
+  section_context_window: 131072
+  bare_pipeline:
+    research_max_tokens: 2400
+    tailored_resume_max_tokens: 5000
+    http_timeout_seconds: 30
+  judge_http:
+    timeout_seconds: 120
+  model_token_governor:
+    chars_per_token_estimate: 3
+    safety_multiplier: 1.12
+    max_input_tokens_per_attempt: 48000
+    max_reserved_tokens_per_run: 300000
+  executive_summary:
+    scratch_max_output_tokens: 4096
+    regen_max_output_tokens: 4096
+    hard_cap_scratch_max_output_tokens: 8192
+    reserved_system_schema_tokens: 512
+    first_pass_input_utilization_max: 0.95
+    chars_per_token_estimate: 3
+    estimate_safety_multiplier: 1.12
+    briefing_input_share_fraction: 0.15
+    bullet_selector_input_share_fraction: 0.09
+  judge:
+    x1d_max_output_tokens: 4096
+    x1d_max_output_tokens_hard_cap: 8192
+    x1d_max_attempts: 3
+    retry_backoff_base_seconds: 0.5
+    retry_backoff_max_seconds: 4.0
+    gemini_proof_thinking_level: high
+    openai_proof_reasoning_effort: high
+    runtime_profiles:
+      optional_advisory_taxonomy_only:
+        judge_weight: 1
+        max_output_tokens: 4096
+        max_output_tokens_hard_cap: 8192
+        max_attempts: 1
+        retry_backoff_base_seconds: 0.25
+        retry_backoff_max_seconds: 0.25
+        gemini_thinking_level: low
+      standard_reasoning:
+        judge_weight: 2
+        max_output_tokens: 4096
+        max_output_tokens_hard_cap: 8192
+        max_attempts: 2
+        retry_backoff_base_seconds: 0.5
+        retry_backoff_max_seconds: 1.0
+        gemini_thinking_level: low
+      bullet_rewrite_quality:
+        judge_weight: 2
+        max_output_tokens: 4096
+        max_output_tokens_hard_cap: 8192
+        max_attempts: 2
+        retry_backoff_base_seconds: 0.5
+        retry_backoff_max_seconds: 1.0
+        gemini_thinking_level: low
+      enhanced_reasoning:
+        judge_weight: 3
+        max_output_tokens: 8192
+        max_output_tokens_hard_cap: 8192
+        max_attempts: 3
+        retry_backoff_base_seconds: 0.5
+        retry_backoff_max_seconds: 4.0
+        gemini_thinking_level: medium
+  runtime_budget_envelopes:
+    global_fallback:
+      tokens_max: 8000
+      latency_ms_max: 30000
+      tool_calls_max: 16
+      cost_usd_max: 0.50
+    route_class_defaults:
+      R1A:
+        tokens_max: 256
+        latency_ms_max: 2000
+        tool_calls_max: 0
+        cost_usd_max: 0.001
+      R1B:
+        tokens_max: 512
+        latency_ms_max: 3000
+        tool_calls_max: 0
+        cost_usd_max: 0.005
+      R2:
+        tokens_max: 4000
+        latency_ms_max: 15000
+        tool_calls_max: 4
+        cost_usd_max: 0.10
+      R3:
+        tokens_max: 16000
+        latency_ms_max: 60000
+        tool_calls_max: 32
+        cost_usd_max: 1.00
+      R4:
+        tokens_max: 2000
+        latency_ms_max: 10000
+        tool_calls_max: 2
+        cost_usd_max: 0.05
+      R5:
+        tokens_max: 256
+        latency_ms_max: 2000
+        tool_calls_max: 0

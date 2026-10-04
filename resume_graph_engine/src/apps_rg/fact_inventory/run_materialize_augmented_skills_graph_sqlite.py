@@ -10,10 +10,8 @@ from typing import Any
 
 SOURCE_ROOT = Path(__file__).resolve().parents[2]
 ROOT = SOURCE_ROOT.parent if SOURCE_ROOT.name == "src" else SOURCE_ROOT
-if str(SOURCE_ROOT) not in sys.path:
-    sys.path.insert(0, str(SOURCE_ROOT))
 
-from apps_rg.fact_inventory.augmented_skills_graph_sqlite import (  # noqa: E402
+from apps_rg.fact_inventory.augmented_skills_graph_sqlite import (
     materialize_augmented_skills_graph_sqlite,
     validate_materialized_sqlite,
 )

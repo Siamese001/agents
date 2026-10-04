@@ -17,9 +17,19 @@ CACHE_TTL_1H = "1h"
 CACHE_TTL_5M = "5m"
 
 
-def min_cacheable_chars(_model: str) -> int:
-    """Return the Apps RG prompt-cache floor in normalized characters."""
+def min_cacheable_chars(model: str) -> int:
+    """Return the Apps RG prompt-cache floor in normalized characters.
 
+    Model-aware floor:
+    - Haiku: 2,048 tokens (~8,192 chars)
+    - Sonnet / Opus: 1,024 tokens (~4,096 chars)
+    - Fallback: 1,024 chars
+    """
+    m = str(model or "").lower()
+    if "haiku" in m:
+        return 8192
+    if "sonnet" in m or "opus" in m:
+        return 4096
     return 1024
 
 

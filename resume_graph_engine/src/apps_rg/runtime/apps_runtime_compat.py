@@ -16,10 +16,8 @@ from enum import Enum
 from hashlib import sha256
 from typing import Any, Callable, Mapping, TypeVar
 
-from apps_rg.runtime.core_model_catalog import (
-    BGE_M3_EMBEDDING_DIMENSION,
-    BGE_M3_MODEL_ID,
-)
+from apps_rg.runtime.core_model_catalog import BGE_M3_EMBEDDING_DIMENSION, BGE_M3_MODEL_ID
+from apps_rg.runtime.model_token_governor import reserve_apps_rg_model_tokens
 from apps_rg.runtime.local_l6 import (
     L6PipelineState,
     build_apps_eval_alignment,
@@ -149,17 +147,12 @@ class Dimension:
 
 @dataclass(frozen=True)
 class JudgeResponse:
-    score: float
-    abstain: bool
-    reasoning: str
+    score: float; abstain: bool; reasoning: str
 
 
 @dataclass(frozen=True)
 class _HttpRequest:
-    url: str
-    body: bytes
-    method: str
-    headers: Mapping[str, str]
+    url: str; body: bytes; method: str; headers: Mapping[str, str]
 
 
 class GoogleJudge:
@@ -170,12 +163,18 @@ class GoogleJudge:
         *,
         model: str,
         api_key: str,
-        max_tokens: int = 4096,
+        max_tokens: int | None = None,
         timeout: float = 30.0,
         **_kwargs: Any,
     ) -> None:
         self._model = model
         self._api_key = api_key
+        if max_tokens is None:
+            try:
+                from apps_rg.runtime.section_model_limits import runtime_limit_int
+                max_tokens = runtime_limit_int("judge.x1d_max_output_tokens", 4096)
+            except Exception:
+                max_tokens = 4096
         self._max_tokens = max_tokens
         self._timeout = timeout
         self.observed_model = ""

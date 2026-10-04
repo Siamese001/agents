@@ -48,7 +48,7 @@ _CREDENTIAL_KEYS = frozenset(
         "GROQ_API_KEY",
         "HF_TOKEN",
         "HUGGING_FACE_HUB_TOKEN",
-        "MISTRAL_API_KEY",
+        "MISTRAL_API_KEY",  # ssot: exempt(HARDCODED_MODEL_LITERAL)
         "OPENAI_API_KEY",
         "OPENROUTER_API_KEY",
         "TOGETHER_API_KEY",
@@ -73,7 +73,7 @@ DEFAULT_FORBIDDEN_IMPORT_PREFIXES: tuple[str, ...] = (
     "sentence_transformers",
     "transformers",
     "vllm",
-    "llama_cpp",
+    "llama_cpp",  # ssot: exempt(HARDCODED_MODEL_LITERAL)
     "google.generativeai",
     "google.genai",
     "apps_research.integrations.llm_client",
@@ -278,7 +278,7 @@ def _classify_forbidden_import(fullname: str) -> str:
         "sentence_transformers",
         "transformers",
         "vllm",
-        "llama_cpp",
+        "llama_cpp",  # ssot: exempt(HARDCODED_MODEL_LITERAL)
     )
     return "model" if fullname.startswith(model_markers) else "provider"
 

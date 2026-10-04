@@ -1,12 +1,4 @@
-"""Seal W5 evidence from real zero-provider post-runtime execution.
-
-W5 does not synthesize substitute run, failure, or success evidence.  It
-reopens artifacts emitted by the production W0-W4 replay entrypoints, the
-production W2/W3 failure boundaries, and production authority validators.
-The module remains stdlib-only at import time so callers can install the
-zero-provider guard before qualification.
-"""
-
+"""Seal W5 evidence from real zero-provider post-runtime execution."""
 from __future__ import annotations
 
 import hashlib
@@ -16,6 +8,12 @@ import uuid
 from pathlib import Path
 from typing import Any, Callable, Mapping, Sequence
 
+from apps_rg.runtime.qualification_expectations import load_historical_qualification_expectations
+
+_HISTORICAL_EXP = load_historical_qualification_expectations()
+_SAVED_JUDGE_EXP = _HISTORICAL_EXP.get("saved_judge_inventory", {})
+_RESEARCH_EXP = _HISTORICAL_EXP.get("apps_research_events", {})
+_LANES_EXP = _HISTORICAL_EXP.get("apps_rg_lanes", {})
 
 W5_COMPLETION_SCHEMA = "apps_rg.zero_llm_qualification_completion.v3"
 W5_COMPLETION_FILENAME = "w5_completion_receipt.json"
@@ -450,11 +448,11 @@ def _verify_historical_saved_judges(
             judge = _read_json(candidate, label=f"legacy_judge_alias:{ref}")
             aliases_are_openai = aliases_are_openai and bool(
                 row.get("legacy_filename_only") is True
-                and row.get("model_actual") == "gpt-5.6-sol"
+                and row.get("model_actual") == _SAVED_JUDGE_EXP.get("legacy_alias_model", "")
                 and row.get("provider_name") == "OpenAI ChatGPT"
                 and row.get("provider_status") == "MODEL_BACKED_PASS"
                 and row.get("pass") is True
-                and judge.get("model_actual") == "gpt-5.6-sol"
+                and judge.get("model_actual") == _SAVED_JUDGE_EXP.get("legacy_alias_model", "")
                 and judge.get("provider_name") == "OpenAI ChatGPT"
                 and judge.get("provider_status") == "MODEL_BACKED_PASS"
                 and judge.get("pass") is True
@@ -479,10 +477,10 @@ def _verify_historical_saved_judges(
             for row in results
         ),
         "model_counts_exact": observed_models
-        == {"gemini-3.6-flash": 12, "gpt-5.6-sol": 9}
+        == _SAVED_JUDGE_EXP.get("model_counts", {})
         == inventory.get("model_counts"),
         "provider_counts_exact": observed_providers
-        == {"Google Gemini 3.6 Flash": 12, "OpenAI ChatGPT": 9}
+        == _SAVED_JUDGE_EXP.get("provider_counts", {})
         == inventory.get("provider_counts"),
         "no_claude_model_result": inventory.get("actual_claude_judge_result_count") == 0
         and all(
@@ -668,7 +666,7 @@ def _verify_historical_model_routes(
         lane_rows_match = lane_rows_match and all(
             row.get(key) == value for key, value in expected.items()
         )
-        target_claude_count += expected["signed_target_model"] == "claude-sonnet-5"
+        target_claude_count += expected["signed_target_model"] == _LANES_EXP.get("signed_target_model", "")
         actual_claude_count += "claude" in expected["provider_response_model"].lower()
         model_mismatch_count += recorded_model_match is False
         recorded_budget_failure_count += recorded_budget_pass is False
@@ -677,19 +675,19 @@ def _verify_historical_model_routes(
             recorded_budget_pass is False and recomputed_budget_pass is True
         )
         lane_rows_match = lane_rows_match and bool(
-            expected["signed_target_model"] == "claude-sonnet-5"
-            and expected["signed_allowed_models"] == ["claude-sonnet-5"]
+            expected["signed_target_model"] == _LANES_EXP.get("signed_target_model", "")
+            and expected["signed_allowed_models"] == _LANES_EXP.get("signed_allowed_models", [])
             and expected["signed_canonical_provider"] == "openai"
-            and expected["attempt_claimed_model"] == "claude-sonnet-5"
+            and expected["attempt_claimed_model"] == _LANES_EXP.get("attempt_claimed_model", "")
             and expected["attempt_claimed_provider_lane"] == "openai"
             and expected["provider_requested"] == "external_openai"
-            and expected["provider_request_model"] == "gpt-5.6-luna"
-            and expected["provider_response_model"] == "gpt-5.6-luna"
+            and expected["provider_request_model"] == _LANES_EXP.get("provider_request_model", "")
+            and expected["provider_response_model"] == _LANES_EXP.get("provider_response_model", "")
             and expected["runtime_generation_status"] == "REAL_LLM"
             and expected["provider_attempted"] is True
             and expected["provider_available"] is True
             and expected["stub"] is False
-            and expected["handoff_model_id_used"] == "gpt-5.6-luna"
+            and expected["handoff_model_id_used"] == _LANES_EXP.get("handoff_model_id_used", "")
             and expected["handoff_provider_lane_used"] == "openai"
             and expected["recorded_model_id_matches"] is False
             and expected["recorded_token_budget_pass"] is False
@@ -712,14 +710,14 @@ def _verify_historical_model_routes(
         "research_counts_exact": research.get("usage_event_count") == len(events) == 17
         and research.get("usage_event_model_counts")
         == event_model_counts
-        == {"gemini-3.6-flash": 7, "gpt-5.6-terra": 10}
+        == _RESEARCH_EXP.get("event_model_counts", {})
         and research.get("usage_event_provider_counts")
         == event_provider_counts
-        == {"external_openai": 10, "google_gemini": 7}
+        == _RESEARCH_EXP.get("event_provider_counts", {})
         and research.get("successful_attempt_count") == len(successful_attempts) == 3
         and research.get("successful_attempt_model_counts")
         == success_model_counts
-        == {"gemini-3.6-flash": 1, "gpt-5.6-terra": 2}
+        == _RESEARCH_EXP.get("success_model_counts", {})
         and research.get("claude_usage_event_count") == claude_event_count == 0,
         "research_success_attempts_exact": research.get("successful_attempts")
         == successful_attempts,

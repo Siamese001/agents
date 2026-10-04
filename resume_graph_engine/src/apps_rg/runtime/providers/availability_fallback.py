@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
-import re
 import os
+import random
+import re
+import time
 from dataclasses import replace
 from datetime import datetime, timezone
 from typing import Any, Mapping
@@ -62,6 +64,27 @@ def _http_status_code(error: str) -> int | None:
     if not match:
         return None
     return int(match.group(1))
+
+
+def _extract_retry_after_seconds(result: ProviderResult) -> float | None:
+    """Extract retry-after delay if present in error or response headers."""
+    err = str(result.exact_provider_error or "")
+    match = re.search(r"retry-after[:\s]+(\d+(?:\.\d+)?)", err, re.IGNORECASE)
+    if match:
+        try:
+            return float(match.group(1))
+        except ValueError:
+            pass
+    if isinstance(result.provider_response, dict):
+        resp_headers = result.provider_response.get("headers") or {}
+        if isinstance(resp_headers, dict):
+            for k, v in resp_headers.items():
+                if k.lower() == "retry-after":
+                    try:
+                        return float(v)
+                    except (ValueError, TypeError):
+                        pass
+    return None
 
 
 def _availability_failure_category(result: ProviderResult) -> str | None:
@@ -229,6 +252,18 @@ def maybe_retry_claude_availability_same_provider(
     receipt: dict[str, Any] = {}
 
     for attempt_index in range(1, max_retries + 1):
+        # Exponential backoff with jitter and retry-after honoring
+        retry_after = _extract_retry_after_seconds(current)
+        jitter = random.uniform(0.1, 0.5)
+        base_backoff = (2.0 ** (attempt_index - 1)) + jitter
+        if retry_after is not None and retry_after > 0:
+            wait_s = max(base_backoff, retry_after)
+        else:
+            wait_s = base_backoff
+        wait_s = min(30.0, wait_s)
+        if not (os.environ.get("PYTEST_CURRENT_TEST") and not os.environ.get("APPS_RG_TEST_SLEEP")):
+            time.sleep(wait_s)
+
         provider = ExternalProvider(
             provider_profile=profile_enum,
             model=model,

@@ -12,7 +12,9 @@ from pathlib import Path
 from typing import Any
 
 
-MODEL_CAPABILITY_CATALOG_PATH = Path(__file__).resolve().parents[3] / "config" / "model_catalog.json"
+from apps_rg.config_root import get_model_catalog_path
+
+MODEL_CAPABILITY_CATALOG_PATH = get_model_catalog_path()
 
 
 class ModelCapabilityError(RuntimeError):

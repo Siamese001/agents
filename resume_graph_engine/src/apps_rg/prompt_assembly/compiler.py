@@ -3,14 +3,11 @@
 
 from __future__ import annotations
 
-import hashlib
-import json
-import os
+import hashlib, json, os, yaml
 from pathlib import Path
 from typing import Any, Optional
 
-import yaml
-
+from apps_model_telemetry.token_counter import TokenCounterService
 from apps_rg.runtime.section_model_limits import SECTION_MODEL_ID
 
 from .contracts import (
@@ -512,6 +509,7 @@ class PromptCompiler:
                 "request_id": input_data.request_id,
                 "run_id": input_data.run_id,
             },
+            "component_hashes": component_hash_map.to_dict(),
             "compiled_at": str(component_hash_map.to_dict()),
             "prompt_hash": prompt_hash,
         }
@@ -535,7 +533,7 @@ class PromptCompiler:
             provider_render_manifest=provider_render_manifest,
             replay_manifest=replay_manifest,
             slot_count=len(slot_payloads),
-            token_estimate=len(system_prompt) // 4,  # Rough estimate
+            token_estimate=TokenCounterService.get_instance().estimate_tokens(system_prompt),
             has_no_fabrication_oath="NO FABRICATION" in (slot_contents.get("S0", "")),
             has_source_separation=any(
                 tag in (slot_contents.get("C0", ""))

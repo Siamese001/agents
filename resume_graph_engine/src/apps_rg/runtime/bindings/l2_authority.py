@@ -7,24 +7,13 @@ from dataclasses import replace
 from typing import Any, Mapping
 
 from apps_rg.runtime.bindings.l2_authority_contracts import (
-    AuthorityGateReceipt,
-    FrozenExecutionRoom,
-    L2AuthorityError,
-    SignedAppsRgL2ExecutionPacket,
-    _require,
-    _string,
-    _tuple_strings,
-    sha256_hex,
+    AuthorityGateReceipt, FrozenExecutionRoom, L2AuthorityError,
+    SignedAppsRgL2ExecutionPacket, _require, _string, _tuple_strings, sha256_hex,
 )
 from apps_rg.runtime.bindings.u0_binding import (
-    APPS_RG_U0_AUTHORITY_CONTRACT_ID,
-    AppsRgU0AuthorityReceipt,
-    apps_rg_u0_authority_receipt_digest,
+    APPS_RG_U0_AUTHORITY_CONTRACT_ID, AppsRgU0AuthorityReceipt, apps_rg_u0_authority_receipt_digest,
 )
-from apps_rg.runtime.providers.provider_aliases import (
-    is_external_apps_rg_provider,
-    normalize_apps_rg_provider_alias,
-)
+from apps_rg.runtime.providers.provider_aliases import is_external_apps_rg_provider, normalize_apps_rg_provider_alias
 
 
 def _component_hash(prompt_artifact: Any, *keys: str) -> str:
@@ -451,8 +440,14 @@ def build_signed_execution_packet(
     )
 
     max_tokens = int(getattr(prompt_artifact, "max_tokens", 0) or 0)
+    ceiling = 131_072
+    try:
+        from apps_rg.runtime.section_model_limits import runtime_limit_int
+        ceiling = runtime_limit_int("section_context_window", 131072)
+    except Exception:
+        pass
     _require(
-        0 < max_tokens <= 131_072,
+        0 < max_tokens <= ceiling,
         "V20_INVALID_TOKEN_BUDGET",
         "max_tokens must be within the governed ceiling",
         "max_tokens",

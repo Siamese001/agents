@@ -87,6 +87,7 @@ def assess_candidate_for_reuse(
     query_digest: str,
     query_prompt_hash: str = "",
     query_gate_hash: str = "",
+    query_model_hash: str = "",
     runtime_generation_status: str = "",
 ) -> CompatibilityVerdict:
     """Compatibility for retrieval — includes profile/digest alignment when query hashes supplied."""
@@ -107,6 +108,16 @@ def assess_candidate_for_reuse(
         checks["gate_profile_hash_match"] = record.gate_profile_hash == query_gate_hash
     else:
         checks["gate_profile_hash_match"] = True
+    if query_model_hash:
+        model_valid = bool(
+            record.model_profile_hash
+            and record.model_profile_hash.strip().lower() not in {"", "unknown", "none", "null"}
+        )
+        checks["model_profile_hash_match"] = model_valid and (
+            record.model_profile_hash == query_model_hash
+        )
+    else:
+        checks["model_profile_hash_match"] = True
 
     failed = [k for k, v in checks.items() if not v]
     if failed:

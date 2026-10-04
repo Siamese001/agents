@@ -559,6 +559,7 @@ MODEL_TOKEN_PATTERN = re.compile(
 )
 
 PROVIDER_PROFILE_REL_PATHS = (
+    "resume_graph_engine/config/models/registry.yaml",
     "config/provider_profiles.yaml",
     "outreach_engine/config/provider_profiles.yaml",
     "resume_graph_engine/src/apps_rg/config/provider_profiles.yaml",
@@ -593,12 +594,19 @@ def load_approved_provider_models(repo_root: Path | str | None = None) -> set[st
                                 "default_model",
                                 "gemini_pro",
                                 "openai_chatgpt",
+                                "snapshot_id",
                             ) and isinstance(v, str):
                                 approved.add(v.strip())
                             elif k in ("model_by_section", "anthropic_limit_backup_model_by_section") and isinstance(v, dict):
                                 for _, m in v.items():
                                     if isinstance(m, str):
                                         approved.add(m.strip())
+                            elif k == "models" and isinstance(v, dict):
+                                for model_id, model_def in v.items():
+                                    if isinstance(model_id, str):
+                                        approved.add(model_id.strip())
+                                    if isinstance(model_def, dict) and isinstance(model_def.get("snapshot_id"), str):
+                                        approved.add(model_def["snapshot_id"].strip())
                             else:
                                 _extract_models(v)
                     elif isinstance(obj, list):
@@ -612,7 +620,7 @@ def load_approved_provider_models(repo_root: Path | str | None = None) -> set[st
 
         for line in text.splitlines():
             m = re.search(
-                r"(?:model|backup_model|gemini_pro|openai_chatgpt|slalom_narrative|unify_narrative|ibm_narrative|insurtech_narrative|competencies|headline|executive_summary)\s*:\s*([a-zA-Z0-9.\-_]+)",
+                r"(?:model|backup_model|snapshot_id|gemini_pro|openai_chatgpt|slalom_narrative|unify_narrative|ibm_narrative|insurtech_narrative|competencies|headline|executive_summary)\s*:\s*[\"']?([a-zA-Z0-9.\-_]+)[\"']?",
                 line,
             )
             if m:

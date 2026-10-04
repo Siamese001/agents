@@ -7,6 +7,10 @@ import json
 from pathlib import Path
 from typing import Any
 
+from apps_rg.runtime.qualification_expectations import load_historical_qualification_expectations
+
+_HISTORICAL_EXP = load_historical_qualification_expectations()
+_RCA_EXPECTATIONS = _HISTORICAL_EXP.get("rca_w2", {})
 
 MANIFEST_FILENAME = "single_run_w2_canonical_rca.json"
 SUMMARY_FILENAME = "single_run_w2_canonical_rca.md"
@@ -77,7 +81,7 @@ def _summary(manifest: dict[str, Any]) -> str:
         "",
         "## Root causes",
         "",
-        f"1. Model identity: all {rca['model_identity']['affected_lanes']} L2 lanes signed `claude-sonnet-5` but actually routed `gpt-5.6-luna`; each L2 handoff therefore failed model identity.",
+        f"1. Model identity: all {rca['model_identity']['affected_lanes']} L2 lanes signed `{_RCA_EXPECTATIONS.get('signed_model', '')}` but actually routed `{_RCA_EXPECTATIONS.get('actual_model', '')}`; each L2 handoff therefore failed model identity.",
         f"2. Token accounting: all {rca['token_accounting']['affected_lanes']} recorded token-budget failures compared total input-plus-output tokens to an output-only ceiling. Recomputed output-token failures: {rca['token_accounting']['recomputed_output_token_failures']}.",
         "",
         "## Historical runtime",
@@ -136,8 +140,8 @@ def emit_single_run_w2_canonical_rca(*, w1_packet_path: Path, output_dir: Path) 
         "root_causes": {
             "model_identity": {
                 "affected_lanes": generation["model_mismatch_lane_count"],
-                "signed_model": "claude-sonnet-5",
-                "actual_model": "gpt-5.6-luna",
+                "signed_model": _RCA_EXPECTATIONS.get("signed_model", ""),
+                "actual_model": _RCA_EXPECTATIONS.get("actual_model", ""),
                 "handoff_outcome": "ALL_11_L2_HANDOFFS_AND_SPINES_FAILED",
             },
             "token_accounting": {

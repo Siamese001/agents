@@ -49,14 +49,19 @@ def evaluate_post_exit_ingestion(
         ),
         "runtime_generation_status": exit_meta.runtime_generation_status,
     }
+    from apps_rg.runtime.model_registry import get_registry_digest
+
     metadata = {
         "x3_disposition": exit_meta.x3_disposition,
         "proof_eligible": run_context["proof_eligible"],
         "runtime_generation_status": exit_meta.runtime_generation_status,
-        "prompt_profile_hash": str(
-            manifest.get("prompt_profile_hash") or "unknown"
-        ),
+        "prompt_profile_hash": str(manifest.get("prompt_profile_hash") or "unknown"),
         "gate_profile_hash": str(manifest.get("gate_profile_hash") or "unknown"),
+        "model_profile_hash": str(
+            manifest.get("model_profile_hash")
+            or raw_request.get("model_profile_hash")
+            or get_registry_digest()
+        ),
         "jd_digest": str(raw_request.get("jd_hash") or ""),
         "base_resume_digest": str(raw_request.get("resume_hash") or ""),
     }

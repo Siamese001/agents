@@ -82,31 +82,42 @@ def check_domain_storage_isolation(repo_root: Path) -> list[str]:
     return violations
 
 
+# Legacy sys.path mutations removed in Wave 2 packaging SSOT
+LEGACY_SYS_PATH_ALLOWLIST: set[str] = set()
+
+
 def check_sys_path_purity(repo_root: Path) -> list[str]:
     """Verify zero sys.path mutations in domain modules and package entrypoints."""
     violations: list[str] = []
 
     target_files_and_dirs = [
-        repo_root / "resume_graph_engine/src/apps_rg/runtime/artifact_output",
-        repo_root / "resume_graph_engine/src/apps_rg/runtime/pipeline",
-        repo_root / "resume_graph_engine/src/apps_rg/runtime/sections/executive_summary",
         repo_root / "agents/orchestration",
         repo_root / "agents/persistence",
         repo_root / "agents/observability",
-        repo_root / "resume_engine/__main__.py",
+        repo_root / "resume_engine",
         repo_root / "outreach_engine/__main__.py",
+        repo_root / "resume_graph_engine/__init__.py",
         repo_root / "resume_graph_engine/__main__.py",
-        repo_root / "resume_graph_engine/src/apps_rg/runtime/mandatory_run_outputs.py",
-        repo_root / "resume_graph_engine/src/apps_rg/bare_pipeline.py",
+        repo_root / "resume_graph_engine/src/apps_rg",
     ]
 
+    seen: set[Path] = set()
     for item in target_files_and_dirs:
         if not item.exists():
             continue
         py_files = [item] if item.is_file() else list(item.glob("**/*.py"))
 
         for py_file in py_files:
+            if py_file in seen:
+                continue
+            seen.add(py_file)
             if "test_" in py_file.name or "tests" in str(py_file):
+                continue
+            try:
+                rel = py_file.relative_to(repo_root).as_posix()
+            except ValueError:
+                rel = py_file.name
+            if rel in LEGACY_SYS_PATH_ALLOWLIST:
                 continue
             try:
                 tree = ast.parse(py_file.read_text(encoding="utf-8", errors="replace"), filename=str(py_file))
@@ -121,7 +132,7 @@ def check_sys_path_purity(repo_root: Path) -> list[str]:
                         if isinstance(val, ast.Attribute) and val.attr == "path":
                             if isinstance(val.value, ast.Name) and val.value.id == "sys":
                                 violations.append(
-                                    f"{py_file.name}:{node.lineno}: Forbidden sys.path.{func.attr}() call in {py_file.name}"
+                                    f"{py_file.name}:{node.lineno}: Forbidden sys.path.{func.attr}() call in {rel}"
                                 )
 
     return violations

@@ -6,19 +6,14 @@ keeps repair/path-specific content outside the cached prefix.
 """
 from __future__ import annotations
 
-import copy
-import hashlib
+import copy, hashlib
 from dataclasses import asdict, dataclass
 from enum import Enum
 from typing import Any, Mapping, Sequence
 
-from apps_rg.runtime.local_provider import (
-    CACHE_TTL_1H,
-    CACHE_TTL_5M,
-    min_cacheable_chars,
-)
+from apps_rg.runtime.local_provider import CACHE_TTL_1H, CACHE_TTL_5M, min_cacheable_chars
 
-MAX_ANTHROPIC_CACHE_MARKERS = 4
+MAX_ANTHROPIC_CACHE_MARKERS = 3
 ANTHROPIC_SYSTEM_ONLY_USER_PROMPT = "Return the requested JSON object now."
 
 
@@ -30,20 +25,8 @@ class AnthropicCacheWorkloadKind(str, Enum):
     SUITE_REPLAY = "SUITE_REPLAY"
 
 
-REPEATED_C0_WORKLOADS = frozenset(
-    {
-        AnthropicCacheWorkloadKind.REPAIR.value,
-        AnthropicCacheWorkloadKind.SELF_CONSISTENCY.value,
-        AnthropicCacheWorkloadKind.SELECTOR.value,
-        AnthropicCacheWorkloadKind.SUITE_REPLAY.value,
-    }
-)
-FALLBACK_REPEATED_USER_WORKLOADS = frozenset(
-    {
-        AnthropicCacheWorkloadKind.SELF_CONSISTENCY.value,
-        AnthropicCacheWorkloadKind.SUITE_REPLAY.value,
-    }
-)
+REPEATED_C0_WORKLOADS = frozenset({"REPAIR", "SELF_CONSISTENCY", "SELECTOR", "SUITE_REPLAY"})
+FALLBACK_REPEATED_USER_WORKLOADS = frozenset({"SELF_CONSISTENCY", "SUITE_REPLAY"})
 TIER1_SLOTS = frozenset({"S0", "D0", "I0"})
 TIER2_SLOTS = frozenset({"C0", "E0", "Y0"})
 VOLATILE_SLOTS = frozenset({"U0", "R0", "H0", "M0"})
@@ -375,36 +358,21 @@ def build_anthropic_section_cache_payload(
         "messages": native_messages,
     }
     seed = {
-        "provider": "external_claude",
-        "model": str(model or ""),
-        "section_id": str(section_id or ""),
-        "cache_enabled": marker_count > 0,
-        "cache_strategy": strategy,
-        "workload_kind": workload,
-        "stable_prefix_hash": stable_hash,
-        "c0_prefix_hash": tier2_hash,
-        "tier2_prefix_hash": tier2_hash,
-        "effective_cached_prefix_hash": effective_hash,
-        "volatile_tail_hash": volatile_hash,
+        "provider": "external_claude", "model": str(model or ""), "section_id": str(section_id or ""),
+        "cache_enabled": marker_count > 0, "cache_strategy": strategy, "workload_kind": workload,
+        "stable_prefix_hash": stable_hash, "c0_prefix_hash": tier2_hash, "tier2_prefix_hash": tier2_hash,
+        "effective_cached_prefix_hash": effective_hash, "volatile_tail_hash": volatile_hash,
         "cache_group_hash": group_hash,
         "sc_group_hash": group_hash if workload == AnthropicCacheWorkloadKind.SELF_CONSISTENCY.value else "",
-        "cache_marker_count": marker_count,
-        "model_cache_floor_chars": floor_chars,
+        "cache_marker_count": marker_count, "model_cache_floor_chars": floor_chars,
         "cache_ttl_policy": {"tier1": CACHE_TTL_1H, "tier2": CACHE_TTL_5M},
-        "active_cache_ttls": active_ttls,
-        "prompt_semantics_preserved": semantics_preserved,
-        "supplemental_system_tail_hash": _hash([supplemental_tail]),
-        "legacy_repeated_user_prefix": legacy_marked,
-        "input_tokens": None,
-        "output_tokens": None,
-        "cache_creation_input_tokens": None,
-        "cache_read_input_tokens": None,
-        "cache_hit_ratio": None,
-        "estimated_uncached_input_tokens": None,
-        "estimated_cached_input_tokens": None,
+        "active_cache_ttls": active_ttls, "prompt_semantics_preserved": semantics_preserved,
+        "supplemental_system_tail_hash": _hash([supplemental_tail]), "legacy_repeated_user_prefix": legacy_marked,
+        "input_tokens": None, "output_tokens": None, "cache_creation_input_tokens": None,
+        "cache_read_input_tokens": None, "cache_hit_ratio": None,
+        "estimated_uncached_input_tokens": None, "estimated_cached_input_tokens": None,
         "cache_savings_estimate_source": "pending_anthropic_usage" if marker_count else "no_cacheable_prefix",
-        "run_id": str(run_id or ""),
-        "prompt_hash": str(prompt_hash or ""),
+        "run_id": str(run_id or ""), "prompt_hash": str(prompt_hash or ""),
         "input_payload_hash": str(input_payload_hash or ""),
     }
     return AnthropicSectionCachePayload(

@@ -11,7 +11,7 @@ from __future__ import annotations
 if __name__ == "__main__":
     raise ImportError(
         "This module is not an operator CLI entrypoint. "
-        "Use the sole canonical public command: python -m apps_rg run"
+        "Use the sole canonical public command: python -m resume_engine run"
     )
 
 from apps_rg.runtime.w3_execution_path_labels import (

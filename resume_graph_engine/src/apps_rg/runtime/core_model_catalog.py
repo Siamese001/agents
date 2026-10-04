@@ -8,8 +8,10 @@ checks, not an external runtime concern.
 
 from typing import Final
 
+from apps_rg.runtime.model_registry import resolve
 
-BGE_M3_MODEL_ID: Final[str] = "BAAI/bge-m3"
+_RESOLVED_BGE = resolve("embedding.bge_m3")
+BGE_M3_MODEL_ID: Final[str] = _RESOLVED_BGE.model
 BGE_M3_EMBEDDING_DIMENSION: Final[int] = 1024
 
 __all__ = ["BGE_M3_EMBEDDING_DIMENSION", "BGE_M3_MODEL_ID"]

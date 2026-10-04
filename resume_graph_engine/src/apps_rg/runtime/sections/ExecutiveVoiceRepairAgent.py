@@ -20,12 +20,9 @@ from apps_rg.runtime.judges.x1d_panel_harness import extract_x1d_diagnostic
 
 EXECUTIVE_VOICE_REPAIR_AGENT_ENABLED_DEFAULT = True
 EXECUTIVE_VOICE_REPAIR_MAX_ATTEMPTS = 1
-try:
-    from apps_rg.runtime.section_model_limits import resolve_section_generation_model
+from apps_rg.runtime.model_registry import resolve
 
-    DEFAULT_REPAIR_MODEL = resolve_section_generation_model("executive_summary")
-except Exception:
-    DEFAULT_REPAIR_MODEL = "claude-sonnet-5"  # ssot: exempt(HARDCODED_MODEL_LITERAL)
+DEFAULT_REPAIR_MODEL = resolve("repair.executive_voice").model
 
 
 @dataclass(frozen=True)
@@ -344,25 +341,28 @@ def _call_llm_repair(
         return None
 
     try:
-        import urllib.request
+        import hashlib, urllib.request
+        from apps_rg.runtime.model_registry import resolve
+        from apps_rg.runtime.model_token_governor import reserve_apps_rg_model_tokens
 
-        headers = {
-            "x-api-key": api_key,
-            "anthropic-version": "2023-06-01",
-            "content-type": "application/json",
-        }
-        body = {
-            "model": model,
-            "max_tokens": 1024,
-            "temperature": 0.2,
-            "messages": [{"role": "user", "content": prompt}],
-        }
-        req = urllib.request.Request(
-            "https://api.anthropic.com/v1/messages",
-            data=json.dumps(body).encode("utf-8"),
-            headers=headers,
-            method="POST",
+        resolved = resolve("repair.executive_voice")
+        max_tokens = int(resolved.params.get("max_tokens", 1024))
+        reservation = reserve_apps_rg_model_tokens(
+            artifact_dir=None,
+            provider="external_claude",
+            model=model,
+            request_digest=hashlib.sha256(prompt.encode("utf-8")).hexdigest(),
+            prompt_text=prompt,
+            max_output_tokens=max_tokens,
+            stage="repair",
+            section_id=section_id,
         )
+        if not reservation.allowed:
+            return None
+
+        headers = {"x-api-key": api_key, "anthropic-version": "2023-06-01", "content-type": "application/json"}
+        body = {"model": model, "max_tokens": max_tokens, "temperature": 0.2, "messages": [{"role": "user", "content": prompt}]}
+        req = urllib.request.Request("https://api.anthropic.com/v1/messages", data=json.dumps(body).encode("utf-8"), headers=headers, method="POST")
 
         def _repair_http_timeout() -> int:
             try:
@@ -372,7 +372,9 @@ def _call_llm_repair(
             except Exception:
                 return 30  # ssot: exempt(HARDCODED_TIMEOUT)
 
-        with urllib.request.urlopen(req, timeout=_repair_http_timeout()) as resp:
+        from apps_rg.runtime.providers.external_provider import urlopen_provider_request
+
+        with urlopen_provider_request(req, timeout=_repair_http_timeout()) as resp:
             data = json.loads(resp.read().decode("utf-8"))
             content_blocks = data.get("content", [])
             raw_text = "".join(

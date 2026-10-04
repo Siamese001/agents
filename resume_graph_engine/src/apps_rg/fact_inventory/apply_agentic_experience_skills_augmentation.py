@@ -1130,4 +1130,4 @@ def apply_augmentation() -> None:
     print("Updated master_skills_arsenal_ledger.json successfully.")
 
 if __name__ == "__main__":
-    raise ImportError("This module is not an operator CLI entrypoint. Use: python -m apps_rg run")
+    raise ImportError("This module is not an operator CLI entrypoint. Use: python -m resume_engine run")

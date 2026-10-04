@@ -13,9 +13,10 @@ from apps_research.config.model_pins import active_model_manifest as research_mo
 from apps_rg.runtime.model_capabilities import ModelCapabilityError, assert_model_request_capabilities
 from apps_rg.runtime.section_judge_policy import REQUIRED_JUDGE_PROVIDER_KEYS
 
-_APPS_RG_ROOT = Path(__file__).resolve().parents[1]
-PROVIDER_PROFILES_PATH = _APPS_RG_ROOT / "config" / "provider_profiles.yaml"
-MODEL_CATALOG_PATH = _APPS_RG_ROOT.parents[1] / "config" / "model_catalog.json"
+from apps_rg.config_root import get_model_catalog_path, get_provider_profiles_path
+
+PROVIDER_PROFILES_PATH = get_provider_profiles_path()
+MODEL_CATALOG_PATH = get_model_catalog_path()
 
 _PROVIDER_BY_KEY = {
     "anthropic_claude": "anthropic",

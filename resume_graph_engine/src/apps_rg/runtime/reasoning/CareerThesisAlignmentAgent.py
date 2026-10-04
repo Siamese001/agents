@@ -117,12 +117,9 @@ class CareerThesisAlignmentAgent:
         provider: str | None = None,
     ) -> None:
         if not model_name:
-            try:
-                from apps_rg.runtime.section_model_limits import resolve_section_generation_model
+            from apps_rg.runtime.model_registry import resolve
 
-                self.model_name = resolve_section_generation_model("competencies")
-            except Exception:
-                self.model_name = "claude-sonnet-5"  # ssot: exempt(HARDCODED_MODEL_LITERAL)
+            self.model_name = resolve("reasoning.career_thesis_alignment").model
         else:
             self.model_name = model_name
         self.provider = provider or "anthropic"

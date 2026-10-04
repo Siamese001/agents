@@ -1,0 +1,204 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "model_registry.schema.json",
+  "title": "Model Registry v2 Schema",
+  "description": "Unified SSOT for all model configurations, pins, pricing, tiers, roles, and limits in the resume pipeline.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "registry_id",
+    "version",
+    "status",
+    "policy",
+    "providers",
+    "models",
+    "model_tiers",
+    "roles",
+    "runtime_limits"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "model_registry.v2"
+    },
+    "registry_id": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["active", "draft", "retired"]
+    },
+    "policy": {
+      "type": "object",
+      "required": [
+        "environment_model_override_allowed",
+        "aliases_allowed",
+        "receipt_identity_source"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "environment_model_override_allowed": {
+          "type": "boolean",
+          "const": false
+        },
+        "aliases_allowed": {
+          "type": "boolean",
+          "const": false
+        },
+        "receipt_identity_source": {
+          "type": "string"
+        }
+      }
+    },
+    "providers": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/provider"
+      }
+    },
+    "models": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/model"
+      }
+    },
+    "model_tiers": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/tier"
+      }
+    },
+    "roles": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/role"
+      }
+    },
+    "runtime_limits": {
+      "type": "object",
+      "required": [
+        "section_context_window",
+        "bare_pipeline",
+        "judge_http",
+        "model_token_governor",
+        "executive_summary",
+        "judge"
+      ],
+      "additionalProperties": true
+    }
+  },
+  "definitions": {
+    "provider": {
+      "type": "object",
+      "required": ["provider_profile", "provider_class"],
+      "additionalProperties": true,
+      "properties": {
+        "profile_id": { "type": "string" },
+        "provider_profile": { "type": "string" },
+        "provider_class": { "type": "string", "enum": ["external_api", "deterministic", "stub", "local"] },
+        "endpoint_env_var": { "type": ["string", "null"] },
+        "api_key_env_var": { "type": ["string", "null"] },
+        "capabilities": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "default": { "type": "boolean" },
+        "production_permitted": { "type": "boolean" }
+      }
+    },
+    "model": {
+      "type": "object",
+      "required": [
+        "provider",
+        "snapshot_id",
+        "status",
+        "capabilities",
+        "context_window",
+        "tokenizer_family"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "provider": { "type": "string" },
+        "snapshot_id": { "type": "string" },
+        "status": { "type": "string", "enum": ["active", "deprecated", "retired"] },
+        "deprecated_on": { "type": ["string", "null"] },
+        "retire_after": { "type": ["string", "null"] },
+        "replacement": { "type": ["string", "null"] },
+        "capabilities": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "context_window": { "type": "integer", "minimum": 1 },
+        "tokenizer_family": { "type": "string" },
+        "pricing": {
+          "type": "object",
+          "required": [
+            "input_cost_per_mtok",
+            "output_cost_per_mtok",
+            "cached_input_cost_per_mtok",
+            "cache_write_multiplier",
+            "pricing_version"
+          ],
+          "additionalProperties": true,
+          "properties": {
+            "input_cost_per_mtok": { "type": "number", "minimum": 0 },
+            "output_cost_per_mtok": { "type": "number", "minimum": 0 },
+            "cached_input_cost_per_mtok": { "type": "number", "minimum": 0 },
+            "cache_write_multiplier": { "type": "number", "minimum": 0 },
+            "pricing_version": { "type": "string" },
+            "effective_date": { "type": "string" },
+            "source": { "type": "string" }
+          }
+        },
+        "hf_revision": { "type": ["string", "null"] },
+        "artifact_sha256": { "type": ["string", "null"] }
+      }
+    },
+    "tier": {
+      "type": "object",
+      "required": ["description", "recommended_effort"],
+      "additionalProperties": true,
+      "properties": {
+        "description": { "type": "string" },
+        "recommended_effort": { "type": "string" },
+        "max_cost_per_mtok": { "type": "number" }
+      }
+    },
+    "role": {
+      "type": "object",
+      "required": [
+        "model",
+        "provider",
+        "tier",
+        "proof_eligible",
+        "owner",
+        "review_after"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "model": { "type": "string" },
+        "provider": { "type": "string" },
+        "tier": { "type": "string" },
+        "proof_eligible": { "type": "boolean" },
+        "owner": { "type": "string" },
+        "review_after": { "type": "string" },
+        "backup_role": { "type": ["string", "null"] },
+        "params": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "effort": { "type": "string" },
+            "reasoning_effort": { "type": "string" },
+            "thinking_level": { "type": "string" },
+            "max_output_tokens": { "type": "integer" },
+            "temperature": { "type": ["number", "null"] }
+          }
+        }
+      }
+    }
+  }
+}

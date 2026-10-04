@@ -24,6 +24,7 @@ PRODUCTION_DIRECTORIES: tuple[str, ...] = (
     "dual_pipeline",
     "storage",
     "resume_graph_engine/src",
+    "resume_graph_engine/tools",
     "apps_research",
     "outreach_engine/src",
     "agents",
@@ -40,25 +41,11 @@ EXCLUDED_DIRECTORIES: tuple[str, ...] = (
 )
 
 CANONICAL_MODEL_CATALOG_FILES: tuple[str, ...] = (
-    "env_bootstrap.py",
-    "model_capabilities.py",
-    "model_pin_ownership.py",
-    "section_model_limits.py",
-    "section_judge_policy.py",
-    "credentials.py",
     "core_model_catalog.py",
-    "embedding_settings.py",
-    "single_run_rca_w2.py",
-    "w5_end_to_end_pipeline.py",
-    "zero_llm_qualification.py",
-    "anthropic_cache_live_probe.py",
-    "ExecutiveVoiceRepairAgent.py",
-    "CareerThesisAlignmentAgent.py",
-    "apps_research_bridge.py",
 )
 
 MODEL_PATTERN = re.compile(
-    r"^(?:gpt-[456]\.[0-9](?:-[a-z0-9]+)?|claude-[a-z0-9-]+|gemini-[0-9]\.[0-9](?:-[a-z0-9]+)?|o[13](?:-[a-z0-9]+)?)$",
+    r"(?:gpt-[0-9a-z_.-]+|claude-[0-9a-z_.-]+|gemini-[0-9a-z_.-]+|\bo[134]-[0-9a-z_.-]+|text-embedding-[0-9a-z_.-]+|BAAI/[0-9a-z_.-]+|qwen[0-9a-z_.-]*|llama[0-9a-z_.-]*|mistral[0-9a-z_.-]*)",
     re.IGNORECASE,
 )
 
@@ -92,7 +79,7 @@ EXEMPT_PATH_PATTERNS = [
 ]
 
 GUARDIAN_PATTERN = re.compile(
-    r"#\s*(?:guardian|ssot):\s*allow-(?:model-literal|model-id|model)\s*--\s*(.+)",
+    r"#\s*(?:guardian|ssot):\s*(?:allow-(?:model-literal|model-id|model)\s*--\s*.+|exempt\s*\(\s*HARDCODED_MODEL_LITERAL\s*\))",
     re.IGNORECASE,
 )
 
@@ -184,28 +171,42 @@ def check_file_model_neutrality(
         except SyntaxError:
             return violations
 
+    docstring_ids = set()
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
+            if node.body and isinstance(node.body[0], ast.Expr) and isinstance(node.body[0].value, ast.Constant):
+                docstring_ids.add(id(node.body[0].value))
+
     for node in ast.walk(tree):
         if isinstance(node, ast.Constant) and isinstance(node.value, str):
+            if id(node) in docstring_ids:
+                continue
             val = node.value.strip()
-            if MODEL_PATTERN.match(val):
+            match = MODEL_PATTERN.search(val)
+            if match:
                 line_idx = node.lineno - 1
                 line_str = lines[line_idx] if line_idx < len(lines) else ""
                 guardian_match = GUARDIAN_PATTERN.search(line_str)
                 if not guardian_match:
                     violations.append((
                         node.lineno,
-                        val,
-                        f"Hardcoded model literal '{val}' found. Model IDs must be resolved via model_capabilities/env_bootstrap.",
+                        match.group(0),
+                        f"Hardcoded model literal '{match.group(0)}' found in '{val}'. Model IDs must be resolved via model_capabilities/env_bootstrap.",
                     ))
 
     return violations
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    import json
+
     parser = argparse.ArgumentParser(description="Deterministic model-neutral naming linter.")
     parser.add_argument("--files", nargs="*", help="Specific files to check")
     parser.add_argument("--all", action="store_true", help="Scan all production Python files")
     parser.add_argument("--repo-root", default=".", help="Root of repository")
+    parser.add_argument("--baseline", help="Path to model literal baseline JSON file")
+    parser.add_argument("--create-baseline", action="store_true", help="Create baseline JSON file from current scan")
+    parser.add_argument("--ratchet", action="store_true", help="Enforce that violations do not exceed baseline")
 
     args = parser.parse_args(argv)
     repo_root = Path(args.repo_root).resolve()
@@ -226,6 +227,58 @@ def main(argv: Sequence[str] | None = None) -> int:
         for lineno, val, msg in v:
             rel = str(f.relative_to(repo_root)) if f.is_relative_to(repo_root) else str(f)
             violations.append((rel, lineno, val, msg))
+
+    if args.create_baseline and args.baseline:
+        baseline_path = Path(args.baseline)
+        if not baseline_path.is_absolute():
+            baseline_path = repo_root / baseline_path
+        baseline_path.parent.mkdir(parents=True, exist_ok=True)
+        file_counts: dict[str, int] = {}
+        for rel, lineno, val, msg in violations:
+            file_counts[rel] = file_counts.get(rel, 0) + 1
+        payload = {
+            "version": 1,
+            "total_violations": len(violations),
+            "file_counts": file_counts,
+        }
+        baseline_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        print(f"[BASELINE] Saved baseline with {len(violations)} violations across {len(file_counts)} files to {baseline_path}")
+        return 0
+
+    if args.ratchet and args.baseline:
+        baseline_path = Path(args.baseline)
+        if not baseline_path.is_absolute():
+            baseline_path = repo_root / baseline_path
+        if not baseline_path.is_file():
+            print(f"[FAIL] Baseline file not found: {baseline_path}", file=sys.stderr)
+            return 1
+        baseline_data = json.loads(baseline_path.read_text(encoding="utf-8"))
+        baseline_counts: dict[str, int] = baseline_data.get("file_counts", {})
+        baseline_total: int = baseline_data.get("total_violations", 0)
+
+        current_counts: dict[str, int] = {}
+        for rel, lineno, val, msg in violations:
+            current_counts[rel] = current_counts.get(rel, 0) + 1
+
+        regressions: list[str] = []
+        for rel, count in current_counts.items():
+            base_count = baseline_counts.get(rel, 0)
+            if base_count == 0:
+                regressions.append(f"New file introduced with model literals: {rel} ({count} violations)")
+            elif count > base_count:
+                regressions.append(f"Model literal count increased in {rel}: {count} > {base_count}")
+
+        if len(violations) > baseline_total:
+            regressions.append(f"Total model literal violations increased: {len(violations)} > {baseline_total}")
+
+        if regressions:
+            print(f"[FAIL] Model-neutral naming ratchet failure ({len(regressions)} regressions):", file=sys.stderr)
+            for r in regressions:
+                print(f"  - {r}", file=sys.stderr)
+            return 1
+
+        print(f"[PASS] Model-neutral naming ratchet passed: {len(violations)} violations <= baseline {baseline_total} across {len(current_counts)} files.")
+        return 0
 
     if violations:
         print(f"[FAIL] Model-neutral naming violations found ({len(violations)} violations):", file=sys.stderr)

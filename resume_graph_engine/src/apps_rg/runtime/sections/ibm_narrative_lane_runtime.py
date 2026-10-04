@@ -15,7 +15,7 @@ from __future__ import annotations
 if __name__ == "__main__":
     raise ImportError(
         "This module is not an operator CLI entrypoint. "
-        "Use the sole canonical public command: python -m apps_rg run"
+        "Use the sole canonical public command: python -m resume_engine run"
     )
 
 
@@ -485,15 +485,9 @@ _THEME_BUDGET_MAX_FAMILIES = 4
 
 
 def _theme_repair_regen_max_tokens(attempt1_raw: str) -> int:
-    """Size the regen output cap from attempt 1's observed response length plus margin.
-
-    Live fail (postRungs_20260610_2246): attempt 1 itself stopped at the 1200-token lane cap
-    (provider_response.json: stop_reason=max_tokens, output_tokens=1200) and the kept compact
-    parse-retry doc (~4.5KB ≈ ~1,130 tokens) left <6% headroom. The rung's regen reused the
-    same 1200 cap and truncated again → unterminated JSON → parse_failed. chars/4 token
-    estimate × 1.5 margin, floored at the lane default.
-    """
-    estimated_tokens = (len(attempt1_raw) // 4) + 1
+    """Size the regen output cap from attempt 1's observed response length plus margin."""
+    from apps_model_telemetry.token_counter import estimate_tokens
+    estimated_tokens = estimate_tokens(attempt1_raw)
     return max(NARRATIVE_MAX_OUTPUT_TOKENS, (estimated_tokens * 3) // 2)
 
 

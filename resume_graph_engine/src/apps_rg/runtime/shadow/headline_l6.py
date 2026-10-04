@@ -50,11 +50,13 @@ def emit_headline_l6_shadow_learning_outputs(
     l2_output_ref: str | None = None,
     reasoning_execution_receipt_summary: dict[str, Any] | None = None,
 ) -> tuple[Path, Path]:
-    """Offline-only L6 headline artifacts under artifacts/apps_rg/l6/headline/<run_id>/."""
     ad = artifact_dir.resolve()
-    rr = repo_root.resolve()
+    from apps_rg.runtime.artifact_paths import assert_no_write_in_src, engine_root
+
+    rr = engine_root()
     run_id = str(handoff_pkt.get("run_id") or ad.name)
     out_root = rr / "artifacts" / "apps_rg" / "l6" / "headline" / run_id
+    assert_no_write_in_src(out_root)
     out_root.mkdir(parents=True, exist_ok=True)
     json_path = out_root / "headline_l6_shadow_eval.json"
     md_path = out_root / "headline_l6_shadow_summary.md"

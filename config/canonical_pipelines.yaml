@@ -1,13 +1,11 @@
-# Canonical Pipeline Manifest
+# RETIRED / DEPRECATED: This manifest is retired as part of Wave 2 Pipeline SSOT consolidation.
+# The sole canonical resume pipeline is defined by:
+#   1. Manifest: resume_graph_engine/src/apps_rg/config/workflow_manifest.resume_sections.v1.yaml
+#   2. Execution chain: canonical_dispatch -> r3r4_whole_run_orchestration -> managed_section_lane_dispatcher
+#   3. CLI Entrypoint: python -m resume_engine run
+#
+# Canonical Pipeline Manifest (Legacy)
 # Schema: config/schemas/canonical_pipeline.schema.json
-# Consumed by: ops_scripts/ci/check_canonical_pipeline_wiring.py (gate J1)
-#
-# This manifest declares the architectural pipelines the codebase promises
-# to implement. Every 'active' stage must have at least one caller from an
-# allowed ingress layer; otherwise gate J1 fails CI.
-#
-# See plan: docs/archive/windsurf/legacy-tree/plans/adg-wiring-ci-hardening-7a5d84.md
-# See plan: docs/archive/windsurf/legacy-tree/plans/c0-context-engine-wiring-fix-9e42a1.md
 
 version: 1
 

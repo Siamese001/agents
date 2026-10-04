@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Any, Callable, Mapping
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
+from apps_rg.runtime.providers.external_provider import urlopen_provider_request
 from apps_rg.runtime.env_bootstrap import bootstrap_process_env_if_needed
 from apps_rg.runtime.judges.executive_summary_x1d_dimension_verdicts import (
     dimension_verdicts_json_schema_fragment,
@@ -28,7 +29,7 @@ from apps_rg.runtime.section_judge_policy import get_section_judge_policy
 from apps_rg.runtime.model_capabilities import try_model_capabilities
 from apps_rg.runtime.section_model_limits import runtime_limit_float, runtime_limit_int
 from apps_rg.runtime.model_token_governor import reserve_apps_rg_model_tokens
-from apps_model_telemetry.external_model_usage import append_external_model_usage
+from apps_model_telemetry.telemetry_facade import record_llm_call as append_external_model_usage
 
 JUDGE_RUBRIC_VERSION = "executive_summary_x1d_v1"
 JUDGE_INPUT_PROMPT_VERSION = "executive_summary_x1d_system_contract_once_v2"
@@ -1171,7 +1172,7 @@ def _call_openai(
         )
 
     try:
-        with urllib.request.urlopen(req, timeout=_judge_http_timeout()) as response:
+        with urlopen_provider_request(req, timeout=_judge_http_timeout()) as response:
             raw_response = response.read().decode()
     except urllib.error.HTTPError as e:
         error_body = e.read().decode()
@@ -1502,7 +1503,7 @@ def _call_gemini(
         return budget_block
 
     endpoint_version = "v1beta" if _uses_gemini_v1beta_endpoint(model) else "v1"
-    url = f"https://generativelanguage.googleapis.com/{endpoint_version}/models/{model}:generateContent?key={api_key}"
+    url = f"https://generativelanguage.googleapis.com/{endpoint_version}/models/{model}:generateContent"
 
     retries = _gemini_judge_max_retries()
     safe_url, omitted_q = _sanitize_request_url_for_x1d_artifact(url)
@@ -1544,7 +1545,10 @@ def _call_gemini(
     _write_artifact(req_path, artifact_body)
 
     req = urllib.request.Request(
-        url, data=json.dumps(payload).encode(), headers={"Content-Type": "application/json"}, method="POST"
+        url,
+        data=json.dumps(payload).encode(),
+        headers={"Content-Type": "application/json", "x-goog-api-key": api_key},
+        method="POST",
     )
     raw_response = ""
 
@@ -1558,7 +1562,7 @@ def _call_gemini(
 
     for transport_attempt in range(retries + 1):
         try:
-            with urllib.request.urlopen(req, timeout=_judge_http_timeout()) as response:
+            with urlopen_provider_request(req, timeout=_judge_http_timeout()) as response:
                 raw_response = response.read().decode()
             break
         except urllib.error.HTTPError as e:

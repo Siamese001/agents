@@ -163,7 +163,7 @@ def test_call_section_model_provider_falls_back_to_prompt_and_max_output_tokens(
     assert call["temperature"] == 0.45
     assert call["timeout_seconds"] is None
     assert compiled.run_id == "payload-run"
-    assert compiled.reasoning_effort == "medium"
+    assert compiled.reasoning_effort == "low"
     assert [(b.role, b.content) for b in compiled.prompt_blocks] == [
         ("user", "Fallback prompt body."),
     ]
@@ -216,7 +216,7 @@ def test_call_section_model_provider_pins_openai_unify_narrative_model(monkeypat
     assert captured["claude_model"] is None
     assert captured["openai_model"] == pins.OPENAI_GENERATOR_MODEL
     assert gateway.calls[0]["profile"] == ProviderProfile.EXTERNAL_OPENAI
-    assert gateway.calls[0]["compiled_prompt"].reasoning_effort == "medium"
+    assert gateway.calls[0]["compiled_prompt"].reasoning_effort == "low"
 
 
 def test_call_section_model_provider_fails_closed_before_gateway_when_budget_blocks(monkeypatch, tmp_path) -> None:

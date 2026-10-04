@@ -32,6 +32,18 @@ from tools.lint_production_purity import check_file_production_purity
 from tools.lint_contract_schemas import validate_file_against_schema
 from tools.lint_secrets import check_file_for_secrets
 
+# Model literal baseline for ratcheting legacy violations
+_BASELINE_PATH = _REPO_ROOT / "artifacts" / "governance" / "model_literal_baseline.json"
+_MODEL_BASELINE_COUNTS: dict[str, int] = {}
+if _BASELINE_PATH.is_file():
+    try:
+        import json as _json
+
+        _bdata = _json.loads(_BASELINE_PATH.read_text(encoding="utf-8"))
+        _MODEL_BASELINE_COUNTS = _bdata.get("file_counts", {})
+    except Exception:
+        pass
+
 
 def get_staged_files(repo_root: Path) -> list[Path]:
     """Retrieve list of staged files from git."""
@@ -145,8 +157,11 @@ def _analyze_single_python_file(
 
     # 5. Model neutrality (shared AST)
     v_models = check_file_model_neutrality(f, repo_root, tree=tree, lines=lines)
-    for lineno, val, msg in v_models:
-        gov_errs.append(f"[Model Neutrality] {rel}:{lineno}: {msg}")
+    base_count = _MODEL_BASELINE_COUNTS.get(rel, 0)
+    if len(v_models) > base_count:
+        excess = len(v_models) - base_count
+        for lineno, val, msg in v_models[:excess]:
+            gov_errs.append(f"[Model Neutrality] {rel}:{lineno}: {msg} (exceeds baseline of {base_count})")
 
     # 6. Production purity (shared AST)
     v_purity = check_file_production_purity(f, repo_root, tree=tree, lines=lines)

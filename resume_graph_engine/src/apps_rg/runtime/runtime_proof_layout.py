@@ -36,16 +36,8 @@ ACCEPTED_REAL_LLM_PROVIDER_PROFILES: frozenset[str] = frozenset(
 MODULAR_R4_SECTIONS_ROOT_ENV = "APPS_RG_MODULAR_R4_SECTIONS_ROOT"
 CONTRACT_HARNESS_DIR = "contract_harness"
 CONTRACT_HARNESS_PREFIXES: tuple[str, ...] = (
-    "_w3_contract_",
-    "_w4_contract_",
-    "_w6_srfs_",
-    "_w6_nosrfs_",
-    "_w7_exec_",
-    "_w7_nosrfs_",
-    "_w7_cli_smoke_",
-    "_exec_l2_pool_",
-    "_exec_x2_pool_",
-    "_contract_test_",
+    "_w3_contract_", "_w4_contract_", "_w6_srfs_", "_w6_nosrfs_", "_w7_exec_",
+    "_w7_nosrfs_", "_w7_cli_smoke_", "_exec_l2_pool_", "_exec_x2_pool_", "_contract_test_",
 )
 
 
@@ -476,6 +468,9 @@ def finalize_runtime_proof_run(
         manifest["l2_output_repo_relative"] = artifact_links["l2_output.json"]
     if "l6_shadow_eval_package.json" in artifact_links:
         manifest["l6_shadow_eval_package_repo_relative"] = artifact_links["l6_shadow_eval_package.json"]
+    from apps_model_telemetry.run_manifest import build_run_manifest_data
+
+    manifest = build_run_manifest_data(artifact_dir, extra_fields=manifest)
     _write_json(artifact_dir / "run_manifest.json", manifest)
 
     pointer: dict[str, Any] = {

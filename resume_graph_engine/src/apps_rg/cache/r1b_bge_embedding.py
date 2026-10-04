@@ -55,9 +55,23 @@ def _get_bge_model() -> Any:
     return runtime.model if runtime is not None else None
 
 
+import hashlib
+import threading
+
+_EMBED_CONTENT_CACHE: dict[str, list[float]] = {}
+_EMBED_CACHE_LOCK = threading.Lock()
+
+
+def clear_embed_content_cache() -> None:
+    """Clear in-memory BGE embedding content cache."""
+    with _EMBED_CACHE_LOCK:
+        _EMBED_CONTENT_CACHE.clear()
+
+
 def reset_bge_model_for_testing() -> None:
     from apps_rg.runtime.bge_embedding import reset_bge_runtime_for_testing
 
+    clear_embed_content_cache()
     reset_bge_runtime_for_testing()
 
 
@@ -73,10 +87,8 @@ def embed_text_bge(text: str) -> list[float] | None:
     stripped = (text or "").strip()
     if not stripped:
         return None
-    runtime = _get_bge_runtime()
-    if runtime is None:
-        return None
-    return _coerce_bge_vector(runtime.encode([stripped], batch_size=1)[0])
+    res = embed_texts_bge([stripped], batch_size=1)
+    return res[0] if res else None
 
 
 def embed_texts_bge(
@@ -94,19 +106,41 @@ def embed_texts_bge(
     runtime = _get_bge_runtime()
     if runtime is None:
         return outputs
+
+    model_id = BGE_M3_MODEL_ID
+    revision = str(getattr(runtime, "revision", "") or getattr(runtime, "runtime_key", "") or "default")
+    dtype = str(getattr(runtime, "dtype", "float32"))
+    profile = "r1b_projection"
+
+    misses: list[tuple[int, str, str]] = []
+    with _EMBED_CACHE_LOCK:
+        for idx, text in indexed_texts:
+            text_hash = hashlib.sha256(text.encode("utf-8")).hexdigest()
+            ckey = f"{model_id}@{revision}|{dtype}|{profile}|{text_hash}"
+            if ckey in _EMBED_CONTENT_CACHE:
+                outputs[idx] = list(_EMBED_CONTENT_CACHE[ckey])
+            else:
+                misses.append((idx, text, ckey))
+
+    if not misses:
+        return outputs
+
     from apps_rg.runtime.bge_embedding import resolve_bge_batch_size
 
     selected_batch_size = resolve_bge_batch_size(
         "r1b_projection",
-        len(indexed_texts),
+        len(misses),
         requested=batch_size if batch_size is not None and batch_size > 0 else None,
     )
     rows = runtime.encode(
-        [text for _idx, text in indexed_texts],
+        [text for _idx, text, _ckey in misses],
         batch_size=selected_batch_size,
     )
-    for (idx, _text), row in zip(indexed_texts, rows):
-        outputs[idx] = _coerce_bge_vector(row)
+    with _EMBED_CACHE_LOCK:
+        for (idx, _text, ckey), row in zip(misses, rows):
+            vec = _coerce_bge_vector(row)
+            _EMBED_CONTENT_CACHE[ckey] = vec
+            outputs[idx] = vec
     return outputs
 
 

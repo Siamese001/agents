@@ -11,8 +11,10 @@ from typing import Any, Mapping
 
 
 def repo_root_default() -> Path:
-    """apps_rg/runtime/package -> workspace root."""
-    return Path(__file__).resolve().parents[3]
+    """apps_rg canonical engine root."""
+    from apps_rg.runtime.artifact_paths import engine_root
+
+    return engine_root()
 
 
 RUNTIME_PROOFS = "artifacts/apps_rg/runtime_proofs"

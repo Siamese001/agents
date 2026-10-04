@@ -157,10 +157,19 @@ def _fallback_creation_multiplier(seed: Mapping[str, Any] | None) -> float:
     return CACHE_WRITE_1H_INPUT_MULTIPLIER if "1h" in ttls else CACHE_WRITE_5M_INPUT_MULTIPLIER
 
 
-def _input_price_usd_per_million(seed: Mapping[str, Any] | None) -> float | None:
+def _input_price_usd_per_million(seed: Mapping[str, Any] | None, model: str | None = None) -> float | None:
     seeded = _coerce_float((seed or {}).get("input_usd_per_million"))
     if seeded is not None:
         return seeded
+    if model:
+        try:
+            from apps_model_telemetry.pricing import get_model_pricing
+
+            pricing, _ = get_model_pricing(model)
+            if pricing and "input_cost_per_mtok" in pricing:
+                return float(pricing["input_cost_per_mtok"])
+        except Exception:
+            pass
     return _coerce_float(os.environ.get(ENV_APPS_RG_ANTHROPIC_INPUT_USD_PER_MILLION))
 
 
@@ -208,7 +217,7 @@ def build_cache_receipt_from_usage(
     denom = creation_total + read_total
     hit_ratio = round(float(read_total) / float(denom), 6) if denom > 0 else None
 
-    price = _input_price_usd_per_million(seed)
+    price = _input_price_usd_per_million(seed, model=str(model or ""))
     uncached_cost = (uncached_equivalent * price / 1_000_000.0) if price is not None else None
     cached_cost = (cached_equivalent * price / 1_000_000.0) if price is not None else None
     cost_savings = (uncached_cost - cached_cost) if uncached_cost is not None and cached_cost is not None else None

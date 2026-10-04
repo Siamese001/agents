@@ -88,6 +88,9 @@ def emit_mandatory_run_outputs(
         result=result,
         section_id=section_id,
     )
+    from apps_rg.runtime.artifact_paths import assert_no_write_in_src
+
+    assert_no_write_in_src(root)
     json_path = root / MANDATORY_RUN_OUTPUT_JSON
     md_path = root / MANDATORY_RUN_OUTPUT_MD
     bcg_path = root / BCG_EXECUTIVE_OUTPUT_MD

@@ -36,10 +36,15 @@ class ChunkerConfig:
     max_tokens_per_chunk: int = 800
     overlap_tokens: int = 50
     min_chunk_tokens: int = 20
-    chars_per_token_estimate: float = 4.0
+    chars_per_token_ratio: float = 4.0
+
+    @property
+    def chars_per_token_estimate(self) -> float:
+        return self.chars_per_token_ratio
 
     def estimate_tokens(self, text: str) -> int:
-        return max(1, int(len(text) / self.chars_per_token_estimate))
+        from apps_model_telemetry.token_counter import estimate_tokens
+        return estimate_tokens(text)
 
 
 DEFAULT_CHUNKER_CONFIG = ChunkerConfig()

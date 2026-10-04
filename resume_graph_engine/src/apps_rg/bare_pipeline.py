@@ -32,6 +32,7 @@ from apps_research.integrations.provider_gateway import (
 from apps_research.integrations.search_retrieval import retrieve
 from apps_research.integrations.searxng_readiness import runtime_base_url
 from apps_rg.runtime.section_model_limits import runtime_limit_int
+from apps_rg.runtime.model_token_governor import reserve_apps_rg_model_tokens
 from apps_rg.runtime.env_bootstrap import bootstrap_apps_rg_env
 from apps_rg.runtime.resume_resolution import resolve_resume_for_lanes
 from apps_rg.runtime.sections.section_product_shape_export_bounds import (
@@ -895,20 +896,15 @@ def _run_gemini_evaluation(
     )
     schema = {
         "type": "OBJECT",
-        "properties": {
-            "verdict": {"type": "STRING", "enum": ["PASS", "FAIL"]},
-            "score": {"type": "NUMBER"},
-            "reasoning": {"type": "STRING"},
-        },
+        "properties": {"verdict": {"type": "STRING", "enum": ["PASS", "FAIL"]}, "score": {"type": "NUMBER"}, "reasoning": {"type": "STRING"}},
         "required": ["verdict", "score", "reasoning"],
     }
+    x3_max_output_tokens = runtime_limit_int("judge.x1d_max_output_tokens", 4096)
     body = json.dumps(
         {
             "contents": [{"role": "user", "parts": [{"text": prompt}]}],
             "generationConfig": {
-                # The configured judge uses high thinking.  Its response budget
-                # must leave room for both reasoning and the tiny JSON verdict.
-                "maxOutputTokens": 4096,
+                "maxOutputTokens": x3_max_output_tokens,
                 "responseMimeType": "application/json",
                 "responseSchema": schema,
                 "thinkingConfig": {"thinkingLevel": "high"},
@@ -916,10 +912,21 @@ def _run_gemini_evaluation(
         },
         separators=(",", ":"),
     ).encode("utf-8")
-    url = (
-        "https://generativelanguage.googleapis.com/v1beta/models/"
-        f"{pin.model}:generateContent?key={quote(key, safe='')}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{pin.model}:generateContent?key={quote(key, safe='')}"
+    res_dir = Path(run_dir) if run_dir else None
+    reservation = reserve_apps_rg_model_tokens(
+        artifact_dir=res_dir,
+        provider=pin.provider,
+        model=pin.model,
+        request_digest=hashlib.sha256(body).hexdigest(),
+        prompt_text=prompt,
+        max_output_tokens=x3_max_output_tokens,
+        stage="X3",
+        section_id="X3",
+        run_id=str(getattr(res_dir, "name", "") or ""),
     )
+    if not reservation.allowed:
+        raise BarePipelineError(f"Gemini evaluation blocked by token budget: {reservation.reason}")
     try:
         response = invoke_gemini_handoff_judge(
             url=url,
@@ -2434,5 +2441,5 @@ __all__ = [
 
 
 if __name__ == "__main__":
-    raise ImportError("Direct execution of bare_pipeline is forbidden; use 'python -m apps_rg run' instead.")
+    raise ImportError("Direct execution of bare_pipeline is forbidden; use 'python -m resume_engine run' instead.")
 

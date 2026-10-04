@@ -58,9 +58,12 @@ from apps_rg.runtime.graph_evidence_cluster_embedding_projection import (  # noq
     validate_cluster_embedding_projection,
 )
 
+from apps_rg.runtime.model_registry import resolve
+
+_RESOLVED_BGE = resolve("embedding.bge_m3")
 DEFAULT_BASELINE_REF = "ac828da46157271edaf7e9f745dfccf9436361ef"
-EXPECTED_MODEL_ID = "BAAI/bge-m3"
-EXPECTED_MODEL_REVISION = "5617a9f61b028005a4858fdac845db406aefb181"
+EXPECTED_MODEL_ID = _RESOLVED_BGE.model
+EXPECTED_MODEL_REVISION = _RESOLVED_BGE.hf_revision or _RESOLVED_BGE.snapshot_id
 
 
 def _file_sha256(path: Path) -> str:

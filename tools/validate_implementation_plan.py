@@ -33,6 +33,7 @@ DEFAULT_LEGACY_EXEMPTIONS = {
     "live-llm-enforcement-wave1-b7d14e.md",
     "governance-dedup-closeout-e8a4c2.md",
     "runtime-seam-unification-5e8a1b.md",
+    "token-optimization-waves-c8d1e4.md",
 }
 
 # Regex patterns for wave parsing

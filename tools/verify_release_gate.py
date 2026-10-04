@@ -80,9 +80,31 @@ def get_git_metadata(repo_root: Path) -> dict[str, str]:
     return meta
 
 
+def _resolve_python(repo_root: Path) -> str:
+    cand = repo_root / ".venv" / "bin" / "python"
+    if cand.exists():
+        return str(cand)
+    main_cand = Path("/Users/amitayer/Git/agents/.venv/bin/python")
+    if main_cand.exists():
+        return str(main_cand)
+    return sys.executable
+
+
+def _resolve_pytest(repo_root: Path) -> str:
+    cand = repo_root / ".venv" / "bin" / "pytest"
+    if cand.exists():
+        return str(cand)
+    fallback = Path(sys.executable).parent / "pytest"
+    if fallback.exists():
+        return str(fallback)
+    main_cand = Path("/Users/amitayer/Git/agents/.venv/bin/pytest")
+    if main_cand.exists():
+        return str(main_cand)
+    return "pytest"
+
+
 def run_tier1_precommit(repo_root: Path) -> CheckResult:
-    py_bin = repo_root / ".venv" / "bin" / "python"
-    python_cmd = str(py_bin) if py_bin.exists() else sys.executable
+    python_cmd = _resolve_python(repo_root)
     code, stdout, stderr, dur = run_command_buffered(
         [python_cmd, "tools/verify_commit.py"],
         cwd=repo_root,
@@ -101,8 +123,7 @@ def run_tier1_precommit(repo_root: Path) -> CheckResult:
 
 
 def run_architecture_boundary_linter(repo_root: Path) -> CheckResult:
-    py_bin = repo_root / ".venv" / "bin" / "python"
-    python_cmd = str(py_bin) if py_bin.exists() else sys.executable
+    python_cmd = _resolve_python(repo_root)
     code, stdout, stderr, dur = run_command_buffered(
         [python_cmd, "tools/lint_architecture_boundaries.py", "--json"],
         cwd=repo_root,
@@ -127,8 +148,7 @@ def run_architecture_boundary_linter(repo_root: Path) -> CheckResult:
 
 
 def run_antipattern_wave_suites(repo_root: Path, target_suites: list[str] | None = None) -> list[CheckResult]:
-    pytest_bin = repo_root / ".venv" / "bin" / "pytest"
-    pytest_cmd = str(pytest_bin) if pytest_bin.exists() else "pytest"
+    pytest_cmd = _resolve_pytest(repo_root)
 
     results: list[CheckResult] = []
     suites_to_run = target_suites if target_suites is not None else WAVE_TEST_FILES

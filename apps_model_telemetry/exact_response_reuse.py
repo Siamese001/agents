@@ -207,6 +207,24 @@ def lookup_exact_response(
             rendered = _canonical_json(result)
             if str(event.get("result_sha256") or "") != hashlib.sha256(rendered.encode("utf-8")).hexdigest():
                 raise ExactResponseReuseError("exact-response cache result digest mismatch")
+            try:
+                from apps_model_telemetry.telemetry_facade import record_llm_call
+
+                record_llm_call(
+                    artifact_dir=artifact_dir,
+                    provider=identity.provider,
+                    model=identity.model,
+                    request_digest=identity.request_digest,
+                    outcome="EXACT_CACHE_REUSE",
+                    stage=identity.stage,
+                    section_id=identity.section_id,
+                    run_id=identity.run_id,
+                    cache_hit=True,
+                    cost_usd=0.0,
+                    provider_status="REUSED",
+                )
+            except Exception:
+                pass
             return copy.deepcopy(result), str(event["event_digest"])
     return None
 

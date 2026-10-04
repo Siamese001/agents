@@ -31,7 +31,7 @@ exporters:
   # Prometheus exporter exposes metric deltas for RTC-REQ-022.
   prometheus:
     endpoint: "0.0.0.0:8889"
-    namespace: agentic_core
+    namespace: apps_rg
     send_timestamps: true
     metric_expiration: 5m
 

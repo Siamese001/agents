@@ -34,8 +34,13 @@ def _read(path: Path) -> dict[str, Any]:
 
 def _commit(root: Path) -> str | None:
     try:
-        return subprocess.check_output(["git", "-C", str(root), "rev-parse", "HEAD"], text=True, stderr=subprocess.DEVNULL).strip()
-    except (OSError, subprocess.CalledProcessError):
+        return subprocess.check_output(
+            ["git", "-C", str(root), "rev-parse", "HEAD"],
+            text=True,
+            stderr=subprocess.DEVNULL,
+            timeout=30,
+        ).strip()
+    except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired):
         return None
 
 

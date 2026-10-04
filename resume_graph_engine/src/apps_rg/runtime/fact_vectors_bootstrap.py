@@ -219,13 +219,7 @@ def prepare_fact_vector_hydration_env(
         applied["EMBEDDING_ENABLED"] = "true"
         applied["APPS_RG_EMBEDDING_ENABLED"] = "true"
 
-    model_id = (
-        os.environ.get("APPS_RG_EMBEDDING_MODEL_NAME", "").strip()
-        or os.environ.get("EMBEDDING_MODEL_ID", "").strip()
-        or _CANONICAL_BGE_HF_ID
-    )
-    if model_id == _DEFAULT_EMBEDDING_MODEL_ID_SLUG:
-        model_id = _CANONICAL_BGE_HF_ID
+    model_id = _CANONICAL_BGE_HF_ID
 
     model_path: str | None = None
     model_source = "not_applicable"

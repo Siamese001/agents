@@ -1,0 +1,41 @@
+{
+  "saved_judge_inventory": {
+    "model_counts": {
+      "gemini-3.6-flash": 12,
+      "gpt-5.6-sol": 9
+    },
+    "provider_counts": {
+      "Google Gemini 3.6 Flash": 12,
+      "OpenAI ChatGPT": 9
+    },
+    "legacy_alias_model": "gpt-5.6-sol"
+  },
+  "apps_research_events": {
+    "event_model_counts": {
+      "gemini-3.6-flash": 7,
+      "gpt-5.6-terra": 10
+    },
+    "event_provider_counts": {
+      "external_openai": 10,
+      "google_gemini": 7
+    },
+    "success_model_counts": {
+      "gemini-3.6-flash": 1,
+      "gpt-5.6-terra": 2
+    }
+  },
+  "apps_rg_lanes": {
+    "signed_target_model": "claude-sonnet-5",
+    "signed_allowed_models": [
+      "claude-sonnet-5"
+    ],
+    "attempt_claimed_model": "claude-sonnet-5",
+    "provider_request_model": "gpt-5.6-luna",
+    "provider_response_model": "gpt-5.6-luna",
+    "handoff_model_id_used": "gpt-5.6-luna"
+  },
+  "rca_w2": {
+    "signed_model": "claude-sonnet-5",
+    "actual_model": "gpt-5.6-luna"
+  }
+}

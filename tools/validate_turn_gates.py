@@ -118,9 +118,11 @@ def validate_pre_turn_gate(repo_root: Path | None = None) -> dict[str, Any]:
             issues.append("Conformance map contains stale hardcoded line-number headers.")
 
     # Check 6: Provider Profiles Registry SSOT integrity
-    provider_profiles_path = root / "config" / "provider_profiles.yaml"
+    provider_profiles_path = root / "resume_graph_engine" / "config" / "models" / "registry.yaml"
     if not provider_profiles_path.is_file():
-        issues.append(f"Canonical provider profiles missing: {provider_profiles_path}")
+        provider_profiles_path = root / "config" / "provider_profiles.yaml"
+    if not provider_profiles_path.is_file():
+        issues.append(f"Canonical provider profiles or model registry missing: {provider_profiles_path}")
         checks["provider_profiles"] = {"status": "FAIL"}
     else:
         try:
