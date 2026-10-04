@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from apps_rg.cache.r1a_adapter import check_r1a_cache, compute_r1a_key
+from apps_rg.cache.r1a_adapter import check_r1a_cache, compute_r1a_key, stamp_r1a_cache
 from apps_rg.cache.r1b_constants import (
     R1B_REUSE_AUTHORITY_SCOPE,
     R1B_SECTION_REUSE_AUTHORITY,
@@ -293,6 +293,19 @@ def maybe_ingest_r1b_post_exit(
             Path(artifact_dir) / "r1b_post_exit_replay_probe.json",
             probe,
         )
+        resume_path = Path(artifact_dir) / "generated_resume.json"
+        if resume_path.is_file():
+            r_hash = str(raw_request.get("resume_hash") or "")
+            co = str(raw_request.get("target_company") or "")
+            ro = str(raw_request.get("target_role") or "")
+            if r_hash and co and ro:
+                k = compute_r1a_key(source_resume_hash=r_hash, target_company=co, target_role=ro)
+                stamp_r1a_cache(
+                    k,
+                    run_dir=artifact_dir,
+                    policy_hash=str(raw_request.get("policy_hash") or "") or None,
+                    blueprint_hash=str(raw_request.get("blueprint_hash") or "") or None,
+                )
     except (OSError, ValueError, RuntimeError, TypeError):
         # guardian: post-exit probe is audit evidence; ingest ref remains authoritative.
         pass

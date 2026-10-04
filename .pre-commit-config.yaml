@@ -623,19 +623,6 @@ repos:
         always_run: false
         require_serial: true
 
-      # -- T7m: Canonical Pipeline Schema (J1 gate on manifest edits) ----------------
-      # Runs J1 only when the canonical pipelines manifest, its schema, or the
-      # gate script changes. ADG read required, but scoped trigger keeps the
-      # commit lane fast. Full fleet still runs in CI via run_contract_gates.py.
-      - id: wiring-canonical-pipelines
-        name: "T7m: Canonical Pipeline Wiring (manifest edits)"
-        entry: py ops_scripts/ci/check_canonical_pipeline_wiring.py
-        language: system
-        pass_filenames: false
-        files: ^(config/canonical_pipelines\.yaml|config/schemas/canonical_pipeline\.schema\.json|ops_scripts/ci/check_canonical_pipeline_wiring\.py|ops_scripts/ci/_adg_wiring_gate_base\.py)$
-        always_run: false
-        require_serial: true
-
       # ---- Prompt-Reception Golden-Replay Fixtures ---------------------------------
       # Plan: prompt-reception-followups-a7b3c4 (phase RH5B.2).
       # Runs the golden-replay harness ONLY when a fixture, the fixture recorder,

@@ -16,7 +16,7 @@ from collections import Counter
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Mapping, Sequence
-
+from apps_rg.runtime.core_model_catalog import BGE_M3_MODEL_ID
 
 CONTRACT_PATH = Path("src/apps_rg/evals/owner_solo/c03_rendered_unit_qrel_contract.v1.json")
 SCHEMA = "apps_rg.owner_solo_rendered_unit_qrel_registry.v1"
@@ -349,7 +349,7 @@ def materialize_registry_from_w3(
                 "complete_rendered_resume_unit": text,
                 "final_text_sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(),
                 "embedding_text_sha256": hashlib.sha256(embedding_text.encode("utf-8")).hexdigest(),
-                "embedding_identity": f"BAAI/bge-m3:graph_evidence_cluster:{cluster_id}",
+                "embedding_identity": f"{BGE_M3_MODEL_ID}:graph_evidence_cluster:{cluster_id}",
                 "frozen_ranking_identity_sha256": str(sealed_mapping.get("ranking_identity_sha256") or ""),
                 "frozen_rank": sealed_candidate.get("frozen_rank"),
                 "source_assertion_ids": facts,

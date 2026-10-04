@@ -61,7 +61,7 @@ DISALLOWED_DOC_CI_COMMAND_SUBSTRINGS: tuple[str, ...] = (
     "python ops_scripts/ci/prove_apps_rg_e2e_runtime.py",
 )
 
-CANONICAL_PRODUCT_COMMAND = "python -m apps_rg run"
+CANONICAL_PRODUCT_COMMAND = "python -m resume_engine run"
 
 
 def is_allowed_outside_main_module_cli(module_name: str) -> bool:

@@ -16,7 +16,9 @@ from apps_rg.runtime.providers.provider_contract import ProviderResult
 
 ENV_APPS_RG_PROVIDER_PROFILE = "APPS_RG_PROVIDER_PROFILE"
 DEFAULT_PROVIDER_PROFILE = "external_claude"
-CONFIG_PROVIDER_PROFILES = Path(__file__).resolve().parents[2] / "config" / "provider_profiles.yaml"
+from apps_rg.config_root import get_provider_profiles_path
+
+CONFIG_PROVIDER_PROFILES = get_provider_profiles_path()
 
 
 class ProviderGatewayError(RuntimeError):
@@ -132,6 +134,39 @@ class ProviderGateway:
         self._providers: dict[ProviderProfile, ModelProvider] = {}
         for profile, provider in (providers or {}).items():
             self.register_provider(profile, provider)
+
+    _role_cache: dict[tuple[str, frozenset[tuple[str, str]]], Any] = {}
+
+    @classmethod
+    def for_role(
+        cls,
+        role: str,
+        environ: Mapping[str, str] | None = None,
+    ) -> ModelProvider:
+        """Resolve role from model_registry and return a memoized ExternalProvider."""
+        from apps_rg.runtime.model_registry import resolve
+        from apps_rg.runtime.providers.external_provider import ExternalProvider
+        from apps_rg.runtime.providers.provider_aliases import normalize_apps_rg_provider_alias
+
+        resolved = resolve(role)
+        canon_provider = normalize_apps_rg_provider_alias(resolved.provider)
+        if canon_provider == "openai":
+            profile = ProviderProfile.EXTERNAL_OPENAI
+        else:
+            profile = ProviderProfile.EXTERNAL_CLAUDE
+
+        env_key = frozenset(environ.items()) if environ is not None else frozenset()
+        cache_key = (f"{role}:{resolved.model}:{canon_provider}", env_key)
+        if cache_key in cls._role_cache:
+            return cls._role_cache[cache_key]
+
+        provider = ExternalProvider(
+            provider_profile=profile,
+            model=resolved.model,
+            environ=environ,
+        )
+        cls._role_cache[cache_key] = provider
+        return provider
 
     def register_provider(self, profile: ProviderProfile | str, provider: ModelProvider) -> None:
         self._providers[normalize_provider_profile(profile)] = provider

@@ -2,15 +2,19 @@
 requires = ["setuptools>=45", "wheel", "setuptools_scm[toml]>=6.2"]
 build-backend = "setuptools.build_meta"
 
+[tool.setuptools.package-dir]
+apps_rg = "resume_graph_engine/src/apps_rg"
+
 [tool.setuptools.packages.find]
-where = ["."]
-include = ["agents*", "resume_graph_engine*", "outreach_engine*", "apps_eval*", "apps_research*", "apps_model_telemetry*"]
+where = [".", "resume_graph_engine/src"]
+include = ["agents*", "resume_engine*", "resume_graph_engine*", "apps_rg*", "outreach_engine*", "apps_eval*", "apps_research*", "apps_model_telemetry*"]
 exclude = [
     "tests*",
     "ops_scripts*",
     "data*",
     "archives*",
     "artifacts*",
+    "resume_graph_engine.src*",
     "resume_graph_engine.src.apps_research*",
     "resume_graph_engine.src.apps_eval*",
     "resume_graph_engine.src.apps_model_telemetry*",
@@ -77,12 +81,9 @@ dependencies = [
     "python-docx>=1.1.0",
 ]
 
-# [project.scripts]
-# Console entry points removed - use Python module invocation instead:
-#   python -m tools.adg_cli <args>
-#   python -m tools.adg.adg_stale_guard
-#   python -m tools.adg.adg_test_selector --from-diff
-# See FAST_DEV_COMMANDS.md for full command reference
+[project.scripts]
+resume-engine = "resume_engine.cli:main"
+
 
 [project.optional-dependencies]
 dev = [

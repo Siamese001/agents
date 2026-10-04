@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-import json
-import os
-import time
+import json, os, time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -143,17 +141,20 @@ def self_consistency_parallel_enabled(section_lane: str) -> bool:
     if lane in PARALLEL_EMPLOYMENT_BULLET_SC_LANES:
         flag = os.environ.get("APPS_RG_EMPLOYMENT_BULLET_SC_PARALLEL", "1").strip().lower()
         return flag not in _DISABLE_FLAGS
+    if lane in {"executive_summary", "headline", "headline_l6"}:
+        flag = os.environ.get("APPS_RG_SUMMARY_HEADLINE_SC_PARALLEL", "1").strip().lower()
+        return flag not in _DISABLE_FLAGS
     return False
 
 
 def self_consistency_max_parallel(section_lane: str, path_count: int) -> int:
     lane = str(section_lane or "").strip().lower()
     if lane == "competencies":
-        env_name = "APPS_RG_COMPETENCIES_SC_MAX_PARALLEL"
-        default = 2
+        env_name, default = "APPS_RG_COMPETENCIES_SC_MAX_PARALLEL", 2
     elif lane in PARALLEL_EMPLOYMENT_BULLET_SC_LANES:
-        env_name = "APPS_RG_EMPLOYMENT_BULLET_SC_MAX_PARALLEL"
-        default = 3
+        env_name, default = "APPS_RG_EMPLOYMENT_BULLET_SC_MAX_PARALLEL", 3
+    elif lane in {"executive_summary", "headline", "headline_l6"}:
+        env_name, default = "APPS_RG_SUMMARY_HEADLINE_SC_MAX_PARALLEL", 2
     else:
         return 1
     raw = os.environ.get(env_name, "").strip()

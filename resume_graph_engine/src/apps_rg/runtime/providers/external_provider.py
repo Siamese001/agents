@@ -1,10 +1,4 @@
-"""External API provider implementation for apps_rg Wave 10A.
-
-External providers are selectable for parity work, but they are not the default.
-This class is deliberately transport-injectable: production wiring can provide a
-real HTTP transport later, while tests can prove the profile path works without
-network or secrets.
-"""
+"""External API provider implementation for apps_rg Wave 10A."""
 from __future__ import annotations
 
 import hashlib
@@ -24,24 +18,25 @@ from apps_rg.runtime.env_bootstrap import bootstrap_process_env_if_needed
 from apps_rg.runtime.model_capabilities import try_model_capabilities
 from apps_rg.runtime.providers.provider_gateway import ProviderGatewayError, ProviderProfile
 from apps_rg.runtime.providers.provider_attempt_spans import (
-    build_provider_attempt_span,
-    summarize_provider_attempt_spans,
+    build_provider_attempt_span, summarize_provider_attempt_spans,
 )
 from apps_rg.runtime.providers.provider_contract import ProviderResult
 from apps_model_telemetry.execution_evidence import (
-    provider_attempt,
-    urlopen_with_transport_evidence,
+    provider_attempt, urlopen_with_transport_evidence,
 )
 from apps_model_telemetry.external_model_usage import (
-    allocate_provider_logical_attempt,
-    append_external_model_usage,
-    current_external_model_usage_context,
+    allocate_provider_logical_attempt, append_external_model_usage, current_external_model_usage_context,
 )
 ExternalTransport = Callable[[dict[str, Any]], dict[str, Any]]
 
 DEFAULT_ANTHROPIC_MESSAGES_URL = "https://api.anthropic.com/v1/messages"
 DEFAULT_OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses"
 _STDLIB_URLOPEN = urllib.request.urlopen
+
+
+def urlopen_provider_request(request: urllib.request.Request, *, timeout: float) -> Any:
+    """Canonical provider HTTP dispatch for apps_rg runtime callers."""
+    return urllib.request.urlopen(request, timeout=timeout)
 
 
 def _urlopen_with_attempt_evidence(
@@ -625,7 +620,7 @@ class ExternalProvider:
 
     def _openai_responses_transport(self, request: dict[str, Any]) -> dict[str, Any]:
         prompt = str(request.get("prompt") or "")
-        timeout_seconds = _coerce_timeout_seconds(request.get("timeout_seconds"))
+        timeout_seconds = resolve_external_section_timeout_s(request.get("timeout_seconds"))
         body = {
             "model": str(request.get("model") or self.model),
             "input": prompt,
@@ -714,7 +709,7 @@ class ExternalProvider:
         # process; a larger budget lets them complete. Unset by default (no behavior change).
         _floor = float(os.environ.get("APPS_RG_PROVIDER_WALLCLOCK_FLOOR_S") or 0.0)
         if _floor > float(timeout_seconds):
-            timeout_seconds = _floor
+            timeout_seconds = min(_floor, external_provider_timeout_max_s())
         result_queue: queue.Queue[tuple[str, Any]] = queue.Queue(maxsize=1)
 
         def _runner() -> None:

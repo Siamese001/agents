@@ -135,10 +135,17 @@ class R1BSemanticCacheStore:
 
             return pseudo_vector_from_digest(record.normalized_intent_digest)
         try:
-            data = json.loads(path.read_text(encoding="utf-8"))  # guardian: allow-silent-swallow -- P2 burndown: fail-soft optional boundary
+            data = json.loads(path.read_text(encoding="utf-8"))
             vals = data.get("values")
             if isinstance(vals, list) and vals:
+                expected_dim = data.get("dimensions")
+                if expected_dim is not None and len(vals) != int(expected_dim):
+                    raise RuntimeError(
+                        f"DIMENSION_MISMATCH: intent vector at {path} has {len(vals)} values, declared {expected_dim}"
+                    )
                 return [float(x) for x in vals]
+        except RuntimeError:
+            raise
         except (json.JSONDecodeError, OSError, TypeError, ValueError):  # guardian: allow-silent-swallow -- P2 burndown: fail-soft optional boundary
             pass
         from apps_rg.cache.r1b_intent_vector import pseudo_vector_from_digest

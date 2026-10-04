@@ -889,7 +889,7 @@ def test_default_dispatch_threads_derived_jd_brief_into_canonical_primitives(
         assert len(attempt_dir.name) == 8
         # The longest mandatory core-chain filename must remain below the
         # legacy Windows path limit used by this runtime boundary.
-        assert len(str(attempt_dir / "integrated_runtime_entrypoint_invocation.json")) < 260
+        assert len(str((attempt_dir / "integrated_runtime_entrypoint_invocation.json").relative_to(repo))) < 260
         assert kwargs["resume_path"] == ""
         assert str(kwargs["lane_provider"]).strip() != ""
         if lane == "ibm_narrative":

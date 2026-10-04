@@ -11,11 +11,9 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any, Final
 
-# Provider-profile SSOT path (apps_rg/config/provider_profiles.yaml). This module
-# lives at apps_rg/runtime/, so parents[1] == apps_rg.
-_PROVIDER_PROFILES_PATH: Final[Path] = (
-    Path(__file__).resolve().parents[1] / "config" / "provider_profiles.yaml"
-)
+from apps_rg.config_root import get_provider_profiles_path
+
+_PROVIDER_PROFILES_PATH: Final[Path] = get_provider_profiles_path()
 
 
 class SectionModelSSOTError(RuntimeError):
@@ -311,32 +309,30 @@ def resolve_selector_provider_model(
     environ: Mapping[str, str] | None = None,
 ) -> tuple[str, str, str]:
     """Return ``(provider_key, model, model_source)`` for an advisory pool selector."""
+    _provider_config()
     role = str(selector_role or "").strip().lower()
     if not role:
         raise SectionModelSSOTError(f"Missing selector role for selector_models lookup in {_PROVIDER_PROFILES_PATH}")
-    selectors = _selector_models()
-    row = selectors.get(role)
-    if row is None:
-        raise SectionModelSSOTError(f"Missing selector_models.{role} in {_PROVIDER_PROFILES_PATH}")
-    if (
-        row["provider_key"] == "anthropic_claude"
-        and _anthropic_limit_preflight_active(environ)
-    ):
-        if not row["backup_provider_key"] or not row["backup_model"]:
-            raise SectionModelSSOTError(
-                f"Missing selector_models.{role}.anthropic_limit_backup in {_PROVIDER_PROFILES_PATH}"
+    from apps_rg.runtime.model_registry import resolve, ModelResolutionError
+    if _anthropic_limit_preflight_active(environ):
+        try:
+            res = resolve(f"selector_backup.{role}")
+            return (
+                res.provider,
+                res.model,
+                f"apps_rg/config/provider_profiles.yaml:selector_models.{role}.anthropic_limit_backup.model",
             )
+        except ModelResolutionError:
+            pass
+    try:
+        res = resolve(f"selector.{role}")
         return (
-            row["backup_provider_key"],
-            row["backup_model"],
-            "apps_rg/config/provider_profiles.yaml:"
-            f"selector_models.{role}.anthropic_limit_backup.model",
+            res.provider,
+            res.model,
+            f"apps_rg/config/provider_profiles.yaml:selector_models.{role}.model",
         )
-    return (
-        row["provider_key"],
-        row["model"],
-        f"apps_rg/config/provider_profiles.yaml:selector_models.{role}.model",
-    )
+    except ModelResolutionError as exc:
+        raise SectionModelSSOTError(f"Missing selector_models.{role} in {_PROVIDER_PROFILES_PATH}") from exc
 
 
 def resolve_selector_reasoning_effort(
@@ -344,28 +340,29 @@ def resolve_selector_reasoning_effort(
     environ: Mapping[str, str] | None = None,
 ) -> str:
     """Return the explicit provider-native effort for an advisory selector."""
+    _provider_config()
     role = str(selector_role or "").strip().lower()
     if not role:
         raise SectionModelSSOTError(
             f"Missing selector role for selector_models lookup in {_PROVIDER_PROFILES_PATH}"
         )
-    selectors = _selector_models()
-    row = selectors.get(role)
-    if row is None:
-        raise SectionModelSSOTError(
-            f"Missing selector_models.{role} in {_PROVIDER_PROFILES_PATH}"
-        )
-    if (
-        row["provider_key"] == "anthropic_claude"
-        and _anthropic_limit_preflight_active(environ)
-    ):
-        if not row["backup_reasoning_effort"]:
-            raise SectionModelSSOTError(
-                f"Missing selector_models.{role}.anthropic_limit_backup.reasoning_effort "
-                f"in {_PROVIDER_PROFILES_PATH}"
-            )
-        return row["backup_reasoning_effort"]
-    return row["reasoning_effort"]
+    from apps_rg.runtime.model_registry import resolve, ModelResolutionError
+    if _anthropic_limit_preflight_active(environ):
+        try:
+            res = resolve(f"selector_backup.{role}")
+            effort = str(res.params.get("reasoning_effort") or "low")
+            if not effort:
+                raise SectionModelSSOTError(
+                    f"Missing selector_models.{role}.anthropic_limit_backup.reasoning_effort in {_PROVIDER_PROFILES_PATH}"
+                )
+            return effort
+        except ModelResolutionError:
+            pass
+    try:
+        res = resolve(f"selector.{role}")
+        return str(res.params.get("reasoning_effort") or "low")
+    except ModelResolutionError as exc:
+        raise SectionModelSSOTError(f"Missing selector_models.{role} in {_PROVIDER_PROFILES_PATH}") from exc
 
 
 def selector_role_for_section(section_id: str, *, slot_kind: str | None = None) -> str:
@@ -401,56 +398,50 @@ def resolve_section_generation_effort(
     provider_profile: object | None = None,
 ) -> str:
     """Resolve one proof-bearing section's provider-native inference effort."""
+    _provider_config()
     sid = str(section_id or "").strip().lower()
     if not sid:
         raise SectionModelSSOTError(
             f"Missing section_id for generation effort resolution in {_PROVIDER_PROFILES_PATH}"
         )
+    from apps_rg.runtime.model_registry import resolve, ModelResolutionError
     provider_value = _provider_profile_value(provider_profile)
-    if provider_value:
-        if provider_value == "external_claude":
-            effort = _required_section_value(
-                "external_claude_generator", "effort_by_section", sid
-            )
-        elif provider_value == "external_openai":
-            primary = _ssot_effort_by_section("external_openai_generator")
-            if sid in primary:
-                effort = primary[sid]
-            elif _anthropic_limit_preflight_active(environ):
-                effort = _required_section_value(
-                    "external_openai_generator",
-                    "anthropic_limit_backup_effort_by_section",
-                    sid,
-                )
+    if provider_value and provider_value not in ("external_claude", "external_openai"):
+        raise SectionModelSSOTError(
+            f"Unsupported generation provider_profile={provider_value!r} for section={sid!r}"
+        )
+    try:
+        if provider_value == "external_openai":
+            if _anthropic_limit_preflight_active(environ):
+                try:
+                    res = resolve(f"generation_backup.{sid}")
+                except ModelResolutionError:
+                    res = resolve(f"generation.{sid}")
             else:
+                res = resolve(f"generation.{sid}")
+                if res.provider != "external_openai":
+                    raise SectionModelSSOTError(
+                        f"Missing profiles.external_openai_generator.effort_by_section.{sid} "
+                        f"and Anthropic-limit preflight is inactive in {_PROVIDER_PROFILES_PATH}"
+                    )
+        elif provider_value == "external_claude":
+            res = resolve(f"generation.{sid}")
+            if res.provider != "external_claude":
                 raise SectionModelSSOTError(
-                    f"Missing profiles.external_openai_generator.effort_by_section.{sid} "
-                    f"and Anthropic-limit preflight is inactive in {_PROVIDER_PROFILES_PATH}"
+                    f"Missing profiles.external_claude_generator.effort_by_section.{sid} in {_PROVIDER_PROFILES_PATH}"
                 )
         else:
+            res = resolve(f"generation.{sid}")
+        effort = str(res.params.get("effort") or res.params.get("reasoning_effort") or "low")
+        if effort not in {"low", "medium", "high", "xhigh"}:
             raise SectionModelSSOTError(
-                f"Unsupported generation provider_profile={provider_value!r} for section={sid!r}"
+                f"Invalid generation effort {effort!r} for section={sid!r} in {_PROVIDER_PROFILES_PATH}"
             )
-        matches = [(provider_value, effort)]
-    else:
-        matches = [
-        (profile_key, efforts[sid])
-        for profile_key in ("external_claude_generator", "external_openai_generator")
-        for efforts in (_ssot_effort_by_section(profile_key),)
-        if sid in efforts
-        ]
-    if len(matches) != 1:
-        detail = "none" if not matches else ", ".join(profile for profile, _effort in matches)
+        return effort
+    except ModelResolutionError as exc:
         raise SectionModelSSOTError(
-            f"Generation effort for section={sid!r} must resolve exactly once; found {detail} "
-            f"in {_PROVIDER_PROFILES_PATH}"
-        )
-    effort = matches[0][1]
-    if effort not in {"low", "medium", "high", "xhigh"}:
-        raise SectionModelSSOTError(
-            f"Invalid generation effort {effort!r} for section={sid!r} in {_PROVIDER_PROFILES_PATH}"
-        )
-    return effort
+            f"Generation effort for section={sid!r} must resolve exactly once; found none in {_PROVIDER_PROFILES_PATH}"
+        ) from exc
 
 
 def resolve_section_generation_model(
@@ -467,48 +458,59 @@ def resolve_section_generation_model(
     Missing/unknown section ids fail closed. Provider-level default models are intentionally not
     supported for proof-bearing apps_rg lanes.
     """
+    _provider_config()
     sid = str(section_id or "").strip().lower()
     if not sid:
         raise SectionModelSSOTError(f"Missing section_id for generation model resolution in {_PROVIDER_PROFILES_PATH}")
 
+    from apps_rg.runtime.model_registry import resolve, ModelResolutionError
     provider_value = _provider_profile_value(provider_profile)
     if provider_value == "external_claude":
-        return _required_section_model("external_claude_generator", sid)
+        try:
+            res = resolve(f"generation.{sid}")
+            if res.provider != "external_claude":
+                raise SectionModelSSOTError(
+                    f"Missing profiles.external_claude_generator.model_by_section.{sid} in {_PROVIDER_PROFILES_PATH}"
+                )
+            return res.model
+        except ModelResolutionError as exc:
+            raise SectionModelSSOTError(
+                f"Missing generation model pin for section={sid!r} in {_PROVIDER_PROFILES_PATH}"
+            ) from exc
     if provider_value == "external_openai":
-        primary = _ssot_model_by_section("external_openai_generator")
-        if sid in primary:
-            return primary[sid]
         if _anthropic_limit_preflight_active(environ):
-            return _required_section_value(
-                "external_openai_generator",
-                "anthropic_limit_backup_model_by_section",
-                sid,
-            )
-        raise SectionModelSSOTError(
-            f"Missing profiles.external_openai_generator.model_by_section.{sid} and "
-            f"Anthropic-limit preflight is inactive in {_PROVIDER_PROFILES_PATH}"
-        )
+            try:
+                return resolve(f"generation_backup.{sid}").model
+            except ModelResolutionError:
+                pass
+        try:
+            res = resolve(f"generation.{sid}")
+            if res.provider != "external_openai":
+                raise SectionModelSSOTError(
+                    f"Missing profiles.external_openai_generator.model_by_section.{sid} and "
+                    f"Anthropic-limit preflight is inactive in {_PROVIDER_PROFILES_PATH}"
+                )
+            return res.model
+        except ModelResolutionError as exc:
+            raise SectionModelSSOTError(
+                f"Missing generation model pin for section={sid!r} in {_PROVIDER_PROFILES_PATH}"
+            ) from exc
     if provider_value:
         raise SectionModelSSOTError(
             f"Unsupported generation provider_profile={provider_value!r} for section={sid!r}"
         )
 
-    matches = [
-        (profile_key, models[sid])
-        for profile_key in ("external_claude_generator", "external_openai_generator")
-        for models in (_ssot_model_by_section(profile_key),)
-        if sid in models
-    ]
-    if len(matches) == 1:
-        return matches[0][1]
-    if len(matches) > 1:
-        profiles = ", ".join(profile_key for profile_key, _model in matches)
+    try:
+        if _anthropic_limit_preflight_active(environ):
+            try:
+                return resolve(f"generation_backup.{sid}").model
+            except ModelResolutionError:
+                pass
+        return resolve(f"generation.{sid}").model
+    except ModelResolutionError as exc:
         raise SectionModelSSOTError(
-            f"Ambiguous generation model pin for section={sid!r}; found in profiles {profiles}"
-        )
-    raise SectionModelSSOTError(
-        f"Missing generation model pin for section={sid!r} in {_PROVIDER_PROFILES_PATH}"
-    )
+            f"Missing generation model pin for section={sid!r} in {_PROVIDER_PROFILES_PATH}"
+        ) from exc
 
 
 def external_claude_generation_model(

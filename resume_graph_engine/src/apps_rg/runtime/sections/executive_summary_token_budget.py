@@ -1,10 +1,4 @@
-"""Executive summary prompt token budget policy (apps_rg lane-local).
-
-Deterministic pre-dispatch trim of **optional-only** prompt payload. Never silently alters the
-evidence contract or generation prompt shape (SRFS arc, I0 sovereign regions, R0 schema body,
-HIGH fact lines, INPUT_AUTHORITY). If optional trims cannot fit the budget, fail closed before
-provider dispatch; do not dispatch a shape-degraded prompt that causes downstream gates to fail.
-"""
+"""Executive summary prompt token budget policy (apps_rg lane-local)."""
 from __future__ import annotations
 
 import hashlib
@@ -191,7 +185,8 @@ def exceeds_first_pass_95pct_policy(estimated_tokens: int, available_input_token
 def _estimate_chars_to_tokens(char_count: int) -> int:
     if char_count <= 0:
         return 0
-    return max(1, int((char_count // _CHARS_PER_TOKEN) * _ESTIMATE_SAFETY_MULTIPLIER))
+    from apps_model_telemetry.token_counter import estimate_tokens
+    return estimate_tokens(" " * char_count, safety_multiplier=_ESTIMATE_SAFETY_MULTIPLIER)
 
 
 def _runtime_input_source_hints(runtime_payload: dict[str, Any] | None) -> dict[str, str]:
@@ -499,8 +494,8 @@ def estimate_tokens_approximate(text: str) -> int:
     """Conservative token estimate; receipt labels method as approximate."""
     if not text:
         return 0
-    base = max(1, len(text) // _CHARS_PER_TOKEN)
-    return max(1, int(base * _ESTIMATE_SAFETY_MULTIPLIER))
+    from apps_model_telemetry.token_counter import estimate_tokens
+    return estimate_tokens(text, safety_multiplier=_ESTIMATE_SAFETY_MULTIPLIER)
 
 
 def graph_product_pool_active(runtime_payload: dict[str, Any]) -> bool:

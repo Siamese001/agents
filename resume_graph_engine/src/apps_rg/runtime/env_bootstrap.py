@@ -89,6 +89,9 @@ def _manual_load_env(path: Path, override: bool = False) -> bool:
         return False
 
 
+_BOOTSTRAPPED_STATE: dict[str, AppsRgEnvBootstrapResult] = {}
+
+
 def bootstrap_apps_rg_env(
     *,
     repo_root: Path | None = None,
@@ -102,6 +105,10 @@ def bootstrap_apps_rg_env(
     ``python -m apps_rg``.
     """
     root = (repo_root or find_repo_root()).resolve()
+    cache_key = f"{root}:{override}"
+    if not override and cache_key in _BOOTSTRAPPED_STATE:
+        return _BOOTSTRAPPED_STATE[cache_key]
+
     chosen_path = root / ".env"
     source = "none"
     loaded = False
@@ -122,13 +129,15 @@ def bootstrap_apps_rg_env(
                     # Fall back to manual parsing if python-dotenv failed on specific formatting
                     loaded = _manual_load_env(candidate, override=override)
             break
-    return AppsRgEnvBootstrapResult(
+    result = AppsRgEnvBootstrapResult(
         repo_root=str(root),
         dotenv_path=str(chosen_path),
         dotenv_path_existed=existed,
         dotenv_loaded=loaded,
         dotenv_source=source,
     )
+    _BOOTSTRAPPED_STATE[cache_key] = result
+    return result
 
 
 _PLACEHOLDER_SUBSTRINGS = frozenset(
@@ -206,9 +215,29 @@ def temporary_env_override(updates: Mapping[str, str | None]) -> Iterator[None]:
                 os.environ[k] = v
 
 
+def apply_route_signing_posture() -> str | None:
+    """Evaluate route signing posture after environment bootstrap.
+
+    If APPS_RG_ROUTE_HMAC_SECRET is missing but APPS_RG_ROUTE_SIGNING_POSTURE == "ephemeral_dev",
+    generate ephemeral keys for isolated local development and record posture.
+    Returns the applied posture name, or None.
+    """
+    if not os.environ.get("APPS_RG_ROUTE_HMAC_SECRET"):
+        if os.environ.get("APPS_RG_ROUTE_SIGNING_POSTURE") == "ephemeral_dev":
+            import secrets
+
+            os.environ["APPS_RG_ROUTE_HMAC_SECRET"] = secrets.token_hex(32)
+            if not os.environ.get("APPS_RG_ROUTE_HMAC_KEY_ID"):
+                os.environ["APPS_RG_ROUTE_HMAC_KEY_ID"] = f"session-key-{secrets.token_hex(8)}"
+            os.environ["APPS_RG_ROUTE_SIGNING_POSTURE_APPLIED"] = "ephemeral_dev"
+            return "ephemeral_dev"
+    return None
+
+
 __all__ = [
     "APPS_RG_DOTENV_ENV_VAR",
     "AppsRgEnvBootstrapResult",
+    "apply_route_signing_posture",
     "assert_live_credentials_present",
     "bootstrap_apps_rg_env",
     "bootstrap_process_env_if_needed",

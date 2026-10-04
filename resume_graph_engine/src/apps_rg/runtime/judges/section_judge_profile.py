@@ -15,10 +15,11 @@ from apps_rg.runtime.model_capabilities import (
 from apps_rg.runtime.section_judge_policy import JudgeTier, get_section_judge_policy, normalize_section_id
 from apps_rg.runtime.section_model_limits import runtime_limit_str
 
-# Provider-profiles SSOT (apps_rg/config/provider_profiles.yaml). This module lives at
-# apps_rg/runtime/judges/, so parents[2] == apps_rg. The YAML ``judge_models`` block is the
-# SSOT-of-record for per-tier judge models.
-_PROVIDER_PROFILES_PATH = Path(__file__).resolve().parents[2] / "config" / "provider_profiles.yaml"
+from apps_rg.config_root import get_provider_profiles_path
+
+# Provider-profiles SSOT (apps_rg/config/provider_profiles.yaml). Resolved via apps_rg.config_root.
+# The YAML ``judge_models`` block is the SSOT-of-record for per-tier judge models.
+_PROVIDER_PROFILES_PATH = get_provider_profiles_path()
 
 
 class SectionJudgeProfileSSOTError(RuntimeError):
@@ -133,13 +134,21 @@ def resolve_section_proof_judge_model(
             proof_eligible_judge=False,
         )
 
-    yaml_tier = _yaml_judge_models().get(_tier_yaml_label(tier)) or {}
+    tier_label = _tier_yaml_label(tier)
+    yaml_tier = _yaml_judge_models().get(tier_label) or {}
     yaml_model = yaml_tier.get(provider_key) if isinstance(yaml_tier, dict) else None
     if not yaml_model:
         raise SectionJudgeProfileSSOTError(
-            f"Missing judge_models.{_tier_yaml_label(tier)}.{provider_key} in {_PROVIDER_PROFILES_PATH}"
+            f"Missing judge_models.{tier_label}.{provider_key} in {_PROVIDER_PROFILES_PATH}"
         )
-    model_id = str(yaml_model)
+    from apps_rg.runtime.model_registry import resolve, ModelResolutionError
+    try:
+        resolved = resolve(f"proof_judge.{tier_label}.{provider_key}")
+        model_id = resolved.model
+    except ModelResolutionError as exc:
+        raise SectionJudgeProfileSSOTError(
+            f"Missing judge_models.{tier_label}.{provider_key} in {_PROVIDER_PROFILES_PATH}"
+        ) from exc
     source = "yaml_judge_models"
 
     reasoning_effort: str | None = None

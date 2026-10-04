@@ -32,11 +32,23 @@ class CachedBriefing:
         return (time.time() - self.created_at) > self.ttl_seconds
 
 
-def compute_briefing_cache_key(*, company_name: str, jd_hash: str) -> str:
-    norm_co = company_name.strip().lower()
-    norm_jd = jd_hash.strip().lower()
-    combined = f"{norm_co}::{norm_jd}".encode("utf-8")
-    return "r1a_brief:" + hashlib.sha256(combined).hexdigest()[:24]
+def compute_briefing_cache_key(
+    *,
+    company_name: str,
+    jd_hash: str,
+    target_role: str = "",
+    model_pin: str = "",
+    schema_version: str = "v2",
+) -> str:
+    from apps_rg.cache.cache_identity import compute_briefing_cache_key as _canonical_key
+
+    return _canonical_key(
+        company_name=company_name,
+        jd_hash=jd_hash,
+        target_role=target_role,
+        model_pin=model_pin,
+        schema_version=schema_version,
+    )
 
 
 class BriefingCache:

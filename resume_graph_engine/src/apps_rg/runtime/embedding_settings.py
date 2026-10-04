@@ -113,7 +113,7 @@ def _sync_embedding_enabled_aliases(applied: dict[str, str]) -> None:
 
 
 def _hf_hub_bge_snapshot_dir(model_id: str) -> Path | None:
-    """Resolve HuggingFace hub cache snapshot (local-files-only; no download)."""
+    """Resolve HuggingFace hub cache snapshot by pinned revision (local-files-only; no download)."""
     # A governed whole run must never use a user-profile cache as an implicit
     # model input.  The runtime boundary supplies an explicit repo-local model
     # path; absence of that path is an ordinary fail-closed readiness result.
@@ -125,12 +125,25 @@ def _hf_hub_bge_snapshot_dir(model_id: str) -> Path | None:
     snaps = hub_root / cache_name / "snapshots"
     if not snaps.is_dir():
         return None
-    candidates = sorted(snaps.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True)
-    for snap in candidates:
-        if not snap.is_dir():
-            continue
-        if (snap / "config.json").is_file() or (snap / "modules.json").is_file():
-            return snap
+
+    # Exact pinned revision lookup from model registry
+    pinned_revision: str | None = None
+    try:
+        from apps_rg.runtime.model_registry import resolve
+
+        resolved_embedding = resolve("embedding.bge_m3")
+        pinned_revision = resolved_embedding.hf_revision or resolved_embedding.snapshot_id
+    except Exception:
+        pinned_revision = None
+
+    if pinned_revision:
+        exact_snap = snaps / pinned_revision
+        if exact_snap.is_dir() and (
+            (exact_snap / "config.json").is_file() or (exact_snap / "modules.json").is_file()
+        ):
+            return exact_snap
+        return None
+
     return None
 
 
@@ -217,13 +230,7 @@ def bootstrap_apps_rg_embedding_env(
         applied["EMBEDDING_ENABLED"] = "true"
         applied["APPS_RG_EMBEDDING_ENABLED"] = "true"
 
-    model_id = (
-        os.environ.get("APPS_RG_EMBEDDING_MODEL_NAME", "").strip()
-        or os.environ.get("EMBEDDING_MODEL_ID", "").strip()
-        or CANONICAL_BGE_HF_ID
-    )
-    if model_id == DEFAULT_EMBEDDING_MODEL_ID_SLUG:
-        model_id = CANONICAL_BGE_HF_ID
+    model_id = CANONICAL_BGE_HF_ID
 
     path, resolved, _source = _resolve_local_bge_path(model_id, repo_root=repo)
     if not resolved or not path:

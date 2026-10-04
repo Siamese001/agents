@@ -1,6 +1,6 @@
 {
   "annotations": {"list": []},
-  "description": "R1B Semantic Cache observability — wraps the metrics emitted by agentic_core.L4_state.utils.memory.semantic_cache_manager via _record_semantic_cache_prom_event() and _emit_structured_cache_event().",
+  "description": "R1B Semantic Cache observability — wraps the metrics emitted by apps_rg.L4_state.utils.memory.semantic_cache_manager via _record_semantic_cache_prom_event() and _emit_structured_cache_event().",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,

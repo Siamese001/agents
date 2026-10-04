@@ -1,5 +1,9 @@
 """Hardened Anthropic executor with resilient client wiring (EX1 / EX2).
 
+RETIRED (Wave 4 SSOT): Direct Anthropic SDK client construction in apps_rg
+is retired in favor of the centralized provider gateway and external_provider.
+This module is retained as a compatibility stub.
+
 Regression suite: ``tests/unit/apps_rg/enforcement/test_hardened_anthropic_executor_setup.py``.
 """
 
@@ -7,8 +11,9 @@ from __future__ import annotations
 
 import logging
 import os
+import warnings
+from typing import Any
 
-import anthropic
 from dotenv import load_dotenv
 
 from apps_rg.runtime.core_mixins import HardeningMixin
@@ -19,19 +24,26 @@ logger = logging.getLogger(__name__)
 
 
 class HardenedAnthropicExecutor(HardeningMixin):
-    """Executor that configures a live ``anthropic.Anthropic`` client when keyed."""
+    """Retired compatibility executor stub.
+
+    All LLM execution is routed via apps_rg.runtime.providers.
+    """
 
     def __init__(self) -> None:
         super().__init__(component_name="HardenedAnthropicExecutor")
-        self._client: anthropic.Anthropic | None = None
+        warnings.warn(
+            "HardenedAnthropicExecutor is retired; use apps_rg.runtime.providers.provider_gateway",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        self._client: Any | None = None
         self._setup_client()
 
     def _setup_client(self) -> None:
         api_key = os.environ.get("ANTHROPIC_API_KEY")
-        if api_key:
-            self._client = anthropic.Anthropic(api_key=api_key)
-            return
-        logger.warning(
-            "ANTHROPIC_API_KEY not set; anthropic executor has no authenticated client.",
-        )
+        if not api_key:
+            logger.warning(
+                "ANTHROPIC_API_KEY not set; anthropic executor has no authenticated client.",
+            )
+        # Retired: direct SDK instantiation retired in favor of apps_rg provider gateway
         self._client = None

@@ -106,8 +106,21 @@ def handle_pre_edit_plan(payload: Dict[str, Any], repo_root: Path) -> int:
     if not content:
         return emit_decision("allow")
 
+    effective_root = repo_root
+    if target_path.is_absolute():
+        for p in [target_path] + list(target_path.parents):
+            if (p / ".git").exists():
+                effective_root = p
+                break
+    if effective_root == repo_root:
+        m = re.search(r"Worktree:\s*[`'\"]?([^`'\"\n\r]+)[`'\"]?", content)
+        if m:
+            cand = Path(m.group(1).strip())
+            if (cand / ".git").exists():
+                effective_root = cand
+
     # Validate against wave governance invariants
-    is_valid, errors = validate_plan_content(content, filename=target_path.name, repo_root=repo_root)
+    is_valid, errors = validate_plan_content(content, filename=target_path.name, repo_root=effective_root)
     if not is_valid:
         error_msg = f"Plan validation rejected for {target_path.name}:\n" + "\n".join(f"- {e}" for e in errors)
         sys.stderr.write(f"\n[Antigravity Hook BLOCK] {error_msg}\n")

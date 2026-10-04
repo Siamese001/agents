@@ -195,11 +195,19 @@ def _company_brief_prompt_token_cap() -> int:
 
 def _enforce_company_brief_prompt_budget(prompt: str) -> None:
     cap = _company_brief_prompt_token_cap()
+    chars_est, safety_mult = 3, 1.12
+    try:
+        from apps_rg.runtime.section_model_limits import runtime_limit_float, runtime_limit_int
+
+        chars_est = runtime_limit_int("model_token_governor.chars_per_token_estimate", 3)
+        safety_mult = runtime_limit_float("model_token_governor.safety_multiplier", 1.12)
+    except Exception:
+        pass
     estimated = estimate_input_tokens(
         prompt,
         policy=TokenBudgetPolicy(
-            chars_per_token_estimate=3,
-            safety_multiplier=1.12,
+            chars_per_token_estimate=chars_est,
+            safety_multiplier=safety_mult,
             max_input_tokens_per_attempt=cap,
             max_reserved_tokens_per_run=cap,
         ),

@@ -10,16 +10,14 @@ from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, Literal, Mapping
 
-from apps_model_telemetry.external_model_usage import append_external_model_usage
+from apps_model_telemetry.telemetry_facade import record_llm_call as append_external_model_usage
 
 from apps_rg.runtime.judges.executive_summary_x1d import (
-    JudgeOutput,
-    _artifact_path,
-    _extract_json_from_text,
-    _openai_chat_uses_max_completion_tokens,
-    _write_artifact,
+    JudgeOutput, _artifact_path, _extract_json_from_text,
+    _openai_chat_uses_max_completion_tokens, _write_artifact,
 )
 from apps_rg.runtime.env_bootstrap import bootstrap_apps_rg_env
+from apps_rg.runtime.providers.external_provider import urlopen_provider_request
 from apps_rg.runtime.providers.anthropic_prompt_cache import (
     anthropic_prompt_cache_enabled,
     anthropic_prompt_cache_telemetry_enabled,
@@ -1115,7 +1113,7 @@ def _call_anthropic_pool_selector(
     )
     t0 = time.monotonic()
     try:
-        with urllib.request.urlopen(req, timeout=timeout_s) as response:
+        with urlopen_provider_request(req, timeout=timeout_s) as response:
             raw_response = response.read().decode()
     except urllib.error.HTTPError as exc:
         body = exc.read().decode()
@@ -1430,7 +1428,7 @@ def _call_openai_pool_selector(
     )
     t0 = time.monotonic()
     try:
-        with urllib.request.urlopen(req, timeout=timeout_s) as response:
+        with urlopen_provider_request(req, timeout=timeout_s) as response:
             raw_response = response.read().decode()
     except urllib.error.HTTPError as exc:
         body = exc.read().decode()

@@ -136,6 +136,16 @@ def seal_mandatory_output_bundle(
             os.fsync(handle.fileno())
         os.replace(marker_tmp, root / MANDATORY_OUTPUT_COMMIT_MANIFEST)
         _fsync_dir(root)
+        try:
+            from apps_model_telemetry.run_manifest import build_run_manifest_data
+
+            run_manifest = build_run_manifest_data(root)
+            (root / "run_manifest.json").write_text(
+                json.dumps(run_manifest, indent=2, sort_keys=True) + "\n",
+                encoding="utf-8",
+            )
+        except Exception:
+            pass
         return manifest
     finally:
         shutil.rmtree(staging, ignore_errors=True)

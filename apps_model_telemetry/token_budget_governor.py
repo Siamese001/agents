@@ -33,6 +33,7 @@ class TokenBudgetPolicy:
     safety_multiplier: float
     max_input_tokens_per_attempt: int
     max_reserved_tokens_per_run: int
+    stage_caps: Mapping[str, int] | None = None
 
     def validate(self) -> None:
         if self.chars_per_token_estimate < 1:
@@ -60,8 +61,12 @@ class TokenBudgetReservation:
 def estimate_input_tokens(text: str, *, policy: TokenBudgetPolicy) -> int:
     """Conservative local estimate; avoids an extra paid network preflight."""
     policy.validate()
-    raw = max(1, (len(str(text or "")) + policy.chars_per_token_estimate - 1) // policy.chars_per_token_estimate)
-    return int(raw * policy.safety_multiplier + 0.999999)
+    from apps_model_telemetry.token_counter import estimate_tokens
+    return estimate_tokens(
+        str(text or ""),
+        chars_per_token_ratio=float(policy.chars_per_token_estimate),
+        safety_multiplier=policy.safety_multiplier,
+    )
 
 
 def _canonical_json(value: Mapping[str, Any]) -> str:
@@ -92,7 +97,7 @@ def _filesystem_path(path: Path) -> Path:
     return Path("\\\\?\\" + rendered)
 
 
-def _prior_reserved_total(path: Path) -> int:
+def _prior_reserved_total(path: Path, stage: str | None = None) -> int:
     if not path.is_file():
         return 0
     total = 0
@@ -106,6 +111,8 @@ def _prior_reserved_total(path: Path) -> int:
         if not isinstance(row, Mapping):
             raise ValueError(f"Malformed token reservation entry: {path}")
         if row.get("decision") != "RESERVED":
+            continue
+        if stage is not None and str(row.get("stage") or "") != stage:
             continue
         value = row.get("reserved_total_tokens")
         if isinstance(value, bool):
@@ -136,8 +143,8 @@ def reserve_token_budget(
     """Reserve conservative capacity before a paid model request.
 
     With no run-artifact directory (or explicit process ledger directory), the
-    call is reported as unbound and allowed.  The governor never guesses a run
-    identity because that would mix independent runs and produce false blocks.
+    call is allowed only during test execution (pytest active); outside tests,
+    an unbound run fails closed.
     """
     policy.validate()
     try:
@@ -150,6 +157,24 @@ def reserve_token_budget(
     reserved_total = estimated_input + output
     path = _reservation_path(artifact_dir)
     if path is None:
+        import sys
+
+        in_test = bool(
+            os.environ.get("PYTEST_CURRENT_TEST")
+            or os.environ.get("PYTEST_VERSION")
+            or "pytest" in sys.modules
+        )
+        if not in_test:
+            return TokenBudgetReservation(
+                allowed=False,
+                reason="UNBOUND_RUN_ARTIFACT_BLOCKED",
+                estimated_input_tokens=estimated_input,
+                reserved_output_tokens=output,
+                reserved_total_tokens=reserved_total,
+                prior_reserved_total_tokens=0,
+                max_reserved_tokens_per_run=policy.max_reserved_tokens_per_run,
+                event=None,
+            )
         return TokenBudgetReservation(
             allowed=True,
             reason="UNBOUND_RUN_ARTIFACT",
@@ -165,9 +190,23 @@ def reserve_token_budget(
     with _reservation_lock:
         path.parent.mkdir(parents=True, exist_ok=True)
         prior = _prior_reserved_total(path)
+        stage_prior = (
+            _prior_reserved_total(path, stage=str(stage or ""))
+            if policy.stage_caps
+            else 0
+        )
+        stage_cap = (
+            policy.stage_caps.get(str(stage or ""))
+            if policy.stage_caps
+            else None
+        )
+
         if estimated_input > policy.max_input_tokens_per_attempt:
             decision = "BLOCKED"
             reason = "INPUT_ATTEMPT_CAP_EXCEEDED"
+        elif stage_cap is not None and stage_prior + reserved_total > stage_cap:
+            decision = "BLOCKED"
+            reason = "STAGE_RESERVED_TOKEN_CAP_EXCEEDED"
         elif prior + reserved_total > policy.max_reserved_tokens_per_run:
             decision = "BLOCKED"
             reason = "RUN_RESERVED_TOKEN_CAP_EXCEEDED"
@@ -193,6 +232,9 @@ def reserve_token_budget(
             "max_input_tokens_per_attempt": policy.max_input_tokens_per_attempt,
             "max_reserved_tokens_per_run": policy.max_reserved_tokens_per_run,
         }
+        if stage_cap is not None:
+            event["stage_cap"] = stage_cap
+            event["stage_prior_reserved"] = stage_prior
         event["event_digest"] = _event_digest(event)
         with path.open("a", encoding="utf-8", newline="\n") as handle:
             handle.write(_canonical_json(event) + "\n")
@@ -210,11 +252,59 @@ def reserve_token_budget(
     )
 
 
+def reconcile_token_reservation(
+    *,
+    artifact_dir: Path | str | None,
+    run_id: str = "",
+) -> dict[str, Any]:
+    """Reconcile reserved token capacity against actual observed usage for a run."""
+    res_path = _reservation_path(artifact_dir)
+    total_reserved = 0
+    stage_reserved: dict[str, int] = {}
+    if res_path and res_path.is_file():
+        for line in res_path.read_text(encoding="utf-8").splitlines():
+            try:
+                row = json.loads(line)
+                if row.get("decision") == "RESERVED":
+                    t = int(row.get("reserved_total_tokens") or 0)
+                    total_reserved += t
+                    s = str(row.get("stage") or "unspecified")
+                    stage_reserved[s] = stage_reserved.get(s, 0) + t
+            except Exception:
+                pass
+
+    total_actual = 0
+    stage_actual: dict[str, int] = {}
+    from apps_model_telemetry.external_model_usage import ledger_path
+
+    use_path = ledger_path(artifact_dir)
+    if use_path and use_path.is_file():
+        for line in use_path.read_text(encoding="utf-8").splitlines():
+            try:
+                row = json.loads(line)
+                t = int(row.get("total_tokens") or 0)
+                total_actual += t
+                s = str(row.get("stage") or "unspecified")
+                stage_actual[s] = stage_actual.get(s, 0) + t
+            except Exception:
+                pass
+
+    return {
+        "run_id": run_id,
+        "total_reserved_tokens": total_reserved,
+        "total_actual_tokens": total_actual,
+        "unconsumed_reserved_tokens": max(0, total_reserved - total_actual),
+        "stage_reserved_tokens": stage_reserved,
+        "stage_actual_tokens": stage_actual,
+    }
+
+
 __all__ = [
     "RESERVATION_FILENAME",
     "RESERVATION_SCHEMA_VERSION",
     "TokenBudgetPolicy",
     "TokenBudgetReservation",
     "estimate_input_tokens",
+    "reconcile_token_reservation",
     "reserve_token_budget",
 ]

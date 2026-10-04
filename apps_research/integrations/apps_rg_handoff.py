@@ -19,11 +19,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping
 
-from apps_rg.runtime.apps_runtime_compat import Dimension, GraderClass
-from apps_rg.runtime.apps_runtime_compat import GraderError
-from apps_rg.runtime.apps_runtime_compat import GoogleJudge
-from apps_rg.runtime.apps_runtime_compat import SealedWorkflowPackage
 from apps_rg.runtime.apps_runtime_compat import (
+    Dimension, GoogleJudge, GraderClass, GraderError, SealedWorkflowPackage,
     exit_bind_and_finalize_apps_research,
 )
 from apps_rg.runtime.apps_runtime_compat import (
@@ -164,19 +161,20 @@ def _x2_prompt_budget_receipt(
     except ValueError:
         cap = 24_000
     cap = max(1_024, min(cap, 48_000))
-    data_only_text = "\n".join(
-        (
-            str(brief_text or ""),
-            str(jd_text or ""),
-            str(research_notes or ""),
-            json.dumps(list(source_register), ensure_ascii=True, sort_keys=True),
-        )
-    )
+    data_only_text = "\n".join((str(brief_text or ""), str(jd_text or ""), str(research_notes or ""), json.dumps(list(source_register), ensure_ascii=True, sort_keys=True)))
+    chars_est, safety_mult = 3, 1.12
+    try:
+        from apps_rg.runtime.section_model_limits import runtime_limit_float, runtime_limit_int
+
+        chars_est = runtime_limit_int("model_token_governor.chars_per_token_estimate", 3)
+        safety_mult = runtime_limit_float("model_token_governor.safety_multiplier", 1.12)
+    except Exception:
+        pass
     estimated = estimate_input_tokens(
         data_only_text,
         policy=TokenBudgetPolicy(
-            chars_per_token_estimate=3,
-            safety_multiplier=1.12,
+            chars_per_token_estimate=chars_est,
+            safety_multiplier=safety_mult,
             max_input_tokens_per_attempt=cap,
             max_reserved_tokens_per_run=cap,
         ),

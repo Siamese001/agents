@@ -1,11 +1,4 @@
-"""Production-path, zero-provider prerequisites for W5 qualification.
-
-This module executes the real W0-W4 artifact replay entrypoints, exercises the
-real W2 and W3 exception boundaries, and builds one deterministic positive
-fixture through production authority validators.  It never calls a provider,
-judge, embedding model, network endpoint, subprocess, or UWG.
-"""
-
+"""Production-path, zero-provider prerequisites for W5 qualification."""
 from __future__ import annotations
 
 import hashlib
@@ -18,6 +11,12 @@ from pathlib import Path
 from types import ModuleType
 from typing import Any, Mapping, Sequence
 
+from apps_rg.runtime.qualification_expectations import load_historical_qualification_expectations
+
+_HISTORICAL_EXP = load_historical_qualification_expectations()
+_SAVED_JUDGE_EXP = _HISTORICAL_EXP.get("saved_judge_inventory", {})
+_RESEARCH_EXP = _HISTORICAL_EXP.get("apps_research_events", {})
+_LANES_EXP = _HISTORICAL_EXP.get("apps_rg_lanes", {})
 
 INTEGRATED_EXECUTION_SCHEMA = "apps_rg.w5_integrated_execution.v2"
 INTEGRATED_EXECUTION_FILENAME = "integrated_execution_manifest.json"
@@ -319,13 +318,13 @@ def _saved_judge_inventory(source: Path) -> dict[str, Any]:
             for row in results
         ),
         "model_counts_exact": model_counts
-        == {"gemini-3.6-flash": 12, "gpt-5.6-sol": 9},
+        == _SAVED_JUDGE_EXP.get("model_counts", {}),
         "provider_counts_exact": provider_counts
-        == {"Google Gemini 3.6 Flash": 12, "OpenAI ChatGPT": 9},
+        == _SAVED_JUDGE_EXP.get("provider_counts", {}),
         "no_claude_model_result": not claude_results,
         "legacy_alias_count_exact": len(legacy_aliases) == 5,
         "legacy_aliases_are_openai": all(
-            row["model_actual"] == "gpt-5.6-sol"
+            row["model_actual"] == _SAVED_JUDGE_EXP.get("legacy_alias_model", "")
             and row["provider_name"] == "OpenAI ChatGPT"
             and row["provider_status"] == "MODEL_BACKED_PASS"
             and row["pass"] is True
@@ -485,11 +484,11 @@ def _historical_model_route_inventory(source: Path) -> dict[str, Any]:
     checks = {
         "apps_research_event_count_exact": len(events) == 17,
         "apps_research_event_models_exact": event_model_counts
-        == {"gemini-3.6-flash": 7, "gpt-5.6-terra": 10},
+        == _RESEARCH_EXP.get("event_model_counts", {}),
         "apps_research_event_providers_exact": event_provider_counts
-        == {"external_openai": 10, "google_gemini": 7},
+        == _RESEARCH_EXP.get("event_provider_counts", {}),
         "apps_research_successful_attempts_exact": len(successful_attempts) == 3
-        and success_model_counts == {"gemini-3.6-flash": 1, "gpt-5.6-terra": 2}
+        and success_model_counts == _RESEARCH_EXP.get("success_model_counts", {})
         and all(
             attempt["requested_model"] == attempt["observed_model"]
             and attempt["model_pin_valid"] is True
@@ -504,15 +503,15 @@ def _historical_model_route_inventory(source: Path) -> dict[str, Any]:
         "apps_rg_lane_ids_exact": {row["lane"] for row in lane_rows}
         == set(EXPECTED_LANES),
         "apps_rg_signed_claude_but_openai_route_exact": all(
-            row["signed_target_model"] == "claude-sonnet-5"
-            and row["signed_allowed_models"] == ["claude-sonnet-5"]
+            row["signed_target_model"] == _LANES_EXP.get("signed_target_model", "")
+            and row["signed_allowed_models"] == _LANES_EXP.get("signed_allowed_models", [])
             and row["signed_canonical_provider"] == "openai"
-            and row["attempt_claimed_model"] == "claude-sonnet-5"
+            and row["attempt_claimed_model"] == _LANES_EXP.get("attempt_claimed_model", "")
             and row["attempt_claimed_provider_lane"] == "openai"
             and row["provider_requested"] == "external_openai"
-            and row["provider_request_model"] == "gpt-5.6-luna"
-            and row["provider_response_model"] == "gpt-5.6-luna"
-            and row["handoff_model_id_used"] == "gpt-5.6-luna"
+            and row["provider_request_model"] == _LANES_EXP.get("provider_request_model", "")
+            and row["provider_response_model"] == _LANES_EXP.get("provider_response_model", "")
+            and row["handoff_model_id_used"] == _LANES_EXP.get("handoff_model_id_used", "")
             and row["handoff_provider_lane_used"] == "openai"
             for row in lane_rows
         ),
@@ -565,7 +564,7 @@ def _historical_model_route_inventory(source: Path) -> dict[str, Any]:
         "apps_rg_generation": {
             "lane_count": len(lane_rows),
             "target_claude_lane_count": sum(
-                row["signed_target_model"] == "claude-sonnet-5" for row in lane_rows
+                row["signed_target_model"] == _LANES_EXP.get("signed_target_model", "") for row in lane_rows
             ),
             "actual_claude_lane_count": sum(
                 "claude" in str(row["provider_response_model"]).lower()

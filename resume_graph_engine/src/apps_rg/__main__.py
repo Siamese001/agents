@@ -12,9 +12,6 @@ from typing import Any, Sequence
 from apps_rg.runtime.bindings.l1_cognitive_treatment import L1_COGNITIVE_V2_CONTROL_ARM
 from apps_rg.runtime.env_bootstrap import bootstrap_apps_rg_env
 from apps_rg.runtime.live_judge_only_guard import assert_production_runtime
-from apps_rg.runtime.orchestration.canonical_dispatch import (
-    run_canonical_apps_rg_from_cli_primitives,
-)
 from apps_rg.runtime.runtime_boundary import RuntimeBoundaryViolation
 from apps_rg.runtime.runtime_proof_layout import find_repo_root
 
@@ -445,6 +442,9 @@ def _run_product_from_cli(args: argparse.Namespace) -> dict[str, Any]:
             brief_text = str(args.briefing).strip()
     sys.stderr.write("[resume_engine] Dispatching canonical resume generation...\n")
     sys.stderr.flush()
+    from apps_rg.runtime.orchestration.canonical_dispatch import (
+        run_canonical_apps_rg_from_cli_primitives,
+    )
     result = run_canonical_apps_rg_from_cli_primitives(
         target_company=args.target_company,
         target_role=args.target_role,
@@ -499,83 +499,14 @@ def _run_preflight(prog: str, json_out: bool = False) -> int | None:
 
 
 def main(argv: list[str] | None = None, prog: str | None = None) -> int:
-    """Run the sole supported resume workflow or its inspection actions."""
-    import secrets
+    """Run the sole supported resume workflow or its inspection actions.
 
-    # Ensure local dev route signing secrets exist if not supplied in environment
-    if not os.environ.get("APPS_RG_ROUTE_HMAC_SECRET"):
-        os.environ["APPS_RG_ROUTE_HMAC_SECRET"] = secrets.token_hex(32)
-    if not os.environ.get("APPS_RG_ROUTE_HMAC_KEY_ID"):
-        os.environ["APPS_RG_ROUTE_HMAC_KEY_ID"] = f"session-key-{secrets.token_hex(8)}"
+    Deprecated: Prefer 'python -m resume_engine' or 'resume-engine'.
+    Delegates to resume_engine.cli.main.
+    """
+    from resume_engine.cli import main as unified_main
 
-    _repo_root = find_repo_root()
-    bootstrap_apps_rg_env(repo_root=_repo_root)
-
-    raw_argv = list(sys.argv[1:] if argv is None else argv)
-    if raw_argv and raw_argv[0] == "bootstrap":
-        from apps_rg.runtime.fact_vectors_bootstrap import run_bootstrap_cli
-
-        return int(run_bootstrap_cli(raw_argv[1:]))
-
-    if any(arg == "--patch-run" or arg.startswith("--patch-run=") for arg in raw_argv):
-        pf = _run_preflight("python -m apps_rg patch-run")
-        if pf is not None:
-            return pf
-        from apps_rg.runtime.orchestration.patch_run import main as patch_main
-
-        patch_args: list[str] = []
-        skip_next = False
-        for i, a in enumerate(raw_argv):
-            if skip_next:
-                skip_next = False
-            elif a == "--patch-run":
-                if i + 1 < len(raw_argv):
-                    patch_args.append(raw_argv[i + 1])
-                    skip_next = True
-            elif a.startswith("--patch-run="):
-                patch_args.append(a.split("=", 1)[1])
-            else:
-                patch_args.append(a)
-        return patch_main(patch_args)
-
-    if prog is None:
-        prog = "python -m resume_engine" if (len(sys.argv) > 0 and "resume_engine" in sys.argv[0]) else "python -m apps_rg"
-
-    parser = _build_parser(prog=prog)
-    args = parser.parse_args(_normalize_argv(argv))
-
-    assert_production_runtime(context=prog, args=args)
-    action = args.action or "run"
-    try:
-        if action == "run":
-            pf = _run_preflight(prog, getattr(args, "json", False))
-            if pf is not None:
-                return pf
-
-            result = _run_product_from_cli(args)
-            if getattr(args, "json", False):
-                _print_json_result(result)
-            else:
-                _print_result(result)
-            return 0 if result.get("status") == "SUCCESS" else 1
-        if action == "eval":
-            report = _evaluate_product_run(Path(args.run_dir).expanduser().resolve())
-            report["run_dir"] = str(Path(args.run_dir).expanduser().resolve())
-            _print_evaluation(report)
-            return 0 if report.get("status") == "PASS" else 1
-        if action == "show":
-            sys.stdout.write(
-                _read_product_artifact(Path(args.run_dir).expanduser().resolve(), args.artifact)
-            )
-            return 0
-    except RuntimeBoundaryViolation as exc:
-        print(f"APPS_RG_PATH_AUTHORITY_BLOCK {exc}", file=sys.stderr, flush=True)
-        return 1
-    except ValueError as exc:
-        print(f"APPS_RG_ERROR {exc}", file=sys.stderr, flush=True)
-        return 1
-    parser.error(f"unsupported action: {action!r}")
-    return 2
+    return unified_main(argv=argv, prog=prog or "python -m apps_rg")
 
 
 if __name__ == "__main__":

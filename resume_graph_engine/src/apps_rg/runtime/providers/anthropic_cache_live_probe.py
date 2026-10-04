@@ -89,7 +89,7 @@ def _post_message(
 def run_live_cache_probe(
     *,
     api_key: str,
-    model: str = "claude-sonnet-5",
+    model: str | None = None,
     url: str = DEFAULT_ANTHROPIC_MESSAGES_URL,
     opener: Urlopen = urllib.request.urlopen,
     timeout_seconds: float = 90.0,
@@ -98,6 +98,10 @@ def run_live_cache_probe(
 ) -> dict[str, Any]:
     if not str(api_key or "").strip():
         raise ValueError("Anthropic API key is required")
+    if not model:
+        from apps_rg.runtime.model_registry import resolve
+
+        model = resolve("generation.slalom_bullets").model
     stable_prefix = _stable_prefix(model)
     started = datetime.now(timezone.utc).isoformat()
 
