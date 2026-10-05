@@ -397,6 +397,8 @@ def materialize_augmented_skills_graph_sqlite(
             ),
         )
         conn.commit()
+        conn.execute("ANALYZE")
+        conn.commit()
         validate_projection_source_authorities(conn)
         require_graphdb_capability_schema(conn)
         validate_graphdb_capability_integrity(
@@ -454,3 +456,8 @@ def materialize_augmented_skills_graph_sqlite(
 
 
 __all__ = ["materialize_augmented_skills_graph_sqlite"]
+
+
+if __name__ == "__main__":
+    result = materialize_augmented_skills_graph_sqlite()
+    print("Materialization complete:", result.get("sqlite_db_path"))

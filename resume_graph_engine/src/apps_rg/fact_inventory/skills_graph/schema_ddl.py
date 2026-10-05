@@ -368,6 +368,7 @@ DDL_STATEMENTS: tuple[str, ...] = (
     "CREATE INDEX IF NOT EXISTS idx_graph_edges_src ON graph_edges(source_node_id)",
     "CREATE INDEX IF NOT EXISTS idx_graph_edges_tgt ON graph_edges(target_node_id)",
     "CREATE INDEX IF NOT EXISTS idx_graph_edges_src_type_tgt ON graph_edges(source_node_id, edge_type, target_node_id)",
+    "CREATE INDEX IF NOT EXISTS idx_graph_edges_tgt_type ON graph_edges(target_node_id, edge_type)",
     "CREATE UNIQUE INDEX IF NOT EXISTS uq_graph_edges_src_tgt_type ON graph_edges(source_node_id, target_node_id, edge_type)",
     "CREATE INDEX IF NOT EXISTS idx_section_eligibility_section ON section_eligibility(section_id)",
     "CREATE INDEX IF NOT EXISTS idx_skill_fact_links_fact ON skill_fact_links(fact_id)",

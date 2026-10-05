@@ -480,8 +480,8 @@ def assemble_c03_graph_sqlite_context(
 ) -> dict[str, Any]:
     """Query SQLite graph for C0.3-style context bundle + inline receipt fields."""
     root = repo_root or _repo_root()
-    # The execution boundary refreshes generated state; health/report readers stay pure.
-    path = ensure_c03_graph_sqlite(root, db_path)
+    # Fail-closed runtime path: strictly require projection without rematerializing.
+    path = require_c03_graph_sqlite(root, db_path)
     facts_in = sorted({str(x).strip() for x in (selected_fact_ids or []) if str(x).strip()})
     sec = str(section_id or "").strip() or "executive_summary"
     rf = str(role_family_key or "").strip() or "SVP_ENGINEERING_AI_PLATFORM"
@@ -674,8 +674,11 @@ def assemble_c03_graph_sqlite_context(
             ) from exc
         try:
             selected_skill_ids = [str(row[0] or "") for row in fact_links if str(row[0] or "")]
-            reverse_targets = facts_in[:5] or selected_skill_ids[:5]
-            for target in reverse_targets:
+            metric_targets: list[str] = []
+            if facts_in:
+                m_sql = f"SELECT DISTINCT target_node_id FROM graph_edges WHERE edge_type = 'fact_has_metric_outcome' AND source_node_id IN ({','.join('?' for _ in facts_in[:5])})"
+                metric_targets = [str(r[0]) for r in conn.execute(m_sql, tuple(facts_in[:5])).fetchall()]
+            for target in metric_targets[:5]:
                 for row in query_reverse_metric_paths(conn, metric_id=target, limit=12):
                     reverse_path_receipts.append({"target_node_id": target, **row})
             for skill_id in list(dict.fromkeys(selected_skill_ids))[:8]:

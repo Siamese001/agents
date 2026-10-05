@@ -1,0 +1,200 @@
+{
+  "plan_id": "graph-skills-deep-traversal-c7d2e9",
+  "wave": 4,
+  "wave_title": "Deep traversal API and fail-closed runtime (G8, G16)",
+  "status": "COMPLETED",
+  "timestamp_utc": "2026-10-05T19:56:00Z",
+  "git": {
+    "branch": "feat/graph-skills-deep-traversal-review",
+    "worktree": "/Users/amitayer/Git/agents/.worktrees/graph-skills-deep-traversal-review",
+    "base_commit": "4a730d8e35a8a1ad36ea7b8e2fb926948165e365"
+  },
+  "hitl_resolution": {
+    "candidate_id": "gdb-w4-strict-ranked-selection",
+    "decision": "CONFIGURABLE_FAIL_SAFE_STRICT_DEFAULT",
+    "description": "Configurable fail-safe with governed strict default (defaults to True in governed runs/tests, allows production evidence_room to fall back gracefully when candidate frontiers are partially missing)"
+  },
+  "acceptance_criteria": {
+    "AC4.1": {
+      "status": "PASS",
+      "description": "All 4 canonical journeys return >= 1 path for each of the 5 employers with metrics (EY, IBM, InsurTech, Slalom, Unify)",
+      "verification": "test_graph_traversal_w4.py::test_ac4_1_canonical_journeys_all_employers"
+    },
+    "AC4.2": {
+      "status": "PASS",
+      "description": "Unrestricted depth-3 walk rejected with ValueError; cycle guard proven on synthetic cycle table",
+      "verification": "test_graph_traversal_w4.py::test_ac4_2_unrestricted_depth_rejected_and_cycle_guard"
+    },
+    "AC4.3": {
+      "status": "PASS",
+      "description": "Forward and inverse traversal of the same journey return 100% identical path sets",
+      "verification": "test_graph_traversal_w4.py::test_ac4_3_forward_and_inverse_symmetry"
+    },
+    "AC4.4": {
+      "status": "PASS",
+      "description": "Every C0.3 binding receipt contains path_confidence, evidence_ids and build_run_id",
+      "verification": "test_c03_fail_closed_w4.py::test_ac4_4_c03_binding_receipts_fields"
+    },
+    "AC4.5": {
+      "status": "PASS",
+      "description": "After one production run, graph_selection_rejections and resume_metric_usage contain > 0 rows",
+      "verification": "test_c03_fail_closed_w4.py::test_ac4_5_selection_rejections_and_metric_usage_rows"
+    },
+    "AC4.6": {
+      "status": "PASS",
+      "description": "Stale or missing DB -> C03GraphProjectionUnavailableError. No rematerialization on runtime path",
+      "verification": "test_c03_fail_closed_w4.py::test_ac4_6_stale_or_missing_db_fails_closed"
+    },
+    "AC4.7": {
+      "status": "PASS",
+      "description": "EXPLAIN QUERY PLAN uses index search with zero table scans; p95 < 100ms",
+      "verification": "test_graph_traversal_w4.py::test_ac4_7_explain_query_plan_and_latency"
+    }
+  },
+  "canonical_journeys_matrix": {
+    "EY": {
+      "journey_1_skill_fact_metric_emp_epoch": {
+        "paths_count": 3,
+        "latency_ms": 0.314
+      },
+      "journey_2_skill_engagement_employment": {
+        "paths_count": 5,
+        "latency_ms": 0.147
+      },
+      "journey_3_metric_fact_skill_inverse": {
+        "paths_count": 32,
+        "latency_ms": 0.7
+      },
+      "journey_4_domain_skill_evidence": {
+        "paths_count": 55,
+        "latency_ms": 1.178
+      }
+    },
+    "IBM": {
+      "journey_1_skill_fact_metric_emp_epoch": {
+        "paths_count": 20,
+        "latency_ms": 0.489
+      },
+      "journey_2_skill_engagement_employment": {
+        "paths_count": 10,
+        "latency_ms": 0.147
+      },
+      "journey_3_metric_fact_skill_inverse": {
+        "paths_count": 9,
+        "latency_ms": 0.115
+      },
+      "journey_4_domain_skill_evidence": {
+        "paths_count": 44,
+        "latency_ms": 0.885
+      }
+    },
+    "InsurTech": {
+      "journey_1_skill_fact_metric_emp_epoch": {
+        "paths_count": 27,
+        "latency_ms": 0.634
+      },
+      "journey_2_skill_engagement_employment": {
+        "paths_count": 3,
+        "latency_ms": 0.11
+      },
+      "journey_3_metric_fact_skill_inverse": {
+        "paths_count": 5,
+        "latency_ms": 0.075
+      },
+      "journey_4_domain_skill_evidence": {
+        "paths_count": 17,
+        "latency_ms": 0.339
+      }
+    },
+    "Slalom": {
+      "journey_1_skill_fact_metric_emp_epoch": {
+        "paths_count": 34,
+        "latency_ms": 0.937
+      },
+      "journey_2_skill_engagement_employment": {
+        "paths_count": 8,
+        "latency_ms": 0.12
+      },
+      "journey_3_metric_fact_skill_inverse": {
+        "paths_count": 5,
+        "latency_ms": 0.07
+      },
+      "journey_4_domain_skill_evidence": {
+        "paths_count": 26,
+        "latency_ms": 0.469
+      }
+    },
+    "Unify": {
+      "journey_1_skill_fact_metric_emp_epoch": {
+        "paths_count": 32,
+        "latency_ms": 0.844
+      },
+      "journey_2_skill_engagement_employment": {
+        "paths_count": 7,
+        "latency_ms": 0.088
+      },
+      "journey_3_metric_fact_skill_inverse": {
+        "paths_count": 60,
+        "latency_ms": 0.411
+      },
+      "journey_4_domain_skill_evidence": {
+        "paths_count": 29,
+        "latency_ms": 0.823
+      }
+    }
+  },
+  "performance_benchmarks": {
+    "p50_latency_ms": 0.411,
+    "p90_latency_ms": 0.937,
+    "p95_latency_ms": 1.178,
+    "max_latency_ms": 1.178,
+    "latency_ceiling_ms": 100.0,
+    "covering_index_name": "idx_graph_edges_tgt_type",
+    "table_scans_detected": 0
+  },
+  "file_budgets": {
+    "resume_graph_engine/src/apps_rg/fact_inventory/skills_graph/materializer.py": {
+      "lines": 463,
+      "max": 600,
+      "status": "PASS"
+    },
+    "resume_graph_engine/src/apps_rg/fact_inventory/skills_graph/schema_ddl.py": {
+      "lines": 501,
+      "max": 600,
+      "status": "PASS"
+    },
+    "resume_graph_engine/src/apps_rg/runtime/c0/c03_graph_expansion.py": {
+      "lines": 1127,
+      "max": 1132,
+      "status": "PASS"
+    },
+    "resume_graph_engine/src/apps_rg/runtime/c0/evidence_room.py": {
+      "lines": 599,
+      "max": 600,
+      "status": "PASS"
+    },
+    "resume_graph_engine/src/apps_rg/runtime/c03_graph_sqlite_context.py": {
+      "lines": 966,
+      "max": 970,
+      "status": "PASS"
+    },
+    "resume_graph_engine/src/apps_rg/runtime/graph_runtime_persistence.py": {
+      "lines": 172,
+      "max": 600,
+      "status": "PASS"
+    },
+    "resume_graph_engine/src/apps_rg/runtime/graph_traversal.py": {
+      "lines": 557,
+      "max": 600,
+      "status": "PASS"
+    }
+  },
+  "verification_commands": [
+    "pytest resume_graph_engine/tests/unit/apps_rg/runtime/test_graph_traversal_w4.py --timeout=180",
+    "pytest resume_graph_engine/tests/unit/apps_rg/runtime/test_c03_fail_closed_w4.py --timeout=180",
+    "pytest resume_graph_engine/tests/unit/apps_rg/test_graph_skills_jd_subgraph_w1.py --timeout=180",
+    "pytest resume_graph_engine/tests/unit/apps_rg/test_c0_evidence_room.py --timeout=180",
+    "python tools/lint_file_budgets.py --repo-root .worktrees/graph-skills-deep-traversal-review",
+    "python tools/lint_layer_imports.py --repo-root .worktrees/graph-skills-deep-traversal-review"
+  ]
+}
