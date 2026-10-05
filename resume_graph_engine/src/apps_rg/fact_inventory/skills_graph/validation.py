@@ -379,7 +379,7 @@ def validate_hardened_materialized_sqlite(
                    (SELECT COUNT(*) FROM skill_fact_links l WHERE l.skill_id = n.node_id) AS fact_links
             FROM section_eligibility se
             JOIN graph_nodes n ON n.node_id = se.node_id
-            WHERE se.section_id = 'executive_summary' AND se.allowed = 1
+            WHERE se.section_id IN ('section_executive_summary', 'executive_summary') AND se.allowed = 1
               AND n.node_type = 'skill'
             ORDER BY se.node_id
             LIMIT 25
@@ -404,7 +404,7 @@ def validate_hardened_materialized_sqlite(
             """
             SELECT COUNT(*) FROM section_eligibility se
             JOIN graph_nodes n ON n.node_id = se.node_id
-            WHERE se.section_id='executive_summary' AND se.allowed=1 AND n.node_type='skill'
+            WHERE se.section_id IN ('section_executive_summary', 'executive_summary') AND se.allowed=1 AND n.node_type='skill'
             """
         ).fetchone()[0]
         forbidden_high = conn.execute(

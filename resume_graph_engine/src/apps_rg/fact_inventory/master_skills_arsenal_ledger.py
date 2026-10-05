@@ -117,7 +117,7 @@ REGISTERED_GRAPH_NODE_TYPES = frozenset(
         "career_track",
         "certification_evidence",
         "domain_pillar",
-        "employment",
+        "employment", "engagement",
         "experience_evidence",
         "external_claim_policy",
         "identity_north_star",
