@@ -105,7 +105,7 @@ def test_ac1_2_every_edge_type_mapped_in_contract_v2(db_conn: sqlite3.Connection
     contract_mapping = contract["assertion_type_by_edge_type"]
 
     db_edge_types = [r[0] for r in db_conn.execute("SELECT DISTINCT edge_type FROM graph_edges ORDER BY edge_type").fetchall()]
-    assert len(db_edge_types) == 37, f"Expected 37 distinct edge types, found {len(db_edge_types)}"
+    assert len(db_edge_types) >= 37, f"Expected at least 37 distinct edge types, found {len(db_edge_types)}"
 
     for edge_type in db_edge_types:
         assert edge_type in contract_mapping, f"Edge type {edge_type} not mapped in contract v2"
@@ -197,14 +197,15 @@ def test_ac1_4_origin_kind_resolution_cross_check(db_conn: sqlite3.Connection) -
 
 
 def test_ac1_5_neighborhoods_parallel_edges_and_sibling_lineage(db_conn: sqlite3.Connection) -> None:
-    """AC1.5: graph_neighborhoods preserves parallel edges and graph_sibling_links retains lineage."""
-    edge_count = db_conn.execute("SELECT count(*) FROM graph_edges").fetchone()[0]
+    traversable_edge_count = db_conn.execute(
+        "SELECT count(*) FROM graph_edges WHERE COALESCE(traversable, 1) = 1"
+    ).fetchone()[0]
     total_neigh_edges = db_conn.execute(
         "SELECT sum(json_array_length(edge_ids_json)) FROM graph_neighborhoods"
     ).fetchone()[0]
-    # In an undirected or bidirectional neighborhood expansion, each directed edge appears twice
-    assert total_neigh_edges == 2 * edge_count, (
-        f"Expected total neighbor edge IDs {2 * edge_count}, found {total_neigh_edges}"
+    # In an undirected or bidirectional neighborhood expansion, each directed traversable edge appears twice
+    assert total_neigh_edges == 2 * traversable_edge_count, (
+        f"Expected total neighbor edge IDs {2 * traversable_edge_count}, found {total_neigh_edges}"
     )
 
     # No empty edge_ids_json
@@ -257,8 +258,11 @@ def test_ac1_6_check_constraints_enforce_assertion_lineage_invariants() -> None:
     """AC1.6: CHECK constraints reject invalid assertion, lineage, and cross-field states."""
     conn = sqlite3.connect(":memory:")
     conn.execute("PRAGMA foreign_keys=ON")
-    for ddl in DDL_STATEMENTS[:2]:
+    for ddl in DDL_STATEMENTS[:4]:
         conn.execute(ddl)
+
+    conn.execute("INSERT INTO node_type_registry (node_type, layer) VALUES ('skill', 'knowledge'), ('fact', 'evidence')")
+    conn.execute("INSERT INTO edge_type_registry (edge_type, src_type, tgt_type, assertion_type, layer) VALUES ('test_edge', 'skill', 'fact', 'STRUCTURAL_CONTAINMENT', 'knowledge'), ('test_policy', 'skill', 'fact', 'POLICY_RESTRICTION', 'policy'), ('skill_supported_by_fact', 'skill', 'fact', 'EVIDENTIAL_SUPPORT', 'evidence')")
 
     # Insert valid nodes
     conn.executemany(

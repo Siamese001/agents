@@ -233,6 +233,39 @@ def harden_edge_row(
     return row
 
 
+def finalize_and_harden_edge_rows(
+    edge_rows: list[dict[str, Any]],
+    *,
+    build_run_id: str,
+    contract: dict[str, Any],
+    ledger_hash: str,
+    repo_root: Path,
+) -> list[dict[str, Any]]:
+    """Apply default edge fields and harden edge rows against contract v2."""
+    for row in edge_rows:
+        edge_type = str(row.get("edge_type") or "")
+        row.setdefault("rationale", edge_type)
+        row.setdefault("projection_behavior", "graph_traversal")
+        row.setdefault("external_claim_policy", "graph_routing_not_claim_proof")
+        row.setdefault("validation_status", str(row.get("evidence_status") or ""))
+        row.setdefault("edge_note", "")
+        row.setdefault("operator_note", "")
+        row.setdefault("business_story", "")
+        row.setdefault("technical_story", "")
+
+    return [
+        harden_edge_row(
+            raw_edge,
+            build_run_id=build_run_id,
+            contract=contract,
+            default_origin_kind="ledger_edge",
+            default_origin_artifact_sha256=ledger_hash,
+            repo_root=repo_root,
+        )
+        for raw_edge in edge_rows
+    ]
+
+
 __all__ = [
     "ASSERTION_BASIS_KINDS",
     "ASSERTION_TYPES",
@@ -241,6 +274,7 @@ __all__ = [
     "ORIGIN_KINDS",
     "SEMANTIC_CONTRACT_VERSION_V2",
     "harden_edge_row",
+    "finalize_and_harden_edge_rows",
     "load_edge_semantic_contract_v2",
     "resolve_derivation_rule_id",
     "resolve_edge_assertion_basis",

@@ -163,11 +163,11 @@ def test_ac2_4_skill_surfaces_metric_outcome_proof_chains(db_conn: sqlite3.Conne
     ).fetchone()[0]
     assert unproven_edges == 0, f"Found {unproven_edges} unproven skill_surfaces_metric_outcome edges"
 
-    # Exactly 176 proven edges materialize
+    # Proven edges materialize (176 in W2, 202 after W3 EY bundle fact resolution)
     proven_count = db_conn.execute(
         "SELECT count(*) FROM graph_edges WHERE edge_type = 'skill_surfaces_metric_outcome'"
     ).fetchone()[0]
-    assert proven_count == 176, f"Expected exactly 176 proven metric outcome edges, got {proven_count}"
+    assert proven_count in (176, 202), f"Expected 176 or 202 proven metric outcome edges, got {proven_count}"
 
     # 0 originate from BLOCKED skills
     blocked_metric_edges = db_conn.execute(

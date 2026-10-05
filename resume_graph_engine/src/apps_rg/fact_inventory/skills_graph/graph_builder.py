@@ -24,6 +24,7 @@ from .constants import (
     skill_row_eligible_for_external_claim,
 )
 from .classification import (
+    _is_skill_id,
     canonical_node_type,
     infer_node_type_from_id,
     resolve_node_type,
@@ -378,4 +379,88 @@ def _resolve_projection_pillar_hints(
     return ()
 
 
-__all__ = ['collect_high_and_exec_summary_counts', '_confidence_from_skill_row', '_confidence_from_node', '_policy_rule_node_id', '_redirect_edge_source', '_dedupe_edge_rows', '_ensure_policy_nodes', '_executive_summary_eligibility', 'collect_graph_counts', '_skill_external_eligible', '_external_eligible_node', '_parse_section_id', '_ensure_fact_node', '_resolve_projection_pillar_hints']
+def process_edge_section_eligibility(
+    *,
+    et: str,
+    src: str,
+    tgt: str,
+    eid: str,
+    raw: dict[str, Any],
+    skill_rows_by_id: dict[str, dict[str, Any]],
+    upsert_fn: Any,
+) -> None:
+    from .topology_normalization import normalize_section_id
+    if et == "skill_allowed_in_section":
+        sec = normalize_section_id(_parse_section_id(tgt))
+        row = skill_rows_by_id.get(src, {})
+        if sec == "section_executive_summary" and row:
+            link_n = sum(
+                1
+                for fid in row.get("fact_id_links") or []
+                if str(fid).strip() and not _is_skill_id(str(fid))
+            )
+            sec_row = _executive_summary_eligibility(row, has_fact_link=link_n > 0)
+            sec_row["section_id"] = normalize_section_id(sec_row["section_id"])
+            upsert_fn(sec_row)
+        else:
+            blocked = str(row.get("activation_status") or "") in NON_PROMOTE_ACTIVATION
+            upsert_fn(
+                {
+                    "node_id": src,
+                    "section_id": sec,
+                    "allowed": 0 if blocked else 1,
+                    "claim_policy": str(raw.get("external_claim_policy") or "skill_projection_not_proof"),
+                    "reason": str(raw.get("rationale") or "skill_allowed_in_section"),
+                    "blocked_reason": "activation_blocked" if blocked else "",
+                }
+            )
+    elif et == "pillar_section_eligibility":
+        sec = normalize_section_id(_parse_section_id(tgt))
+        pillar_allowed = 0 if sec == "section_executive_summary" else 1
+        upsert_fn(
+            {
+                "node_id": src,
+                "section_id": sec,
+                "allowed": pillar_allowed,
+                "claim_policy": str(raw.get("external_claim_policy") or "internal_traversal_only"),
+                "reason": str(raw.get("rationale") or "pillar_section_eligibility"),
+                "blocked_reason": "executive_summary_skills_high_only"
+                if sec == "section_executive_summary"
+                else "",
+            }
+        )
+    elif et in (
+        "projection_excludes_blocked_skill",
+        "section_blocks_pending_source_skill",
+        "section_blocks_skill_without_fact",
+    ):
+        sec = "section_executive_summary" if "executive" in eid else ""
+        upsert_fn(
+            {
+                "node_id": src,
+                "section_id": sec or "*",
+                "allowed": 0,
+                "claim_policy": str(raw.get("external_claim_policy") or "blocked"),
+                "reason": str(raw.get("rationale") or et),
+                "blocked_reason": et,
+            }
+        )
+
+
+__all__ = [
+    'collect_high_and_exec_summary_counts',
+    '_confidence_from_skill_row',
+    '_confidence_from_node',
+    '_policy_rule_node_id',
+    '_redirect_edge_source',
+    '_dedupe_edge_rows',
+    '_ensure_policy_nodes',
+    '_executive_summary_eligibility',
+    'collect_graph_counts',
+    '_skill_external_eligible',
+    '_external_eligible_node',
+    '_parse_section_id',
+    '_ensure_fact_node',
+    '_resolve_projection_pillar_hints',
+    'process_edge_section_eligibility',
+]

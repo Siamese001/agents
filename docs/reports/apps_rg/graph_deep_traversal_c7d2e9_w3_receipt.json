@@ -1,0 +1,170 @@
+{
+  "plan_id": "graph-skills-deep-traversal-c7d2e9",
+  "wave": 3,
+  "wave_title": "Topology and ontology integrity: entities, sections, registry, policy layer, temporal (G9–G14)",
+  "status": "COMPLETED",
+  "timestamp_utc": "2026-10-05T19:05:00Z",
+  "git": {
+    "branch": "feat/graph-skills-deep-traversal-review",
+    "worktree": "/Users/amitayer/Git/agents/.worktrees/graph-skills-deep-traversal-review",
+    "builder_commit": "f0f03aab6e68750e6774c68fe8904e1079498830"
+  },
+  "type_registry": {
+    "type_registry_digest": "503561991e3e0d3b4aebb46afec9c95672ee9b4265cc5a547d66086f24b7a975",
+    "registered_node_types_count": 20,
+    "registered_edge_types_count": 47,
+    "polymorphic_signatures_count": 0,
+    "unregistered_edge_types_count": 0
+  },
+  "counts": {
+    "total_nodes": 816,
+    "total_edges": 3722,
+    "total_edge_evidence_rows": 6384,
+    "total_graph_paths": 2259,
+    "total_graph_neighborhoods": 4518,
+    "total_graph_sibling_links": 23540,
+    "traversable_edges": 2259,
+    "non_traversable_policy_edges": 1463,
+    "nodes_by_type": {
+      "skill": 254,
+      "concept": 120,
+      "metric_outcome": 106,
+      "fact": 55,
+      "capability_domain": 49,
+      "engagement": 41,
+      "repo_evidence": 32,
+      "role_family": 31,
+      "pillar": 29,
+      "metric": 22,
+      "policy_rule": 17,
+      "section": 17,
+      "metric_bucket": 16,
+      "career_epoch": 9,
+      "employment": 6,
+      "locked_bullet": 4,
+      "career_track": 3,
+      "policy": 3,
+      "certification": 1,
+      "graph_ref": 1
+    }
+  },
+  "entity_deduplication_and_sections": {
+    "canonical_employment_nodes": [
+      "employment_exp_advisory_lead_001",
+      "employment_exp_capgemini_001",
+      "employment_exp_ey_001",
+      "employment_exp_insurtech_001",
+      "employment_exp_slalom_001",
+      "employment_exp_unify_001"
+    ],
+    "stub_employment_twins_removed": [
+      "exp_advisory_lead_001",
+      "exp_ey_001",
+      "exp_unify_001"
+    ],
+    "stub_employment_twins_remaining": 0,
+    "section_id_format": "section_{lane_id}",
+    "bare_or_colon_section_ids_remaining": 0,
+    "section_eligibility_parity_pct": 100.0,
+    "mismatched_section_ids_count": 0
+  },
+  "hosting_and_hierarchy": {
+    "facts_total": 55,
+    "facts_hosted_count": 55,
+    "unhosted_facts_count": 0,
+    "facts_with_multiple_hosts_count": 0,
+    "employments_total": 6,
+    "employments_with_epoch_count": 6,
+    "employments_with_non_null_dates_count": 6,
+    "employments_with_non_null_title_count": 6
+  },
+  "connectivity_and_reach": {
+    "weak_components_traversable": 1,
+    "unreachable_skills_from_anchors": 0,
+    "pillars_total": 29,
+    "pillars_reaching_ge_1_skill": 29,
+    "pillars_isolated_count": 0
+  },
+  "engagement_projections": {
+    "total_engagement_nodes": 41,
+    "reb_bundle_coverage_pct": 100.0,
+    "engagement_edges": {
+      "engagement_at_employment": 41,
+      "engagement_exercises_skill": 190,
+      "engagement_evidenced_by_fact": 54
+    },
+    "engagements_without_skill_edge": 0,
+    "engagements_without_fact_edge": 0
+  },
+  "policy_layer_separation": {
+    "policy_edge_types_count": 11,
+    "policy_edges_total": 1463,
+    "policy_edges_traversable": 0,
+    "paths_derived_from_non_traversable": 0,
+    "neighborhoods_derived_from_non_traversable": 0,
+    "sibling_links_derived_from_non_traversable": 0,
+    "hub_degree_impact": {
+      "all_edges_max_in_node": "policy_external_claim_policy",
+      "all_edges_max_in_degree": 340,
+      "traversable_max_in_node": "employment_exp_insurtech_001",
+      "traversable_max_in_degree": 47,
+      "super_hub_reduction_factor": 7.23
+    }
+  },
+  "topology_invariants": {
+    "I1_isolated_core_nodes": 0,
+    "I2_fact_hosting": 0,
+    "I3_metric_employer_bound": 0,
+    "I4_fact_metric_source": 0,
+    "I5a_epoch_track": 0,
+    "I5b_emp_track": 0,
+    "I6_skill_epoch_attr": 0,
+    "I7a_links_edges": 0,
+    "I7b_edges_links": 0,
+    "I8a_section_nodes": 0,
+    "I8b_section_edges": 0,
+    "I9_section_parity": 0,
+    "I10_domain_hierarchy": 0,
+    "I11a_c03_track": 0,
+    "I11b_c03_roles": 0,
+    "I12_metadata_counts": 0,
+    "I13a_weak_components": 1,
+    "I13b_unreachable_skills": 0,
+    "failed_invariants_count": 0
+  },
+  "acceptance_criteria_verification": {
+    "AC3.1": {
+      "status": "PASSED",
+      "detail": "Every edge signature (src node_type, tgt node_type) matches exactly one edge_type_registry row (47 distinct edge types registered, 0 polymorphic signatures, 0 unregistered edge types)."
+    },
+    "AC3.2": {
+      "status": "PASSED",
+      "detail": "0 employment nodes outside canonical employment_exp_* set. 0 section:* or bare-section graph_ref IDs. section_eligibility and section edges have 100% ID parity across all 17 lanes."
+    },
+    "AC3.3": {
+      "status": "PASSED",
+      "detail": "Every fact has exactly 1 hosting employment via employment_hosts_fact (55/55). Every employment has 1 epoch via employment_in_epoch (6/6) with non-null start_date, end_date, and title."
+    },
+    "AC3.4": {
+      "status": "PASSED",
+      "detail": "Weak component count is exactly 1 for the traversable layer. Every pillar reaches >= 1 skill (29/29). 0 unreachable skills from anchor nodes."
+    },
+    "AC3.5": {
+      "status": "PASSED",
+      "detail": "Every reb_* bundle exists as an engagement node (41/41) with >= 1 skill edge (190 total) and >= 1 fact edge (54 total)."
+    },
+    "AC3.6": {
+      "status": "PASSED",
+      "detail": "graph_sibling_links and graph_neighborhoods contain 0 rows derived through traversable=0 edges. Max in-hub degree reduced from 340 to 47."
+    },
+    "AC3.7": {
+      "status": "PASSED",
+      "detail": "validate_graph_topology.py exits 0 on live DB with 0 invariant violations across all 13 invariants (I1-I13). 11 red-team test cases verify failure on injected corruption."
+    }
+  },
+  "verification_commands": [
+    "PYTHONPATH=resume_graph_engine/src /Users/amitayer/Git/agents/.venv/bin/python resume_graph_engine/src/apps_rg/fact_inventory/validate_graph_topology.py",
+    "PYTHONPATH=resume_graph_engine/src /Users/amitayer/Git/agents/.venv/bin/python resume_graph_engine/src/apps_rg/fact_inventory/validate_c03_graph_hardening.py",
+    "PYTHONPATH=resume_graph_engine/src /Users/amitayer/Git/agents/.venv/bin/python -m pytest resume_graph_engine/tests/unit/apps_rg/fact_inventory/test_graph_sqlite_freshness_w0.py resume_graph_engine/tests/unit/apps_rg/fact_inventory/test_edge_assertion_lineage_w1.py resume_graph_engine/tests/unit/apps_rg/fact_inventory/test_edge_confidence_evidence_w2.py resume_graph_engine/tests/unit/apps_rg/fact_inventory/test_graph_skills_graph_v2_w3.py resume_graph_engine/tests/unit/apps_rg/fact_inventory/test_graph_topology_invariants_w3.py -v --timeout=180"
+  ]
+}

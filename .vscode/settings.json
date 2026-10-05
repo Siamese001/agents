@@ -4,5 +4,27 @@
     "tests"
   ],
   "python.testing.unittestEnabled": false,
-  "python.testing.pytestEnabled": true
+  "python.testing.pytestEnabled": true,
+  "explorer.excludeGitIgnore": false,
+  "files.exclude": {
+    "**/.git": true,
+    "**/.svn": true,
+    "**/.hg": true,
+    "**/CVS": true,
+    "**/.DS_Store": true,
+    "**/Thumbs.db": true,
+    "**/.worktrees": false
+  },
+  "git.detectWorktrees": true,
+  "git.detectWorktreesLimit": 50,
+  "git.autoRepositoryDetection": true,
+  "git.repositoryScanMaxDepth": 2,
+  "scm.alwaysShowRepositories": true,
+  "scm.countBadge": "all",
+  "scm.repositories.sortOrder": "path",
+  "git.decorations.enabled": true,
+  "explorer.decorations.colors": true,
+  "explorer.decorations.badges": true,
+  "git.statusLimit": 15000,
+  "git.ignoreLimitWarning": true
 }

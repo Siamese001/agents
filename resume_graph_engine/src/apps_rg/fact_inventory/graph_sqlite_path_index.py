@@ -46,79 +46,8 @@ EDGE_METADATA_COLUMNS: tuple[tuple[str, str], ...] = (
     ("confidence_method", "TEXT NOT NULL DEFAULT 'unspecified'"),
 )
 
-DEFAULT_SECTION_BUDGETS: tuple[dict[str, Any], ...] = (
-    {
-        "section_id": "executive_summary",
-        "role_family_key": "*",
-        "max_metric_reuse": 1,
-        "max_fact_family_reuse": 2,
-        "required_node_types": ["skill", "fact", "metric_outcome"],
-        "preferred_edge_types": [
-            "role_family_weights_pillar",
-            "skill_supported_by_fact",
-            "fact_has_metric_outcome",
-        ],
-        "forbidden_metric_ids": [],
-        "preferred_metric_families": [
-            "revenue_growth",
-            "risk_governance",
-            "platform_scale",
-            "adoption_enablement",
-        ],
-    },
-    {
-        "section_id": "competencies",
-        "role_family_key": "*",
-        "max_metric_reuse": 0,
-        "max_fact_family_reuse": 1,
-        "required_node_types": ["skill", "pillar"],
-        "preferred_edge_types": ["capability_domain_contains_skill", "pillar_contains_skill"],
-        "forbidden_metric_ids": [],
-        "preferred_metric_families": ["platform_scale", "model_quality", "delivery_velocity"],
-    },
-    {
-        "section_id": "experience",
-        "role_family_key": "*",
-        "max_metric_reuse": 1,
-        "max_fact_family_reuse": 2,
-        "required_node_types": ["skill", "fact", "metric_outcome"],
-        "preferred_edge_types": [
-            "skill_supported_by_fact",
-            "employment_hosts_fact",
-            "fact_has_metric_outcome",
-        ],
-        "forbidden_metric_ids": [],
-        "preferred_metric_families": ["cost_efficiency", "revenue_growth", "delivery_velocity"],
-    },
-    {
-        "section_id": "leadership",
-        "role_family_key": "*",
-        "max_metric_reuse": 1,
-        "max_fact_family_reuse": 2,
-        "required_node_types": ["skill", "fact"],
-        "preferred_edge_types": [
-            "role_family_weights_pillar",
-            "employment_hosts_fact",
-            "skill_supported_by_fact",
-        ],
-        "forbidden_metric_ids": [],
-        "preferred_metric_families": ["revenue_growth", "adoption_enablement", "partner_gtm"],
-    },
-    {
-        "section_id": "technical_architecture",
-        "role_family_key": "*",
-        "max_metric_reuse": 1,
-        "max_fact_family_reuse": 2,
-        "required_node_types": ["skill", "fact", "metric_outcome"],
-        "preferred_edge_types": [
-            "capability_domain_contains_skill",
-            "skill_supported_by_fact",
-            "fact_has_metric_outcome",
-        ],
-        "forbidden_metric_ids": [],
-        "preferred_metric_families": ["platform_scale", "risk_governance", "model_quality"],
-    },
-)
+from .section_budgets import DEFAULT_SECTION_BUDGETS
+
 
 GRAPHDB_CAPABILITY_DDL: tuple[str, ...] = (
     """
@@ -1045,6 +974,7 @@ def validate_graphdb_capability_integrity(
                           THEN p.edge_path_json ELSE '[]' END,
                      '$[0]'
                  ) IS e.edge_id
+                WHERE COALESCE(e.traversable, 1) = 1
                 GROUP BY e.edge_id
                 HAVING COUNT(p.path_id) <> 1
             )
@@ -1088,6 +1018,7 @@ def validate_graphdb_capability_integrity(
                 FROM graph_edges e
                 JOIN graph_nodes n ON n.node_id = e.target_node_id
                 WHERE n.node_type IN ({sibling_node_types_sql})
+                  AND COALESCE(e.traversable, 1) = 1
             ),
             expected AS (
                 SELECT a.child_node_id AS node_id,
@@ -1103,7 +1034,7 @@ def validate_graphdb_capability_integrity(
             SELECT
                 (SELECT COUNT(*) FROM (
                     SELECT e.node_id, e.sibling_node_id,
-                           e.shared_parent_node_id, e.shared_edge_type
+                            e.shared_parent_node_id, e.shared_edge_type
                     FROM expected e
                     LEFT JOIN graph_sibling_links g
                       ON g.node_id = e.node_id
@@ -1181,10 +1112,12 @@ def validate_graphdb_capability_integrity(
                 SELECT source_node_id, target_node_id
                 FROM graph_edges
                 WHERE source_node_id <> target_node_id
+                  AND COALESCE(traversable, 1) = 1
                 UNION
                 SELECT target_node_id, source_node_id
                 FROM graph_edges
                 WHERE source_node_id <> target_node_id
+                  AND COALESCE(traversable, 1) = 1
             )
             SELECT COUNT(*) FROM (
                 SELECT e.center_node_id, e.neighbor_node_id
@@ -1485,7 +1418,8 @@ def build_reverse_edge_view(conn: sqlite3.Connection) -> None:
             {col("build_run_id", "'unspecified'")},
             {col("confidence_score", "NULL")},
             {col("confidence_tier", "'NOT_APPLICABLE'")},
-            {col("confidence_method", "'unspecified'")}
+            {col("confidence_method", "'unspecified'")},
+            {col("traversable", "1")}
         FROM graph_edges
         """
     )
@@ -1547,6 +1481,8 @@ def build_graph_index_rows(
 
     graph_paths: list[dict[str, Any]] = []
     for edge in edges:
+        if int(edge.get("traversable", 1)) == 0:
+            continue
         src = str(edge.get("source_node_id") or "")
         tgt = str(edge.get("target_node_id") or "")
         if not src or not tgt:
@@ -1591,6 +1527,8 @@ def build_graph_index_rows(
     children_by_parent: dict[tuple[str, str], list[str]] = defaultdict(list)
     edge_id_by_parent_child: dict[tuple[str, str, str], str] = {}
     for edge in edges:
+        if int(edge.get("traversable", 1)) == 0:
+            continue
         src = str(edge.get("source_node_id") or "")
         tgt = str(edge.get("target_node_id") or "")
         edge_id = str(edge.get("edge_id") or "")
@@ -1633,6 +1571,8 @@ def build_graph_index_rows(
 
     center_neighbor_edges: dict[tuple[str, str], list[tuple[str, str]]] = defaultdict(list)
     for edge in edges:
+        if int(edge.get("traversable", 1)) == 0:
+            continue
         src = str(edge.get("source_node_id") or "")
         tgt = str(edge.get("target_node_id") or "")
         edge_id = str(edge.get("edge_id") or "")
@@ -2236,17 +2176,19 @@ def query_section_evidence_budget(
     role_family_key: str = "*",
 ) -> dict[str, Any] | None:
     require_graphdb_capability_schema(conn)
+    clean_sec = section_id.strip()
+    norm_sec = clean_sec if clean_sec.startswith("section_") else f"section_{clean_sec}"
     row = conn.execute(
         """
         SELECT section_id, role_family_key, max_metric_reuse, max_fact_family_reuse,
                required_node_types_json, preferred_edge_types_json,
                forbidden_metric_ids_json, preferred_metric_families_json
         FROM section_evidence_budget
-        WHERE section_id = ? AND role_family_key IN (?, '*')
+        WHERE section_id IN (?, ?) AND role_family_key IN (?, '*')
         ORDER BY CASE WHEN role_family_key = ? THEN 0 ELSE 1 END
         LIMIT 1
         """,
-        (section_id, role_family_key, role_family_key),
+        (norm_sec, clean_sec, role_family_key, role_family_key),
     ).fetchone()
     if not row:
         return None

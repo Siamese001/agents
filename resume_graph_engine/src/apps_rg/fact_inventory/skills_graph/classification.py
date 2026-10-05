@@ -21,7 +21,9 @@ def infer_node_type_from_id(node_id: str) -> str:
         return "policy_rule"
     if nid.startswith("policy_"):
         return "policy"
-    if nid.startswith("section_"):
+    if nid.startswith("reb_"):
+        return "engagement"
+    if nid.startswith("section:") or nid.startswith("section_"):
         return "section"
     if nid.startswith("concept_"):
         return "concept"

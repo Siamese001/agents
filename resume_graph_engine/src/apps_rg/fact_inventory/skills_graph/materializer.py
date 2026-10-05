@@ -28,6 +28,11 @@ from .materializer_ingress import run_materializer_ingress
 from .materializer_indexing import run_materializer_indexing
 from .lineage import validate_projection_source_authorities
 from .edge_evidence import calibrate_edge_confidence, extract_edge_evidence
+from .type_registry import (
+    compute_type_registry_digest,
+    get_edge_type_registry_rows,
+    get_node_type_registry_rows,
+)
 
 def _get_open_isolated_temp_graph_sqlite():
     facade = sys.modules.get("apps_rg.fact_inventory.augmented_skills_graph_sqlite")
@@ -101,9 +106,39 @@ def materialize_augmented_skills_graph_sqlite(
     try:
         for stmt in DDL_STATEMENTS:
             conn.execute(stmt)
+
+        conn.executemany(
+            """
+            INSERT INTO node_type_registry (
+                node_type, layer, description, is_canonical, is_traversable
+            ) VALUES (
+                :node_type, :layer, :description, :is_canonical, :is_traversable
+            )
+            """,
+            get_node_type_registry_rows(),
+        )
+        conn.executemany(
+            """
+            INSERT INTO edge_type_registry (
+                edge_type, src_type, tgt_type, assertion_type, layer,
+                traversable, inverse_label, cardinality
+            ) VALUES (
+                :edge_type, :src_type, :tgt_type, :assertion_type, :layer,
+                :traversable, :inverse_label, :cardinality
+            )
+            """,
+            get_edge_type_registry_rows(),
+        )
+
         for nr in node_rows.values():
             nr.setdefault("career_epoch", "")
             nr.setdefault("phase_ordinal", None)
+            nr.setdefault("title", "")
+            nr.setdefault("operating_context", "")
+            nr.setdefault("employer", "")
+            nr.setdefault("start_date", "")
+            nr.setdefault("end_date", "")
+            nr.setdefault("is_current", 0)
             nr.setdefault("origin_kind", "ledger_node")
             nr.setdefault("origin_ref", nr.get("node_id", ""))
             nr.setdefault("source_refs_json", "[]")
@@ -115,6 +150,7 @@ def materialize_augmented_skills_graph_sqlite(
         all_edge_evidence_rows: list[dict[str, Any]] = []
 
         for er in edge_rows:
+            er.setdefault("traversable", 1)
             ev_rows = extract_edge_evidence(
                 er,
                 node_types_by_id=node_types_by_id,
@@ -129,12 +165,14 @@ def materialize_augmented_skills_graph_sqlite(
                 node_id, node_type, label, description, activation_status, support_level,
                 confidence, confidence_score, confidence_tier, external_eligible,
                 career_epoch, phase_ordinal,
+                title, operating_context, employer, start_date, end_date, is_current,
                 source_authority, origin_kind, origin_ref, source_refs_json,
                 authority_refs_json, build_run_id, created_at, updated_at
             ) VALUES (
                 :node_id, :node_type, :label, :description, :activation_status, :support_level,
                 :confidence, :confidence_score, :confidence_tier, :external_eligible,
                 :career_epoch, :phase_ordinal,
+                :title, :operating_context, :employer, :start_date, :end_date, :is_current,
                 :source_authority, :origin_kind, :origin_ref, :source_refs_json,
                 :authority_refs_json, :build_run_id, :created_at, :updated_at
             )
@@ -151,7 +189,8 @@ def materialize_augmented_skills_graph_sqlite(
                 assertion_type, assertion_basis, assertion_basis_refs_json,
                 canonical_assertion_text, lifecycle_disposition, semantic_contract_version,
                 origin_kind, origin_ref, origin_artifact_sha256, derivation_rule_id,
-                build_run_id, confidence_score, confidence_tier, confidence_method
+                build_run_id, confidence_score, confidence_tier, confidence_method,
+                traversable
             ) VALUES (
                 :edge_id, :source_node_id, :target_node_id, :edge_family, :edge_type, :weight,
                 :confidence, :directional, :evidence_status, :section_fit, :source_authority,
@@ -160,7 +199,8 @@ def materialize_augmented_skills_graph_sqlite(
                 :assertion_type, :assertion_basis, :assertion_basis_refs_json,
                 :canonical_assertion_text, :lifecycle_disposition, :semantic_contract_version,
                 :origin_kind, :origin_ref, :origin_artifact_sha256, :derivation_rule_id,
-                :build_run_id, :confidence_score, :confidence_tier, :confidence_method
+                :build_run_id, :confidence_score, :confidence_tier, :confidence_method,
+                :traversable
             )
             """,
             edge_rows,
@@ -338,6 +378,7 @@ def materialize_augmented_skills_graph_sqlite(
         summary["sqlite_graph_digest"] = compute_sqlite_graph_digest(conn)
         summary["sqlite_schema_digest"] = compute_sqlite_schema_digest(conn)
         summary["input_manifest_digest"] = ctx.get("input_manifest_digest", "")
+        summary["type_registry_digest"] = compute_type_registry_digest()
         summary["edge_evidence_count"] = len(all_edge_evidence_rows)
         conn.execute(
             """
