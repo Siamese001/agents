@@ -1467,6 +1467,186 @@
       ],
       "proof_text": "BCBS 239-aligned risk-data aggregation: centralized lineage, cataloging, and metadata for consistent, auditable risk metrics (user-confirmed).",
       "claim_proof_split_version": "master_skills_arsenal_claim_proof_v2"
+    },
+    {
+      "candidate_fact_id": "fact_slalom_001",
+      "domain_family": "ENGINEERING_PLATFORM",
+      "capability_tags": [
+        "agent_to_agent",
+        "langgraph",
+        "aws_bedrock",
+        "multi_agent_orchestration",
+        "runtime_architecture"
+      ],
+      "claim_text": "Architected enterprise multi-agent runtime and Agent-to-Agent (A2A) orchestration protocols for a Fortune 200 utility client, migrating legacy wrappers to LangGraph and AWS Bedrock/AgentCore with typed inter-agent handoff contracts.",
+      "metric_values": [
+        "Production LangGraph/AWS Bedrock runtime architecture",
+        "Typed context passing across agent boundaries"
+      ],
+      "company": "Slalom",
+      "source_resume_variants": [
+        "DIE Graph Import - Slalom Experience",
+        "Digital Sherpa Field Context 2026-07-01"
+      ],
+      "confidence": "HIGH",
+      "allowed_resume_use": "allowed_after_human_confirm",
+      "risk_notes": "Grounded in DIE knowledge graph active generation adac97ae; client-confidential identities generalized.",
+      "role_families_supported": [
+        "ENGINEERING_PLATFORM",
+        "AI_SOLUTIONS_ARCHITECTURE"
+      ],
+      "proof_text": "Architected enterprise multi-agent runtime and Agent-to-Agent (A2A) orchestration protocols, transitioning execution from legacy Python wrappers to LangGraph and AWS Bedrock/AgentCore with typed contracts for inter-agent communication, context handoffs, and workflow boundary validation.",
+      "claim_proof_split_version": "master_skills_arsenal_claim_proof_v2"
+    },
+    {
+      "candidate_fact_id": "fact_slalom_002",
+      "domain_family": "AI_GOVERNANCE_RISK",
+      "capability_tags": [
+        "ai_pdlc",
+        "architecture_governance",
+        "standards_leadership",
+        "enterprise_delivery"
+      ],
+      "claim_text": "Spearheaded AI Product Delivery Lifecycle (AI-PDLC) framework and agentic architecture standards across utility lines of business, bridging divergent development cultures and establishing shared design patterns.",
+      "metric_values": [
+        "Cross-business-unit architecture governance",
+        "Standardized AI delivery lifecycle"
+      ],
+      "company": "Slalom",
+      "source_resume_variants": [
+        "DIE Graph Import - Slalom Experience",
+        "Digital Sherpa Field Context 2026-07-01"
+      ],
+      "confidence": "HIGH",
+      "allowed_resume_use": "allowed_after_human_confirm",
+      "risk_notes": "Grounded in DIE knowledge graph active generation adac97ae; client-confidential identities generalized.",
+      "role_families_supported": [
+        "AI_GOVERNANCE_RISK",
+        "ENGINEERING_PLATFORM",
+        "CONSULTING_DELIVERY_LEADERSHIP"
+      ],
+      "proof_text": "Spearheaded AI-PDLC governance framework and agentic architecture patterns across utility enterprise lines of business, unifying disparate team practices into standardized, verifiable delivery lifecycles.",
+      "claim_proof_split_version": "master_skills_arsenal_claim_proof_v2"
+    },
+    {
+      "candidate_fact_id": "fact_slalom_003",
+      "domain_family": "ENGINEERING_PLATFORM",
+      "capability_tags": [
+        "agentic_evaluation",
+        "ground_truth_verification",
+        "validation_mesh",
+        "observability_backplane"
+      ],
+      "claim_text": "Designed and implemented an outcome-based evaluation harness for enterprise agentic systems, moving beyond turn-by-turn checks toward holistic ground-truth verification and deterministic gate mesh validation with fine-grained execution lineage.",
+      "metric_values": [
+        "100% deterministic gate mesh conformance for critical workflows",
+        "Holistic outcome-based evaluation"
+      ],
+      "company": "Slalom",
+      "source_resume_variants": [
+        "DIE Graph Import - Slalom Experience",
+        "Sherpa Evaluation Framework SOW 2026-06-01"
+      ],
+      "confidence": "HIGH",
+      "allowed_resume_use": "allowed_after_human_confirm",
+      "risk_notes": "Grounded in DIE knowledge graph active generation adac97ae; client-confidential identities generalized.",
+      "role_families_supported": [
+        "ENGINEERING_PLATFORM",
+        "AI_GOVERNANCE_RISK",
+        "AI_SOLUTIONS_ARCHITECTURE"
+      ],
+      "proof_text": "Designed and implemented outcome-based evaluation framework moving beyond turn-by-turn testing to holistic ground-truth trustworthiness, deterministic gate mesh conformance, and end-to-end execution lineage across autonomous agent pipelines.",
+      "claim_proof_split_version": "master_skills_arsenal_claim_proof_v2"
+    },
+    {
+      "candidate_fact_id": "fact_slalom_004",
+      "domain_family": "PARTNERSHIPS_GTM",
+      "capability_tags": [
+        "hyperscaler_partnerships",
+        "co_sell_alliances",
+        "solution_accelerators",
+        "cloud_alliances"
+      ],
+      "claim_text": "Championed joint partner co-sell initiatives and alliance solutions with Google Cloud, AWS, and Databricks, curating reusable agentic IP accelerators that compressed client adoption timeframes from months to weeks.",
+      "metric_values": [
+        "Multi-hyperscaler partner co-sell alignment (GCP, AWS, Databricks)",
+        "Client adoption cycle compressed from months to weeks"
+      ],
+      "company": "Slalom",
+      "source_resume_variants": [
+        "DIE Graph Import - Slalom Experience",
+        "Partner Alliances Documentation"
+      ],
+      "confidence": "HIGH",
+      "allowed_resume_use": "allowed_after_human_confirm",
+      "risk_notes": "Grounded in DIE knowledge graph active generation adac97ae; partner co-sell initiatives verified.",
+      "role_families_supported": [
+        "PARTNERSHIPS_GTM",
+        "AI_SOLUTIONS_ARCHITECTURE",
+        "CONSULTING_DELIVERY_LEADERSHIP"
+      ],
+      "proof_text": "Championed strategic co-sell alliances with Google Cloud, AWS, and Databricks, designing and curating reusable agentic solution accelerators that drastically compressed enterprise client deployment velocity.",
+      "claim_proof_split_version": "master_skills_arsenal_claim_proof_v2"
+    },
+    {
+      "candidate_fact_id": "fact_slalom_005",
+      "domain_family": "AI_SOLUTIONS_ARCHITECTURE",
+      "capability_tags": [
+        "computer_vision",
+        "multi_modal_ai",
+        "visual_asset_intelligence",
+        "cloud_ingestion"
+      ],
+      "claim_text": "Directed the technical architecture and delivery of Project Lens, a visual asset intelligence platform productizing multi-modal image processing, automated asset extraction, and scalable cloud ingestion for power generation infrastructure.",
+      "metric_values": [
+        "Six-figure visual asset intelligence platform SOW delivered",
+        "Multi-modal automated image processing pipeline"
+      ],
+      "company": "Slalom",
+      "source_resume_variants": [
+        "DIE Graph Import - Slalom Experience",
+        "Project Lens Tech Lead Portfolio 2026-06-29"
+      ],
+      "confidence": "HIGH",
+      "allowed_resume_use": "allowed_after_human_confirm",
+      "risk_notes": "Grounded in DIE knowledge graph active generation adac97ae; client identity and contract details generalized.",
+      "role_families_supported": [
+        "AI_SOLUTIONS_ARCHITECTURE",
+        "ENGINEERING_PLATFORM",
+        "CONSULTING_DELIVERY_LEADERSHIP"
+      ],
+      "proof_text": "Directed technical architecture and commercial SOW delivery for a six-figure multi-modal visual asset intelligence platform productizing computer vision, automated feature extraction, and cloud ingestion across power generation infrastructure.",
+      "claim_proof_split_version": "master_skills_arsenal_claim_proof_v2"
+    },
+    {
+      "candidate_fact_id": "fact_slalom_006",
+      "domain_family": "CONSULTING_DELIVERY_LEADERSHIP",
+      "capability_tags": [
+        "practice_leadership",
+        "engineering_scale",
+        "pod_governance",
+        "consulting_delivery"
+      ],
+      "claim_text": "Directed a 106-software-engineer consulting footprint across advanced analytics (66 engineers) and digital operations/IT (40 engineers) for a premier utility client, structuring pod-level leadership, delivery governance, and technical alignment.",
+      "metric_values": [
+        "106-software-engineer footprint mobilized",
+        "66 analytics + 40 IT/digital operations engineers"
+      ],
+      "company": "Slalom",
+      "source_resume_variants": [
+        "DIE Graph Import - Slalom Experience",
+        "Slalom Engineering Footprint Analysis 2026-07-01"
+      ],
+      "confidence": "HIGH",
+      "allowed_resume_use": "allowed_after_human_confirm",
+      "risk_notes": "Grounded in DIE knowledge graph active generation adac97ae; organizational numbers verified.",
+      "role_families_supported": [
+        "CONSULTING_DELIVERY_LEADERSHIP",
+        "EXECUTIVE_LEADERSHIP",
+        "ENGINEERING_PLATFORM"
+      ],
+      "proof_text": "Directed a 106-software-engineer consulting delivery footprint across 66 advanced analytics engineers and 40 IT/digital operations engineers for a regulated utility client, establishing pod governance and cross-functional technical alignment.",
+      "claim_proof_split_version": "master_skills_arsenal_claim_proof_v2"
     }
   ],
   "capabilities": [
@@ -3978,5 +4158,6 @@
   ],
   "metadata": {
     "claim_proof_split_schema_version": "master_skills_arsenal_claim_proof_v2"
-  }
+  },
+  "updated_at": "2026-10-05T13:01:03.984085+00:00"
 }

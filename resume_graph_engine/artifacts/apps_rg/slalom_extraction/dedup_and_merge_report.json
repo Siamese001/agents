@@ -1,0 +1,55 @@
+{
+  "conflicts_identified": 0,
+  "dedup_timestamp": "2026-10-05T08:47:00-04:00",
+  "human_decision_required": false,
+  "merge_classification": [
+    {
+      "candidate_id": "slalom_candidate_001",
+      "rationale": "Matches existing skeleton fact connected to metric_slalom_production_agentic_client_engagements and metric_slalom_a2a_orchestration_contract_surface; enriches label and description with evidence.",
+      "resolution": "MATCH",
+      "target_node_id": "fact_slalom_001"
+    },
+    {
+      "candidate_id": "slalom_candidate_002",
+      "rationale": "Matches existing skeleton fact connected to metric_slalom_validation_gate_mesh_conformance_pct; enriches with outcome-based evaluation harness evidence.",
+      "resolution": "MATCH",
+      "target_node_id": "fact_slalom_003"
+    },
+    {
+      "candidate_id": "slalom_candidate_003",
+      "rationale": "Novel multi-modal visual asset intelligence capability (Project Lens); creates fact_slalom_005 and metric_slalom_visual_asset_intelligence_sow_delivery.",
+      "resolution": "NEW",
+      "target_node_id": "fact_slalom_005"
+    },
+    {
+      "candidate_id": "slalom_candidate_004",
+      "rationale": "Observability backplane (Project Nexus) merged into fact_slalom_003 as shared telemetry and audit-grade lineage assurance.",
+      "resolution": "MATCH",
+      "target_node_id": "fact_slalom_003"
+    },
+    {
+      "candidate_id": "slalom_candidate_005",
+      "rationale": "Novel large-scale team metric (106-software-engineer footprint leadership); creates fact_slalom_006 and metric_slalom_consulting_engineering_footprint_scale.",
+      "resolution": "NEW",
+      "target_node_id": "fact_slalom_006"
+    },
+    {
+      "candidate_id": "slalom_candidate_006",
+      "rationale": "AI-PDLC standards and governance merged into existing skeleton fact fact_slalom_002.",
+      "resolution": "MATCH",
+      "target_node_id": "fact_slalom_002"
+    },
+    {
+      "candidate_id": "slalom_candidate_007",
+      "rationale": "Cloud hyperscaler co-sell merged into existing skeleton fact fact_slalom_004.",
+      "resolution": "MATCH",
+      "target_node_id": "fact_slalom_004"
+    },
+    {
+      "candidate_id": "slalom_candidate_008",
+      "rationale": "Reusable solution accelerators merged into existing skeleton fact fact_slalom_004.",
+      "resolution": "MATCH",
+      "target_node_id": "fact_slalom_004"
+    }
+  ]
+}

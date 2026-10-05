@@ -1,0 +1,720 @@
+{
+  "generation_id": "generation-graph-consolidation-d488dbeff02817be07106935301f",
+  "schema_version": "1.0",
+  "sources": [
+    {
+      "assertion_breakdown": {
+        "extracted_claim": 25
+      },
+      "authority_rank": 5,
+      "notes": "Governed NEE dual-pipeline source package.",
+      "source_date": "2026-10-01",
+      "source_id": "source-03e42871734199c002a647eb",
+      "source_name": "20261001 Lens Sprint Review",
+      "source_posture": "derivative_internal",
+      "source_type": "dual_pipeline_intake",
+      "total_assertions": 25
+    },
+    {
+      "assertion_breakdown": {
+        "extracted_claim": 12
+      },
+      "authority_rank": 5,
+      "notes": "Governed NEE dual-pipeline source package.",
+      "source_date": "2026-09-11",
+      "source_id": "source-0a5be3e60d42f80a402d57b7",
+      "source_name": "Project_Lens_Phase_Ii_Catchup_09 11 2026",
+      "source_posture": "derivative_internal",
+      "source_type": "dual_pipeline_intake",
+      "total_assertions": 12
+    },
+    {
+      "assertion_breakdown": {
+        "extracted_claim": 11,
+        "hypothesis": 2
+      },
+      "authority_rank": 5,
+      "notes": "Governed NEE dual-pipeline source package.",
+      "source_date": "2026-09-17",
+      "source_id": "source-0c317958e6111e7abf5ac06d",
+      "source_name": "20260917 Lens Catchup Mandy Jen Amit",
+      "source_posture": "derivative_internal",
+      "source_type": "dual_pipeline_intake",
+      "total_assertions": 13
+    },
+    {
+      "assertion_breakdown": {
+        "extracted_claim": 35,
+        "hypothesis": 4
+      },
+      "authority_rank": 5,
+      "notes": "Governed NEE dual-pipeline source package.",
+      "source_date": "2026-09-25",
+      "source_id": "source-13b4df9b967732f8b9ef0822",
+      "source_name": "20260925 Google Slalom Nextera Lens",
+      "source_posture": "derivative_internal",
+      "source_type": "dual_pipeline_intake",
+      "total_assertions": 39
+    },
+    {
+      "assertion_breakdown": {
+        "extracted_claim": 9
+      },
+      "authority_rank": 5,
+      "notes": "Governed NEE dual-pipeline source package.",
+      "source_date": "2026-09-14",
+      "source_id": "source-1a12bf59bdf4e859fb2310a4",
+      "source_name": "Project_Nexus_Catchup_Sow1_Observability",
+      "source_posture": "derivative_internal",
+      "source_type": "dual_pipeline_intake",
+      "total_assertions": 9
+    },
+    {
+      "assertion_breakdown": {
+        "decision": 1,
+        "extracted_claim": 20
+      },
+      "authority_rank": 5,
+      "notes": "Governed NEE dual-pipeline source package.",
+      "source_date": "2026-09-25",
+      "source_id": "source-1aa41c056a6ef7562189ae81",
+      "source_name": "09 25 2026 Project_Lens Lens_Sow_Plan_Karyn_Jake_Alex_Jen_Amit",
+      "source_posture": "derivative_internal",
+      "source_type": "dual_pipeline_intake",
+      "total_assertions": 21
+    },
+    {
+      "assertion_breakdown": {
+        "extracted_claim": 2
+      },
+      "authority_rank": 5,
+      "notes": "Governed NEE dual-pipeline source package.",
+      "source_date": "2026-09-10",
+      "source_id": "source-1acfc7fa9be51d46c7aff034",
+      "source_name": "20260910 Project Nexus",
+      "source_posture": "derivative_internal",
+      "source_type": "dual_pipeline_intake",
+      "total_assertions": 2
+    },
+    {
+      "assertion_breakdown": {
+        "extracted_claim": 1
+      },
+      "authority_rank": 5,
+      "notes": "Governed NEE dual-pipeline source package.",
+      "source_date": "2026-08-18",
+      "source_id": "source-2ac1c0f995e28e84e6625b66",
+      "source_name": "FPL Development Nexus and NEE/NEA Fossil Rewire Strategy Synthesis",
+      "source_posture": "derivative_internal",
+      "source_type": "dual_pipeline_intake",
+      "total_assertions": 1
+    },
+    {
+      "assertion_breakdown": {
+        "decision": 1,
+        "extracted_claim": 22
+      },
+      "authority_rank": 5,
+      "notes": "Governed NEE dual-pipeline source package.",
+      "source_date": "2026-09-11",
+      "source_id": "source-37b6395217590b29c26764a5",
+      "source_name": "20260911 Lens Phase Ii Catchup",
+      "source_posture": "derivative_internal",
+      "source_type": "dual_pipeline_intake",
+      "total_assertions": 23
+    },
+    {
+      "assertion_breakdown": {
+        "extracted_claim": 47
+      },
+      "authority_rank": 5,
+      "notes": "Governed NEE dual-pipeline source package.",
+      "source_date": "2026-09-29",
+      "source_id": "source-3c47a3dfcfeefaebc8757311",
+      "source_name": "Document 20260929 Lens Pgd Stakeholders Org Charts",
+      "source_posture": "derivative_internal",
+      "source_type": "dual_pipeline_intake",
+      "total_assertions": 47
+    },
+    {
+      "assertion_breakdown": {
+        "extracted_claim": 2
+      },
+      "authority_rank": 5,
+      "notes": "Governed NEE dual-pipeline source package.",
+      "source_date": "2026-09-14",
+      "source_id": "source-4505907394a4b8a617f5d21b",
+      "source_name": "Project_Lens_Catchup_Sow1_Observability",
+      "source_posture": "derivative_internal",
+      "source_type": "dual_pipeline_intake",
+      "total_assertions": 2
+    },
+    {
+      "assertion_breakdown": {
+        "extracted_claim": 38,
+        "hypothesis": 3
+      },
+      "authority_rank": 5,
+      "notes": "Governed NEE dual-pipeline source package.",
+      "source_date": "2026-09-28",
+      "source_id": "source-52925f489d3c0fa4def327a5",
+      "source_name": "20260928 Followup Business Case Jill Slalom",
+      "source_posture": "derivative_internal",
+      "source_type": "dual_pipeline_intake",
+      "total_assertions": 41
+    },
+    {
+      "assertion_breakdown": {
+        "decision": 3,
+        "extracted_claim": 7
+      },
+      "authority_rank": 5,
+      "notes": "Governed NEE dual-pipeline source package.",
+      "source_date": "2026-09-23",
+      "source_id": "source-5ba2a203a26a578389d4c2e7",
+      "source_name": "Document 20260923 Slalom Agile Role Definitions",
+      "source_posture": "derivative_internal",
+      "source_type": "dual_pipeline_intake",
+      "total_assertions": 10
+    },
+    {
+      "assertion_breakdown": {
+        "extracted_claim": 4
+      },
+      "authority_rank": 5,
+      "notes": "Governed NEE dual-pipeline source package.",
+      "source_date": "2026-07-15",
+      "source_id": "source-61a172eae43a19ec4287a623",
+      "source_name": "NextEra Energy Enterprise Architecture AI Policy Framework",
+      "source_posture": "derivative_internal",
+      "source_type": "dual_pipeline_intake",
+      "total_assertions": 4
+    },
+    {
+      "assertion_breakdown": {
+        "extracted_claim": 8
+      },
+      "authority_rank": 5,
+      "notes": "Governed NEE dual-pipeline source package.",
+      "source_date": "2026-09-29",
+      "source_id": "source-7b9e83133ff41f2cc54a8d24",
+      "source_name": "20260929 Nexus Jarvis Reid Amit",
+      "source_posture": "derivative_internal",
+      "source_type": "dual_pipeline_intake",
+      "total_assertions": 8
+    },
+    {
+      "assertion_breakdown": {
+        "decision": 1,
+        "extracted_claim": 8,
+        "hypothesis": 1
+      },
+      "authority_rank": 5,
+      "notes": "Governed NEE dual-pipeline source package.",
+      "source_date": "2026-05-26",
+      "source_id": "source-7e1bccf65e636b8622943955",
+      "source_name": "NextEra Analytics LENS Visual Asset Intelligence System SOW 1: Image Processing & Extraction",
+      "source_posture": "derivative_internal",
+      "source_type": "dual_pipeline_intake",
+      "total_assertions": 10
+    },
+    {
+      "assertion_breakdown": {
+        "extracted_claim": 5
+      },
+      "authority_rank": 5,
+      "notes": "Governed NEE dual-pipeline source package.",
+      "source_date": "2026-09-09",
+      "source_id": "source-8ff73a78b25dbef51ed13df5",
+      "source_name": "20260909 Sherpa Demo Josh",
+      "source_posture": "derivative_internal",
+      "source_type": "dual_pipeline_intake",
+      "total_assertions": 5
+    },
+    {
+      "assertion_breakdown": {
+        "extracted_claim": 14
+      },
+      "authority_rank": 5,
+      "notes": "Governed NEE dual-pipeline source package.",
+      "source_date": "2026-09-11",
+      "source_id": "source-93d9f915e93ac66500756b05",
+      "source_name": "Project_Nexus_Catchup_Internal_Session",
+      "source_posture": "derivative_internal",
+      "source_type": "dual_pipeline_intake",
+      "total_assertions": 14
+    },
+    {
+      "assertion_breakdown": {
+        "extracted_claim": 24
+      },
+      "authority_rank": 5,
+      "notes": "Governed NEE dual-pipeline source package.",
+      "source_date": "2026-09-11",
+      "source_id": "source-9b16a4e6157d057bb7abe875",
+      "source_name": "NEET Insights Hub Platform Architecture Demo",
+      "source_posture": "derivative_internal",
+      "source_type": "dual_pipeline_intake",
+      "total_assertions": 24
+    },
+    {
+      "assertion_breakdown": {
+        "extracted_claim": 8
+      },
+      "authority_rank": 5,
+      "notes": "Governed NEE dual-pipeline source package.",
+      "source_date": "2026-09-23",
+      "source_id": "source-c06eead01cf976b95c4dd565",
+      "source_name": "Lens Outputs Slalom 09232026",
+      "source_posture": "derivative_internal",
+      "source_type": "dual_pipeline_intake",
+      "total_assertions": 8
+    },
+    {
+      "assertion_breakdown": {
+        "extracted_claim": 9
+      },
+      "authority_rank": 5,
+      "notes": "Governed NEE dual-pipeline source package.",
+      "source_date": "2026-09-15",
+      "source_id": "source-ccc20962476db6771878bd80",
+      "source_name": "Sow_Boundaries_Mandy_Slalom_09 15 2026_0430Pm_0505Pm_Et",
+      "source_posture": "derivative_internal",
+      "source_type": "dual_pipeline_intake",
+      "total_assertions": 9
+    },
+    {
+      "assertion_breakdown": {
+        "extracted_claim": 6
+      },
+      "authority_rank": 5,
+      "notes": "Governed NEE dual-pipeline source package.",
+      "source_date": "2026-09-04",
+      "source_id": "source-cffb30b6e16ac23d5f1b6e4d",
+      "source_name": "20260904 Digital Sherpa Path Forward",
+      "source_posture": "derivative_internal",
+      "source_type": "dual_pipeline_intake",
+      "total_assertions": 6
+    },
+    {
+      "assertion_breakdown": {
+        "extracted_claim": 15,
+        "hypothesis": 2
+      },
+      "authority_rank": 5,
+      "notes": "Governed NEE dual-pipeline source package.",
+      "source_date": null,
+      "source_id": "source-dce33d47b09ee075af5dfbe8",
+      "source_name": "20260918 Jake Amit Miles Slalom",
+      "source_posture": "derivative_internal",
+      "source_type": "dual_pipeline_intake",
+      "total_assertions": 17
+    },
+    {
+      "assertion_breakdown": {
+        "confirmed_canonical_fact": 10,
+        "extracted_claim": 8,
+        "hypothesis": 2
+      },
+      "authority_rank": 5,
+      "notes": "Governed NEE dual-pipeline source package.",
+      "source_date": "2026-09-22",
+      "source_id": "source-f152a4494f3c1e39db797e5a",
+      "source_name": "20260922 Lens Escalation Amy Amit",
+      "source_posture": "derivative_internal",
+      "source_type": "dual_pipeline_intake",
+      "total_assertions": 20
+    },
+    {
+      "assertion_breakdown": {
+        "extracted_claim": 11
+      },
+      "authority_rank": 5,
+      "notes": "Governed NEE dual-pipeline source package.",
+      "source_date": "2026-09-24",
+      "source_id": "source-f25517043c5a3648981ae98b",
+      "source_name": "20260924 Sprint Mandy Lens",
+      "source_posture": "derivative_internal",
+      "source_type": "dual_pipeline_intake",
+      "total_assertions": 11
+    },
+    {
+      "assertion_breakdown": {
+        "confirmed_canonical_fact": 6,
+        "legacy_claim_record": 10
+      },
+      "authority_rank": 4,
+      "notes": "Captures velocity concern, AI SDLC execution gap, evals as downstream symptom, outcome/runtime eval direction, evidence-access need, Technology Advisor enterprise-backplane concept, Sherpa strategic importance, and Agentic Mesh follow-up.",
+      "source_date": "2026-07-10",
+      "source_id": "source_brien_sherpa_feedback_notes_2026_07_10",
+      "source_name": "Brien feedback notes on Sherpa / AI Led execution and agentic evals",
+      "source_posture": "User-confirmed notes attributed to Brien. Strong for internal feedback, questions to resolve, and follow-up intent; not formal delivery status, personnel-performance authority, current architecture authority, or client-facing fact.",
+      "source_type": "user_meeting_notes",
+      "total_assertions": 16
+    },
+    {
+      "assertion_breakdown": {
+        "confirmed_canonical_fact": 30,
+        "legacy_claim_record": 23
+      },
+      "authority_rank": 6,
+      "notes": "Originally ingested as a user-confirmed meeting synthesis. v38 corrects provenance after the user clarified that the summary was Copilot-generated. Existing strategic claims remain queryable without duplication; unsupported person-level attribution and formal-forum implications are superseded or downgraded.",
+      "source_date": "2026-07-07",
+      "source_id": "source_chakra",
+      "source_name": "Copilot-derived Chakra 7.7.2026 strategic engineering partnership meeting synthesis",
+      "source_posture": "Copilot-derived synthesis of the 2026-07-07 meeting; directional internal interpretation, not direct meeting evidence. Raw ASR transcript is separately represented; exact speaker attribution, formal ownership, sponsorship, decision rights, legal/commercial meaning, and current official status require independent authority or HITL.",
+      "source_type": "copilot_summary",
+      "total_assertions": 53
+    },
+    {
+      "assertion_breakdown": {
+        "confirmed_canonical_fact": 5,
+        "legacy_claim_record": 7
+      },
+      "authority_rank": 5,
+      "notes": "Raw DOCX excluded from active ZIP. sha256=b20ab47e4b6e77c94ca31b604793e2d92082f789efab1c8696736caac043b23d; 20,125 visible words including four-word Outlook signature; transcript text 20,121 words; no embedded media/comments/footnotes detected. Approximate 105/66/~40 wording is explicitly excluded as duplicate staffing signal.",
+      "source_date": "2026-07-07",
+      "source_id": "source_chakra_raw_transcript_2026_07_07",
+      "source_name": "Raw ASR transcript \u2014 Chakra strategic engineering partnership meeting, 2026-07-07",
+      "source_posture": "Direct raw ASR transcript of the dated meeting; source-attributed and directional. No reliable speaker diarization. Strong evidence that topics/statements occurred, but insufficient alone for exact person attribution, title, formal ownership, sponsorship, decision rights, legal/commercial interpretation, or current official status.",
+      "source_type": "transcript",
+      "total_assertions": 12
+    },
+    {
+      "assertion_breakdown": {
+        "confirmed_canonical_fact": 67,
+        "legacy_claim_record": 13
+      },
+      "authority_rank": 3,
+      "notes": "User directed claim-level treatment: extract names, roles, EDO stakeholders, Slalom stakeholders, workstreams, scope labels, and milestone/methodology definitions; ignore appendix logistics noise. sha256-16=3351979867016c00",
+      "source_date": "2026-02-25",
+      "source_id": "source_edo_onboarding_deck_2026_02_25",
+      "source_name": "Onboarding NEE EDO",
+      "source_posture": "dated WIP onboarding and EDO operating snapshot; claim-level extraction required. High evidence value for named stakeholder, workstream, pod, scope, and methodology claims shown in the deck; low/no value for generic onboarding logistics, travel, facilities, IT setup, and stale company facts unless separately validated",
+      "source_type": "onboarding_deck",
+      "total_assertions": 80
+    },
+    {
+      "assertion_breakdown": {
+        "confirmed_canonical_fact": 5,
+        "direct_statement": 1,
+        "legacy_claim_record": 3
+      },
+      "authority_rank": 3,
+      "notes": "Later SOW and status sources control current delivery posture. Connections are added only where lineage supports them.",
+      "source_date": "2026-03-16",
+      "source_id": "source_nea_edo_all_hands_2026_03_16",
+      "source_name": "NEE NEA & EDO Slalom All Hands Q2 2026",
+      "source_posture": "Dated portfolio/team snapshot; valid for broad project descriptions and dated role context, not current status, staffing, or formal decision rights.",
+      "source_type": "pptx_deck",
+      "total_assertions": 9
+    },
+    {
+      "assertion_breakdown": {
+        "confirmed_canonical_fact": 23,
+        "legacy_claim_record": 18
+      },
+      "authority_rank": 6,
+      "notes": "Supports internal framing of Sherpa as NEE IT / EA product, Catalyst bootstrap/current dependency, A2A/LangGraph transition, advisor expansion, runtime caveats, PO/tech-lead risks, demo cadence, and toolchain-stabilization lesson. Does not override SOW/status/commercials or validated architecture diagrams/repos.",
+      "source_date": "2026-07-01",
+      "source_id": "source_nee22_digital_sherpa_field_context_2026_07_01",
+      "source_name": "NEE_22 Digital Sherpa Field Context 2026-07-01",
+      "source_posture": "transcript-directional field context from Slalom team discussions; curated Markdown source; does not override SOWs, commercials, staffing, formal RAG/status, validated architecture diagrams, or repositories",
+      "source_type": "curated_markdown",
+      "total_assertions": 41
+    },
+    {
+      "assertion_breakdown": {
+        "direct_statement": 3
+      },
+      "authority_rank": 2,
+      "notes": "Official dated announcement covering data-center campuses, enterprise digital transformation, AI use cases, and a mid-2026 product expectation.",
+      "source_date": "2025-12-08",
+      "source_id": "source_nextera_google_cloud_press_release_2025_12_08",
+      "source_name": "NextEra Energy and Google Cloud announce strategic energy and technology partnership",
+      "source_posture": "Primary official public authority for what NextEra Energy and Google Cloud announced on 2025-12-08. It does not prove current July 2026 campus completion, product availability, deployment, adoption, or measured outcomes.",
+      "source_type": "official_company_press_release",
+      "total_assertions": 3
+    },
+    {
+      "assertion_breakdown": {
+        "direct_statement": 10,
+        "human_interpretation": 2
+      },
+      "authority_rank": 4,
+      "notes": "Participants corrected by Amit Ayer to Andy Kilinskis and Lillian Le; notes also include Amit Ayer. The spelling \u201cBrian\u201d remains unresolved and is not mapped to Brien Muschett by this source.",
+      "source_date": "2026-07-13",
+      "source_id": "source_sherpa_andy_lillian_meeting_2026_07_13",
+      "source_name": "Sherpa evaluation and AI SDLC discussion with Andy Kilinskis and Lillian Le",
+      "source_posture": "Dated internal meeting notes. Strong for source-attributed descriptions and participant perspectives; not authoritative telemetry, formal productivity measurement, approved runtime architecture, NEE policy, or client decision rights.",
+      "source_type": "user_meeting_notes",
+      "total_assertions": 12
+    },
+    {
+      "assertion_breakdown": {
+        "confirmed_canonical_fact": 1,
+        "legacy_claim_record": 2
+      },
+      "authority_rank": 5,
+      "notes": null,
+      "source_date": "2026-07-07",
+      "source_id": "source_sherpa_eval_plan",
+      "source_name": "Sherpa eval plan / Andy K walkthrough follow-up",
+      "source_posture": "transcript-directional",
+      "source_type": "meeting",
+      "total_assertions": 3
+    },
+    {
+      "assertion_breakdown": {
+        "confirmed_canonical_fact": 3,
+        "legacy_claim_record": 4
+      },
+      "authority_rank": 4,
+      "notes": "Canonical-name and affiliation correction source. Andy K, Lillian, Amit, and Marcus remain hidden retrieval aliases only.",
+      "source_date": "2026-07-10",
+      "source_id": "source_sherpa_stakeholder_identity_hitl_2026_07_10",
+      "source_name": "Sherpa stakeholder identity corrections: Andy Kilinskis, Lillian Le, Amit Ayer, and Marcus Balk",
+      "source_posture": "User-provided screenshot confirms Andy Kilinskis, Lillian Le, and Amit Ayer names with Slalom email addresses; user explicitly confirms Marcus Balk as the canonical full name. The source does not establish current titles, decision rights, or Marcus Balk affiliation beyond existing graph evidence.",
+      "source_type": "user_hitl_screenshot",
+      "total_assertions": 7
+    },
+    {
+      "assertion_breakdown": {
+        "direct_statement": 14
+      },
+      "authority_rank": 3,
+      "notes": "{\"classification\": \"confidential_account\", \"content_hash\": \"a19f6ee696b4022d2f34edbe59584e9445e5b1b166cefb403e4eb10cd6f0d71e\", \"metadata\": {\"app_version\": \"16.0000\", \"application\": \"Microsoft Office PowerPoint\", \"created\": \"2023-05-16T19:51:24Z\", \"creator\": \"Stephan Marceau\", \"last_modified_by\": \"Amit Ayer\", \"modified\": \"2026-07-12T13:42:05Z\", \"revision\": \"3\", \"sha256\": \"d87b6d8b8d644a2c919bd76ccd0e38e290f74501a39978b7a2347eee32905240\", \"size_bytes\": 212067, \"slide_count\": 8, \"subject\": \"Slalom\", \"title\": \"Partnership Proposal\"}, \"raw_artifact_sha256\": \"d87b6d8b8d644a2c919bd76ccd0e38e290f74501a39978b7a2347eee32905240\", \"source_date_basis\": \"document modified timestamp; not claim effective-date authority\", \"source_fingerprint\": \"a83235349d54700883c318d8485b3bdd060213dbe2d46d1e42227478a77e89ba\"}",
+      "source_date": "2026-07-12",
+      "source_id": "source_slalom_nea_partnership_briefing_2026_07_12",
+      "source_name": "Slalom \u2013 NextEra Energy Analytics 2026 Partnership Briefing",
+      "source_posture": "Dated internal Slalom partnership and talent briefing. Strong authority for what the briefing states and for Slalom internal planning posture as of the source snapshot; directional only for NEA expectations. It does not establish current official NEE/NEA roles, decision rights, staffing, locations, contractual commitments, architecture, delivery status, or public facts without the appropriate authoritative source or accountable-owner validation.",
+      "source_type": "pptx_deck",
+      "total_assertions": 14
+    },
+    {
+      "assertion_breakdown": {},
+      "authority_rank": 4,
+      "notes": "Used as gap-analysis carry-forward source into v25.",
+      "source_date": "2026-07-08",
+      "source_id": "source_v16_stakeholder_and_chakra_carryforward_2026_07_08",
+      "source_name": "v16 stakeholder carry-forward and Chakra strategic engineering partner update",
+      "source_posture": "v16 carries v15 stakeholder model and Chakra strategic partner content; directional-current except user-confirmed items",
+      "source_type": "curated_card",
+      "total_assertions": 0
+    },
+    {
+      "assertion_breakdown": {
+        "confirmed_canonical_fact": 1,
+        "legacy_claim_record": 1
+      },
+      "authority_rank": 4,
+      "notes": "v17 architecture and delivery pattern source for Databricks, CI/CD, GCP/IAP/RBAC, AI evaluation, and production-readiness patterns.",
+      "source_date": "2026-07-02",
+      "source_id": "source_v17_architecture_delivery_patterns_2026_07_02",
+      "source_name": "NEE_06 Architecture Delivery Patterns",
+      "source_posture": "reusable architecture/delivery patterns; not SOW/status authority",
+      "source_type": "curated_card",
+      "total_assertions": 2
+    },
+    {
+      "assertion_breakdown": {
+        "legacy_claim_record": 1
+      },
+      "authority_rank": 4,
+      "notes": "Added for source-card completeness; v20/v22 already reflected Chakra strategy in active cards.",
+      "source_date": "2026-07-07",
+      "source_id": "source_v17_chakra_strategic_partnership_card_2026_07_07",
+      "source_name": "v17 NEE_25 Chakra Strategic Engineering Partnership Context",
+      "source_posture": "v17 Chakra strategic engineering partnership card; source_chakra remains the current canonical meeting source",
+      "source_type": "curated_card",
+      "total_assertions": 1
+    },
+    {
+      "assertion_breakdown": {
+        "confirmed_canonical_fact": 4,
+        "legacy_claim_record": 1
+      },
+      "authority_rank": 1,
+      "notes": "Contains Atlas Pilot, Project Spring Final, McKinsey/Slalom DTO MVP, and Carlos Sanchez / NEER IT overlay.",
+      "source_date": "2026-07-08",
+      "source_id": "source_v17_edo_data_product_reliability_sows_2026_07_08",
+      "source_name": "v17 NEE_15 EDO Data Product and Reliability SOWs",
+      "source_posture": "SOW-backed curated Atlas, Project Spring, and data product reliability synthesis",
+      "source_type": "curated_card",
+      "total_assertions": 5
+    },
+    {
+      "assertion_breakdown": {},
+      "authority_rank": 2,
+      "notes": "Migration control source for v32 built directly from approved v31 package.",
+      "source_date": "2026-07-10",
+      "source_id": "source_v32_sherpa_feedback_eval_ingest_2026_07_10",
+      "source_name": "v32 Sherpa feedback, agentic eval, and stakeholder-hygiene incorporation",
+      "source_posture": "Package-generated control synthesis. Records graph/card/export deltas and does not override the user notes, screenshot evidence, SOWs, status sources, or validated architecture.",
+      "source_type": "package_generated",
+      "total_assertions": 0
+    },
+    {
+      "assertion_breakdown": {
+        "confirmed_canonical_fact": 4,
+        "legacy_claim_record": 4
+      },
+      "authority_rank": 4,
+      "notes": "Confirms 106 total Slalom software engineers: 66 aligned to NEA and 40 aligned across EDO and NEE IT combined. Exact split inside the combined 40 remains an open HITL follow-up.",
+      "source_date": "2026-07-10",
+      "source_id": "source_v33_slalom_engineering_footprint_user_confirmed_2026_07_10",
+      "source_name": "User-confirmed Slalom engineering footprint: 106 total, 66 NEA, 40 EDO/NEE IT combined",
+      "source_posture": "user-confirmed internal staffing fact; valid for internal planning. Does not replace current staffed-roster or formal organizational source for the exact EDO-versus-NEE IT split.",
+      "source_type": "user_instruction",
+      "total_assertions": 8
+    },
+    {
+      "assertion_breakdown": {
+        "confirmed_canonical_fact": 14,
+        "legacy_claim_record": 10
+      },
+      "authority_rank": 4,
+      "notes": "Confirms Q3 prerequisites: named Slalom Engineering Leads by workstream and a 106-SWE breakout; confirms Chakra owes alignment feedback within two weeks of the July 7 meeting; confirms Q4 is for solutioning alignment to NEA's new operating model; a representative pilot is conditional; utility AI topics remain unranked with no confirmed top-three commitment.",
+      "source_date": "2026-07-10",
+      "source_id": "source_v35_user_chakra_sequence_and_utility_reframe_2026_07_10",
+      "source_name": "User-confirmed Chakra Q3 prerequisites, Q4 solutioning sequence, and utility backlog posture",
+      "source_posture": "user-confirmed strategic sequencing and client-dependency correction; valid for internal operating-model planning. Does not change SOW scope, commercial commitments, formal RAG/status, staffing totals, or formal NEA organizational policy.",
+      "source_type": "user_instruction",
+      "total_assertions": 24
+    },
+    {
+      "assertion_breakdown": {
+        "legacy_claim_record": 2
+      },
+      "authority_rank": 2,
+      "notes": "Policy 34.0, ontology, relationship vocabulary, and 19-card spine unchanged.",
+      "source_date": "2026-07-10",
+      "source_id": "source_v36_refactor_control_2026_07_10",
+      "source_name": "v36 graph/card parity, NEA/EDO accountability, and Sherpa technical-delivery refactor",
+      "source_posture": "Package-generated control synthesis. Records v36 deltas, routing, validation, and QA; does not override the underlying status packets, SOW, or scoped user confirmations.",
+      "source_type": "package_generated",
+      "total_assertions": 2
+    },
+    {
+      "assertion_breakdown": {
+        "confirmed_canonical_fact": 30,
+        "legacy_claim_record": 13
+      },
+      "authority_rank": 1,
+      "notes": "Raw DOCX excluded from active package. sha256=1d27e2889dd03169612b5ba3bedcaf8228251209b59c57b94d13f169fe8ecd64",
+      "source_date": "2026-06-01",
+      "source_id": "source_v36_sherpa_sow_2026_06_01_2026_11_30",
+      "source_name": "NEE IT Engineering Build \u2013 Digital Sherpa June-November 2026 SOW",
+      "source_posture": "Direct current SOW authority for Digital Sherpa technical scope, delivery responsibilities, committed/stretch designation, term, and acceptance mechanics. Does not prove epic completion or current runtime implementation.",
+      "source_type": "sow",
+      "total_assertions": 43
+    },
+    {
+      "assertion_breakdown": {
+        "confirmed_canonical_fact": 59,
+        "legacy_claim_record": 1
+      },
+      "authority_rank": 4,
+      "notes": "Includes exact work-email aliases supplied by the user; aliases are hidden retrieval metadata.",
+      "source_date": "2026-07-10",
+      "source_id": "source_v36_user_edo_authority_identity_2026_07_10",
+      "source_name": "User confirmation: Lan-hosted EDO packet authority and 30-person Slalom EDO cohort",
+      "source_posture": "User confirmation controls the exact propositions that the June 15 packet is an authorized EDO operational status/owner source and that the 30 listed people are Slalom resources associated with EDO. It does not establish titles, exact workstream allocations, allocations, or client decision rights.",
+      "source_type": "user_instruction",
+      "total_assertions": 60
+    },
+    {
+      "assertion_breakdown": {
+        "confirmed_canonical_fact": 6,
+        "legacy_claim_record": 6
+      },
+      "authority_rank": 4,
+      "notes": "Does not establish exact titles beyond the confirmed propositions, client decision rights, component ownership, implementation completion, or enterprise adoption.",
+      "source_date": "2026-07-10",
+      "source_id": "source_v36_user_sherpa_current_state_2026_07_10",
+      "source_name": "User confirmation: Digital Sherpa current technical leadership, in-flight stage, and NEE IT eval boundary",
+      "source_posture": "User confirmation controls the exact propositions that Lillian Le is current Slalom Engineering/Technical Lead, Andy Kilinskis is currently on the Sherpa team, Brien is Brien Muschett in NEE IT, the June-November technical areas have just started and are in flight, and Brien\u2019s runtime/system evaluation direction has not yet been shared with NEA or other organizations.",
+      "source_type": "user_instruction",
+      "total_assertions": 12
+    },
+    {
+      "assertion_breakdown": {
+        "direct_statement": 1
+      },
+      "authority_rank": 2,
+      "notes": "{\"access_limitations\":\"Public web page\",\"authority_category\":\"government_primary\",\"external_source_id\":\"S49-06\",\"geography_scope\":\"United States federal employment context\",\"independence_group\":\"OPM-selection-guidance\",\"last_updated_date\":\"\",\"organization_or_author\":\"U.S. Office of Personnel Management\",\"organizational_scope\":\"Personnel assessment and selection\",\"publication_date\":\"\",\"retrieval_date\":\"2026-07-13\",\"source_fingerprint_basis\":\"normalized metadata and URL; raw web content is not embedded\",\"use_limitations\":\"Informs general assessment design; does not establish NEE or Slalom hiring process, legal applicability, named decision makers, or current screening authority\"}",
+      "source_date": "2026-07-13",
+      "source_id": "source_v49_ext_opm_structured_interviews_2026_07_13",
+      "source_name": "Structured Interviews",
+      "source_posture": "Primary government guidance for structured interview design and administration Boundary: Informs general assessment design; does not establish NEE or Slalom hiring process, legal applicability, named decision makers, or current screening authority",
+      "source_type": "official_government_assessment_guidance",
+      "total_assertions": 1
+    },
+    {
+      "assertion_breakdown": {
+        "direct_statement": 1
+      },
+      "authority_rank": 4,
+      "notes": "{\"access_limitations\":\"Public Reuters article\",\"authority_category\":\"secondary\",\"external_source_id\":\"S49-03\",\"geography_scope\":\"Iowa, United States\",\"independence_group\":\"Duane-Arnold-restart-announcement\",\"last_updated_date\":\"\",\"organization_or_author\":\"Reuters\",\"organizational_scope\":\"NextEra Energy Resources, Google, Duane Arnold Energy Center\",\"publication_date\":\"2025-10-27\",\"retrieval_date\":\"2026-07-13\",\"source_fingerprint_basis\":\"normalized metadata and URL; raw web content is not embedded\",\"use_limitations\":\"Does not establish regulatory approval, operational status, final cost, or internal NEE delivery state\"}",
+      "source_date": "2025-10-27",
+      "source_id": "source_v49_ext_reuters_duane_arnold_google_2025_10_27",
+      "source_name": "NextEra Energy partners with Google to restart Iowa nuclear plant",
+      "source_posture": "Strong secondary authority for the public PPA and announced restart target Boundary: Does not establish regulatory approval, operational status, final cost, or internal NEE delivery state",
+      "source_type": "credible_news_direct_company_reporting",
+      "total_assertions": 1
+    },
+    {
+      "assertion_breakdown": {},
+      "authority_rank": 4,
+      "notes": "{\"access_limitations\":\"Public Reuters article\",\"authority_category\":\"secondary\",\"external_source_id\":\"S49-02\",\"geography_scope\":\"United States\",\"independence_group\":\"NEE-Google-expanded-partnership\",\"last_updated_date\":\"\",\"organization_or_author\":\"Reuters\",\"organizational_scope\":\"NextEra Energy, Google Cloud, Meta\",\"publication_date\":\"2025-12-08\",\"retrieval_date\":\"2026-07-13\",\"source_fingerprint_basis\":\"normalized metadata and URL; raw web content is not embedded\",\"use_limitations\":\"Does not prove NEE entitlement, implementation, production use, or product launch completion\"}",
+      "source_date": "2025-12-08",
+      "source_id": "source_v49_ext_reuters_nextera_google_cloud_2025_12_08",
+      "source_name": "NextEra expands Google Cloud partnership, secures clean energy contracts with Meta",
+      "source_posture": "Strong secondary authority for the public partnership announcement and stated plan Boundary: Does not prove NEE entitlement, implementation, production use, or product launch completion",
+      "source_type": "credible_news_direct_company_reporting",
+      "total_assertions": 0
+    },
+    {
+      "assertion_breakdown": {
+        "direct_statement": 4
+      },
+      "authority_rank": 4,
+      "notes": "Role and internal affiliation are user-confirmed. The LinkedIn URL is separately stored as a pointer-only public-profile source.",
+      "source_date": "2026-07-13",
+      "source_id": "source_v50_user_jon_perkins_role_confirmation_2026_07_13",
+      "source_name": "User-confirmed Jon Perkins Slalom Managing Director role",
+      "source_posture": "Explicit user confirmation that Jon Perkins is an internal Slalom Managing Director. Authoritative for that exact internal role proposition as of 2026-07-13 only; it does not establish reporting line, deck authorship, offering ownership, NEE follow-up ownership, or decision rights.",
+      "source_type": "user_hitl",
+      "total_assertions": 4
+    },
+    {
+      "assertion_breakdown": {
+        "direct_statement": 5,
+        "recommendation": 4
+      },
+      "authority_rank": 4,
+      "notes": "Authoritative for Slalom internal intent and the exact non-claim boundary only. Does not change SOW, current implementation, formal Chakra decision rights, staffing, commercials, or client commitments.",
+      "source_date": "2026-07-13",
+      "source_id": "source_v50_user_pdlc_strategic_partner_clarification_2026_07_13",
+      "source_name": "User-confirmed Slalom AI-PDLC strategic-partner priority for Chakra",
+      "source_posture": "Explicit user clarification controlling the NEE account framing: Slalom will prioritize AI-PDLC thought leadership to Chakra as a strategic-partner contribution to shaping the proposed co-hydrated operating model. It is not evidence that Chakra requested, endorsed, approved, adopted, or currently implements the approach.",
+      "source_type": "user_instruction",
+      "total_assertions": 9
+    },
+    {
+      "assertion_breakdown": {
+        "direct_statement": 3
+      },
+      "authority_rank": 4,
+      "notes": "Internal strategic synthesis and explicit attribution/non-claim boundary.",
+      "source_date": "2026-07-13",
+      "source_id": "source_v51_user_agentic_standards_gap_2026_07_13",
+      "source_name": "User strategic synthesis: NEE IT\u2013NEA agentic design and architecture consistency gap",
+      "source_posture": "Controls Slalom internal account strategy: inconsistent agentic design patterns, architectural standards, working styles, and cultures across NEE IT and NEA form a broader gap Slalom should help Chakra alleviate through a shared AI-PDLC framework. This is not a Chakra-stated pain point, request, endorsement, or current implementation.",
+      "source_type": "user_instruction",
+      "total_assertions": 3
+    }
+  ],
+  "total_assertions_indexed": 806,
+  "total_sources": 53
+}

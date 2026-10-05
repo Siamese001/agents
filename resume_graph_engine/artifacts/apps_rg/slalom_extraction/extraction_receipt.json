@@ -1,0 +1,21 @@
+{
+  "evidence": {
+    "candidates_count": 8,
+    "candidates_file": "resume_graph_engine/artifacts/apps_rg/slalom_extraction/slalom_candidates.json",
+    "candidates_sha256": "d95b25059b0e9055b8ab21d26d0a6488750bc8eff7fcf8fc55ba2d299e00ccd3",
+    "exclusion_log_file": "resume_graph_engine/artifacts/apps_rg/slalom_extraction/exclusion_log.json",
+    "exclusion_log_sha256": "bd38f9d29d7553f5c497c557e9094db36f9b45bc01e23bfb87f5eb362f3307d9",
+    "exclusions_count": 798,
+    "total_assertions_reviewed": 806
+  },
+  "gate_verification": {
+    "all_candidates_have_source_citations": true,
+    "all_rejected_items_accounted_for": true,
+    "rubric_compliance": true,
+    "zero_unverified_metrics": true
+  },
+  "plan": "plans/resume-slalom-agentic-outcomes-a7b3e1.md",
+  "status": "COMPLETED",
+  "timestamp": "2026-10-05T08:45:55-04:00",
+  "wave": 3
+}
