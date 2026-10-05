@@ -24,13 +24,11 @@ from apps_rg.l2_recipe.modular_lane_adapter import (
     resolve_latest_lane_run_dir,
 )
 from apps_rg.runtime.c0.graph_skill_embedding_allocation import (
-    GRAPH_SKILL_EMBEDDING_ALLOWLISTS_ENV,
-    build_lane_embedding_allowlists,
-    build_whole_resume_graph_embedding_candidates,
-    candidate_skill_scores_by_section,
-    graph_skill_embeddings_required,
-    write_graph_skill_embedding_runtime_bundle,
+    GRAPH_SKILL_EMBEDDING_ALLOWLISTS_ENV, build_lane_embedding_allowlists,
+    build_whole_resume_graph_embedding_candidates, candidate_skill_scores_by_section,
+    graph_skill_embeddings_required, write_graph_skill_embedding_runtime_bundle,
 )
+from apps_rg.runtime.semantic_unit_retrieval import assert_semantic_unit_activation_status
 from apps_rg.runtime.c0.resume_graph_allocation import (
     ALLOCATION_PLAN_ENV,
     ALLOCATION_USAGE_LEDGER_ENV,
@@ -333,13 +331,13 @@ class SectionGenerationService:
         graph_skill_embedding_candidates: dict[str, Any] | None = None
         graph_skill_embedding_scores: dict[str, dict[str, float]] | None = None
         if graph_skill_embedding_required:
+            assert_semantic_unit_activation_status()
             graph_skill_embedding_candidates = (
                 build_whole_resume_graph_embedding_candidates(
                     repo_root=repo,
                     target_company=tc or str(input_package.target_company or ""),
                     target_role=tr or str(input_package.target_role or ""),
-                    jd_text=effective_jd_text,
-                    briefing_text=effective_briefing_text,
+                    jd_text=effective_jd_text, briefing_text=effective_briefing_text,
                 )
             )
             graph_skill_embedding_scores = candidate_skill_scores_by_section(

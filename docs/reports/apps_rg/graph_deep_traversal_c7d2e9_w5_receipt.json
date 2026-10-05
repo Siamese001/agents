@@ -1,0 +1,91 @@
+{
+  "schema_version": "apps_rg.graph_deep_traversal_w5_receipt.v1",
+  "plan_id": "graph-skills-deep-traversal-c7d2e9",
+  "wave_id": "W5",
+  "title": "Semantic-Unit Embeddings with Graph Back-Links",
+  "status": "COMPLETED",
+  "timestamp": "2026-10-05T21:59:30Z",
+  "builder_git_commit": "0a2f29b44ab7f6e24d5f60d1eb9aa6699f24fded",
+  "hitl_decision": {
+    "candidate_id": "gdb-w5-qualification-activation",
+    "decision": "Governed activation block. Materialize semantic units, SQLite member back-links, and hybrid retrieval engine, while maintaining activation_status=BLOCKED_HUMAN_REVIEW_INPUTS until human review inputs are completed.",
+    "calibrated_confidence": 0.92,
+    "confidence_tier": "HIGH"
+  },
+  "acceptance_criteria": {
+    "AC5.1": {
+      "description": "0 vectors with unallowed unit_type; 0 units with single member node and no edges",
+      "status": "PASS",
+      "evidence": {
+        "unallowed_unit_types_count": 0,
+        "isolated_units_count": 0,
+        "total_units_evaluated": 344
+      }
+    },
+    "AC5.2": {
+      "description": "Every semantic_unit_member.member_id resolves to the graph; every unit has >=1 evidence member and confidence token",
+      "status": "PASS",
+      "evidence": {
+        "unresolved_node_members": 0,
+        "unresolved_edge_members": 0,
+        "units_missing_evidence_members": 0,
+        "units_missing_confidence_token": 0
+      }
+    },
+    "AC5.3": {
+      "description": "100% of external-eligible skills with evidential support belong to >=1 unit",
+      "status": "PASS",
+      "evidence": {
+        "eligible_skills_count": 197,
+        "covered_skills_count": 197,
+        "coverage_percentage": 100.0
+      }
+    },
+    "AC5.4": {
+      "description": "Changing any graph input invalidates affected units (digest mismatch -> fail closed)",
+      "status": "PASS",
+      "evidence": {
+        "live_manifest_digest": "a9e4cb22ae20d48fe9b6b46e57e8dc1ed829641cb62d1c7598ad2c00ef5cb5cc",
+        "mismatch_exception_verified": "SemanticUnitStaleGraphError"
+      }
+    },
+    "AC5.5": {
+      "description": "Vector hit -> subgraph expansion returns non-empty traverse() result for 100% of units",
+      "status": "PASS",
+      "evidence": {
+        "total_units_tested": 344,
+        "units_yielding_non_empty_paths": 344,
+        "empty_path_count": 0,
+        "expansion_success_rate": 1.0
+      }
+    },
+    "AC5.6": {
+      "description": "Exactly one store marked runtime-authoritative in activation manifest; legacy loader cannot load any copy",
+      "status": "PASS",
+      "evidence": {
+        "runtime_authoritative_store": "semantic_unit_relational_projection",
+        "activation_status": "BLOCKED_HUMAN_REVIEW_INPUTS",
+        "legacy_artifacts_removed_from_git": 8,
+        "legacy_loader_rejection_verified": "GraphSkillEmbeddingAllocationError"
+      }
+    }
+  },
+  "unit_inventory": {
+    "total_semantic_units": 344,
+    "by_type": {
+      "skill_evidence_cluster": 197,
+      "engagement_episode": 41,
+      "metric_outcome_story": 106,
+      "career_epoch_summary": 0
+    },
+    "total_semantic_unit_members": 4976,
+    "unit_vectors_count": 344
+  },
+  "verification_suite": {
+    "command": "PYTHONPATH=src pytest tests/unit/apps_rg/runtime/test_semantic_units_w5.py --timeout=180",
+    "passed": 6,
+    "failed": 0,
+    "regression_suite_total_passed": 20,
+    "regression_suite_total_failed": 0
+  }
+}

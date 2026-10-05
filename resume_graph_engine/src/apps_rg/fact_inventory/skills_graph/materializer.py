@@ -33,6 +33,7 @@ from .type_registry import (
     get_edge_type_registry_rows,
     get_node_type_registry_rows,
 )
+from apps_rg.fact_inventory.semantic_units import populate_semantic_units
 
 def _get_open_isolated_temp_graph_sqlite():
     facade = sys.modules.get("apps_rg.fact_inventory.augmented_skills_graph_sqlite")
@@ -380,6 +381,12 @@ def materialize_augmented_skills_graph_sqlite(
         summary["input_manifest_digest"] = ctx.get("input_manifest_digest", "")
         summary["type_registry_digest"] = compute_type_registry_digest()
         summary["edge_evidence_count"] = len(all_edge_evidence_rows)
+        unit_summary = populate_semantic_units(
+            conn,
+            build_run_id=build_run_id,
+            input_manifest_digest=summary["input_manifest_digest"],
+        )
+        summary.update(unit_summary)
         conn.execute(
             """
             INSERT INTO graph_metadata (

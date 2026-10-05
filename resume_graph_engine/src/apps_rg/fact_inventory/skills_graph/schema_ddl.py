@@ -494,6 +494,49 @@ DDL_STATEMENTS: tuple[str, ...] = (
         OR f.subpillar LIKE '%solution%'
       )
     """,
+    """
+    CREATE TABLE IF NOT EXISTS semantic_unit (
+        unit_id TEXT PRIMARY KEY CHECK (TRIM(unit_id) <> ''),
+        unit_type TEXT NOT NULL CHECK (unit_type IN ('skill_evidence_cluster', 'engagement_episode', 'metric_outcome_story', 'career_epoch_summary')),
+        root_node_id TEXT NOT NULL DEFAULT '',
+        template_version TEXT NOT NULL DEFAULT 'v2',
+        text TEXT NOT NULL CHECK (TRIM(text) <> ''),
+        text_sha256 TEXT NOT NULL CHECK (length(text_sha256) = 64),
+        unit_source_sha256 TEXT NOT NULL CHECK (length(unit_source_sha256) = 64),
+        graph_build_run_id TEXT NOT NULL DEFAULT '',
+        input_manifest_digest TEXT NOT NULL DEFAULT '',
+        confidence_tier TEXT NOT NULL DEFAULT 'UNSCORED' CHECK (confidence_tier IN ('HIGH','MEDIUM','LOW','UNSCORED','NOT_APPLICABLE')),
+        min_confidence REAL DEFAULT NULL,
+        allowed_sections_json TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(allowed_sections_json) AND json_type(allowed_sections_json) = 'array'),
+        external_eligible INTEGER NOT NULL DEFAULT 1 CHECK (external_eligible IN (0, 1)),
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS semantic_unit_member (
+        unit_id TEXT NOT NULL CHECK (TRIM(unit_id) <> ''),
+        member_kind TEXT NOT NULL CHECK (member_kind IN ('node', 'edge', 'evidence', 'fact', 'metric', 'source')),
+        member_id TEXT NOT NULL CHECK (TRIM(member_id) <> ''),
+        role TEXT NOT NULL CHECK (role IN ('root', 'member', 'evidence', 'outcome', 'context', 'lineage')),
+        PRIMARY KEY (unit_id, member_kind, member_id),
+        FOREIGN KEY (unit_id) REFERENCES semantic_unit(unit_id) ON DELETE CASCADE
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS unit_vectors (
+        unit_id TEXT PRIMARY KEY CHECK (TRIM(unit_id) <> ''),
+        model_manifest_sha TEXT NOT NULL DEFAULT '',
+        vector_sha256 TEXT NOT NULL DEFAULT '',
+        vector BLOB,
+        FOREIGN KEY (unit_id) REFERENCES semantic_unit(unit_id) ON DELETE CASCADE
+    )
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_semantic_unit_type ON semantic_unit(unit_type)
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_semantic_unit_member_id ON semantic_unit_member(member_id, member_kind)
+    """,
 )
 
 
