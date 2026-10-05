@@ -1,0 +1,36 @@
+{
+  "timestamp": "2026-10-05T08:41:00-04:00",
+  "plan": "plans/resume-slalom-agentic-outcomes-a7b3e1.md",
+  "wave": 1,
+  "status": "COMPLETED",
+  "agents_repository": {
+    "root": "/Users/amitayer/Git/agents",
+    "worktree": "/Users/amitayer/Git/agents/.worktrees/slalom-agentic-outcomes",
+    "branch": "feat/resume-slalom-agentic-outcomes",
+    "head_commit": "79326b6fe4759aee67ff1a5c74a9a3eedca57386",
+    "git_status": "clean",
+    "augmented_skills_graph_sqlite": {
+      "path": "resume_graph_engine/artifacts/apps_rg/fact_inventory/augmented_skills_graph.sqlite",
+      "sha256": "998309f38170162f1d7f177b5b8280cd1e9608c4ae3facbe95bfefb66d707b8c"
+    },
+    "master_candidate_skills_fact_ledger": {
+      "path": "resume_graph_engine/artifacts/apps_rg/fact_inventory/master_candidate_skills_fact_ledger_20260518T1100Z.json",
+      "sha256": "8e29ef54c1c13a5d4e773ba5e2d575dabb354f278e64c0d247c0ff9bd62cee83"
+    }
+  },
+  "decision_intelligence_engine_repository": {
+    "root": "/Users/amitayer/Git/decision-intelligence-engine",
+    "branch": "main",
+    "head_commit": "f63fee470e83181693dd602f0885deb173c4c963",
+    "access_mode": "read_only",
+    "active_graph_sqlite": {
+      "path": "graph/nee_graph.sqlite",
+      "sha256": "c96599291bcb76206fb9fcf2d17b8b8e4ddd1dbb8a650b22b38899210d2d583b"
+    }
+  },
+  "verification": {
+    "git_worktree_verified": true,
+    "main_clean_verified": true,
+    "die_unmodified_verified": true
+  }
+}

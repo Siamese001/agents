@@ -1,0 +1,74 @@
+{
+  "schema_version": "1.0.0",
+  "created_at": "2026-10-05T08:52:00Z",
+  "target_branch": "feat/resume-slalom-agentic-outcomes",
+  "worktree_path": "/Users/amitayer/Git/agents/.worktrees/slalom-agentic-outcomes",
+  "artifacts_count": 13,
+  "artifacts": [
+    {
+      "filename": "PROMOTION_AND_ROLLBACK_RUNBOOK.md",
+      "size_bytes": 6528,
+      "sha256": "770a28f9f4ef82a09dfdc5a5f168dd6500341605381c9367c6c59c5df2469076"
+    },
+    {
+      "filename": "anonymization_scan_report.json",
+      "size_bytes": 345,
+      "sha256": "789d6b5419f00020655bab9e0c1239fe85ce6a2dd1a5868174ee555e2cc6f788"
+    },
+    {
+      "filename": "baseline.json",
+      "size_bytes": 1450,
+      "sha256": "acd86380566afa375b0ff6158d4b799bc0a0ba19a07ae7c837e877b1409e0d05"
+    },
+    {
+      "filename": "dedup_and_merge_report.json",
+      "size_bytes": 2390,
+      "sha256": "4297a760f87db36f1fd0e567cdff2fe1dc51b65f51729a94527ae2bff29bd1f0"
+    },
+    {
+      "filename": "exclusion_log.json",
+      "size_bytes": 362556,
+      "sha256": "bd38f9d29d7553f5c497c557e9094db36f9b45bc01e23bfb87f5eb362f3307d9"
+    },
+    {
+      "filename": "extraction_receipt.json",
+      "size_bytes": 849,
+      "sha256": "4d1770d89be53df621ee3426eabad0d85991c7b08377ba9aa79f008c3a062229"
+    },
+    {
+      "filename": "inventory_receipt.json",
+      "size_bytes": 1019,
+      "sha256": "84043c58ab6039549db711e213be00b7507539e9af6031f1d09b2c6e170ac2ca"
+    },
+    {
+      "filename": "slalom_augmentation_diff.md",
+      "size_bytes": 3171,
+      "sha256": "aa450bfb2e8735406de55c83543abe93a73110b0e9cbde590612f2a04110ad48"
+    },
+    {
+      "filename": "slalom_candidates.json",
+      "size_bytes": 15828,
+      "sha256": "d95b25059b0e9055b8ab21d26d0a6488750bc8eff7fcf8fc55ba2d299e00ccd3"
+    },
+    {
+      "filename": "slalom_gap_matrix.json",
+      "size_bytes": 4221,
+      "sha256": "060379444ee72f2dba1ad9cdec183942aaf83c2f6015a9fc1f3661a3885a3579"
+    },
+    {
+      "filename": "slalom_graph_delta_proposal.json",
+      "size_bytes": 9336,
+      "sha256": "bcc07a5753ba49034d64f95e9f5f1e5f846f417b2e4c577caa56a762d6b9a23a"
+    },
+    {
+      "filename": "slalom_source_inventory.json",
+      "size_bytes": 37292,
+      "sha256": "2a255efff55a547fe2acd221389a468bcd697eaf00086122712e268cac151277"
+    },
+    {
+      "filename": "staging_receipt.json",
+      "size_bytes": 1487,
+      "sha256": "02a7bfca5b92e59f924ea8db95ed94c2674d240f1d01bf163c9d3be854dc3809"
+    }
+  ]
+}

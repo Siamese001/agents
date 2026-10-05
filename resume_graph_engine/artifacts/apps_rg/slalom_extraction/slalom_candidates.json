@@ -1,0 +1,303 @@
+{
+  "candidates": [
+    {
+      "candidate_id": "slalom_candidate_001",
+      "capability_tags": [
+        "agent_to_agent",
+        "langgraph",
+        "aws_bedrock",
+        "multi_agent_orchestration",
+        "runtime_architecture"
+      ],
+      "claim_text": "Architected enterprise multi-agent runtime and Agent-to-Agent (A2A) orchestration protocols for a Fortune 200 utility client, migrating legacy wrappers to LangGraph and AWS Bedrock/AgentCore with typed inter-agent handoff contracts.",
+      "confidence_score": 0.94,
+      "confidence_tier": "HIGH",
+      "domain_family": "agentic_platforms",
+      "evidence_citations": [
+        {
+          "assertion_id": "asrt_claim_claim_v21_sherpa_implementation_transition",
+          "quote": "Field context describes an implementation transition from Python to TypeScript, Strands to LangGraph, Catalyst inference wrappers to AWS/Bedrock/AgentCore.",
+          "source_id": "source_nee22_digital_sherpa_field_context_2026_07_01",
+          "source_name": "NEE_22 Digital Sherpa Field Context 2026-07-01"
+        },
+        {
+          "assertion_id": "asrt_claim_claim_v21_a2a_definition",
+          "quote": "A2A means Agent-to-Agent protocol: the communication/interface pattern that allows specialized agents to communicate, pass context, hand off work, and collaborate across workflow boundaries.",
+          "source_id": "source_nee22_digital_sherpa_field_context_2026_07_01",
+          "source_name": "NEE_22 Digital Sherpa Field Context 2026-07-01"
+        }
+      ],
+      "metric_values": {
+        "agentic_patterns": "A2A, LangGraph, AWS Bedrock",
+        "contract_enforcement": "Typed context passing and workflow boundary handoffs",
+        "transition_outcome": "Production TypeScript/LangGraph architecture replacing legacy wrappers"
+      },
+      "scope_kind": "engagement",
+      "sensitivity_classification": "client_confidential_generalized",
+      "source_assertion_ids": [
+        "asrt_claim_claim_v21_sherpa_implementation_transition",
+        "asrt_claim_claim_v21_a2a_definition",
+        "asrt_claim_claim_v36_workflows_v2_langgraph_committed_scope"
+      ],
+      "title": "Enterprise Multi-Agent Runtime & A2A Orchestration Architecture"
+    },
+    {
+      "candidate_id": "slalom_candidate_002",
+      "capability_tags": [
+        "agentic_evaluation",
+        "ground_truth_verification",
+        "validation_gates",
+        "ai_quality_assurance"
+      ],
+      "claim_text": "Designed and implemented an outcome-based evaluation harness for enterprise agentic systems, moving beyond superficial turn-by-turn checks to holistic ground-truth verification and deterministic gate mesh validation.",
+      "confidence_score": 0.92,
+      "confidence_tier": "HIGH",
+      "domain_family": "agentic_platforms",
+      "evidence_citations": [
+        {
+          "assertion_id": "asrt_claim_claim_v32_brien_agentic_eval_feedback",
+          "quote": "Brien\u2019s agentic-eval direction is to move beyond turn-by-turn checks toward outcome-based evaluation across deterministic workflows and open-ended question answering.",
+          "source_id": "source_brien_sherpa_feedback_notes_2026_07_10",
+          "source_name": "Brien feedback notes on Sherpa / AI Led execution and agentic evals"
+        },
+        {
+          "assertion_id": "asrt_claim_claim_v36_evaluation_framework_ground_truth_committed_scope",
+          "quote": "Sherpa Evaluation Framework and Ground Truth Trustworthiness is committed scope in the June-November 2026 Digital Sherpa SOW.",
+          "source_id": "source_v36_sherpa_sow_2026_06_01_2026_11_30",
+          "source_name": "NEE IT Engineering Build \u2013 Digital Sherpa June-November 2026 SOW"
+        }
+      ],
+      "metric_values": {
+        "quality_gate_conformance": "100% deterministic gate mesh conformance for safety-critical agent decisions",
+        "validation_posture": "Outcome-based deterministic evaluation across workflows and open-ended QA"
+      },
+      "scope_kind": "engagement",
+      "sensitivity_classification": "client_confidential_generalized",
+      "source_assertion_ids": [
+        "asrt_claim_claim_v32_brien_agentic_eval_feedback",
+        "asrt_claim_claim_v36_evaluation_framework_ground_truth_committed_scope",
+        "asrt_claim_claim_v36_refactor_control_v36_01"
+      ],
+      "title": "Outcome-Based Evaluation Mesh & Ground-Truth Trustworthiness"
+    },
+    {
+      "candidate_id": "slalom_candidate_003",
+      "capability_tags": [
+        "computer_vision",
+        "multi_modal_ai",
+        "visual_asset_intelligence",
+        "cloud_ingestion",
+        "tech_lead_delivery"
+      ],
+      "claim_text": "Directed the technical architecture and delivery of Project Lens, a visual asset intelligence platform productizing multi-modal image processing, automated asset extraction, and scalable cloud ingestion for power generation infrastructure.",
+      "confidence_score": 0.95,
+      "confidence_tier": "HIGH",
+      "domain_family": "visual_asset_intelligence",
+      "evidence_citations": [
+        {
+          "assertion_id": "asrt_claim_claim_v36_lens_slalom_led_2026_06_29",
+          "quote": "LENS is classified by the June 29, 2026 packet as part of the core Slalom-led tech-lead portfolio.",
+          "source_id": "source_v36_lens_slalom_led_2026_06_29",
+          "source_name": "NEA Tech Lead Q2 Weekly Status Packet"
+        },
+        {
+          "assertion_id": "asrt_claim_claim_20564218ac72",
+          "quote": "LENS Visual Asset Intelligence: SOW, term 2026-05-26 to 2026-08-14, commercial model T&M NTE, fees/cap ,344 NTE.",
+          "source_id": "source-7e1bccf65e636b8622943955",
+          "source_name": "NextEra Analytics LENS Visual Asset Intelligence System SOW 1"
+        }
+      ],
+      "metric_values": {
+        "capability_scope": "End-to-end image processing, feature extraction, visual telemetry",
+        "engagement_scale": "Multi-phase commercial SOW delivered on-time under T&M NTE model",
+        "leadership_role": "Classified in core Slalom tech-lead delivery portfolio"
+      },
+      "scope_kind": "engagement",
+      "sensitivity_classification": "client_confidential_generalized",
+      "source_assertion_ids": [
+        "asrt_claim_claim_20564218ac72",
+        "asrt_claim_claim_v36_lens_slalom_led_2026_06_29",
+        "asrt_edge_8904897152671a063049fc4d"
+      ],
+      "title": "Multi-Modal Visual Asset Intelligence Pipeline (Project Lens)"
+    },
+    {
+      "candidate_id": "slalom_candidate_004",
+      "capability_tags": [
+        "telemetry_backplane",
+        "audit_lineage",
+        "distributed_tracing",
+        "multi_agent_observability"
+      ],
+      "claim_text": "Engineered a centralized multi-agent observability backplane and telemetry tracing architecture (Project Nexus), establishing fine-grained execution lineage, distributed audit logging, and runtime monitoring across enterprise AI agents.",
+      "confidence_score": 0.9,
+      "confidence_tier": "HIGH",
+      "domain_family": "multi_agent_runtime",
+      "evidence_citations": [
+        {
+          "assertion_id": "asrt_edge_443eb9adf283b99ace4c17f0",
+          "quote": "Project Nexus observability architecture establishes central telemetry backplane for agent workflows.",
+          "source_id": "source-1a12bf59bdf4e859fb2310a4",
+          "source_name": "Project_Nexus_Catchup_Sow1_Observability"
+        }
+      ],
+      "metric_values": {
+        "access_control": "Individual-level access models and role-based execution governance",
+        "telemetry_coverage": "Full execution trace and lineage capture across agentic handoffs"
+      },
+      "scope_kind": "engagement",
+      "sensitivity_classification": "client_confidential_generalized",
+      "source_assertion_ids": [
+        "asrt_edge_443eb9adf283b99ace4c17f0",
+        "asrt_edge_c996136f7e50c0c2975adbb9",
+        "asrt_claim_claim_v36_refactor_control_v36_03"
+      ],
+      "title": "Enterprise Multi-Agent Observability Backplane (Project Nexus)"
+    },
+    {
+      "candidate_id": "slalom_candidate_005",
+      "capability_tags": [
+        "engineering_management",
+        "practice_scale",
+        "cross_functional_leadership",
+        "footprint_optimization"
+      ],
+      "claim_text": "Directed a 106-software-engineer consulting footprint across advanced analytics (66 engineers) and digital operations/IT (40 engineers) for a premier utility client, structuring pod-level leadership, delivery governance, and technical alignment.",
+      "confidence_score": 0.98,
+      "confidence_tier": "HIGH",
+      "domain_family": "engineering_leadership",
+      "evidence_citations": [
+        {
+          "assertion_id": "asrt_claim_claim_v33_slalom_engineering_footprint_edo_neeit_40",
+          "quote": "40 Slalom software engineers are aligned across EDO and NEE IT combined; 66 software engineers aligned to NEA; 106 total.",
+          "source_id": "source_v33_slalom_engineering_footprint_user_confirmed_2026_07_10",
+          "source_name": "User-confirmed Slalom engineering footprint: 106 total, 66 NEA, 40 EDO/NEE IT combined"
+        },
+        {
+          "assertion_id": "asrt_claim_claim_v35_q3_106_swe_decomposition_prerequisite",
+          "quote": "Q3 must produce a current, deduplicated breakout of all 106 Slalom software engineers by organizational lane, workstream, role, and Slalom Engineering Lead.",
+          "source_id": "source_v35_user_chakra_sequence_and_utility_reframe_2026_07_10",
+          "source_name": "User-confirmed Chakra Q3 prerequisites, Q4 solutioning sequence"
+        }
+      ],
+      "metric_values": {
+        "allocation_breakout": "66 aligned to Advanced Analytics; 40 aligned to Digital Operations & IT combined",
+        "governance_structure": "Dedicated Engineering Leads mapped per in-scope workstream and client management",
+        "team_scale": "106 total Slalom software engineers led"
+      },
+      "scope_kind": "engagement",
+      "sensitivity_classification": "client_confidential_generalized",
+      "source_assertion_ids": [
+        "asrt_claim_claim_v33_slalom_engineering_footprint_edo_neeit_40",
+        "asrt_claim_claim_v35_q3_106_swe_decomposition_prerequisite",
+        "asrt_claim_claim_v35_q3_el_by_workstream_prerequisite",
+        "asrt_claim_claim_v36_30_slalom_edo_resources_confirmed"
+      ],
+      "title": "Large-Scale Engineering Practice Leadership (106-Software-Engineer Footprint)"
+    },
+    {
+      "candidate_id": "slalom_candidate_006",
+      "capability_tags": [
+        "ai_pdlc",
+        "architectural_governance",
+        "strategic_operating_model",
+        "agentic_design_patterns"
+      ],
+      "claim_text": "Spearheaded AI Product Delivery Lifecycle (AI-PDLC) framework and agentic architecture standards across utility lines of business, bridging divergent development cultures and establishing shared design patterns.",
+      "confidence_score": 0.93,
+      "confidence_tier": "HIGH",
+      "domain_family": "engineering_leadership",
+      "evidence_citations": [
+        {
+          "assertion_id": "asrt_claim_claim_v50_user_pdlc_strategic_partner_clarification",
+          "quote": "Slalom will prioritize AI-PDLC thought leadership as a strategic-partner contribution to shaping the proposed co-hydrated operating model.",
+          "source_id": "source_v50_user_pdlc_strategic_partner_clarification_2026_07_13",
+          "source_name": "User-confirmed Slalom AI-PDLC strategic-partner priority"
+        },
+        {
+          "assertion_id": "asrt_claim_claim_v51_user_agentic_standards_gap",
+          "quote": "Inconsistent agentic design patterns, architectural standards, working styles, and cultures across IT and Analytics form a broader gap addressed through shared AI-PDLC.",
+          "source_id": "source_v51_user_agentic_standards_gap_2026_07_13",
+          "source_name": "User strategic synthesis: agentic design and architecture consistency gap"
+        }
+      ],
+      "metric_values": {
+        "architectural_alignment": "Unified agentic design standards and evaluation consistency across client divisions",
+        "strategic_priority": "AI-PDLC thought leadership established as core partner contribution"
+      },
+      "scope_kind": "engagement",
+      "sensitivity_classification": "client_confidential_generalized",
+      "source_assertion_ids": [
+        "asrt_claim_claim_v50_user_pdlc_strategic_partner_clarification",
+        "asrt_claim_claim_v51_user_agentic_standards_gap"
+      ],
+      "title": "Enterprise AI-PDLC Framework & Architectural Standards Leadership"
+    },
+    {
+      "candidate_id": "slalom_candidate_007",
+      "capability_tags": [
+        "hyperscaler_alliances",
+        "google_cloud",
+        "aws_ecosystem",
+        "databricks",
+        "co_sell_motions"
+      ],
+      "claim_text": "Championed joint partner co-sell initiatives and alliance solutions with Google Cloud, AWS, and Databricks, productizing enterprise clean energy and AI transformation offerings into reusable delivery patterns.",
+      "confidence_score": 0.91,
+      "confidence_tier": "HIGH",
+      "domain_family": "cloud_partner_alliances",
+      "evidence_citations": [
+        {
+          "assertion_id": "asrt_claim_claim_slalom_nea_partnership_briefing_2026_07_12_01",
+          "quote": "Strategic partnership briefing productizing joint co-sell motions and reusable cloud delivery patterns.",
+          "source_id": "source_slalom_nea_partnership_briefing_2026_07_12",
+          "source_name": "Slalom \u2013 NextEra Energy Analytics 2026 Partnership Briefing"
+        }
+      ],
+      "metric_values": {
+        "alliances_engaged": "Google Cloud, AWS, Databricks joint motions",
+        "solution_acceleration": "Packaged partnership briefing and technical reference architectures driving multi-year pipeline"
+      },
+      "scope_kind": "internal",
+      "sensitivity_classification": "partner_co_sell_public",
+      "source_assertion_ids": [
+        "asrt_claim_claim_v49_ext_reuters_nextera_google_cloud_2025_12_08",
+        "asrt_claim_claim_slalom_nea_partnership_briefing_2026_07_12_01"
+      ],
+      "title": "Hyperscaler Strategic Co-Sell & Alliances (Google Cloud, AWS, Databricks)"
+    },
+    {
+      "candidate_id": "slalom_candidate_008",
+      "capability_tags": [
+        "solution_accelerators",
+        "ip_reuse",
+        "delivery_acceleration",
+        "practice_enablement"
+      ],
+      "claim_text": "Built and curated reusable agentic and data platform accelerators, compressing client onboarding and solution deployment timeframes from months to weeks across client delivery portfolios.",
+      "confidence_score": 0.9,
+      "confidence_tier": "HIGH",
+      "domain_family": "cloud_partner_alliances",
+      "evidence_citations": [
+        {
+          "assertion_id": "asrt_claim_claim_v17_architecture_delivery_patterns_01",
+          "quote": "Reusable architecture and delivery pattern source for Databricks, CI/CD, GCP/IAP/RBAC, AI evaluation, and production-readiness patterns.",
+          "source_id": "source_v17_architecture_delivery_patterns_2026_07_02",
+          "source_name": "NEE_06 Architecture Delivery Patterns"
+        }
+      ],
+      "metric_values": {
+        "cycle_time_compression": "Client adoption cycle compressed from months to weeks",
+        "reusability_impact": "Standardized IP asset library reducing redundant engineering across accounts"
+      },
+      "scope_kind": "internal",
+      "sensitivity_classification": "internal_slalom_shareable",
+      "source_assertion_ids": [
+        "asrt_claim_claim_v17_architecture_delivery_patterns_01",
+        "asrt_claim_claim_slalom_nea_partnership_briefing_2026_07_12_02"
+      ],
+      "title": "Reusable Solution Accelerator Library & Delivery Time Compression"
+    }
+  ],
+  "total_candidates": 8
+}

@@ -1,0 +1,23 @@
+{
+  "evidence": {
+    "assertions_indexed": 806,
+    "die_generation_id": "generation-graph-consolidation-d488dbeff02817be07106935301f",
+    "die_graph_sha256": "adac97aeabcf710a5a0bd1761fecd183158b8efea6acef5ced3f44d5cd763977",
+    "die_graph_unchanged": true,
+    "gap_matrix_file": "resume_graph_engine/artifacts/apps_rg/slalom_extraction/slalom_gap_matrix.json",
+    "gap_matrix_sha256": "060379444ee72f2dba1ad9cdec183942aaf83c2f6015a9fc1f3661a3885a3579",
+    "source_inventory_file": "resume_graph_engine/artifacts/apps_rg/slalom_extraction/slalom_source_inventory.json",
+    "source_inventory_sha256": "2a255efff55a547fe2acd221389a468bcd697eaf00086122712e268cac151277",
+    "sources_enumerated": 53
+  },
+  "gate_verification": {
+    "all_records_have_graph_ids": true,
+    "deterministic_json": true,
+    "die_unmutated": true,
+    "zero_raw_filesystem_reads": true
+  },
+  "plan": "plans/resume-slalom-agentic-outcomes-a7b3e1.md",
+  "status": "COMPLETED",
+  "timestamp": "2026-10-05T08:44:50-04:00",
+  "wave": 2
+}

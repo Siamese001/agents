@@ -1,0 +1,32 @@
+{
+  "evidence": {
+    "anonymization_report_file": "resume_graph_engine/artifacts/apps_rg/slalom_extraction/anonymization_scan_report.json",
+    "anonymization_report_sha256": "789d6b5419f00020655bab9e0c1239fe85ce6a2dd1a5868174ee555e2cc6f788",
+    "dedup_report_file": "resume_graph_engine/artifacts/apps_rg/slalom_extraction/dedup_and_merge_report.json",
+    "dedup_report_sha256": "4297a760f87db36f1fd0e567cdff2fe1dc51b65f51729a94527ae2bff29bd1f0",
+    "diff_file": "resume_graph_engine/artifacts/apps_rg/slalom_extraction/slalom_augmentation_diff.md",
+    "dry_run_fk_check_empty": true,
+    "dry_run_integrity_check": [
+      [
+        "ok"
+      ]
+    ],
+    "live_sqlite_sha256_after": "998309f38170162f1d7f177b5b8280cd1e9608c4ae3facbe95bfefb66d707b8c",
+    "live_sqlite_sha256_before": "998309f38170162f1d7f177b5b8280cd1e9608c4ae3facbe95bfefb66d707b8c",
+    "live_sqlite_unmutated": true,
+    "proposal_file": "resume_graph_engine/artifacts/apps_rg/slalom_extraction/slalom_graph_delta_proposal.json",
+    "proposal_sha256": "bcc07a5753ba49034d64f95e9f5f1e5f846f417b2e4c577caa56a762d6b9a23a",
+    "staged_edges_count": 4,
+    "staged_nodes_count": 8
+  },
+  "gate_verification": {
+    "dry_run_sqlite_passed": true,
+    "live_graph_byte_identical": true,
+    "schema_constraints_satisfied": true,
+    "zero_client_name_leakage": true
+  },
+  "plan": "plans/resume-slalom-agentic-outcomes-a7b3e1.md",
+  "status": "COMPLETED",
+  "timestamp": "2026-10-05T08:47:30-04:00",
+  "wave": 4
+}

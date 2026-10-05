@@ -1,0 +1,26 @@
+{
+  "timestamp": "2026-10-05T13:01:03.999436+00:00",
+  "plan": "plans/resume-slalom-promotion-b8e4f1.md",
+  "wave": 3,
+  "status": "COMPLETED",
+  "synchronized_facts": [
+    "fact_slalom_001",
+    "fact_slalom_002",
+    "fact_slalom_003",
+    "fact_slalom_004",
+    "fact_slalom_005",
+    "fact_slalom_006"
+  ],
+  "ledger_targets": {
+    "resume_graph_engine/artifacts/apps_rg/fact_inventory/master_candidate_skills_fact_ledger_20260518T1100Z.json": {
+      "total_facts": 61,
+      "added_facts": 6,
+      "sha256": "3088d05f9bbf5b9af5a7cd312dcc778266326284e1843e7201afd5edb4c4ac11"
+    },
+    ".worktrees/slalom-agentic-outcomes/resume_graph_engine/artifacts/apps_rg/fact_inventory/master_candidate_skills_fact_ledger_20260518T1100Z.json": {
+      "total_facts": 61,
+      "added_facts": 6,
+      "sha256": "3088d05f9bbf5b9af5a7cd312dcc778266326284e1843e7201afd5edb4c4ac11"
+    }
+  }
+}

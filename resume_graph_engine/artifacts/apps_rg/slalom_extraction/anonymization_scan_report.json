@@ -1,0 +1,18 @@
+{
+  "patterns_checked": [
+    "\\bnextera\\b",
+    "\\bnee\\b",
+    "\\bfpl\\b",
+    "florida power",
+    "\\blillian\\b",
+    "andy k",
+    "muschett",
+    "421[,.]?344",
+    "\\bchakra\\b"
+  ],
+  "scan_timestamp": "2026-10-05T08:47:15-04:00",
+  "status": "PASS",
+  "total_entities_scanned": 12,
+  "violations": [],
+  "violations_detected": 0
+}

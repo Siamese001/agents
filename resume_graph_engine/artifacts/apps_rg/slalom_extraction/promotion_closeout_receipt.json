@@ -1,0 +1,42 @@
+{
+  "timestamp": "2026-10-05T13:02:39.889642+00:00",
+  "plan": "plans/resume-slalom-promotion-b8e4f1.md",
+  "wave": 4,
+  "status": "COMPLETED",
+  "production_verification": {
+    "augmented_skills_graph_sqlite": {
+      "path": "resume_graph_engine/artifacts/apps_rg/fact_inventory/augmented_skills_graph.sqlite",
+      "sha256": "a0ca54dd30497ac82255e05beb5d1a47dfdc40b9174713ce3eb5a42aeed49de8",
+      "total_nodes": 814,
+      "total_edges": 3588,
+      "integrity_check": "ok",
+      "foreign_key_violations": 0,
+      "promoted_facts_count": 6,
+      "promoted_metrics_count": 14,
+      "promoted_edges_count": 158
+    },
+    "master_candidate_skills_fact_ledger": {
+      "path": "resume_graph_engine/artifacts/apps_rg/fact_inventory/master_candidate_skills_fact_ledger_20260518T1100Z.json",
+      "sha256": "3088d05f9bbf5b9af5a7cd312dcc778266326284e1843e7201afd5edb4c4ac11",
+      "total_candidate_facts": 61,
+      "slalom_candidate_facts_count": 6,
+      "slalom_fact_ids": [
+        "fact_slalom_001",
+        "fact_slalom_002",
+        "fact_slalom_003",
+        "fact_slalom_004",
+        "fact_slalom_005",
+        "fact_slalom_006"
+      ]
+    },
+    "test_suites_passed": [
+      "test_slalom_augmentation_e2e.py",
+      "test_slalom_augmentation_adversarial.py",
+      "test_c03_graph_skills_mvp.py",
+      "test_native_c03_skills_graph.py",
+      "test_graph_skill_hybrid_retrieval.py"
+    ],
+    "client_anonymization_verified": true,
+    "secret_hygiene_verified": true
+  }
+}

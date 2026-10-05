@@ -1,0 +1,92 @@
+{
+  "agents_baseline": {
+    "augmented_graph_slalom_facts": 4,
+    "augmented_graph_slalom_facts_detail": "4 skeleton facts (fact_slalom_001..004) with empty labels/descriptions",
+    "augmented_graph_slalom_metrics": 12,
+    "augmented_graph_slalom_nodes": 23,
+    "fact_ledger_slalom_facts": 0,
+    "fact_ledger_total_facts": 55
+  },
+  "audit_timestamp": "2026-10-05T08:44:45-04:00",
+  "capability_domain_gaps": [
+    {
+      "candidate_sources_count": 14,
+      "current_graph_coverage": "Skeleton (referenced in 2 generic metrics)",
+      "domain_id": "visual_asset_intelligence_lens",
+      "enrichment_opportunity": "Extract image extraction pipelines, multi-modal ingestion, client delivery metrics",
+      "fact_ledger_coverage": "None (0 facts)",
+      "gap_severity": "HIGH",
+      "key_candidate_sources": [
+        "source-03e42871734199c002a647eb",
+        "source-13b4df9b967732f8b9ef0822",
+        "source-1aa41c056a6ef7562189ae81",
+        "source-7e1bccf65e636b8622943955"
+      ],
+      "title": "Agentic Visual Asset Intelligence (Project Lens)"
+    },
+    {
+      "candidate_sources_count": 8,
+      "current_graph_coverage": "Partial (metric_slalom_governed_runtime_telemetry_coverage)",
+      "domain_id": "multi_agent_observability_nexus",
+      "enrichment_opportunity": "Extract telemetry backplane, trace telemetry, cross-system agent coordination",
+      "fact_ledger_coverage": "None (0 facts)",
+      "gap_severity": "HIGH",
+      "key_candidate_sources": [
+        "source-1a12bf59bdf4e859fb2310a4",
+        "source-1acfc7fa9be51d46c7aff034",
+        "source-7b9e83133ff41f2cc54a8d24",
+        "source-93d9f915e93ac66500756b05"
+      ],
+      "title": "Multi-Agent Runtime & Observability (Project Nexus)"
+    },
+    {
+      "candidate_sources_count": 11,
+      "current_graph_coverage": "Partial (metric_slalom_validation_gate_mesh_conformance_pct)",
+      "domain_id": "ai_sdlc_eval_mesh_sherpa",
+      "enrichment_opportunity": "Extract AI SDLC, agent evaluation harness, runtime guardrails, LangGraph/A2A architecture",
+      "fact_ledger_coverage": "None (0 facts)",
+      "gap_severity": "CRITICAL",
+      "key_candidate_sources": [
+        "source_v36_sherpa_sow_2026_06_01_2026_11_30",
+        "source_brien_sherpa_feedback_notes_2026_07_10",
+        "source_nee22_digital_sherpa_field_context_2026_07_01",
+        "source_v32_sherpa_feedback_eval_ingest_2026_07_10"
+      ],
+      "title": "Enterprise AI Engineering & Evaluation Mesh (Digital Sherpa)"
+    },
+    {
+      "candidate_sources_count": 10,
+      "current_graph_coverage": "Minimal (generic Senior Director title, 0 team scale metrics)",
+      "domain_id": "engineering_footprint_operating_model",
+      "enrichment_opportunity": "Extract 106-engineer footprint leadership, AI-PDLC strategic partnership framework, practice scale",
+      "fact_ledger_coverage": "None (0 facts)",
+      "gap_severity": "CRITICAL",
+      "key_candidate_sources": [
+        "source_v33_slalom_engineering_footprint_user_confirmed_2026_07_10",
+        "source_v50_user_pdlc_strategic_partner_clarification_2026_07_13",
+        "source_v35_user_chakra_sequence_and_utility_reframe_2026_07_10",
+        "source_v36_user_edo_authority_identity_2026_07_10"
+      ],
+      "title": "Strategic Operating Model & Engineering Footprint (EDO / NEA / Chakra)"
+    },
+    {
+      "candidate_sources_count": 10,
+      "current_graph_coverage": "Generic (metric_slalom_cloud_partner_cosell_initiatives)",
+      "domain_id": "cloud_partner_alliances_cosell",
+      "enrichment_opportunity": "Extract hyperscaler co-sell, clean energy/AI infrastructure partnership, strategic solution accelerators",
+      "fact_ledger_coverage": "None (0 facts)",
+      "gap_severity": "HIGH",
+      "key_candidate_sources": [
+        "source_slalom_nea_partnership_briefing_2026_07_12",
+        "source_nextera_google_cloud_press_release_2025_12_08",
+        "source-13b4df9b967732f8b9ef0822"
+      ],
+      "title": "Ecosystem & Cloud Partner Alliances (Google Cloud, AWS, Databricks)"
+    }
+  ],
+  "die_inventory_summary": {
+    "generation_id": "generation-graph-consolidation-d488dbeff02817be07106935301f",
+    "total_assertions": 806,
+    "total_sources": 53
+  }
+}

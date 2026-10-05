@@ -1,0 +1,21 @@
+{
+  "timestamp": "2026-10-05T08:52:00-04:00",
+  "plan": "plans/resume-slalom-agentic-outcomes-a7b3e1.md",
+  "wave": 5,
+  "status": "COMPLETED",
+  "verification": {
+    "manifest_file": "bundle_manifest.json",
+    "total_staged_artifacts": 13,
+    "manifest_verified": true,
+    "test_suite_e2e": "resume_graph_engine/tests/unit/test_slalom_augmentation_e2e.py",
+    "test_suite_adversarial": "resume_graph_engine/tests/unit/test_slalom_augmentation_adversarial.py",
+    "tests_total": 5,
+    "tests_passed": 5,
+    "tests_failed": 0,
+    "promotion_runbook": "PROMOTION_AND_ROLLBACK_RUNBOOK.md",
+    "live_graph_unmodified": true,
+    "live_graph_sha256": "998309f38170162f1d7f177b5b8280cd1e9608c4ae3facbe95bfefb66d707b8c",
+    "fact_ledger_unmodified": true,
+    "fact_ledger_sha256": "8e29ef54c1c13a5d4e773ba5e2d575dabb354f278e64c0d247c0ff9bd62cee83"
+  }
+}
