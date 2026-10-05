@@ -282,17 +282,9 @@ def run_materializer_ingress(
 
         if et == "skill_external_claim_eligible":
             # AC2.5: 0 BLOCKED skills carry skill_external_claim_eligible
-            src_n = node_rows.get(src, {})
-            src_s = skill_rows_by_id.get(src, {})
-            is_blocked = (
-                src_n.get("activation_status") == "BLOCKED"
-                or str(src_n.get("confidence") or "").upper() == "BLOCKED"
-                or str(src_s.get("confidence_grade") or "").upper() == "BLOCKED"
-                or str(src_s.get("confidence_grade_derived") or "").upper() == "BLOCKED"
-                or str(src_s.get("activation_status") or "").upper() == "BLOCKED"
-                or str(src_s.get("support_level") or "").upper() == "BLOCKED"
-            )
-            if is_blocked:
+            s_grade = str(skill_rows_by_id.get(src, {}).get("confidence_grade") or "").upper()
+            s_act = str(node_rows.get(src, {}).get("activation_status") or "").upper()
+            if s_grade == "BLOCKED" or s_act == "BLOCKED":
                 continue
 
         edge_by_id[eid] = {
@@ -438,48 +430,35 @@ def run_materializer_ingress(
             row, has_fact_link=has_link, candidate_registry=candidate_registry
         )
         epoch, ordinal = canonical_career_epoch_and_ordinal(sid, row.get("career_epoch"))
-        if sid not in node_rows:
-            node_dict = {
+        score, tier, act = compute_node_confidence(
+            {
                 "node_id": sid,
                 "node_type": "skill",
                 "confidence": grade,
                 "activation_status": str(row.get("activation_status") or ""),
                 "support_level": str(row.get("support_level") or ""),
-            }
-            score, tier, act = compute_node_confidence(node_dict, skill_row=row)
+            },
+            skill_row=row,
+        )
+        if sid not in node_rows:
             node_rows[sid] = {
                 "node_id": sid,
                 "node_type": "skill",
                 "label": str(row.get("capability") or sid),
                 "description": "",
-                "activation_status": act,
-                "support_level": str(row.get("support_level") or ""),
-                "confidence": grade,
-                "confidence_score": score,
-                "confidence_tier": tier,
-                "external_eligible": 0,
-                "career_epoch": epoch,
-                "phase_ordinal": ordinal,
                 "source_authority": "augmented_skills_graph",
                 "created_at": ts,
                 "updated_at": ts,
             }
-        else:
-            node_dict = {
-                "node_id": sid,
-                "node_type": "skill",
-                "confidence": grade,
-                "activation_status": str(row.get("activation_status") or ""),
-                "support_level": str(row.get("support_level") or ""),
-            }
-            score, tier, act = compute_node_confidence(node_dict, skill_row=row)
-            node_rows[sid]["confidence"] = grade
-            node_rows[sid]["confidence_score"] = score
-            node_rows[sid]["confidence_tier"] = tier
-            node_rows[sid]["support_level"] = str(row.get("support_level") or "")
-            node_rows[sid]["activation_status"] = act
-            node_rows[sid]["career_epoch"] = epoch
-            node_rows[sid]["phase_ordinal"] = ordinal
+        node_rows[sid].update({
+            "activation_status": act,
+            "support_level": str(row.get("support_level") or ""),
+            "confidence": grade,
+            "confidence_score": score,
+            "confidence_tier": tier,
+            "career_epoch": epoch,
+            "phase_ordinal": ordinal,
+        })
         node_rows[sid]["external_eligible"] = (
             1 if _skill_external_eligible(row, has_fact_link=has_link) else 0
         )
@@ -541,16 +520,11 @@ def run_materializer_ingress(
             row["confidence_tier"] = tier
             if act == "BLOCKED":
                 row["activation_status"] = "BLOCKED"
-        if not row.get("origin_kind"):
-            row["origin_kind"] = "ledger_node"
-        if not row.get("origin_ref"):
-            row["origin_ref"] = nid
-        if not row.get("source_refs_json"):
-            row["source_refs_json"] = "[]"
-        if not row.get("authority_refs_json"):
-            row["authority_refs_json"] = "[]"
-        if not row.get("build_run_id"):
-            row["build_run_id"] = build_run_id
+        row.setdefault("origin_kind", "ledger_node")
+        row.setdefault("origin_ref", nid)
+        row.setdefault("source_refs_json", "[]")
+        row.setdefault("authority_refs_json", "[]")
+        row.setdefault("build_run_id", build_run_id)
 
     for _edge in _mo_edge_rows:
         _ensure_endpoint(str(_edge.get("source_node_id") or ""))

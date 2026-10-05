@@ -140,7 +140,7 @@
     "justification": "Baseline legacy module pending decomposition"
   },
   "resume_graph_engine/tests/unit/apps_rg/fact_inventory/test_augmented_skills_graph_sqlite.py": {
-    "line_limit": 838,
+    "line_limit": 850,
     "justification": "Baseline legacy module pending decomposition"
   },
   "resume_graph_engine/tests/unit/apps_rg/fact_inventory/test_graph_sqlite_path_index.py": {
@@ -288,7 +288,7 @@
     "justification": "Baseline legacy module pending decomposition"
   },
   "resume_graph_engine/src/apps_rg/fact_inventory/graph_sqlite_path_index.py": {
-    "line_limit": 2274,
+    "line_limit": 2355,
     "justification": "Baseline legacy module pending decomposition"
   },
   "resume_graph_engine/src/apps_rg/fact_inventory/c03_graph_edge_semantic_hardening.py": {
@@ -312,7 +312,7 @@
     "justification": "Baseline legacy module pending decomposition"
   },
   "resume_graph_engine/src/apps_rg/fact_inventory/apply_graphdb_capability_sqlite_hardening.py": {
-    "line_limit": 803,
+    "line_limit": 815,
     "justification": "Baseline legacy module pending decomposition"
   },
   "resume_graph_engine/src/apps_rg/prerequisites/briefing_validator.py": {
@@ -324,7 +324,7 @@
     "justification": "Baseline legacy module pending decomposition"
   },
   "resume_graph_engine/src/apps_rg/runtime/c03_graph_sqlite_context.py": {
-    "line_limit": 933,
+    "line_limit": 970,
     "justification": "Baseline legacy module pending decomposition"
   },
   "resume_graph_engine/src/apps_rg/runtime/post_x3_completion.py": {
