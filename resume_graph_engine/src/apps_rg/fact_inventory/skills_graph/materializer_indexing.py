@@ -73,6 +73,22 @@ def run_materializer_indexing(ctx: dict[str, Any]) -> None:
         domain_id = str(row.get("domain_id") or row.get("domain") or "").strip()
         subpillar = str(row.get("subpillar") or "").strip()
         family = pillar or domain_id or subpillar or "unclassified"
+        raw_track = str(row.get("career_track_id") or "").strip()
+        track_mapping = {
+            "TRACK_ACTUARIAL_RISK_DERIVATIVES": "track_actuarial_risk_derivatives",
+            "TRACK_DATA_TECH_CLOUD_ML": "track_data_tech_cloud_ml",
+            "TRACK_GENAI_AGENTIC": "track_genai_agentic",
+            "TRACK_ENTERPRISE_GTM_SALES": "track_data_tech_cloud_ml",
+            "TRACK_REVENUE_OPERATIONS": "track_data_tech_cloud_ml",
+            "TRACK_ENGINEERING_PLATFORM": "track_actuarial_risk_derivatives",
+            "TRACK_STRATEGIC_FINANCE": "track_data_tech_cloud_ml",
+            "TRACK_PARTNERSHIPS_GTM": "track_data_tech_cloud_ml",
+            "TRACK_BANKING_PLATFORM_AI": "track_actuarial_risk_derivatives",
+            "TRACK_CUSTOMER_SUCCESS": "track_data_tech_cloud_ml",
+        }
+        canonical_track_id = track_mapping.get(
+            raw_track, raw_track.lower() if raw_track.startswith("track_") else "track_data_tech_cloud_ml"
+        )
         epoch, ordinal = canonical_career_epoch_and_ordinal(sid, row.get("career_epoch"))
         selection_feature_rows.append(
             {
@@ -80,7 +96,7 @@ def run_materializer_indexing(ctx: dict[str, Any]) -> None:
                 "pillar": pillar,
                 "subpillar": subpillar,
                 "domain_id": domain_id,
-                "career_track_id": str(row.get("career_track_id") or "").strip(),
+                "career_track_id": canonical_track_id,
                 "career_epoch": epoch,
                 "phase_ordinal": ordinal,
                 "skill_family": family,
@@ -90,7 +106,9 @@ def run_materializer_indexing(ctx: dict[str, Any]) -> None:
                     sorted(set(allowed_sections_by_skill.get(sid) or row.get("allowed_sections") or []))
                 ),
                 "source_fact_count": len(fact_ids),
-                "confidence": str(node_rows[sid].get("confidence") or ""),
+                "confidence": str(node_rows[sid].get("confidence_tier") or node_rows[sid].get("confidence") or ""),
+                "confidence_score": node_rows[sid].get("confidence_score"),
+                "confidence_tier": str(node_rows[sid].get("confidence_tier") or "UNSCORED"),
                 "activation_status": str(node_rows[sid].get("activation_status") or ""),
                 "support_level": str(node_rows[sid].get("support_level") or ""),
                 "external_eligible": int(node_rows[sid].get("external_eligible") or 0),
@@ -176,6 +194,7 @@ def run_materializer_indexing(ctx: dict[str, Any]) -> None:
         section_rows=section_rows,
         role_family_projection_rows=projection_rows,
         created_at=ts,
+        build_run_id=ctx.get("build_run_id", ""),
     )
 
     gm = payload.get("graph_metadata") if isinstance(payload.get("graph_metadata"), dict) else {}

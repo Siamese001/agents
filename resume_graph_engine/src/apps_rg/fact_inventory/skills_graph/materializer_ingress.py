@@ -52,6 +52,27 @@ from .promotions import (
     has_valid_human_confirmed_archive_promotion,
     load_candidate_fact_promotion_registry,
 )
+from .lineage import (
+    build_inputs_from_manifest,
+    compute_input_manifest,
+    generate_build_run_id,
+    get_git_commit,
+)
+from .edge_assertion import (
+    SEMANTIC_CONTRACT_VERSION_V2,
+    finalize_and_harden_edge_rows,
+    load_edge_semantic_contract_v2,
+)
+from .edge_evidence import compute_node_confidence
+from .type_registry import is_edge_traversable
+from .topology import (
+    CANONICAL_EMPLOYMENT_EPOCHS,
+    EMPLOYMENT_DATES_AND_TITLES,
+    apply_topology_enhancements,
+    normalize_employment_id,
+    normalize_section_id,
+    split_polymorphic_edge,
+)
 from .graph_builder import (
     _confidence_from_node,
     _dedupe_edge_rows,
@@ -61,6 +82,7 @@ from .graph_builder import (
     _parse_section_id,
     _redirect_edge_source,
     _skill_external_eligible,
+    process_edge_section_eligibility,
 )
 
 def _get_derive_registered_graph_endpoint_types():
@@ -89,6 +111,12 @@ def run_materializer_ingress(
     skill_rows_by_id = build_skill_rows_by_id(payload)
     registered_endpoint_types = derive_registered_graph_endpoint_types(payload)
     candidate_registry = load_candidate_fact_promotion_registry(root)
+    input_manifest = compute_input_manifest(root)
+    input_manifest_digest = input_manifest["input_manifest_digest"]
+    build_run_id = generate_build_run_id(ts, input_manifest_digest)
+    builder_git_commit = get_git_commit(root)
+    build_inputs = build_inputs_from_manifest(build_run_id, input_manifest)
+    semantic_contract_v2 = load_edge_semantic_contract_v2(root)
 
     node_rows: dict[str, dict[str, Any]] = {}
     for raw in payload.get("graph_nodes") or []:
@@ -97,6 +125,9 @@ def run_materializer_ingress(
         nid = str(raw.get("node_id") or "").strip()
         if not nid or nid in FORBIDDEN_SKILL_NODE_IDS:
             continue
+        nid = normalize_employment_id(nid)
+        if nid.startswith("section:") or nid.startswith("section_"):
+            nid = normalize_section_id(nid)
         ntype = resolve_node_type(nid, str(raw.get("node_type") or ""))
         skill_row = skill_rows_by_id.get(nid) if ntype == "skill" else None
         epoch = ""
@@ -115,12 +146,26 @@ def run_materializer_ingress(
         elif ntype == "employment":
             phases = EMPLOYMENT_PHASES.get(nid)
             ordinal = phases[0] if phases else None
+            epoch = CANONICAL_EMPLOYMENT_EPOCHS.get(nid, epoch)
         elif ntype == "skill":
             raw_epoch = skill_row.get("career_epoch") if skill_row else raw.get("career_epoch")
             epoch, ordinal = canonical_career_epoch_and_ordinal(nid, raw_epoch)
         else:
             epoch = str(raw.get("career_epoch") or "")
             ordinal = raw.get("phase_ordinal")
+
+        score, tier, updated_act = compute_node_confidence(
+            {
+                "node_id": nid,
+                "node_type": ntype,
+                "confidence": conf,
+                "activation_status": act_status,
+                "support_level": str(raw.get("support_level") or ""),
+            },
+            skill_row=skill_row,
+        )
+        if updated_act:
+            act_status = updated_act
 
         node_rows[nid] = {
             "node_id": nid,
@@ -130,6 +175,8 @@ def run_materializer_ingress(
             "activation_status": act_status,
             "support_level": str(raw.get("support_level") or ""),
             "confidence": conf,
+            "confidence_score": score,
+            "confidence_tier": tier,
             "external_eligible": 0,
             "career_epoch": epoch,
             "phase_ordinal": ordinal,
@@ -137,6 +184,8 @@ def run_materializer_ingress(
             "created_at": ts,
             "updated_at": ts,
         }
+        if ntype == "employment" and nid in EMPLOYMENT_DATES_AND_TITLES:
+            node_rows[nid].update(EMPLOYMENT_DATES_AND_TITLES[nid])
 
     _ensure_policy_nodes(node_rows, payload, ts=ts)
 
@@ -167,8 +216,12 @@ def run_materializer_ingress(
         if not isinstance(raw, dict):
             continue
         eid = str(raw.get("edge_id") or "").strip()
-        src = _redirect_edge_source(str(raw.get("source_node_id") or raw.get("source") or "").strip())
-        tgt = str(raw.get("target_node_id") or raw.get("target") or "").strip()
+        src = normalize_employment_id(_redirect_edge_source(str(raw.get("source_node_id") or raw.get("source") or "").strip()))
+        tgt = normalize_employment_id(str(raw.get("target_node_id") or raw.get("target") or "").strip())
+        if src.startswith("section:") or src.startswith("section_"):
+            src = normalize_section_id(src)
+        if tgt.startswith("section:") or tgt.startswith("section_"):
+            tgt = normalize_section_id(tgt)
         et = str(raw.get("edge_type") or "").strip()
         if not eid or not src or not tgt or not et:
             continue
@@ -176,7 +229,9 @@ def run_materializer_ingress(
             continue
 
         def _ensure_endpoint(endpoint_id: str) -> None:
-            eid_s = str(endpoint_id or "").strip()
+            eid_s = normalize_employment_id(str(endpoint_id or "").strip())
+            if eid_s.startswith("section:") or eid_s.startswith("section_"):
+                eid_s = normalize_section_id(eid_s)
             if not eid_s or eid_s in node_rows or eid_s in FORBIDDEN_SKILL_NODE_IDS:
                 return
             skill_row = skill_rows_by_id.get(eid_s)
@@ -201,9 +256,23 @@ def run_materializer_ingress(
             elif ntype == "employment":
                 phases = EMPLOYMENT_PHASES.get(eid_s)
                 ordinal = phases[0] if phases else None
+                epoch = CANONICAL_EMPLOYMENT_EPOCHS.get(eid_s, "")
             elif ntype == "skill":
                 raw_epoch = skill_row.get("career_epoch") if skill_row else ""
                 epoch, ordinal = canonical_career_epoch_and_ordinal(eid_s, raw_epoch)
+
+            score, tier, updated_act = compute_node_confidence(
+                {
+                    "node_id": eid_s,
+                    "node_type": ntype,
+                    "confidence": conf,
+                    "activation_status": act_status,
+                    "support_level": str(skill_row.get("support_level") if skill_row else ""),
+                },
+                skill_row=skill_row,
+            )
+            if updated_act:
+                act_status = updated_act
 
             node_rows[eid_s] = {
                 "node_id": eid_s,
@@ -213,6 +282,8 @@ def run_materializer_ingress(
                 "activation_status": act_status,
                 "support_level": str(skill_row.get("support_level") if skill_row else ""),
                 "confidence": conf,
+                "confidence_score": score,
+                "confidence_tier": tier,
                 "external_eligible": 0,
                 "career_epoch": epoch,
                 "phase_ordinal": ordinal,
@@ -220,17 +291,31 @@ def run_materializer_ingress(
                 "created_at": ts,
                 "updated_at": ts,
             }
+            if ntype == "employment" and eid_s in EMPLOYMENT_DATES_AND_TITLES:
+                node_rows[eid_s].update(EMPLOYMENT_DATES_AND_TITLES[eid_s])
 
         _ensure_endpoint(src)
         _ensure_endpoint(tgt)
-        weight = float(raw.get("weight") or 1.0)
-        edge_conf = str(raw.get("validation_status") or "validated")
+        src_type = str(node_rows.get(src, {}).get("node_type") or "")
+        tgt_type = str(node_rows.get(tgt, {}).get("node_type") or "")
+        et = split_polymorphic_edge(raw, src_type, tgt_type)
+        if et == "epoch_contains_skill":
+            src = str(node_rows.get(tgt, {}).get("career_epoch") or src)
+        raw_weight = raw.get("weight")
+        weight = 1.0 if raw_weight is None else float(raw_weight)
+        edge_conf = ""
         edge_rationale = str(raw.get("rationale") or "")
         edge_claim_policy = str(raw.get("external_claim_policy") or "")
         if et == "epoch_contains_skill":
-            edge_conf = "HIGH"
             edge_rationale = str(raw.get("rationale") or f"The career epoch {src} contains skill {tgt}.")
             edge_claim_policy = str(raw.get("external_claim_policy") or "skill_projection_not_proof")
+
+        if et == "skill_external_claim_eligible":
+            # AC2.5: 0 BLOCKED skills carry skill_external_claim_eligible
+            s_grade = str(skill_rows_by_id.get(src, {}).get("confidence_grade") or "").upper()
+            s_act = str(node_rows.get(src, {}).get("activation_status") or "").upper()
+            if s_grade == "BLOCKED" or s_act == "BLOCKED":
+                continue
 
         edge_by_id[eid] = {
             "edge_id": eid,
@@ -242,7 +327,7 @@ def run_materializer_ingress(
             "confidence": edge_conf,
             "directional": 1 if str(raw.get("direction") or "forward") != "bidirectional" else 0,
             "evidence_status": str(raw.get("validation_status") or ""),
-            "section_fit": _parse_section_id(tgt) if tgt.startswith("section_") else "",
+            "section_fit": normalize_section_id(tgt) if (tgt.startswith("section_") or tgt.startswith("section:")) else "",
             "source_authority": "augmented_skills_graph",
             "rationale": edge_rationale,
             "projection_behavior": str(raw.get("projection_behavior") or ""),
@@ -252,12 +337,15 @@ def run_materializer_ingress(
             "operator_note": str(raw.get("operator_note") or ""),
             "business_story": str(raw.get("business_story") or ""),
             "technical_story": str(raw.get("technical_story") or ""),
+            "traversable": is_edge_traversable(et),
         }
         edge_row = edge_by_id[eid]
         et = edge_row["edge_type"]
 
         def _upsert_section(row: dict[str, Any]) -> None:
-            key = (str(row["node_id"]), str(row["section_id"]))
+            sec_norm = normalize_section_id(str(row["section_id"]))
+            row["section_id"] = sec_norm
+            key = (str(row["node_id"]), sec_norm)
             prior = section_by_key.get(key)
             if prior is None:
                 section_by_key[key] = row
@@ -268,59 +356,15 @@ def run_materializer_ingress(
                 return
             section_by_key[key] = row
 
-        if et == "skill_allowed_in_section":
-            sec = _parse_section_id(tgt)
-            row = skill_rows_by_id.get(src, {})
-            if sec == "executive_summary" and row:
-                link_n = sum(
-                    1
-                    for fid in row.get("fact_id_links") or []
-                    if str(fid).strip() and not _is_skill_id(str(fid))
-                )
-                _upsert_section(_executive_summary_eligibility(row, has_fact_link=link_n > 0))
-            else:
-                blocked = str(row.get("activation_status") or "") in NON_PROMOTE_ACTIVATION
-                _upsert_section(
-                    {
-                        "node_id": src,
-                        "section_id": sec,
-                        "allowed": 0 if blocked else 1,
-                        "claim_policy": str(raw.get("external_claim_policy") or "skill_projection_not_proof"),
-                        "reason": str(raw.get("rationale") or "skill_allowed_in_section"),
-                        "blocked_reason": "activation_blocked" if blocked else "",
-                    }
-                )
-        elif et == "pillar_section_eligibility":
-            sec = _parse_section_id(tgt)
-            pillar_allowed = 0 if sec == "executive_summary" else 1
-            _upsert_section(
-                {
-                    "node_id": src,
-                    "section_id": sec,
-                    "allowed": pillar_allowed,
-                    "claim_policy": str(raw.get("external_claim_policy") or "internal_traversal_only"),
-                    "reason": str(raw.get("rationale") or "pillar_section_eligibility"),
-                    "blocked_reason": "executive_summary_skills_high_only"
-                    if sec == "executive_summary"
-                    else "",
-                }
-            )
-        elif et in (
-            "projection_excludes_blocked_skill",
-            "section_blocks_pending_source_skill",
-            "section_blocks_skill_without_fact",
-        ):
-            sec = "executive_summary" if "executive" in eid else ""
-            _upsert_section(
-                {
-                    "node_id": src,
-                    "section_id": sec or "*",
-                    "allowed": 0,
-                    "claim_policy": str(raw.get("external_claim_policy") or "blocked"),
-                    "reason": str(raw.get("rationale") or et),
-                    "blocked_reason": et,
-                }
-            )
+        process_edge_section_eligibility(
+            et=et,
+            src=src,
+            tgt=tgt,
+            eid=eid,
+            raw=raw,
+            skill_rows_by_id=skill_rows_by_id,
+            upsert_fn=_upsert_section,
+        )
 
     skill_link_counts: dict[str, int] = {}
     for sid, row in skill_rows_by_id.items():
@@ -347,7 +391,8 @@ def run_materializer_ingress(
             fid_s = str(fid).strip()
             if not fid_s or _is_skill_id(fid_s):
                 continue
-            _ensure_fact_node(node_rows, fid_s, ts=ts)
+            fid_s = normalize_employment_id(fid_s)
+            _ensure_fact_node(node_rows, fid_s, ts=ts, candidate_registry=candidate_registry)
             skill_link_counts[sid] = skill_link_counts.get(sid, 0) + 1
             claim_ok = _skill_external_eligible(row, has_fact_link=True)
             skill_fact_rows.append(
@@ -375,39 +420,48 @@ def run_materializer_ingress(
             row, has_fact_link=has_link, candidate_registry=candidate_registry
         )
         epoch, ordinal = canonical_career_epoch_and_ordinal(sid, row.get("career_epoch"))
+        score, tier, act = compute_node_confidence(
+            {
+                "node_id": sid,
+                "node_type": "skill",
+                "confidence": grade,
+                "activation_status": str(row.get("activation_status") or ""),
+                "support_level": str(row.get("support_level") or ""),
+            },
+            skill_row=row,
+        )
         if sid not in node_rows:
             node_rows[sid] = {
                 "node_id": sid,
                 "node_type": "skill",
                 "label": str(row.get("capability") or sid),
                 "description": "",
-                "activation_status": str(row.get("activation_status") or ""),
-                "support_level": str(row.get("support_level") or ""),
-                "confidence": grade,
-                "external_eligible": 0,
-                "career_epoch": epoch,
-                "phase_ordinal": ordinal,
                 "source_authority": "augmented_skills_graph",
                 "created_at": ts,
                 "updated_at": ts,
             }
-        else:
-            node_rows[sid]["confidence"] = grade
-            node_rows[sid]["support_level"] = str(row.get("support_level") or "")
-            node_rows[sid]["activation_status"] = str(row.get("activation_status") or "")
-            node_rows[sid]["career_epoch"] = epoch
-            node_rows[sid]["phase_ordinal"] = ordinal
+        node_rows[sid].update({
+            "activation_status": act,
+            "support_level": str(row.get("support_level") or ""),
+            "confidence": grade,
+            "confidence_score": score,
+            "confidence_tier": tier,
+            "career_epoch": epoch,
+            "phase_ordinal": ordinal,
+        })
         node_rows[sid]["external_eligible"] = (
             1 if _skill_external_eligible(row, has_fact_link=has_link) else 0
         )
-        section_by_key[(sid, "executive_summary")] = _executive_summary_eligibility(
+        sec_exec = _executive_summary_eligibility(
             row,
             has_fact_link=has_link,
             candidate_registry=candidate_registry,
         )
+        sec_exec["section_id"] = normalize_section_id(sec_exec["section_id"])
+        section_by_key[(sid, "section_executive_summary")] = sec_exec
         for sec_raw in row.get("allowed_sections") or []:
-            sec_s = str(sec_raw or "").strip()
-            if not sec_s or sec_s == "executive_summary":
+            sec_s = normalize_section_id(str(sec_raw or "").strip())
+            if not sec_s or sec_s in ("section_executive_summary", "executive_summary"):
                 continue
             key = (sid, sec_s)
             prior = section_by_key.get(key)
@@ -437,7 +491,7 @@ def run_materializer_ingress(
     )
 
     _mo_node_rows, _mo_edge_rows = metric_outcome_node_and_edge_rows(
-        root, ts=ts, known_node_ids=set(node_rows.keys())
+        root, ts=ts, known_node_ids=set(node_rows.keys()), build_run_id=build_run_id
     )
     for _row in _mo_node_rows:
         _nid = _row["node_id"]
@@ -451,20 +505,43 @@ def run_materializer_ingress(
         _row.setdefault("career_epoch", "")
         _row.setdefault("phase_ordinal", None)
         node_rows[_nid] = _row
+    for nid, row in node_rows.items():
+        if "confidence_score" not in row or "confidence_tier" not in row:
+            score, tier, act = compute_node_confidence(row, skill_row=skill_rows_by_id.get(nid))
+            row["confidence_score"] = score
+            row["confidence_tier"] = tier
+            if act == "BLOCKED":
+                row["activation_status"] = "BLOCKED"
+        row.setdefault("origin_kind", "ledger_node")
+        row.setdefault("origin_ref", nid)
+        row.setdefault("source_refs_json", "[]")
+        row.setdefault("authority_refs_json", "[]")
+        row.setdefault("build_run_id", build_run_id)
+
     for _edge in _mo_edge_rows:
         _ensure_endpoint(str(_edge.get("source_node_id") or ""))
         _ensure_endpoint(str(_edge.get("target_node_id") or ""))
     edge_rows.extend(_mo_edge_rows)
-    for row in edge_rows:
-        edge_type = str(row.get("edge_type") or "")
-        row.setdefault("rationale", edge_type)
-        row.setdefault("projection_behavior", "graph_traversal")
-        row.setdefault("external_claim_policy", "graph_routing_not_claim_proof")
-        row.setdefault("validation_status", str(row.get("evidence_status") or ""))
-        row.setdefault("edge_note", "")
-        row.setdefault("operator_note", "")
-        row.setdefault("business_story", "")
-        row.setdefault("technical_story", "")
+
+    apply_topology_enhancements(
+        repo_root=root,
+        payload=payload,
+        node_rows=node_rows,
+        edge_rows=edge_rows,
+        section_by_key=section_by_key,
+        skill_fact_rows=skill_fact_rows,
+        skill_rows_by_id=skill_rows_by_id,
+        build_run_id=build_run_id,
+        ts=ts,
+        ledger_hash=ledger_hash,
+    )
+    edge_rows = finalize_and_harden_edge_rows(
+        edge_rows,
+        build_run_id=build_run_id,
+        contract=semantic_contract_v2,
+        ledger_hash=ledger_hash,
+        repo_root=root,
+    )
 
     projected_signature_report = projected_graph_edge_signature_report(
         node_types_by_id={node_id: str(row.get("node_type") or "") for node_id, row in node_rows.items()},
@@ -486,6 +563,11 @@ def run_materializer_ingress(
         "payload": payload,
         "src_path": src_path,
         "ledger_hash": ledger_hash,
+        "input_manifest_digest": input_manifest_digest,
+        "build_run_id": build_run_id,
+        "builder_git_commit": builder_git_commit,
+        "build_inputs": build_inputs,
+        "semantic_contract_version": SEMANTIC_CONTRACT_VERSION_V2,
         "gver": gver,
         "ts": ts,
         "skill_rows_by_id": skill_rows_by_id,

@@ -1,0 +1,75 @@
+{
+  "plan_id": "graph-skills-deep-traversal-c7d2e9",
+  "wave": 0,
+  "wave_title": "Stabilize SSOT: snapshot, promote Slalom delta, freshness covers all inputs, block out-of-band writes",
+  "status": "COMPLETED",
+  "timestamp_utc": "2026-10-05T14:04:00Z",
+  "git": {
+    "branch": "feat/graph-skills-deep-traversal-review",
+    "worktree": "/Users/amitayer/Git/agents/.worktrees/graph-skills-deep-traversal-review"
+  },
+  "snapshot": {
+    "backup_manifest": "resume_graph_engine/artifacts/apps_rg/fact_inventory/backups/snapshot_manifest_20261005_134759.json",
+    "pre_snapshot_sha256": "a0ca54dd30497ac82255e05beb5d1a47dfdc40b9174713ce3eb5a42aeed49de8",
+    "bak_archive_sha256": "998309f38170162f1d7f177b5b8280cd1e9608c4ae3facbe95bfefb66d707b8c",
+    "post_materialization_sha256": "ca6a0525aab7fd5297d29891e88c9fd1a409aaa0fa825c39fe619ef081685303"
+  },
+  "counts": {
+    "pre_stabilization": {
+      "nodes_actual": 814,
+      "nodes_metadata": 810,
+      "edges_actual": 3588,
+      "edges_metadata": 3584,
+      "die_graph_import_nodes": 4,
+      "die_graph_import_edges": 4
+    },
+    "post_stabilization": {
+      "nodes_actual": 818,
+      "nodes_metadata": 818,
+      "edges_actual": 3612,
+      "edges_metadata": 3612,
+      "die_graph_import_nodes": 0,
+      "die_graph_import_edges": 0,
+      "slalom_facts": 6,
+      "slalom_metrics": 14,
+      "slalom_edges": 34
+    }
+  },
+  "digests": {
+    "input_manifest_digest": "1d828ba3f293e18d8ec0e76fd92a929a109a089e4394ddd55b1a32b9eacd5683",
+    "input_count": 8,
+    "materializer_code_version": "c03_sqlite_v1.0"
+  },
+  "acceptance_criteria_verification": {
+    "AC0.1": {
+      "status": "PASSED",
+      "detail": "0 die_graph_import rows in SQLite projection; 6 Slalom facts, 14 Slalom metrics, and all Slalom edges have canonical augmented_skills_graph authority."
+    },
+    "AC0.2": {
+      "status": "PASSED",
+      "detail": "Metadata summary (818 nodes, 3612 edges) exactly matches SQLite table COUNT(*)."
+    },
+    "AC0.3": {
+      "status": "PASSED",
+      "detail": "Editing bundle JSON alters input_manifest_digest, causing require_c03_graph_sqlite to detect staleness and raise C03GraphProjectionUnavailableError."
+    },
+    "AC0.4": {
+      "status": "PASSED",
+      "detail": "Unauthorized source_authority raises C03UnauthorizedSourceAuthorityError and causes assemble_c03_graph_sqlite_context to fail closed without overwriting tampered database."
+    },
+    "AC0.5": {
+      "status": "PASSED",
+      "detail": "J3 journey (skill -> fact -> metric_outcome -> employment) connects 6 skills to Slalom employment across 14 paths."
+    }
+  },
+  "deliverables": [
+    "resume_graph_engine/tools/apps_rg_standalone/snapshot_graph_sqlite.py",
+    "resume_graph_engine/src/apps_rg/fact_inventory/skills_graph/lineage.py",
+    "resume_graph_engine/src/apps_rg/fact_inventory/skills_graph/materializer_ingress.py",
+    "resume_graph_engine/src/apps_rg/fact_inventory/skills_graph/materializer.py",
+    "resume_graph_engine/src/apps_rg/runtime/c03_graph_sqlite_context.py",
+    "resume_graph_engine/src/apps_rg/runtime/c0/c03_errors.py",
+    "docs/apps_rg/graph_external_import_contract.md",
+    "resume_graph_engine/tests/unit/apps_rg/fact_inventory/test_graph_sqlite_freshness_w0.py"
+  ]
+}

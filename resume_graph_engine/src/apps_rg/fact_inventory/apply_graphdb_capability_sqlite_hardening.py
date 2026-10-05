@@ -44,6 +44,9 @@ _PRESERVED_TABLES = (
     "role_family_projection",
     "c03_skill_selection_features",
     "c03_role_family_skill_weights",
+    "edge_evidence",
+    "graph_build_runs",
+    "graph_build_inputs",
     "resume_metric_usage",
     "section_evidence_budget",
     "graph_selection_rejections",
@@ -59,6 +62,9 @@ _IMMUTABLE_AUTHORITY_TABLES = (
     "role_family_projection",
     "c03_skill_selection_features",
     "c03_role_family_skill_weights",
+    "edge_evidence",
+    "graph_build_runs",
+    "graph_build_inputs",
     "section_evidence_budget",
 )
 

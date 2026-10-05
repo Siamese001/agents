@@ -10,3 +10,7 @@ class RoleFamilyProjectionError(RuntimeError):
 class C03GraphProjectionUnavailableError(RuntimeError):
     """Raised when the required C0.3 SQLite projection is missing, stale, or incomplete."""
 
+
+class C03UnauthorizedSourceAuthorityError(C03GraphProjectionUnavailableError):
+    """Raised when the C0.3 SQLite projection contains unauthorized source authorities (out-of-band tampering)."""
+

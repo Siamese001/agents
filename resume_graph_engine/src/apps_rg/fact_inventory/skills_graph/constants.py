@@ -51,26 +51,13 @@ def project_registered_graph_node_type(raw_type: str) -> str:
 
 
 def projected_registered_graph_edge_signatures() -> dict[str, frozenset[tuple[str, str]]]:
-    """Return canonical-normalized plus app-derived projected signatures."""
-    from apps_rg.fact_inventory.metric_outcome_materializer import (
-        METRIC_OUTCOME_EDGE_SIGNATURES,
-    )
+    """Return exact, non-polymorphic edge signatures from the canonical type registry."""
+    from .type_registry import EDGE_TYPE_REGISTRY
 
-    signatures = {
-        edge_type: frozenset(
-            (
-                project_registered_graph_node_type(source_type),
-                project_registered_graph_node_type(target_type),
-            )
-            for source_type, target_type in raw_signatures
-        )
-        for edge_type, raw_signatures in REGISTERED_GRAPH_EDGE_SIGNATURES.items()
+    return {
+        edge_type: frozenset([(spec["src_type"], spec["tgt_type"])])
+        for edge_type, spec in EDGE_TYPE_REGISTRY.items()
     }
-    overlap = set(signatures) & set(METRIC_OUTCOME_EDGE_SIGNATURES)
-    if overlap:
-        raise ValueError(f"metric-outcome edge signatures collide with canonical registry: {sorted(overlap)}")
-    signatures.update(METRIC_OUTCOME_EDGE_SIGNATURES)
-    return signatures
 
 
 def projected_graph_edge_signature_report(

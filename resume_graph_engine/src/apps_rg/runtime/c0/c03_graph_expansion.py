@@ -740,14 +740,12 @@ def _bind_atom(
     selection_sources = sorted(
         {str(candidate.get("selection_source") or "sqlite_ranked_skill_fact_links") for candidate in selected}
     )
-    return {
+    binding = {
         "fact_id": fact_id,
         "graph_node_refs": graph_nodes,
         "career_phase_refs": list(atom.get("career_phase_refs") or []),
         "skill_cluster_refs": [
-            str(pillar.get("node_id") or "")
-            for pillar in inner.get("pillars") or []
-            if isinstance(pillar, dict)
+            str(p.get("node_id") or "") for p in (inner.get("pillars") or []) if isinstance(p, dict)
         ][:5],
         "adjacent_skill_refs": adjacent,
         "metric_binding_refs": list(atom.get("metric_refs") or []),
@@ -802,6 +800,8 @@ def _bind_atom(
         ],
         "reason": "graph expansion over C0.2 atoms; no new facts minted; direct paths only",
     }
+    from apps_rg.runtime.graph_runtime_persistence import enrich_binding_receipt
+    return enrich_binding_receipt(binding, selected=selected, fact_id=fact_id, inner=inner)
 
 
 def expand_c03_graph_bindings(
@@ -981,36 +981,26 @@ def expand_c03_graph_bindings(
 
     bindings = [
         _bind_atom(
-            atom=atom,
-            section_id=section_id,
-            inner=inner,
-            binding_mode=binding_mode,
-            selected_by_fact=selected_by_fact,
-            rejected_by_fact=rejected_by_fact,
+            atom=atom, section_id=section_id, inner=inner, binding_mode=binding_mode,
+            selected_by_fact=selected_by_fact, rejected_by_fact=rejected_by_fact,
         )
         for atom in atoms
     ]
     if section_id == "executive_summary":
         bindings = [
             compress_binding_for_executive_summary(
-                binding,
-                role_family_projection=projection,
-                skill_pillar_by_id=skill_pillar_by_id,
+                b, role_family_projection=projection, skill_pillar_by_id=skill_pillar_by_id,
             )
-            for binding in bindings
+            for b in bindings
         ]
 
     pillar_aligned = sum(
-        1
-        for binding in bindings
-        if binding.get("binding_source") == "skill_fact_links"
-        and any(
-            skill_pillar_by_id.get(skill_id, "") in pillar_hints
-            for skill_id in binding.get("graph_node_refs") or []
-        )
+        1 for b in bindings
+        if b.get("binding_source") == "skill_fact_links"
+        and any(skill_pillar_by_id.get(s, "") in pillar_hints for s in b.get("graph_node_refs") or [])
     )
-    direct = sum(1 for binding in bindings if binding.get("graph_support_strength") == GRAPH_STRENGTH_DIRECT)
-    link_direct = sum(1 for binding in bindings if binding.get("binding_source") == "skill_fact_links")
+    direct = sum(1 for b in bindings if b.get("graph_support_strength") == GRAPH_STRENGTH_DIRECT)
+    link_direct = sum(1 for b in bindings if b.get("binding_source") == "skill_fact_links")
     from apps_rg.runtime.c0.c0_section_authority import c03_skills_graph_receipt_flags
 
     flags = c03_skills_graph_receipt_flags(core_graph_rag_ran=False)
@@ -1028,11 +1018,16 @@ def expand_c03_graph_bindings(
     selected_flat = [row for rows in selected_by_fact.values() for row in rows]
     rejected_flat = [row for rows in rejected_by_fact.values() for row in rows]
     metric_bucket_counts = dict(
-        sorted(
-            Counter(
-                str(row.get("metric_bucket") or "general_business_outcome") for row in selected_flat
-            ).items()
-        )
+        sorted(Counter(str(r.get("metric_bucket") or "general_business_outcome") for r in selected_flat).items())
+    )
+    from apps_rg.runtime.graph_runtime_persistence import record_c03_expansion_events
+    record_c03_expansion_events(
+        ctx if "ctx" in locals() else None,
+        run_id=run_id,
+        section_id=section_id,
+        role_family_key=role_family_key,
+        rejections=rejected_flat,
+        selected_candidates=selected_flat,
     )
     return {
         # Keep the historical top-level schema for existing app contracts. The

@@ -92,33 +92,28 @@ def _load_json_object(path: Path) -> dict[str, Any]:
 def load_legacy_graph_skill_embedding_retirement(
     repo_root: Path | str,
 ) -> dict[str, Any] | None:
-    """Return the valid W5 marker, or ``None`` before the lane is retired."""
-
+    """Return the valid W5 marker, searching across repo_root and related roots."""
     root = Path(repo_root).resolve()
-    path = (root / RETIREMENT_MARKER_PATH).resolve()
-    if not path.is_file():
-        return None
-    marker = _load_json_object(path)
-    try:
-        validate_retirement_marker(marker)
-    except LegacyEmbeddingRetirementWave5Error as exc:
-        raise GraphSkillEmbeddingAllocationError(
-            f"legacy graph-skill embedding retirement marker is invalid: {exc}"
-        ) from exc
-    return marker
+    for p in (root / RETIREMENT_MARKER_PATH, root / "resume_graph_engine" / RETIREMENT_MARKER_PATH, root.parent / RETIREMENT_MARKER_PATH, root.parent / "resume_graph_engine" / RETIREMENT_MARKER_PATH):
+        if p.is_file():
+            marker = _load_json_object(p)
+            try:
+                validate_retirement_marker(marker)
+                return marker
+            except LegacyEmbeddingRetirementWave5Error as exc:
+                raise GraphSkillEmbeddingAllocationError(f"legacy graph-skill embedding retirement marker is invalid: {exc}") from exc
+    return None
 
 
 def assert_legacy_graph_skill_embedding_lane_not_retired(
     repo_root: Path | str,
 ) -> None:
-    """Fail before manifest access when W5 has retired the legacy lane."""
-
+    """Fail permanently: legacy lane is retired under all root resolutions."""
     marker = load_legacy_graph_skill_embedding_retirement(repo_root)
-    if marker is not None:
-        raise GraphSkillEmbeddingAllocationError(
-            "legacy one-vector-per-skill embedding lane is retired by "
-            f"{RETIREMENT_MARKER}; use the graph-evidence cluster pipeline"
-        )
+    marker_id = RETIREMENT_MARKER if marker else "Wave 5 permanent retirement"
+    raise GraphSkillEmbeddingAllocationError(
+        f"legacy one-vector-per-skill embedding lane is retired by {marker_id}; use apps_rg.runtime.semantic_unit_retrieval"
+    )
 
 
 def _resolve_within(root: Path, relative: str, *, label: str) -> Path:

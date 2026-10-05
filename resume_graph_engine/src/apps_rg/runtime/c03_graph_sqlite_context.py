@@ -28,7 +28,12 @@ from apps_rg.fact_inventory.augmented_skills_graph_sqlite import (
 from apps_rg.repository_layout import repository_root
 from apps_rg.runtime.c0.c03_errors import (
     C03GraphProjectionUnavailableError,
+    C03UnauthorizedSourceAuthorityError,
     RoleFamilyProjectionError,
+)
+from apps_rg.fact_inventory.skills_graph.lineage import (
+    compute_input_manifest_digest,
+    validate_projection_source_authorities,
 )
 
 PROOF_CLASSIFICATION = "graph_context_routing_support_not_claim_proof"
@@ -289,6 +294,13 @@ def _validate_c03_graph_sqlite_connection(
                 "graph_metadata authority_status is not trusted: "
                 f"{authority_status!r} != {C03_GRAPH_SQLITE_AUTHORITY_STATUS!r}"
             )
+        try:
+            validate_projection_source_authorities(conn)
+        except ValueError as exc:
+            raise C03UnauthorizedSourceAuthorityError(
+                f"C0.3 graph SQLite projection contains unauthorized source authority at {path}: {exc}"
+            ) from exc
+
         summary = meta.get("graph_count_summary") if isinstance(meta.get("graph_count_summary"), dict) else {}
         _require_projection_population_counts(conn, summary)
         validate_graphdb_capability_integrity(
@@ -304,6 +316,22 @@ def _validate_c03_graph_sqlite_connection(
                 "projection stale: materializer version "
                 f"{actual_version!r} != {C03_SQLITE_MATERIALIZER_CODE_VERSION!r}"
             )
+
+        stored_sqlite_graph_digest = str(summary.get("sqlite_graph_digest") or "").strip()
+        if stored_sqlite_graph_digest and stored_sqlite_graph_digest != validated_sqlite_logical_digest:
+            raise ValueError(
+                "projection corrupted: stored sqlite_graph_digest "
+                f"{stored_sqlite_graph_digest!r} != {validated_sqlite_logical_digest!r}"
+            )
+
+        expected_manifest_digest = compute_input_manifest_digest(root)
+        actual_manifest_digest = str(summary.get("input_manifest_digest") or "").strip()
+        if actual_manifest_digest != expected_manifest_digest:
+            raise ValueError(
+                "projection stale: input manifest digest mismatch "
+                f"(stored={actual_manifest_digest!r}, expected={expected_manifest_digest!r})"
+            )
+
         expected_hash = _ledger_hash(root)
         actual_hash = str(meta.get("ledger_hash") or "")
         if actual_hash != expected_hash:
@@ -367,6 +395,8 @@ def ensure_c03_graph_sqlite(repo_root: Path, db_path: Path | None = None) -> Pat
     path = _projection_path(root, db_path)
     try:
         return require_c03_graph_sqlite(root, path)
+    except C03UnauthorizedSourceAuthorityError:
+        raise
     except C03GraphProjectionUnavailableError:
         materialize_augmented_skills_graph_sqlite(repo_root=root, db_path=path)
     return require_c03_graph_sqlite(root, path)
@@ -450,8 +480,8 @@ def assemble_c03_graph_sqlite_context(
 ) -> dict[str, Any]:
     """Query SQLite graph for C0.3-style context bundle + inline receipt fields."""
     root = repo_root or _repo_root()
-    # The execution boundary refreshes generated state; health/report readers stay pure.
-    path = ensure_c03_graph_sqlite(root, db_path)
+    # Fail-closed runtime path: strictly require projection without rematerializing.
+    path = require_c03_graph_sqlite(root, db_path)
     facts_in = sorted({str(x).strip() for x in (selected_fact_ids or []) if str(x).strip()})
     sec = str(section_id or "").strip() or "executive_summary"
     rf = str(role_family_key or "").strip() or "SVP_ENGINEERING_AI_PLATFORM"
@@ -644,8 +674,11 @@ def assemble_c03_graph_sqlite_context(
             ) from exc
         try:
             selected_skill_ids = [str(row[0] or "") for row in fact_links if str(row[0] or "")]
-            reverse_targets = facts_in[:5] or selected_skill_ids[:5]
-            for target in reverse_targets:
+            metric_targets: list[str] = []
+            if facts_in:
+                m_sql = f"SELECT DISTINCT target_node_id FROM graph_edges WHERE edge_type = 'fact_has_metric_outcome' AND source_node_id IN ({','.join('?' for _ in facts_in[:5])})"
+                metric_targets = [str(r[0]) for r in conn.execute(m_sql, tuple(facts_in[:5])).fetchall()]
+            for target in metric_targets[:5]:
                 for row in query_reverse_metric_paths(conn, metric_id=target, limit=12):
                     reverse_path_receipts.append({"target_node_id": target, **row})
             for skill_id in list(dict.fromkeys(selected_skill_ids))[:8]:

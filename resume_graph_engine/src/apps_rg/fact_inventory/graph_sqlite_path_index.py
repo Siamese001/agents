@@ -41,81 +41,13 @@ EDGE_METADATA_COLUMNS: tuple[tuple[str, str], ...] = (
     ("operator_note", "TEXT NOT NULL DEFAULT ''"),
     ("business_story", "TEXT NOT NULL DEFAULT ''"),
     ("technical_story", "TEXT NOT NULL DEFAULT ''"),
+    ("confidence_score", "REAL DEFAULT NULL"),
+    ("confidence_tier", "TEXT NOT NULL DEFAULT 'NOT_APPLICABLE'"),
+    ("confidence_method", "TEXT NOT NULL DEFAULT 'unspecified'"),
 )
 
-DEFAULT_SECTION_BUDGETS: tuple[dict[str, Any], ...] = (
-    {
-        "section_id": "executive_summary",
-        "role_family_key": "*",
-        "max_metric_reuse": 1,
-        "max_fact_family_reuse": 2,
-        "required_node_types": ["skill", "fact", "metric_outcome"],
-        "preferred_edge_types": [
-            "role_family_weights_pillar",
-            "skill_supported_by_fact",
-            "fact_has_metric_outcome",
-        ],
-        "forbidden_metric_ids": [],
-        "preferred_metric_families": [
-            "revenue_growth",
-            "risk_governance",
-            "platform_scale",
-            "adoption_enablement",
-        ],
-    },
-    {
-        "section_id": "competencies",
-        "role_family_key": "*",
-        "max_metric_reuse": 0,
-        "max_fact_family_reuse": 1,
-        "required_node_types": ["skill", "pillar"],
-        "preferred_edge_types": ["capability_domain_contains_skill", "pillar_contains_skill"],
-        "forbidden_metric_ids": [],
-        "preferred_metric_families": ["platform_scale", "model_quality", "delivery_velocity"],
-    },
-    {
-        "section_id": "experience",
-        "role_family_key": "*",
-        "max_metric_reuse": 1,
-        "max_fact_family_reuse": 2,
-        "required_node_types": ["skill", "fact", "metric_outcome"],
-        "preferred_edge_types": [
-            "skill_supported_by_fact",
-            "employment_hosts_fact",
-            "fact_has_metric_outcome",
-        ],
-        "forbidden_metric_ids": [],
-        "preferred_metric_families": ["cost_efficiency", "revenue_growth", "delivery_velocity"],
-    },
-    {
-        "section_id": "leadership",
-        "role_family_key": "*",
-        "max_metric_reuse": 1,
-        "max_fact_family_reuse": 2,
-        "required_node_types": ["skill", "fact"],
-        "preferred_edge_types": [
-            "role_family_weights_pillar",
-            "employment_hosts_fact",
-            "skill_supported_by_fact",
-        ],
-        "forbidden_metric_ids": [],
-        "preferred_metric_families": ["revenue_growth", "adoption_enablement", "partner_gtm"],
-    },
-    {
-        "section_id": "technical_architecture",
-        "role_family_key": "*",
-        "max_metric_reuse": 1,
-        "max_fact_family_reuse": 2,
-        "required_node_types": ["skill", "fact", "metric_outcome"],
-        "preferred_edge_types": [
-            "capability_domain_contains_skill",
-            "skill_supported_by_fact",
-            "fact_has_metric_outcome",
-        ],
-        "forbidden_metric_ids": [],
-        "preferred_metric_families": ["platform_scale", "risk_governance", "model_quality"],
-    },
-)
+from .section_budgets import DEFAULT_SECTION_BUDGETS
+
 
 GRAPHDB_CAPABILITY_DDL: tuple[str, ...] = (
     """
@@ -140,6 +72,7 @@ GRAPHDB_CAPABILITY_DDL: tuple[str, ...] = (
         path_score REAL NOT NULL DEFAULT 0.0,
         novelty_score REAL NOT NULL DEFAULT 0.0,
         proof_strength_score REAL NOT NULL DEFAULT 0.0,
+        build_run_id TEXT NOT NULL DEFAULT '',
         created_at TEXT NOT NULL,
         FOREIGN KEY (start_node_id) REFERENCES graph_nodes(node_id),
         FOREIGN KEY (end_node_id) REFERENCES graph_nodes(node_id)
@@ -156,7 +89,11 @@ GRAPHDB_CAPABILITY_DDL: tuple[str, ...] = (
         sibling_reason TEXT NOT NULL DEFAULT '',
         shared_parent_node_id TEXT NOT NULL DEFAULT '',
         shared_edge_type TEXT NOT NULL DEFAULT '',
+        parent_edge_id TEXT NOT NULL DEFAULT '',
+        sibling_edge_id TEXT NOT NULL DEFAULT '',
+        derivation_rule_id TEXT NOT NULL DEFAULT '',
         sibling_score REAL NOT NULL DEFAULT 0.0,
+        build_run_id TEXT NOT NULL DEFAULT '',
         PRIMARY KEY (
             node_id, sibling_node_id, shared_parent_node_id, shared_edge_type
         ),
@@ -179,8 +116,11 @@ GRAPHDB_CAPABILITY_DDL: tuple[str, ...] = (
             CHECK (json_valid(connecting_path_json) AND json_type(connecting_path_json) = 'array'),
         edge_types_json TEXT NOT NULL
             CHECK (json_valid(edge_types_json) AND json_type(edge_types_json) = 'array'),
+        edge_ids_json TEXT NOT NULL DEFAULT '[]'
+            CHECK (json_valid(edge_ids_json) AND json_type(edge_ids_json) = 'array'),
         relationship_summary TEXT NOT NULL DEFAULT '',
         neighbor_score REAL NOT NULL DEFAULT 0.0,
+        build_run_id TEXT NOT NULL DEFAULT '',
         PRIMARY KEY (center_node_id, neighbor_node_id, distance),
         CHECK (center_node_id <> neighbor_node_id),
         FOREIGN KEY (center_node_id) REFERENCES graph_nodes(node_id),
@@ -265,6 +205,7 @@ GRAPHDB_CAPABILITY_TABLE_COLUMNS: dict[str, frozenset[str]] = {
             "path_score",
             "novelty_score",
             "proof_strength_score",
+            "build_run_id",
             "created_at",
         }
     ),
@@ -275,7 +216,11 @@ GRAPHDB_CAPABILITY_TABLE_COLUMNS: dict[str, frozenset[str]] = {
             "sibling_reason",
             "shared_parent_node_id",
             "shared_edge_type",
+            "parent_edge_id",
+            "sibling_edge_id",
+            "derivation_rule_id",
             "sibling_score",
+            "build_run_id",
         }
     ),
     "graph_neighborhoods": frozenset(
@@ -285,8 +230,10 @@ GRAPHDB_CAPABILITY_TABLE_COLUMNS: dict[str, frozenset[str]] = {
             "distance",
             "connecting_path_json",
             "edge_types_json",
+            "edge_ids_json",
             "relationship_summary",
             "neighbor_score",
+            "build_run_id",
         }
     ),
     "resume_metric_usage": frozenset(
@@ -423,6 +370,7 @@ REQUIRED_CHECK_FRAGMENTS: dict[str, tuple[str, ...]] = {
         "check(center_node_id<>neighbor_node_id)",
         "check(json_valid(connecting_path_json)andjson_type(connecting_path_json)='array')",
         "check(json_valid(edge_types_json)andjson_type(edge_types_json)='array')",
+        "check(json_valid(edge_ids_json)andjson_type(edge_ids_json)='array')",
     ),
 }
 
@@ -463,6 +411,20 @@ GRAPHDB_REVERSE_VIEW_COLUMNS = frozenset(
         "operator_note",
         "business_story",
         "technical_story",
+        "assertion_type",
+        "assertion_basis",
+        "assertion_basis_refs_json",
+        "canonical_assertion_text",
+        "lifecycle_disposition",
+        "semantic_contract_version",
+        "origin_kind",
+        "origin_ref",
+        "origin_artifact_sha256",
+        "derivation_rule_id",
+        "build_run_id",
+        "confidence_score",
+        "confidence_tier",
+        "confidence_method",
     }
 )
 
@@ -1012,6 +974,7 @@ def validate_graphdb_capability_integrity(
                           THEN p.edge_path_json ELSE '[]' END,
                      '$[0]'
                  ) IS e.edge_id
+                WHERE COALESCE(e.traversable, 1) = 1
                 GROUP BY e.edge_id
                 HAVING COUNT(p.path_id) <> 1
             )
@@ -1055,6 +1018,7 @@ def validate_graphdb_capability_integrity(
                 FROM graph_edges e
                 JOIN graph_nodes n ON n.node_id = e.target_node_id
                 WHERE n.node_type IN ({sibling_node_types_sql})
+                  AND COALESCE(e.traversable, 1) = 1
             ),
             expected AS (
                 SELECT a.child_node_id AS node_id,
@@ -1070,7 +1034,7 @@ def validate_graphdb_capability_integrity(
             SELECT
                 (SELECT COUNT(*) FROM (
                     SELECT e.node_id, e.sibling_node_id,
-                           e.shared_parent_node_id, e.shared_edge_type
+                            e.shared_parent_node_id, e.shared_edge_type
                     FROM expected e
                     LEFT JOIN graph_sibling_links g
                       ON g.node_id = e.node_id
@@ -1105,9 +1069,12 @@ def validate_graphdb_capability_integrity(
                  AND json_type(connecting_path_json) = 'array'
                  AND json_valid(edge_types_json)
                  AND json_type(edge_types_json) = 'array'
+                 AND json_valid(edge_ids_json)
+                 AND json_type(edge_ids_json) = 'array'
                 THEN distance < 1
                   OR json_array_length(connecting_path_json) <> distance + 1
-                  OR json_array_length(edge_types_json) <> distance
+                  OR json_array_length(edge_types_json) < 1
+                  OR json_array_length(edge_ids_json) < 1
                 ELSE 1
             END
         """,
@@ -1130,29 +1097,13 @@ def validate_graphdb_capability_integrity(
             WHERE NOT EXISTS (
                 SELECT 1 FROM graph_edges e
                 WHERE (
-                    e.source_node_id IS json_extract(
-                        CASE WHEN json_valid(g.connecting_path_json)
-                             THEN g.connecting_path_json ELSE '[]' END,
-                        '$[' || j.key || ']'
-                    )
-                    AND e.target_node_id IS json_extract(
-                        CASE WHEN json_valid(g.connecting_path_json)
-                             THEN g.connecting_path_json ELSE '[]' END,
-                        '$[' || (j.key + 1) || ']'
-                    )
-                    AND e.edge_type IS j.value
+                    e.source_node_id = g.center_node_id
+                    AND e.target_node_id = g.neighbor_node_id
+                    AND e.edge_type = j.value
                 ) OR (
-                    e.target_node_id IS json_extract(
-                        CASE WHEN json_valid(g.connecting_path_json)
-                             THEN g.connecting_path_json ELSE '[]' END,
-                        '$[' || j.key || ']'
-                    )
-                    AND e.source_node_id IS json_extract(
-                        CASE WHEN json_valid(g.connecting_path_json)
-                             THEN g.connecting_path_json ELSE '[]' END,
-                        '$[' || (j.key + 1) || ']'
-                    )
-                    AND e.edge_type || '_reverse' IS j.value
+                    e.target_node_id = g.center_node_id
+                    AND e.source_node_id = g.neighbor_node_id
+                    AND e.edge_type || '_reverse' = j.value
                 )
             )
         """,
@@ -1161,10 +1112,12 @@ def validate_graphdb_capability_integrity(
                 SELECT source_node_id, target_node_id
                 FROM graph_edges
                 WHERE source_node_id <> target_node_id
+                  AND COALESCE(traversable, 1) = 1
                 UNION
                 SELECT target_node_id, source_node_id
                 FROM graph_edges
                 WHERE source_node_id <> target_node_id
+                  AND COALESCE(traversable, 1) = 1
             )
             SELECT COUNT(*) FROM (
                 SELECT e.center_node_id, e.neighbor_node_id
@@ -1203,6 +1156,17 @@ def validate_graphdb_capability_integrity(
                     AND r.operator_note IS e.operator_note
                     AND r.business_story IS e.business_story
                     AND r.technical_story IS e.technical_story
+                    AND r.assertion_type IS e.assertion_type
+                    AND r.assertion_basis IS e.assertion_basis
+                    AND r.assertion_basis_refs_json IS e.assertion_basis_refs_json
+                    AND r.canonical_assertion_text IS e.canonical_assertion_text
+                    AND r.lifecycle_disposition IS e.lifecycle_disposition
+                    AND r.semantic_contract_version IS e.semantic_contract_version
+                    AND r.origin_kind IS e.origin_kind
+                    AND r.origin_ref IS e.origin_ref
+                    AND r.origin_artifact_sha256 IS e.origin_artifact_sha256
+                    AND r.derivation_rule_id IS e.derivation_rule_id
+                    AND r.build_run_id IS e.build_run_id
                    WHERE r.edge_id IS NULL)
                 + (SELECT COUNT(*) FROM graph_edges_reverse r
                    LEFT JOIN graph_edges e
@@ -1224,6 +1188,17 @@ def validate_graphdb_capability_integrity(
                     AND r.operator_note IS e.operator_note
                     AND r.business_story IS e.business_story
                     AND r.technical_story IS e.technical_story
+                    AND r.assertion_type IS e.assertion_type
+                    AND r.assertion_basis IS e.assertion_basis
+                    AND r.assertion_basis_refs_json IS e.assertion_basis_refs_json
+                    AND r.canonical_assertion_text IS e.canonical_assertion_text
+                    AND r.lifecycle_disposition IS e.lifecycle_disposition
+                    AND r.semantic_contract_version IS e.semantic_contract_version
+                    AND r.origin_kind IS e.origin_kind
+                    AND r.origin_ref IS e.origin_ref
+                    AND r.origin_artifact_sha256 IS e.origin_artifact_sha256
+                    AND r.derivation_rule_id IS e.derivation_rule_id
+                    AND r.build_run_id IS e.build_run_id
                    WHERE e.edge_id IS NULL)
         """,
         "malformed_section_evidence_budget_json": """
@@ -1429,7 +1404,22 @@ def build_reverse_edge_view(conn: sqlite3.Connection) -> None:
             {col("edge_note")},
             {col("operator_note")},
             {col("business_story")},
-            {col("technical_story")}
+            {col("technical_story")},
+            {col("assertion_type", "'STRUCTURAL_CONTAINMENT'")},
+            {col("assertion_basis", "'taxonomy_rule'")},
+            {col("assertion_basis_refs_json", "'[]'")},
+            {col("canonical_assertion_text", "'structural containment assertion'")},
+            {col("lifecycle_disposition", "'ACTIVE_POLICY_GATED'")},
+            {col("semantic_contract_version", "'apps_rg.c03_graph_edge_semantic_contract.v2'")},
+            {col("origin_kind", "'ledger_edge'")},
+            {col("origin_ref", "'unspecified'")},
+            {col("origin_artifact_sha256", "''")},
+            {col("derivation_rule_id", "''")},
+            {col("build_run_id", "'unspecified'")},
+            {col("confidence_score", "NULL")},
+            {col("confidence_tier", "'NOT_APPLICABLE'")},
+            {col("confidence_method", "'unspecified'")},
+            {col("traversable", "1")}
         FROM graph_edges
         """
     )
@@ -1482,6 +1472,7 @@ def build_graph_index_rows(
     section_rows: Iterable[dict[str, Any]],
     role_family_projection_rows: Iterable[dict[str, Any]],
     created_at: str,
+    build_run_id: str = "",
 ) -> dict[str, list[dict[str, Any]]]:
     """Build generated graph-index rows before the SQLite file exists."""
     nodes = {str(row.get("node_id") or ""): dict(row) for row in node_rows if row.get("node_id")}
@@ -1490,6 +1481,8 @@ def build_graph_index_rows(
 
     graph_paths: list[dict[str, Any]] = []
     for edge in edges:
+        if int(edge.get("traversable", 1)) == 0:
+            continue
         src = str(edge.get("source_node_id") or "")
         tgt = str(edge.get("target_node_id") or "")
         if not src or not tgt:
@@ -1526,17 +1519,23 @@ def build_graph_index_rows(
                 "path_score": path_score,
                 "novelty_score": round(novelty_score, 6),
                 "proof_strength_score": round(proof_score, 6),
+                "build_run_id": build_run_id,
                 "created_at": created_at,
             }
         )
 
     children_by_parent: dict[tuple[str, str], list[str]] = defaultdict(list)
+    edge_id_by_parent_child: dict[tuple[str, str, str], str] = {}
     for edge in edges:
+        if int(edge.get("traversable", 1)) == 0:
+            continue
         src = str(edge.get("source_node_id") or "")
         tgt = str(edge.get("target_node_id") or "")
+        edge_id = str(edge.get("edge_id") or "")
         edge_type = str(edge.get("edge_type") or "")
         if src and tgt and tgt in nodes and node_types.get(tgt) in SIBLING_NODE_TYPES:
             children_by_parent[(src, edge_type)].append(tgt)
+            edge_id_by_parent_child[(src, tgt, edge_type)] = edge_id
 
     graph_sibling_links: list[dict[str, Any]] = []
     sibling_keys: set[tuple[str, str, str, str]] = set()
@@ -1553,6 +1552,8 @@ def build_graph_index_rows(
                     continue
                 sibling_keys.add(key)
                 score = 1.0 + (0.5 if node_types.get(node_id) == node_types.get(sibling_node_id) else 0.0)
+                parent_edge_id = edge_id_by_parent_child.get((parent, node_id, edge_type), "")
+                sibling_edge_id = edge_id_by_parent_child.get((parent, sibling_node_id, edge_type), "")
                 graph_sibling_links.append(
                     {
                         "node_id": node_id,
@@ -1560,40 +1561,45 @@ def build_graph_index_rows(
                         "sibling_reason": f"shared_parent:{edge_type}",
                         "shared_parent_node_id": parent,
                         "shared_edge_type": edge_type,
+                        "parent_edge_id": parent_edge_id,
+                        "sibling_edge_id": sibling_edge_id,
+                        "derivation_rule_id": "rule_shared_parent_sibling",
                         "sibling_score": round(score, 4),
+                        "build_run_id": build_run_id,
                     }
                 )
 
-    adjacency: dict[str, list[tuple[str, str]]] = defaultdict(list)
+    center_neighbor_edges: dict[tuple[str, str], list[tuple[str, str]]] = defaultdict(list)
     for edge in edges:
+        if int(edge.get("traversable", 1)) == 0:
+            continue
         src = str(edge.get("source_node_id") or "")
         tgt = str(edge.get("target_node_id") or "")
+        edge_id = str(edge.get("edge_id") or "")
         edge_type = str(edge.get("edge_type") or "")
         if src and tgt:
-            adjacency[src].append((tgt, edge_type))
-            adjacency[tgt].append((src, f"{edge_type}_reverse"))
+            center_neighbor_edges[(src, tgt)].append((edge_id, edge_type))
+            center_neighbor_edges[(tgt, src)].append((edge_id, f"{edge_type}_reverse"))
 
     graph_neighborhoods: list[dict[str, Any]] = []
-    neighborhood_keys: set[tuple[str, str, int]] = set()
-    for center, neighbors in sorted(adjacency.items()):
-        for neighbor, edge_type in sorted(set(neighbors)):
-            key = (center, neighbor, 1)
-            if key in neighborhood_keys:
-                continue
-            neighborhood_keys.add(key)
-            graph_neighborhoods.append(
-                {
-                    "center_node_id": center,
-                    "neighbor_node_id": neighbor,
-                    "distance": 1,
-                    "connecting_path_json": _json([center, neighbor]),
-                    "edge_types_json": _json([edge_type]),
-                    "relationship_summary": f"1_hop:{edge_type}",
-                    "neighbor_score": round(
-                        1.0 + (0.5 if node_types.get(neighbor) in HIGH_VALUE_NODE_TYPES else 0.0), 6
-                    ),
-                }
-            )
+    for (center, neighbor), edge_pairs in sorted(center_neighbor_edges.items()):
+        edge_ids = [p[0] for p in edge_pairs if p[0]]
+        edge_types = sorted(set(p[1] for p in edge_pairs if p[1]))
+        graph_neighborhoods.append(
+            {
+                "center_node_id": center,
+                "neighbor_node_id": neighbor,
+                "distance": 1,
+                "connecting_path_json": _json([center, neighbor]),
+                "edge_types_json": _json(edge_types),
+                "edge_ids_json": _json(edge_ids),
+                "relationship_summary": f"1_hop:{','.join(edge_types)}",
+                "neighbor_score": round(
+                    1.0 + (0.5 if node_types.get(neighbor) in HIGH_VALUE_NODE_TYPES else 0.0), 6
+                ),
+                "build_run_id": build_run_id,
+            }
+        )
 
     role_family_keys = {"*"}
     for row in role_family_projection_rows:
@@ -1907,12 +1913,12 @@ def materialize_graphdb_capability_indexes(conn: sqlite3.Connection) -> dict[str
             path_id, start_node_id, end_node_id, path_depth, path_signature,
             node_path_json, edge_path_json, edge_types_json, proof_fact_ids_json,
             metric_ids_json, section_ids_json, path_score, novelty_score,
-            proof_strength_score, created_at
+            proof_strength_score, build_run_id, created_at
         ) VALUES (
             :path_id, :start_node_id, :end_node_id, :path_depth, :path_signature,
             :node_path_json, :edge_path_json, :edge_types_json,
             :proof_fact_ids_json, :metric_ids_json, :section_ids_json,
-            :path_score, :novelty_score, :proof_strength_score, :created_at
+            :path_score, :novelty_score, :proof_strength_score, :build_run_id, :created_at
         )
         """,
         rows["graph_paths"],
@@ -1921,10 +1927,12 @@ def materialize_graphdb_capability_indexes(conn: sqlite3.Connection) -> dict[str
         """
         INSERT INTO graph_neighborhoods (
             center_node_id, neighbor_node_id, distance, connecting_path_json,
-            edge_types_json, relationship_summary, neighbor_score
+            edge_types_json, edge_ids_json, relationship_summary, neighbor_score,
+            build_run_id
         ) VALUES (
             :center_node_id, :neighbor_node_id, :distance, :connecting_path_json,
-            :edge_types_json, :relationship_summary, :neighbor_score
+            :edge_types_json, :edge_ids_json, :relationship_summary, :neighbor_score,
+            :build_run_id
         )
         """,
         rows["graph_neighborhoods"],
@@ -1933,10 +1941,12 @@ def materialize_graphdb_capability_indexes(conn: sqlite3.Connection) -> dict[str
         """
         INSERT INTO graph_sibling_links (
             node_id, sibling_node_id, sibling_reason, shared_parent_node_id,
-            shared_edge_type, sibling_score
+            shared_edge_type, parent_edge_id, sibling_edge_id, derivation_rule_id,
+            sibling_score, build_run_id
         ) VALUES (
             :node_id, :sibling_node_id, :sibling_reason, :shared_parent_node_id,
-            :shared_edge_type, :sibling_score
+            :shared_edge_type, :parent_edge_id, :sibling_edge_id, :derivation_rule_id,
+            :sibling_score, :build_run_id
         )
         """,
         rows["graph_sibling_links"],
@@ -2166,17 +2176,19 @@ def query_section_evidence_budget(
     role_family_key: str = "*",
 ) -> dict[str, Any] | None:
     require_graphdb_capability_schema(conn)
+    clean_sec = section_id.strip()
+    norm_sec = clean_sec if clean_sec.startswith("section_") else f"section_{clean_sec}"
     row = conn.execute(
         """
         SELECT section_id, role_family_key, max_metric_reuse, max_fact_family_reuse,
                required_node_types_json, preferred_edge_types_json,
                forbidden_metric_ids_json, preferred_metric_families_json
         FROM section_evidence_budget
-        WHERE section_id = ? AND role_family_key IN (?, '*')
+        WHERE section_id IN (?, ?) AND role_family_key IN (?, '*')
         ORDER BY CASE WHEN role_family_key = ? THEN 0 ELSE 1 END
         LIMIT 1
         """,
-        (section_id, role_family_key, role_family_key),
+        (norm_sec, clean_sec, role_family_key, role_family_key),
     ).fetchone()
     if not row:
         return None

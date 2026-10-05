@@ -97,11 +97,20 @@ def build_c03_graph_hardening_receipt(payload: dict[str, Any]) -> dict[str, Any]
     }
 
 
-def validate_c03_graph_hardening_payload(payload: dict[str, Any]) -> dict[str, Any]:
+def validate_c03_graph_hardening_payload(
+    payload: dict[str, Any],
+    *,
+    db_path: Path | str | None = None,
+) -> dict[str, Any]:
     receipt = build_c03_graph_hardening_receipt(payload)
     if receipt["issues"]:
         messages = [f"{item['code']}: {item['detail']}" for item in receipt["issues"]]
         raise ValueError("GRAPH_CANONICAL_VALIDATION: " + "; ".join(messages))
+    if db_path:
+        db_p = Path(db_path).resolve()
+        if db_p.is_file():
+            from apps_rg.fact_inventory.validate_graph_topology import validate_graph_topology
+            validate_graph_topology(db_p)
     return {
         "status": "PASS",
         "overwrite_version": receipt["overwrite_version"],

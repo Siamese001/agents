@@ -26,6 +26,14 @@ from .storage import (
 )
 from .materializer_ingress import run_materializer_ingress
 from .materializer_indexing import run_materializer_indexing
+from .lineage import validate_projection_source_authorities
+from .edge_evidence import calibrate_edge_confidence, extract_edge_evidence
+from .type_registry import (
+    compute_type_registry_digest,
+    get_edge_type_registry_rows,
+    get_node_type_registry_rows,
+)
+from apps_rg.fact_inventory.semantic_units import populate_semantic_units
 
 def _get_open_isolated_temp_graph_sqlite():
     facade = sys.modules.get("apps_rg.fact_inventory.augmented_skills_graph_sqlite")
@@ -69,6 +77,10 @@ def materialize_augmented_skills_graph_sqlite(
     src_path = ctx["src_path"]
     ts = ctx["ts"]
     root = ctx["root"]
+    build_run_id = ctx.get("build_run_id", "")
+    builder_git_commit = ctx.get("builder_git_commit", "")
+    build_inputs = ctx.get("build_inputs", [])
+    semantic_contract_version = ctx.get("semantic_contract_version", "")
 
     maintenance_lock = _acquire_sqlite_maintenance_lock(out_path)
     expected_target_digest = _sqlite_projection_digest(out_path)
@@ -95,19 +107,75 @@ def materialize_augmented_skills_graph_sqlite(
     try:
         for stmt in DDL_STATEMENTS:
             conn.execute(stmt)
+
+        conn.executemany(
+            """
+            INSERT INTO node_type_registry (
+                node_type, layer, description, is_canonical, is_traversable
+            ) VALUES (
+                :node_type, :layer, :description, :is_canonical, :is_traversable
+            )
+            """,
+            get_node_type_registry_rows(),
+        )
+        conn.executemany(
+            """
+            INSERT INTO edge_type_registry (
+                edge_type, src_type, tgt_type, assertion_type, layer,
+                traversable, inverse_label, cardinality
+            ) VALUES (
+                :edge_type, :src_type, :tgt_type, :assertion_type, :layer,
+                :traversable, :inverse_label, :cardinality
+            )
+            """,
+            get_edge_type_registry_rows(),
+        )
+
         for nr in node_rows.values():
             nr.setdefault("career_epoch", "")
             nr.setdefault("phase_ordinal", None)
+            nr.setdefault("title", "")
+            nr.setdefault("operating_context", "")
+            nr.setdefault("employer", "")
+            nr.setdefault("start_date", "")
+            nr.setdefault("end_date", "")
+            nr.setdefault("is_current", 0)
+            nr.setdefault("origin_kind", "ledger_node")
+            nr.setdefault("origin_ref", nr.get("node_id", ""))
+            nr.setdefault("source_refs_json", "[]")
+            nr.setdefault("authority_refs_json", "[]")
+            nr.setdefault("build_run_id", build_run_id)
+
+        node_types_by_id = {nid: str(r.get("node_type") or "") for nid, r in node_rows.items()}
+        node_scores_by_id = {nid: r.get("confidence_score") for nid, r in node_rows.items()}
+        all_edge_evidence_rows: list[dict[str, Any]] = []
+
+        for er in edge_rows:
+            er.setdefault("traversable", 1)
+            ev_rows = extract_edge_evidence(
+                er,
+                node_types_by_id=node_types_by_id,
+            )
+            src_score = node_scores_by_id.get(str(er.get("source_node_id") or ""))
+            calibrate_edge_confidence(er, ev_rows, source_node_score=src_score)
+            all_edge_evidence_rows.extend(ev_rows)
+
         conn.executemany(
             """
             INSERT INTO graph_nodes (
                 node_id, node_type, label, description, activation_status, support_level,
-                confidence, external_eligible, career_epoch, phase_ordinal,
-                source_authority, created_at, updated_at
+                confidence, confidence_score, confidence_tier, external_eligible,
+                career_epoch, phase_ordinal,
+                title, operating_context, employer, start_date, end_date, is_current,
+                source_authority, origin_kind, origin_ref, source_refs_json,
+                authority_refs_json, build_run_id, created_at, updated_at
             ) VALUES (
                 :node_id, :node_type, :label, :description, :activation_status, :support_level,
-                :confidence, :external_eligible, :career_epoch, :phase_ordinal,
-                :source_authority, :created_at, :updated_at
+                :confidence, :confidence_score, :confidence_tier, :external_eligible,
+                :career_epoch, :phase_ordinal,
+                :title, :operating_context, :employer, :start_date, :end_date, :is_current,
+                :source_authority, :origin_kind, :origin_ref, :source_refs_json,
+                :authority_refs_json, :build_run_id, :created_at, :updated_at
             )
             """,
             list(node_rows.values()),
@@ -118,15 +186,39 @@ def materialize_augmented_skills_graph_sqlite(
                 edge_id, source_node_id, target_node_id, edge_family, edge_type, weight,
                 confidence, directional, evidence_status, section_fit, source_authority,
                 rationale, projection_behavior, external_claim_policy, validation_status,
-                edge_note, operator_note, business_story, technical_story
+                edge_note, operator_note, business_story, technical_story,
+                assertion_type, assertion_basis, assertion_basis_refs_json,
+                canonical_assertion_text, lifecycle_disposition, semantic_contract_version,
+                origin_kind, origin_ref, origin_artifact_sha256, derivation_rule_id,
+                build_run_id, confidence_score, confidence_tier, confidence_method,
+                traversable
             ) VALUES (
                 :edge_id, :source_node_id, :target_node_id, :edge_family, :edge_type, :weight,
                 :confidence, :directional, :evidence_status, :section_fit, :source_authority,
                 :rationale, :projection_behavior, :external_claim_policy, :validation_status,
-                :edge_note, :operator_note, :business_story, :technical_story
+                :edge_note, :operator_note, :business_story, :technical_story,
+                :assertion_type, :assertion_basis, :assertion_basis_refs_json,
+                :canonical_assertion_text, :lifecycle_disposition, :semantic_contract_version,
+                :origin_kind, :origin_ref, :origin_artifact_sha256, :derivation_rule_id,
+                :build_run_id, :confidence_score, :confidence_tier, :confidence_method,
+                :traversable
             )
             """,
             edge_rows,
+        )
+        conn.executemany(
+            """
+            INSERT INTO edge_evidence (
+                edge_id, evidence_ref, evidence_node_id, evidence_kind,
+                is_independent, source_doc, span, quote_sha256,
+                human_confirmed, evidence_strength
+            ) VALUES (
+                :edge_id, :evidence_ref, :evidence_node_id, :evidence_kind,
+                :is_independent, :source_doc, :span, :quote_sha256,
+                :human_confirmed, :evidence_strength
+            )
+            """,
+            all_edge_evidence_rows,
         )
         conn.executemany(
             """
@@ -167,12 +259,14 @@ def materialize_augmented_skills_graph_sqlite(
             INSERT INTO c03_skill_selection_features (
                 skill_id, pillar, subpillar, domain_id, career_track_id, career_epoch,
                 phase_ordinal, skill_family, metric_bucket, role_family_weights,
-                allowed_sections, source_fact_count, confidence, activation_status,
+                allowed_sections, source_fact_count, confidence, confidence_score,
+                confidence_tier, activation_status,
                 support_level, external_eligible, source_authority, source_trace, updated_at
             ) VALUES (
                 :skill_id, :pillar, :subpillar, :domain_id, :career_track_id, :career_epoch,
                 :phase_ordinal, :skill_family, :metric_bucket, :role_family_weights,
-                :allowed_sections, :source_fact_count, :confidence, :activation_status,
+                :allowed_sections, :source_fact_count, :confidence, :confidence_score,
+                :confidence_tier, :activation_status,
                 :support_level, :external_eligible, :source_authority, :source_trace, :updated_at
             )
             """,
@@ -194,12 +288,12 @@ def materialize_augmented_skills_graph_sqlite(
                 path_id, start_node_id, end_node_id, path_depth, path_signature,
                 node_path_json, edge_path_json, edge_types_json, proof_fact_ids_json,
                 metric_ids_json, section_ids_json, path_score, novelty_score,
-                proof_strength_score, created_at
+                proof_strength_score, build_run_id, created_at
             ) VALUES (
                 :path_id, :start_node_id, :end_node_id, :path_depth, :path_signature,
                 :node_path_json, :edge_path_json, :edge_types_json, :proof_fact_ids_json,
                 :metric_ids_json, :section_ids_json, :path_score, :novelty_score,
-                :proof_strength_score, :created_at
+                :proof_strength_score, :build_run_id, :created_at
             )
             """,
             graph_index_rows["graph_paths"],
@@ -208,10 +302,12 @@ def materialize_augmented_skills_graph_sqlite(
             """
             INSERT INTO graph_neighborhoods (
                 center_node_id, neighbor_node_id, distance, connecting_path_json,
-                edge_types_json, relationship_summary, neighbor_score
+                edge_types_json, edge_ids_json, relationship_summary, neighbor_score,
+                build_run_id
             ) VALUES (
                 :center_node_id, :neighbor_node_id, :distance, :connecting_path_json,
-                :edge_types_json, :relationship_summary, :neighbor_score
+                :edge_types_json, :edge_ids_json, :relationship_summary, :neighbor_score,
+                :build_run_id
             )
             """,
             graph_index_rows["graph_neighborhoods"],
@@ -220,10 +316,12 @@ def materialize_augmented_skills_graph_sqlite(
             """
             INSERT INTO graph_sibling_links (
                 node_id, sibling_node_id, sibling_reason, shared_parent_node_id,
-                shared_edge_type, sibling_score
+                shared_edge_type, parent_edge_id, sibling_edge_id, derivation_rule_id,
+                sibling_score, build_run_id
             ) VALUES (
                 :node_id, :sibling_node_id, :sibling_reason, :shared_parent_node_id,
-                :shared_edge_type, :sibling_score
+                :shared_edge_type, :parent_edge_id, :sibling_edge_id, :derivation_rule_id,
+                :sibling_score, :build_run_id
             )
             """,
             graph_index_rows["graph_sibling_links"],
@@ -242,10 +340,53 @@ def materialize_augmented_skills_graph_sqlite(
             """,
             graph_index_rows["section_evidence_budget"],
         )
+        conn.execute(
+            """
+            INSERT INTO graph_build_runs (
+                build_run_id, built_at, builder_git_commit, input_manifest_digest,
+                semantic_contract_version, node_count, edge_count, path_count,
+                neighborhood_count, sibling_count
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                build_run_id,
+                ts,
+                builder_git_commit,
+                ctx.get("input_manifest_digest", ""),
+                semantic_contract_version,
+                len(node_rows),
+                len(edge_rows),
+                len(graph_index_rows["graph_paths"]),
+                len(graph_index_rows["graph_neighborhoods"]),
+                len(graph_index_rows["graph_sibling_links"]),
+            ),
+        )
+        conn.executemany(
+            """
+            INSERT INTO graph_build_inputs (
+                build_run_id, input_role, artifact_relpath, artifact_sha256, record_count
+            ) VALUES (
+                :build_run_id, :input_role, :artifact_relpath, :artifact_sha256, :record_count
+            )
+            """,
+            build_inputs,
+        )
+        summary["build_run_id"] = build_run_id
+        summary["builder_git_commit"] = builder_git_commit
+        summary["semantic_contract_version"] = semantic_contract_version
         summary["canonical_graph_digest"] = ledger_hash
         summary["canonical_digest_kind"] = "canonical_payload_v1"
         summary["sqlite_graph_digest"] = compute_sqlite_graph_digest(conn)
         summary["sqlite_schema_digest"] = compute_sqlite_schema_digest(conn)
+        summary["input_manifest_digest"] = ctx.get("input_manifest_digest", "")
+        summary["type_registry_digest"] = compute_type_registry_digest()
+        summary["edge_evidence_count"] = len(all_edge_evidence_rows)
+        unit_summary = populate_semantic_units(
+            conn,
+            build_run_id=build_run_id,
+            input_manifest_digest=summary["input_manifest_digest"],
+        )
+        summary.update(unit_summary)
         conn.execute(
             """
             INSERT INTO graph_metadata (
@@ -263,6 +404,9 @@ def materialize_augmented_skills_graph_sqlite(
             ),
         )
         conn.commit()
+        conn.execute("ANALYZE")
+        conn.commit()
+        validate_projection_source_authorities(conn)
         require_graphdb_capability_schema(conn)
         validate_graphdb_capability_integrity(
             conn,
@@ -305,6 +449,9 @@ def materialize_augmented_skills_graph_sqlite(
             "graph_paths",
             "graph_neighborhoods",
             "graph_sibling_links",
+            "graph_build_runs",
+            "graph_build_inputs",
+            "edge_evidence",
             "resume_metric_usage",
             "section_evidence_budget",
             "graph_selection_rejections",
@@ -316,3 +463,8 @@ def materialize_augmented_skills_graph_sqlite(
 
 
 __all__ = ["materialize_augmented_skills_graph_sqlite"]
+
+
+if __name__ == "__main__":
+    result = materialize_augmented_skills_graph_sqlite()
+    print("Materialization complete:", result.get("sqlite_db_path"))

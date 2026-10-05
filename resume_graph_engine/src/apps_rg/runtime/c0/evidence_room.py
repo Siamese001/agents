@@ -37,14 +37,9 @@ from apps_rg.runtime.c0 import fact_vector_index_preflight
 from apps_rg.runtime.c0.product_runtime_guards import ENV_APPS_RG_C0_EVIDENCE_ROOM
 from apps_rg.runtime.proof_pool_resolver import SectionProofPool
 from apps_rg.runtime.spine.c0_fec_compose import (
-    FEC_BRIDGE_ARTIFACT,
-    FEC_BRIDGE_MODE_SECTION,
-    FEC_BRIDGE_RECEIPT,
-    SectionFecBridge,
-    SectionFecBridgePreconditionError,
-    _build_pa_proof_authority_metadata,
-    _extract_support_status,
-    _utc_now,
+    FEC_BRIDGE_ARTIFACT, FEC_BRIDGE_MODE_SECTION, FEC_BRIDGE_RECEIPT,
+    SectionFecBridge, SectionFecBridgePreconditionError,
+    _build_pa_proof_authority_metadata, _extract_support_status, _utc_now,
 )
 from apps_rg.runtime.spine.front_contracts import SectionFrontSpineBridge
 
@@ -190,16 +185,18 @@ def run_section_c0_evidence_room(
     frozen_graph_plan = pp_meta.get("selected_graph_evidence_plan")
     if not isinstance(frozen_graph_plan, dict):
         frozen_graph_plan = pool.selected_fact_plan
+    strict_sel = bool(
+        pp_meta.get("strict_ranked_selection")
+        or os.environ.get("APPS_RG_STRICT_RANKED_SELECTION") in ("1", "true", "True")
+    )
     c03 = expand_c03_graph_bindings(
         section_id=section_id,
         atoms=atoms,
         role_family_key=rf_key,
         repo_root=REPO_ROOT,
         run_id=run_id,
-        strict_ranked_selection=False,
-        selected_graph_plan=(
-            frozen_graph_plan if isinstance(frozen_graph_plan, dict) else None
-        ),
+        strict_ranked_selection=strict_sel,
+        selected_graph_plan=frozen_graph_plan if isinstance(frozen_graph_plan, dict) else None,
     )
     bindings = list(c03.get("bindings") or [])
     lane_proof = section_id in ("executive_summary", "headline")

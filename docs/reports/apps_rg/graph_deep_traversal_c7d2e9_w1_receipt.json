@@ -1,0 +1,119 @@
+{
+  "plan_id": "graph-skills-deep-traversal-c7d2e9",
+  "wave": 1,
+  "wave_title": "Edge assertion + lineage contract (G1, G2, G6)",
+  "status": "COMPLETED",
+  "timestamp_utc": "2026-10-05T14:35:00Z",
+  "git": {
+    "branch": "feat/graph-skills-deep-traversal-review",
+    "worktree": "/Users/amitayer/Git/agents/.worktrees/graph-skills-deep-traversal-review",
+    "builder_commit": "3298b804b32d4eb24988a9bb0160332ba05e8c1a"
+  },
+  "build_run": {
+    "build_run_id": "run_20261005_143335_912ea13c",
+    "input_manifest_digest": "912ea13c23e262e8ff63a65d7e8dab2437440f1b3bbc654a2fb2af009966aab8",
+    "semantic_contract_version": "apps_rg.c03_graph_edge_semantic_contract.v2",
+    "built_at": "2026-10-05T14:33:35Z"
+  },
+  "counts": {
+    "total_edges": 3612,
+    "total_nodes": 818,
+    "total_paths": 3608,
+    "total_neighborhoods": 7022,
+    "total_sibling_links": 24710,
+    "build_runs_count": 1,
+    "build_inputs_count": 8
+  },
+  "edge_assertions": {
+    "coverage_pct": 100.0,
+    "empty_assertion_types": 0,
+    "empty_assertion_bases": 0,
+    "empty_canonical_texts": 0,
+    "distinct_edge_types": 37,
+    "distribution_by_assertion_type": {
+      "POLICY_ELIGIBILITY": 1277,
+      "METRIC_BINDING": 978,
+      "STRUCTURAL_CONTAINMENT": 632,
+      "EVIDENTIAL_SUPPORT": 513,
+      "POLICY_RESTRICTION": 146,
+      "TAXONOMIC_ATTRIBUTION": 38,
+      "ASSOCIATIVE_BRIDGE": 26,
+      "TEMPORAL_SEQUENCE": 2
+    }
+  },
+  "lineage": {
+    "edge_lineage_coverage_pct": 100.0,
+    "node_lineage_coverage_pct": 100.0,
+    "empty_edge_origin_refs": 0,
+    "empty_edge_build_run_ids": 0,
+    "empty_node_origin_refs": 0,
+    "empty_node_build_run_ids": 0,
+    "edges_by_origin_kind": {
+      "ledger_edge": 2322,
+      "bundle_row": 1290
+    },
+    "nodes_by_origin_kind": {
+      "ledger_node": 712,
+      "bundle_row": 106
+    }
+  },
+  "derived_structures": {
+    "graph_neighborhoods_sum_parallel_edges": 7224,
+    "neighborhood_edge_ids_parity_multiple": 2.0,
+    "graph_sibling_links_with_parent_edge_id": 24710,
+    "graph_sibling_links_with_derivation_rule": 24710,
+    "graph_edges_reverse_row_count": 3612,
+    "graph_edges_reverse_new_columns_present": [
+      "assertion_type",
+      "assertion_basis",
+      "assertion_basis_refs_json",
+      "canonical_assertion_text",
+      "lifecycle_disposition",
+      "semantic_contract_version",
+      "origin_kind",
+      "origin_ref",
+      "origin_artifact_sha256",
+      "derivation_rule_id",
+      "build_run_id"
+    ]
+  },
+  "acceptance_criteria_verification": {
+    "AC1.1": {
+      "status": "PASSED",
+      "detail": "100% of edges in graph_edges carry typed assertion_type, assertion_basis, non-empty canonical_assertion_text, valid lifecycle_disposition, and semantic_contract_version v2."
+    },
+    "AC1.2": {
+      "status": "PASSED",
+      "detail": "Every distinct edge_type (37 types) maps to exactly one assertion_type in contract v2; 0 unmapped edge types."
+    },
+    "AC1.3": {
+      "status": "PASSED",
+      "detail": "100% of edges and nodes carry origin_kind, origin_ref, and build_run_id linked to graph_build_runs; graph_build_inputs tracks all 8 inputs with valid SHA256 hashes."
+    },
+    "AC1.4": {
+      "status": "PASSED",
+      "detail": "All 2322 ledger_edge origin_refs resolve to canonical ledger edge IDs; all 1290 bundle_row origin_refs resolve to valid scoped bundle references."
+    },
+    "AC1.5": {
+      "status": "PASSED",
+      "detail": "graph_neighborhoods preserves parallel edges (sum(json_array_length(edge_ids_json)) = 7224 = 2 * 3612); graph_sibling_links retains parent_edge_id, sibling_edge_id, and derivation_rule_id; graph_edges_reverse includes all new columns; existing tests pass."
+    },
+    "AC1.6": {
+      "status": "PASSED",
+      "detail": "SQLite CHECK constraints enforce valid assertion_type and assertion_basis enums, non-empty text/refs, non-empty refs for EVIDENTIAL_SUPPORT, and correct lifecycle_disposition for POLICY_RESTRICTION."
+    }
+  },
+  "regression_test_summary": {
+    "total_tests": 77,
+    "passed": 77,
+    "failed": 0,
+    "suites": [
+      "test_augmented_skills_graph_sqlite.py (27 passed)",
+      "test_graph_sqlite_freshness_w0.py (5 passed)",
+      "test_graph_sqlite_path_index.py (30 passed)",
+      "test_c03_graph_skill_hardening.py (3 passed)",
+      "test_graph_skills_db_redteam_hardening.py (4 passed)",
+      "test_edge_assertion_lineage_w1.py (8 passed)"
+    ]
+  }
+}

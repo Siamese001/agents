@@ -356,6 +356,10 @@ def test_real_projection_preserves_exact_metric_node_type_counts(sqlite_db: Path
         edge_type = str(row.get("edge_type") or "").strip()
         assert edge_id and source_id and target_id and edge_type
         assert source_id not in FORBIDDEN_SKILL_NODE_IDS
+        if edge_type == "skill_external_claim_eligible":
+            s_row = next((r for r in graph["skill_rows"] if r.get("skill_id") == source_id), {})
+            if str(s_row.get("confidence_grade") or "").upper() == "BLOCKED" or str(s_row.get("activation_status") or "").upper() == "BLOCKED":
+                continue
         if source_id in POLICY_EDGE_SOURCE_KEYS:
             source_id = (
                 source_id
@@ -435,7 +439,7 @@ def test_real_projection_preserves_exact_metric_node_type_counts(sqlite_db: Path
     assert projected_counts == {
         "metric": 22,
         "metric_bucket": 16,
-        "metric_outcome": 104,
+        "metric_outcome": 106,
     }
     assert endpoint_types == {
         "atomic_fact_default_external_proof": "policy",

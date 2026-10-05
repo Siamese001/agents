@@ -1,0 +1,170 @@
+{
+  "plan_id": "graph-skills-deep-traversal-c7d2e9",
+  "wave": 2,
+  "wave_title": "Confidence and evidence model (G3, G4, G5)",
+  "status": "COMPLETED",
+  "timestamp_utc": "2026-10-05T17:10:00Z",
+  "git": {
+    "branch": "feat/graph-skills-deep-traversal-review",
+    "worktree": "/Users/amitayer/Git/agents/.worktrees/graph-skills-deep-traversal-review",
+    "builder_commit": "3298b804b32d4eb24988a9bb0160332ba05e8c1a"
+  },
+  "counts": {
+    "total_edges": 3161,
+    "total_nodes": 818,
+    "total_edge_evidence_rows": 5466,
+    "claim_bearing_edge_count": 1041,
+    "rule_governed_edge_count": 2120,
+    "metric_outcome_proven_edges": 176,
+    "removed_cross_product_edges": 451,
+    "blocked_skills_carrying_external_claim_eligible": 0
+  },
+  "confidence_model": {
+    "scale": "REAL [0.0, 1.0]",
+    "method": "noisy_or_over_independent_evidence_capped_by_source_node_score",
+    "claim_bearing_statistics": {
+      "count": 1041,
+      "min_score": 0.0,
+      "max_score": 0.99,
+      "avg_score": 0.746
+    },
+    "tier_distribution_by_assertion_type": {
+      "EVIDENTIAL_SUPPORT": {
+        "HIGH": 143,
+        "MEDIUM": 278,
+        "LOW": 92
+      },
+      "METRIC_BINDING": {
+        "HIGH": 385,
+        "MEDIUM": 121,
+        "LOW": 22
+      },
+      "POLICY_ELIGIBILITY": {
+        "NOT_APPLICABLE": 1276
+      },
+      "STRUCTURAL_CONTAINMENT": {
+        "NOT_APPLICABLE": 632
+      },
+      "POLICY_RESTRICTION": {
+        "NOT_APPLICABLE": 146
+      },
+      "TAXONOMIC_ATTRIBUTION": {
+        "NOT_APPLICABLE": 38
+      },
+      "ASSOCIATIVE_BRIDGE": {
+        "NOT_APPLICABLE": 26
+      },
+      "TEMPORAL_SEQUENCE": {
+        "NOT_APPLICABLE": 2
+      }
+    },
+    "decoupling": {
+      "coupled_confidence_validation_count": 0,
+      "legacy_confidence_matches_tier": true
+    }
+  },
+  "evidence_coverage": {
+    "total_rows": 5466,
+    "breakdown_by_kind": {
+      "edge_contract": {
+        "count": 2321,
+        "is_independent": 0,
+        "human_confirmed": 0
+      },
+      "policy_rule": {
+        "count": 1422,
+        "is_independent": 0,
+        "human_confirmed": 0
+      },
+      "fact": {
+        "count": 563,
+        "is_independent": 563,
+        "human_confirmed": 251
+      },
+      "metric_outcome": {
+        "count": 506,
+        "is_independent": 506,
+        "human_confirmed": 0
+      },
+      "skill_row_field": {
+        "count": 182,
+        "is_independent": 182,
+        "human_confirmed": 6
+      },
+      "concept": {
+        "count": 130,
+        "is_independent": 130,
+        "human_confirmed": 130
+      },
+      "employment": {
+        "count": 117,
+        "is_independent": 117,
+        "human_confirmed": 8
+      },
+      "bundle": {
+        "count": 114,
+        "is_independent": 0,
+        "human_confirmed": 0
+      },
+      "repo_evidence": {
+        "count": 63,
+        "is_independent": 63,
+        "human_confirmed": 63
+      },
+      "locked_bullet": {
+        "count": 47,
+        "is_independent": 47,
+        "human_confirmed": 47
+      },
+      "certification": {
+        "count": 1,
+        "is_independent": 1,
+        "human_confirmed": 1
+      }
+    },
+    "claim_bearing_coverage_pct": 100.0,
+    "dangling_evidence_node_ids": 0
+  },
+  "proof_chain_validation": {
+    "skill_surfaces_metric_outcome": {
+      "proven_count": 176,
+      "unproven_cross_product_count": 0,
+      "blocked_skill_sources": 0
+    },
+    "skill_external_claim_eligible": {
+      "blocked_skill_sources": 0,
+      "skill_risk_enterprise_risk_controls_eligible": false
+    }
+  },
+  "acceptance_criteria_verification": {
+    "AC2.1": {
+      "status": "PASSED",
+      "detail": "Claim-bearing edges carry numeric confidence_score in [0.0, 1.0] and tier in {HIGH, MEDIUM, LOW} (0 NULL or out of bounds). Policy and taxonomy edges have confidence_tier='NOT_APPLICABLE' and non-empty derivation_rule_id."
+    },
+    "AC2.2": {
+      "status": "PASSED",
+      "detail": "Confidence and validation_status are decoupled: COUNT(*) WHERE confidence=validation_status AND confidence<>'' is exactly 0. Legacy confidence column cleanly mirrors confidence_tier."
+    },
+    "AC2.3": {
+      "status": "PASSED",
+      "detail": "Every claim-bearing edge has >= 1 edge_evidence row (5,466 total evidence rows). Every non-empty evidence_node_id resolves to an existing node in graph_nodes (0 dangling)."
+    },
+    "AC2.4": {
+      "status": "PASSED",
+      "detail": "Every skill_surfaces_metric_outcome edge has a proven skill->fact->metric chain (176 proven edges, 451 unproven cross-product pairs removed). Exactly 0 originate from BLOCKED skills."
+    },
+    "AC2.5": {
+      "status": "PASSED",
+      "detail": "0 BLOCKED skills carry skill_external_claim_eligible edges. Specifically, skill_risk_enterprise_risk_controls has 0 external claim eligible edges."
+    },
+    "AC2.6": {
+      "status": "PASSED",
+      "detail": "Unit tests in test_edge_confidence_evidence_w2.py verified: noisy-OR formula, source node score cap, weight=0.0 preservation, and numeric ordering in get_skills_by_career_phase."
+    }
+  },
+  "verification_commands": [
+    "PYTHONPATH=resume_graph_engine/src /Users/amitayer/Git/agents/.venv/bin/pytest resume_graph_engine/tests/unit/apps_rg/fact_inventory/test_edge_confidence_evidence_w2.py --timeout=180",
+    "PYTHONPATH=resume_graph_engine/src /Users/amitayer/Git/agents/.venv/bin/pytest resume_graph_engine/tests/unit/apps_rg/fact_inventory/test_graph_sqlite_freshness_w0.py resume_graph_engine/tests/unit/apps_rg/fact_inventory/test_edge_assertion_lineage_w1.py resume_graph_engine/tests/unit/apps_rg/fact_inventory/test_augmented_skills_graph_sqlite.py --timeout=180",
+    "PYTHONPATH=resume_graph_engine/src /Users/amitayer/Git/agents/.venv/bin/pytest resume_graph_engine/tests/unit/apps_rg/fact_inventory/test_detect_graph_skill_gaps.py resume_graph_engine/tests/unit/apps_rg/test_graph_skills_utilization_w8.py --timeout=180"
+  ]
+}
