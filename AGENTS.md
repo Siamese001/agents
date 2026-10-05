@@ -138,3 +138,4 @@ Google Antigravity is the primary execution surface for this repository. Repo-ow
 - Active MCP server configuration is maintained in root `.mcp.json` and `.agents/mcp_config.json`.
 - Workspace runtime boundaries and path containment policies live in `.antigravity/runtime-boundary.json`.
 - Plans are disk-only under `plans/<name>-<6hex>.md`.
+- **Worktree & Branch Post-PR Cleanup**: Following any PR merge into local `main`, the associated local worktree and its feature branch must be cleanly pruned (`git worktree remove <path>` and `git branch -d <branch>`) to maintain zero branch drift and prevent stale worktree accumulation.

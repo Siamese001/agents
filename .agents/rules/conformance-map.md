@@ -128,6 +128,7 @@ Traces every `AGENTS.md` section to enforceable rules, skills, hooks, tools, and
 | Hook | `.githooks/pre-commit` | Pre-commit gate running turn gates, staged plans, commit invariants, tests |
 | Hook | `.githooks/pre-push` | Pre-push gate verifying all turn gates, active plans, commit invariants |
 | Tool | `tools/install_githooks.py` | Automated installation and executable permission tool |
+| Rule | `.agents/rules/git-branch-per-chat.md` | Mandatory post-PR local worktree and feature branch deletion |
 
 ### §"Adversarial Red-Team & Defense"
 | Type | Path | Coverage |
