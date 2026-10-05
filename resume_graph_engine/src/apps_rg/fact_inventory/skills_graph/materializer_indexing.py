@@ -90,7 +90,9 @@ def run_materializer_indexing(ctx: dict[str, Any]) -> None:
                     sorted(set(allowed_sections_by_skill.get(sid) or row.get("allowed_sections") or []))
                 ),
                 "source_fact_count": len(fact_ids),
-                "confidence": str(node_rows[sid].get("confidence") or ""),
+                "confidence": str(node_rows[sid].get("confidence_tier") or node_rows[sid].get("confidence") or ""),
+                "confidence_score": node_rows[sid].get("confidence_score"),
+                "confidence_tier": str(node_rows[sid].get("confidence_tier") or "UNSCORED"),
                 "activation_status": str(node_rows[sid].get("activation_status") or ""),
                 "support_level": str(node_rows[sid].get("support_level") or ""),
                 "external_eligible": int(node_rows[sid].get("external_eligible") or 0),
@@ -176,6 +178,7 @@ def run_materializer_indexing(ctx: dict[str, Any]) -> None:
         section_rows=section_rows,
         role_family_projection_rows=projection_rows,
         created_at=ts,
+        build_run_id=ctx.get("build_run_id", ""),
     )
 
     gm = payload.get("graph_metadata") if isinstance(payload.get("graph_metadata"), dict) else {}

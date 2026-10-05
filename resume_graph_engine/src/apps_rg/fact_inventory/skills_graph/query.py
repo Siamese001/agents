@@ -97,7 +97,8 @@ def get_skills_by_career_phase(
                 f.skill_id, n.label, n.description, f.career_epoch, f.phase_ordinal,
                 f.pillar, f.subpillar, f.domain_id, f.metric_bucket, f.confidence,
                 f.support_level, f.activation_status, f.external_eligible,
-                f.source_fact_count, f.allowed_sections
+                f.source_fact_count, f.allowed_sections,
+                f.confidence_score, f.confidence_tier
             FROM c03_skill_selection_features f
             JOIN graph_nodes n ON n.node_id = f.skill_id
             WHERE (f.phase_ordinal = ? OR f.career_epoch = ?)
@@ -113,7 +114,7 @@ def get_skills_by_career_phase(
             """
             params.append(section_id)
 
-        query += " ORDER BY f.confidence DESC, f.skill_id ASC"
+        query += " ORDER BY COALESCE(f.confidence_score, 0.0) DESC, f.skill_id ASC"
         skill_rows = conn.execute(query, tuple(params)).fetchall()
 
         skills: list[dict[str, Any]] = []
@@ -144,7 +145,9 @@ def get_skills_by_career_phase(
                 "domain_id": r[7],
                 "metric_bucket": r[8],
                 "confidence": conf,
-                "confidence_numeric": 0.90 if conf == "HIGH" else (0.75 if conf == "MEDIUM" else 0.50),
+                "confidence_score": float(r[15]) if r[15] is not None else (0.90 if conf == "HIGH" else (0.75 if conf == "MEDIUM" else 0.50)),
+                "confidence_tier": str(r[16] or conf),
+                "confidence_numeric": float(r[15]) if r[15] is not None else (0.90 if conf == "HIGH" else (0.75 if conf == "MEDIUM" else 0.50)),
                 "support_level": r[10],
                 "activation_status": r[11],
                 "external_eligible": int(r[12] or 0),

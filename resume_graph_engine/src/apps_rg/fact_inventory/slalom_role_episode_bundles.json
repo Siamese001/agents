@@ -36,7 +36,9 @@
     "metric_slalom_audit_grade_lineage_assurance": "audit-grade execution lineage assurance across multi-agent traces",
     "metric_slalom_accelerator_adoption_acceleration_months_to_weeks": "client adoption compressed from months to weeks via reusable solution accelerators",
     "metric_slalom_cloud_partner_cosell_initiatives": "joint partner co-sell solution motions across AWS, Azure, and Databricks",
-    "metric_slalom_reusable_ip_asset_library_count": "reusable agentic IP asset library driving high-margin delivery motions"
+    "metric_slalom_reusable_ip_asset_library_count": "reusable agentic IP asset library driving high-margin delivery motions",
+    "metric_slalom_visual_asset_intelligence_sow_delivery": "six-figure multi-modal visual asset intelligence platform delivered across utility generation sites",
+    "metric_slalom_consulting_engineering_footprint_scale": "106-software-engineer footprint mobilized across advanced analytics and enterprise digital operations"
   },
   "bundles": [
     {
@@ -247,6 +249,104 @@
         "slalom_narrative",
         "competencies",
         "headline",
+        "executive_summary"
+      ],
+      "external_claim_policy": "approved_by_graph_presence",
+      "activation_status": "ACTIVE_CONFIRMED",
+      "config_gate": "ENABLED_WITH_ROLE_EPISODE_BUNDLE_GUARDS",
+      "notes": "Graph-native metric outcome IDs are approved by presence in metric_outcome_nodes."
+    },
+    {
+      "role_episode_bundle_id": "reb_slalom_visual_asset_intelligence",
+      "employer": "Slalom",
+      "title": "Senior Director",
+      "employer_node_id": "employment_exp_slalom_001",
+      "root_capability_node_id": "visual_asset_intelligence",
+      "bundle_theme": "Multi-modal visual asset intelligence pipeline and automated power generation asset extraction",
+      "claim_text": "Multi-modal visual asset intelligence pipeline and automated power generation asset extraction",
+      "claim_action": "Directed technical architecture and commercial delivery of multi-modal visual asset intelligence platform",
+      "claim_scope": "Power generation infrastructure, automated feature extraction, and scalable cloud ingestion under T&M NTE model.",
+      "claim_outcome": "Delivered six-figure commercial platform SOW on-time with automated image processing and cloud telemetry.",
+      "support_level": "approved_by_graph_presence",
+      "executive_scope_signals": [
+        "Directed commercial SOW delivery for enterprise visual asset intelligence across generation sites",
+        "Established technical architecture standards for multi-modal computer vision and cloud ingestion"
+      ],
+      "architecture_scope_signals": [
+        "Multi-modal image extraction and feature processing pipeline",
+        "Scalable cloud ingestion and visual telemetry infrastructure"
+      ],
+      "graph_skill_node_ids": [
+        "skill_ai_platform_commercialization",
+        "skill_agentic_platform_productization",
+        "skill_dense_sparse_exact_retrieval_design"
+      ],
+      "linked_source_fact_ids": [
+        "fact_slalom_005"
+      ],
+      "linked_archive_signal_ids": [],
+      "linked_metric_outcome_ids": [
+        "metric_slalom_visual_asset_intelligence_sow_delivery"
+      ],
+      "held_metrics": [],
+      "excluded_metrics": [],
+      "metric_candidates": [],
+      "operating_context": "2026-present Slalom Senior Director role episode for client delivery and agentic solution scaling.",
+      "bullet_intent": "Use only role_episode_bundle_id-bound evidence; metric_outcome_nodes are the approved metric surface.",
+      "section_eligibility": [
+        "slalom_bullets",
+        "slalom_narrative",
+        "technical_architecture",
+        "competencies",
+        "executive_summary"
+      ],
+      "external_claim_policy": "approved_by_graph_presence",
+      "activation_status": "ACTIVE_CONFIRMED",
+      "config_gate": "ENABLED_WITH_ROLE_EPISODE_BUNDLE_GUARDS",
+      "notes": "Graph-native metric outcome IDs are approved by presence in metric_outcome_nodes."
+    },
+    {
+      "role_episode_bundle_id": "reb_slalom_engineering_practice_leadership",
+      "employer": "Slalom",
+      "title": "Senior Director",
+      "employer_node_id": "employment_exp_slalom_001",
+      "root_capability_node_id": "engineering_practice_leadership",
+      "bundle_theme": "Large-scale engineering practice leadership across advanced analytics and IT digital operations",
+      "claim_text": "Large-scale engineering practice leadership across advanced analytics and IT digital operations",
+      "claim_action": "Directed 106-software-engineer consulting footprint across analytics and digital operations",
+      "claim_scope": "106 software engineers across advanced analytics (66 engineers) and digital operations/IT (40 engineers) for premier utility.",
+      "claim_outcome": "Mobilized pod-level leadership, delivery governance, and technical alignment across enterprise workstreams.",
+      "support_level": "approved_by_graph_presence",
+      "executive_scope_signals": [
+        "Directed 106-software-engineer practice footprint across advanced analytics and enterprise digital operations",
+        "Structured pod-level leadership, delivery governance, and cross-functional technical alignment"
+      ],
+      "architecture_scope_signals": [
+        "Cross-lane engineering practice governance and talent alignment",
+        "Pod-based delivery execution model across analytics and IT operations"
+      ],
+      "graph_skill_node_ids": [
+        "skill_enterprise_workflow_adoption",
+        "skill_operating_model_for_agentic_ai",
+        "skill_governed_agentic_systems_architecture"
+      ],
+      "linked_source_fact_ids": [
+        "fact_slalom_006"
+      ],
+      "linked_archive_signal_ids": [],
+      "linked_metric_outcome_ids": [
+        "metric_slalom_consulting_engineering_footprint_scale"
+      ],
+      "held_metrics": [],
+      "excluded_metrics": [],
+      "metric_candidates": [],
+      "operating_context": "2026-present Slalom Senior Director role episode for client delivery and agentic solution scaling.",
+      "bullet_intent": "Use only role_episode_bundle_id-bound evidence; metric_outcome_nodes are the approved metric surface.",
+      "section_eligibility": [
+        "slalom_bullets",
+        "slalom_narrative",
+        "leadership",
+        "competencies",
         "executive_summary"
       ],
       "external_claim_policy": "approved_by_graph_presence",
@@ -548,6 +648,60 @@
         "headline",
         "executive_summary"
       ]
+    },
+    "metric_slalom_visual_asset_intelligence_sow_delivery": {
+      "metric_outcome_id": "metric_slalom_visual_asset_intelligence_sow_delivery",
+      "metric": "six-figure multi-modal visual asset intelligence platform delivered across utility generation sites",
+      "metric_type": "commercial_delivery_metric",
+      "employer": "Slalom",
+      "approved": true,
+      "approval_status": "APPROVED_GRAPH_SSOT",
+      "support_level": "approved_by_graph_presence",
+      "bundle_bindings": [
+        "reb_slalom_visual_asset_intelligence"
+      ],
+      "claim_text": "commercial SOW delivering automated image extraction, feature processing, and cloud ingestion for visual asset intelligence",
+      "surface_tokens": [
+        "visual asset intelligence",
+        "Project Lens",
+        "six-figure SOW",
+        "cloud ingestion"
+      ],
+      "section_eligibility": [
+        "slalom_bullets",
+        "slalom_narrative",
+        "technical_architecture",
+        "competencies",
+        "executive_summary"
+      ],
+      "employer_node_id": "employment_exp_slalom_001"
+    },
+    "metric_slalom_consulting_engineering_footprint_scale": {
+      "metric_outcome_id": "metric_slalom_consulting_engineering_footprint_scale",
+      "metric": "106-software-engineer footprint mobilized across advanced analytics and enterprise digital operations",
+      "metric_type": "practice_scale_metric",
+      "employer": "Slalom",
+      "approved": true,
+      "approval_status": "APPROVED_GRAPH_SSOT",
+      "support_level": "approved_by_graph_presence",
+      "bundle_bindings": [
+        "reb_slalom_engineering_practice_leadership"
+      ],
+      "claim_text": "large-scale client consulting footprint spanning 66 analytics engineers and 40 digital operations/IT engineers",
+      "surface_tokens": [
+        "106 software engineers",
+        "practice leadership",
+        "advanced analytics",
+        "digital operations"
+      ],
+      "section_eligibility": [
+        "slalom_bullets",
+        "slalom_narrative",
+        "leadership",
+        "competencies",
+        "executive_summary"
+      ],
+      "employer_node_id": "employment_exp_slalom_001"
     }
   }
 }

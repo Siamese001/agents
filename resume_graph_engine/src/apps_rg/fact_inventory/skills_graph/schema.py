@@ -121,10 +121,17 @@ DDL_STATEMENTS: tuple[str, ...] = (
         activation_status TEXT NOT NULL DEFAULT '',
         support_level TEXT NOT NULL DEFAULT '',
         confidence TEXT NOT NULL DEFAULT '',
+        confidence_score REAL DEFAULT NULL CHECK (confidence_score IS NULL OR (confidence_score >= 0.0 AND confidence_score <= 1.0)),
+        confidence_tier TEXT NOT NULL DEFAULT 'UNSCORED' CHECK (confidence_tier IN ('HIGH','MEDIUM','LOW','UNSCORED','NOT_APPLICABLE')),
         external_eligible INTEGER NOT NULL DEFAULT 0 CHECK (external_eligible IN (0, 1)),
         career_epoch TEXT NOT NULL DEFAULT '',
         phase_ordinal INTEGER DEFAULT NULL,
         source_authority TEXT NOT NULL DEFAULT 'augmented_skills_graph',
+        origin_kind TEXT NOT NULL DEFAULT 'ledger_node',
+        origin_ref TEXT NOT NULL DEFAULT '',
+        source_refs_json TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(source_refs_json) AND json_type(source_refs_json) = 'array'),
+        authority_refs_json TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(authority_refs_json) AND json_type(authority_refs_json) = 'array'),
+        build_run_id TEXT NOT NULL DEFAULT '',
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL
     )
@@ -150,6 +157,37 @@ DDL_STATEMENTS: tuple[str, ...] = (
         operator_note TEXT NOT NULL DEFAULT '',
         business_story TEXT NOT NULL DEFAULT '',
         technical_story TEXT NOT NULL DEFAULT '',
+        assertion_type TEXT NOT NULL DEFAULT 'STRUCTURAL_CONTAINMENT' CHECK (assertion_type IN (
+            'STRUCTURAL_CONTAINMENT','TAXONOMIC_ATTRIBUTION','EVIDENTIAL_SUPPORT',
+            'POLICY_ELIGIBILITY','POLICY_RESTRICTION','METRIC_BINDING',
+            'TEMPORAL_SEQUENCE','ASSOCIATIVE_BRIDGE'
+        )),
+        assertion_basis TEXT NOT NULL DEFAULT 'taxonomy_rule' CHECK (assertion_basis IN (
+            'evidence_reference','source_field_derivation','taxonomy_rule',
+            'policy_predicate','non_causal_bridge','operator_confirmation'
+        )),
+        assertion_basis_refs_json TEXT NOT NULL DEFAULT '[]' CHECK (
+            json_valid(assertion_basis_refs_json) AND json_type(assertion_basis_refs_json) = 'array'
+        ),
+        canonical_assertion_text TEXT NOT NULL DEFAULT 'structural containment assertion' CHECK (TRIM(canonical_assertion_text) <> ''),
+        lifecycle_disposition TEXT NOT NULL DEFAULT 'ACTIVE_POLICY_GATED' CHECK (lifecycle_disposition IN (
+            'ACTIVE_POLICY_GATED','INTERNAL_TRAVERSAL_ONLY',
+            'HELD_NON_ACTIVE_ENDPOINT','HELD_INTEGRITY_GAP'
+        )),
+        semantic_contract_version TEXT NOT NULL DEFAULT 'apps_rg.c03_graph_edge_semantic_contract.v2' CHECK (TRIM(semantic_contract_version) <> ''),
+        origin_kind TEXT NOT NULL DEFAULT 'ledger_edge' CHECK (origin_kind IN (
+            'ledger_edge','bundle_row','derived_projection'
+        )),
+        origin_ref TEXT NOT NULL DEFAULT 'unspecified' CHECK (TRIM(origin_ref) <> ''),
+        origin_artifact_sha256 TEXT NOT NULL DEFAULT '',
+        derivation_rule_id TEXT NOT NULL DEFAULT '',
+        build_run_id TEXT NOT NULL DEFAULT 'unspecified' CHECK (TRIM(build_run_id) <> ''),
+        confidence_score REAL DEFAULT NULL CHECK (confidence_score IS NULL OR (confidence_score >= 0.0 AND confidence_score <= 1.0)),
+        confidence_tier TEXT NOT NULL DEFAULT 'NOT_APPLICABLE' CHECK (confidence_tier IN ('HIGH','MEDIUM','LOW','UNSCORED','NOT_APPLICABLE')),
+        confidence_method TEXT NOT NULL DEFAULT 'unspecified',
+        CHECK (assertion_type <> 'EVIDENTIAL_SUPPORT' OR json_array_length(assertion_basis_refs_json) > 0),
+        CHECK (assertion_type <> 'POLICY_RESTRICTION' OR lifecycle_disposition IN ('INTERNAL_TRAVERSAL_ONLY','HELD_INTEGRITY_GAP','HELD_NON_ACTIVE_ENDPOINT')),
+        CHECK (assertion_type NOT IN ('ASSOCIATIVE_BRIDGE','TEMPORAL_SEQUENCE') OR assertion_basis IN ('non_causal_bridge','taxonomy_rule')),
         FOREIGN KEY (source_node_id) REFERENCES graph_nodes(node_id),
         FOREIGN KEY (target_node_id) REFERENCES graph_nodes(node_id)
     )
@@ -206,6 +244,8 @@ DDL_STATEMENTS: tuple[str, ...] = (
         allowed_sections TEXT NOT NULL DEFAULT '[]',
         source_fact_count INTEGER NOT NULL DEFAULT 0,
         confidence TEXT NOT NULL DEFAULT '',
+        confidence_score REAL DEFAULT NULL CHECK (confidence_score IS NULL OR (confidence_score >= 0.0 AND confidence_score <= 1.0)),
+        confidence_tier TEXT NOT NULL DEFAULT 'UNSCORED' CHECK (confidence_tier IN ('HIGH','MEDIUM','LOW','UNSCORED','NOT_APPLICABLE')),
         activation_status TEXT NOT NULL DEFAULT '',
         support_level TEXT NOT NULL DEFAULT '',
         external_eligible INTEGER NOT NULL DEFAULT 0 CHECK (external_eligible IN (0, 1)),
@@ -247,6 +287,7 @@ DDL_STATEMENTS: tuple[str, ...] = (
         path_score REAL NOT NULL DEFAULT 0.0,
         novelty_score REAL NOT NULL DEFAULT 0.0,
         proof_strength_score REAL NOT NULL DEFAULT 0.0,
+        build_run_id TEXT NOT NULL DEFAULT '',
         created_at TEXT NOT NULL,
         FOREIGN KEY (start_node_id) REFERENCES graph_nodes(node_id),
         FOREIGN KEY (end_node_id) REFERENCES graph_nodes(node_id)
@@ -261,8 +302,11 @@ DDL_STATEMENTS: tuple[str, ...] = (
             CHECK (json_valid(connecting_path_json) AND json_type(connecting_path_json) = 'array'),
         edge_types_json TEXT NOT NULL
             CHECK (json_valid(edge_types_json) AND json_type(edge_types_json) = 'array'),
+        edge_ids_json TEXT NOT NULL DEFAULT '[]'
+            CHECK (json_valid(edge_ids_json) AND json_type(edge_ids_json) = 'array'),
         relationship_summary TEXT NOT NULL DEFAULT '',
         neighbor_score REAL NOT NULL DEFAULT 0.0,
+        build_run_id TEXT NOT NULL DEFAULT '',
         PRIMARY KEY (center_node_id, neighbor_node_id, distance),
         CHECK (center_node_id <> neighbor_node_id),
         FOREIGN KEY (center_node_id) REFERENCES graph_nodes(node_id),
@@ -276,7 +320,11 @@ DDL_STATEMENTS: tuple[str, ...] = (
         sibling_reason TEXT NOT NULL DEFAULT '',
         shared_parent_node_id TEXT NOT NULL DEFAULT '',
         shared_edge_type TEXT NOT NULL DEFAULT '',
+        parent_edge_id TEXT NOT NULL DEFAULT '',
+        sibling_edge_id TEXT NOT NULL DEFAULT '',
+        derivation_rule_id TEXT NOT NULL DEFAULT '',
         sibling_score REAL NOT NULL DEFAULT 0.0,
+        build_run_id TEXT NOT NULL DEFAULT '',
         PRIMARY KEY (
             node_id, sibling_node_id, shared_parent_node_id, shared_edge_type
         ),
@@ -284,6 +332,53 @@ DDL_STATEMENTS: tuple[str, ...] = (
         FOREIGN KEY (node_id) REFERENCES graph_nodes(node_id),
         FOREIGN KEY (sibling_node_id) REFERENCES graph_nodes(node_id),
         FOREIGN KEY (shared_parent_node_id) REFERENCES graph_nodes(node_id)
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS graph_build_runs (
+        build_run_id TEXT PRIMARY KEY CHECK (TRIM(build_run_id) <> ''),
+        built_at TEXT NOT NULL,
+        builder_git_commit TEXT NOT NULL DEFAULT '',
+        input_manifest_digest TEXT NOT NULL CHECK (TRIM(input_manifest_digest) <> ''),
+        semantic_contract_version TEXT NOT NULL CHECK (TRIM(semantic_contract_version) <> ''),
+        node_count INTEGER NOT NULL CHECK (node_count >= 0),
+        edge_count INTEGER NOT NULL CHECK (edge_count >= 0),
+        path_count INTEGER NOT NULL CHECK (path_count >= 0),
+        neighborhood_count INTEGER NOT NULL CHECK (neighborhood_count >= 0),
+        sibling_count INTEGER NOT NULL CHECK (sibling_count >= 0)
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS graph_build_inputs (
+        build_run_id TEXT NOT NULL,
+        input_role TEXT NOT NULL CHECK (input_role IN (
+            'canonical_graph_ledger','candidate_fact_ledger','role_episode_bundle',
+            'edge_semantic_contract','primary_ledger','metric_bundles','source_manifest','contract'
+        )),
+        artifact_relpath TEXT NOT NULL CHECK (TRIM(artifact_relpath) <> ''),
+        artifact_sha256 TEXT NOT NULL CHECK (length(artifact_sha256) = 64),
+        record_count INTEGER NOT NULL DEFAULT 0 CHECK (record_count >= 0),
+        PRIMARY KEY (build_run_id, artifact_relpath),
+        FOREIGN KEY (build_run_id) REFERENCES graph_build_runs(build_run_id)
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS edge_evidence (
+        edge_id TEXT NOT NULL,
+        evidence_ref TEXT NOT NULL CHECK (TRIM(evidence_ref) <> ''),
+        evidence_node_id TEXT NOT NULL DEFAULT '',
+        evidence_kind TEXT NOT NULL CHECK (evidence_kind IN (
+            'fact','locked_bullet','repo_evidence','employment','certification','concept',
+            'metric_outcome','bundle','policy_rule','edge_contract','skill_row_field','operator_confirmation'
+        )),
+        is_independent INTEGER NOT NULL DEFAULT 1 CHECK (is_independent IN (0, 1)),
+        source_doc TEXT NOT NULL DEFAULT '',
+        span TEXT NOT NULL DEFAULT '',
+        quote_sha256 TEXT NOT NULL DEFAULT '',
+        human_confirmed INTEGER NOT NULL DEFAULT 0 CHECK (human_confirmed IN (0, 1)),
+        evidence_strength REAL NOT NULL DEFAULT 1.0 CHECK (evidence_strength >= 0.0 AND evidence_strength <= 1.0),
+        PRIMARY KEY (edge_id, evidence_ref),
+        FOREIGN KEY (edge_id) REFERENCES graph_edges(edge_id)
     )
     """,
     """
@@ -378,6 +473,16 @@ DDL_STATEMENTS: tuple[str, ...] = (
     "CREATE INDEX IF NOT EXISTS idx_metric_usage_metric_section ON resume_metric_usage(metric_id, resume_section)",
     "CREATE INDEX IF NOT EXISTS idx_rejections_run_section ON graph_selection_rejections(run_id, section_id)",
     "CREATE INDEX IF NOT EXISTS idx_rejections_candidate ON graph_selection_rejections(candidate_node_id)",
+    "CREATE INDEX IF NOT EXISTS idx_graph_edges_assertion_type ON graph_edges(assertion_type)",
+    "CREATE INDEX IF NOT EXISTS idx_graph_edges_build_run ON graph_edges(build_run_id)",
+    "CREATE INDEX IF NOT EXISTS idx_graph_edges_confidence_score ON graph_edges(confidence_score)",
+    "CREATE INDEX IF NOT EXISTS idx_graph_edges_confidence_tier ON graph_edges(confidence_tier)",
+    "CREATE INDEX IF NOT EXISTS idx_graph_nodes_build_run ON graph_nodes(build_run_id)",
+    "CREATE INDEX IF NOT EXISTS idx_graph_nodes_confidence_score ON graph_nodes(confidence_score)",
+    "CREATE INDEX IF NOT EXISTS idx_graph_nodes_confidence_tier ON graph_nodes(confidence_tier)",
+    "CREATE INDEX IF NOT EXISTS idx_graph_build_inputs_run ON graph_build_inputs(build_run_id)",
+    "CREATE INDEX IF NOT EXISTS idx_edge_evidence_edge_id ON edge_evidence(edge_id)",
+    "CREATE INDEX IF NOT EXISTS idx_edge_evidence_node_id ON edge_evidence(evidence_node_id)",
     """
     CREATE VIEW IF NOT EXISTS graph_edges_reverse AS
     SELECT
@@ -398,7 +503,21 @@ DDL_STATEMENTS: tuple[str, ...] = (
         edge_note,
         operator_note,
         business_story,
-        technical_story
+        technical_story,
+        assertion_type,
+        assertion_basis,
+        assertion_basis_refs_json,
+        canonical_assertion_text,
+        lifecycle_disposition,
+        semantic_contract_version,
+        origin_kind,
+        origin_ref,
+        origin_artifact_sha256,
+        derivation_rule_id,
+        build_run_id,
+        confidence_score,
+        confidence_tier,
+        confidence_method
     FROM graph_edges
     """,
     """

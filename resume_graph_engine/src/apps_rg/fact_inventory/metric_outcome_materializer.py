@@ -96,7 +96,14 @@ def discover_role_episode_bundle_files(repo_root: Path) -> list[Path]:
     return sorted(base.glob(ROLE_EPISODE_BUNDLE_GLOB))
 
 
-def _metric_outcome_to_node_row(metric_id: str, metric: dict[str, Any], *, ts: str) -> dict[str, Any]:
+def _metric_outcome_to_node_row(
+    metric_id: str,
+    metric: dict[str, Any],
+    *,
+    ts: str,
+    origin_ref: str = "",
+    build_run_id: str = "",
+) -> dict[str, Any]:
     """Map a metric_outcome dict (from bundle JSON) to a graph_nodes row.
 
     ``approval_status`` from the bundle ('APPROVED_GRAPH_SSOT', etc.) maps to
@@ -109,6 +116,11 @@ def _metric_outcome_to_node_row(metric_id: str, metric: dict[str, Any], *, ts: s
     description = str(metric.get("claim_text") or "").strip()
     approval = str(metric.get("approval_status") or "").strip()
     support = str(metric.get("support_level") or "").strip()
+    ref = origin_ref or (
+        f"{metric.get('bundle_bindings', [''])[0]}::{metric_id}"
+        if metric.get("bundle_bindings")
+        else metric_id
+    )
     return {
         "node_id": metric_id,
         "node_type": "metric_outcome",
@@ -119,6 +131,11 @@ def _metric_outcome_to_node_row(metric_id: str, metric: dict[str, Any], *, ts: s
         "confidence": "",
         "external_eligible": 1 if bool(metric.get("approved")) else 0,
         "source_authority": "augmented_skills_graph",
+        "origin_kind": "bundle_row",
+        "origin_ref": ref,
+        "source_refs_json": "[]",
+        "authority_refs_json": "[]",
+        "build_run_id": build_run_id,
         "created_at": ts,
         "updated_at": ts,
     }
@@ -162,9 +179,18 @@ def _metric_outcome_to_edge_rows(
                 else "",
                 "section_fit": "",
                 "source_authority": "augmented_skills_graph",
+                "assertion_type": "METRIC_BINDING",
+                "assertion_basis": "source_field_derivation",
+                "origin_kind": "bundle_row",
+                "origin_ref": f"{bid}::{metric_id}",
+                "derivation_rule_id": "rule_bundle_metric_anchor",
+                "canonical_assertion_text": f"Metric {metric_id} anchors bundle {bid}.",
+                "lifecycle_disposition": "ACTIVE_POLICY_GATED",
+                "assertion_basis_refs": [f"bundle:{bid}"],
             }
         )
 
+    primary_bundle = str(bundle_bindings[0]).strip() if bundle_bindings else ""
     for section_ref in section_eligibility:
         section_id = str(section_ref or "").strip()
         if not section_id:
@@ -182,6 +208,14 @@ def _metric_outcome_to_edge_rows(
                 "evidence_status": "",
                 "section_fit": section_id,
                 "source_authority": "augmented_skills_graph",
+                "assertion_type": "POLICY_ELIGIBILITY",
+                "assertion_basis": "policy_predicate",
+                "origin_kind": "bundle_row",
+                "origin_ref": f"{primary_bundle}::{metric_id}" if primary_bundle else f"{section_id}::{metric_id}",
+                "derivation_rule_id": "rule_metric_section_eligibility",
+                "canonical_assertion_text": f"Metric {metric_id} is eligible in section {section_id}.",
+                "lifecycle_disposition": "ACTIVE_POLICY_GATED",
+                "assertion_basis_refs": [f"section:{section_id}"],
             }
         )
 
@@ -199,6 +233,14 @@ def _metric_outcome_to_edge_rows(
                 "evidence_status": "",
                 "section_fit": "",
                 "source_authority": "augmented_skills_graph",
+                "assertion_type": "METRIC_BINDING",
+                "assertion_basis": "source_field_derivation",
+                "origin_kind": "bundle_row",
+                "origin_ref": f"{employer_node_id}::{metric_id}",
+                "derivation_rule_id": "rule_metric_employer_binding",
+                "canonical_assertion_text": f"Metric {metric_id} bound to employer {employer_node_id}.",
+                "lifecycle_disposition": "ACTIVE_POLICY_GATED",
+                "assertion_basis_refs": [f"employment:{employer_node_id}"],
             }
         )
 
@@ -283,6 +325,7 @@ def metric_outcome_node_and_edge_rows(
     *,
     ts: str,
     known_node_ids: set[str],
+    build_run_id: str = "",
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     """Return ``(node_rows, edge_rows)`` for all metric_outcome materialization.
 
@@ -297,8 +340,42 @@ def metric_outcome_node_and_edge_rows(
     node_rows: list[dict[str, Any]] = []
     edge_rows: list[dict[str, Any]] = []
     for mid, metric in rows.items():
-        node_rows.append(_metric_outcome_to_node_row(mid, metric, ts=ts))
+        node_rows.append(_metric_outcome_to_node_row(mid, metric, ts=ts, build_run_id=build_run_id))
         edge_rows.extend(_metric_outcome_to_edge_rows(mid, metric, known_node_ids=known_node_ids))
+
+    # Discover skill_fact_pairs and blocked_skills for proof-chain enforcement (W2)
+    ledger_path = repo_root / "src/apps_rg/fact_inventory/master_skills_arsenal_ledger.json"
+    if not ledger_path.is_file():
+        ledger_path = repo_root / "resume_graph_engine/src/apps_rg/fact_inventory/master_skills_arsenal_ledger.json"
+    skill_fact_pairs: set[tuple[str, str]] = set()
+    blocked_skill_ids: set[str] = set()
+    if ledger_path.is_file():
+        try:
+            ledger_data = json.loads(ledger_path.read_text(encoding="utf-8"))
+            for l in ledger_data.get("skill_fact_links", []):
+                skill_fact_pairs.add((str(l.get("skill_id")), str(l.get("fact_id"))))
+            for e in ledger_data.get("graph_edges", []):
+                if e.get("edge_type") == "skill_supported_by_fact":
+                    skill_fact_pairs.add((str(e.get("source_node_id")), str(e.get("target_node_id"))))
+            for item in (
+                ledger_data.get("skills", [])
+                + ledger_data.get("skill_rows", [])
+                + ledger_data.get("graph_nodes", [])
+            ):
+                sid = item.get("skill_id") or item.get("node_id")
+                if sid and any(
+                    str(item.get(k, "")).upper() == "BLOCKED"
+                    for k in (
+                        "confidence",
+                        "activation_status",
+                        "confidence_grade",
+                        "confidence_grade_derived",
+                        "support_level",
+                    )
+                ):
+                    blocked_skill_ids.add(str(sid))
+        except Exception:
+            pass
 
     # Multi-hop metric outcomes: link bundle facts and skills to candidate metrics
     for path in discover_role_episode_bundle_files(repo_root):
@@ -313,6 +390,7 @@ def metric_outcome_node_and_edge_rows(
             mids = bundle.get("linked_metric_outcome_ids") or []
             fids = bundle.get("linked_source_fact_ids") or []
             sids = bundle.get("graph_skill_node_ids") or []
+            reb_id = str(bundle.get("role_episode_bundle_id") or path.stem).strip()
             for mid in mids:
                 mid_s = str(mid).strip()
                 if not mid_s or mid_s not in rows:
@@ -334,11 +412,28 @@ def metric_outcome_node_and_edge_rows(
                             "evidence_status": "approved_graph_ssot",
                             "section_fit": "ALL",
                             "source_authority": "augmented_skills_graph",
+                            "assertion_type": "METRIC_BINDING",
+                            "assertion_basis": "source_field_derivation",
+                            "origin_kind": "bundle_row",
+                            "origin_ref": f"{reb_id}::{fid_s}->{mid_s}",
+                            "derivation_rule_id": "rule_fact_has_metric_outcome",
+                            "canonical_assertion_text": f"Fact {fid_s} has metric outcome {mid_s}.",
+                            "lifecycle_disposition": "ACTIVE_POLICY_GATED",
+                            "assertion_basis_refs": [f"fact:{fid_s}", f"metric:{mid_s}"],
                         }
                     )
                 for sid in sids:
                     sid_s = str(sid).strip()
-                    if not sid_s:
+                    if not sid_s or sid_s in blocked_skill_ids:
+                        continue
+                    # Proof chain verification: find connecting facts in bundle that sid supports
+                    connecting_facts = [
+                        str(fid).strip()
+                        for fid in fids
+                        if str(fid).strip() and (sid_s, str(fid).strip()) in skill_fact_pairs
+                    ]
+                    if not connecting_facts:
+                        # Drop unproven bundle co-occurrence edges per Wave 2 HITL decision
                         continue
                     edge_rows.append(
                         {
@@ -353,6 +448,15 @@ def metric_outcome_node_and_edge_rows(
                             "evidence_status": "approved_graph_ssot",
                             "section_fit": "ALL",
                             "source_authority": "augmented_skills_graph",
+                            "assertion_type": "METRIC_BINDING",
+                            "assertion_basis": "source_field_derivation",
+                            "origin_kind": "bundle_row",
+                            "origin_ref": f"{reb_id}::{sid_s}->{mid_s}",
+                            "derivation_rule_id": "rule_skill_surfaces_metric_outcome",
+                            "canonical_assertion_text": f"Skill {sid_s} surfaces metric outcome {mid_s}.",
+                            "lifecycle_disposition": "ACTIVE_POLICY_GATED",
+                            "assertion_basis_refs": [f"skill:{sid_s}", f"metric:{mid_s}"]
+                            + [f"fact:{cf}" for cf in connecting_facts],
                         }
                     )
 

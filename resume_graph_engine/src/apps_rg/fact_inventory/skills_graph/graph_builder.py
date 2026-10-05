@@ -265,6 +265,11 @@ def _skill_external_eligible(
 ) -> bool:
     if str(skill_row.get("skill_id") or "") in FORBIDDEN_SKILL_NODE_IDS:
         return False
+    if any(
+        str(skill_row.get(k) or "").upper() == "BLOCKED"
+        for k in ("confidence", "confidence_grade", "confidence_grade_derived", "activation_status", "support_level")
+    ):
+        return False
     status = str(skill_row.get("activation_status") or "")
     if status not in EXTERNAL_ACTIVE_STATUSES:
         return False
@@ -313,21 +318,46 @@ def _ensure_fact_node(
     fact_id: str,
     *,
     ts: str,
+    candidate_registry: dict[str, dict[str, Any]] | None = None,
 ) -> None:
     fid = str(fact_id or "").strip()
     if not fid or fid in nodes:
         return
+    desc = "Atomic proof fact node (routing only; proof via SRFS/candidate ledger)"
+    label = fid
+    conf = "HIGH"
+    act_status = "ACTIVE"
+    support_lvl = "FACT_SUBSTRATE"
+    epoch = ""
+    ordinal = None
+    if candidate_registry and fid in candidate_registry:
+        cdata = candidate_registry[fid]
+        if cdata.get("claim_text"):
+            desc = str(cdata["claim_text"]).strip()
+            label = desc[:60].strip() if len(desc) > 60 else desc
+        if cdata.get("label"):
+            label = str(cdata["label"]).strip()
+        if cdata.get("candidate_confidence"):
+            conf = str(cdata["candidate_confidence"]).strip()
+        if cdata.get("epoch"):
+            epoch = str(cdata["epoch"]).strip()
+        if cdata.get("phase_ordinal") is not None:
+            ordinal = cdata["phase_ordinal"]
+        if cdata.get("support_level"):
+            support_lvl = str(cdata["support_level"]).strip()
+        if cdata.get("activation_status"):
+            act_status = str(cdata["activation_status"]).strip()
     nodes[fid] = {
         "node_id": fid,
         "node_type": "fact",
-        "label": fid,
-        "description": "Atomic proof fact node (routing only; proof via SRFS/candidate ledger)",
-        "activation_status": "ACTIVE",
-        "support_level": "FACT_SUBSTRATE",
-        "confidence": "HIGH",
+        "label": label,
+        "description": desc,
+        "activation_status": act_status,
+        "support_level": support_lvl,
+        "confidence": conf,
         "external_eligible": 0,
-        "career_epoch": "",
-        "phase_ordinal": None,
+        "career_epoch": epoch,
+        "phase_ordinal": ordinal,
         "source_authority": "augmented_skills_graph",
         "created_at": ts,
         "updated_at": ts,
