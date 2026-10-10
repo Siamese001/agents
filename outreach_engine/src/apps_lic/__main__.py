@@ -9,6 +9,7 @@ Canonical command surface:
 from __future__ import annotations
 
 import argparse
+import dataclasses
 import json
 import sys
 import uuid
@@ -137,6 +138,14 @@ def _handle_run(args: argparse.Namespace, prog: str = "python -m outreach_engine
     if brief_path:
         log(f"[outreach_engine] Ingesting mission brief from {brief_path}...")
         candidate, opportunity = MissionLoader.load_from_file(brief_path)
+        opp_updates: dict[str, Any] = {}
+        if getattr(args, "company", None):
+            opp_updates["company_name"] = args.company
+        if getattr(args, "role", None):
+            opp_updates["role_title"] = args.role
+            candidate = dataclasses.replace(candidate, target_title=args.role)
+        if opp_updates:
+            opportunity = dataclasses.replace(opportunity, **opp_updates)
     elif args.company:
         log(f"[outreach_engine] Target company specified: {args.company} ({args.role})...")
         candidate = CandidateProfileLoader.load_default(

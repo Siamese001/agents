@@ -116,3 +116,18 @@ def test_mission_loader_markdown_briefing(tmp_path):
     assert opp.briefing_text != ""
     assert cand.full_name != ""
 
+
+def test_mission_loader_hyphenated_title_and_role(tmp_path):
+    briefing_md = tmp_path / "briefing.md"
+    briefing_md.write_text(
+        "# Anthropic - Manager of Applied AI Architecture, Partnerships targeting brief\n\n"
+        "## Strategic Mandate\n"
+        "Enterprise agent evaluation frameworks and partner integration.\n",
+        encoding="utf-8",
+    )
+    cand, opp = MissionLoader.load_from_file(briefing_md)
+    assert opp.company_name == "Anthropic"
+    assert opp.role_title == "Manager of Applied AI Architecture, Partnerships"
+    assert cand.target_title == "Manager of Applied AI Architecture, Partnerships"
+
+
