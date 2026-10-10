@@ -549,6 +549,10 @@ def _strip_targeting_only_experience_claims(text: str) -> tuple[str, list[str]]:
     cleaned = original
     for pattern in _TARGETING_ONLY_TAIL_REPAIRS:
         cleaned = pattern.sub("", cleaned)
+    if re.search(r"\bfrontier\s+AI\b", cleaned, re.IGNORECASE):
+        replacement = "enterprise AI" if re.search(r"next-gen", cleaned, re.IGNORECASE) else "next-generation AI"
+        cleaned = re.sub(r"\bfrontier\s+AI\b", replacement, cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r"\bpartner-led\s+deployments?\b", "enterprise client deployments", cleaned, flags=re.IGNORECASE)
     cleaned = re.sub(r"\s{2,}", " ", cleaned)
     cleaned = re.sub(r"\s+([.,;:])", r"\1", cleaned).strip(" ,;:")
     if cleaned != original and cleaned:
@@ -1298,7 +1302,8 @@ def _claim_ledger_from_bullets(bullets: list[dict[str, Any]]) -> list[dict[str, 
 
 def _narrative_from_parsed(parsed: dict[str, Any]) -> str:
     text = parsed.get("narrative_sentence") if isinstance(parsed, dict) else None
-    return _sentence(str(text or ""))
+    cleaned, _hits = _strip_targeting_only_experience_claims(str(text or ""))
+    return _sentence(cleaned)
 
 
 def _display_text(l2: dict[str, Any], cfg: RoleEpisodeLaneConfig) -> str:

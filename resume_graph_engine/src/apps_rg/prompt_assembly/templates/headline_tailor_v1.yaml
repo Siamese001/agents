@@ -36,7 +36,10 @@ slot_bodies:
     approved executive abstraction noun (such as Platform, Architecture, Systems, Governance, Ecosystem,
     Commercialization, Infrastructure, Controls, or Operating Model).
     Distinctness rule: partner/alliance/channel/co-sell/hyperscaler ecosystem language may appear in
-    at most ONE of X/Y/Z. The three segments X, Y, Z MUST span at least two distinct capability families
+    at most ONE of X/Y/Z. Governance, policy, or controls language may appear in at most ONE of X/Y/Z.
+    Do NOT repeat governance, policy, controls, or platform across multiple segments (e.g. combining
+    'Governed...' with 'Policy Gated Governance' or 'Security Controls' is strictly forbidden and rejected
+    for semantic redundancy). The three segments X, Y, Z MUST span at least two distinct capability families
     (such as runtime governance, regulated systems, enterprise AI architecture, platform productization,
     or distributed infrastructure). AT LEAST ONE segment MUST explicitly incorporate a runtime governance
     or regulated systems capability (e.g. Runtime Governance, Governed AI Systems, Deterministic Controls,
@@ -94,6 +97,9 @@ slot_bodies:
     Pick three supported themes from facts; rank with JD/briefing; compose fresh X/Y/Z (non-overlapping).
     Do not split one partner ecosystem idea into two slots: Hyperscaler Alliance Co-Sell and Partner
     Channel Alliance are redundant, even when each phrase cites a different fact.
+    Similarly, do not repeat governance, policy, or control language across multiple segments: having
+    governed platform in X and policy gated governance in Y and release controls in Z is strictly forbidden
+    and decisively rejected as semantic redundancy. Each segment must deliver a distinct executive signal.
     Generate internal headline candidates silently; select the best; do not print candidates.
     SEGMENT DRAFTING RULE: For each candidate X/Y/Z, first read the cited fact's claim_text and
     extract 1-2 specific nouns from that text; build the segment phrase AROUND those nouns. Never

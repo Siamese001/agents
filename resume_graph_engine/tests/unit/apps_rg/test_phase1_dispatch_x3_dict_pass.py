@@ -211,3 +211,14 @@ def test_phase1_dispatch_hard_failed_false_on_dict_allow() -> None:
     }
     assert authorized is True
     assert phase1_dispatch_hard_failed(dispatch) is False
+
+
+def test_section_accept_x3_includes_soft_fail() -> None:
+    """Author-Gate decision dec_19e6e344d5db19589: _SECTION_ACCEPT_X3 in apps_rg_spine_run
+    must accept X3_REVIEW_JUDGE_SOFT_FAIL and X3_REVIEW so soft-fail judge scores
+    produce exit_status='success' and do not cascade-block downstream lanes."""
+    from apps_rg.runtime.spine.apps_rg_spine_run import _SECTION_ACCEPT_X3
+
+    assert "X3_ALLOW" in _SECTION_ACCEPT_X3
+    assert "X3_REVIEW_JUDGE_SOFT_FAIL" in _SECTION_ACCEPT_X3
+    assert "X3_REVIEW" in _SECTION_ACCEPT_X3

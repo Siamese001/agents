@@ -904,3 +904,14 @@ def test_role_episode_payload_hash_excludes_private_l2_authority_objects() -> No
     assert role_episode_lane._json_hash(prepared_payload) == role_episode_lane._json_hash(
         public_payload
     )
+
+
+def test_strip_targeting_only_experience_claims_sanitizes_buzzwords() -> None:
+    text = (
+        "Built and scaled a next-generation AI practice, architecting commercialization paths "
+        "that translated frontier AI capabilities into deployable, revenue-generating client solutions."
+    )
+    cleaned, hits = role_episode_lane._strip_targeting_only_experience_claims(text)
+    assert "frontier AI" not in cleaned
+    assert "enterprise AI" in cleaned
+    assert hits == []

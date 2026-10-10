@@ -14,6 +14,7 @@ from apps_rg.runtime.assembly.full_resume_llm_coherence import (
     emit_full_resume_llm_coherence_review,
     run_full_resume_coherence_judges,
     _build_prompt,
+    _finding_is_negative_assertion,
 )
 from apps_rg.runtime.judges.executive_summary_x1d import (
     JudgeOutput,
@@ -22,7 +23,21 @@ from apps_rg.runtime.judges.executive_summary_x1d import (
 )
 
 
-def _judge(*, key: str, pass_: bool, blocked: bool = False, mocked: bool = False) -> JudgeOutput:
+def _judge(
+    *,
+    key: str,
+    pass_: bool,
+    blocked: bool = False,
+    mocked: bool = False,
+    score: float | None = None,
+    score_scale: str = "0_to_1",
+    normalized_score: float | None = None,
+    decisive_failure: bool | None = None,
+    findings: list[str] | None = None,
+) -> JudgeOutput:
+    sc = (0.9 if pass_ else 0.2) if score is None else score
+    nsc = (0.9 if pass_ else 0.2) if normalized_score is None else normalized_score
+    df = (not pass_) if decisive_failure is None else decisive_failure
     return JudgeOutput(
         judge_id=f"x1d_{key}_full_resume_coherence",
         provider_name=key,
@@ -36,14 +51,14 @@ def _judge(*, key: str, pass_: bool, blocked: bool = False, mocked: bool = False
         rubric_version="test",
         input_hash="abc",
         output_hash="def",
-        score=0.9 if pass_ else 0.2,
-        score_scale="0_to_1",
-        normalized_score=0.9 if pass_ else 0.2,
-        threshold=0.8,
+        score=sc,
+        score_scale=score_scale,
+        normalized_score=nsc,
+        threshold=4.0 if score_scale == "0_to_5" else 0.8,
         normalized_threshold=0.8,
         pass_=pass_,
-        decisive_failure=not pass_,
-        findings=[],
+        decisive_failure=df,
+        findings=findings or [],
         cited_sentence_indexes=[],
         remediation_suggestions=[],
     )
@@ -73,29 +88,14 @@ def test_quorum_pass_with_two_live_judges():
 def test_two_judge_split_with_passing_mean_and_no_decisive_failure_passes_quorum():
     judges = [
         _judge(key="gemini_pro", pass_=True),  # score 0.9 >= 0.8
-        JudgeOutput(
-            judge_id="x1d_openai_chatgpt_full_resume_coherence",
-            provider_name="openai_chatgpt",
-            provider_key="openai_chatgpt",
-            evaluator_mode="LIVE",
-            provider_status="OK",
-            model_name="gpt-5.6-sol",
-            provider_available=True,
-            provider_blocked=False,
-            exact_provider_error=None,
-            rubric_version="test",
-            input_hash="abc",
-            output_hash="def",
+        _judge(
+            key="openai_chatgpt",
+            pass_=False,
             score=3.7,
             score_scale="0_to_5",
-            normalized_score=0.74,  # 3.7 / 5.0
-            threshold=4.0,
-            normalized_threshold=0.8,
-            pass_=False,
-            decisive_failure=False,  # soft fail, no decisive failure
+            normalized_score=0.74,
+            decisive_failure=False,
             findings=["Dissenting commentary on role fit."],
-            cited_sentence_indexes=[],
-            remediation_suggestions=[],
         ),
     ]
     # Mean normalized score is (0.9 + 0.74) / 2 = 0.82 >= 0.80
@@ -108,29 +108,14 @@ def test_two_judge_split_with_passing_mean_and_no_decisive_failure_passes_quorum
 def test_two_judge_split_with_decisive_failure_blocks():
     judges = [
         _judge(key="gemini_pro", pass_=True),
-        JudgeOutput(
-            judge_id="x1d_openai_chatgpt_full_resume_coherence",
-            provider_name="openai_chatgpt",
-            provider_key="openai_chatgpt",
-            evaluator_mode="LIVE",
-            provider_status="OK",
-            model_name="gpt-5.6-sol",
-            provider_available=True,
-            provider_blocked=False,
-            exact_provider_error=None,
-            rubric_version="test",
-            input_hash="abc",
-            output_hash="def",
+        _judge(
+            key="openai_chatgpt",
+            pass_=False,
             score=3.7,
             score_scale="0_to_5",
             normalized_score=0.74,
-            threshold=4.0,
-            normalized_threshold=0.8,
-            pass_=False,
-            decisive_failure=True,  # decisive blocker
+            decisive_failure=True,
             findings=["JD language used as primary proof."],
-            cited_sentence_indexes=[],
-            remediation_suggestions=[],
         ),
     ]
     agg = aggregate_full_resume_coherence(judges, deterministic_blockers=[])
@@ -505,5 +490,104 @@ def test_target_mandate_divergence_blocks_release_even_with_high_mean():
     agg = aggregate_full_resume_coherence(judges, deterministic_blockers=[])
     assert agg["full_resume_coherence_pass"] is False
     assert any("target_mandate_divergence" in b for b in agg["blockers"])
+
+
+def test_finding_is_negative_assertion_classifications():
+    # Findings asserting absence of defects should be recognized as negative assertions
+    assert _finding_is_negative_assertion("No target-mandate divergence, seniority downgrade, or JD-only proof invention is evident.") is True
+    assert _finding_is_negative_assertion("Zero credential leakage.") is True
+    assert _finding_is_negative_assertion("Target-mandate divergence is not evident.") is True
+    assert _finding_is_negative_assertion("Free of credential duplication.") is True
+    assert _finding_is_negative_assertion("All metrics demonstrate strict binding without invention or distortion.") is True
+    assert _finding_is_negative_assertion("No unsupported JD proof found.") is True
+
+    # Real defect findings should NOT be treated as negative assertions
+    assert _finding_is_negative_assertion("Target mandate divergence: generated engineering platform resume for consulting/PE role.") is False
+    assert _finding_is_negative_assertion("JD language used as primary proof.") is False
+    assert _finding_is_negative_assertion("Briefing proof is unsupported.") is False
+    assert _finding_is_negative_assertion("Three EY metrics—$15M, 40%, and 12%—lack explicit candidate-packet bindings and require proof review.") is False
+
+
+def test_negative_assertion_praise_finding_does_not_block_and_allows_mean_quorum():
+    judges = [
+        _judge(key="gemini_pro", pass_=True),  # score 0.9 >= 0.8
+        _judge(
+            key="openai_chatgpt",
+            pass_=False,
+            score=3.8,
+            score_scale="0_to_5",
+            normalized_score=0.76,
+            decisive_failure=False,
+            findings=[
+                "The summary is coherent but dense.",
+                "No target-mandate divergence, seniority downgrade, or JD-only proof invention is evident.",
+                "Competencies are structured and free of credential duplication.",
+            ],
+        ),
+    ]
+    # Mean normalized score: (0.9 + 0.76) / 2 = 0.83 >= 0.80
+    agg = aggregate_full_resume_coherence(judges, deterministic_blockers=[])
+    assert agg["full_resume_coherence_pass"] is True
+    assert agg["blockers"] == []
+    assert agg["decisive_reason"] == "quorum_pass_no_blockers"
+    assert "judge_dissent:x1d_openai_chatgpt_full_resume_coherence" in agg["warnings"]
+
+
+def test_build_full_resume_evidence_packet_includes_locked_inline_sections():
+    final = {
+        "final_resume_hash": "test1234",
+        "sections": [
+            {
+                "section_id": "early_career",
+                "section_kind": "locked_copy_inline",
+                "copied_text_exact": json.dumps({
+                    "employer": "Ernst & Young",
+                    "fact_id": "exp_early_career_001",
+                    "role_narrative": "Led quantitative analytics.",
+                    "bullets": [
+                        {
+                            "bullet_id": "bul_ey_001",
+                            "text": "Regulatory Modernization: Directed a $15M transformation program.",
+                            "metric_raw": "$15M transformation program",
+                            "technologies": ["predictive modeling", "data lineage"],
+                        }
+                    ],
+                }),
+            },
+            {
+                "section_id": "education",
+                "section_kind": "locked_copy_inline",
+                "copied_text_exact": json.dumps([
+                    {
+                        "fact_id": "edu_columbia_001",
+                        "degree": "Master of Science in Biostatistics",
+                        "institution": "Columbia University",
+                    }
+                ]),
+            },
+            {
+                "section_id": "certifications",
+                "section_kind": "locked_copy_inline",
+                "copied_text_exact": json.dumps([
+                    {
+                        "fact_id": "cert_aws_001",
+                        "name": "AWS Certified Solutions Architect",
+                        "issuing_organization": "Amazon Web Services",
+                    }
+                ]),
+            },
+        ],
+    }
+
+    packet = build_full_resume_evidence_packet(final)
+    section_ids = [s["section_id"] for s in packet["sections"]]
+    assert "early_career" in section_ids
+    assert "education" in section_ids
+    assert "certifications" in section_ids
+
+    early_career_sec = next(s for s in packet["sections"] if s["section_id"] == "early_career")
+    assert early_career_sec["selected_candidate_facts"][0]["metric_values"] == ["$15M transformation program"]
+    assert early_career_sec["graph_claim_bindings"][0]["metric_value"] == "$15M transformation program"
+
 
 

@@ -286,12 +286,17 @@ def _emit_runtime_bundle(
         component="apps_rg.runtime.orchestration.app_single_action_spine",
         payload={"run_id": run_id, "x3_disposition": x3_disposition, "fault": fault},
     )
-    hashes["runtime_exhaust_bundle.json"] = _write_artifact(
-        root,
-        "runtime_exhaust_bundle.json",
-        component="apps_rg.runtime.orchestration.app_single_action_spine",
-        payload={"run_id": run_id, "runtime_mode": runtime_mode, "l2_fault": fault},
-    )
+    if not (root / "runtime_exhaust_bundle.json").is_file():
+        hashes["runtime_exhaust_bundle.json"] = _write_artifact(
+            root,
+            "runtime_exhaust_bundle.json",
+            component="apps_rg.runtime.orchestration.app_single_action_spine",
+            payload={"run_id": run_id, "runtime_mode": runtime_mode, "l2_fault": fault},
+        )
+    else:
+        hashes["runtime_exhaust_bundle.json"] = "sha256:" + hashlib.sha256(
+            (root / "runtime_exhaust_bundle.json").read_bytes()
+        ).hexdigest()
     hashes["runtime_trace_snapshot.json"] = _write_artifact(
         root,
         "runtime_trace_snapshot.json",

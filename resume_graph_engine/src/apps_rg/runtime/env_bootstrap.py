@@ -129,6 +129,17 @@ def bootstrap_apps_rg_env(
                     # Fall back to manual parsing if python-dotenv failed on specific formatting
                     loaded = _manual_load_env(candidate, override=override)
             break
+
+    ca_bundle = os.environ.get("REQUESTS_CA_BUNDLE") or os.environ.get("CURL_CA_BUNDLE") or os.environ.get("SSL_CERT_FILE")
+    if not ca_bundle:
+        corp_ca = Path.home() / ".config" / "ssl" / "corporate_ca_bundle.pem"
+        if corp_ca.is_file():
+            ca_bundle = str(corp_ca)
+    if ca_bundle and os.path.isfile(ca_bundle):
+        os.environ.setdefault("SSL_CERT_FILE", ca_bundle)
+        os.environ.setdefault("REQUESTS_CA_BUNDLE", ca_bundle)
+        os.environ.setdefault("CURL_CA_BUNDLE", ca_bundle)
+
     result = AppsRgEnvBootstrapResult(
         repo_root=str(root),
         dotenv_path=str(chosen_path),

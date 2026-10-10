@@ -90,72 +90,255 @@ def build_full_resume_evidence_packet(final_resume: dict[str, Any]) -> dict[str,
     for section in final_resume.get("sections") or []:
         if not isinstance(section, dict):
             continue
+        sid = str(section.get("section_id") or "").strip()
         snapshot = section.get("l2_output_snapshot")
-        if not isinstance(snapshot, dict):
-            continue
-        claims = [
-            {
-                "claim_text": str(row.get("claim_text") or row.get("claim") or "").strip(),
-                "source_fact_ids": _strings(row.get("source_fact_ids")),
-                "claim_unit_id": str(row.get("claim_unit_id") or "").strip(),
-            }
-            for row in _mapping_rows(snapshot.get("claim_ledger"))
-            if str(row.get("claim_text") or row.get("claim") or "").strip()
-        ]
-        plan = snapshot.get("selected_fact_plan")
-        plan = plan if isinstance(plan, dict) else {}
-        facts = [
-            {
-                "fact_id": str(row.get("fact_id") or row.get("candidate_fact_id") or "").strip(),
-                "claim_text": str(row.get("claim_text") or "").strip(),
-                "employer_lane": str(
-                    row.get("employer_lane") or row.get("source_employment") or ""
-                ).strip(),
-                "source_fact_ids": _strings(
-                    row.get("source_fact_ids") or row.get("linked_source_fact_ids")
-                ),
-                "graph_skill_node_ids": _strings(row.get("graph_skill_node_ids")),
-                "metric_outcome_ids": _strings(
-                    row.get("metric_outcome_ids") or row.get("selected_metric_ids")
-                ),
-                "metric_values": _strings(row.get("metric_values")),
-                "allocation_claim_unit_ids": _strings(
-                    row.get("allocation_claim_unit_ids")
-                ),
-                "verification_status": str(
-                    row.get("verification_status") or row.get("support_level") or ""
-                ).strip(),
-            }
-            for row in _mapping_rows(plan.get("facts"))
-        ]
-        bindings = [
-            {
-                "visible_claim_text": str(row.get("visible_claim_text") or "").strip(),
-                "fact_ids": _strings(row.get("fact_ids")),
-                "skill_ids": _strings(row.get("skill_ids")),
-                "metric_outcome_id": str(row.get("metric_outcome_id") or "").strip(),
-                "metric_value": str(row.get("metric_value") or "").strip(),
-                "citation_refs": _strings(row.get("citation_refs")),
-                "binding_status": str(row.get("binding_status") or "").strip(),
-            }
-            for row in _mapping_rows(snapshot.get("graph_claim_bindings"))
-        ]
-        if not claims and not facts and not bindings:
-            continue
-        section_evidence.append(
-            {
-                "section_id": str(section.get("section_id") or "").strip(),
-                "allocation_plan_digest": str(
-                    snapshot.get("resume_graph_allocation_plan_digest")
-                    or plan.get("allocation_plan_digest")
-                    or ""
-                ).strip(),
-                "claim_binding_pass": snapshot.get("resume_graph_claim_binding_pass"),
-                "visible_claims": claims,
-                "selected_candidate_facts": facts,
-                "graph_claim_bindings": bindings,
-            }
-        )
+        if isinstance(snapshot, dict):
+            claims = [
+                {
+                    "claim_text": str(row.get("claim_text") or row.get("claim") or "").strip(),
+                    "source_fact_ids": _strings(row.get("source_fact_ids")),
+                    "claim_unit_id": str(row.get("claim_unit_id") or "").strip(),
+                }
+                for row in _mapping_rows(snapshot.get("claim_ledger"))
+                if str(row.get("claim_text") or row.get("claim") or "").strip()
+            ]
+            plan = snapshot.get("selected_fact_plan")
+            plan = plan if isinstance(plan, dict) else {}
+            facts = [
+                {
+                    "fact_id": str(row.get("fact_id") or row.get("candidate_fact_id") or "").strip(),
+                    "claim_text": str(row.get("claim_text") or "").strip(),
+                    "employer_lane": str(
+                        row.get("employer_lane") or row.get("source_employment") or ""
+                    ).strip(),
+                    "source_fact_ids": _strings(
+                        row.get("source_fact_ids") or row.get("linked_source_fact_ids")
+                    ),
+                    "graph_skill_node_ids": _strings(row.get("graph_skill_node_ids")),
+                    "metric_outcome_ids": _strings(
+                        row.get("metric_outcome_ids") or row.get("selected_metric_ids")
+                    ),
+                    "metric_values": _strings(row.get("metric_values")),
+                    "allocation_claim_unit_ids": _strings(
+                        row.get("allocation_claim_unit_ids")
+                    ),
+                    "verification_status": str(
+                        row.get("verification_status") or row.get("support_level") or ""
+                    ).strip(),
+                }
+                for row in _mapping_rows(plan.get("facts"))
+            ]
+            bindings = [
+                {
+                    "visible_claim_text": str(row.get("visible_claim_text") or "").strip(),
+                    "fact_ids": _strings(row.get("fact_ids")),
+                    "skill_ids": _strings(row.get("skill_ids")),
+                    "metric_outcome_id": str(row.get("metric_outcome_id") or "").strip(),
+                    "metric_value": str(row.get("metric_value") or "").strip(),
+                    "citation_refs": _strings(row.get("citation_refs")),
+                    "binding_status": str(row.get("binding_status") or "").strip(),
+                }
+                for row in _mapping_rows(snapshot.get("graph_claim_bindings"))
+            ]
+            if not claims and not facts and not bindings:
+                continue
+            section_evidence.append(
+                {
+                    "section_id": sid,
+                    "allocation_plan_digest": str(
+                        snapshot.get("resume_graph_allocation_plan_digest")
+                        or plan.get("allocation_plan_digest")
+                        or ""
+                    ).strip(),
+                    "claim_binding_pass": snapshot.get("resume_graph_claim_binding_pass"),
+                    "visible_claims": claims,
+                    "selected_candidate_facts": facts,
+                    "graph_claim_bindings": bindings,
+                }
+            )
+        elif section.get("section_kind") == "locked_copy_inline" or "copied_text_exact" in section:
+            copied_raw = section.get("copied_text_exact")
+            if not copied_raw:
+                continue
+            copied_data = copied_raw
+            if isinstance(copied_raw, str) and copied_raw.strip().startswith(("{", "[")):
+                try:
+                    copied_data = json.loads(copied_raw)
+                except Exception:
+                    copied_data = copied_raw
+
+            locked_claims: list[dict[str, Any]] = []
+            locked_facts: list[dict[str, Any]] = []
+            locked_bindings: list[dict[str, Any]] = []
+
+            if isinstance(copied_data, dict):
+                fact_id = str(copied_data.get("fact_id") or f"fact_{sid}_locked").strip()
+                employer = str(copied_data.get("employer") or sid).strip()
+                for idx, b in enumerate(copied_data.get("bullets") or []):
+                    if not isinstance(b, dict):
+                        continue
+                    b_text = str(b.get("text") or "").strip()
+                    if not b_text:
+                        continue
+                    b_id = str(b.get("bullet_id") or f"bul_{sid}_{idx}").strip()
+                    m_raw = str(b.get("metric_raw") or "").strip()
+                    techs = _strings(b.get("technologies"))
+                    locked_claims.append(
+                        {
+                            "claim_text": b_text,
+                            "source_fact_ids": [fact_id],
+                            "claim_unit_id": b_id,
+                        }
+                    )
+                    locked_facts.append(
+                        {
+                            "fact_id": fact_id,
+                            "claim_text": b_text,
+                            "employer_lane": employer,
+                            "source_fact_ids": [fact_id],
+                            "graph_skill_node_ids": techs,
+                            "metric_outcome_ids": [b_id] if m_raw else [],
+                            "metric_values": [m_raw] if m_raw else [],
+                            "allocation_claim_unit_ids": [b_id],
+                            "verification_status": "LOCKED_BASE_RESUME_VERIFIED",
+                        }
+                    )
+                    locked_bindings.append(
+                        {
+                            "visible_claim_text": b_text,
+                            "fact_ids": [fact_id],
+                            "skill_ids": techs,
+                            "metric_outcome_id": b_id if m_raw else "",
+                            "metric_value": m_raw,
+                            "citation_refs": [fact_id],
+                            "binding_status": "BOUND_LOCKED",
+                        }
+                    )
+                role_narrative = str(copied_data.get("role_narrative") or "").strip()
+                if role_narrative:
+                    narrative_id = f"{sid}_narrative"
+                    locked_claims.append(
+                        {
+                            "claim_text": role_narrative,
+                            "source_fact_ids": [fact_id],
+                            "claim_unit_id": narrative_id,
+                        }
+                    )
+                    locked_facts.append(
+                        {
+                            "fact_id": fact_id,
+                            "claim_text": role_narrative,
+                            "employer_lane": employer,
+                            "source_fact_ids": [fact_id],
+                            "graph_skill_node_ids": [],
+                            "metric_outcome_ids": [],
+                            "metric_values": [],
+                            "allocation_claim_unit_ids": [narrative_id],
+                            "verification_status": "LOCKED_BASE_RESUME_VERIFIED",
+                        }
+                    )
+                    locked_bindings.append(
+                        {
+                            "visible_claim_text": role_narrative,
+                            "fact_ids": [fact_id],
+                            "skill_ids": [],
+                            "metric_outcome_id": "",
+                            "metric_value": "",
+                            "citation_refs": [fact_id],
+                            "binding_status": "BOUND_LOCKED",
+                        }
+                    )
+            elif isinstance(copied_data, list):
+                for idx, item in enumerate(copied_data):
+                    if not isinstance(item, dict):
+                        continue
+                    item_fact_id = str(item.get("fact_id") or f"fact_{sid}_{idx}").strip()
+                    if "degree" in item:
+                        item_text = f"{item.get('degree', '')} - {item.get('institution', '')}".strip(" -")
+                    elif "name" in item:
+                        org = f" ({item.get('issuing_organization', '')})" if item.get("issuing_organization") else ""
+                        item_text = f"{item.get('name', '')}{org}".strip()
+                    else:
+                        item_text = str(item.get("text") or item).strip()
+                    if not item_text:
+                        continue
+                    locked_claims.append(
+                        {
+                            "claim_text": item_text,
+                            "source_fact_ids": [item_fact_id],
+                            "claim_unit_id": item_fact_id,
+                        }
+                    )
+                    locked_facts.append(
+                        {
+                            "fact_id": item_fact_id,
+                            "claim_text": item_text,
+                            "employer_lane": sid,
+                            "source_fact_ids": [item_fact_id],
+                            "graph_skill_node_ids": [],
+                            "metric_outcome_ids": [],
+                            "metric_values": [],
+                            "allocation_claim_unit_ids": [item_fact_id],
+                            "verification_status": "LOCKED_BASE_RESUME_VERIFIED",
+                        }
+                    )
+                    locked_bindings.append(
+                        {
+                            "visible_claim_text": item_text,
+                            "fact_ids": [item_fact_id],
+                            "skill_ids": [],
+                            "metric_outcome_id": "",
+                            "metric_value": "",
+                            "citation_refs": [item_fact_id],
+                            "binding_status": "BOUND_LOCKED",
+                        }
+                    )
+            elif isinstance(copied_data, str) and copied_data.strip():
+                text = copied_data.strip()
+                fact_id = f"fact_{sid}_locked"
+                locked_claims.append(
+                    {
+                        "claim_text": text,
+                        "source_fact_ids": [fact_id],
+                        "claim_unit_id": f"{sid}_claim",
+                    }
+                )
+                locked_facts.append(
+                    {
+                        "fact_id": fact_id,
+                        "claim_text": text,
+                        "employer_lane": sid,
+                        "source_fact_ids": [fact_id],
+                        "graph_skill_node_ids": [],
+                        "metric_outcome_ids": [],
+                        "metric_values": [],
+                        "allocation_claim_unit_ids": [f"{sid}_claim"],
+                        "verification_status": "LOCKED_BASE_RESUME_VERIFIED",
+                    }
+                )
+                locked_bindings.append(
+                    {
+                        "visible_claim_text": text,
+                        "fact_ids": [fact_id],
+                        "skill_ids": [],
+                        "metric_outcome_id": "",
+                        "metric_value": "",
+                        "citation_refs": [fact_id],
+                        "binding_status": "BOUND_LOCKED",
+                    }
+                )
+
+            if locked_claims or locked_facts or locked_bindings:
+                section_evidence.append(
+                    {
+                        "section_id": sid,
+                        "allocation_plan_digest": "LOCKED_BASE_RESUME",
+                        "claim_binding_pass": True,
+                        "visible_claims": locked_claims,
+                        "selected_candidate_facts": locked_facts,
+                        "graph_claim_bindings": locked_bindings,
+                    }
+                )
     return {
         "schema": "apps_rg.full_resume_candidate_evidence_packet.v1",
         "authority_semantics": [
@@ -427,6 +610,35 @@ def _block_after_heading(text: str, heading: str, *, stop_headings: tuple[str, .
     return block[:cut]
 
 
+def _finding_is_negative_assertion(text: str) -> bool:
+    """True if finding asserts the ABSENCE of a defect rather than presence of a defect."""
+    low = str(text or "").strip().lower()
+    if not low:
+        return False
+    if low.startswith(("no ", "zero ", "none ", "not ", "neither ")):
+        return True
+    if any(
+        phrase in low
+        for phrase in (
+            "is not evident",
+            "not evident",
+            "not found",
+            "not present",
+            "not observed",
+            "no evidence",
+            "free of",
+            "without invention",
+            "without distortion",
+        )
+    ):
+        return True
+    if "is evident" in low:
+        first_part = low.split("is evident")[0]
+        if any(neg in first_part for neg in ("no ", "neither ", "not ", "zero ")):
+            return True
+    return False
+
+
 def aggregate_full_resume_coherence(
     judge_outputs: list[JudgeOutput],
     *,
@@ -478,7 +690,7 @@ def aggregate_full_resume_coherence(
         has_mandate_divergence = any(
             any(k in str(f).lower() for k in div_keys)
             for o in model_backed for f in o.findings or []
-            if not o.pass_ or o.decisive_failure
+            if (not o.pass_ or o.decisive_failure) and not _finding_is_negative_assertion(str(f))
         )
         if (
             len(passing) >= 1
@@ -501,7 +713,9 @@ def aggregate_full_resume_coherence(
             continue
         warnings.append(f"judge_dissent:{o.judge_id}")
         for f in o.findings or []:
-            low = f.lower()
+            if _finding_is_negative_assertion(str(f)):
+                continue
+            low = str(f).lower()
             if "jd" in low and "proof" in low:
                 blockers.append(f"unsupported_jd_proof:{o.judge_id}")
             elif "briefing" in low and "proof" in low:

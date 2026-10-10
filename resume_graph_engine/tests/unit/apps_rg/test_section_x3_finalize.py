@@ -640,3 +640,50 @@ def test_finalize_section_lane_x3_hard_blocks_exact_metric_binding_drift(
     assert final_contract["pass"] is False
     assert x3_doc["x3_code"] == FINAL_MATERIALIZED_BLOCK_X3_CODE
     assert lane_outcome_authorized_from_x3(x3_doc) is False
+
+
+def test_finalize_section_lane_x3_authorizes_success_with_review(tmp_path: Path) -> None:
+    """Author-Gate decision dec_19e6e344d5db19589: soft-fail review is authorized at dispatch."""
+    x3 = SimpleNamespace(x3_code="X3_REVIEW_JUDGE_SOFT_FAIL", pass_=False)
+    x3.to_dict = lambda: {"x3_code": "X3_REVIEW_JUDGE_SOFT_FAIL", "pass": False}  # type: ignore[method-assign]
+    (tmp_path / "command_output.txt").write_text("Valid text.", encoding="utf-8")
+    (tmp_path / "claim_ledger.json").write_text('[{"claim_text":"test"}]', encoding="utf-8")
+    _write_bound_x2_payload(tmp_path, section_id="competencies")
+    (tmp_path / "x1d_llm_judge_outputs.json").write_text(
+        json.dumps(
+            {
+                "judges": [
+                    {
+                        "provider_key": "gemini_pro",
+                        "evaluator_mode": "MODEL_BACKED",
+                        "provider_status": "MODEL_BACKED_PASS",
+                        "pass": True,
+                    },
+                    {
+                        "provider_key": "openai_chatgpt",
+                        "evaluator_mode": "MODEL_BACKED",
+                        "provider_status": "MODEL_BACKED_FAIL",
+                        "pass": False,
+                        "decisive_failure": False,
+                    },
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    finalize_section_lane_x3(
+        artifact_dir=tmp_path,
+        section_id="competencies",
+        runtime_payload={"run_id": "soft-fail-review"},
+        x3_result=x3,
+    )
+
+    final_contract = json.loads(
+        (tmp_path / FINAL_MATERIALIZED_ACCEPTANCE_CONTRACT).read_text(encoding="utf-8")
+    )
+    x3_doc = json.loads((tmp_path / "x3_disposition.json").read_text(encoding="utf-8"))
+    assert final_contract["pass"] is True
+    assert final_contract["terminal_class"] == "success_with_review"
+    assert x3_doc["x3_code"] == "X3_REVIEW_JUDGE_SOFT_FAIL"
+    assert lane_outcome_authorized_from_x3(x3_doc) is True

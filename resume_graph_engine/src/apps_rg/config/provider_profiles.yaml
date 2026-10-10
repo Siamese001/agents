@@ -36,6 +36,7 @@ profiles:
       unify_narrative: gpt-5.6-luna
       ibm_narrative: gpt-5.6-luna
       insurtech_narrative: gpt-5.6-luna
+      ey_narrative: gpt-5.6-luna
     # Governed backup pins used only when the explicit Anthropic-limit preflight
     # is active. They do not change the default/primary provider for these lanes.
     anthropic_limit_backup_model_by_section:
@@ -44,6 +45,7 @@ profiles:
       unify_bullets: gpt-5.6-luna
       ibm_bullets: gpt-5.6-luna
       insurtech_bullets: gpt-5.6-luna
+      ey_bullets: gpt-5.6-luna
       headline: gpt-5.6-luna
       executive_summary: gpt-5.6-luna
     effort_by_section:
@@ -51,12 +53,14 @@ profiles:
       unify_narrative: low
       ibm_narrative: low
       insurtech_narrative: low
+      ey_narrative: low
     anthropic_limit_backup_effort_by_section:
       competencies: low
       slalom_bullets: low
       unify_bullets: low
       ibm_bullets: low
       insurtech_bullets: low
+      ey_bullets: low
       headline: low
       executive_summary: medium
     endpoint_env_var: APPS_RG_EXTERNAL_OPENAI_BASE_URL
@@ -81,6 +85,7 @@ profiles:
       unify_bullets: claude-sonnet-5
       ibm_bullets: claude-sonnet-5
       insurtech_bullets: claude-sonnet-5
+      ey_bullets: claude-sonnet-5
       headline: claude-sonnet-5
       executive_summary: claude-sonnet-5
     effort_by_section:
@@ -93,6 +98,7 @@ profiles:
       unify_bullets: low
       ibm_bullets: low
       insurtech_bullets: low
+      ey_bullets: low
       headline: low
       executive_summary: low
     endpoint_env_var: APPS_RG_EXTERNAL_CLAUDE_BASE_URL

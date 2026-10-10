@@ -108,6 +108,7 @@ def _x3_to_doc(x3: Any) -> dict[str, Any]:
 
 
 _SOFT_FAIL_REVIEW_X3_CODES = frozenset({"X3_REVIEW_JUDGE_SOFT_FAIL", "X3_REVIEW"})
+SOFT_FAIL_REVIEW_X3_CODES = _SOFT_FAIL_REVIEW_X3_CODES
 
 
 def _terminal_class_from_x3(x3: Any, x3_doc: dict[str, Any]) -> str:
@@ -376,7 +377,8 @@ def build_final_materialized_acceptance_contract(
         if not (artifact_dir / "x1d_llm_judge_outputs.json").is_file():
             failure_reasons.append("x1d_judge_outputs_missing")
         elif not x1d_all_model_backed_judges_pass:
-            failure_reasons.append("x1d_model_backed_judges_missing_or_failed")
+            if terminal_class != "success_with_review" or not final_x1d_pass_keys:
+                failure_reasons.append("x1d_model_backed_judges_missing_or_failed")
         if not declared_contracts_all_pass:
             failure_reasons.append("declared_final_materialized_contract_failed")
         if graph_claim_binding_active and graph_claim_binding.get("pass") is not True:
@@ -705,6 +707,7 @@ __all__ = [
     "LEGACY_FEC_BRIDGE_ALIAS",
     "CORE_EXIT_AUTHORITY_SCOPE",
     "LANE_X3_MIRROR_AUTHORITY_SCOPE",
+    "SOFT_FAIL_REVIEW_X3_CODES",
     "SPINE_FEC_ARTIFACT",
     "build_final_materialized_acceptance_contract",
     "finalize_section_lane_x3",

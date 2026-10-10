@@ -49,6 +49,10 @@ _ALLOCATION_VISIBLE_SURFACE_COMPOSITIONS: Mapping[tuple[str, str], str] = {
         "skill_reusable_agentic_platform_architecture",
     ): "reusable accelerator assets for agentic platforms",
     (
+        "reb_slalom_ecosystem_accelerators",
+        "skill_partner_hyperscaler_cosell",
+    ): "Enterprise cloud partner hyperscaler co-sell accelerators",
+    (
         "reb_ey_ccar_capital_liquidity_stress_testing",
         "skill_capital_capital_modeling",
     ): "Regulated model risk governance and validation",

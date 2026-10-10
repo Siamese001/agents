@@ -220,5 +220,6 @@ env_agents
 
 # Test run output artifacts & scratch
 resume_graph_engine/artifacts/test_runs/
+resume_graph_engine/artifacts/apps_rg/l6/
 scratch/
 

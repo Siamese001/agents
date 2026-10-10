@@ -74,7 +74,8 @@ _EXECUTIVE_ABSTRACTION_RE = re.compile(
     r"\becosystems?\b|\bcommercialization\b|\bregulated\b|\bsystems?\b|"
     r"\badoption\b|\boperating\s+model\b|\bco-?sell\b|\bmotions?\b|"
     r"\bpartners?\b|\bpartnerships?\b|\balliances?\b|\benterprise\b|\bruntime\b|\binfrastructure\b|"
-    r"\bproductization\b|\bcontrols?\b|\bcloud\s+data\b|\baccelerators?\b|\badvisory\b)",
+    r"\bproductization\b|\bcontrols?\b|\bcloud\s+data\b|\baccelerators?\b|\badvisory\b|"
+    r"\bresilience\b|\breliability\b|\bdevsecops\b)",
     re.IGNORECASE,
 )
 
@@ -173,7 +174,7 @@ _HEADLINE_GENERIC_NOUN_STOPLIST: frozenset[str] = frozenset(
         # decisively rejects "Retrieval Telemetry Catalogs" as ungrounded because no cited
         # fact mentions catalogs. Requiring catalog/catalogs to be literally grounded lets
         # X2 catch this before regen, instead of relying on the judge to flag it.
-        "registries", "registry", "controls", "patterns",
+        "registries", "registry", "controls", "patterns", "gate", "gates", "gated",
         "integration", "integrations", "integrated", "integrating", "integrator",
         "implementation", "implementations", "deployment", "deployments",
         "adoption", "adoptions", "rollout", "rollouts", "transformation",
@@ -194,12 +195,15 @@ def _tokenize_for_grounding(text: str) -> set[str]:
     if not text:
         return set()
     raw = re.findall(r"[A-Za-z][A-Za-z\-]{3,}", text.lower())
-    for tok in list(raw):
+    clean_raw: list[str] = []
+    for tok in raw:
         if "-" in tok:
             for sub in tok.split("-"):
                 if len(sub) >= 3:
-                    raw.append(sub)
-    content = {tok for tok in raw if tok not in _HEADLINE_GENERIC_NOUN_STOPLIST}
+                    clean_raw.append(sub)
+        else:
+            clean_raw.append(tok)
+    content = {tok for tok in clean_raw if tok not in _HEADLINE_GENERIC_NOUN_STOPLIST}
     normalized = set(content)
     normalized.update(
         tok[:-1]
@@ -244,6 +248,27 @@ _HEADLINE_SEGMENT_THEME_FAMILIES: dict[str, frozenset[str]] = {
             "partnerships",
         }
     ),
+    "governance_controls": frozenset(
+        {
+            "governance",
+            "governed",
+            "policy",
+            "policies",
+            "gated",
+            "control",
+            "controls",
+            "compliance",
+            "regulatory",
+            "audit",
+        }
+    ),
+}
+
+_HEADLINE_REPEATED_POSITIONING_STEMS: dict[str, frozenset[str]] = {
+    "runtime": frozenset({"runtime", "runtimes"}),
+    "govern": frozenset({"governance", "governed", "govern", "governing"}),
+    "policy": frozenset({"policy", "policies"}),
+    "control": frozenset({"control", "controls", "controlling"}),
 }
 
 
@@ -254,12 +279,12 @@ def headline_segment_theme_overlap_issues(segments: list[str]) -> list[str]:
     token_segments: dict[str, list[int]] = {}
     for idx, segment in enumerate(segments, start=2):
         tokens = set(re.findall(r"[A-Za-z][A-Za-z\-]{3,}", str(segment or "").lower()))
-        # Repeating ``runtime`` in two visible pillars is not harmless lexical
-        # reuse: it makes both pillars describe the same operating domain.  The
-        # Retry-14 judges independently rejected exactly that shape while the
-        # old deterministic gate incorrectly passed it.
-        if "runtime" in tokens:
-            token_segments.setdefault("runtime", []).append(idx)
+        # Repeating key positioning stems (e.g. runtime, govern, policy, control) in two visible
+        # pillars makes multiple pillars describe the same operating domain instead of delivering
+        # distinct executive capabilities.
+        for stem_name, stem_tokens in _HEADLINE_REPEATED_POSITIONING_STEMS.items():
+            if tokens & stem_tokens:
+                token_segments.setdefault(stem_name, []).append(idx)
         for family_name, family_tokens in _HEADLINE_SEGMENT_THEME_FAMILIES.items():
             hits = sorted(tokens & family_tokens)
             if len(hits) >= 2:
