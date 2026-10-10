@@ -169,25 +169,35 @@ class WorkflowExecutionEngine:
                 continue
 
             # Check prerequisite dependencies
+            deps_missing = [dep for dep in step.depends_on if dep not in step_results]
             deps_failed = [
                 dep for dep in step.depends_on
-                if dep in step_results and step_results[dep].status == "FAILED"
+                if dep in step_results and (
+                    step_results[dep].status == "FAILED"
+                    or (step_results[dep].status == "SKIPPED" and step_results[dep].error)
+                )
             ]
-            if deps_failed:
+            if deps_missing or deps_failed:
+                err_parts = []
+                if deps_missing:
+                    err_parts.append(f"Prerequisite steps missing or unexecuted: {deps_missing}")
+                if deps_failed:
+                    err_parts.append(f"Prerequisite steps failed: {deps_failed}")
+                dep_err = "; ".join(err_parts)
                 step_results[step_id] = StepExecutionResult(
                     step_id=step_id,
                     status="SKIPPED",
                     primitive=primitive.value,
-                    error=f"Prerequisite steps failed: {deps_failed}",
+                    error=dep_err,
                 )
                 self.emitter.emit(
                     TelemetryEventType.STEP_COMPLETE,
                     step_corr,
-                    {"step_id": step_id, "status": "SKIPPED", "error": f"Prerequisite steps failed: {deps_failed}"},
+                    {"step_id": step_id, "status": "SKIPPED", "error": dep_err},
                 )
                 if not step.optional:
                     overall_success = False
-                    fatal_error_msg = f"Prerequisites failed for mandatory step {step_id}"
+                    fatal_error_msg = f"Prerequisites unsatisfied for mandatory step {step_id}: {dep_err}"
                     break
                 continue
 
@@ -197,17 +207,58 @@ class WorkflowExecutionEngine:
             step_passed = False
             step_output = None
             step_err = ""
+            is_skipped = False
+            skip_reason = ""
 
             max_retries = int(step.metadata.get("max_retries", 2))
 
             while retries <= max_retries:
                 try:
                     step_output = step.handler(ctx)
+
+                    # Check if step output signals failure
+                    failed, failure_reason = self._detect_output_failure(step_output)
+                    if failed:
+                        step_err = failure_reason
+                        step_passed = False
+                        failure_kind = classify_failure(Exception(failure_reason))
+                        recovery = derive_recovery_action(failure_kind, retries, max_retries)
+                        if retries < max_retries and (
+                            recovery == RecoveryAction.TRANSPORT_RETRY
+                            or self._is_transient_error_str(failure_reason)
+                        ):
+                            retries += 1
+                            self.emitter.emit(
+                                TelemetryEventType.STEP_RECOVERY,
+                                step_corr,
+                                {
+                                    "step_id": step_id,
+                                    "retry_count": retries,
+                                    "error": step_err,
+                                    "failure_kind": failure_kind.value,
+                                    "recovery_action": recovery.value,
+                                },
+                            )
+                            time.sleep(0.05 * retries)
+                            continue
+                        else:
+                            break
+
+                    # Check if step output signals a clean skip
+                    skipped, reason = self._detect_output_skip(step_output)
+                    if skipped:
+                        is_skipped = True
+                        skip_reason = reason
+                        step_passed = False
+                        step_err = ""
+                        break
+
                     step_passed = True
                     step_err = ""
                     break
                 except Exception as exc:
                     step_err = str(exc)
+                    step_passed = False
                     failure_kind = classify_failure(exc)
                     recovery = derive_recovery_action(failure_kind, retries, max_retries)
                     # Check if error is transient technical retry
@@ -235,10 +286,34 @@ class WorkflowExecutionEngine:
             self.state_machine.transition_to(
                 WorkflowStatus.REVIEWING,
                 reason=f"Reviewing outcome for step {step_id}",
-                metadata={"step_id": step_id, "passed": step_passed},
+                metadata={"step_id": step_id, "passed": step_passed, "skipped": is_skipped},
             )
 
-            if step_passed:
+            if is_skipped:
+                step_results[step_id] = StepExecutionResult(
+                    step_id=step_id,
+                    status="SKIPPED",
+                    primitive=primitive.value,
+                    output=step_output,
+                    metadata={"reason": skip_reason or "Step handler indicated SKIPPED"},
+                )
+                self.emitter.emit(
+                    TelemetryEventType.STEP_COMPLETE,
+                    step_corr,
+                    {"step_id": step_id, "status": "SKIPPED", "reason": skip_reason},
+                )
+                if isinstance(step_output, dict):
+                    ctx[f"step_{step_id}"] = step_output
+                if not step.optional:
+                    overall_success = False
+                    fatal_error_msg = f"Mandatory step {step_id} skipped: {skip_reason}"
+                    break
+                else:
+                    self.state_machine.transition_to(
+                        WorkflowStatus.RUNNING,
+                        reason=f"Optional step {step_id} skipped; continuing pipeline",
+                    )
+            elif step_passed:
                 step_results[step_id] = StepExecutionResult(
                     step_id=step_id,
                     status="PASSED",
@@ -264,6 +339,7 @@ class WorkflowExecutionEngine:
                     step_id=step_id,
                     status="FAILED",
                     primitive=primitive.value,
+                    output=step_output,
                     error=step_err,
                     retry_count=retries,
                     replan_count=replans,
@@ -338,11 +414,100 @@ class WorkflowExecutionEngine:
     @staticmethod
     def _is_transient_error(exc: Exception) -> bool:
         """Identify transient exceptions eligible for technical retry."""
-        msg = str(exc).lower()
+        return WorkflowExecutionEngine._is_transient_error_str(str(exc))
+
+    @staticmethod
+    def _is_transient_error_str(msg: str) -> bool:
+        """Identify transient error messages eligible for technical retry."""
+        lower_msg = str(msg).lower()
         return any(
-            token in msg
-            for token in ("timeout", "rate limit", "connection reset", "503", "504", "transient")
+            token in lower_msg
+            for token in (
+                "timeout",
+                "rate limit",
+                "connection reset",
+                "connection refused",
+                "broken pipe",
+                "socket error",
+                "503",
+                "504",
+                "502",
+                "transient",
+                "econnreset",
+            )
         )
+
+    @staticmethod
+    def _detect_output_failure(output: Any) -> tuple[bool, str]:
+        """Detect if step output signals a failure."""
+        if output is None:
+            return False, ""
+        if isinstance(output, dict):
+            status = str(output.get("status", "")).upper()
+            if status in ("FAILED", "FAILURE", "ERROR"):
+                err = output.get("error") or output.get("message") or f"Step handler returned status={status}"
+                return True, str(err)
+            if output.get("success") is False:
+                err = output.get("error") or output.get("message") or "Step handler returned success=False"
+                return True, str(err)
+            if output.get("is_successful") is False:
+                err = output.get("error") or output.get("message") or "Step handler returned is_successful=False"
+                return True, str(err)
+            if output.get("is_valid") is False:
+                err = output.get("error") or output.get("message") or "Step handler returned is_valid=False"
+                return True, str(err)
+            exit_code = output.get("exit_code")
+            if exit_code is not None and exit_code != 0:
+                err = output.get("error") or output.get("message") or f"Step handler returned non-zero exit code: {exit_code}"
+                return True, str(err)
+            if output.get("failed") is True:
+                err = output.get("error") or output.get("message") or "Step handler returned failed=True"
+                return True, str(err)
+        else:
+            status = str(getattr(output, "status", "")).upper()
+            if status in ("FAILED", "FAILURE", "ERROR"):
+                err = getattr(output, "error", "") or getattr(output, "message", "") or f"Step handler returned status={status}"
+                return True, str(err)
+            if getattr(output, "success", None) is False:
+                err = getattr(output, "error", "") or getattr(output, "message", "") or "Step handler returned success=False"
+                return True, str(err)
+            if getattr(output, "is_successful", None) is False:
+                err = getattr(output, "error", "") or getattr(output, "message", "") or "Step handler returned is_successful=False"
+                return True, str(err)
+            if getattr(output, "is_valid", None) is False:
+                err = getattr(output, "error", "") or getattr(output, "message", "") or "Step handler returned is_valid=False"
+                return True, str(err)
+            exit_code = getattr(output, "exit_code", None)
+            if exit_code is not None and exit_code != 0:
+                err = getattr(output, "error", "") or getattr(output, "message", "") or f"Step handler returned non-zero exit code: {exit_code}"
+                return True, str(err)
+            if getattr(output, "failed", None) is True:
+                err = getattr(output, "error", "") or getattr(output, "message", "") or "Step handler returned failed=True"
+                return True, str(err)
+        return False, ""
+
+    @staticmethod
+    def _detect_output_skip(output: Any) -> tuple[bool, str]:
+        """Detect if step output signals a clean skip."""
+        if output is None:
+            return False, ""
+        if isinstance(output, dict):
+            status = str(output.get("status", "")).upper()
+            if status == "SKIPPED":
+                reason = output.get("reason") or output.get("message") or "Step handler returned status=SKIPPED"
+                return True, str(reason)
+            if output.get("skipped") is True:
+                reason = output.get("reason") or output.get("message") or "Step handler returned skipped=True"
+                return True, str(reason)
+        else:
+            status = str(getattr(output, "status", "")).upper()
+            if status == "SKIPPED":
+                reason = getattr(output, "reason", "") or getattr(output, "message", "") or "Step handler returned status=SKIPPED"
+                return True, str(reason)
+            if getattr(output, "skipped", None) is True:
+                reason = getattr(output, "reason", "") or getattr(output, "message", "") or "Step handler returned skipped=True"
+                return True, str(reason)
+        return False, ""
 
 
 __all__ = [
