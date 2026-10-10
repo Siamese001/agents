@@ -75,6 +75,69 @@ def detect_generic_consulting_phrases(text: str) -> list[str]:
     return [p for p in GENERIC_CONSULTING_PHRASES if p in low]
 
 
+_GENERIC_CONSULTING_REWRITES: tuple[tuple[re.Pattern[str], str], ...] = (
+    (re.compile(r"\bconsulting delivery\b", re.IGNORECASE), "bespoke enterprise delivery"),
+    (re.compile(r"\bdelivered consulting engagements\b", re.IGNORECASE), "delivered enterprise platform engagements"),
+    (re.compile(r"\bclient delivery engagements\b", re.IGNORECASE), "client platform deployments"),
+    (re.compile(r"\bprofessional services delivery\b", re.IGNORECASE), "enterprise platform delivery"),
+    (re.compile(r"\bmanaged client relationships\b", re.IGNORECASE), "managed enterprise partner alliances"),
+    (re.compile(r"\bdelivery oversight\b", re.IGNORECASE), "engineering delivery governance"),
+    (re.compile(r"\bstakeholder management\b", re.IGNORECASE), "cross-functional executive alignment"),
+    (re.compile(r"\bcross-functional collaboration\b", re.IGNORECASE), "cross-functional engineering execution"),
+    (re.compile(r"\bsubject matter expertise\b", re.IGNORECASE), "deep technical domain expertise"),
+    (re.compile(r"\bdrove business outcomes\b", re.IGNORECASE), "drove commercial platform adoption"),
+    (re.compile(r"\bdrive strategic value\b", re.IGNORECASE), "drive commercial platform value"),
+    (re.compile(r"\bensure alignment\b", re.IGNORECASE), "ensure architectural alignment"),
+    (re.compile(r"\bleveraged best practices\b", re.IGNORECASE), "operationalized engineering standards"),
+    (re.compile(r"\bworked closely with\b", re.IGNORECASE), "partnered with"),
+    (re.compile(r"\bpartnered with stakeholders\b", re.IGNORECASE), "aligned cross-functional leadership"),
+    (re.compile(r"\baligned with the business\b", re.IGNORECASE), "aligned with enterprise roadmaps"),
+    (re.compile(r"\bfacilitating collaboration\b", re.IGNORECASE), "orchestrating technical execution"),
+    (re.compile(r"\bdrove strategic alignment\b", re.IGNORECASE), "drove architectural convergence"),
+    (re.compile(r"\bdrove alignment\b", re.IGNORECASE), "drove architectural convergence"),
+    (re.compile(r"\benabling the business\b", re.IGNORECASE), "scaling platform capabilities"),
+    (re.compile(r"\bproviding thought leadership\b", re.IGNORECASE), "establishing reference architecture"),
+    (re.compile(r"\bthought leadership\b", re.IGNORECASE), "reference architecture"),
+    (re.compile(r"\bbest practices\b", re.IGNORECASE), "engineering standards"),
+)
+
+
+def rewrite_generic_consulting_phrases(text: str) -> str:
+    """Deterministically rewrite generic consulting-delivery phrases to platform engineering terms."""
+    s = str(text or "")
+    if not s:
+        return s
+    for pat, repl in _GENERIC_CONSULTING_REWRITES:
+        def _match_repl(m: re.Match[str], replacement: str = repl) -> str:
+            val = m.group(0)
+            if val and val[0].isupper() and not replacement[0].isupper():
+                return replacement[0].upper() + replacement[1:]
+            return replacement
+        s = pat.sub(_match_repl, s)
+    s = re.sub(r"\s{2,}", " ", s).strip()
+    return s
+
+
+def apply_narrative_consulting_clean(out: dict[str, Any], narrative: str) -> str:
+    """Deterministically clean generic consulting language and sync narrative claim ledger."""
+    cleaned = rewrite_generic_consulting_phrases(narrative)
+    if cleaned != narrative:
+        old = narrative
+        out["narrative_sentence"] = cleaned
+        ledger = out.get("claim_ledger")
+        if isinstance(ledger, list):
+            for entry in ledger:
+                if isinstance(entry, dict) and str(entry.get("claim_text") or "").strip() == old:
+                    entry["claim_text"] = cleaned
+        out.setdefault("change_log", []).append({
+            "operation": "consulting_language_deterministic_clean",
+            "reason": "x2_unify_narrative_generic_consulting_language_forbidden",
+        })
+        out.setdefault("self_check", {})["consulting_language_cleaned"] = True
+        return cleaned
+    return narrative
+
+
 def detect_jd_only_phrases(text: str, jd_text: str, *, min_run: int = 6) -> list[str]:
     """Return long verbatim phrase runs lifted from JD/briefing (JD-as-proof leakage).
 
@@ -132,10 +195,12 @@ def is_flat_skill_only_graph_packet(packet: dict[str, Any] | None) -> bool:
 __all__ = [
     "ARCHITECTURE_MECHANISM_VOCAB",
     "GENERIC_CONSULTING_PHRASES",
+    "apply_narrative_consulting_clean",
     "base_archive_ngram_overlap",
     "detect_generic_consulting_phrases",
     "detect_jd_only_phrases",
     "is_flat_skill_only_graph_packet",
+    "rewrite_generic_consulting_phrases",
     "seniority_floor_score",
     "technical_specificity_score",
 ]

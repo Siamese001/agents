@@ -85,6 +85,9 @@ from apps_rg.runtime.sections.graph_evidence_contract import (
     build_selected_graph_evidence_plan as _build_selected_graph_evidence_plan,
     merge_graph_evidence_reporting_into_dict,
 )
+from apps_rg.runtime.sections.cross_section_signal_guards import (
+    apply_narrative_consulting_clean,
+)
 
 UNIFY_NARRATIVE_BASE_FACT_ID = "unify_narrative_base_001"
 # C0 / model priority: north-star anchor first, then commercialization + architecture + governance;
@@ -635,6 +638,7 @@ def normalize_unify_narrative_parsed(
         )
         out.setdefault("self_check", {})["mechanism_floor_grounded"] = True
         narrative = mech_grounded
+    narrative = apply_narrative_consulting_clean(out, narrative)
     if not isinstance(out.get("selected_fact_plan"), dict):
         out["selected_fact_plan"] = runtime_payload["selected_fact_plan"]
     allowed = {str(x) for x in (runtime_payload.get("allowed_fact_ids") or [])}
@@ -879,14 +883,8 @@ def enrich_unify_narrative_parsed_for_x2(
     output_body = {
         key: enriched[key]
         for key in (
-            "narrative_sentence",
-            "selected_fact_plan",
-            "claim_ledger",
-            "jd_alignment",
-            "gap_notes",
-            "change_log",
-            "self_check",
-            "text_claim_coverage",
+            "narrative_sentence", "selected_fact_plan", "claim_ledger", "jd_alignment",
+            "gap_notes", "change_log", "self_check", "text_claim_coverage",
         )
         if key in enriched
     }

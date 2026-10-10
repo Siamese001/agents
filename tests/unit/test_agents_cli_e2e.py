@@ -65,12 +65,17 @@ def test_e2e_orchestrator_stage_continuity_and_provenance(tmp_path):
     captured_resume_args = []
     def fake_resume_main(argv):
         captured_resume_args.extend(argv)
-        # write file in mock runtime proofs if needed
+        rdir = tmp_path / "resume"
+        rdir.mkdir(parents=True, exist_ok=True)
+        (rdir / "FINAL_RESUME_OUTPUT.txt").write_text("SVP Engineering Tailored Resume", encoding="utf-8")
         return 0
 
     captured_outreach_args = []
     def fake_outreach_main(argv, prog=None):
         captured_outreach_args.extend(argv)
+        odir = tmp_path / "outreach"
+        odir.mkdir(parents=True, exist_ok=True)
+        (odir / "campaign.json").write_text('{"campaign_id": "test_campaign"}', encoding="utf-8")
         return 0
 
     with patch("agents.live_preflight.assert_engine_live_preflight"), \

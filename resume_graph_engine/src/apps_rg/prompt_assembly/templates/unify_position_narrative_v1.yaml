@@ -122,6 +122,7 @@ prompt_engineering_hardening:
     - "Strong current-role signal for SVP Engineering hiring screens."
     - "No first person, no candidate name, no em dash, no source tags."
     - "Do not reuse companion four-grams such as 'partner co-sell motions'; prefer partner-channel enablement or alliance distribution."
+    - "Zero generic consulting delivery language: do not use 'consulting delivery', 'consulting engagements', 'professional services delivery', or 'stakeholder management'; use platform engineering language such as 'bespoke enterprise delivery', 'client solution delivery', or 'reusable platform services'."
 
 few_shot_patterns:
   positive:
@@ -261,6 +262,9 @@ forbidden_patterns:
     action: "REJECT"
   - pattern: "cross_employment_summary"
     check: "Narrative references career arc beyond Unify"
+    action: "REJECT"
+  - pattern: "generic_consulting_delivery_language"
+    check: "Output contains 'consulting delivery', 'consulting engagements', 'professional services delivery', or generic consulting tropes"
     action: "REJECT"
 
 metric_handling_rules:
