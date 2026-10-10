@@ -48,35 +48,56 @@ class MissionLoader:
         clean_text = text.strip()
         priorities = _extract_priorities_from_text(clean_text)
 
-        # Detect company name from markdown headers or defaults
+        # Detect company name and role title
         company_name = "Target Company"
-        match = re.search(r"^#+\s*(.+)$", clean_text, re.MULTILINE)
-        if match:
-            header = match.group(1).strip()
-            if ":" in header:
-                cand = header.split(":", 1)[1].strip()
-            elif "-" in header:
-                cand = header.split("-", 1)[0].strip()
-            else:
-                cand = header
-            cand = re.sub(r"(?i)^(?:targeting brief|company briefing|briefing for|research brief)\s*", "", cand).strip()
-            if cand and not cand.lower().startswith(("briefing", "executive", "strategic", "overview", "table")):
-                company_name = cand
+        role_title = "Head of Engineering"
+
+        first_line = clean_text.splitlines()[0].strip() if clean_text.splitlines() else ""
+        title_match = re.match(
+            r"^#*\s*([A-Za-z0-9 &.,'-]+?)\s*-\s*([A-Za-z0-9 &.,'/()-]+?)(?:\s+targeting brief|\s+briefing|\s*$)",
+            first_line,
+            re.IGNORECASE,
+        )
+        if title_match:
+            c_cand = title_match.group(1).strip()
+            r_cand = title_match.group(2).strip()
+            if c_cand and not c_cand.lower().startswith(("briefing", "executive", "strategic", "overview", "table")):
+                company_name = c_cand
+            if r_cand and not r_cand.lower().startswith(("targeting", "brief", "notes")):
+                role_title = r_cand
+        else:
+            for m in re.finditer(r"^#+\s*(.+)$", clean_text, re.MULTILINE):
+                header = m.group(1).strip()
+                if header.lower().startswith((
+                    "jd complement", "company dna", "company strategy", "do not use",
+                    "positioning", "outreach", "leadership", "ai, data", "partnership", "recent events"
+                )):
+                    continue
+                if ":" in header:
+                    cand = header.split(":", 1)[1].strip()
+                elif "-" in header:
+                    cand = header.split("-", 1)[0].strip()
+                else:
+                    cand = header
+                cand = re.sub(r"(?i)^(?:targeting brief|company briefing|briefing for|research brief)\s*", "", cand).strip()
+                if cand and not cand.lower().startswith(("briefing", "executive", "strategic", "overview", "table")):
+                    company_name = cand
+                    break
 
         default_cand = CandidateProfileLoader.load_default()
         candidate = CandidateProfileLoader.load_default(
             overrides={
                 "candidate_id": f"cand_{default_id}",
-                "target_title": "Head of Engineering",
+                "target_title": role_title,
             }
         )
         opportunity = TargetOpportunity(
             opportunity_id=f"opp_{default_id}",
             company_name=company_name,
-            role_title="Head of Engineering",
+            role_title=role_title,
             industry="Enterprise Technology",
             recipient_name="Executive Hiring Leader",
-            recipient_title="VP of Engineering",
+            recipient_title=f"VP of {role_title}" if "Engineering" in role_title or "AI" in role_title else "Executive Hiring Leader",
             recipient_class=RecipientClass.HIRING_MANAGER,
             relationship_distance=RelationshipDistance.COLD,
             strategic_priorities=priorities,
