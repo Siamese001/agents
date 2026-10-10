@@ -353,21 +353,19 @@ def run_e2e(args: argparse.Namespace) -> int:
         resume_stage_dir.mkdir(parents=True, exist_ok=True)
         dest_resume_file = resume_stage_dir / "FINAL_RESUME_OUTPUT.txt"
 
-        repo_root = Path(__file__).resolve().parent.parent
-        proofs_roots = (
-            repo_root / "resume_graph_engine" / "artifacts" / "apps_rg" / "runtime_proofs",
-            repo_root / "artifacts" / "apps_rg" / "runtime_proofs",
-        )
-        candidates = sorted(
-            [c for pr in proofs_roots if pr.is_dir() for c in pr.glob("full_resume_*/FINAL_RESUME_OUTPUT.txt")],
-            key=lambda p: p.stat().st_mtime,
-            reverse=True,
-        )
-        latest_resume = next((c for c in candidates if c.stat().st_mtime >= t_before), None) or (candidates[0] if candidates else None)
+        if not dest_resume_file.is_file():
+            repo_root = Path(__file__).resolve().parent.parent
+            proofs_roots = (repo_root / "resume_graph_engine" / "artifacts" / "apps_rg" / "runtime_proofs", repo_root / "artifacts" / "apps_rg" / "runtime_proofs")
+            candidates = sorted([c for pr in proofs_roots if pr.is_dir() for c in pr.glob("full_resume_*/FINAL_RESUME_OUTPUT.txt")], key=lambda p: p.stat().st_mtime, reverse=True)
+            latest_resume = next((c for c in candidates if c.stat().st_mtime >= t_before), None)
+            if latest_resume and latest_resume.is_file():
+                content = latest_resume.read_text(encoding="utf-8")
+                if "[NOT_GENERATED_BY_RUN:" in content:
+                    raise RuntimeError(f"Generated resume contains fallback marker [NOT_GENERATED_BY_RUN:] at {latest_resume}")
+                shutil.copy2(latest_resume, dest_resume_file)
 
         resume_sha = ""
-        if latest_resume and latest_resume.is_file():
-            shutil.copy2(latest_resume, dest_resume_file)
+        if dest_resume_file.is_file():
             resume_sha = hashlib.sha256(dest_resume_file.read_bytes()).hexdigest()
 
         summary_payload["stages"]["resume_tailoring"] = {
@@ -432,7 +430,8 @@ def run_e2e(args: argparse.Namespace) -> int:
             sys.stderr.write(f"[agents e2e] Outreach generation returned non-zero exit code: {oe_code}.\n")
             raise RuntimeError(f"Outreach generation returned non-zero exit code: {oe_code}")
 
-        campaign_file = outreach_artifact_dir / "campaign.json"
+        campaign_file = next((f for name in ("campaign.json", "campaign_sequence.json", "outreach_draft.json") if (f := outreach_artifact_dir / name).is_file()), outreach_artifact_dir / "campaign.json")
+
         campaign_sha = ""
         if campaign_file.is_file():
             campaign_sha = hashlib.sha256(campaign_file.read_bytes()).hexdigest()
@@ -490,11 +489,13 @@ def run_e2e(args: argparse.Namespace) -> int:
     for key, rel, pattern in [
         ("research_briefing", "research", "**/briefing.md"),
         ("final_resume", "resume", "**/FINAL_RESUME_OUTPUT.txt"),
-        ("outreach_campaign", "outreach", "**/campaign.json"),
+        ("outreach_campaign", "outreach", "**/campaign*.json"),
     ]:
         p = base_dir / rel / Path(pattern).name
         if not p.is_file():
-            cands = list((base_dir / rel).glob(pattern))
+            cands = sorted(list((base_dir / rel).glob(pattern)))
+            if not cands and key == "outreach_campaign":
+                cands = sorted(list((base_dir / rel).glob("**/outreach_draft.json")))
             if cands:
                 p = cands[0]
         if p.is_file():

@@ -755,6 +755,7 @@ _MACHINE_HEADLINE_SEGMENT_REWRITES: dict[str, str] = {
     "governed override escalation": "Human Override Escalation Governance",
     "runtime gate mesh governance": "Runtime Gate Architecture",
     "runtime gate mesh": "Runtime Gate Architecture",
+    "runtime gate governance": "Runtime Gate Architecture",
     "audit grade observability controls": "Audit Observability Controls",
     "audit grade observability systems": "Audit Observability Controls",
     "audit grade observability": "Audit Observability Controls",
