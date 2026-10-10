@@ -209,6 +209,8 @@ def _enforce_gate_order(
     from apps_rg.runtime.live_judge_only_guard import assert_production_runtime
 
     bootstrap_apps_rg_env()
+    if getattr(args, "action", "") in {"run", "patch-run"} or not getattr(args, "action", ""):
+        os.environ.setdefault("APPS_RG_ROUTE_SIGNING_POSTURE", "ephemeral_dev")
     apply_route_signing_posture()
 
     if requires_preflight:

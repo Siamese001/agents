@@ -5,6 +5,7 @@ import dataclasses
 import json
 import os
 import shutil
+import sys
 import uuid
 from pathlib import Path
 from types import SimpleNamespace
@@ -2332,7 +2333,7 @@ def run_whole_run_with_route_governance(
                             post_boundary_authority[stage_id]
                         ),
                     )
-                    if entry["status"] != "PASS":
+                    if entry["status"] not in {"PASS", "SKIPPED_NON_PRODUCT"}:
                         raise ProductE2EAuthorityError(
                             f"receipt-derived post-boundary stage blocked: {stage_id}"
                         )

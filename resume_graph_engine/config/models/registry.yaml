@@ -376,6 +376,18 @@ roles:
       effort: low
       temperature: null
 
+  generation.ey_narrative:
+    model: gpt-5.6-luna
+    provider: external_openai
+    tier: frontier
+    proof_eligible: true
+    owner: apps_rg.section_generation.openai
+    review_after: "2026-11-07"
+    backup_role: null
+    params:
+      effort: low
+      temperature: null
+
   generation.competencies:
     model: claude-sonnet-5
     provider: external_claude
@@ -432,6 +444,18 @@ roles:
     owner: apps_rg.section_generation.claude
     review_after: "2026-11-07"
     backup_role: generation_backup.insurtech_bullets
+    params:
+      effort: low
+      temperature: null
+
+  generation.ey_bullets:
+    model: claude-sonnet-5
+    provider: external_claude
+    tier: frontier
+    proof_eligible: true
+    owner: apps_rg.section_generation.claude
+    review_after: "2026-11-07"
+    backup_role: generation_backup.ey_bullets
     params:
       effort: low
       temperature: null
@@ -510,6 +534,18 @@ roles:
       temperature: null
 
   generation_backup.insurtech_bullets:
+    model: gpt-5.6-luna
+    provider: external_openai
+    tier: frontier
+    proof_eligible: true
+    owner: apps_rg.section_generation.openai
+    review_after: "2026-11-07"
+    backup_role: null
+    params:
+      effort: low
+      temperature: null
+
+  generation_backup.ey_bullets:
     model: gpt-5.6-luna
     provider: external_openai
     tier: frontier

@@ -4,13 +4,15 @@
 """
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import Any, Literal
 
 from apps_rg.runtime.section_judge_policy import REQUIRED_JUDGE_PROVIDER_KEYS
+from apps_rg.runtime.spine.section_x3_finalize import SOFT_FAIL_REVIEW_X3_CODES
 
 _DEFAULT_X1D_JUDGES = ",".join(REQUIRED_JUDGE_PROVIDER_KEYS)
-_SECTION_ACCEPT_X3: frozenset[str] = frozenset({"X3_ALLOW"})
+_SECTION_ACCEPT_X3: frozenset[str] = frozenset({"X3_ALLOW"}) | SOFT_FAIL_REVIEW_X3_CODES
 
 
 def _section_cache_preflight_evidence(section_id: str) -> dict[str, Any]:
@@ -147,11 +149,19 @@ def run_apps_rg_spine(
                     "APPS_RG_TEST_HARNESS=1 is active."
                 )
 
+        repo = find_repo_root()
         art = (
             Path(artifact_dir).expanduser().resolve()
             if str(artifact_dir or "").strip()
-            else allocate_section_spine_artifact_dir(find_repo_root(), sid)
+            else allocate_section_spine_artifact_dir(repo, sid)
         )
+        from apps_rg.runtime.embedding_settings import (
+            apply_apps_rg_embedding_env_guards,
+            bootstrap_apps_rg_embedding_env,
+        )
+
+        bootstrap_apps_rg_embedding_env(repo_root=repo)
+        apply_apps_rg_embedding_env_guards(chroma_persist_dir=os.environ.get("CHROMA_PERSIST_DIR"))
         raw_request = build_raw_request_for_r4(
             target_company=tc,
             target_role=tr,

@@ -42,7 +42,6 @@ os.environ.setdefault("APPS_RG_ROUTE_HMAC_SECRET", secrets.token_hex(32))
 os.environ.setdefault("APPS_RG_ROUTE_HMAC_KEY_ID", f"session-key-{secrets.token_hex(8)}")
 os.environ.setdefault("APPS_RG_ROUTE_SIGNING_POSTURE", "ephemeral_dev")
 
-
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="python -m agents",
@@ -355,20 +354,16 @@ def run_e2e(args: argparse.Namespace) -> int:
         dest_resume_file = resume_stage_dir / "FINAL_RESUME_OUTPUT.txt"
 
         repo_root = Path(__file__).resolve().parent.parent
-        proofs_root = repo_root / "artifacts" / "apps_rg" / "runtime_proofs"
-        latest_resume = None
-        if proofs_root.is_dir():
-            candidates = sorted(
-                proofs_root.glob("full_resume_*/FINAL_RESUME_OUTPUT.txt"),
-                key=lambda p: p.stat().st_mtime,
-                reverse=True,
-            )
-            for cand in candidates:
-                if cand.stat().st_mtime >= t_before:
-                    latest_resume = cand
-                    break
-            if latest_resume is None and candidates:
-                latest_resume = candidates[0]
+        proofs_roots = (
+            repo_root / "resume_graph_engine" / "artifacts" / "apps_rg" / "runtime_proofs",
+            repo_root / "artifacts" / "apps_rg" / "runtime_proofs",
+        )
+        candidates = sorted(
+            [c for pr in proofs_roots if pr.is_dir() for c in pr.glob("full_resume_*/FINAL_RESUME_OUTPUT.txt")],
+            key=lambda p: p.stat().st_mtime,
+            reverse=True,
+        )
+        latest_resume = next((c for c in candidates if c.stat().st_mtime >= t_before), None) or (candidates[0] if candidates else None)
 
         resume_sha = ""
         if latest_resume and latest_resume.is_file():
@@ -418,8 +413,8 @@ def run_e2e(args: argparse.Namespace) -> int:
             outreach_args.extend(["--brief", briefing_path])
         elif args.demo:
             outreach_args.append("--demo")
-        else:
-            outreach_args.extend(["--company", company, "--role", role])
+
+        outreach_args.extend(["--company", company, "--role", role])
 
         if args.json:
             outreach_args.append("--json")

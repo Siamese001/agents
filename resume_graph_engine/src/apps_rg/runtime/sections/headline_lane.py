@@ -753,6 +753,11 @@ _MACHINE_HEADLINE_SEGMENT_REWRITES: dict[str, str] = {
     "legacy cloud modernization": "Insurance Platform Modernization",
     "legacy cloud modernization platform": "Insurance Platform Modernization",
     "governed override escalation": "Human Override Escalation Governance",
+    "runtime gate mesh governance": "Runtime Gate Architecture",
+    "runtime gate mesh": "Runtime Gate Architecture",
+    "audit grade observability controls": "Audit Observability Controls",
+    "audit grade observability systems": "Audit Observability Controls",
+    "audit grade observability": "Audit Observability Controls",
 }
 
 
@@ -1275,7 +1280,9 @@ def _content_signal_emphasis(
             "leaves at least half of all non-generic segment nouns literally grounded. Ensure natural, "
             "resume-native syntax: avoid robotic compound-noun stacking (e.g. do NOT produce inverted "
             "stacks like 'Quota Portfolio Enterprise'); phrases must read as natural executive pillars. "
-            "Do not replace grounded segments with fashionable terms absent from selected_fact_plan."
+            "Do not replace grounded segments with fashionable terms absent from selected_fact_plan. "
+            "CRITICAL: Do not repeat governance, policy, controls, or platform across multiple segments. "
+            "Each of X, Y, Z must deliver a DISTINCT executive capability (e.g. Enterprise Architecture, Runtime Governance, and Cloud Delivery/Ecosystem)."
         )
     if "literal_grounding" in arms:
         emphasis_parts.append(
@@ -1304,7 +1311,8 @@ def _content_signal_emphasis(
             "needs 4 words, it MUST contain a contiguous familiar positioning phrase from the "
             "allowed vocabulary (for example: runtime governance, partner solution architecture, "
             "agentic AI platforms, distributed AI infrastructure, or regulated systems). Do not "
-            "repeat 'runtime' across pillars, and do not splice fragments from multiple families "
+            "repeat 'runtime', 'governance', 'policy', or 'controls' across pillars (each of X, Y, Z must "
+            "deliver a distinct executive capability), and do not splice fragments from multiple families "
             "into constructions such as 'Distributed "
             "Partner Solution Infrastructure' or 'Agentic Context Evaluation Platform'."
         )
