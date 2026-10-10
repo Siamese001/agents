@@ -89,3 +89,23 @@ def test_touch_sequence_recruiter_persona(sample_candidate, sample_opportunity):
     assert seq.touches[0].draft.audience_persona == AudiencePersona.EXECUTIVE_RECRUITER
     assert "leadership opportunities at Apex Financial Systems" in seq.touches[0].draft.body
     assert seq.touches[0].draft.metadata.get("passed") is True
+
+
+def test_touch_sequence_blocks_forbidden_claims(sample_candidate, sample_opportunity):
+    planner = TouchSequencePlanner()
+    opp_with_forbidden = TargetOpportunity(
+        opportunity_id="opp_forbidden",
+        company_name="Apex Financial Systems",
+        role_title="VP Engineering",
+        industry="Fintech",
+        recipient_name="Jordan Reed",
+        recipient_title="VP Engineering",
+        recipient_class=RecipientClass.HIRING_MANAGER,
+        strategic_priorities=["Targeting a salary of $350k plus signing bonus"],
+    )
+    seq = planner.plan_sequence(sample_candidate, opp_with_forbidden)
+    # Touch 1 incorporates the hook which contains forbidden compensation
+    t1 = seq.touches[0]
+    assert t1.draft.metadata.get("passed") is False
+    assert any("compensation" in v.lower() for v in t1.draft.metadata.get("validation_violations", []))
+

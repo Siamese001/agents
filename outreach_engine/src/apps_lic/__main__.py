@@ -96,6 +96,13 @@ def _build_parser(prog: str = "python -m outreach_engine") -> argparse.ArgumentP
 def _handle_run(args: argparse.Namespace, prog: str = "python -m outreach_engine") -> int:
     # Live execution preflight
     try:
+        repo_root = Path(__file__).resolve().parent.parent.parent.parent
+        try:
+            from infrastructure.live_execution import load_agent_environment
+            load_agent_environment(repo_root=repo_root)
+        except Exception:
+            pass
+
         from agents.live_preflight import assert_engine_live_preflight
 
         assert_engine_live_preflight(
@@ -279,7 +286,17 @@ def _handle_run(args: argparse.Namespace, prog: str = "python -m outreach_engine
 
     print(f"\n[outreach_engine] Artifacts sealed at: {artifact_dir}")
 
-    return 0 if (val.is_valid and evaluation.passed) else 1
+    if not (val.is_valid and evaluation.passed):
+        sys.stderr.write("\n" + "!" * 60 + "\n")
+        sys.stderr.write("[outreach_engine] BLOCKED: Outreach draft failed hard validation or judge evaluation.\n")
+        if val.violations:
+            sys.stderr.write(f"Violations: {val.violations}\n")
+        if not evaluation.passed:
+            sys.stderr.write(f"Rubric Failures: {evaluation.feedback}\n")
+        sys.stderr.write("!" * 60 + "\n")
+        return 1
+
+    return 0
 
 
 def _handle_eval(args: argparse.Namespace) -> int:

@@ -187,6 +187,7 @@ def _build_canonical_sidecar(
     brief_text: str,
     run_id: str,
     trace_id: str,
+    role_archetype: str = "technology_leadership",
 ) -> dict[str, Any]:
     """Construct a validated provider sidecar and X2 judge receipt for canonical briefs."""
     normalized = str(brief_text or "").strip()
@@ -312,6 +313,7 @@ class AppsResearchBridge:
                     brief_text=canonical_brief,
                     run_id=r_id,
                     trace_id=bridge_trace_id,
+                    role_archetype=job_title or "technology_leadership",
                 )
                 raw = SimpleNamespace(
                     run_id=r_id,

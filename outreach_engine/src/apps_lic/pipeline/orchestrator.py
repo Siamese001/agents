@@ -20,6 +20,7 @@ from apps_lic.domain.models import (
 from apps_lic.domain.validators import (
     ChannelLengthValidator,
     EmDashValidator,
+    ForbiddenClaimsValidator,
     GroundingValidator,
     MarkdownLinkValidator,
     QuestionEndingValidator,
@@ -49,6 +50,7 @@ class OutreachOrchestrator:
         self.em_dash_validator = EmDashValidator()
         self.md_link_validator = MarkdownLinkValidator()
         self.tone_validator = SubordinateToneValidator()
+        self.forbidden_validator = ForbiddenClaimsValidator()
         self.judge = RubricJudgeEvaluator()
 
     def resolve_opportunity_briefing(
@@ -168,6 +170,9 @@ class OutreachOrchestrator:
             a_dir.mkdir(parents=True, exist_ok=True)
             draft_dict = {
                 "draft_id": draft.draft_id,
+                "status": "PASSED" if validation.is_valid else "BLOCKED",
+                "is_valid": validation.is_valid,
+                "violations": validation.violations,
                 "channel": draft.channel.value,
                 "audience_persona": persona.value,
                 "subject": draft.subject,
@@ -238,6 +243,10 @@ class OutreachOrchestrator:
         tone_valid, tone_viols = self.tone_validator.validate(draft.body)
         violations.extend(tone_viols)
 
+        # 8. Forbidden claims (compensation, unverifiable tenure, policy-forbidden claims)
+        fc_valid, fc_viols = self.forbidden_validator.validate(draft.body, candidate.verified_facts)
+        violations.extend(fc_viols)
+
         hard_passed = len(violations) == 0
         return ValidationResult(
             is_valid=hard_passed,
@@ -252,6 +261,7 @@ class OutreachOrchestrator:
                 "dash_score": 1.0 if dash_valid else 0.0,
                 "link_score": 1.0 if link_valid else 0.0,
                 "tone_score": 1.0 if tone_valid else 0.0,
+                "forbidden_claims_score": 1.0 if fc_valid else 0.0,
             },
         )
 

@@ -19,6 +19,7 @@ from apps_lic.domain.models import (
 from apps_lic.domain.validators import (
     ChannelLengthValidator,
     EmDashValidator,
+    ForbiddenClaimsValidator,
     GroundingValidator,
     MarkdownLinkValidator,
     QuestionEndingValidator,
@@ -39,6 +40,7 @@ class TouchSequencePlanner:
         self._dash_validator = EmDashValidator()
         self._link_validator = MarkdownLinkValidator()
         self._tone_validator = SubordinateToneValidator()
+        self._forbidden_validator = ForbiddenClaimsValidator()
         self._judge_panel = ExecutiveOutreachJudgePanel()
 
     def plan_sequence(
@@ -78,7 +80,9 @@ class TouchSequencePlanner:
         # Touch 1 (Day 1 / Offset 0): Initial Hook & Alignment
         # -----------------------------------------------------------------
         primary_fact = candidate.verified_facts[0].statement if candidate.verified_facts else candidate.executive_summary
-        hook = opportunity.strategic_priorities[0] if opportunity.strategic_priorities else opportunity.industry
+        from apps_lic.pipeline.compiler import PromptCompiler
+        raw_hook = opportunity.strategic_priorities[0] if opportunity.strategic_priorities else opportunity.industry
+        hook = PromptCompiler()._format_strategic_hook(raw_hook, company_name=opportunity.company_name)
 
         if persona == AudiencePersona.EXECUTIVE_RECRUITER:
             t1_body = (
@@ -201,6 +205,7 @@ class TouchSequencePlanner:
             dash_valid, dash_err = self._dash_validator.validate(d.body)
             link_valid, link_err = self._link_validator.validate(d.body)
             tone_valid, tone_viols = self._tone_validator.validate(d.body)
+            fc_valid, fc_viols = self._forbidden_validator.validate(d.body, candidate.verified_facts)
 
             all_viols: List[str] = list(spam_viols)
             if len_err:
@@ -213,6 +218,7 @@ class TouchSequencePlanner:
             if link_err:
                 all_viols.append(link_err)
             all_viols.extend(tone_viols)
+            all_viols.extend(fc_viols)
 
             # 2. Evaluation panel
             eval_report = self._judge_panel.evaluate(d, candidate, opportunity)

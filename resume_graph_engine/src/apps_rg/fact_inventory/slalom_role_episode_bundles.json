@@ -296,7 +296,7 @@
       "section_eligibility": [
         "slalom_bullets",
         "slalom_narrative",
-        "technical_architecture",
+        "headline",
         "competencies",
         "executive_summary"
       ],
@@ -345,7 +345,7 @@
       "section_eligibility": [
         "slalom_bullets",
         "slalom_narrative",
-        "leadership",
+        "headline",
         "competencies",
         "executive_summary"
       ],
@@ -670,7 +670,7 @@
       "section_eligibility": [
         "slalom_bullets",
         "slalom_narrative",
-        "technical_architecture",
+        "headline",
         "competencies",
         "executive_summary"
       ],
@@ -697,7 +697,7 @@
       "section_eligibility": [
         "slalom_bullets",
         "slalom_narrative",
-        "leadership",
+        "headline",
         "competencies",
         "executive_summary"
       ],

@@ -35,6 +35,7 @@ from apps_lic.domain.models import (
     TouchSequence,
     ValidationResult,
 )
+from apps_lic.domain.validators import ForbiddenClaimsValidator
 from apps_lic.integrations.apps_research_bridge import AppsResearchBridge, EvidenceItem, ResearchResult
 from apps_lic.judges.evaluator import (
     EvaluationReport,
@@ -71,6 +72,7 @@ __all__ = [
     "TouchPoint",
     "TouchSequence",
     "ValidationResult",
+    "ForbiddenClaimsValidator",
     "AppsResearchBridge",
     "EvidenceItem",
     "ResearchResult",

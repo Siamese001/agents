@@ -259,5 +259,26 @@ def test_evaluation_report_to_dict_and_alias():
     assert d["lens4_cta_score"] == 0.95
     assert d["lens5_anti_spam_score"] == 0.9
     assert d["lens6_constraints_score"] == 1.0
-    assert "lens_scores" in d
     assert d["lens_scores"]["lens1_altitude"] == 0.9
+
+
+def test_judge_panel_forbidden_claims_compensation_and_tenure_fails(candidate_profile, target_opportunity, judge_panel):
+    draft_comp = OutreachMessageDraft(
+        draft_id="d-fc-comp",
+        subject="Truist compensation",
+        body=(
+            "Charles, following Truist's cloud modern banking core. "
+            "In my recent work, architected payments with 99.995% availability. "
+            "Targeting a compensation package of $481k OTE for this role. "
+            "Would you be open to a conversation next week?"
+        ),
+        channel=ChannelType.LINKEDIN_INMAIL,
+        grounded_facts_used=["cand_001_fact_01"],
+        audience_persona=AudiencePersona.EXECUTIVE_CONTACT,
+    )
+    report_comp = judge_panel.evaluate(draft_comp, candidate_profile, target_opportunity)
+    assert report_comp.passed is False
+    assert report_comp.lens2_grounding_score <= 0.2
+    assert report_comp.lens5_anti_spam_score <= 0.2
+    assert any("compensation" in f.lower() for f in report_comp.feedback)
+

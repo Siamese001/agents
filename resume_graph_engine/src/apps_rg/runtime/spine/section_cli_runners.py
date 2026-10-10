@@ -1033,6 +1033,8 @@ SECTION_LANE_RUNNERS: dict[str, Any] = {
     "ibm_narrative": run_section_ibm_narrative_spine,
     "insurtech_bullets": run_section_insurtech_bullets_spine,
     "insurtech_narrative": run_section_insurtech_narrative_spine,
+    "ey_bullets": run_section_ey_bullets_spine,
+    "ey_narrative": run_section_ey_narrative_spine,
     "competencies": run_section_competencies_spine,
 }
 

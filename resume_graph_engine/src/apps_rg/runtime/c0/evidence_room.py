@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from dataclasses import replace
 from pathlib import Path
 from typing import Any
@@ -58,7 +59,6 @@ C0_ROOM_RECEIPT = "c0_evidence_room_receipt.json"
 def section_c0_evidence_room_enabled(section_id: str) -> bool:
     if section_id not in C0_SECTIONS_ENABLED:
         return False
-    import os
 
     from apps_rg.runtime.c0.product_runtime_guards import assert_canonical_product_section_env
 

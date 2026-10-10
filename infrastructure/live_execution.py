@@ -81,11 +81,19 @@ def load_agent_environment(repo_root: Path | None = None, override: bool = False
             _manual_parse_env_file(central_path, override=False)
 
     # 2. Load repo-specific env_agents
-    root = repo_root or Path.cwd()
-    candidate_files = [
-        root / "env_agents",
-        root / ".env",
-    ]
+    root = (repo_root or Path.cwd()).resolve()
+    candidate_dirs = [root]
+    cur = root
+    while cur != cur.parent:
+        cur = cur.parent
+        candidate_dirs.append(cur)
+        if (cur / ".git").is_dir() or (cur / "env_agents").is_file():
+            break
+
+    candidate_files = []
+    for d in candidate_dirs:
+        candidate_files.append(d / "env_agents")
+        candidate_files.append(d / ".env")
 
     for candidate in candidate_files:
         if candidate.is_file():
@@ -96,6 +104,7 @@ def load_agent_environment(repo_root: Path | None = None, override: bool = False
                     _manual_parse_env_file(candidate, override=override)
             else:
                 _manual_parse_env_file(candidate, override=override)
+            break
 
 
 def _clean_key(value: str | None) -> str | None:

@@ -30,10 +30,59 @@ class MissionLoader:
             else:
                 raise FileNotFoundError(f"Brief/mission file not found: {brief_path}")
 
-        with open(path, "r", encoding="utf-8") as f:
-            data = json.load(f)
+        content = path.read_text(encoding="utf-8")
+        if path.suffix.lower() in (".md", ".txt"):
+            return MissionLoader.load_from_text(content, default_id=path.stem)
 
-        return MissionLoader.load_from_dict(data, default_id=path.stem)
+        try:
+            data = json.loads(content)
+            return MissionLoader.load_from_dict(data, default_id=path.stem)
+        except json.JSONDecodeError:
+            return MissionLoader.load_from_text(content, default_id=path.stem)
+
+    @staticmethod
+    def load_from_text(text: str, default_id: str = "mission_01") -> Tuple[CandidateProfile, TargetOpportunity]:
+        import re
+        from apps_lic.integrations.apps_research_bridge import _extract_priorities_from_text
+
+        clean_text = text.strip()
+        priorities = _extract_priorities_from_text(clean_text)
+
+        # Detect company name from markdown headers or defaults
+        company_name = "Target Company"
+        match = re.search(r"^#+\s*(.+)$", clean_text, re.MULTILINE)
+        if match:
+            header = match.group(1).strip()
+            if ":" in header:
+                cand = header.split(":", 1)[1].strip()
+            elif "-" in header:
+                cand = header.split("-", 1)[0].strip()
+            else:
+                cand = header
+            cand = re.sub(r"(?i)^(?:targeting brief|company briefing|briefing for|research brief)\s*", "", cand).strip()
+            if cand and not cand.lower().startswith(("briefing", "executive", "strategic", "overview", "table")):
+                company_name = cand
+
+        default_cand = CandidateProfileLoader.load_default()
+        candidate = CandidateProfileLoader.load_default(
+            overrides={
+                "candidate_id": f"cand_{default_id}",
+                "target_title": "Head of Engineering",
+            }
+        )
+        opportunity = TargetOpportunity(
+            opportunity_id=f"opp_{default_id}",
+            company_name=company_name,
+            role_title="Head of Engineering",
+            industry="Enterprise Technology",
+            recipient_name="Executive Hiring Leader",
+            recipient_title="VP of Engineering",
+            recipient_class=RecipientClass.HIRING_MANAGER,
+            relationship_distance=RelationshipDistance.COLD,
+            strategic_priorities=priorities,
+            briefing_text=clean_text,
+        )
+        return candidate, opportunity
 
     @staticmethod
     def load_from_dict(data: Dict[str, Any], default_id: str = "mission_01") -> Tuple[CandidateProfile, TargetOpportunity]:

@@ -9,8 +9,10 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
+import shutil
 import sys
 import uuid
 from pathlib import Path
@@ -36,10 +38,9 @@ except Exception:  # guardian: allow-silent-swallow -- env bootstrap is best-eff
 # Ensure local dev route signing secrets exist if not supplied in environment
 import secrets
 
-if not os.environ.get("APPS_RG_ROUTE_HMAC_SECRET"):
-    os.environ["APPS_RG_ROUTE_HMAC_SECRET"] = secrets.token_hex(32)
-if not os.environ.get("APPS_RG_ROUTE_HMAC_KEY_ID"):
-    os.environ["APPS_RG_ROUTE_HMAC_KEY_ID"] = f"session-key-{secrets.token_hex(8)}"
+os.environ.setdefault("APPS_RG_ROUTE_HMAC_SECRET", secrets.token_hex(32))
+os.environ.setdefault("APPS_RG_ROUTE_HMAC_KEY_ID", f"session-key-{secrets.token_hex(8)}")
+os.environ.setdefault("APPS_RG_ROUTE_SIGNING_POSTURE", "ephemeral_dev")
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -103,22 +104,18 @@ def _build_parser() -> argparse.ArgumentParser:
     e2e_parser.add_argument("--json", action="store_true", help="Output machine-readable JSON result")
 
     # 4. system learning & feedback inspection
-    learning_parser = subparsers.add_parser(
-        "learning",
-        help="Inspect and audit system learning, calibration drift, and golden trajectories",
+    from agents.learning_cli import register_learning_subparser
+    register_learning_subparser(subparsers)
+
+    # 5. fast local health-check
+    health_p = subparsers.add_parser(
+        "check",
+        aliases=["health"],
+        help="Fast local health-check covering startup, orchestration, engines, contracts, and failure handling",
     )
-    learning_sub = learning_parser.add_subparsers(dest="learning_command", metavar="COMMAND")
-
-    status_p = learning_sub.add_parser("status", help="Show aggregate system learning health and failure patterns")
-    status_p.add_argument("--json", action="store_true", help="Output machine-readable JSON")
-
-    drift_p = learning_sub.add_parser("drift", help="Audit judge calibration drift and statistical z-scores")
-    drift_p.add_argument("--criterion", help="Specific criterion to inspect")
-    drift_p.add_argument("--json", action="store_true", help="Output machine-readable JSON")
-
-    traj_p = learning_sub.add_parser("trajectories", help="Inspect mined golden execution trajectories")
-    traj_p.add_argument("--task-type", default="general", help="Filter by task category")
-    traj_p.add_argument("--json", action="store_true", help="Output machine-readable JSON")
+    health_p.add_argument("-v", "--verbose", action="store_true", help="Show verbose pytest execution details")
+    health_p.add_argument("--json", action="store_true", help="Output machine-readable JSON")
+    health_p.add_argument("--domain", help="Filter by domain (startup, orchestration, engines, contracts, failure)")
 
     return parser
 
@@ -226,18 +223,67 @@ def run_e2e(args: argparse.Namespace) -> int:
         if not args.json:
             print(">>> [Stage 1/4] Running Upstream Company Research (apps_research)...")
         try:
-            from apps_research.__main__ import main as research_main
+            from apps_rg.integrations.apps_research_bridge import AppsResearchBridge
+            from apps_rg.integrations.managed_research_delegation import (
+                RequestForResumeBriefing,
+                ResumeBriefingReady,
+                dispatch_resume_research_briefing,
+            )
+
             research_artifact_dir = base_dir / "research"
-            res_code = research_main(["run", "--company", company, "--role", role, "--artifact-dir", str(research_artifact_dir)])
+            research_artifact_dir.mkdir(parents=True, exist_ok=True)
+            bridge = AppsResearchBridge(artifact_runs_root=research_artifact_dir)
+
+            jd_text = ""
+            if args.jd:
+                try:
+                    jd_p = Path(args.jd)
+                    if jd_p.is_file():
+                        jd_text = jd_p.read_text(encoding="utf-8")
+                    else:
+                        jd_text = str(args.jd)
+                except Exception:
+                    jd_text = str(args.jd)
+
+            req = RequestForResumeBriefing(
+                request_id=f"req_e2e_{run_id[:8]}",
+                run_id=f"run_e2e_{run_id[:8]}",
+                trace_id=f"trace_e2e_{run_id[:8]}",
+                company_name=company,
+                job_title=role,
+                research_authorized=True,
+                job_description_ref=args.jd or "",
+                job_description_text=jd_text,
+            )
+            res = dispatch_resume_research_briefing(req, bridge=bridge)
+            if not isinstance(res, ResumeBriefingReady):
+                err_msg = getattr(res, "detail", "Research dispatch failed")
+                raise RuntimeError(f"Upstream research failed: {err_msg}")
+
+            briefing_file = Path(res.research_briefing_path)
+            canonical_briefing = research_artifact_dir / "briefing.md"
+            if briefing_file.is_file() and briefing_file.resolve() != canonical_briefing.resolve():
+                shutil.copy2(briefing_file, canonical_briefing)
+                briefing_file = canonical_briefing
+
             summary_payload["stages"]["company_research"] = {
                 "configured_status": research_label,
-                "exit_code": res_code,
-                "status": "PASSED" if res_code == 0 else "FAILED",
+                "exit_code": 0,
+                "status": "PASSED",
+                "briefing_path": str(briefing_file),
+                "brief_sha256": res.brief_sha256,
+                "evidence_count": res.research_evidence_count,
             }
-            if res_code != 0:
-                sys.stderr.write("[agents e2e] Error: Research stage returned non-zero exit code.\n")
-                raise RuntimeError(f"Research stage returned non-zero exit code: {res_code}")
-            return {"status": "PASSED", "exit_code": res_code}
+            if not args.json:
+                print(f"[agents e2e] Research briefing generated: {briefing_file}")
+                print(f"[agents e2e] Briefing SHA-256: {res.brief_sha256}")
+            return {
+                "status": "PASSED",
+                "exit_code": 0,
+                "briefing_path": str(briefing_file),
+                "brief_sha256": res.brief_sha256,
+                "evidence_count": res.research_evidence_count,
+            }
         except Exception as exc:
             summary_payload["stages"]["company_research"] = {
                 "configured_status": research_label,
@@ -265,40 +311,111 @@ def run_e2e(args: argparse.Namespace) -> int:
             if prewarm_executor is not None:
                 prewarm_executor.shutdown(wait=False)
 
+        os.environ.setdefault("APPS_RG_ROUTE_SIGNING_POSTURE", "ephemeral_dev")
+
         from apps_rg.__main__ import main as resume_main
+
+        # Resolve research briefing from context if available
+        briefing_path = ""
+        research_ctx = ctx.get("step_company_research") or {}
+        if isinstance(research_ctx, dict) and research_ctx.get("briefing_path"):
+            bpath = Path(research_ctx["briefing_path"])
+            if bpath.is_file():
+                briefing_path = str(bpath)
 
         resume_args = [
             "run",
             "--target-company", company,
             "--target-role", role,
         ]
+        if briefing_path:
+            resume_args.extend(["--briefing", briefing_path])
         if args.jd:
             resume_args.extend(["--jd", args.jd])
         if args.resume:
             resume_args.extend(["--resume", args.resume])
 
+        import time as _t
+        t_before = _t.time() - 2.0
         rg_code = resume_main(resume_args)
-        status_str = "PASSED" if rg_code == 0 else "FAILED"
+
+        if rg_code != 0:
+            summary_payload["stages"]["resume_tailoring"] = {
+                "exit_code": rg_code,
+                "status": "FAILED",
+                "error": f"apps_rg returned non-zero exit code: {rg_code}",
+            }
+            if not args.json:
+                sys.stderr.write(f"[agents e2e] Error: Resume generation returned non-zero exit code {rg_code}.\n")
+            raise RuntimeError(f"Resume generation returned non-zero exit code: {rg_code}")
+
+        # Locate generated resume output and copy to base_dir / "resume"
+        resume_stage_dir = base_dir / "resume"
+        resume_stage_dir.mkdir(parents=True, exist_ok=True)
+        dest_resume_file = resume_stage_dir / "FINAL_RESUME_OUTPUT.txt"
+
+        repo_root = Path(__file__).resolve().parent.parent
+        proofs_root = repo_root / "artifacts" / "apps_rg" / "runtime_proofs"
+        latest_resume = None
+        if proofs_root.is_dir():
+            candidates = sorted(
+                proofs_root.glob("full_resume_*/FINAL_RESUME_OUTPUT.txt"),
+                key=lambda p: p.stat().st_mtime,
+                reverse=True,
+            )
+            for cand in candidates:
+                if cand.stat().st_mtime >= t_before:
+                    latest_resume = cand
+                    break
+            if latest_resume is None and candidates:
+                latest_resume = candidates[0]
+
+        resume_sha = ""
+        if latest_resume and latest_resume.is_file():
+            shutil.copy2(latest_resume, dest_resume_file)
+            resume_sha = hashlib.sha256(dest_resume_file.read_bytes()).hexdigest()
+
         summary_payload["stages"]["resume_tailoring"] = {
             "exit_code": rg_code,
-            "status": status_str,
+            "status": "PASSED",
+            "resume_path": str(dest_resume_file) if dest_resume_file.is_file() else "",
+            "resume_sha256": resume_sha,
         }
-        if rg_code != 0:
-            if not args.json:
-                sys.stderr.write("[agents e2e] Warning: Resume generation returned non-zero exit code.\n")
-        return {"status": status_str, "exit_code": rg_code}
+        if not args.json:
+            print(f"[agents e2e] Resume generated: {dest_resume_file}")
+            if resume_sha:
+                print(f"[agents e2e] Resume SHA-256: {resume_sha}")
+
+        return {
+            "status": "PASSED",
+            "exit_code": rg_code,
+            "resume_path": str(dest_resume_file) if dest_resume_file.is_file() else "",
+            "resume_sha256": resume_sha,
+        }
 
     def _stage_outreach(ctx: dict[str, Any]) -> dict[str, Any]:
         from apps_lic.__main__ import main as outreach_main
 
         outreach_artifact_dir = base_dir / "outreach"
+        outreach_artifact_dir.mkdir(parents=True, exist_ok=True)
         outreach_args = [
             "run",
             "--artifact-dir",
             str(outreach_artifact_dir),
         ]
+
+        # Resolve research briefing from Stage 1 if available
+        briefing_path = ""
+        research_ctx = ctx.get("step_company_research") or {}
+        if isinstance(research_ctx, dict) and research_ctx.get("briefing_path"):
+            bpath = Path(research_ctx["briefing_path"])
+            if bpath.is_file():
+                briefing_path = str(bpath)
+
         if args.brief:
             outreach_args.extend(["--brief", args.brief])
+        elif briefing_path:
+            outreach_args.extend(["--brief", briefing_path])
         elif args.demo:
             outreach_args.append("--demo")
         else:
@@ -311,15 +428,37 @@ def run_e2e(args: argparse.Namespace) -> int:
             print("\n>>> [Stage 3/4] Generating Grounded Executive Outreach (outreach_engine)...")
 
         oe_code = outreach_main(outreach_args, prog="python -m agents e2e")
-        status_str = "PASSED" if oe_code == 0 else "FAILED"
+        if oe_code != 0:
+            summary_payload["stages"]["executive_outreach"] = {
+                "exit_code": oe_code,
+                "status": "FAILED",
+                "error": f"Outreach generation returned non-zero exit code: {oe_code}",
+            }
+            sys.stderr.write(f"[agents e2e] Outreach generation returned non-zero exit code: {oe_code}.\n")
+            raise RuntimeError(f"Outreach generation returned non-zero exit code: {oe_code}")
+
+        campaign_file = outreach_artifact_dir / "campaign.json"
+        campaign_sha = ""
+        if campaign_file.is_file():
+            campaign_sha = hashlib.sha256(campaign_file.read_bytes()).hexdigest()
+
         summary_payload["stages"]["executive_outreach"] = {
             "exit_code": oe_code,
-            "status": status_str,
+            "status": "PASSED",
+            "campaign_path": str(campaign_file) if campaign_file.is_file() else "",
+            "campaign_sha256": campaign_sha,
         }
-        if oe_code != 0:
-            sys.stderr.write("[agents e2e] Outreach generation returned non-zero exit code.\n")
-            raise RuntimeError(f"Outreach generation returned non-zero exit code: {oe_code}")
-        return {"status": status_str, "exit_code": oe_code}
+        if not args.json:
+            print(f"[agents e2e] Outreach campaign generated at: {outreach_artifact_dir}")
+            if campaign_sha:
+                print(f"[agents e2e] Campaign SHA-256: {campaign_sha}")
+
+        return {
+            "status": "PASSED",
+            "exit_code": oe_code,
+            "campaign_path": str(campaign_file) if campaign_file.is_file() else "",
+            "campaign_sha256": campaign_sha,
+        }
 
     steps = [
         WorkflowStep(
@@ -351,14 +490,38 @@ def run_e2e(args: argparse.Namespace) -> int:
     summary_payload["telemetry_ref"] = "telemetry.jsonl"
     summary_payload["telemetry_events_count"] = len(emitter.events)
 
-    # Stage 4: Lifecycle Sealing & Manifest
+    # Stage 4: Lifecycle Sealing & Cryptographic Provenance Manifest
+    artifact_proofs: dict[str, Any] = {}
+    for key, rel, pattern in [
+        ("research_briefing", "research", "**/briefing.md"),
+        ("final_resume", "resume", "**/FINAL_RESUME_OUTPUT.txt"),
+        ("outreach_campaign", "outreach", "**/campaign.json"),
+    ]:
+        p = base_dir / rel / Path(pattern).name
+        if not p.is_file():
+            cands = list((base_dir / rel).glob(pattern))
+            if cands:
+                p = cands[0]
+        if p.is_file():
+            artifact_proofs[key] = {
+                "path": str(p),
+                "sha256": hashlib.sha256(p.read_bytes()).hexdigest(),
+                "bytes": p.stat().st_size,
+            }
+
+    summary_payload["artifact_proofs"] = artifact_proofs
+
     summary_path = base_dir / "e2e_lifecycle_summary.json"
     summary_path.write_text(json.dumps(summary_payload, indent=2), encoding="utf-8")
 
     if not args.json:
-        print("\n>>> [Stage 4/4] Lifecycle artifacts validated and sealed.")
-        print(f"[agents e2e] Sealed summary manifest at: {summary_path}")
-        print(f"[agents e2e] Workflow state audit at: {base_dir / 'workflow_state.json'}\n")
+        if report.final_status == WorkflowStatus.COMPLETED:
+            print("\n>>> [Stage 4/4] Lifecycle artifacts validated and sealed.")
+            print(f"[agents e2e] Sealed summary manifest at: {summary_path}")
+            print(f"[agents e2e] Workflow state audit at: {base_dir / 'workflow_state.json'}\n")
+        else:
+            print(f"\n>>> [Stage 4/4] Lifecycle FAILED with status: {report.final_status.value}.")
+            print(f"[agents e2e] Failure summary manifest at: {summary_path}\n")
 
     if report.final_status == WorkflowStatus.FAILED:
         return 1
@@ -368,105 +531,8 @@ def run_e2e(args: argparse.Namespace) -> int:
 
 def run_learning(args: argparse.Namespace) -> int:
     """Execute system learning inspection, calibration audit, and trajectory mining commands."""
-    cmd = getattr(args, "learning_command", None) or "status"
-
-    if cmd == "status":
-        from agents.context.precedent_bridge import RuntimePrecedentBridge
-        from agents.observability.trajectory_learning import TrajectoryLearningEngine
-        from agents.orchestration.learning_store import FeedbackLearningStore
-
-        fb_store = FeedbackLearningStore()
-        prec_bridge = RuntimePrecedentBridge()
-        traj_engine = TrajectoryLearningEngine()
-
-        fb_summary = fb_store.get_summary()
-        traj_summary = traj_engine.export_summary()
-        prec_factor = prec_bridge.get_category_learning_factor("general")
-
-        payload = {
-            "status": "HEALTHY",
-            "feedback_learning": fb_summary,
-            "trajectory_learning": traj_summary,
-            "precedent_bridge_healthy": prec_bridge.is_healthy(),
-            "baseline_precedent_factor": prec_factor,
-        }
-
-        if getattr(args, "json", False):
-            print(json.dumps(payload, indent=2))
-        else:
-            print("=== Sovereign Agentic Platform: System Learning Status ===")
-            print(f"Store Path:                {fb_summary['store_location']}")
-            print(f"Total Failure Signatures:  {fb_summary['total_failure_signatures']}")
-            print(f"Total Resolutions Tracked: {fb_summary['total_resolutions_recorded']}")
-            print(f"Overall Success Rate:      {fb_summary['overall_success_rate']:.1%}")
-            print(f"Precedent Bridge Active:   {prec_bridge.is_healthy()}")
-            print(f"Mined Golden Trajectories: {traj_summary['total_golden_trajectories']}")
-            if fb_summary["top_failure_patterns"]:
-                print("\nTop Recurring Failure Patterns:")
-                for pat in fb_summary["top_failure_patterns"]:
-                    print(
-                        f"  - [{pat['failure_kind']}] {pat['normalized_constraint']}: "
-                        f"{pat['occurrence_count']} occurrences, {pat['success_rate']:.1%} resolution"
-                    )
-        return 0
-
-    if cmd == "drift":
-        from agents.telemetry.calibration import JudgeCalibrator
-
-        calibrator = JudgeCalibrator()
-        crit = getattr(args, "criterion", None)
-        stats = calibrator.drift_detector.get_stats(crit) if crit else {}
-        drift_res = (
-            calibrator.drift_detector.detect_drift(crit, 0.70)
-            if crit
-            else {"drift_detected": False, "reason": "No criterion specified"}
-        )
-
-        payload = {
-            "criterion": crit or "ALL",
-            "calibration_thresholds": calibrator.profile.criterion_thresholds,
-            "statistical_drift": drift_res,
-            "distribution_stats": stats,
-        }
-
-        if getattr(args, "json", False):
-            print(json.dumps(payload, indent=2))
-        else:
-            print("=== Judge Calibration & Statistical Drift Audit ===")
-            print(f"Criterion:        {crit or 'ALL'}")
-            print(f"Drift Detected:   {drift_res.get('drift_detected', False)}")
-            print(f"Diagnostic:       {drift_res.get('reason', '')}")
-            print("\nBaseline Thresholds:")
-            for k, v in calibrator.profile.criterion_thresholds.items():
-                print(f"  - {k}: {v:.2f}")
-        return 0
-
-    if cmd == "trajectories":
-        from agents.observability.trajectory_learning import TrajectoryLearningEngine
-
-        traj_engine = TrajectoryLearningEngine()
-        task_type = getattr(args, "task_type", "general")
-        exemplars = traj_engine.get_exemplars_for_task(task_type)
-        payload = {
-            "task_type": task_type,
-            "count": len(exemplars),
-            "exemplars": [e.to_dict() for e in exemplars],
-        }
-
-        if getattr(args, "json", False):
-            print(json.dumps(payload, indent=2))
-        else:
-            print(f"=== Mined Golden Trajectories (Task: {task_type}) ===")
-            if not exemplars:
-                print("  No golden trajectories indexed for this task type yet.")
-            for ex in exemplars:
-                print(
-                    f"  - [{ex.exemplar_id}] Run: {ex.run_id} | Efficiency: {ex.efficiency_score:.2f} | "
-                    f"Steps: {' -> '.join(ex.step_sequence)}"
-                )
-        return 0
-
-    return 0
+    from agents.learning_cli import run_learning as _exec_learning
+    return _exec_learning(args)
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -487,6 +553,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     sub_args = values[1:]
 
     # Handle unified engine dispatch
+    if engine in {"check", "health"}:
+        from agents.health import main as health_main
+        return health_main(sub_args)
+
     if engine in {"resume", "resume_engine", "resume_graph_engine", "apps_rg"}:
         from agents.live_preflight import assert_engine_live_preflight
 
@@ -519,7 +589,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         parser.print_help()
         return 1
 
-    sys.stderr.write(f"Error: Unknown engine '{engine}'. Choices: resume, outreach, e2e, learning\n")
+    sys.stderr.write(f"Error: Unknown engine '{engine}'. Choices: resume, outreach, e2e, learning, check\n")
     _build_parser().print_help()
     return 1
 

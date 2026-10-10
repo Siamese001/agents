@@ -82,3 +82,61 @@ def test_subordinate_tone_validator():
     assert val.validate("I would love to learn more about this role")[0] is False
     assert val.validate("I think I'd be a great fit for your team")[0] is False
     assert val.validate("Open to exchanging perspectives next week?")[0] is True
+
+
+def test_forbidden_claims_validator_detects_compensation():
+    from apps_lic.domain.validators import ForbiddenClaimsValidator
+
+    val = ForbiddenClaimsValidator()
+    # Test salary and OTE mentions
+    is_valid, viols = val.validate("At a compensation level of $481k OTE, I would be interested.")
+    assert not is_valid
+    assert any("compensation" in v.lower() for v in viols)
+
+    is_valid, viols = val.validate("Targeting a base salary of $250k plus equity.")
+    assert not is_valid
+    assert len(viols) >= 1
+
+    # Clean message has no compensation violations
+    is_valid_clean, viols_clean = val.validate("Following Truist's focus on enterprise AI modernizations.")
+    assert is_valid_clean
+    assert len(viols_clean) == 0
+
+
+def test_forbidden_claims_validator_detects_unverifiable_tenure():
+    from apps_lic.domain.models import CandidateFact
+    from apps_lic.domain.validators import ForbiddenClaimsValidator
+
+    val = ForbiddenClaimsValidator()
+    verified_facts = [
+        CandidateFact(
+            fact_id="f1",
+            category="scale",
+            statement="Architected enterprise agentic systems with 15 years in software",
+            metric="15 years",
+        )
+    ]
+
+    # Valid grounded tenure
+    is_valid, viols = val.validate("Bringing 15 years of experience leading systems.", verified_facts=verified_facts)
+    assert is_valid
+    assert len(viols) == 0
+
+    # Unverifiable exaggerated tenure
+    is_valid, viols = val.validate("Bringing 30 years of experience in enterprise systems.", verified_facts=verified_facts)
+    assert not is_valid
+    assert any("Unverifiable tenure" in v for v in viols)
+
+
+def test_forbidden_claims_validator_detects_policy_violations():
+    from apps_lic.domain.validators import ForbiddenClaimsValidator
+
+    val = ForbiddenClaimsValidator()
+    is_valid, viols = val.validate("I will require visa sponsorship for this role.")
+    assert not is_valid
+    assert any("Policy-forbidden" in v for v in viols)
+
+    is_valid, viols = val.validate("Inquiring on the status of my application submitted last week.")
+    assert not is_valid
+    assert any("Policy-forbidden" in v for v in viols)
+

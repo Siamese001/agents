@@ -98,3 +98,21 @@ def test_orchestrator_with_research_resolution(sample_candidate, sample_opportun
 
     report = orchestrator.evaluate_draft(draft, sample_candidate, sample_opportunity)
     assert report.passed
+
+
+def test_mission_loader_markdown_briefing(tmp_path):
+    briefing_md = tmp_path / "briefing.md"
+    briefing_md.write_text(
+        "# Enterprise Targeting Brief: Truist Financial\n\n"
+        "## Strategic Mandate\n"
+        "Scaling frontline AI adoption and contact center transformation.\n"
+        "Core platform modernization and cloud migration initiatives.\n",
+        encoding="utf-8",
+    )
+    cand, opp = MissionLoader.load_from_file(briefing_md)
+    assert "Truist" in opp.company_name
+    assert len(opp.strategic_priorities) >= 1
+    assert "briefing.md" in opp.opportunity_id or "opp_briefing" in opp.opportunity_id
+    assert opp.briefing_text != ""
+    assert cand.full_name != ""
+

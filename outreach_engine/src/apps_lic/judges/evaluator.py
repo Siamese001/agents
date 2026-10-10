@@ -19,6 +19,7 @@ from apps_lic.domain.models import (
 from apps_lic.domain.validators import (
     ChannelLengthValidator,
     EmDashValidator,
+    ForbiddenClaimsValidator,
     GroundingValidator,
     MarkdownLinkValidator,
     QuestionEndingValidator,
@@ -98,6 +99,7 @@ class ExecutiveOutreachJudgePanel:
         self._dash_validator = EmDashValidator()
         self._link_validator = MarkdownLinkValidator()
         self._tone_validator = SubordinateToneValidator()
+        self._forbidden_validator = ForbiddenClaimsValidator()
 
     def _load_rubrics(self) -> dict[str, dict[str, Any]]:
         rubrics: dict[str, dict[str, Any]] = {}
@@ -196,6 +198,12 @@ class ExecutiveOutreachJudgePanel:
             feedback.append(f"Lens 2 (Grounding) Failure: {', '.join(g_viols)}")
             hints.append("All claims must map directly to verified candidate facts.")
 
+        fc_valid, fc_viols = self._forbidden_validator.validate(draft.body, candidate.verified_facts)
+        if not fc_valid:
+            lens2_score = min(lens2_score, 0.2)
+            feedback.append(f"Lens 2 (Forbidden Claims) Failure: {', '.join(fc_viols)}")
+            hints.append("Remove ungrounded compensation, unverifiable tenure claims, or policy-forbidden phrasing.")
+
         # =====================================================================
         # Lens 3: Strategic Briefing Resonance (Rubric v3 Lens 3)
         # =====================================================================
@@ -263,6 +271,12 @@ class ExecutiveOutreachJudgePanel:
             lens5_score = min(lens5_score, 0.6)
             feedback.append(f"Lens 5 (Style) Warning: {dash_err}")
             hints.append("Replace em dashes with commas or hyphens per writing preferences.")
+
+        comp_viols = [v for v in fc_viols if "compensation" in v.lower()]
+        if comp_viols:
+            lens5_score = min(lens5_score, 0.2)
+            feedback.append(f"Lens 5 (Cold Outreach Guardrail) Failure: {', '.join(comp_viols)}")
+            hints.append("Eliminate compensation/salary discussions prior to first reply.")
 
         # =====================================================================
         # Lens 6: Channel & Constraint Compliance (Rubric v3 Lens 6)

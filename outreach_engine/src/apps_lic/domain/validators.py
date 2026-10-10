@@ -245,9 +245,92 @@ class GroundingValidator:
         return len(violations) == 0, violations
 
 
+class ForbiddenClaimsValidator:
+    """Hard assertion gate rejecting ungrounded compensation, unverifiable tenure claims, and policy-forbidden phrasing."""
+
+    _COMPENSATION_PATTERNS: Final[List[re.Pattern[str]]] = [
+        re.compile(r"\b(?:salary|compensation|base\s+pay|annual\s+pay|equity\s+grant|stock\s+options|signing\s+bonus|hourly\s+rate|expected\s+rate|pay\s+rate|target\s+comp|ote)\b", re.IGNORECASE),
+        re.compile(r"\$\s*\d{2,3}(?:,\d{3})*(?:\.\d+)?\s*(?:k|m|million|thousand|/yr|/year|per\s+year|ote)?\b", re.IGNORECASE),
+        re.compile(r"\b\d{2,3}\s*k\s*(?:ote|salary|base|comp)\b", re.IGNORECASE),
+    ]
+
+    _TENURE_PATTERNS: Final[List[re.Pattern[str]]] = [
+        re.compile(r"\b(?:over\s+)?(\d+|ten|fifteen|twenty|twenty-five|thirty)\+?\s+years?\s+(?:of\s+)?(?:experience|leading|leadership|in|track\s+record)\b", re.IGNORECASE),
+        re.compile(r"\b((?:two|three|four)\s+decades?)\s+(?:of\s+)?(?:experience|leadership|in)\b", re.IGNORECASE),
+        re.compile(r"\b(\d+)\s*(?:\+|-)\s*year\s+(?:veteran|career|leader)\b", re.IGNORECASE),
+    ]
+
+    _POLICY_FORBIDDEN_PATTERNS: Final[List[re.Pattern[str]]] = [
+        re.compile(r"\b(?:visa\s+sponsorship|require\s+sponsorship|sponsorship\s+required|h-?1b|opt\s+stem|green\s*card\s+sponsorship)\b", re.IGNORECASE),
+        re.compile(r"\b(?:relocation\s+(?:package|assistance|allowance|bonus)|paid\s+relocation)\b", re.IGNORECASE),
+        re.compile(r"\b(?:status\s+of\s+my\s+application|following\s+up\s+on\s+my\s+(?:job\s+)?application|submitted\s+my\s+resume|check\s+on\s+my\s+interview\s+status|pending\s+application)\b", re.IGNORECASE),
+    ]
+
+    def validate(
+        self,
+        body: str,
+        verified_facts: Optional[List[Any]] = None,
+    ) -> tuple[bool, List[str]]:
+        violations: List[str] = []
+
+        # 1. Compensation claims
+        for pat in self._COMPENSATION_PATTERNS:
+            for match in pat.finditer(body):
+                matched_str = match.group(0)
+                # If this dollar amount is part of a verified business fact/metric, do not flag
+                if verified_facts:
+                    v_match = False
+                    for f in verified_facts:
+                        stmt = str(getattr(f, "statement", "") or "")
+                        met = str(getattr(f, "metric", "") or "")
+                        if matched_str.lower() in stmt.lower() or matched_str.lower() in met.lower():
+                            v_match = True
+                            break
+                    if v_match:
+                        continue
+                # Also check context around the match for business metrics (ARR, revenue, volume, etc.)
+                start = max(0, match.start() - 30)
+                end = min(len(body), match.end() + 30)
+                surrounding = body[start:end].lower()
+                if any(w in surrounding for w in ("arr", "revenue", "volume", "budget", "valuation", "pipeline", "spend", "deal", "portfolio", "gmv", "assets", "sales")):
+                    continue
+                violations.append(
+                    f"Forbidden compensation claim detected: '{matched_str}'. Compensation discussions are strictly prohibited in cold outreach before first reply."
+                )
+
+        # 2. Policy-forbidden claims (visa, relocation, unearned interview status)
+        for pat in self._POLICY_FORBIDDEN_PATTERNS:
+            match = pat.search(body)
+            if match:
+                violations.append(
+                    f"Policy-forbidden claim detected: '{match.group(0)}'."
+                )
+
+        # 3. Unverifiable tenure claims
+        verified_text = ""
+        if verified_facts:
+            verified_text = " ".join(
+                str(getattr(f, "statement", f)) + " " + str(getattr(f, "metric", ""))
+                for f in verified_facts
+            ).lower()
+
+        for pat in self._TENURE_PATTERNS:
+            match = pat.search(body)
+            if match:
+                claimed_tenure = match.group(0).lower()
+                tenure_term = match.group(1).lower()
+                if tenure_term not in verified_text:
+                    violations.append(
+                        f"Unverifiable tenure claim detected: '{claimed_tenure}'. Claimed duration '{tenure_term}' is not backed by candidate verified facts."
+                    )
+
+        return len(violations) == 0, violations
+
+
 __all__ = [
     "ChannelLengthValidator",
     "EmDashValidator",
+    "ForbiddenClaimsValidator",
     "GroundingValidator",
     "MarkdownLinkValidator",
     "QuestionEndingValidator",
