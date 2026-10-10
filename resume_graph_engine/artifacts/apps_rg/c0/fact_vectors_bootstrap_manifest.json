@@ -1,11 +1,11 @@
 {
   "schema_version": "apps_rg.fact_vectors_bootstrap_manifest.v1",
   "plan": "apps-rg-e2e-gap-remediation-7e2d9c",
-  "generated_at_utc": "2026-09-15T02:54:02.432426+00:00",
+  "generated_at_utc": "2026-10-10T20:23:33.050691+00:00",
   "source": "candidate_fact_ledger + base_resume_employment_bullets (tracked first-principles sources); generated output is never a live fact source",
   "chroma_path": "/Users/amitayer/Git/agents/resume_graph_engine/data/cache/chromadb",
   "dry_run": false,
-  "ledger_version_hash": "8e29ef54c1c13a5d4e773ba5e2d575da",
+  "ledger_version_hash": "3088d05f9bbf5b9af5a7cd312dcc7782",
   "locked_deterministic_lanes": [],
   "required_lanes": [
     "competencies",
@@ -24,8 +24,8 @@
   ],
   "missing_required_lane_targets": [],
   "ledger_path": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/fact_inventory/master_candidate_skills_fact_ledger_20260518T1100Z.json",
-  "total_ledger_facts": 55,
-  "eligible_atoms": 48,
+  "total_ledger_facts": 61,
+  "eligible_atoms": 54,
   "skipped_count": 29,
   "skipped": [
     {
@@ -146,22 +146,22 @@
     }
   ],
   "per_section_target_counts": {
-    "competencies": 48,
+    "competencies": 54,
     "slalom_bullets": 4,
-    "unify_bullets": 24,
+    "unify_bullets": 30,
     "ibm_bullets": 8,
     "insurtech_bullets": 4,
     "ey_bullets": 10,
     "slalom_narrative": 4,
-    "unify_narrative": 24,
+    "unify_narrative": 30,
     "ibm_narrative": 8,
     "insurtech_narrative": 4,
     "ey_narrative": 10,
-    "executive_summary": 48,
-    "headline": 48
+    "executive_summary": 54,
+    "headline": 54
   },
   "base_resume_path": "/Users/amitayer/Git/agents/resume_graph_engine/src/apps_rg/resume/base/amit_ayer_base_resume_v1.json",
-  "base_resume_digest": "8f042fae144d0fb4dfb92ee27f37f9a25c147f04c455c1a232a12fcfa247c149",
+  "base_resume_digest": "cf6df128f503efb1fdc5a859b9bc57437b439e9aeb0ec1e40247d5f2b80b88af",
   "base_resume_employment_atoms": 22,
   "base_resume_skipped": [],
   "base_resume_per_section_counts": {
@@ -179,10 +179,10 @@
     "executive_summary": 22,
     "headline": 22
   },
-  "ledger_eligible_atoms": 26,
-  "chunks_built": 48,
-  "upserted_count": 48,
-  "collection_count_after": 48,
+  "ledger_eligible_atoms": 32,
+  "chunks_built": 54,
+  "upserted_count": 54,
+  "collection_count_after": 54,
   "sparse_sidecar_built": true,
   "hydration_env": {
     "schema_version": "apps_rg.fact_vector_hydration_env.v1",
@@ -201,7 +201,7 @@
   },
   "hydration_runtime": {
     "schema_version": "apps_rg.fact_vector_hydration_runtime.v1",
-    "generated_at_utc": "2026-09-15T02:54:05.448907+00:00",
+    "generated_at_utc": "2026-10-10T20:23:55.435368+00:00",
     "status": "PASS",
     "block_code": "BLOCKED_FACT_VECTOR_HYDRATION_RUNTIME",
     "reasons": [],
@@ -228,23 +228,23 @@
     "lock_path": "/Users/amitayer/Git/agents/resume_graph_engine/data/cache/chromadb/.apps_rg_fact_vector_hydration.lock",
     "status": "ACQUIRED",
     "block_code": "BLOCKED_FACT_VECTOR_HYDRATION_LOCK",
-    "token": "b3bffb77ac0f4d1280722fbec2d14d70",
-    "acquired_at_utc": "2026-09-15T02:54:05.448948+00:00",
+    "token": "63aa601d348c4fb6b7819aba1b65c8c4",
+    "acquired_at_utc": "2026-10-10T20:23:55.435418+00:00",
     "released": true,
     "reasons": [],
-    "pid": 64339,
-    "released_at_utc": "2026-09-15T02:54:10.148339+00:00"
+    "pid": 68380,
+    "released_at_utc": "2026-10-10T20:23:57.795502+00:00"
   },
   "chroma_snapshot": {
     "schema_version": "apps_rg.fact_vector_chroma_snapshot.v1",
-    "generated_at_utc": "2026-09-15T02:54:05.449273+00:00",
+    "generated_at_utc": "2026-10-10T20:23:55.435954+00:00",
     "source_path": "/Users/amitayer/Git/agents/resume_graph_engine/data/cache/chromadb",
     "status": "PASS",
-    "snapshot_path": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/c0/chroma_snapshots/fact_vectors_chroma_20260914_225405_1789440845449299000",
+    "snapshot_path": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/c0/chroma_snapshots/fact_vectors_chroma_20261010_162355_1791663835435985000",
     "reasons": []
   },
   "chunk_skipped": [],
-  "sparse_doc_count": 48,
-  "sparse_term_count": 1069,
-  "manifest_checksum": "273d1195112d117925ad2073679834a04a8f510a7da02ad7462a5526fd7ec327"
+  "sparse_doc_count": 54,
+  "sparse_term_count": 1212,
+  "manifest_checksum": "ade4fc7f2c9476a4dedecf005080ff68b35ff33b05cb044318f72cc7a87b20fa"
 }

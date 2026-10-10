@@ -46,8 +46,9 @@ class DoctorCheck:
 
 
 def _repo_root() -> Path:
-    # apps_rg/runtime/doctor.py -> parents[2] == repo root
-    return Path(__file__).resolve().parents[2]
+    from apps_rg.repository_layout import repository_root
+
+    return repository_root(Path(__file__))
 
 
 def _resolve_chroma_path() -> str:

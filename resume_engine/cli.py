@@ -33,6 +33,7 @@ def _build_parser(prog: str = "python -m resume_engine") -> argparse.ArgumentPar
             "inspect a completed run, print artifacts, manage models, and verify preflight."
         ),
     )
+    parser.add_argument("--version", action="version", version="resume_engine 1.0.0")
     parser.add_argument(
         "--l1-cognitive-treatment-arm",
         default="l1_v2_control",
@@ -156,6 +157,26 @@ def _build_parser(prog: str = "python -m resume_engine") -> argparse.ArgumentPar
         help="Emit structured JSON output.",
     )
 
+    # 9. doctor
+    doctor_parser = subparsers.add_parser(
+        "doctor", help="fresh-checkout preflight diagnostics"
+    )
+    doctor_parser.add_argument(
+        "--strict",
+        action="store_true",
+        help="Exit non-zero if any required prerequisite is missing.",
+    )
+    doctor_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Emit machine-readable JSON instead of a table.",
+    )
+    doctor_parser.add_argument(
+        "doctor_args",
+        nargs=argparse.REMAINDER,
+        help="Additional arguments forwarded to doctor CLI.",
+    )
+
     return parser
 
 
@@ -184,6 +205,7 @@ def _normalize_argv(argv: Sequence[str] | None) -> list[str]:
         "preflight",
         "models",
         "cache",
+        "doctor",
     }
     if values[0] not in known_actions and values[0].startswith("-"):
         return ["run", *values]
@@ -443,6 +465,19 @@ def main(argv: list[str] | None = None, prog: str | None = None) -> int:
 
     if action == "cache":
         return _handle_cache(args)
+
+    if action == "doctor":
+        from apps_rg.runtime.doctor import run_doctor_cli
+
+        sub_args: list[str] = []
+        if getattr(args, "strict", False):
+            sub_args.append("--strict")
+        if getattr(args, "json", False):
+            sub_args.append("--json")
+        extra = getattr(args, "doctor_args", [])
+        if extra:
+            sub_args.extend(list(extra))
+        return int(run_doctor_cli(sub_args))
 
     parser.error(f"unsupported action: {action!r}")
     return 2

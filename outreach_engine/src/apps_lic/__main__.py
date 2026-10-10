@@ -34,7 +34,7 @@ def _normalize_argv(argv: Sequence[str] | None) -> list[str]:
     values = list(sys.argv[1:] if argv is None else argv)
     if not values:
         return ["run", "--demo"]
-    if values[0] in {"-h", "--help"}:
+    if values[0] in {"-h", "--help", "-v", "--version"}:
         return values
     actions = {"run", "eval", "show"}
     if values[0] not in actions:
@@ -48,6 +48,7 @@ def _build_parser(prog: str = "python -m outreach_engine") -> argparse.ArgumentP
         prog=prog,
         description="Grounded Executive Outreach Engine: Generate, evaluate, and inspect grounded multi-touch campaigns.",
     )
+    parser.add_argument("--version", action="version", version="outreach_engine 1.0.0")
     subparsers = parser.add_subparsers(dest="action", metavar="ACTION")
 
     # 1. run action

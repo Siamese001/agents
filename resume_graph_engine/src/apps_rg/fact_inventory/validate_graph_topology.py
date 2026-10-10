@@ -316,4 +316,4 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    raise ImportError("Direct execution of validate_graph_topology is forbidden; use 'python -m resume_engine' instead.")
