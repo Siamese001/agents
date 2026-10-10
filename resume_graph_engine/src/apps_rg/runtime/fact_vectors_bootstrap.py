@@ -326,13 +326,14 @@ class FactVectorHydrationLock(AbstractContextManager[dict[str, Any]]):
         del repo_root  # reserved for future lock relocation; lock lives beside Chroma.
         self.chroma_dir = _chroma_dir(chroma_path)
         self.lock_path = self.chroma_dir / HYDRATION_LOCK_FILENAME
-        self.token = uuid.uuid4().hex
+        self.lock_id = uuid.uuid4().hex
+        self.token = self.lock_id  # backwards compatibility
         self.receipt: dict[str, Any] = {
             "schema_version": "apps_rg.fact_vector_hydration_lock.v1",
             "lock_path": str(self.lock_path),
             "status": "PENDING",
             "block_code": BLOCKED_FACT_VECTOR_HYDRATION_LOCK,
-            "token": self.token,
+            "lock_id": self.lock_id,
             "acquired_at_utc": "",
             "released": False,
             "reasons": [],
@@ -341,7 +342,7 @@ class FactVectorHydrationLock(AbstractContextManager[dict[str, Any]]):
     def __enter__(self) -> dict[str, Any]:
         self.chroma_dir.mkdir(parents=True, exist_ok=True)
         payload = {
-            "token": self.token,
+            "lock_id": self.lock_id,
             "pid": os.getpid(),
             "created_at_utc": datetime.now(timezone.utc).isoformat(),
         }
@@ -397,7 +398,7 @@ class FactVectorHydrationLock(AbstractContextManager[dict[str, Any]]):
             current = json.loads(self.lock_path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
             current = {}
-        if current.get("token") == self.token:
+        if current.get("lock_id") == self.lock_id or current.get("token") == self.lock_id:
             try:
                 self.lock_path.unlink()
                 self.receipt["released"] = True

@@ -228,12 +228,12 @@
     "lock_path": "/Users/amitayer/Git/agents/resume_graph_engine/data/cache/chromadb/.apps_rg_fact_vector_hydration.lock",
     "status": "ACQUIRED",
     "block_code": "BLOCKED_FACT_VECTOR_HYDRATION_LOCK",
-    "token": "63aa601d348c4fb6b7819aba1b65c8c4",
     "acquired_at_utc": "2026-10-10T20:23:55.435418+00:00",
     "released": true,
     "reasons": [],
     "pid": 68380,
-    "released_at_utc": "2026-10-10T20:23:57.795502+00:00"
+    "released_at_utc": "2026-10-10T20:23:57.795502+00:00",
+    "lock_id": "63aa601d348c4fb6b7819aba1b65c8c4"
   },
   "chroma_snapshot": {
     "schema_version": "apps_rg.fact_vector_chroma_snapshot.v1",
@@ -246,5 +246,5 @@
   "chunk_skipped": [],
   "sparse_doc_count": 54,
   "sparse_term_count": 1212,
-  "manifest_checksum": "ade4fc7f2c9476a4dedecf005080ff68b35ff33b05cb044318f72cc7a87b20fa"
+  "manifest_checksum": "4a916591c8fda1c5a481036edae9f7669bc897ce2b5ca711bbfb22cec5630e22"
 }

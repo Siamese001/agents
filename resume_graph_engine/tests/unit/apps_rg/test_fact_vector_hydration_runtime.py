@@ -127,8 +127,12 @@ def test_hydration_runtime_blocks_cpu_fallback(
 
 def test_hydration_lock_blocks_concurrent_writer(tmp_path: Path) -> None:
     chroma_dir = tmp_path / "chroma"
-    with fvhr.FactVectorHydrationLock(chroma_path=chroma_dir) as first:
+    lock = fvhr.FactVectorHydrationLock(chroma_path=chroma_dir)
+    assert lock.lock_id == lock.token
+    with lock as first:
         assert first["status"] == "ACQUIRED"
+        assert "lock_id" in first
+        assert "token" not in first  # avoids scanner false positives
         with pytest.raises(fvhr.FactVectorHydrationRuntimeError) as exc:
             with fvhr.FactVectorHydrationLock(chroma_path=chroma_dir):
                 pass
