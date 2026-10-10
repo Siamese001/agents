@@ -413,8 +413,18 @@ def _read_product_artifact(run_dir: Path, artifact: str) -> str:
     artifacts = {
         "resume": ("FINAL_RESUME_OUTPUT.txt", "outputs/resume.md", "resume.md"),
         "email": ("outputs/outreach_email.md", "outreach_email.md"),
-        "research": ("research/delegated_briefing.json", "research.md"),
-        "summary": ("apps_rg_e2e_terminal_manifest.json", "run_summary.json"),
+        "research": (
+            "research/delegated_briefing.txt",
+            "research/delegated_briefing.json",
+            "research.md",
+        ),
+        "summary": (
+            "apps_rg_mandatory_output_commit_manifest.json",
+            "run_manifest.json",
+            "apps_rg_output_manifest.json",
+            "apps_rg_e2e_terminal_manifest.json",
+            "run_summary.json",
+        ),
     }
     if artifact == "evaluation":
         return json.dumps(_evaluate_product_run(run_dir), ensure_ascii=False, indent=2, sort_keys=True)

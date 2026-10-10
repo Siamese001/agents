@@ -466,5 +466,4 @@ __all__ = ["materialize_augmented_skills_graph_sqlite"]
 
 
 if __name__ == "__main__":
-    result = materialize_augmented_skills_graph_sqlite()
-    print("Materialization complete:", result.get("sqlite_db_path"))
+    raise ImportError("Direct execution of materializer is forbidden; use 'python -m resume_engine' instead.")
