@@ -86,22 +86,31 @@ class FeedbackController:
         validation_passed: bool,
         *,
         errors: Sequence[str] = (),
-        failure_kind: FailureKind = FailureKind.DETERMINISTIC_QUALITY,
+        failure_kind: FailureKind | None = None,
         state: ResumeRunState | None = None,
         evidence: Sequence[str] = (),
         allowed_actions: Sequence[str] = ("revise_content", "fix_constraint"),
         context_diff: Mapping[str, Any] | None = None,
+        step_name: str = "",
+        **kwargs: Any,
     ) -> FeedbackDecision:
         """Evaluate a validation or judge outcome and decide next orchestration action."""
         if validation_passed and not errors:
+            diag = (
+                f"Validation passed cleanly for {step_name}."
+                if step_name
+                else "Validation passed cleanly; output satisfies all constraints."
+            )
             return FeedbackDecision(
                 action=ControllerAction.ACCEPT,
-                diagnostic="Validation passed cleanly; output satisfies all constraints.",
+                diagnostic=diag,
                 can_retry=False,
             )
 
+        effective_kind = failure_kind or FailureKind.DETERMINISTIC_QUALITY
+
         # Policy failures never auto-retry or auto-revise
-        if failure_kind == FailureKind.POLICY:
+        if effective_kind == FailureKind.POLICY:
             fail_desc = "; ".join(errors) or "Policy validation check failed."
             failure = ExecutionFailure(
                 failure_kind=FailureKind.POLICY,
@@ -118,7 +127,7 @@ class FeedbackController:
             )
 
         # Schema errors are deterministically repaired locally
-        if failure_kind == FailureKind.SCHEMA:
+        if effective_kind == FailureKind.SCHEMA:
             schema_err = "; ".join(errors) or "Schema mismatch."
             failure = ExecutionFailure(
                 failure_kind=FailureKind.SCHEMA,
@@ -140,14 +149,14 @@ class FeedbackController:
         budget = state.budget if state else self.default_budget
 
         # Quality and factual conflicts trigger semantic revision
-        if failure_kind in (FailureKind.DETERMINISTIC_QUALITY, FailureKind.FACTUAL_CONFLICT):
+        if effective_kind in (FailureKind.DETERMINISTIC_QUALITY, FailureKind.FACTUAL_CONFLICT):
             current_revisions = counters.semantic_revisions
             max_revisions = budget.max_semantic_revisions
-            recovery = derive_recovery_action(failure_kind, current_revisions, max_revisions)
+            recovery = derive_recovery_action(effective_kind, current_revisions, max_revisions)
 
             if recovery == RecoveryAction.TERMINAL_FAIL or current_revisions >= max_revisions:
                 failure = ExecutionFailure(
-                    failure_kind=failure_kind,
+                    failure_kind=effective_kind,
                     message=f"Semantic revision budget exhausted ({current_revisions}/{max_revisions}).",
                     recovery_action=RecoveryAction.TERMINAL_FAIL,
                     retryable=False,
@@ -162,7 +171,7 @@ class FeedbackController:
 
             # Create structured, evidence-based RevisionRequest
             req = RevisionRequest(
-                failure_kind=failure_kind,
+                failure_kind=effective_kind,
                 failed_constraints=tuple(errors) or ("Unspecified quality constraint violation",),
                 evidence=tuple(evidence),
                 allowed_actions=tuple(allowed_actions),
@@ -171,7 +180,7 @@ class FeedbackController:
                 context_diff=dict(context_diff or {}),
             )
             failure = ExecutionFailure(
-                failure_kind=failure_kind,
+                failure_kind=effective_kind,
                 message=f"Quality check failed: {'; '.join(errors)}",
                 recovery_action=RecoveryAction.SEMANTIC_REVISION,
                 retryable=True,
@@ -183,11 +192,11 @@ class FeedbackController:
                 try:
                     for err in errors:
                         self.learning_store.record_failure(
-                            failure_kind, err, run_id=state.run_id if state else ""
+                            effective_kind, err, run_id=state.run_id if state else ""
                         )
                     hints: list[str] = []
                     for err in errors:
-                        hints.extend(self.learning_store.get_repair_hints(failure_kind, err))
+                        hints.extend(self.learning_store.get_repair_hints(effective_kind, err))
                     if hints:
                         empirical_hint = f"Empirical hint from prior runs: {'; '.join(hints[:3])}"
                 except Exception:
@@ -203,7 +212,7 @@ class FeedbackController:
             )
 
         # Planning failures trigger cognitive replanning
-        if failure_kind == FailureKind.PLANNING:
+        if effective_kind == FailureKind.PLANNING:
             current_replans = counters.cognitive_replans
             max_replans = budget.max_cognitive_replans
             if current_replans >= max_replans:

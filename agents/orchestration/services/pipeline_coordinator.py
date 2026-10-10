@@ -117,6 +117,9 @@ class PipelineCoordinator:
         assembled_sections: dict[str, Mapping[str, Any]] = {}
         errors: list[str] = []
 
+        if not request.section_specs:
+            errors.append("No section specifications provided for pipeline execution.")
+
         for sec_name, sec_inputs in request.section_specs.items():
             # Generation
             gen_req = SectionGenerationRequest(
@@ -201,16 +204,18 @@ class PipelineCoordinator:
                     prev_digest = e_art.event_digest
                     seq += 1
 
-        # 4. Release Evaluation
-        final_phase = RunPhase.COMPLETED if len(errors) == 0 else RunPhase.FAILED
-        state = validate_and_transition(state, final_phase)
-
-        if assembly_res is not None:
+        # 4. Release Evaluation & Terminal Transition
+        if len(errors) == 0 and assembly_res is not None:
             release_dec = self.release_policy.evaluate_release(
                 state=state,
                 evaluation_results=tuple(eval_results.values()),
                 assembly_result=assembly_res,
             )
+            if not release_dec.is_releasable:
+                errors.extend(release_dec.blocking_failures or release_dec.reasons)
+
+        final_phase = RunPhase.COMPLETED if len(errors) == 0 else RunPhase.FAILED
+        state = validate_and_transition(state, final_phase)
 
         e_finish = create_event_envelope(
             event_type=AgentEventType.PHASE_TRANSITION,
