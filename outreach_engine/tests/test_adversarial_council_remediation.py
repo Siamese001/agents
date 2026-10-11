@@ -160,6 +160,8 @@ def test_remediation_defect6_evaluator_brand_token_matching():
                 fact_id="fact_1",
                 category="transformation",
                 statement="led $50M enterprise digital transformation",
+                metric="$50M",
+                source_reference="canonical_transformation_profile",
             )
         ],
     )
@@ -206,6 +208,8 @@ def test_remediation_defect7_evaluator_composite_score_and_score_bands():
                 fact_id="fact_1",
                 category="scale",
                 statement="scaled distributed systems to 10M DAU",
+                metric="10M DAU",
+                source_reference="canonical_scale_profile",
             )
         ],
     )
@@ -261,6 +265,7 @@ def test_remediation_defect8_touch_sequence_signatures():
                 fact_id="fact_1",
                 category="cloud",
                 statement="delivered multi-cloud financial exchange",
+                source_reference="canonical_cloud_profile",
             )
         ],
     )

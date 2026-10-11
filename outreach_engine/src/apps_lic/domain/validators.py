@@ -233,15 +233,122 @@ class SubordinateToneValidator:
 
 
 class GroundingValidator:
-    """Ensures drafts do not fabricate claims outside allowed candidate facts."""
+    """Ensures drafts do not fabricate claims outside allowed candidate facts,
+    binds factual statements and metrics to source evidence, and rejects unsupported
+    claims even when fact IDs are valid. Fails closed on missing provenance.
+    """
+
+    _METRIC_DOLLAR_PAT: Final[re.Pattern[str]] = re.compile(
+        r"\$\s*\d+(?:,\d{3})*(?:\.\d+)?\s*(?:[kKmMbBtT]|billion|million|thousand)?\b"
+    )
+    _METRIC_PERCENT_PAT: Final[re.Pattern[str]] = re.compile(
+        r"\b\d+(?:\.\d+)?%"
+    )
+    _METRIC_SCALE_PAT: Final[re.Pattern[str]] = re.compile(
+        r"\b\d+\s*\+\s*(?:engineers?|professionals?|people|team|members?|clients?|customers?)\b|"
+        r"\b\d+(?:\.\d+)?\s*(?:[mMbBkK])\s+(?:DAU|MAU|users?|requests?|events?|queries|qps)\b",
+        re.IGNORECASE,
+    )
+    _UNGROUNDED_ASSERTION_PAT: Final[re.Pattern[str]] = re.compile(
+        r"\b(?:personally invented|co-invented|patented the|invented the|won an? (?:olympic|nobel|pulitzer))\b",
+        re.IGNORECASE,
+    )
 
     def validate(
-        self, draft_facts_used: List[str], allowed_fact_ids: set[str]
+        self,
+        draft_facts_used: List[str],
+        allowed_fact_ids: set[str],
+        body: Optional[str] = None,
+        candidate_facts: Optional[List[Any]] = None,
+        opportunity_context: Optional[str] = None,
     ) -> tuple[bool, List[str]]:
         violations: List[str] = []
+
+        # 1. Fact ID validation and provenance enforcement (fail closed on missing provenance)
+        cf_by_id: dict[str, Any] = {}
+        if candidate_facts:
+            for f in candidate_facts:
+                fid = getattr(f, "fact_id", None)
+                if fid:
+                    cf_by_id[fid] = f
+
         for fid in draft_facts_used:
             if fid not in allowed_fact_ids:
                 violations.append(f"Ungrounded fact referenced: '{fid}'")
+                continue
+
+            # If candidate_facts available, enforce source evidence provenance
+            if cf_by_id:
+                f_obj = cf_by_id.get(fid)
+                if f_obj is None:
+                    violations.append(f"Referenced fact ID '{fid}' not found in candidate facts.")
+                else:
+                    source_ref = getattr(f_obj, "source_reference", None)
+                    if not source_ref or not str(source_ref).strip():
+                        violations.append(
+                            f"Fact '{fid}' has missing provenance (source_reference is missing); failing closed."
+                        )
+
+        # 2. Body-level claim and metric verification
+        if body and body.strip():
+            # Collect verified textual representations of declared facts
+            declared_facts_text = ""
+            if cf_by_id and draft_facts_used:
+                declared_texts: List[str] = []
+                for fid in draft_facts_used:
+                    f_obj = cf_by_id.get(fid)
+                    if f_obj and (getattr(f_obj, "has_provenance", False) or getattr(f_obj, "source_reference", None)):
+                        stmt = str(getattr(f_obj, "statement", "") or "")
+                        met = str(getattr(f_obj, "metric", "") or "")
+                        declared_texts.append(f"{stmt} {met}".lower())
+                declared_facts_text = " ".join(declared_texts)
+
+            opp_text = str(opportunity_context or "").lower()
+
+            # A. Dollar metrics check
+            for m in self._METRIC_DOLLAR_PAT.finditer(body):
+                matched = m.group(0).lower()
+                in_declared = matched in declared_facts_text
+                in_opp = matched in opp_text
+                if not in_declared and not in_opp:
+                    if not draft_facts_used:
+                        violations.append(
+                            f"Message body cites metric '{m.group(0)}' without declaring any grounded fact ID backed by source evidence."
+                        )
+                    else:
+                        violations.append(
+                            f"Unsupported dollar metric claim in message body: '{m.group(0)}'. Not supported by declared candidate facts with source evidence."
+                        )
+
+            # B. Percentage metrics check
+            for m in self._METRIC_PERCENT_PAT.finditer(body):
+                matched = m.group(0).lower()
+                in_declared = matched in declared_facts_text
+                in_opp = matched in opp_text
+                if not in_declared and not in_opp:
+                    violations.append(
+                        f"Unsupported percentage metric claim in message body: '{m.group(0)}'. Not supported by declared candidate facts with source evidence."
+                    )
+
+            # C. Scale metrics check (e.g. 180+ professionals, 10M DAU)
+            for m in self._METRIC_SCALE_PAT.finditer(body):
+                matched = m.group(0).lower()
+                in_declared = matched in declared_facts_text
+                in_opp = matched in opp_text
+                if not in_declared and not in_opp:
+                    violations.append(
+                        f"Unsupported scale metric claim in message body: '{m.group(0)}'. Not supported by declared candidate facts with source evidence."
+                    )
+
+            # D. Unsupported superlative / invention claims
+            for m in self._UNGROUNDED_ASSERTION_PAT.finditer(body):
+                matched = m.group(0).lower()
+                in_declared = matched in declared_facts_text
+                if not in_declared:
+                    violations.append(
+                        f"Unsupported factual assertion in message body: '{m.group(0)}'. Not grounded in candidate verified facts with source evidence."
+                    )
+
         return len(violations) == 0, violations
 
 
@@ -270,33 +377,58 @@ class ForbiddenClaimsValidator:
         self,
         body: str,
         verified_facts: Optional[List[Any]] = None,
+        opportunity_context: Optional[str] = None,
     ) -> tuple[bool, List[str]]:
         violations: List[str] = []
+        opp_text = str(opportunity_context or "").lower()
 
         # 1. Compensation claims
-        for pat in self._COMPENSATION_PATTERNS:
+        # Patterns 0 and 2 are explicit compensation keywords/terms and must always be rejected
+        for pat in (self._COMPENSATION_PATTERNS[0], self._COMPENSATION_PATTERNS[2]):
             for match in pat.finditer(body):
-                matched_str = match.group(0)
-                # If this dollar amount is part of a verified business fact/metric, do not flag
-                if verified_facts:
-                    v_match = False
-                    for f in verified_facts:
+                violations.append(
+                    f"Forbidden compensation claim detected: '{match.group(0)}'. Compensation discussions are strictly prohibited in cold outreach before first reply."
+                )
+
+        # Pattern 1 is numeric dollar amounts: distinguish business metrics from compensation
+        dollar_pat = self._COMPENSATION_PATTERNS[1]
+        for match in dollar_pat.finditer(body):
+            matched_str = match.group(0)
+            start = max(0, match.start() - 30)
+            end = min(len(body), match.end() + 30)
+            surrounding = body[start:end].lower()
+
+            # If surrounding words indicate compensation, it is strictly forbidden
+            if any(w in surrounding for w in ("salary", "compensation", "base", "pay", "signing bonus", "bonus", "equity", "stock", "ote", "hourly", "rate", "target comp")):
+                violations.append(
+                    f"Forbidden compensation claim detected: '{matched_str}'. Compensation discussions are strictly prohibited in cold outreach before first reply."
+                )
+                continue
+
+            # If this dollar amount is part of a verified business fact/metric with provenance, do not flag
+            if verified_facts:
+                v_match = False
+                for f in verified_facts:
+                    if getattr(f, "has_provenance", False) or bool(getattr(f, "source_reference", None) and str(getattr(f, "source_reference")).strip()):
                         stmt = str(getattr(f, "statement", "") or "")
                         met = str(getattr(f, "metric", "") or "")
                         if matched_str.lower() in stmt.lower() or matched_str.lower() in met.lower():
                             v_match = True
                             break
-                    if v_match:
-                        continue
-                # Also check context around the match for business metrics (ARR, revenue, volume, etc.)
-                start = max(0, match.start() - 30)
-                end = min(len(body), match.end() + 30)
-                surrounding = body[start:end].lower()
-                if any(w in surrounding for w in ("arr", "revenue", "volume", "budget", "valuation", "pipeline", "spend", "deal", "portfolio", "gmv", "assets", "sales")):
+                if v_match:
                     continue
-                violations.append(
-                    f"Forbidden compensation claim detected: '{matched_str}'. Compensation discussions are strictly prohibited in cold outreach before first reply."
-                )
+
+            # If this dollar amount is part of opportunity context, do not flag
+            if opportunity_context and matched_str.lower() in opp_text:
+                continue
+
+            # Also check context around the match for business metrics (ARR, revenue, volume, program, etc.)
+            if any(w in surrounding for w in ("arr", "revenue", "volume", "budget", "valuation", "pipeline", "spend", "deal", "portfolio", "gmv", "assets", "sales", "program", "transformation", "modernization", "initiative", "infrastructure", "platform")):
+                continue
+
+            violations.append(
+                f"Forbidden compensation claim detected: '{matched_str}'. Compensation discussions are strictly prohibited in cold outreach before first reply."
+            )
 
         # 2. Policy-forbidden claims (visa, relocation, unearned interview status)
         for pat in self._POLICY_FORBIDDEN_PATTERNS:
@@ -312,6 +444,7 @@ class ForbiddenClaimsValidator:
             verified_text = " ".join(
                 str(getattr(f, "statement", f)) + " " + str(getattr(f, "metric", ""))
                 for f in verified_facts
+                if getattr(f, "has_provenance", False) or bool(getattr(f, "source_reference", None) and str(getattr(f, "source_reference")).strip())
             ).lower()
 
         for pat in self._TENURE_PATTERNS:
@@ -321,7 +454,7 @@ class ForbiddenClaimsValidator:
                 tenure_term = match.group(1).lower()
                 if tenure_term not in verified_text:
                     violations.append(
-                        f"Unverifiable tenure claim detected: '{claimed_tenure}'. Claimed duration '{tenure_term}' is not backed by candidate verified facts."
+                        f"Unverifiable tenure claim detected: '{claimed_tenure}'. Claimed duration '{tenure_term}' is not backed by candidate verified facts with source evidence."
                     )
 
         return len(violations) == 0, violations
