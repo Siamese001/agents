@@ -228,6 +228,9 @@ class OutreachOrchestrator:
                     "target_title": candidate.target_title,
                     "current_title": candidate.current_title,
                     "executive_summary": candidate.executive_summary,
+                    "key_competencies": list(candidate.key_competencies),
+                    "linkedin_url": candidate.linkedin_url,
+                    "phone": candidate.phone,
                     "verified_facts": [
                         {
                             "fact_id": f.fact_id,
@@ -251,10 +254,12 @@ class OutreachOrchestrator:
                     "strategic_priorities": list(opp.strategic_priorities),
                     "briefing_text": opp.briefing_text,
                     "research_digest": opp.research_digest,
+                    "evidence_items": list(opp.evidence_items),
                     "sealed_resolution": opp.sealed_resolution,
                 },
                 "channel": channel.value,
                 "audience_persona": persona.value,
+                "grounded_facts_used": list(draft.grounded_facts_used),
             }
             (a_dir / "run_manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
 

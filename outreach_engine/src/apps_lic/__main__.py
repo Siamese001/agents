@@ -76,7 +76,7 @@ def _build_parser(prog: str = "python -m outreach_engine") -> argparse.ArgumentP
     show_parser.add_argument(
         "--artifact",
         required=True,
-        choices=("draft", "campaign", "evaluation", "validation", "research"),
+        choices=("draft", "campaign", "evaluation", "validation", "research", "manifest", "receipt"),
         help="Artifact to inspect and print",
     )
     show_parser.add_argument("--json", action="store_true", help="Output machine-readable JSON result")
@@ -85,22 +85,14 @@ def _build_parser(prog: str = "python -m outreach_engine") -> argparse.ArgumentP
 
 
 def _handle_run(args: argparse.Namespace, prog: str = "python -m outreach_engine") -> int:
-    # Live execution preflight
     try:
-        repo_root = Path(__file__).resolve().parent.parent.parent.parent
         try:
             from infrastructure.live_execution import load_agent_environment
-            load_agent_environment(repo_root=repo_root)
+            load_agent_environment(repo_root=Path(__file__).resolve().parent.parent.parent.parent)
         except Exception:
             pass
-
         from agents.live_preflight import assert_engine_live_preflight
-
-        assert_engine_live_preflight(
-            prog,
-            providers=("openai",),
-            is_demo=bool(getattr(args, "demo", False)),
-        )
+        assert_engine_live_preflight(prog, providers=("openai",), is_demo=bool(getattr(args, "demo", False)))
     except ImportError as err:
         if getattr(args, "json", False):
             print(json.dumps({"status": "FAILED", "error": f"Preflight import failure: {err}"}, indent=2), flush=True)
@@ -139,40 +131,20 @@ def _handle_run(args: argparse.Namespace, prog: str = "python -m outreach_engine
     elif args.company:
         target_role = args.role or "Engineering Leader"
         log(f"[outreach_engine] Target company specified: {args.company} ({target_role})...")
-        candidate = CandidateProfileLoader.load_default(
-            overrides={
-                "candidate_id": "cand_exec",
-                "target_title": target_role,
-            }
-        )
+        candidate = CandidateProfileLoader.load_default(overrides={"candidate_id": "cand_exec", "target_title": target_role})
         opportunity = TargetOpportunity(
-            opportunity_id=f"opp_{args.company.lower()}",
-            company_name=args.company,
-            role_title=target_role,
-            industry="Enterprise Technology",
-            recipient_name="Hiring Leader",
-            recipient_title=f"Head of {target_role}",
-            recipient_class=RecipientClass.HIRING_MANAGER,
-            relationship_distance=RelationshipDistance.COLD,
-            strategic_priorities=[],
+            opportunity_id=f"opp_{args.company.lower()}", company_name=args.company, role_title=target_role,
+            industry="Enterprise Technology", recipient_name="Hiring Leader", recipient_title=f"Head of {target_role}",
+            recipient_class=RecipientClass.HIRING_MANAGER, relationship_distance=RelationshipDistance.COLD,
         )
     else:
         target_role = args.role or "VP of Enterprise Engineering"
-        candidate = CandidateProfileLoader.load_default(
-            overrides={
-                "candidate_id": "cand_001",
-                "target_title": target_role,
-            }
-        )
+        candidate = CandidateProfileLoader.load_default(overrides={"candidate_id": "cand_001", "target_title": target_role})
         opportunity = TargetOpportunity(
-            opportunity_id="opp_truist_01",
-            company_name="Truist Enterprise Technology",
-            role_title=args.role or "Head of Engineering, Core Platforms",
-            industry="Financial Services & Banking",
-            recipient_name="Sarah Jenkins",
-            recipient_title="Senior Director of Talent Acquisition",
-            recipient_class=RecipientClass.TALENT_PARTNER,
-            relationship_distance=RelationshipDistance.COLD,
+            opportunity_id="opp_truist_01", company_name="Truist Enterprise Technology",
+            role_title=args.role or "Head of Engineering, Core Platforms", industry="Financial Services & Banking",
+            recipient_name="Sarah Jenkins", recipient_title="Senior Director of Talent Acquisition",
+            recipient_class=RecipientClass.TALENT_PARTNER, relationship_distance=RelationshipDistance.COLD,
             strategic_priorities=["cloud modern banking core", "zero-downtime reliability"],
         )
 
@@ -336,26 +308,17 @@ def _handle_run(args: argparse.Namespace, prog: str = "python -m outreach_engine
         return 0 if all_passed else 1
 
     print("\n" + "=" * 60)
-    print(f"OUTREACH DRAFT ({channel.value.upper()} | {persona.value.upper()}):")
-    print("=" * 60)
+    print(f"OUTREACH DRAFT ({channel.value.upper()} | {persona.value.upper()}):\n" + "=" * 60)
     if val.passed:
-        print(f"Subject: {draft.subject}")
-        print("-" * 60)
-        print(draft.body)
+        print(f"Subject: {draft.subject}\n" + "-" * 60 + f"\n{draft.body}")
         if draft.signature_block:
-            print("-" * 60)
-            print(draft.signature_block)
+            print("-" * 60 + f"\n{draft.signature_block}")
     else:
-        print(f"Subject: {draft.subject} [BLOCKED - NOT SEALED]")
-        print("-" * 60)
-        print("[Draft unsealed due to policy/judge violation]")
+        print(f"Subject: {draft.subject} [BLOCKED - NOT SEALED]\n" + "-" * 60 + "\n[Draft unsealed due to policy/judge violation]")
     print("=" * 60)
-    print(f"Template Used: {draft.metadata.get('template_id', 'default')}")
-    print(f"Character Count: {draft.character_count}")
-    print(f"Research Resolution: {draft.research_metadata.get('resolution_source', 'none')}")
+    print(f"Template Used: {draft.metadata.get('template_id', 'default')}\nCharacter Count: {draft.character_count}\nResearch Resolution: {draft.research_metadata.get('resolution_source', 'none')}")
     print(f"Stage Latencies: Resolution: {lat_res_ms}ms | Draft: {lat_draft_ms}ms | Validation: {lat_val_ms}ms | Evaluation: {lat_eval_ms}ms | Campaign: {lat_camp_ms}ms | Total: {lat_total_ms}ms")
-    print(f"Authoritative Verdict: {val.status}")
-    print(f"Validation Status: {'PASSED' if val.is_valid else 'FAILED'}")
+    print(f"Authoritative Verdict: {val.status}\nValidation Status: {'PASSED' if val.is_valid else 'FAILED'}")
     if val.violations:
         print(f"Violations: {val.violations}")
     if val.warnings:
@@ -369,21 +332,16 @@ def _handle_run(args: argparse.Namespace, prog: str = "python -m outreach_engine
 
     print(f"\nGenerated Multi-Touch Campaign with {len(sequence.touches)} planned touches (Status: {sequence.status}):")
     for t in sequence.touches:
-        t_status = t.draft.metadata.get("status", "PASSED")
         t_pass_str = "PASSED" if t.draft.metadata.get("passed", True) else "BLOCKED"
         print(f"  - Touch {t.touch_number} (Day {t.day_offset}) via {t.channel.value} [{t_pass_str}]: {t.objective}")
-        if t_status == "BLOCKED":
-            t_reasons = t.draft.metadata.get("failure_reasons", [])
-            print(f"      Failure reasons: {t_reasons}")
+        if t.draft.metadata.get("status") == "BLOCKED":
+            print(f"      Failure reasons: {t.draft.metadata.get('failure_reasons', [])}")
 
-    if all_passed:
-        print(f"\n[outreach_engine] Artifacts sealed at: {artifact_dir}")
-    else:
-        print(f"\n[outreach_engine] Unsealed diagnostic artifacts stored at: {artifact_dir}")
+    out_msg = f"\n[outreach_engine] Artifacts sealed at: {artifact_dir}" if all_passed else f"\n[outreach_engine] Unsealed diagnostic artifacts stored at: {artifact_dir}"
+    print(out_msg)
 
     if not all_passed:
-        sys.stderr.write("\n" + "!" * 60 + "\n")
-        sys.stderr.write("[outreach_engine] BLOCKED: Outreach draft or campaign touch failed authoritative verification.\n")
+        sys.stderr.write("\n" + "!" * 60 + "\n[outreach_engine] BLOCKED: Outreach draft or campaign touch failed authoritative verification.\n")
         if val.violations:
             sys.stderr.write(f"Violations: {val.violations}\n")
         if val.failure_reasons:
@@ -398,16 +356,23 @@ def _handle_run(args: argparse.Namespace, prog: str = "python -m outreach_engine
     return 0
 
 
-def _reconstruct_eval_draft(run_dir: Path) -> OutreachMessageDraft | None:
+def _reconstruct_eval_draft(run_dir: Path, manifest_data: dict[str, Any] | None = None) -> OutreachMessageDraft | None:
+    m_ch = manifest_data.get("channel") if manifest_data else None
+    m_persona = manifest_data.get("audience_persona") if manifest_data else None
+    m_facts = list(manifest_data.get("grounded_facts_used", [])) if manifest_data else []
+
     draft_file = run_dir / "outreach_draft.json"
     if draft_file.is_file():
         try:
             d = json.loads(draft_file.read_text(encoding="utf-8"))
-            ch = ChannelType(d["channel"]) if d.get("channel") in ChannelType._value2member_map_ else ChannelType.LINKEDIN_INMAIL
-            persona = AudiencePersona.EXECUTIVE_CONTACT if d.get("audience_persona") == "executive" else AudiencePersona.EXECUTIVE_RECRUITER
+            ch_raw = d.get("channel") or m_ch
+            if ch_raw not in ChannelType._value2member_map_:
+                return None
+            persona_raw = d.get("audience_persona") or m_persona
+            persona = AudiencePersona.EXECUTIVE_RECRUITER if persona_raw in ("recruiter", "executive_recruiter", AudiencePersona.EXECUTIVE_RECRUITER.value) else AudiencePersona.EXECUTIVE_CONTACT
             return OutreachMessageDraft(
                 draft_id=d.get("draft_id", "draft_eval"),
-                channel=ch,
+                channel=ChannelType(ch_raw),
                 subject=d.get("subject", ""),
                 body=d.get("body", ""),
                 signature_block=d.get("signature_block", ""),
@@ -418,81 +383,119 @@ def _reconstruct_eval_draft(run_dir: Path) -> OutreachMessageDraft | None:
             )
         except Exception:
             return None
+
     draft_md = run_dir / "outreach_draft.md"
     if draft_md.is_file():
-        md_text = draft_md.read_text(encoding="utf-8")
-        subj = next((l.split(":", 1)[1].strip() for l in md_text.splitlines() if l.startswith(("**Subject**:", "Subject:"))), "")
-        return OutreachMessageDraft(draft_id="draft_from_md", channel=ChannelType.LINKEDIN_INMAIL, subject=subj, body=md_text, grounded_facts_used=[])
+        try:
+            md_text = draft_md.read_text(encoding="utf-8")
+            hm = re.search(r"^#\s+Outreach Draft:\s*([A-Za-z_]+)", md_text, re.MULTILINE)
+            ch_raw = (hm.group(1).lower() if hm else None) or m_ch
+            if ch_raw not in ChannelType._value2member_map_:
+                return None
+            subj = next((l.split(":", 1)[1].strip() for l in md_text.splitlines() if l.startswith(("**Subject**:", "Subject:"))), "")
+            bm = re.search(r"```text\s*\n(.*?)\n```", md_text, re.DOTALL)
+            persona = AudiencePersona.EXECUTIVE_RECRUITER if m_persona in ("recruiter", "executive_recruiter", AudiencePersona.EXECUTIVE_RECRUITER.value) else AudiencePersona.EXECUTIVE_CONTACT
+            return OutreachMessageDraft(
+                draft_id="draft_from_md",
+                channel=ChannelType(ch_raw),
+                subject=subj,
+                body=bm.group(1).strip() if bm else md_text.strip(),
+                grounded_facts_used=m_facts,
+                audience_persona=persona,
+            )
+        except Exception:
+            return None
     return None
 
 
 def _reconstruct_eval_context(manifest_file: Path) -> tuple[CandidateProfile, TargetOpportunity]:
-    cand_default = CandidateProfileLoader.load_default()
-    opp_default = TargetOpportunity(
-        opportunity_id="opp_eval", company_name="Target Company", role_title="Engineering Leader",
-        industry="Enterprise Technology", recipient_name="Hiring Leader", recipient_title="Leader",
-        recipient_class=RecipientClass.HIRING_MANAGER,
-    )
     if not manifest_file.is_file():
-        return cand_default, opp_default
-    try:
-        m = json.loads(manifest_file.read_text(encoding="utf-8"))
-        cdata, odata = m.get("candidate", {}), m.get("opportunity", {})
-        facts = [
-            CandidateFact(
-                fact_id=f.get("fact_id", f"fact_{i}"), category=f.get("category", "general"),
-                statement=f.get("statement", ""), metric=f.get("metric"),
-                source_reference=f.get("source_reference") or "verified_profile",
-            )
-            for i, f in enumerate(cdata.get("verified_facts", []))
-        ]
-        cand = CandidateProfile(
-            candidate_id=cdata.get("candidate_id", "cand_01"),
-            full_name=cdata.get("full_name") or cand_default.full_name,
-            target_title=cdata.get("target_title") or cand_default.target_title,
-            current_title=cdata.get("current_title") or cand_default.current_title,
-            executive_summary=cdata.get("executive_summary") or cand_default.executive_summary,
-            verified_facts=facts if facts else cand_default.verified_facts,
+        raise FileNotFoundError(f"Authentic saved context '{manifest_file.name}' not found")
+    m = json.loads(manifest_file.read_text(encoding="utf-8"))
+    cdata, odata = m.get("candidate"), m.get("opportunity")
+    if not isinstance(cdata, dict) or not isinstance(odata, dict):
+        raise ValueError(f"Corrupt manifest '{manifest_file.name}'")
+
+    facts = [
+        CandidateFact(
+            fact_id=f["fact_id"],
+            category=f.get("category", "general"),
+            statement=f.get("statement", ""),
+            metric=f.get("metric"),
+            source_reference=f.get("source_reference"),
         )
-        rc = RecipientClass(odata["recipient_class"]) if odata.get("recipient_class") in RecipientClass._value2member_map_ else RecipientClass.HIRING_MANAGER
-        rd = RelationshipDistance(odata["relationship_distance"]) if odata.get("relationship_distance") in RelationshipDistance._value2member_map_ else RelationshipDistance.COLD
-        opp = TargetOpportunity(
-            opportunity_id=odata.get("opportunity_id", "opp_01"),
-            company_name=odata.get("company_name", "Target Company"),
-            role_title=odata.get("role_title", "Engineering Leader"),
-            industry=odata.get("industry", "Enterprise Technology"),
-            recipient_name=odata.get("recipient_name", "Hiring Leader"),
-            recipient_title=odata.get("recipient_title", "Leader"),
-            recipient_class=rc,
-            relationship_distance=rd,
-            strategic_priorities=odata.get("strategic_priorities", []),
-            briefing_text=odata.get("briefing_text", ""),
-            research_digest=odata.get("research_digest", ""),
-            sealed_resolution=odata.get("sealed_resolution"),
-        )
-        return cand, opp
-    except Exception:
-        return cand_default, opp_default
+        for f in cdata.get("verified_facts", [])
+        if isinstance(f, dict) and "fact_id" in f
+    ]
+    cand = CandidateProfile(
+        candidate_id=cdata.get("candidate_id", ""),
+        full_name=cdata.get("full_name", ""),
+        target_title=cdata.get("target_title", ""),
+        current_title=cdata.get("current_title", ""),
+        executive_summary=cdata.get("executive_summary", ""),
+        verified_facts=facts,
+        key_competencies=list(cdata.get("key_competencies", [])),
+        linkedin_url=cdata.get("linkedin_url", ""),
+        phone=cdata.get("phone", ""),
+    )
+    rc_raw, rd_raw = odata.get("recipient_class"), odata.get("relationship_distance")
+    rc = RecipientClass(rc_raw) if rc_raw in RecipientClass._value2member_map_ else RecipientClass.HIRING_MANAGER
+    rd = RelationshipDistance(rd_raw) if rd_raw in RelationshipDistance._value2member_map_ else RelationshipDistance.COLD
+    opp = TargetOpportunity(
+        opportunity_id=odata.get("opportunity_id", ""),
+        company_name=odata.get("company_name", ""),
+        role_title=odata.get("role_title", ""),
+        industry=odata.get("industry", ""),
+        recipient_name=odata.get("recipient_name", ""),
+        recipient_title=odata.get("recipient_title", ""),
+        recipient_class=rc,
+        relationship_distance=rd,
+        strategic_priorities=list(odata.get("strategic_priorities", [])),
+        briefing_text=odata.get("briefing_text", ""),
+        research_digest=odata.get("research_digest", ""),
+        evidence_items=list(odata.get("evidence_items", [])),
+        sealed_resolution=odata.get("sealed_resolution"),
+    )
+    return cand, opp
 
 
 def _handle_eval(args: argparse.Namespace) -> int:
     run_dir = Path(args.run_dir).resolve()
     if not run_dir.is_dir():
-        sys.stderr.write(f"Error: run directory does not exist: {run_dir}\n")
+        err_msg = f"Run directory does not exist: {run_dir}"
+        if getattr(args, "json", False):
+            print(json.dumps({"status": "FAILED", "error": err_msg}, indent=2))
+        sys.stderr.write(f"Error: {err_msg}\n")
         return 1
 
-    draft = _reconstruct_eval_draft(run_dir)
+    manifest_file = run_dir / "run_manifest.json"
+    if not manifest_file.is_file():
+        err_msg = f"Authentic saved context 'run_manifest.json' not found in: {run_dir}"
+        if getattr(args, "json", False):
+            print(json.dumps({"status": "FAILED", "error": err_msg}, indent=2))
+        sys.stderr.write(f"Error: {err_msg}\n")
+        return 1
+
+    try:
+        manifest_data = json.loads(manifest_file.read_text(encoding="utf-8"))
+        candidate, opportunity = _reconstruct_eval_context(manifest_file)
+    except Exception as exc:
+        err_msg = f"Failed to reconstruct authentic saved context from 'run_manifest.json': {exc}"
+        if getattr(args, "json", False):
+            print(json.dumps({"status": "FAILED", "error": err_msg}, indent=2))
+        sys.stderr.write(f"Error: {err_msg}\n")
+        return 1
+
+    draft = _reconstruct_eval_draft(run_dir, manifest_data=manifest_data)
     if draft is None:
-        sys.stderr.write(f"Error: Neither outreach_draft.json nor outreach_draft.md found or readable in: {run_dir}\n")
+        err_msg = f"Neither outreach_draft.json nor outreach_draft.md found or readable in: {run_dir}"
+        if getattr(args, "json", False):
+            print(json.dumps({"status": "FAILED", "error": err_msg}, indent=2))
+        sys.stderr.write(f"Error: {err_msg}\n")
         return 1
 
     orchestrator = OutreachOrchestrator()
-    candidate, opportunity = _reconstruct_eval_context(run_dir / "run_manifest.json")
-    if not draft.grounded_facts_used and candidate.verified_facts:
-        draft = dataclasses.replace(draft, grounded_facts_used=[candidate.verified_facts[0].fact_id])
-
-    # 3. Live Deterministic Re-Evaluation via AuthoritativeVerdict SSOT (Zero Stored-Verdict Replay)
-    verdict = orchestrator.evaluate_authoritative_draft(draft, candidate, opportunity, artifact_dir=run_dir)
+    verdict = orchestrator.evaluate_authoritative_draft(draft, candidate, opportunity, artifact_dir=None)
     eval_report = orchestrator.judge.report_from_verdict(verdict)
 
     val_dict = {
@@ -503,28 +506,22 @@ def _handle_eval(args: argparse.Namespace) -> int:
         "failure_reasons": verdict.failure_reasons,
         "scores": verdict.scores,
     }
-    (run_dir / "validation_report.json").write_text(json.dumps(val_dict, indent=2) + "\n", encoding="utf-8")
-
     overall_passed = verdict.passed
-    val_passed = verdict.is_valid
-    eval_passed = verdict.passed
 
     if args.json:
         print(json.dumps({
             "status": "PASSED" if overall_passed else "FAILED",
-            "is_valid": val_passed,
+            "is_valid": verdict.is_valid,
             "evaluation": eval_report.to_dict(),
             "validation": val_dict,
         }, indent=2))
         return 0 if overall_passed else 1
 
-    print("\n" + "=" * 60)
-    print(f"LIVE EVALUATION REPORT FOR RUN: {run_dir.name}")
-    print("=" * 60)
-    print(f"Validation Status: {'PASSED' if val_passed else 'FAILED'}")
-    if val.violations:
-        print(f"Validation Violations: {val.violations}")
-    print(f"Rubric Judge Status: {'PASSED' if eval_passed else 'FAILED'} (Composite: {eval_report.composite_score:.2f} [{eval_report.score_band}])")
+    print("\n" + "=" * 60 + f"\nLIVE EVALUATION REPORT FOR RUN: {run_dir.name}\n" + "=" * 60)
+    print(f"Validation Status: {'PASSED' if verdict.is_valid else 'FAILED'}")
+    if verdict.violations:
+        print(f"Validation Violations: {verdict.violations}")
+    print(f"Rubric Judge Status: {'PASSED' if eval_report.passed else 'FAILED'} (Composite: {eval_report.composite_score:.2f} [{eval_report.score_band}])")
     for k, v in eval_report.lens_scores.items():
         print(f"  - {k}: {v:.2f}")
     if eval_report.feedback:
@@ -532,14 +529,16 @@ def _handle_eval(args: argparse.Namespace) -> int:
     if eval_report.remediation_hints:
         print(f"Remediation Hints: {eval_report.remediation_hints}")
     print("=" * 60)
-
     return 0 if overall_passed else 1
 
 
 def _handle_show(args: argparse.Namespace) -> int:
     run_dir = Path(args.run_dir).resolve()
     if not run_dir.is_dir():
-        sys.stderr.write(f"Error: run directory does not exist: {run_dir}\n")
+        err = f"Run directory does not exist: {run_dir}"
+        if getattr(args, "json", False):
+            print(json.dumps({"status": "FAILED", "error": err}, indent=2))
+        sys.stderr.write(f"Error: {err}\n")
         return 1
 
     artifact_map = {
@@ -548,32 +547,28 @@ def _handle_show(args: argparse.Namespace) -> int:
         "evaluation": ["evaluation_report.json"],
         "validation": ["validation_report.json"],
         "research": ["apps_research/runs/*/company_brief.md", "apps_research/runs/*/company_brief.json"],
+        "manifest": ["run_manifest.json"],
+        "receipt": ["run_receipt.json"],
     }
-
-    candidates = artifact_map.get(args.artifact)
-    if not candidates:
-        sys.stderr.write(f"Error: Unknown artifact choice: {args.artifact}\n")
-        return 1
-
-    target_file: Path | None = None
-    for pattern in candidates:
-        if "*" in pattern:
-            matches = list(run_dir.glob(pattern))
-            if matches:
-                target_file = matches[0]
-                break
-        else:
-            p = run_dir / pattern
+    target_file = None
+    for pattern in artifact_map.get(args.artifact, []):
+        matches = list(run_dir.glob(pattern)) if "*" in pattern else [run_dir / pattern]
+        for p in matches:
             if p.is_file():
                 target_file = p
                 break
+        if target_file:
+            break
 
     if not target_file or not target_file.is_file():
-        sys.stderr.write(f"Error: Artifact '{args.artifact}' was not found in: {run_dir}\n")
+        err = f"Artifact '{args.artifact}' was not found in: {run_dir}"
+        if getattr(args, "json", False):
+            print(json.dumps({"status": "FAILED", "error": err}, indent=2))
+        sys.stderr.write(f"Error: {err}\n")
         return 1
 
     content = target_file.read_text(encoding="utf-8")
-    if args.json and not target_file.name.endswith(".json"):
+    if getattr(args, "json", False) and not target_file.name.endswith(".json"):
         print(json.dumps({"artifact": args.artifact, "file": target_file.name, "content": content}, indent=2))
     else:
         print(content)
