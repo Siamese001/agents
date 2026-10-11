@@ -14,6 +14,7 @@ import hashlib
 import json
 import logging
 import os
+import re
 import shutil
 import time
 from dataclasses import dataclass, field
@@ -52,6 +53,7 @@ class RequestForOutreachBriefing:
     job_description_ref: str = ""
     job_description_text: str = ""
     artifact_runs_root: Path | None = None
+    require_evidence: bool = False
     force_fresh: bool = False
     timeout_seconds: float = 30.0
     max_retries: int = 2
@@ -104,8 +106,9 @@ def _is_within(path: Path, root: Path) -> bool:
 
 def _validate_persisted_research_artifacts(
     result: ResearchResult,
+    request: RequestForOutreachBriefing | None = None,
 ) -> tuple[bool, str, dict[str, str]]:
-    """Verify that all 6 canonical producer artifacts exist and hashes bind exactly."""
+    """Verify that all authentic canonical producer artifacts exist, bind to execution, and pass verification."""
     raw_dir = str(result.research_artifact_dir or "").strip()
     if not raw_dir:
         return False, "missing research_artifact_dir", {}
@@ -138,25 +141,88 @@ def _validate_persisted_research_artifacts(
 
     try:
         persisted_text = briefing_path.read_text(encoding="utf-8").strip()
+        persisted_company_brief = json.loads(company_brief_path.read_text(encoding="utf-8"))
+        persisted_meta = json.loads(metadata_path.read_text(encoding="utf-8"))
         persisted_handoff = json.loads(handoff_v2_path.read_text(encoding="utf-8"))
+        commit_manifest = json.loads(commit_manifest_path.read_text(encoding="utf-8"))
+        u0_receipt = json.loads(u0_receipt_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         return False, f"unreadable persisted apps_research artifact: {type(exc).__name__}", {}
 
+    if not persisted_text:
+        return False, "persisted briefing text is empty", {}
     if persisted_text != str(result.company_brief_text or "").strip():
         return False, "persisted briefing text does not match bridge result", {}
     if not isinstance(persisted_handoff, dict):
         return False, "persisted apps_research handoff v2 is not an object", {}
+    if not isinstance(commit_manifest, dict):
+        return False, "bundle_commit_manifest is not an object", {}
+    if not isinstance(u0_receipt, dict):
+        return False, "apps_research_u0_receipt is not an object", {}
+    if not isinstance(persisted_meta, dict):
+        return False, "run_metadata is not an object", {}
+    if not isinstance(persisted_company_brief, dict):
+        return False, "company_brief is not an object", {}
+
+    # 1. Authentic U0 Receipt Validation
+    if u0_receipt.get("schema_version") != "apps_research.u0_receipt.v1":
+        return False, f"apps_research_u0_receipt schema_version is not apps_research.u0_receipt.v1 (got {u0_receipt.get('schema_version')})", {}
+    if u0_receipt.get("status") != "PASS":
+        return False, f"apps_research_u0_receipt status is not PASS (got {u0_receipt.get('status')})", {}
+    if u0_receipt.get("authority_contract_id") != "apps_research_rg_e2e_authority":
+        return False, f"apps_research_u0_receipt authority_contract_id invalid: {u0_receipt.get('authority_contract_id')}", {}
+    auth_receipt = u0_receipt.get("authority_validation_receipt")
+    if not isinstance(auth_receipt, dict) or auth_receipt.get("passed") is not True or auth_receipt.get("allowed") is not True:
+        return False, "apps_research_u0_receipt missing verified authority_validation_receipt", {}
+    reflection = u0_receipt.get("reflection_receipt")
+    if not isinstance(reflection, dict) or reflection.get("legacy_authority_scan_passed") is not True:
+        return False, "apps_research_u0_receipt missing verified reflection_receipt", {}
+    if not u0_receipt.get("raw_input_sha256") or not u0_receipt.get("normalized_input_sha256"):
+        return False, "apps_research_u0_receipt missing input digests", {}
+
+    exact_u0_sha = "sha256:" + hashlib.sha256(u0_receipt_path.read_bytes()).hexdigest()
+
+    # 2. Authentic Bundle Commit Manifest Validation
+    if commit_manifest.get("schema_version") != "apps_research.apps_rg_bundle_commit_manifest.v1":
+        return False, f"bundle_commit_manifest schema_version is not apps_research.apps_rg_bundle_commit_manifest.v1 (got {commit_manifest.get('schema_version')})", {}
+    if commit_manifest.get("status") != "COMMITTED":
+        return False, f"bundle_commit_manifest status is not COMMITTED (got {commit_manifest.get('status')})", {}
+    if commit_manifest.get("authority_contract_id") != "apps_research_rg_e2e_authority":
+        return False, f"bundle_commit_manifest authority_contract_id invalid: {commit_manifest.get('authority_contract_id')}", {}
+    if commit_manifest.get("u0_receipt_sha256") and commit_manifest.get("u0_receipt_sha256") != exact_u0_sha:
+        return False, "bundle_commit_manifest u0_receipt_sha256 mismatch with persisted u0 receipt", {}
+
+    # 3. Authentic Handoff v2 Envelope Validation
     if persisted_handoff.get("schema_version") != "apps_research.apps_rg_handoff.v2":
-        return False, "persisted apps_research handoff is not v2", {}
+        return False, f"persisted apps_research handoff is not v2 (got {persisted_handoff.get('schema_version')})", {}
+    if persisted_handoff.get("authority_contract_id") != "apps_research_rg_e2e_authority":
+        return False, f"persisted apps_research handoff authority_contract_id invalid: {persisted_handoff.get('authority_contract_id')}", {}
     if persisted_handoff != (result.apps_research_handoff_envelope or {}):
         return False, "bridge handoff differs from persisted producer manifest", {}
 
-    exact_brief_sha = "sha256:" + hashlib.sha256(briefing_path.read_bytes()).hexdigest()
-    identity = persisted_handoff.get("identity")
-    identity = identity if isinstance(identity, dict) else {}
-    if identity.get("brief_sha256") and identity.get("brief_sha256") != exact_brief_sha:
-        return False, "persisted apps_research briefing digest mismatch", {}
+    gate_receipts = persisted_handoff.get("mandatory_gate_receipts")
+    if not isinstance(gate_receipts, dict):
+        return False, "persisted apps_research handoff missing mandatory_gate_receipts", {}
+    expected_gates = {"G5", "G6", "G7", "G21", "G24", "G26"}
+    if set(gate_receipts.keys()) != expected_gates:
+        return False, f"mandatory_gate_receipts does not match expected gates: {set(gate_receipts.keys())} != {expected_gates}", {}
+    for gid in expected_gates:
+        gr = gate_receipts.get(gid)
+        if not isinstance(gr, dict) or gr.get("status") != "PASS":
+            return False, f"mandatory gate {gid} status is not PASS: {gr}", {}
 
+    exit_auth = persisted_handoff.get("exit_authorization")
+    if not isinstance(exit_auth, dict):
+        return False, "persisted apps_research handoff missing exit_authorization", {}
+    if exit_auth.get("x3_code") != "X3D_ALLOW_FINISH":
+        return False, f"exit authorization x3_code is not X3D_ALLOW_FINISH (got {exit_auth.get('x3_code')})", {}
+
+    producer = persisted_handoff.get("producer")
+    if not isinstance(producer, dict) or producer.get("producer_app_id") != "apps_research" or not producer.get("attestation_sha256"):
+        return False, "persisted apps_research handoff missing valid producer attestation", {}
+
+    # 4. Cryptographic Digests Binding
+    exact_brief_sha = "sha256:" + hashlib.sha256(briefing_path.read_bytes()).hexdigest()
     metadata_sha = "sha256:" + hashlib.sha256(metadata_path.read_bytes()).hexdigest()
     manifest_sha = "sha256:" + hashlib.sha256(handoff_v2_path.read_bytes()).hexdigest()
 
@@ -166,6 +232,61 @@ def _validate_persisted_research_artifacts(
         return False, "bridge result_metadata_digest differs from committed bytes", {}
     if result.bundle_manifest_digest and result.bundle_manifest_digest != manifest_sha:
         return False, "bridge bundle_manifest_digest differs from committed bytes", {}
+
+    identity = persisted_handoff.get("identity")
+    if not isinstance(identity, dict):
+        return False, "persisted apps_research handoff missing identity object", {}
+    if identity.get("brief_sha256") and identity.get("brief_sha256") != exact_brief_sha:
+        return False, "persisted apps_research briefing digest mismatch", {}
+
+    # 5. Exact Execution Identity Binding
+    if request is not None:
+        target_co = str(identity.get("target_company") or identity.get("company_name") or "").strip().lower()
+        req_co = str(request.company_name or "").strip().lower()
+        if req_co and target_co and req_co != target_co:
+            return False, f"research identity company mismatch: request={req_co!r} vs persisted={target_co!r}", {}
+
+        def _norm_role(val: str) -> str:
+            cleaned = re.sub(r"[^a-z0-9]+", " ", val.lower())
+            tokens = [t for t in cleaned.split() if t not in ("of", "the", "and", "for", "in", "at", "to")]
+            return " ".join(tokens)
+
+        target_role = str(identity.get("target_role") or "").strip()
+        req_role = str(request.job_title or "").strip()
+        if req_role and target_role and _norm_role(req_role) != _norm_role(target_role):
+            return False, f"research identity role mismatch: request={req_role!r} vs persisted={target_role!r}", {}
+
+        persisted_run_id = str(identity.get("child_run_id") or identity.get("run_id") or identity.get("parent_run_id") or "").strip()
+        persisted_trace = str(identity.get("trace_root") or identity.get("trace_id") or "").strip()
+        u0_run_id = str(u0_receipt.get("child_run_id") or u0_receipt.get("parent_run_id") or u0_receipt.get("run_id") or "").strip()
+        u0_trace = str(u0_receipt.get("trace_root") or "").strip()
+
+        # result run_id and trace_id must always match persisted identity
+        if result.run_id and persisted_run_id and result.run_id != persisted_run_id:
+            return False, f"research identity run_id mismatch: result={result.run_id!r} vs persisted={persisted_run_id!r}", {}
+        if result.trace_id and persisted_trace and result.trace_id != persisted_trace:
+            return False, f"research identity trace mismatch: result={result.trace_id!r} vs persisted={persisted_trace!r}", {}
+        if result.run_id and u0_run_id and result.run_id != u0_run_id:
+            return False, f"u0 receipt run_id mismatch: result={result.run_id!r} vs u0={u0_run_id!r}", {}
+        if result.trace_id and u0_trace and result.trace_id != u0_trace:
+            return False, f"u0 receipt trace mismatch: result={result.trace_id!r} vs u0={u0_trace!r}", {}
+
+        # If not reused (fresh live dispatch), request execution identity must bind to persisted producer artifacts
+        is_reused = getattr(result, "resolution_source", "") == "PERSISTED_ARTIFACT"
+        if not is_reused:
+            req_run_id = str(request.run_id or "").strip()
+            if req_run_id and persisted_run_id and req_run_id != persisted_run_id:
+                return False, f"research identity run_id mismatch: request={req_run_id!r} vs persisted={persisted_run_id!r}", {}
+
+            req_trace = str(request.trace_id or "").strip()
+            if req_trace and persisted_trace and req_trace != persisted_trace:
+                return False, f"research identity trace mismatch: request={req_trace!r} vs persisted={persisted_trace!r}", {}
+
+            if req_run_id and u0_run_id and req_run_id != u0_run_id:
+                return False, f"u0 receipt run_id mismatch: request={req_run_id!r} vs u0={u0_run_id!r}", {}
+
+            if req_trace and u0_trace and req_trace != u0_trace:
+                return False, f"u0 receipt trace mismatch: request={req_trace!r} vs u0={u0_trace!r}", {}
 
     return True, "ok", {
         "run_dir": str(run_dir.resolve()),
@@ -286,6 +407,16 @@ def dispatch_outreach_research_briefing(
             dispatch_duration_ms=_utc_ms() - t_start,
         )
 
+    if getattr(request, "require_evidence", False) and not research_result.evidence_items:
+        return ResearchDispatchFailure(
+            request_id=request.request_id,
+            run_id=request.run_id,
+            trace_id=request.trace_id,
+            r5_reason_code=ResearchFailureReason.APPS_RESEARCH_EMPTY.value,
+            detail="zero evidence_items",
+            dispatch_duration_ms=_utc_ms() - t_start,
+        )
+
     # Validate evidence items source integrity
     for ev in research_result.evidence_items:
         ev_uri = getattr(ev, "uri", "") or ""
@@ -312,7 +443,17 @@ def dispatch_outreach_research_briefing(
             dispatch_duration_ms=_utc_ms() - t_start,
         )
 
-    # Validate persisted producer artifacts if artifact persistence was expected
+    # Validate persisted producer artifacts if artifact persistence was expected or present
+    if request.artifact_runs_root and not research_result.research_artifact_dir:
+        return ResearchDispatchFailure(
+            request_id=request.request_id,
+            run_id=request.run_id,
+            trace_id=request.trace_id,
+            r5_reason_code=ResearchFailureReason.APPS_RESEARCH_ARTIFACT_MISSING.value,
+            detail="missing research_artifact_dir",
+            dispatch_duration_ms=_utc_ms() - t_start,
+        )
+
     if research_result.research_artifact_dir:
         ttl_seconds = max(1, request.freshness_ttl_days) * 86400.0
         meta_path = Path(research_result.research_artifact_dir) / "run_metadata.json"
@@ -329,14 +470,19 @@ def dispatch_outreach_research_briefing(
                 )
 
         artifacts_valid, artifact_detail, artifact_refs = _validate_persisted_research_artifacts(
-            research_result
+            research_result, request=request
         )
         if not artifacts_valid:
+            reason_code = ResearchFailureReason.APPS_RESEARCH_ARTIFACT_MISSING.value
+            if "stale" in artifact_detail.lower():
+                reason_code = ResearchFailureReason.APPS_RESEARCH_STALE.value
+            elif any(k in artifact_detail.lower() for k in ("blocked", "gate", "exit", "mismatch", "schema", "status", "contract")):
+                reason_code = ResearchFailureReason.APPS_RESEARCH_BLOCKED.value
             return ResearchDispatchFailure(
                 request_id=request.request_id,
                 run_id=request.run_id,
                 trace_id=request.trace_id,
-                r5_reason_code=ResearchFailureReason.APPS_RESEARCH_ARTIFACT_MISSING.value,
+                r5_reason_code=reason_code,
                 detail=artifact_detail,
                 dispatch_duration_ms=_utc_ms() - t_start,
             )
