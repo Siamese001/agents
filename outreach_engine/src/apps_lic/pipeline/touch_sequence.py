@@ -80,9 +80,14 @@ class TouchSequencePlanner:
         # Touch 1 (Day 1 / Offset 0): Initial Hook & Alignment
         # -----------------------------------------------------------------
         primary_fact = candidate.verified_facts[0].statement if candidate.verified_facts else candidate.executive_summary
-        from apps_lic.pipeline.compiler import PromptCompiler
+        from apps_lic.pipeline.compiler import (
+            PromptCompiler,
+            get_executive_signature_block,
+            get_recruiter_signature_block,
+        )
+        compiler = PromptCompiler()
         raw_hook = opportunity.strategic_priorities[0] if opportunity.strategic_priorities else opportunity.industry
-        hook = PromptCompiler()._format_strategic_hook(raw_hook, company_name=opportunity.company_name)
+        hook = compiler._format_strategic_hook(raw_hook, company_name=opportunity.company_name)
 
         if persona == AudiencePersona.EXECUTIVE_RECRUITER:
             t1_body = (
@@ -91,18 +96,14 @@ class TouchSequencePlanner:
                 f"Track record includes {primary_fact}.\n\n"
                 f"Would you be open to a brief conversation regarding current or upcoming mandates?"
             )
+            t1_subject = f"{opportunity.company_name} / {opportunity.role_title} perspective"
         else:
-            t1_body = (
-                f"Hi {opportunity.recipient_name},\n\n"
-                f"Noticed {opportunity.company_name}'s focus on {hook}.\n"
-                f"In my work as {candidate.target_title}, {primary_fact}.\n\n"
-                f"Would you be open to exchanging brief perspectives next week?"
+            t1_subject, t1_body, _ = compiler.render_draft_message(
+                candidate,
+                opportunity,
+                effective_primary,
+                audience_persona=persona,
             )
-
-        from apps_lic.pipeline.compiler import (
-            get_executive_signature_block,
-            get_recruiter_signature_block,
-        )
 
         sig_block = ""
         if effective_primary in (ChannelType.LINKEDIN_INMAIL, ChannelType.EMAIL):
@@ -115,7 +116,7 @@ class TouchSequencePlanner:
         t1_draft = OutreachMessageDraft(
             draft_id=f"{sequence_id}_t1",
             channel=effective_primary,
-            subject=f"{opportunity.company_name} / {opportunity.role_title} perspective",
+            subject=t1_subject or f"{opportunity.company_name} / {opportunity.role_title} perspective",
             body=t1_body,
             signature_block=sig_block,
             grounded_facts_used=[candidate.verified_facts[0].fact_id] if candidate.verified_facts else [],
@@ -140,15 +141,28 @@ class TouchSequencePlanner:
             if len(candidate.verified_facts) > 1
             else "driving measurable operational transformations"
         )
-        t2_body = (
-            f"Hi {opportunity.recipient_name},\n\n"
-            f"Following up briefly on my note. Thought of {opportunity.company_name} given our recent results {secondary_fact}.\n\n"
-            f"Open to a 10-minute introductory conversation?"
-        )
+        if opportunity.relationship_distance == RelationshipDistance.FORMER_COLLEAGUE:
+            t2_body = (
+                f"Hi {opportunity.recipient_name},\n\n"
+                f"Following up briefly on my note. Recalled our shared work and thought of {opportunity.company_name} given our recent results {secondary_fact}.\n\n"
+                f"Open to a 10-minute introductory conversation?"
+            )
+        elif opportunity.relationship_distance == RelationshipDistance.WARM_REFERRAL:
+            t2_body = (
+                f"Hi {opportunity.recipient_name},\n\n"
+                f"Following up briefly on my note. Given our mutual network and {opportunity.company_name}'s priorities, thought of our recent results {secondary_fact}.\n\n"
+                f"Open to a 10-minute introductory conversation?"
+            )
+        else:
+            t2_body = (
+                f"Hi {opportunity.recipient_name},\n\n"
+                f"Following up briefly on my note. Thought of {opportunity.company_name} given our recent results {secondary_fact}.\n\n"
+                f"Open to a 10-minute introductory conversation?"
+            )
         t2_draft = OutreachMessageDraft(
             draft_id=f"{sequence_id}_t2",
             channel=ChannelType.FOLLOW_UP,
-            subject=f"Re: {opportunity.company_name} / {opportunity.role_title} perspective",
+            subject=f"Re: {t1_draft.subject}",
             body=t2_body,
             grounded_facts_used=[candidate.verified_facts[1].fact_id] if len(candidate.verified_facts) > 1 else [],
             research_metadata={"research_digest": opportunity.research_digest},
@@ -167,11 +181,18 @@ class TouchSequencePlanner:
         # -----------------------------------------------------------------
         # Touch 3 (Offset 2): Graceful Low-Friction Close
         # -----------------------------------------------------------------
-        t3_body = (
-            f"Hi {opportunity.recipient_name},\n\n"
-            f"I realize priorities shift quickly. If now is not the right time for {opportunity.company_name}, no worries at all.\n\n"
-            f"Would it be helpful to reconnect next quarter instead?"
-        )
+        if opportunity.relationship_distance == RelationshipDistance.FORMER_COLLEAGUE:
+            t3_body = (
+                f"Hi {opportunity.recipient_name},\n\n"
+                f"I know how busy things get. If timing is not right at {opportunity.company_name}, no problem at all.\n\n"
+                f"Would it be helpful to reconnect next quarter instead?"
+            )
+        else:
+            t3_body = (
+                f"Hi {opportunity.recipient_name},\n\n"
+                f"I realize priorities shift quickly. If now is not the right time for {opportunity.company_name}, no worries at all.\n\n"
+                f"Would it be helpful to reconnect next quarter instead?"
+            )
         t3_draft = OutreachMessageDraft(
             draft_id=f"{sequence_id}_t3",
             channel=ChannelType.FOLLOW_UP,

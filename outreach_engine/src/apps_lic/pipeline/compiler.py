@@ -13,6 +13,7 @@ from apps_lic.domain.models import (
     CandidateProfile,
     ChannelType,
     RecipientClass,
+    RelationshipDistance,
     TargetOpportunity,
 )
 
@@ -236,6 +237,244 @@ class PromptCompiler:
 
         return clean.strip().rstrip(".!?:;")
 
+    def _format_fact_phrase(self, statement: str) -> str:
+        """Format candidate verified fact statement into a natural lowercased clause."""
+        clean = (statement or "").strip().rstrip(".!?:;")
+        if not clean:
+            return ""
+        first_word = clean.split()[0]
+        if len(first_word) > 1 and first_word.isupper():
+            return clean
+        if clean and clean[0].isupper() and (len(clean) == 1 or clean[1].islower()):
+            clean = clean[0].lower() + clean[1:]
+        return clean
+
+    def _compose_connection_note(
+        self,
+        candidate: CandidateProfile,
+        opportunity: TargetOpportunity,
+        template_id: str,
+        hook: str,
+        fact_statement: str,
+    ) -> str:
+        """Compose a LinkedIn connection note strictly bounded under 300 characters."""
+        fact_phrase = self._format_fact_phrase(fact_statement)
+        # Bounded fact slice for connection note
+        fact_short = fact_phrase
+        if len(fact_short) > 75:
+            words = fact_short.split()
+            accum = ""
+            for w in words:
+                if len(accum) + len(w) + 1 > 70:
+                    break
+                accum = f"{accum} {w}" if accum else w
+            fact_short = (accum or " ".join(words[:6])) + "..."
+
+        if template_id == "compact_recruiter_arc":
+            if opportunity.relationship_distance == RelationshipDistance.FORMER_COLLEAGUE:
+                body = (
+                    f"Hi {opportunity.recipient_name},\n\n"
+                    f"Great seeing your work at {opportunity.company_name}. "
+                    f"Following your {opportunity.role_title} search in {hook}. "
+                    f"As {candidate.target_title}, {fact_short}.\n\n"
+                    f"Open to connecting?"
+                )
+            elif opportunity.relationship_distance == RelationshipDistance.WARM_REFERRAL:
+                body = (
+                    f"Hi {opportunity.recipient_name},\n\n"
+                    f"Reaching out via mutual connection regarding {opportunity.company_name}'s {opportunity.role_title} search in {hook}. "
+                    f"As {candidate.target_title}, {fact_short}.\n\n"
+                    f"Open to connecting?"
+                )
+            else:
+                body = (
+                    f"Hi {opportunity.recipient_name},\n\n"
+                    f"Following {opportunity.company_name}'s {opportunity.role_title} search in {hook}. "
+                    f"As {candidate.target_title}, {fact_short}.\n\n"
+                    f"Open to connecting?"
+                )
+        else:
+            if opportunity.relationship_distance == RelationshipDistance.FORMER_COLLEAGUE:
+                body = (
+                    f"Hi {opportunity.recipient_name},\n\n"
+                    f"Great seeing your momentum at {opportunity.company_name}. "
+                    f"Following your work in {hook}. "
+                    f"In my work as {candidate.target_title}, {fact_short}.\n\n"
+                    f"Open to catching up?"
+                )
+            elif opportunity.relationship_distance == RelationshipDistance.WARM_REFERRAL:
+                body = (
+                    f"Hi {opportunity.recipient_name},\n\n"
+                    f"Reaching out from our shared network regarding {opportunity.company_name}'s focus on {hook}. "
+                    f"In my work as {candidate.target_title}, {fact_short}.\n\n"
+                    f"Open to exchanging perspectives?"
+                )
+            elif opportunity.relationship_distance == RelationshipDistance.SECOND_DEGREE:
+                body = (
+                    f"Hi {opportunity.recipient_name},\n\n"
+                    f"Following {opportunity.company_name}'s focus on {hook} from our shared circles. "
+                    f"In my work as {candidate.target_title}, {fact_short}.\n\n"
+                    f"Open to exchanging perspectives?"
+                )
+            else:
+                body = (
+                    f"Hi {opportunity.recipient_name},\n\n"
+                    f"Noticed {opportunity.company_name}'s focus on {hook}. "
+                    f"In my work as {candidate.target_title}, {fact_short}.\n\n"
+                    f"Open to exchanging perspectives?"
+                )
+
+        if len(body) > 295:
+            body = (
+                f"Hi {opportunity.recipient_name},\n\n"
+                f"Following {opportunity.company_name}'s focus on {hook}. "
+                f"In my work as {candidate.target_title}, {fact_phrase[:70]}...\n\n"
+                f"Open to connecting?"
+            )
+        return body
+
+    def _compose_recruiter_draft(
+        self,
+        candidate: CandidateProfile,
+        opportunity: TargetOpportunity,
+        channel: ChannelType,
+        hook: str,
+        fact_statement: str,
+    ) -> tuple[str, str]:
+        """Compose compact 2-paragraph draft aligned with compact_recruiter_arc.yaml."""
+        fact_phrase = self._format_fact_phrase(fact_statement)
+
+        if channel == ChannelType.EMAIL:
+            subject = f"{candidate.full_name} / {opportunity.company_name} {opportunity.role_title} search"
+        elif opportunity.relationship_distance == RelationshipDistance.FORMER_COLLEAGUE:
+            subject = f"Reconnecting: {candidate.full_name} -> {opportunity.company_name} ({opportunity.role_title})"
+        else:
+            subject = f"{candidate.full_name} -> {opportunity.company_name} ({opportunity.role_title})"
+
+        # Paragraph 1: Opener + Core fit statement and single proof point
+        if opportunity.relationship_distance == RelationshipDistance.FORMER_COLLEAGUE:
+            p1 = (
+                f"Reaching out following our previous collaboration regarding {opportunity.company_name}'s {opportunity.role_title} search in {hook}. "
+                f"As {candidate.target_title}, {fact_phrase}."
+            )
+        elif opportunity.relationship_distance == RelationshipDistance.WARM_REFERRAL:
+            p1 = (
+                f"Reaching out via mutual connection regarding {opportunity.company_name}'s {opportunity.role_title} search in {hook}. "
+                f"As {candidate.target_title}, {fact_phrase}."
+            )
+        else:
+            p1 = (
+                f"Reaching out regarding {opportunity.company_name}'s priorities in {hook}. "
+                f"As {candidate.target_title}, {fact_phrase}."
+            )
+
+        # Paragraph 2: Low-friction ask
+        if opportunity.relationship_distance == RelationshipDistance.FORMER_COLLEAGUE:
+            p2 = "Would you be open to connecting briefly to discuss the mandate?"
+        else:
+            p2 = "Would you be open to connecting on this role?"
+
+        body = f"Hi {opportunity.recipient_name},\n\n{p1}\n\n{p2}"
+        return subject, body
+
+    def _compose_executive_draft(
+        self,
+        candidate: CandidateProfile,
+        opportunity: TargetOpportunity,
+        channel: ChannelType,
+        hook: str,
+        fact_statement: str,
+    ) -> tuple[str, str]:
+        """Compose 4-part executive arc aligned with exec_positioning.yaml."""
+        fact_phrase = self._format_fact_phrase(fact_statement)
+
+        # 1. Subject calibration
+        if channel == ChannelType.EMAIL:
+            if opportunity.recipient_class == RecipientClass.BOARD_MEMBER:
+                subject = f"{opportunity.company_name} {opportunity.role_title} - Strategic Governance Perspective"
+            elif opportunity.relationship_distance == RelationshipDistance.FORMER_COLLEAGUE:
+                subject = f"Catching up: {opportunity.company_name} / {candidate.full_name}"
+            else:
+                subject = f"{opportunity.company_name} / {opportunity.role_title} - Strategic Alignment"
+        else:
+            if opportunity.recipient_class == RecipientClass.BOARD_MEMBER:
+                subject = f"{opportunity.company_name} / {opportunity.role_title} - Board & Governance Alignment"
+            elif opportunity.relationship_distance == RelationshipDistance.FORMER_COLLEAGUE:
+                subject = f"Catching up / {opportunity.company_name} {opportunity.role_title} perspective"
+            else:
+                subject = f"{opportunity.company_name} / {opportunity.role_title} - Executive Alignment"
+
+        # 2. Slot 1: Credible Opener
+        if opportunity.relationship_distance == RelationshipDistance.FORMER_COLLEAGUE:
+            opener = f"Great to see your continued momentum at {opportunity.company_name}."
+        elif opportunity.relationship_distance == RelationshipDistance.WARM_REFERRAL:
+            opener = f"Reaching out following recommendations from our shared network regarding {opportunity.company_name}'s work in {hook}."
+        elif opportunity.relationship_distance == RelationshipDistance.SECOND_DEGREE:
+            opener = f"Reaching out from our shared network, following {opportunity.company_name}'s focus on {hook}."
+        elif opportunity.recipient_class == RecipientClass.BOARD_MEMBER:
+            opener = f"Following {opportunity.company_name}'s strategic mandate and governance focus on {hook}."
+        else:
+            opener = f"I have been following {opportunity.company_name}'s focus on {hook}."
+
+        # 3. Slot 2: Strategic Fit Signal
+        if opportunity.recipient_class == RecipientClass.BOARD_MEMBER:
+            fit = f"In my executive leadership work as {candidate.target_title}, {fact_phrase}."
+        else:
+            fit = f"In my recent work as {candidate.target_title}, {fact_phrase}."
+
+        # 4. Slot 3: Reciprocity Offer
+        if opportunity.recipient_class == RecipientClass.BOARD_MEMBER:
+            reciprocity = "Happy to share architectural lessons and governance benchmarks from similar scale transformations."
+        elif opportunity.recipient_class == RecipientClass.HIRING_MANAGER:
+            reciprocity = "Happy to share our operational scaling framework and metrics if useful for your roadmap."
+        elif opportunity.relationship_distance == RelationshipDistance.FORMER_COLLEAGUE:
+            reciprocity = "Happy to compare notes and share operational lessons from similar architecture transitions."
+        else:
+            reciprocity = "Happy to share our operational playbook and architectural benchmarks if helpful for your roadmap."
+
+        # 5. Slot 4: Respectful Ask
+        if opportunity.relationship_distance == RelationshipDistance.FORMER_COLLEAGUE:
+            ask = "Open to catching up for a brief conversation sometime next week?"
+        elif opportunity.recipient_class == RecipientClass.BOARD_MEMBER:
+            ask = "Given your focus, would you be open to a brief high-level conversation next week?"
+        else:
+            ask = "Given your focus, would you be open to a brief conversation next week?"
+
+        p1 = f"{opener} {fit}"
+        p2 = f"{reciprocity} {ask}"
+        body = f"Hi {opportunity.recipient_name},\n\n{p1}\n\n{p2}"
+        return subject, body
+
+    def _compose_general_draft(
+        self,
+        candidate: CandidateProfile,
+        opportunity: TargetOpportunity,
+        channel: ChannelType,
+        hook: str,
+        fact_statement: str,
+    ) -> tuple[str, str]:
+        """Compose general/hiring-manager draft aligned with outreach_draft_v2.yaml."""
+        fact_phrase = self._format_fact_phrase(fact_statement)
+        subject = f"{opportunity.company_name} / {opportunity.role_title} - Strategic Alignment"
+
+        if opportunity.relationship_distance == RelationshipDistance.FORMER_COLLEAGUE:
+            opener = f"Great to reconnect as {opportunity.company_name} expands its focus on {hook}."
+        elif opportunity.relationship_distance == RelationshipDistance.WARM_REFERRAL:
+            opener = f"Reaching out via our shared network regarding {opportunity.company_name}'s work in {hook}."
+        elif opportunity.relationship_distance == RelationshipDistance.SECOND_DEGREE:
+            opener = f"Following {opportunity.company_name}'s work in {opportunity.industry} from our shared circles."
+        else:
+            opener = f"I have been following {opportunity.company_name}'s work in {opportunity.industry}."
+
+        fit = f"In my recent work as {candidate.target_title}, {fact_phrase}."
+        reciprocity = "Happy to share our operational scaling framework and metrics if useful for your roadmap."
+        ask = "Given your focus, would you be open to a brief conversation next week?"
+
+        p1 = f"{opener} {fit}"
+        p2 = f"{reciprocity} {ask}"
+        body = f"Hi {opportunity.recipient_name},\n\n{p1}\n\n{p2}"
+        return subject, body
+
     def render_draft_message(
         self,
         candidate: CandidateProfile,
@@ -254,57 +493,16 @@ class PromptCompiler:
         raw_hook = opportunity.strategic_priorities[0] if opportunity.strategic_priorities else opportunity.industry
         hook = self._format_strategic_hook(raw_hook, company_name=opportunity.company_name)
 
-        # Connection notes have a 300-char limit
+        # Connection notes have a strict 300-char limit
         if channel == ChannelType.LINKEDIN_CONNECTION:
             subject = ""
-            if template_id == "compact_recruiter_arc":
-                body = (
-                    f"Hi {opportunity.recipient_name},\n\n"
-                    f"Following {opportunity.company_name}'s {opportunity.role_title} search in {hook}. "
-                    f"As {candidate.target_title}, {fact_statement}.\n\n"
-                    f"Open to connecting?"
-                )
-            else:
-                body = (
-                    f"Hi {opportunity.recipient_name},\n\n"
-                    f"Noticed {opportunity.company_name}'s focus on {hook}. "
-                    f"In my work as {candidate.target_title}, {fact_statement}.\n\n"
-                    f"Open to exchanging perspectives?"
-                )
-            if len(body) > 295:
-                body = (
-                    f"Hi {opportunity.recipient_name},\n\n"
-                    f"Following {opportunity.company_name}'s focus on {hook}. "
-                    f"In my work as {candidate.target_title}, {fact_statement[:110]}...\n\n"
-                    f"Open to connecting?"
-                )
-            body = body.replace("—", ", ").replace("\u2014", ", ")
-            return subject, body, fact_ids
-
-        if template_id == "exec_positioning":
-            subject = f"{opportunity.company_name} / {opportunity.role_title} - Executive Alignment"
-            body = (
-                f"Hi {opportunity.recipient_name},\n\n"
-                f"I have been following {opportunity.company_name}'s focus on {hook}. "
-                f"In my recent work as {candidate.target_title}, {fact_statement}.\n\n"
-                f"Given your focus, would you be open to a brief conversation next week?"
-            )
+            body = self._compose_connection_note(candidate, opportunity, template_id, hook, fact_statement)
         elif template_id == "compact_recruiter_arc":
-            subject = f"{candidate.full_name} -> {opportunity.company_name} ({opportunity.role_title})"
-            body = (
-                f"Hi {opportunity.recipient_name},\n\n"
-                f"Reaching out regarding {opportunity.company_name}'s priorities in {hook}. "
-                f"As {candidate.target_title}, {fact_statement}.\n\n"
-                f"Would you be open to connecting on this role?"
-            )
+            subject, body = self._compose_recruiter_draft(candidate, opportunity, channel, hook, fact_statement)
+        elif template_id == "exec_positioning":
+            subject, body = self._compose_executive_draft(candidate, opportunity, channel, hook, fact_statement)
         else:
-            subject = f"{opportunity.company_name} / {opportunity.role_title} - Strategic Alignment"
-            body = (
-                f"Hi {opportunity.recipient_name},\n\n"
-                f"I have been following {opportunity.company_name}'s work in {opportunity.industry}. "
-                f"In my recent work as {candidate.target_title}, {fact_statement}.\n\n"
-                f"Given your focus, would you be open to a brief conversation next week?"
-            )
+            subject, body = self._compose_general_draft(candidate, opportunity, channel, hook, fact_statement)
 
         # Enforce no em dashes
         body = body.replace("—", ", ").replace("\u2014", ", ")
