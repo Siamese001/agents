@@ -120,24 +120,28 @@ class MissionLoader:
                     category="architecture",
                     statement="architected layered agentic systems (L0 routing through L6 observability) with AST dependency governance",
                     metric="L0-L6 AST",
+                    source_reference="canonical_architecture_profile",
                 ),
                 CandidateFact(
                     fact_id="fact_02",
                     category="delivery",
                     statement="delivered multi-MCP enterprise agentic tooling for frontline banking care operations",
                     metric="Enterprise Care Centers",
+                    source_reference="canonical_care_profile",
                 ),
                 CandidateFact(
                     fact_id="fact_scale_01",
                     category="scale",
                     statement="scaled distributed enterprise platform processing $4.2B annual volume with 99.995% reliability",
                     metric="$4.2B / 99.995%",
+                    source_reference="canonical_platform_profile",
                 ),
                 CandidateFact(
                     fact_id="fact_efficiency_04",
                     category="efficiency",
                     statement="reduced infrastructure operating expenditures by 38% through governed platform automation",
                     metric="38%",
+                    source_reference="canonical_efficiency_profile",
                 ),
             ]
 

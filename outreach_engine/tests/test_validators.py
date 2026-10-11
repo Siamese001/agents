@@ -114,6 +114,7 @@ def test_forbidden_claims_validator_detects_unverifiable_tenure():
             category="scale",
             statement="Architected enterprise agentic systems with 15 years in software",
             metric="15 years",
+            source_reference="canonical_tenure_dossier",
         )
     ]
 

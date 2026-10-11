@@ -214,7 +214,10 @@ class OutreachOrchestrator:
         return draft, verdict
 
     def validate_draft(
-        self, draft: OutreachMessageDraft, candidate: CandidateProfile
+        self,
+        draft: OutreachMessageDraft,
+        candidate: CandidateProfile,
+        opportunity: Optional[TargetOpportunity] = None,
     ) -> ValidationResult:
         """Runs all 7 validation gates over the draft."""
         violations: List[str] = []
@@ -236,9 +239,20 @@ class OutreachOrchestrator:
             violations.append(q_err)
 
         # 4. Grounding
-        allowed_facts = {f.fact_id for f in candidate.verified_facts}
+        allowed_facts = {
+            f.fact_id
+            for f in candidate.verified_facts
+            if getattr(f, "has_provenance", False) or bool(getattr(f, "source_reference", None) and str(getattr(f, "source_reference")).strip())
+        }
+        opp_context = ""
+        if opportunity:
+            opp_context = f"{' '.join(opportunity.strategic_priorities)} {opportunity.briefing_text} {opportunity.company_name}"
         g_valid, g_viol = self.grounding_validator.validate(
-            draft.grounded_facts_used, allowed_facts
+            draft.grounded_facts_used,
+            allowed_facts,
+            body=draft.body,
+            candidate_facts=candidate.verified_facts,
+            opportunity_context=opp_context,
         )
         violations.extend(g_viol)
 
@@ -257,7 +271,9 @@ class OutreachOrchestrator:
         violations.extend(tone_viols)
 
         # 8. Forbidden claims (compensation, unverifiable tenure, policy-forbidden claims)
-        fc_valid, fc_viols = self.forbidden_validator.validate(draft.body, candidate.verified_facts)
+        fc_valid, fc_viols = self.forbidden_validator.validate(
+            draft.body, candidate.verified_facts, opportunity_context=opp_context
+        )
         violations.extend(fc_viols)
 
         hard_passed = len(violations) == 0

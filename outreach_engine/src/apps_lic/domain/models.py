@@ -39,17 +39,22 @@ class RelationshipDistance(str, Enum):
 
 @dataclass(frozen=True)
 class CandidateFact:
-    """A verified, indisputable candidate claim or metric."""
+    """A factual candidate claim or metric bound to source evidence."""
     fact_id: str
     category: str
     statement: str
     metric: Optional[str] = None
     source_reference: Optional[str] = None
 
+    @property
+    def has_provenance(self) -> bool:
+        """True only if this fact is bound to non-empty source evidence."""
+        return bool(self.source_reference and str(self.source_reference).strip())
+
 
 @dataclass(frozen=True)
 class CandidateProfile:
-    """The authoritative candidate dossier containing verified facts only."""
+    """The authoritative candidate dossier containing candidate facts and competencies."""
     candidate_id: str
     full_name: str
     target_title: str
@@ -62,6 +67,11 @@ class CandidateProfile:
     phone: str = ""
     email: str = ""
     location: str = ""
+
+    @property
+    def grounded_facts(self) -> List[CandidateFact]:
+        """Returns only candidate facts that are strictly bound to source evidence."""
+        return [f for f in self.verified_facts if f.has_provenance]
 
 
 class CandidateProfileLoader:

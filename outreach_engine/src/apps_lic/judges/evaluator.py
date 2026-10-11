@@ -184,11 +184,24 @@ class ExecutiveOutreachJudgePanel:
         tone_valid, tone_viols = self._tone_validator.validate(draft.body)
 
         # 2. Grounding
-        allowed_facts = {f.fact_id for f in candidate.verified_facts}
-        g_valid, g_viols = self._grounding_validator.validate(draft.grounded_facts_used, allowed_facts)
+        allowed_facts = {
+            f.fact_id
+            for f in candidate.verified_facts
+            if getattr(f, "has_provenance", False) or bool(getattr(f, "source_reference", None) and str(getattr(f, "source_reference")).strip())
+        }
+        opp_context = f"{' '.join(opportunity.strategic_priorities)} {opportunity.briefing_text} {opportunity.company_name}"
+        g_valid, g_viols = self._grounding_validator.validate(
+            draft.grounded_facts_used,
+            allowed_facts,
+            body=draft.body,
+            candidate_facts=candidate.verified_facts,
+            opportunity_context=opp_context,
+        )
 
         # 3. Forbidden claims
-        fc_valid, fc_viols = self._forbidden_validator.validate(draft.body, candidate.verified_facts)
+        fc_valid, fc_viols = self._forbidden_validator.validate(
+            draft.body, candidate.verified_facts, opportunity_context=opp_context
+        )
 
         # 4. Question ending
         q_valid, q_err = self._question_validator.validate(draft.body)
@@ -242,7 +255,7 @@ class ExecutiveOutreachJudgePanel:
         if not g_valid:
             lens2_score = 0.0
             feedback.append(f"Lens 2 (Grounding) Failure: {', '.join(g_viols)}")
-            hints.append("All claims must map directly to verified candidate facts.")
+            hints.append("All claims must map directly to verified candidate facts with source evidence.")
 
         if not fc_valid:
             lens2_score = min(lens2_score, 0.2)
