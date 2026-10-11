@@ -58,6 +58,7 @@ class ResearchResult:
     result_metadata_digest: str = ""
     bundle_manifest_digest: str = ""
     resolution_source: str = "WEB_RESEARCH"
+    is_verified: bool = True
 
 
 def _extract_priorities_from_text(text: str) -> list[str]:
@@ -122,11 +123,6 @@ def _extract_priorities_from_text(text: str) -> list[str]:
                 if len(priorities) >= 5:
                     break
 
-    if not priorities:
-        priorities = [
-            "Enterprise platform modernization and distributed architecture governance",
-            "Frontline adoption and scalable human-in-the-loop agentic systems",
-        ]
     return priorities
 
 
@@ -189,50 +185,20 @@ def _build_canonical_sidecar(
     trace_id: str,
     role_archetype: str = "technology_leadership",
 ) -> dict[str, Any]:
-    """Construct a validated provider sidecar and X2 judge receipt for canonical briefs."""
+    """Construct an authentic metadata sidecar for canonical briefs without synthetic judge receipts."""
     normalized = str(brief_text or "").strip()
     brief_sha = hashlib.sha256(normalized.encode("utf-8")).hexdigest()
-    try:
-        from apps_lic.runtime.model_registry import OutreachModelRegistry
-        gen_model = OutreachModelRegistry.get_model_for_role("company_brief_generation", default="gpt-5.6-terra")
-        gen_provider = OutreachModelRegistry.get_provider_for_role("company_brief_generation", default="openai")
-        judge_model = OutreachModelRegistry.get_model_for_role("handoff_judge", default="gemini-3.8-flash")
-        judge_provider = OutreachModelRegistry.get_provider_for_role("handoff_judge", default="google")
-    except Exception:
-        gen_model, gen_provider = "gpt-5.6-terra", "openai"
-        judge_model, judge_provider = "gemini-3.8-flash", "google"
-
-    def _make_ev(role: str, provider: str, model: str, pfx: str) -> dict[str, Any]:
-        return {
-            "schema_version": "apps_research.provider_attempt_validation.v1",
-            "gateway_id": "apps_research.provider_gateway_v1",
-            "role": role, "provider": provider, "requested_model": model, "observed_model": model,
-            "attempt_id": f"attempt-{pfx}-{run_id[:8]}", "run_id": run_id, "trace_id": trace_id,
-            "overall_success": True, "terminal_status": "SUCCESS",
-        }
-
-    gen_evidence = _make_ev("company_brief_generation", gen_provider, gen_model, "gen")
-    judge_evidence = _make_ev("apps_rg_handoff_judge", judge_provider, judge_model, "judge")
 
     return {
         "schema_version": "apps_research.apps_rg_targeting_brief_sidecar/v1",
         "company_name": company_name,
-        "generation_provider": gen_provider,
-        "generation_model": gen_model,
-        "briefing_semantic_score": 0.91,
-        "semantic_gate_mode": "model_backed_llm_judge",
+        "generation_provider": "canonical_fixture",
+        "generation_model": "authored_briefing_asset",
+        "briefing_semantic_score": 1.0 if normalized else 0.0,
+        "semantic_gate_mode": "canonical_fixture_grounded",
         "handoff_eligible": bool(normalized),
-        "reason": "ok" if normalized else "missing_brief",
-        "x2_judge_receipt": {
-            "schema_version": "apps_research.apps_rg_handoff_x2_judge_receipt.v1",
-            "gate_id": "X2_RESEARCH_SEMANTIC_GATE",
-            "judge_name": judge_model.replace("-", "_").replace(".", "_"),
-            "threshold": 0.75,
-            "score": 0.91,
-            "verdict": "PASS",
-            "provider_status": "MODEL_BACKED_PASS",
-            "provider_evidence": judge_evidence,
-        },
+        "reason": "canonical_fixture_verified" if normalized else "missing_brief",
+        "x2_judge_receipt": None,
         "role_archetype": role_archetype,
         "required_sections_present": ["strategic mandate"],
         "missing_sections": [],
@@ -432,21 +398,19 @@ class AppsResearchBridge:
                 uri=str(getattr(ev, "uri", getattr(ev, "source_uri", "apps_research://briefing"))),
                 source_type=str(getattr(ev, "source_type", "company_brief")),
                 field_ref=str(getattr(ev, "field_ref", "company_brief")),
-                confidence=float(getattr(ev, "confidence", 0.90)),
+                confidence=float(getattr(ev, "confidence", 0.0)),
             )
             for i, ev in enumerate(evidence_items_raw)
-        ) or (
-            EvidenceItem(
-                source_id="ev-targeting-1",
-                label=f"{company_name} targeting evidence",
-                uri="apps_research://targeting",
-                source_type="company_brief",
-                field_ref="company_brief",
-                confidence=0.90,
-            ),
         )
 
-        confidence = float(getattr(raw, "confidence_score", 0.90) or 0.90)
+        confidence = float(getattr(raw, "confidence_score", 0.0) or 0.0)
+        is_stale = bool(getattr(raw, "is_stale", False))
+        is_verified = (
+            resolution_source in ("WEB_RESEARCH", "CANONICAL_FIXTURE")
+            and bool(brief_text)
+            and not is_stale
+            and confidence > 0.0
+        )
 
         # Persist durable artifacts if an artifact root is provided
         research_artifact_dir = ""
@@ -477,7 +441,7 @@ class AppsResearchBridge:
                     "trace_id": trace_id,
                     "brief_sha256": brief_sha,
                 },
-                "status": "PASS",
+                "status": "PASS" if is_verified else "UNVERIFIED",
                 "confidence_score": confidence,
             }
             envelope_file = run_dir / "apps_research_apps_rg_handoff_v2.json"
@@ -489,15 +453,16 @@ class AppsResearchBridge:
                 "trace_id": trace_id,
                 "confidence_score": confidence,
                 "resolution_source": resolution_source,
+                "is_verified": is_verified,
             }
             meta_file = run_dir / "run_metadata.json"
             meta_file.write_text(json.dumps(meta, indent=2) + "\n", encoding="utf-8")
 
             commit_manifest = run_dir / "bundle_commit_manifest.json"
-            commit_manifest.write_text(json.dumps({"status": "COMMITTED"}, indent=2) + "\n", encoding="utf-8")
+            commit_manifest.write_text(json.dumps({"status": "COMMITTED" if is_verified else "COMMITTED_UNVERIFIED"}, indent=2) + "\n", encoding="utf-8")
 
             u0_receipt = run_dir / "apps_research_u0_receipt.json"
-            u0_receipt.write_text(json.dumps({"u0_status": "VALIDATED"}, indent=2) + "\n", encoding="utf-8")
+            u0_receipt.write_text(json.dumps({"u0_status": "VALIDATED" if is_verified else "UNVERIFIED"}, indent=2) + "\n", encoding="utf-8")
 
             metadata_digest = "sha256:" + hashlib.sha256(meta_file.read_bytes()).hexdigest()
             manifest_digest = "sha256:" + hashlib.sha256(envelope_file.read_bytes()).hexdigest()
@@ -510,7 +475,7 @@ class AppsResearchBridge:
             request_id=request_id,
             is_blocked=bool(getattr(raw, "is_blocked", False)),
             block_reason=str(getattr(raw, "block_reason", "") or ""),
-            is_stale=bool(getattr(raw, "is_stale", False)),
+            is_stale=is_stale,
             evidence_items=evidence_items,
             confidence_score=confidence,
             brief_sha256=brief_sha,
@@ -524,6 +489,7 @@ class AppsResearchBridge:
             result_metadata_digest=metadata_digest,
             bundle_manifest_digest=manifest_digest,
             resolution_source=resolution_source,
+            is_verified=is_verified,
         )
 
     def _hermetic_fallback(
@@ -537,18 +503,15 @@ class AppsResearchBridge:
         bridge_trace_id: str,
         t_start: float,
     ) -> ResearchResult:
-        priorities = _extract_priorities_from_text(job_description_text) if job_description_text else [
-            f"Enterprise technology leadership and platform modernization at {company_name}",
-            f"Frontline capabilities and distributed operations for {job_title or 'key roles'}",
-        ]
+        priorities = _extract_priorities_from_text(job_description_text) if job_description_text else []
         brief_text = (
             f"# Research Briefing: {company_name}\n\n"
             f"## Strategic Mandate\n"
             f"- Entity: {company_name}\n"
             f"- Target Role: {job_title or 'Technology Leadership'}\n\n"
-            f"## Strategic Priorities\n"
-            + "\n".join(f"- {p}" for p in priorities)
-            + f"\n\n## Governance\n- Provenance: apps_research hermetic fallback\n"
+            f"## Status\n"
+            f"Unverified offline fallback brief for {company_name} - {job_title}\n\n"
+            f"## Governance\n- Provenance: apps_research hermetic fallback (unverified)\n"
         )
         brief_bytes = (brief_text + "\n").encode("utf-8")
         brief_sha = "sha256:" + hashlib.sha256(brief_bytes).hexdigest()
@@ -567,21 +530,22 @@ class AppsResearchBridge:
             briefing_file.write_bytes(brief_bytes)
 
             company_brief_json = run_dir / "company_brief.json"
-            company_brief_json.write_text(json.dumps({"brief": brief_text}, indent=2) + "\n", encoding="utf-8")
+            company_brief_json.write_text(json.dumps({"brief": brief_text, "status": "UNVERIFIED_FALLBACK"}, indent=2) + "\n", encoding="utf-8")
 
             envelope = {
                 "schema_version": "apps_research.apps_rg_handoff.v2",
                 "identity": {"company_name": company_name, "brief_sha256": brief_sha},
-                "status": "PASS",
+                "status": "UNVERIFIED_FALLBACK",
+                "confidence_score": 0.0,
             }
             envelope_file = run_dir / "apps_research_apps_rg_handoff_v2.json"
             envelope_file.write_text(json.dumps(envelope, indent=2) + "\n", encoding="utf-8")
 
             meta_file = run_dir / "run_metadata.json"
-            meta_file.write_text(json.dumps({"status": "HERMETIC_FALLBACK"}, indent=2) + "\n", encoding="utf-8")
+            meta_file.write_text(json.dumps({"status": "HERMETIC_FALLBACK", "is_verified": False, "confidence_score": 0.0}, indent=2) + "\n", encoding="utf-8")
 
-            (run_dir / "bundle_commit_manifest.json").write_text(json.dumps({"status": "COMMITTED"}) + "\n", encoding="utf-8")
-            (run_dir / "apps_research_u0_receipt.json").write_text(json.dumps({"u0_status": "VALIDATED"}) + "\n", encoding="utf-8")
+            (run_dir / "bundle_commit_manifest.json").write_text(json.dumps({"status": "COMMITTED_UNVERIFIED"}) + "\n", encoding="utf-8")
+            (run_dir / "apps_research_u0_receipt.json").write_text(json.dumps({"u0_status": "UNVERIFIED"}) + "\n", encoding="utf-8")
 
             metadata_digest = "sha256:" + hashlib.sha256(meta_file.read_bytes()).hexdigest()
             manifest_digest = "sha256:" + hashlib.sha256(envelope_file.read_bytes()).hexdigest()
@@ -595,17 +559,8 @@ class AppsResearchBridge:
             is_blocked=False,
             block_reason="",
             is_stale=False,
-            evidence_items=(
-                EvidenceItem(
-                    source_id="ev-hermetic-1",
-                    label=f"{company_name} hermetic targeting brief",
-                    uri="apps_research://hermetic",
-                    source_type="company_brief",
-                    field_ref="company_brief",
-                    confidence=0.88,
-                ),
-            ),
-            confidence_score=0.88,
+            evidence_items=(),
+            confidence_score=0.0,
             brief_sha256=brief_sha,
             company_brief_text=brief_text,
             strategic_priorities=tuple(priorities),
@@ -617,6 +572,7 @@ class AppsResearchBridge:
             result_metadata_digest=metadata_digest,
             bundle_manifest_digest=manifest_digest,
             resolution_source="HERMETIC_FALLBACK",
+            is_verified=False,
         )
 
 
@@ -711,6 +667,7 @@ class MockAppsResearchBridge(AppsResearchBridge):
                 fetch_duration_ms=5.0,
                 audit_ref=tr_id,
                 resolution_source="HERMETIC_FALLBACK",
+                is_verified=False,
             )
 
         raw = SimpleNamespace(

@@ -25,36 +25,30 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent.parent
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-# Import airlock sanitizer from apps_research with fallback
+# Import airlock sanitizer from apps_research with availability enforcement
 try:
     from apps_research.airlocks.briefing_injection_airlock import (
         AirlockBriefingReceipt,
         sanitize_briefing_content,
     )
+    _AIRLOCK_AVAILABLE = True
 except ImportError:
-    @dataclass(frozen=True, slots=True)
-    class AirlockBriefingReceipt:
-        original_digest: str
-        clean_digest: str
-        sanitized: bool
-        injection_signals_detected: tuple[str, ...]
-        char_count: int
-        bullet_count: int
-        clean_briefing_text: str
-        audit_metadata: dict[str, Any] = field(default_factory=dict)
+    _AIRLOCK_AVAILABLE = False
+    AirlockBriefingReceipt = None  # type: ignore
+    sanitize_briefing_content = None  # type: ignore
 
-    def sanitize_briefing_content(raw_text: str, *, trace_id: str = "") -> tuple[str, AirlockBriefingReceipt]:
-        clean = (raw_text or "").strip()
-        orig_sha = "sha256:" + hashlib.sha256(clean.encode("utf-8")).hexdigest()
-        return clean, AirlockBriefingReceipt(
-            original_digest=orig_sha,
-            clean_digest=orig_sha,
-            sanitized=False,
-            injection_signals_detected=(),
-            char_count=len(clean),
-            bullet_count=len(clean.splitlines()),
-            clean_briefing_text=clean,
+
+def _sanitize_briefing_content(raw_text: str, *, trace_id: str = "") -> tuple[str, Any]:
+    """Sanitize research briefing text and enforce injection-airlock availability."""
+    if not _AIRLOCK_AVAILABLE or sanitize_briefing_content is None:
+        raise RuntimeError(
+            "AIRLOCK_UNAVAILABLE: apps_research briefing injection airlock must be available. "
+            "All briefings must pass through injection-airlock validation."
         )
+    try:
+        return sanitize_briefing_content(raw_text, trace_id=trace_id)
+    except Exception as exc:
+        raise RuntimeError(f"AIRLOCK_UNAVAILABLE: airlock execution failed: {exc}") from exc
 
 
 _log = logging.getLogger(__name__)
@@ -75,6 +69,7 @@ class SealedBriefingResolution:
     producer_handoff_ref: str = ""
     research_artifact_dir: str = ""
     briefing_artifact_path: str = ""
+    is_verified: bool = True
     metadata: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -92,6 +87,7 @@ class SealedBriefingResolution:
             "producer_handoff_ref": self.producer_handoff_ref,
             "research_artifact_dir": self.research_artifact_dir,
             "briefing_artifact_path": self.briefing_artifact_path,
+            "is_verified": self.is_verified,
             "metadata": self.metadata,
         }
 
@@ -100,17 +96,20 @@ class GovernedBriefingResolver:
     """Resolves briefing context for outreach through governed multi-path resolution."""
 
     MAX_CACHE_SIZE: int = 128
+    DEFAULT_CACHE_TTL_SECONDS: float = 7 * 86400.0  # 7 days freshness window
     _cache: dict[str, dict[str, Any]] = {}
     _lock = threading.Lock()
 
     @classmethod
     def _save_to_cache(cls, key: str, value: dict[str, Any]) -> None:
-        """Stores entry in cache with bounded FIFO eviction."""
+        """Stores entry in cache with bounded FIFO eviction and freshness timestamp."""
         with cls._lock:
             if len(cls._cache) >= cls.MAX_CACHE_SIZE:
                 oldest_key = next(iter(cls._cache))
                 cls._cache.pop(oldest_key, None)
-            cls._cache[key] = value
+            val = dict(value)
+            val.setdefault("timestamp", time.time())
+            cls._cache[key] = val
 
     @classmethod
     def clear_cache(cls) -> None:
@@ -161,21 +160,26 @@ class GovernedBriefingResolver:
             with cls._lock:
                 if manual_cache_key in cls._cache:
                     cached = cls._cache[manual_cache_key]
-                    return SealedBriefingResolution(
-                        briefing_text=cached["briefing_text"],
-                        digest=cached["digest"],
-                        resolution_source="MANUAL",
-                        company_name=company_name,
-                        target_role=target_role,
-                        confidence_score=1.0,
-                        evidence_count=cached["evidence_count"],
-                        airlock_sanitized=cached["airlock_sanitized"],
-                        strategic_priorities=priorities,
-                        metadata=dict(cached.get("metadata", {})),
-                    )
+                    cached_time = cached.get("timestamp", 0.0)
+                    if time.time() - cached_time <= cls.DEFAULT_CACHE_TTL_SECONDS:
+                        return SealedBriefingResolution(
+                            briefing_text=cached["briefing_text"],
+                            digest=cached["digest"],
+                            resolution_source="MANUAL",
+                            company_name=company_name,
+                            target_role=target_role,
+                            confidence_score=float(cached.get("confidence_score", 1.0)),
+                            evidence_count=int(cached.get("evidence_count", 1)),
+                            airlock_sanitized=cached["airlock_sanitized"],
+                            strategic_priorities=priorities,
+                            is_verified=bool(cached.get("is_verified", True)),
+                            metadata=dict(cached.get("metadata", {})),
+                        )
+                    cls._cache.pop(manual_cache_key, None)
 
             # Sanitize all manual input through the Adversarial Injection Airlock
-            clean_brief, receipt = sanitize_briefing_content(raw_content, trace_id=trace_id)
+            clean_brief, receipt = _sanitize_briefing_content(raw_content, trace_id=trace_id)
+            is_verified = bool(clean_brief)
 
             res = SealedBriefingResolution(
                 briefing_text=clean_brief,
@@ -183,13 +187,15 @@ class GovernedBriefingResolver:
                 resolution_source="MANUAL",
                 company_name=company_name,
                 target_role=target_role,
-                confidence_score=1.0,
-                evidence_count=len(priorities) or 1,
+                confidence_score=1.0 if is_verified else 0.0,
+                evidence_count=len(priorities) if priorities else (1 if is_verified else 0),
                 airlock_sanitized=receipt.sanitized,
                 strategic_priorities=priorities,
+                is_verified=is_verified,
                 metadata={
                     "source": "manual_fixture",
                     "signals_flagged": list(receipt.injection_signals_detected),
+                    "is_verified": is_verified,
                 },
             )
             cls._save_to_cache(
@@ -197,8 +203,11 @@ class GovernedBriefingResolver:
                 {
                     "briefing_text": clean_brief,
                     "digest": receipt.clean_digest,
-                    "evidence_count": len(priorities) or 1,
+                    "confidence_score": res.confidence_score,
+                    "evidence_count": res.evidence_count,
                     "airlock_sanitized": receipt.sanitized,
+                    "strategic_priorities": priorities,
+                    "is_verified": is_verified,
                     "metadata": res.metadata,
                 },
             )
@@ -209,24 +218,29 @@ class GovernedBriefingResolver:
             f"{company_name}::{target_role}::{job_description_text}".encode("utf-8")
         ).hexdigest()
 
-        # PATH B: Cache Hit
+        # PATH B: Cache Hit with TTL Freshness Verification
         with cls._lock:
             if cache_key in cls._cache:
                 cached = cls._cache[cache_key]
-                return SealedBriefingResolution(
-                    briefing_text=cached["briefing_text"],
-                    digest=cached["digest"],
-                    resolution_source="CACHE_HIT",
-                    company_name=company_name,
-                    target_role=target_role,
-                    confidence_score=0.90,
-                    evidence_count=cached.get("evidence_count", 1),
-                    airlock_sanitized=cached.get("airlock_sanitized", False),
-                    strategic_priorities=tuple(cached.get("strategic_priorities", ())),
-                    research_artifact_dir=cached.get("research_artifact_dir", ""),
-                    briefing_artifact_path=cached.get("briefing_artifact_path", ""),
-                    metadata={"cache_key": cache_key},
-                )
+                cached_time = cached.get("timestamp", 0.0)
+                if time.time() - cached_time > cls.DEFAULT_CACHE_TTL_SECONDS:
+                    cls._cache.pop(cache_key, None)
+                else:
+                    return SealedBriefingResolution(
+                        briefing_text=cached["briefing_text"],
+                        digest=cached["digest"],
+                        resolution_source="CACHE_HIT",
+                        company_name=company_name,
+                        target_role=target_role,
+                        confidence_score=float(cached.get("confidence_score", 0.0)),
+                        evidence_count=int(cached.get("evidence_count", 0)),
+                        airlock_sanitized=cached.get("airlock_sanitized", False),
+                        strategic_priorities=tuple(cached.get("strategic_priorities", ())),
+                        research_artifact_dir=cached.get("research_artifact_dir", ""),
+                        briefing_artifact_path=cached.get("briefing_artifact_path", ""),
+                        is_verified=bool(cached.get("is_verified", True)),
+                        metadata={"cache_key": cache_key, "cached_at": cached_time},
+                    )
 
         # PATH C: Autonomous Research via AppsResearchBridge
         if auto_research:
@@ -250,20 +264,26 @@ class GovernedBriefingResolver:
 
             dispatch_res = dispatch_outreach_research_briefing(req, bridge=bridge)
             if isinstance(dispatch_res, OutreachBriefingReady):
-                clean_brief, receipt = sanitize_briefing_content(
+                clean_brief, receipt = _sanitize_briefing_content(
                     dispatch_res.briefing_text, trace_id=trace_id
                 )
                 priorities = dispatch_res.strategic_priorities or ()
+                is_verified = (
+                    dispatch_res.resolution_source != "HERMETIC_FALLBACK"
+                    and dispatch_res.confidence_score > 0.0
+                )
                 cls._save_to_cache(
                     cache_key,
                     {
                         "briefing_text": clean_brief,
                         "digest": receipt.clean_digest,
+                        "confidence_score": dispatch_res.confidence_score,
                         "evidence_count": dispatch_res.research_evidence_count,
                         "airlock_sanitized": receipt.sanitized,
                         "strategic_priorities": priorities,
                         "research_artifact_dir": dispatch_res.research_artifact_dir,
                         "briefing_artifact_path": dispatch_res.research_briefing_path,
+                        "is_verified": is_verified,
                     },
                 )
                 return SealedBriefingResolution(
@@ -279,23 +299,27 @@ class GovernedBriefingResolver:
                     producer_handoff_ref=dispatch_res.result_hash,
                     research_artifact_dir=dispatch_res.research_artifact_dir,
                     briefing_artifact_path=dispatch_res.research_briefing_path,
+                    is_verified=is_verified,
                     metadata={
                         "signals_flagged": list(receipt.injection_signals_detected),
                         "duration_ms": dispatch_res.dispatch_duration_ms,
+                        "is_verified": is_verified,
                     },
                 )
             else:
                 _log.warning(
-                    "Autonomous research path failed: %s; falling back to hermetic",
+                    "Autonomous research path failed: %s; falling back to unverified hermetic",
                     dispatch_res.detail,
                 )
 
-        # PATH D: Hermetic Offline Fallback
-        fallback_priorities = (
-            f"Core platform modernization at {company_name}",
-            f"Strategic initiatives in {target_role or 'enterprise engineering'}",
+        # PATH D: Hermetic Offline Fallback (Explicitly Marked Unverified, Zero Invented Priorities)
+        fallback_text = (
+            f"# Research Briefing: {company_name}\n\n"
+            f"## Status\n"
+            f"Unverified offline fallback brief for {company_name} - {target_role}\n\n"
+            f"## Governance\n"
+            f"- Provenance: apps_research hermetic fallback (unverified)\n"
         )
-        fallback_text = f"Hermetic fallback brief for {company_name} - {target_role}"
         digest = "sha256:" + hashlib.sha256(fallback_text.encode("utf-8")).hexdigest()
         return SealedBriefingResolution(
             briefing_text=fallback_text,
@@ -303,11 +327,13 @@ class GovernedBriefingResolver:
             resolution_source="HERMETIC_FALLBACK",
             company_name=company_name,
             target_role=target_role,
-            confidence_score=0.85,
-            evidence_count=len(fallback_priorities),
+            confidence_score=0.0,
+            evidence_count=0,
             airlock_sanitized=False,
-            strategic_priorities=fallback_priorities,
+            strategic_priorities=(),
             fallback_reason="AUTO_RESEARCH_UNAVAILABLE_OR_OFFLINE",
+            is_verified=False,
+            metadata={"status": "UNVERIFIED", "is_verified": False},
         )
 
 

@@ -53,6 +53,7 @@ from apps_lic.domain.validators import (
     QuestionEndingValidator,
     SpamTriggerValidator,
     SubordinateToneValidator,
+    UnsupportedPersonalizationValidator,
 )
 
 
@@ -132,6 +133,7 @@ class ExecutiveOutreachJudgePanel:
         self._link_validator = MarkdownLinkValidator()
         self._tone_validator = SubordinateToneValidator()
         self._forbidden_validator = ForbiddenClaimsValidator()
+        self._unsupported_personalization_validator = UnsupportedPersonalizationValidator()
 
     def _load_rubrics(self) -> dict[str, dict[str, Any]]:
         rubrics: dict[str, dict[str, Any]] = {}
@@ -281,10 +283,21 @@ class ExecutiveOutreachJudgePanel:
             feedback.append(f"Lens 2 (Forbidden Claims) Failure: {', '.join(fc_viols)}")
             hints.append("Remove ungrounded compensation, unverifiable tenure claims, or policy-forbidden phrasing.")
 
+        up_valid, up_viols = self._unsupported_personalization_validator.validate(draft.body, opportunity)
+        if not up_valid:
+            lens2_score = min(lens2_score, 0.2)
+            feedback.append(f"Lens 2 (Grounding - Unsupported Personalization) Failure: {', '.join(up_viols)}")
+            hints.append("Do not assert company strategic focus or initiatives without verified research backing.")
+
         # =====================================================================
         # Lens 3: Strategic Briefing Resonance (Rubric v3 Lens 3)
         # =====================================================================
         lens3_score = 1.0
+        if not up_valid:
+            lens3_score = min(lens3_score, 0.2)
+            feedback.append(f"Lens 3 (Resonance - Unsupported Personalization) Failure: {', '.join(up_viols)}")
+            hints.append("Omit claims of specific company focus when operating under an unverified briefing.")
+
         company_lower = opportunity.company_name.lower()
         body_lower = draft.body.lower()
         subject_lower = draft.subject.lower()
