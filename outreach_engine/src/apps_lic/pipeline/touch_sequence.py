@@ -67,14 +67,22 @@ class TouchSequencePlanner:
         primary_fact = grounded_facts[0].statement if grounded_facts else candidate.executive_summary
 
         if persona == AudiencePersona.EXECUTIVE_RECRUITER:
-            t1_body = (
-                f"Hi {opportunity.recipient_name},\n\n"
-                f"Targeting {candidate.target_title} leadership opportunities at {opportunity.company_name}.\n"
-                f"Track record includes {primary_fact}.\n\n"
-                f"Would you be open to a brief conversation regarding current or upcoming mandates?"
-            )
-            t1_subject = f"{opportunity.company_name} / {opportunity.role_title} perspective"
-            facts_used = [grounded_facts[0].fact_id] if grounded_facts else []
+            if effective_primary == ChannelType.LINKEDIN_CONNECTION:
+                t1_subject, t1_body, facts_used = self._compiler.render_draft_message(
+                    candidate,
+                    opportunity,
+                    effective_primary,
+                    audience_persona=persona,
+                )
+            else:
+                t1_body = (
+                    f"Hi {opportunity.recipient_name},\n\n"
+                    f"Targeting {candidate.target_title} leadership opportunities at {opportunity.company_name}.\n"
+                    f"Track record includes {primary_fact}.\n\n"
+                    f"Would you be open to a brief conversation regarding current or upcoming mandates?"
+                )
+                t1_subject = f"{opportunity.company_name} / {opportunity.role_title} perspective"
+                facts_used = [grounded_facts[0].fact_id] if grounded_facts else []
         else:
             t1_subject, t1_body, facts_used = self._compiler.render_draft_message(
                 candidate,
