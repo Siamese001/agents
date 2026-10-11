@@ -667,23 +667,6 @@ class CrossLayerCoherenceManager:
             self.sync_status[layer_type].status = SyncStatus.FAILED
             logger.error(f"Error handling invalidation: {e}")
 
-            # Wave B-7: Emit cache coherence violations for drift detection
-            try:
-                from agentic_core.L6_system_learning.system_learning_memory_bridge import get_sl_memory_bridge
-
-                bridge = get_sl_memory_bridge()
-
-                # Persist coherence violation
-                bridge.persist_cache_coherence_violation(
-                    layer_type=layer_type.value,
-                    violation_type="invalidation_error",
-                    error_message=str(e),
-                    affected_keys=message.affected_keys[:5],  # Limit to 5 keys
-                    timestamp_utc=int(datetime.now().timestamp() * 1000),
-                )
-            except (RuntimeError, AttributeError, ImportError, OSError):
-                # Bridge unavailable - continue without it
-                pass
 
         finally:
             self.sync_status[layer_type].pending_operations -= 1
