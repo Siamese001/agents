@@ -24,7 +24,7 @@ honestly.
 |---|---|---|
 | LAW | No fake product proof, unauthorized X3, direct L4 write, fabrication, or bypass of required spine authority | App/runtime code |
 | APP CONTRACT | Current CLI behavior, dispatch adapter, artifact schema, output contract, exit code, product result shape | App code or canonical adapter |
-| SPINE BINDING | App routes through governed `agentic_core` path instead of local/private orchestration | App boundary code |
+| SPINE BINDING | App routes through governed subsystem architecture path instead of local/private orchestration | App boundary code |
 | EVAL CONTRACT | `apps_eval` grades completed app outputs and snapshots without mutating, rescuing, or promoting | `apps_eval` code |
 | HARNESS | Pytest collection, eager imports, fixtures, env setup, path issues, Windows issues, stale run dirs | Test harness |
 | MIGRATION | Refactor-era test with still-valid intent but stale assumptions | Rewrite or narrow around current contract |

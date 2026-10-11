@@ -9,7 +9,7 @@ description: |
 
 ## Purpose
 
-Verify the existence, validity, and completeness of governance receipts required for boundary-sensitive changes. Ensures every `agentic_core` modification is documented with proper classification, tests, and migration path.
+Verify the existence, validity, and completeness of governance receipts required for boundary-sensitive changes. Ensures every architectural modification is documented with proper classification, tests, and migration path.
 
 ## When to Use
 
@@ -89,23 +89,23 @@ for gap in known_gaps:
            "Gap must have remediation plan or deferral justification"
 ```
 
-### Step 5: Verify No Undocumented Core Changes
+### Step 5: Verify No Undocumented Boundary Changes
 
 Cross-check receipt against actual changes:
 ```python
-# Get all agentic_core/ changes
-core_changes = [f for f in changed_files if f.startswith('agentic_core/')]
+# Get all boundary-sensitive changes
+boundary_changes = [f for f in changed_files if f.startswith(('infrastructure/', 'outreach_engine/', 'resume_graph_engine/'))]
 
-# If core changes exist, receipt must explain them
-if core_changes:
+# If boundary changes exist, receipt must explain them
+if boundary_changes:
     assert 'classification' in receipt or 'classifications' in receipt, \
-           "Core changes require classification in receipt"
+           "Boundary changes require classification in receipt"
     
-    # Verify classifications cover all core changes
+    # Verify classifications cover all boundary changes
     classifications = receipt.get('classifications', {})
-    for change in core_changes:
+    for change in boundary_changes:
         assert change in classifications, \
-               f"Core change {change} not classified in receipt"
+               f"Boundary change {change} not classified in receipt"
 ```
 
 ### Step 6: Validate Receipt Schema
