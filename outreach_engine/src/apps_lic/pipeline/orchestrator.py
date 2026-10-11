@@ -170,7 +170,7 @@ class OutreachOrchestrator:
         from apps_lic.domain.repair import DeterministicDraftRepairer
         DeterministicDraftRepairer.repair_draft(draft, channel=channel)
 
-        verdict = self.evaluate_authoritative_draft(draft, candidate, opp)
+        verdict = self.evaluate_authoritative_draft(draft, candidate, opp, artifact_dir=a_dir)
         draft.metadata["passed"] = verdict.passed
         draft.metadata["status"] = verdict.status
         draft.metadata["violations"] = verdict.violations
@@ -379,8 +379,9 @@ class OutreachOrchestrator:
         if artifact_dir is not None:
             a_dir = Path(artifact_dir)
             a_dir.mkdir(parents=True, exist_ok=True)
+            report = self.judge.report_from_verdict(verdict)
             (a_dir / "evaluation_report.json").write_text(
-                json.dumps(self.judge.evaluate(draft, candidate, opportunity).to_dict(), indent=2) + "\n",
+                json.dumps(report.to_dict(), indent=2) + "\n",
                 encoding="utf-8",
             )
         return verdict
@@ -441,13 +442,14 @@ class OutreachOrchestrator:
 
         if a_dir is not None:
             a_dir.mkdir(parents=True, exist_ok=True)
-            all_passed = all(bool(t.draft.metadata.get("passed", True)) for t in sequence.touches)
+            all_passed = (len(blocked_touches) == 0) and all(bool(t.draft.metadata.get("passed", True)) for t in sequence.touches)
             seq_dict = {
                 "sequence_id": sequence.sequence_id,
                 "status": campaign_status,
                 "candidate_id": sequence.candidate_id,
                 "opportunity_id": sequence.opportunity_id,
                 "all_passed": all_passed,
+                "sealed": all_passed,
                 "touch_count": len(successful_touches),
                 "total_planned_touches": len(sequence.touches),
                 "touches": [

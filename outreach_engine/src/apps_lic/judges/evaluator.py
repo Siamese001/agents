@@ -62,6 +62,8 @@ class EvaluationReport:
     """Consolidated multi-lens rubric evaluation report."""
     passed: bool
     status: str = "PASSED"
+    judge_passed: bool = True
+    hard_gate_passed: bool = True
     lens1_altitude_score: float = 1.0
     lens2_grounding_score: float = 1.0
     lens3_resonance_score: float = 1.0
@@ -82,6 +84,10 @@ class EvaluationReport:
     def __post_init__(self) -> None:
         if not self.status:
             self.status = "PASSED" if self.passed else "BLOCKED"
+        elif not self.passed and self.status == "PASSED":
+            self.status = "BLOCKED"
+        elif self.passed and self.status == "BLOCKED":
+            self.passed = False
         if not self.lens_scores:
             self.lens_scores = {
                 "lens1_altitude": self.lens1_altitude_score,
@@ -96,6 +102,8 @@ class EvaluationReport:
         return {
             "passed": self.passed,
             "status": self.status,
+            "judge_passed": self.judge_passed,
+            "hard_gate_passed": self.hard_gate_passed,
             "composite_score": self.composite_score,
             "score_band": self.score_band,
             "lens1_altitude_score": self.lens1_altitude_score,
@@ -477,21 +485,18 @@ class ExecutiveOutreachJudgePanel:
             scores=scores,
         )
 
-    def evaluate(
-        self,
-        draft: OutreachMessageDraft,
-        candidate: CandidateProfile,
-        opportunity: TargetOpportunity,
-    ) -> EvaluationReport:
-        verdict = self.evaluate_authoritative(draft, candidate, opportunity)
+    def report_from_verdict(self, verdict: AuthoritativeVerdict) -> EvaluationReport:
+        """Derive an EvaluationReport directly from an AuthoritativeVerdict without re-evaluating."""
         hop1 = min(verdict.lens_scores.get("lens1_altitude", 1.0), verdict.lens_scores.get("lens6_constraints", 1.0))
         hop2 = verdict.lens_scores.get("lens2_grounding", 1.0)
         hop6 = min(verdict.lens_scores.get("lens3_resonance", 1.0), verdict.lens_scores.get("lens5_anti_spam", 1.0))
         hop8 = verdict.lens_scores.get("lens4_cta", 1.0)
 
         return EvaluationReport(
-            passed=verdict.judge_passed,
+            passed=verdict.passed,
             status=verdict.status,
+            judge_passed=verdict.judge_passed,
+            hard_gate_passed=verdict.hard_gate_passed,
             lens1_altitude_score=verdict.lens_scores.get("lens1_altitude", 1.0),
             lens2_grounding_score=verdict.lens_scores.get("lens2_grounding", 1.0),
             lens3_resonance_score=verdict.lens_scores.get("lens3_resonance", 1.0),
@@ -504,10 +509,19 @@ class ExecutiveOutreachJudgePanel:
             hop2_grounding_score=hop2,
             hop6_alignment_score=hop6,
             hop8_narrative_score=hop8,
-            feedback=verdict.feedback,
-            remediation_hints=verdict.remediation_hints,
-            lens_scores=verdict.lens_scores,
+            feedback=list(verdict.feedback),
+            remediation_hints=list(verdict.remediation_hints),
+            lens_scores=dict(verdict.lens_scores),
         )
+
+    def evaluate(
+        self,
+        draft: OutreachMessageDraft,
+        candidate: CandidateProfile,
+        opportunity: TargetOpportunity,
+    ) -> EvaluationReport:
+        verdict = self.evaluate_authoritative(draft, candidate, opportunity)
+        return self.report_from_verdict(verdict)
 
 
 # Backward-compatible alias

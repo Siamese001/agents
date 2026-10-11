@@ -216,9 +216,8 @@ def _handle_run(args: argparse.Namespace, prog: str = "python -m outreach_engine
         )
         lat_draft_ms = round((time.perf_counter() - t_draft_start) * 1000, 2)
 
-        # Stage 3: Validation Verification
+        # Stage 3: Validation Verification (derived from AuthoritativeVerdict)
         t_val_start = time.perf_counter()
-        val_check = orchestrator.validate_draft(draft, candidate)
         lat_val_ms = round((time.perf_counter() - t_val_start) * 1000, 2)
 
         # Stage 4: Rubric Evaluation
@@ -264,6 +263,7 @@ def _handle_run(args: argparse.Namespace, prog: str = "python -m outreach_engine
             "status": overall_status,
             "overall_passed": overall_passed,
             "all_touches_passed": all_touches_passed,
+            "sealed": overall_passed,
             "stage_latencies_ms": stage_latencies_ms,
             "timestamp": time.time(),
         }
@@ -491,21 +491,23 @@ def _handle_eval(args: argparse.Namespace) -> int:
     if not draft.grounded_facts_used and candidate.verified_facts:
         draft = dataclasses.replace(draft, grounded_facts_used=[candidate.verified_facts[0].fact_id])
 
-    # 3. Live Deterministic Re-Evaluation (Zero Stored-Verdict Replay)
-    val = orchestrator.validate_draft(draft, candidate, opportunity)
-    eval_report = orchestrator.evaluate_draft(draft, candidate, opportunity, artifact_dir=run_dir)
+    # 3. Live Deterministic Re-Evaluation via AuthoritativeVerdict SSOT (Zero Stored-Verdict Replay)
+    verdict = orchestrator.evaluate_authoritative_draft(draft, candidate, opportunity, artifact_dir=run_dir)
+    eval_report = orchestrator.judge.report_from_verdict(verdict)
 
     val_dict = {
-        "is_valid": val.is_valid,
-        "violations": val.violations,
-        "warnings": val.warnings,
-        "scores": val.scores,
+        "status": verdict.status,
+        "is_valid": verdict.is_valid,
+        "violations": verdict.violations,
+        "warnings": verdict.warnings,
+        "failure_reasons": verdict.failure_reasons,
+        "scores": verdict.scores,
     }
     (run_dir / "validation_report.json").write_text(json.dumps(val_dict, indent=2) + "\n", encoding="utf-8")
 
-    eval_passed = eval_report.passed
-    val_passed = val.is_valid
-    overall_passed = eval_passed and val_passed
+    overall_passed = verdict.passed
+    val_passed = verdict.is_valid
+    eval_passed = verdict.passed
 
     if args.json:
         print(json.dumps({
