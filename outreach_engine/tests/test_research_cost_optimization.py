@@ -86,18 +86,63 @@ def _create_mock_persisted_bundle(
         encoding="utf-8",
     )
 
+    u0_receipt = {
+        "schema_version": "apps_research.u0_receipt.v1",
+        "status": "PASS" if is_verified else "UNVERIFIED",
+        "authority_contract_id": "apps_research_rg_e2e_authority",
+        "authority_validation_receipt": {
+            "passed": is_verified,
+            "allowed": is_verified,
+        },
+        "reflection_receipt": {
+            "legacy_authority_scan_passed": is_verified,
+        },
+        "raw_input_sha256": "sha256:" + "0" * 64,
+        "normalized_input_sha256": "sha256:" + "0" * 64,
+        "run_id": run_dir.name,
+        "trace_root": f"trace-{run_dir.name}",
+    }
+    u0_bytes = (json.dumps(u0_receipt, indent=2) + "\n").encode("utf-8")
+    (run_dir / "apps_research_u0_receipt.json").write_bytes(u0_bytes)
+
+    commit_manifest = {
+        "schema_version": "apps_research.apps_rg_bundle_commit_manifest.v1",
+        "status": "COMMITTED" if is_verified else "COMMITTED_UNVERIFIED",
+        "authority_contract_id": "apps_research_rg_e2e_authority",
+        "u0_receipt_sha256": "sha256:" + hashlib.sha256(u0_bytes).hexdigest(),
+    }
+    (run_dir / "bundle_commit_manifest.json").write_text(
+        json.dumps(commit_manifest, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
     handoff = {
         "schema_version": "apps_research.apps_rg_handoff.v2",
+        "authority_contract_id": "apps_research_rg_e2e_authority",
         "identity": {
             "company_name": company_name,
+            "target_company": company_name,
             "target_role": target_role,
             "run_id": run_dir.name,
+            "child_run_id": run_dir.name,
             "trace_id": f"trace-{run_dir.name}",
+            "trace_root": f"trace-{run_dir.name}",
             "brief_sha256": brief_sha,
         },
         "status": status,
         "is_blocked": is_blocked,
         "confidence_score": confidence,
+        "mandatory_gate_receipts": {
+            gid: {"status": "PASS", "score": 1.0}
+            for gid in ("G5", "G6", "G7", "G21", "G24", "G26")
+        } if is_verified else {},
+        "exit_authorization": {
+            "x3_code": "X3D_ALLOW_FINISH" if is_verified else "X3D_BLOCKED",
+        },
+        "producer": {
+            "producer_app_id": "apps_research",
+            "attestation_sha256": "sha256:" + "0" * 64,
+        },
     }
     (run_dir / "apps_research_apps_rg_handoff_v2.json").write_text(
         json.dumps(handoff, indent=2) + "\n", encoding="utf-8"
@@ -115,15 +160,6 @@ def _create_mock_persisted_bundle(
     }
     (run_dir / "run_metadata.json").write_text(
         json.dumps(meta, indent=2) + "\n", encoding="utf-8"
-    )
-
-    (run_dir / "bundle_commit_manifest.json").write_text(
-        json.dumps({"status": "COMMITTED" if is_verified else "COMMITTED_UNVERIFIED"}, indent=2) + "\n",
-        encoding="utf-8",
-    )
-    (run_dir / "apps_research_u0_receipt.json").write_text(
-        json.dumps({"u0_status": "VALIDATED" if is_verified else "UNVERIFIED"}, indent=2) + "\n",
-        encoding="utf-8",
     )
 
     if mtime_offset > 0:
