@@ -313,6 +313,10 @@ def run_e2e(args: argparse.Namespace) -> int:
         os.environ.setdefault("APPS_RG_ROUTE_SIGNING_POSTURE", "ephemeral_dev")
 
         from apps_rg.__main__ import main as resume_main
+        from agents.e2e_artifacts import (
+            resolve_and_verify_resume_artifact,
+            resolve_run_scoped_resume_proofs_dir,
+        )
 
         # Resolve research briefing from context if available
         briefing_path = ""
@@ -322,10 +326,13 @@ def run_e2e(args: argparse.Namespace) -> int:
             if bpath.is_file():
                 briefing_path = str(bpath)
 
+        run_proofs_dir = resolve_run_scoped_resume_proofs_dir(run_id)
+
         resume_args = [
             "run",
             "--target-company", company,
             "--target-role", role,
+            "--artifact-dir", str(run_proofs_dir),
         ]
         if briefing_path:
             resume_args.extend(["--briefing", briefing_path])
@@ -334,8 +341,6 @@ def run_e2e(args: argparse.Namespace) -> int:
         if args.resume:
             resume_args.extend(["--resume", args.resume])
 
-        import time as _t
-        t_before = _t.time() - 2.0
         rg_code = resume_main(resume_args)
 
         if rg_code != 0:
@@ -348,43 +353,13 @@ def run_e2e(args: argparse.Namespace) -> int:
                 sys.stderr.write(f"[agents e2e] Error: Resume generation returned non-zero exit code {rg_code}.\n")
             raise RuntimeError(f"Resume generation returned non-zero exit code: {rg_code}")
 
-        # Locate generated resume output and copy to base_dir / "resume"
-        resume_stage_dir = base_dir / "resume"
-        resume_stage_dir.mkdir(parents=True, exist_ok=True)
-        dest_resume_file = resume_stage_dir / "FINAL_RESUME_OUTPUT.txt"
-
-        if not dest_resume_file.is_file():
-            repo_root = Path(__file__).resolve().parent.parent
-            proofs_roots = (repo_root / "resume_graph_engine" / "artifacts" / "apps_rg" / "runtime_proofs", repo_root / "artifacts" / "apps_rg" / "runtime_proofs")
-            candidates = sorted([c for pr in proofs_roots if pr.is_dir() for c in pr.glob("full_resume_*/FINAL_RESUME_OUTPUT.txt")], key=lambda p: p.stat().st_mtime, reverse=True)
-            latest_resume = next((c for c in candidates if c.stat().st_mtime >= t_before), None)
-            if latest_resume and latest_resume.is_file():
-                content = latest_resume.read_text(encoding="utf-8")
-                if "[NOT_GENERATED_BY_RUN:" in content:
-                    raise RuntimeError(f"Generated resume contains fallback marker [NOT_GENERATED_BY_RUN:] at {latest_resume}")
-                shutil.copy2(latest_resume, dest_resume_file)
-
-        resume_sha = ""
-        if dest_resume_file.is_file():
-            resume_sha = hashlib.sha256(dest_resume_file.read_bytes()).hexdigest()
-
-        summary_payload["stages"]["resume_tailoring"] = {
-            "exit_code": rg_code,
-            "status": "PASSED",
-            "resume_path": str(dest_resume_file) if dest_resume_file.is_file() else "",
-            "resume_sha256": resume_sha,
-        }
-        if not args.json:
-            print(f"[agents e2e] Resume generated: {dest_resume_file}")
-            if resume_sha:
-                print(f"[agents e2e] Resume SHA-256: {resume_sha}")
-
-        return {
-            "status": "PASSED",
-            "exit_code": rg_code,
-            "resume_path": str(dest_resume_file) if dest_resume_file.is_file() else "",
-            "resume_sha256": resume_sha,
-        }
+        return resolve_and_verify_resume_artifact(
+            run_id=run_id,
+            base_dir=base_dir,
+            rg_code=rg_code,
+            summary_payload=summary_payload,
+            args=args,
+        )
 
     def _stage_outreach(ctx: dict[str, Any]) -> dict[str, Any]:
         from apps_lic.__main__ import main as outreach_main
@@ -430,29 +405,15 @@ def run_e2e(args: argparse.Namespace) -> int:
             sys.stderr.write(f"[agents e2e] Outreach generation returned non-zero exit code: {oe_code}.\n")
             raise RuntimeError(f"Outreach generation returned non-zero exit code: {oe_code}")
 
-        campaign_file = next((f for name in ("campaign.json", "campaign_sequence.json", "outreach_draft.json") if (f := outreach_artifact_dir / name).is_file()), outreach_artifact_dir / "campaign.json")
+        from agents.e2e_artifacts import resolve_and_verify_outreach_artifact
 
-        campaign_sha = ""
-        if campaign_file.is_file():
-            campaign_sha = hashlib.sha256(campaign_file.read_bytes()).hexdigest()
-
-        summary_payload["stages"]["executive_outreach"] = {
-            "exit_code": oe_code,
-            "status": "PASSED",
-            "campaign_path": str(campaign_file) if campaign_file.is_file() else "",
-            "campaign_sha256": campaign_sha,
-        }
-        if not args.json:
-            print(f"[agents e2e] Outreach campaign generated at: {outreach_artifact_dir}")
-            if campaign_sha:
-                print(f"[agents e2e] Campaign SHA-256: {campaign_sha}")
-
-        return {
-            "status": "PASSED",
-            "exit_code": oe_code,
-            "campaign_path": str(campaign_file) if campaign_file.is_file() else "",
-            "campaign_sha256": campaign_sha,
-        }
+        return resolve_and_verify_outreach_artifact(
+            outreach_artifact_dir=outreach_artifact_dir,
+            oe_code=oe_code,
+            outreach_main_callable=outreach_main,
+            summary_payload=summary_payload,
+            args=args,
+        )
 
     steps = [
         WorkflowStep(
@@ -485,44 +446,15 @@ def run_e2e(args: argparse.Namespace) -> int:
     summary_payload["telemetry_events_count"] = len(emitter.events)
 
     # Stage 4: Lifecycle Sealing & Cryptographic Provenance Manifest
-    artifact_proofs: dict[str, Any] = {}
-    for key, rel, pattern in [
-        ("research_briefing", "research", "**/briefing.md"),
-        ("final_resume", "resume", "**/FINAL_RESUME_OUTPUT.txt"),
-        ("outreach_campaign", "outreach", "**/campaign*.json"),
-    ]:
-        p = base_dir / rel / Path(pattern).name
-        if not p.is_file():
-            cands = sorted(list((base_dir / rel).glob(pattern)))
-            if not cands and key == "outreach_campaign":
-                cands = sorted(list((base_dir / rel).glob("**/outreach_draft.json")))
-            if cands:
-                p = cands[0]
-        if p.is_file():
-            artifact_proofs[key] = {
-                "path": str(p),
-                "sha256": hashlib.sha256(p.read_bytes()).hexdigest(),
-                "bytes": p.stat().st_size,
-            }
+    from agents.e2e_artifacts import seal_lifecycle_manifest
 
-    summary_payload["artifact_proofs"] = artifact_proofs
-
-    summary_path = base_dir / "e2e_lifecycle_summary.json"
-    summary_path.write_text(json.dumps(summary_payload, indent=2), encoding="utf-8")
-
-    if not args.json:
-        if report.final_status == WorkflowStatus.COMPLETED:
-            print("\n>>> [Stage 4/4] Lifecycle artifacts validated and sealed.")
-            print(f"[agents e2e] Sealed summary manifest at: {summary_path}")
-            print(f"[agents e2e] Workflow state audit at: {base_dir / 'workflow_state.json'}\n")
-        else:
-            print(f"\n>>> [Stage 4/4] Lifecycle FAILED with status: {report.final_status.value}.")
-            print(f"[agents e2e] Failure summary manifest at: {summary_path}\n")
-
-    if report.final_status == WorkflowStatus.FAILED:
-        return 1
-
-    return 0
+    return seal_lifecycle_manifest(
+        base_dir=base_dir,
+        summary_payload=summary_payload,
+        report=report,
+        args=args,
+        research_enabled=research_enabled,
+    )
 
 
 def run_learning(args: argparse.Namespace) -> int:

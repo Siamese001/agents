@@ -244,3 +244,386 @@ def test_e2e_orchestrator_fails_closed_on_outreach_failure(tmp_path):
     summary = json.loads(summary_file.read_text())
     assert summary["workflow_status"] == WorkflowStatus.FAILED.value
     assert summary["stages"]["executive_outreach"]["status"] == "FAILED"
+
+
+def test_e2e_artifact_resolution_run_scoped_isolation(tmp_path):
+    """Verify e2e never globs or touches foreign or stale run-proof directories."""
+    parser = _build_parser()
+    args = parser.parse_args([
+        "e2e",
+        "--artifact-dir", str(tmp_path),
+        "--json",
+    ])
+
+    captured_artifact_dir = []
+
+    def fake_resume_main(argv):
+        if "--artifact-dir" in argv:
+            idx = argv.index("--artifact-dir")
+            art_dir = Path(argv[idx + 1])
+            captured_artifact_dir.append(art_dir)
+            art_dir.mkdir(parents=True, exist_ok=True)
+            (art_dir / "FINAL_RESUME_OUTPUT.txt").write_text("ISOLATED_RUN_RESUME_CONTENT", encoding="utf-8")
+            (art_dir / "apps_rg_product_authorization_receipt.json").write_text(json.dumps({"authorized": True}), encoding="utf-8")
+        return 0
+
+    def fake_outreach_main(argv, prog=None):
+        odir = tmp_path / "outreach"
+        odir.mkdir(parents=True, exist_ok=True)
+        (odir / "campaign.json").write_text(json.dumps({"campaign": "isolated"}), encoding="utf-8")
+        return 0
+
+    with patch("agents.live_preflight.assert_engine_live_preflight"), \
+         patch("apps_rg.__main__.main", side_effect=fake_resume_main), \
+         patch("apps_lic.__main__.main", side_effect=fake_outreach_main):
+
+        code = run_e2e(args)
+        assert code == 0
+
+    assert len(captured_artifact_dir) == 1
+    scoped_dir = captured_artifact_dir[0]
+    assert "full_resume_e2e_" in scoped_dir.name
+
+    dest_resume = tmp_path / "resume" / "FINAL_RESUME_OUTPUT.txt"
+    assert dest_resume.is_file()
+    assert dest_resume.read_text(encoding="utf-8") == "ISOLATED_RUN_RESUME_CONTENT"
+
+    summary_file = tmp_path / "e2e_lifecycle_summary.json"
+    summary = json.loads(summary_file.read_text(encoding="utf-8"))
+    assert summary["stages"]["resume_tailoring"]["status"] == "PASSED"
+    import hashlib
+    expected_sha = hashlib.sha256(b"ISOLATED_RUN_RESUME_CONTENT").hexdigest()
+    assert summary["stages"]["resume_tailoring"]["resume_sha256"] == expected_sha
+
+
+def test_e2e_artifact_resolution_concurrent_runs(tmp_path):
+    """Verify concurrent e2e executions run with zero cross-contamination and exact provenance."""
+    import time
+    from concurrent.futures import ThreadPoolExecutor
+
+    def run_isolated_e2e(sub_dir_name: str, target_company: str) -> tuple[int, Path]:
+        run_base = tmp_path / sub_dir_name
+        parser = _build_parser()
+        args = parser.parse_args([
+            "e2e",
+            "--company", target_company,
+            "--role", "VP AI Engineering",
+            "--artifact-dir", str(run_base),
+            "--json",
+        ])
+        code = run_e2e(args)
+        return code, run_base
+
+    def fake_resume_main(argv):
+        company = "Unknown"
+        if "--target-company" in argv:
+            company = argv[argv.index("--target-company") + 1]
+        if "--artifact-dir" in argv:
+            art_dir = Path(argv[argv.index("--artifact-dir") + 1])
+            art_dir.mkdir(parents=True, exist_ok=True)
+            time.sleep(0.02)
+            (art_dir / "FINAL_RESUME_OUTPUT.txt").write_text(f"Resume for {company}", encoding="utf-8")
+            (art_dir / "apps_rg_product_authorization_receipt.json").write_text(json.dumps({"authorized": True}), encoding="utf-8")
+        return 0
+
+    def fake_outreach_main(argv, prog=None):
+        company = "Unknown"
+        if "--company" in argv:
+            company = argv[argv.index("--company") + 1]
+        if "--artifact-dir" in argv:
+            art_dir = Path(argv[argv.index("--artifact-dir") + 1])
+            art_dir.mkdir(parents=True, exist_ok=True)
+            time.sleep(0.02)
+            (art_dir / "campaign.json").write_text(json.dumps({"company": company, "outreach": True}), encoding="utf-8")
+        return 0
+
+    with patch("agents.live_preflight.assert_engine_live_preflight"), \
+         patch("apps_rg.__main__.main", side_effect=fake_resume_main), \
+         patch("apps_lic.__main__.main", side_effect=fake_outreach_main):
+
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            fut1 = executor.submit(run_isolated_e2e, "run_alpha", "AlphaCorp")
+            fut2 = executor.submit(run_isolated_e2e, "run_beta", "BetaTech")
+            res1, path1 = fut1.result(timeout=10.0)
+            res2, path2 = fut2.result(timeout=10.0)
+
+    assert res1 == 0
+    assert res2 == 0
+
+    resume1 = (path1 / "resume" / "FINAL_RESUME_OUTPUT.txt").read_text(encoding="utf-8")
+    resume2 = (path2 / "resume" / "FINAL_RESUME_OUTPUT.txt").read_text(encoding="utf-8")
+    assert resume1 == "Resume for AlphaCorp"
+    assert resume2 == "Resume for BetaTech"
+
+    campaign1 = json.loads((path1 / "outreach" / "campaign.json").read_text(encoding="utf-8"))
+    campaign2 = json.loads((path2 / "outreach" / "campaign.json").read_text(encoding="utf-8"))
+    assert campaign1["company"] == "AlphaCorp"
+    assert campaign2["company"] == "BetaTech"
+
+    summary1 = json.loads((path1 / "e2e_lifecycle_summary.json").read_text(encoding="utf-8"))
+    summary2 = json.loads((path2 / "e2e_lifecycle_summary.json").read_text(encoding="utf-8"))
+    assert summary1["stages"]["resume_tailoring"]["resume_sha256"] != summary2["stages"]["resume_tailoring"]["resume_sha256"]
+    assert summary1["workflow_status"] == WorkflowStatus.COMPLETED.value
+    assert summary2["workflow_status"] == WorkflowStatus.COMPLETED.value
+
+
+def test_e2e_fails_closed_when_resume_output_missing_despite_zero_exit_code(tmp_path):
+    """Verify that if apps_rg returns exit code 0 but writes no output, the stage fails closed."""
+    parser = _build_parser()
+    args = parser.parse_args([
+        "e2e",
+        "--artifact-dir", str(tmp_path),
+        "--json",
+    ])
+
+    outreach_mock = MagicMock()
+
+    with patch("agents.live_preflight.assert_engine_live_preflight"), \
+         patch("apps_rg.__main__.main", return_value=0), \
+         patch("apps_lic.__main__.main", outreach_mock):
+
+        code = run_e2e(args)
+        assert code == 1
+
+    outreach_mock.assert_not_called()
+    summary_file = tmp_path / "e2e_lifecycle_summary.json"
+    assert summary_file.is_file()
+    summary = json.loads(summary_file.read_text(encoding="utf-8"))
+    assert summary["workflow_status"] == WorkflowStatus.FAILED.value
+    assert summary["stages"]["resume_tailoring"]["status"] == "FAILED"
+    assert "missing" in summary["stages"]["resume_tailoring"]["error"].lower()
+
+
+def test_e2e_fails_closed_when_resume_receipt_unauthorized(tmp_path):
+    """Verify that if apps_rg produces a resume but receipt indicates unauthorized, it fails closed."""
+    parser = _build_parser()
+    args = parser.parse_args([
+        "e2e",
+        "--artifact-dir", str(tmp_path),
+        "--json",
+    ])
+
+    def fake_resume_main(argv):
+        if "--artifact-dir" in argv:
+            art_dir = Path(argv[argv.index("--artifact-dir") + 1])
+            art_dir.mkdir(parents=True, exist_ok=True)
+            (art_dir / "FINAL_RESUME_OUTPUT.txt").write_text("Unauthorized Resume", encoding="utf-8")
+            (art_dir / "apps_rg_product_authorization_receipt.json").write_text(
+                json.dumps({"authorized": False, "reason": "Low rubric score"}), encoding="utf-8"
+            )
+        return 0
+
+    outreach_mock = MagicMock()
+
+    with patch("agents.live_preflight.assert_engine_live_preflight"), \
+         patch("apps_rg.__main__.main", side_effect=fake_resume_main), \
+         patch("apps_lic.__main__.main", outreach_mock):
+
+        code = run_e2e(args)
+        assert code == 1
+
+    outreach_mock.assert_not_called()
+    summary = json.loads((tmp_path / "e2e_lifecycle_summary.json").read_text(encoding="utf-8"))
+    assert summary["workflow_status"] == WorkflowStatus.FAILED.value
+    assert summary["stages"]["resume_tailoring"]["status"] == "FAILED"
+    assert "unauthorized" in summary["stages"]["resume_tailoring"]["error"].lower()
+
+
+def test_e2e_fails_closed_when_outreach_campaign_missing(tmp_path):
+    """Verify that if outreach returns 0 but writes no campaign file, stage fails closed."""
+    parser = _build_parser()
+    args = parser.parse_args([
+        "e2e",
+        "--artifact-dir", str(tmp_path),
+        "--json",
+    ])
+
+    def fake_resume_main(argv):
+        if "--artifact-dir" in argv:
+            art_dir = Path(argv[argv.index("--artifact-dir") + 1])
+            art_dir.mkdir(parents=True, exist_ok=True)
+            (art_dir / "FINAL_RESUME_OUTPUT.txt").write_text("Valid Resume", encoding="utf-8")
+            (art_dir / "apps_rg_product_authorization_receipt.json").write_text(json.dumps({"authorized": True}), encoding="utf-8")
+        return 0
+
+    with patch("agents.live_preflight.assert_engine_live_preflight"), \
+         patch("apps_rg.__main__.main", side_effect=fake_resume_main), \
+         patch("apps_lic.__main__.main", return_value=0):
+
+        code = run_e2e(args)
+        assert code == 1
+
+    summary = json.loads((tmp_path / "e2e_lifecycle_summary.json").read_text(encoding="utf-8"))
+    assert summary["workflow_status"] == WorkflowStatus.FAILED.value
+    assert summary["stages"]["executive_outreach"]["status"] == "FAILED"
+    assert "not generated or is empty" in summary["stages"]["executive_outreach"]["error"]
+
+
+def test_e2e_fails_closed_when_outreach_receipt_unsealed(tmp_path):
+    """Verify that if outreach writes a draft but run_receipt marks sealed=False, it fails closed."""
+    parser = _build_parser()
+    args = parser.parse_args([
+        "e2e",
+        "--artifact-dir", str(tmp_path),
+        "--json",
+    ])
+
+    def fake_resume_main(argv):
+        if "--artifact-dir" in argv:
+            art_dir = Path(argv[argv.index("--artifact-dir") + 1])
+            art_dir.mkdir(parents=True, exist_ok=True)
+            (art_dir / "FINAL_RESUME_OUTPUT.txt").write_text("Valid Resume", encoding="utf-8")
+            (art_dir / "apps_rg_product_authorization_receipt.json").write_text(json.dumps({"authorized": True}), encoding="utf-8")
+        return 0
+
+    def fake_outreach_main(argv, prog=None):
+        odir = tmp_path / "outreach"
+        odir.mkdir(parents=True, exist_ok=True)
+        (odir / "campaign.json").write_text(json.dumps({"draft": "unapproved"}), encoding="utf-8")
+        (odir / "run_receipt.json").write_text(json.dumps({"sealed": False, "overall_passed": False}), encoding="utf-8")
+        return 0
+
+    with patch("agents.live_preflight.assert_engine_live_preflight"), \
+         patch("apps_rg.__main__.main", side_effect=fake_resume_main), \
+         patch("apps_lic.__main__.main", side_effect=fake_outreach_main):
+
+        code = run_e2e(args)
+        assert code == 1
+
+    summary = json.loads((tmp_path / "e2e_lifecycle_summary.json").read_text(encoding="utf-8"))
+    assert summary["workflow_status"] == WorkflowStatus.FAILED.value
+    assert summary["stages"]["executive_outreach"]["status"] == "FAILED"
+    assert "unsealed" in summary["stages"]["executive_outreach"]["error"].lower()
+
+
+def test_e2e_stage4_fails_closed_on_missing_required_deliverable(tmp_path):
+    """Verify Stage 4 sealing fails closed if a required deliverable is missing before sealing."""
+    parser = _build_parser()
+    args = parser.parse_args([
+        "e2e",
+        "--artifact-dir", str(tmp_path),
+        "--json",
+    ])
+
+    def fake_resume_main(argv):
+        if "--artifact-dir" in argv:
+            art_dir = Path(argv[argv.index("--artifact-dir") + 1])
+            art_dir.mkdir(parents=True, exist_ok=True)
+            (art_dir / "FINAL_RESUME_OUTPUT.txt").write_text("Valid Resume", encoding="utf-8")
+            (art_dir / "apps_rg_product_authorization_receipt.json").write_text(json.dumps({"authorized": True}), encoding="utf-8")
+        return 0
+
+    def fake_outreach_mutates_prior_stage(argv, prog=None):
+        odir = tmp_path / "outreach"
+        odir.mkdir(parents=True, exist_ok=True)
+        (odir / "campaign.json").write_text(json.dumps({"campaign": "ok"}), encoding="utf-8")
+        # Tamper with Stage 2 deliverable before Stage 4 runs
+        (tmp_path / "resume" / "FINAL_RESUME_OUTPUT.txt").unlink()
+        return 0
+
+    with patch("agents.live_preflight.assert_engine_live_preflight"), \
+         patch("apps_rg.__main__.main", side_effect=fake_resume_main), \
+         patch("apps_lic.__main__.main", side_effect=fake_outreach_mutates_prior_stage):
+
+        code = run_e2e(args)
+        assert code == 1
+
+    summary = json.loads((tmp_path / "e2e_lifecycle_summary.json").read_text(encoding="utf-8"))
+    assert summary["workflow_status"] == WorkflowStatus.FAILED.value
+    assert "final_resume" in summary.get("sealing_error", "")
+
+
+def test_e2e_fails_closed_when_resume_output_empty(tmp_path):
+    """Verify that if apps_rg writes an empty (0-byte) resume file, it fails closed."""
+    parser = _build_parser()
+    args = parser.parse_args([
+        "e2e",
+        "--artifact-dir", str(tmp_path),
+        "--json",
+    ])
+
+    def fake_resume_main(argv):
+        if "--artifact-dir" in argv:
+            art_dir = Path(argv[argv.index("--artifact-dir") + 1])
+            art_dir.mkdir(parents=True, exist_ok=True)
+            (art_dir / "FINAL_RESUME_OUTPUT.txt").write_text("   \n", encoding="utf-8")
+        return 0
+
+    with patch("agents.live_preflight.assert_engine_live_preflight"), \
+         patch("apps_rg.__main__.main", side_effect=fake_resume_main), \
+         patch("apps_lic.__main__.main", return_value=0):
+
+        code = run_e2e(args)
+        assert code == 1
+
+    summary = json.loads((tmp_path / "e2e_lifecycle_summary.json").read_text(encoding="utf-8"))
+    assert summary["workflow_status"] == WorkflowStatus.FAILED.value
+    assert summary["stages"]["resume_tailoring"]["status"] == "FAILED"
+    assert "empty" in summary["stages"]["resume_tailoring"]["error"].lower()
+
+
+def test_e2e_fails_closed_when_resume_contains_fallback_marker(tmp_path):
+    """Verify that if apps_rg resume contains [NOT_GENERATED_BY_RUN:], it fails closed."""
+    parser = _build_parser()
+    args = parser.parse_args([
+        "e2e",
+        "--artifact-dir", str(tmp_path),
+        "--json",
+    ])
+
+    def fake_resume_main(argv):
+        if "--artifact-dir" in argv:
+            art_dir = Path(argv[argv.index("--artifact-dir") + 1])
+            art_dir.mkdir(parents=True, exist_ok=True)
+            (art_dir / "FINAL_RESUME_OUTPUT.txt").write_text("Header\n[NOT_GENERATED_BY_RUN: fallback]", encoding="utf-8")
+        return 0
+
+    with patch("agents.live_preflight.assert_engine_live_preflight"), \
+         patch("apps_rg.__main__.main", side_effect=fake_resume_main), \
+         patch("apps_lic.__main__.main", return_value=0):
+
+        code = run_e2e(args)
+        assert code == 1
+
+    summary = json.loads((tmp_path / "e2e_lifecycle_summary.json").read_text(encoding="utf-8"))
+    assert summary["workflow_status"] == WorkflowStatus.FAILED.value
+    assert summary["stages"]["resume_tailoring"]["status"] == "FAILED"
+    assert "fallback marker" in summary["stages"]["resume_tailoring"]["error"]
+
+
+def test_e2e_fails_closed_when_outreach_output_empty(tmp_path):
+    """Verify that if outreach writes a 0-byte campaign file, it fails closed."""
+    parser = _build_parser()
+    args = parser.parse_args([
+        "e2e",
+        "--artifact-dir", str(tmp_path),
+        "--json",
+    ])
+
+    def fake_resume_main(argv):
+        if "--artifact-dir" in argv:
+            art_dir = Path(argv[argv.index("--artifact-dir") + 1])
+            art_dir.mkdir(parents=True, exist_ok=True)
+            (art_dir / "FINAL_RESUME_OUTPUT.txt").write_text("Valid Resume", encoding="utf-8")
+            (art_dir / "apps_rg_product_authorization_receipt.json").write_text(json.dumps({"authorized": True}), encoding="utf-8")
+        return 0
+
+    def fake_outreach_main(argv, prog=None):
+        odir = tmp_path / "outreach"
+        odir.mkdir(parents=True, exist_ok=True)
+        (odir / "campaign.json").write_text("", encoding="utf-8")
+        return 0
+
+    with patch("agents.live_preflight.assert_engine_live_preflight"), \
+         patch("apps_rg.__main__.main", side_effect=fake_resume_main), \
+         patch("apps_lic.__main__.main", side_effect=fake_outreach_main):
+
+        code = run_e2e(args)
+        assert code == 1
+
+    summary = json.loads((tmp_path / "e2e_lifecycle_summary.json").read_text(encoding="utf-8"))
+    assert summary["workflow_status"] == WorkflowStatus.FAILED.value
+    assert summary["stages"]["executive_outreach"]["status"] == "FAILED"
+    assert "not generated or is empty" in summary["stages"]["executive_outreach"]["error"]
+
+
