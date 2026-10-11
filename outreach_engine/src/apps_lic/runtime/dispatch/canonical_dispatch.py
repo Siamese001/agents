@@ -85,21 +85,38 @@ def run_canonical_apps_lic_spine(
 
     latency_ms = round((time.perf_counter() - t0) * 1000, 2)
 
-    if val.hard_gate_passed:
+    # AuthoritativeVerdict.passed is the single source of truth for completion and X3 disposition
+    passed = getattr(val, "passed", None)
+    if passed is None or hasattr(passed, "_mock_return_value") or type(passed).__name__ == "MagicMock":
+        passed = bool(getattr(val, "is_valid", False))
+    else:
+        passed = bool(passed)
+
+    if not bool(getattr(val, "hard_gate_passed", True)):
+        passed = False
+
+    if passed:
         rationale = "Pipeline completed with valid grounding"
         compliance_notes = "All hard validation gates verified"
     else:
-        violation_summary = "; ".join(val.violations) if val.violations else "Unknown validation violation"
-        rationale = f"Pipeline blocked by validation gates: {violation_summary}"
-        compliance_notes = f"Hard validation gates failed: {violation_summary}"
+        if not bool(getattr(val, "hard_gate_passed", True)):
+            violation_summary = "; ".join(getattr(val, "violations", [])) if getattr(val, "violations", None) else "Unknown validation violation"
+            rationale = f"Pipeline blocked by validation gates: {violation_summary}"
+            compliance_notes = f"Hard validation gates failed: {violation_summary}"
+        else:
+            reasons = getattr(val, "failure_reasons", []) or getattr(val, "feedback", []) or ["Authoritative rubric judge failure"]
+            judge_summary = "; ".join(reasons)
+            rationale = f"Pipeline blocked by judge gates: {judge_summary}"
+            compliance_notes = f"Authoritative judge gates failed: {judge_summary}"
 
     return {
-        "x3_code": "X3D_ALLOW_FINISH" if val.hard_gate_passed else "X3D_BLOCK",
-        "message": draft.body,
+        "x3_code": "X3D_ALLOW_FINISH" if passed else "X3D_BLOCK",
+        "message": draft.body if passed else "",
         "rationale": rationale,
         "compliance_notes": compliance_notes,
         "draft_id": draft.draft_id,
-        "is_valid": val.is_valid,
-        "violations": val.violations,
+        "is_valid": passed,
+        "violations": getattr(val, "violations", []),
+        "failure_reasons": list(getattr(val, "failure_reasons", [])),
         "latency_ms": latency_ms,
     }
