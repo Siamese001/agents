@@ -12,6 +12,7 @@ from __future__ import annotations
 import dataclasses
 import hashlib
 import json
+import logging
 import os
 import shutil
 import time
@@ -21,6 +22,8 @@ from pathlib import Path
 from typing import Any
 
 from apps_lic.integrations.apps_research_bridge import ResearchResult
+
+_log = logging.getLogger(__name__)
 
 
 class ResearchFailureReason(str, Enum):

@@ -237,10 +237,11 @@ class MissionLoader:
                     "executive_summary": payload.get("executive_summary", "Enterprise engineering leader."),
                 }
             )
+            role = payload.get("role_title") or payload.get("target_title") or payload.get("role") or "Head of Engineering"
             opportunity = TargetOpportunity(
                 opportunity_id=f"opp_{default_id}",
                 company_name=payload.get("company_brief", "Target Enterprise"),
-                role_title="Head of Engineering",
+                role_title=role,
                 industry="Enterprise Technology",
                 recipient_name="Talent Lead",
                 recipient_title="Director of Talent",

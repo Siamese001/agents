@@ -3,10 +3,37 @@
 from __future__ import annotations
 
 import re
+import threading
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 import yaml
+
+_RUBRIC_CACHE: dict[str, tuple[float, dict[str, Any]]] = {}
+_RUBRIC_LOCK = threading.Lock()
+
+
+def _load_cached_rubric_file(file_path: Path) -> dict[str, Any]:
+    """Parse and cache a rubric YAML file, keyed by resolved path and mtime."""
+    path_str = str(file_path.resolve())
+    try:
+        mtime = file_path.stat().st_mtime
+    except OSError:
+        return {}
+    with _RUBRIC_LOCK:
+        if path_str in _RUBRIC_CACHE:
+            cached_mtime, cached_data = _RUBRIC_CACHE[path_str]
+            if cached_mtime == mtime:
+                return dict(cached_data)
+    try:
+        data = yaml.safe_load(file_path.read_text(encoding="utf-8"))
+        if not isinstance(data, dict):
+            data = {}
+    except Exception:
+        data = {}
+    with _RUBRIC_LOCK:
+        _RUBRIC_CACHE[path_str] = (mtime, data)
+    return dict(data)
 
 from apps_lic.domain.models import (
     AudiencePersona,
@@ -111,12 +138,9 @@ class ExecutiveOutreachJudgePanel:
         if not self.rubrics_dir.is_dir():
             return rubrics
         for f in self.rubrics_dir.glob("*.yaml"):
-            try:
-                data = yaml.safe_load(f.read_text(encoding="utf-8"))
-                if isinstance(data, dict) and "rubric_id" in data:
-                    rubrics[data["rubric_id"]] = data
-            except Exception:  # guardian: allow-silent-swallow -- skip invalid or malformed rubric yaml files
-                pass
+            data = _load_cached_rubric_file(f)
+            if isinstance(data, dict) and "rubric_id" in data:
+                rubrics[data["rubric_id"]] = data
         return rubrics
 
     def _resolve_active_rubric(self) -> dict[str, Any]:
@@ -124,12 +148,7 @@ class ExecutiveOutreachJudgePanel:
             return self._rubrics["executive_outreach_rubric_v3"]
         v3_file = self.rubrics_dir / "executive_outreach_rubric_v3.yaml"
         if v3_file.is_file():
-            try:
-                data = yaml.safe_load(v3_file.read_text(encoding="utf-8"))
-                if isinstance(data, dict):
-                    return data
-            except Exception:  # guardian: allow-silent-swallow -- fallback to empty dict if v3 rubric yaml is unreadable
-                pass
+            return _load_cached_rubric_file(v3_file)
         return {}
 
     def get_threshold(self, lens_key: str, default: float) -> float:

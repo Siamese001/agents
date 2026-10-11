@@ -42,6 +42,8 @@ class TouchSequencePlanner:
         self._tone_validator = SubordinateToneValidator()
         self._forbidden_validator = ForbiddenClaimsValidator()
         self._judge_panel = ExecutiveOutreachJudgePanel()
+        from apps_lic.pipeline.compiler import PromptCompiler
+        self._compiler = PromptCompiler()
 
     def plan_sequence(
         self,
@@ -81,11 +83,10 @@ class TouchSequencePlanner:
         # -----------------------------------------------------------------
         primary_fact = candidate.verified_facts[0].statement if candidate.verified_facts else candidate.executive_summary
         from apps_lic.pipeline.compiler import (
-            PromptCompiler,
             get_executive_signature_block,
             get_recruiter_signature_block,
         )
-        compiler = PromptCompiler()
+        compiler = self._compiler
         raw_hook = opportunity.strategic_priorities[0] if opportunity.strategic_priorities else opportunity.industry
         hook = compiler._format_strategic_hook(raw_hook, company_name=opportunity.company_name)
 

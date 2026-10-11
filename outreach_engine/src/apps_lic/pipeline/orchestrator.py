@@ -211,6 +211,44 @@ class OutreachOrchestrator:
             }
             (a_dir / "validation_report.json").write_text(json.dumps(val_dict, indent=2) + "\n", encoding="utf-8")
 
+            manifest = {
+                "run_id": getattr(opp, "opportunity_id", "opp_01"),
+                "candidate": {
+                    "candidate_id": candidate.candidate_id,
+                    "full_name": candidate.full_name,
+                    "target_title": candidate.target_title,
+                    "current_title": candidate.current_title,
+                    "executive_summary": candidate.executive_summary,
+                    "verified_facts": [
+                        {
+                            "fact_id": f.fact_id,
+                            "category": f.category,
+                            "statement": f.statement,
+                            "metric": f.metric,
+                            "source_reference": getattr(f, "source_reference", None),
+                        }
+                        for f in candidate.verified_facts
+                    ],
+                },
+                "opportunity": {
+                    "opportunity_id": opp.opportunity_id,
+                    "company_name": opp.company_name,
+                    "role_title": opp.role_title,
+                    "industry": opp.industry,
+                    "recipient_name": opp.recipient_name,
+                    "recipient_title": opp.recipient_title,
+                    "recipient_class": opp.recipient_class.value,
+                    "relationship_distance": opp.relationship_distance.value,
+                    "strategic_priorities": list(opp.strategic_priorities),
+                    "briefing_text": opp.briefing_text,
+                    "research_digest": opp.research_digest,
+                    "sealed_resolution": opp.sealed_resolution,
+                },
+                "channel": channel.value,
+                "audience_persona": persona.value,
+            }
+            (a_dir / "run_manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+
         return draft, verdict
 
     def validate_draft(
@@ -387,11 +425,13 @@ class OutreachOrchestrator:
 
         if a_dir is not None:
             a_dir.mkdir(parents=True, exist_ok=True)
+            all_passed = all(bool(t.draft.metadata.get("passed", True)) for t in sequence.touches)
             seq_dict = {
                 "sequence_id": sequence.sequence_id,
                 "status": campaign_status,
                 "candidate_id": sequence.candidate_id,
                 "opportunity_id": sequence.opportunity_id,
+                "all_passed": all_passed,
                 "touch_count": len(successful_touches),
                 "total_planned_touches": len(sequence.touches),
                 "touches": [
@@ -403,6 +443,8 @@ class OutreachOrchestrator:
                         "subject": t.draft.subject,
                         "body": t.draft.body,
                         "status": "PASSED",
+                        "passed": True,
+                        "validation_violations": list(t.draft.metadata.get("validation_violations", [])),
                     }
                     for t in successful_touches
                 ],
