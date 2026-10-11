@@ -134,6 +134,9 @@ class WorkflowStep:
     handler: Callable[..., Any]
     depends_on: tuple[str, ...] = ()
     optional: bool = False
+    idempotent: bool | None = None
+    is_product_stage: bool = False
+    timeout: float | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
 
 

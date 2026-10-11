@@ -243,11 +243,23 @@ def test_e2e_cli_runs_through_workflow_engine(tmp_path: Path):
 
 def test_e2e_cli_with_research_fails_closed_through_engine(tmp_path: Path):
     """Verify that enabled research failure causes engine to mark status FAILED."""
+    from apps_rg.integrations.managed_research_delegation import ResearchDispatchFailure
+
     parser = agents_cli._build_parser()
     args = parser.parse_args(["e2e", "--with-research", "--skip-resume", "--artifact-dir", str(tmp_path)])
 
-    code = agents_cli.run_e2e(args)
-    assert code != 0
+    mock_fail = ResearchDispatchFailure(
+        request_id="req-fail",
+        run_id="run-fail",
+        trace_id="tr-fail",
+        r5_reason_code="APPS_RESEARCH_FAILED",
+        detail="Simulated provider failure",
+        dispatch_duration_ms=10.0,
+    )
+
+    with patch("apps_rg.integrations.managed_research_delegation.dispatch_resume_research_briefing", return_value=mock_fail):
+        code = agents_cli.run_e2e(args)
+        assert code != 0
 
     state_file = tmp_path / "workflow_state.json"
     assert state_file.is_file()

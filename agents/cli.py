@@ -421,6 +421,9 @@ def run_e2e(args: argparse.Namespace) -> int:
             primitive=OrchestrationPrimitive.BRANCH,
             handler=_stage_research,
             optional=not research_enabled,
+            idempotent=True,
+            is_product_stage=True,
+            timeout=60.0,
         ),
         WorkflowStep(
             step_id="resume_tailoring",
@@ -428,6 +431,9 @@ def run_e2e(args: argparse.Namespace) -> int:
             handler=_stage_resume,
             depends_on=("company_research",),
             optional=bool(args.skip_resume),
+            idempotent=False,
+            is_product_stage=True,
+            timeout=180.0,
         ),
         WorkflowStep(
             step_id="executive_outreach",
@@ -435,6 +441,9 @@ def run_e2e(args: argparse.Namespace) -> int:
             handler=_stage_outreach,
             depends_on=("resume_tailoring",),
             optional=False,
+            idempotent=False,
+            is_product_stage=True,
+            timeout=120.0,
         ),
     ]
 
