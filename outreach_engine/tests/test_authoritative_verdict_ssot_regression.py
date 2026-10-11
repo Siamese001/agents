@@ -292,3 +292,132 @@ def test_successful_e2e_completion_sealed_at_all_layers(base_candidate, base_opp
     assert camp_json["sealed"] is True
     assert len(camp_json["touches"]) > 0
     assert len(camp_json["blocked_touches"]) == 0
+
+
+def test_canonical_dispatch_rejects_hard_gate_passed_alone(tmp_path: Path):
+    """Verifies that hard_gate_passed=True alone never authorizes completion in canonical_dispatch."""
+    mock_draft = mock.MagicMock(body="Hello world, this is a draft", draft_id="d_mock_01")
+    mock_val = mock.NonCallableMagicMock(spec=["hard_gate_passed", "is_valid", "violations", "failure_reasons"])
+    mock_val.hard_gate_passed = True
+    mock_val.is_valid = True
+    mock_val.violations = []
+    mock_val.failure_reasons = []
+
+    with mock.patch.object(
+        OutreachOrchestrator,
+        "generate_single_draft",
+        return_value=(mock_draft, mock_val),
+    ):
+        res = run_canonical_apps_lic_spine({"company": "Test Corp"}, artifact_dir=tmp_path / "dispatch_mock_hard_only")
+        assert res["x3_code"] == "X3D_BLOCK"
+        assert res["is_valid"] is False
+        assert res["message"] == ""
+        assert "blocked by judge gates" in res["rationale"]
+        assert "Authoritative rubric judge failure" in res["failure_reasons"]
+
+
+def test_canonical_dispatch_judge_only_failure_suppresses_content_and_preserves_diagnostics(tmp_path: Path):
+    """Verifies that judge-only failures in canonical_dispatch suppress draft content and preserve diagnostic reasons."""
+    from apps_lic.domain.models import AuthoritativeVerdict
+
+    draft = OutreachMessageDraft(
+        draft_id="d_judge_fail_suppress",
+        channel=ChannelType.LINKEDIN_INMAIL,
+        subject="Strategic partnership inquiry",
+        body="Hi Sarah, would love to connect and discuss platform modernization initiatives.",
+        grounded_facts_used=[],
+    )
+    verdict = AuthoritativeVerdict(
+        passed=False,
+        status="BLOCKED",
+        composite_score=0.45,
+        score_band="FAIL",
+        hard_gate_passed=True,
+        judge_passed=False,
+        violations=[],
+        failure_reasons=["Lens 3 (Resonance) score 0.40 below threshold 0.70", "Missing peer-level positioning"],
+        feedback=["Elevate strategic altitude and tailor to executive priorities."],
+    )
+
+    with mock.patch.object(
+        OutreachOrchestrator,
+        "generate_single_draft",
+        return_value=(draft, verdict),
+    ):
+        res = run_canonical_apps_lic_spine({"company": "Acme Corp"}, artifact_dir=tmp_path / "dispatch_judge_suppress")
+        assert res["x3_code"] == "X3D_BLOCK"
+        assert res["is_valid"] is False
+        assert res["message"] == ""
+        assert "blocked by judge gates" in res["rationale"]
+        assert "Lens 3 (Resonance)" in res["rationale"]
+        assert "Authoritative judge gates failed" in res["compliance_notes"]
+        assert res["failure_reasons"] == ["Lens 3 (Resonance) score 0.40 below threshold 0.70", "Missing peer-level positioning"]
+
+
+def test_canonical_dispatch_judge_only_failure_feedback_fallback(tmp_path: Path):
+    """Verifies that judge diagnostic feedback is preserved when failure_reasons is empty."""
+    from apps_lic.domain.models import AuthoritativeVerdict
+
+    draft = OutreachMessageDraft(
+        draft_id="d_judge_fb_fallback",
+        channel=ChannelType.EMAIL,
+        subject="Platform scaling insights",
+        body="Hi Alex, reaching out regarding distributed architecture challenges.",
+        grounded_facts_used=[],
+    )
+    verdict = AuthoritativeVerdict(
+        passed=False,
+        status="BLOCKED",
+        composite_score=0.55,
+        score_band="FAIL",
+        hard_gate_passed=True,
+        judge_passed=False,
+        violations=[],
+        failure_reasons=[],
+        feedback=["Executive peer resonance insufficient for C-suite recipient."],
+    )
+
+    with mock.patch.object(
+        OutreachOrchestrator,
+        "generate_single_draft",
+        return_value=(draft, verdict),
+    ):
+        res = run_canonical_apps_lic_spine({"company": "Acme Corp"}, artifact_dir=tmp_path / "dispatch_fb_fallback")
+        assert res["x3_code"] == "X3D_BLOCK"
+        assert res["is_valid"] is False
+        assert res["message"] == ""
+        assert res["failure_reasons"] == ["Executive peer resonance insufficient for C-suite recipient."]
+        assert "Executive peer resonance insufficient" in res["rationale"]
+        assert "Authoritative judge gates failed" in res["compliance_notes"]
+
+
+def test_canonical_dispatch_legacy_validation_result_rejected(tmp_path: Path):
+    """Verifies that a ValidationResult alone never authorizes completion."""
+    from apps_lic.domain.models import ValidationResult
+
+    draft = OutreachMessageDraft(
+        draft_id="d_val_result_test",
+        channel=ChannelType.LINKEDIN_INMAIL,
+        subject="Valid syntax message",
+        body="Valid message body with all hard constraints passing.",
+        grounded_facts_used=[],
+    )
+    val_result = ValidationResult(
+        is_valid=True,
+        hard_gate_passed=True,
+        violations=[],
+        warnings=[],
+    )
+
+    with mock.patch.object(
+        OutreachOrchestrator,
+        "generate_single_draft",
+        return_value=(draft, val_result),
+    ):
+        res = run_canonical_apps_lic_spine({"company": "Acme Corp"}, artifact_dir=tmp_path / "dispatch_val_result")
+        assert res["x3_code"] == "X3D_BLOCK"
+        assert res["is_valid"] is False
+        assert res["message"] == ""
+        assert "blocked by judge gates" in res["rationale"]
+        assert "Authoritative rubric judge failure" in res["failure_reasons"]
+
