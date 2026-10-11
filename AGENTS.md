@@ -89,6 +89,7 @@ The knowledge-graph Memory MCP is optional for graph queries or writeback when i
 - No bare `except Exception` without guardian
 - No edits during planning phase
 - ADG before grep for structure (§28); grep for literals/TODOs only
+- Output Brevity & Word Budget Invariant: Target ~120 words with a strict ceiling of 300 words. Focus on direct facts, empirical verification, and actionable results without conversational fluff.
 - Full rules: `AGENTS.md` + `docs/codex-primary-execution.md` · expanded lists: legacy compatibility notes only
 
 ## Production Derivation Integrity
@@ -139,3 +140,9 @@ Google Antigravity is the primary execution surface for this repository. Repo-ow
 - Workspace runtime boundaries and path containment policies live in `.antigravity/runtime-boundary.json`.
 - Plans are disk-only under `plans/<name>-<6hex>.md`.
 - **Worktree & Branch Post-PR Cleanup**: Following any PR merge into local `main`, the associated local worktree and its feature branch must be cleanly pruned (`git worktree remove <path>` and `git branch -d <branch>`) to maintain zero branch drift and prevent stale worktree accumulation.
+
+## Output Brevity & Word Budget Invariant
+
+- **Target Word Count**: Every output must target approximately 120 words.
+- **Hard Word Ceiling**: Every output must strictly never exceed a maximum of 300 words.
+- **Information Density**: Deliver direct facts, verifiable code actions, and actionable results. Eliminate conversational preamble, pleasantries, fluff, and unnecessary repetition.
