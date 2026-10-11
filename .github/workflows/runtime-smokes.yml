@@ -1,8 +1,9 @@
 name: runtime-smokes
 
+# Note: Automated PR execution for r1b-terminal, runtime-spine, and uwg-block
+# is consolidated into contract-gates.yml per .github/workflow-config.yaml.
+# runtime-smokes is retained for manual / on-demand diagnostic execution.
 on:
-  pull_request:
-    branches: ["**"]
   workflow_dispatch:
 
 permissions:
