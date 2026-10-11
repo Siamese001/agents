@@ -132,7 +132,7 @@ infra = [
 [tool.coverage.run]
 branch = true
 # Explicitly set the source to avoid ambiguity
-source = ["agentic_core"]
+source = ["infrastructure", "outreach_engine", "resume_graph_engine"]
 omit = [
     "*/tests/*",
     "*/stubs/*",
@@ -270,10 +270,7 @@ ignore = [
 "scripts/**/*.py" = ["S603", "S607"]  # Allow subprocess in scripts
 "ops_scripts/**/*.py" = ["S603", "S607", "F841", "F401", "F821", "F823"]  # Allow subprocess + lazy dynamic patterns
 "tools/**/*.py" = ["B011", "E712", "F841", "F821", "F823"]  # Allow evidence runner + lazy dynamic patterns
-"agentic_core/L6_system_learning/**/*.py" = ["E712", "F841", "F821", "F823"]  # Allow L6_system_learning lazy patterns
-"agentic_core/**/*.py" = ["F841", "F821"]  # Allow pre-existing unused vars + undefined names in complex agents
 "*.py" = ["F841"]  # Root-level scripts
-"agentic_core/**/scripts/*.py" = ["S603", "S607"]  # Allow subprocess in agent scripts
 "**/__init__.py" = ["F401"]  # Allow unused imports in __init__.py (re-exports)
 
 [tool.mypy]

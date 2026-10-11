@@ -284,8 +284,9 @@ repos:
         entry: py ops_scripts/ci/check_10c_pilot_proof_evidence.py
         language: system
         pass_filenames: false
-        files: ^(artifacts/requirements/proof_bundles/.*\.json|tests/fixtures/proof_evidence/.*\.py|tests/unit/agentic_core/L[125]_.*test_10c_req_(049|086|089|122|167)\.py|tests/unit/agentic_core/L4_state/test_10c_req_122\.py|ops_scripts/ci/check_10c_pilot_proof_evidence\.py|tools/requirements/(emit_proof_bundles|update_pilot_ledger)\.py)$
+        files: ^(artifacts/requirements/proof_bundles/.*\.json|tests/fixtures/proof_evidence/.*\.py|ops_scripts/ci/check_10c_pilot_proof_evidence\.py|tools/requirements/(emit_proof_bundles|update_pilot_ledger)\.py)$
         always_run: false
+
         require_serial: true
 
       # -- T6c2: Requirements Universe Inventory (advisory in pre-commit) ------------
@@ -359,21 +360,21 @@ repos:
         entry: py ops_scripts/ci/check_hardcoded_exclusions.py
         language: system
         pass_filenames: false
-        files: ^(agentic_core/.*\.py|apps_[^/]+/.*\.py|ops_scripts/.*\.py|tools/.*\.py|\.codex/governance/scripts/.*\.py|ops_scripts/ci/check_hardcoded_exclusions\.py|ops_scripts/ci/baselines/hardcoded_exclusions_baseline\.json)$
+        files: ^(apps_[^/]+/.*\.py|outreach_engine/.*\.py|resume_graph_engine/.*\.py|infrastructure/.*\.py|ops_scripts/.*\.py|tools/.*\.py|\.codex/governance/scripts/.*\.py|ops_scripts/ci/check_hardcoded_exclusions\.py|ops_scripts/ci/baselines/hardcoded_exclusions_baseline\.json)$
         always_run: false
         require_serial: true
 
       # -- T6f: Exclusion Consistency (R2) ---------------------------------------------
       # Validates that YAML mirror categories (sovereign_excluded_folders,
-      # global_excluded_dirs, discovery_excluded_territories) are byte-equal to the
-      # Python frozensets in agentic_core/L0_routing/config/path_constants.py.
+      # global_excluded_dirs, discovery_excluded_territories) are byte-equal.
       # Fix drift by editing whichever surface is wrong; the gate does not auto-fix.
       - id: exclusion-consistency
         name: "T6f: Exclusion YAML <-> Python Consistency"
         entry: py ops_scripts/ci/check_exclusion_consistency.py
         language: system
         pass_filenames: false
-        files: ^(config/excluded_paths\.yaml|agentic_core/L0_routing/config/path_constants\.py|ops_scripts/ci/check_exclusion_consistency\.py)$
+        files: ^(config/excluded_paths\.yaml|ops_scripts/ci/check_exclusion_consistency\.py)$
+
         always_run: false
         require_serial: true
 
@@ -537,23 +538,8 @@ repos:
         always_run: true
         require_serial: true
 
-      # -- GOV-3: Core Addition Author-Gate (Constitutional §CoreAdditionAuthorGate) --
-      # Fail-closed scanner for agentic_core/ changes that lack a valid
-      # CoreAdditionAuthorGateReceipt proof. Triggers on any agentic_core/ Python
-      # file change. Advisory mode local-only via CORE_ADDITION_GATE_ADVISORY=1.
-      # CI must not set advisory mode. Bypass: CORE_ADDITION_GATE_BYPASS=1 (audit-logged).
-      # Artifact: artifacts/ci/agentic_core_addition_gate.json
-      # Plan: .codex/plans/core-addition-author-gate-governance-f3b9e2.md (W4)
-      - id: gov3-core-addition-author-gate
-        name: "GOV-3: Core Addition Author-Gate (fail-closed)"
-        entry: py ops_scripts/ci/check_agentic_core_addition.py
-        language: system
-        pass_filenames: false
-        files: ^agentic_core/.*\.py$
-        always_run: false
-        require_serial: true
-
       # -- T7r: Always-On Token Budget (Anthropic two-tier compliance) -----------
+
       # Sums bytes of all .codex/rules/*.md with `trigger: always_on` and
       # fails when total exceeds 51,200 bytes / 12,800 tokens. Per Anthropic
       # "Architecture of Agentic RAG" (Apr 2026): always-on rules >50 KB
@@ -604,9 +590,8 @@ repos:
       # -- T7s.4: Apps_e2e Fort Knox SIGNED_PROOF — REMOVED 2026-06-14 (constitutional §32 decommissioned)
 
       # -- T7r: apps_* spine delegation (ADR-078) ----------------------------------
-      # Asserts every apps_*/ top-level package imports the agentic_core spine
-      # (L0_routing | L1_cognition | L2_execution). Catches the forbidden
-      # `apps_* standalone mini-runtime` mode via direct ADG SQLite query.
+      # Asserts apps_* boundary delegation.
+      # Catches the forbidden `apps_* standalone mini-runtime` mode via direct ADG SQLite query.
       # Plan: .codex/plans/adg-three-bucket-unified-c4f8e2.md (W3 P3.2 + W5 P5.1/P5.4).
       # Default: STRICT (W5 P5.1 flip, 2026-04-30) — exit 1 on violation.
       # Rollback: APPS_SPINE_DELEGATION_GATE_MODE=advisory (exit 0, JSON only).
@@ -635,12 +620,12 @@ repos:
         entry: py -m pytest tests/golden/prompt_reception/ -q --no-header
         language: system
         pass_filenames: false
-        files: ^(tests/golden/prompt_reception/.*|agentic_core/L2_execution/reasoning/(compiled_artifact|prompt_messages|slot_assembly_engine)\.py|agentic_core/L4_state/cache/replay_key\.py)$
+        files: ^tests/golden/prompt_reception/.*$
         always_run: false
         require_serial: true
 
       # ---- apps_rg Import-Boundary Ratchet (Wave 2, plan apps_rg_lean_core_binding_a1b2c3) ----
-      # Blocks NEW concrete agentic_core runtime imports from apps_rg production.
+      # Blocks NEW concrete runtime imports from apps_rg production.
       # Baseline (docs/reports/apps_rg/apps_rg_forbidden_core_import_baseline.json) is
       # currently 0 violations — the binding law holds. Commit-lane scoped to apps_rg
       # python + the ratchet test/baseline; full suite also runs in CI.
@@ -664,14 +649,6 @@ repos:
         require_serial: true
         stages: [manual]
 
-      - id: check-c0-sovereignty
-        name: "CI: C0 Sovereignty"
-        entry: py agentic_core/L0_routing/scripts/run_guardian_c0_sovereignty.py
-        language: system
-        pass_filenames: false
-        always_run: true
-        require_serial: true
-        stages: [manual]
 
       # apps_shared purity — block any import from apps_shared/ into a domain app.
       # SQLite-direct query against the canonical ADG snapshot (constitutional §28).
