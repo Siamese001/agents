@@ -12,9 +12,12 @@ import pytest
 # explicit skips. No whole-file collection quarantine is permitted here.
 
 # Ensure repo root is on sys.path BEFORE any test module import
-_REPO_ROOT = str(Path(__file__).resolve().parents[3])
+_REPO_ROOT = str(Path(__file__).resolve().parents[4])
 if _REPO_ROOT not in sys.path:
     sys.path.insert(0, _REPO_ROOT)
+_RG_SRC = str(Path(__file__).resolve().parents[3] / "src")
+if _RG_SRC not in sys.path:
+    sys.path.insert(0, _RG_SRC)
 
 # Purge any apps_rg shadow registered from tests/unit/apps_rg/__init__.py
 # so imports like `from apps_rg.config.X import Y` resolve to the real package

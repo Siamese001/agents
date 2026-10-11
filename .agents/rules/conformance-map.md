@@ -74,11 +74,12 @@ Traces every `AGENTS.md` section to enforceable rules, skills, hooks, tools, and
 | Hook | `.agents/hooks.json` → `agents-pytest-scope-guard` | Blocks bare `pytest` sweeps; mandates scoped execution |
 | Hook | `.agents/hooks.json` → `agents-background-task-reaper` | Intercepts background tests and kills tasks running > 2 min |
 
-### §"Core vs apps (summary)"
+### §"Subsystems vs Infrastructure (summary)"
 | Type | Path | Coverage |
 | :--- | :--- | :--- |
-| Rule | `agentic_core/AGENTS.md` | Layer boundary enforcement; apps customize inputs, core enforces |
+| Rule | `AGENTS.md` L108–L110 | Subsystem encapsulation; autonomous domains, shared utilities in infrastructure |
 | Tool | `tools/lint_layer_imports.py` | Unidirectional layer import linter (L0–L6) |
+| Tool | `tools/lint_architecture_boundaries.py` | Cross-subsystem architectural boundary enforcement |
 
 ### §"Rules & Skills SSOT"
 | Type | Path | Coverage |

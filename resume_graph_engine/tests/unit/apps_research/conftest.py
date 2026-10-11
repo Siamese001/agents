@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 
 # Ensure the repo root is on sys.path before any apps_research imports.
-_REPO_ROOT = str(Path(__file__).resolve().parents[3])
+_REPO_ROOT = str(Path(__file__).resolve().parents[4])
 if _REPO_ROOT not in sys.path:
     sys.path.insert(0, _REPO_ROOT)
 
