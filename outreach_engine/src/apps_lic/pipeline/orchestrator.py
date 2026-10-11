@@ -27,6 +27,7 @@ from apps_lic.domain.validators import (
     QuestionEndingValidator,
     SpamTriggerValidator,
     SubordinateToneValidator,
+    UnsupportedPersonalizationValidator,
 )
 from apps_lic.judges.evaluator import EvaluationReport, RubricJudgeEvaluator
 from apps_lic.pipeline.briefing_resolver import GovernedBriefingResolver, SealedBriefingResolution
@@ -52,6 +53,7 @@ class OutreachOrchestrator:
         self.md_link_validator = MarkdownLinkValidator()
         self.tone_validator = SubordinateToneValidator()
         self.forbidden_validator = ForbiddenClaimsValidator()
+        self.unsupported_personalization_validator = UnsupportedPersonalizationValidator()
         self.judge = RubricJudgeEvaluator()
 
     def resolve_opportunity_briefing(
@@ -166,6 +168,10 @@ class OutreachOrchestrator:
         )
 
         verdict = self.evaluate_authoritative_draft(draft, candidate, opp)
+        draft.metadata["passed"] = verdict.passed
+        draft.metadata["status"] = verdict.status
+        draft.metadata["violations"] = verdict.violations
+        draft.metadata["failure_reasons"] = verdict.failure_reasons
 
         if a_dir is not None:
             a_dir.mkdir(parents=True, exist_ok=True)
@@ -257,7 +263,7 @@ class OutreachOrchestrator:
         candidate: CandidateProfile,
         opportunity: Optional[TargetOpportunity] = None,
     ) -> ValidationResult:
-        """Runs all 7 validation gates over the draft."""
+        """Runs all 9 validation gates over the draft."""
         violations: List[str] = []
         warnings: List[str] = []
 
@@ -314,6 +320,12 @@ class OutreachOrchestrator:
         )
         violations.extend(fc_viols)
 
+        # 9. Unsupported personalization (unverified company priorities or offline fallback)
+        up_valid, up_viols = self.unsupported_personalization_validator.validate(
+            draft.body, opportunity
+        )
+        violations.extend(up_viols)
+
         hard_passed = len(violations) == 0
         return ValidationResult(
             is_valid=hard_passed,
@@ -329,6 +341,7 @@ class OutreachOrchestrator:
                 "link_score": 1.0 if link_valid else 0.0,
                 "tone_score": 1.0 if tone_valid else 0.0,
                 "forbidden_claims_score": 1.0 if fc_valid else 0.0,
+                "unsupported_personalization_score": 1.0 if up_valid else 0.0,
             },
         )
 

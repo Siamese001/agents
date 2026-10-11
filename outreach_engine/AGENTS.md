@@ -5,7 +5,7 @@
 - Keep generated environments and test artifacts outside version control.
 
 ## Standalone Subsystem Architecture
-- `apps_lic_v2` is an independent, self-contained subsystem with ZERO imports of `agentic_core` or `apps_shared`.
+- `apps_lic_v2` is an independent, self-contained subsystem with standard library and local package dependencies only.
 - All domain models, prompt compilers, validators, touch sequence schedulers, and judge evaluators are locally bounded under `src/apps_lic/`.
 
 ## Explicit validation only

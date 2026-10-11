@@ -1,6 +1,6 @@
 ---
 name: security-hardening
-description: Procedure for passing security validation before commit — no hardcoded secrets, no sensitive data in logs, vetted dependencies, and authorization checks on sensitive operations. Invoke when changing production code (agentic_core/, apps_*/, system_learning/), adding or updating a dependency, modifying logging, touching auth/authorization logic, or before committing any security-sensitive change.
+description: Procedure for passing security validation before commit — no hardcoded secrets, no sensitive data in logs, vetted dependencies, and authorization checks on sensitive operations. Invoke when changing production code (outreach_engine/, resume_graph_engine/, infrastructure/), adding or updating a dependency, modifying logging, touching auth/authorization logic, or before committing any security-sensitive change.
 metadata:
   enforcement_layer: deterministic
   enforcement_timing: before_work
@@ -21,7 +21,7 @@ This skill is specifically about *secrets, logs, dependencies, and authorization
 
 | User intent / trigger | Action |
 |---|---|
-| Editing production code (`agentic_core/`, `apps_*/`, `system_learning/`) or config | Run the four mandatory checks before commit |
+| Editing production code (`outreach_engine/`, `resume_graph_engine/`, `infrastructure/`) or config | Run the four mandatory checks before commit |
 | Adding / updating a dependency | Scan with `pip-audit`/`safety`; document the assessment; Author-Gate (Category A) |
 | Adding or changing logging | Verify no secrets/PII/tokens/connection-strings in output; mask sensitive values |
 | Changing auth/authorization logic | Author-Gate before the change; verify permission checks on sensitive ops |

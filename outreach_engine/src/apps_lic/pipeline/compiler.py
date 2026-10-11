@@ -271,66 +271,79 @@ class PromptCompiler:
             fact_short = (accum or " ".join(words[:6])) + "..."
 
         if template_id == "compact_recruiter_arc":
+            search_clause = f"{opportunity.company_name}'s {opportunity.role_title} search in {hook}" if hook else f"{opportunity.company_name}'s {opportunity.role_title} search"
             if opportunity.relationship_distance == RelationshipDistance.FORMER_COLLEAGUE:
                 body = (
                     f"Hi {opportunity.recipient_name},\n\n"
                     f"Great seeing your work at {opportunity.company_name}. "
-                    f"Following your {opportunity.role_title} search in {hook}. "
+                    f"Following your {opportunity.role_title} search" + (f" in {hook}." if hook else ".") + " "
                     f"As {candidate.target_title}, {fact_short}.\n\n"
                     f"Open to connecting?"
                 )
             elif opportunity.relationship_distance == RelationshipDistance.WARM_REFERRAL:
                 body = (
                     f"Hi {opportunity.recipient_name},\n\n"
-                    f"Reaching out via mutual connection regarding {opportunity.company_name}'s {opportunity.role_title} search in {hook}. "
+                    f"Reaching out via mutual connection regarding {search_clause}. "
                     f"As {candidate.target_title}, {fact_short}.\n\n"
                     f"Open to connecting?"
                 )
             else:
                 body = (
                     f"Hi {opportunity.recipient_name},\n\n"
-                    f"Following {opportunity.company_name}'s {opportunity.role_title} search in {hook}. "
+                    f"Following {search_clause}. "
                     f"As {candidate.target_title}, {fact_short}.\n\n"
                     f"Open to connecting?"
                 )
         else:
             if opportunity.relationship_distance == RelationshipDistance.FORMER_COLLEAGUE:
+                work_clause = f"Following your work in {hook}." if hook else f"Following your work at {opportunity.company_name}."
                 body = (
                     f"Hi {opportunity.recipient_name},\n\n"
                     f"Great seeing your momentum at {opportunity.company_name}. "
-                    f"Following your work in {hook}. "
+                    f"{work_clause} "
                     f"In my work as {candidate.target_title}, {fact_short}.\n\n"
                     f"Open to catching up?"
                 )
             elif opportunity.relationship_distance == RelationshipDistance.WARM_REFERRAL:
+                focus_clause = f"focus on {hook}" if hook else f"work in {opportunity.industry}"
                 body = (
                     f"Hi {opportunity.recipient_name},\n\n"
-                    f"Reaching out from our shared network regarding {opportunity.company_name}'s focus on {hook}. "
+                    f"Reaching out from our shared network regarding {opportunity.company_name}'s {focus_clause}. "
                     f"In my work as {candidate.target_title}, {fact_short}.\n\n"
                     f"Open to exchanging perspectives?"
                 )
             elif opportunity.relationship_distance == RelationshipDistance.SECOND_DEGREE:
+                focus_clause = f"focus on {hook}" if hook else f"work in {opportunity.industry}"
                 body = (
                     f"Hi {opportunity.recipient_name},\n\n"
-                    f"Following {opportunity.company_name}'s focus on {hook} from our shared circles. "
+                    f"Following {opportunity.company_name}'s {focus_clause} from our shared circles. "
                     f"In my work as {candidate.target_title}, {fact_short}.\n\n"
                     f"Open to exchanging perspectives?"
                 )
             else:
+                focus_clause = f"Noticed {opportunity.company_name}'s focus on {hook}." if hook else f"Following {opportunity.company_name}'s leadership in {opportunity.industry}."
                 body = (
                     f"Hi {opportunity.recipient_name},\n\n"
-                    f"Noticed {opportunity.company_name}'s focus on {hook}. "
+                    f"{focus_clause} "
                     f"In my work as {candidate.target_title}, {fact_short}.\n\n"
                     f"Open to exchanging perspectives?"
                 )
 
         if len(body) > 295:
-            body = (
-                f"Hi {opportunity.recipient_name},\n\n"
-                f"Following {opportunity.company_name}'s focus on {hook}. "
-                f"In my work as {candidate.target_title}, {fact_phrase[:70]}...\n\n"
-                f"Open to connecting?"
-            )
+            if hook:
+                body = (
+                    f"Hi {opportunity.recipient_name},\n\n"
+                    f"Following {opportunity.company_name}'s focus on {hook}. "
+                    f"In my work as {candidate.target_title}, {fact_short[:70]}...\n\n"
+                    f"Open to connecting?"
+                )
+            else:
+                body = (
+                    f"Hi {opportunity.recipient_name},\n\n"
+                    f"Following {opportunity.company_name}'s work in {opportunity.industry}. "
+                    f"In my work as {candidate.target_title}, {fact_short[:70]}...\n\n"
+                    f"Open to connecting?"
+                )
         return body
 
     def _compose_recruiter_draft(
@@ -353,18 +366,21 @@ class PromptCompiler:
 
         # Paragraph 1: Opener + Core fit statement and single proof point
         if opportunity.relationship_distance == RelationshipDistance.FORMER_COLLEAGUE:
+            search_clause = f"{opportunity.company_name}'s {opportunity.role_title} search in {hook}" if hook else f"{opportunity.company_name}'s {opportunity.role_title} search"
             p1 = (
-                f"Reaching out following our previous collaboration regarding {opportunity.company_name}'s {opportunity.role_title} search in {hook}. "
+                f"Reaching out following our previous collaboration regarding {search_clause}. "
                 f"As {candidate.target_title}, {fact_phrase}."
             )
         elif opportunity.relationship_distance == RelationshipDistance.WARM_REFERRAL:
+            search_clause = f"{opportunity.company_name}'s {opportunity.role_title} search in {hook}" if hook else f"{opportunity.company_name}'s {opportunity.role_title} search"
             p1 = (
-                f"Reaching out via mutual connection regarding {opportunity.company_name}'s {opportunity.role_title} search in {hook}. "
+                f"Reaching out via mutual connection regarding {search_clause}. "
                 f"As {candidate.target_title}, {fact_phrase}."
             )
         else:
+            priority_clause = f"regarding {opportunity.company_name}'s priorities in {hook}" if hook else f"regarding {opportunity.company_name}'s {opportunity.role_title} role"
             p1 = (
-                f"Reaching out regarding {opportunity.company_name}'s priorities in {hook}. "
+                f"Reaching out {priority_clause}. "
                 f"As {candidate.target_title}, {fact_phrase}."
             )
 
@@ -408,13 +424,13 @@ class PromptCompiler:
         if opportunity.relationship_distance == RelationshipDistance.FORMER_COLLEAGUE:
             opener = f"Great to see your continued momentum at {opportunity.company_name}."
         elif opportunity.relationship_distance == RelationshipDistance.WARM_REFERRAL:
-            opener = f"Reaching out following recommendations from our shared network regarding {opportunity.company_name}'s work in {hook}."
+            opener = f"Reaching out following recommendations from our shared network regarding {opportunity.company_name}'s work in {hook}." if hook else f"Reaching out following recommendations from our shared network regarding {opportunity.company_name}'s {opportunity.role_title} search."
         elif opportunity.relationship_distance == RelationshipDistance.SECOND_DEGREE:
-            opener = f"Reaching out from our shared network, following {opportunity.company_name}'s focus on {hook}."
+            opener = f"Reaching out from our shared network, following {opportunity.company_name}'s focus on {hook}." if hook else f"Reaching out from our shared network, following {opportunity.company_name}'s work in {opportunity.industry}."
         elif opportunity.recipient_class == RecipientClass.BOARD_MEMBER:
-            opener = f"Following {opportunity.company_name}'s strategic mandate and governance focus on {hook}."
+            opener = f"Following {opportunity.company_name}'s strategic mandate and governance focus on {hook}." if hook else f"Following {opportunity.company_name}'s strategic mandate and leadership in {opportunity.industry}."
         else:
-            opener = f"I have been following {opportunity.company_name}'s focus on {hook}."
+            opener = f"I have been following {opportunity.company_name}'s focus on {hook}." if hook else f"I have been following {opportunity.company_name}'s work in {opportunity.industry}."
 
         # 3. Slot 2: Strategic Fit Signal
         if opportunity.recipient_class == RecipientClass.BOARD_MEMBER:
@@ -458,13 +474,13 @@ class PromptCompiler:
         subject = f"{opportunity.company_name} / {opportunity.role_title} - Strategic Alignment"
 
         if opportunity.relationship_distance == RelationshipDistance.FORMER_COLLEAGUE:
-            opener = f"Great to reconnect as {opportunity.company_name} expands its focus on {hook}."
+            opener = f"Great to reconnect as {opportunity.company_name} expands its focus on {hook}." if hook else f"Great to reconnect as {opportunity.company_name} expands its {opportunity.role_title} team."
         elif opportunity.relationship_distance == RelationshipDistance.WARM_REFERRAL:
-            opener = f"Reaching out via our shared network regarding {opportunity.company_name}'s work in {hook}."
+            opener = f"Reaching out via our shared network regarding {opportunity.company_name}'s work in {hook}." if hook else f"Reaching out via our shared network regarding {opportunity.company_name}'s {opportunity.role_title} role."
         elif opportunity.relationship_distance == RelationshipDistance.SECOND_DEGREE:
-            opener = f"Following {opportunity.company_name}'s work in {opportunity.industry} from our shared circles."
+            opener = f"Following {opportunity.company_name}'s work in {hook} from our shared circles." if hook else f"Following {opportunity.company_name}'s work in {opportunity.industry} from our shared circles."
         else:
-            opener = f"I have been following {opportunity.company_name}'s work in {opportunity.industry}."
+            opener = f"I have been following {opportunity.company_name}'s focus on {hook}." if hook else f"I have been following {opportunity.company_name}'s work in {opportunity.industry}."
 
         fit = f"In my recent work as {candidate.target_title}, {fact_phrase}."
         reciprocity = "Happy to share our operational scaling framework and metrics if useful for your roadmap."
@@ -490,8 +506,17 @@ class PromptCompiler:
         fact_statement = lead_fact.statement if lead_fact else candidate.executive_summary
         fact_ids = [lead_fact.fact_id] if lead_fact else []
 
-        raw_hook = opportunity.strategic_priorities[0] if opportunity.strategic_priorities else opportunity.industry
-        hook = self._format_strategic_hook(raw_hook, company_name=opportunity.company_name)
+        sealed = getattr(opportunity, "sealed_resolution", None) or {}
+        is_verified = bool(sealed.get("is_verified", True))
+        if sealed.get("resolution_source") == "HERMETIC_FALLBACK":
+            is_verified = False
+        brief_text = getattr(opportunity, "briefing_text", "") or ""
+        if "UNVERIFIED OFFLINE FALLBACK" in brief_text:
+            is_verified = False
+
+        has_verified_priorities = bool(is_verified and opportunity.strategic_priorities)
+        raw_hook = opportunity.strategic_priorities[0] if has_verified_priorities else ""
+        hook = self._format_strategic_hook(raw_hook, company_name=opportunity.company_name) if raw_hook else ""
 
         # Connection notes have a strict 300-char limit
         if channel == ChannelType.LINKEDIN_CONNECTION:

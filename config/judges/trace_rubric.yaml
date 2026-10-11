@@ -13,7 +13,7 @@
 #                      before the judge itself is flagged for recalibration
 
 version: 1
-schema: agentic_core.evaluation.judges.trace_rubric_schema_v1
+schema: apps_eval.judges.trace_rubric_schema_v1
 reference_doc: https://developers.openai.com/api/docs/guides/agent-evals
 cross_ref_adr: docs/architecture/adr/ADR-036-runtime-trace-grader.md
 

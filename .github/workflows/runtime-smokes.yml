@@ -37,9 +37,7 @@ jobs:
           else
             : > changed-files.txt
             printf '%s\n' \
-              "agentic_core/runtime/manual_dispatch.py" \
-              "agentic_core/semantic_cache/manual_dispatch.py" \
-              "agentic_core/durable_write_gateway_manual_dispatch.py" >> changed-files.txt
+              "infrastructure/runtime/manual_dispatch.py" >> changed-files.txt
           fi
 
           python - <<'PY'
@@ -68,13 +66,11 @@ jobs:
           spine = any(
               p.startswith(
                   (
-                      "agentic_core/runtime/",
-                      "agentic_core/L2_execution/",
-                      "agentic_core/L3_orchestration/",
-                      "agentic_core/L5_safety/",
-                      "agentic_core/L7_auditability/",
+                      "infrastructure/",
+                      "apps_rg/runtime/",
                   )
               )
+
               or matches(
                   p,
                   (

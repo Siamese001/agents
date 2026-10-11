@@ -232,6 +232,16 @@ def dispatch_outreach_research_briefing(
             dispatch_duration_ms=_utc_ms() - t_start,
         )
 
+    if getattr(research_result, "is_stale", False):
+        return ResearchDispatchFailure(
+            request_id=request.request_id,
+            run_id=request.run_id,
+            trace_id=request.trace_id,
+            r5_reason_code=ResearchFailureReason.APPS_RESEARCH_STALE.value,
+            detail="Research result is marked stale",
+            dispatch_duration_ms=_utc_ms() - t_start,
+        )
+
     if not str(research_result.company_brief_text or "").strip():
         return ResearchDispatchFailure(
             request_id=request.request_id,
@@ -241,6 +251,19 @@ def dispatch_outreach_research_briefing(
             detail="company_brief_text is empty",
             dispatch_duration_ms=_utc_ms() - t_start,
         )
+
+    # Validate evidence items source integrity
+    for ev in research_result.evidence_items:
+        ev_uri = getattr(ev, "uri", "") or ""
+        if not str(ev_uri).strip():
+            return ResearchDispatchFailure(
+                request_id=request.request_id,
+                run_id=request.run_id,
+                trace_id=request.trace_id,
+                r5_reason_code=ResearchFailureReason.APPS_RESEARCH_FAILED.value,
+                detail=f"Evidence item {getattr(ev, 'source_id', 'unknown')} lacks source URI",
+                dispatch_duration_ms=_utc_ms() - t_start,
+            )
 
     if research_result.confidence_score < request.min_confidence_threshold:
         return ResearchDispatchFailure(
@@ -257,6 +280,20 @@ def dispatch_outreach_research_briefing(
 
     # Validate persisted producer artifacts if artifact persistence was expected
     if research_result.research_artifact_dir:
+        ttl_seconds = max(1, request.freshness_ttl_days) * 86400.0
+        meta_path = Path(research_result.research_artifact_dir) / "run_metadata.json"
+        if meta_path.is_file():
+            age_seconds = time.time() - meta_path.stat().st_mtime
+            if age_seconds > ttl_seconds:
+                return ResearchDispatchFailure(
+                    request_id=request.request_id,
+                    run_id=request.run_id,
+                    trace_id=request.trace_id,
+                    r5_reason_code=ResearchFailureReason.APPS_RESEARCH_STALE.value,
+                    detail=f"Research artifact is stale (age={age_seconds / 86400.0:.1f}d > ttl={request.freshness_ttl_days}d)",
+                    dispatch_duration_ms=_utc_ms() - t_start,
+                )
+
         artifacts_valid, artifact_detail, artifact_refs = _validate_persisted_research_artifacts(
             research_result
         )

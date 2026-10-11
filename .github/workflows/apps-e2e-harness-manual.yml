@@ -54,7 +54,7 @@ jobs:
 
       - name: Run shared verifier + matrix + anti-cheat tests
         run: |
-          python -m pytest tests/runtime/test_apps_e2e_auditability_harness.py tests/runtime/test_apps_e2e_matrix.py tests/runtime/test_apps_e2e_anti_cheat.py tests/runtime/test_apps_e2e_two_gate_negative_controls.py tests/runtime/test_agentic_core_spine_proof.py -q --no-header -p no:cacheprovider
+          python -m pytest tests/runtime/test_apps_e2e_auditability_harness.py tests/runtime/test_apps_e2e_matrix.py tests/runtime/test_apps_e2e_anti_cheat.py tests/runtime/test_apps_e2e_two_gate_negative_controls.py -q --no-header -p no:cacheprovider
 
       # ---- W4: Two-gate certification ----
       # Gate 1: bundle emission. MUST pass.
@@ -136,15 +136,3 @@ jobs:
             artifacts/certification/apps_e2e/**/*.log
           retention-days: 30
 
-      - name: Emit core spine proof (separate harness)
-        if: always()
-        run: |
-          python -m tools.certification.agentic_core_e2e.run_core_proof
-
-      - name: Upload core spine proof
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: agentic-core-spine-proof-${{ github.run_id }}
-          path: artifacts/certification/agentic_core_e2e/*.json
-          retention-days: 30

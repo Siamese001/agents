@@ -1,7 +1,6 @@
 # Graph skills authority ratchet — CONTRACT_TEST_PROOF for graph-skills-quality-enhancement (W7 / G-W7).
 #
 # Enforces:
-#   - No agentic_core/ diffs while plan touches_agentic_core=false (W10-AG may opt in via env)
 #   - Unit contract tests for graph-skills authority, capsule, FEC, hybrid, rubric, v2 migration
 #
 # Historical plan: .codex/plans/_archive/2026-05/graph-skills-quality-enhancement-c4e8a1.md
@@ -11,11 +10,6 @@ name: Graph Skills Authority Ratchet
 
 on:
   workflow_dispatch:
-    inputs:
-      base_ref:
-        description: "Base ref for agentic_core boundary comparison"
-        required: false
-        default: "origin/main"
 
 concurrency:
   group: graph-skills-authority-ratchet-${{ github.ref }}
@@ -40,12 +34,8 @@ jobs:
           python-version: "3.12"
           install-mode: editable
 
-      - name: agentic_core boundary (no diffs)
-        env:
-          GRAPH_SKILLS_BASE_REF: ${{ github.event.inputs.base_ref || 'origin/main' }}
-        run: python ops_scripts/ci/check_graph_skills_agentic_core_boundary.py --base-ref "${GRAPH_SKILLS_BASE_REF}"
-
       - name: Graph-skills contract pytest suite
+
         run: |
           python -m pytest \
             tests/unit/apps_rg/test_graph_skills_authority_separation.py \

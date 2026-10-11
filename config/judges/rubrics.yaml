@@ -1,7 +1,7 @@
 # SSOT rubric bank for LLM-as-Judge (hardening plan ENH5.2).
 #
 # Each rubric is consumed by the per-dimension isolated judges in
-# agentic_core/evaluation/judges/llm_judge.py. The canonical prompt
+# apps_eval/judges/llm_judge.py. The canonical prompt
 # strings live in the module (DIMENSION_RUBRICS) so the wire-level
 # content is deterministic; this yaml captures the intent, scale
 # anchors, default weights, and gating thresholds used by the
@@ -19,7 +19,8 @@
 #                      re-calibration. Tracked per-run by scorecard.
 
 version: 1
-schema: agentic_core.evaluation.judges.rubric_schema_v1
+schema: apps_eval.judges.rubric_schema_v1
+
 reference_doc: https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents
 
 dimensions:

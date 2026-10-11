@@ -460,6 +460,62 @@ class ForbiddenClaimsValidator:
         return len(violations) == 0, violations
 
 
+class UnsupportedPersonalizationValidator:
+    """Detects and blocks unsupported personalization claiming company strategic priorities without verified briefing evidence."""
+
+    _PERSONALIZATION_PATTERNS = [
+        re.compile(r"\b(?:following|noticed)\s+[^,\n]+(?:'s|’s)\s+(?:focus\s+on|priorities\s+in)\s+([^.,\n\?]+)", re.IGNORECASE),
+        re.compile(r"\b(?:focus\s+on|priorities\s+in|strategic\s+mandate\s+in)\s+([^.,\n\?]+)", re.IGNORECASE),
+    ]
+
+    def validate(
+        self,
+        body: str,
+        opportunity: Optional[Any] = None,
+    ) -> tuple[bool, List[str]]:
+        violations: List[str] = []
+        if opportunity is None:
+            return True, violations
+
+        # Check verification status
+        sealed = getattr(opportunity, "sealed_resolution", None) or {}
+        is_verified = bool(sealed.get("is_verified", True))
+        if sealed.get("resolution_source") == "HERMETIC_FALLBACK":
+            is_verified = False
+        brief_text = getattr(opportunity, "briefing_text", "") or ""
+        if "UNVERIFIED OFFLINE FALLBACK" in brief_text:
+            is_verified = False
+
+        verified_priorities = [p.lower() for p in getattr(opportunity, "strategic_priorities", [])]
+
+        for pat in self._PERSONALIZATION_PATTERNS:
+            match = pat.search(body)
+            if match:
+                claimed_focus = match.group(1).strip()
+                # If the briefing is unverified, asserting company strategic focus is unsupported
+                if not is_verified:
+                    violations.append(
+                        f"Unsupported personalization detected: draft claims company strategic focus '{claimed_focus}' under an unverified briefing resolution."
+                    )
+                    break
+                # If verified but no strategic priorities were found
+                if not verified_priorities:
+                    violations.append(
+                        f"Unsupported personalization detected: draft claims company strategic focus '{claimed_focus}' but opportunity has no verified strategic priorities."
+                    )
+                    break
+                # If verified priorities exist, ensure claimed focus matches at least one keyword
+                focus_tokens = [tok for tok in re.findall(r"\b[A-Za-z]{4,}\b", claimed_focus.lower())]
+                matched = any(any(tok in p for tok in focus_tokens) for p in verified_priorities)
+                if not matched and focus_tokens:
+                    violations.append(
+                        f"Unsupported personalization detected: claimed focus '{claimed_focus}' does not match verified strategic priorities."
+                    )
+                    break
+
+        return len(violations) == 0, violations
+
+
 __all__ = [
     "ChannelLengthValidator",
     "EmDashValidator",
@@ -469,4 +525,5 @@ __all__ = [
     "QuestionEndingValidator",
     "SpamTriggerValidator",
     "SubordinateToneValidator",
+    "UnsupportedPersonalizationValidator",
 ]

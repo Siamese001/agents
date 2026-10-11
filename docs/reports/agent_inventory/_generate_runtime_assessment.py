@@ -68,23 +68,8 @@ def layer_from_path(rel: str) -> str:
 
 
 def load_taxonomy() -> dict[str, dict]:
-    sys.path.insert(0, str(REPO))
-    try:
-        from agentic_core.L2_execution.types.agent_taxonomy_registry import AGENT_TAXONOMY_MAP
-    except Exception as exc:  # noqa: BLE001
-        return {"_error": str(exc)}
-    out: dict[str, dict] = {}
-    for key, c in AGENT_TAXONOMY_MAP.items():
-        if not c.file_path.startswith("agentic_core/"):
-            continue
-        out[c.class_name] = {
-            "taxonomy_key": key,
-            "file_path": c.file_path,
-            "layer": c.current_layer,
-            "role": c.canonical_role.value,
-            "status": c.status.value,
-        }
-    return out
+    return {"_error": "agentic_core decommissioned"}
+
 
 
 def git_grep_count(pattern: str, path: str = "agentic_core") -> int:
@@ -430,63 +415,16 @@ def collect_candidates() -> list[tuple[str, str, str, list[str]]]:
 
 
 def try_spine_run() -> dict:
-    """Attempt canonical spine artifact emission."""
-    out_dir = REPO / "artifacts/reports/agent_inventory/_spine_proof_run"
-    out_dir.mkdir(parents=True, exist_ok=True)
-    result = {
-        "attempted": True,
-        "exit_code": None,
-        "error": None,
+    """Attempt canonical spine artifact emission (decommissioned)."""
+    return {
+        "attempted": False,
+        "exit_code": 0,
+        "error": "Decommissioned - agentic_core is no longer present",
         "artifacts": [],
         "producer_components": [],
         "agent_strings_in_artifacts": [],
     }
-    script = r"""
-import json
-from pathlib import Path
-from unittest.mock import MagicMock, patch
-out_dir = Path(r'%s')
-from agentic_core.runtime.entrypoints.integrated_single_action_spine_run import run_integrated_single_action_spine
-raw = {
-    'request_id': 'inv-assess-001',
-    'trace_root': 'inv-trace-001',
-    'jd_payload': {'title': 'T', 'description': 'd'},
-    'jd_hash': 'a', 'brief_hash': 'b', 'resume_hash': 'c',
-}
-mock_l2 = MagicMock(return_value={'status': 'success'})
-with patch('agentic_core.runtime.l2_recipe_resolver.resolve_l2_recipe', return_value=mock_l2):
-    r = run_integrated_single_action_spine(
-        raw_request=raw, app_name='apps_rg', artifact_dir=out_dir,
-        _test_mode=True, l2_callable=mock_l2,
-    )
-print(json.dumps({'fault': r.fault, 'run_id': r.run_id, 'x3': r.x3_disposition}))
-""" % str(out_dir).replace("\\", "/")
-    proc = subprocess.run(
-        [sys.executable, "-c", script],
-        cwd=str(REPO),
-        capture_output=True,
-        text=True,
-        timeout=60,
-    )
-    result["exit_code"] = proc.returncode
-    if proc.returncode != 0:
-        result["error"] = (proc.stderr or proc.stdout or "")[-2000:]
-        return result
-    for p in sorted(out_dir.glob("*.json")):
-        result["artifacts"].append(p.relative_to(REPO).as_posix())
-        try:
-            blob = json.loads(p.read_text(encoding="utf-8"))
-        except json.JSONDecodeError:
-            continue
-        text = json.dumps(blob)
-        if "producer_component" in text:
-            pcs = re.findall(r'"producer_component"\s*:\s*"([^"]+)"', text)
-            result["producer_components"].extend(pcs)
-        for agent_name in re.findall(r"[A-Z][a-zA-Z]+Agent", text):
-            if agent_name.startswith("agentic_core"):
-                continue
-            result["agent_strings_in_artifacts"].append(f"{p.name}:{agent_name}")
-    return result
+
 
 
 def load_w3_live_report() -> dict[str, Any]:
