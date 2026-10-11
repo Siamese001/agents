@@ -167,6 +167,9 @@ class OutreachOrchestrator:
             },
         )
 
+        from apps_lic.domain.repair import DeterministicDraftRepairer
+        DeterministicDraftRepairer.repair_draft(draft, channel=channel)
+
         verdict = self.evaluate_authoritative_draft(draft, candidate, opp)
         draft.metadata["passed"] = verdict.passed
         draft.metadata["status"] = verdict.status

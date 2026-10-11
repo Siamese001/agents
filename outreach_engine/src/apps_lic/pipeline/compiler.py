@@ -116,10 +116,11 @@ class PromptCompiler:
         audience_persona: Optional[AudiencePersona] = None,
     ) -> Dict[str, Any]:
         """Assembles verified context slots with zero hallucinated facts."""
+        grounded = candidate.grounded_facts
         facts_block = "\n".join(
             f"- [{f.fact_id}] {f.statement} (Metric: {f.metric or 'N/A'})"
-            for f in candidate.verified_facts
-        )
+            for f in grounded
+        ) if grounded else "- No provenance-backed candidate facts available."
 
         priorities_block = "\n".join(f"- {p}" for p in opportunity.strategic_priorities)
 
@@ -502,7 +503,8 @@ class PromptCompiler:
         context = self.assemble_context(candidate, opportunity, channel, audience_persona)
         template_id = context["template_id"]
 
-        lead_fact = candidate.verified_facts[0] if candidate.verified_facts else None
+        grounded = candidate.grounded_facts
+        lead_fact = grounded[0] if grounded else None
         fact_statement = lead_fact.statement if lead_fact else candidate.executive_summary
         fact_ids = [lead_fact.fact_id] if lead_fact else []
 
@@ -529,8 +531,12 @@ class PromptCompiler:
         else:
             subject, body = self._compose_general_draft(candidate, opportunity, channel, hook, fact_statement)
 
-        # Enforce no em dashes
-        body = body.replace("—", ", ").replace("\u2014", ", ")
-        subject = subject.replace("—", "-").replace("\u2014", "-")
+        from apps_lic.domain.repair import DeterministicDraftRepairer
+        body, subject = DeterministicDraftRepairer.repair_text(
+            body=body,
+            subject=subject,
+            channel=channel,
+            persona=audience_persona,
+        )
 
         return subject, body, fact_ids
