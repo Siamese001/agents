@@ -192,40 +192,31 @@ class TouchSequencePlanner:
         )
 
         # -----------------------------------------------------------------
-        # Validate and Evaluate All Touches through Domain & Rubric Gates
+        # Authoritative Evaluation of All Touches in a Single Pass
         # -----------------------------------------------------------------
-        allowed_facts = {f.fact_id for f in candidate.verified_facts}
+        blocked_summary: List[dict] = []
         for touch in touches:
             d = touch.draft
-            # 1. Validation gates
-            spam_valid, spam_viols, spam_warns = self._spam_validator.validate(d.body)
-            len_valid, len_err = self._length_validator.validate(d.channel, d.body)
-            q_valid, q_err = self._question_validator.validate(d.body)
-            g_valid, g_viols = self._grounding_validator.validate(d.grounded_facts_used, allowed_facts)
-            dash_valid, dash_err = self._dash_validator.validate(d.body)
-            link_valid, link_err = self._link_validator.validate(d.body)
-            tone_valid, tone_viols = self._tone_validator.validate(d.body)
-            fc_valid, fc_viols = self._forbidden_validator.validate(d.body, candidate.verified_facts)
+            verdict = self._judge_panel.evaluate_authoritative(d, candidate, opportunity)
+            d.metadata["authoritative_verdict"] = verdict.to_dict()
+            d.metadata["validation_violations"] = list(verdict.violations)
+            d.metadata["evaluation_report"] = verdict.to_dict()
+            d.metadata["passed"] = verdict.passed
+            d.metadata["status"] = verdict.status
+            d.metadata["failure_reasons"] = list(verdict.failure_reasons)
 
-            all_viols: List[str] = list(spam_viols)
-            if len_err:
-                all_viols.append(len_err)
-            if q_err:
-                all_viols.append(q_err)
-            all_viols.extend(g_viols)
-            if dash_err:
-                all_viols.append(dash_err)
-            if link_err:
-                all_viols.append(link_err)
-            all_viols.extend(tone_viols)
-            all_viols.extend(fc_viols)
+            if not verdict.passed:
+                blocked_summary.append({
+                    "touch_number": touch.touch_number,
+                    "day_offset": touch.day_offset,
+                    "channel": touch.channel.value,
+                    "objective": touch.objective,
+                    "status": "BLOCKED",
+                    "failure_reasons": list(verdict.failure_reasons),
+                    "violations": list(verdict.violations),
+                })
 
-            # 2. Evaluation panel
-            eval_report = self._judge_panel.evaluate(d, candidate, opportunity)
-
-            d.metadata["validation_violations"] = all_viols
-            d.metadata["evaluation_report"] = eval_report.to_dict()
-            d.metadata["passed"] = (len(all_viols) == 0) and eval_report.passed
+        seq_status = "PASSED" if not blocked_summary else "BLOCKED"
 
         return TouchSequence(
             sequence_id=sequence_id,
@@ -233,4 +224,6 @@ class TouchSequencePlanner:
             opportunity_id=opportunity.opportunity_id,
             touches=touches,
             sealed_resolution=opportunity.sealed_resolution,
+            status=seq_status,
+            blocked_touches=blocked_summary,
         )

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from apps_lic.domain.models import (
     AudiencePersona,
+    AuthoritativeVerdict,
     CandidateFact,
     CandidateProfile,
     CandidateProfileLoader,
@@ -39,6 +40,7 @@ from apps_lic.runtime.model_registry import (
 
 __all__ = [
     "AudiencePersona",
+    "AuthoritativeVerdict",
     "CandidateFact",
     "CandidateProfile",
     "CandidateProfileLoader",

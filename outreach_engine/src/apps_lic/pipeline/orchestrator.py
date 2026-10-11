@@ -9,6 +9,7 @@ from typing import Any, Dict, List, Optional
 
 from apps_lic.domain.models import (
     AudiencePersona,
+    AuthoritativeVerdict,
     CandidateProfile,
     ChannelType,
     OutreachMessageDraft,
@@ -111,7 +112,7 @@ class OutreachOrchestrator:
         job_description_text: str = "",
         artifact_dir: Path | str | None = None,
         trace_id: str = "",
-    ) -> tuple[OutreachMessageDraft, ValidationResult]:
+    ) -> tuple[OutreachMessageDraft, AuthoritativeVerdict]:
         """Generates and validates a single grounded outreach draft with governed briefing."""
         a_dir = Path(artifact_dir) if artifact_dir else None
         artifact_runs_root = (a_dir / "apps_research" / "runs") if a_dir else None
@@ -164,41 +165,53 @@ class OutreachOrchestrator:
             },
         )
 
-        validation = self.validate_draft(draft, candidate)
+        verdict = self.evaluate_authoritative_draft(draft, candidate, opp)
 
         if a_dir is not None:
             a_dir.mkdir(parents=True, exist_ok=True)
             draft_dict = {
                 "draft_id": draft.draft_id,
-                "status": "PASSED" if validation.is_valid else "BLOCKED",
-                "is_valid": validation.is_valid,
-                "violations": validation.violations,
+                "status": verdict.status,
+                "is_valid": verdict.passed,
+                "sealed": verdict.passed,
+                "violations": verdict.violations,
+                "failure_reasons": verdict.failure_reasons,
                 "channel": draft.channel.value,
                 "audience_persona": persona.value,
                 "subject": draft.subject,
-                "body": draft.body,
-                "signature_block": draft.signature_block,
+                "body": draft.body if verdict.passed else "",
+                "signature_block": draft.signature_block if verdict.passed else "",
                 "character_count": draft.character_count,
                 "grounded_facts_used": draft.grounded_facts_used,
                 "research_metadata": draft.research_metadata,
             }
             (a_dir / "outreach_draft.json").write_text(json.dumps(draft_dict, indent=2) + "\n", encoding="utf-8")
-            draft_body_full = f"{draft.body}\n\n{draft.signature_block}" if draft.signature_block else draft.body
-            (a_dir / "outreach_draft.md").write_text(
-                f"# Outreach Draft: {draft.channel.value.upper()}\n\n"
-                f"**Subject**: {draft.subject}\n\n"
-                f"```text\n{draft_body_full}\n```\n",
-                encoding="utf-8",
-            )
+
+            draft_md_file = a_dir / "outreach_draft.md"
+            if verdict.passed:
+                draft_body_full = f"{draft.body}\n\n{draft.signature_block}" if draft.signature_block else draft.body
+                draft_md_file.write_text(
+                    f"# Outreach Draft: {draft.channel.value.upper()}\n\n"
+                    f"**Subject**: {draft.subject}\n\n"
+                    f"```text\n{draft_body_full}\n```\n",
+                    encoding="utf-8",
+                )
+            elif draft_md_file.is_file():
+                draft_md_file.unlink()
+
             val_dict = {
-                "is_valid": validation.is_valid,
-                "violations": validation.violations,
-                "warnings": validation.warnings,
-                "scores": validation.scores,
+                "status": verdict.status,
+                "is_valid": verdict.passed,
+                "hard_gate_passed": verdict.hard_gate_passed,
+                "judge_passed": verdict.judge_passed,
+                "violations": verdict.violations,
+                "warnings": verdict.warnings,
+                "failure_reasons": verdict.failure_reasons,
+                "scores": verdict.scores,
             }
             (a_dir / "validation_report.json").write_text(json.dumps(val_dict, indent=2) + "\n", encoding="utf-8")
 
-        return draft, validation
+        return draft, verdict
 
     def validate_draft(
         self, draft: OutreachMessageDraft, candidate: CandidateProfile
@@ -273,7 +286,7 @@ class OutreachOrchestrator:
         *,
         artifact_dir: Path | str | None = None,
     ) -> EvaluationReport:
-        """Evaluates draft against the 4 canonical rubric judges."""
+        """Evaluates draft against the canonical rubric judges."""
         report = self.judge.evaluate(draft, candidate, opportunity)
         if artifact_dir is not None:
             a_dir = Path(artifact_dir)
@@ -282,6 +295,25 @@ class OutreachOrchestrator:
                 json.dumps(report.to_dict(), indent=2) + "\n", encoding="utf-8"
             )
         return report
+
+    def evaluate_authoritative_draft(
+        self,
+        draft: OutreachMessageDraft,
+        candidate: CandidateProfile,
+        opportunity: TargetOpportunity,
+        *,
+        artifact_dir: Path | str | None = None,
+    ) -> AuthoritativeVerdict:
+        """Evaluates draft with single-pass consolidated authoritative verdict."""
+        verdict = self.judge.evaluate_authoritative(draft, candidate, opportunity)
+        if artifact_dir is not None:
+            a_dir = Path(artifact_dir)
+            a_dir.mkdir(parents=True, exist_ok=True)
+            (a_dir / "evaluation_report.json").write_text(
+                json.dumps(self.judge.evaluate(draft, candidate, opportunity).to_dict(), indent=2) + "\n",
+                encoding="utf-8",
+            )
+        return verdict
 
     def generate_full_campaign(
         self,
@@ -318,13 +350,34 @@ class OutreachOrchestrator:
         )
         sequence.sealed_resolution = opp.sealed_resolution
 
+        # Partition touches into successful vs blocked
+        successful_touches = [t for t in sequence.touches if t.draft.metadata.get("passed", False)]
+        blocked_touches = [
+            {
+                "touch_number": t.touch_number,
+                "day_offset": t.day_offset,
+                "channel": t.channel.value,
+                "objective": t.objective,
+                "status": "BLOCKED",
+                "failure_reasons": t.draft.metadata.get("failure_reasons", []),
+                "violations": t.draft.metadata.get("validation_violations", []),
+            }
+            for t in sequence.touches
+            if not t.draft.metadata.get("passed", False)
+        ]
+        campaign_status = "PASSED" if not blocked_touches else "BLOCKED"
+        sequence.status = campaign_status
+        sequence.blocked_touches = blocked_touches
+
         if a_dir is not None:
             a_dir.mkdir(parents=True, exist_ok=True)
             seq_dict = {
                 "sequence_id": sequence.sequence_id,
+                "status": campaign_status,
                 "candidate_id": sequence.candidate_id,
                 "opportunity_id": sequence.opportunity_id,
-                "touch_count": len(sequence.touches),
+                "touch_count": len(successful_touches),
+                "total_planned_touches": len(sequence.touches),
                 "touches": [
                     {
                         "touch_number": t.touch_number,
@@ -333,9 +386,11 @@ class OutreachOrchestrator:
                         "objective": t.objective,
                         "subject": t.draft.subject,
                         "body": t.draft.body,
+                        "status": "PASSED",
                     }
-                    for t in sequence.touches
+                    for t in successful_touches
                 ],
+                "blocked_touches": blocked_touches,
             }
             (a_dir / "campaign_sequence.json").write_text(
                 json.dumps(seq_dict, indent=2) + "\n", encoding="utf-8"
