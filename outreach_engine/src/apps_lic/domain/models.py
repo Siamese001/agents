@@ -221,6 +221,47 @@ class ValidationResult:
 
 
 @dataclass
+class AuthoritativeVerdict:
+    """Consolidated authoritative verdict across domain validators and judge rubric."""
+    passed: bool
+    status: str  # "PASSED" or "BLOCKED"
+    composite_score: float
+    score_band: str  # "EXEMPLARY", "ACCEPTABLE", "FAIL"
+    hard_gate_passed: bool
+    judge_passed: bool
+    violations: List[str] = field(default_factory=list)
+    warnings: List[str] = field(default_factory=list)
+    failure_reasons: List[str] = field(default_factory=list)
+    lens_scores: Dict[str, float] = field(default_factory=dict)
+    feedback: List[str] = field(default_factory=list)
+    remediation_hints: List[str] = field(default_factory=list)
+    scores: Dict[str, float] = field(default_factory=dict)
+
+    @property
+    def is_valid(self) -> bool:
+        """Duck-typing compatibility with ValidationResult."""
+        return self.passed
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "passed": self.passed,
+            "status": self.status,
+            "composite_score": self.composite_score,
+            "score_band": self.score_band,
+            "hard_gate_passed": self.hard_gate_passed,
+            "judge_passed": self.judge_passed,
+            "is_valid": self.is_valid,
+            "violations": list(self.violations),
+            "warnings": list(self.warnings),
+            "failure_reasons": list(self.failure_reasons),
+            "lens_scores": dict(self.lens_scores),
+            "feedback": list(self.feedback),
+            "remediation_hints": list(self.remediation_hints),
+            "scores": dict(self.scores),
+        }
+
+
+@dataclass
 class TouchPoint:
     """A single scheduled touch within a multi-touch cadence."""
     touch_number: int
@@ -238,3 +279,6 @@ class TouchSequence:
     opportunity_id: str
     touches: List[TouchPoint] = field(default_factory=list)
     sealed_resolution: Optional[Dict[str, Any]] = None
+    status: str = "PASSED"
+    blocked_touches: List[Dict[str, Any]] = field(default_factory=list)
+

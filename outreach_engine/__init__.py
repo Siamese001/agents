@@ -23,6 +23,7 @@ if str(_REPO_ROOT) not in sys.path:
 # Re-export canonical domain and pipeline models
 from apps_lic.domain.models import (
     AudiencePersona,
+    AuthoritativeVerdict,
     CandidateFact,
     CandidateProfile,
     CandidateProfileLoader,
@@ -61,6 +62,7 @@ from apps_lic.__main__ import main
 
 __all__ = [
     "AudiencePersona",
+    "AuthoritativeVerdict",
     "CandidateFact",
     "CandidateProfile",
     "CandidateProfileLoader",

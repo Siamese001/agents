@@ -227,59 +227,88 @@ def _handle_run(args: argparse.Namespace, prog: str = "python -m outreach_engine
         artifact_dir=artifact_dir,
     )
 
+    has_blocked_touch = bool(sequence.blocked_touches)
+    all_passed = val.passed and evaluation.passed and not has_blocked_touch
+    run_status = "PASSED" if all_passed else "BLOCKED"
+
     if getattr(args, "json", False):
+        all_failure_reasons = list(val.failure_reasons)
+        for bt in sequence.blocked_touches:
+            for r in bt.get("failure_reasons", []):
+                msg = f"Touch {bt['touch_number']}: {r}"
+                if msg not in all_failure_reasons:
+                    all_failure_reasons.append(msg)
+
         result_payload = {
             "run_id": run_id,
             "artifact_dir": str(artifact_dir),
-            "status": "PASSED" if val.is_valid and evaluation.passed else "FAILED",
+            "status": run_status,
             "audience_persona": persona.value,
             "resolution_source": draft.research_metadata.get("resolution_source", "none"),
             "draft": {
                 "channel": channel.value,
                 "subject": draft.subject,
-                "body": draft.body,
+                "body": draft.body if val.passed else "",
                 "character_count": draft.character_count,
                 "template_id": draft.metadata.get("template_id", "default"),
-                "signature_block": draft.signature_block,
+                "signature_block": draft.signature_block if val.passed else "",
+                "status": val.status,
+                "sealed": val.passed,
             },
             "validation": {
+                "status": val.status,
                 "is_valid": val.is_valid,
                 "violations": val.violations,
                 "warnings": val.warnings,
+                "failure_reasons": val.failure_reasons,
             },
             "evaluation": evaluation.to_dict(),
+            "campaign_status": sequence.status,
             "campaign_touches": [
                 {
                     "touch_number": t.touch_number,
                     "day_offset": t.day_offset,
                     "channel": t.channel.value,
                     "objective": t.objective,
+                    "status": t.draft.metadata.get("status", "PASSED"),
+                    "promoted": t.draft.metadata.get("passed", True),
+                    "failure_reasons": t.draft.metadata.get("failure_reasons", []),
                 }
                 for t in sequence.touches
             ],
+            "blocked_touches": sequence.blocked_touches,
         }
+        if not all_passed:
+            result_payload["failure_reasons"] = all_failure_reasons
+
         print(json.dumps(result_payload, indent=2))
-        return 0 if (val.is_valid and evaluation.passed) else 1
+        return 0 if all_passed else 1
 
     print("\n" + "=" * 60)
     print(f"OUTREACH DRAFT ({channel.value.upper()} | {persona.value.upper()}):")
     print("=" * 60)
-    print(f"Subject: {draft.subject}")
-    print("-" * 60)
-    print(draft.body)
-    if draft.signature_block:
+    if val.passed:
+        print(f"Subject: {draft.subject}")
         print("-" * 60)
-        print(draft.signature_block)
+        print(draft.body)
+        if draft.signature_block:
+            print("-" * 60)
+            print(draft.signature_block)
+    else:
+        print(f"Subject: {draft.subject} [BLOCKED - NOT SEALED]")
+        print("-" * 60)
+        print("[Draft unsealed due to policy/judge violation]")
     print("=" * 60)
     print(f"Template Used: {draft.metadata.get('template_id', 'default')}")
     print(f"Character Count: {draft.character_count}")
     print(f"Research Resolution: {draft.research_metadata.get('resolution_source', 'none')}")
-    print(f"Validation Status: {'PASSED' if val.is_valid else 'FAILED'}")
+    print(f"Authoritative Verdict: {val.status}")
+    print(f"Validation Status: {val.status}")
     if val.violations:
         print(f"Violations: {val.violations}")
     if val.warnings:
         print(f"Warnings: {val.warnings}")
-    print(f"Rubric Judge Score: {'PASSED' if evaluation.passed else 'FAILED'} (Composite: {evaluation.composite_score:.2f} [{evaluation.score_band}])")
+    print(f"Rubric Judge Score: {evaluation.status} (Composite: {evaluation.composite_score:.2f} [{evaluation.score_band}])")
     print(f"  - Lens 1 (Altitude & Persona): {evaluation.lens1_altitude_score:.2f}")
     print(f"  - Lens 2 (Grounding):          {evaluation.lens2_grounding_score:.2f}")
     print(f"  - Lens 3 (Resonance):          {evaluation.lens3_resonance_score:.2f}")
@@ -290,19 +319,26 @@ def _handle_run(args: argparse.Namespace, prog: str = "python -m outreach_engine
         print(f"Feedback: {evaluation.feedback}")
     print("=" * 60)
 
-    print(f"\nGenerated Multi-Touch Campaign with {len(sequence.touches)} planned touches:")
+    print(f"\nGenerated Multi-Touch Campaign with {len(sequence.touches)} planned touches (Status: {sequence.status}):")
     for t in sequence.touches:
-        print(f"  - Touch {t.touch_number} (Day {t.day_offset}) via {t.channel.value}: {t.objective}")
+        t_status = t.draft.metadata.get("status", "PASSED")
+        print(f"  - Touch {t.touch_number} (Day {t.day_offset}) via {t.channel.value} [{t_status}]: {t.objective}")
+        if t_status == "BLOCKED":
+            t_reasons = t.draft.metadata.get("failure_reasons", [])
+            print(f"      Failure reasons: {t_reasons}")
 
-    print(f"\n[outreach_engine] Artifacts sealed at: {artifact_dir}")
+    if all_passed:
+        print(f"\n[outreach_engine] Artifacts sealed at: {artifact_dir}")
+    else:
+        print(f"\n[outreach_engine] Unsealed diagnostic artifacts stored at: {artifact_dir}")
 
-    if not (val.is_valid and evaluation.passed):
+    if not all_passed:
         sys.stderr.write("\n" + "!" * 60 + "\n")
-        sys.stderr.write("[outreach_engine] BLOCKED: Outreach draft failed hard validation or judge evaluation.\n")
-        if val.violations:
-            sys.stderr.write(f"Violations: {val.violations}\n")
-        if not evaluation.passed:
-            sys.stderr.write(f"Rubric Failures: {evaluation.feedback}\n")
+        sys.stderr.write("[outreach_engine] BLOCKED: Outreach draft or campaign touch failed authoritative verification.\n")
+        if val.failure_reasons:
+            sys.stderr.write(f"Draft Failures: {val.failure_reasons}\n")
+        for bt in sequence.blocked_touches:
+            sys.stderr.write(f"Touch {bt['touch_number']} Failures: {bt['failure_reasons']}\n")
         sys.stderr.write("!" * 60 + "\n")
         return 1
 
@@ -342,7 +378,8 @@ def _handle_eval(args: argparse.Namespace) -> int:
     print("\n" + "=" * 60)
     print(f"EVALUATION REPORT FOR RUN: {run_dir.name}")
     print("=" * 60)
-    print(f"Rubric Judge Status: {'PASSED' if eval_data.get('passed') else 'FAILED'}")
+    status_label = eval_data.get("status", "PASSED" if eval_data.get("passed") else "BLOCKED")
+    print(f"Rubric Judge Status: {status_label}")
     if "lens_scores" in eval_data and eval_data["lens_scores"]:
         for k, v in eval_data["lens_scores"].items():
             print(f"  - {k}: {v:.2f}" if isinstance(v, (int, float)) else f"  - {k}: {v}")

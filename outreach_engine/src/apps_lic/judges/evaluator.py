@@ -10,6 +10,7 @@ import yaml
 
 from apps_lic.domain.models import (
     AudiencePersona,
+    AuthoritativeVerdict,
     CandidateProfile,
     ChannelType,
     OutreachMessageDraft,
@@ -32,6 +33,7 @@ from apps_lic.domain.validators import (
 class EvaluationReport:
     """Consolidated multi-lens rubric evaluation report."""
     passed: bool
+    status: str = "PASSED"
     lens1_altitude_score: float = 1.0
     lens2_grounding_score: float = 1.0
     lens3_resonance_score: float = 1.0
@@ -50,6 +52,8 @@ class EvaluationReport:
     lens_scores: Dict[str, float] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
+        if not self.status:
+            self.status = "PASSED" if self.passed else "BLOCKED"
         if not self.lens_scores:
             self.lens_scores = {
                 "lens1_altitude": self.lens1_altitude_score,
@@ -63,6 +67,7 @@ class EvaluationReport:
     def to_dict(self) -> dict[str, Any]:
         return {
             "passed": self.passed,
+            "status": self.status,
             "composite_score": self.composite_score,
             "score_band": self.score_band,
             "lens1_altitude_score": self.lens1_altitude_score,
@@ -163,20 +168,63 @@ class ExecutiveOutreachJudgePanel:
             return str(lens_spec["remediation_hint"])
         return default
 
-    def evaluate(
+    def evaluate_authoritative(
         self,
         draft: OutreachMessageDraft,
         candidate: CandidateProfile,
         opportunity: TargetOpportunity,
-    ) -> EvaluationReport:
+    ) -> AuthoritativeVerdict:
         feedback: List[str] = []
         hints: List[str] = []
 
         # =====================================================================
-        # Lens 1: Altitude, Persona & Peer Framing (adapted from Rubric v3 Lens 5)
+        # Single-pass execution of all 8 domain validators
+        # =====================================================================
+        # 1. Tone
+        tone_valid, tone_viols = self._tone_validator.validate(draft.body)
+
+        # 2. Grounding
+        allowed_facts = {f.fact_id for f in candidate.verified_facts}
+        g_valid, g_viols = self._grounding_validator.validate(draft.grounded_facts_used, allowed_facts)
+
+        # 3. Forbidden claims
+        fc_valid, fc_viols = self._forbidden_validator.validate(draft.body, candidate.verified_facts)
+
+        # 4. Question ending
+        q_valid, q_err = self._question_validator.validate(draft.body)
+
+        # 5. Spam triggers
+        spam_valid, spam_viols, spam_warns = self._spam_validator.validate(draft.body)
+
+        # 6. Em dash
+        dash_valid, dash_err = self._dash_validator.validate(draft.body)
+
+        # 7. Channel length
+        len_valid, len_err = self._length_validator.validate(draft.channel, draft.body)
+
+        # 8. Markdown links
+        link_valid, link_err = self._link_validator.validate(draft.body)
+
+        violations: List[str] = list(tone_viols)
+        violations.extend(g_viols)
+        violations.extend(fc_viols)
+        if not q_valid and q_err:
+            violations.append(q_err)
+        violations.extend(spam_viols)
+        if not dash_valid and dash_err:
+            violations.append(dash_err)
+        if not len_valid and len_err:
+            violations.append(len_err)
+        if not link_valid and link_err:
+            violations.append(link_err)
+
+        warnings: List[str] = list(spam_warns)
+        hard_gate_passed = len(violations) == 0
+
+        # =====================================================================
+        # Lens 1: Altitude, Persona & Peer Framing (Rubric v3 Lens 5)
         # =====================================================================
         lens1_score = 1.0
-        tone_valid, tone_viols = self._tone_validator.validate(draft.body)
         if not tone_valid:
             lens1_score = 0.3
             feedback.append(f"Lens 1 (Altitude) Failure: {', '.join(tone_viols)}")
@@ -191,14 +239,11 @@ class ExecutiveOutreachJudgePanel:
         # Lens 2: Zero-Hallucination Grounding & Fact Binding (Rubric v3 Lens 2)
         # =====================================================================
         lens2_score = 1.0
-        allowed_facts = {f.fact_id for f in candidate.verified_facts}
-        g_valid, g_viols = self._grounding_validator.validate(draft.grounded_facts_used, allowed_facts)
         if not g_valid:
             lens2_score = 0.0
             feedback.append(f"Lens 2 (Grounding) Failure: {', '.join(g_viols)}")
             hints.append("All claims must map directly to verified candidate facts.")
 
-        fc_valid, fc_viols = self._forbidden_validator.validate(draft.body, candidate.verified_facts)
         if not fc_valid:
             lens2_score = min(lens2_score, 0.2)
             feedback.append(f"Lens 2 (Forbidden Claims) Failure: {', '.join(fc_viols)}")
@@ -214,12 +259,11 @@ class ExecutiveOutreachJudgePanel:
 
         has_company_ref = company_lower in body_lower or company_lower in subject_lower
         if not has_company_ref:
-            # Extract brand tokens, stripping common corporate legal suffixes
             clean_company = re.sub(r"[,.\(\)\'\"\-\/]", " ", company_lower)
             legal_suffixes = {
                 "inc", "incorporated", "corp", "corporation", "co", "company",
                 "llc", "ltd", "limited", "technologies", "technology", "enterprise",
-                "group", "holdings", "financial", "services", "the", "and"
+                "group", "holdings", "financial", "services", "the", "and",
             }
             brand_tokens = [tok for tok in clean_company.split() if tok and tok not in legal_suffixes and len(tok) >= 3]
             if any(tok in body_lower or tok in subject_lower for tok in brand_tokens):
@@ -241,7 +285,6 @@ class ExecutiveOutreachJudgePanel:
         # Lens 4: Friction & CTA Calibration (Rubric v3 Lens 4)
         # =====================================================================
         lens4_score = 1.0
-        q_valid, q_err = self._question_validator.validate(draft.body)
         if not q_valid and q_err:
             lens4_score = 0.4
             feedback.append(f"Lens 4 (CTA) Failure: {q_err}")
@@ -256,7 +299,6 @@ class ExecutiveOutreachJudgePanel:
         # Lens 5: Anti-Spam, Anti-Cliche & Tone Guardrails (Rubric v3 Lens 1)
         # =====================================================================
         lens5_score = 1.0
-        spam_valid, spam_viols, spam_warns = self._spam_validator.validate(draft.body)
         if not spam_valid:
             lens5_score = 0.2
             feedback.append(f"Lens 5 (Anti-Spam) Failure: {', '.join(spam_viols)}")
@@ -266,7 +308,6 @@ class ExecutiveOutreachJudgePanel:
             feedback.append(f"Lens 5 (Anti-Spam) Warning: {', '.join(spam_warns)}")
             hints.append("Avoid corporate cliches and formulaic generic openers.")
 
-        dash_valid, dash_err = self._dash_validator.validate(draft.body)
         if not dash_valid and dash_err:
             lens5_score = min(lens5_score, 0.6)
             feedback.append(f"Lens 5 (Style) Warning: {dash_err}")
@@ -282,13 +323,11 @@ class ExecutiveOutreachJudgePanel:
         # Lens 6: Channel & Constraint Compliance (Rubric v3 Lens 6)
         # =====================================================================
         lens6_score = 1.0
-        len_valid, len_err = self._length_validator.validate(draft.channel, draft.body)
         if not len_valid and len_err:
             lens6_score = 0.0
             feedback.append(f"Lens 6 (Constraints) Failure: {len_err}")
             hints.append("Trim message to stay within strict channel character ceilings.")
 
-        link_valid, link_err = self._link_validator.validate(draft.body)
         if not link_valid and link_err:
             lens6_score = min(lens6_score, 0.5)
             feedback.append(f"Lens 6 (Constraints) Failure: {link_err}")
@@ -327,7 +366,7 @@ class ExecutiveOutreachJudgePanel:
             and lens5_score >= t_lens5
             and lens6_score >= t_lens6
         )
-        passed = all_lenses_passed and (composite_score >= min_composite)
+        judge_passed = all_lenses_passed and (composite_score >= min_composite)
 
         if not (composite_score >= min_composite):
             feedback.append(
@@ -341,27 +380,88 @@ class ExecutiveOutreachJudgePanel:
         else:
             score_band = "FAIL"
 
-        hop1 = min(lens1_score, lens6_score)
-        hop2 = lens2_score
-        hop6 = min(lens3_score, lens5_score)
-        hop8 = lens4_score
+        passed = hard_gate_passed and judge_passed
+        status = "PASSED" if passed else "BLOCKED"
 
-        return EvaluationReport(
+        failure_reasons: List[str] = []
+        for v in violations:
+            if v not in failure_reasons:
+                failure_reasons.append(v)
+        if not passed:
+            for fb in feedback:
+                if fb not in failure_reasons:
+                    failure_reasons.append(fb)
+        else:
+            for fb in feedback:
+                if ("Failure" in fb or "below minimum threshold" in fb) and fb not in failure_reasons:
+                    failure_reasons.append(fb)
+
+        scores = {
+            "spam_score": 1.0 if spam_valid else 0.0,
+            "length_score": 1.0 if len_valid else 0.0,
+            "question_score": 1.0 if q_valid else 0.0,
+            "grounding_score": 1.0 if g_valid else 0.0,
+            "dash_score": 1.0 if dash_valid else 0.0,
+            "link_score": 1.0 if link_valid else 0.0,
+            "tone_score": 1.0 if tone_valid else 0.0,
+            "forbidden_claims_score": 1.0 if fc_valid else 0.0,
+        }
+
+        lens_scores = {
+            "lens1_altitude": lens1_score,
+            "lens2_grounding": lens2_score,
+            "lens3_resonance": lens3_score,
+            "lens4_cta": lens4_score,
+            "lens5_anti_spam": lens5_score,
+            "lens6_constraints": lens6_score,
+        }
+
+        return AuthoritativeVerdict(
             passed=passed,
-            lens1_altitude_score=lens1_score,
-            lens2_grounding_score=lens2_score,
-            lens3_resonance_score=lens3_score,
-            lens4_cta_score=lens4_score,
-            lens5_anti_spam_score=lens5_score,
-            lens6_constraints_score=lens6_score,
+            status=status,
             composite_score=composite_score,
             score_band=score_band,
+            hard_gate_passed=hard_gate_passed,
+            judge_passed=judge_passed,
+            violations=violations,
+            warnings=warnings,
+            failure_reasons=failure_reasons,
+            lens_scores=lens_scores,
+            feedback=feedback,
+            remediation_hints=hints,
+            scores=scores,
+        )
+
+    def evaluate(
+        self,
+        draft: OutreachMessageDraft,
+        candidate: CandidateProfile,
+        opportunity: TargetOpportunity,
+    ) -> EvaluationReport:
+        verdict = self.evaluate_authoritative(draft, candidate, opportunity)
+        hop1 = min(verdict.lens_scores.get("lens1_altitude", 1.0), verdict.lens_scores.get("lens6_constraints", 1.0))
+        hop2 = verdict.lens_scores.get("lens2_grounding", 1.0)
+        hop6 = min(verdict.lens_scores.get("lens3_resonance", 1.0), verdict.lens_scores.get("lens5_anti_spam", 1.0))
+        hop8 = verdict.lens_scores.get("lens4_cta", 1.0)
+
+        return EvaluationReport(
+            passed=verdict.judge_passed,
+            status=verdict.status,
+            lens1_altitude_score=verdict.lens_scores.get("lens1_altitude", 1.0),
+            lens2_grounding_score=verdict.lens_scores.get("lens2_grounding", 1.0),
+            lens3_resonance_score=verdict.lens_scores.get("lens3_resonance", 1.0),
+            lens4_cta_score=verdict.lens_scores.get("lens4_cta", 1.0),
+            lens5_anti_spam_score=verdict.lens_scores.get("lens5_anti_spam", 1.0),
+            lens6_constraints_score=verdict.lens_scores.get("lens6_constraints", 1.0),
+            composite_score=verdict.composite_score,
+            score_band=verdict.score_band,
             hop1_classifier_score=hop1,
             hop2_grounding_score=hop2,
             hop6_alignment_score=hop6,
             hop8_narrative_score=hop8,
-            feedback=feedback,
-            remediation_hints=hints,
+            feedback=verdict.feedback,
+            remediation_hints=verdict.remediation_hints,
+            lens_scores=verdict.lens_scores,
         )
 
 
@@ -369,6 +469,7 @@ class ExecutiveOutreachJudgePanel:
 RubricJudgeEvaluator = ExecutiveOutreachJudgePanel
 
 __all__ = [
+    "AuthoritativeVerdict",
     "EvaluationReport",
     "ExecutiveOutreachJudgePanel",
     "RubricJudgeEvaluator",
