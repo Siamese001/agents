@@ -105,9 +105,9 @@ Lookup: `.agents/rules/codex-config-lookup.md` and `.agents/rules/plan-location.
 
 Pytest runs with plugin **autoload ON** (CI default); `addopts` carries `--timeout=180` but no `-p pytest_timeout`. **Do NOT** set `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1` for ad-hoc runs — it strips pytest-timeout and `--timeout` aborts collection. See companion for the duplicate-registration caveat (don't add `-p pytest_timeout` either).
 
-## Core vs apps (summary)
+## Subsystems vs Infrastructure (summary)
 
-Apps customize inputs; core enforces contracts. No app leakage in `agentic_core` without migration receipt. **Multi-provider X1D proof panels:** `agentic_core/runtime/judges/panel/` (`JudgePanelRunner`, transport preflight); `apps_rg` wires adapters via `x1d_panel_bridge` (see plan [core-judge-panel-harness-f3c8d1](plans/core-judge-panel-harness-f3c8d1.md)). Detail: [`agentic_core/AGENTS.md`](agentic_core/AGENTS.md) · `.codex/rules/agentic-core-static.md` (legacy reference only).
+Subsystems (`outreach_engine/`, `resume_graph_engine/`) are autonomous, self-contained domains. Shared runtime utilities, SDK adapters, and cross-cutting components live under `infrastructure/`. Inter-subsystem boundaries and local encapsulation are strictly respected.
 
 ## Rules & Skills SSOT
 
