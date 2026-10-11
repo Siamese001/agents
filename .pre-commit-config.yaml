@@ -2,35 +2,25 @@
 #
 # DESIGN PRINCIPLE: staged-file-only checks. No whole-repo scans.
 # No always-run hooks without types/files scope. No warn-only gates.
-# Heavy structural/ADG checks (module collision, guardian ratchet) → CI.
 #
-# Commit pipeline:
-#   T0a  trailing-whitespace                — deterministic, no Python startup
-#   T0b  end-of-file-fixer                  — deterministic, no Python startup
-#   T0c  enforce LF line endings            — deterministic, no Python startup
-#   T0d  check merge conflict markers       — deterministic, no Python startup
-#   T1   py_compile                         — fastest syntax fail
-#   T2   ruff-format                        — auto-fixer first (eliminates retry loop)
-#   T3   guardian-comment-fixer             — staged Python files only
-#   T6   pytest-config-ssot                 — triggered by pytest.ini/pyproject.toml only
-#
-# Manual/CI lane (stages: [manual]):
-#   adg-stale-guard, check-c0-sovereignty
-#
-# NOTE: `default_language_version` applies to hooks with `language: python`
-#       (virtualenv-based). All local hooks here use `language: system` and
-#       inherit the ambient Python; the setting below governs remote hooks only.
+# Antigravity Pre-Commit Pipeline:
+#   T0a  trailing-whitespace          — deterministic, no Python startup
+#   T0b  end-of-file-fixer            — deterministic, no Python startup
+#   T0c  enforce LF line endings      — deterministic, no Python startup
+#   T0d  check merge conflict markers — deterministic, no Python startup
+#   T1   python syntax check          — fast syntax fail via py_compile
+#   T2   ruff-format                  — auto-formatting before governance
+#   T3   config-ssot-enforcement      — Single Source of Truth configuration check
+#   T4   verify-commit-invariants     — Tier 1 pre-commit quality gate (tools/verify_commit.py)
+#   T5   validate-turn-gates          — Mechanical pre-turn gate validator
+#   T6   validate-implementation-plan — Staged implementation plan validator
+#   T7   fast-governance-tests        — Fast regression test suite for core governance
 
 fail_fast: true
 default_language_version:
   python: python3.12
 
 # Global exclude — applied to every hook. Individual hooks may extend this.
-# Excludes artifacts that change on every hook run to prevent infinite loops
-# Synchronized with .gitignore to ensure consistency
-# Generated from config/excluded_paths.yaml
-# Do not edit manually - run: python tools/generate/gitignore.py --write-precommit
-# Last generated: 2026-04-06T05:27:34.834350
 exclude: |
   (?x)^(
     .*\.debug\.log|
@@ -59,27 +49,6 @@ exclude: |
 
 repos:
   # ============================================================================
-  # TIER -1: MM Dual-State Guard (fail-fast before any stash/restore)
-  # ============================================================================
-  # Blocks the silent commit-rollback bug where pre-commit stashes unstaged
-  # changes via `git stash -k`, a hook (e.g. ruff-format) modifies the file,
-  # the stash pop hits a conflict, pre-commit silently resolves with the
-  # worktree version, eats the staged half, and `git commit` reports
-  # 'Everything up-to-date'. Detects any file in dual state (staged AND
-  # worktree-dirty) and aborts with a clear recovery message.
-  # Plan: .codex/plans/adg-three-bucket-unified-c4f8e2.md (W4 P4.1).
-  # Bypass: PRECOMMIT_MM_GUARD_BYPASS=1.
-  - repo: local
-    hooks:
-      - id: precommit-mm-dual-state-guard
-        name: "T-1: MM Dual-State Guard (W4 P4.1)"
-        entry: py ops_scripts/ci/precommit_mm_guard.py
-        language: system
-        pass_filenames: false
-        always_run: true
-        require_serial: true
-
-  # ============================================================================
   # TIER 0: Whitespace & Line-Ending Normalization (deterministic, no churn)
   # ============================================================================
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -105,714 +74,68 @@ repos:
     hooks:
       - id: python-syntax-check
         name: "T1: Python Syntax Validation"
-        entry: py -m py_compile
+        entry: python3 -m py_compile
         language: system
         types: [python]
         require_serial: true
 
   # ============================================================================
-  # TIER 3: Ruff Format (before governance — eliminates retry loop)
+  # TIER 2: Ruff Format
   # ============================================================================
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.14.13
     hooks:
       - id: ruff-format
         name: "T2: Ruff Format"
-        exclude: '.*\.md$|ops_scripts/ci/check_anti_patterns\.py'
+        exclude: '.*\.md$'
 
   # ============================================================================
-  # TIER 3: Guardian Comment Auto-Fix (staged Python only)
+  # TIER 3-7: Native Antigravity Governance & Verification Gates
   # ============================================================================
   - repo: local
     hooks:
-      - id: guardian-comment-fixer
-        name: "T3: Guardian Comment Auto-Fix"
-        entry: py tools/adg/adg_antipattern_fixer.py --staged
-        language: system
-        pass_filenames: false
-        always_run: false
-        require_serial: true
-        types: [python]
-
-      # -- T3b: Config SSOT Enforcement Gate ---------------------------------------
+      # -- T3: Config SSOT Enforcement Gate ---------------------------------------
       - id: config-ssot-enforcement
-        name: "T3b: Config SSOT Enforcement"
-        entry: py -m tools.config_ssot_agent check
+        name: "T3: Config SSOT Enforcement"
+        entry: python3 -m tools.config_ssot_agent check
         language: system
         pass_filenames: true
         always_run: false
         require_serial: true
         types: [python]
 
-  # ============================================================================
-  # TIER 4+: Structural checks, config validation, style (staged-file-only)
-  # ============================================================================
-  - repo: local
-    hooks:
-
-
-      # -- T6: Pytest Config SSOT Gate -------------------------------------------------
-      - id: pytest-config-ssot
-        name: "T6: Pytest Config SSOT"
-        entry: py ops_scripts/ci/_validate_pytest_config.py --strict
-        language: system
-        pass_filenames: false
-        files: ^(pytest\.ini|pyproject\.toml)$
-        always_run: false
-        require_serial: true
-
-      # -- T6a REMOVED (windsurf/codeium-decommission W3, 2026-06-07) -----------------
-      # `no-active-windsurf-authoring` only matched nonexistent paths
-      # (docs/archive/windsurf/legacy-tree/, docs/archive/windsurf/)
-      # so the hook was permanently dormant. Removed during the windsurf/codeium brand
-      # decommission (plan cursor-windsurf-codeium-decommission-dec0de). Orphaned script
-      # ops_scripts/ci/check_no_active_legacy_surface_changes.py left for W6 sweep.
-
-      # -- T6b: MCP Config Sync Integrity ----------------------------------------------
-      - id: mcp-sync-integrity
-        name: "T6b: MCP Sync Integrity"
-        entry: py ops_scripts/ci/check_mcp_sync_integrity.py
-        language: system
-        pass_filenames: false
-        files: ^(\.mcp\.json|AGENTS\.md|\.codex/governance/scripts/(sync_mcp_config|post_write_mcp_config_sync)\.py|\.codex/governance/scripts/(sync_mcp_config|post_write_mcp_config_sync|pre_prompt_classifier)\.py)$
-        always_run: false
-        require_serial: true
-
-      # -- T6b1: Codex Backup Adapter Drift --------------------------------------------
-      # Keeps the Codex-facing adapter aligned with Claude Code governance. CI runs the
-      # same repo-only verifier in contract-gates.yml; local full verification may also
-      # check personal Codex skills under ~/.codex/skills.
-      - id: codex-adapter-drift
-        name: "T6b1: Codex Backup Adapter Drift"
-        entry: py scripts/governance/verify_codex_primary.py --repo-only
-        language: system
-        pass_filenames: false
-        files: ^(AGENTS\.md|CLAUDE\.md|\.mcp\.json|\.codex/mcp-notes\.md|\.codex/settings\.json|docs/codex-backup-adapter\.md|scripts/governance/verify_codex_backup\.py|\.github/workflows/contract-gates\.yml|\.codex/hooks/.*|\.codex/rules/.*|\.codex/skills/structured-reasoning/.*|\.codex/skills/mcp-integration/.*)$
-        always_run: false
-        require_serial: true
-
-      # -- T6b2: Cross-App Contract Schema (Phase A) -----------------------------------
-      # Validates AgentSpec, EvidencePacket, EvaluationRubric, OverfitReport,
-      # and ReleaseRecommendation instances against their cross-app contracts.
-      # Triggered when any instance file or any contract file changes.
-      # Bypass: CROSS_APP_CONTRACT_BYPASS=1.
-      - id: cross-app-contract-schema
-        name: "T6b2: Cross-App Contract Schema"
-        entry: py ops_scripts/ci/check_cross_app_contract_schema.py
-        language: system
-        pass_filenames: false
-        files: ^(docs/requirements/contracts/REQ-CROSS-APP-.*\.contract\.yaml|apps_[^/]+/config/(specs|rubrics)/.*\.yaml|tests/.*/fixtures/(agentspec|evidence_packet|evaluation_rubric|overfit_report|release_recommendation)/.*\.yaml|ops_scripts/ci/check_cross_app_contract_schema\.py)$
-        always_run: false
-        require_serial: true
-
-      # -- T6c: AGENTS.md MCP Coverage --------------------------------------------------
-      # Ensures every `mcpServers` key in .mcp.json has a row in the
-      # AGENTS.md MCP Quick Reference table. Complements T6b (strict integrity):
-      # T6b checks content, T6c checks coverage. Both are cheap (no subprocess).
-      - id: agents-mcp-coverage
-        name: "T6c: AGENTS.md MCP Coverage"
-        entry: py ops_scripts/ci/check_agents_mcp_coverage.py
-        language: system
-        pass_filenames: false
-        files: ^(\.mcp\.json|\docs/archive/windsurf/legacy-tree/mcp_config\.json|AGENTS\.md)$
-        always_run: false
-        require_serial: true
-
-      # -- T6c1: 10C Requirement Bundle Consistency ----------------------------------
-      # Validates ledger ↔ matrix ↔ IMPLEMENTATION_STATUS internal consistency
-      # whenever any 10C reconciliation artifact is touched. Schema parity, REQ-ID
-      # parity, severity vocabulary, confidence range, duplicate detection.
-      - id: ten-c-ledger-consistency
-        name: "T6c1: 10C ledger ↔ matrix ↔ status consistency"
-        entry: py ops_scripts/ci/check_10c_ledger_consistency.py
-        language: system
-        pass_filenames: false
-        files: ^docs/reports/design/10c_reconciliation/.*\.(csv|md)$
-        always_run: false
-        require_serial: true
-
-      # -- T6c1b: AGEN Registry Schema -----------------------------------------------
-      # Validates docs/requirements/registry/{policy,best_practice}/AGEN-*.yaml
-      # — required fields, ID format/uniqueness, status vocabulary, enforcement refs.
-      - id: agen-registry-schema
-        name: "T6c1b: AGEN registry schema"
-        entry: py ops_scripts/ci/check_agen_registry_schema.py
-        language: system
-        pass_filenames: false
-        files: ^docs/requirements/registry/.*\.yaml$
-        always_run: false
-        require_serial: true
-
-      # -- T6c1c: 10C Proof-Ledger Validation ----------------------------------------
-      # Enforces the proof-grade ledger schema: 200 rows, 43 columns (W4d-2), owner
-      # vocabulary, CRITICAL/HIGH rows have all 8 mandatory proof fields populated,
-      # ACCEPTED status only when proof field-complete AND evidence-present.
-      # Triggered when the ledger or its tooling changes.
-      - id: ten-c-proof-ledger
-        name: "T6c1c: 10C proof-ledger validation"
-        entry: py tools/requirements/validate_10c_proof_ledger.py
-        language: system
-        pass_filenames: false
-        files: ^(docs/reports/design/10c_reconciliation/10c_semantic_requirement_ledger\.csv|tools/requirements/(harden_10c_ledger|validate_10c_proof_ledger)\.py)$
-        always_run: false
-        require_serial: true
-
-      # -- T6c1d: 10C Cross-File Consistency (W4d-3) ---------------------------------
-      # Validates the four-file bundle agrees: ledger ↔ requirements_vs_10a matrix
-      # ↔ metric_obligation matrix ↔ model_binding+nonmodel_control_binding split.
-      # 8 checks: REQ ID parity, CRITICAL/HIGH proof fields, metric→REQ linkage,
-      # binding→REQ linkage, owner-vocab canonicality (across 5 files), new-best-
-      # practice proof-pack coverage, model/nonmodel split well-formedness,
-      # coverage_status_normalized vocabulary.
-      - id: ten-c-cross-file-consistency
-        name: "T6c1d: 10C cross-file consistency (W4d-3)"
-        entry: py ops_scripts/ci/check_10c_cross_file_consistency.py
-        language: system
-        pass_filenames: false
-        files: ^(docs/reports/design/10c_reconciliation/.*\.csv|tools/requirements/harden_10c_matrices\.py|ops_scripts/ci/check_10c_cross_file_consistency\.py)$
-        always_run: false
-        require_serial: true
-
-      # -- T6c1e: 10C Pilot Proof-Evidence (W4d-4) -----------------------------------
-      # Narrow gate enforcing real proof evidence for the 5 pilot CRITICAL REQs
-      # (10C-REQ-049/086/089/122/167). Each REQ must have:
-      # P1 a proof bundle, P2 ledger-bundle metadata match, P3 valid content_hash,
-      # P4 valid proof_status, P5 a real test file on disk, P6 the test passes.
-      # Triggered when any pilot test, fixture, bundle, or pilot tooling changes.
-      - id: ten-c-pilot-proof-evidence
-        name: "T6c1e: 10C pilot proof-evidence (W4d-4)"
-        entry: py ops_scripts/ci/check_10c_pilot_proof_evidence.py
-        language: system
-        pass_filenames: false
-        files: ^(artifacts/requirements/proof_bundles/.*\.json|tests/fixtures/proof_evidence/.*\.py|ops_scripts/ci/check_10c_pilot_proof_evidence\.py|tools/requirements/(emit_proof_bundles|update_pilot_ledger)\.py)$
-        always_run: false
-
-        require_serial: true
-
-      # -- T6c2: Requirements Universe Inventory (advisory in pre-commit) ------------
-      # Discovers all 14 requirement-bearing artifact families and verifies each
-      # has at least one CI link. Runs whenever any requirement-bearing file is
-      # touched. Strict mode is reserved for run_contract_gates / CI.
-      - id: requirements-universe-inventory
-        name: "T6c2: requirements universe inventory"
-        entry: py ops_scripts/ci/check_requirements_universe_inventory.py
-        language: system
-        pass_filenames: false
-        files: ^(docs/reports/design/10c_reconciliation/.*|docs/requirements/.*|config/crosswalk/obligations\.yaml|tools/l5_contracts/_requirement_matrix\.json|docs/reference/contracts/enforcement/ALL_REQUIREMENTS_.*)$
-        always_run: false
-        require_serial: true
-      # -- T6e: Skill Frontmatter (Anthropic spec) ------------------------------------
-      # Enforces Anthropic Agent Skills authoring spec on every
-      # .codex/skills/<name>/SKILL.md: YAML frontmatter with valid `name`
-      # (<=64 chars, lowercase-hyphen, no reserved words) and `description`
-      # (<=1024 chars, third person, includes a when-trigger), plus the 500-line
-      # SKILL.md body budget and forward-slash path discipline.
-      # Reference: https://platform.codex.com/docs/en/agents-and-tools/agent-skills/best-practices
-      - id: skill-frontmatter
-        name: "T6e: Skill Frontmatter (Anthropic spec)"
-        entry: py ops_scripts/ci/check_skill_frontmatter.py
-        language: system
-        pass_filenames: false
-        files: ^\.codex/skills/.+/SKILL\.md$
-        always_run: false
-        require_serial: true
-      # -- T6e2 REMOVED (cursor-decommission W7) ---------------------------------------
-      # mcp-config-schema validated a Cursor-era all-server profile plus optional
-      # deprecated mirrors. Root .mcp.json is now validated by mcp-sync-integrity
-      # and agents-mcp-coverage; schema/parity/sovereignty mirror gates are obsolete.
-
-      # -- T6e2b REMOVED (cursor-decommission W7) --------------------------------------
-      # cursor-config-schema validated deleted Cursor-era hooks/MCP structure,
-      # both deleted in the Cursor-to-Claude migration (Claude Code uses .codex/hooks.json
-      # + root .mcp.json). Validator script removed; hook retired.
-
-      # -- T6e2c / T11 REMOVED (cursor-decommission W7) --------------------------------
-      # mcp-editor-parity and mcp-config-sovereignty depended on deprecated editor
-      # mirrors and a filesystem MCP entry that root .mcp.json intentionally omits.
-
-      # -- T6d3: AGENTS.md Autogen Block Integrity -------------------------------------
-      # Validates every <!-- MARKER:START/END --> autogen block in AGENTS.md is
-      # byte-identical to the SSOT generator output. Currently covers:
-      #   - MCP-QUICK-REFERENCE (.mcp.json)
-      #   - NOTION-MAP          (config/notion_databases.yaml)
-      # Fix drift: `python .codex/governance/scripts/sync_mcp_config.py`
-      # RENAME 2026-05-05: was labelled T6d (collision with author-gate-ledger-schema).
-      - id: agents-md-autogen-sync
-        name: "T6d3: AGENTS.md Autogen Sync"
-        entry: py ops_scripts/ci/check_agents_md_sync.py
-        language: system
-        pass_filenames: false
-        files: ^(\.mcp\.json|\docs/archive/windsurf/legacy-tree/mcp_config\.json|AGENTS\.md|config/notion_databases\.yaml|\.codex/governance/scripts/sync_mcp_config\.py|\.codex/governance/scripts/sync_mcp_config\.py)$
-        always_run: false
-        require_serial: true
-
-      # T6h RETIRED 2026-04-19 (L2 consolidation): .codeiumignore eliminated.
-
-      # -- T6g: Hardcoded Exclusion Ratchet (R3) ---------------------------------------
-      # Detects Python set/frozenset literals containing 3+ canonical exclusion tokens
-      # (".git", "__pycache__", "node_modules", "archives", etc.) outside the SSOT
-      # modules. Ratchet mode: only NET-NEW shadow sets fail; baseline of 37 known
-      # violations is tracked in ops_scripts/ci/baselines/hardcoded_exclusions_baseline.json
-      # for burndown. To refresh baseline after fixing one:
-      #     python ops_scripts/ci/check_hardcoded_exclusions.py --refresh-baseline
-      - id: hardcoded-exclusions
-        name: "T6g: Hardcoded Exclusion Ratchet"
-        entry: py ops_scripts/ci/check_hardcoded_exclusions.py
-        language: system
-        pass_filenames: false
-        files: ^(apps_[^/]+/.*\.py|outreach_engine/.*\.py|resume_graph_engine/.*\.py|infrastructure/.*\.py|ops_scripts/.*\.py|tools/.*\.py|\.codex/governance/scripts/.*\.py|ops_scripts/ci/check_hardcoded_exclusions\.py|ops_scripts/ci/baselines/hardcoded_exclusions_baseline\.json)$
-        always_run: false
-        require_serial: true
-
-      # -- T6f: Exclusion Consistency (R2) ---------------------------------------------
-      # Validates that YAML mirror categories (sovereign_excluded_folders,
-      # global_excluded_dirs, discovery_excluded_territories) are byte-equal.
-      # Fix drift by editing whichever surface is wrong; the gate does not auto-fix.
-      - id: exclusion-consistency
-        name: "T6f: Exclusion YAML <-> Python Consistency"
-        entry: py ops_scripts/ci/check_exclusion_consistency.py
-        language: system
-        pass_filenames: false
-        files: ^(config/excluded_paths\.yaml|ops_scripts/ci/check_exclusion_consistency\.py)$
-
-        always_run: false
-        require_serial: true
-
-      # -- T7a: Governed-App Conformance ------------------------------------------------
-      # Validates apps_* packages against the governed-app contract:
-      # runner subclass, capability token, exception entries, APP_REGISTRY coverage.
-      # Triggers on apps_* package changes or registry edits.
-      - id: governed-app-conformance
-        name: "T7a: Governed-App Conformance"
-        entry: py ops_scripts/ci/check_governed_app_conformance.py
-        language: system
-        pass_filenames: false
-        files: ^(apps_[^/]+/.*\.py|apps_shared/integrations/app_registry\.py)$
-        always_run: false
-        require_serial: true
-
-      # -- T7b: Structure Policy --------------------------------------------------------
-      # Validates the repository directory structure against
-      # config/structure_blueprint/structure_policy.yaml. Triggers only when the
-      # policy itself changes (cheap — full check is policy-driven, not per-file).
-      - id: structure-policy
-        name: "T7b: Structure Policy"
-        entry: py ops_scripts/ci/check_structure_policy.py
-        language: system
-        pass_filenames: false
-        files: ^config/structure_blueprint/structure_policy\.yaml$
-        always_run: false
-        require_serial: true
-
-      # -- T7c: HITL Packet Format ------------------------------------------------------
-      # Validates ask_user_question packet shape in rule/doc files:
-      # confidence scores, dominance markers, option format. Triggers on HITL rule
-      # files and packet documentation only.
-      - id: hitl-format
-        name: "T7c: HITL Packet Format"
-        entry: py ops_scripts/ci/validate_hitl_format.py
-        language: system
-        files: ^\.codex/rules/(hitl-|.*hitl).*\.md$
-        always_run: false
-        require_serial: true
-
-      # -- T7e2 REMOVED (cursor-decommission W1.2c, 2026-06-07) --------------------------
-      # The `hitl-rules-corpus` hook (ops_scripts/ci/validate_hitl_rules.py) was a dormant,
-      # never-functional gate: its `files:` glob matched `.codex/rules/*.md` but only
-      # `.mdc` ever existed there, so it never fired; and it asserts §HITL-9/§HITL-10 +
-      # "Surface 1–N options" / "LOW_CONFIDENCE_AMBIGUITY" markers that are absent from BOTH
-      # the legacy Cursor rules AND the `.codex/*.md` SSOT. Removed during the
-      # Cursor-to-Claude rules migration rather than wired to fail against the SSOT. The
-      # validator script + tests/governance/test_hitl_validators.py remain on disk pending a
-      # separate retire-or-rewrite decision.
-
-      # [contract-gates-deband 2026-06-15 W2] T7f severity-band-ssot hook removed
-      # (legacy-era ADG-pipeline band-aid; also cut from the runner in W1).
-
-      # -- T7g: ADG Graph-Layer Evidence (Constitutional §22) --------------------------
-      # Validates that T2/T3 refactoring plans in .codex/plans/ include the
-      # ## ADG_HOTSPOT_REPORT (with archetype + surface classification) and
-      # ## ADG_GRAPH_LAYER_EVIDENCE (with ≥3 materialized views + semantic edges/P-views).
-      # Triggers on plan file changes only.
-      - id: graph-layer-evidence
-        name: "T7g: ADG Graph-Layer Evidence"
-        entry: py ops_scripts/ci/check_graph_layer_evidence.py
-        language: system
-        pass_filenames: false
-        files: ^((?:plans|\.codex/plans)/.*\.md|ops_scripts/ci/baselines/graph_layer_evidence_baseline\.json|ops_scripts/ci/check_graph_layer_evidence\.py)$
-        always_run: false
-        require_serial: true
-
-      # -- T7o: Reference Pack Integrity (docs/reference/MANIFEST.json) ----------------
-      # Verifies docs/reference/MANIFEST.json against disk: every listed file exists,
-      # size matches, sha256 matches; sub-MANIFEST children[] resolve to real files.
-      # Triggers when any file under docs/reference/ changes.
-      - id: reference-pack-integrity
-        name: "T7o: Reference Pack Integrity"
-        entry: py ops_scripts/ci/check_reference_pack_integrity.py
-        language: system
-        pass_filenames: false
-        files: ^docs/reference/.*$
-        always_run: false
-        require_serial: true
-
-      # -- T7p: Reference Test Contracts (no-drift gate for declared tests) ------------
-      # Walks docs/reference/**/TEST REQUIREMENTS blocks; every declared
-      # test_<name> contract must have a matching `def test_<name>(...)` in tests/
-      # OR be in ops_scripts/ci/baselines/reference_test_contract_baseline.json.
-      # Baseline must shrink monotonically. Adding a new contract without an
-      # implementation fails the gate.
-      - id: reference-test-contracts
-        name: "T7p: Reference Test Contracts"
-        entry: py ops_scripts/ci/check_reference_test_contracts.py
-        language: system
-        pass_filenames: false
-        files: ^(docs/reference/.*\.md|tests/.*\.py|ops_scripts/ci/baselines/reference_test_contract_baseline\.json|ops_scripts/ci/check_reference_test_contracts\.py)$
-        always_run: false
-        require_serial: true
-
-      # -- T7d: Query Progress Bar (§16) ------------------------------------------------
-      # Enforces Constitutional §16 (progress bars on operations >30s, proxied
-      # by loop/function body >50 lines). All 8 pre-existing violations triaged
-      # and resolved on 2026-04-19 (2 real tqdm wraps, 6 compliance comments
-      # documenting bounded-small-n exemptions). Safe to block commits.
-      - id: query-progress-bar
-        name: "T7d: Query Progress Bar (§16)"
-        entry: py ops_scripts/ci/check_query_progress_bar.py --staged
-        language: system
-        types: [python]
-        pass_filenames: false
-        always_run: false
-        require_serial: true
-      # -- T7h: Terminal/Subprocess Cleanup (§11 + §14) ---------------------------------
-      # Enforces Constitutional §11 (terminal process lifecycle) and §14 (subprocess
-      # timeout required) by catching static patterns that leak processes:
-      #   - subprocess.Popen without .wait/.terminate/.kill/communicate or `with`
-      #   - subprocess.run without timeout= kwarg
-      #   - os.system / os.popen (banned outright)
-      # --staged mode: blocks NEW violations only. Full-repo scan as of
-      # 2026-04-23 shows 0 violations (verified: `python
-      # ops_scripts/ci/check_terminal_cleanup.py --verbose` → "scanned 3966
-      # files, no violations"). The server-side mirror
-      # `contract-gates.yml` runs the full-repo
-      # scan on every PR to close the `--no-verify` bypass.
-      - id: terminal-cleanup
-        name: "T7h: Terminal/Subprocess Cleanup (§11 + §14)"
-        entry: py ops_scripts/ci/check_terminal_cleanup.py --staged
-        language: system
-        types: [python]
-        pass_filenames: false
-        always_run: false
-        require_serial: true
-
-      # [contract-gates-deband 2026-06-15 W2] T7j snapshot-has-mvs + T7k pipeline-skips hooks
-      # removed (legacy-era ADG-pipeline band-aids; also cut from the runner in W1). The full
-      # ADG audit (adg-ci-gates workflow / generate_full_adg) remains the authoritative surface.
-      # -- T7l: Wiring-CI Waiver Expiry (fast, file-scoped) ---------------------------
-      # Runs the W5 waiver-expiry gate only when the waiver file, the gate itself,
-      # or the harness changes. Fast — no ADG read. Blocks the commit that
-      # introduces/renews a waiver with a stale or malformed expires_on.
-      - id: wiring-waiver-expiry
-        name: "T7l: Wiring-CI Waiver Expiry"
-        entry: py ops_scripts/ci/check_waiver_expiry.py
-        language: system
-        pass_filenames: false
-        files: ^(config/wiring_gate_waivers\.yaml|ops_scripts/ci/check_waiver_expiry\.py|ops_scripts/ci/_adg_wiring_gate_base\.py)$
-        always_run: false
-        require_serial: true
-
-      # -- T7q: SSOT Folder Routing (Constitutional §31) -----------------------------
-      # Blocks NEW Python files written into forbidden roots: scripts/,
-      # repo-root, tools/_oneoff/, tools/_oneshot/, or hook-prefix files
-      # outside .codex/governance/scripts/. Pre-existing files are never flagged.
-      # Bypass: SSOT_FOLDER_BYPASS=1.
-      # Sibling Windsurf hook: .codex/governance/scripts/pre_write_gate.py
-      # (imports the same helper at .codex/governance/scripts/_ssot_folder_check.py
-      # to keep the author-time and commit-time decisions identical).
-      # Rule SSOT: .codex/rules/ssot-folder-enforcement.md
-      - id: ssot-folder-routing
-        name: "T7q: SSOT Folder Routing (§31)"
-        entry: py ops_scripts/ci/check_ssot_folder_routing.py
+      # -- T4: Tier 1 Commit Invariants Gate ---------------------------------------
+      - id: verify-commit-invariants
+        name: "T4: Verify Commit Invariants"
+        entry: python3 tools/verify_commit.py --staged
         language: system
         pass_filenames: false
         always_run: true
         require_serial: true
 
-      # -- T7r: Always-On Token Budget (Anthropic two-tier compliance) -----------
-
-      # Sums bytes of all .codex/rules/*.md with `trigger: always_on` and
-      # fails when total exceeds 51,200 bytes / 12,800 tokens. Per Anthropic
-      # "Architecture of Agentic RAG" (Apr 2026): always-on rules >50 KB
-      # trigger autonomous context compaction, where the model arbitrarily
-      # discards instructions to free space.
-      # Bypass: ALWAYS_ON_BUDGET_BYPASS=1
-      # Rule SSOT: docs/reference/_notes/Claude RAG Rules and Skills.pdf
-      - id: always-on-token-budget
-        name: "T7r: Always-On Token Budget (Anthropic 50 KB)"
-        entry: py ops_scripts/ci/check_always_on_token_budget.py
-        language: system
-        pass_filenames: false
-        always_run: true
-        require_serial: true
-      # [notion-wave-enforcement-removal] T7u Plan–Notion Registration (§36) pre-commit hook
-      # REMOVED — the windsurf/cursor-era plan-registration / Notion-status enforcement is retired.
-
-      # -- T7s.1–.3: Fort Knox Certification Integrity — REMOVED 2026-06-14 -----------
-      # Constitutional §32 decommissioned (dead input certification/evidence_assertions.jsonl).
-      # Rule: .codex/rules/fortknox-certification-discipline.md (DEPRECATED stub).
-
-      # -- T8r: Runtime Certification Advisory Gate (Phase E.1) -----------------
-      # Phase E.1 advisory gate per ADR-080 §11 — reads the per-app Phase D
-      # cert-decision ledgers and compares their latest verdict against the
-      # TOML baseline. Non-promoting: `runtime_certification_status` stays
-      # `NOT_CERTIFIED` for every app; the gate's exit code is a build signal,
-      # never a certification signal. Advisory today (exit 0 + warnings); flip
-      # to fail-closed via `--strict` AND a non-advisory baseline entry once
-      # the Wilson/z/uplift thresholds have been calibrated on real data.
-      # Plan family: runtime-cert-e1-*.md. Gate module implemented at
-      # commit `d59ce88ba9`; 37 unit tests pass. Baseline at
-      # docs/reference/runtime_certification/cert_baseline.toml.
-      # STAGE OWNERSHIP 2026-05-05: demoted from [pre-commit, manual] to [manual] only.
-      # Rationale: run_contract_gates.py wiring_gates entry "T8r Runtime Cert Advisory Gate"
-      # is the authoritative always-run sweep. Running this at commit time adds latency
-      # (~12s full ADG read) for every commit, duplicating CI coverage without providing
-      # additional protection. Retain as manual for on-demand investigation.
-      # To run locally: pre-commit run runtime-certification --hook-stage manual --all-files
-      - id: runtime-certification
-        name: "T8r: Runtime Cert Advisory Gate (Phase E.1)"
-        entry: py ops_scripts/ci/check_runtime_certification.py
-        language: system
-        pass_filenames: false
-        always_run: true
-        require_serial: true
-        stages: [manual]
-
-      # -- T7s.4: Apps_e2e Fort Knox SIGNED_PROOF — REMOVED 2026-06-14 (constitutional §32 decommissioned)
-
-      # -- T7r: apps_* spine delegation (ADR-078) ----------------------------------
-      # Asserts apps_* boundary delegation.
-      # Catches the forbidden `apps_* standalone mini-runtime` mode via direct ADG SQLite query.
-      # Plan: .codex/plans/adg-three-bucket-unified-c4f8e2.md (W3 P3.2 + W5 P5.1/P5.4).
-      # Default: STRICT (W5 P5.1 flip, 2026-04-30) — exit 1 on violation.
-      # Rollback: APPS_SPINE_DELEGATION_GATE_MODE=advisory (exit 0, JSON only).
-      # Bypass:   APPS_SPINE_DELEGATION_GATE_BYPASS=1 (skip entirely).
-      # Baseline: `apps_underwriting_ai` is allowlisted via
-      #   config/apps_spine_delegation_allowlist.yaml (expires 2026-05-31).
-      # Trigger: edits under apps_*/ Python files OR the gate / allowlist itself.
-      - id: apps-spine-delegation
-        name: "T7r: apps_* spine delegation (ADR-078)"
-        entry: py ops_scripts/ci/check_apps_spine_delegation.py
-        language: system
-        pass_filenames: false
-        files: ^(apps_[a-z_]+/.*\.py|config/apps_spine_delegation_allowlist\.yaml|ops_scripts/ci/check_apps_spine_delegation\.py)$
-        always_run: false
-        require_serial: true
-
-      # ---- Prompt-Reception Golden-Replay Fixtures ---------------------------------
-      # Plan: prompt-reception-followups-a7b3c4 (phase RH5B.2).
-      # Runs the golden-replay harness ONLY when a fixture, the fixture recorder,
-      # the PromptMessages IR, CompiledPromptArtifact, or the slot-digest replay-key
-      # module is staged. Ensures any change to the reception contract lands as a
-      # test failure rather than silent drift. Commit-lane scoped; full suite runs
-      # in CI via pytest.
-      - id: prompt-reception-golden-replay
-        name: "T7n: Prompt-Reception Golden-Replay Harness"
-        entry: py -m pytest tests/golden/prompt_reception/ -q --no-header
-        language: system
-        pass_filenames: false
-        files: ^tests/golden/prompt_reception/.*$
-        always_run: false
-        require_serial: true
-
-      # ---- apps_rg Import-Boundary Ratchet (Wave 2, plan apps_rg_lean_core_binding_a1b2c3) ----
-      # Blocks NEW concrete runtime imports from apps_rg production.
-      # Baseline (docs/reports/apps_rg/apps_rg_forbidden_core_import_baseline.json) is
-      # currently 0 violations — the binding law holds. Commit-lane scoped to apps_rg
-      # python + the ratchet test/baseline; full suite also runs in CI.
-      - id: apps-rg-import-boundary-ratchet
-        name: "T7v: apps_rg Import-Boundary Ratchet (block new concrete-core imports)"
-        entry: py -m pytest tests/architecture/test_apps_rg_import_boundary_ratchet.py -q --no-header
-        language: system
-        pass_filenames: false
-        files: ^(apps_rg/.*\.py|tests/architecture/test_apps_rg_import_boundary_ratchet\.py|docs/reports/apps_rg/apps_rg_forbidden_core_import_baseline\.json)$
-        always_run: false
-        require_serial: true
-
-      # ---- MANUAL / CI-ONLY LANE -----------------------------------------------
-      # Run manually: pre-commit run <id> --hook-stage manual
-      - id: adg-stale-guard
-        name: "CI: ADG Staleness Guard"
-        entry: py tools/adg/adg_stale_guard.py --warn
-        language: system
-        pass_filenames: false
-        always_run: true
-        require_serial: true
-        stages: [manual]
-
-
-      # apps_shared purity — block any import from apps_shared/ into a domain app.
-      # SQLite-direct query against the canonical ADG snapshot (constitutional §28).
-      # Currently 0 violations; gate locks the boundary at zero.
-      # Plan: .codex/plans/apps-svp-plus-hardening-7c4e3a.md (W3.2)
-      - id: check-apps-shared-purity
-        name: "CI: apps_shared purity (no domain-app imports)"
-        entry: py ops_scripts/ci/check_apps_shared_purity.py
-        language: system
-        pass_filenames: false
-        always_run: true
-        require_serial: true
-        stages: [manual]
-
-      # PII-in-telemetry — block PII-shaped variable names from leaking
-      # through telemetry/logging/OTEL emit call sites. Closes Boundary 2
-      # in apps_underwriting_ai + apps_lic threat models.
-      # Currently 0 violations (3 explicit waivers for env-var-name-only logs).
-      # Plan: .codex/plans/apps-svp-plus-hardening-7c4e3a.md (P3 NEXT_STEP)
-      - id: check-pii-in-telemetry
-        name: "CI: PII in telemetry sinks"
-        entry: py ops_scripts/ci/check_pii_in_telemetry.py
-        language: system
-        pass_filenames: false
-        always_run: true
-        require_serial: true
-        stages: [manual]
-
-      # apps_* OTEL coverage — every engines/integrations/outputs module
-      # MUST emit at least one OTEL signal (lifecycle _emit_* call OR
-      # ADR-075 decorator). Locked at 133/133 (100%) on 2026-04-30 after
-      # W-OTEL-1/2/3 mass remediation (Phase A: module-load emits).
-      # Phase B (per-method spans on execute() paths) is its own plan.
-      # Plan: .codex/plans/apps-svp-plus-hardening-7c4e3a.md (W-OTEL-1..3 done)
-      - id: check-apps-otel-coverage
-        name: "CI: apps_* OTEL coverage (locked at 100%)"
-        entry: py ops_scripts/ci/check_apps_otel_coverage.py
+      # -- T5: Mechanical Pre-Turn Gates -------------------------------------------
+      - id: validate-turn-gates
+        name: "T5: Validate Turn Gates"
+        entry: python3 tools/validate_turn_gates.py --mode pre-turn
         language: system
         pass_filenames: false
         always_run: true
         require_serial: true
 
-      # Layer 3 — required-spans manifest. Every method listed in
-      # config/observability/required_spans.yaml MUST carry the
-      # @traces_execute decorator (verified via __adg_traces_execute__
-      # marker). Removing a decorator from a manifest-listed method is
-      # a breaking observability contract change requiring Author-Gate.
-      # Locked at 24/24 (100%) on 2026-04-30.
-      # Plan: .codex/plans/apps-svp-plus-hardening-7c4e3a.md (P4 NEXT_STEP done)
-      - id: check-required-spans-coverage
-        name: "CI: required spans manifest (Layer 3)"
-        entry: py ops_scripts/ci/check_required_spans_coverage.py
+      # -- T6: Staged Implementation Plan Validator --------------------------------
+      - id: validate-implementation-plan
+        name: "T6: Validate Implementation Plan"
+        entry: python3 tools/validate_implementation_plan.py --staged
         language: system
         pass_filenames: false
         always_run: true
         require_serial: true
 
-      # [contract-gates-deband 2026-06-15 W2] infra-wiring (manual-stage) hook removed —
-      # ADG P0 views (v_p0_apps_direct_infra / v_p0_l1_direct_infra / v_p0_provider_bypass)
-      # are the canonical structural check; the string-scan band-aid is retired.
-      # (infra_wiring_scan.py itself is KEPT — imported by adg_gates/gate_infra_wiring.py.)
-
-      # -- ADG Gate Fleet (manual, on-demand) ----------------------------------------
-      # H3 (2026-04-23): single dispatcher replaces the 15-gate fan-out in
-      # run_contract_gates.py and the retired wiring_ci_report.py.
-      # Runs the full wiring-CI fleet via the unified SSOT registry and
-      # emits a single artifacts/adg/adg_gate_results_<ts>.json.
-      # Invoke:
-      #     pre-commit run adg-gates-full --hook-stage manual --all-files
-      #     python -m ops_scripts.ci.adg_gates.run                  (direct)
-      #     python tools/adg/query.py regressions                   (trend query)
-      - id: adg-gates-full
-        name: "CI: ADG Gate Fleet (unified dispatcher)"
-        entry: py -m ops_scripts.ci.adg_gates.run
+      # -- T7: Fast Governance Test Suite ------------------------------------------
+      - id: fast-governance-tests
+        name: "T7: Fast Governance Test Suite"
+        entry: pytest tests/test_turn_gates.py tests/test_implementation_plan_governance.py tests/test_hitl_governance_enforcement.py tests/test_model_neutral_naming.py tests/test_unified_agent_architecture.py --timeout=60 -q
         language: system
         pass_filenames: false
         always_run: true
         require_serial: true
-        stages: [manual]
-
-      # ADR-081 plane-2 quick manifest (manual; requires committed snapshot).
-      - id: adg-three-graph-quick
-        name: "CI: ADG three-graph manifest (quick strict)"
-        entry: py ops_scripts/ci/run_adg_three_graph_quick_gate.py
-        language: system
-        pass_filenames: false
-        always_run: true
-        require_serial: true
-        stages: [manual]
-
-      # -- ADG Gate Query CLI (manual, on-demand) ------------------------------------
-      # H3 (2026-04-23): replaces the retired wiring_ci_trend.py markdown report.
-      # Ad-hoc queries over the JSONL trend sink.
-      # Invoke:
-      #     python tools/adg/query.py summary               (latest run)
-      #     python tools/adg/query.py trend --days 7        (window trend)
-      #     python tools/adg/query.py regressions           (current failures)
-      #     python tools/adg/query.py history GATE_ID       (per-gate history)
-
-      # -- AUDIT-UNCOVERED Gates (audit-uncovered-gates-and-remediation-627368) -----
-      # 6 new gates closing coverage gaps surfaced by the 16-phase ADG audit.
-      # Each is a Tier R ratchet — baseline locked at the seeded count; new
-      # violations regress the build. AUDIT_6 has an embedded Tier B hard-block
-      # for HIGH/CRITICAL/P0-severity untriaged violations.
-      # Invoke: pre-commit run audit-<name> --hook-stage manual --all-files
-      - id: audit-ssot-magic-constants
-        name: "CI: AUDIT-1 SSOT Magic Constants"
-        entry: py ops_scripts/ci/check_ssot_magic_constants.py
-        language: system
-        pass_filenames: false
-        always_run: true
-        require_serial: true
-        stages: [manual]
-
-      - id: audit-observability-fanin
-        name: "CI: AUDIT-2 Observability on High Fan-In"
-        entry: py ops_scripts/ci/check_observability_on_high_fanin.py
-        language: system
-        pass_filenames: false
-        always_run: true
-        require_serial: true
-        stages: [manual]
-
-      # [notion-wave-enforcement-removal] AUDIT-3 (check_external_service_literal_ssot) hook REMOVED —
-      # the Notion-ID literal enforcement gate is retired.
-
-      - id: audit-cross-mainline-dispatcher
-        name: "CI: AUDIT-4 Cross-Mainline Dispatcher"
-        entry: py ops_scripts/ci/check_cross_mainline_dispatcher.py
-        language: system
-        pass_filenames: false
-        always_run: true
-        require_serial: true
-        stages: [manual]
-
-      - id: audit-env-var-config-layer
-        name: "CI: AUDIT-5 Env Var in Config Layer"
-        entry: py ops_scripts/ci/check_env_var_in_config_layer.py
-        language: system
-        pass_filenames: false
-        always_run: true
-        require_serial: true
-        stages: [manual]
-
-      - id: audit-violation-aging-sla
-        name: "CI: AUDIT-6 Violation Triage SLA"
-        entry: py ops_scripts/ci/check_violation_aging_sla.py
-        language: system
-        pass_filenames: false
-        always_run: true
-        require_serial: true
-        stages: [manual]
-
-      # -- ADG Gate Regression Markers (manual, on-demand) ---------------------------
-      # H3: markers now emitted by the dispatcher itself via --markers flag.
-      # For every ratchet gate above baseline, emits DEFERRED_SCOPE: line that
-      # the Cursor Agent post-hook auto-posts to the Wave/Phase Convergence DB per
-      # Constitutional §24.
-      # Invoke: python -m ops_scripts.ci.adg_gates.run --markers
-      - id: adg-gates-markers
-        name: "CI: ADG Gate DEFERRED_SCOPE markers"
-        entry: py -m ops_scripts.ci.adg_gates.run --markers
-        language: system
-        pass_filenames: false
-        always_run: true
-        require_serial: true
-        stages: [manual]

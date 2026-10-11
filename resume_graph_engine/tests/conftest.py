@@ -8,15 +8,24 @@ from pathlib import Path
 
 import pytest
 
-_RG_ROOT = Path(__file__).resolve().parents[1]
-if str(_RG_ROOT) not in sys.path:
-    sys.path.insert(0, str(_RG_ROOT))
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
+_RG_SRC = _REPO_ROOT / "resume_graph_engine" / "src"
+if str(_RG_SRC) not in sys.path:
+    sys.path.insert(0, str(_RG_SRC))
+
+_RG_TESTS = str(_REPO_ROOT / "resume_graph_engine" / "tests")
+try:
+    import tests
+    if hasattr(tests, "__path__") and _RG_TESTS not in tests.__path__:
+        tests.__path__.append(_RG_TESTS)
+except ImportError:
+    pass
+
 try:
     import tools
-
-    _tools_dir = str(_RG_ROOT / "tools")
-    if hasattr(tools, "__path__") and _tools_dir not in tools.__path__:
-        tools.__path__.append(_tools_dir)
 except ImportError:
     pass
 

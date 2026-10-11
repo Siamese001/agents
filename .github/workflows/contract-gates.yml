@@ -15,428 +15,95 @@ permissions:
   contents: read
 
 jobs:
-  changes:
-    name: changes
-    runs-on: ubuntu-latest
-    outputs:
-      terminal-cleanup: ${{ steps.filter.outputs.terminal-cleanup }}
-      pytest-config: ${{ steps.filter.outputs.pytest-config }}
-      config-sync: ${{ steps.filter.outputs.config-sync }}
-      codex-adapter: ${{ steps.filter.outputs.codex-adapter }}
-      adg-report-mece: ${{ steps.filter.outputs.adg-report-mece }}
-      apps-rg-prompt-judge-sync: ${{ steps.filter.outputs.apps-rg-prompt-judge-sync }}
-      apps-e2e-harness-verifier: ${{ steps.filter.outputs.apps-e2e-harness-verifier }}
-      eval-smoke: ${{ steps.filter.outputs.eval-smoke }}
-      r1b-terminal: ${{ steps.filter.outputs.r1b-terminal }}
-      runtime-spine: ${{ steps.filter.outputs.runtime-spine }}
-      uwg-block: ${{ steps.filter.outputs.uwg-block }}
-      selected-lanes: ${{ steps.filter.outputs.selected-lanes }}
-      any: ${{ steps.filter.outputs.any }}
-      base-ref: ${{ steps.filter.outputs.base-ref }}
-      changed-files: ${{ steps.filter.outputs.changed-files }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+  tier1-commit-invariants:
+    name: Tier 1 Commit Invariants (Hygiene, Budgets, Purity, Schemas, Secrets)
+    uses: ./.github/workflows/reusable-python-gate.yml
+    with:
+      gate-name: "Tier 1 Commit Invariants"
+      install-mode: "editable"
+      run-command: "python tools/verify_commit.py --all"
+      timeout-minutes: 10
 
-      - uses: ./.github/actions/python-setup
-        with:
-          python-version: "3.12"
-          install-mode: minimal
+  turn-gates-governance:
+    name: Mechanical Turn Gates & Operating Invariants
+    uses: ./.github/workflows/reusable-python-gate.yml
+    with:
+      gate-name: "Turn Gates Governance"
+      install-mode: "editable"
+      run-command: "python tools/validate_turn_gates.py --mode pre-turn"
+      timeout-minutes: 5
 
-      - id: filter
-        name: Classify changed files
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-          PR_BASE_SHA: ${{ github.event.pull_request.base.sha || '' }}
-          PUSH_BASE_SHA: ${{ github.event.before || '' }}
-          HEAD_SHA: ${{ github.sha }}
-        run: |
-          set -euo pipefail
-          base_ref="main"
-          if [ "${EVENT_NAME}" = "pull_request" ]; then
-            base_ref="${PR_BASE_SHA}"
-            git diff --name-only "${PR_BASE_SHA}" "${HEAD_SHA}" > changed-files.txt
-          elif [ "${EVENT_NAME}" = "push" ] && [ -n "${PUSH_BASE_SHA}" ]; then
-            base_ref="${PUSH_BASE_SHA}"
-            git diff --name-only "${PUSH_BASE_SHA}" "${HEAD_SHA}" > changed-files.txt
-          else
-            base_ref="main"
-            printf '%s\n' \
-              "pyproject.toml" \
-              ".mcp.json" \
-              "AGENTS.md" \
-              ".github/workflows/contract-gates.yml" \
-              "apps_rg/runtime/judges/manual_probe.py" \
-              "tools/certification/apps_e2e/manual_probe.py" \
-              "tools/eval/manual_probe.py" \
-              "config/judges/rubrics.yaml" > changed-files.txt
-          fi
-          python ops_scripts/ci/classify_ci_lanes.py \
-            --workflow contract-gates \
-            --changed-files-file changed-files.txt \
-            --base-ref "${base_ref}" \
-            --github-output "$GITHUB_OUTPUT"
+  implementation-plan-contract:
+    name: Implementation Plan Governance Gate
+    uses: ./.github/workflows/reusable-python-gate.yml
+    with:
+      gate-name: "Implementation Plan Governance Gate"
+      install-mode: "editable"
+      run-command: "python tools/validate_implementation_plan.py"
+      timeout-minutes: 5
 
-  terminal-cleanup:
-    name: terminal-cleanup
-    needs: changes
-    if: needs.changes.outputs.terminal-cleanup == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: ./.github/actions/python-setup
-        with:
-          python-version: "3.12"
-          install-mode: editable
-      - name: Terminal cleanup / subprocess timeout
-        run: python ops_scripts/ci/check_terminal_cleanup.py --verbose --fail-on-new-only --base-ref "${{ needs.changes.outputs.base-ref }}"
+  config-ssot-enforcement:
+    name: Config SSOT Enforcement Gate
+    uses: ./.github/workflows/reusable-python-gate.yml
+    with:
+      gate-name: "Config SSOT Enforcement Gate"
+      install-mode: "editable"
+      run-command: "python -m tools.config_ssot_agent check"
+      timeout-minutes: 5
 
-  pytest-config:
-    name: pytest-config
-    needs: changes
-    if: needs.changes.outputs.pytest-config == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/python-setup
-        with:
-          python-version: "3.12"
-          install-mode: minimal
-      - name: Validate pytest config SSOT
-        run: python ops_scripts/ci/_validate_pytest_config.py --strict
+  governance-regression-suite:
+    name: Fast Governance Regression Suite
+    uses: ./.github/workflows/reusable-python-gate.yml
+    with:
+      gate-name: "Fast Governance Regression Suite"
+      install-mode: "editable"
+      run-command: "python -m pytest tests/test_turn_gates.py tests/test_implementation_plan_governance.py tests/test_hitl_governance_enforcement.py tests/test_model_neutral_naming.py tests/test_unified_agent_architecture.py --timeout=60 -q"
+      timeout-minutes: 5
 
-  config-sync:
-    name: config-sync
-    needs: changes
-    if: needs.changes.outputs.config-sync == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/python-setup
-        with:
-          python-version: "3.12"
-          install-mode: editable
-      - name: MCP sync integrity
-        run: python ops_scripts/ci/check_mcp_sync_integrity.py
-      - name: AGENTS.md MCP coverage
-        run: python ops_scripts/ci/check_agents_mcp_coverage.py
-      - name: AGENTS.md autogen block sync
-        run: python ops_scripts/ci/check_agents_md_sync.py
-      # [contract-gates-deband 2026-06-15 W2] removed steps "ADG exclusion sync" +
-      # "Severity-band SSOT" (legacy-era ADG-pipeline band-aids; also cut from the runner
-      # in W1 and pre-commit in W2).
+  cli-smokes:
+    name: Canonical CLI Smokes (Resume Engine, Outreach Engine, Agents)
+    uses: ./.github/workflows/reusable-python-gate.yml
+    with:
+      gate-name: "Canonical CLI Smokes"
+      install-mode: "editable"
+      run-command: |
+        resume-engine --version
+        outreach-engine --version
+        python -m agents --version
+      timeout-minutes: 5
 
-  codex-adapter:
-    name: codex-adapter
-    needs: changes
-    if: needs.changes.outputs.codex-adapter == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/python-setup
-        with:
-          python-version: "3.12"
-          install-mode: minimal
-      - name: Verify Codex primary adapter
-        run: python scripts/governance/verify_codex_primary.py --repo-only
-
-  adg-report-mece:
-    name: adg-report-mece
-    needs: changes
-    if: needs.changes.outputs.adg-report-mece == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/python-setup
-        with:
-          python-version: "3.12"
-          install-mode: editable
-      - name: Verify ADG report MECE contract
-        run: >-
-          python -m pytest tests/unit/ops_scripts/ci/test_verify_adg_report_mece.py
-          -p no:xdist -p no:testmon -q --timeout=120
-
-  apps-rg-prompt-judge-sync:
-    name: apps-rg-prompt-judge-sync
-    needs: changes
-    if: needs.changes.outputs.apps-rg-prompt-judge-sync == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/python-setup
-        with:
-          python-version: "3.12"
-          install-mode: editable
-      - name: apps_rg prompt/product-shape/X2/X1D sync
-        run: python ops_scripts/ci/check_apps_rg_prompt_judge_sync.py
-
-  apps-e2e-harness-verifier:
-    name: apps-e2e-harness-verifier
-    needs: changes
-    if: needs.changes.outputs.apps-e2e-harness-verifier == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/python-setup
-        with:
-          python-version: "3.12"
-          install-mode: dev
-      - name: Prepare apps_e2e proof inputs
-        run: |
-          python -m tools.certification.apps_e2e.emit_proof_bundle --all --dry-run --skip-non-runnable
-          python -m tools.certification.apps_e2e.matrix_builder
-      - name: Check apps_e2e bundle emission
-        run: python -m ops_scripts.ci.check_apps_e2e_bundle_emission
-      - name: Refresh apps_e2e evidence assertions
-        working-directory: tools/cert
-        run: python -m apps_e2e.emit_apps_evidence_assertions
-      - name: Run apps_e2e harness verifier
-        run: |
-          python -m pytest tests/unit/apps_e2e/ -q --no-header -p no:cacheprovider
-          python -m pytest \
-            tests/runtime/test_apps_e2e_auditability_harness.py \
-            tests/runtime/test_apps_e2e_matrix.py \
-            tests/runtime/test_apps_e2e_anti_cheat.py \
-            tests/runtime/test_apps_e2e_two_gate_negative_controls.py \
-            -q --no-header -p no:cacheprovider
-
-
-  eval-smoke:
-    name: eval-smoke
-    needs: changes
-    if: needs.changes.outputs.eval-smoke == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/python-setup
-        with:
-          python-version: "3.12"
-          install-mode: minimal
-      - name: Run eval capability smoke
-        run: |
-          mkdir -p artifacts/eval
-          python tools/eval/run_capability_regression.py \
-            --rubrics config/judges/rubrics.yaml \
-            --suite capability \
-            --smoke \
-            --out artifacts/eval/pr_smoke.json
-
-  r1b-terminal:
-    name: r1b-terminal
-    needs: changes
-    if: needs.changes.outputs.r1b-terminal == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/python-setup
-        with:
-          python-version: "3.12"
-          install-mode: editable
-      - name: R1B terminal representative smoke
-        run: python -m pytest tests/runtime/test_r1b_terminal_exit_proof.py -p no:xdist -p no:testmon -q --timeout=120
-
-  runtime-spine:
-    name: runtime-spine
-    needs: changes
-    if: needs.changes.outputs.runtime-spine == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/python-setup
-        with:
-          python-version: "3.12"
-          install-mode: editable
-      - name: Runtime spine representative smoke
-        run: |
-          python ops_scripts/ci/verify_runtime_certification_matrix_schema.py
-          python ops_scripts/ci/verify_runtime_certification_acceptance.py
-          python ops_scripts/ci/verify_source_divergence.py
-      - name: apps_rg L5 fail-closed governance gates
-        env:
-          APPS_RG_L5_CERT_REFS_FAIL_CLOSED: "1"
-          APPS_RG_L5_CERT_REFS_BYPASS: "0"
-        run: |
-          python ops_scripts/ci/check_apps_rg_l5_cert_refs.py
-          python ops_scripts/ci/check_apps_rg_l5_no_authority_widening.py
-          python ops_scripts/ci/check_apps_rg_l5_packet_runtime_wiring.py
-          python ops_scripts/ci/check_apps_rg_no_direct_durable_writes.py
-
-  uwg-block:
-    name: uwg-block
-    needs: changes
-    if: needs.changes.outputs.uwg-block == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/python-setup
-        with:
-          python-version: "3.12"
-          install-mode: editable
-      - name: UWG block representative smoke
-        run: python -m pytest tests/runtime/test_cache_fixture_vs_uwg_proof.py -p no:xdist -p no:testmon -q --timeout=120
-
-  contract-summary:
-    name: contract-summary
+  contract-gates-summary:
+    name: contract-gates-summary
     needs:
-      - changes
-      - terminal-cleanup
-      - pytest-config
-      - config-sync
-      - codex-adapter
-      - adg-report-mece
-      - apps-rg-prompt-judge-sync
-      - apps-e2e-harness-verifier
-      - eval-smoke
-      - r1b-terminal
-      - runtime-spine
-      - uwg-block
+      - tier1-commit-invariants
+      - turn-gates-governance
+      - implementation-plan-contract
+      - config-ssot-enforcement
+      - governance-regression-suite
+      - cli-smokes
     if: always()
     runs-on: ubuntu-latest
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-
-      - name: Prepare Python
-        uses: ./.github/actions/python-setup
-        with:
-          python-version: "3.12"
-          install-mode: minimal
-
-      - name: Summarize contract gate routing
-        env:
-          ANY: ${{ needs.changes.outputs.any }}
-          CHANGES_RESULT: ${{ needs.changes.result }}
-          TERMINAL_RESULT: ${{ needs.terminal-cleanup.result }}
-          PYTEST_RESULT: ${{ needs.pytest-config.result }}
-          CONFIG_RESULT: ${{ needs.config-sync.result }}
-          CODEX_ADAPTER_RESULT: ${{ needs.codex-adapter.result }}
-          ADG_REPORT_MECE_RESULT: ${{ needs.adg-report-mece.result }}
-          APPS_RG_PROMPT_JUDGE_SYNC_RESULT: ${{ needs.apps-rg-prompt-judge-sync.result }}
-          APPS_E2E_RESULT: ${{ needs.apps-e2e-harness-verifier.result }}
-          EVAL_SMOKE_RESULT: ${{ needs.eval-smoke.result }}
-          R1B_RESULT: ${{ needs.r1b-terminal.result }}
-          RUNTIME_SPINE_RESULT: ${{ needs.runtime-spine.result }}
-          UWG_RESULT: ${{ needs.uwg-block.result }}
-          CHANGED_FILES: ${{ needs.changes.outputs.changed-files }}
-          SELECTED_LANES: ${{ needs.changes.outputs.selected-lanes }}
+      - name: Evaluate contract gates status
         run: |
-          set -euo pipefail
-          echo "Changed files:"
-          printf '%s\n' "${CHANGED_FILES:-<none>}"
-
-          status="PASS"
-          reason="relevant contract-gate lanes passed"
-          if [ "${CHANGES_RESULT}" != "success" ]; then
-            echo "::error::Contract-gate routing failed before lane selection."
-            status="FAIL_BLOCKING"
-            reason="routing failed before lane selection"
-          elif [ "${ANY}" != "true" ]; then
-            echo "No contract-gate lanes were relevant to this diff."
-            status="SKIP_NOT_RELEVANT"
-            reason="no contract-gate lanes were relevant to this diff"
-          else
-            failed=0
-            for lane in \
-              "terminal-cleanup:${TERMINAL_RESULT}" \
-              "pytest-config:${PYTEST_RESULT}" \
-              "config-sync:${CONFIG_RESULT}" \
-              "codex-adapter:${CODEX_ADAPTER_RESULT}" \
-              "adg-report-mece:${ADG_REPORT_MECE_RESULT}" \
-              "apps-rg-prompt-judge-sync:${APPS_RG_PROMPT_JUDGE_SYNC_RESULT}" \
-              "apps-e2e-harness-verifier:${APPS_E2E_RESULT}" \
-              "eval-smoke:${EVAL_SMOKE_RESULT}" \
-              "r1b-terminal:${R1B_RESULT}" \
-              "runtime-spine:${RUNTIME_SPINE_RESULT}" \
-              "uwg-block:${UWG_RESULT}"; do
-              name="${lane%%:*}"
-              result="${lane#*:}"
-              echo "${name}: ${result}"
-              if [ "${result}" = "failure" ] || [ "${result}" = "cancelled" ]; then
-                failed=1
-              fi
-            done
-
-            if [ "${failed}" = "1" ]; then
-              echo "::error::One or more relevant contract-gate lanes failed."
-              status="FAIL_BLOCKING"
-              reason="one or more relevant contract-gate lanes failed"
-            fi
-          fi
-
-          mkdir -p artifacts/ci/contract-gates
-
-          if [ -f ops_scripts/ci/write_ci_disposition.py ]; then
-            python ops_scripts/ci/write_ci_disposition.py \
-              --workflow contract-gates \
-              --lane contract-summary \
-              --status "${status}" \
-              --reason "${reason}" \
-              --evidence-artifact "contract-gates-${{ github.run_id }}" \
-              --selected-lanes-text "${SELECTED_LANES:-}" \
-              --changed-files-text "${CHANGED_FILES:-}" \
-              --out artifacts/ci/contract-gates/ci_disposition.json
-          else
-            echo "::warning::ops_scripts/ci/write_ci_disposition.py not found; writing fallback disposition JSON."
-            STATUS="${status}" \
-            REASON="${reason}" \
-            EVIDENCE_ARTIFACT="contract-gates-${{ github.run_id }}" \
-            SELECTED_LANES="${SELECTED_LANES:-}" \
-            CHANGED_FILES="${CHANGED_FILES:-}" \
-            python - <<'PY'
-            import json
-            import os
-            from pathlib import Path
-
-
-            def _split_csv(value: str) -> list[str]:
-                items: list[str] = []
-                for part in value.replace("\n", ",").split(","):
-                    item = part.strip()
-                    if item:
-                        items.append(item)
-                return items
-
-
-            status = os.environ.get("STATUS", "")
-            payload = {
-                "workflow": "contract-gates",
-                "lane": "contract-summary",
-                "status": status,
-                "blocking": status == "FAIL_BLOCKING",
-                "reason": os.environ.get("REASON", ""),
-                "evidence_artifact": os.environ.get("EVIDENCE_ARTIFACT", ""),
-                "selected_lanes": _split_csv(os.environ.get("SELECTED_LANES", "")),
-                "changed_files": [line for line in os.environ.get("CHANGED_FILES", "").splitlines() if line.strip()],
-            }
-            out = Path("artifacts/ci/contract-gates/ci_disposition.json")
-            out.parent.mkdir(parents=True, exist_ok=True)
-            out.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-          PY
-          fi
-
-          if [ "${status}" = "FAIL_BLOCKING" ]; then
+          echo "=========================================="
+          echo "Contract Gates Summary"
+          echo "=========================================="
+          echo "tier1-commit-invariants: ${{ needs.tier1-commit-invariants.result }}"
+          echo "turn-gates-governance: ${{ needs.turn-gates-governance.result }}"
+          echo "implementation-plan-contract: ${{ needs.implementation-plan-contract.result }}"
+          echo "config-ssot-enforcement: ${{ needs.config-ssot-enforcement.result }}"
+          echo "governance-regression-suite: ${{ needs.governance-regression-suite.result }}"
+          echo "cli-smokes: ${{ needs.cli-smokes.result }}"
+          echo "=========================================="
+          
+          if [ "${{ needs.tier1-commit-invariants.result }}" != "success" ] || \
+             [ "${{ needs.turn-gates-governance.result }}" != "success" ] || \
+             [ "${{ needs.implementation-plan-contract.result }}" != "success" ] || \
+             [ "${{ needs.config-ssot-enforcement.result }}" != "success" ] || \
+             [ "${{ needs.governance-regression-suite.result }}" != "success" ] || \
+             [ "${{ needs.cli-smokes.result }}" != "success" ]; then
+            echo "::error::One or more contract gates failed."
             exit 1
           fi
-
-      - name: Upload contract disposition
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: contract-gates-disposition-${{ github.run_id }}
-          path: artifacts/ci/contract-gates/ci_disposition.json
-          if-no-files-found: warn
-          retention-days: 30
+          echo "All contract gates PASSED."

@@ -4,10 +4,11 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.package-dir]
 apps_rg = "resume_graph_engine/src/apps_rg"
+apps_lic = "outreach_engine/src/apps_lic"
 
 [tool.setuptools.packages.find]
-where = [".", "resume_graph_engine/src"]
-include = ["agents*", "resume_engine*", "resume_graph_engine*", "apps_rg*", "outreach_engine*", "apps_eval*", "apps_research*", "apps_model_telemetry*"]
+where = [".", "resume_graph_engine/src", "outreach_engine/src"]
+include = ["agents*", "resume_engine*", "resume_graph_engine*", "apps_rg*", "outreach_engine*", "apps_lic*", "apps_eval*", "apps_research*", "apps_model_telemetry*"]
 exclude = [
     "tests*",
     "ops_scripts*",
@@ -83,6 +84,7 @@ dependencies = [
 
 [project.scripts]
 resume-engine = "resume_engine.cli:main"
+outreach-engine = "apps_lic.__main__:main"
 
 
 [project.optional-dependencies]

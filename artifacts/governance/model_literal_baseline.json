@@ -1,0 +1,10 @@
+{
+  "version": "1.0.0",
+  "description": "Baseline of pre-existing model literal occurrences for ratcheting governance.",
+  "file_counts": {
+    "apps_research/engines/research_retrieval_engine.py": 1,
+    "scripts/local_llm/download_qwen_weights.py": 2,
+    "scripts/local_llm/test_client_call.py": 2,
+    "scripts/local_llm/serve_qwen_m5.py": 8
+  }
+}
