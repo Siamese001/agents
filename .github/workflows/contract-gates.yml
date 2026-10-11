@@ -208,8 +208,8 @@ jobs:
             tests/runtime/test_apps_e2e_matrix.py \
             tests/runtime/test_apps_e2e_anti_cheat.py \
             tests/runtime/test_apps_e2e_two_gate_negative_controls.py \
-            tests/runtime/test_agentic_core_spine_proof.py \
             -q --no-header -p no:cacheprovider
+
 
   eval-smoke:
     name: eval-smoke

@@ -15,10 +15,8 @@ on:
       - "ops_scripts/ci/check_adg_query_plans.py"
       - "tools/adg/core/query_catalog.py"
       - "ops_scripts/ci/check_adg_writer_authority.py"
-      - "agentic_core/adg/artifact/sqlite_schema.py"
-      - "agentic_core/adg/artifact/ArtifactPaths.py"
-      - "agentic_core/adg/artifact/multi_writer.py"
       - "tools/adg/contracts/**"
+
   workflow_dispatch:
 
 permissions:

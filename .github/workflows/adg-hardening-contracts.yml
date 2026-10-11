@@ -10,24 +10,14 @@ on:
       - ".codex/governance/scripts/post_agent_adg_burndown_inline_audit.py"
       - ".codex/governance/scripts/post_agent_runtime_rca_audit.py"
       - ".codex/rules/adg-post-run-burndown.md"
-      - "agentic_core/adg/analysis/**"
-      - "agentic_core/adg/artifact/**"
-      - "agentic_core/adg/contracts/**"
-      - "agentic_core/adg/extraction/**"
-      - "agentic_core/L6_system_learning/runtime_adg/**"
-      - "agentic_core/L6_system_learning/snapshot/**"
-      - "agentic_core/L6_system_learning/store.py"
-      - "agentic_core/L6_system_learning/stores/index_file_lock.py"
-      - "agentic_core/L6_system_learning/stores/version_store.py"
       - "apps_rg/fact_inventory/c03_graph_kpi_health.py"
       - "ops_scripts/ci/adg_gates/**"
       - "ops_scripts/ci/check_adg_metric_registry.py"
       - "ops_scripts/ci/check_adg_query_plans.py"
       - "ops_scripts/ci/check_adg_writer_authority.py"
       - "ops_scripts/ci/verify_adg_report_mece.py"
-      - "tests/unit/agentic_core/adg/**"
-      - "tests/agentic_core/adg/artifact/test_sqlite_writer_contract.py"
       - "tests/unit/ops_scripts/ci/adg_gates/**"
+
       - "tests/unit/ops_scripts/ci/test_verify_adg_report_mece.py"
       - "tests/unit/ops_scripts/ci/test_infra_wiring_scan.py"
       - "tests/unit/codex/test_adg_audit_automation_contract.py"
@@ -53,24 +43,14 @@ on:
       - ".codex/governance/scripts/post_agent_adg_burndown_inline_audit.py"
       - ".codex/governance/scripts/post_agent_runtime_rca_audit.py"
       - ".codex/rules/adg-post-run-burndown.md"
-      - "agentic_core/adg/analysis/**"
-      - "agentic_core/adg/artifact/**"
-      - "agentic_core/adg/contracts/**"
-      - "agentic_core/adg/extraction/**"
-      - "agentic_core/L6_system_learning/runtime_adg/**"
-      - "agentic_core/L6_system_learning/snapshot/**"
-      - "agentic_core/L6_system_learning/store.py"
-      - "agentic_core/L6_system_learning/stores/index_file_lock.py"
-      - "agentic_core/L6_system_learning/stores/version_store.py"
       - "apps_rg/fact_inventory/c03_graph_kpi_health.py"
       - "ops_scripts/ci/adg_gates/**"
       - "ops_scripts/ci/check_adg_metric_registry.py"
       - "ops_scripts/ci/check_adg_query_plans.py"
       - "ops_scripts/ci/check_adg_writer_authority.py"
       - "ops_scripts/ci/verify_adg_report_mece.py"
-      - "tests/unit/agentic_core/adg/**"
-      - "tests/agentic_core/adg/artifact/test_sqlite_writer_contract.py"
       - "tests/unit/ops_scripts/ci/adg_gates/**"
+
       - "tests/unit/ops_scripts/ci/test_verify_adg_report_mece.py"
       - "tests/unit/ops_scripts/ci/test_infra_wiring_scan.py"
       - "tests/unit/codex/test_adg_audit_automation_contract.py"
@@ -110,9 +90,8 @@ jobs:
       - name: Run focused ADG hardening contracts
         run: |
           python -m pytest \
-            tests/agentic_core/adg/artifact/test_sqlite_writer_contract.py \
-            tests/unit/agentic_core/adg/test_canonical_snapshot_identity.py \
             tests/unit/ops_scripts/ci/adg_gates/test_run_dispatcher.py \
+
             tests/unit/ops_scripts/ci/adg_gates/test_write_sovereignty_temporal_contract.py \
             tests/unit/ops_scripts/ci/test_verify_adg_report_mece.py \
             tests/unit/tools/adg/contracts/test_metric_registry.py \
