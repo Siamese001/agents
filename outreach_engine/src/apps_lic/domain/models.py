@@ -291,4 +291,5 @@ class TouchSequence:
     sealed_resolution: Optional[Dict[str, Any]] = None
     status: str = "PASSED"
     blocked_touches: List[Dict[str, Any]] = field(default_factory=list)
+    metadata: Dict[str, Any] = field(default_factory=dict)
 
