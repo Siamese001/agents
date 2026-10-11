@@ -503,18 +503,18 @@ def get_active_plan_file(repo_root: Optional[Path] = None) -> Optional[Path]:
     """Discover the active implementation plan file on disk, prioritizing workspace and IDE artifacts."""
     root = (repo_root or ROOT).resolve()
 
-    # 1. Check workspace repo root implementation_plan.md
-    imp_plan = root / "implementation_plan.md"
-    if imp_plan.is_file():
-        return imp_plan
-
-    # 2. Check explicit environment variables
+    # 1. Check explicit environment variables
     for env_var in ("ANTIGRAVITY_ARTIFACTS_DIR", "ARTIFACT_DIRECTORY_PATH"):
         val = os.environ.get(env_var)
         if val:
             cand = Path(val) / "implementation_plan.md"
             if cand.is_file():
                 return cand
+
+    # 2. Check workspace repo root implementation_plan.md
+    imp_plan = root / "implementation_plan.md"
+    if imp_plan.is_file():
+        return imp_plan
 
     # 3. Check Antigravity IDE conversation-specific brain artifacts directory
     conv_id = os.environ.get("ANTIGRAVITY_CONVERSATION_ID")

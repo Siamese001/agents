@@ -14,7 +14,7 @@ import re
 import sys
 import time
 import uuid
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
@@ -61,154 +61,18 @@ class ResearchResult:
     is_verified: bool = True
 
 
-def _extract_priorities_from_text(text: str) -> list[str]:
-    """Extract 3-5 structured strategic priorities from briefing markdown text or executive brief."""
-    priorities: list[str] = []
-    in_priorities_section = False
-
-    # 1. First check for standard markdown bulleted priorities section
-    for raw_line in text.splitlines():
-        line = raw_line.strip()
-        if not line:
-            continue
-        lower = line.lower()
-        if "strategic priorities" in lower or "strategic mandate" in lower or "key priorities" in lower:
-            in_priorities_section = True
-            continue
-        if in_priorities_section and line.startswith("#"):
-            in_priorities_section = False
-            continue
-
-        if in_priorities_section and line.startswith(("-", "*", "•")):
-            clean = line.lstrip("-*• ").strip()
-            # Avoid entity/role/provenance header bullets
-            if clean.lower().startswith(("entity:", "target role:", "role:", "provenance:")):
-                continue
-            if len(clean) > 10:
-                priorities.append(clean)
-                if len(priorities) >= 5:
-                    break
-
-    # 2. Check for freeform/prose "Likely Priorities" or "Strategic Priorities" section
-    if not priorities:
-        lp_match = re.search(
-            r"(?:Likely Priorities|Strategic Priorities|Key Priorities|Core Mandate)[\s\:\-]+(.+?)(?=(?:What He May Care|What Not to Overdo|Strategic Signal|[A-Z]\.\s+[A-Z\s]{4,}|$))",
-            text,
-            re.IGNORECASE | re.DOTALL,
-        )
-        if lp_match:
-            lp_text = lp_match.group(1)
-            # Replace footnote citation numbers like " 3 ", " 8 " with period delimiters
-            clean_lp = re.sub(r"\s+\d+\s+", ". ", lp_text)
-            clean_lp = re.sub(r"\s*\.\s*", ". ", clean_lp)
-            sentences = [s.strip().rstrip(".") for s in clean_lp.split(". ") if len(s.strip()) > 25]
-            for s in sentences:
-                clean_s = re.sub(r"^(?:At [^,]+,\s*|His |Her |Their |The team's )", "", s, flags=re.IGNORECASE).strip()
-                if clean_s and clean_s not in priorities:
-                    priorities.append(clean_s)
-                    if len(priorities) >= 5:
-                        break
-
-    # 3. Fallback to scanning lines/sentences with priority-related keywords, avoiding title headers
-    if not priorities:
-        segments = text.splitlines() if len(text.splitlines()) > 3 else re.split(r"\.\s+(?=[A-Z])", text)
-        for raw_line in segments:
-            clean = raw_line.strip().lstrip("-*• ")
-            if clean.lower().startswith(("strategic executive preparation", "executive readout", "concise profile", "likely worldview", "interview brief", "source path")):
-                continue
-            if clean and any(k in clean.lower() for k in ("initiative", "priorit", "strategic", "focus", "moderniz", "transform", "platform", "adopt")):
-                if len(clean) > 150:
-                    clean = clean[:140].rsplit(" ", 1)[0]
-                priorities.append(clean)
-                if len(priorities) >= 5:
-                    break
-
-    return priorities
-
-
-def _resolve_canonical_targeting_brief(
-    *,
-    company_name: str,
-    job_title: str = "",
-) -> tuple[str, str]:
-    """Find and load a verified canonical targeting brief matching company/role if available."""
-    search_dirs = [
-        _REPO_ROOT / "outreach_engine" / "config" / "targeting",
-        _REPO_ROOT / "resume_graph_engine" / "src" / "apps_rg" / "config" / "targeting",
-        _REPO_ROOT / "outreach_engine" / "data" / "fixtures",
-    ]
-
-    company_norm = re.sub(r"[^a-z0-9]+", "_", company_name.lower()).strip("_")
-    role_norm = re.sub(r"[^a-z0-9]+", "_", job_title.lower()).strip("_")
-    role_tokens = [tok for tok in role_norm.split("_") if len(tok) > 3]
-
-    for targeting_dir in search_dirs:
-        if not targeting_dir.is_dir():
-            continue
-
-        candidates = sorted(targeting_dir.glob("*_briefing.md")) + sorted(targeting_dir.glob("*.json"))
-        # Priority 1: Company + role match
-        for candidate in candidates:
-            stem = candidate.stem.lower()
-            if company_norm in stem and any(tok in stem for tok in role_tokens):
-                content = _read_candidate_brief(candidate)
-                if content:
-                    return content, str(candidate)
-
-        # Priority 2: Company match
-        for candidate in candidates:
-            stem = candidate.stem.lower()
-            if company_norm and company_norm in stem:
-                content = _read_candidate_brief(candidate)
-                if content:
-                    return content, str(candidate)
-
-    return "", ""
-
-
-def _read_candidate_brief(path: Path) -> str:
-    try:
-        if path.suffix.lower() == ".json":
-            data = json.loads(path.read_text(encoding="utf-8"))
-            if isinstance(data, dict):
-                return str(data.get("freeform_text") or data.get("company_brief") or "")
-        return path.read_text(encoding="utf-8").strip()
-    except OSError:
-        return ""
-
-
-def _build_canonical_sidecar(
-    *,
-    company_name: str,
-    brief_text: str,
-    run_id: str,
-    trace_id: str,
-    role_archetype: str = "technology_leadership",
-) -> dict[str, Any]:
-    """Construct an authentic metadata sidecar for canonical briefs without synthetic judge receipts."""
-    normalized = str(brief_text or "").strip()
-    brief_sha = hashlib.sha256(normalized.encode("utf-8")).hexdigest()
-
-    return {
-        "schema_version": "apps_research.apps_rg_targeting_brief_sidecar/v1",
-        "company_name": company_name,
-        "generation_provider": "canonical_fixture",
-        "generation_model": "authored_briefing_asset",
-        "briefing_semantic_score": 1.0 if normalized else 0.0,
-        "semantic_gate_mode": "canonical_fixture_grounded",
-        "handoff_eligible": bool(normalized),
-        "reason": "canonical_fixture_verified" if normalized else "missing_brief",
-        "x2_judge_receipt": None,
-        "role_archetype": role_archetype,
-        "required_sections_present": ["strategic mandate"],
-        "missing_sections": [],
-        "source_families_present": ["overview"],
-        "source_families_missing": [],
-        "signal_terms_present": ["platform", "modernization"],
-        "signal_terms_missing": [],
-        "source_register": [{"family": "overview", "has_content": True}],
-        "brief_text_sha256": brief_sha,
-    }
+# Re-export boundary policies and cache resolution helpers
+from apps_lic.integrations.research_boundary_policy import (
+    ResearchBoundaryPolicy,
+    _build_canonical_sidecar,
+    _extract_priorities_from_text,
+    _find_valid_persisted_artifact_bundle,
+    _read_candidate_brief,
+    _resolve_canonical_targeting_brief,
+    build_cost_limit_exceeded_result,
+    build_timeout_result,
+    execute_bounded_live_research,
+)
 
 
 class AppsResearchBridge:
@@ -221,10 +85,28 @@ class AppsResearchBridge:
         capability_ref: str = "apps_research.v1",
         *,
         artifact_runs_root: Path | None = None,
+        policy: ResearchBoundaryPolicy | None = None,
+        timeout_seconds: float | None = None,
+        max_retries: int | None = None,
+        cost_limit_usd: float | None = None,
+        cost_per_call_usd: float | None = None,
+        force_fresh: bool | None = None,
     ) -> None:
         self._capability_ref = capability_ref
         self._bridge_id = f"outreach_research_bridge:{uuid.uuid4().hex[:8]}"
         self._artifact_runs_root = Path(artifact_runs_root).resolve() if artifact_runs_root else None
+
+        base_policy = policy or ResearchBoundaryPolicy()
+        self.policy = ResearchBoundaryPolicy(
+            timeout_seconds=timeout_seconds if timeout_seconds is not None else base_policy.timeout_seconds,
+            max_retries=max_retries if max_retries is not None else base_policy.max_retries,
+            cost_limit_usd=cost_limit_usd if cost_limit_usd is not None else base_policy.cost_limit_usd,
+            cost_per_call_usd=cost_per_call_usd if cost_per_call_usd is not None else base_policy.cost_per_call_usd,
+            force_fresh=force_fresh if force_fresh is not None else base_policy.force_fresh,
+        )
+        self.cumulative_cost_usd: float = 0.0
+        self.live_invocation_count: int = 0
+        self.failed_invocation_count: int = 0
 
     def fetch(
         self,
@@ -237,6 +119,10 @@ class AppsResearchBridge:
         trace_id: str = "",
         job_description_ref: str = "",
         job_description_text: str = "",
+        force_fresh: bool | None = None,
+        timeout_seconds: float | None = None,
+        max_retries: int | None = None,
+        cost_limit_usd: float | None = None,
     ) -> ResearchResult:
         t_start = time.time() * 1000.0
         req_id = request_id or f"req-{uuid.uuid4().hex[:8]}"
@@ -244,24 +130,128 @@ class AppsResearchBridge:
         tr_id = trace_id or f"trace-{uuid.uuid4().hex[:8]}"
         bridge_trace_id = f"bridge:{self._bridge_id}:{tr_id}"
 
-        # 1. Try invoking live apps_research via spine
+        effective_force_fresh = force_fresh if force_fresh is not None else self.policy.force_fresh
+        effective_timeout = timeout_seconds if timeout_seconds is not None else self.policy.timeout_seconds
+        effective_retries = max_retries if max_retries is not None else self.policy.max_retries
+        effective_cost_limit = cost_limit_usd if cost_limit_usd is not None else self.policy.cost_limit_usd
+        cost_per_call = self.policy.cost_per_call_usd
+
+        # REUSE PHASE: If not explicit fresh research, check persisted artifacts and canonical briefs BEFORE live provider calls
+        if not effective_force_fresh:
+            if self._artifact_runs_root is not None:
+                persisted_bundle, _ = _find_valid_persisted_artifact_bundle(
+                    artifact_runs_root=self._artifact_runs_root,
+                    company_name=company_name,
+                    job_title=job_title,
+                )
+                if persisted_bundle is not None:
+                    return persisted_bundle
+
+            canonical_brief, canonical_path = _resolve_canonical_targeting_brief(
+                company_name=company_name,
+                job_title=job_title,
+            )
+            if canonical_brief:
+                sidecar = _build_canonical_sidecar(
+                    company_name=company_name,
+                    brief_text=canonical_brief,
+                    run_id=r_id,
+                    trace_id=bridge_trace_id,
+                    role_archetype=job_title or "technology_leadership",
+                )
+                raw = SimpleNamespace(
+                    run_id=r_id,
+                    parent_run_id=r_id,
+                    request_id=req_id,
+                    trace_root=tr_id,
+                    trace_id=bridge_trace_id,
+                    tenant_id="default",
+                    company_brief_text=canonical_brief,
+                    support_coverage=0.90,
+                    confidence_score=0.90,
+                    is_blocked=False,
+                    block_reason="",
+                    evidence_items=[
+                        EvidenceItem(
+                            source_id="ev-canonical-1",
+                            label="canonical_targeting_brief",
+                            uri=canonical_path or "config/targeting",
+                            source_type="company_brief",
+                            field_ref="company_brief",
+                            confidence=0.90,
+                        )
+                    ],
+                    fec_run_context={
+                        "company_brief": {
+                            "apps_rg_targeting_brief_sidecar": sidecar,
+                        }
+                    },
+                )
+                return self._translate_and_persist(
+                    raw=raw,
+                    run_id=r_id,
+                    trace_id=bridge_trace_id,
+                    request_id=req_id,
+                    t_start=t_start,
+                    company_name=company_name,
+                    job_title=job_title,
+                    job_description_text=job_description_text,
+                    resolution_source="CANONICAL_FIXTURE",
+                )
+
+        # BOUNDARY ENFORCEMENT: Check configurable cost limit before live provider invocation
+        if (self.cumulative_cost_usd + cost_per_call) > effective_cost_limit:
+            _log.warning(
+                "Cost limit exceeded: cumulative=$%.2f + call=$%.2f > limit=$%.2f",
+                self.cumulative_cost_usd,
+                cost_per_call,
+                effective_cost_limit,
+            )
+            return build_cost_limit_exceeded_result(
+                run_id=r_id,
+                trace_id=bridge_trace_id,
+                request_id=req_id,
+                cumulative_cost_usd=self.cumulative_cost_usd,
+                cost_per_call_usd=cost_per_call,
+                cost_limit_usd=effective_cost_limit,
+                t_start=t_start,
+            )
+
+        # LIVE PROVIDER CALL: Execute with bounded timeouts and retries
         resolution_source = "WEB_RESEARCH"
         raw: Any = None
         try:
-            raw = self._invoke_apps_research(
-                company_name=company_name,
-                job_title=job_title,
-                capability_ref=capability_ref,
-                request_id=req_id,
+            raw = execute_bounded_live_research(
+                invoke_fn=lambda: self._invoke_apps_research(
+                    company_name=company_name,
+                    job_title=job_title,
+                    capability_ref=capability_ref,
+                    request_id=req_id,
+                    run_id=r_id,
+                    trace_id=bridge_trace_id,
+                    job_description_ref=job_description_ref,
+                    job_description_text=job_description_text,
+                ),
+                timeout_seconds=effective_timeout,
+                max_retries=effective_retries,
+            )
+            self.live_invocation_count += 1
+            self.cumulative_cost_usd += cost_per_call
+        except TimeoutError as exc:
+            self.failed_invocation_count += 1
+            _log.warning("Live apps_research timed out: %s", exc)
+            return build_timeout_result(
                 run_id=r_id,
                 trace_id=bridge_trace_id,
-                job_description_ref=job_description_ref,
-                job_description_text=job_description_text,
+                request_id=req_id,
+                error=exc,
+                t_start=t_start,
             )
         except Exception as exc:  # noqa: BLE001
+            self.failed_invocation_count += 1
             _log.info("Live apps_research invocation bypassed or failed: %s", exc)
 
-        # 2. If live invocation did not produce a brief, try canonical brief resolution
+        # FALLBACK RESOLUTION: If live invocation did not produce a brief
         brief_text = ""
         if raw is not None:
             brief_text = str(getattr(raw, "company_brief_text", "") or "").strip()
@@ -310,7 +300,6 @@ class AppsResearchBridge:
                     },
                 )
             else:
-                # 3. Hermetic offline fallback
                 resolution_source = "HERMETIC_FALLBACK"
                 return self._hermetic_fallback(
                     company_name=company_name,
@@ -591,6 +580,12 @@ class MockAppsResearchBridge(AppsResearchBridge):
         strategic_priorities: tuple[str, ...] = (),
         capability_ref: str = "apps_research.v1",
         artifact_runs_root: Path | None = None,
+        policy: ResearchBoundaryPolicy | None = None,
+        timeout_seconds: float | None = None,
+        max_retries: int | None = None,
+        cost_limit_usd: float | None = None,
+        cost_per_call_usd: float | None = None,
+        force_fresh: bool | None = None,
     ) -> None:
         import os
         import sys
@@ -605,27 +600,34 @@ class MockAppsResearchBridge(AppsResearchBridge):
         super().__init__(
             capability_ref=capability_ref,
             artifact_runs_root=artifact_runs_root,
+            policy=policy,
+            timeout_seconds=timeout_seconds,
+            max_retries=max_retries,
+            cost_limit_usd=cost_limit_usd,
+            cost_per_call_usd=cost_per_call_usd,
+            force_fresh=force_fresh,
         )
         self._mock_blocked = is_blocked
         self._mock_block_reason = block_reason
         self._mock_stale = is_stale
         self._mock_evidence = evidence_items or [
             EvidenceItem(
-                source_id="mock-ev-001",
-                label="Mock strategic company brief",
-                uri="apps_research://mock",
-                source_type="company_brief",
-                field_ref="company_brief",
-                confidence=confidence_score,
+                source_id="mock-ev-1",
+                label="Mock Primary Source",
+                uri="https://example.com/mock-intel",
+                source_type="web_page",
+                field_ref="company_overview",
+                confidence=0.95,
             )
         ]
         self._mock_confidence = confidence_score
         self._mock_priorities = strategic_priorities or (
-            "Consolidating acquired banking books onto unified digital core",
-            "Scaling AI agent assist in Care Centers with strict human-in-the-loop governance",
+            "Enterprise platform modernization",
+            "Executive talent transformation",
+            "Distributed AI system engineering",
         )
         self._mock_brief = company_brief_text or (
-            "# Mock Company Research Briefing\n\n"
+            "# Research Briefing: Mock Co\n\n"
             "## Strategic Mandate\n"
             "- Entity: Mock Co\n"
             "- Role: Technology Leadership\n\n"
@@ -645,11 +647,41 @@ class MockAppsResearchBridge(AppsResearchBridge):
         trace_id: str = "",
         job_description_ref: str = "",
         job_description_text: str = "",
+        force_fresh: bool | None = None,
+        timeout_seconds: float | None = None,
+        max_retries: int | None = None,
+        cost_limit_usd: float | None = None,
     ) -> ResearchResult:
         t_start = time.time() * 1000.0
         req_id = request_id or f"req-mock-{uuid.uuid4().hex[:8]}"
         r_id = run_id or f"run-mock-{uuid.uuid4().hex[:8]}"
         tr_id = trace_id or f"trace-mock-{uuid.uuid4().hex[:8]}"
+
+        effective_force_fresh = force_fresh if force_fresh is not None else self.policy.force_fresh
+        effective_cost_limit = cost_limit_usd if cost_limit_usd is not None else self.policy.cost_limit_usd
+        cost_per_call = self.policy.cost_per_call_usd
+
+        # REUSE PHASE: If not forced fresh, check persisted artifacts first
+        if not effective_force_fresh and self._artifact_runs_root is not None:
+            persisted_bundle, _ = _find_valid_persisted_artifact_bundle(
+                artifact_runs_root=self._artifact_runs_root,
+                company_name=company_name,
+                job_title=job_title,
+            )
+            if persisted_bundle is not None:
+                return persisted_bundle
+
+        # Check cost limit
+        if (self.cumulative_cost_usd + cost_per_call) > effective_cost_limit:
+            return build_cost_limit_exceeded_result(
+                run_id=r_id,
+                trace_id=tr_id,
+                request_id=req_id,
+                cumulative_cost_usd=self.cumulative_cost_usd,
+                cost_per_call_usd=cost_per_call,
+                cost_limit_usd=effective_cost_limit,
+                t_start=t_start,
+            )
 
         if self._mock_blocked:
             return ResearchResult(
@@ -669,6 +701,9 @@ class MockAppsResearchBridge(AppsResearchBridge):
                 resolution_source="HERMETIC_FALLBACK",
                 is_verified=False,
             )
+
+        self.live_invocation_count += 1
+        self.cumulative_cost_usd += cost_per_call
 
         raw = SimpleNamespace(
             run_id=r_id,
@@ -698,5 +733,14 @@ __all__ = [
     "AppsResearchBridge",
     "EvidenceItem",
     "MockAppsResearchBridge",
+    "ResearchBoundaryPolicy",
     "ResearchResult",
+    "_build_canonical_sidecar",
+    "_extract_priorities_from_text",
+    "_find_valid_persisted_artifact_bundle",
+    "_read_candidate_brief",
+    "_resolve_canonical_targeting_brief",
+    "build_cost_limit_exceeded_result",
+    "build_timeout_result",
+    "execute_bounded_live_research",
 ]

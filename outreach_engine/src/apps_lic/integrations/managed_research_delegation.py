@@ -33,6 +33,8 @@ class ResearchFailureReason(str, Enum):
     APPS_RESEARCH_STALE = "APPS_RESEARCH_STALE"
     APPS_RESEARCH_WEAK_SUPPORT = "APPS_RESEARCH_WEAK_SUPPORT"
     APPS_RESEARCH_ARTIFACT_MISSING = "APPS_RESEARCH_ARTIFACT_MISSING"
+    APPS_RESEARCH_TIMEOUT = "APPS_RESEARCH_TIMEOUT"
+    APPS_RESEARCH_COST_LIMIT_EXCEEDED = "APPS_RESEARCH_COST_LIMIT_EXCEEDED"
 
 
 @dataclass(frozen=True)
@@ -50,6 +52,10 @@ class RequestForOutreachBriefing:
     job_description_ref: str = ""
     job_description_text: str = ""
     artifact_runs_root: Path | None = None
+    force_fresh: bool = False
+    timeout_seconds: float = 30.0
+    max_retries: int = 2
+    cost_limit_usd: float | None = None
 
 
 @dataclass(frozen=True)
@@ -192,22 +198,44 @@ def dispatch_outreach_research_briefing(
         )
 
     try:
-        research_result = bridge.fetch(
-            company_name=request.company_name,
-            job_title=request.job_title,
-            capability_ref=request.research_capability_ref,
-            request_id=request.request_id,
-            run_id=request.run_id,
-            trace_id=request.trace_id,
-            job_description_ref=request.job_description_ref,
-            job_description_text=request.job_description_text,
-        )
-    except Exception as exc:  # noqa: BLE001
+        fetch_kwargs: dict[str, Any] = {
+            "company_name": request.company_name,
+            "job_title": request.job_title,
+            "capability_ref": request.research_capability_ref,
+            "request_id": request.request_id,
+            "run_id": request.run_id,
+            "trace_id": request.trace_id,
+            "job_description_ref": request.job_description_ref,
+            "job_description_text": request.job_description_text,
+        }
+        import inspect
+        sig = inspect.signature(bridge.fetch)
+        for k in ("force_fresh", "timeout_seconds", "max_retries", "cost_limit_usd"):
+            if k in sig.parameters:
+                fetch_kwargs[k] = getattr(request, k)
+
+        research_result = bridge.fetch(**fetch_kwargs)
+    except TimeoutError as exc:
         return ResearchDispatchFailure(
             request_id=request.request_id,
             run_id=request.run_id,
             trace_id=request.trace_id,
-            r5_reason_code=ResearchFailureReason.APPS_RESEARCH_FAILED.value,
+            r5_reason_code=ResearchFailureReason.APPS_RESEARCH_TIMEOUT.value,
+            detail=f"TimeoutError: {exc}",
+            dispatch_duration_ms=_utc_ms() - t_start,
+        )
+    except Exception as exc:  # noqa: BLE001
+        reason_code = ResearchFailureReason.APPS_RESEARCH_FAILED.value
+        exc_str = str(exc).lower()
+        if "cost" in exc_str and "limit" in exc_str:
+            reason_code = ResearchFailureReason.APPS_RESEARCH_COST_LIMIT_EXCEEDED.value
+        elif "timeout" in exc_str:
+            reason_code = ResearchFailureReason.APPS_RESEARCH_TIMEOUT.value
+        return ResearchDispatchFailure(
+            request_id=request.request_id,
+            run_id=request.run_id,
+            trace_id=request.trace_id,
+            r5_reason_code=reason_code,
             detail=f"{type(exc).__name__}: {exc}",
             dispatch_duration_ms=_utc_ms() - t_start,
         )
@@ -223,11 +251,17 @@ def dispatch_outreach_research_briefing(
         )
 
     if research_result.is_blocked:
+        reason_code = ResearchFailureReason.APPS_RESEARCH_BLOCKED.value
+        b_reason = str(research_result.block_reason or "").upper()
+        if "COST_LIMIT" in b_reason:
+            reason_code = ResearchFailureReason.APPS_RESEARCH_COST_LIMIT_EXCEEDED.value
+        elif "TIMEOUT" in b_reason:
+            reason_code = ResearchFailureReason.APPS_RESEARCH_TIMEOUT.value
         return ResearchDispatchFailure(
             request_id=request.request_id,
             run_id=request.run_id,
             trace_id=request.trace_id,
-            r5_reason_code=ResearchFailureReason.APPS_RESEARCH_BLOCKED.value,
+            r5_reason_code=reason_code,
             detail=research_result.block_reason or "blocked",
             dispatch_duration_ms=_utc_ms() - t_start,
         )
