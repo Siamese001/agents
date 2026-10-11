@@ -65,9 +65,10 @@ class OutreachOrchestrator:
         job_description_text: str = "",
         artifact_runs_root: Path | None = None,
         trace_id: str = "",
+        force_fresh: bool = False,
     ) -> TargetOpportunity:
         """Resolves target briefing via GovernedBriefingResolver if not already sealed."""
-        if opportunity.sealed_resolution is not None:
+        if not force_fresh and opportunity.sealed_resolution is not None:
             return opportunity
 
         resolution: SealedBriefingResolution = GovernedBriefingResolver.resolve(
@@ -80,6 +81,7 @@ class OutreachOrchestrator:
             research_bridge=research_bridge,
             artifact_runs_root=artifact_runs_root,
             trace_id=trace_id,
+            force_fresh=force_fresh,
         )
 
         priorities = list(opportunity.strategic_priorities)
@@ -114,6 +116,7 @@ class OutreachOrchestrator:
         job_description_text: str = "",
         artifact_dir: Path | str | None = None,
         trace_id: str = "",
+        force_fresh: bool = False,
     ) -> tuple[OutreachMessageDraft, AuthoritativeVerdict]:
         """Generates and validates a single grounded outreach draft with governed briefing."""
         a_dir = Path(artifact_dir) if artifact_dir else None
@@ -126,6 +129,7 @@ class OutreachOrchestrator:
             job_description_text=job_description_text,
             artifact_runs_root=artifact_runs_root,
             trace_id=trace_id,
+            force_fresh=force_fresh,
         )
 
         # Resolve audience persona
@@ -404,6 +408,7 @@ class OutreachOrchestrator:
         job_description_text: str = "",
         artifact_dir: Path | str | None = None,
         trace_id: str = "",
+        force_fresh: bool = False,
     ) -> TouchSequence:
         """Generates a complete validated multi-touch sequence with governed briefing."""
         effective_channel = channel if channel is not None else primary_channel
@@ -417,6 +422,7 @@ class OutreachOrchestrator:
             job_description_text=job_description_text,
             artifact_runs_root=artifact_runs_root,
             trace_id=trace_id,
+            force_fresh=force_fresh,
         )
         sequence = self.sequence_planner.plan_sequence(
             candidate,

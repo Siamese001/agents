@@ -130,6 +130,7 @@ class GovernedBriefingResolver:
         research_bridge: Any | None = None,
         artifact_runs_root: Path | None = None,
         trace_id: str = "",
+        force_fresh: bool = False,
     ) -> SealedBriefingResolution:
         # PATH A: Explicit Manual Brief or Mission Fixture context
         if manual_brief_or_fixture or strategic_priorities:
@@ -157,25 +158,26 @@ class GovernedBriefingResolver:
                 f"MANUAL::{company_name}::{target_role}::{mtime}::{raw_content}::{priorities}".encode("utf-8")
             ).hexdigest()
 
-            with cls._lock:
-                if manual_cache_key in cls._cache:
-                    cached = cls._cache[manual_cache_key]
-                    cached_time = cached.get("timestamp", 0.0)
-                    if time.time() - cached_time <= cls.DEFAULT_CACHE_TTL_SECONDS:
-                        return SealedBriefingResolution(
-                            briefing_text=cached["briefing_text"],
-                            digest=cached["digest"],
-                            resolution_source="MANUAL",
-                            company_name=company_name,
-                            target_role=target_role,
-                            confidence_score=float(cached.get("confidence_score", 1.0)),
-                            evidence_count=int(cached.get("evidence_count", 1)),
-                            airlock_sanitized=cached["airlock_sanitized"],
-                            strategic_priorities=priorities,
-                            is_verified=bool(cached.get("is_verified", True)),
-                            metadata=dict(cached.get("metadata", {})),
-                        )
-                    cls._cache.pop(manual_cache_key, None)
+            if not force_fresh:
+                with cls._lock:
+                    if manual_cache_key in cls._cache:
+                        cached = cls._cache[manual_cache_key]
+                        cached_time = cached.get("timestamp", 0.0)
+                        if time.time() - cached_time <= cls.DEFAULT_CACHE_TTL_SECONDS:
+                            return SealedBriefingResolution(
+                                briefing_text=cached["briefing_text"],
+                                digest=cached["digest"],
+                                resolution_source="MANUAL",
+                                company_name=company_name,
+                                target_role=target_role,
+                                confidence_score=float(cached.get("confidence_score", 1.0)),
+                                evidence_count=int(cached.get("evidence_count", 1)),
+                                airlock_sanitized=cached["airlock_sanitized"],
+                                strategic_priorities=priorities,
+                                is_verified=bool(cached.get("is_verified", True)),
+                                metadata=dict(cached.get("metadata", {})),
+                            )
+                        cls._cache.pop(manual_cache_key, None)
 
             # Sanitize all manual input through the Adversarial Injection Airlock
             clean_brief, receipt = _sanitize_briefing_content(raw_content, trace_id=trace_id)
@@ -218,29 +220,80 @@ class GovernedBriefingResolver:
             f"{company_name}::{target_role}::{job_description_text}".encode("utf-8")
         ).hexdigest()
 
-        # PATH B: Cache Hit with TTL Freshness Verification
-        with cls._lock:
-            if cache_key in cls._cache:
-                cached = cls._cache[cache_key]
-                cached_time = cached.get("timestamp", 0.0)
-                if time.time() - cached_time > cls.DEFAULT_CACHE_TTL_SECONDS:
-                    cls._cache.pop(cache_key, None)
-                else:
-                    return SealedBriefingResolution(
-                        briefing_text=cached["briefing_text"],
-                        digest=cached["digest"],
-                        resolution_source="CACHE_HIT",
+        # PATH B: Cache Hit with TTL Freshness Verification (In-memory + Persisted Artifacts)
+        if not force_fresh:
+            with cls._lock:
+                if cache_key in cls._cache:
+                    cached = cls._cache[cache_key]
+                    cached_time = cached.get("timestamp", 0.0)
+                    if time.time() - cached_time > cls.DEFAULT_CACHE_TTL_SECONDS:
+                        cls._cache.pop(cache_key, None)
+                    else:
+                        return SealedBriefingResolution(
+                            briefing_text=cached["briefing_text"],
+                            digest=cached["digest"],
+                            resolution_source="CACHE_HIT",
+                            company_name=company_name,
+                            target_role=target_role,
+                            confidence_score=float(cached.get("confidence_score", 0.0)),
+                            evidence_count=int(cached.get("evidence_count", 0)),
+                            airlock_sanitized=cached.get("airlock_sanitized", False),
+                            strategic_priorities=tuple(cached.get("strategic_priorities", ())),
+                            research_artifact_dir=cached.get("research_artifact_dir", ""),
+                            briefing_artifact_path=cached.get("briefing_artifact_path", ""),
+                            is_verified=bool(cached.get("is_verified", True)),
+                            metadata={"cache_key": cache_key, "cached_at": cached_time},
+                        )
+
+            # Check persisted research artifacts in artifact_runs_root before live calls
+            if artifact_runs_root is not None:
+                from apps_lic.integrations.apps_research_bridge import _find_valid_persisted_artifact_bundle
+
+                persisted, _ = _find_valid_persisted_artifact_bundle(
+                    artifact_runs_root=artifact_runs_root,
+                    company_name=company_name,
+                    job_title=target_role,
+                    freshness_ttl_seconds=cls.DEFAULT_CACHE_TTL_SECONDS,
+                )
+                if persisted is not None and persisted.is_verified and not persisted.is_blocked:
+                    clean_brief, receipt = _sanitize_briefing_content(
+                        persisted.company_brief_text, trace_id=trace_id
+                    )
+                    priorities = tuple(persisted.strategic_priorities)
+                    res = SealedBriefingResolution(
+                        briefing_text=clean_brief,
+                        digest=receipt.clean_digest,
+                        resolution_source="PERSISTED_ARTIFACT",
                         company_name=company_name,
                         target_role=target_role,
-                        confidence_score=float(cached.get("confidence_score", 0.0)),
-                        evidence_count=int(cached.get("evidence_count", 0)),
-                        airlock_sanitized=cached.get("airlock_sanitized", False),
-                        strategic_priorities=tuple(cached.get("strategic_priorities", ())),
-                        research_artifact_dir=cached.get("research_artifact_dir", ""),
-                        briefing_artifact_path=cached.get("briefing_artifact_path", ""),
-                        is_verified=bool(cached.get("is_verified", True)),
-                        metadata={"cache_key": cache_key, "cached_at": cached_time},
+                        confidence_score=persisted.confidence_score,
+                        evidence_count=len(persisted.evidence_items),
+                        airlock_sanitized=receipt.sanitized,
+                        strategic_priorities=priorities,
+                        research_artifact_dir=persisted.research_artifact_dir,
+                        briefing_artifact_path=persisted.briefing_artifact_path,
+                        is_verified=True,
+                        metadata={
+                            "signals_flagged": list(receipt.injection_signals_detected),
+                            "reused_from_disk": True,
+                            "cache_key": cache_key,
+                        },
                     )
+                    cls._save_to_cache(
+                        cache_key,
+                        {
+                            "briefing_text": clean_brief,
+                            "digest": receipt.clean_digest,
+                            "confidence_score": persisted.confidence_score,
+                            "evidence_count": len(persisted.evidence_items),
+                            "airlock_sanitized": receipt.sanitized,
+                            "strategic_priorities": priorities,
+                            "research_artifact_dir": persisted.research_artifact_dir,
+                            "briefing_artifact_path": persisted.briefing_artifact_path,
+                            "is_verified": True,
+                        },
+                    )
+                    return res
 
         # PATH C: Autonomous Research via AppsResearchBridge
         if auto_research:
@@ -260,6 +313,7 @@ class GovernedBriefingResolver:
                 job_title=target_role,
                 job_description_text=job_description_text,
                 artifact_runs_root=artifact_runs_root,
+                force_fresh=force_fresh,
             )
 
             dispatch_res = dispatch_outreach_research_briefing(req, bridge=bridge)
