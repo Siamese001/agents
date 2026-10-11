@@ -123,3 +123,57 @@ def test_adversarial_duplicate_subtrees_defense() -> None:
     assert not (rge / "src" / "apps_research").exists(), "resume_graph_engine/src/apps_research must not exist"
     assert not (rge / "apps_eval").exists(), "resume_graph_engine/apps_eval must not exist"
     assert not (rge / "src" / "apps_eval").exists(), "resume_graph_engine/src/apps_eval must not exist"
+
+
+# ---------------------------------------------------------------------------
+# Vector 5: Public Evaluation Fail-Closed Defense (Judge Records & Authoritative Receipts)
+# ---------------------------------------------------------------------------
+
+def test_adversarial_public_eval_rejects_missing_and_corrupt_judge_records(tmp_path: Path) -> None:
+    """Public evaluation must never default to PASS on missing, malformed, or UNKNOWN judge records."""
+    from apps_rg.__main__ import _evaluate_product_run
+
+    run_dir = tmp_path / "run_adversarial"
+    run_dir.mkdir(parents=True)
+    (run_dir / "apps_rg_pipeline_completion_receipt.json").write_text(
+        json.dumps({"pipeline_complete": True}), encoding="utf-8"
+    )
+    (run_dir / "apps_rg_product_authorization_receipt.json").write_text(
+        json.dumps({"authorized": True}), encoding="utf-8"
+    )
+    (run_dir / "x3_disposition_receipt.json").write_text(
+        json.dumps({"x3_code": "X3D_ALLOW_FINISH"}), encoding="utf-8"
+    )
+
+    # 1. Missing records -> BLOCKED
+    eval_dir = run_dir / "apps_eval" / "test_run"
+    eval_dir.mkdir(parents=True)
+    report_missing = _evaluate_product_run(run_dir)
+    assert report_missing["status"] == "BLOCKED"
+    assert report_missing["evaluation_status"] != "PASS"
+
+    # 2. Corrupt / malformed record -> BLOCKED
+    eval_file = eval_dir / "eval_record.json"
+    eval_file.write_text("{corrupt: json,", encoding="utf-8")
+    report_malformed = _evaluate_product_run(run_dir)
+    assert report_malformed["status"] == "BLOCKED"
+    assert report_malformed["malformed_eval_records"]
+
+    # 3. UNKNOWN verdict -> BLOCKED
+    eval_file.write_text(json.dumps({"record_id": "r1", "status": "UNKNOWN"}), encoding="utf-8")
+    report_unknown = _evaluate_product_run(run_dir)
+    assert report_unknown["status"] == "BLOCKED"
+    assert report_unknown["non_passing_eval_records"]
+
+    # 4. ERROR verdict -> BLOCKED
+    eval_file.write_text(json.dumps({"record_id": "r1", "status": "ERROR"}), encoding="utf-8")
+    report_error = _evaluate_product_run(run_dir)
+    assert report_error["status"] == "BLOCKED"
+    assert report_error["non_passing_eval_records"]
+
+    # 5. Stale record -> BLOCKED
+    eval_file.write_text(json.dumps({"record_id": "r1", "status": "STALE"}), encoding="utf-8")
+    report_stale = _evaluate_product_run(run_dir)
+    assert report_stale["status"] == "BLOCKED"
+    assert report_stale["stale_eval_records"]
+

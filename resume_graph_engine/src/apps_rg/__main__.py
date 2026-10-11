@@ -21,7 +21,11 @@ _PACKAGE_ROOT = Path(__file__).resolve().parent
 _DEFAULT_JD_PATH = _PACKAGE_ROOT / "config" / "targeting" / "anthropic_manager_applied_ai_architecture_partnerships_jd.txt"
 _DEFAULT_RESUME_PATH = _PACKAGE_ROOT / "resume" / "base" / "amit_ayer_base_resume_v1.json"
 
-__all__ = ["_build_parser", "main"]
+from apps_rg.runtime.orchestration.canonical_dispatch import (
+    run_canonical_apps_rg_from_cli_primitives,
+)
+
+__all__ = ["_build_parser", "main", "run_canonical_apps_rg_from_cli_primitives"]
 
 
 def _add_run_arguments(parser: argparse.ArgumentParser) -> None:
@@ -159,111 +163,131 @@ def _evaluate_product_run(run_dir: Path) -> dict[str, Any]:
         x3_ref = "apps_rg_whole_run_exit_review_packet.json"
         x3 = _read_json_artifact(run_dir / x3_ref)
         x3_disposition = _x3_disposition(x3)
-    eval_records = [
-        _read_json_artifact(path)
-        for path in sorted((run_dir / "apps_eval").glob("**/eval_record.json"))
-        if path.is_file()
-    ]
-    eval_records = [record for record in eval_records if record is not None]
 
-    # Validate candidate manifest if present
+    env_payload = _read_json_artifact(run_dir / "runtime_identity_envelope.json") or {}
+    expected_parent_run_id = str(
+        (env_payload.get("payload") if isinstance(env_payload.get("payload"), dict) else {}).get("parent_run_id")
+        or env_payload.get("parent_run_id")
+        or (completion.get("parent_run_id") if completion else "")
+        or (completion.get("run_id") if completion else "")
+        or ""
+    ).strip()
+
+    eval_records, malformed_records, stale_records, non_passing_records = [], [], [], []
+    invalid_tokens = {
+        "FAIL", "BLOCKED", "ERROR", "UNKNOWN", "STALE", "INVALID",
+        "UNSPECIFIED", "TIMEOUT", "CRASH", "PENDING", "EVALUATION_ERROR",
+        "PRODUCT_FAIL", "EVALUATION_INVALID",
+    }
+    for path in sorted((run_dir / "apps_eval").glob("**/eval_record.json")):
+        if not path.is_file():
+            continue
+        parsed = _read_json_artifact(path)
+        if not isinstance(parsed, dict) or not parsed:
+            malformed_records.append(str(path))
+            continue
+        eval_records.append(parsed)
+
+        rec_stat, rec_verd, rec_disp = (str(parsed.get(k) or "").strip().upper() for k in ("status", "verdict", "disposition"))
+        if not rec_verd:
+            rec_verd = str(parsed.get("eval_verdict") or "").strip().upper()
+        rec_parent = str(parsed.get("parent_run_id") or "").strip()
+        if (
+            "superseded_apps_eval_packages" in path.parts
+            or any("STALE" in s for s in (rec_stat, rec_verd, rec_disp))
+            or rec_disp.startswith("SUPERSEDED")
+            or bool(expected_parent_run_id and rec_parent and rec_parent != expected_parent_run_id)
+        ):
+            stale_records.append(str(path))
+            continue
+
+        sc = parsed.get("scorecard") if isinstance(parsed.get("scorecard"), dict) else {}
+        sc_verd, sc_stat = str(sc.get("verdict") or "").strip().upper(), str(sc.get("status") or "").strip().upper()
+        has_negative = (
+            any(t in invalid_tokens for t in (rec_stat, rec_verd, sc_verd, sc_stat))
+            or any(bad in rec_stat or bad in rec_verd for bad in ("FAIL", "ERROR", "UNKNOWN", "STALE", "BLOCKED"))
+        )
+        release_blocked = parsed.get("release_blocked") is True or sc.get("release_blocked") is True
+        judges = parsed.get("judges") if isinstance(parsed.get("judges"), list) else []
+        judge_issue = any(
+            isinstance(j, dict) and (
+                j.get("pass") is False
+                or j.get("decisive_failure") is True
+                or str(j.get("provider_status") or j.get("status") or "").strip().upper() in invalid_tokens
+                or any(bad in str(j.get("provider_status") or j.get("status") or "").strip().upper() for bad in ("FAIL", "ERROR", "UNKNOWN"))
+            )
+            for j in judges
+        )
+        has_positive = any(t in {"PASS", "SUCCESS"} for t in (rec_stat, rec_verd, sc_verd, sc_stat))
+        if has_negative or release_blocked or judge_issue or not has_positive:
+            non_passing_records.append(str(path))
+
     candidate_manifest_path = run_dir / "candidate_evaluation_manifest.v2.json"
     candidate_manifest_errors: list[str] = []
     if candidate_manifest_path.is_file():
         from apps_rg.runtime.evaluation_manifest import validate_candidate_evaluation_manifest
-
         _, candidate_manifest_errors = validate_candidate_evaluation_manifest(run_dir)
 
     l6_audit = _read_json_artifact(run_dir / "l6_evaluation_audit.v2.json")
-
-    completed = bool(completion and completion.get("pipeline_complete"))
+    completed = bool(completion and (completion.get("pipeline_complete") or completion.get("completed")))
     authorized = bool(authorization and authorization.get("authorized"))
 
-    # Check if a complete evaluation_decision was persisted in the completion receipt
     saved_decision = None
     if isinstance(completion, dict):
-        saved_decision = completion.get("evaluation_decision")
-        if not isinstance(saved_decision, dict):
-            payload = completion.get("payload")
-            if isinstance(payload, dict):
-                saved_decision = payload.get("evaluation_decision")
+        c_payload = completion.get("payload") if isinstance(completion.get("payload"), dict) else {}
+        for candidate in (completion.get("evaluation_decision"), c_payload.get("evaluation_decision"), completion.get("apps_eval")):
+            if isinstance(candidate, dict):
+                saved_decision = candidate
+                break
 
-    evals_passed = bool(eval_records) and all(
-        str(record.get("status") or record.get("verdict") or "PASS").upper()
-        not in {"FAIL", "BLOCKED"}
-        for record in eval_records
-    )
-
+    evals_passed = bool(eval_records) and not malformed_records and not stale_records and not non_passing_records
     l6_pass = l6_audit.get("l6_integrity_status") == "PASS" if l6_audit else True
     manifest_pass = not candidate_manifest_errors
 
     if isinstance(saved_decision, dict):
-        execution_status = str(saved_decision.get("execution_status") or "PASS")
-        package_integrity_status = str(saved_decision.get("package_integrity_status") or "PASS")
+        execution_status = str(saved_decision.get("execution_status") or ("PASS" if evals_passed else "ERROR"))
+        package_integrity_status = str(
+            saved_decision.get("package_integrity_status")
+            or ("PASS" if evals_passed and not malformed_records else "INVALID")
+        )
         evaluation_validity = (
             "INVALID"
-            if not manifest_pass
+            if (not manifest_pass or not evals_passed or malformed_records)
             else str(saved_decision.get("evaluation_validity") or "INVALID")
         )
-        deterministic_product_status = str(
-            saved_decision.get("deterministic_product_status") or "FAIL"
-        )
-        l6_integrity_status = str(saved_decision.get("l6_integrity_status") or "PASS")
-        evaluation_status = str(saved_decision.get("evaluation_status") or "PASS")
-        if candidate_manifest_errors and evaluation_status == "PASS":
-            evaluation_status = "EVALUATION_INVALID"
+        deterministic_product_status = str(saved_decision.get("deterministic_product_status") or ("PASS" if evals_passed else "FAIL"))
+        if not evals_passed:
+            deterministic_product_status = "FAIL"
+        l6_integrity_status = str(saved_decision.get("l6_integrity_status") or ((l6_audit.get("l6_integrity_status") or "PASS") if l6_audit else "PASS"))
+        evaluation_status = str(saved_decision.get("evaluation_status") or "PRODUCT_FAIL")
+        if (candidate_manifest_errors or not evals_passed or malformed_records) and evaluation_status == "PASS":
+            evaluation_status = "EVALUATION_INVALID" if evaluation_validity != "PASS" else "PRODUCT_FAIL"
     else:
-        execution_status = "PASS" if bool(eval_records) else "ERROR"
-        package_integrity_status = "PASS" if bool(eval_records) else "INVALID"
-        evaluation_validity = (
-            "PASS" if (manifest_pass and l6_pass and bool(eval_records)) else "INVALID"
-        )
-        deterministic_product_status = (
-            "PASS" if (evals_passed and x3_disposition == "X3D_ALLOW_FINISH") else "FAIL"
-        )
-        l6_integrity_status = str(
-            (l6_audit.get("l6_integrity_status") or "PASS") if l6_audit else "PASS"
-        )
+        execution_status = "PASS" if evals_passed else "ERROR"
+        package_integrity_status = "PASS" if (evals_passed and not malformed_records) else "INVALID"
+        evaluation_validity = "PASS" if (manifest_pass and l6_pass and evals_passed) else "INVALID"
+        deterministic_product_status = "PASS" if (evals_passed and x3_disposition == "X3D_ALLOW_FINISH") else "FAIL"
+        l6_integrity_status = str((l6_audit.get("l6_integrity_status") or "PASS") if l6_audit else "PASS")
         evaluation_status = (
             "PASS"
-            if (
-                completed
-                and authorized
-                and evaluation_validity == "PASS"
-                and deterministic_product_status == "PASS"
-            )
-            else "EVALUATION_INVALID"
-            if evaluation_validity != "PASS"
-            else "PRODUCT_FAIL"
+            if (completed and authorized and evaluation_validity == "PASS" and deterministic_product_status == "PASS")
+            else "EVALUATION_INVALID" if evaluation_validity != "PASS" else "PRODUCT_FAIL"
         )
 
     status = (
         "PASS"
-        if (
-            completed
-            and authorized
-            and x3_disposition == "X3D_ALLOW_FINISH"
-            and evals_passed
-            and evaluation_status == "PASS"
-        )
+        if (completed and authorized and x3_disposition == "X3D_ALLOW_FINISH" and evals_passed and evaluation_status == "PASS")
         else "BLOCKED"
     )
 
     from apps_rg.runtime.cli_exit_codes import exit_code_from_evaluation_decision
-
-    exit_code = (
-        0
-        if status == "PASS"
-        else exit_code_from_evaluation_decision(
-            {
-                "evaluation_status": evaluation_status,
-                "execution_status": execution_status,
-                "evaluation_validity": evaluation_validity,
-                "deterministic_product_status": deterministic_product_status,
-                "pipeline_complete": completed,
-            }
-        )
-    )
+    exit_code = 0 if status == "PASS" else exit_code_from_evaluation_decision({
+        "evaluation_status": evaluation_status,
+        "execution_status": execution_status,
+        "evaluation_validity": evaluation_validity,
+        "deterministic_product_status": deterministic_product_status,
+        "pipeline_complete": completed,
+    })
 
     return {
         "schema_version": "apps_rg.public_cli_product_evaluation.v1",
@@ -281,6 +305,9 @@ def _evaluate_product_run(run_dir: Path) -> dict[str, Any]:
         "x3_disposition": x3_disposition,
         "exit_code": exit_code,
         "candidate_manifest_errors": candidate_manifest_errors,
+        "malformed_eval_records": malformed_records,
+        "stale_eval_records": stale_records,
+        "non_passing_eval_records": non_passing_records,
         "completion_receipt_ref": completion_ref if completion is not None else "",
         "x3_receipt_ref": x3_ref if x3 is not None else "",
         "apps_eval_record_count": len(eval_records),
@@ -450,20 +477,17 @@ def _run_product_from_cli(args: argparse.Namespace) -> dict[str, Any]:
             brief_text = brief_path.read_text(encoding="utf-8")
         else:
             brief_text = str(args.briefing).strip()
-    sys.stderr.write("[resume_engine] Dispatching canonical resume generation...\n")
-    sys.stderr.flush()
-    from apps_rg.runtime.orchestration.canonical_dispatch import (
-        run_canonical_apps_rg_from_cli_primitives,
-    )
-    result = run_canonical_apps_rg_from_cli_primitives(
-        target_company=args.target_company,
-        target_role=args.target_role,
-        jd=jd_text,
-        job_description_text=jd_text,
-        manual_brief=brief_text,
-        source_resume_text=resume_text,
-        artifact_dir=args.artifact_dir,
-    )
+    dispatch_kwargs: dict[str, Any] = {
+        "target_company": args.target_company,
+        "target_role": args.target_role,
+        "jd": jd_text,
+        "job_description_text": jd_text,
+        "source_resume_text": resume_text,
+        "artifact_dir": args.artifact_dir,
+    }
+    if brief_text:
+        dispatch_kwargs["manual_brief"] = brief_text
+    result = run_canonical_apps_rg_from_cli_primitives(**dispatch_kwargs)
     sys.stderr.write("[resume_engine] Evaluating product output and receipts...\n")
     sys.stderr.flush()
     out = dict(result)
