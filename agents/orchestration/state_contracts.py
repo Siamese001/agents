@@ -339,3 +339,83 @@ def workflow_status_to_run_phase(status: Any) -> RunPhase:
         "COMPLETED": RunPhase.COMPLETED,
     }
     return mapping.get(val, RunPhase.RUNNING)
+
+
+def _safe_serialize(val: Any) -> Any:
+    """Safely convert any arbitrary output object into a JSON-serializable structure."""
+    if val is None or isinstance(val, (str, int, float, bool)):
+        return val
+    if isinstance(val, dict):
+        return {str(k): _safe_serialize(v) for k, v in val.items()}
+    if isinstance(val, (list, tuple, set)):
+        return [_safe_serialize(v) for v in val]
+    for method in ("as_dict", "to_dict"):
+        if hasattr(val, method) and callable(getattr(val, method)):
+            try:
+                return _safe_serialize(getattr(val, method)())
+            except Exception:
+                pass
+    if hasattr(val, "__dict__"):
+        try:
+            return {str(k): _safe_serialize(v) for k, v in vars(val).items()}
+        except Exception:
+            pass
+    return str(val)
+
+
+@dataclass(slots=True)
+class StepExecutionResult:
+    """Outcome of an individual executed workflow step."""
+
+    step_id: str
+    status: str  # "PASSED", "FAILED", "SKIPPED"
+    primitive: str
+    output: Any = None
+    error: str = ""
+    retry_count: int = 0
+    replan_count: int = 0
+    failure_kind: str = ""
+    recovery_action: str = ""
+    diagnostics: dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "step_id": self.step_id,
+            "status": self.status,
+            "primitive": self.primitive,
+            "output": _safe_serialize(self.output),
+            "error": self.error,
+            "retry_count": self.retry_count,
+            "replan_count": self.replan_count,
+            "failure_kind": self.failure_kind,
+            "recovery_action": self.recovery_action,
+            "diagnostics": _safe_serialize(self.diagnostics),
+            "metadata": _safe_serialize(self.metadata),
+        }
+
+
+@dataclass(slots=True)
+class WorkflowExecutionReport:
+    """Consolidated report of workflow execution."""
+
+    workflow_id: str
+    final_status: Any  # WorkflowStatus or str
+    success: bool
+    step_results: dict[str, StepExecutionResult]
+    state_machine_audit: dict[str, Any]
+    artifact_path: str | None = None
+    failure_diagnostics: dict[str, Any] = field(default_factory=dict)
+
+    def as_dict(self) -> dict[str, Any]:
+        final_val = self.final_status.value if hasattr(self.final_status, "value") else str(self.final_status)
+        return {
+            "workflow_id": self.workflow_id,
+            "final_status": final_val,
+            "success": self.success,
+            "step_results": {k: v.as_dict() for k, v in self.step_results.items()},
+            "state_machine": self.state_machine_audit,
+            "artifact_path": self.artifact_path,
+            "failure_diagnostics": self.failure_diagnostics,
+        }
+
