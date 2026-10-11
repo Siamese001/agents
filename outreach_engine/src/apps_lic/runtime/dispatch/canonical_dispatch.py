@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from apps_lic.domain.models import (
+    AuthoritativeVerdict,
     CandidateProfile,
     CandidateProfileLoader,
     ChannelType,
@@ -85,27 +86,35 @@ def run_canonical_apps_lic_spine(
 
     latency_ms = round((time.perf_counter() - t0) * 1000, 2)
 
-    # AuthoritativeVerdict.passed is the single source of truth for completion and X3 disposition
-    passed = getattr(val, "passed", None)
-    if passed is None or hasattr(passed, "_mock_return_value") or type(passed).__name__ == "MagicMock":
-        passed = bool(getattr(val, "is_valid", False))
+    # AuthoritativeVerdict.passed is the exclusive authority for completion and X3 disposition.
+    # Completion must NEVER be authorized through hard_gate_passed alone.
+    raw_passed = getattr(val, "passed", None)
+    if isinstance(val, AuthoritativeVerdict):
+        passed = bool(val.passed) and bool(val.hard_gate_passed)
+    elif isinstance(raw_passed, bool):
+        passed = raw_passed and bool(getattr(val, "hard_gate_passed", True))
     else:
-        passed = bool(passed)
-
-    if not bool(getattr(val, "hard_gate_passed", True)):
+        # If val is not an AuthoritativeVerdict or does not have an explicit boolean passed,
+        # never allow completion (never fallback to hard_gate_passed or is_valid alone).
         passed = False
+
+    raw_violations = list(getattr(val, "violations", [])) if getattr(val, "violations", None) else []
+    raw_failure_reasons = list(getattr(val, "failure_reasons", [])) if getattr(val, "failure_reasons", None) else []
+    if not raw_failure_reasons and not passed:
+        raw_failure_reasons = list(getattr(val, "feedback", [])) if getattr(val, "feedback", None) else []
+        if not raw_failure_reasons:
+            raw_failure_reasons = ["Authoritative rubric judge failure"]
 
     if passed:
         rationale = "Pipeline completed with valid grounding"
         compliance_notes = "All hard validation gates verified"
     else:
         if not bool(getattr(val, "hard_gate_passed", True)):
-            violation_summary = "; ".join(getattr(val, "violations", [])) if getattr(val, "violations", None) else "Unknown validation violation"
+            violation_summary = "; ".join(raw_violations) if raw_violations else "Unknown validation violation"
             rationale = f"Pipeline blocked by validation gates: {violation_summary}"
             compliance_notes = f"Hard validation gates failed: {violation_summary}"
         else:
-            reasons = getattr(val, "failure_reasons", []) or getattr(val, "feedback", []) or ["Authoritative rubric judge failure"]
-            judge_summary = "; ".join(reasons)
+            judge_summary = "; ".join(raw_failure_reasons)
             rationale = f"Pipeline blocked by judge gates: {judge_summary}"
             compliance_notes = f"Authoritative judge gates failed: {judge_summary}"
 
@@ -116,7 +125,7 @@ def run_canonical_apps_lic_spine(
         "compliance_notes": compliance_notes,
         "draft_id": draft.draft_id,
         "is_valid": passed,
-        "violations": getattr(val, "violations", []),
-        "failure_reasons": list(getattr(val, "failure_reasons", [])),
+        "violations": raw_violations,
+        "failure_reasons": raw_failure_reasons,
         "latency_ms": latency_ms,
     }
