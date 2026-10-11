@@ -1,0 +1,119 @@
+name: resume-pipeline-ci
+
+on:
+  pull_request:
+    paths:
+      - "resume_engine/**"
+      - "resume_graph_engine/src/apps_rg/**"
+      - "resume_graph_engine/tests/unit/apps_rg/**"
+      - "tests/unit/test_*resume*"
+      - ".github/workflows/resume-pipeline-ci.yml"
+      - ".github/workflows/reusable-python-gate.yml"
+  push:
+    branches: [main]
+    paths:
+      - "resume_engine/**"
+      - "resume_graph_engine/src/apps_rg/**"
+      - "resume_graph_engine/tests/unit/apps_rg/**"
+      - "tests/unit/test_*resume*"
+      - ".github/workflows/resume-pipeline-ci.yml"
+      - ".github/workflows/reusable-python-gate.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: resume-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  resume-engine-core:
+    name: Resume Engine Core CLI & Fail-Closed Gate
+    uses: ./.github/workflows/reusable-python-gate.yml
+    with:
+      gate-name: "Resume Engine Core CLI & Fail-Closed Gate"
+      install-mode: "editable"
+      run-command: "python -m pytest tests/unit/test_resume_engine_unified_cli.py tests/unit/test_live_llm_wave2_resume_engine.py -v --tb=short"
+      timeout-minutes: 5
+
+  apps-rg-prompt-assembly:
+    name: Apps RG Prompt Assembly Quality Gate
+    uses: ./.github/workflows/reusable-python-gate.yml
+    with:
+      gate-name: "Apps RG Prompt Assembly Quality Gate"
+      install-mode: "editable"
+      run-command: "python -m pytest resume_graph_engine/tests/unit/apps_rg/prompt_assembly/ -q --tb=short"
+      timeout-minutes: 5
+
+  apps-rg-l2-recipe:
+    name: Apps RG L2 Recipe & Generation Quality Gate
+    uses: ./.github/workflows/reusable-python-gate.yml
+    with:
+      gate-name: "Apps RG L2 Recipe & Generation Quality Gate"
+      install-mode: "editable"
+      run-command: "python -m pytest resume_graph_engine/tests/unit/apps_rg/l2_recipe/ -q --tb=short"
+      timeout-minutes: 5
+
+  apps-rg-enforcement:
+    name: Apps RG Enforcement & Security Gate
+    uses: ./.github/workflows/reusable-python-gate.yml
+    with:
+      gate-name: "Apps RG Enforcement & Security Gate"
+      install-mode: "editable"
+      run-command: "python -m pytest resume_graph_engine/tests/unit/apps_rg/enforcement/ -q --tb=short"
+      timeout-minutes: 5
+
+  apps-rg-types-validators:
+    name: Apps RG Types & Validators Gate
+    uses: ./.github/workflows/reusable-python-gate.yml
+    with:
+      gate-name: "Apps RG Types & Validators Gate"
+      install-mode: "editable"
+      run-command: "python -m pytest resume_graph_engine/tests/unit/apps_rg/types/ resume_graph_engine/tests/unit/apps_rg/validators/ -q --tb=short"
+      timeout-minutes: 5
+
+  apps-rg-engines-claim-ledger:
+    name: Apps RG Engines & Claim Ledger Gate
+    uses: ./.github/workflows/reusable-python-gate.yml
+    with:
+      gate-name: "Apps RG Engines & Claim Ledger Gate"
+      install-mode: "editable"
+      run-command: "python -m pytest resume_graph_engine/tests/unit/apps_rg/claim_ledger/ resume_graph_engine/tests/unit/apps_rg/engines/ -q --tb=short"
+      timeout-minutes: 5
+
+  resume-pipeline-summary:
+    name: resume-pipeline-summary
+    needs:
+      - resume-engine-core
+      - apps-rg-prompt-assembly
+      - apps-rg-l2-recipe
+      - apps-rg-enforcement
+      - apps-rg-types-validators
+      - apps-rg-engines-claim-ledger
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Evaluate consolidated pipeline status
+        run: |
+          echo "=========================================="
+          echo "Resume Pipeline CI Gate Summary"
+          echo "=========================================="
+          echo "resume-engine-core: ${{ needs.resume-engine-core.result }}"
+          echo "apps-rg-prompt-assembly: ${{ needs.apps-rg-prompt-assembly.result }}"
+          echo "apps-rg-l2-recipe: ${{ needs.apps-rg-l2-recipe.result }}"
+          echo "apps-rg-enforcement: ${{ needs.apps-rg-enforcement.result }}"
+          echo "apps-rg-types-validators: ${{ needs.apps-rg-types-validators.result }}"
+          echo "apps-rg-engines-claim-ledger: ${{ needs.apps-rg-engines-claim-ledger.result }}"
+          echo "=========================================="
+          
+          if [ "${{ needs.resume-engine-core.result }}" != "success" ] || \
+             [ "${{ needs.apps-rg-prompt-assembly.result }}" != "success" ] || \
+             [ "${{ needs.apps-rg-l2-recipe.result }}" != "success" ] || \
+             [ "${{ needs.apps-rg-enforcement.result }}" != "success" ] || \
+             [ "${{ needs.apps-rg-types-validators.result }}" != "success" ] || \
+             [ "${{ needs.apps-rg-engines-claim-ledger.result }}" != "success" ]; then
+            echo "::error::One or more resume pipeline quality gates failed."
+            exit 1
+          fi
+          echo "All resume and apps_rg quality gates PASSED."

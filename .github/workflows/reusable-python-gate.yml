@@ -1,0 +1,71 @@
+name: Reusable Python Quality Gate
+
+on:
+  workflow_call:
+    inputs:
+      gate-name:
+        description: "Descriptive name for the quality gate"
+        required: true
+        type: string
+      python-version:
+        description: "Python version to set up"
+        required: false
+        type: string
+        default: "3.12"
+      install-mode:
+        description: "Dependency profile: none, minimal, editable, dev, full-cert"
+        required: false
+        type: string
+        default: "minimal"
+      run-command:
+        description: "Shell command or pytest invocation to execute"
+        required: true
+        type: string
+      timeout-minutes:
+        description: "Execution timeout in minutes"
+        required: false
+        type: number
+        default: 10
+      upload-artifact-name:
+        description: "Optional name for uploaded artifacts"
+        required: false
+        type: string
+        default: ""
+      upload-artifact-path:
+        description: "Optional path or directory for uploaded artifacts"
+        required: false
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  execute-gate:
+    name: ${{ inputs.gate-name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ inputs.timeout-minutes }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python environment
+        uses: ./.github/actions/python-setup
+        with:
+          python-version: ${{ inputs.python-version }}
+          install-mode: ${{ inputs.install-mode }}
+
+      - name: Run quality gate command
+        shell: bash
+        run: |
+          set -euo pipefail
+          ${{ inputs.run-command }}
+
+      - name: Upload gate artifacts
+        if: ${{ inputs.upload-artifact-name != '' && inputs.upload-artifact-path != '' && always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.upload-artifact-name }}
+          path: ${{ inputs.upload-artifact-path }}
+          if-no-files-found: ignore
+          retention-days: 14
