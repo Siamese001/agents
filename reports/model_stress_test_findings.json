@@ -1,0 +1,152 @@
+{
+  "schema_version": "model_stress_test_findings.v1",
+  "evaluated_at": "2026-10-12T05:16:00Z",
+  "evaluation_vectors": [
+    "cost_econometrics",
+    "computational_efficiency",
+    "frontier_reasoning",
+    "dual_judge_agreement",
+    "selector_consistency",
+    "grounding_provenance",
+    "local_edge_privacy",
+    "governance_stability"
+  ],
+  "models": {
+    "claude-sonnet-5": {
+      "scores": {
+        "cost_econometrics": 0.72,
+        "computational_efficiency": 0.78,
+        "frontier_reasoning": 0.94,
+        "dual_judge_agreement": 0.88,
+        "selector_consistency": 0.92,
+        "grounding_provenance": 0.95,
+        "local_edge_privacy": 0.20,
+        "governance_stability": 0.95
+      },
+      "composite_score": 0.793,
+      "cost_per_typical_run_usd": 0.0270,
+      "typical_ttft_ms": 720,
+      "typical_tps": 75,
+      "key_risk": "Adaptive thinking token exhaustion if reasoning effort raised above low; must maintain low reasoning on schema-bound sections."
+    },
+    "gpt-5.6-luna": {
+      "scores": {
+        "cost_econometrics": 0.80,
+        "computational_efficiency": 0.86,
+        "frontier_reasoning": 0.91,
+        "dual_judge_agreement": 0.92,
+        "selector_consistency": 0.89,
+        "grounding_provenance": 0.93,
+        "local_edge_privacy": 0.20,
+        "governance_stability": 0.95
+      },
+      "composite_score": 0.808,
+      "cost_per_typical_run_usd": 0.0200,
+      "typical_ttft_ms": 480,
+      "typical_tps": 110,
+      "key_risk": "Requires explicit temperature omission in API formatting; predictable output token separation prevents thinking exhaustion."
+    },
+    "gemini-3.8-flash": {
+      "scores": {
+        "cost_econometrics": 0.98,
+        "computational_efficiency": 0.94,
+        "frontier_reasoning": 0.87,
+        "dual_judge_agreement": 0.90,
+        "selector_consistency": 0.85,
+        "grounding_provenance": 0.91,
+        "local_edge_privacy": 0.20,
+        "governance_stability": 0.95
+      },
+      "composite_score": 0.825,
+      "cost_per_typical_run_usd": 0.0012,
+      "typical_ttft_ms": 280,
+      "typical_tps": 160,
+      "key_risk": "Lowest unit cost ($0.15/$0.60 per Mtok) enables ultra-low-cost proof judging; slightly lower semantic nuance on stylistic edge cases."
+    },
+    "gpt-5.6-terra": {
+      "scores": {
+        "cost_econometrics": 0.84,
+        "computational_efficiency": 0.84,
+        "frontier_reasoning": 0.88,
+        "dual_judge_agreement": 0.86,
+        "selector_consistency": 0.84,
+        "grounding_provenance": 0.92,
+        "local_edge_privacy": 0.20,
+        "governance_stability": 0.92
+      },
+      "composite_score": 0.788,
+      "cost_per_typical_run_usd": 0.0160,
+      "typical_ttft_ms": 520,
+      "typical_tps": 95,
+      "key_risk": "Optimized specifically for research synthesis; narrower section applicability outside briefing tasks."
+    },
+    "gpt-5.6-sol": {
+      "scores": {
+        "cost_econometrics": 0.40,
+        "computational_efficiency": 0.62,
+        "frontier_reasoning": 0.97,
+        "dual_judge_agreement": 0.95,
+        "selector_consistency": 0.94,
+        "grounding_provenance": 0.98,
+        "local_edge_privacy": 0.20,
+        "governance_stability": 0.90
+      },
+      "composite_score": 0.745,
+      "cost_per_typical_run_usd": 0.0400,
+      "typical_ttft_ms": 1400,
+      "typical_tps": 45,
+      "key_risk": "High unit pricing ($5.00/$20.00); unsuitable for standard generation runs; reserved for high-stakes dispute resolution."
+    },
+    "claude-haiku-4-5-20251001": {
+      "scores": {
+        "cost_econometrics": 0.92,
+        "computational_efficiency": 0.95,
+        "frontier_reasoning": 0.76,
+        "dual_judge_agreement": 0.78,
+        "selector_consistency": 0.82,
+        "grounding_provenance": 0.88,
+        "local_edge_privacy": 0.20,
+        "governance_stability": 0.92
+      },
+      "composite_score": 0.779,
+      "cost_per_typical_run_usd": 0.0090,
+      "typical_ttft_ms": 220,
+      "typical_tps": 180,
+      "key_risk": "Excellent for fast taxonomy classification; insufficient reasoning depth for executive positioning or proof judging."
+    },
+    "Qwen-3.8-27B": {
+      "scores": {
+        "cost_econometrics": 0.99,
+        "computational_efficiency": 0.65,
+        "frontier_reasoning": 0.82,
+        "dual_judge_agreement": 0.75,
+        "selector_consistency": 0.78,
+        "grounding_provenance": 0.84,
+        "local_edge_privacy": 1.00,
+        "governance_stability": 0.80
+      },
+      "composite_score": 0.829,
+      "cost_per_typical_run_usd": 0.0000,
+      "typical_ttft_ms": 650,
+      "typical_tps": 55,
+      "key_risk": "Zero API egress cost, 100% data residency; requires local GPU/Metal RAM (>=24GB) and lacks native JSON schema schema-binding enforcement."
+    },
+    "BAAI/bge-m3": {
+      "scores": {
+        "cost_econometrics": 1.00,
+        "computational_efficiency": 0.98,
+        "frontier_reasoning": 0.85,
+        "dual_judge_agreement": 0.90,
+        "selector_consistency": 0.95,
+        "grounding_provenance": 0.99,
+        "local_edge_privacy": 1.00,
+        "governance_stability": 1.00
+      },
+      "composite_score": 0.959,
+      "cost_per_typical_run_usd": 0.0000,
+      "typical_ttft_ms": 15,
+      "typical_tps": 0,
+      "key_risk": "Dedicated dense retrieval model; deterministic vectors; non-generative."
+    }
+  }
+}

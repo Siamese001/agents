@@ -1,80 +1,104 @@
-# Implementation Plan: Wave Plan Governance and Output Brevity Enforcement
+# Implementation Plan: 8-Agent Adversarial Model Analysis
 
-## Executive Overview
-Replicate the strict wave plan governance specification from `decision-intelligence-engine` to the `agents` repository. This standard enforces 4 mandatory subsections per wave (Objective & Scope, Milestones & Deliverables, Acceptance Criteria, Runtime Receipt & Completion Gate with 6 evidence fields), caps plan word count at 1,000 words, makes status tables optional, silences automatic stdout all-wave status table dumps during engineering turns, and updates all verification test suites.
+## Implementation Status Table
 
----
-
-## Wave 1: Governance Rules & Documentation Replication
-
-### Objective & Scope
-Replicate canonical wave progression rules, templates, and plan-first enforcement documentation to govern all future implementation plans.
-
-### Milestones & Deliverables
-- [NEW] `.agents/rules/wave-progression.md`: Canonical wave progression and execution-evidence rules.
-- [NEW] `docs/templates/wave_plan_template.md`: Canonical template for compliant wave plans.
-- [MODIFY] `.agents/rules/plan-first-enforcement.md`: Reference wave progression invariants and output brevity rules.
-
-### Acceptance Criteria
-- Wave progression rules declare the 4 required wave subsections and 6 execution evidence fields.
-- Plan word cap is formally specified at 1,000 words.
-- Chat output brevity rule (~120 words target, 300 words ceiling) explicitly forbids all-wave status table dumps.
-
-### Runtime Receipt & Completion Gate
-- Run: `python3 -c "import pathlib; assert pathlib.Path('.agents/rules/wave-progression.md').is_file()"`
-- Input: `.agents/rules/wave-progression.md`
-- Expected: Zero errors and exit code 0.
-- Verify independently: `git status --short .agents/rules/`
-- Fail if: Any rule file is missing or unreferenced.
-- Record: receipts/wave1_rules.json
+| Wave | Description | Status |
+| :--- | :--- | :--- |
+| Wave 1 | Empirical Benchmark Matrix & Model Cost Profile Assembly | COMPLETE |
+| Wave 2 | 8-Agent Adversarial Stress-Testing & Panel Deliberation | COMPLETE |
+| Wave 3 | Multi-Dimensional Pareto Analysis & Section Rebalancing | COMPLETE |
+| Wave 4 | Governance Catalog Updates, CI Pin Verification & Receipts | COMPLETE |
 
 ---
 
-## Wave 2: Validator Core & Mechanical Evidence Enforcement
+## Wave 1: Empirical Benchmark Matrix & Model Cost Profile Assembly
 
 ### Objective & Scope
-Implement execution evidence parsing and length validation in `tools/implementation_plan_core/` and update `tools/validate_implementation_plan.py` to enforce the new schema while making status tables optional.
+Construct an empirical benchmark dataset capturing pricing, context windows, and parameters across approved models (`claude-sonnet-5`, `gpt-5.6-luna`, `gemini-3.8-flash`, `gpt-5.6-terra`, `gpt-5.6-sol`, `claude-haiku-4-5-20251001`) and local models (`Qwen-3.8-27B`, `BAAI/bge-m3`).
 
 ### Milestones & Deliverables
-- [NEW] `tools/implementation_plan_core/__init__.py`: Package initialization.
-- [NEW] `tools/implementation_plan_core/evidence_requirements.py`: 1000-word limit and 6 completion gate fields validation.
-- [MODIFY] `tools/validate_implementation_plan.py`: Integrate evidence validation, add Objective & Scope requirement, and make status tables optional.
+- [CREATE] `reports/adversarial_model_benchmarks_matrix.json`: Pricing, context, and reasoning limits.
+- [CREATE] `tests/adversarial/test_model_cost_governance.py`: Unit test verifying pricing and 300k token spend ceiling.
 
 ### Acceptance Criteria
-- Validator requires `### Objective & Scope`, `### Milestones & Deliverables`, `### Acceptance Criteria`, and `### Runtime Receipt & Completion Gate`.
-- Validator enforces the 6 gate fields (`Run:`, `Input:`, `Expected:`, `Verify independently:`, `Fail if:`, `Record:`).
-- Plans without status tables pass validation cleanly.
+- Complete pricing and capability metadata compiled for all evaluated models without missing fields.
+- Cost calculations account for prompt caching discounts.
+- Spend governor ceiling strictly respects 300,000 tokens limit.
 
-### Runtime Receipt & Completion Gate
-- Run: `python3 -m unittest tests/test_implementation_plan_governance.py`
-- Input: `tests/test_implementation_plan_governance.py`
-- Expected: 24 tests pass with exit code 0.
-- Verify independently: Inspect test runner pass count.
-- Fail if: Non-zero exit code or validator regression.
-- Record: receipts/wave2_validator.json
+### Verification & Completion Gate
+- **Run**: `/Users/amitayer/Git/decision-intelligence-engine/.venv/bin/pytest tests/adversarial/test_model_cost_governance.py -q`
+- **Input**: `reports/adversarial_model_benchmarks_matrix.json` and model pricing tables.
+- **Expected**: All 3 test cases pass with exit code 0.
+- **Verify independently**: `python3 tools/lint_model_pins.py --report`
+- **Fail if**: Unpriced models, schema validation errors, or spend governor ceiling violation.
+- **Record**: Record execution results in `reports/adversarial_model_benchmarks_matrix.json`.
 
 ---
 
-## Wave 3: Hook Dispatcher Silencing & Integration Gatekeeping
+## Wave 2: 8-Agent Adversarial Stress-Testing & Panel Deliberation
 
 ### Objective & Scope
-Update Antigravity lifecycle hooks in `tools/hook_dispatch.py` to silence automatic chat-polluting table outputs, maintain the 8-hook turn gate invariant in `.agents/hooks.json`, and update hook test suites.
+Deploy 8 specialized adversarial agents (Cost, Efficiency, Reasoning, Dual-Judge, Selector, Grounding, Local Edge, Governance) to audit model trade-offs.
 
 ### Milestones & Deliverables
-- [MODIFY] `tools/hook_dispatch.py`: Silence `handle_stop_wave_summary` and allow status table omission in `handle_pre_edit_plan`.
-- [MODIFY] `.agents/hooks.json`: Retain all 8 hooks with `stop_wave_summary` silenced.
-- [MODIFY] `tests/test_hook_dispatch.py`: Test silenced stop hook and updated plan validation.
-- [MODIFY] `tests/test_implementation_plan_governance.py`: Comprehensive test coverage for new wave plan schema.
+- [CREATE] `reports/adversarial_8agent_council_deliberation.md`: Transcripts across all 8 agents.
+- [CREATE] `reports/model_stress_test_findings.json`: Scores per model across all 8 vectors.
 
 ### Acceptance Criteria
-- `stop_wave_summary` outputs `{}` without emitting markdown tables to stdout.
-- `hook_count` in `.agents/hooks.json` remains >= 7 (8 active hooks).
-- `tests/test_hook_dispatch.py` and `tests/test_turn_gates.py` pass with 100% success.
+- All 8 agents provide independent evaluation scores grounded in real prompt/schema fixtures.
+- Specific boundary failure modes identified.
 
-### Runtime Receipt & Completion Gate
-- Run: `python3 -m unittest tests/test_hook_dispatch.py tests/test_turn_gates.py`
-- Input: Hook dispatch and turn gate test suites.
-- Expected: All unit tests pass with exit code 0.
-- Verify independently: Verify pre-turn and post-turn gates pass via `python3 tools/validate_turn_gates.py`.
-- Fail if: Hook count < 7 or any gate check fails.
-- Record: receipts/wave3_hooks.json
+### Verification & Completion Gate
+- **Run**: `/Users/amitayer/Git/decision-intelligence-engine/.venv/bin/pytest outreach_engine/tests/test_adversarial_council_remediation.py -q`
+- **Input**: Candidate prompt fixtures and rubric configurations.
+- **Expected**: Council test suite passes cleanly with zero unhandled exceptions.
+- **Verify independently**: Check `reports/model_stress_test_findings.json` has scores for all 8 agents.
+- **Fail if**: Missing agent verdicts or uncalibrated reasoning failure modes.
+- **Record**: Record findings in `reports/adversarial_8agent_council_deliberation.md`.
+
+---
+
+## Wave 3: Multi-Dimensional Pareto Analysis & Section Rebalancing
+
+### Objective & Scope
+Synthesize findings into a Pareto efficiency frontier and determine optimal section-by-section model allocations.
+
+### Milestones & Deliverables
+- [CREATE] `reports/model_pareto_efficiency_analysis.md`: Cost vs Reasoning curves and section proposals.
+- [CREATE] `config/experimental_model_routing_recommendations.yaml`: Proposed model assignments and fallback paths.
+
+### Acceptance Criteria
+- Quantified cost savings or reasoning improvements clearly documented.
+- Executive summary enhanced reasoning preserves fact-grounding floor with token cap.
+
+### Verification & Completion Gate
+- **Run**: `/Users/amitayer/Git/decision-intelligence-engine/.venv/bin/python3 -c "import yaml; yaml.safe_load(open('config/experimental_model_routing_recommendations.yaml'))"`
+- **Input**: `config/experimental_model_routing_recommendations.yaml`.
+- **Expected**: YAML parses validly and matches section schema.
+- **Verify independently**: Audit routing allocations against `config/provider_profiles.yaml`.
+- **Fail if**: Invalid YAML, missing fallback paths, or broken schema bindings.
+- **Record**: Record analysis in `reports/model_pareto_efficiency_analysis.md`.
+
+---
+
+## Wave 4: Governance Catalog Updates, CI Pin Verification & Receipts
+
+### Objective & Scope
+Apply approved model pin updates to configuration files, ensure strict CI gate compliance, and issue audit receipts.
+
+### Milestones & Deliverables
+- [UPDATE] `config/model_catalog.json`: Model revisions and deprecation schedules.
+- [UPDATE] `config/provider_profiles.yaml`: Per-section assignments, reasoning parameters, and fallbacks.
+- [CREATE] `reports/adversarial_analysis_audit_receipt.json`: Audit receipt capturing evaluation hashes.
+
+### Acceptance Criteria
+- `tools/lint_model_pins.py --strict` exits 0 with zero floating, preview, or mislabelled pins.
+- All unit, integration, and contract tests pass with 100% green exit codes.
+
+### Verification & Completion Gate
+- **Run**: `python3 tools/lint_model_pins.py --strict`
+- **Input**: Modified repository configuration files and catalogs.
+- **Expected**: Strict model pin linter exits 0 with 0 findings.
+- **Verify independently**: `git -C /Users/amitayer/Git/agents/.worktrees/feat-adversarial-model-analysis status --porcelain`
+- **Fail if**: Any lint violations, unapproved pins, or test regressions.
+- **Record**: Write audit receipt to `reports/adversarial_analysis_audit_receipt.json`.

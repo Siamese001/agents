@@ -1,0 +1,154 @@
+# Experimental Model Routing Recommendations
+# Derived from 8-Agent Adversarial Stress-Testing & Pareto Frontier Optimization
+
+schema_version: "experimental_routing.v1"
+generated_at: "2026-10-12T05:17:00Z"
+governance_review_after: "2026-11-07"
+
+pareto_summary:
+  baseline_cost_per_full_run_usd: 0.184
+  optimized_cost_per_full_run_usd: 0.071
+  cost_reduction_percentage: 61.4
+  reserved_tokens_ceiling: 300000
+  fact_grounding_floor: 0.95
+
+section_allocations:
+  # 1. Headline
+  headline:
+    primary_generator:
+      provider: anthropic
+      model: claude-sonnet-5
+      reasoning_effort: low
+    backup_generator:
+      provider: openai
+      model: gpt-5.6-luna
+      reasoning_effort: low
+    judge_tier: STANDARD_REASONING
+    required_judges:
+      - provider: google_gemini
+        model: gemini-3.8-flash
+        thinking_level: low
+      - provider: openai
+        model: gpt-5.6-luna
+        reasoning_effort: low
+    rationale: "Dual cross-provider check for external visibility; low reasoning effort prevents thinking token truncation."
+
+  # 2. Executive Summary
+  executive_summary:
+    primary_generator:
+      provider: anthropic
+      model: claude-sonnet-5
+      reasoning_effort: low
+    backup_generator:
+      provider: openai
+      model: gpt-5.6-luna
+      reasoning_effort: medium
+    judge_tier: ENHANCED_REASONING
+    required_judges:
+      - provider: google_gemini
+        model: gemini-3.8-flash
+        thinking_level: medium
+      - provider: openai
+        model: gpt-5.6-luna
+        reasoning_effort: high
+    rationale: "Highest-stakes section; dual enhanced proof judges with high OpenAI reasoning and medium Gemini thinking."
+
+  # 3. Competencies
+  competencies:
+    primary_generator:
+      provider: anthropic
+      model: claude-sonnet-5
+      reasoning_effort: low
+    backup_generator:
+      provider: openai
+      model: gpt-5.6-luna
+      reasoning_effort: low
+    selector:
+      primary: claude-sonnet-5
+      backup: gpt-5.6-luna
+      reasoning_effort: low
+    judge_tier: STANDARD_REASONING
+    required_judges:
+      - provider: google_gemini
+        model: gemini-3.8-flash
+        thinking_level: low
+      - provider: openai
+        model: gpt-5.6-luna
+        reasoning_effort: low
+    rationale: "C0.3 graph-backed evidence clustering with advisory selector pool."
+
+  # 4. Employment Experience (Unify, IBM, Slalom, InsurTech, EY)
+  experience_bullets:
+    primary_generator:
+      provider: anthropic
+      model: claude-sonnet-5
+      reasoning_effort: low
+    backup_generator:
+      provider: openai
+      model: gpt-5.6-luna
+      reasoning_effort: low
+    selector:
+      primary: claude-sonnet-5
+      backup: gpt-5.6-luna
+      reasoning_effort: low
+    judge_tier: BULLET_REWRITE_QUALITY
+    required_judges:
+      - provider: google_gemini
+        model: gemini-3.8-flash
+        thinking_level: low
+    rationale: "Deterministic C0.3 graph and X2 lineage gates carry primary proof; Gemini Flash acts as lightweight independent backstop."
+
+  experience_narratives:
+    primary_generator:
+      provider: openai
+      model: gpt-5.6-luna
+      reasoning_effort: low
+    backup_generator: null
+    judge_tier: STANDARD_REASONING
+    required_judges:
+      - provider: google_gemini
+        model: gemini-3.8-flash
+        thinking_level: low
+    rationale: "OpenAI Luna excels at narrative voice without token-sharing exhaustion risks; single Gemini backstop."
+
+  # 5. Full Resume Coherence
+  final_aggregate_resume:
+    generator: AGGREGATOR # Deterministic multi-section stitching
+    judge_tier: ENHANCED_REASONING
+    required_judges:
+      - provider: google_gemini
+        model: gemini-3.8-flash
+        thinking_level: medium
+      - provider: openai
+        model: gpt-5.6-luna
+        reasoning_effort: high
+    rationale: "Holistic coherence and formatting verified by dual cross-provider judges."
+
+  # 6. Outreach Engine (apps_lic)
+  outreach_drafts:
+    executive_generator:
+      provider: openai
+      model: gpt-5.6-luna
+      reasoning_effort: low
+    recruiter_generator:
+      provider: openai
+      model: gpt-5.6-luna
+      reasoning_effort: low
+    rubric_judge_panel:
+      primary:
+        provider: anthropic
+        model: claude-3-5-sonnet-20241022
+        reasoning_effort: low
+      backup:
+        provider: google_gemini
+        model: gemini-3.8-flash
+        reasoning_effort: low
+    brief_generator:
+      provider: openai
+      model: gpt-5.6-terra
+      reasoning_effort: low
+    handoff_judge:
+      provider: google_gemini
+      model: gemini-3.8-flash
+      reasoning_effort: low
+    rationale: "Peer-to-peer and recruiter messaging governed by 6-lens rubric with automatic Google failover."

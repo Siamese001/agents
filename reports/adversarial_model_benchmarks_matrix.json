@@ -1,0 +1,164 @@
+{
+  "schema_version": "adversarial_model_benchmarks.v1",
+  "generated_at": "2026-10-12T05:15:00Z",
+  "spend_governor": {
+    "max_reserved_tokens_per_run": 300000,
+    "max_input_tokens_per_attempt": 48000,
+    "safety_multiplier": 1.12,
+    "chars_per_token_estimate": 3
+  },
+  "models": {
+    "claude-sonnet-5": {
+      "provider": "anthropic",
+      "tier": "frontier_hybrid_reasoning",
+      "status": "active_pinned",
+      "pricing": {
+        "input_cost_per_mtok": 3.00,
+        "output_cost_per_mtok": 15.00,
+        "cached_input_cost_per_mtok": 0.30,
+        "cache_write_multiplier": 1.25,
+        "cache_read_discount": 0.90
+      },
+      "context_window": 200000,
+      "max_output_tokens": 4096,
+      "max_output_tokens_hard_cap": 8192,
+      "reasoning_effort_support": ["low"],
+      "thinking_token_sharing": true,
+      "sharing_risk_detail": "Shares max_tokens with JSON payload. Medium/high consumes entire 4096-token budget on internal thinking, causing payload truncation.",
+      "primary_roles": ["apps_rg.generator", "apps_rg.selector", "apps_eval.judge"]
+    },
+    "gpt-5.6-luna": {
+      "provider": "openai",
+      "tier": "frontier_high_throughput",
+      "status": "active_pinned",
+      "pricing": {
+        "input_cost_per_mtok": 2.50,
+        "output_cost_per_mtok": 10.00,
+        "cached_input_cost_per_mtok": 1.25,
+        "cache_write_multiplier": 1.00,
+        "cache_read_discount": 0.50
+      },
+      "context_window": 131072,
+      "max_output_tokens": 4096,
+      "max_output_tokens_hard_cap": 8192,
+      "reasoning_effort_support": ["low", "medium", "high"],
+      "thinking_token_sharing": false,
+      "sharing_risk_detail": "Separates reasoning overhead from completion budget; predictable output token availability.",
+      "primary_roles": ["apps_rg.narratives", "apps_rg.backup_generator", "apps_rg.proof_judge", "outreach_engine.generator"]
+    },
+    "gemini-3.8-flash": {
+      "provider": "google_gemini",
+      "tier": "frontier_fast_reasoning",
+      "status": "active_pinned",
+      "pricing": {
+        "input_cost_per_mtok": 0.15,
+        "output_cost_per_mtok": 0.60,
+        "cached_input_cost_per_mtok": 0.0375,
+        "cache_write_multiplier": 1.00,
+        "cache_read_discount": 0.75
+      },
+      "context_window": 1048576,
+      "max_output_tokens": 4096,
+      "max_output_tokens_hard_cap": 8192,
+      "reasoning_effort_support": ["low", "medium", "high"],
+      "thinking_token_sharing": false,
+      "sharing_risk_detail": "Thinking level configurable via thinking_budget_tokens or thinking_level; preserves JSON completion room.",
+      "primary_roles": ["apps_rg.proof_judge", "apps_rg.backstop_judge", "outreach_engine.handoff_judge"]
+    },
+    "gpt-5.6-terra": {
+      "provider": "openai",
+      "tier": "specialized_research_synthesis",
+      "status": "active_pinned",
+      "pricing": {
+        "input_cost_per_mtok": 2.00,
+        "output_cost_per_mtok": 8.00,
+        "cached_input_cost_per_mtok": 1.00,
+        "cache_write_multiplier": 1.00,
+        "cache_read_discount": 0.50
+      },
+      "context_window": 131072,
+      "max_output_tokens": 4096,
+      "max_output_tokens_hard_cap": 8192,
+      "reasoning_effort_support": ["low", "medium"],
+      "thinking_token_sharing": false,
+      "sharing_risk_detail": "Optimized for long-context company targeting briefs and research digests.",
+      "primary_roles": ["apps_research.synthesis", "outreach_engine.brief_generator"]
+    },
+    "gpt-5.6-sol": {
+      "provider": "openai",
+      "tier": "deep_reasoning_evaluator",
+      "status": "active_approved",
+      "pricing": {
+        "input_cost_per_mtok": 5.00,
+        "output_cost_per_mtok": 20.00,
+        "cached_input_cost_per_mtok": 2.50,
+        "cache_write_multiplier": 1.00,
+        "cache_read_discount": 0.50
+      },
+      "context_window": 131072,
+      "max_output_tokens": 8192,
+      "max_output_tokens_hard_cap": 16384,
+      "reasoning_effort_support": ["high", "max"],
+      "thinking_token_sharing": false,
+      "sharing_risk_detail": "High unit cost per token ($5/$20). Reserved for complex multi-hop strategic adjudication.",
+      "primary_roles": ["eval_adjudication", "conflict_resolution"]
+    },
+    "claude-haiku-4-5-20251001": {
+      "provider": "anthropic",
+      "tier": "rapid_classification_routing",
+      "status": "active_approved",
+      "pricing": {
+        "input_cost_per_mtok": 1.00,
+        "output_cost_per_mtok": 5.00,
+        "cached_input_cost_per_mtok": 0.10,
+        "cache_write_multiplier": 1.25,
+        "cache_read_discount": 0.90
+      },
+      "context_window": 200000,
+      "max_output_tokens": 4096,
+      "max_output_tokens_hard_cap": 4096,
+      "reasoning_effort_support": ["none", "low"],
+      "thinking_token_sharing": false,
+      "sharing_risk_detail": "Fast classification and taxonomy matching; low reasoning overhead.",
+      "primary_roles": ["taxonomy_classification", "hop1_routing"]
+    },
+    "Qwen-3.8-27B": {
+      "provider": "local_mlx_vllm",
+      "tier": "edge_offline_privacy",
+      "status": "candidate_local",
+      "pricing": {
+        "input_cost_per_mtok": 0.00,
+        "output_cost_per_mtok": 0.00,
+        "cached_input_cost_per_mtok": 0.00,
+        "cache_write_multiplier": 1.00,
+        "cache_read_discount": 1.00
+      },
+      "context_window": 32768,
+      "max_output_tokens": 4096,
+      "max_output_tokens_hard_cap": 4096,
+      "reasoning_effort_support": ["none"],
+      "thinking_token_sharing": false,
+      "sharing_risk_detail": "Zero network egress; constrained by local M-series unified memory bandwidth.",
+      "primary_roles": ["offline_drafting", "sensitive_pii_filtering"]
+    },
+    "BAAI/bge-m3": {
+      "provider": "hugging_face_local",
+      "tier": "local_dense_embeddings",
+      "status": "active_pinned",
+      "pricing": {
+        "input_cost_per_mtok": 0.00,
+        "output_cost_per_mtok": 0.00,
+        "cached_input_cost_per_mtok": 0.00,
+        "cache_write_multiplier": 1.00,
+        "cache_read_discount": 1.00
+      },
+      "context_window": 8192,
+      "max_output_tokens": 0,
+      "max_output_tokens_hard_cap": 0,
+      "reasoning_effort_support": ["none"],
+      "thinking_token_sharing": false,
+      "sharing_risk_detail": "Deterministic 1024-dim dense/sparse embedding vectors for hybrid graph retrieval.",
+      "primary_roles": ["graph_indexing", "semantic_search", "retrieval_verification"]
+    }
+  }
+}
