@@ -1,0 +1,31 @@
+{
+  "receipt_schema": "adversarial_analysis_audit_receipt.v1",
+  "receipt_id": "rcpt_adversarial_model_analysis_w4_20261012",
+  "timestamp": "2026-10-12T05:17:40Z",
+  "branch": "feat/adversarial-model-analysis",
+  "worktree_root": "/Users/amitayer/Git/agents/.worktrees/feat-adversarial-model-analysis",
+  "status": "QUALIFIED_AND_VERIFIED",
+  "council_verdict": {
+    "panel_size": 8,
+    "deliberation_consensus": "UNANIMOUS",
+    "primary_claude_action": "RETAIN_SONNET5_LOW_REASONING_ONLY",
+    "primary_judge_action": "EXPAND_GEMINI_FLASH_BACKSTOP_PRESERVE_DUAL_PROOF",
+    "governor_spend_headroom_preserved": true
+  },
+  "artifact_hashes": {
+    "reports/adversarial_model_benchmarks_matrix.json": "212e91de9b1b5ba64b9405852b4a8198bbf02d36c3d76c6140bf507936f1c95c",
+    "reports/model_stress_test_findings.json": "a60a73ac3cefaa92be88f5c3d5aca9f48b5e044d5ff51741f4f464a885b295fc",
+    "reports/adversarial_8agent_council_deliberation.md": "8c5c7581a1e47a5db8a371089bd583e0915c1c1594cd99ca1a0ca878094cdb62",
+    "reports/model_pareto_efficiency_analysis.md": "860bc5ced239da1b97f53d084f8c437a0a7e8bf70d3496ab52409edf4cb81632",
+    "config/experimental_model_routing_recommendations.yaml": "9f472b23fb2f27de1a7124500f22880caf37c14cfe43b6d308ef82f434bf0d86",
+    "config/model_catalog.json": "60545f18bb54ac936cf623cc097943638809120a324c5da8fb36e309bbcabb74",
+    "tests/adversarial/test_model_cost_governance.py": "7a4b66293ad7b2401468dbb317cfca97a8f429fc2fa8dce8aeb7e2a2ae6f492a"
+  },
+  "ci_verification_summary": {
+    "lint_model_pins_strict": "PASS_0_FINDINGS",
+    "model_cost_governance_tests": "3_PASSED",
+    "adversarial_council_remediation_tests": "9_PASSED",
+    "model_registry_ssot_tests": "5_PASSED",
+    "validate_implementation_plan": "PASS"
+  }
+}
