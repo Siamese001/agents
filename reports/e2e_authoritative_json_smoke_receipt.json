@@ -1,0 +1,50 @@
+{
+  "receipt_id": "rcpt_e2e_authoritative_json_smoke",
+  "wave": 3,
+  "status": "PASSED",
+  "command": "/Users/amitayer/Git/agents/.venv/bin/python -m agents e2e --demo --json --skip-resume",
+  "run_id": "e2e_18371595",
+  "total_latency_ms": 87.05,
+  "stages": {
+    "company_research": {
+      "configured_status": "DISABLED",
+      "status": "SKIPPED",
+      "reason": "Research stage explicitly disabled or decoupled in current CLI profile",
+      "latency_ms": 0.0,
+      "failure_reasons": []
+    },
+    "resume_tailoring": {
+      "status": "SKIPPED",
+      "reason": "Resume tailoring skipped (--skip-resume)",
+      "latency_ms": 0.0,
+      "failure_reasons": []
+    },
+    "executive_outreach": {
+      "exit_code": 0,
+      "status": "PASSED",
+      "campaign_path": "/Users/amitayer/Git/agents/.worktrees/fix-agents-e2e-authoritative-json/artifacts/e2e_lifecycle/e2e_18371595/outreach/campaign_sequence.json",
+      "campaign_sha256": "892a07f3b9bf6c139d82428e2aa03a55952fb6e97ba6c93fdd75d04650d1c2bb",
+      "failure_reasons": [],
+      "latency_ms": 31.37
+    },
+    "lifecycle_sealing": {
+      "status": "PASSED",
+      "latency_ms": 0.77,
+      "failure_reasons": []
+    }
+  },
+  "verified_artifacts": {
+    "outreach_campaign": {
+      "path": "/Users/amitayer/Git/agents/.worktrees/fix-agents-e2e-authoritative-json/artifacts/e2e_lifecycle/e2e_18371595/outreach/campaign_sequence.json",
+      "bytes": 2226,
+      "sha256": "892a07f3b9bf6c139d82428e2aa03a55952fb6e97ba6c93fdd75d04650d1c2bb",
+      "verified_on_disk": true
+    }
+  },
+  "invariants_verified": [
+    "Exactly one authoritative JSON root object emitted on stdout",
+    "Zero stdout leakage from sub-engines",
+    "All declared artifact_hashes exist physically on disk with matching SHA-256 and non-zero bytes",
+    "Sealed lifecycle manifest and telemetry persisted"
+  ]
+}

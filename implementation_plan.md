@@ -1,104 +1,87 @@
-# Implementation Plan: 8-Agent Adversarial Model Analysis
+# Implementation Plan: Authoritative E2E Lifecycle Output and Child Output Isolation
 
-## Implementation Status Table
+## Executive Overview
+Ensure `python -m agents e2e --json` emits exactly one authoritative JSON lifecycle record on stdout containing stage statuses, artifact hashes, latency metrics, and failure reasons. Child output from sub-engines is completely isolated into artifact log files. Bounded integration tests validate success, blocked, research-enabled, and resume-skipped lifecycles, and a live smoke run verifies real artifacts.
 
-| Wave | Description | Status |
+| Wave # | Description / Scope | Status |
 | :--- | :--- | :--- |
-| Wave 1 | Empirical Benchmark Matrix & Model Cost Profile Assembly | COMPLETE |
-| Wave 2 | 8-Agent Adversarial Stress-Testing & Panel Deliberation | COMPLETE |
-| Wave 3 | Multi-Dimensional Pareto Analysis & Section Rebalancing | COMPLETE |
-| Wave 4 | Governance Catalog Updates, CI Pin Verification & Receipts | COMPLETE |
+| Wave 1 | Authoritative Lifecycle Output & Child Output Isolation | COMPLETED |
+| Wave 2 | Bounded Integration Test Suite for Lifecycle Flows | COMPLETED |
+| Wave 3 | Real E2E Smoke & Artifact Verification | COMPLETED |
 
 ---
 
-## Wave 1: Empirical Benchmark Matrix & Model Cost Profile Assembly
+## Wave 1: Authoritative Lifecycle Output & Child Output Isolation
 
 ### Objective & Scope
-Construct an empirical benchmark dataset capturing pricing, context windows, and parameters across approved models (`claude-sonnet-5`, `gpt-5.6-luna`, `gemini-3.8-flash`, `gpt-5.6-terra`, `gpt-5.6-sol`, `claude-haiku-4-5-20251001`) and local models (`Qwen-3.8-27B`, `BAAI/bge-m3`).
+Isolate child engine stdout/stderr during E2E runs and ensure the top-level CLI emits exactly one authoritative JSON object on stdout when `--json` is supplied, across both nominal completions and error/blocked paths.
 
 ### Milestones & Deliverables
-- [CREATE] `reports/adversarial_model_benchmarks_matrix.json`: Pricing, context, and reasoning limits.
-- [CREATE] `tests/adversarial/test_model_cost_governance.py`: Unit test verifying pricing and 300k token spend ceiling.
+- [x] `agents/e2e_output.py`: Output isolation context manager and canonical E2E lifecycle JSON serializer.
+- [x] `agents/cli.py`: Integrate output isolation around sub-engine stages, suppress child `--json` forwarding, measure per-stage and overall latency, and emit single authoritative lifecycle JSON.
+- [x] `agents/e2e_artifacts.py`: Populate consolidated failure reasons, stage latencies, artifact hashes, and sealing statuses.
 
 ### Acceptance Criteria
-- Complete pricing and capability metadata compiled for all evaluated models without missing fields.
-- Cost calculations account for prompt caching discounts.
-- Spend governor ceiling strictly respects 300,000 tokens limit.
+- Child engines (`apps_rg`, `apps_lic`, `apps_research`) write outputs to run log files rather than leaking to top-level stdout.
+- `python -m agents e2e --json` emits exactly one parseable JSON payload on stdout with exit code 0 on success or non-zero on failure.
+- Emitted JSON strictly contains `status`, `workflow_status`, `stages` (statuses, latencies, failure reasons), `artifact_hashes`, `artifact_proofs`, `latency` (total and per-stage), and `failure_reasons`.
+- Preflight failures, stage execution failures, and deliverable sealing failures cleanly emit the authoritative JSON contract.
 
-### Verification & Completion Gate
-- **Run**: `/Users/amitayer/Git/decision-intelligence-engine/.venv/bin/pytest tests/adversarial/test_model_cost_governance.py -q`
-- **Input**: `reports/adversarial_model_benchmarks_matrix.json` and model pricing tables.
-- **Expected**: All 3 test cases pass with exit code 0.
-- **Verify independently**: `python3 tools/lint_model_pins.py --report`
-- **Fail if**: Unpriced models, schema validation errors, or spend governor ceiling violation.
-- **Record**: Record execution results in `reports/adversarial_model_benchmarks_matrix.json`.
+### Runtime Receipt & Completion Gate
+- Run: `/Users/amitayer/Git/agents/.venv/bin/pytest tests/unit/test_agents_cli_e2e.py -v --timeout=60`
+- Input: Existing CLI e2e test suite updated for authoritative output contract.
+- Expected: All unit tests pass, exit code 0.
+- Verify independently: Verify test stdout confirms 0 child output leakage.
+- Fail if: Any unit test fails or child output pollutes stdout during `--json` execution.
+- Record: reports/wave1_authoritative_json_receipt.json
 
 ---
 
-## Wave 2: 8-Agent Adversarial Stress-Testing & Panel Deliberation
+## Wave 2: Bounded Integration Test Suite for Lifecycle Flows
 
 ### Objective & Scope
-Deploy 8 specialized adversarial agents (Cost, Efficiency, Reasoning, Dual-Judge, Selector, Grounding, Local Edge, Governance) to audit model trade-offs.
+Create a dedicated bounded integration test suite exercising the four mandatory lifecycle flows: nominal success, blocked failure, research-enabled execution, and resume-skipped execution.
 
 ### Milestones & Deliverables
-- [CREATE] `reports/adversarial_8agent_council_deliberation.md`: Transcripts across all 8 agents.
-- [CREATE] `reports/model_stress_test_findings.json`: Scores per model across all 8 vectors.
+- [x] `tests/integration/test_agents_cli_e2e_json.py`: Comprehensive bounded integration suite for all 4 flows under `--json`.
+- [x] `tests/unit/test_agents_cli_e2e.py`: Verify JSON schema completeness and strict single-object stdout emission.
 
 ### Acceptance Criteria
-- All 8 agents provide independent evaluation scores grounded in real prompt/schema fixtures.
-- Specific boundary failure modes identified.
+- Success flow test verifies all stage statuses are `PASSED`, artifact hashes are populated, latency > 0, failure reasons empty, and exactly one JSON object on stdout.
+- Blocked flow test verifies status is `FAILED` or `BLOCKED`, failure reasons are populated with descriptive diagnostic strings, and exit code is non-zero.
+- Research-enabled flow test (`--with-research`) verifies research stage runs, emits `brief_sha256`, hands off briefing, and passes.
+- Resume-skipped flow test (`--skip-resume`) verifies resume stage is marked `SKIPPED`, outreach executes, and valid JSON is emitted.
+- All integration tests complete synchronously within bounded per-test timeout (`--timeout=60`).
 
-### Verification & Completion Gate
-- **Run**: `/Users/amitayer/Git/decision-intelligence-engine/.venv/bin/pytest outreach_engine/tests/test_adversarial_council_remediation.py -q`
-- **Input**: Candidate prompt fixtures and rubric configurations.
-- **Expected**: Council test suite passes cleanly with zero unhandled exceptions.
-- **Verify independently**: Check `reports/model_stress_test_findings.json` has scores for all 8 agents.
-- **Fail if**: Missing agent verdicts or uncalibrated reasoning failure modes.
-- **Record**: Record findings in `reports/adversarial_8agent_council_deliberation.md`.
+### Runtime Receipt & Completion Gate
+- Run: `/Users/amitayer/Git/agents/.venv/bin/pytest tests/integration/test_agents_cli_e2e_json.py -v --timeout=60`
+- Input: Bounded integration test scenarios covering nominal and failure modes.
+- Expected: 4 passed, 0 failed, exit code 0.
+- Verify independently: Verify stdout captures contain exactly one JSON parseable root object.
+- Fail if: Any test fails, exceeds 60s timeout, or child stdout contamination occurs.
+- Record: reports/wave2_integration_flows_receipt.json
 
 ---
 
-## Wave 3: Multi-Dimensional Pareto Analysis & Section Rebalancing
+## Wave 3: Real E2E Smoke & Artifact Verification
 
 ### Objective & Scope
-Synthesize findings into a Pareto efficiency frontier and determine optimal section-by-section model allocations.
+Execute real end-to-end smoke verification using active environment credentials where permitted, inspect emitted JSON payload, and cryptographically verify all generated artifacts on disk.
 
 ### Milestones & Deliverables
-- [CREATE] `reports/model_pareto_efficiency_analysis.md`: Cost vs Reasoning curves and section proposals.
-- [CREATE] `config/experimental_model_routing_recommendations.yaml`: Proposed model assignments and fallback paths.
+- [x] `reports/e2e_authoritative_json_smoke_receipt.json`: Signed runtime execution receipt confirming artifact verification.
+- [x] `ops_scripts/run_e2e_authoritative_smoke.py`: Helper script running real E2E smoke and verifying artifact files on disk.
 
 ### Acceptance Criteria
-- Quantified cost savings or reasoning improvements clearly documented.
-- Executive summary enhanced reasoning preserves fact-grounding floor with token cap.
+- Real E2E execution runs cleanly with authorized credentials.
+- Emitted stdout parses as valid JSON with zero extraneous characters.
+- Every artifact path referenced in `artifact_hashes` exists on disk with non-zero bytes and exact matching SHA-256.
+- PASS is reported only with verified physical artifacts present on disk.
 
-### Verification & Completion Gate
-- **Run**: `/Users/amitayer/Git/decision-intelligence-engine/.venv/bin/python3 -c "import yaml; yaml.safe_load(open('config/experimental_model_routing_recommendations.yaml'))"`
-- **Input**: `config/experimental_model_routing_recommendations.yaml`.
-- **Expected**: YAML parses validly and matches section schema.
-- **Verify independently**: Audit routing allocations against `config/provider_profiles.yaml`.
-- **Fail if**: Invalid YAML, missing fallback paths, or broken schema bindings.
-- **Record**: Record analysis in `reports/model_pareto_efficiency_analysis.md`.
-
----
-
-## Wave 4: Governance Catalog Updates, CI Pin Verification & Receipts
-
-### Objective & Scope
-Apply approved model pin updates to configuration files, ensure strict CI gate compliance, and issue audit receipts.
-
-### Milestones & Deliverables
-- [UPDATE] `config/model_catalog.json`: Model revisions and deprecation schedules.
-- [UPDATE] `config/provider_profiles.yaml`: Per-section assignments, reasoning parameters, and fallbacks.
-- [CREATE] `reports/adversarial_analysis_audit_receipt.json`: Audit receipt capturing evaluation hashes.
-
-### Acceptance Criteria
-- `tools/lint_model_pins.py --strict` exits 0 with zero floating, preview, or mislabelled pins.
-- All unit, integration, and contract tests pass with 100% green exit codes.
-
-### Verification & Completion Gate
-- **Run**: `python3 tools/lint_model_pins.py --strict`
-- **Input**: Modified repository configuration files and catalogs.
-- **Expected**: Strict model pin linter exits 0 with 0 findings.
-- **Verify independently**: `git -C /Users/amitayer/Git/agents/.worktrees/feat-adversarial-model-analysis status --porcelain`
-- **Fail if**: Any lint violations, unapproved pins, or test regressions.
-- **Record**: Write audit receipt to `reports/adversarial_analysis_audit_receipt.json`.
+### Runtime Receipt & Completion Gate
+- Run: `/Users/amitayer/Git/agents/.venv/bin/python ops_scripts/run_e2e_authoritative_smoke.py`
+- Input: Canonical demo inputs with real credentials bootstrap.
+- Expected: Status `PASSED`, all artifact files verified on disk, exit code 0.
+- Verify independently: Inspect hashes of generated artifacts against emitted JSON payload.
+- Fail if: JSON parsing fails, stdout has stray logs, or any artifact hash does not match disk content.
+- Record: reports/e2e_authoritative_json_smoke_receipt.json

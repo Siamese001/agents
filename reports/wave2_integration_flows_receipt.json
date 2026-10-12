@@ -1,0 +1,24 @@
+{
+  "receipt_id": "rcpt_wave2_integration_flows",
+  "wave": 2,
+  "status": "PASSED",
+  "command": "/Users/amitayer/Git/agents/.venv/bin/pytest tests/integration/test_agents_cli_e2e_json.py -v --timeout=60",
+  "deliverables": [
+    "tests/integration/test_agents_cli_e2e_json.py",
+    "tests/unit/test_agents_cli_e2e.py"
+  ],
+  "verification": {
+    "passed_tests": 6,
+    "failed_tests": 0,
+    "duration_s": 0.38,
+    "exit_code": 0
+  },
+  "flows_verified": [
+    "test_e2e_json_success_flow: Full lifecycle with artifact verification and stage status PASSED",
+    "test_e2e_json_blocked_flow: Blocked/failed stage with structured failure reasons and non-zero exit",
+    "test_e2e_json_research_enabled_flow: --with-research stage execution and brief_sha256 handoff",
+    "test_e2e_json_resume_skipped_flow: --skip-resume with resume stage SKIPPED and campaign verification",
+    "test_e2e_json_preflight_blocked_flow: Preflight failure with authoritative BLOCKED JSON schema",
+    "test_e2e_json_child_output_isolation_strict: Sub-engine stdout preserved in logs/*.log and 0 stdout pollution"
+  ]
+}

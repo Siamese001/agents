@@ -627,3 +627,49 @@ def test_e2e_fails_closed_when_outreach_output_empty(tmp_path):
     assert "not generated or is empty" in summary["stages"]["executive_outreach"]["error"]
 
 
+def test_e2e_json_authoritative_schema_integrity(tmp_path, capsys):
+    """Verify that e2e --json emits exactly one JSON object with all required schema keys."""
+    parser = _build_parser()
+    args = parser.parse_args([
+        "e2e",
+        "--demo",
+        "--artifact-dir", str(tmp_path),
+        "--json",
+    ])
+
+    def fake_resume_main(argv):
+        if "--artifact-dir" in argv:
+            art_dir = Path(argv[argv.index("--artifact-dir") + 1])
+            art_dir.mkdir(parents=True, exist_ok=True)
+            (art_dir / "FINAL_RESUME_OUTPUT.txt").write_text("Valid Resume", encoding="utf-8")
+        return 0
+
+    def fake_outreach_main(argv, prog=None):
+        odir = tmp_path / "outreach"
+        odir.mkdir(parents=True, exist_ok=True)
+        (odir / "campaign.json").write_text(json.dumps({"touches": []}), encoding="utf-8")
+        return 0
+
+    with patch("agents.live_preflight.assert_engine_live_preflight"), \
+         patch("apps_rg.__main__.main", side_effect=fake_resume_main), \
+         patch("apps_lic.__main__.main", side_effect=fake_outreach_main):
+
+        code = run_e2e(args)
+        assert code == 0
+
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out.strip())
+
+    # Mandatory schema keys
+    for req_key in ("run_id", "status", "workflow_status", "company", "role", "stages", "artifact_hashes", "artifact_proofs", "latency", "failure_reasons"):
+        assert req_key in payload, f"Missing required authoritative lifecycle key: {req_key}"
+
+    assert payload["status"] == "PASSED"
+    assert payload["workflow_status"] == "COMPLETED"
+    assert payload["failure_reasons"] == []
+    assert payload["latency"]["total_ms"] > 0
+    assert "final_resume" in payload["artifact_hashes"]
+    assert "outreach_campaign" in payload["artifact_hashes"]
+
+
+
