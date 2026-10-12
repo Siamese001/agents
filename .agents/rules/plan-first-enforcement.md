@@ -30,20 +30,18 @@ refactors spanning files, ADG / dependency analysis, test-strategy design. NOT r
   scope. Ask again only when the requested action would exceed that scope.
 - T0/T1 ⇒ proceed directly.
 
-## Mandatory Implementation Status Table
+## Wave-Based Implementation Plan Standard (Supersedes Status Table)
 
-Every implementation plan (`implementation_plan.md` or `plans/*.md`) must include a top-level **Implementation Status Table** providing an immediate visual dashboard of wave progression:
+The legacy mandatory 4-column Status Table in markdown plan files is retired. Implementation plans (`implementation_plan.md` or `plans/*.md`) are governed by [.agents/rules/wave-progression.md](wave-progression.md).
 
-| Wave / Component | Description | Status | Deliverables / Receipts |
-|---|---|---|---|
-| Wave 1: Foundation | Core schema updates | COMPLETED | `tools/validator.py` |
-| Wave 2: Integration | Downstream wiring | IN_PROGRESS | `agentic_core/` |
-| Wave 3: Verification | Full regression run | PENDING | Test receipts |
-
-- **Required Columns**: Wave/Component, Description/Scope, Status, Deliverables/Receipts.
-- **Canonical Statuses**: `COMPLETED`, `COMPLETE`, `DONE`, `IN_PROGRESS`, `PENDING`, `OPEN`, `BLOCKED`, `NOT_STARTED`, `PLANNED`.
-- **Wave Coverage**: Every wave declared in the plan body (`## Wave <N>`) must have a corresponding row in the table.
-- **Mechanical Validation**: Enforced by `tools/validate_implementation_plan.py` and `agents-implementation-plan-guard`.
+- **Structure**: Plans must be decomposed into sequential numbered waves (`## Wave 1: <Title>`, `## Wave 2: <Title>`) with 4 mandatory subsections per wave:
+  1. `### Objective & Scope`
+  2. `### Milestones & Deliverables` (`[NEW]`, `[MODIFY]`, `[DELETE]`)
+  3. `### Acceptance Criteria`
+  4. `### Runtime Receipt & Completion Gate` (`Run:`, `Input:`, `Expected:`, `Verify independently:`, `Fail if:`, `Record:`)
+- **Word Budget**: Target 500–800 words, hard limit 1,000 words (`INV-WAVE-PLAN-MAX-WORDS`).
+- **Status Tracking & Reporting**: Wave status is tracked durably within repository artifacts and persistent ledgers. Ordinary conversational chat outputs must NOT dump all-wave status tables into chat (target ~120 words, max 300 words).
+- **Canonical Template**: See [docs/templates/wave_plan_template.md](../../docs/templates/wave_plan_template.md).
 
 ## Retrieval discipline at T2/T3 (unchanged)
 

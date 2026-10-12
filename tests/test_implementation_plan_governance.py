@@ -40,6 +40,9 @@ class ImplementationPlanGovernanceTests(unittest.TestCase):
 | Wave 2: Downstream Integration | Integration into agentic core | IN_PROGRESS | `agentic_core/integration.py` |
 
 ## Wave 1: Core Foundation & Tooling
+### Objective & Scope
+Initial tool and config updates.
+
 ### Milestones & Deliverables
 - [NEW] `tools/example_tool.py`
 - [MODIFY] `config/settings.py`
@@ -49,10 +52,17 @@ class ImplementationPlanGovernanceTests(unittest.TestCase):
 - Linter reports zero warnings.
 
 ### Runtime Receipt & Completion Gate
-- Execution receipt generated via `pytest tests/test_example.py --timeout=60`.
-- Gate: Wave 2 cannot start until receipt is validated.
+- Run: pytest tests/test_example.py --timeout=60
+- Input: tests/test_example.py
+- Expected: 0 failures
+- Verify independently: git diff --stat
+- Fail if: non-zero exit code
+- Record: receipts/wave1.json
 
 ## Wave 2: Downstream Integration
+### Objective & Scope
+Integration into agentic core.
+
 ### Milestones & Deliverables
 - [NEW] `agentic_core/integration.py`
 
@@ -60,7 +70,12 @@ class ImplementationPlanGovernanceTests(unittest.TestCase):
 - Integration test suite passes cleanly.
 
 ### Runtime Receipt & Completion Gate
-- Verification receipt emitted.
+- Run: pytest tests/test_integration.py --timeout=60
+- Input: tests/test_integration.py
+- Expected: 0 failures
+- Verify independently: git diff --stat
+- Fail if: non-zero exit code
+- Record: receipts/wave2.json
 """
         is_valid, errors = validate_plan_content(valid_plan, "valid_plan.md")
         self.assertTrue(is_valid, f"Plan should be valid, but failed with: {errors}")
@@ -213,6 +228,9 @@ No items specified here just free text with no deliverables.
 | Wave 3 | Validation | PENDING | Test results |
 
 ## Wave 1: Setup
+### Objective & Scope
+Setup and scaffolding.
+
 ### Milestones & Deliverables
 - [NEW] `tools/setup.py`
 
@@ -220,9 +238,17 @@ No items specified here just free text with no deliverables.
 - Passes.
 
 ### Runtime Receipt & Completion Gate
-- Passes.
+- Run: pytest tests/test_setup.py --timeout=60
+- Input: tests/test_setup.py
+- Expected: 0 failures
+- Verify independently: git diff --stat
+- Fail if: exit code != 0
+- Record: receipts/setup.json
 
 ## Wave 2: Core
+### Objective & Scope
+Core functionality.
+
 ### Milestones & Deliverables
 - [NEW] `tools/core.py`
 
@@ -230,9 +256,17 @@ No items specified here just free text with no deliverables.
 - Passes.
 
 ### Runtime Receipt & Completion Gate
-- Passes.
+- Run: pytest tests/test_core.py --timeout=60
+- Input: tests/test_core.py
+- Expected: 0 failures
+- Verify independently: git diff --stat
+- Fail if: exit code != 0
+- Record: receipts/core.json
 
 ## Wave 3: Validation
+### Objective & Scope
+Validation suite.
+
 ### Milestones & Deliverables
 - [NEW] `tests/test_core.py`
 
@@ -240,16 +274,24 @@ No items specified here just free text with no deliverables.
 - Passes.
 
 ### Runtime Receipt & Completion Gate
-- Passes.
+- Run: pytest tests/test_val.py --timeout=60
+- Input: tests/test_val.py
+- Expected: 0 failures
+- Verify independently: git diff --stat
+- Fail if: exit code != 0
+- Record: receipts/val.json
 """
         is_valid, errors = validate_plan_content(plan, "status_table_plan.md")
         self.assertTrue(is_valid, f"Expected valid plan, got errors: {errors}")
 
-    def test_missing_status_table_is_rejected(self) -> None:
-        """Verify that a wave plan lacking an implementation status table is rejected."""
+    def test_valid_wave_plan_without_status_table_passes(self) -> None:
+        """Verify that a compliant wave plan without an implementation status table passes."""
         no_table_plan = """# Plan Without Status Table
 
 ## Wave 1: Setup
+### Objective & Scope
+Setup and scaffolding.
+
 ### Milestones & Deliverables
 - [NEW] `tools/setup.py`
 
@@ -257,11 +299,16 @@ No items specified here just free text with no deliverables.
 - Passes.
 
 ### Runtime Receipt & Completion Gate
-- Passes.
+- Run: pytest tests/test_setup.py --timeout=60
+- Input: tests/test_setup.py
+- Expected: 0 failures
+- Verify independently: git diff --stat
+- Fail if: exit code != 0
+- Record: receipts/setup.json
 """
         is_valid, errors = validate_plan_content(no_table_plan, "no_table.md")
-        self.assertFalse(is_valid)
-        self.assertTrue(any("Missing mandatory Implementation Status Table" in err for err in errors))
+        self.assertTrue(is_valid, f"Plan without status table should pass, got: {errors}")
+        self.assertEqual(len(errors), 0)
 
     def test_status_table_missing_columns_is_rejected(self) -> None:
         """Verify that a status table missing required columns is rejected."""
@@ -273,6 +320,9 @@ No items specified here just free text with no deliverables.
 | Wave 1 | `tools/setup.py` |
 
 ## Wave 1: Setup
+### Objective & Scope
+Setup.
+
 ### Milestones & Deliverables
 - [NEW] `tools/setup.py`
 
@@ -280,7 +330,12 @@ No items specified here just free text with no deliverables.
 - Passes.
 
 ### Runtime Receipt & Completion Gate
-- Passes.
+- Run: pytest tests/test_setup.py --timeout=60
+- Input: tests/test_setup.py
+- Expected: 0 failures
+- Verify independently: git diff --stat
+- Fail if: exit code != 0
+- Record: receipts/setup.json
 """
         is_valid, errors = validate_plan_content(missing_cols_plan, "missing_cols.md")
         self.assertFalse(is_valid)
@@ -296,6 +351,9 @@ No items specified here just free text with no deliverables.
 | Wave 1 | Core implementation | MAYBE_LATER |
 
 ## Wave 1: Core
+### Objective & Scope
+Core.
+
 ### Milestones & Deliverables
 - [NEW] `tools/core.py`
 
@@ -303,7 +361,12 @@ No items specified here just free text with no deliverables.
 - Passes.
 
 ### Runtime Receipt & Completion Gate
-- Passes.
+- Run: pytest tests/test_core.py --timeout=60
+- Input: tests/test_core.py
+- Expected: 0 failures
+- Verify independently: git diff --stat
+- Fail if: exit code != 0
+- Record: receipts/core.json
 """
         is_valid, errors = validate_plan_content(invalid_status_plan, "bad_status.md")
         self.assertFalse(is_valid)
@@ -319,6 +382,9 @@ No items specified here just free text with no deliverables.
 | Wave 1 | Wave 1 scope | COMPLETED |
 
 ## Wave 1: First
+### Objective & Scope
+First.
+
 ### Milestones & Deliverables
 - [NEW] `tools/first.py`
 
@@ -326,9 +392,17 @@ No items specified here just free text with no deliverables.
 - Passes.
 
 ### Runtime Receipt & Completion Gate
-- Passes.
+- Run: pytest tests/test_first.py --timeout=60
+- Input: tests/test_first.py
+- Expected: 0 failures
+- Verify independently: git diff --stat
+- Fail if: exit code != 0
+- Record: receipts/first.json
 
 ## Wave 2: Second
+### Objective & Scope
+Second.
+
 ### Milestones & Deliverables
 - [NEW] `tools/second.py`
 
@@ -336,7 +410,12 @@ No items specified here just free text with no deliverables.
 - Passes.
 
 ### Runtime Receipt & Completion Gate
-- Passes.
+- Run: pytest tests/test_second.py --timeout=60
+- Input: tests/test_second.py
+- Expected: 0 failures
+- Verify independently: git diff --stat
+- Fail if: exit code != 0
+- Record: receipts/second.json
 """
         is_valid, errors = validate_plan_content(missing_wave_in_table, "missing_wave.md")
         self.assertFalse(is_valid)
@@ -356,6 +435,9 @@ No items specified here just free text with no deliverables.
 | Wave 1: Evaluation | Run gpt-6.5-luna evaluation | COMPLETED | `receipt.json` |
 
 ## Wave 1: Evaluation
+### Objective & Scope
+Run gpt-6.5-luna evaluation.
+
 ### Milestones & Deliverables
 - [NEW] `receipt.json`
 
@@ -363,7 +445,12 @@ No items specified here just free text with no deliverables.
 - Run under gpt-6.5-luna evaluator.
 
 ### Runtime Receipt & Completion Gate
-- Verification receipt emitted.
+- Run: pytest tests/test_eval.py --timeout=60
+- Input: tests/test_eval.py
+- Expected: 0 failures
+- Verify independently: git diff --stat
+- Fail if: exit code != 0
+- Record: receipts/receipt.json
 """
         is_valid, errors = validate_plan_content(bad_model_plan, "bad_model.md")
         self.assertFalse(is_valid)
@@ -378,6 +465,9 @@ No items specified here just free text with no deliverables.
 | Wave 1: Evaluation | Run gpt-5.6-luna evaluation | COMPLETED | `receipt.json` |
 
 ## Wave 1: Evaluation
+### Objective & Scope
+Run gpt-5.6-luna evaluation.
+
 ### Milestones & Deliverables
 - [NEW] `receipt.json`
 
@@ -385,10 +475,87 @@ No items specified here just free text with no deliverables.
 - Run under gpt-5.6-luna evaluator.
 
 ### Runtime Receipt & Completion Gate
-- Verification receipt emitted.
+- Run: pytest tests/test_eval.py --timeout=60
+- Input: tests/test_eval.py
+- Expected: 0 failures
+- Verify independently: git diff --stat
+- Fail if: exit code != 0
+- Record: receipts/receipt.json
 """
         is_valid, errors = validate_plan_content(good_model_plan, "good_model.md")
         self.assertTrue(is_valid, f"Plan should pass, but failed with: {errors}")
+
+    def test_missing_objective_is_rejected(self) -> None:
+        """Verify that waves missing Objective & Scope are rejected."""
+        missing_objective = """# Plan Title
+
+## Wave 1: Setup
+### Milestones & Deliverables
+- [NEW] `file.py`
+
+### Acceptance Criteria
+- Criteria met.
+
+### Runtime Receipt & Completion Gate
+- Run: pytest tests/test_file.py --timeout=60
+- Input: tests/test_file.py
+- Expected: 0 failures
+- Verify independently: git diff --stat
+- Fail if: exit code != 0
+- Record: receipt.json
+"""
+        is_valid, errors = validate_plan_content(missing_objective, "missing_objective.md")
+        self.assertFalse(is_valid)
+        self.assertTrue(any("Objective & Scope" in err for err in errors))
+
+    def test_missing_evidence_fields_is_rejected(self) -> None:
+        """Verify that waves missing execution evidence fields in completion gate fail."""
+        missing_evidence = """# Plan Title
+
+## Wave 1: Setup
+### Objective & Scope
+Setup tools.
+
+### Milestones & Deliverables
+- [NEW] `file.py`
+
+### Acceptance Criteria
+- Passes.
+
+### Runtime Receipt & Completion Gate
+- Run: pytest tests/test_file.py
+- Input: tests/test_file.py
+"""
+        is_valid, errors = validate_plan_content(missing_evidence, "missing_evidence.md")
+        self.assertFalse(is_valid)
+        self.assertTrue(any("completion gate must specify:" in err for err in errors))
+
+    def test_word_count_exceeds_1000_is_rejected(self) -> None:
+        """Verify that plans exceeding the 1000-word limit fail validation."""
+        long_body = "word " * 1050
+        long_plan = f"""# Long Plan Title
+
+## Wave 1: Large Scope
+### Objective & Scope
+{long_body}
+
+### Milestones & Deliverables
+- [NEW] `tools/large.py`
+
+### Acceptance Criteria
+- Passes.
+
+### Runtime Receipt & Completion Gate
+- Run: pytest tests/test_large.py --timeout=60
+- Input: tests/test_large.py
+- Expected: 0 failures
+- Verify independently: git diff --stat
+- Fail if: exit code != 0
+- Record: receipt.json
+"""
+        is_valid, errors = validate_plan_content(long_plan, "long_plan.md")
+        self.assertFalse(is_valid)
+        self.assertTrue(any("capped at 1000 words" in err for err in errors))
 
     def test_extract_wave_summary_entries_from_status_table(self) -> None:
         """Verify extraction of wave number, description, status, and check/open status."""

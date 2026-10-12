@@ -27,6 +27,17 @@ try:
 except ImportError:
     from hitl_governance import validate_model_token_registry  # type: ignore
 
+try:
+    from tools.implementation_plan_core.evidence_requirements import (
+        MAX_PLAN_WORDS,
+        validate_execution_evidence,
+    )
+except ImportError:
+    from implementation_plan_core.evidence_requirements import (  # type: ignore
+        MAX_PLAN_WORDS,
+        validate_execution_evidence,
+    )
+
 # Historical / frozen plans grandfathered from strict wave schema
 DEFAULT_LEGACY_EXEMPTIONS = {
     "core-judge-panel-harness-f3c8d1.md",
@@ -41,6 +52,10 @@ RE_TITLE = re.compile(r"^#\s+(.+)$", re.MULTILINE)
 RE_WAVE_HEADER = re.compile(r"^(#{2,3})\s+Wave\s+(\d+)(?:[:\s\-]+(.*))?$", re.IGNORECASE)
 
 # Patterns for required wave subsections
+RE_OBJECTIVE = re.compile(
+    r"(?:^#{3,4}\s+.*(?:objective|scope).*)|(?:^\s*(?:[-*+]\s+)?\*\*(?:.*(?:objective|scope).*?)\*\*)",
+    re.IGNORECASE,
+)
 RE_MILESTONES = re.compile(
     r"(?:^#{3,4}\s+.*(?:milestone|deliverable).*)|(?:^\s*(?:[-*+]\s+)?\*\*(?:.*(?:milestone|deliverable).*?)\*\*)",
     re.IGNORECASE,
@@ -174,6 +189,7 @@ class WaveSection:
         self.start_line = start_line
         self.header_level = header_level
         self.lines: List[Tuple[int, str]] = []  # (line_number, line_text)
+        self.has_objective = False
         self.has_milestones = False
         self.has_criteria = False
         self.has_receipt_gate = False
@@ -187,7 +203,11 @@ class WaveSection:
             if not stripped:
                 continue
 
-            if RE_MILESTONES.search(stripped):
+            if RE_OBJECTIVE.search(stripped):
+                self.has_objective = True
+                current_sub = "objective"
+                continue
+            elif RE_MILESTONES.search(stripped):
                 self.has_milestones = True
                 current_sub = "milestones"
                 continue
@@ -214,16 +234,57 @@ class WaveSection:
                     self.deliverable_items.append(content)
 
 
+def _validate_wave_subsections(waves: List[WaveSection], filename: str, errors: List[str]) -> None:
+    for w in waves:
+        w.analyze()
+        prefix = f"{filename}: Line {w.start_line} (Wave {w.number})"
+
+        if not w.has_objective:
+            errors.append(
+                f"{prefix}: Missing required 'Objective & Scope' section "
+                f"(expected '### Objective & Scope' or '**Objective & Scope**')."
+            )
+
+        if not w.has_milestones:
+            errors.append(
+                f"{prefix}: Missing required 'Milestones & Deliverables' section "
+                f"(expected '### Milestones & Deliverables' or '**Milestones**')."
+            )
+        elif not w.deliverable_items:
+            errors.append(
+                f"{prefix}: 'Milestones & Deliverables' must contain at least one itemized output or target file."
+            )
+
+        if not w.has_criteria:
+            errors.append(
+                f"{prefix}: Missing required 'Acceptance Criteria' section "
+                f"(expected '### Acceptance Criteria' or '**Acceptance Criteria**')."
+            )
+
+        if not w.has_receipt_gate:
+            errors.append(
+                f"{prefix}: Missing required 'Runtime Receipt & Completion Gate' section "
+                f"(expected '### Runtime Receipt & Completion Gate', '### Exit Gate', or '**Runtime Receipt**')."
+            )
+
+
 def validate_plan_content(
     content: str,
     filename: str = "plan.md",
-    repo_root: Optional[Path] = None,
+    repo_root: Optional[Path | bool] = None,
+    strict: bool = True,
 ) -> Tuple[bool, List[str]]:
     """Validate markdown implementation plan text against wave-based governance schema.
 
     Returns:
         (is_compliant: bool, errors: list[str])
     """
+    if isinstance(repo_root, bool):
+        strict = repo_root
+        actual_repo_root = None
+    else:
+        actual_repo_root = repo_root
+
     errors: List[str] = []
     lines = content.splitlines()
 
@@ -286,49 +347,22 @@ def validate_plan_content(
             expected_num += 1
 
     # 4. Validate Required Subsections and Deliverables per Wave
-    for w in waves:
-        w.analyze()
-        prefix = f"{filename}: Line {w.start_line} (Wave {w.number})"
+    _validate_wave_subsections(waves, filename, errors)
+    if strict:
+        errors.extend(validate_execution_evidence(content, waves, filename))
 
-        if not w.has_milestones:
-            errors.append(
-                f"{prefix}: Missing required 'Milestones & Deliverables' section "
-                f"(expected '### Milestones & Deliverables' or '**Milestones**')."
-            )
-        elif not w.deliverable_items:
-            errors.append(
-                f"{prefix}: 'Milestones & Deliverables' must contain at least one itemized output or target file."
-            )
-
-        if not w.has_criteria:
-            errors.append(
-                f"{prefix}: Missing required 'Acceptance Criteria' section "
-                f"(expected '### Acceptance Criteria' or '**Acceptance Criteria**')."
-            )
-
-        if not w.has_receipt_gate:
-            errors.append(
-                f"{prefix}: Missing required 'Runtime Receipt & Completion Gate' section "
-                f"(expected '### Runtime Receipt & Completion Gate', '### Exit Gate', or '**Runtime Receipt**')."
-            )
-
-    # 5. Validate Mandatory Implementation Status Table
+    # 5. Status Table Validation (Optional)
+    # Plans without status tables pass unconditionally. If an implementation status table is provided,
+    # validate that rows have valid status tokens and declared waves are present.
     tables = parse_markdown_tables(lines)
     status_table, col_indices, candidates = find_status_table(tables)
-
-    if status_table is None:
-        if candidates:
-            cand_tbl, missing_cols = candidates[0]
-            errors.append(
-                f"{filename}: Implementation Status Table at line {cand_tbl.start_line} missing required "
-                f"column(s): {', '.join(missing_cols)}. Required columns: 'Wave', 'Description', and 'Status'."
-            )
-        else:
-            errors.append(
-                f"{filename}: Missing mandatory Implementation Status Table. Plans must include a markdown "
-                "table with columns for Wave/Component, Description/Scope, and Status (e.g. COMPLETED, IN_PROGRESS, PENDING, OPEN, BLOCKED)."
-            )
-    else:
+    if status_table is None and candidates:
+        cand_tbl, missing_cols = candidates[0]
+        errors.append(
+            f"{filename}: Implementation Status Table at line {cand_tbl.start_line} missing required "
+            f"column(s): {', '.join(missing_cols)}. Required columns: 'Wave', 'Description', and 'Status'."
+        )
+    elif status_table is not None and col_indices is not None:
         wave_idx = col_indices["wave_idx"]
         status_idx = col_indices["status_idx"]
 
@@ -364,7 +398,7 @@ def validate_plan_content(
                     )
 
     # 6. Model Provider Registry Conformance
-    is_model_valid, unapproved_tokens, _ = validate_model_token_registry(content, repo_root=repo_root or ROOT)
+    is_model_valid, unapproved_tokens, _ = validate_model_token_registry(content, repo_root=actual_repo_root or ROOT)
     if not is_model_valid:
         for tok in unapproved_tokens:
             errors.append(
@@ -379,6 +413,7 @@ def validate_file(
     path: Path,
     legacy_exemptions: Optional[set[str]] = None,
     repo_root: Optional[Path] = None,
+    strict: bool = True,
 ) -> Tuple[bool, List[str]]:
     """Validate a single implementation plan file on disk."""
     exemptions = legacy_exemptions or DEFAULT_LEGACY_EXEMPTIONS
@@ -393,7 +428,7 @@ def validate_file(
     except Exception as exc:
         return False, [f"Failed reading {path}: {exc}"]
 
-    return validate_plan_content(content, filename=str(path.name), repo_root=repo_root or ROOT)
+    return validate_plan_content(content, filename=str(path.name), repo_root=repo_root or ROOT, strict=strict)
 
 
 def extract_wave_summary_entries(content: str) -> Tuple[List[dict], List[str]]:
