@@ -2,9 +2,9 @@
 """Unit tests for tools.hook_dispatch (Antigravity Lifecycle Hook Dispatcher).
 
 Verifies:
-1. pre_edit_plan blocks invalid plans lacking status table or wave structure.
-2. pre_edit_plan permits compliant wave plans and confirms wave summary table.
-3. stop_wave_summary extracts and displays wave completion summary table.
+1. pre_edit_plan blocks invalid plans lacking required wave structure or gate evidence.
+2. pre_edit_plan permits compliant wave plans with or without status tables.
+3. stop_wave_summary is silenced to comply with output brevity rules.
 4. pre_run_command blocks bare pytest sweeps.
 5. pre_model_neutral blocks file paths containing proprietary model names.
 """
@@ -53,11 +53,14 @@ class HookDispatchTests(unittest.TestCase):
         self.assertEqual(data["decision"], "deny")
         self.assertIn("must be wave-based", data["reason"])
 
-    def test_pre_edit_plan_blocks_missing_status_table(self) -> None:
-        """pre_edit_plan must deny wave plans lacking the mandatory status table."""
-        plan_without_table = """# Implementation Plan: Incomplete
+    def test_pre_edit_plan_allows_plan_without_status_table(self) -> None:
+        """pre_edit_plan must allow compliant wave plans even without a status table."""
+        plan_without_table = """# Implementation Plan: No Table
 
 ## Wave 1: First
+### Objective & Scope
+First wave objective.
+
 ### Milestones & Deliverables
 - [NEW] `file.py`
 
@@ -65,7 +68,12 @@ class HookDispatchTests(unittest.TestCase):
 - Done.
 
 ### Runtime Receipt & Completion Gate
-- Gate.
+- Run: pytest tests/test_file.py --timeout=60
+- Input: tests/test_file.py
+- Expected: 0 failures
+- Verify independently: git diff --stat
+- Fail if: exit code != 0
+- Record: receipt.json
 """
         payload = {
             "toolCall": {
@@ -84,10 +92,48 @@ class HookDispatchTests(unittest.TestCase):
             cwd=ROOT,
             timeout=10,
         )
+        self.assertEqual(res.returncode, 0)
+        data = json.loads(res.stdout.strip())
+        self.assertEqual(data["decision"], "allow")
+
+    def test_pre_edit_plan_blocks_missing_evidence_fields(self) -> None:
+        """pre_edit_plan must deny wave plans missing required completion gate fields."""
+        incomplete_plan = """# Implementation Plan: Incomplete
+
+## Wave 1: First
+### Objective & Scope
+First wave objective.
+
+### Milestones & Deliverables
+- [NEW] `file.py`
+
+### Acceptance Criteria
+- Done.
+
+### Runtime Receipt & Completion Gate
+- Gate.
+"""
+        payload = {
+            "toolCall": {
+                "name": "write_to_file",
+                "args": {
+                    "TargetFile": "plans/incomplete.md",
+                    "CodeContent": incomplete_plan,
+                },
+            }
+        }
+        res = subprocess.run(
+            [sys.executable, "tools/hook_dispatch.py", "--hook", "pre_edit_plan"],
+            input=json.dumps(payload),
+            capture_output=True,
+            text=True,
+            cwd=ROOT,
+            timeout=10,
+        )
         self.assertEqual(res.returncode, 1)
         data = json.loads(res.stdout.strip())
         self.assertEqual(data["decision"], "deny")
-        self.assertIn("Implementation Status Table", data["reason"])
+        self.assertIn("completion gate must specify", data["reason"])
 
     def test_pre_edit_plan_allows_compliant_plan(self) -> None:
         """pre_edit_plan must allow compliant wave plans with status tables."""
@@ -100,6 +146,9 @@ class HookDispatchTests(unittest.TestCase):
 | Wave 1: Core | Build foundation | COMPLETED | `core.py` |
 
 ## Wave 1: Core
+### Objective & Scope
+Build core foundation.
+
 ### Milestones & Deliverables
 - [NEW] `core.py`
 
@@ -107,7 +156,12 @@ class HookDispatchTests(unittest.TestCase):
 - Unit tests pass.
 
 ### Runtime Receipt & Completion Gate
-- Receipt verified.
+- Run: pytest tests/test_core.py --timeout=60
+- Input: tests/test_core.py
+- Expected: 0 failures
+- Verify independently: git diff --stat
+- Fail if: exit code != 0
+- Record: receipt.json
 """
         payload = {
             "toolCall": {
@@ -153,8 +207,8 @@ class HookDispatchTests(unittest.TestCase):
         data = json.loads(res.stdout.strip())
         self.assertEqual(data["decision"], "allow")
 
-    def test_stop_wave_summary_renders_markdown_table(self) -> None:
-        """stop_wave_summary must output the wave summary table and return empty json object."""
+    def test_stop_wave_summary_is_silenced(self) -> None:
+        """stop_wave_summary must return empty json object without dumping tables to stdout."""
         res = subprocess.run(
             [sys.executable, "tools/hook_dispatch.py", "--hook", "stop_wave_summary"],
             input=json.dumps({}),
@@ -164,11 +218,8 @@ class HookDispatchTests(unittest.TestCase):
             timeout=10,
         )
         self.assertEqual(res.returncode, 0)
-        self.assertIn("Wave Summary Table", res.stdout)
-        self.assertIn("| Wave # | Description / Scope | Status | Check/Open |", res.stdout)
-        # Verify trailing {} payload
-        last_line = [line for line in res.stdout.splitlines() if line.strip()][-1]
-        self.assertEqual(json.loads(last_line), {})
+        self.assertNotIn("Wave Summary Table", res.stdout)
+        self.assertEqual(json.loads(res.stdout.strip()), {})
 
     def test_pre_run_command_blocks_bare_pytest(self) -> None:
         """pre_run_command must deny un-scoped pytest invocations."""
