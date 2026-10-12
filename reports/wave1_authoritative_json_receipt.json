@@ -1,0 +1,23 @@
+{
+  "receipt_id": "rcpt_wave1_authoritative_json",
+  "wave": 1,
+  "status": "PASSED",
+  "command": "/Users/amitayer/Git/agents/.venv/bin/pytest tests/unit/test_agents_cli_e2e.py -v --timeout=60",
+  "deliverables": [
+    "agents/e2e_output.py",
+    "agents/cli.py",
+    "agents/e2e_artifacts.py"
+  ],
+  "verification": {
+    "passed_tests": 15,
+    "failed_tests": 0,
+    "duration_s": 0.77,
+    "exit_code": 0
+  },
+  "invariants_verified": [
+    "Child output from sub-engines isolated to log files",
+    "Sub-engine --json forwarding suppressed in agents e2e",
+    "Exactly one JSON root object emitted on stdout under --json",
+    "Stage statuses, artifact hashes, latency, and failure reasons populated"
+  ]
+}

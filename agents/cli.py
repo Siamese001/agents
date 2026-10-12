@@ -9,7 +9,6 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import os
 import shutil
@@ -51,37 +50,19 @@ def _build_parser() -> argparse.ArgumentParser:
     subparsers = parser.add_subparsers(dest="engine", metavar="ENGINE")
 
     # 1. resume engine
-    subparsers.add_parser(
-        "resume",
-        help="Run, evaluate, or inspect the Resume Graph Engine (apps_rg)",
-        add_help=False,
-    )
-
+    subparsers.add_parser("resume", help="Run, evaluate, or inspect the Resume Graph Engine (apps_rg)", add_help=False)
     # 2. outreach engine
-    subparsers.add_parser(
-        "outreach",
-        help="Run, evaluate, or inspect the Executive Outreach Engine (outreach_engine)",
-        add_help=False,
-    )
+    subparsers.add_parser("outreach", help="Run, evaluate, or inspect Executive Outreach Engine (outreach_engine)", add_help=False)
 
     # 3. e2e full lifecycle
     e2e_parser = subparsers.add_parser(
-        "e2e",
-        help="Run the unified end-to-end lifecycle (Research -> Tailored Resume -> Executive Outreach)",
+        "e2e", help="Run unified end-to-end lifecycle (Research -> Tailored Resume -> Executive Outreach)"
     )
     e2e_parser.add_argument(
-        "--company",
-        "--target-company",
-        dest="company",
-        default="Anthropic",
-        help="Target company name (default: Anthropic)",
+        "--company", "--target-company", dest="company", default="Anthropic", help="Target company name (default: Anthropic)"
     )
     e2e_parser.add_argument(
-        "--role",
-        "--target-role",
-        dest="role",
-        default="Manager of Applied AI Architecture, Partnerships",
-        help="Target role title",
+        "--role", "--target-role", dest="role", default="Manager of Applied AI Architecture, Partnerships", help="Target role title"
     )
     e2e_parser.add_argument("--jd", default="", help="Optional JD file path or inline text")
     e2e_parser.add_argument("--resume", default="", help="Optional base-resume JSON, Markdown, or text path")
@@ -121,12 +102,16 @@ def _build_parser() -> argparse.ArgumentParser:
 
 def run_e2e(args: argparse.Namespace) -> int:
     """Execute end-to-end multi-agent career intelligence lifecycle."""
+    import time
+    overall_start_tick = time.perf_counter()
     run_id = f"e2e_{uuid.uuid4().hex[:8]}"
     if args.artifact_dir:
         base_dir = Path(args.artifact_dir).resolve()
     else:
         base_dir = _REPO_ROOT / "artifacts" / "e2e_lifecycle" / run_id
     base_dir.mkdir(parents=True, exist_ok=True)
+    logs_dir = base_dir / "logs"
+    logs_dir.mkdir(parents=True, exist_ok=True)
 
     company = args.company
     role = args.role
@@ -149,9 +134,35 @@ def run_e2e(args: argparse.Namespace) -> int:
             is_demo=bool(getattr(args, "demo", False)),
         )
     except Exception as exc:
+        preflight_latency_ms = round((time.perf_counter() - overall_start_tick) * 1000, 2)
         sys.stderr.write(f"[agents e2e] Preflight Credential Failure:\n{exc}\n")
         if getattr(args, "json", False):
-            print(json.dumps({"status": "FAILED", "error": str(exc)}, indent=2))
+            from agents.e2e_output import emit_authoritative_lifecycle_json
+
+            preflight_payload = {
+                "run_id": run_id,
+                "status": "BLOCKED",
+                "workflow_status": "FAILED",
+                "company": company,
+                "role": role,
+                "artifact_dir": str(base_dir),
+                "stages": {
+                    "preflight": {
+                        "status": "FAILED",
+                        "latency_ms": preflight_latency_ms,
+                        "error": str(exc),
+                        "failure_reasons": [str(exc)],
+                    }
+                },
+                "artifact_hashes": {},
+                "artifact_proofs": {},
+                "latency": {
+                    "total_ms": preflight_latency_ms,
+                    "stages_ms": {"preflight": preflight_latency_ms},
+                },
+                "failure_reasons": [f"Preflight Credential Failure: {exc}"],
+            }
+            emit_authoritative_lifecycle_json(preflight_payload)
         return 2
 
     if not args.json:
@@ -209,18 +220,23 @@ def run_e2e(args: argparse.Namespace) -> int:
         prewarm_future = prewarm_executor.submit(_prewarm_resume)
 
     def _stage_research(ctx: dict[str, Any]) -> dict[str, Any]:
+        t_stage_start = time.perf_counter()
         if not research_enabled:
             if not args.json:
                 print(f">>> [Stage 1/4] Upstream Company Research: {research_label} (governed decoupled status).")
+            lat_ms = round((time.perf_counter() - t_stage_start) * 1000, 2)
             summary_payload["stages"]["company_research"] = {
                 "configured_status": research_label,
                 "status": "SKIPPED",
                 "reason": "Research stage explicitly disabled or decoupled in current CLI profile",
+                "latency_ms": lat_ms,
+                "failure_reasons": [],
             }
             return {"status": "SKIPPED"}
 
         if not args.json:
             print(">>> [Stage 1/4] Running Upstream Company Research (apps_research)...")
+        from agents.e2e_output import isolate_child_output
         try:
             from apps_rg.integrations.apps_research_bridge import AppsResearchBridge
             from apps_rg.integrations.managed_research_delegation import (
@@ -254,7 +270,8 @@ def run_e2e(args: argparse.Namespace) -> int:
                 job_description_ref=args.jd or "",
                 job_description_text=jd_text,
             )
-            res = dispatch_resume_research_briefing(req, bridge=bridge)
+            with isolate_child_output(logs_dir / "company_research.log"):
+                res = dispatch_resume_research_briefing(req, bridge=bridge)
             if not isinstance(res, ResumeBriefingReady):
                 err_msg = getattr(res, "detail", "Research dispatch failed")
                 raise RuntimeError(f"Upstream research failed: {err_msg}")
@@ -265,6 +282,7 @@ def run_e2e(args: argparse.Namespace) -> int:
                 shutil.copy2(briefing_file, canonical_briefing)
                 briefing_file = canonical_briefing
 
+            lat_ms = round((time.perf_counter() - t_stage_start) * 1000, 2)
             summary_payload["stages"]["company_research"] = {
                 "configured_status": research_label,
                 "exit_code": 0,
@@ -272,6 +290,8 @@ def run_e2e(args: argparse.Namespace) -> int:
                 "briefing_path": str(briefing_file),
                 "brief_sha256": res.brief_sha256,
                 "evidence_count": res.research_evidence_count,
+                "latency_ms": lat_ms,
+                "failure_reasons": [],
             }
             if not args.json:
                 print(f"[agents e2e] Research briefing generated: {briefing_file}")
@@ -284,19 +304,31 @@ def run_e2e(args: argparse.Namespace) -> int:
                 "evidence_count": res.research_evidence_count,
             }
         except Exception as exc:
+            lat_ms = round((time.perf_counter() - t_stage_start) * 1000, 2)
+            stage_status = "BLOCKED" if "blocked" in str(exc).lower() else "FAILED"
             summary_payload["stages"]["company_research"] = {
                 "configured_status": research_label,
-                "status": "FAILED",
+                "status": stage_status,
                 "error": str(exc),
+                "latency_ms": lat_ms,
+                "failure_reasons": [str(exc)],
             }
-            sys.stderr.write(f"[agents e2e] Error: Upstream research failed fail-closed: {exc}\n")
+            if not args.json:
+                sys.stderr.write(f"[agents e2e] Error: Upstream research failed fail-closed: {exc}\n")
             raise
 
     def _stage_resume(ctx: dict[str, Any]) -> dict[str, Any]:
+        t_stage_start = time.perf_counter()
         if args.skip_resume:
             if not args.json:
                 print("\n>>> [Stage 2/4] Resume tailoring skipped (--skip-resume).")
-            summary_payload["stages"]["resume_tailoring"] = {"status": "SKIPPED"}
+            lat_ms = round((time.perf_counter() - t_stage_start) * 1000, 2)
+            summary_payload["stages"]["resume_tailoring"] = {
+                "status": "SKIPPED",
+                "reason": "Resume tailoring skipped (--skip-resume)",
+                "latency_ms": lat_ms,
+                "failure_reasons": [],
+            }
             return {"status": "SKIPPED"}
 
         if not args.json:
@@ -317,6 +349,7 @@ def run_e2e(args: argparse.Namespace) -> int:
             resolve_and_verify_resume_artifact,
             resolve_run_scoped_resume_proofs_dir,
         )
+        from agents.e2e_output import isolate_child_output
 
         # Resolve research briefing from context if available
         briefing_path = ""
@@ -341,28 +374,38 @@ def run_e2e(args: argparse.Namespace) -> int:
         if args.resume:
             resume_args.extend(["--resume", args.resume])
 
-        rg_code = resume_main(resume_args)
+        with isolate_child_output(logs_dir / "resume_tailoring.log"):
+            rg_code = resume_main(resume_args)
+
+        lat_ms = round((time.perf_counter() - t_stage_start) * 1000, 2)
 
         if rg_code != 0:
+            err_msg = f"apps_rg returned non-zero exit code: {rg_code}"
             summary_payload["stages"]["resume_tailoring"] = {
                 "exit_code": rg_code,
                 "status": "FAILED",
-                "error": f"apps_rg returned non-zero exit code: {rg_code}",
+                "error": err_msg,
+                "latency_ms": lat_ms,
+                "failure_reasons": [err_msg],
             }
             if not args.json:
                 sys.stderr.write(f"[agents e2e] Error: Resume generation returned non-zero exit code {rg_code}.\n")
-            raise RuntimeError(f"Resume generation returned non-zero exit code: {rg_code}")
+            raise RuntimeError(err_msg)
 
-        return resolve_and_verify_resume_artifact(
+        res = resolve_and_verify_resume_artifact(
             run_id=run_id,
             base_dir=base_dir,
             rg_code=rg_code,
             summary_payload=summary_payload,
             args=args,
         )
+        summary_payload["stages"]["resume_tailoring"]["latency_ms"] = lat_ms
+        return res
 
     def _stage_outreach(ctx: dict[str, Any]) -> dict[str, Any]:
+        t_stage_start = time.perf_counter()
         from apps_lic.__main__ import main as outreach_main
+        from agents.e2e_output import isolate_child_output
 
         outreach_artifact_dir = base_dir / "outreach"
         outreach_artifact_dir.mkdir(parents=True, exist_ok=True)
@@ -389,31 +432,38 @@ def run_e2e(args: argparse.Namespace) -> int:
 
         outreach_args.extend(["--company", company, "--role", role])
 
-        if args.json:
-            outreach_args.append("--json")
-
         if not args.json:
             print("\n>>> [Stage 3/4] Generating Grounded Executive Outreach (outreach_engine)...")
 
-        oe_code = outreach_main(outreach_args, prog="python -m agents e2e")
+        with isolate_child_output(logs_dir / "executive_outreach.log"):
+            oe_code = outreach_main(outreach_args, prog="python -m agents e2e")
+
+        lat_ms = round((time.perf_counter() - t_stage_start) * 1000, 2)
+
         if oe_code != 0:
+            err_msg = f"Outreach generation returned non-zero exit code: {oe_code}"
             summary_payload["stages"]["executive_outreach"] = {
                 "exit_code": oe_code,
                 "status": "FAILED",
-                "error": f"Outreach generation returned non-zero exit code: {oe_code}",
+                "error": err_msg,
+                "latency_ms": lat_ms,
+                "failure_reasons": [err_msg],
             }
-            sys.stderr.write(f"[agents e2e] Outreach generation returned non-zero exit code: {oe_code}.\n")
-            raise RuntimeError(f"Outreach generation returned non-zero exit code: {oe_code}")
+            if not args.json:
+                sys.stderr.write(f"[agents e2e] Outreach generation returned non-zero exit code: {oe_code}.\n")
+            raise RuntimeError(err_msg)
 
         from agents.e2e_artifacts import resolve_and_verify_outreach_artifact
 
-        return resolve_and_verify_outreach_artifact(
+        res = resolve_and_verify_outreach_artifact(
             outreach_artifact_dir=outreach_artifact_dir,
             oe_code=oe_code,
             outreach_main_callable=outreach_main,
             summary_payload=summary_payload,
             args=args,
         )
+        summary_payload["stages"]["executive_outreach"]["latency_ms"] = lat_ms
+        return res
 
     steps = [
         WorkflowStep(
@@ -463,6 +513,7 @@ def run_e2e(args: argparse.Namespace) -> int:
         report=report,
         args=args,
         research_enabled=research_enabled,
+        overall_start_tick=overall_start_tick,
     )
 
 

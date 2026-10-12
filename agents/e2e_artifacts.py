@@ -6,6 +6,7 @@ import hashlib
 import json
 import shutil
 import sys
+import time
 from pathlib import Path
 from typing import Any
 
@@ -16,7 +17,13 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent
 
 def resolve_run_scoped_resume_proofs_dir(run_id: str) -> Path:
     """Return the isolated, run-scoped proofs directory for apps_rg."""
-    return _REPO_ROOT / "artifacts" / "apps_rg" / "runtime_proofs" / f"full_resume_{run_id}"
+    try:
+        from apps_rg.runtime.runtime_proof_layout import find_repo_root
+
+        base = find_repo_root()
+    except Exception:
+        base = _REPO_ROOT
+    return base / "artifacts" / "apps_rg" / "runtime_proofs" / f"full_resume_{run_id}"
 
 
 def resolve_and_verify_resume_artifact(
@@ -53,10 +60,12 @@ def resolve_and_verify_resume_artifact(
                 shutil.copy2(src_receipt, dst_receipt)
 
     def _fail_resume(error: str) -> None:
+        stage_status = "BLOCKED" if "blocked" in error.lower() else "FAILED"
         summary_payload["stages"]["resume_tailoring"] = {
             "exit_code": rg_code,
-            "status": "FAILED",
+            "status": stage_status,
             "error": error,
+            "failure_reasons": [error],
         }
         if not getattr(args, "json", False):
             sys.stderr.write(f"[agents e2e] Error: {error}\n")
@@ -105,6 +114,7 @@ def resolve_and_verify_resume_artifact(
         "status": "PASSED",
         "resume_path": str(dest_resume_file),
         "resume_sha256": resume_sha,
+        "failure_reasons": [],
     }
     if not getattr(args, "json", False):
         print(f"[agents e2e] Resume generated: {dest_resume_file}")
@@ -137,10 +147,12 @@ def resolve_and_verify_outreach_artifact(
     )
 
     def _fail_outreach(error: str) -> None:
+        stage_status = "BLOCKED" if "blocked" in error.lower() else "FAILED"
         summary_payload["stages"]["executive_outreach"] = {
             "exit_code": oe_code,
-            "status": "FAILED",
+            "status": stage_status,
             "error": error,
+            "failure_reasons": [error],
         }
         if not getattr(args, "json", False):
             sys.stderr.write(f"[agents e2e] Error: {error}\n")
@@ -171,6 +183,7 @@ def resolve_and_verify_outreach_artifact(
         "status": "PASSED",
         "campaign_path": str(campaign_file) if campaign_file.is_file() else "",
         "campaign_sha256": campaign_sha,
+        "failure_reasons": [],
     }
     if not getattr(args, "json", False):
         print(f"[agents e2e] Outreach campaign generated at: {outreach_artifact_dir}")
@@ -192,8 +205,10 @@ def seal_lifecycle_manifest(
     report: WorkflowExecutionReport,
     args: argparse.Namespace,
     research_enabled: bool,
+    overall_start_tick: float = 0.0,
 ) -> int:
     """Stage 4: Lifecycle Sealing, Cryptographic Provenance Manifest, and strict audit."""
+    t_seal_start = time.perf_counter()
     artifact_proofs: dict[str, Any] = {}
     for key, rel, pattern in [
         ("research_briefing", "research", "**/briefing.md"),
@@ -215,6 +230,7 @@ def seal_lifecycle_manifest(
             }
 
     summary_payload["artifact_proofs"] = artifact_proofs
+    summary_payload["artifact_hashes"] = {k: v["sha256"] for k, v in artifact_proofs.items()}
 
     # Strict audit of required non-skipped deliverables
     required_keys: list[tuple[str, str]] = []
@@ -232,28 +248,71 @@ def seal_lifecycle_manifest(
         if k not in artifact_proofs or artifact_proofs[k]["bytes"] <= 0
     ]
 
-    summary_path = base_dir / "e2e_lifecycle_summary.json"
+    seal_lat_ms = round((time.perf_counter() - t_seal_start) * 1000, 2)
+    summary_payload["stages"]["lifecycle_sealing"] = {
+        "status": "FAILED" if missing_keys or report.final_status != WorkflowStatus.COMPLETED else "PASSED",
+        "latency_ms": seal_lat_ms,
+        "failure_reasons": [f"Missing required deliverables: {k}" for k in missing_keys] if missing_keys else [],
+    }
 
     if missing_keys:
         summary_payload["workflow_status"] = WorkflowStatus.FAILED.value
         summary_payload["sealing_error"] = f"Missing or empty required deliverables: {', '.join(missing_keys)}"
-        summary_path.write_text(json.dumps(summary_payload, indent=2), encoding="utf-8")
-        if not getattr(args, "json", False):
-            sys.stderr.write(f"[agents e2e] Sealing Error: Missing required deliverables: {', '.join(missing_keys)}\n")
-        return 1
 
+    # Consolidate failure reasons
+    collected_reasons: list[str] = []
+    for s_name, s_info in summary_payload.get("stages", {}).items():
+        if isinstance(s_info, dict):
+            err = s_info.get("error")
+            if err and err not in collected_reasons:
+                collected_reasons.append(err)
+            for r in s_info.get("failure_reasons", []):
+                if r and r not in collected_reasons:
+                    collected_reasons.append(r)
+    if missing_keys:
+        msg = f"Missing or empty required deliverables: {', '.join(missing_keys)}"
+        if msg not in collected_reasons:
+            collected_reasons.append(msg)
+    if report.final_status == WorkflowStatus.FAILED and not collected_reasons:
+        collected_reasons.append(f"Workflow execution failed with status {report.final_status.value}")
+    summary_payload["failure_reasons"] = collected_reasons
+
+    # Determine authoritative overall status
+    is_blocked = any(
+        isinstance(s, dict) and s.get("status") == "BLOCKED"
+        for s in summary_payload.get("stages", {}).values()
+    )
+    if missing_keys or report.final_status != WorkflowStatus.COMPLETED:
+        summary_payload["status"] = "BLOCKED" if is_blocked else "FAILED"
+    else:
+        summary_payload["status"] = "PASSED"
+
+    # Compute overall and per-stage latencies
+    t_now = time.perf_counter()
+    total_ms = round((t_now - overall_start_tick) * 1000, 2) if overall_start_tick > 0 else 0.0
+    stages_ms = {
+        k: v.get("latency_ms", 0.0)
+        for k, v in summary_payload.get("stages", {}).items()
+        if isinstance(v, dict)
+    }
+    summary_payload["latency"] = {
+        "total_ms": total_ms,
+        "stages_ms": stages_ms,
+    }
+
+    summary_path = base_dir / "e2e_lifecycle_summary.json"
     summary_path.write_text(json.dumps(summary_payload, indent=2), encoding="utf-8")
 
-    if not getattr(args, "json", False):
-        if report.final_status == WorkflowStatus.COMPLETED:
+    if getattr(args, "json", False):
+        from agents.e2e_output import emit_authoritative_lifecycle_json
+        emit_authoritative_lifecycle_json(summary_payload)
+    else:
+        if summary_payload["status"] == "PASSED":
             print("\n>>> [Stage 4/4] Lifecycle artifacts validated and sealed.")
             print(f"[agents e2e] Sealed summary manifest at: {summary_path}")
             print(f"[agents e2e] Workflow state audit at: {base_dir / 'workflow_state.json'}\n")
         else:
-            print(f"\n>>> [Stage 4/4] Lifecycle FAILED with status: {report.final_status.value}.")
+            print(f"\n>>> [Stage 4/4] Lifecycle FAILED with status: {summary_payload['status']}.")
             print(f"[agents e2e] Failure summary manifest at: {summary_path}\n")
 
-    if report.final_status == WorkflowStatus.FAILED:
-        return 1
-
-    return 0
+    return 0 if summary_payload["status"] == "PASSED" else 1
