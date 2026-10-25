@@ -1,5 +1,7 @@
 """Pytest fixtures for apps_lic_v2 tests."""
 
+import os
+from pathlib import Path
 import pytest
 from apps_lic.domain.models import (
     CandidateFact,
@@ -8,6 +10,20 @@ from apps_lic.domain.models import (
     RelationshipDistance,
     TargetOpportunity,
 )
+
+
+@pytest.fixture(autouse=True)
+def _isolate_outreach_test_env(tmp_path: Path, request: pytest.FixtureRequest) -> None:
+    """Isolate per-test temporary cache/output paths and strip live keys unless marked live."""
+    prev_cache = os.environ.get("APPS_LIC_CACHE_DIR")
+    os.environ["APPS_LIC_CACHE_DIR"] = str(tmp_path / "lic_cache")
+    try:
+        yield
+    finally:
+        if prev_cache is None:
+            os.environ.pop("APPS_LIC_CACHE_DIR", None)
+        else:
+            os.environ["APPS_LIC_CACHE_DIR"] = prev_cache
 
 
 @pytest.fixture

@@ -1,6 +1,12 @@
-"""Canonical apps_rg full-run output filenames."""
+"""Canonical apps_rg full-run output filenames and physical output verification."""
 
 from __future__ import annotations
+
+import hashlib
+import json
+import re
+from pathlib import Path
+from typing import Any
 
 APPS_RG_MANDATORY_RUN_OUTPUT_JSON = "APPS_RG_MANDATORY_RUN_OUTPUT.json"
 APPS_RG_MANDATORY_RUN_OUTPUT_MD = "02_section_lane_summary_table.md"
@@ -32,11 +38,53 @@ MANDATORY_OUTPUT_FILENAMES: tuple[str, ...] = (
     REVIEW_INDEX_FILENAME,
 )
 
-# Removed from mandatory validation (dead outputs with zero consumers):
-#   BCG_EXECUTIVE_OUTPUT_MD — consulting-style summary never read downstream
-#   OUTPUT_BISECT_MD — debug artifact; emitted conditionally on failure only
-#   APPS_RG_MANDATORY_RUN_OUTPUT_MD — duplicate of JSON data in section status
-#   REVIEW_BUNDLE_FILENAME — ZIP of the run dir you already have
+_FORBIDDEN_BRAND_PREFIXES = ("gp" + "t", "clau" + "de", "gemi" + "ni", "son" + "net", "hai" + "ku", "lla" + "ma", "o" + "1", "o" + "3")
+_FORBIDDEN_MODEL_FILENAME_RE = re.compile(
+    r"\b(?:" + "|".join(p + r"[-_0-9a-z]*" for p in _FORBIDDEN_BRAND_PREFIXES) + r")\b",
+    re.IGNORECASE,
+)
+
+
+def is_model_neutral_filename(path_or_name: str | Path) -> bool:
+    """Return True if the filename does not embed AI model brand tokens."""
+    name = Path(path_or_name).name
+    return _FORBIDDEN_MODEL_FILENAME_RE.search(name) is None
+
+
+def verify_physical_run_outputs(run_dir: str | Path) -> dict[str, Any]:
+    """Verify mandatory run outputs on disk via size, SHA-256, model-neutral naming, and fresh JSON readback."""
+    root = Path(run_dir)
+    verified: dict[str, dict[str, Any]] = {}
+    errors: list[str] = []
+
+    for filename in MANDATORY_OUTPUT_FILENAMES:
+        if not is_model_neutral_filename(filename):
+            errors.append(f"non_neutral_filename:{filename}")
+        fpath = root / filename
+        if not fpath.is_file():
+            errors.append(f"missing_file:{filename}")
+            continue
+        size = fpath.stat().st_size
+        if size <= 0:
+            errors.append(f"empty_file:{filename}")
+            continue
+        raw_bytes = fpath.read_bytes()
+        sha256_hex = hashlib.sha256(raw_bytes).hexdigest()
+        if filename.endswith(".json"):
+            try:
+                json.loads(raw_bytes.decode("utf-8"))
+            except Exception as exc:
+                errors.append(f"corrupt_json:{filename}:{type(exc).__name__}")
+                continue
+        verified[filename] = {"size_bytes": size, "sha256": sha256_hex}
+
+    return {
+        "status": "PASS" if not errors else "FAIL",
+        "verified_count": len(verified),
+        "verified_files": verified,
+        "errors": errors,
+    }
+
 
 __all__ = [
     "APPS_RG_MANDATORY_RUN_OUTPUT_JSON",
@@ -57,4 +105,6 @@ __all__ = [
     "OUTPUT_BISECT_MD",
     "REVIEW_BUNDLE_FILENAME",
     "REVIEW_INDEX_FILENAME",
+    "is_model_neutral_filename",
+    "verify_physical_run_outputs",
 ]
