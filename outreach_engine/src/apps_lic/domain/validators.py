@@ -239,7 +239,8 @@ class GroundingValidator:
     """
 
     _METRIC_DOLLAR_PAT: Final[re.Pattern[str]] = re.compile(
-        r"\$\s*\d+(?:,\d{3})*(?:\.\d+)?\s*(?:[kKmMbBtT]|billion|million|thousand)?\b"
+        r"\$\s*\d+(?:,\d{3})*(?:\.\d+)?\s*(?:[kKmMbBtT]|billion|million|thousand)?\b",
+        re.IGNORECASE,
     )
     _METRIC_PERCENT_PAT: Final[re.Pattern[str]] = re.compile(
         r"\b\d+(?:\.\d+)?%"
@@ -253,6 +254,31 @@ class GroundingValidator:
         r"\b(?:personally invented|co-invented|patented the|invented the|won an? (?:olympic|nobel|pulitzer))\b",
         re.IGNORECASE,
     )
+
+    @staticmethod
+    def _normalize_dollar_token(raw: str) -> str:
+        """Normalize '$1,000,000', '$1M', '$1 million' to a canonical dollar amount string."""
+        cleaned = raw.lower().replace("$", "").replace(",", "").strip()
+        m = re.match(r"^(\d+(?:\.\d+)?)\s*(k|thousand|m|million|b|billion|t)?$", cleaned)
+        if not m:
+            return raw.lower().strip()
+        val = float(m.group(1))
+        suffix = m.group(2) or ""
+        if suffix in ("k", "thousand"):
+            val *= 1_000
+        elif suffix in ("m", "million"):
+            val *= 1_000_000
+        elif suffix in ("b", "billion"):
+            val *= 1_000_000_000
+        elif suffix == "t":
+            val *= 1_000_000_000_000
+        return f"${int(round(val))}"
+
+    def _extract_normalized_dollars(self, text: str) -> set[str]:
+        tokens: set[str] = set()
+        for m in self._METRIC_DOLLAR_PAT.finditer(text):
+            tokens.add(self._normalize_dollar_token(m.group(0)))
+        return tokens
 
     def validate(
         self,
@@ -277,7 +303,6 @@ class GroundingValidator:
                 violations.append(f"Ungrounded fact referenced: '{fid}'")
                 continue
 
-            # If candidate_facts available, enforce source evidence provenance
             if cf_by_id:
                 f_obj = cf_by_id.get(fid)
                 if f_obj is None:
@@ -291,7 +316,6 @@ class GroundingValidator:
 
         # 2. Body-level claim and metric verification
         if body and body.strip():
-            # Collect verified textual representations of declared facts
             declared_facts_text = ""
             if cf_by_id and draft_facts_used:
                 declared_texts: List[str] = []
@@ -304,12 +328,15 @@ class GroundingValidator:
                 declared_facts_text = " ".join(declared_texts)
 
             opp_text = str(opportunity_context or "").lower()
+            declared_dollars = self._extract_normalized_dollars(declared_facts_text)
+            opp_dollars = self._extract_normalized_dollars(opp_text)
 
-            # A. Dollar metrics check
+            # A. Dollar metrics check (with normalized numeric matching)
             for m in self._METRIC_DOLLAR_PAT.finditer(body):
                 matched = m.group(0).lower()
-                in_declared = matched in declared_facts_text
-                in_opp = matched in opp_text
+                norm_val = self._normalize_dollar_token(m.group(0))
+                in_declared = (matched in declared_facts_text) or (norm_val in declared_dollars)
+                in_opp = (matched in opp_text) or (norm_val in opp_dollars)
                 if not in_declared and not in_opp:
                     if not draft_facts_used:
                         violations.append(
@@ -320,11 +347,12 @@ class GroundingValidator:
                             f"Unsupported dollar metric claim in message body: '{m.group(0)}'. Not supported by declared candidate facts with source evidence."
                         )
 
-            # B. Percentage metrics check
+            # B. Percentage metrics check (with word boundary check so 10% does not match 110%)
             for m in self._METRIC_PERCENT_PAT.finditer(body):
                 matched = m.group(0).lower()
-                in_declared = matched in declared_facts_text
-                in_opp = matched in opp_text
+                boundary_pat = re.compile(r"(?<!\d)" + re.escape(matched))
+                in_declared = bool(boundary_pat.search(declared_facts_text))
+                in_opp = bool(boundary_pat.search(opp_text))
                 if not in_declared and not in_opp:
                     violations.append(
                         f"Unsupported percentage metric claim in message body: '{m.group(0)}'. Not supported by declared candidate facts with source evidence."
@@ -516,12 +544,45 @@ class UnsupportedPersonalizationValidator:
         return len(violations) == 0, violations
 
 
+class OutboundPrivacyValidator:
+    """Blocks outbound messages containing API secrets, private strategy notes, or personal billing rates."""
+
+    _SECRET_PATTERNS: Final[List[re.Pattern[str]]] = [
+        re.compile(r"\bsk-[A-Za-z0-9_-]{16,}\b"),
+        re.compile(r"\bAKIA[0-9A-Z]{16}\b"),
+        re.compile(r"\bghp_[A-Za-z0-9]{20,}\b"),
+        re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----"),
+    ]
+    _PRIVATE_STRATEGY_PATTERNS: Final[List[re.Pattern[str]]] = [
+        re.compile(r"\bINTERNAL_ADVISORY\b"),
+        re.compile(r"\bstealth_score\b", re.IGNORECASE),
+        re.compile(r"\bcareer\s+leverage\b", re.IGNORECASE),
+    ]
+    _RATE_FLOOR_PATTERNS: Final[List[re.Pattern[str]]] = [
+        re.compile(r"\$\s*\d{2,4}(?:\.\d{2})?\s*/\s*(?:hr|hour)\b", re.IGNORECASE),
+    ]
+
+    def validate(self, body: str) -> tuple[bool, List[str]]:
+        violations: List[str] = []
+        for pat in self._SECRET_PATTERNS:
+            if pat.search(body):
+                violations.append("Outbound privacy block: detected API credential or private key pattern.")
+        for pat in self._PRIVATE_STRATEGY_PATTERNS:
+            if pat.search(body):
+                violations.append("Outbound privacy block: detected internal advisory or private career strategy marker.")
+        for pat in self._RATE_FLOOR_PATTERNS:
+            if pat.search(body):
+                violations.append("Outbound privacy block: detected hourly billing rate disclosure.")
+        return len(violations) == 0, violations
+
+
 __all__ = [
     "ChannelLengthValidator",
     "EmDashValidator",
     "ForbiddenClaimsValidator",
     "GroundingValidator",
     "MarkdownLinkValidator",
+    "OutboundPrivacyValidator",
     "QuestionEndingValidator",
     "SpamTriggerValidator",
     "SubordinateToneValidator",

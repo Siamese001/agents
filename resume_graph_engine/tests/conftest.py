@@ -57,15 +57,21 @@ def _isolate_operator_otel_environment() -> None:
 
 
 @pytest.fixture(autouse=True)
-def _reset_operator_otel_environment_between_tests() -> None:
-    """Remove OTel values reloaded from the home dotenv by a prior unit test."""
+def _reset_operator_otel_environment_between_tests(tmp_path: Path) -> None:
+    """Remove OTel values reloaded from the home dotenv and isolate per-test cache root."""
     for name in _OTEL_HOME_DOTENV_KEYS:
         os.environ.pop(name, None)
+    prev_cache = os.environ.get("APPS_RG_R1B_CACHE_ROOT")
+    os.environ["APPS_RG_R1B_CACHE_ROOT"] = str(tmp_path / "r1b_cache")
     try:
         yield
     finally:
         for name in _OTEL_HOME_DOTENV_KEYS:
             os.environ.pop(name, None)
+        if prev_cache is None:
+            os.environ.pop("APPS_RG_R1B_CACHE_ROOT", None)
+        else:
+            os.environ["APPS_RG_R1B_CACHE_ROOT"] = prev_cache
 
 
 @pytest.fixture(scope="session", autouse=True)

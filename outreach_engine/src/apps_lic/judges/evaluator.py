@@ -50,6 +50,7 @@ from apps_lic.domain.validators import (
     ForbiddenClaimsValidator,
     GroundingValidator,
     MarkdownLinkValidator,
+    OutboundPrivacyValidator,
     QuestionEndingValidator,
     SpamTriggerValidator,
     SubordinateToneValidator,
@@ -142,6 +143,12 @@ class ExecutiveOutreachJudgePanel:
         self._tone_validator = SubordinateToneValidator()
         self._forbidden_validator = ForbiddenClaimsValidator()
         self._unsupported_personalization_validator = UnsupportedPersonalizationValidator()
+        self._privacy_validator = OutboundPrivacyValidator()
+
+    @staticmethod
+    def requires_human_signoff(top_score: float, runner_up_score: float, margin_threshold: float = 0.15) -> bool:
+        """Return True when top two candidate framings score within the margin threshold (default 15%)."""
+        return abs(top_score - runner_up_score) <= margin_threshold
 
     def _load_rubrics(self) -> dict[str, dict[str, Any]]:
         rubrics: dict[str, dict[str, Any]] = {}
@@ -247,6 +254,10 @@ class ExecutiveOutreachJudgePanel:
         # 8. Markdown links
         link_valid, link_err = self._link_validator.validate(draft.body)
 
+        # 9. Outbound privacy & unsupported personalization
+        priv_valid, priv_viols = self._privacy_validator.validate(draft.body)
+        up_valid, up_viols = self._unsupported_personalization_validator.validate(draft.body, opportunity)
+
         violations: List[str] = list(tone_viols)
         violations.extend(g_viols)
         violations.extend(fc_viols)
@@ -259,6 +270,8 @@ class ExecutiveOutreachJudgePanel:
             violations.append(len_err)
         if not link_valid and link_err:
             violations.append(link_err)
+        violations.extend(priv_viols)
+        violations.extend(up_viols)
 
         warnings: List[str] = list(spam_warns)
         hard_gate_passed = len(violations) == 0
@@ -291,7 +304,11 @@ class ExecutiveOutreachJudgePanel:
             feedback.append(f"Lens 2 (Forbidden Claims) Failure: {', '.join(fc_viols)}")
             hints.append("Remove ungrounded compensation, unverifiable tenure claims, or policy-forbidden phrasing.")
 
-        up_valid, up_viols = self._unsupported_personalization_validator.validate(draft.body, opportunity)
+        if not priv_valid:
+            lens2_score = 0.0
+            feedback.append(f"Lens 2 (Outbound Privacy) Failure: {', '.join(priv_viols)}")
+            hints.append("Remove API credentials, private strategy markers, and billing rate disclosures.")
+
         if not up_valid:
             lens2_score = min(lens2_score, 0.2)
             feedback.append(f"Lens 2 (Grounding - Unsupported Personalization) Failure: {', '.join(up_viols)}")

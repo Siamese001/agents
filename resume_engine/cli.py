@@ -14,12 +14,17 @@ Supports canonical subcommands:
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import os
 import sys
 from pathlib import Path
-from typing import Any, Sequence
+from typing import Sequence
+
+from resume_engine.cli_inspectors import (
+    handle_cache as _handle_cache,
+    handle_models as _handle_models,
+    terminate_cli_cleanly,
+)
 
 DEFAULT_TARGET_COMPANY = "Anthropic"
 DEFAULT_TARGET_ROLE = "Manager of Applied AI Architecture, Partnerships"
@@ -187,7 +192,6 @@ def _normalize_argv(argv: Sequence[str] | None) -> list[str]:
     if values[0] in {"-h", "--help", "-v", "--version"}:
         return values
 
-    # Handle --patch-run flag passed at root
     if values[0] == "--patch-run" or values[0].startswith("--patch-run="):
         if values[0] == "--patch-run":
             target = values[1] if len(values) > 1 else ""
@@ -218,12 +222,7 @@ def _enforce_gate_order(
     *,
     requires_preflight: bool = False,
 ) -> int | None:
-    """Enforce mandatory gate order across all subcommands:
-    1. bootstrap_apps_rg_env()
-    2. apply_route_signing_posture()
-    3. assert_production_runtime(context, args)
-    4. _run_preflight(prog) [if provider-calling subcommand]
-    """
+    """Enforce mandatory gate order across all subcommands."""
     from apps_rg.runtime.env_bootstrap import (
         apply_route_signing_posture,
         bootstrap_apps_rg_env,
@@ -246,133 +245,8 @@ def _enforce_gate_order(
     return None
 
 
-def _handle_models(args: argparse.Namespace) -> int:
-    """Read-only inspection of model catalog, provider profiles, and registry digest."""
-    repo_root = Path(__file__).resolve().parent.parent
-    profile_path = repo_root / "config" / "provider_profiles.yaml"
-    if not profile_path.is_file():
-        profile_path = (
-            repo_root / "resume_graph_engine" / "src" / "apps_rg" / "config" / "provider_profiles.yaml"
-        )
-    catalog_path = repo_root / "config" / "model_catalog.json"
-    if not catalog_path.is_file():
-        catalog_path = repo_root / "resume_graph_engine" / "config" / "model_catalog.json"
-
-    profiles_text = profile_path.read_text(encoding="utf-8") if profile_path.is_file() else ""
-    catalog_text = catalog_path.read_text(encoding="utf-8") if catalog_path.is_file() else ""
-
-    digest_input = profiles_text + "\n---\n" + catalog_text
-    canonical_digest = "sha256:" + hashlib.sha256(digest_input.encode("utf-8")).hexdigest()
-
-    try:
-        from apps_rg.runtime.model_registry import (
-            registry_digest as get_reg_digest,
-            resolve as resolve_reg_role,
-        )
-        canonical_digest = "sha256:" + get_reg_digest()
-    except Exception:
-        pass
-
-    import yaml
-
-    data = yaml.safe_load(profiles_text) if profiles_text else {}
-    registry_id = data.get("provider_profile_registry_id", "apps_rg::provider_profiles::v1")
-    profiles = data.get("profiles", {})
-
-    generation_pins: dict[str, str] = {}
-    backup_pins: dict[str, str] = {}
-    for prof in profiles.values():
-        if isinstance(prof, dict):
-            for sec, m in (prof.get("model_by_section") or {}).items():
-                generation_pins[sec] = m
-            for sec, m in (prof.get("anthropic_limit_backup_model_by_section") or {}).items():
-                backup_pins[sec] = m
-
-    payload = {
-        "status": "PASS",
-        "registry_id": registry_id,
-        "canonical_digest": canonical_digest,
-        "embedding_model": "BAAI/bge-m3",
-        "embedding_dimension": 1024,
-        "generation_pins": generation_pins,
-        "backup_pins": backup_pins,
-        "profiles_file": str(profile_path),
-        "catalog_file": str(catalog_path),
-    }
-
-    if getattr(args, "role", ""):
-        role = args.role
-        pinned = generation_pins.get(role) or backup_pins.get(role)
-        try:
-            from apps_rg.runtime.model_registry import resolve as resolve_reg_role
-            resolved_obj = resolve_reg_role(role)
-            pinned = resolved_obj.snapshot_id
-        except Exception:
-            pass
-        payload["queried_role"] = role
-        payload["resolved_pin"] = pinned or "UNRESOLVED"
-
-    if getattr(args, "json", False):
-        print(json.dumps(payload, indent=2, sort_keys=True))
-    else:
-        print(f"Registry ID:        {registry_id}")
-        print(f"Canonical Digest:   {canonical_digest}")
-        print("Embedding Model:    BAAI/bge-m3 (dim: 1024)")
-        print(f"Profiles File:      {profile_path}")
-        print("\n--- Section Generation Pins ---")
-        for sec, pin in sorted(generation_pins.items()):
-            print(f"  {sec:<25} -> {pin}")
-        if backup_pins:
-            print("\n--- Anthropic Limit Backup Pins ---")
-            for sec, pin in sorted(backup_pins.items()):
-                print(f"  {sec:<25} -> {pin}")
-    return 0
-
-
-def _handle_cache(args: argparse.Namespace) -> int:
-    """Read-only inspection of application and semantic cache directories."""
-    repo_root = Path(__file__).resolve().parent.parent
-    briefing_dir = repo_root / "artifacts" / "apps_rg" / "cache" / "briefings"
-    vector_dir = repo_root / "artifacts" / "apps_rg" / "vector_indices"
-
-    briefing_count = len(list(briefing_dir.glob("*.json"))) if briefing_dir.is_dir() else 0
-    vector_indices = [p.name for p in vector_dir.iterdir() if p.is_dir()] if vector_dir.is_dir() else []
-
-    payload = {
-        "status": "PASS",
-        "briefing_cache": {
-            "path": str(briefing_dir),
-            "exists": briefing_dir.is_dir(),
-            "cached_briefings_count": briefing_count,
-        },
-        "vector_cache": {
-            "path": str(vector_dir),
-            "exists": vector_dir.is_dir(),
-            "indexed_collections": vector_indices,
-        },
-    }
-
-    if getattr(args, "json", False):
-        print(json.dumps(payload, indent=2, sort_keys=True))
-    else:
-        print("--- Apps RG Cache Inspection ---")
-        print(f"Briefing Cache:  {briefing_dir} (cached items: {briefing_count})")
-        print(f"Vector Cache:    {vector_dir} (indices: {len(vector_indices)})")
-        for idx in vector_indices:
-            print(f"  - {idx}")
-    return 0
-
-
 def main(argv: list[str] | None = None, prog: str | None = None) -> int:
     """Sole public unified CLI entrypoint for resume_engine."""
-    from apps_rg.runtime.env_bootstrap import (
-        apply_route_signing_posture,
-        bootstrap_apps_rg_env,
-    )
-
-    bootstrap_apps_rg_env()
-    apply_route_signing_posture()
-
     raw_argv = list(sys.argv[1:] if argv is None else argv)
 
     if prog is None:
@@ -391,7 +265,6 @@ def main(argv: list[str] | None = None, prog: str | None = None) -> int:
 
     action = getattr(args, "action", "") or "run"
 
-    # Enforce gate order by subcommand type
     is_provider_action = action in {"run", "bootstrap", "patch-run", "preflight"}
     gate_rc = _enforce_gate_order(prog, args, requires_preflight=is_provider_action)
     if gate_rc is not None:
@@ -484,4 +357,4 @@ def main(argv: list[str] | None = None, prog: str | None = None) -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    terminate_cli_cleanly(main())

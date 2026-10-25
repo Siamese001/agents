@@ -1,87 +1,109 @@
-# Implementation Plan: Authoritative E2E Lifecycle Output and Child Output Isolation
+# Implementation Plan: Resume & Outreach Engine Pattern Hardening
 
 ## Executive Overview
-Ensure `python -m agents e2e --json` emits exactly one authoritative JSON lifecycle record on stdout containing stage statuses, artifact hashes, latency metrics, and failure reasons. Child output from sub-engines is completely isolated into artifact log files. Bounded integration tests validate success, blocked, research-enabled, and resume-skipped lifecycles, and a live smoke run verifies real artifacts.
+Apply behavioral patterns from `decision-intelligence-engine` natively across `resume_engine`, `resume_graph_engine`, and `outreach_engine` without copying external code. Enforce sub-400-line CLI modules, lazy package imports, 1.5s exit watchdogs, outbound privacy scrubbing, normalized numeric fact grounding, top-10 search accuracy gates, physical output verification, and per-test environment isolation.
 
 | Wave # | Description / Scope | Status |
 | :--- | :--- | :--- |
-| Wave 1 | Authoritative Lifecycle Output & Child Output Isolation | COMPLETED |
-| Wave 2 | Bounded Integration Test Suite for Lifecycle Flows | COMPLETED |
-| Wave 3 | Real E2E Smoke & Artifact Verification | COMPLETED |
+| Wave 1 | One-Way Code Loading & Fast Command Startup | COMPLETED |
+| Wave 2 | Outbound Privacy, Fact Matching & Human Sign-Off | COMPLETED |
+| Wave 3 | Top-10 Search Accuracy, Storage Proof & Saved-Step Resume | COMPLETED |
+| Wave 4 | Test Isolation & Real Output Folder Protection | COMPLETED |
 
 ---
 
-## Wave 1: Authoritative Lifecycle Output & Child Output Isolation
+## Wave 1: One-Way Code Loading & Fast Command Startup
 
 ### Objective & Scope
-Isolate child engine stdout/stderr during E2E runs and ensure the top-level CLI emits exactly one authoritative JSON object on stdout when `--json` is supplied, across both nominal completions and error/blocked paths.
+- **In Scope**: Split `resume_engine/cli.py` under 400 lines, eliminate bare `except Exception: pass` blocks, add a 1.5s exit watchdog, and make `outreach_engine/__init__.py` and `apps_rg/__init__.py` load heavy runtime modules lazily.
+- **Out of Scope**: External provider logic changes.
 
 ### Milestones & Deliverables
-- [x] `agents/e2e_output.py`: Output isolation context manager and canonical E2E lifecycle JSON serializer.
-- [x] `agents/cli.py`: Integrate output isolation around sub-engine stages, suppress child `--json` forwarding, measure per-stage and overall latency, and emit single authoritative lifecycle JSON.
-- [x] `agents/e2e_artifacts.py`: Populate consolidated failure reasons, stage latencies, artifact hashes, and sealing statuses.
+- [x] `resume_engine/cli.py`: Parse `--help` and `--version` before environment setup and delegate inspection commands.
+- [x] `resume_engine/cli_inspectors.py`: Read-only `models` and `cache` handlers with explicit fallback reason tracking and 1.5s exit watchdog.
+- [x] `outreach_engine/__init__.py` and `resume_graph_engine/src/apps_rg/__init__.py`: Lazy `__getattr__` exports and deferred `.env` loading.
 
 ### Acceptance Criteria
-- Child engines (`apps_rg`, `apps_lic`, `apps_research`) write outputs to run log files rather than leaking to top-level stdout.
-- `python -m agents e2e --json` emits exactly one parseable JSON payload on stdout with exit code 0 on success or non-zero on failure.
-- Emitted JSON strictly contains `status`, `workflow_status`, `stages` (statuses, latencies, failure reasons), `artifact_hashes`, `artifact_proofs`, `latency` (total and per-stage), and `failure_reasons`.
-- Preflight failures, stage execution failures, and deliverable sealing failures cleanly emit the authoritative JSON contract.
+- `resume_engine/cli.py` is under 400 lines with zero bare `except Exception: pass` blocks.
+- Importing `outreach_engine` does not eagerly load `apps_lic.judges.evaluator`.
+- `E2E-EXEMPT`: Entrypoint and module boundary wave.
 
 ### Runtime Receipt & Completion Gate
-- Run: `/Users/amitayer/Git/agents/.venv/bin/pytest tests/unit/test_agents_cli_e2e.py -v --timeout=60`
-- Input: Existing CLI e2e test suite updated for authoritative output contract.
-- Expected: All unit tests pass, exit code 0.
-- Verify independently: Verify test stdout confirms 0 child output leakage.
-- Fail if: Any unit test fails or child output pollutes stdout during `--json` execution.
-- Record: reports/wave1_authoritative_json_receipt.json
+- Run: `/Users/amitayer/Git/agents/.venv/bin/pytest outreach_engine/tests/test_unified_cli.py -v --timeout=60`
+- Input: CLI `--help`, `models`, and module import checks.
+- Expected: All CLI tests pass with line count of `resume_engine/cli.py` < 400.
+- Verify independently: Check `wc -l resume_engine/cli.py` and `sys.modules` lazy state.
+- Fail if: `resume_engine/cli.py` >= 400 lines or eager judge import occurs.
+- Record: reports/wave1_cli_layering_receipt.json
 
 ---
 
-## Wave 2: Bounded Integration Test Suite for Lifecycle Flows
+## Wave 2: Outbound Privacy, Fact Matching & Human Sign-Off
 
 ### Objective & Scope
-Create a dedicated bounded integration test suite exercising the four mandatory lifecycle flows: nominal success, blocked failure, research-enabled execution, and resume-skipped execution.
+- **In Scope**: Add native `OutboundPrivacyValidator`, normalize dollar and percentage matching in `GroundingValidator`, fold `UnsupportedPersonalizationValidator` into `hard_gate_passed`, and add score-gap human sign-off check (`requires_human_signoff`).
+- **Out of Scope**: External LLM prompt templates.
 
 ### Milestones & Deliverables
-- [x] `tests/integration/test_agents_cli_e2e_json.py`: Comprehensive bounded integration suite for all 4 flows under `--json`.
-- [x] `tests/unit/test_agents_cli_e2e.py`: Verify JSON schema completeness and strict single-object stdout emission.
+- [x] `outreach_engine/src/apps_lic/domain/validators.py`: `OutboundPrivacyValidator` and normalized numeric fact matching in `GroundingValidator`.
+- [x] `outreach_engine/src/apps_lic/judges/evaluator.py`: Include privacy and unsupported personalization violations in `hard_gate_passed` and expose `requires_human_signoff`.
 
 ### Acceptance Criteria
-- Success flow test verifies all stage statuses are `PASSED`, artifact hashes are populated, latency > 0, failure reasons empty, and exactly one JSON object on stdout.
-- Blocked flow test verifies status is `FAILED` or `BLOCKED`, failure reasons are populated with descriptive diagnostic strings, and exit code is non-zero.
-- Research-enabled flow test (`--with-research`) verifies research stage runs, emits `brief_sha256`, hands off briefing, and passes.
-- Resume-skipped flow test (`--skip-resume`) verifies resume stage is marked `SKIPPED`, outreach executes, and valid JSON is emitted.
-- All integration tests complete synchronously within bounded per-test timeout (`--timeout=60`).
+- Outbound drafts containing secret patterns, internal strategy markers, billing rates, or unverified company claims fail `hard_gate_passed`.
+- `$1M` matches `$1,000,000` in declared facts, while `10%` does not falsely match `110%`.
 
 ### Runtime Receipt & Completion Gate
-- Run: `/Users/amitayer/Git/agents/.venv/bin/pytest tests/integration/test_agents_cli_e2e_json.py -v --timeout=60`
-- Input: Bounded integration test scenarios covering nominal and failure modes.
-- Expected: 4 passed, 0 failed, exit code 0.
-- Verify independently: Verify stdout captures contain exactly one JSON parseable root object.
-- Fail if: Any test fails, exceeds 60s timeout, or child stdout contamination occurs.
-- Record: reports/wave2_integration_flows_receipt.json
+- Run: `/Users/amitayer/Git/agents/.venv/bin/pytest outreach_engine/tests/test_validators.py outreach_engine/tests/test_pattern_hardening_waves.py -v --timeout=60`
+- Input: Synthetic secret strings, formatted dollar/percentage claims, and unverified briefings.
+- Expected: 100% pass across validator and judge hardening tests.
+- Verify independently: Confirm `verdict.hard_gate_passed is False` on unverified personalization.
+- Fail if: Any secret pattern or unverified personalization passes `hard_gate_passed`.
+- Record: reports/wave2_privacy_grounding_receipt.json
 
 ---
 
-## Wave 3: Real E2E Smoke & Artifact Verification
+## Wave 3: Top-10 Search Accuracy, Storage Proof & Saved-Step Resume
 
 ### Objective & Scope
-Execute real end-to-end smoke verification using active environment credentials where permitted, inspect emitted JSON payload, and cryptographically verify all generated artifacts on disk.
+- **In Scope**: Enforce `top_k <= 10` and zero top-10 rank regression in `c03_ci_ratchet.py`, verify mandatory run outputs on disk with model-neutral filenames in `run_output_contract.py`, and support `resume_or_patch_run` path rebinding in `OutreachOrchestrator`.
+- **Out of Scope**: Replacing BGE-M3 weights.
 
 ### Milestones & Deliverables
-- [x] `reports/e2e_authoritative_json_smoke_receipt.json`: Signed runtime execution receipt confirming artifact verification.
-- [x] `ops_scripts/run_e2e_authoritative_smoke.py`: Helper script running real E2E smoke and verifying artifact files on disk.
+- [x] `resume_graph_engine/src/apps_rg/evals/c03_ci_ratchet.py`: Gate `retrieval_top_k_exceeds_10` and `top_10_rank_regression`.
+- [x] `resume_graph_engine/src/apps_rg/runtime/run_output_contract.py`: Add `is_model_neutral_filename` and `verify_physical_run_outputs`.
+- [x] `outreach_engine/src/apps_lic/pipeline/orchestrator.py`: Record completed stages in `run_manifest.json` and implement `resume_or_patch_run`.
 
 ### Acceptance Criteria
-- Real E2E execution runs cleanly with authorized credentials.
-- Emitted stdout parses as valid JSON with zero extraneous characters.
-- Every artifact path referenced in `artifact_hashes` exists on disk with non-zero bytes and exact matching SHA-256.
-- PASS is reported only with verified physical artifacts present on disk.
+- `verify_physical_run_outputs` confirms non-zero size, SHA-256 digest, valid JSON readback, and model-neutral filenames.
+- `resume_or_patch_run` rebinds `artifact_dir` and preserves completed stages.
 
 ### Runtime Receipt & Completion Gate
-- Run: `/Users/amitayer/Git/agents/.venv/bin/python ops_scripts/run_e2e_authoritative_smoke.py`
-- Input: Canonical demo inputs with real credentials bootstrap.
-- Expected: Status `PASSED`, all artifact files verified on disk, exit code 0.
-- Verify independently: Inspect hashes of generated artifacts against emitted JSON payload.
-- Fail if: JSON parsing fails, stdout has stray logs, or any artifact hash does not match disk content.
-- Record: reports/e2e_authoritative_json_smoke_receipt.json
+- Run: `/Users/amitayer/Git/agents/.venv/bin/pytest outreach_engine/tests/test_pattern_hardening_waves.py -v --timeout=60`
+- Input: Ephemeral run directories and stage manifests.
+- Expected: Physical output verification and stage resume tests pass.
+- Verify independently: Inspect `run_manifest.json` after `resume_or_patch_run`.
+- Fail if: Model-branded filename passes or corrupt JSON is accepted.
+- Record: reports/wave3_storage_search_resume_receipt.json
+
+---
+
+## Wave 4: Test Isolation & Real Output Folder Protection
+
+### Objective & Scope
+- **In Scope**: Isolate per-test cache directories using `tmp_path` in both `resume_graph_engine/tests/conftest.py` and `outreach_engine/tests/conftest.py` and verify all 4 waves with dedicated unit and E2E tests.
+- **Out of Scope**: Historical artifact cleanup.
+
+### Milestones & Deliverables
+- [x] `resume_graph_engine/tests/conftest.py` and `outreach_engine/tests/conftest.py`: Per-test `tmp_path` cache isolation fixtures.
+- [x] `outreach_engine/tests/test_pattern_hardening_waves.py`: End-to-end verification of Waves 1–4.
+
+### Acceptance Criteria
+- Every test receives an isolated `tmp_path` cache root and leaves zero untracked artifacts in production directories.
+
+### Runtime Receipt & Completion Gate
+- Run: `/Users/amitayer/Git/agents/.venv/bin/pytest outreach_engine/tests/test_pattern_hardening_waves.py outreach_engine/tests/test_replay_integrity_e2e.py -v --timeout=60`
+- Input: Full pattern hardening and E2E replay test suites.
+- Expected: 100% pass with zero production directory mutations.
+- Verify independently: Check `git status --porcelain` confirms no untracked output files.
+- Fail if: Any test mutates repository cache or artifact directories.
+- Record: reports/wave4_test_isolation_receipt.json

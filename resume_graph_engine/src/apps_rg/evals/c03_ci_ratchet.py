@@ -123,6 +123,15 @@ def _validate_gate_receipts(
             receipt_failures.append("gate_id_mismatch")
         if not isinstance(receipt.get("metrics"), Mapping):
             receipt_failures.append("metrics_invalid")
+        else:
+            metrics_map = receipt["metrics"]
+            if score_group == "retrieval_quality":
+                top_k_val = metrics_map.get("top_k")
+                if top_k_val is not None and isinstance(top_k_val, int) and top_k_val > 10:
+                    receipt_failures.append("retrieval_top_k_exceeds_10")
+                rank_drop = metrics_map.get("top_10_rank_regression_count", 0)
+                if isinstance(rank_drop, int) and rank_drop > 0:
+                    receipt_failures.append("top_10_rank_regression")
         source_digest = receipt.get("source_receipt_digest")
         if not isinstance(source_digest, str) or not _SHA256_RE.fullmatch(source_digest):
             receipt_failures.append("source_digest_invalid")

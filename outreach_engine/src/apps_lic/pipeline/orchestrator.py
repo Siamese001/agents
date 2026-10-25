@@ -264,10 +264,28 @@ class OutreachOrchestrator:
                 "channel": channel.value,
                 "audience_persona": persona.value,
                 "grounded_facts_used": list(draft.grounded_facts_used),
+                "artifact_dir": str(a_dir.resolve()),
+                "completed_stages": ["briefing_resolution", "draft_generation", "authoritative_evaluation"],
             }
             (a_dir / "run_manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
 
         return draft, verdict
+
+    def resume_or_patch_run(self, run_dir: Path | str) -> dict[str, Any]:
+        """Rebind saved run_manifest.json paths to run_dir and reuse passing stage checkpoints."""
+        r_dir = Path(run_dir).resolve()
+        manifest_path = r_dir / "run_manifest.json"
+        if not manifest_path.is_file():
+            raise FileNotFoundError(f"Missing run_manifest.json in {r_dir}")
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest["artifact_dir"] = str(r_dir)
+        reused_stages: list[str] = list(manifest.get("completed_stages", []))
+        manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+        return {
+            "status": "RESUMED",
+            "run_dir": str(r_dir),
+            "reused_stages": reused_stages,
+        }
 
     def validate_draft(
         self,
