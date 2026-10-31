@@ -13,17 +13,11 @@ import hashlib
 import json
 import logging
 import os
-import sys
 import threading
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
-
-# Ensure repository root is on sys.path
-_REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent.parent
-if str(_REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(_REPO_ROOT))
 
 # Import airlock sanitizer from apps_research with availability enforcement
 try:

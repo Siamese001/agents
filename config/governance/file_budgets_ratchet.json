@@ -894,9 +894,5 @@
   "apps_research/engines/company_brief_engine.py": {
     "line_limit": 2255,
     "justification": "Baseline legacy module pending decomposition"
-  },
-  "outreach_engine/src/apps_lic/integrations/apps_research_bridge.py": {
-    "line_limit": 755,
-    "justification": "Baseline legacy module pending decomposition"
   }
 }

@@ -9,9 +9,6 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
-import os
-import re
-import sys
 import time
 import uuid
 from dataclasses import dataclass
@@ -20,11 +17,6 @@ from types import SimpleNamespace
 from typing import Any
 
 _log = logging.getLogger(__name__)
-
-# Ensure repository root is on sys.path
-_REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent.parent
-if str(_REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(_REPO_ROOT))
 
 
 @dataclass(frozen=True)
@@ -277,23 +269,45 @@ class AppsResearchBridge:
                     request_id=req_id,
                     trace_root=tr_id,
                     trace_id=bridge_trace_id,
-                    tenant_id="default", company_brief_text=canonical_brief, support_coverage=0.90,
-                    confidence_score=0.90, is_blocked=False, block_reason="",
+                    tenant_id="default",
+                    company_brief_text=canonical_brief,
+                    support_coverage=0.90,
+                    confidence_score=0.90,
+                    is_blocked=False,
+                    block_reason="",
                     evidence_items=[
-                        EvidenceItem("ev-canonical-1", "canonical_targeting_brief", canonical_path or "config/targeting", "company_brief", "company_brief", 0.90)
+                        EvidenceItem(
+                            "ev-canonical-1",
+                            "canonical_targeting_brief",
+                            canonical_path or "config/targeting",
+                            "company_brief",
+                            "company_brief",
+                            0.90,
+                        )
                     ],
                     fec_run_context={"company_brief": {"apps_rg_targeting_brief_sidecar": sidecar}},
                 )
             else:
                 resolution_source = "HERMETIC_FALLBACK"
                 return self._hermetic_fallback(
-                    company_name=company_name, job_title=job_title, job_description_text=job_description_text,
-                    req_id=req_id, r_id=r_id, bridge_trace_id=bridge_trace_id, t_start=t_start,
+                    company_name=company_name,
+                    job_title=job_title,
+                    job_description_text=job_description_text,
+                    req_id=req_id,
+                    r_id=r_id,
+                    bridge_trace_id=bridge_trace_id,
+                    t_start=t_start,
                 )
 
         return self._translate_and_persist(
-            raw=raw, run_id=r_id, trace_id=bridge_trace_id, request_id=req_id, t_start=t_start,
-            company_name=company_name, job_title=job_title, job_description_text=job_description_text,
+            raw=raw,
+            run_id=r_id,
+            trace_id=bridge_trace_id,
+            request_id=req_id,
+            t_start=t_start,
+            company_name=company_name,
+            job_title=job_title,
+            job_description_text=job_description_text,
             resolution_source=resolution_source,
         )
 
@@ -355,10 +369,12 @@ class AppsResearchBridge:
 
         evidence_items = tuple(
             EvidenceItem(
-                source_id=str(getattr(ev, "source_id", f"ev-{i}")), label=str(getattr(ev, "label", f"evidence_{i}")),
+                source_id=str(getattr(ev, "source_id", f"ev-{i}")),
+                label=str(getattr(ev, "label", f"evidence_{i}")),
                 uri=str(getattr(ev, "uri", getattr(ev, "source_uri", "apps_research://briefing"))),
                 source_type=str(getattr(ev, "source_type", "company_brief")),
-                field_ref=str(getattr(ev, "field_ref", "company_brief")), confidence=float(getattr(ev, "confidence", 0.0)),
+                field_ref=str(getattr(ev, "field_ref", "company_brief")),
+                confidence=float(getattr(ev, "confidence", 0.0)),
             )
             for i, ev in enumerate(getattr(raw, "evidence_items", None) or ())
         )
@@ -372,7 +388,6 @@ class AppsResearchBridge:
             and confidence > 0.0
         )
 
-        # Persist durable artifacts if an artifact root is provided
         research_artifact_dir = str(getattr(raw, "research_artifact_dir", "") or "").strip()
         briefing_path_str = str(getattr(raw, "briefing_artifact_path", "") or "").strip()
         metadata_digest = str(getattr(raw, "result_metadata_digest", "") or "").strip()
@@ -383,20 +398,34 @@ class AppsResearchBridge:
 
         if not research_artifact_dir and self._artifact_runs_root is not None:
             try:
-                from apps_research.integrations.apps_rg_handoff import (
-                    persist_apps_rg_targeting_brief_artifacts,
-                )
-
                 jd_text = str(job_description_text or "")
-                artifact_bundle = persist_apps_rg_targeting_brief_artifacts(
-                    record=raw,
-                    target_company=company_name,
-                    target_role=job_title,
-                    jd_text=jd_text,
-                    runs_root=self._artifact_runs_root,
-                    mode="brief",
-                    depth_profile="COMPANY_BRIEF_STANDARD",
-                )
+                try:
+                    from apps_research.integrations.apps_rg_handoff import (
+                        persist_apps_rg_targeting_brief_artifacts,
+                    )
+
+                    artifact_bundle = persist_apps_rg_targeting_brief_artifacts(
+                        record=raw,
+                        target_company=company_name,
+                        target_role=job_title,
+                        jd_text=jd_text,
+                        runs_root=self._artifact_runs_root,
+                        mode="brief",
+                        depth_profile="COMPANY_BRIEF_STANDARD",
+                    )
+                except ModuleNotFoundError:
+                    from apps_lic.integrations.research_bridge_support import (
+                        persist_standalone_outreach_research_bundle,
+                    )
+
+                    artifact_bundle = persist_standalone_outreach_research_bundle(
+                        record=raw,
+                        target_company=company_name,
+                        target_role=job_title,
+                        jd_text=jd_text,
+                        runs_root=self._artifact_runs_root,
+                    )
+
                 research_artifact_dir = str(artifact_bundle.run_dir.resolve())
                 briefing_path_str = str(artifact_bundle.briefing_path.resolve())
                 compat_brief = artifact_bundle.run_dir / "company_brief.md"
@@ -410,26 +439,49 @@ class AppsResearchBridge:
             except Exception as exc:
                 _log.warning("Authentic apps_research artifact persistence failed: %s", exc)
                 return ResearchResult(
-                    run_id=run_id, trace_id=trace_id, request_id=request_id, is_blocked=True,
-                    block_reason=f"apps_research_artifact_persistence_failed:{exc}", is_stale=is_stale,
-                    evidence_items=evidence_items, confidence_score=confidence, brief_sha256="",
-                    company_brief_text="", strategic_priorities=(),
-                    fetch_duration_ms=time.time() * 1000.0 - t_start, audit_ref=trace_id,
-                    apps_research_handoff_envelope=None, research_artifact_dir="",
-                    briefing_artifact_path="", result_metadata_digest="", bundle_manifest_digest="",
-                    resolution_source=resolution_source, is_verified=False,
+                    run_id=run_id,
+                    trace_id=trace_id,
+                    request_id=request_id,
+                    is_blocked=True,
+                    block_reason=f"apps_research_artifact_persistence_failed:{exc}",
+                    is_stale=is_stale,
+                    evidence_items=evidence_items,
+                    confidence_score=confidence,
+                    brief_sha256="",
+                    company_brief_text="",
+                    strategic_priorities=(),
+                    fetch_duration_ms=time.time() * 1000.0 - t_start,
+                    audit_ref=trace_id,
+                    apps_research_handoff_envelope=None,
+                    research_artifact_dir="",
+                    briefing_artifact_path="",
+                    result_metadata_digest="",
+                    bundle_manifest_digest="",
+                    resolution_source=resolution_source,
+                    is_verified=False,
                 )
 
         return ResearchResult(
-            run_id=run_id, trace_id=trace_id, request_id=request_id,
+            run_id=run_id,
+            trace_id=trace_id,
+            request_id=request_id,
             is_blocked=bool(getattr(raw, "is_blocked", False)),
-            block_reason=str(getattr(raw, "block_reason", "") or ""), is_stale=is_stale,
-            evidence_items=evidence_items, confidence_score=confidence, brief_sha256=brief_sha,
-            company_brief_text=brief_text, strategic_priorities=tuple(priorities),
-            fetch_duration_ms=time.time() * 1000.0 - t_start, audit_ref=trace_id,
-            apps_research_handoff_envelope=envelope, research_artifact_dir=research_artifact_dir,
-            briefing_artifact_path=briefing_path_str, result_metadata_digest=metadata_digest,
-            bundle_manifest_digest=manifest_digest, resolution_source=resolution_source, is_verified=is_verified,
+            block_reason=str(getattr(raw, "block_reason", "") or ""),
+            is_stale=is_stale,
+            evidence_items=evidence_items,
+            confidence_score=confidence,
+            brief_sha256=brief_sha,
+            company_brief_text=brief_text,
+            strategic_priorities=tuple(priorities),
+            fetch_duration_ms=time.time() * 1000.0 - t_start,
+            audit_ref=trace_id,
+            apps_research_handoff_envelope=envelope,
+            research_artifact_dir=research_artifact_dir,
+            briefing_artifact_path=briefing_path_str,
+            result_metadata_digest=metadata_digest,
+            bundle_manifest_digest=manifest_digest,
+            resolution_source=resolution_source,
+            is_verified=is_verified,
         )
 
     def _hermetic_fallback(
@@ -460,252 +512,73 @@ class AppsResearchBridge:
             run_dir.mkdir(parents=True, exist_ok=True)
             briefing_file = run_dir / "company_brief.md"
             briefing_file.write_bytes(brief_bytes)
-            (run_dir / "company_brief.json").write_text(json.dumps({"brief": brief_text, "status": "UNVERIFIED_FALLBACK"}, indent=2) + "\n", encoding="utf-8")
-            envelope = {"schema_version": "apps_research.apps_rg_handoff.v2", "identity": {"company_name": company_name, "brief_sha256": brief_sha}, "status": "UNVERIFIED_FALLBACK", "confidence_score": 0.0}
+            (run_dir / "company_brief.json").write_text(
+                json.dumps({"brief": brief_text, "status": "UNVERIFIED_FALLBACK"}, indent=2) + "\n",
+                encoding="utf-8",
+            )
+            envelope = {
+                "schema_version": "apps_research.apps_rg_handoff.v2",
+                "identity": {"company_name": company_name, "brief_sha256": brief_sha},
+                "status": "UNVERIFIED_FALLBACK",
+                "confidence_score": 0.0,
+            }
             envelope_file = run_dir / "apps_research_apps_rg_handoff_v2.json"
             envelope_file.write_text(json.dumps(envelope, indent=2) + "\n", encoding="utf-8")
             meta_file = run_dir / "run_metadata.json"
-            meta_file.write_text(json.dumps({"status": "HERMETIC_FALLBACK", "is_verified": False, "confidence_score": 0.0}, indent=2) + "\n", encoding="utf-8")
-            (run_dir / "bundle_commit_manifest.json").write_text(json.dumps({"status": "COMMITTED_UNVERIFIED"}) + "\n", encoding="utf-8")
-            (run_dir / "apps_research_u0_receipt.json").write_text(json.dumps({"u0_status": "UNVERIFIED"}) + "\n", encoding="utf-8")
+            meta_file.write_text(
+                json.dumps({"status": "HERMETIC_FALLBACK", "is_verified": False, "confidence_score": 0.0}, indent=2)
+                + "\n",
+                encoding="utf-8",
+            )
+            (run_dir / "bundle_commit_manifest.json").write_text(
+                json.dumps({"status": "COMMITTED_UNVERIFIED"}) + "\n", encoding="utf-8"
+            )
+            (run_dir / "apps_research_u0_receipt.json").write_text(
+                json.dumps({"u0_status": "UNVERIFIED"}) + "\n", encoding="utf-8"
+            )
             metadata_digest = "sha256:" + hashlib.sha256(meta_file.read_bytes()).hexdigest()
             manifest_digest = "sha256:" + hashlib.sha256(envelope_file.read_bytes()).hexdigest()
             research_artifact_dir, briefing_path_str = str(run_dir.resolve()), str(briefing_file.resolve())
 
         return ResearchResult(
-            run_id=r_id, trace_id=bridge_trace_id, request_id=req_id, is_blocked=False, block_reason="", is_stale=False,
-            evidence_items=(), confidence_score=0.0, brief_sha256=brief_sha, company_brief_text=brief_text,
-            strategic_priorities=tuple(priorities), fetch_duration_ms=time.time() * 1000.0 - t_start, audit_ref=bridge_trace_id,
-            apps_research_handoff_envelope=envelope, research_artifact_dir=research_artifact_dir,
-            briefing_artifact_path=briefing_path_str, result_metadata_digest=metadata_digest,
-            bundle_manifest_digest=manifest_digest, resolution_source="HERMETIC_FALLBACK", is_verified=False,
+            run_id=r_id,
+            trace_id=bridge_trace_id,
+            request_id=req_id,
+            is_blocked=False,
+            block_reason="",
+            is_stale=False,
+            evidence_items=(),
+            confidence_score=0.0,
+            brief_sha256=brief_sha,
+            company_brief_text=brief_text,
+            strategic_priorities=tuple(priorities),
+            fetch_duration_ms=time.time() * 1000.0 - t_start,
+            audit_ref=bridge_trace_id,
+            apps_research_handoff_envelope=envelope,
+            research_artifact_dir=research_artifact_dir,
+            briefing_artifact_path=briefing_path_str,
+            result_metadata_digest=metadata_digest,
+            bundle_manifest_digest=manifest_digest,
+            resolution_source="HERMETIC_FALLBACK",
+            is_verified=False,
         )
 
 
-_CANONICAL_MOCK_BRIEF = (
-    "Anthropic - Manager Applied AI Architecture Partnerships targeting brief\n"
-    "| Manager Applied AI Architecture Partnerships | band | Reports to Partnerships |\n\n"
-    "## JD Complement\n- Company DNA centers on safe frontier AI deployment with partner-led enterprise adoption.\n- Operating model favors technical architecture depth paired with ecosystem motion.\n\n"
-    "## Company DNA & Operating Model\n- Company DNA emphasizes research-to-product translation for enterprise AI systems.\n- Operating model blends platform architecture and leadership decision rights.\n\n"
-    "## Company Strategy & Operating Pressure\n- Strategy pressure focuses on scaling trusted AI adoption through partner ecosystems.\n- Recent urgency centers on durable enterprise deployment and platform governance.\n\n"
-    "## Leadership & Stakeholder Map\n- Leadership stakeholders need architects who translate roadmap into technical close.\n- Stakeholder map spans partnerships, platform, data, and customer architecture teams.\n\n"
-    "## AI, Data, Platform, Architecture Signals\n- AI platform signal favors secure integration, evaluation loops, and data governance.\n- Architecture signal points to reusable enterprise deployment patterns.\n\n"
-    "## Partnership / Ecosystem Motion\n- Co-sell motion depends on joint solution design, enablement, and technical close.\n- Partner ecosystem signal includes GSI and ISV channels supporting adoption.\n\n"
-    "## Recent Events & Urgency\n- Recent events create urgency for forward-looking enterprise AI operating models.\n- Urgency supports positioning around safe deployment and measurable adoption.\n\n"
-    "## apps_rg Positioning Themes\n- Positioning should connect platform architecture, partner delivery, and trust.\n- Themes remain targeting context and never become proof for resume claims.\n\n"
-    "## apps_lic Outreach Angles\n- Outreach can emphasize ecosystem revenue, enablement, and adoption motion.\n- Outreach mirrors company strategy without copying JD responsibilities.\n\n"
-    "## Do Not Use As Proof\n- This briefing is targeting context only and cannot support candidate claims.\n"
-)
+try:
+    from apps_lic.integrations.research_bridge_support import (
+        MockAppsResearchBridge,
+        _CANONICAL_MOCK_BRIEF,
+    )
+except ImportError:
+    pass
 
 
-class MockAppsResearchBridge(AppsResearchBridge):
-    """Test-double for apps_research bridge.
+def __getattr__(name: str) -> Any:
+    if name in ("MockAppsResearchBridge", "_CANONICAL_MOCK_BRIEF"):
+        from apps_lic.integrations import research_bridge_support
 
-    FORBIDDEN in production runtime. Only instantiable in test environments
-    (APPS_ENV == 'test' or pytest active).
-    """
-
-    def __init__(
-        self,
-        *,
-        capability_ref: str = "apps_research.v1",
-        artifact_runs_root: Path | None = None,
-        is_blocked: bool = False,
-        block_reason: str = "",
-        is_stale: bool = False,
-        evidence_items: list[EvidenceItem] | None = None,
-        confidence_score: float = 0.92,
-        strategic_priorities: tuple[str, ...] | None = None,
-        company_brief_text: str = "",
-        apps_research_handoff_envelope: dict[str, Any] | None = None,
-        policy: ResearchBoundaryPolicy | None = None,
-        timeout_seconds: float | None = None,
-        max_retries: int | None = None,
-        cost_limit_usd: float | None = None,
-        cost_per_call_usd: float | None = None,
-        force_fresh: bool | None = None,
-    ) -> None:
-        if not (bool(os.environ.get("PYTEST_CURRENT_TEST")) or ("pytest" in sys.modules) or (os.environ.get("APPS_RG_TEST_HARNESS") == "1")):
-            raise RuntimeError(
-                "MOCK_BRIDGE_FORBIDDEN: MockAppsResearchBridge is strictly forbidden in production runtime. "
-                "Use live AppsResearchBridge or supply an authorized briefing artifact."
-            )
-        super().__init__(
-            capability_ref=capability_ref,
-            artifact_runs_root=artifact_runs_root,
-            policy=policy,
-            timeout_seconds=timeout_seconds,
-            max_retries=max_retries,
-            cost_limit_usd=cost_limit_usd,
-            cost_per_call_usd=cost_per_call_usd,
-            force_fresh=force_fresh,
-        )
-        self._mock_blocked = is_blocked
-        self._mock_block_reason = block_reason
-        self._mock_stale = is_stale
-        self._mock_evidence = list(evidence_items) if evidence_items is not None else [
-            EvidenceItem("mock-ev-001", "Mock strategic company brief", "apps_research://mock", "company_brief", "company_brief", confidence_score)
-        ]
-        self._mock_confidence = confidence_score
-        self._mock_priorities = strategic_priorities if strategic_priorities is not None else (
-            "Platform consolidation across business units", "Frontline agent assist with human-in-the-loop oversight",
-        )
-        self._mock_handoff_envelope = apps_research_handoff_envelope
-        self._mock_brief = company_brief_text or _CANONICAL_MOCK_BRIEF
-
-    def _mock_sidecar(
-        self,
-        brief_text: str,
-        *,
-        company_name: str = "Anthropic",
-        run_id: str = "mock-run",
-        trace_id: str = "mock-trace",
-    ) -> dict[str, Any]:
-        if self._mock_handoff_envelope:
-            upstream = self._mock_handoff_envelope.get("upstream_sidecar")
-            if isinstance(upstream, dict):
-                return upstream
-        from apps_research.config.model_pins import apps_rg_handoff_judge_pin, company_brief_generation_pin
-
-        normalized = str(brief_text or "").strip()
-        generation_pin, judge_pin = company_brief_generation_pin(), apps_rg_handoff_judge_pin()
-
-        def provider_evidence(pin: Any, suffix: str) -> dict[str, Any]:
-            req_digest = suffix * 64
-            event = {
-                "schema_version": "apps.external_model_usage_event.v1", "gateway_id": "apps_research.provider_gateway_v1",
-                "provider_role": pin.role, "provider": pin.provider, "requested_model": pin.model, "observed_model": pin.model,
-                "request_digest": req_digest, "outcome": "SUCCESS", "transport_response_received": True,
-                "response_schema_valid": True, "model_pin_valid": True, "application_output_valid": True, "overall_success": True,
-                "attempt_id": f"attempt-{suffix}", "logical_attempt_id": f"{run_id}:logical:{suffix}",
-                "transport_attempt_id": f"{run_id}:logical:{suffix}:transport:1", "trace_id": trace_id,
-            }
-            event["event_digest"] = hashlib.sha256(json.dumps(event, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
-            return {
-                "schema_version": "apps_research.provider_attempt_validation.v1", "gateway_id": "apps_research.provider_gateway_v1",
-                "role": pin.role, "provider": pin.provider, "requested_model": pin.model, "observed_model": pin.model,
-                "reasoning_effort": pin.reasoning_effort, "attempt_id": f"attempt-{suffix}",
-                "logical_attempt_id": f"{run_id}:logical:{suffix}", "transport_attempt_id": f"{run_id}:logical:{suffix}:transport:1",
-                "run_id": run_id, "trace_id": trace_id, "request_digest": req_digest, "provider_response_id": f"response-{suffix}",
-                "lifecycle": {
-                    "local_dispatch_started": True, "request_bytes_sent": False,
-                    "response_headers_received": pin.provider == "google_gemini", "first_byte_received": pin.provider == "google_gemini",
-                    "sdk_response_returned": pin.provider == "external_openai", "remote_outcome": "PROVIDER_RESPONDED",
-                },
-                "transport_response_received": True, "response_schema_valid": True, "model_pin_valid": True, "application_output_valid": True,
-                "overall_success": True, "terminal_status": "SUCCESS", "validation_reason": "ALL_VALIDATIONS_PASSED", "usage": {},
-                "ledger_event_digest": event["event_digest"], "ledger_event": event,
-            }
-
-        generation_evidence = provider_evidence(generation_pin, "a")
-        judge_evidence = provider_evidence(judge_pin, "b")
-        return {
-            "schema_version": "apps_research.apps_rg_targeting_brief_sidecar/v1",
-            "company_name": company_name, "generation_provider": generation_pin.provider,
-            "generation_model_requested": generation_pin.model, "generation_model": generation_pin.model,
-            "generation_reasoning_effort": generation_pin.reasoning_effort,
-            "generation_model_observation_status": "OBSERVED_PROVIDER_RESPONSE",
-            "generation_provider_evidence": generation_evidence, "provider_call_attempted": True,
-            "generation_token_budget": 2048, "judge_name": judge_pin.provider_key, "judge_model": judge_pin.model,
-            "briefing_semantic_score": 0.91, "semantic_gate_mode": "model_backed_llm_judge",
-            "handoff_eligible": bool(normalized), "reason": "ok" if normalized else "missing_mock_brief",
-            "x2_judge_receipt": {
-                "schema_version": "apps_research.apps_rg_handoff_x2_judge_receipt.v1", "gate_id": "X2_RESEARCH_SEMANTIC_GATE",
-                "judge_name": judge_pin.provider_key, "judge_provider": judge_pin.provider,
-                "judge_model_requested": judge_pin.model, "judge_model": judge_pin.model,
-                "thinking_level": judge_pin.reasoning_effort, "model_observation_status": "OBSERVED_PROVIDER_RESPONSE",
-                "threshold": 0.75, "model_backed": True, "status": "PASS", "score": 0.91, "verdict": "PASS",
-                "provider_status": "MODEL_BACKED_PASS", "provider_evidence": judge_evidence,
-            },
-            "role_archetype": "partnerships", "required_sections_present": ["jd complement"], "missing_sections": [],
-            "source_families_present": ["overview", "partner_ecosystem"], "source_families_missing": [],
-            "signal_terms_present": ["company dna", "co-sell"], "signal_terms_missing": [],
-            "source_register": [
-                {"family": "overview", "has_content": True, "char_count": 500},
-                {"family": "partner_ecosystem", "has_content": True, "char_count": 500},
-            ],
-            "brief_text_sha256": hashlib.sha256(normalized.encode("utf-8")).hexdigest(),
-        }
-
-    def fetch(
-        self,
-        *,
-        company_name: str,
-        job_title: str = "",
-        capability_ref: str = "apps_research.v1",
-        request_id: str = "",
-        run_id: str = "",
-        trace_id: str = "",
-        job_description_ref: str = "",
-        job_description_text: str = "",
-        force_fresh: bool | None = None,
-        timeout_seconds: float | None = None,
-        max_retries: int | None = None,
-        cost_limit_usd: float | None = None,
-    ) -> ResearchResult:
-        t_start = time.time() * 1000.0
-        req_id = request_id or f"req-mock-{uuid.uuid4().hex[:8]}"
-        r_id = run_id or f"run-mock-{uuid.uuid4().hex[:8]}"
-        tr_id = trace_id or f"trace-mock-{uuid.uuid4().hex[:8]}"
-
-        effective_force_fresh = force_fresh if force_fresh is not None else self.policy.force_fresh
-        effective_cost_limit = cost_limit_usd if cost_limit_usd is not None else self.policy.cost_limit_usd
-        cost_per_call = self.policy.cost_per_call_usd
-
-        # REUSE PHASE: If not forced fresh, check persisted artifacts first
-        if not effective_force_fresh and self._artifact_runs_root is not None:
-            persisted_bundle, _ = _find_valid_persisted_artifact_bundle(
-                artifact_runs_root=self._artifact_runs_root,
-                company_name=company_name,
-                job_title=job_title,
-            )
-            if persisted_bundle is not None:
-                return persisted_bundle
-
-        # Check cost limit
-        if (self.cumulative_cost_usd + cost_per_call) > effective_cost_limit:
-            return build_cost_limit_exceeded_result(
-                run_id=r_id,
-                trace_id=tr_id,
-                request_id=req_id,
-                cumulative_cost_usd=self.cumulative_cost_usd,
-                cost_per_call_usd=cost_per_call,
-                cost_limit_usd=effective_cost_limit,
-                t_start=t_start,
-            )
-
-        if self._mock_blocked:
-            return ResearchResult(
-                run_id=r_id, trace_id=tr_id, request_id=req_id, is_blocked=True,
-                block_reason=self._mock_block_reason or "mock_blocked", is_stale=False,
-                evidence_items=(), confidence_score=0.0, brief_sha256="", company_brief_text="",
-                strategic_priorities=(), fetch_duration_ms=5.0, audit_ref=tr_id,
-                resolution_source="HERMETIC_FALLBACK", is_verified=False,
-            )
-
-        self.live_invocation_count += 1
-        self.cumulative_cost_usd += cost_per_call
-
-        raw = SimpleNamespace(
-            run_id=r_id, parent_run_id=r_id, request_id=req_id, trace_root=tr_id, trace_id=tr_id,
-            tenant_id="default", company_brief_text=self._mock_brief,
-            confidence_score=self._mock_confidence, support_coverage=self._mock_confidence,
-            is_blocked=False, block_reason="", is_stale=self._mock_stale,
-            evidence_items=self._mock_evidence, strategic_priorities=self._mock_priorities,
-            fec_run_context={
-                "company_brief": {
-                    "apps_rg_targeting_brief_sidecar": self._mock_sidecar(
-                        self._mock_brief, company_name=company_name, run_id=r_id, trace_id=tr_id,
-                    ),
-                }
-            },
-        )
-
-        return self._translate_and_persist(
-            raw=raw, run_id=r_id, trace_id=tr_id, request_id=req_id, t_start=t_start,
-            company_name=company_name, job_title=job_title,
-            job_description_text=job_description_text, resolution_source="WEB_RESEARCH",
-        )
+        return getattr(research_bridge_support, name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 __all__ = [
@@ -714,6 +587,7 @@ __all__ = [
     "MockAppsResearchBridge",
     "ResearchBoundaryPolicy",
     "ResearchResult",
+    "_CANONICAL_MOCK_BRIEF",
     "_build_canonical_sidecar",
     "_extract_priorities_from_text",
     "_find_valid_persisted_artifact_bundle",

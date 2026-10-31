@@ -6,7 +6,6 @@ import hashlib
 import json
 import logging
 import re
-import sys
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -17,10 +16,7 @@ if TYPE_CHECKING:
 
 _log = logging.getLogger(__name__)
 
-# Ensure repository root is on sys.path
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent.parent
-if str(_REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(_REPO_ROOT))
 
 
 @dataclass(frozen=True)

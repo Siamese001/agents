@@ -510,3 +510,14 @@ def test_successful_handoff_with_full_evidence_and_receipts(tmp_path: Path):
     assert len(outcome.evidence_lineage) >= 1
     assert all(bool(item.get("uri")) for item in outcome.evidence_lineage)
 
+
+def test_outreach_architecture_boundaries_and_file_budgets():
+    """Verify outreach_engine passes all architectural boundary, sys.path purity, and 600-line ceiling checks."""
+    from tools.lint_architecture_boundaries import run_architecture_linter
+
+    repo_root = Path(__file__).resolve().parents[2]
+    results = run_architecture_linter(repo_root)
+    assert results["is_clean"] is True, f"Architectural violations found: {results}"
+    assert results["total_violation_count"] == 0
+
+
