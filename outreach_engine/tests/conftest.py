@@ -1,8 +1,30 @@
 """Pytest fixtures for apps_lic_v2 tests."""
 
+from __future__ import annotations
+
 import os
+import sys
 from pathlib import Path
 import pytest
+
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+_REQUIRED_PATHS = (
+    _REPO_ROOT / "resume_graph_engine" / "src",
+    _REPO_ROOT / "outreach_engine" / "src",
+    _REPO_ROOT,
+)
+for _p in _REQUIRED_PATHS:
+    _p_str = str(_p)
+    if _p_str in sys.path:
+        sys.path.remove(_p_str)
+    sys.path.insert(0, _p_str)
+
+_existing_pypath = os.environ.get("PYTHONPATH", "")
+_pypath_parts = [str(_p) for _p in reversed(_REQUIRED_PATHS)]
+if _existing_pypath:
+    _pypath_parts.append(_existing_pypath)
+os.environ["PYTHONPATH"] = os.pathsep.join(_pypath_parts)
+
 from apps_lic.domain.models import (
     CandidateFact,
     CandidateProfile,

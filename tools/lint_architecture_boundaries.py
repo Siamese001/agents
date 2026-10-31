@@ -37,6 +37,8 @@ DOMAIN_SERVICE_DIRS = [
     "resume_graph_engine/src/apps_rg/runtime/artifact_output",
     "resume_graph_engine/src/apps_rg/runtime/pipeline",
     "resume_graph_engine/src/apps_rg/runtime/sections/executive_summary",
+    "outreach_engine/src/apps_lic/domain",
+    "outreach_engine/src/apps_lic/pipeline",
     "agents/orchestration/services",
 ]
 
@@ -95,7 +97,9 @@ def check_sys_path_purity(repo_root: Path) -> list[str]:
         repo_root / "agents/persistence",
         repo_root / "agents/observability",
         repo_root / "resume_engine",
+        repo_root / "outreach_engine/__init__.py",
         repo_root / "outreach_engine/__main__.py",
+        repo_root / "outreach_engine/src/apps_lic",
         repo_root / "resume_graph_engine/__init__.py",
         repo_root / "resume_graph_engine/__main__.py",
         repo_root / "resume_graph_engine/src/apps_rg",
@@ -145,6 +149,7 @@ def check_file_budgets(repo_root: Path) -> list[str]:
         repo_root / "resume_graph_engine/src/apps_rg/runtime/artifact_output",
         repo_root / "resume_graph_engine/src/apps_rg/runtime/pipeline",
         repo_root / "resume_graph_engine/src/apps_rg/runtime/sections/executive_summary",
+        repo_root / "outreach_engine/src/apps_lic",
         repo_root / "agents/persistence",
         repo_root / "agents/observability",
         repo_root / "agents/orchestration",
