@@ -2,7 +2,7 @@
   "agents-implementation-plan-guard": {
     "PreToolUse": [
       {
-        "matcher": "write_to_file|replace_file_content|multi_replace_file_content",
+        "matcher": "write_to_file|replace_file_content|multi_replace_file_content|write_file|edit_file",
         "hooks": [
           {
             "type": "command",
@@ -39,7 +39,7 @@
   "agents-model-neutral-artifact-guard": {
     "PreToolUse": [
       {
-        "matcher": "write_to_file|replace_file_content|multi_replace_file_content",
+        "matcher": "write_to_file|replace_file_content|multi_replace_file_content|write_file|edit_file",
         "hooks": [
           {
             "type": "command",
@@ -53,21 +53,40 @@
   "agents-hitl-atomic-guard": {
     "PreToolUse": [
       {
-        "matcher": "ask_question",
+        "matcher": "ask_question|ask_user_question",
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -c 'import sys; print(\"{\\\"decision\\\": \\\"allow\\\"}\")'",
-            "timeout": 10
+            "command": "python3 tools/hook_dispatch.py --hook pre_ask_question",
+            "timeout": 15
           }
         ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "ask_question|ask_user_question",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 tools/hook_dispatch.py --hook post_ask_question",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "PostInvocation": [
+      {
+        "type": "command",
+        "command": "python3 tools/hook_dispatch.py --hook post_invocation",
+        "timeout": 15
       }
     ]
   },
   "agents-pre-edit-plan-guard": {
     "PreToolUse": [
       {
-        "matcher": "write_to_file|replace_file_content|multi_replace_file_content",
+        "matcher": "write_to_file|replace_file_content|multi_replace_file_content|write_file|edit_file",
         "hooks": [
           {
             "type": "command",
@@ -81,12 +100,12 @@
   "agents-subagent-delegation-guard": {
     "PreToolUse": [
       {
-        "matcher": "browser_subagent",
+        "matcher": "invoke_subagent|browser_subagent",
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -c 'import sys; print(\"{\\\"decision\\\": \\\"allow\\\"}\")'",
-            "timeout": 10
+            "command": "python3 tools/hook_dispatch.py --hook pre_subagent_delegation",
+            "timeout": 15
           }
         ]
       }
@@ -95,12 +114,26 @@
   "agents-model-registry-conformance-guard": {
     "PreToolUse": [
       {
-        "matcher": "write_to_file|replace_file_content|multi_replace_file_content",
+        "matcher": "write_to_file|replace_file_content|multi_replace_file_content|write_file|edit_file",
         "hooks": [
           {
             "type": "command",
             "command": "python3 tools/hook_dispatch.py --hook pre_edit_plan",
             "timeout": 30
+          }
+        ]
+      }
+    ]
+  },
+  "agents-main-worktree-write-guard": {
+    "PreToolUse": [
+      {
+        "matcher": "write_to_file|replace_file_content|multi_replace_file_content|write_file|edit_file",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 tools/hook_dispatch.py --hook pre_file_write",
+            "timeout": 15
           }
         ]
       }

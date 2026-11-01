@@ -1,0 +1,110 @@
+# Canonical Governance Policy Registry (SSOT)
+# Schema Version: 1.1.0
+# Machine-readable single source of truth for all quantitative, structural,
+# and lifecycle invariants across the Antigravity Agents repository.
+
+version: "1.1.0"
+updated_at: "2026-11-01T11:30:00Z"
+description: "Single Source of Truth for repository governance thresholds, budgets, and invariant enforcers."
+
+policies:
+  - id: "INV-BUDGET-FILE-LINES"
+    title: "Production File Size Line Budget"
+    category: "architecture"
+    threshold: 600
+    unit: "lines"
+    description: "Maximum allowable lines per production Python file outside baseline ratchet exemptions."
+    enforcer: "tools/lint_file_budgets.py"
+    rule_reference: ".agents/rules/conformance-map.md"
+
+  - id: "INV-AGENTS-MD-MAX-LINES"
+    title: "AGENTS.md Concise Operating Contract Ceiling"
+    category: "context_management"
+    threshold: 200
+    unit: "lines"
+    description: "Maximum allowable line count for root AGENTS.md to prevent context compaction truncation."
+    enforcer: "tools/validate_turn_gates.py"
+    rule_reference: "AGENTS.md"
+
+  - id: "INV-SKILLS-BUDGET-MAX-TOKENS"
+    title: "Workspace Skills Description Token Budget"
+    category: "context_management"
+    threshold: 4000
+    unit: "tokens"
+    description: "Maximum total estimated token budget across all .agents/skills/*/SKILL.md descriptions."
+    enforcer: "tools/validate_turn_gates.py"
+    rule_reference: "AGENTS.md"
+
+  - id: "INV-HITL-AMBIGUITY-MARGIN"
+    title: "HITL Ambiguity Margin Threshold"
+    category: "decision_intelligence"
+    threshold: 0.20
+    boundary_inclusivity: "<="
+    unit: "fraction"
+    description: "Confidence spread between top two options at or below which (Delta <= 0.20) Human-in-the-Loop review is required."
+    enforcer: "tools/hitl_governance.py"
+    rule_reference: ".agents/rules/conformance-map.md"
+
+  - id: "INV-HITL-MIN-CONFIDENCE-FLOOR"
+    title: "Minimum Autonomous Confidence Floor"
+    category: "decision_intelligence"
+    threshold: 0.65
+    boundary_inclusivity: ">="
+    unit: "fraction"
+    description: "Minimum top-option confidence required (top_confidence >= 0.65) before tactical decisions may proceed autonomously."
+    enforcer: "tools/hitl_governance.py"
+    rule_reference: ".agents/rules/conformance-map.md"
+
+  - id: "INV-DECISIVE-RECOMMENDATION"
+    title: "Decisive Recommendation & Zero-Fence-Sitting Standard"
+    category: "decision_intelligence"
+    threshold: 0
+    unit: "disjunctive_phrases"
+    description: "Assistant turns must never conclude with plain-text disjunctive option prose without invoking ask_question."
+    enforcer: "tools/hook_dispatch.py"
+    rule_reference: ".agents/rules/conformance-map.md"
+
+  - id: "INV-TEST-TIMEOUT-HARD"
+    title: "Hard Pytest Execution Timeout"
+    category: "testing"
+    threshold: 180
+    unit: "seconds"
+    description: "Hard per-test timeout enforced across pytest configuration and runner."
+    enforcer: "pytest.ini"
+    rule_reference: "AGENTS.md"
+
+  - id: "INV-WAVE-PLAN-MAX-WORDS"
+    title: "Maximum New Wave Plan Length"
+    category: "planning"
+    threshold: 1000
+    unit: "words"
+    description: "Maximum word budget for newly authored wave-based implementation plans."
+    enforcer: "tools/validate_implementation_plan.py"
+    rule_reference: "docs/refactoring-wave-protocol.md"
+
+  - id: "INV-OUTPUT-MAX-WORDS"
+    title: "Maximum Engineering Completion Word Ceiling"
+    category: "presentation"
+    threshold: 300
+    unit: "words"
+    description: "Maximum allowable whitespace-delimited words in ordinary turn completion response (target ~120 words)."
+    enforcer: "tools/validate_turn_gates.py"
+    rule_reference: ".agents/rules/output-brevity-governance.md"
+
+  - id: "INV-OUTPUT-MAX-CHARS"
+    title: "Maximum Engineering Completion Character Ceiling"
+    category: "presentation"
+    threshold: 3500
+    unit: "characters"
+    description: "Maximum allowable raw characters in ordinary turn completion response."
+    enforcer: "tools/validate_turn_gates.py"
+    rule_reference: ".agents/rules/output-brevity-governance.md"
+
+  - id: "INV-WT-ISOLATION"
+    title: "Primary Main Worktree Write Protection"
+    category: "git_governance"
+    threshold: 1
+    unit: "worktree_parity"
+    description: "Direct modifications to tracked files on branch main in the primary root workspace are blocked."
+    enforcer: "tools/hook_dispatch.py"
+    rule_reference: ".agents/rules/pr-governance.md"
