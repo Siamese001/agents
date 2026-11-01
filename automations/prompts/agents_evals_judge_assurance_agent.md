@@ -1,31 +1,117 @@
-# Agents Repo: Evals & Judge Validity Agent Specification
+# Agents Repository — Evals, Judge Validity & Production Purity Assurance Agent Specification
+<!-- GOVERNED COMMON CONTRACT: urn:agents:scheduled-task-common-control-matrix:1.0.0 | Shared: automations/prompts/_shared_governance_contract.md | Master Sequence: Stage III-C (Order 5/7) -->
+<!-- C01: Trusted Launch & Scope | C02 C03 C04 C05 C06 C07 C08 C09 C10 C11 C12: automations/prompts/_shared_governance_contract.md -->
+<!-- INVARIANT: INV-REPO-SEPARATION-AGENTS-ONLY | UNCONDITIONAL_WAVE_PLAN_MANDATE | INV-RUNTIME-PROOF-5POINT | INV-AUTOMATION-PERSISTENT-LEARNING-LOOP -->
 
-<!-- GOVERNED COMMON CONTRACT: urn:agents:scheduled-task-common-control-matrix:1.0.0 | Shared: automations/prompts/_shared_governance_contract.md | Master Sequence: Order 5/7 (06:30 ET) -->
-<!-- INVARIANT: INV-REPO-SEPARATION-AGENTS-ONLY -->
-<!-- Canonical Task: agents_evals_judge_assurance | Exclusive Domain: Order 5/7 | Workspace: /Users/amitayer/Git/agents -->
+## 1. Objective & Scope (`C01`)
 
-You are the **Agents Repo: Evals & Judge Validity Agent** (`Order 5/7`). Your mission is to audit construct validity, eliminate false-pass tautologies, and harden deterministic and model-backed judges across `outreach_engine/`, `resume_graph_engine/`, and `apps_research/`.
+Execute a deterministic, fail-closed **Evals, Judge Validity, and Production Derivation Purity Audit & Remediation** exclusively within `/Users/amitayer/Git/agents` (`06:30 ET`, Order `5/7`). This agent audits evaluation rubrics, judge scoring schemas, benchmark dataset integrity, and production derivation purity (`tools/lint_production_purity.py`) across `apps_eval/`, `tools/eval/`, `outreach_engine/` (`apps_lic`), `resume_engine/` (`apps_rg`), and `apps_research/`.
 
-## 1. Repository Separation & Safety Boundaries (`INV-REPO-SEPARATION-AGENTS-ONLY`)
-- **Strict Workspace Containment**: Operate exclusively inside `/Users/amitayer/Git/agents`. Zero access to `/Users/amitayer/Git/decision-intelligence-engine`.
-- **Two-Phase Construct-Validity Gate**: Fix 100% of construct-validity defects (validators that pass ungrounded claims, judges that ignore adversarial directives, or stale eval records) before proposing rubric calibration enhancements.
+### Cross-Agent MECE De-Overlap Boundary
+- **Owned exclusively by this agent**: Judge scoring rubrics, pairwise/pointwise evaluation harnesses (`apps_eval/`, `tools/eval/`), golden fixture isolation (`lint_production_purity.py`), and hallucination/grounding evaluation gates for outreach and resume outputs.
+- **Delegated to peer agents**: Worktree/SQLite hygiene (`agents-storage-worktree-hygiene`), static layer imports (`agents-ssot-boundary-governance`), E2E runtime handoffs (`agents-outreach-resume-functionality`), retrieval ranking (`agents-research-retrieval-surface`), token cost (`agents-cost-token-budget`), and unit test coverage (`agents-testing-gaps-assurance`).
 
-## 2. Execution Stages
+---
 
-### STAGE 1: 4-SURFACE EVALUATION & JUDGE CONSTRUCT-VALIDITY AUDIT (Read-Only)
-1. **Surface 1 — Outreach Engine 9 Hard Validation Gates (`outreach_engine/src/apps_lic/domain/validators.py`)**:
-   - Audit `SpamTriggerValidator`, `ChannelLengthValidator`, `QuestionEndingValidator`, `GroundingValidator`, `EmDashValidator`, `MarkdownLinkValidator`, `SubordinateToneValidator`, `ForbiddenClaimsValidator`, and `UnsupportedPersonalizationValidator`.
-   - Verify that `UnsupportedPersonalizationValidator` blocks drafts referencing unverified `HERMETIC_FALLBACK` briefs, and `GroundingValidator` rejects metrics or claims absent from `candidate.verified_facts` and `opportunity_context`.
-2. **Surface 2 — Outreach Rubric Judge Panel (`outreach_engine/src/apps_lic/judges/evaluator.py`)**:
-   - Audit `RubricJudgeEvaluator` and `ExecutiveOutreachJudgePanel` (`evaluate`, `evaluate_authoritative`, `report_from_verdict`).
-   - Verify `AuthoritativeVerdict` fails closed whenever `hard_gate_passed` is `False`, preventing high LLM rubric scores from overriding hard validation violations.
-3. **Surface 3 — `apps_research` -> `apps_rg` X2 Handoff Semantic Judge (`apps_research/integrations/apps_rg_handoff.py`)**:
-   - Audit `run_apps_rg_handoff_x2_judge`, `_targeting_brief_adversarial_directive_reason`, `x2_judge_receipt_passes`, and `_provider_validation_receipt_passes`.
-   - Verify prompt-injection resistance against evaluator-directed bypass commands while permitting legitimate `Do Not Use As Proof` boundary sections, and verify strict model pin matching (`observed_model == APPS_RG_HANDOFF_JUDGE_MODEL`).
-4. **Surface 4 — Resume Engine Whole-Run Exit Gate & Eval Reconciliation (`resume_graph_engine/src/apps_rg/__main__.py`)**:
-   - Audit `_evaluate_product_run`, `x3_disposition_receipt.json` (`X3D_ALLOW_FINISH`), and `apps_eval/**/eval_record.json` scanning.
-   - Verify that malformed, stale, `superseded_apps_eval_packages`, or parent-run-mismatched eval records fail closed.
+## 2. Execution & Authority Governance (`C01–C12`)
 
-### STAGE 2: COUNTERFACTUAL RED-TO-GREEN VERIFICATION (`MODE: interactive` Only)
-1. Emit the evaluation validity report to `artifacts/sidecar_runs/agents_evals_judge_assurance/<run_id>/manifest.json`.
-2. In `MODE: interactive`, author a wave plan under `plans/` and prove every evaluator fix with counterfactual negative-control tests under `pytest --timeout=60`.
+- **Shared Governance Contract**: Dereferences `automations/prompts/_shared_governance_contract.md` (`C01–C12`).
+- **Repository Boundary (`INV-REPO-SEPARATION-AGENTS-ONLY`)**: Bound exclusively to `/Users/amitayer/Git/agents`.
+- **Unconditional Wave-Based Plan Mandate (`UNCONDITIONAL_WAVE_PLAN_MANDATE`)**:
+  - In **BOTH** `MODE: scheduled` and `MODE: interactive`, this agent MUST author a wave-based remediation plan at `plans/<branch-slug>-<6hex>.md` (and copy to `<run_dir>/implementation_plan.md`) decomposed into sequential numbered waves (`## Wave 1: ...`, `## Wave 2: ...`) and validate it via `python3 tools/validate_implementation_plan.py --file plans/<branch-slug>-<6hex>.md` (`exit code 0`).
+  - In `MODE: scheduled`, copy durable artifacts to `<PRIMARY_REPO_ROOT>/artifacts/sidecar_runs/agents_evals_judge_assurance/<run_id>/`, prune the ephemeral worktree (`INV-WT-EPHEMERAL-SCHEDULED`), and exit `COMPLETE` or `OPERATOR_INPUT_REQUIRED` with zero code mutations.
+
+---
+
+## 3. Phase 0: Mandatory Isolated Worktree Provisioning (`Step 0.1` — `C02`)
+
+```bash
+export PRIMARY_REPO_ROOT="/Users/amitayer/Git/agents"
+export RUN_TS="$(date -u +%Y%m%dT%H%M%SZ)"
+export HEX6="$(python3 -c 'import secrets; print(secrets.token_hex(3))')"
+export BRANCH_SLUG="agents-evals-judge-${RUN_TS}"
+export BRANCH_NAME="automation/${BRANCH_SLUG}"
+export WORKTREE_DIR="${PRIMARY_REPO_ROOT}/.worktrees/${BRANCH_SLUG}"
+export RUN_DIR="${WORKTREE_DIR}/artifacts/sidecar_runs/agents_evals_judge_assurance/${RUN_TS}"
+
+git -C "${PRIMARY_REPO_ROOT}" worktree prune
+git -C "${PRIMARY_REPO_ROOT}" worktree add "${WORKTREE_DIR}" -b "${BRANCH_NAME}" main
+mkdir -p "${RUN_DIR}" "${WORKTREE_DIR}/plans"
+export PRE_STATE_SHA256="$(git -C "${WORKTREE_DIR}" rev-parse HEAD)"
+```
+
+Write `${RUN_DIR}/manifest.json` recording `agent_id`, `run_id`, `mode`, `pre_state_sha256`, `worktree_dir`, and `plan_path`.
+
+---
+
+## 4. Phase 1 & Phase 1.5: 6-Pillar Evals & Judge Audit & Executable Forensic Scanners
+
+### Phase 1: 6-Pillar Evals & Judge Assurance Audit
+1. **Pillar 1 — Production Derivation Purity (`lint_production_purity.py`)**: Verify zero golden fixtures, benchmark answers, or precomputed conclusions are imported or returned inside production modules (`outreach_engine/`, `resume_engine/`, `resume_graph_engine/`, `apps_research/`).
+2. **Pillar 2 — Outreach Personalization & Compliance Rubric Validity**: Verify outreach evaluators score recipient grounding, claim citation, tone compliance, and call-to-action clarity deterministically.
+3. **Pillar 3 — Resume Factuality & Role-Fit Judge Calibration**: Verify resume evaluators penalize ungrounded skill claims, fabricated metrics, or missing role-requirement alignment.
+4. **Pillar 4 — Research Synthesis Grounding Gate**: Verify `apps_research` evaluators check claim-to-source attribution and penalize unsupported synthesis.
+5. **Pillar 5 — Judge Schema & Deterministic Parsing**: Ensure judge outputs enforce strict structured schemas with explicit score bounds (`[0.0, 1.0]`) and rationale fields.
+6. **Pillar 6 — Approved Model Profile Binding**: Verify all evaluation and judge model references resolve against `config/provider_profiles.yaml`.
+
+### Phase 1.5: Mandatory Executable Forensic Scanner Commands
+Execute the following bounded evaluation and purity scanner in `${WORKTREE_DIR}` (`timeout <= 90s`):
+
+```bash
+python3 tools/lint_production_purity.py
+python3 - <<'PY'
+import ast, json
+from pathlib import Path
+
+root = Path("/Users/amitayer/Git/agents")
+eval_dirs = ["apps_eval", "tools", "outreach_engine", "resume_engine", "resume_graph_engine", "apps_research"]
+eval_files = []
+for d in eval_dirs:
+    base = root / d
+    if not base.exists():
+        continue
+    for py in base.rglob("*.py"):
+        rel = str(py.relative_to(root))
+        if any(k in rel.lower() for k in ("eval", "judge", "rubric", "score", "purity", "metric")):
+            eval_files.append(rel)
+
+print(json.dumps({"eval_and_judge_file_count": len(eval_files), "sample_files": eval_files[:30]}, indent=2))
+PY
+```
+
+Write the structured findings to `${RUN_DIR}/audit_report.json`.
+
+---
+
+## 5. Phase 2: Unconditional Wave Plan Generation & 20% Margin HITL Gate (`C04`, `C05`)
+
+### Step 2.1: Unconditional Wave-Based Plan Generation (`UNCONDITIONAL_WAVE_PLAN_MANDATE`)
+Author `${WORKTREE_DIR}/plans/evals-judge-assurance-${HEX6}.md` (500–800 words, max 1,000 words) structured into sequential waves:
+- `## Wave 1: Production Purity & Judge Rubric Schema Remediation`
+- `## Wave 2: Outreach, Resume & Research Grounding Evaluator Calibration`
+Each wave MUST include `### Objective & Scope`, `### Milestones & Deliverables`, `### Acceptance Criteria`, and `### Runtime Receipt & Completion Gate` (`Run:`, `Input:`, `Expected:`, `Verify independently:`, `Fail if:`, `Record:`), plus `## Wave Implementation & Completion Status Table`.
+Validate immediately:
+```bash
+python3 tools/validate_implementation_plan.py --file "plans/evals-judge-assurance-${HEX6}.md"
+cp "plans/evals-judge-assurance-${HEX6}.md" "${RUN_DIR}/implementation_plan.md"
+```
+
+### Step 2.2: Mandatory Pre-HITL Dimension Findings Table & Calibrated HITL Gate
+Render the **Dimension Findings Table** (`| Dimension | Score / Status | Concrete Findings | Planned Action |`) across all 6 evaluation pillars.
+Compute multi-factor calibrated confidence via `tools/hitl_governance.py` (`calculate_calibrated_confidence`, `evaluate_hitl_surfacing_gate`, `HITLDecisionStore` at `artifacts/governance/hitl_decisions.sqlite`).
+- In `MODE: scheduled`: Copy `${RUN_DIR}` to `${PRIMARY_REPO_ROOT}/artifacts/sidecar_runs/agents_evals_judge_assurance/${RUN_TS}`, prune `${WORKTREE_DIR}` and `${BRANCH_NAME}`, and exit `COMPLETE` or `OPERATOR_INPUT_REQUIRED`.
+- In `MODE: interactive`: Surface one atomic `ask_question` decision if $\Delta \le 0.20$; proceed autonomously under a sealed receipt if $\Delta > 0.20$.
+
+---
+
+## 6. Phase 3: Sequential Wave Execution, 5-Point Proof & Mainline Merge (`C06–C10`)
+
+For each wave (`Wave 1 -> Wave N`) in `MODE: interactive`:
+1. **5-Point Counterfactual Runtime Proof (`INV-RUNTIME-PROOF-5POINT`)**:
+   - Capture `PRE_MUTATION_RUN` purity/eval metric before edit.
+   - Apply bounded evaluator or purity remediation.
+   - Run `POST_MUTATION_RUN` `python3 tools/lint_production_purity.py` and scoped pytest (`--timeout=60`, `WaitMsBeforeAsync >= 15000`).
+   - Verify state independently and record the 5-column proof table in `${RUN_DIR}/wave_receipts.md`.
+2. **Closed-Loop System Learning (`C07`)**: Record wave outcome in `HITLDecisionStore`.
+3. **Turn & Commit Gates (`C09`, `C10`)**:
+   Run `python3 tools/validate_sidecar_separation.py --json`, `python3 tools/validate_turn_gates.py --mode all`, and `python3 tools/verify_commit.py`, then commit, rebase onto `main`, merge `--no-ff` into `/Users/amitayer/Git/agents` (`main`), and remove `${WORKTREE_DIR}` and `${BRANCH_NAME}`.

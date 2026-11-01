@@ -12,6 +12,8 @@ from tools.validate_sidecar_separation import (
     EXPECTED_NEE_SIDECARS,
     NEE_CANONICAL_ROOT,
     REPO_ROOT,
+    REQUIRED_PROMPT_PARITY_MARKERS,
+    REQUIRED_SHARED_CONTRACT_MARKERS,
     validate_sidecar_separation,
 )
 
@@ -79,3 +81,35 @@ def test_validator_rejects_cross_repo_permission_or_schedule_collision(tmp_path:
     assert "Cron schedule collision" in joined_violations
     assert "forbidden Decision Intelligence Engine grant" in joined_violations
     assert AGENTS_CANONICAL_ROOT != NEE_CANONICAL_ROOT
+
+
+def test_all_seven_agents_prompts_enforce_decision_intelligence_parity_and_wave_plan_mandate() -> None:
+    """Verify every Agents prompt specification enforces the 4-phase Decision Intelligence contract and wave plan mandate."""
+    prompts_dir = REPO_ROOT / "automations" / "prompts"
+    shared_text = (prompts_dir / "_shared_governance_contract.md").read_text(encoding="utf-8")
+    for marker in REQUIRED_SHARED_CONTRACT_MARKERS:
+        assert marker in shared_text, f"Missing '{marker}' in _shared_governance_contract.md"
+
+    for sidecar_id, spec in EXPECTED_AGENTS_SIDECARS.items():
+        prompt_path = prompts_dir / spec["prompt_file"]
+        assert prompt_path.is_file(), f"Missing prompt for {sidecar_id}: {prompt_path}"
+        text = prompt_path.read_text(encoding="utf-8")
+        for marker in REQUIRED_PROMPT_PARITY_MARKERS:
+            assert marker in text, f"{spec['prompt_file']} missing mandatory parity marker '{marker}'"
+        assert NEE_CANONICAL_ROOT not in text
+
+
+def test_validator_rejects_prompt_missing_wave_plan_mandate(tmp_path: Path) -> None:
+    """Negative control: verify validator fails closed if a prompt omits UNCONDITIONAL_WAVE_PLAN_MANDATE."""
+    fake_repo = tmp_path / "repo"
+    prompts_dir = fake_repo / "automations" / "prompts"
+    prompts_dir.mkdir(parents=True)
+    for md_file in (REPO_ROOT / "automations" / "prompts").glob("*.md"):
+        content = md_file.read_text(encoding="utf-8")
+        if md_file.name == "agents_e2e_functionality_assurance_agent.md":
+            content = content.replace("UNCONDITIONAL_WAVE_PLAN_MANDATE", "REMOVED_MANDATE")
+        (prompts_dir / md_file.name).write_text(content, encoding="utf-8")
+
+    result = validate_sidecar_separation(repo_root=fake_repo, sidecars_root=DEFAULT_SIDECARS_ROOT)
+    assert result["status"] == "FAIL"
+    assert any("UNCONDITIONAL_WAVE_PLAN_MANDATE" in v for v in result["violations"])

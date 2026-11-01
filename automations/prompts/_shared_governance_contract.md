@@ -1,51 +1,72 @@
-# Agents Repository Shared Scheduled Automation Governance Contract (`_shared_governance_contract.md`)
-
+# Agents Repository — Scheduled Automation Agents Shared Governance Contract (`C01–C12`)
 <!-- GOVERNED COMMON CONTRACT: urn:agents:scheduled-task-common-control-matrix:1.0.0 -->
-<!-- INVARIANT: INV-REPO-SEPARATION-AGENTS-ONLY -->
-<!-- INVARIANT: INV-DEOVERLAP-SHARED-CONTRACT -->
-<!-- C01: Trusted Launch & Scope: Read-only discovery in MODE: scheduled; mutations only in MODE: interactive after HITL approval -->
-<!-- C02: Bounded Authority: Execution confined strictly to /Users/amitayer/Git/agents and its isolated worktrees -->
-<!-- C03: Change Accounting: Every candidate tracked with disposition (applied, skipped, deferred, blocked) -->
-<!-- C04: Evidence Action Outcome: RunManifest emitted to artifacts/sidecar_runs/<agent_slug>/<run_id>/manifest.json -->
-<!-- C05: Durable Identity & Closure: Durable findings ledger tracks stable finding_id across runs -->
-<!-- C06: Reproducible Reconciliation: Pre/post state hashes recorded in RunManifest -->
-<!-- C07: Honest Coverage: Checked vs unchecked scopes explicitly enumerated -->
-<!-- C08: Sealed Evidence: SHA-256 digests verified prior to completion claim -->
-<!-- C09: Failure Lifecycle: Failures record terminal_outcome=FAILED with diagnostic_artifact_paths -->
-<!-- C10: Bounded Repeat Execution: Idempotent re-execution with single-instance lock -->
-<!-- C11: Tested Executable Binding: Bound to tools/validate_sidecar_separation.py and tools/verify_commit.py -->
-<!-- C12: Preserve Guardrails: Zero weakening of existing gates, tests, or safety invariants -->
+<!-- INVARIANT: INV-REPO-SEPARATION-AGENTS-ONLY | UNCONDITIONAL_WAVE_PLAN_MANDATE | INV-RUNTIME-PROOF-5POINT | INV-AUTOMATION-PERSISTENT-LEARNING-LOOP -->
 
-This document is the canonical shared governance contract (`urn:agents:scheduled-task-common-control-matrix:1.0.0`) inherited by all 7 scheduled and interactive automation agent prompts in `/Users/amitayer/Git/agents/automations/prompts/agents_*_agent.md` and synchronized across `/Users/amitayer/.gemini/config/sidecars/agents-*/sidecar.json`.
+## 1. Repository Isolation & Namespace Invariant (`INV-REPO-SEPARATION-AGENTS-ONLY`)
+
+1. **Workspace Containment**: All `agents-*` sidecar automation agents are bound exclusively to `/Users/amitayer/Git/agents` and its ephemeral worktrees under `/Users/amitayer/Git/agents/.worktrees/agents-*`.
+2. **Zero Cross-Repository Mutation**: Sidecar agents in this repository are strictly forbidden from reading, modifying, locking, or writing to any file, database, worktree, or sidecar configuration belonging to external repositories.
+3. **Artifact Isolation**: All automation runtime artifacts, manifests, plans, and receipts must be written exclusively inside `<WORKTREE_DIR>/artifacts/sidecar_runs/<agent_slug>/<run_id>/` and `<WORKTREE_DIR>/plans/<branch-slug>-<6hex>.md`.
+4. **Sidecar Identifier Prefix**: Every global sidecar directory under `/Users/amitayer/.gemini/config/sidecars/` for this repository must start with `agents-`, use title prefix `"Agents Repo: ..."`, and stagger its cron schedule across `05:30–07:00 America/New_York` (`30 5`, `45 5`, `5 6`, `15 6`, `30 6`, `45 6`, `0 7`).
 
 ---
 
-## 1. Strict Cross-Repository Isolation Firewall (`INV-REPO-SEPARATION-AGENTS-ONLY`)
+## 2. Master Causal Execution Sequence (`05:30–07:00 ET`)
 
-1. **Exclusive Workspace Containment**:
-   - Every `agents-*` sidecar executes strictly within `/Users/amitayer/Git/agents` (and its isolated git worktrees under `/Users/amitayer/Git/agents/.worktrees/` or `/Users/amitayer/.gemini/antigravity/worktrees/agents/`).
-   - **Hard Prohibition on Decision Intelligence Engine Access**: Reading, writing, executing commands, or mutating any file, worktree, SQLite database (`CANONICAL_GRAPH.db`, `graph.sqlite`), or sidecar configuration belonging to `/Users/amitayer/Git/decision-intelligence-engine` is strictly prohibited and triggers immediate fail-closed termination (`CROSS_REPO_BOUNDARY_VIOLATION`).
-2. **Namespace & Display Prefix Isolation**:
-   - All global sidecar folders for this repository in `/Users/amitayer/.gemini/config/sidecars/` MUST use the `agents-` directory prefix (`agents-storage-worktree-hygiene`, `agents-ssot-boundary-governance`, `agents-outreach-resume-functionality`, `agents-research-retrieval-surface`, `agents-evals-judge-assurance`, `agents-cost-token-budget`, `agents-testing-gaps-assurance`).
-   - All `display_name` values MUST begin with `"Agents Repo: "` so they never collide with the 17 Decision Intelligence Engine sidecars.
-3. **Disjoint Schedule Window (05:30–07:00 America/New_York)**:
-   - To eliminate CPU, memory, and provider rate-limit contention with the Decision Intelligence Engine overnight sequence (02:00–05:00 ET), all 7 `agents-*` sidecars execute sequentially between `05:30 ET` and `07:00 ET` spaced 15 minutes apart.
-
----
-
-## 2. Master 7-Agent Causal Execution Sequence
-
-1. **Order 1/7 (`05:30 ET`) — Agents Repo: Storage & Worktree Hygiene** (`agents-storage-worktree-hygiene` -> `automations/prompts/agents_storage_worktree_hygiene_agent.md`): Prunes stale runtime proof directories (`artifacts/apps_rg/runtime_proofs`), superseded evaluation packages (`superseded_apps_eval_packages`), stale research run bundles, and merged git worktrees.
-2. **Order 2/7 (`05:45 ET`) — Agents Repo: SSOT & Boundary Governance** (`agents-ssot-boundary-governance` -> `automations/prompts/agents_ssot_boundary_agent.md`): Enforces model pin alignment (`config/provider_profiles.yaml`, `resume_graph_engine/config/models/registry.yaml`), 600-line file budgets (`tools/lint_architecture_boundaries.py`), layer import isolation (`tools/lint_layer_imports.py`), `sys.path` purity, and model-neutral naming (`tools/lint_model_neutral_naming.py`).
-3. **Order 3/7 (`06:05 ET`) — Agents Repo: Outreach & Resume Functionality** (`agents-outreach-resume-functionality` -> `automations/prompts/agents_e2e_functionality_assurance_agent.md`): Audits live execution across `resume_engine` (`run`, `eval`, `show`, `bootstrap`, `patch-run`, `preflight`, `doctor`), `OutreachOrchestrator` (`generate_single_draft`, `generate_full_campaign`, `resume_or_patch_run`), and `AppsResearchBridge` (`apps_research.v1`/`v2` handoff envelopes).
-4. **Order 4/7 (`06:15 ET`) — Agents Repo: Research & Retrieval Surface** (`agents-research-retrieval-surface` -> `automations/prompts/agents_research_retrieval_surface_agent.md`): Audits `GovernedResearchRun` (`L1 -> L0 -> C0 -> L2 -> L5+L6`), `ResearchRetrievalEngine` (`ChromaResearchStore` vs `InMemoryResearchStore`), candidate fact vector indexing (`fact_vectors_bootstrap`), and persisted targeting brief bundle reuse (`_find_valid_persisted_artifact_bundle`).
-5. **Order 5/7 (`06:30 ET`) — Agents Repo: Evals & Judge Validity** (`agents-evals-judge-assurance` -> `automations/prompts/agents_evals_judge_assurance_agent.md`): Audits construct validity and anti-tautology across the 9 Outreach hard gates (`SpamTriggerValidator`, `ChannelLengthValidator`, `QuestionEndingValidator`, `GroundingValidator`, `EmDashValidator`, `MarkdownLinkValidator`, `SubordinateToneValidator`, `ForbiddenClaimsValidator`, `UnsupportedPersonalizationValidator`), `RubricJudgeEvaluator`, Resume `X3D_ALLOW_FINISH` exit gates, and the `X2_RESEARCH_SEMANTIC_GATE` handoff judge.
-6. **Order 6/7 (`06:45 ET`) — Agents Repo: Cost & Token Budget** (`agents-cost-token-budget` -> `automations/prompts/agents_cost_token_budget_agent.md`): Audits the 24,000-token `X2` research judge preflight cap (`_x2_prompt_budget_receipt`), `ResearchBoundaryPolicy` per-call and cumulative dollar limits (`cost_limit_usd`), and cross-engine briefing reuse between `resume_engine` and `outreach_engine`.
-7. **Order 7/7 (`07:00 ET`) — Agents Repo: Testing Gaps Assurance** (`agents-testing-gaps-assurance` -> `automations/prompts/agents_testing_gaps_assurance_agent.md`): Audits negative-control and edge-case test coverage across blocked campaign touches, failed-lane `patch-run` recovery, unverified `HERMETIC_FALLBACK` rejection, and `pytest --timeout=60` compliance.
+| Order | Stage | Sidecar ID | Cron (`America/New_York`) | Canonical Prompt Specification | Target Surface |
+| :---: | :---: | :--- | :---: | :--- | :--- |
+| **1/7** | **Stage I (Foundation)** | `agents-storage-worktree-hygiene` | `30 5 * * *` (`05:30 ET`) | `automations/prompts/agents_storage_worktree_hygiene_agent.md` | `.worktrees/`, `artifacts/`, SQLite/WAL health, git branch pruning |
+| **2/7** | **Stage II (Governance)** | `agents-ssot-boundary-governance` | `45 5 * * *` (`05:45 ET`) | `automations/prompts/agents_ssot_boundary_agent.md` | `outreach_engine/`, `resume_engine/`, `resume_graph_engine/`, `apps_research/`, `infrastructure/` boundaries |
+| **3/7** | **Stage III-A (Core E2E)** | `agents-outreach-resume-functionality` | `5 6 * * *` (`06:05 ET`) | `automations/prompts/agents_e2e_functionality_assurance_agent.md` | Outreach (`apps_lic`), Resume (`apps_rg`), and Research (`apps_research`) E2E pipelines |
+| **4/7** | **Stage III-B (Retrieval)** | `agents-research-retrieval-surface` | `15 6 * * *` (`06:15 ET`) | `automations/prompts/agents_research_retrieval_surface_agent.md` | `apps_research/` & `resume_graph_engine/` hybrid retrieval, chunking, provenance, cache parity |
+| **5/7** | **Stage III-C (Evaluation)** | `agents-evals-judge-assurance` | `30 6 * * *` (`06:30 ET`) | `automations/prompts/agents_evals_judge_assurance_agent.md` | `apps_eval/`, `tools/eval/`, `tools/lint_production_purity.py`, judge rubrics & golden datasets |
+| **6/7** | **Stage IV-A (Economics)** | `agents-cost-token-budget` | `45 6 * * *` (`06:45 ET`) | `automations/prompts/agents_cost_token_budget_agent.md` | `config/provider_profiles.yaml`, prompt caching, token budgets, $\text{ROI} \ge 2.5\times$ |
+| **7/7** | **Stage IV-B (Verification)** | `agents-testing-gaps-assurance` | `0 7 * * *` (`07:00 ET`) | `automations/prompts/agents_testing_gaps_assurance_agent.md` | `tests/`, critical path coverage gaps, Class A/B `--timeout=60` test assurance |
 
 ---
 
-## 3. Dual-Mode Execution & Wave Governance
+## 3. Common Control Matrix (`C01–C12`)
 
-- **Scheduled Mode (`MODE: scheduled`)**: Strictly read-only discovery and sealed reporting under `artifacts/sidecar_runs/<agent_slug>/<run_id>/`. Never mutate tracked files or invoke `ask_question` in unattended cron runs; emit `OPERATOR_INPUT_REQUIRED` when remediation waves are proposed.
-- **Interactive Mode (`MODE: interactive`)**: Create or verify an isolated feature worktree off `main`, author a sequential wave plan under `plans/<slug>-<6hex>.md`, validate via `python3 tools/validate_implementation_plan.py --file plans/<slug>-<6hex>.md`, present atomic HITL choices via `ask_question` when margin $\Delta \le 20\%$, verify changes with scoped `pytest <test_file> -v --timeout=60` and `python3 tools/verify_commit.py`, and clean up the feature worktree after merge.
+Every `agents_*_agent.md` specification inherits and enforces the 12 mandatory controls below:
+
+- **`C01` — Trusted Launch & Scope Boundary**:
+  - `trust_level: workspace_trusted`, `sandbox_mode: workspace-write`, `network_access: disabled`.
+  - Allowed write paths: `outreach_engine/`, `resume_engine/`, `resume_graph_engine/`, `apps_research/`, `apps_eval/`, `infrastructure/`, `tools/`, `tests/`, `config/`, `plans/`, `artifacts/sidecar_runs/`.
+- **`C02` — Mandatory Phase 0 Isolated Worktree Provisioning (`Step 0.1`)**:
+  - Every run must create a fresh worktree off local `main` before any inspection or file write:
+    `git worktree add .worktrees/<branch_slug> -b <branch_name> main`
+  - Record `PRE_STATE_SHA256` (`git rev-parse HEAD`) in `manifest.json`.
+- **`C03` — Dual-Mode Execution & Ephemeral Scheduled Worktrees (`INV-WT-EPHEMERAL-SCHEDULED`)**:
+  - **`MODE: scheduled`** (`--non-interactive` or `CI=true`): Execute Phase 0, Phase 1/1.5 read-only audits, and **Phase 2 mandatory wave-based remediation plan generation** (`plans/<branch-slug>-<6hex>.md` + `<run_dir>/implementation_plan.md`), validate the plan via `python3 tools/validate_implementation_plan.py --file plans/<branch-slug>-<6hex>.md`, copy durable artifacts (`manifest.json`, `audit_report.json`, `implementation_plan.md`) to `<PRIMARY_REPO_ROOT>/artifacts/sidecar_runs/<agent_slug>/<run_id>/`, prune the ephemeral worktree and branch (`git worktree remove --force`, `git branch -D`), and exit `COMPLETE` (0 findings) or `OPERATOR_INPUT_REQUIRED` ($\ge 1$ finding). **Zero code mutations in scheduled mode.**
+  - **`MODE: interactive`** (active operator session): Execute Phases 0–2, present the mandatory **Dimension Findings Table** and atomic `ask_question` HITL decision when calibrated margin $\Delta \le 0.20$, execute Phase 3 wave-by-wave remediation, verify 5-Point Counterfactual Runtime Proof, commit, rebase onto `main`, merge `--no-ff` to local `main`, and prune the worktree and branch.
+- **`C04` — Unconditional Wave-Based Plan Mandate (`UNCONDITIONAL_WAVE_PLAN_MANDATE`)**:
+  - Every sidecar agent run (**both `MODE: scheduled` and `MODE: interactive`**) MUST author a wave-based remediation plan at `plans/<branch-slug>-<6hex>.md` (500–800 words, hard ceiling 1,000 words) decomposed into sequential numbered waves (`## Wave 1: ...`, `## Wave 2: ...`), each containing:
+    - `### Objective & Scope`
+    - `### Milestones & Deliverables` (`[NEW]`, `[MODIFY]`, `[DELETE]`)
+    - `### Acceptance Criteria`
+    - `### Runtime Receipt & Completion Gate` (`Run:`, `Input:`, `Expected:`, `Verify independently:`, `Fail if:`, `Record:`)
+    - `## Wave Implementation & Completion Status Table` (`| Wave | Description / Scope | Status |`)
+  - Every generated plan must pass `python3 tools/validate_implementation_plan.py --file plans/<branch-slug>-<6hex>.md` (`exit code 0`).
+- **`C05` — Pre-HITL Dimension Findings Table & Atomic 20% Margin HITL Gate**:
+  - Before invoking `ask_question`, output the markdown **Dimension Findings Table** (`| Dimension | Score / Status | Concrete Findings | Planned Action |`).
+  - Compute multi-factor calibrated confidence via `tools/hitl_governance.py` (`calculate_calibrated_confidence`, `evaluate_hitl_surfacing_gate`, `HITLDecisionStore` at `artifacts/governance/hitl_decisions.sqlite`).
+  - Surface one atomic `ask_question` decision at a time when $\Delta = c_{\text{top}} - c_{\text{second}} \le 0.20$; proceed autonomously under a sealed audit receipt when $\Delta > 0.20$ in interactive mode.
+- **`C06` — Sequential Wave Execution & 5-Point Counterfactual Runtime Proof (`INV-RUNTIME-PROOF-5POINT`)**:
+  - Never advance to Wave $N+1$ until Wave $N$ passes all 5 proof points:
+    1. **Point 1 (Counterfactual Baseline & Delta)**: Capture `PRE_MUTATION_RUN` failure/metric before edit and `POST_MUTATION_RUN` pass/metric after edit (`PRE_SHA256 != POST_SHA256`).
+    2. **Point 2 (Real Entrypoint Execution)**: Execute the real CLI/validator/pipeline entrypoint in a fresh subprocess (`timeout <= 120s`).
+    3. **Point 3 (100% Diff Coverage & Pytest Protocol)**: Run scoped pytest (`/Users/amitayer/Git/agents/.venv/bin/pytest <test_file> -v --timeout=60`, `WaitMsBeforeAsync >= 15000`); never run bare `pytest`.
+    4. **Point 4 (Independent State Verification)**: Verify filesystem/SQLite/AST state via an independent inspection command.
+    5. **Point 5 (Durable 5-Column Proof Table)**: Record `| Wave / Rem ID | Pre-Mutation Failure / Metric | Post-Mutation Output / Metric | Entrypoint + Pytest Command | Receipt SHA-256 |`.
+- **`C07` — Persistent Closed-Loop System Learning (`INV-AUTOMATION-PERSISTENT-LEARNING-LOOP`)**:
+  - Query prior decisions from `HITLDecisionStore` (`artifacts/governance/hitl_decisions.sqlite`) during Phase 2 confidence scoring and write back terminal wave outcomes (`record_execution_outcome`) in Phase 3.
+- **`C08` — Constitutional Floor & Production Purity**:
+  - All `subprocess.run(..., shell=False, timeout=...)` calls require explicit timeouts; no `pytest.mark.skip` without `strict=True`; no bare `except Exception:` without guardian comment; zero golden fixtures imported in production paths (`python3 tools/lint_production_purity.py`); model identifiers must resolve against `config/provider_profiles.yaml`.
+- **`C09` — Turn Gate & Tier-1 Commit Gate Compliance**:
+  - Every wave commit must pass `python3 tools/validate_turn_gates.py --mode all`, `python3 tools/verify_commit.py`, and `python3 tools/validate_sidecar_separation.py --json`.
+- **`C10` — Three-Step Commit, Rebase, Local Main Merge & Worktree Pruning**:
+  - Commit wave changes on `<branch_name>`, rebase onto local `main` (`git rebase main`), fast-forward/merge into `/Users/amitayer/Git/agents` (`git merge --no-ff <branch_name>`), and immediately remove the worktree and branch (`git worktree remove --force <WORKTREE_DIR>`, `git branch -d <branch_name>`).
+- **`C11` — Tested Python Runner Binding**:
+  - Bind `PYTHON_BIN="/Users/amitayer/Git/agents/.venv/bin/python"` and `PYTEST_BIN="/Users/amitayer/Git/agents/.venv/bin/pytest"` (falling back to `python3` / `python3 -m pytest` only if `.venv` is absent).
+- **`C12` — Output Brevity & Plain-Language Reporting**:
+  - User-facing summaries must use plain layman English with zero technical jargon, zero `snake_case` identifiers, zero raw filenames in prose, zero em-dashes, and 120–300 words maximum.
