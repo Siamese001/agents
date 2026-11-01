@@ -162,3 +162,20 @@ def test_storage_worktree_hygiene_six_pillar_audit_and_sqlite_wal_remediation(tm
     assert post_audit["stale_files"] == []
     assert not stale_tmp.exists()
 
+
+def test_validator_rejects_prompt_missing_consolidate_sidecar_marker(tmp_path: Path) -> None:
+    """Negative control: verify validator fails closed if a prompt omits --consolidate-sidecar in Phase 0."""
+    fake_repo = tmp_path / "repo"
+    prompts_dir = fake_repo / "automations" / "prompts"
+    prompts_dir.mkdir(parents=True)
+    for md_file in (REPO_ROOT / "automations" / "prompts").glob("*.md"):
+        content = md_file.read_text(encoding="utf-8")
+        if md_file.name == "agents_cost_token_budget_agent.md":
+            content = content.replace("--consolidate-sidecar", "--legacy-worktree-add")
+        (prompts_dir / md_file.name).write_text(content, encoding="utf-8")
+
+    result = validate_sidecar_separation(repo_root=fake_repo, sidecars_root=DEFAULT_SIDECARS_ROOT)
+    assert result["status"] == "FAIL"
+    assert any("--consolidate-sidecar" in v for v in result["violations"])
+
+
