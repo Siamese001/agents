@@ -501,7 +501,7 @@ def _execute_merge_under_lock(
 
 
 def _teardown_merged_worktree(branch: str, delete_branch: bool = True, repo_root: Optional[Path] = None) -> None:
-    """Cleans up the worktree and branch after a successful merge."""
+    """Cleans up the worktree and branch after a successful merge, plus any other merged secondary worktrees."""
     root = repo_root or ROOT
     slug = slugify_branch(branch)
     wt_dir = _find_worktree_dir(branch, slug, root=root)
@@ -518,6 +518,20 @@ def _teardown_merged_worktree(branch: str, delete_branch: bool = True, repo_root
                 run_git(["branch", "-D", branch], cwd=root, check=False)
             except Exception:
                 pass
+
+        with contextlib.suppress(Exception):
+            from tools.prune_merged_chat_worktrees import prune_merged_worktrees
+
+            pruned = prune_merged_worktrees(
+                repo_root=root,
+                target_ref="main",
+                delete_merged=True,
+                active_cwd=root,
+            )
+            for r_wt in pruned.get("removed_worktrees", []):
+                print(f"Pruned merged secondary worktree: {r_wt}")
+            for d_br in pruned.get("deleted_branches", []):
+                print(f"Deleted merged local branch: {d_br}")
 
 
 def cmd_merge(args: argparse.Namespace) -> int:
