@@ -83,13 +83,41 @@ EXPECTED_NEE_SIDECARS: tuple[str, ...] = (
 
 PROMPT_URI_RE = re.compile(r"file://(/[^\s\"']+?\.md)")
 
+REQUIRED_SHARED_CONTRACT_MARKERS: tuple[str, ...] = (
+    "INV-REPO-SEPARATION-AGENTS-ONLY",
+    "urn:agents:scheduled-task-common-control-matrix:1.0.0",
+    "UNCONDITIONAL_WAVE_PLAN_MANDATE",
+    "INV-WT-EPHEMERAL-SCHEDULED",
+    "INV-RUNTIME-PROOF-5POINT",
+    "INV-AUTOMATION-PERSISTENT-LEARNING-LOOP",
+    "validate_implementation_plan.py",
+    "Dimension Findings Table",
+)
+
+REQUIRED_PROMPT_PARITY_MARKERS: tuple[str, ...] = (
+    "INV-REPO-SEPARATION-AGENTS-ONLY",
+    "urn:agents:scheduled-task-common-control-matrix:1.0.0",
+    "UNCONDITIONAL_WAVE_PLAN_MANDATE",
+    "INV-RUNTIME-PROOF-5POINT",
+    "INV-AUTOMATION-PERSISTENT-LEARNING-LOOP",
+    "Phase 0",
+    "Step 0.1",
+    "Phase 1",
+    "Phase 1.5",
+    "Phase 2",
+    "Phase 3",
+    "validate_implementation_plan.py",
+    "Dimension Findings Table",
+    "HITLDecisionStore",
+)
+
 
 def validate_sidecar_separation(
     *,
     repo_root: Path = REPO_ROOT,
     sidecars_root: Path = DEFAULT_SIDECARS_ROOT,
 ) -> dict[str, Any]:
-    """Validate namespace, prompt, permission, and schedule separation across both repositories."""
+    """Validate namespace, prompt, permission, schedule separation, and Decision Intelligence structural parity."""
     violations: list[str] = []
     prompts_dir = repo_root / "automations" / "prompts"
 
@@ -99,8 +127,11 @@ def validate_sidecar_separation(
         violations.append(f"Missing shared governance contract: {shared_contract}")
     else:
         shared_text = shared_contract.read_text(encoding="utf-8")
-        if "INV-REPO-SEPARATION-AGENTS-ONLY" not in shared_text:
-            violations.append("_shared_governance_contract.md missing INV-REPO-SEPARATION-AGENTS-ONLY")
+        for marker in REQUIRED_SHARED_CONTRACT_MARKERS:
+            if marker not in shared_text:
+                violations.append(f"_shared_governance_contract.md missing mandatory parity marker '{marker}'")
+        if NEE_CANONICAL_ROOT in shared_text:
+            violations.append(f"_shared_governance_contract.md contains forbidden path '{NEE_CANONICAL_ROOT}'")
 
     agents_crons: dict[str, str] = {}
     nee_crons: dict[str, str] = {}
@@ -179,10 +210,11 @@ def validate_sidecar_separation(
             violations.append(f"{sidecar_id}: missing repository prompt file {local_prompt}")
         else:
             p_text = local_prompt.read_text(encoding="utf-8")
-            if "INV-REPO-SEPARATION-AGENTS-ONLY" not in p_text:
-                violations.append(f"{spec['prompt_file']}: missing INV-REPO-SEPARATION-AGENTS-ONLY")
-            if "urn:agents:scheduled-task-common-control-matrix:1.0.0" not in p_text:
-                violations.append(f"{spec['prompt_file']}: missing urn:agents:scheduled-task-common-control-matrix:1.0.0")
+            for marker in REQUIRED_PROMPT_PARITY_MARKERS:
+                if marker not in p_text:
+                    violations.append(f"{spec['prompt_file']}: missing mandatory parity marker '{marker}'")
+            if NEE_CANONICAL_ROOT in p_text:
+                violations.append(f"{spec['prompt_file']}: contains forbidden path '{NEE_CANONICAL_ROOT}'")
 
         validated_agents_count += 1
 
