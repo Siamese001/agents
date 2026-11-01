@@ -177,7 +177,10 @@ def prune_merged_worktrees(
             rm_res = _run_git(["worktree", "remove", str(wt_path)], cwd=main_root)
             if rm_res.returncode == 0:
                 removed_worktrees.append(str(wt_path))
-                br_res = _run_git(["branch", "-d", branch], cwd=main_root)
+                # Safe to use -D here because `branch in merged_branches` already proved
+                # exact branch-tip ancestry in target_ref (`main`), whereas `-d` fails if
+                # a branch has an unpushed upstream tracking ref on origin.
+                br_res = _run_git(["branch", "-D", branch], cwd=main_root)
                 if br_res.returncode == 0:
                     deleted_branches.append(branch)
                 else:
@@ -201,7 +204,7 @@ def prune_merged_worktrees(
             continue
         candidates.append({"branch": branch, "path": None})
         if delete_merged:
-            br_res = _run_git(["branch", "-d", branch], cwd=main_root)
+            br_res = _run_git(["branch", "-D", branch], cwd=main_root)
             if br_res.returncode == 0:
                 deleted_branches.append(branch)
             else:
