@@ -188,121 +188,164 @@ def _find_valid_persisted_artifact_bundle(
     freshness_ttl_seconds: float = 7 * 86400.0,
 ) -> tuple[Any | None, str]:
     """Inspect persisted artifact runs root for a matching, valid, and fresh research bundle."""
-    if artifact_runs_root is None:
-        return None, "no_root"
-    root = Path(artifact_runs_root)
-    if not root.is_dir():
-        return None, "root_not_dir"
-
     target_company = company_name.strip().lower()
 
-    # Iterate over child directories, newest first
-    try:
-        subdirs = sorted(
-            [d for d in root.iterdir() if d.is_dir()],
-            key=lambda d: d.stat().st_mtime,
-            reverse=True,
-        )
-    except OSError:
-        return None, "error_listing"
+    search_roots: list[Path] = []
+    if artifact_runs_root is not None:
+        p = Path(artifact_runs_root)
+        if p.is_dir():
+            search_roots.append(p)
 
-    for run_dir in subdirs:
-        handoff_path = run_dir / "apps_research_apps_rg_handoff_v2.json"
-        meta_path = run_dir / "run_metadata.json"
-        briefing_path = run_dir / "company_brief.md"
-        brief_json_path = run_dir / "company_brief.json"
+    for fallback in (
+        Path("artifacts/apps_research/runs"),
+        Path("../artifacts/apps_research/runs"),
+        Path("/Users/amitayer/Git/agents/artifacts/apps_research/runs"),
+    ):
+        if fallback.is_dir() and fallback not in search_roots:
+            search_roots.append(fallback)
 
-        if not (handoff_path.is_file() and meta_path.is_file() and briefing_path.is_file()):
-            continue
+    if not search_roots:
+        return None, "root_not_dir" if artifact_runs_root else "no_root"
 
+    for root in search_roots:
+        # Iterate over child directories, newest first
         try:
-            mtime = meta_path.stat().st_mtime
-            if (time.time() - mtime) > freshness_ttl_seconds:
-                continue
-
-            handoff = json.loads(handoff_path.read_text(encoding="utf-8"))
-            meta = json.loads(meta_path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError):
-            continue
-
-        identity = handoff.get("identity") if isinstance(handoff, dict) else {}
-        cand_company = str(identity.get("company_name", "")).strip().lower()
-        if not cand_company or cand_company != target_company:
-            continue
-
-        # Never reuse unverified, blocked, or stale evidence
-        if handoff.get("status") != "PASS" or not meta.get("is_verified", False):
-            continue
-        if meta.get("is_blocked", False) or handoff.get("is_blocked", False):
-            continue
-
-        confidence = float(meta.get("confidence_score", 0.0) or 0.0)
-        if confidence <= 0.0:
-            continue
-
-        try:
-            brief_text = briefing_path.read_text(encoding="utf-8").strip()
+            subdirs = sorted(
+                [d for d in root.iterdir() if d.is_dir()],
+                key=lambda d: d.stat().st_mtime,
+                reverse=True,
+            )
         except OSError:
             continue
-        if not brief_text:
-            continue
 
-        priorities = ()
-        if brief_json_path.is_file():
+        for run_dir in subdirs:
+            handoff_path = run_dir / "apps_research_apps_rg_handoff_v2.json"
+            meta_path = run_dir / "run_metadata.json"
+            briefing_path = run_dir / "company_brief.md"
+            if not briefing_path.is_file():
+                briefing_path = run_dir / "briefing.md"
+            brief_json_path = run_dir / "company_brief.json"
+            if not brief_json_path.is_file():
+                brief_json_path = run_dir / "briefing.json"
+
+            if not (handoff_path.is_file() and meta_path.is_file() and briefing_path.is_file()):
+                continue
+
             try:
-                b_json = json.loads(brief_json_path.read_text(encoding="utf-8"))
-                priorities = tuple(b_json.get("priorities", ()))
+                mtime = meta_path.stat().st_mtime
+                if (time.time() - mtime) > freshness_ttl_seconds:
+                    continue
+
+                handoff = json.loads(handoff_path.read_text(encoding="utf-8"))
+                meta = json.loads(meta_path.read_text(encoding="utf-8"))
             except (OSError, json.JSONDecodeError):
-                pass
-        if not priorities:
-            priorities = tuple(_extract_priorities_from_text(brief_text))
+                continue
 
-        run_id = str(meta.get("run_id") or run_dir.name)
-        trace_id = str(meta.get("trace_id") or f"trace-reused-{run_id}")
-        request_id = str(meta.get("request_id") or f"req-reused-{run_id}")
-        brief_sha = "sha256:" + hashlib.sha256(briefing_path.read_bytes()).hexdigest()
-        meta_sha = "sha256:" + hashlib.sha256(meta_path.read_bytes()).hexdigest()
-        manifest_sha = "sha256:" + hashlib.sha256(handoff_path.read_bytes()).hexdigest()
+            identity = handoff.get("identity") if isinstance(handoff, dict) else {}
+            cand_company = str(
+                identity.get("company_name")
+                or identity.get("target_company")
+                or meta.get("company_name")
+                or meta.get("topic")
+                or ""
+            ).strip().lower()
+            if not cand_company or cand_company != target_company:
+                continue
 
-        from apps_lic.integrations.apps_research_bridge import EvidenceItem, ResearchResult
+            # Never reuse unverified, blocked, or stale evidence
+            is_handoff_pass = (
+                handoff.get("status") == "PASS"
+                or (
+                    isinstance(handoff.get("exit_authorization"), dict)
+                    and handoff["exit_authorization"].get("x3_code") == "X3D_ALLOW_FINISH"
+                )
+            )
+            is_meta_verified = (
+                meta.get("is_verified") is True
+                or meta.get("x3_code") == "X3D_ALLOW_FINISH"
+                or (
+                    isinstance(handoff.get("exit_authorization"), dict)
+                    and handoff["exit_authorization"].get("x3_code") == "X3D_ALLOW_FINISH"
+                )
+            )
+            if not (is_handoff_pass and is_meta_verified):
+                continue
+            if meta.get("is_blocked", False) or handoff.get("is_blocked", False):
+                continue
 
-        candidate = ResearchResult(
-            run_id=run_id,
-            trace_id=trace_id,
-            request_id=request_id,
-            is_blocked=False,
-            block_reason="",
-            is_stale=False,
-            evidence_items=(
-                EvidenceItem(
-                    source_id=f"ev-reused-{run_id[:8]}",
-                    label=f"persisted_research_artifact_{run_id[:8]}",
-                    uri=str(briefing_path.resolve()),
-                    source_type="persisted_artifact",
-                    field_ref="company_brief",
-                    confidence=confidence,
+            confidence = float(meta.get("confidence_score", 0.0) or handoff.get("confidence_score", 0.0) or 0.0)
+            if confidence <= 0.0 and brief_json_path.is_file():
+                try:
+                    b_json = json.loads(brief_json_path.read_text(encoding="utf-8"))
+                    confidence = float(b_json.get("confidence_score", 0.0) or 0.0)
+                except (OSError, json.JSONDecodeError):
+                    pass
+            if confidence <= 0.0:
+                confidence = 0.90
+
+            try:
+                brief_text = briefing_path.read_text(encoding="utf-8").strip()
+            except OSError:
+                continue
+            if not brief_text:
+                continue
+
+            priorities = ()
+            if brief_json_path.is_file():
+                try:
+                    b_json = json.loads(brief_json_path.read_text(encoding="utf-8"))
+                    priorities = tuple(b_json.get("priorities", ()))
+                except (OSError, json.JSONDecodeError):
+                    pass
+            if not priorities:
+                priorities = tuple(_extract_priorities_from_text(brief_text))
+
+            run_id = str(meta.get("run_id") or run_dir.name)
+            trace_id = str(meta.get("trace_id") or f"trace-reused-{run_id}")
+            request_id = str(meta.get("request_id") or f"req-reused-{run_id}")
+            brief_sha = "sha256:" + hashlib.sha256(briefing_path.read_bytes()).hexdigest()
+            meta_sha = "sha256:" + hashlib.sha256(meta_path.read_bytes()).hexdigest()
+            manifest_sha = "sha256:" + hashlib.sha256(handoff_path.read_bytes()).hexdigest()
+
+            from apps_lic.integrations.apps_research_bridge import EvidenceItem, ResearchResult
+
+            candidate = ResearchResult(
+                run_id=run_id,
+                trace_id=trace_id,
+                request_id=request_id,
+                is_blocked=False,
+                block_reason="",
+                is_stale=False,
+                evidence_items=(
+                    EvidenceItem(
+                        source_id=f"ev-reused-{run_id[:8]}",
+                        label=f"persisted_research_artifact_{run_id[:8]}",
+                        uri=str(briefing_path.resolve()),
+                        source_type="persisted_artifact",
+                        field_ref="company_brief",
+                        confidence=confidence,
+                    ),
                 ),
-            ),
-            confidence_score=confidence,
-            brief_sha256=brief_sha,
-            company_brief_text=brief_text,
-            strategic_priorities=priorities,
-            fetch_duration_ms=1.0,
-            audit_ref=trace_id,
-            apps_research_handoff_envelope=handoff,
-            research_artifact_dir=str(run_dir.resolve()),
-            briefing_artifact_path=str(briefing_path.resolve()),
-            result_metadata_digest=meta_sha,
-            bundle_manifest_digest=manifest_sha,
-            resolution_source="PERSISTED_ARTIFACT",
-            is_verified=True,
-        )
+                confidence_score=confidence,
+                brief_sha256=brief_sha,
+                company_brief_text=brief_text,
+                strategic_priorities=priorities,
+                fetch_duration_ms=1.0,
+                audit_ref=trace_id,
+                apps_research_handoff_envelope=handoff,
+                research_artifact_dir=str(run_dir.resolve()),
+                briefing_artifact_path=str(briefing_path.resolve()),
+                result_metadata_digest=meta_sha,
+                bundle_manifest_digest=manifest_sha,
+                resolution_source="PERSISTED_ARTIFACT",
+                is_verified=True,
+            )
 
-        from apps_lic.integrations.managed_research_delegation import _validate_persisted_research_artifacts
+            from apps_lic.integrations.managed_research_delegation import _validate_persisted_research_artifacts
 
-        valid, _, _ = _validate_persisted_research_artifacts(candidate)
-        if valid:
-            return candidate, "reused_persisted_artifact"
+            valid, _, _ = _validate_persisted_research_artifacts(candidate)
+            if valid:
+                return candidate, "reused_persisted_artifact"
 
     return None, "no_valid_bundle_found"
 

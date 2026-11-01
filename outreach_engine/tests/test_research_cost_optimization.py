@@ -61,6 +61,7 @@ def _create_mock_persisted_bundle(
     is_blocked: bool = False,
     confidence: float = 0.95,
     mtime_offset: float = 0.0,
+    use_briefing_md: bool = False,
 ) -> None:
     """Helper creating a full canonical v2 persisted artifact bundle for testing."""
     run_dir.mkdir(parents=True, exist_ok=True)
@@ -74,13 +75,15 @@ def _create_mock_persisted_bundle(
     brief_bytes = (brief_text + "\n").encode("utf-8")
     brief_sha = "sha256:" + hashlib.sha256(brief_bytes).hexdigest()
 
-    briefing_file = run_dir / "company_brief.md"
+    briefing_file = run_dir / ("briefing.md" if use_briefing_md else "company_brief.md")
     briefing_file.write_bytes(brief_bytes)
 
     (run_dir / "company_brief.json").write_text(
         json.dumps({
             "company_name": company_name,
+            "company": company_name,
             "company_brief_text": brief_text,
+            "confidence_score": confidence,
             "priorities": ["Accelerating edge AI", "Unified multi-cloud platform"],
         }, indent=2) + "\n",
         encoding="utf-8",
@@ -116,20 +119,22 @@ def _create_mock_persisted_bundle(
         encoding="utf-8",
     )
 
+    identity = {
+        "target_company": company_name,
+        "target_role": target_role,
+        "run_id": run_dir.name,
+        "child_run_id": run_dir.name,
+        "trace_id": f"trace-{run_dir.name}",
+        "trace_root": f"trace-{run_dir.name}",
+        "brief_sha256": brief_sha,
+    }
+    if not use_briefing_md:
+        identity["company_name"] = company_name
+
     handoff = {
         "schema_version": "apps_research.apps_rg_handoff.v2",
         "authority_contract_id": "apps_research_rg_e2e_authority",
-        "identity": {
-            "company_name": company_name,
-            "target_company": company_name,
-            "target_role": target_role,
-            "run_id": run_dir.name,
-            "child_run_id": run_dir.name,
-            "trace_id": f"trace-{run_dir.name}",
-            "trace_root": f"trace-{run_dir.name}",
-            "brief_sha256": brief_sha,
-        },
-        "status": status,
+        "identity": identity,
         "is_blocked": is_blocked,
         "confidence_score": confidence,
         "mandatory_gate_receipts": {
@@ -144,6 +149,8 @@ def _create_mock_persisted_bundle(
             "attestation_sha256": "sha256:" + "0" * 64,
         },
     }
+    if not use_briefing_md:
+        handoff["status"] = status
     (run_dir / "apps_research_apps_rg_handoff_v2.json").write_text(
         json.dumps(handoff, indent=2) + "\n", encoding="utf-8"
     )
@@ -152,12 +159,16 @@ def _create_mock_persisted_bundle(
         "run_id": run_dir.name,
         "request_id": f"req-{run_dir.name}",
         "trace_id": f"trace-{run_dir.name}",
-        "company_name": company_name,
+        "topic": company_name,
         "confidence_score": confidence,
         "resolution_source": "WEB_RESEARCH",
-        "is_verified": is_verified,
         "is_blocked": is_blocked,
     }
+    if use_briefing_md:
+        meta["x3_code"] = "X3D_ALLOW_FINISH" if is_verified else "X3D_BLOCKED"
+    else:
+        meta["company_name"] = company_name
+        meta["is_verified"] = is_verified
     (run_dir / "run_metadata.json").write_text(
         json.dumps(meta, indent=2) + "\n", encoding="utf-8"
     )
@@ -272,6 +283,34 @@ def test_boundary_retries_transient_failure_then_succeeds():
         assert bridge.live_invocation_count == 1
 
 
+def test_failed_live_research_retry_attempts_accounted_in_cumulative_cost():
+    """Verify that failed or timed-out live research attempts add cost_per_call to cumulative_cost_usd and block subsequent calls when limit reached."""
+    bridge = AppsResearchBridge(
+        cost_limit_usd=0.08,
+        cost_per_call_usd=0.05,
+        timeout_seconds=0.1,
+        max_retries=0,
+    )
+
+    def failing_research(*args, **kwargs):
+        raise RuntimeError("Live research provider exploded")
+
+    # Call 1: live call fails -> increments failed_invocation_count and cumulative_cost_usd
+    with patch.object(bridge, "_invoke_apps_research", side_effect=failing_research):
+        res1 = bridge.fetch(company_name="FailCo1", job_title="Engineer")
+        assert res1.is_verified is False
+        assert bridge.failed_invocation_count == 1
+        assert bridge.cumulative_cost_usd == pytest.approx(0.05)
+
+    # Call 2: $0.05 + $0.05 = $0.10 > $0.08 limit -> MUST halt before invocation
+    with patch.object(bridge, "_invoke_apps_research", side_effect=failing_research):
+        res2 = bridge.fetch(company_name="FailCo2", job_title="Engineer")
+        assert res2.is_blocked
+        assert "COST_LIMIT_EXCEEDED" in res2.block_reason
+        assert bridge.failed_invocation_count == 1  # No second live provider attempt dispatched!
+        assert bridge.cumulative_cost_usd == pytest.approx(0.05)
+
+
 # =============================================================================
 # Wave 2: Provenance-Verified Briefing Reuse & Freshness Control
 # =============================================================================
@@ -297,6 +336,35 @@ def test_reuse_persisted_artifact_bundle_without_provider_call(tmp_path: Path):
     assert res.confidence_score == 0.95
     assert "Accelerating edge AI" in res.strategic_priorities
     # Assert zero provider calls were made!
+    assert bridge.live_invocation_count == 0
+
+
+def test_reuse_native_apps_research_v2_bundle(tmp_path: Path):
+    """Verify that native apps_research v2 bundles (briefing.md + target_company + X3D_ALLOW_FINISH) are reused with 0 provider calls."""
+    GovernedBriefingResolver.clear_cache()
+    runs_root = tmp_path / "apps_research_runs"
+    run_dir = runs_root / "run-native-v2-bundle"
+    _create_mock_persisted_bundle(
+        run_dir,
+        company_name="Nexus AI",
+        target_role="Principal Architect",
+        confidence=0.92,
+        use_briefing_md=True,
+    )
+
+    bridge = MockAppsResearchBridge(artifact_runs_root=runs_root)
+
+    res = GovernedBriefingResolver.resolve(
+        company_name="Nexus AI",
+        target_role="Principal Architect",
+        artifact_runs_root=runs_root,
+        research_bridge=bridge,
+    )
+
+    assert res.resolution_source == "PERSISTED_ARTIFACT"
+    assert res.is_verified is True
+    assert res.confidence_score == 0.92
+    assert "Accelerating edge AI" in res.strategic_priorities
     assert bridge.live_invocation_count == 0
 
 

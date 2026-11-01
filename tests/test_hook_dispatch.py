@@ -261,6 +261,26 @@ Build core foundation.
         data = json.loads(res.stdout.strip())
         self.assertEqual(data["decision"], "allow")
 
+    def test_hook_dispatch_from_agents_directory(self) -> None:
+        """Hook dispatch must succeed when working directory is .agents/."""
+        payload = {
+            "toolCall": {
+                "name": "run_command",
+                "args": {"CommandLine": "pytest tests/test_hook_dispatch.py --timeout=60"},
+            }
+        }
+        res = subprocess.run(
+            [sys.executable, "tools/hook_dispatch.py", "--hook", "pre_run_command"],
+            input=json.dumps(payload),
+            capture_output=True,
+            text=True,
+            cwd=ROOT / ".agents",
+            timeout=10,
+        )
+        self.assertEqual(res.returncode, 0)
+        data = json.loads(res.stdout.strip())
+        self.assertEqual(data["decision"], "allow")
+
 
 if __name__ == "__main__":
     unittest.main()

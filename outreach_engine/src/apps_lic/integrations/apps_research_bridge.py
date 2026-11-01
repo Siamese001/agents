@@ -200,13 +200,9 @@ class AppsResearchBridge:
                 effective_cost_limit,
             )
             return build_cost_limit_exceeded_result(
-                run_id=r_id,
-                trace_id=bridge_trace_id,
-                request_id=req_id,
+                run_id=r_id, trace_id=bridge_trace_id, request_id=req_id,
                 cumulative_cost_usd=self.cumulative_cost_usd,
-                cost_per_call_usd=cost_per_call,
-                cost_limit_usd=effective_cost_limit,
-                t_start=t_start,
+                cost_per_call_usd=cost_per_call, cost_limit_usd=effective_cost_limit, t_start=t_start,
             )
 
         # LIVE PROVIDER CALL: Execute with bounded timeouts and retries
@@ -231,16 +227,14 @@ class AppsResearchBridge:
             self.cumulative_cost_usd += cost_per_call
         except TimeoutError as exc:
             self.failed_invocation_count += 1
+            self.cumulative_cost_usd += cost_per_call
             _log.warning("Live apps_research timed out: %s", exc)
             return build_timeout_result(
-                run_id=r_id,
-                trace_id=bridge_trace_id,
-                request_id=req_id,
-                error=exc,
-                t_start=t_start,
+                run_id=r_id, trace_id=bridge_trace_id, request_id=req_id, error=exc, t_start=t_start
             )
         except Exception as exc:  # noqa: BLE001
             self.failed_invocation_count += 1
+            self.cumulative_cost_usd += cost_per_call
             _log.info("Live apps_research invocation bypassed or failed: %s", exc)
 
         # FALLBACK RESOLUTION: If live invocation did not produce a brief
