@@ -1,240 +1,117 @@
 # Repository Governance Architecture
 
-This repository is governed as a production engineering system, not just a
-codebase with tests.
+This repository is engineered and governed as a production control plane, not merely an application codebase with unit tests.
 
-The current governance model is Codex-primary:
+The active governance model enforces four mechanical layers:
 
-1. **Codex execution discipline**: repo-owned rules, skills, hooks, automation
-   contracts, and verification receipts under `.codex/`.
-2. **Commit-time hygiene**: pre-commit and focused local gates.
-3. **ADG CI**: repo-wide structural governance that converts the codebase into
-   a queryable architecture graph and fails when routing, write authority,
-   evidence, dependency, or safety contracts regress.
-4. **Runtime proof**: tests, replay, certification, and OpenTelemetry-derived
-   witnesses where available.
+1. **Pre-Turn & Lifecycle Hook Discipline**: Repo-owned rules, skills, lifecycle hooks, and delegation contracts under `.agents/` and `.antigravity/`.
+2. **Commit-Time Structural Verification**: Deterministic Git hooks (`.githooks/`) and Tier 1 static verifiers (`tools/verify_commit.py`).
+3. **Compile-Time Architecture & Boundary Auditing**: AST-based layer import enforcement (`L0`–`L6`), domain storage isolation, production purity, and tokenomics ROI gates.
+4. **Runtime & Cross-Subsystem Proof**: End-to-end authoritative smoke verification, cryptographic cross-app handoff envelopes, and isolated sidecar automation.
 
-Tests remain important, but they are not asked to carry architectural
-governance. In this repo, tests prove runtime behavior; ADG CI proves whether
-the system is still structurally governable; Codex-primary enforcement governs
-how AI-assisted work is planned, edited, verified, and published.
+In this architecture, unit tests prove runtime behavior, while deterministic AST and turn-gate validators prove that the codebase remains **structurally governable** as engineering headcount and AI-assisted velocity scale.
 
 ---
 
 ## Executive Summary
 
-Most repositories rely on tests as the primary quality layer. That works for
-product behavior, but it does not reliably catch architecture drift, illegal
-dependency paths, gate bypasses, silent exception swallowing, stale shims,
-config drift, or agent/tool boundary violations.
+Most engineering organizations rely on code review and unit tests as their sole quality layer. Under high-velocity AI-assisted development, prose conventions rapidly erode into cross-layer coupling, direct database bypasses, hardcoded provider tokens, and unbounded retry loops.
 
-This repo uses a stronger pattern:
+This repository enforces a four-tier mechanical control loop:
 
 ```text
-Codex execution discipline -> rules, skills, hooks, automation contracts
-Commit-time hygiene        -> pre-commit and focused local gates
-Repo-wide governance       -> ADG graph generation, ratchets, structural checks
-Runtime proof              -> tests, replay, certification, OTel witnesses
+Lifecycle Hook Discipline  -> .agents/rules/, .agents/hooks.json, tools/hook_dispatch.py
+Turn & Plan Gatekeeping    -> tools/validate_turn_gates.py, tools/validate_implementation_plan.py
+Tier 1 Commit Verification -> tools/verify_commit.py, tools/lint_architecture_boundaries.py
+Runtime & Economics Proof  -> tools/cost_token_budget_auditor.py, ops_scripts/run_e2e_authoritative_smoke.py
 ```
 
-The result is a layered control system where the agent is guided before it
-acts, commits are checked before they land, and the full repository is
-continuously audited as a graph.
+---
+
+## Why This Matters to Senior Engineering Leadership
+
+At organizational scale, engineering leadership must answer three operational questions:
+
+1. **Can the platform scale across multiple squads without accumulating silent architectural drift?**
+2. **Are unit economics, token budgets, and latency ceilings mechanically bounded before deployment?**
+3. **Can autonomous and AI-assisted development run at high velocity without bypassing security, branch, or write controls?**
+
+This repository answers all three by turning architectural invariants into fast (`< 5s`), machine-checkable gates that execute on every turn, commit, and merge.
 
 ---
 
-## Why This Matters to an SVP Engineering Reviewer
+## Layer 1: Lifecycle Hook & Turn-Gate Discipline
 
-An SVP Engineering reviewer should care about three questions:
+Repo-owned governance assets live under `.agents/`, `.antigravity/`, and `tools/`:
 
-1. **Can the system keep scaling without becoming ungovernable?**
-2. **Can leadership see architecture drift before it becomes delivery drag?**
-3. **Can AI-assisted coding be allowed without turning the repo into local
-   exceptions and hidden bypasses?**
+| Surface | Role | Canonical Path |
+| :--- | :--- | :--- |
+| **Root Operating Contract** | Memory-bounded (`<= 200` lines) primary execution contract | [`AGENTS.md`](../AGENTS.md) |
+| **Conformance Map** | Maps every operating invariant to its enforcing tool and test | [`.agents/rules/conformance-map.md`](../.agents/rules/conformance-map.md) |
+| **Governance Rules** | Wave progression, HITL ambiguity margin (`20%`), PR queue lock | [`.agents/rules/`](../.agents/rules/) |
+| **Procedural Skills** | Reusable operational gates, scope containment, security hardening | [`.agents/skills/`](../.agents/skills/) |
+| **Native Lifecycle Hooks** | Pre-tool and post-tool intercepts on edits, commands, and plans | [`.agents/hooks.json`](../.agents/hooks.json) & [`tools/hook_dispatch.py`](../tools/hook_dispatch.py) |
+| **Runtime Boundary** | Workspace path containment and cross-repo isolation rules | [`.antigravity/runtime-boundary.json`](../.antigravity/runtime-boundary.json) |
 
-This repository answers those questions by making architectural expectations
-machine-checkable. It does not rely only on developer intent, prose policy, or
-local unit tests. It turns the repository itself into an auditable system of
-record.
-
----
-
-## Layer 1: Codex Execution Discipline
-
-Codex is the primary local execution surface for readiness, run evidence, and
-verification receipts. Repo-owned governance files remain versioned in this
-repository.
-
-| Surface | Role | SSOT |
-|---|---|---|
-| Root adapter | Codex-facing operating contract | `AGENTS.md` |
-| Primary execution contract | Readiness, evidence, closeout, publication rules | `docs/codex-primary-execution.md` |
-| Rules | Durable invariants and task gates | `.codex/rules/` |
-| Skills | Procedure loaded by task surface | `.codex/skills/` |
-| Hooks | Native Codex hook registration and entrypoints | `.codex/hooks.json`, `.codex/hooks/**` |
-| Governance scripts | Deterministic checks and verifiers | `.codex/governance/`, `scripts/governance/` |
-| Automation contracts | Repo-owned scheduled/on-demand automation prompts | `.codex/automations/*/automation.toml` |
-| State and schemas | Local governed state and validation contracts | `.codex/state/`, `.codex/schemas/` |
-
-The enforcement-home guard is:
+Verify Layer 1 directly from the repository root:
 
 ```bash
-python scripts/governance/verify_codex_enforcement_home.py --json
+python tools/validate_turn_gates.py --mode all
 ```
 
-The primary Codex contract guard is:
+---
+
+## Layer 2: Tier 1 Commit & Architectural Boundary Verification
+
+Every commit and PR review executes [`tools/verify_commit.py`](../tools/verify_commit.py) and [`tools/lint_architecture_boundaries.py`](../tools/lint_architecture_boundaries.py), enforcing five non-bypassable categories:
+
+1. **Standard Code Hygiene**: In-memory AST syntax and compilation verification across all Python modules.
+2. **File Budgets & Layer Hierarchy**: Enforces the `<= 600` line ceiling per production module (`tools/lint_file_budgets.py`), unidirectional `L0`–`L6` layer imports (`tools/lint_layer_imports.py`), and model-neutral naming (`tools/lint_model_neutral_naming.py`).
+3. **Domain Storage Isolation & `sys.path` Purity**: Verifies zero concrete persistence imports (`sqlite3`, filesystem stores) inside domain synthesis or pipeline services and zero `sys.path` mutations across production entrypoints.
+4. **Production Derivation Purity**: AST scanner (`tools/lint_production_purity.py`) prohibiting test fixtures or predetermined golden outputs from being imported in production paths.
+5. **Secrets & Schema Integrity**: Deterministic credential scanning (`tools/lint_secrets.py`) and declarative config validation (`tools/lint_contract_schemas.py`).
+
+Run the complete Tier 1 structural audit:
 
 ```bash
-python scripts/governance/verify_codex_primary.py
+python tools/verify_commit.py --all
+python tools/lint_architecture_boundaries.py
 ```
 
-These checks matter because they prevent this repo from drifting back into
-parallel governance trees. `.codex` is the active repo governance home.
-
 ---
 
-## Layer 2: Commit and Local Verification
+## Layer 3: Tokenomics, Sidecar Isolation & Worktree Hygiene
 
-Commit-time checks catch local hygiene issues before changes become review
-surface:
+Beyond code structure, the platform continuously audits operational economics and workspace state:
 
-- syntax and import failures;
-- schema validity;
-- focused contract gates;
-- policy and config reference drift;
-- documentation-only scope enforcement when a run is documentation-only.
+- **Tokenomics & Multi-Tier Caching ROI (`>= 2.5x` Pareto Floor)**: [`tools/cost_token_budget_auditor.py`](../tools/cost_token_budget_auditor.py) evaluates 8 pillars of token efficiency, prompt caching, and bounded retry ceilings.
+- **Autonomous Sidecar Isolation (`INV-REPO-SEPARATION-AGENTS-ONLY`)**: [`tools/validate_sidecar_separation.py`](../tools/validate_sidecar_separation.py) verifies namespace, prompt, and schedule separation across the 7 scheduled automation agents.
+- **Storage & Worktree Hygiene**: [`tools/storage_worktree_hygiene.py`](../tools/storage_worktree_hygiene.py) audits SQLite WAL health, stale worktrees, and merged branch pruning.
+- **Serialized FIFO PR Merge Queue**: [`tools/pr_governance.py`](../tools/pr_governance.py) enforces trunk reservation locking (`.git/governed_merge_queue.lock`), automatic branch catch-up, and two-parent `--no-ff` merges into `main`.
 
-This layer is intentionally narrower than ADG CI. It catches obvious local
-defects and keeps commits reviewable.
-
----
-
-## Layer 3: ADG CI
-
-ADG CI is the repo-wide architecture governance layer.
-
-It does not ask only, "do the tests pass?" It asks, "is the system still
-structurally legal?"
-
-The ADG pipeline produces a queryable SQLite architecture graph and companion
-artifacts. The graph lets reviewers inspect:
-
-- layer boundaries;
-- write-sovereignty paths;
-- routing and dispatcher authority;
-- dependency hotspots;
-- dead imports and stale shims;
-- P0/P1/P2/P3 ratchet movement;
-- registry and policy surface drift;
-- runtime witness gaps when proof views are thin.
-
-Representative inspection queries:
-
-```sql
--- Edge taxonomy: structural vs semantic vs governance
-SELECT relation_type, COUNT(*) AS edges
-FROM edges
-GROUP BY relation_type
-ORDER BY edges DESC;
-
--- Edge authority distribution
-SELECT COALESCE(authority, '<NULL>') AS authority, COUNT(*) AS edges
-FROM edges
-GROUP BY authority
-ORDER BY edges DESC;
-
--- Write-path sovereignty: rows here are durable writes that bypass the gateway
-SELECT * FROM mv_gateway_bypass_paths LIMIT 25;
-
--- Cross-layer authority breaches
-SELECT * FROM mv_authority_boundary_breaches LIMIT 25;
-
--- P-views: pre-classified architectural concerns
-SELECT name FROM sqlite_master
-WHERE type = 'view' AND name LIKE 'v_p%'
-ORDER BY name;
-```
-
-The important pattern is not any one query. The important pattern is that
-architecture review becomes executable.
-
----
-
-## Layer 4: Runtime Proof
-
-Runtime evidence proves important paths actually execute correctly:
-
-- unit, smoke, regression, and end-to-end tests;
-- replay determinism checks;
-- certification compilers and signed proof bundles;
-- OpenTelemetry-derived runtime witnesses where available;
-- application-specific proof packs and SLO/runbook evidence.
-
-This layer is deliberately distinct from static graph governance. Tests prove
-behavior. ADG proves governability. Runtime witnesses prove that important paths
-were actually exercised.
-
----
-
-## Reviewer Inspection Path
-
-Use this path for a fast senior-review pass:
-
-1. Read `README.md` for the product thesis and differentiators.
-2. Read `docs/EXECUTIVE_OVERVIEW.md` for the leadership narrative.
-3. Read `docs/RUNTIME_CONTROL_PLANE.md` for the runtime model.
-4. Read `docs/architecture/REVIEWER_GUIDE.md` for proof commands.
-5. Run:
+Run the operational governance auditors:
 
 ```bash
-python scripts/governance/verify_codex_primary.py
-python scripts/governance/verify_codex_enforcement_home.py --json
-python ops_scripts/ci/run_architecture_proof.py
-```
-
-6. Inspect the latest ADG SQLite snapshot when structural proof is needed.
-
----
-
-## What This Is Not
-
-This governance model is not a substitute for tests.
-
-Tests are still required for:
-
-- user-visible behavior;
-- unit-level correctness;
-- end-to-end flows;
-- regression proof;
-- runtime edge cases;
-- replay determinism;
-- contract behavior.
-
-The clean split is:
-
-```text
-Tests prove behavior.
-ADG CI proves governability.
-Codex governs the AI-time work process.
+python tools/cost_token_budget_auditor.py
+python tools/validate_sidecar_separation.py
+python tools/storage_worktree_hygiene.py
 ```
 
 ---
 
-## Reviewer Takeaway
+## Layer 4: Reviewer Inspection Path
 
-The strongest signal is not the size of the graph or the number of gates. It is
-the engineering posture:
+For a rapid, falsifiable technical audit of this repository:
 
-1. **Tests prove behavior; the graph proves governability.**
-2. **Known debt is ratcheted, not normalized.**
-3. **Runtime governance is executable, not just documented.**
-4. **AI-assisted development is guided, constrained, audited, and published
-   through Codex-primary evidence.**
+1. Read [`README.md`](../README.md) for platform invariants and benchmark economics.
+2. Read [`docs/EXECUTIVE_OVERVIEW.md`](EXECUTIVE_OVERVIEW.md) and [`docs/RECRUITER_GUIDE.md`](RECRUITER_GUIDE.md) for the operating model and reliability economics.
+3. Read [`docs/RUNTIME_CONTROL_PLANE.md`](RUNTIME_CONTROL_PLANE.md) for the `U0 → L1 → L0 → C0 → L2 → Exit → UWG → L4/L6` execution model.
+4. Execute the verification suite:
 
-For a senior engineering reviewer, the repo is asking a higher-order question:
-
-```text
-Can this system keep changing safely while AI-assisted development is turned on?
+```bash
+python tools/validate_turn_gates.py --mode all
+python tools/verify_commit.py --all
+python tools/lint_architecture_boundaries.py
+python tools/cost_token_budget_auditor.py
+python ops_scripts/run_e2e_authoritative_smoke.py
 ```
-
-That is the governance claim this repository is built to prove.

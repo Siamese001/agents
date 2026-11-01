@@ -1,28 +1,30 @@
-﻿# Outreach Engine (outreach_engine)
+# Policy-Gated External Communications Engine (`outreach_engine` · `apps_lic`)
 
-> Autonomous Lifecycle Intelligence & Grounded Executive Outreach Engine v2.
-> Decoupled, contract-governed outreach synthesis with zero monolithic framework dependencies.
+> **Reference Enterprise Workload: Governed External Messaging & Multi-Touch State Machine**  
+> Demonstrates how the platform control plane enforces inbound prompt-injection airlocks, deterministic forbidden-claims linting, and multi-judge rubric gates on external communications.
 
-## Key Capabilities
+---
 
-1. **Grounded Outreach Authoring**: Generates channel-tailored outreach communications (email, LinkedIn InMail, follow-ups) strictly anchored to verified facts in target company profiles and executive candidate briefs.
-2. **Dynamic YAML Prompt Compiler**: Resolves prompt templates (`exec_positioning.yaml`, `compact_recruiter_arc.yaml`, `outreach_draft_v2.yaml`) dynamically with strict context validation.
-3. **Forbidden Claims Guardrails**: Hard assertion gate rejecting ungrounded compensation, unverifiable tenure claims, and policy-forbidden phrasing before output dispatch.
-4. **Mission Fixture Ingestion**: Ingests realistic JSON mission fixtures (e.g. `charles_truist_mission.json`) to drive reproducible candidate-to-executive narratives.
-5. **Deterministic Multi-Touch Cadence Engine**: Generates spaced, channel-diverse follow-up sequences across days 1 through 14.
-6. **Automated Rubric Evaluation**: Pluggable judge panel evaluating grounding adherence, narrative flow, and channel length constraints.
+## Architectural Role in the Platform
 
-## Quickstart
+External communication is one of the highest-risk surfaces for enterprise AI deployment: an ungoverned agent can ingest adversarial third-party context, fabricate commercial or factual commitments, or violate communication compliance policies.
+
+This reference workload exercises five core control-plane primitives:
+
+1. **Inbound & Outbound Prompt-Injection Airlock**: Sanitizes untrusted external research briefs (`ResearchBriefEnvelope`) and blocks instruction-override payloads before prompt assembly.
+2. **Forbidden-Claims & Compliance Linter**: Deterministic assertion gate that rejects uncorroborated metrics, unauthorized commitments, and spam-trigger phrasing prior to output emission.
+3. **Contract-Bound Prompt Compilation**: Resolves declarative YAML templates with strict schema validation and instruction/data slot separation.
+4. **Deterministic Multi-Touch State Machine**: Orchestrates state transitions across multi-step communication sequences with full replayability.
+5. **Multi-Judge Rubric Evaluation**: Evaluates grounding fidelity, policy compliance, and channel constraints before clearing Exit Evaluation.
+
+---
+
+## Verification & Execution
 
 ```bash
-cd outreach_engine
-
-# Run the end-to-end demo
+# Run the reference workload in demo mode
 python -m outreach_engine --demo
 
-# Run with a target mission fixture
-python -m outreach_engine --mission data/fixtures/charles_truist_mission.json
-
-# Run unit and integration tests
-pytest tests/
+# Execute the subsystem unit and airlock regression suite
+pytest outreach_engine/tests/ -v --timeout=60
 ```
