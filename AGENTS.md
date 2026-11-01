@@ -90,7 +90,7 @@ The knowledge-graph Memory MCP is optional for graph queries or writeback when i
 - No edits during planning phase
 - ADG before grep for structure (§28); grep for literals/TODOs only
 - Output Brevity & Word Budget Invariant: Target ~120 words with a strict ceiling of 300 words. Focus on direct facts, empirical verification, and actionable results without conversational fluff.
-- Full rules: `AGENTS.md` + `docs/codex-primary-execution.md` · expanded lists: legacy compatibility notes only
+- Full rules: `AGENTS.md` + `.agents/rules/conformance-map.md` · expanded lists: legacy compatibility notes only
 
 ## Production Derivation Integrity
 

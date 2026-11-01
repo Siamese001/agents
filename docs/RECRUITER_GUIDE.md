@@ -1,71 +1,66 @@
-# Recruiter and Hiring Manager Guide
+# Operating Model & Reliability Economics for Governed Agentic Systems
 
-A non-technical guide to what this repository demonstrates and which roles it supports.
+An executive architecture brief on scaling autonomous AI systems across large engineering organizations without sacrificing determinism, unit economics, or auditability.
 
-## What this repo shows
+---
 
-This repository is a public proof asset for **enterprise agentic AI platform leadership**. It demonstrates how to build the governed runtime *around* an AI agent — the engineering substrate that makes AI usable in regulated, audited, production environments.
+## 1. Executive Thesis: The Runtime Is the Product
 
-In one sentence:
+In production AI organizations, model capability is rarely the bottleneck. Systems fail at the **runtime boundary**:
 
-> A deterministic AI control plane for governed enterprise agents: route contracts, verified context, bounded execution, runtime gates, controlled writes, replay, and shadow learning.
+- Unbounded correction loops create unpredictable tail latency and runaway token spend.
+- Direct tool and database access allows probabilistic model outputs to corrupt authoritative state.
+- Convention-based layer boundaries erode within months as multiple engineering squads ship under deadline pressure.
+- Self-modifying prompts and uncalibrated single-model evaluators introduce silent quality regressions across releases.
 
-The repository is intentionally a reference design, not a client implementation. Confidential work is kept private.
+This repository demonstrates a **deterministic runtime control plane** that treats agentic execution with the same rigor as distributed systems engineering: typed routing contracts, verified context hydration, bounded execution envelopes, mandatory exit gates, single-door write admission, and out-of-band shadow learning.
 
-## Roles this supports
+---
 
-This work is most relevant for senior platform and AI leadership roles, including:
+## 2. Organizational Scaling & Multi-Team Operating Model
 
-- **SVP Engineering**
-- **VP Engineering**
-- **Head of AI Engineering**
-- **AI Platform Engineering leader**
-- **Chief AI Officer**
-- **Agentic AI platform leader**
-- **Enterprise AI runtime governance leader**
+Scaling an AI engineering organization from a single prototype squad to multiple platform and domain teams requires shifting governance from human code review to **compile-time and runtime mechanical enforcement**:
 
-It also speaks to Director-level platform, MLOps, and AI infrastructure roles where the candidate is expected to argue for and build production-grade AI systems.
+| Scaling Failure Mode | Conventional Team Response | Enforced Control-Plane Mechanism | Verification Command |
+| :--- | :--- | :--- | :--- |
+| **Cross-Layer Coupling** | Architecture review boards & wiki guidelines | Unidirectional AST layer import linter (`L0`–`L6`) and domain storage isolation | `python tools/lint_layer_imports.py` & `python tools/lint_architecture_boundaries.py` |
+| **Monolithic Module Bloat** | Ad-hoc refactoring sprints | Strict 600-line ceiling per production module enforced at commit time | `python tools/verify_commit.py --all` |
+| **Provider Lock-In & Hardcoded Models** | Manual grep audits during model migrations | AST model-neutrality scanner and SSOT provider catalog (`config/provider_profiles.yaml`) | `python tools/lint_model_neutral_naming.py` |
+| **Unbounded Agent Delegation** | Post-mortem incident reviews | Mandatory 10-field delegation contract with explicit turn, timeout, and token budgets | `python tools/unified_agent_architecture.py` |
 
-## Why this matters for SVP Engineering and AI Platform roles
+---
 
-At senior platform levels, the question is no longer *"can you ship a model?"* It is:
+## 3. Unit Economics, Latency Ceilings & Caching ROI
 
-- Can you make AI behave like reliable software?
-- Can you make decisions auditable and reproducible?
-- Can you bound autonomous execution without killing capability?
-- Can you separate live runtime control from learning, so the system improves without drifting?
-- Can you stand in front of risk, compliance, and the board with this architecture?
+Enterprise AI platforms must guarantee predictable unit economics before scaling traffic:
 
-The repository is structured to answer those questions directly, with executable proofs (the architecture proof pack) backing the narrative.
+1. **Bounded Socratic Convergence**: Self-correction loops are hard-capped (default 3 turns). If candidate outputs do not clear the multi-judge rubric threshold within the turn ceiling, the pipeline fails closed to a pre-certified abstention payload rather than burning unbounded retries.
+2. **Multi-Tier Semantic & Exact Caching**: The 8-pillar tokenomics auditor (`tools/cost_token_budget_auditor.py`) enforces a minimum **$\ge 2.5\times$ Pareto return on investment** across prompt compression, semantic cache hit rates, and tiered model routing.
+3. **Cryptographic Cross-Subsystem Handoffs**: Upstream research artifacts (`apps_research`) are sealed into SHA-256 verified, TTL-bounded envelopes (`CrossAppEnvelope`), preventing redundant downstream re-computation.
 
-## What to look at first
+---
 
-Pick one path:
+## 4. Separation of Live Control from Shadow Learning
 
-| If you have | Read |
-|-------------|------|
-| 60 seconds | The top of `README.md` and `docs/EXECUTIVE_OVERVIEW.md` |
-| 5 minutes | `docs/EXECUTIVE_OVERVIEW.md` + `docs/RUNTIME_CONTROL_PLANE.md` |
-| 15 minutes | The above plus `docs/architecture/REVIEWER_GUIDE.md` |
-| Deep review | `docs/architecture/architecture-proof-pack.md` and run the proof pack locally |
+A primary failure mode in autonomous agent stacks is mutating routing or prompt state mid-flight. This control plane enforces a strict temporal and architectural firewall:
 
-## Plain-English glossary
+```text
+Live Run Path:   U0 Intake -> L1 Plan -> L0 Route -> C0 Context -> L2 Execute -> Exit Gate -> UWG Commit -> L4 State
+Shadow Path:     Completed Run Exhaust -> L6 Shadow Evaluation -> Offline Regression & Judge Calibration -> Future-Run Promotion
+```
 
-- **Runtime control plane** — the system that sits around an AI agent and decides what is allowed to happen, in what order, with what evidence. The "operating system" for governed AI.
-- **Route contract** — a typed agreement about how a request is dispatched (e.g. cache, retrieval, action). Routing is a decision the system makes, not a prompt the model writes.
-- **Context engineering** — the discipline of getting the *right* information in front of the model, verified against canonical state, in a structured form. Different from generic RAG.
-- **Prompt assembly** — building prompts from verified components under an engineering contract, instead of concatenating strings.
-- **Bounded execution** — the agent can only call tools that are schema-validated, sandboxed, and policy-allowed. No surprise side effects.
-- **Exit Evaluation** — the moment a live run is checked against policy, schema, and trajectory before any output or write is allowed to proceed.
-- **Universal Write Gate (UWG)** — the single, mandatory door that any state change must pass through. There is no other write path.
-- **Replayability** — the ability to take any past execution and re-run it deterministically to reconstruct the exact behavior, used for incident review and CI/CD.
-- **Shadow learning** — the system learns from completed runs in the background and proposes improvements for *future* runs. It never mutates an in-flight run.
-- **Governed autonomy** — the agent is allowed to act, but only inside boundaries the platform enforces. Autonomy with accountability.
+- **Current-Run Determinism**: In-flight execution uses frozen policy and capability tokens.
+- **Universal Write Gateway (UWG)**: Every state mutation must clear Exit Evaluation before atomic commit.
+- **Out-of-Band Promotion**: Learning proposals generated in `L6` remain inert until they pass offline evaluation suites (`apps_eval`) and human-in-the-loop promotion gates.
 
-## Signals to take away
+---
 
-- **Platform thinking, not model tinkering.** The repository is about runtime architecture, not prompt tuning.
-- **Determinism and replay as defaults.** AI behavior is treated like ordinary software behavior — testable, reproducible, auditable.
-- **Governance on the runtime path, not bolted on.** Policy enforcement is structurally embedded.
-- **Clear separation of current-run control vs future-run learning.** This is the failure mode that breaks most "self-improving" agent stacks.
-- **Public proof asset.** Confidential client work is not in this repo. What is here is the reference design and the reasoning behind it.
+## 5. Five-Minute Technical Inspection Path
+
+| Inspection Goal | Artifact / Command |
+| :--- | :--- |
+| **System Guarantees & Economics** | [`README.md`](../README.md) |
+| **Executive Thesis** | [`docs/EXECUTIVE_OVERVIEW.md`](EXECUTIVE_OVERVIEW.md) |
+| **Control-Plane Contract (`U0`–`L6`)** | [`docs/RUNTIME_CONTROL_PLANE.md`](RUNTIME_CONTROL_PLANE.md) |
+| **Compile-Time & Turn-Gate Proof** | `python tools/validate_turn_gates.py --mode all && python tools/verify_commit.py --all` |
+| **Tokenomics & Caching Audit** | `python tools/cost_token_budget_auditor.py` |

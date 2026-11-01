@@ -1,68 +1,46 @@
 # Executive Overview
 
-## Bottom line
+## Bottom Line
 
-The agent is not the product. The **governed runtime around the agent** is the product.
+The agent is not the product. The **governed runtime control plane around the agent** is the product.
 
-This repository is a working proof of a deterministic AI control plane: route contracts, verified context, bounded execution, runtime gates, controlled write paths, replayability, and shadow learning — the engineering substrate that lets enterprise AI move out of demos and into production.
+This repository is a production-hardened reference architecture for a deterministic AI control plane: typed route contracts, graph-grounded context (`C0`), bounded Socratic execution (`L2`), mandatory exit gates (`L5`), single-door write admission (`UWG`), deterministic replay, and out-of-band shadow learning (`L6`).
 
-## Why this matters
+---
 
-Most enterprise AI initiatives stall at the same point: a model demo works, but the surrounding system has no route authority, no context guarantees, no exit evaluation, no write controls, and no replay. The result is non-reproducible behavior, unauditable decisions, and uncontrolled state mutation — three failure modes incompatible with regulated environments and SVP-Engineering accountability.
+## Why This Matters at Organizational Scale
 
-A governed runtime addresses these as **system invariants**, not features layered on after the fact.
+Most enterprise AI initiatives stall after the initial prototype: a model demo succeeds in isolation, but the surrounding engineering system lacks route authority, factual provenance guarantees, bounded retry ceilings, write isolation, and compile-time layer enforcement. The result is non-reproducible behavior, unpredictable token spend, and unverified state mutations.
 
-## What the system demonstrates
+This platform addresses those failure modes as **machine-enforced invariants** rather than aspirational guidelines:
 
-- **Route authority** — runtime paths are dispatched through contract-bound routers (cache, RAG, action, fallback). Routing is a typed decision, not a prompt.
-- **Verified context (C0)** — retrieved context is grounded against canonical state before it ever reaches the model. Retrieval cannot route or execute.
-- **Prompt assembly as an engineering control** — prompts are assembled from verified components, not concatenated strings.
-- **Bounded execution (L2)** — tool use is schema-driven, sandboxed, and contract-enforced. No hallucinated tool calls, no uncontrolled side effects.
-- **Runtime exit gates** — live packets, steps, and write proposals are evaluated for a current-run disposition (allow / deny / reroute / escalate) before commit.
-- **Universal Write Gateway (UWG)** — the intended durable write admission path, backed by bypass-risk checks in ADG and CI.
-- **Replayability** — replayable paths produce determinism digests and replay keys so incidents can be reconstructed from recorded evidence and validated in CI/CD.
-- **Shadow learning (L6)** — the system learns only from completed runs and proposes future-run improvements through approved promotion paths. No live drift.
+- **Route Authority (`L0`)** — Runtime paths are dispatched through typed routing contracts with explicit turn, token, and latency budgets.
+- **Graph-Grounded Context (`C0`)** — Candidate claims are validated against a 38-cluster Factual Assertion Graph (`C0.3`) using hybrid dense BGE-M3 + BM25 Reciprocal Rank Fusion before prompt compilation.
+- **Prompt Assembly as an Engineering Control (`PA`)** — Prompts are compiled from authority-ordered slots with strict instruction/data separation and inbound prompt-injection airlocks.
+- **Bounded Socratic Execution (`L2`)** — Self-correction loops are hard-capped (default 3 turns); failure to clear multi-judge rubric thresholds triggers a deterministic, pre-certified safe abstention.
+- **Universal Write Gateway (`UWG`)** — Domain services are mechanically blocked at compile time (`tools/lint_architecture_boundaries.py`) from importing concrete persistence drivers; all state mutations pass through atomic exit and write gates.
+- **Tokenomics & Caching ROI** — Multi-tier caching and prompt compression are continuously audited (`tools/cost_token_budget_auditor.py`) to maintain a $\ge 2.5\times$ Pareto return on investment.
+- **Shadow Learning (`L6`)** — OpenTelemetry exhaust and offline evaluation suites (`apps_eval`) operate strictly after the run boundary, preventing live in-flight drift.
 
-## Runtime control model
+---
 
+## Runtime Control Model
+
+```text
+U0 Airlock -> L1 Plan -> L0 Route -> C0 Grounding -> L2 Execute -> Exit Clears -> UWG Commits -> L4 State
+                                                                                      ↓
+                                                                           L6 Observes (Shadow)
 ```
-L1 reasons → L0 routes → C0 grounds → L2 executes → Exit clears → UWG commits → L4 stores
-                                                                       ↓
-                                                          L6 observes (shadow)
-```
 
-- **L5** is the cross-cutting policy plane. It certifies authority, registry, origin trust, capability, sandbox, egress, HITL, replay, and audit evidence.
-- **Runtime gates** decide whether *this* live packet, step, tool call, output, or write proposal may proceed *now*.
-- **Exit Evaluation** emits a current-run disposition.
-- **UWG** is the only durable write admission path.
-- **L4** stores durable state.
-- **L6** learns only from completed runs.
+The foundational operating law:
+> **`L2` proposes -> `Exit` clears -> `UWG` commits -> `L4` stores.**
 
-The cheat rule: **L2 proposes → Exit clears → UWG commits → L4 stores.**
+---
 
-## Platform leadership signal
+## Suggested Reading Path
 
-This repository is intended to be read as evidence of platform-level thinking:
-
-- AI as a **system engineering discipline**, not a model-tuning exercise.
-- Governance as a **first-class runtime layer**, not a policy document.
-- Determinism, replay, and write control treated as **enforced invariants**, not aspirations.
-- Separation of duties between routing, context, execution, evaluation, write admission, durable state, and observation.
-- A clear distinction between **current-run control** and **future-run learning** — the failure mode that breaks most "self-improving" agentic systems.
-
-## What this is not
-
-- Not a model. Not a fine-tune.
-- Not a chat wrapper or a prompt library.
-- Not a confidential client implementation. Client-specific deployments are kept private.
-- Not a finished product. It is a **public proof asset** — a reference design for governed enterprise agentic systems.
-
-## Suggested reading path
-
-1. **README.md** — system guarantees, layered design, key differentiators
-2. **docs/RUNTIME_CONTROL_PLANE.md** — the technical narrative for the control plane
-3. **docs/architecture/REVIEWER_GUIDE.md** — executive walkthrough + engineer quickstart
-4. **docs/architecture/architecture-proof-pack.md** — proof command map
-5. **docs/THOUGHT_LEADERSHIP_INDEX.md** — themes this repo argues for publicly
-
-For non-technical readers, start at **docs/RECRUITER_GUIDE.md**.
+1. [`README.md`](../README.md) — System guarantees, benchmark economics, and subsystem architecture
+2. [`docs/RECRUITER_GUIDE.md`](RECRUITER_GUIDE.md) — Operating model, organizational scaling, and reliability economics
+3. [`docs/RUNTIME_CONTROL_PLANE.md`](RUNTIME_CONTROL_PLANE.md) — Technical specification for the `U0`–`L6` control plane
+4. [`docs/architecture/REVIEWER_GUIDE.md`](architecture/REVIEWER_GUIDE.md) — Five-minute technical audit and executable proof commands
+5. [`docs/SVP_ENGINEERING_GOVERNANCE_README.md`](SVP_ENGINEERING_GOVERNANCE_README.md) — Compile-time AST gates, turn validators, and PR queue governance

@@ -1,173 +1,108 @@
-# Runtime Control Plane
+# Runtime Control Plane Specification
 
-A technical narrative for engineering reviewers who want the architecture, authority boundaries, and proof path without reading the full internal process map.
+A technical specification for principal architects and engineering leaders detailing the authority boundaries, handoff contracts, and executable verification surfaces of the governed runtime.
 
-## Core thesis
+---
 
-Enterprise agentic AI fails at the runtime boundary, not at the model boundary. Production-grade behavior requires a deterministic control plane that owns:
+## Core Thesis
 
-1. request validity and origin labeling;
-2. bounded planning without route authority;
-3. route selection under a typed contract;
-4. verified context and evidence quality;
-5. authority-ordered prompt assembly;
-6. bounded model, tool, and action execution;
-7. current-run exit disposition;
-8. controlled durable writes;
-9. replayable evidence and future-run learning.
+Enterprise agentic AI fails at the runtime boundary, not at the model boundary. Production-grade reliability requires a deterministic control plane that owns:
 
-The repository represents these concerns as separate responsibilities with explicit handoff contracts. Model intelligence operates inside the control system rather than replacing it.
+1. Request validity, identity binding, and inbound prompt-injection sanitization (`U0`);
+2. Bounded decomposition and ambiguity scoring without route authority (`L1`);
+3. Route selection under a typed contract (`L0`);
+4. Verified context hydration and factual graph grounding (`C0`);
+5. Authority-ordered prompt compilation (`PA`);
+6. Bounded model, tool, and action execution (`L2` / `L3`);
+7. Current-run exit evaluation and rubric verification (`L5` / `Exit`);
+8. Single-door durable write admission (`UWG` -> `L4`);
+9. Out-of-band telemetry, replay digests, and shadow learning (`L6`).
 
-## Control-point map
+---
 
-```text
-U0 Intake
-  -> L1 Plan
-    -> L0 Route
-       |-> terminal cache/fallback packet -> Exit
-       |-> C0 Evidence -> Prompt Assembly -> L2
-       |-> L2 bounded single action
-       `-> L3 managed workflow -> bounded L2 steps
-
-L2 sealed result -> Exit X3 disposition
-  -> finish / deny / abstain / HITL
-  `-> commit request -> UWG -> L4
-
-completed runtime exhaust -> L6 shadow evaluation -> future-run proposal
-```
-
-Two cross-cutting surfaces operate across the flow:
-
-- **L5 policy and governance certification** supplies authority, policy, registry, capability, sandbox, egress, HITL, replay, and audit evidence.
-- **Runtime gates** decide whether a live packet or action may proceed during the current run.
-
-Neither surface performs planning, routing, retrieval, execution, or durable writes.
-
-## Responsibility matrix
-
-| Surface | Owns | Must not own |
-|---|---|---|
-| **U0 Intake** | Envelope validation, identity/session binding, normalization, origin labeling | Semantic planning, routing, retrieval, execution |
-| **L1 Plan** | Goal interpretation, ambiguity register, bounded execution plan | Route authority, final evidence retrieval, execution |
-| **L0 Route** | One route contract and execution form | Retrieval, prompt compilation, model/tool execution |
-| **C0 Context** | Evidence retrieval, hydration, ranking, freshness, citation, contradiction status | Answering, route changes, prompt authority |
-| **Prompt Assembly** | Canonical slot order, instruction/data boundary, provider rendering, prompt hash | Retrieval, route selection, execution |
-| **L3 Orchestration** | Optional workflow DAG, readiness ledger, bounded step handoff | Route changes, direct tool/model calls, writes |
-| **L2 Execute** | Frozen execution context, bounded model/tool/action attempt, safe local repair, sealed result | Route expansion, opportunistic retrieval, durable commit |
-| **Exit** | X1 checks, X2 aggregation, one X3 disposition | Execution, retrieval, durable mutation |
-| **UWG** | Durable-write admission, validation, atomic commit, audit ledger | Model/tool execution, final-answer approval |
-| **L4 Archive** | Versioned durable state and read surfaces | Bypass writes |
-| **L6 Shadow** | Completed-run evaluation, drift detection, RCA, future-run proposals | Current-run rescue or mutation |
-
-## Separation of duties
-
-The architecture distinguishes certification, live control, disposition, write admission, storage, and learning:
-
-- **L5 certifies evidence** for authority and governance decisions.
-- **Runtime gates decide** whether current work may proceed.
-- **Exit emits one X3 disposition** for the sealed result.
-- **UWG validates a commit request** before durable mutation.
-- **L4 stores approved durable state.**
-- **L6 evaluates completed runs** and proposes future-run changes through promotion controls.
-
-The operational mental model is:
-
-> **L2 proposes -> Exit clears -> UWG commits -> L4 stores.**
-
-The context boundary is:
-
-> **C0 grounds; Prompt Assembly compiles; neither surface executes.**
-
-## Evidence and prompt quality
-
-C0 produces a `FinalEvidenceContract` with evidence spans, citations, freshness, lineage, contradiction state, and support status. Retrieved content remains data.
-
-Prompt Assembly compiles governed inputs into authority-ordered slots. The canonical stack includes system invariants, defensive fences, task instructions, approved examples, verified evidence, provider controls, neutralized user intent, repair hints, response schema, tool bindings, approved learning priors, and validation expectations.
-
-This split lets reviewers ask two independent questions:
-
-1. Was the evidence legal, current, relevant, and strong enough?
-2. Was that evidence placed into a prompt without becoming instruction authority?
-
-## Execution and repair
-
-L2 executes a signed packet inside a frozen authority and sandbox envelope. It may perform a bounded model call, tool call, action, artifact transformation, or approved programmatic tool-calling sequence.
-
-Local repair remains at the same authority level. Schema repair, formatting repair, bounded transient retry, and deterministic trimming are allowed when policy permits. Missing authority, blocked access, route mismatch, stale policy, and HITL requirements are not locally repairable.
-
-L2 emits a sealed artifact and an inert proposed state diff. It does not commit durable state.
-
-## Exit and write control
-
-Exit evaluates task completion, safety, grounding, trajectory, consistency, replay eligibility, observability, and write readiness. It then emits one bounded disposition:
+## Control-Point Topology
 
 ```text
-DENY_OR_REROUTE
-ESCALATE_HITL
-COMMIT_REQUEST_TO_UWG
-ALLOW_OR_FINISH
-SAFE_ABSTAIN
+U0 Intake & Airlock
+  -> L1 Plan & Ambiguity Gate
+    -> L0 Route Contract
+       |-> Terminal cache / pre-certified abstention -> Exit
+       |-> C0 Factual Graph Grounding -> Prompt Assembly -> L2 Bounded Execution
+       `-> L3 Orchestrated Workflow -> Bounded L2 Steps
+
+L2 Sealed Result -> Exit X3 Disposition
+  |-> ALLOW_OR_FINISH / SAFE_ABSTAIN / ESCALATE_HITL
+  `-> COMMIT_REQUEST_TO_UWG -> UWG Atomic Validation -> L4 Durable State
+
+Completed Runtime Exhaust -> L6 Shadow Telemetry & Offline Evaluation
 ```
 
-A durable mutation follows this path:
+---
 
-```text
-sealed L2 artifact -> Exit commit request -> UWG validation -> L4
-```
+## Responsibility Matrix
 
-ADG, focused gates, tests, replay evidence, and audit receipts provide separate proof surfaces for this contract.
+| Surface | Owns | Strictly Prohibited From |
+| :--- | :--- | :--- |
+| **`U0` Intake** | Envelope validation, SHA-256 integrity, TTL checks, prompt-injection airlock | Semantic planning, routing, retrieval, or state mutation |
+| **`L1` Plan** | Goal decomposition, calibrated confidence margin ($\Delta \le 20\%$ HITL gate), bounded plan | Route authority, direct tool execution, or unverified retrieval |
+| **`L0` Route** | Selecting one typed route contract and execution budget | Prompt string concatenation or direct model invocation |
+| **`C0` Context** | Factual Assertion Graph (`C0.3`) retrieval, dense + BM25 RRF ranking, provenance binding | Answering user queries, altering routes, or overriding system instructions |
+| **`Prompt Assembly`** | Canonical slot ordering, instruction/data separation, provider-neutral rendering | Ad-hoc retrieval, route mutation, or side-effecting execution |
+| **`L3` Orchestration** | Multi-step readiness ledger, 10-field sub-agent delegation contracts, cross-app envelopes | Direct database writes (`sqlite3`) or unbudgeted sub-agent spawning |
+| **`L2` Execute** | Frozen capability envelope, bounded Socratic repair loop, sealed output proposal | Route expansion, opportunistic retrieval, or direct durable commits |
+| **`Exit` (`L5`)** | Rubric grading, forbidden-claims linting, and emitting one terminal disposition | Direct state storage or unbounded retry loops |
+| **`UWG`** | Atomic write admission, schema verification, and provenance sealing | Model inference or ad-hoc business logic |
+| **`L4` State** | Protocol-isolated durable state and immutable audit ledgers | Direct unvalidated mutations from domain services |
+| **`L6` Shadow** | OpenTelemetry span emission, drift detection, and offline evaluation (`apps_eval`) | Mutating in-flight execution state |
 
-## Current app classification
+---
 
-`apps_shared/integrations/app_registry.py` is the classification source of truth. The committed registry currently contains:
+## Separation of Duties Invariants
 
-- **3 governed entries:** `apps_exec`, `apps_research`, `apps_rg`;
-- **5 formal exceptions:** `apps_architect`, `apps_eval`, `apps_lic`, `apps_qna`, `apps_underwriting_ai`;
-- **0 ad hoc statuses.**
+The runtime enforces two foundational separation-of-duty laws:
 
-Formal exceptions record reason codes, blocked and safe layers, compensating controls, ownership, and review cadence. An exception is visible governance state rather than a silent bypass.
+1. **Write-Path Sovereignty**:
+   > **`L2` proposes -> `Exit` clears -> `UWG` commits -> `L4` stores.**
+   Domain services (`resume_graph_engine/src/apps_rg`, `outreach_engine/src/apps_lic`, `agents/orchestration/services`) are mechanically blocked by [`tools/lint_architecture_boundaries.py`](../tools/lint_architecture_boundaries.py) from importing concrete persistence drivers (`sqlite3`, `SqliteStateRepository`, `JsonlEventStore`, `FilesystemArtifactStore`).
 
-## Evaluation and replay
+2. **Context vs. Instruction Authority**:
+   > **`C0` grounds; `Prompt Assembly` compiles; neither surface executes.**
+   Retrieved evidence remains untrusted data inside fenced slots and can never escalate into instruction authority.
 
-The eval stack has separate levels:
+---
 
-- deterministic checker tests for isolated gate behavior;
-- lane evaluation for one governed workflow;
-- suite evaluation across pinned scenarios;
-- meta-evaluation for judge calibration.
+## Platform Subsystem Mapping
 
-Offline evaluation informs promotion and trust. It does not waive the per-run gate or Exit disposition.
+| Package | Architectural Classification | Primary Control-Plane Surface |
+| :--- | :--- | :--- |
+| [`agents/`](../agents/) & [`infrastructure/`](../infrastructure/) | **Core Control-Plane Substrate** | `L0`–`L6` runtime protocols, persistence adapters, and cross-app handoff contracts |
+| [`apps_eval/`](../apps_eval/) | **Evaluation & Calibration Substrate** | Multi-judge calibration, rubric grading, and regression ratcheting |
+| [`apps_model_telemetry/`](../apps_model_telemetry/) | **Observability & Tokenomics Substrate** | `L6` OpenTelemetry instrumentation, latency profiling, and cache ROI tracking |
+| [`apps_research/`](../apps_research/) | **Grounded Evidence Substrate** | `U0` query airlock and `C0` SHA-256 sealed `ResearchBriefEnvelope` generation |
+| [`resume_graph_engine/`](../resume_graph_engine/) (`apps_rg`) | **Reference Workload: Verified Document Synthesis** | 38-cluster Factual Assertion Graph (`C0.3`), BGE-M3 + BM25 RRF, and `G1`–`G6` evals |
+| [`outreach_engine/`](../outreach_engine/) (`apps_lic`) | **Reference Workload: Policy-Gated Messaging** | Inbound/outbound injection airlock, forbidden-claims linting, and multi-touch state machine |
 
-Replayable paths bind execution evidence to trace identifiers, digests, policy/configuration references, and replay keys. Reviewers should treat current command output and receipts as the status source rather than static green prose.
+---
 
-## Future-run learning
+## Executable Proof Obligations
 
-L6 receives the sealed runtime exhaust after the current-run boundary. It may evaluate outcome and trajectory quality, detect drift, produce RCA, and draft future-run proposals.
-
-A proposal remains inert until it clears replay, regression, safety, approval, and UWG promotion controls. It activates on a later run boundary.
-
-## Proof obligations
-
-Run the architecture and Codex governance proofs from the repository root:
+Verify the control-plane contracts, layer boundaries, and end-to-end runtime behavior directly from the repository root:
 
 ```bash
-python scripts/governance/verify_codex_primary.py
-python scripts/governance/verify_codex_enforcement_home.py --json
-python ops_scripts/ci/check_governed_app_conformance.py
-python ops_scripts/ci/run_architecture_proof.py
+# 1. Verify pre-turn and post-turn governance gates
+python tools/validate_turn_gates.py --mode all
+
+# 2. Verify AST layer imports (L0-L6), 600-line file budgets, production purity, and secrets
+python tools/verify_commit.py --all
+
+# 3. Verify domain storage isolation and sys.path purity
+python tools/lint_architecture_boundaries.py
+
+# 4. Run the authoritative cross-subsystem end-to-end smoke suite
+python ops_scripts/run_e2e_authoritative_smoke.py
 ```
 
-The current conformance shape is registry-derived:
-
-- **S1:** structural registry, governed-entry, and formal-exception checks;
-- **S2:** governed behavior plus formal-exception controls;
-- **S3:** evidence-governance regression baseline.
-
-Reviewer entry points:
-
+Additional reviewer entry points:
 - [`architecture/REVIEWER_GUIDE.md`](architecture/REVIEWER_GUIDE.md)
 - [`architecture/architecture-proof-pack.md`](architecture/architecture-proof-pack.md)
 - [`SVP_ENGINEERING_GOVERNANCE_README.md`](SVP_ENGINEERING_GOVERNANCE_README.md)
-- [`svp/README.md`](svp/README.md)
-
-The engineering claim is falsifiable: current source, commands, and receipts must agree before the repository presents a green status.

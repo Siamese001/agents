@@ -1,5 +1,5 @@
 # Agentic Governance & Intelligence Platform
-## Reusable Primitives for Building Enterprise AI That Can't Hallucinate, Can't Run Unbounded, and Can't Bypass Controls
+## Reusable Control-Plane Primitives for Building Enterprise AI That Can't Hallucinate, Can't Run Unbounded, and Can't Bypass Controls
 
 [![Architecture](https://img.shields.io/badge/Architecture-Governed%20Agentic-blue.svg)](#enterprise-engineering-invariants)
 [![Integrity](https://img.shields.io/badge/Integrity-Fail--Closed%20Convergence-purple.svg)](#2-bounded-socratic-iteration-cost--latency-ceilings)
@@ -14,21 +14,34 @@ Most organizations deploy AI agents that work brilliantly in demos and fail cata
 - **They hallucinate facts** — generating plausible-sounding commitments, metrics, and attributions that never occurred, then writing them to authoritative systems.
 - **They run unbounded** — agent-to-agent correction loops spiral through hundreds of iterations, burning thousands of dollars in API costs before anyone notices.
 - **They bypass governance** — naming conventions and prompt instructions are the first things violated under delivery pressure; nothing mechanically prevents a model from writing directly to production state.
-- **They accumulate architectural debt** — without compile-time enforcement of layer boundaries, AI codebases devolve into unmaintainable spaghetti within months.
+- **They accumulate architectural debt** — without compile-time enforcement of layer boundaries, AI codebases devolve into unmaintainable coupling within months.
 
 The failure cost isn't in the AI budget. It's in the downstream decisions made from hallucinated output, the engineering hours lost to debugging non-deterministic systems, and the compliance risk of ungoverned model emissions.
 
-**This repository is a battle-tested toolkit for preventing all four failure modes** — with concrete, executable governance patterns that scale from a single developer to a 200-person AI engineering organization.
+**This repository is a production-hardened control plane and governance toolkit for preventing all four failure modes** — with deterministic, machine-enforced invariants that scale from a single platform team to a 200-person AI engineering organization.
+
+---
+
+## Verified Platform Economics & Production Benchmarks
+
+Every architectural control in this repository is backed by deterministic verification gates and measurable runtime economics:
+
+| Dimension | Enforced Target / Ceiling | Verification Surface | Operational Impact |
+| :--- | :--- | :--- | :--- |
+| **Hallucination & Forbidden-Claims Rejection** | `100%` block rate on uncorroborated claims outside the 38-cluster Factual Assertion Graph (`C0.3`) | `apps_eval/` + Inbound/Outbound Prompt-Injection Airlock | Zero unverified metrics or fabricated attributions reach downstream state |
+| **Tokenomics & Multi-Tier Caching ROI** | $\ge 2.5\times$ Pareto ROI with 3-turn hard-capped Socratic convergence loops | `python tools/cost_token_budget_auditor.py` | Eliminates runaway agent retry spend; guarantees predictable per-run unit economics |
+| **Compile-Time Layer & Storage Isolation** | `0` cross-layer import violations (`L0`–`L6`); `0` direct persistence imports in domain services | `python tools/lint_architecture_boundaries.py` & `python tools/lint_layer_imports.py` | Prevents architectural drift mechanically at commit time (`<= 600` lines/module ceiling) |
+| **Control-Plane Turn & Commit Verification** | `< 5s` full repository AST, schema, production-purity, and secret scan | `python tools/validate_turn_gates.py --mode all` & `python tools/verify_commit.py --all` | Continuous structural governability without slowing engineering velocity |
 
 ---
 
 ## Portfolio Architecture
 
-This repository provides the **reusable agentic governance primitives** that are deployed in production in the [NEE Decision Intelligence Engine](https://github.com/Siamese001/decision-intelligence-engine).
+This repository provides the **reusable agentic control-plane primitives** deployed in production in the [NEE Decision Intelligence Engine](https://github.com/Siamese001/decision-intelligence-engine).
 
 ```mermaid
 flowchart LR
-    subgraph Toolkit["THIS REPO: Governance Toolkit"]
+    subgraph Toolkit["THIS REPO: Governed Agentic Control Plane"]
         direction TB
         A["Factual Assertion Graph\n(Hallucination Prevention)"] 
         B["Bounded Socratic Iteration\n(Cost & Latency Ceilings)"]
@@ -45,29 +58,26 @@ flowchart LR
         I["Executive Briefing Delivery"]
     end
 
-    Toolkit -->|"Primitives deployed in"| Application
+    Toolkit -->|"Control-plane substrate deployed in"| Application
 ```
 
-The Decision Intelligence Engine is the **application**; this repo is the **platform toolkit**. Together they demonstrate the full lifecycle: from building governed AI primitives to deploying them against a real enterprise problem.
+The Decision Intelligence Engine is the **flagship enterprise application**; this repository is the **underlying control-plane and governance substrate**.
 
 ---
 
 ## Enterprise Engineering Invariants
 
-Engineering leadership demands **guarantees**, not promises. This codebase enforces four strict architectural invariants across both compile time and runtime:
+Engineering leadership demands **enforced guarantees**, not prompt-level promises. This codebase enforces four strict architectural invariants across compile time and runtime:
 
 ### 1. Factual Assertion Knowledge Graph (Hallucination Prevention)
-- **Graph-Led Authority**: The engine evaluates candidate claims against deeply curated, multi-node factual evidence clusters. Every assertion must trace back to a verified source node before it can pass the write gateway.
-- **Forbidden Claims Guard**: Output generators pass through strict assertion checkers that reject unverified metrics, unearned titles, or fabricated achievements *before* any data reaches the write gateway.
-
-**How it works**: When an agent proposes a factual claim (e.g., "Led a team of 50 engineers"), the Factual Assertion Graph requires at minimum one corroborating evidence node with source provenance. Claims without graph-backed evidence are rejected at generation time — they never reach the output.
+- **Graph-Led Authority**: The control plane evaluates candidate claims against 38 curated multi-node factual evidence clusters. Every assertion must trace back to a verified source node before it can pass the write gateway.
+- **Forbidden Claims Guard**: Output generators pass through deterministic assertion checkers that reject unverified metrics, unsupported attributions, or policy-forbidden claims *before* any payload reaches the write gateway.
 
 ### 2. Bounded Socratic Iteration (Cost & Latency Ceilings)
 - **Deterministic Step Caps**: Agent-to-agent self-correction loops are hard-capped at bounded iterations (configurable per pipeline) to prevent runaway execution costs.
-- **Fail-Closed Convergence**: If an agent fails to meet rubric thresholds within its allocated turn quota, the system falls back to a deterministic, pre-certified safe output rather than returning unverified model emissions.
+- **Fail-Closed Convergence**: If an agent fails to meet rubric thresholds within its allocated turn quota, the system falls back to a deterministic, pre-certified safe abstention rather than returning unverified model emissions.
 
-**How it works**: Consider a 3-turn correction sequence:
-```
+```text
 Turn 1: Agent generates candidate output → Judge scores 62/100 (below 80 threshold)
 Turn 2: Agent receives structured rubric feedback → Revises → Judge scores 78/100 (still below)
 Turn 3: Agent receives delta feedback → Revises → Judge scores 85/100 (passes) → Output committed
@@ -78,85 +88,50 @@ Turn 3: Agent revises → Judge scores 74/100 (still below after final turn)
 → Zero unverified content reaches downstream consumers
 ```
 
-The cost ceiling is predictable. The quality floor is guaranteed. The worst case is a safe fallback, never a hallucinated output.
-
 ### 3. Universal Write Gateway (UWG)
-- **Single-Door Commit**: No agent or tool can directly mutate filesystem storage, caches, or external databases.
+- **Single-Door Commit**: No agent or domain service can directly import concrete persistence drivers (`sqlite3`, filesystem stores) or mutate external state.
 - **Atomic Admission**: State mutations must be proposed as typed payloads, evaluated by runtime exit gates, and committed through the Universal Write Gateway with cryptographic provenance seals.
 
-This is the same architectural pattern deployed in the [Decision Intelligence Engine's graph mutation path](https://github.com/Siamese001/decision-intelligence-engine#4-the-universal-write-gateway-uwg) — LLMs propose, deterministic code disposes.
-
 ### 4. Strict Layer Separation (Compile-Time Drift Elimination)
-- **AST Dependency Graph**: A custom static analyzer maps every module import, function fanout, and cross-layer call to detect and reject architectural boundary violations at commit time — not at code review time, not at deployment time.
-- **Clean Boundaries**: Strict separation between Reasoning, Routing, Execution, and Verification layers ensures the system scales predictably across engineering teams.
-
-**Why this matters at scale**: In a 50-person AI engineering org, naming conventions last about 3 months before someone "temporarily" bypasses a layer boundary. AST-based enforcement catches violations mechanically — you literally cannot merge a layer-violating import. This is the difference between aspirational architecture and enforced architecture.
+- **AST Dependency Graph**: Static analyzers (`tools/lint_layer_imports.py`, `tools/lint_architecture_boundaries.py`) map every module import, function fanout, and cross-layer call to reject boundary violations at commit time.
+- **Clean Boundaries**: Strict separation across Reasoning (`L1`), Routing (`L0`), Context (`C0`), Orchestration (`L3`), Execution (`L2`), Safety/Exit (`L5`), Storage (`L4`), and Shadow Observability (`L6`).
 
 ---
 
-## Platform Subsystems
+## Platform Architecture & Subsystems
 
-The repository is organized into independent, highly cohesive engines ordered by enterprise applicability:
+The repository separates **Core Platform Substrates** from **Reference Enterprise Workloads** that stress-test the control plane under strict grounding and policy constraints:
 
-### Active Platform Engines
+### Core Platform Substrates
 
-| Subsystem | Mission & Architecture | Key Technical Primitives |
+| Subsystem | Role in the Control Plane | Key Technical Primitives |
 | :--- | :--- | :--- |
-| [`apps_eval/`](apps_eval/) | **Evaluation Lab & Model Benchmark Surface**<br>Rigorous offline grading, metric delta ratcheting, and multi-dimensional LLM judge calibration. Ensures model quality doesn't silently regress between releases. | • Automated LLM Graders & Rubrics<br>• Regression & Mutation Test Suites<br>• CI Ratcheting |
-| [`apps_research/`](apps_research/) | **Grounded Deep Research Substrate**<br>Autonomous company profiling, competitive intelligence, and executive dossier synthesis — all evidence-grounded through the Factual Assertion Graph. | • Local Search Integration<br>• Autonomous Dossier Extractor<br>• Grounded Evidence Collector |
-| [`apps_model_telemetry/`](apps_model_telemetry/) | **Model Telemetry & Observability Substrate**<br>Real-time execution telemetry, token consumption, latency profiling, and cross-model performance observability across agent pipelines. | • OpenTelemetry Instrumentation<br>• Token & Latency Profiling<br>• Real-Time Spend Tracking |
-| [`outreach_engine/`](outreach_engine/) | **Autonomous Lifecycle & Engagement Intelligence**<br>Orchestrates hyper-personalized executive engagement with multi-touch cadence sequencing. Demonstrates the governance primitives applied to external communication. | • Adversarial Briefing Injection Airlock<br>• Forbidden-Claims Linting<br>• Multi-Touch State Machine |
-| [`resume_graph_engine/`](resume_graph_engine/) | **Career & Skill Intelligence Engine**<br>Constructs mathematically grounded, hallucination-proof professional narratives. A focused demonstration of the Factual Assertion Graph applied to career data. | • Factual Assertion Graph<br>• Dense + BM25 Reciprocal Rank Fusion<br>• Multi-Judge Proof Panels |
+| [`agents/`](agents/) & [`infrastructure/`](infrastructure/) | **Runtime Orchestration, Persistence & SDK Substrate**<br>Core orchestration services, protocol contracts, isolated persistence adapters, and cross-cutting runtime guardrails. | • Protocol-Driven Storage Isolation<br>• Cross-App Cryptographic Envelopes<br>• Provider-Neutral SDK Adapters |
+| [`apps_eval/`](apps_eval/) | **Evaluation Lab & Judge Calibration Surface**<br>Offline grading, metric delta ratcheting, and multi-dimensional LLM judge calibration to prevent silent model regressions between releases. | • Multi-Judge Proof Panels<br>• Regression & Mutation Test Suites<br>• Deterministic CI Ratcheting |
+| [`apps_model_telemetry/`](apps_model_telemetry/) | **Model Telemetry, Tokenomics & Observability Substrate**<br>Real-time execution telemetry, token consumption, latency profiling, and multi-tier caching efficiency across agent pipelines. | • OpenTelemetry Span Envelopes<br>• Token & Latency Profiling<br>• Multi-Tier Cache ROI Auditing |
+| [`apps_research/`](apps_research/) | **Grounded Deep Research & Evidence Substrate**<br>Autonomous entity profiling and evidence synthesis bound to cryptographic handoff envelopes (`ResearchBriefEnvelope`). | • Inbound Query Injection Airlock<br>• Deterministic TTL & SHA-256 Envelopes<br>• Grounded Evidence Collector |
 
-### Foundational & Archived Governance Engines
+### Reference Enterprise Workloads
 
-The architectural and executive governance engines are preserved in [`docs/archive/legacy_apps/`](docs/archive/legacy_apps/) as part of package single-source-of-truth consolidation:
+To prove the control plane on concrete, adversarial failure modes (hallucinated attributions and policy-violating external communications), two reference workloads are included:
 
-| Subsystem | Mission & Architectural Heritage | Key Technical Primitives |
+| Reference Workload | Enterprise Capability Demonstrated | Control-Plane Primitives Exercised |
 | :--- | :--- | :--- |
-| [`apps_architect/`](docs/archive/legacy_apps/apps_architect/) | **Architecture Governance Engine**<br>Enforces compile-time architectural integrity across platform code. Prevents the layer boundary violations that cause AI codebases to decay. | • Static AST Dependency Graph<br>• Anti-Pattern Burndown<br>• Write Bypass Detectors |
-| [`apps_exec/`](docs/archive/legacy_apps/apps_exec/) | **Executive Brief & Narrative Synthesizer**<br>Condenses multi-source organizational signals into Board-level strategic summaries. Complements the Decision Intelligence Engine's executive recap pipeline. | • Structural Blueprint Schemas<br>• Context Compression |
+| **Verified Document & Dossier Synthesis** ([`resume_graph_engine/`](resume_graph_engine/) · `apps_rg`) | High-stakes structured document synthesis where every claim must trace to a verified node in a 38-cluster factual graph. | • 38-Cluster Factual Assertion Graph (`C0.3`)<br>• Dense BGE-M3 + BM25 Reciprocal Rank Fusion<br>• 6-Wave Offline Evaluation Surface (`G1`–`G6`) |
+| **Policy-Gated External Messaging** ([`outreach_engine/`](outreach_engine/) · `apps_lic`) | Multi-touch external communication state machine enforcing strict inbound/outbound prompt-injection airlocks and forbidden-claims linting. | • Adversarial Briefing Injection Airlock<br>• Forbidden-Claims & Spam-Trigger Linting<br>• Deterministic Multi-Touch State Machine |
 
 ---
 
-## Key Trade-offs & Architectural Lessons
+## Key Architectural Trade-offs
 
-### 1. Bounded vs. Unbounded Agent Iteration
-**Trade-off**: Capping Socratic correction loops at N iterations sacrifices some quality ceiling in exchange for predictable cost and guaranteed safety.
-
-**Lesson**: The ceiling matters far less than the floor. A guaranteed-safe output at turn N is more valuable than a potentially-brilliant output at turn N+∞. In enterprise settings, a single unverified model emission that reaches a customer-facing system costs more to remediate than 100 safe fallbacks.
-
-### 2. AST-Based vs. Convention-Based Layer Enforcement
-**Trade-off**: Static AST analysis is expensive to build and maintain. Most teams rely on naming conventions and code review to enforce layer boundaries.
-
-**Lesson**: Naming conventions are the first thing teams violate under delivery pressure. By month 3 of a growing AI codebase, someone will "temporarily" import a reasoning module from the execution layer. The AST graph catches violations mechanically — the build breaks immediately, not 6 months later during a production incident.
-
-### 3. Multi-Judge vs. Single-Judge Evaluation
-**Trade-off**: Running multiple LLM judges per evaluation increases API cost by 2-3x compared to single-judge scoring.
-
-**Lesson**: Single-judge evaluations have unacceptable variance for production decisions. A candidate output that one judge scores 90 might score 65 from another. Multi-judge panels with inter-judge agreement metrics produce calibrated, defensible quality signals. The additional cost is negligible compared to the cost of shipping a model regression.
-
-### 4. Pre-Certified Fallback vs. Best-Effort Output
-**Trade-off**: Maintaining pre-certified safe outputs for every pipeline adds development overhead and limits the range of outputs the system can produce.
-
-**Lesson**: In enterprise AI, silence is safer than speech. A system that says "I could not produce a verified output for this input" is infinitely more trustworthy than one that confidently emits hallucinated content. The fail-closed pattern costs development time but buys organizational trust — which is the scarcest resource in enterprise AI adoption.
+1. **Bounded vs. Unbounded Agent Iteration**: Capping Socratic correction loops at $N$ iterations trades unbounded exploration for predictable unit cost and a guaranteed safety floor.
+2. **AST-Based vs. Convention-Based Layer Enforcement**: Static AST boundary linters break the build immediately when a domain service imports a concrete storage driver or violates layer hierarchy (`L0`–`L6`).
+3. **Multi-Judge vs. Single-Judge Evaluation**: Multi-judge panels with inter-judge agreement calibration eliminate single-model grading variance before promoting pipeline changes.
+4. **Fail-Closed Abstention vs. Best-Effort Emission**: When grounding or rubric thresholds fail after bounded retries, emitting a typed abstention diagnostic preserves downstream system trust.
 
 ---
 
-## Competitive Differentiation
-
-### Why Not LangChain / AutoGen / CrewAI?
-Agent orchestration frameworks provide composability and rapid prototyping. They do not provide:
-- **Fail-closed convergence** with pre-certified safe fallbacks when agents can't meet quality thresholds
-- **Compile-time layer enforcement** via static AST analysis that mechanically prevents architectural decay
-- **Bounded iteration with cost ceilings** that make agent execution costs predictable for enterprise budgeting
-- **Factual assertion graphs** that ground every claim in verifiable evidence before it reaches the write path
-
-**The gap**: Frameworks optimize for agent *flexibility*; this toolkit optimizes for agent *trustworthiness*. In enterprise settings, trustworthiness is the constraint that determines adoption.
-
----
-
-## Quickstart
+## Quickstart & Executable Proofs
 
 ### Prerequisites
 - Python 3.11+ (tested on 3.11 and 3.12)
@@ -167,49 +142,42 @@ Agent orchestration frameworks provide composability and rapid prototyping. They
 git clone https://github.com/Siamese001/agents.git
 cd agents
 
-# Initialize virtual environment
 python -m venv .venv
-.venv\Scripts\Activate.ps1   # On POSIX: source .venv/bin/activate
-
-# Install dependencies in editable mode
+source .venv/bin/activate  # On Windows: .venv\Scripts\Activate.ps1
 pip install -e .
 ```
 
-### 2. Verify Architectural Gates
+### 2. Verify Compile-Time Governance & Architectural Boundaries
 ```bash
-# Run the platform deterministic validation suite
-pytest tests/
+# Run pre-turn & post-turn mechanical governance gates
+python tools/validate_turn_gates.py --mode all
+
+# Run Tier 1 commit verification (AST budgets, layer imports, production purity, secrets)
+python tools/verify_commit.py --all
+
+# Verify domain storage isolation and sys.path purity
+python tools/lint_architecture_boundaries.py
 ```
 
-### 3. Run the Research Substrate
+### 3. Verify Platform Tokenomics & Authoritative End-to-End Smoke Suite
 ```bash
-cd apps_research
-python -m apps_research --demo
-```
+# Audit 8-pillar tokenomics, multi-tier caching, and >= 2.5x Pareto ROI
+python tools/cost_token_budget_auditor.py
 
-### 4. Run the Resume Graph Engine
-```bash
-cd resume_graph_engine
-
-# Run the canonical product pipeline
-python -m apps_rg run
-
-# Execute the offline evaluation suite
-pytest tests/unit/apps_rg/evals/test_c03_owner_solo_qrel.py
+# Run authoritative cross-subsystem smoke verification
+python ops_scripts/run_e2e_authoritative_smoke.py
 ```
 
 ---
 
-## Executive & Leadership Reading Guide
-
-For technical hiring executives, hiring managers, and architecture evaluators:
+## Executive & Architecture Reading Guide
 
 | Document | Audience | Focus |
 |---|---|---|
-| [**Executive Overview**](docs/EXECUTIVE_OVERVIEW.md) | C-Suite, Board Advisors | Strategic positioning on route authority, write controls, and board-level risk management |
-| [**Recruiter & Hiring Manager Guide**](docs/RECRUITER_GUIDE.md) | Hiring Committees | Mapping of codebase architecture to SVP Engineering, Head of AI Platform, and Principal AI Architect competencies |
-| [**Runtime Control Plane Specification**](docs/RUNTIME_CONTROL_PLANE.md) | CTOs, Platform Architects | Detailed breakdown of the control plane and Universal Write Gateway |
-| [**SVP Engineering Governance Guide**](docs/SVP_ENGINEERING_GOVERNANCE_README.md) | Engineering Leadership | Proof points on AST graph analysis, zero-drift shadow learning, and compliance auditing |
+| [**Executive Overview**](docs/EXECUTIVE_OVERVIEW.md) | C-Suite, Engineering Executives | Strategic thesis on runtime route authority, write controls, and enterprise risk management |
+| [**Operating Model & Reliability Economics**](docs/RECRUITER_GUIDE.md) | Frontier Lab & Platform Leadership | Organizational scaling, unit economics, bounded autonomy, and multi-team governance |
+| [**Runtime Control Plane Specification**](docs/RUNTIME_CONTROL_PLANE.md) | CTOs, Principal Architects | Detailed breakdown of the `U0 → L1 → L0 → C0 → L2 → Exit → UWG → L4/L6` control plane |
+| [**Repository Governance Architecture**](docs/SVP_ENGINEERING_GOVERNANCE_README.md) | Platform Engineering Leaders | Machine-enforced turn gates, static AST boundary verification, and autonomous sidecar isolation |
 
 ---
 
@@ -218,5 +186,5 @@ For technical hiring executives, hiring managers, and architecture evaluators:
 **Amit Ayer**
 *Enterprise AI Architecture · Governed Agentic Platforms · Decision Intelligence Systems*
 
-- **Portfolio**: [decision-intelligence-engine](https://github.com/Siamese001/decision-intelligence-engine) — Enterprise meeting intelligence platform deploying these governance primitives
+- **Flagship Application**: [decision-intelligence-engine](https://github.com/Siamese001/decision-intelligence-engine) — Enterprise meeting intelligence platform deploying these governance primitives
 - **GitHub**: [github.com/Siamese001](https://github.com/Siamese001)

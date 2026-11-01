@@ -299,11 +299,88 @@ def validate_scratchpad_transparency(markdown_text: str) -> dict[str, Any]:
     }
 
 
+_MARKDOWN_LINK_RE = re.compile(r"\[([^\]]+)\]\((?:file:///|https?://|conversation://)[^)]+\)")
+_FENCED_BLOCK_RE = re.compile(r"```[\s\S]*?```")
+
+_TECHNICAL_JARGON_PATTERNS = (
+    (
+        re.compile(r"\bSELECT\s+.+?\s+FROM\s+[a-zA-Z0-9_]+", re.IGNORECASE | re.DOTALL),
+        "inline SQL query",
+    ),
+    (
+        re.compile(r"\b[a-zA-Z][a-zA-Z0-9]*_[a-zA-Z0-9_]+\b"),
+        "snake_case code or database identifier",
+    ),
+    (
+        re.compile(r"\b(?:__init__|kwargs|isinstance)\b"),
+        "programming language keyword",
+    ),
+    (
+        re.compile(r"\b[A-Z][a-z0-9]+(?:[A-Z][a-z0-9]+)+\._?[a-zA-Z0-9_]+"),
+        "internal class/method reference",
+    ),
+    (
+        re.compile(r"\b[A-Za-z0-9]+(?:Error|Exception)\b"),
+        "internal exception class name",
+    ),
+    (
+        re.compile(
+            r"(?:^|[\s`\"'(\[{])(?:[a-zA-Z0-9_\-./]+/)?[a-zA-Z0-9_\-]+\.(?:py|sqlite|jsonl|yaml|yml|toml|sh|sql|md|json)\b"
+        ),
+        "raw filename in prose",
+    ),
+    (
+        re.compile(
+            r"\b(?:WAL|ACID|JSONL|AST|DDL|DML|PRAGMA|CLI|API|SDK|BM25|RRF|DAG|MCP|SHA|TTL|UUID|SQL|JSON|YAML|TOML)\b"
+        ),
+        "technical or plumbing acronym",
+    ),
+    (
+        re.compile(
+            r"\b(?:substrates?|control[\s\-]plane|domain\s+workloads?|reference\s+workloads?|bounded\s+iteration|"
+            r"multi[\s\-]tier\s+caching|caching|command[\s\-]surface|regression\s+tests?|regression\s+suites?|"
+            r"test\s+suites?|unit\s+tests?|validators?|linters?|airlocks?|runtimes?|telemetry|orchestration|"
+            r"deterministic|invariants?|schemas?|payloads?|ratchets?|ratcheting|idempotent|codebases?|repos?|"
+            r"commits?|worktrees?|rebases?|branches)\b",
+            re.IGNORECASE,
+        ),
+        "systems or engineering jargon",
+    ),
+)
+
+
+def validate_layman_jargon_gate(markdown_text: str) -> dict[str, Any]:
+    """Verify that user-facing prose contains zero technical, code, or systems architecture jargon."""
+    if not markdown_text or not isinstance(markdown_text, str):
+        return {"status": "PASS", "violations": [], "issues": []}
+
+    scannable = _MARKDOWN_LINK_RE.sub(r"\1", markdown_text)
+    scannable_no_fences = _FENCED_BLOCK_RE.sub(" ", scannable)
+
+    violations: list[str] = []
+    for pattern, label in _TECHNICAL_JARGON_PATTERNS:
+        matches = pattern.findall(scannable_no_fences)
+        if matches:
+            for m in matches[:3]:
+                sample = str(m).strip(" `\"'()[]{}")
+                entry = f"{label} ('{sample}')"
+                if entry not in violations:
+                    violations.append(entry)
+
+    issues = [f"Technical jargon violation: {v}" for v in violations]
+    return {
+        "status": "PASS" if not violations else "FAIL",
+        "violations": violations,
+        "issues": issues,
+    }
+
+
 def validate_post_turn_gate(
     repo_root: Path | None = None,
     candidate_response: str | None = None,
     candidate_options: Sequence[dict[str, Any]] | None = None,
     require_scratchpad: bool = False,
+    check_layman_jargon: bool = True,
 ) -> dict[str, Any]:
     """Execute all post-turn gate checks."""
     root = Path(repo_root or ROOT).resolve()
@@ -376,6 +453,17 @@ def validate_post_turn_gate(
                 }
         except Exception as exc:  # guardian: allow-silent-swallow -- fallback if plan parsing fails
             checks["wave_summary_table"] = {"status": "PASS", "note": str(exc)}
+
+    # Check 5: Layman Zero-Jargon Gate (Rule 6)
+    if (
+        candidate_response
+        and check_layman_jargon
+        and "Agent Reasoning Scratchpad" not in candidate_response
+        and "Wave Summary Table:" not in candidate_response
+    ):
+        jargon_eval = validate_layman_jargon_gate(candidate_response)
+        checks["layman_jargon_gate"] = jargon_eval
+        issues.extend(jargon_eval["issues"])
 
     overall_status = "PASS" if not issues else "FAIL"
     return {

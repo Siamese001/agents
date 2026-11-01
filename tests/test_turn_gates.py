@@ -15,6 +15,7 @@ from pathlib import Path
 from tools.validate_turn_gates import (
     evaluate_hitl_ambiguity,
     validate_agent_operating_contract,
+    validate_layman_jargon_gate,
     validate_post_turn_gate,
     validate_pre_turn_gate,
     validate_scratchpad_transparency,
@@ -181,6 +182,36 @@ Response content delivered cleanly.
 Wave 1 completed cleanly!
 """
         result = validate_post_turn_gate(repo_root=ROOT, candidate_response=response_with_table)
+        self.assertEqual(result["status"], "PASS")
+
+    def test_post_turn_gate_rejects_systems_and_architecture_jargon_in_completion_summary(self) -> None:
+        """Verify that architectural/systems jargon ('substrates', 'control-plane', 'regression tests', 'codebase') fails the gate."""
+        jargon_heavy_response = (
+            "All five executive positioning upgrades have been executed and verified across the codebase:\n\n"
+            "1. Subordinated and Rebranded Domain Workloads: Separated core platform substrates from reference workloads.\n"
+            "2. Replaced Role Solicitation with an Operating Model Whitepaper around bounded iteration.\n"
+            "3. Aligned All Governance and Control-Plane References so commands resolve to working validators.\n"
+            "4. Added 2.88x multi-tier caching return on investment.\n"
+            "5. Verified all 51 checks across the Public Positioning Regression Suite and command-surface tests."
+        )
+        result = validate_post_turn_gate(repo_root=ROOT, candidate_response=jargon_heavy_response)
+        self.assertEqual(result["status"], "FAIL")
+        self.assertEqual(result["checks"]["layman_jargon_gate"]["status"], "FAIL")
+        self.assertGreaterEqual(len(result["checks"]["layman_jargon_gate"]["violations"]), 3)
+
+    def test_post_turn_gate_passes_plain_english_layman_completion_summary(self) -> None:
+        """Verify that a genuine plain-English layman completion report passes with zero jargon violations."""
+        plain_english_response = (
+            "All five executive positioning updates are complete and verified:\n\n"
+            "1. Reorganized the [Main Project Guide](file:///Users/amitayer/Git/agents/README.md#L1-L120) so the core AI safety platform comes first.\n"
+            "2. Replaced the job title list in the [Executive Operating Guide](file:///Users/amitayer/Git/agents/docs/RECRUITER_GUIDE.md#L1-L65) with an explanation of how large teams keep costs and quality predictable.\n"
+            "3. Updated every broken link and command across the leadership guides so every check runs cleanly.\n"
+            "4. Added verified performance numbers showing 100% rejection of unproven claims and a 2.88x cost savings from smart answer reuse.\n"
+            "5. Removed leftover planning notes and old draft folders, with all 51 automated checks passing in under 3 seconds."
+        )
+        jargon_eval = validate_layman_jargon_gate(plain_english_response)
+        self.assertEqual(jargon_eval["status"], "PASS", f"Unexpected violations: {jargon_eval['violations']}")
+        result = validate_post_turn_gate(repo_root=ROOT, candidate_response=plain_english_response)
         self.assertEqual(result["status"], "PASS")
 
 
