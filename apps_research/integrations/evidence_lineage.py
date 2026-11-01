@@ -132,6 +132,9 @@ def materialize_research_evidence(
         )
         if sealed_brief_items:
             return sealed_brief_items
+        if company_brief:
+            # Non-empty company_brief already evaluated; avoid redundant CompanyBriefEngine re-execution.
+            return ()
 
     topic = str(getattr(request, "topic", "") or "").strip()
     if not topic:
