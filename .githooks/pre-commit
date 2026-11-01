@@ -39,6 +39,7 @@ echo "-> 4. Running fast governance test suite..."
   tests/test_hitl_governance_enforcement.py \
   tests/test_model_neutral_naming.py \
   tests/test_unified_agent_architecture.py \
+  tests/test_post_merge_cleanup.py \
   --timeout=60 -q
 
 echo "=== [Git Hook] All Pre-Commit Checks PASSED ==="

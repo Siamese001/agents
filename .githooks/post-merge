@@ -1,0 +1,29 @@
+#!/bin/sh
+# Native Post-Merge Hook for Antigravity Governance
+# Automatically prunes merged secondary worktrees and local feature branches
+# when a merge completes on local main / master.
+set -e
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")"
+
+if [ "$CURRENT_BRANCH" != "main" ] && [ "$CURRENT_BRANCH" != "master" ]; then
+    exit 0
+fi
+
+MAIN_REPO="$(cd "$(git rev-parse --git-common-dir)/.." && pwd)"
+if [ -x "$REPO_ROOT/.venv/bin/python" ]; then
+    PYTHON_BIN="$REPO_ROOT/.venv/bin/python"
+elif [ -x "$MAIN_REPO/.venv/bin/python" ]; then
+    PYTHON_BIN="$MAIN_REPO/.venv/bin/python"
+else
+    PYTHON_BIN="python3"
+fi
+
+echo "=== [Git Hook] Running Post-Merge Worktree & Branch Cleanup ==="
+if [ -f "$REPO_ROOT/tools/prune_merged_chat_worktrees.py" ]; then
+    "$PYTHON_BIN" "$REPO_ROOT/tools/prune_merged_chat_worktrees.py" --repo-root "$REPO_ROOT" --target-ref "$CURRENT_BRANCH" --delete-merged
+elif [ -f "$MAIN_REPO/tools/prune_merged_chat_worktrees.py" ]; then
+    "$PYTHON_BIN" "$MAIN_REPO/tools/prune_merged_chat_worktrees.py" --repo-root "$MAIN_REPO" --target-ref "$CURRENT_BRANCH" --delete-merged
+fi
+echo "=== [Git Hook] Post-Merge Cleanup Complete ==="

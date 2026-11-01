@@ -23,6 +23,7 @@ REQUIRED_TIER1_TOOLS = (
     "lint_layer_imports.py",
     "lint_model_neutral_naming.py",
     "lint_secrets.py",
+    "prune_merged_chat_worktrees.py",
     "unified_agent_architecture.py",
     "validate_implementation_plan.py",
     "verify_commit.py",
