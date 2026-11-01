@@ -132,8 +132,6 @@ Traces every `AGENTS.md` section to enforceable rules, skills, hooks, tools, and
 | Config | `core.hooksPath` → `.githooks` | Version-controlled deterministic local Git hooks |
 | Hook | `.githooks/pre-commit` | Pre-commit gate running turn gates, staged plans, commit invariants, tests |
 | Hook | `.githooks/pre-push` | Pre-push gate verifying all turn gates, active plans, commit invariants |
-| Hook | `.githooks/post-merge` | Post-merge gate automatically pruning merged worktrees and local branches |
-| Tool | `tools/prune_merged_chat_worktrees.py` | Automated ancestry-verified worktree and branch pruning tool |
 | Tool | `tools/install_githooks.py` | Automated installation and executable permission tool |
 | Rule | `.agents/rules/git-branch-per-chat.md` | Mandatory post-PR local worktree and feature branch deletion |
 
