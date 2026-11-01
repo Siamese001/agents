@@ -179,6 +179,38 @@ class PostMergeCleanupTests(unittest.TestCase):
             wt_paths = [str(w["path"]) for w in list_worktrees(repo)]
             self.assertNotIn(str(feat_wt), wt_paths)
 
+    def test_teardown_and_prune_removes_both_repo_and_external_worktrees_on_merge(self) -> None:
+        """Verify both .worktrees/<slug> and external worktree paths and branches are deleted once merged."""
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp).resolve()
+            repo = self._init_repo_with_main(base)
+
+            # 1. Create an in-repo .worktrees/<slug> worktree
+            in_repo_wt = repo / ".worktrees" / "test_in_repo_slug"
+            in_repo_wt.parent.mkdir(parents=True, exist_ok=True)
+            _git(["worktree", "add", "-b", "test/in-repo-slug", str(in_repo_wt), "main"], cwd=repo)
+            (in_repo_wt / "in_repo.txt").write_text("in repo work\n", encoding="utf-8")
+            _git(["add", "in_repo.txt"], cwd=in_repo_wt)
+            _git(["commit", "-m", "test(scope): add in-repo worktree change"], cwd=in_repo_wt)
+
+            # 2. Create an external chat-session worktree at the same ancestor commit on main
+            ext_wt = base / "external_worktrees" / "test_gaps_session"
+            ext_wt.parent.mkdir(parents=True, exist_ok=True)
+            _git(["worktree", "add", "-b", "test_gaps_session", str(ext_wt), "main"], cwd=repo)
+
+            # Merge the feature branch into main
+            _git(["merge", "--no-ff", "test/in-repo-slug", "-m", "Merge test/in-repo-slug"], cwd=repo)
+
+            # Execute prune from primary repo root (not inside either secondary worktree)
+            res = prune_merged_worktrees(repo, target_ref="main", delete_merged=True, active_cwd=repo)
+            self.assertEqual(res["status"], "CLEANED")
+            self.assertFalse(in_repo_wt.exists(), "Expected in-repo .worktrees/<slug> directory to be deleted")
+            self.assertFalse(ext_wt.exists(), "Expected external session worktree directory to be deleted")
+
+            remaining_branches = _git(["branch", "--format=%(refname:short)"], cwd=repo).stdout.splitlines()
+            self.assertNotIn("test/in-repo-slug", remaining_branches)
+            self.assertNotIn("test_gaps_session", remaining_branches)
+
 
 if __name__ == "__main__":
     unittest.main()

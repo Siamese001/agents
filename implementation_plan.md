@@ -1,109 +1,58 @@
-# Implementation Plan: Resume & Outreach Engine Pattern Hardening
+# Testing Gaps & Post-Merge Worktree Cleanup Assurance Plan
 
 ## Executive Overview
-Apply behavioral patterns from `decision-intelligence-engine` natively across `resume_engine`, `resume_graph_engine`, and `outreach_engine` without copying external code. Enforce sub-400-line CLI modules, lazy package imports, 1.5s exit watchdogs, outbound privacy scrubbing, normalized numeric fact grounding, top-10 search accuracy gates, physical output verification, and per-test environment isolation.
+Deliver end-to-end testing assurance across `apps_research`, `outreach_engine`, `resume_engine`, and `tools/prune_merged_chat_worktrees.py` inside the isolated worktree branch `test/post-merge-worktree-cleanup-assurance`. Verify cross-subsystem handoff contracts, prompt-injection airlock boundaries, strict skip hygiene, and post-merge worktree/branch deletion.
 
 | Wave # | Description / Scope | Status |
 | :--- | :--- | :--- |
-| Wave 1 | One-Way Code Loading & Fast Command Startup | COMPLETED |
-| Wave 2 | Outbound Privacy, Fact Matching & Human Sign-Off | COMPLETED |
-| Wave 3 | Top-10 Search Accuracy, Storage Proof & Saved-Step Resume | COMPLETED |
-| Wave 4 | Test Isolation & Real Output Folder Protection | COMPLETED |
+| **Wave 1** | Cross-Subsystem Handoff Contracts & Airlock Edge-Case Regression Suite | `COMPLETE` |
+| **Wave 2** | Post-Merge Worktree & Branch Deletion Regression Verification | `COMPLETE` |
 
 ---
 
-## Wave 1: One-Way Code Loading & Fast Command Startup
+## Wave 1: Cross-Subsystem Handoff Contracts & Airlock Edge-Case Regression Suite
 
 ### Objective & Scope
-- **In Scope**: Split `resume_engine/cli.py` under 400 lines, eliminate bare `except Exception: pass` blocks, add a 1.5s exit watchdog, and make `outreach_engine/__init__.py` and `apps_rg/__init__.py` load heavy runtime modules lazily.
-- **Out of Scope**: External provider logic changes.
+- **In Scope**: Validate `CrossAppEnvelope` / `ResearchBriefEnvelope` serialization roundtrip, schema/version mismatch, SHA-256 tamper detection, TTL expiration, standalone outreach v2 research bundle persistence, bounded live research retry/timeout policy, inbound/outbound prompt-injection airlocks, spam-trigger phrase lookups, and resume CLI inspectors (`0` runtime skips).
+- **Out of Scope**: Live external LLM network calls.
 
 ### Milestones & Deliverables
-- [x] `resume_engine/cli.py`: Parse `--help` and `--version` before environment setup and delegate inspection commands.
-- [x] `resume_engine/cli_inspectors.py`: Read-only `models` and `cache` handlers with explicit fallback reason tracking and 1.5s exit watchdog.
-- [x] `outreach_engine/__init__.py` and `resume_graph_engine/src/apps_rg/__init__.py`: Lazy `__getattr__` exports and deferred `.env` loading.
+- `[MODIFY]` `tests/unit/test_cross_subsystem_handoff_contracts.py`: 8 contract and negative boundary tests for `apps_research` -> `resume_graph_engine` and `apps_research` -> `outreach_engine`.
+- `[MODIFY]` `tests/unit/test_testing_gaps_edge_cases.py`: 5 edge-case boundary tests for `validate_research_query`, `sanitize_briefing_content`, `spam_trigger_phrases`, and `resume_engine/cli_inspectors.py`.
+- `[MODIFY]` `tests/unit/test_resume_engine_unified_cli.py`: Deterministic CLI console-script entrypoint verification with zero `pytest.skip` calls.
 
 ### Acceptance Criteria
-- `resume_engine/cli.py` is under 400 lines with zero bare `except Exception: pass` blocks.
-- Importing `outreach_engine` does not eagerly load `apps_lic.judges.evaluator`.
-- `E2E-EXEMPT`: Entrypoint and module boundary wave.
+- All 26 tests across `test_cross_subsystem_handoff_contracts.py`, `test_testing_gaps_edge_cases.py`, and `test_resume_engine_unified_cli.py` pass with `0` skips.
+- `E2E-EXEMPT`: Scoped unit and contract regression suite.
 
 ### Runtime Receipt & Completion Gate
-- Run: `/Users/amitayer/Git/agents/.venv/bin/pytest outreach_engine/tests/test_unified_cli.py -v --timeout=60`
-- Input: CLI `--help`, `models`, and module import checks.
-- Expected: All CLI tests pass with line count of `resume_engine/cli.py` < 400.
-- Verify independently: Check `wc -l resume_engine/cli.py` and `sys.modules` lazy state.
-- Fail if: `resume_engine/cli.py` >= 400 lines or eager judge import occurs.
-- Record: reports/wave1_cli_layering_receipt.json
+- Run: `/Users/amitayer/Git/agents/.venv/bin/pytest tests/unit/test_cross_subsystem_handoff_contracts.py tests/unit/test_testing_gaps_edge_cases.py tests/unit/test_resume_engine_unified_cli.py -v --timeout=60`
+- Input: Synthetic envelopes, temporary v2 bundle directories, adversarial prompt-injection strings, and CLI arguments.
+- Expected: `26 passed` in `< 5s` with `0 skipped`.
+- Verify independently: Inspect AST test and assertion counts across the 3 test modules.
+- Fail if: Any test fails, times out, or skips execution.
+- Record: `artifacts/sidecar_runs/agents_testing_gaps_assurance/20261101T123549Z/wave_receipts.md`
 
 ---
 
-## Wave 2: Outbound Privacy, Fact Matching & Human Sign-Off
+## Wave 2: Post-Merge Worktree & Branch Deletion Regression Verification
 
 ### Objective & Scope
-- **In Scope**: Add native `OutboundPrivacyValidator`, normalize dollar and percentage matching in `GroundingValidator`, fold `UnsupportedPersonalizationValidator` into `hard_gate_passed`, and add score-gap human sign-off check (`requires_human_signoff`).
-- **Out of Scope**: External LLM prompt templates.
+- **In Scope**: Add a dedicated regression test in `tests/test_post_merge_cleanup.py` verifying that `prune_merged_worktrees` and `_teardown_merged_worktree` delete both `.worktrees/<slug>` worktrees and external chat-session worktrees (plus their local feature branches) once merged into `main`, when invoked from `main_root`.
+- **Out of Scope**: Mutating unmerged feature worktrees.
 
 ### Milestones & Deliverables
-- [x] `outreach_engine/src/apps_lic/domain/validators.py`: `OutboundPrivacyValidator` and normalized numeric fact matching in `GroundingValidator`.
-- [x] `outreach_engine/src/apps_lic/judges/evaluator.py`: Include privacy and unsupported personalization violations in `hard_gate_passed` and expose `requires_human_signoff`.
+- `[MODIFY]` `tests/test_post_merge_cleanup.py`: Add `test_teardown_and_prune_removes_both_repo_and_external_worktrees_on_merge` proving that both `.worktrees/<slug>` and external worktree directories and their branches are deleted after merging to `main`.
+- `[MODIFY]` `implementation_plan.md`: Record wave completion status table for pre-commit and pre-merge validation.
 
 ### Acceptance Criteria
-- Outbound drafts containing secret patterns, internal strategy markers, billing rates, or unverified company claims fail `hard_gate_passed`.
-- `$1M` matches `$1,000,000` in declared facts, while `10%` does not falsely match `110%`.
+- `tests/test_post_merge_cleanup.py` passes all 5 test cases (`100%` pass rate).
+- Merging `test/post-merge-worktree-cleanup-assurance` into `main` automatically deletes `.worktrees/test_post_merge_worktree_cleanup_assurance` and the `test/post-merge-worktree-cleanup-assurance` branch.
 
 ### Runtime Receipt & Completion Gate
-- Run: `/Users/amitayer/Git/agents/.venv/bin/pytest outreach_engine/tests/test_validators.py outreach_engine/tests/test_pattern_hardening_waves.py -v --timeout=60`
-- Input: Synthetic secret strings, formatted dollar/percentage claims, and unverified briefings.
-- Expected: 100% pass across validator and judge hardening tests.
-- Verify independently: Confirm `verdict.hard_gate_passed is False` on unverified personalization.
-- Fail if: Any secret pattern or unverified personalization passes `hard_gate_passed`.
-- Record: reports/wave2_privacy_grounding_receipt.json
-
----
-
-## Wave 3: Top-10 Search Accuracy, Storage Proof & Saved-Step Resume
-
-### Objective & Scope
-- **In Scope**: Enforce `top_k <= 10` and zero top-10 rank regression in `c03_ci_ratchet.py`, verify mandatory run outputs on disk with model-neutral filenames in `run_output_contract.py`, and support `resume_or_patch_run` path rebinding in `OutreachOrchestrator`.
-- **Out of Scope**: Replacing BGE-M3 weights.
-
-### Milestones & Deliverables
-- [x] `resume_graph_engine/src/apps_rg/evals/c03_ci_ratchet.py`: Gate `retrieval_top_k_exceeds_10` and `top_10_rank_regression`.
-- [x] `resume_graph_engine/src/apps_rg/runtime/run_output_contract.py`: Add `is_model_neutral_filename` and `verify_physical_run_outputs`.
-- [x] `outreach_engine/src/apps_lic/pipeline/orchestrator.py`: Record completed stages in `run_manifest.json` and implement `resume_or_patch_run`.
-
-### Acceptance Criteria
-- `verify_physical_run_outputs` confirms non-zero size, SHA-256 digest, valid JSON readback, and model-neutral filenames.
-- `resume_or_patch_run` rebinds `artifact_dir` and preserves completed stages.
-
-### Runtime Receipt & Completion Gate
-- Run: `/Users/amitayer/Git/agents/.venv/bin/pytest outreach_engine/tests/test_pattern_hardening_waves.py -v --timeout=60`
-- Input: Ephemeral run directories and stage manifests.
-- Expected: Physical output verification and stage resume tests pass.
-- Verify independently: Inspect `run_manifest.json` after `resume_or_patch_run`.
-- Fail if: Model-branded filename passes or corrupt JSON is accepted.
-- Record: reports/wave3_storage_search_resume_receipt.json
-
----
-
-## Wave 4: Test Isolation & Real Output Folder Protection
-
-### Objective & Scope
-- **In Scope**: Isolate per-test cache directories using `tmp_path` in both `resume_graph_engine/tests/conftest.py` and `outreach_engine/tests/conftest.py` and verify all 4 waves with dedicated unit and E2E tests.
-- **Out of Scope**: Historical artifact cleanup.
-
-### Milestones & Deliverables
-- [x] `resume_graph_engine/tests/conftest.py` and `outreach_engine/tests/conftest.py`: Per-test `tmp_path` cache isolation fixtures.
-- [x] `outreach_engine/tests/test_pattern_hardening_waves.py`: End-to-end verification of Waves 1–4.
-
-### Acceptance Criteria
-- Every test receives an isolated `tmp_path` cache root and leaves zero untracked artifacts in production directories.
-
-### Runtime Receipt & Completion Gate
-- Run: `/Users/amitayer/Git/agents/.venv/bin/pytest outreach_engine/tests/test_pattern_hardening_waves.py outreach_engine/tests/test_replay_integrity_e2e.py -v --timeout=60`
-- Input: Full pattern hardening and E2E replay test suites.
-- Expected: 100% pass with zero production directory mutations.
-- Verify independently: Check `git status --porcelain` confirms no untracked output files.
-- Fail if: Any test mutates repository cache or artifact directories.
-- Record: reports/wave4_test_isolation_receipt.json
+- Run: `/Users/amitayer/Git/agents/.venv/bin/pytest tests/test_post_merge_cleanup.py -v --timeout=60`
+- Input: Temporary git repositories with `.worktrees/<slug>` and external worktree paths merged into `main`.
+- Expected: `5 passed` in `< 5s` with both worktree directories and branches verified deleted.
+- Verify independently: Run `git worktree list` and `git branch -a` after `pr_governance.py merge` to prove zero remaining worktree or branch references.
+- Fail if: Merged worktree directory or local branch remains after merge teardown.
+- Record: `artifacts/sidecar_runs/agents_testing_gaps_assurance/20261101T123549Z/wave_receipts.md`
