@@ -1728,6 +1728,10 @@ class CompanyBriefEngine(BaseResearchEngine):
         return text
 
     def _gemini_synthesize_plain(self, *, prompt: str) -> str:
+        from apps_research.prompt_assembly.consumer_briefs import (  # noqa: PLC0415
+            CONSUMER_BRIEF_STATIC_SYSTEM_PROMPT,
+        )
+
         _enforce_company_brief_prompt_budget(prompt)
         model_name = APPS_RESEARCH_BRIEF_MODEL
         try:
@@ -1735,10 +1739,7 @@ class CompanyBriefEngine(BaseResearchEngine):
                 messages=[
                     {
                         "role": "system",
-                        "content": (
-                            "You produce apps_rg targeting briefs only. Output plain "
-                            "markdown exactly as instructed. No JSON. No fences."
-                        ),
+                        "content": CONSUMER_BRIEF_STATIC_SYSTEM_PROMPT,
                     },
                     {"role": "user", "content": prompt},
                 ],

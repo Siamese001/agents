@@ -134,3 +134,17 @@ def test_recommend_sources_handles_native_list_and_stringified_sources():
         # Verify robotics-b has frequency 2 because it appeared in both r1 and r2
         freq_b = next(r["frequency_in_similar"] for r in recs if r["source"] == "https://example.com/robotics-b")
         assert freq_b == 2
+
+
+def test_embedding_deduplication_and_catalog_model_resolution():
+    """Wave 1 Tokenomics: InMemoryResearchStore deduplicates identical embeddings via SHA-256 cache and resolves model ID from catalog."""
+    store = InMemoryResearchStore()
+    model_id = store._resolve_embedding_model_id()
+    assert model_id == "BAAI/bge-m3"
+
+    emb1 = store._mock_embed("Enterprise AI platform architecture")
+    assert len(store._digest_embedding_cache) == 1
+    emb2 = store._mock_embed("Enterprise AI platform architecture")
+    assert emb1 == emb2
+    assert len(store._digest_embedding_cache) == 1
+

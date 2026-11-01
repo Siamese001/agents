@@ -10,7 +10,9 @@ Exposes:
 from __future__ import annotations
 
 import argparse
+import json
 import os
+from pathlib import Path
 import sys
 import time
 import uuid
@@ -21,7 +23,24 @@ from pydantic import BaseModel, Field
 import uvicorn
 
 
-app = FastAPI(title="Local Qwen 27B OpenAI-Compatible Server", version="1.0.0")
+def _load_local_catalog_section() -> dict[str, Any]:
+    catalog_path = Path(__file__).resolve().parents[2] / "config" / "model_catalog.json"
+    if catalog_path.is_file():
+        try:
+            catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
+            for section in catalog.values():
+                if isinstance(section, dict) and "local_model_id" in section:
+                    return section
+        except (OSError, ValueError, TypeError):
+            pass
+    return {}
+
+
+_LOCAL_CATALOG = _load_local_catalog_section()
+DEFAULT_LOCAL_MODEL_ID = str(_LOCAL_CATALOG.get("local_model_id") or "local-default-27b")
+DEFAULT_LOCAL_MLX_REPO = str(_LOCAL_CATALOG.get("local_27b_mlx") or "mlx-community/local-27b-4bit")
+
+app = FastAPI(title="Local 27B OpenAI-Compatible Server", version="1.0.0")
 
 # Global engine state
 _LOADED_MODEL = None
@@ -36,7 +55,7 @@ class ChatMessage(BaseModel):
 
 
 class ChatCompletionRequest(BaseModel):
-    model: str = "qwen-3.8-27b"
+    model: str = DEFAULT_LOCAL_MODEL_ID
     messages: List[ChatMessage]
     temperature: Optional[float] = 0.3
     max_tokens: Optional[int] = 4096
@@ -80,20 +99,14 @@ def list_models():
         "object": "list",
         "data": [
             {
-                "id": "qwen-3.8-27b",
+                "id": DEFAULT_LOCAL_MODEL_ID,
                 "object": "model",
                 "created": int(time.time()),
                 "owned_by": "local-m5",
                 "permission": [],
-                "root": "qwen-3.8-27b",
+                "root": DEFAULT_LOCAL_MODEL_ID,
                 "parent": None,
             },
-            {
-                "id": "qwen-2.5-27b",
-                "object": "model",
-                "created": int(time.time()),
-                "owned_by": "local-m5",
-            }
         ]
     }
 
@@ -199,14 +212,23 @@ def init_engine(model_path: Optional[str] = None):
     _ENGINE_TYPE = "mock"
 
 
+_HUB_SLUG = DEFAULT_LOCAL_MLX_REPO.replace("/", "--")
 DEFAULT_LOCAL_MODEL_PATH = (
-    os.getenv("LOCAL_QWEN_MODEL_PATH")
-    or "/Users/amitayer/.cache/huggingface/hub/models--mlx-community--Qwen3.8-27B-4bit/snapshots/3e6447f082e89cc7f0bc6e5441afd38dfce760ff"
+    os.getenv("LOCAL_M5_MODEL_PATH")
+    or str(
+        Path.home()
+        / ".cache"
+        / "huggingface"
+        / "hub"
+        / f"models--{_HUB_SLUG}"
+        / "snapshots"
+        / "3e6447f082e89cc7f0bc6e5441afd38dfce760ff"
+    )
 )
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Start local Qwen 27B inference server.")
+    parser = argparse.ArgumentParser(description="Start local 27B inference server.")
     parser.add_argument("--model-path", default=DEFAULT_LOCAL_MODEL_PATH, help="Path to local model weights")
     parser.add_argument("--port", type=int, default=8000, help="Port to listen on (default: 8000)")
     parser.add_argument("--host", default="127.0.0.1", help="Host to bind (default: 127.0.0.1)")

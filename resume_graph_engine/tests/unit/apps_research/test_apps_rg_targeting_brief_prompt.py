@@ -57,3 +57,40 @@ def test_format_research_findings_skips_empty() -> None:
     blob = format_research_findings({"overview": "x", "empty": ""})
     assert "### overview" in blob
     assert "empty" not in blob
+
+
+def test_extract_jd_text_enforces_max_chars_compaction() -> None:
+    oversized = "Enterprise AI Architecture " * 1000
+    compacted = extract_jd_text(jd_context={"content": oversized}, max_chars=12000)
+    assert len(compacted) == 12000
+    assert compacted.endswith("...")
+
+
+def test_gemini_synthesize_plain_places_static_system_prompt_prefix_first(monkeypatch) -> None:
+    from apps_research.engines.company_brief_engine import CompanyBriefEngine
+    from apps_research.integrations.provider_gateway import ApprovedProviderResult
+    from apps_research.prompt_assembly.consumer_briefs import CONSUMER_BRIEF_STATIC_SYSTEM_PROMPT
+
+    captured_messages = []
+
+    def fake_invoke(*, messages, max_completion_tokens, application_validator, client_factory=None):
+        captured_messages.extend(messages)
+        return ApprovedProviderResult(
+            output="# Company - Role briefing packet",
+            receipt={"observed_model": "gpt-5.6-terra"},
+        )
+
+    monkeypatch.setattr(
+        "apps_research.engines.company_brief_engine.invoke_openai_company_brief",
+        fake_invoke,
+    )
+    engine = CompanyBriefEngine()
+    out = engine._gemini_synthesize_plain(prompt="Dynamic user research payload")
+    assert out == "# Company - Role briefing packet"
+    assert len(captured_messages) == 2
+    assert captured_messages[0]["role"] == "system"
+    assert captured_messages[0]["content"] == CONSUMER_BRIEF_STATIC_SYSTEM_PROMPT
+    assert "INVARIANT GROUNDING, EXCLUSION & CACHE PREFIX RULES" in captured_messages[0]["content"]
+    assert captured_messages[1]["role"] == "user"
+    assert captured_messages[1]["content"] == "Dynamic user research payload"
+

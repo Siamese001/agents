@@ -61,6 +61,7 @@ class InMemoryResearchStore:
     def __init__(self) -> None:
         self._research: dict[str, dict[str, Any]] = {}
         self._embeddings: dict[str, list[float]] = {}
+        self._digest_embedding_cache: dict[str, list[float]] = {}
 
     @traces_execute(layer="L4_STATE")
     def add_research(
@@ -160,10 +161,36 @@ class InMemoryResearchStore:
 
         return sorted(results, key=lambda x: x.timestamp, reverse=True)[:limit]
 
+    @staticmethod
+    def _resolve_embedding_model_id() -> str:
+        """Resolve the embedding model identifier from canonical catalog or environment."""
+        import os
+        from pathlib import Path
+
+        env_model = os.environ.get("APPS_RESEARCH_EMBEDDING_MODEL", "").strip()
+        if env_model:
+            return env_model
+        catalog_path = Path(__file__).resolve().parents[2] / "config" / "model_catalog.json"
+        if catalog_path.is_file():
+            try:
+                catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
+                resolved = str((catalog.get("embedding") or {}).get("bge_m3") or "").strip()
+                if resolved:
+                    return resolved
+            except (OSError, ValueError, TypeError):
+                pass
+        return "default-embedding-v1"
+
     def _mock_embed(self, text: str) -> list[float]:
-        """Generate embedding from text. In production runtime, requires live embedding."""
+        """Generate embedding from text with SHA-256 content-digest deduplication."""
         import os
         import sys
+
+        normalized_text = text[:8000]
+        digest = hashlib.sha256(normalized_text.encode("utf-8")).hexdigest()
+        cached = self._digest_embedding_cache.get(digest)
+        if cached is not None:
+            return list(cached)
 
         is_test = bool(os.environ.get("PYTEST_CURRENT_TEST")) or ("pytest" in sys.modules) or (os.environ.get("APPS_RG_TEST_HARNESS") == "1")
         if not is_test:
@@ -172,14 +199,19 @@ class InMemoryResearchStore:
                 import openai
 
                 key = api_key("openai")
-                client = openai.OpenAI(api_key=key)
-                resp = client.embeddings.create(model="text-embedding-3-small", input=text[:8000])
-                return resp.data[0].embedding
+                client = openai.OpenAI(api_key=key, timeout=30.0, max_retries=2)
+                model_id = self._resolve_embedding_model_id()
+                resp = client.embeddings.create(model=model_id, input=normalized_text, timeout=30.0)
+                emb = list(resp.data[0].embedding)
+                self._digest_embedding_cache[digest] = emb
+                return list(emb)
             except Exception as exc:
                 raise RuntimeError(f"LIVE_EMBEDDING_REQUIRED: Failed to generate live embedding in production: {exc}") from exc
 
         hash_val = hashlib.sha256(text.encode()).hexdigest()
-        return [int(hash_val[i : i + 2], 16) / 255.0 for i in range(0, 20, 2)]
+        emb = [int(hash_val[i : i + 2], 16) / 255.0 for i in range(0, 20, 2)]
+        self._digest_embedding_cache[digest] = emb
+        return list(emb)
 
     def _cosine_similarity(self, a: list[float], b: list[float]) -> float:
         """Calculate cosine similarity."""

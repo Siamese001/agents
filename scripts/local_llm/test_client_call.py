@@ -2,6 +2,7 @@
 """Test harness demonstrating local Qwen 27B client call via infrastructure wrappers."""
 
 import asyncio
+import json
 import os
 import sys
 import time
@@ -14,9 +15,24 @@ if str(_REPO_ROOT) not in sys.path:
 from infrastructure.sdks_mcps.client_wrappers import create_local_openai_client
 
 
+def _resolve_local_model_id() -> str:
+    catalog_path = _REPO_ROOT / "config" / "model_catalog.json"
+    if catalog_path.is_file():
+        try:
+            catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
+            for section in catalog.values():
+                if isinstance(section, dict) and "local_model_id" in section:
+                    model_id = str(section.get("local_model_id") or "").strip()
+                    if model_id:
+                        return model_id
+        except (OSError, ValueError, TypeError):
+            pass
+    return "local-default-27b"
+
+
 async def test_narrative_generation():
     client = create_local_openai_client()
-    model = "qwen-3.8-27b"
+    model = _resolve_local_model_id()
     print(f"Connecting to local model endpoint: {client.base_url} (model: {model})")
     
     system_prompt = (
@@ -46,7 +62,7 @@ async def test_narrative_generation():
         return True
     except Exception as exc:
         print(f"Error calling local endpoint: {exc}")
-        print("Note: Ensure the local server is running with: python scripts/local_llm/serve_qwen_m5.py")
+        print("Note: Ensure the local inference server is running on the configured port.")
         return False
 
 
