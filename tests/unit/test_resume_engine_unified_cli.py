@@ -110,16 +110,13 @@ def test_resume_engine_json_preflight_failure_output(capsys: pytest.CaptureFixtu
 def test_resume_engine_route_hmac_env_injection() -> None:
     from apps_rg.__main__ import main
 
-    # 1. Without posture set: secrets are NOT automatically injected
+    # 1. Without posture set on read-only action: secrets are NOT automatically injected
     with mock.patch.dict(os.environ, {}, clear=False):
         os.environ.pop("APPS_RG_ROUTE_HMAC_SECRET", None)
         os.environ.pop("APPS_RG_ROUTE_HMAC_KEY_ID", None)
         os.environ.pop("APPS_RG_ROUTE_SIGNING_POSTURE", None)
 
-        try:
-            main(["--help"])
-        except SystemExit:
-            pass
+        assert main(["cache", "--json"]) == 0
 
         assert "APPS_RG_ROUTE_HMAC_SECRET" not in os.environ
         assert "APPS_RG_ROUTE_HMAC_KEY_ID" not in os.environ
@@ -129,10 +126,7 @@ def test_resume_engine_route_hmac_env_injection() -> None:
         os.environ.pop("APPS_RG_ROUTE_HMAC_SECRET", None)
         os.environ.pop("APPS_RG_ROUTE_HMAC_KEY_ID", None)
 
-        try:
-            main(["--help"])
-        except SystemExit:
-            pass
+        assert main(["cache", "--json"]) == 0
 
         secret = os.environ.get("APPS_RG_ROUTE_HMAC_SECRET")
         key_id = os.environ.get("APPS_RG_ROUTE_HMAC_KEY_ID")
@@ -141,28 +135,34 @@ def test_resume_engine_route_hmac_env_injection() -> None:
         assert os.environ.get("APPS_RG_ROUTE_SIGNING_POSTURE_APPLIED") == "ephemeral_dev"
 
 
-def test_resume_engine_console_script() -> None:
+def test_resume_engine_console_script(capsys: pytest.CaptureFixture[str]) -> None:
     """Verify resume-engine console script entry point executes and outputs unified CLI usage."""
     repo_root = Path(__file__).resolve().parents[2]
-    # Check if console script binary exists in virtualenv
     script_bin = Path(sys.executable).parent / "resume-engine"
-    if not script_bin.is_file():
-        pytest.skip(f"Console script {script_bin} not materialized in this virtualenv")
+    if script_bin.is_file():
+        env = os.environ.copy()
+        env["PYTHONPATH"] = f"{repo_root}:{repo_root / 'resume_graph_engine' / 'src'}:{env.get('PYTHONPATH', '')}"
+        res = subprocess.run(
+            [str(script_bin), "--help"],
+            cwd=str(repo_root),
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+        assert res.returncode == 0
+        stdout_text = res.stdout
+    else:
+        from resume_engine.cli import main as resume_cli_main
 
-    env = os.environ.copy()
-    env["PYTHONPATH"] = f"{repo_root}:{repo_root / 'resume_graph_engine' / 'src'}:{env.get('PYTHONPATH', '')}"
-    res = subprocess.run(
-        [str(script_bin), "--help"],
-        cwd=str(repo_root),
-        env=env,
-        capture_output=True,
-        text=True,
-        timeout=60,
-    )
-    assert res.returncode == 0
-    assert "usage: resume-engine" in res.stdout
+        with pytest.raises(SystemExit) as exc_info:
+            resume_cli_main(["--help"], prog="resume-engine")
+        assert exc_info.value.code == 0
+        stdout_text = capsys.readouterr().out
+
+    assert "usage: resume-engine" in stdout_text
     for subcmd in ("run", "eval", "show", "bootstrap", "patch-run", "preflight", "models", "cache"):
-        assert subcmd in res.stdout
+        assert subcmd in stdout_text
 
 
 def test_subcommands_help_pages() -> None:
