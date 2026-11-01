@@ -179,3 +179,74 @@ def test_validator_rejects_prompt_missing_consolidate_sidecar_marker(tmp_path: P
     assert any("--consolidate-sidecar" in v for v in result["violations"])
 
 
+def test_eight_pillar_cost_and_caching_audit_passes_on_live_repo() -> None:
+    """Verify the 8-pillar cost, multi-tier caching, and token budget auditor passes on live repo."""
+    from tools.cost_token_budget_auditor import (
+        MIN_REQUIRED_ROI_MULTIPLE,
+        compute_caching_roi_benchmark,
+        run_eight_pillar_cost_token_audit,
+    )
+
+    report = run_eight_pillar_cost_token_audit(repo_root=REPO_ROOT)
+    assert report["status"] == "PASS", f"Expected PASS, got gaps: {[p for p in report['pillars'] if p['gaps']]}"
+    assert report["is_clean"] is True
+    assert report["total_pillars"] == 8
+    assert report["pillars_passing"] == 8
+    assert report["total_gaps"] == 0
+
+    roi = compute_caching_roi_benchmark()
+    assert roi["roi_gate_passed"] is True
+    assert roi["roi_multiple"] >= MIN_REQUIRED_ROI_MULTIPLE
+    assert roi["token_savings_equivalent"] > 300_000
+
+    cost_prompt = (REPO_ROOT / "automations" / "prompts" / "agents_cost_token_budget_agent.md").read_text(
+        encoding="utf-8"
+    )
+    for surface in (
+        "anthropic_prompt_cache.py",
+        "anthropic_section_cache_payload.py",
+        "c02_semantic_cache_payload.py",
+        "semantic_cache_persistence_quarantine.py",
+        "cache_identity.py",
+        "briefing_cache.py",
+        "briefing_resolver.py",
+        "executive_summary_token_budget.py",
+        "zero_llm_qualification.py",
+        "model_token_governor.py",
+        "cost_token_budget_auditor.py",
+    ):
+        assert surface in cost_prompt, f"Missing caching/tokenomics surface '{surface}' in prompt spec"
+
+
+def test_eight_pillar_cost_auditor_detects_missing_caching_and_effort_drift(tmp_path: Path) -> None:
+    """Negative control: verify 8-pillar auditor flags effort drift and missing caching modules."""
+    from tools.cost_token_budget_auditor import run_eight_pillar_cost_token_audit
+
+    sandbox = tmp_path / "broken_cost_repo"
+    (sandbox / "config").mkdir(parents=True)
+    # Write a provider profile with over-pinned 'high' effort on section generation and wrong governor cap
+    (sandbox / "config" / "provider_profiles.yaml").write_text(
+        "model_pin_ownership:\n"
+        "  environment_model_override_allowed: true\n"
+        "profiles:\n"
+        "  external_openai_generator:\n"
+        "    model_by_section:\n"
+        "      slalom_narrative: gpt-5.6-luna\n"
+        "    effort_by_section:\n"
+        "      slalom_narrative: high\n"
+        "runtime_limits:\n"
+        "  model_token_governor:\n"
+        "    max_input_tokens_per_attempt: 999999\n"
+        "    max_reserved_tokens_per_run: 999999\n",
+        encoding="utf-8",
+    )
+
+    report = run_eight_pillar_cost_token_audit(repo_root=sandbox)
+    assert report["status"] == "ACTION_REQUIRED"
+    assert report["is_clean"] is False
+    assert report["total_gaps"] >= 7
+    p1_gaps = "\n".join(report["pillars"][0]["gaps"])
+    assert "environment_model_override_allowed: false" in p1_gaps
+    assert "exceeds 'low' compact schema generation tier" in p1_gaps
+
+

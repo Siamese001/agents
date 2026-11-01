@@ -20,7 +20,7 @@
 | **3/7** | **Stage III-A (Core E2E)** | `agents-outreach-resume-functionality` | `5 6 * * *` (`06:05 ET`) | `automations/prompts/agents_e2e_functionality_assurance_agent.md` | Outreach (`apps_lic`), Resume (`apps_rg`), and Research (`apps_research`) E2E pipelines |
 | **4/7** | **Stage III-B (Retrieval)** | `agents-research-retrieval-surface` | `15 6 * * *` (`06:15 ET`) | `automations/prompts/agents_research_retrieval_surface_agent.md` | `apps_research/` & `resume_graph_engine/` hybrid retrieval, chunking, provenance, cache parity |
 | **5/7** | **Stage III-C (Evaluation)** | `agents-evals-judge-assurance` | `30 6 * * *` (`06:30 ET`) | `automations/prompts/agents_evals_judge_assurance_agent.md` | `apps_eval/`, `tools/eval/`, `tools/lint_production_purity.py`, judge rubrics & golden datasets |
-| **6/7** | **Stage IV-A (Economics)** | `agents-cost-token-budget` | `45 6 * * *` (`06:45 ET`) | `automations/prompts/agents_cost_token_budget_agent.md` | `config/provider_profiles.yaml`, prompt caching, token budgets, $\text{ROI} \ge 2.5\times$ |
+| **6/7** | **Stage IV-A (Economics)** | `agents-cost-token-budget` | `45 6 * * *` (`06:45 ET`) | `automations/prompts/agents_cost_token_budget_agent.md` | 8-pillar tokenomics, Anthropic 3-breakpoint prompt caching, C0 semantic & briefing caches, token governors, $\text{ROI} \ge 2.5\times$ |
 | **7/7** | **Stage IV-B (Verification)** | `agents-testing-gaps-assurance` | `0 7 * * *` (`07:00 ET`) | `automations/prompts/agents_testing_gaps_assurance_agent.md` | `tests/`, critical path coverage gaps, Class A/B `--timeout=60` test assurance |
 
 ---
