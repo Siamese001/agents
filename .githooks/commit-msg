@@ -1,0 +1,18 @@
+#!/bin/sh
+# Commit-Msg Hook for Antigravity Conventional Commit Format
+set -e
+
+COMMIT_MSG_FILE="$1"
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT"
+
+MAIN_REPO="$(cd "$(git rev-parse --git-common-dir)/.." && pwd)"
+if [ -x "$REPO_ROOT/.venv/bin/python" ]; then
+    PYTHON_BIN="$REPO_ROOT/.venv/bin/python"
+elif [ -x "$MAIN_REPO/.venv/bin/python" ]; then
+    PYTHON_BIN="$MAIN_REPO/.venv/bin/python"
+else
+    PYTHON_BIN="python3"
+fi
+
+"$PYTHON_BIN" tools/lint_commit_message.py -f "$COMMIT_MSG_FILE"

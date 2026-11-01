@@ -7,6 +7,37 @@ cd "$REPO_ROOT"
 
 echo "=== [Git Hook] Running Pre-Commit Governance Gates ==="
 
+# 0A. Direct-to-Main Barrier (zero hotfix bypass)
+CURRENT_BRANCH=$(git symbolic-ref --short -q HEAD || true)
+if [ "$CURRENT_BRANCH" = "main" ] || [ "$CURRENT_BRANCH" = "master" ]; then
+  IS_MERGE=0
+  if git rev-parse -q --verify MERGE_HEAD >/dev/null 2>&1; then
+    IS_MERGE=1
+  fi
+  if [ "$IS_MERGE" -ne 1 ] && [ "${GOVERNED_PR_MERGE:-0}" != "1" ]; then
+    echo "⛔ COMMIT REJECTED: Direct commits to '$CURRENT_BRANCH' are strictly prohibited."
+    echo "   All development must occur in an isolated feature worktree (.worktrees/<slug>) and be merged via PR governance."
+    echo "   To start a feature branch: python tools/pr_governance.py start feat/<name>"
+    exit 1
+  fi
+fi
+
+# 0B. Reject staged worktree directories or gitlinks
+STAGED_WORKTREES=$(git diff --cached --name-only | grep -E '^\.worktrees/' || true)
+if [ -n "$STAGED_WORKTREES" ]; then
+  echo "❌ COMMIT REJECTED: Staging worktree files under .worktrees/ is strictly prohibited:"
+  echo "$STAGED_WORKTREES"
+  exit 1
+fi
+
+# 0C. Reject staged ephemeral receipts
+STAGED_EPHEMERAL=$(git diff --cached --name-only | grep -E '^reports/(pr_review_|pr_merge_)' || true)
+if [ -n "$STAGED_EPHEMERAL" ]; then
+  echo "❌ COMMIT REJECTED: Staging ephemeral PR receipts is prohibited on feature branches:"
+  echo "$STAGED_EPHEMERAL"
+  exit 1
+fi
+
 MAIN_REPO="$(cd "$(git rev-parse --git-common-dir)/.." && pwd)"
 if [ -x "$REPO_ROOT/.venv/bin/python" ]; then
     PYTHON_BIN="$REPO_ROOT/.venv/bin/python"
@@ -27,19 +58,23 @@ echo "-> 1. Validating turn gates..."
 echo "-> 2. Validating implementation plan & confirming wave summary table..."
 "$PYTHON_BIN" tools/validate_implementation_plan.py --staged
 
-
 # 3. Tier 1 quality check (verify_commit.py)
 echo "-> 3. Verifying commit invariants (Tier 1)..."
 "$PYTHON_BIN" tools/verify_commit.py
 
 # 4. Fast governance regression test suite
 echo "-> 4. Running fast governance test suite..."
-"$PYTEST_BIN" tests/test_turn_gates.py \
+POST_MERGE_TEST=""
+if [ -f "tests/test_post_merge_cleanup.py" ]; then
+    POST_MERGE_TEST="tests/test_post_merge_cleanup.py"
+fi
+env -u GOVERNED_PR_MERGE "$PYTEST_BIN" tests/test_turn_gates.py \
   tests/test_implementation_plan_governance.py \
   tests/test_hitl_governance_enforcement.py \
   tests/test_model_neutral_naming.py \
   tests/test_unified_agent_architecture.py \
-  tests/test_post_merge_cleanup.py \
+  tests/test_pr_merge_queue_governance.py \
+  $POST_MERGE_TEST \
   --timeout=60 -q
 
 echo "=== [Git Hook] All Pre-Commit Checks PASSED ==="

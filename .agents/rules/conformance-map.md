@@ -130,12 +130,17 @@ Traces every `AGENTS.md` section to enforceable rules, skills, hooks, tools, and
 | Type | Path | Coverage |
 | :--- | :--- | :--- |
 | Config | `core.hooksPath` → `.githooks` | Version-controlled deterministic local Git hooks |
-| Hook | `.githooks/pre-commit` | Pre-commit gate running turn gates, staged plans, commit invariants, tests |
+| Hook | `.githooks/pre-commit` | Direct-to-main block (`GOVERNED_PR_MERGE=1`), turn gates, staged plans, commit invariants, tests |
+| Hook | `.githooks/pre-merge-commit` | Pre-merge receipt verification (`tools/verify_merge_receipt.py`) |
 | Hook | `.githooks/pre-push` | Pre-push gate verifying all turn gates, active plans, commit invariants |
 | Hook | `.githooks/post-merge` | Post-merge gate automatically pruning merged worktrees and local branches |
+| Tool | `tools/pr_governance.py` | Governed PR queue, trunk reservation lock, catch-up under lock, worktree lifecycle |
+| Tool | `tools/verify_post_merge.py` | Two-parent merge certification and out-of-tree receipt verification |
 | Tool | `tools/prune_merged_chat_worktrees.py` | Automated ancestry-verified worktree and branch pruning tool |
 | Tool | `tools/install_githooks.py` | Automated installation and executable permission tool |
+| Rule | `.agents/rules/pr-governance.md` | Two-stage PR lifecycle, FIFO queue lock, and moving-target prevention |
 | Rule | `.agents/rules/git-branch-per-chat.md` | Mandatory post-PR local worktree and feature branch deletion |
+| Test | `tests/test_pr_merge_queue_governance.py` | Trunk lock, FIFO queue, disjoint catch-up, merge receipt, and hook tests |
 
 ### §"Adversarial Red-Team & Defense"
 | Type | Path | Coverage |

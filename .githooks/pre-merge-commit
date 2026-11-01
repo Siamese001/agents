@@ -1,0 +1,20 @@
+#!/bin/sh
+# Pre-Merge Commit Hook for Antigravity PR Governance
+set -e
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT"
+
+echo "=== [Git Hook] Running Pre-Merge-Commit Governance Gates ==="
+
+MAIN_REPO="$(cd "$(git rev-parse --git-common-dir)/.." && pwd)"
+if [ -x "$REPO_ROOT/.venv/bin/python" ]; then
+    PYTHON_BIN="$REPO_ROOT/.venv/bin/python"
+elif [ -x "$MAIN_REPO/.venv/bin/python" ]; then
+    PYTHON_BIN="$MAIN_REPO/.venv/bin/python"
+else
+    PYTHON_BIN="python3"
+fi
+
+"$PYTHON_BIN" tools/verify_merge_receipt.py --root "$REPO_ROOT"
+echo "=== [Git Hook] Pre-Merge-Commit Receipt Verification PASSED ==="
