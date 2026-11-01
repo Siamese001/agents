@@ -32,9 +32,9 @@ Every `agents_*_agent.md` specification inherits and enforces the 12 mandatory c
 - **`C01` — Trusted Launch & Scope Boundary**:
   - `trust_level: workspace_trusted`, `sandbox_mode: workspace-write`, `network_access: disabled`.
   - Allowed write paths: `outreach_engine/`, `resume_engine/`, `resume_graph_engine/`, `apps_research/`, `apps_eval/`, `infrastructure/`, `tools/`, `tests/`, `config/`, `plans/`, `artifacts/sidecar_runs/`.
-- **`C02` — Mandatory Phase 0 Isolated Worktree Provisioning (`Step 0.1`)**:
-  - Every run must create a fresh worktree off local `main` before any inspection or file write:
-    `git worktree add .worktrees/<branch_slug> -b <branch_name> main`
+- **`C02` — Mandatory Phase 0 Single-Worktree Consolidation (`Step 0.1`)**:
+  - Every run must deduplicate any clean platform-spawned chat worktree (preserving the session CWD directory stub) and provision a single canonical worktree off local `main` before any inspection or file write:
+    `python3 "${PRIMARY_REPO_ROOT}/tools/prune_merged_chat_worktrees.py" --repo-root "${PRIMARY_REPO_ROOT}" --consolidate-sidecar --worktree-dir "${WORKTREE_DIR}" --branch "${BRANCH_NAME}"`
   - Record `PRE_STATE_SHA256` (`git rev-parse HEAD`) in `manifest.json`.
 - **`C03` — Dual-Mode Execution & Ephemeral Scheduled Worktrees (`INV-WT-EPHEMERAL-SCHEDULED`)**:
   - **`MODE: scheduled`** (`--non-interactive` or `CI=true`): Execute Phase 0, Phase 1/1.5 read-only audits, and **Phase 2 mandatory wave-based remediation plan generation** (`plans/<branch-slug>-<6hex>.md` + `<run_dir>/implementation_plan.md`), validate the plan via `python3 tools/validate_implementation_plan.py --file plans/<branch-slug>-<6hex>.md`, copy durable artifacts (`manifest.json`, `audit_report.json`, `implementation_plan.md`) to `<PRIMARY_REPO_ROOT>/artifacts/sidecar_runs/<agent_slug>/<run_id>/`, prune the ephemeral worktree and branch (`git worktree remove --force`, `git branch -D`), and exit `COMPLETE` (0 findings) or `OPERATOR_INPUT_REQUIRED` ($\ge 1$ finding). **Zero code mutations in scheduled mode.**

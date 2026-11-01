@@ -35,7 +35,7 @@ export WORKTREE_DIR="${PRIMARY_REPO_ROOT}/.worktrees/${BRANCH_SLUG}"
 export RUN_DIR="${WORKTREE_DIR}/artifacts/sidecar_runs/agents_ssot_boundary/${RUN_TS}"
 
 git -C "${PRIMARY_REPO_ROOT}" worktree prune
-git -C "${PRIMARY_REPO_ROOT}" worktree add "${WORKTREE_DIR}" -b "${BRANCH_NAME}" main
+python3 "${PRIMARY_REPO_ROOT}/tools/prune_merged_chat_worktrees.py" --repo-root "${PRIMARY_REPO_ROOT}" --consolidate-sidecar --worktree-dir "${WORKTREE_DIR}" --branch "${BRANCH_NAME}"
 mkdir -p "${RUN_DIR}" "${WORKTREE_DIR}/plans"
 export PRE_STATE_SHA256="$(git -C "${WORKTREE_DIR}" rev-parse HEAD)"
 ```

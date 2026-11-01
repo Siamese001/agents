@@ -242,6 +242,49 @@ class PostMergeCleanupTests(unittest.TestCase):
             self.assertEqual(len(externals), 1)
             self.assertEqual(Path(externals[0]["path"]).resolve(), raw_ext.resolve())
 
+    def test_consolidate_single_sidecar_worktree_deduplicates_platform_chat_branch_and_preserves_cwd_stub(self) -> None:
+        """Verify Phase 0 consolidation removes duplicate platform chat branch and keeps CWD directory stub."""
+        from tools.prune_merged_chat_worktrees import consolidate_single_sidecar_worktree
+
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp).resolve()
+            repo = self._init_repo_with_main(base)
+
+            # Simulate platform-provisioned chat worktree (.gemini/antigravity/worktrees/agents/implement_token_budget_agent)
+            platform_wt = base / ".gemini" / "antigravity" / "worktrees" / "agents" / "implement_token_budget_agent"
+            platform_wt.parent.mkdir(parents=True, exist_ok=True)
+            _git(["worktree", "add", "-b", "implement_token_budget_agent", str(platform_wt), "main"], cwd=repo)
+
+            # Consolidate into single canonical sidecar worktree
+            target_wt = repo / ".worktrees" / "agents-cost-token-budget-20261101T130343Z"
+            branch_name = "automation/agents-cost-token-budget-20261101T130343Z"
+            res = consolidate_single_sidecar_worktree(
+                repo_root=repo,
+                worktree_dir=target_wt,
+                branch_name=branch_name,
+                target_ref="main",
+                caller_cwd=platform_wt,
+            )
+
+            self.assertEqual(res["status"], "CONSOLIDATED")
+            self.assertIn(str(platform_wt), res["deduplicated_worktrees"])
+            self.assertIn("implement_token_budget_agent", res["deduplicated_branches"])
+            self.assertIn(str(platform_wt), res["preserved_cwd_stubs"])
+
+            # Verify the shell CWD directory stub still exists on disk (no `no such directory` failure)
+            self.assertTrue(platform_wt.is_dir(), "Expected empty CWD stub directory to be preserved on disk")
+            self.assertFalse((platform_wt / ".git").exists(), "Expected git worktree metadata to be removed from stub")
+
+            # Verify strictly 1 secondary worktree branch exists in git
+            active_wts = list_worktrees(repo)
+            self.assertEqual(len(active_wts), 2)  # primary main + single canonical sidecar worktree
+            wt_branches = [w.get("branch") for w in active_wts]
+            self.assertEqual(wt_branches, ["main", branch_name])
+
+            all_branches = _git(["branch", "--format=%(refname:short)"], cwd=repo).stdout.splitlines()
+            self.assertNotIn("implement_token_budget_agent", all_branches)
+            self.assertIn(branch_name, all_branches)
+
 
 if __name__ == "__main__":
     unittest.main()

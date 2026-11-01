@@ -135,6 +135,42 @@ def find_external_worktrees(root: Path, ignore_review_artifacts: bool = True) ->
     return external
 
 
+def deduplicate_external_chat_worktrees(
+    root: Path,
+    base_branch: str = "main",
+    preserve_cwd: Optional[Path] = None,
+) -> list[str]:
+    """Removes clean external chat worktrees merged into base_branch while preserving CWD stub directories."""
+    from tools.prune_merged_chat_worktrees import (
+        _preserve_cwd_stub_if_needed,
+        get_merged_branches,
+        is_worktree_clean,
+    )
+
+    resolved_root = root.resolve()
+    merged = get_merged_branches(resolved_root, target_ref=base_branch)
+    removed_branches: list[str] = []
+
+    for ext in find_external_worktrees(resolved_root, ignore_review_artifacts=True):
+        wt_path = Path(str(ext["path"])).resolve()
+        branch = str(ext.get("branch") or "")
+        if not branch or branch in ("main", "master", "HEAD", "detached", "unknown"):
+            continue
+        if branch not in merged or ext.get("dirty") or not is_worktree_clean(wt_path):
+            continue
+        if _remove_worktree_files(wt_path, force=False, root=resolved_root):
+            _preserve_cwd_stub_if_needed(
+                wt_path,
+                resolved_root,
+                preserve_cwd=preserve_cwd or Path.cwd(),
+                force_stub_for_antigravity=True,
+            )
+            with contextlib.suppress(Exception):
+                run_git(["branch", "-D", branch], cwd=resolved_root, check=True)
+                removed_branches.append(branch)
+    return removed_branches
+
+
 def provision_isolated_worktree(
     root: Path,
     worktree_dir: Path,
@@ -152,6 +188,7 @@ def provision_isolated_worktree(
         )
 
     worktree_dir.parent.mkdir(parents=True, exist_ok=True)
+    deduplicate_external_chat_worktrees(root, base_branch=base_branch)
 
     try:
         branches = run_git(

@@ -91,6 +91,7 @@ REQUIRED_SHARED_CONTRACT_MARKERS: tuple[str, ...] = (
     "INV-RUNTIME-PROOF-5POINT",
     "INV-AUTOMATION-PERSISTENT-LEARNING-LOOP",
     "validate_implementation_plan.py",
+    "--consolidate-sidecar",
     "Dimension Findings Table",
 )
 
@@ -102,6 +103,7 @@ REQUIRED_PROMPT_PARITY_MARKERS: tuple[str, ...] = (
     "INV-AUTOMATION-PERSISTENT-LEARNING-LOOP",
     "Phase 0",
     "Step 0.1",
+    "--consolidate-sidecar",
     "Phase 1",
     "Phase 1.5",
     "Phase 2",
