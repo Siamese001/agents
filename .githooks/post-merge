@@ -11,6 +11,11 @@ if [ "$CURRENT_BRANCH" != "main" ] && [ "$CURRENT_BRANCH" != "master" ]; then
     exit 0
 fi
 
+if [ "${GOVERNED_PR_MERGE:-0}" = "1" ]; then
+    echo "=== [Git Hook] Post-Merge Cleanup Complete ==="
+    exit 0
+fi
+
 MAIN_REPO="$(cd "$(git rev-parse --git-common-dir)/.." && pwd)"
 if [ -x "$REPO_ROOT/.venv/bin/python" ]; then
     PYTHON_BIN="$REPO_ROOT/.venv/bin/python"

@@ -122,6 +122,7 @@ Procedural MCP / Notion / ledgers: Root `.mcp.json`, `.agents/`, and `tools/` co
 | Lifecycle Hooks | `.agents/hooks.json` | Native Antigravity lifecycle hook registry (pre/post-tool guards) |
 | Turn-Gate Validator | `tools/validate_turn_gates.py` | Mechanical pre-turn & post-turn gate validator |
 | Tier 1 Pre-Commit Gate | `tools/verify_commit.py` | Deterministic file budgets, layer imports, model neutrality, secrets |
+| Governed PR Queue & Trunk Lock | `tools/pr_governance.py` + `tools/rebase_orchestrator.py` | Serialized FIFO PR queue, `.git/governed_merge_queue.lock`, catch-up under lock, and `--no-ff` merge to `main` |
 | Deprecated compatibility shims | `docs/archive/` and `_legacy_*` shims | Non-authoritative compatibility/archive only |
 
 **Dedup:** Do not restate always-on invariants in compatibility stubs or hook reminders. Active procedure lives in `AGENTS.md` and `.agents/rules/*.md`.
@@ -140,6 +141,7 @@ Google Antigravity is the primary execution surface for this repository. Repo-ow
 - Workspace runtime boundaries and path containment policies live in `.antigravity/runtime-boundary.json`.
 - Plans are disk-only under `plans/<name>-<6hex>.md`.
 - **Sidecar Automation Agents (`INV-REPO-SEPARATION-AGENTS-ONLY`)**: The 7 `agents-*` sidecars in `/Users/amitayer/.gemini/config/sidecars/agents-*/sidecar.json` dereference `automations/prompts/agents_*_agent.md` (contract: `automations/prompts/_shared_governance_contract.md`, routing: `.agents/rules/sidecar-automation-routing.md`, validator: `python tools/validate_sidecar_separation.py`) and are strictly isolated from `/Users/amitayer/Git/decision-intelligence-engine`.
+- **Governed PR Queue & Trunk Reservation Lock**: All feature branches merge into local `main` via `python tools/pr_governance.py [start|sync|review|merge|promote|submit|queue|finish]` under `.git/governed_merge_queue.lock` and `.git/governed_merge_queue_waiters.json` (rule: `.agents/rules/pr-governance.md`). Direct commits to `main` are blocked by `.githooks/pre-commit`; queued branches automatically catch up onto `main` under the trunk lock so `local main` is never a moving target.
 - **Worktree & Branch Post-PR Cleanup**: Following any PR merge into local `main`, the associated local worktree and its feature branch must be cleanly pruned (`git worktree remove <path>` and `git branch -d <branch>`) to maintain zero branch drift and prevent stale worktree accumulation.
 
 ## Output Brevity & Word Budget Invariant
