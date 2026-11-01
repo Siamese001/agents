@@ -57,7 +57,7 @@ Write `${RUN_DIR}/manifest.json` recording `agent_id`, `run_id`, `mode`, `pre_st
 6. **Pillar 6 — Cross-Repository Isolation Verification**: Run `python3 tools/validate_sidecar_separation.py --json` to confirm zero namespace, cron, or path drift.
 
 ### Phase 1.5: Mandatory Executable Forensic Scanner Commands
-Execute the following bounded read-only scanner in `${WORKTREE_DIR}` (`timeout <= 60s`):
+Execute the bounded 6-pillar scanner CLI `python3 tools/storage_worktree_hygiene.py --json` (or the inline script below) in `${WORKTREE_DIR}` (`timeout <= 60s`):
 
 ```bash
 python3 - <<'PY'

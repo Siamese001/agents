@@ -113,3 +113,52 @@ def test_validator_rejects_prompt_missing_wave_plan_mandate(tmp_path: Path) -> N
     result = validate_sidecar_separation(repo_root=fake_repo, sidecars_root=DEFAULT_SIDECARS_ROOT)
     assert result["status"] == "FAIL"
     assert any("UNCONDITIONAL_WAVE_PLAN_MANDATE" in v for v in result["violations"])
+
+
+def test_storage_worktree_hygiene_six_pillar_audit_and_sqlite_wal_remediation(tmp_path: Path) -> None:
+    """Verify 6-pillar storage/worktree hygiene scanner transitions SQLite DBs to WAL and prunes stale locks."""
+    import os
+    import sqlite3
+    import subprocess
+    import time
+    from tools.storage_worktree_hygiene import run_six_pillar_hygiene_audit
+
+    sandbox = tmp_path / "agents_sandbox"
+    (sandbox / "artifacts" / "governance").mkdir(parents=True)
+    (sandbox / "automations" / "prompts").mkdir(parents=True)
+    for md_file in (REPO_ROOT / "automations" / "prompts").glob("*.md"):
+        (sandbox / "automations" / "prompts" / md_file.name).write_text(
+            md_file.read_text(encoding="utf-8"),
+            encoding="utf-8",
+        )
+
+    subprocess.run(["git", "init", "-b", "main", str(sandbox)], check=True, capture_output=True, timeout=30)
+
+    db_path = sandbox / "artifacts" / "governance" / "hitl_decisions.sqlite"
+    conn = sqlite3.connect(str(db_path), timeout=10)
+    conn.execute("PRAGMA journal_mode=DELETE;")
+    conn.execute("CREATE TABLE t (id INTEGER PRIMARY KEY, val TEXT);")
+    conn.execute("INSERT INTO t (val) VALUES ('a');")
+    conn.commit()
+    conn.close()
+
+    stale_tmp = sandbox / "orphaned_scratch.tmp"
+    stale_tmp.write_text("stale", encoding="utf-8")
+    old_ts = time.time() - 90000
+    os.utime(stale_tmp, (old_ts, old_ts))
+
+    # Audit before remediation detects DELETE journal mode and stale .tmp file
+    pre_audit = run_six_pillar_hygiene_audit(repo_root=sandbox, sidecars_root=DEFAULT_SIDECARS_ROOT, remediate=False)
+    assert pre_audit["pillar_status"]["pillar_2_sqlite_integrity_wal"] == "FINDINGS"
+    assert pre_audit["pillar_status"]["pillar_5_stale_locks_temps"] == "FINDINGS"
+    assert "orphaned_scratch.tmp" in pre_audit["stale_files"]
+
+    # Remediation transitions SQLite DB to WAL, checkpoints it, and removes stale .tmp file
+    post_audit = run_six_pillar_hygiene_audit(repo_root=sandbox, sidecars_root=DEFAULT_SIDECARS_ROOT, remediate=True)
+    assert post_audit["status"] == "PASS"
+    assert post_audit["is_clean"] is True
+    assert post_audit["dbs"][0]["journal_mode"] == "wal"
+    assert post_audit["dbs"][0]["integrity"] == "ok"
+    assert post_audit["stale_files"] == []
+    assert not stale_tmp.exists()
+
