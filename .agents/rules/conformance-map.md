@@ -84,9 +84,10 @@ Traces every `AGENTS.md` section to enforceable rules, skills, hooks, tools, and
 ### §"Rules & Skills SSOT"
 | Type | Path | Coverage |
 | :--- | :--- | :--- |
+| Policy Registry | `config/governance/policy_registry.yaml` | Machine-readable SSOT for quantitative, structural, and lifecycle invariants |
 | Rules | `.agents/rules/*.md` | Active governance rules |
-| Skills | `.agents/skills/*/SKILL.md` | Reusable procedural adapters |
-| Hook | `.agents/hooks.json` | Native Antigravity lifecycle hook registry |
+| Skills | `.agents/skills/*/SKILL.md` | Reusable procedural adapters (audited by pre-turn skills context budget gate) |
+| Hook | `.agents/hooks.json` | Native Antigravity lifecycle hook registry (9 active guards) |
 | Tool | `tools/validate_turn_gates.py` | Mechanical pre-turn & post-turn turn gate validator |
 | Tool | `tools/verify_commit.py` | Tier 1 structural pre-commit gate |
 
@@ -95,7 +96,8 @@ Traces every `AGENTS.md` section to enforceable rules, skills, hooks, tools, and
 | :--- | :--- | :--- |
 | Rule | `.agents/rules/hitl-decisions.md` | Atomic presentation, 20% calibrated margin rule, multi-factor confidence, synthetic firewall |
 | Tool | `tools/hitl_governance.py` | Calibrated margin evaluator, multi-factor confidence model, SQLite persistent store |
-| Hook | `.agents/hooks.json` → `agents-hitl-atomic-guard` | Pre-tool check on ask_question |
+| Hook | `.agents/hooks.json` → `agents-hitl-atomic-guard` | PreToolUse (`pre_ask_question`), PostToolUse (`post_ask_question`), PostInvocation (`post_invocation`) |
+| Hook | `.agents/hooks.json` → `agents-main-worktree-write-guard` | PreToolUse (`pre_file_write`) enforcing primary main-worktree isolation and layman artifact guard |
 | Hook | `.agents/hooks.json` → `agents-model-registry-conformance-guard` | Pre-tool check verifying model tokens resolve to config/provider_profiles.yaml |
 | Test | `tests/test_hitl_governance_enforcement.py` | Unit tests for margin calculation, persistent store, and origin validation |
 

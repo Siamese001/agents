@@ -281,6 +281,173 @@ Build core foundation.
         data = json.loads(res.stdout.strip())
         self.assertEqual(data["decision"], "allow")
 
+    def test_pre_ask_question_blocks_bundled_questions(self) -> None:
+        """pre_ask_question must deny multi-question batched payloads."""
+        payload = {
+            "toolCall": {
+                "name": "ask_question",
+                "args": {
+                    "questions": [
+                        {"question": "First choice?", "options": ["Option A (70%)", "Option B (60%)"]},
+                        {"question": "Second choice?", "options": ["Option X (70%)", "Option Y (60%)"]},
+                    ]
+                },
+            }
+        }
+        res = subprocess.run(
+            [sys.executable, "tools/hook_dispatch.py", "--hook", "pre_ask_question"],
+            input=json.dumps(payload),
+            capture_output=True,
+            text=True,
+            cwd=ROOT,
+            timeout=10,
+        )
+        self.assertEqual(res.returncode, 1)
+        data = json.loads(res.stdout.strip())
+        self.assertEqual(data["decision"], "deny")
+        self.assertIn("HITL_VIOLATION_BULK_DECISION", data["reason"])
+
+    def test_pre_ask_question_enforces_margin_bypass_when_spread_exceeds_20(self) -> None:
+        """pre_ask_question must deny non-mandatory questions with spread > 20% and top >= 65%."""
+        payload = {
+            "toolCall": {
+                "name": "ask_question",
+                "args": {
+                    "questions": [
+                        {
+                            "question": "Which storage caching approach should we use?",
+                            "options": [
+                                "(Recommended) Memory cache (Confidence: HIGH (88%))",
+                                "Disk cache fallback (Confidence: LOW (40%))",
+                            ],
+                        }
+                    ]
+                },
+            }
+        }
+        res = subprocess.run(
+            [sys.executable, "tools/hook_dispatch.py", "--hook", "pre_ask_question"],
+            input=json.dumps(payload),
+            capture_output=True,
+            text=True,
+            cwd=ROOT,
+            timeout=10,
+        )
+        self.assertEqual(res.returncode, 1)
+        data = json.loads(res.stdout.strip())
+        self.assertEqual(data["decision"], "deny")
+        self.assertIn("HITL_MARGIN_BYPASS_REQUIRED", data["reason"])
+
+    def test_pre_ask_question_allows_ambiguous_or_mandatory_questions(self) -> None:
+        """pre_ask_question must allow questions with <= 20% spread or mandatory merge authorization."""
+        ambiguous_payload = {
+            "toolCall": {
+                "name": "ask_question",
+                "args": {
+                    "questions": [
+                        {
+                            "question": "Which retry policy should we apply?",
+                            "options": [
+                                "(Recommended) Exponential backoff (Confidence: MEDIUM (68%))",
+                                "Fixed interval retry (Confidence: MEDIUM (55%))",
+                            ],
+                        }
+                    ]
+                },
+            }
+        }
+        res = subprocess.run(
+            [sys.executable, "tools/hook_dispatch.py", "--hook", "pre_ask_question"],
+            input=json.dumps(ambiguous_payload),
+            capture_output=True,
+            text=True,
+            cwd=ROOT,
+            timeout=10,
+        )
+        self.assertEqual(res.returncode, 0)
+        self.assertEqual(json.loads(res.stdout.strip())["decision"], "allow")
+
+    def test_post_ask_question_records_operator_decision(self) -> None:
+        """post_ask_question must persist operator answers into HITLDecisionStore."""
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_file = Path(tmpdir) / "hitl.sqlite"
+            payload = {
+                "toolCall": {
+                    "name": "ask_question",
+                    "args": {
+                        "questions": [
+                            {
+                                "question": "Approve merge of feature branch into local main?",
+                                "options": [
+                                    "(Recommended) Approve merge (Confidence: HIGH (92%))",
+                                    "Hold merge (Confidence: LOW (25%))",
+                                ],
+                            }
+                        ]
+                    },
+                },
+                "toolResult": "A1: (Recommended) Approve merge (Confidence: HIGH (92%))",
+            }
+            env = dict(**__import__("os").environ, HITL_STORE_PATH=str(db_file))
+            res = subprocess.run(
+                [sys.executable, "tools/hook_dispatch.py", "--hook", "post_ask_question"],
+                input=json.dumps(payload),
+                capture_output=True,
+                text=True,
+                cwd=ROOT,
+                env=env,
+                timeout=10,
+            )
+            self.assertEqual(res.returncode, 0)
+            out = json.loads(res.stdout.strip())
+            self.assertEqual(out["status"], "STORED")
+            self.assertEqual(out["category"], "pr_merge_authorization")
+            self.assertEqual(out["operator_action"], "APPROVED")
+
+    def test_pre_subagent_delegation_validates_contract(self) -> None:
+        """pre_subagent_delegation must reject incomplete 10-field delegation contracts."""
+        bad_payload = {
+            "toolCall": {
+                "name": "invoke_subagent",
+                "args": {
+                    "delegation_contract": {
+                        "task_id": "t1",
+                        "objective": "Missing fields",
+                    }
+                },
+            }
+        }
+        res = subprocess.run(
+            [sys.executable, "tools/hook_dispatch.py", "--hook", "pre_subagent_delegation"],
+            input=json.dumps(bad_payload),
+            capture_output=True,
+            text=True,
+            cwd=ROOT,
+            timeout=10,
+        )
+        self.assertEqual(res.returncode, 1)
+        self.assertEqual(json.loads(res.stdout.strip())["decision"], "deny")
+
+    def test_post_invocation_intercepts_disjunctive_prose_and_unpromoted_edits(self) -> None:
+        """post_invocation must emit force_continue when turn ends with disjunctive fence-sitting or unpromoted edits."""
+        disjunctive_payload = {
+            "candidate_response": "Ready for next direction: we can address the caching layer, or proceed with testing."
+        }
+        res = subprocess.run(
+            [sys.executable, "tools/hook_dispatch.py", "--hook", "post_invocation"],
+            input=json.dumps(disjunctive_payload),
+            capture_output=True,
+            text=True,
+            cwd=ROOT,
+            timeout=10,
+        )
+        self.assertEqual(res.returncode, 0)
+        data = json.loads(res.stdout.strip())
+        self.assertEqual(data.get("terminationBehavior"), "force_continue")
+        self.assertTrue(len(data.get("injectSteps", [])) > 0)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -214,6 +214,39 @@ Wave 1 completed cleanly!
         result = validate_post_turn_gate(repo_root=ROOT, candidate_response=plain_english_response)
         self.assertEqual(result["status"], "PASS")
 
+    def test_pre_turn_gate_verifies_policy_registry_and_skills_budget(self) -> None:
+        """Verify pre-turn gate checks canonical policy_registry.yaml and skills token budget."""
+        result = validate_pre_turn_gate(ROOT)
+        self.assertEqual(result["checks"]["policy_registry"]["status"], "PASS")
+        self.assertGreaterEqual(result["checks"]["policy_registry"]["policy_count"], 10)
+        self.assertEqual(result["checks"]["skills_budget"]["status"], "PASS")
+        self.assertLessEqual(
+            result["checks"]["skills_budget"]["tokens"],
+            result["checks"]["skills_budget"]["max_tokens"],
+        )
+
+    def test_post_turn_gate_rejects_disjunctive_fence_sitting_prose(self) -> None:
+        """Verify post-turn gate fails when response ends with disjunctive fence-sitting prose."""
+        fence_sitting = "The update is ready. Would you like me to run the full check or skip to the next item?"
+        result = validate_post_turn_gate(
+            repo_root=ROOT,
+            candidate_response=fence_sitting,
+            check_layman_jargon=False,
+        )
+        self.assertEqual(result["status"], "FAIL")
+        self.assertEqual(result["checks"]["decisive_recommendation_gate"]["status"], "FAIL")
+
+    def test_post_turn_gate_rejects_responses_exceeding_300_words(self) -> None:
+        """Verify post-turn gate enforces the 300-word ceiling."""
+        overlong = " ".join(["clear"] * 310)
+        result = validate_post_turn_gate(
+            repo_root=ROOT,
+            candidate_response=overlong,
+            check_layman_jargon=False,
+        )
+        self.assertEqual(result["status"], "FAIL")
+        self.assertEqual(result["checks"]["word_budget_gate"]["status"], "FAIL")
+
 
 if __name__ == "__main__":
     unittest.main()

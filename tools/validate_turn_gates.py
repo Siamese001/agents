@@ -177,12 +177,116 @@ def validate_pre_turn_gate(repo_root: Path | None = None) -> dict[str, Any]:
         checks["implementation_plan"] = {"status": "FAIL", "error": str(exc)}
         issues.append(f"Failed validating implementation plan: {exc}")
 
+    # Check 8: Canonical Policy Registry (SSOT) integrity
+    policy_check = validate_policy_registry(root)
+    checks["policy_registry"] = policy_check
+    if policy_check["status"] != "PASS":
+        issues.extend(policy_check.get("issues", []))
+
+    # Check 9: Workspace Skills Context Budget
+    skills_check = audit_skills_context_budget(root)
+    checks["skills_budget"] = skills_check
+    if skills_check["status"] != "PASS":
+        issues.extend(skills_check.get("issues", []))
+
     overall_status = "PASS" if not issues else "FAIL"
     return {
         "gate": "PRE_TURN",
         "status": overall_status,
         "issues": issues,
         "checks": checks,
+    }
+
+
+def load_policy_registry(repo_root: Path | None = None) -> dict[str, dict[str, Any]]:
+    """Load canonical governance policy registry entries by policy ID."""
+    root = Path(repo_root or ROOT).resolve()
+    registry_path = root / "config" / "governance" / "policy_registry.yaml"
+    if not registry_path.is_file():
+        return {}
+    try:
+        import yaml  # type: ignore
+
+        raw = yaml.safe_load(registry_path.read_text(encoding="utf-8"))
+        if isinstance(raw, dict) and isinstance(raw.get("policies"), list):
+            return {
+                str(p["id"]): p
+                for p in raw["policies"]
+                if isinstance(p, dict) and p.get("id")
+            }
+    except Exception:  # guardian: allow-silent-swallow -- fallback if yaml unavailable
+        pass
+    return {}
+
+
+def validate_policy_registry(repo_root: Path | None = None) -> dict[str, Any]:
+    """Validate presence and completeness of config/governance/policy_registry.yaml."""
+    root = Path(repo_root or ROOT).resolve()
+    registry_path = root / "config" / "governance" / "policy_registry.yaml"
+    if not registry_path.is_file():
+        return {
+            "status": "FAIL",
+            "policy_count": 0,
+            "issues": [f"Canonical policy registry missing: {registry_path}"],
+        }
+    policies = load_policy_registry(root)
+    required_ids = (
+        "INV-BUDGET-FILE-LINES",
+        "INV-AGENTS-MD-MAX-LINES",
+        "INV-SKILLS-BUDGET-MAX-TOKENS",
+        "INV-HITL-AMBIGUITY-MARGIN",
+        "INV-HITL-MIN-CONFIDENCE-FLOOR",
+        "INV-DECISIVE-RECOMMENDATION",
+        "INV-OUTPUT-MAX-WORDS",
+        "INV-WT-ISOLATION",
+    )
+    missing = [pid for pid in required_ids if pid not in policies]
+    issues = [f"Policy registry missing required invariants: {missing}"] if missing else []
+    return {
+        "status": "PASS" if not issues else "FAIL",
+        "policy_count": len(policies),
+        "issues": issues,
+    }
+
+
+def audit_skills_context_budget(
+    repo_root: Path | None = None,
+    max_tokens: int = 4000,
+) -> dict[str, Any]:
+    """Audit .agents/skills/*/SKILL.md description token utilization."""
+    root = Path(repo_root or ROOT).resolve()
+    skills_dir = root / ".agents" / "skills"
+    if not skills_dir.is_dir():
+        return {"status": "PASS", "skills_count": 0, "tokens": 0, "issues": []}
+
+    policies = load_policy_registry(root)
+    if "INV-SKILLS-BUDGET-MAX-TOKENS" in policies:
+        max_tokens = int(policies["INV-SKILLS-BUDGET-MAX-TOKENS"].get("threshold", max_tokens))
+
+    total_tokens = 0
+    skill_count = 0
+    for skill_md in sorted(skills_dir.glob("*/SKILL.md")):
+        skill_count += 1
+        try:
+            text = skill_md.read_text(encoding="utf-8", errors="replace")
+            m = re.search(r"^description\s*:\s*(.+)$", text, re.MULTILINE | re.IGNORECASE)
+            desc = m.group(1).strip() if m else text[:300]
+            total_tokens += max(1, (len(desc.split()) * 4) // 3)
+        except Exception:  # guardian: allow-silent-swallow -- skip unreadable skill file
+            continue
+
+    issues: list[str] = []
+    if total_tokens > max_tokens:
+        issues.append(
+            f"Skills description token count ({total_tokens}) exceeds budget ({max_tokens} tokens)."
+        )
+    return {
+        "status": "PASS" if not issues else "FAIL",
+        "skills_count": skill_count,
+        "tokens": total_tokens,
+        "max_tokens": max_tokens,
+        "utilization_pct": round((total_tokens / max(1, max_tokens)) * 100.0, 2),
+        "issues": issues,
     }
 
 
@@ -375,6 +479,62 @@ def validate_layman_jargon_gate(markdown_text: str) -> dict[str, Any]:
     }
 
 
+_DISJUNCTIVE_PROSE_PATTERNS = (
+    re.compile(r"\bready\s+for\s+next\s+direction\b", re.IGNORECASE),
+    re.compile(
+        r"\bwe\s+can\s+(?:either\s+)?[^.?!;\n]{3,140},?\s+or\s+(?:we\s+can\s+|proceed\b|address\b|tune\b|run\b|archive\b|close\b|open\b|create\b|continue\b|defer\b|skip\b)",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\b(?:would\s+you\s+like\s+(?:me\s+)?to|should\s+we\s+(?:proceed\s+with|address|execute|run))\s+[^?\n]{3,140}\s+or\s+",
+        re.IGNORECASE,
+    ),
+)
+
+
+def validate_decisive_recommendation_gate(markdown_text: str) -> dict[str, Any]:
+    """Verify that user-facing prose does not end with passive disjunctive fence-sitting."""
+    if not markdown_text or not isinstance(markdown_text, str):
+        return {"status": "PASS", "violations": [], "issues": []}
+    violations: list[str] = []
+    for pattern in _DISJUNCTIVE_PROSE_PATTERNS:
+        m = pattern.search(markdown_text)
+        if m:
+            violations.append(m.group(0).strip())
+    issues = [
+        f"Disjunctive fence-sitting prose detected ('{v}'); use ask_question with confidence-scored options."
+        for v in violations
+    ]
+    return {
+        "status": "PASS" if not violations else "FAIL",
+        "violations": violations,
+        "issues": issues,
+    }
+
+
+def validate_word_budget_gate(
+    markdown_text: str,
+    max_words: int = 300,
+    max_chars: int = 3500,
+) -> dict[str, Any]:
+    """Verify that engineering completion text complies with INV-OUTPUT-MAX-WORDS and INV-OUTPUT-MAX-CHARS."""
+    if not markdown_text or not isinstance(markdown_text, str):
+        return {"status": "PASS", "word_count": 0, "char_count": 0, "issues": []}
+    words = len(markdown_text.split())
+    chars = len(markdown_text)
+    issues: list[str] = []
+    if words > max_words:
+        issues.append(f"Response word count ({words}) exceeds {max_words}-word ceiling.")
+    if chars > max_chars:
+        issues.append(f"Response character count ({chars}) exceeds {max_chars}-character ceiling.")
+    return {
+        "status": "PASS" if not issues else "FAIL",
+        "word_count": words,
+        "char_count": chars,
+        "issues": issues,
+    }
+
+
 def validate_post_turn_gate(
     repo_root: Path | None = None,
     candidate_response: str | None = None,
@@ -464,6 +624,25 @@ def validate_post_turn_gate(
         jargon_eval = validate_layman_jargon_gate(candidate_response)
         checks["layman_jargon_gate"] = jargon_eval
         issues.extend(jargon_eval["issues"])
+
+    # Check 6: Decisive Recommendation & Zero-Fence-Sitting Gate (INV-DECISIVE-RECOMMENDATION)
+    if candidate_response and "Agent Reasoning Scratchpad" not in candidate_response:
+        decisive_eval = validate_decisive_recommendation_gate(candidate_response)
+        checks["decisive_recommendation_gate"] = decisive_eval
+        issues.extend(decisive_eval["issues"])
+
+    # Check 7: Output Brevity & Word Budget Gate (INV-OUTPUT-MAX-WORDS / INV-OUTPUT-MAX-CHARS)
+    if (
+        candidate_response
+        and "Agent Reasoning Scratchpad" not in candidate_response
+        and "Wave Summary Table:" not in candidate_response
+    ):
+        policies = load_policy_registry(root)
+        max_w = int(policies.get("INV-OUTPUT-MAX-WORDS", {}).get("threshold", 300))
+        max_c = int(policies.get("INV-OUTPUT-MAX-CHARS", {}).get("threshold", 3500))
+        budget_eval = validate_word_budget_gate(candidate_response, max_words=max_w, max_chars=max_c)
+        checks["word_budget_gate"] = budget_eval
+        issues.extend(budget_eval["issues"])
 
     overall_status = "PASS" if not issues else "FAIL"
     return {
