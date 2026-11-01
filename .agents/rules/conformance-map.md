@@ -113,6 +113,10 @@ Traces every `AGENTS.md` section to enforceable rules, skills, hooks, tools, and
 | Hook | `.agents/hooks.json` | Native Antigravity IDE lifecycle intercepts |
 | Validator | `tools/validate_turn_gates.py` | Automated turn validator CLI (`--mode all`) |
 | Test | `tests/test_turn_gates.py` | Turn-gate regression test suite |
+| Rule | `.agents/rules/sidecar-automation-routing.md` | Workspace-scoped routing and cross-repo firewall (`INV-REPO-SEPARATION-AGENTS-ONLY`) for the 7 `agents-*` sidecars |
+| Contract | `automations/prompts/_shared_governance_contract.md` | Shared 7-agent causal sequence (05:30–07:00 ET) and prompt specifications (`automations/prompts/agents_*_agent.md`) |
+| Validator | `tools/validate_sidecar_separation.py` | Mechanical namespace, permission, prompt, and schedule separation validator against Decision Intelligence sidecars |
+| Test | `tests/unit/test_sidecar_separation_governance.py` | Unit tests for sidecar separation and collision detection |
 
 ### §"Unified Agent Architecture & Delegation Contracts"
 | Type | Path | Coverage |

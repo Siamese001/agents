@@ -139,6 +139,7 @@ Google Antigravity is the primary execution surface for this repository. Repo-ow
 - Active MCP server configuration is maintained in root `.mcp.json` and `.agents/mcp_config.json`.
 - Workspace runtime boundaries and path containment policies live in `.antigravity/runtime-boundary.json`.
 - Plans are disk-only under `plans/<name>-<6hex>.md`.
+- **Sidecar Automation Agents (`INV-REPO-SEPARATION-AGENTS-ONLY`)**: The 7 `agents-*` sidecars in `/Users/amitayer/.gemini/config/sidecars/agents-*/sidecar.json` dereference `automations/prompts/agents_*_agent.md` (contract: `automations/prompts/_shared_governance_contract.md`, routing: `.agents/rules/sidecar-automation-routing.md`, validator: `python tools/validate_sidecar_separation.py`) and are strictly isolated from `/Users/amitayer/Git/decision-intelligence-engine`.
 - **Worktree & Branch Post-PR Cleanup**: Following any PR merge into local `main`, the associated local worktree and its feature branch must be cleanly pruned (`git worktree remove <path>` and `git branch -d <branch>`) to maintain zero branch drift and prevent stale worktree accumulation.
 
 ## Output Brevity & Word Budget Invariant
