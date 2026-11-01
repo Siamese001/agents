@@ -196,7 +196,7 @@ def _evaluate_product_run(run_dir: Path) -> dict[str, Any]:
             "superseded_apps_eval_packages" in path.parts
             or any("STALE" in s for s in (rec_stat, rec_verd, rec_disp))
             or rec_disp.startswith("SUPERSEDED")
-            or bool(expected_parent_run_id and rec_parent and rec_parent != expected_parent_run_id)
+            or bool(expected_parent_run_id and rec_parent != expected_parent_run_id)
         ):
             stale_records.append(str(path))
             continue
