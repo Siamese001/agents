@@ -1385,13 +1385,9 @@ def persist_apps_rg_targeting_brief_artifacts(
         "targeting_format": "apps_rg_targeting_brief_v1",
         "company_brief_text": briefing_text,
         "brief_sha256": exact_brief_sha256,
-        "exit_disposition_receipt_digest": (
-            authorization.exit_disposition_receipt.deterministic_digest
-        ),
+        "exit_disposition_receipt_digest": authorization.exit_disposition_receipt.deterministic_digest,
         "x3_code": authorization.exit_disposition_receipt.x3_code,
-        "apps_research_u0_receipt_digest": _sha256_bytes(
-            _canonical_json_bytes(u0_receipt)
-        ),
+        "apps_research_u0_receipt_digest": _sha256_bytes(_canonical_json_bytes(u0_receipt)),
         "confidence_score": float(getattr(record, "confidence_score", 0.0) or 0.0),
         "support_coverage": float(getattr(record, "support_coverage", 0.0) or 0.0),
         "hop_terminal_error": str(getattr(record, "hop_terminal_error", "") or ""),
@@ -1419,6 +1415,9 @@ def persist_apps_rg_targeting_brief_artifacts(
             authorization.exit_disposition_receipt.deterministic_digest
         ),
         "x3_code": authorization.exit_disposition_receipt.x3_code,
+        "is_verified": authorization.exit_disposition_receipt.x3_code == X3D_ALLOW_FINISH,
+        "confidence_score": float(getattr(record, "confidence_score", 0.90) or 0.90),
+        "company_name": company,
     }
 
     root.mkdir(parents=True, exist_ok=True)

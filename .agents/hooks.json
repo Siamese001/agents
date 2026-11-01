@@ -29,7 +29,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 tools/hook_dispatch.py --hook pre_run_command",
+            "command": "python3 -c \"import os, sys, subprocess; p = next((x for x in ['tools/hook_dispatch.py', '../tools/hook_dispatch.py'] if os.path.exists(x)), 'tools/hook_dispatch.py'); sys.exit(subprocess.call([sys.executable, p] + sys.argv[1:]))\" --hook pre_run_command",
             "timeout": 30
           }
         ]
