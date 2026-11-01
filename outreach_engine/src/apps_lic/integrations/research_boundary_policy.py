@@ -95,6 +95,13 @@ def _extract_priorities_from_text(text: str) -> list[str]:
     return priorities
 
 
+def _normalize_role(val: str) -> str:
+    """Normalize role string for robust identity comparison matching managed delegation."""
+    cleaned = re.sub(r"[^a-z0-9]+", " ", val.lower())
+    tokens = [t for t in cleaned.split() if t not in ("of", "the", "and", "for", "in", "at", "to")]
+    return " ".join(tokens)
+
+
 def _read_candidate_brief(path: Path) -> str:
     try:
         if path.suffix.lower() == ".json":
@@ -252,6 +259,11 @@ def _find_valid_persisted_artifact_bundle(
             if not cand_company or cand_company != target_company:
                 continue
 
+            if job_title.strip():
+                cand_role = str(identity.get("target_role") or "").strip()
+                if cand_role and _normalize_role(job_title) != _normalize_role(cand_role):
+                    continue
+
             # Never reuse unverified, blocked, or stale evidence
             is_handoff_pass = (
                 handoff.get("status") == "PASS"
@@ -341,9 +353,22 @@ def _find_valid_persisted_artifact_bundle(
                 is_verified=True,
             )
 
-            from apps_lic.integrations.managed_research_delegation import _validate_persisted_research_artifacts
+            from apps_lic.integrations.managed_research_delegation import (
+                RequestForOutreachBriefing,
+                _validate_persisted_research_artifacts,
+            )
 
-            valid, _, _ = _validate_persisted_research_artifacts(candidate)
+            req_ctx = None
+            if company_name or job_title:
+                req_ctx = RequestForOutreachBriefing(
+                    request_id=request_id,
+                    run_id=run_id,
+                    trace_id=trace_id,
+                    company_name=company_name,
+                    job_title=job_title,
+                )
+
+            valid, _, _ = _validate_persisted_research_artifacts(candidate, request=req_ctx)
             if valid:
                 return candidate, "reused_persisted_artifact"
 
@@ -453,6 +478,7 @@ __all__ = [
     "_build_canonical_sidecar",
     "_extract_priorities_from_text",
     "_find_valid_persisted_artifact_bundle",
+    "_normalize_role",
     "_read_candidate_brief",
     "_resolve_canonical_targeting_brief",
     "build_cost_limit_exceeded_result",

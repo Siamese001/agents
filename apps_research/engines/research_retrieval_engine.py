@@ -206,15 +206,21 @@ class ResearchRetrievalEngine:
         quality_score: float,
         source_count: int,
         claim_types: dict[str, int],
+        sources: list[str] | None = None,
     ) -> str:
         """Index a research artifact for future retrieval."""
-        research_id = f"research_{artifact_mode}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        content_digest = hashlib.sha256(content.encode("utf-8")).hexdigest()[:8]
+        research_id = f"research_{artifact_mode}_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{content_digest}"
+
+        source_list = list(sources) if sources is not None else []
+        effective_source_count = max(source_count, len(source_list))
 
         research_data = {
             "content": content,
             "quality_score": quality_score,
-            "source_count": source_count,
+            "source_count": effective_source_count,
             "claim_types": claim_types,
+            "sources": source_list,
         }
 
         meta = {
@@ -222,6 +228,7 @@ class ResearchRetrievalEngine:
             "artifact_mode": artifact_mode,
             "timestamp": datetime.now().isoformat(),
             "quality_score": quality_score,
+            "sources": source_list,
         }
 
         success = self.store.add_research(research_id, research_data, meta)
@@ -356,9 +363,22 @@ class ResearchRetrievalEngine:
         # Aggregate source references from similar research
         source_references: dict[str, int] = {}
         for art in similar:
-            for source in art.metadata.get("sources", []):
-                if source not in current_sources:
-                    source_references[source] = source_references.get(source, 0) + 1
+            raw_sources = art.metadata.get("sources", [])
+            if isinstance(raw_sources, str):
+                try:
+                    parsed = json.loads(raw_sources)
+                    if isinstance(parsed, list):
+                        raw_sources = parsed
+                    else:
+                        raw_sources = [s.strip().strip("'\"") for s in raw_sources.strip("[]").split(",") if s.strip()]
+                except Exception:
+                    raw_sources = [s.strip().strip("'\"") for s in raw_sources.strip("[]").split(",") if s.strip()]
+            elif not isinstance(raw_sources, (list, tuple, set)):
+                raw_sources = [raw_sources]
+            for source in raw_sources:
+                source_clean = str(source).strip()
+                if source_clean and source_clean not in current_sources:
+                    source_references[source_clean] = source_references.get(source_clean, 0) + 1
 
         # Sort by frequency
         recommendations: list[dict[str, Any]] = []
