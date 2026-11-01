@@ -16,7 +16,20 @@ upgrade path is drop-in.
 
 from __future__ import annotations
 
+import dataclasses
+import math
+
 from apps_research.integrations.search_retrieval import RetrievedDoc
+
+
+def _safe_score(score: float) -> float:
+    try:
+        val = float(score)
+    except (TypeError, ValueError):
+        return 0.0
+    if not math.isfinite(val):
+        return 0.0
+    return val
 
 
 def rerank(
@@ -35,11 +48,16 @@ def rerank(
 
     Returns:
         A new list of at most ``cutoff`` :class:`RetrievedDoc`, sorted
-        by ``score`` descending (stable for tied scores).
+        by ``score`` descending with deterministic tie-breaking on ``(url, title)``.
     """
     if cutoff <= 0:
         return []
-    # stable sort preserves insertion order for ties — important for
-    # diff-stability in snapshot tests (plan §P2.1 acceptance).
-    ordered = sorted(docs, key=lambda d: d.score, reverse=True)
+    sanitized = [
+        dataclasses.replace(d, score=_safe_score(d.score)) if not math.isfinite(_safe_score(d.score)) or d.score != _safe_score(d.score) else d
+        for d in docs
+    ]
+    ordered = sorted(
+        sanitized,
+        key=lambda d: (-_safe_score(d.score), str(d.url or ""), str(d.title or "")),
+    )
     return ordered[:cutoff]

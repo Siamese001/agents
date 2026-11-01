@@ -85,7 +85,7 @@ class ResearchSection(BaseModel):
 
     @field_validator("body")
     @classmethod
-    def validate_body(cls, v):
+    def validate_body(cls, v: str) -> str:
         if len(v.strip()) < 50:
             raise ValueError("body must be at least 50 characters")
         return v.strip()
@@ -165,7 +165,7 @@ class ResearchResult(BaseModel):
 
     @field_validator("quality_score")
     @classmethod
-    def validate_quality(cls, v):
+    def validate_quality(cls, v: float) -> float:
         if not 0 <= v <= 1:
             raise ValueError("quality_score must be between 0.0 and 1.0")
         return v

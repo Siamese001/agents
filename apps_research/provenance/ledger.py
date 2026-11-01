@@ -206,7 +206,9 @@ def _split_into_claim_sentences(body: str, *, min_len: int = 10) -> list[str]:
     return [c for c in chunks if len(c) >= min_len]
 
 
-def build_ledger_from_sections(sections, *, claim_id_prefix: str = "claim"):
+def build_ledger_from_sections(
+    sections: Iterable[object], *, claim_id_prefix: str = "claim"
+) -> ProvenanceLedger:
     """Build a ProvenanceLedger from a list of ResearchSection objects.
 
     Each section's body is split into claim-level sentences; every sentence

@@ -110,7 +110,7 @@ class InMemoryResearchStore:
 
             scored.append((research_id, score))
 
-        scored.sort(key=lambda x: x[1], reverse=True)
+        scored.sort(key=lambda x: (-x[1], x[0]))
 
         results: list[RetrievedResearch] = []
         for research_id, score in tqdm(scored[:n_results], desc="Processing", unit="item"):
@@ -380,9 +380,9 @@ class ResearchRetrievalEngine:
                 if source_clean and source_clean not in current_sources:
                     source_references[source_clean] = source_references.get(source_clean, 0) + 1
 
-        # Sort by frequency
+        # Sort by frequency with deterministic tie-breaker
         recommendations: list[dict[str, Any]] = []
-        for source, freq in sorted(source_references.items(), key=lambda x: x[1], reverse=True):
+        for source, freq in sorted(source_references.items(), key=lambda x: (-x[1], x[0])):
             recommendations.append(
                 {
                     "source": source,

@@ -80,10 +80,15 @@ class ResumeChunker:
                 )
             ]
 
-        max_chars = int(
-            self.config.max_tokens_per_chunk * self.config.chars_per_token_estimate
+        max_chars = max(
+            1,
+            int(self.config.max_tokens_per_chunk * self.config.chars_per_token_estimate),
         )
-        overlap = int(self.config.overlap_tokens * self.config.chars_per_token_estimate)
+        raw_overlap = max(
+            0,
+            int(self.config.overlap_tokens * self.config.chars_per_token_estimate),
+        )
+        overlap = min(raw_overlap, max_chars - 1)
 
         chunks: list[str] = []
         start = 0
@@ -92,7 +97,7 @@ class ResumeChunker:
             chunks.append(content[start:end])
             if end >= len(content):
                 break
-            start = end - overlap
+            start = max(start + 1, end - overlap)
 
         total = len(chunks)
         return [

@@ -39,6 +39,7 @@ def lookup_r1b_role_target_run(
     similarity_threshold: float = 0.88,
     query_prompt_hash: str = "",
     query_gate_hash: str = "",
+    query_model_hash: str = "",
 ) -> R1BLookupHit | None:
     """Search intent records by vector similarity; validate child chunks before hit."""
     st = store or R1BSemanticCacheStore(default_store_root())
@@ -49,7 +50,7 @@ def lookup_r1b_role_target_run(
     query_vec, _kind = resolve_query_vector(intent_text, query_digest)
 
     best: R1BLookupHit | None = None
-    for rid in st.list_intent_record_ids():
+    for rid in sorted(st.list_intent_record_ids()):
         record = st.load_intent(rid)
         if record is None or not record.cache_admissible:
             continue
@@ -66,10 +67,11 @@ def lookup_r1b_role_target_run(
             query_digest=query_digest,
             query_prompt_hash=query_prompt_hash,
             query_gate_hash=query_gate_hash,
+            query_model_hash=query_model_hash,
         )
         if not verdict.admissible:
             continue
-        if best is None or sim > best.similarity:
+        if best is None or (sim, -int(record.record_id > best.record.record_id)) > (best.similarity, 0):
             best = R1BLookupHit(record=record, chunks=chunks, similarity=sim, verdict=verdict)
     return best
 
@@ -81,6 +83,7 @@ def lookup_r1b_with_compatibility_report(
     similarity_threshold: float = 0.88,
     query_prompt_hash: str = "",
     query_gate_hash: str = "",
+    query_model_hash: str = "",
 ) -> tuple[R1BLookupHit | None, list[dict[str, Any]]]:
     """Return hit (if any) plus per-candidate compatibility rows for proof fixtures."""
     st = store or R1BSemanticCacheStore(default_store_root())
@@ -92,7 +95,7 @@ def lookup_r1b_with_compatibility_report(
     report: list[dict[str, Any]] = []
     best: R1BLookupHit | None = None
 
-    for rid in st.list_intent_record_ids():
+    for rid in sorted(st.list_intent_record_ids()):
         record = st.load_intent(rid)
         if record is None:
             continue
@@ -107,11 +110,12 @@ def lookup_r1b_with_compatibility_report(
             query_digest=query_digest,
             query_prompt_hash=query_prompt_hash,
             query_gate_hash=query_gate_hash,
+            query_model_hash=query_model_hash,
         )
         report.append(compatibility_report_row(candidate_record_id=rid, verdict=verdict, similarity=sim))
         if not record.cache_admissible or not verdict.admissible or sim < similarity_threshold:
             continue
-        if best is None or sim > best.similarity:
+        if best is None or (sim, -int(record.record_id > best.record.record_id)) > (best.similarity, 0):
             best = R1BLookupHit(record=record, chunks=chunks, similarity=sim, verdict=verdict)
 
     return best, report

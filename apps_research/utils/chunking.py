@@ -32,6 +32,12 @@ def chunk_text(
     overlap_tokens: int = 50,
 ) -> list[str]:
     """Split text into chunks of at most chunk_tokens with overlap_tokens overlap."""
+    if chunk_tokens <= 0:
+        raise ValueError(f"chunk_tokens must be positive, got {chunk_tokens}")
+    if overlap_tokens < 0 or overlap_tokens >= chunk_tokens:
+        raise ValueError(
+            f"overlap_tokens must be in [0, chunk_tokens), got overlap_tokens={overlap_tokens}, chunk_tokens={chunk_tokens}"
+        )
     if not text.strip():
         return []
 

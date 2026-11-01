@@ -45,6 +45,8 @@ class HopResearchRetrievalEngine:
                         "topic": r.topic,
                         "quality_score": r.quality_score,
                         "similarity_score": r.similarity_score,
+                        "source_count": r.source_count,
+                        "timestamp": r.timestamp,
                     }
                     for r in results
                 ]

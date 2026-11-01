@@ -13,6 +13,11 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
 
+from apps_rg.cache.cache_identity import (
+    BRIEFING_CACHE_SCHEMA_VERSION,
+    compute_briefing_cache_key as _canonical_key,
+)
+
 DEFAULT_BRIEFING_TTL_SECONDS = 30 * 24 * 3600  # 30 days
 
 
@@ -38,10 +43,8 @@ def compute_briefing_cache_key(
     jd_hash: str,
     target_role: str = "",
     model_pin: str = "",
-    schema_version: str = "v2",
+    schema_version: str = BRIEFING_CACHE_SCHEMA_VERSION,
 ) -> str:
-    from apps_rg.cache.cache_identity import compute_briefing_cache_key as _canonical_key
-
     return _canonical_key(
         company_name=company_name,
         jd_hash=jd_hash,

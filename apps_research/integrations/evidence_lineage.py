@@ -142,19 +142,28 @@ def materialize_research_evidence(
 
     try:
         from apps_research.engines.company_brief_engine import CompanyBriefEngine  # noqa: PLC0415
+        from apps_research.engines.query_decomposer import _resolve_depth_profile  # noqa: PLC0415
     except ImportError:
         return ()
 
     depth_profile = str(getattr(request, "depth_profile", "") or "COMPANY_BRIEF_STANDARD")
-    raw_depth = depth_profile.split("_")[-1].lower() if depth_profile else "standard"
-    if raw_depth not in ("shallow", "standard", "deep"):
-        raw_depth = "standard"
+    resolved_profile = _resolve_depth_profile(depth_profile)
+    _profile_to_depth = {
+        "COMPANY_BRIEF_LIGHT": "shallow",
+        "COMPANY_BRIEF_STANDARD": "standard",
+        "COMPANY_BRIEF_DEEP": "deep",
+        "COMPANY_BRIEF_DOSSIER": "dossier",
+        "COMPANY_BRIEF_COMPETITIVE_SCAN": "competitive_scan",
+        "COMPANY_BRIEF_FORENSIC": "forensic",
+    }
+    raw_depth = _profile_to_depth.get(resolved_profile, "standard")
 
     try:
         brief = CompanyBriefEngine().execute(
             {
                 "topic": topic,
                 "depth": raw_depth,
+                "depth_profile": resolved_profile,
                 "jd_context": getattr(request, "jd_context", None) or {},
             }
         )
