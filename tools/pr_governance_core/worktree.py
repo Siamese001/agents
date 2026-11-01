@@ -115,6 +115,26 @@ def safely_unlink_worktree_dependencies(worktree_dir: Path) -> list[str]:
     return unlinked
 
 
+def is_within_in_repo_worktrees(root: Path, worktree_dir: Path) -> bool:
+    """Returns True if worktree_dir resolves strictly inside <root>/.worktrees/."""
+    allowed_parent = (root.resolve() / ".worktrees").resolve()
+    resolved_target = worktree_dir.resolve()
+    return allowed_parent in resolved_target.parents
+
+
+def find_external_worktrees(root: Path, ignore_review_artifacts: bool = True) -> list[dict[str, Any]]:
+    """Returns registered secondary worktrees that reside outside <root>/.worktrees/."""
+    resolved_root = root.resolve()
+    external: list[dict[str, Any]] = []
+    for entry in list_active_worktrees(root, ignore_review_artifacts=ignore_review_artifacts):
+        wt_path = Path(str(entry["path"])).resolve()
+        if wt_path == resolved_root or entry.get("is_root"):
+            continue
+        if not is_within_in_repo_worktrees(resolved_root, wt_path):
+            external.append(entry)
+    return external
+
+
 def provision_isolated_worktree(
     root: Path,
     worktree_dir: Path,
@@ -123,7 +143,14 @@ def provision_isolated_worktree(
 ) -> Path:
     """
     Provisions a new git worktree with relative dependency symlinks.
+    Strictly enforces that worktree_dir resides inside <root>/.worktrees/.
     """
+    if not is_within_in_repo_worktrees(root, worktree_dir):
+        allowed_dir = (root.resolve() / ".worktrees").resolve()
+        raise ValueError(
+            f"Governance violation: worktree path '{worktree_dir}' must reside strictly inside '{allowed_dir}'."
+        )
+
     worktree_dir.parent.mkdir(parents=True, exist_ok=True)
 
     try:

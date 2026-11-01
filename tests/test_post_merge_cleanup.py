@@ -211,6 +211,37 @@ class PostMergeCleanupTests(unittest.TestCase):
             self.assertNotIn("test/in-repo-slug", remaining_branches)
             self.assertNotIn("test_gaps_session", remaining_branches)
 
+    def test_provision_isolated_worktree_enforces_in_repo_boundary(self) -> None:
+        """Verify provision_isolated_worktree rejects paths outside <repo_root>/.worktrees/."""
+        from tools.pr_governance_core.worktree import (
+            find_external_worktrees,
+            is_within_in_repo_worktrees,
+            provision_isolated_worktree,
+        )
+
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp).resolve()
+            repo = self._init_repo_with_main(base)
+
+            external_dir = base / "external_antigravity_wt" / "bad_wt"
+            self.assertFalse(is_within_in_repo_worktrees(repo, external_dir))
+            with self.assertRaises(ValueError):
+                provision_isolated_worktree(repo, external_dir, "feat/external-rejected", "main")
+            self.assertFalse(external_dir.exists())
+
+            valid_dir = repo / ".worktrees" / "feat_valid_in_repo"
+            self.assertTrue(is_within_in_repo_worktrees(repo, valid_dir))
+            created = provision_isolated_worktree(repo, valid_dir, "feat/valid-in-repo", "main")
+            self.assertTrue(created.is_dir())
+            self.assertEqual(find_external_worktrees(repo), [])
+
+            # Register an external worktree manually and verify find_external_worktrees detects it
+            raw_ext = base / "raw_external_wt"
+            _git(["worktree", "add", "-b", "feat/raw-ext", str(raw_ext), "main"], cwd=repo)
+            externals = find_external_worktrees(repo)
+            self.assertEqual(len(externals), 1)
+            self.assertEqual(Path(externals[0]["path"]).resolve(), raw_ext.resolve())
+
 
 if __name__ == "__main__":
     unittest.main()

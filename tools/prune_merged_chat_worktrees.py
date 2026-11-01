@@ -106,6 +106,12 @@ def get_merged_branches(repo_root: Path, target_ref: str = "main") -> set[str]:
     }
 
 
+def is_in_repo_worktree(main_root: Path, wt_path: Path) -> bool:
+    """Return True if wt_path is inside <main_root>/.worktrees/."""
+    allowed_dir = (main_root.resolve() / ".worktrees").resolve()
+    return allowed_dir in wt_path.resolve().parents
+
+
 def is_worktree_clean(wt_path: Path) -> bool:
     """Return True if the worktree exists and has no uncommitted or untracked changes."""
     if not wt_path.is_dir():
@@ -224,6 +230,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Prune merged secondary git worktrees and feature branches.")
     parser.add_argument("--repo-root", type=Path, default=Path.cwd(), help="Repository or worktree root path.")
     parser.add_argument("--target-ref", default="main", help="Target branch to check ancestry against (default: main).")
+    parser.add_argument("--active-cwd", type=Path, default=None, help="Explicit active working directory to protect.")
     parser.add_argument("--dry-run", action="store_true", help="Report merged worktrees/branches without deleting.")
     parser.add_argument("--delete-merged", action="store_true", help="Remove merged worktrees and delete merged branches.")
     args = parser.parse_args(argv)
@@ -233,6 +240,7 @@ def main(argv: list[str] | None = None) -> int:
         repo_root=args.repo_root.resolve(),
         target_ref=args.target_ref,
         delete_merged=delete_flag,
+        active_cwd=args.active_cwd.resolve() if args.active_cwd else None,
     )
 
     if delete_flag:
