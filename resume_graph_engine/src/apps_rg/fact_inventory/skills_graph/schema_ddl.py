@@ -3,33 +3,6 @@ from __future__ import annotations
 
 DDL_STATEMENTS: tuple[str, ...] = (
     """
-    CREATE TABLE IF NOT EXISTS node_type_registry (
-        node_type TEXT PRIMARY KEY CHECK (TRIM(node_type) <> ''),
-        layer TEXT NOT NULL CHECK (layer IN ('knowledge','evidence','policy','projection','derived','temporal')),
-        description TEXT NOT NULL DEFAULT '',
-        is_canonical INTEGER NOT NULL DEFAULT 1 CHECK (is_canonical IN (0, 1)),
-        is_traversable INTEGER NOT NULL DEFAULT 1 CHECK (is_traversable IN (0, 1))
-    )
-    """,
-    """
-    CREATE TABLE IF NOT EXISTS edge_type_registry (
-        edge_type TEXT PRIMARY KEY CHECK (TRIM(edge_type) <> ''),
-        src_type TEXT NOT NULL CHECK (TRIM(src_type) <> ''),
-        tgt_type TEXT NOT NULL CHECK (TRIM(tgt_type) <> ''),
-        assertion_type TEXT NOT NULL CHECK (assertion_type IN (
-            'STRUCTURAL_CONTAINMENT','TAXONOMIC_ATTRIBUTION','EVIDENTIAL_SUPPORT',
-            'POLICY_ELIGIBILITY','POLICY_RESTRICTION','METRIC_BINDING',
-            'TEMPORAL_SEQUENCE','ASSOCIATIVE_BRIDGE'
-        )),
-        layer TEXT NOT NULL CHECK (layer IN ('knowledge','evidence','policy','projection','derived','temporal')),
-        traversable INTEGER NOT NULL DEFAULT 1 CHECK (traversable IN (0, 1)),
-        inverse_label TEXT NOT NULL DEFAULT '',
-        cardinality TEXT NOT NULL DEFAULT 'many_to_many',
-        FOREIGN KEY (src_type) REFERENCES node_type_registry(node_type),
-        FOREIGN KEY (tgt_type) REFERENCES node_type_registry(node_type)
-    )
-    """,
-    """
     CREATE TABLE IF NOT EXISTS graph_nodes (
         node_id TEXT PRIMARY KEY CHECK (TRIM(node_id) <> ''),
         node_type TEXT NOT NULL CHECK (TRIM(node_type) <> ''),
@@ -113,8 +86,7 @@ DDL_STATEMENTS: tuple[str, ...] = (
         CHECK (assertion_type <> 'POLICY_RESTRICTION' OR lifecycle_disposition IN ('INTERNAL_TRAVERSAL_ONLY','HELD_INTEGRITY_GAP','HELD_NON_ACTIVE_ENDPOINT')),
         CHECK (assertion_type NOT IN ('ASSOCIATIVE_BRIDGE','TEMPORAL_SEQUENCE') OR assertion_basis IN ('non_causal_bridge','taxonomy_rule')),
         FOREIGN KEY (source_node_id) REFERENCES graph_nodes(node_id),
-        FOREIGN KEY (target_node_id) REFERENCES graph_nodes(node_id),
-        FOREIGN KEY (edge_type) REFERENCES edge_type_registry(edge_type)
+        FOREIGN KEY (target_node_id) REFERENCES graph_nodes(node_id)
     )
     """,
     """
@@ -130,6 +102,33 @@ DDL_STATEMENTS: tuple[str, ...] = (
         PRIMARY KEY (skill_id, fact_id),
         FOREIGN KEY (skill_id) REFERENCES graph_nodes(node_id),
         FOREIGN KEY (fact_id) REFERENCES graph_nodes(node_id)
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS node_type_registry (
+        node_type TEXT PRIMARY KEY CHECK (TRIM(node_type) <> ''),
+        layer TEXT NOT NULL CHECK (layer IN ('knowledge','evidence','policy','projection','derived','temporal')),
+        description TEXT NOT NULL DEFAULT '',
+        is_canonical INTEGER NOT NULL DEFAULT 1 CHECK (is_canonical IN (0, 1)),
+        is_traversable INTEGER NOT NULL DEFAULT 1 CHECK (is_traversable IN (0, 1))
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS edge_type_registry (
+        edge_type TEXT PRIMARY KEY CHECK (TRIM(edge_type) <> ''),
+        src_type TEXT NOT NULL CHECK (TRIM(src_type) <> ''),
+        tgt_type TEXT NOT NULL CHECK (TRIM(tgt_type) <> ''),
+        assertion_type TEXT NOT NULL CHECK (assertion_type IN (
+            'STRUCTURAL_CONTAINMENT','TAXONOMIC_ATTRIBUTION','EVIDENTIAL_SUPPORT',
+            'POLICY_ELIGIBILITY','POLICY_RESTRICTION','METRIC_BINDING',
+            'TEMPORAL_SEQUENCE','ASSOCIATIVE_BRIDGE'
+        )),
+        layer TEXT NOT NULL CHECK (layer IN ('knowledge','evidence','policy','projection','derived','temporal')),
+        traversable INTEGER NOT NULL DEFAULT 1 CHECK (traversable IN (0, 1)),
+        inverse_label TEXT NOT NULL DEFAULT '',
+        cardinality TEXT NOT NULL DEFAULT 'many_to_many',
+        FOREIGN KEY (src_type) REFERENCES node_type_registry(node_type),
+        FOREIGN KEY (tgt_type) REFERENCES node_type_registry(node_type)
     )
     """,
     """

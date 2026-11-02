@@ -167,6 +167,20 @@ def run_materializer_ingress(
         if updated_act:
             act_status = updated_act
 
+        src_refs: list[str] = [str(r).strip() for r in (raw.get("source_refs") or []) if str(r).strip()]
+        if skill_row:
+            for r in list(skill_row.get("source_resume_files") or []) + list(skill_row.get("fact_id_links") or []):
+                rs = str(r).strip()
+                if rs and rs not in src_refs:
+                    src_refs.append(rs)
+        if not src_refs:
+            src_refs = [f"ledger_node:{nid}"]
+        auth_refs: list[str] = [f"ledger:{nid}"]
+        if raw.get("external_claim_policy"):
+            auth_refs.append(f"policy:{raw.get('external_claim_policy')}")
+        if raw.get("support_level"):
+            auth_refs.append(f"support:{raw.get('support_level')}")
+
         node_rows[nid] = {
             "node_id": nid,
             "node_type": ntype,
@@ -174,13 +188,17 @@ def run_materializer_ingress(
             "description": str(raw.get("description") or ""),
             "activation_status": act_status,
             "support_level": str(raw.get("support_level") or ""),
-            "confidence": conf,
+            "confidence": tier if conf == "BLOCKED" else conf,
             "confidence_score": score,
             "confidence_tier": tier,
             "external_eligible": 0,
             "career_epoch": epoch,
             "phase_ordinal": ordinal,
             "source_authority": "augmented_skills_graph",
+            "origin_kind": "ledger_node",
+            "origin_ref": str(raw.get("node_id") or nid).strip(),
+            "source_refs_json": json.dumps(src_refs),
+            "authority_refs_json": json.dumps(auth_refs),
             "created_at": ts,
             "updated_at": ts,
         }
@@ -281,13 +299,15 @@ def run_materializer_ingress(
                 "description": "",
                 "activation_status": act_status,
                 "support_level": str(skill_row.get("support_level") if skill_row else ""),
-                "confidence": conf,
+                "confidence": tier if conf == "BLOCKED" else conf,
                 "confidence_score": score,
                 "confidence_tier": tier,
                 "external_eligible": 0,
                 "career_epoch": epoch,
                 "phase_ordinal": ordinal,
                 "source_authority": "augmented_skills_graph",
+                "origin_kind": "derived_projection",
+                "origin_ref": eid_s,
                 "created_at": ts,
                 "updated_at": ts,
             }
@@ -443,7 +463,7 @@ def run_materializer_ingress(
         node_rows[sid].update({
             "activation_status": act,
             "support_level": str(row.get("support_level") or ""),
-            "confidence": grade,
+            "confidence": tier if grade == "BLOCKED" else grade,
             "confidence_score": score,
             "confidence_tier": tier,
             "career_epoch": epoch,
@@ -512,10 +532,14 @@ def run_materializer_ingress(
             row["confidence_tier"] = tier
             if act == "BLOCKED":
                 row["activation_status"] = "BLOCKED"
-        row.setdefault("origin_kind", "ledger_node")
+        row.setdefault("origin_kind", "derived_projection")
         row.setdefault("origin_ref", nid)
-        row.setdefault("source_refs_json", "[]")
-        row.setdefault("authority_refs_json", "[]")
+        if not row.get("source_refs_json") or row.get("source_refs_json") == "[]":
+            row["source_refs_json"] = json.dumps([f"{row['origin_kind']}:{row['origin_ref']}"])
+        if not row.get("authority_refs_json") or row.get("authority_refs_json") == "[]":
+            row["authority_refs_json"] = json.dumps(
+                [f"authority:{row.get('source_authority') or 'augmented_skills_graph'}:{row.get('node_type') or 'node'}"]
+            )
         row.setdefault("build_run_id", build_run_id)
 
     for _edge in _mo_edge_rows:
@@ -555,27 +579,16 @@ def run_materializer_ingress(
             f"failures={projected_signature_report['failure_locators'][:12]}"
         )
 
-    section_rows = list(section_by_key.values())
-
     return {
-        "root": root,
-        "out_path": out_path,
-        "payload": payload,
-        "src_path": src_path,
-        "ledger_hash": ledger_hash,
-        "input_manifest_digest": input_manifest_digest,
-        "build_run_id": build_run_id,
-        "builder_git_commit": builder_git_commit,
-        "build_inputs": build_inputs,
-        "semantic_contract_version": SEMANTIC_CONTRACT_VERSION_V2,
-        "gver": gver,
-        "ts": ts,
-        "skill_rows_by_id": skill_rows_by_id,
-        "node_rows": node_rows,
-        "edge_rows": edge_rows,
-        "skill_fact_rows": skill_fact_rows,
-        "section_rows": section_rows,
+        "root": root, "out_path": out_path, "payload": payload, "src_path": src_path,
+        "ledger_hash": ledger_hash, "input_manifest_digest": input_manifest_digest,
+        "build_run_id": build_run_id, "builder_git_commit": builder_git_commit,
+        "build_inputs": build_inputs, "semantic_contract_version": SEMANTIC_CONTRACT_VERSION_V2,
+        "gver": gver, "ts": ts, "skill_rows_by_id": skill_rows_by_id,
+        "node_rows": node_rows, "edge_rows": edge_rows, "skill_fact_rows": skill_fact_rows,
+        "section_rows": list(section_by_key.values()),
         "projected_signature_report": projected_signature_report,
     }
+
 
 __all__ = ["run_materializer_ingress"]

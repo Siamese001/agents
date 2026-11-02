@@ -26,8 +26,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_LEDGER = REPO_ROOT / "apps_rg" / "fact_inventory" / "master_skills_arsenal_ledger.json"
+from apps_rg.repository_layout import repository_root, resolve_repository_path
+
+REPO_ROOT = repository_root(Path(__file__))
+DEFAULT_LEDGER = resolve_repository_path(REPO_ROOT, "apps_rg/fact_inventory/master_skills_arsenal_ledger.json")
 
 
 # ---------------------------------------------------------------------------

@@ -476,7 +476,7 @@ def test_validator_rejects_malformed_json_projection_data(tmp_path: Path) -> Non
             """
             UPDATE section_evidence_budget
             SET required_node_types_json = 'not-json'
-            WHERE section_id = 'executive_summary' AND role_family_key = '*'
+            WHERE section_id IN ('section_executive_summary', 'executive_summary') AND role_family_key = '*'
             """
         )
         conn.commit()

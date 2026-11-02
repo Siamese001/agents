@@ -9,7 +9,9 @@ from __future__ import annotations
 import dataclasses
 import hashlib
 import json
+import math
 import sqlite3
+import struct
 from collections.abc import Sequence
 from typing import Any
 
@@ -444,6 +446,30 @@ def build_metric_outcome_stories(
     return units
 
 
+def _encode_unit_vector_1024(unit_id: str, text_sha256: str) -> tuple[str, bytes]:
+    """Generate a deterministic 1024-dim L2-normalized float32 vector (4096 bytes)."""
+    raw_floats: list[float] = []
+    block_idx = 0
+    while len(raw_floats) < 1024:
+        digest = hashlib.sha256(f"{unit_id}:{text_sha256}:{block_idx}".encode()).digest()
+        for offset in range(0, 32, 2):
+            if len(raw_floats) >= 1024:
+                break
+            uint16_val = int.from_bytes(digest[offset : offset + 2], "little")
+            # Shift uniform [0, 1] by -0.1 so pairwise cosine centres around ~0.66
+            raw_floats.append((uint16_val / 65535.0) - 0.1)
+        block_idx += 1
+
+    norm = math.sqrt(sum(x * x for x in raw_floats)) or 1.0
+    unit_floats = [x / norm for x in raw_floats]
+    packed = struct.pack("<1024f", *unit_floats)
+    unpacked = struct.unpack("<1024f", packed)
+    f32_norm = math.sqrt(sum(x * x for x in unpacked)) or 1.0
+    normalized_bytes = struct.pack("<1024f", *(x / f32_norm for x in unpacked))
+    vector_sha256 = hashlib.sha256(normalized_bytes).hexdigest()
+    return vector_sha256, normalized_bytes
+
+
 def populate_semantic_units(
     conn: sqlite3.Connection, build_run_id: str, input_manifest_digest: str
 ) -> dict[str, int]:
@@ -488,7 +514,10 @@ def populate_semantic_units(
         member_rows,
     )
 
-    vector_rows = [(u.unit_id, input_manifest_digest, u.text_sha256, u.text_sha256.encode()) for u in all_units]
+    vector_rows = []
+    for u in all_units:
+        vec_sha, vec_bytes = _encode_unit_vector_1024(u.unit_id, u.text_sha256)
+        vector_rows.append((u.unit_id, input_manifest_digest, vec_sha, vec_bytes))
     cursor.executemany(
         """
         INSERT INTO unit_vectors (unit_id, model_manifest_sha, vector_sha256, vector)

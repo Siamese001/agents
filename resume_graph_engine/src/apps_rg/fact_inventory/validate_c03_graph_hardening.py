@@ -9,7 +9,9 @@ import sys
 from pathlib import Path
 from typing import Any
 
-ROOT = Path(__file__).resolve().parents[2]
+from apps_rg.repository_layout import repository_root
+
+ROOT = repository_root(Path(__file__))
 
 from apps_rg.fact_inventory.graph_metric_heterogeneity_policy import (
     POLICY_VERSION,

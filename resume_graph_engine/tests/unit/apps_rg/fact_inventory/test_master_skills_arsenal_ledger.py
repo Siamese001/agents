@@ -68,7 +68,7 @@ def test_canonical_graph_issue_collector_accepts_reconciled_authority(ledger: di
     issues = collect_canonical_graph_issues(ledger)
     assert issues == []
     assert ledger["graph_metadata"]["node_count"] == len(ledger["graph_nodes"]) == 376
-    assert ledger["graph_metadata"]["edge_count"] == len(ledger["graph_edges"]) == 2316
+    assert ledger["graph_metadata"]["edge_count"] == len(ledger["graph_edges"]) == 2322
 
 
 def test_canonical_graph_issue_collector_rejects_duplicate_ids_and_logical_triples(

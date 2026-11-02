@@ -67,6 +67,19 @@ def apply_topology_enhancements(
     for emp_id, emp_meta in EMPLOYMENT_DATES_AND_TITLES.items():
         if emp_id in node_rows:
             node_rows[emp_id].update(emp_meta)
+            if not node_rows[emp_id].get("description"):
+                node_rows[emp_id]["description"] = emp_meta["operating_context"]
+            if not node_rows[emp_id].get("label") or node_rows[emp_id].get("label") == emp_id:
+                node_rows[emp_id]["label"] = emp_meta["title"]
+            node_rows[emp_id]["activation_status"] = node_rows[emp_id].get("activation_status") or "ACTIVE"
+            node_rows[emp_id]["support_level"] = node_rows[emp_id].get("support_level") or "DIRECT_FROM_RESUME_ARCHIVE"
+            node_rows[emp_id]["confidence"] = "HIGH"
+            node_rows[emp_id]["confidence_score"] = 0.99
+            node_rows[emp_id]["confidence_tier"] = "HIGH"
+            node_rows[emp_id]["external_eligible"] = 1
+            node_rows[emp_id]["career_epoch"] = CANONICAL_EMPLOYMENT_EPOCHS.get(
+                emp_id, node_rows[emp_id].get("career_epoch", "")
+            )
         else:
             node_rows[emp_id] = {
                 "node_id": emp_id,
@@ -84,8 +97,8 @@ def apply_topology_enhancements(
                 "source_authority": "augmented_skills_graph",
                 "origin_kind": "derived_projection",
                 "origin_ref": emp_id,
-                "source_refs_json": "[]",
-                "authority_refs_json": "[]",
+                "source_refs_json": json.dumps([f"derived_projection:{emp_id}"]),
+                "authority_refs_json": json.dumps(["authority:augmented_skills_graph:employment"]),
                 "build_run_id": build_run_id,
                 "created_at": ts,
                 "updated_at": ts,
@@ -171,16 +184,16 @@ def apply_topology_enhancements(
                     "activation_status": "ACTIVE",
                     "support_level": "PROJECTION",
                     "confidence": "",
-                    "confidence_score": 0.85,
-                    "confidence_tier": "MEDIUM",
+                    "confidence_score": None,
+                    "confidence_tier": "NOT_APPLICABLE",
                     "external_eligible": 0,
                     "career_epoch": "",
                     "phase_ordinal": None,
                     "source_authority": "augmented_skills_graph",
                     "origin_kind": "derived_projection",
                     "origin_ref": rf_k,
-                    "source_refs_json": "[]",
-                    "authority_refs_json": "[]",
+                    "source_refs_json": json.dumps([f"derived_projection:{rf_k}"]),
+                    "authority_refs_json": json.dumps(["authority:augmented_skills_graph:role_family"]),
                     "build_run_id": build_run_id,
                     "created_at": ts,
                     "updated_at": ts,
@@ -197,8 +210,8 @@ def apply_topology_enhancements(
             all_sections.add(normalize_section_id(sec_k))
 
     for sec_id in sorted(all_sections):
+        label = sec_id.replace("section_", "").replace("_", " ").title()
         if sec_id not in node_rows:
-            label = sec_id.replace("section_", "").replace("_", " ").title()
             node_rows[sec_id] = {
                 "node_id": sec_id,
                 "node_type": "section",
@@ -206,23 +219,33 @@ def apply_topology_enhancements(
                 "description": f"Resume section: {label}",
                 "activation_status": "ACTIVE",
                 "support_level": "PROJECTION",
-                "confidence": "HIGH",
-                "confidence_score": 0.95,
-                "confidence_tier": "HIGH",
+                "confidence": "",
+                "confidence_score": None,
+                "confidence_tier": "NOT_APPLICABLE",
                 "external_eligible": 1,
                 "career_epoch": "",
                 "phase_ordinal": None,
                 "source_authority": "augmented_skills_graph",
                 "origin_kind": "derived_projection",
                 "origin_ref": sec_id,
-                "source_refs_json": "[]",
-                "authority_refs_json": "[]",
+                "source_refs_json": json.dumps([f"derived_projection:{sec_id}"]),
+                "authority_refs_json": json.dumps(["authority:augmented_skills_graph:section"]),
                 "build_run_id": build_run_id,
                 "created_at": ts,
                 "updated_at": ts,
             }
         else:
             node_rows[sec_id]["node_type"] = "section"
+            if not node_rows[sec_id].get("description"):
+                node_rows[sec_id]["description"] = f"Resume section: {label}"
+            if not node_rows[sec_id].get("label") or node_rows[sec_id].get("label") == sec_id:
+                node_rows[sec_id]["label"] = label
+            node_rows[sec_id]["activation_status"] = node_rows[sec_id].get("activation_status") or "ACTIVE"
+            node_rows[sec_id]["support_level"] = node_rows[sec_id].get("support_level") or "PROJECTION"
+            node_rows[sec_id]["confidence"] = ""
+            node_rows[sec_id]["confidence_score"] = None
+            node_rows[sec_id]["confidence_tier"] = "NOT_APPLICABLE"
+            node_rows[sec_id]["external_eligible"] = 1
 
     # 9. Section Parity (AC3.2, I9)
     existing_section_edges = {
@@ -318,6 +341,71 @@ def apply_topology_enhancements(
     edge_rows.extend(deduped_edges)
 
 
+def project_canonical_edges_for_semantic_digest(payload: dict[str, Any]) -> list[dict[str, str]]:
+    """Project canonical ledger edges through topology normalization for semantic digest parity."""
+    from apps_rg.fact_inventory.augmented_skills_graph_sqlite import build_skill_rows_by_id
+    from apps_rg.fact_inventory.master_skills_arsenal_ledger import (
+        derive_registered_graph_endpoint_types,
+    )
+    from .classification import canonical_node_type, infer_node_type_from_id, resolve_node_type
+    from .constants import canonical_career_epoch_and_ordinal
+    from .graph_builder import _redirect_edge_source
+
+    skill_rows_by_id = build_skill_rows_by_id(dict(payload))
+    reg_types = derive_registered_graph_endpoint_types(dict(payload))
+    node_types: dict[str, str] = {}
+    for row in payload.get("graph_nodes") or []:
+        if not isinstance(row, dict):
+            continue
+        nid = normalize_employment_id(str(row.get("node_id") or "").strip())
+        if nid.startswith("section:") or nid.startswith("section_"):
+            nid = normalize_section_id(nid)
+        node_types[nid] = canonical_node_type(str(row.get("node_type") or "").strip(), node_id=nid)
+
+    def _endpoint_type(eid_s: str) -> str:
+        if eid_s in node_types:
+            return node_types[eid_s]
+        srow = skill_rows_by_id.get(eid_s)
+        rt = reg_types.get(eid_s)
+        return resolve_node_type(eid_s, "skill" if srow else rt or infer_node_type_from_id(eid_s))
+
+    proj_edges: list[dict[str, str]] = []
+    for row in payload.get("graph_edges") or []:
+        if not isinstance(row, dict):
+            continue
+        eid = str(row.get("edge_id") or "").strip()
+        src = normalize_employment_id(_redirect_edge_source(str(row.get("source_node_id") or "").strip()))
+        tgt = normalize_employment_id(str(row.get("target_node_id") or "").strip())
+        if src.startswith("section:") or src.startswith("section_"):
+            src = normalize_section_id(src)
+        if tgt.startswith("section:") or tgt.startswith("section_"):
+            tgt = normalize_section_id(tgt)
+        st = _endpoint_type(src)
+        tt = _endpoint_type(tgt)
+        et = split_polymorphic_edge(dict(row), st, tt)
+        if et == "epoch_contains_skill":
+            srow = skill_rows_by_id.get(tgt)
+            ep, _ = canonical_career_epoch_and_ordinal(tgt, srow.get("career_epoch") if srow else None)
+            if ep:
+                src = ep
+        if et == "skill_external_claim_eligible":
+            srow = skill_rows_by_id.get(src, {})
+            if (
+                str(srow.get("confidence_grade") or "").upper() == "BLOCKED"
+                or str(srow.get("activation_status") or "").upper() == "BLOCKED"
+            ):
+                continue
+        proj_edges.append(
+            {
+                "edge_id": eid,
+                "source_node_id": src,
+                "target_node_id": tgt,
+                "edge_type": et,
+            }
+        )
+    return proj_edges
+
+
 __all__ = [
     "EMPLOYMENT_ALIAS_MAP",
     "PILLAR_ALIAS_MAP",
@@ -334,4 +422,5 @@ __all__ = [
     "build_domain_hierarchy_edges",
     "populate_stub_descriptions",
     "apply_topology_enhancements",
+    "project_canonical_edges_for_semantic_digest",
 ]

@@ -2,15 +2,15 @@
 
 - **STATUS**: PASS
 - **PLAN_ID**: graph-skills-sqlite-c03-w1
-- **SQLITE_DB_PATH**: [augmented_skills_graph.sqlite](/Users/amitayer/Git/agents/.worktrees/graph-skills-deep-traversal-review/resume_graph_engine/artifacts/apps_rg/fact_inventory/augmented_skills_graph.sqlite)
+- **SQLITE_DB_PATH**: [augmented_skills_graph.sqlite](/Users/amitayer/Git/agents/.worktrees/fix_skills_graph_db_defects/resume_graph_engine/artifacts/apps_rg/fact_inventory/augmented_skills_graph.sqlite)
 - **GRAPH_VERSION**: master_skills_arsenal_graph_v1
 - **MATERIALIZER_CODE_VERSION**: `c03_sqlite_materializer.v20260718.lossless_types_signatures_full_digest`
-- **GRAPH_HASH**: `b3313c7597b82696…`
-- **NODE_COUNT**: 818 | **EDGE_COUNT**: 3161
+- **GRAPH_HASH**: `c0f3eb36574b361f…`
+- **NODE_COUNT**: 816 | **EDGE_COUNT**: 3722
 - **C0.3 integration**: SQLITE_CONTEXT_AVAILABLE
-- **C0.3 receipt**: [c03_graph_sqlite_context_20261005_170839_106657.json](artifacts/apps_rg/runtime_proofs/c03_graph_sqlite_context/c03_graph_sqlite_context_20261005_170839_106657.json)
-- **Section projection parity**: PASS
-- **W14b traversal parity**: PASS
+- **C0.3 receipt**: [c03_graph_sqlite_context_20261102_125030_539002.json](artifacts/apps_rg/runtime_proofs/c03_graph_sqlite_context/c03_graph_sqlite_context_20261102_125030_539002.json)
+- **Section projection parity**: SKIPPED
+- **W14b traversal parity**: SKIPPED
 - **broad_skills_ledger**: non_authority
 
 ## Proof classification

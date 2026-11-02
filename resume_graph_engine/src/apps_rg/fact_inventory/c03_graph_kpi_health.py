@@ -28,21 +28,13 @@ from apps_rg.fact_inventory.augmented_skills_graph_sqlite import (
 )
 from apps_rg.fact_inventory.c03_graph_operational_evidence import (
     METRIC_IDS as OPERATIONAL_METRIC_IDS,
-)
-from apps_rg.fact_inventory.c03_graph_operational_evidence import (
     PRODUCER_REGISTRY_VERSION as OPERATIONAL_PRODUCER_REGISTRY_VERSION,
-)
-from apps_rg.fact_inventory.c03_graph_operational_evidence import (
     SCHEMA_VERSION as OPERATIONAL_EVIDENCE_SCHEMA_VERSION,
-)
-from apps_rg.fact_inventory.c03_graph_operational_evidence import (
     OperationalTrustContext,
     verify_operational_evidence_envelope,
 )
 from apps_rg.fact_inventory.graph_metric_heterogeneity_policy import (
     POLICY_VERSION as METRIC_HETEROGENEITY_POLICY_VERSION,
-)
-from apps_rg.fact_inventory.graph_metric_heterogeneity_policy import (
     metric_bucket_for_row,
 )
 from apps_rg.fact_inventory.graph_sqlite_path_index import (
@@ -54,6 +46,7 @@ from apps_rg.fact_inventory.master_skills_arsenal_ledger import (
     derive_registered_graph_endpoint_types,
     graph_node_requires_source_refs,
 )
+from apps_rg.repository_layout import repository_root, resolve_repository_path
 
 SCHEMA_VERSION = "apps_rg.c03_graph_kpi_health_receipt.v2"
 BUILDER_VERSION = "c03_graph_kpi_health_builder.v4.producer_bound_operational_evidence"
@@ -66,58 +59,27 @@ DEFAULT_CANONICAL_REL = Path("apps_rg/fact_inventory/master_skills_arsenal_ledge
 DEFAULT_SQLITE_REL = Path("artifacts/apps_rg/fact_inventory/augmented_skills_graph.sqlite")
 DEFAULT_POLICY_REL = Path("apps_rg/config/c03_graph_health_policy.v2.json")
 
-STATUS_PRECEDENCE = {
-    "PASS": 0,
-    "UNKNOWN": 1,
-    "NOT_READY": 2,
-    "MIGRATION_REQUIRED": 3,
-    "BLOCKED": 4,
-}
-
+STATUS_PRECEDENCE = {"PASS": 0, "UNKNOWN": 1, "NOT_READY": 2, "MIGRATION_REQUIRED": 3, "BLOCKED": 4}
 _IDENTIFIER = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 CONTROL_PLANE_METRIC_IDS = (
-    "canonical_artifact_available",
-    "sqlite_artifact_available",
-    "sqlite_read_purity",
-    "canonical_sqlite_digest_match",
-    "canonical_metadata_node_count_parity",
-    "canonical_metadata_edge_count_parity",
-    "sqlite_projection_node_count_parity",
-    "sqlite_projection_edge_count_parity",
-    "sqlite_foreign_key_coverage",
-    "sqlite_foreign_key_integrity",
-    "reverse_view_parity",
-    "decision_safe_regression",
-    "source_currentness",
-    "source_freshness",
-    "hitl_approval_coverage",
-    "write_audit_coverage",
-    "p0_sla_compliance",
-    "p1_sla_compliance",
+    "canonical_artifact_available", "sqlite_artifact_available", "sqlite_read_purity",
+    "canonical_sqlite_digest_match", "canonical_metadata_node_count_parity",
+    "canonical_metadata_edge_count_parity", "sqlite_projection_node_count_parity",
+    "sqlite_projection_edge_count_parity", "sqlite_foreign_key_coverage",
+    "sqlite_foreign_key_integrity", "reverse_view_parity", "decision_safe_regression",
+    "source_currentness", "source_freshness", "hitl_approval_coverage",
+    "write_audit_coverage", "p0_sla_compliance", "p1_sla_compliance",
 )
 GRAPH_DATA_METRIC_IDS = (
-    "orphan_edge_rate",
-    "duplicate_node_id_rate",
-    "duplicate_edge_id_rate",
-    "duplicate_logical_edge_rate",
-    "identity_collision_rate",
-    "explicit_endpoint_closure",
-    "registered_endpoint_closure",
-    "canonical_projected_edge_signature_integrity",
-    "sqlite_projected_edge_signature_integrity",
-    "claim_evidence_completeness",
-    "skill_row_node_coverage",
-    "skill_source_metadata_completeness",
-    "graph_node_source_ref_completeness",
-    "temporal_completeness",
-    "rare_edge_type_rate",
-    "path_integrity",
-    "sibling_integrity",
-    "neighborhood_integrity",
-    "metric_bucket_concentration",
-    "domain_coverage",
-    "epoch_coverage",
+    "orphan_edge_rate", "duplicate_node_id_rate", "duplicate_edge_id_rate",
+    "duplicate_logical_edge_rate", "identity_collision_rate", "explicit_endpoint_closure",
+    "registered_endpoint_closure", "canonical_projected_edge_signature_integrity",
+    "sqlite_projected_edge_signature_integrity", "claim_evidence_completeness",
+    "skill_row_node_coverage", "skill_source_metadata_completeness",
+    "graph_node_source_ref_completeness", "temporal_completeness", "rare_edge_type_rate",
+    "path_integrity", "sibling_integrity", "neighborhood_integrity",
+    "metric_bucket_concentration", "domain_coverage", "epoch_coverage",
 )
 EXPECTED_METRIC_IDS = CONTROL_PLANE_METRIC_IDS + GRAPH_DATA_METRIC_IDS
 _METRIC_SPEC_FIELDS = frozenset({"plane", "operator", "target", "failure_status", "required"})
@@ -126,11 +88,13 @@ _ALLOWED_FAILURE_STATUSES = frozenset({"BLOCK", "FAIL", "MIGRATION_REQUIRED"})
 
 
 def _repo_root() -> Path:
-    return Path(__file__).resolve().parents[2]
+    return repository_root(Path(__file__))
 
 
 def default_policy_path(repo_root: Path | None = None) -> Path:
-    return (repo_root or _repo_root()) / DEFAULT_POLICY_REL
+    root = repo_root or _repo_root()
+    candidate = root / DEFAULT_POLICY_REL
+    return candidate if candidate.is_file() else resolve_repository_path(root, DEFAULT_POLICY_REL)
 
 
 def _utc_now() -> str:
@@ -958,26 +922,36 @@ def _foreign_key_signatures(
     return signatures
 
 
-def _load_sqlite_edges(conn: sqlite3.Connection) -> list[dict[str, str]] | None:
+def _load_sqlite_edges(conn: sqlite3.Connection) -> list[dict[str, Any]] | None:
     if not _table_exists(conn, "graph_edges", kind="table"):
         return None
+    cols = _table_columns(conn, "graph_edges")
     required = {"edge_id", "source_node_id", "target_node_id", "edge_type"}
-    if not required.issubset(_table_columns(conn, "graph_edges")):
+    if not required.issubset(cols):
         return None
+    has_traversable = "traversable" in cols
+    sql = (
+        "SELECT edge_id,source_node_id,target_node_id,edge_type,COALESCE(traversable, 1) FROM graph_edges ORDER BY edge_id"
+        if has_traversable
+        else "SELECT edge_id,source_node_id,target_node_id,edge_type,1 FROM graph_edges ORDER BY edge_id"
+    )
     return [
         {
             "edge_id": _string(row[0]),
             "source_node_id": _string(row[1]),
             "target_node_id": _string(row[2]),
             "edge_type": _string(row[3]),
+            "traversable": int(row[4]) if row[4] is not None else 1,
         }
-        for row in conn.execute(
-            "SELECT edge_id,source_node_id,target_node_id,edge_type FROM graph_edges ORDER BY edge_id"
-        )
+        for row in conn.execute(sql)
     ]
 
 
-def _canonical_graph_semantic_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
+def _canonical_graph_semantic_payload(
+    payload: Mapping[str, Any],
+    *,
+    apply_topology_projection: bool = False,
+) -> dict[str, Any]:
     nodes = sorted(
         [
             {
@@ -991,19 +965,28 @@ def _canonical_graph_semantic_payload(payload: Mapping[str, Any]) -> dict[str, A
         ],
         key=_canonical_json,
     )
-    edges = sorted(
-        [
-            {
-                "edge_id": _string(row.get("edge_id")),
-                "source_node_id": _string(row.get("source_node_id")),
-                "target_node_id": _string(row.get("target_node_id")),
-                "edge_type": _string(row.get("edge_type")),
-            }
-            for row in _as_rows(payload.get("graph_edges"))
-        ],
-        key=_canonical_json,
+    if not apply_topology_projection:
+        edges = sorted(
+            [
+                {
+                    "edge_id": _string(row.get("edge_id")),
+                    "source_node_id": _string(row.get("source_node_id")),
+                    "target_node_id": _string(row.get("target_node_id")),
+                    "edge_type": _string(row.get("edge_type")),
+                }
+                for row in _as_rows(payload.get("graph_edges"))
+            ],
+            key=_canonical_json,
+        )
+        return {"nodes": nodes, "edges": edges}
+
+    from apps_rg.fact_inventory.skills_graph.topology import (
+        project_canonical_edges_for_semantic_digest,
     )
-    return {"nodes": nodes, "edges": edges}
+
+    proj_edges = project_canonical_edges_for_semantic_digest(dict(payload))
+    proj_edges.sort(key=_canonical_json)
+    return {"nodes": nodes, "edges": proj_edges}
 
 
 def _sqlite_canonical_graph_semantic_payload(
@@ -1097,7 +1080,8 @@ def _path_integrity_metric(
         FROM graph_paths ORDER BY path_id
         """
     ).fetchall()
-    edge_map = {row["edge_id"]: row for row in edges}
+    traversable_edges = [edge for edge in edges if int(edge.get("traversable", 1)) == 1]
+    edge_map = {row["edge_id"]: row for row in traversable_edges}
     expected_direct_paths = {
         (
             edge["source_node_id"],
@@ -1105,7 +1089,7 @@ def _path_integrity_metric(
             edge["edge_id"],
             edge["edge_type"],
         )
-        for edge in edges
+        for edge in traversable_edges
     }
     valid_direct_counts: Counter[tuple[str, str, str, str]] = Counter()
     failures: list[dict[str, Any]] = []
@@ -1256,8 +1240,9 @@ def _sibling_integrity_metric(
             sibling_node_type_parameters,
         )
     }
+    traversable_edges = [edge for edge in edges if int(edge.get("traversable", 1)) == 1]
     children_by_parent: dict[tuple[str, str], set[str]] = defaultdict(set)
-    for edge in edges:
+    for edge in traversable_edges:
         if edge["target_node_id"] in sibling_node_ids:
             children_by_parent[(edge["source_node_id"], edge["edge_type"])].add(edge["target_node_id"])
     expected_siblings = {
@@ -1277,7 +1262,7 @@ def _sibling_integrity_metric(
         for row in rows
     )
     materialized_siblings = set(materialized_counts)
-    edge_triples = {(row["source_node_id"], row["target_node_id"], row["edge_type"]) for row in edges}
+    edge_triples = {(row["source_node_id"], row["target_node_id"], row["edge_type"]) for row in traversable_edges}
     valid_expected = 0
     failures: list[dict[str, Any]] = []
     for node, sibling, parent, edge_kind in sorted(materialized_siblings):
@@ -1383,13 +1368,14 @@ def _neighborhood_integrity_metric(
         FROM graph_neighborhoods ORDER BY center_node_id,neighbor_node_id,distance
         """
     ).fetchall()
-    expected_direct_neighborhoods = {(edge["source_node_id"], edge["target_node_id"], 1) for edge in edges}
+    traversable_edges = [edge for edge in edges if int(edge.get("traversable", 1)) == 1]
+    expected_direct_neighborhoods = {(edge["source_node_id"], edge["target_node_id"], 1) for edge in traversable_edges}
     expected_direct_neighborhoods.update(
-        (edge["target_node_id"], edge["source_node_id"], 1) for edge in edges
+        (edge["target_node_id"], edge["source_node_id"], 1) for edge in traversable_edges
     )
-    adjacency = {(row["source_node_id"], row["target_node_id"], row["edge_type"]) for row in edges}
+    adjacency = {(row["source_node_id"], row["target_node_id"], row["edge_type"]) for row in traversable_edges}
     adjacency.update(
-        (row["target_node_id"], row["source_node_id"], f"{row['edge_type']}_reverse") for row in edges
+        (row["target_node_id"], row["source_node_id"], f"{row['edge_type']}_reverse") for row in traversable_edges
     )
     valid_direct_counts: Counter[tuple[str, str, int]] = Counter()
     failures: list[dict[str, Any]] = []
@@ -1517,7 +1503,13 @@ def _sqlite_metrics(
     except sqlite3.DatabaseError as exc:
         projection_schema_digest_error = str(exc)
     if canonical_payload is not None:
-        canonical_semantic_digest = _payload_digest(_canonical_graph_semantic_payload(canonical_payload))
+        has_topology_registry = _table_exists(conn, "edge_type_registry", kind="table")
+        canonical_semantic_digest = _payload_digest(
+            _canonical_graph_semantic_payload(
+                canonical_payload,
+                apply_topology_projection=has_topology_registry,
+            )
+        )
         projected_semantics = _sqlite_canonical_graph_semantic_payload(conn, canonical_payload)
         if projected_semantics is not None:
             projection_semantic_digest = _payload_digest(projected_semantics)
@@ -1981,9 +1973,15 @@ def build_c03_graph_health_receipt(
 ) -> dict[str, Any]:
     """Return a deterministic receipt for fixed inputs without mutating them."""
     root = _repo_root()
-    canonical = (canonical_path or (root / DEFAULT_CANONICAL_REL)).resolve()
-    sqlite_db = (sqlite_path or (root / DEFAULT_SQLITE_REL)).resolve()
-    selected_policy_path = (policy_path or (root / DEFAULT_POLICY_REL)).resolve()
+    default_canonical = root / DEFAULT_CANONICAL_REL
+    if not default_canonical.is_file():
+        default_canonical = resolve_repository_path(root, DEFAULT_CANONICAL_REL)
+    default_sqlite = root / DEFAULT_SQLITE_REL
+    if not default_sqlite.is_file():
+        default_sqlite = resolve_repository_path(root, DEFAULT_SQLITE_REL)
+    canonical = (canonical_path or default_canonical).resolve()
+    sqlite_db = (sqlite_path or default_sqlite).resolve()
+    selected_policy_path = (policy_path or default_policy_path(root)).resolve()
     policy = load_health_policy(selected_policy_path)
     timestamp = generated_at or _utc_now()
     normalized_candidate_commit_sha = _string(candidate_commit_sha).lower() or None
@@ -2255,10 +2253,16 @@ def build_c03_graph_health_receipt(
 
 def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     root = _repo_root()
+    default_canonical = root / DEFAULT_CANONICAL_REL
+    if not default_canonical.is_file():
+        default_canonical = resolve_repository_path(root, DEFAULT_CANONICAL_REL)
+    default_sqlite = root / DEFAULT_SQLITE_REL
+    if not default_sqlite.is_file():
+        default_sqlite = resolve_repository_path(root, DEFAULT_SQLITE_REL)
     parser = argparse.ArgumentParser(description="Build a pure C0.3 graph health receipt")
-    parser.add_argument("--canonical", type=Path, default=root / DEFAULT_CANONICAL_REL)
-    parser.add_argument("--sqlite", type=Path, default=root / DEFAULT_SQLITE_REL)
-    parser.add_argument("--policy", type=Path, default=root / DEFAULT_POLICY_REL)
+    parser.add_argument("--canonical", type=Path, default=default_canonical)
+    parser.add_argument("--sqlite", type=Path, default=default_sqlite)
+    parser.add_argument("--policy", type=Path, default=default_policy_path(root))
     parser.add_argument("--operational-evidence", type=Path)
     parser.add_argument("--output", type=Path, help="write receipt only when this path is explicit")
     parser.add_argument("--generated-at", help="inject a UTC timestamp for deterministic replay")
@@ -2298,13 +2302,4 @@ def main(argv: Sequence[str] | None = None) -> int:
     return 0 if receipt["overall_status"] == "PASS" else 2
 
 
-
-
-__all__ = [
-    "BUILDER_VERSION",
-    "SCHEMA_VERSION",
-    "build_c03_graph_health_receipt",
-    "default_policy_path",
-    "load_health_policy",
-    "main",
-]
+__all__ = ["BUILDER_VERSION", "SCHEMA_VERSION", "build_c03_graph_health_receipt", "default_policy_path", "load_health_policy", "main"]

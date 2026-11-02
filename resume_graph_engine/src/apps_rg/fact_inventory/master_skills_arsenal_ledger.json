@@ -76,17 +76,17 @@
      "cost_efficiency": 12,
      "delivery_velocity": 5,
      "financial_services": 2,
-     "general_business_outcome": 81,
+     "general_business_outcome": 82,
      "insurance_risk": 9,
      "model_quality": 2,
      "partner_gtm": 8,
-     "platform_scale": 9,
+     "platform_scale": 10,
      "revenue_growth": 38,
-     "risk_governance": 76
+     "risk_governance": 74
     },
-    "max_same_metric_bucket_share": 0.3189,
+    "max_same_metric_bucket_share": 0.3228,
     "distinct_skill_ids": 254,
-    "distinct_fact_ids": 54
+    "distinct_fact_ids": 60
    }
   },
   "c03_graph_authority_reconciliation": {
