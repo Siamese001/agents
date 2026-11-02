@@ -86,9 +86,10 @@ for t in targets:
 
 print(json.dumps({"retrieval_module_count": len(retrieval_modules), "sample_modules": retrieval_modules[:25], "public_functions_missing_return_annotations": untyped_returns[:25]}, indent=2))
 PY
+python3 tools/run_resume_graph_traversal_probe.py --max-paths 200
 ```
 
-Write the structured findings to `${RUN_DIR}/audit_report.json`.
+Verify that `run_resume_graph_traversal_probe.py` reports `status == "PASS"`, `direct_graph_traversal == true`, and non-zero multi-hop paths (`two_hop_path_count > 0` and `domain_skill_evidence_path_count > 0`) across `resume_graph_engine` and `apps_research` without mutating repository files. Write the combined structured findings to `${RUN_DIR}/audit_report.json`.
 
 ---
 
