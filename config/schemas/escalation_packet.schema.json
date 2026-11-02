@@ -42,7 +42,7 @@
 
     "hitl_class": {
       "type": "string",
-      "description": "Escalation class per ADR-023 §3.1. SSOT: agentic_core/L5_safety/exit_control/hitl_classes.py (HitlClass enum). Any additions/renames must update both.",
+      "description": "Escalation class per ADR-023 §3.1. SSOT: apps_rg/L5_safety/exit_control/hitl_classes.py (HitlClass enum). Any additions/renames must update both.",
       "enum": [
         "financial",
         "safety",

@@ -17,6 +17,10 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from tools.pr_governance_core.common import bootstrap_shared_venv
+
+bootstrap_shared_venv(ROOT)
+
 REQUIRED_TIER1_TOOLS = (
     "hitl_governance.py",
     "lint_file_budgets.py",
@@ -199,24 +203,22 @@ def validate_pre_turn_gate(repo_root: Path | None = None) -> dict[str, Any]:
 
 
 def load_policy_registry(repo_root: Path | None = None) -> dict[str, dict[str, Any]]:
-    """Load canonical governance policy registry entries by policy ID."""
+    """Load canonical governance policy registry entries by policy ID (fails closed on missing parser or corrupt YAML)."""
     root = Path(repo_root or ROOT).resolve()
     registry_path = root / "config" / "governance" / "policy_registry.yaml"
     if not registry_path.is_file():
         return {}
-    try:
-        import yaml  # type: ignore
+    bootstrap_shared_venv(root)
+    import yaml  # type: ignore
 
-        raw = yaml.safe_load(registry_path.read_text(encoding="utf-8"))
-        if isinstance(raw, dict) and isinstance(raw.get("policies"), list):
-            return {
-                str(p["id"]): p
-                for p in raw["policies"]
-                if isinstance(p, dict) and p.get("id")
-            }
-    except Exception:  # guardian: allow-silent-swallow -- fallback if yaml unavailable
-        pass
-    return {}
+    raw = yaml.safe_load(registry_path.read_text(encoding="utf-8"))
+    if not isinstance(raw, dict) or not isinstance(raw.get("policies"), list):
+        raise ValueError(f"Malformed policy registry structure in {registry_path}")
+    return {
+        str(p["id"]): p
+        for p in raw["policies"]
+        if isinstance(p, dict) and p.get("id")
+    }
 
 
 def validate_policy_registry(repo_root: Path | None = None) -> dict[str, Any]:
@@ -229,7 +231,14 @@ def validate_policy_registry(repo_root: Path | None = None) -> dict[str, Any]:
             "policy_count": 0,
             "issues": [f"Canonical policy registry missing: {registry_path}"],
         }
-    policies = load_policy_registry(root)
+    try:
+        policies = load_policy_registry(root)
+    except Exception as exc:
+        return {
+            "status": "FAIL",
+            "policy_count": 0,
+            "issues": [f"Failed loading policy registry {registry_path}: {exc}"],
+        }
     required_ids = (
         "INV-BUDGET-FILE-LINES",
         "INV-AGENTS-MD-MAX-LINES",

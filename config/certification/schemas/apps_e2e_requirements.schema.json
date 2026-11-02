@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "fortknox/apps_e2e_requirements.schema.json",
   "title": "Apps_e2e Fort Knox Requirements Source",
-  "description": "Canonical declaration of apps_* end-to-end certification requirements. Authored once; consumed by scripts/compile_apps_e2e_signoff.py. Sibling to certification/requirements_source.json (agentic_core Fort Knox catalog) with APPS-REQ-* namespace.",
+  "description": "Canonical declaration of apps_* end-to-end certification requirements. Authored once; consumed by scripts/compile_apps_e2e_signoff.py. Sibling to certification/requirements_source.json (apps_rg Fort Knox catalog) with APPS-REQ-* namespace.",
   "type": "object",
   "required": [
     "schema_version",

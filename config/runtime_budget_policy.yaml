@@ -11,7 +11,7 @@
 # budget_fit for that axis is trivially true.
 
 version: 1
-schema: agentic_core.L5_safety.eval_spine.budget_envelope_policy_v1
+schema: apps_rg.L5_safety.eval_spine.budget_envelope_policy_v1
 
 # Global fallback used when no other source applies. Generous defaults per
 # ADR-038 §2.5 recommendation.

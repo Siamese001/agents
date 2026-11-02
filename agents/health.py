@@ -93,7 +93,15 @@ HEALTH_DOMAINS: list[dict[str, Any]] = [
 
 
 def _resolve_pytest_cmd() -> list[str]:
-    """Resolve pytest command across worktrees, virtual environments, and system paths."""
+    """Resolve pytest command across worktrees, shared main repository virtual environments, and system paths."""
+    try:
+        from tools.pr_governance_core.common import resolve_pytest
+
+        resolved = resolve_pytest(_REPO_ROOT)
+        if resolved:
+            return resolved
+    except Exception:  # guardian: allow-silent-swallow -- fallback to direct path checks
+        pass
     # 1. Local worktree venv
     venv_pytest = _REPO_ROOT / ".venv" / "bin" / "pytest"
     if venv_pytest.is_file():

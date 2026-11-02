@@ -24,7 +24,7 @@ path_prefixes:
     gate_ids:
       - cross_bucket.gap_thresholds
       - cross_bucket.impossible_states
-  - prefix: agentic_core/
+  - prefix: apps_rg/
     gate_ids:
       - static.edge_authority_well_formed
       - static.no_null_triplet

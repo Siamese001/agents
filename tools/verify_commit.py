@@ -19,10 +19,14 @@ import sys
 from pathlib import Path
 from typing import Sequence
 
-# Ensure repo root is on sys.path
+# Ensure repo root is on sys.path and shared .venv packages are available in worktrees
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
+
+from tools.pr_governance_core.common import bootstrap_shared_venv
+
+bootstrap_shared_venv(_REPO_ROOT)
 
 # Import sub-linters directly for high performance
 from tools.lint_file_budgets import check_file_budget, scan_all_production_files
@@ -31,6 +35,10 @@ from tools.lint_model_neutral_naming import check_file_model_neutrality
 from tools.lint_production_purity import check_file_production_purity
 from tools.lint_contract_schemas import validate_file_against_schema
 from tools.lint_secrets import check_file_for_secrets
+from tools.lint_architecture_boundaries import run_architecture_linter
+from tools.lint_layer_boundaries import check_layer_boundaries
+from tools.lint_model_pins import audit_model_pins
+from tools.check_config_ssot_drift import analyze_drift
 
 # Model literal baseline for ratcheting legacy violations
 _BASELINE_PATH = _REPO_ROOT / "artifacts" / "governance" / "model_literal_baseline.json"
@@ -181,8 +189,59 @@ def check_standard_code_hygiene(files: Sequence[Path], repo_root: Path) -> tuple
     return len(errors) == 0, errors
 
 
+def _run_extended_architectural_checks(
+    files: Sequence[Path] | None,
+    repo_root: Path,
+    mode_name: str = "all",
+) -> list[str]:
+    """Run architectural boundary, layer boundary, and model pin integrity checks."""
+    errs: list[str] = []
+    if mode_name == "unit-test-explicit":
+        return errs
+
+    arch_res = run_architecture_linter(repo_root)
+    if not arch_res.get("is_clean", True):
+        for check_name, data in arch_res.get("checks", {}).items():
+            for v in data.get("violations", []):
+                errs.append(f"[Arch Boundary:{check_name}] {v}")
+
+    services_dir = repo_root / "agents" / "orchestration" / "services"
+    if services_dir.is_dir():
+        for v in check_layer_boundaries(services_dir):
+            errs.append(f"[Layer Boundary] {v}")
+
+    for finding in audit_model_pins(repo_root):
+        errs.append(
+            f"[Model Pin:{finding.get('category', 'VIOLATION')}] "
+            f"{finding.get('file', '')} :: {finding.get('key', '')} — {finding.get('message', '')}"
+        )
+
+    return errs
+
+
+def _run_ssot_drift_checks(
+    files: Sequence[Path] | None,
+    repo_root: Path,
+    mode_name: str = "all",
+) -> list[str]:
+    """Run strict configuration and data SSOT drift checks."""
+    errs: list[str] = []
+    if mode_name == "unit-test-explicit":
+        return errs
+    if not (repo_root / "config").is_dir() or not (repo_root / "resume_graph_engine" / "config").is_dir():
+        return errs
+
+    report = analyze_drift(repo_root)
+    for item in report.get("unallowlisted_drift_files", []):
+        errs.append(f"[Config SSOT Drift] {item.get('relative_path')}: {item.get('status')}")
+    for item in report.get("data_drift_files", []):
+        errs.append(f"[Data SSOT Drift] {item.get('relative_path')}: {item.get('status')}")
+
+    return errs
+
+
 def check_architectural_governance(files: Sequence[Path] | None, repo_root: Path) -> tuple[bool, list[str]]:
-    """Category 2: Architectural Governance (Budgets, Layer Imports, Model Neutrality)."""
+    """Category 2: Architectural Governance (Budgets, Layer Imports, Model Neutrality, Boundaries, Model Pins)."""
     errors: list[str] = []
     if files is not None:
         target_py = [f for f in files if f.suffix == ".py"]
@@ -192,6 +251,7 @@ def check_architectural_governance(files: Sequence[Path] | None, repo_root: Path
     for f in target_py:
         _, g_errs, _ = _analyze_single_python_file(f, repo_root)
         errors.extend(g_errs)
+    errors.extend(_run_extended_architectural_checks(files, repo_root))
     return len(errors) == 0, errors
 
 
@@ -210,7 +270,7 @@ def check_production_purity(files: Sequence[Path] | None, repo_root: Path) -> tu
 
 
 def check_contract_schemas(files: Sequence[Path] | None, repo_root: Path) -> tuple[bool, list[str]]:
-    """Category 4: Contract / Schema Validation."""
+    """Category 4: Contract / Schema Validation & SSOT Drift."""
     errors = []
     if files is not None:
         decl_files = [f for f in files if f.suffix.lower() in (".json", ".yaml", ".yml")]
@@ -223,6 +283,7 @@ def check_contract_schemas(files: Sequence[Path] | None, repo_root: Path) -> tup
             rel = str(f.relative_to(repo_root)) if f.is_relative_to(repo_root) else str(f)
             errors.append(f"[Schema/Contract] {rel}: {msg}")
 
+    errors.extend(_run_ssot_drift_checks(files, repo_root))
     return len(errors) == 0, errors
 
 
@@ -280,11 +341,13 @@ def run_precommit_gate(
             err_a.extend(g)
             err_p.extend(p)
 
+    err_a.extend(_run_extended_architectural_checks(target_files, repo_root, mode_name=mode_name))
+
     results["1. Standard Code Hygiene"] = (len(err_h) == 0, err_h)
     results["2. Architectural Governance"] = (len(err_a) == 0, err_a)
     results["3. Production Purity"] = (len(err_p) == 0, err_p)
 
-    # 3. Contract / Schema Validation
+    # 3. Contract / Schema Validation & SSOT Drift
     err_c: list[str] = []
     for f in schema_files:
         ok, msg = validate_file_against_schema(f, repo_root)
@@ -294,6 +357,7 @@ def run_precommit_gate(
             except ValueError:
                 rel = str(f)
             err_c.append(f"[Schema/Contract] {rel}: {msg}")
+    err_c.extend(_run_ssot_drift_checks(target_files, repo_root, mode_name=mode_name))
     results["4. Contract / Schema Validation"] = (len(err_c) == 0, err_c)
 
     # 4. Secrets / Credential Protection (Parallel)

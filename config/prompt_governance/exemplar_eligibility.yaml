@@ -5,7 +5,7 @@
 # prompt-assembly-reception-hardening-9c4e2b.md.
 #
 # Consumed by:
-#   - agentic_core/prompt_governance/validation/check_exemplar_coverage.py
+#   - apps_rg/prompt_governance/validation/check_exemplar_coverage.py
 #     (runtime gate invoked during prompt assembly)
 #   - ops_scripts/ci/check_exemplar_coverage.py
 #     (pre-commit / CI gate that validates this file against the exemplar bank)

@@ -7,7 +7,7 @@ Per ADR-061. One JSONL file per corpus, one row per query. Schema:
   "query_id": "code-001",
   "query": "How does the reranker factory pick the backend?",
   "intent_class": "code_concept",
-  "expected_chunks": ["agentic_core/knowledge/retrieval/reranker_factory.py:52-67"],
+  "expected_chunks": ["apps_rg/knowledge/retrieval/reranker_factory.py:52-67"],
   "expected_answer_summary": "RERANKER env: auto/heuristic/cross_encoder/none.",
   "negative_chunks": [],
   "tags": ["retrieval", "factory", "env_driven"],

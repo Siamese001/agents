@@ -28,7 +28,7 @@
     },
     {
       "id": "l6_shadow_rg_lic",
-      "app": "agentic_core/L6 + apps_rg + apps_lic",
+      "app": "apps_rg/L6 + apps_rg + apps_lic",
       "target": "L6 shadow observability (spearman) wired and OPEN-resolved for apps_rg AND apps_lic",
       "deadline": "with eval_focus",
       "status": "open",

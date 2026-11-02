@@ -16,7 +16,7 @@
 #
 # Example:
 #   - gate: G_REACH_l0_reachability
-#     scope: agentic_core/L_CONTRACTS/
+#     scope: apps_rg/L_CONTRACTS/
 #     reason: "Contract namespace imported via dynamic registry"
 #     owner: amit@workflow.local
 #     expires_on: 2026-07-31

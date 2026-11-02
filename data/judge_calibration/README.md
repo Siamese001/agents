@@ -5,7 +5,7 @@ Scaffolded by plan `llm-as-judge-hardening-anthropic-e7b1a4` (ENH5.5).
 This directory holds the human-annotated gold set used to calibrate
 LLM-as-Judge backends against expert judgement. Metrics produced:
 Cohen's kappa (two raters) and Krippendorff's alpha (N raters) — both
-implemented in `agentic_core/evaluation/judges/calibration.py`.
+implemented in `apps_rg/evaluation/judges/calibration.py`.
 
 ## File layout
 
@@ -65,7 +65,7 @@ Seeded from three sources:
 ## Running a calibration report
 
 ```python
-from agentic_core.evaluation.judges.calibration import summarize_judge_vs_human
+from apps_rg.evaluation.judges.calibration import summarize_judge_vs_human
 
 report = summarize_judge_vs_human(
     gold_path="data/judge_calibration/gold_set.jsonl",
@@ -83,4 +83,4 @@ Acceptance thresholds for the hardening plan:
 | Judge `unknown_rate` per dim | ≤ dimension's `unknown_budget` in `config/judges/rubrics.yaml` |
 
 Failures on any of the above are recorded by the drift monitor at
-`agentic_core/L6_observability/judge_drift.py`.
+`apps_rg/L6_observability/judge_drift.py`.

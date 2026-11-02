@@ -151,7 +151,7 @@ windsurf_state_dirs:
 
 # ============================================================================
 # RUNTIME SCANNER EXCLUSIONS (mirror of Python frozensets in
-# agentic_core/L0_routing/config/path_constants.py — validated by
+# apps_rg/L0_routing/config/path_constants.py — validated by
 # ops_scripts/ci/check_exclusion_consistency.py to prevent drift).
 #
 # These are deliberately separate from the .gitignore categories above because

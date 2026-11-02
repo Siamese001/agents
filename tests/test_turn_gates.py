@@ -247,6 +247,20 @@ Wave 1 completed cleanly!
         self.assertEqual(result["status"], "FAIL")
         self.assertEqual(result["checks"]["word_budget_gate"]["status"], "FAIL")
 
+    def test_validate_policy_registry_fails_closed_on_malformed_yaml(self) -> None:
+        """Verify policy registry loader fails closed rather than silently swallowing corrupt YAML."""
+        import tempfile
+        from tools.validate_turn_gates import validate_policy_registry
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_root = Path(tmpdir)
+            gov_dir = tmp_root / "config" / "governance"
+            gov_dir.mkdir(parents=True)
+            (gov_dir / "policy_registry.yaml").write_text("policies: [unclosed", encoding="utf-8")
+            res = validate_policy_registry(tmp_root)
+            self.assertEqual(res["status"], "FAIL")
+            self.assertTrue(any("Failed loading policy registry" in iss for iss in res["issues"]))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -11,6 +11,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable
 
+from infrastructure.types.research_handoff_contracts import (
+    matches_company_stem,
+    normalize_company_role_tokens,
+)
+
 if TYPE_CHECKING:
     from apps_lic.integrations.apps_research_bridge import EvidenceItem, ResearchResult
 
@@ -125,9 +130,7 @@ def _resolve_canonical_targeting_brief(
         _REPO_ROOT / "outreach_engine" / "data" / "fixtures",
     ]
 
-    company_norm = re.sub(r"[^a-z0-9]+", "_", company_name.lower()).strip("_")
-    role_norm = re.sub(r"[^a-z0-9]+", "_", job_title.lower()).strip("_")
-    role_tokens = [tok for tok in role_norm.split("_") if len(tok) > 3]
+    company_norm, role_norm, company_tokens, role_tokens = normalize_company_role_tokens(company_name, job_title)
 
     for targeting_dir in search_dirs:
         if not targeting_dir.is_dir():
@@ -137,7 +140,7 @@ def _resolve_canonical_targeting_brief(
         # Priority 1: Company + role match
         for candidate in candidates:
             stem = candidate.stem.lower()
-            if company_norm in stem and any(tok in stem for tok in role_tokens):
+            if matches_company_stem(stem, company_norm, company_tokens) and any(tok in stem for tok in role_tokens):
                 content = _read_candidate_brief(candidate)
                 if content:
                     return content, str(candidate)

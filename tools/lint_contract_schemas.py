@@ -13,6 +13,14 @@ import sys
 from pathlib import Path
 from typing import Any, Sequence
 
+_REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
+from tools.pr_governance_core.common import bootstrap_shared_venv
+
+bootstrap_shared_venv(_REPO_ROOT)
+
 try:
     import jsonschema
 except ImportError:
