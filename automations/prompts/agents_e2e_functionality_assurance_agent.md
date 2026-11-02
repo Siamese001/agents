@@ -98,9 +98,10 @@ for s in surfaces:
 
 print(json.dumps({"surface_file_counts": summary, "silent_except_returns": silent_returns[:25]}, indent=2))
 PY
+python3 tools/run_resume_graph_traversal_probe.py --max-paths 200
 ```
 
-Write the structured findings and 8-field admission proofs to `${RUN_DIR}/audit_report.json`.
+Verify that `run_resume_graph_traversal_probe.py` reports `status == "PASS"`, `direct_graph_traversal == true`, and non-zero multi-hop paths across `resume_graph_engine` (`domain -> skill -> evidence` and `skill -> fact -> metric_outcome -> employment -> career_epoch`) in an ephemeral read-only sandbox. Write the structured findings and 8-field admission proofs to `${RUN_DIR}/audit_report.json`.
 
 ---
 
