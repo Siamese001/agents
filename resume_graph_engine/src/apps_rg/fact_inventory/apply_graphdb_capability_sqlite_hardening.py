@@ -100,8 +100,11 @@ class UnsupportedGraphSchemaError(ValueError):
         )
 
 
+from apps_rg.repository_layout import repository_root
+
+
 def _repo_root() -> Path:
-    return Path(__file__).resolve().parents[2]
+    return repository_root(Path(__file__))
 
 
 def _table_columns(conn: Any, table_name: str) -> set[str]:

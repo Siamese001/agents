@@ -20,6 +20,8 @@ from apps_rg.fact_inventory.graph_sqlite_path_index import (
     validate_graphdb_capability_integrity,
 )
 
+from apps_rg.repository_layout import repository_root
+
 if TYPE_CHECKING:
     from apps_rg.runtime.core_sqlite import sqlite3_adapter as sqlite3
 
@@ -34,7 +36,7 @@ REQUIRED_TABLES = (
 
 
 def _repo_root() -> Path:
-    return Path(__file__).resolve().parents[2]
+    return repository_root(Path(__file__))
 
 
 def _count(conn: sqlite3.Connection, table: str) -> int:

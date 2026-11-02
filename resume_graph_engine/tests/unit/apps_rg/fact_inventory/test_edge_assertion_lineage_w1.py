@@ -258,7 +258,7 @@ def test_ac1_6_check_constraints_enforce_assertion_lineage_invariants() -> None:
     """AC1.6: CHECK constraints reject invalid assertion, lineage, and cross-field states."""
     conn = sqlite3.connect(":memory:")
     conn.execute("PRAGMA foreign_keys=ON")
-    for ddl in DDL_STATEMENTS[:4]:
+    for ddl in DDL_STATEMENTS[:5]:
         conn.execute(ddl)
 
     conn.execute("INSERT INTO node_type_registry (node_type, layer) VALUES ('skill', 'knowledge'), ('fact', 'evidence')")

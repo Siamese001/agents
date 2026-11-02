@@ -9,9 +9,10 @@ from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any
 
-ROOT = Path(__file__).resolve().parents[2]
-
 from apps_rg.fact_inventory.master_skills_arsenal_ledger import collect_canonical_graph_issues
+from apps_rg.repository_layout import repository_root, resolve_repository_path
+
+ROOT = repository_root(Path(__file__))
 
 DEFAULT_GRAPH_PATH = Path("apps_rg/fact_inventory/master_skills_arsenal_ledger.json")
 REQUIRED_EDGE_TYPES = {
@@ -29,7 +30,7 @@ _ISSUE_COUNT_RE = re.compile(r"(?:^|\s)count=(\d+)(?:\s|$)")
 
 
 def _repo_root() -> Path:
-    return Path(__file__).resolve().parents[2]
+    return repository_root(Path(__file__))
 
 
 def _load(path: Path) -> dict[str, Any]:
@@ -100,7 +101,8 @@ def main(argv: list[str] | None = None) -> None:
     root = Path(args.repo_root).resolve() if args.repo_root else _repo_root()
     graph_path = Path(args.graph_path)
     if not graph_path.is_absolute():
-        graph_path = root / graph_path
+        candidate = root / graph_path
+        graph_path = candidate if candidate.is_file() else resolve_repository_path(root, graph_path)
     graph = _load(graph_path)
     errors = validate_graph(graph)
     status = "NOT_READY" if errors else "PASS"

@@ -51,13 +51,20 @@ def project_registered_graph_node_type(raw_type: str) -> str:
 
 
 def projected_registered_graph_edge_signatures() -> dict[str, frozenset[tuple[str, str]]]:
-    """Return exact, non-polymorphic edge signatures from the canonical type registry."""
+    """Return projected edge signatures combining canonical ledger signatures and the type registry."""
     from .type_registry import EDGE_TYPE_REGISTRY
 
-    return {
-        edge_type: frozenset([(spec["src_type"], spec["tgt_type"])])
+    merged: dict[str, set[tuple[str, str]]] = {
+        edge_type: {(spec["src_type"], spec["tgt_type"])}
         for edge_type, spec in EDGE_TYPE_REGISTRY.items()
     }
+    for edge_type, raw_pairs in REGISTERED_GRAPH_EDGE_SIGNATURES.items():
+        pair_set = merged.setdefault(edge_type, set())
+        for raw_src, raw_tgt in raw_pairs:
+            proj_src = RAW_TO_CANONICAL_NODE_TYPE.get(raw_src, raw_src)
+            proj_tgt = RAW_TO_CANONICAL_NODE_TYPE.get(raw_tgt, raw_tgt)
+            pair_set.add((proj_src, proj_tgt))
+    return {edge_type: frozenset(pairs) for edge_type, pairs in merged.items()}
 
 
 def projected_graph_edge_signature_report(

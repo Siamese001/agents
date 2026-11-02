@@ -19,6 +19,7 @@ from apps_rg.fact_inventory.master_skills_arsenal_ledger import (
 from apps_rg.fact_inventory.metric_outcome_materializer import (
     discover_role_episode_bundle_files,
 )
+from apps_rg.repository_layout import repository_root, resolve_repository_path
 from .constants import (
     C03_SQLITE_MATERIALIZER_CODE_VERSION,
     CANDIDATE_LEDGER_REL_PATH,
@@ -53,7 +54,7 @@ def _canonical_json_sha256(payload: Any) -> str:
 
 def compute_input_manifest(repo_root: Path | None = None) -> dict[str, Any]:
     """Compute itemized SHA256 manifest and overall digest across all graph inputs."""
-    root = Path(repo_root or Path.cwd()).resolve()
+    root = repository_root(repo_root or Path(__file__))
 
     inputs: list[dict[str, str]] = []
 
@@ -67,7 +68,7 @@ def compute_input_manifest(repo_root: Path | None = None) -> dict[str, Any]:
         })
 
     # 2. Candidate skills fact ledger
-    candidate_path = root / CANDIDATE_LEDGER_REL_PATH
+    candidate_path = resolve_repository_path(root, CANDIDATE_LEDGER_REL_PATH)
     if candidate_path.is_file():
         inputs.append({
             "path": str(candidate_path.relative_to(root)) if candidate_path.is_relative_to(root) else str(candidate_path),

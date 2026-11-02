@@ -294,7 +294,7 @@ def populate_stub_descriptions(
         return
 
     for nid, node in node_rows.items():
-        ntype = node.get("node_type")
+        ntype = str(node.get("node_type") or "")
         if ntype == "fact" and nid in fact_map:
             cf = fact_map[nid]
             claim = str(cf.get("claim_text") or "").strip()
@@ -309,6 +309,59 @@ def populate_stub_descriptions(
             clean_repo = nid.replace("repo_", "").replace("_", " ").title()
             node["description"] = f"Production implementation evidence: {clean_repo}"
             node["label"] = clean_repo
+
+        desc = str(node.get("description") or "").strip()
+        label = str(node.get("label") or "").strip()
+        if not desc:
+            if ntype == "capability_domain":
+                clean = nid.removeprefix("domain_").replace("_", " ").title()
+                node["description"] = f"Capability domain grouping skills and evidence in {clean}."
+                if not label or label == nid:
+                    node["label"] = clean
+            elif ntype == "career_epoch":
+                clean = nid.removeprefix("epoch_").replace("_", " ").title()
+                node["description"] = f"Career epoch representing {clean}."
+                if not label or label == nid:
+                    node["label"] = clean
+            elif ntype == "certification":
+                clean = nid.removeprefix("cert_").replace("_", " ").title()
+                node["description"] = f"Verified professional certification evidence: {clean}."
+                if not label or label == nid:
+                    node["label"] = clean
+            elif ntype == "locked_bullet":
+                clean = nid.removeprefix("bul_").replace("_", " ").title()
+                node["description"] = f"Locked resume achievement bullet evidence: {clean}."
+                if not label or label == nid:
+                    node["label"] = clean
+            elif ntype in ("policy", "policy_rule"):
+                clean = nid.removeprefix("policy_rule_").removeprefix("policy_").replace("_", " ").title()
+                node["description"] = f"Governance policy specification for {clean}."
+                if not label or label == nid:
+                    node["label"] = clean
+            elif ntype == "section":
+                clean = nid.removeprefix("section_").replace("_", " ").title()
+                node["description"] = f"Resume section: {clean}"
+                if not label or label == nid:
+                    node["label"] = clean
+            elif ntype == "graph_ref":
+                clean = nid.replace("_", " ").title()
+                node["description"] = f"Targeting input reference anchor: {clean}."
+                if not label or label == nid:
+                    node["label"] = clean
+            else:
+                clean = nid.replace("_", " ").title()
+                node["description"] = f"{ntype.replace('_', ' ').title()} node: {clean}."
+                if not label:
+                    node["label"] = clean
+
+        if not node.get("source_refs_json") or node.get("source_refs_json") == "[]":
+            node["source_refs_json"] = json.dumps(
+                [f"{node.get('origin_kind') or 'derived_projection'}:{node.get('origin_ref') or nid}"]
+            )
+        if not node.get("authority_refs_json") or node.get("authority_refs_json") == "[]":
+            node["authority_refs_json"] = json.dumps(
+                [f"authority:{node.get('source_authority') or 'augmented_skills_graph'}:{ntype or 'node'}"]
+            )
 
 
 def build_domain_hierarchy_edges(

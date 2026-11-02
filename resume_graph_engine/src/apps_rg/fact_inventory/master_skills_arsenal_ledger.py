@@ -152,6 +152,7 @@ REGISTERED_GRAPH_EDGE_TYPES = frozenset(
         "metric_bucket_contains_metric",
         "metric_supports_business_outcome",
         "pillar_contains_capability_domain",
+        "pillar_contains_skill",
         "pillar_phase_bridge",
         "pillar_section_eligibility",
         "projection_excludes_blocked_skill",
@@ -165,10 +166,15 @@ REGISTERED_GRAPH_EDGE_TYPES = frozenset(
         "skill_projection_only_internal",
         "skill_reinforces_skill",
         "skill_requires_human_confirmation",
+        "skill_supported_by_certification",
+        "skill_supported_by_employment",
         "skill_supported_by_fact",
+        "skill_supported_by_locked_bullet",
         "skill_supported_by_repo_evidence",
         "skill_supported_by_source_concept",
+        "srfs_policy_requires_fact_id_only",
         "srfs_requires_fact_id_only",
+        "srfs_rule_requires_fact_id_only",
     }
 )
 
@@ -235,88 +241,63 @@ REGISTERED_GRAPH_EDGE_VALIDATION_STATUSES = frozenset({"validated", "ACTIVE_CONF
 
 REGISTERED_GRAPH_EDGE_SIGNATURES: dict[str, frozenset[tuple[str, str]]] = {
     "capability_domain_contains_skill": frozenset(
-        {
-            ("capability_domain", "skill"),
-            ("capability_domain", "skill_row"),
-            ("domain_pillar", "skill_row"),
-        }
+        {("capability_domain", "skill"), ("capability_domain", "skill_row"), ("domain_pillar", "skill_row")}
     ),
-    "career_track_contains_capability_domain": frozenset(
-        {("career_track", "capability_domain")}
-    ),
+    "career_track_contains_capability_domain": frozenset({("career_track", "capability_domain")}),
     "career_track_contains_epoch": frozenset({("career_track", "career_epoch")}),
     "career_track_contains_pillar": frozenset({("career_track", "domain_pillar")}),
     "career_track_precedes_career_track": frozenset({("career_track", "career_track")}),
     "employment_hosts_fact": frozenset({("employment", "atomic_proof_fact")}),
     "employment_in_career_track": frozenset({("employment", "career_track")}),
-    "employment_produces_skill": frozenset(
-        {("employment", "skill"), ("employment", "skill_row")}
-    ),
+    "employment_produces_skill": frozenset({("employment", "skill"), ("employment", "skill_row")}),
     "epoch_contains_pillar": frozenset({("career_epoch", "domain_pillar")}),
-    "epoch_contains_skill": frozenset(
-        {("career_epoch", "skill"), ("career_epoch", "skill_row")}
-    ),
+    "epoch_contains_skill": frozenset({("career_epoch", "skill"), ("career_epoch", "skill_row")}),
     "identity_supported_by_epoch": frozenset({("identity_north_star", "career_epoch")}),
-    "identity_supported_by_pillar": frozenset(
-        {("identity_north_star", "domain_pillar")}
-    ),
+    "identity_supported_by_pillar": frozenset({("identity_north_star", "domain_pillar")}),
     "jd_briefing_targeting_only": frozenset({("targeting_input", "policy_rule")}),
     "metric_bucket_contains_metric": frozenset({("metric_bucket", "metric")}),
     "metric_supports_business_outcome": frozenset({("metric", "metric_bucket")}),
-    "pillar_contains_capability_domain": frozenset(
-        {("domain_pillar", "capability_domain")}
+    "pillar_contains_capability_domain": frozenset({("domain_pillar", "capability_domain")}),
+    "pillar_contains_skill": frozenset(
+        {("domain_pillar", "skill"), ("domain_pillar", "skill_row"), ("pillar", "skill")}
     ),
     "pillar_phase_bridge": frozenset({("domain_pillar", "domain_pillar")}),
-    "pillar_section_eligibility": frozenset(
-        {("domain_pillar", "resume_section_projection")}
-    ),
-    "projection_excludes_blocked_skill": frozenset(
-        {("skill", "policy"), ("skill_row", "policy")}
-    ),
-    "section_blocks_pending_source_skill": frozenset(
-        {("resume_section_projection", "policy_rule")}
-    ),
-    "section_blocks_skill_without_fact": frozenset(
-        {("resume_section_projection", "policy_rule")}
-    ),
+    "pillar_section_eligibility": frozenset({("domain_pillar", "resume_section_projection")}),
+    "projection_excludes_blocked_skill": frozenset({("skill", "policy"), ("skill_row", "policy")}),
+    "section_blocks_pending_source_skill": frozenset({("resume_section_projection", "policy_rule")}),
+    "section_blocks_skill_without_fact": frozenset({("resume_section_projection", "policy_rule")}),
     "section_can_select_skill": frozenset({("resume_section_projection", "skill")}),
     "skill_allowed_in_section": frozenset(
-        {
-            ("skill", "resume_section_projection"),
-            ("skill_row", "resume_section_projection"),
-        }
+        {("skill", "resume_section_projection"), ("skill_row", "resume_section_projection")}
     ),
     "skill_can_surface_metric": frozenset({("skill", "metric")}),
-    "skill_external_claim_eligible": frozenset(
-        {("skill", "policy"), ("skill_row", "policy")}
-    ),
+    "skill_external_claim_eligible": frozenset({("skill", "policy"), ("skill_row", "policy")}),
     "skill_has_metric_bucket": frozenset({("skill", "metric_bucket")}),
-    "skill_projection_only_internal": frozenset(
-        {("skill", "policy"), ("skill_row", "policy")}
-    ),
+    "skill_projection_only_internal": frozenset({("skill", "policy"), ("skill_row", "policy")}),
     "skill_reinforces_skill": frozenset({("skill", "skill")}),
-    "skill_requires_human_confirmation": frozenset(
-        {("skill", "policy"), ("skill_row", "policy")}
+    "skill_requires_human_confirmation": frozenset({("skill", "policy"), ("skill_row", "policy")}),
+    "skill_supported_by_certification": frozenset(
+        {("skill", "certification_evidence"), ("skill_row", "certification_evidence"), ("skill", "certification")}
+    ),
+    "skill_supported_by_employment": frozenset(
+        {("skill", "experience_evidence"), ("skill_row", "experience_evidence"), ("skill", "employment")}
     ),
     "skill_supported_by_fact": frozenset(
         {
-            ("skill", "atomic_proof_fact"),
-            ("skill", "bullet_fact"),
-            ("skill", "certification_evidence"),
-            ("skill", "experience_evidence"),
-            ("skill_row", "atomic_proof_fact"),
-            ("skill_row", "bullet_fact"),
-            ("skill_row", "certification_evidence"),
-            ("skill_row", "experience_evidence"),
+            ("skill", "atomic_proof_fact"), ("skill", "bullet_fact"),
+            ("skill", "certification_evidence"), ("skill", "experience_evidence"),
+            ("skill_row", "atomic_proof_fact"), ("skill_row", "bullet_fact"),
+            ("skill_row", "certification_evidence"), ("skill_row", "experience_evidence"),
         }
     ),
-    "skill_supported_by_repo_evidence": frozenset(
-        {("skill_row", "repository_evidence")}
+    "skill_supported_by_locked_bullet": frozenset(
+        {("skill", "bullet_fact"), ("skill_row", "bullet_fact"), ("skill", "locked_bullet")}
     ),
+    "skill_supported_by_repo_evidence": frozenset({("skill_row", "repository_evidence")}),
     "skill_supported_by_source_concept": frozenset({("skill_row", "source_concept")}),
-    "srfs_requires_fact_id_only": frozenset(
-        {("external_claim_policy", "policy"), ("policy_rule", "policy")}
-    ),
+    "srfs_policy_requires_fact_id_only": frozenset({("external_claim_policy", "policy"), ("policy", "policy")}),
+    "srfs_requires_fact_id_only": frozenset({("external_claim_policy", "policy"), ("policy_rule", "policy")}),
+    "srfs_rule_requires_fact_id_only": frozenset({("policy_rule", "policy")}),
 }
 
 

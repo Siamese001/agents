@@ -105,15 +105,19 @@ def verify_bge_m3_embeddings(embedding_dirs: list[Path], db_path: Path) -> dict[
     for d in embedding_dirs:
         if d.is_dir():
             vector_files.extend(d.glob("*.sqlite"))
+    if db_path.is_file() and db_path not in vector_files:
+        vector_files.append(db_path)
 
     if not vector_files:
         raise FileNotFoundError(f"No vector SQLite files found in {embedding_dirs}")
 
-    # Get retrieval-eligible skill IDs from SQLite
+    # Get retrieval-eligible skill IDs and semantic unit IDs from SQLite
     conn = sqlite3.connect(str(db_path))
     cur = conn.cursor()
     cur.execute("SELECT node_id FROM graph_nodes WHERE node_type = 'skill' AND external_eligible = 1")
     eligible_ids = set(r[0] for r in cur.fetchall())
+    cur.execute("SELECT unit_id FROM semantic_unit")
+    expected_unit_ids = set(r[0] for r in cur.fetchall())
     conn.close()
 
     min_sim_global = 1.0
@@ -128,7 +132,14 @@ def verify_bge_m3_embeddings(embedding_dirs: list[Path], db_path: Path) -> dict[
 
         target_table = None
         vec_col = None
-        for tbl in ("assertion_vectors", "assertion_embeddings", "cluster_embeddings", "vectors", "embeddings"):
+        for tbl in (
+            "assertion_vectors",
+            "assertion_embeddings",
+            "cluster_embeddings",
+            "unit_vectors",
+            "vectors",
+            "embeddings",
+        ):
             if tbl in tables:
                 target_table = tbl
                 break
@@ -175,11 +186,14 @@ def verify_bge_m3_embeddings(embedding_dirs: list[Path], db_path: Path) -> dict[
             file_ids.add(str(aid))
             total_vectors += 1
 
-        # Cosine spectrum verification for assertion_vectors table
-        if target_table == "assertion_vectors" and len(file_vectors) > 1:
-            if file_ids != eligible_ids:
+        # Cosine spectrum verification for assertion_vectors or unit_vectors table
+        if target_table in ("assertion_vectors", "unit_vectors") and len(file_vectors) > 1:
+            if target_table == "assertion_vectors" and file_ids != eligible_ids:
                 diff = file_ids ^ eligible_ids
                 raise ValueError(f"Assertion vector ID mismatch against graph: {len(diff)} IDs differ")
+            if target_table == "unit_vectors" and file_ids != expected_unit_ids:
+                diff = file_ids ^ expected_unit_ids
+                raise ValueError(f"Semantic unit vector ID mismatch against graph: {len(diff)} IDs differ")
 
             # Compute pairwise cosine similarities: vectors are unit norm
             n = len(file_vectors)
