@@ -32,12 +32,13 @@ export PRIMARY_REPO_ROOT="/Users/amitayer/Git/agents"
 export RUN_TS="$(date -u +%Y%m%dT%H%M%SZ)"
 export HEX6="$(python3 -c 'import secrets; print(secrets.token_hex(3))')"
 export BRANCH_SLUG="agents-storage-hygiene-${RUN_TS}"
-export BRANCH_NAME="automation/${BRANCH_SLUG}"
-export WORKTREE_DIR="${PRIMARY_REPO_ROOT}/.worktrees/${BRANCH_SLUG}"
+export BRANCH_NAME="chore/${BRANCH_SLUG}"
+export WORKTREE_SLUG="$(echo "${BRANCH_NAME}" | tr '/-' '__')"
+export WORKTREE_DIR="${PRIMARY_REPO_ROOT}/.worktrees/${WORKTREE_SLUG}"
 export RUN_DIR="${WORKTREE_DIR}/artifacts/sidecar_runs/agents_storage_worktree_hygiene/${RUN_TS}"
 
 git -C "${PRIMARY_REPO_ROOT}" worktree prune
-python3 "${PRIMARY_REPO_ROOT}/tools/prune_merged_chat_worktrees.py" --repo-root "${PRIMARY_REPO_ROOT}" --consolidate-sidecar --worktree-dir "${WORKTREE_DIR}" --branch "${BRANCH_NAME}"
+"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/prune_merged_chat_worktrees.py" --repo-root "${PRIMARY_REPO_ROOT}" --consolidate-sidecar --worktree-dir "${WORKTREE_DIR}" --branch "${BRANCH_NAME}"
 mkdir -p "${RUN_DIR}" "${WORKTREE_DIR}/plans"
 export PRE_STATE_SHA256="$(git -C "${WORKTREE_DIR}" rev-parse HEAD)"
 ```
@@ -99,32 +100,32 @@ Author `${WORKTREE_DIR}/plans/storage-hygiene-${HEX6}.md` (500–800 words, max 
 Each wave MUST include `### Objective & Scope`, `### Milestones & Deliverables`, `### Acceptance Criteria`, and `### Runtime Receipt & Completion Gate` (`Run:`, `Input:`, `Expected:`, `Verify independently:`, `Fail if:`, `Record:`), followed by `## Wave Implementation & Completion Status Table`.
 Validate immediately:
 ```bash
-python3 tools/validate_implementation_plan.py --file "plans/storage-hygiene-${HEX6}.md"
-cp "plans/storage-hygiene-${HEX6}.md" "${RUN_DIR}/implementation_plan.md"
+"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/validate_implementation_plan.py" --file "${WORKTREE_DIR}/plans/storage-hygiene-${HEX6}.md"
+cp "${WORKTREE_DIR}/plans/storage-hygiene-${HEX6}.md" "${RUN_DIR}/implementation_plan.md"
 ```
 
 ### Step 2.2: Mandatory Pre-HITL Dimension Findings Table & Calibrated HITL Gate
 Render the **Dimension Findings Table** (`| Dimension | Score / Status | Concrete Findings | Planned Action |`) covering all 6 pillars.
 Compute multi-factor calibrated confidence using `tools/hitl_governance.py` (`calculate_calibrated_confidence`, `evaluate_hitl_surfacing_gate`, `HITLDecisionStore` at `artifacts/governance/hitl_decisions.sqlite`).
-- In `MODE: scheduled`: Copy `${RUN_DIR}` to `${PRIMARY_REPO_ROOT}/artifacts/sidecar_runs/agents_storage_worktree_hygiene/${RUN_TS}`, prune `${WORKTREE_DIR}` and `${BRANCH_NAME}`, and exit `COMPLETE` or `OPERATOR_INPUT_REQUIRED`.
+- In `MODE: scheduled`: Copy `${RUN_DIR}` to `${PRIMARY_REPO_ROOT}/artifacts/sidecar_runs/agents_storage_worktree_hygiene/${RUN_TS}`. When 0 findings exist, prune `${WORKTREE_DIR}` and `${BRANCH_NAME}` via `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/pr_governance.py" -C "${WORKTREE_DIR}" submit "${BRANCH_NAME}" --stage-only` and exit `COMPLETE`; when remediable findings pass all 5 proof points with $\Delta > 0.20$, commit on `${BRANCH_NAME}` and stage via `--stage-only` without mutating `main`.
 - In `MODE: interactive`: If $\Delta \le 0.20$, invoke `ask_question` with one atomic decision (`Candidate ID`, calibrated confidence scores, `(Recommended)` option). If $\Delta > 0.20$, record the autonomous decision receipt in `HITLDecisionStore` and proceed to Phase 3.
 
 ---
 
 ## 6. Phase 3: Sequential Wave Execution, 5-Point Proof & Mainline Merge (`C06–C10`)
 
-For each wave (`Wave 1 -> Wave N`) in `MODE: interactive`:
+For each wave (`Wave 1 -> Wave N`):
 1. **5-Point Counterfactual Runtime Proof (`INV-RUNTIME-PROOF-5POINT`)**:
    - Capture `PRE_MUTATION_RUN` metrics (worktree count, merged branch count, WAL byte size).
    - Execute bounded remediation commands (`git worktree prune`, `PRAGMA wal_checkpoint(TRUNCATE)`).
    - Run `POST_MUTATION_RUN` verification and scoped pytest:
-     `/Users/amitayer/Git/agents/.venv/bin/pytest tests/unit/test_sidecar_separation_governance.py -v --timeout=60`
+     `"${PRIMARY_REPO_ROOT}/.venv/bin/pytest" "${WORKTREE_DIR}/tests/unit/test_sidecar_separation_governance.py" -v --timeout=60`
    - Verify state independently and record the 5-column proof table in `${RUN_DIR}/wave_receipts.md`.
 2. **Closed-Loop System Learning (`C07`)**: Record wave outcome in `HITLDecisionStore` (`artifacts/governance/hitl_decisions.sqlite`).
-3. **Turn & Commit Gates (`C09`, `C10`)**:
+3. **Turn, Commit & Promotion Gates (`C09`, `C10`)**:
    ```bash
-   python3 tools/validate_sidecar_separation.py --json
-   python3 tools/validate_turn_gates.py --mode all
-   python3 tools/verify_commit.py
+   "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/validate_sidecar_separation.py" --repo-root "${WORKTREE_DIR}" --json
+   "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/validate_turn_gates.py" --mode all
+   "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/verify_commit.py"
    ```
-   Commit on `${BRANCH_NAME}`, rebase onto `main`, merge `--no-ff` into `/Users/amitayer/Git/agents` (`main`), and remove `${WORKTREE_DIR}` and `${BRANCH_NAME}`.
+   Commit via `git -C "${WORKTREE_DIR}" commit`, then stage via `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/pr_governance.py" -C "${WORKTREE_DIR}" submit "${BRANCH_NAME}" --stage-only` in scheduled mode, or obtain interactive `ask_question` `PR_MERGE_AUTHORIZATION` and promote via `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/pr_governance.py" -C "${WORKTREE_DIR}" submit "${BRANCH_NAME}" --title "chore(hygiene): remediate storage and worktree drift"`.

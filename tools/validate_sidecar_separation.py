@@ -5,8 +5,8 @@ Verifies:
 1. Namespace Isolation: All 7 Agents Repo sidecars use `agents-*` directory names and `Agents Repo: ` display prefixes.
 2. Prompt Dereference & Workspace Containment: Every `agents-*` sidecar points to `/Users/amitayer/Git/agents/automations/prompts/agents_*_agent.md` and restricts `workspace_uris` and `access_grants` to `/Users/amitayer/Git/agents`.
 3. Cross-Repo Firewall (`INV-REPO-SEPARATION-AGENTS-ONLY`): Every Agents prompt specification enforces `INV-REPO-SEPARATION-AGENTS-ONLY` and prohibits touching `/Users/amitayer/Git/decision-intelligence-engine`.
-4. Disjoint Schedule Window: All 7 Agents sidecars run in the 05:30-07:00 America/New_York window with zero cron collisions against the 17 Decision Intelligence Engine sidecars.
-5. Decision Intelligence Engine Preservation: All 17 existing Decision Intelligence Engine sidecars remain intact and bound to `/Users/amitayer/Git/decision-intelligence-engine`.
+4. Disjoint Schedule Window: All 7 Agents sidecars run in the 05:30-07:00 America/New_York window with zero cron collisions against the 18 Decision Intelligence Engine sidecars.
+5. Decision Intelligence Engine Preservation: All 18 existing Decision Intelligence Engine sidecars remain intact and bound to `/Users/amitayer/Git/decision-intelligence-engine`.
 """
 
 from __future__ import annotations
@@ -74,6 +74,7 @@ EXPECTED_NEE_SIDECARS: tuple[str, ...] = (
     "nea-charter-portfolio-roster",
     "pipeline-outcome-retrieval-assurance",
     "pr-queue-governance-observer",
+    "public-decision-intelligence-engine-sync",
     "retrieval-surface-assurance-agent",
     "ssot-configuration-deduplication-model-pinning-anti-hardcoding",
     "system-learning-assurance-agent",
@@ -93,6 +94,8 @@ REQUIRED_SHARED_CONTRACT_MARKERS: tuple[str, ...] = (
     "validate_implementation_plan.py",
     "--consolidate-sidecar",
     "Dimension Findings Table",
+    "pr_governance.py",
+    "--stage-only",
 )
 
 REQUIRED_PROMPT_PARITY_MARKERS: tuple[str, ...] = (
@@ -111,6 +114,8 @@ REQUIRED_PROMPT_PARITY_MARKERS: tuple[str, ...] = (
     "validate_implementation_plan.py",
     "Dimension Findings Table",
     "HITLDecisionStore",
+    "pr_governance.py",
+    "--stage-only",
 )
 
 
@@ -217,8 +222,31 @@ def validate_sidecar_separation(
                     violations.append(f"{spec['prompt_file']}: missing mandatory parity marker '{marker}'")
             if NEE_CANONICAL_ROOT in p_text:
                 violations.append(f"{spec['prompt_file']}: contains forbidden path '{NEE_CANONICAL_ROOT}'")
+            if 'BRANCH_NAME="automation/' in p_text:
+                violations.append(
+                    f"{spec['prompt_file']}: contains non-conventional branch prefix 'BRANCH_NAME=\"automation/'"
+                )
+            if "merge --no-ff" in p_text:
+                violations.append(
+                    f"{spec['prompt_file']}: contains raw unreviewed 'merge --no-ff' bypassing pr_governance.py"
+                )
 
         validated_agents_count += 1
+
+    # 2b. Verify config.json sidecars registry entries when global config exists
+    config_file = sidecars_root.parent / "config.json"
+    if config_file.is_file():
+        try:
+            config_payload = json.loads(config_file.read_text(encoding="utf-8"))
+            registered_sidecars = config_payload.get("sidecars")
+            if isinstance(registered_sidecars, dict):
+                for sidecar_id in EXPECTED_AGENTS_SIDECARS:
+                    if sidecar_id not in registered_sidecars:
+                        violations.append(
+                            f"Global config.json missing sidecars registry entry for '{sidecar_id}'"
+                        )
+        except Exception as exc:
+            violations.append(f"Invalid JSON in global config.json: {exc}")
 
     # 3. Verify all 17 Decision Intelligence Engine sidecars are untouched and disjoint
     validated_nee_count = 0

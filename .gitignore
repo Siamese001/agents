@@ -225,8 +225,10 @@ scratch/
 
 # Governed PR Queue & Worktree Isolation Ephemeral Artifacts
 .worktrees/
+.local/
 reports/pr_review_*_receipt.json
 reports/pr_merge_*_receipt.json
 reports/readiness/
+artifacts/governance/*_receipt.json
 
 

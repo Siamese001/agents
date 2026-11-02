@@ -30,12 +30,13 @@ export PRIMARY_REPO_ROOT="/Users/amitayer/Git/agents"
 export RUN_TS="$(date -u +%Y%m%dT%H%M%SZ)"
 export HEX6="$(python3 -c 'import secrets; print(secrets.token_hex(3))')"
 export BRANCH_SLUG="agents-ssot-boundary-${RUN_TS}"
-export BRANCH_NAME="automation/${BRANCH_SLUG}"
-export WORKTREE_DIR="${PRIMARY_REPO_ROOT}/.worktrees/${BRANCH_SLUG}"
+export BRANCH_NAME="chore/${BRANCH_SLUG}"
+export WORKTREE_SLUG="$(echo "${BRANCH_NAME}" | tr '/-' '__')"
+export WORKTREE_DIR="${PRIMARY_REPO_ROOT}/.worktrees/${WORKTREE_SLUG}"
 export RUN_DIR="${WORKTREE_DIR}/artifacts/sidecar_runs/agents_ssot_boundary/${RUN_TS}"
 
 git -C "${PRIMARY_REPO_ROOT}" worktree prune
-python3 "${PRIMARY_REPO_ROOT}/tools/prune_merged_chat_worktrees.py" --repo-root "${PRIMARY_REPO_ROOT}" --consolidate-sidecar --worktree-dir "${WORKTREE_DIR}" --branch "${BRANCH_NAME}"
+"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/prune_merged_chat_worktrees.py" --repo-root "${PRIMARY_REPO_ROOT}" --consolidate-sidecar --worktree-dir "${WORKTREE_DIR}" --branch "${BRANCH_NAME}"
 mkdir -p "${RUN_DIR}" "${WORKTREE_DIR}/plans"
 export PRE_STATE_SHA256="$(git -C "${WORKTREE_DIR}" rev-parse HEAD)"
 ```
@@ -102,27 +103,27 @@ Author `${WORKTREE_DIR}/plans/ssot-boundary-remediation-${HEX6}.md` (500–800 w
 Each wave MUST include `### Objective & Scope`, `### Milestones & Deliverables`, `### Acceptance Criteria`, and `### Runtime Receipt & Completion Gate` (`Run:`, `Input:`, `Expected:`, `Verify independently:`, `Fail if:`, `Record:`), plus `## Wave Implementation & Completion Status Table`.
 Validate immediately:
 ```bash
-python3 tools/validate_implementation_plan.py --file "plans/ssot-boundary-remediation-${HEX6}.md"
-cp "plans/ssot-boundary-remediation-${HEX6}.md" "${RUN_DIR}/implementation_plan.md"
+"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/validate_implementation_plan.py" --file "${WORKTREE_DIR}/plans/ssot-boundary-remediation-${HEX6}.md"
+cp "${WORKTREE_DIR}/plans/ssot-boundary-remediation-${HEX6}.md" "${RUN_DIR}/implementation_plan.md"
 ```
 
 ### Step 2.2: Mandatory Pre-HITL Dimension Findings Table & Calibrated HITL Gate
 Render the **Dimension Findings Table** (`| Dimension | Score / Status | Concrete Findings | Planned Action |`) across all 6 dimensions.
 Compute multi-factor calibrated confidence via `tools/hitl_governance.py` (`calculate_calibrated_confidence`, `evaluate_hitl_surfacing_gate`, `HITLDecisionStore` at `artifacts/governance/hitl_decisions.sqlite`).
-- In `MODE: scheduled`: Copy `${RUN_DIR}` to `${PRIMARY_REPO_ROOT}/artifacts/sidecar_runs/agents_ssot_boundary/${RUN_TS}`, prune `${WORKTREE_DIR}` and `${BRANCH_NAME}`, and exit `COMPLETE` or `OPERATOR_INPUT_REQUIRED`.
+- In `MODE: scheduled`: Copy `${RUN_DIR}` to `${PRIMARY_REPO_ROOT}/artifacts/sidecar_runs/agents_ssot_boundary/${RUN_TS}`, then stage verified fixes (or prune 0-commit runs) via `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/pr_governance.py" -C "${WORKTREE_DIR}" submit "${BRANCH_NAME}" --stage-only` without mutating `main`.
 - In `MODE: interactive`: Surface one atomic `ask_question` decision if $\Delta \le 0.20$; proceed autonomously under a sealed receipt if $\Delta > 0.20$.
 
 ---
 
 ## 6. Phase 3: Sequential Wave Execution, 5-Point Proof & Mainline Merge (`C06–C10`)
 
-For each wave (`Wave 1 -> Wave N`) in `MODE: interactive`:
+For each wave (`Wave 1 -> Wave N`):
 1. **5-Point Counterfactual Runtime Proof (`INV-RUNTIME-PROOF-5POINT`)**:
    - Capture `PRE_MUTATION_RUN` linter/AST violations.
    - Apply bounded boundary/SSOT fixes.
    - Run `POST_MUTATION_RUN` linters and scoped pytest (`--timeout=60`, `WaitMsBeforeAsync >= 15000`):
-     `/Users/amitayer/Git/agents/.venv/bin/pytest tests/test_model_neutral_naming.py -v --timeout=60`
+     `"${PRIMARY_REPO_ROOT}/.venv/bin/pytest" "${WORKTREE_DIR}/tests/test_model_neutral_naming.py" -v --timeout=60`
    - Verify state independently and record the 5-column proof table in `${RUN_DIR}/wave_receipts.md`.
 2. **Closed-Loop System Learning (`C07`)**: Record outcome in `HITLDecisionStore`.
-3. **Turn & Commit Gates (`C09`, `C10`)**:
-   Run `python3 tools/validate_sidecar_separation.py --json`, `python3 tools/validate_turn_gates.py --mode all`, and `python3 tools/verify_commit.py`, then commit, rebase onto `main`, merge `--no-ff` into `/Users/amitayer/Git/agents` (`main`), and remove `${WORKTREE_DIR}` and `${BRANCH_NAME}`.
+3. **Turn, Commit & Promotion Gates (`C09`, `C10`)**:
+   Run `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/validate_sidecar_separation.py" --repo-root "${WORKTREE_DIR}" --json`, `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/validate_turn_gates.py" --mode all`, and `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/verify_commit.py"`, commit via `git -C "${WORKTREE_DIR}" commit`, then stage via `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/pr_governance.py" -C "${WORKTREE_DIR}" submit "${BRANCH_NAME}" --stage-only` in scheduled mode or promote after interactive `ask_question` `PR_MERGE_AUTHORIZATION` via `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/pr_governance.py" -C "${WORKTREE_DIR}" submit "${BRANCH_NAME}" --title "fix(boundaries): remediate ssot and subsystem boundary drift"`.
