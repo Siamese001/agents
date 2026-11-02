@@ -170,3 +170,72 @@ def test_derive_branch_merge_title_fallback(tmp_path: Path) -> None:
 
     derived = derive_branch_merge_title("fix/nonconv", repo)
     assert derived == "fix(companion): plain commit message"
+
+
+def test_all_seven_companion_agent_prompts_enforce_conventional_branch_and_governed_submit() -> None:
+    """Verify all 7 companion agent prompts use chore/ branches, stateless -C submit, --timeout=60, and zero raw merge."""
+    import re
+    import shlex
+    from tools.validate_sidecar_separation import EXPECTED_AGENTS_SIDECARS, REPO_ROOT
+
+    parser = build_parser()
+    prompts_dir = REPO_ROOT / "automations" / "prompts"
+    branch_re = re.compile(r'export BRANCH_NAME="([^"]+)"')
+    pr_gov_re = re.compile(r'pr_governance\.py"?\s+([^\n`]+)')
+
+    for sidecar_id, spec in EXPECTED_AGENTS_SIDECARS.items():
+        prompt_path = prompts_dir / spec["prompt_file"]
+        text = prompt_path.read_text(encoding="utf-8")
+
+        assert 'BRANCH_NAME="automation/' not in text, f"{sidecar_id} still uses forbidden automation/ prefix"
+        assert "merge --no-ff" not in text, f"{sidecar_id} still invokes raw git merge --no-ff"
+        assert "--timeout=60" in text, f"{sidecar_id} missing --timeout=60 pytest enforcement"
+        assert "--stage-only" in text, f"{sidecar_id} missing --stage-only overnight staging"
+
+        m_branch = branch_re.search(text)
+        assert m_branch is not None, f"{sidecar_id} missing export BRANCH_NAME"
+        concrete_branch = (
+            m_branch.group(1)
+            .replace("${BRANCH_SLUG}", "agents-check-20261102T060000Z")
+        )
+        assert CONVENTIONAL_BRANCH_RE.match(concrete_branch), (
+            f"{sidecar_id} branch '{concrete_branch}' violates CONVENTIONAL_BRANCH_RE"
+        )
+
+        matches = pr_gov_re.findall(text)
+        assert len(matches) >= 2, f"{sidecar_id} must declare scheduled and interactive pr_governance.py submit commands"
+        for raw_tail in matches:
+            cleaned = (
+                raw_tail.strip()
+                .rstrip(".,;")
+                .replace("${WORKTREE_DIR}", "/tmp/wt")
+                .replace("${BRANCH_NAME}", concrete_branch)
+            )
+            tokens = shlex.split(cleaned)
+            ns = parser.parse_args(tokens)
+            assert ns.command == "submit"
+
+
+def test_sidecar_validator_rejects_automation_branch_and_raw_merge(tmp_path: Path) -> None:
+    """Negative control: validate_sidecar_separation fails closed on automation/ branch prefix or raw merge --no-ff."""
+    from tools.validate_sidecar_separation import (
+        DEFAULT_SIDECARS_ROOT,
+        REPO_ROOT,
+        validate_sidecar_separation,
+    )
+
+    fake_repo = tmp_path / "repo"
+    prompts_dir = fake_repo / "automations" / "prompts"
+    prompts_dir.mkdir(parents=True)
+    for md_file in (REPO_ROOT / "automations" / "prompts").glob("*.md"):
+        content = md_file.read_text(encoding="utf-8")
+        if md_file.name == "agents_testing_gaps_assurance_agent.md":
+            content += '\nexport BRANCH_NAME="automation/bad"\ngit merge --no-ff bad\n'
+        (prompts_dir / md_file.name).write_text(content, encoding="utf-8")
+
+    result = validate_sidecar_separation(repo_root=fake_repo, sidecars_root=DEFAULT_SIDECARS_ROOT)
+    assert result["status"] == "FAIL"
+    joined = "\n".join(result["violations"])
+    assert "non-conventional branch prefix" in joined
+    assert "raw unreviewed 'merge --no-ff'" in joined
+
