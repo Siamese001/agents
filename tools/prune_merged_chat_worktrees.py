@@ -141,6 +141,11 @@ def _preserve_cwd_stub_if_needed(
             need_stub = True
     if need_stub:
         resolved_wt.mkdir(parents=True, exist_ok=True)
+        if (main_root / "scripts").is_dir() and not (resolved_wt / "scripts").exists():
+            try:
+                (resolved_wt / "scripts").symlink_to(main_root / "scripts")
+            except OSError:  # guardian: allow-silent-swallow -- best-effort stub hook symlink
+                pass
         return True
     return False
 

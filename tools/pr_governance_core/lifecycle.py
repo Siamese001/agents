@@ -502,12 +502,23 @@ def _execute_merge_under_lock(
 
 def _teardown_merged_worktree(branch: str, delete_branch: bool = True, repo_root: Optional[Path] = None) -> None:
     """Cleans up the worktree and branch after a successful merge, plus any other merged secondary worktrees."""
+    from .worktree import _inspect_worktree_dirty
+
     root = repo_root or ROOT
     slug = slugify_branch(branch)
     wt_dir = _find_worktree_dir(branch, slug, root=root)
     if wt_dir.exists():
         print(f"Tearing down merged worktree at '{wt_dir}'...")
-        _remove_worktree_files(wt_dir, force=False, root=root)
+        wt_reports = wt_dir / "reports"
+        if wt_reports.is_dir():
+            for eph in (*wt_reports.glob("pr_review_*_receipt.json"), *wt_reports.glob("pr_merge_*_receipt.json")):
+                with contextlib.suppress(OSError):
+                    eph.unlink()
+            with contextlib.suppress(OSError):
+                wt_reports.rmdir()
+        is_clean_authored = not _inspect_worktree_dirty(wt_dir, ignore_review_artifacts=True).dirty
+        if not _remove_worktree_files(wt_dir, force=False, root=root) and is_clean_authored:
+            _remove_worktree_files(wt_dir, force=True, root=root)
 
     if delete_branch:
         print(f"Deleting merged branch '{branch}'...")

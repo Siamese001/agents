@@ -13,19 +13,22 @@ from typing import List, Optional, Tuple
 
 
 def _find_repo_root() -> Path:
+    script_repo = Path(__file__).resolve().parents[2]
     try:
         proc = subprocess.run(
             ["git", "rev-parse", "--path-format=absolute", "--git-common-dir"],
+            cwd=str(script_repo),
             capture_output=True,
             text=True,
             check=False,
             timeout=10.0,
         )
         if proc.returncode == 0 and proc.stdout.strip():
-            return Path(proc.stdout.strip()).parent.resolve()
-    except Exception:
+            common_dir = Path(proc.stdout.strip()).resolve()
+            return common_dir.parent if common_dir.name == ".git" else common_dir
+    except Exception:  # guardian: allow-silent-swallow -- fallback to script directory layout
         pass
-    return Path(__file__).resolve().parents[2]
+    return script_repo.parents[1] if script_repo.parent.name == ".worktrees" else script_repo
 
 
 ROOT = _find_repo_root()
@@ -63,23 +66,26 @@ def is_plan_doc_file(path: str | Path) -> bool:
         return True
     p = Path(s)
     parts = p.parts
-    return bool(parts and parts[0] == "plans" and p.suffix == ".md")
+    if not parts or p.suffix != ".md":
+        return False
+    if parts[0] == "plans":
+        return True
+    return len(parts) >= 3 and parts[0] == "docs" and parts[1] == "plans"
 
 
 def resolve_branch_plan_path(branch: str, repo_root: Path | None = None) -> Path:
     """Resolves the canonical plan path for a branch."""
     root = repo_root or ROOT
     slug = slugify_branch(branch)
-    branch_plan = root / "plans" / f"{slug}.md"
-    if branch_plan.is_file():
-        return branch_plan
-    root_plan = root / "plans" / slug / "implementation_plan.md"
-    if root_plan.is_file():
-        return root_plan
-    legacy_plan = root / "implementation_plan.md"
-    if legacy_plan.is_file():
-        return legacy_plan
-    return branch_plan
+    for candidate in (
+        root / "plans" / f"{slug}.md",
+        root / "docs" / "plans" / f"{slug}.md",
+        root / "plans" / slug / "implementation_plan.md",
+        root / "implementation_plan.md",
+    ):
+        if candidate.is_file():
+            return candidate
+    return root / "plans" / f"{slug}.md"
 
 
 REQUIRED_HOOKS = [

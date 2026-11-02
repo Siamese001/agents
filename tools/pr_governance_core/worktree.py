@@ -499,7 +499,8 @@ def _remove_worktree_files(worktree_dir: Path, force: bool, root: Path = ROOT) -
 
 def cmd_start(args: argparse.Namespace) -> int:
     """Creates a new conventional branch inside an isolated worktree."""
-    with worktree_provisioning_lock():
+    root = Path(getattr(args, "repo_root", None) or ROOT).resolve()
+    with worktree_provisioning_lock(root=root):
         branch = args.branch
         slug = slugify_branch(branch)
         print(f"  LOCAL PR GOVERNANCE: START WORKTREE FOR {branch}")
@@ -514,14 +515,14 @@ def cmd_start(args: argparse.Namespace) -> int:
             print("   Allowed patterns: feat/*, feature/*, fix/*, chore/*, docs/*, refactor/*, test/*, ci/*")
             return 1
 
-        worktree_dir = ROOT / ".worktrees" / slug
+        worktree_dir = root / ".worktrees" / slug
         if worktree_dir.exists():
             print(f"❌ Error: Worktree directory already exists at: {worktree_dir}")
             return 1
 
         print(f"Provisioning isolated worktree at '.worktrees/{slug}'...")
         try:
-            provision_isolated_worktree(ROOT, worktree_dir, branch, "main")
+            provision_isolated_worktree(root, worktree_dir, branch, "main")
         except Exception as e:
             print(f"❌ Failed to create worktree: {e}")
             return 1
@@ -615,7 +616,8 @@ def cmd_finish(args: argparse.Namespace) -> int:
 
 def cmd_worktree_list(args: argparse.Namespace) -> int:
     """Lists all active worktrees and their status."""
-    entries = list_active_worktrees(ROOT, ignore_review_artifacts=True)
+    root = Path(getattr(args, "repo_root", None) or ROOT).resolve()
+    entries = list_active_worktrees(root, ignore_review_artifacts=True)
     if not entries:
         print("No active worktrees found.")
         return 0

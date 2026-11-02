@@ -56,7 +56,14 @@ from .merge_queue import (
     unregister_fifo_waiter,
     verify_branch_merge_authorization,
 )
-from .promotion import cmd_promote, cmd_submit
+from .promotion import (
+    cmd_consolidate_host,
+    cmd_promote,
+    cmd_submit,
+    derive_branch_merge_title,
+    resolve_effective_repo_root,
+    stage_overnight_branch,
+)
 from .sync import (
     RebaseOutcome,
     cmd_rebase,
@@ -92,6 +99,7 @@ __all__ = [
     "atomic_rollback_main_to_sha",
     "check_diff_syntax",
     "check_merge_conflict",
+    "cmd_consolidate_host",
     "cmd_dehydrate",
     "cmd_doctor",
     "cmd_finish",
@@ -107,6 +115,7 @@ __all__ = [
     "cmd_worktree_list",
     "compute_first_parent_sync",
     "dequeue_pr",
+    "derive_branch_merge_title",
     "enqueue_pr",
     "force_break_queue_lock",
     "get_feature_branches",
@@ -124,10 +133,12 @@ __all__ = [
     "register_fifo_waiter",
     "resolve_branch_plan_path",
     "resolve_branch_worktree",
+    "resolve_effective_repo_root",
     "resolve_git_common_dir",
     "resolve_python",
     "run_git",
     "slugify_branch",
+    "stage_overnight_branch",
     "unregister_fifo_waiter",
     "verify_branch_merge_authorization",
     "verify_ephemeral_merge_tree",
