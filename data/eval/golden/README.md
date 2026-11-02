@@ -66,6 +66,6 @@ python tools/eval/judge_calibration.py \
   --dimension faithfulness
 ```
 
-See also: ``agentic_core/evaluation/judges/calibration.py`` for the κ / α
+See also: ``apps_rg/evaluation/judges/calibration.py`` for the κ / α
 implementations and ``ops_scripts/ci/check_judge_calibration.py`` for
 the CI gate.

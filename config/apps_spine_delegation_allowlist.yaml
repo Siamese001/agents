@@ -11,7 +11,7 @@
 
 # apps_underwriting_ai allowlist entry removed DS-6 (2026-05-05):
 # underwriting_capability_registry.py now imports L0Route from
-# agentic_core.L0_routing.types.routing_artifact_types, creating the
+# apps_rg.L0_routing.types.routing_artifact_types, creating the
 # required spine delegation edge. Gate confirmed violation=0 after ADG refresh.
 allowed_packages:
   - package: apps_architect

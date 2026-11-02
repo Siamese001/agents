@@ -16,17 +16,9 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
+from infrastructure.types.research_handoff_contracts import EvidenceItem
+
 _log = logging.getLogger(__name__)
-
-
-@dataclass(frozen=True)
-class EvidenceItem:
-    source_id: str
-    label: str
-    uri: str
-    source_type: str
-    field_ref: str
-    confidence: float = 0.0
 
 
 @dataclass(frozen=True)

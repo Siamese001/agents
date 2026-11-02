@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Config SSOT Drift Detector.
+"""Config & Data SSOT Drift Detector.
 
-Compares repository root `config/` against engine `resume_graph_engine/config/`
-and flags divergence, orphaned configurations, and unallowlisted drifts.
+Compares repository root `config/` and `data/` against engine `resume_graph_engine/config/`
+and `resume_graph_engine/data/`, flagging divergence, orphaned configurations, and unallowlisted drifts.
 
 Supports:
-  --report: Print full drift analysis (default, exit 0)
-  --strict: Fail if unallowlisted drift is detected (exit 1)
+  --strict: Fail if unallowlisted drift is detected (default, exit 1 on drift)
+  --advisory: Print drift report without failing exit code
   --json: Output JSON payload
 """
 
@@ -19,41 +19,22 @@ import sys
 from pathlib import Path
 from typing import Any
 
-# Files that are intentionally governance-only or have documented temporary deviations
+# Only the 6 intentionally engine-scoped files are allowlisted to differ between root and engine
 KNOWN_DRIFT_ALLOWLIST = {
-    # Governance files unique to root or engine
-    "governance",
-    "adg_gate_fanin_map.yaml",
-    "wiring_gate_waivers.yaml",
-    "wiring_dynamic_dispatch_anchors.yaml",
-    "notion_databases.yaml",
-    "lifecycle_pairs.yaml",
-    "ledger_freshness_slo.yaml",
-    "expected_wiring.yaml",
-    "excluded_paths.yaml",
-    "dashboards",
-    "contracts",
-    "crosswalk",
-    "certification",
     "canonical_pipelines.yaml",
-    "architectural_exceptions.yaml",
-    "apps_spine_delegation_allowlist.yaml",
-    "provider_profiles.yaml",
+    "certification/schemas/apps_research_apps_rg_handoff.v2.schema.json",
+    "certification/veto_policy_schema.json",
+    "expected_wiring.yaml",
     "model_catalog.json",
-    "runtime_budget_policy.yaml",
     "routing_thresholds.yaml",
-    "routing_calibration.yaml",
-    "token_budget.yaml",
-    "exception_contracts.yaml",
-    "sc_ap_config.json",
-    "north_star_state.json",
-    "test_harness_coverage_allowlist.yaml",
 }
 
 
 def analyze_drift(repo_root: Path) -> dict[str, Any]:
     root_cfg = repo_root / "config"
     engine_cfg = repo_root / "resume_graph_engine" / "config"
+    root_data = repo_root / "data"
+    engine_data = repo_root / "resume_graph_engine" / "data"
 
     result: dict[str, Any] = {
         "root_config_exists": root_cfg.is_dir(),
@@ -63,70 +44,94 @@ def analyze_drift(repo_root: Path) -> dict[str, Any]:
         "only_in_root": [],
         "only_in_engine": [],
         "unallowlisted_differing": [],
+        "data_identical_count": 0,
+        "data_differing": [],
     }
 
-    if not root_cfg.is_dir() or not engine_cfg.is_dir():
-        return result
+    if root_cfg.is_dir() and engine_cfg.is_dir():
+        root_files = {p.relative_to(root_cfg) for p in root_cfg.rglob("*") if p.is_file()}
+        engine_files = {p.relative_to(engine_cfg) for p in engine_cfg.rglob("*") if p.is_file()}
 
-    root_files = {p.relative_to(root_cfg) for p in root_cfg.rglob("*") if p.is_file()}
-    engine_files = {p.relative_to(engine_cfg) for p in engine_cfg.rglob("*") if p.is_file()}
+        common_files = root_files & engine_files
+        result["only_in_root"] = sorted(str(p) for p in (root_files - engine_files))
+        result["only_in_engine"] = sorted(str(p) for p in (engine_files - root_files))
 
-    common_files = root_files & engine_files
-    result["only_in_root"] = sorted(str(p) for p in (root_files - engine_files))
-    result["only_in_engine"] = sorted(str(p) for p in (engine_files - root_files))
+        for rel in sorted(common_files):
+            rf = root_cfg / rel
+            ef = engine_cfg / rel
+            rel_str = str(rel).replace("\\", "/")
+            if filecmp.cmp(rf, ef, shallow=False):
+                result["identical"].append(rel_str)
+            else:
+                result["differing"].append(rel_str)
+                if rel_str not in KNOWN_DRIFT_ALLOWLIST:
+                    result["unallowlisted_differing"].append(rel_str)
 
-    for rel in sorted(common_files):
-        rf = root_cfg / rel
-        ef = engine_cfg / rel
-        if filecmp.cmp(rf, ef, shallow=False):
-            result["identical"].append(str(rel))
-        else:
-            result["differing"].append(str(rel))
-            # Check allowlist
-            top_level = rel.parts[0]
-            if top_level not in KNOWN_DRIFT_ALLOWLIST and str(rel) not in KNOWN_DRIFT_ALLOWLIST:
-                result["unallowlisted_differing"].append(str(rel))
+    if root_data.is_dir() and engine_data.is_dir():
+        r_data_files = {p.relative_to(root_data) for p in root_data.rglob("*") if p.is_file()}
+        e_data_files = {p.relative_to(engine_data) for p in engine_data.rglob("*") if p.is_file()}
+        for rel in sorted(r_data_files & e_data_files):
+            rf = root_data / rel
+            ef = engine_data / rel
+            rel_str = str(rel).replace("\\", "/")
+            if filecmp.cmp(rf, ef, shallow=False):
+                result["data_identical_count"] += 1
+            else:
+                result["data_differing"].append(rel_str)
 
     return result
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Config SSOT Drift Detector.")
+    parser = argparse.ArgumentParser(description="Config & Data SSOT Drift Detector.")
     parser.add_argument("--repo-root", default=".", help="Root of repository")
     parser.add_argument("--report", action="store_true", default=True, help="Print human-readable report")
-    parser.add_argument("--strict", action="store_true", help="Fail if unallowlisted drift is detected")
+    parser.add_argument("--strict", action="store_true", default=True, help="Fail if unallowlisted drift is detected")
+    parser.add_argument("--advisory", action="store_true", help="Report drift without failing exit code")
     parser.add_argument("--json", action="store_true", help="Emit JSON output")
 
     args = parser.parse_args(argv)
     repo_root = Path(args.repo_root).resolve()
+    strict_mode = args.strict and not args.advisory
 
     analysis = analyze_drift(repo_root)
+    has_unallowlisted_drift = bool(analysis["unallowlisted_differing"] or analysis["data_differing"])
 
     if args.json:
         print(json.dumps(analysis, indent=2, sort_keys=True))
-        return 1 if (args.strict and analysis["unallowlisted_differing"]) else 0
+        return 1 if (strict_mode and has_unallowlisted_drift) else 0
 
     print("================================================================================")
-    print("  CONFIG SSOT DRIFT REPORT: config/ vs resume_graph_engine/config/")
+    print("  CONFIG & DATA SSOT DRIFT REPORT: root vs resume_graph_engine")
     print("================================================================================")
-    print(f"Identical common files: {len(analysis['identical'])}")
-    print(f"Differing common files: {len(analysis['differing'])}")
-    print(f"Files only in root config/: {len(analysis['only_in_root'])}")
-    print(f"Files only in engine config/: {len(analysis['only_in_engine'])}")
-    print(f"Unallowlisted differing files: {len(analysis['unallowlisted_differing'])}\n")
+    print(f"Identical common config files: {len(analysis['identical'])}")
+    print(f"Differing common config files: {len(analysis['differing'])}")
+    print(f"Unallowlisted differing config files: {len(analysis['unallowlisted_differing'])}")
+    print(f"Identical common data files: {analysis['data_identical_count']}")
+    print(f"Differing common data files: {len(analysis['data_differing'])}\n")
 
     if analysis["differing"]:
-        print("--- Differing Common Files ---")
+        print("--- Differing Common Config Files ---")
         for f in analysis["differing"]:
             status = "ALLOWLISTED" if f not in analysis["unallowlisted_differing"] else "UNALLOWLISTED"
             print(f"  [{status}] {f}")
         print()
 
-    if args.strict and analysis["unallowlisted_differing"]:
-        print(f"[FAIL] Unallowlisted config drift detected: {analysis['unallowlisted_differing']}", file=sys.stderr)
+    if analysis["data_differing"]:
+        print("--- Differing Common Data Files ---")
+        for f in analysis["data_differing"][:20]:
+            print(f"  [UNALLOWLISTED] data/{f}")
+        print()
+
+    if strict_mode and has_unallowlisted_drift:
+        print(
+            f"[FAIL] Unallowlisted SSOT drift detected: config={analysis['unallowlisted_differing']}, "
+            f"data={analysis['data_differing'][:10]}",
+            file=sys.stderr,
+        )
         return 1
 
-    print("[PASS] Config drift report complete.")
+    print("[PASS] Config and data drift check complete (zero unallowlisted drift).")
     return 0
 
 

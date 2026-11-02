@@ -23,6 +23,14 @@ import sys
 from pathlib import Path
 from typing import Any, Mapping
 
+_REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
+from tools.pr_governance_core.common import bootstrap_shared_venv
+
+bootstrap_shared_venv(_REPO_ROOT)
+
 try:
     import yaml
 except ImportError:
@@ -115,7 +123,16 @@ def scan_catalog_json(path: Path) -> list[dict[str, Any]]:
 def scan_provider_profiles_yaml(path: Path) -> list[dict[str, Any]]:
     """Scan provider_profiles YAML files for pin integrity."""
     findings: list[dict[str, Any]] = []
-    if not path.is_file() or yaml is None:
+    if not path.is_file():
+        return findings
+    if yaml is None:
+        findings.append({
+            "file": str(path),
+            "key": "SCHEMA",
+            "val": "",
+            "category": "PARSE_ERROR",
+            "message": "PyYAML is required for YAML model pin validation (fail-closed)",
+        })
         return findings
 
     try:

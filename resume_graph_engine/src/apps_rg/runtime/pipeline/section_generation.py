@@ -9,6 +9,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Callable, Mapping
 
+from agents.orchestration.services.section_generation import SectionGenerationRequest
+
 
 @dataclass(frozen=True, slots=True)
 class SectionOutput:

@@ -13,14 +13,11 @@ from types import SimpleNamespace
 from typing import Any
 
 
-@dataclass(frozen=True)
-class EvidenceItem:
-    source_id: str
-    label: str
-    uri: str
-    source_type: str
-    field_ref: str
-    confidence: float = 0.0
+from infrastructure.types.research_handoff_contracts import (
+    EvidenceItem,
+    matches_company_stem,
+    normalize_company_role_tokens,
+)
 
 
 @dataclass(frozen=True)
@@ -64,9 +61,7 @@ def _resolve_canonical_targeting_brief(
     job_title: str = "",
 ) -> tuple[str, str]:
     """Find and load the canonical targeting brief matching company/role, if present."""
-    company_norm = re.sub(r"[^a-z0-9]+", "_", company_name.lower()).strip("_")
-    company_tokens = [tok for tok in re.findall(r"[a-z]+", company_name.lower()) if len(tok) >= 3]
-    role_norm = re.sub(r"[^a-z0-9]+", "_", job_title.lower()).strip("_")
+    company_norm, role_norm, company_tokens, role_tokens = normalize_company_role_tokens(company_name, job_title)
     cache_key = (company_norm, role_norm)
     if cache_key in _CANONICAL_TARGETING_BRIEF_CACHE:
         return _CANONICAL_TARGETING_BRIEF_CACHE[cache_key]
@@ -87,21 +82,9 @@ def _resolve_canonical_targeting_brief(
             pass
         return "", ""
 
-    role_tokens = [tok for tok in role_norm.split("_") if len(tok) > 3]
-    company_tokens = [
-        tok
-        for tok in re.findall(r"[a-z]+|\d+", company_name.lower())
-        if len(tok) >= 3 and not tok.isdigit()
-    ]
-
-    def _matches_company(stem: str) -> bool:
-        if company_norm and company_norm in stem:
-            return True
-        return any(tok in stem or stem.startswith(tok) for tok in company_tokens)
-
     for candidate in candidates:
         stem = candidate.stem.lower()
-        if _matches_company(stem) and any(tok in stem for tok in role_tokens):
+        if matches_company_stem(stem, company_norm, company_tokens) and any(tok in stem for tok in role_tokens):
             brief, path_str = _load(candidate)
             if brief:
                 _CANONICAL_TARGETING_BRIEF_CACHE[cache_key] = (brief, path_str)
@@ -109,7 +92,7 @@ def _resolve_canonical_targeting_brief(
 
     for candidate in candidates:
         stem = candidate.stem.lower()
-        if _matches_company(stem):
+        if matches_company_stem(stem, company_norm, company_tokens):
             brief, path_str = _load(candidate)
             if brief:
                 _CANONICAL_TARGETING_BRIEF_CACHE[cache_key] = (brief, path_str)

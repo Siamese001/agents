@@ -9,6 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Mapping
 
+from agents.orchestration.services.release_policy import evaluate_score_threshold_reports
 from apps_rg.runtime.pipeline.evaluation import EvaluationReport
 
 
@@ -33,32 +34,15 @@ class ReleasePolicy:
         self,
         evaluation_reports: Mapping[str, EvaluationReport],
     ) -> ReleaseGateDecision:
-        """Evaluate whether document passes release criteria."""
-        reasons: list[str] = []
-        if not evaluation_reports:
-            return ReleaseGateDecision(
-                approved=False,
-                rejection_reasons=("No evaluation reports provided.",),
-                min_score_required=self.min_average_score,
-                actual_average_score=0.0,
-            )
-
-        scores = [r.score for r in evaluation_reports.values()]
-        avg_score = sum(scores) / len(scores)
-
-        if avg_score < self.min_average_score:
-            reasons.append(
-                f"Average quality score {avg_score:.2f} is below release threshold {self.min_average_score:.2f}."
-            )
-
-        if self.require_all_pass:
-            for sec_id, report in evaluation_reports.items():
-                if not report.passed:
-                    reasons.append(f"Section '{sec_id}' failed quality evaluation: {', '.join(report.violations)}.")
-
+        """Evaluate whether document passes release criteria via shared orchestration evaluator."""
+        approved, reasons, avg_score = evaluate_score_threshold_reports(
+            evaluation_reports,
+            min_average_score=self.min_average_score,
+            require_all_pass=self.require_all_pass,
+        )
         return ReleaseGateDecision(
-            approved=len(reasons) == 0,
-            rejection_reasons=tuple(reasons),
+            approved=approved,
+            rejection_reasons=reasons,
             min_score_required=self.min_average_score,
             actual_average_score=avg_score,
         )

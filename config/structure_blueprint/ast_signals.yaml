@@ -3,7 +3,7 @@ last_updated: "2026-04-06"
 description: "AST signal definitions for territory classification and placement confidence."
 
 ast_signals:
-  agentic_core/base_agents:
+  apps_rg/base_agents:
     class_patterns:
       - ".*Base$"
     base_classes:
@@ -29,7 +29,7 @@ ast_signals:
       - "agent_type"
     weight: 100
 
-  agentic_core/L5_safety/enforcement:
+  apps_rg/L5_safety/enforcement:
     class_patterns:
       - ".*Guardrail.*"
       - ".*Barrier.*"
@@ -47,7 +47,7 @@ ast_signals:
       - "deportation"
     weight: 25
 
-  agentic_core/L1_cognition/reasoning:
+  apps_rg/L1_cognition/reasoning:
     class_patterns:
       - ".*Node$"
       - ".*Thought.*"
@@ -61,7 +61,7 @@ ast_signals:
       - "deliberation"
     weight: 18
 
-  agentic_core/L3_orchestration/reasoning:
+  apps_rg/L3_orchestration/reasoning:
     class_patterns:
       - ".*Orchestrator$"
       - ".*Workflow.*"
@@ -74,7 +74,7 @@ ast_signals:
       - "dag_executor"
     weight: 16
 
-  agentic_core/prompt_governance/meta_prompts:
+  apps_rg/prompt_governance/meta_prompts:
     class_patterns:
       - ".*MetaPrompt.*"
       - ".*Persona.*"
@@ -86,7 +86,7 @@ ast_signals:
       - "persona_definition"
     weight: 15
 
-  agentic_core/prompt_governance/scripts:
+  apps_rg/prompt_governance/scripts:
     content_signals:
       keywords:
         - "render_all_templates"
@@ -96,7 +96,7 @@ ast_signals:
         - "prompt_governance"
     weight: 12
 
-  agentic_core/L4_state/memory:
+  apps_rg/L4_state/memory:
     class_patterns:
       - ".*Context.*"
       - ".*State.*"
@@ -105,13 +105,13 @@ ast_signals:
       - "StateManager"
     weight: 14
 
-  agentic_core/prompt_governance/version_registry:
+  apps_rg/prompt_governance/version_registry:
     json_keys:
       - "registry_version"
       - "checksum_manifest"
     weight: 11
 
-  agentic_core/L2_execution/reasoning:
+  apps_rg/L2_execution/reasoning:
     class_patterns:
       - ".*Agent$"
     weight: 9

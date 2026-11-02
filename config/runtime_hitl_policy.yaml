@@ -16,7 +16,7 @@ thresholds:
   novelty_min: 0.72        # envelope.novelty_score >= this → novel_context
   confidence_max: 0.60     # envelope.confidence_score <= this → low_confidence
 
-# Per-class policy. Keys MUST match agentic_core.L5_safety.exit_control.hitl_classes.HitlClass values.
+# Per-class policy. Keys MUST match apps_rg.L5_safety.exit_control.hitl_classes.HitlClass values.
 classes:
   financial:
     timeout_s: 3600

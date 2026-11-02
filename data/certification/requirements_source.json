@@ -3385,7 +3385,7 @@
       "requirement_group": "L7 Auditability",
       "claim_type": "INTEGRATED_RUNTIME",
       "required_proof_depth": "E6_INTEGRATED_RUNTIME_PROOF",
-      "acceptance_rule": "ACCEPTED only when agentic_core_how_trace.json is present in every certified chain bundle and its per-chain hash appears in the L7 plane evidence wrapper.",
+      "acceptance_rule": "ACCEPTED only when apps_rg_how_trace.json is present in every certified chain bundle and its per-chain hash appears in the L7 plane evidence wrapper.",
       "fail_closed_if_missing": true,
       "depends_on_req_ids": [],
       "is_final_hundred_percent_row": false,
@@ -3404,11 +3404,11 @@
         "INTEGRATED_RUNTIME_BUNDLE"
       ],
       "freshness_hours": 168,
-      "required_ci_gate": "verify_agentic_core_how_trace.py",
+      "required_ci_gate": "verify_apps_rg_how_trace.py",
       "required_artifacts": [
-        "agentic_core_how_trace.json"
+        "apps_rg_how_trace.json"
       ],
-      "owner_component": "agentic_core L7_AUDITABILITY plane",
+      "owner_component": "apps_rg L7_AUDITABILITY plane",
       "owner_layer": "L7 / Auditability",
       "notes": ""
     },
@@ -3419,7 +3419,7 @@
       "requirement_group": "L7 Auditability",
       "claim_type": "INTEGRATED_RUNTIME",
       "required_proof_depth": "E6_INTEGRATED_RUNTIME_PROOF",
-      "acceptance_rule": "ACCEPTED only when agentic_core_l7_route_family_coverage.json is present in every certified chain and classifies each route family honestly (no structural-only promoted to real).",
+      "acceptance_rule": "ACCEPTED only when apps_rg_l7_route_family_coverage.json is present in every certified chain and classifies each route family honestly (no structural-only promoted to real).",
       "fail_closed_if_missing": true,
       "depends_on_req_ids": [],
       "is_final_hundred_percent_row": false,
@@ -3438,11 +3438,11 @@
         "INTEGRATED_RUNTIME_BUNDLE"
       ],
       "freshness_hours": 168,
-      "required_ci_gate": "verify_agentic_core_l7_route_family_coverage.py",
+      "required_ci_gate": "verify_apps_rg_l7_route_family_coverage.py",
       "required_artifacts": [
-        "agentic_core_l7_route_family_coverage.json"
+        "apps_rg_l7_route_family_coverage.json"
       ],
-      "owner_component": "agentic_core L7_AUDITABILITY plane",
+      "owner_component": "apps_rg L7_AUDITABILITY plane",
       "owner_layer": "L7 / Auditability",
       "notes": ""
     },
@@ -3476,7 +3476,7 @@
       "required_artifacts": [
         "fortknox_l7_evidence/*.json"
       ],
-      "owner_component": "agentic_core L7_AUDITABILITY plane",
+      "owner_component": "apps_rg L7_AUDITABILITY plane",
       "owner_layer": "L7 / Auditability",
       "notes": ""
     },
@@ -3510,18 +3510,18 @@
       "required_artifacts": [
         "integrated_runtime_artifact_manifest.json"
       ],
-      "owner_component": "agentic_core L7_AUDITABILITY plane",
+      "owner_component": "apps_rg L7_AUDITABILITY plane",
       "owner_layer": "L7 / Auditability",
       "notes": ""
     },
     {
       "req_id": "RTC-REQ-134",
-      "title": "Agentic-core spine proof bundle sealed per chain",
+      "title": "apps_rg spine proof bundle sealed per chain",
       "priority": "P0",
       "requirement_group": "L7 Auditability",
       "claim_type": "INTEGRATED_RUNTIME",
       "required_proof_depth": "E6_INTEGRATED_RUNTIME_PROOF",
-      "acceptance_rule": "ACCEPTED only when agentic_core_spine_proof.json is present in every certified chain with an intact upstream-artifact hash cascade.",
+      "acceptance_rule": "ACCEPTED only when apps_rg_spine_proof.json is present in every certified chain with an intact upstream-artifact hash cascade.",
       "fail_closed_if_missing": true,
       "depends_on_req_ids": [],
       "is_final_hundred_percent_row": false,
@@ -3542,9 +3542,9 @@
       "freshness_hours": 168,
       "required_ci_gate": "verify_spine_proof_bundle.py",
       "required_artifacts": [
-        "agentic_core_spine_proof.json"
+        "apps_rg_spine_proof.json"
       ],
-      "owner_component": "agentic_core L7_AUDITABILITY plane",
+      "owner_component": "apps_rg L7_AUDITABILITY plane",
       "owner_layer": "L7 / Auditability",
       "notes": ""
     },
@@ -3579,7 +3579,7 @@
         "runtime_gate_verdict_bundle.json",
         "terminal_ret_packet.json"
       ],
-      "owner_component": "agentic_core L7_AUDITABILITY plane",
+      "owner_component": "apps_rg L7_AUDITABILITY plane",
       "owner_layer": "L7 / Auditability",
       "notes": ""
     },
@@ -3614,7 +3614,7 @@
         "safe_fallback_decision.json",
         "x3_disposition_receipt.json"
       ],
-      "owner_component": "agentic_core L7_AUDITABILITY plane",
+      "owner_component": "apps_rg L7_AUDITABILITY plane",
       "owner_layer": "L7 / Auditability",
       "notes": ""
     },
@@ -3649,7 +3649,7 @@
         "commit_request.json",
         "uwg_blocked_commit_receipt.json"
       ],
-      "owner_component": "agentic_core L7_AUDITABILITY plane",
+      "owner_component": "apps_rg L7_AUDITABILITY plane",
       "owner_layer": "L7 / Auditability",
       "notes": ""
     },
@@ -3660,7 +3660,7 @@
       "requirement_group": "L7 Auditability \u00b7 Enforcement",
       "claim_type": "STATIC_ENFORCEMENT",
       "required_proof_depth": "E2_STATIC_CHECK",
-      "acceptance_rule": "ACCEPTED only when all 6 L7 verifier scripts (verify_agentic_core_how_trace.py, verify_l7_fortknox_evidence.py, verify_agentic_core_l7_route_family_coverage.py, verify_r1a_exact_cache_l7_runtime.py, verify_r5_fallback_l7_runtime.py, verify_uwg_block_path_l7_runtime.py) exist and .github/workflows/agentic-core-auditability.yml binds them in fail-closed jobs.",
+      "acceptance_rule": "ACCEPTED only when all 6 L7 verifier scripts (verify_apps_rg_how_trace.py, verify_l7_fortknox_evidence.py, verify_apps_rg_l7_route_family_coverage.py, verify_r1a_exact_cache_l7_runtime.py, verify_r5_fallback_l7_runtime.py, verify_uwg_block_path_l7_runtime.py) exist and .github/workflows/apps-rg-auditability.yml binds them in fail-closed jobs.",
       "fail_closed_if_missing": true,
       "depends_on_req_ids": [],
       "is_final_hundred_percent_row": false,
@@ -3679,9 +3679,9 @@
         "INTEGRATED_RUNTIME_BUNDLE"
       ],
       "freshness_hours": 168,
-      "required_ci_gate": "verify_agentic_core_l7_route_family_coverage.py",
+      "required_ci_gate": "verify_apps_rg_l7_route_family_coverage.py",
       "required_artifacts": [],
-      "owner_component": "agentic_core L7_AUDITABILITY plane",
+      "owner_component": "apps_rg L7_AUDITABILITY plane",
       "owner_layer": "L7 / Auditability",
       "notes": ""
     },
@@ -3721,7 +3721,7 @@
       "freshness_hours": 168,
       "required_ci_gate": null,
       "required_artifacts": [],
-      "owner_component": "agentic_core L7_AUDITABILITY plane",
+      "owner_component": "apps_rg L7_AUDITABILITY plane",
       "owner_layer": "L7 / Auditability",
       "notes": ""
     },
@@ -3757,7 +3757,7 @@
         "uwg_commit_receipt.json",
         "uwg_refresh_receipts.json"
       ],
-      "owner_component": "agentic_core L7_AUDITABILITY plane",
+      "owner_component": "apps_rg L7_AUDITABILITY plane",
       "owner_layer": "L7 / Auditability",
       "notes": "W4 closure of plan fortknox-100pct-static-runtime-gap-9a3d4f"
     },
@@ -3792,7 +3792,7 @@
         "final_evidence_contract.json",
         "retrieval_corpus_manifest.json"
       ],
-      "owner_component": "agentic_core L7_AUDITABILITY plane",
+      "owner_component": "apps_rg L7_AUDITABILITY plane",
       "owner_layer": "L7 / Auditability",
       "notes": "W4 closure of plan fortknox-100pct-static-runtime-gap-9a3d4f"
     },
@@ -3827,7 +3827,7 @@
         "sealed_l2_artifact.json",
         "tool_authorization_receipt.json"
       ],
-      "owner_component": "agentic_core L7_AUDITABILITY plane",
+      "owner_component": "apps_rg L7_AUDITABILITY plane",
       "owner_layer": "L7 / Auditability",
       "notes": "W4 closure of plan fortknox-100pct-static-runtime-gap-9a3d4f"
     },
@@ -3865,7 +3865,7 @@
       "required_artifacts": [
         "managed_workflow_real_execution_receipt.json"
       ],
-      "owner_component": "agentic_core L7_AUDITABILITY plane",
+      "owner_component": "apps_rg L7_AUDITABILITY plane",
       "owner_layer": "L7 / Auditability",
       "notes": "W4 closure of plan fortknox-100pct-static-runtime-gap-9a3d4f"
     },
@@ -3901,9 +3901,9 @@
         "INTEGRATED_RUNTIME_BUNDLE"
       ],
       "freshness_hours": 168,
-      "required_ci_gate": "verify_agentic_core_l7_route_family_coverage.py",
+      "required_ci_gate": "verify_apps_rg_l7_route_family_coverage.py",
       "required_artifacts": [],
-      "owner_component": "agentic_core L7_AUDITABILITY plane",
+      "owner_component": "apps_rg L7_AUDITABILITY plane",
       "owner_layer": "L7 / Auditability",
       "notes": "W4 closure of plan fortknox-100pct-static-runtime-gap-9a3d4f"
     }

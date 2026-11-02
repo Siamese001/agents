@@ -20,7 +20,7 @@
 # Any directory not listed here is a violation.
 root_directories:
   # Core source
-  - agentic_core
+  - apps_rg
   - apps_eval
   - apps_exec
   - apps_lic
@@ -77,10 +77,10 @@ root_file_patterns:
 
 # --- Layer structure ---
 # [deband 2026-06-15] Removed `layer_roots`: the check only asserted these dirs EXIST in
-# agentic_core — a tautology. They are permanent committed roots; deleting/renaming one would
+# apps_rg — a tautology. They are permanent committed roots; deleting/renaming one would
 # break pytest collection + ADG generation with far louder, earlier signals than this gate. The
 # check was also one-directional (`missing = layer_roots - present`, never flags extras), so it
-# never caught the real drift — agentic_core has THREE L6 roots (L6_learning, L6_observability,
+# never caught the real drift — apps_rg has THREE L6 roots (L6_learning, L6_observability,
 # L6_system_learning) this list never modelled. Zero marginal signal → removed.
 # _check_layer_structure is now a no-op (candidate for gate-code removal in a future pass).
 # Runtime LAYER_ROOTS lives in path_constants, not this YAML.

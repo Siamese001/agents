@@ -46,5 +46,5 @@ c0_config:
 
 # Producer component reference
 producer:
-  component: "agentic_core.runtime.entrypoints.integrated_r4_lic_pipeline_run"
+  component: "apps_rg.runtime.entrypoints.integrated_r4_lic_pipeline_run"
   function: "run_integrated_r4_lic_pipeline"

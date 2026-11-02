@@ -32,6 +32,10 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from tools.pr_governance_core.common import bootstrap_shared_venv
+
+bootstrap_shared_venv(ROOT)
+
 # Ensure .agents/tools symlink exists for relative hook invocations from .agents/
 _AGENTS_TOOLS_LINK = ROOT / ".agents" / "tools"
 if (ROOT / ".agents").is_dir() and not _AGENTS_TOOLS_LINK.exists():

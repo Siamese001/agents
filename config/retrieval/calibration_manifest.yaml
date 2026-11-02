@@ -52,18 +52,18 @@ corpus:
       include_globs:
         - "**/*.md"
     - kind: repo_code
-      root: agentic_core/knowledge/retrieval
+      root: apps_rg/knowledge/retrieval
       include_globs:
         - "**/*.py"
     - kind: repo_code
-      root: agentic_core/L4_state/utils/memory
+      root: apps_rg/L4_state/utils/memory
       include_globs:
         - "bm25_store.py"
   # Chunking policy used by the calibration builder. Must match the
   # production chunking policy at the time of baseline capture so the
   # baseline is representative.
   chunking:
-    policy_ref: agentic_core.knowledge.chunking.chunk_policy_engine
+    policy_ref: apps_rg.knowledge.chunking.chunk_policy_engine
     target_tokens: 256
     overlap_tokens: 32
 
@@ -79,7 +79,7 @@ queries:
     query: "How does the C0.1 pre-retrieval gate enforce tenant isolation?"
     intent: semantic
     expected_chunk_ids:
-      - "agentic_core/knowledge/retrieval/retrieval_plan.py::RetrievalPrefilter.check"
+      - "apps_rg/knowledge/retrieval/retrieval_plan.py::RetrievalPrefilter.check"
       - "docs/reference/03_L0_Routing/C0 - Retrieval/C0 Context Engine.md::sec_c0_1"
     notes: "Target chunk must name 'RetrievalPrefilter' and 'tenant_id'. Fail-closed behavior is the key fact."
 
@@ -87,7 +87,7 @@ queries:
     query: "How does the hybrid recall stage merge dense and sparse retrieval results?"
     intent: semantic
     expected_chunk_ids:
-      - "agentic_core/knowledge/retrieval/hybrid_recall_stage.py::HybridRecallStage"
+      - "apps_rg/knowledge/retrieval/hybrid_recall_stage.py::HybridRecallStage"
       - "docs/reference/03_L0_Routing/C0 - Retrieval/C0 Context Engine.md::sec_c0_2"
     notes: "Answer must mention sparse-wins-on-IDs merge rule."
 
@@ -118,7 +118,7 @@ queries:
     query: "sparse wins on IDs merge rule implementation"
     intent: exact_lexical
     expected_chunk_ids:
-      - "agentic_core/knowledge/retrieval/hybrid_recall_stage.py::merge_sparse_wins_on_ids"
+      - "apps_rg/knowledge/retrieval/hybrid_recall_stage.py::merge_sparse_wins_on_ids"
       - "docs/reference/03_L0_Routing/C0 - Retrieval/Retrieval Pipeline.md::hybrid_merge"
     notes: "Term-specific lookup; BM25 should outperform dense here."
 
@@ -150,9 +150,9 @@ queries:
     query: "How do the L0 routing pre-filter, BM25 sparse store, and evidence contract builder interact during a single retrieval call?"
     intent: multi_doc
     expected_chunk_ids:
-      - "agentic_core/knowledge/retrieval/retrieval_plan.py::RetrievalPrefilter"
-      - "agentic_core/L4_state/utils/memory/bm25_store.py::Bm25Store"
-      - "agentic_core/knowledge/retrieval/evidence_contract_builder.py::EvidenceContractBuilder"
+      - "apps_rg/knowledge/retrieval/retrieval_plan.py::RetrievalPrefilter"
+      - "apps_rg/L4_state/utils/memory/bm25_store.py::Bm25Store"
+      - "apps_rg/knowledge/retrieval/evidence_contract_builder.py::EvidenceContractBuilder"
       - "docs/reference/03_L0_Routing/C0 - Retrieval/C0 Context Engine.md::full_pipeline"
     notes: "3-doc synthesis. Full answer requires stitching flow from pre-filter -> hybrid recall -> evidence contract."
 

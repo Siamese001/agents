@@ -65,7 +65,7 @@ obligations:
     description: "Canary run emits required span graph U0→L0→C0→PA→L2→Exit→UWG"
     gate_script: "ops_scripts/ci/check_runtime_trace_contract.py"
     test_ids:
-      - "tests/unit/agentic_core/L6_observability/runtime_trace/test_contract.py"
+      - "tests/unit/apps_rg/L6_observability/runtime_trace/test_contract.py"
       - "tests/unit/scripts/proof/test_run_runtime_trace_proof.py"
       - "tests/unit/ops_scripts/ci/test_check_runtime_trace_contract.py"
 

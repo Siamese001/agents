@@ -95,26 +95,86 @@ REQUIRED_HOOKS = [
 _RESOLVED_PR_PYTHON: Optional[str] = None
 
 
-def resolve_python() -> str:
+def _candidate_venv_roots(extra_root: Path | None = None) -> list[Path]:
+    roots: list[Path] = []
+    for cand in (extra_root, CHECKOUT_ROOT, ROOT):
+        if cand is not None:
+            resolved = cand.resolve()
+            if resolved not in roots:
+                roots.append(resolved)
+    try:
+        proc = subprocess.run(
+            ["git", "rev-parse", "--path-format=absolute", "--git-common-dir"],
+            cwd=extra_root or CHECKOUT_ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=5.0,
+        )
+        if proc.returncode == 0 and proc.stdout.strip():
+            common_root = Path(proc.stdout.strip()).parent.resolve()
+            if common_root not in roots:
+                roots.append(common_root)
+    except Exception:  # guardian: allow-silent-swallow -- best-effort git common dir lookup
+        pass
+    return roots
+
+
+def bootstrap_shared_venv(repo_root: Path | None = None) -> Optional[Path]:
+    """Attach the shared repository .venv site-packages to sys.path when running in an isolated worktree."""
+    import site
+
+    for candidate_root in _candidate_venv_roots(repo_root):
+        venv_dir = candidate_root / ".venv"
+        if not venv_dir.is_dir():
+            continue
+        site_dirs = list((venv_dir / "lib").glob("python*/site-packages"))
+        win_site = venv_dir / "Lib" / "site-packages"
+        if win_site.is_dir():
+            site_dirs.append(win_site)
+        for sdir in site_dirs:
+            sdir_str = str(sdir.resolve())
+            if sdir_str not in sys.path:
+                site.addsitedir(sdir_str)
+        return venv_dir
+    return None
+
+
+def resolve_python(repo_root: Path | None = None) -> str:
     global _RESOLVED_PR_PYTHON
-    if _RESOLVED_PR_PYTHON is not None:
+    if _RESOLVED_PR_PYTHON is not None and repo_root is None:
         return _RESOLVED_PR_PYTHON
 
     if sys.prefix != sys.base_prefix and Path(sys.executable).is_file():
         _RESOLVED_PR_PYTHON = sys.executable
         return sys.executable
 
-    for candidate_root in (CHECKOUT_ROOT, ROOT):
+    for candidate_root in _candidate_venv_roots(repo_root):
         venv_py = candidate_root / ".venv" / "bin" / "python"
         if venv_py.exists() and os.access(venv_py, os.X_OK):
-            _RESOLVED_PR_PYTHON = str(venv_py)
-            return _RESOLVED_PR_PYTHON
+            if repo_root is None:
+                _RESOLVED_PR_PYTHON = str(venv_py)
+            return str(venv_py)
         win_py = candidate_root / ".venv" / "Scripts" / "python.exe"
         if win_py.exists() and os.access(win_py, os.X_OK):
-            _RESOLVED_PR_PYTHON = str(win_py)
-            return _RESOLVED_PR_PYTHON
-    _RESOLVED_PR_PYTHON = sys.executable
+            if repo_root is None:
+                _RESOLVED_PR_PYTHON = str(win_py)
+            return str(win_py)
+    if repo_root is None:
+        _RESOLVED_PR_PYTHON = sys.executable
     return sys.executable
+
+
+def resolve_pytest(repo_root: Path | None = None) -> list[str]:
+    """Resolve pytest executable across local worktree, shared main repository .venv, and system PATH."""
+    for candidate_root in _candidate_venv_roots(repo_root):
+        venv_pytest = candidate_root / ".venv" / "bin" / "pytest"
+        if venv_pytest.is_file() and os.access(venv_pytest, os.X_OK):
+            return [str(venv_pytest)]
+        win_pytest = candidate_root / ".venv" / "Scripts" / "pytest.exe"
+        if win_pytest.is_file() and os.access(win_pytest, os.X_OK):
+            return [str(win_pytest)]
+    return [resolve_python(repo_root), "-m", "pytest"]
 
 
 _BANNED_GIT_ENV_VARS = frozenset(

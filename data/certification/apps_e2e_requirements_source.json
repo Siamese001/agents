@@ -2,7 +2,7 @@
   "schema_version": "apps_e2e_fortknox-v1",
   "generated_at_utc": "2026-05-02T20:41:00+00:00",
   "generator": "hand-authored (W1 of plan apps-fort-knox-parity-c5d9a3)",
-  "purpose": "Canonical apps_* end-to-end certification requirement universe. SSOT consumed by scripts/compile_apps_e2e_signoff.py (W3). Sibling to certification/requirements_source.json (agentic_core Fort Knox).",
+  "purpose": "Canonical apps_* end-to-end certification requirement universe. SSOT consumed by scripts/compile_apps_e2e_signoff.py (W3). Sibling to certification/requirements_source.json (apps_rg Fort Knox).",
   "requirement_count": 44,
   "positive_control_req_id": "APPS-REQ-001",
   "final_hundred_percent_groups": [
@@ -53,7 +53,7 @@
       "freshness_hours": 168,
       "required_ci_gate": "check_apps_e2e_spine_certification.py",
       "owner_component": "apps_e2e compiler",
-      "notes": "Mirrors agentic_core's RTC-REQ-001 canary. If compiler is broken, this row cannot pass."
+      "notes": "Mirrors apps_rg's RTC-REQ-001 canary. If compiler is broken, this row cannot pass."
     },
     {
       "req_id": "APPS-REQ-002",
@@ -989,7 +989,7 @@
       "required_controls": [
         "app_domain_contract_active"
       ],
-      "owner_component": "agentic_core.L4_state.contracts.app_domain_lookup",
+      "owner_component": "apps_rg.L4_state.contracts.app_domain_lookup",
       "requirement_group": "domain-wiring",
       "required_ci_gate": "check_apps_domain_enforcement.py",
       "depends_on_req_ids": [
@@ -1024,7 +1024,7 @@
       "required_controls": [
         "app_specific_evaluator_invoked"
       ],
-      "owner_component": "agentic_core.L3_orchestration.exit_eval.v6.app_specific_evaluator",
+      "owner_component": "apps_rg.L3_orchestration.exit_eval.v6.app_specific_evaluator",
       "requirement_group": "domain-runtime",
       "required_ci_gate": "check_apps_domain_enforcement.py",
       "depends_on_req_ids": [
@@ -1059,7 +1059,7 @@
       "required_controls": [
         "exit_packet_app_eval_bound"
       ],
-      "owner_component": "agentic_core.L3_orchestration.exit_eval.v6.pipeline",
+      "owner_component": "apps_rg.L3_orchestration.exit_eval.v6.pipeline",
       "requirement_group": "domain-runtime",
       "required_ci_gate": "check_apps_domain_enforcement.py",
       "depends_on_req_ids": [
@@ -1094,7 +1094,7 @@
       "required_controls": [
         "x1_domain_gate_consumed"
       ],
-      "owner_component": "agentic_core.L3_orchestration.exit_eval.v6.x1_d_grounding_check",
+      "owner_component": "apps_rg.L3_orchestration.exit_eval.v6.x1_d_grounding_check",
       "requirement_group": "domain-runtime",
       "required_ci_gate": "check_apps_domain_enforcement.py",
       "depends_on_req_ids": [
@@ -1129,7 +1129,7 @@
       "required_controls": [
         "x2_domain_aggregate_present"
       ],
-      "owner_component": "agentic_core.L3_orchestration.exit_eval.v6.x2_matrix",
+      "owner_component": "apps_rg.L3_orchestration.exit_eval.v6.x2_matrix",
       "requirement_group": "domain-runtime",
       "required_ci_gate": "check_apps_domain_enforcement.py",
       "depends_on_req_ids": [
@@ -1164,7 +1164,7 @@
       "required_controls": [
         "x3_domain_block_proved"
       ],
-      "owner_component": "agentic_core.L3_orchestration.exit_eval.v6.x3_dispositions",
+      "owner_component": "apps_rg.L3_orchestration.exit_eval.v6.x3_dispositions",
       "requirement_group": "domain-runtime",
       "required_ci_gate": "check_apps_domain_enforcement.py",
       "depends_on_req_ids": [
@@ -1235,7 +1235,7 @@
         "judge_roster_populated",
         "unknown_fail_closed"
       ],
-      "owner_component": "agentic_core.L3_orchestration.exit_eval.v6.app_grader_registry",
+      "owner_component": "apps_rg.L3_orchestration.exit_eval.v6.app_grader_registry",
       "requirement_group": "domain-runtime",
       "required_ci_gate": "check_apps_domain_enforcement.py",
       "depends_on_req_ids": [
@@ -1270,7 +1270,7 @@
       "required_controls": [
         "domain_otel_fields_complete"
       ],
-      "owner_component": "agentic_core.L3_orchestration.exit_eval.v6.pipeline",
+      "owner_component": "apps_rg.L3_orchestration.exit_eval.v6.pipeline",
       "requirement_group": "domain-runtime",
       "required_ci_gate": "check_apps_domain_enforcement.py",
       "depends_on_req_ids": [
@@ -1340,7 +1340,7 @@
       "required_controls": [
         "single_step_exit_invoked"
       ],
-      "owner_component": "agentic_core.L3_orchestration.exit_eval.v6.pipeline",
+      "owner_component": "apps_rg.L3_orchestration.exit_eval.v6.pipeline",
       "requirement_group": "domain-runtime",
       "required_ci_gate": "check_apps_domain_enforcement.py",
       "depends_on_req_ids": [
@@ -1375,7 +1375,7 @@
       "required_controls": [
         "l2_artifact_evaluable"
       ],
-      "owner_component": "agentic_core.L2_execution.sealing",
+      "owner_component": "apps_rg.L2_execution.sealing",
       "requirement_group": "domain-runtime",
       "required_ci_gate": "check_apps_domain_enforcement.py",
       "depends_on_req_ids": [

@@ -30,6 +30,11 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+from tools.prune_merged_chat_worktrees import (
+    get_merged_branches,
+    list_worktrees,
+    prune_merged_worktrees,
+)
 from tools.validate_sidecar_separation import DEFAULT_SIDECARS_ROOT, validate_sidecar_separation
 
 WAL_BLOAT_THRESHOLD_MB: float = 32.0
@@ -158,42 +163,14 @@ def run_six_pillar_hygiene_audit(
     """Execute the 6-pillar storage, worktree, and SQLite hygiene audit (and optional remediation)."""
     root = repo_root.resolve()
 
-    if remediate:
-        subprocess.run(
-            ["git", "-C", str(root), "worktree", "prune"],
-            capture_output=True,
-            text=True,
-            timeout=30,
-            check=False,
-        )
-
-    wt_proc = subprocess.run(
-        ["git", "-C", str(root), "worktree", "list", "--porcelain"],
-        capture_output=True,
-        text=True,
-        timeout=30,
-        check=False,
+    worktree_remediation = prune_merged_worktrees(
+        repo_root=root,
+        target_ref="main",
+        delete_merged=remediate,
     )
-    merged_proc = subprocess.run(
-        ["git", "-C", str(root), "branch", "--merged", "main"],
-        capture_output=True,
-        text=True,
-        timeout=30,
-        check=False,
-    )
-
-    merged_branches = [
-        b.strip()
-        for b in merged_proc.stdout.splitlines()
-        if b.strip()
-        and not b.strip().startswith("*")
-        and not b.strip().startswith("+")
-        and b.strip() not in ("main", "master")
-    ]
-
-    prunable_worktrees = [
-        line for line in wt_proc.stdout.splitlines() if line.strip().startswith("prunable ")
-    ]
+    worktrees = list_worktrees(root)
+    merged_branches = sorted(get_merged_branches(root, target_ref="main"))
+    prunable_worktrees = [str(wt["path"]) for wt in worktrees if wt.get("prunable")]
 
     sqlite_remediation: list[dict[str, Any]] = []
     if remediate:

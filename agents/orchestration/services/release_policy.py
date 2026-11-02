@@ -8,11 +8,39 @@ performing generation, repair, or direct persistence side effects.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Sequence
+from typing import Any, Mapping, Sequence
 
 from agents.orchestration.services.artifact_assembly import AssemblyResult
 from agents.orchestration.services.evaluation import EvaluationResult
 from agents.orchestration.state_contracts import ResumeRunState, RunPhase
+
+
+def evaluate_score_threshold_reports(
+    evaluation_reports: Mapping[str, Any],
+    *,
+    min_average_score: float = 0.80,
+    require_all_pass: bool = True,
+) -> tuple[bool, tuple[str, ...], float]:
+    """Shared threshold and pass-check evaluator across orchestration and pipeline release gates."""
+    if not evaluation_reports:
+        return False, ("No evaluation reports provided.",), 0.0
+
+    scores = [float(getattr(r, "score", 0.0)) for r in evaluation_reports.values()]
+    avg_score = sum(scores) / len(scores)
+    reasons: list[str] = []
+
+    if avg_score < min_average_score:
+        reasons.append(
+            f"Average quality score {avg_score:.2f} is below release threshold {min_average_score:.2f}."
+        )
+
+    if require_all_pass:
+        for sec_id, report in evaluation_reports.items():
+            if not getattr(report, "passed", False):
+                violations = getattr(report, "violations", ())
+                reasons.append(f"Section '{sec_id}' failed quality evaluation: {', '.join(violations)}.")
+
+    return len(reasons) == 0, tuple(reasons), avg_score
 
 
 @dataclass(frozen=True, slots=True)

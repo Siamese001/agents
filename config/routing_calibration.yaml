@@ -1,8 +1,8 @@
 # Routing-calibration thresholds (SSOT) — plan l0-routing-calibration-gap-audit-b3c9d4 W2.P1.
 #
 # Consolidates the two scalar literals that previously lived as magic-numbers
-# in agentic_core/runtime/contracts/abstain_contract.py (DEFAULT_ABSTAIN_THRESHOLD)
-# and agentic_core/L4_state/utils/memory/semantic_cache_manager.py (similarity_threshold).
+# in apps_rg/runtime/contracts/abstain_contract.py (DEFAULT_ABSTAIN_THRESHOLD)
+# and apps_rg/L4_state/utils/memory/semantic_cache_manager.py (similarity_threshold).
 #
 # Threshold rationale lives inline; empirical calibration (P-R sweeps, per-namespace
 # tuning) is deferred to Wave W3 of the same plan.

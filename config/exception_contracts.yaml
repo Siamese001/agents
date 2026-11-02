@@ -38,7 +38,7 @@ contracts:
       persistent store is unreachable. Every caller in ExecutionOrchestrator
       MUST handle RuntimeError (or a parent like Exception) — a swallow-free
       path here leaks infra failures to the L0 routing surface.
-    raiser_module: agentic_core/L4_state/utils/memory/semantic_cache_manager.py
+    raiser_module: apps_rg/L4_state/utils/memory/semantic_cache_manager.py
     raiser_symbol: SemanticCacheManager.learn
     exception_class: RuntimeError
     parent_classes: [Exception]
@@ -53,7 +53,7 @@ contracts:
       from a non-allowlisted module). Callers MUST handle at least one of
       these — or RuntimeError (the shared parent) — otherwise a legitimate
       disabled-state yields an unhandled exception at L2 execution.
-    raiser_module: agentic_core/embeddings/embedding_factory.py
+    raiser_module: apps_rg/embeddings/embedding_factory.py
     raiser_symbol: create_embedding_client
     exception_class: EmbeddingDisabledError
     parent_classes: [RuntimeError, Exception]
@@ -77,7 +77,7 @@ contracts:
       private `register_embedding_client` (zero direct external callers) to
       public `create_embedding_client` (the actual caller-facing entry).
       Promoted warn→error per W4 P4.4 of plan adg-three-bucket-unified-c4f8e2.
-    raiser_module: agentic_core/embeddings/embedding_factory.py
+    raiser_module: apps_rg/embeddings/embedding_factory.py
     raiser_symbol: create_embedding_client
     exception_class: ValueError
     parent_classes: [Exception]
@@ -99,7 +99,7 @@ contracts:
       semantic_cache_mixin, meta_learning_storage_util, GlobalcacheStrategy,
       tiered_batch_util) now have the precise handler. Contract promoted
       warn→error per W4 P4.4 of plan adg-three-bucket-unified-c4f8e2.
-    raiser_module: agentic_core/L4_state/utils/memory/semantic_cache_manager.py
+    raiser_module: apps_rg/L4_state/utils/memory/semantic_cache_manager.py
     raiser_symbol: SemanticCacheManager.get_instance
     exception_class: CriticalInfrastructureError
     parent_classes: [Exception]
