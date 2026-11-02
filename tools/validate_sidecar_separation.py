@@ -23,41 +23,69 @@ DEFAULT_SIDECARS_ROOT = Path("/Users/amitayer/.gemini/config/sidecars")
 AGENTS_CANONICAL_ROOT = "/Users/amitayer/Git/agents"
 NEE_CANONICAL_ROOT = "/Users/amitayer/Git/decision-intelligence-engine"
 
-EXPECTED_AGENTS_SIDECARS: dict[str, dict[str, str]] = {
+EXPECTED_AGENTS_SIDECARS: dict[str, dict[str, Any]] = {
     "agents-storage-worktree-hygiene": {
         "display_name": "Agents Repo: Storage & Worktree Hygiene",
         "cron": "CRON_TZ=America/New_York 30 5 * * *",
         "prompt_file": "agents_storage_worktree_hygiene_agent.md",
+        "disposition": "RETIRE_SIDECAR_TO_CLI",
+        "target_skill": "agents-governance-hygiene",
+        "deterministic_entrypoint": "tools/storage_worktree_hygiene.py",
+        "requires_remediation_quota": False,
     },
     "agents-ssot-boundary-governance": {
         "display_name": "Agents Repo: SSOT & Boundary Governance",
         "cron": "CRON_TZ=America/New_York 45 5 * * *",
         "prompt_file": "agents_ssot_boundary_agent.md",
+        "disposition": "RETIRE_SIDECAR_TO_HOOK",
+        "target_skill": "scope-containment",
+        "deterministic_entrypoint": "tools/ssot_boundary_auditor.py",
+        "requires_remediation_quota": True,
     },
     "agents-outreach-resume-functionality": {
         "display_name": "Agents Repo: Outreach & Resume Functionality",
         "cron": "CRON_TZ=America/New_York 5 6 * * *",
         "prompt_file": "agents_e2e_functionality_assurance_agent.md",
+        "disposition": "CONSOLIDATE_WITH_RETRIEVAL_SKILL",
+        "target_skill": "agents-domain-assurance",
+        "deterministic_entrypoint": "tools/verify_commit.py",
+        "requires_remediation_quota": True,
     },
     "agents-research-retrieval-surface": {
         "display_name": "Agents Repo: Research & Retrieval Surface",
         "cron": "CRON_TZ=America/New_York 15 6 * * *",
         "prompt_file": "agents_research_retrieval_surface_agent.md",
+        "disposition": "CONSOLIDATE_WITH_E2E_SKILL",
+        "target_skill": "agents-domain-assurance",
+        "deterministic_entrypoint": "tools/verify_commit.py",
+        "requires_remediation_quota": True,
     },
     "agents-evals-judge-assurance": {
         "display_name": "Agents Repo: Evals & Judge Validity",
         "cron": "CRON_TZ=America/New_York 30 6 * * *",
         "prompt_file": "agents_evals_judge_assurance_agent.md",
+        "disposition": "UPGRADE_TO_VALIDATOR_AND_SKILL",
+        "target_skill": "receipt-auditor",
+        "deterministic_entrypoint": "tools/validate_eval_rubrics.py",
+        "requires_remediation_quota": True,
     },
     "agents-cost-token-budget": {
         "display_name": "Agents Repo: Cost & Token Budget",
         "cron": "CRON_TZ=America/New_York 45 6 * * *",
         "prompt_file": "agents_cost_token_budget_agent.md",
+        "disposition": "RETIRE_SIDECAR_TO_HOOK",
+        "target_skill": "operational-gates",
+        "deterministic_entrypoint": "tools/cost_token_budget_auditor.py",
+        "requires_remediation_quota": False,
     },
     "agents-testing-gaps-assurance": {
         "display_name": "Agents Repo: Testing Gaps Assurance",
         "cron": "CRON_TZ=America/New_York 0 7 * * *",
         "prompt_file": "agents_testing_gaps_assurance_agent.md",
+        "disposition": "HYBRID_HOOK_SKILL",
+        "target_skill": "testing-framework",
+        "deterministic_entrypoint": "tools/verify_commit.py",
+        "requires_remediation_quota": True,
     },
 }
 
