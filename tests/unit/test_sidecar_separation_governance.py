@@ -250,3 +250,28 @@ def test_eight_pillar_cost_auditor_detects_missing_caching_and_effort_drift(tmp_
     assert "exceeds 'low' compact schema generation tier" in p1_gaps
 
 
+def test_agents_sidecar_dispositions_and_skill_budget_compliance() -> None:
+    """Verify all 7 Agents sidecar dispositions map to root skills within the 26-skill budget."""
+    from tools.audit_skills_budget import audit_skills_budget
+    from tools.validate_eval_rubrics import validate_eval_rubrics
+
+    budget_rep = audit_skills_budget(REPO_ROOT)
+    assert budget_rep["status"] == "PASS"
+    assert budget_rep["is_clean"] is True
+    assert budget_rep["skill_count"] == 7
+    assert budget_rep["skill_count"] <= 26
+
+    root_skills = {s["name"] for s in budget_rep["skills"]}
+    for sidecar_id, spec in EXPECTED_AGENTS_SIDECARS.items():
+        assert "disposition" in spec, f"{sidecar_id} missing disposition"
+        assert "target_skill" in spec, f"{sidecar_id} missing target_skill"
+        assert spec["target_skill"] in root_skills, (
+            f"{sidecar_id} maps to missing skill '{spec['target_skill']}'"
+        )
+
+    eval_rep = validate_eval_rubrics(REPO_ROOT)
+    assert eval_rep["status"] == "PASS"
+    assert eval_rep["is_clean"] is True
+
+
+
