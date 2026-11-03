@@ -80,11 +80,9 @@ def _payload(doc: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def _sha256_file(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
+    from apps_rg.runtime.closeout_single_pass import cached_file_sha256
+
+    return cached_file_sha256(path)
 
 
 def _repo_rel(path: Path, root: Path) -> str:
@@ -1043,9 +1041,11 @@ def _complete_fact_vector_writeback_after_x3(
             "promotions": [],
         }
 
+    from apps_rg.runtime.closeout_single_pass import find_closeout_files_by_name
+
     receipts: list[dict[str, Any]] = []
     candidate_run_ids: list[str] = []
-    for path in sorted(artifact_dir.rglob(INGEST_RECEIPT_NAME)):
+    for path in find_closeout_files_by_name(artifact_dir, INGEST_RECEIPT_NAME):
         doc = _read_json(path)
         if not doc:
             continue
@@ -1349,8 +1349,10 @@ def _complete_apps_rg_post_x3(
     # Freeze exact product inputs before post-boundary evaluation.  The
     # evaluator reopens this allowlist instead of discovering a mutable run
     # tree by heuristic paths.
+    from apps_rg.runtime.closeout_single_pass import scan_and_redact_closeout_directory
     from apps_rg.runtime.evaluation_manifest import emit_candidate_evaluation_manifest
 
+    scan_and_redact_closeout_directory(art, redact_diagnostics=False, hash_all_files=True)
     candidate_evaluation_manifest = emit_candidate_evaluation_manifest(art)
 
     # Post-boundary observation begins only after UWG has closed.

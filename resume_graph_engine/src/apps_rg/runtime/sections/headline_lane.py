@@ -79,6 +79,9 @@ from apps_rg.runtime.sections.headline_repair_policy import (
     CONTENT_SIGNAL_REPAIR_MAX_ATTEMPTS,
     content_signal_repair_enabled,
     content_signal_repair_env_state,
+    deterministic_clarity_trim_enabled,
+    find_valid_3word_clarity_trim,
+    resolve_content_signal_repair_max_attempts,
 )
 from apps_rg.runtime.sections.section_product_shape_ssot import (
     HEADLINE_WORD_MAX,
@@ -984,15 +987,10 @@ def normalize_parsed_output(
     if expanded_hl != hl:
         change_log = out.setdefault("change_log", [])
         if isinstance(change_log, list):
-            change_log.append(
-                {
-                    "operation": "headline_word_count_deterministic_expand",
-                    "reason": f"word_count={headline_word_count(hl)} below {HEADLINE_WORD_MIN}",
-                    "from": hl,
-                    "to": expanded_hl,
-                }
-            )
+            change_log.append({"operation": "headline_word_count_deterministic_expand", "reason": f"word_count={headline_word_count(hl)} below {HEADLINE_WORD_MIN}", "from": hl, "to": expanded_hl})
         hl = expanded_hl
+    from apps_rg.runtime.sections.lane_perf_sync_helpers import compact_overlong_headline_and_ledger
+    hl = compact_overlong_headline_and_ledger(hl, out, clarity_report_fn=headline_resume_native_clarity_report)
     out["headline_line"] = hl
     jd = dict(out.get("jd_alignment") or {})
     jd.setdefault("targeting_only", True)
@@ -1183,17 +1181,12 @@ def retry_headline_word_and_pipe(
     raw_gate_snap = json.loads(json.dumps(new_parsed))
     hl = str(new_parsed.get("headline_line", "")).strip()
     snapshot_raw_jd_alignment(new_parsed)
-    new_parsed = (
-        normalize_parsed_output(
-            new_parsed,
-            runtime_payload,
-            allowed_fact_ids,
-            hl,
-            companion_nonempty=companion_nonempty,
-            employer_names_lower=employer_names_lower,
-        )
-        or parsed
-    )
+    new_parsed = normalize_parsed_output(
+        new_parsed, runtime_payload, allowed_fact_ids, hl, companion_nonempty=companion_nonempty, employer_names_lower=employer_names_lower
+    ) or parsed
+    final_hl = str(new_parsed.get("headline_line") or "").strip()
+    if final_hl.count(" | ") != 3 or not has_valid_headline_prefix(final_hl) or not (HEADLINE_WORD_MIN <= headline_word_count(final_hl) <= HEADLINE_WORD_MAX):
+        return raw_output, parsed, None
     if not isinstance(new_parsed.get("change_log"), list):
         new_parsed["change_log"] = []
     new_parsed["change_log"] = list(parsed.get("change_log") or []) + list(new_parsed.get("change_log") or [])
@@ -1235,6 +1228,7 @@ def _content_signal_emphasis(
     grounding_failure_pre: str | None = None,
     clarity_report_pre: dict[str, Any] | None = None,
     graph_binding_context_pre: list[dict[str, Any]] | None = None,
+    all_graph_allocations: list[dict[str, Any]] | None = None,
 ) -> str:
     """Per-arm CONTENT_SIGNAL_REVISION emphasis naming exactly what is missing."""
     arms = _content_signal_arms(trigger_arm)
@@ -1320,14 +1314,23 @@ def _content_signal_emphasis(
         )
     if "graph_claim_binding" in arms:
         binding_context = list(graph_binding_context_pre or [])
+        all_alloc_txt = (
+            " All mandatory 1-to-1 headline allocations (MUST retain every root_id across X/Y/Z without dropping already-bound units): "
+            + json.dumps(list(all_graph_allocations), ensure_ascii=False, sort_keys=True)
+            + "."
+            if all_graph_allocations
+            else ""
+        )
         emphasis_parts.append(
             "CONTENT_SIGNAL_REVISION (x2_resume_graph_claim_binding): one or more frozen "
             "whole-resume allocation claim units are not represented by any visible X/Y/Z "
-            "segment. Every listed allocation MUST be expressed in exactly one evidence-grounded "
-            "segment and that segment's claim_ledger row MUST cite its root_id. Do not copy the "
-            "same source_fact_ids onto all three rows. Unbound allocation authority: "
+            "segment. Every listed allocation MUST be expressed in one evidence-grounded "
+            "segment and that segment's claim_ledger row MUST set claim_text to the exact visible "
+            "X/Y/Z segment and cite its root_id (never spend two segments on one root_id/skill_id "
+            "while dropping another). Unbound allocation authority: "
             + json.dumps(binding_context, ensure_ascii=False, sort_keys=True)
             + "."
+            + all_alloc_txt
         )
     emphasis_parts.append(
         "Keep every other constraint (exact prefix 'SVP Engineering | ', exactly three ' | ' "
@@ -1443,6 +1446,8 @@ def retry_headline_content_signal(
     executive abstraction on every segment, and literal evidence grounding), regardless of
     which arm(s) triggered.
     """
+    from apps_rg.runtime.sections.lane_perf_sync_helpers import extract_all_headline_graph_allocations
+
     repair_messages = [
         *messages,
         {
@@ -1461,6 +1466,7 @@ def retry_headline_content_signal(
                 grounding_failure_pre,
                 clarity_report_pre,
                 graph_binding_context_pre,
+                extract_all_headline_graph_allocations(parsed, runtime_payload),
             ),
         },
     ]
@@ -1500,17 +1506,9 @@ def retry_headline_content_signal(
     raw_gate_snap = json.loads(json.dumps(new_parsed))
     hl = str(new_parsed.get("headline_line", "")).strip()
     snapshot_raw_jd_alignment(new_parsed)
-    new_parsed = (
-        normalize_parsed_output(
-            new_parsed,
-            runtime_payload,
-            allowed_fact_ids,
-            hl,
-            companion_nonempty=companion_nonempty,
-            employer_names_lower=employer_names_lower,
-        )
-        or parsed
-    )
+    new_parsed = normalize_parsed_output(
+        new_parsed, runtime_payload, allowed_fact_ids, hl, companion_nonempty=companion_nonempty, employer_names_lower=employer_names_lower
+    ) or parsed
     final_hl = str(new_parsed.get("headline_line") or "").strip()
     final_wc = headline_word_count(final_hl)
     if _headline_positioning_segments(final_hl) is None or not (HEADLINE_WORD_MIN <= final_wc <= HEADLINE_WORD_MAX):
@@ -1518,6 +1516,17 @@ def retry_headline_content_signal(
     graph_content_contract_active = _headline_graph_content_contract_active(
         new_parsed, runtime_payload, allowed_fact_ids
     )
+    if deterministic_clarity_trim_enabled() and headline_resume_native_clarity_report(final_hl).get("opaque_segments"):
+        _rtrim = find_valid_3word_clarity_trim(
+            headline_line=final_hl,
+            parsed=new_parsed,
+            runtime_payload=runtime_payload,
+            allowed_fact_ids=allowed_fact_ids,
+            clarity_report_fn=headline_resume_native_clarity_report,
+            graph_content_contract_active=graph_content_contract_active,
+        )
+        if _rtrim is not None:
+            final_hl, new_parsed, _, _, _ = _rtrim
     repaired_ledger = list(new_parsed.get("claim_ledger") or [])
     final_abstraction: dict[str, Any] = {
         "segments_missing_executive_abstraction": []
@@ -1565,7 +1574,10 @@ def retry_headline_content_signal(
         or narrowing_labels_found(final_hl)
         or final_abstraction.get("segments_missing_executive_abstraction")
     )
-    final_clarity_ok = bool(headline_resume_native_clarity_report(final_hl).get("pass"))
+    _cl_fin = headline_resume_native_clarity_report(final_hl)
+    final_clarity_ok = not _cl_fin.get("opaque_segments") and (
+        bool(_cl_fin.get("pass")) if graph_content_contract_active else True
+    )
     if (
         final_signal_missing
         or not final_grounding_ok
@@ -1681,7 +1693,9 @@ def apply_headline_content_signal_repair(
         and graph_binding_pre_gate.get("pass") is not True
     )
     clarity_pre = headline_resume_native_clarity_report(hl_pre)
-    resume_native_clarity_arm = not bool(clarity_pre.get("pass"))
+    resume_native_clarity_arm = bool(clarity_pre.get("opaque_segments")) or (
+        graph_content_contract_active and not bool(clarity_pre.get("pass"))
+    )
     if not any(
         (
             governance_arm,
@@ -1792,83 +1806,53 @@ def apply_headline_content_signal_repair(
                 "resume_graph_claim_binding": {},
         },
         "rejected_reason": None,
-        "bounded": {"max_attempts": CONTENT_SIGNAL_REPAIR_MAX_ATTEMPTS, "attempts_used": 0},
+        "bounded": {"max_attempts": resolve_content_signal_repair_max_attempts(), "attempts_used": 0},
         "env_kill_switch_state": content_signal_repair_env_state(),
     }
     accepted = False
     snap: dict[str, Any] | None = None
+    _det_trim = (
+        find_valid_3word_clarity_trim(
+            headline_line=hl_pre,
+            parsed=parsed,
+            runtime_payload=runtime_payload,
+            allowed_fact_ids=allowed_fact_ids,
+            clarity_report_fn=headline_resume_native_clarity_report,
+            graph_content_contract_active=graph_content_contract_active,
+        )
+        if arm_names == ["resume_native_clarity"] and deterministic_clarity_trim_enabled()
+        else None
+    )
     if not content_signal_repair_enabled():
         receipt["rejected_reason"] = "kill_switch_off"
     elif budget_consumed:
         receipt["rejected_reason"] = "regen_budget_consumed"
-    elif (
-        arm_names == ["resume_native_clarity"]
-        and os.environ.get("APPS_RG_HEADLINE_DETERMINISTIC_CLARITY_TRIM", "0").strip().lower() in ("1", "true", "yes")
-    ):
-        segments = _headline_positioning_segments(hl_pre)
-        if segments is not None:
-            opaque = clarity_pre.get("opaque_segments") or []
-            new_segs = list(segments)
-            modified = False
-            for i, seg in enumerate(new_segs):
-                if seg in opaque:
-                    words = seg.split()
-                    if len(words) >= 4:
-                        new_segs[i] = " ".join(words[:3])
-                        modified = True
-            if modified:
-                prefix = hl_pre.split(" | ")[0] if " | " in hl_pre else "SVP Engineering"
-                candidate_line = f"{prefix} | {' | '.join(new_segs)}"
-                new_clarity = headline_resume_native_clarity_report(candidate_line)
-                new_gov = governance_signal_families_matched(candidate_line)
-                new_spec = positioning_families_matched(candidate_line)
-                new_wc = headline_word_count(candidate_line)
-                new_abs = headline_executive_abstraction_report(candidate_line)
-                if (
-                    new_clarity.get("pass")
-                    and bool(new_gov)
-                    and len(new_spec) >= POSITIONING_FAMILY_FLOOR
-                    and HEADLINE_WORD_MIN <= new_wc <= HEADLINE_WORD_MAX
-                    and not new_abs.get("segments_missing_executive_abstraction")
-                ):
-                    fixed_parsed = dict(parsed)
-                    fixed_parsed["headline_line"] = candidate_line
-                    if "claim_ledger" in fixed_parsed and isinstance(fixed_parsed["claim_ledger"], list):
-                        new_ledger = []
-                        for row in fixed_parsed["claim_ledger"]:
-                            if isinstance(row, dict):
-                                nr = dict(row)
-                                nr["claim_text"] = candidate_line
-                                new_ledger.append(nr)
-                            else:
-                                new_ledger.append(row)
-                        fixed_parsed["claim_ledger"] = new_ledger
-                    receipt["attempted"] = True
-                    receipt["accepted"] = True
-                    receipt["headline_post"] = candidate_line
-                    receipt["repair_mechanism"] = "deterministic_clarity_segment_trim"
-                    receipt["families_matched_post"] = {
-                        "governance_signal": new_gov,
-                        "specificity_floor": new_spec,
-                        "narrowing_labels": [],
-                        "segments_missing_executive_abstraction": [],
-                        "literal_grounding": grounding_pre_observation,
-                        "resume_native_clarity": new_clarity,
-                        "resume_graph_claim_binding": graph_binding_pre_gate,
-                    }
-                    write_json(artifact_dir / "headline_content_signal_repair_receipt.json", receipt)
-                    record_repair(
-                        artifact_dir,
-                        kind=KIND_REGEN_LLM,
-                        operation="headline_deterministic_clarity_trim",
-                        reason="deterministic_clarity_segment_trim",
-                        detail={
-                            "headline_pre": hl_pre,
-                            "headline_post": candidate_line,
-                        },
-                        replaced_l2=True,
-                    )
-                    return json.dumps(fixed_parsed), fixed_parsed, None, True
+    elif _det_trim is not None:
+        candidate_line, fixed_parsed, new_clarity, new_gov, new_spec = _det_trim
+        sync_selected_fact_plan_required_ids(fixed_parsed, runtime_payload, allowed_fact_ids)
+        receipt["attempted"] = True
+        receipt["accepted"] = True
+        receipt["headline_post"] = candidate_line
+        receipt["repair_mechanism"] = "deterministic_clarity_segment_trim"
+        receipt["families_matched_post"] = {
+            "governance_signal": new_gov,
+            "specificity_floor": new_spec,
+            "narrowing_labels": [],
+            "segments_missing_executive_abstraction": [],
+            "literal_grounding": grounding_pre_observation,
+            "resume_native_clarity": new_clarity,
+            "resume_graph_claim_binding": graph_binding_pre_gate,
+        }
+        write_json(artifact_dir / "headline_content_signal_repair_receipt.json", receipt)
+        record_repair(
+            artifact_dir,
+            kind=KIND_REGEN_LLM,
+            operation="headline_deterministic_clarity_trim",
+            reason="deterministic_clarity_segment_trim",
+            detail={"headline_pre": hl_pre, "headline_post": candidate_line},
+            replaced_l2=True,
+        )
+        return json.dumps(fixed_parsed), fixed_parsed, None, True
     else:
         receipt["attempted"] = True
         receipt["regen_call_made"] = True
@@ -1895,7 +1879,7 @@ def apply_headline_content_signal_repair(
             "resume_clarity_still_missing",
             "graph_claim_binding_still_missing",
         }
-        for attempt_index in range(1, CONTENT_SIGNAL_REPAIR_MAX_ATTEMPTS + 1):
+        for attempt_index in range(1, int(receipt["bounded"]["max_attempts"]) + 1):
             receipt["bounded"]["attempts_used"] = attempt_index
             (
                 new_raw,
@@ -1999,7 +1983,9 @@ def apply_headline_content_signal_repair(
             if graph_content_contract_active and not current_grounding_ok:
                 next_arms.append("literal_grounding")
                 next_reasons.append("x2_headline_xyz_literal_grounding:failed")
-            if not bool(clarity_pre.get("pass")):
+            if clarity_pre.get("opaque_segments") or (
+                graph_content_contract_active and not bool(clarity_pre.get("pass"))
+            ):
                 from apps_rg.runtime.sections.lane_perf_sync_helpers import format_headline_clarity_reason
                 next_arms.append("resume_native_clarity")
                 next_reasons.append(format_headline_clarity_reason(clarity_pre))
@@ -2853,51 +2839,41 @@ def run_headline_execution(
     raw_output_for_x2 = raw_output
     if "```" in raw_output and isinstance(parsed_for_x2, dict):
         raw_output_for_x2 = json.dumps(parsed_for_x2, ensure_ascii=False, separators=(",", ":"))
-    x1d = [
-        j.to_dict()
-        for j in run_headline_judges(
-            headline_line=headline_line,
-            claim_ledger=claim_ledger,
-            judge_keys=judge_keys,
-            companion_context=companion_context,
-            mode=judge_mode,
-            artifact_base=artifact_dir,
-            allowed_fact_packet=allowed_fact_packet,
-        )
-    ]
-    from apps_rg.runtime.judges.x1d_panel_harness import extract_x1d_diagnostic
-    from apps_rg.runtime.sections.ExecutiveVoiceRepairAgent import (
-        repair_section_with_executive_voice_agent,
-    )
+    from apps_rg.runtime.sections.lane_perf_sync_helpers import execute_headline_judges_with_final_display_gate
 
-    hl_diag = extract_x1d_diagnostic(x1d, "headline")
-    if hl_diag.get("repair_needed"):
-        repaired_data, hl_repair_receipt = repair_section_with_executive_voice_agent(
-            section_id="headline",
-            candidate_data={"headline_line": headline_line, "claim_ledger": claim_ledger},
-            diagnostic=hl_diag,
-            targeting_context={"target_title": args.target_title, "target_company": args.target_company},
-            mock_mode=judge_allowed_mock,
-            artifact_dir=artifact_dir,
-        )
-        if hl_repair_receipt.repair_succeeded and repaired_data.get("headline_line") != headline_line:
-            headline_line = str(repaired_data["headline_line"])
-            if isinstance(parsed, dict):
-                parsed["headline_line"] = headline_line
-            if isinstance(parsed_for_x2, dict):
-                parsed_for_x2["headline_line"] = headline_line
-            x1d = [
-                j.to_dict()
-                for j in run_headline_judges(
-                    headline_line=headline_line,
-                    claim_ledger=claim_ledger,
-                    judge_keys=judge_keys,
-                    companion_context=companion_context,
-                    mode=judge_mode,
-                    artifact_base=artifact_dir,
-                    allowed_fact_packet=allowed_fact_packet,
-                )
-            ]
+    headline_line, claim_ledger, canon_doc, coverage, x1d = execute_headline_judges_with_final_display_gate(
+        headline_line=headline_line,
+        parsed=parsed if isinstance(parsed, dict) else None,
+        parsed_for_x2=parsed_for_x2,
+        claim_ledger=claim_ledger,
+        canon_doc=canon_doc,
+        coverage=coverage,
+        allowed_fact_ids=allowed_fact_ids,
+        proof_pool_metadata=proof_pool_metadata if isinstance(proof_pool_metadata, dict) else None,
+        runtime_payload=runtime_payload,
+        judge_keys=judge_keys,
+        companion_context=companion_context,
+        judge_mode=judge_mode,
+        judge_allowed_mock=judge_allowed_mock,
+        artifact_dir=artifact_dir,
+        allowed_fact_packet=allowed_fact_packet,
+        target_title=str(args.target_title or ""),
+        target_company=str(args.target_company or ""),
+        word_min=HEADLINE_WORD_MIN,
+        word_max=HEADLINE_WORD_MAX,
+        word_count_fn=headline_word_count,
+        has_valid_prefix_fn=has_valid_headline_prefix,
+        clarity_report_fn=headline_resume_native_clarity_report,
+        evaluate_grounding_fn=evaluate_headline_literal_grounding,
+        coerce_segment_ledger_fn=_coerce_segment_claim_ledger_rows,
+        recite_bundle_fn=recite_canonical_segments_to_bundle_facts,
+        repair_grounding_fn=repair_headline_segment_citations_for_grounding,
+        normalize_ledger_fn=normalize_headline_claim_ledger,
+        build_canon_fn=build_headline_canonical_claim_ledger_v2,
+        build_coverage_fn=build_headline_text_claim_coverage,
+        run_judges_fn=run_headline_judges,
+        write_json_fn=write_json,
+    )
     write_json(artifact_dir / "x1d_llm_judge_outputs.json", {"judges": x1d})
 
     from apps_rg.runtime.product_evidence_authority import x2_proof_pool_gate_flags

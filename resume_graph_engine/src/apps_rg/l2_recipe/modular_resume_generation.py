@@ -65,7 +65,7 @@ class ModularResumeProfile:
     phase1_lane_provider: str = ""
     self_consistency_requested: int = 0
     parallel_phase1_lanes: bool = True
-    phase1_max_parallel: int = 4
+    phase1_max_parallel: int = 6
     phase1_allow_non_allow_exit_zero: bool = False
 
 

@@ -3,11 +3,16 @@ from __future__ import annotations
 
 import concurrent.futures
 import json
+import threading
 import time
 from pathlib import Path
 from typing import Any
 
 from apps_rg.runtime.internal.generated_lane_rollup import GENERATED_LANES
+from apps_rg.runtime.providers.wallclock_http_guard import (
+    DaemonWorkerPool,
+    mark_artifact_dir_cancelled,
+)
 
 
 def _load_json_dict(path: Path) -> dict[str, Any] | None:
@@ -213,8 +218,8 @@ def dispatch_patch_lanes_wave_parallel(
             continue
 
         workers = min(len(ready_lanes), max_workers_cap)
-        executor = concurrent.futures.ThreadPoolExecutor(max_workers=workers)
-        futures: dict[str, tuple[float, concurrent.futures.Future[dict[str, Any]]]] = {}
+        executor = DaemonWorkerPool(max_workers=workers, thread_name_prefix="apps-rg-patch-lane")
+        futures: dict[str, tuple[float, concurrent.futures.Future[dict[str, Any]], threading.Event]] = {}
         any_timed_out = False
         try:
             for lane in ready_lanes:
@@ -225,12 +230,19 @@ def dispatch_patch_lanes_wave_parallel(
                     flush=True,
                 )
                 l_start = time.monotonic()
-                fut = executor.submit(dispatch, plan=plan, lane=lane, lane_provider=lane_provider)
-                futures[lane] = (l_start, fut)
+                cancel_ev = threading.Event()
+                fut = executor.submit(
+                    dispatch,
+                    plan=plan,
+                    lane=lane,
+                    lane_provider=lane_provider,
+                    cancel_event=cancel_ev,
+                )
+                futures[lane] = (l_start, fut, cancel_ev)
 
             for lane in ready_lanes:
                 idx = lane_idx_map.get(lane, 0)
-                lane_start, future = futures[lane]
+                lane_start, future, cancel_ev = futures[lane]
                 remaining_wait = max(0.05, lane_timeout - (time.monotonic() - lane_start))
                 timed_out = False
                 try:
@@ -238,6 +250,7 @@ def dispatch_patch_lanes_wave_parallel(
                 except concurrent.futures.TimeoutError:
                     timed_out = True
                     any_timed_out = True
+                    cancel_ev.set()
                     results[lane] = {
                         "fault": "timeout",
                         "error": f"Lane '{lane}' timed out after {lane_timeout:.1f}s",
@@ -256,6 +269,10 @@ def dispatch_patch_lanes_wave_parallel(
                         dispatch_result=results[lane],
                         lane_exec_status="pre_run_blocked:LANE_TIMEOUT",
                     )
+                    mark_artifact_dir_cancelled(sections_root / lane)
+                    if getattr(plan, "run_dir", None) is not None:
+                        mark_artifact_dir_cancelled(Path(plan.run_dir) / "lanes" / lane)
+                        mark_artifact_dir_cancelled(Path(plan.run_dir) / "modular_r4" / "sections" / lane)
                 except (
                     ImportError,
                     AttributeError,

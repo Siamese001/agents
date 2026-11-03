@@ -233,7 +233,16 @@ class JudgePanelRunner:
             key_attempts: list[JudgeAttemptReceipt] = []
             key_violations: list[TransportParityViolation] = []
 
+            from apps_rg.runtime.providers.wallclock_http_guard import (
+                 is_lane_cancelled,
+                resolve_judge_total_budget_s,
+            )
+            import time
+
+            deadline = time.monotonic() + resolve_judge_total_budget_s()
             for attempt in range(1, max(max_attempts, 1) + 1):  # guardian: allow-retry-without-backoff -- bounded panel adapter retries
+                if is_lane_cancelled() or (attempt > 1 and time.monotonic() >= deadline):
+                    break
                 declared = adapter.declared_policy(attempt=attempt)
                 try:
                     outcome, receipt = adapter.invoke(contract, attempt=attempt)
@@ -295,9 +304,12 @@ class JudgePanelRunner:
             return outcome, key_violations, key_attempts
 
         if len(provider_keys) > 1:
-            from concurrent.futures import ThreadPoolExecutor
+            from apps_rg.runtime.providers.wallclock_http_guard import DaemonWorkerPool
 
-            with ThreadPoolExecutor(max_workers=min(len(provider_keys), 4)) as executor:
+            with DaemonWorkerPool(
+                max_workers=min(len(provider_keys), 4),
+                thread_name_prefix="apps-rg-panel-judge",
+            ) as executor:
                 futures = {key: executor.submit(_execute_single_provider, key) for key in provider_keys}
                 results = {key: futures[key].result() for key in provider_keys}
             for key in provider_keys:

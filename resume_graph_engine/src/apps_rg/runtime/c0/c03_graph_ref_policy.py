@@ -83,6 +83,7 @@ def resolve_role_family_projection(
     """Resolve SQLite role_family_projection, failing closed when missing."""
     from apps_rg.fact_inventory.augmented_skills_graph_sqlite import (
         default_graph_sqlite_path,
+        inprocess_graph_sqlite_lock,
         materialize_augmented_skills_graph_sqlite,
         open_graph_sqlite,
     )
@@ -117,23 +118,24 @@ def resolve_role_family_projection(
             conn.close()
 
     row = None
-    if not db.is_file():
-        materialize_augmented_skills_graph_sqlite(repo_root=repo_root, db_path=db)
-    if db.is_file():
-        row = fetch_projection_row()
-        if row is None:
+    with inprocess_graph_sqlite_lock(db):
+        if not db.is_file():
             materialize_augmented_skills_graph_sqlite(repo_root=repo_root, db_path=db)
+        if db.is_file():
             row = fetch_projection_row()
-        if row:
-            out["sqlite_projection_row_found"] = True
-            out["projection_source"] = "sqlite_role_family_projection"
-            out["release_eligible_targeting_proof"] = True
-            out["targeting_degraded_explicit"] = False
-            track_profile, targeting_keywords, proof_policy_note = _parse_sqlite_projection_row(row)
-            out["track_weight_profile"] = track_profile
-            out["targeting_keywords"] = targeting_keywords
-            out["proof_policy_note"] = proof_policy_note
-            return out
+            if row is None:
+                materialize_augmented_skills_graph_sqlite(repo_root=repo_root, db_path=db)
+                row = fetch_projection_row()
+    if row:
+        out["sqlite_projection_row_found"] = True
+        out["projection_source"] = "sqlite_role_family_projection"
+        out["release_eligible_targeting_proof"] = True
+        out["targeting_degraded_explicit"] = False
+        track_profile, targeting_keywords, proof_policy_note = _parse_sqlite_projection_row(row)
+        out["track_weight_profile"] = track_profile
+        out["targeting_keywords"] = targeting_keywords
+        out["proof_policy_note"] = proof_policy_note
+        return out
 
     raise RoleFamilyProjectionError(
         f"missing role_family_projection row for role_family_key={rf!r}; "

@@ -50,7 +50,7 @@ def phase1_parallel_enabled(*, profile_flag: bool = False) -> bool:
     return bool(profile_flag)
 
 
-def resolve_max_parallel(*, default: int = 2) -> int:
+def resolve_max_parallel(*, default: int = 6) -> int:
     raw = str(os.environ.get(_ENV_MAX_PARALLEL, "")).strip()
     if raw.isdigit():
         return max(1, min(12, int(raw)))
@@ -136,7 +136,7 @@ def build_phase1_waves() -> tuple[LaneWave, ...]:
         lanes = tuple(str(x) for x in (w.get("lanes") or []) if str(x) in GENERATED_LANES)
         mp = int(w.get("max_parallel", 0) or 0)
         if mp <= 0:
-            mp = resolve_max_parallel(default=int(w.get("default_max_parallel", 2) or 2))
+            mp = resolve_max_parallel(default=int(w.get("default_max_parallel", 6) or 6))
         out.append(LaneWave(wave_id=wid, lanes=lanes, max_parallel=mp))
     if not out:
         return (LaneWave(wave_id=1, lanes=GENERATED_LANES, max_parallel=1),)

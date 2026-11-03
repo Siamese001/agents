@@ -19,11 +19,8 @@ from apps_rg.fact_inventory.augmented_skills_graph import (
     load_augmented_skills_graph,
 )
 from apps_rg.fact_inventory.augmented_skills_graph_sqlite import (
-    C03_SQLITE_MATERIALIZER_CODE_VERSION,
-    default_graph_sqlite_path,
-    load_graph_metadata_row,
-    materialize_augmented_skills_graph_sqlite,
-    open_graph_sqlite,
+    C03_SQLITE_MATERIALIZER_CODE_VERSION, default_graph_sqlite_path, inprocess_graph_sqlite_lock,
+    load_graph_metadata_row, materialize_augmented_skills_graph_sqlite, open_graph_sqlite,
 )
 from apps_rg.repository_layout import repository_root
 from apps_rg.runtime.c0.c03_errors import (
@@ -393,13 +390,14 @@ def ensure_c03_graph_sqlite(repo_root: Path, db_path: Path | None = None) -> Pat
     """Explicitly materialize a missing/stale C0.3 projection, then verify it."""
     root = Path(repo_root)
     path = _projection_path(root, db_path)
-    try:
+    with inprocess_graph_sqlite_lock(path):
+        try:
+            return require_c03_graph_sqlite(root, path)
+        except C03UnauthorizedSourceAuthorityError:
+            raise
+        except C03GraphProjectionUnavailableError:
+            materialize_augmented_skills_graph_sqlite(repo_root=root, db_path=path)
         return require_c03_graph_sqlite(root, path)
-    except C03UnauthorizedSourceAuthorityError:
-        raise
-    except C03GraphProjectionUnavailableError:
-        materialize_augmented_skills_graph_sqlite(repo_root=root, db_path=path)
-    return require_c03_graph_sqlite(root, path)
 
 
 from apps_rg.fact_inventory.graph_sqlite_path_index import (  # noqa: E402

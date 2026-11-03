@@ -13,7 +13,9 @@ import sys
 import time
 import urllib.error
 import urllib.request
-from concurrent.futures import ThreadPoolExecutor
+from apps_rg.runtime.providers.wallclock_http_guard import (
+    DaemonWorkerPool, is_lane_cancelled, is_lane_or_dir_cancelled, resolve_judge_total_budget_s,
+)
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -222,18 +224,19 @@ def _invoke_judge_with_bounded_retries(
     section_id: str | None = None,
 ) -> JudgeOutput:
     max_attempts = _section_x1d_judge_max_attempts(section_id) if section_id else _x1d_judge_max_attempts()
+    deadline = time.monotonic() + resolve_judge_total_budget_s()
     last: JudgeOutput | None = None
     for attempt in range(1, max_attempts + 1):
+        if is_lane_cancelled():
+            raise TimeoutError(f"Judge {provider_key} cancelled after lane timeout")
         last = invoke(attempt)
         if last is None:
             break
-        if not _is_retriable_judge_output(last) or attempt >= max_attempts:
+        rem = deadline - time.monotonic()
+        if not _is_retriable_judge_output(last) or attempt >= max_attempts or rem <= 0.1 or is_lane_cancelled():
             return last
-        time.sleep(
-            _section_judge_retry_backoff_seconds(section_id, attempt)
-            if section_id
-            else _judge_retry_backoff_seconds(attempt)
-        )
+        backoff = _section_judge_retry_backoff_seconds(section_id, attempt) if section_id else _judge_retry_backoff_seconds(attempt)
+        time.sleep(min(backoff, max(0.0, rem)))
     assert last is not None
     return last
 
@@ -518,7 +521,9 @@ def _artifact_path(
 
 
 def _write_artifact(path: Path, data: Any) -> str:
-    """Write artifact and return path string."""
+    """Write artifact unless owning lane was cancelled, returning path string."""
+    if is_lane_or_dir_cancelled(path):
+        return str(path)
     _ensure_dir(path.parent)
     with open(_filesystem_path(path), "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False, default=str)
@@ -1592,11 +1597,12 @@ def _call_gemini(
                     provider_status="RETRYING",
                     retry_reason="provider_rate_limit",
                 )
+                if is_lane_cancelled():
+                    raise TimeoutError("Gemini judge cancelled during rate-limit backoff")
                 wait_s = _parse_gemini_retry_delay_seconds(body)
                 if wait_s is None:
-                    wait_s = min(30.0, 2.0**transport_attempt)
-                sleep_for = min(45.0, max(1.5, float(wait_s)))
-                time.sleep(sleep_for)
+                    wait_s = min(15.0, 2.0**transport_attempt)
+                time.sleep(min(15.0, max(1.0, float(wait_s))))
                 continue
 
             eval_mode, prov_status, msg = _classify_gemini_http_block(e.code, body)
@@ -1751,15 +1757,7 @@ def run_llm_judges(
     compiled_prompt: str | None = None,
     section_id: str = "executive_summary",
 ) -> list[JudgeOutput]:
-    """Run or block the requested provider judges.
-
-    mode values:
-    - blocked_if_unavailable: attempt real providers only when credentials exist, otherwise block.
-    - mocked: emit clearly mocked rows for plumbing tests.
-
-    When ``judge_packet`` is provided (executive_summary GRADE_ONLY path), judges grade the packet
-    candidate and use enhanced proof model resolution — not the generator ``compiled_prompt``.
-    """
+    """Run or block the requested provider judges (GRADE_ONLY packet or rubric prompt)."""
     from apps_rg.runtime.judges.executive_summary_judge_packet import (
         judge_contract_hash as _exec_contract_hash,
     )
@@ -1992,7 +1990,7 @@ def run_llm_judges(
             )
 
     if mode != "mocked" and len(judge_keys) > 1:
-        with ThreadPoolExecutor(max_workers=len(judge_keys)) as executor:
+        with DaemonWorkerPool(max_workers=len(judge_keys), thread_name_prefix="apps-rg-x1d-judge") as executor:
             futures = [executor.submit(_evaluate_single_judge, key) for key in judge_keys]
             return [f.result() for f in futures]
 

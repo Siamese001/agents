@@ -5,9 +5,11 @@ import hashlib
 import json
 import os
 import sys
-from concurrent.futures import Future, ThreadPoolExecutor
+from concurrent.futures import Future
 from pathlib import Path
 from typing import Any
+
+from apps_rg.runtime.providers.wallclock_http_guard import DaemonWorkerPool
 
 from apps_rg.runtime.judges.executive_summary_x1d import (
     DEFAULT_THRESHOLD,
@@ -259,9 +261,9 @@ def run_competencies_judges(
 
     outputs: list[JudgeOutput] = []
     prelaunched_futures: dict[str, Future[JudgeOutput]] = {}
-    executor: ThreadPoolExecutor | None = None
+    executor: DaemonWorkerPool | None = None
     if mode != "mocked" and len(judge_keys) > 1:
-        executor = ThreadPoolExecutor(max_workers=len(judge_keys))
+        executor = DaemonWorkerPool(max_workers=len(judge_keys), thread_name_prefix="apps-rg-comp-judge")
         for pkey in judge_keys:
             if pkey not in PROVIDERS:
                 continue

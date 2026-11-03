@@ -36,6 +36,7 @@ def _add_run_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--artifact-dir", default="", help="Optional fresh output directory beneath artifacts/apps_rg/runtime_proofs. The governed product run rejects any other destination.")
     parser.add_argument("--briefing", default="", help="Optional briefing file path or inline text.")
     parser.add_argument("--json", action="store_true", default=False, help="Emit structured JSON output containing status, evaluation, and runtime details.")
+    parser.add_argument("--no-cache", "--fresh", dest="no_cache", action="store_true", default=False, help="Bypass whole-run and section caches and force a fresh live generation run.")
 
 
 def _build_parser(prog: str = "python -m apps_rg") -> argparse.ArgumentParser:
@@ -487,7 +488,14 @@ def _run_product_from_cli(args: argparse.Namespace) -> dict[str, Any]:
     }
     if brief_text:
         dispatch_kwargs["manual_brief"] = brief_text
-    result = run_canonical_apps_rg_from_cli_primitives(**dispatch_kwargs)
+    from apps_rg.runtime.env_bootstrap import temporary_env_override
+
+    cache_env_updates: dict[str, str | None] = {}
+    if getattr(args, "no_cache", False):
+        cache_env_updates["APPS_RG_NO_CACHE"] = "1"
+        cache_env_updates["APPS_RG_REQUIRE_FRESH_RUN"] = "1"
+    with temporary_env_override(cache_env_updates):
+        result = run_canonical_apps_rg_from_cli_primitives(**dispatch_kwargs)
     sys.stderr.write("[resume_engine] Evaluating product output and receipts...\n")
     sys.stderr.flush()
     out = dict(result)

@@ -113,7 +113,7 @@ def test_wave_dag_bullets_before_narratives_before_exec_before_headline() -> Non
     assert lane_wave["unify_narrative"] < lane_wave["executive_summary"]
     assert lane_wave["ibm_narrative"] < lane_wave["executive_summary"]
     assert lane_wave["insurtech_narrative"] < lane_wave["executive_summary"]
-    assert lane_wave["executive_summary"] < lane_wave["headline"]
+    assert lane_wave["executive_summary"] == lane_wave["headline"] == 2
 
 
 def test_wave_dag_covers_all_eleven_lanes() -> None:

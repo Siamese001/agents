@@ -7,6 +7,7 @@ import os
 import re
 import sqlite3
 import tempfile
+import threading
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -86,6 +87,21 @@ def _sqlite_projection_digest(path: Path) -> str | None:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+_INPROCESS_SQLITE_META_LOCK = threading.Lock()
+_INPROCESS_SQLITE_LOCKS: dict[str, threading.RLock] = {}
+
+
+def inprocess_graph_sqlite_lock(path: Path) -> threading.RLock:
+    """Return a re-entrant in-process lock keyed by resolved SQLite target path."""
+    key = str(Path(path).resolve(strict=False))
+    with _INPROCESS_SQLITE_META_LOCK:
+        lock = _INPROCESS_SQLITE_LOCKS.get(key)
+        if lock is None:
+            lock = threading.RLock()
+            _INPROCESS_SQLITE_LOCKS[key] = lock
+        return lock
+
 
 def _sqlite_maintenance_lock_path(path: Path) -> Path:
     return path.with_name(f".{path.name}.maintenance.lock")
@@ -228,4 +244,4 @@ def load_graph_metadata_row(conn: sqlite3.Connection) -> dict[str, Any]:
     }
 
 
-__all__ = ['_repo_root', '_utc_now', '_sha256_hex', '_sqlite_sidecar_paths', '_new_sibling_temp_db_path', '_open_isolated_temp_graph_sqlite', '_cleanup_temp_sqlite', '_require_sidecar_free_atomic_target', '_sqlite_projection_digest', '_sqlite_maintenance_lock_path', '_is_pid_alive', '_check_and_reclaim_stale_lock', '_acquire_sqlite_maintenance_lock', '_release_sqlite_maintenance_lock', '_replace_sqlite_projection_if_unchanged', 'default_graph_sqlite_path', 'open_graph_sqlite', 'load_graph_metadata_row']
+__all__ = ['_repo_root', '_utc_now', '_sha256_hex', '_sqlite_sidecar_paths', '_new_sibling_temp_db_path', '_open_isolated_temp_graph_sqlite', '_cleanup_temp_sqlite', '_require_sidecar_free_atomic_target', '_sqlite_projection_digest', 'inprocess_graph_sqlite_lock', '_sqlite_maintenance_lock_path', '_is_pid_alive', '_check_and_reclaim_stale_lock', '_acquire_sqlite_maintenance_lock', '_release_sqlite_maintenance_lock', '_replace_sqlite_projection_if_unchanged', 'default_graph_sqlite_path', 'open_graph_sqlite', 'load_graph_metadata_row']

@@ -51,6 +51,23 @@ def materialize_augmented_skills_graph_sqlite(
     json_source_path: Path | None = None,
 ) -> dict[str, Any]:
     """Build SQLite DB from augmented skills graph JSON. Returns materialization summary."""
+    lock_target = Path(db_path) if db_path is not None else storage.default_graph_sqlite_path(repo_root)
+    with storage.inprocess_graph_sqlite_lock(lock_target):
+        return _materialize_augmented_skills_graph_sqlite_locked(
+            graph=graph,
+            repo_root=repo_root,
+            db_path=db_path,
+            json_source_path=json_source_path,
+        )
+
+
+def _materialize_augmented_skills_graph_sqlite_locked(
+    *,
+    graph: dict[str, Any] | None = None,
+    repo_root: Path | None = None,
+    db_path: Path | None = None,
+    json_source_path: Path | None = None,
+) -> dict[str, Any]:
     _open_isolated_temp_graph_sqlite = _get_open_isolated_temp_graph_sqlite()
     _replace_sqlite_projection_if_unchanged = _get_replace_sqlite_projection_if_unchanged()
 

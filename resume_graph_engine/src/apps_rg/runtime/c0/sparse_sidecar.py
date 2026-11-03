@@ -17,6 +17,7 @@ import json
 import logging
 import re
 import sqlite3
+import threading
 import time
 from collections import Counter
 from pathlib import Path
@@ -55,7 +56,13 @@ def _collection_name(value: str) -> str:
 
 
 def _target_dir(sparse_dir: str | Path | None = None) -> Path:
-    return Path(sparse_dir) if sparse_dir is not None else SPARSE_PATH
+    if sparse_dir is not None:
+        return Path(sparse_dir)
+    if SPARSE_PATH.is_dir():
+        return SPARSE_PATH
+    from apps_rg.runtime.worktree_path_resolution import resolve_existing_trusted_rel_path
+
+    return resolve_existing_trusted_rel_path("data/cache/sparse", repository_root(Path(__file__)))
 
 
 def sidecar_path(
@@ -301,6 +308,33 @@ def build_for_collection(
         connection.close()
 
 
+_SIDECAR_SUMMARY_LOCK = threading.Lock()
+_SIDECAR_SUMMARY_CACHE: dict[tuple[str, int, int], dict[str, object]] = {}
+_THREAD_LOCAL_READ_CONNS = threading.local()
+
+
+def _get_thread_read_connection(db_path: Path) -> sqlite3.Connection:
+    resolved = str(db_path.resolve())
+    stat = db_path.stat()
+    key = (resolved, int(stat.st_mtime_ns), int(stat.st_size))
+    conns: dict[str, tuple[tuple[str, int, int], sqlite3.Connection]] = getattr(
+        _THREAD_LOCAL_READ_CONNS, "conns", None
+    ) or {}
+    cached = conns.get(resolved)
+    if cached is not None:
+        if cached[0] == key:
+            return cached[1]
+        try:
+            cached[1].close()
+        except sqlite3.Error:
+            pass
+    conn = sqlite3.connect(f"file:{resolved}?mode=ro", uri=True)
+    conn.execute("PRAGMA query_only=ON")
+    conns[resolved] = (key, conn)
+    _THREAD_LOCAL_READ_CONNS.conns = conns
+    return conn
+
+
 def sidecar_summary(
     collection_name: str,
     *,
@@ -310,6 +344,15 @@ def sidecar_summary(
     path = sidecar_path(collection_name, sparse_dir=sparse_dir)
     if not path.is_file():
         return {"path": str(path), "available": False, "doc_count": 0, "error": "missing"}
+    try:
+        stat = path.stat()
+        cache_key = (str(path.resolve()), int(stat.st_mtime_ns), int(stat.st_size))
+    except OSError:
+        return {"path": str(path), "available": False, "doc_count": 0, "error": "missing"}
+    with _SIDECAR_SUMMARY_LOCK:
+        cached = _SIDECAR_SUMMARY_CACHE.get(cache_key)
+        if cached is not None:
+            return dict(cached)
     try:
         connection = sqlite3.connect(str(path))
         try:
@@ -325,15 +368,19 @@ def sidecar_summary(
             "error": f"unreadable:{type(exc).__name__}",
         }
     if docs <= 0:
-        return {"path": str(path), "available": False, "doc_count": 0, "error": "empty"}
-    if fts_docs != docs:
-        return {
+        out: dict[str, object] = {"path": str(path), "available": False, "doc_count": 0, "error": "empty"}
+    elif fts_docs != docs:
+        out = {
             "path": str(path),
             "available": False,
             "doc_count": docs,
             "error": "fts_docs_count_mismatch",
         }
-    return {"path": str(path), "available": True, "doc_count": docs, "error": ""}
+    else:
+        out = {"path": str(path), "available": True, "doc_count": docs, "error": ""}
+    with _SIDECAR_SUMMARY_LOCK:
+        _SIDECAR_SUMMARY_CACHE[cache_key] = dict(out)
+    return out
 
 
 def sparse_sidecar_exists(
@@ -365,47 +412,49 @@ class AppsRgSparseIndex:
             return []
         maximum = max(1, int(top_k))
         try:
-            connection = sqlite3.connect(str(self._db_path))
-            try:
-                connection.execute("PRAGMA query_only=ON")
+            connection = _get_thread_read_connection(self._db_path)
+            rows = connection.execute(
+                "SELECT id, document FROM docs_fts WHERE docs_fts MATCH ? "
+                "ORDER BY rank, id LIMIT ?",
+                (" ".join(tokens), maximum * 2),
+            ).fetchall()
+            if not rows and len(tokens) > 1:
                 rows = connection.execute(
                     "SELECT id, document FROM docs_fts WHERE docs_fts MATCH ? "
                     "ORDER BY rank, id LIMIT ?",
-                    (" ".join(tokens), maximum * 2),
+                    (" OR ".join(tokens), maximum * 2),
                 ).fetchall()
-                if not rows and len(tokens) > 1:
-                    rows = connection.execute(
-                        "SELECT id, document FROM docs_fts WHERE docs_fts MATCH ? "
-                        "ORDER BY rank, id LIMIT ?",
-                        (" OR ".join(tokens), maximum * 2),
-                    ).fetchall()
 
-                results: list[dict[str, object]] = []
-                for rank, (document_id, document) in enumerate(rows[:maximum]):
-                    metadata: dict[str, object] = {}
-                    metadata_row = connection.execute(
-                        "SELECT metadata FROM docs WHERE id = ?", (document_id,)
-                    ).fetchone()
-                    if metadata_row and metadata_row[0]:
+            top_rows = rows[:maximum]
+            meta_by_id: dict[str, dict[str, object]] = {}
+            if top_rows:
+                doc_ids = [str(r[0]) for r in top_rows]
+                placeholders = ",".join("?" for _ in doc_ids)
+                for m_id, m_raw in connection.execute(
+                    f"SELECT id, metadata FROM docs WHERE id IN ({placeholders})",
+                    doc_ids,
+                ).fetchall():
+                    if m_raw:
                         try:
-                            decoded = json.loads(metadata_row[0])
+                            decoded = json.loads(m_raw)
                         except (json.JSONDecodeError, TypeError, ValueError):
                             decoded = {}
                         if isinstance(decoded, dict):
-                            metadata = decoded
-                    results.append(
-                        {
-                            "id": str(document_id),
-                            "content": str(document or ""),
-                            "score": 1.0 / (1.0 + rank),
-                            "metadata": metadata,
-                            "source": "apps_rg_sparse_fts",
-                        }
-                    )
-                return results
-            finally:
-                connection.close()
-        except sqlite3.Error as exc:
+                            meta_by_id[str(m_id)] = decoded
+
+            results: list[dict[str, object]] = []
+            for rank, (document_id, document) in enumerate(top_rows):
+                results.append(
+                    {
+                        "id": str(document_id),
+                        "content": str(document or ""),
+                        "score": 1.0 / (1.0 + rank),
+                        "metadata": meta_by_id.get(str(document_id), {}),
+                        "source": "apps_rg_sparse_fts",
+                    }
+                )
+            return results
+        except (sqlite3.Error, OSError) as exc:
             _LOGGER.error("Apps RG sparse lookup failed for %s: %s", self.collection_name, exc)
             return []
 

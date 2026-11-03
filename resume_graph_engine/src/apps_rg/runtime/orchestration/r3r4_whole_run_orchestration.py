@@ -1442,6 +1442,30 @@ def run_whole_run_with_route_governance(
     should_delegate_pre_u0 = research_enabled and not (
         initial_handoff_validation.observed and initial_handoff_validation.valid
     )
+    from apps_rg.cache.whole_run_fast_cache import (
+        compute_caller_brief_hash,
+        serve_post_research_whole_run_cache_hit,
+        try_serve_pre_research_whole_run_cache_hit,
+    )
+
+    caller_brief_hash = compute_caller_brief_hash(manual_brief)
+    pre_research_hit = try_serve_pre_research_whole_run_cache_hit(
+        art=art,
+        target_company=target_company,
+        target_role=target_role,
+        target_level=target_level,
+        jd=jd,
+        job_description_ref=job_description_ref,
+        job_description_text=job_description_text,
+        manual_brief=manual_brief,
+        resume_path=resume_path,
+        source_resume_text=source_resume_text,
+        generation_mode=generation_mode,
+        require_fresh_preflight=require_fresh_preflight,
+        stage_ledger=stage_ledger,
+    )
+    if pre_research_hit is not None:
+        return pre_research_hit
     if should_delegate_pre_u0:
         delegation_route = _pre_u0_research_route(envelope)
         ok, research_note, brief_path = _run_r3r4_research_hop(
@@ -1839,6 +1863,7 @@ def run_whole_run_with_route_governance(
     )
     raw_request["research_via"] = "apps_research" if research_ran else research_via
     raw_request["route_decision_ref"] = sr.FILENAME_SPINE_MANIFEST
+    raw_request["caller_brief_hash"] = caller_brief_hash
     if handoff_validation.valid and isinstance(handoff_identity, dict):
         # Preserve the producer/consumer validated identity verbatim.  Missing
         # identity is left missing and becomes a terminal reconciliation gap;
@@ -1936,7 +1961,6 @@ def run_whole_run_with_route_governance(
 
     from apps_rg.cache.cache_preflight_evidence import (
         build_cache_preflight_evidence,
-        write_cache_hit_receipt,
         write_cache_miss_receipt,
         write_whole_run_cache_preflight_artifact,
     )
@@ -1961,59 +1985,15 @@ def run_whole_run_with_route_governance(
     write_whole_run_cache_preflight_artifact(art, preflight, evidence)
 
     if not preflight.generation_required:
-        write_cache_hit_receipt(art, preflight, evidence)
-        r1b_result = preflight.r1b_result
-        cache_candidate_dir = str(preflight.r1a_artifact_dir or "").strip()
-        if not cache_candidate_dir and r1b_result is not None:
-            cache_candidate_dir = str(
-                getattr(r1b_result, "artifact_dir", "")
-                or getattr(r1b_result, "run_dir", "")
-                or ""
-            ).strip()
-        from apps_rg.runtime.e2e_stage_ledger import validate_cached_e2e_completion
-
-        cache_completion = validate_cached_e2e_completion(
-            Path(cache_candidate_dir)
-            if cache_candidate_dir
-            else art / "__missing_cache_candidate__"
+        post_hit = serve_post_research_whole_run_cache_hit(
+            art=art,
+            preflight=preflight,
+            evidence=evidence,
+            require_fresh_preflight=require_fresh_preflight,
+            stage_ledger=product_stage_ledger or stage_ledger,
         )
-        failed = _failure_payload(
-            artifact_dir=art,
-            route=route,
-            reason="E2E_FRESH_RUN_REQUIRES_CACHE_MISS",
-            route_decision=route_decision,
-        )
-        failed.update(
-            {
-                "completion_status": "BLOCKED",
-                "cache_preflight": evidence,
-                "cache_candidate_dir": cache_candidate_dir,
-                "cache_candidate_completion_valid": cache_completion.valid,
-                "cache_candidate_completion_errors": list(cache_completion.errors),
-            }
-        )
-        failed.update(
-            emit_plan_execution_artifacts(
-                terminal_reason="E2E_FRESH_RUN_REQUIRES_CACHE_MISS"
-            )
-        )
-        _emit_terminal_mandatory_closeout(
-            artifact_dir=art,
-            repo_root=repo,
-            payload=failed,
-        )
-        stage_ledger.record(
-            stage_id="CLOSEOUT",
-            status="FAIL",
-            reason_code="E2E_FRESH_RUN_REQUIRES_CACHE_MISS",
-            output_refs={
-                "mandatory_run_output_json": str(
-                    failed.get("mandatory_run_output_json") or ""
-                )
-            },
-        )
-        failed["e2e_stage_ledger"] = str(stage_ledger.path)
-        return failed
+        if post_hit is not None:
+            return post_hit
 
     write_cache_miss_receipt(art, preflight, evidence)
 

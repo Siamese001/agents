@@ -55,12 +55,19 @@ class AppsRgEnvBootstrapResult:
 
 
 def _candidate_dotenv_paths(root: Path) -> list[tuple[str, Path]]:
+    from apps_rg.runtime.worktree_path_resolution import trusted_checkout_roots
+
     candidates: list[tuple[str, Path]] = []
     override = os.environ.get(APPS_RG_DOTENV_ENV_VAR, "").strip()
     if override:
         candidates.append(("env_override", Path(override).expanduser()))
     candidates.append(("repo_root", root / ".env"))
     candidates.append(("repo_root_agents", root / "env_agents"))
+    root_resolved = root.resolve()
+    for troot in trusted_checkout_roots(root):
+        if troot != root_resolved:
+            candidates.append(("shared_checkout_dotenv", troot / ".env"))
+            candidates.append(("shared_checkout_agents", troot / "env_agents"))
     # Also check parent directory if in a worktree or subpackage
     candidates.append(("parent_agents", root.parent / "env_agents"))
     candidates.append(("home_ssot", canonical_home_dotenv()))
@@ -114,20 +121,26 @@ def bootstrap_apps_rg_env(
     loaded = False
     existed = False
     for src, candidate in _candidate_dotenv_paths(root):
-        if candidate.is_file():
+        if not candidate.is_file():
+            continue
+        try:
+            from dotenv import load_dotenv
+        except ImportError:
+            cand_loaded = _manual_load_env(candidate, override=(override if not existed else False))
+            cand_source = f"{src}:manual_fallback" if cand_loaded else f"{src}:dotenv_import_unavailable"
+        else:
+            cand_loaded = bool(load_dotenv(dotenv_path=candidate, override=(override if not existed else False)))
+            if not cand_loaded:
+                cand_loaded = _manual_load_env(candidate, override=(override if not existed else False))
+            cand_source = src
+        if not existed:
             chosen_path = candidate
-            source = src
+            source = cand_source
             existed = True
-            try:
-                from dotenv import load_dotenv
-            except ImportError:
-                loaded = _manual_load_env(candidate, override=override)
-                source = f"{src}:manual_fallback" if loaded else f"{src}:dotenv_import_unavailable"
-            else:
-                loaded = bool(load_dotenv(dotenv_path=candidate, override=override))
-                if not loaded:
-                    # Fall back to manual parsing if python-dotenv failed on specific formatting
-                    loaded = _manual_load_env(candidate, override=override)
+            loaded = cand_loaded
+        elif cand_loaded:
+            loaded = True
+        if src == "env_override" or override:
             break
 
     ca_bundle = os.environ.get("REQUESTS_CA_BUNDLE") or os.environ.get("CURL_CA_BUNDLE") or os.environ.get("SSL_CERT_FILE")

@@ -117,6 +117,7 @@ from apps_rg.fact_inventory.skills_graph.storage import (
     _sqlite_sidecar_paths,
     _utc_now,
     default_graph_sqlite_path,
+    inprocess_graph_sqlite_lock,
     load_graph_metadata_row,
     open_graph_sqlite,
 )
@@ -160,6 +161,7 @@ __all__ = [
     "confidence_grade_for_skill_row",
     "default_candidate_fact_ledger_path",
     "default_graph_sqlite_path",
+    "inprocess_graph_sqlite_lock",
     "derive_confidence_grade",
     "has_valid_human_confirmed_archive_promotion",
     "load_candidate_fact_promotion_registry",

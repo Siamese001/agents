@@ -139,6 +139,14 @@ def run_whole_run_cache_preflight(
     section: str = "",
 ) -> WholeRunCachePreflightOutcome:
     """R1A exact → R1B semantic (ROLE_TARGET_RUN) → generation on miss/inadmissible."""
+    from apps_rg.cache.whole_run_fast_cache import is_no_cache_requested
+
+    if is_no_cache_requested():
+        return WholeRunCachePreflightOutcome(
+            entrypoint=entrypoint,
+            generation_required=True,
+            r1b_preflight_reason="no_cache_requested",
+        )
     if str(section).strip():
         return WholeRunCachePreflightOutcome(
             entrypoint=entrypoint,
@@ -155,17 +163,44 @@ def run_whole_run_cache_preflight(
         )
 
     resume_hash = str(raw_request.get("resume_hash") or "")
-    r1a_key = compute_r1a_key(
-        source_resume_hash=resume_hash,
-        target_company=target_company,
-        target_role=target_role,
+    jd_hash = str(raw_request.get("jd_hash") or "").strip()
+    briefing_hash = str(
+        raw_request.get("caller_brief_hash") or raw_request.get("brief_hash") or ""
+    ).strip()
+    target_runs_dir = runs_dir or resolve_preflight_receipt_dir(
+        artifact_dir=artifact_dir, runs_dir=runs_dir
     )
-    r1a_dir = check_r1a_cache(
-        r1a_key,
-        runs_dir=runs_dir or resolve_preflight_receipt_dir(artifact_dir=artifact_dir, runs_dir=runs_dir),
-        policy_hash=policy_hash,
-        blueprint_hash=blueprint_hash,
-    )
+    r1a_dir: str | None = None
+    if jd_hash or briefing_hash:
+        v2_key = compute_r1a_key(
+            source_resume_hash=resume_hash,
+            target_company=target_company,
+            target_role=target_role,
+            jd_hash=jd_hash,
+            briefing_hash=briefing_hash,
+        )
+        r1a_dir = check_r1a_cache(
+            v2_key,
+            runs_dir=target_runs_dir,
+            policy_hash=policy_hash,
+            blueprint_hash=blueprint_hash,
+            jd_hash=jd_hash or None,
+            briefing_hash=briefing_hash or None,
+        )
+    if not r1a_dir:
+        r1a_key = compute_r1a_key(
+            source_resume_hash=resume_hash,
+            target_company=target_company,
+            target_role=target_role,
+        )
+        r1a_dir = check_r1a_cache(
+            r1a_key,
+            runs_dir=target_runs_dir,
+            policy_hash=policy_hash,
+            blueprint_hash=blueprint_hash,
+            jd_hash=jd_hash or None,
+            briefing_hash=briefing_hash or None,
+        )
     if r1a_dir:
         return WholeRunCachePreflightOutcome(
             entrypoint=entrypoint,
@@ -273,7 +308,14 @@ def maybe_ingest_r1b_post_exit(
     artifact_dir: Path,
     runs_dir: Path | str | None = None,
 ) -> str | None:
-    """Post-run R1B ingest (W8); only after Exit artifacts exist."""
+    """Post-run R1A stamp + optional R1B ingest (W8); only after Exit artifacts exist."""
+    from apps_rg.cache.whole_run_fast_cache import stamp_authorized_whole_run_r1a
+
+    try:
+        stamp_authorized_whole_run_r1a(raw_request=raw_request, artifact_dir=Path(artifact_dir))
+    except (OSError, ValueError, RuntimeError, TypeError):
+        # guardian: allow-silent-swallow -- R1A stamp must not abort post-exit closeout
+        pass
     if not _semantic_cache_r1b_enabled():
         return None
     store_root = resolve_r1b_store_root(artifact_dir=artifact_dir)
@@ -293,19 +335,6 @@ def maybe_ingest_r1b_post_exit(
             Path(artifact_dir) / "r1b_post_exit_replay_probe.json",
             probe,
         )
-        resume_path = Path(artifact_dir) / "generated_resume.json"
-        if resume_path.is_file():
-            r_hash = str(raw_request.get("resume_hash") or "")
-            co = str(raw_request.get("target_company") or "")
-            ro = str(raw_request.get("target_role") or "")
-            if r_hash and co and ro:
-                k = compute_r1a_key(source_resume_hash=r_hash, target_company=co, target_role=ro)
-                stamp_r1a_cache(
-                    k,
-                    run_dir=artifact_dir,
-                    policy_hash=str(raw_request.get("policy_hash") or "") or None,
-                    blueprint_hash=str(raw_request.get("blueprint_hash") or "") or None,
-                )
     except (OSError, ValueError, RuntimeError, TypeError):
         # guardian: post-exit probe is audit evidence; ingest ref remains authoritative.
         pass

@@ -49,6 +49,12 @@ def emit_judge_attempt_ledger(
     panel_result: Any,
 ) -> Path:
     """Persist every panel-authorized judge attempt under the section run root."""
+    from apps_rg.runtime.providers.wallclock_http_guard import is_lane_or_dir_cancelled
+
+    base = Path(artifact_base)
+    path = base / JUDGE_ATTEMPT_LEDGER_FILENAME
+    if is_lane_or_dir_cancelled(base):
+        return path
     attempts = [asdict(item) for item in panel_result.attempts]
     payload = {
         "schema_version": "apps_rg.judge_attempt_ledger.v1",
@@ -63,9 +69,7 @@ def emit_judge_attempt_ledger(
         ),
         "attempts": attempts,
     }
-    base = Path(artifact_base)
     base.mkdir(parents=True, exist_ok=True)
-    path = base / JUDGE_ATTEMPT_LEDGER_FILENAME
     temporary = path.with_suffix(".json.tmp")
     temporary.write_text(
         json.dumps(payload, indent=2, sort_keys=True) + "\n",

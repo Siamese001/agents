@@ -155,9 +155,8 @@ def pool_selector_timeout_s(*, default_seconds: float | None = None) -> float:
 
 
 def _write_selector_timing_receipt(artifact_dir: Path | None, doc: dict[str, Any]) -> None:
-    """Honest selector lifecycle receipt — written for started/finished/error/timeout alike, so a
-    selector timeout is visibly distinct from a parse failure or a provider-unavailable block."""
-    if artifact_dir is None:
+    from apps_rg.runtime.providers.wallclock_http_guard import is_lane_or_dir_cancelled
+    if artifact_dir is None or is_lane_or_dir_cancelled(artifact_dir):
         return
     try:
         (artifact_dir / SELECTOR_TIMING_RECEIPT_FILENAME).write_text(

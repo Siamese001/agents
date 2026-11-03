@@ -53,13 +53,13 @@ def test_build_phase1_waves_exec_summary_is_downstream_solo() -> None:
     waves = build_phase1_waves()
     lane_wave = {lane: w.wave_id for w in waves for lane in w.lanes}
     es_wave = next(w for w in waves if "executive_summary" in w.lanes)
-    assert es_wave.lanes == ("executive_summary",)
-    assert es_wave.max_parallel == 1
-    # exec_summary runs after every upstream proof-bearing + narrative lane.
+    assert es_wave.lanes == ("executive_summary", "headline")
+    assert es_wave.max_parallel == 2
+    # exec_summary and headline run in Wave 2 after every upstream proof-bearing + narrative lane.
     for upstream in ("competencies", "slalom_bullets", "unify_bullets", "ibm_bullets", "slalom_narrative", "unify_narrative", "ibm_narrative"):
         assert lane_wave[upstream] < lane_wave["executive_summary"]
-    # headline is final positioning, strictly after exec_summary.
-    assert lane_wave["executive_summary"] < lane_wave["headline"]
+        assert lane_wave[upstream] < lane_wave["headline"]
+    assert lane_wave["executive_summary"] == lane_wave["headline"] == 2
 
 
 def test_section_dag_narrative_never_precedes_companion_bullets() -> None:
@@ -114,7 +114,18 @@ def test_dag_dependencies_keep_overview_behind_all_section_inputs() -> None:
         "ibm_narrative",
         "insurtech_narrative",
     }
-    assert dependencies["headline"][0] == "executive_summary"
+    assert set(dependencies["headline"]) == {
+        "competencies",
+        "slalom_bullets",
+        "unify_bullets",
+        "ibm_bullets",
+        "insurtech_bullets",
+        "slalom_narrative",
+        "unify_narrative",
+        "ibm_narrative",
+        "insurtech_narrative",
+    }
+    assert "executive_summary" not in dependencies["headline"]
 
 
 def test_dispatch_serial_mock() -> None:

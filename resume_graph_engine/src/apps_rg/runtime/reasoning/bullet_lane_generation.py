@@ -493,25 +493,21 @@ def _generate_competencies_graph_pool_lane(
     targeting_context: dict[str, Any] | None,
     judge_mode: str,
     provider_profile: str | None,
+    single_path_override: bool = False,
 ) -> tuple[ProviderResult | None, str, dict[str, Any] | None, str, dict[str, Any]]:
     section_lane = "competencies"
     min_score = min_competencies_selection_score()
     all_paths: list[SelfConsistencyPath] = []
     last_result: ProviderResult | None = None
     pool: PoolSelectionResult | None = None
-    gate = evaluate_competencies_selection_quality(
-        selections=[],
-        merged_parsed={},
-        min_score=min_score,
-    )
+    gate = evaluate_competencies_selection_quality(selections=[], merged_parsed={}, min_score=min_score)
     from apps_rg.runtime.reasoning.bullet_pool_sync_helpers import resolve_competencies_lane_sc_budgets, resolve_competencies_round_batch
     regen_round = 0
     max_paths, max_regen = resolve_competencies_lane_sc_budgets(
         section_lane=section_lane, targeting_context=targeting_context, judge_mode=judge_mode,
         max_sc_path_count_fn=max_sc_path_count_for_lane, max_regen_fn=max_competencies_regen_rounds,
+        single_path_override=single_path_override,
     )
-    # W5: per-round generation/selector phase timings, surfaced via meta so the lane execution can
-    # answer "did it die on a generation path or on the selector?" without console guessing.
     phase_timings: list[dict[str, Any]] = []
     stop_reason = ""
 
@@ -519,6 +515,7 @@ def _generate_competencies_graph_pool_lane(
         requested_batch = resolve_competencies_round_batch(
             section_lane=section_lane, regen_round=regen_round, judge_mode=judge_mode,
             sc_path_count_fn=sc_path_count_for_lane, regen_extra_fn=regen_extra_path_count_for_lane,
+            single_path_override=single_path_override,
         )
         remaining_budget = max(0, max_paths - len(all_paths))
         batch = min(requested_batch, remaining_budget)
@@ -583,20 +580,16 @@ def _generate_competencies_graph_pool_lane(
 
         _sel_started = datetime.now(timezone.utc).isoformat()
         _sel_t0 = time.monotonic()
-        selector_paths = _selector_paths_with_governed_competencies_baseline(
-            all_paths,
-            targeting_context,
-        )
-        pool = run_claude_bullet_pool_selection(
-            section_id=section_lane,
-            slot_kind="competencies",
-            paths=selector_paths,
-            required_bullet_ids=None,
-            targeting_context=targeting_context,
-            artifact_dir=artifact_dir,
-            mode=judge_mode,
-            min_score_threshold=min_score,
-            regen_note=regen_note,
+        from apps_rg.runtime.reasoning.bullet_pool_sync_helpers import build_mocked_single_path_competencies_pool
+        selector_paths = _selector_paths_with_governed_competencies_baseline(all_paths, targeting_context)
+        pool = (
+            build_mocked_single_path_competencies_pool(all_paths, min_score=min_score)
+            if (single_path_override and judge_mode == "mocked")
+            else run_claude_bullet_pool_selection(
+                section_id=section_lane, slot_kind="competencies", paths=selector_paths,
+                required_bullet_ids=None, targeting_context=targeting_context,
+                artifact_dir=artifact_dir, mode=judge_mode, min_score_threshold=min_score, regen_note=regen_note,
+            )
         )
         phase_timings.append(
             {
@@ -651,10 +644,11 @@ def _generate_competencies_graph_pool_lane(
     meta: dict[str, Any] = {
         "generation_mode": "model_competencies_graph_pool_adaptive_6_8_regen",
         "section_lane": section_lane,
-        "initial_path_count": sc_path_count_for_lane(section_lane),
+        "initial_path_count": 1 if single_path_override else sc_path_count_for_lane(section_lane),
         "total_paths_executed": len(all_paths),
         "regen_rounds_executed": regen_round,
-        "adaptive_sc_enabled": True,
+        "adaptive_sc_enabled": not single_path_override,
+        "single_path_mode": bool(single_path_override),
         "max_path_count": max_paths,
         "stop_reason": stop_reason or ("selection_gate_passed" if gate.ok else "unknown"),
         "min_selection_score": min_score,
@@ -740,8 +734,20 @@ def generate_bullet_lane_with_sc_and_claude(
     lane = str(section_lane or "").strip().lower()
     bullet_ids = required_bullet_ids or REQUIRED_BULLET_IDS.get(lane, ())
 
-    if lane == "competencies" and not sc_on:
-        raise ValueError("competencies lane requires self-consistency generation; non-SC fallback removed")
+    if lane == "competencies" and (slot_kind == "competencies" or not sc_on):
+        return _generate_competencies_graph_pool_lane(
+            provider_payload=provider_payload,
+            parse_model_json=parse_model_json,
+            normalize_parsed=normalize_parsed,
+            artifact_dir=artifact_dir,
+            run_id=run_id,
+            temperature_bounds=temperature_bounds,
+            base_temperature=base_temperature,
+            targeting_context=targeting_context,
+            judge_mode=judge_mode,
+            provider_profile=provider_profile,
+            single_path_override=not sc_on,
+        )
 
     if not sc_on:
         meta: dict[str, Any] = {"generation_mode": "singleton", "section_lane": section_lane}
@@ -761,20 +767,6 @@ def generate_bullet_lane_with_sc_and_claude(
         else:
             err = result.exact_provider_error or "provider blocked"
         return result, raw, parsed, err, meta
-
-    if lane == "competencies" and slot_kind == "competencies":
-        return _generate_competencies_graph_pool_lane(
-            provider_payload=provider_payload,
-            parse_model_json=parse_model_json,
-            normalize_parsed=normalize_parsed,
-            artifact_dir=artifact_dir,
-            run_id=run_id,
-            temperature_bounds=temperature_bounds,
-            base_temperature=base_temperature,
-            targeting_context=targeting_context,
-            judge_mode=judge_mode,
-            provider_profile=provider_profile,
-        )
 
     if is_employment_bullet_lane(lane) and slot_kind == "bullets":
         if not bullet_ids:

@@ -76,6 +76,14 @@ def _build_parser(prog: str = "python -m resume_engine") -> argparse.ArgumentPar
         default=False,
         help="Emit structured JSON output containing status, evaluation, and runtime details.",
     )
+    run_parser.add_argument(
+        "--no-cache",
+        "--fresh",
+        dest="no_cache",
+        action="store_true",
+        default=False,
+        help="Bypass whole-run and section caches and force a fresh live generation run.",
+    )
 
     # 2. eval
     eval_parser = subparsers.add_parser(

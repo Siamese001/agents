@@ -96,7 +96,9 @@ def _canonical_digest(value: Mapping[str, Any]) -> str:
 
 
 def _sha256_file(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    from apps_rg.runtime.closeout_single_pass import cached_file_sha256
+
+    return cached_file_sha256(path)
 
 
 def _read_json(path: Path) -> dict[str, Any]:
@@ -186,15 +188,17 @@ def _binding(
             "identity": dict(identity),
             "missing": True,
         }
-    raw = path.read_bytes()
+    from apps_rg.runtime.closeout_single_pass import cached_file_binding_meta
+
+    meta = cached_file_binding_meta(path)
     return {
         "role": role,
         "lane_id": lane_id,
         "artifact_ref": resolved_ref,
         "required": required,
-        "sha256": hashlib.sha256(raw).hexdigest(),
-        "byte_length": len(raw),
-        "schema_version": _schema_version(path),
+        "sha256": meta.sha256,
+        "byte_length": meta.byte_length,
+        "schema_version": meta.schema_version,
         "identity": dict(identity),
     }
 

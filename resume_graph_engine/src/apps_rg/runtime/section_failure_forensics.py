@@ -14,6 +14,11 @@ from apps_rg.runtime.output_bisect import (
     build_section_output_bisect,
     validate_section_output_bisect,
 )
+from apps_rg.runtime.worktree_path_resolution import (
+    resolve_e2e_baseline_paths,
+    resolve_unified_section_lane_dir,
+    trusted_rel_posix,
+)
 
 SECTION_FAILURE_FORENSICS_DIR = "section_failure_forensics"
 E2E_SECTION_FORENSICS_GATE_ID = "E2E_FAIL_WITHOUT_SECTION_FORENSICS"
@@ -103,19 +108,13 @@ def _stable_hash(value: Any) -> str:
 
 def _repo_rel(path: Path, repo_root: Path) -> str:
     try:
-        return path.resolve().relative_to(repo_root.resolve()).as_posix()
+        return trusted_rel_posix(path, repo_root)
     except ValueError:
         return path.resolve().as_posix()
 
 
-def _lane_dir(section: dict[str, Any], repo_root: Path) -> Path | None:
-    raw = str(section.get("lane_dir") or "").strip()
-    if not raw:
-        return None
-    path = Path(raw)
-    if not path.is_absolute():
-        path = repo_root / path
-    return path if path.exists() else path
+def _lane_dir(section: dict[str, Any], repo_root: Path, run_root: Path | None = None) -> Path | None:
+    return resolve_unified_section_lane_dir(section, repo_root, run_root)
 
 
 def _display_from_l2(path: Path) -> str:
@@ -391,9 +390,7 @@ def _find_pinned_successful_same_scenario(
 ) -> dict[str, Any]:
     current = _scenario_identity(run_root)
     configured = str(os.environ.get("APPS_RG_E2E_BASELINE_REF") or "").strip()
-    ref = Path(configured) if configured else DEFAULT_E2E_BASELINE_REF
-    if not ref.is_absolute():
-        ref = repo_root / ref
+    ref, search_roots = resolve_e2e_baseline_paths(configured, DEFAULT_E2E_BASELINE_REF, repo_root)
     contract = _load_json(ref)
     if contract.get("schema_version") != "apps_rg.e2e_baseline.v1":
         return {
@@ -406,7 +403,14 @@ def _find_pinned_successful_same_scenario(
     baseline_text = str(contract.get("baseline_run_dir") or "").strip()
     baseline = Path(baseline_text)
     if not baseline.is_absolute():
-        baseline = repo_root / baseline
+        baseline = next(
+            (
+                (r / baseline).resolve()
+                for r in search_roots
+                if ((r / baseline) / "APPS_RG_MANDATORY_RUN_OUTPUT.json").is_file()
+            ),
+            (repo_root / baseline).resolve(),
+        )
     mandatory = baseline / "APPS_RG_MANDATORY_RUN_OUTPUT.json"
     expected_digest = str(contract.get("mandatory_output_sha256") or "").lower()
     observed_digest = (
@@ -464,29 +468,12 @@ def _baseline_lane_dir(
     run_dir = Path(raw)
     section_id = str(section.get("section") or "")
     mandatory = _load_json(run_dir / "APPS_RG_MANDATORY_RUN_OUTPUT.json")
+    matched_row: dict[str, Any] = {"section": section_id}
     for row in mandatory.get("sections") or []:
-        if not isinstance(row, dict) or row.get("section") != section_id:
-            continue
-        lane_dir = str(row.get("lane_dir") or "")
-        if not lane_dir:
-            continue
-        path = Path(lane_dir)
-        if not path.is_absolute():
-            run_relative = run_dir / path
-            path = run_relative if run_relative.exists() else repo_root / path
-        return path
-    candidates = [
-        run_dir / "lanes" / section_id,
-        run_dir / "modular_r4" / "sections" / section_id,
-    ]
-    if section_id == "final_resume_aggregation":
-        candidates.append(run_dir / "modular_r4" / "final_resume_assembly")
-    for candidate in candidates:
-        if not candidate.is_dir():
-            continue
-        nested = sorted(candidate.rglob("resume_display_text.txt"))
-        return nested[-1].parent if nested else candidate
-    return None
+        if isinstance(row, dict) and row.get("section") == section_id:
+            matched_row = row
+            break
+    return resolve_unified_section_lane_dir(matched_row, repo_root, run_dir)
 
 
 def _baseline_section_record(baseline: dict[str, Any], section_id: str) -> dict[str, Any]:
@@ -741,7 +728,7 @@ def _build_rca(
     baseline: dict[str, Any],
 ) -> dict[str, Any]:
     section_id = str(section.get("section") or "")
-    lane = _lane_dir(section, repo_root)
+    lane = _lane_dir(section, repo_root, run_root)
     baseline_lane = _baseline_lane_dir(baseline, section, repo_root)
     baseline_section = _baseline_section_record(baseline, section_id)
     current_output = _final_materialized_output(lane, section)

@@ -283,17 +283,40 @@ class ResumeRunRecoveryAgent:
             )
             receipt.lanes_re_dispatched = list(plan.target_lanes)
 
-            patch_result = execute_patch_run(
-                plan,
-                dispatch_fn=self.dispatch_fn,
-                aggregate_fn=self.aggregate_fn,
+            from apps_rg.runtime.c0.c0_perf_sync_helpers import (
+                RECOVERY_SEALED_C0_MANIFEST_ENV,
+                RECOVERY_SEALED_C0_MANIFEST_FILENAME,
+                collect_sealed_c0_manifest_for_lanes,
             )
+            from apps_rg.runtime.env_bootstrap import temporary_env_override
+
+            sealed_c0_lanes = collect_sealed_c0_manifest_for_lanes(
+                self.artifact_dir,
+                plan.target_lanes,
+                raw_request=raw_request,
+            )
+            env_updates: dict[str, str | None] = {}
+            if sealed_c0_lanes:
+                manifest_path = self.artifact_dir / RECOVERY_SEALED_C0_MANIFEST_FILENAME
+                manifest_path.write_text(
+                    json.dumps({"schema_version": 1, "lanes": sealed_c0_lanes}, indent=2) + "\n",
+                    encoding="utf-8",
+                )
+                env_updates[RECOVERY_SEALED_C0_MANIFEST_ENV] = str(manifest_path)
+            details["reused_sealed_c0_lanes"] = sorted(sealed_c0_lanes.keys())
+
+            with temporary_env_override(env_updates):
+                patch_result = execute_patch_run(
+                    plan,
+                    dispatch_fn=self.dispatch_fn,
+                    aggregate_fn=self.aggregate_fn,
+                )
             details["patch_result"] = {
                 "exit_code": patch_result.get("exit_code"),
                 "target_lanes": patch_result.get("target_lanes"),
             }
             dispatch_success = patch_result.get("exit_code") == 0
-        except Exception as exc:
+        except Exception as exc:  # guardian: allow-broad-exception -- recovery agent logs and records dispatch error in receipt
             logger.warning("ResumeRunRecoveryAgent patch dispatch error: %s", exc)
             details["error"] = f"{type(exc).__name__}:{exc}"
 
@@ -303,7 +326,7 @@ class ResumeRunRecoveryAgent:
                 artifact_dir=self.artifact_dir,
                 identity=whole_run_exit_identity,
             )
-        except Exception as exc:
+        except Exception as exc:  # guardian: allow-broad-exception -- recovery agent logs and falls back to prior exit packet
             logger.error("Failed to re-emit whole run exit packet after recovery: %s", exc)
             updated_whole_run_exit = dict(whole_run_exit)
             details["exit_reemit_error"] = str(exc)

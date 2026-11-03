@@ -1169,11 +1169,10 @@ class SectionRetrievalProfile:
         """Load profile from YAML."""
         profile_path = self._get_profile_path()
         if profile_path.exists():
-            import yaml
+            from apps_rg.runtime.c0.c0_perf_sync_helpers import load_cached_yaml_profile
 
-            with open(profile_path, encoding="utf-8") as f:
-                self._config = yaml.safe_load(f)
-                self._sections = self._config.get("sections", [])
+            self._config = load_cached_yaml_profile(profile_path)
+            self._sections = self._config.get("sections", [])
         else:
             self._config = {"enabled": False}
             self._sections = []
@@ -1617,14 +1616,13 @@ def _perform_bounded_section_retrieval(
     ]
     if prepared_sections:
         from apps_rg.runtime.bge_embedding import resolve_bge_batch_size
+        from apps_rg.runtime.c0.c0_perf_sync_helpers import encode_queries_with_shared_cache
 
         try:
-            query_batch_size = resolve_bge_batch_size(
-                "c02_section_queries", len(prepared_sections)
-            )
-            query_vectors = embedding_runtime.encode(
-                [query for _section, query in prepared_sections],
-                batch_size=query_batch_size,
+            query_vectors = encode_queries_with_shared_cache(
+                embedding_runtime=embedding_runtime,
+                queries=[query for _section, query in prepared_sections],
+                batch_size_fn=resolve_bge_batch_size,
             )
             if len(query_vectors) != len(prepared_sections):
                 raise RuntimeError("C0.2 section-query embedding cardinality changed")

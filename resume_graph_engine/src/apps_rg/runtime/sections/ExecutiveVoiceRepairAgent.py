@@ -427,10 +427,7 @@ def repair_section_with_executive_voice_agent(
     mock_mode: bool = False,
     artifact_dir: Path | None = None,
 ) -> tuple[dict[str, Any], ExecutiveVoiceRepairReceipt]:
-    """Execute bounded executive voice repair for executive_summary, headline, or competencies.
-
-    Returns updated candidate_data dict along with an ExecutiveVoiceRepairReceipt.
-    """
+    """Execute bounded executive voice repair for executive_summary, headline, or competencies."""
     sec = str(section_id).strip().lower()
     if sec not in {"executive_summary", "headline", "competencies"}:
         return candidate_data, ExecutiveVoiceRepairReceipt(
@@ -497,7 +494,8 @@ def repair_section_with_executive_voice_agent(
             repaired_snippet=repaired_snippet,
             notes="Deterministic mock repair executed successfully",
         )
-        if artifact_dir:
+        from apps_rg.runtime.providers.wallclock_http_guard import is_lane_or_dir_cancelled
+        if artifact_dir and not is_lane_or_dir_cancelled(artifact_dir):
             try:
                 (artifact_dir / "x1_repair_receipt.json").write_text(
                     json.dumps(receipt.to_dict(), indent=2), encoding="utf-8"
@@ -611,7 +609,8 @@ def repair_section_with_executive_voice_agent(
         notes="LLM repair pass executed" if mech == "llm_repair_agent" else "Fallback repair executed",
     )
 
-    if artifact_dir:
+    from apps_rg.runtime.providers.wallclock_http_guard import is_lane_or_dir_cancelled
+    if artifact_dir and not is_lane_or_dir_cancelled(artifact_dir):
         try:
             (artifact_dir / "x1_repair_receipt.json").write_text(
                 json.dumps(receipt.to_dict(), indent=2), encoding="utf-8"

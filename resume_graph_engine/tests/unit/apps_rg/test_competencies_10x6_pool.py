@@ -977,20 +977,20 @@ def test_competencies_pool_x1d_row_from_generation_meta(tmp_path) -> None:
     assert rows[0]["proof_eligible_judge"] is False
 
 
-def test_competencies_non_sc_path_is_removed() -> None:
+def test_competencies_non_sc_path_routes_single_path_graph_pool(monkeypatch: pytest.MonkeyPatch) -> None:
+    from apps_rg.runtime.reasoning import bullet_lane_self_consistency as sc_mod
     from apps_rg.runtime.reasoning.bullet_lane_generation import generate_bullet_lane_with_sc_and_claude
 
-    with pytest.raises(ValueError, match="competencies lane requires self-consistency generation"):
-        generate_bullet_lane_with_sc_and_claude(
-            section_lane="competencies",
-            slot_kind="competencies",
-            provider_payload={"model": "stub", "messages": []},
-            parse_model_json=lambda r: (json.loads(r) if r.strip().startswith("{") else None, ""),
-            normalize_parsed=lambda p: p,
-            targeting_context={"allowed_fact_ids": ["bul_001"], "resume_support_blob_lower": ""},
-            judge_mode="mocked",
-            use_sc_path=False,
-        )
+    raw_json = json.dumps({"categories": [_cat(f"Cat_{i}", ["term a", "term b"], bundle_id=_DISTINCT_GRAPH_BUNDLE_IDS[i]) for i in range(COMPETENCIES_FINAL_CATEGORY_COUNT)]})
+    stub_res = ProviderResult("external_claude", True, True, None, "REAL_LLM", "stub", raw_json, {"status": "ok"})
+    monkeypatch.setattr(sc_mod, "call_section_model_provider", lambda *_a, **_kw: stub_res)
+    _res, _raw, parsed, err, meta = generate_bullet_lane_with_sc_and_claude(
+        section_lane="competencies", slot_kind="competencies", provider_payload={"model": "stub", "messages": []},
+        parse_model_json=lambda r: (json.loads(r) if r.strip().startswith("{") else None, ""), normalize_parsed=lambda p: p,
+        targeting_context={"allowed_fact_ids": ["bul_001"], "resume_support_blob_lower": ""}, judge_mode="mocked", use_sc_path=False,
+    )
+    assert err == "" and parsed is not None and is_competencies_pool_generation(meta)
+    assert meta["total_paths_executed"] == 1 and meta["regen_rounds_executed"] == 0 and meta["single_path_mode"] is True
 
 
 def test_apply_executive_capability_projection_preserves_adaptive_selection() -> None:

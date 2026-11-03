@@ -7,7 +7,7 @@ import os
 import sys
 from apps_rg.runtime.assembly.coherence_prompt_compact import (
     compact_evidence_packet_for_prompt as _compact_evidence_packet_for_prompt,
-    dispatch_coherence_judges,
+    dispatch_coherence_judges, resolve_coherence_judge_effort,
 )
 from datetime import datetime, timezone
 from pathlib import Path
@@ -504,7 +504,7 @@ def run_full_resume_coherence_judges(
         model = resolution.model_actual
         model_source = resolution.model_source
         model_requested = resolution.model_requested or model
-        reasoning_effort = resolution.reasoning_effort
+        reasoning_effort = resolve_coherence_judge_effort(resolution.reasoning_effort)
 
         try:
             def _dispatch(attempt_no: int) -> JudgeOutput:
