@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Agents Repository — 6-Dimension SSOT & Subsystem Boundary Governance Auditor.
+"""Agents Repository — 10-Dimension SSOT, Centralization, Sprawl & Subsystem Boundary Auditor.
 
-Implements the deterministic Stage II (`Order 2/7`) boundary, config drift, constitutional
-floor, MCP/hook portability, and link-integrity auditor declared in
-`automations/prompts/agents_ssot_boundary_agent.md` and `tools/validate_sidecar_separation.py`.
+Implements the deterministic Stage II (`Order 2/7`) boundary, config sprawl, anti-hardcoding,
+prompt-to-code parity, policy registry sync, constitutional floor, MCP/hook portability, and
+link-integrity auditor declared in `automations/prompts/agents_ssot_boundary_agent.md` and
+`tools/validate_sidecar_separation.py`.
 """
 
 from __future__ import annotations
@@ -32,6 +33,8 @@ from tools.lint_production_purity import (
     PRODUCTION_DIRECTORIES as PURITY_PROD_DIRS,
     check_file_production_purity,
 )
+from tools.ssot_hardcoding_scanner import run_hardcoding_scan
+from tools.ssot_sprawl_scanner import run_sprawl_scan
 from tools.validate_sidecar_separation import DEFAULT_SIDECARS_ROOT, validate_sidecar_separation
 from tools.validate_turn_gates import validate_pre_turn_gate
 
@@ -220,6 +223,18 @@ def run_ssot_boundary_audit(
 
     dim5_issues = audit_mcp_hooks_and_links(root)
     separation = validate_sidecar_separation(repo_root=root, sidecars_root=sidecars_root)
+    sprawl_scan = run_sprawl_scan(root)
+    hardcoding_scan = run_hardcoding_scan(root)
+
+    dim7_sprawl_count = int(sprawl_scan.get("total_findings", 0))
+    dim8_policy_sync = hardcoding_scan.get("policy_registry_sync_issues", [])
+    dim9_hardcoded = hardcoding_scan.get("hardcoded_threshold_literals", []) + hardcoding_scan.get(
+        "ast_hygiene_and_env_sprawl", []
+    )
+    dim10_parity = hardcoding_scan.get("prompt_code_parity_issues", [])
+    total_centralization_defects = (
+        dim7_sprawl_count + len(dim8_policy_sync) + len(dim9_hardcoded) + len(dim10_parity)
+    )
 
     dimension_status = {
         "dim_1_cross_subsystem_encapsulation": "PASS" if not dim1_cross else "FAIL",
@@ -228,6 +243,10 @@ def run_ssot_boundary_audit(
         "dim_4_constitutional_ast_floor": "PASS" if not dim4_issues else "FAIL",
         "dim_5_mcp_hooks_and_conformance_links": "PASS" if not dim5_issues else "FAIL",
         "dim_6_sidecar_separation": "PASS" if separation["is_clean"] else "FAIL",
+        "dim_7_multi_folder_config_sprawl": "PASS" if dim7_sprawl_count == 0 else "FAIL",
+        "dim_8_policy_registry_synchronization": "PASS" if not dim8_policy_sync else "FAIL",
+        "dim_9_unowned_hardcoded_thresholds": "PASS" if not dim9_hardcoded else "FAIL",
+        "dim_10_prompt_to_code_numeric_parity": "PASS" if not dim10_parity else "FAIL",
     }
     is_clean = all(v == "PASS" for v in dimension_status.values())
     return {
@@ -240,6 +259,9 @@ def run_ssot_boundary_audit(
         "model_and_drift_issues": dim3_issues,
         "constitutional_floor_issues": dim4_issues,
         "mcp_hooks_link_issues": dim5_issues,
+        "config_sprawl_scan": sprawl_scan,
+        "hardcoding_and_parity_scan": hardcoding_scan,
+        "total_centralization_defects": total_centralization_defects,
         "config_identical_count": len(drift.get("identical", [])),
         "data_identical_count": drift.get("data_identical_count", 0),
         "sidecar_separation": separation,
@@ -247,7 +269,9 @@ def run_ssot_boundary_audit(
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Run 6-dimension SSOT & subsystem boundary governance audit.")
+    parser = argparse.ArgumentParser(
+        description="Run 10-dimension SSOT, centralization, sprawl & subsystem boundary governance audit."
+    )
     parser.add_argument("--repo-root", type=Path, default=REPO_ROOT, help="Repository root path")
     parser.add_argument("--sidecars-root", type=Path, default=DEFAULT_SIDECARS_ROOT, help="Global sidecars root")
     parser.add_argument("--output", type=Path, default=None, help="Optional JSON output file path")
@@ -262,7 +286,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.json:
         print(json.dumps(report, indent=2))
     else:
-        print(f"[{report['status']}] 6-Dimension SSOT & Boundary Audit (config_identical={report['config_identical_count']})")
+        print(
+            f"[{report['status']}] 10-Dimension SSOT, Centralization & Boundary Audit "
+            f"(config_identical={report['config_identical_count']}, "
+            f"centralization_defects={report['total_centralization_defects']})"
+        )
 
     return 0 if report["is_clean"] else 1
 

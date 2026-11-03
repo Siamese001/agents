@@ -19,18 +19,14 @@ import sys
 from pathlib import Path
 from typing import Any
 
-# Only the 6 intentionally engine-scoped files are allowlisted to differ between root and engine
-KNOWN_DRIFT_ALLOWLIST = {
-    "canonical_pipelines.yaml",
-    "certification/schemas/apps_research_apps_rg_handoff.v2.schema.json",
-    "certification/veto_policy_schema.json",
-    "expected_wiring.yaml",
-    "model_catalog.json",
-    "routing_thresholds.yaml",
-}
+_REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
+from tools.ssot_sprawl_scanner import KNOWN_DRIFT_ALLOWLIST, run_sprawl_scan
 
 
-def analyze_drift(repo_root: Path) -> dict[str, Any]:
+def analyze_drift(repo_root: Path, *, include_sprawl: bool = False) -> dict[str, Any]:
     root_cfg = repo_root / "config"
     engine_cfg = repo_root / "resume_graph_engine" / "config"
     root_data = repo_root / "data"
@@ -79,6 +75,9 @@ def analyze_drift(repo_root: Path) -> dict[str, Any]:
             else:
                 result["data_differing"].append(rel_str)
 
+    if include_sprawl:
+        result["sprawl_scan"] = run_sprawl_scan(repo_root)
+
     return result
 
 
@@ -88,14 +87,16 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--report", action="store_true", default=True, help="Print human-readable report")
     parser.add_argument("--strict", action="store_true", default=True, help="Fail if unallowlisted drift is detected")
     parser.add_argument("--advisory", action="store_true", help="Report drift without failing exit code")
+    parser.add_argument("--include-sprawl", action="store_true", help="Include full multi-folder sprawl scan")
     parser.add_argument("--json", action="store_true", help="Emit JSON output")
 
     args = parser.parse_args(argv)
     repo_root = Path(args.repo_root).resolve()
     strict_mode = args.strict and not args.advisory
 
-    analysis = analyze_drift(repo_root)
-    has_unallowlisted_drift = bool(analysis["unallowlisted_differing"] or analysis["data_differing"])
+    analysis = analyze_drift(repo_root, include_sprawl=args.include_sprawl)
+    sprawl_dirty = bool(args.include_sprawl and not analysis.get("sprawl_scan", {}).get("is_clean", True))
+    has_unallowlisted_drift = bool(analysis["unallowlisted_differing"] or analysis["data_differing"] or sprawl_dirty)
 
     if args.json:
         print(json.dumps(analysis, indent=2, sort_keys=True))

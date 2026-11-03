@@ -14,9 +14,11 @@ Consolidates `agents-storage-worktree-hygiene`, `agents-ssot-boundary-governance
    .venv/bin/python tools/storage_worktree_hygiene.py --remediate --json
    ```
 
-2. **6-Dimension SSOT, Package Boundary & Schedule Retirement Audit**:
+2. **10-Dimension SSOT, Centralization, Configuration Sprawl, Anti-Hardcoding & Schedule Retirement Audit**:
    ```bash
    .venv/bin/python tools/ssot_boundary_auditor.py --json
+   .venv/bin/python tools/ssot_sprawl_scanner.py --json
+   .venv/bin/python tools/ssot_hardcoding_scanner.py --json
    .venv/bin/python tools/validate_sidecar_separation.py --json
    ```
 
