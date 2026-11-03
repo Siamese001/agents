@@ -68,7 +68,7 @@ class CircuitBreaker:
         self.last_failure_time = None
         self.last_state_change = datetime.now()
 
-    async def call(self, func, *args, **kwargs):
+    async def call(self, func, *args, **kwargs) -> Any:
         """Execute function with circuit breaker protection."""
         if self.state == CircuitState.OPEN:
             if self._should_attempt_reset():
@@ -133,7 +133,7 @@ class LayerInstance:
         self.total_requests = 0
         self.failed_requests = 0
 
-    def add_response_time(self, response_time_ms: float):
+    def add_response_time(self, response_time_ms: float) -> None:
         """Add response time for performance tracking."""
         self.response_times.append(response_time_ms)
 
@@ -156,12 +156,12 @@ class LoadBalancer:
         self.current_index = 0
         self._lock = asyncio.Lock()
 
-    def add_instance(self, instance_id: str, endpoint: str, weight: int = 1):
+    def add_instance(self, instance_id: str, endpoint: str, weight: int = 1) -> None:
         """Add a layer instance."""
         self.instances[instance_id] = LayerInstance(instance_id, self.layer_type, endpoint, weight)
         logger.info(f"Added instance {instance_id} for {self.layer_type}")
 
-    def remove_instance(self, instance_id: str):
+    def remove_instance(self, instance_id: str) -> None:
         """Remove a layer instance."""
         if instance_id in self.instances:
             del self.instances[instance_id]
@@ -207,14 +207,14 @@ class HealthChecker:
         self.health_status: dict[str, HealthStatus] = {}
         self._running = False
 
-    async def start_monitoring(self, load_balancers: dict[LayerType, LoadBalancer]):
+    async def start_monitoring(self, load_balancers: dict[LayerType, LoadBalancer]) -> None:
         """Start health monitoring."""
         self._running = True
         while self._running:
             await self._perform_health_checks(load_balancers)
             await asyncio.sleep(self.check_interval)
 
-    async def stop_monitoring(self):
+    async def stop_monitoring(self) -> None:
         """Stop health monitoring."""
         self._running = False
 
@@ -300,7 +300,7 @@ class UnifiedQueryRouter:
             l4_rate_limit_per_minute=l4_rate_limit_per_minute,
         )
 
-    def add_layer_instances(self, layer_type: LayerType, instances: list[tuple[str, str, int]]):
+    def add_layer_instances(self, layer_type: LayerType, instances: list[tuple[str, str, int]]) -> None:
         """Add instances for a layer."""
         config = LoadBalancerConfig()
         load_balancer = LoadBalancer(layer_type, config)
@@ -316,7 +316,7 @@ class UnifiedQueryRouter:
 
         logger.info(f"Added {len(instances)} instances for {layer_type}")
 
-    async def start_health_monitoring(self):
+    async def start_health_monitoring(self) -> None:
         """Start health monitoring."""
         if self._health_task and not self._health_task.done():
             return
@@ -325,7 +325,7 @@ class UnifiedQueryRouter:
             name="unified-query-router-health",
         )
 
-    async def stop_health_monitoring(self):
+    async def stop_health_monitoring(self) -> None:
         """Stop health monitoring."""
         await self.health_checker.stop_monitoring()
         if self._health_task:

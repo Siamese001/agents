@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
-import os
 import threading
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Optional
 import yaml
+
+from infrastructure.config.env_loader import get_env_str
 
 
 class OutreachModelRegistryError(RuntimeError):
@@ -38,7 +39,7 @@ class OutreachModelRegistry:
     def _resolve_config_path(cls, explicit_path: Path | str | None = None) -> Path:
         if explicit_path is not None:
             return Path(explicit_path).resolve()
-        env_override = os.environ.get("OUTREACH_PROVIDER_PROFILES_PATH")
+        env_override = get_env_str("OUTREACH_PROVIDER_PROFILES_PATH")
         if env_override:
             p = Path(env_override).resolve()
             if p.is_file():

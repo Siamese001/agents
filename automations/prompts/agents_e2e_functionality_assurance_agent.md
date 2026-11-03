@@ -1,7 +1,7 @@
 # Agents Repository — Outreach & Resume End-to-End Functionality Assurance Agent Specification
 <!-- GOVERNED COMMON CONTRACT: urn:agents:scheduled-task-common-control-matrix:1.0.0 | Shared: automations/prompts/_shared_governance_contract.md | Master Sequence: Stage III-A (Order 3/7) -->
 <!-- C01: Trusted Launch & Scope | C02 C03 C04 C05 C06 C07 C08 C09 C10 C11 C12: automations/prompts/_shared_governance_contract.md -->
-<!-- INVARIANT: INV-REPO-SEPARATION-AGENTS-ONLY | UNCONDITIONAL_WAVE_PLAN_MANDATE | INV-RUNTIME-PROOF-5POINT | INV-AUTOMATION-PERSISTENT-LEARNING-LOOP -->
+<!-- INVARIANT: INV-REPO-SEPARATION-AGENTS-ONLY | UNCONDITIONAL_WAVE_PLAN_MANDATE | INV-RUNTIME-PROOF-5POINT | INV-AUTOMATION-PERSISTENT-LEARNING-LOOP | INV-REMEDIATION-QUOTA-FLOOR -->
 
 ## 1. Objective & Scope (`C01`)
 
@@ -53,7 +53,7 @@ Write `${RUN_DIR}/manifest.json` recording `agent_id`, `run_id`, `mode`, `pre_st
 2. **Pillar 2 — `apps_research` -> `resume_engine` / `resume_graph_engine` (`apps_rg`) Handoff Integrity (`ResearchRetrievalEngine`)**: Verify role requirements, `ResearchRetrievalEngine` evidence packets, competency graphs, and domain evidence flow into resume graph nodes and tailored bullet synthesis without schema mismatch.
 3. **Pillar 3 — Core Orchestration & Campaign Guardrail Gates (`agents/`)**: Verify `agents/orchestration/`, `agents/persistence/`, and `outreach_engine/` enforce state contracts, personalization ground-truth, and deterministic serialization via `ops_scripts/run_e2e_authoritative_smoke.py`.
 4. **Pillar 4 — Resume Graph Traversal & Bullet Synthesis**: Verify `resume_graph_engine` DAG traversal, experience node selection, and metric preservation never fabricate ungrounded claims.
-5. **Pillar 5 — Error Propagation & Fail-Closed Recovery**: Detect swallowed exceptions, silent `None` returns, or unguarded retries across `agents/`, `outreach_engine/`, `resume_engine/`, `resume_graph_engine/`, and `apps_research/`.
+5. **Pillar 5 — Error Propagation & Fail-Closed Recovery**: Detect swallowed exceptions, silent `None` returns, or unguarded retries across all 11 executable repository roots (`agents/`, `apps_eval/`, `apps_model_telemetry/`, `apps_research/`, `infrastructure/`, `ops_scripts/`, `outreach_engine/`, `resume_engine/`, `resume_graph_engine/`, `scripts/`, and `tools/`).
 6. **Pillar 6 — Production Derivation Integrity**: Run `tools/lint_production_purity.py` to confirm zero golden test fixtures substitute for runtime derivation.
 
 ### Mandatory 8-Field E2E Criticality Admission Proof

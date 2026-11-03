@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from typing import Any
 from infrastructure.live_execution import LiveExecutionError, api_key as get_live_api_key
 
 __all__ = [
@@ -23,7 +24,7 @@ __all__ = [
 ]
 
 
-def create_openai_client():
+def create_openai_client() -> Any:
     """Create an async OpenAI client from authenticated live credentials."""
     import openai
 
@@ -31,7 +32,7 @@ def create_openai_client():
     return openai.AsyncOpenAI(api_key=key)
 
 
-def create_openai_sync_client():
+def create_openai_sync_client() -> Any:
     """Create a synchronous OpenAI client for sync call sites."""
     import openai
 
@@ -39,7 +40,7 @@ def create_openai_sync_client():
     return openai.OpenAI(api_key=key)
 
 
-def create_local_openai_client():
+def create_local_openai_client() -> Any:
     """Create an async OpenAI client configured for an explicitly declared local server."""
     import openai
 
@@ -53,7 +54,7 @@ def create_local_openai_client():
     return openai.AsyncOpenAI(api_key=key, base_url=base_url)
 
 
-def create_local_openai_sync_client():
+def create_local_openai_sync_client() -> Any:
     """Create a sync OpenAI client configured for an explicitly declared local server."""
     import openai
 
@@ -67,7 +68,7 @@ def create_local_openai_sync_client():
     return openai.OpenAI(api_key=key, base_url=base_url)
 
 
-def create_anthropic_client():
+def create_anthropic_client() -> Any:
     """Create an async Anthropic client from authenticated live credentials."""
     import anthropic
 
@@ -75,7 +76,7 @@ def create_anthropic_client():
     return anthropic.AsyncAnthropic(api_key=key)
 
 
-def create_anthropic_sync_client():
+def create_anthropic_sync_client() -> Any:
     """Create a synchronous Anthropic client from authenticated live credentials."""
     import anthropic
 
@@ -83,7 +84,7 @@ def create_anthropic_sync_client():
     return anthropic.Anthropic(api_key=key)
 
 
-def create_vertex_client():
+def create_vertex_client() -> Any:
     """Create a configured Vertex / Gemini module handle."""
     import google.generativeai as genai
 
@@ -92,7 +93,7 @@ def create_vertex_client():
     return genai
 
 
-def create_gemini_model(model_name: str):
+def create_gemini_model(model_name: str) -> Any:
     """Create a configured Gemini ``GenerativeModel`` instance."""
     import google.generativeai as genai
 

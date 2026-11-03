@@ -147,13 +147,16 @@ class DeterministicDraftRepairer:
         # Extract greeting
         greeting_match = re.match(r"^(Hi\s+[^,\n]+,\s*\n+)", text, re.IGNORECASE)
         greeting = greeting_match.group(1) if greeting_match else "Hi,\n\n"
+        remainder = text[greeting_match.end() :] if greeting_match else text
 
-        # Extract closing ask
-        paragraphs = [p.strip() for p in text.split("\n\n") if p.strip()]
-        closing = paragraphs[-1] if (paragraphs and paragraphs[-1].endswith("?")) else "Open to connecting?"
-
-        # Extract middle content
-        middle_paras = paragraphs[1:-1] if (len(paragraphs) > 2 and greeting_match) else (paragraphs[:-1] if paragraphs else [])
+        # Extract closing ask and middle content without dropping 2-paragraph notes
+        rem_paras = [p.strip() for p in remainder.split("\n\n") if p.strip()]
+        if len(rem_paras) > 1 and rem_paras[-1].endswith("?"):
+            closing = rem_paras[-1]
+            middle_paras = rem_paras[:-1]
+        else:
+            closing = "Open to connecting?"
+            middle_paras = rem_paras
         middle_text = " ".join(middle_paras)
 
         budget = max_len - len(greeting) - len(closing) - 4  # for \n\n separators

@@ -170,7 +170,7 @@ def check_file_for_secrets(
 
     try:
         content = file_path.read_text(encoding="utf-8", errors="replace")
-    except Exception:
+    except (OSError, UnicodeDecodeError):
         return []
 
     content_lower = content.lower()

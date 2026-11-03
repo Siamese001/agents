@@ -101,7 +101,7 @@ def _resolve_from_git_command(cwd: str) -> Optional[Path]:
             p = Path(res.stdout.strip()).resolve()
             if p.is_dir():
                 return p
-    except Exception:
+    except (OSError, subprocess.SubprocessError):
         pass
     return None
 
@@ -119,7 +119,7 @@ def _resolve_from_gitfile(dot_git: Path) -> Optional[Path]:
         if "worktrees" in target.parts:
             return target.parents[1].resolve()
         return target.resolve()
-    except Exception:
+    except (OSError, ValueError, IndexError):
         return None
 
 
@@ -199,7 +199,7 @@ class GovernedMergeQueueLock:
         try:
             data = json.loads(self.meta_file.read_text(encoding="utf-8"))
             return LockInfo.from_dict(data)
-        except Exception:
+        except (OSError, ValueError, TypeError, KeyError):
             return None
 
     def _write_meta(self) -> None:
@@ -244,7 +244,7 @@ class GovernedMergeQueueLock:
                 )
                 self._force_release()
                 return True
-        except Exception:
+        except (OSError, ValueError, TypeError):
             pass
         return False
 
@@ -294,7 +294,7 @@ class GovernedMergeQueueLock:
             )
             if diff_res.returncode == 0:
                 return [f.strip() for f in diff_res.stdout.splitlines() if f.strip()]
-        except Exception:
+        except (OSError, subprocess.SubprocessError, ImportError):
             pass
         return []
 
@@ -310,7 +310,7 @@ class GovernedMergeQueueLock:
             if receipt_file.is_file():
                 data = json.loads(receipt_file.read_text(encoding="utf-8"))
                 return bool(data.get("terminal_outcome") == "PASS")
-        except Exception:
+        except (OSError, ValueError, TypeError, ImportError):
             pass
         return False
 
@@ -457,7 +457,7 @@ def inspect_queue_lock(repo_root: Optional[Path] = None) -> Optional[LockInfo]:
         info = LockInfo.from_dict(data)
         info.holder_alive = _is_pid_alive(info.holder_pid)
         return info
-    except Exception:
+    except (OSError, ValueError, TypeError, KeyError):
         return None
 
 

@@ -137,3 +137,4 @@ def test_gap_analysis_report_exists_with_rejections() -> None:
 
 def test_ledger_still_validates(ledger: dict) -> None:
     validate_arsenal_ledger_shape(ledger)
+    assert ledger.get("skill_rows")

@@ -68,6 +68,7 @@ def _build_parser() -> argparse.ArgumentParser:
     e2e_parser.add_argument("--resume", default="", help="Optional base-resume JSON, Markdown, or text path")
     e2e_parser.add_argument("--brief", help="Optional path to briefing JSON fixture")
     e2e_parser.add_argument("--demo", action="store_true", help="Run with canonical demo fixtures")
+    e2e_parser.add_argument("--offline-smoke", action="store_true", help="Run deterministic offline smoke for both Resume and Outreach engines")
     e2e_parser.add_argument(
         "--research-status",
         choices=("disabled", "optional", "enabled"),
@@ -132,6 +133,7 @@ def run_e2e(args: argparse.Namespace) -> int:
             "agents e2e",
             providers=("openai", "anthropic", "google"),
             is_demo=bool(getattr(args, "demo", False)),
+            allow_offline=bool(getattr(args, "offline_smoke", False)),
         )
     except Exception as exc:
         preflight_latency_ms = round((time.perf_counter() - overall_start_tick) * 1000, 2)
@@ -257,7 +259,7 @@ def run_e2e(args: argparse.Namespace) -> int:
                         jd_text = jd_p.read_text(encoding="utf-8")
                     else:
                         jd_text = str(args.jd)
-                except Exception:
+                except OSError:
                     jd_text = str(args.jd)
 
             req = RequestForResumeBriefing(
@@ -348,34 +350,30 @@ def run_e2e(args: argparse.Namespace) -> int:
         from agents.e2e_artifacts import (
             resolve_and_verify_resume_artifact,
             resolve_run_scoped_resume_proofs_dir,
+            run_offline_deterministic_resume_stage,
         )
         from agents.e2e_output import isolate_child_output
 
-        # Resolve research briefing from context if available
-        briefing_path = ""
-        research_ctx = ctx.get("step_company_research") or {}
-        if isinstance(research_ctx, dict) and research_ctx.get("briefing_path"):
-            bpath = Path(research_ctx["briefing_path"])
-            if bpath.is_file():
-                briefing_path = str(bpath)
-
-        run_proofs_dir = resolve_run_scoped_resume_proofs_dir(run_id)
-
-        resume_args = [
-            "run",
-            "--target-company", company,
-            "--target-role", role,
-            "--artifact-dir", str(run_proofs_dir),
-        ]
-        if briefing_path:
-            resume_args.extend(["--briefing", briefing_path])
-        if args.jd:
-            resume_args.extend(["--jd", args.jd])
-        if args.resume:
-            resume_args.extend(["--resume", args.resume])
-
-        with isolate_child_output(logs_dir / "resume_tailoring.log"):
-            rg_code = resume_main(resume_args)
+        if getattr(args, "offline_smoke", False):
+            with isolate_child_output(logs_dir / "resume_tailoring.log"):
+                rg_code = run_offline_deterministic_resume_stage(base_dir=base_dir, company=company, role=role, args=args)
+        else:
+            briefing_path = ""
+            research_ctx = ctx.get("step_company_research") or {}
+            if isinstance(research_ctx, dict) and research_ctx.get("briefing_path"):
+                bpath = Path(research_ctx["briefing_path"])
+                if bpath.is_file():
+                    briefing_path = str(bpath)
+            run_proofs_dir = resolve_run_scoped_resume_proofs_dir(run_id)
+            resume_args = ["run", "--target-company", company, "--target-role", role, "--artifact-dir", str(run_proofs_dir)]
+            if briefing_path:
+                resume_args.extend(["--briefing", briefing_path])
+            if args.jd:
+                resume_args.extend(["--jd", args.jd])
+            if args.resume:
+                resume_args.extend(["--resume", args.resume])
+            with isolate_child_output(logs_dir / "resume_tailoring.log"):
+                rg_code = resume_main(resume_args)
 
         lat_ms = round((time.perf_counter() - t_stage_start) * 1000, 2)
 
@@ -429,6 +427,10 @@ def run_e2e(args: argparse.Namespace) -> int:
             outreach_args.extend(["--brief", briefing_path])
         elif args.demo:
             outreach_args.append("--demo")
+        if getattr(args, "offline_smoke", False):
+            outreach_args.append("--offline-smoke")
+            if not research_enabled:
+                outreach_args.append("--no-research")
 
         outreach_args.extend(["--company", company, "--role", role])
 
@@ -545,10 +547,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         from agents.health import main as health_main
         return health_main(sub_args)
 
+    _needs_live = not any(a in {"-h", "--help", "-v", "--version"} for a in sub_args) and not (
+        sub_args and sub_args[0] in {"eval", "show"}
+    )
     if engine in {"resume", "resume_engine", "resume_graph_engine", "apps_rg"}:
         from agents.live_preflight import assert_engine_live_preflight
 
-        assert_engine_live_preflight("agents resume", providers=("openai",))
+        if _needs_live:
+            assert_engine_live_preflight("agents resume", providers=("openai",))
         from apps_rg.__main__ import main as resume_main
 
         return resume_main(sub_args, prog="python -m agents resume")
@@ -556,7 +562,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     if engine in {"outreach", "outreach_engine", "apps_lic"}:
         from agents.live_preflight import assert_engine_live_preflight
 
-        assert_engine_live_preflight("agents outreach", providers=("openai",))
+        if _needs_live:
+            assert_engine_live_preflight("agents outreach", providers=("openai",), allow_offline=("--offline-smoke" in sub_args))
         from apps_lic.__main__ import main as outreach_main
 
         return outreach_main(sub_args, prog="python -m agents outreach")

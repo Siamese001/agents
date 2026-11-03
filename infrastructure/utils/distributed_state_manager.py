@@ -40,11 +40,11 @@ class _ChecksumTrackingDict(dict):
         super().__delitem__(key)
         self._refresh()
 
-    def update(self, *args, **kwargs):
+    def update(self, *args, **kwargs) -> None:
         super().update(*args, **kwargs)
         self._refresh()
 
-    def clear(self):
+    def clear(self) -> None:
         super().clear()
         self._refresh()
 
@@ -229,12 +229,12 @@ class MultiRegionReplicator:
         self._replication_task = None
         self._lock = asyncio.Lock()
 
-    def add_storage_backend(self, region: Region, storage: StateStorage):
+    def add_storage_backend(self, region: Region, storage: StateStorage) -> None:
         """Add storage backend for region."""
         self.storage_backends[region] = storage
         logger.info(f"Added storage backend for {region}")
 
-    async def start_replication(self):
+    async def start_replication(self) -> None:
         """Start replication process."""
         if self._replication_task and not self._replication_task.done():
             return
@@ -244,7 +244,7 @@ class MultiRegionReplicator:
         )
         logger.info("Started multi-region replication")
 
-    async def stop_replication(self):
+    async def stop_replication(self) -> None:
         """Stop replication process."""
         if self._replication_task:
             self._replication_task.cancel()
@@ -394,7 +394,7 @@ class HealthChecker:
         layer_type: LayerType,
         endpoint: str,
         health_check_path: str = "/health",
-    ):
+    ) -> None:
         """Register component for health checking."""
         self.component_registry[component_id] = {
             "region": region,
@@ -405,12 +405,12 @@ class HealthChecker:
         }
         logger.info(f"Registered component {component_id} for health checking")
 
-    async def start_health_checks(self):
+    async def start_health_checks(self) -> None:
         """Start health checking."""
         self._check_task = asyncio.create_task(self._health_check_worker())
         logger.info("Started distributed health checking")
 
-    async def stop_health_checks(self):
+    async def stop_health_checks(self) -> None:
         """Stop health checking."""
         if self._check_task:
             self._check_task.cancel()
@@ -522,12 +522,12 @@ class DisasterRecoveryManager:
         self.recovery_history: list[dict[str, Any]] = []
         self._recovery_task = None
 
-    async def start_recovery_monitoring(self):
+    async def start_recovery_monitoring(self) -> None:
         """Start recovery monitoring."""
         self._recovery_task = asyncio.create_task(self._recovery_monitor())
         logger.info("Started disaster recovery monitoring")
 
-    async def stop_recovery_monitoring(self):
+    async def stop_recovery_monitoring(self) -> None:
         """Stop recovery monitoring."""
         if self._recovery_task:
             self._recovery_task.cancel()
@@ -804,7 +804,7 @@ class DistributedStateManager:
 
         self._running = False
 
-    async def start(self):
+    async def start(self) -> None:
         """Start distributed state management."""
         asyncio.get_running_loop()
         await self.replicator.start_replication()
@@ -813,7 +813,7 @@ class DistributedStateManager:
         self._running = True
         logger.info("Started distributed state management")
 
-    async def stop(self):
+    async def stop(self) -> None:
         """Stop distributed state management."""
         await self.replicator.stop_replication()
         await self.health_checker.stop_health_checks()
@@ -821,7 +821,7 @@ class DistributedStateManager:
         self._running = False
         logger.info("Stopped distributed state management")
 
-    def register_component(self, component_id: str, region: Region, layer_type: LayerType, endpoint: str):
+    def register_component(self, component_id: str, region: Region, layer_type: LayerType, endpoint: str) -> None:
         """Register component for state management."""
         self.health_checker.register_component(component_id, region, layer_type, endpoint)
 

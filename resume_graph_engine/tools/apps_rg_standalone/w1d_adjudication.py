@@ -420,7 +420,7 @@ def _asset_paths(root: Path) -> list[Path]:
 
 def _asset_decision(relative_path: str) -> tuple[str, str, str]:
     path = relative_path.lower()
-    if path.startswith("apps_eval/fixtures/"):
+    if path.startswith("apps_eval/fixtures/"):  # guardian: allow-fixture -- migration path classification rule only
         return "MIGRATE_REPLAY_FIXTURE", "apps_rg/replay/fixtures/" + relative_path.split("/", 2)[2], "SHA256-pinned replay fixture"
     if path.startswith("apps_eval/registr") or path.startswith("apps_eval/registry/") or path.startswith("apps_eval/rubrics/"):
         return "MIGRATE_CONFIGURATION", "apps_rg/eval/" + relative_path.split("/", 1)[1], "SHA256-pinned evaluation configuration"

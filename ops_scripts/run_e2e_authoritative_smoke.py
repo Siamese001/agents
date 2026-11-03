@@ -62,8 +62,9 @@ def _verify_deterministic_resume_pipeline(repo_root: Path, artifact_root: Path) 
 
 
 def run_smoke(
-    skip_resume: bool = True,
+    skip_resume: bool = False,
     *,
+    live_resume: bool = False,
     read_only: bool = False,
     receipt_out: Path | None = None,
     repo_root: Path | None = None,
@@ -87,6 +88,8 @@ def run_smoke(
         ]
         if skip_resume:
             cmd.append("--skip-resume")
+        elif not live_resume:
+            cmd.append("--offline-smoke")
         if temp_root is not None:
             e2e_out = temp_root / "e2e_lifecycle"
             e2e_out.mkdir(parents=True, exist_ok=True)
@@ -208,7 +211,34 @@ def run_smoke(
             return 1
 
         resume_verification: dict[str, Any] = {"status": "SKIPPED"}
-        if skip_resume and verify_deterministic_resume:
+        stages_map = payload.get("stages") or {}
+        if not skip_resume:
+            if (stages_map.get("resume_tailoring") or {}).get("status") != "PASSED":
+                if not quiet:
+                    print(f"[FAIL] Stage 2 resume_tailoring did not pass: {stages_map.get('resume_tailoring')}")
+                return 1
+            if "final_resume" not in verified_artifacts:
+                if not quiet:
+                    print("[FAIL] final_resume missing from verified_artifacts when skip_resume=False")
+                return 1
+            if not live_resume:
+                resume_dir = artifact_dir / "resume"
+                for rel_name in ("resume.md", "resume.docx", "outreach_email.md", "sources.json", "evaluation.json"):
+                    fpath = resume_dir / rel_name
+                    if not fpath.is_file() or fpath.stat().st_size == 0:
+                        if not quiet:
+                            print(f"[FAIL] Missing or empty Stage 2 deterministic resume artifact: {fpath}")
+                        return 1
+                    verified_artifacts[f"resume_pipeline::{rel_name}"] = {
+                        "path": str(fpath),
+                        "bytes": fpath.stat().st_size,
+                        "sha256": compute_sha256(fpath),
+                        "verified_on_disk": True,
+                    }
+                resume_verification = {"status": "PASSED", "outcome_label": "DETERMINISTIC_OFFLINE_PASS"}
+            else:
+                resume_verification = {"status": "PASSED", "outcome_label": "LIVE_PROVIDER_PASS"}
+        elif verify_deterministic_resume:
             det_dir = (
                 (temp_root / "deterministic_resume")
                 if temp_root is not None
@@ -223,10 +253,16 @@ def run_smoke(
                     print(f"[FAIL] Deterministic resume pipeline verification failed: {exc}")
                 return 1
 
+        if (stages_map.get("executive_outreach") or {}).get("status") != "PASSED" or "outreach_campaign" not in verified_artifacts:
+            if not quiet:
+                print("[FAIL] Stage 3 executive_outreach did not pass or outreach_campaign missing")
+            return 1
+
         receipt = {
             "receipt_id": "rcpt_e2e_authoritative_json_smoke",
             "wave": 3,
             "status": "PASSED",
+            "skip_resume": skip_resume,
             "read_only": read_only,
             "command": " ".join(cmd),
             "run_id": payload["run_id"],
@@ -272,17 +308,19 @@ def main(argv: list[str] | None = None) -> int:
     mode_group.add_argument(
         "--skip-resume",
         action="store_true",
-        help="Skip live provider apps_rg stage inside agents e2e (default unless --full-resume is set)",
+        help="Explicitly skip Stage 2 resume tailoring inside agents e2e",
     )
     mode_group.add_argument(
+        "--live-resume",
         "--full-resume",
+        dest="live_resume",
         action="store_true",
         help="Run live provider apps_rg stage inside agents e2e instead of offline deterministic resume smoke",
     )
     parser.add_argument(
         "--outreach-only",
         action="store_true",
-        help="Skip offline deterministic resume verification when --full-resume is not set",
+        help="Skip offline deterministic resume verification when --skip-resume is set",
     )
     parser.add_argument(
         "--read-only",
@@ -294,9 +332,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--receipt-out", type=Path, default=None, help="Explicit receipt output path")
     parser.add_argument("--repo-root", type=Path, default=_DEFAULT_REPO_ROOT, help="Repository root")
     args = parser.parse_args(argv)
-    skip_resume = True if args.skip_resume else (not args.full_resume)
     return run_smoke(
-        skip_resume=skip_resume,
+        skip_resume=bool(args.skip_resume),
+        live_resume=bool(args.live_resume),
         read_only=args.read_only,
         receipt_out=args.receipt_out,
         repo_root=args.repo_root,

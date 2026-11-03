@@ -21,9 +21,60 @@ def resolve_run_scoped_resume_proofs_dir(run_id: str) -> Path:
         from apps_rg.runtime.runtime_proof_layout import find_repo_root
 
         base = find_repo_root()
-    except Exception:
+    except (ImportError, OSError, RuntimeError):
         base = _REPO_ROOT
     return base / "artifacts" / "apps_rg" / "runtime_proofs" / f"full_resume_{run_id}"
+
+
+def run_offline_deterministic_resume_stage(
+    *,
+    base_dir: Path,
+    company: str,
+    role: str,
+    args: argparse.Namespace,
+) -> int:
+    """Execute the full 11-stage deterministic resume pipeline and stage outputs under base_dir/resume."""
+    from apps_rg.bare_pipeline import evaluate_bare_run, run_bare_deterministic_e2e
+
+    resume_stage_dir = base_dir / "resume"
+    bare_root = resume_stage_dir / "bare_runs"
+    bare_root.mkdir(parents=True, exist_ok=True)
+    res = run_bare_deterministic_e2e(
+        artifact_root=str(bare_root),
+        target_company=company,
+        target_role=role,
+        jd=str(getattr(args, "jd", "") or ""),
+        resume_path=str(getattr(args, "resume", "") or ""),
+    )
+    if res.get("status") != "SUCCESS" or res.get("outcome_label") != "DETERMINISTIC_OFFLINE_PASS":
+        raise RuntimeError(f"Deterministic resume E2E failed: {res.get('error') or res.get('status')}")
+
+    run_dir = Path(str(res["artifact_dir"]))
+    eval_res = evaluate_bare_run(run_dir)
+    if eval_res.get("status") != "PASS":
+        raise RuntimeError(f"Deterministic resume evaluation failed: {eval_res.get('checks')}")
+
+    for rel_name in ("resume.md", "resume.docx", "outreach_email.md", "sources.json", "evaluation.json", "run_summary.json"):
+        src = run_dir / rel_name
+        if not src.is_file() or src.stat().st_size == 0:
+            raise RuntimeError(f"Missing or empty deterministic resume artifact: {src}")
+        shutil.copy2(src, resume_stage_dir / rel_name)
+
+    shutil.copy2(run_dir / "resume.md", resume_stage_dir / "FINAL_RESUME_OUTPUT.txt")
+    (resume_stage_dir / "apps_rg_product_authorization_receipt.json").write_text(
+        json.dumps(
+            {
+                "authorized": True,
+                "mode": "deterministic_offline_smoke",
+                "outcome_label": str(res["outcome_label"]),
+                "evaluation_status": str(eval_res["status"]),
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    return 0
 
 
 def resolve_and_verify_resume_artifact(

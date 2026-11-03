@@ -41,13 +41,14 @@ from tools.validate_turn_gates import validate_pre_turn_gate
 SUBSYSTEM_TARGETS: tuple[str, ...] = (
     "agents",
     "apps_model_telemetry",
-    "outreach_engine/src",
+    "outreach_engine",
     "resume_engine",
-    "resume_graph_engine/src",
+    "resume_graph_engine",
     "apps_research",
     "apps_eval",
     "infrastructure",
     "ops_scripts",
+    "scripts",
 )
 SUBPROCESS_SCAN_DIRS: tuple[str, ...] = SUBSYSTEM_TARGETS + ("tools",)
 GUARDIAN_COMMENT_RE = re.compile(r"#\s*guardian:", re.IGNORECASE)
@@ -125,7 +126,7 @@ def audit_constitutional_ast_floor(repo_root: Path) -> dict[str, list[str]]:
                         )
                         if not has_timeout:
                             missing_timeouts.append(f"{rel_str}:{node.lineno}: subprocess.{node.func.attr} missing timeout=")
-                elif rel_dir in SUBSYSTEM_TARGETS and isinstance(node, ast.ExceptHandler):
+                elif isinstance(node, ast.ExceptHandler):
                     if isinstance(node.type, ast.Name) and node.type.id == "Exception":
                         line_txt = lines[node.lineno - 1] if 0 <= node.lineno - 1 < len(lines) else ""
                         prev_txt = lines[node.lineno - 2] if 0 <= node.lineno - 2 < len(lines) else ""

@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import os
 import sys
 import time
 import uuid
@@ -16,6 +15,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
+
+from infrastructure.config.env_loader import get_env_str
 
 from apps_lic.integrations.apps_research_bridge import (
     AppsResearchBridge,
@@ -223,9 +224,9 @@ class MockAppsResearchBridge(AppsResearchBridge):
         force_fresh: bool | None = None,
     ) -> None:
         if not (
-            bool(os.environ.get("PYTEST_CURRENT_TEST"))
+            bool(get_env_str("PYTEST_CURRENT_TEST"))
             or ("pytest" in sys.modules)
-            or (os.environ.get("APPS_RG_TEST_HARNESS") == "1")
+            or (get_env_str("APPS_RG_TEST_HARNESS") == "1")
         ):
             raise RuntimeError(
                 "MOCK_BRIDGE_FORBIDDEN: MockAppsResearchBridge is strictly forbidden in production runtime. "

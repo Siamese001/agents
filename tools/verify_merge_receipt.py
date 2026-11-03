@@ -88,7 +88,7 @@ def _load_receipt_data(
         if git_show.returncode == 0 and git_show.stdout.strip():
             try:
                 return json.loads(git_show.stdout), None
-            except Exception:
+            except (ValueError, TypeError):
                 pass
 
     return None, None

@@ -53,7 +53,9 @@ def _receipt() -> dict:
 
 
 def test_validate_precision_receipt_accepts_technical_selection() -> None:
-    validate_precision_receipt(_receipt())
+    receipt = _receipt()
+    validate_precision_receipt(receipt)
+    assert receipt["receipt_sha256"]
 
 
 def test_validate_precision_receipt_rejects_ineligible_selection() -> None:

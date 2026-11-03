@@ -15,6 +15,7 @@ canonical_config_roots:
   provider_profiles: "config/provider_profiles.yaml"
   root_schemas: "config/schemas"
   exit_eval_rubrics: "config/exit_eval_rubrics"
+  env_lookup_ratchet: "config/governance/env_lookup_ratchet.json"
 
 shadow_copy_pairs:
   - canonical: "config/provider_profiles.yaml"
@@ -28,6 +29,7 @@ shadow_copy_pairs:
   - canonical: "pytest.ini"
     mirrors:
       - "resume_graph_engine/pytest.ini"
+      - "outreach_engine/pytest.ini"
     policy: "TIMEOUT_AND_ADDOPTS_PARITY"
 
 domain_threshold_owners:
@@ -119,5 +121,15 @@ approved_env_loader_paths:
   - "tools/"
   - "ops_scripts/"
   - "scripts/"
+  - "agents/cli.py"
+  - "agents/live_preflight.py"
+  - "resume_engine/cli.py"
+  - "apps_model_telemetry/"
+  - "apps_eval/adapters/"
+  - "apps_eval/runner/"
   - "resume_graph_engine/src/apps_rg/config/"
+  - "resume_graph_engine/src/apps_rg/runtime/env_bootstrap.py"
+  - "resume_graph_engine/src/apps_rg/runtime/embedding_settings.py"
+  - "resume_graph_engine/src/apps_rg/runtime/fact_vectors_bootstrap.py"
   - "resume_graph_engine/src/apps_rg/runtime/sections/executive_summary_repair_policy.py"
+  - "resume_graph_engine/tools/"

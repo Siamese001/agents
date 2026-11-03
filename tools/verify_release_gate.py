@@ -84,7 +84,7 @@ def _resolve_python(repo_root: Path) -> str:
     cand = repo_root / ".venv" / "bin" / "python"
     if cand.exists():
         return str(cand)
-    main_cand = Path("/Users/amitayer/Git/agents/.venv/bin/python")
+    main_cand = Path.home() / "Git" / "agents" / ".venv" / "bin" / "python"
     if main_cand.exists():
         return str(main_cand)
     return sys.executable
@@ -97,7 +97,7 @@ def _resolve_pytest(repo_root: Path) -> str:
     fallback = Path(sys.executable).parent / "pytest"
     if fallback.exists():
         return str(fallback)
-    main_cand = Path("/Users/amitayer/Git/agents/.venv/bin/pytest")
+    main_cand = Path.home() / "Git" / "agents" / ".venv" / "bin" / "pytest"
     if main_cand.exists():
         return str(main_cand)
     return "pytest"

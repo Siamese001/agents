@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import os
 from pathlib import Path
 import re
 import sqlite3
@@ -19,6 +18,7 @@ import time
 from typing import Any, Mapping, Sequence
 
 from agents.orchestration.failure_taxonomy import FailureKind
+from infrastructure.config.env_loader import get_env_str
 
 DEFAULT_LEARNING_STORE_PATH = Path("artifacts/learning/feedback_learning.sqlite")
 
@@ -43,7 +43,7 @@ class FeedbackLearningStore:
     """Thread-safe SQLite store for failure signatures and empirical repair hints."""
 
     def __init__(self, db_path: str | Path | None = None) -> None:
-        raw_path = db_path or os.environ.get("AGENTS_LEARNING_STORE_PATH") or DEFAULT_LEARNING_STORE_PATH
+        raw_path = db_path or get_env_str("AGENTS_LEARNING_STORE_PATH") or DEFAULT_LEARNING_STORE_PATH
         self.is_memory = str(raw_path) == ":memory:"
         if self.is_memory:
             self.db_path = Path(":memory:")

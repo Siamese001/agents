@@ -102,21 +102,27 @@ def scan_shadow_config_drift(repo_root: Path) -> list[dict[str, Any]]:
                 )
 
     root_pytest = repo_root / "pytest.ini"
-    sub_pytest = repo_root / "resume_graph_engine" / "pytest.ini"
-    if root_pytest.is_file() and sub_pytest.is_file():
+    if root_pytest.is_file():
         r_txt = root_pytest.read_text(encoding="utf-8", errors="replace")
-        s_txt = sub_pytest.read_text(encoding="utf-8", errors="replace")
         r_to = re.search(r"--timeout=(\d+)", r_txt)
-        s_to = re.search(r"--timeout=(\d+)", s_txt)
-        if (r_to and not s_to) or (r_to and s_to and r_to.group(1) != s_to.group(1)):
-            findings.append(
-                {
-                    "category": "SHADOW_PYTEST_DRIFT",
-                    "canonical": "pytest.ini",
-                    "shadow": "resume_graph_engine/pytest.ini",
-                    "detail": "Nested pytest.ini timeout setting diverges from root pytest.ini",
-                }
-            )
+        nested_pytest_files = sorted(
+            p
+            for p in repo_root.glob("*/pytest.ini")
+            if p.is_file() and p.parent.name not in (".git", ".venv", ".worktrees", "artifacts")
+        )
+        for sub_pytest in nested_pytest_files:
+            rel_sub = str(sub_pytest.relative_to(repo_root)).replace("\\", "/")
+            s_txt = sub_pytest.read_text(encoding="utf-8", errors="replace")
+            s_to = re.search(r"--timeout=(\d+)", s_txt)
+            if (r_to and not s_to) or (r_to and s_to and r_to.group(1) != s_to.group(1)):
+                findings.append(
+                    {
+                        "category": "SHADOW_PYTEST_DRIFT",
+                        "canonical": "pytest.ini",
+                        "shadow": rel_sub,
+                        "detail": f"Nested {rel_sub} timeout setting diverges from root pytest.ini",
+                    }
+                )
 
     mcp_root = _load_structured(repo_root / ".mcp.json")
     mcp_agents = _load_structured(repo_root / ".agents" / "mcp_config.json")
@@ -141,6 +147,9 @@ def scan_intra_file_contradictions(repo_root: Path) -> list[dict[str, Any]]:
     findings: list[dict[str, Any]] = []
     candidate_dirs = (
         repo_root / "config",
+        repo_root / "outreach_engine" / "config",
+        repo_root / "outreach_engine" / "data",
+        repo_root / "resume_graph_engine" / "config",
         repo_root / "resume_graph_engine" / "src" / "apps_rg",
         repo_root / "apps_research" / "config",
         repo_root / "apps_eval",
@@ -232,6 +241,9 @@ def scan_twin_profile_sprawl(repo_root: Path) -> list[dict[str, Any]]:
     findings: list[dict[str, Any]] = []
     scan_dirs = (
         repo_root / "apps_research" / "config",
+        repo_root / "outreach_engine" / "config",
+        repo_root / "outreach_engine" / "data",
+        repo_root / "resume_graph_engine" / "config",
         repo_root / "resume_graph_engine" / "src" / "apps_rg",
         repo_root / "config",
     )

@@ -34,6 +34,7 @@ def assert_engine_live_preflight(
     providers: Sequence[str] = ("openai", "anthropic", "google"),
     *,
     is_demo: bool = False,
+    allow_offline: bool = False,
 ) -> dict[str, str]:
     """Validate live posture for CLI command invocation.
 
@@ -42,7 +43,9 @@ def assert_engine_live_preflight(
     """
     if _is_test_mode():
         return {}
-    if is_demo:
+    if allow_offline:
+        providers = ()
+    elif is_demo:
         # Canonical demo can run with single provider or existing keys
         providers = ("openai",)
     try:

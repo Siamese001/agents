@@ -103,7 +103,9 @@ def test_concurrent_acquisition_constructs_and_warms_one_runtime(
 
 
 def test_validate_stability_receipt_accepts_complete_proof() -> None:
-    validate_stability_receipt(_receipt())
+    receipt = _receipt()
+    validate_stability_receipt(receipt)
+    assert receipt["receipt_sha256"]
 
 
 @pytest.mark.parametrize(

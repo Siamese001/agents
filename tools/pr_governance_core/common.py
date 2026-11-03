@@ -308,7 +308,7 @@ def compute_branch_delta_digest(repo_root: Path, ref: str, base_ref: str = "main
         if proc.returncode != 0:
             return ""
         return hashlib.sha256(proc.stdout).hexdigest()
-    except Exception:
+    except (OSError, subprocess.SubprocessError):
         return ""
 
 
@@ -351,11 +351,11 @@ def get_immune_pids() -> set[int]:
     immune: set[int] = {os.getpid()}
     try:
         immune.add(os.getppid())
-    except Exception:
+    except (OSError, AttributeError):
         pass
     try:
         immune.add(os.getpgid(0))
-    except Exception:
+    except (OSError, AttributeError):
         pass
     return immune
 

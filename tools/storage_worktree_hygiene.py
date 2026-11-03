@@ -32,6 +32,8 @@ if str(REPO_ROOT) not in sys.path:
 
 from tools.lint_secrets import check_file_for_secrets
 from tools.prune_merged_chat_worktrees import (
+    SIDECAR_ACTIVE_LEASE_FILENAME,
+    SIDECAR_LEASE_TTL_SECONDS,
     get_main_repo_root,
     get_merged_branches,
     has_active_sidecar_lease,
@@ -66,11 +68,21 @@ EXEMPT_PATH_PARTS: frozenset[str] = frozenset(
 DB_SCAN_SUBDIRS: tuple[str, ...] = (
     "artifacts",
     ".codex",
-    "resume_graph_engine/artifacts/apps_rg/fact_inventory",
-    "resume_graph_engine/data/cache",
+    "data",
+    "outreach_engine",
+    "resume_engine",
+    "resume_graph_engine",
+    "apps_research",
+    "apps_eval",
+    "apps_model_telemetry",
+    "infrastructure",
+    "agents",
+    "ops_scripts",
+    "scripts",
+    "tools",
 )
 DB_SKIP_DIRS: frozenset[str] = frozenset(
-    {"models", "career_calls", "runs", ".git", ".venv", "node_modules", "__pycache__"}
+    {"models", "career_calls", "runs", ".git", ".worktrees", ".venv", "venv", "node_modules", "__pycache__"}
 )
 
 
@@ -114,6 +126,12 @@ def _discover_sqlite_dbs(repo_root: Path) -> list[Path]:
     """Locate repository SQLite/Chroma/vector state databases across active and primary roots."""
     found: set[Path] = set()
     for base in _storage_roots(repo_root):
+        try:
+            for root_entry in base.iterdir():
+                if root_entry.suffix.lower() in SQLITE_SUFFIXES and _is_sqlite_file(root_entry):
+                    found.add(root_entry.resolve())
+        except OSError:
+            pass
         for rel_sub in DB_SCAN_SUBDIRS:
             scan_dir = base / rel_sub
             if not scan_dir.is_dir():
@@ -210,14 +228,17 @@ def remediate_sqlite_wal(repo_root: Path) -> list[dict[str, Any]]:
 
 
 def scan_stale_locks_and_temps(repo_root: Path, max_age_seconds: float = STALE_LOCK_AGE_SECONDS) -> list[str]:
-    """Identify orphaned .lock or .tmp files older than max_age_seconds outside exempt directories."""
-    cutoff = time.time() - max_age_seconds
+    """Identify orphaned .lock or .tmp files older than max_age_seconds across engines, artifacts, and worktrees."""
+    now = time.time()
+    cutoff = now - max_age_seconds
+    lease_cutoff = now - max(max_age_seconds, SIDECAR_LEASE_TTL_SECONDS)
     stale: set[str] = set()
     roots = _storage_roots(repo_root)
-    skip_walk = set(EXEMPT_PATH_PARTS) | {"models", "career_calls"}
+    skip_walk = set(EXEMPT_PATH_PARTS) | {"models", "career_calls", "runs"}
 
     for base in roots:
-        prov_lock = base / ".worktrees" / ".provisioning.lock"
+        wt_root = base / ".worktrees"
+        prov_lock = wt_root / ".provisioning.lock"
         if prov_lock.is_file() and not prov_lock.is_symlink():
             try:
                 if prov_lock.stat().st_mtime < cutoff:
@@ -225,11 +246,27 @@ def scan_stale_locks_and_temps(repo_root: Path, max_age_seconds: float = STALE_L
             except OSError:
                 pass
 
+        if wt_root.is_dir():
+            for wt_child in sorted(wt_root.iterdir()):
+                if not wt_child.is_dir() or wt_child.is_symlink():
+                    continue
+                lease_fp = wt_child / SIDECAR_ACTIVE_LEASE_FILENAME
+                if lease_fp.is_file() and not lease_fp.is_symlink() and not has_active_sidecar_lease(wt_child, now_ts=now):
+                    try:
+                        if lease_fp.stat().st_mtime < lease_cutoff:
+                            stale.add(str(lease_fp.relative_to(base)))
+                    except OSError:
+                        pass
+
+        root_lease = base / SIDECAR_ACTIVE_LEASE_FILENAME
+        if root_lease.is_file() and not root_lease.is_symlink() and not has_active_sidecar_lease(base, now_ts=now):
+            try:
+                if root_lease.stat().st_mtime < lease_cutoff:
+                    stale.add(str(root_lease.relative_to(base)))
+            except OSError:
+                pass
+
         for dirpath, dirnames, filenames in os.walk(base, followlinks=False):
-            rel_dir = Path(dirpath).relative_to(base)
-            if rel_dir.parts and rel_dir.parts[0] == "resume_graph_engine" and len(rel_dir.parts) >= 2 and rel_dir.parts[1] == "artifacts":
-                dirnames[:] = []
-                continue
             dirnames[:] = [d for d in dirnames if d not in skip_walk]
             for fname in filenames:
                 if not (fname.endswith(".lock") or fname.endswith(".tmp")):
@@ -272,14 +309,22 @@ def scan_scratch_violations(repo_root: Path) -> list[str]:
 
 
 def collect_storage_inventory(repo_root: Path) -> dict[str, float]:
-    """Measure full storage inventory across model caches, call recordings, graph runs, plans, and scratch."""
+    """Measure full storage inventory across all engines, caches, data roots, worktrees, plans, reports, and scratch."""
     roots = _storage_roots(repo_root)
     primary = roots[-1]
     tracked_dirs = {
         "models_mb": primary / "artifacts" / "models",
         "career_calls_mb": primary / "artifacts" / "career_calls",
+        "outreach_engine_mb": primary / "outreach_engine",
+        "resume_engine_mb": primary / "resume_engine",
         "resume_graph_artifacts_mb": primary / "resume_graph_engine" / "artifacts",
         "resume_graph_runtime_mb": primary / "resume_graph_engine" / ".runtime",
+        "resume_graph_data_mb": primary / "resume_graph_engine" / "data",
+        "apps_research_mb": primary / "apps_research",
+        "apps_eval_mb": primary / "apps_eval",
+        "apps_model_telemetry_mb": primary / "apps_model_telemetry",
+        "data_mb": primary / "data",
+        "worktrees_mb": primary / ".worktrees",
         "reports_mb": primary / "reports",
         "plans_mb": primary / "plans",
         "scratch_mb": primary / "scratch",
@@ -332,7 +377,18 @@ def run_six_pillar_hygiene_audit(
 
     sidecar_runs_mb = _dir_size_mb(primary / "artifacts" / "sidecar_runs")
     playwright_mb = _dir_size_mb(primary / "artifacts" / "mcp" / "playwright")
-    pytest_cache_mb = _dir_size_mb(primary / ".pytest_cache")
+    pytest_cache_mb = round(
+        sum(
+            _dir_size_mb(p)
+            for p in (
+                primary / ".pytest_cache",
+                primary / "outreach_engine" / ".pytest_cache",
+                primary / "resume_graph_engine" / ".pytest_cache",
+                primary / "apps_eval" / ".pytest_cache",
+            )
+        ),
+        3,
+    )
     total_sprawl_mb = round(sidecar_runs_mb + playwright_mb + pytest_cache_mb, 3)
     storage_inventory = collect_storage_inventory(root)
 

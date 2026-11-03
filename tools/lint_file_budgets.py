@@ -21,8 +21,7 @@ DEFAULT_MAX_LINES = 600
 # Production-executable directories subject to architectural governance
 PRODUCTION_DIRECTORIES: tuple[str, ...] = (
     "scripts",
-    "dual_pipeline",
-    "storage",
+    "tools",
     "resume_graph_engine",
     "resume_engine",
     "apps_research",
@@ -56,7 +55,7 @@ def load_ratchet(repo_root: Path) -> dict[str, dict]:
     if ratchet_file.is_file():
         try:
             return json.loads(ratchet_file.read_text(encoding="utf-8"))
-        except Exception:
+        except (OSError, ValueError, TypeError):
             return {}
     return {}
 

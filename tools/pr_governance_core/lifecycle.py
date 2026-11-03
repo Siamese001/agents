@@ -109,7 +109,7 @@ def _resolve_pr_review_receipt(
                     with contextlib.suppress(Exception):
                         c.write_text(json.dumps(rebound, indent=2) + "\n", encoding="utf-8")
                     return rebound
-        except Exception:
+        except (OSError, ValueError, TypeError, RuntimeError):
             pass
     return None
 
@@ -396,7 +396,7 @@ def atomic_rollback_main_to_sha(repo_root: Path, pre_merge_main_sha: str) -> boo
             timeout=15.0,
         )
         return True
-    except Exception:
+    except (OSError, RuntimeError, subprocess.SubprocessError):
         return False
 
 
@@ -524,10 +524,10 @@ def _teardown_merged_worktree(branch: str, delete_branch: bool = True, repo_root
         print(f"Deleting merged branch '{branch}'...")
         try:
             run_git(["branch", "-d", branch], cwd=root, check=False)
-        except Exception:
+        except (OSError, RuntimeError):
             try:
                 run_git(["branch", "-D", branch], cwd=root, check=False)
-            except Exception:
+            except (OSError, RuntimeError):
                 pass
 
         with contextlib.suppress(Exception):

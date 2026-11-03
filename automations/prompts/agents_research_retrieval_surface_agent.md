@@ -1,7 +1,7 @@
 # Agents Repository — Research & Retrieval Surface Assurance Agent Specification
 <!-- GOVERNED COMMON CONTRACT: urn:agents:scheduled-task-common-control-matrix:1.0.0 | Shared: automations/prompts/_shared_governance_contract.md | Master Sequence: Stage III-B (Order 4/7) -->
 <!-- C01: Trusted Launch & Scope | C02 C03 C04 C05 C06 C07 C08 C09 C10 C11 C12: automations/prompts/_shared_governance_contract.md -->
-<!-- INVARIANT: INV-REPO-SEPARATION-AGENTS-ONLY | UNCONDITIONAL_WAVE_PLAN_MANDATE | INV-RUNTIME-PROOF-5POINT | INV-AUTOMATION-PERSISTENT-LEARNING-LOOP -->
+<!-- INVARIANT: INV-REPO-SEPARATION-AGENTS-ONLY | UNCONDITIONAL_WAVE_PLAN_MANDATE | INV-RUNTIME-PROOF-5POINT | INV-AUTOMATION-PERSISTENT-LEARNING-LOOP | INV-REMEDIATION-QUOTA-FLOOR -->
 
 ## 1. Objective & Scope (`C01`)
 
@@ -53,9 +53,9 @@ Write `${RUN_DIR}/manifest.json` recording `agent_id`, `run_id`, `mode`, `pre_st
 2. **Pillar 2 — Document Chunking & Context Window Preservation (`AppsResearchBridge`, `agents/context/`)**: Audit chunk overlap, header preservation, and metadata attachment across `apps_research/`, `agents/context/`, and `AppsResearchBridge` handoff packets.
 3. **Pillar 3 — Hybrid Ranking, BGE-M3 Embeddings & Graph Traversal (`resume_graph_engine`)**: Run `tools/verify_graph_integrity_and_embeddings.py` and `tools/run_resume_graph_traversal_probe.py` to verify 1024-dim L2-normalized BGE-M3 vectors, 3-hop acyclic paths, and Stage-2 metric boost fusion.
 4. **Pillar 4 — Citation & Provenance Binding**: Ensure every retrieved research snippet and resume graph assertion carries a verifiable source identifier (`source_id`, `doc_hash`, or `node_id`) into `outreach_engine` and `resume_engine`.
-5. **Pillar 5 — Empty-Result & Low-Confidence Fail-Closed Gates**: Verify retrieval modules explicitly flag low-confidence or zero-hit queries rather than fabricating fallback claims.
+5. **Pillar 5 — Empty-Result & Low-Confidence Fail-Closed Gates**: Verify retrieval and delegation bridges across both `resume_graph_engine` (`dispatch_resume_research_briefing`) and `outreach_engine` (`dispatch_outreach_research_briefing`) explicitly fail closed on low-confidence or zero-hit queries rather than fabricating fallback claims.
 6. **Pillar 6 — Retrieval & Prompt Cache Slot Alignment**: Run `tools/verify_pipeline_latency_caching.py` to verify static prefix thresholds and compiler slot ordering (`R0`, `E0` before dynamic `C0`).
-7. **Pillar 7 — Cross-Subsystem Contract Alignment**: Verify `apps_research` output schemas match consumer expectations in `outreach_engine/` and `resume_engine/`.
+7. **Pillar 7 — Cross-Subsystem Contract Alignment**: Verify `apps_research` output schemas (`apps_rg` and `apps_lic` profiles) and public return-type annotations across `agents/`, `apps_research/`, `resume_graph_engine/`, `outreach_engine/`, `resume_engine/`, and `infrastructure/` without filename-regex exclusions.
 
 ### Phase 1.5: Mandatory Executable Forensic Scanner Commands
 Execute the fail-closed 7-pillar behavioral retrieval auditor, BGE-M3 embedding check, multi-hop graph probe (`python3 tools/run_resume_graph_traversal_probe.py` verifying `direct_graph_traversal`), and live latency-caching verifier in `${WORKTREE_DIR}` (`timeout <= 120s`):

@@ -19,16 +19,15 @@ from typing import Sequence
 
 PRODUCTION_DIRECTORIES: tuple[str, ...] = (
     "scripts",
-    "dual_pipeline",
-    "storage",
-    "resume_graph_engine/src",
+    "tools",
+    "resume_graph_engine",
     "resume_engine",
     "apps_research",
     "apps_eval",
     "apps_model_telemetry",
     "infrastructure",
     "ops_scripts",
-    "outreach_engine/src",
+    "outreach_engine",
     "agents",
 )
 

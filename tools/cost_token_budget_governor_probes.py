@@ -7,12 +7,14 @@ model pricing rollups, research spend caps, and HITL decision store learning.
 
 from __future__ import annotations
 
+import contextlib
+import io
 import socket
 import tempfile
 from pathlib import Path
 from typing import Any
 
-from tools.cost_token_budget_probes import load_repo_module
+from tools.cost_token_budget_probes import load_repo_module, load_yaml_strict
 
 
 def run_pillar_5_live_probes(repo_root: Path) -> tuple[list[str], dict[str, Any]]:
@@ -92,9 +94,46 @@ def run_pillar_5_live_probes(repo_root: Path) -> tuple[list[str], dict[str, Any]
         if "148" not in repair_prompt or "130" not in repair_prompt:
             gaps.append("word_budget_repair._build_word_budget_repair_user failed dynamic word-ceiling binding")
 
+        # Outreach prompt_templates/*.yaml + DeterministicDraftRepairer zero-token repair probes
+        tmpl_dir = repo_root / "outreach_engine" / "config" / "prompt_templates"
+        tmpl_files = sorted(tmpl_dir.glob("*.yaml")) if tmpl_dir.is_dir() else []
+        if len(tmpl_files) < 8:
+            gaps.append(f"Expected >= 8 outreach prompt templates in outreach_engine/config/prompt_templates, got {len(tmpl_files)}")
+        for tf in tmpl_files:
+            tdoc, terr = load_yaml_strict(tf)
+            if terr or not isinstance(tdoc, dict) or not tdoc.get("template_id") or not tdoc.get("input_contract"):
+                gaps.append(f"Invalid outreach prompt template {tf.relative_to(repo_root)}: {terr or 'missing template_id/input_contract'}")
+
+        lic_repair, e_lr = load_repo_module(repo_root, "outreach_engine/src/apps_lic/domain/repair.py")
+        outreach_repair_ok = False
+        if e_lr or lic_repair is None:
+            gaps.append(e_lr or "Missing outreach_engine DeterministicDraftRepairer")
+        else:
+            raw_conn = (
+                "Hi Sarah,\n\n"
+                + ("Noticed your enterprise platform architecture mandate — would love to learn more about current priorities. " * 4)
+            )
+            rep_body, rep_subj = lic_repair.DeterministicDraftRepairer.repair_text(
+                body=raw_conn,
+                subject="Platform alignment — quick note",
+                channel=lic_repair.ChannelType.LINKEDIN_CONNECTION,
+            )
+            outreach_repair_ok = (
+                "\u2014" not in rep_body
+                and "\u2014" not in rep_subj
+                and "would love to learn more" not in rep_body.lower()
+                and "open to exchanging perspectives" in rep_body.lower()
+                and len(rep_body) <= 300
+                and rep_body.endswith("?")
+            )
+            if not outreach_repair_ok:
+                gaps.append("DeterministicDraftRepairer.repair_text failed zero-token outreach formatting/length repair")
+
         metrics = {
             "trim_tokens_saved": max(0, before_tokens - after_tokens),
-            "quality_preserved": (not ev_violations and not sh_violations and bool(neg_ev)),
+            "outreach_prompt_templates_verified": len(tmpl_files),
+            "outreach_repair_verified": outreach_repair_ok,
+            "quality_preserved": (not ev_violations and not sh_violations and bool(neg_ev) and outreach_repair_ok),
         }
     except Exception as exc:  # guardian: allow-broad-exception -- record runtime failure in pillar gaps
         gaps.append(f"Pillar 5 execution failure: {type(exc).__name__}: {exc}")
@@ -337,6 +376,78 @@ def run_pillar_7_live_probes(repo_root: Path, profiles_data: dict[str, Any], pri
                     gaps.append("HITLDecisionStore failed to persist and update execution outcome")
             finally:
                 store.close()
+
+            # 6. Infrastructure LiveTokenGovernor + LiveTelemetryLock fail-closed probes
+            lgov, e_lg = load_repo_module(repo_root, "infrastructure/live_governor.py")
+            if e_lg or lgov is None:
+                gaps.append(e_lg or "Missing infrastructure/live_governor.py")
+            else:
+                gov_budget = lgov.TokenBudget(
+                    max_prompt_tokens=200,
+                    max_completion_tokens=100,
+                    max_total_tokens=250,
+                    max_run_tokens=400,
+                )
+                gov = lgov.LiveTokenGovernor(default_budget=gov_budget)
+                res_ok = gov.reserve(
+                    provider="external_openai",
+                    model=priced_model,
+                    estimated_prompt_tokens=150,
+                    requested_completion_tokens=80,
+                )
+                gov.reconcile(res_ok, actual_prompt_tokens=140, actual_completion_tokens=70)
+                if gov.cumulative_tokens_consumed != 210:
+                    gaps.append(f"LiveTokenGovernor reconcile miscomputed cumulative_tokens_consumed={gov.cumulative_tokens_consumed}")
+
+                exceeded_cases = (
+                    (250, 50, "REQUEST_PROMPT_BUDGET_EXCEEDED"),
+                    (100, 120, "REQUEST_COMPLETION_BUDGET_EXCEEDED"),
+                    (180, 90, "REQUEST_TOTAL_BUDGET_EXCEEDED"),
+                    (150, 80, "RUN_TOTAL_BUDGET_EXCEEDED"),
+                )
+                for est_p, req_c, expected_code in exceeded_cases:
+                    try:
+                        gov.reserve(
+                            provider="external_openai",
+                            model=priced_model,
+                            estimated_prompt_tokens=est_p,
+                            requested_completion_tokens=req_c,
+                        )
+                        gaps.append(f"LiveTokenGovernor failed to raise {expected_code}")
+                    except lgov.TokenBudgetExceededError as exc_b:
+                        if expected_code not in str(exc_b):
+                            gaps.append(f"LiveTokenGovernor raised unexpected message for {expected_code}: {exc_b}")
+
+                try:
+                    lgov.LiveTelemetryLock.record_receipt(
+                        provider="external_openai",
+                        model=priced_model,
+                        usage=None,
+                        production_enforce=True,
+                    )
+                    gaps.append("LiveTelemetryLock failed to reject missing usage in production_enforce=True")
+                except lgov.TelemetryMissingUsageError:
+                    pass
+
+            # 7. Inline deterministic secret & model-neutral naming enforcement
+            sec_mod, e_sec = load_repo_module(repo_root, "tools/lint_secrets.py")
+            mn_mod, e_mn = load_repo_module(repo_root, "tools/lint_model_neutral_naming.py")
+            if e_sec or sec_mod is None:
+                gaps.append(e_sec or "Missing tools/lint_secrets.py")
+            else:
+                buf_s = io.StringIO()
+                with contextlib.redirect_stdout(buf_s), contextlib.redirect_stderr(buf_s):
+                    sec_rc = sec_mod.main(["--all", "--repo-root", str(repo_root)])
+                if sec_rc != 0:
+                    gaps.append(f"lint_secrets failed inline check: {buf_s.getvalue().strip()}")
+            if e_mn or mn_mod is None:
+                gaps.append(e_mn or "Missing tools/lint_model_neutral_naming.py")
+            else:
+                buf_m = io.StringIO()
+                with contextlib.redirect_stdout(buf_m), contextlib.redirect_stderr(buf_m):
+                    mn_rc = mn_mod.main(["--all", "--repo-root", str(repo_root)])
+                if mn_rc != 0:
+                    gaps.append(f"lint_model_neutral_naming failed inline check: {buf_m.getvalue().strip()}")
     except Exception as exc:  # guardian: allow-broad-exception -- record runtime failure in pillar gaps
         gaps.append(f"Pillar 7 execution failure: {type(exc).__name__}: {exc}")
 

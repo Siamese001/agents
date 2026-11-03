@@ -242,7 +242,7 @@ def is_mid_rebase(wt_path: Path) -> bool:
                 git_dir = Path(content.split("gitdir:", 1)[1].strip())
                 if not git_dir.is_absolute():
                     git_dir = (wt_path / git_dir).resolve()
-        except Exception:
+        except (OSError, ValueError, IndexError):
             pass
     return (
         (git_dir / "rebase-apply").exists()
@@ -425,7 +425,7 @@ def resolve_branch_worktree(
                 )
                 _BRANCH_WORKTREE_CACHE[cache_key] = entry
                 return entry
-        except Exception:
+        except (OSError, RuntimeError, ValueError):
             pass
 
     try:
@@ -443,7 +443,7 @@ def resolve_branch_worktree(
             )
             _BRANCH_WORKTREE_CACHE[cache_key] = entry
             return entry
-    except Exception:
+    except (OSError, RuntimeError, ValueError):
         pass
 
     for wt in list_active_worktrees(root, ignore_review_artifacts=ignore_review_artifacts):
@@ -484,7 +484,7 @@ def _is_branch_merged(branch: str, root: Path = ROOT) -> bool:
             timeout=30,
         )
         return res.returncode == 0
-    except Exception:
+    except (OSError, subprocess.SubprocessError):
         return False
 
 
@@ -499,7 +499,7 @@ def _remove_worktree_files(worktree_dir: Path, force: bool, root: Path = ROOT) -
     try:
         run_git(rm_args, cwd=root, check=True)
         return True
-    except Exception as e:
+    except (OSError, RuntimeError, subprocess.SubprocessError) as e:
         print(f"❌ git worktree remove {'--force ' if force else ''}failed: {e}")
         return False
 

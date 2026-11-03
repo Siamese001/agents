@@ -26,12 +26,11 @@ from pathlib import Path
 from typing import Any
 
 DEFAULT_REPO_ROOT = Path(__file__).resolve().parents[1]
-RETRIEVAL_PATH_RE = re.compile(r"(retriev|search|graph|rank|chunk|research|provenance|context)", re.IGNORECASE)
 RETRIEVAL_PACKAGES = (
     "agents",
     "apps_research",
-    "resume_graph_engine/src",
-    "outreach_engine/src",
+    "resume_graph_engine",
+    "outreach_engine",
     "resume_engine",
     "infrastructure",
 )
@@ -59,9 +58,12 @@ def scan_untyped_public_retrieval_callables(repo_root: Path) -> list[dict[str, A
             continue
         for py_file in sorted(base.rglob("*.py")):
             rel = py_file.relative_to(repo_root).as_posix()
-            if "/tests/" in f"/{rel}" or py_file.name.startswith("test_"):
-                continue
-            if not RETRIEVAL_PATH_RE.search(rel):
+            if (
+                "/tests/" in f"/{rel}"
+                or "/artifacts/" in f"/{rel}"
+                or py_file.name.startswith("test_")
+                or py_file.name == "conftest.py"
+            ):
                 continue
             tree = ast.parse(py_file.read_text(encoding="utf-8"), filename=str(py_file))
             for node in ast.walk(tree):
@@ -174,14 +176,15 @@ def _probe_chunking_and_context_window(repo_root: Path) -> dict[str, Any]:
 
 
 def _probe_graph_and_embeddings(repo_root: Path) -> dict[str, Any]:
+    from infrastructure.config.env_loader import get_main_repo_root
+
     graph_mod = _require_module(repo_root, "tools/verify_graph_integrity_and_embeddings.py")
     trav_mod = _require_module(repo_root, "tools/run_resume_graph_traversal_probe.py")
 
     roots = [repo_root]
-    if repo_root.parent.name == ".worktrees":
-        primary = repo_root.parent.parent.resolve()
-        if primary.is_dir():
-            roots.append(primary)
+    main_root = get_main_repo_root(repo_root)
+    if main_root.is_dir() and main_root not in roots:
+        roots.append(main_root)
 
     db_path = repo_root / "resume_graph_engine/artifacts/apps_rg/fact_inventory/augmented_skills_graph.sqlite"
     for base in roots:
@@ -207,10 +210,17 @@ def _probe_graph_and_embeddings(repo_root: Path) -> dict[str, Any]:
     stage2_res: dict[str, Any] = {}
     trav_res: dict[str, Any] = {}
     try:
-        graph_res = graph_mod.verify_graph_database(db_path)
-        emb_res = graph_mod.verify_bge_m3_embeddings(emb_dirs, db_path)
-        stage2_res = graph_mod.verify_hybrid_retrieval_stage2()
-        trav_res = trav_mod.run_resume_graph_traversal_probe(max_paths=100)
+        with tempfile.TemporaryDirectory(prefix="retrieval_aud_graph_") as td:
+            active_db = db_path
+            if not active_db.is_file():
+                from apps_rg.fact_inventory.augmented_skills_graph_sqlite import materialize_augmented_skills_graph_sqlite
+
+                active_db = Path(td) / "augmented_skills_graph.sqlite"
+                materialize_augmented_skills_graph_sqlite(db_path=active_db)
+            graph_res = graph_mod.verify_graph_database(active_db)
+            emb_res = graph_mod.verify_bge_m3_embeddings(emb_dirs, active_db)
+            stage2_res = graph_mod.verify_hybrid_retrieval_stage2()
+            trav_res = trav_mod.run_resume_graph_traversal_probe(max_paths=100)
         if trav_res.get("status") != "PASS":
             gaps.append("run_resume_graph_traversal_probe did not return PASS")
     except Exception as exc:  # guardian: allow-broad-exception -- capture graph/embedding verification failure into pillar gaps
@@ -232,13 +242,17 @@ def _probe_citation_and_provenance_contract(repo_root: Path) -> dict[str, Any]:
         "# Strategic Brief\n## Mandate\n"
         "- Strategy mandate relies on [1] raw footnote marker and https://untrusted.example/url.\n"
     )
-    leak_verdict = contract_mod.validate_targeting_brief_text(raw_citation_leak, profile="apps_lic")
+    leak_verdict_lic = contract_mod.validate_targeting_brief_text(raw_citation_leak, profile="apps_lic")
+    leak_verdict_rg = contract_mod.validate_targeting_brief_text(raw_citation_leak, profile="apps_rg")
     leak_rejected = (
-        not bool(leak_verdict.valid)
-        and "link_present" in leak_verdict.violations
-        and "citation_present" in leak_verdict.violations
+        not bool(leak_verdict_lic.valid)
+        and "link_present" in leak_verdict_lic.violations
+        and "citation_present" in leak_verdict_lic.violations
+        and not bool(leak_verdict_rg.valid)
+        and "link_present" in leak_verdict_rg.violations
+        and "citation_present" in leak_verdict_rg.violations
     )
-    gaps = [] if leak_rejected else ["validate_targeting_brief_text failed to reject raw URL/citation leakage"]
+    gaps = [] if leak_rejected else ["validate_targeting_brief_text failed to reject raw URL/citation leakage across apps_lic/apps_rg"]
     return {"passed": len(gaps) == 0, "gaps": gaps, "raw_leak_rejected": leak_rejected}
 
 
@@ -251,6 +265,14 @@ def _probe_fail_closed_abstention(repo_root: Path) -> dict[str, Any]:
     bridge_mod = _require_module(
         repo_root,
         "resume_graph_engine/src/apps_rg/integrations/apps_research_bridge.py",
+    )
+    lic_delegation_mod = _require_module(
+        repo_root,
+        "outreach_engine/src/apps_lic/integrations/managed_research_delegation.py",
+    )
+    lic_bridge_mod = _require_module(
+        repo_root,
+        "outreach_engine/src/apps_lic/integrations/apps_research_bridge.py",
     )
 
     gaps: list[str] = []
@@ -290,10 +312,42 @@ def _probe_fail_closed_abstention(repo_root: Path) -> dict[str, Any]:
     if not isinstance(res, delegation_mod.ResearchDispatchFailure):
         gaps.append("dispatch_resume_research_briefing did not fail closed on empty/low-confidence research")
 
+    class _WeakOutreachBridge:
+        def fetch(self, **kwargs: Any) -> Any:
+            return lic_bridge_mod.ResearchResult(
+                run_id=str(kwargs.get("run_id") or "weak_lic_run"),
+                trace_id=str(kwargs.get("trace_id") or "weak_lic_trace"),
+                request_id=str(kwargs.get("request_id") or "weak_lic_req"),
+                is_blocked=False,
+                block_reason="",
+                is_stale=False,
+                evidence_items=(),
+                confidence_score=0.15,
+                brief_sha256="",
+                company_brief_text="",
+                strategic_priorities=(),
+                fetch_duration_ms=1.0,
+                audit_ref="weak_lic_audit",
+            )
+
+    lic_req = lic_delegation_mod.RequestForOutreachBriefing(
+        request_id="req_lic_weak",
+        run_id="run_lic_weak",
+        trace_id="trace_lic_weak",
+        company_name="ShadowCo",
+        job_title="VP AI",
+        research_authorized=True,
+        min_confidence_threshold=0.60,
+    )
+    lic_res = lic_delegation_mod.dispatch_outreach_research_briefing(lic_req, bridge=_WeakOutreachBridge())
+    if not isinstance(lic_res, lic_delegation_mod.ResearchDispatchFailure):
+        gaps.append("dispatch_outreach_research_briefing did not fail closed on empty/low-confidence research")
+
     return {
         "passed": len(gaps) == 0,
         "gaps": gaps,
         "failure_reason": getattr(res, "r5_reason_code", ""),
+        "outreach_failure_reason": getattr(lic_res, "r5_reason_code", ""),
     }
 
 
