@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import hashlib
-import os
+from infrastructure.config.env_loader import get_env_str
 from typing import Any
 
 from apps_rg.runtime.spine_contracts import EvidenceItem
@@ -195,7 +195,7 @@ def perform_product_hybrid_retrieval(
         resolve_apps_rg_embedding_settings,
     )
 
-    chroma_path = (chromadb_path or os.environ.get("CHROMA_PERSIST_DIR", "") or "").strip()
+    chroma_path = (chromadb_path or get_env_str("CHROMA_PERSIST_DIR", "") or "").strip()
     if not chroma_path:
         raise C0EvidenceGapError(
             f"C0.2 product hybrid mandatory for {section_id!r}: CHROMA_PERSIST_DIR required"

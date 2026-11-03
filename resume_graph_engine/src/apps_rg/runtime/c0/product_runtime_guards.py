@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import os
+from infrastructure.config.env_loader import get_env_str
 
 from apps_rg.runtime.c0.constants import C0_SECTIONS_ENABLED
 
@@ -15,7 +15,7 @@ class ProductRuntimeEnvForbiddenError(RuntimeError):
 
 
 def _env_disabled(name: str, *, default: str = "1") -> bool:
-    return os.environ.get(name, default).strip().lower() in ("0", "false", "no")
+    return get_env_str(name, default).strip().lower() in ("0", "false", "no")
 
 
 def assert_canonical_product_section_env(section_id: str) -> None:

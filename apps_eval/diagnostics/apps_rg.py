@@ -9,24 +9,15 @@ from pathlib import Path
 from typing import Any
 
 from apps_eval.contracts import (
-    AppOutputSnapshot,
-    DiagnosticObservationV1,
-    DiagnosticSourceArtifactRef,
-    DiagnosticSummaryV1,
-    ScorecardRow,
+    AppOutputSnapshot, DiagnosticObservationV1, DiagnosticSourceArtifactRef, DiagnosticSummaryV1, ScorecardRow,
 )
 from apps_eval.artifacts.apps_rg_resolver import ResolvedAppsRgArtifact, resolve_apps_rg_artifact
 from apps_eval.coverage.apps_rg import load_apps_rg_contracts
 
 _AUTHORITY = "post_run_l6_shadow_only"
 _UNSAFE_E4_REPAIRS = [
-    "missing_graph_evidence",
-    "missing_briefing",
-    "broader_retrieval",
-    "route_change",
-    "provider_substitution",
-    "hitl",
-    "l4_learning",
+    "missing_graph_evidence", "missing_briefing", "broader_retrieval",
+    "route_change", "provider_substitution", "hitl", "l4_learning",
 ]
 
 
@@ -62,11 +53,7 @@ def _as_list(value: Any) -> list[Any]:
 def _snapshot_source(snapshot: AppOutputSnapshot, snapshot_ref: str, snapshot_digest: str) -> DiagnosticSourceArtifactRef:
     digest = snapshot_digest or snapshot.deterministic_hash or _canonical_digest(snapshot.to_dict())
     ref = snapshot_ref or snapshot.run_root or f"snapshot:{snapshot.scenario_id}"
-    return DiagnosticSourceArtifactRef(
-        artifact_role="app_output_snapshot",
-        artifact_ref=str(ref),
-        artifact_digest=digest,
-    )
+    return DiagnosticSourceArtifactRef(artifact_role="app_output_snapshot", artifact_ref=str(ref), artifact_digest=digest)
 
 
 def _row_source(row: ScorecardRow) -> DiagnosticSourceArtifactRef:
@@ -81,19 +68,14 @@ def _artifact_index_source(snapshot: AppOutputSnapshot, role: str, fallback: Dia
     value = snapshot.artifact_index.get(role)
     if value in (None, "", [], {}):
         return fallback
-    return DiagnosticSourceArtifactRef(
-        artifact_role=role,
-        artifact_ref=str(_as_list(value)[0]),
-        artifact_digest=_canonical_digest(value),
-    )
+    return DiagnosticSourceArtifactRef(artifact_role=role, artifact_ref=str(_as_list(value)[0]), artifact_digest=_canonical_digest(value))
 
 
 def _resolved_source(resolved: ResolvedAppsRgArtifact, fallback: DiagnosticSourceArtifactRef) -> DiagnosticSourceArtifactRef:
     if not resolved.found:
         return fallback
     return DiagnosticSourceArtifactRef(
-        artifact_role=resolved.artifact_role,
-        artifact_ref=resolved.artifact_ref,
+        artifact_role=resolved.artifact_role, artifact_ref=resolved.artifact_ref,
         artifact_digest=resolved.evidence_digest or _canonical_digest(resolved.payload),
     )
 

@@ -9,7 +9,7 @@ template slot bodies from ``prompt_registry.yaml`` / ``templates/*.yaml``.
 from __future__ import annotations
 
 import json
-import os
+from infrastructure.config.env_loader import get_env_str
 import uuid
 from pathlib import Path
 from typing import Any
@@ -137,7 +137,7 @@ def build_prompt_assembly_input_from_l2_context(context: dict[str, Any]) -> Prom
         jd_blob = "(empty jd_data — expected jd_payload / body_text in raw request)"
 
     company_brief_ev: EvidenceSource | None = None
-    diag = os.environ.get(_DIAGNOSTIC_MIN_CONTEXT_ENV, "").strip() == "1"
+    diag = get_env_str(_DIAGNOSTIC_MIN_CONTEXT_ENV, "").strip() == "1"
     if diag:
         resume_blob = _slim_resume_json_for_diagnostic(resume_blob)
         jd_blob = _diagnostic_jd_blob(tc, tr)

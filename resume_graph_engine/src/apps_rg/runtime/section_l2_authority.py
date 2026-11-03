@@ -13,31 +13,19 @@ from dataclasses import asdict, replace
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
-from apps_rg.runtime.spine_contracts import Origin
-from apps_rg.runtime.spine_contracts import SealedL2Artifact
+from apps_rg.runtime.spine_contracts import Origin, SealedL2Artifact
 from apps_rg.runtime.bindings.l2_authority import (
-    build_signed_execution_packet,
-    freeze_execution_room,
-    validate_execution_packet,
+    build_signed_execution_packet, freeze_execution_room, validate_execution_packet,
 )
 from apps_rg.runtime.bindings.l2_authority_contracts import (
-    AuthorityGateReceipt,
-    FrozenExecutionRoom,
-    SignedAppsRgL2ExecutionPacket,
-    _jsonable,
-    sha256_hex,
+    AuthorityGateReceipt, FrozenExecutionRoom, SignedAppsRgL2ExecutionPacket, _jsonable, sha256_hex,
 )
 from apps_rg.runtime.bindings.l2_receipt_bundle import (
-    compute_attempt_output_digest,
-    finalize_content_addressed_bundle,
+    compute_attempt_output_digest, finalize_content_addressed_bundle,
 )
 from apps_rg.runtime.section_l2_spine_receipt import (
-    COMPILED_PROMPT_ARTIFACT,
-    L2_EXECUTION_PACKET_ARTIFACT,
-    L2_SPINE_RECEIPT_ARTIFACT,
-    SEALED_L2_ARTIFACT,
-    SectionL2SpinePreconditionError,
-    assert_section_l2_spine_preconditions,
+    COMPILED_PROMPT_ARTIFACT, L2_EXECUTION_PACKET_ARTIFACT, L2_SPINE_RECEIPT_ARTIFACT,
+    SEALED_L2_ARTIFACT, SectionL2SpinePreconditionError, assert_section_l2_spine_preconditions,
 )
 
 FROZEN_EXECUTION_CONTEXT_ARTIFACT = "frozen_execution_context.json"

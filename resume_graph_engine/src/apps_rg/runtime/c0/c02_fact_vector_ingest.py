@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
-import os
+from infrastructure.config.env_loader import get_env_str
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -408,7 +408,7 @@ def promote_deferred_c02_fact_vectors_after_x3(
     if resolved_mode != PROMOTION_MODE_DEFERRED:
         receipt["reason"] = "promotion_mode_inline"
         return receipt
-    chroma_path = os.environ.get("CHROMA_PERSIST_DIR", "").strip()
+    chroma_path = get_env_str("CHROMA_PERSIST_DIR", "").strip()
     receipt["chroma_path"] = chroma_path or None
     if not chroma_path:
         receipt["reason"] = "CHROMA_PERSIST_DIR unset"

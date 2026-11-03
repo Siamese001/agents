@@ -6,7 +6,7 @@ modular execution surface and should not be confused with cache miss behavior.
 
 from __future__ import annotations
 
-import os
+from infrastructure.config.env_loader import get_env_str
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -47,13 +47,13 @@ def _semantic_cache_r1b_enabled() -> bool:
 
 
 def _r1b_preflight_probe_only_enabled() -> bool:
-    raw = os.environ.get("APPS_RG_R1B_PREFLIGHT_PROBE_ONLY", "").strip().lower()
+    raw = get_env_str("APPS_RG_R1B_PREFLIGHT_PROBE_ONLY", "").strip().lower()
     return raw in ("1", "true", "yes", "on")
 
 
 def resolve_r1b_store_root(*, artifact_dir: Path | str | None = None) -> Path:
     """R1B SSOT store (not per-run scratch); optional override via env."""
-    env = os.environ.get("APPS_RG_R1B_CACHE_ROOT", "").strip()
+    env = get_env_str("APPS_RG_R1B_CACHE_ROOT", "").strip()
     if env:
         p = Path(env)
         return p if p.is_absolute() else (Path.cwd() / p).resolve()

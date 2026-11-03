@@ -11,14 +11,8 @@ from apps_model_telemetry.token_counter import TokenCounterService
 from apps_rg.runtime.section_model_limits import SECTION_MODEL_ID
 
 from .contracts import (
-    AUTHORITY_PRECEDENCE,
-    CompiledPromptArtifact,
-    ComponentHashMap,
-    EvidenceSource,
-    PromptAssemblyError,
-    PromptAssemblyInput,
-    PromptSlotPayload,
-    SlotAuthority,
+    AUTHORITY_PRECEDENCE, CompiledPromptArtifact, ComponentHashMap, EvidenceSource,
+    PromptAssemblyError, PromptAssemblyInput, PromptSlotPayload, SlotAuthority,
 )
 from .prompt_segment import CACHE_ALIGNED_SLOT_ORDER
 
@@ -41,16 +35,11 @@ CANONICAL_SLOT_ORDER = [
 
 # Authority class mapping
 SLOT_TO_AUTHORITY: dict[str, SlotAuthority] = {
-    "S0": SlotAuthority.SYSTEM_AUTHORITY,
-    "D0": SlotAuthority.BINDING_AUTHORITY,
-    "I0": SlotAuthority.GOVERNED_AUTHORITY,
-    "C0": SlotAuthority.INFORMATIONAL_AUTHORITY,
-    "E0": SlotAuthority.EXAMPLE_AUTHORITY,
-    "Y0": SlotAuthority.STYLE_AUTHORITY,
-    "U0": SlotAuthority.ZERO_AUTHORITY,
-    "R0": SlotAuthority.SCHEMA_AUTHORITY,
-    "H0": SlotAuthority.REPAIR_HINTS,
-    "M0": SlotAuthority.PROVIDER_RENDER_CONTROL,
+    "S0": SlotAuthority.SYSTEM_AUTHORITY, "D0": SlotAuthority.BINDING_AUTHORITY,
+    "I0": SlotAuthority.GOVERNED_AUTHORITY, "C0": SlotAuthority.INFORMATIONAL_AUTHORITY,
+    "E0": SlotAuthority.EXAMPLE_AUTHORITY, "Y0": SlotAuthority.STYLE_AUTHORITY,
+    "U0": SlotAuthority.ZERO_AUTHORITY, "R0": SlotAuthority.SCHEMA_AUTHORITY,
+    "H0": SlotAuthority.REPAIR_HINTS, "M0": SlotAuthority.PROVIDER_RENDER_CONTROL,
 }
 
 # =============================================================================
@@ -60,43 +49,19 @@ SLOT_TO_AUTHORITY: dict[str, SlotAuthority] = {
 # to override higher-authority slots (S0, D0, I0, R0) must be blocked.
 OVERRIDE_ATTEMPT_PATTERNS: list[str] = [
     # Direct instruction overrides
-    "ignore previous instructions",
-    "ignore the above",
-    "ignore all prior",
-    "disregard previous",
-    "override system instructions",
-    "override the system prompt",
-    "bypass the system",
-    "system prompt override",
-    
+    "ignore previous instructions", "ignore the above", "ignore all prior", "disregard previous",
+    "override system instructions", "override the system prompt", "bypass the system", "system prompt override",
     # Fabrication requests
-    "fabricate metrics",
-    "fabricate achievements",
-    "invent metrics",
-    "invent achievements",
-    "make up numbers",
-    "create fake",
-    
+    "fabricate metrics", "fabricate achievements", "invent metrics",
+    "invent achievements", "make up numbers", "create fake",
     # Source/confidence attacks
-    "do not cite sources",
-    "no need to cite",
-    "skip the sources",
-    "treat jd as candidate experience",
-    "treat job description as experience",
-    "jd proves experience",
-    
+    "do not cite sources", "no need to cite", "skip the sources",
+    "treat jd as candidate experience", "treat job description as experience", "jd proves experience",
     # Schema/format overrides
-    "bypass schema",
-    "ignore the schema",
-    "change output format",
-    "different format than specified",
-    "instead of json",
-    "output as plain text",
-    
+    "bypass schema", "ignore the schema", "change output format",
+    "different format than specified", "instead of json", "output as plain text",
     # Authority confusion
-    "you are now a different",
-    "new instructions replace",
-    "forget your training",
+    "you are now a different", "new instructions replace", "forget your training",
 ]
 
 # Slots that can NEVER contain override attempts (lower authority)

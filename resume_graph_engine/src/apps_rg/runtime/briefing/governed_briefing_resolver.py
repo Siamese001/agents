@@ -15,7 +15,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
-import os
+from infrastructure.config.env_loader import get_env_str
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -68,7 +68,7 @@ class SealedBriefingResolution:
 
 
 def _searxng_available() -> bool:
-    url = os.environ.get("SEARXNG_BASE_URL", "").strip()
+    url = get_env_str("SEARXNG_BASE_URL", "").strip()
     return bool(url and url != "disabled")
 
 

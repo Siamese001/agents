@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-import os
+from infrastructure.config.env_loader import get_env_str
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
@@ -275,7 +275,7 @@ def graph_evidence_cluster_embeddings_required() -> bool:
     """Return the explicit opt-in state; reject malformed boolean values."""
 
     raw = (
-        str(os.environ.get(GRAPH_EVIDENCE_CLUSTER_EMBEDDINGS_REQUIRED_ENV) or "")
+        get_env_str(GRAPH_EVIDENCE_CLUSTER_EMBEDDINGS_REQUIRED_ENV, "")
         .strip()
         .lower()
     )
@@ -460,7 +460,7 @@ def require_graph_evidence_cluster_embedding_activation(
         )
     observed_qualification_sha256 = _file_sha256(qualification_path)
     expected_qualification_sha256 = str(
-        os.environ.get(GRAPH_EVIDENCE_CLUSTER_QUALIFICATION_SHA256_ENV) or ""
+        get_env_str(GRAPH_EVIDENCE_CLUSTER_QUALIFICATION_SHA256_ENV, "")
     ).strip()
     if not _is_sha256(expected_qualification_sha256):
         raise GraphEvidenceClusterEmbeddingActivationError(

@@ -12,11 +12,8 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from apps_rg.runtime.section_binding_taxonomy import (
-    APPS_RG_DOMAIN_ARTIFACTS,
-    APPS_RG_SHIM_ARTIFACTS,
-    CORE_99_DESIGN_ONLY_ARTIFACTS,
-    L7_CORE_ARTIFACTS,
-    design_law_owner_for_artifact,
+    APPS_RG_DOMAIN_ARTIFACTS, APPS_RG_SHIM_ARTIFACTS, CORE_99_DESIGN_ONLY_ARTIFACTS,
+    L7_CORE_ARTIFACTS, design_law_owner_for_artifact,
 )
 from apps_rg.runtime.providers.provider_attempt_spans import summarize_provider_attempt_spans
 
@@ -35,10 +32,8 @@ CLASS_NOT_APPLICABLE = "NOT_APPLICABLE"
 CLASS_CORE_L7_UNTRUSTED = "DRIFT"
 
 DEFAULT_MISSING_L7_SURFACES: tuple[str, ...] = (
-    "apps_rg_how_trace.json",
-    "apps_rg_l7_route_family_coverage.json",
-    "apps_rg_spine_proof.json",
-    "integrated_runtime_artifact_manifest.json",
+    "apps_rg_how_trace.json", "apps_rg_l7_route_family_coverage.json",
+    "apps_rg_spine_proof.json", "integrated_runtime_artifact_manifest.json",
 )
 
 DEFAULT_MISSING_99_SURFACES: tuple[str, ...] = CORE_99_DESIGN_ONLY_ARTIFACTS
@@ -93,11 +88,7 @@ def assess_l7_how_trace_trust(doc: Mapping[str, Any]) -> tuple[bool, str]:
     if not doc:
         return False, "absent"
     pay = _payload(doc)
-    if (
-        pay.get("evidence_plane") == "L7_AUDITABILITY"
-        and pay.get("runtime_subject") == "apps_rg"
-        and pay.get("schema_version")
-    ):
+    if pay.get("evidence_plane") == "L7_AUDITABILITY" and pay.get("runtime_subject") == "apps_rg" and pay.get("schema_version"):
         return True, "l7_how_trace_shape"
     if _producer_component(doc).startswith("apps_rg."):
         return True, "integrated_runtime_envelope"
@@ -108,9 +99,7 @@ def assess_l7_route_family_coverage_trust(doc: Mapping[str, Any]) -> tuple[bool,
     if not doc:
         return False, "absent"
     pay = _payload(doc)
-    if pay.get("evidence_plane") == "L7_AUDITABILITY" and pay.get("evidence_class") == (
-        "ROUTE_FAMILY_COVERAGE_MATRIX"
-    ):
+    if pay.get("evidence_plane") == "L7_AUDITABILITY" and pay.get("evidence_class") == "ROUTE_FAMILY_COVERAGE_MATRIX":
         return True, "l7_route_family_matrix"
     if _producer_component(doc).startswith("apps_rg."):
         return True, "integrated_runtime_envelope"
@@ -595,18 +584,8 @@ def emit_section_l7_binding_manifest(
 
 
 __all__ = [
-    "BINDING_MANIFEST_ARTIFACT",
-    "CLASS_APPS_RG_ADAPTER",
-    "CLASS_APPS_RG_DOMAIN",
-    "CLASS_APPS_RG_SHIM",
-    "CLASS_CORE_99_DESIGN_ONLY",
-    "CLASS_CORE_L7_MISSING",
-    "CLASS_CORE_L7_REF",
-    "CLASS_CORE_L7_UNTRUSTED",
-    "CLASS_NOT_APPLICABLE",
-    "SCHEMA_VERSION",
-    "assess_l7_how_trace_trust",
-    "assess_l7_spine_proof_trust",
-    "build_section_l7_binding_manifest",
-    "emit_section_l7_binding_manifest",
+    "BINDING_MANIFEST_ARTIFACT", "CLASS_APPS_RG_ADAPTER", "CLASS_APPS_RG_DOMAIN", "CLASS_APPS_RG_SHIM",
+    "CLASS_CORE_99_DESIGN_ONLY", "CLASS_CORE_L7_MISSING", "CLASS_CORE_L7_REF", "CLASS_CORE_L7_UNTRUSTED",
+    "CLASS_NOT_APPLICABLE", "SCHEMA_VERSION", "assess_l7_how_trace_trust", "assess_l7_spine_proof_trust",
+    "build_section_l7_binding_manifest", "emit_section_l7_binding_manifest",
 ]
