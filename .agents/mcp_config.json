@@ -1,10 +1,8 @@
 {
   "mcpServers": {
     "gitkraken": {
-      "command": "cmd",
+      "command": "gk",
       "args": [
-        "/c",
-        "gk",
         "mcp"
       ]
     },
@@ -15,45 +13,37 @@
       ]
     },
     "github": {
-      "command": "cmd",
+      "command": "npx",
       "args": [
-        "/c",
-        "if defined GITHUB_PERSONAL_ACCESS_TOKEN (npx -y @modelcontextprotocol/server-github) else (for /f %i in ('gh auth token') do @set GITHUB_PERSONAL_ACCESS_TOKEN=%i&& npx -y @modelcontextprotocol/server-github)"
+        "-y",
+        "@modelcontextprotocol/server-github"
       ]
     },
     "filesystem": {
-      "command": "cmd",
+      "command": "npx",
       "args": [
-        "/c",
-        "npx",
         "-y",
         "@modelcontextprotocol/server-filesystem",
-        "C:\\Git\\agentic"
+        "/Users/amitayer/Git/agents"
       ]
     },
     "notion": {
-      "command": "cmd",
+      "command": "npx",
       "args": [
-        "/c",
-        "npx",
         "-y",
         "@notionhq/notion-mcp-server"
       ]
     },
     "context7": {
-      "command": "cmd",
+      "command": "npx",
       "args": [
-        "/c",
-        "npx",
         "-y",
         "@upstash/context7-mcp"
       ]
     },
     "playwright": {
-      "command": "cmd",
+      "command": "npx",
       "args": [
-        "/c",
-        "npx",
         "-y",
         "@playwright/mcp",
         "--output-dir",
@@ -63,10 +53,8 @@
       ]
     },
     "sequential-thinking": {
-      "command": "cmd",
+      "command": "npx",
       "args": [
-        "/c",
-        "npx",
         "-y",
         "@modelcontextprotocol/server-sequential-thinking"
       ]
@@ -78,7 +66,7 @@
         "mcp<2",
         "mcp-server-sqlite",
         "--db-path",
-        "C:\\Git\\agentic\\artifacts\\apps_rg\\fact_inventory\\augmented_skills_graph.sqlite"
+        "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/fact_inventory/augmented_skills_graph.sqlite"
       ]
     },
     "deepwiki": {

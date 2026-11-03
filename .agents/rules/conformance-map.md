@@ -12,8 +12,8 @@ Traces every `AGENTS.md` section to enforceable rules, skills, hooks, tools, and
 | Type | Path | Coverage |
 | :--- | :--- | :--- |
 | Rule | `.agents/rules/plan-first-enforcement.md` | T2/T3 plan-mode gating, decomposition, and review |
-| Skill | `.agents/skills/structured-reasoning/SKILL.md` | Decomposition and retrieval guidance in plan mode |
-| Hook | `.agents/hooks.json` → `agents-pre-edit-plan-guard` | Mechanical edit blocking on core/apps without approved plan |
+| Skill | `.agents/skills/scope-containment/SKILL.md` | Bounded scope decomposition and retrieval guidance in plan mode |
+| Hook | `.agents/hooks.json` → `agents-implementation-plan-guard` | Mechanical wave plan validation before writing |
 | Tool | `tools/validate_turn_gates.py` | Pre-turn contract integrity check |
 
 ### §"Wave Refactoring Protocol"
@@ -31,14 +31,14 @@ Traces every `AGENTS.md` section to enforceable rules, skills, hooks, tools, and
 | Type | Path | Coverage |
 | :--- | :--- | :--- |
 | Config | `.mcp.json` | Repository MCP Server-of-Record (SSOT) |
-| Skill | `.agents/skills/mcp-integration/SKILL.md` | Procedures for GitKraken, ADG SQLite, deepwiki, memory, etc. |
-| Skill | `.agents/skills/adg-sqlite/SKILL.md` | Structural dependency analysis and graph queries |
+| Rule | `.agents/rules/mcp-config-ssot.md` | MCP configuration and portable transport governance |
+| Skill | `.agents/skills/agents-governance-hygiene/SKILL.md` | Consolidated repository boundary and infrastructure hygiene |
 
 ### §"Notion Workspace Map"
 | Type | Path | Coverage |
 | :--- | :--- | :--- |
-| Doc | `.agents/skills/mcp-integration/agents-tier1-companion.md` | Procedural routing for Notion databases (Backlog, Plans) |
-| Config | `AGENTS.md` L55–L75 | Data source IDs, database write targets, read/write patterns |
+| Rule | `.agents/rules/plan-location.md` | Disk-only plans and Notion workspace routing reference |
+| Config | `AGENTS.md` | Data source IDs, database write targets, read/write patterns |
 
 ### §"Memory"
 | Type | Path | Coverage |
@@ -72,14 +72,15 @@ Traces every `AGENTS.md` section to enforceable rules, skills, hooks, tools, and
 | :--- | :--- | :--- |
 | Config | `pytest.ini` | Autoload ON, `--timeout=180`, default timeout options |
 | Hook | `.agents/hooks.json` → `agents-pytest-scope-guard` | Blocks bare `pytest` sweeps; mandates scoped execution |
-| Hook | `.agents/hooks.json` → `agents-background-task-reaper` | Intercepts background tests and kills tasks running > 2 min |
+| Skill | `.agents/skills/testing-framework/SKILL.md` | Scoped pytest Class A/B run protocol and collection checks |
 
 ### §"Subsystems vs Infrastructure (summary)"
 | Type | Path | Coverage |
 | :--- | :--- | :--- |
-| Rule | `AGENTS.md` L108–L110 | Subsystem encapsulation; autonomous domains, shared utilities in infrastructure |
+| Rule | `AGENTS.md` | Subsystem encapsulation; autonomous domains, shared utilities in infrastructure |
 | Tool | `tools/lint_layer_imports.py` | Unidirectional layer import linter (L0–L6) |
 | Tool | `tools/lint_architecture_boundaries.py` | Cross-subsystem architectural boundary enforcement |
+| Tool | `tools/ssot_boundary_auditor.py` | Full 9-package cross-subsystem, timeout, config drift, and link auditor |
 
 ### §"Rules & Skills SSOT"
 | Type | Path | Coverage |

@@ -258,6 +258,11 @@ def validate_sidecar_separation(
                 violations.append(
                     f"{spec['prompt_file']}: contains raw unreviewed 'merge --no-ff' bypassing pr_governance.py"
                 )
+        det_ep = spec.get("deterministic_entrypoint")
+        if det_ep and (repo_root.resolve() / "tools").is_dir() and not (repo_root.resolve() / str(det_ep)).is_file():
+            violations.append(
+                f"{sidecar_id}: declared deterministic_entrypoint '{det_ep}' missing under {repo_root.resolve()}"
+            )
 
         validated_agents_count += 1
 

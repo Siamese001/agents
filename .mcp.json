@@ -1,7 +1,7 @@
 {
   "mcpServers": {
     "GitKraken": {
-      "command": "${GITKRAKEN_GK_PATH}",
+      "command": "gk",
       "args": ["mcp"],
       "required": false,
       "startup_timeout_sec": 15,
@@ -20,13 +20,11 @@
       "tool_timeout_sec": 120
     },
     "filesystem": {
-      "command": "cmd",
+      "command": "npx",
       "args": [
-        "/c",
-        "npx",
         "-y",
         "@modelcontextprotocol/server-filesystem",
-        "${env:AGENTIC_REPO_ROOT}"
+        "/Users/amitayer/Git/agents"
       ],
       "required": false,
       "startup_timeout_sec": 15,
@@ -39,17 +37,17 @@
       "tool_timeout_sec": 120
     },
     "vector_db": {
-      "command": "python",
-      "args": ["-u", "${AGENTIC_REPO_ROOT}/tools/mcp/vector_db_server.py"],
+      "command": "/Users/amitayer/Git/agents/.venv/bin/python",
+      "args": ["-u", "/Users/amitayer/Git/agents/tools/mcp/vector_db_server.py"],
       "required": false,
       "startup_timeout_sec": 15,
       "tool_timeout_sec": 120,
       "env": {
-        "PYTHONPATH": "${AGENTIC_REPO_ROOT}",
-        "VECTOR_DB_CHROMA_PATH": "${AGENTIC_REPO_ROOT}/data/cache/chromadb",
+        "PYTHONPATH": "/Users/amitayer/Git/agents",
+        "VECTOR_DB_CHROMA_PATH": "/Users/amitayer/Git/agents/resume_graph_engine/data/cache/chromadb",
         "VECTOR_DB_EMBEDDING_MODEL": "BAAI/bge-m3",
-        "VECTOR_DB_DEVICE": "cuda",
-        "EMBEDDING_DEVICE": "cuda",
+        "VECTOR_DB_DEVICE": "mps",
+        "EMBEDDING_DEVICE": "mps",
         "VECTOR_DB_ALLOW_MODEL_DOWNLOAD": "0",
         "VECTOR_DB_ENABLE_MODEL_PREWARM": "1",
         "VECTOR_DB_MODEL_LOAD_TIMEOUT": "75",
@@ -60,8 +58,8 @@
       }
     },
     "notion": {
-      "command": "cmd",
-      "args": ["/c", "npx", "-y", "@notionhq/notion-mcp-server"],
+      "command": "npx",
+      "args": ["-y", "@notionhq/notion-mcp-server"],
       "required": false,
       "startup_timeout_sec": 15,
       "tool_timeout_sec": 120,
@@ -70,17 +68,15 @@
       }
     },
     "context7": {
-      "command": "cmd",
-      "args": ["/c", "npx", "-y", "@upstash/context7-mcp"],
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp"],
       "required": false,
       "startup_timeout_sec": 15,
       "tool_timeout_sec": 120
     },
     "playwright": {
-      "command": "cmd",
+      "command": "npx",
       "args": [
-        "/c",
-        "npx",
         "-y",
         "@playwright/mcp",
         "--output-dir",

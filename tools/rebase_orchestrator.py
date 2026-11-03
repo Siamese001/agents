@@ -136,12 +136,12 @@ def _run_readiness_qualification(branch: str, work_dir: Path) -> bool:
     py = sys.executable
     readiness_script = work_dir / "tools" / "verify_main_readiness.py"
     if readiness_script.exists():
-        proc = subprocess.run([py, str(readiness_script), "--repo-root", str(work_dir)], cwd=work_dir)
+        proc = subprocess.run([py, str(readiness_script), "--repo-root", str(work_dir)], cwd=work_dir, timeout=600)
         return proc.returncode == 0
 
     verify_commit = work_dir / "tools" / "verify_commit.py"
     if verify_commit.exists():
-        proc = subprocess.run([py, str(verify_commit), "--all"], cwd=work_dir)
+        proc = subprocess.run([py, str(verify_commit), "--all"], cwd=work_dir, timeout=300)
         return proc.returncode == 0
 
     return True

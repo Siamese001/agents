@@ -232,10 +232,18 @@ def _run_ssot_drift_checks(
         return errs
 
     report = analyze_drift(repo_root)
-    for item in report.get("unallowlisted_drift_files", []):
-        errs.append(f"[Config SSOT Drift] {item.get('relative_path')}: {item.get('status')}")
-    for item in report.get("data_drift_files", []):
-        errs.append(f"[Data SSOT Drift] {item.get('relative_path')}: {item.get('status')}")
+    cfg_items = report.get("unallowlisted_differing") or report.get("unallowlisted_drift_files") or []
+    for item in cfg_items:
+        if isinstance(item, dict):
+            errs.append(f"[Config SSOT Drift] {item.get('relative_path')}: {item.get('status')}")
+        else:
+            errs.append(f"[Config SSOT Drift] {item}: UNALLOWLISTED")
+    data_items = report.get("data_differing") or report.get("data_drift_files") or []
+    for item in data_items:
+        if isinstance(item, dict):
+            errs.append(f"[Data SSOT Drift] {item.get('relative_path')}: {item.get('status')}")
+        else:
+            errs.append(f"[Data SSOT Drift] data/{item}: UNALLOWLISTED")
 
     return errs
 

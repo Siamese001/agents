@@ -90,9 +90,16 @@ def validate_pre_turn_gate(repo_root: Path | None = None) -> dict[str, Any]:
     else:
         try:
             boundary_data = json.loads(boundary_path.read_text(encoding="utf-8"))
+            allowed_subsystems = boundary_data.get("allowedSubsystems", [])
+            missing_subsystems = [
+                s for s in allowed_subsystems if isinstance(s, str) and not (root / s).exists()
+            ]
+            if missing_subsystems:
+                issues.append(f"runtime-boundary.json declares nonexistent subsystems: {missing_subsystems}")
             checks["runtime_boundary"] = {
-                "status": "PASS",
+                "status": "PASS" if not missing_subsystems else "FAIL",
                 "boundary_rules": len(boundary_data.get("rules", boundary_data.get("boundary", {}))),
+                "allowed_subsystems": len(allowed_subsystems),
             }
         except Exception as exc:
             issues.append(f"Invalid runtime-boundary JSON: {exc}")

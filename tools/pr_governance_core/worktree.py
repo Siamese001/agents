@@ -475,6 +475,7 @@ def _is_branch_merged(branch: str, root: Path = ROOT) -> bool:
             env=sanitized_git_env(),
             capture_output=True,
             check=False,
+            timeout=30,
         )
         return res.returncode == 0
     except Exception:

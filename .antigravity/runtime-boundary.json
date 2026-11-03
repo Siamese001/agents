@@ -1,14 +1,16 @@
 {
   "schemaVersion": "1.0",
   "allowedSubsystems": [
-    "apps_rg_v2",
+    "agents",
+    "apps_model_telemetry",
     "outreach_engine",
-    "apps_exec",
+    "resume_engine",
+    "resume_graph_engine",
     "apps_research",
     "apps_eval",
-    "apps_architect"
+    "infrastructure"
   ],
-  "description": "Root boundary to prevent execution outside decoupled subsystems.",
+  "description": "Root boundary enforcing execution containment across declared repository subsystems.",
   "boundaryLevel": "monorepo_root",
   "projectName": "Agentic-Workflow"
 }

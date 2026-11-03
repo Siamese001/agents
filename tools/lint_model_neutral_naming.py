@@ -25,7 +25,12 @@ PRODUCTION_DIRECTORIES: tuple[str, ...] = (
     "storage",
     "resume_graph_engine/src",
     "resume_graph_engine/tools",
+    "resume_engine",
     "apps_research",
+    "apps_eval",
+    "apps_model_telemetry",
+    "infrastructure",
+    "ops_scripts",
     "outreach_engine/src",
     "agents",
 )
@@ -75,6 +80,7 @@ EXEMPT_PATH_PATTERNS = [
     re.compile(r"^plans/live-llm-enforcement-wave1-b7d14e\.md$"),
     re.compile(r"(?:^|/)tests/"),
     re.compile(r"^scratch/"),
+    re.compile(r"^infrastructure/sdks_mcps/gemini_client\.py$"),
     re.compile(r"^resume_graph_engine/src/apps_rg/runtime/judges/bullet_pool_claude_selector\.py$"),
 ]
 

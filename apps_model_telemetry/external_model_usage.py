@@ -241,7 +241,7 @@ def append_external_model_usage(
         from apps_model_telemetry.pricing import price_usage
 
         cost_usd, pricing_version, _ = price_usage(str(model or ""), normalized, provider=str(provider or ""))
-    except Exception:
+    except Exception:  # guardian: allow-silent-swallow -- non-blocking pricing enrichment fallback
         pass
     event: dict[str, Any] = {
         "schema_version": EVENT_SCHEMA_VERSION,

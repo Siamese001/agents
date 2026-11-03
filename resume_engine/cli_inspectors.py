@@ -78,7 +78,7 @@ def handle_models(args: argparse.Namespace) -> int:
         "status": "PASS",
         "registry_id": registry_id,
         "canonical_digest": canonical_digest,
-        "embedding_model": "BAAI/bge-m3",
+        "embedding_model": "BAAI/bge-m3",  # guardian: allow-model-id -- canonical BGE-M3 embedding model
         "embedding_dimension": 1024,
         "generation_pins": generation_pins,
         "backup_pins": backup_pins,
@@ -106,7 +106,7 @@ def handle_models(args: argparse.Namespace) -> int:
     else:
         print(f"Registry ID:        {registry_id}")
         print(f"Canonical Digest:   {canonical_digest}")
-        print("Embedding Model:    BAAI/bge-m3 (dim: 1024)")
+        print("Embedding Model:    BAAI/bge-m3 (dim: 1024)")  # guardian: allow-model-id -- CLI summary display
         print(f"Profiles File:      {profile_path}")
         print("\n--- Section Generation Pins ---")
         for sec, pin in sorted(generation_pins.items()):

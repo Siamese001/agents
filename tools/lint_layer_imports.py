@@ -22,7 +22,12 @@ PRODUCTION_DIRECTORIES: tuple[str, ...] = (
     "dual_pipeline",
     "storage",
     "resume_graph_engine/src",
+    "resume_engine",
     "apps_research",
+    "apps_eval",
+    "apps_model_telemetry",
+    "infrastructure",
+    "ops_scripts",
     "outreach_engine/src",
     "agents",
 )
