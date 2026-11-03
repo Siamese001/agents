@@ -30,12 +30,12 @@ Execute a deterministic, fail-closed **Testing Gaps, Edge-Case Regression, Mock 
 ## 3. Phase 1 & Phase 1.5: 6-Pillar Read-Only Preflight Audit & Fast-Exit Gate
 
 ### Phase 1: 6-Pillar Testing Gaps Audit
-1. **Pillar 1 — Untested Critical Public Entrypoints**: Identify public classes and functions across `agents/`, `outreach_engine/`, `resume_engine/`, `resume_graph_engine/src/`, `apps_research/`, `apps_eval/`, `apps_model_telemetry/`, and `infrastructure/` with zero corresponding test references across the 4 test roots (`tests/`, `resume_graph_engine/tests/`, `outreach_engine/tests/`, `apps_eval/tests/`).
+1. **Pillar 1 — 11-Root Public Entrypoint & Module Coverage Floors (`>= 65%` Symbol, `>= 90%` Module)**: Audit public classes and functions across all 11 executable roots (`agents/`, `outreach_engine/`, `resume_engine/`, `resume_graph_engine/`, `apps_research/`, `apps_eval/`, `apps_model_telemetry/`, `infrastructure/`, `ops_scripts/`, `scripts/`, and `tools/`) against all 6 test surfaces (`tests/`, `resume_graph_engine/tests/`, `outreach_engine/tests/`, `apps_eval/tests/`, `scripts/local_llm/`, `resume_graph_engine/src/apps_rg/evals/` — 959+ test files), enforcing `MIN_SYMBOL_COVERAGE_RATIO = 0.65` and `MIN_MODULE_COVERAGE_RATIO = 0.90`.
 2. **Pillar 2 — Cross-Subsystem Contract Regression Tests**: Verify dedicated contract tests exist for `apps_research` -> `outreach_engine` and `apps_research` -> `resume_graph_engine` handoffs (including malformed, empty, and partial research packets).
 3. **Pillar 3 — Constitutional Skip / Xfail Hygiene**: Detect any `@pytest.mark.skip` missing an explicit `reason=...` or any `@pytest.mark.xfail` missing `strict=True`.
-4. **Pillar 4 — Sync & Async Weak Assertion Detection**: Flag synchronous (`ast.FunctionDef`) and async (`ast.AsyncFunctionDef`) `test_*` functions across all 4 test roots that contain zero `assert` / `pytest.raises` / `mock.assert_*` statements.
-5. **Pillar 5 — Production Mock Reachability & Determinism (`audit_mock_reachability.py`)**: Verify zero unguarded mock branches exist in production roots and unit tests isolate external network calls cleanly.
-6. **Pillar 6 — Governance, Sidecar Separation & Git Hook Enforcement (`.githooks/`)**: Verify `tests/unit/test_sidecar_separation_governance.py`, `tests/test_turn_gates.py`, and executable permissions on `.githooks/{pre-commit,pre-merge-commit,pre-push,post-merge}` pass 100%.
+4. **Pillar 4 — Sync & Async Weak Assertion Detection Across All 6 Test Surfaces**: Flag synchronous (`ast.FunctionDef`) and async (`ast.AsyncFunctionDef`) `test_*` functions across all 6 test surfaces that contain zero `assert` / `pytest.raises` / `mock.assert_*` statements.
+5. **Pillar 5 — 11-Root Production Mock Reachability & Determinism (`audit_mock_reachability.py`)**: Verify zero unguarded mock branches exist across all 11 production roots and unit tests isolate external network calls cleanly.
+6. **Pillar 6 — Quarantine Ceiling (`MAX_QUARANTINED_IGNORES = 2`), Sidecar Separation & Git Hook Enforcement (`.githooks/`)**: Verify multi-`pytest.ini` `--timeout=` and `--ignore=` quarantine limits (`<= 2`, restricted to `lib`/`lib64`), misplaced `src/` test exclusion, live scoped pytest smoke, and executable permissions on `.githooks/{pre-commit,pre-merge-commit,pre-push,post-merge}` pass 100%.
 
 ### Mandatory 6-Field Testing Gap Admission Proof
 Every candidate test gap MUST declare:
@@ -53,12 +53,14 @@ Execute the fail-closed 6-pillar behavioral testing gaps auditor (`tools/testing
 export PRIMARY_REPO_ROOT="/Users/amitayer/Git/agents"
 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/testing_gaps_auditor.py" \
   --repo-root "${PRIMARY_REPO_ROOT}" \
+  --include-uncovered-backlog \
+  --execute-pytest-smoke \
   --json
 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/audit_mock_reachability.py" --repo-root "${PRIMARY_REPO_ROOT}"
-"${PRIMARY_REPO_ROOT}/.venv/bin/pytest" "${PRIMARY_REPO_ROOT}/tests/unit/test_sidecar_separation_governance.py" -v --timeout=60
+"${PRIMARY_REPO_ROOT}/.venv/bin/pytest" "${PRIMARY_REPO_ROOT}/tests/unit/test_testing_gaps_full_parity.py" "${PRIMARY_REPO_ROOT}/tests/unit/test_all_seven_agents_coverage_elevation.py" "${PRIMARY_REPO_ROOT}/tests/unit/test_resume_graph_and_core_coverage_elevation.py" -q --timeout=60
 ```
 
-Verify `testing_gaps_auditor.py` exits `0` (`zero_assertion_tests == []`, `unreasoned_skips == []`, `non_strict_xfails == []`, `mock_reachability_violations == []`) across all 4 test roots (`tests`, `resume_graph_engine/tests`, `outreach_engine/tests`, `apps_eval/tests`, covering both `FunctionDef` and `AsyncFunctionDef`); if clean, fast-exit `COMPLETE` (`PREFLIGHT_ZERO_DEFECT_FAST_EXIT`).
+Verify `testing_gaps_auditor.py` exits `0` (`zero_assertion_tests == []`, `unreasoned_skips == []`, `non_strict_xfails == []`, `mock_reachability_violations == []`, zero uncovered module backlog) across all 6 test surfaces (`tests`, `resume_graph_engine/tests`, `outreach_engine/tests`, `apps_eval/tests`, `scripts/local_llm`, `resume_graph_engine/src/apps_rg/evals`); if `BACKLOG_ACTION_REQUIRED` (`exit code 1`), proceed to Phase 0 and author behavioral unit tests for uncovered modules.
 
 ---
 

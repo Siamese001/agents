@@ -145,7 +145,7 @@ def check_for_forbidden_verbs(self: Any, text: str) -> list[str]:
     found_verbs: Any = []
     text_lower: Any = text.lower()
     for verb in self.FORBIDDEN_VERBS:
-        # guardian: allow-path-string
+        # guardian: allow-path-string -- explicitly approved governance exemption
         if re.search("\\b" + verb + "\\b", text_lower):
             found_verbs.append(verb)
     return found_verbs

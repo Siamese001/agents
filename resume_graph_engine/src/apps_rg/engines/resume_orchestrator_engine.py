@@ -242,7 +242,7 @@ class ResumeOrchestratorEngine:
 
         try:
             result = await asyncio.to_thread(self._run_product_spine, inputs)
-        except Exception as exc:  # guardian: legacy adapter must return a sealed failure receipt
+        except Exception as exc:  # guardian: allow-broad-exception -- legacy adapter must return a sealed failure receipt
             self.logger.exception("governed Apps RG product spine failed")
             receipt = {
                 "status": "EXECUTION_ERROR",

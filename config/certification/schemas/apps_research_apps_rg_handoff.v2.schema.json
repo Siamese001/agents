@@ -13,6 +13,7 @@
     "producer",
     "raw_input",
     "normalized_input",
+    "model_observations",
     "mandatory_gate_receipts",
     "exit_authorization",
     "artifact_manifest",
@@ -27,6 +28,7 @@
     "producer": {"$ref": "#/$defs/ProducerAttestation"},
     "raw_input": {"$ref": "#/$defs/InputDigest"},
     "normalized_input": {"$ref": "#/$defs/NormalizedInputDigest"},
+    "model_observations": {"$ref": "#/$defs/ModelObservations"},
     "mandatory_gate_receipts": {"$ref": "#/$defs/MandatoryGateReceipts"},
     "exit_authorization": {"$ref": "#/$defs/ExitAuthorization"},
     "artifact_manifest": {"$ref": "#/$defs/ArtifactManifest"},
@@ -97,6 +99,39 @@
         "byte_length": {"type": "integer", "minimum": 1},
         "normalization_profile_hash": {"$ref": "#/$defs/Sha256"},
         "raw_input_sha256": {"$ref": "#/$defs/Sha256"}
+      }
+    },
+    "ModelObservation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "role", "provider", "requested_model", "reasoning_effort", "observed_model", "status",
+        "receipt_source"
+      ],
+      "properties": {
+        "role": {"type": "string", "minLength": 1},
+        "provider": {"type": "string", "minLength": 1},
+        "requested_model": {"type": "string", "minLength": 1},
+        "reasoning_effort": {
+          "type": "string",
+          "enum": ["none", "low", "medium", "high", "xhigh", "max"]
+        },
+        "observed_model": {
+          "type": "string",
+          "minLength": 1,
+          "not": {"const": "MODEL_NOT_OBSERVED"}
+        },
+        "status": {"const": "OBSERVED_PROVIDER_RESPONSE"},
+        "receipt_source": {"type": "string", "minLength": 1}
+      }
+    },
+    "ModelObservations": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["generation", "judge"],
+      "properties": {
+        "generation": {"$ref": "#/$defs/ModelObservation"},
+        "judge": {"$ref": "#/$defs/ModelObservation"}
       }
     },
     "GateReceipt": {
@@ -219,6 +254,9 @@
         "committed_bundle_ref",
         "commit_marker_ref",
         "commit_marker_sha256",
+        "artifact_runs_root",
+        "final_bundle_digest",
+        "directory_fsync",
         "consumer_validation_receipt_name"
       ],
       "properties": {
@@ -227,6 +265,18 @@
         "committed_bundle_ref": {"type": "string", "minLength": 1},
         "commit_marker_ref": {"type": "string", "minLength": 1},
         "commit_marker_sha256": {"$ref": "#/$defs/Sha256"},
+        "artifact_runs_root": {"type": "string", "minLength": 1},
+        "final_bundle_digest": {"$ref": "#/$defs/Sha256"},
+        "directory_fsync": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["platform", "stage", "root"],
+          "properties": {
+            "platform": {"type": "string", "minLength": 1},
+            "stage": {"enum": ["PASS", "UNSUPPORTED"]},
+            "root": {"enum": ["PASS", "UNSUPPORTED"]}
+          }
+        },
         "consumer_validation_receipt_name": {"const": "apps_research_handoff_validation_receipt.json"}
       }
     }

@@ -77,14 +77,26 @@ def test_e2e_auditor_scans_all_11_roots_for_silent_swallows(tmp_path: Path) -> N
     assert len(findings) == 1
     assert findings[0]["file"] == "ops_scripts/bad_ops.py"
 
+    # Multi-statement silent swallow or bare `# guardian:` without `-- <rationale>` must also fail closed
+    (ops_dir / "multi_stmt_swallow.py").write_text(
+        "def run_multi() -> list:\n"
+        "    try:\n"
+        "        return [1]\n"
+        "    except Exception:  # guardian: allow-silent-swallow\n"
+        "        x = 0\n"
+        "        return []\n",
+        encoding="utf-8",
+    )
+    findings_multi = scan_unguarded_silent_swallows(tmp_path)
+    assert len(findings_multi) == 2
+
 
 def test_retrieval_auditor_enforces_return_types_without_filename_regex_bypass(tmp_path: Path) -> None:
-    assert "infrastructure" in RETRIEVAL_PACKAGES
-    assert "outreach_engine" in RETRIEVAL_PACKAGES
-    assert "resume_graph_engine" in RETRIEVAL_PACKAGES
+    assert set(RETRIEVAL_PACKAGES) == set(AUDITED_PACKAGES)
+    assert len(RETRIEVAL_PACKAGES) == 11
     assert scan_untyped_public_retrieval_callables(REPO_ROOT) == []
 
-    # File with non-retrieval name inside infrastructure/ must NOT be skipped
+    # File with non-retrieval name inside infrastructure/ and tools/ must NOT be skipped
     infra_dir = tmp_path / "infrastructure" / "utils"
     infra_dir.mkdir(parents=True)
     (infra_dir / "plain_helper_module.py").write_text(
@@ -92,9 +104,16 @@ def test_retrieval_auditor_enforces_return_types_without_filename_regex_bypass(t
         "    return x + 1\n",
         encoding="utf-8",
     )
+    tools_dir = tmp_path / "tools"
+    tools_dir.mkdir(parents=True)
+    (tools_dir / "untyped_tool.py").write_text(
+        "def run_check(flag: bool):\n"
+        "    return flag\n",
+        encoding="utf-8",
+    )
     missing = scan_untyped_public_retrieval_callables(tmp_path)
-    assert len(missing) == 1
-    assert missing[0]["callable"] == "compute_metric"
+    assert len(missing) == 2
+    assert {m["callable"] for m in missing} == {"compute_metric", "run_check"}
 
 
 def test_live_e2e_and_retrieval_auditors_pass_all_pillars() -> None:

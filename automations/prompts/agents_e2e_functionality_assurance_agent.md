@@ -29,8 +29,8 @@ Execute a deterministic, fail-closed **Core Orchestration (`agents/`), Outreach 
 1. **Pillar 1 — `apps_research` -> `outreach_engine` (`apps_lic`) Handoff Integrity (`AppsResearchBridge`, `GovernedResearchRun`)**: Verify research brief schemas, `AppsResearchBridge` / `GovernedResearchRun` handoff contracts, recipient context blocks, and citation fields pass cleanly into outreach campaign generators without dropped keys or silent fallback to empty strings.
 2. **Pillar 2 — `apps_research` -> `resume_engine` / `resume_graph_engine` (`apps_rg`) Handoff Integrity (`ResearchRetrievalEngine`)**: Verify role requirements, `ResearchRetrievalEngine` evidence packets, competency graphs, and domain evidence flow into resume graph nodes and tailored bullet synthesis without schema mismatch.
 3. **Pillar 3 — Core Orchestration & Campaign Guardrail Gates (`agents/`)**: Verify `agents/orchestration/`, `agents/persistence/`, and `outreach_engine/` enforce state contracts, personalization ground-truth, and deterministic serialization via `ops_scripts/run_e2e_authoritative_smoke.py`.
-4. **Pillar 4 — Resume Graph Traversal & Bullet Synthesis**: Verify `resume_graph_engine` DAG traversal, experience node selection, and metric preservation never fabricate ungrounded claims.
-5. **Pillar 5 — Error Propagation & Fail-Closed Recovery**: Detect swallowed exceptions, silent `None` returns, or unguarded retries across all 11 executable repository roots (`agents/`, `apps_eval/`, `apps_model_telemetry/`, `apps_research/`, `infrastructure/`, `ops_scripts/`, `outreach_engine/`, `resume_engine/`, `resume_graph_engine/`, `scripts/`, and `tools/`).
+4. **Pillar 4 — Resume CLI (`resume_engine.cli`) & Graph Traversal Synthesis**: Verify live `resume_engine.cli` smoke probes (`--help` and deterministic role dispatch), `resume_graph_engine` DAG traversal, experience node selection, and metric preservation never fabricate ungrounded claims.
+5. **Pillar 5 — AST Subtree Error Propagation & Fail-Closed Recovery**: Walk full `except` handler AST subtrees to detect single- and multi-statement swallowed exceptions lacking logging, re-raise, typed error returns, or `# guardian: <cat> -- <rationale>` across all 11 executable repository roots (`agents/`, `apps_eval/`, `apps_model_telemetry/`, `apps_research/`, `infrastructure/`, `ops_scripts/`, `outreach_engine/`, `resume_engine/`, `resume_graph_engine/`, `scripts/`, and `tools/`).
 6. **Pillar 6 — Production Derivation Integrity**: Run `tools/lint_production_purity.py` to confirm zero golden test fixtures substitute for runtime derivation.
 
 ### Mandatory 8-Field E2E Criticality Admission Proof
@@ -58,6 +58,7 @@ export PRIMARY_REPO_ROOT="/Users/amitayer/Git/agents"
   --read-only
 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/run_resume_graph_traversal_probe.py" --max-paths 200
 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/verify_release_gate.py" --root "${PRIMARY_REPO_ROOT}" --no-write --json
+"${PRIMARY_REPO_ROOT}/.venv/bin/pytest" "${PRIMARY_REPO_ROOT}/tests/unit/test_e2e_and_retrieval_full_parity.py" -q --timeout=60
 ```
 
 Verify that `e2e_functionality_auditor.py`, `run_e2e_authoritative_smoke.py --read-only`, and `run_resume_graph_traversal_probe.py` report `PASS` with `direct_graph_traversal == true` and non-zero multi-hop paths; if clean, exit `COMPLETE` (`PREFLIGHT_ZERO_DEFECT_FAST_EXIT`).

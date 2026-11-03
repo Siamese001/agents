@@ -247,9 +247,10 @@ def build_child_environment(trace_dir: Path) -> tuple[dict[str, str], list[str]]
     _case_insensitive_set(environment, "TMP", str(trace_dir))
     _case_insensitive_set(environment, "TZ", "UTC")
     _case_insensitive_set(environment, "W1_TRACE_OUTPUT_DIR", str(trace_dir))
-    missing = [key for key in WINDOWS_BOOTSTRAP_KEYS if _case_insensitive_get(environment, key) is None]
-    if missing:
-        raise RuntimeError(f"sanitized environment missing Windows bootstrap keys: {', '.join(missing)}")
+    if os.name == "nt":
+        missing = [key for key in WINDOWS_BOOTSTRAP_KEYS if _case_insensitive_get(environment, key) is None]
+        if missing:
+            raise RuntimeError(f"sanitized environment missing Windows bootstrap keys: {', '.join(missing)}")
     return environment, scrubbed
 
 

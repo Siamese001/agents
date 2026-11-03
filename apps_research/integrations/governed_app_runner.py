@@ -11,14 +11,15 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
+from infrastructure.config.env_loader import get_env_bool
+
 _log = logging.getLogger(__name__)
 
 _STRICT_GOVERNANCE_ENV = "STRICT_GOVERNANCE"
 
 
 def _strict_governance_enabled() -> bool:
-    raw = os.environ.get(_STRICT_GOVERNANCE_ENV, "").strip().lower()
-    return raw in ("1", "true", "yes", "on")
+    return get_env_bool(_STRICT_GOVERNANCE_ENV, False)
 
 
 class GovernanceContractViolation(RuntimeError):

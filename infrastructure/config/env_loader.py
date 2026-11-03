@@ -13,6 +13,11 @@ def get_env_str(name: str, default: str = "") -> str:
     return value if value is not None else default
 
 
+def set_env_default(name: str, default: str) -> str:
+    """Set environment variable default when unset and return the active value."""
+    return os.environ.setdefault(name, default)
+
+
 def get_env_bool(name: str, default: bool = False) -> bool:
     """Return boolean environment variable value using canonical truthy tokens."""
     raw = os.environ.get(name)

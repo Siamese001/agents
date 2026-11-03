@@ -66,8 +66,15 @@ def _is_empty_return_expr(expr: ast.AST | None) -> bool:
     return False
 
 
+def _has_valid_guardian_rationale(line_txt: str, prev_txt: str) -> bool:
+    for txt in (line_txt, prev_txt):
+        if "guardian:" in txt and "--" in txt.split("guardian:", 1)[1]:
+            return True
+    return False
+
+
 def scan_unguarded_silent_swallows(repo_root: Path) -> list[dict[str, Any]]:
-    """Fail-closed AST scan for unguarded broad except blocks returning empty values."""
+    """Fail-closed AST scan for unguarded broad except blocks returning empty values across handler subtrees."""
     findings: list[dict[str, Any]] = []
     for pkg in AUDITED_PACKAGES:
         base = repo_root / pkg
@@ -90,10 +97,10 @@ def scan_unguarded_silent_swallows(repo_root: Path) -> list[dict[str, Any]]:
                     continue
                 line_txt = lines[node.lineno - 1] if 1 <= node.lineno <= len(lines) else ""
                 prev_txt = lines[node.lineno - 2] if 2 <= node.lineno <= len(lines) else ""
-                if "guardian:" in line_txt or "guardian:" in prev_txt:
+                if _has_valid_guardian_rationale(line_txt, prev_txt):
                     continue
-                for stmt in node.body:
-                    if isinstance(stmt, ast.Return) and _is_empty_return_expr(stmt.value):
+                for sub in ast.walk(node):
+                    if isinstance(sub, ast.Return) and _is_empty_return_expr(sub.value):
                         findings.append(
                             {
                                 "file": rel,
@@ -308,6 +315,23 @@ def _probe_authoritative_e2e_smoke(repo_root: Path, *, read_only: bool) -> dict[
         )
         if proc.returncode != 0:
             cli_probes_passed = False
+
+    resume_cli_proc = subprocess.run(
+        [sys.executable, "-m", "resume_engine.cli", "--help"],
+        cwd=str(repo_root),
+        capture_output=True,
+        text=True,
+        shell=False,
+        timeout=30,
+    )
+    if resume_cli_proc.returncode != 0:
+        cli_probes_passed = False
+
+    inspectors_mod = _require_module(repo_root, "resume_engine/cli_inspectors.py")
+    models_rc = inspectors_mod.handle_models(argparse.Namespace(json=True, role="executive_summary"))
+    cache_rc = inspectors_mod.handle_cache(argparse.Namespace(json=True))
+    if models_rc != 0 or cache_rc != 0:
+        cli_probes_passed = False
 
     gaps: list[str] = []
     if rc != 0:

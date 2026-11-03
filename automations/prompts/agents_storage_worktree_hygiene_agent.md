@@ -26,21 +26,22 @@ Execute a deterministic, fail-closed **Storage, Worktree, Scratch, and SQLite Hy
 ## 3. Phase 1 & Phase 1.5: 6-Pillar Read-Only Preflight Audit & Fast-Exit Gate
 
 ### Phase 1: 6-Pillar Hygiene Audit
-1. **Pillar 1 — Worktree & Branch Drift**: Detect stale worktrees in `git worktree list --porcelain` and non-active local branches already merged into `main` (`git branch --merged main`), respecting `.sidecar_active_run.lock` leases and dirty worktrees.
+1. **Pillar 1 — Worktree, Zombie Chat Shell & Branch Drift**: Detect stale worktrees in `git worktree list --porcelain`, orphaned external IDE chat worktree shells (`~/.gemini/antigravity/worktrees/agents/*` excluding active `PWD`/`OLDPWD`), and non-active local branches already merged into `main` (`git branch --merged main`), respecting `.sidecar_active_run.lock` leases and dirty worktrees.
 2. **Pillar 2 — SQLite Integrity & Journal Mode**: Verify `PRAGMA integrity_check` and `PRAGMA journal_mode=WAL` across all repository SQLite/Chroma/vector databases (`artifacts/governance/hitl_decisions.sqlite`, `artifacts/learning/feedback_learning.sqlite`, `resume_graph_engine/artifacts/apps_rg/fact_inventory/augmented_skills_graph.sqlite`, `resume_graph_engine/data/cache/chromadb/**/chroma.sqlite3`, `resume_graph_engine/data/cache/sparse/fact_vectors.db`).
 3. **Pillar 3 — WAL / SHM Bloat Detection**: Flag `-wal` or `-shm` sidecar files exceeding `32 MB` that require `PRAGMA wal_checkpoint(TRUNCATE)`.
-4. **Pillar 4 — Ephemeral Artifact Sprawl, Duplicate Models, Runtime Proof Retention & Storage Inventory**: Flag ephemeral sprawl (`artifacts/sidecar_runs/`, `artifacts/mcp/playwright/`, `.pytest_cache/`, duplicate `resume_graph_engine/artifacts/models/`, unretained `resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_*` runs beyond the newest active run and pointer-protected runs, unretained `resume_graph_engine/.runtime/tests/` runs, and repository-wide `__pycache__` trees > `500 MB`) alongside the full storage inventory.
+4. **Pillar 4 — Ephemeral Artifact Sprawl, Duplicate Models, Runtime Proof Retention & Storage Inventory**: Flag ephemeral sprawl (`artifacts/sidecar_runs/`, `artifacts/mcp/playwright/`, `.pytest_cache/` > `50 MB`, duplicate `resume_graph_engine/artifacts/models/`, unretained `resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_*` runs beyond the newest active run and pointer-protected runs, unretained `resume_graph_engine/.runtime/tests/` runs, and any repository `__pycache__` directory count `> 0`) alongside the full storage inventory.
 5. **Pillar 5 — Stale Lock, Provisioning Lock & Scratch Sweep**: Identify orphaned `.lock`/`.tmp` files and `.worktrees/.provisioning.lock` older than 24 hours plus any cross-repo/credential leaks inside `scratch/`.
 6. **Pillar 6 — Cross-Repository Isolation Verification**: Run `tools/validate_sidecar_separation.py --repo-root "${PRIMARY_REPO_ROOT}" --json` to confirm zero namespace, schedule, or routing drift.
 
 ### Phase 1.5: Mandatory Executable Read-Only Preflight Scanner
-Execute the bounded 6-pillar read-only scanner CLI (`timeout <= 60s`):
+Execute the bounded 6-pillar read-only scanner CLI and scoped unit verification (`timeout <= 60s`):
 
 ```bash
 export PRIMARY_REPO_ROOT="/Users/amitayer/Git/agents"
 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/storage_worktree_hygiene.py" \
   --repo-root "${PRIMARY_REPO_ROOT}" \
   --json
+"${PRIMARY_REPO_ROOT}/.venv/bin/pytest" "${PRIMARY_REPO_ROOT}/tests/unit/test_storage_hygiene_full_repo_remediation.py" -q --timeout=60
 ```
 
 If `storage_worktree_hygiene.py` exits `0` (`"status": "PASS"`, `"is_clean": true`), fast-exit `COMPLETE` (`PREFLIGHT_ZERO_DEFECT_FAST_EXIT`).

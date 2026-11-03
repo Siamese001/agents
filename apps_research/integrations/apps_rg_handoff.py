@@ -50,6 +50,7 @@ from apps_research.integrations.provider_gateway import (
     invoke_gemini_handoff_judge,
 )
 from apps_model_telemetry.token_budget_governor import TokenBudgetPolicy, estimate_input_tokens
+from infrastructure.config.env_loader import get_env_str
 
 _GENERATION_PIN = company_brief_generation_pin()
 _JUDGE_PIN = apps_rg_handoff_judge_pin()
@@ -85,8 +86,7 @@ _RETRYABLE_JUDGE_TRANSPORT_MARKERS = (
 
 def _apps_rg_handoff_x2_max_attempts() -> int:
     """Allow a bounded live validation to fail closed without a second judge call."""
-
-    raw = os.environ.get("APPS_RG_HANDOFF_X2_MAX_ATTEMPTS", "").strip()
+    raw = get_env_str("APPS_RG_HANDOFF_X2_MAX_ATTEMPTS", "").strip()
     if not raw:
         return APPS_RG_HANDOFF_X2_MAX_ATTEMPTS
     try:
@@ -96,16 +96,10 @@ def _apps_rg_handoff_x2_max_attempts() -> int:
 
 
 def _resolve_google_api_key() -> str:
-    """Resolve the Gemini credential used by the Apps RG handoff judge.
-
-    ``GoogleJudge`` requires the key as an explicit transport argument.  The
-    broader Apps RG runtime already treats ``GOOGLE_API_KEY`` as canonical and
-    ``GEMINI_API_KEY`` as its legacy fallback, so the research handoff must use
-    the same resolution order rather than constructing an invalid judge.
-    """
+    """Resolve the Gemini credential used by the Apps RG handoff judge."""
     return (
-        os.environ.get("GOOGLE_API_KEY", "").strip()
-        or os.environ.get("GEMINI_API_KEY", "").strip()
+        get_env_str("GOOGLE_API_KEY", "").strip()
+        or get_env_str("GEMINI_API_KEY", "").strip()
     )
 
 
@@ -155,7 +149,7 @@ def _x2_prompt_budget_receipt(
     research_notes: str,
     source_register: list[dict[str, Any]] | tuple[dict[str, Any], ...],
 ) -> dict[str, int | bool]:
-    raw_cap = str(os.environ.get("APPS_RESEARCH_X2_MAX_INPUT_TOKENS") or "").strip()
+    raw_cap = get_env_str("APPS_RESEARCH_X2_MAX_INPUT_TOKENS", "").strip()
     try:
         cap = int(raw_cap) if raw_cap else 24_000
     except ValueError:

@@ -21,6 +21,7 @@ import ast
 import json
 import os
 import re
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any, Sequence
@@ -60,9 +61,9 @@ PYTEST_INI_PATHS: tuple[str, ...] = (
 PROTECTED_TEST_ROOTS: frozenset[str] = frozenset(
     {"tests", "outreach_engine/tests", "resume_graph_engine/tests", "apps_eval/tests", "scripts/local_llm"}
 )
-MAX_QUARANTINED_IGNORES: int = 7
-MIN_SYMBOL_COVERAGE_RATIO: float = 0.15
-MIN_MODULE_COVERAGE_RATIO: float = 0.50
+MAX_QUARANTINED_IGNORES: int = 2
+MIN_SYMBOL_COVERAGE_RATIO: float = 0.65
+MIN_MODULE_COVERAGE_RATIO: float = 0.90
 MIN_SYMBOLS_FOR_RATIO_GATE: int = 10
 
 REQUIRED_GITHOOKS: tuple[str, ...] = (
@@ -236,7 +237,12 @@ def _audit_pytest_inis_and_src_layout(root: Path) -> tuple[list[str], list[str],
     return issues, quarantined_ignores, misplaced_src_tests
 
 
-def run_testing_gaps_audit(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
+def run_testing_gaps_audit(
+    repo_root: Path = REPO_ROOT,
+    *,
+    include_uncovered_backlog: bool = False,
+    execute_pytest_smoke: bool = False,
+) -> dict[str, Any]:
     """Execute the 6-pillar testing gaps, assertion strength, skip/xfail, and mock reachability audit."""
     root = repo_root.resolve()
     referenced_symbols: set[str] = set()
@@ -415,6 +421,29 @@ def run_testing_gaps_audit(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
     ini_issues, quarantined_ignores, misplaced_src_tests = _audit_pytest_inis_and_src_layout(root)
     hook_issues.extend(ini_issues)
 
+    pytest_smoke_rc: int | None = None
+    if execute_pytest_smoke:
+        smoke_targets = [
+            rel_t
+            for rel_t in (
+                "tests/unit/test_sidecar_separation_governance.py",
+                "tests/unit/test_ssot_centralization_auditor.py",
+            )
+            if (root / rel_t).is_file()
+        ]
+        if smoke_targets:
+            proc = subprocess.run(
+                [sys.executable, "-m", "pytest", *smoke_targets, "-q", "--timeout=60"],
+                cwd=root,
+                capture_output=True,
+                text=True,
+                timeout=90,
+                check=False,
+            )
+            pytest_smoke_rc = proc.returncode
+            if proc.returncode != 0:
+                hook_issues.append(f"Scoped pytest smoke failed with exit code {proc.returncode}")
+
     has_research = (root / "apps_research").is_dir()
     needs_lic_handoff = has_research and (root / "outreach_engine").is_dir()
     needs_rg_handoff = has_research and (root / "resume_graph_engine").is_dir()
@@ -435,15 +464,31 @@ def run_testing_gaps_audit(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
         "pillar_6_hooks_and_pytest_governance": "PASS" if (not hook_issues and not sleep_violations) else "FAIL",
     }
     handoff_union = sorted({*outreach_handoff_tests, *resume_handoff_tests})
-    is_clean = all(v == "PASS" for v in pillar_status.values())
+    total_uncovered_modules = sum(v["uncovered_module_count"] for v in package_coverage.values())
+    strict_clean = all(v == "PASS" for v in pillar_status.values())
+    if not strict_clean:
+        status = "FAIL"
+        is_clean = False
+    elif include_uncovered_backlog and total_uncovered_modules > 0:
+        status = "BACKLOG_ACTION_REQUIRED"
+        is_clean = False
+    else:
+        status = "PASS"
+        is_clean = True
     return {
-        "status": "PASS" if is_clean else "FAIL",
+        "status": status,
         "is_clean": is_clean,
         "repo_root": str(root),
         "pillar_status": pillar_status,
         "test_root_file_counts": root_counts,
         "total_test_files_scanned": sum(root_counts.values()),
         "package_coverage": package_coverage,
+        "uncovered_backlog": {
+            "total_uncovered_modules": total_uncovered_modules,
+            "quarantined_ignore_count": len(quarantined_ignores),
+        },
+        "pytest_smoke_executed": execute_pytest_smoke,
+        "pytest_smoke_returncode": pytest_smoke_rc,
         "uncovered_packages": uncovered_packages,
         "under_covered_packages": under_covered_packages,
         "handoff_contract_test_count": len(handoff_union),
@@ -464,9 +509,23 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--repo-root", type=Path, default=REPO_ROOT)
     parser.add_argument("--output", type=Path, default=None)
     parser.add_argument("--json", action="store_true")
+    parser.add_argument(
+        "--include-uncovered-backlog",
+        action="store_true",
+        help="Return BACKLOG_ACTION_REQUIRED when uncovered modules remain > 0.",
+    )
+    parser.add_argument(
+        "--execute-pytest-smoke",
+        action="store_true",
+        help="Execute scoped pytest governance smoke during Pillar 6 verification.",
+    )
     args = parser.parse_args(argv)
 
-    rep = run_testing_gaps_audit(args.repo_root.resolve())
+    rep = run_testing_gaps_audit(
+        args.repo_root.resolve(),
+        include_uncovered_backlog=args.include_uncovered_backlog,
+        execute_pytest_smoke=args.execute_pytest_smoke,
+    )
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(json.dumps(rep, indent=2) + "\n", encoding="utf-8")

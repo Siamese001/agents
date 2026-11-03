@@ -429,7 +429,124 @@ def run_pillar_7_live_probes(repo_root: Path, profiles_data: dict[str, Any], pri
                 except lgov.TelemetryMissingUsageError:
                     pass
 
-            # 7. Inline deterministic secret & model-neutral naming enforcement
+            # 7. Live probes for run_manifest.py, telemetry_facade.py, and exact_response_reuse.py
+            rm_mod, e_rm = load_repo_module(repo_root, "apps_model_telemetry/run_manifest.py")
+            tf_mod, e_tf = load_repo_module(repo_root, "apps_model_telemetry/telemetry_facade.py")
+            err_mod, e_err = load_repo_module(repo_root, "apps_model_telemetry/exact_response_reuse.py")
+            for tmod, tmsg in ((rm_mod, e_rm), (tf_mod, e_tf), (err_mod, e_err)):
+                if tmsg or tmod is None:
+                    gaps.append(tmsg or "Missing apps_model_telemetry module for Pillar 7 probe")
+            if rm_mod and tf_mod and err_mod:
+                manifest_dir = tmp_dir / "manifest_probe_run"
+                manifest_dir.mkdir(parents=True, exist_ok=True)
+                ev_rec = tf_mod.record_llm_call(
+                    artifact_dir=manifest_dir,
+                    provider="external_openai",
+                    model=priced_model,
+                    request_digest="req_manifest_1",
+                    outcome="SUCCESS",
+                    usage={"prompt_tokens": 1200, "cached_tokens": 600, "output_tokens": 300, "total_tokens": 1500},
+                    role="executive_summary",
+                    stage="L2",
+                    section_id="executive_summary",
+                    run_id="manifest_probe_run",
+                )
+                manifest_doc = rm_mod.build_run_manifest_data(manifest_dir)
+                if not ev_rec or manifest_doc.get("tokens", {}).get("total_tokens") != 1500:
+                    gaps.append(f"telemetry_facade / run_manifest rollup failed: {manifest_doc}")
+                if manifest_doc.get("cost", {}).get("status") != "ok":
+                    gaps.append(f"run_manifest cost rollup expected 'ok', got {manifest_doc.get('cost')}")
+
+                # Exact response reuse + semantic fact response cache probes
+                id_ok = err_mod.build_exact_request_identity(
+                    run_id="manifest_probe_run",
+                    stage="L2",
+                    section_id="executive_summary",
+                    provider="external_openai",
+                    model=priced_model,
+                    request_digest="req_exact_1",
+                    prompt_text="Generate executive summary JSON.",
+                    native_payload={"temperature": 0.0},
+                    temperature=0.0,
+                    max_output_tokens=600,
+                    timeout_seconds=30.0,
+                )
+                id_unbound = err_mod.build_exact_request_identity(
+                    run_id="",
+                    stage="L2",
+                    section_id="executive_summary",
+                    provider="external_openai",
+                    model=priced_model,
+                    request_digest="req_exact_1",
+                    prompt_text="Generate executive summary JSON.",
+                    native_payload=None,
+                    temperature=0.0,
+                    max_output_tokens=600,
+                    timeout_seconds=30.0,
+                )
+                if id_ok is None or id_unbound is not None:
+                    gaps.append("build_exact_request_identity failed bound/unbound run_id invariant")
+                else:
+                    reusable_res = {
+                        "provider_requested": "external_openai",
+                        "provider_attempted": True,
+                        "provider_available": True,
+                        "runtime_generation_status": "REAL_LLM",
+                        "model": priced_model,
+                        "stub": False,
+                        "raw_model_output": '{"resume_display_text": "Grounded summary."}',
+                    }
+                    ev_dig = err_mod.store_exact_response(
+                        artifact_dir=manifest_dir,
+                        identity=id_ok,
+                        result=reusable_res,
+                    )
+                    hit = err_mod.lookup_exact_response(artifact_dir=manifest_dir, identity=id_ok)
+                    if not ev_dig or hit is None or hit[1] != ev_dig:
+                        gaps.append("exact_response_reuse failed store/lookup cycle")
+                    else:
+                        rcpt = err_mod.build_reuse_receipt(
+                            identity=id_ok,
+                            source_event_digest=ev_dig,
+                            transport_executed_this_invocation=False,
+                        )
+                        if rcpt.get("reuse_mode") != "IN_RUN_EXACT_RESPONSE_REUSE":
+                            gaps.append(f"build_reuse_receipt returned unexpected mode: {rcpt}")
+
+                sem_cache_dir = tmp_dir / "sem_fact_cache"
+                sem_dig = err_mod.store_semantic_fact_response(
+                    cache_dir=sem_cache_dir,
+                    section_id="executive_summary",
+                    model=priced_model,
+                    fact_set_digest="facts_sha256_abc",
+                    schema_version="v1",
+                    intent_vector=[0.8, 0.6, 0.0],
+                    result={
+                        "runtime_generation_status": "REAL_LLM",
+                        "stub": False,
+                        "raw_model_output": '{"resume_display_text": "Semantic fact hit."}',
+                    },
+                )
+                sem_hit = err_mod.lookup_semantic_fact_response(
+                    cache_dir=sem_cache_dir,
+                    section_id="executive_summary",
+                    model=priced_model,
+                    fact_set_digest="facts_sha256_abc",
+                    schema_version="v1",
+                    intent_vector=[0.8, 0.6, 0.0],
+                )
+                sem_miss_facts = err_mod.lookup_semantic_fact_response(
+                    cache_dir=sem_cache_dir,
+                    section_id="executive_summary",
+                    model=priced_model,
+                    fact_set_digest="facts_sha256_DIFFERENT",
+                    schema_version="v1",
+                    intent_vector=[0.8, 0.6, 0.0],
+                )
+                if not sem_dig or sem_hit is None or sem_miss_facts is not None:
+                    gaps.append("semantic_fact_response cache failed hit or mismatched fact_set_digest rejection")
+
+            # 8. Inline deterministic secret & model-neutral naming enforcement
             sec_mod, e_sec = load_repo_module(repo_root, "tools/lint_secrets.py")
             mn_mod, e_mn = load_repo_module(repo_root, "tools/lint_model_neutral_naming.py")
             if e_sec or sec_mod is None:

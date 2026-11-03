@@ -32,22 +32,23 @@ Execute a deterministic, fail-closed **10-Dimension SSOT Centralization, Configu
 4. **Dimension 4 — Constitutional AST Floor**: Scan all 9 packages plus `tools/` for `subprocess.*` calls missing `timeout=` and silent `except Exception: pass` without guardian comments.
 5. **Dimension 5 — MCP, Hooks, Runtime Boundary & Conformance Link Sync**: Verify `.mcp.json` and `.agents/mcp_config.json` portability, `.antigravity/runtime-boundary.json` `allowedSubsystems`, `.agents/hooks.json`, and zero broken links in `AGENTS.md` / `.agents/rules/conformance-map.md`.
 6. **Dimension 6 — Sidecar Separation Integrity**: Run `validate_sidecar_separation.py --repo-root "${PRIMARY_REPO_ROOT}" --json`.
-7. **Dimension 7 — Multi-Folder Configuration Sprawl, Shadow Copies & Intra-File Contradictions**: Run `ssot_sprawl_scanner.py --repo-root "${PRIMARY_REPO_ROOT}" --json` to detect nested shadow copies (`provider_profiles.yaml`, `pytest.ini`, `.mcp.json`), twin `.v1` profile sprawl, intra-file bound contradictions, and cross-format YAML/JSON bound drift against `config/governance/centralization_registry.yaml`.
+7. **Dimension 7 — Multi-Folder Configuration Sprawl, Zero-Allowlist Drift & Intra-File Contradictions**: Run `ssot_sprawl_scanner.py --repo-root "${PRIMARY_REPO_ROOT}" --json` (`KNOWN_DRIFT_ALLOWLIST == frozenset()`) to detect nested shadow copies (`provider_profiles.yaml`, `pytest.ini`, `.mcp.json`), twin `.v1` profile sprawl, intra-file bound contradictions, and cross-format YAML/JSON bound drift against `config/governance/centralization_registry.yaml`.
 8. **Dimension 8 — Governance Policy Registry Synchronization**: Verify every enforcer and rule referenced in `config/governance/policy_registry.yaml` dynamically resolves or enforces registered thresholds without hardcoded bypasses or unwired live hooks.
-9. **Dimension 9 — Anti-Hardcoding, Environment Centralization & AST Hygiene**: Run `ssot_hardcoding_scanner.py --repo-root "${PRIMARY_REPO_ROOT}" --json` to detect duplicate threshold constants, conflicting policy defaults, eval scenario bound drift, uncentralized `os.environ` reads, hardcoded machine paths, and unassigned `.split()` bugs.
-10. **Dimension 10 — Prompt-to-Code & Template-to-Config Numeric Parity**: Verify word, sentence, and character limits embedded in prompt templates, repair builders, and judge rubrics match canonical runtime validator constants.
+9. **Dimension 9 — Dynamic Registry Anti-Hardcoding, Guardian Rationales & Environment Centralization**: Run `ssot_hardcoding_scanner.py --repo-root "${PRIMARY_REPO_ROOT}" --json` across all 19 dynamic `domain_threshold_owners` in `config/governance/centralization_registry.yaml` to detect duplicate threshold constants, bare `# guardian:` comments missing `<category> -- <rationale>`, uncentralized `os.environ` reads, hardcoded machine paths, and unassigned `.split()` bugs.
+10. **Dimension 10 — Prompt-to-Code Parity & Grandfathered Ratchet Backlog Visibility**: Verify word, sentence, and character limits embedded in prompt templates, repair builders, and judge rubrics match canonical runtime validator constants, and expose any remaining grandfathered entries in `env_lookup_ratchet.json`, `file_budgets_ratchet.json`, or physical duplicate config/data pairs via `--include-ratchet-backlog`.
 
 ### Phase 1.5: Mandatory Executable Read-Only Preflight Scanners
-Execute the bounded 10-dimension boundary, sprawl, and anti-hardcoding auditors (`timeout <= 60s`):
+Execute the bounded 10-dimension boundary, sprawl, anti-hardcoding, and ratchet-backlog auditors plus scoped unit verification (`timeout <= 90s`):
 
 ```bash
 export PRIMARY_REPO_ROOT="/Users/amitayer/Git/agents"
-"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/ssot_boundary_auditor.py" --repo-root "${PRIMARY_REPO_ROOT}" --json
+"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/ssot_boundary_auditor.py" --repo-root "${PRIMARY_REPO_ROOT}" --include-ratchet-backlog --json
 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/lint_contract_schemas.py" --all --repo-root "${PRIMARY_REPO_ROOT}"
 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/lint_file_budgets.py" --all --repo-root "${PRIMARY_REPO_ROOT}"
+"${PRIMARY_REPO_ROOT}/.venv/bin/pytest" "${PRIMARY_REPO_ROOT}/tests/unit/test_ssot_centralization_auditor.py" -q --timeout=60
 ```
 
-If all preflight commands exit `0` (`"status": "PASS"`, `"is_clean": true`), fast-exit `COMPLETE` (`PREFLIGHT_ZERO_DEFECT_FAST_EXIT`).
+If all preflight commands exit `0` (`"status": "PASS"`, `"is_clean": true`, zero ratchet backlog), fast-exit `COMPLETE` (`PREFLIGHT_ZERO_DEFECT_FAST_EXIT`). When `--include-ratchet-backlog` returns `BACKLOG_ACTION_REQUIRED` (`exit code 1`), proceed to Phase 0 and burn down at least `Q_min` grandfathered ratchet or duplicate items.
 
 ---
 

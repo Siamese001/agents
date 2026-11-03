@@ -50,7 +50,9 @@ _WIRING_GATE: str = "APPS_RESEARCH_CHROMA_RUNTIME_WIRING_REQUIRED"
 
 def _resolve_embedding_device() -> str:
     """Resolve the BGE device for the real Chroma path only."""
-    override = os.environ.get("APPS_RESEARCH_EMBEDDING_DEVICE", "").strip().lower()
+    from infrastructure.config.env_loader import get_env_str
+
+    override = get_env_str("APPS_RESEARCH_EMBEDDING_DEVICE", "").strip().lower()
     if override in {"cpu", "cuda", "mps"}:
         return override
     return resolve_embedding_device()

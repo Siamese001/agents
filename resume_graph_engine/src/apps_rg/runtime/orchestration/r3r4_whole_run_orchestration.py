@@ -1908,7 +1908,7 @@ def run_whole_run_with_route_governance(
                 manual_brief=manual_brief_eff,
                 research_ran=research_ran,
             )
-        except Exception as exc:  # guardian: product activation is a fail-closed boundary
+        except Exception as exc:  # guardian: allow-broad-exception -- product activation is a fail-closed boundary
             activation_failure_ref = ""
             activation_failure_emit_error = ""
             try:
@@ -2150,7 +2150,7 @@ def run_whole_run_with_route_governance(
                     raw_request=raw_request,
                     validated_request=validated_request,
                 )
-        except Exception:  # guardian: recovery failure must fail closed to original exit
+        except Exception:  # guardian: allow-broad-exception -- recovery failure must fail closed to original exit
             pass
     pre_uwg_eligible = (
         result.fault == ""
@@ -2216,7 +2216,7 @@ def run_whole_run_with_route_governance(
                 raise ProductE2EAuthorityError(
                     "receipt-derived product eligibility blocked"
                 )
-        except Exception as exc:  # guardian: product authority fails closed before UWG
+        except Exception as exc:  # guardian: allow-broad-exception -- product authority fails closed before UWG
             pre_uwg_eligible = False
             product_authority_error = f"{type(exc).__name__}:{exc}"
             result_fault = "PRODUCT_E2E_RECEIPT_AUTHORITY_FAILED"
@@ -2318,7 +2318,7 @@ def run_whole_run_with_route_governance(
                             f"receipt-derived post-boundary stage blocked: {stage_id}"
                         )
                 product_close_candidate = True
-            except Exception as exc:  # guardian: UWG authority remains immutable
+            except Exception as exc:  # guardian: allow-broad-exception -- UWG authority remains immutable
                 product_authority_error = f"{type(exc).__name__}:{exc}"
                 product_close_candidate = False
         observability_repair_required = bool(
@@ -2529,7 +2529,7 @@ def run_whole_run_with_route_governance(
                 identity=dict(raw_request["canonical_run_identity"]),
             )
             payload.update(non_product_terminal_refs)
-        except Exception as exc:  # guardian: preserve the primary product failure
+        except Exception as exc:  # guardian: allow-broad-exception -- preserve the primary product failure
             terminal_error = f"{type(exc).__name__}:{exc}"
             product_authority_error = (
                 f"{product_authority_error};{terminal_error}"
@@ -2625,7 +2625,7 @@ def run_whole_run_with_route_governance(
                     artifact_dir=art,
                     runs_dir=art.parent,
                 )
-            except Exception as exc:  # guardian: preserve immutable UWG product state
+            except Exception as exc:  # guardian: allow-broad-exception -- preserve immutable UWG product state
                 product_authority_error = f"{type(exc).__name__}:{exc}"
                 product_close_candidate = False
                 payload.update(

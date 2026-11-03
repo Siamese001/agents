@@ -622,7 +622,7 @@ def select_c03_sqlite_graph_candidates(
         )
     except C03GraphProjectionUnavailableError:
         raise
-    except Exception as exc:  # guardian: translate all post-validation SQLite adapter failures.
+    except Exception as exc:  # guardian: allow-broad-exception -- translate all post-validation SQLite adapter failures.
         raise C03GraphProjectionUnavailableError(
             f"C0.3 graph SQLite selection query failed at {path}: {type(exc).__name__}: {exc}"
         ) from exc

@@ -28,11 +28,16 @@ from typing import Any
 DEFAULT_REPO_ROOT = Path(__file__).resolve().parents[1]
 RETRIEVAL_PACKAGES = (
     "agents",
+    "apps_eval",
+    "apps_model_telemetry",
     "apps_research",
-    "resume_graph_engine",
+    "infrastructure",
+    "ops_scripts",
     "outreach_engine",
     "resume_engine",
-    "infrastructure",
+    "resume_graph_engine",
+    "scripts",
+    "tools",
 )
 
 
@@ -159,6 +164,38 @@ def _probe_chunking_and_context_window(repo_root: Path) -> dict[str, Any]:
     fitted_snap = budget.fit_items_to_budget([item_lo, item_hi])
     fitted = fitted_snap.items
 
+    rre_mod = _require_module(repo_root, "apps_research/engines/research_retrieval_engine.py")
+    prior_harness = os.environ.get("APPS_RG_TEST_HARNESS")
+    os.environ["APPS_RG_TEST_HARNESS"] = "1"
+    try:
+        rre_engine = rre_mod.create_retrieval_engine(chromadb_path=None)
+        rre_id_1 = rre_engine.index_research(
+            content="Enterprise AI agentic platform architecture and partner ecosystem governance.",
+            topic="AI Platform Strategy",
+            artifact_mode="brief",
+            quality_score=0.92,
+            source_count=3,
+            claim_types={"architecture": 4, "partnerships": 2},
+            sources=["sec_10k", "gartner_mq", "partner_portal"],
+        )
+        rre_id_2 = rre_engine.index_research(
+            content="Cloud data warehouse migration and governance roadmap.",
+            topic="AI Platform Strategy",
+            artifact_mode="brief",
+            quality_score=0.86,
+            source_count=2,
+            claim_types={"architecture": 2, "security": 3},
+            sources=["sec_10k", "cloud_blog"],
+        )
+        similar_res = rre_engine.find_similar_research("AI Platform Strategy", artifact_mode="brief", n_results=5)
+        recs = rre_engine.recommend_sources("AI Platform Strategy", current_sources=["cloud_blog"])
+        benchmark = rre_engine.get_quality_benchmark("brief")
+    finally:
+        if prior_harness is None:
+            os.environ.pop("APPS_RG_TEST_HARNESS", None)
+        else:
+            os.environ["APPS_RG_TEST_HARNESS"] = prior_harness
+
     gaps: list[str] = []
     if "<document>Architecture Case Study</document>" not in prefixed:
         gaps.append("apply_contextual_prefix dropped document title envelope")
@@ -166,12 +203,20 @@ def _probe_chunking_and_context_window(repo_root: Path) -> dict[str, Any]:
         gaps.append("ContextSnapshot provenance_digest is non-deterministic")
     if len(fitted) != 1 or fitted[0].source_id != "src_case_study_1":
         gaps.append("TokenBudget.fit_items_to_budget failed to retain high-relevance evidence within cap")
+    if not rre_id_1 or not rre_id_2 or len(similar_res) != 2:
+        gaps.append("ResearchRetrievalEngine failed to index and retrieve multi-document artifacts")
+    if not recs or recs[0].get("source") != "sec_10k":
+        gaps.append(f"ResearchRetrievalEngine.recommend_sources failed deterministic ranking: {recs}")
+    if benchmark.get("sample_size") != 2:
+        gaps.append(f"ResearchRetrievalEngine.get_quality_benchmark failed: {benchmark}")
 
     return {
         "passed": len(gaps) == 0,
         "gaps": gaps,
         "provenance_digest": snap_a.provenance_digest[:16],
         "fitted_count": len(fitted),
+        "research_similar_count": len(similar_res),
+        "top_recommended_source": recs[0].get("source") if recs else "",
     }
 
 

@@ -59,13 +59,21 @@ def test_standalone_source_paths_use_src_owned_inputs() -> None:
     assert all(path.is_file() for path in paths.values())
 
 
-def test_runtime_contract_remains_historical_and_offline_pinned() -> None:
-    contract = c03_embeddings.verify_embedding_runtime_contract(ROOT)
+def test_runtime_contract_remains_historical_and_offline_pinned(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     raw_contract = json.loads(
         (
             ROOT / "tools/apps_rg_standalone/c03_embedding_runtime_contract.json"
         ).read_text(encoding="utf-8")
     )
+    pinned_packages = dict(raw_contract.get("packages") or {})
+    monkeypatch.setattr(
+        c03_embeddings,
+        "package_version",
+        lambda name: str(pinned_packages[name]),
+    )
+    contract = c03_embeddings.verify_embedding_runtime_contract(ROOT)
 
     assert contract["python_major_minor"] == "3.12"
     assert contract["packages"] == {

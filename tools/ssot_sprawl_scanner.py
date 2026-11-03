@@ -32,16 +32,7 @@ try:
 except ImportError:  # guardian: allow-silent-swallow -- fallback if PyYAML unavailable
     yaml = None  # type: ignore
 
-KNOWN_DRIFT_ALLOWLIST: frozenset[str] = frozenset(
-    {
-        "canonical_pipelines.yaml",
-        "certification/schemas/apps_research_apps_rg_handoff.v2.schema.json",
-        "certification/veto_policy_schema.json",
-        "expected_wiring.yaml",
-        "model_catalog.json",
-        "routing_thresholds.yaml",
-    }
-)
+KNOWN_DRIFT_ALLOWLIST: frozenset[str] = frozenset()
 
 
 def _load_structured(path: Path) -> dict[str, Any] | None:

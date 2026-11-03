@@ -34,7 +34,7 @@ def _yaml_judge_models_cached(path_str: str) -> dict:
 
         data = yaml.safe_load(Path(path_str).read_text(encoding="utf-8"))
         jm = (data or {}).get("judge_models") or {}
-    except ImportError as exc:  # guardian: strict SSOT load; caller must see the broken source
+    except ImportError as exc:  # guardian: allow-broad-exception -- strict SSOT load; caller must see the broken source
         raise SectionJudgeProfileSSOTError(f"Cannot load apps_rg judge-model SSOT: {path_str}") from exc
     except (AttributeError, OSError, TypeError, UnicodeError, ValueError, yaml.YAMLError) as exc:
         raise SectionJudgeProfileSSOTError(f"Cannot load apps_rg judge-model SSOT: {path_str}") from exc

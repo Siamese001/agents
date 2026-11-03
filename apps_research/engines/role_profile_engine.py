@@ -13,6 +13,8 @@ import logging
 import os
 from typing import Any, Dict
 
+from infrastructure.config.env_loader import get_env_bool
+
 _log = logging.getLogger(__name__)
 
 
@@ -32,12 +34,7 @@ _STUB_NICE_TO_HAVE: list[str] = [
 
 
 def _v2_enabled() -> bool:
-    return os.environ.get("APPS_RESEARCH_RETRIEVAL_V2", "").strip() in {
-        "1",
-        "true",
-        "yes",
-        "on",
-    }
+    return get_env_bool("APPS_RESEARCH_RETRIEVAL_V2", False)
 
 
 class RoleProfileEngine:

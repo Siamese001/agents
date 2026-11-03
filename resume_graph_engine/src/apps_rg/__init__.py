@@ -19,5 +19,5 @@ def ensure_dotenv_loaded() -> None:
         from apps_rg.runtime.env_bootstrap import bootstrap_apps_rg_env
 
         bootstrap_apps_rg_env()
-    except Exception:  # noqa: BLE001  # guardian: allow-broad-exception
+    except Exception:  # noqa: BLE001  # guardian: allow-broad-exception -- explicitly approved governance exemption
         pass

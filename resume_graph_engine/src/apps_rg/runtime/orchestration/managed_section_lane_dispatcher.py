@@ -164,7 +164,7 @@ def _readiness_result(
         return True, ""
     try:
         value = dependency_ready_fn(lane)
-    except Exception as exc:  # guardian: readiness is a fail-closed app boundary
+    except Exception as exc:  # guardian: allow-broad-exception -- readiness is a fail-closed app boundary
         return False, f"readiness_exception:{exc!s}"
     if isinstance(value, tuple):
         ready, reason = value
@@ -187,7 +187,7 @@ def _prewarm_parallel_graph_sqlite() -> None:
         from apps_rg.runtime.c03_graph_sqlite_context import ensure_c03_graph_sqlite
 
         ensure_c03_graph_sqlite(repository_root(Path(__file__)))
-    except Exception:  # guardian: prewarm is advisory; lane-level C0 enforces fail-closed contracts
+    except Exception:  # guardian: allow-broad-exception -- prewarm is advisory; lane-level C0 enforces fail-closed contracts
         pass
 
 

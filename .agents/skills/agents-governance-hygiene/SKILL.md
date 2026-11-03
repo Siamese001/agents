@@ -13,10 +13,10 @@ Consolidates `agents-storage-worktree-hygiene`, `agents-ssot-boundary-governance
    Always execute read-only behavioral auditors first before provisioning any branch or mutating repository state:
    ```bash
    .venv/bin/python tools/storage_worktree_hygiene.py --json
-   .venv/bin/python tools/ssot_boundary_auditor.py --json
+   .venv/bin/python tools/ssot_boundary_auditor.py --include-ratchet-backlog --json
    .venv/bin/python tools/cost_token_budget_auditor.py --json --strict
    .venv/bin/python tools/lint_secrets.py --all
-   .venv/bin/python tools/testing_gaps_auditor.py --json
+   .venv/bin/python tools/testing_gaps_auditor.py --include-uncovered-backlog --execute-pytest-smoke --json
    .venv/bin/python tools/validate_sidecar_separation.py --json
    ```
    If all behavioral gates exit `0` (`is_clean == true`), fast-exit cleanly without creating empty worktrees or synthetic wave plans.

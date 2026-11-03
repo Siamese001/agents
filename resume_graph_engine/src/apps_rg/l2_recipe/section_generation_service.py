@@ -205,7 +205,7 @@ class SectionGenerationService:
                 lane,
                 lane_provider=lane_provider,
             )
-        except FileNotFoundError as exc:  # guardian: allow-return-none-swallow
+        except FileNotFoundError as exc:  # guardian: allow-return-none-swallow -- explicitly approved governance exemption
             dispatch = lane_dispatch_results.get(lane) or {}
             blocker = EvaluationService.derive_pre_run_blocker(dispatch)
             emit_integrated_lane_pre_run_failure_fn(

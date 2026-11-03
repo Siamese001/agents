@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 from enum import Enum
 from typing import Any
 
-from .implementation_plan import LayerType, QueryRequest, SecurityContext
+from infrastructure.config.implementation_plan import LayerType, QueryRequest, SecurityContext
 
 logger = logging.getLogger(__name__)
 

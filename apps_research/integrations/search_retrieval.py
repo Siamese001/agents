@@ -56,7 +56,9 @@ class RetryableRetrievalTransportError(RuntimeError):
 
 
 def _require_base_url() -> str:
-    base_url = os.environ.get(_BASE_URL_ENV, "").strip()
+    from infrastructure.config.env_loader import get_env_str
+
+    base_url = get_env_str(_BASE_URL_ENV, "").strip()
     if not base_url:
         raise RuntimeError(
             f"{_BASE_URL_ENV} is not set. "
@@ -71,7 +73,9 @@ def _require_base_url() -> str:
 
 
 def _timeout_seconds() -> float:
-    raw = os.environ.get(_TIMEOUT_ENV, "").strip()
+    from infrastructure.config.env_loader import get_env_str
+
+    raw = get_env_str(_TIMEOUT_ENV, "").strip()
     if not raw:
         return _DEFAULT_TIMEOUT_SECONDS
     try:
@@ -81,12 +85,16 @@ def _timeout_seconds() -> float:
 
 
 def _optional_csv_env(name: str) -> str | None:
-    value = os.environ.get(name, "").strip()
+    from infrastructure.config.env_loader import get_env_str
+
+    value = get_env_str(name, "").strip()
     return value or None
 
 
 def _flag_enabled(name: str) -> bool:
-    return os.environ.get(name, "").strip().lower() in {"1", "true", "yes", "on"}
+    from infrastructure.config.env_loader import get_env_bool
+
+    return get_env_bool(name, False)
 
 
 def _safe_base_url_origin(raw: str) -> str:
@@ -104,7 +112,9 @@ def retrieval_config_snapshot(*, query_families: list[str] | tuple[str, ...] = (
     V2 mode, SearXNG engine/category settings, and executed query families across
     runs without treating the output packet as self-certifying.
     """
-    base_url = os.environ.get(_BASE_URL_ENV, "").strip()
+    from infrastructure.config.env_loader import get_env_str
+
+    base_url = get_env_str(_BASE_URL_ENV, "").strip()
     return {
         "schema_version": "apps_research.retrieval_config_snapshot/v1",
         "provider": "searxng",
@@ -114,7 +124,7 @@ def retrieval_config_snapshot(*, query_families: list[str] | tuple[str, ...] = (
         "timeout_seconds": _timeout_seconds(),
         "categories": _optional_csv_env(_CATEGORIES_ENV) or "",
         "engines": _optional_csv_env(_ENGINES_ENV) or "",
-        "retrieval_v2_env_value": os.environ.get(_RETRIEVAL_V2_ENV, "").strip(),
+        "retrieval_v2_env_value": get_env_str(_RETRIEVAL_V2_ENV, "").strip(),
         "retrieval_v2_enabled": _flag_enabled(_RETRIEVAL_V2_ENV),
         "experimental_retrieval_v2": _flag_enabled(_RETRIEVAL_V2_ENV),
         "query_families": list(dict.fromkeys(str(f) for f in query_families if str(f).strip())),

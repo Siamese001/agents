@@ -17,7 +17,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Any
 
-from .implementation_plan import LayerType
+from infrastructure.config.implementation_plan import LayerType
 
 logger = logging.getLogger(__name__)
 

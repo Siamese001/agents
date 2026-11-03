@@ -16,7 +16,7 @@ import subprocess
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, Iterator, List, Optional, Set, Tuple
 
 from .common import (
     CONVENTIONAL_BRANCH_RE,
@@ -56,7 +56,7 @@ class WorktreeDirtyResult:
 
 
 @contextlib.contextmanager
-def worktree_provisioning_lock(timeout_seconds: float = 120.0, root: Path = ROOT):
+def worktree_provisioning_lock(timeout_seconds: float = 120.0, root: Path = ROOT) -> Iterator[Path]:
     """Acquires an advisory provisioning lock powered by filelock.FileLock."""
     from filelock import FileLock, Timeout
 
