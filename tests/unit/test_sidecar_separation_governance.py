@@ -19,13 +19,15 @@ from tools.validate_sidecar_separation import (
 
 
 def test_live_sidecar_separation_passes_with_zero_collisions() -> None:
-    """Verify live global sidecars and repository prompts pass all separation invariants."""
+    """Verify live global sidecars have zero Agents background schedules while all 7 on-demand prompts pass."""
     result = validate_sidecar_separation(
         repo_root=REPO_ROOT,
         sidecars_root=DEFAULT_SIDECARS_ROOT,
     )
     assert result["status"] == "PASS", f"Expected PASS, got violations: {result['violations']}"
     assert result["is_clean"] is True
+    assert result["agents_scheduled_count"] == 0
+    assert result["agents_prompt_count"] == 7
     assert result["agents_sidecar_count"] == 7
     assert result["nee_sidecar_count"] >= 3
     assert result["collision_count"] == 0
@@ -49,8 +51,8 @@ def test_agents_sidecars_target_outreach_resume_and_apps_research() -> None:
     assert "INV-REPO-SEPARATION-AGENTS-ONLY" in combined_text
 
 
-def test_validator_rejects_cross_repo_permission_or_schedule_collision(tmp_path: Path) -> None:
-    """Negative control: verify validator fails closed on cron collision or forbidden NEE permission grant."""
+def test_validator_rejects_reintroduced_daily_schedule_or_cross_repo_grant(tmp_path: Path) -> None:
+    """Negative control: verify validator fails closed if an agents-* background schedule or cross-repo grant appears."""
     fake_repo = tmp_path / "repo"
     prompts_dir = fake_repo / "automations" / "prompts"
     prompts_dir.mkdir(parents=True)
@@ -60,7 +62,7 @@ def test_validator_rejects_cross_repo_permission_or_schedule_collision(tmp_path:
     fake_sidecars = tmp_path / "sidecars"
     fake_sidecars.mkdir(parents=True)
 
-    # Copy all active NEE sidecars and 7 Agents sidecars into sandbox
+    # Copy active NEE sidecars into sandbox
     for child in DEFAULT_SIDECARS_ROOT.iterdir():
         src = child / "sidecar.json"
         if child.is_dir() and src.is_file():
@@ -68,19 +70,27 @@ def test_validator_rejects_cross_repo_permission_or_schedule_collision(tmp_path:
             dst_dir.mkdir(parents=True)
             (dst_dir / "sidecar.json").write_text(src.read_text(encoding="utf-8"), encoding="utf-8")
 
-    # Inject a schedule collision (06:00 ET used by corner-foresight-blindspot-scout) and a forbidden NEE grant
-    bad_file = fake_sidecars / "agents-outreach-resume-functionality" / "sidecar.json"
-    bad_payload = json.loads(bad_file.read_text(encoding="utf-8"))
-    bad_payload["args"][0] = "CRON_TZ=America/New_York 0 6 * * *"
-    bad_payload["agent_permissions"]["access_grants"].append(f"read_file({NEE_CANONICAL_ROOT})")
-    bad_file.write_text(json.dumps(bad_payload, indent=2), encoding="utf-8")
+    # Inject an unapproved background schedule directory and a cross-repo Agents grant on an NEE sidecar
+    rogue_dir = fake_sidecars / "agents-outreach-resume-functionality"
+    rogue_dir.mkdir(parents=True)
+    (rogue_dir / "sidecar.json").write_text(json.dumps({"builtin": "schedule"}), encoding="utf-8")
+
+    nee_target = next(fake_sidecars.glob("*/sidecar.json"))
+    if nee_target.parent.name.startswith("agents-"):
+        nee_target = [p for p in fake_sidecars.glob("*/sidecar.json") if not p.parent.name.startswith("agents-")][0]
+    bad_payload = json.loads(nee_target.read_text(encoding="utf-8"))
+    bad_payload.setdefault("agent_permissions", {}).setdefault("access_grants", []).append(
+        f"read_file({AGENTS_CANONICAL_ROOT})"
+    )
+    nee_target.write_text(json.dumps(bad_payload, indent=2), encoding="utf-8")
 
     result = validate_sidecar_separation(repo_root=fake_repo, sidecars_root=fake_sidecars)
     assert result["status"] == "FAIL"
     assert result["is_clean"] is False
+    assert result["agents_scheduled_count"] >= 2
     joined_violations = "\n".join(result["violations"])
-    assert "Cron schedule collision" in joined_violations
-    assert "forbidden Decision Intelligence Engine grant" in joined_violations
+    assert "Unapproved background schedule directory" in joined_violations
+    assert AGENTS_CANONICAL_ROOT in joined_violations
     assert AGENTS_CANONICAL_ROOT != NEE_CANONICAL_ROOT
 
 
