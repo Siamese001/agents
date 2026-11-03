@@ -10,7 +10,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
-import os
+from infrastructure.config.env_loader import get_env_str
 from pathlib import Path
 from typing import Any
 
@@ -25,7 +25,7 @@ class R1BCacheIntegrityError(RuntimeError):
 
 
 def _key() -> bytes:
-    raw = os.environ.get(R1B_CACHE_INTEGRITY_HMAC_KEY_ENV, "")
+    raw = get_env_str(R1B_CACHE_INTEGRITY_HMAC_KEY_ENV, "")
     key = raw.encode("utf-8")
     if len(key) < 32:
         raise R1BCacheIntegrityError(
@@ -51,7 +51,7 @@ def payload_sha256(document: dict[str, Any]) -> str:
 def attach_integrity(document: dict[str, Any], *, artifact_kind: str) -> dict[str, Any]:
     body = _body(document)
     digest = payload_sha256(body)
-    key_id = os.environ.get(R1B_CACHE_INTEGRITY_KEY_ID_ENV, "apps-rg-r1b-cache-v1")
+    key_id = get_env_str(R1B_CACHE_INTEGRITY_KEY_ID_ENV, "apps-rg-r1b-cache-v1")
     signed = f"{artifact_kind}:{key_id}:{digest}".encode("utf-8")
     body["integrity"] = {
         "schema_version": "apps_rg.r1b.cache_integrity.v1",

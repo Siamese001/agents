@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from apps_rg.repository_layout import repository_root
+from infrastructure.config.env_loader import get_env_str
 from .constants import REPO_REL_DB
 
 def _repo_root() -> Path:
@@ -188,7 +189,7 @@ def _replace_sqlite_projection_if_unchanged(
 
 def default_graph_sqlite_path(repo_root: Path | None = None) -> Path:
     root = repo_root or _repo_root()
-    env = str(os.environ.get("APPS_RG_AUGMENTED_SKILLS_GRAPH_SQLITE_PATH") or "").strip()
+    env = get_env_str("APPS_RG_AUGMENTED_SKILLS_GRAPH_SQLITE_PATH").strip()
     if env:
         p = Path(env)
         return p if p.is_absolute() else (root / p).resolve()

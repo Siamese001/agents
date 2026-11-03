@@ -10,7 +10,7 @@ Step classes:
 from __future__ import annotations
 
 import json
-import os
+from infrastructure.config.env_loader import get_env_str
 import uuid
 from pathlib import Path
 from typing import Any
@@ -145,7 +145,7 @@ def _phase1_allow_flag_from_recipe_context(context: dict[str, Any]) -> bool:
         or context.get("lane_allow_non_allow_exit_zero")
     ):
         return True
-    raw = os.environ.get("APPS_RG_ALLOW_NON_ALLOW_EXIT_ZERO", "").strip().lower()
+    raw = get_env_str("APPS_RG_ALLOW_NON_ALLOW_EXIT_ZERO", "").strip().lower()
     return raw in ("1", "true", "yes", "y", "on")
 
 

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import os
+from infrastructure.config.env_loader import get_env_str
 
 from apps_rg.runtime.internal.generated_lane_rollup import GENERATED_LANES
 
@@ -11,7 +11,7 @@ C03_MANDATORY_SECTIONS: frozenset[str] = frozenset(GENERATED_LANES)
 
 
 def _env_off(name: str, *, default: str = "1") -> bool:
-    raw = os.environ.get(name, default).strip().lower()
+    raw = get_env_str(name, default).strip().lower()
     return raw in ("0", "false", "no")
 
 

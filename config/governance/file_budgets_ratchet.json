@@ -255,10 +255,6 @@
     "line_limit": 730,
     "justification": "Baseline legacy module pending decomposition"
   },
-  "resume_graph_engine/src/apps_rg/fact_inventory/augmented_skills_graph_sqlite.py": {
-    "line_limit": 3498,
-    "justification": "Baseline legacy module pending decomposition"
-  },
   "resume_graph_engine/src/apps_rg/fact_inventory/apply_agentic_experience_skills_augmentation.py": {
     "line_limit": 1134,
     "justification": "Augmentation script for agentic experience graph skills"
@@ -339,10 +335,6 @@
     "line_limit": 687,
     "justification": "Baseline legacy module pending decomposition"
   },
-  "resume_graph_engine/src/apps_rg/runtime/mandatory_run_outputs.py": {
-    "line_limit": 4504,
-    "justification": "Baseline legacy module pending decomposition"
-  },
   "resume_graph_engine/src/apps_rg/runtime/runtime_proof_layout.py": {
     "line_limit": 682,
     "justification": "Baseline legacy module pending decomposition"
@@ -359,10 +351,6 @@
     "line_limit": 1139,
     "justification": "Baseline legacy module pending decomposition"
   },
-  "resume_graph_engine/src/apps_rg/runtime/section_l7_binding_manifest.py": {
-    "line_limit": 612,
-    "justification": "Baseline legacy module pending decomposition"
-  },
   "resume_graph_engine/src/apps_rg/runtime/run_bundle_index.py": {
     "line_limit": 966,
     "justification": "Baseline legacy module pending decomposition"
@@ -377,10 +365,6 @@
   },
   "resume_graph_engine/src/apps_rg/runtime/section_graph_skills_proof_pool.py": {
     "line_limit": 823,
-    "justification": "Baseline legacy module pending decomposition"
-  },
-  "resume_graph_engine/src/apps_rg/runtime/section_l2_authority.py": {
-    "line_limit": 616,
     "justification": "Baseline legacy module pending decomposition"
   },
   "resume_graph_engine/src/apps_rg/runtime/proof_pool_resolver.py": {
@@ -457,10 +441,6 @@
   },
   "resume_graph_engine/src/apps_rg/runtime/fact_vectors_bootstrap.py": {
     "line_limit": 1056,
-    "justification": "Baseline legacy module pending decomposition"
-  },
-  "resume_graph_engine/src/apps_rg/prompt_assembly/compiler.py": {
-    "line_limit": 612,
     "justification": "Baseline legacy module pending decomposition"
   },
   "resume_graph_engine/src/apps_rg/integrations/apps_research_bridge.py": {
@@ -671,10 +651,6 @@
     "line_limit": 701,
     "justification": "Baseline legacy module pending decomposition"
   },
-  "resume_graph_engine/src/apps_rg/runtime/c0/evidence_room.py": {
-    "line_limit": 602,
-    "justification": "Baseline legacy module pending decomposition"
-  },
   "resume_graph_engine/src/apps_rg/runtime/c0/c03_graph_expansion.py": {
     "line_limit": 1132,
     "justification": "Baseline legacy module pending decomposition"
@@ -749,10 +725,6 @@
   },
   "resume_graph_engine/src/apps_rg/runtime/judges/executive_summary_judge_packet.py": {
     "line_limit": 851,
-    "justification": "Baseline legacy module pending decomposition"
-  },
-  "resume_graph_engine/src/apps_rg/runtime/judges/executive_summary_x1d_dimension_verdicts.py": {
-    "line_limit": 602,
     "justification": "Baseline legacy module pending decomposition"
   },
   "resume_graph_engine/src/apps_rg/runtime/judges/bullet_pool_claude_selector.py": {
@@ -905,10 +877,6 @@
   },
   "apps_eval/coverage/apps_rg.py": {
     "line_limit": 1048,
-    "justification": "Wave 3 baseline ceiling when expanding PRODUCTION_DIRECTORIES to all 9 packages"
-  },
-  "apps_eval/diagnostics/apps_rg.py": {
-    "line_limit": 612,
     "justification": "Wave 3 baseline ceiling when expanding PRODUCTION_DIRECTORIES to all 9 packages"
   },
   "apps_eval/runner/core.py": {

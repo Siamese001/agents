@@ -8,7 +8,7 @@ generate query vectors, rankings, labels, metrics, or release authority.
 from __future__ import annotations
 
 import json
-import os
+from infrastructure.config.env_loader import get_env_str
 from collections import Counter
 from collections.abc import Mapping
 from pathlib import Path
@@ -86,7 +86,7 @@ def _active_cluster_counts(registry: Mapping[str, Any]) -> Counter[str]:
 
 
 def _model_path() -> Path:
-    value = str(os.environ.get("APPS_RG_EMBEDDING_MODEL_PATH") or "").strip()
+    value = get_env_str("APPS_RG_EMBEDDING_MODEL_PATH", "").strip()
     if not value:
         raise FullResumeQrelW1Error("APPS_RG_EMBEDDING_MODEL_PATH is not set")
     path = Path(value).resolve()

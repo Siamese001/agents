@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import json
 import logging
-import os
+from infrastructure.config.env_loader import get_env_str
 from pathlib import Path
 from typing import Any
 
@@ -220,7 +220,7 @@ def emit_section_lane_c0_metrics(
 
     run_id = str(runtime_payload.get("run_id") or artifact_dir.name)
     fec = fec_from_section_bridge(bridge_doc, run_id=run_id)
-    chroma = os.environ.get("CHROMA_PERSIST_DIR", "").strip() or None
+    chroma = get_env_str("CHROMA_PERSIST_DIR", "").strip() or None
     briefing_decision = classify_briefing_mode(
         _validated_request_payload(front_spine),
         chroma_path_resolved=chroma,

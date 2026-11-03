@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-import os
+from infrastructure.config.env_loader import get_env_str
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -25,7 +25,7 @@ def _utc_now() -> str:
 
 
 def _uwg_promotion_enabled() -> bool:
-    return os.environ.get("APPS_RG_R1B_SKIP_UWG", "").strip().lower() not in (
+    return get_env_str("APPS_RG_R1B_SKIP_UWG", "").strip().lower() not in (
         "1",
         "true",
         "yes",

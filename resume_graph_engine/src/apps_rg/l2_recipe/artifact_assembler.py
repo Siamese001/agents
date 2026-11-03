@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-import os
+from infrastructure.config.env_loader import get_env_str
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -81,7 +81,7 @@ class ArtifactAssembler:
         """Generate a minimal L2 section output blob for synthetic phase 0."""
         from apps_rg.runtime.live_judge_only_guard import is_test_harness
 
-        if not is_test_harness() and os.environ.get("APPS_RG_PRODUCTION_RUN", "").strip() == "1":
+        if not is_test_harness() and get_env_str("APPS_RG_PRODUCTION_RUN", "").strip() == "1":
             from apps_rg.runtime.providers.provider_run_mode import AppsRgEnvelopeProviderResolutionError
 
             raise AppsRgEnvelopeProviderResolutionError(

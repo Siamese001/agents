@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import json
 
-import os
+from infrastructure.config.env_loader import get_env_str
 
 from pathlib import Path
 
@@ -56,7 +56,7 @@ C0_AUTHORITY_LEDGER_GRAPH_PRIMARY = "ledger_graph_primary"
 
 def _env_on(name: str) -> bool:
 
-    return os.environ.get(name, "").strip().lower() in ("1", "true", "yes", "on")
+    return get_env_str(name, "").strip().lower() in ("1", "true", "yes", "on")
 
 
 
