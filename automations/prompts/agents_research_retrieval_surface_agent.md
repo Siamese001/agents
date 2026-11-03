@@ -5,10 +5,10 @@
 
 ## 1. Objective & Scope (`C01`)
 
-Execute a deterministic, fail-closed **Research & Retrieval Surface Audit & Remediation** exclusively within `/Users/amitayer/Git/agents` (`06:15 ET`, Order `4/7`). This agent audits and remediates evidence chunking, hybrid retrieval ranking (lexical + vector/graph), source provenance binding, and cache parity across `apps_research/` and `resume_graph_engine/` so downstream outreach (`outreach_engine`) and resume (`resume_engine`) synthesis operate on high-recall, citation-grounded evidence.
+Execute a deterministic, fail-closed **Research, Embedding & Retrieval Surface Audit & Remediation** exclusively within `/Users/amitayer/Git/agents` (`06:15 ET`, Order `4/7`). This agent audits and remediates evidence chunking, hybrid retrieval ranking (lexical BM25 + BGE-M3 dense vector + 3-hop SQLite graph traversal), source provenance binding, and prompt/retrieval cache parity across `apps_research/`, `resume_graph_engine/`, and `agents/context/` so downstream `outreach_engine` and `resume_engine` synthesis operate on citation-grounded evidence.
 
 ### Cross-Agent MECE De-Overlap Boundary
-- **Owned exclusively by this agent**: `apps_research/` query expansion, chunking boundaries, ranking/reranking pipelines, `resume_graph_engine/` graph node/edge evidence retrieval, citation provenance tags, and retrieval cache invalidation parity.
+- **Owned exclusively by this agent**: `apps_research/` query expansion, chunking boundaries, ranking/reranking pipelines, `resume_graph_engine/` graph node/edge/BGE-M3 embedding verification (`verify_graph_integrity_and_embeddings.py`), prompt/pipeline cache slot alignment (`verify_pipeline_latency_caching.py`), and retrieval cache invalidation parity.
 - **Delegated to peer agents**: Worktree/SQLite hygiene (`agents-storage-worktree-hygiene`), static layer imports (`agents-ssot-boundary-governance`), downstream outreach/resume synthesis orchestration (`agents-outreach-resume-functionality`), judge rubrics (`agents-evals-judge-assurance`), token cost (`agents-cost-token-budget`), and pytest suite gaps (`agents-testing-gaps-assurance`).
 
 ---
@@ -17,9 +17,10 @@ Execute a deterministic, fail-closed **Research & Retrieval Surface Audit & Reme
 
 - **Shared Governance Contract**: Dereferences `automations/prompts/_shared_governance_contract.md` (`C01–C12`).
 - **Repository Boundary (`INV-REPO-SEPARATION-AGENTS-ONLY`)**: Bound exclusively to `/Users/amitayer/Git/agents`.
-- **Unconditional Wave-Based Plan Mandate (`UNCONDITIONAL_WAVE_PLAN_MANDATE`)**:
-  - In **BOTH** `MODE: scheduled` and `MODE: interactive`, this agent MUST author a wave-based remediation plan at `plans/<branch-slug>-<6hex>.md` (and copy to `<run_dir>/implementation_plan.md`) decomposed into sequential numbered waves (`## Wave 1: ...`, `## Wave 2: ...`) and validate it via `python3 tools/validate_implementation_plan.py --file plans/<branch-slug>-<6hex>.md` (`exit code 0`).
-  - In `MODE: scheduled`, copy durable artifacts to `<PRIMARY_REPO_ROOT>/artifacts/sidecar_runs/agents_research_retrieval_surface/<run_id>/`, prune the ephemeral worktree (`INV-WT-EPHEMERAL-SCHEDULED`), and exit `COMPLETE` or `OPERATOR_INPUT_REQUIRED` with zero code mutations.
+- **Zero-Defect Fast-Exit & Wave-Based Plan Mandate (`C03`, `UNCONDITIONAL_WAVE_PLAN_MANDATE`)**:
+  - When Phase 1.5 reports `0` actionable findings, fast-exit cleanly per `C03`: copy `${RUN_DIR}` to `<PRIMARY_REPO_ROOT>/artifacts/sidecar_runs/agents_research_retrieval_surface/${RUN_TS}`, tear down the ephemeral worktree via `pr_governance.py submit --stage-only`, and exit `COMPLETE` without authoring a synthetic plan.
+  - Whenever `>= 1` findings exist in **EITHER** `MODE: scheduled` or `MODE: interactive`, author a wave-based remediation plan at `${WORKTREE_DIR}/plans/<branch-slug>-<6hex>.md` (and copy to `${RUN_DIR}/implementation_plan.md`) decomposed into sequential numbered waves (`## Wave 1: ...`, `## Wave 2: ...`) and validate it via `validate_implementation_plan.py --file "${WORKTREE_DIR}/plans/<branch-slug>-<6hex>.md"` (`exit code 0`).
+  - In `MODE: scheduled`, stage validated fixes on `${BRANCH_NAME}` via `pr_governance.py submit "${BRANCH_NAME}" --stage-only` without mutating `local main` directly.
 
 ---
 
@@ -49,23 +50,26 @@ Write `${RUN_DIR}/manifest.json` recording `agent_id`, `run_id`, `mode`, `pre_st
 
 ### Phase 1: 7-Pillar Research & Retrieval Surface Audit
 1. **Pillar 1 — Query Decomposition & Intent Routing (`apps_research`, `ResearchRetrievalEngine`, `GovernedResearchRun`)**: Verify prospect/company research queries and role-target queries executed through `ResearchRetrievalEngine` and `GovernedResearchRun` decompose deterministically without dropping entity constraints.
-2. **Pillar 2 — Document Chunking & Context Window Preservation (`AppsResearchBridge`)**: Audit chunk overlap, header preservation, and metadata attachment across `apps_research/` ingestion modules and `AppsResearchBridge` handoff packets.
-3. **Pillar 3 — Hybrid Ranking & Graph Traversal (`resume_graph_engine`)**: Verify candidate experience nodes, skill edges, and impact metrics rank deterministically without score NaN or tie-break instability.
+2. **Pillar 2 — Document Chunking & Context Window Preservation (`AppsResearchBridge`, `agents/context/`)**: Audit chunk overlap, header preservation, and metadata attachment across `apps_research/`, `agents/context/`, and `AppsResearchBridge` handoff packets.
+3. **Pillar 3 — Hybrid Ranking, BGE-M3 Embeddings & Graph Traversal (`resume_graph_engine`)**: Run `tools/verify_graph_integrity_and_embeddings.py` and `tools/run_resume_graph_traversal_probe.py` to verify 1024-dim L2-normalized BGE-M3 vectors, 3-hop acyclic paths, and Stage-2 metric boost fusion.
 4. **Pillar 4 — Citation & Provenance Binding**: Ensure every retrieved research snippet and resume graph assertion carries a verifiable source identifier (`source_id`, `doc_hash`, or `node_id`) into `outreach_engine` and `resume_engine`.
 5. **Pillar 5 — Empty-Result & Low-Confidence Fail-Closed Gates**: Verify retrieval modules explicitly flag low-confidence or zero-hit queries rather than fabricating fallback claims.
-6. **Pillar 6 — Retrieval Cache & Schema Parity**: Verify cached research packets invalidate cleanly when schema versions or query parameters change.
-7. **Pillar 7 — Cross-Subsystem Contract Alignment**: Verify `apps_research` output schemas match consumer expectations in `outreach_engine/` (`apps_lic`) and `resume_engine/` (`apps_rg`).
+6. **Pillar 6 — Retrieval & Prompt Cache Slot Alignment**: Run `tools/verify_pipeline_latency_caching.py` to verify static prefix thresholds and compiler slot ordering (`R0`, `E0` before dynamic `C0`).
+7. **Pillar 7 — Cross-Subsystem Contract Alignment**: Verify `apps_research` output schemas match consumer expectations in `outreach_engine/` and `resume_engine/`.
 
 ### Phase 1.5: Mandatory Executable Forensic Scanner Commands
-Execute the following bounded retrieval surface scanner in `${WORKTREE_DIR}` (`timeout <= 90s`):
+Execute the bounded retrieval, embedding, graph traversal, and latency-caching suite in `${WORKTREE_DIR}` (`timeout <= 120s`):
 
 ```bash
-python3 - <<'PY'
-import ast, json
+"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/verify_graph_integrity_and_embeddings.py"
+"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/run_resume_graph_traversal_probe.py" --max-paths 200
+"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/verify_pipeline_latency_caching.py"
+"${PRIMARY_REPO_ROOT}/.venv/bin/python" - <<'PY'
+import ast, json, os
 from pathlib import Path
 
-root = Path("/Users/amitayer/Git/agents")
-targets = ["apps_research", "resume_graph_engine", "outreach_engine", "resume_engine"]
+root = Path(os.environ["WORKTREE_DIR"])
+targets = ["agents/context", "apps_research", "resume_graph_engine/src", "outreach_engine/src", "resume_engine"]
 retrieval_modules = []
 untyped_returns = []
 
@@ -74,30 +78,31 @@ for t in targets:
     if not base.exists():
         continue
     for py in base.rglob("*.py"):
+        if "tests" in py.parts:
+            continue
         rel = str(py.relative_to(root))
-        if any(k in rel.lower() for k in ("retriev", "search", "graph", "rank", "chunk", "research", "provenance")):
+        if any(k in rel.lower() for k in ("retriev", "search", "graph", "rank", "chunk", "research", "provenance", "context")):
             retrieval_modules.append(rel)
             try:
                 tree = ast.parse(py.read_text(encoding="utf-8"))
             except Exception:
                 continue
             for node in ast.walk(tree):
-                if isinstance(node, ast.FunctionDef) and not node.name.startswith("_") and node.returns is None:
+                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and not node.name.startswith("_") and node.returns is None:
                     untyped_returns.append({"file": rel, "line": node.lineno, "function": node.name})
 
 print(json.dumps({"retrieval_module_count": len(retrieval_modules), "sample_modules": retrieval_modules[:25], "public_functions_missing_return_annotations": untyped_returns[:25]}, indent=2))
 PY
-python3 tools/run_resume_graph_traversal_probe.py --max-paths 200
 ```
 
-Verify that `run_resume_graph_traversal_probe.py` reports `status == "PASS"`, `direct_graph_traversal == true`, and non-zero multi-hop paths (`two_hop_path_count > 0` and `domain_skill_evidence_path_count > 0`) across `resume_graph_engine` and `apps_research` without mutating repository files. Write the combined structured findings to `${RUN_DIR}/audit_report.json`.
+Write the combined structured findings to `${RUN_DIR}/audit_report.json`.
 
 ---
 
 ## 5. Phase 2: Unconditional Wave Plan Generation & 20% Margin HITL Gate (`C04`, `C05`)
 
 ### Step 2.1: Unconditional Wave-Based Plan Generation (`UNCONDITIONAL_WAVE_PLAN_MANDATE`)
-Author `${WORKTREE_DIR}/plans/research-retrieval-surface-${HEX6}.md` (500–800 words, max 1,000 words) structured into sequential waves:
+When findings exist, author `${WORKTREE_DIR}/plans/research-retrieval-surface-${HEX6}.md` (500–800 words, max 1,000 words) structured into sequential waves:
 - `## Wave 1: Research Retrieval Ranking, Provenance & Chunking Remediation`
 - `## Wave 2: Resume Graph Traversal & Cache Invalidation Parity`
 Each wave MUST include `### Objective & Scope`, `### Milestones & Deliverables`, `### Acceptance Criteria`, and `### Runtime Receipt & Completion Gate` (`Run:`, `Input:`, `Expected:`, `Verify independently:`, `Fail if:`, `Record:`), plus `## Wave Implementation & Completion Status Table`.
@@ -120,9 +125,9 @@ Compute multi-factor calibrated confidence via `tools/hitl_governance.py` (`calc
 For each wave (`Wave 1 -> Wave N`):
 1. **5-Point Counterfactual Runtime Proof (`INV-RUNTIME-PROOF-5POINT`)**:
    - Capture `PRE_MUTATION_RUN` retrieval/provenance metric before edit.
-   - Apply bounded fixes in `apps_research/` or `resume_graph_engine/`.
+   - Apply bounded fixes in `apps_research/`, `agents/context/`, or `resume_graph_engine/`.
    - Run `POST_MUTATION_RUN` entrypoint verification and scoped pytest (`--timeout=60`, `WaitMsBeforeAsync >= 15000`).
    - Verify state independently and record the 5-column proof table in `${RUN_DIR}/wave_receipts.md`.
 2. **Closed-Loop System Learning (`C07`)**: Record wave outcome in `HITLDecisionStore`.
 3. **Turn, Commit & Promotion Gates (`C09`, `C10`)**:
-   Run `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/validate_sidecar_separation.py" --repo-root "${WORKTREE_DIR}" --json`, `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/validate_turn_gates.py" --mode all`, and `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/verify_commit.py"`, commit via `git -C "${WORKTREE_DIR}" commit`, then stage via `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/pr_governance.py" -C "${WORKTREE_DIR}" submit "${BRANCH_NAME}" --stage-only` in scheduled mode or promote after interactive `ask_question` `PR_MERGE_AUTHORIZATION` via `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/pr_governance.py" -C "${WORKTREE_DIR}" submit "${BRANCH_NAME}" --title "fix(retrieval): remediate research and resume retrieval surface"`.
+   Run `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/validate_sidecar_separation.py" --repo-root "${WORKTREE_DIR}" --json`, `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/validate_turn_gates.py" --repository-root "${WORKTREE_DIR}" --mode all`, and `(cd "${WORKTREE_DIR}" && "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/verify_commit.py")`, commit via `git -C "${WORKTREE_DIR}" commit`, then stage via `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/pr_governance.py" -C "${WORKTREE_DIR}" submit "${BRANCH_NAME}" --stage-only` in scheduled mode or promote after interactive `ask_question` `PR_MERGE_AUTHORIZATION` via `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/pr_governance.py" -C "${WORKTREE_DIR}" submit "${BRANCH_NAME}" --title "fix(retrieval): remediate research and resume retrieval surface"`.
