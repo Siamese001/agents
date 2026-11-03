@@ -108,3 +108,39 @@ policies:
     description: "Direct modifications to tracked files on branch main in the primary root workspace are blocked."
     enforcer: "tools/hook_dispatch.py"
     rule_reference: ".agents/rules/pr-governance.md"
+
+  - id: "INV-SSOT-ZERO-SHADOW-CONFIGS"
+    title: "Zero Unsynchronized Shadow Configuration Sprawl"
+    category: "ssot_centralization"
+    threshold: 0
+    unit: "shadow_divergences"
+    description: "All configuration, schema, and profile surfaces across all 9 packages must synchronize with canonical owners in centralization_registry.yaml with zero intra-file or twin-file contradictions."
+    enforcer: "tools/ssot_sprawl_scanner.py"
+    rule_reference: "automations/prompts/agents_ssot_boundary_agent.md"
+
+  - id: "INV-SSOT-ZERO-HARDCODED-THRESHOLDS"
+    title: "Zero Unowned Hardcoded Domain or Governance Thresholds"
+    category: "ssot_centralization"
+    threshold: 0
+    unit: "hardcoded_literals"
+    description: "Word, character, sentence, token, retry, and timeout thresholds plus environment lookups must resolve from canonical owners without magic-number duplication."
+    enforcer: "tools/ssot_hardcoding_scanner.py"
+    rule_reference: "automations/prompts/agents_ssot_boundary_agent.md"
+
+  - id: "INV-SSOT-PROMPT-CODE-PARITY"
+    title: "Prompt Instruction to Runtime Validator Numeric Parity"
+    category: "ssot_centralization"
+    threshold: 0
+    unit: "parity_mismatches"
+    description: "Numeric bounds embedded in prompt templates, repair builders, judge rubrics, and eval expectations must match canonical runtime validator constants."
+    enforcer: "tools/ssot_hardcoding_scanner.py"
+    rule_reference: "automations/prompts/agents_ssot_boundary_agent.md"
+
+  - id: "INV-SSOT-POLICY-REGISTRY-SYNC"
+    title: "Governance Enforcer and Rule Policy Registry Synchronization"
+    category: "ssot_centralization"
+    threshold: 0
+    unit: "unsynced_enforcers"
+    description: "Every enforcer script and markdown rule referenced in policy_registry.yaml must enforce the exact registered threshold without hardcoded drift."
+    enforcer: "tools/ssot_hardcoding_scanner.py"
+    rule_reference: "config/governance/policy_registry.yaml"

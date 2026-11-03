@@ -5,10 +5,10 @@
 
 ## 1. Objective & Scope (`C01`)
 
-Execute a deterministic, fail-closed **SSOT Conformance & Subsystem Boundary Governance Audit & Remediation** exclusively within `/Users/amitayer/Git/agents` (`05:25 ET`, Order `2/7`). This agent enforces unidirectional layer imports (`L0–L6`), strict subsystem encapsulation across all 9 repository packages (`agents/`, `apps_model_telemetry/`, `outreach_engine/`, `resume_engine/`, `resume_graph_engine/src/`, `apps_research/`, `apps_eval/`, `infrastructure/`, `ops_scripts/`), config/data SSOT drift (`config/` vs `resume_graph_engine/config/`), model-neutral naming and pin integrity, portable MCP/hook/boundary definitions (`.mcp.json`, `.agents/hooks.json`, `.antigravity/runtime-boundary.json`), and `AGENTS.md` / `.agents/rules/conformance-map.md` link synchronization.
+Execute a deterministic, fail-closed **10-Dimension SSOT Centralization, Configuration Sprawl, Anti-Hardcoding & Subsystem Boundary Governance Audit & Remediation** exclusively within `/Users/amitayer/Git/agents` (`05:25 ET`, Order `2/7`). This agent enforces unidirectional layer imports (`L0–L6`), strict subsystem encapsulation across all 9 repository packages (`agents/`, `apps_model_telemetry/`, `outreach_engine/`, `resume_engine/`, `resume_graph_engine/src/`, `apps_research/`, `apps_eval/`, `infrastructure/`, `ops_scripts/`), multi-folder configuration sprawl and shadow-copy elimination (`config/governance/centralization_registry.yaml`, `tools/ssot_sprawl_scanner.py`), policy registry synchronization (`config/governance/policy_registry.yaml`), AST/prompt/eval anti-hardcoding and numeric parity (`tools/ssot_hardcoding_scanner.py`), model-neutral naming and pin integrity, portable MCP/hook/boundary definitions (`.mcp.json`, `.agents/hooks.json`, `.antigravity/runtime-boundary.json`), and `AGENTS.md` / `.agents/rules/conformance-map.md` link synchronization.
 
 ### Cross-Agent MECE De-Overlap Boundary
-- **Owned exclusively by this agent**: Cross-subsystem import boundaries (`ssot_boundary_auditor.py`, `lint_architecture_boundaries.py`, `lint_layer_imports.py`), production purity (`lint_production_purity.py`), config/schema/pin SSOT (`check_config_ssot_drift.py`, `lint_model_pins.py`, `lint_contract_schemas.py`, `lint_file_budgets.py`), model-neutral naming (`lint_model_neutral_naming.py`), and `.mcp.json` / `.agents/` / `.antigravity/` synchronization.
+- **Owned exclusively by this agent**: Cross-subsystem import boundaries (`ssot_boundary_auditor.py`, `lint_architecture_boundaries.py`, `lint_layer_imports.py`), production purity (`lint_production_purity.py`), multi-folder config sprawl & cross-format bound parity (`ssot_sprawl_scanner.py`, `check_config_ssot_drift.py`, `lint_model_pins.py`, `lint_contract_schemas.py`, `lint_file_budgets.py`), AST/prompt/eval anti-hardcoding & centralization (`ssot_hardcoding_scanner.py`, `config/governance/centralization_registry.yaml`, `config/governance/policy_registry.yaml`), model-neutral naming (`lint_model_neutral_naming.py`), and `.mcp.json` / `.agents/` / `.antigravity/` synchronization.
 - **Delegated to peer agents**: Worktree/SQLite hygiene (`agents-storage-worktree-hygiene`), E2E runtime behavior (`agents-outreach-resume-functionality`), retrieval quality (`agents-research-retrieval-surface`), judge rubrics (`agents-evals-judge-assurance`), token cost (`agents-cost-token-budget`), and pytest coverage (`agents-testing-gaps-assurance`).
 
 ---
@@ -46,24 +46,30 @@ Write `${RUN_DIR}/manifest.json` recording `agent_id`, `run_id`, `mode`, `pre_st
 
 ---
 
-## 4. Phase 1 & Phase 1.5: 6-Dimension Read-Only Audit & Executable Forensic Scanners
+## 4. Phase 1 & Phase 1.5: 10-Dimension Read-Only Audit & Executable Forensic Scanners
 
-### Phase 1: 6-Dimension SSOT & Boundary Audit
+### Phase 1: 10-Dimension SSOT, Centralization, Sprawl & Boundary Audit
 1. **Dimension 1 — Cross-Subsystem Encapsulation**: Verify zero illegal direct imports across `agents/`, `apps_model_telemetry/`, `outreach_engine/`, `resume_engine/`, `resume_graph_engine/src/`, `apps_research/`, `apps_eval/`, `infrastructure/`, and `ops_scripts/`.
 2. **Dimension 2 — Unidirectional Layer Imports, File Budgets & Production Purity**: Run `lint_layer_imports.py`, `lint_architecture_boundaries.py`, `lint_production_purity.py`, and `lint_file_budgets.py`.
-3. **Dimension 3 — Model-Neutral Naming, Pins & Config SSOT Drift**: Run `lint_model_neutral_naming.py`, `lint_model_pins.py --strict`, `lint_contract_schemas.py`, and `check_config_ssot_drift.py --strict` across all config and data surfaces.
+3. **Dimension 3 — Model-Neutral Naming, Pins & Root/Engine Config Drift**: Run `lint_model_neutral_naming.py`, `lint_model_pins.py --strict`, `lint_contract_schemas.py`, and `check_config_ssot_drift.py --strict`.
 4. **Dimension 4 — Constitutional AST Floor**: Scan all 9 packages plus `tools/` for `subprocess.*` calls missing `timeout=` and silent `except Exception: pass` without guardian comments.
 5. **Dimension 5 — MCP, Hooks, Runtime Boundary & Conformance Link Sync**: Verify `.mcp.json` and `.agents/mcp_config.json` portability, `.antigravity/runtime-boundary.json` `allowedSubsystems`, `.agents/hooks.json`, and zero broken links in `AGENTS.md` / `.agents/rules/conformance-map.md`.
 6. **Dimension 6 — Sidecar Separation Integrity**: Run `validate_sidecar_separation.py --repo-root "${WORKTREE_DIR}" --json`.
+7. **Dimension 7 — Multi-Folder Configuration Sprawl, Shadow Copies & Intra-File Contradictions**: Run `ssot_sprawl_scanner.py --repo-root "${WORKTREE_DIR}" --json` to detect nested shadow copies (`provider_profiles.yaml`, `pytest.ini`, `.mcp.json`), twin `.v1` profile sprawl, intra-file bound contradictions (e.g. `rg_output_schema.json` `150` vs `60`), and cross-format YAML/JSON bound drift against `config/governance/centralization_registry.yaml`.
+8. **Dimension 8 — Governance Policy Registry Synchronization**: Verify every enforcer and rule referenced in `config/governance/policy_registry.yaml` dynamically resolves or enforces registered thresholds without hardcoded bypasses or unwired live hooks.
+9. **Dimension 9 — Anti-Hardcoding, Environment Centralization & AST Hygiene**: Run `ssot_hardcoding_scanner.py --repo-root "${WORKTREE_DIR}" --json` to detect duplicate threshold constants, conflicting policy defaults, eval scenario bound drift, uncentralized `os.environ` reads, hardcoded machine paths, and unassigned `.split()` bugs.
+10. **Dimension 10 — Prompt-to-Code & Template-to-Config Numeric Parity**: Verify word, sentence, and character limits embedded in prompt templates, repair builders, and judge rubrics match canonical runtime validator constants.
 
 ### Phase 1.5: Mandatory Executable Forensic Scanner Commands
-Execute the bounded 6-dimension boundary and SSOT auditor in `${WORKTREE_DIR}` (`timeout <= 90s`):
+Execute the bounded 10-dimension boundary, sprawl, and anti-hardcoding auditors in `${WORKTREE_DIR}` (`timeout <= 90s`):
 
 ```bash
 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/ssot_boundary_auditor.py" \
   --repo-root "${WORKTREE_DIR}" \
   --output "${RUN_DIR}/audit_report.json" \
   --json
+"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/ssot_sprawl_scanner.py" --repo-root "${WORKTREE_DIR}" --json
+"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/ssot_hardcoding_scanner.py" --repo-root "${WORKTREE_DIR}" --json
 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/lint_contract_schemas.py" --all --repo-root "${WORKTREE_DIR}"
 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/lint_file_budgets.py" --all --repo-root "${WORKTREE_DIR}"
 ```
@@ -73,9 +79,9 @@ Execute the bounded 6-dimension boundary and SSOT auditor in `${WORKTREE_DIR}` (
 ## 5. Phase 2: Unconditional Wave Plan Generation & 20% Margin HITL Gate (`C04`, `C05`)
 
 ### Step 2.1: Unconditional Wave-Based Plan Generation (`UNCONDITIONAL_WAVE_PLAN_MANDATE`)
-When findings exist (`is_clean == false`), author `${WORKTREE_DIR}/plans/ssot-boundary-remediation-${HEX6}.md` (500–800 words, max 1,000 words) structured into sequential waves:
-- `## Wave 1: Subsystem Boundary, Layer Import & Timeout Remediation`
-- `## Wave 2: Model Registry, Config Drift & Conformance Map Sync`
+When findings exist (`is_clean == false`), author `${WORKTREE_DIR}/plans/ssot-boundary-remediation-${HEX6}.md` (500–800 words, max 1,000 words) structured into sequential centralization-first waves:
+- `## Wave 1: Configuration Sprawl Consolidation, Intra-File Schema Fixes & Centralization Registry Sync`
+- `## Wave 2: Hardcoded Threshold Elimination, Prompt-to-Code Parity & Subsystem Boundary Remediation`
 Each wave MUST include `### Objective & Scope`, `### Milestones & Deliverables`, `### Acceptance Criteria`, and `### Runtime Receipt & Completion Gate` (`Run:`, `Input:`, `Expected:`, `Verify independently:`, `Fail if:`, `Record:`).
 Validate immediately:
 ```bash
@@ -84,7 +90,7 @@ cp "${WORKTREE_DIR}/plans/ssot-boundary-remediation-${HEX6}.md" "${RUN_DIR}/impl
 ```
 
 ### Step 2.2: Mandatory Pre-HITL Dimension Findings Table & Calibrated HITL Gate
-Render the **Dimension Findings Table** (`| Dimension | Score / Status | Concrete Findings | Planned Action |`) across all 6 dimensions.
+Render the **Dimension Findings Table** (`| Dimension | Score / Status | Concrete Findings | Planned Action |`) across all 10 dimensions.
 Compute multi-factor calibrated confidence via `tools/hitl_governance.py` (`calculate_calibrated_confidence`, `evaluate_hitl_surfacing_gate`, `HITLDecisionStore` at `artifacts/governance/hitl_decisions.sqlite`).
 - In `MODE: scheduled`: Copy `${RUN_DIR}` to `${PRIMARY_REPO_ROOT}/artifacts/sidecar_runs/agents_ssot_boundary/${RUN_TS}`, then stage verified fixes (or prune 0-commit runs) via `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/pr_governance.py" -C "${WORKTREE_DIR}" submit "${BRANCH_NAME}" --stage-only` without mutating `main`.
 - In `MODE: interactive`: Surface one atomic `ask_question` decision if $\Delta \le 0.20$; proceed autonomously under a sealed receipt if $\Delta > 0.20$.
