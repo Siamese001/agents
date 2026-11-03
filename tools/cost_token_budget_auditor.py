@@ -152,6 +152,29 @@ def _audit_pillar_1_provider_pinning_and_effort(
             if str(sel.get("reasoning_effort") or "").lower() != "low":
                 gaps.append(f"selector_models.{sel_name} reasoning_effort must be 'low'")
 
+    outreach_profiles, outreach_err = load_yaml_strict(repo_root / "outreach_engine" / "config" / "provider_profiles.yaml")
+    if outreach_err or not outreach_profiles:
+        gaps.append(outreach_err or "Missing outreach_engine/config/provider_profiles.yaml")
+    else:
+        for role_name, role_cfg in (outreach_profiles.get("profiles") or {}).items():
+            if not isinstance(role_cfg, dict):
+                continue
+            rmodel = str(role_cfg.get("model") or "").strip()
+            if not rmodel or (pricing_map and rmodel not in pricing_map):
+                gaps.append(f"outreach_engine.{role_name} pins unpriced or legacy model '{rmodel}'")
+            if role_name == "rubric_judge_panel" and rmodel != "claude-haiku-4-5-20251001":
+                gaps.append(f"outreach_engine.rubric_judge_panel should be right-sized to 'claude-haiku-4-5-20251001', got '{rmodel}'")
+
+    reg_data, reg_err = load_yaml_strict(repo_root / "resume_graph_engine" / "config" / "models" / "registry.yaml")
+    if not reg_err and isinstance(reg_data, dict):
+        roles_map = reg_data.get("roles") or {}
+        voice_repair = roles_map.get("repair.executive_voice") or {}
+        if str(voice_repair.get("model") or "") != "claude-haiku-4-5-20251001":
+            gaps.append("roles.repair.executive_voice must be right-sized to claude-haiku-4-5-20251001")
+        std_oa = ((roles_map.get("proof_judge.standard.openai_chatgpt") or {}).get("params") or {})
+        if str(std_oa.get("reasoning_effort") or "") != "low":
+            gaps.append("roles.proof_judge.standard.openai_chatgpt reasoning_effort must be right-sized to 'low'")
+
     pins_mod, pin_err = load_repo_module(repo_root, "apps_research/config/model_pins.py")
     if pin_err or pins_mod is None:
         gaps.append(pin_err or "Missing apps_research/config/model_pins.py")
@@ -415,9 +438,19 @@ def _audit_pillar_8_thought_leadership_and_roi(repo_root: Path) -> dict[str, Any
         if rendered != '{"a":"ok","z":[1,2]}':
             gaps.append(f"prompt_cache.json_text produced non-compact output: {rendered}")
 
+    prof_doc, _ = load_yaml_strict(repo_root / "config" / "provider_profiles.yaml")
+    argon_policy = (prof_doc.get("ide_argon4_routing_policy") or {}) if isinstance(prof_doc, dict) else {}
+    if not argon_policy.get("interactive_ide_enabled") or not argon_policy.get("thinking_separation_guaranteed"):
+        gaps.append("config/provider_profiles.yaml missing active ide_argon4_routing_policy with thinking_separation_guaranteed")
+    if not argon_policy.get("high_reasoning_roles") or not argon_policy.get("medium_reasoning_roles"):
+        gaps.append("ide_argon4_routing_policy must declare high_reasoning_roles and medium_reasoning_roles")
+    if not str(argon_policy.get("frontier_external_retention_defense") or "").strip():
+        gaps.append("ide_argon4_routing_policy missing frontier_external_retention_defense rationalization")
+
     return {
         "pillar": "8_thought_leadership_and_roi_benchmark",
         "status": "PASS" if not gaps else "ACTION_REQUIRED",
+        "ide_argon4_routing_verified": bool(argon_policy.get("interactive_ide_enabled")),
         "roi_benchmark": roi,
         "gaps": gaps,
     }

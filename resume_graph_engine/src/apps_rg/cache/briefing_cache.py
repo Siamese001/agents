@@ -54,6 +54,11 @@ def compute_briefing_cache_key(
     )
 
 
+_DEFAULT_SHARED_DISK_BRIEFING_DIR = (
+    Path(__file__).resolve().parents[4] / "data" / "cache" / "shared_briefings"
+)
+
+
 class BriefingCache:
     """In-memory and filesystem-backed cache for sealed briefings."""
 
@@ -111,7 +116,7 @@ class BriefingCache:
         self._memory.clear()
 
 
-_GLOBAL_BRIEFING_CACHE = BriefingCache()
+_GLOBAL_BRIEFING_CACHE = BriefingCache(cache_dir=_DEFAULT_SHARED_DISK_BRIEFING_DIR)
 
 
 def get_global_briefing_cache(cache_dir: Path | None = None) -> BriefingCache:

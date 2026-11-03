@@ -284,16 +284,123 @@ def build_reuse_receipt(
     }
 
 
+SEMANTIC_FACT_CACHE_FILENAME = "semantic_fact_response_cache.jsonl"
+SEMANTIC_FACT_CACHE_SCHEMA_VERSION = "apps.semantic_fact_response_cache.v1"
+DEFAULT_SEMANTIC_SIMILARITY_FLOOR: float = 0.985
+
+
+def _cosine_similarity(vec_a: list[float] | tuple[float, ...], vec_b: list[float] | tuple[float, ...]) -> float:
+    if not vec_a or not vec_b or len(vec_a) != len(vec_b):
+        return 0.0
+    dot = sum(float(a) * float(b) for a, b in zip(vec_a, vec_b))
+    norm_a = sum(float(a) * float(a) for a in vec_a) ** 0.5
+    norm_b = sum(float(b) * float(b) for b in vec_b) ** 0.5
+    if norm_a <= 1e-12 or norm_b <= 1e-12:
+        return 0.0
+    return dot / (norm_a * norm_b)
+
+
+def store_semantic_fact_response(
+    *,
+    cache_dir: Path | str | None,
+    section_id: str,
+    model: str,
+    fact_set_digest: str,
+    schema_version: str,
+    intent_vector: list[float] | tuple[float, ...],
+    result: Mapping[str, Any],
+) -> str | None:
+    """Persist a cross-run generation response gated by fact-set digest and intent vector."""
+    if cache_dir is None or not fact_set_digest.strip() or not intent_vector:
+        return None
+    if result.get("runtime_generation_status") != "REAL_LLM" or result.get("stub") is True:
+        return None
+    if not str(result.get("raw_model_output") or "").strip():
+        return None
+    path = Path(cache_dir) / SEMANTIC_FACT_CACHE_FILENAME
+    result_copy = json.loads(_canonical_json(result))
+    entry: dict[str, Any] = {
+        "schema_version": SEMANTIC_FACT_CACHE_SCHEMA_VERSION,
+        "event_id": uuid.uuid4().hex,
+        "recorded_at_utc": datetime.now(timezone.utc).isoformat(),
+        "section_id": str(section_id).strip(),
+        "model": str(model).strip(),
+        "fact_set_digest": str(fact_set_digest).strip(),
+        "contract_schema_version": str(schema_version).strip(),
+        "intent_vector": [round(float(x), 8) for x in intent_vector],
+        "result_sha256": hashlib.sha256(_canonical_json(result_copy).encode("utf-8")).hexdigest(),
+        "result": result_copy,
+    }
+    entry["event_digest"] = _event_digest(entry)
+    with _cache_lock:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("a", encoding="utf-8", newline="\n") as handle:
+            handle.write(_canonical_json(entry) + "\n")
+            handle.flush()
+    return str(entry["event_digest"])
+
+
+def lookup_semantic_fact_response(
+    *,
+    cache_dir: Path | str | None,
+    section_id: str,
+    model: str,
+    fact_set_digest: str,
+    schema_version: str,
+    intent_vector: list[float] | tuple[float, ...],
+    min_cosine_similarity: float = DEFAULT_SEMANTIC_SIMILARITY_FLOOR,
+) -> tuple[dict[str, Any], float, str] | None:
+    """Lookup cross-run generation response requiring BOTH cosine >= 0.985 AND exact fact_set_digest parity."""
+    if cache_dir is None or not fact_set_digest.strip() or not intent_vector:
+        return None
+    path = Path(cache_dir) / SEMANTIC_FACT_CACHE_FILENAME
+    if not path.is_file():
+        return None
+    with _cache_lock:
+        for raw_line in reversed(path.read_text(encoding="utf-8").splitlines()):
+            if not raw_line.strip():
+                continue
+            try:
+                entry = json.loads(raw_line)
+            except (TypeError, ValueError):
+                continue
+            if not isinstance(entry, dict) or entry.get("schema_version") != SEMANTIC_FACT_CACHE_SCHEMA_VERSION:
+                continue
+            if str(entry.get("event_digest") or "") != _event_digest(entry):
+                continue
+            if (
+                entry.get("section_id") != str(section_id).strip()
+                or entry.get("model") != str(model).strip()
+                or entry.get("fact_set_digest") != str(fact_set_digest).strip()
+                or entry.get("contract_schema_version") != str(schema_version).strip()
+            ):
+                continue
+            cand_vec = entry.get("intent_vector")
+            if not isinstance(cand_vec, list):
+                continue
+            sim = _cosine_similarity(intent_vector, cand_vec)
+            if sim >= min_cosine_similarity:
+                res = entry.get("result")
+                if isinstance(res, dict):
+                    return copy.deepcopy(res), round(sim, 6), str(entry["event_digest"])
+    return None
+
+
 __all__ = [
+    "DEFAULT_SEMANTIC_SIMILARITY_FLOOR",
     "ENV_EXACT_RESPONSE_REUSE",
     "EXACT_RESPONSE_CACHE_FILENAME",
     "EXACT_RESPONSE_CACHE_SCHEMA_VERSION",
     "EXACT_RESPONSE_REUSE_RECEIPT_SCHEMA_VERSION",
     "ExactRequestIdentity",
     "ExactResponseReuseError",
+    "SEMANTIC_FACT_CACHE_FILENAME",
+    "SEMANTIC_FACT_CACHE_SCHEMA_VERSION",
     "build_exact_request_identity",
     "build_reuse_receipt",
     "exact_response_reuse_enabled",
     "lookup_exact_response",
+    "lookup_semantic_fact_response",
     "store_exact_response",
+    "store_semantic_fact_response",
 ]

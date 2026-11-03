@@ -627,7 +627,7 @@ roles:
     review_after: "2026-11-07"
     backup_role: null
     params:
-      reasoning_effort: high
+      reasoning_effort: low
       max_output_tokens: 4096
 
   # Selectors
@@ -688,10 +688,10 @@ roles:
 
   # Voice repair and thesis alignment
   repair.executive_voice:
-    model: claude-sonnet-5
+    model: claude-haiku-4-5-20251001
     provider: external_claude
-    tier: frontier
-    proof_eligible: true
+    tier: mid
+    proof_eligible: false
     owner: apps_rg.executive_voice_repair
     review_after: "2026-11-07"
     backup_role: null

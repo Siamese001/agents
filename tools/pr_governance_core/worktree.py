@@ -93,6 +93,12 @@ def link_worktree_dependencies(root: Path, worktree_dir: Path) -> list[str]:
                 linked.append(link_name)
             except Exception as e:
                 print(f"  ⚠️ Could not symlink {link_name}: {e}")
+    agents_dir = worktree_dir / ".agents"
+    agents_tools_link = agents_dir / "tools"
+    if agents_dir.is_dir() and not (agents_tools_link.exists() or agents_tools_link.is_symlink()):
+        with contextlib.suppress(OSError):
+            os.symlink("../tools", agents_tools_link)
+            linked.append(".agents/tools")
     return linked
 
 

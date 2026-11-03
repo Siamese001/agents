@@ -387,6 +387,43 @@ def build_anthropic_section_cache_payload(
     )
 
 
+def build_prefix_prewarm_plan(
+    payloads: Sequence[AnthropicSectionCachePayload],
+) -> dict[str, Any]:
+    """Build a single-section prefix pre-warming execution plan before parallel fan-out.
+
+    Groups payloads sharing an identical stable_prefix_hash + model so the first section
+    warms the 1h/5m prefix cache before sibling lanes dispatch concurrently, converting
+    N cold cache_creation_input_tokens charges into 1 write + (N-1) 0.10x cache reads.
+    """
+    valid = [p for p in payloads if isinstance(p, AnthropicSectionCachePayload) and p.stable_prefix_hash]
+    if not valid:
+        return {
+            "prewarm_enabled": False,
+            "lead_section_id": "",
+            "parallel_follower_sections": [],
+            "stable_prefix_hash": "",
+            "expected_cold_writes": 0,
+            "expected_warm_reads": 0,
+        }
+    lead = valid[0]
+    lead_sec = str(lead.cache_receipt_seed.get("section_id") or "")
+    lead_hash = lead.stable_prefix_hash
+    followers = [
+        str(p.cache_receipt_seed.get("section_id") or f"lane_{idx}")
+        for idx, p in enumerate(valid[1:], start=1)
+        if p.stable_prefix_hash == lead_hash
+    ]
+    return {
+        "prewarm_enabled": len(followers) > 0,
+        "lead_section_id": lead_sec,
+        "parallel_follower_sections": followers,
+        "stable_prefix_hash": lead_hash,
+        "expected_cold_writes": 1,
+        "expected_warm_reads": len(followers),
+    }
+
+
 __all__ = [
     "ANTHROPIC_SYSTEM_ONLY_USER_PROMPT",
     "AnthropicCacheWorkloadKind",
@@ -394,4 +431,5 @@ __all__ = [
     "FALLBACK_REPEATED_USER_WORKLOADS",
     "MAX_ANTHROPIC_CACHE_MARKERS",
     "build_anthropic_section_cache_payload",
+    "build_prefix_prewarm_plan",
 ]

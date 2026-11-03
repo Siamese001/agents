@@ -1,5 +1,8 @@
 #!/bin/sh
 set -eu
+if [ -d ".agents" ] && [ ! -e ".agents/tools" ]; then
+  ln -s ../tools .agents/tools 2>/dev/null || true
+fi
 if command -v git-lfs >/dev/null 2>&1; then
   git lfs post-checkout "$@"
 fi

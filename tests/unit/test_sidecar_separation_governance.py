@@ -293,3 +293,37 @@ def test_testing_gaps_auditor_passes_on_live_repo_and_rejects_hardcoded_root(tmp
     result = validate_sidecar_separation(repo_root=fake_repo, sidecars_root=DEFAULT_SIDECARS_ROOT)
     assert result["status"] == "FAIL"
     assert any("hardcodes primary repo root" in v for v in result["violations"])
+
+
+def test_prefix_prewarm_semantic_fact_digest_and_shared_disk_briefing_cache(tmp_path: Path) -> None:
+    """Verify prefix pre-warming, semantic fact-digest cache gate, 30-day disk briefing reuse, and Argon 4 routing."""
+    from tools.cost_token_budget_auditor import run_eight_pillar_cost_token_audit
+    from tools.cost_token_budget_probes import load_repo_module, load_yaml_strict
+
+    c02, err = load_repo_module(REPO_ROOT, "resume_graph_engine/src/apps_rg/runtime/c0/c02_semantic_cache_payload.py")
+    assert err is None and c02 is not None
+    payload = c02.build_c02_semantic_cache_payload(
+        section_id="executive_summary",
+        atoms=[{"fact_id": "fact_a", "claim_text": "Delivered $42M migration", "confidence": "HIGH", "proof_status": "VERIFIED"}],
+        vector_query_receipt={"dense_search_refs": ["ref_1"], "hybrid_enrichment_item_count": 1},
+        target_company="Acme",
+        target_role="SVP",
+        jd_digest="jd_1",
+        run_id="run_1",
+    )
+    assert c02.verify_semantic_fact_digest_cache_hit(payload, candidate_similarity=0.99, candidate_fact_ids=["fact_a"]) is True
+    assert c02.verify_semantic_fact_digest_cache_hit(payload, candidate_similarity=0.99, candidate_fact_ids=["fact_b"]) is False
+    assert c02.verify_semantic_fact_digest_cache_hit(payload, candidate_similarity=0.95, candidate_fact_ids=["fact_a"]) is False
+
+    prof_doc, prof_err = load_yaml_strict(REPO_ROOT / "config" / "provider_profiles.yaml")
+    assert prof_err is None
+    argon = prof_doc.get("ide_argon4_routing_policy") or {}
+    assert argon.get("interactive_ide_enabled") is True
+    assert argon.get("thinking_separation_guaranteed") is True
+    assert "executive_summary" in (argon.get("high_reasoning_roles") or [])
+    assert "competencies_graph_pool_selector" in (argon.get("medium_reasoning_roles") or [])
+
+    audit_rep = run_eight_pillar_cost_token_audit(REPO_ROOT)
+    assert audit_rep["status"] == "PASS"
+    assert audit_rep["pillars"][7]["ide_argon4_routing_verified"] is True
+

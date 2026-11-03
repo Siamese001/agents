@@ -182,6 +182,33 @@ def read_c02_semantic_cache_payload(artifact_dir: Path) -> dict[str, Any]:
         return {}
 
 
+def verify_semantic_fact_digest_cache_hit(
+    cached_payload: dict[str, Any],
+    *,
+    candidate_similarity: float,
+    candidate_fact_ids: list[str] | tuple[str, ...],
+    candidate_schema_version: str = SCHEMA_VERSION,
+    similarity_threshold: float = 0.985,
+) -> bool:
+    """Gate semantic cache reuse on cosine similarity >= 0.985 AND exact fact-set digest parity."""
+    if not isinstance(cached_payload, dict) or float(candidate_similarity) < float(similarity_threshold):
+        return False
+    if str(cached_payload.get("schema_version") or "") != str(candidate_schema_version):
+        return False
+    cached_items = cached_payload.get("query_output")
+    if not isinstance(cached_items, list) or not cached_items:
+        return False
+    cached_ids = sorted(
+        str(item.get("fact_id") or "").strip()
+        for item in cached_items
+        if isinstance(item, dict) and str(item.get("fact_id") or "").strip()
+    )
+    cand_ids = sorted(str(fid).strip() for fid in (candidate_fact_ids or ()) if str(fid).strip())
+    if not cached_ids or cached_ids != cand_ids:
+        return False
+    return _digest("|".join(cached_ids)) == _digest("|".join(cand_ids))
+
+
 __all__ = [
     "C02_SEMANTIC_CACHE_PAYLOAD_ARTIFACT",
     "SCHEMA_VERSION",
@@ -189,5 +216,6 @@ __all__ = [
     "read_c02_semantic_cache_payload",
     "section_intent_text",
     "serialize_query_output",
+    "verify_semantic_fact_digest_cache_hit",
     "write_c02_semantic_cache_payload",
 ]

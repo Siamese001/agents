@@ -90,20 +90,82 @@ class GovernedBriefingResolver:
     """Resolves briefing context for outreach through governed multi-path resolution."""
 
     MAX_CACHE_SIZE: int = 128
-    DEFAULT_CACHE_TTL_SECONDS: float = 7 * 86400.0  # 7 days freshness window
+    DEFAULT_CACHE_TTL_SECONDS: float = 30 * 86400.0  # Unified 30-day cross-engine freshness window
+    SHARED_DISK_CACHE_DIR: Path | None = None
     _cache: dict[str, dict[str, Any]] = {}
     _lock = threading.Lock()
 
     @classmethod
-    def _save_to_cache(cls, key: str, value: dict[str, Any]) -> None:
-        """Stores entry in cache with bounded FIFO eviction and freshness timestamp."""
+    def _save_to_cache(cls, key: str, value: dict[str, Any], *, disk_cache_dir: Path | None = None) -> None:
+        """Stores entry in cache with bounded FIFO eviction, timestamp, and optional atomic disk persistence."""
+        now_ts = time.time()
         with cls._lock:
             if len(cls._cache) >= cls.MAX_CACHE_SIZE:
                 oldest_key = next(iter(cls._cache))
                 cls._cache.pop(oldest_key, None)
             val = dict(value)
-            val.setdefault("timestamp", time.time())
+            val.setdefault("timestamp", now_ts)
             cls._cache[key] = val
+
+        target_dir = disk_cache_dir or cls.SHARED_DISK_CACHE_DIR
+        if target_dir is not None and bool(value.get("is_verified", True)):
+            try:
+                target_dir.mkdir(parents=True, exist_ok=True)
+                safe_key = key.replace(":", "_")
+                path = target_dir / f"{safe_key}.json"
+                tmp = path.with_name(f".{path.name}.tmp")
+                disk_payload = {
+                    "company_name": str(value.get("company_name") or ""),
+                    "target_role": str(value.get("target_role") or ""),
+                    "briefing_text": str(value.get("briefing_text") or ""),
+                    "digest": str(value.get("digest") or ""),
+                    "source": str(value.get("resolution_source") or "OUTREACH_CACHE"),
+                    "created_at": float(val["timestamp"]),
+                    "ttl_seconds": float(cls.DEFAULT_CACHE_TTL_SECONDS),
+                    "metadata": {
+                        "confidence_score": float(value.get("confidence_score", 1.0)),
+                        "evidence_count": int(value.get("evidence_count", 1)),
+                        "airlock_sanitized": bool(value.get("airlock_sanitized", True)),
+                        "strategic_priorities": list(value.get("strategic_priorities") or ()),
+                        "is_verified": True,
+                    },
+                }
+                tmp.write_text(json.dumps(disk_payload, indent=2), encoding="utf-8")
+                tmp.replace(path)
+            except OSError:
+                pass
+
+    @classmethod
+    def _load_from_shared_disk(cls, key: str, *, disk_cache_dir: Path | None = None) -> dict[str, Any] | None:
+        target_dir = disk_cache_dir or cls.SHARED_DISK_CACHE_DIR
+        if target_dir is None:
+            return None
+        safe_key = key.replace(":", "_")
+        path = target_dir / f"{safe_key}.json"
+        if not path.is_file():
+            return None
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            created_at = float(payload.get("created_at") or 0.0)
+            ttl = float(payload.get("ttl_seconds") or cls.DEFAULT_CACHE_TTL_SECONDS)
+            if (time.time() - created_at) > ttl:
+                path.unlink(missing_ok=True)
+                return None
+            meta = payload.get("metadata") if isinstance(payload.get("metadata"), dict) else {}
+            if meta.get("is_verified") is False:
+                return None
+            return {
+                "briefing_text": str(payload.get("briefing_text") or ""),
+                "digest": str(payload.get("digest") or ""),
+                "confidence_score": float(meta.get("confidence_score", 1.0)),
+                "evidence_count": int(meta.get("evidence_count", 1)),
+                "airlock_sanitized": bool(meta.get("airlock_sanitized", True)),
+                "strategic_priorities": tuple(meta.get("strategic_priorities") or ()),
+                "is_verified": True,
+                "timestamp": created_at,
+            }
+        except (OSError, ValueError, TypeError):
+            return None
 
     @classmethod
     def clear_cache(cls) -> None:
@@ -238,6 +300,23 @@ class GovernedBriefingResolver:
                             is_verified=bool(cached.get("is_verified", True)),
                             metadata={"cache_key": cache_key, "cached_at": cached_time},
                         )
+
+            disk_hit = cls._load_from_shared_disk(cache_key)
+            if disk_hit is not None:
+                cls._save_to_cache(cache_key, disk_hit)
+                return SealedBriefingResolution(
+                    briefing_text=disk_hit["briefing_text"],
+                    digest=disk_hit["digest"],
+                    resolution_source="CACHE_HIT",
+                    company_name=company_name,
+                    target_role=target_role,
+                    confidence_score=float(disk_hit.get("confidence_score", 1.0)),
+                    evidence_count=int(disk_hit.get("evidence_count", 1)),
+                    airlock_sanitized=bool(disk_hit.get("airlock_sanitized", True)),
+                    strategic_priorities=tuple(disk_hit.get("strategic_priorities", ())),
+                    is_verified=True,
+                    metadata={"cache_key": cache_key, "cached_at": disk_hit["timestamp"], "reused_from_shared_disk": True},
+                )
 
             # Check persisted research artifacts in artifact_runs_root before live calls
             if artifact_runs_root is not None:
