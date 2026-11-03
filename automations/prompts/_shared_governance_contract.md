@@ -1,27 +1,27 @@
-# Agents Repository — Scheduled Automation Agents Shared Governance Contract (`C01–C12`)
+# Agents Repository — On-Demand Assurance Agents Shared Governance Contract (`C01–C12`)
 <!-- GOVERNED COMMON CONTRACT: urn:agents:scheduled-task-common-control-matrix:1.0.0 -->
 <!-- INVARIANT: INV-REPO-SEPARATION-AGENTS-ONLY | UNCONDITIONAL_WAVE_PLAN_MANDATE | INV-RUNTIME-PROOF-5POINT | INV-AUTOMATION-PERSISTENT-LEARNING-LOOP -->
 
-## 1. Repository Isolation & Namespace Invariant (`INV-REPO-SEPARATION-AGENTS-ONLY`)
+## 1. Repository Isolation & On-Demand Execution Invariant (`INV-REPO-SEPARATION-AGENTS-ONLY`)
 
-1. **Workspace Containment**: All `agents-*` sidecar automation agents are bound exclusively to `/Users/amitayer/Git/agents` and its isolated worktrees under `/Users/amitayer/Git/agents/.worktrees/chore_agents_*`.
-2. **Zero Cross-Repository Mutation**: Sidecar agents in this repository are strictly forbidden from reading, modifying, locking, or writing to any file, database, worktree, or sidecar configuration belonging to external repositories.
-3. **Artifact Isolation**: All automation runtime artifacts, manifests, plans, and receipts must be written exclusively inside `<WORKTREE_DIR>/artifacts/sidecar_runs/<agent_slug>/<run_id>/` and `<WORKTREE_DIR>/plans/<branch-slug>-<6hex>.md`.
-4. **Sidecar Identifier Prefix**: Every global sidecar directory under `/Users/amitayer/.gemini/config/sidecars/` for this repository must start with `agents-`, use title prefix `"Agents Repo: ..."`, and stagger its cron schedule at 25-minute collision-safe intervals across `05:00–07:30 America/New_York` (`0 5`, `25 5`, `50 5`, `15 6`, `40 6`, `5 7`, `30 7`).
+1. **Workspace Containment**: All `agents-*` on-demand assurance workflows are bound exclusively to `/Users/amitayer/Git/agents` and its isolated worktrees under `/Users/amitayer/Git/agents/.worktrees/chore_agents_*`.
+2. **Zero Cross-Repository Mutation**: Assurance agents in this repository are strictly forbidden from reading, modifying, locking, or writing to any file, database, worktree, or sidecar configuration belonging to external repositories.
+3. **Artifact Isolation**: All assurance runtime artifacts, manifests, plans, and receipts must be written exclusively inside `<WORKTREE_DIR>/artifacts/sidecar_runs/<agent_slug>/<run_id>/` and `<WORKTREE_DIR>/plans/<branch-slug>-<6hex>.md`.
+4. **Zero Daily Background Schedules**: Unattended daily `agents-*` schedules in `/Users/amitayer/.gemini/config/sidecars/` and `/Users/amitayer/.gemini/config/config.json` are retired (`agents_scheduled_count == 0`); continuous structural gates run via `.githooks/pre-commit` (`tools/verify_commit.py`) and deep sweeps run on demand through `.agents/skills/` and `automations/prompts/agents_*_agent.md`.
 
 ---
 
-## 2. Master Causal Execution Sequence (`05:00–07:30 ET`, 25-Minute Spacing)
+## 2. Master Causal Execution Sequence (On-Demand & Pre-Save Gates)
 
-| Order | Stage | Sidecar ID | Cron (`America/New_York`) | Canonical Prompt Specification | Target Surface |
+| Order | Stage | Workflow ID | Execution Mode | Canonical Prompt Specification | Target Surface |
 | :---: | :---: | :--- | :---: | :--- | :--- |
-| **1/7** | **Stage I (Foundation)** | `agents-storage-worktree-hygiene` | `0 5 * * *` (`05:00 ET`) | `automations/prompts/agents_storage_worktree_hygiene_agent.md` | `.worktrees/`, `artifacts/`, `resume_graph_engine/artifacts/`, `scratch/`, `plans/`, `reports/`, all SQLite/Chroma DBs, lock & branch pruning |
-| **2/7** | **Stage II (Governance)** | `agents-ssot-boundary-governance` | `25 5 * * *` (`05:25 ET`) | `automations/prompts/agents_ssot_boundary_agent.md` | `agents/`, `apps_model_telemetry/`, `outreach_engine/`, `resume_engine/`, `resume_graph_engine/`, `apps_research/`, `apps_eval/`, `infrastructure/`, `ops_scripts/`, `config/`, `.agents/`, `.antigravity/`, `.mcp.json`, `AGENTS.md` |
-| **3/7** | **Stage III-A (Core E2E)** | `agents-outreach-resume-functionality` | `50 5 * * *` (`05:50 ET`) | `automations/prompts/agents_e2e_functionality_assurance_agent.md` | `agents/`, `outreach_engine/`, `resume_engine/`, `resume_graph_engine/`, `apps_research/`, `ops_scripts/` E2E smoke & release gates |
-| **4/7** | **Stage III-B (Retrieval)** | `agents-research-retrieval-surface` | `15 6 * * *` (`06:15 ET`) | `automations/prompts/agents_research_retrieval_surface_agent.md` | `apps_research/` & `resume_graph_engine/` hybrid retrieval, BGE-M3 embedding norms, chunking, provenance, latency & cache parity |
-| **5/7** | **Stage III-C (Evaluation)** | `agents-evals-judge-assurance` | `40 6 * * *` (`06:40 ET`) | `automations/prompts/agents_evals_judge_assurance_agent.md` | `apps_eval/`, `tools/validate_eval_rubrics.py`, `tools/lint_production_purity.py`, `data/` holdout & certification datasets, judge rubrics |
-| **6/7** | **Stage IV-A (Economics)** | `agents-cost-token-budget` | `5 7 * * *` (`07:05 ET`) | `automations/prompts/agents_cost_token_budget_agent.md` | `apps_model_telemetry/`, `agents/`, `scripts/`, `config/provider_profiles.yaml`, `pyproject.toml`, `tools/lint_secrets.py`, prompt/semantic caching, dynamically derived $\text{ROI} \ge 2.5\times$ |
-| **7/7** | **Stage IV-B (Verification)** | `agents-testing-gaps-assurance` | `30 7 * * *` (`07:30 ET`) | `automations/prompts/agents_testing_gaps_assurance_agent.md` | All 4 test roots (`tests/`, `resume_graph_engine/tests/`, `outreach_engine/tests/`, `apps_eval/tests/`), `.githooks/`, mock reachability, Class A/B `--timeout=60` test assurance |
+| **1/7** | **Stage I (Foundation)** | `agents-storage-worktree-hygiene` | On-Demand CLI / Skill | `automations/prompts/agents_storage_worktree_hygiene_agent.md` | `.worktrees/`, `artifacts/`, `resume_graph_engine/artifacts/`, `scratch/`, `plans/`, `reports/`, all SQLite/Chroma DBs, lock & branch pruning |
+| **2/7** | **Stage II (Governance)** | `agents-ssot-boundary-governance` | Pre-Save Gate + Skill | `automations/prompts/agents_ssot_boundary_agent.md` | `agents/`, `apps_model_telemetry/`, `outreach_engine/`, `resume_engine/`, `resume_graph_engine/`, `apps_research/`, `apps_eval/`, `infrastructure/`, `ops_scripts/`, `config/`, `.agents/`, `.antigravity/`, `.mcp.json`, `AGENTS.md` |
+| **3/7** | **Stage III-A (Core E2E)** | `agents-outreach-resume-functionality` | On-Demand Skill | `automations/prompts/agents_e2e_functionality_assurance_agent.md` | `agents/`, `outreach_engine/`, `resume_engine/`, `resume_graph_engine/`, `apps_research/`, `ops_scripts/` E2E smoke & release gates |
+| **4/7** | **Stage III-B (Retrieval)** | `agents-research-retrieval-surface` | On-Demand Skill | `automations/prompts/agents_research_retrieval_surface_agent.md` | `apps_research/` & `resume_graph_engine/` hybrid retrieval, BGE-M3 embedding norms, chunking, provenance, latency & cache parity |
+| **5/7** | **Stage III-C (Evaluation)** | `agents-evals-judge-assurance` | Pre-Save + On-Demand | `automations/prompts/agents_evals_judge_assurance_agent.md` | `apps_eval/`, `tools/validate_eval_rubrics.py`, `tools/lint_production_purity.py`, `data/` holdout & certification datasets, judge rubrics |
+| **6/7** | **Stage IV-A (Economics)** | `agents-cost-token-budget` | Pre-Save + On-Demand | `automations/prompts/agents_cost_token_budget_agent.md` | `apps_model_telemetry/`, `agents/`, `scripts/`, `config/provider_profiles.yaml`, `pyproject.toml`, `tools/lint_secrets.py`, prompt/semantic caching, dynamically derived $\text{ROI} \ge 2.5\times$ |
+| **7/7** | **Stage IV-B (Verification)** | `agents-testing-gaps-assurance` | Pre-Save Hook + Skill | `automations/prompts/agents_testing_gaps_assurance_agent.md` | All 4 test roots (`tests/`, `resume_graph_engine/tests/`, `outreach_engine/tests/`, `apps_eval/tests/`), `.githooks/`, mock reachability, Class A/B `--timeout=60` test assurance |
 
 ---
 

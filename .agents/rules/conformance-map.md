@@ -116,12 +116,15 @@ Traces every `AGENTS.md` section to enforceable rules, skills, hooks, tools, and
 | Hook | `.agents/hooks.json` | Native Antigravity IDE lifecycle intercepts |
 | Validator | `tools/validate_turn_gates.py` | Automated turn validator CLI (`--mode all`) |
 | Test | `tests/test_turn_gates.py` | Turn-gate regression test suite |
-| Rule | `.agents/rules/sidecar-automation-routing.md` | Workspace-scoped routing and cross-repo firewall (`INV-REPO-SEPARATION-AGENTS-ONLY`) for the 7 `agents-*` sidecars |
-| Contract | `automations/prompts/_shared_governance_contract.md` | Shared 7-agent causal sequence (05:30–07:00 ET) and prompt specifications (`automations/prompts/agents_*_agent.md`) |
-| Validator | `tools/validate_sidecar_separation.py` | Mechanical namespace, permission, prompt, and schedule separation validator against Decision Intelligence sidecars |
-| Engine | `tools/storage_worktree_hygiene.py` | Deterministic 6-pillar storage, git worktree, merged branch, and SQLite WAL hygiene audit and remediation engine |
-| Engine | `tools/cost_token_budget_auditor.py` | Deterministic 8-pillar tokenomics, multi-tier caching, and $\text{ROI} \ge 2.5\times$ Pareto benchmark auditor |
-| Test | `tests/unit/test_sidecar_separation_governance.py` | Unit tests for sidecar separation, collision detection, 6-pillar storage/SQLite WAL hygiene, and 8-pillar cost/caching audit |
+| Rule | `.agents/rules/sidecar-automation-routing.md` | On-demand assurance routing, zero daily schedules, and cross-repo firewall (`INV-REPO-SEPARATION-AGENTS-ONLY`) |
+| Contract | `automations/prompts/_shared_governance_contract.md` | Shared 7-workflow on-demand/pre-save contract and prompt specifications (`automations/prompts/agents_*_agent.md`) |
+| Validator | `tools/validate_sidecar_separation.py` | Mechanical validator enforcing zero `agents-*` background schedules, prompt/skill parity, and NEE sidecar isolation |
+| Engine | `tools/storage_worktree_hygiene.py` | Deterministic 6-pillar storage, 6-DB SQLite/Chroma WAL, worktree, lock, and scratch hygiene engine |
+| Engine | `tools/ssot_boundary_auditor.py` | Deterministic 6-dimension cross-subsystem boundary, AST floor, MCP/hook, and config/data SSOT auditor |
+| Engine | `tools/validate_eval_rubrics.py` | Deterministic exit-eval rubric `[0.0, 1.0]` bounds, 154-file holdout dataset, and purity validator |
+| Engine | `tools/cost_token_budget_auditor.py` | Deterministic 8-pillar tokenomics, multi-tier caching, and dynamic $\text{ROI} \ge 2.5\times$ Pareto benchmark auditor |
+| Engine | `tools/audit_mock_reachability.py` | Deterministic 9-package production mock reachability auditor |
+| Test | `tests/unit/test_sidecar_separation_governance.py` | Unit tests for schedule retirement, cross-repo isolation, 6-pillar storage/WAL hygiene, and 8-pillar cost/caching audit |
 
 ### §"Unified Agent Architecture & Delegation Contracts"
 | Type | Path | Coverage |
