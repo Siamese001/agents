@@ -45,7 +45,7 @@ dimensions:
   - downstream_relevance_anomaly
 
 # Grader roster config
-grader_roster_path: grader_roster.company_brief.v1.yaml
+grader_roster_path: grader_roster.yaml
 
 # Rubric paths
 rubric_paths:

@@ -1611,7 +1611,7 @@ def _build_word_budget_repair_user(words_pre: int, *, word_ceiling: int) -> str:
     return (
         f"Your paragraph is {words_pre} words; the hard ceiling is {word_ceiling} words "
         "AFTER deterministic post-processing adds a bridge sentence. "
-        "Rewrite the SAME evidence arc at 105-120 words, preserving the six-row claim_ledger "
+        f"Rewrite the SAME evidence arc at {max(90, word_ceiling - 30)} to {max(95, word_ceiling - 15)} words, preserving the six-row claim_ledger "
         "structure while keeping each row to at most three directly supporting source_fact_ids. "
         "Do not preserve over-dense or indirect fact IDs just to keep the old ledger shape. "
         "Keep exactly six sentences and the same narrative arc. "

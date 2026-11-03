@@ -3,9 +3,29 @@
 from __future__ import annotations
 
 import re
+from pathlib import Path
 from typing import Sequence
 
-MAX_PLAN_WORDS = 1000
+
+def _resolve_max_plan_words() -> int:
+    """Resolve INV-WAVE-PLAN-MAX-WORDS dynamically from config/governance/policy_registry.yaml."""
+    reg_path = Path(__file__).resolve().parents[2] / "config" / "governance" / "policy_registry.yaml"
+    if reg_path.is_file():
+        try:
+            import yaml  # type: ignore
+
+            raw = yaml.safe_load(reg_path.read_text(encoding="utf-8")) or {}
+            for entry in raw.get("policies", []):
+                if isinstance(entry, dict) and entry.get("id") == "INV-WAVE-PLAN-MAX-WORDS":
+                    val = entry.get("threshold")
+                    if isinstance(val, int) and val > 0:
+                        return val
+        except Exception:  # guardian: allow-silent-swallow -- safe fallback when yaml parser unavailable
+            pass
+    return 1000
+
+
+MAX_PLAN_WORDS: int = _resolve_max_plan_words()
 _GATE_HEADING = re.compile(
     r"^#{3,4}\s+.*(?:receipt|completion\s+gate|exit\s+gate|verification).*",
     re.IGNORECASE,

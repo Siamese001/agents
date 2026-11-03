@@ -1,6 +1,6 @@
 """Augment master_skills_arsenal_ledger.json with 15 deep agentic build skills.
 
-Derived from architectural review of /Users/amitayer/Git/decision-intelligence-engine.
+Derived from architectural review of the companion decision-intelligence repository.
 Adds skills to epoch_agentic_ai_runtime_architecture (Phase 5, phase_ordinal: 5).
 Wires domain containment, epoch containment, section eligibility, and fact linkage.
 Ensures collect_canonical_graph_issues passes with 0 issues.

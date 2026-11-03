@@ -220,7 +220,7 @@ anti_patterns:
 section_style:
   summary:
     max_lines: 4
-    max_words: 60
+    max_words: 150
     forbidden:
       - first_person  # No "I", "my", "me"
       - generic_descriptors

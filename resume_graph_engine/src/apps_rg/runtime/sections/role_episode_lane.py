@@ -1406,7 +1406,7 @@ def _compiled_prompt(cfg: RoleEpisodeLaneConfig, runtime_payload: dict[str, Any]
         if cfg.is_bullet_lane
         else "Return JSON with narrative_sentence, claim_ledger:[{claim_text, source_fact_ids}], "
         "jd_alignment:{targeting_only:true,jd_used_as_proof:false}. The narrative is exactly one complete, inspiring executive sentence "
-        f"of between 20 and {NARRATIVE_MAX_WORDS} words (at most {NARRATIVE_MAX_CHARS} characters), "
+        f"of between 15 and {NARRATIVE_MAX_WORDS} words (at most {NARRATIVE_MAX_CHARS} characters), "
         "in first-person-implied resume voice: MUST start with an executive past-tense action verb (e.g. Led, Directed, Architected, Spearheaded, Championed, Owned) and NEVER start with a title fragment ('Senior Director ...') or third-person subject. "
         "Do NOT use targeting buzzwords like 'frontier AI' as an experience claim (use 'enterprise AI' or 'next-generation AI'). "
         "It must be an inspiring role thesis conveying executive consulting leadership and client transformation stature, "

@@ -111,7 +111,6 @@ domain_threshold_owners:
       THOUGHT_LEADERSHIP_MAX_WORDS: 800
     governed_surfaces:
       - "apps_research/prompt_assembly/templates/company_brief_synthesis_v1.yaml"
-      - "apps_research/config/domain_contract/output_schema.yaml"
       - "apps_research/config/domain_contract/output_schema.company_brief.v1.json"
 
 approved_env_loader_paths:

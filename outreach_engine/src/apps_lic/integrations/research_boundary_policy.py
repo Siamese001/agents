@@ -219,7 +219,7 @@ def _find_valid_persisted_artifact_bundle(
     for fallback in (
         Path("artifacts/apps_research/runs"),
         Path("../artifacts/apps_research/runs"),
-        Path("/Users/amitayer/Git/agents/artifacts/apps_research/runs"),
+        Path(__file__).resolve().parents[4] / "artifacts" / "apps_research" / "runs",
     ):
         if fallback.is_dir() and fallback not in search_roots:
             search_roots.append(fallback)
