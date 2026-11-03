@@ -86,12 +86,13 @@ class FilesystemArtifactStore(ArtifactStore):
 
     def verify_artifact(self, artifact_id: str) -> bool:
         """Verify that stored bytes match recorded manifest digest and manifest integrity."""
+        is_valid = False
         try:
             content = self.get_artifact(artifact_id)
             manifest = self.get_manifest(artifact_id)
-            if not manifest.verify_integrity():
-                return False
-            computed = hashlib.sha256(content).hexdigest()
-            return computed == manifest.content.value
-        except (OSError, KeyError, ValueError, TypeError):
-            return False
+            if manifest.verify_integrity():
+                computed = hashlib.sha256(content).hexdigest()
+                is_valid = computed == manifest.content.value
+        except (OSError, RecordNotFoundError, json.JSONDecodeError, KeyError, TypeError, ValueError):
+            is_valid = False
+        return is_valid

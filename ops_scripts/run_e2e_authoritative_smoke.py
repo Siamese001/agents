@@ -268,7 +268,13 @@ def run_smoke(
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Run real E2E smoke and verify outreach + resume artifacts")
-    parser.add_argument(
+    mode_group = parser.add_mutually_exclusive_group()
+    mode_group.add_argument(
+        "--skip-resume",
+        action="store_true",
+        help="Skip live provider apps_rg stage inside agents e2e (default unless --full-resume is set)",
+    )
+    mode_group.add_argument(
         "--full-resume",
         action="store_true",
         help="Run live provider apps_rg stage inside agents e2e instead of offline deterministic resume smoke",
@@ -280,14 +286,17 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument(
         "--read-only",
+        "--no-write",
+        dest="read_only",
         action="store_true",
         help="Write run outputs and receipt to temporary paths so tracked folders remain untouched",
     )
     parser.add_argument("--receipt-out", type=Path, default=None, help="Explicit receipt output path")
     parser.add_argument("--repo-root", type=Path, default=_DEFAULT_REPO_ROOT, help="Repository root")
     args = parser.parse_args(argv)
+    skip_resume = True if args.skip_resume else (not args.full_resume)
     return run_smoke(
-        skip_resume=not args.full_resume,
+        skip_resume=skip_resume,
         read_only=args.read_only,
         receipt_out=args.receipt_out,
         repo_root=args.repo_root,

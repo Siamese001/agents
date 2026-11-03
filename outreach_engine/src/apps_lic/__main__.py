@@ -11,11 +11,15 @@ from __future__ import annotations
 import argparse
 import dataclasses
 import json
+import logging
+import re
 import sys
 import time
 import uuid
 from pathlib import Path
 from typing import Any, Sequence
+
+_log = logging.getLogger(__name__)
 
 from apps_lic.domain.models import (
     AudiencePersona,
@@ -365,24 +369,26 @@ def _reconstruct_eval_draft(run_dir: Path, manifest_data: dict[str, Any] | None 
     if draft_file.is_file():
         try:
             d = json.loads(draft_file.read_text(encoding="utf-8"))
-            ch_raw = d.get("channel") or m_ch
-            if ch_raw not in ChannelType._value2member_map_:
-                return None
-            persona_raw = d.get("audience_persona") or m_persona
-            persona = AudiencePersona.EXECUTIVE_RECRUITER if persona_raw in ("recruiter", "executive_recruiter", AudiencePersona.EXECUTIVE_RECRUITER.value) else AudiencePersona.EXECUTIVE_CONTACT
-            return OutreachMessageDraft(
-                draft_id=d.get("draft_id", "draft_eval"),
-                channel=ChannelType(ch_raw),
-                subject=d.get("subject", ""),
-                body=d.get("body", ""),
-                signature_block=d.get("signature_block", ""),
-                audience_persona=persona,
-                grounded_facts_used=list(d.get("grounded_facts_used", [])),
-                research_metadata=dict(d.get("research_metadata", {})),
-                metadata=dict(d.get("metadata", {})),
-            )
-        except (OSError, json.JSONDecodeError, ValueError, TypeError, KeyError):
-            return None
+            if isinstance(d, dict):
+                ch_raw = d.get("channel") or m_ch
+                if ch_raw in ChannelType._value2member_map_:
+                    persona_raw = d.get("audience_persona") or m_persona
+                    persona = AudiencePersona.EXECUTIVE_RECRUITER if persona_raw in ("recruiter", "executive_recruiter", AudiencePersona.EXECUTIVE_RECRUITER.value) else AudiencePersona.EXECUTIVE_CONTACT
+                    return OutreachMessageDraft(
+                        draft_id=d.get("draft_id", "draft_eval"),
+                        channel=ChannelType(ch_raw),
+                        subject=d.get("subject", ""),
+                        body=d.get("body", ""),
+                        signature_block=d.get("signature_block", ""),
+                        audience_persona=persona,
+                        grounded_facts_used=list(d.get("grounded_facts_used", [])),
+                        research_metadata=dict(d.get("research_metadata", {})),
+                        metadata=dict(d.get("metadata", {})),
+                    )
+            else:
+                _log.warning("Ignoring non-object outreach_draft.json in %s", run_dir)
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError, ValueError, TypeError, KeyError) as exc:
+            _log.warning("Failed parsing outreach_draft.json in %s: %s", run_dir, exc)
 
     draft_md = run_dir / "outreach_draft.md"
     if draft_md.is_file():
@@ -390,21 +396,20 @@ def _reconstruct_eval_draft(run_dir: Path, manifest_data: dict[str, Any] | None 
             md_text = draft_md.read_text(encoding="utf-8")
             hm = re.search(r"^#\s+Outreach Draft:\s*([A-Za-z_]+)", md_text, re.MULTILINE)
             ch_raw = (hm.group(1).lower() if hm else None) or m_ch
-            if ch_raw not in ChannelType._value2member_map_:
-                return None
-            subj = next((l.split(":", 1)[1].strip() for l in md_text.splitlines() if l.startswith(("**Subject**:", "Subject:"))), "")
-            bm = re.search(r"```text\s*\n(.*?)\n```", md_text, re.DOTALL)
-            persona = AudiencePersona.EXECUTIVE_RECRUITER if m_persona in ("recruiter", "executive_recruiter", AudiencePersona.EXECUTIVE_RECRUITER.value) else AudiencePersona.EXECUTIVE_CONTACT
-            return OutreachMessageDraft(
-                draft_id="draft_from_md",
-                channel=ChannelType(ch_raw),
-                subject=subj,
-                body=bm.group(1).strip() if bm else md_text.strip(),
-                grounded_facts_used=m_facts,
-                audience_persona=persona,
-            )
-        except (OSError, UnicodeDecodeError, ValueError, TypeError):
-            return None
+            if ch_raw in ChannelType._value2member_map_:
+                subj = next((l.split(":", 1)[1].strip() for l in md_text.splitlines() if l.startswith(("**Subject**:", "Subject:"))), "")
+                bm = re.search(r"```text\s*\n(.*?)\n```", md_text, re.DOTALL)
+                persona = AudiencePersona.EXECUTIVE_RECRUITER if m_persona in ("recruiter", "executive_recruiter", AudiencePersona.EXECUTIVE_RECRUITER.value) else AudiencePersona.EXECUTIVE_CONTACT
+                return OutreachMessageDraft(
+                    draft_id="draft_from_md",
+                    channel=ChannelType(ch_raw),
+                    subject=subj,
+                    body=bm.group(1).strip() if bm else md_text.strip(),
+                    grounded_facts_used=m_facts,
+                    audience_persona=persona,
+                )
+        except (OSError, UnicodeDecodeError, ValueError, TypeError) as exc:
+            _log.warning("Failed parsing outreach_draft.md in %s: %s", run_dir, exc)
     return None
 
 

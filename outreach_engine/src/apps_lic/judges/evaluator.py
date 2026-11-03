@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import re
 import threading
 from dataclasses import dataclass, field
@@ -9,6 +10,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 import yaml
 
+_log = logging.getLogger(__name__)
 _RUBRIC_CACHE: dict[str, tuple[float, dict[str, Any]]] = {}
 _RUBRIC_LOCK = threading.Lock()
 
@@ -16,21 +18,25 @@ _RUBRIC_LOCK = threading.Lock()
 def _load_cached_rubric_file(file_path: Path) -> dict[str, Any]:
     """Parse and cache a rubric YAML file, keyed by resolved path and mtime."""
     path_str = str(file_path.resolve())
+    mtime: float | None = None
     try:
         mtime = file_path.stat().st_mtime
     except OSError:
+        mtime = None
+    if mtime is None:
         return {}
     with _RUBRIC_LOCK:
         if path_str in _RUBRIC_CACHE:
             cached_mtime, cached_data = _RUBRIC_CACHE[path_str]
             if cached_mtime == mtime:
                 return dict(cached_data)
+    data: dict[str, Any] = {}
     try:
-        data = yaml.safe_load(file_path.read_text(encoding="utf-8"))
-        if not isinstance(data, dict):
-            data = {}
-    except Exception:
-        data = {}
+        parsed = yaml.safe_load(file_path.read_text(encoding="utf-8"))
+        if isinstance(parsed, dict):
+            data = parsed
+    except (OSError, UnicodeDecodeError, yaml.YAMLError) as exc:
+        _log.warning("Failed parsing rubric file %s: %s", file_path, exc)
     with _RUBRIC_LOCK:
         _RUBRIC_CACHE[path_str] = (mtime, data)
     return dict(data)

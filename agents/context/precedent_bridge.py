@@ -7,10 +7,14 @@ precedents, Bayesian learning aggregate adjustments, and calibrated ambiguity ga
 
 from __future__ import annotations
 
+import logging
 import os
 from pathlib import Path
+import sqlite3
 import time
 from typing import Any, Mapping, Sequence
+
+_log = logging.getLogger(__name__)
 
 
 class RuntimePrecedentBridge:
@@ -37,10 +41,12 @@ class RuntimePrecedentBridge:
         """Retrieve historical Bayesian learning adjustment factor for a decision category."""
         if not self._store:
             return 0.0
+        factor = 0.0
         try:
-            return float(self._store.query_learning_adjustment(category, option_label))
-        except (ValueError, TypeError, AttributeError, RuntimeError, OSError):
-            return 0.0
+            factor = float(self._store.query_learning_adjustment(category, option_label))
+        except (sqlite3.Error, ValueError, TypeError, AttributeError, RuntimeError, OSError) as exc:
+            _log.warning("Precedent learning factor lookup failed for %s: %s", category, exc)
+        return factor
 
     def evaluate_runtime_ambiguity(
         self,
@@ -55,7 +61,7 @@ class RuntimePrecedentBridge:
             scored: list[tuple[float, Any]] = []
             for opt in options:
                 score = 0.50
-                if isinstance(opt, dict):
+                if isinstance(opt, Mapping):
                     score = float(opt.get("confidence_score", opt.get("confidence", 0.50)))
                 scored.append((score, opt))
             scored.sort(key=lambda x: x[0], reverse=True)
@@ -83,16 +89,17 @@ class RuntimePrecedentBridge:
                 store=self._store,
                 category=category,
             )
-        except Exception as exc:
+        except Exception as exc:  # guardian: allow-broad-exception -- fail closed on any gate error
+            _log.warning("Runtime ambiguity gate failed closed: %s", exc)
             return {
-                "should_surface": False,
-                "margin": 1.0,
+                "should_surface": True,
+                "margin": 0.0,
                 "margin_threshold": margin_threshold,
                 "top_option": options[0] if options else None,
-                "top_score": 1.0,
+                "top_score": 0.0,
                 "second_score": 0.0,
-                "action": "PROCEED_AUTONOMOUSLY",
-                "reason": f"Fallback error bypass: {exc}",
+                "action": "SURFACE_HITL_ATOMIC",
+                "reason": f"Fail-closed gate error: {exc}",
             }
 
     def record_runtime_decision(

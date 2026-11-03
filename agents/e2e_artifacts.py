@@ -101,11 +101,24 @@ def resolve_and_verify_resume_artifact(
     if x3_receipt_file is not None:
         try:
             x3_data = json.loads(x3_receipt_file.read_text(encoding="utf-8"))
-            x3_disp = str(x3_data.get("x3_disposition") or x3_data.get("disposition") or x3_data.get("x3_code") or "")
-            if x3_disp and x3_disp not in {"X3D_ALLOW_FINISH", "X3D_ALLOW"}:
-                _fail_resume(f"Resume X3 disposition receipt indicates blocked run ({x3_disp}): {x3_receipt_file}")
-        except (json.JSONDecodeError, OSError) as exc:
+        except (json.JSONDecodeError, UnicodeDecodeError, OSError) as exc:
             _fail_resume(f"Corrupt resume X3 disposition receipt: {exc}")
+        if not isinstance(x3_data, dict):
+            _fail_resume(f"Resume X3 disposition receipt is not a JSON object: {x3_receipt_file}")
+        nested = x3_data.get("payload") if isinstance(x3_data.get("payload"), dict) else {}
+        x3_disp = str(
+            x3_data.get("x3_disposition")
+            or x3_data.get("disposition")
+            or x3_data.get("x3_code")
+            or nested.get("x3_disposition")
+            or nested.get("disposition")
+            or nested.get("x3_code")
+            or ""
+        ).strip()
+        if x3_disp not in {"X3D_ALLOW_FINISH", "X3D_ALLOW"}:
+            _fail_resume(
+                f"Resume X3 disposition receipt indicates blocked or missing disposition ({x3_disp or 'MISSING'}): {x3_receipt_file}"
+            )
 
     resume_sha = hashlib.sha256(dest_resume_file.read_bytes()).hexdigest()
 
@@ -168,11 +181,12 @@ def resolve_and_verify_outreach_artifact(
     if outreach_receipt_file.is_file():
         try:
             receipt_data = json.loads(outreach_receipt_file.read_text(encoding="utf-8"))
-            if isinstance(receipt_data, dict):
-                if receipt_data.get("overall_passed") is False or receipt_data.get("sealed") is False:
-                    _fail_outreach(f"Outreach receipt indicates unsealed or failed run: {outreach_receipt_file}")
-        except (json.JSONDecodeError, OSError) as exc:
+        except (json.JSONDecodeError, UnicodeDecodeError, OSError) as exc:
             _fail_outreach(f"Corrupt outreach run receipt: {exc}")
+        if not isinstance(receipt_data, dict):
+            _fail_outreach(f"Outreach run receipt is not a JSON object: {outreach_receipt_file}")
+        if receipt_data.get("overall_passed") is False or receipt_data.get("sealed") is False:
+            _fail_outreach(f"Outreach receipt indicates unsealed or failed run: {outreach_receipt_file}")
 
     campaign_sha = ""
     if campaign_file.is_file():
