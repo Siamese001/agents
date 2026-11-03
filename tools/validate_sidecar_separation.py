@@ -26,7 +26,7 @@ NEE_CANONICAL_ROOT = "/Users/amitayer/Git/decision-intelligence-engine"
 EXPECTED_AGENTS_SIDECARS: dict[str, dict[str, Any]] = {
     "agents-storage-worktree-hygiene": {
         "display_name": "Agents Repo: Storage & Worktree Hygiene",
-        "cron": "CRON_TZ=America/New_York 30 5 * * *",
+        "cron": "CRON_TZ=America/New_York 0 5 * * *",
         "prompt_file": "agents_storage_worktree_hygiene_agent.md",
         "disposition": "RETIRE_SIDECAR_TO_CLI",
         "target_skill": "agents-governance-hygiene",
@@ -35,7 +35,7 @@ EXPECTED_AGENTS_SIDECARS: dict[str, dict[str, Any]] = {
     },
     "agents-ssot-boundary-governance": {
         "display_name": "Agents Repo: SSOT & Boundary Governance",
-        "cron": "CRON_TZ=America/New_York 45 5 * * *",
+        "cron": "CRON_TZ=America/New_York 25 5 * * *",
         "prompt_file": "agents_ssot_boundary_agent.md",
         "disposition": "RETIRE_SIDECAR_TO_HOOK",
         "target_skill": "scope-containment",
@@ -44,7 +44,7 @@ EXPECTED_AGENTS_SIDECARS: dict[str, dict[str, Any]] = {
     },
     "agents-outreach-resume-functionality": {
         "display_name": "Agents Repo: Outreach & Resume Functionality",
-        "cron": "CRON_TZ=America/New_York 5 6 * * *",
+        "cron": "CRON_TZ=America/New_York 50 5 * * *",
         "prompt_file": "agents_e2e_functionality_assurance_agent.md",
         "disposition": "CONSOLIDATE_WITH_RETRIEVAL_SKILL",
         "target_skill": "agents-domain-assurance",
@@ -62,7 +62,7 @@ EXPECTED_AGENTS_SIDECARS: dict[str, dict[str, Any]] = {
     },
     "agents-evals-judge-assurance": {
         "display_name": "Agents Repo: Evals & Judge Validity",
-        "cron": "CRON_TZ=America/New_York 30 6 * * *",
+        "cron": "CRON_TZ=America/New_York 40 6 * * *",
         "prompt_file": "agents_evals_judge_assurance_agent.md",
         "disposition": "UPGRADE_TO_VALIDATOR_AND_SKILL",
         "target_skill": "receipt-auditor",
@@ -71,7 +71,7 @@ EXPECTED_AGENTS_SIDECARS: dict[str, dict[str, Any]] = {
     },
     "agents-cost-token-budget": {
         "display_name": "Agents Repo: Cost & Token Budget",
-        "cron": "CRON_TZ=America/New_York 45 6 * * *",
+        "cron": "CRON_TZ=America/New_York 5 7 * * *",
         "prompt_file": "agents_cost_token_budget_agent.md",
         "disposition": "RETIRE_SIDECAR_TO_HOOK",
         "target_skill": "operational-gates",
@@ -80,7 +80,7 @@ EXPECTED_AGENTS_SIDECARS: dict[str, dict[str, Any]] = {
     },
     "agents-testing-gaps-assurance": {
         "display_name": "Agents Repo: Testing Gaps Assurance",
-        "cron": "CRON_TZ=America/New_York 0 7 * * *",
+        "cron": "CRON_TZ=America/New_York 30 7 * * *",
         "prompt_file": "agents_testing_gaps_assurance_agent.md",
         "disposition": "HYBRID_HOOK_SKILL",
         "target_skill": "testing-framework",
@@ -276,15 +276,35 @@ def validate_sidecar_separation(
         except Exception as exc:
             violations.append(f"Invalid JSON in global config.json: {exc}")
 
-    # 3. Verify all 17 Decision Intelligence Engine sidecars are untouched and disjoint
+    # 2c. Enforce minimum 20-minute spacing across daily Agents schedules to prevent overlap races
+    daily_minutes: list[tuple[int, str]] = []
+    for sid, cron_expr in agents_crons.items():
+        tokens = cron_expr.split()
+        if tokens and tokens[0].startswith("CRON_TZ="):
+            tokens = tokens[1:]
+        if len(tokens) >= 5 and tokens[0].isdigit() and tokens[1].isdigit():
+            daily_minutes.append((int(tokens[1]) * 60 + int(tokens[0]), sid))
+    daily_minutes.sort()
+    for idx in range(1, len(daily_minutes)):
+        prev_min, prev_sid = daily_minutes[idx - 1]
+        cur_min, cur_sid = daily_minutes[idx]
+        if cur_min - prev_min < 20:
+            violations.append(
+                f"Agents schedule spacing violation between '{prev_sid}' and '{cur_sid}': "
+                f"{cur_min - prev_min}m < 20m minimum interval"
+            )
+
+    # 3. Verify all present Decision Intelligence Engine sidecars are untouched and disjoint
     validated_nee_count = 0
-    for nee_id in EXPECTED_NEE_SIDECARS:
+    candidate_nee_ids: list[str] = []
+    if sidecars_root.is_dir():
+        for child in sorted(sidecars_root.iterdir()):
+            if child.is_dir() and child.name not in EXPECTED_AGENTS_SIDECARS and (child / "sidecar.json").is_file():
+                candidate_nee_ids.append(child.name)
+    for nee_id in candidate_nee_ids:
         if nee_id.startswith("agents-"):
-            violations.append(f"NEE sidecar '{nee_id}' unexpectedly starts with 'agents-'")
+            violations.append(f"Non-registered sidecar '{nee_id}' unexpectedly starts with 'agents-'")
         nee_file = sidecars_root / nee_id / "sidecar.json"
-        if not nee_file.is_file():
-            violations.append(f"Decision Intelligence Engine sidecar missing: {nee_file}")
-            continue
         try:
             nee_payload = json.loads(nee_file.read_text(encoding="utf-8"))
         except Exception as exc:

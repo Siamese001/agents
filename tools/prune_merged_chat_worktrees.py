@@ -13,13 +13,72 @@ Enforces the Post-PR to Local Main Cleanup invariant declared in AGENTS.md and
 from __future__ import annotations
 
 import argparse
+import contextlib
+import json
 import os
 import subprocess
 import sys
+import time
 from pathlib import Path
 from typing import Any
 
+_SCRIPT_ROOT = Path(__file__).resolve().parent.parent
+if str(_SCRIPT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_SCRIPT_ROOT))
+
 PROTECTED_BRANCHES: frozenset[str] = frozenset({"main", "master", "HEAD"})
+SIDECAR_ACTIVE_LEASE_FILENAME = ".sidecar_active_run.lock"
+SIDECAR_LEASE_TTL_SECONDS = 7200.0
+
+
+def _pid_is_alive(pid: int) -> bool:
+    if pid <= 0:
+        return False
+    try:
+        os.kill(pid, 0)
+        return True
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    except OSError:
+        return False
+
+
+def has_active_sidecar_lease(wt_path: Path, now_ts: float | None = None) -> bool:
+    """Return True if worktree holds a live, non-expired sidecar run lease."""
+    lease_file = wt_path / SIDECAR_ACTIVE_LEASE_FILENAME
+    if not lease_file.is_file():
+        return False
+    now = time.time() if now_ts is None else now_ts
+    try:
+        payload = json.loads(lease_file.read_text(encoding="utf-8"))
+        started_at = float(payload.get("started_at", 0.0))
+        pid = int(payload.get("pid", 0))
+    except Exception:  # guardian: allow-silent-swallow -- treat unreadable lease with recent mtime conservatively
+        try:
+            return (now - lease_file.stat().st_mtime) < 1800.0
+        except OSError:
+            return False
+    age = now - started_at
+    if age < 0 or age > SIDECAR_LEASE_TTL_SECONDS:
+        return False
+    if pid == os.getpid() or _pid_is_alive(pid):
+        return True
+    # Protect newly created sibling worktrees across separate subprocesses within a 30m window
+    return age < 1800.0
+
+
+def write_sidecar_lease(wt_path: Path, branch_name: str) -> Path:
+    """Write active sidecar lease file inside worktree directory."""
+    lease_file = wt_path / SIDECAR_ACTIVE_LEASE_FILENAME
+    payload = {
+        "pid": os.getpid(),
+        "branch": branch_name,
+        "started_at": time.time(),
+    }
+    lease_file.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    return lease_file
 
 
 def _clean_git_env() -> dict[str, str]:
@@ -212,12 +271,24 @@ def prune_merged_worktrees(
             skipped.append({"branch": branch, "path": str(wt_path), "reason": "locked"})
             continue
 
+        if has_active_sidecar_lease(wt_path):
+            skipped.append({"branch": branch, "path": str(wt_path), "reason": "active_sidecar_lease"})
+            continue
+
         if not is_worktree_clean(wt_path):
             skipped.append({"branch": branch, "path": str(wt_path), "reason": "dirty_worktree"})
             continue
 
         candidates.append({"branch": branch, "path": str(wt_path)})
         if delete_merged:
+            try:
+                from tools.pr_governance_core.worktree import safely_unlink_worktree_dependencies
+
+                safely_unlink_worktree_dependencies(wt_path)
+            except Exception:  # guardian: allow-silent-swallow -- best-effort symlink cleanup
+                pass
+            with contextlib.suppress(OSError):
+                (wt_path / SIDECAR_ACTIVE_LEASE_FILENAME).unlink()
             rm_res = _run_git(["worktree", "remove", str(wt_path)], cwd=main_root)
             if rm_res.returncode == 0:
                 removed_worktrees.append(str(wt_path))
@@ -282,57 +353,81 @@ def consolidate_single_sidecar_worktree(
         )
 
     effective_cwd = (caller_cwd or Path.cwd()).resolve()
-    _run_git(["worktree", "prune"], cwd=main_root)
+    try:
+        from tools.pr_governance_core.worktree import (
+            link_worktree_dependencies,
+            safely_unlink_worktree_dependencies,
+            worktree_provisioning_lock,
+        )
 
-    worktrees = list_worktrees(main_root)
-    merged_branches = get_merged_branches(main_root, target_ref=target_ref)
+        lock_cm = worktree_provisioning_lock(timeout_seconds=60.0, root=main_root)
+    except Exception:  # guardian: allow-silent-swallow -- fallback to nullcontext if filelock unavailable
+        link_worktree_dependencies = None  # type: ignore[assignment]
+        safely_unlink_worktree_dependencies = None  # type: ignore[assignment]
+        lock_cm = contextlib.nullcontext()
 
-    deduplicated_worktrees: list[str] = []
-    deduplicated_branches: list[str] = []
-    preserved_cwd_stubs: list[str] = []
+    with lock_cm:
+        _run_git(["worktree", "prune"], cwd=main_root)
 
-    for idx, wt in enumerate(worktrees):
-        wt_path: Path = wt["path"]
-        branch = wt.get("branch")
-        if idx == 0 or wt_path == main_root or wt_path == resolved_target:
-            continue
-        if is_in_repo_worktree(main_root, wt_path):
-            continue
-        if not branch or branch in PROTECTED_BRANCHES or branch not in merged_branches:
-            continue
-        if wt.get("locked") or not is_worktree_clean(wt_path):
-            continue
+        worktrees = list_worktrees(main_root)
+        merged_branches = get_merged_branches(main_root, target_ref=target_ref)
 
-        rm_res = _run_git(["worktree", "remove", str(wt_path)], cwd=main_root)
-        if rm_res.returncode == 0:
-            deduplicated_worktrees.append(str(wt_path))
-            if _preserve_cwd_stub_if_needed(
-                wt_path,
-                main_root,
-                preserve_cwd=effective_cwd,
-                force_stub_for_antigravity=True,
-            ):
-                preserved_cwd_stubs.append(str(wt_path))
-            br_res = _run_git(["branch", "-D", branch], cwd=main_root)
-            if br_res.returncode == 0:
-                deduplicated_branches.append(branch)
+        deduplicated_worktrees: list[str] = []
+        deduplicated_branches: list[str] = []
+        preserved_cwd_stubs: list[str] = []
 
-    resolved_target.parent.mkdir(parents=True, exist_ok=True)
-    existing_branches_res = _run_git(["branch", "--format=%(refname:short)"], cwd=main_root)
-    existing_branches = {
-        b.strip() for b in existing_branches_res.stdout.splitlines() if b.strip()
-    }
+        for idx, wt in enumerate(worktrees):
+            wt_path: Path = wt["path"]
+            branch = wt.get("branch")
+            if idx == 0 or wt_path == main_root or wt_path == resolved_target:
+                continue
+            if has_active_sidecar_lease(wt_path):
+                continue
+            if not branch or branch in PROTECTED_BRANCHES or branch not in merged_branches:
+                continue
+            if is_in_repo_worktree(main_root, wt_path) and not branch.startswith(("chore/agents-", "chore/agents_")):
+                continue
+            if wt.get("locked") or not is_worktree_clean(wt_path):
+                continue
 
-    if not resolved_target.exists() or not (resolved_target / ".git").exists():
-        if branch_name in existing_branches:
-            add_cmd = ["worktree", "add", str(resolved_target), branch_name]
-        else:
-            add_cmd = ["worktree", "add", str(resolved_target), "-b", branch_name, target_ref]
-        add_res = _run_git(add_cmd, cwd=main_root)
-        if add_res.returncode != 0:
-            raise RuntimeError(
-                f"Failed to provision consolidated worktree at '{resolved_target}': {add_res.stderr.strip()}"
-            )
+            if safely_unlink_worktree_dependencies is not None:
+                safely_unlink_worktree_dependencies(wt_path)
+            with contextlib.suppress(OSError):
+                (wt_path / SIDECAR_ACTIVE_LEASE_FILENAME).unlink()
+            rm_res = _run_git(["worktree", "remove", str(wt_path)], cwd=main_root)
+            if rm_res.returncode == 0:
+                deduplicated_worktrees.append(str(wt_path))
+                if _preserve_cwd_stub_if_needed(
+                    wt_path,
+                    main_root,
+                    preserve_cwd=effective_cwd,
+                    force_stub_for_antigravity=not is_in_repo_worktree(main_root, wt_path),
+                ):
+                    preserved_cwd_stubs.append(str(wt_path))
+                br_res = _run_git(["branch", "-D", branch], cwd=main_root)
+                if br_res.returncode == 0:
+                    deduplicated_branches.append(branch)
+
+        resolved_target.parent.mkdir(parents=True, exist_ok=True)
+        existing_branches_res = _run_git(["branch", "--format=%(refname:short)"], cwd=main_root)
+        existing_branches = {
+            b.strip() for b in existing_branches_res.stdout.splitlines() if b.strip()
+        }
+
+        if not resolved_target.exists() or not (resolved_target / ".git").exists():
+            if branch_name in existing_branches:
+                add_cmd = ["worktree", "add", str(resolved_target), branch_name]
+            else:
+                add_cmd = ["worktree", "add", str(resolved_target), "-b", branch_name, target_ref]
+            add_res = _run_git(add_cmd, cwd=main_root)
+            if add_res.returncode != 0:
+                raise RuntimeError(
+                    f"Failed to provision consolidated worktree at '{resolved_target}': {add_res.stderr.strip()}"
+                )
+
+        if link_worktree_dependencies is not None:
+            link_worktree_dependencies(main_root, resolved_target)
+        write_sidecar_lease(resolved_target, branch_name)
 
     return {
         "status": "CONSOLIDATED",

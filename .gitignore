@@ -230,5 +230,6 @@ reports/pr_review_*_receipt.json
 reports/pr_merge_*_receipt.json
 reports/readiness/
 artifacts/governance/*_receipt.json
+.sidecar_active_run.lock
 
 
