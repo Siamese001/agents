@@ -24,8 +24,32 @@ _DEFAULT_RESUME_PATH = _PACKAGE_ROOT / "resume" / "base" / "amit_ayer_base_resum
 from apps_rg.runtime.orchestration.canonical_dispatch import (
     run_canonical_apps_rg_from_cli_primitives,
 )
+import hashlib
 
-__all__ = ["_build_parser", "main", "run_canonical_apps_rg_from_cli_primitives"]
+__all__ = [
+    "_build_parser",
+    "_has_valid_sealed_stage_ledger",
+    "main",
+    "run_canonical_apps_rg_from_cli_primitives",
+]
+
+
+def _has_valid_sealed_stage_ledger(artifact_dir: Path) -> bool:
+    """Verify that e2e_stage_ledger_seal_receipt.json matches the sha256 of e2e_stage_ledger.json."""
+    seal_path = Path(artifact_dir) / "e2e_stage_ledger_seal_receipt.json"
+    if not seal_path.is_file():
+        return False
+    try:
+        seal = json.loads(seal_path.read_text(encoding="utf-8"))
+        ledger_ref = str(seal.get("ledger_ref") or "e2e_stage_ledger.json").strip()
+        expected_digest = str(seal.get("ledger_sha256") or "").strip()
+        ledger_path = Path(artifact_dir) / ledger_ref
+        if not ledger_path.is_file() or not expected_digest:
+            return False
+        actual_digest = "sha256:" + hashlib.sha256(ledger_path.read_bytes()).hexdigest()
+        return actual_digest == expected_digest
+    except (OSError, json.JSONDecodeError, TypeError, ValueError):
+        return False
 
 
 def _add_run_arguments(parser: argparse.ArgumentParser) -> None:

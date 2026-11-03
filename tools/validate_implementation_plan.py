@@ -578,7 +578,7 @@ def get_active_plan_file(repo_root: Optional[Path] = None) -> Optional[Path]:
                     if recent_plans and recent_plans[0].stat().st_mtime > cand.stat().st_mtime:
                         return recent_plans[0]
                 return cand
-            except Exception:
+            except (OSError, ValueError):
                 continue
 
     # 5. Fall back to plans/ directory

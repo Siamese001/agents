@@ -627,7 +627,7 @@ def load_approved_provider_models(repo_root: Path | str | None = None) -> set[st
             continue
         try:
             text = cfg_file.read_text(encoding="utf-8")
-        except Exception:
+        except (OSError, UnicodeDecodeError):
             continue
 
         try:

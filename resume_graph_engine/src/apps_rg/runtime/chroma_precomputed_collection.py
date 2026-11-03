@@ -10,7 +10,19 @@ from __future__ import annotations
 import os
 from typing import Any
 
-from chromadb.api.types import Documents, EmbeddingFunction, Embeddings
+try:
+    from chromadb.api.types import Documents, EmbeddingFunction, Embeddings
+except (ImportError, ModuleNotFoundError):
+    Documents = list[str]  # type: ignore[misc]
+    Embeddings = list[list[float]]  # type: ignore[misc]
+
+    class EmbeddingFunction:  # type: ignore[no-redef]
+        def __class_getitem__(cls, item: Any) -> Any:
+            return cls
+
+        @staticmethod
+        def validate_config(config: dict[str, Any]) -> None:
+            return None
 
 from apps_rg.runtime.core_model_catalog import BGE_M3_EMBEDDING_DIMENSION
 

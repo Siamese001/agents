@@ -30,7 +30,7 @@ class RuntimePrecedentBridge:
             from tools.hitl_governance import HITLDecisionStore
 
             self._store = HITLDecisionStore(db_path=self.db_path)
-        except Exception:  # guardian: allow-silent-swallow -- fallback gracefully if tools is outside path
+        except (ImportError, OSError, RuntimeError, ValueError):
             self._store = None
 
     def is_healthy(self) -> bool:
@@ -140,7 +140,7 @@ class RuntimePrecedentBridge:
         if self._store and hasattr(self._store, "close"):
             try:
                 self._store.close()
-            except Exception:  # guardian: allow-silent-swallow -- best-effort SQLite store close on teardown
+            except (OSError, RuntimeError, ValueError):
                 pass
             self._store = None
 

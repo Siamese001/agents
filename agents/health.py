@@ -101,7 +101,7 @@ def _resolve_pytest_cmd() -> list[str]:
         resolved = resolve_pytest(_REPO_ROOT)
         if resolved:
             return resolved
-    except Exception:  # guardian: allow-silent-swallow -- fallback to direct path checks
+    except (ImportError, OSError, RuntimeError, ValueError):
         pass
     # 1. Local worktree venv
     venv_pytest = _REPO_ROOT / ".venv" / "bin" / "pytest"

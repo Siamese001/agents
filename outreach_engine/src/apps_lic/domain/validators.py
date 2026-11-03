@@ -59,7 +59,7 @@ def _load_canonical_spam_phrases() -> dict[str, list[re.Pattern[str]]]:
                     ]
                 if compiled:
                     return compiled
-    except Exception:  # guardian: allow-silent-swallow -- fallback to default in-memory spam trigger lists
+    except (OSError, ValueError, KeyError, TypeError):
         pass
 
     return {

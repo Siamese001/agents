@@ -93,7 +93,7 @@ class PromptCompiler:
             try:
                 mtime = tmpl_file.stat().st_mtime
                 return dict(_load_cached_yaml_template(str(tmpl_file.resolve()), mtime))
-            except Exception:  # guardian: allow-silent-swallow -- fallback to empty dict if template is unreadable or malformed
+            except (OSError, ValueError, KeyError, TypeError):
                 pass
         return {}
 

@@ -34,7 +34,7 @@ def build_engagement_nodes_and_edges(
     for bpath in bundle_files:
         try:
             data = json.loads(bpath.read_text(encoding="utf-8"))
-        except Exception:
+        except (OSError, json.JSONDecodeError, ValueError):
             continue
         bundles = data.get("bundles") or []
         for b in bundles:
