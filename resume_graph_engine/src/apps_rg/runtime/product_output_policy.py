@@ -30,7 +30,7 @@ def product_fail_closed_runtime() -> bool:
     Default strict for every ``python -m apps_rg`` invocation. Opt-out only via
     ``APPS_RG_ALLOW_PRODUCT_SHORTCUTS=1`` or ``APPS_RG_TEST_HARNESS=1``.
     """
-    if is_apps_rg_test_harness():
+    if is_apps_rg_test_harness() or _env_on("APPS_RG_ALLOW_PRODUCT_SHORTCUTS"):
         return False
     return True
 

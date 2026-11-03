@@ -154,7 +154,7 @@ def check_sys_path_purity(
                     tree = ast.parse(py_file.read_text(encoding="utf-8", errors="replace"), filename=str(py_file))
                     if ast_cache is not None:
                         ast_cache[py_file] = tree
-                except Exception:
+                except (OSError, SyntaxError, ValueError):
                     continue
 
             for node in ast.walk(tree):

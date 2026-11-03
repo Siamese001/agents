@@ -199,7 +199,7 @@ class FeedbackController:
                         hints.extend(self.learning_store.get_repair_hints(effective_kind, err))
                     if hints:
                         empirical_hint = f"Empirical hint from prior runs: {'; '.join(hints[:3])}"
-                except Exception:  # guardian: allow-silent-swallow -- non-blocking precedent hint lookup fallback
+                except (OSError, RuntimeError, ValueError, TypeError, KeyError):
                     pass
 
             return FeedbackDecision(
@@ -297,5 +297,5 @@ class FeedbackController:
                     repair_hint=repair_hint,
                     outcome=outcome,
                 )
-            except Exception:  # guardian: allow-silent-swallow -- non-blocking precedent outcome writeback
+            except (OSError, RuntimeError, ValueError, TypeError, KeyError):
                 pass

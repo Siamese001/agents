@@ -74,7 +74,7 @@ def _has_valid_guardian_rationale(line_txt: str, prev_txt: str) -> bool:
 
 
 def scan_unguarded_silent_swallows(repo_root: Path) -> list[dict[str, Any]]:
-    """Fail-closed AST scan for unguarded broad except blocks returning empty values across handler subtrees."""
+    """Fail-closed AST scan for unguarded broad except blocks returning empty values or bare pass/continue."""
     findings: list[dict[str, Any]] = []
     for pkg in AUDITED_PACKAGES:
         base = repo_root / pkg
@@ -99,6 +99,9 @@ def scan_unguarded_silent_swallows(repo_root: Path) -> list[dict[str, Any]]:
                 prev_txt = lines[node.lineno - 2] if 2 <= node.lineno <= len(lines) else ""
                 if _has_valid_guardian_rationale(line_txt, prev_txt):
                     continue
+                if len(node.body) == 1 and isinstance(node.body[0], (ast.Pass, ast.Continue)):
+                    findings.append({"file": rel, "line": node.lineno, "handler": line_txt.strip()})
+                    continue
                 for sub in ast.walk(node):
                     if isinstance(sub, ast.Return) and _is_empty_return_expr(sub.value):
                         findings.append(
@@ -110,6 +113,23 @@ def scan_unguarded_silent_swallows(repo_root: Path) -> list[dict[str, Any]]:
                         )
                         break
     return findings
+
+
+def count_guardian_silent_swallows(repo_root: Path) -> int:
+    """Count broad except blocks carrying allow-silent-swallow across audited packages."""
+    count = 0
+    for pkg in AUDITED_PACKAGES:
+        base = repo_root / pkg
+        if not base.exists():
+            continue
+        for py_file in sorted(base.rglob("*.py")):
+            rel = py_file.relative_to(repo_root).as_posix()
+            if "/tests/" in f"/{rel}" or "/artifacts/" in f"/{rel}" or py_file.name.startswith("test_"):
+                continue
+            for line in py_file.read_text(encoding="utf-8").splitlines():
+                if "allow-silent-swallow" in line and "except Exception" in line:
+                    count += 1
+    return count
 
 
 def _require_module(repo_root: Path, rel_path: str) -> Any:
@@ -259,6 +279,19 @@ def _probe_research_to_resume_handoff(repo_root: Path) -> dict[str, Any]:
         unauth_res = delegation_mod.dispatch_resume_research_briefing(unauth_req, bridge=bridge)
 
     unauth_blocked = isinstance(unauth_res, delegation_mod.ResearchDispatchFailure)
+    main_mod = _require_module(repo_root, "resume_graph_engine/src/apps_rg/__main__.py")
+    policy_mod = _require_module(
+        repo_root, "resume_graph_engine/src/apps_rg/runtime/product_output_policy.py"
+    )
+    chroma_mod = _require_module(
+        repo_root, "resume_graph_engine/src/apps_rg/runtime/chroma_precomputed_collection.py"
+    )
+    seal_helper_ok = callable(getattr(main_mod, "_has_valid_sealed_stage_ledger", None))
+    chroma_ef_ok = hasattr(chroma_mod, "ForbidChromaDefaultEmbeddingFunction")
+    policy_doc_ok = "APPS_RG_ALLOW_PRODUCT_SHORTCUTS" in (
+        policy_mod.product_fail_closed_runtime.__doc__ or ""
+    )
+
     gaps: list[str] = []
     if not bad_rejected:
         gaps.append("validate_targeting_brief_text failed to reject placeholder/URL-contaminated brief")
@@ -266,6 +299,8 @@ def _probe_research_to_resume_handoff(repo_root: Path) -> dict[str, Any]:
         gaps.append(f"validate_targeting_brief_text rejected valid structured brief: lic={good_verdict_lic}, rg={good_verdict_rg}")
     if not unauth_blocked:
         gaps.append("dispatch_resume_research_briefing did not fail closed when research_authorized=False")
+    if not (seal_helper_ok and chroma_ef_ok and policy_doc_ok):
+        gaps.append("apps_rg stage-ledger seal helper, Chroma EF guard, or shortcut policy missing")
 
     return {
         "passed": len(gaps) == 0,
@@ -273,6 +308,7 @@ def _probe_research_to_resume_handoff(repo_root: Path) -> dict[str, Any]:
         "placeholder_brief_rejected": bad_rejected,
         "structured_brief_accepted": good_passed,
         "unauthorized_dispatch_blocked": unauth_blocked,
+        "stage_ledger_seal_helper_present": seal_helper_ok,
     }
 
 
@@ -399,10 +435,12 @@ def run_e2e_functionality_audit(repo_root: Path | None = None, *, read_only: boo
     p3 = _probe_authoritative_e2e_smoke(root, read_only=read_only)
     p4 = _probe_graph_traversal(root)
     swallows = scan_unguarded_silent_swallows(root)
+    guardian_backlog = count_guardian_silent_swallows(root)
     p5 = {
         "passed": len(swallows) == 0,
         "gaps": [f"Unguarded silent swallow at {s['file']}:{s['line']}" for s in swallows[:15]],
         "unguarded_silent_swallow_count": len(swallows),
+        "guardian_swallow_backlog": guardian_backlog,
     }
     p6 = _probe_production_purity(root)
 

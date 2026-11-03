@@ -276,7 +276,11 @@ def maybe_upsert_c02_fact_vectors(
 
     bootstrap_apps_rg_embedding_env(repo_root=root)
     settings = resolve_apps_rg_embedding_settings()
-    chroma_path = str(settings.chroma_persist_dir or "").strip()
+    chroma_path = str(
+        getattr(settings, "chroma_persist_dir", None)
+        or get_env_str("CHROMA_PERSIST_DIR")
+        or ""
+    ).strip()
     receipt: dict[str, Any] = {
         "schema_version": "c02_fact_vectors_ingest_v1",
         "section_id": section_id,
@@ -296,8 +300,8 @@ def maybe_upsert_c02_fact_vectors(
         _write_receipt(artifact_dir, receipt)
         return receipt
     apply_apps_rg_embedding_env_guards(settings=settings)
-    if not settings.embeddings_enabled or settings.route_result == "FAIL_CLOSED":
-        receipt["reason"] = settings.decisive_reason or "embeddings_disabled"
+    if not getattr(settings, "embeddings_enabled", True) or getattr(settings, "route_result", "PASS") == "FAIL_CLOSED":
+        receipt["reason"] = getattr(settings, "decisive_reason", "") or "embeddings_disabled"
         _write_receipt(artifact_dir, receipt)
         return receipt
 

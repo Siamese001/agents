@@ -15,13 +15,10 @@ from pathlib import Path
 from typing import Any, Callable
 
 from apps_rg.l2_recipe.evaluation_service import EvaluationService
+from apps_rg.l2_recipe import modular_lane_adapter as _mla
 from apps_rg.l2_recipe.modular_lane_adapter import (
-    ModularLaneTargeting,
-    build_modular_lane_argv,
-    build_section_provider_call_record,
-    phase1_jd_dispatch_refs,
-    phase1_manual_brief_for_dispatch,
-    resolve_latest_lane_run_dir,
+    ModularLaneTargeting, build_modular_lane_argv, build_section_provider_call_record,
+    phase1_jd_dispatch_refs, phase1_manual_brief_for_dispatch, resolve_latest_lane_run_dir,
 )
 from apps_rg.runtime.c0.graph_skill_embedding_allocation import (
     GRAPH_SKILL_EMBEDDING_ALLOWLISTS_ENV, build_lane_embedding_allowlists,
@@ -199,7 +196,7 @@ class SectionGenerationService:
     ) -> Path | None:
         """Resolve lane run_dir from pointers for recipe rollup (decoupled from dispatch exit_status)."""
         try:
-            run_dir = resolve_latest_lane_run_dir(
+            run_dir = _mla.resolve_latest_lane_run_dir(
                 repo,
                 sections_root,
                 lane,

@@ -24,7 +24,7 @@ class _TeeStream:
             try:
                 self.file_obj.write(data)
                 self.file_obj.flush()
-            except Exception:  # guardian: allow-silent-swallow -- best-effort tee log write without crashing stdout stream
+            except (OSError, ValueError):
                 pass
         return len(data)
 
@@ -33,7 +33,7 @@ class _TeeStream:
         if self.file_obj:
             try:
                 self.file_obj.flush()
-            except Exception:  # guardian: allow-silent-swallow -- best-effort tee log flush on teardown
+            except (OSError, ValueError):
                 pass
 
     def getvalue(self) -> str:
@@ -89,7 +89,7 @@ def isolate_child_output(log_path: Path | str | None = None) -> Iterator[dict[st
         if file_obj:
             try:
                 file_obj.close()
-            except Exception:  # guardian: allow-silent-swallow -- best-effort tee log close in finally block
+            except (OSError, ValueError):
                 pass
 
 
