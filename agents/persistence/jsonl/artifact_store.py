@@ -93,5 +93,5 @@ class FilesystemArtifactStore(ArtifactStore):
                 return False
             computed = hashlib.sha256(content).hexdigest()
             return computed == manifest.content.value
-        except Exception:
+        except (OSError, KeyError, ValueError, TypeError):
             return False

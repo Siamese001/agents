@@ -18,7 +18,7 @@ Execute a deterministic, fail-closed **Core Orchestration (`agents/`), Outreach 
 - **Shared Governance Contract**: Dereferences `automations/prompts/_shared_governance_contract.md` (`C01–C12`).
 - **Repository Boundary (`INV-REPO-SEPARATION-AGENTS-ONLY`)**: Bound exclusively to `/Users/amitayer/Git/agents`.
 - **Zero-Defect Fast-Exit & Wave-Based Plan Mandate (`C03`, `UNCONDITIONAL_WAVE_PLAN_MANDATE`)**:
-  - When Phase 1.5 reports `0` actionable findings, fast-exit cleanly per `C03`: copy `${RUN_DIR}` to `<PRIMARY_REPO_ROOT>/artifacts/sidecar_runs/agents_e2e_functionality/${RUN_TS}`, tear down the ephemeral worktree via `pr_governance.py submit --stage-only`, and exit `COMPLETE` without authoring a synthetic plan.
+  - When Phase 1.5 reports `0` actionable findings, fast-exit cleanly per `C03`: copy `${RUN_DIR}` to `<PRIMARY_REPO_ROOT>/artifacts/sidecar_runs/agents_e2e_functionality/${RUN_TS}`, tear down the ephemeral worktree via `pr_governance.py -C "${WORKTREE_DIR}" submit "${BRANCH_NAME}" --stage-only`, and exit `COMPLETE` without authoring a synthetic plan.
   - Whenever `>= 1` findings exist in **EITHER** `MODE: scheduled` or `MODE: interactive`, author a wave-based remediation plan at `${WORKTREE_DIR}/plans/<branch-slug>-<6hex>.md` (and copy to `${RUN_DIR}/implementation_plan.md`) decomposed into sequential numbered waves (`## Wave 1: ...`, `## Wave 2: ...`) and validate it via `validate_implementation_plan.py --file "${WORKTREE_DIR}/plans/<branch-slug>-<6hex>.md"` (`exit code 0`).
   - In `MODE: scheduled`, stage validated fixes on `${BRANCH_NAME}` via `pr_governance.py submit "${BRANCH_NAME}" --stage-only` without mutating `local main` directly.
 
@@ -68,44 +68,23 @@ Every candidate finding MUST include all 8 fields before entering the remediatio
 8. `severity_tier` (`P0_CRITICAL` | `P1_HIGH` | `P2_MEDIUM`)
 
 ### Phase 1.5: Mandatory Executable Forensic Scanner Commands
-Execute the bounded E2E smoke, purity, graph probe, and AST inspection in `${WORKTREE_DIR}` (`timeout <= 120s`):
+Execute the fail-closed 6-pillar behavioral E2E auditor, full outreach + deterministic resume smoke, graph probe (`python3 tools/run_resume_graph_traversal_probe.py`), and release gate in `${WORKTREE_DIR}` (`timeout <= 120s`):
 
 ```bash
-"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/lint_production_purity.py" --repo-root "${WORKTREE_DIR}"
-"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/ops_scripts/run_e2e_authoritative_smoke.py" --skip-resume
+"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/e2e_functionality_auditor.py" \
+  --repo-root "${WORKTREE_DIR}" \
+  --read-only \
+  --output "${RUN_DIR}/audit_report.json" \
+  --json
+"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/ops_scripts/run_e2e_authoritative_smoke.py" \
+  --repo-root "${WORKTREE_DIR}" \
+  --read-only \
+  --receipt-out "${RUN_DIR}/e2e_smoke_receipt.json"
 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/run_resume_graph_traversal_probe.py" --max-paths 200
 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/verify_release_gate.py" --root "${WORKTREE_DIR}" --no-write --json
-"${PRIMARY_REPO_ROOT}/.venv/bin/python" - <<'PY'
-import ast, json, os
-from pathlib import Path
-
-root = Path(os.environ["WORKTREE_DIR"])
-surfaces = ["agents", "outreach_engine/src", "resume_engine", "resume_graph_engine/src", "apps_research"]
-summary = {}
-silent_returns = []
-
-for s in surfaces:
-    base = root / s
-    if not base.exists():
-        continue
-    py_files = [p for p in base.rglob("*.py") if "tests" not in p.parts]
-    summary[s] = len(py_files)
-    for py in py_files:
-        try:
-            tree = ast.parse(py.read_text(encoding="utf-8"))
-        except Exception:
-            continue
-        for node in ast.walk(tree):
-            if isinstance(node, ast.ExceptHandler):
-                for child in node.body:
-                    if isinstance(child, ast.Return) and (child.value is None or (isinstance(child.value, ast.Constant) and child.value.value in (None, "", {}, []))):
-                        silent_returns.append({"surface": s, "file": str(py.relative_to(root)), "line": node.lineno})
-
-print(json.dumps({"surface_file_counts": summary, "silent_except_returns": silent_returns[:25]}, indent=2))
-PY
 ```
 
-Verify that `run_e2e_authoritative_smoke.py` and `run_resume_graph_traversal_probe.py` report `PASS` with `direct_graph_traversal == true` and non-zero multi-hop paths. Write the structured findings and 8-field admission proofs to `${RUN_DIR}/audit_report.json`.
+Verify that `e2e_functionality_auditor.py`, `run_e2e_authoritative_smoke.py --read-only`, and `run_resume_graph_traversal_probe.py` report `PASS` with `direct_graph_traversal == true` and non-zero multi-hop paths before any `PREFLIGHT_ZERO_DEFECT_FAST_EXIT`. Write the structured findings and 8-field admission proofs to `${RUN_DIR}/audit_report.json`.
 
 ---
 
@@ -115,7 +94,7 @@ Verify that `run_e2e_authoritative_smoke.py` and `run_resume_graph_traversal_pro
 When findings exist, author `${WORKTREE_DIR}/plans/e2e-outreach-resume-assurance-${HEX6}.md` (500–800 words, max 1,000 words) structured into sequential waves:
 - `## Wave 1: Research-to-Outreach & Research-to-Resume Handoff Contract Remediation`
 - `## Wave 2: End-to-End Pipeline Synthesis & Fail-Closed Error Handling`
-Each wave MUST include `### Objective & Scope`, `### Milestones & Deliverables`, `### Acceptance Criteria`, and `### Runtime Receipt & Completion Gate` (`Run:`, `Input:`, `Expected:`, `Verify independently:`, `Fail if:`, `Record:`), plus `## Wave Implementation & Completion Status Table`.
+Each wave MUST include `### Objective & Scope`, `### Milestones & Deliverables`, `### Acceptance Criteria`, and `### Runtime Receipt & Completion Gate` (`Run:`, `Input:`, `Expected:`, `Verify independently:`, `Fail if:`, `Record:`).
 Validate immediately:
 ```bash
 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/validate_implementation_plan.py" --file "${WORKTREE_DIR}/plans/e2e-outreach-resume-assurance-${HEX6}.md"

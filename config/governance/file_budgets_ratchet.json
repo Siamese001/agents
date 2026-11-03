@@ -894,5 +894,61 @@
   "apps_research/engines/company_brief_engine.py": {
     "line_limit": 2255,
     "justification": "Baseline legacy module pending decomposition"
+  },
+  "apps_eval/adapters/resume_graph_engine.py": {
+    "line_limit": 1616,
+    "justification": "Wave 3 baseline ceiling when expanding PRODUCTION_DIRECTORIES to all 9 packages"
+  },
+  "apps_eval/contracts/models.py": {
+    "line_limit": 664,
+    "justification": "Wave 3 baseline ceiling when expanding PRODUCTION_DIRECTORIES to all 9 packages"
+  },
+  "apps_eval/coverage/apps_rg.py": {
+    "line_limit": 1048,
+    "justification": "Wave 3 baseline ceiling when expanding PRODUCTION_DIRECTORIES to all 9 packages"
+  },
+  "apps_eval/diagnostics/apps_rg.py": {
+    "line_limit": 612,
+    "justification": "Wave 3 baseline ceiling when expanding PRODUCTION_DIRECTORIES to all 9 packages"
+  },
+  "apps_eval/runner/core.py": {
+    "line_limit": 2155,
+    "justification": "Wave 3 baseline ceiling when expanding PRODUCTION_DIRECTORIES to all 9 packages"
+  },
+  "apps_eval/trends.py": {
+    "line_limit": 973,
+    "justification": "Wave 3 baseline ceiling when expanding PRODUCTION_DIRECTORIES to all 9 packages"
+  },
+  "apps_model_telemetry/otel_runtime.py": {
+    "line_limit": 661,
+    "justification": "Wave 3 baseline ceiling when expanding PRODUCTION_DIRECTORIES to all 9 packages"
+  },
+  "infrastructure/reasoning/adaptive_optimizer.py": {
+    "line_limit": 679,
+    "justification": "Wave 3 baseline ceiling when expanding PRODUCTION_DIRECTORIES to all 9 packages"
+  },
+  "infrastructure/reasoning/cross_layer_coherence.py": {
+    "line_limit": 717,
+    "justification": "Wave 3 baseline ceiling when expanding PRODUCTION_DIRECTORIES to all 9 packages"
+  },
+  "infrastructure/reasoning/precision_adaptive_optimizer.py": {
+    "line_limit": 868,
+    "justification": "Wave 3 baseline ceiling when expanding PRODUCTION_DIRECTORIES to all 9 packages"
+  },
+  "infrastructure/utils/distributed_state_manager.py": {
+    "line_limit": 896,
+    "justification": "Wave 3 baseline ceiling when expanding PRODUCTION_DIRECTORIES to all 9 packages"
+  },
+  "infrastructure/utils/novel_testing_frameworks.py": {
+    "line_limit": 857,
+    "justification": "Wave 3 baseline ceiling when expanding PRODUCTION_DIRECTORIES to all 9 packages"
+  },
+  "infrastructure/utils/precision_distributed_state.py": {
+    "line_limit": 1080,
+    "justification": "Wave 3 baseline ceiling when expanding PRODUCTION_DIRECTORIES to all 9 packages"
+  },
+  "infrastructure/utils/security_framework.py": {
+    "line_limit": 797,
+    "justification": "Wave 3 baseline ceiling when expanding PRODUCTION_DIRECTORIES to all 9 packages"
   }
 }

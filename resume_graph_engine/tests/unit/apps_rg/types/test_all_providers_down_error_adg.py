@@ -37,7 +37,7 @@ class TestAllProvidersDownErrorDetailed:
         assert _SRC.exists()
 
     def test_parses_without_error(self):
-        _tree()
+        assert isinstance(_tree(), ast.Module)
 
     def test_exception_class_present(self):
         assert "AllProvidersDownError" in _class_names()

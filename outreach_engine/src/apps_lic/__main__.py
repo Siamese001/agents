@@ -89,7 +89,7 @@ def _handle_run(args: argparse.Namespace, prog: str = "python -m outreach_engine
         try:
             from infrastructure.live_execution import load_agent_environment
             load_agent_environment(repo_root=Path(__file__).resolve().parent.parent.parent.parent)
-        except Exception:
+        except (ImportError, OSError, ValueError):
             pass
         from agents.live_preflight import assert_engine_live_preflight
         assert_engine_live_preflight(prog, providers=("openai",), is_demo=bool(getattr(args, "demo", False)))
@@ -381,7 +381,7 @@ def _reconstruct_eval_draft(run_dir: Path, manifest_data: dict[str, Any] | None 
                 research_metadata=dict(d.get("research_metadata", {})),
                 metadata=dict(d.get("metadata", {})),
             )
-        except Exception:
+        except (OSError, json.JSONDecodeError, ValueError, TypeError, KeyError):
             return None
 
     draft_md = run_dir / "outreach_draft.md"
@@ -403,7 +403,7 @@ def _reconstruct_eval_draft(run_dir: Path, manifest_data: dict[str, Any] | None 
                 grounded_facts_used=m_facts,
                 audience_persona=persona,
             )
-        except Exception:
+        except (OSError, UnicodeDecodeError, ValueError, TypeError):
             return None
     return None
 

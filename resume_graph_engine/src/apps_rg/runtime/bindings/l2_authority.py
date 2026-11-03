@@ -444,7 +444,7 @@ def build_signed_execution_packet(
     try:
         from apps_rg.runtime.section_model_limits import runtime_limit_int
         ceiling = runtime_limit_int("section_context_window", 131072)
-    except Exception:
+    except (ImportError, OSError, ValueError, TypeError):
         pass
     _require(
         0 < max_tokens <= ceiling,

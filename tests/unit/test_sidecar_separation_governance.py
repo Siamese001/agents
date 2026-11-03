@@ -1,4 +1,4 @@
-"""Unit tests verifying sidecar separation between Agents Repo and Decision Intelligence Engine."""
+"""Behavioral governance and sidecar separation tests across all 7 Agents assurance workflows."""
 
 from __future__ import annotations
 
@@ -9,7 +9,6 @@ from tools.validate_sidecar_separation import (
     AGENTS_CANONICAL_ROOT,
     DEFAULT_SIDECARS_ROOT,
     EXPECTED_AGENTS_SIDECARS,
-    EXPECTED_NEE_SIDECARS,
     NEE_CANONICAL_ROOT,
     REPO_ROOT,
     REQUIRED_PROMPT_PARITY_MARKERS,
@@ -19,7 +18,7 @@ from tools.validate_sidecar_separation import (
 
 
 def test_live_sidecar_separation_passes_with_zero_collisions() -> None:
-    """Verify live global sidecars have zero Agents background schedules while all 7 on-demand prompts pass."""
+    """Verify live global sidecars have zero Agents background schedules while all 7 prompts bind dedicated auditors."""
     result = validate_sidecar_separation(
         repo_root=REPO_ROOT,
         sidecars_root=DEFAULT_SIDECARS_ROOT,
@@ -34,21 +33,40 @@ def test_live_sidecar_separation_passes_with_zero_collisions() -> None:
     assert result["violations"] == []
 
 
-def test_agents_sidecars_target_outreach_resume_and_apps_research() -> None:
-    """Verify the 7 Agents prompt specifications cover outreach_engine, resume_engine, and apps_research."""
-    prompts_dir = REPO_ROOT / "automations" / "prompts"
-    combined_text = "\n".join(
-        (prompts_dir / spec["prompt_file"]).read_text(encoding="utf-8")
-        for spec in EXPECTED_AGENTS_SIDECARS.values()
-    )
-    assert "outreach_engine" in combined_text
-    assert "resume_engine" in combined_text
-    assert "resume_graph_engine" in combined_text
-    assert "apps_research" in combined_text
-    assert "AppsResearchBridge" in combined_text
-    assert "ResearchRetrievalEngine" in combined_text
-    assert "GovernedResearchRun" in combined_text
-    assert "INV-REPO-SEPARATION-AGENTS-ONLY" in combined_text
+def test_all_seven_workflows_bind_distinct_executable_behavioral_auditors() -> None:
+    """Verify every workflow binds a dedicated fail-closed Python auditor module (never verify_commit.py)."""
+    expected_entrypoints = {
+        "agents-storage-worktree-hygiene": "tools/storage_worktree_hygiene.py",
+        "agents-ssot-boundary-governance": "tools/ssot_boundary_auditor.py",
+        "agents-outreach-resume-functionality": "tools/e2e_functionality_auditor.py",
+        "agents-research-retrieval-surface": "tools/retrieval_surface_auditor.py",
+        "agents-evals-judge-assurance": "tools/validate_eval_rubrics.py",
+        "agents-cost-token-budget": "tools/cost_token_budget_auditor.py",
+        "agents-testing-gaps-assurance": "tools/testing_gaps_auditor.py",
+    }
+    assert {k: v["deterministic_entrypoint"] for k, v in EXPECTED_AGENTS_SIDECARS.items()} == expected_entrypoints
+    for workflow_id, rel_ep in expected_entrypoints.items():
+        ep_path = REPO_ROOT / rel_ep
+        assert ep_path.is_file(), f"Missing dedicated auditor {rel_ep} for {workflow_id}"
+        assert rel_ep != "tools/verify_commit.py"
+
+
+def test_validator_rejects_inline_heredoc_and_missing_auditor_invocation(tmp_path: Path) -> None:
+    """Negative control: validator rejects print-only inline heredocs or missing auditor CLI invocation."""
+    fake_repo = tmp_path / "repo"
+    prompts_dir = fake_repo / "automations" / "prompts"
+    prompts_dir.mkdir(parents=True)
+    for md_file in (REPO_ROOT / "automations" / "prompts").glob("*.md"):
+        content = md_file.read_text(encoding="utf-8")
+        if md_file.name == "agents_e2e_functionality_assurance_agent.md":
+            content = content.replace("e2e_functionality_auditor.py", "verify_commit.py") + "\npython - <<'PY'\nPY\n"
+        (prompts_dir / md_file.name).write_text(content, encoding="utf-8")
+
+    result = validate_sidecar_separation(repo_root=fake_repo, sidecars_root=DEFAULT_SIDECARS_ROOT)
+    assert result["status"] == "FAIL"
+    joined = "\n".join(result["violations"])
+    assert "e2e_functionality_auditor.py" in joined
+    assert "inline heredoc script" in joined
 
 
 def test_validator_rejects_reintroduced_daily_schedule_or_cross_repo_grant(tmp_path: Path) -> None:
@@ -62,7 +80,6 @@ def test_validator_rejects_reintroduced_daily_schedule_or_cross_repo_grant(tmp_p
     fake_sidecars = tmp_path / "sidecars"
     fake_sidecars.mkdir(parents=True)
 
-    # Copy active NEE sidecars into sandbox
     for child in DEFAULT_SIDECARS_ROOT.iterdir():
         src = child / "sidecar.json"
         if child.is_dir() and src.is_file():
@@ -70,14 +87,13 @@ def test_validator_rejects_reintroduced_daily_schedule_or_cross_repo_grant(tmp_p
             dst_dir.mkdir(parents=True)
             (dst_dir / "sidecar.json").write_text(src.read_text(encoding="utf-8"), encoding="utf-8")
 
-    # Inject an unapproved background schedule directory and a cross-repo Agents grant on an NEE sidecar
     rogue_dir = fake_sidecars / "agents-outreach-resume-functionality"
     rogue_dir.mkdir(parents=True)
     (rogue_dir / "sidecar.json").write_text(json.dumps({"builtin": "schedule"}), encoding="utf-8")
 
-    nee_target = next(fake_sidecars.glob("*/sidecar.json"))
-    if nee_target.parent.name.startswith("agents-"):
-        nee_target = [p for p in fake_sidecars.glob("*/sidecar.json") if not p.parent.name.startswith("agents-")][0]
+    nee_target = next(
+        p for p in fake_sidecars.glob("*/sidecar.json") if not p.parent.name.startswith("agents-")
+    )
     bad_payload = json.loads(nee_target.read_text(encoding="utf-8"))
     bad_payload.setdefault("agent_permissions", {}).setdefault("access_grants", []).append(
         f"read_file({AGENTS_CANONICAL_ROOT})"
@@ -94,8 +110,8 @@ def test_validator_rejects_reintroduced_daily_schedule_or_cross_repo_grant(tmp_p
     assert AGENTS_CANONICAL_ROOT != NEE_CANONICAL_ROOT
 
 
-def test_all_seven_agents_prompts_enforce_decision_intelligence_parity_and_wave_plan_mandate() -> None:
-    """Verify every Agents prompt specification enforces the 4-phase Decision Intelligence contract and wave plan mandate."""
+def test_all_seven_agents_prompts_enforce_parity_and_wave_plan_mandate() -> None:
+    """Verify every Agents prompt specification enforces the 4-phase contract and wave plan mandate."""
     prompts_dir = REPO_ROOT / "automations" / "prompts"
     shared_text = (prompts_dir / "_shared_governance_contract.md").read_text(encoding="utf-8")
     for marker in REQUIRED_SHARED_CONTRACT_MARKERS:
@@ -110,8 +126,8 @@ def test_all_seven_agents_prompts_enforce_decision_intelligence_parity_and_wave_
         assert NEE_CANONICAL_ROOT not in text
 
 
-def test_validator_rejects_prompt_missing_wave_plan_mandate(tmp_path: Path) -> None:
-    """Negative control: verify validator fails closed if a prompt omits UNCONDITIONAL_WAVE_PLAN_MANDATE."""
+def test_validator_rejects_prompt_missing_wave_plan_mandate_or_consolidate_marker(tmp_path: Path) -> None:
+    """Negative control: validator fails closed if a prompt omits UNCONDITIONAL_WAVE_PLAN_MANDATE or --consolidate-sidecar."""
     fake_repo = tmp_path / "repo"
     prompts_dir = fake_repo / "automations" / "prompts"
     prompts_dir.mkdir(parents=True)
@@ -119,11 +135,14 @@ def test_validator_rejects_prompt_missing_wave_plan_mandate(tmp_path: Path) -> N
         content = md_file.read_text(encoding="utf-8")
         if md_file.name == "agents_e2e_functionality_assurance_agent.md":
             content = content.replace("UNCONDITIONAL_WAVE_PLAN_MANDATE", "REMOVED_MANDATE")
+        if md_file.name == "agents_cost_token_budget_agent.md":
+            content = content.replace("--consolidate-sidecar", "--legacy-worktree-add")
         (prompts_dir / md_file.name).write_text(content, encoding="utf-8")
 
     result = validate_sidecar_separation(repo_root=fake_repo, sidecars_root=DEFAULT_SIDECARS_ROOT)
     assert result["status"] == "FAIL"
     assert any("UNCONDITIONAL_WAVE_PLAN_MANDATE" in v for v in result["violations"])
+    assert any("--consolidate-sidecar" in v for v in result["violations"])
 
 
 def test_storage_worktree_hygiene_six_pillar_audit_and_sqlite_wal_remediation(tmp_path: Path) -> None:
@@ -158,13 +177,11 @@ def test_storage_worktree_hygiene_six_pillar_audit_and_sqlite_wal_remediation(tm
     old_ts = time.time() - 90000
     os.utime(stale_tmp, (old_ts, old_ts))
 
-    # Audit before remediation detects DELETE journal mode and stale .tmp file
     pre_audit = run_six_pillar_hygiene_audit(repo_root=sandbox, sidecars_root=DEFAULT_SIDECARS_ROOT, remediate=False)
     assert pre_audit["pillar_status"]["pillar_2_sqlite_integrity_wal"] == "FINDINGS"
     assert pre_audit["pillar_status"]["pillar_5_stale_locks_temps"] == "FINDINGS"
     assert "orphaned_scratch.tmp" in pre_audit["stale_files"]
 
-    # Remediation transitions SQLite DB to WAL, checkpoints it, and removes stale .tmp file
     post_audit = run_six_pillar_hygiene_audit(repo_root=sandbox, sidecars_root=DEFAULT_SIDECARS_ROOT, remediate=True)
     assert post_audit["status"] == "PASS"
     assert post_audit["is_clean"] is True
@@ -174,29 +191,16 @@ def test_storage_worktree_hygiene_six_pillar_audit_and_sqlite_wal_remediation(tm
     assert not stale_tmp.exists()
 
 
-def test_validator_rejects_prompt_missing_consolidate_sidecar_marker(tmp_path: Path) -> None:
-    """Negative control: verify validator fails closed if a prompt omits --consolidate-sidecar in Phase 0."""
-    fake_repo = tmp_path / "repo"
-    prompts_dir = fake_repo / "automations" / "prompts"
-    prompts_dir.mkdir(parents=True)
-    for md_file in (REPO_ROOT / "automations" / "prompts").glob("*.md"):
-        content = md_file.read_text(encoding="utf-8")
-        if md_file.name == "agents_cost_token_budget_agent.md":
-            content = content.replace("--consolidate-sidecar", "--legacy-worktree-add")
-        (prompts_dir / md_file.name).write_text(content, encoding="utf-8")
-
-    result = validate_sidecar_separation(repo_root=fake_repo, sidecars_root=DEFAULT_SIDECARS_ROOT)
-    assert result["status"] == "FAIL"
-    assert any("--consolidate-sidecar" in v for v in result["violations"])
-
-
-def test_eight_pillar_cost_and_caching_audit_passes_on_live_repo() -> None:
-    """Verify the 8-pillar cost, multi-tier caching, and token budget auditor passes on live repo."""
+def test_eight_pillar_cost_and_caching_audit_passes_with_zero_substring_theater() -> None:
+    """Verify the 8-pillar cost, multi-tier caching, and token budget auditor passes behaviorally on live repo."""
     from tools.cost_token_budget_auditor import (
         MIN_REQUIRED_ROI_MULTIPLE,
         compute_caching_roi_benchmark,
         run_eight_pillar_cost_token_audit,
     )
+
+    auditor_src = (REPO_ROOT / "tools" / "cost_token_budget_auditor.py").read_text(encoding="utf-8")
+    assert "if marker not in txt:" not in auditor_src
 
     report = run_eight_pillar_cost_token_audit(repo_root=REPO_ROOT)
     assert report["status"] == "PASS", f"Expected PASS, got gaps: {[p for p in report['pillars'] if p['gaps']]}"
@@ -210,39 +214,22 @@ def test_eight_pillar_cost_and_caching_audit_passes_on_live_repo() -> None:
     assert roi["roi_multiple"] >= MIN_REQUIRED_ROI_MULTIPLE
     assert roi["token_savings_equivalent"] > 300_000
 
-    cost_prompt = (REPO_ROOT / "automations" / "prompts" / "agents_cost_token_budget_agent.md").read_text(
-        encoding="utf-8"
-    )
-    for surface in (
-        "anthropic_prompt_cache.py",
-        "anthropic_section_cache_payload.py",
-        "c02_semantic_cache_payload.py",
-        "semantic_cache_persistence_quarantine.py",
-        "cache_identity.py",
-        "briefing_cache.py",
-        "briefing_resolver.py",
-        "executive_summary_token_budget.py",
-        "zero_llm_qualification.py",
-        "model_token_governor.py",
-        "cost_token_budget_auditor.py",
-    ):
-        assert surface in cost_prompt, f"Missing caching/tokenomics surface '{surface}' in prompt spec"
-
 
 def test_eight_pillar_cost_auditor_detects_missing_caching_and_effort_drift(tmp_path: Path) -> None:
     """Negative control: verify 8-pillar auditor flags effort drift and missing caching modules."""
     from tools.cost_token_budget_auditor import run_eight_pillar_cost_token_audit
+    from tools.hitl_governance import load_approved_provider_models
 
+    approved_sample = sorted(load_approved_provider_models(REPO_ROOT))[0]
     sandbox = tmp_path / "broken_cost_repo"
     (sandbox / "config").mkdir(parents=True)
-    # Write a provider profile with over-pinned 'high' effort on section generation and wrong governor cap
     (sandbox / "config" / "provider_profiles.yaml").write_text(
         "model_pin_ownership:\n"
         "  environment_model_override_allowed: true\n"
         "profiles:\n"
         "  external_openai_generator:\n"
         "    model_by_section:\n"
-        "      slalom_narrative: gpt-5.6-luna\n"
+        f"      slalom_narrative: {approved_sample}\n"
         "    effort_by_section:\n"
         "      slalom_narrative: high\n"
         "runtime_limits:\n"
@@ -261,7 +248,7 @@ def test_eight_pillar_cost_auditor_detects_missing_caching_and_effort_drift(tmp_
     assert "exceeds 'low' compact schema generation tier" in p1_gaps
 
 
-def test_agents_sidecar_dispositions_and_skill_budget_compliance() -> None:
+def test_agents_sidecar_dispositions_skill_budget_and_eval_rubrics() -> None:
     """Verify all 7 Agents sidecar dispositions map to root skills within the 26-skill budget."""
     from tools.audit_skills_budget import audit_skills_budget
     from tools.validate_eval_rubrics import validate_eval_rubrics
@@ -274,50 +261,26 @@ def test_agents_sidecar_dispositions_and_skill_budget_compliance() -> None:
 
     root_skills = {s["name"] for s in budget_rep["skills"]}
     for sidecar_id, spec in EXPECTED_AGENTS_SIDECARS.items():
-        assert "disposition" in spec, f"{sidecar_id} missing disposition"
-        assert "target_skill" in spec, f"{sidecar_id} missing target_skill"
-        assert spec["target_skill"] in root_skills, (
-            f"{sidecar_id} maps to missing skill '{spec['target_skill']}'"
-        )
+        assert "disposition" in spec
+        assert "target_skill" in spec
+        assert spec["target_skill"] in root_skills
 
     eval_rep = validate_eval_rubrics(REPO_ROOT)
     assert eval_rep["status"] == "PASS"
     assert eval_rep["is_clean"] is True
 
 
-def test_testing_gaps_prompt_covers_all_four_test_roots_and_rejects_hardcoded_root(tmp_path: Path) -> None:
-    """Verify Agent 7 scans all 4 test roots (900+ test files), async tests, and mock reachability."""
-    from tools.audit_mock_reachability import _PRODUCTION_ROOTS, run_audit
+def test_testing_gaps_auditor_passes_on_live_repo_and_rejects_hardcoded_root(tmp_path: Path) -> None:
+    """Verify testing_gaps_auditor scans all 4 test roots with 0 zero-assertion tests and 0 mock violations."""
+    from tools.testing_gaps_auditor import run_testing_gaps_audit
 
-    for expected_pkg in (
-        "agents",
-        "resume_engine",
-        "resume_graph_engine/src/apps_rg",
-        "apps_research",
-        "apps_eval",
-        "apps_model_telemetry",
-        "outreach_engine/src/apps_lic",
-        "infrastructure",
-        "ops_scripts",
-    ):
-        assert expected_pkg in _PRODUCTION_ROOTS
-    code, mock_violations = run_audit(REPO_ROOT)
-    assert code == 0, f"Unexpected mock reachability violations: {mock_violations}"
+    rep = run_testing_gaps_audit(REPO_ROOT)
+    assert rep["status"] == "PASS", rep
+    assert rep["is_clean"] is True
+    assert rep["total_test_files_scanned"] >= 890
+    assert rep["zero_assertion_tests"] == []
+    assert rep["mock_reachability_violations"] == []
 
-    total_tests = sum(
-        len(
-            {
-                *(REPO_ROOT / r).rglob("test_*.py"),
-                *(REPO_ROOT / r).rglob("*_test.py"),
-                *(REPO_ROOT / r).rglob("conftest.py"),
-            }
-        )
-        for r in ("tests", "resume_graph_engine/tests", "outreach_engine/tests", "apps_eval/tests")
-        if (REPO_ROOT / r).exists()
-    )
-    assert total_tests >= 890
-
-    # Negative control: hardcoded Path("/Users/amitayer/Git/agents") in prompt must fail separation check
     fake_repo = tmp_path / "repo"
     prompts_dir = fake_repo / "automations" / "prompts"
     prompts_dir.mkdir(parents=True)
@@ -330,7 +293,3 @@ def test_testing_gaps_prompt_covers_all_four_test_roots_and_rejects_hardcoded_ro
     result = validate_sidecar_separation(repo_root=fake_repo, sidecars_root=DEFAULT_SIDECARS_ROOT)
     assert result["status"] == "FAIL"
     assert any("hardcodes primary repo root" in v for v in result["violations"])
-
-
-
-

@@ -18,7 +18,7 @@ Execute a deterministic, fail-closed **Research, Embedding & Retrieval Surface A
 - **Shared Governance Contract**: Dereferences `automations/prompts/_shared_governance_contract.md` (`C01–C12`).
 - **Repository Boundary (`INV-REPO-SEPARATION-AGENTS-ONLY`)**: Bound exclusively to `/Users/amitayer/Git/agents`.
 - **Zero-Defect Fast-Exit & Wave-Based Plan Mandate (`C03`, `UNCONDITIONAL_WAVE_PLAN_MANDATE`)**:
-  - When Phase 1.5 reports `0` actionable findings, fast-exit cleanly per `C03`: copy `${RUN_DIR}` to `<PRIMARY_REPO_ROOT>/artifacts/sidecar_runs/agents_research_retrieval_surface/${RUN_TS}`, tear down the ephemeral worktree via `pr_governance.py submit --stage-only`, and exit `COMPLETE` without authoring a synthetic plan.
+  - When Phase 1.5 reports `0` actionable findings, fast-exit cleanly per `C03`: copy `${RUN_DIR}` to `<PRIMARY_REPO_ROOT>/artifacts/sidecar_runs/agents_research_retrieval_surface/${RUN_TS}`, tear down the ephemeral worktree via `pr_governance.py -C "${WORKTREE_DIR}" submit "${BRANCH_NAME}" --stage-only`, and exit `COMPLETE` without authoring a synthetic plan.
   - Whenever `>= 1` findings exist in **EITHER** `MODE: scheduled` or `MODE: interactive`, author a wave-based remediation plan at `${WORKTREE_DIR}/plans/<branch-slug>-<6hex>.md` (and copy to `${RUN_DIR}/implementation_plan.md`) decomposed into sequential numbered waves (`## Wave 1: ...`, `## Wave 2: ...`) and validate it via `validate_implementation_plan.py --file "${WORKTREE_DIR}/plans/<branch-slug>-<6hex>.md"` (`exit code 0`).
   - In `MODE: scheduled`, stage validated fixes on `${BRANCH_NAME}` via `pr_governance.py submit "${BRANCH_NAME}" --stage-only` without mutating `local main` directly.
 
@@ -58,41 +58,17 @@ Write `${RUN_DIR}/manifest.json` recording `agent_id`, `run_id`, `mode`, `pre_st
 7. **Pillar 7 — Cross-Subsystem Contract Alignment**: Verify `apps_research` output schemas match consumer expectations in `outreach_engine/` and `resume_engine/`.
 
 ### Phase 1.5: Mandatory Executable Forensic Scanner Commands
-Execute the bounded retrieval, embedding, graph traversal, and latency-caching suite in `${WORKTREE_DIR}` (`timeout <= 120s`):
+Execute the fail-closed 7-pillar behavioral retrieval auditor, BGE-M3 embedding check, multi-hop graph probe (`python3 tools/run_resume_graph_traversal_probe.py` verifying `direct_graph_traversal`), and live latency-caching verifier in `${WORKTREE_DIR}` (`timeout <= 120s`):
 
 ```bash
+"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/retrieval_surface_auditor.py" \
+  --repo-root "${WORKTREE_DIR}" \
+  --read-only \
+  --output "${RUN_DIR}/audit_report.json" \
+  --json
 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/verify_graph_integrity_and_embeddings.py"
 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/run_resume_graph_traversal_probe.py" --max-paths 200
-"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/verify_pipeline_latency_caching.py"
-"${PRIMARY_REPO_ROOT}/.venv/bin/python" - <<'PY'
-import ast, json, os
-from pathlib import Path
-
-root = Path(os.environ["WORKTREE_DIR"])
-targets = ["agents/context", "apps_research", "resume_graph_engine/src", "outreach_engine/src", "resume_engine"]
-retrieval_modules = []
-untyped_returns = []
-
-for t in targets:
-    base = root / t
-    if not base.exists():
-        continue
-    for py in base.rglob("*.py"):
-        if "tests" in py.parts:
-            continue
-        rel = str(py.relative_to(root))
-        if any(k in rel.lower() for k in ("retriev", "search", "graph", "rank", "chunk", "research", "provenance", "context")):
-            retrieval_modules.append(rel)
-            try:
-                tree = ast.parse(py.read_text(encoding="utf-8"))
-            except Exception:
-                continue
-            for node in ast.walk(tree):
-                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and not node.name.startswith("_") and node.returns is None:
-                    untyped_returns.append({"file": rel, "line": node.lineno, "function": node.name})
-
-print(json.dumps({"retrieval_module_count": len(retrieval_modules), "sample_modules": retrieval_modules[:25], "public_functions_missing_return_annotations": untyped_returns[:25]}, indent=2))
-PY
+"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/verify_pipeline_latency_caching.py" --repo-root "${WORKTREE_DIR}"
 ```
 
 Write the combined structured findings to `${RUN_DIR}/audit_report.json`.
@@ -105,7 +81,7 @@ Write the combined structured findings to `${RUN_DIR}/audit_report.json`.
 When findings exist, author `${WORKTREE_DIR}/plans/research-retrieval-surface-${HEX6}.md` (500–800 words, max 1,000 words) structured into sequential waves:
 - `## Wave 1: Research Retrieval Ranking, Provenance & Chunking Remediation`
 - `## Wave 2: Resume Graph Traversal & Cache Invalidation Parity`
-Each wave MUST include `### Objective & Scope`, `### Milestones & Deliverables`, `### Acceptance Criteria`, and `### Runtime Receipt & Completion Gate` (`Run:`, `Input:`, `Expected:`, `Verify independently:`, `Fail if:`, `Record:`), plus `## Wave Implementation & Completion Status Table`.
+Each wave MUST include `### Objective & Scope`, `### Milestones & Deliverables`, `### Acceptance Criteria`, and `### Runtime Receipt & Completion Gate` (`Run:`, `Input:`, `Expected:`, `Verify independently:`, `Fail if:`, `Record:`).
 Validate immediately:
 ```bash
 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/validate_implementation_plan.py" --file "${WORKTREE_DIR}/plans/research-retrieval-surface-${HEX6}.md"

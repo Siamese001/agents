@@ -144,7 +144,7 @@ def seal_mandatory_output_bundle(
                 json.dumps(run_manifest, indent=2, sort_keys=True) + "\n",
                 encoding="utf-8",
             )
-        except Exception:
+        except (ImportError, OSError, ValueError, TypeError):
             pass
         return manifest
     finally:

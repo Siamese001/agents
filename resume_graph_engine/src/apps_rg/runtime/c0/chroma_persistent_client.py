@@ -25,7 +25,7 @@ def _client_is_alive(client: Any) -> bool:
         return True
     try:
         heartbeat()
-    except Exception:  # noqa: BLE001 - any backend failure requires a rebuild
+    except Exception:  # noqa: BLE001  # guardian: allow-broad-exception -- any Chroma backend failure requires client rebuild
         return False
     return True
 

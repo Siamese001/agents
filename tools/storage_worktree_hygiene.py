@@ -30,6 +30,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+from tools.lint_secrets import check_file_for_secrets
 from tools.prune_merged_chat_worktrees import (
     get_main_repo_root,
     get_merged_branches,
@@ -247,7 +248,7 @@ def scan_stale_locks_and_temps(repo_root: Path, max_age_seconds: float = STALE_L
 
 
 def scan_scratch_violations(repo_root: Path) -> list[str]:
-    """Scan scratch/ for cross-repository secret/path leaks violating INV-REPO-SEPARATION-AGENTS-ONLY."""
+    """Scan scratch/ for secret credentials and cross-repository path leaks."""
     violations: list[str] = []
     for base in _storage_roots(repo_root):
         scratch_dir = base / "scratch"
@@ -256,12 +257,17 @@ def scan_scratch_violations(repo_root: Path) -> list[str]:
         for fp in sorted(scratch_dir.rglob("*")):
             if not fp.is_file() or fp.is_symlink():
                 continue
+            rel_name = str(fp.relative_to(base))
+            secret_hits = check_file_for_secrets(fp, base, explicitly_targeted=True)
+            if secret_hits:
+                violations.append(rel_name)
+                continue
             try:
                 content = fp.read_text(encoding="utf-8", errors="ignore")
             except OSError:
                 continue
             if NEE_CANONICAL_ROOT in content or "env_di" in content:
-                violations.append(str(fp.relative_to(base)))
+                violations.append(rel_name)
     return sorted(set(violations))
 
 

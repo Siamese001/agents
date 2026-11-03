@@ -70,6 +70,7 @@ class ResearchDispatchFailure:
     r5_reason_code: str
     detail: str
     dispatch_duration_ms: float
+    tenant_id: str = "default"
 
 
 def _utc_ms() -> float:

@@ -3,7 +3,7 @@
 
 Verifies:
 1. Schedule Retirement (`INV-NO-DAILY-AGENTS-SCHEDULES`): Zero `agents-*` background scheduled sidecars exist in `/Users/amitayer/.gemini/config/sidecars/` or `/Users/amitayer/.gemini/config/config.json` (all checks execute via local pre-save gates and on-demand skills/prompts).
-2. On-Demand Prompt & Skill Integrity: All 7 `automations/prompts/agents_*_agent.md` prompt specifications, `_shared_governance_contract.md`, skill mappings, and deterministic tool entrypoints remain valid and complete.
+2. Dedicated Behavioral Auditor Integrity: All 7 `automations/prompts/agents_*_agent.md` prompt specifications invoke their dedicated fail-closed behavioral auditor CLI (never generic `verify_commit.py` masquerades or print-only inline heredoc scripts).
 3. Cross-Repo Firewall (`INV-REPO-SEPARATION-AGENTS-ONLY`): Every Agents prompt specification enforces `INV-REPO-SEPARATION-AGENTS-ONLY` and prohibits touching `/Users/amitayer/Git/decision-intelligence-engine`.
 4. Decision Intelligence Engine Preservation: All active Decision Intelligence Engine sidecars remain untouched and bound exclusively to `/Users/amitayer/Git/decision-intelligence-engine` with zero grants targeting `/Users/amitayer/Git/agents`.
 """
@@ -44,7 +44,7 @@ EXPECTED_AGENTS_SIDECARS: dict[str, dict[str, Any]] = {
         "prompt_file": "agents_e2e_functionality_assurance_agent.md",
         "disposition": "CONSOLIDATE_WITH_RETRIEVAL_SKILL",
         "target_skill": "agents-domain-assurance",
-        "deterministic_entrypoint": "tools/verify_commit.py",
+        "deterministic_entrypoint": "tools/e2e_functionality_auditor.py",
         "requires_remediation_quota": True,
     },
     "agents-research-retrieval-surface": {
@@ -52,7 +52,7 @@ EXPECTED_AGENTS_SIDECARS: dict[str, dict[str, Any]] = {
         "prompt_file": "agents_research_retrieval_surface_agent.md",
         "disposition": "CONSOLIDATE_WITH_E2E_SKILL",
         "target_skill": "agents-domain-assurance",
-        "deterministic_entrypoint": "tools/verify_commit.py",
+        "deterministic_entrypoint": "tools/retrieval_surface_auditor.py",
         "requires_remediation_quota": True,
     },
     "agents-evals-judge-assurance": {
@@ -76,7 +76,7 @@ EXPECTED_AGENTS_SIDECARS: dict[str, dict[str, Any]] = {
         "prompt_file": "agents_testing_gaps_assurance_agent.md",
         "disposition": "HYBRID_HOOK_SKILL",
         "target_skill": "testing-framework",
-        "deterministic_entrypoint": "tools/verify_commit.py",
+        "deterministic_entrypoint": "tools/testing_gaps_auditor.py",
         "requires_remediation_quota": True,
     },
 }
@@ -129,7 +129,7 @@ def validate_sidecar_separation(
     repo_root: Path = REPO_ROOT,
     sidecars_root: Path = DEFAULT_SIDECARS_ROOT,
 ) -> dict[str, Any]:
-    """Validate retired background schedules, on-demand prompt integrity, and cross-repository isolation."""
+    """Validate retired background schedules, dedicated behavioral auditors, and cross-repository isolation."""
     violations: list[str] = []
     prompts_dir = repo_root / "automations" / "prompts"
 
@@ -145,11 +145,17 @@ def validate_sidecar_separation(
         if NEE_CANONICAL_ROOT in shared_text:
             violations.append(f"_shared_governance_contract.md contains forbidden path '{NEE_CANONICAL_ROOT}'")
 
-    # 2. Validate all 7 on-demand Agents prompt specs and deterministic entrypoints
+    # 2. Validate all 7 on-demand Agents prompt specs and dedicated behavioral auditor entrypoints
     validated_prompts_count = 0
     for workflow_id, spec in EXPECTED_AGENTS_SIDECARS.items():
         if not workflow_id.startswith("agents-"):
             violations.append(f"{workflow_id}: Missing mandatory 'agents-' workflow prefix")
+
+        det_ep = str(spec.get("deterministic_entrypoint") or "")
+        if not det_ep or det_ep == "tools/verify_commit.py":
+            violations.append(
+                f"{workflow_id}: deterministic_entrypoint must be a dedicated behavioral auditor, not '{det_ep}'"
+            )
 
         local_prompt = prompts_dir / spec["prompt_file"]
         if not local_prompt.is_file():
@@ -159,6 +165,14 @@ def validate_sidecar_separation(
             for marker in REQUIRED_PROMPT_PARITY_MARKERS:
                 if marker not in p_text:
                     violations.append(f"{spec['prompt_file']}: missing mandatory parity marker '{marker}'")
+            if det_ep and Path(det_ep).name not in p_text:
+                violations.append(
+                    f"{spec['prompt_file']}: missing mandatory invocation of dedicated behavioral auditor '{det_ep}'"
+                )
+            if "<<'PY'" in p_text or '<<"PY"' in p_text:
+                violations.append(
+                    f"{spec['prompt_file']}: contains inline heredoc script instead of fail-closed auditor CLI"
+                )
             if NEE_CANONICAL_ROOT in p_text:
                 violations.append(f"{spec['prompt_file']}: contains forbidden path '{NEE_CANONICAL_ROOT}'")
             if 'BRANCH_NAME="automation/' in p_text:
@@ -187,8 +201,7 @@ def validate_sidecar_separation(
                         )
             validated_prompts_count += 1
 
-        det_ep = spec.get("deterministic_entrypoint")
-        if det_ep and (repo_root.resolve() / "tools").is_dir() and not (repo_root.resolve() / str(det_ep)).is_file():
+        if det_ep and (repo_root.resolve() / "tools").is_dir() and not (repo_root.resolve() / det_ep).is_file():
             violations.append(
                 f"{workflow_id}: declared deterministic_entrypoint '{det_ep}' missing under {repo_root.resolve()}"
             )
@@ -212,7 +225,7 @@ def validate_sidecar_separation(
                 continue
             try:
                 nee_payload = json.loads(sc_file.read_text(encoding="utf-8"))
-            except Exception as exc:
+            except (OSError, json.JSONDecodeError) as exc:
                 violations.append(f"Sidecar '{child.name}' invalid JSON: {exc}")
                 continue
 
@@ -246,7 +259,7 @@ def validate_sidecar_separation(
                         violations.append(
                             f"Global config.json retains background schedule entry '{sid}'; remove to enforce on-demand only"
                         )
-        except Exception as exc:
+        except (OSError, json.JSONDecodeError) as exc:
             violations.append(f"Invalid JSON in global config.json: {exc}")
 
     is_clean = len(violations) == 0

@@ -32,7 +32,7 @@ class TestRegenerationStrategyContract:
         assert isinstance(RegenerationStrategy, type)
 
     def test_has_method_execute(self):
-        pass
+        assert callable(getattr(RegenerationStrategy, "execute", None))
 
 
 class TestDefaultSleepConstant:
@@ -57,4 +57,4 @@ class TestBatchSizeConstant:
 
 def test_module_importable():
     """Module regeneration_validator must be importable or skip gracefully."""
-    pass  # Import verified at module level
+    assert RegenerationStrategy is not None

@@ -29,7 +29,7 @@ Execute a deterministic, fail-closed **8-Pillar Cost, Multi-Tier Caching, Token 
   $$\text{ROI} = \frac{\text{Expected Token Savings} \times \text{Quality Preservation Factor}}{\text{Implementation Complexity Cost}} \ge 2.5$$
 - **Remediation Wave Plan & Zero-Defect Fast-Exit (`UNCONDITIONAL_WAVE_PLAN_MANDATE`)**:
   - When Phase 1.5 reports zero defects (`is_clean: true` and `lint_secrets.py` exits `0`), persist `${RUN_DIR}/audit_report.json` to `${PRIMARY_REPO_ROOT}/artifacts/sidecar_runs/agents_cost_token_budget/${RUN_TS}/`, run `pr_governance.py -C "${WORKTREE_DIR}" submit "${BRANCH_NAME}" --stage-only` to cleanly prune the 0-commit worktree (`INV-WT-EPHEMERAL-SCHEDULED`), and exit `COMPLETE`.
-  - Whenever defects exist in **EITHER** `MODE: scheduled` or `MODE: interactive`, author a wave-based remediation plan at `plans/<branch-slug>-<6hex>.md` (and copy to `<run_dir>/implementation_plan.md`) decomposed into sequential numbered waves (`## Wave 1: ...`, `## Wave 2: ...`) and validate it via `validate_implementation_plan.py --file plans/<branch-slug>-<6hex>.md` (`exit code 0`). In `MODE: scheduled`, stage verified fixes via `pr_governance.py submit --stage-only` without mutating `main`.
+  - Whenever defects exist in **EITHER** `MODE: scheduled` or `MODE: interactive`, author a wave-based remediation plan at `plans/<branch-slug>-<6hex>.md` (and copy to `<run_dir>/implementation_plan.md`) decomposed into sequential numbered waves (`## Wave 1: ...`, `## Wave 2: ...`) and validate it via `validate_implementation_plan.py --file plans/<branch-slug>-<6hex>.md` (`exit code 0`). In `MODE: scheduled`, stage verified fixes via `pr_governance.py -C "${WORKTREE_DIR}" submit "${BRANCH_NAME}" --stage-only` without mutating `main`.
 
 ---
 
@@ -100,10 +100,10 @@ Write the structured 8-pillar findings and $\text{ROI} \ge 2.5\times$ benchmark 
 ## 5. Phase 2: Unconditional Wave Plan Generation & 20% Margin HITL Gate (`C04`, `C05`)
 
 ### Step 2.1: Unconditional Wave-Based Plan Generation (`UNCONDITIONAL_WAVE_PLAN_MANDATE`)
-Author `${WORKTREE_DIR}/plans/cost-token-budget-${HEX6}.md` (500–800 words, max 1,000 words) structured into sequential waves:
+When findings exist (`is_clean == false`), author `${WORKTREE_DIR}/plans/cost-token-budget-${HEX6}.md` (500–800 words, max 1,000 words) structured into sequential waves:
 - `## Wave 1: Provider Profile Conformance, Multi-Tier Caching & Token Governor Caps`
 - `## Wave 2: Prompt Prefix Breakpoint Tiers, Briefing Cache Reuse & Surgical Regen Budgets`
-Each wave MUST include `### Objective & Scope`, `### Milestones & Deliverables`, `### Acceptance Criteria`, and `### Runtime Receipt & Completion Gate` (`Run:`, `Input:`, `Expected:`, `Verify independently:`, `Fail if:`, `Record:`), plus `## Wave Implementation & Completion Status Table`.
+Each wave MUST include `### Objective & Scope`, `### Milestones & Deliverables`, `### Acceptance Criteria`, and `### Runtime Receipt & Completion Gate` (`Run:`, `Input:`, `Expected:`, `Verify independently:`, `Fail if:`, `Record:`).
 Validate immediately:
 ```bash
 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/validate_implementation_plan.py" --file "${WORKTREE_DIR}/plans/cost-token-budget-${HEX6}.md"

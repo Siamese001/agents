@@ -103,7 +103,7 @@ def retrieve_semantic_units(
         allowed_sections = []
         try:
             allowed_sections = json.loads(r[8]) if r[8] else []
-        except Exception:
+        except (json.JSONDecodeError, TypeError):
             pass
 
         if section_id and allowed_sections and section_id not in allowed_sections:
@@ -159,7 +159,7 @@ def expand_semantic_unit_subgraph(
         steps_multi = ("skill_supported_by_fact", "fact_has_metric_outcome", "metric_outcome_bound_to_employer")
         try:
             paths = traverse(conn, seeds=[root_node_id], allowed_steps=steps_multi, max_depth=3)
-        except Exception:
+        except (sqlite3.Error, ValueError, LookupError, RuntimeError):
             pass
 
         if not paths:
@@ -181,7 +181,7 @@ def expand_semantic_unit_subgraph(
         steps = ("engagement_exercises_skill",)
         try:
             paths = traverse(conn, seeds=[root_node_id], allowed_steps=steps, max_depth=1)
-        except Exception:
+        except (sqlite3.Error, ValueError, LookupError, RuntimeError):
             pass
         if not paths:
             steps_fact = ("engagement_evidenced_by_fact",)
@@ -192,7 +192,7 @@ def expand_semantic_unit_subgraph(
         steps = ("metric_outcome_bound_to_employer",)
         try:
             paths = traverse(conn, seeds=[root_node_id], allowed_steps=steps, max_depth=1)
-        except Exception:
+        except (sqlite3.Error, ValueError, LookupError, RuntimeError):
             pass
         if not paths:
             cursor.execute(

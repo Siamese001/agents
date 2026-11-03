@@ -22,7 +22,7 @@ Execute a deterministic, fail-closed **Testing Gaps, Edge-Case Regression, Mock 
   - Class B (Receipt): Scoped to declared wave acceptance test files with `--timeout=60` and synchronous `WaitMsBeforeAsync >= 120000`.
   - Bare `pytest` or `pytest tests/` without scope is strictly forbidden.
 - **Zero-Defect Fast-Exit & Wave-Based Plan Mandate (`C03`, `UNCONDITIONAL_WAVE_PLAN_MANDATE`)**:
-  - When Phase 1.5 reports `0` actionable findings (`is_clean: true`), fast-exit cleanly per `C03`: copy `${RUN_DIR}` to `<PRIMARY_REPO_ROOT>/artifacts/sidecar_runs/agents_testing_gaps_assurance/${RUN_TS}`, tear down the ephemeral worktree via `pr_governance.py submit --stage-only`, and exit `COMPLETE` without authoring a synthetic plan.
+  - When Phase 1.5 reports `0` actionable findings (`is_clean: true`), fast-exit cleanly per `C03`: copy `${RUN_DIR}` to `<PRIMARY_REPO_ROOT>/artifacts/sidecar_runs/agents_testing_gaps_assurance/${RUN_TS}`, tear down the ephemeral worktree via `pr_governance.py -C "${WORKTREE_DIR}" submit "${BRANCH_NAME}" --stage-only`, and exit `COMPLETE` without authoring a synthetic plan.
   - Whenever `>= 1` findings exist in **EITHER** `MODE: scheduled` or `MODE: interactive`, author a wave-based remediation plan at `${WORKTREE_DIR}/plans/<branch-slug>-<6hex>.md` (and copy to `${RUN_DIR}/implementation_plan.md`) decomposed into sequential numbered waves (`## Wave 1: ...`, `## Wave 2: ...`) and validate it via `validate_implementation_plan.py --file "${WORKTREE_DIR}/plans/<branch-slug>-<6hex>.md"` (`exit code 0`).
   - In `MODE: scheduled`, stage validated fixes on `${BRANCH_NAME}` via `pr_governance.py submit "${BRANCH_NAME}" --stage-only` without mutating `local main` directly.
 
@@ -70,83 +70,18 @@ Every candidate test gap MUST declare:
 6. `priority_tier` (`P0_CRITICAL` | `P1_HIGH` | `P2_MEDIUM`)
 
 ### Phase 1.5: Mandatory Executable Forensic Scanner Commands
-Execute the bounded 4-root test-gap, mock-reachability, and git-hook scanner in `${WORKTREE_DIR}` (`timeout <= 90s`):
+Execute the fail-closed 6-pillar behavioral testing gaps auditor (`tools/testing_gaps_auditor.py`), AST mock-reachability verifier (`tools/audit_mock_reachability.py`), and sidecar separation unit test check in `${WORKTREE_DIR}` (`timeout <= 90s`):
 
 ```bash
+"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/testing_gaps_auditor.py" \
+  --repo-root "${WORKTREE_DIR}" \
+  --output "${RUN_DIR}/audit_report.json" \
+  --json
 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/audit_mock_reachability.py" --repo-root "${WORKTREE_DIR}"
 "${PRIMARY_REPO_ROOT}/.venv/bin/pytest" "${WORKTREE_DIR}/tests/unit/test_sidecar_separation_governance.py" -v --timeout=60
-"${PRIMARY_REPO_ROOT}/.venv/bin/python" - <<'PY'
-import ast, json, os
-from pathlib import Path
-
-root = Path(os.environ.get("WORKTREE_DIR", "."))
-test_roots = ["tests", "resume_graph_engine/tests", "outreach_engine/tests", "apps_eval/tests"]
-root_counts = {}
-weak_tests = []
-unreasoned_skips = []
-non_strict_xfails = []
-
-for rel_root in test_roots:
-    tdir = root / rel_root
-    if not tdir.exists():
-        root_counts[rel_root] = 0
-        continue
-    files = sorted({*tdir.rglob("test_*.py"), *tdir.rglob("*_test.py"), *tdir.rglob("conftest.py")})
-    root_counts[rel_root] = len(files)
-    for py in files:
-        rel = str(py.relative_to(root))
-        try:
-            src = py.read_text(encoding="utf-8")
-            tree = ast.parse(src)
-        except Exception:
-            continue
-        for node in ast.walk(tree):
-            if isinstance(node, ast.Call):
-                fn_str = ast.unparse(node.func) if hasattr(ast, "unparse") else ""
-                if fn_str.endswith("mark.skip"):
-                    has_reason = bool(node.args) or any(kw.arg == "reason" for kw in node.keywords)
-                    if not has_reason:
-                        unreasoned_skips.append(f"{rel}:{node.lineno}")
-                elif fn_str.endswith("mark.xfail"):
-                    has_strict = any(
-                        kw.arg == "strict" and isinstance(kw.value, ast.Constant) and kw.value.value is True
-                        for kw in node.keywords
-                    )
-                    if not has_strict:
-                        non_strict_xfails.append(f"{rel}:{node.lineno}")
-            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name.startswith("test_"):
-                has_assert = any(
-                    isinstance(c, ast.Assert)
-                    or (
-                        isinstance(c, ast.Call)
-                        and any(
-                            tok in (getattr(c.func, "attr", "") or getattr(c.func, "id", ""))
-                            for tok in ("raises", "warns", "assert", "fail")
-                        )
-                    )
-                    for c in ast.walk(node)
-                )
-                if not has_assert:
-                    weak_tests.append({"file": rel, "line": node.lineno, "test": node.name})
-
-hooks = ["pre-commit", "pre-merge-commit", "pre-push", "post-merge"]
-missing_hooks = [
-    h for h in hooks
-    if not (root / ".githooks" / h).is_file() or not os.access(root / ".githooks" / h, os.X_OK)
-]
-
-print(json.dumps({
-    "test_root_file_counts": root_counts,
-    "total_test_files_scanned": sum(root_counts.values()),
-    "weak_test_candidates": weak_tests[:25],
-    "unreasoned_skip_locations": unreasoned_skips[:25],
-    "non_strict_xfail_locations": non_strict_xfails[:25],
-    "non_executable_githooks": missing_hooks,
-}, indent=2))
-PY
 ```
 
-Write the structured findings and 6-field admission proofs to `${RUN_DIR}/audit_report.json`.
+Verify `testing_gaps_auditor.py` exits `0` (`zero_assertion_tests == []`, `unreasoned_skips == []`, `non_strict_xfails == []`, `mock_reachability_violations == []`) across all 4 test roots (`tests`, `resume_graph_engine/tests`, `outreach_engine/tests`, `apps_eval/tests`, covering both `FunctionDef` and `AsyncFunctionDef`) before any `PREFLIGHT_ZERO_DEFECT_FAST_EXIT`. Write the structured findings and 6-field admission proofs to `${RUN_DIR}/audit_report.json`.
 
 ---
 
@@ -156,7 +91,7 @@ Write the structured findings and 6-field admission proofs to `${RUN_DIR}/audit_
 When findings exist, author `${WORKTREE_DIR}/plans/testing-gaps-assurance-${HEX6}.md` (500–800 words, max 1,000 words) structured into sequential waves:
 - `## Wave 1: Outreach, Resume & Research Handoff Contract Unit Tests`
 - `## Wave 2: Edge-Case Boundary Assertions & Strict Xfail/Skip Hygiene`
-Each wave MUST include `### Objective & Scope`, `### Milestones & Deliverables`, `### Acceptance Criteria`, and `### Runtime Receipt & Completion Gate` (`Run:`, `Input:`, `Expected:`, `Verify independently:`, `Fail if:`, `Record:`), plus `## Wave Implementation & Completion Status Table`.
+Each wave MUST include `### Objective & Scope`, `### Milestones & Deliverables`, `### Acceptance Criteria`, and `### Runtime Receipt & Completion Gate` (`Run:`, `Input:`, `Expected:`, `Verify independently:`, `Fail if:`, `Record:`).
 Validate immediately:
 ```bash
 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/validate_implementation_plan.py" --file "${WORKTREE_DIR}/plans/testing-gaps-assurance-${HEX6}.md"

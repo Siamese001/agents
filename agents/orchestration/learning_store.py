@@ -220,7 +220,7 @@ class FeedbackLearningStore:
             if row and row["effective_repair_hints_json"]:
                 try:
                     return json.loads(row["effective_repair_hints_json"])
-                except Exception:
+                except (json.JSONDecodeError, TypeError):
                     return []
         return []
 

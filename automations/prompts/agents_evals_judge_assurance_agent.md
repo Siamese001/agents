@@ -18,7 +18,7 @@ Execute a deterministic, fail-closed **Evals, Judge Validity, Holdout Dataset, a
 - **Shared Governance Contract**: Dereferences `automations/prompts/_shared_governance_contract.md` (`C01–C12`).
 - **Repository Boundary (`INV-REPO-SEPARATION-AGENTS-ONLY`)**: Bound exclusively to `/Users/amitayer/Git/agents`.
 - **Zero-Defect Fast-Exit & Wave-Based Plan Mandate (`C03`, `UNCONDITIONAL_WAVE_PLAN_MANDATE`)**:
-  - When Phase 1.5 reports `0` actionable findings (`is_clean: true`), fast-exit cleanly per `C03`: copy `${RUN_DIR}` to `<PRIMARY_REPO_ROOT>/artifacts/sidecar_runs/agents_evals_judge_assurance/${RUN_TS}`, tear down the ephemeral worktree via `pr_governance.py submit --stage-only`, and exit `COMPLETE` without authoring a synthetic plan.
+  - When Phase 1.5 reports `0` actionable findings (`is_clean: true`), fast-exit cleanly per `C03`: copy `${RUN_DIR}` to `<PRIMARY_REPO_ROOT>/artifacts/sidecar_runs/agents_evals_judge_assurance/${RUN_TS}`, tear down the ephemeral worktree via `pr_governance.py -C "${WORKTREE_DIR}" submit "${BRANCH_NAME}" --stage-only`, and exit `COMPLETE` without authoring a synthetic plan.
   - Whenever `>= 1` findings exist in **EITHER** `MODE: scheduled` or `MODE: interactive`, author a wave-based remediation plan at `${WORKTREE_DIR}/plans/<branch-slug>-<6hex>.md` (and copy to `${RUN_DIR}/implementation_plan.md`) decomposed into sequential numbered waves (`## Wave 1: ...`, `## Wave 2: ...`) and validate it via `validate_implementation_plan.py --file "${WORKTREE_DIR}/plans/<branch-slug>-<6hex>.md"` (`exit code 0`).
   - In `MODE: scheduled`, stage validated fixes on `${BRANCH_NAME}` via `pr_governance.py submit "${BRANCH_NAME}" --stage-only` without mutating `local main` directly.
 
@@ -53,18 +53,18 @@ Write `${RUN_DIR}/manifest.json` recording `agent_id`, `run_id`, `mode`, `pre_st
 2. **Pillar 2 — Exit-Eval Rubric Bounds (`config/exit_eval_rubrics/*.yaml`)**: Verify every exit-eval gate (`X1A`–`X1G`) declares `[0.0, 1.0]` scales, thresholds in `[0.0, 1.0]`, and weighted dimension sums equal to `1.0`.
 3. **Pillar 3 — Judge Rubric Bank & Calibration (`config/judges/rubrics.yaml`)**: Verify `scale_min <= warn_threshold <= pass_threshold <= scale_max` and `unknown_budget` in `[0.0, 1.0]`.
 4. **Pillar 4 — Holdout & Certification Dataset Integrity (`data/`)**: Verify all 154 benchmark, holdout, certification, and judge calibration files in `data/` are non-empty and parse cleanly.
-5. **Pillar 5 — Evaluator Module Completeness (`apps_eval/`)**: Ensure evaluation modules and schemas (`config/schemas/*eval*.json`, `config/schemas/*judge*.json`) are non-empty and structurally valid.
+5. **Pillar 5 — Evaluator Module AST & Live Grader Verification (`apps_eval/`)**: Verify AST parseability and exported definitions on `*eval*.py` modules, `Draft202012Validator.check_schema` across `config/schemas/`, and live execution of deterministic graders (`ForbiddenContentGrader`, `GroundedClaimGrader`) and L6 claim authority (`build_l6_eval_execution_receipt`).
 6. **Pillar 6 — Approved Model Profile Binding**: Verify all `judge_models` in `config/provider_profiles.yaml` resolve against the canonical model catalog.
 
 ### Phase 1.5: Mandatory Executable Forensic Scanner Commands
-Execute the deterministic rubric, dataset, and production purity validator in `${WORKTREE_DIR}` (`timeout <= 90s`):
+Execute the deterministic rubric, dataset, live grader, and production purity validator in `${WORKTREE_DIR}` (`timeout <= 90s`):
 
 ```bash
 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/validate_eval_rubrics.py" \
   --repo-root "${WORKTREE_DIR}" \
   --output "${RUN_DIR}/audit_report.json" \
   --json
-"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/lint_production_purity.py" --repo-root "${WORKTREE_DIR}"
+"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/lint_production_purity.py" --all --repo-root "${WORKTREE_DIR}"
 ```
 
 ---
@@ -75,7 +75,7 @@ Execute the deterministic rubric, dataset, and production purity validator in `$
 When findings exist (`is_clean == false`), author `${WORKTREE_DIR}/plans/evals-judge-assurance-${HEX6}.md` (500–800 words, max 1,000 words) structured into sequential waves:
 - `## Wave 1: Production Purity, Holdout Isolation & Judge Rubric Schema Remediation`
 - `## Wave 2: Outreach, Resume & Research Grounding Evaluator Calibration`
-Each wave MUST include `### Objective & Scope`, `### Milestones & Deliverables`, `### Acceptance Criteria`, and `### Runtime Receipt & Completion Gate` (`Run:`, `Input:`, `Expected:`, `Verify independently:`, `Fail if:`, `Record:`), plus `## Wave Implementation & Completion Status Table`.
+Each wave MUST include `### Objective & Scope`, `### Milestones & Deliverables`, `### Acceptance Criteria`, and `### Runtime Receipt & Completion Gate` (`Run:`, `Input:`, `Expected:`, `Verify independently:`, `Fail if:`, `Record:`).
 Validate immediately:
 ```bash
 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/validate_implementation_plan.py" --file "${WORKTREE_DIR}/plans/evals-judge-assurance-${HEX6}.md"

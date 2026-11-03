@@ -55,7 +55,7 @@ class ProgressReporter:  # pragma: no cover - exercised via the public dispatche
             try:
                 self._pbar.set_postfix_str(clean)
                 sys.stderr.flush()
-            except Exception:
+            except (OSError, ValueError, RuntimeError, AttributeError):
                 pass
 
     def update(self, label: str = "") -> None:
@@ -68,7 +68,7 @@ class ProgressReporter:  # pragma: no cover - exercised via the public dispatche
                     self._pbar.set_postfix_str(clean)
                 self._pbar.update(1)
                 sys.stderr.flush()
-            except Exception:
+            except (OSError, ValueError, RuntimeError, AttributeError):
                 pass
         logging.getLogger(__name__).info(
             "%s: %s/%s %s %s",
@@ -85,7 +85,7 @@ class ProgressReporter:  # pragma: no cover - exercised via the public dispatche
             try:
                 self._pbar.close()
                 sys.stderr.flush()
-            except Exception:
+            except (OSError, ValueError, RuntimeError, AttributeError):
                 pass
             self._pbar = None
         logging.getLogger(__name__).info(
