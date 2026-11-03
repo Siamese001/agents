@@ -5,10 +5,10 @@
 
 ## 1. Objective & Scope (`C01`)
 
-Execute a deterministic, fail-closed **Outreach (`outreach_engine/` / `apps_lic`), Resume (`resume_engine/` / `resume_graph_engine/` / `apps_rg`), and Research (`apps_research/`) End-to-End Critical Functionality Audit & Remediation** exclusively within `/Users/amitayer/Git/agents` (`06:05 ET`, Order `3/7`). This agent verifies that the full pipeline from `apps_research` intelligence packets into `outreach_engine` campaign generation and `resume_graph_engine` role tailoring executes without silent drops, schema breaks, or ungrounded synthesis.
+Execute a deterministic, fail-closed **Core Orchestration (`agents/`), Outreach (`outreach_engine/`), Resume (`resume_engine/` / `resume_graph_engine/`), and Research (`apps_research/`) End-to-End Critical Functionality Audit & Remediation** exclusively within `/Users/amitayer/Git/agents` (`05:50 ET`, Order `3/7`). This agent verifies that the full runtime pipeline across `agents/` (`orchestration/`, `persistence/`, `context/`, `observability/`), `apps_research` intelligence packets, `outreach_engine` campaign generation, and `resume_graph_engine` role tailoring executes without silent drops, schema breaks, or ungrounded synthesis.
 
 ### Cross-Agent MECE De-Overlap Boundary
-- **Owned exclusively by this agent**: End-to-end runtime contracts across `apps_research` -> `outreach_engine` (`apps_lic`) and `apps_research` -> `resume_engine` / `resume_graph_engine` (`apps_rg`), state transition integrity, and output schema completeness.
+- **Owned exclusively by this agent**: End-to-end runtime contracts across `agents/`, `apps_research` -> `outreach_engine` (`apps_lic`), and `apps_research` -> `resume_engine` / `resume_graph_engine` (`apps_rg`), authoritative smoke verification (`ops_scripts/run_e2e_authoritative_smoke.py`), state transition integrity, and output schema completeness.
 - **Delegated to peer agents**: Worktree/SQLite hygiene (`agents-storage-worktree-hygiene`), static layer imports (`agents-ssot-boundary-governance`), retrieval ranking/chunking internals (`agents-research-retrieval-surface`), judge rubric calibration (`agents-evals-judge-assurance`), token cost (`agents-cost-token-budget`), and unit test coverage (`agents-testing-gaps-assurance`).
 
 ---
@@ -17,9 +17,10 @@ Execute a deterministic, fail-closed **Outreach (`outreach_engine/` / `apps_lic`
 
 - **Shared Governance Contract**: Dereferences `automations/prompts/_shared_governance_contract.md` (`C01–C12`).
 - **Repository Boundary (`INV-REPO-SEPARATION-AGENTS-ONLY`)**: Bound exclusively to `/Users/amitayer/Git/agents`.
-- **Unconditional Wave-Based Plan Mandate (`UNCONDITIONAL_WAVE_PLAN_MANDATE`)**:
-  - In **BOTH** `MODE: scheduled` and `MODE: interactive`, this agent MUST author a wave-based remediation plan at `plans/<branch-slug>-<6hex>.md` (and copy to `<run_dir>/implementation_plan.md`) decomposed into sequential numbered waves (`## Wave 1: ...`, `## Wave 2: ...`) and validate it via `python3 tools/validate_implementation_plan.py --file plans/<branch-slug>-<6hex>.md` (`exit code 0`).
-  - In `MODE: scheduled`, copy durable artifacts to `<PRIMARY_REPO_ROOT>/artifacts/sidecar_runs/agents_e2e_functionality/<run_id>/`, prune the ephemeral worktree (`INV-WT-EPHEMERAL-SCHEDULED`), and exit `COMPLETE` or `OPERATOR_INPUT_REQUIRED` with zero code mutations.
+- **Zero-Defect Fast-Exit & Wave-Based Plan Mandate (`C03`, `UNCONDITIONAL_WAVE_PLAN_MANDATE`)**:
+  - When Phase 1.5 reports `0` actionable findings, fast-exit cleanly per `C03`: copy `${RUN_DIR}` to `<PRIMARY_REPO_ROOT>/artifacts/sidecar_runs/agents_e2e_functionality/${RUN_TS}`, tear down the ephemeral worktree via `pr_governance.py submit --stage-only`, and exit `COMPLETE` without authoring a synthetic plan.
+  - Whenever `>= 1` findings exist in **EITHER** `MODE: scheduled` or `MODE: interactive`, author a wave-based remediation plan at `${WORKTREE_DIR}/plans/<branch-slug>-<6hex>.md` (and copy to `${RUN_DIR}/implementation_plan.md`) decomposed into sequential numbered waves (`## Wave 1: ...`, `## Wave 2: ...`) and validate it via `validate_implementation_plan.py --file "${WORKTREE_DIR}/plans/<branch-slug>-<6hex>.md"` (`exit code 0`).
+  - In `MODE: scheduled`, stage validated fixes on `${BRANCH_NAME}` via `pr_governance.py submit "${BRANCH_NAME}" --stage-only` without mutating `local main` directly.
 
 ---
 
@@ -50,14 +51,14 @@ Write `${RUN_DIR}/manifest.json` recording `agent_id`, `run_id`, `mode`, `pre_st
 ### Phase 1: 6-Pillar End-to-End Functionality Audit
 1. **Pillar 1 — `apps_research` -> `outreach_engine` (`apps_lic`) Handoff Integrity (`AppsResearchBridge`, `GovernedResearchRun`)**: Verify research brief schemas, `AppsResearchBridge` / `GovernedResearchRun` handoff contracts, recipient context blocks, and citation fields pass cleanly into outreach campaign generators without dropped keys or silent fallback to empty strings.
 2. **Pillar 2 — `apps_research` -> `resume_engine` / `resume_graph_engine` (`apps_rg`) Handoff Integrity (`ResearchRetrievalEngine`)**: Verify role requirements, `ResearchRetrievalEngine` evidence packets, competency graphs, and domain evidence flow into resume graph nodes and tailored bullet synthesis without schema mismatch.
-3. **Pillar 3 — Outreach Campaign Generation & Guardrail Gates**: Verify multi-touch outreach sequences enforce personalization ground-truth, compliance constraints, and deterministic serialization.
+3. **Pillar 3 — Core Orchestration & Campaign Guardrail Gates (`agents/`)**: Verify `agents/orchestration/`, `agents/persistence/`, and `outreach_engine/` enforce state contracts, personalization ground-truth, and deterministic serialization via `ops_scripts/run_e2e_authoritative_smoke.py`.
 4. **Pillar 4 — Resume Graph Traversal & Bullet Synthesis**: Verify `resume_graph_engine` DAG traversal, experience node selection, and metric preservation never fabricate ungrounded claims.
-5. **Pillar 5 — Error Propagation & Fail-Closed Recovery**: Detect swallowed exceptions, silent `None` returns, or unguarded retries across `outreach_engine/`, `resume_engine/`, `resume_graph_engine/`, and `apps_research/`.
-6. **Pillar 6 — Production Derivation Integrity**: Run `python3 tools/lint_production_purity.py` to confirm zero golden test fixtures substitute for runtime derivation.
+5. **Pillar 5 — Error Propagation & Fail-Closed Recovery**: Detect swallowed exceptions, silent `None` returns, or unguarded retries across `agents/`, `outreach_engine/`, `resume_engine/`, `resume_graph_engine/`, and `apps_research/`.
+6. **Pillar 6 — Production Derivation Integrity**: Run `tools/lint_production_purity.py` to confirm zero golden test fixtures substitute for runtime derivation.
 
 ### Mandatory 8-Field E2E Criticality Admission Proof
 Every candidate finding MUST include all 8 fields before entering the remediation plan:
-1. `subsystem_surface` (`outreach_engine` | `resume_engine` | `resume_graph_engine` | `apps_research`)
+1. `subsystem_surface` (`agents` | `outreach_engine` | `resume_engine` | `resume_graph_engine` | `apps_research`)
 2. `e2e_flow_stage` (`research_intake` | `handoff_contract` | `graph_traversal` | `synthesis` | `output_validation`)
 3. `file_and_symbol` (`path/to/file.py:line_no:function_name`)
 4. `failure_mode` (concrete exception, silent drop, or schema violation)
@@ -67,16 +68,19 @@ Every candidate finding MUST include all 8 fields before entering the remediatio
 8. `severity_tier` (`P0_CRITICAL` | `P1_HIGH` | `P2_MEDIUM`)
 
 ### Phase 1.5: Mandatory Executable Forensic Scanner Commands
-Execute the following bounded E2E contract and AST inspection in `${WORKTREE_DIR}` (`timeout <= 90s`):
+Execute the bounded E2E smoke, purity, graph probe, and AST inspection in `${WORKTREE_DIR}` (`timeout <= 120s`):
 
 ```bash
-python3 tools/lint_production_purity.py
-python3 - <<'PY'
-import ast, json
+"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/lint_production_purity.py" --repo-root "${WORKTREE_DIR}"
+"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/ops_scripts/run_e2e_authoritative_smoke.py" --skip-resume
+"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/run_resume_graph_traversal_probe.py" --max-paths 200
+"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/verify_release_gate.py" --root "${WORKTREE_DIR}" --no-write --json
+"${PRIMARY_REPO_ROOT}/.venv/bin/python" - <<'PY'
+import ast, json, os
 from pathlib import Path
 
-root = Path("/Users/amitayer/Git/agents")
-surfaces = ["outreach_engine", "resume_engine", "resume_graph_engine", "apps_research", "apps_lic", "apps_rg"]
+root = Path(os.environ["WORKTREE_DIR"])
+surfaces = ["agents", "outreach_engine/src", "resume_engine", "resume_graph_engine/src", "apps_research"]
 summary = {}
 silent_returns = []
 
@@ -84,7 +88,7 @@ for s in surfaces:
     base = root / s
     if not base.exists():
         continue
-    py_files = list(base.rglob("*.py"))
+    py_files = [p for p in base.rglob("*.py") if "tests" not in p.parts]
     summary[s] = len(py_files)
     for py in py_files:
         try:
@@ -99,17 +103,16 @@ for s in surfaces:
 
 print(json.dumps({"surface_file_counts": summary, "silent_except_returns": silent_returns[:25]}, indent=2))
 PY
-python3 tools/run_resume_graph_traversal_probe.py --max-paths 200
 ```
 
-Verify that `run_resume_graph_traversal_probe.py` reports `status == "PASS"`, `direct_graph_traversal == true`, and non-zero multi-hop paths across `resume_graph_engine` (`domain -> skill -> evidence` and `skill -> fact -> metric_outcome -> employment -> career_epoch`) in an ephemeral read-only sandbox. Write the structured findings and 8-field admission proofs to `${RUN_DIR}/audit_report.json`.
+Verify that `run_e2e_authoritative_smoke.py` and `run_resume_graph_traversal_probe.py` report `PASS` with `direct_graph_traversal == true` and non-zero multi-hop paths. Write the structured findings and 8-field admission proofs to `${RUN_DIR}/audit_report.json`.
 
 ---
 
 ## 5. Phase 2: Unconditional Wave Plan Generation & 20% Margin HITL Gate (`C04`, `C05`)
 
 ### Step 2.1: Unconditional Wave-Based Plan Generation (`UNCONDITIONAL_WAVE_PLAN_MANDATE`)
-Author `${WORKTREE_DIR}/plans/e2e-outreach-resume-assurance-${HEX6}.md` (500–800 words, max 1,000 words) structured into sequential waves:
+When findings exist, author `${WORKTREE_DIR}/plans/e2e-outreach-resume-assurance-${HEX6}.md` (500–800 words, max 1,000 words) structured into sequential waves:
 - `## Wave 1: Research-to-Outreach & Research-to-Resume Handoff Contract Remediation`
 - `## Wave 2: End-to-End Pipeline Synthesis & Fail-Closed Error Handling`
 Each wave MUST include `### Objective & Scope`, `### Milestones & Deliverables`, `### Acceptance Criteria`, and `### Runtime Receipt & Completion Gate` (`Run:`, `Input:`, `Expected:`, `Verify independently:`, `Fail if:`, `Record:`), plus `## Wave Implementation & Completion Status Table`.
@@ -132,9 +135,9 @@ Compute multi-factor calibrated confidence via `tools/hitl_governance.py` (`calc
 For each wave (`Wave 1 -> Wave N`):
 1. **5-Point Counterfactual Runtime Proof (`INV-RUNTIME-PROOF-5POINT`)**:
    - Capture `PRE_MUTATION_RUN` failure/contract gap before edit.
-   - Apply bounded E2E remediation across `outreach_engine/`, `resume_engine/`, `resume_graph_engine/`, or `apps_research/`.
+   - Apply bounded E2E remediation across `agents/`, `outreach_engine/`, `resume_engine/`, `resume_graph_engine/`, or `apps_research/`.
    - Run `POST_MUTATION_RUN` entrypoint verification and scoped pytest (`--timeout=60`, `WaitMsBeforeAsync >= 15000`).
    - Verify state independently and record the 5-column proof table in `${RUN_DIR}/wave_receipts.md`.
 2. **Closed-Loop System Learning (`C07`)**: Record wave outcome in `HITLDecisionStore`.
 3. **Turn, Commit & Promotion Gates (`C09`, `C10`)**:
-   Run `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/validate_sidecar_separation.py" --repo-root "${WORKTREE_DIR}" --json`, `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/validate_turn_gates.py" --mode all`, and `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/verify_commit.py"`, commit via `git -C "${WORKTREE_DIR}" commit`, then stage via `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/pr_governance.py" -C "${WORKTREE_DIR}" submit "${BRANCH_NAME}" --stage-only` in scheduled mode or promote after interactive `ask_question` `PR_MERGE_AUTHORIZATION` via `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/pr_governance.py" -C "${WORKTREE_DIR}" submit "${BRANCH_NAME}" --title "fix(e2e): remediate outreach and resume handoff contracts"`.
+   Run `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/validate_sidecar_separation.py" --repo-root "${WORKTREE_DIR}" --json`, `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/validate_turn_gates.py" --repository-root "${WORKTREE_DIR}" --mode all`, and `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/verify_commit.py" --repo-root "${WORKTREE_DIR}"`, commit via `git -C "${WORKTREE_DIR}" commit`, then stage via `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/pr_governance.py" -C "${WORKTREE_DIR}" submit "${BRANCH_NAME}" --stage-only` in scheduled mode or promote after interactive `ask_question` `PR_MERGE_AUTHORIZATION` via `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/pr_governance.py" -C "${WORKTREE_DIR}" submit "${BRANCH_NAME}" --title "fix(e2e): remediate outreach and resume handoff contracts"`.

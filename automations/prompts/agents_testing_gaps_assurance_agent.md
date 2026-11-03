@@ -5,10 +5,10 @@
 
 ## 1. Objective & Scope (`C01`)
 
-Execute a deterministic, fail-closed **Testing Gaps, Edge-Case Regression, and Pytest Governance Assurance Audit & Remediation** exclusively within `/Users/amitayer/Git/agents` (`07:00 ET`, Order `7/7`). This agent audits untested public functions, cross-subsystem handoff edge cases, flaky/skip markers, and assertion strength across `outreach_engine/` (`apps_lic`), `resume_engine/` + `resume_graph_engine/` (`apps_rg`), `apps_research/`, and `tests/`.
+Execute a deterministic, fail-closed **Testing Gaps, Edge-Case Regression, Mock Reachability, Git Hook & Pytest Governance Assurance Audit & Remediation** exclusively within `/Users/amitayer/Git/agents` (`07:30 ET`, Order `7/7`). This agent audits untested public functions, cross-subsystem handoff edge cases, synchronous and async test assertions, skip/xfail hygiene, production mock reachability (`tools/audit_mock_reachability.py`), and `.githooks/` integrity across all 9 production packages (`agents/`, `outreach_engine/`, `resume_engine/`, `resume_graph_engine/src/`, `apps_research/`, `apps_eval/`, `apps_model_telemetry/`, `infrastructure/`, `ops_scripts/`) and all 4 test roots (`tests/`, `resume_graph_engine/tests/`, `outreach_engine/tests/`, `apps_eval/tests/` — 932+ test files).
 
 ### Cross-Agent MECE De-Overlap Boundary
-- **Owned exclusively by this agent**: Unit and integration test coverage gaps in `tests/`, negative/boundary test cases for `apps_research` -> `outreach_engine` and `apps_research` -> `resume_graph_engine`, `pytest.mark.skip` / `xfail` governance (`strict=True`), and Class A/B `--timeout=60` test execution compliance.
+- **Owned exclusively by this agent**: Unit and integration test coverage gaps across all 4 test roots (`tests/`, `resume_graph_engine/tests/`, `outreach_engine/tests/`, `apps_eval/tests/`), synchronous and `async def test_*` assertion strength, `pytest.mark.skip(reason=...)` and `pytest.mark.xfail(strict=True)` hygiene, production mock reachability (`audit_mock_reachability.py`), `.githooks/` executable enforcement, and Class A/B `--timeout=60` test execution compliance.
 - **Delegated to peer agents**: Worktree/SQLite hygiene (`agents-storage-worktree-hygiene`), static layer imports (`agents-ssot-boundary-governance`), production E2E code fixes (`agents-outreach-resume-functionality`), retrieval ranking logic (`agents-research-retrieval-surface`), judge rubrics (`agents-evals-judge-assurance`), and token budgets (`agents-cost-token-budget`).
 
 ---
@@ -21,9 +21,10 @@ Execute a deterministic, fail-closed **Testing Gaps, Edge-Case Regression, and P
   - Class A (Debug): Scoped to a single test file or test case with `--timeout=60` and synchronous `WaitMsBeforeAsync >= 15000`.
   - Class B (Receipt): Scoped to declared wave acceptance test files with `--timeout=60` and synchronous `WaitMsBeforeAsync >= 120000`.
   - Bare `pytest` or `pytest tests/` without scope is strictly forbidden.
-- **Unconditional Wave-Based Plan Mandate (`UNCONDITIONAL_WAVE_PLAN_MANDATE`)**:
-  - In **BOTH** `MODE: scheduled` and `MODE: interactive`, this agent MUST author a wave-based remediation plan at `plans/<branch-slug>-<6hex>.md` (and copy to `<run_dir>/implementation_plan.md`) decomposed into sequential numbered waves (`## Wave 1: ...`, `## Wave 2: ...`) and validate it via `python3 tools/validate_implementation_plan.py --file plans/<branch-slug>-<6hex>.md` (`exit code 0`).
-  - In `MODE: scheduled`, copy durable artifacts to `<PRIMARY_REPO_ROOT>/artifacts/sidecar_runs/agents_testing_gaps_assurance/<run_id>/`, prune the ephemeral worktree (`INV-WT-EPHEMERAL-SCHEDULED`), and exit `COMPLETE` or `OPERATOR_INPUT_REQUIRED` with zero code mutations.
+- **Zero-Defect Fast-Exit & Wave-Based Plan Mandate (`C03`, `UNCONDITIONAL_WAVE_PLAN_MANDATE`)**:
+  - When Phase 1.5 reports `0` actionable findings (`is_clean: true`), fast-exit cleanly per `C03`: copy `${RUN_DIR}` to `<PRIMARY_REPO_ROOT>/artifacts/sidecar_runs/agents_testing_gaps_assurance/${RUN_TS}`, tear down the ephemeral worktree via `pr_governance.py submit --stage-only`, and exit `COMPLETE` without authoring a synthetic plan.
+  - Whenever `>= 1` findings exist in **EITHER** `MODE: scheduled` or `MODE: interactive`, author a wave-based remediation plan at `${WORKTREE_DIR}/plans/<branch-slug>-<6hex>.md` (and copy to `${RUN_DIR}/implementation_plan.md`) decomposed into sequential numbered waves (`## Wave 1: ...`, `## Wave 2: ...`) and validate it via `validate_implementation_plan.py --file "${WORKTREE_DIR}/plans/<branch-slug>-<6hex>.md"` (`exit code 0`).
+  - In `MODE: scheduled`, stage validated fixes on `${BRANCH_NAME}` via `pr_governance.py submit "${BRANCH_NAME}" --stage-only` without mutating `local main` directly.
 
 ---
 
@@ -52,53 +53,96 @@ Write `${RUN_DIR}/manifest.json` recording `agent_id`, `run_id`, `mode`, `pre_st
 ## 4. Phase 1 & Phase 1.5: 6-Pillar Testing Gaps Audit, 6-Field Proof & Executable Scanners
 
 ### Phase 1: 6-Pillar Testing Gaps Audit
-1. **Pillar 1 — Untested Critical Public Entrypoints**: Identify public classes and functions in `outreach_engine/`, `resume_engine/`, `resume_graph_engine/`, and `apps_research/` with zero corresponding test references in `tests/`.
+1. **Pillar 1 — Untested Critical Public Entrypoints**: Identify public classes and functions across `agents/`, `outreach_engine/`, `resume_engine/`, `resume_graph_engine/src/`, `apps_research/`, `apps_eval/`, `apps_model_telemetry/`, and `infrastructure/` with zero corresponding test references across the 4 test roots (`tests/`, `resume_graph_engine/tests/`, `outreach_engine/tests/`, `apps_eval/tests/`).
 2. **Pillar 2 — Cross-Subsystem Contract Regression Tests**: Verify dedicated contract tests exist for `apps_research` -> `outreach_engine` and `apps_research` -> `resume_graph_engine` handoffs (including malformed, empty, and partial research packets).
-3. **Pillar 3 — Constitutional Skip / Xfail Hygiene**: Detect any `pytest.mark.skip` or `pytest.mark.xfail` missing `strict=True` or missing a linked remediation reason.
-4. **Pillar 4 — Weak / Vacuous Assertion Detection**: Flag test functions in `tests/` that contain zero `assert` statements or only `assert True` / `assert result is not None`.
-5. **Pillar 5 — Determinism & Network Isolation in Tests**: Ensure unit tests mock external network boundaries cleanly without relying on live network calls or wall-clock sleep delays.
-6. **Pillar 6 — Governance & Sidecar Separation Test Coverage**: Verify `tests/unit/test_sidecar_separation_governance.py` and `tests/test_turn_gates.py` pass 100%.
+3. **Pillar 3 — Constitutional Skip / Xfail Hygiene**: Detect any `@pytest.mark.skip` missing an explicit `reason=...` or any `@pytest.mark.xfail` missing `strict=True`.
+4. **Pillar 4 — Sync & Async Weak Assertion Detection**: Flag synchronous (`ast.FunctionDef`) and async (`ast.AsyncFunctionDef`) `test_*` functions across all 4 test roots that contain zero `assert` / `pytest.raises` / `mock.assert_*` statements.
+5. **Pillar 5 — Production Mock Reachability & Determinism (`audit_mock_reachability.py`)**: Verify zero unguarded mock branches exist in production roots and unit tests isolate external network calls cleanly.
+6. **Pillar 6 — Governance, Sidecar Separation & Git Hook Enforcement (`.githooks/`)**: Verify `tests/unit/test_sidecar_separation_governance.py`, `tests/test_turn_gates.py`, and executable permissions on `.githooks/{pre-commit,pre-merge-commit,pre-push,post-merge}` pass 100%.
 
 ### Mandatory 6-Field Testing Gap Admission Proof
 Every candidate test gap MUST declare:
 1. `target_module_and_symbol` (`path/to/module.py:symbol_name`)
-2. `subsystem_domain` (`outreach_engine` | `resume_engine` | `resume_graph_engine` | `apps_research` | `governance`)
+2. `subsystem_domain` (`agents` | `outreach_engine` | `resume_engine` | `resume_graph_engine` | `apps_research` | `apps_eval` | `apps_model_telemetry` | `infrastructure` | `governance`)
 3. `untested_failure_mode` (specific boundary, exception, or state transition currently unverified)
 4. `proposed_test_file` (`tests/unit/test_<name>.py`)
 5. `assertion_contract` (exact behavioral assertions to enforce)
 6. `priority_tier` (`P0_CRITICAL` | `P1_HIGH` | `P2_MEDIUM`)
 
 ### Phase 1.5: Mandatory Executable Forensic Scanner Commands
-Execute the following bounded test-gap scanner in `${WORKTREE_DIR}` (`timeout <= 90s`):
+Execute the bounded 4-root test-gap, mock-reachability, and git-hook scanner in `${WORKTREE_DIR}` (`timeout <= 90s`):
 
 ```bash
+"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/audit_mock_reachability.py" --repo-root "${WORKTREE_DIR}"
 "${PRIMARY_REPO_ROOT}/.venv/bin/pytest" "${WORKTREE_DIR}/tests/unit/test_sidecar_separation_governance.py" -v --timeout=60
-python3 - <<'PY'
-import ast, json
+"${PRIMARY_REPO_ROOT}/.venv/bin/python" - <<'PY'
+import ast, json, os
 from pathlib import Path
 
-root = Path("/Users/amitayer/Git/agents")
-test_root = root / "tests"
+root = Path(os.environ.get("WORKTREE_DIR", "."))
+test_roots = ["tests", "resume_graph_engine/tests", "outreach_engine/tests", "apps_eval/tests"]
+root_counts = {}
 weak_tests = []
-non_strict_skips = []
+unreasoned_skips = []
+non_strict_xfails = []
 
-if test_root.exists():
-    for py in test_root.rglob("test_*.py"):
+for rel_root in test_roots:
+    tdir = root / rel_root
+    if not tdir.exists():
+        root_counts[rel_root] = 0
+        continue
+    files = sorted({*tdir.rglob("test_*.py"), *tdir.rglob("*_test.py"), *tdir.rglob("conftest.py")})
+    root_counts[rel_root] = len(files)
+    for py in files:
         rel = str(py.relative_to(root))
         try:
             src = py.read_text(encoding="utf-8")
             tree = ast.parse(src)
         except Exception:
             continue
-        if "pytest.mark.skip(" in src and "strict=True" not in src:
-            non_strict_skips.append(rel)
         for node in ast.walk(tree):
-            if isinstance(node, ast.FunctionDef) and node.name.startswith("test_"):
-                has_assert = any(isinstance(c, ast.Assert) or (isinstance(c, ast.Call) and "raises" in getattr(c.func, "attr", "")) for c in ast.walk(node))
+            if isinstance(node, ast.Call):
+                fn_str = ast.unparse(node.func) if hasattr(ast, "unparse") else ""
+                if fn_str.endswith("mark.skip"):
+                    has_reason = bool(node.args) or any(kw.arg == "reason" for kw in node.keywords)
+                    if not has_reason:
+                        unreasoned_skips.append(f"{rel}:{node.lineno}")
+                elif fn_str.endswith("mark.xfail"):
+                    has_strict = any(
+                        kw.arg == "strict" and isinstance(kw.value, ast.Constant) and kw.value.value is True
+                        for kw in node.keywords
+                    )
+                    if not has_strict:
+                        non_strict_xfails.append(f"{rel}:{node.lineno}")
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name.startswith("test_"):
+                has_assert = any(
+                    isinstance(c, ast.Assert)
+                    or (
+                        isinstance(c, ast.Call)
+                        and any(
+                            tok in (getattr(c.func, "attr", "") or getattr(c.func, "id", ""))
+                            for tok in ("raises", "warns", "assert", "fail")
+                        )
+                    )
+                    for c in ast.walk(node)
+                )
                 if not has_assert:
                     weak_tests.append({"file": rel, "line": node.lineno, "test": node.name})
 
-print(json.dumps({"weak_test_candidates": weak_tests[:25], "non_strict_skip_files": non_strict_skips[:25]}, indent=2))
+hooks = ["pre-commit", "pre-merge-commit", "pre-push", "post-merge"]
+missing_hooks = [
+    h for h in hooks
+    if not (root / ".githooks" / h).is_file() or not os.access(root / ".githooks" / h, os.X_OK)
+]
+
+print(json.dumps({
+    "test_root_file_counts": root_counts,
+    "total_test_files_scanned": sum(root_counts.values()),
+    "weak_test_candidates": weak_tests[:25],
+    "unreasoned_skip_locations": unreasoned_skips[:25],
+    "non_strict_xfail_locations": non_strict_xfails[:25],
+    "non_executable_githooks": missing_hooks,
+}, indent=2))
 PY
 ```
 
@@ -109,9 +153,9 @@ Write the structured findings and 6-field admission proofs to `${RUN_DIR}/audit_
 ## 5. Phase 2: Unconditional Wave Plan Generation & 20% Margin HITL Gate (`C04`, `C05`)
 
 ### Step 2.1: Unconditional Wave-Based Plan Generation (`UNCONDITIONAL_WAVE_PLAN_MANDATE`)
-Author `${WORKTREE_DIR}/plans/testing-gaps-assurance-${HEX6}.md` (500–800 words, max 1,000 words) structured into sequential waves:
+When findings exist, author `${WORKTREE_DIR}/plans/testing-gaps-assurance-${HEX6}.md` (500–800 words, max 1,000 words) structured into sequential waves:
 - `## Wave 1: Outreach, Resume & Research Handoff Contract Unit Tests`
-- `## Wave 2: Edge-Case Boundary Assertions & Strict Skip Hygiene`
+- `## Wave 2: Edge-Case Boundary Assertions & Strict Xfail/Skip Hygiene`
 Each wave MUST include `### Objective & Scope`, `### Milestones & Deliverables`, `### Acceptance Criteria`, and `### Runtime Receipt & Completion Gate` (`Run:`, `Input:`, `Expected:`, `Verify independently:`, `Fail if:`, `Record:`), plus `## Wave Implementation & Completion Status Table`.
 Validate immediately:
 ```bash
@@ -132,9 +176,9 @@ Compute multi-factor calibrated confidence via `tools/hitl_governance.py` (`calc
 For each wave (`Wave 1 -> Wave N`):
 1. **5-Point Counterfactual Runtime Proof (`INV-RUNTIME-PROOF-5POINT`)**:
    - Capture `PRE_MUTATION_RUN` test count / coverage gap before edit.
-   - Author bounded unit/integration tests under `tests/`.
+   - Author bounded unit/integration tests under the target test root.
    - Run `POST_MUTATION_RUN` Class B receipt pytest (`--timeout=60`, `WaitMsBeforeAsync >= 120000`).
    - Verify state independently and record the 5-column proof table in `${RUN_DIR}/wave_receipts.md`.
 2. **Closed-Loop System Learning (`C07`)**: Record wave outcome in `HITLDecisionStore`.
 3. **Turn, Commit & Promotion Gates (`C09`, `C10`)**:
-   Run `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/validate_sidecar_separation.py" --repo-root "${WORKTREE_DIR}" --json`, `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/validate_turn_gates.py" --mode all`, and `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/verify_commit.py"`, commit via `git -C "${WORKTREE_DIR}" commit`, then stage via `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/pr_governance.py" -C "${WORKTREE_DIR}" submit "${BRANCH_NAME}" --stage-only` in scheduled mode or promote after interactive `ask_question` `PR_MERGE_AUTHORIZATION` via `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/pr_governance.py" -C "${WORKTREE_DIR}" submit "${BRANCH_NAME}" --title "test(coverage): remediate testing gaps and skip hygiene"`.
+   Run `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/validate_sidecar_separation.py" --repo-root "${WORKTREE_DIR}" --json`, `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/validate_turn_gates.py" --repository-root "${WORKTREE_DIR}" --mode all`, and `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/verify_commit.py" --repo-root "${WORKTREE_DIR}"`, commit via `git -C "${WORKTREE_DIR}" commit`, then stage via `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/pr_governance.py" -C "${WORKTREE_DIR}" submit "${BRANCH_NAME}" --stage-only` in scheduled mode or promote after interactive `ask_question` `PR_MERGE_AUTHORIZATION` via `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/pr_governance.py" -C "${WORKTREE_DIR}" submit "${BRANCH_NAME}" --title "test(coverage): remediate testing gaps and skip hygiene"`.

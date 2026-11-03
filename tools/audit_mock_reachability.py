@@ -23,10 +23,14 @@ _FORBIDDEN_PRODUCTION_PATTERNS = [
 
 _PRODUCTION_ROOTS = [
     "agents",
+    "resume_engine",
     "resume_graph_engine/src/apps_rg",
     "apps_research",
+    "apps_eval",
+    "apps_model_telemetry",
     "outreach_engine/src/apps_lic",
     "infrastructure",
+    "ops_scripts",
 ]
 
 

@@ -13,9 +13,12 @@ from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 if sys.prefix == sys.base_prefix:
-    venv_py = REPO_ROOT / ".venv" / "bin" / "python"
-    if venv_py.is_file():
-        os.execv(str(venv_py), [str(venv_py)] + sys.argv)
+    candidates = [REPO_ROOT / ".venv" / "bin" / "python"]
+    if REPO_ROOT.parent.name == ".worktrees":
+        candidates.append(REPO_ROOT.parent.parent / ".venv" / "bin" / "python")
+    for venv_py in candidates:
+        if venv_py.exists():
+            os.execv(str(venv_py), [str(venv_py)] + sys.argv)
 
 RG_SRC = REPO_ROOT / "resume_graph_engine" / "src"
 for p in (str(RG_SRC), str(REPO_ROOT)):

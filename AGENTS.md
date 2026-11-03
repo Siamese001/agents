@@ -38,19 +38,19 @@ Required behavior:
 
 | Server ID | Use For | Example Tools | Notes | Skill |
 |---|---|---|---|---|
-| `GitKraken` | Git operations, GitLens, pull requests, issues | `git_status, git_add_or_commit, git_log_or_diff, pull_request_create` | Use as the git/PR authority. | [mcp-integration](.agents/skills/mcp-integration/SKILL.md) |
-| `adg_sqlite` | Dependency graph, blast radius, layer analysis, refactoring hotspots, graph-layer primitives (mv_*, v_p*, semantic edges) | `adg_health, adg_edge_fanout, adg_edge_fanin, adg_nodes_by_file, adg_nodes_by_layer, adg_violations, adg_p0_wave_plan` | Structural deps + T2/T3 plans; §22 graph layer (mv_*, P-views, semantic edges). | [dg-sqlite](.agents/skills/adg-sqlite/SKILL.md) |
-| `deepwiki` | External GitHub repository docs and wiki Q&A | `read_wiki_structure, read_wiki_contents, ask_question` | Do not use for this repo's own code. | [mcp-integration](.agents/skills/mcp-integration/SKILL.md) |
-| `filesystem` | Filesystem MCP operations and directory traversal | `read_text_file, read_multiple_files, directory_tree, write_file` | Prefer native reads for ordinary file reads when available. | [mcp-integration](.agents/skills/mcp-integration/SKILL.md) |
-| `memory` | Persistent cross-session knowledge graph | `mem_recall_session_start, create_entities, add_observations, search_nodes` | Read at session start; write back major decisions. | [mcp-integration](.agents/skills/mcp-integration/SKILL.md) |
-| `vector_db` | Semantic search and embeddings | `semantic_search, query_collection, vector_stats, list_collections` | Not for structural dependency analysis. | [mcp-integration](.agents/skills/mcp-integration/SKILL.md) |
-| `playwright` | Browser automation, accessibility snapshots, end-to-end UI verification | `browser_navigate, browser_snapshot, browser_click, browser_fill_form, browser_evaluate, browser_take_screenshot` | Live UI/E2E; output in artifacts/mcp/playwright/ (gitignored). Close tabs after use. | [mcp-integration](.agents/skills/mcp-integration/SKILL.md) |
-| `notion` | Notion pages and project-management databases | `API-query-data-source, API-retrieve-a-page, API-patch-page` | Manual page/DB read+write only; no plan-status enforcement (Notion plan/wave/status governance removed). | [mcp-integration](.agents/skills/mcp-integration/SKILL.md) |
-| `context7` | Up-to-date, versioned official documentation for external libraries | `resolve-library-id, get-library-docs` | External package docs; not this repo. CONTEXT7_API_KEY optional. | [mcp-integration](.agents/skills/mcp-integration/SKILL.md) |
+| `GitKraken` | Git operations, GitLens, pull requests, issues | `git_status, git_add_or_commit, git_log_or_diff, pull_request_create` | Use as the git/PR authority. | [agents-governance-hygiene](.agents/skills/agents-governance-hygiene/SKILL.md) |
+| `adg_sqlite` | Dependency graph, blast radius, layer analysis, refactoring hotspots, graph-layer primitives (mv_*, v_p*, semantic edges) | `adg_health, adg_edge_fanout, adg_edge_fanin, adg_nodes_by_file, adg_nodes_by_layer, adg_violations, adg_p0_wave_plan` | Structural deps + T2/T3 plans; §22 graph layer (mv_*, P-views, semantic edges). | [scope-containment](.agents/skills/scope-containment/SKILL.md) |
+| `deepwiki` | External GitHub repository docs and wiki Q&A | `read_wiki_structure, read_wiki_contents, ask_question` | Do not use for this repo's own code. | [agents-governance-hygiene](.agents/skills/agents-governance-hygiene/SKILL.md) |
+| `filesystem` | Filesystem MCP operations and directory traversal | `read_text_file, read_multiple_files, directory_tree, write_file` | Prefer native reads for ordinary file reads when available. | [agents-governance-hygiene](.agents/skills/agents-governance-hygiene/SKILL.md) |
+| `memory` | Persistent cross-session knowledge graph | `mem_recall_session_start, create_entities, add_observations, search_nodes` | Read at session start; write back major decisions. | [agents-governance-hygiene](.agents/skills/agents-governance-hygiene/SKILL.md) |
+| `vector_db` | Semantic search and embeddings | `semantic_search, query_collection, vector_stats, list_collections` | Not for structural dependency analysis. | [agents-governance-hygiene](.agents/skills/agents-governance-hygiene/SKILL.md) |
+| `playwright` | Browser automation, accessibility snapshots, end-to-end UI verification | `browser_navigate, browser_snapshot, browser_click, browser_fill_form, browser_evaluate, browser_take_screenshot` | Live UI/E2E; output in artifacts/mcp/playwright/ (gitignored). Close tabs after use. | [agents-governance-hygiene](.agents/skills/agents-governance-hygiene/SKILL.md) |
+| `notion` | Notion pages and project-management databases | `API-query-data-source, API-retrieve-a-page, API-patch-page` | Manual page/DB read+write only; no plan-status enforcement (Notion plan/wave/status governance removed). | [agents-governance-hygiene](.agents/skills/agents-governance-hygiene/SKILL.md) |
+| `context7` | Up-to-date, versioned official documentation for external libraries | `resolve-library-id, get-library-docs` | External package docs; not this repo. CONTEXT7_API_KEY optional. | [agents-governance-hygiene](.agents/skills/agents-governance-hygiene/SKILL.md) |
 
 <!-- MCP-QUICK-REFERENCE:END -->
 
-Server-specific MCP procedures are indexed by [mcp-integration](.agents/skills/mcp-integration/SKILL.md) sections §1–§13. `adg-sqlite` remains the dedicated structural-analysis skill.
+Server-specific MCP procedures are governed by [mcp-config-ssot.md](.agents/rules/mcp-config-ssot.md) and [agents-governance-hygiene](.agents/skills/agents-governance-hygiene/SKILL.md).
 
 ## Notion Workspace Map
 
@@ -74,7 +74,7 @@ Bot: **Agentic-Workflow** | Workspace: **Amit Ayer's Space**
 
 <!-- NOTION-MAP:END -->
 
-Procedural routing + manual-Notion-use note: [agents-tier1-companion.md](.agents/skills/mcp-integration/agents-tier1-companion.md). (Notion plan-status / wave / registration enforcement removed — `notion-wave-enforcement-removal`.)
+Procedural routing + manual-Notion-use note: [plan-location.md](.agents/rules/plan-location.md). (Notion plan-status / wave / registration enforcement removed — `notion-wave-enforcement-removal`.)
 
 ## Memory
 
@@ -85,7 +85,7 @@ The knowledge-graph Memory MCP is optional for graph queries or writeback when i
 ## Constitutional floor
 
 - Subprocess timeout always required — `subprocess.run(argv, shell=False, timeout=30)`. PowerShell is allowed as the primary Windows shell when commands remain bounded.
-- No `pytest.mark.skip` without `strict=True`
+- No `pytest.mark.xfail` without `strict=True` and no `pytest.mark.skip` without explicit `reason=`
 - No bare `except Exception` without guardian
 - No edits during planning phase
 - ADG before grep for structure (§28); grep for literals/TODOs only

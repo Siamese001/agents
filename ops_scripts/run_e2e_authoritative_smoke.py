@@ -38,6 +38,7 @@ def run_smoke(skip_resume: bool = True) -> int:
         cwd=str(_REPO_ROOT),
         capture_output=True,
         text=True,
+        timeout=180,
     )
 
     if proc.returncode != 0:

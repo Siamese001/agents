@@ -348,7 +348,7 @@ def cmd_sync(args: argparse.Namespace) -> int:
 
     # 3. Cleanliness check
     status_proc = subprocess.run(
-        ["git", "status", "--porcelain"], cwd=wt_dir, capture_output=True, text=True, check=False
+        ["git", "status", "--porcelain"], cwd=wt_dir, capture_output=True, text=True, check=False, timeout=30
     )
     raw_status = [line for line in status_proc.stdout.splitlines() if line.strip()]
     dirty_lines = [
@@ -417,7 +417,7 @@ def cmd_sync(args: argparse.Namespace) -> int:
             readiness_cmd.append("--full")
         if getattr(args, "dry_run", False):
             readiness_cmd.append("--dry-run")
-        readiness_proc = subprocess.run(readiness_cmd, cwd=wt_dir)
+        readiness_proc = subprocess.run(readiness_cmd, cwd=wt_dir, timeout=600)
         if readiness_proc.returncode != 0:
             print("\n❌ Post-rebase readiness qualification failed.")
             return 1
@@ -426,7 +426,7 @@ def cmd_sync(args: argparse.Namespace) -> int:
         verify_commit_script = wt_dir / "tools" / "verify_commit.py"
         if verify_commit_script.exists():
             v_cmd = [run_py, str(verify_commit_script), "--all"]
-            v_proc = subprocess.run(v_cmd, cwd=wt_dir)
+            v_proc = subprocess.run(v_cmd, cwd=wt_dir, timeout=300)
             if v_proc.returncode != 0:
                 print("\n❌ Post-rebase Tier 1 verification failed.")
                 return 1

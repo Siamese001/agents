@@ -5,10 +5,10 @@
 
 ## 1. Objective & Scope (`C01`)
 
-Execute a deterministic, fail-closed **Storage, Worktree, and SQLite Hygiene Audit & Remediation** exclusively within `/Users/amitayer/Git/agents` (`05:30 ET`, Order `1/7`). This agent prepares a clean foundation before Stages II–IV run by auditing and remediating orphaned git worktrees, merged local feature branches, SQLite/WAL health (`artifacts/adg/*.sqlite`, `artifacts/governance/hitl_decisions.sqlite`, `.codex/state/refactor_decisions/refactor_decision_ledger.sqlite`), and runaway artifact directories.
+Execute a deterministic, fail-closed **Storage, Worktree, Scratch, and SQLite Hygiene Audit & Remediation** exclusively within `/Users/amitayer/Git/agents` (`05:00 ET`, Order `1/7`). This agent prepares a clean foundation before Stages II–IV run by auditing and remediating orphaned git worktrees, merged local feature branches, SQLite/WAL health across all 6 repository databases (`artifacts/governance/hitl_decisions.sqlite`, `artifacts/learning/feedback_learning.sqlite`, `resume_graph_engine/artifacts/apps_rg/fact_inventory/augmented_skills_graph.sqlite`, `resume_graph_engine/data/cache/chromadb/chroma.sqlite3`, `resume_graph_engine/data/cache/chromadb/r1b_semantic_cache_projection/chroma.sqlite3`, `resume_graph_engine/data/cache/sparse/fact_vectors.db`), stale locks (`.worktrees/.provisioning.lock`), cross-repo `scratch/` leaks, and the `28 GB` storage inventory (`artifacts/models/`, `artifacts/career_calls/`, `resume_graph_engine/artifacts/`, `resume_graph_engine/.runtime/`, `plans/`, `reports/`).
 
 ### Cross-Agent MECE De-Overlap Boundary
-- **Owned exclusively by this agent**: Git worktree pruning, merged local branch cleanup, SQLite `PRAGMA integrity_check` / `PRAGMA wal_checkpoint(TRUNCATE)`, and `artifacts/sidecar_runs/` retention hygiene.
+- **Owned exclusively by this agent**: Git worktree pruning, merged local branch cleanup, SQLite `PRAGMA integrity_check` / `PRAGMA wal_checkpoint(TRUNCATE)` across all 6 databases, `scratch/` hygiene, stale `.provisioning.lock` cleanup, and `artifacts/sidecar_runs/` + `28 GB` storage inventory auditing.
 - **Delegated to peer agents**: Subsystem boundary & SSOT drift (`agents-ssot-boundary-governance`), E2E pipeline execution (`agents-outreach-resume-functionality`), retrieval quality (`agents-research-retrieval-surface`), judge validity (`agents-evals-judge-assurance`), token budgets (`agents-cost-token-budget`), and test coverage (`agents-testing-gaps-assurance`).
 
 ---
@@ -17,9 +17,10 @@ Execute a deterministic, fail-closed **Storage, Worktree, and SQLite Hygiene Aud
 
 - **Shared Governance Contract**: Dereferences `automations/prompts/_shared_governance_contract.md` (`C01–C12`).
 - **Repository Boundary (`INV-REPO-SEPARATION-AGENTS-ONLY`)**: Strictly bound to `/Users/amitayer/Git/agents`. Zero access to external repositories or external sidecar directories.
-- **Unconditional Wave-Based Plan Mandate (`UNCONDITIONAL_WAVE_PLAN_MANDATE`)**:
-  - In **BOTH** `MODE: scheduled` and `MODE: interactive`, this agent MUST author a wave-based remediation plan at `plans/<branch-slug>-<6hex>.md` (and copy it to `<run_dir>/implementation_plan.md`) decomposed into sequential numbered waves (`## Wave 1: ...`, `## Wave 2: ...`) and validate it via `python3 tools/validate_implementation_plan.py --file plans/<branch-slug>-<6hex>.md` (`exit code 0`).
-  - In `MODE: scheduled`, after validating the wave plan and copying durable artifacts to `<PRIMARY_REPO_ROOT>/artifacts/sidecar_runs/agents_storage_worktree_hygiene/<run_id>/`, prune the ephemeral worktree (`INV-WT-EPHEMERAL-SCHEDULED`) and exit `COMPLETE` or `OPERATOR_INPUT_REQUIRED` without mutating repository code.
+- **Zero-Defect Fast-Exit & Wave-Based Plan Mandate (`C03`, `UNCONDITIONAL_WAVE_PLAN_MANDATE`)**:
+  - When Phase 1.5 reports `0` actionable findings (`is_clean: true`), fast-exit cleanly per `C03`: copy `${RUN_DIR}` to `<PRIMARY_REPO_ROOT>/artifacts/sidecar_runs/agents_storage_worktree_hygiene/${RUN_TS}`, tear down the ephemeral worktree via `pr_governance.py submit --stage-only`, and exit `COMPLETE` without authoring a synthetic plan.
+  - Whenever `>= 1` findings exist in **EITHER** `MODE: scheduled` or `MODE: interactive`, author a wave-based remediation plan at `${WORKTREE_DIR}/plans/<branch-slug>-<6hex>.md` (and copy it to `${RUN_DIR}/implementation_plan.md`) decomposed into sequential numbered waves (`## Wave 1: ...`, `## Wave 2: ...`) and validate it via `validate_implementation_plan.py --file "${WORKTREE_DIR}/plans/<branch-slug>-<6hex>.md"` (`exit code 0`).
+  - In `MODE: scheduled`, stage validated fixes on `${BRANCH_NAME}` via `pr_governance.py submit "${BRANCH_NAME}" --stage-only` without mutating `local main` directly.
 
 ---
 
@@ -50,52 +51,30 @@ Write `${RUN_DIR}/manifest.json` recording `agent_id`, `run_id`, `mode`, `pre_st
 ## 4. Phase 1 & Phase 1.5: 6-Pillar Read-Only Audit & Executable Forensic Scanners
 
 ### Phase 1: 6-Pillar Hygiene Audit
-1. **Pillar 1 — Worktree & Branch Drift**: Detect stale worktrees in `git worktree list --porcelain` and local branches already merged into `main` (`git branch --merged main`).
-2. **Pillar 2 — SQLite Integrity & Journal Mode**: Verify `PRAGMA integrity_check` and `PRAGMA journal_mode=WAL` across `artifacts/adg/*.sqlite`, `artifacts/governance/hitl_decisions.sqlite`, and `.codex/state/refactor_decisions/refactor_decision_ledger.sqlite`.
+1. **Pillar 1 — Worktree & Branch Drift**: Detect stale worktrees in `git worktree list --porcelain` and non-active local branches already merged into `main` (`git branch --merged main`), respecting `.sidecar_active_run.lock` leases and dirty worktrees.
+2. **Pillar 2 — SQLite Integrity & Journal Mode**: Verify `PRAGMA integrity_check` and `PRAGMA journal_mode=WAL` across all 6 SQLite/Chroma/vector databases (`artifacts/governance/hitl_decisions.sqlite`, `artifacts/learning/feedback_learning.sqlite`, `resume_graph_engine/artifacts/apps_rg/fact_inventory/augmented_skills_graph.sqlite`, `resume_graph_engine/data/cache/chromadb/**/chroma.sqlite3`, `resume_graph_engine/data/cache/sparse/fact_vectors.db`).
 3. **Pillar 3 — WAL / SHM Bloat Detection**: Flag `-wal` or `-shm` sidecar files exceeding `32 MB` that require `PRAGMA wal_checkpoint(TRUNCATE)`.
-4. **Pillar 4 — Ephemeral Artifact Sprawl**: Measure disk footprint across `artifacts/sidecar_runs/`, `artifacts/mcp/playwright/`, and `.pytest_cache/` (> `500 MB` threshold).
-5. **Pillar 5 — Stale Lock & Temp File Sweep**: Identify orphaned `.lock`, `.tmp`, or unreferenced scratch files older than 24 hours.
-6. **Pillar 6 — Cross-Repository Isolation Verification**: Run `python3 tools/validate_sidecar_separation.py --json` to confirm zero namespace, cron, or path drift.
+4. **Pillar 4 — Ephemeral Artifact Sprawl & Storage Inventory**: Measure ephemeral sprawl (`artifacts/sidecar_runs/`, `artifacts/mcp/playwright/`, `.pytest_cache/` > `500 MB`) alongside the full `28 GB` storage inventory (`artifacts/models/`, `artifacts/career_calls/`, `resume_graph_engine/artifacts/`, `resume_graph_engine/.runtime/`, `plans/`, `reports/`, `scratch/`).
+5. **Pillar 5 — Stale Lock, Provisioning Lock & Scratch Sweep**: Identify orphaned `.lock`/`.tmp` files and `.worktrees/.provisioning.lock` older than 24 hours plus any cross-repo/credential leaks inside `scratch/`.
+6. **Pillar 6 — Cross-Repository Isolation Verification**: Run `tools/validate_sidecar_separation.py --repo-root "${WORKTREE_DIR}" --json` to confirm zero namespace, cron, or path drift.
 
 ### Phase 1.5: Mandatory Executable Forensic Scanner Commands
-Execute the bounded 6-pillar scanner CLI `python3 tools/storage_worktree_hygiene.py --json` (or the inline script below) in `${WORKTREE_DIR}` (`timeout <= 60s`):
+Execute the bounded 6-pillar scanner CLI in `${WORKTREE_DIR}` (`timeout <= 60s`):
 
 ```bash
-python3 - <<'PY'
-import json, sqlite3, subprocess
-from pathlib import Path
-
-root = Path("/Users/amitayer/Git/agents")
-wt_out = subprocess.run(["git", "-C", str(root), "worktree", "list", "--porcelain"], capture_output=True, text=True, timeout=30).stdout
-merged_out = subprocess.run(["git", "-C", str(root), "branch", "--merged", "main"], capture_output=True, text=True, timeout=30).stdout
-
-sqlite_dbs = list(root.glob("artifacts/**/*.sqlite")) + list(root.glob(".codex/**/*.sqlite"))
-db_report = []
-for db in sqlite_dbs:
-    wal = Path(str(db) + "-wal")
-    wal_mb = round(wal.stat().st_size / (1024 * 1024), 3) if wal.exists() else 0.0
-    try:
-        conn = sqlite3.connect(f"file:{db}?mode=ro", uri=True, timeout=10)
-        integrity = conn.execute("PRAGMA integrity_check;").fetchone()[0]
-        jmode = conn.execute("PRAGMA journal_mode;").fetchone()[0]
-        conn.close()
-    except Exception as exc:
-        integrity, jmode = f"ERROR: {exc}", "unknown"
-    db_report.append({"db": str(db.relative_to(root)), "integrity": integrity, "journal_mode": jmode, "wal_mb": wal_mb})
-
-print(json.dumps({"db_count": len(db_report), "dbs": db_report, "merged_branches": [b.strip() for b in merged_out.splitlines() if b.strip() and not b.strip().startswith("*") and b.strip() != "main"]}, indent=2))
-PY
+"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/storage_worktree_hygiene.py" \
+  --repo-root "${WORKTREE_DIR}" \
+  --output "${RUN_DIR}/audit_report.json" \
+  --json
 ```
-
-Write the structured findings to `${RUN_DIR}/audit_report.json`.
 
 ---
 
 ## 5. Phase 2: Unconditional Wave Plan Generation & 20% Margin HITL Gate (`C04`, `C05`)
 
 ### Step 2.1: Unconditional Wave-Based Plan Generation (`UNCONDITIONAL_WAVE_PLAN_MANDATE`)
-Author `${WORKTREE_DIR}/plans/storage-hygiene-${HEX6}.md` (500–800 words, max 1,000 words) structured as sequential waves:
-- `## Wave 1: Worktree, Merged Branch & Lock Hygiene`
+When findings exist (`is_clean == false`), author `${WORKTREE_DIR}/plans/storage-hygiene-${HEX6}.md` (500–800 words, max 1,000 words) structured as sequential waves:
+- `## Wave 1: Worktree, Merged Branch, Scratch & Lock Hygiene`
 - `## Wave 2: SQLite WAL Checkpoint & Artifact Retention`
 Each wave MUST include `### Objective & Scope`, `### Milestones & Deliverables`, `### Acceptance Criteria`, and `### Runtime Receipt & Completion Gate` (`Run:`, `Input:`, `Expected:`, `Verify independently:`, `Fail if:`, `Record:`), followed by `## Wave Implementation & Completion Status Table`.
 Validate immediately:
@@ -116,8 +95,8 @@ Compute multi-factor calibrated confidence using `tools/hitl_governance.py` (`ca
 
 For each wave (`Wave 1 -> Wave N`):
 1. **5-Point Counterfactual Runtime Proof (`INV-RUNTIME-PROOF-5POINT`)**:
-   - Capture `PRE_MUTATION_RUN` metrics (worktree count, merged branch count, WAL byte size).
-   - Execute bounded remediation commands (`git worktree prune`, `PRAGMA wal_checkpoint(TRUNCATE)`).
+   - Capture `PRE_MUTATION_RUN` metrics (worktree count, merged branch count, 6-DB WAL state, scratch violations).
+   - Execute bounded remediation (`storage_worktree_hygiene.py --repo-root "${WORKTREE_DIR}" --remediate --json`).
    - Run `POST_MUTATION_RUN` verification and scoped pytest:
      `"${PRIMARY_REPO_ROOT}/.venv/bin/pytest" "${WORKTREE_DIR}/tests/unit/test_sidecar_separation_governance.py" -v --timeout=60`
    - Verify state independently and record the 5-column proof table in `${RUN_DIR}/wave_receipts.md`.
@@ -125,7 +104,7 @@ For each wave (`Wave 1 -> Wave N`):
 3. **Turn, Commit & Promotion Gates (`C09`, `C10`)**:
    ```bash
    "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/validate_sidecar_separation.py" --repo-root "${WORKTREE_DIR}" --json
-   "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/validate_turn_gates.py" --mode all
-   "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/verify_commit.py"
+   "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/validate_turn_gates.py" --repository-root "${WORKTREE_DIR}" --mode all
+   "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/verify_commit.py" --repo-root "${WORKTREE_DIR}"
    ```
    Commit via `git -C "${WORKTREE_DIR}" commit`, then stage via `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/pr_governance.py" -C "${WORKTREE_DIR}" submit "${BRANCH_NAME}" --stage-only` in scheduled mode, or obtain interactive `ask_question` `PR_MERGE_AUTHORIZATION` and promote via `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/pr_governance.py" -C "${WORKTREE_DIR}" submit "${BRANCH_NAME}" --title "chore(hygiene): remediate storage and worktree drift"`.

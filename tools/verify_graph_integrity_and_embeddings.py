@@ -289,14 +289,34 @@ def verify_hybrid_retrieval_stage2() -> dict[str, str | float]:
     }
 
 
+def _resolve_artifact_roots() -> list[Path]:
+    roots = [ROOT]
+    if ROOT.parent.name == ".worktrees":
+        primary = ROOT.parent.parent.resolve()
+        if primary.is_dir() and primary not in roots:
+            roots.append(primary)
+    return roots
+
+
 def run_full_verification() -> None:
+    artifact_roots = _resolve_artifact_roots()
     db_path = RG_ROOT / "artifacts/apps_rg/fact_inventory/augmented_skills_graph.sqlite"
-    emb_dirs = [
-        ROOT / "artifacts/apps_rg/c03/graph_skill_embeddings",
-        ROOT / "artifacts/apps_rg/c03/graph_evidence_cluster_embeddings",
-        RG_ROOT / "artifacts/apps_rg/c03/graph_skill_embeddings",
-        RG_ROOT / "artifacts/apps_rg/c03/graph_evidence_cluster_embeddings",
-    ]
+    for base in artifact_roots:
+        cand = base / "resume_graph_engine/artifacts/apps_rg/fact_inventory/augmented_skills_graph.sqlite"
+        if cand.is_file():
+            db_path = cand
+            break
+
+    emb_dirs: list[Path] = []
+    for base in artifact_roots:
+        emb_dirs.extend(
+            [
+                base / "artifacts/apps_rg/c03/graph_skill_embeddings",
+                base / "artifacts/apps_rg/c03/graph_evidence_cluster_embeddings",
+                base / "resume_graph_engine/artifacts/apps_rg/c03/graph_skill_embeddings",
+                base / "resume_graph_engine/artifacts/apps_rg/c03/graph_evidence_cluster_embeddings",
+            ]
+        )
 
     print("--> 1. Verifying GraphDB Traversal, Acyclicity & Capabilities...")
     graph_res = verify_graph_database(db_path)

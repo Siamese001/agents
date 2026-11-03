@@ -35,7 +35,7 @@ def get_model_pricing(model: str) -> tuple[dict[str, float] | None, str | None]:
             m_id = roles[model].get("model")
             if m_id and m_id in models and models[m_id].get("pricing"):
                 return models[m_id]["pricing"], version
-    except Exception:
+    except Exception:  # guardian: allow-silent-swallow -- fallback to built-in pricing table when catalog lookup fails
         pass
 
     return None, None

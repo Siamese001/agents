@@ -133,7 +133,7 @@ class RuntimePrecedentBridge:
         if self._store and hasattr(self._store, "close"):
             try:
                 self._store.close()
-            except Exception:
+            except Exception:  # guardian: allow-silent-swallow -- best-effort SQLite store close on teardown
                 pass
             self._store = None
 

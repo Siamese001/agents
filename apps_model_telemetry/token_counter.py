@@ -72,7 +72,7 @@ class TokenCounterService:
 
             if resolved:
                 return resolved.tokenizer_family or "o200k_base", resolved.context_window or 131072
-        except Exception:
+        except Exception:  # guardian: allow-silent-swallow -- fallback to heuristic family resolution
             pass
 
         return "o200k_base", 131072
@@ -99,16 +99,16 @@ class TokenCounterService:
             if enc is not None:
                 try:
                     return len(enc.encode(text))
-                except Exception:
+                except Exception:  # guardian: allow-silent-swallow -- fallback to heuristic token estimate when tiktoken fails
                     pass
 
         # 2. Exact tokenizer for BGE / HF if available
         if family == "bert_bge":
-            tok = self._get_hf_tokenizer("BAAI/bge-m3")
+            tok = self._get_hf_tokenizer("BAAI/bge-m3")  # guardian: allow-model-id -- canonical BGE-M3 embedding tokenizer
             if tok is not None:
                 try:
                     return len(tok.encode(text, add_special_tokens=False))
-                except Exception:
+                except Exception:  # guardian: allow-silent-swallow -- fallback to heuristic token estimate when HF tokenizer fails
                     pass
 
         # 3. Calibrated offline heuristic

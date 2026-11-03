@@ -150,27 +150,68 @@ def scan_provider_profiles_yaml(path: Path) -> list[dict[str, Any]]:
     if not isinstance(data, dict):
         return findings
 
-    # Look for model pins in model_pin_ownership or profiles
+    def _check_pin(key_path: str, pin: Any) -> None:
+        if not isinstance(pin, str):
+            return
+        clean = pin.strip()
+        if not clean:
+            findings.append({
+                "file": str(path),
+                "key": key_path,
+                "val": clean,
+                "category": "EMPTY_PIN",
+                "message": f"Empty model pin at '{key_path}'",
+            })
+            return
+        if RE_LATEST.search(clean):
+            findings.append({
+                "file": str(path),
+                "key": key_path,
+                "val": clean,
+                "category": "FLOATING_PIN",
+                "message": f"Floating pin at '{key_path}': '{clean}'",
+            })
+        if RE_PREVIEW.search(clean):
+            findings.append({
+                "file": str(path),
+                "key": key_path,
+                "val": clean,
+                "category": "PREVIEW_PIN",
+                "message": f"Preview pin at '{key_path}': '{clean}'",
+            })
+
     pin_ownership = data.get("model_pin_ownership", {})
     if isinstance(pin_ownership, dict):
         for role, pin in pin_ownership.items():
-            if isinstance(pin, str):
-                if RE_LATEST.search(pin):
-                    findings.append({
-                        "file": str(path),
-                        "key": f"model_pin_ownership.{role}",
-                        "val": pin,
-                        "category": "FLOATING_PIN",
-                        "message": f"Floating pin in role '{role}': '{pin}'",
-                    })
-                if RE_PREVIEW.search(pin):
-                    findings.append({
-                        "file": str(path),
-                        "key": f"model_pin_ownership.{role}",
-                        "val": pin,
-                        "category": "PREVIEW_PIN",
-                        "message": f"Preview pin in role '{role}': '{pin}'",
-                    })
+            if role not in ("routing_ssot", "shared_catalog_role", "receipt_identity_source", "role_paths"):
+                _check_pin(f"model_pin_ownership.{role}", pin)
+
+    profiles = data.get("profiles", {})
+    if isinstance(profiles, dict):
+        for prof_name, prof_cfg in profiles.items():
+            if not isinstance(prof_cfg, dict):
+                continue
+            for section_key in ("model_by_section", "anthropic_limit_backup_model_by_section"):
+                sec_map = prof_cfg.get(section_key, {})
+                if isinstance(sec_map, dict):
+                    for sec_name, pin in sec_map.items():
+                        _check_pin(f"profiles.{prof_name}.{section_key}.{sec_name}", pin)
+
+    judge_models = data.get("judge_models", {})
+    if isinstance(judge_models, dict):
+        for tier_name, tier_map in judge_models.items():
+            if isinstance(tier_map, dict):
+                for prov_name, pin in tier_map.items():
+                    _check_pin(f"judge_models.{tier_name}.{prov_name}", pin)
+
+    selector_models = data.get("selector_models", {})
+    if isinstance(selector_models, dict):
+        for sel_name, sel_cfg in selector_models.items():
+            if isinstance(sel_cfg, dict):
+                _check_pin(f"selector_models.{sel_name}.model", sel_cfg.get("model"))
+                backup = sel_cfg.get("anthropic_limit_backup")
+                if isinstance(backup, dict):
+                    _check_pin(f"selector_models.{sel_name}.anthropic_limit_backup.model", backup.get("model"))
 
     return findings
 

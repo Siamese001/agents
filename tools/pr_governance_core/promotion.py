@@ -68,11 +68,40 @@ def derive_branch_merge_title(branch: str, repo_root: Path) -> str:
 
 def _prune_zero_commit_noop_branch(branch: str, repo_root: Path) -> Optional[int]:
     """Automatically tear down clean worktrees that made zero commits ahead of main."""
+    import contextlib
+
+    from .common import sanitized_git_env
     from .lifecycle import _check_merge_cleanliness, _teardown_merged_worktree
+    from .worktree import clear_branch_worktree_cache, resolve_branch_worktree
 
     _, ahead = compute_first_parent_sync("main", branch, cwd=repo_root)
     if ahead != 0:
         return None
+
+    clear_branch_worktree_cache()
+    wt_info = resolve_branch_worktree(repo_root, branch, ignore_review_artifacts=True)
+    if wt_info and wt_info.get("path"):
+        wt_dir = Path(str(wt_info["path"]))
+        with contextlib.suppress(OSError):
+            (wt_dir / ".sidecar_active_run.lock").unlink()
+        # Clean uncommitted synthetic plans/*.md on 0-commit no-op runs when no other dirty files exist
+        status_proc = subprocess.run(
+            ["git", "status", "--porcelain"],
+            cwd=wt_dir,
+            env=sanitized_git_env(),
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=15.0,
+        )
+        raw_lines = [ln.strip() for ln in status_proc.stdout.splitlines() if ln.strip()]
+        if raw_lines and all(ln.startswith("?? plans/") and ln.endswith(".md") for ln in raw_lines):
+            for ln in raw_lines:
+                rel_plan = ln[3:].strip()
+                with contextlib.suppress(OSError):
+                    (wt_dir / rel_plan).unlink()
+        clear_branch_worktree_cache()
+
     if not _check_merge_cleanliness(branch, repo_root):
         return 1
     print(f"ℹ️ Branch '{branch}' has 0 commits ahead of 'main' and is clean; pruning no-op worktree.")
@@ -173,12 +202,13 @@ def _run_submit_or_promote(args: argparse.Namespace) -> int:
     branch = args.branch
     if _check_merge_prerequisites(branch, repo_root) != 0:
         return 1
-    if not _check_merge_cleanliness(branch, repo_root):
-        return 1
 
     noop_rc = _prune_zero_commit_noop_branch(branch, repo_root)
     if noop_rc is not None:
         return noop_rc
+
+    if not _check_merge_cleanliness(branch, repo_root):
+        return 1
 
     if _align_branch_onto_main(branch, repo_root) != 0:
         return 1

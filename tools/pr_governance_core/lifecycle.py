@@ -201,7 +201,7 @@ def cmd_review(args: argparse.Namespace) -> int:
             r_cmd.append("--recheck-failed-only")
         if getattr(args, "full", False):
             r_cmd.append("--full")
-        proc = subprocess.run(r_cmd, cwd=wt_dir)
+        proc = subprocess.run(r_cmd, cwd=wt_dir, timeout=600)
         if proc.returncode != 0:
             print("❌ Readiness verification failed.")
             return 1
@@ -210,7 +210,7 @@ def cmd_review(args: argparse.Namespace) -> int:
         verify_commit_script = wt_dir / "tools" / "verify_commit.py"
         if verify_commit_script.exists() and not getattr(args, "skip_readiness_run", False):
             print("\nExecuting Tier 1 structural verification...")
-            proc = subprocess.run([py, str(verify_commit_script), "--all"], cwd=wt_dir)
+            proc = subprocess.run([py, str(verify_commit_script), "--all"], cwd=wt_dir, timeout=300)
             if proc.returncode != 0:
                 print("❌ Tier 1 structural verification failed.")
                 return 1

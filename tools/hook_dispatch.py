@@ -205,7 +205,7 @@ def handle_pre_run_command(payload: Dict[str, Any]) -> int:
     return emit_decision("allow")
 
 
-def handle_pre_model_neutral(payload: Dict[str, Any]) -> int:
+def handle_pre_model_neutral(payload: Dict[str, Any], repo_root: Path = ROOT) -> int:
     """PreToolUse guard against proprietary model names in paths."""
     tool_call = payload.get("toolCall", {})
     args = tool_call.get("args", {})
@@ -214,15 +214,35 @@ def handle_pre_model_neutral(payload: Dict[str, Any]) -> int:
     if not target_file:
         return emit_decision("allow")
 
-    from tools.lint_model_neutral_naming import check_file_model_neutrality
+    from tools.lint_model_neutral_naming import check_path_model_neutrality
 
-    violations = check_file_model_neutrality(Path(target_file), ROOT)
-    path_violations = [v for v in violations if "path" in v.lower() or "embedded" in v.lower()]
+    path_violations = check_path_model_neutrality(Path(target_file), repo_root)
     if path_violations:
         reason = f"Model-neutral path violation: {'; '.join(path_violations)}"
         sys.stderr.write(f"\n[Antigravity Hook BLOCK] {reason}\n")
         return emit_decision("deny", reason=reason)
 
+    return emit_decision("allow")
+
+
+def handle_pre_model_registry(payload: Dict[str, Any], repo_root: Path = ROOT) -> int:
+    """PreToolUse guard ensuring model tokens written to plans resolve against approved registry."""
+    tool_call = payload.get("toolCall", {})
+    args = tool_call.get("args", {})
+    target_file = str(args.get("TargetFile") or args.get("Path") or args.get("path") or "")
+    content = str(args.get("CodeContent") or args.get("Content") or args.get("Replacement") or "")
+    if not target_file or not content or not target_file.endswith(".md") or "plans/" not in target_file.replace("\\", "/"):
+        return emit_decision("allow")
+    try:
+        from tools.hitl_governance import detect_unapproved_model_tokens
+
+        unapproved = detect_unapproved_model_tokens(content, repo_root=repo_root)
+        if unapproved:
+            reason = f"Unapproved model identifier(s) in plan: {', '.join(unapproved)}. Resolve against config/provider_profiles.yaml."
+            sys.stderr.write(f"\n[Antigravity Hook BLOCK] {reason}\n")
+            return emit_decision("deny", reason=reason)
+    except Exception:  # guardian: allow-silent-swallow -- fail open only if import/helper unavailable
+        pass
     return emit_decision("allow")
 
 
@@ -628,6 +648,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             "stop_wave_summary",
             "pre_run_command",
             "pre_model_neutral",
+            "pre_model_registry",
             "pre_ask_question",
             "post_ask_question",
             "pre_subagent_delegation",
@@ -652,7 +673,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     elif args.hook == "pre_run_command":
         return handle_pre_run_command(payload)
     elif args.hook == "pre_model_neutral":
-        return handle_pre_model_neutral(payload)
+        return handle_pre_model_neutral(payload, args.repo_root)
+    elif args.hook == "pre_model_registry":
+        return handle_pre_model_registry(payload, args.repo_root)
     elif args.hook == "pre_ask_question":
         return handle_pre_ask_question(payload, args.repo_root)
     elif args.hook == "post_ask_question":

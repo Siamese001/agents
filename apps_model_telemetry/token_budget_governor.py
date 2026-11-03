@@ -270,7 +270,7 @@ def reconcile_token_reservation(
                     total_reserved += t
                     s = str(row.get("stage") or "unspecified")
                     stage_reserved[s] = stage_reserved.get(s, 0) + t
-            except Exception:
+            except Exception:  # guardian: allow-silent-swallow -- skip malformed JSONL reservation ledger line
                 pass
 
     total_actual = 0
@@ -286,7 +286,7 @@ def reconcile_token_reservation(
                 total_actual += t
                 s = str(row.get("stage") or "unspecified")
                 stage_actual[s] = stage_actual.get(s, 0) + t
-            except Exception:
+            except Exception:  # guardian: allow-silent-swallow -- skip malformed JSONL actual-usage ledger line
                 pass
 
     return {

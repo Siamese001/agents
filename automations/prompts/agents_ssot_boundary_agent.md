@@ -5,10 +5,10 @@
 
 ## 1. Objective & Scope (`C01`)
 
-Execute a deterministic, fail-closed **SSOT Conformance & Subsystem Boundary Governance Audit & Remediation** exclusively within `/Users/amitayer/Git/agents` (`05:45 ET`, Order `2/7`). This agent enforces unidirectional layer imports (`L0–L6`), strict subsystem encapsulation across `outreach_engine/` (`apps_lic`), `resume_engine/` + `resume_graph_engine/` (`apps_rg`), `apps_research/`, and `infrastructure/`, model-neutral artifact naming, and `AGENTS.md` / `.agents/rules/conformance-map.md` synchronization.
+Execute a deterministic, fail-closed **SSOT Conformance & Subsystem Boundary Governance Audit & Remediation** exclusively within `/Users/amitayer/Git/agents` (`05:25 ET`, Order `2/7`). This agent enforces unidirectional layer imports (`L0–L6`), strict subsystem encapsulation across all 9 repository packages (`agents/`, `apps_model_telemetry/`, `outreach_engine/`, `resume_engine/`, `resume_graph_engine/src/`, `apps_research/`, `apps_eval/`, `infrastructure/`, `ops_scripts/`), config/data SSOT drift (`config/` vs `resume_graph_engine/config/`), model-neutral naming and pin integrity, portable MCP/hook/boundary definitions (`.mcp.json`, `.agents/hooks.json`, `.antigravity/runtime-boundary.json`), and `AGENTS.md` / `.agents/rules/conformance-map.md` link synchronization.
 
 ### Cross-Agent MECE De-Overlap Boundary
-- **Owned exclusively by this agent**: Cross-subsystem import boundaries (`lint_architecture_boundaries.py`, `lint_layer_imports.py`), model-neutral naming (`lint_model_neutral_naming.py`), provider profile registry conformance (`config/provider_profiles.yaml`), and `AGENTS.md` / `.agents/` rule synchronization.
+- **Owned exclusively by this agent**: Cross-subsystem import boundaries (`ssot_boundary_auditor.py`, `lint_architecture_boundaries.py`, `lint_layer_imports.py`), production purity (`lint_production_purity.py`), config/schema/pin SSOT (`check_config_ssot_drift.py`, `lint_model_pins.py`, `lint_contract_schemas.py`, `lint_file_budgets.py`), model-neutral naming (`lint_model_neutral_naming.py`), and `.mcp.json` / `.agents/` / `.antigravity/` synchronization.
 - **Delegated to peer agents**: Worktree/SQLite hygiene (`agents-storage-worktree-hygiene`), E2E runtime behavior (`agents-outreach-resume-functionality`), retrieval quality (`agents-research-retrieval-surface`), judge rubrics (`agents-evals-judge-assurance`), token cost (`agents-cost-token-budget`), and pytest coverage (`agents-testing-gaps-assurance`).
 
 ---
@@ -17,9 +17,10 @@ Execute a deterministic, fail-closed **SSOT Conformance & Subsystem Boundary Gov
 
 - **Shared Governance Contract**: Dereferences `automations/prompts/_shared_governance_contract.md` (`C01–C12`).
 - **Repository Boundary (`INV-REPO-SEPARATION-AGENTS-ONLY`)**: Bound exclusively to `/Users/amitayer/Git/agents`.
-- **Unconditional Wave-Based Plan Mandate (`UNCONDITIONAL_WAVE_PLAN_MANDATE`)**:
-  - In **BOTH** `MODE: scheduled` and `MODE: interactive`, this agent MUST author a wave-based remediation plan at `plans/<branch-slug>-<6hex>.md` (and copy to `<run_dir>/implementation_plan.md`) decomposed into sequential numbered waves (`## Wave 1: ...`, `## Wave 2: ...`) and validate it via `python3 tools/validate_implementation_plan.py --file plans/<branch-slug>-<6hex>.md` (`exit code 0`).
-  - In `MODE: scheduled`, copy durable artifacts to `<PRIMARY_REPO_ROOT>/artifacts/sidecar_runs/agents_ssot_boundary/<run_id>/`, prune the ephemeral worktree (`INV-WT-EPHEMERAL-SCHEDULED`), and exit `COMPLETE` or `OPERATOR_INPUT_REQUIRED` with zero code mutations.
+- **Zero-Defect Fast-Exit & Wave-Based Plan Mandate (`C03`, `UNCONDITIONAL_WAVE_PLAN_MANDATE`)**:
+  - When Phase 1.5 reports `0` actionable findings (`is_clean: true`), fast-exit cleanly per `C03`: copy `${RUN_DIR}` to `<PRIMARY_REPO_ROOT>/artifacts/sidecar_runs/agents_ssot_boundary/${RUN_TS}`, tear down the ephemeral worktree via `pr_governance.py submit --stage-only`, and exit `COMPLETE` without authoring a synthetic plan.
+  - Whenever `>= 1` findings exist in **EITHER** `MODE: scheduled` or `MODE: interactive`, author a wave-based remediation plan at `${WORKTREE_DIR}/plans/<branch-slug>-<6hex>.md` (and copy to `${RUN_DIR}/implementation_plan.md`) decomposed into sequential numbered waves (`## Wave 1: ...`, `## Wave 2: ...`) and validate it via `validate_implementation_plan.py --file "${WORKTREE_DIR}/plans/<branch-slug>-<6hex>.md"` (`exit code 0`).
+  - In `MODE: scheduled`, stage validated fixes on `${BRANCH_NAME}` via `pr_governance.py submit "${BRANCH_NAME}" --stage-only` without mutating `local main` directly.
 
 ---
 
@@ -48,58 +49,33 @@ Write `${RUN_DIR}/manifest.json` recording `agent_id`, `run_id`, `mode`, `pre_st
 ## 4. Phase 1 & Phase 1.5: 6-Dimension Read-Only Audit & Executable Forensic Scanners
 
 ### Phase 1: 6-Dimension SSOT & Boundary Audit
-1. **Dimension 1 — Cross-Subsystem Encapsulation**: Verify zero illegal direct imports between `outreach_engine/` (`apps_lic`) and `resume_engine/` / `resume_graph_engine/` (`apps_rg`), and verify shared research contracts flow strictly through `apps_research/` and `infrastructure/`.
-2. **Dimension 2 — Unidirectional Layer Imports (`L0–L6`)**: Run `python3 tools/lint_layer_imports.py` and `python3 tools/lint_architecture_boundaries.py`.
-3. **Dimension 3 — Model-Neutral Naming & Provider Catalog SSOT**: Run `python3 tools/lint_model_neutral_naming.py` and verify every model token resolves against `config/provider_profiles.yaml`.
-4. **Dimension 4 — Constitutional AST Floor**: Scan `outreach_engine/`, `resume_engine/`, `resume_graph_engine/`, and `apps_research/` for `subprocess.run` calls missing `timeout=`, bare `except Exception:` without guardian comments, or `pytest.mark.skip` without `strict=True`.
-5. **Dimension 5 — Governance Conformance Map Synchronization**: Verify every rule, hook, and validator referenced in `AGENTS.md` and `.agents/rules/conformance-map.md` exists on disk, and `AGENTS.md` remains $\le 200$ lines.
-6. **Dimension 6 — Sidecar Separation Integrity**: Run `python3 tools/validate_sidecar_separation.py --json`.
+1. **Dimension 1 — Cross-Subsystem Encapsulation**: Verify zero illegal direct imports across `agents/`, `apps_model_telemetry/`, `outreach_engine/`, `resume_engine/`, `resume_graph_engine/src/`, `apps_research/`, `apps_eval/`, `infrastructure/`, and `ops_scripts/`.
+2. **Dimension 2 — Unidirectional Layer Imports, File Budgets & Production Purity**: Run `lint_layer_imports.py`, `lint_architecture_boundaries.py`, `lint_production_purity.py`, and `lint_file_budgets.py`.
+3. **Dimension 3 — Model-Neutral Naming, Pins & Config SSOT Drift**: Run `lint_model_neutral_naming.py`, `lint_model_pins.py --strict`, `lint_contract_schemas.py`, and `check_config_ssot_drift.py --strict` across all config and data surfaces.
+4. **Dimension 4 — Constitutional AST Floor**: Scan all 9 packages plus `tools/` for `subprocess.*` calls missing `timeout=` and silent `except Exception: pass` without guardian comments.
+5. **Dimension 5 — MCP, Hooks, Runtime Boundary & Conformance Link Sync**: Verify `.mcp.json` and `.agents/mcp_config.json` portability, `.antigravity/runtime-boundary.json` `allowedSubsystems`, `.agents/hooks.json`, and zero broken links in `AGENTS.md` / `.agents/rules/conformance-map.md`.
+6. **Dimension 6 — Sidecar Separation Integrity**: Run `validate_sidecar_separation.py --repo-root "${WORKTREE_DIR}" --json`.
 
 ### Phase 1.5: Mandatory Executable Forensic Scanner Commands
-Execute the following bounded AST and linter sweep in `${WORKTREE_DIR}` (`timeout <= 90s`):
+Execute the bounded 6-dimension boundary and SSOT auditor in `${WORKTREE_DIR}` (`timeout <= 90s`):
 
 ```bash
-python3 tools/lint_layer_imports.py
-python3 tools/lint_architecture_boundaries.py
-python3 tools/lint_model_neutral_naming.py
-python3 tools/validate_sidecar_separation.py --json
-python3 - <<'PY'
-import ast, json
-from pathlib import Path
-
-root = Path("/Users/amitayer/Git/agents")
-targets = ["outreach_engine", "resume_engine", "resume_graph_engine", "apps_research", "apps_lic", "apps_rg", "infrastructure"]
-violations = []
-for d in targets:
-    base = root / d
-    if not base.exists():
-        continue
-    for py in base.rglob("*.py"):
-        try:
-            tree = ast.parse(py.read_text(encoding="utf-8"))
-        except Exception:
-            continue
-        for node in ast.walk(tree):
-            if isinstance(node, ast.ImportFrom) and node.module:
-                if d in ("outreach_engine", "apps_lic") and node.module.startswith(("resume_engine", "resume_graph_engine", "apps_rg")):
-                    violations.append({"file": str(py.relative_to(root)), "line": node.lineno, "illegal_import": node.module})
-                elif d in ("resume_engine", "resume_graph_engine", "apps_rg") and node.module.startswith(("outreach_engine", "apps_lic")):
-                    violations.append({"file": str(py.relative_to(root)), "line": node.lineno, "illegal_import": node.module})
-
-print(json.dumps({"cross_subsystem_violations": violations, "agents_md_lines": len((root / "AGENTS.md").read_text().splitlines())}, indent=2))
-PY
+"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/ssot_boundary_auditor.py" \
+  --repo-root "${WORKTREE_DIR}" \
+  --output "${RUN_DIR}/audit_report.json" \
+  --json
+"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/lint_contract_schemas.py" --all --repo-root "${WORKTREE_DIR}"
+"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/lint_file_budgets.py" --all --repo-root "${WORKTREE_DIR}"
 ```
-
-Write the structured findings to `${RUN_DIR}/audit_report.json`.
 
 ---
 
 ## 5. Phase 2: Unconditional Wave Plan Generation & 20% Margin HITL Gate (`C04`, `C05`)
 
 ### Step 2.1: Unconditional Wave-Based Plan Generation (`UNCONDITIONAL_WAVE_PLAN_MANDATE`)
-Author `${WORKTREE_DIR}/plans/ssot-boundary-remediation-${HEX6}.md` (500–800 words, max 1,000 words) structured into sequential waves:
-- `## Wave 1: Subsystem Boundary & Layer Import Remediation`
-- `## Wave 2: Model Registry, Constitutional Floor & Conformance Map Sync`
+When findings exist (`is_clean == false`), author `${WORKTREE_DIR}/plans/ssot-boundary-remediation-${HEX6}.md` (500–800 words, max 1,000 words) structured into sequential waves:
+- `## Wave 1: Subsystem Boundary, Layer Import & Timeout Remediation`
+- `## Wave 2: Model Registry, Config Drift & Conformance Map Sync`
 Each wave MUST include `### Objective & Scope`, `### Milestones & Deliverables`, `### Acceptance Criteria`, and `### Runtime Receipt & Completion Gate` (`Run:`, `Input:`, `Expected:`, `Verify independently:`, `Fail if:`, `Record:`), plus `## Wave Implementation & Completion Status Table`.
 Validate immediately:
 ```bash
@@ -122,8 +98,8 @@ For each wave (`Wave 1 -> Wave N`):
    - Capture `PRE_MUTATION_RUN` linter/AST violations.
    - Apply bounded boundary/SSOT fixes.
    - Run `POST_MUTATION_RUN` linters and scoped pytest (`--timeout=60`, `WaitMsBeforeAsync >= 15000`):
-     `"${PRIMARY_REPO_ROOT}/.venv/bin/pytest" "${WORKTREE_DIR}/tests/test_model_neutral_naming.py" -v --timeout=60`
+     `"${PRIMARY_REPO_ROOT}/.venv/bin/pytest" "${WORKTREE_DIR}/tests/test_model_neutral_naming.py" "${WORKTREE_DIR}/tests/test_turn_gates.py" -v --timeout=60`
    - Verify state independently and record the 5-column proof table in `${RUN_DIR}/wave_receipts.md`.
 2. **Closed-Loop System Learning (`C07`)**: Record outcome in `HITLDecisionStore`.
 3. **Turn, Commit & Promotion Gates (`C09`, `C10`)**:
-   Run `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/validate_sidecar_separation.py" --repo-root "${WORKTREE_DIR}" --json`, `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/validate_turn_gates.py" --mode all`, and `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/verify_commit.py"`, commit via `git -C "${WORKTREE_DIR}" commit`, then stage via `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/pr_governance.py" -C "${WORKTREE_DIR}" submit "${BRANCH_NAME}" --stage-only` in scheduled mode or promote after interactive `ask_question` `PR_MERGE_AUTHORIZATION` via `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/pr_governance.py" -C "${WORKTREE_DIR}" submit "${BRANCH_NAME}" --title "fix(boundaries): remediate ssot and subsystem boundary drift"`.
+   Run `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/validate_sidecar_separation.py" --repo-root "${WORKTREE_DIR}" --json`, `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/validate_turn_gates.py" --repository-root "${WORKTREE_DIR}" --mode all`, and `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/verify_commit.py" --repo-root "${WORKTREE_DIR}"`, commit via `git -C "${WORKTREE_DIR}" commit`, then stage via `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/pr_governance.py" -C "${WORKTREE_DIR}" submit "${BRANCH_NAME}" --stage-only` in scheduled mode or promote after interactive `ask_question` `PR_MERGE_AUTHORIZATION` via `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/pr_governance.py" -C "${WORKTREE_DIR}" submit "${BRANCH_NAME}" --title "fix(boundaries): remediate ssot and subsystem boundary drift"`.

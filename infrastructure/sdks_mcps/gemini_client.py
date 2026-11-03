@@ -37,7 +37,7 @@ from typing import TYPE_CHECKING, Any, Callable
 PromptMessages: Any = Any
 
 
-DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
+DEFAULT_GEMINI_MODEL = "gemini-3.8-flash"  # guardian: allow-model-id -- SDK default aligned with provider_profiles.yaml
 
 # Slot codes that populate the Gemini ``system_instruction`` field. U0 is the
 # user turn and is surfaced via ``contents``.

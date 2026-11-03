@@ -5,10 +5,10 @@
 
 ## 1. Objective & Scope (`C01`)
 
-Execute a deterministic, fail-closed **Evals, Judge Validity, and Production Derivation Purity Audit & Remediation** exclusively within `/Users/amitayer/Git/agents` (`06:30 ET`, Order `5/7`). This agent audits evaluation rubrics, judge scoring schemas, benchmark dataset integrity, and production derivation purity (`tools/lint_production_purity.py`) across `apps_eval/`, `tools/eval/`, `outreach_engine/` (`apps_lic`), `resume_engine/` (`apps_rg`), and `apps_research/`.
+Execute a deterministic, fail-closed **Evals, Judge Validity, Holdout Dataset, and Production Derivation Purity Audit & Remediation** exclusively within `/Users/amitayer/Git/agents` (`06:40 ET`, Order `5/7`). This agent audits evaluation rubrics (`config/exit_eval_rubrics/`, `config/judges/`), `[0.0, 1.0]` score bounds, judge model bindings (`config/provider_profiles.yaml`), benchmark/holdout dataset integrity across all 154 files in `data/`, and production derivation purity (`tools/lint_production_purity.py`) across `apps_eval/`, `outreach_engine/`, `resume_engine/`, `resume_graph_engine/`, and `apps_research/`.
 
 ### Cross-Agent MECE De-Overlap Boundary
-- **Owned exclusively by this agent**: Judge scoring rubrics, pairwise/pointwise evaluation harnesses (`apps_eval/`, `tools/eval/`), golden fixture isolation (`lint_production_purity.py`), and hallucination/grounding evaluation gates for outreach and resume outputs.
+- **Owned exclusively by this agent**: Judge scoring rubrics and `[0.0, 1.0]` bounds (`validate_eval_rubrics.py`), evaluation harnesses (`apps_eval/`), `data/` holdout/certification/calibration dataset integrity (`154` files), golden fixture isolation (`lint_production_purity.py`), and grounding evaluation gates.
 - **Delegated to peer agents**: Worktree/SQLite hygiene (`agents-storage-worktree-hygiene`), static layer imports (`agents-ssot-boundary-governance`), E2E runtime handoffs (`agents-outreach-resume-functionality`), retrieval ranking (`agents-research-retrieval-surface`), token cost (`agents-cost-token-budget`), and unit test coverage (`agents-testing-gaps-assurance`).
 
 ---
@@ -17,9 +17,10 @@ Execute a deterministic, fail-closed **Evals, Judge Validity, and Production Der
 
 - **Shared Governance Contract**: Dereferences `automations/prompts/_shared_governance_contract.md` (`C01–C12`).
 - **Repository Boundary (`INV-REPO-SEPARATION-AGENTS-ONLY`)**: Bound exclusively to `/Users/amitayer/Git/agents`.
-- **Unconditional Wave-Based Plan Mandate (`UNCONDITIONAL_WAVE_PLAN_MANDATE`)**:
-  - In **BOTH** `MODE: scheduled` and `MODE: interactive`, this agent MUST author a wave-based remediation plan at `plans/<branch-slug>-<6hex>.md` (and copy to `<run_dir>/implementation_plan.md`) decomposed into sequential numbered waves (`## Wave 1: ...`, `## Wave 2: ...`) and validate it via `python3 tools/validate_implementation_plan.py --file plans/<branch-slug>-<6hex>.md` (`exit code 0`).
-  - In `MODE: scheduled`, copy durable artifacts to `<PRIMARY_REPO_ROOT>/artifacts/sidecar_runs/agents_evals_judge_assurance/<run_id>/`, prune the ephemeral worktree (`INV-WT-EPHEMERAL-SCHEDULED`), and exit `COMPLETE` or `OPERATOR_INPUT_REQUIRED` with zero code mutations.
+- **Zero-Defect Fast-Exit & Wave-Based Plan Mandate (`C03`, `UNCONDITIONAL_WAVE_PLAN_MANDATE`)**:
+  - When Phase 1.5 reports `0` actionable findings (`is_clean: true`), fast-exit cleanly per `C03`: copy `${RUN_DIR}` to `<PRIMARY_REPO_ROOT>/artifacts/sidecar_runs/agents_evals_judge_assurance/${RUN_TS}`, tear down the ephemeral worktree via `pr_governance.py submit --stage-only`, and exit `COMPLETE` without authoring a synthetic plan.
+  - Whenever `>= 1` findings exist in **EITHER** `MODE: scheduled` or `MODE: interactive`, author a wave-based remediation plan at `${WORKTREE_DIR}/plans/<branch-slug>-<6hex>.md` (and copy to `${RUN_DIR}/implementation_plan.md`) decomposed into sequential numbered waves (`## Wave 1: ...`, `## Wave 2: ...`) and validate it via `validate_implementation_plan.py --file "${WORKTREE_DIR}/plans/<branch-slug>-<6hex>.md"` (`exit code 0`).
+  - In `MODE: scheduled`, stage validated fixes on `${BRANCH_NAME}` via `pr_governance.py submit "${BRANCH_NAME}" --stage-only` without mutating `local main` directly.
 
 ---
 
@@ -48,47 +49,31 @@ Write `${RUN_DIR}/manifest.json` recording `agent_id`, `run_id`, `mode`, `pre_st
 ## 4. Phase 1 & Phase 1.5: 6-Pillar Evals & Judge Audit & Executable Forensic Scanners
 
 ### Phase 1: 6-Pillar Evals & Judge Assurance Audit
-1. **Pillar 1 — Production Derivation Purity (`lint_production_purity.py`)**: Verify zero golden fixtures, benchmark answers, or precomputed conclusions are imported or returned inside production modules (`outreach_engine/`, `resume_engine/`, `resume_graph_engine/`, `apps_research/`).
-2. **Pillar 2 — Outreach Personalization & Compliance Rubric Validity**: Verify outreach evaluators score recipient grounding, claim citation, tone compliance, and call-to-action clarity deterministically.
-3. **Pillar 3 — Resume Factuality & Role-Fit Judge Calibration**: Verify resume evaluators penalize ungrounded skill claims, fabricated metrics, or missing role-requirement alignment.
-4. **Pillar 4 — Research Synthesis Grounding Gate**: Verify `apps_research` evaluators check claim-to-source attribution and penalize unsupported synthesis.
-5. **Pillar 5 — Judge Schema & Deterministic Parsing**: Ensure judge outputs enforce strict structured schemas with explicit score bounds (`[0.0, 1.0]`) and rationale fields.
-6. **Pillar 6 — Approved Model Profile Binding**: Verify all evaluation and judge model references resolve against `config/provider_profiles.yaml`.
+1. **Pillar 1 — Production Derivation Purity (`lint_production_purity.py`)**: Verify zero golden fixtures, holdout datasets (`data/holdout/`, `data/eval/golden/`), or precomputed conclusions are imported or returned inside production modules.
+2. **Pillar 2 — Exit-Eval Rubric Bounds (`config/exit_eval_rubrics/*.yaml`)**: Verify every exit-eval gate (`X1A`–`X1G`) declares `[0.0, 1.0]` scales, thresholds in `[0.0, 1.0]`, and weighted dimension sums equal to `1.0`.
+3. **Pillar 3 — Judge Rubric Bank & Calibration (`config/judges/rubrics.yaml`)**: Verify `scale_min <= warn_threshold <= pass_threshold <= scale_max` and `unknown_budget` in `[0.0, 1.0]`.
+4. **Pillar 4 — Holdout & Certification Dataset Integrity (`data/`)**: Verify all 154 benchmark, holdout, certification, and judge calibration files in `data/` are non-empty and parse cleanly.
+5. **Pillar 5 — Evaluator Module Completeness (`apps_eval/`)**: Ensure evaluation modules and schemas (`config/schemas/*eval*.json`, `config/schemas/*judge*.json`) are non-empty and structurally valid.
+6. **Pillar 6 — Approved Model Profile Binding**: Verify all `judge_models` in `config/provider_profiles.yaml` resolve against the canonical model catalog.
 
 ### Phase 1.5: Mandatory Executable Forensic Scanner Commands
-Execute the following bounded evaluation and purity scanner in `${WORKTREE_DIR}` (`timeout <= 90s`):
+Execute the deterministic rubric, dataset, and production purity validator in `${WORKTREE_DIR}` (`timeout <= 90s`):
 
 ```bash
-python3 tools/lint_production_purity.py
-python3 - <<'PY'
-import ast, json
-from pathlib import Path
-
-root = Path("/Users/amitayer/Git/agents")
-eval_dirs = ["apps_eval", "tools", "outreach_engine", "resume_engine", "resume_graph_engine", "apps_research"]
-eval_files = []
-for d in eval_dirs:
-    base = root / d
-    if not base.exists():
-        continue
-    for py in base.rglob("*.py"):
-        rel = str(py.relative_to(root))
-        if any(k in rel.lower() for k in ("eval", "judge", "rubric", "score", "purity", "metric")):
-            eval_files.append(rel)
-
-print(json.dumps({"eval_and_judge_file_count": len(eval_files), "sample_files": eval_files[:30]}, indent=2))
-PY
+"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/validate_eval_rubrics.py" \
+  --repo-root "${WORKTREE_DIR}" \
+  --output "${RUN_DIR}/audit_report.json" \
+  --json
+"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/lint_production_purity.py" --repo-root "${WORKTREE_DIR}"
 ```
-
-Write the structured findings to `${RUN_DIR}/audit_report.json`.
 
 ---
 
 ## 5. Phase 2: Unconditional Wave Plan Generation & 20% Margin HITL Gate (`C04`, `C05`)
 
 ### Step 2.1: Unconditional Wave-Based Plan Generation (`UNCONDITIONAL_WAVE_PLAN_MANDATE`)
-Author `${WORKTREE_DIR}/plans/evals-judge-assurance-${HEX6}.md` (500–800 words, max 1,000 words) structured into sequential waves:
-- `## Wave 1: Production Purity & Judge Rubric Schema Remediation`
+When findings exist (`is_clean == false`), author `${WORKTREE_DIR}/plans/evals-judge-assurance-${HEX6}.md` (500–800 words, max 1,000 words) structured into sequential waves:
+- `## Wave 1: Production Purity, Holdout Isolation & Judge Rubric Schema Remediation`
 - `## Wave 2: Outreach, Resume & Research Grounding Evaluator Calibration`
 Each wave MUST include `### Objective & Scope`, `### Milestones & Deliverables`, `### Acceptance Criteria`, and `### Runtime Receipt & Completion Gate` (`Run:`, `Input:`, `Expected:`, `Verify independently:`, `Fail if:`, `Record:`), plus `## Wave Implementation & Completion Status Table`.
 Validate immediately:
@@ -111,8 +96,8 @@ For each wave (`Wave 1 -> Wave N`):
 1. **5-Point Counterfactual Runtime Proof (`INV-RUNTIME-PROOF-5POINT`)**:
    - Capture `PRE_MUTATION_RUN` purity/eval metric before edit.
    - Apply bounded evaluator or purity remediation.
-   - Run `POST_MUTATION_RUN` `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/lint_production_purity.py"` and scoped pytest (`--timeout=60`, `WaitMsBeforeAsync >= 15000`).
+   - Run `POST_MUTATION_RUN` `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/validate_eval_rubrics.py" --repo-root "${WORKTREE_DIR}" --json` and scoped pytest (`--timeout=60`, `WaitMsBeforeAsync >= 15000`).
    - Verify state independently and record the 5-column proof table in `${RUN_DIR}/wave_receipts.md`.
 2. **Closed-Loop System Learning (`C07`)**: Record wave outcome in `HITLDecisionStore`.
 3. **Turn, Commit & Promotion Gates (`C09`, `C10`)**:
-   Run `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/validate_sidecar_separation.py" --repo-root "${WORKTREE_DIR}" --json`, `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/validate_turn_gates.py" --mode all`, and `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/verify_commit.py"`, commit via `git -C "${WORKTREE_DIR}" commit`, then stage via `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/pr_governance.py" -C "${WORKTREE_DIR}" submit "${BRANCH_NAME}" --stage-only` in scheduled mode or promote after interactive `ask_question` `PR_MERGE_AUTHORIZATION` via `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/pr_governance.py" -C "${WORKTREE_DIR}" submit "${BRANCH_NAME}" --title "fix(evals): remediate judge rubric and purity gates"`.
+   Run `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/validate_sidecar_separation.py" --repo-root "${WORKTREE_DIR}" --json`, `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/validate_turn_gates.py" --repository-root "${WORKTREE_DIR}" --mode all`, and `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/verify_commit.py" --repo-root "${WORKTREE_DIR}"`, commit via `git -C "${WORKTREE_DIR}" commit`, then stage via `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/pr_governance.py" -C "${WORKTREE_DIR}" submit "${BRANCH_NAME}" --stage-only` in scheduled mode or promote after interactive `ask_question` `PR_MERGE_AUTHORIZATION` via `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/pr_governance.py" -C "${WORKTREE_DIR}" submit "${BRANCH_NAME}" --title "fix(evals): remediate judge rubric and purity gates"`.

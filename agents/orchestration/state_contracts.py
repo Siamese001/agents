@@ -353,12 +353,12 @@ def _safe_serialize(val: Any) -> Any:
         if hasattr(val, method) and callable(getattr(val, method)):
             try:
                 return _safe_serialize(getattr(val, method)())
-            except Exception:
+            except Exception:  # guardian: allow-silent-swallow -- fallback to next serialization strategy
                 pass
     if hasattr(val, "__dict__"):
         try:
             return {str(k): _safe_serialize(v) for k, v in vars(val).items()}
-        except Exception:
+        except Exception:  # guardian: allow-silent-swallow -- fallback to str() representation on non-dict vars
             pass
     return str(val)
 
