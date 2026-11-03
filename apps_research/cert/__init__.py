@@ -33,7 +33,7 @@ def resolve_fec(
     try:
         res = producer(run_context or {})
         return res if isinstance(res, dict) else {}
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:  # noqa: BLE001  # guardian: allow-log-and-swallow -- FEC producer failure logs warning and returns empty dict
         _logger.warning("FEC producer for %s raised %s: %s", app_id, type(exc).__name__, exc)
         return {}
 

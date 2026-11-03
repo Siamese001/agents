@@ -7,6 +7,7 @@ Legacy ``python -m ...ibm_narrative_dispatch`` is retired—use ``python -m apps
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 from apps_rg.runtime.sections.ibm_narrative_lane_defaults import (
     BRIEFING_DEFAULT,
@@ -28,10 +29,10 @@ IBM_NARRATIVE_TEMP_RANGE = (0.30, 0.45)
 
 
 def run_ibm_narrative_lane_execution(
-    args,
+    args: Any,
     *,
     artifact_dir_override: Path | None = None,
-):
+) -> dict[str, Any]:
     """Invoke shared IBM narrative execution with canonical lane provenance in prompt_selection_trace."""
     return _execute_ibm_narrative_lane(
         args,

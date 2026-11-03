@@ -385,7 +385,7 @@ def _call_llm_repair(
                 clean = re.sub(r"^```(?:json)?\s*", "", clean)
                 clean = re.sub(r"\s*```$", "", clean)
             return json.loads(clean)
-    except Exception:
+    except Exception:  # guardian: allow-broad-exception -- optional voice repair returns None on transport or parse failure so caller falls back safely
         return None
 
 

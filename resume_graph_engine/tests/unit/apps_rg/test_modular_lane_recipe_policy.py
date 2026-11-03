@@ -125,4 +125,5 @@ def test_section_calls_contract_phase1_v2_roundtrip() -> None:
     """Golden shape: policy blob is JSON-serializable."""
     rows = [_row(x3="X3_REVIEW_JUDGE_PROVIDER_BLOCKED")]
     s = summarize_modular_lane_recipe_policy(rows, enforce_product_lane_requirements=True)
-    json.dumps(s)
+    encoded = json.dumps(s)
+    assert json.loads(encoded) == s

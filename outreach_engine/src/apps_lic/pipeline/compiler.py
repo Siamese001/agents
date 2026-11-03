@@ -65,7 +65,7 @@ def _load_cached_yaml_template(file_path_str: str, mtime: float) -> Dict[str, An
     try:
         with open(file_path_str, "r", encoding="utf-8") as f:
             return yaml.safe_load(f) or {}
-    except Exception:
+    except (OSError, yaml.YAMLError, ValueError):
         return {}
 
 

@@ -168,7 +168,7 @@ def get_git_commit(repo_root: Path | None = None) -> str:
         )
         if res.returncode == 0 and res.stdout.strip():
             return res.stdout.strip()
-    except Exception:
+    except (OSError, subprocess.SubprocessError):
         pass
     return "UNKNOWN"
 

@@ -8,6 +8,7 @@ contract locally and imports the optional SDK only when a client is requested.
 from __future__ import annotations
 
 import os
+from typing import Any
 
 
 _DEFAULT_OPENAI_TIMEOUT_SECONDS = 120.0
@@ -39,7 +40,7 @@ def _openai_timeout_seconds() -> float:
     return min(600.0, max(5.0, value))
 
 
-def create_openai_client():
+def create_openai_client() -> Any:
     """Create an asynchronous OpenAI client without a monorepo dependency."""
     import openai
 
@@ -50,7 +51,7 @@ def create_openai_client():
     )
 
 
-def create_openai_sync_client():
+def create_openai_sync_client() -> Any:
     """Create a synchronous OpenAI client without a monorepo dependency."""
     import openai
 

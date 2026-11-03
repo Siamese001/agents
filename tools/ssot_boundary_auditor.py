@@ -122,10 +122,12 @@ def audit_constitutional_ast_floor(repo_root: Path) -> dict[str, list[str]]:
                         )
                         if not has_timeout:
                             missing_timeouts.append(f"{rel_str}:{node.lineno}: subprocess.{node.func.attr} missing timeout=")
-                elif rel_dir in ("agents", "apps_model_telemetry") and isinstance(node, ast.ExceptHandler):
+                elif rel_dir in SUBSYSTEM_TARGETS and isinstance(node, ast.ExceptHandler):
                     if isinstance(node.type, ast.Name) and node.type.id == "Exception":
                         line_txt = lines[node.lineno - 1] if 0 <= node.lineno - 1 < len(lines) else ""
-                        if len(node.body) == 1 and isinstance(node.body[0], ast.Pass) and not GUARDIAN_COMMENT_RE.search(line_txt):
+                        prev_txt = lines[node.lineno - 2] if 0 <= node.lineno - 2 < len(lines) else ""
+                        has_guardian = bool(GUARDIAN_COMMENT_RE.search(line_txt) or GUARDIAN_COMMENT_RE.search(prev_txt))
+                        if len(node.body) == 1 and isinstance(node.body[0], ast.Pass) and not has_guardian:
                             unguarded_exceptions.append(f"{rel_str}:{node.lineno}: silent 'except Exception: pass' without guardian")
 
     return {"missing_timeouts": missing_timeouts, "unguarded_exceptions": unguarded_exceptions}

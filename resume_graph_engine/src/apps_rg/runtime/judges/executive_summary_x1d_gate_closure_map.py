@@ -260,7 +260,7 @@ def finding_is_contract_invalid_under_gate_closures(
     return False, None, None
 
 
-def core_gate_closure_map():
+def core_gate_closure_map() -> Any:
     """Export apps_rg closure map in the panel harness shape."""
     from apps_rg.runtime.judges.x1d_panel_harness import (
         GateClosureMap,

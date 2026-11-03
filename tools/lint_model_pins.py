@@ -4,14 +4,9 @@
 Audits model configurations for:
 - Floating pins (e.g. '-latest')
 - Preview pins (e.g. '-preview')
-- Undated or generic family aliases (e.g. 'gpt-4', 'claude-3', 'gemini-pro')
-- Mislabelled aliases (e.g. key indicates one family but value points to another)
-- Conflicting dated snapshots across catalog/routing keys
-- Stale, deprecated, or retired model references
-
-Supports:
-  --report: Diagnostic overview mode (default, exit 0)
-  --strict: Enforcing CI gate (exit 1 if violations found)
+- Undated or generic bare family aliases
+- Mislabelled family aliases (e.g. key promises one family/tier while value resolves to another)
+- Unapproved pins in provider_profiles.yaml missing from the canonical model catalog
 """
 
 from __future__ import annotations
@@ -36,10 +31,34 @@ try:
 except ImportError:
     yaml = None  # type: ignore
 
+from tools.hitl_governance import load_approved_provider_models  # noqa: E402
 
 RE_LATEST = re.compile(r"-[lL]atest$")
 RE_PREVIEW = re.compile(r"-[pP]review$")
-RE_DATED_SNAPSHOT = re.compile(r"-\d{8}$")
+BARE_FAMILY_ALIASES: frozenset[str] = frozenset(
+    {"gpt", "gpt-3.5", "gpt-4", "claude", "claude-2", "claude-3", "gemini", "gemini-pro"}
+)
+CLAUDE_TIERS: tuple[str, ...] = ("haiku", "sonnet", "opus")
+
+
+def _detect_alias_mismatch(key_path: str, val_clean: str) -> str | None:
+    """Detect family/tier mismatches between alias keys and resolved model values."""
+    leaf_key = key_path.rsplit(".", 1)[-1].lower()
+    val_low = val_clean.lower()
+    if "haiku_3" in leaf_key and "haiku-4" in val_low:
+        return f"Key '{key_path}' promises Haiku 3 but resolves to '{val_clean}'"
+    for expected_tier in CLAUDE_TIERS:
+        if re.search(rf"(?:^|_){expected_tier}(?:_|$|\d)", leaf_key):
+            for other_tier in CLAUDE_TIERS:
+                if other_tier != expected_tier and other_tier in val_low and expected_tier not in val_low:
+                    return f"Key '{key_path}' promises '{expected_tier}' tier but resolves to '{val_clean}'"
+    if leaf_key.startswith("openai_") and any(p in val_low for p in ("claude-", "gemini-")):
+        return f"Key '{key_path}' declares OpenAI family but resolves to '{val_clean}'"
+    if leaf_key.startswith("anthropic_") and any(p in val_low for p in ("gpt-", "gemini-")):
+        return f"Key '{key_path}' declares Anthropic family but resolves to '{val_clean}'"
+    if leaf_key.startswith("gemini_") and any(p in val_low for p in ("gpt-", "claude-")):
+        return f"Key '{key_path}' declares Gemini family but resolves to '{val_clean}'"
+    return None
 
 
 def scan_catalog_json(path: Path) -> list[dict[str, Any]]:
@@ -50,55 +69,63 @@ def scan_catalog_json(path: Path) -> list[dict[str, Any]]:
 
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
-    except Exception as exc:
-        findings.append({
-            "file": str(path),
-            "key": "SCHEMA",
-            "val": "",
-            "category": "PARSE_ERROR",
-            "message": f"Failed to parse JSON: {exc}",
-        })
+    except (OSError, json.JSONDecodeError) as exc:
+        findings.append(
+            {
+                "file": str(path),
+                "key": "SCHEMA",
+                "val": "",
+                "category": "PARSE_ERROR",
+                "message": f"Failed to parse JSON: {exc}",
+            }
+        )
         return findings
 
     def check_val(key_path: str, val: Any) -> None:
         if not isinstance(val, str):
             return
         val_clean = val.strip()
-        # Floating
         if RE_LATEST.search(val_clean):
-            findings.append({
-                "file": str(path),
-                "key": key_path,
-                "val": val_clean,
-                "category": "FLOATING_PIN",
-                "message": f"Floating '-latest' pin: '{val_clean}'",
-            })
-        # Preview
+            findings.append(
+                {
+                    "file": str(path),
+                    "key": key_path,
+                    "val": val_clean,
+                    "category": "FLOATING_PIN",
+                    "message": f"Floating '-latest' pin: '{val_clean}'",
+                }
+            )
         if RE_PREVIEW.search(val_clean):
-            findings.append({
-                "file": str(path),
-                "key": key_path,
-                "val": val_clean,
-                "category": "PREVIEW_PIN",
-                "message": f"Preview pin: '{val_clean}'",
-            })
-        # Mislabelled aliases
-        if "haiku_3" in key_path and "haiku-4" in val_clean:
-            findings.append({
-                "file": str(path),
-                "key": key_path,
-                "val": val_clean,
-                "category": "MISLABELLED_ALIAS",
-                "message": f"Key '{key_path}' promises Haiku 3 but resolves to '{val_clean}'",
-            })
-        if "opus" in key_path and "sonnet" in val_clean:
-            findings.append({
-                "file": str(path),
-                "key": key_path,
-                "val": val_clean,
-                "category": "MISLABELLED_ALIAS",
-                "message": f"Key '{key_path}' promises Opus but resolves to '{val_clean}'",
-            })
+            findings.append(
+                {
+                    "file": str(path),
+                    "key": key_path,
+                    "val": val_clean,
+                    "category": "PREVIEW_PIN",
+                    "message": f"Preview pin: '{val_clean}'",
+                }
+            )
+        if val_clean.lower() in BARE_FAMILY_ALIASES and ".legacy." not in key_path and ".generic." not in key_path:
+            findings.append(
+                {
+                    "file": str(path),
+                    "key": key_path,
+                    "val": val_clean,
+                    "category": "BARE_FAMILY_ALIAS",
+                    "message": f"Generic unpinned family alias '{val_clean}' at '{key_path}'",
+                }
+            )
+        mismatch = _detect_alias_mismatch(key_path, val_clean)
+        if mismatch:
+            findings.append(
+                {
+                    "file": str(path),
+                    "key": key_path,
+                    "val": val_clean,
+                    "category": "MISLABELLED_ALIAS",
+                    "message": mismatch,
+                }
+            )
 
     def walk_dict(d: Mapping[str, Any], prefix: str = "") -> None:
         for k, v in d.items():
@@ -120,31 +147,38 @@ def scan_catalog_json(path: Path) -> list[dict[str, Any]]:
     return findings
 
 
-def scan_provider_profiles_yaml(path: Path) -> list[dict[str, Any]]:
-    """Scan provider_profiles YAML files for pin integrity."""
+def scan_provider_profiles_yaml(
+    path: Path,
+    approved_models: set[str] | None = None,
+) -> list[dict[str, Any]]:
+    """Scan provider_profiles YAML files for pin integrity and catalog conformance."""
     findings: list[dict[str, Any]] = []
     if not path.is_file():
         return findings
     if yaml is None:
-        findings.append({
-            "file": str(path),
-            "key": "SCHEMA",
-            "val": "",
-            "category": "PARSE_ERROR",
-            "message": "PyYAML is required for YAML model pin validation (fail-closed)",
-        })
+        findings.append(
+            {
+                "file": str(path),
+                "key": "SCHEMA",
+                "val": "",
+                "category": "PARSE_ERROR",
+                "message": "PyYAML is required for YAML model pin validation (fail-closed)",
+            }
+        )
         return findings
 
     try:
         data = yaml.safe_load(path.read_text(encoding="utf-8"))
-    except Exception as exc:
-        findings.append({
-            "file": str(path),
-            "key": "SCHEMA",
-            "val": "",
-            "category": "PARSE_ERROR",
-            "message": f"Failed to parse YAML: {exc}",
-        })
+    except (OSError, yaml.YAMLError) as exc:
+        findings.append(
+            {
+                "file": str(path),
+                "key": "SCHEMA",
+                "val": "",
+                "category": "PARSE_ERROR",
+                "message": f"Failed to parse YAML: {exc}",
+            }
+        )
         return findings
 
     if not isinstance(data, dict):
@@ -155,30 +189,56 @@ def scan_provider_profiles_yaml(path: Path) -> list[dict[str, Any]]:
             return
         clean = pin.strip()
         if not clean:
-            findings.append({
-                "file": str(path),
-                "key": key_path,
-                "val": clean,
-                "category": "EMPTY_PIN",
-                "message": f"Empty model pin at '{key_path}'",
-            })
+            findings.append(
+                {
+                    "file": str(path),
+                    "key": key_path,
+                    "val": clean,
+                    "category": "EMPTY_PIN",
+                    "message": f"Empty model pin at '{key_path}'",
+                }
+            )
             return
         if RE_LATEST.search(clean):
-            findings.append({
-                "file": str(path),
-                "key": key_path,
-                "val": clean,
-                "category": "FLOATING_PIN",
-                "message": f"Floating pin at '{key_path}': '{clean}'",
-            })
+            findings.append(
+                {
+                    "file": str(path),
+                    "key": key_path,
+                    "val": clean,
+                    "category": "FLOATING_PIN",
+                    "message": f"Floating pin at '{key_path}': '{clean}'",
+                }
+            )
         if RE_PREVIEW.search(clean):
-            findings.append({
-                "file": str(path),
-                "key": key_path,
-                "val": clean,
-                "category": "PREVIEW_PIN",
-                "message": f"Preview pin at '{key_path}': '{clean}'",
-            })
+            findings.append(
+                {
+                    "file": str(path),
+                    "key": key_path,
+                    "val": clean,
+                    "category": "PREVIEW_PIN",
+                    "message": f"Preview pin at '{key_path}': '{clean}'",
+                }
+            )
+        if clean.lower() in BARE_FAMILY_ALIASES:
+            findings.append(
+                {
+                    "file": str(path),
+                    "key": key_path,
+                    "val": clean,
+                    "category": "BARE_FAMILY_ALIAS",
+                    "message": f"Generic unpinned family alias at '{key_path}': '{clean}'",
+                }
+            )
+        if approved_models and clean.lower() not in approved_models:
+            findings.append(
+                {
+                    "file": str(path),
+                    "key": key_path,
+                    "val": clean,
+                    "category": "UNAPPROVED_PIN",
+                    "message": f"Model pin '{clean}' at '{key_path}' is missing from approved model catalog",
+                }
+            )
 
     pin_ownership = data.get("model_pin_ownership", {})
     if isinstance(pin_ownership, dict):
@@ -217,7 +277,8 @@ def scan_provider_profiles_yaml(path: Path) -> list[dict[str, Any]]:
 
 
 def audit_model_pins(repo_root: Path) -> list[dict[str, Any]]:
-    """Run full model pin integrity audit."""
+    """Run full model pin integrity audit across JSON catalogs and YAML routing profiles."""
+    approved = load_approved_provider_models(repo_root)
     targets = [
         repo_root / "config/model_catalog.json",
         repo_root / "resume_graph_engine/config/model_catalog.json",
@@ -232,7 +293,7 @@ def audit_model_pins(repo_root: Path) -> list[dict[str, Any]]:
         if target.suffix == ".json":
             all_findings.extend(scan_catalog_json(target))
         elif target.suffix in (".yaml", ".yml"):
-            all_findings.extend(scan_provider_profiles_yaml(target))
+            all_findings.extend(scan_provider_profiles_yaml(target, approved_models=approved or None))
 
     return all_findings
 

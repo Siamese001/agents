@@ -168,7 +168,7 @@ def _x2_prompt_budget_receipt(
 
         chars_est = runtime_limit_int("model_token_governor.chars_per_token_estimate", 3)
         safety_mult = runtime_limit_float("model_token_governor.safety_multiplier", 1.12)
-    except Exception:
+    except (ImportError, OSError, ValueError, TypeError):
         pass
     estimated = estimate_input_tokens(
         data_only_text,
@@ -519,7 +519,7 @@ class _AppsRgTargetingBriefGoogleJudge(GoogleJudge):
         self.observed_model = observed_model
         return super()._extract_text(response_json)
 
-    def judge(self, dimension: Dimension, context: Mapping[str, Any]):  # type: ignore[override]
+    def judge(self, dimension: Dimension, context: Mapping[str, Any]) -> Any:  # type: ignore[override]
         system, user = build_apps_rg_targeting_brief_x2_prompt(
             brief_text=str(context.get("brief_text") or ""),
             jd_text=str(context.get("jd_text") or ""),

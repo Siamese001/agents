@@ -290,7 +290,7 @@ def populate_stub_descriptions(
         cand_data = json.loads(cand_path.read_text(encoding="utf-8"))
         facts = cand_data.get("candidate_facts") or []
         fact_map = {f.get("candidate_fact_id"): f for f in facts if f.get("candidate_fact_id")}
-    except Exception:
+    except (OSError, json.JSONDecodeError, TypeError, AttributeError):
         return
 
     for nid, node in node_rows.items():

@@ -85,7 +85,7 @@ def _manual_load_env(path: Path, override: bool = False) -> bool:
                 os.environ[k] = v
                 loaded_any = True
         return loaded_any
-    except Exception:
+    except (OSError, UnicodeDecodeError, ValueError):
         return False
 
 

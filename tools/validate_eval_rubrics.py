@@ -1,18 +1,22 @@
 #!/usr/bin/env python3
-"""Deterministic evaluator, judge rubric, and holdout dataset validator for the Agents repository.
+"""Deterministic evaluator, judge rubric, schema, and holdout dataset validator for the Agents repository.
 
 Verifies:
-1. Non-empty evaluation modules across `apps_eval/` and `tools/`.
-2. Exit-evaluation rubric YAML schemas (`config/exit_eval_rubrics/*.yaml`) with `[0.0, 1.0]`
+1. AST parseability and exported callable/class presence across `*eval*.py` modules in `apps_eval/` and `tools/`.
+2. JSON Schema validity (`Draft202012Validator.check_schema`) across evaluation and judge schemas in `config/schemas/`.
+3. Live behavioral execution of `apps_eval` deterministic graders (`ForbiddenContentGrader`, `GroundedClaimGrader`),
+   registry loaders, and L6 eval claim authority (`build_l6_eval_execution_receipt`).
+4. Exit-evaluation rubric YAML schemas (`config/exit_eval_rubrics/*.yaml`) with `[0.0, 1.0]`
    threshold and scale bounds and weighted sum consistency.
-3. Judge rubric bank (`config/judges/rubrics.yaml`) scale/threshold ordering and unknown budgets.
-4. Judge model profile bindings in `config/provider_profiles.yaml` against approved catalog models.
-5. Structural integrity and parseability of all benchmark, certification, and holdout files in `data/`.
-6. Production derivation purity (`tools/lint_production_purity.py`) ensuring zero holdout leakage.
+5. Judge rubric bank (`config/judges/rubrics.yaml`) scale/threshold ordering and unknown budgets,
+   plus `judge_models` bindings in `config/provider_profiles.yaml`.
+6. Structural integrity and parseability of all benchmark, certification, and holdout files in `data/`,
+   plus production derivation purity (`tools/lint_production_purity.py`).
 """
 from __future__ import annotations
 
 import argparse
+import ast
 import json
 import sys
 from pathlib import Path
@@ -27,11 +31,156 @@ from tools.pr_governance_core.common import bootstrap_shared_venv
 bootstrap_shared_venv(REPO_ROOT)
 
 import yaml  # type: ignore  # noqa: E402
+from jsonschema import Draft202012Validator  # type: ignore  # noqa: E402
+from tools.cost_token_budget_probes import load_repo_module  # noqa: E402
 from tools.hitl_governance import load_approved_provider_models  # noqa: E402
 from tools.lint_production_purity import (  # noqa: E402
     PRODUCTION_DIRECTORIES,
     check_file_production_purity,
 )
+
+
+def _validate_eval_modules_ast_and_schemas(repo_root: Path) -> tuple[int, int, list[str]]:
+    """Verify AST syntax + callable definitions on `*eval*.py` modules and JSON Schema validity."""
+    violations: list[str] = []
+    py_files: list[Path] = []
+    for sub in ("apps_eval", "tools"):
+        base = repo_root / sub
+        if base.is_dir():
+            py_files.extend(
+                p
+                for p in sorted(base.rglob("*eval*.py"))
+                if "__pycache__" not in p.parts
+            )
+
+    for p in py_files:
+        rel = str(p.relative_to(repo_root))
+        try:
+            src = p.read_text(encoding="utf-8")
+        except OSError as exc:
+            violations.append(f"{rel}: unreadable evaluation module ({exc})")
+            continue
+        if not src.strip():
+            violations.append(f"Empty evaluation module detected: {rel}")
+            continue
+        try:
+            tree = ast.parse(src, filename=str(p))
+        except SyntaxError as exc:
+            violations.append(f"{rel}:{exc.lineno or 1}: SyntaxError in evaluation module ({exc.msg})")
+            continue
+        has_definition = any(
+            isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.ImportFrom, ast.Assign))
+            for n in tree.body
+        )
+        if not has_definition:
+            violations.append(f"{rel}: evaluation module contains zero AST definitions or exports")
+
+    schema_count = 0
+    schemas_dir = repo_root / "config" / "schemas"
+    if schemas_dir.is_dir():
+        for sf in sorted(schemas_dir.glob("*.json")):
+            if not any(tok in sf.name for tok in ("eval", "judge", "exit_decision", "escalation")):
+                continue
+            schema_count += 1
+            rel_s = str(sf.relative_to(repo_root))
+            try:
+                schema_obj = json.loads(sf.read_text(encoding="utf-8"))
+                Draft202012Validator.check_schema(schema_obj)
+            except Exception as exc:  # guardian: schema validator surfaces arbitrary SchemaError subclasses
+                violations.append(f"{rel_s}: invalid JSON Schema ({exc})")
+
+    return len(py_files), schema_count, violations
+
+
+def _run_live_apps_eval_probes(repo_root: Path) -> list[str]:
+    """Execute live behavioral probes against apps_eval graders, registries, and L6 claim ladder."""
+    violations: list[str] = []
+    if not (repo_root / "apps_eval" / "graders" / "deterministic" / "core.py").is_file():
+        return violations
+
+    contracts_mod, err_c = load_repo_module(repo_root, "apps_eval/contracts/models.py")
+    graders_mod, err_g = load_repo_module(repo_root, "apps_eval/graders/deterministic/core.py")
+    ladder_mod, err_l = load_repo_module(repo_root, "apps_eval/l6_eval_ladder.py")
+    loader_mod, err_r = load_repo_module(repo_root, "apps_eval/registry/loader.py")
+    for label, err in (
+        ("apps_eval/contracts/models.py", err_c),
+        ("apps_eval/graders/deterministic/core.py", err_g),
+        ("apps_eval/l6_eval_ladder.py", err_l),
+        ("apps_eval/registry/loader.py", err_r),
+    ):
+        if err or contracts_mod is None or graders_mod is None or ladder_mod is None or loader_mod is None:
+            violations.append(f"{label}: failed loading live evaluator module ({err})")
+            return violations
+
+    try:
+        default_graders = graders_mod.build_default_graders()
+        if len(default_graders) < 10:
+            violations.append(f"build_default_graders() returned {len(default_graders)} graders (expected >= 10)")
+
+        scenario = contracts_mod.EvalScenario(
+            scenario_id="scn_live_probe",
+            suite_id="suite_probe",
+            app_id="apps_lic",
+            description="Live deterministic grader probe",
+            fixture_path="probe.json",
+            graders=("forbidden_content", "grounded_claim"),
+            rubric_id="rub_probe",
+        )
+        provenance = contracts_mod.FixtureProvenance(
+            scenario_id="scn_live_probe",
+            fixture_path="probe.json",
+        )
+        fixture = contracts_mod.EvalFixture(
+            scenario=scenario,
+            input_dir=".",
+            expected_dir=".",
+            snapshot_path="probe.json",
+            artifacts_dir=".",
+            expected={
+                "forbidden_terms": ["guaranteed_offer"],
+                "grounded_claims_required": True,
+            },
+            provenance=provenance,
+        )
+        clean_snap = contracts_mod.AppOutputSnapshot(
+            app_id="apps_lic",
+            scenario_id="scn_live_probe",
+            x3_disposition="APPROVE",
+            output={"draft": "Grounded executive outreach note referencing verified transformation scope."},
+            claims=[{"id": "c1", "supported": True, "source_ids": ["src_1"]}],
+        )
+        tainted_snap = contracts_mod.AppOutputSnapshot(
+            app_id="apps_lic",
+            scenario_id="scn_live_probe",
+            x3_disposition="REJECT",
+            output={"draft": "This message promises a guaranteed_offer immediately."},
+            claims=[{"id": "c1", "supported": False, "source_ids": []}],
+        )
+
+        fc_grader = graders_mod.ForbiddenContentGrader()
+        gc_grader = graders_mod.GroundedClaimGrader()
+        if not fc_grader.grade(fixture, clean_snap).passed or fc_grader.grade(fixture, tainted_snap).passed:
+            violations.append("ForbiddenContentGrader failed behavioral pass/fail probe")
+        if not gc_grader.grade(fixture, clean_snap).passed or gc_grader.grade(fixture, tainted_snap).passed:
+            violations.append("GroundedClaimGrader failed behavioral pass/fail probe")
+
+        fake_lane_claim = ladder_mod.build_l6_eval_execution_receipt(
+            eval_level="LANE",
+            deterministic_only=True,
+            writer_live=False,
+            graders_live=False,
+        )
+        if fake_lane_claim.execution_claim_status != "FAIL":
+            violations.append("build_l6_eval_execution_receipt failed to block deterministic LANE claim")
+
+        apps_reg = loader_mod.load_apps_registry()
+        graders_reg = loader_mod.load_graders_registry()
+        if set(apps_reg) != {"apps_rg", "apps_lic"} or not graders_reg:
+            violations.append("apps_eval registry loader returned incomplete apps or graders registry")
+    except Exception as exc:  # guardian: fail-closed live evaluator probe harness
+        violations.append(f"Live apps_eval behavioral probe raised error: {exc}")
+
+    return violations
 
 
 def _validate_exit_eval_rubrics(repo_root: Path) -> tuple[int, list[str]]:
@@ -48,7 +197,7 @@ def _validate_exit_eval_rubrics(repo_root: Path) -> tuple[int, list[str]]:
         rel = str(yf.relative_to(repo_root))
         try:
             doc = yaml.safe_load(yf.read_text(encoding="utf-8"))
-        except Exception as exc:
+        except (OSError, yaml.YAMLError) as exc:
             violations.append(f"{rel}: YAML parse error: {exc}")
             continue
         if not isinstance(doc, dict):
@@ -115,7 +264,7 @@ def _validate_judge_rubrics_and_profiles(repo_root: Path) -> list[str]:
                     )
                 if not (0.0 <= ubudget <= 1.0):
                     violations.append(f"{rel}::{dname}: unknown_budget {ubudget} outside [0.0, 1.0]")
-        except Exception as exc:
+        except (OSError, yaml.YAMLError, ValueError, TypeError) as exc:
             violations.append(f"{rel}: failed parsing judge rubrics: {exc}")
 
     prof_path = repo_root / "config" / "provider_profiles.yaml"
@@ -153,34 +302,28 @@ def _validate_data_holdout_surface(repo_root: Path) -> tuple[int, list[str]]:
             if fp.suffix == ".json":
                 json.loads(fp.read_text(encoding="utf-8"))
             elif fp.suffix == ".jsonl":
-                for idx, line in enumerate(fp.read_text(encoding="utf-8").splitlines(), 1):
+                for line in fp.read_text(encoding="utf-8").splitlines():
                     if line.strip():
                         json.loads(line)
             elif fp.suffix in (".yaml", ".yml"):
                 yaml.safe_load(fp.read_text(encoding="utf-8"))
-        except Exception as exc:
+        except (OSError, json.JSONDecodeError, yaml.YAMLError) as exc:
             violations.append(f"{rel}: malformed dataset payload ({exc})")
 
     return file_count, violations
 
 
 def validate_eval_rubrics(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
-    """Audits evaluation modules, rubric score bounds, judge profiles, holdout datasets, and purity."""
+    """Audits evaluation modules, schemas, live graders, rubrics, judge profiles, holdouts, and purity."""
     root = repo_root.resolve()
     violations: list[str] = []
 
     if not (root / "tests").is_dir():
         violations.append("Missing mandatory tests/ directory for evaluation verification.")
 
-    py_files: list[Path] = []
-    for sub in ("apps_eval", "tools"):
-        base = root / sub
-        if base.is_dir():
-            py_files.extend(sorted(base.rglob("*eval*.py")))
-
-    for p in py_files:
-        if p.stat().st_size == 0:
-            violations.append(f"Empty evaluation module detected: {p.relative_to(root)}")
+    eval_mod_count, schema_count, mod_errs = _validate_eval_modules_ast_and_schemas(root)
+    violations.extend(mod_errs)
+    violations.extend(_run_live_apps_eval_probes(root))
 
     exit_rubric_count, rubric_errs = _validate_exit_eval_rubrics(root)
     violations.extend(rubric_errs)
@@ -202,7 +345,8 @@ def validate_eval_rubrics(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
     return {
         "status": "PASS" if is_clean else "FAIL",
         "is_clean": is_clean,
-        "eval_module_count": len(py_files),
+        "eval_module_count": eval_mod_count,
+        "validated_schema_count": schema_count,
         "exit_rubric_count": exit_rubric_count,
         "data_file_count": data_file_count,
         "purity_violation_count": len(purity_errs),
@@ -226,8 +370,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     else:
         print(
             f"[{rep['status']}] Validated {rep['eval_module_count']} eval modules, "
-            f"{rep['exit_rubric_count']} exit rubrics, and {rep['data_file_count']} data files "
-            f"({len(rep['violations'])} violations)."
+            f"{rep['validated_schema_count']} schemas, {rep['exit_rubric_count']} exit rubrics, "
+            f"and {rep['data_file_count']} data files ({len(rep['violations'])} violations)."
         )
     return 0 if rep["is_clean"] else 1
 

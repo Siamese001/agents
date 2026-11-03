@@ -116,7 +116,7 @@ class TestOverviewSynthesisOutputContract:
 
 class TestExampleTwoPhaseGenerationFunction:
     def test_is_callable(self):
-        pass
+        assert callable(AuthenticityPatterns)
 
 
 class TestBufferSizeConstant:
@@ -131,4 +131,4 @@ class TestBatchSizeConstant:
 
 def test_module_importable():
     """Module authenticity_patterns_util must be importable or skip gracefully."""
-    pass  # Import verified at module level
+    assert AuthenticityPatterns is not None

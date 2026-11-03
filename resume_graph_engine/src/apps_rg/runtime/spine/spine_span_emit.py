@@ -121,7 +121,7 @@ def _try_otel_span(
                     if isinstance(value, (str, int, float, bool)):
                         span.set_attribute(f"apps_rg.extra.{key}", value)
         return True
-    except Exception:
+    except Exception:  # guardian: allow-broad-exception -- best-effort OTEL span never raises while receipt remains SSOT
         return False
 
 

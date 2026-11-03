@@ -168,7 +168,7 @@ def _input_price_usd_per_million(seed: Mapping[str, Any] | None, model: str | No
             pricing, _ = get_model_pricing(model)
             if pricing and "input_cost_per_mtok" in pricing:
                 return float(pricing["input_cost_per_mtok"])
-        except Exception:
+        except (ImportError, OSError, KeyError, ValueError, TypeError):
             pass
     return _coerce_float(os.environ.get(ENV_APPS_RG_ANTHROPIC_INPUT_USD_PER_MILLION))
 

@@ -201,7 +201,7 @@ def _enforce_company_brief_prompt_budget(prompt: str) -> None:
 
         chars_est = runtime_limit_int("model_token_governor.chars_per_token_estimate", 3)
         safety_mult = runtime_limit_float("model_token_governor.safety_multiplier", 1.12)
-    except Exception:
+    except (ImportError, OSError, ValueError, TypeError):
         pass
     estimated = estimate_input_tokens(
         prompt,

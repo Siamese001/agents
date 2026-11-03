@@ -46,7 +46,7 @@ def verify_pct_certificate(
             spans=certificate_data.get("spans", []),
             banned_words_clean=certificate_data.get("banned_words_clean", False)
         )
-    except Exception:
+    except (TypeError, ValueError, AttributeError):
         return False
 
     # 1. Cryptographic text match (ensure proof belongs to THIS text)

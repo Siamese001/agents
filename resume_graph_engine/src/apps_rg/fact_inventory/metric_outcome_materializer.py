@@ -390,7 +390,7 @@ def metric_outcome_node_and_edge_rows(
                     )
                 ):
                     blocked_skill_ids.add(str(sid))
-        except Exception:
+        except (OSError, json.JSONDecodeError, TypeError, ValueError):
             pass
 
     # Multi-hop metric outcomes: link bundle facts and skills to candidate metrics

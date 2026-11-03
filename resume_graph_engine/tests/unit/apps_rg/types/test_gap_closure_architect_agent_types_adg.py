@@ -40,7 +40,7 @@ class TestGapClosureArchitectTypesSource:
         assert _SRC.exists()
 
     def test_parses_without_error(self):
-        _tree()
+        assert isinstance(_tree(), ast.Module)
 
     def test_has_competency_item(self):
         assert "CompetencyItem" in _class_names()

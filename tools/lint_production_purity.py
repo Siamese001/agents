@@ -152,7 +152,7 @@ class ProductionPurityVisitor(ast.NodeVisitor):
                     val = stmt.value
                     if isinstance(val, ast.Constant) and isinstance(val.value, str):
                         s = val.value.strip()
-                        if len(s) > 80 and not self._is_prompt_template(s):
+                        if len(s) > 80 and not self._is_prompt_template(s, node.name):
                             if not self._is_exempt(stmt.lineno):
                                 self.violations.append(
                                     (
@@ -233,7 +233,7 @@ class ProductionPurityVisitor(ast.NodeVisitor):
             if any(k in name_lower for k in PREDETERMINED_SYNTHESIS_KEYS):
                 if isinstance(node.value, ast.Constant) and isinstance(node.value.value, str):
                     s = node.value.value.strip()
-                    if len(s) > 80 and not self._is_prompt_template(s):
+                    if len(s) > 80 and not self._is_prompt_template(s, target_name):
                         if not self._is_exempt(node.lineno):
                             self.violations.append(
                                 (
@@ -271,25 +271,27 @@ class ProductionPurityVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     @staticmethod
-    def _is_prompt_template(s: str) -> bool:
-        if "{" in s and "}" in s:
+    def _is_prompt_template(s: str, target_name: str = "") -> bool:
+        target_low = target_name.lower()
+        if any(k in target_low for k in ("prompt", "template", "instruction", "system_msg", "rubric")):
             return True
-        if re.search(r"\$\{[A-Za-z0-9_]+\}|\$[A-Za-z_][A-Za-z0-9_]*", s):
+        s_strip = s.lstrip()
+        # Only recognize genuine placeholder interpolation, never raw JSON object literals starting with `{`
+        if not s_strip.startswith("{") and re.search(
+            r"\{[A-Za-z_][A-Za-z0-9_.]*\}|\$\{[A-Za-z0-9_]+\}|\$[A-Za-z_][A-Za-z0-9_]*",
+            s,
+        ):
             return True
         lower = s.lower()
         if any(
             kw in lower
             for kw in (
-                "you are",
+                "you are ",
                 "instructions:",
                 "prompt:",
                 "guidelines:",
                 "system:",
                 "assistant:",
-                "do not",
-                "proof_boundary",
-                "proof_gap",
-                "remediation",
                 "never introduce",
             )
         ):

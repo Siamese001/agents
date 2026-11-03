@@ -39,7 +39,7 @@ class RuntimePrecedentBridge:
             return 0.0
         try:
             return float(self._store.query_learning_adjustment(category, option_label))
-        except Exception:
+        except (ValueError, TypeError, AttributeError, RuntimeError, OSError):
             return 0.0
 
     def evaluate_runtime_ambiguity(
