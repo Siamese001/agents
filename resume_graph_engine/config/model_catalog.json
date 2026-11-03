@@ -27,6 +27,19 @@
         "anthropic_messages": "max_tokens"
       }
     },
+    "claude-haiku-4-5-20251001": {
+      "provider": "anthropic",
+      "capability_class": "text_generation",
+      "endpoints": ["anthropic_messages"],
+      "reasoning_efforts": ["low", "medium", "high"],
+      "temperature_parameter": "omit",
+      "structured_output": true,
+      "proof_eligible": false,
+      "thinking_mode": "adaptive",
+      "max_output_tokens_parameters": {
+        "anthropic_messages": "max_tokens"
+      }
+    },
     "gemini-3.6-flash": {
       "provider": "google_gemini",
       "capability_class": "text_generation_and_judging",

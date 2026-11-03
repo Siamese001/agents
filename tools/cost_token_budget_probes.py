@@ -223,6 +223,10 @@ def run_pillar_2_live_probes(repo_root: Path, claude_model: str, openai_model: s
         if "1h" not in ttls or "5m" not in ttls:
             gaps.append(f"Expected active Tier-1 '1h' and Tier-2 '5m' TTLs, got {ttls}")
 
+        prewarm = ascp.build_prefix_prewarm_plan([p_a, p_b])
+        if not prewarm.get("prewarm_enabled") or prewarm.get("expected_cold_writes") != 1 or prewarm.get("expected_warm_reads") != 1:
+            gaps.append(f"build_prefix_prewarm_plan failed single-section pre-warming contract: {prewarm}")
+
         # Mismatched compiled system must fail closed to uncached strategy
         art_mismatch = types.SimpleNamespace(
             slot_payloads=slots,
@@ -348,6 +352,26 @@ def run_pillar_3_live_probes(repo_root: Path) -> list[str]:
             gaps.append("C02 semantic cache payload violated PENDING_UWG inert proposal authority")
         if len(payload.get("query_output") or []) != 24:
             gaps.append(f"C02 query_output must cap 30 atoms to 24, got {len(payload.get('query_output') or [])}")
+
+        capped_fact_ids = [f"fact_{i:02d}" for i in range(24)]
+        if not c02.verify_semantic_fact_digest_cache_hit(
+            payload,
+            candidate_similarity=0.991,
+            candidate_fact_ids=capped_fact_ids,
+        ):
+            gaps.append("verify_semantic_fact_digest_cache_hit rejected valid >=0.985 fact-matched hit")
+        if c02.verify_semantic_fact_digest_cache_hit(
+            payload,
+            candidate_similarity=0.991,
+            candidate_fact_ids=capped_fact_ids[:-1] + ["fact_drifted"],
+        ):
+            gaps.append("verify_semantic_fact_digest_cache_hit failed to block drifted fact IDs")
+        if c02.verify_semantic_fact_digest_cache_hit(
+            payload,
+            candidate_similarity=0.970,
+            candidate_fact_ids=capped_fact_ids,
+        ):
+            gaps.append("verify_semantic_fact_digest_cache_hit failed to block below-threshold similarity")
 
         with tempfile.TemporaryDirectory() as tmp:
             tmp_dir = Path(tmp)
@@ -509,6 +533,8 @@ def run_pillar_4_live_probes(repo_root: Path, model_pin: str) -> tuple[list[str]
                     gaps.append("Unverified HERMETIC_FALLBACK must not poison GovernedBriefingResolver._cache")
 
                 with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                    shared_disk = Path(tmp) / "shared_briefing_disk"
+                    resolver.GovernedBriefingResolver.SHARED_DISK_CACHE_DIR = shared_disk
                     res1 = resolver.GovernedBriefingResolver.resolve(
                         company_name="Citi",
                         target_role="Head of AI Strategy",
@@ -516,6 +542,7 @@ def run_pillar_4_live_probes(repo_root: Path, model_pin: str) -> tuple[list[str]
                         auto_research=True,
                         force_fresh=False,
                     )
+                    resolver.GovernedBriefingResolver.clear_cache()
                     res2 = resolver.GovernedBriefingResolver.resolve(
                         company_name="Citi",
                         target_role="Head of AI Strategy",
@@ -523,9 +550,15 @@ def run_pillar_4_live_probes(repo_root: Path, model_pin: str) -> tuple[list[str]
                         auto_research=False,
                         force_fresh=False,
                     )
-                if res2.resolution_source != "CACHE_HIT" or res1.digest != res2.digest or not res2.is_verified:
-                    gaps.append(f"GovernedBriefingResolver second resolve did not CACHE_HIT (got {res2.resolution_source})")
+                if (
+                    res2.resolution_source != "CACHE_HIT"
+                    or res1.digest != res2.digest
+                    or not res2.is_verified
+                    or not res2.metadata.get("reused_from_shared_disk")
+                ):
+                    gaps.append(f"GovernedBriefingResolver second resolve did not hit shared disk cache (got {res2.resolution_source}, meta={res2.metadata})")
             finally:
+                resolver.GovernedBriefingResolver.SHARED_DISK_CACHE_DIR = None
                 resolver.GovernedBriefingResolver.clear_cache()
 
             # 4. Targeting binding digest sensitivity

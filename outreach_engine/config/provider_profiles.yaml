@@ -1,6 +1,6 @@
 provider_profile_registry_id: outreach_engine::provider_profiles::v1
 app_id: outreach_engine
-version: "1.0.0"
+version: "1.1.0"
 status: active
 
 # outreach_engine model and provider routing SSOT.
@@ -11,6 +11,26 @@ model_pin_ownership:
   environment_model_override_allowed: false
   receipt_identity_source: observed_provider_response
 
+ide_argon4_routing_policy:
+  interactive_ide_enabled: true
+  marginal_api_cost_per_mtok_usd: 0.0
+  context_window_tokens: 131072
+  thinking_separation_guaranteed: true
+  high_reasoning_roles:
+    - executive_outreach_generator
+    - recruiter_outreach_generator
+    - company_brief_generation
+  medium_reasoning_roles:
+    - rubric_judge_panel
+    - handoff_judge
+  external_api_retained_only_for:
+    - headless_unattended_batch_ci
+    - cross_family_x1d_dual_provider_proof_judging
+  quality_preservation_gates:
+    - QuestionEndingValidator
+    - ExecutiveOutreachJudgePanel
+    - sanitize_briefing_content
+
 profiles:
   executive_outreach_generator:
     profile_id: outreach_engine::provider::executive_outreach_generator::v1
@@ -18,6 +38,7 @@ profiles:
     provider_class: external_api
     model: gpt-5.6-luna
     reasoning_effort: low
+    ide_internal_tier: argon4_high
     pin_owner: outreach_engine.generator.executive
     pin_review_after: "2026-11-07"
     description: "Peer-to-peer executive outreach draft synthesis"
@@ -28,6 +49,7 @@ profiles:
     provider_class: external_api
     model: gpt-5.6-luna
     reasoning_effort: low
+    ide_internal_tier: argon4_high
     pin_owner: outreach_engine.generator.recruiter
     pin_review_after: "2026-11-07"
     description: "Scannable executive recruiter outreach synthesis"
@@ -36,13 +58,14 @@ profiles:
     profile_id: outreach_engine::provider::rubric_judge_panel::v1
     provider: anthropic
     provider_class: external_api
-    model: claude-3-5-sonnet-20241022
+    model: claude-haiku-4-5-20251001
     backup_provider: google
     backup_model: gemini-3.8-flash
     reasoning_effort: low
+    ide_internal_tier: argon4_medium
     pin_owner: outreach_engine.judges.panel
     pin_review_after: "2026-11-07"
-    description: "Multi-lens executive outreach rubric evaluator"
+    description: "Multi-lens executive outreach rubric evaluator right-sized from legacy Sonnet 3.5 to Haiku 4.5"
 
   company_brief_generation:
     profile_id: outreach_engine::provider::company_brief_generation::v1
@@ -50,6 +73,7 @@ profiles:
     provider_class: external_api
     model: gpt-5.6-terra
     reasoning_effort: low
+    ide_internal_tier: argon4_high
     pin_owner: outreach_engine.research.generation
     pin_review_after: "2026-11-07"
     description: "Company intelligence targeting brief generation"
@@ -60,6 +84,7 @@ profiles:
     provider_class: external_api
     model: gemini-3.8-flash
     reasoning_effort: low
+    ide_internal_tier: argon4_medium
     pin_owner: outreach_engine.research.judge
     pin_review_after: "2026-11-07"
     description: "Research handoff semantic gate judge"

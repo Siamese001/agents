@@ -22,6 +22,34 @@ wave10a_policy:
   default_provider: external_claude
   external_default_status: claude_default_for_apps_rg_e2e
 
+ide_argon4_routing_policy:
+  interactive_ide_enabled: true
+  marginal_api_cost_per_mtok_usd: 0.0
+  context_window_tokens: 131072
+  thinking_separation_guaranteed: true
+  high_reasoning_roles:
+    - executive_summary
+    - headline
+    - competencies
+    - slalom_bullets
+    - unify_bullets
+    - ibm_bullets
+    - insurtech_bullets
+    - ey_bullets
+    - slalom_narrative
+    - unify_narrative
+    - ibm_narrative
+    - insurtech_narrative
+    - ey_narrative
+  medium_reasoning_roles:
+    - competencies_graph_pool_selector
+    - employment_bullet_pool_selector
+    - repair.executive_voice
+  external_api_retained_only_for:
+    - headless_unattended_batch_ci
+    - cross_family_x1d_dual_provider_proof_judging
+  frontier_external_retention_defense: "Headless external generation retains claude-sonnet-5 (low effort) and gpt-5.6-luna (low effort) because strict ALLOWED_SOURCE_FACT_IDS and 6-sentence SRFS_FIVE_PART_EXEC_ARCH_V1 schemas cause 3x-4x retry cascades on smaller external models; interactive IDE execution routes through Argon 4 High/Medium at $0.00 marginal API cost with full thinking separation and identical deterministic validators."
+
 profiles:
   external_openai_generator:
     profile_id: apps_rg::provider::external_openai_generator::v1
