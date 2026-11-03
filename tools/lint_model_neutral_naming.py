@@ -108,6 +108,7 @@ def check_path_model_neutrality(
         rel = str(path.resolve().relative_to(repo_root.resolve())).replace("\\", "/")
     except ValueError:
         rel = str(path).replace("\\", "/")
+        rel = re.sub(r"^.*?/\.gemini/antigravity/brain/[^/]+/", "", rel)
 
     if is_path_exempt(rel):
         return []
