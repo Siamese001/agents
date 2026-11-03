@@ -1875,11 +1875,12 @@ def _judge_rows(
             for provider_key in required_judge_keys
         ]
     mode = "mocked" if mock_judges else "blocked_if_unavailable"
+    candidate_for_judge = {k: v for k, v in l2.items() if k != "selected_fact_plan"}
     proof_rows = [
         judge.to_dict()
         for judge in run_role_episode_judges(
             section_id=cfg.section_id,
-            candidate_output=l2,
+            candidate_output=candidate_for_judge,
             claim_ledger=list(l2.get("claim_ledger") or []),
             judge_keys=required_judge_keys,
             mode=mode,
@@ -2264,12 +2265,11 @@ def run_role_episode_lane_execution(
         parsed = {"narrative_sentence": "", "claim_ledger": [], "jd_alignment": {"targeting_only": True}}
         parse_error = ""
     else:
+        from apps_rg.runtime.sections.lane_perf_sync_helpers import invoke_role_episode_gateway_with_usage_scope
         try:
-            provider_result = _provider_gateway(sid, str(args.provider)).generate(
-                str(args.provider),
-                compiled_obj,
-                token_budget=max_output_tokens,
-                temperature=float(args.temperature),
+            provider_result = invoke_role_episode_gateway_with_usage_scope(
+                artifact_dir=artifact_dir, run_id=run_id, sid=sid, provider=str(args.provider),
+                gateway_fn=_provider_gateway, compiled_obj=compiled_obj, max_output_tokens=max_output_tokens, temperature=float(args.temperature),
             )
         except ProviderGatewayError as exc:
             provider_result = _blocked_provider_result(str(args.provider), str(exc), model=generation_model)

@@ -143,15 +143,16 @@ def test_canonical_targeting_brief_caching() -> None:
 
     brief1, path1 = _resolve_canonical_targeting_brief(
         company_name="Anthropic",
-        job_title="Applied AI",
+        job_title="Manager of Applied AI Architecture, Partnerships",
     )
     if brief1:
+        assert "anthropic_manager_applied_ai_architecture_partnerships_briefing.md" in path1
         assert len(_CANONICAL_TARGETING_BRIEF_CACHE) >= 1
 
         # Second call should hit cache
         brief2, path2 = _resolve_canonical_targeting_brief(
             company_name="Anthropic",
-            job_title="Applied AI",
+            job_title="Manager of Applied AI Architecture, Partnerships",
         )
         assert (brief2, path2) == (brief1, path1)
 

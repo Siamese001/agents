@@ -51,7 +51,7 @@ _ALLOCATION_VISIBLE_SURFACE_COMPOSITIONS: Mapping[tuple[str, str], str] = {
     (
         "reb_slalom_ecosystem_accelerators",
         "skill_partner_hyperscaler_cosell",
-    ): "Enterprise cloud partner hyperscaler co-sell accelerators",
+    ): "Hyperscaler partner alliance solution accelerator packaging",
     (
         "reb_ey_ccar_capital_liquidity_stress_testing",
         "skill_capital_capital_modeling",
@@ -240,18 +240,10 @@ _ALLOCATION_VISIBLE_SURFACE_COMPOSITIONS: Mapping[tuple[str, str], str] = {
         "reb_ibm_aws_alliance_partner_cosell_gtm",
         "skill_partner_hyperscaler_cosell",
     ): "Financial-services hyperscaler alliance co-sell execution",
-    (
-        "reb_ibm_aws_alliance_partner_cosell_gtm",
-        "skill_partner_ibm_aws_alliance_joint_revenue",
-    ): "AI sales frameworks for AWS revenue motions",
-    (
-        "reb_ibm_aws_alliance_partner_cosell_gtm",
-        "skill_partner_alliance_gtm_execution",
-    ): "AWS alliance joint architecture leadership",
-    (
-        "reb_ibm_aws_alliance_partner_cosell_gtm",
-        "skill_sr_w12_hyperscaler_alliance_co_sell",
-    ): "Multi-year hyperscaler co-sell motions for AI growth",
+    ("reb_ibm_aws_alliance_partner_cosell_gtm", "skill_partner_ibm_aws_alliance_joint_revenue"): "joint revenue execution for AWS alliance motions",
+    ("reb_slalom_nextgen_ai_solutions", "skill_agentic_control_plane_design"): "AI control plane design for enterprise solutions",
+    ("reb_ibm_aws_alliance_partner_cosell_gtm", "skill_partner_alliance_gtm_execution"): "AWS alliance joint architecture leadership",
+    ("reb_ibm_aws_alliance_partner_cosell_gtm", "skill_sr_w12_hyperscaler_alliance_co_sell"): "Multi-year hyperscaler co-sell motions for AI growth",
     (
         "reb_ibm_aws_alliance_partner_cosell_gtm",
         "skill_partner_joint_solution_development",
@@ -358,6 +350,7 @@ _ALLOCATION_SURFACE_CATEGORY_OVERRIDES: Mapping[tuple[str, str], str] = {
     ("reb_insurtech_regulated_aws_control_implementation", "skill_soc2_zero_trust_security"): "Governance, Risk & Compliance",
     ("reb_ey_insurance_core_modernization", "skill_insurance_core_to_bi_reporting_handoff"): "Data & Analytics Modernization",
     ("reb_slalom_ecosystem_accelerators", "skill_partner_aws_ecosystem"): "Cloud & Partner Ecosystems",
+    ("reb_slalom_nextgen_ai_solutions", "skill_agentic_control_plane_design"): "Engineering & Delivery Leadership",
     ("reb_ey_ccar_capital_liquidity_stress_testing", "skill_capital_capital_modeling"): "Governance, Risk & Compliance",
     ("reb_ey_capital_optimization_solvency", "skill_risk_greek_stress_testing"): "Governance, Risk & Compliance",
 }
@@ -889,6 +882,7 @@ def _partner_gtm_allocation_display_ceiling(
         "reb_ibm_devsecops_release_resilience",
         "reb_ibm_presales_solution_engineering",
         "reb_slalom_ecosystem_accelerators",
+        "reb_slalom_nextgen_ai_solutions",
         "reb_ey_ccar_capital_liquidity_stress_testing",
         "reb_ey_capital_optimization_solvency",
     }:

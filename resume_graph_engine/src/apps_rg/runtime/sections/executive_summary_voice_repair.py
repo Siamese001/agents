@@ -325,7 +325,7 @@ def _repair_synthesis_quality_sentences(
         repairs.append("s5_meta_commentary_strip")
 
     if _FORMULAIC_S3_RE.match(out_sents[2].strip()):
-        out_sents[2] = _FORMULAIC_S3_RE.sub("Against that lineage backdrop, ", out_sents[2], count=1)
+        out_sents[2] = _FORMULAIC_S3_RE.sub("Within that ecosystem model, ", out_sents[2], count=1)
         repairs.append("formulaic_s3_connective")
 
     if _FORMULAIC_S2_RE.match(out_sents[1].strip()):
@@ -965,7 +965,11 @@ def _repair_ai_partnership_judge_findings(
         and out[5].lower().startswith("future partner-led platform decisions")
     ):
         out[5] = _AI_PARTNERSHIP_EVIDENCE_LED_S6
-    return out
+    from apps_rg.runtime.sections.exec_summary_perf_sync_helpers import repair_legacy_regulated_partnership_arc
+    return repair_legacy_regulated_partnership_arc(
+        out, allowed=allowed, has_partner_evidence=has_partner_evidence,
+        has_devsecops_evidence=has_devsecops_evidence, has_platform_evidence=has_platform_evidence,
+    )
 
 
 _STOCK_BRIDGE_OPENERS: tuple[str, ...] = (
@@ -1240,6 +1244,10 @@ def _source_fact_ids_for_display_sentence(sentence: str) -> list[str]:
         return ["fact_exec_002"]
     if "basel iii" in low and "40%" in low:
         return ["fact_governance_003"]
+    from apps_rg.runtime.sections.exec_summary_perf_sync_helpers import match_legacy_regulated_source_fact_ids
+    _leg_fids = match_legacy_regulated_source_fact_ids(low)
+    if _leg_fids is not None:
+        return _leg_fids
     # Graph DISPLAY_OVERRIDE anchor.
     if _GRAPH_OVERRIDE_ANCHOR in low:
         if "governed agentic ai platform" in low:
@@ -1502,19 +1510,13 @@ def _rebuild_claim_ledger_from_display(parsed: dict[str, Any]) -> dict[str, Any]
             # live graph-era phrase now maps to a more precise required fact, prefer
             # that bounded anchor set so brushstroke coverage cannot be lost by a
             # stale provider row.
-            from apps_rg.runtime.sections.executive_summary_synthesis_contract import (
-                DEPENDENCY_GRAPH_FACT_ID,
-            )
-
-            if (
-                "reb_unify_platform_commercialization_leadership" in anchor_fids
-                or "reb_ibm_devsecops_release_resilience" in anchor_fids
-                or "reb_unify_agentic_platform_architecture" in anchor_fids
-                or DEPENDENCY_GRAPH_FACT_ID in anchor_fids
-            ):
-                fids = anchor_fids
-            else:
-                fids = prior_fids
+            from apps_rg.runtime.sections.executive_summary_synthesis_contract import DEPENDENCY_GRAPH_FACT_ID
+            _anchor_override = {
+                "reb_unify_platform_commercialization_leadership", "reb_ibm_devsecops_release_resilience",
+                "reb_unify_agentic_platform_architecture", "reb_ey_erm_risk_governance",
+                "reb_insurtech_aws_migration_execution", DEPENDENCY_GRAPH_FACT_ID,
+            }
+            fids = anchor_fids if (_anchor_override & set(anchor_fids)) else prior_fids
         else:
             fids = anchor_fids
             if not fids:
@@ -1554,15 +1556,12 @@ def _scrub_graph_era_surface_anomalies(sentences: list[str]) -> list[str]:
         new = sent
         new = re.sub(
             r"\b20%\s+joint\s+(?:outcome|across)\b",
-            lambda m: "20% joint revenue growth across"
-            if m.group(0).lower().endswith("across")
-            else "20% joint revenue growth",
-            new,
-            flags=re.IGNORECASE,
+            lambda m: "joint revenue growth across" if m.group(0).lower().endswith("across") else "joint revenue growth",
+            new, flags=re.IGNORECASE,
         )
         new = re.sub(
             r"\btranslated into\s+(?:in\s+)?IP-led(?:\s+of)?\s+and\s+20%\s+expansion\b",
-            "delivered $22M in IP-led revenue and 20% gross margin expansion",
+            "delivered $22M in IP-led revenue and gross margin expansion",
             new,
             flags=re.IGNORECASE,
         )

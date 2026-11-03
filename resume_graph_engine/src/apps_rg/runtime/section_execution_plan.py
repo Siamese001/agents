@@ -8,7 +8,7 @@ repair. Generation and validation remain in lane modules.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Final
+from typing import Final, Sequence
 
 
 @dataclass(frozen=True)
@@ -206,6 +206,36 @@ def dependencies_for_section(section_id: str) -> tuple[str, ...]:
     return section_policy(section_id).dependencies
 
 
+def execution_waves_for_lanes(lanes: Sequence[str]) -> tuple[tuple[str, ...], ...]:
+    """Partition selected lanes into topological waves using active in-scope dependencies."""
+    canonical_rank = {sid: idx for idx, sid in enumerate(GENERATED_CONTENT_LANES)}
+    ordered: list[str] = []
+    seen: set[str] = set()
+    for raw in lanes:
+        sid = str(raw or "").strip().lower().replace("-", "_")
+        if sid and sid not in seen:
+            seen.add(sid)
+            ordered.append(sid)
+    ordered.sort(key=lambda sid: canonical_rank.get(sid, 999))
+
+    remaining = list(ordered)
+    waves: list[tuple[str, ...]] = []
+    while remaining:
+        remaining_set = set(remaining)
+        ready = tuple(
+            sid
+            for sid in remaining
+            if all(dep not in remaining_set for dep in dependencies_for_section(sid))
+        )
+        if not ready:
+            waves.append(tuple(remaining))
+            break
+        waves.append(ready)
+        ready_set = set(ready)
+        remaining = [sid for sid in remaining if sid not in ready_set]
+    return tuple(waves)
+
+
 def is_generated_content_lane(section_id: str) -> bool:
     return str(section_id or "").strip().lower().replace("-", "_") in SECTION_EXECUTION_POLICIES
 
@@ -226,6 +256,7 @@ __all__ = [
     "SECTION_EXECUTION_POLICIES",
     "SectionExecutionPolicy",
     "dependencies_for_section",
+    "execution_waves_for_lanes",
     "is_generated_content_lane",
     "is_hard_no_retry_runtime_status",
     "section_policy",

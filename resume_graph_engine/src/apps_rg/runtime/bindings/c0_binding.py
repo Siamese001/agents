@@ -408,6 +408,7 @@ def c0_retrieve_apps_rg(
     trace_map_out: list[AppsRgEvidenceTraceMap] | None = None,
     l1_plan: Any | None = None,
     obligation_receipt_artifact_dir: str | Path | None = None,
+    section_id_filter: str | None = None,
     **kwargs: Any,
 ) -> FinalEvidenceContract:
     """C0 retrieval for apps_rg — inline JD/resume + optional ``fact_vectors`` dense lane."""
@@ -551,27 +552,16 @@ def c0_retrieve_apps_rg(
     if effective_chroma:
         try:
             client = _persistent_chroma_client(effective_chroma)
-            from apps_rg.runtime.c0.chroma_persistent_client import (
-                ensure_apps_rg_chroma_client,
-            )
-
+            from apps_rg.runtime.c0.chroma_persistent_client import ensure_apps_rg_chroma_client
             client = ensure_apps_rg_chroma_client(effective_chroma)
-            from apps_rg.runtime.chroma_precomputed_collection import (
-                get_precomputed_embeddings_collection_for_query,
-            )
-
-            fv_col = get_precomputed_embeddings_collection_for_query(
-                client, "fact_vectors"
-            )
+            from apps_rg.runtime.chroma_precomputed_collection import get_precomputed_embeddings_collection_for_query
+            fv_col = get_precomputed_embeddings_collection_for_query(client, "fact_vectors")
             app_payload = getattr(validated_request, "app_payload", None) or {}
-            extra, sec_verdicts, _, sec_sparse_refs, sec_score_profile, sec_traces = (
-                _perform_bounded_section_retrieval(
-                    effective_chroma,
-                    app_payload,
-                    evidence_digest or _provisional_digest(merged_items),
-                    ts,
-                    chroma_collection=fv_col,
-                )
+            from apps_rg.runtime.c0.c0_perf_sync_helpers import resolve_effective_section_id_filter
+            _effective_sec_filter = resolve_effective_section_id_filter(section_id_filter, section_profile)
+            extra, sec_verdicts, _, sec_sparse_refs, sec_score_profile, sec_traces = _perform_bounded_section_retrieval(
+                effective_chroma, app_payload, evidence_digest or _provisional_digest(merged_items),
+                ts, chroma_collection=fv_col, section_id_filter=_effective_sec_filter,
             )
             section_traces_for_run.extend(sec_traces)
             section_gate_verdicts.extend(sec_verdicts)

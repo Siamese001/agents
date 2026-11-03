@@ -313,3 +313,232 @@ def test_synthesis_repair_no_ambiguous_fallback_when_count_fails() -> None:
         assert "use 5 when the pool is tighter" not in msg, (
             f"Ambiguous fallback must be absent for reject: {reject!r}"
         )
+
+
+def test_pre_synthesis_repairs_resolve_inline_unallocated_metric_and_conflation_without_retry(
+    monkeypatch,
+) -> None:
+    """Wave 1 anti-spin contract: repairable conflation + inline 20% metric must not spin retries or overwrite S3."""
+    from apps_rg.runtime.sections.executive_summary_synthesis_contract import (
+        APPROVED_NON_STOCK_OPENERS,
+        EXEC_SUMMARY_STOCK_BRIDGE_PREFIXES,
+    )
+
+    for opener in APPROVED_NON_STOCK_OPENERS:
+        low = opener.lower()
+        assert not any(low.startswith(prefix) for prefix in EXEC_SUMMARY_STOCK_BRIDGE_PREFIXES)
+        assert not low.startswith("that operating foundation")
+
+    selected_fact_plan = {
+        "allocation_plan_digest": "digest_wave1",
+        "facts": [
+            {"fact_id": "reb_ibm_aws_alliance_partner_cosell_gtm", "claim_text": "Led IBM-AWS alliance co-sell motions."},
+            {"fact_id": "reb_unify_agentic_platform_architecture", "claim_text": "Architected enterprise agentic AI platform control-plane capabilities."},
+            {"fact_id": "reb_unify_platform_commercialization", "claim_text": "Generated $22M in IP-led platform revenue through reusable AI capabilities."},
+            {"fact_id": "reb_slalom_cloud_ai_gtm_practice_leadership", "claim_text": "Scaled cloud and AI offering accelerators for repeatable enterprise partner pursuits."},
+        ],
+        "allocation_assignments": [
+            {
+                "section_id": "executive_summary",
+                "claim_unit_id": "cu_unify_agentic_s1",
+                "root_id": "reb_unify_agentic_platform_architecture",
+                "fact_id": "reb_unify_agentic_platform_architecture",
+                "root_bundle_theme": "Applied AI partnerships executive agentic platform architecture",
+                "root_claim_text": "Applied AI partnerships executive aligning agentic platform architecture and hyperscaler co-sell execution.",
+                "claim_entailment_score": 0.96,
+                "target_alignment_score": 0.95,
+                "metric_value": "",
+                "metric_unit": "",
+            },
+            {
+                "section_id": "executive_summary",
+                "claim_unit_id": "cu_ibm_cosell_s2",
+                "root_id": "reb_ibm_aws_alliance_partner_cosell_gtm",
+                "fact_id": "reb_ibm_aws_alliance_partner_cosell_gtm",
+                "root_bundle_theme": "IBM AWS alliance partner co-sell financial-services modernization",
+                "root_claim_text": "Led IBM-AWS alliance co-sell motions for financial-services modernization opportunities.",
+                "claim_entailment_score": 0.95,
+                "target_alignment_score": 0.94,
+                "metric_value": "",
+                "metric_unit": "",
+            },
+            {
+                "section_id": "executive_summary",
+                "claim_unit_id": "cu_ibm_cosell_s3",
+                "root_id": "reb_ibm_aws_alliance_partner_cosell_gtm",
+                "fact_id": "reb_ibm_aws_alliance_partner_cosell_gtm",
+                "skill_id": "skill_ibm_alliance_cadence",
+                "root_bundle_theme": "AI-driven sales frameworks alliance cadence joint revenue growth partner channels",
+                "root_claim_text": "Paired AI-driven sales frameworks with an alliance cadence across partner channels.",
+                "claim_entailment_score": 0.94,
+                "target_alignment_score": 0.93,
+                "metric_value": "",
+                "metric_unit": "",
+            },
+            {
+                "section_id": "executive_summary",
+                "claim_unit_id": "cu_unify_agentic_s4",
+                "root_id": "reb_unify_agentic_platform_architecture",
+                "fact_id": "reb_unify_agentic_platform_architecture",
+                "skill_id": "skill_unify_control_plane",
+                "root_bundle_theme": "Enterprise agentic AI platform control-plane governed model orchestration",
+                "root_claim_text": "Architected enterprise agentic AI platform control-plane capabilities across cloud deployments.",
+                "claim_entailment_score": 0.96,
+                "target_alignment_score": 0.95,
+                "metric_value": "",
+                "metric_unit": "",
+            },
+            {
+                "section_id": "executive_summary",
+                "claim_unit_id": "cu_unify_22m_s5",
+                "root_id": "reb_unify_platform_commercialization",
+                "fact_id": "reb_unify_platform_commercialization",
+                "metric_outcome_id": "metric_unify_22m_ip_revenue",
+                "root_bundle_theme": "Unify platform productization IP-led platform revenue",
+                "root_claim_text": "Generated $22M in IP-led platform revenue through reusable AI capabilities.",
+                "claim_entailment_score": 0.97,
+                "target_alignment_score": 0.96,
+                "metric_value": "22",
+                "metric_unit": "USD_M",
+            },
+            {
+                "section_id": "executive_summary",
+                "claim_unit_id": "cu_slalom_gtm_s6",
+                "root_id": "reb_slalom_cloud_ai_gtm_practice_leadership",
+                "fact_id": "reb_slalom_cloud_ai_gtm_practice_leadership",
+                "root_bundle_theme": "Slalom reusable AI offering accelerators ecosystem architecture adoption",
+                "root_claim_text": "Scaled cloud and AI offering accelerators for repeatable enterprise partner pursuits.",
+                "claim_entailment_score": 0.93,
+                "target_alignment_score": 0.92,
+                "metric_value": "",
+                "metric_unit": "",
+            },
+        ],
+    }
+
+    s1 = "Applied AI partnerships executive aligning agentic platform architecture and hyperscaler co-sell execution across enterprise ecosystems."
+    s2 = "Led IBM-AWS alliance co-sell motions for financial-services modernization opportunities."
+    s3 = "Building on that foundation, IBM-AWS alliance co-sell motions paired with AI-driven sales frameworks and an alliance cadence drove 20% joint revenue growth across partner channels."
+    s4 = "In parallel, enterprise agentic AI platform control-plane capabilities standardized governed model orchestration across cloud deployments."
+    s5 = "That platform productization discipline generated $22M in IP-led platform revenue across enterprise programs."
+    s6 = "Reusable AI offering accelerators and partner co-sell governance position ecosystem architecture teams to scale enterprise AI adoption."
+    initial_text = f"{s1} {s2} {s3} {s4} {s5} {s6}"
+    initial_parsed = {
+        "executive_strategy_thesis": s1,
+        "resume_display_text": initial_text,
+        "claim_ledger": [
+            {"claim_text": s1, "source_fact_ids": ["reb_unify_agentic_platform_architecture"]},
+            {"claim_text": s2, "source_fact_ids": ["reb_ibm_aws_alliance_partner_cosell_gtm"]},
+            {
+                "claim_text": s3,
+                "source_fact_ids": [
+                    "reb_ibm_aws_alliance_partner_cosell_gtm",
+                    "skill_ibm_alliance_cadence",
+                    "reb_unify_agentic_platform_architecture",
+                    "reb_slalom_cloud_ai_gtm_practice_leadership",
+                ],
+            },
+            {"claim_text": s4, "source_fact_ids": ["reb_unify_agentic_platform_architecture", "skill_unify_control_plane"]},
+            {
+                "claim_text": s5,
+                "source_fact_ids": ["reb_unify_platform_commercialization", "metric_unify_22m_ip_revenue"],
+            },
+            {"claim_text": s6, "source_fact_ids": ["reb_slalom_cloud_ai_gtm_practice_leadership"]},
+        ],
+    }
+
+    regen_calls = {"count": 0}
+
+    def fail_if_dispatched(*_args, **_kwargs):
+        regen_calls["count"] += 1
+        raise AssertionError("budgeted_regen_call should not be invoked when deterministic repair closes shape gates")
+
+    monkeypatch.setattr(
+        "apps_rg.runtime.sections.executive_summary_regen_dispatch.budgeted_regen_call",
+        fail_if_dispatched,
+    )
+
+    _, out_parsed, err = retry_provider_for_synthesis(
+        [{"role": "user", "content": "prompt"}],
+        {"model": "test"},
+        json.dumps(initial_parsed),
+        initial_parsed,
+        selected_facts=selected_fact_plan["facts"],
+        selected_fact_plan=selected_fact_plan,
+    )
+
+    assert err == ""
+    assert regen_calls["count"] == 0
+    repaired_s3 = out_parsed["claim_ledger"][2]["claim_text"]
+    assert "20%" not in repaired_s3
+    assert "drove joint revenue growth across partner channels." in repaired_s3
+    assert repaired_s3 != s2
+    assert len(out_parsed["claim_ledger"][2]["source_fact_ids"]) <= 2
+
+
+def test_inline_unallocated_metric_scrub_normalizes_indefinite_articles() -> None:
+    """Stripping '20% ' from 'drove a 20% increase' must repair 'a increase' to 'an increase'."""
+    from apps_rg.runtime.sections.section_authority_repairs import (
+        repair_exec_summary_unallocated_metric_rows,
+    )
+
+    selected_fact_plan = {
+        "allocation_plan_digest": "digest_article_norm",
+        "facts": [
+            {
+                "fact_id": "reb_ibm_aws_alliance_partner_cosell_gtm",
+                "role_episode_bundle_id": "reb_ibm_aws_alliance_partner_cosell_gtm",
+                "allowed_graph_evidence_ids": [
+                    "reb_ibm_aws_alliance_partner_cosell_gtm",
+                    "skill_partner_partner_led_ai_solutions",
+                    "metric_ibm_20pct_joint_revenue_growth",
+                ],
+            }
+        ],
+        "allocation_assignments": [
+            {
+                "section_id": "executive_summary",
+                "claim_unit_id": "cu_ibm_cosell",
+                "root_id": "reb_ibm_aws_alliance_partner_cosell_gtm",
+                "fact_id": "reb_ibm_aws_alliance_partner_cosell_gtm",
+                "root_bundle_theme": "IBM AWS alliance partner co-sell joint revenue growth",
+                "root_claim_text": "Led IBM-AWS alliance co-sell motions for financial-services modernization.",
+                "claim_entailment_score": 0.95,
+                "target_alignment_score": 0.94,
+                "metric_value": "",
+                "metric_unit": "",
+            },
+        ],
+    }
+    s1 = "Applied AI partnerships leader aligning hyperscaler co-sell execution with governed platform commercialization."
+    s2 = "Within that ecosystem model, IBM-AWS alliance co-sell motions drove a 20% increase in joint revenue growth through sustained cadence."
+    s3 = "In parallel, governed platform standards achieved an 18% reduction in partner onboarding friction across cloud ecosystems."
+    s4 = "Complementing that alliance foundation, partner-led AI solutions and cloud-vendor joint go-to-market plays drove joint revenue growth of 20% across the partner channel."
+    parsed = {
+        "resume_display_text": f"{s1} {s2} {s3} {s4}",
+        "selected_fact_plan": selected_fact_plan,
+        "claim_ledger": [
+            {"claim_text": s1, "source_fact_ids": ["reb_ibm_aws_alliance_partner_cosell_gtm"]},
+            {"claim_text": s2, "source_fact_ids": ["reb_ibm_aws_alliance_partner_cosell_gtm"]},
+            {"claim_text": s3, "source_fact_ids": ["reb_ibm_aws_alliance_partner_cosell_gtm"]},
+            {
+                "claim_text": s4,
+                "source_fact_ids": [
+                    "skill_partner_partner_led_ai_solutions",
+                    "metric_ibm_20pct_joint_revenue_growth",
+                ],
+            },
+        ],
+    }
+
+    repairs = repair_exec_summary_unallocated_metric_rows(parsed)
+
+    assert len(repairs) == 3
+    assert "drove an increase in joint revenue growth" in parsed["resume_display_text"]
+    assert "a increase" not in parsed["resume_display_text"]
+    assert "achieved a reduction in partner onboarding friction" in parsed["resume_display_text"]
+    assert "an reduction" not in parsed["resume_display_text"]
+    assert "drove joint revenue growth across the partner channel." in parsed["resume_display_text"]
+    assert "of 20%" not in parsed["resume_display_text"]
+
+

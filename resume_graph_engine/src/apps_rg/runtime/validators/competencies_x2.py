@@ -1313,15 +1313,14 @@ def run_competencies_x2_gates(
         )
         add(arch_r.gate_id, arch_r.passed, arch_r.observed_value, arch_r.threshold, arch_r.failure_reason)
 
+    from apps_rg.runtime.validators.allocation_jd_alignment_gate import append_allocation_jd_alignment_x2_gate
+    append_allocation_jd_alignment_x2_gate(add, section_id="competencies", candidate_text=comp_text, jd_text=str(jd_text or ""), briefing_text=str(briefing_text or ""))
+
     consistency_ok, consistency_bad = competencies_x2_gate_rows_internally_consistent(gates)
     add(
-        "x2_gate_rows_are_internally_consistent",
-        consistency_ok,
-        consistency_bad or "ok",
+        "x2_gate_rows_are_internally_consistent", consistency_ok, consistency_bad or "ok",
         "pass_rows_have_null_failure_and_fail_rows_have_reason_and_style_observed_values",
-        None
-        if consistency_ok
-        else f"Inconsistent gate rows: {', '.join(consistency_bad)}",
+        None if consistency_ok else f"Inconsistent gate rows: {', '.join(consistency_bad)}",
     )
 
     return gates

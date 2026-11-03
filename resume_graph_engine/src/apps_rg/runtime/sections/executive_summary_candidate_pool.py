@@ -74,6 +74,7 @@ class CandidateSnapshot:
     publish_eligible: bool
     raw_output: str
     candidate_digest: str
+    x1d_judges: tuple[dict[str, Any], ...] = ()
 
     def to_summary_row(self) -> dict[str, Any]:
         return {
@@ -148,6 +149,7 @@ def freeze_candidate_snapshot(
         publish_eligible=publish_eligible,
         raw_output=raw_output,
         candidate_digest=digest,
+        x1d_judges=tuple(dict(j) for j in x1d_judges if isinstance(j, dict)),
     )
 
 

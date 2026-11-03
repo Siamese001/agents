@@ -5,6 +5,10 @@ import hashlib
 import json
 import os
 import sys
+from apps_rg.runtime.assembly.coherence_prompt_compact import (
+    compact_evidence_packet_for_prompt as _compact_evidence_packet_for_prompt,
+    dispatch_coherence_judges,
+)
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -361,10 +365,11 @@ def _build_prompt(
     jd_block = f"\nTARGETING_CONTEXT (not proof):\ncompany={target_company}\nrole={target_role}\n{jd_context}\n"
     evidence_block = ""
     if evidence_packet:
+        prompt_packet = _compact_evidence_packet_for_prompt(evidence_packet)
         evidence_block = (
             "\nCANDIDATE_EVIDENCE_PACKET (candidate proof):\n"
             + json.dumps(
-                evidence_packet,
+                prompt_packet,
                 ensure_ascii=False,
                 sort_keys=True,
                 separators=(",", ":"),
@@ -444,8 +449,7 @@ def run_full_resume_coherence_judges(
         evidence_packet=evidence_packet,
     )
 
-    outputs: list[JudgeOutput] = []
-    for key in roster:
+    def _evaluate_single_coherence_judge(key: str) -> JudgeOutput:
         if key not in PROVIDERS:
             out = _make_blocked_output(
                 key,
@@ -455,16 +459,14 @@ def run_full_resume_coherence_judges(
                 f"Unknown judge provider key: {key}",
             )
             out.judge_id = f"x1d_{key}_full_resume_coherence"
-            outputs.append(out)
-            continue
+            return out
 
         if mode == "mocked":
             if not _is_test_environment():
                 raise RuntimeError(
                     "MOCK_JUDGE_FORBIDDEN: mode='mocked' is strictly forbidden in production runtime."
                 )
-            outputs.append(_mocked(key, input_hash))
-            continue
+            return _mocked(key, input_hash)
 
         meta = PROVIDERS[key]
         api_key, env_checked = resolve_x1d_provider_credentials(key, os.environ)
@@ -483,8 +485,7 @@ def run_full_resume_coherence_judges(
                 detail,
             )
             out.judge_id = f"x1d_{key}_full_resume_coherence"
-            outputs.append(out)
-            continue
+            return out
 
         resolution = resolve_section_proof_judge_model("full_resume_coherence", key)
         if resolution.blocked:
@@ -499,8 +500,7 @@ def run_full_resume_coherence_judges(
             out.judge_id = f"x1d_{key}_full_resume_coherence"
             out.section_id = "full_resume_coherence"
             out.model_tier = resolution.model_tier
-            outputs.append(out)
-            continue
+            return out
         model = resolution.model_actual
         model_source = resolution.model_source
         model_requested = resolution.model_requested or model
@@ -542,7 +542,7 @@ def run_full_resume_coherence_judges(
                 section_id="full_resume_coherence",
             )
             output.judge_id = f"x1d_{key}_full_resume_coherence"
-            outputs.append(output)
+            return output
         except Exception as exc:  # guardian: allow-broad-exception -- P2 burndown: full-resume judge must not crash assembly
             out = _make_blocked_output(
                 key,
@@ -552,9 +552,9 @@ def run_full_resume_coherence_judges(
                 str(exc)[:500],
             )
             out.judge_id = f"x1d_{key}_full_resume_coherence"
-            outputs.append(out)
+            return out
 
-    return outputs
+    return dispatch_coherence_judges(roster, mode=mode, evaluate_fn=_evaluate_single_coherence_judge)
 
 
 def _deterministic_preflight_blockers(final_resume: dict[str, Any]) -> list[str]:
@@ -798,21 +798,20 @@ def emit_full_resume_llm_coherence_review(
             separators=(",", ":"),
         ).encode("utf-8")
     ).hexdigest()
-    judges = run_full_resume_coherence_judges(
-        full_resume_text=full_text,
-        target_company=target_company,
-        target_role=target_role,
-        jd_context=jd_context,
-        evidence_packet=evidence_packet,
-        judge_roster=judge_roster,
-        mode=mode,
-        # Raw provider request/response artifacts go in a subdir: the structural
-        # assembly X2 scan (final_resume_x2) iterates only top-level files of the
-        # assembly dir, whose allowed set is the declared assembly artifacts plus
-        # the two aggregate-judge summaries written below — not per-provider raws.
-        artifact_base=provider_artifact_base,
-    )
     det_blockers = _deterministic_preflight_blockers(final_resume)
+    if det_blockers and mode != "mocked":
+        judges = []
+    else:
+        judges = run_full_resume_coherence_judges(
+            full_resume_text=full_text,
+            target_company=target_company,
+            target_role=target_role,
+            jd_context=jd_context,
+            evidence_packet=evidence_packet,
+            judge_roster=judge_roster,
+            mode=mode,
+            artifact_base=provider_artifact_base,
+        )
     agg = aggregate_full_resume_coherence(judges, deterministic_blockers=det_blockers)
 
     roster = list(judge_roster or DEFAULT_JUDGE_ROSTER)

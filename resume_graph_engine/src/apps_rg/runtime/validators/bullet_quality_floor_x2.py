@@ -32,7 +32,7 @@ STRONG_ACTION_VERBS: frozenset[str] = frozenset({
     "instituted", "institute", "commercialized", "commercialize", "pioneered", "pioneer",
     "defined", "define", "spearheaded", "spearhead", "owned", "own", "headed", "head",
     "championed", "champion", "governed", "govern",
-    "embedded", "embed", "ran", "run",
+    "embedded", "embed", "ran", "run", "set",
     "re-architected", "rearchitected", "re-engineered", "reengineered",
     "re-platformed", "replatformed",
 })
@@ -82,6 +82,7 @@ _OUTCOME_SIGNAL_PATTERN = re.compile(
     r"validat(?:e|ed|ing|ion|ions)?|"
     r"risk\s+(?:reduction|remediation|control|visibility)|"
     r"compliance\s+(?:readiness|evidence|coverage)|renewal|revenue|margin|pipeline|"
+    r"governed|orchestration|handoffs?|"
     r"cycle\s+time|latency|throughput|sponsorship|opportunity\s+progression)\b",
     re.IGNORECASE,
 )

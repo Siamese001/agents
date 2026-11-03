@@ -273,7 +273,6 @@ GRAPH_EVIDENCE_FORBIDDEN_PHRASES_ALWAYS: tuple[str, ...] = (
     "self-learning runtime",
     "autonomous AGI without oversight",
     "unsupervised production agents",
-    "commercialization",
     "bespoke delivery",
     "reusable platform services adopted across enterprise programs",
     "engineering scale-out",

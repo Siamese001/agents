@@ -1267,6 +1267,20 @@ def _build_synthesis_repair_user(
     )
 
 
+def _apply_pre_synthesis_candidate_repairs(
+    parsed: dict[str, Any],
+    selected_fact_plan: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Run in-memory deterministic voice and authority repairs before pre-X2 shape checks."""
+    from apps_rg.runtime.sections.exec_summary_perf_sync_helpers import apply_pre_synthesis_candidate_repairs
+    repaired, _ = apply_pre_synthesis_candidate_repairs(
+        parsed, selected_fact_plan,
+        normalize_fn=normalize_executive_summary_llm_output,
+        prune_orphans_fn=prune_exec_summary_claim_ledger_orphans,
+    )
+    return repaired
+
+
 def retry_provider_for_synthesis(
     messages: list[dict[str, str]],
     provider_payload: dict[str, Any],
@@ -1292,15 +1306,15 @@ def retry_provider_for_synthesis(
     if not synthesis_regeneration_enabled():
         return raw_output, parsed, ""
 
+    if isinstance(selected_fact_plan, dict) and selected_fact_plan:
+        parsed = _apply_pre_synthesis_candidate_repairs(parsed, selected_fact_plan)
+        raw_output = json.dumps({k: v for k, v in parsed.items() if k != "selected_fact_plan"}, ensure_ascii=False, separators=(",", ":"))
+
     first_raw = raw_output
     first_parsed = parsed
     first_text = str(parsed.get("resume_display_text") or "")
     shape_ok, reject_reason = _synthesis_shape_reject_reason(
-        first_text,
-        parsed,
-        selected_facts=selected_facts,
-        selected_fact_plan=selected_fact_plan,
-        jd_text=jd_text,
+        first_text, parsed, selected_facts=selected_facts, selected_fact_plan=selected_fact_plan, jd_text=jd_text,
     )
     if shape_ok:
         return raw_output, parsed, ""
@@ -1416,6 +1430,13 @@ def retry_provider_for_synthesis(
         attempt_record["parse_ok"] = bool(new_parsed)
         mark_regen_call_parse(artifact_dir, regen_outcome.call_id, parse_ok=bool(new_parsed))
         if new_parsed:
+            if isinstance(selected_fact_plan, dict) and selected_fact_plan:
+                new_parsed = _apply_pre_synthesis_candidate_repairs(new_parsed, selected_fact_plan)
+                new_raw = json.dumps(
+                    {k: v for k, v in new_parsed.items() if k != "selected_fact_plan"},
+                    ensure_ascii=False,
+                    separators=(",", ":"),
+                )
             regen_text = str(new_parsed.get("resume_display_text") or "")
             attempt_record["candidate_digest"] = sha16(regen_text)
             attempt_record["regen_resume_word_count"] = len(re.findall(r"\S+", regen_text))
@@ -2493,6 +2514,15 @@ def run_executive_summary_execution(
     _composition_plan_early: dict[str, Any] | None = None
     if result.runtime_generation_status == "REAL_LLM":
         parsed, parse_error = parse_model_json(raw_output)
+        if parsed and isinstance(parsed, dict):
+            from apps_rg.runtime.sections.exec_summary_perf_sync_helpers import apply_pre_synthesis_candidate_repairs
+            parsed, raw_output = apply_pre_synthesis_candidate_repairs(
+                parsed, selected_fact_plan,
+                normalize_fn=normalize_executive_summary_llm_output,
+                prune_orphans_fn=prune_exec_summary_claim_ledger_orphans,
+                allowed_fact_ids_override=allowed_fact_ids,
+                target_company=str(getattr(args, "target_company", "") or ""),
+            )
         if parsed and str(args.provider) == "external_claude":
             from apps_rg.runtime.sections.executive_summary_pa import (
                 is_strategy_executive_target_title,
@@ -2726,6 +2756,13 @@ def run_executive_summary_execution(
                 )
         resume_display_text = str(parsed.get("resume_display_text") or resume_display_text)
         claim_ledger = list(parsed.get("claim_ledger") or claim_ledger)
+        norm_rows = normalize_exec_summary_claim_ledger(claim_ledger) if parse_status == "OK" else []
+        canon_doc = build_canonical_claim_ledger_v2_payload(
+            norm_rows,
+            parse_status=parse_status,
+            invalid_reason=invalid_reason if parse_status != "OK" else None,
+        )
+        write_json(artifact_dir / "canonical_claim_ledger_v2.json", canon_doc)
     # W4 last-seam rung: final post-polish display text is known here, X2 has not run yet.
     # ONE bounded regen when the word ceiling (x2_exec_summary_paragraph_max_words) would fail.
     (
@@ -3172,6 +3209,7 @@ def run_executive_summary_execution(
             )
             from apps_rg.runtime.sections.executive_summary_candidate_pool import (
                 SCORES_FRESHNESS_CARRIED_FORWARD,
+                SCORES_FRESHNESS_FULL_PANEL,
                 SCORES_FRESHNESS_SOFT_FAILED_ONLY,
                 CandidatePool,
                 finalize_pool_publish,
@@ -3181,6 +3219,11 @@ def run_executive_summary_execution(
             _candidate_pool = CandidatePool()
             _provider_lane = str(
                 provider_payload.get("provider") or provider_payload.get("lane") or ""
+            )
+            _scratch_freshness = (
+                SCORES_FRESHNESS_FULL_PANEL
+                if x1d and len(x1d) >= len(judge_keys)
+                else SCORES_FRESHNESS_CARRIED_FORWARD
             )
             _candidate_pool.add(
                 freeze_candidate_snapshot(
@@ -3199,7 +3242,7 @@ def run_executive_summary_execution(
                         "provider_request": str(artifact_dir / "provider_request.json"),
                         "provider_response": str(artifact_dir / "provider_response.json"),
                     },
-                    scores_freshness=SCORES_FRESHNESS_CARRIED_FORWARD,
+                    scores_freshness=_scratch_freshness,
                     publish_eligible=True,
                 ),
             )
@@ -3854,87 +3897,43 @@ def run_executive_summary_execution(
                 _cycles_receipt["stopped_reason"] = "max_cycles_reached"
             _pub_freshness = SCORES_FRESHNESS_CARRIED_FORWARD
             if _candidate_pool.publish_eligible():
-                from apps_rg.runtime.sections.executive_summary_candidate_pool import (
-                    CandidateSnapshot,
-                    SCORES_FRESHNESS_FULL_PANEL,
-                )
-                from apps_rg.runtime.sections.executive_summary_judge_remediation import (
-                    refresh_x1d_judges_after_full_x2,
-                )
+                from apps_rg.runtime.sections.executive_summary_candidate_pool import CandidateSnapshot, SCORES_FRESHNESS_FULL_PANEL
+                from apps_rg.runtime.sections.executive_summary_judge_remediation import refresh_x1d_judges_after_full_x2
+                from apps_rg.runtime.sections.exec_summary_perf_sync_helpers import rescore_snapshot_or_reuse_full_panel, write_synced_canonical_claim_ledger_v2
 
-                def _rescore_snapshot_full_panel(
-                    snap: CandidateSnapshot,
-                ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
-                    _snap_ledger = [dict(r) for r in snap.claim_ledger]
-                    _snap_coverage = build_sentence_claim_coverage(
-                        snap.resume_display_text,
-                        _snap_ledger,
-                        allowed_fact_ids,
-                    )
-                    _snap_parsed_for_x2 = enrich_parsed_for_x2(
-                        dict(snap.parsed_json),
-                        coverage=_snap_coverage,
-                        input_payload_hash=input_payload_hash,
-                        allowed_fact_ids=allowed_fact_ids,
-                        runtime_payload=runtime_payload,
-                    )
-                    return refresh_x1d_judges_after_full_x2(
-                        x2_gates=list(snap.x2_gate_outputs),
-                        resume_display_text=snap.resume_display_text,
-                        claim_ledger=_snap_ledger,
-                        allowed_fact_packet=selected_facts_for_x2,
-                        allowed_fact_ids=allowed_fact_ids,
-                        target_title=_args_target_title(args),
-                        target_company=str(args.target_company),
-                        jd_text=_judge_jd,
-                        briefing_text=_judge_briefing,
-                        parsed_output=_snap_parsed_for_x2,
-                        judge_keys=judge_keys,
-                        judge_mode=judge_mode,
-                        artifact_dir=artifact_dir,
-                        compiled_prompt=compiled_prompt,
-                        prior_judges=x1d,
+                def _rescore_snapshot_full_panel(snap: CandidateSnapshot) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+                    return rescore_snapshot_or_reuse_full_panel(
+                        snap, full_panel_token=SCORES_FRESHNESS_FULL_PANEL, build_coverage_fn=build_sentence_claim_coverage,
+                        enrich_x2_fn=enrich_parsed_for_x2, refresh_x1d_fn=refresh_x1d_judges_after_full_x2,
+                        allowed_fact_ids=allowed_fact_ids, input_payload_hash=input_payload_hash, runtime_payload=runtime_payload,
+                        selected_facts_for_x2=selected_facts_for_x2, target_title=_args_target_title(args), target_company=str(args.target_company),
+                        jd_text=_judge_jd, briefing_text=_judge_briefing, judge_keys=judge_keys, judge_mode=judge_mode,
+                        artifact_dir=artifact_dir, compiled_prompt=compiled_prompt, prior_judges=x1d,
                         graph_targeting_capsule=_gtc_lane_dict,
-                        material_targeting_bundle=_bundle_mat.to_dict()
-                        if hasattr(_bundle_mat, "to_dict")
-                        else runtime_payload.get("material_targeting_bundle"),
-                        graph_bindings=_graph_bindings_lane,
-                        repo_root=REPO_ROOT,
+                        material_targeting_bundle=_bundle_mat.to_dict() if hasattr(_bundle_mat, "to_dict") else runtime_payload.get("material_targeting_bundle"),
+                        graph_bindings=_graph_bindings_lane, repo_root=REPO_ROOT,
                     )
 
                 _pub = finalize_pool_publish(
-                    _candidate_pool,
-                    artifact_dir=artifact_dir,
-                    write_json_fn=write_json,
-                    rescore_full_panel=_rescore_snapshot_full_panel,
-                    enrich_parsed_for_x2_fn=enrich_parsed_for_x2,
-                    build_coverage_fn=build_sentence_claim_coverage,
-                    allowed_fact_ids=allowed_fact_ids,
-                    input_payload_hash=input_payload_hash,
-                    runtime_payload=runtime_payload,
-                    write_x2_fn=lambda path, gates: write_x2_gate_outputs(
-                        path, gates, section_id="executive_summary"
-                    ),
-                    write_x1d_fn=_write_x1d_judge_artifacts,
-                    l2_output=l2_output,
-                    scratch_anchor_resume=_scratch_anchor_resume,
+                    _candidate_pool, artifact_dir=artifact_dir, write_json_fn=write_json,
+                    rescore_full_panel=_rescore_snapshot_full_panel, enrich_parsed_for_x2_fn=enrich_parsed_for_x2,
+                    build_coverage_fn=build_sentence_claim_coverage, allowed_fact_ids=allowed_fact_ids,
+                    input_payload_hash=input_payload_hash, runtime_payload=runtime_payload,
+                    write_x2_fn=lambda path, gates: write_x2_gate_outputs(path, gates, section_id="executive_summary"),
+                    write_x1d_fn=_write_x1d_judge_artifacts, l2_output=l2_output, scratch_anchor_resume=_scratch_anchor_resume,
                 )
                 if _pub.selected is not None:
                     _pool_publish_applied = True
-                    raw_output = _pub.raw_output
-                    parsed = _pub.parsed
-                    resume_display_text = _pub.resume_display_text
-                    claim_ledger = _pub.claim_ledger
-                    x2 = _pub.x2_gates
-                    x1d = _pub.x1d_judges
+                    raw_output, parsed, resume_display_text = _pub.raw_output, _pub.parsed, _pub.resume_display_text
+                    claim_ledger, x2, x1d = _pub.claim_ledger, _pub.x2_gates, _pub.x1d_judges
                     if _pub.coverage is not None:
                         coverage = _pub.coverage
+                    write_synced_canonical_claim_ledger_v2(
+                        artifact_dir=artifact_dir, claim_ledger=claim_ledger, parse_status=parse_status, invalid_reason=invalid_reason,
+                        normalize_ledger_fn=normalize_exec_summary_claim_ledger, build_payload_fn=build_canonical_claim_ledger_v2_payload, write_json_fn=write_json,
+                    )
                     parsed_for_x2 = enrich_parsed_for_x2(
-                        parsed,
-                        coverage=coverage,
-                        input_payload_hash=input_payload_hash,
-                        allowed_fact_ids=allowed_fact_ids,
-                        runtime_payload=runtime_payload,
+                        parsed, coverage=coverage, input_payload_hash=input_payload_hash, allowed_fact_ids=allowed_fact_ids, runtime_payload=runtime_payload,
                     )
                     _cycles_receipt["final_publish_baseline"] = _pub.selected.candidate_id
                     _cycles_receipt["publish_reason"] = _pub.receipt.get("publish_reason")
@@ -3978,18 +3977,19 @@ def run_executive_summary_execution(
                 if _cycles_receipt.get("cycles")
                 else {}
             )
-            emit_judge_regen_operator_stderr(
-                format_judge_regen_operator_stderr_line(
-                    cycle=int(_last_cycle_row.get("cycle") or 0) or 1,
-                    reject_gate=_last_cycle_row.get("reject_gate"),
-                    g3_verdicts=_last_cycle_row.get("g3_verdict_per_trigger_judge"),
-                    operator_floor=_operator_judge_floor,
-                    final_publish_baseline=str(
-                        _cycles_receipt.get("final_publish_baseline") or "scratch"
+            if _last_cycle_row:
+                emit_judge_regen_operator_stderr(
+                    format_judge_regen_operator_stderr_line(
+                        cycle=int(_last_cycle_row.get("cycle") or 0) or 1,
+                        reject_gate=_last_cycle_row.get("reject_gate"),
+                        g3_verdicts=_last_cycle_row.get("g3_verdict_per_trigger_judge"),
+                        operator_floor=_operator_judge_floor,
+                        final_publish_baseline=str(
+                            _cycles_receipt.get("final_publish_baseline") or "scratch"
+                        ),
+                        published_min_score=min_model_backed_holistic_from_judges(x1d),
                     ),
-                    published_min_score=min_model_backed_holistic_from_judges(x1d),
-                ),
-            )
+                )
             _cycles_receipt["publish_disposition"] = resolve_publish_disposition(
                 x1d,
                 best_effort_publish_allowed=bool(getattr(args, "best_effort_publish_allowed", False))

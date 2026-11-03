@@ -110,6 +110,7 @@ def _record_pool_selector_usage(
     usage: Mapping[str, Any] | None = None,
     response_id: str | None = None,
     raw_response_ref: str | None = None,
+    section_id: str = "competencies",
 ) -> None:
     """Record one selector attempt without changing selection fail-closed logic."""
     try:
@@ -121,7 +122,7 @@ def _record_pool_selector_usage(
             outcome=outcome,
             provider_status=provider_status,
             usage=usage,
-            section_id="competencies",
+            section_id=section_id,
             stage="L2.bullet_pool_selector",
             logical_attempt=1,
             transport_attempt=1,
@@ -669,12 +670,9 @@ def _format_bullet_pool(paths: list[SelfConsistencyPath], required_ids: tuple[st
         if path.parsed is None:
             continue
         lines = [f"=== PATH {path.path_index} (temperature={path.temperature}) ==="]
+        from apps_rg.runtime.reasoning.bullet_pool_sync_helpers import format_bullet_pool_entry
         for bid in required_ids:
-            bullet = _bullet_by_id(path.parsed, bid)
-            if bullet is None:
-                lines.append(f"[{bid}] MISSING")
-            else:
-                lines.append(f"[{bid}] text={bullet.get('bullet_text', '')}")
+            lines.append(format_bullet_pool_entry(bid, _bullet_by_id(path.parsed, bid)))
         blocks.append("\n".join(lines))
     return "\n\n".join(blocks)
 
@@ -754,7 +752,7 @@ def _employment_bullet_selection_prompt(
         f"Briefing (targeting only):\n{briefing[:resolve_bullet_selector_briefing_max_chars()]}\n\n"
         f"Skills graph ref: {skills_ref}\n\n"
         "Return JSON only:\n"
-        f'{{"selections":[{{"bullet_id":"...","path_index":0,"score":0.85,"passes":true,"rationale":"..."}}],'
+        f'{{"selections":[{{"bullet_id":"...","path_index":0,"score":0.94,"passes":true,"rationale":"..."}}],'
         f'"pool_summary":{{"paths_scored":{n_paths},"final_bullet_count":{n_final},'
         f'"min_score_threshold":{min_score_threshold:.2f},"selector":"{selector_name}"}}}}\n\n'
         "CANDIDATE POOL:\n"
@@ -979,6 +977,7 @@ def _call_anthropic_pool_selector(
     model_source: str,
     artifact_dir: Path | None,
     timeout_s: float | None = None,
+    section_id: str = "competencies",
 ) -> tuple[JudgeOutput, dict[str, Any] | None]:
     """Anthropic call for pool JSON (not GRADE_ONLY rubric schema)."""
     import time
@@ -1028,7 +1027,7 @@ def _call_anthropic_pool_selector(
             prompt_text=prompt,
             max_output_tokens=max_tokens,
             stage="L2.bullet_pool_selector",
-            section_id="competencies",
+            section_id=section_id,
         )
     except ValueError as exc:
         return (
@@ -1305,6 +1304,7 @@ def _call_openai_pool_selector(
     model_source: str,
     artifact_dir: Path | None,
     timeout_s: float | None = None,
+    section_id: str = "competencies",
 ) -> tuple[JudgeOutput, dict[str, Any] | None]:
     """OpenAI call for pool JSON (competencies only)."""
     import time
@@ -1347,7 +1347,7 @@ def _call_openai_pool_selector(
             prompt_text=prompt,
             max_output_tokens=max_tokens,
             stage="L2.bullet_pool_selector",
-            section_id="competencies",
+            section_id=section_id,
         )
     except ValueError as exc:
         return (
@@ -2180,6 +2180,7 @@ def run_claude_bullet_pool_selection(
             model_source=model_source,
             artifact_dir=artifact_dir,
             timeout_s=selector_timeout_s,
+            section_id=section_id,
         )
     elif provider_key == "anthropic_claude":
         judge_out, parsed_sel = _call_anthropic_pool_selector(
@@ -2191,6 +2192,7 @@ def run_claude_bullet_pool_selection(
             model_source=model_source,
             artifact_dir=artifact_dir,
             timeout_s=selector_timeout_s,
+            section_id=section_id,
         )
     else:
         raise PoolSelectorUnavailableError(

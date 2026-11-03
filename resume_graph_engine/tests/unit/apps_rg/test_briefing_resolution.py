@@ -60,3 +60,27 @@ def test_local_md_briefing_with_markdown_table(tmp_path: Path) -> None:
     assert r.briefing_source == BriefingSource.RUN_SPECIFIC
     assert "| Col A | Col B |" in r.text
     assert "| --- | --- |" in r.text
+
+
+def test_resolve_canonical_targeting_brief_never_falls_back_across_roles() -> None:
+    from apps_rg.integrations.apps_research_bridge import (
+        _CANONICAL_TARGETING_BRIEF_CACHE,
+        _resolve_canonical_targeting_brief,
+    )
+
+    _CANONICAL_TARGETING_BRIEF_CACHE.clear()
+    brief_partnerships, path_partnerships = _resolve_canonical_targeting_brief(
+        company_name="Anthropic",
+        job_title="Manager of Applied AI Architecture, Partnerships",
+    )
+    assert "anthropic_manager_applied_ai_architecture_partnerships_briefing.md" in path_partnerships
+    assert brief_partnerships
+
+    # When multiple Anthropic role briefings exist and job_title is empty or non-matching,
+    # it must NOT silently fall back to the first alphabetical briefing (Research Engineer).
+    brief_empty, path_empty = _resolve_canonical_targeting_brief(
+        company_name="Anthropic",
+        job_title="",
+    )
+    assert brief_empty == ""
+    assert path_empty == ""

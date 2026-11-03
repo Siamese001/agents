@@ -307,23 +307,21 @@ def _generate_employment_bullet_lane(
     judge_mode: str,
     provider_profile: str | None,
 ) -> tuple[ProviderResult | None, str, dict[str, Any] | None, str, dict[str, Any]]:
+    from apps_rg.runtime.reasoning.bullet_pool_sync_helpers import resolve_employment_lane_sc_budgets
     min_score = min_selection_score_for_lane(section_lane)
-    initial_path_count = sc_path_count_for_lane(section_lane)
-    max_path_count = max_sc_path_count_for_lane(section_lane)
-    adaptive_sc = adaptive_sc_enabled_for_lane(section_lane)
+    initial_path_count, max_path_count, adaptive_sc, configured_max_regen, max_regen = resolve_employment_lane_sc_budgets(
+        section_lane=section_lane, targeting_context=targeting_context, judge_mode=judge_mode,
+        sc_path_count_fn=sc_path_count_for_lane, max_sc_path_count_fn=max_sc_path_count_for_lane,
+        adaptive_sc_fn=adaptive_sc_enabled_for_lane, max_regen_fn=max_employment_regen_rounds,
+    )
     all_paths: list[SelfConsistencyPath] = []
     last_result: ProviderResult | None = None
     pool: PoolSelectionResult | None = None
     gate = evaluate_employment_selection_quality(
-        section_lane=section_lane,
-        required_bullet_ids=required_bullet_ids,
-        selections=[],
-        merged_parsed={},
-        min_score=min_score,
+        section_lane=section_lane, required_bullet_ids=required_bullet_ids,
+        selections=[], merged_parsed={}, min_score=min_score,
     )
     regen_round = 0
-    configured_max_regen = 0 if judge_mode == "mocked" else max_employment_regen_rounds()
-    max_regen = max(configured_max_regen, 1) if adaptive_sc else configured_max_regen
     stop_reason = ""
     expansion_events: list[dict[str, Any]] = []
 
@@ -506,19 +504,21 @@ def _generate_competencies_graph_pool_lane(
         merged_parsed={},
         min_score=min_score,
     )
+    from apps_rg.runtime.reasoning.bullet_pool_sync_helpers import resolve_competencies_lane_sc_budgets, resolve_competencies_round_batch
     regen_round = 0
-    max_regen = 0 if judge_mode == "mocked" else max_competencies_regen_rounds()
+    max_paths, max_regen = resolve_competencies_lane_sc_budgets(
+        section_lane=section_lane, targeting_context=targeting_context, judge_mode=judge_mode,
+        max_sc_path_count_fn=max_sc_path_count_for_lane, max_regen_fn=max_competencies_regen_rounds,
+    )
     # W5: per-round generation/selector phase timings, surfaced via meta so the lane execution can
     # answer "did it die on a generation path or on the selector?" without console guessing.
     phase_timings: list[dict[str, Any]] = []
     stop_reason = ""
-    max_paths = max_sc_path_count_for_lane(section_lane)
 
     while True:
-        requested_batch = (
-            sc_path_count_for_lane(section_lane)
-            if regen_round == 0
-            else regen_extra_path_count_for_lane(section_lane)
+        requested_batch = resolve_competencies_round_batch(
+            section_lane=section_lane, regen_round=regen_round, judge_mode=judge_mode,
+            sc_path_count_fn=sc_path_count_for_lane, regen_extra_fn=regen_extra_path_count_for_lane,
         )
         remaining_budget = max(0, max_paths - len(all_paths))
         batch = min(requested_batch, remaining_budget)
