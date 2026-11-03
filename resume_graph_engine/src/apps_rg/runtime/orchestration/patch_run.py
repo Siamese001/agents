@@ -358,6 +358,12 @@ def _write_json(path: Path, data: Any) -> None:
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+from apps_rg.runtime.orchestration.patch_run_wave_dispatch import (
+    dispatch_patch_lanes_wave_parallel,
+    sync_split_pointer_roots as _sync_split_pointer_roots,
+)
+
+
 # --------------------------------------------------------------------- targeting
 
 
@@ -1139,163 +1145,16 @@ def _dispatch_patch_lanes(
     run_timeout_s: float | None = None,
     start_time: float | None = None,
 ) -> dict[str, dict[str, Any]]:
-    """Serial dispatch of target lanes with the full run's upstream + fault semantics."""
-    from apps_rg.runtime.integrated_lane_evidence_packaging import (
-        emit_integrated_lane_pre_run_failure,
+    """Wave-parallel dispatch of target lanes with the full run's upstream + fault semantics."""
+    return dispatch_patch_lanes_wave_parallel(
+        plan,
+        lane_provider=lane_provider,
+        dispatch=dispatch_fn or _default_dispatch_lane,
+        sections_root=_resolve_sections_root(plan.run_dir),
+        lane_timeout=resolve_patch_lane_timeout_s(lane_timeout_s),
+        run_timeout=resolve_patch_run_timeout_s(run_timeout_s),
+        clock_start=start_time if start_time is not None else time.monotonic(),
     )
-    from apps_rg.runtime.product_output_policy import (
-        phase1_dispatch_hard_failed,
-        product_fail_closed_runtime,
-    )
-    from apps_rg.runtime.reasoning.employment_bullet_pool import REQUIRED_BULLET_IDS
-    from apps_rg.runtime.section_execution_plan import NARRATIVE_UPSTREAM_BULLET_LANE
-    from apps_rg.runtime.validators.companion_bullet_finalization import (
-        PRE_RUN_UPSTREAM_NOT_FINALIZED_BLOCKER,
-        companion_accepted_in_modular_sections_root,
-    )
-
-    dispatch = dispatch_fn or _default_dispatch_lane
-    repo = plan.repo
-    sections_root = _resolve_sections_root(plan.run_dir)
-    results: dict[str, dict[str, Any]] = {}
-    aborted = False
-    abort_reason = ""
-
-    lane_timeout = resolve_patch_lane_timeout_s(lane_timeout_s)
-    run_timeout = resolve_patch_run_timeout_s(run_timeout_s)
-    clock_start = start_time if start_time is not None else time.monotonic()
-    total_lanes = len(plan.target_lanes)
-
-    for idx, lane in enumerate(plan.target_lanes, start=1):
-        if aborted:
-            results[lane] = {"prior_abort": abort_reason, "exit_status": "error"}
-            print(
-                f"[patch_run] [{idx}/{total_lanes}] Skipping lane '{lane}' (prior abort: {abort_reason})",
-                flush=True,
-            )
-            emit_integrated_lane_pre_run_failure(
-                sections_root=sections_root,
-                integrated_dir=plan.run_dir,
-                repo_root=repo,
-                lane_id=lane,
-                blocker="PHASE1_PRIOR_LANE_FAILED",
-                dispatch_result=results[lane],
-                lane_exec_status="pre_run_blocked:PHASE1_PRIOR_LANE_FAILED",
-            )
-            continue
-
-        if (time.monotonic() - clock_start) >= run_timeout:
-            aborted = True
-            abort_reason = f"run_timeout_exceeded:{run_timeout:.1f}s"
-            results[lane] = {
-                "prior_abort": abort_reason,
-                "exit_status": "error",
-                "fault": "patch_run_timeout",
-            }
-            print(
-                f"[patch_run] [{idx}/{total_lanes}] Aborting lane '{lane}': "
-                f"total patch-run timeout exceeded ({run_timeout:.1f}s)",
-                flush=True,
-            )
-            emit_integrated_lane_pre_run_failure(
-                sections_root=sections_root,
-                integrated_dir=plan.run_dir,
-                repo_root=repo,
-                lane_id=lane,
-                blocker="PATCH_RUN_TIMEOUT",
-                dispatch_result=results[lane],
-                lane_exec_status="pre_run_blocked:PATCH_RUN_TIMEOUT",
-            )
-            continue
-
-        upstream = NARRATIVE_UPSTREAM_BULLET_LANE.get(lane)
-        if upstream is not None:
-            expected_ids = tuple(REQUIRED_BULLET_IDS.get(upstream, ()))
-            if not companion_accepted_in_modular_sections_root(
-                repo,
-                sections_root,
-                upstream_section_id=upstream,
-                expected_bullet_ids=expected_ids,
-            ):
-                results[lane] = {
-                    "fault": "upstream_not_finalized",
-                    "upstream_lane": upstream,
-                    "exit_status": "error",
-                }
-                print(
-                    f"[patch_run] [{idx}/{total_lanes}] Lane '{lane}' blocked: "
-                    f"upstream '{upstream}' not finalized",
-                    flush=True,
-                )
-                emit_integrated_lane_pre_run_failure(
-                    sections_root=sections_root,
-                    integrated_dir=plan.run_dir,
-                    repo_root=repo,
-                    lane_id=lane,
-                    blocker=PRE_RUN_UPSTREAM_NOT_FINALIZED_BLOCKER,
-                    dispatch_result=results[lane],
-                    lane_exec_status=(
-                        f"pre_run_blocked:{PRE_RUN_UPSTREAM_NOT_FINALIZED_BLOCKER}"
-                    ),
-                )
-                continue
-
-        print(
-            f"[patch_run] [{idx}/{total_lanes}] Dispatching lane '{lane}' "
-            f"(lane_timeout={lane_timeout:.0f}s)...",
-            flush=True,
-        )
-        lane_start = time.monotonic()
-        executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
-        timed_out = False
-        try:
-            future = executor.submit(dispatch, plan=plan, lane=lane, lane_provider=lane_provider)
-            results[lane] = future.result(timeout=lane_timeout)
-        except concurrent.futures.TimeoutError:
-            timed_out = True
-            executor.shutdown(wait=False, cancel_futures=True)
-            results[lane] = {
-                "fault": "timeout",
-                "error": f"Lane '{lane}' timed out after {lane_timeout:.1f}s",
-                "exit_status": "error",
-            }
-            print(
-                f"[patch_run] [{idx}/{total_lanes}] ERROR: Lane '{lane}' TIMED OUT after {lane_timeout:.1f}s",
-                flush=True,
-            )
-            emit_integrated_lane_pre_run_failure(
-                sections_root=sections_root,
-                integrated_dir=plan.run_dir,
-                repo_root=repo,
-                lane_id=lane,
-                blocker="LANE_TIMEOUT",
-                dispatch_result=results[lane],
-                lane_exec_status="pre_run_blocked:LANE_TIMEOUT",
-            )
-        except (ImportError, AttributeError, KeyError, OSError, RuntimeError, TypeError, ValueError) as exc:
-            executor.shutdown(wait=False)
-            results[lane] = {"fault": "exception", "error": str(exc), "exit_status": "error"}
-            print(
-                f"[patch_run] [{idx}/{total_lanes}] ERROR: Lane '{lane}' exception: {exc}",
-                flush=True,
-            )
-        else:
-            executor.shutdown(wait=False)
-
-        lane_elapsed = time.monotonic() - lane_start
-        exit_status = str(results[lane].get("exit_status") or "unknown")
-        x3_code = str(results[lane].get("x3_disposition") or results[lane].get("fault") or "")
-        if not timed_out and "fault" not in results[lane]:
-            print(
-                f"[patch_run] [{idx}/{total_lanes}] Lane '{lane}' finished in {lane_elapsed:.1f}s "
-                f"(exit_status={exit_status}, x3={x3_code})",
-                flush=True,
-            )
-
-        if product_fail_closed_runtime() and phase1_dispatch_hard_failed(results[lane]):
-            aborted = True
-            abort_reason = f"dispatch_failed:{lane}"
-    return results
 
 
 # --------------------------------------------------------------------- aggregation
@@ -1348,7 +1207,8 @@ def aggregate_patched_run(
     repo = plan.repo
     art = plan.run_dir
     modular_root = art / "modular_r4"
-    sections_root = modular_root / "sections"
+    _sync_split_pointer_roots(art)
+    sections_root = _resolve_sections_root(art)
     dispatch_results: dict[str, dict[str, Any]] = {
         k: dict(v) for k, v in lane_dispatch_results.items()
     }
@@ -1711,6 +1571,7 @@ def execute_patch_run(
     write_embedding_settings_receipt(plan.run_dir, emb)
 
     lane_provider = resolve_apps_rg_modular_lane_provider_override()
+    _sync_split_pointer_roots(plan.run_dir)
     sections_root = _resolve_sections_root(plan.run_dir)
     if not (sections_root / "sections_root_manifest.json").is_file():
         emit_sections_root_manifest(

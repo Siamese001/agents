@@ -249,6 +249,7 @@ def budgeted_regen_call(
         "messages": messages,
         "max_tokens": max_out,
         "anthropic_workload_kind": "REPAIR",
+        "timeout_seconds": min(int(provider_payload.get("timeout_seconds") or 45), 45),
     }
     if art_path is not None:
         _write_json(

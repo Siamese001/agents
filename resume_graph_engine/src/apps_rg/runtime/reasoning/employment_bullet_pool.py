@@ -23,6 +23,7 @@ from apps_rg.runtime.section_execution_plan import (
     MAX_SECTION_ATTEMPTS,
 )
 from apps_rg.runtime.section_model_limits import (
+    SectionModelSSOTError,
     resolve_selector_provider_model,
     selector_role_for_section,
 )
@@ -396,8 +397,8 @@ def is_employment_pool_generation(gen_meta: dict[str, Any] | None) -> bool:
 
 
 def _selector_model_row(section_id: str, *, slot_kind: str) -> tuple[str, str, str]:
-    role = selector_role_for_section(section_id, slot_kind=slot_kind)
-    return resolve_selector_provider_model(role)
+    from apps_rg.runtime.reasoning.bullet_pool_sync_helpers import resolve_selector_model_for_slot
+    return resolve_selector_model_for_slot(section_id, slot_kind=slot_kind)
 
 
 def competencies_pool_x1d_judge_rows(
@@ -439,8 +440,8 @@ def competencies_pool_x1d_judge_rows(
         if isinstance(sel_doc, dict):
             selections = [s for s in (sel_doc.get("selections") or []) if isinstance(s, dict)]
 
-    scores = [float(s.get("score") or 0.0) for s in selections if s.get("passes", True) is not False]
-    min_score = min(scores) if scores else 0.0
+    from apps_rg.runtime.reasoning.bullet_pool_sync_helpers import apply_selector_mean_and_min_scores
+    min_score = apply_selector_mean_and_min_scores(row, selections)
     categories_ok = bool(selections) and all(float(s.get("score") or 0.0) >= threshold for s in selections)
     passed = gate_ok and categories_ok and n_min <= len(selections) <= n_max
 
@@ -459,13 +460,8 @@ def competencies_pool_x1d_judge_rows(
             else "no_selection_input_artifact"
         )
 
-    selector_provider_key, selector_model, selector_model_source = _selector_model_row(
-        lane,
-        slot_kind="competencies",
-    )
-    selector_provider_name = (
-        "Anthropic Claude" if selector_provider_key == "anthropic_claude" else "OpenAI ChatGPT"
-    )
+    selector_provider_key, selector_model, selector_model_source = _selector_model_row(lane, slot_kind="competencies")
+    selector_provider_name = "Anthropic Claude" if selector_provider_key == "anthropic_claude" else "OpenAI ChatGPT"
     row.setdefault("judge_id", f"x1d_{selector_provider_key}_{lane}_pool")
     row.setdefault("provider_name", selector_provider_name)
     row.setdefault("model_name", selector_model)
@@ -475,9 +471,6 @@ def competencies_pool_x1d_judge_rows(
     row["evaluator_mode"] = "MODEL_BACKED"
     row["provider_available"] = True
     row["provider_blocked"] = False
-    row["score_scale"] = "0_to_1"
-    row["score"] = min_score
-    row["normalized_score"] = min_score
     row["threshold"] = threshold
     row["normalized_threshold"] = threshold
     row["pass"] = passed
@@ -553,6 +546,7 @@ def employment_pool_x1d_judge_rows(
 
     scores = [float(s.get("score") or 0.0) for s in selections if s.get("passes", True) is not False]
     min_score = min(scores) if scores else 0.0
+    mean_score = round(sum(scores) / len(scores), 2) if scores else 0.0
     slots_ok = bool(selections) and all(float(s.get("score") or 0.0) >= threshold for s in selections)
     passed = gate_ok and slots_ok
 
@@ -573,8 +567,9 @@ def employment_pool_x1d_judge_rows(
     row["provider_available"] = True
     row["provider_blocked"] = False
     row["score_scale"] = "0_to_1"
-    row["score"] = min_score
-    row["normalized_score"] = min_score
+    row["score"] = mean_score
+    row["normalized_score"] = mean_score
+    row["min_slot_score"] = min_score
     row["threshold"] = threshold
     row["normalized_threshold"] = threshold
     row["pass"] = passed

@@ -13,6 +13,7 @@ import sys
 import time
 import urllib.error
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -258,6 +259,17 @@ GRADE_ONLY authority (all providers — Gemini, OpenAI, Anthropic):
 - Do NOT apply retired SRFS slot mandates as decisive failures: five-part S1–S5 arc, mandatory S5 credibility
   sentence, S2 mechanism-only / S4 outcomes slot shapes, srfs_sentence_responsibility.
 - When x2_exec_summary_evidence_utilization.pass is true, unused_fact_ids are optional weave targets, not defects.
+- OFF_DOMAIN_CLUTTER_ENFORCEMENT: When evaluating the Executive Summary, Headline, or Competencies for a non-financial /
+  non-insurance target role (e.g. AI Partnerships or Agentic Engineering), if the Executive Summary, Headline, or
+  Competencies foregrounds legacy banking regulatory or insurance policy administration clutter (such as BCBS 239,
+  monolithic policy administration, ERM operating models, CCAR, Guidewire), you MUST set decisive_failure=true,
+  pass=false, and score <= 3.4 (or <= 0.68 on 0_to_1). However, when evaluating a FULL assembled resume
+  (full_resume_coherence), chronological earlier-career experience sections (e.g., InsurTech 2015–2018 or Early Career / EY
+  2012–2015) are expected to accurately reflect historical insurance/financial-services cloud modernization work and MUST NOT
+  be penalized as off-domain clutter so long as the Headline, Executive Summary, Competencies, and recent roles (Slalom,
+  Unify, IBM) lead with AI Partnerships, Applied AI Architecture, and Agentic Platform commercialization. Also, IBM-AWS
+  alliance co-sell motions in financial-services modernization (an IBM Partner role fact) are valid hyperscaler co-sell
+  proof when framed around reusable platform architecture, partner solution patterns, and joint GTM execution.
 """.strip()
 
 
@@ -1826,63 +1838,52 @@ def run_llm_judges(
             contract_hash=contract_hash,
         )
 
-    outputs: list[JudgeOutput] = []
-    proof_eligible_judge = False
-    model_tier: str | None = None
-    for key in judge_keys:
+    def _evaluate_single_judge(key: str) -> JudgeOutput:
+        proof_eligible_judge = False
+        model_tier: str | None = None
         if key not in PROVIDERS:
-            outputs.append(
-                _make_blocked_output(
-                    key,
-                    input_hash,
-                    "BLOCKED_PROVIDER_UNAVAILABLE",
-                    "BLOCKED_PROVIDER_UNAVAILABLE",
-                    f"Unknown judge provider key: {key}",
-                )
+            return _make_blocked_output(
+                key,
+                input_hash,
+                "BLOCKED_PROVIDER_UNAVAILABLE",
+                "BLOCKED_PROVIDER_UNAVAILABLE",
+                f"Unknown judge provider key: {key}",
             )
-            continue
 
         if mode == "mocked":
             if not _is_test_environment():
                 raise RuntimeError("MOCK_JUDGE_FORBIDDEN: mode='mocked' is strictly forbidden in production runtime.")
-            outputs.append(_mocked_output(key, input_hash))
-            continue
+            return _mocked_output(key, input_hash)
 
         meta = PROVIDERS[key]
         api_key, env_checked = resolve_x1d_provider_credentials(key, os.environ)
         if not api_key:
-            outputs.append(
-                _make_blocked_output(
-                    key,
-                    input_hash,
-                    "BLOCKED_PROVIDER_UNAVAILABLE",
-                    "BLOCKED_PROVIDER_UNAVAILABLE",
-                    (
-                        f"No non-empty API credential in {env_checked}; "
-                        f"Gemini resolves GOOGLE_API_KEY then deprecated GEMINI_API_KEY alias."
-                        if key == "gemini_pro"
-                        else f"{meta['env']} environment variable not set"
-                    ),
-                )
+            return _make_blocked_output(
+                key,
+                input_hash,
+                "BLOCKED_PROVIDER_UNAVAILABLE",
+                "BLOCKED_PROVIDER_UNAVAILABLE",
+                (
+                    f"No non-empty API credential in {env_checked}; "
+                    f"Gemini resolves GOOGLE_API_KEY then deprecated GEMINI_API_KEY alias."
+                    if key == "gemini_pro"
+                    else f"{meta['env']} environment variable not set"
+                ),
             )
-            continue
 
         reasoning_effort: str | None = None
         model_requested = ""
         if use_grade_only_packet:
             resolution = resolve_section_proof_judge_model(sid, key)
             if resolution.blocked:
-                outputs.append(
-                    _make_blocked_output(
-                        key,
-                        input_hash,
-                        "BLOCKED_MODEL_CONFIG",
-                        "BLOCKED_MODEL_CONFIG",
-                        resolution.block_reason or "proof judge model unavailable",
-                        model_name=resolution.model_requested or "unconfigured",
-                    )
+                blocked = _make_blocked_output(
+                    key,
+                    input_hash,
+                    "BLOCKED_MODEL_CONFIG",
+                    "BLOCKED_MODEL_CONFIG",
+                    resolution.block_reason or "proof judge model unavailable",
+                    model_name=resolution.model_requested or "unconfigured",
                 )
-                blocked = outputs[-1]
                 if base_receipt:
                     blocked.judge_packet_hash = base_receipt.get("judge_packet_hash")
                     blocked.judge_packet_ref = base_receipt.get("judge_packet_ref")
@@ -1890,7 +1891,7 @@ def run_llm_judges(
                 blocked.section_id = sid
                 blocked.model_tier = resolution.model_tier
                 blocked.proof_eligible_judge = False
-                continue
+                return blocked
             model = resolution.model_actual
             model_source = resolution.model_source
             model_requested = resolution.model_requested
@@ -1900,17 +1901,14 @@ def run_llm_judges(
         else:
             resolution = resolve_section_proof_judge_model(sid, key)
             if resolution.blocked:
-                outputs.append(
-                    _make_blocked_output(
-                        key,
-                        input_hash,
-                        "BLOCKED_MODEL_CONFIG",
-                        "BLOCKED_MODEL_CONFIG",
-                        resolution.block_reason or "judge model unavailable",
-                        model_name=resolution.model_requested or "unconfigured",
-                    )
+                return _make_blocked_output(
+                    key,
+                    input_hash,
+                    "BLOCKED_MODEL_CONFIG",
+                    "BLOCKED_MODEL_CONFIG",
+                    resolution.block_reason or "judge model unavailable",
+                    model_name=resolution.model_requested or "unconfigured",
                 )
-                continue
             model = resolution.model_actual
             model_source = resolution.model_source
             reasoning_effort = resolution.reasoning_effort
@@ -1973,7 +1971,7 @@ def run_llm_judges(
                     if is_forbidden_proof_judge_model(str(output.fallback_model)):
                         output.proof_eligible_judge = False
                         output.fallback_used = True
-            outputs.append(output)
+            return output
         except (
             ImportError,
             AttributeError,
@@ -1984,16 +1982,18 @@ def run_llm_judges(
             ValueError,
             urllib.error.URLError,
         ) as exc:
-            # Catch any unexpected errors and mark as blocked
-            outputs.append(
-                _make_blocked_output(
-                    key,
-                    input_hash,
-                    "BLOCKED_PROVIDER_UNAVAILABLE",
-                    "BLOCKED_PROVIDER_UNAVAILABLE",
-                    f"{meta['provider_name']} judge call failed: {type(exc).__name__}: {exc}",
-                    model_name=model,
-                )
+            return _make_blocked_output(
+                key,
+                input_hash,
+                "BLOCKED_PROVIDER_UNAVAILABLE",
+                "BLOCKED_PROVIDER_UNAVAILABLE",
+                f"{meta['provider_name']} judge call failed: {type(exc).__name__}: {exc}",
+                model_name=model,
             )
 
-    return outputs
+    if mode != "mocked" and len(judge_keys) > 1:
+        with ThreadPoolExecutor(max_workers=len(judge_keys)) as executor:
+            futures = [executor.submit(_evaluate_single_judge, key) for key in judge_keys]
+            return [f.result() for f in futures]
+
+    return [_evaluate_single_judge(key) for key in judge_keys]

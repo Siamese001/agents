@@ -13,10 +13,10 @@ FSA_CREDENTIAL_FACT_ID = "fact_quant_hpc_003"
 
 # Approved S2–S5 transitions (max two stock bridges per paragraph — see I0).
 APPROVED_NON_STOCK_OPENERS: tuple[str, ...] = (
-    "From that commercial base,",
-    "Against that lineage backdrop,",
+    "Across enterprise programs,",
+    "Within that ecosystem model,",
     "In parallel,",
-    "That operating foundation also",
+    "That platform productization discipline",
     "The same platform discipline",
 )
 
@@ -66,6 +66,79 @@ SVP_JD_EMPHASIS_THEMES: tuple[str, ...] = (
     "federated / post-merger integration",
     "AI and data platform revenue generation",
 )
+
+SENTENCE_ARC_AI_PARTNERSHIPS: tuple[dict[str, str], ...] = (
+    {
+        "brushstroke_id": "B1_executive_identity",
+        "arc_role": "partnerships_thesis",
+        "guidance": (
+            "Leadership-first applied AI architecture and ecosystem partnerships thesis; "
+            "connect reusable agentic platform architecture, hyperscaler/GSI co-sell enablement, "
+            "and commercial platform adoption (targeting vocabulary — not JD-as-proof)."
+        ),
+    },
+    {
+        "brushstroke_id": "B2_governed_platform_system",
+        "arc_role": "platform_architecture",
+        "guidance": (
+            "S2: reusable agentic AI platform architecture, reference architectures, and solution patterns "
+            "from allowed facts; max two mechanism terms verbatim."
+        ),
+    },
+    {
+        "brushstroke_id": "B2_governed_platform_system",
+        "arc_role": "partner_cosell_motion",
+        "guidance": (
+            "S3: hyperscaler alliance, GSI/ISV partner enablement, and joint go-to-market execution from "
+            "allowed facts; describe partner co-sell and joint revenue expansion qualitatively unless a numeric metric is explicitly reserved for executive_summary."
+        ),
+    },
+    {
+        "brushstroke_id": "B3_control_evidence_discipline",
+        "arc_role": "governed_deployment_enablement",
+        "guidance": (
+            "S4: repeatable delivery governance, field solution playbooks, or production adoption discipline "
+            "from allowed facts; use a non-stock opener (e.g. 'In parallel,' or 'Across enterprise programs,')."
+        ),
+    },
+    {
+        "brushstroke_id": "B4_business_role_fit",
+        "arc_role": "commercial_outcomes",
+        "guidance": (
+            "S5: weave reserved commercial outcomes from allowed facts (e.g. $22M IP-led "
+            "platform revenue, margin expansion, and delivery scale) into flowing display prose without quoting unreserved partner percentages."
+        ),
+    },
+    {
+        "brushstroke_id": "B4_business_role_fit",
+        "arc_role": "ecosystem_capstone",
+        "guidance": (
+            "S6: forward-modal capstone grounded in cited source_fact_ids projecting how reusable AI platform "
+            "productization and partner co-sell architecture accelerate enterprise AI deployment and ecosystem scale; "
+            "never name TARGET_COMPANY."
+        ),
+    },
+)
+
+
+def classify_exec_summary_role_archetype(
+    *,
+    target_role: str = "",
+    jd_text: str = "",
+    briefing_text: str = "",
+) -> str:
+    """Classify executive summary role archetype for prompt and sentence-arc adaptation."""
+    title_low = str(target_role or "").lower()
+    blob = f"{target_role} {jd_text} {briefing_text}".lower()
+    if any(k in title_low for k in ("partnership", "alliances", "ecosystem", "partner", "channel", "co-sell", "cosell")) or (
+        "partnership" in blob and any(k in blob for k in ("applied ai", "solution architecture", "gsi", "hyperscaler", "co-sell"))
+    ):
+        return "ai_partnerships"
+    if any(k in title_low for k in ("it strategy", "strategy & innovation", "strategy and innovation", "chief information", "cio", "cito")):
+        return "it_strategy_regulated"
+    if any(k in title_low for k in ("transformation", "advisory", "consulting")):
+        return "enterprise_transformation"
+    return "agentic_platform"
 
 SENTENCE_ARC_SVP_STRATEGY: tuple[dict[str, str], ...] = (
     {
@@ -135,16 +208,20 @@ def format_s6_briefing_forward_targeting_anchor(
     """Targeting-only S6 forward themes from JD/briefing (never proof)."""
     blob = f"{briefing_text} {jd_text}".lower()
     themes: list[str] = []
+    if any(tok in blob for tok in ("partnership", "co-sell", "cosell", "gsi", "system integrator", "hyperscaler", "ecosystem")):
+        themes.append("partner-facing applied AI solution architecture and joint go-to-market execution")
+    if any(tok in blob for tok in ("deployment", "commercial adoption", "production rollout", "reusable")):
+        themes.append("enterprise AI deployment velocity and commercial platform adoption")
     if any(tok in blob for tok in ("decentral", "autonomous unit", "federated", "operating unit")):
         themes.append("decentralized operating units")
-    if "innovation" in blob:
+    if "innovation" in blob and not themes:
         themes.append("innovation incubation and architecture standards")
-    if "enterprise architecture" in blob or " ea " in f" {blob} ":
+    if ("enterprise architecture" in blob or " ea " in f" {blob} ") and len(themes) < 2:
         themes.append("enterprise architecture governance")
-    if "multi-year" in blob or "roadmap" in blob:
+    if ("multi-year" in blob or "roadmap" in blob) and len(themes) < 2:
         themes.append("multi-year IT strategy roadmap")
     if not themes:
-        themes.append("enterprise IT direction and innovation-program posture")
+        themes.append("enterprise AI platform direction and partner-enabled adoption")
     joined = "; ".join(themes)
     return (
         f"TARGETING_FORWARD_ANCHOR (targeting only — jd_used_as_proof=false): {joined}."
@@ -443,8 +520,10 @@ __all__ = [
     "FSA_CREDENTIAL_FACT_ID",
     "format_leadership_first_exec_summary_block",
     "QUANT_METRIC_DISPLAY_FACT_ID",
+    "SENTENCE_ARC_AI_PARTNERSHIPS",
     "SENTENCE_ARC_SVP_STRATEGY",
     "SVP_JD_EMPHASIS_THEMES",
+    "classify_exec_summary_role_archetype",
     "format_s6_briefing_forward_targeting_anchor",
     "failed_x2_gate_ids",
     "gate_ids_from_x2_reject_reason",

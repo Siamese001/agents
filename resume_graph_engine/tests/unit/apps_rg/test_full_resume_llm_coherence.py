@@ -589,5 +589,3 @@ def test_build_full_resume_evidence_packet_includes_locked_inline_sections():
     assert early_career_sec["selected_candidate_facts"][0]["metric_values"] == ["$15M transformation program"]
     assert early_career_sec["graph_claim_bindings"][0]["metric_value"] == "$15M transformation program"
 
-
-

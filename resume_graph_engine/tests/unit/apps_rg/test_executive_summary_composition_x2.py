@@ -163,3 +163,45 @@ def test_dominant_brushstroke_coherence_passes_thesis() -> None:
     )
     ok, _ = check_dominant_brushstroke_coherence(text, plan)
     assert ok is True
+
+
+def test_execution_fact_id_does_not_misclassify_as_b1_and_ai_partnerships_populates_all_brushstrokes() -> None:
+    from apps_rg.runtime.sections.executive_summary_composition import _classify_fact_brushstroke_role
+
+    assert (
+        _classify_fact_brushstroke_role(
+            "fact_insurtech_aws_migration_execution",
+            "Led AWS modernization execution for monolithic policy administration workloads.",
+        )
+        != "B1_executive_identity"
+    )
+    partner_facts = [
+        {
+            "fact_id": "fact_unify_platform_commercialization",
+            "role_episode_bundle_id": "reb_unify_platform_commercialization_leadership",
+            "claim_text": "Led platform productization and governed delivery across enterprise AI programs, generating $22M in IP-led platform revenue.",
+            "metric_raw": "$22M IP-led revenue",
+        },
+        {
+            "fact_id": "fact_ibm_aws_alliance_cosell",
+            "role_episode_bundle_id": "reb_ibm_aws_alliance_partner_cosell_gtm",
+            "claim_text": "Built AWS strategic alliance co-sell motion and solution architecture playbooks for enterprise adoption.",
+        },
+        {
+            "fact_id": "fact_unify_partner_cosell",
+            "role_episode_bundle_id": "reb_unify_partner_channel_cosell",
+            "claim_text": "Scaled GSI and hyperscaler partner channel enablement with repeatable architecture standards.",
+        },
+    ]
+    allowed_ids = {f["fact_id"] for f in partner_facts}
+    plan = build_executive_summary_composition_plan(
+        selected_facts=partner_facts,
+        allowed_fact_ids=allowed_ids,
+        target_role="Manager of Applied AI Architecture, Partnerships",
+        target_company="Anthropic",
+        jd_text="Partner solution architecture, GSI/SI co-sell enablement, enterprise AI deployment.",
+    )
+    assert plan["role_archetype"] == "ai_partnerships"
+    assert plan["brushstroke_missing_ids"] == []
+    assert all(bs["support_status"] == "SUPPORTED" for bs in plan["brushstrokes"])
+    assert plan["sentence_arc"][0]["arc_role"] == "partnerships_thesis"

@@ -394,6 +394,8 @@ def run_competencies_lane_execution(
     )
     targeting_context["allowed_fact_ids"] = sorted(str(x) for x in allowed_fact_ids)
     targeting_context["resume_support_blob_lower"] = c0_proof_blob
+    from apps_rg.runtime.sections.lane_perf_sync_helpers import extract_lane_targeting_kwargs, mark_frozen_competencies_targeting
+    _comp_has_frozen_allocation = mark_frozen_competencies_targeting(targeting_context, pp_meta)
 
     judge_mode = "mocked" if getattr(args, "mock_judges", False) else "blocked_if_unavailable"
     _mark_phase("prepare_l2_before_provider")
@@ -411,7 +413,6 @@ def run_competencies_lane_execution(
         targeting_context=targeting_context,
         judge_mode=judge_mode,
         provider_profile=str(args.provider),
-        use_sc_path=True,
     )
     write_json(artifact_dir / "bullet_lane_generation.json", gen_meta)
     _mark_phase("self_consistency_generation_and_selector")
@@ -471,7 +472,11 @@ def run_competencies_lane_execution(
                 )
                 parsed["change_log"] = clog
             raw_output = json.dumps(parsed, sort_keys=True, separators=(",", ":"))
-            bad_term = find_bullet_restatement_term(parsed.get("competencies") or [], bullet_lowers)
+            bad_term = (
+                None
+                if _comp_has_frozen_allocation
+                else find_bullet_restatement_term(parsed.get("competencies") or [], bullet_lowers)
+            )
             if bad_term:
                 raw_output, parsed = retry_provider_competency_restatement(
                     messages,
@@ -895,22 +900,17 @@ def run_competencies_lane_execution(
         from apps_rg.runtime.section_cli_defaults import COMPETENCIES_DEFAULT_X1D_JUDGES
 
         judge_keys = [j.strip() for j in COMPETENCIES_DEFAULT_X1D_JUDGES.split(",") if j.strip()]
+    _judge_target_kw = extract_lane_targeting_kwargs(args)
     x1d_outputs = run_competencies_judges(
-        competencies=competencies,
-        claim_ledger=claim_ledger,
-        judge_keys=judge_keys,
-        companion_context=companion_context,
-        mode=judge_mode,
-        artifact_base=artifact_dir,
+        competencies=competencies, claim_ledger=claim_ledger, judge_keys=judge_keys,
+        companion_context=companion_context, mode=judge_mode, artifact_base=artifact_dir, **_judge_target_kw,
     )
     x1d = [j.to_dict() if hasattr(j, "to_dict") else dict(j) for j in x1d_outputs]
     from apps_rg.runtime.judges.x1d_panel_harness import extract_x1d_diagnostic
-    from apps_rg.runtime.sections.ExecutiveVoiceRepairAgent import (
-        repair_section_with_executive_voice_agent,
-    )
+    from apps_rg.runtime.sections.ExecutiveVoiceRepairAgent import repair_section_with_executive_voice_agent
 
     comp_diag = extract_x1d_diagnostic(x1d, "competencies")
-    if comp_diag.get("repair_needed"):
+    if comp_diag.get("repair_needed") and any(not j.get("pass", True) for j in x1d):
         repaired_comp_data, comp_repair_rec = repair_section_with_executive_voice_agent(
             section_id="competencies",
             candidate_data={"competencies": competencies, "claim_ledger": claim_ledger},
@@ -929,12 +929,8 @@ def run_competencies_lane_execution(
                 rebuild_claim_ledger_from_competencies(parsed, allowed_fact_ids)
                 claim_ledger = list((parsed or {}).get("claim_ledger") or [])
                 x1d_outputs = run_competencies_judges(
-                    competencies=competencies,
-                    claim_ledger=claim_ledger,
-                    judge_keys=judge_keys,
-                    companion_context=companion_context,
-                    mode=judge_mode,
-                    artifact_base=artifact_dir,
+                    competencies=competencies, claim_ledger=claim_ledger, judge_keys=judge_keys,
+                    companion_context=companion_context, mode=judge_mode, artifact_base=artifact_dir, **_judge_target_kw,
                 )
                 x1d = [j.to_dict() if hasattr(j, "to_dict") else dict(j) for j in x1d_outputs]
     write_json(

@@ -200,7 +200,8 @@ def repair_exec_summary_orphan_rows_with_unused_required_facts(
     unused_required = [
         fid for fid in allowed if fid in fact_by_id and fid not in cited
     ]
-    if not unused_required:
+    eligible_fids = [fid for fid in fact_by_id if fid in allowed]
+    if not unused_required and not eligible_fids:
         return repairs
 
     for idx, row in enumerate(ledger):
@@ -208,23 +209,28 @@ def repair_exec_summary_orphan_rows_with_unused_required_facts(
             continue
         if [str(x) for x in (row.get("source_fact_ids") or []) if str(x).strip()]:
             continue  # row already cited
-        if not unused_required:
-            break
-        fid = unused_required.pop(0)
-        fact = fact_by_id.get(fid) or {}
-        replacement = _first_sentence_of_claim(str(fact.get("claim_text") or ""))
-        if not replacement:
-            continue
-        sentences[idx] = replacement
-        row["source_fact_ids"] = [fid]
-        row["claim"] = replacement
-        row["claim_text"] = str(fact.get("claim_text") or replacement)
-        repairs.append(
-            {
-                "operation": "repair_orphan_row_with_unused_required_fact",
-                "reason": f"orphan_row_{idx + 1}_materialized_fact:{fid}",
-            }
-        )
+        if unused_required:
+            fid = unused_required.pop(0)
+            fact = fact_by_id.get(fid) or {}
+            replacement = _first_sentence_of_claim(str(fact.get("claim_text") or ""))
+            if not replacement:
+                continue
+            sentences[idx] = replacement
+            row["source_fact_ids"] = [fid]
+            row["claim"] = replacement
+            row["claim_text"] = str(fact.get("claim_text") or replacement)
+            repairs.append(
+                {
+                    "operation": "repair_orphan_row_with_unused_required_fact",
+                    "reason": f"orphan_row_{idx + 1}_materialized_fact:{fid}",
+                }
+            )
+        elif eligible_fids:
+            from apps_rg.runtime.sections.exec_summary_perf_sync_helpers import bind_orphan_row_to_best_allocated_root
+            bind_orphan_row_to_best_allocated_root(
+                idx=idx, row=row, sentence=sentences[idx], eligible_fids=eligible_fids,
+                fact_by_id=fact_by_id, tokens_fn=_citation_repair_tokens, support_text_fn=_fact_support_text, repairs=repairs,
+            )
 
     if repairs:
         parsed["resume_display_text"] = " ".join(sentences).strip()
@@ -744,25 +750,20 @@ def repair_exec_summary_causal_multi_metric_rows(
             continue
 
         # A conjunction is only safe to collapse when it creates a clean,
-        # complete clause containing the one graph-reserved metric.
-        clauses = re.split(r"\s*,?\s+\b(?:while|whereas)\b\s+", display_sentence, maxsplit=1)
-        if len(clauses) != 2:
+        # complete clause containing the one graph-reserved metric, or when
+        # inline secondary numeric modifiers can be scrubbed in place.
+        from apps_rg.runtime.sections.exec_summary_perf_sync_helpers import scrub_secondary_causal_metrics
+        replacement = scrub_secondary_causal_metrics(
+            display_sentence=display_sentence, visible_metrics=visible_metrics,
+            chosen_signature=chosen_signature, visible_metric_re=_VISIBLE_METRIC_RE,
+            extract_sig_fn=extract_exact_metric_value_unit,
+        )
+        if not replacement:
             continue
-        candidate_clauses = [
-            clause.strip()
-            for clause in clauses
-            if len(_VISIBLE_METRIC_RE.findall(clause)) == 1
-            and extract_exact_metric_value_unit(clause) == chosen_signature
-        ]
-        if len(candidate_clauses) != 1:
-            continue
-        replacement = candidate_clauses[0]
         if replacement and replacement[0].islower():
             replacement = replacement[0].upper() + replacement[1:]
         if replacement and replacement[-1] not in ".!?":
             replacement += "."
-        if not replacement:
-            continue
 
         root_id = str(chosen.get("root_id") or "").strip()
         fact_id = str(chosen.get("fact_id") or "").strip()
@@ -884,15 +885,14 @@ def repair_exec_summary_unallocated_metric_rows(
             )
 
         chosen = max(selected, key=rank)
-        replacement = str(
-            chosen.get("root_claim_text") or chosen.get("root_claim_action") or ""
-        ).strip()
+        from apps_rg.runtime.sections.exec_summary_perf_sync_helpers import resolve_unallocated_metric_sentence_replacement
+        replacement, root_id, fact_id, skill_id = resolve_unallocated_metric_sentence_replacement(
+            display_sentence=sentences[index], sentences=sentences, index=index, raw_row=raw_row, selected=selected, chosen=chosen, rank_fn=rank, extract_sig_fn=extract_exact_metric_value_unit, tokens_fn=_citation_repair_tokens,
+        )
         if not replacement:
             continue
         if replacement[-1] not in ".!?":
             replacement += "."
-        root_id = str(chosen.get("root_id") or "").strip()
-        fact_id = str(chosen.get("fact_id") or "").strip()
         source_fact_ids = [value for value in (root_id, fact_id) if value]
         if not source_fact_ids:
             continue

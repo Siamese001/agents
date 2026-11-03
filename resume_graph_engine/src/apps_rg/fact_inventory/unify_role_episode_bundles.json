@@ -118,7 +118,8 @@
         "unify_bullets",
         "unify_narrative",
         "competencies",
-        "headline"
+        "headline",
+        "executive_summary"
       ],
       "external_claim_policy": "skill_projection_not_proof",
       "activation_status": "ACTIVE_CONFIRMED",
@@ -360,7 +361,8 @@
         "unify_bullets",
         "unify_narrative",
         "competencies",
-        "headline"
+        "headline",
+        "executive_summary"
       ],
       "external_claim_policy": "approved_metric_linked",
       "activation_status": "ACTIVE_CONFIRMED",
@@ -519,7 +521,8 @@
         "unify_bullets",
         "unify_narrative",
         "competencies",
-        "headline"
+        "headline",
+        "executive_summary"
       ]
     },
     "metric_unify_20pct_gross_margin_expansion": {
@@ -542,7 +545,8 @@
         "unify_bullets",
         "unify_narrative",
         "competencies",
-        "headline"
+        "headline",
+        "executive_summary"
       ]
     },
     "metric_unify_team_scaled_8_to_28": {
@@ -565,7 +569,8 @@
         "unify_bullets",
         "unify_narrative",
         "competencies",
-        "headline"
+        "headline",
+        "executive_summary"
       ]
     },
     "metric_unify_cycle_six_months_to_three_weeks": {
@@ -589,7 +594,8 @@
         "unify_bullets",
         "unify_narrative",
         "competencies",
-        "headline"
+        "headline",
+        "executive_summary"
       ]
     },
     "metric_unify_policy_gated_agent_execution_surface": {
@@ -613,7 +619,8 @@
         "unify_bullets",
         "unify_narrative",
         "competencies",
-        "headline"
+        "headline",
+        "executive_summary"
       ]
     },
     "metric_unify_replayable_runtime_traceability": {
@@ -636,7 +643,8 @@
         "unify_bullets",
         "unify_narrative",
         "competencies",
-        "headline"
+        "headline",
+        "executive_summary"
       ]
     },
     "metric_unify_dependency_graph_refactor_blast_radius_visibility": {
@@ -659,7 +667,8 @@
         "unify_bullets",
         "unify_narrative",
         "competencies",
-        "headline"
+        "headline",
+        "executive_summary"
       ]
     },
     "metric_unify_semantic_edge_refactor_governance_controls": {
@@ -682,7 +691,8 @@
         "unify_bullets",
         "unify_narrative",
         "competencies",
-        "headline"
+        "headline",
+        "executive_summary"
       ]
     },
     "metric_unify_eval_telemetry_rollback_control_set": {
@@ -706,7 +716,8 @@
         "unify_bullets",
         "unify_narrative",
         "competencies",
-        "headline"
+        "headline",
+        "executive_summary"
       ]
     },
     "metric_unify_audit_grade_runtime_observability_coverage": {
@@ -729,7 +740,8 @@
         "unify_bullets",
         "unify_narrative",
         "competencies",
-        "headline"
+        "headline",
+        "executive_summary"
       ]
     },
     "metric_unify_production_readiness_gate_set": {
@@ -752,7 +764,8 @@
         "unify_bullets",
         "unify_narrative",
         "competencies",
-        "headline"
+        "headline",
+        "executive_summary"
       ]
     },
     "metric_unify_cloud_data_runtime_integration_patterns": {
@@ -776,7 +789,8 @@
         "unify_bullets",
         "unify_narrative",
         "competencies",
-        "headline"
+        "headline",
+        "executive_summary"
       ]
     },
     "metric_unify_high_availability_distributed_service_patterns": {
@@ -799,7 +813,8 @@
         "unify_bullets",
         "unify_narrative",
         "competencies",
-        "headline"
+        "headline",
+        "executive_summary"
       ]
     },
     "metric_unify_partner_cosell_solution_motion_count": {
@@ -822,7 +837,8 @@
         "unify_bullets",
         "unify_narrative",
         "competencies",
-        "headline"
+        "headline",
+        "executive_summary"
       ]
     },
     "metric_unify_partner_enablement_asset_set": {
@@ -845,7 +861,8 @@
         "unify_bullets",
         "unify_narrative",
         "competencies",
-        "headline"
+        "headline",
+        "executive_summary"
       ]
     },
     "metric_unify_cfo_aligned_adoption_motion_count": {
@@ -868,7 +885,8 @@
         "unify_bullets",
         "unify_narrative",
         "competencies",
-        "headline"
+        "headline",
+        "executive_summary"
       ]
     },
     "metric_unify_consumption_renewal_signal_instrumentation": {
@@ -892,7 +910,8 @@
         "unify_bullets",
         "unify_narrative",
         "competencies",
-        "headline"
+        "headline",
+        "executive_summary"
       ]
     },
     "metric_unify_agentic_l0_route_policy_dispatch_surface": {
@@ -915,7 +934,8 @@
         "unify_bullets",
         "unify_narrative",
         "competencies",
-        "headline"
+        "headline",
+        "executive_summary"
       ]
     },
     "metric_unify_agentic_multi_agent_orchestration_contract_surface": {
@@ -938,7 +958,8 @@
         "unify_bullets",
         "unify_narrative",
         "competencies",
-        "headline"
+        "headline",
+        "executive_summary"
       ]
     },
     "metric_unify_agentic_graphrag_context_pack_grounding_surface": {
@@ -961,7 +982,8 @@
         "unify_bullets",
         "unify_narrative",
         "competencies",
-        "headline"
+        "headline",
+        "executive_summary"
       ]
     },
     "metric_unify_agentic_tool_sandbox_egress_policy_surface": {
@@ -985,7 +1007,8 @@
         "unify_bullets",
         "unify_narrative",
         "competencies",
-        "headline"
+        "headline",
+        "executive_summary"
       ]
     },
     "metric_unify_agentic_runtime_gate_verdict_contract_surface": {
@@ -1008,7 +1031,8 @@
         "unify_bullets",
         "unify_narrative",
         "competencies",
-        "headline"
+        "headline",
+        "executive_summary"
       ]
     },
     "metric_unify_agentic_human_override_escalation_surface": {
@@ -1032,7 +1056,8 @@
         "unify_bullets",
         "unify_narrative",
         "competencies",
-        "headline"
+        "headline",
+        "executive_summary"
       ]
     },
     "metric_unify_agentic_replay_key_audit_manifest_surface": {
@@ -1056,7 +1081,8 @@
         "unify_bullets",
         "unify_narrative",
         "competencies",
-        "headline"
+        "headline",
+        "executive_summary"
       ]
     },
     "metric_unify_agentic_runtime_proof_bundle_lineage_surface": {
@@ -1080,7 +1106,8 @@
         "unify_bullets",
         "unify_narrative",
         "competencies",
-        "headline"
+        "headline",
+        "executive_summary"
       ]
     }
   },

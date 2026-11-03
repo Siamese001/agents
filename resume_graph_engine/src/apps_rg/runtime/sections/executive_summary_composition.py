@@ -8,7 +8,9 @@ from typing import Any
 from apps_rg.runtime.sections.executive_summary_synthesis_contract import (
     FSA_CREDENTIAL_FACT_ID,
     QUANT_METRIC_DISPLAY_FACT_ID,
+    SENTENCE_ARC_AI_PARTNERSHIPS,
     SENTENCE_ARC_SVP_STRATEGY,
+    classify_exec_summary_role_archetype,
     format_s6_briefing_forward_targeting_anchor,
 )
 from apps_rg.runtime.validators.executive_summary_x2 import split_sentences
@@ -138,13 +140,17 @@ def _filter_required_display_fact_ids(role: str, req_ids: list[str]) -> list[str
 def _classify_fact_brushstroke_role(fact_id: str, claim_text: str) -> str:
     fid = _fact_id_base(fact_id).lower()
     low = claim_text.lower()
+    tokens = set(re.findall(r"[a-z0-9]+", fid))
     if any(x in fid for x in ("revenue", "sales", "commercial", "margin", "ops")):
         return "B4_business_role_fit"
-    if any(x in fid for x in ("exec", "leadership", "partner", "transformation")) or ("organization" in low and "ml engineering" in low):
+    if (
+        tokens & {"exec", "leadership", "partner", "cosell", "alliance", "transformation", "advisory"}
+        or ("organization" in low and "ml engineering" in low)
+    ):
         return "B1_executive_identity"
     if any(x in fid for x in ("cert", "quant", "hpc", "actuarial")):
         return "B4_business_role_fit"
-    if any(x in fid for x in ("governance", "regulatory", "risk", "ccar", "basel", "lineage", "validation")):
+    if any(x in fid for x in ("governance", "regulatory", "risk", "ccar", "basel", "lineage", "validation", "telemetry", "routing")):
         return "B3_control_evidence_discipline"
     if any(
         tok in low
@@ -162,6 +168,11 @@ def _classify_fact_brushstroke_role(fact_id: str, claim_text: str) -> str:
     ):
         return "B2_governed_platform_system"
     return "B2_governed_platform_system"
+
+
+def _fact_supports_brushstroke_facet(fact: dict[str, Any], role: str) -> bool:
+    from apps_rg.runtime.sections.exec_summary_perf_sync_helpers import fact_supports_brushstroke_facet
+    return fact_supports_brushstroke_facet(fact, role, classify_fn=_classify_fact_brushstroke_role, fact_id_base_fn=_fact_id_base)
 
 
 def _skill_ids_for_facts_from_track_expansion(
@@ -233,15 +244,9 @@ def _brushstroke_for_role(
         for f in facts
         if isinstance(f, dict) and _classify_fact_brushstroke_role(str(f.get("fact_id") or ""), str(f.get("claim_text") or "")) == role
     ]
-    if not role_facts and role == "B1_executive_identity" and facts:
-        preferred_b1 = [
-            f for f in facts
-            if isinstance(f, dict) and any(
-                k in str(f.get("fact_id") or "").lower()
-                for k in ("slalom", "unify", "ibm", "partner", "leadership", "transformation")
-            )
-        ]
-        role_facts = [preferred_b1[0]] if preferred_b1 else [facts[0]]
+    if not role_facts and facts:
+        from apps_rg.runtime.sections.exec_summary_perf_sync_helpers import resolve_fallback_brushstroke_facts
+        role_facts = resolve_fallback_brushstroke_facts(facts, role, classify_fn=_classify_fact_brushstroke_role, fact_id_base_fn=_fact_id_base)
     req_ids = _filter_required_display_fact_ids(
         role,
         sorted(
@@ -297,7 +302,10 @@ def bind_facts_to_brushstrokes(
                 "in_allowed_pool": _fact_id_base(fid) in allowed,
             }
         )
-    covered_roles = sorted({b["brushstroke_role"] for b in bindings if b.get("in_allowed_pool")})
+    from apps_rg.runtime.sections.exec_summary_perf_sync_helpers import expand_covered_brushstroke_roles
+    covered_roles = expand_covered_brushstroke_roles(
+        bindings, facts, allowed, BRUSHSTROKE_ROLES, classify_fn=_classify_fact_brushstroke_role, fact_id_base_fn=_fact_id_base,
+    )
     missing_roles = [r for r in BRUSHSTROKE_ROLES if r not in covered_roles]
     return {
         "brushstroke_fact_bindings": bindings,
@@ -400,9 +408,15 @@ def build_sentence_arc(
     *,
     target_role: str,
     strategy_executive: bool,
+    role_archetype: str = "",
 ) -> list[dict[str, Any]]:
     """Deterministic six-sentence arc map for L2 and post-parse sentence_map."""
-    template = SENTENCE_ARC_SVP_STRATEGY if strategy_executive else SENTENCE_ARC_DEFAULT
+    if role_archetype == "ai_partnerships":
+        template = SENTENCE_ARC_AI_PARTNERSHIPS
+    elif strategy_executive:
+        template = SENTENCE_ARC_SVP_STRATEGY
+    else:
+        template = SENTENCE_ARC_DEFAULT
     out: list[dict[str, Any]] = []
     for idx, row in enumerate(template):
         out.append(
@@ -455,7 +469,7 @@ def format_composition_plan_for_pa(plan: dict[str, Any]) -> str:
     if strategy_lane and len(brushstrokes) >= 3:
         lines.append(
             "s4_opener_directive: S4 MUST use a non-stock opener "
-            '(e.g. "In parallel," / "That operating foundation also," / "The same platform discipline") '
+            '(e.g. "In parallel," / "Across enterprise programs," / "The same platform discipline") '
             "— S2 and S3 are expected to consume both available stock-bridge slots "
             "(from that / against that / complementing that / building on that / through that / with that governance); "
             "a third stock bridge in S4 will fail x2_exec_summary_stock_bridge_max_two."
@@ -504,43 +518,29 @@ def build_executive_summary_composition_plan(
     role_s = str(target_role or "").strip()
     company_s = str(target_company or "").strip()
     strategy_executive = is_strategy_executive_target_title(role_s)
+    role_archetype = classify_exec_summary_role_archetype(target_role=role_s, jd_text=str(jd_text or ""), briefing_text=str(briefing_text or ""))
     graph_refs = _infer_graph_skill_refs(facts, proof_pool_metadata=proof_pool_metadata)
-    brushstroke_bind = bind_facts_to_brushstrokes(
-        facts, allowed_fact_ids=allowed_fact_ids, proof_pool_metadata=proof_pool_metadata
-    )
-    brushstrokes = [
-        _brushstroke_for_role(role, facts, allowed, proof_pool_metadata=proof_pool_metadata)
-        for role in BRUSHSTROKE_ROLES
-    ]
+    brushstroke_bind = bind_facts_to_brushstrokes(facts, allowed_fact_ids=allowed_fact_ids, proof_pool_metadata=proof_pool_metadata)
+    brushstrokes = [_brushstroke_for_role(role, facts, allowed, proof_pool_metadata=proof_pool_metadata) for role in BRUSHSTROKE_ROLES]
     dominant = "B2_governed_platform_system"
     if graph_refs:
         dominant = "B2_governed_platform_system"
     elif any("governance" in str(f.get("fact_id") or "").lower() for f in facts):
         dominant = "B3_control_evidence_discipline"
-    if strategy_executive:
-        target_picture = (
-            "Executive portrait: leadership-first technology strategy leader aligning governed AI platforms, "
-            "regulatory lineage, and digital innovation programs into one enterprise IT direction "
-            f"(targeting context: {role_s or 'SVP IT strategy role'}; company name never in prose)."
-        )
-    else:
-        target_picture = (
-            f"Executive portrait: leadership-first governed agentic AI platform leader "
-            f"(targeting: {role_s or 'target role'}; company name never in prose)."
-        )
-    sentence_arc = build_sentence_arc(target_role=role_s, strategy_executive=strategy_executive)
+    from apps_rg.runtime.sections.exec_summary_perf_sync_helpers import attach_non_strategy_s6_anchor, resolve_target_picture_for_archetype
+    target_picture = resolve_target_picture_for_archetype(role_archetype=role_archetype, strategy_executive=strategy_executive, role_s=role_s)
+    sentence_arc = build_sentence_arc(target_role=role_s, strategy_executive=strategy_executive, role_archetype=role_archetype)
     arc_meta: dict[str, Any] = {}
     if strategy_executive:
         sentence_arc, arc_meta = enrich_strategy_sentence_arc_bindings(
-            sentence_arc,
-            allowed_fact_ids=allowed,
-            briefing_text=str(briefing_text or ""),
-            jd_text=str(jd_text or ""),
-            strategy_executive=True,
+            sentence_arc, allowed_fact_ids=allowed, briefing_text=str(briefing_text or ""), jd_text=str(jd_text or ""), strategy_executive=True,
         )
+    else:
+        attach_non_strategy_s6_anchor(sentence_arc, arc_meta, briefing_text=str(briefing_text or ""), jd_text=str(jd_text or ""), anchor_fn=format_s6_briefing_forward_targeting_anchor)
     return {
         "schema": COMPOSITION_PLAN_SCHEMA,
         "composition_style": COMPOSITION_STYLE,
+        "role_archetype": role_archetype,
         "target_picture": target_picture,
         "strategy_executive_arc": strategy_executive,
         "dominant_arc": dominant,

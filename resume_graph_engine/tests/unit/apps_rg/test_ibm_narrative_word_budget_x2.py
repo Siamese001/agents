@@ -82,3 +82,24 @@ def test_ibm_narrative_exactly_one_sentence_fails_two_sentences() -> None:
     )
     by_id = _gate_map(gates)
     assert by_id.get("x2_ibm_narrative_exactly_one_sentence") is False
+
+
+def test_ibm_narrative_execution_skips_pre_trim_metric_budget_llm_retry() -> None:
+    """Wave 2 anti-spin contract: companion metric trim runs deterministically without an extra LLM retry."""
+    import inspect
+    from apps_rg.runtime.sections import ibm_narrative_lane_execution as exec_mod
+    from apps_rg.runtime.sections.ibm_narrative_lane_runtime import apply_companion_metric_budget_trim
+
+    src = inspect.getsource(exec_mod)
+    assert "retry_provider_for_metric_budget(" not in src
+
+    parsed = {
+        "narrative_sentence": "At IBM, led cloud alliance co-sell delivery driving 20% joint revenue growth across banking accounts.",
+        "claim_ledger": [],
+    }
+    apply_companion_metric_budget_trim(
+        parsed,
+        "Led IBM-AWS alliance co-sell motions driving 20% joint revenue growth across partner channels.",
+    )
+    assert isinstance(parsed.get("narrative_sentence"), str) and parsed["narrative_sentence"]
+

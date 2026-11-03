@@ -171,3 +171,69 @@ def test_allocate_section_uses_role_episode_bundle_before_graph_selector(
     assert plan["required_fact_ids"] == ["reb_ey_test"]
     assert ordered == ["reb_ey_test"]
     assert allowed == {"reb_ey_test"}
+
+
+def test_competencies_frozen_plan_skips_full_graph_traversal(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Wave 3 contract: frozen whole-resume plan skips build_competencies_graph_skills_proof_payload."""
+    import apps_rg.fact_inventory.competencies_graph_skills_proof_pool as comp_pool_mod
+    import apps_rg.runtime.c0.resume_graph_proof_pool as rg_pool_mod
+    import apps_rg.runtime.proof_pool_resolver as resolver_mod
+
+    def fail_if_traversed(**_kwargs):
+        raise AssertionError("build_competencies_graph_skills_proof_payload must not run when frozen plan is active")
+
+    monkeypatch.setattr(
+        comp_pool_mod,
+        "build_competencies_graph_skills_proof_payload",
+        fail_if_traversed,
+    )
+    monkeypatch.setattr(
+        rg_pool_mod,
+        "load_frozen_whole_resume_source_plan",
+        lambda sid: {
+            "plan_id": "frozen_comp_plan",
+            "plan_digest": "dig_comp",
+            "selection_method": "frozen_whole_resume_fact_allocation",
+            "facts": [
+                {
+                    "fact_id": "reb_unify_agentic_platform_architecture",
+                    "claim_text": "Architected agentic AI platform.",
+                }
+            ],
+            "selected_competency_families": [
+                "partner_applied_ai_architecture",
+                "agentic_platforms",
+            ],
+            "selected_skill_ids": ["skill_p2_tech_reusable_accelerators"],
+            "selected_skills": [{"skill_id": "skill_p2_tech_reusable_accelerators"}],
+            "allocation_assignments": [
+                {
+                    "section_id": "competencies",
+                    "claim_unit_id": "cu_comp_1",
+                    "root_id": "reb_unify_agentic_platform_architecture",
+                }
+            ],
+        }
+        if sid == "competencies"
+        else None,
+    )
+
+    pool = resolver_mod._resolve_competencies_graph_skills_proof_pool(
+        root=Path(proof_pool.__file__).resolve().parents[3],
+        target_company="Anthropic",
+        target_role="Manager of Applied AI Architecture, Partnerships",
+        jd_text="Partner AI architecture.",
+        briefing_text="",
+        base_ref_str="base_resume.json",
+        base_hash="deadbeef",
+        override_used=False,
+        targeting={},
+    )
+    assert pool.allowed_fact_ids == {"reb_unify_agentic_platform_architecture"}
+    assert (
+        pool.proof_pool_metadata["graph_selection_binding_receipt"]["canonical_plan_id"]
+        == "frozen_comp_plan"
+    )
+

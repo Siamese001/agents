@@ -173,7 +173,10 @@ def build_executive_summary_e0(
     positive_ids = (
         _EXEC_SUMMARY_POSITIVE_SVP_JUDGE_ALIGNED
         if strategy_executive
-        else _EXEC_SUMMARY_POSITIVE_COMPILE_IDS
+        else (
+            "exec_summary_pos_outcomes_led_001",
+            "exec_summary_pos_credibility_implied_001",
+        )
     )
     parts = [
         "<many_shot_examples>",

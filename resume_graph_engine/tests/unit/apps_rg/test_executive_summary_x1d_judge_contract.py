@@ -261,3 +261,54 @@ def test_display_override_parity_synthesis() -> None:
     matching_rows = [r for r in packet["allowed_fact_packet"] if r.get("fact_id") == override_fid]
     assert len(matching_rows) == 1
     assert matching_rows[0]["display_override_text"] == expected_override
+
+
+def test_flawed_bcbs239_summary_triggers_alignment_gate_and_caps_score_at_3_4() -> None:
+    from apps_rg.runtime.judges.executive_summary_judge_packet import (
+        GRADE_ONLY_INSTRUCTION,
+        build_executive_summary_judge_packet,
+        reconcile_grade_only_judge_result,
+    )
+
+    assert "FROZEN_RESUME_GRAPH_ALLOCATION" not in GRADE_ONLY_INSTRUCTION
+    flawed_text = (
+        "Enterprise technology leader who aligns governed cloud modernization, enterprise risk discipline, and platform "
+        "commercialization into one leadership agenda for regulated, partner-driven delivery. Led AWS modernization execution for "
+        "monolithic policy administration and insurance platform workloads, establishing a cloud-native operating foundation for "
+        "enterprise-scale delivery. In parallel, architected ERM operating models and BCBS 239-aligned risk-data aggregation by defining "
+        "three-lines-of-defense accountability, metadata standards, and auditable risk metrics. Complementing that regulated "
+        "architecture depth, agentic platform productization drove IP-led revenue growth, margin expansion, and team scale across "
+        "enterprise programs. That platform productization discipline generated $22M in IP-led platform revenue, converting reusable AI "
+        "platform capabilities into repeatable commercial outcomes. Reusable platform productization, governed cloud modernization, "
+        "and auditable risk-lineage standards position partner-facing solution architecture teams to accelerate enterprise AI deployment "
+        "and commercial adoption."
+    )
+    packet = build_executive_summary_judge_packet(
+        resume_display_text=flawed_text,
+        claim_ledger=[{"sentence_index": 1, "claim_text": "BCBS 239 risk aggregation", "source_fact_ids": ["fact_ey_001"]}],
+        allowed_fact_packet=[{"fact_id": "fact_ey_001", "claim_text": "Architected BCBS 239-aligned risk-data aggregation"}],
+        allowed_fact_ids={"fact_ey_001"},
+        target_title="Manager of Applied AI Architecture, Partnerships",
+        target_company="Anthropic",
+        jd_text="Partner solution architecture, GSI/SI co-sell enablement, enterprise AI deployment.",
+        briefing_text="Anthropic Applied AI Partnerships role.",
+        parsed_output={"resume_display_text": flawed_text},
+    )
+    align_gate = packet["deterministic_gate_summary"]["x2_allocation_jd_alignment_gate"]
+    assert align_gate["pass"] is False
+    assert align_gate["defect_origin"] == "UPSTREAM_ALLOCATION_DEFECT"
+    reconciled = reconcile_grade_only_judge_result(
+        {
+            "score_scale": "0_to_5",
+            "score": 4.5,
+            "threshold": 4.0,
+            "pass": True,
+            "decisive_failure": False,
+            "findings": [],
+        },
+        packet["deterministic_gate_summary"],
+    )
+    assert reconciled["decisive_failure"] is True
+    assert reconciled["pass"] is False
+    assert float(reconciled["score"]) <= 3.4
+    assert reconciled["defect_origin"] == "UPSTREAM_ALLOCATION_DEFECT"

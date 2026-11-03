@@ -239,6 +239,7 @@ def invoke_section_spine_c0_retrieve(
             l1_plan=front_spine.l1_plan,
             chromadb_path=chroma,
             obligation_receipt_artifact_dir=artifact_dir,
+            section_id_filter=section_id,
         )
     except C0EvidenceGapError as exc:
         raise StopAsEvidenceGapError(

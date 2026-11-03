@@ -765,13 +765,11 @@ def build_whole_resume_graph_embedding_candidates(
                 query_vectors,
                 strict=True,
             ):
-                authority_section_id = NARRATIVE_AUTHORITY_SECTIONS.get(
-                    section_id,
-                    section_id,
-                )
+                authority_section_id = NARRATIVE_AUTHORITY_SECTIONS.get(section_id, section_id)
+                from apps_rg.runtime.c0.c0_perf_sync_helpers import resolve_section_embedding_top_k
                 raw_candidates = index.query(
                     query_vector,
-                    k=int(authority["assertion_count"]),
+                    k=resolve_section_embedding_top_k(authority_section_id, int(authority["assertion_count"])),
                     section_id=authority_section_id,
                 )
                 if any(

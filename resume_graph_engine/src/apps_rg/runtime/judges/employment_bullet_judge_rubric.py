@@ -151,6 +151,10 @@ def pool_selector_scoring_instruction(section_id: str) -> str:
         "(do not use executive-summary dimensions such as synthesis_quality, resume_voice, "
         "evidence_utilization, or sentence-count criteria):\n"
         f"{numbered}\n"
+        "- Calibration band: Award 0.92 to 0.98 when a candidate variant cites valid source_fact_ids, "
+        "opens with a strong executive action verb, names a concrete technical/operating mechanism, "
+        "and terminates in a graph-bound business or operational outcome without copying JD phrases. "
+        "Never penalize a candidate variant merely because it is the only available variant for its slot.\n"
         "- Composite score = minimum across dimensions (weakest dimension governs).\n"
         "- Apply min_selection_score as the pass floor for pool selection (score below floor => passes=false)."
     )

@@ -3016,17 +3016,7 @@ def run_x2_gates(
             proof_pool_ref=proof_pool_ref,
             proof_pool_digest=proof_pool_digest,
         )
-        add(
-            proof_pool_x2_gate_id(
-                "executive_summary",
-                proof_pool_metadata=pp_meta,
-                srfs_slice_gate_active=False,
-            ),
-            ok_ex,
-            env_ex,
-            "active_proof_pool_allowlist_exact",
-            fail_ex,
-        )
+        add(proof_pool_x2_gate_id("executive_summary", proof_pool_metadata=pp_meta, srfs_slice_gate_active=False), ok_ex, env_ex, "active_proof_pool_allowlist_exact", fail_ex)
 
     # Gate 10: x2_target_title_inflation_zero
     title_inflation_ok, title_inflation_reason = check_target_title_inflation(resume_display_text, target_company, target_role)
@@ -3035,6 +3025,8 @@ def run_x2_gates(
     # Gate 11: x2_unsupported_industry_claim_zero
     industry_claim_ok, industry_claim_reason = check_unsupported_industry_claims(resume_display_text, selected_facts)
     add("x2_unsupported_industry_claim_zero", industry_claim_ok, industry_claim_reason, None, industry_claim_reason)
+    from apps_rg.runtime.validators.allocation_jd_alignment_gate import append_allocation_jd_alignment_x2_gate
+    append_allocation_jd_alignment_x2_gate(add, section_id="executive_summary", candidate_text=resume_display_text, selected_facts=selected_facts, target_role=str(target_role or ""), jd_text=str(jd_text or ""))
 
     # Gate 12: x2_provider_requested_attempted
     provider_attempted_ok = provider_requested == provider_attempted if provider_requested else True

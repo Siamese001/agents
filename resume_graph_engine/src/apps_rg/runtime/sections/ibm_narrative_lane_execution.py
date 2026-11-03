@@ -305,27 +305,6 @@ def run_ibm_narrative_lane_execution(
                     )
             if parsed is not None:
                 parsed = normalize_parsed_output(parsed, runtime_payload, companion_text)
-                _pre_metric_raw = raw_output
-                raw_output, parsed = retry_provider_for_metric_budget(
-                    messages,
-                    provider_payload,
-                    raw_output,
-                    parsed,
-                    companion_text,
-                    runtime_payload,
-                    artifact_dir=artifact_dir,
-                    run_id=str(runtime_payload.get("run_id") or ""),
-                )
-                if raw_output != _pre_metric_raw:
-                    from apps_rg.runtime.section_repair_ledger import KIND_REGEN_LLM, record_repair
-
-                    record_repair(
-                        artifact_dir,
-                        kind=KIND_REGEN_LLM,
-                        operation="companion_metric_budget_regen",
-                        reason="metric_budget",
-                        replaced_l2=True,
-                    )
                 _pre_trim = str(parsed.get("narrative_sentence") or "")
                 apply_companion_metric_budget_trim(
                     parsed, companion_text, runtime_payload=runtime_payload

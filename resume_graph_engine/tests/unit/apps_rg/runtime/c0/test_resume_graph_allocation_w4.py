@@ -506,6 +506,23 @@ def test_whole_resume_shared_lanes_consume_sealed_source_plans_before_retrieval(
         _selector_must_not_run,
     )
 
+    for section_id in ("executive_summary", "headline", "competencies"):
+        sec_rows = [
+            row
+            for row in bundle["allocation_plan"]["assignments"]
+            if row["section_id"] == section_id
+        ]
+        assert sec_rows
+        assert all(
+            row["employer_lane"] not in {"ey", "insurtech"} for row in sec_rows
+        ), f"Off-domain employer leaked into {section_id}: {sec_rows}"
+    exec_roots = {
+        row["root_id"]
+        for row in bundle["allocation_plan"]["assignments"]
+        if row["section_id"] == "executive_summary"
+    }
+    assert len(exec_roots) == 3
+
     for section_id in ("executive_summary", "headline"):
         pool = resolve_section_proof_pool(
             section=section_id,

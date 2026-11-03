@@ -764,14 +764,9 @@ def reduce_competency_keyword_stuffing(parsed: dict[str, Any]) -> None:
                 break
         if not removed:
             synonym_map = {
-                "execution": "rollout",
-                "operating": "operational",
-                "governance": "controls",
-                "management": "oversight",
-                "workflows": "pipelines",
-                "discovery": "assessment",
-                "pursuits": "initiatives",
-                "motions": "engagements",
+                "execution": "rollout", "operating": "operational", "governance": "controls",
+                "management": "oversight", "workflows": "pipelines", "discovery": "assessment",
+                "pursuits": "initiatives", "motions": "engagements", "agentic": "platform",
             }
             replaced = False
             for cat in comps:
@@ -783,11 +778,10 @@ def reduce_competency_keyword_stuffing(parsed: dict[str, Any]) -> None:
                 for idx, raw_t in enumerate(terms_raw):
                     phrase = term_phrase(raw_t) if isinstance(raw_t, dict) else str(raw_t or "")
                     words = _competency_term_content_words(phrase)
-                    frozen_allocation = isinstance(raw_t, dict) and bool(
-                        str(raw_t.get("allocation_claim_unit_id") or "").strip()
-                    )
+                    frozen_allocation = isinstance(raw_t, dict) and bool(str(raw_t.get("allocation_claim_unit_id") or "").strip())
                     if not frozen_allocation and worst in words:
-                        sub = synonym_map.get(worst.lower(), "delivery")
+                        from apps_rg.runtime.sections.lane_perf_sync_helpers import select_non_colliding_competency_synonym
+                        sub = select_non_colliding_competency_synonym(worst, words, synonym_map)
                         new_phrase = re.sub(rf"\b{re.escape(worst)}\b", sub, phrase, count=1, flags=re.IGNORECASE)
                         if new_phrase != phrase:
                             if isinstance(raw_t, dict):

@@ -53,6 +53,8 @@ Mandatory rules:
   `factual_support` against the UNION of `claim_text`, `display_override_text` (if any), and sentences that
   demonstrate skills listed in `claim_support_graph_refs`. Treat `graph_proof_refs.source_resume_files` as
   authoritative provenance for resume-backed skill claims — not as optional decoration.
+- **OFF_DOMAIN_CLUTTER_ENFORCEMENT (CRITICAL):** If a non-financial / non-insurance target role (such as AI Partnerships, Applied AI Architecture, or Agentic Engineering) contains banking regulatory or insurance policy administration clutter (e.g., `BCBS 239`, `monolithic policy administration`, `three-lines-of-defense`, `ERM operating models`, `CCAR`, `Guidewire`), you MUST set `decisive_failure: true`, `pass: false`, and `score <= 3.4` (`0.68`).
+- **SCORE CALIBRATION (0_to_5):** When all 8 dimensions have `pass=true`, `unsupported_claims` is empty, and all deterministic X2 gates pass, score between **4.5 and 4.9** (4.7+ when prose is cohesive, role-aligned, and grounded in every allocated fact).
 - Return ONLY the required structured judge JSON schema (no markdown fences, no prose).
 """.strip()
 
@@ -62,7 +64,8 @@ Rubric dimensions (SRFS executive summary — product shape **exactly 6 sentence
 2. executive_signal: SVP-level platform/governance/partner-motion synthesis, not bullet stacks.
 3. resume_voice: credible third-person executive prose; penalize recruiter filler, "this individual", "Additionally/Furthermore" chains, generic AI-company prose, and anything that would fail a Head of Talent Acquisition screen.
 4. ats_alignment_without_keyword_stuffing: JD shapes strategic emphasis; no JD-as-proof. Evaluate whether the summary narrative
-   connects verified graph facts to target JD priorities (consulting/PE EBITDA vs platform systems architecture).
+   connects verified graph facts to target JD priorities (applied AI partnerships, agentic platform architecture, or consulting/PE transformation).
+   Penalize off-domain banking or insurance clutter (`BCBS 239`, `monolithic policy administration`, `ERM operating models`) on non-financial JDs with `decisive_failure: true` and `score <= 3.4`.
 5. anti_overfit: no unsupported metrics/credentials; no target company as candidate experience; no repeated metric inventory
    or company-name mirroring; no AI-authenticity dead giveaways such as em dashes, buzzword soup, or template phrasing.
 6. synthesis_quality: **exactly six** integrated sentences with optional composition themes (identity, platform/governance,
@@ -123,7 +126,8 @@ Rubric dimensions (graph-only C0.3 augmented skills graph authority, non-SRFS la
 2. executive_signal: SVP-level platform/governance/partner-motion synthesis, not bullet stacks.
 3. resume_voice: credible executive prose; no recruiter filler, meta narration, or generic AI-company prose, and nothing that would fail a Head of Talent Acquisition screen.
 4. ats_alignment_without_keyword_stuffing: JD shapes strategic emphasis; no JD-as-proof. Evaluate whether the summary narrative
-   connects verified graph facts to target JD priorities (consulting/PE EBITDA vs platform systems architecture).
+   connects verified graph facts to target JD priorities (applied AI partnerships, agentic platform architecture, or consulting/PE transformation).
+   Penalize off-domain banking or insurance clutter (`BCBS 239`, `monolithic policy administration`, `ERM operating models`) on non-financial JDs with `decisive_failure: true` and `score <= 3.4`.
 5. anti_overfit: no unsupported metrics/credentials; no target company as candidate experience; no repeated metric inventory
    or company-name mirroring; no AI-authenticity dead giveaways such as em dashes, buzzword soup, or template phrasing.
    **`display_override_text` content is NOT an unsupported credential/metric — it is X2-authorized
@@ -585,9 +589,9 @@ def reconcile_grade_only_judge_result(
                         "deterministic_gate_summary all pass."
                     )
                     out["findings"] = findings
-    return reconcile_judge_result_against_deterministic_gate_closures(
-        out, deterministic_gate_summary, section_id=section_id
-    )
+    out = reconcile_judge_result_against_deterministic_gate_closures(out, deterministic_gate_summary, section_id=section_id)
+    from apps_rg.runtime.validators.allocation_jd_alignment_gate import reconcile_allocation_jd_alignment_judge_result
+    return reconcile_allocation_jd_alignment_judge_result(out, deterministic_gate_summary)
 
 
 def build_canonical_judge_contract(packet: dict[str, Any]) -> dict[str, Any]:
@@ -633,12 +637,9 @@ def build_executive_summary_judge_packet(
     repo_root: Any = None,
 ) -> dict[str, Any]:
     """Build canonical GRADE_ONLY JudgePacket dict for executive_summary X1D."""
-    gate_summary = deterministic_gate_summary or build_deterministic_gate_summary(
-        resume_display_text=resume_display_text,
-        parsed_output=parsed_output,
-        claim_ledger=claim_ledger,
-        allowed_fact_ids=allowed_fact_ids,
-    )
+    gate_summary = deterministic_gate_summary or build_deterministic_gate_summary(resume_display_text=resume_display_text, parsed_output=parsed_output, claim_ledger=claim_ledger, allowed_fact_ids=allowed_fact_ids)
+    from apps_rg.runtime.validators.allocation_jd_alignment_gate import inject_allocation_jd_alignment_gate_summary
+    gate_summary = inject_allocation_jd_alignment_gate_summary(gate_summary, resume_display_text=resume_display_text, allowed_fact_packet=allowed_fact_packet, target_title=target_title, jd_text=jd_text, briefing_text=briefing_text)
     rubric = GRAPH_ONLY_GRADE_ONLY_RUBRIC
     rubric_ref = GRAPH_ONLY_JUDGE_RUBRIC_REF
     cited_fact_ids = _collect_source_fact_ids(claim_ledger)

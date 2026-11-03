@@ -482,10 +482,12 @@ class SectionGenerationService:
             parallel_phase1 = phase1_parallel_enabled(
                 profile_flag=bool(profile.parallel_phase1_lanes)
             )
-            max_par = resolve_max_parallel(default=int(profile.phase1_max_parallel or 2))
+            max_par = resolve_max_parallel(default=int(profile.phase1_max_parallel or 6))
             phase1_allow_exit = resolve_phase1_lane_allow_non_allow_exit_zero(
                 bool(profile.phase1_allow_non_allow_exit_zero)
             )
+            for _lid in GENERATED_LANES:
+                _lane_provider_for_lane(_lid)
 
             def _phase1_dispatch_one_lane(**kwargs: Any) -> dict[str, Any]:
                 lane = str(kwargs.get("section") or "")

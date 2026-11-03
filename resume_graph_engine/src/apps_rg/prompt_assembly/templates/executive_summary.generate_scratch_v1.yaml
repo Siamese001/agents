@@ -57,10 +57,10 @@ slot_bodies:
 
     <approved_non_stock_openers>
     **S2–S5 transitions (compile advisory):** Prefer approved non-stock openers when varying rhythm:
-    - From that commercial base,
-    - Against that lineage backdrop,
+    - Across enterprise programs,
+    - Within that ecosystem model,
     - In parallel,
-    - That operating foundation also,
+    - That platform productization discipline,
     - The same platform discipline,
     </approved_non_stock_openers>
 
@@ -100,7 +100,7 @@ slot_bodies:
     **Workflow:** (1) Read C0 + allowlist; JD/briefing for emphasis only. (2) Write `executive_strategy_thesis` (one sentence, allowed facts). (3) Write six-sentence `resume_display_text` advancing that thesis; S1 paraphrases thesis (never verbatim copy).
     **S1:** Sharp executive leadership register (EA governance, innovation programs, operating model) - not generic "regulated enterprise scale." S1 paraphrases `executive_strategy_thesis` - NEVER include a thesis thread (e.g. "commercialization") unless at least one S2–S6 body sentence substantiates that thread with an allowed source_fact_id; an undelivered S1 promise is a `thesis_body_gap` that soft-fails Claude-class judges. **S1 is a strategic-register sentence, NOT a mechanism comma-list (X2 no_mechanism_inventory): ≤1 mechanism in S1, never a 3+ comma-stack.**
     **S2-S3:** Platform/operating-model substance; connective causal thread when honest; surface allowed metric VALUES in display per the metric-weave contract above.
-    **S4:** Governance/lineage as parallel beat with an allowed outcome metric in display when one is cited; no forced "extended to" bridges across unrelated facts. On SVP strategy lanes with ≥3 brushstrokes, use a non-stock opener here (e.g. `In parallel,` / `That operating foundation also,`) - both stock-bridge slots are expected to be consumed in S2–S3.
+    **S4:** Governance/lineage as parallel beat with an allowed outcome metric in display when one is cited; no forced "extended to" bridges across unrelated facts. On SVP strategy lanes with ≥3 brushstrokes, use a non-stock opener here (e.g. `In parallel,` / `Across enterprise programs,`) - both stock-bridge slots are expected to be consumed in S2–S3.
     **S4 sentence completeness:** S4 MUST be a complete sentence with a finite main verb, never a noun-phrase fragment. Use the DISPLAY_OVERRIDE text for fact_quant_hpc_003 verbatim if provided.
     **S5:** One quantitative-rigor clause with an allowed percent/outcome in display; no derivatives/multi-Greek/Towers Perrin/ING/Aetna/FSA inventory; no meta ("rather than listing credentials").
     **S2–S5 connective tissue:** Open S2-S5 with thesis-referent connectors, not bare achievement-verb openers; avoid an achievement bullet stack.
@@ -160,6 +160,10 @@ slot_bodies:
     quantitative foundation with the allowed HPC/stress-testing outcome metric in display - e.g. "FSA-chartered quantitative
     foundation underpins stress-testing discipline, with containerized HPC practice shortening stress-test cycles by 40%
     for platform investment decisions." Forbidden: verbatim "derivatives pricing" / multi-Greek inventory lists.
+    **Positive S3-S5 weave on AI Partnerships / Agentic Platform lanes:** when fact_unify_platform_commercialization is
+    cited and its $22M metric is reserved for executive_summary in the composition plan, weave $22M IP-led platform revenue
+    directly into flowing prose. Express unreserved partner co-sell or margin outcomes qualitatively (e.g. joint revenue
+    growth, gross margin expansion) unless that exact numeric metric is explicitly reserved for executive_summary.
     </style_advisory>
 
   R0: |

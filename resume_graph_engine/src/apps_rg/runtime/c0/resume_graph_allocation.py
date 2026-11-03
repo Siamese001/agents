@@ -7,6 +7,7 @@ graph state.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import math
 import re
@@ -637,6 +638,8 @@ def allocate_candidate_sets(
     family_counts: Counter[str] = Counter()
     search_states = 0
     budget_exhausted = False
+    from apps_rg.runtime.c0.c0_perf_sync_helpers import compute_distinct_root_sections, slot_priority_tier
+    distinct_root_sections = compute_distinct_root_sections(slots, eligible_by_slot)
 
     def feasible_rows(slot: _Slot) -> list[dict[str, Any]]:
         rows: list[dict[str, Any]] = []
@@ -654,20 +657,14 @@ def allocate_candidate_sets(
                 continue
             if visible and signature and signature in used_signatures:
                 continue
-            if slot.section_id.endswith("_bullets") and root_id in used_section_roots[slot.section_id]:
+            if slot.section_id in distinct_root_sections and root_id and root_id in used_section_roots[slot.section_id]:
                 continue
             if visible and fact_counts[fact_id] >= max_fact_reuse:
                 continue
             if visible and family_counts[family] >= max_family_uses:
                 continue
             rows.append(row)
-        rows.sort(
-            key=lambda row: (
-                fact_counts[str(row["fact_id"])],
-                family_counts[str(row["source_family"])],
-                *_candidate_sort_key(row),
-            )
-        )
+        rows.sort(key=lambda row: (fact_counts[str(row["fact_id"])], *_candidate_sort_key(row)))
         return rows
 
     def search() -> bool:
@@ -680,7 +677,7 @@ def allocate_candidate_sets(
             return False
         unresolved = [slot for slot in slots if slot.slot_id not in chosen]
         ranked = [(feasible_rows(slot), slot) for slot in unresolved]
-        ranked.sort(key=lambda pair: (len(pair[0]), pair[1].slot_id))
+        ranked.sort(key=lambda pair: (0 if len(pair[0]) <= 1 else 1, slot_priority_tier(pair[1]), len(pair[0]), pair[1].slot_id))
         rows, slot = ranked[0]
         if not rows:
             return False
@@ -693,7 +690,7 @@ def allocate_candidate_sets(
             family = str(row["source_family"])
             root_id = str(row["root_id"])
             chosen[slot.slot_id] = row
-            if slot.section_id.endswith("_bullets"):
+            if slot.section_id in distinct_root_sections and root_id:
                 used_section_roots[slot.section_id].add(root_id)
             if visible:
                 used_skills.add(skill_id)
@@ -703,9 +700,14 @@ def allocate_candidate_sets(
                     used_signatures.add(signature)
                 fact_counts[fact_id] += 1
                 family_counts[family] += 1
-            if search():
+            remaining_feasible = all(
+                bool(feasible_rows(other))
+                for other in unresolved
+                if other.slot_id != slot.slot_id
+            )
+            if remaining_feasible and search():
                 return True
-            if slot.section_id.endswith("_bullets"):
+            if slot.section_id in distinct_root_sections and root_id:
                 used_section_roots[slot.section_id].discard(root_id)
             if visible:
                 used_skills.remove(skill_id)
@@ -1044,8 +1046,14 @@ def _candidate_sets_from_section_plans(
     }
     for raw_slot in slot_specs:
         slot = _slot_from_row(raw_slot)
+        from apps_rg.runtime.c0.c0_perf_sync_helpers import compute_candidate_alignment_and_independence, compute_career_band_filter
+        employer_root_weights, employer_weights, enforce_career_band, primary_secondary_roots = compute_career_band_filter(
+            section_id=slot.section_id, sec_plan=section_plans.get(slot.section_id) or {}, grouped_section_buckets=grouped_by_section[slot.section_id],
+        )
         rows: list[dict[str, Any]] = []
         for root_id, bucket in grouped_by_section[slot.section_id].items():
+            if enforce_career_band and root_id not in primary_secondary_roots:
+                continue
             roots = [row for row in bucket["root"] if row.get("authority_pass") is True]
             skills = [row for row in bucket["leaf_skill"] if row.get("authority_pass") is True]
             facts = [row for row in bucket["source_fact"] if row.get("authority_pass") is True]
@@ -1054,6 +1062,7 @@ def _candidate_sets_from_section_plans(
                 continue
             root = roots[0]
             employer_lane = str(root.get("employer_lane") or "")
+            root_weight = float(employer_root_weights.get(root_id, employer_weights.get(employer_lane, 1.0)))
             if slot.employer_lane and employer_lane != slot.employer_lane:
                 continue
             if slot.required_root_id and root_id != slot.required_root_id:
@@ -1065,9 +1074,7 @@ def _candidate_sets_from_section_plans(
                     value, unit = extract_exact_metric_value_unit(str(metric.get("metric") or ""))
                     if slot.metric_required and not (value and unit):
                         continue
-                    metric_options.append(
-                        {**metric, "metric_value": value, "metric_unit": unit}
-                    )
+                    metric_options.append({**metric, "metric_value": value, "metric_unit": unit})
                 if not metric_options:
                     continue
             for skill in skills:
@@ -1087,13 +1094,7 @@ def _candidate_sets_from_section_plans(
                         ]
                         if metric is not None:
                             graph_path_ids.append(str(metric.get("candidate_path_id") or ""))
-                            edge_ids.append(
-                                stable_edge_id(
-                                    root_id,
-                                    "role_episode_has_metric_outcome",
-                                    metric_id,
-                                )
-                            )
+                            edge_ids.append(stable_edge_id(root_id, "role_episode_has_metric_outcome", metric_id))
                         citation_refs = _strings(
                             list(fact.get("source_refs") or [])
                             + list((fact.get("authority") or {}).get("source_refs") or [])
@@ -1104,6 +1105,10 @@ def _candidate_sets_from_section_plans(
                             + list((skill.get("authority") or {}).get("source_refs") or [])
                         )
                         metric_text = str((metric or {}).get("metric") or "")
+                        proof_score, align_score, indep_score = compute_candidate_alignment_and_independence(
+                            root=root, skill=skill, metric=metric, root_weight=root_weight,
+                            citation_refs=citation_refs, skill_sources=skill_sources,
+                        )
                         candidate: dict[str, Any] = {
                             "section_id": slot.section_id,
                             "claim_unit_id": slot.slot_id,
@@ -1119,23 +1124,12 @@ def _candidate_sets_from_section_plans(
                             "employer_lane": employer_lane,
                             "source_family": employer_lane,
                             "authority_pass": True,
-                            "proof_strength_raw": float(skill.get("proof_strength_raw") or 0.0),
-                            "target_alignment_score": round(
-                                (
-                                    float(root.get("target_alignment_score") or 0.0)
-                                    + float(skill.get("target_alignment_score") or 0.0)
-                                    + float((metric or {}).get("target_alignment_score") or 0.0)
-                                )
-                                / (3 if metric is not None else 2),
-                                6,
-                            ),
+                            "proof_strength_raw": proof_score,
+                            "target_alignment_score": align_score,
                             "claim_entailment_score": 1.0,
                             "metric_binding_score": 1.0 if metric is not None else 0.0,
                             "path_confidence_raw": 1.0,
-                            "source_independence_score": round(
-                                min(len(set(citation_refs + skill_sources)), 4) / 4,
-                                6,
-                            ),
+                            "source_independence_score": indep_score,
                             "graph_path_ids": _strings(graph_path_ids),
                             "edge_ids": edge_ids,
                             "citation_refs": citation_refs,
@@ -2227,6 +2221,11 @@ def build_whole_resume_graph_allocation(
         max_source_family_share=policy.max_source_family_share,
     )
     plan["selection_policy"] = policy.to_dict()
+    plan["targeting_provenance"] = {
+        "target_role": str(target_role or "").strip(),
+        "jd_sha256": hashlib.sha256(str(jd_text or "").encode("utf-8")).hexdigest() if jd_text else "",
+        "briefing_sha256": hashlib.sha256(str(briefing_text or "").encode("utf-8")).hexdigest() if briefing_text else "",
+    }
     plan["section_traversal_receipts"] = {
         section_id: {
             "plan_digest": str(section_plan.get("plan_digest") or ""),

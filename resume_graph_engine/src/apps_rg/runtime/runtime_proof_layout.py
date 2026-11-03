@@ -501,14 +501,12 @@ def finalize_runtime_proof_run(
     if msr is not None:
         require_manifest_for_modular_sections_root(msr, env_name=MODULAR_R4_SECTIONS_ROOT_ENV)
     ptr_root = (msr / lane) if msr is not None else lane_root(repo, lane)
+    write_latest_success = _should_write_latest_successful_real(bucket, provider_requested, runtime_generation_status, artifact_dir)
     _write_json(ptr_root / ptr_name, pointer)
-    if _should_write_latest_successful_real(
-        bucket,
-        provider_requested,
-        runtime_generation_status,
-        artifact_dir,
-    ):
+    if write_latest_success:
         _write_json(ptr_root / LATEST_SUCCESSFUL_REAL_FILENAME, pointer)
+    from apps_rg.runtime.orchestration.patch_run_wave_dispatch import mirror_sibling_pointer_roots
+    mirror_sibling_pointer_roots(msr, lane, ptr_name=ptr_name, pointer=pointer, write_latest_success=write_latest_success, latest_filename=LATEST_SUCCESSFUL_REAL_FILENAME, is_integrated_whole_run_fn=is_integrated_whole_run_artifact_dir, write_json_fn=_write_json)
 
     emit_lane_runtime_proof_bundle_index(
         repo,

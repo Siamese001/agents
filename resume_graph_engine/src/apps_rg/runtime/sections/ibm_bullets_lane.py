@@ -1370,6 +1370,15 @@ def run_ibm_bullets_execution(
         plan_facts = []
     active_bullet_ids = tuple(plan_facts) if plan_facts else IBM_BULLET_IDS
 
+    _ibm_has_frozen_allocation = any(
+        isinstance(row, dict) and str(row.get("section_id") or "") == "ibm_bullets"
+        for row in (selected_fact_plan.get("allocation_assignments") or [])
+    )
+    _ibm_targeting_ctx = build_employment_targeting_context(runtime_payload, section_lane=LANE_KEY)
+    if _ibm_has_frozen_allocation:
+        _ibm_targeting_ctx["frozen_allocation_materialized"] = True
+    _frozen_ibm_materialized = False
+
     result, raw_output, parsed, parse_error, gen_meta = generate_bullet_lane_with_sc_and_claude(
         section_lane=LANE_KEY,
         slot_kind="bullets",
@@ -1381,7 +1390,7 @@ def run_ibm_bullets_execution(
         temperature_bounds=IBM_TEMP_RANGE,
         base_temperature=float(args.temperature) if args.provider == "external_claude" else IBM_TEMP_DEFAULT,
         required_bullet_ids=active_bullet_ids,
-        targeting_context=build_employment_targeting_context(runtime_payload, section_lane=LANE_KEY),
+        targeting_context=_ibm_targeting_ctx,
         judge_mode=judge_mode,
         provider_profile=str(args.provider),
     )
@@ -1430,7 +1439,7 @@ def run_ibm_bullets_execution(
                 plan_facts=ibm_facts,
                 allowed_fact_ids=allowed_fact_ids,
             )
-            _materialize_ibm_bullets_from_frozen_allocation(
+            _frozen_ibm_materialized = _materialize_ibm_bullets_from_frozen_allocation(
                 parsed,
                 selected_fact_plan=selected_fact_plan,
             )
@@ -1903,39 +1912,40 @@ def run_ibm_bullets_execution(
         l2_output["self_check"] = state.parsed.get("self_check") or l2_output["self_check"]
         l2_output["text_claim_coverage"] = state.coverage
 
-    _resel = run_bullet_judge_reselection(
-        artifact_dir=artifact_dir,
-        section_id="ibm_bullets",
-        run_id=str(runtime_payload["run_id"]),
-        required_bullet_ids=active_bullet_ids,
-        parsed=parsed,
-        bullets=bullets,
-        claim_ledger=claim_ledger,
-        parsed_for_x2=parsed_for_x2,
-        x1d=x1d,
-        x2=x2,
-        usage_doc=usage_doc,
-        canon_doc=canon_doc,
-        allowed_fact_ids=allowed_fact_ids,
-        judge_mode=judge_mode,
-        entailment_corpus=build_slot_entailment_corpus(
-            "ibm_bullets", runtime_payload.get("selected_fact_plan") or {}
-        ),
-        post_chain=_resel_post_chain,
-        rebuild_state=_resel_rebuild_state,
-        run_x2=_resel_run_x2,
-        run_judges=_resel_run_judges,
-        write_usage_ledger=_resel_write_usage,
-        write_lane_artifacts=_resel_write_artifacts,
-    )
-    parsed = _resel.parsed
-    bullets = _resel.bullets
-    claim_ledger = _resel.claim_ledger
-    parsed_for_x2 = _resel.parsed_for_x2
-    x2 = _resel.x2
-    x1d = _resel.x1d
-    usage_doc = _resel.usage_doc
-    canon_doc = _resel.canon_doc
+    if not _frozen_ibm_materialized:
+        _resel = run_bullet_judge_reselection(
+            artifact_dir=artifact_dir,
+            section_id="ibm_bullets",
+            run_id=str(runtime_payload["run_id"]),
+            required_bullet_ids=active_bullet_ids,
+            parsed=parsed,
+            bullets=bullets,
+            claim_ledger=claim_ledger,
+            parsed_for_x2=parsed_for_x2,
+            x1d=x1d,
+            x2=x2,
+            usage_doc=usage_doc,
+            canon_doc=canon_doc,
+            allowed_fact_ids=allowed_fact_ids,
+            judge_mode=judge_mode,
+            entailment_corpus=build_slot_entailment_corpus(
+                "ibm_bullets", runtime_payload.get("selected_fact_plan") or {}
+            ),
+            post_chain=_resel_post_chain,
+            rebuild_state=_resel_rebuild_state,
+            run_x2=_resel_run_x2,
+            run_judges=_resel_run_judges,
+            write_usage_ledger=_resel_write_usage,
+            write_lane_artifacts=_resel_write_artifacts,
+        )
+        parsed = _resel.parsed
+        bullets = _resel.bullets
+        claim_ledger = _resel.claim_ledger
+        parsed_for_x2 = _resel.parsed_for_x2
+        x2 = _resel.x2
+        x1d = _resel.x1d
+        usage_doc = _resel.usage_doc
+        canon_doc = _resel.canon_doc
 
     from apps_rg.runtime.section_repair_lane_integration import finalize_lane_product_quality
 

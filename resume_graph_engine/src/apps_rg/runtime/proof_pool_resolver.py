@@ -934,34 +934,22 @@ def _resolve_competencies_graph_skills_proof_pool(
         reason = graph_auth.get("skills_authority_block_reason") or "augmented_skills_graph_unavailable"
         raise ValueError(f"competencies graph-skills proof pool BLOCKED: {reason}")
 
-    payload = build_competencies_graph_skills_proof_payload(
-        repo_root=root,
-        jd_text=jd_text,
-        target_role=target_role,
-        briefing_text=briefing_text,
-    )
     from apps_rg.runtime.c0.resume_graph_proof_pool import (
         load_frozen_whole_resume_source_plan,
     )
 
-    # As with Executive Summary, use the C0.3 plan sealed for this whole
-    # resume when one is active.  A standalone section has no frozen plan and
-    # continues to select normally.
+    # Check the C0.3 plan sealed for this whole resume BEFORE running full
+    # multi-track skill graph expansion. Standalone runs have no frozen plan
+    # and continue to execute full graph expansion normally.
     frozen_plan = load_frozen_whole_resume_source_plan("competencies")
     if frozen_plan is not None:
+        from apps_rg.runtime.c0.c0_perf_sync_helpers import build_frozen_competencies_proof_payload
         selected_graph_plan = _sanitize_plan(frozen_plan)
+        payload = build_frozen_competencies_proof_payload(selected_graph_plan, graph_ref=str(graph_auth.get("graph_ref") or ""))
     else:
-        from apps_rg.runtime.sections.graph_role_episode_selector import (
-            build_selected_graph_evidence_plan_for_section,
-        )
-
-        selected_graph_plan, _, _ = build_selected_graph_evidence_plan_for_section(
-            repo_root=root,
-            section_id="competencies",
-            target_role=target_role,
-            jd_text=jd_text,
-            briefing_text=briefing_text,
-        )
+        payload = build_competencies_graph_skills_proof_payload(repo_root=root, jd_text=jd_text, target_role=target_role, briefing_text=briefing_text)
+        from apps_rg.runtime.sections.graph_role_episode_selector import build_selected_graph_evidence_plan_for_section
+        selected_graph_plan, _, _ = build_selected_graph_evidence_plan_for_section(repo_root=root, section_id="competencies", target_role=target_role, jd_text=jd_text, briefing_text=briefing_text)
         selected_graph_plan = _sanitize_plan(selected_graph_plan)
     plan = dict(selected_graph_plan)
     facts = list(plan.get("facts") or [])

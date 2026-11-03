@@ -155,13 +155,7 @@ def evaluate_judge_remediation_trigger(
         receipt["reason"] = "no_model_backed_judges"
         return False, receipt
 
-    pass_count = sum(
-        1
-        for j in model_backed
-        if j.get("provider_status") == "MODEL_BACKED_PASS"
-        and j.get("pass") is True
-        and not j.get("decisive_failure")
-    )
+    pass_count = sum(1 for j in model_backed if j.get("provider_status") == "MODEL_BACKED_PASS" and j.get("pass") is True and not j.get("decisive_failure"))
     receipt["model_backed_pass_count"] = pass_count
 
     soft_fails = [j for j in x1d_judges if _is_model_backed_soft_fail(j)]
@@ -171,17 +165,19 @@ def evaluate_judge_remediation_trigger(
             str(j.get("provider_key") or "")
             for j in model_backed
             if str(j.get("provider_key") or "")
-            and not (
-                j.get("provider_status") == "MODEL_BACKED_PASS"
-                and j.get("pass") is True
-                and not j.get("decisive_failure")
-            )
+            and not (j.get("provider_status") == "MODEL_BACKED_PASS" and j.get("pass") is True and not j.get("decisive_failure"))
         }
     )
     receipt["failed_provider_keys"] = failed_keys
 
     if all_model_backed_judges_pass(x1d_judges):
         receipt["reason"] = "all_model_backed_judges_pass"
+        return False, receipt
+
+    from apps_rg.runtime.sections.exec_summary_perf_sync_helpers import has_upstream_allocation_defect_in_judges
+    if has_upstream_allocation_defect_in_judges(model_backed, _judge_text_blob):
+        receipt["reason"] = "upstream_allocation_defect_short_circuit"
+        receipt["defect_origin"] = "UPSTREAM_ALLOCATION_DEFECT"
         return False, receipt
 
     receipt["triggered"] = True

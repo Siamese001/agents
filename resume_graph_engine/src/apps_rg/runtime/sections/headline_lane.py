@@ -731,6 +731,7 @@ _MACHINE_HEADLINE_SEGMENT_REWRITES: dict[str, str] = {
     # only remove redundant words from already-grounded model phrasing; they
     # introduce no new claim, employer, or metric surface.
     "runtime governance telemetry controls": "Runtime Governance",
+    "agentic platform control plane": "Agentic Platform Architecture",
     "enterprise solution portfolio expansion": "Enterprise Portfolio Expansion",
     # The quota phrase is evidence-grounded, but it is an individual-sales
     # label rather than an executive operating abstraction.  The selected IBM
@@ -1725,12 +1726,10 @@ def apply_headline_content_signal_repair(
         gate_ids.append("x2_headline_xyz_literal_grounding")
         reason_parts.append("x2_headline_xyz_literal_grounding:failed")
     if resume_native_clarity_arm:
+        from apps_rg.runtime.sections.lane_perf_sync_helpers import format_headline_clarity_reason
         arm_names.append("resume_native_clarity")
         gate_ids.append("headline_pre_x1d_resume_native_clarity")
-        reason_parts.append(
-            "headline_pre_x1d_resume_native_clarity:"
-            + "|".join(clarity_pre.get("opaque_segments") or [])
-        )
+        reason_parts.append(format_headline_clarity_reason(clarity_pre))
     if graph_claim_binding_arm:
         arm_names.append("graph_claim_binding")
         gate_ids.append("x2_resume_graph_claim_binding")
@@ -2001,11 +2000,9 @@ def apply_headline_content_signal_repair(
                 next_arms.append("literal_grounding")
                 next_reasons.append("x2_headline_xyz_literal_grounding:failed")
             if not bool(clarity_pre.get("pass")):
+                from apps_rg.runtime.sections.lane_perf_sync_helpers import format_headline_clarity_reason
                 next_arms.append("resume_native_clarity")
-                next_reasons.append(
-                    "headline_pre_x1d_resume_native_clarity:"
-                    + "|".join(clarity_pre.get("opaque_segments") or [])
-                )
+                next_reasons.append(format_headline_clarity_reason(clarity_pre))
             if (
                 graph_content_contract_active
                 and current_graph_gate is not None
@@ -2520,12 +2517,13 @@ def run_headline_execution(
         if parsed is not None:
             attempt1 = json.loads(json.dumps(parsed))
             headline_proof_attempt1_pre_normalize = json.loads(json.dumps(attempt1))
+            raw_schema_ok, _, _ = validate_raw_headline_claim_ledger(attempt1)
             needs_proof_retry, proof_retry_reason = snapshot_needs_headline_proof_retry(
                 attempt1,
                 target_company=str(args.target_company or ""),
                 employer_names_lower=employer_names,
             )
-            if needs_proof_retry:
+            if needs_proof_retry and not raw_schema_ok:
                 headline_proof_shape_retry_reason = proof_retry_reason
                 headline_repair_provider_call_made = True
                 raw_output_retry, parsed_retry, snap_retry = retry_headline_proof_shape(

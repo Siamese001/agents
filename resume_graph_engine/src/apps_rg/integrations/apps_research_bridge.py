@@ -82,21 +82,32 @@ def _resolve_canonical_targeting_brief(
             pass
         return "", ""
 
+    company_candidates: list[Path] = []
+    scored_role_candidates: list[tuple[int, float, str, Path]] = []
     for candidate in candidates:
         stem = candidate.stem.lower()
-        if matches_company_stem(stem, company_norm, company_tokens) and any(tok in stem for tok in role_tokens):
-            brief, path_str = _load(candidate)
-            if brief:
-                _CANONICAL_TARGETING_BRIEF_CACHE[cache_key] = (brief, path_str)
-                return brief, path_str
+        if not matches_company_stem(stem, company_norm, company_tokens):
+            continue
+        company_candidates.append(candidate)
+        stem_tokens = {tok for tok in stem.replace("-", "_").split("_") if tok and tok != "briefing"}
+        matched_count = sum(1 for tok in role_tokens if tok in stem_tokens or tok in stem)
+        if matched_count > 0:
+            precision = matched_count / max(1, len(stem_tokens))
+            scored_role_candidates.append((-matched_count, -precision, candidate.name, candidate))
 
-    for candidate in candidates:
-        stem = candidate.stem.lower()
-        if matches_company_stem(stem, company_norm, company_tokens):
-            brief, path_str = _load(candidate)
-            if brief:
-                _CANONICAL_TARGETING_BRIEF_CACHE[cache_key] = (brief, path_str)
-                return brief, path_str
+    for _neg_hits, _neg_prec, _name, candidate in sorted(scored_role_candidates):
+        brief, path_str = _load(candidate)
+        if brief:
+            _CANONICAL_TARGETING_BRIEF_CACHE[cache_key] = (brief, path_str)
+            return brief, path_str
+
+    # Fail closed against cross-role briefing contamination when multiple role-specific
+    # briefings exist for the same company or when an explicit role token failed to match.
+    if len(company_candidates) == 1 and not role_tokens:
+        brief, path_str = _load(company_candidates[0])
+        if brief:
+            _CANONICAL_TARGETING_BRIEF_CACHE[cache_key] = (brief, path_str)
+            return brief, path_str
 
     _CANONICAL_TARGETING_BRIEF_CACHE[cache_key] = ("", "")
     return "", ""

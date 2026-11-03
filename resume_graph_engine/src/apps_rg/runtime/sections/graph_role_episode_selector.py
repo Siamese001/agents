@@ -584,16 +584,8 @@ def _select_shared_roots_with_requirement_coverage(
 
 
 def _alignment_score(target_blob: str, candidate_blob: str) -> float:
-    target = _normalized_text(target_blob)
-    candidate = _normalized_text(candidate_blob)
-    if not target or not candidate:
-        return 0.0
-    score = sum(1.0 for term in _TARGET_TERMS if term in target and term in candidate)
-    target_words = set(target.split())
-    candidate_words = set(candidate.split())
-    overlap = len(target_words & candidate_words)
-    score += min(overlap, 8) * 0.1
-    return round(score, 6)
+    from apps_rg.runtime.sections.lane_perf_sync_helpers import score_domain_aware_target_alignment
+    return score_domain_aware_target_alignment(_normalized_text(target_blob), _normalized_text(candidate_blob), _TARGET_TERMS)
 
 
 def _bundle_target_score(

@@ -81,13 +81,19 @@ def _section_targets(meta: dict[str, Any]) -> set[str]:
 
 
 def _inspect_collection(*, chroma_path: str, section_id: str) -> dict[str, Any]:
+    from apps_rg.runtime.c0.c0_perf_sync_helpers import get_or_scan_fact_vectors_collection
     collection = _open_fact_vectors_collection(chroma_path)
     count = int(collection.count())
     limit = min(max(count, 0), _MAX_METADATA_AUDIT_ROWS)
-    metadata = getattr(collection, "metadata", None)
-    collection_metadata = dict(metadata) if isinstance(metadata, dict) else {}
-    rows = collection.get(limit=limit, include=["metadatas"]) if limit else {"metadatas": []}
-    metas = [m for m in (rows.get("metadatas") or []) if isinstance(m, dict)]
+    cached_scan = get_or_scan_fact_vectors_collection(
+        chroma_path=chroma_path, collection=collection, count=count, limit=limit, metadata_counter_fn=_metadata_counter,
+    )
+    collection_metadata = cached_scan["collection_metadata"]
+    metas = cached_scan["metas"]
+    model_counts = cached_scan["model_counts"]
+    dim_counts = cached_scan["dim_counts"]
+    source_class_counts = cached_scan["source_class_counts"]
+    tier_counts = cached_scan["tier_counts"]
     section_count = sum(1 for meta in metas if section_id in _section_targets(meta))
     section_source_ids = sorted(
         {
@@ -97,22 +103,14 @@ def _inspect_collection(*, chroma_path: str, section_id: str) -> dict[str, Any]:
             and str(meta.get("source_document_id") or meta.get("candidate_fact_id") or "").strip()
         }
     )
-    source_id_counts: Counter[str] = Counter()
     section_source_class_counts: Counter[str] = Counter()
     section_tier_counts: Counter[str] = Counter()
     for meta in metas:
-        sid = str(meta.get("source_document_id") or meta.get("candidate_fact_id") or "").strip()
-        if sid:
-            source_id_counts[sid] += 1
         if section_id in _section_targets(meta):
             section_source_class_counts[
                 str(meta.get("source_class") or "<missing>")
             ] += 1
             section_tier_counts[str(meta.get("tier") or "<missing>")] += 1
-    model_counts = _metadata_counter(metas, "embedding_model_id", fallback_key="embedding_model")
-    dim_counts = _metadata_counter(metas, "embedding_dim", fallback_key="embedding_dimension")
-    source_class_counts = _metadata_counter(metas, "source_class")
-    tier_counts = _metadata_counter(metas, "tier")
     bad_model_count = sum(
         n for model, n in model_counts.items() if model not in (BGE_M3_MODEL_ID, "<missing>")
     )
@@ -129,7 +127,7 @@ def _inspect_collection(*, chroma_path: str, section_id: str) -> dict[str, Any]:
         "collection_metadata": collection_metadata,
         "section_target_count": section_count,
         "section_source_document_ids": section_source_ids,
-        "source_document_id_counts": dict(sorted(source_id_counts.items())),
+        "source_document_id_counts": cached_scan["source_id_counts"],
         "section_source_class_counts": dict(sorted(section_source_class_counts.items())),
         "section_tier_counts": dict(sorted(section_tier_counts.items())),
         "embedding_model_counts": model_counts,

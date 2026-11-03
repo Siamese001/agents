@@ -440,9 +440,9 @@ def run_provider_self_consistency_paths(
 
     prewarm_parallel = (
         execution_mode == "parallel"
-        and n_paths > 1
+        and n_paths >= 4
         and anthropic_prompt_cache_enabled()
-        and (anthropic_prompt_cache_prewarm_enabled() or anthropic_prompt_cache_fanout_enabled())
+        and anthropic_prompt_cache_prewarm_enabled()
     )
     if prewarm_parallel:
         paths.append(_run(0, temps[0]))
