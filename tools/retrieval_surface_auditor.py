@@ -266,6 +266,22 @@ def _probe_graph_and_embeddings(repo_root: Path) -> dict[str, Any]:
             emb_res = graph_mod.verify_bge_m3_embeddings(emb_dirs, active_db)
             stage2_res = graph_mod.verify_hybrid_retrieval_stage2()
             trav_res = trav_mod.run_resume_graph_traversal_probe(max_paths=100)
+            from apps_rg.runtime.c0.c03_sqlite_graph_selection import select_c03_sqlite_graph_candidates
+            from apps_rg.runtime.c03_graph_sqlite_context import ensure_c03_graph_sqlite
+
+            rg_root = (repo_root / "resume_graph_engine") if (repo_root / "resume_graph_engine").is_dir() else repo_root
+            sel_db = Path(td) / "c03_selection_probe.sqlite"
+            ensure_c03_graph_sqlite(rg_root, sel_db)
+            c03_sel = select_c03_sqlite_graph_candidates(
+                section_id="executive_summary",
+                selected_fact_ids=["fact_engineering_platform_001"],
+                role_family_key="SVP_ENGINEERING_AI_PLATFORM",
+                pillar_hints=["pillar_agentic_runtime_governance"],
+                repo_root=rg_root,
+                db_path=sel_db,
+            )
+            if not c03_sel.get("selected_candidates"):
+                gaps.append("select_c03_sqlite_graph_candidates returned 0 selected_candidates for executive_summary")
         if trav_res.get("status") != "PASS":
             gaps.append("run_resume_graph_traversal_probe did not return PASS")
     except Exception as exc:  # guardian: allow-broad-exception -- capture graph/embedding verification failure into pillar gaps
@@ -404,6 +420,19 @@ def _probe_latency_and_live_caching(repo_root: Path) -> dict[str, Any]:
         for section in ("static_prefixes", "compiler_cache_alignment", "deterministic_e2e", "live_cache_probes"):
             if not (res.get(section) or {}).get("passed"):
                 gaps.append(f"verify_pipeline_latency_caching failed gate: {section}")
+    from apps_rg.cache.briefing_cache import get_global_briefing_cache
+
+    prior_pytest = os.environ.get("PYTEST_CURRENT_TEST")
+    os.environ["PYTEST_CURRENT_TEST"] = "retrieval_surface_auditor::probe"
+    try:
+        pytest_cache = get_global_briefing_cache()
+        if pytest_cache._cache_dir is not None:
+            gaps.append("get_global_briefing_cache leaked disk cache_dir under PYTEST_CURRENT_TEST")
+    finally:
+        if prior_pytest is None:
+            os.environ.pop("PYTEST_CURRENT_TEST", None)
+        else:
+            os.environ["PYTEST_CURRENT_TEST"] = prior_pytest
     return {
         "passed": len(gaps) == 0,
         "gaps": gaps,

@@ -117,7 +117,7 @@ def load_ibm_base_resume_bullet_texts() -> list[str]:
                 if txt:
                     ibm_texts.append(txt)
         return ibm_texts
-    except Exception:  # guardian: allow-silent-swallow -- runner observes [] and hard mode blocks
+    except (OSError, ValueError, TypeError, KeyError):
         return []
 
 
@@ -149,7 +149,7 @@ def load_unify_base_resume_bullet_texts() -> list[str]:
                 if txt:
                     unify_texts.append(txt)
         return unify_texts
-    except Exception:  # guardian: allow-silent-swallow -- runner observes [] and hard mode blocks
+    except (OSError, ValueError, TypeError, KeyError):
         return []
 
 

@@ -112,7 +112,7 @@ def record_llm_call(
                     for k, v in span_attributes.items():
                         if v is not None:
                             span.set_attribute(str(k), v)
-        except Exception:  # guardian: allow-silent-swallow -- non-blocking OpenTelemetry span attribute attachment
+        except (ValueError, TypeError, RuntimeError, AttributeError):
             pass
 
     return ledger_event or {

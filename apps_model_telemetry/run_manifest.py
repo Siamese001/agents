@@ -43,7 +43,7 @@ def build_run_manifest_data(
         from apps_rg.runtime.model_registry import get_registry_digest
 
         reg_digest = get_registry_digest()
-    except Exception:  # guardian: allow-silent-swallow -- optional registry digest enrichment fallback
+    except (ImportError, OSError, ValueError, TypeError, RuntimeError):
         pass
 
     req_models = sorted(

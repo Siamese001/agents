@@ -187,7 +187,7 @@ def _materialize_warm_whole_run_hit(
                 reason_code="WHOLE_RUN_CACHE_HIT_SERVED",
                 output_refs={"cache_hit_provenance": "cache_hit_provenance.json"},
             )
-        except Exception:  # guardian: allow-silent-swallow -- ledger may already be sealed
+        except (OSError, ValueError, TypeError, RuntimeError):
             pass
 
     res = build_cache_hit_dispatch_result(preflight)

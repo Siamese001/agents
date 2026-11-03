@@ -106,13 +106,16 @@ def get_skills_by_career_phase(
         params: list[Any] = [resolved_ordinal, resolved_epoch]
 
         if section_id:
+            clean_sec = str(section_id).strip()
+            norm_sec = clean_sec if clean_sec.startswith("section_") else f"section_{clean_sec}"
+            raw_sec = clean_sec[len("section_") :] if clean_sec.startswith("section_") else clean_sec
             query += """
                 AND EXISTS (
                     SELECT 1 FROM section_eligibility se
-                    WHERE se.node_id = f.skill_id AND se.section_id = ? AND se.allowed = 1
+                    WHERE se.node_id = f.skill_id AND se.section_id IN (?, ?) AND se.allowed = 1
                 )
             """
-            params.append(section_id)
+            params.extend([norm_sec, raw_sec])
 
         query += " ORDER BY COALESCE(f.confidence_score, 0.0) DESC, f.skill_id ASC"
         skill_rows = conn.execute(query, tuple(params)).fetchall()

@@ -33,13 +33,70 @@ def _algorithm_test_uses_explicit_non_authorizing_scope_override(monkeypatch) ->
         monkeypatch.setattr(module, "validate_full_resume_scope", lambda *_args, **_kwargs: [])
 
 
-def _w6_inputs() -> tuple[Path, dict[str, object]]:
+def _w6_inputs(
+    tmp_path: Path | None = None,
+    registry: dict[str, object] | None = None,
+) -> tuple[Path, dict[str, object]]:
     receipt = json.loads(W6_RECEIPT.read_text(encoding="utf-8"))
     generation_path = ROOT / receipt["generation"]["manifest_path"]
     generation = json.loads(generation_path.read_text(encoding="utf-8"))
     projection_path = ROOT / generation["projection"]["path"]
     model_path = ROOT / generation["model"]["path"]
-    return projection_path, json.loads(model_path.read_text(encoding="utf-8"))
+    model_manifest = json.loads(model_path.read_text(encoding="utf-8"))
+    if not projection_path.is_file() and tmp_path is not None and registry is not None:
+        import hashlib
+        import struct
+
+        projection_path = tmp_path / "base_w6.sqlite"
+        base_ids = set(registry["base_cluster_ids"])
+        conn = sqlite3.connect(projection_path)
+        try:
+            conn.execute("CREATE TABLE metadata (key TEXT PRIMARY KEY, value TEXT NOT NULL)")
+            conn.execute(
+                "CREATE TABLE cluster_vectors ("
+                "cluster_id TEXT PRIMARY KEY, "
+                "cluster_kind TEXT NOT NULL, "
+                "canonical_embedding_text_sha256 TEXT NOT NULL, "
+                "authority_envelope_sha256 TEXT NOT NULL, "
+                "allowed_sections_json TEXT NOT NULL, "
+                "vector_sha256 TEXT NOT NULL, "
+                "vector BLOB NOT NULL)"
+            )
+            conn.executemany(
+                "INSERT INTO metadata(key, value) VALUES (?, ?)",
+                [
+                    ("generation_sha256", str(generation.get("generation_sha256") or "a" * 64)),
+                    ("model_artifact_sha256", str(model_manifest["artifact_sha256"])),
+                ],
+            )
+            for idx, cluster in enumerate(registry["clusters"]):
+                cid = str(cluster["cluster_id"])
+                if cid not in base_ids:
+                    continue
+                vec = [0.0] * 1024
+                vec[idx % 1024] = 1.0
+                blob = struct.pack("<1024f", *vec)
+                conn.execute(
+                    "INSERT INTO cluster_vectors VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    (
+                        cid,
+                        str(cluster["cluster_kind"]),
+                        canonical_sha256(str(cluster["canonical_embedding_text"])),
+                        str(cluster["authority_envelope_sha256"]),
+                        json.dumps(
+                            sorted(str(v) for v in cluster["allowed_sections"]),
+                            ensure_ascii=False,
+                            sort_keys=True,
+                            separators=(",", ":"),
+                        ),
+                        hashlib.sha256(blob).hexdigest(),
+                        blob,
+                    ),
+                )
+            conn.commit()
+        finally:
+            conn.close()
+    return projection_path, model_manifest
 
 
 def _derived_vectors(registry: dict[str, object]) -> dict[str, list[float]]:
@@ -100,7 +157,7 @@ def test_w1c_projection_copies_w6_vectors_and_validates_new_bundle_vectors(
     tmp_path: Path,
 ) -> None:
     registry = build_combined_registry(ROOT)
-    base_projection_path, model_manifest = _w6_inputs()
+    base_projection_path, model_manifest = _w6_inputs(tmp_path, registry)
     output_path = tmp_path / "combined.sqlite"
 
     projection = build_combined_projection(

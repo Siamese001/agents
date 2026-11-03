@@ -57,27 +57,31 @@ def _safe_json_list(value: Any) -> list[Any]:
     return list(loaded) if isinstance(loaded, list) else []
 
 
+def _section_id_variants(section_id: str) -> tuple[str, str]:
+    clean = str(section_id or "").strip()
+    return (clean, clean[len("section_") :]) if clean.startswith("section_") else (f"section_{clean}", clean)
+
+
 def _query_section_budget(conn: Any, *, section_id: str, role_family_key: str) -> dict[str, Any]:
+    norm_sec, raw_sec = _section_id_variants(section_id)
     row = conn.execute(
         """
         SELECT max_metric_reuse, max_fact_family_reuse, required_node_types_json,
                preferred_edge_types_json, forbidden_metric_ids_json,
                preferred_metric_families_json
         FROM section_evidence_budget
-        WHERE section_id = ? AND role_family_key IN (?, '*')
+        WHERE section_id IN (?, ?) AND role_family_key IN (?, '*')
         ORDER BY CASE WHEN role_family_key = ? THEN 0 ELSE 1 END
         LIMIT 1
         """,
-        (section_id, role_family_key, role_family_key),
+        (norm_sec, raw_sec, role_family_key, role_family_key),
     ).fetchone()
     if row is None:
         return {
-            "max_metric_reuse": 1,
-            "max_fact_family_reuse": 2,
+            "max_metric_reuse": 1, "max_fact_family_reuse": 2,
             "required_node_types": ["skill", "fact"],
             "preferred_edge_types": ["skill_supported_by_fact"],
-            "forbidden_metric_ids": [],
-            "preferred_metric_families": [],
+            "forbidden_metric_ids": [], "preferred_metric_families": [],
         }
     return {
         "max_metric_reuse": int(row[0] if row[0] is not None else 1),
@@ -91,31 +95,19 @@ def _query_section_budget(conn: Any, *, section_id: str, role_family_key: str) -
 
 def _row_dict(row: tuple[Any, ...]) -> dict[str, Any]:
     return {
-        "fact_id": str(row[0] or ""),
-        "skill_id": str(row[1] or ""),
-        "skill_label": str(row[2] or ""),
-        "claim_eligibility": bool(row[3]),
-        "link_external_eligible": bool(row[4]),
-        "link_support_level": str(row[5] or ""),
-        "pillar": str(row[6] or ""),
-        "subpillar": str(row[7] or ""),
-        "domain_id": str(row[8] or ""),
-        "skill_family": str(row[9] or "unclassified"),
+        "fact_id": str(row[0] or ""), "skill_id": str(row[1] or ""),
+        "skill_label": str(row[2] or ""), "claim_eligibility": bool(row[3]),
+        "link_external_eligible": bool(row[4]), "link_support_level": str(row[5] or ""),
+        "pillar": str(row[6] or ""), "subpillar": str(row[7] or ""),
+        "domain_id": str(row[8] or ""), "skill_family": str(row[9] or "unclassified"),
         "metric_bucket": str(row[10] or "general_business_outcome"),
-        "role_family_weights": str(row[11] or "{}"),
-        "source_fact_count": int(row[12] or 0),
-        "confidence": str(row[13] or ""),
-        "activation_status": str(row[14] or ""),
-        "support_level": str(row[15] or ""),
-        "external_eligible": bool(row[16]),
-        "source_trace": str(row[17] or "[]"),
-        "section_allowed": bool(row[18]),
-        "section_explicitly_blocked": bool(row[19]),
-        "section_blocked_reason": str(row[20] or ""),
-        "path_signature": str(row[21] or ""),
-        "path_score": float(row[22] or 0.0),
-        "proof_strength_score": float(row[23] or 0.0),
-        "prior_metric_usage": int(row[24] or 0),
+        "role_family_weights": str(row[11] or "{}"), "source_fact_count": int(row[12] or 0),
+        "confidence": str(row[13] or ""), "activation_status": str(row[14] or ""),
+        "support_level": str(row[15] or ""), "external_eligible": bool(row[16]),
+        "source_trace": str(row[17] or "[]"), "section_allowed": bool(row[18]),
+        "section_explicitly_blocked": bool(row[19]), "section_blocked_reason": str(row[20] or ""),
+        "path_signature": str(row[21] or ""), "path_score": float(row[22] or 0.0),
+        "proof_strength_score": float(row[23] or 0.0), "prior_metric_usage": int(row[24] or 0),
     }
 
 
@@ -129,6 +121,7 @@ def _query_candidates(
     in_memory_metric_usage: Mapping[str, int] | None = None,
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     placeholders = ",".join("?" for _ in fact_ids)
+    norm_sec, raw_sec = _section_id_variants(section_id)
     section_budget = _query_section_budget(conn, section_id=section_id, role_family_key=role_family_key)
     rows = conn.execute(
         f"""
@@ -151,10 +144,10 @@ def _query_candidates(
                 f.support_level,
                 f.external_eligible,
                 f.source_trace,
-                COALESCE(se.allowed, se_any.allowed, 0) AS section_allowed,
-                CASE WHEN COALESCE(se.allowed, se_any.allowed, 0) = 0 THEN 1 ELSE 0 END
+                COALESCE(se_norm.allowed, se_raw.allowed, se_any.allowed, 0) AS section_allowed,
+                CASE WHEN COALESCE(se_norm.allowed, se_raw.allowed, se_any.allowed, 0) = 0 THEN 1 ELSE 0 END
                     AS section_explicitly_blocked,
-                COALESCE(se.blocked_reason, se_any.blocked_reason, '') AS section_blocked_reason,
+                COALESCE(se_norm.blocked_reason, se_raw.blocked_reason, se_any.blocked_reason, '') AS section_blocked_reason,
                 COALESCE((
                     SELECT p.path_signature FROM graph_paths p
                     WHERE p.start_node_id = l.skill_id AND p.end_node_id = l.fact_id
@@ -181,14 +174,16 @@ def _query_candidates(
             FROM skill_fact_links l
             JOIN graph_nodes n ON n.node_id = l.skill_id AND n.node_type = 'skill'
             JOIN c03_skill_selection_features f ON f.skill_id = l.skill_id
-            LEFT JOIN section_eligibility se
-              ON se.node_id = l.skill_id AND se.section_id = ?
+            LEFT JOIN section_eligibility se_norm
+              ON se_norm.node_id = l.skill_id AND se_norm.section_id = ?
+            LEFT JOIN section_eligibility se_raw
+              ON se_raw.node_id = l.skill_id AND se_raw.section_id = ?
             LEFT JOIN section_eligibility se_any
               ON se_any.node_id = l.skill_id AND se_any.section_id = '*'
             WHERE l.fact_id IN ({placeholders})
             ORDER BY l.fact_id, l.skill_id
             """,
-        (run_id or "__NO_CURRENT_RUN__", section_id, *fact_ids),
+        (run_id or "__NO_CURRENT_RUN__", norm_sec, raw_sec, *fact_ids),
     ).fetchall()
     candidates = [_row_dict(row) for row in rows]
     if in_memory_metric_usage:
