@@ -950,5 +950,45 @@
   "infrastructure/utils/security_framework.py": {
     "line_limit": 797,
     "justification": "Wave 3 baseline ceiling when expanding PRODUCTION_DIRECTORIES to all 9 packages"
+  },
+  "tools/cost_token_budget_probes.py": {
+    "line_limit": 635,
+    "justification": "Baseline ceiling when expanding PRODUCTION_DIRECTORIES to all 11 executable roots including tools/"
+  },
+  "tools/hitl_governance.py": {
+    "line_limit": 800,
+    "justification": "Baseline ceiling when expanding PRODUCTION_DIRECTORIES to all 11 executable roots including tools/"
+  },
+  "tools/hook_dispatch.py": {
+    "line_limit": 718,
+    "justification": "Baseline ceiling when expanding PRODUCTION_DIRECTORIES to all 11 executable roots including tools/"
+  },
+  "tools/modularize_executive_summary.py": {
+    "line_limit": 1028,
+    "justification": "Baseline ceiling when expanding PRODUCTION_DIRECTORIES to all 11 executable roots including tools/"
+  },
+  "tools/modularize_mandatory_outputs.py": {
+    "line_limit": 660,
+    "justification": "Baseline ceiling when expanding PRODUCTION_DIRECTORIES to all 11 executable roots including tools/"
+  },
+  "tools/modularize_skills_graph.py": {
+    "line_limit": 829,
+    "justification": "Baseline ceiling when expanding PRODUCTION_DIRECTORIES to all 11 executable roots including tools/"
+  },
+  "tools/pr_governance_core/lifecycle.py": {
+    "line_limit": 666,
+    "justification": "Baseline ceiling when expanding PRODUCTION_DIRECTORIES to all 11 executable roots including tools/"
+  },
+  "tools/pr_governance_core/worktree.py": {
+    "line_limit": 642,
+    "justification": "Baseline ceiling when expanding PRODUCTION_DIRECTORIES to all 11 executable roots including tools/"
+  },
+  "tools/validate_implementation_plan.py": {
+    "line_limit": 702,
+    "justification": "Baseline ceiling when expanding PRODUCTION_DIRECTORIES to all 11 executable roots including tools/"
+  },
+  "tools/validate_turn_gates.py": {
+    "line_limit": 733,
+    "justification": "Baseline ceiling when expanding PRODUCTION_DIRECTORIES to all 11 executable roots including tools/"
   }
 }

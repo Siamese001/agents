@@ -12,13 +12,14 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import subprocess
 import sys
 import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Sequence
+
+from infrastructure.config.env_loader import snapshot_process_env
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 
@@ -168,7 +169,7 @@ def run_health_checks(
     all_failures: list[dict[str, Any]] = []
     t0_all = time.perf_counter()
 
-    env = dict(os.environ)
+    env = snapshot_process_env()
 
     for d in domains_to_run:
         dom_name = d["domain"]

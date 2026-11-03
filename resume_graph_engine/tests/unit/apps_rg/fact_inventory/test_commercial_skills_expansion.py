@@ -117,3 +117,4 @@ def test_partner_revenue_3m_wired_to_partnerships_fact(ledger: dict) -> None:
 
 def test_ledger_still_validates(ledger: dict) -> None:
     validate_arsenal_ledger_shape(ledger)
+    assert ledger.get("skill_rows")

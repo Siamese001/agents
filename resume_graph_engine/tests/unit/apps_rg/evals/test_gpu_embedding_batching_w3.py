@@ -38,7 +38,9 @@ def _receipt() -> dict:
 
 
 def test_validate_batching_receipt_accepts_bounded_non_authoritative_proof() -> None:
-    validate_batching_receipt(_receipt())
+    receipt = _receipt()
+    validate_batching_receipt(receipt)
+    assert receipt["receipt_sha256"]
 
 
 def test_validate_batching_receipt_rejects_missing_material_speedup() -> None:

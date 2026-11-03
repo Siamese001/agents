@@ -64,6 +64,7 @@ def _build_parser(prog: str = "python -m outreach_engine") -> argparse.ArgumentP
     run_parser.add_argument("--role", default=None, help="Target role title (overrides brief role title when specified)")
     run_parser.add_argument("--research", action=argparse.BooleanOptionalAction, default=True, help="Enable or disable autonomous research resolution (e.g. --no-research)")
     run_parser.add_argument("--demo", action="store_true", help="Run with demo mission fixture")
+    run_parser.add_argument("--offline-smoke", action="store_true", help="Run deterministic offline smoke without external provider calls")
     run_parser.add_argument("--channel", choices=["inmail", "connection_note", "email", "follow_up"], default="inmail", help="Target channel for outreach draft")
     run_parser.add_argument("--audience", choices=["executive", "recruiter"], default="executive", help="Target audience persona: executive or recruiter")
     run_parser.add_argument("--artifact-dir", help="Directory to persist run outputs and receipts")
@@ -90,13 +91,14 @@ def _build_parser(prog: str = "python -m outreach_engine") -> argparse.ArgumentP
 
 def _handle_run(args: argparse.Namespace, prog: str = "python -m outreach_engine") -> int:
     try:
+        with_offline = bool(getattr(args, "offline_smoke", False))
         try:
             from infrastructure.live_execution import load_agent_environment
             load_agent_environment(repo_root=Path(__file__).resolve().parent.parent.parent.parent)
         except (ImportError, OSError, ValueError):
             pass
         from agents.live_preflight import assert_engine_live_preflight
-        assert_engine_live_preflight(prog, providers=("openai",), is_demo=bool(getattr(args, "demo", False)))
+        assert_engine_live_preflight(prog, providers=("openai",), is_demo=bool(getattr(args, "demo", False)), allow_offline=with_offline)
     except ImportError as err:
         if getattr(args, "json", False):
             print(json.dumps({"status": "FAILED", "error": f"Preflight import failure: {err}"}, indent=2), flush=True)
@@ -586,13 +588,9 @@ def main(argv: Sequence[str] | None = None, prog: str | None = None) -> int:
         prog = "python -m apps_lic" if (len(sys.argv) > 0 and "apps_lic" in sys.argv[0]) else "python -m outreach_engine"
     parser = _build_parser(prog=prog)
     args = parser.parse_args(normalized)
-
     handlers = {"run": lambda: _handle_run(args, prog=prog), "eval": lambda: _handle_eval(args), "show": lambda: _handle_show(args)}
     handler = handlers.get(args.action)
-    if handler:
-        return handler()
-    parser.print_help()
-    return 1
+    return handler() if handler else (parser.print_help() or 1)
 
 
 if __name__ == "__main__":

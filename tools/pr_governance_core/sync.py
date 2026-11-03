@@ -90,7 +90,7 @@ def _resolve_worktree(branch: str, repo_root: Path) -> Optional[Path]:
         )
         if cur_proc.returncode == 0 and cur_proc.stdout.strip() == branch:
             return repo_root
-    except Exception:
+    except (OSError, subprocess.SubprocessError):
         pass
     return None
 

@@ -167,7 +167,7 @@ class TokenCounterService:
             enc = tiktoken.get_encoding(family)
             self._tokenizers[family] = enc
             return enc
-        except Exception:
+        except (ImportError, KeyError, ValueError, OSError, RuntimeError):
             self._tokenizers[family] = None
             return None
 
@@ -180,7 +180,7 @@ class TokenCounterService:
             tok = AutoTokenizer.from_pretrained(model_name)
             self._tokenizers[model_name] = tok
             return tok
-        except Exception:
+        except (ImportError, KeyError, ValueError, OSError, RuntimeError):
             self._tokenizers[model_name] = None
             return None
 

@@ -49,7 +49,7 @@ if _BASELINE_PATH.is_file():
 
         _bdata = _json.loads(_BASELINE_PATH.read_text(encoding="utf-8"))
         _MODEL_BASELINE_COUNTS = _bdata.get("file_counts", {})
-    except Exception:
+    except (OSError, ValueError, TypeError):
         pass
 
 
@@ -66,7 +66,7 @@ def get_staged_files(repo_root: Path) -> list[Path]:
         )
         files = [repo_root / f.strip() for f in res.stdout.splitlines() if f.strip()]
         return [f for f in files if f.exists()]
-    except Exception:
+    except (OSError, subprocess.SubprocessError):
         return []
 
 

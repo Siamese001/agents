@@ -22,9 +22,10 @@ Consolidates `agents-storage-worktree-hygiene`, `agents-ssot-boundary-governance
    .venv/bin/python tools/validate_sidecar_separation.py --json
    ```
 
-3. **8-Pillar Tokenomics, Dynamic ROI, Secrets & 9-Package Mock Reachability Audit**:
+3. **8-Pillar Tokenomics, Dynamic ROI, Secrets, 11-Root Mock Reachability & 6-Surface Testing Gaps Audit**:
    ```bash
    .venv/bin/python tools/cost_token_budget_auditor.py --json --strict
    .venv/bin/python tools/lint_secrets.py --all
    .venv/bin/python tools/audit_mock_reachability.py
+   .venv/bin/python tools/testing_gaps_auditor.py --json
    ```

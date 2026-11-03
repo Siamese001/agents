@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import json
-import os
 import threading
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+
+from infrastructure.config.env_loader import get_env_str
 
 
 class ChannelType(str, Enum):
@@ -86,7 +87,7 @@ class CandidateProfileLoader:
     def _resolve_profile_path(cls, explicit_path: Path | str | None = None) -> Path:
         if explicit_path is not None:
             return Path(explicit_path).resolve()
-        env_override = os.environ.get("OUTREACH_CANDIDATE_PROFILE_PATH")
+        env_override = get_env_str("OUTREACH_CANDIDATE_PROFILE_PATH")
         if env_override:
             p = Path(env_override).resolve()
             if p.is_file():

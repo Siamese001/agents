@@ -43,7 +43,7 @@ def test_validate_passes_when_all_present() -> None:
         jd="Lead agentic platforms.",
         manual_brief="Regulated enterprise context.",
     )
-    validate_executive_summary_mandatory_inputs(args)
+    assert validate_executive_summary_mandatory_inputs(args) is None
 
 
 def test_validate_fails_closed_when_jd_missing() -> None:
@@ -89,4 +89,4 @@ def test_validate_allows_stale_when_env_waiver_set(monkeypatch: pytest.MonkeyPat
         manual_brief=str(resolve_apps_rg_path(repo, "config", "default_targeting_briefing.txt")),
     )
     monkeypatch.setenv("APPS_RG_ALLOW_STALE_TARGETING_SSOT", "1")
-    validate_executive_summary_targeting_inputs_updated(args)
+    assert validate_executive_summary_targeting_inputs_updated(args) is None

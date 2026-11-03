@@ -240,12 +240,12 @@ class AccessController:
         self.resource_permissions: dict[str, dict[str, set[AccessLevel]]] = defaultdict(dict)
         self._lock = asyncio.Lock()
 
-    def add_role(self, role: str, permissions: list[AccessLevel]):
+    def add_role(self, role: str, permissions: list[AccessLevel]) -> None:
         """Add role with permissions."""
         self.role_permissions[role] = set(permissions)
         logger.info(f"Added role {role} with permissions {[p.value for p in permissions]}")
 
-    def assign_user_role(self, user_id: str, role: str):
+    def assign_user_role(self, user_id: str, role: str) -> None:
         """Assign role to user."""
         if user_id not in self.user_roles:
             self.user_roles[user_id] = set()
@@ -257,7 +257,7 @@ class AccessController:
         resource_type: str,
         resource_id: str,
         role_permissions: dict[str, list[AccessLevel]],
-    ):
+    ) -> None:
         """Set permissions for specific resource."""
         self.resource_permissions[resource_type][resource_id] = {
             role: set(permissions) for role, permissions in role_permissions.items()
@@ -417,7 +417,7 @@ class AuditLogger:
         user_agent: str,
         details: dict[str, Any] | None = None,
         compliance_tags: list[str] | None = None,
-    ):
+    ) -> None:
         """Log access event."""
         entry = AuditLogEntry(
             entry_id=f"audit_{uuid.uuid4().hex}",
@@ -450,7 +450,7 @@ class AuditLogger:
         affected_resources: list[str],
         user_id: str | None = None,
         compliance_tags: list[str] | None = None,
-    ):
+    ) -> None:
         """Log security incident."""
         await self.log_access(
             user_id=user_id or "system",
@@ -520,7 +520,7 @@ class AuditLogger:
 
         return report
 
-    async def cleanup_old_logs(self):
+    async def cleanup_old_logs(self) -> int:
         """Clean up old audit logs."""
         cutoff_date = datetime.now() - timedelta(days=self.retention_days)
 
@@ -597,7 +597,7 @@ class SecurityGateway:
 
         logger.info("Initialized default security roles")
 
-    async def start(self):
+    async def start(self) -> None:
         """Start security gateway services."""
         self._running = True
         if self._cleanup_task and not self._cleanup_task.done():
@@ -605,7 +605,7 @@ class SecurityGateway:
         self._cleanup_task = asyncio.create_task(self._periodic_cleanup(), name="security-gateway-cleanup")
         logger.info("Started security gateway")
 
-    async def stop(self):
+    async def stop(self) -> None:
         """Stop security gateway services."""
         self._running = False
         if self._cleanup_task:
@@ -752,7 +752,7 @@ class SecurityGateway:
 
         return True
 
-    def add_security_policy(self, policy: SecurityPolicy):
+    def add_security_policy(self, policy: SecurityPolicy) -> None:
         """Add security policy."""
         self.security_policies[policy.policy_id] = policy
         logger.info(f"Added security policy: {policy.name}")

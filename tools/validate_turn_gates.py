@@ -721,7 +721,7 @@ def main(argv: list[str] | None = None) -> int:
             )
             print(render_wave_summary_table(active_plan_info["active_plan"], active_plan_info["wave_summary"]))
             print(render_markdown_wave_summary_table(active_plan_info["active_plan"], active_plan_info["wave_summary"]))
-        except Exception:
+        except (OSError, ValueError, KeyError, TypeError):
             pass
 
     print(json.dumps(results, indent=2))

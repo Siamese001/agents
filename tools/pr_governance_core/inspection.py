@@ -97,7 +97,7 @@ def _check_readiness_receipt_pass(
                     rec_sha = data.get("head_sha") or data.get("head_commit_sha")
                     if not head_sha or rec_sha == head_sha:
                         return True
-            except Exception:
+            except (OSError, ValueError, TypeError):
                 pass
     return False
 
@@ -128,7 +128,7 @@ def inspect_branch_status(branch: str, repo_root: Optional[Path] = None) -> Dict
     try:
         raw_diff = run_git(["diff", "--name-only", f"main...{eff_branch}"], cwd=root, check=False)
         changed_files = [f for f in raw_diff.splitlines() if f.strip()]
-    except Exception:
+    except (OSError, RuntimeError, ValueError):
         pass
 
     merge_base = run_git(["merge-base", "main", eff_branch], cwd=root, check=False).strip()[:8]

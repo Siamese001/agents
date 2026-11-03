@@ -105,7 +105,7 @@ def _read_waiters(common_dir: Path) -> list[QueueItem]:
         data = json.loads(queue_p.read_text(encoding="utf-8"))
         if isinstance(data, list):
             return [QueueItem.from_dict(item) for item in data if isinstance(item, dict)]
-    except Exception:
+    except (OSError, ValueError, TypeError):
         pass
     return []
 

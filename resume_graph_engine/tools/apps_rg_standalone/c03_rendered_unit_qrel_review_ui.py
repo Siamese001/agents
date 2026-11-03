@@ -125,7 +125,7 @@ def _page(batch, completed, total, message=""):
     return f'''<!doctype html><meta charset="utf-8"><title>Final résumé QREL review</title><style>body{{font:16px system-ui;max-width:1050px;margin:auto;padding:22px;background:#f5f7fb}}article{{background:#fff;border:1px solid #ccd5e3;border-radius:10px;margin:16px 0;padding:18px}}pre,.unit{{white-space:pre-wrap;line-height:1.5}}.unit{{font-size:1.1em}}.section{{font-weight:bold;color:#334155}}fieldset{{border:0;margin:16px 0;display:flex;gap:12px;flex-wrap:wrap}}label{{padding:6px;border:1px solid #cbd5e1;border-radius:6px}}textarea{{display:block;width:100%;box-sizing:border-box}}button{{padding:12px 20px;background:#1264a3;color:white;border:0;border-radius:7px;font-weight:bold}}.label{{font-size:.85em;font-weight:bold;color:#475569}}.notice{{background:#dff5e7;padding:10px}}</style><h1>Final résumé output review</h1><p><strong>What to compare:</strong> compare the named target job with the complete résumé line shown on each card. For competencies, the category label and every phrase after the colon are one finished competency. Each unique competency appears only once per target résumé.</p><p>Completed: {completed} of {total}. Rank, score, split, graph IDs, and embedding details are hidden.</p>{notice}<form method="post">{''.join(cards)}{'<button>Save this batch</button>' if batch else '<p>All candidates are graded.</p>'}</form>'''
 
 
-def main(argv=None):
+def main(argv=None) -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("registry", type=Path)
     parser.add_argument("--packet", type=Path, help="R3 frozen reviewer-visible packet")
@@ -146,15 +146,15 @@ def main(argv=None):
     try: packet, _sealed = _load(args.registry, args.packet)
     except (OSError, json.JSONDecodeError, RenderedUnitQrelError) as exc: parser.error(str(exc))
     class Handler(BaseHTTPRequestHandler):
-        def page(self, status=HTTPStatus.OK, message=""):
+        def page(self, status=HTTPStatus.OK, message="") -> None:
             try:
                 packet, _ = _load(args.registry, args.packet); events = _read_jsonl(args.ledger) if args.ledger.exists() else []
                 active = _active_for_review(packet, events, args)
                 remaining = _flat(packet, active); body = _page(remaining[:args.batch_size], len(active), sum(len(i["candidates"]) for i in packet["items"]), message)
             except (OSError, json.JSONDecodeError, RenderedUnitQrelError) as exc: status, body = HTTPStatus.BAD_REQUEST, f"<h1>Blocked</h1><p>{html.escape(str(exc))}</p>"
             raw = body.encode(); self.send_response(status); self.send_header("Content-Type", "text/html; charset=utf-8"); self.send_header("Content-Length", str(len(raw))); self.end_headers(); self.wfile.write(raw)
-        def do_GET(self): self.page(message="Saved." if parse_qs(urlsplit(self.path).query).get("saved") else "")
-        def do_POST(self):
+        def do_GET(self) -> None: self.page(message="Saved." if parse_qs(urlsplit(self.path).query).get("saved") else "")
+        def do_POST(self) -> None:
             try:
                 form = parse_qs(self.rfile.read(int(self.headers.get("Content-Length", 0))).decode(), keep_blank_values=True); packet, _ = _load(args.registry, args.packet); events = _read_jsonl(args.ledger) if args.ledger.exists() else []; batch = _flat(packet, _active_for_review(packet, events, args))[:args.batch_size]; submissions=[]
                 for index, _row in enumerate(batch, 1):
@@ -163,7 +163,7 @@ def main(argv=None):
                     submissions.append({"item_ref":form.get(f"item_{index}",[""])[0],"candidate_ref":form.get(f"candidate_{index}",[""])[0],"grade":int(grade),"rationale":rationale if not note else rationale+"\nHuman note: "+note})
                 append_human_judgments(args.ledger, packet=packet, submissions=submissions); self.send_response(HTTPStatus.SEE_OTHER); self.send_header("Location","/?saved=1"); self.end_headers()
             except (UnicodeDecodeError, OSError, json.JSONDecodeError, RenderedUnitQrelError) as exc: self.page(HTTPStatus.BAD_REQUEST, "Nothing saved: "+str(exc))
-        def log_message(self, *_): pass
+        def log_message(self, *_) -> None: pass
     print(f"Rendered-unit QREL UI: http://127.0.0.1:{args.port}/")
     ThreadingHTTPServer(("127.0.0.1", args.port), Handler).serve_forever()
 

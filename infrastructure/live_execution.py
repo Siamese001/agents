@@ -59,7 +59,7 @@ def _manual_parse_env_file(path: Path, override: bool = False) -> bool:
                 os.environ[k] = v
                 loaded_any = True
         return loaded_any
-    except Exception:
+    except (OSError, UnicodeDecodeError, ValueError):
         return False
 
 
@@ -75,18 +75,24 @@ def load_agent_environment(repo_root: Path | None = None, override: bool = False
         if load_dotenv is not None:
             try:
                 load_dotenv(central_path, override=False)
-            except Exception:
+            except (OSError, UnicodeDecodeError, ValueError):
                 _manual_parse_env_file(central_path, override=False)
         else:
             _manual_parse_env_file(central_path, override=False)
 
-    # 2. Load repo-specific env_agents
+    # 2. Load repo-specific env_agents (including primary repo root when inside a linked worktree)
+    from infrastructure.config.env_loader import get_main_repo_root
+
     root = (repo_root or Path.cwd()).resolve()
     candidate_dirs = [root]
+    main_root = get_main_repo_root(root)
+    if main_root not in candidate_dirs:
+        candidate_dirs.append(main_root)
     cur = root
     while cur != cur.parent:
         cur = cur.parent
-        candidate_dirs.append(cur)
+        if cur not in candidate_dirs:
+            candidate_dirs.append(cur)
         if (cur / ".git").is_dir() or (cur / "env_agents").is_file():
             break
 
@@ -100,7 +106,7 @@ def load_agent_environment(repo_root: Path | None = None, override: bool = False
             if load_dotenv is not None:
                 try:
                     load_dotenv(candidate, override=override)
-                except Exception:
+                except (OSError, UnicodeDecodeError, ValueError):
                     _manual_parse_env_file(candidate, override=override)
             else:
                 _manual_parse_env_file(candidate, override=override)

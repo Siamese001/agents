@@ -16,6 +16,12 @@ import sys
 from pathlib import Path
 from typing import Any, Sequence
 
+_REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
+from tools.lint_file_budgets import scan_all_production_files
+
 FORBIDDEN_STORAGE_MODULES = {
     "sqlite3",
     "agents.persistence.sqlite",
@@ -36,9 +42,12 @@ FORBIDDEN_STORAGE_CLASSES = {
 DOMAIN_SERVICE_DIRS = [
     "resume_graph_engine/src/apps_rg/runtime/artifact_output",
     "resume_graph_engine/src/apps_rg/runtime/pipeline",
-    "resume_graph_engine/src/apps_rg/runtime/sections/executive_summary",
-    "outreach_engine/src/apps_lic/domain",
-    "outreach_engine/src/apps_lic/pipeline",
+    "resume_graph_engine/src/apps_rg/runtime/sections",
+    "resume_engine",
+    "outreach_engine/src/apps_lic",
+    "apps_research",
+    "apps_eval",
+    "apps_model_telemetry",
     "agents/orchestration/services",
 ]
 
@@ -103,6 +112,10 @@ def check_sys_path_purity(repo_root: Path) -> list[str]:
         repo_root / "resume_graph_engine/__init__.py",
         repo_root / "resume_graph_engine/__main__.py",
         repo_root / "resume_graph_engine/src/apps_rg",
+        repo_root / "apps_research",
+        repo_root / "apps_eval",
+        repo_root / "apps_model_telemetry",
+        repo_root / "infrastructure",
     ]
 
     seen: set[Path] = set()
@@ -143,28 +156,10 @@ def check_sys_path_purity(repo_root: Path) -> list[str]:
 
 
 def check_file_budgets(repo_root: Path) -> list[str]:
-    """Enforce production file ceilings on refactored and modularized packages."""
+    """Enforce production file ceilings across all 11 executable roots with ratchet governance."""
     violations: list[str] = []
-    target_dirs = [
-        repo_root / "resume_graph_engine/src/apps_rg/runtime/artifact_output",
-        repo_root / "resume_graph_engine/src/apps_rg/runtime/pipeline",
-        repo_root / "resume_graph_engine/src/apps_rg/runtime/sections/executive_summary",
-        repo_root / "outreach_engine/src/apps_lic",
-        repo_root / "agents/persistence",
-        repo_root / "agents/observability",
-        repo_root / "agents/orchestration",
-    ]
-
-    for tdir in target_dirs:
-        if not tdir.exists():
-            continue
-        for py_file in tdir.glob("**/*.py"):
-            lines = len(py_file.read_text(encoding="utf-8", errors="replace").splitlines())
-            if lines > LINE_BUDGET_CEILING:
-                violations.append(
-                    f"{py_file.name}: Exceeds line budget ceiling ({lines} > {LINE_BUDGET_CEILING} lines)"
-                )
-
+    for _rel_path, _lines, msg in scan_all_production_files(repo_root, max_lines=LINE_BUDGET_CEILING):
+        violations.append(msg)
     return violations
 
 

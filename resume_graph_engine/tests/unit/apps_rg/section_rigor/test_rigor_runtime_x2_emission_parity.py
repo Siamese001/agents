@@ -52,6 +52,7 @@ def test_synthetic_unclassified_gate_red_path() -> None:
 
 
 def test_retired_refs_have_required_fields() -> None:
+    assert RETIRED_GATE_REFS
     for ref in RETIRED_GATE_REFS.values():
         validate_retired_gate_ref(ref)
 

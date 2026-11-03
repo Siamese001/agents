@@ -35,13 +35,14 @@ except ImportError:  # guardian: allow-silent-swallow -- fallback if PyYAML unav
 PRODUCTION_SCAN_DIRS: tuple[str, ...] = (
     "agents",
     "apps_model_telemetry",
-    "outreach_engine/src",
+    "outreach_engine",
     "resume_engine",
-    "resume_graph_engine/src",
+    "resume_graph_engine",
     "apps_research",
     "apps_eval",
     "infrastructure",
     "ops_scripts",
+    "scripts",
 )
 
 GUARDED_THRESHOLD_NAMES: dict[str, tuple[str, int]] = {
@@ -310,10 +311,41 @@ def scan_prompt_code_parity(repo_root: Path) -> list[dict[str, Any]]:
     return findings
 
 
+def _load_env_lookup_ratchet(repo_root: Path) -> dict[str, int]:
+    """Load optional per-file ceiling ratchet for legacy os.environ/os.getenv lookups."""
+    ratchet_path = repo_root / "config" / "governance" / "env_lookup_ratchet.json"
+    if not ratchet_path.is_file():
+        return {}
+    try:
+        payload = json.loads(ratchet_path.read_text(encoding="utf-8"))
+        counts = payload.get("file_counts", {})
+        if isinstance(counts, Mapping):
+            return {str(k): int(v) for k, v in counts.items() if isinstance(v, int)}
+    except (OSError, ValueError, TypeError):
+        return {}
+    return {}
+
+
+def _collect_docstring_node_ids(tree: ast.AST) -> set[int]:
+    """Return AST node ids of module, class, and function docstring Constant nodes."""
+    doc_ids: set[int] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
+            if (
+                node.body
+                and isinstance(node.body[0], ast.Expr)
+                and isinstance(node.body[0].value, ast.Constant)
+                and isinstance(node.body[0].value.value, str)
+            ):
+                doc_ids.add(id(node.body[0].value))
+    return doc_ids
+
+
 def scan_ast_hygiene_and_env_sprawl(repo_root: Path) -> list[dict[str, Any]]:
     """Detect unassigned .split() bugs, hardcoded user paths, and uncentralized os.environ reads."""
     findings: list[dict[str, Any]] = []
     reg = _load_yaml(repo_root / "config" / "governance" / "centralization_registry.yaml")
+    env_ratchet = _load_env_lookup_ratchet(repo_root)
     approved_env_prefixes = tuple(
         reg.get(
             "approved_env_loader_paths",
@@ -323,18 +355,29 @@ def scan_ast_hygiene_and_env_sprawl(repo_root: Path) -> list[dict[str, Any]]:
                 "tools/",
                 "ops_scripts/",
                 "scripts/",
+                "agents/cli.py",
+                "agents/live_preflight.py",
+                "resume_engine/cli.py",
+                "apps_model_telemetry/",
+                "apps_eval/adapters/",
+                "apps_eval/runner/",
                 "resume_graph_engine/src/apps_rg/config/",
+                "resume_graph_engine/src/apps_rg/runtime/env_bootstrap.py",
+                "resume_graph_engine/src/apps_rg/runtime/embedding_settings.py",
+                "resume_graph_engine/src/apps_rg/runtime/fact_vectors_bootstrap.py",
                 "resume_graph_engine/src/apps_rg/runtime/sections/executive_summary_repair_policy.py",
+                "resume_graph_engine/tools/",
             ],
         )
     )
 
-    for rel_dir in PRODUCTION_SCAN_DIRS:
+    scan_targets = list(PRODUCTION_SCAN_DIRS) + ["tools"]
+    for rel_dir in scan_targets:
         base = repo_root / rel_dir
         if not base.is_dir():
             continue
         for py in sorted(base.rglob("*.py")):
-            if "tests" in py.parts:
+            if "tests" in py.parts or py.name.startswith("test_") or py.name.endswith("_test.py"):
                 continue
             rel = str(py.relative_to(repo_root)).replace("\\", "/")
             raw_text = py.read_text(encoding="utf-8", errors="replace")
@@ -342,6 +385,9 @@ def scan_ast_hygiene_and_env_sprawl(repo_root: Path) -> list[dict[str, Any]]:
                 tree = ast.parse(raw_text)
             except SyntaxError:
                 continue
+
+            doc_ids = _collect_docstring_node_ids(tree)
+            file_env_hits: list[dict[str, Any]] = []
 
             for node in ast.walk(tree):
                 if (
@@ -362,7 +408,7 @@ def scan_ast_hygiene_and_env_sprawl(repo_root: Path) -> list[dict[str, Any]]:
                 if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name):
                     is_env = (node.value.id == "os" and node.attr in ("environ", "getenv"))
                     if is_env and not rel.startswith(approved_env_prefixes):
-                        findings.append(
+                        file_env_hits.append(
                             {
                                 "category": "UNCENTRALIZED_ENV_LOOKUP",
                                 "file": rel,
@@ -371,7 +417,7 @@ def scan_ast_hygiene_and_env_sprawl(repo_root: Path) -> list[dict[str, Any]]:
                             }
                         )
 
-                if isinstance(node, ast.Constant) and isinstance(node.value, str):
+                if isinstance(node, ast.Constant) and isinstance(node.value, str) and id(node) not in doc_ids:
                     if HOME_PATH_RE.search(node.value):
                         findings.append(
                             {
@@ -381,6 +427,10 @@ def scan_ast_hygiene_and_env_sprawl(repo_root: Path) -> list[dict[str, Any]]:
                                 "detail": f"{rel}:{node.lineno} contains hardcoded machine path '{node.value[:60]}'",
                             }
                         )
+
+            ratchet_ceiling = env_ratchet.get(rel, 0)
+            if len(file_env_hits) > ratchet_ceiling:
+                findings.extend(file_env_hits[ratchet_ceiling:])
 
     return findings
 

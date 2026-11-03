@@ -49,6 +49,9 @@ def test_all_seven_workflows_bind_distinct_executable_behavioral_auditors() -> N
         ep_path = REPO_ROOT / rel_ep
         assert ep_path.is_file(), f"Missing dedicated auditor {rel_ep} for {workflow_id}"
         assert rel_ep != "tools/verify_commit.py"
+        assert EXPECTED_AGENTS_SIDECARS[workflow_id]["requires_remediation_quota"] is True, (
+            f"{workflow_id} must enforce C04 remediation quota without exemption"
+        )
 
 
 def test_validator_rejects_inline_heredoc_and_missing_auditor_invocation(tmp_path: Path) -> None:
@@ -326,4 +329,60 @@ def test_prefix_prewarm_semantic_fact_digest_and_shared_disk_briefing_cache(tmp_
     audit_rep = run_eight_pillar_cost_token_audit(REPO_ROOT)
     assert audit_rep["status"] == "PASS"
     assert audit_rep["pillars"][7]["ide_argon4_routing_verified"] is True
+
+
+def test_storage_hygiene_discovers_outreach_eval_dbs_and_expired_worktree_leases(tmp_path: Path) -> None:
+    """Verify full-repo DB discovery across Outreach/Eval/Research and stale lock detection in artifacts/.worktrees."""
+    import os
+    import sqlite3
+    import subprocess
+    import time
+    from tools.storage_worktree_hygiene import run_six_pillar_hygiene_audit
+
+    sandbox = tmp_path / "full_storage_sandbox"
+    (sandbox / "outreach_engine" / "data").mkdir(parents=True)
+    (sandbox / "apps_eval" / "state").mkdir(parents=True)
+    (sandbox / "resume_graph_engine" / "artifacts" / "apps_rg").mkdir(parents=True)
+    (sandbox / ".worktrees" / "abandoned_wt").mkdir(parents=True)
+    (sandbox / "automations" / "prompts").mkdir(parents=True)
+    for md_file in (REPO_ROOT / "automations" / "prompts").glob("*.md"):
+        (sandbox / "automations" / "prompts" / md_file.name).write_text(
+            md_file.read_text(encoding="utf-8"),
+            encoding="utf-8",
+        )
+    subprocess.run(["git", "init", "-b", "main", str(sandbox)], check=True, capture_output=True, timeout=30)
+
+    for db_fp in (
+        sandbox / "outreach_engine" / "data" / "outreach_state.sqlite",
+        sandbox / "apps_eval" / "state" / "eval_ledger.db",
+    ):
+        conn = sqlite3.connect(str(db_fp), timeout=10)
+        conn.execute("PRAGMA journal_mode=DELETE;")
+        conn.execute("CREATE TABLE item (id INTEGER PRIMARY KEY);")
+        conn.commit()
+        conn.close()
+
+    old_ts = time.time() - 95000
+    rg_lock = sandbox / "resume_graph_engine" / "artifacts" / "apps_rg" / "stale_build.lock"
+    rg_lock.write_text("stale", encoding="utf-8")
+    os.utime(rg_lock, (old_ts, old_ts))
+
+    expired_lease = sandbox / ".worktrees" / "abandoned_wt" / ".sidecar_active_run.lock"
+    expired_lease.write_text(json.dumps({"pid": 999999, "branch": "chore/old", "started_at": old_ts}), encoding="utf-8")
+    os.utime(expired_lease, (old_ts, old_ts))
+
+    pre = run_six_pillar_hygiene_audit(repo_root=sandbox, sidecars_root=DEFAULT_SIDECARS_ROOT, remediate=False)
+    discovered_dbs = {d["db"] for d in pre["dbs"]}
+    assert "outreach_engine/data/outreach_state.sqlite" in discovered_dbs
+    assert "apps_eval/state/eval_ledger.db" in discovered_dbs
+    assert "resume_graph_engine/artifacts/apps_rg/stale_build.lock" in pre["stale_files"]
+    assert ".worktrees/abandoned_wt/.sidecar_active_run.lock" in pre["stale_files"]
+    for inv_key in ("outreach_engine_mb", "resume_engine_mb", "apps_research_mb", "apps_eval_mb", "data_mb", "worktrees_mb"):
+        assert inv_key in pre["storage_inventory"]
+
+    post = run_six_pillar_hygiene_audit(repo_root=sandbox, sidecars_root=DEFAULT_SIDECARS_ROOT, remediate=True)
+    assert post["status"] == "PASS", post
+    assert all(d["journal_mode"] == "wal" for d in post["dbs"])
+    assert post["stale_files"] == []
+
 

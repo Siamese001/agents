@@ -612,7 +612,7 @@ def get_staged_plan_files(repo_root: Path) -> List[Path]:
                 if full_path.is_file():
                     staged.append(full_path)
         return staged
-    except Exception:
+    except (OSError, subprocess.SubprocessError):
         return []
 
 
@@ -690,7 +690,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                     print(render_markdown_wave_summary_table(plan_file.name, entries))
                 else:
                     print(render_wave_summary_table(plan_file.name, entries))
-        except Exception:
+        except (OSError, ValueError, KeyError, TypeError):
             pass
 
     return 0 if all_passed else 1

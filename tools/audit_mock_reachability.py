@@ -22,14 +22,16 @@ _FORBIDDEN_MOCK_LITERALS: dict[str, tuple[str, str]] = {
 
 _PRODUCTION_ROOTS = [
     "agents",
-    "resume_engine",
-    "resume_graph_engine/src/apps_rg",
-    "apps_research",
     "apps_eval",
     "apps_model_telemetry",
-    "outreach_engine/src/apps_lic",
+    "apps_research",
     "infrastructure",
     "ops_scripts",
+    "outreach_engine",
+    "resume_engine",
+    "resume_graph_engine",
+    "scripts",
+    "tools",
 ]
 
 

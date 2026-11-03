@@ -112,12 +112,12 @@ class EventDrivenInvalidationBus:
         self.event_history: deque[InvalidationMessage] = deque(maxlen=10000)
         self._lock = asyncio.Lock()
 
-    def subscribe(self, layer_type: LayerType, callback: Callable[[InvalidationMessage], None]):
+    def subscribe(self, layer_type: LayerType, callback: Callable[[InvalidationMessage], None]) -> None:
         """Subscribe to invalidation events."""
         self.subscribers[layer_type].append(callback)
         logger.info(f"Layer {layer_type} subscribed to invalidation events")
 
-    async def publish(self, message: InvalidationMessage):
+    async def publish(self, message: InvalidationMessage) -> None:
         """Publish invalidation event."""
         async with self._lock:
             self.event_history.append(message)
@@ -285,18 +285,18 @@ class ConsistencyMonitor:
         self.resolution_history: list[dict[str, Any]] = []
         self._running = False
 
-    async def start_monitoring(self, coherence_manager):
+    async def start_monitoring(self, coherence_manager) -> None:
         """Start consistency monitoring."""
         self._running = True
         while self._running:
             await self._check_consistency(coherence_manager)
             await asyncio.sleep(self.check_interval)
 
-    async def stop_monitoring(self):
+    async def stop_monitoring(self) -> None:
         """Stop consistency monitoring."""
         self._running = False
 
-    def record_invalidation(self, layer_type: LayerType, key: str, reason: str):
+    def record_invalidation(self, layer_type: LayerType, key: str, reason: str) -> None:
         """Record invalidation event for tracking."""
         self.inconsistencies[key].append(f"Invalidated in {layer_type.value}: {reason}")
 
@@ -422,7 +422,7 @@ class CrossLayerCoherenceManager:
                 failed_operations=0,
             )
 
-    async def start_monitoring(self):
+    async def start_monitoring(self) -> None:
         """Start consistency monitoring."""
         if getattr(self, "_monitoring_task", None) and not self._monitoring_task.done():
             return
@@ -431,7 +431,7 @@ class CrossLayerCoherenceManager:
             name="cross-layer-coherence-monitor",
         )
 
-    async def stop_monitoring(self):
+    async def stop_monitoring(self) -> None:
         """Stop consistency monitoring."""
         await self.consistency_monitor.stop_monitoring()
         task = getattr(self, "_monitoring_task", None)
@@ -696,7 +696,7 @@ class CrossLayerCoherenceManager:
             },
         }
 
-    async def cleanup_expired_entries(self):
+    async def cleanup_expired_entries(self) -> int:
         """Clean up expired entries."""
         expired_count = 0
 

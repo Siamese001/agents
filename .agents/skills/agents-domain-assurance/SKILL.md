@@ -9,8 +9,8 @@ Consolidates `agents-outreach-resume-functionality`, `agents-research-retrieval-
 
 ## Execution Protocol
 
-1. **Preflight Behavioral Auditors & Full Outreach + Deterministic Resume Sweep**:
-   Never fast-exit on `verify_commit.py` alone or skip resume tailoring (`--skip-resume` is prohibited for assurance sweeps). Run every dedicated domain auditor in read-only mode so tracked `reports/` remain clean:
+1. **Preflight Behavioral Auditors & Full Dual-Engine Sweep (11 Roots / 5 Config Roots / 314 Data Files)**:
+   Never fast-exit on `verify_commit.py` alone or skip resume tailoring (`run_e2e_authoritative_smoke.py` executes both Outreach and deterministic 11-stage Resume by default). Run every dedicated domain auditor in read-only mode so tracked `reports/` remain clean:
    ```bash
    .venv/bin/python tools/e2e_functionality_auditor.py --read-only --json
    .venv/bin/python tools/retrieval_surface_auditor.py --read-only --json

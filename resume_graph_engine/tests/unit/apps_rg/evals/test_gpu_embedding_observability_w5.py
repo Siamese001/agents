@@ -64,7 +64,9 @@ def _receipt() -> dict:
 
 
 def test_validate_observability_receipt_accepts_complete_runtime_proof() -> None:
-    validate_observability_receipt(_receipt())
+    receipt = _receipt()
+    validate_observability_receipt(receipt)
+    assert receipt["receipt_sha256"]
 
 
 @pytest.mark.parametrize(

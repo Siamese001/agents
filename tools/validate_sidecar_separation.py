@@ -18,9 +18,9 @@ from pathlib import Path
 from typing import Any, Sequence
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_SIDECARS_ROOT = Path("/Users/amitayer/.gemini/config/sidecars")
-AGENTS_CANONICAL_ROOT = "/Users/amitayer/Git/agents"
-NEE_CANONICAL_ROOT = "/Users/amitayer/Git/decision-intelligence-engine"
+DEFAULT_SIDECARS_ROOT = Path.home() / ".gemini" / "config" / "sidecars"
+AGENTS_CANONICAL_ROOT = str(Path.home() / "Git" / "agents")
+NEE_CANONICAL_ROOT = str(Path.home() / "Git" / "decision-intelligence-engine")
 
 EXPECTED_AGENTS_SIDECARS: dict[str, dict[str, Any]] = {
     "agents-storage-worktree-hygiene": {
@@ -29,7 +29,7 @@ EXPECTED_AGENTS_SIDECARS: dict[str, dict[str, Any]] = {
         "disposition": "RETIRE_SIDECAR_TO_CLI",
         "target_skill": "agents-governance-hygiene",
         "deterministic_entrypoint": "tools/storage_worktree_hygiene.py",
-        "requires_remediation_quota": False,
+        "requires_remediation_quota": True,
     },
     "agents-ssot-boundary-governance": {
         "display_name": "Agents Repo: SSOT & Boundary Governance",
@@ -69,7 +69,7 @@ EXPECTED_AGENTS_SIDECARS: dict[str, dict[str, Any]] = {
         "disposition": "RETIRE_SIDECAR_TO_HOOK",
         "target_skill": "operational-gates",
         "deterministic_entrypoint": "tools/cost_token_budget_auditor.py",
-        "requires_remediation_quota": False,
+        "requires_remediation_quota": True,
     },
     "agents-testing-gaps-assurance": {
         "display_name": "Agents Repo: Testing Gaps Assurance",
@@ -93,6 +93,8 @@ REQUIRED_SHARED_CONTRACT_MARKERS: tuple[str, ...] = (
     "INV-REPO-SEPARATION-AGENTS-ONLY",
     "urn:agents:scheduled-task-common-control-matrix:1.0.0",
     "UNCONDITIONAL_WAVE_PLAN_MANDATE",
+    "INV-REMEDIATION-QUOTA-FLOOR",
+    "INV-DEFECT-ACCOUNTING-TABLE-GATE",
     "INV-WT-EPHEMERAL-SCHEDULED",
     "INV-RUNTIME-PROOF-5POINT",
     "INV-AUTOMATION-PERSISTENT-LEARNING-LOOP",
@@ -150,6 +152,11 @@ def validate_sidecar_separation(
     for workflow_id, spec in EXPECTED_AGENTS_SIDECARS.items():
         if not workflow_id.startswith("agents-"):
             violations.append(f"{workflow_id}: Missing mandatory 'agents-' workflow prefix")
+
+        if not spec.get("requires_remediation_quota", False):
+            violations.append(
+                f"{workflow_id}: requires_remediation_quota must be True across all 7 assurance workflows (C04)"
+            )
 
         det_ep = str(spec.get("deterministic_entrypoint") or "")
         if not det_ep or det_ep == "tools/verify_commit.py":

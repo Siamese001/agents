@@ -101,7 +101,7 @@ class SimpleMLModel:
         self.bias = 0.0
         self.trained = False
 
-    def add_training_data(self, features: list[float], target: float):
+    def add_training_data(self, features: list[float], target: float) -> None:
         """Add training data."""
         self.feature_history.append(features)
         self.target_history.append(target)
@@ -173,7 +173,7 @@ class PerformanceAnalyzer:
         self.metrics_history: dict[LayerType, deque] = defaultdict(lambda: deque(maxlen=history_size))
         self.trends: dict[LayerType, dict[str, float]] = defaultdict(dict)
 
-    def add_metrics(self, metrics: PerformanceMetrics):
+    def add_metrics(self, metrics: PerformanceMetrics) -> None:
         """Add performance metrics."""
         self.metrics_history[metrics.layer_type].append(metrics)
         self._update_trends(metrics.layer_type)
@@ -266,7 +266,7 @@ class CostAnalyzer:
         }
         self.cost_history: dict[LayerType, deque] = defaultdict(lambda: deque(maxlen=1000))
 
-    def add_cost_data(self, layer_type: LayerType, cost: float):
+    def add_cost_data(self, layer_type: LayerType, cost: float) -> None:
         """Add cost data."""
         self.cost_history[layer_type].append({"cost": cost, "timestamp": datetime.now()})
 
@@ -351,7 +351,7 @@ class AdaptiveOptimizer:
         self._training_task = None
         self._optimization_task = None
 
-    async def start_optimization(self):
+    async def start_optimization(self) -> None:
         """Start adaptive optimization."""
         if self._training_task and not self._training_task.done():
             return
@@ -362,7 +362,7 @@ class AdaptiveOptimizer:
         )
         logger.info("Started adaptive optimization")
 
-    async def stop_optimization(self):
+    async def stop_optimization(self) -> None:
         """Stop adaptive optimization."""
         tasks = [t for t in [self._training_task, self._optimization_task] if t]
         for t in tasks:
@@ -395,7 +395,7 @@ class AdaptiveOptimizer:
             except (RuntimeError, ValueError, TypeError, AttributeError, OSError) as e:
                 logger.error(f"Error in periodic optimization: {e}")
 
-    async def add_performance_data(self, layer_type: LayerType, response: LayerResponse):
+    async def add_performance_data(self, layer_type: LayerType, response: LayerResponse) -> None:
         """Add performance data for optimization."""
         metrics = PerformanceMetrics(
             layer_type=layer_type,
@@ -669,7 +669,7 @@ class AdaptiveOptimizer:
             },
         }
 
-    def set_optimization_strategy(self, strategy: OptimizationStrategy):
+    def set_optimization_strategy(self, strategy: OptimizationStrategy) -> None:
         """Set optimization strategy."""
         self.strategy = strategy
         logger.info(f"Changed optimization strategy to {strategy.value}")

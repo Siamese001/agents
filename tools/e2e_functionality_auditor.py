@@ -18,6 +18,7 @@ import ast
 import contextlib
 import io
 import json
+import subprocess
 import sys
 import tempfile
 from datetime import datetime, timezone
@@ -27,10 +28,16 @@ from typing import Any
 DEFAULT_REPO_ROOT = Path(__file__).resolve().parents[1]
 AUDITED_PACKAGES = (
     "agents",
+    "apps_eval",
+    "apps_model_telemetry",
     "apps_research",
-    "resume_graph_engine/src",
-    "outreach_engine/src",
+    "infrastructure",
+    "ops_scripts",
+    "outreach_engine",
     "resume_engine",
+    "resume_graph_engine",
+    "scripts",
+    "tools",
 )
 
 
@@ -68,7 +75,7 @@ def scan_unguarded_silent_swallows(repo_root: Path) -> list[dict[str, Any]]:
             continue
         for py_file in sorted(base.rglob("*.py")):
             rel = py_file.relative_to(repo_root).as_posix()
-            if "/tests/" in f"/{rel}" or py_file.name.startswith("test_"):
+            if "/tests/" in f"/{rel}" or "/artifacts/" in f"/{rel}" or py_file.name.startswith("test_"):
                 continue
             src = py_file.read_text(encoding="utf-8")
             lines = src.splitlines()
@@ -141,6 +148,30 @@ def _probe_research_to_outreach_handoff(repo_root: Path) -> dict[str, Any]:
     finally:
         resolver_cls.clear_cache()
 
+    outreach_delegation_mod = _require_module(
+        repo_root,
+        "outreach_engine/src/apps_lic/integrations/managed_research_delegation.py",
+    )
+    outreach_bridge_mod = _require_module(
+        repo_root,
+        "outreach_engine/src/apps_lic/integrations/apps_research_bridge.py",
+    )
+    unauth_outreach_req = outreach_delegation_mod.RequestForOutreachBriefing(
+        request_id="req_outreach_unauth_probe",
+        run_id="run_outreach_unauth_probe",
+        trace_id="trace_outreach_unauth_probe",
+        company_name="Citi",
+        job_title="Head of AI Strategy",
+        research_authorized=False,
+    )
+    with tempfile.TemporaryDirectory(prefix="e2e_aud_outreach_bridge_") as td:
+        out_bridge = outreach_bridge_mod.AppsResearchBridge(artifact_runs_root=Path(td))
+        unauth_outreach_res = outreach_delegation_mod.dispatch_outreach_research_briefing(
+            unauth_outreach_req,
+            bridge=out_bridge,
+        )
+    unauth_outreach_blocked = isinstance(unauth_outreach_res, outreach_delegation_mod.ResearchDispatchFailure)
+
     gaps: list[str] = []
     if not grounded.is_verified or not grounded.briefing_text.strip():
         gaps.append("GovernedBriefingResolver failed to resolve verified company brief")
@@ -148,12 +179,15 @@ def _probe_research_to_outreach_handoff(repo_root: Path) -> dict[str, Any]:
         gaps.append(f"Expected second resolve to hit BriefingCache, got {cached.resolution_source!r}")
     if fallback.resolution_source != "HERMETIC_FALLBACK" or cache_len_after_fallback != 0:
         gaps.append("Unknown company with auto_research=False did not trigger non-poisoning HERMETIC_FALLBACK")
+    if not unauth_outreach_blocked:
+        gaps.append("dispatch_outreach_research_briefing did not fail closed when research_authorized=False")
     return {
         "passed": len(gaps) == 0,
         "gaps": gaps,
         "grounded_chars": len(grounded.briefing_text),
         "cache_status": cached.resolution_source,
         "fallback_status": fallback.resolution_source,
+        "unauthorized_outreach_dispatch_blocked": unauth_outreach_blocked,
     }
 
 
@@ -172,8 +206,14 @@ def _probe_research_to_resume_handoff(repo_root: Path) -> dict[str, Any]:
     )
 
     bad_brief = "# Company Brief\n- [INSERT COMPANY STRATEGY PLACEHOLDER]\n- https://example.com/leak\n"
-    bad_verdict = contract_mod.validate_targeting_brief_text(bad_brief, profile="apps_lic")
-    bad_rejected = (not bool(bad_verdict.valid)) and ("bracket_placeholder_present" in bad_verdict.violations)
+    bad_verdict_lic = contract_mod.validate_targeting_brief_text(bad_brief, profile="apps_lic")
+    bad_verdict_rg = contract_mod.validate_targeting_brief_text(bad_brief, profile="apps_rg")
+    bad_rejected = (
+        not bool(bad_verdict_lic.valid)
+        and "bracket_placeholder_present" in bad_verdict_lic.violations
+        and not bool(bad_verdict_rg.valid)
+        and "bracket_placeholder_present" in bad_verdict_rg.violations
+    )
 
     valid_lines = [
         "# Enterprise Platform Briefing",
@@ -194,8 +234,9 @@ def _probe_research_to_resume_handoff(repo_root: Path) -> dict[str, Any]:
         ],
     ]
     valid_brief = "\n".join(valid_lines)
-    good_verdict = contract_mod.validate_targeting_brief_text(valid_brief, profile="apps_lic")
-    good_passed = bool(good_verdict.valid)
+    good_verdict_lic = contract_mod.validate_targeting_brief_text(valid_brief, profile="apps_lic")
+    good_verdict_rg = contract_mod.validate_targeting_brief_text(valid_brief, profile="apps_rg")
+    good_passed = bool(good_verdict_lic.valid) and bool(good_verdict_rg.valid)
 
     # Verify fail-closed dispatch when research_authorized=False
     unauth_req = delegation_mod.RequestForResumeBriefing(
@@ -215,7 +256,7 @@ def _probe_research_to_resume_handoff(repo_root: Path) -> dict[str, Any]:
     if not bad_rejected:
         gaps.append("validate_targeting_brief_text failed to reject placeholder/URL-contaminated brief")
     if not good_passed:
-        gaps.append(f"validate_targeting_brief_text rejected valid structured brief: {good_verdict}")
+        gaps.append(f"validate_targeting_brief_text rejected valid structured brief: lic={good_verdict_lic}, rg={good_verdict_rg}")
     if not unauth_blocked:
         gaps.append("dispatch_resume_research_briefing did not fail closed when research_authorized=False")
 
@@ -236,7 +277,7 @@ def _probe_authoritative_e2e_smoke(repo_root: Path, *, read_only: bool) -> dict[
     with tempfile.TemporaryDirectory(prefix="e2e_aud_rcpt_") as td:
         rcpt_path = Path(td) / "smoke_receipt.json"
         rc = smoke_mod.run_smoke(
-            skip_resume=True,
+            skip_resume=False,
             read_only=read_only,
             receipt_out=rcpt_path,
             repo_root=repo_root,
@@ -246,21 +287,45 @@ def _probe_authoritative_e2e_smoke(repo_root: Path, *, read_only: bool) -> dict[
         rcpt_data = json.loads(rcpt_path.read_text(encoding="utf-8")) if rcpt_path.is_file() else {}
 
     verified = rcpt_data.get("verified_artifacts", {})
-    has_outreach = "outreach_campaign" in verified
-    has_resume = "resume_pipeline::resume.md" in verified and "resume_pipeline::resume.docx" in verified
+    stages = rcpt_data.get("stages") or {}
+    has_outreach = "outreach_campaign" in verified and (stages.get("executive_outreach") or {}).get("status") == "PASSED"
+    has_resume = (
+        "final_resume" in verified
+        and "resume_pipeline::resume.md" in verified
+        and "resume_pipeline::resume.docx" in verified
+        and (stages.get("resume_tailoring") or {}).get("status") == "PASSED"
+        and rcpt_data.get("skip_resume") is False
+    )
+    cli_probes_passed = True
+    for subcmd in ("resume", "outreach", "e2e"):
+        proc = subprocess.run(
+            [sys.executable, "-m", "agents", subcmd, "--help"],
+            cwd=str(repo_root),
+            capture_output=True,
+            text=True,
+            shell=False,
+            timeout=30,
+        )
+        if proc.returncode != 0:
+            cli_probes_passed = False
+
     gaps: list[str] = []
     if rc != 0:
         gaps.append(f"run_e2e_authoritative_smoke returned non-zero exit code {rc}")
     if not has_outreach:
-        gaps.append("outreach_campaign artifact missing from authoritative smoke receipt")
+        gaps.append("outreach_campaign artifact or Stage 3 PASSED status missing from authoritative smoke receipt")
     if not has_resume:
-        gaps.append("deterministic resume.md / resume.docx artifacts missing from smoke receipt")
+        gaps.append("Stage 2 resume_tailoring PASSED or final_resume / resume.md / resume.docx missing from smoke receipt")
+    if not cli_probes_passed:
+        gaps.append("Unified CLI subcommand help probe failed across resume/outreach/e2e")
 
     return {
         "passed": len(gaps) == 0,
         "gaps": gaps,
+        "skip_resume": rcpt_data.get("skip_resume"),
         "verified_artifact_count": len(verified),
         "det_resume_status": (rcpt_data.get("deterministic_resume_pipeline") or {}).get("status"),
+        "cli_subcommands_verified": cli_probes_passed,
     }
 
 

@@ -96,7 +96,7 @@ def _bootstrap_apps_rg_env_for_live_replay() -> None:
         from apps_rg.runtime.env_bootstrap import bootstrap_apps_rg_env
 
         bootstrap_apps_rg_env()
-    except Exception:  # noqa: BLE001 - evidence verification fails closed below.
+    except (ImportError, OSError, ValueError, RuntimeError):
         return
 
 
