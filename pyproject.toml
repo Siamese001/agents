@@ -78,7 +78,6 @@ dependencies = [
     "xgboost>=2.0.0",
     "neo4j>=5.12.0",
     "pypdf>=3.17.0",
-    "pypdf2>=3.0.0",
     "python-docx>=1.1.0",
 ]
 
@@ -247,18 +246,14 @@ ignore = [
     "B024",  # abstract-base-class-without-abstract-method: mixin patterns
     "S603",  # subprocess-without-shell-equals-true: handled in per-file-ignores
     "S607",  # start-process-with-partial-path: handled in per-file-ignores
-    "S605",  # start-process-with-a-shell: handled in per-file-ignores
-    "S602",  # subprocess-popen-with-shell: handled in per-file-ignores
     "F811",  # redefined-while-unused: backward-compat aliases and decorator wrappers
     "F402",  # import-shadowed-by-loop-var: intentional in dynamic import patterns
     "F601",  # multi-value-repeated-key-literal: config dict overrides
     "F722",  # forward-annotation-syntax-error: complex type annotations
     "E721",  # type-comparison: intentional isinstance vs type() checks
-    "S102",  # exec-builtin: used in dynamic code generation
     "S103",  # bad-file-permissions: intentional in deployment scripts
     "S104",  # hardcoded-bind-all-interfaces: intentional in server configs
     "S113",  # request-without-timeout: handled by retry decorators
-    "S314",  # suspicious-xml-element-tree: used for config parsing
     "S608",  # hardcoded-sql-expression: used in query builders
     "S701",  # jinja2-autoescape-false: templates are internal-only
     "S106",  # hardcoded-password-func-arg: false positives on config keys

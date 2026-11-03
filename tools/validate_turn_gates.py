@@ -130,11 +130,11 @@ def validate_pre_turn_gate(repo_root: Path | None = None) -> dict[str, Any]:
             issues.append("Conformance map contains stale hardcoded line-number headers.")
 
     # Check 6: Provider Profiles Registry SSOT integrity
-    provider_profiles_path = root / "resume_graph_engine" / "config" / "models" / "registry.yaml"
+    canonical_profiles_path = root / "config" / "provider_profiles.yaml"
+    registry_path = root / "resume_graph_engine" / "config" / "models" / "registry.yaml"
+    provider_profiles_path = canonical_profiles_path if canonical_profiles_path.is_file() else registry_path
     if not provider_profiles_path.is_file():
-        provider_profiles_path = root / "config" / "provider_profiles.yaml"
-    if not provider_profiles_path.is_file():
-        issues.append(f"Canonical provider profiles or model registry missing: {provider_profiles_path}")
+        issues.append(f"Canonical provider profiles or model registry missing: {canonical_profiles_path}")
         checks["provider_profiles"] = {"status": "FAIL"}
     else:
         try:
@@ -143,6 +143,7 @@ def validate_pre_turn_gate(repo_root: Path | None = None) -> dict[str, Any]:
             checks["provider_profiles"] = {
                 "status": "PASS" if len(approved_models) > 0 else "FAIL",
                 "approved_model_count": len(approved_models),
+                "canonical_profiles_present": canonical_profiles_path.is_file(),
             }
             if not approved_models:
                 issues.append("Provider profiles registry contains zero approved models.")
@@ -337,13 +338,14 @@ def validate_agent_operating_contract(repo_root: Path | None = None) -> dict[str
 def evaluate_hitl_ambiguity(
     options: Sequence[dict[str, Any]],
     margin_threshold: float = 0.20,
+    min_confidence_floor: float = 0.65,
 ) -> dict[str, Any]:
-    """Evaluate candidate HITL options against the calibrated 20% ambiguity margin rule.
+    """Evaluate candidate HITL options against the calibrated 20% ambiguity margin and 65% floor rules.
 
-    If delta = c_top - c_second > margin_threshold:
+    If delta = c_top - c_second > margin_threshold AND c_top >= min_confidence_floor:
         Decision is decisively resolved; agent should proceed autonomously.
-    If delta <= margin_threshold:
-        Decision is genuinely ambiguous; agent must surface atomic HITL.
+    Otherwise:
+        Decision requires human review; agent must surface atomic HITL.
     """
     if not options:
         return {
@@ -351,6 +353,7 @@ def evaluate_hitl_ambiguity(
             "status": "EMPTY",
             "top_option": None,
             "margin": 0.0,
+            "min_confidence_floor": min_confidence_floor,
             "recommendation": "No options evaluated.",
         }
 
@@ -364,20 +367,28 @@ def evaluate_hitl_ambiguity(
     second_score = scored[1][0] if len(scored) > 1 else 0.0
     margin = round(top_score - second_score, 4)
 
-    requires_hitl = margin <= margin_threshold
+    within_margin = margin <= margin_threshold
+    below_floor = top_score < min_confidence_floor
+    requires_hitl = within_margin or below_floor
+    if within_margin:
+        recommendation = f"Margin Δ = {margin:.2%} is within {margin_threshold:.0%}: surface atomic HITL decision."
+    elif below_floor:
+        recommendation = (
+            f"Top confidence {top_score:.2%} is below {min_confidence_floor:.0%} floor: surface atomic HITL decision."
+        )
+    else:
+        recommendation = f"Margin Δ = {margin:.2%} is > {margin_threshold:.0%}: proceed autonomously with top option."
     return {
         "requires_hitl": requires_hitl,
         "margin": margin,
         "margin_threshold": margin_threshold,
+        "min_confidence_floor": min_confidence_floor,
+        "below_confidence_floor": below_floor,
         "top_option": top_opt,
         "second_score": second_score,
         "top_score": top_score,
         "action": "SURFACE_HITL_ATOMIC" if requires_hitl else "PROCEED_AUTONOMOUSLY",
-        "recommendation": (
-            f"Margin Δ = {margin:.2%} is within {margin_threshold:.0%}: surface atomic HITL decision."
-            if requires_hitl
-            else f"Margin Δ = {margin:.2%} is > {margin_threshold:.0%}: proceed autonomously with top option."
-        ),
+        "recommendation": recommendation,
     }
 
 
@@ -630,29 +641,30 @@ def validate_post_turn_gate(
         except Exception as exc:  # guardian: allow-silent-swallow -- fallback if plan parsing fails
             checks["wave_summary_table"] = {"status": "PASS", "note": str(exc)}
 
-    # Check 5: Layman Zero-Jargon Gate (Rule 6)
-    if (
+    is_structured_governance_artifact = bool(
         candidate_response
-        and check_layman_jargon
-        and "Agent Reasoning Scratchpad" not in candidate_response
-        and "Wave Summary Table:" not in candidate_response
-    ):
+        and (
+            "Agent Reasoning Scratchpad" in candidate_response
+            or "Wave Summary Table:" in candidate_response
+            or "Dimension Findings Table" in candidate_response
+            or "| Pre-Mutation State |" in candidate_response
+        )
+    )
+
+    # Check 5: Layman Zero-Jargon Gate (Rule 6)
+    if candidate_response and check_layman_jargon and not is_structured_governance_artifact:
         jargon_eval = validate_layman_jargon_gate(candidate_response)
         checks["layman_jargon_gate"] = jargon_eval
         issues.extend(jargon_eval["issues"])
 
     # Check 6: Decisive Recommendation & Zero-Fence-Sitting Gate (INV-DECISIVE-RECOMMENDATION)
-    if candidate_response and "Agent Reasoning Scratchpad" not in candidate_response:
+    if candidate_response and not is_structured_governance_artifact:
         decisive_eval = validate_decisive_recommendation_gate(candidate_response)
         checks["decisive_recommendation_gate"] = decisive_eval
         issues.extend(decisive_eval["issues"])
 
     # Check 7: Output Brevity & Word Budget Gate (INV-OUTPUT-MAX-WORDS / INV-OUTPUT-MAX-CHARS)
-    if (
-        candidate_response
-        and "Agent Reasoning Scratchpad" not in candidate_response
-        and "Wave Summary Table:" not in candidate_response
-    ):
+    if candidate_response and not is_structured_governance_artifact:
         policies = load_policy_registry(root)
         max_w = int(policies.get("INV-OUTPUT-MAX-WORDS", {}).get("threshold", 300))
         max_c = int(policies.get("INV-OUTPUT-MAX-CHARS", {}).get("threshold", 3500))

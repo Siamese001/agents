@@ -22,10 +22,37 @@ import os
 from pathlib import Path
 import re
 import sqlite3
+import subprocess
 from typing import Any, Sequence
 
 DEFAULT_AMBIGUITY_THRESHOLD: float = 0.20
+DEFAULT_MIN_CONFIDENCE_FLOOR: float = 0.65
 DEFAULT_STORE_PATH = Path("artifacts/governance/hitl_decisions.sqlite")
+
+
+def _resolve_default_store_path() -> Path:
+    """Resolve persistent HITL store in primary git repository root so history survives worktree cleanup."""
+    env_override = os.environ.get("HITL_STORE_PATH")
+    if env_override:
+        return Path(env_override).resolve()
+    repo_dir = Path(__file__).resolve().parents[1]
+    try:
+        proc = subprocess.run(
+            ["git", "-C", str(repo_dir), "rev-parse", "--git-common-dir"],
+            capture_output=True,
+            text=True,
+            check=False,
+            shell=False,
+            timeout=5,
+        )
+        if proc.returncode == 0 and proc.stdout.strip():
+            common_raw = Path(proc.stdout.strip())
+            common_dir = (common_raw if common_raw.is_absolute() else (repo_dir / common_raw)).resolve()
+            if common_dir.name == ".git":
+                return (common_dir.parent / DEFAULT_STORE_PATH).resolve()
+    except Exception:  # guardian: allow-silent-swallow -- fallback to local repo path if git is unavailable
+        pass
+    return (repo_dir / DEFAULT_STORE_PATH).resolve()
 AUTHENTIC_USER_ARTIFACT_APPROVAL_MARKERS = (
     "automatically approved the artifact through their review policy",
     "user has automatically approved the artifact",
@@ -154,8 +181,8 @@ class HITLDecisionStore:
     """Thread-safe persistent SQLite store for HITL decisions and system learning."""
 
     def __init__(self, db_path: Path | str | None = None) -> None:
-        raw_path = db_path or os.environ.get("HITL_STORE_PATH") or DEFAULT_STORE_PATH
-        self.db_path = Path(raw_path).resolve()
+        raw_path = Path(db_path).resolve() if db_path is not None else _resolve_default_store_path()
+        self.db_path = raw_path
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._conn: sqlite3.Connection | None = None
         self._init_db()
@@ -172,6 +199,7 @@ class HITLDecisionStore:
 
     def _init_db(self) -> None:
         conn = self._get_connection()
+        conn.execute("PRAGMA journal_mode=WAL;")
         with conn:
             conn.execute(
                 """
@@ -300,6 +328,15 @@ class HITLDecisionStore:
                 return True
         return False
 
+    def record_execution_outcome(
+        self,
+        decision_id: str,
+        outcome: str,
+        **_kwargs: Any,
+    ) -> bool:
+        """Record verified execution outcome (alias supporting sidecar automation callers)."""
+        return self.record_outcome(decision_id=decision_id, outcome=outcome)
+
     def _update_learning_aggregates(
         self,
         category: str,
@@ -415,6 +452,7 @@ class HITLDecisionStore:
             "outcomes": outcomes,
             "categories": categories_data,
             "ambiguity_threshold": DEFAULT_AMBIGUITY_THRESHOLD,
+            "min_confidence_floor": DEFAULT_MIN_CONFIDENCE_FLOOR,
             "store_path": str(self.db_path),
         }
 
@@ -427,10 +465,11 @@ class HITLDecisionStore:
 def evaluate_hitl_surfacing_gate(
     options: Sequence[Any],
     margin_threshold: float = DEFAULT_AMBIGUITY_THRESHOLD,
+    min_confidence_floor: float = DEFAULT_MIN_CONFIDENCE_FLOOR,
     store: HITLDecisionStore | None = None,
     category: str | None = None,
 ) -> dict[str, Any]:
-    """Evaluate candidate HITL options against the calibrated 20% ambiguity margin rule.
+    """Evaluate candidate HITL options against the calibrated 20% ambiguity margin and 65% floor rules.
 
     Returns:
         Structured evaluation dict indicating whether to surface HITL or proceed autonomously.
@@ -440,6 +479,8 @@ def evaluate_hitl_surfacing_gate(
             "should_surface": False,
             "margin": 0.0,
             "margin_threshold": margin_threshold,
+            "min_confidence_floor": min_confidence_floor,
+            "below_confidence_floor": False,
             "top_option": None,
             "top_score": 0.0,
             "second_score": 0.0,
@@ -457,15 +498,22 @@ def evaluate_hitl_surfacing_gate(
     second_score = scored[1][0] if len(scored) > 1 else 0.0
     margin = round(top_score - second_score, 4)
 
-    # Calibrated rule: diff > threshold (e.g. diff > 20%) proceeds autonomously;
-    # diff <= threshold is ambiguous and requires human operator sign-off.
-    should_surface = margin <= margin_threshold
+    # Calibrated rule: diff > threshold AND top_score >= min_confidence_floor proceeds autonomously;
+    # diff <= threshold OR top_score < min_confidence_floor requires human operator sign-off.
+    within_margin = margin <= margin_threshold
+    below_confidence_floor = top_score < min_confidence_floor
+    should_surface = within_margin or below_confidence_floor
     action = "SURFACE_HITL_ATOMIC" if should_surface else "PROCEED_AUTONOMOUSLY"
 
-    if should_surface:
+    if within_margin:
         reason = (
             f"Margin Delta = {margin:.2%} is within the calibrated {margin_threshold:.0%} threshold "
             f"(\u0394 \u2264 {margin_threshold:.0%}): genuine ambiguity requires operator input."
+        )
+    elif below_confidence_floor:
+        reason = (
+            f"Top confidence {top_score:.2%} is below the {min_confidence_floor:.0%} autonomous confidence floor "
+            f"(INV-HITL-MIN-CONFIDENCE-FLOOR): operator input required."
         )
     else:
         reason = (
@@ -477,6 +525,8 @@ def evaluate_hitl_surfacing_gate(
         "should_surface": should_surface,
         "margin": margin,
         "margin_threshold": margin_threshold,
+        "min_confidence_floor": min_confidence_floor,
+        "below_confidence_floor": below_confidence_floor,
         "top_option": top_opt,
         "top_score": top_score,
         "second_score": second_score,

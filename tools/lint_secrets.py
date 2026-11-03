@@ -17,17 +17,27 @@ from typing import Sequence
 SECRET_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("Private Key", re.compile(r"-----BEGIN (?:[A-Z ]+)?PRIVATE KEY-----")),
     ("AWS Access Key ID", re.compile(r"\bAKIA[0-9A-Z]{16}\b")),
+    ("Google API Key", re.compile(r"\bAIza[0-9A-Za-z\-_]{35}\b")),
     ("OpenAI API Key", re.compile(r"\bsk-[a-zA-Z0-9]{20,}\b")),
     ("Anthropic API Key", re.compile(r"\bsk-ant-[a-zA-Z0-9_-]{20,}\b")),
     ("GitHub Personal Access Token", re.compile(r"\bghp_[a-zA-Z0-9]{36}\b")),
     ("GitHub Fine-Grained Token", re.compile(r"\bgithub_pat_[a-zA-Z0-9_]{50,}\b")),
+    ("Notion API Token", re.compile(r"\b(?:ntn_[0-9A-Za-z]{40,}|secret_[0-9A-Za-z]{43})\b")),
+    ("Slack Token", re.compile(r"\bxox[baprs]-[0-9A-Za-z\-]{24,}\b")),
+    (
+        "Hardcoded Bearer Token",
+        re.compile(r"""(?i)authorization['"]?\s*[:=]\s*['"]bearer\s+([a-zA-Z0-9_\-\.]{24,})['"]"""),
+    ),
     ("Generic High-Entropy Secret", re.compile(r"""(?i)(?:api_key|apikey|secret_key|auth_token|access_token)\s*=\s*['"]([a-zA-Z0-9_\-]{24,})['"]""")),
 )
 
-EXCLUDED_FILENAMES: tuple[str, ...] = (
+STAGED_FORBIDDEN_ENV_FILES: tuple[str, ...] = (
     ".env",
     ".env.local",
     "env_agents",
+)
+
+EXCLUDED_FILENAMES: tuple[str, ...] = (
     ".env.example",
     "uv.lock",
     "poetry.lock",
@@ -37,6 +47,7 @@ EXCLUDED_FILENAMES: tuple[str, ...] = (
 EXCLUDED_DIR_PARTS: tuple[str, ...] = (
     ".git",
     ".venv",
+    ".worktrees",
     "artifacts",
     "docs/archive",
     "fixtures",
@@ -47,26 +58,53 @@ DUMMY_SECRET_MARKERS: tuple[str, ...] = (
     "dummy",
     "placeholder",
     "mock",
-    "test",
     "fake",
     "xxx",
     "<your_",
     "your-api-key",
+    "redacted",
+)
+
+EXPLICIT_TEST_TOKEN_MARKERS: tuple[str, ...] = (
+    "sk-test-",
+    "sk_test_",
+    "sk-ant-test",
+    "-test-",
+    "_test_",
+    "test_key",
+    "test-key",
+    "test_token",
+    "test-token",
+    "testsecret",
+    "testapikey",
 )
 
 
 FAST_SECRET_TRIGGERS: tuple[str, ...] = (
     "private key",
     "akia",
+    "aiza",
     "sk-",
     "ghp_",
     "github_pat_",
+    "ntn_",
+    "secret_",
+    "xox",
+    "bearer ",
     "api_key",
     "apikey",
     "secret_key",
     "auth_token",
     "access_token",
 )
+
+
+def _is_dummy_token(matched_str: str) -> bool:
+    """Return True only for unambiguous placeholder or delimited test fixture tokens."""
+    matched_lower = matched_str.lower()
+    if any(marker in matched_lower for marker in DUMMY_SECRET_MARKERS):
+        return True
+    return any(marker in matched_lower for marker in EXPLICIT_TEST_TOKEN_MARKERS)
 
 
 def is_shannon_entropy_high(s: str, threshold: float = 3.5) -> bool:
@@ -83,12 +121,29 @@ def is_shannon_entropy_high(s: str, threshold: float = 3.5) -> bool:
     return entropy >= threshold
 
 
-def check_file_for_secrets(file_path: Path, repo_root: Path) -> list[tuple[int, str, str]]:
+def check_file_for_secrets(
+    file_path: Path,
+    repo_root: Path,
+    *,
+    explicitly_targeted: bool = False,
+) -> list[tuple[int, str, str]]:
     """Scan a single file for exposed secrets.
 
     Returns:
         List of (line_number, secret_type, snippet)
     """
+    if explicitly_targeted and (
+        file_path.name in STAGED_FORBIDDEN_ENV_FILES
+        or (file_path.name.startswith(".env.") and file_path.name != ".env.example")
+    ):
+        return [
+            (
+                1,
+                "Forbidden Environment Credential File",
+                f"Sensitive credential file '{file_path.name}' must never be staged or committed.",
+            )
+        ]
+
     if not file_path.exists() or file_path.is_dir():
         return []
 
@@ -105,6 +160,12 @@ def check_file_for_secrets(file_path: Path, repo_root: Path) -> list[tuple[int, 
         return []
 
     if file_path.name in EXCLUDED_FILENAMES:
+        return []
+
+    if not explicitly_targeted and (
+        file_path.name in STAGED_FORBIDDEN_ENV_FILES
+        or file_path.name.startswith(".env.")
+    ):
         return []
 
     try:
@@ -132,13 +193,12 @@ def check_file_for_secrets(file_path: Path, repo_root: Path) -> list[tuple[int, 
             match = pattern.search(line)
             if match:
                 matched_str = match.group(0)
-                matched_lower = matched_str.lower()
-                if any(marker in matched_lower for marker in DUMMY_SECRET_MARKERS):
+                if _is_dummy_token(matched_str):
                     continue
 
-                if secret_name == "Generic High-Entropy Secret":
+                if secret_name in ("Generic High-Entropy Secret", "Hardcoded Bearer Token"):
                     token_val = match.group(1) if match.groups() else matched_str
-                    if not is_shannon_entropy_high(token_val):
+                    if _is_dummy_token(token_val) or not is_shannon_entropy_high(token_val):
                         continue
 
                 redacted = matched_str[:4] + "..." + matched_str[-4:] if len(matched_str) > 8 else "***"
@@ -157,13 +217,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     repo_root = Path(args.repo_root).resolve()
 
     violations: list[tuple[str, int, str, str]] = []
+    explicitly_targeted = bool(args.files)
 
     if args.files:
         files_to_scan = [Path(f) if Path(f).is_absolute() else repo_root / f for f in args.files]
     else:
         # Scan source files and config files with fast pruned os.walk
         import os
-        from concurrent.futures import ThreadPoolExecutor
 
         files_to_scan = []
         excluded_parts_set = set(EXCLUDED_DIR_PARTS)
@@ -171,13 +231,13 @@ def main(argv: Sequence[str] | None = None) -> int:
             dirs[:] = [d for d in dirs if d not in excluded_parts_set]
             for f in files_in_dir:
                 ext = Path(f).suffix.lower()
-                if ext in (".py", ".json", ".yaml", ".yml", ".sh"):
+                if ext in (".py", ".json", ".yaml", ".yml", ".sh", ".toml", ".md", ".jsonl"):
                     files_to_scan.append(Path(root) / f)
 
     def scan_one(f: Path) -> list[tuple[str, int, str, str]]:
-        if not f.is_file():
+        if not explicitly_targeted and not f.is_file():
             return []
-        v = check_file_for_secrets(f, repo_root)
+        v = check_file_for_secrets(f, repo_root, explicitly_targeted=explicitly_targeted)
         try:
             rel = str(f.relative_to(repo_root))
         except ValueError:

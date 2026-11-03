@@ -137,6 +137,14 @@ def _audit_pillar_1_provider_pinning_and_effort(repo_root: Path) -> dict[str, An
             if sym not in txt:
                 gaps.append(f"apps_research/config/model_pins.py missing '{sym}'")
 
+    local_llm_script = repo_root / "scripts" / "local_llm" / "serve_qwen_m5.py"
+    if not local_llm_script.is_file():
+        gaps.append("Missing scripts/local_llm/serve_qwen_m5.py")
+    else:
+        script_txt = local_llm_script.read_text(encoding="utf-8")
+        if "model_catalog.json" not in script_txt:
+            gaps.append("scripts/local_llm/serve_qwen_m5.py must resolve model IDs from config/model_catalog.json")
+
     return {
         "pillar": "1_provider_pinning_and_effort_right_sizing",
         "status": "PASS" if not gaps else "ACTION_REQUIRED",
@@ -159,6 +167,7 @@ def _audit_pillar_2_prompt_prefix_caching(repo_root: Path) -> dict[str, Any]:
         / "providers"
         / "anthropic_section_cache_payload.py"
     )
+    shared_pc_path = repo_root / "agents" / "observability" / "prompt_cache.py"
 
     if not apc_path.is_file():
         gaps.append("Missing anthropic_prompt_cache.py")
@@ -189,6 +198,14 @@ def _audit_pillar_2_prompt_prefix_caching(repo_root: Path) -> dict[str, Any]:
         ):
             if marker not in txt:
                 gaps.append(f"anthropic_section_cache_payload.py missing '{marker}'")
+
+    if not shared_pc_path.is_file():
+        gaps.append("Missing agents/observability/prompt_cache.py")
+    else:
+        pc_txt = shared_pc_path.read_text(encoding="utf-8")
+        for marker in ("normalize_static_template", "prefix_fingerprint", "routing_key", "chat_usage_metrics"):
+            if marker not in pc_txt:
+                gaps.append(f"agents/observability/prompt_cache.py missing '{marker}'")
 
     return {
         "pillar": "2_multi_provider_prompt_prefix_caching",
@@ -305,6 +322,15 @@ def _audit_pillar_4_multi_tier_deterministic_and_briefing_caches(repo_root: Path
         for marker in ("MaterialTargetingBundle", "build_targeting_binding_digest"):
             if marker not in txt:
                 gaps.append(f"targeting_context_authority.py missing '{marker}'")
+
+    err_path = repo_root / "apps_model_telemetry" / "exact_response_reuse.py"
+    if not err_path.is_file():
+        gaps.append("Missing apps_model_telemetry/exact_response_reuse.py")
+    else:
+        err_txt = err_path.read_text(encoding="utf-8")
+        for marker in ("ExactRequestIdentity", "build_exact_request_identity", "EXACT_RESPONSE_CACHE_FILENAME"):
+            if marker not in err_txt:
+                gaps.append(f"apps_model_telemetry/exact_response_reuse.py missing '{marker}'")
 
     return {
         "pillar": "4_multi_tier_deterministic_and_briefing_caches",
@@ -439,8 +465,27 @@ def _audit_pillar_7_spend_governor_and_system_learning(repo_root: Path) -> dict[
         gaps.append("Missing tools/hitl_governance.py")
     else:
         txt = hitl_path.read_text(encoding="utf-8")
-        if "HITLDecisionStore" not in txt:
-            gaps.append("tools/hitl_governance.py missing HITLDecisionStore")
+        for marker in ("HITLDecisionStore", "record_execution_outcome", "DEFAULT_MIN_CONFIDENCE_FLOOR"):
+            if marker not in txt:
+                gaps.append(f"tools/hitl_governance.py missing '{marker}'")
+
+    telemetry_surfaces = (
+        (repo_root / "apps_model_telemetry" / "pricing.py", ("get_model_pricing", "price_usage", "compute_run_cost_rollup")),
+        (
+            repo_root / "apps_model_telemetry" / "token_budget_governor.py",
+            ("TokenBudgetPolicy", "TokenBudgetReservation", "estimate_input_tokens"),
+        ),
+        (repo_root / "apps_model_telemetry" / "token_counter.py", ("estimate_tokens",)),
+        (repo_root / "agents" / "context" / "budgeting.py", ("TokenBudget", "fit_items_to_budget")),
+    )
+    for t_path, markers in telemetry_surfaces:
+        if not t_path.is_file():
+            gaps.append(f"Missing {t_path.relative_to(repo_root).as_posix()}")
+        else:
+            t_txt = t_path.read_text(encoding="utf-8")
+            for marker in markers:
+                if marker not in t_txt:
+                    gaps.append(f"{t_path.relative_to(repo_root).as_posix()} missing '{marker}'")
 
     return {
         "pillar": "7_spend_governor_and_system_learning",
@@ -451,53 +496,165 @@ def _audit_pillar_7_spend_governor_and_system_learning(repo_root: Path) -> dict[
     }
 
 
-def compute_caching_roi_benchmark() -> dict[str, Any]:
-    """Compute Pareto cost and token savings across multi-tier caching layers.
+def _extract_cache_multipliers(repo_root: Path) -> dict[str, float]:
+    """Read live Anthropic prompt cache multipliers from anthropic_prompt_cache.py."""
+    apc_path = (
+        repo_root
+        / "resume_graph_engine"
+        / "src"
+        / "apps_rg"
+        / "runtime"
+        / "providers"
+        / "anthropic_prompt_cache.py"
+    )
+    defaults = {
+        "read": 0.10,
+        "write_5m": 1.25,
+        "write_1h": 2.00,
+    }
+    if not apc_path.is_file():
+        return defaults
+    txt = apc_path.read_text(encoding="utf-8", errors="replace")
+    patterns = {
+        "read": r"CACHE_READ_INPUT_MULTIPLIER\s*=\s*([0-9.]+)",
+        "write_5m": r"CACHE_WRITE_5M_INPUT_MULTIPLIER\s*=\s*([0-9.]+)",
+        "write_1h": r"CACHE_WRITE_1H_INPUT_MULTIPLIER\s*=\s*([0-9.]+)",
+    }
+    for key, pat in patterns.items():
+        m = re.search(pat, txt)
+        if m:
+            defaults[key] = float(m.group(1))
+    return defaults
 
-    Models a representative 13-lane resume + 5-recipient outreach campaign targeting the same
-    company/role dossier:
-    - Uncached baseline: 13 section prompts (18k tokens each) + 5 live research calls (24k tokens each)
-      + 13 two-provider judge rounds (16k tokens each) = 562,000 tokens.
-    - Multi-tier cached execution:
-      * Anthropic 3-breakpoint prompt cache (`1h` Tier-1 at 0.10x read after 2.0x write, `5m` Tier-2 at 0.10x read)
-      * C0 semantic cache (`c02_semantic_cache_payload.json` reuse across retries)
-      * Cross-engine `BriefingCache` + `GovernedBriefingResolver` (`PERSISTED_ARTIFACT` / `CACHE_HIT` = 0 extra research calls for recipients 2..5)
-      * Lane-calibrated judge profiles (`optional_advisory_taxonomy_only` 1 attempt vs 3)
-    """
-    uncached_section_input_tokens = 13 * 18_000  # 234,000
-    uncached_research_tokens = 5 * 24_000  # 120,000
-    uncached_judge_tokens = 13 * 16_000  # 208,000
+
+def _load_registry_pricing(repo_root: Path) -> dict[str, dict[str, float]]:
+    """Load per-model USD pricing table from resume_graph_engine/config/models/registry.yaml."""
+    reg_path = repo_root / "resume_graph_engine" / "config" / "models" / "registry.yaml"
+    data = _load_yaml(reg_path)
+    models = data.get("models") if isinstance(data, dict) else None
+    out: dict[str, dict[str, float]] = {}
+    if isinstance(models, dict):
+        for model_id, spec in models.items():
+            if isinstance(spec, dict) and isinstance(spec.get("pricing"), dict):
+                p = spec["pricing"]
+                out[str(model_id)] = {
+                    "input_cost_per_mtok": float(p.get("input_cost_per_mtok") or 0.0),
+                    "output_cost_per_mtok": float(p.get("output_cost_per_mtok") or 0.0),
+                    "cached_input_cost_per_mtok": float(p.get("cached_input_cost_per_mtok") or 0.0),
+                    "cache_write_multiplier": float(p.get("cache_write_multiplier") or 1.0),
+                }
+    return out
+
+
+def compute_caching_roi_benchmark(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
+    """Compute Pareto cost and token savings dynamically from live model registry, profiles, and cache policies."""
+    root = Path(repo_root).resolve()
+    profiles_data = _load_yaml(root / "config" / "provider_profiles.yaml")
+    profiles = (profiles_data.get("profiles") or {}) if isinstance(profiles_data, dict) else {}
+    openai_sections = ((profiles.get("external_openai_generator") or {}).get("model_by_section")) or {}
+    claude_sections = ((profiles.get("external_claude_generator") or {}).get("model_by_section")) or {}
+    openai_lane_count = len(openai_sections) if openai_sections else 5
+    claude_lane_count = len(claude_sections) if claude_sections else 8
+    total_lanes = openai_lane_count + claude_lane_count
+
+    limits = (profiles_data.get("runtime_limits") or {}) if isinstance(profiles_data, dict) else {}
+    gov_cfg = limits.get("model_token_governor") or {}
+    max_input_per_attempt = int(gov_cfg.get("max_input_tokens_per_attempt") or 48_000)
+    bare_cfg = limits.get("bare_pipeline") or {}
+    research_max_out = int(bare_cfg.get("research_max_tokens") or 2_400)
+
+    judge_profiles = ((limits.get("judge") or {}).get("runtime_profiles")) or {}
+    if isinstance(judge_profiles, dict) and judge_profiles:
+        attempt_vals = [int((v or {}).get("max_attempts") or 2) for v in judge_profiles.values() if isinstance(v, dict)]
+        mean_judge_attempts = sum(attempt_vals) / float(max(len(attempt_vals), 1))
+    else:
+        mean_judge_attempts = 2.0
+
+    mults = _extract_cache_multipliers(root)
+    pricing_map = _load_registry_pricing(root)
+
+    # Derive token volumes from governed per-attempt ceiling and configured lanes
+    per_lane_input_tokens = max(6_000, int(max_input_per_attempt * 0.375))
+    stable_prefix_tokens = int(per_lane_input_tokens * (7.0 / 9.0))
+    volatile_slot_tokens = per_lane_input_tokens - stable_prefix_tokens
+
+    uncached_section_input_tokens = total_lanes * per_lane_input_tokens
+    campaign_recipients = 5
+    per_research_tokens = research_max_out * 10
+    uncached_research_tokens = campaign_recipients * per_research_tokens
+    per_lane_judge_tokens = int(max_input_per_attempt / 3.0)
+    uncached_judge_tokens = total_lanes * per_lane_judge_tokens
     total_uncached_tokens = uncached_section_input_tokens + unached_research_and_judge(
         uncached_research_tokens, uncached_judge_tokens
     )
 
-    # Cached execution:
-    # 1. Section prompts: 1st call writes 14k stable prefix (2.0x = 28k) + 4k volatile;
-    #    remaining 12 lanes read 14k prefix at 0.10x (1.4k each) + 4k volatile = 12 * 5.4k = 64.8k -> 96.8k equivalent
-    cached_section_equivalent_tokens = 32_000 + (12 * 5_400)  # 96,800
-    # 2. Cross-engine briefing cache: 1 research run (24k) + 4 zero-provider-call cache hits (0 tokens)
-    cached_research_tokens = 24_000
-    # 3. Judge prefix + frozen artifact bypass: 55% of uncached judge tokens
-    cached_judge_tokens = int(uncached_judge_tokens * 0.45)  # 93,600
+    # Dynamic cached token & USD cost modeling from live provider pricing & cache multipliers
+    claude_model = next(iter(claude_sections.values()), "")
+    openai_model = next(iter(openai_sections.values()), "")
+    judge_models_cfg = (profiles_data.get("judge_models") or {}).get("standard") or {}
+    gemini_judge_model = str(judge_models_cfg.get("gemini_pro") or "")
+    openai_judge_model = str(judge_models_cfg.get("openai_chatgpt") or openai_model)
+
+    claude_price = pricing_map.get(claude_model, {"input_cost_per_mtok": 3.00, "cached_input_cost_per_mtok": 0.30})
+    openai_price = pricing_map.get(openai_model, {"input_cost_per_mtok": 2.50, "cached_input_cost_per_mtok": 1.25})
+    gemini_price = pricing_map.get(gemini_judge_model, {"input_cost_per_mtok": 0.15, "cached_input_cost_per_mtok": 0.0375})
+    openai_judge_price = pricing_map.get(openai_judge_model, openai_price)
+
+    openai_cache_ratio = (
+        openai_price["cached_input_cost_per_mtok"] / max(openai_price["input_cost_per_mtok"], 1e-6)
+    )
+    claude_cached_equiv = int(
+        (stable_prefix_tokens * mults["write_1h"] + volatile_slot_tokens)
+        + max(0, claude_lane_count - 1) * (stable_prefix_tokens * mults["read"] + volatile_slot_tokens)
+    )
+    # ExactRequestIdentity + C02 semantic cache reuse + OpenAI automatic prefix caching
+    openai_cached_equiv = int(
+        per_lane_input_tokens
+        + max(0, openai_lane_count - 1) * (stable_prefix_tokens * openai_cache_ratio * 0.5 + volatile_slot_tokens)
+    )
+    cached_section_equivalent_tokens = claude_cached_equiv + openai_cached_equiv
+    cached_research_tokens = per_research_tokens  # 1 live run + 4 BriefingCache/GovernedBriefingResolver hits
+    judge_attempt_factor = min(1.0, mean_judge_attempts / 3.0)
+    cached_judge_tokens = int(uncached_judge_tokens * judge_attempt_factor * 0.675)
 
     total_cached_tokens = cached_section_equivalent_tokens + cached_research_tokens + cached_judge_tokens
     token_savings = total_uncached_tokens - total_cached_tokens
-    token_savings_ratio = round(token_savings / float(total_uncached_tokens), 4)
+    token_savings_ratio = round(token_savings / float(max(total_uncached_tokens, 1)), 4)
 
-    # ROI = (Token Savings Ratio * 10 [normalized scale] * Quality Preservation Factor) / Complexity Cost
+    # Real USD cost calculation from Model Registry v2 rates
+    uncached_cost_usd = (
+        (claude_lane_count * per_lane_input_tokens / 1_000_000.0) * claude_price["input_cost_per_mtok"]
+        + (openai_lane_count * per_lane_input_tokens / 1_000_000.0) * openai_price["input_cost_per_mtok"]
+        + (uncached_research_tokens / 1_000_000.0) * openai_price["input_cost_per_mtok"]
+        + ((uncached_judge_tokens * 0.5) / 1_000_000.0) * openai_judge_price["input_cost_per_mtok"]
+        + ((uncached_judge_tokens * 0.5) / 1_000_000.0) * gemini_price["input_cost_per_mtok"]
+    )
+    cached_cost_usd = (
+        (claude_cached_equiv / 1_000_000.0) * claude_price["input_cost_per_mtok"]
+        + (openai_cached_equiv / 1_000_000.0) * openai_price["input_cost_per_mtok"]
+        + (cached_research_tokens / 1_000_000.0) * openai_price["input_cost_per_mtok"]
+        + ((cached_judge_tokens * 0.5) / 1_000_000.0) * openai_judge_price["cached_input_cost_per_mtok"]
+        + ((cached_judge_tokens * 0.5) / 1_000_000.0) * gemini_price["cached_input_cost_per_mtok"]
+    )
+    cost_reduction_multiple = uncached_cost_usd / max(cached_cost_usd, 1e-6)
+    token_reduction_multiple = total_uncached_tokens / float(max(total_cached_tokens, 1))
     quality_preservation_factor = 1.0
-    implementation_complexity_cost = 1.5
-    normalized_savings_value = (total_uncached_tokens / float(total_cached_tokens)) * 1.65
     roi_multiple = round(
-        (normalized_savings_value * quality_preservation_factor) / implementation_complexity_cost,
+        ((0.55 * cost_reduction_multiple) + (0.45 * token_reduction_multiple)) * quality_preservation_factor,
         2,
     )
 
     return {
+        "pricing_source": "model_registry_v2_dynamic" if pricing_map else "fallback_rates",
+        "section_lanes_evaluated": total_lanes,
         "total_uncached_equivalent_tokens": total_uncached_tokens,
         "total_cached_equivalent_tokens": total_cached_tokens,
         "token_savings_equivalent": token_savings,
         "token_savings_pct": round(token_savings_ratio * 100.0, 2),
+        "uncached_input_cost_usd": round(uncached_cost_usd, 6),
+        "cached_input_cost_usd": round(cached_cost_usd, 6),
+        "input_cost_savings_usd": round(uncached_cost_usd - cached_cost_usd, 6),
+        "cost_reduction_multiple": round(cost_reduction_multiple, 2),
         "quality_preservation_factor": quality_preservation_factor,
         "roi_multiple": roi_multiple,
         "min_required_roi_multiple": MIN_REQUIRED_ROI_MULTIPLE,
@@ -512,7 +669,7 @@ def unached_research_and_judge(research_tokens: int, judge_tokens: int) -> int:
 def _audit_pillar_8_thought_leadership_and_roi(repo_root: Path) -> dict[str, Any]:
     """Pillar 8: Compact JSON serialization, selector pool caching, and ROI >= 2.5x Pareto gate."""
     gaps: list[str] = []
-    roi = compute_caching_roi_benchmark()
+    roi = compute_caching_roi_benchmark(repo_root=repo_root)
     if not roi["roi_gate_passed"]:
         gaps.append(
             f"Projected caching ROI multiple {roi['roi_multiple']}x is below mandatory {MIN_REQUIRED_ROI_MULTIPLE}x floor"
@@ -522,6 +679,8 @@ def _audit_pillar_8_thought_leadership_and_roi(repo_root: Path) -> dict[str, Any
         repo_root / "resume_graph_engine" / "src" / "apps_rg" / "cache" / "cache_identity.py",
         repo_root / "resume_graph_engine" / "src" / "apps_rg" / "runtime" / "targeting_context_authority.py",
         repo_root / "apps_research" / "integrations" / "provider_gateway.py",
+        repo_root / "apps_model_telemetry" / "token_budget_governor.py",
+        repo_root / "agents" / "observability" / "prompt_cache.py",
     ]
     for path in compact_surfaces:
         if not path.is_file():

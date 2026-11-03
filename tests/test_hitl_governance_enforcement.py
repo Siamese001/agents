@@ -295,6 +295,43 @@ class HitlGovernanceEnforcementTests(unittest.TestCase):
         self.assertEqual(res["action"], "SURFACE_HITL_ATOMIC")
         self.assertLessEqual(res["margin"], DEFAULT_AMBIGUITY_THRESHOLD)
 
+    def test_surfaces_when_top_confidence_below_65_percent_floor(self) -> None:
+        """Even if margin > 20%, top confidence < 65% must surface to operator (INV-HITL-MIN-CONFIDENCE-FLOOR)."""
+        options = [
+            {"label": "Option A: Speculative Path", "confidence": "55%"},
+            {"label": "Option B: Fallback", "confidence": "20%"},
+        ]
+        # margin = 0.35 > 0.20, but top_score = 0.55 < 0.65
+        gate = evaluate_hitl_surfacing_gate(options)
+        self.assertTrue(gate["should_surface"])
+        self.assertTrue(gate["below_confidence_floor"])
+        self.assertAlmostEqual(gate["margin"], 0.35)
+        self.assertEqual(gate["action"], "SURFACE_HITL_ATOMIC")
+
+    def test_record_execution_outcome_alias_updates_store_and_wal_mode(self) -> None:
+        """Verify record_execution_outcome updates outcome and DB uses WAL journal mode."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = Path(tmpdir) / "test_exec_outcome.sqlite"
+            store = HITLDecisionStore(db_path=db_path)
+            journal = store._get_connection().execute("PRAGMA journal_mode;").fetchone()[0]
+            self.assertEqual(str(journal).lower(), "wal")
+
+            store.record_decision(
+                decision_id="dec_alias_01",
+                task_id="wave5_test",
+                category="tokenomics_audit",
+                options=[{"label": "DynamicPricing", "confidence": 0.90}, {"label": "Static", "confidence": 0.40}],
+                selected_option="DynamicPricing",
+                operator_action="PROCEED_AUTONOMOUSLY",
+                margin=0.50,
+                calibrated_confidence=0.90,
+            )
+            ok = store.record_execution_outcome("dec_alias_01", "SUCCESS", notes="verified")
+            self.assertTrue(ok)
+            metrics = store.get_calibration_metrics()
+            self.assertEqual(metrics["outcomes"].get("SUCCESS"), 1)
+            store.close()
+
 
 if __name__ == "__main__":
     unittest.main()
