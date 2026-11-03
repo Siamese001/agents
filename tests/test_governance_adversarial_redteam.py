@@ -177,9 +177,13 @@ def test_adversarial_plan_wave_gap_injection() -> None:
 
 
 def test_adversarial_status_table_evasion_injection() -> None:
-    """Rogue agent attempts to evade executive status table oversight."""
-    # Sub-case 1: Status table omitted entirely
-    no_table_plan = """# Refactoring Plan
+    """Rogue agent attempts to evade executive status table and evidence gate oversight."""
+    # Sub-case 1: Malformed status table omitting required Description column and 6-field evidence gate
+    evasion_table_plan = """# Refactoring Plan
+| Wave | Status |
+|---|---|
+| Wave 1 | COMPLETE |
+
 ## Wave 1: Setup
 ### Milestones & Deliverables
 - [NEW] tools/tool.py
@@ -188,9 +192,9 @@ def test_adversarial_status_table_evasion_injection() -> None:
 ### Runtime Receipt & Completion Gate
 - echo ok
 """
-    passed1, issues1 = validate_plan_content(no_table_plan, "no_table_plan.md")
+    passed1, issues1 = validate_plan_content(evasion_table_plan, "evasion_table_plan.md")
     assert not passed1
-    assert any("missing mandatory implementation status table" in issue.lower() for issue in issues1)
+    assert any("missing required column" in issue.lower() for issue in issues1)
 
     # Sub-case 2: Status table with spoofed / arbitrary status
     spoofed_status_plan = """# Refactoring Plan

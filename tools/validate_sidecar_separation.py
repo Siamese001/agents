@@ -258,6 +258,22 @@ def validate_sidecar_separation(
                 violations.append(
                     f"{spec['prompt_file']}: contains raw unreviewed 'merge --no-ff' bypassing pr_governance.py"
                 )
+            if f'Path("{AGENTS_CANONICAL_ROOT}")' in p_text:
+                violations.append(
+                    f"{spec['prompt_file']}: hardcodes primary repo root Path(\"{AGENTS_CANONICAL_ROOT}\") instead of WORKTREE_DIR"
+                )
+            if spec["prompt_file"] == "agents_testing_gaps_assurance_agent.md":
+                for req_testing_token in (
+                    "resume_graph_engine/tests",
+                    "outreach_engine/tests",
+                    "apps_eval/tests",
+                    "AsyncFunctionDef",
+                    "audit_mock_reachability.py",
+                ):
+                    if req_testing_token not in p_text:
+                        violations.append(
+                            f"{spec['prompt_file']}: missing required 4-root testing governance token '{req_testing_token}'"
+                        )
         det_ep = spec.get("deterministic_entrypoint")
         if det_ep and (repo_root.resolve() / "tools").is_dir() and not (repo_root.resolve() / str(det_ep)).is_file():
             violations.append(

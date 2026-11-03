@@ -133,7 +133,16 @@ infra = [
 [tool.coverage.run]
 branch = true
 # Explicitly set the source to avoid ambiguity
-source = ["infrastructure", "outreach_engine", "resume_graph_engine"]
+source = [
+    "agents",
+    "infrastructure",
+    "outreach_engine",
+    "resume_engine",
+    "resume_graph_engine",
+    "apps_research",
+    "apps_eval",
+    "apps_model_telemetry",
+]
 omit = [
     "*/tests/*",
     "*/stubs/*",

@@ -275,4 +275,52 @@ def test_agents_sidecar_dispositions_and_skill_budget_compliance() -> None:
     assert eval_rep["is_clean"] is True
 
 
+def test_testing_gaps_prompt_covers_all_four_test_roots_and_rejects_hardcoded_root(tmp_path: Path) -> None:
+    """Verify Agent 7 scans all 4 test roots (900+ test files), async tests, and mock reachability."""
+    from tools.audit_mock_reachability import _PRODUCTION_ROOTS, run_audit
+
+    for expected_pkg in (
+        "agents",
+        "resume_engine",
+        "resume_graph_engine/src/apps_rg",
+        "apps_research",
+        "apps_eval",
+        "apps_model_telemetry",
+        "outreach_engine/src/apps_lic",
+        "infrastructure",
+        "ops_scripts",
+    ):
+        assert expected_pkg in _PRODUCTION_ROOTS
+    code, mock_violations = run_audit(REPO_ROOT)
+    assert code == 0, f"Unexpected mock reachability violations: {mock_violations}"
+
+    total_tests = sum(
+        len(
+            {
+                *(REPO_ROOT / r).rglob("test_*.py"),
+                *(REPO_ROOT / r).rglob("*_test.py"),
+                *(REPO_ROOT / r).rglob("conftest.py"),
+            }
+        )
+        for r in ("tests", "resume_graph_engine/tests", "outreach_engine/tests", "apps_eval/tests")
+        if (REPO_ROOT / r).exists()
+    )
+    assert total_tests >= 890
+
+    # Negative control: hardcoded Path("/Users/amitayer/Git/agents") in prompt must fail separation check
+    fake_repo = tmp_path / "repo"
+    prompts_dir = fake_repo / "automations" / "prompts"
+    prompts_dir.mkdir(parents=True)
+    for md_file in (REPO_ROOT / "automations" / "prompts").glob("*.md"):
+        content = md_file.read_text(encoding="utf-8")
+        if md_file.name == "agents_testing_gaps_assurance_agent.md":
+            content += f'\nroot = Path("{AGENTS_CANONICAL_ROOT}")\n'
+        (prompts_dir / md_file.name).write_text(content, encoding="utf-8")
+
+    result = validate_sidecar_separation(repo_root=fake_repo, sidecars_root=DEFAULT_SIDECARS_ROOT)
+    assert result["status"] == "FAIL"
+    assert any("hardcodes primary repo root" in v for v in result["violations"])
+
+
+
 

@@ -74,6 +74,7 @@ Execute the bounded E2E smoke, purity, graph probe, and AST inspection in `${WOR
 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/lint_production_purity.py" --repo-root "${WORKTREE_DIR}"
 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/ops_scripts/run_e2e_authoritative_smoke.py" --skip-resume
 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/run_resume_graph_traversal_probe.py" --max-paths 200
+"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/verify_release_gate.py" --root "${WORKTREE_DIR}" --no-write --json
 "${PRIMARY_REPO_ROOT}/.venv/bin/python" - <<'PY'
 import ast, json, os
 from pathlib import Path
@@ -139,4 +140,4 @@ For each wave (`Wave 1 -> Wave N`):
    - Verify state independently and record the 5-column proof table in `${RUN_DIR}/wave_receipts.md`.
 2. **Closed-Loop System Learning (`C07`)**: Record wave outcome in `HITLDecisionStore`.
 3. **Turn, Commit & Promotion Gates (`C09`, `C10`)**:
-   Run `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/validate_sidecar_separation.py" --repo-root "${WORKTREE_DIR}" --json`, `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/validate_turn_gates.py" --repository-root "${WORKTREE_DIR}" --mode all`, and `(cd "${WORKTREE_DIR}" && "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/verify_commit.py")`, commit via `git -C "${WORKTREE_DIR}" commit`, then stage via `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/pr_governance.py" -C "${WORKTREE_DIR}" submit "${BRANCH_NAME}" --stage-only` in scheduled mode or promote after interactive `ask_question` `PR_MERGE_AUTHORIZATION` via `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/pr_governance.py" -C "${WORKTREE_DIR}" submit "${BRANCH_NAME}" --title "fix(e2e): remediate outreach and resume handoff contracts"`.
+   Run `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/validate_sidecar_separation.py" --repo-root "${WORKTREE_DIR}" --json`, `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/validate_turn_gates.py" --repository-root "${WORKTREE_DIR}" --mode all`, and `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/verify_commit.py" --repo-root "${WORKTREE_DIR}"`, commit via `git -C "${WORKTREE_DIR}" commit`, then stage via `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/pr_governance.py" -C "${WORKTREE_DIR}" submit "${BRANCH_NAME}" --stage-only` in scheduled mode or promote after interactive `ask_question` `PR_MERGE_AUTHORIZATION` via `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/pr_governance.py" -C "${WORKTREE_DIR}" submit "${BRANCH_NAME}" --title "fix(e2e): remediate outreach and resume handoff contracts"`.
