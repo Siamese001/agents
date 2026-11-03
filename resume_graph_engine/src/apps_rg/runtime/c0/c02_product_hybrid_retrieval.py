@@ -207,25 +207,32 @@ def perform_product_hybrid_retrieval(
         raise C0EvidenceGapError(emb.decisive_reason)
 
     payload = normalize_section_app_payload(app_payload)
+    from apps_rg.runtime.c0.c0_perf_sync_helpers import get_or_open_verified_collection
     from apps_rg.runtime.c0.chroma_persistent_client import ensure_apps_rg_chroma_client
 
     try:
-        client = ensure_apps_rg_chroma_client(chroma_path)
-        fv_col = get_precomputed_embeddings_collection_for_query(client, "fact_vectors")
-    except Exception as exc:  # guardian: allow-broad-exception -- Chroma collection error taxonomy varies by version; classify as C0 evidence gap.
+        fv_col = get_or_open_verified_collection(
+            chroma_path=chroma_path,
+            collection_name="fact_vectors",
+            ensure_client_fn=ensure_apps_rg_chroma_client,
+            open_collection_fn=get_precomputed_embeddings_collection_for_query,
+            assert_parity_fn=assert_collection_embedding_parity,
+        )
+    except RuntimeError as exc:
+        if "C0.2 embedding parity violation" in str(exc):
+            raise C0EvidenceGapError(
+                f"C0.2 product hybrid dense lane for {section_id!r}: {exc}"
+            ) from exc
         raise C0EvidenceGapError(
             f"C0.2 product hybrid dense lane required for {section_id!r} but "
             f"fact_vectors collection is unavailable at {chroma_path!r}: {exc}. "
             + _C0_REMEDIATION_HINT
         ) from exc
-
-    # G9: fail loud on stored-vs-query embedding dimension mismatch before querying — a stale alias
-    # or DefaultEmbeddingFunction collection would otherwise return silent zero/garbage hits.
-    try:
-        assert_collection_embedding_parity(fv_col)
-    except RuntimeError as exc:
+    except Exception as exc:  # guardian: allow-broad-exception -- Chroma collection error taxonomy varies by version; classify as C0 evidence gap.
         raise C0EvidenceGapError(
-            f"C0.2 product hybrid dense lane for {section_id!r}: {exc}"
+            f"C0.2 product hybrid dense lane required for {section_id!r} but "
+            f"fact_vectors collection is unavailable at {chroma_path!r}: {exc}. "
+            + _C0_REMEDIATION_HINT
         ) from exc
 
     extra, _verdicts, status, sparse_refs, _scores, _traces = _perform_bounded_section_retrieval(

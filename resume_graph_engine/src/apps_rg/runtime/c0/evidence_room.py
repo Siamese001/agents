@@ -103,30 +103,26 @@ def run_section_c0_evidence_room(
         pool=pool,
         repo_root=REPO_ROOT,
     )
-    target_role, jd_text, _briefing = "", "", ""
-    if front_spine is not None and front_spine.validated_request is not None:
-        app = getattr(front_spine.validated_request, "app_payload", None) or {}
-        if isinstance(app, dict):
-            target_role = str(app.get("target_role") or app.get("target_title") or "")
-            jd_text = str(app.get("job_description_text") or app.get("jd_text") or "")
-            if not jd_text and app.get("job_description_ref"):
-                try:
-                    _jp = Path(str(app["job_description_ref"]))
-                    if _jp.is_file():
-                        jd_text = _jp.read_text(encoding="utf-8")
-                except (OSError, ValueError):
-                    pass
-    if pool is not None:
-        meta = pool.proof_pool_metadata or {}
-        target_role = target_role or str(meta.get("target_role") or "")
-        jd_text = jd_text or str(meta.get("jd_text") or "")
-        if not jd_text and meta.get("job_description_ref"):
-            try:
-                _jp = Path(str(meta["job_description_ref"]))
-                if _jp.is_file():
-                    jd_text = _jp.read_text(encoding="utf-8")
-            except (OSError, ValueError):
-                pass
+    from apps_rg.runtime.c0.c0_perf_sync_helpers import (
+        compute_c0_input_identity,
+        extract_c0_targeting_inputs,
+        try_reuse_recovery_sealed_c0_bridge,
+    )
+
+    target_role, jd_text = extract_c0_targeting_inputs(front_spine, pool)
+    reused_bridge = try_reuse_recovery_sealed_c0_bridge(
+        artifact_dir=artifact_dir,
+        section_id=section_id,
+        target_role=target_role,
+        jd_text=jd_text,
+        pool=pool,
+        runtime_payload=runtime_payload,
+    )
+    if reused_bridge is not None:
+        return reused_bridge
+    c0_input_identity = compute_c0_input_identity(
+        section_id=section_id, target_role=target_role, jd_text=jd_text, pool=pool
+    )
     plan = build_c01_retrieval_plan(
         section_id=section_id,
         route_ref="route_contract.json",
@@ -283,7 +279,9 @@ def run_section_c0_evidence_room(
         ),
         repo_root=REPO_ROOT,
     )
-    if c06.get("attempted") and c06.get("pass"):
+    from apps_rg.runtime.c0.c0_perf_sync_helpers import c06_bindings_changed
+
+    if c06_bindings_changed(bindings, c03, c06):
         bindings = list(c03.get("bindings") or [])
         c04 = stratify_c04_evidence(
             section_id=section_id,
@@ -554,6 +552,7 @@ def run_section_c0_evidence_room(
             "c07": c07,
         },
         "c07_handoff_safe": True,
+        "c0_input_identity": c0_input_identity,
         "pa_proof_authority_metadata": pa_meta,
         "product_visible": True,
     }

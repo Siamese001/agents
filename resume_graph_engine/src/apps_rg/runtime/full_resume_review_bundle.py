@@ -116,11 +116,23 @@ def write_review_index(run_root: Path) -> Path:
     return out
 
 
-def emit_full_resume_review_bundle(run_root: Path) -> Path:
-    """Write ``REVIEW_INDEX.md`` and ``review_bundle.zip`` under ``run_root``."""
+def emit_full_resume_review_bundle(
+    run_root: Path,
+    *,
+    build_zip: bool | None = None,
+) -> Path | None:
+    """Write ``REVIEW_INDEX.md`` and opt-in ``review_bundle.zip`` under ``run_root``."""
+    from apps_rg.runtime.closeout_single_pass import (
+        should_build_review_zip,
+        write_lightweight_review_bundle_manifest,
+    )
+
     root = Path(run_root).resolve()
     root.mkdir(parents=True, exist_ok=True)
     write_review_index(root)
+    if not should_build_review_zip(root, explicit=build_zip):
+        write_lightweight_review_bundle_manifest(root)
+        return None
     zip_path = root / REVIEW_BUNDLE_FILENAME
     with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as zf:
         for file_path in _iter_files(root):

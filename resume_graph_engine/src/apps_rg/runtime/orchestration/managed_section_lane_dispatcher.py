@@ -4,7 +4,10 @@ from __future__ import annotations
 import logging
 import os
 import sys
-from concurrent.futures import ThreadPoolExecutor, as_completed
+import threading
+import time
+from concurrent.futures import FIRST_COMPLETED, Future, wait
+from pathlib import Path
 from typing import Any, Callable
 
 from tqdm import tqdm
@@ -17,6 +20,12 @@ from apps_rg.runtime.orchestration.section_lane_executor import (
     run_lane_in_context,
 )
 from apps_rg.runtime.product_output_policy import PHASE1_PRIOR_LANE_FAILED_BLOCKER
+from apps_rg.runtime.providers.wallclock_http_guard import (
+    DaemonWorkerPool,
+    mark_artifact_dir_cancelled,
+    resolve_section_lane_timeout_s,
+    resolve_section_run_timeout_s,
+)
 
 
 class ProgressReporter:  # pragma: no cover - exercised via the public dispatcher
@@ -162,6 +171,40 @@ def _readiness_result(
     return bool(value), "" if value else "dependency_not_certified"
 
 
+def _quarantine_timed_out_lane(ctx: LaneExecutionContext, lane: str) -> None:
+    root_text = str(ctx.sections_root or "").strip()
+    if root_text:
+        mark_artifact_dir_cancelled(Path(root_text) / lane)
+
+
+def _prewarm_parallel_graph_sqlite() -> None:
+    """Materialize C0.3 graph SQLite once before spawning parallel Phase-1 worker threads."""
+    if os.environ.get("PYTEST_CURRENT_TEST"):
+        return
+    try:
+        from apps_rg.repository_layout import repository_root
+        from apps_rg.runtime.c03_graph_sqlite_context import ensure_c03_graph_sqlite
+
+        ensure_c03_graph_sqlite(repository_root(Path(__file__)))
+    except Exception:  # guardian: prewarm is advisory; lane-level C0 enforces fail-closed contracts
+        pass
+
+
+def _lane_timeout_outcome(lane: str, budget_s: float, *, kind: str = "LANE_TIMEOUT") -> LaneDispatchOutcome:
+    msg = f"Lane '{lane}' exceeded wall-clock deadline ({budget_s:.2f}s)"
+    return LaneDispatchOutcome(
+        lane=lane,
+        dispatch_result={
+            "section": lane,
+            "fault": "timeout" if kind == "LANE_TIMEOUT" else "run_timeout",
+            "exit_status": "error",
+            "error": msg,
+        },
+        exec_status=f"error:{kind}",
+        error=msg,
+    )
+
+
 def dispatch_phase1_lanes_managed(
     lanes_in_order: tuple[str, ...],
     ctx: LaneExecutionContext,
@@ -171,31 +214,18 @@ def dispatch_phase1_lanes_managed(
     max_parallel: int = 2,
     should_skip_remaining_waves: Callable[[], bool] | None = None,
     dependency_ready_fn: Callable[[str], bool | tuple[bool, str]] | None = None,
+    lane_timeout_s: float | None = None,
+    run_timeout_s: float | None = None,
 ) -> dict[str, LaneDispatchOutcome]:
-    """Dispatch Phase-1 lanes with a bounded, dependency-aware ready queue.
-
-    Parallel execution is work-conserving: as soon as a bullets lane completes
-    and its acceptance receipt validates, its paired narrative can start while
-    other independent bullets are still running.  The manifest's waves remain
-    an observability grouping, not an all-of-wave completion barrier.  A caller
-    that supplies ``should_skip_remaining_waves`` retains the legacy global
-    abort behavior for a true run-wide abort condition.
-    """
+    """Dispatch Phase-1 lanes with bounded ready queue and hard wall-clock deadlines."""
     outcomes: dict[str, LaneDispatchOutcome] = {}
+    effective_lane_timeout = resolve_section_lane_timeout_s(lane_timeout_s)
+    effective_run_timeout = resolve_section_run_timeout_s(run_timeout_s)
+    run_deadline = time.monotonic() + effective_run_timeout
 
-    # §16 query-progress (constitutional): a Phase-1 dispatch runs N section lanes, each an
-    # ~1-2 min LLM generation, so the loop is a multi-minute operation that MUST surface a
-    # progress bar — the static check_query_progress_bar gate misses it because the loop body
-    # is short and the function is not a scan_/query_-prefixed "heavy" name. The bar ticks on
-    # lane COMPLETION from the MAIN thread only (the serial loops + the parallel as_completed
-    # loop), never from a worker thread, so it is concurrency-safe under ThreadPoolExecutor.
     reporter = ProgressReporter(
         total=max(len(lanes_in_order), 1), label="apps_rg section lanes", unit="lane"
     )
-
-    # Guarantee sections_root_manifest.json exists beside ctx.sections_root
-    # so child lane dispatches and finalize_runtime_proof_run never trigger
-    # require_manifest_for_modular_sections_root fail-closed gate.
     ensure_sections_root_manifest(ctx)
 
     def _record(lane: str, outcome: LaneDispatchOutcome) -> None:
@@ -203,24 +233,75 @@ def dispatch_phase1_lanes_managed(
         reporter.update(label=f"{lane} [{str(getattr(outcome, 'exec_status', '') or 'done')}]")
 
     if not parallel:
-        for lane in lanes_in_order:
-            if should_skip_remaining_waves and should_skip_remaining_waves():
-                _record(lane, _skipped_prior_lane_abort(lane))
-                continue
-            if hasattr(reporter, "set_status"):
-                reporter.set_status(f"running {lane}")
-            _record(lane, run_lane_in_context(ctx, lane, dispatch_fn=dispatch_fn))
+        with DaemonWorkerPool(max_workers=1, thread_name_prefix="apps-rg-serial-lane") as pool:
+            for lane in lanes_in_order:
+                if should_skip_remaining_waves and should_skip_remaining_waves():
+                    _record(lane, _skipped_prior_lane_abort(lane))
+                    continue
+                rem_run = run_deadline - time.monotonic()
+                if rem_run <= 0:
+                    _record(
+                        lane,
+                        LaneDispatchOutcome(
+                            lane=lane,
+                            dispatch_result={
+                                "prior_abort": "PHASE1_RUN_TIMEOUT",
+                                "fault": "run_timeout",
+                                "exit_status": "error",
+                            },
+                            exec_status="pre_run_blocked:PHASE1_RUN_TIMEOUT",
+                        ),
+                    )
+                    continue
+                if hasattr(reporter, "set_status"):
+                    reporter.set_status(f"running {lane}")
+                cancel_ev = threading.Event()
+                budget = min(effective_lane_timeout, rem_run)
+                fut = pool.submit(
+                    run_lane_in_context,
+                    ctx,
+                    lane,
+                    dispatch_fn=dispatch_fn,
+                    cancel_event=cancel_ev,
+                )
+                done, _ = wait((fut,), timeout=max(0.01, budget), return_when=FIRST_COMPLETED)
+                if done:
+                    _record(lane, fut.result())
+                else:
+                    cancel_ev.set()
+                    _quarantine_timed_out_lane(ctx, lane)
+                    kind = "RUN_TIMEOUT" if time.monotonic() >= run_deadline else "LANE_TIMEOUT"
+                    _record(lane, _lane_timeout_outcome(lane, budget, kind=kind))
         reporter.done()
         return outcomes
 
     selected = tuple(dict.fromkeys(lanes_in_order))
+    if len(selected) > 1:
+        _prewarm_parallel_graph_sqlite()
     dependencies = section_dag_dependencies(lanes=selected)
     pending = set(selected)
-    running: dict[Any, str] = {}
+    running: dict[Future[Any], tuple[str, float, threading.Event]] = {}
     cap = max(1, min(int(max_parallel), len(selected) or 1))
 
-    with ThreadPoolExecutor(max_workers=cap) as pool:
+    with DaemonWorkerPool(max_workers=cap, thread_name_prefix="apps-rg-lane") as pool:
         while pending or running:
+            now = time.monotonic()
+            if now >= run_deadline and pending:
+                for lane in selected:
+                    if lane in pending:
+                        pending.remove(lane)
+                        _record(
+                            lane,
+                            LaneDispatchOutcome(
+                                lane=lane,
+                                dispatch_result={
+                                    "prior_abort": "PHASE1_RUN_TIMEOUT",
+                                    "fault": "run_timeout",
+                                    "exit_status": "error",
+                                },
+                                exec_status="pre_run_blocked:PHASE1_RUN_TIMEOUT",
+                            ),
+                        )
             if should_skip_remaining_waves and should_skip_remaining_waves():
                 for lane in selected:
                     if lane in pending:
@@ -228,8 +309,6 @@ def dispatch_phase1_lanes_managed(
                         _record(lane, _skipped_prior_lane_abort(lane))
             made_progress = False
 
-            # A failed prerequisite blocks its descendants only.  Independent
-            # branches continue, preserving their receipts for diagnosis/rerun.
             for lane in selected:
                 if lane not in pending:
                     continue
@@ -240,11 +319,8 @@ def dispatch_phase1_lanes_managed(
                     _record(lane, _skipped_dependency(lane, failed, "dependency_failed"))
                     made_progress = True
 
-            # Submit deterministic ready lanes until the global provider-safe
-            # capacity is full.  This is deliberately a single shared cap, not
-            # a per-wave cap that can accidentally over-fan-out requests.
             for lane in selected:
-                if len(running) >= cap or lane not in pending:
+                if len(running) >= cap or lane not in pending or time.monotonic() >= run_deadline:
                     continue
                 deps = dependencies.get(lane, ())
                 if not all(dep in outcomes and _outcome_succeeded(outcomes[dep]) for dep in deps):
@@ -256,21 +332,48 @@ def dispatch_phase1_lanes_managed(
                     made_progress = True
                     continue
                 pending.remove(lane)
-                fut = pool.submit(run_lane_in_context, ctx, lane, dispatch_fn=dispatch_fn)
-                running[fut] = lane
+                cancel_ev = threading.Event()
+                lane_deadline = min(run_deadline, time.monotonic() + effective_lane_timeout)
+                fut = pool.submit(
+                    run_lane_in_context,
+                    ctx,
+                    lane,
+                    dispatch_fn=dispatch_fn,
+                    cancel_event=cancel_ev,
+                )
+                running[fut] = (lane, lane_deadline, cancel_ev)
                 if hasattr(reporter, "set_status"):
-                    reporter.set_status(f"running: {', '.join(running.values())}")
+                    reporter.set_status(
+                        f"running: {', '.join(info[0] for info in running.values())}"
+                    )
                 made_progress = True
 
             if running:
-                fut = next(as_completed(tuple(running)))
-                lane = running.pop(fut)
-                _record(lane, fut.result())
+                now = time.monotonic()
+                earliest_deadline = min(
+                    run_deadline,
+                    *(info[1] for info in running.values()),
+                )
+                wait_s = max(0.0, earliest_deadline - now)
+                done, _ = wait(tuple(running), timeout=wait_s, return_when=FIRST_COMPLETED)
+                for fut in done:
+                    lane, _, _ = running.pop(fut)
+                    _record(lane, fut.result())
+                now_after = time.monotonic()
+                expired = [
+                    fut
+                    for fut, (_, lane_dl, _) in list(running.items())
+                    if now_after >= lane_dl or now_after >= run_deadline
+                ]
+                for fut in expired:
+                    lane, lane_dl, cancel_ev = running.pop(fut)
+                    cancel_ev.set()
+                    _quarantine_timed_out_lane(ctx, lane)
+                    kind = "RUN_TIMEOUT" if now_after >= run_deadline and lane_dl >= run_deadline else "LANE_TIMEOUT"
+                    _record(lane, _lane_timeout_outcome(lane, effective_lane_timeout, kind=kind))
                 continue
 
             if pending and not made_progress:
-                # The manifest validator rejects cycles, so reaching here means
-                # a subset caller omitted or could not satisfy a prerequisite.
                 for lane in selected:
                     if lane in pending:
                         pending.remove(lane)

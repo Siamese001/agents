@@ -16,6 +16,33 @@ from .synthesis_retry import *
 from .word_budget_repair import *
 from .stage_remediation_cycles import run_remediation_cycles
 
+
+def _display_text_sha256(text: str | None) -> str:
+    return hashlib.sha256(str(text or "").strip().encode("utf-8")).hexdigest()
+
+
+def should_skip_unchanged_summary_judge_refresh(
+    judges: Any,
+    *,
+    display_text: str | None,
+    prior_display_sha256: str | None,
+) -> bool:
+    """Return True when display_text normalized SHA matches already model-judged text."""
+    if not prior_display_sha256 or _display_text_sha256(display_text) != prior_display_sha256:
+        return False
+    rows = list(judges) if isinstance(judges, (list, tuple)) else []
+    if not rows:
+        return False
+    return all(
+        str(
+            getattr(j, "evaluator_mode", None)
+            or (j.get("evaluator_mode") if isinstance(j, dict) else "")
+        ).upper()
+        == "MODEL_BACKED"
+        for j in rows
+    )
+
+
 def run_remediation_stage(ctx: dict[str, Any]) -> None:
     args = ctx["args"]
     artifact_dir = ctx["artifact_dir"]
@@ -97,29 +124,43 @@ def run_remediation_stage(ctx: dict[str, Any]) -> None:
         from apps_rg.runtime.c0.c03_graph_ref_policy import extract_c03_bindings_from_runtime_payload
 
         _graph_bindings_lane = extract_c03_bindings_from_runtime_payload(runtime_payload)
-        x1d, _x1d_refresh_receipt = refresh_x1d_judges_after_full_x2(
-            x2_gates=x2,
-            resume_display_text=resume_display_text,
-            claim_ledger=claim_ledger,
-            allowed_fact_packet=selected_facts_for_x2,
-            allowed_fact_ids=allowed_fact_ids,
-            target_title=_args_target_title(args),
-            target_company=str(args.target_company),
-            jd_text=_judge_jd,
-            briefing_text=_judge_briefing,
-            parsed_output=parsed_for_x2,
-            judge_keys=judge_keys,
-            judge_mode=judge_mode,
-            artifact_dir=artifact_dir,
-            compiled_prompt=compiled_prompt,
-            prior_judges=[],
-            graph_targeting_capsule=_gtc_lane_dict,
-            material_targeting_bundle=_bundle_mat.to_dict()
-            if hasattr(_bundle_mat, "to_dict")
-            else runtime_payload.get("material_targeting_bundle"),
-            graph_bindings=_graph_bindings_lane,
-            repo_root=REPO_ROOT,
-        )
+        _prior_judged_sha = str(ctx.get("_x1d_judged_display_sha256") or "")
+        if should_skip_unchanged_summary_judge_refresh(
+            x1d,
+            display_text=resume_display_text,
+            prior_display_sha256=_prior_judged_sha,
+        ):
+            _judged_display_sha = _prior_judged_sha
+            _x1d_refresh_receipt = {
+                "skipped": "unchanged_resume_display_text",
+                "display_sha256": _judged_display_sha,
+            }
+        else:
+            x1d, _x1d_refresh_receipt = refresh_x1d_judges_after_full_x2(
+                x2_gates=x2,
+                resume_display_text=resume_display_text,
+                claim_ledger=claim_ledger,
+                allowed_fact_packet=selected_facts_for_x2,
+                allowed_fact_ids=allowed_fact_ids,
+                target_title=_args_target_title(args),
+                target_company=str(args.target_company),
+                jd_text=_judge_jd,
+                briefing_text=_judge_briefing,
+                parsed_output=parsed_for_x2,
+                judge_keys=judge_keys,
+                judge_mode=judge_mode,
+                artifact_dir=artifact_dir,
+                compiled_prompt=compiled_prompt,
+                prior_judges=[],
+                graph_targeting_capsule=_gtc_lane_dict,
+                material_targeting_bundle=_bundle_mat.to_dict()
+                if hasattr(_bundle_mat, "to_dict")
+                else runtime_payload.get("material_targeting_bundle"),
+                graph_bindings=_graph_bindings_lane,
+                repo_root=REPO_ROOT,
+            )
+            _judged_display_sha = _display_text_sha256(resume_display_text)
+            ctx["_x1d_judged_display_sha256"] = _judged_display_sha
         from apps_rg.runtime.judges.x1d_panel_harness import extract_x1d_diagnostic
         from apps_rg.runtime.sections.ExecutiveVoiceRepairAgent import (
             repair_section_with_executive_voice_agent,
@@ -136,35 +177,49 @@ def run_remediation_stage(ctx: dict[str, Any]) -> None:
                 mock_mode=(judge_mode == "mocked"),
                 artifact_dir=artifact_dir,
             )
-            if repair_rec.repair_succeeded and repaired_cand.get("resume_display_text") != resume_display_text:
-                resume_display_text = str(repaired_cand["resume_display_text"])
-                if isinstance(parsed, dict):
-                    parsed["resume_display_text"] = resume_display_text
-                if isinstance(parsed_for_x2, dict):
-                    parsed_for_x2["resume_display_text"] = resume_display_text
-                x1d, _x1d_refresh_receipt = refresh_x1d_judges_after_full_x2(
-                    x2_gates=x2,
-                    resume_display_text=resume_display_text,
-                    claim_ledger=claim_ledger,
-                    allowed_fact_packet=selected_facts_for_x2,
-                    allowed_fact_ids=allowed_fact_ids,
-                    target_title=_args_target_title(args),
-                    target_company=str(args.target_company),
-                    jd_text=_judge_jd,
-                    briefing_text=_judge_briefing,
-                    parsed_output=parsed_for_x2,
-                    judge_keys=judge_keys,
-                    judge_mode=judge_mode,
-                    artifact_dir=artifact_dir,
-                    compiled_prompt=compiled_prompt,
-                    prior_judges=[],
-                    graph_targeting_capsule=_gtc_lane_dict,
-                    material_targeting_bundle=_bundle_mat.to_dict()
-                    if hasattr(_bundle_mat, "to_dict")
-                    else runtime_payload.get("material_targeting_bundle"),
-                    graph_bindings=_graph_bindings_lane,
-                    repo_root=REPO_ROOT,
-                )
+            if repair_rec.repair_succeeded:
+                repaired_text = str(repaired_cand.get("resume_display_text") or "")
+                if should_skip_unchanged_summary_judge_refresh(
+                    x1d,
+                    display_text=repaired_text,
+                    prior_display_sha256=_judged_display_sha,
+                ) or _display_text_sha256(repaired_text) == _judged_display_sha:
+                    if isinstance(_x1d_refresh_receipt, dict):
+                        _x1d_refresh_receipt = {
+                            **_x1d_refresh_receipt,
+                            "voice_repair_rejudge_skipped": "unchanged_resume_display_text",
+                        }
+                elif repaired_text.strip():
+                    resume_display_text = repaired_text
+                    ctx["resume_display_text"] = resume_display_text
+                    if isinstance(parsed, dict):
+                        parsed["resume_display_text"] = resume_display_text
+                    if isinstance(parsed_for_x2, dict):
+                        parsed_for_x2["resume_display_text"] = resume_display_text
+                    x1d, _x1d_refresh_receipt = refresh_x1d_judges_after_full_x2(
+                        x2_gates=x2,
+                        resume_display_text=resume_display_text,
+                        claim_ledger=claim_ledger,
+                        allowed_fact_packet=selected_facts_for_x2,
+                        allowed_fact_ids=allowed_fact_ids,
+                        target_title=_args_target_title(args),
+                        target_company=str(args.target_company),
+                        jd_text=_judge_jd,
+                        briefing_text=_judge_briefing,
+                        parsed_output=parsed_for_x2,
+                        judge_keys=judge_keys,
+                        judge_mode=judge_mode,
+                        artifact_dir=artifact_dir,
+                        compiled_prompt=compiled_prompt,
+                        prior_judges=[],
+                        graph_targeting_capsule=_gtc_lane_dict,
+                        material_targeting_bundle=_bundle_mat.to_dict()
+                        if hasattr(_bundle_mat, "to_dict")
+                        else runtime_payload.get("material_targeting_bundle"),
+                        graph_bindings=_graph_bindings_lane,
+                        repo_root=REPO_ROOT,
+                    )
+                    ctx["_x1d_judged_display_sha256"] = _display_text_sha256(resume_display_text)
         from apps_rg.runtime.sections.executive_summary_repair_policy import (
             judge_regeneration_enabled,
         )

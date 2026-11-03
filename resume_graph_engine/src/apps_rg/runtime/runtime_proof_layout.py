@@ -21,6 +21,11 @@ from typing import Any, Literal
 from apps_rg.runtime.artifact_diet import build_artifact_diet_receipt, compact_artifact_links
 from apps_rg.runtime.run_bundle_index import emit_lane_runtime_proof_bundle_index
 from apps_rg.runtime.sections_root_manifest import require_manifest_for_modular_sections_root
+from apps_rg.runtime.worktree_path_resolution import (
+    is_within_trusted_checkout,
+    resolve_existing_trusted_rel_path,
+    trusted_rel_posix,
+)
 
 Bucket = Literal["real", "mock", "plumbing"]
 
@@ -69,15 +74,27 @@ def modular_sections_root_from_env(repo: Path) -> Path | None:
         cand = (repo / cand).resolve()
     else:
         cand = cand.resolve()
-    rr = repo.resolve()
-    try:
-        cand.relative_to(rr)
-    except ValueError as exc:
+    ok, _ = is_within_trusted_checkout(cand, repo)
+    if not ok:
         raise ValueError(
-            f"{MODULAR_R4_SECTIONS_ROOT_ENV} must resolve inside repo_root {rr}; "
+            f"{MODULAR_R4_SECTIONS_ROOT_ENV} must resolve inside repo_root {repo.resolve()}; "
             f"outside-repo modular roots are not supported ({cand})."
-        ) from exc
+        )
     return cand
+
+
+def _modular_lane_bases(msr: Path, lane: str) -> list[Path]:
+    bases = [msr / lane]
+    resolved_msr = msr.resolve()
+    if resolved_msr.name == "lanes" and (resolved_msr.parent / "modular_r4" / "sections").is_dir():
+        bases.append(resolved_msr.parent / "modular_r4" / "sections" / lane)
+    elif (
+        resolved_msr.name == "sections"
+        and resolved_msr.parent.name == "modular_r4"
+        and (resolved_msr.parent.parent / "lanes").is_dir()
+    ):
+        bases.append(resolved_msr.parent.parent / "lanes" / lane)
+    return bases
 
 
 def resolve_modular_latest_l2(repo: Path, lane: str) -> Path | None:
@@ -89,29 +106,23 @@ def resolve_modular_latest_l2(repo: Path, lane: str) -> Path | None:
     if msr is None:
         return None
     require_manifest_for_modular_sections_root(msr, env_name=MODULAR_R4_SECTIONS_ROOT_ENV)
-    lane_base = msr / lane
     ptr_order = (
         (LATEST_SUCCESSFUL_REAL_FILENAME,)
         if product_fail_closed_runtime()
-        else (
-            "latest_mock_run.json",
-            "latest_real_run.json",
-            LATEST_SUCCESSFUL_REAL_FILENAME,
-        )
+        else ("latest_mock_run.json", "latest_real_run.json", LATEST_SUCCESSFUL_REAL_FILENAME)
     )
-    for ptr_name in ptr_order:
-        data = _read_json_dict(lane_base / ptr_name)
-        if not data:
-            continue
-        rel = data.get("run_dir")
-        if not isinstance(rel, str):
-            continue
-        rd = (repo / rel).resolve()
-        l2 = rd / "l2_output.json"
-        if l2.is_file() and (
-            not product_fail_closed_runtime() or _is_accepted_real_llm_provider_bundle(rd)
-        ):
-            return l2
+    for lane_base in _modular_lane_bases(msr, lane):
+        for ptr_name in ptr_order:
+            data = _read_json_dict(lane_base / ptr_name)
+            rel = data.get("run_dir") if data else None
+            if not isinstance(rel, str):
+                continue
+            rd = resolve_existing_trusted_rel_path(rel, repo)
+            l2 = rd / "l2_output.json"
+            if l2.is_file() and (
+                not product_fail_closed_runtime() or _is_accepted_real_llm_provider_bundle(rd)
+            ):
+                return l2
     return None
 
 
@@ -202,21 +213,19 @@ def allocate_product_full_resume_artifact_dir(repo: Path, explicit: str = "") ->
     allowed_root = (repo / "artifacts" / "apps_rg" / "runtime_proofs").resolve()
     if not str(explicit).strip():
         return allocate_full_resume_artifact_dir(repo)
-    candidate = Path(explicit).expanduser().resolve()
-    try:
-        candidate.relative_to(allowed_root)
-    except ValueError as exc:
+    candidate_raw = Path(explicit).expanduser()
+    candidate = candidate_raw.resolve()
+    ok, _ = is_within_trusted_checkout(
+        candidate_raw,
+        repo,
+        subpath="artifacts/apps_rg/runtime_proofs",
+        reject_symlinks=True,
+    )
+    if not ok:
         raise ValueError(
             "product artifact_dir must resolve beneath checkout-owned "
             f"runtime proofs ({allowed_root}); got {candidate}"
-        ) from exc
-    # A link at any existing path component can redirect protected payloads
-    # after the containment check.  Reject it rather than following it.
-    cursor = candidate
-    while cursor != allowed_root:
-        if cursor.exists() and cursor.is_symlink():
-            raise ValueError(f"product artifact_dir may not traverse symlink: {cursor}")
-        cursor = cursor.parent
+        )
     candidate.mkdir(parents=True, exist_ok=True)
     return candidate
 
@@ -292,7 +301,7 @@ def run_dir(repo: Path, lane: str, bucket: Bucket, run_id: str) -> Path:
 
 def rel_posix(path: Path, repo: Path) -> str:
     repo = _canonical_runtime_repo_root(repo)
-    return path.resolve().relative_to(repo.resolve()).as_posix()
+    return trusted_rel_posix(path, repo)
 
 
 def prepare_runtime_proof_run_dir(
@@ -559,15 +568,11 @@ def load_latest_successful_real_pointer(repo: Path, lane: str) -> dict[str, Any]
 def resolve_run_dir_from_latest_successful_pointer(repo: Path, lane: str) -> Path | None:
     repo = _canonical_runtime_repo_root(repo)
     data = load_latest_successful_real_pointer(repo, lane)
-    if not data:
-        return None
-    rel = data.get("run_dir")
+    rel = data.get("run_dir") if data else None
     if not isinstance(rel, str):
         return None
-    p = (repo / rel).resolve()
-    if not p.is_dir():
-        return None
-    return p if _is_accepted_real_llm_provider_bundle(p) else None
+    p = resolve_existing_trusted_rel_path(rel, repo)
+    return p if p.is_dir() and _is_accepted_real_llm_provider_bundle(p) else None
 
 
 def _migration_latest_real_llm_provider_run_dir(repo: Path, lane: str) -> Path | None:
@@ -622,12 +627,10 @@ def resolve_accepted_real_rollup_run_dir(repo: Path, lane: str) -> tuple[Path | 
 def resolve_run_dir_from_pointer(repo: Path, lane: str, bucket: Bucket) -> Path | None:
     repo = _canonical_runtime_repo_root(repo)
     data = load_latest_pointer(repo, lane, bucket)
-    if not data:
-        return None
-    rel = data.get("run_dir")
+    rel = data.get("run_dir") if data else None
     if not isinstance(rel, str):
         return None
-    p = repo / rel
+    p = resolve_existing_trusted_rel_path(rel, repo)
     return p if p.is_dir() else None
 
 

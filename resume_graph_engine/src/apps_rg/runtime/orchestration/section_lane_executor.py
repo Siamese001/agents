@@ -146,6 +146,10 @@ def _persist_dispatch_attempt(
     status: str,
     failure_ref: str = "",
 ) -> None:
+    from apps_rg.runtime.providers.wallclock_http_guard import is_lane_or_dir_cancelled
+
+    if is_lane_or_dir_cancelled(lane_dir):
+        return
     payload = {
         "schema_version": "apps_rg.lane_dispatch_attempt.v1",
         "stage": "PHASE1_LANE_DISPATCH",
@@ -209,6 +213,10 @@ def _persist_exception_trace(
         "error_lineno": envelope["callsite"]["line"],
     }
     try:
+        from apps_rg.runtime.providers.wallclock_http_guard import is_lane_or_dir_cancelled
+
+        if is_lane_or_dir_cancelled(lane_dir):
+            return fields
         otel = capture_failure_otel_evidence(
             artifact_dir=lane_dir,
             trace_root=str(envelope.get("trace_root") or ""),

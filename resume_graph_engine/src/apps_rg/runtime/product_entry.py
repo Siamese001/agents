@@ -60,13 +60,15 @@ def _resolve_product_input_defaults(
 
 
 def _baseline_ref(repo_root: Path) -> Path:
-    raw = Path(
-        str(
-            os.environ.get("APPS_RG_E2E_BASELINE_REF")
-            or "src/apps_rg/config/e2e_baselines/anthropic_partnership.v1.json"
-        )
+    from apps_rg.runtime.worktree_path_resolution import resolve_e2e_baseline_paths
+
+    configured = str(os.environ.get("APPS_RG_E2E_BASELINE_REF") or "").strip()
+    resolved, _ = resolve_e2e_baseline_paths(
+        configured,
+        Path("src/apps_rg/config/e2e_baselines/anthropic_partnership.v1.json"),
+        repo_root,
     )
-    return raw.resolve() if raw.is_absolute() else (repo_root / raw).resolve()
+    return resolved.resolve()
 
 
 def _non_fresh_artifact_dir_result(artifact_dir: Path) -> dict[str, Any]:

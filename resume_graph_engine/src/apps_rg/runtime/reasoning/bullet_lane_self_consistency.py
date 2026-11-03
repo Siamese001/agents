@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json, os, time
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -13,9 +12,9 @@ from typing import Any, Callable
 from apps_rg.runtime.providers.anthropic_prompt_cache import (
     anthropic_prompt_cache_enabled,
     anthropic_prompt_cache_fanout_enabled,
-    anthropic_prompt_cache_prewarm_enabled,
     anthropic_prompt_cache_telemetry_enabled,
 )
+from apps_rg.runtime.reasoning.bullet_pool_sync_helpers import execute_sc_paths_batch
 from apps_rg.runtime.providers.provider_contract import ProviderResult
 from apps_rg.runtime.providers.section_provider_call import call_section_model_provider
 from apps_rg.runtime.sections.section_generation import tag_reasoning_lane
@@ -438,42 +437,15 @@ def run_provider_self_consistency_paths(
             max_parallel=max_parallel,
         )
 
-    prewarm_parallel = (
-        execution_mode == "parallel"
-        and n_paths >= 4
-        and anthropic_prompt_cache_enabled()
-        and anthropic_prompt_cache_prewarm_enabled()
+    paths = execute_sc_paths_batch(
+        temps,
+        execution_mode=execution_mode,
+        max_parallel=max_parallel,
+        thread_prefix=thread_prefix,
+        section_lane=section_lane,
+        run_fn=_run,
+        zero_output_timeout_fn=_zero_output_provider_timeout,
     )
-    if prewarm_parallel:
-        paths.append(_run(0, temps[0]))
-        remaining = list(enumerate(temps))[1:]
-        with ThreadPoolExecutor(
-            max_workers=max_parallel,
-            thread_name_prefix=thread_prefix,
-        ) as executor:
-            future_by_offset = {
-                executor.submit(_run, offset, temp): offset
-                for offset, temp in remaining
-            }
-            for future in as_completed(future_by_offset):
-                paths.append(future.result())
-    elif execution_mode == "parallel":
-        with ThreadPoolExecutor(
-            max_workers=max_parallel,
-            thread_name_prefix=thread_prefix,
-        ) as executor:
-            future_by_offset = {
-                executor.submit(_run, offset, temp): offset
-                for offset, temp in enumerate(temps)
-            }
-            for future in as_completed(future_by_offset):
-                paths.append(future.result())
-    else:
-        for offset, temp in enumerate(temps):
-            path = _run(offset, temp)
-            paths.append(path)
-            if section_lane == "competencies" and _zero_output_provider_timeout(path):
-                break
 
     paths.sort(key=lambda p: p.path_index)
     last_result = paths[-1].provider_result if paths else None

@@ -65,13 +65,8 @@ def _assert_safe_repo_relative_posix(rel: str) -> None:
 
 def _posix_relative_to_repo(repo_root: Path, path: Path) -> str:
     """Stable repo-relative POSIX path; raise if ``path`` is not under ``repo_root``."""
-    rr = repo_root.resolve()
-    pr = path.resolve()
-    try:
-        rel = pr.relative_to(rr)
-    except ValueError as e:
-        raise ValueError(f"path {pr} is not under repo_root {rr}") from e
-    posix = rel.as_posix()
+    from apps_rg.runtime.worktree_path_resolution import trusted_rel_posix
+    posix = trusted_rel_posix(path, repo_root)
     _assert_safe_repo_relative_posix(posix)
     return posix
 

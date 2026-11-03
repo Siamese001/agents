@@ -78,6 +78,9 @@ def reset_apps_rg_chroma_client_cache_for_tests() -> None:
     with _lock:
         _clients_by_path.clear()
         _clear_chroma_system_cache()
+    from apps_rg.runtime.c0.c0_perf_sync_helpers import reset_c0_shared_retrieval_caches_for_tests
+
+    reset_c0_shared_retrieval_caches_for_tests()
 
 
 __all__ = [

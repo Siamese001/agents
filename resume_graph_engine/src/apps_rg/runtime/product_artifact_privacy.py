@@ -77,48 +77,16 @@ def redact_product_diagnostics(artifact_dir: Path | str) -> Path:
     bundle or terminal manifest is written, so sealed artifacts describe the
     redacted bytes rather than a post-seal mutation.
     """
+    from apps_rg.runtime.closeout_single_pass import scan_and_redact_closeout_directory
 
     root = Path(artifact_dir).resolve()
-    if not root.is_dir():
-        raise ProductArtifactPrivacyError(f"product artifact directory is absent: {root}")
-    rows: list[dict[str, Any]] = []
-    for path in sorted(root.rglob("*")):
-        if not path.is_file() or path.is_symlink():
-            continue
-        try:
-            path.relative_to(root)
-        except ValueError as exc:  # pragma: no cover - resolve/rglob containment guard
-            raise ProductArtifactPrivacyError(f"diagnostic escapes product root: {path}") from exc
-        before = path.read_bytes()
-        if _is_text_diagnostic(path):
-            replacement = (
-                "REDACTED_PRODUCT_DIAGNOSTIC\n"
-                f"sha256={_sha256(before)}\nbyte_length={len(before)}\n"
-            ).encode("utf-8")
-            kind = "raw_text_diagnostic"
-        elif _is_json_diagnostic(path):
-            try:
-                parsed = json.loads(before)
-            except json.JSONDecodeError as exc:
-                raise ProductArtifactPrivacyError(
-                    f"provider diagnostic is invalid JSON: {path.relative_to(root)}"
-                ) from exc
-            replacement = (json.dumps(_redact_json(parsed), indent=2, sort_keys=True) + "\n").encode("utf-8")
-            kind = "provider_transport_diagnostic"
-        else:
-            continue
-        if replacement == before:
-            continue
-        path.write_bytes(replacement)
-        rows.append(
-            {
-                "artifact_ref": path.relative_to(root).as_posix(),
-                "kind": kind,
-                "original_sha256": _sha256(before),
-                "redacted_sha256": _sha256(replacement),
-                "original_byte_length": len(before),
-            }
-        )
+    scan = scan_and_redact_closeout_directory(
+        root,
+        redact_diagnostics=True,
+        hash_all_files=True,
+        error_cls=ProductArtifactPrivacyError,
+    )
+    rows = scan["redactions"]
     receipt = {
         "schema_version": "apps_rg.product_diagnostic_redaction.v1",
         "mode": "redact_before_review_bundle_and_terminal_seal",

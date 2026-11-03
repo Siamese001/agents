@@ -3,12 +3,11 @@
 # whole-run R1A/R1B cache preflight.
 # Plan: apps-rg-parallel-section-orchestration-f2a8c4 (W0.1)
 #
-# Dependency-ordered redesign (2026-06-06):
+# Dependency-ordered 3-stage schedule:
 #   wave 0 — upstream proof-bearing sections
 #            (competencies, slalom/unify/IBM/InsurTech bullets)
 #   wave 1 — narratives that consume finalized selected bullets
-#   wave 2 — executive_summary synthesizes finalized bullets + narratives + competencies
-#   wave 3 — headline is final positioning; must not run before exec_summary finalizes
+#   wave 2 — executive_summary and headline synthesize finalized upstream sections in parallel
 #
 # Every lane `depends_on` must sit in a strictly earlier wave (assert_section_dag_wave_order).
 schema_version: resume_sections_dag_v1
@@ -63,20 +62,23 @@ lanes:
       - insurtech_narrative
   - id: headline
     weight: light
-    wave: 3
+    wave: 2
     depends_on:
-      - executive_summary
       - competencies
       - slalom_bullets
       - unify_bullets
       - ibm_bullets
       - insurtech_bullets
+      - slalom_narrative
+      - unify_narrative
+      - ibm_narrative
+      - insurtech_narrative
 waves:
   - id: 0
     description: upstream proof-bearing sections (competencies + bullets), parallel-eligible
     lanes: [competencies, slalom_bullets, unify_bullets, ibm_bullets, insurtech_bullets]
     max_parallel_env: APPS_RG_PHASE1_MAX_PARALLEL
-    default_max_parallel: 5
+    default_max_parallel: 6
   - id: 1
     # 2026-06-13: unpinned from max_parallel:1 (stale external model-era serialization). The
     # narratives are mutually independent (each depends only on its own bullets lane in
@@ -86,10 +88,6 @@ waves:
     lanes: [slalom_narrative, unify_narrative, ibm_narrative, insurtech_narrative]
     max_parallel: 4
   - id: 2
-    description: heavy downstream synthesis (executive_summary) solo
-    lanes: [executive_summary]
-    max_parallel: 1
-  - id: 3
-    description: final positioning (headline) after exec_summary finalized
-    lanes: [headline]
-    max_parallel: 1
+    description: downstream synthesis and positioning (executive_summary + headline) parallel
+    lanes: [executive_summary, headline]
+    max_parallel: 2

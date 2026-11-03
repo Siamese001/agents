@@ -517,8 +517,8 @@ class SectionGenerationService:
                             "upstream_lane": upstream_lane,
                             "exit_status": "error",
                         }
-                result = dispatch_fn(**kwargs)
-                return dict(result) if isinstance(result, dict) else {}
+                from apps_rg.cache.section_lane_cache import dispatch_lane_with_section_cache
+                return dispatch_lane_with_section_cache(dispatch_fn=dispatch_fn, repo=repo, sections_root=sections_root, kwargs=kwargs)
 
             def _phase1_dependency_ready(lane: str) -> tuple[bool, str]:
                 upstream_spec = narrative_upstream.get(lane)

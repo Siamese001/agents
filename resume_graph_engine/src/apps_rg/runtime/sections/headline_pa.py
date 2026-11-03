@@ -232,6 +232,25 @@ def build_headline_assembly_input(
         "FORBIDDEN: flat arrays of strings such as [\"bul_unify_001\",\"bul_unify_005\"] — invalid for proof.\n",
         "jd_alignment must include jd_used_as_proof: false and briefing_used_as_proof: false (both booleans).\n",
     ]
+    headline_allocs = [
+        f"{r.get('claim_unit_id')}:{r.get('root_id')}"
+        for r in (plan.get("allocation_assignments") or [])
+        if isinstance(r, dict)
+        and str(r.get("section_id") or "") == "headline"
+        and str(r.get("root_id") or "").strip()
+    ]
+    if headline_allocs:
+        u0_parts.append(
+            "MANDATORY WHOLE-RESUME ALLOCATION BINDING: Every assigned headline allocation unit "
+            f"({', '.join(headline_allocs)}) MUST be represented 1-to-1 across X, Y, and Z and its root_id "
+            "MUST be cited in claim_ledger (set each claim_ledger row's claim_text to the exact X/Y/Z segment "
+            "and cite that segment's assigned root_id). Never exclude any assigned root_id to gap_notes, and "
+            "never spend two segments on one root_id while dropping another. "
+            "STRICT 10-13 WORD ARITHMETIC: Prefix is 2 words, so X+Y+Z combined MUST total 8 to 11 words "
+            "(never emit three 4-word segments = 14 words; keep at least two segments at 3 words, never "
+            "stack redundant trailing nouns like 'Accelerators Platform' or 'Infrastructure Systems', and "
+            "never embed vendor names like 'Databricks' inside 4-word segments — write 'Distributed Lakehouse Infrastructure').\n"
+        )
     if companion_context_nonempty:
         u0_parts.append(
             "Because U_TIER_COMPANION_CONTEXT is included below (non-empty), jd_alignment MUST also include "

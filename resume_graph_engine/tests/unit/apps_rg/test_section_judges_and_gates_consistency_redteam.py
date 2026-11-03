@@ -169,11 +169,9 @@ class TestVector2RegistryParityAndWaveDAG:
         assert lane_wave["ibm_narrative"] == 1
         assert lane_wave["insurtech_narrative"] == 1
 
-        # Executive summary is Wave 2 (after all bullets and narratives)
+        # Executive summary and headline run in parallel in Wave 2 (after all bullets and narratives)
         assert lane_wave["executive_summary"] == 2
-
-        # Headline is Wave 3 (runs last)
-        assert lane_wave["headline"] == 3
+        assert lane_wave["headline"] == 2
 
 
 # ==============================================================================
@@ -260,7 +258,7 @@ class TestVector4RuntimeProfileMonotonicity:
         assert profiles["optional_advisory_taxonomy_only"]["gemini_thinking_level"] == "low"
         assert profiles["standard_reasoning"]["gemini_thinking_level"] == "low"
         assert profiles["enhanced_reasoning"]["gemini_thinking_level"] == "medium"
-        assert judge_cfg["gemini_proof_thinking_level"] == "high"
+        assert judge_cfg["gemini_proof_thinking_level"] == "medium"
 
         # Bullet rewrite quality must match standard reasoning
         assert profiles["bullet_rewrite_quality"]["gemini_thinking_level"] == "low"

@@ -35,8 +35,9 @@ _STDLIB_URLOPEN = urllib.request.urlopen
 
 
 def urlopen_provider_request(request: urllib.request.Request, *, timeout: float) -> Any:
-    """Canonical provider HTTP dispatch for apps_rg runtime callers."""
-    return urllib.request.urlopen(request, timeout=timeout)
+    """Canonical provider HTTP dispatch with hard wall-clock body-read cap."""
+    from apps_rg.runtime.providers.wallclock_http_guard import urlopen_with_wallclock_cap
+    return urlopen_with_wallclock_cap(request, timeout=timeout, opener=urllib.request.urlopen)
 
 
 def _urlopen_with_attempt_evidence(

@@ -56,6 +56,39 @@ def _canonical(path_text: str) -> Path:
     return Path(path_text).expanduser().resolve()
 
 
+_SHARED_DATA_ENV_KEYS = frozenset({"CHROMA_PERSIST_DIR", "APPS_RG_EMBEDDING_MODEL_PATH"})
+
+
+def _resolve_expected_boundary_path(name: str, relative: str, root: Path) -> Path:
+    resolved = (root / relative).resolve()
+    if not _is_within(resolved, root):
+        raise RuntimeBoundaryViolation(f"PATH_AUTHORITY_POLICY_ESCAPE:{name}={relative}")
+    if name in _SHARED_DATA_ENV_KEYS and not resolved.exists():
+        from apps_rg.runtime.worktree_path_resolution import resolve_existing_trusted_rel_path
+
+        resolved = resolve_existing_trusted_rel_path(relative, root)
+    return resolved
+
+
+def _normalize_trusted_pythonpath(raw_value: str, expected: Path, root: Path) -> str | None:
+    from apps_rg.runtime.worktree_path_resolution import is_within_trusted_checkout
+
+    parts = [p.strip() for p in raw_value.split(os.pathsep) if p.strip()]
+    if not parts:
+        return str(expected)
+    canon_parts: list[Path] = []
+    for part in parts:
+        cp = _canonical(part)
+        ok, _ = is_within_trusted_checkout(cp, root)
+        if not ok:
+            return None
+        if cp not in canon_parts:
+            canon_parts.append(cp)
+    if expected not in canon_parts:
+        canon_parts.insert(0, expected)
+    return os.pathsep.join(str(p) for p in canon_parts)
+
+
 def _load_policy(*, repo_root: Path, policy_path: Path | None = None) -> tuple[Path, dict[str, object], str]:
     path = (policy_path or repo_root / RUNTIME_BOUNDARY_POLICY_RELATIVE).resolve()
     if not path.is_file():
@@ -106,30 +139,37 @@ def configure_apps_rg_runtime_boundary(
     for name, relative in paths.items():
         if not isinstance(name, str) or not isinstance(relative, str) or not name or not relative:
             raise RuntimeBoundaryViolation(f"PATH_AUTHORITY_POLICY_INVALID:path:{path}")
-        resolved = (root / relative).resolve()
-        if not _is_within(resolved, root):
-            raise RuntimeBoundaryViolation(f"PATH_AUTHORITY_POLICY_ESCAPE:{name}={relative}")
-        effective[name] = resolved
+        effective[name] = _resolve_expected_boundary_path(name, relative, root)
 
     # Validate all inherited values first.  This gives a direct, deterministic
     # error rather than silently using a stale process variable from a prior
     # checkout.
+    normalized_pythonpath: str | None = None
     for name, expected in effective.items():
         inherited = str(env.get(name) or "").strip()
-        if inherited and _canonical(inherited) != expected:
+        if name == "PYTHONPATH" and inherited:
+            normalized_pythonpath = _normalize_trusted_pythonpath(inherited, expected, root)
+            if normalized_pythonpath is None:
+                raise RuntimeBoundaryViolation(
+                    f"PATH_AUTHORITY_VIOLATION:{name}:inherited={inherited};expected={expected}"
+                )
+        elif inherited and _canonical(inherited) != expected:
             raise RuntimeBoundaryViolation(
                 f"PATH_AUTHORITY_VIOLATION:{name}:inherited={_canonical(inherited)};expected={expected}"
             )
 
     for name, expected in effective.items():
-        env[name] = str(expected)
+        if name == "PYTHONPATH" and normalized_pythonpath is not None:
+            env[name] = normalized_pythonpath
+        else:
+            env[name] = str(expected)
     env[RUNTIME_BOUNDARY_MARKER] = "1"
     env["HF_HUB_OFFLINE"] = "1"
     env["TRANSFORMERS_OFFLINE"] = "1"
     env.setdefault("APPS_RG_ANTHROPIC_PROMPT_CACHE", "1")
     env.setdefault("APPS_RG_ANTHROPIC_PROMPT_CACHE_TELEMETRY", "1")
     env.setdefault("APPS_RG_PARALLEL_PHASE1_LANES", "1")
-    env.setdefault("APPS_RG_PHASE1_MAX_PARALLEL", "4")
+    env.setdefault("APPS_RG_PHASE1_MAX_PARALLEL", "6")
     return AppsRgRuntimeBoundary(
         repo_root=root,
         policy_path=path,
@@ -154,9 +194,16 @@ def assert_apps_rg_runtime_boundary(
         raise RuntimeBoundaryViolation(f"PATH_AUTHORITY_POLICY_INVALID:environmentPaths:{path}")
     effective: dict[str, Path] = {}
     for name, relative in paths.items():
-        expected = (root / str(relative)).resolve()
+        expected = _resolve_expected_boundary_path(str(name), str(relative), root)
         observed = str(env.get(str(name)) or "").strip()
-        if not observed or _canonical(observed) != expected:
+        if str(name) == "PYTHONPATH":
+            norm_pp = _normalize_trusted_pythonpath(observed, expected, root) if observed else None
+            obs_parts = {_canonical(p) for p in observed.split(os.pathsep) if p.strip()}
+            if not observed or norm_pp is None or expected not in obs_parts:
+                raise RuntimeBoundaryViolation(
+                    f"PATH_AUTHORITY_VIOLATION:{name}:observed={observed or '<unset>'};expected={expected}"
+                )
+        elif not observed or _canonical(observed) != expected:
             raise RuntimeBoundaryViolation(
                 f"PATH_AUTHORITY_VIOLATION:{name}:observed={observed or '<unset>'};expected={expected}"
             )
