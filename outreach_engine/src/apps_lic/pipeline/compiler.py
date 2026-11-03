@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import functools
+import logging
 import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 import yaml
+
+_log = logging.getLogger(__name__)
 
 from apps_lic.domain.models import (
     AudiencePersona,
@@ -62,11 +65,13 @@ def get_recruiter_signature_block(candidate: CandidateProfile | str | None = Non
 @functools.lru_cache(maxsize=32)
 def _load_cached_yaml_template(file_path_str: str, mtime: float) -> Dict[str, Any]:
     """Parse and cache a YAML template file, keyed by path and mtime."""
+    parsed: Any = None
     try:
         with open(file_path_str, "r", encoding="utf-8") as f:
-            return yaml.safe_load(f) or {}
-    except (OSError, yaml.YAMLError, ValueError):
-        return {}
+            parsed = yaml.safe_load(f)
+    except (OSError, UnicodeDecodeError, yaml.YAMLError, ValueError) as exc:
+        _log.warning("Failed loading prompt template %s: %s", file_path_str, exc)
+    return dict(parsed) if isinstance(parsed, dict) else {}
 
 
 class PromptCompiler:

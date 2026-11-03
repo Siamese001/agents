@@ -108,14 +108,24 @@ def _normalize_role(val: str) -> str:
 
 
 def _read_candidate_brief(path: Path) -> str:
+    extracted = ""
     try:
+        raw_text = path.read_text(encoding="utf-8")
         if path.suffix.lower() == ".json":
-            data = json.loads(path.read_text(encoding="utf-8"))
+            data = json.loads(raw_text)
             if isinstance(data, dict):
-                return str(data.get("freeform_text") or data.get("company_brief") or "")
-        return path.read_text(encoding="utf-8").strip()
-    except OSError:
-        return ""
+                extracted = str(
+                    data.get("freeform_text")
+                    or data.get("company_brief_text")
+                    or data.get("company_brief")
+                    or data.get("brief_text")
+                    or ""
+                ).strip()
+        else:
+            extracted = raw_text.strip()
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        _log.warning("Skipping unreadable or malformed candidate brief %s: %s", path, exc)
+    return extracted
 
 
 def _resolve_canonical_targeting_brief(
@@ -292,8 +302,9 @@ def _find_valid_persisted_artifact_bundle(
             if confidence <= 0.0 and brief_json_path.is_file():
                 try:
                     b_json = json.loads(brief_json_path.read_text(encoding="utf-8"))
-                    confidence = float(b_json.get("confidence_score", 0.0) or 0.0)
-                except (OSError, json.JSONDecodeError):
+                    if isinstance(b_json, dict):
+                        confidence = float(b_json.get("confidence_score", 0.0) or 0.0)
+                except (OSError, UnicodeDecodeError, json.JSONDecodeError):
                     pass
             if confidence <= 0.0:
                 confidence = 0.90
@@ -305,12 +316,15 @@ def _find_valid_persisted_artifact_bundle(
             if not brief_text:
                 continue
 
-            priorities = ()
+            priorities: tuple[str, ...] = ()
             if brief_json_path.is_file():
                 try:
                     b_json = json.loads(brief_json_path.read_text(encoding="utf-8"))
-                    priorities = tuple(b_json.get("priorities", ()))
-                except (OSError, json.JSONDecodeError):
+                    if isinstance(b_json, dict):
+                        raw_priorities = b_json.get("priorities") or b_json.get("strategic_priorities") or ()
+                        if isinstance(raw_priorities, (list, tuple)):
+                            priorities = tuple(str(item) for item in raw_priorities if str(item).strip())
+                except (OSError, UnicodeDecodeError, json.JSONDecodeError):
                     pass
             if not priorities:
                 priorities = tuple(_extract_priorities_from_text(brief_text))
