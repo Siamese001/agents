@@ -51,8 +51,8 @@ Execute a deterministic, fail-closed **8-Pillar Cost, Multi-Tier Caching, Token 
    - Audit `executive_summary_token_budget.py` (`first_pass_95pct_limit_tokens`, `regen_dispatch_allowed`) and `word_budget_repair.py`, ensuring optional trims never mutate `PROTECTED_COMPONENT_LABELS` or `_SRFS_SHAPE_MARKERS`.
 6. **Pillar 6 — Lane-Calibrated Judge Retries, Selector Pool Caching & Zero-LLM Post-Runtime Qualification**:
    - Audit `config/provider_profiles.yaml` `runtime_limits.judge.runtime_profiles` (`enhanced_reasoning.max_attempts: 3`), `provider_gateway.py` bounded retry classification, and `zero_llm_qualification.py` (`ZERO_COUNTER_KEYS`).
-7. **Pillar 7 — Closed-Loop Spend Governor, Secret Hygiene & System Learning**:
-   - Audit `model_token_governor.py` (`48000` / `300000` caps), `apps_model_telemetry/`, `ResearchBoundaryPolicy` (`cost_limit_usd: 1.0`), `tools/lint_secrets.py`, and `HITLDecisionStore` (`record_execution_outcome`).
+7. **Pillar 7 — Closed-Loop Spend Governor, Telemetry/Manifest/Reuse Live Probes, Secret Hygiene & System Learning**:
+   - Audit `model_token_governor.py` (`48000` / `300000` caps), live behavioral execution of `apps_model_telemetry/telemetry_facade.py`, `run_manifest.py`, and `exact_response_reuse.py` (`tools/cost_token_budget_governor_probes.py`), `ResearchBoundaryPolicy` (`cost_limit_usd: 1.0`), `tools/lint_secrets.py`, and `HITLDecisionStore` (`record_execution_outcome`).
 8. **Pillar 8 — Internal Antigravity Argon 4 (Medium & High Reasoning) vs. External LLM API Value-Add Gate, Compact Serialization & $\text{ROI} \ge 2.5\times$ Pareto Benchmarking**:
    - Verify interactive sessions route primary generation to **Argon 4 High** (`$0.00` marginal API cost, full thinking separation without JSON truncation) and advisory selectors/repairs to **Argon 4 Medium**, retaining paid external APIs strictly for headless batch runs and cross-family adversarial dual-provider proof judging (`X1D`), alongside compact JSON serialization (`separators=(",", ":")`) and $\text{ROI} \ge 2.5\times$ Pareto benchmarking.
 
@@ -64,6 +64,7 @@ export PRIMARY_REPO_ROOT="/Users/amitayer/Git/agents"
 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/lint_model_neutral_naming.py" --all --repo-root "${PRIMARY_REPO_ROOT}"
 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/lint_secrets.py" --all --repo-root "${PRIMARY_REPO_ROOT}"
 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/cost_token_budget_auditor.py" --repo-root "${PRIMARY_REPO_ROOT}" --json --strict
+"${PRIMARY_REPO_ROOT}/.venv/bin/pytest" "${PRIMARY_REPO_ROOT}/tests/unit/test_evals_and_budget_full_parity.py" -q --timeout=60
 ```
 
 If all preflight commands exit `0` (`"status": "PASS"`, `"is_clean": true`), fast-exit `COMPLETE` (`PREFLIGHT_ZERO_DEFECT_FAST_EXIT`).

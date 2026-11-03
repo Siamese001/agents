@@ -106,101 +106,98 @@ def _validate_eval_modules_ast_and_schemas(repo_root: Path) -> tuple[int, int, l
 
 def _probe_app_graders(contracts_mod: Any, graders_mod: Any, app_id: str, clean_body: str, bad_body: str) -> list[str]:
     errs: list[str] = []
+    all_grader_ids = (
+        "schema", "artifact_presence", "x3_disposition", "forbidden_content",
+        "grounded_claim", "provenance", "section_structure", "length_bounds",
+        "side_effect", "escalation", "determinism",
+    )
     scenario = contracts_mod.EvalScenario(
-        scenario_id=f"scn_live_probe_{app_id}",
-        suite_id="suite_probe",
-        app_id=app_id,
-        description=f"Live deterministic grader probe for {app_id}",
-        fixture_path="probe.json",
-        graders=("forbidden_content", "grounded_claim"),
-        rubric_id=f"rub_probe_{app_id}",
+        scenario_id=f"scn_live_probe_{app_id}", suite_id="suite_probe", app_id=app_id,
+        description=f"Live deterministic grader probe for {app_id}", fixture_path="probe.json",
+        graders=all_grader_ids, rubric_id=f"rub_probe_{app_id}",
     )
-    provenance = contracts_mod.FixtureProvenance(
-        scenario_id=f"scn_live_probe_{app_id}",
-        fixture_path="probe.json",
-    )
+    provenance = contracts_mod.FixtureProvenance(scenario_id=f"scn_live_probe_{app_id}", fixture_path="probe.json")
     fixture = contracts_mod.EvalFixture(
-        scenario=scenario,
-        input_dir=".",
-        expected_dir=".",
-        snapshot_path="probe.json",
-        artifacts_dir=".",
+        scenario=scenario, input_dir=".", expected_dir=".", snapshot_path="probe.json", artifacts_dir=".",
         expected={
-            "forbidden_terms": ["guaranteed_offer"],
-            "grounded_claims_required": True,
+            "required_output_keys": ["draft", "sections"], "required_artifacts": ["final_artifact.json"],
+            "expected_x3": "APPROVE", "forbidden_terms": ["guaranteed_offer"], "grounded_claims_required": True,
+            "required_provenance": ["ev_ref_1"], "required_sections": ["summary"],
+            "length_bounds": {"min_words": 5, "max_words": 60}, "allow_side_effects": False, "escalation_required": False,
         },
         provenance=provenance,
     )
-    clean_snap = contracts_mod.AppOutputSnapshot(
-        app_id=app_id,
-        scenario_id=scenario.scenario_id,
-        x3_disposition="APPROVE",
-        output={"draft": clean_body},
-        claims=[{"id": "c1", "supported": True, "source_ids": ["src_1"]}],
-    )
+    clean_kwargs: dict[str, Any] = {
+        "app_id": app_id, "scenario_id": scenario.scenario_id, "x3_disposition": "APPROVE",
+        "output": {"draft": clean_body, "sections": {"summary": clean_body}},
+        "claims": [{"id": "c1", "supported": True, "source_ids": ["src_1"]}],
+        "artifacts": ["final_artifact.json"], "provenance": {"evidence_refs": ["ev_ref_1"]},
+        "side_effects": {"writes": [], "product_state_mutated": False},
+    }
+    clean_hash = graders_mod._canonical_hash(contracts_mod.AppOutputSnapshot(**clean_kwargs))
+    clean_snap = contracts_mod.AppOutputSnapshot(**clean_kwargs, deterministic_hash=clean_hash)
     tainted_snap = contracts_mod.AppOutputSnapshot(
-        app_id=app_id,
-        scenario_id=scenario.scenario_id,
-        x3_disposition="REJECT",
-        output={"draft": bad_body},
+        app_id=app_id, scenario_id=scenario.scenario_id, x3_disposition="X3B_ESCALATE_HITL",
+        output={"other_key": bad_body + (" filler" * 80)},
         claims=[{"id": "c1", "supported": False, "source_ids": []}],
+        artifacts=[], provenance={"evidence_refs": []},
+        side_effects={"writes": ["unauthorized_write.json"], "product_state_mutated": True},
+        deterministic_hash="tampered_hash_000",
     )
-    fc_grader = graders_mod.ForbiddenContentGrader()
-    gc_grader = graders_mod.GroundedClaimGrader()
-    if not fc_grader.grade(fixture, clean_snap).passed or fc_grader.grade(fixture, tainted_snap).passed:
-        errs.append(f"ForbiddenContentGrader failed behavioral pass/fail probe for {app_id}")
-    if not gc_grader.grade(fixture, clean_snap).passed or gc_grader.grade(fixture, tainted_snap).passed:
-        errs.append(f"GroundedClaimGrader failed behavioral pass/fail probe for {app_id}")
+    for grader in graders_mod.build_default_graders():
+        pos, neg = grader.grade(fixture, clean_snap), grader.grade(fixture, tainted_snap)
+        if not pos.passed or neg.passed:
+            errs.append(f"{grader.grader_id} failed behavioral pass/fail probe for {app_id} (pos={pos.passed}, neg={neg.passed})")
     return errs
 
 
 def _run_live_apps_eval_probes(repo_root: Path) -> list[str]:
     """Execute live behavioral probes against apps_eval graders, adapters, registries, and L6 claim ladder."""
+    import tempfile
+
     violations: list[str] = []
     if not (repo_root / "apps_eval" / "graders" / "deterministic" / "core.py").is_file():
         return violations
 
-    contracts_mod, err_c = load_repo_module(repo_root, "apps_eval/contracts/models.py")
-    graders_mod, err_g = load_repo_module(repo_root, "apps_eval/graders/deterministic/core.py")
-    ladder_mod, err_l = load_repo_module(repo_root, "apps_eval/l6_eval_ladder.py")
-    loader_mod, err_r = load_repo_module(repo_root, "apps_eval/registry/loader.py")
-    lic_adapter, err_lic = load_repo_module(repo_root, "apps_eval/adapters/outreach_engine.py")
-    rg_adapter, err_rg = load_repo_module(repo_root, "apps_eval/adapters/resume_graph_engine.py")
-    for label, mod, err in (
-        ("apps_eval/contracts/models.py", contracts_mod, err_c),
-        ("apps_eval/graders/deterministic/core.py", graders_mod, err_g),
-        ("apps_eval/l6_eval_ladder.py", ladder_mod, err_l),
-        ("apps_eval/registry/loader.py", loader_mod, err_r),
-        ("apps_eval/adapters/outreach_engine.py", lic_adapter, err_lic),
-        ("apps_eval/adapters/resume_graph_engine.py", rg_adapter, err_rg),
-    ):
+    mod_paths = {
+        "contracts": "apps_eval/contracts/models.py",
+        "graders": "apps_eval/graders/deterministic/core.py",
+        "ladder": "apps_eval/l6_eval_ladder.py",
+        "loader": "apps_eval/registry/loader.py",
+        "lic_adapter": "apps_eval/adapters/outreach_engine.py",
+        "rg_adapter": "apps_eval/adapters/resume_graph_engine.py",
+        "bridge": "apps_eval/l6_shadow_bridge.py",
+        "render": "apps_eval/outputs/render.py",
+        "trends": "apps_eval/trends.py",
+        "scenarios": "apps_eval/scenarios.py",
+    }
+    loaded: dict[str, Any] = {}
+    for key, rel_p in mod_paths.items():
+        mod, err = load_repo_module(repo_root, rel_p)
         if err or mod is None:
-            violations.append(f"{label}: failed loading live evaluator module ({err})")
+            violations.append(f"{rel_p}: failed loading live evaluator module ({err})")
             return violations
+        loaded[key] = mod
+    contracts_mod, graders_mod = loaded["contracts"], loaded["graders"]
+    ladder_mod, loader_mod = loaded["ladder"], loaded["loader"]
+    lic_adapter, rg_adapter = loaded["lic_adapter"], loaded["rg_adapter"]
+    bridge_mod, render_mod, trends_mod, scenarios_mod = loaded["bridge"], loaded["render"], loaded["trends"], loaded["scenarios"]
 
     try:
         default_graders = graders_mod.build_default_graders()
-        if len(default_graders) < 10:
-            violations.append(f"build_default_graders() returned {len(default_graders)} graders (expected >= 10)")
+        if len(default_graders) != 11:
+            violations.append(f"build_default_graders() returned {len(default_graders)} graders (expected 11)")
 
-        violations.extend(
-            _probe_app_graders(
-                contracts_mod,
-                graders_mod,
-                "apps_lic",
-                "Grounded executive outreach note referencing verified transformation scope.",
-                "This outreach message promises a guaranteed_offer immediately.",
-            )
-        )
-        violations.extend(
-            _probe_app_graders(
-                contracts_mod,
-                graders_mod,
-                "apps_rg",
-                "Led enterprise platform transformation delivering measurable latency gains across 18 services.",
-                "Resume headline promising a guaranteed_offer upon submission.",
-            )
-        )
+        violations.extend(_probe_app_graders(
+            contracts_mod, graders_mod, "apps_lic",
+            "Grounded executive outreach note referencing verified transformation scope.",
+            "This outreach message promises a guaranteed_offer immediately.",
+        ))
+        violations.extend(_probe_app_graders(
+            contracts_mod, graders_mod, "apps_rg",
+            "Led enterprise platform transformation delivering measurable latency gains across 18 services.",
+            "Resume headline promising a guaranteed_offer upon submission.",
+        ))
 
         if not callable(getattr(lic_adapter, "run_apps_lic_live", None)):
             violations.append("apps_eval/adapters/outreach_engine.py missing callable run_apps_lic_live")
@@ -210,19 +207,68 @@ def _run_live_apps_eval_probes(repo_root: Path) -> list[str]:
             violations.append("apps_eval/adapters/resume_graph_engine.py missing callable run_apps_rg_live")
 
         fake_lane_claim = ladder_mod.build_l6_eval_execution_receipt(
-            eval_level="LANE",
-            deterministic_only=True,
-            writer_live=False,
-            graders_live=False,
+            eval_level="LANE", deterministic_only=True, writer_live=False, graders_live=False
         )
         if fake_lane_claim.execution_claim_status != "FAIL":
             violations.append("build_l6_eval_execution_receipt failed to block deterministic LANE claim")
 
-        apps_reg = loader_mod.load_apps_registry()
-        graders_reg = loader_mod.load_graders_registry()
-        if set(apps_reg) != {"apps_rg", "apps_lic"} or not graders_reg:
+        apps_reg, graders_reg = loader_mod.load_apps_registry(), loader_mod.load_graders_registry()
+        if set(apps_reg) != {"apps_rg", "apps_lic"} or len(graders_reg) < 11:
             violations.append("apps_eval registry loader returned incomplete apps or graders registry")
-    except Exception as exc:  # guardian: fail-closed live evaluator probe harness
+
+        with tempfile.TemporaryDirectory(prefix="eval_probe_l6_") as td:
+            td_path = Path(td)
+            drv_payload = bridge_mod.emit_driver_l6_shadow_bridge(
+                td_path, eval_id="eval_probe_1",
+                app_scorecards=[{"suite_id": "apps_rg.dev.smoke", "score": 1.0}],
+                output_refs={"eval_record": "eval_record.json"},
+            )
+            bridge_file = Path(drv_payload["l6_shadow_bridge"])
+            if not bridge_file.is_file():
+                violations.append("emit_driver_l6_shadow_bridge failed to write l6_shadow_bridge.json")
+            else:
+                bdoc = json.loads(bridge_file.read_text(encoding="utf-8"))
+                if bdoc.get("current_run_mutated") is not False or bdoc.get("future_run_only") is not True:
+                    violations.append("l6_shadow_bridge violated non-mutation / future_run_only invariant")
+
+            sample_sc = contracts_mod.Scorecard(
+                suite_id="apps_rg.dev.smoke", app_id="apps_rg", scenario_count=1, finding_count=11,
+                passed_findings=11, failed_findings=0, block_failures=0, score=1.0,
+                verdict="pass", dimension_scores={"grounding": 1.0},
+            )
+            sample_reg = contracts_mod.RegressionSummary(
+                compared=True, current_score=1.0, baseline_score=0.98, delta=0.02, verdict="improved"
+            )
+            rec_base: dict[str, Any] = {
+                "suite_id": "apps_rg.dev.smoke", "app_id": "apps_rg", "mode": "snapshot",
+                "deterministic_only": True, "scenario_results": [{"scenario_id": "scn_1", "passed": True, "failed_findings": 0}],
+                "scorecard": sample_sc, "regression": sample_reg, "artifact_paths": {}, "rubric_ids": ["rub_1"],
+            }
+            sample_rec = contracts_mod.CompletedEvalRecord(record_id="rec_probe_1", created_at="2026-11-03T00:00:00Z", **rec_base)
+            rendered_md = render_mod.render_report(sample_rec, [])
+            if "# apps_eval report: apps_rg.dev.smoke" not in rendered_md or "Verdict: `pass`" not in rendered_md:
+                violations.append("apps_eval/outputs/render.py failed to render CompletedEvalRecord report")
+
+            for r_id, ts in (("run1", "2026-11-03T00:00:00Z"), ("run2", "2026-11-03T01:00:00Z")):
+                rdir = td_path / "records" / r_id
+                rdir.mkdir(parents=True, exist_ok=True)
+                rec_obj = contracts_mod.CompletedEvalRecord(record_id=f"rec_{r_id}", created_at=ts, **rec_base)
+                (rdir / "eval_record.json").write_text(json.dumps(rec_obj.to_dict()), encoding="utf-8")
+            gate_dec = trends_mod.emit_release_gate(
+                records_root=td_path / "records", app_id="apps_rg", out_dir=td_path / "trends_out", emit_l6_shadow=True
+            )
+            if gate_dec.status != "pass" or gate_dec.sample_count != 2:
+                violations.append(f"apps_eval/trends.py emit_release_gate failed clean 2-sample approval: {gate_dec.status}")
+
+        cent_file = repo_root / "config" / "governance" / "centralization_registry.yaml"
+        if cent_file.is_file():
+            cent_doc = yaml.safe_load(cent_file.read_text(encoding="utf-8")) or {}
+            owners = cent_doc.get("domain_threshold_owners") or {}
+            exec_max = int(((owners.get("resume_executive_summary_shape") or {}).get("canonical_symbols") or {}).get("EXEC_SUMMARY_MAX_WORDS", 150))
+            rg_exp = scenarios_mod._apps_rg_expectations()
+            if int((rg_exp.get("length_bounds") or {}).get("max_words", 0)) < exec_max:
+                violations.append("apps_eval/scenarios.py _apps_rg_expectations length_bounds.max_words below EXEC_SUMMARY_MAX_WORDS")
+    except Exception as exc:  # guardian: allow-broad-exception -- fail-closed live evaluator probe harness
         violations.append(f"Live apps_eval behavioral probe raised error: {exc}")
 
     return violations
@@ -300,9 +346,8 @@ def _validate_exit_and_domain_rubrics(repo_root: Path) -> tuple[int, list[str]]:
             if not isinstance(doc, dict) or not doc.get("rubric_id"):
                 violations.append(f"{rel}: missing rubric_id")
                 continue
-            bands = doc.get("score_bands") or []
             prev_min = -1.0
-            for band in bands:
+            for band in doc.get("score_bands") or []:
                 if isinstance(band, dict) and "min_score" in band:
                     ms = float(band["min_score"])
                     if not (0.0 <= ms <= 1.0) or ms < prev_min:
@@ -314,15 +359,13 @@ def _validate_exit_and_domain_rubrics(repo_root: Path) -> tuple[int, list[str]]:
                 for lname, lcfg in lenses.items():
                     if not isinstance(lcfg, dict):
                         continue
-                    w = float(lcfg.get("weight", 0.0))
-                    thr = float(lcfg.get("threshold", 0.0))
+                    w, thr = float(lcfg.get("weight", 0.0)), float(lcfg.get("threshold", 0.0))
                     if not (0.0 <= w <= 1.0) or not (0.0 <= thr <= 1.0):
                         violations.append(f"{rel}::{lname}: lens weight/threshold outside [0.0, 1.0]")
                     wsum += w
                 if abs(wsum - 1.0) > 1e-6:
                     violations.append(f"{rel}: outreach lenses weights sum to {wsum:.4f} != 1.0")
 
-    # Validate apps_eval/rubrics/*.yaml
     apps_eval_rub_dir = repo_root / "apps_eval" / "rubrics"
     if apps_eval_rub_dir.is_dir():
         for yf in sorted(apps_eval_rub_dir.glob("*.yaml")):
@@ -340,8 +383,7 @@ def _validate_exit_and_domain_rubrics(repo_root: Path) -> tuple[int, list[str]]:
             for dim in doc["dimensions"]:
                 if not isinstance(dim, dict):
                     continue
-                did = str(dim.get("id", "<unnamed>"))
-                w = float(dim.get("weight", 0.0))
+                did, w = str(dim.get("id", "<unnamed>")), float(dim.get("weight", 0.0))
                 if not (0.0 <= w <= 1.0):
                     violations.append(f"{rel}::{did}: weight {w} outside [0.0, 1.0]")
                 if dim.get("informational_only") is True and w > 0.0:
@@ -350,7 +392,6 @@ def _validate_exit_and_domain_rubrics(repo_root: Path) -> tuple[int, list[str]]:
             if abs(wsum - 1.0) > 1e-6:
                 violations.append(f"{rel}: rubric dimensions sum to {wsum:.4f} != 1.0")
 
-    # Validate apps_research/config/domain_contract/eval_rubrics.yaml
     res_rub = repo_root / "apps_research" / "config" / "domain_contract" / "eval_rubrics.yaml"
     if res_rub.is_file():
         count += 1
@@ -363,17 +404,10 @@ def _validate_exit_and_domain_rubrics(repo_root: Path) -> tuple[int, list[str]]:
         if not isinstance(items, list) or not items:
             violations.append(f"{rel}: expected non-empty list of eval rubrics")
         else:
-            for item in items:
-                if not isinstance(item, dict):
-                    continue
-                rid = str(item.get("eval_rubric_id", "<unnamed>"))
-                sdims = item.get("score_dimensions") or []
-                wsum = 0.0
-                for sdim in sdims:
-                    if not isinstance(sdim, dict):
-                        continue
-                    w = float(sdim.get("weight", 0.0))
-                    mrs = float(sdim.get("min_required_score", 0.0))
+            for item in (it for it in items if isinstance(it, dict)):
+                rid, wsum = str(item.get("eval_rubric_id", "<unnamed>")), 0.0
+                for sdim in (sd for sd in (item.get("score_dimensions") or []) if isinstance(sd, dict)):
+                    w, mrs = float(sdim.get("weight", 0.0)), float(sdim.get("min_required_score", 0.0))
                     if not (0.0 <= w <= 1.0) or not (0.0 <= mrs <= 1.0):
                         violations.append(f"{rel}::{rid}: score_dimension weight/min_required_score outside [0.0, 1.0]")
                     wsum += w
@@ -392,19 +426,14 @@ def _validate_judge_rubrics_and_profiles(repo_root: Path) -> list[str]:
             continue
         try:
             doc = yaml.safe_load(j_rubric.read_text(encoding="utf-8")) or {}
-            dims = doc.get("dimensions") or {}
-            for dname, cfg in dims.items():
+            for dname, cfg in (doc.get("dimensions") or {}).items():
                 if not isinstance(cfg, dict):
                     continue
-                smin = float(cfg.get("scale_min", 1))
-                smax = float(cfg.get("scale_max", 5))
-                warn_t = float(cfg.get("warn_threshold", smin))
-                pass_t = float(cfg.get("pass_threshold", smax))
+                smin, smax = float(cfg.get("scale_min", 1)), float(cfg.get("scale_max", 5))
+                warn_t, pass_t = float(cfg.get("warn_threshold", smin)), float(cfg.get("pass_threshold", smax))
                 ubudget = float(cfg.get("unknown_budget", 0.0))
                 if not (smin <= warn_t <= pass_t <= smax):
-                    violations.append(
-                        f"{j_rel}::{dname}: invalid threshold ordering ({smin} <= {warn_t} <= {pass_t} <= {smax})"
-                    )
+                    violations.append(f"{j_rel}::{dname}: invalid threshold ordering ({smin} <= {warn_t} <= {pass_t} <= {smax})")
                 if not (0.0 <= ubudget <= 1.0):
                     violations.append(f"{j_rel}::{dname}: unknown_budget {ubudget} outside [0.0, 1.0]")
         except (OSError, yaml.YAMLError, ValueError, TypeError) as exc:
@@ -423,24 +452,24 @@ def _validate_judge_rubrics_and_profiles(repo_root: Path) -> list[str]:
                     if str(mid).lower() not in approved:
                         violations.append(f"config/provider_profiles.yaml::judge_models.{tier}.{prov}: unapproved '{mid}'")
 
-    lic_prof = repo_root / "outreach_engine" / "config" / "provider_profiles.yaml"
-    if lic_prof.is_file():
-        doc = yaml.safe_load(lic_prof.read_text(encoding="utf-8")) or {}
-        for role_name, role_cfg in (doc.get("profiles") or {}).items():
-            if isinstance(role_cfg, dict) and role_cfg.get("model"):
-                mid = str(role_cfg["model"])
-                if mid.lower() not in approved:
-                    violations.append(f"outreach_engine/config/provider_profiles.yaml::{role_name}: unapproved '{mid}'")
+    for rel_p, top_key in (
+        ("outreach_engine/config/provider_profiles.yaml", "profiles"),
+        ("apps_research/config/domain_contract/provider_profile.company_brief.v1.yaml", "approved_model_lanes"),
+    ):
+        fp = repo_root / rel_p
+        if fp.is_file():
+            doc = yaml.safe_load(fp.read_text(encoding="utf-8")) or {}
+            for kname, kcfg in (doc.get(top_key) or {}).items() if isinstance(doc.get(top_key), dict) else ():
+                if isinstance(kcfg, dict) and kcfg.get("model") and str(kcfg["model"]).lower() not in approved:
+                    violations.append(f"{rel_p}::{kname}: unapproved '{kcfg['model']}'")
 
     apps_eval_rub_dir = repo_root / "apps_eval" / "rubrics"
     if apps_eval_rub_dir.is_dir():
         for yf in sorted(apps_eval_rub_dir.glob("*.yaml")):
             doc = yaml.safe_load(yf.read_text(encoding="utf-8")) or {}
             pin = (doc.get("judge_model_pin") or {}) if isinstance(doc, dict) else {}
-            if isinstance(pin, dict) and pin.get("model"):
-                mid = str(pin["model"])
-                if mid.lower() not in approved:
-                    violations.append(f"{yf.relative_to(repo_root)}::judge_model_pin: unapproved '{mid}'")
+            if isinstance(pin, dict) and pin.get("model") and str(pin["model"]).lower() not in approved:
+                violations.append(f"{yf.relative_to(repo_root)}::judge_model_pin: unapproved '{pin['model']}'")
 
     res_jprof = repo_root / "apps_research" / "config" / "domain_contract" / "judge_profile.company_brief.v1.yaml"
     if res_jprof.is_file():
@@ -449,29 +478,11 @@ def _validate_judge_rubrics_and_profiles(repo_root: Path) -> list[str]:
         if isinstance(hj, dict) and hj.get("model") and str(hj["model"]).lower() not in approved:
             violations.append(f"{res_jprof.relative_to(repo_root)}::apps_rg_handoff_judge: unapproved '{hj['model']}'")
 
-    res_pprof = repo_root / "apps_research" / "config" / "domain_contract" / "provider_profile.company_brief.v1.yaml"
-    if res_pprof.is_file():
-        doc = yaml.safe_load(res_pprof.read_text(encoding="utf-8")) or {}
-        lanes = (doc.get("approved_model_lanes") or {}) if isinstance(doc, dict) else {}
-        if isinstance(lanes, dict):
-            for lname, lcfg in lanes.items():
-                if isinstance(lcfg, dict) and lcfg.get("model") and str(lcfg["model"]).lower() not in approved:
-                    violations.append(f"{res_pprof.relative_to(repo_root)}::{lname}: unapproved '{lcfg['model']}'")
-
     return violations
 
 
 _RUNTIME_CACHE_DIR_PARTS: frozenset[str] = frozenset({"cache", "__pycache__", ".pytest_cache", ".ruff_cache"})
-_RUNTIME_BINARY_SIDE_SUFFIXES: tuple[str, ...] = (
-    "-wal",
-    "-shm",
-    "-journal",
-    ".sqlite",
-    ".sqlite3",
-    ".db",
-    ".bin",
-    ".lock",
-)
+_RUNTIME_BINARY_SIDE_SUFFIXES: tuple[str, ...] = ("-wal", "-shm", "-journal", ".sqlite", ".sqlite3", ".db", ".bin", ".lock")
 
 
 def _validate_data_holdout_surface(repo_root: Path) -> tuple[int, dict[str, int], list[str]]:

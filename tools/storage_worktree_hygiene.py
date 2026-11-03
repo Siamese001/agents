@@ -24,6 +24,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+from infrastructure.config.env_loader import get_env_str
 from tools.lint_secrets import check_file_for_secrets
 from tools.prune_merged_chat_worktrees import (
     SIDECAR_ACTIVE_LEASE_FILENAME,
@@ -148,7 +149,7 @@ def inspect_sqlite_databases(repo_root: Path) -> list[dict[str, Any]]:
             conn.close()
             integrity = str(integrity_row[0]) if integrity_row else "unknown"
             jmode = str(jmode_row[0]).lower() if jmode_row else "unknown"
-        except Exception as exc:  # guardian: database corruption or lock diagnostic fallback
+        except Exception as exc:  # guardian: allow-broad-exception -- database corruption or lock diagnostic fallback
             integrity, jmode = f"ERROR: {exc}", "unknown"
 
         reports.append({
@@ -418,6 +419,47 @@ def collect_storage_inventory(repo_root: Path) -> dict[str, float]:
     return inventory
 
 
+def _scan_and_prune_zombie_chat_shells(
+    root: Path,
+    primary: Path,
+    worktrees: Sequence[dict[str, Any]],
+    *,
+    remediate: bool = False,
+) -> list[str]:
+    """Detect (and optionally prune) orphaned non-git shell dirs under ~/.gemini/antigravity/worktrees/agents."""
+    if primary != get_main_repo_root(REPO_ROOT).resolve():
+        return []
+    ext_base = Path.home() / ".gemini" / "antigravity" / "worktrees" / "agents"
+    if not ext_base.is_dir():
+        return []
+    registered = {wt["path"].resolve() for wt in worktrees if isinstance(wt.get("path"), Path)}
+    try:
+        cwd_res = Path.cwd().resolve()
+    except OSError:
+        cwd_res = root
+    protected = {root, cwd_res, *cwd_res.parents}
+    for env_key in ("PWD", "OLDPWD"):
+        raw_env = get_env_str(env_key, "").strip()
+        if raw_env:
+            try:
+                ep = Path(raw_env).resolve()
+                protected.update({ep, *ep.parents})
+            except OSError:
+                pass
+    orphans: list[str] = []
+    for child in sorted(ext_base.iterdir()):
+        if not child.is_dir() or child.is_symlink():
+            continue
+        cres = child.resolve()
+        if cres in registered or cres in protected or (child / ".git").exists() or has_active_sidecar_lease(child):
+            continue
+        if remediate:
+            shutil.rmtree(child, ignore_errors=True)
+        if child.exists():
+            orphans.append(str(child))
+    return orphans
+
+
 def run_six_pillar_hygiene_audit(
     *,
     repo_root: Path = REPO_ROOT,
@@ -431,6 +473,7 @@ def run_six_pillar_hygiene_audit(
 
     prune_merged_worktrees(repo_root=root, target_ref="main", delete_merged=remediate, active_cwd=root)
     worktrees = list_worktrees(root)
+    orphaned_chat_shells = _scan_and_prune_zombie_chat_shells(root, primary, worktrees, remediate=remediate)
     protected_active_branches: set[str] = {
         str(wt["branch"])
         for wt in worktrees
@@ -480,10 +523,12 @@ def run_six_pillar_hygiene_audit(
         or ephemeral_bloat["duplicate_models_mb"] > 0.0
         or ephemeral_bloat["unretained_full_resume_count"] > 0
         or ephemeral_bloat["unretained_runtime_tests_count"] > 0
+        or ephemeral_bloat["pycache_dir_count"] > 0
+        or pytest_cache_mb > 50.0
     )
 
     pillar_status = {
-        "pillar_1_worktree_branch_drift": "PASS" if (not prunable_worktrees and not merged_branches) else "FINDINGS",
+        "pillar_1_worktree_branch_drift": "PASS" if (not prunable_worktrees and not merged_branches and not orphaned_chat_shells) else "FINDINGS",
         "pillar_2_sqlite_integrity_wal": "PASS" if all(d["integrity"] == "ok" and d["journal_mode"] == "wal" for d in db_reports) else "FINDINGS",
         "pillar_3_wal_shm_bloat": "PASS" if not any(d["wal_bloat"] for d in db_reports) else "FINDINGS",
         "pillar_4_artifact_sprawl": "PASS" if not has_bloat_findings else "FINDINGS",
@@ -499,6 +544,7 @@ def run_six_pillar_hygiene_audit(
         "remediated": remediate,
         "pillar_status": pillar_status,
         "worktree_prunable_count": len(prunable_worktrees),
+        "orphaned_chat_shells": orphaned_chat_shells,
         "merged_branches": merged_branches,
         "active_worktree_branches": active_worktree_branches,
         "db_count": len(db_reports),

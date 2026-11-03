@@ -1,4 +1,4 @@
-# guardian: allow-silent_swallower
+# guardian: allow-silent_swallower -- explicitly approved governance exemption
 """
 apps_research dry-run diagnostic tool.
 

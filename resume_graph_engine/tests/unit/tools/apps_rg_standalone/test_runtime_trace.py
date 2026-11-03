@@ -72,6 +72,8 @@ def test_sanitized_environment_preserves_windows_bootstrap_keys_and_hides_secret
     monkeypatch,
 ) -> None:
     monkeypatch.setenv("OPENAI_API_KEY", "do-not-emit-this-value")
+    for key in WINDOWS_BOOTSTRAP_KEYS:
+        monkeypatch.setenv(key, f"stub_{key.lower()}")
 
     environment, scrubbed = build_child_environment(tmp_path)
     evidence = json.dumps(emit_trace_harness_preflight(tmp_path, tmp_path / "evidence"), sort_keys=True)

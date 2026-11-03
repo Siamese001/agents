@@ -169,14 +169,16 @@ def test_discover_run_links_uses_pre_run_failure_blocker_not_phase1_only(
 
 
 def test_phase1_attempts_executive_summary_under_modular_sections_root() -> None:
+    import shutil
+
     repo = find_repo_root()
     art = repo / ".runtime" / "tests" / f"w8c_phase1_{uuid.uuid4().hex[:10]}"
     art.mkdir(parents=True, exist_ok=True)
-    inline_brief = "Brown & Brown / SVP IT Strategy / innovation path with / slashes"
+    inline_brief = "Brown & Brown / SVP IT Strategy / innovation path with / slashes / enterprise platform operating model"
     targeting = ModularLaneTargeting(
         target_company="Brown & Brown",
-        target_title="SVP IT Strategy",
-        jd_text="Role requires enterprise architecture and AI incubation.",
+        target_title="SVP Agentic Engineering and Platform",
+        jd_text="agentic platform governance revenue growth margin",
         briefing_text=inline_brief,
     )
 
@@ -230,26 +232,30 @@ def test_phase1_attempts_executive_summary_under_modular_sections_root() -> None
         )
         return {"exit_status": "success", "fault": "", "artifact_dir": str(run_dir)}
 
-    with patch(
-        "apps_rg.l2_recipe.modular_resume_generation.run_canonical_apps_rg_from_cli_primitives",
-        side_effect=_fake_lane,
-    ):
-        res = run_modular_resume_generation(
-            ModularResumeInputPackage(repo_root=repo),
-            art,
-            "w8c_phase1",
-            ModularResumeProfile(
-                phase1_invoke_real_lanes=True,
-                run_phase0_synthetic_assembly=False,
-                validate_rg_output_fixture=False,
-            ),
-            lane_targeting=targeting,
-        )
+    try:
+        with patch(
+            "apps_rg.l2_recipe.modular_resume_generation.run_canonical_apps_rg_from_cli_primitives",
+            side_effect=_fake_lane,
+        ):
+            res = run_modular_resume_generation(
+                ModularResumeInputPackage(repo_root=repo),
+                art,
+                "w8c_phase1",
+                ModularResumeProfile(
+                    phase1_invoke_real_lanes=True,
+                    run_phase0_synthetic_assembly=False,
+                    validate_rg_output_fixture=False,
+                    parallel_phase1_lanes=False,
+                ),
+                lane_targeting=targeting,
+            )
 
-    exec_dir = art / "modular_r4" / "sections" / "executive_summary"
-    assert exec_dir.is_dir()
-    assert (exec_dir / "real" / "exec_summary_stub" / "l2_output.json").is_file()
-    calls = json.loads((art / res.section_provider_calls_ref).read_text(encoding="utf-8"))
-    exec_rec = next(r for r in calls["records"] if r["section_lane"] == "executive_summary")
-    assert exec_rec.get("provider_call_attempted") is True
-    assert exec_rec.get("decisive_reason_code") != "PHASE1_NO_RUN_DIR"
+        exec_dir = art / "modular_r4" / "sections" / "executive_summary"
+        assert exec_dir.is_dir()
+        assert (exec_dir / "real" / "exec_summary_stub" / "l2_output.json").is_file()
+        calls = json.loads((art / res.section_provider_calls_ref).read_text(encoding="utf-8"))
+        exec_rec = next(r for r in calls["records"] if r["section_lane"] == "executive_summary")
+        assert exec_rec.get("provider_call_attempted") is True
+        assert exec_rec.get("decisive_reason_code") != "PHASE1_NO_RUN_DIR"
+    finally:
+        shutil.rmtree(art, ignore_errors=True)

@@ -13,7 +13,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Any
 
-from .implementation_plan import LayerResponse, LayerType
+from infrastructure.config.implementation_plan import LayerResponse, LayerType
 
 logger = logging.getLogger(__name__)
 

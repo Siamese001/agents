@@ -356,13 +356,13 @@ class EnterpriseResearchOrchestrator:
         """Step 4: Validate research (L5)."""
         _emit_applies_guardrail("enterprise", "step_validate", "L5")
 
-        import os
         import sys
+        from infrastructure.config.env_loader import get_env_str
 
         content = generated_content
         sources = generated_sources
         if not content or not sources:
-            is_test = bool(os.environ.get("PYTEST_CURRENT_TEST")) or ("pytest" in sys.modules) or (os.environ.get("APPS_RG_TEST_HARNESS") == "1")
+            is_test = bool(get_env_str("PYTEST_CURRENT_TEST")) or ("pytest" in sys.modules) or (get_env_str("APPS_RG_TEST_HARNESS") == "1")
             if not is_test:
                 raise RuntimeError(
                     "LIVE_VALIDATION_ERROR: Real generated research content and sources required for validation in production."

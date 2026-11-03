@@ -98,3 +98,23 @@ def test_storage_hygiene_deduplicates_models_and_prunes_unretained_runtime_proof
     assert (sandbox / "resume_graph_engine" / ".runtime" / "tests" / "w8c_newest").is_dir()
     assert not (sandbox / "resume_graph_engine" / ".runtime" / "tests" / "w8c_old").exists()
     assert not pycache.exists()
+
+
+def test_storage_hygiene_flags_pycache_bloat_even_when_total_sprawl_below_500mb(tmp_path: Path) -> None:
+    """Verify Pillar 4 flags __pycache__ directories even when total sprawl is under 500 MB."""
+    sandbox = _init_sandbox(tmp_path)
+    pycache = sandbox / "agents" / "__pycache__"
+    pycache.mkdir(parents=True)
+    (pycache / "mod.cpython-312.pyc").write_bytes(b"p" * 2048)
+
+    pre = run_six_pillar_hygiene_audit(repo_root=sandbox, sidecars_root=DEFAULT_SIDECARS_ROOT, remediate=False)
+    assert pre["sprawl"]["total_mb"] < 500.0
+    assert pre["sprawl"]["pycache_dir_count"] == 1
+    assert pre["pillar_status"]["pillar_4_artifact_sprawl"] == "FINDINGS"
+    assert pre["status"] == "FINDINGS"
+
+    post = run_six_pillar_hygiene_audit(repo_root=sandbox, sidecars_root=DEFAULT_SIDECARS_ROOT, remediate=True)
+    assert post["pillar_status"]["pillar_4_artifact_sprawl"] == "PASS"
+    assert post["status"] == "PASS"
+    assert not pycache.exists()
+

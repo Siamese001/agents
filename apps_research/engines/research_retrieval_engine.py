@@ -164,10 +164,10 @@ class InMemoryResearchStore:
     @staticmethod
     def _resolve_embedding_model_id() -> str:
         """Resolve the embedding model identifier from canonical catalog or environment."""
-        import os
         from pathlib import Path
+        from infrastructure.config.env_loader import get_env_str
 
-        env_model = os.environ.get("APPS_RESEARCH_EMBEDDING_MODEL", "").strip()
+        env_model = get_env_str("APPS_RESEARCH_EMBEDDING_MODEL", "").strip()
         if env_model:
             return env_model
         catalog_path = Path(__file__).resolve().parents[2] / "config" / "model_catalog.json"
@@ -183,8 +183,8 @@ class InMemoryResearchStore:
 
     def _mock_embed(self, text: str) -> list[float]:
         """Generate embedding from text with SHA-256 content-digest deduplication."""
-        import os
         import sys
+        from infrastructure.config.env_loader import get_env_str
 
         normalized_text = text[:8000]
         digest = hashlib.sha256(normalized_text.encode("utf-8")).hexdigest()
@@ -192,7 +192,7 @@ class InMemoryResearchStore:
         if cached is not None:
             return list(cached)
 
-        is_test = bool(os.environ.get("PYTEST_CURRENT_TEST")) or ("pytest" in sys.modules) or (os.environ.get("APPS_RG_TEST_HARNESS") == "1")
+        is_test = bool(get_env_str("PYTEST_CURRENT_TEST")) or ("pytest" in sys.modules) or (get_env_str("APPS_RG_TEST_HARNESS") == "1")
         if not is_test:
             try:
                 from infrastructure.live_execution import api_key

@@ -141,6 +141,12 @@ tools/archive/
 *.pyo
 *.so
 *.sqlite
+*.sqlite-wal
+*.sqlite-shm
+*.sqlite3-wal
+*.sqlite3-shm
+*.db-wal
+*.db-shm
 
 # W4: Author-Gate ledger HMAC signing key (per-machine, never commit)
 .windsurf/state/refactor_decisions/.signing_key

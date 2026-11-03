@@ -88,12 +88,12 @@ def _company_brief_primary_openai_model() -> str:
 APPS_RESEARCH_BRIEF_MODEL: Final[str] = _company_brief_primary_openai_model()
 APPS_RESEARCH_BRIEF_REASONING_EFFORT: Final[str] = company_brief_generation_pin().reasoning_effort
 from apps_research.prompt_assembly.company_brief_prompts import COMPANY_BRIEF_STATIC_SYSTEM_PROMPT
-
+from infrastructure.config.env_loader import get_env_bool, get_env_str
 
 
 def _v2_enabled() -> bool:
     """True when the V2 retrieval pipeline is opted-in via env flag."""
-    return os.environ.get(_RETRIEVAL_V2_FLAG, "").strip() in {"1", "true", "yes", "on"}
+    return get_env_bool(_RETRIEVAL_V2_FLAG, False)
 
 
 def _source_repository_root(start: Path | None = None) -> Path:
@@ -184,7 +184,7 @@ def _emit_company_brief_marker(
 
 def _company_brief_prompt_token_cap() -> int:
     """Hard guard for a single research synthesis request, not a text rewrite."""
-    raw = os.environ.get("APPS_RESEARCH_MAX_INPUT_TOKENS", "").strip()
+    raw = get_env_str("APPS_RESEARCH_MAX_INPUT_TOKENS", "").strip()
     if raw:
         try:
             return max(1_024, min(int(raw), 48_000))
@@ -225,7 +225,7 @@ class CompanyBriefUnavailableError(RuntimeError):
 
 def _resolved_gemini_max_output_tokens() -> int:
     """Canonical apps_research output-token budget for synthesis calls."""
-    raw = os.environ.get("APPS_RESEARCH_MAX_OUTPUT_TOKENS", "").strip()
+    raw = get_env_str("APPS_RESEARCH_MAX_OUTPUT_TOKENS", "").strip()
     if raw:
         try:
             return max(512, int(raw))

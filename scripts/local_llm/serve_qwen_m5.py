@@ -84,7 +84,7 @@ class ChatCompletionResponse(BaseModel):
 
 
 @app.get("/healthz")
-def healthz():
+def healthz() -> dict[str, Any]:
     return {
         "status": "healthy",
         "engine": _ENGINE_TYPE,
@@ -94,7 +94,7 @@ def healthz():
 
 
 @app.get("/v1/models")
-def list_models():
+def list_models() -> dict[str, Any]:
     return {
         "object": "list",
         "data": [
@@ -138,7 +138,7 @@ def _generate_response(prompt: str, max_tokens: int = 4096, temperature: float =
 
 
 @app.post("/v1/chat/completions", response_model=ChatCompletionResponse)
-def create_chat_completion(request: ChatCompletionRequest):
+def create_chat_completion(request: ChatCompletionRequest) -> ChatCompletionResponse:
     created_ts = int(time.time())
     completion_id = f"chatcmpl-{uuid.uuid4().hex[:12]}"
     
@@ -176,7 +176,7 @@ def create_chat_completion(request: ChatCompletionRequest):
     )
 
 
-def init_engine(model_path: Optional[str] = None):
+def init_engine(model_path: Optional[str] = None) -> None:
     global _LOADED_MODEL, _LOADED_TOKENIZER, _MODEL_PATH, _ENGINE_TYPE
     _MODEL_PATH = model_path
     

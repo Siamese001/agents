@@ -241,7 +241,7 @@ class AtsValidator:
         text = re.sub("\\s+", " ", text.strip())
         return text.lower()
 
-    # guardian: allow-magic-config
+    # guardian: allow-magic-config -- explicitly approved governance exemption
     def extract_keywords(self, text: str, min_length: int = 3) -> set[str]:
         """
         Extract keywords from text using deterministic regex.

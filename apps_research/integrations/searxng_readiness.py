@@ -224,7 +224,9 @@ def build_report(
 
 
 def runtime_base_url() -> str:
-    return os.environ.get("SEARXNG_BASE_URL", "").strip() or DEFAULT_BASE_URL
+    from infrastructure.config.env_loader import get_env_str
+
+    return get_env_str("SEARXNG_BASE_URL", "").strip() or DEFAULT_BASE_URL
 
 
 def ensure_runtime_ready(
@@ -235,6 +237,8 @@ def ensure_runtime_ready(
     probe_timeout: int = 20,
     restart_wait_seconds: float = 8.0,
 ) -> SearxngReadinessReport:
+    from infrastructure.config.env_loader import set_env_default
+
     resolved_base_url = (base_url or "").strip() or runtime_base_url()
     report = build_report(
         container_name=container_name,
@@ -252,7 +256,7 @@ def ensure_runtime_ready(
         raise SearxngReadinessError(
             f"SearXNG Docker readiness failed for {container_name} at {resolved_base_url}: {failed or report.status}"
         )
-    os.environ.setdefault("SEARXNG_BASE_URL", resolved_base_url)
+    set_env_default("SEARXNG_BASE_URL", resolved_base_url)
     return report
 
 

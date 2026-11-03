@@ -114,10 +114,10 @@ class SourceDiscoveryService:
             self._discovered_sources.extend(discovered)
             return {"sources": discovered}
 
-        import os
         import sys
+        from infrastructure.config.env_loader import get_env_str
 
-        is_test = bool(os.environ.get("PYTEST_CURRENT_TEST")) or ("pytest" in sys.modules) or (os.environ.get("APPS_RG_TEST_HARNESS") == "1")
+        is_test = bool(get_env_str("PYTEST_CURRENT_TEST")) or ("pytest" in sys.modules) or (get_env_str("APPS_RG_TEST_HARNESS") == "1")
         if not is_test:
             raise RuntimeError(
                 "LIVE_SOURCE_DISCOVERY_REQUIRED: Real source discovery requires seed_urls or a live search provider; "

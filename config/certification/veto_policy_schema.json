@@ -143,12 +143,12 @@
       "properties": {
         "provider": {
           "type": "string",
-          "enum": ["local_qwen", "anthropic_haiku", "mock"],
+          "enum": ["anthropic_haiku", "mock"],
           "description": "Which LLM provider to use"
         },
         "model_id": {
           "type": "string",
-          "description": "Model identifier (e.g., 'Qwen/Qwen2.5-32B-Instruct-AWQ' or 'claude-3-haiku')"
+          "description": "Model identifier (for example, 'claude-3-haiku')"
         },
         "rubric_path": {
           "type": "string",

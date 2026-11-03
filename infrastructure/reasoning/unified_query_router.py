@@ -13,7 +13,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Any
 
-from .implementation_plan import (
+from infrastructure.config.implementation_plan import (
     FourLayerContractError,
     FourLayerContractGuard,
     HealthStatus,

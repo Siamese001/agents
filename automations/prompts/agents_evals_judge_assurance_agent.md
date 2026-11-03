@@ -30,11 +30,11 @@ Execute a deterministic, fail-closed **Evals, Judge Validity, Holdout Dataset, a
 2. **Pillar 2 — Exit-Eval Rubric Bounds (`config/exit_eval_rubrics/*.yaml`)**: Verify every exit-eval gate (`X1A`–`X1G`) declares `[0.0, 1.0]` scales, thresholds in `[0.0, 1.0]`, and weighted dimension sums equal to `1.0`.
 3. **Pillar 3 — Judge Rubric Bank & Calibration (`config/judges/rubrics.yaml`)**: Verify `scale_min <= warn_threshold <= pass_threshold <= scale_max` and `unknown_budget` in `[0.0, 1.0]`.
 4. **Pillar 4 — Holdout & Certification Dataset Integrity (`data/`, `outreach_engine/data/`, `resume_graph_engine/data/`)**: Verify all benchmark, holdout, certification, and judge calibration files across all 3 data directories (excluding runtime `data/cache/` SQLite/Chroma sidecars) are non-empty and parse cleanly.
-5. **Pillar 5 — Evaluator Module AST, Schema & Symmetric Live Grader/Adapter Verification (`apps_eval/`, `outreach_engine/`, `resume_graph_engine/`, `apps_research/`)**: Verify AST parseability and exported definitions across all evaluator, grader, judge, and rubric modules, `Draft202012Validator.check_schema` across all 5 config roots, and symmetric live execution of deterministic graders (`ForbiddenContentGrader`, `GroundedClaimGrader`), live adapters (`outreach_engine.py`, `resume_graph_engine.py`), and L6 claim authority (`build_l6_eval_execution_receipt`) for both `apps_lic` and `apps_rg`.
+5. **Pillar 5 — Evaluator AST, Schema & Full 11-Grader / Shadow-Bridge / Render / Trends Live Verification (`apps_eval/`, `outreach_engine/`, `resume_graph_engine/`, `apps_research/`)**: Verify AST parseability across all evaluator, grader, judge, and rubric modules, `Draft202012Validator.check_schema` across all 5 config roots, `centralization_registry.yaml` numeric parity, and positive + negative live execution across all 11 deterministic graders (`SchemaValidityGrader`, `ExactMatchGrader`, `GroundedClaimGrader`, `ForbiddenContentGrader`, `NonEmptyArtifactGrader`, `ScoreBoundGrader`, `OutreachComplianceGrader`, `OutreachPersonalizationGrader`, `ResumeRelevanceGrader`, `ResumeSafetyGrader`, `ResearchBriefingGrader`), `l6_shadow_bridge.py`, `outputs/render.py`, `trends.py`, live adapters (`outreach_engine.py`, `resume_graph_engine.py`), and L6 claim authority (`build_l6_eval_execution_receipt`).
 6. **Pillar 6 — Approved Model Profile Binding**: Verify all judge and provider model pins across `config/provider_profiles.yaml`, `outreach_engine/config/provider_profiles.yaml`, `apps_eval/rubrics/*.yaml`, and `apps_research/config/domain_contract/*.yaml` resolve against the canonical model catalog.
 
 ### Phase 1.5: Mandatory Executable Read-Only Preflight Scanners
-Execute the deterministic rubric, dataset, live grader, and production purity validator (`timeout <= 90s`):
+Execute the deterministic rubric, dataset, 11-grader live probe, production purity validator, and scoped unit suite (`timeout <= 90s`):
 
 ```bash
 export PRIMARY_REPO_ROOT="/Users/amitayer/Git/agents"
@@ -42,6 +42,7 @@ export PRIMARY_REPO_ROOT="/Users/amitayer/Git/agents"
   --repo-root "${PRIMARY_REPO_ROOT}" \
   --json
 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/lint_production_purity.py" --all --repo-root "${PRIMARY_REPO_ROOT}"
+"${PRIMARY_REPO_ROOT}/.venv/bin/pytest" "${PRIMARY_REPO_ROOT}/tests/unit/test_evals_and_budget_full_parity.py" -q --timeout=60
 ```
 
 If both preflight commands exit `0` (`"status": "PASS"`, `"is_clean": true`), fast-exit `COMPLETE` (`PREFLIGHT_ZERO_DEFECT_FAST_EXIT`).

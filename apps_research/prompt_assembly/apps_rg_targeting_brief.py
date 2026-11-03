@@ -21,7 +21,9 @@ APPS_RG_TARGETING_BRIEF_PROMPT_PATH: Path = consumer_brief_prompt_path(_TEMPLATE
 
 def apps_rg_targeting_brief_enabled(*, jd_context: dict | None = None) -> bool:
     """True when synthesis should emit apps_rg targeting markdown instead of JSON CompanyBrief."""
-    env = os.environ.get("APPS_RESEARCH_APPS_RG_TARGETING_BRIEF", "").strip().lower()
+    from infrastructure.config.env_loader import get_env_str
+
+    env = get_env_str("APPS_RESEARCH_APPS_RG_TARGETING_BRIEF", "").strip().lower()
     if env in ("0", "false", "no", "off"):
         return False
     if env in ("1", "true", "yes", "on"):

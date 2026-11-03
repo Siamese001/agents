@@ -158,6 +158,30 @@ def _parse_cached(py: Path, ast_cache: dict[Path, ast.AST | None]) -> ast.AST | 
     return tree
 
 
+def _load_guarded_thresholds(repo_root: Path) -> dict[str, tuple[set[str], int]]:
+    """Load canonical threshold symbols and their owner files from centralization_registry.yaml."""
+    defaults: dict[str, tuple[set[str], int]] = {
+        sym: ({owner_rel}, val) for sym, (owner_rel, val) in GUARDED_THRESHOLD_NAMES.items()
+    }
+    reg = _load_yaml(repo_root / "config" / "governance" / "centralization_registry.yaml")
+    owners = reg.get("domain_threshold_owners", {})
+    if not isinstance(owners, Mapping):
+        return defaults
+    for _domain_name, domain_cfg in owners.items():
+        if not isinstance(domain_cfg, Mapping):
+            continue
+        owner_file = str(domain_cfg.get("owner_file") or "").strip()
+        agg_file = str(domain_cfg.get("Aggregator_ssot") or "").strip()
+        allowed_owners = {p for p in (owner_file, agg_file) if p}
+        symbols = domain_cfg.get("canonical_symbols", {})
+        if isinstance(symbols, Mapping) and allowed_owners:
+            for sym_name, sym_val in symbols.items():
+                sym_str = str(sym_name).strip()
+                if not sym_str.startswith("INV-") and isinstance(sym_val, int):
+                    defaults[sym_str] = (allowed_owners, sym_val)
+    return defaults
+
+
 def scan_hardcoded_threshold_literals(
     repo_root: Path,
     *,
@@ -166,6 +190,7 @@ def scan_hardcoded_threshold_literals(
     """Detect magic word/sentence/length threshold literals defined outside their canonical owner."""
     cache = ast_cache if ast_cache is not None else {}
     findings: list[dict[str, Any]] = []
+    guarded_map = _load_guarded_thresholds(repo_root)
     scan_targets = list(PRODUCTION_SCAN_DIRS) + ["tools"]
 
     for rel_dir in scan_targets:
@@ -183,9 +208,10 @@ def scan_hardcoded_threshold_literals(
             for node in ast.walk(tree):
                 if isinstance(node, ast.Assign):
                     for target in node.targets:
-                        if isinstance(target, ast.Name) and target.id in GUARDED_THRESHOLD_NAMES:
-                            owner_rel, canon_val = GUARDED_THRESHOLD_NAMES[target.id]
-                            if rel != owner_rel and isinstance(node.value, ast.Constant) and isinstance(node.value.value, int):
+                        if isinstance(target, ast.Name) and target.id in guarded_map:
+                            allowed_owners, canon_val = guarded_map[target.id]
+                            owner_rel = sorted(allowed_owners)[0]
+                            if rel not in allowed_owners and isinstance(node.value, ast.Constant) and isinstance(node.value.value, int):
                                 findings.append(
                                     {
                                         "category": "DUPLICATE_CONSTANT_LITERAL",
@@ -406,6 +432,21 @@ def scan_ast_hygiene_and_env_sprawl(
 
             doc_ids = _collect_docstring_node_ids(tree)
             file_env_hits: list[dict[str, Any]] = []
+
+            raw_text = py.read_text(encoding="utf-8", errors="replace")
+            for lineno, line_txt in enumerate(raw_text.splitlines(), start=1):
+                m_guard = re.search(r"#\s*guardian:\s*(.+)$", line_txt)
+                if m_guard and "--" not in m_guard.group(1):
+                    findings.append(
+                        {
+                            "category": "GUARDIAN_MISSING_RATIONALE",
+                            "file": rel,
+                            "line": lineno,
+                            "detail": (
+                                f"{rel}:{lineno} contains '# guardian:' comment without '-- <rationale>'"
+                            ),
+                        }
+                    )
 
             for node in ast.walk(tree):
                 if (

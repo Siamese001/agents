@@ -140,7 +140,7 @@ def audit_unified_token_budget_env() -> list[TransportViolation]:
     violations: list[TransportViolation] = []
     try:
         configured = runtime_limit_int("judge.x1d_max_output_tokens")
-    except SectionModelSSOTError as exc:  # guardian: strict SSOT load surfaced as audit failure
+    except SectionModelSSOTError as exc:  # guardian: allow-broad-exception -- strict SSOT load surfaced as audit failure
         violations.append(
             TransportViolation(
                 code="missing_unified_x1d_max_output_tokens_ssot",

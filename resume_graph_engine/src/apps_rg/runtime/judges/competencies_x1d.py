@@ -447,7 +447,7 @@ def run_competencies_judges(
                     and not output.provider_blocked
                 )
                 outputs.append(_normalize_competencies_dimension_verdicts(output))
-            except Exception as exc:  # noqa: BLE001  # guardian: allow-broad-exception: fail-soft optional boundary
+            except Exception as exc:  # noqa: BLE001  # guardian: allow-broad-exception -- fail-soft optional boundary
                 blocked = _make_blocked_output(
                     key,
                     input_hash,

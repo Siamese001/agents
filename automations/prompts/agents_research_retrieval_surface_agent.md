@@ -26,16 +26,16 @@ Execute a deterministic, fail-closed **Research, Embedding & Retrieval Surface A
 ## 3. Phase 1 & Phase 1.5: 7-Pillar Read-Only Preflight Audit & Fast-Exit Gate
 
 ### Phase 1: 7-Pillar Research & Retrieval Surface Audit
-1. **Pillar 1 — Query Decomposition & Intent Routing (`apps_research`, `ResearchRetrievalEngine`, `GovernedResearchRun`)**: Verify prospect/company research queries and role-target queries executed through `ResearchRetrievalEngine` and `GovernedResearchRun` decompose deterministically without dropping entity constraints.
+1. **Pillar 1 — Query Decomposition, Multi-Query Ranking & Source Recommendations (`apps_research`, `ResearchRetrievalEngine`, `GovernedResearchRun`)**: Execute live `ResearchRetrievalEngine` multi-query ranking, `recommend_sources`, and benchmark probes alongside `GovernedResearchRun` to verify deterministic ranking without dropping entity constraints.
 2. **Pillar 2 — Document Chunking & Context Window Preservation (`AppsResearchBridge`, `agents/context/`)**: Audit chunk overlap, header preservation, and metadata attachment across `apps_research/`, `agents/context/`, and `AppsResearchBridge` handoff packets.
 3. **Pillar 3 — Hybrid Ranking, BGE-M3 Embeddings & Graph Traversal (`resume_graph_engine`)**: Run `tools/verify_graph_integrity_and_embeddings.py` and `tools/run_resume_graph_traversal_probe.py` to verify 1024-dim L2-normalized BGE-M3 vectors, 3-hop acyclic paths, and Stage-2 metric boost fusion.
 4. **Pillar 4 — Citation & Provenance Binding**: Ensure every retrieved research snippet and resume graph assertion carries a verifiable source identifier (`source_id`, `doc_hash`, or `node_id`) into `outreach_engine` and `resume_engine`.
 5. **Pillar 5 — Empty-Result & Low-Confidence Fail-Closed Gates**: Verify retrieval and delegation bridges across both `resume_graph_engine` (`dispatch_resume_research_briefing`) and `outreach_engine` (`dispatch_outreach_research_briefing`) explicitly fail closed on low-confidence or zero-hit queries rather than fabricating fallback claims.
 6. **Pillar 6 — Retrieval & Prompt Cache Slot Alignment**: Run `tools/verify_pipeline_latency_caching.py` to verify static prefix thresholds and compiler slot ordering (`R0`, `E0` before dynamic `C0`).
-7. **Pillar 7 — Cross-Subsystem Contract Alignment**: Verify `apps_research` output schemas (`apps_rg` and `apps_lic` profiles) and public return-type annotations across `agents/`, `apps_research/`, `resume_graph_engine/`, `outreach_engine/`, `resume_engine/`, and `infrastructure/` without filename-regex exclusions.
+7. **Pillar 7 — 11-Root Return-Type & Cross-Subsystem Contract Alignment**: Verify `apps_research` output schemas (`apps_rg` and `apps_lic` profiles) and public return-type annotations across all 11 executable roots (`agents/`, `apps_research/`, `apps_eval/`, `apps_model_telemetry/`, `resume_graph_engine/`, `outreach_engine/`, `resume_engine/`, `infrastructure/`, `ops_scripts/`, `scripts/`, and `tools/`) without filename-regex exclusions.
 
 ### Phase 1.5: Mandatory Executable Read-Only Preflight Scanners
-Execute the fail-closed 7-pillar behavioral retrieval auditor, BGE-M3 embedding check, multi-hop graph probe, and live latency-caching verifier in read-only mode (`timeout <= 120s`):
+Execute the fail-closed 7-pillar behavioral retrieval auditor, BGE-M3 embedding check, multi-hop graph probe, live latency-caching verifier, and scoped unit suite in read-only mode (`timeout <= 120s`):
 
 ```bash
 export PRIMARY_REPO_ROOT="/Users/amitayer/Git/agents"
@@ -46,6 +46,7 @@ export PRIMARY_REPO_ROOT="/Users/amitayer/Git/agents"
 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/verify_graph_integrity_and_embeddings.py"
 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/run_resume_graph_traversal_probe.py" --max-paths 200
 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/verify_pipeline_latency_caching.py" --repo-root "${PRIMARY_REPO_ROOT}"
+"${PRIMARY_REPO_ROOT}/.venv/bin/pytest" "${PRIMARY_REPO_ROOT}/tests/unit/test_e2e_and_retrieval_full_parity.py" -q --timeout=60
 ```
 
 If all preflight commands exit `0` (`"status": "PASS"`, `"is_clean": true`), fast-exit `COMPLETE` (`PREFLIGHT_ZERO_DEFECT_FAST_EXIT`).

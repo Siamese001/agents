@@ -153,3 +153,26 @@ def test_revamped_ssot_prompt_passes_sidecar_separation_and_shared_contract() ->
     assert "ssot_sprawl_scanner.py" in prompt_text
     assert "ssot_hardcoding_scanner.py" in prompt_text
     assert "centralization_registry.yaml" in prompt_text
+
+
+def test_include_ratchet_backlog_blocks_zero_defect_fast_exit_when_ratchets_exist(tmp_path: Path) -> None:
+    sandbox = tmp_path / "ratchet_repo"
+    _create_clean_sandbox(sandbox)
+    (sandbox / "config" / "governance" / "env_lookup_ratchet.json").write_text(
+        json.dumps({"schema_version": "1.0.0", "file_counts": {"resume_graph_engine/src/apps_rg/bare_pipeline.py": 5}}),
+        encoding="utf-8",
+    )
+
+    rep_default = run_ssot_boundary_audit(repo_root=sandbox, sidecars_root=DEFAULT_SIDECARS_ROOT)
+    assert rep_default["is_clean"] is True
+    assert rep_default["status"] == "PASS"
+    assert rep_default["ratchet_backlog"]["env_lookup_ratchet_files"] == 1
+
+    rep_backlog = run_ssot_boundary_audit(
+        repo_root=sandbox,
+        sidecars_root=DEFAULT_SIDECARS_ROOT,
+        include_ratchet_backlog=True,
+    )
+    assert rep_backlog["is_clean"] is False
+    assert rep_backlog["status"] == "BACKLOG_ACTION_REQUIRED"
+    assert rep_backlog["ratchet_backlog"]["total_backlog_items"] == 1

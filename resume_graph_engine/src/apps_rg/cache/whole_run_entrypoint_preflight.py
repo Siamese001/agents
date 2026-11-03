@@ -336,7 +336,7 @@ def maybe_ingest_r1b_post_exit(
             probe,
         )
     except (OSError, ValueError, RuntimeError, TypeError):
-        # guardian: post-exit probe is audit evidence; ingest ref remains authoritative.
+        # guardian: allow-broad-exception -- post-exit probe is audit evidence; ingest ref remains authoritative.
         pass
     return ingest_ref
 

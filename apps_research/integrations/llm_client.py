@@ -7,8 +7,9 @@ contract locally and imports the optional SDK only when a client is requested.
 """
 from __future__ import annotations
 
-import os
 from typing import Any
+
+from infrastructure.config.env_loader import get_env_str
 
 
 _DEFAULT_OPENAI_TIMEOUT_SECONDS = 120.0
@@ -16,7 +17,7 @@ _OPENAI_MAX_RETRIES = 1
 
 
 def _required_api_key() -> str:
-    api_key = os.getenv("OPENAI_API_KEY")
+    api_key = get_env_str("OPENAI_API_KEY", "")
     if not api_key:
         raise ValueError("OPENAI_API_KEY missing")
     return api_key
@@ -30,7 +31,7 @@ def _openai_timeout_seconds() -> float:
     transport can outlive the governed run and leave no terminal receipt.
     """
 
-    raw = os.getenv("APPS_RESEARCH_OPENAI_TIMEOUT_SECONDS", "").strip()
+    raw = get_env_str("APPS_RESEARCH_OPENAI_TIMEOUT_SECONDS", "").strip()
     if not raw:
         return _DEFAULT_OPENAI_TIMEOUT_SECONDS
     try:

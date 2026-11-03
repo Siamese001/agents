@@ -25,10 +25,21 @@ except ImportError:  # guardian: allow-silent-swallow -- optional dependency
 
 def resolve_embedding_device() -> str:
     """Resolve the core-owned default only after app-level overrides."""
+    try:
+        from apps_rg.embeddings.bge_runtime import _resolve_device  # type: ignore[import-not-found]
 
-    from apps_rg.embeddings.bge_runtime import _resolve_device
+        return str(_resolve_device())
+    except ImportError:
+        try:
+            import torch
 
-    return _resolve_device()
+            if torch.cuda.is_available():
+                return "cuda"
+            if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+                return "mps"
+        except ImportError:  # guardian: allow-silent-swallow -- fallback to cpu when torch is absent
+            pass
+        return "cpu"
 
 
 __all__ = [

@@ -256,12 +256,52 @@ def audit_mcp_hooks_and_links(repo_root: Path) -> list[str]:
     return issues
 
 
+def _compute_ratchet_backlog(repo_root: Path, drift: dict[str, Any]) -> dict[str, int]:
+    """Quantify grandfathered ratchet debt and physical config/data duplication so backlog is never hidden."""
+    env_ratchet_files = 0
+    env_ratchet_path = repo_root / "config" / "governance" / "env_lookup_ratchet.json"
+    if env_ratchet_path.is_file():
+        try:
+            env_doc = json.loads(env_ratchet_path.read_text(encoding="utf-8"))
+            fc = env_doc.get("file_counts", {}) if isinstance(env_doc, dict) else {}
+            env_ratchet_files = sum(1 for v in fc.values() if isinstance(v, int) and v > 0)
+        except (OSError, ValueError, TypeError):
+            pass
+
+    budget_total_files = 0
+    budget_prod_files = 0
+    budget_ratchet_path = repo_root / "config" / "governance" / "file_budgets_ratchet.json"
+    if budget_ratchet_path.is_file():
+        try:
+            bdoc = json.loads(budget_ratchet_path.read_text(encoding="utf-8"))
+            if isinstance(bdoc, dict):
+                budget_total_files = len(bdoc)
+                budget_prod_files = sum(
+                    1 for k in bdoc if "/tests/" not in f"/{k}" and not Path(k).name.startswith("test_")
+                )
+        except (OSError, ValueError, TypeError):
+            pass
+
+    dup_configs = len(drift.get("identical", []))
+    dup_data = int(drift.get("data_identical_count", 0))
+    total = env_ratchet_files + budget_prod_files + dup_configs + dup_data
+    return {
+        "env_lookup_ratchet_files": env_ratchet_files,
+        "file_budget_ratchet_prod_files": budget_prod_files,
+        "file_budget_ratchet_total_files": budget_total_files,
+        "duplicate_config_pairs": dup_configs,
+        "duplicate_data_pairs": dup_data,
+        "total_backlog_items": total,
+    }
+
+
 def run_ssot_boundary_audit(
     *,
     repo_root: Path = REPO_ROOT,
     sidecars_root: Path = DEFAULT_SIDECARS_ROOT,
+    include_ratchet_backlog: bool = False,
 ) -> dict[str, Any]:
-    """Execute the 6-dimension SSOT, boundary, config drift, and governance sync audit."""
+    """Execute the 10-dimension SSOT, boundary, config drift, and governance sync audit."""
     root = repo_root.resolve()
     parse_cache: dict[Path, _ParsedPyEntry] = {}
 
@@ -345,9 +385,13 @@ def run_ssot_boundary_audit(
         "dim_9_unowned_hardcoded_thresholds": "PASS" if not dim9_hardcoded else "FAIL",
         "dim_10_prompt_to_code_numeric_parity": "PASS" if not dim10_parity else "FAIL",
     }
-    is_clean = all(v == "PASS" for v in dimension_status.values())
+    ratchet_backlog = _compute_ratchet_backlog(root, drift)
+    dims_clean = all(v == "PASS" for v in dimension_status.values())
+    backlog_blocks = include_ratchet_backlog and ratchet_backlog["total_backlog_items"] > 0
+    is_clean = dims_clean and not backlog_blocks
+    status = "PASS" if is_clean else ("BACKLOG_ACTION_REQUIRED" if dims_clean else "FAIL")
     return {
-        "status": "PASS" if is_clean else "FAIL",
+        "status": status,
         "is_clean": is_clean,
         "repo_root": str(root),
         "dimension_status": dimension_status,
@@ -361,6 +405,7 @@ def run_ssot_boundary_audit(
         "total_centralization_defects": total_centralization_defects,
         "config_identical_count": len(drift.get("identical", [])),
         "data_identical_count": drift.get("data_identical_count", 0),
+        "ratchet_backlog": ratchet_backlog,
         "sidecar_separation": separation,
     }
 
@@ -371,11 +416,20 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     parser.add_argument("--repo-root", type=Path, default=REPO_ROOT, help="Repository root path")
     parser.add_argument("--sidecars-root", type=Path, default=DEFAULT_SIDECARS_ROOT, help="Global sidecars root")
+    parser.add_argument(
+        "--include-ratchet-backlog",
+        action="store_true",
+        help="Treat grandfathered env/file-budget ratchets and duplicate config/data pairs as active remediation backlog.",
+    )
     parser.add_argument("--output", type=Path, default=None, help="Optional JSON output file path")
     parser.add_argument("--json", action="store_true", help="Print JSON report to stdout")
     args = parser.parse_args(argv)
 
-    report = run_ssot_boundary_audit(repo_root=args.repo_root, sidecars_root=args.sidecars_root)
+    report = run_ssot_boundary_audit(
+        repo_root=args.repo_root,
+        sidecars_root=args.sidecars_root,
+        include_ratchet_backlog=args.include_ratchet_backlog,
+    )
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
@@ -386,7 +440,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(
             f"[{report['status']}] 10-Dimension SSOT, Centralization & Boundary Audit "
             f"(config_identical={report['config_identical_count']}, "
-            f"centralization_defects={report['total_centralization_defects']})"
+            f"centralization_defects={report['total_centralization_defects']}, "
+            f"ratchet_backlog={report['ratchet_backlog']['total_backlog_items']})"
         )
 
     return 0 if report["is_clean"] else 1
