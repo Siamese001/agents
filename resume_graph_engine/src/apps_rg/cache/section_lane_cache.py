@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any, Callable, Mapping
 
 from apps_rg.cache.whole_run_fast_cache import is_no_cache_requested
+from apps_rg.config.runtime_env import get_runtime_env_str, get_runtime_environ
 from apps_rg.runtime.c0.graph_skill_embedding_allocation import (
     GRAPH_SKILL_EMBEDDING_ALLOWLISTS_ENV,
 )
@@ -45,7 +46,7 @@ _JSON_FILE_MEMO: dict[str, tuple[int, int, dict[str, Any]]] = {}
 
 
 def section_lane_cache_enabled(environ: Mapping[str, str] | None = None) -> bool:
-    env = os.environ if environ is None else environ
+    env = get_runtime_environ() if environ is None else environ
     if is_no_cache_requested(env):
         return False
     if str(env.get("APPS_RG_SECTION_CACHE_DISABLE") or "").strip().lower() in (
@@ -66,7 +67,7 @@ def section_lane_cache_enabled(environ: Mapping[str, str] | None = None) -> bool
 
 
 def resolve_section_cache_root(repo: Path) -> Path:
-    explicit = str(os.environ.get("APPS_RG_SECTION_CACHE_ROOT") or "").strip()
+    explicit = str(get_runtime_env_str("APPS_RG_SECTION_CACHE_ROOT") or "").strip()
     if explicit:
         return Path(explicit).expanduser().resolve()
     root = repo.resolve()
@@ -110,7 +111,7 @@ def _load_json_memoized(path_str: str) -> dict[str, Any]:
 
 
 def _extract_section_evidence_slice_digest(section_id: str) -> str:
-    contracts = _load_json_memoized(str(os.environ.get(SECTION_EVIDENCE_CONTRACTS_ENV) or ""))
+    contracts = _load_json_memoized(str(get_runtime_env_str(SECTION_EVIDENCE_CONTRACTS_ENV) or ""))
     sec_contract = contracts.get(section_id)
     contract_projection: dict[str, Any] = {}
     if isinstance(sec_contract, Mapping):
@@ -139,7 +140,7 @@ def _extract_section_evidence_slice_digest(section_id: str) -> str:
             "assignments": assignments_proj,
         }
     allowlists = _load_json_memoized(
-        str(os.environ.get(GRAPH_SKILL_EMBEDDING_ALLOWLISTS_ENV) or "")
+        str(get_runtime_env_str(GRAPH_SKILL_EMBEDDING_ALLOWLISTS_ENV) or "")
     )
     by_sec = allowlists.get("allowlists_by_section")
     sec_allow = by_sec.get(section_id) if isinstance(by_sec, Mapping) else None
@@ -342,7 +343,7 @@ def dispatch_lane_with_section_cache(
             new_rel = _repo_rel_posix(target_lane_dir, repo)
             for ptr_name in _POINTER_REWRITE_NAMES:
                 _rewrite_pointer_json(target_lane_dir / ptr_name, old_rel, new_rel)
-            if os.environ.get("APPS_RG_WHOLE_RUN_ENVELOPE", "").strip() in ("1", "true", "yes"):
+            if (get_runtime_env_str("APPS_RG_WHOLE_RUN_ENVELOPE", "") or "").strip() in ("1", "true", "yes"):
                 try:
                     from apps_rg.runtime.runtime_proof_layout import finalize_runtime_proof_run
 

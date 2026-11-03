@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-import os
 from typing import Any, Mapping
+
+from apps_rg.config.runtime_env import get_runtime_env_str, get_runtime_environ
 
 # Bounded same-authority content-signal regen (retry_headline_content_signal).
 RELEASE_HEADLINE_CONTENT_SIGNAL_REPAIR_ENABLED = True
@@ -17,7 +18,7 @@ CONTENT_SIGNAL_REPAIR_LIVE_MAX_ATTEMPTS = 1
 def resolve_content_signal_repair_max_attempts(
     environ: Mapping[str, str] | None = None,
 ) -> int:
-    env = os.environ if environ is None else environ
+    env = get_runtime_environ() if environ is None else environ
     explicit = str(env.get("APPS_RG_HEADLINE_REPAIR_MAX_ATTEMPTS") or "").strip()
     if explicit:
         try:
@@ -34,19 +35,19 @@ def resolve_content_signal_repair_max_attempts(
 
 
 def content_signal_repair_enabled() -> bool:
-    raw = os.environ.get("APPS_RG_HEADLINE_CONTENT_SIGNAL_REPAIR", "1").strip().lower()
+    raw = (get_runtime_env_str("APPS_RG_HEADLINE_CONTENT_SIGNAL_REPAIR", "1") or "1").strip().lower()
     return RELEASE_HEADLINE_CONTENT_SIGNAL_REPAIR_ENABLED and raw not in ("0", "false", "no", "off")
 
 
 def content_signal_repair_env_state() -> str:
-    raw = os.environ.get("APPS_RG_HEADLINE_CONTENT_SIGNAL_REPAIR")
+    raw = get_runtime_env_str("APPS_RG_HEADLINE_CONTENT_SIGNAL_REPAIR")
     return raw.strip() if isinstance(raw, str) and raw.strip() else "unset"
 
 
 def deterministic_clarity_trim_enabled(
     environ: Mapping[str, str] | None = None,
 ) -> bool:
-    env = os.environ if environ is None else environ
+    env = get_runtime_environ() if environ is None else environ
     raw = str(env.get("APPS_RG_HEADLINE_DETERMINISTIC_CLARITY_TRIM") or "").strip().lower()
     if raw in ("1", "true", "yes", "on"):
         return True

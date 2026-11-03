@@ -180,6 +180,14 @@ def is_antigravity_chat_worktree(wt_path: Path) -> bool:
     return False
 
 
+def _safe_cwd(fallback: Path) -> Path:
+    """Resolve current working directory, falling back cleanly when CWD inode was unlinked."""
+    try:
+        return Path.cwd().resolve()
+    except OSError:
+        return fallback.resolve()
+
+
 def _preserve_cwd_stub_if_needed(
     wt_path: Path,
     main_root: Path,
@@ -187,7 +195,7 @@ def _preserve_cwd_stub_if_needed(
     preserve_cwd: Path | None = None,
     force_stub_for_antigravity: bool = True,
 ) -> bool:
-    """Recreate an empty directory stub if a removed external worktree was a host CWD."""
+    """Recreate an empty directory stub with hook symlinks if a removed external worktree was a host CWD."""
     resolved_wt = wt_path.resolve()
     if is_in_repo_worktree(main_root, resolved_wt):
         return False
@@ -201,10 +209,14 @@ def _preserve_cwd_stub_if_needed(
     if need_stub:
         resolved_wt.mkdir(parents=True, exist_ok=True)
         if (main_root / "scripts").is_dir() and not (resolved_wt / "scripts").exists():
-            try:
+            with contextlib.suppress(OSError):
                 (resolved_wt / "scripts").symlink_to(main_root / "scripts")
-            except OSError:  # guardian: allow-silent-swallow -- best-effort stub hook symlink
-                pass
+        if (main_root / "tools").is_dir():
+            agents_stub = resolved_wt / ".agents"
+            agents_stub.mkdir(parents=True, exist_ok=True)
+            if not (agents_stub / "tools").exists():
+                with contextlib.suppress(OSError):
+                    (agents_stub / "tools").symlink_to(main_root / "tools")
         return True
     return False
 
@@ -233,7 +245,7 @@ def prune_merged_worktrees(
         }
 
     main_root = get_main_repo_root(repo_root)
-    caller_cwd = (active_cwd or Path.cwd()).resolve()
+    caller_cwd = active_cwd.resolve() if active_cwd is not None else _safe_cwd(main_root)
 
     # Prune stale administrative worktree entries first
     if delete_merged:
@@ -352,7 +364,7 @@ def consolidate_single_sidecar_worktree(
             f"Governance violation: sidecar worktree '{resolved_target}' must reside inside '{allowed_dir}'."
         )
 
-    effective_cwd = (caller_cwd or Path.cwd()).resolve()
+    effective_cwd = caller_cwd.resolve() if caller_cwd is not None else _safe_cwd(main_root)
     try:
         from tools.pr_governance_core.worktree import (
             link_worktree_dependencies,
@@ -439,9 +451,38 @@ def consolidate_single_sidecar_worktree(
     }
 
 
+def write_sidecar_manifest(
+    manifest_path: Path,
+    *,
+    worktree_dir: Path,
+    agent_id: str,
+    run_id: str,
+    mode: str = "interactive",
+    plan_path: str = "",
+    pre_state_sha256: str = "",
+) -> dict[str, str]:
+    """Write canonical 6-field assurance run manifest JSON atomically."""
+    resolved_wt = worktree_dir.resolve()
+    sha = pre_state_sha256.strip()
+    if not sha:
+        rev = _run_git(["rev-parse", "HEAD"], cwd=resolved_wt)
+        sha = rev.stdout.strip() if rev.returncode == 0 else "unknown"
+    payload = {
+        "agent_id": agent_id,
+        "run_id": run_id,
+        "mode": mode,
+        "pre_state_sha256": sha,
+        "worktree_dir": str(resolved_wt),
+        "plan_path": plan_path,
+    }
+    manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    manifest_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    return payload
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Prune merged secondary git worktrees and feature branches.")
-    parser.add_argument("--repo-root", type=Path, default=Path.cwd(), help="Repository or worktree root path.")
+    parser.add_argument("--repo-root", type=Path, default=None, help="Repository or worktree root path.")
     parser.add_argument("--target-ref", default="main", help="Target branch to check ancestry against (default: main).")
     parser.add_argument("--active-cwd", type=Path, default=None, help="Explicit active working directory to protect.")
     parser.add_argument("--dry-run", action="store_true", help="Report merged worktrees/branches without deleting.")
@@ -453,18 +494,35 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--worktree-dir", type=Path, default=None, help="Target .worktrees/<slug> path for --consolidate-sidecar.")
     parser.add_argument("--branch", default=None, help="Target branch name for --consolidate-sidecar.")
+    parser.add_argument("--write-manifest", type=Path, default=None, help="Optional path to write canonical 6-field manifest.json.")
+    parser.add_argument("--agent-id", default="agents-assurance", help="Agent workflow identifier for --write-manifest.")
+    parser.add_argument("--run-id", default="", help="Run timestamp/identifier for --write-manifest.")
+    parser.add_argument("--mode", default="interactive", help="Execution mode for --write-manifest.")
+    parser.add_argument("--plan-path", default="", help="Remediation plan path for --write-manifest.")
     args = parser.parse_args(argv)
+
+    repo_root = args.repo_root.resolve() if args.repo_root else _safe_cwd(_SCRIPT_ROOT)
+    caller_cwd = args.active_cwd.resolve() if args.active_cwd else _safe_cwd(repo_root)
 
     if args.consolidate_sidecar:
         if not args.worktree_dir or not args.branch:
             parser.error("--consolidate-sidecar requires both --worktree-dir and --branch")
         cons_res = consolidate_single_sidecar_worktree(
-            repo_root=args.repo_root.resolve(),
+            repo_root=repo_root,
             worktree_dir=args.worktree_dir.resolve(),
             branch_name=args.branch,
             target_ref=args.target_ref,
-            caller_cwd=args.active_cwd.resolve() if args.active_cwd else Path.cwd().resolve(),
+            caller_cwd=caller_cwd,
         )
+        if args.write_manifest:
+            write_sidecar_manifest(
+                args.write_manifest.resolve(),
+                worktree_dir=Path(cons_res["worktree_dir"]),
+                agent_id=args.agent_id,
+                run_id=args.run_id or time.strftime("%Y%m%dT%H%M%SZ", time.gmtime()),
+                mode=args.mode,
+                plan_path=args.plan_path,
+            )
         for wt in cons_res["deduplicated_worktrees"]:
             print(f"[worktree consolidation] Deduplicated external chat worktree: {wt}")
         for br in cons_res["deduplicated_branches"]:
@@ -472,12 +530,24 @@ def main(argv: list[str] | None = None) -> int:
         print(f"[worktree consolidation] Active single worktree: {cons_res['worktree_dir']} ({cons_res['branch']})")
         return 0
 
+    if args.write_manifest:
+        target_wt = args.worktree_dir.resolve() if args.worktree_dir else repo_root
+        write_sidecar_manifest(
+            args.write_manifest.resolve(),
+            worktree_dir=target_wt,
+            agent_id=args.agent_id,
+            run_id=args.run_id or time.strftime("%Y%m%dT%H%M%SZ", time.gmtime()),
+            mode=args.mode,
+            plan_path=args.plan_path,
+        )
+        return 0
+
     delete_flag = bool(args.delete_merged and not args.dry_run)
     result = prune_merged_worktrees(
-        repo_root=args.repo_root.resolve(),
+        repo_root=repo_root,
         target_ref=args.target_ref,
         delete_merged=delete_flag,
-        active_cwd=args.active_cwd.resolve() if args.active_cwd else None,
+        active_cwd=caller_cwd,
     )
 
     if delete_flag:

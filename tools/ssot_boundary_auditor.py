@@ -12,10 +12,11 @@ from __future__ import annotations
 import argparse
 import ast
 import json
+import os
 import re
 import sys
 from pathlib import Path
-from typing import Any, Sequence
+from typing import Any, Iterator, NamedTuple, Sequence
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
@@ -52,23 +53,102 @@ SUBSYSTEM_TARGETS: tuple[str, ...] = (
 )
 SUBPROCESS_SCAN_DIRS: tuple[str, ...] = SUBSYSTEM_TARGETS + ("tools",)
 GUARDIAN_COMMENT_RE = re.compile(r"#\s*guardian:", re.IGNORECASE)
+_PRUNED_DIR_NAMES: frozenset[str] = frozenset(
+    {
+        ".git",
+        ".venv",
+        "__pycache__",
+        ".pytest_cache",
+        ".ruff_cache",
+        ".mypy_cache",
+        ".worktrees",
+        ".runtime",
+        "node_modules",
+    }
+)
+_PRUNED_REL_TREES: frozenset[str] = frozenset(
+    {
+        "artifacts",
+        "resume_graph_engine/artifacts",
+        "outreach_engine/artifacts",
+        "resume_graph_engine/models",
+        "resume_graph_engine/data",
+        "outreach_engine/runs",
+    }
+)
 
 
-def audit_cross_subsystem_encapsulation(repo_root: Path) -> list[dict[str, Any]]:
+class _ParsedPyEntry(NamedTuple):
+    lines: list[str]
+    tree: ast.AST | None
+
+
+def _iter_py_files(base: Path, repo_root: Path, *, skip_tests: bool = False) -> Iterator[Path]:
+    """Yield sorted Python files under `base`, pruning non-source runtime/cache/venv trees."""
+    if not base.exists():
+        return
+    if base.is_file():
+        if base.suffix == ".py":
+            yield base
+        return
+    root_resolved = repo_root.resolve()
+    collected: list[Path] = []
+    for cur_root, dirs, files in os.walk(base, topdown=True, followlinks=False):
+        cur_path = Path(cur_root)
+        kept_dirs: list[str] = []
+        for dname in sorted(dirs):
+            if dname in _PRUNED_DIR_NAMES:
+                continue
+            if skip_tests and dname == "tests":
+                continue
+            cand = cur_path / dname
+            try:
+                rel = cand.resolve().relative_to(root_resolved).as_posix()
+            except ValueError:
+                rel = ""
+            if rel in _PRUNED_REL_TREES:
+                continue
+            kept_dirs.append(dname)
+        dirs[:] = kept_dirs
+        for fname in sorted(files):
+            if fname.endswith(".py"):
+                collected.append(cur_path / fname)
+    yield from sorted(collected)
+
+
+def _get_parsed_py(py: Path, cache: dict[Path, _ParsedPyEntry]) -> _ParsedPyEntry:
+    cached = cache.get(py)
+    if cached is not None:
+        return cached
+    lines = py.read_text(encoding="utf-8", errors="replace").splitlines()
+    try:
+        tree: ast.AST | None = ast.parse("\n".join(lines), filename=str(py))
+    except SyntaxError:
+        tree = None
+    entry = _ParsedPyEntry(lines=lines, tree=tree)
+    cache[py] = entry
+    return entry
+
+
+def audit_cross_subsystem_encapsulation(
+    repo_root: Path,
+    *,
+    parse_cache: dict[Path, _ParsedPyEntry] | None = None,
+) -> list[dict[str, Any]]:
     """Verify zero illegal direct imports between outreach_engine and resume_engine / resume_graph_engine."""
+    cache = parse_cache if parse_cache is not None else {}
     violations: list[dict[str, Any]] = []
     for rel_dir in SUBSYSTEM_TARGETS:
         base = repo_root / rel_dir
         if not base.exists():
             continue
-        for py in sorted(base.rglob("*.py")):
+        for py in _iter_py_files(base, repo_root, skip_tests=True):
             if "tests" in py.parts:
                 continue
-            try:
-                tree = ast.parse(py.read_text(encoding="utf-8", errors="replace"))
-            except SyntaxError:
+            entry = _get_parsed_py(py, cache)
+            if entry.tree is None:
                 continue
-            for node in ast.walk(tree):
+            for node in ast.walk(entry.tree):
                 mods: list[str] = []
                 if isinstance(node, ast.ImportFrom) and node.module:
                     mods.append(node.module)
@@ -96,8 +176,13 @@ def audit_cross_subsystem_encapsulation(repo_root: Path) -> list[dict[str, Any]]
     return violations
 
 
-def audit_constitutional_ast_floor(repo_root: Path) -> dict[str, list[str]]:
+def audit_constitutional_ast_floor(
+    repo_root: Path,
+    *,
+    parse_cache: dict[Path, _ParsedPyEntry] | None = None,
+) -> dict[str, list[str]]:
     """Scan packages and tools/ for subprocess calls missing timeout= and unguarded bare Exception."""
+    cache = parse_cache if parse_cache is not None else {}
     missing_timeouts: list[str] = []
     unguarded_exceptions: list[str] = []
 
@@ -105,16 +190,15 @@ def audit_constitutional_ast_floor(repo_root: Path) -> dict[str, list[str]]:
         base = repo_root / rel_dir
         if not base.exists():
             continue
-        for py in sorted(base.rglob("*.py")):
+        for py in _iter_py_files(base, repo_root, skip_tests=True):
             if "tests" in py.parts:
                 continue
-            lines = py.read_text(encoding="utf-8", errors="replace").splitlines()
-            try:
-                tree = ast.parse("\n".join(lines))
-            except SyntaxError:
+            entry = _get_parsed_py(py, cache)
+            if entry.tree is None:
                 continue
+            lines = entry.lines
             rel_str = str(py.relative_to(repo_root))
-            for node in ast.walk(tree):
+            for node in ast.walk(entry.tree):
                 if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
                     if (
                         isinstance(node.func.value, ast.Name)
@@ -179,26 +263,34 @@ def run_ssot_boundary_audit(
 ) -> dict[str, Any]:
     """Execute the 6-dimension SSOT, boundary, config drift, and governance sync audit."""
     root = repo_root.resolve()
+    parse_cache: dict[Path, _ParsedPyEntry] = {}
 
-    dim1_cross = audit_cross_subsystem_encapsulation(root)
+    dim1_cross = audit_cross_subsystem_encapsulation(root, parse_cache=parse_cache)
 
     layer_violations: list[str] = []
     for prod_dir in LAYER_PROD_DIRS:
         d = root / prod_dir
         if d.exists():
-            for py in sorted(d.rglob("*.py")):
-                for lineno, mod, msg in check_file_layer_imports(py, root):
+            for py in _iter_py_files(d, root, skip_tests=True):
+                entry = _get_parsed_py(py, parse_cache)
+                if entry.tree is None:
+                    continue
+                for lineno, mod, msg in check_file_layer_imports(py, root, tree=entry.tree, lines=entry.lines):
                     layer_violations.append(f"{py.relative_to(root)}:{lineno}: {mod} ({msg})")
 
     purity_violations: list[str] = []
     for prod_dir in PURITY_PROD_DIRS:
         d = root / prod_dir
         if d.exists():
-            for py in sorted(d.rglob("*.py")):
-                for lineno, cat, msg in check_file_production_purity(py, root):
+            for py in _iter_py_files(d, root, skip_tests=True):
+                entry = _get_parsed_py(py, parse_cache)
+                if entry.tree is None:
+                    continue
+                for lineno, cat, msg in check_file_production_purity(py, root, tree=entry.tree, lines=entry.lines):
                     purity_violations.append(f"{py.relative_to(root)}:{lineno}: [{cat}] {msg}")
 
-    arch_res = run_architecture_linter(root)
+    ast_tree_cache: dict[Path, ast.AST | None] = {p: e.tree for p, e in parse_cache.items()}
+    arch_res = run_architecture_linter(root, ast_cache=ast_tree_cache)
     dim2_issues = layer_violations + purity_violations
     if not arch_res["is_clean"]:
         for cname, cdata in arch_res["checks"].items():
@@ -208,8 +300,11 @@ def run_ssot_boundary_audit(
     for prod_dir in MODEL_PROD_DIRS:
         d = root / prod_dir
         if d.exists():
-            for py in sorted(d.rglob("*.py")):
-                for lineno, tok, msg in check_file_model_neutrality(py, root):
+            for py in _iter_py_files(d, root, skip_tests=True):
+                entry = _get_parsed_py(py, parse_cache)
+                if entry.tree is None:
+                    continue
+                for lineno, tok, msg in check_file_model_neutrality(py, root, tree=entry.tree, lines=entry.lines):
                     model_neutral_violations.append(f"{py.relative_to(root)}:{lineno}: {tok} ({msg})")
 
     pin_findings = audit_model_pins(root)
@@ -219,13 +314,14 @@ def run_ssot_boundary_audit(
     ]
     dim3_issues = model_neutral_violations + [f"{f['file']}::{f['key']}: {f['message']}" for f in pin_findings] + drift_issues
 
-    ast_floor = audit_constitutional_ast_floor(root)
+    ast_floor = audit_constitutional_ast_floor(root, parse_cache=parse_cache)
     dim4_issues = ast_floor["missing_timeouts"] + ast_floor["unguarded_exceptions"]
 
     dim5_issues = audit_mcp_hooks_and_links(root)
     separation = validate_sidecar_separation(repo_root=root, sidecars_root=sidecars_root)
     sprawl_scan = run_sprawl_scan(root)
-    hardcoding_scan = run_hardcoding_scan(root)
+    ast_tree_cache.update({p: e.tree for p, e in parse_cache.items()})
+    hardcoding_scan = run_hardcoding_scan(root, ast_cache=ast_tree_cache)
 
     dim7_sprawl_count = int(sprawl_scan.get("total_findings", 0))
     dim8_policy_sync = hardcoding_scan.get("policy_registry_sync_issues", [])

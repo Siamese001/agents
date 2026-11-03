@@ -89,31 +89,37 @@ EXPECTED_NEE_SIDECARS: tuple[str, ...] = (
 
 PROMPT_URI_RE = re.compile(r"file://(/[^\s\"']+?\.md)")
 
+RETIRED_SCHEDULE_TIME_RE = re.compile(r"\b0[567]:[0-5][0-9]\s+ET\b")
+
 REQUIRED_SHARED_CONTRACT_MARKERS: tuple[str, ...] = (
     "INV-REPO-SEPARATION-AGENTS-ONLY",
-    "urn:agents:scheduled-task-common-control-matrix:1.0.0",
+    "urn:agents:on-demand-assurance-control-matrix:2.0.0",
+    "PREFLIGHT_ZERO_DEFECT_FAST_EXIT",
     "UNCONDITIONAL_WAVE_PLAN_MANDATE",
     "INV-REMEDIATION-QUOTA-FLOOR",
     "INV-DEFECT-ACCOUNTING-TABLE-GATE",
-    "INV-WT-EPHEMERAL-SCHEDULED",
     "INV-RUNTIME-PROOF-5POINT",
     "INV-AUTOMATION-PERSISTENT-LEARNING-LOOP",
     "validate_implementation_plan.py",
     "--consolidate-sidecar",
+    "--write-manifest",
+    'cd "${WORKTREE_DIR}"',
     "Dimension Findings Table",
     "pr_governance.py",
-    "--stage-only",
 )
 
 REQUIRED_PROMPT_PARITY_MARKERS: tuple[str, ...] = (
     "INV-REPO-SEPARATION-AGENTS-ONLY",
-    "urn:agents:scheduled-task-common-control-matrix:1.0.0",
+    "urn:agents:on-demand-assurance-control-matrix:2.0.0",
+    "PREFLIGHT_ZERO_DEFECT_FAST_EXIT",
     "UNCONDITIONAL_WAVE_PLAN_MANDATE",
     "INV-RUNTIME-PROOF-5POINT",
     "INV-AUTOMATION-PERSISTENT-LEARNING-LOOP",
     "Phase 0",
     "Step 0.1",
     "--consolidate-sidecar",
+    "--write-manifest",
+    'cd "${WORKTREE_DIR}"',
     "Phase 1",
     "Phase 1.5",
     "Phase 2",
@@ -122,7 +128,6 @@ REQUIRED_PROMPT_PARITY_MARKERS: tuple[str, ...] = (
     "Dimension Findings Table",
     "HITLDecisionStore",
     "pr_governance.py",
-    "--stage-only",
 )
 
 
@@ -194,6 +199,16 @@ def validate_sidecar_separation(
                 violations.append(
                     f'{spec["prompt_file"]}: hardcodes primary repo root Path("{AGENTS_CANONICAL_ROOT}") instead of WORKTREE_DIR'
                 )
+            if RETIRED_SCHEDULE_TIME_RE.search(p_text) or "MODE: scheduled" in p_text:
+                violations.append(
+                    f"{spec['prompt_file']}: retains retired daily cron timestamp or 'MODE: scheduled' boilerplate"
+                )
+            p15_idx = p_text.find("Phase 1.5")
+            cons_idx = p_text.find("--consolidate-sidecar")
+            if p15_idx != -1 and cons_idx != -1 and cons_idx < p15_idx:
+                violations.append(
+                    f"{spec['prompt_file']}: invokes --consolidate-sidecar before Phase 1.5 read-only preflight"
+                )
             if spec["prompt_file"] == "agents_testing_gaps_assurance_agent.md":
                 for req_testing_token in (
                     "resume_graph_engine/tests",
@@ -211,6 +226,24 @@ def validate_sidecar_separation(
         if det_ep and (repo_root.resolve() / "tools").is_dir() and not (repo_root.resolve() / det_ep).is_file():
             violations.append(
                 f"{workflow_id}: declared deterministic_entrypoint '{det_ep}' missing under {repo_root.resolve()}"
+            )
+
+    routing_doc = repo_root / ".agents" / "rules" / "sidecar-automation-routing.md"
+    if routing_doc.is_file():
+        routing_text = routing_doc.read_text(encoding="utf-8")
+        for workflow_id, spec in EXPECTED_AGENTS_SIDECARS.items():
+            det_ep = str(spec.get("deterministic_entrypoint") or "")
+            if det_ep and det_ep not in routing_text:
+                violations.append(
+                    f".agents/rules/sidecar-automation-routing.md: missing canonical checker '{det_ep}' for {workflow_id}"
+                )
+
+    hygiene_skill = repo_root / ".agents" / "skills" / "agents-governance-hygiene" / "SKILL.md"
+    if hygiene_skill.is_file():
+        skill_text = hygiene_skill.read_text(encoding="utf-8")
+        if "PREFLIGHT_ZERO_DEFECT_FAST_EXIT" not in skill_text:
+            violations.append(
+                ".agents/skills/agents-governance-hygiene/SKILL.md: missing PREFLIGHT_ZERO_DEFECT_FAST_EXIT read-only gate"
             )
 
     # 3. Enforce ZERO active background schedules for Agents Repo in sidecars_root and config.json

@@ -295,7 +295,9 @@ def urlopen_with_wallclock_cap(
 
 
 def _env_or_ssot_seconds(env_key: str, ssot_path: str, fallback: float) -> float:
-    raw = os.environ.get(env_key, "").strip()
+    from apps_rg.config.runtime_env import get_runtime_env_str
+
+    raw = (get_runtime_env_str(env_key, "") or "").strip()
     if raw:
         try:
             val = float(raw)
