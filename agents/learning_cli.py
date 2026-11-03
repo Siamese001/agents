@@ -26,6 +26,17 @@ def register_learning_subparser(subparsers: Any) -> argparse.ArgumentParser:
     traj_p.add_argument("--task-type", default="general", help="Filter by task category")
     traj_p.add_argument("--json", action="store_true", help="Output machine-readable JSON")
 
+    rec_p = learning_sub.add_parser(
+        "record-lesson",
+        help="Record a verified feedback failure signature and resolution lesson",
+    )
+    rec_p.add_argument("--failure-kind", required=True, help="Failure taxonomy category")
+    rec_p.add_argument("--constraint", required=True, help="Normalized failure constraint description")
+    rec_p.add_argument("--repair-hint", required=True, help="Verified repair hint")
+    rec_p.add_argument("--run-id", required=True, help="Originating run or session identifier")
+    rec_p.add_argument("--action-taken", default="OPERATOR_FEEDBACK_RESOLUTION", help="Resolution action code")
+    rec_p.add_argument("--json", action="store_true", help="Output machine-readable JSON")
+
     return learning_parser
 
 
@@ -127,6 +138,41 @@ def run_learning(args: argparse.Namespace) -> int:
                     f"  - [{ex.exemplar_id}] Run: {ex.run_id} | Efficiency: {ex.efficiency_score:.2f} | "
                     f"Steps: {' -> '.join(ex.step_sequence)}"
                 )
+        return 0
+
+    if cmd == "record-lesson":
+        from agents.orchestration.learning_store import FeedbackLearningStore
+
+        fb_store = FeedbackLearningStore()
+        try:
+            sig_hash = fb_store.record_feedback_lesson(
+                args.failure_kind,
+                args.constraint,
+                run_id=args.run_id,
+                repair_hint=args.repair_hint,
+                action_taken=getattr(args, "action_taken", "OPERATOR_FEEDBACK_RESOLUTION"),
+                outcome="SUCCESS",
+            )
+            summary = fb_store.get_summary()
+        finally:
+            fb_store.close()
+
+        payload = {
+            "status": "RECORDED",
+            "signature_hash": sig_hash,
+            "run_id": args.run_id,
+            "store_location": summary["store_location"],
+            "total_failure_signatures": summary["total_failure_signatures"],
+            "total_resolutions_recorded": summary["total_resolutions_recorded"],
+        }
+        if getattr(args, "json", False):
+            print(json.dumps(payload, indent=2))
+        else:
+            print(
+                f"Recorded lesson [{sig_hash}] for {args.run_id} "
+                f"(signatures={summary['total_failure_signatures']}, "
+                f"resolutions={summary['total_resolutions_recorded']})."
+            )
         return 0
 
     return 0

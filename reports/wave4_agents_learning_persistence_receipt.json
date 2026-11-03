@@ -1,0 +1,28 @@
+{
+  "wave": "Wave 4",
+  "title": "Wire Agents Workspace Feedback Store and Verify End-to-End Learning",
+  "status": "COMPLETE",
+  "executed_at": "2026-11-03T18:14:47-05:00",
+  "workspace": "/Users/amitayer/Git/agents/.worktrees/feat_wire_feedback_learning_persistence",
+  "branch": "feat/wire-feedback-learning-persistence",
+  "store_path": "/Users/amitayer/Git/agents/artifacts/learning/feedback_learning.sqlite",
+  "manifest_path": "config/governance/feedback_learning_lessons_11-03-2026.json",
+  "metrics": {
+    "failure_signatures_persisted": 7,
+    "resolution_events_persisted": 7,
+    "successful_resolutions": 7,
+    "overall_success_rate": 1.0,
+    "sqlite_integrity_check": "ok",
+    "unit_tests_passed": 11,
+    "unit_tests_failed": 0,
+    "precommit_tier1_gate": "PASS"
+  },
+  "verification_commands": [
+    "/Users/amitayer/Git/agents/.venv/bin/python tools/backfill_feedback_learning_lessons.py",
+    "/Users/amitayer/Git/agents/.venv/bin/python -m agents learning status --json",
+    "/Users/amitayer/Git/agents/.venv/bin/pytest tests/unit/test_feedback_learning_persistence.py -v --timeout=60",
+    "/Users/amitayer/Git/agents/.venv/bin/pytest tests/unit/test_system_learning_rigor.py -v --timeout=60",
+    "/Users/amitayer/Git/agents/.venv/bin/python tools/verify_commit.py --files agents/orchestration/learning_store.py agents/orchestration/feedback_controller.py agents/learning_cli.py config/governance/feedback_learning_lessons_11-03-2026.json tools/backfill_feedback_learning_lessons.py tests/unit/test_feedback_learning_persistence.py"
+  ],
+  "terminal_outcome": "PASS"
+}

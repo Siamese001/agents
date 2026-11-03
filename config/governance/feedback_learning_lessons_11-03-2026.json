@@ -1,0 +1,55 @@
+{
+  "schema_version": "1.0.0",
+  "captured_window": "11/01/2026 to 11/03/2026",
+  "lessons": [
+    {
+      "run_id": "chat:e344bd60",
+      "failure_kind": "DETERMINISTIC_QUALITY",
+      "constraint": "Redundant uncached prompt payloads and miscalibrated medium versus high reasoning tier routing inflated token spend",
+      "repair_hint": "Enable prefix prompt caching for static context blocks and route deterministic or bounded extraction steps to medium tier while reserving high tier for adversarial synthesis.",
+      "action_taken": "OPERATOR_FEEDBACK_RESOLUTION"
+    },
+    {
+      "run_id": "chat:3bd319d4",
+      "failure_kind": "SCHEMA",
+      "constraint": "Duplicated word-limit constants and configuration sprawl across root and sub-engine config trees",
+      "repair_hint": "Consolidate word-limit parameters into canonical single-source-of-truth config manifests and verify zero unallowlisted drift across all sub-engine directories.",
+      "action_taken": "OPERATOR_FEEDBACK_RESOLUTION"
+    },
+    {
+      "run_id": "chat:95001f54",
+      "failure_kind": "PLANNING",
+      "constraint": "Single-engine verification missed cross-workflow coverage across both Resume Engine and Outreach Engine across all 7 automation agents",
+      "repair_hint": "Require dual-engine end-to-end validation covering both Resume Engine and Outreach Engine entry points across all 7 scheduled automation agents before sealing wave completion.",
+      "action_taken": "OPERATOR_FEEDBACK_RESOLUTION"
+    },
+    {
+      "run_id": "chat:10d6b498",
+      "failure_kind": "DETERMINISTIC_QUALITY",
+      "constraint": "Shallow sub-25-second surface scan missed deep repository behavioral regressions after prompt refactoring",
+      "repair_hint": "Execute full-repository empirical AST, contract, and behavioral path analysis rather than quick surface scans whenever shared prompts or orchestration contracts change.",
+      "action_taken": "OPERATOR_FEEDBACK_RESOLUTION"
+    },
+    {
+      "run_id": "chat:824cd24d",
+      "failure_kind": "POLICY",
+      "constraint": "Worktree working-directory drift across post-checkout hooks, MCP server configuration, and SSOT boundary auditor",
+      "repair_hint": "Resolve primary repository root dynamically via git common-dir semantics across post-checkout hooks, MCP server paths, and SSOT boundary auditors.",
+      "action_taken": "OPERATOR_FEEDBACK_RESOLUTION"
+    },
+    {
+      "run_id": "chat:6063878b",
+      "failure_kind": "DETERMINISTIC_QUALITY",
+      "constraint": "Unchecked artifact storage bloat and incomplete behavioral test floor across repository modules",
+      "repair_hint": "Enforce artifact retention pruning, file-budget ratchets, and empirical behavioral test coverage verification across every production directory.",
+      "action_taken": "OPERATOR_FEEDBACK_RESOLUTION"
+    },
+    {
+      "run_id": "chat:4c6dfb6d",
+      "failure_kind": "PLANNING",
+      "constraint": "FeedbackController defaulted learning_store to None leaving feedback_learning.sqlite with zero persisted failure signatures or resolutions",
+      "repair_hint": "Initialize FeedbackLearningStore anchored to primary repository root by default in FeedbackController and auto-record both failure signatures and validated resolutions.",
+      "action_taken": "OPERATOR_FEEDBACK_RESOLUTION"
+    }
+  ]
+}
