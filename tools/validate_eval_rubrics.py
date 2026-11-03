@@ -461,6 +461,19 @@ def _validate_judge_rubrics_and_profiles(repo_root: Path) -> list[str]:
     return violations
 
 
+_RUNTIME_CACHE_DIR_PARTS: frozenset[str] = frozenset({"cache", "__pycache__", ".pytest_cache", ".ruff_cache"})
+_RUNTIME_BINARY_SIDE_SUFFIXES: tuple[str, ...] = (
+    "-wal",
+    "-shm",
+    "-journal",
+    ".sqlite",
+    ".sqlite3",
+    ".db",
+    ".bin",
+    ".lock",
+)
+
+
 def _validate_data_holdout_surface(repo_root: Path) -> tuple[int, dict[str, int], list[str]]:
     """Validate structural integrity across all 3 data roots (`data`, `outreach_engine/data`, `resume_graph_engine/data`)."""
     violations: list[str] = []
@@ -474,6 +487,11 @@ def _validate_data_holdout_surface(repo_root: Path) -> tuple[int, dict[str, int]
         root_count = 0
         for fp in sorted(data_dir.rglob("*")):
             if not fp.is_file() or fp.is_symlink():
+                continue
+            rel_parts = fp.relative_to(data_dir).parts
+            if any(part in _RUNTIME_CACHE_DIR_PARTS for part in rel_parts[:-1]) or fp.name.endswith(
+                _RUNTIME_BINARY_SIDE_SUFFIXES
+            ):
                 continue
             file_count += 1
             root_count += 1

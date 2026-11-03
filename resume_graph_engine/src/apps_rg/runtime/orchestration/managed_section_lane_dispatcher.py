@@ -12,6 +12,7 @@ from typing import Any, Callable
 
 from tqdm import tqdm
 
+from apps_rg.config.runtime_env import get_runtime_env_str
 from apps_rg.runtime.orchestration.section_lane_concurrency import LaneWave, section_dag_dependencies
 from apps_rg.runtime.orchestration.section_lane_executor import (
     LaneDispatchOutcome,
@@ -36,7 +37,7 @@ class ProgressReporter:  # pragma: no cover - exercised via the public dispatche
         self.label = label or "apps_rg section lanes"
         self.unit = unit or "lane"
         self.completed = 0
-        self._disabled = str(os.environ.get("APPS_RG_DISABLE_PROGRESS", "")).strip().lower() in (
+        self._disabled = str(get_runtime_env_str("APPS_RG_DISABLE_PROGRESS", "") or "").strip().lower() in (
             "1",
             "true",
             "yes",

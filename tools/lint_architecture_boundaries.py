@@ -54,7 +54,11 @@ DOMAIN_SERVICE_DIRS = [
 LINE_BUDGET_CEILING = 600
 
 
-def check_domain_storage_isolation(repo_root: Path) -> list[str]:
+def check_domain_storage_isolation(
+    repo_root: Path,
+    *,
+    ast_cache: dict[Path, ast.AST | None] | None = None,
+) -> list[str]:
     """Scan domain services for concrete persistence imports."""
     violations: list[str] = []
 
@@ -64,11 +68,15 @@ def check_domain_storage_isolation(repo_root: Path) -> list[str]:
             continue
 
         for py_file in abs_dir.glob("**/*.py"):
-            try:
-                tree = ast.parse(py_file.read_text(encoding="utf-8", errors="replace"), filename=str(py_file))
-            except Exception as e:
-                violations.append(f"{py_file.name}: AST parse error: {e}")
-                continue
+            tree = ast_cache.get(py_file) if ast_cache is not None and py_file in ast_cache else None
+            if tree is None:
+                try:
+                    tree = ast.parse(py_file.read_text(encoding="utf-8", errors="replace"), filename=str(py_file))
+                    if ast_cache is not None:
+                        ast_cache[py_file] = tree
+                except Exception as e:
+                    violations.append(f"{py_file.name}: AST parse error: {e}")
+                    continue
 
             for node in ast.walk(tree):
                 if isinstance(node, ast.Import):
@@ -97,7 +105,11 @@ def check_domain_storage_isolation(repo_root: Path) -> list[str]:
 LEGACY_SYS_PATH_ALLOWLIST: set[str] = set()
 
 
-def check_sys_path_purity(repo_root: Path) -> list[str]:
+def check_sys_path_purity(
+    repo_root: Path,
+    *,
+    ast_cache: dict[Path, ast.AST | None] | None = None,
+) -> list[str]:
     """Verify zero sys.path mutations in domain modules and package entrypoints."""
     violations: list[str] = []
 
@@ -136,10 +148,14 @@ def check_sys_path_purity(repo_root: Path) -> list[str]:
                 rel = py_file.name
             if rel in LEGACY_SYS_PATH_ALLOWLIST:
                 continue
-            try:
-                tree = ast.parse(py_file.read_text(encoding="utf-8", errors="replace"), filename=str(py_file))
-            except Exception:
-                continue
+            tree = ast_cache.get(py_file) if ast_cache is not None and py_file in ast_cache else None
+            if tree is None:
+                try:
+                    tree = ast.parse(py_file.read_text(encoding="utf-8", errors="replace"), filename=str(py_file))
+                    if ast_cache is not None:
+                        ast_cache[py_file] = tree
+                except Exception:
+                    continue
 
             for node in ast.walk(tree):
                 if isinstance(node, ast.Call):
@@ -163,10 +179,14 @@ def check_file_budgets(repo_root: Path) -> list[str]:
     return violations
 
 
-def run_architecture_linter(repo_root: Path) -> dict[str, Any]:
+def run_architecture_linter(
+    repo_root: Path,
+    *,
+    ast_cache: dict[Path, ast.AST | None] | None = None,
+) -> dict[str, Any]:
     """Run all continuous architecture checks and return structured diagnostic results."""
-    storage_violations = check_domain_storage_isolation(repo_root)
-    syspath_violations = check_sys_path_purity(repo_root)
+    storage_violations = check_domain_storage_isolation(repo_root, ast_cache=ast_cache)
+    syspath_violations = check_sys_path_purity(repo_root, ast_cache=ast_cache)
     budget_violations = check_file_budgets(repo_root)
 
     total_violations = len(storage_violations) + len(syspath_violations) + len(budget_violations)

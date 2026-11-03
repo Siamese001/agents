@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from apps_rg.cache.r1a_adapter import compute_r1a_key, stamp_r1a_cache
+from apps_rg.config.runtime_env import get_runtime_env_str, get_runtime_environ
 
 _PRESERVED_TARGET_NAMES = frozenset(
     {
@@ -57,7 +58,7 @@ _MATERIALIZE_ITEMS = (
 
 
 def is_no_cache_requested(environ: Any = None) -> bool:
-    env = os.environ if environ is None else environ
+    env = get_runtime_environ() if environ is None else environ
     for key in ("APPS_RG_NO_CACHE", "APPS_RG_REQUIRE_FRESH_RUN"):
         if str(env.get(key) or "").strip().lower() in ("1", "true", "yes", "on"):
             return True
@@ -136,8 +137,8 @@ def stamp_authorized_whole_run_r1a(
     stamp_r1a_cache(
         primary_key,
         run_dir=art,
-        policy_hash=str(raw_request.get("policy_hash") or os.environ.get("APPS_RG_POLICY_HASH") or "") or None,
-        blueprint_hash=str(raw_request.get("blueprint_hash") or os.environ.get("APPS_RG_BLUEPRINT_HASH") or "") or None,
+        policy_hash=str(raw_request.get("policy_hash") or get_runtime_env_str("APPS_RG_POLICY_HASH") or "") or None,
+        blueprint_hash=str(raw_request.get("blueprint_hash") or get_runtime_env_str("APPS_RG_BLUEPRINT_HASH") or "") or None,
         jd_hash=jd_hash or None,
         briefing_hash=caller_brief_hash or None,
         extra_keys=extra,
@@ -262,8 +263,8 @@ def try_serve_pre_research_whole_run_cache_hit(
         target_role=target_role,
         artifact_dir=art,
         runs_dir=art.parent,
-        policy_hash=os.environ.get("APPS_RG_POLICY_HASH"),
-        blueprint_hash=os.environ.get("APPS_RG_BLUEPRINT_HASH"),
+        policy_hash=get_runtime_env_str("APPS_RG_POLICY_HASH"),
+        blueprint_hash=get_runtime_env_str("APPS_RG_BLUEPRINT_HASH"),
         section="",
     )
     if preflight.generation_required:

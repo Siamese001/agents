@@ -147,8 +147,24 @@ def scan_policy_registry_sync(repo_root: Path) -> list[dict[str, Any]]:
     return findings
 
 
-def scan_hardcoded_threshold_literals(repo_root: Path) -> list[dict[str, Any]]:
+def _parse_cached(py: Path, ast_cache: dict[Path, ast.AST | None]) -> ast.AST | None:
+    if py in ast_cache:
+        return ast_cache[py]
+    try:
+        tree: ast.AST | None = ast.parse(py.read_text(encoding="utf-8", errors="replace"), filename=str(py))
+    except SyntaxError:
+        tree = None
+    ast_cache[py] = tree
+    return tree
+
+
+def scan_hardcoded_threshold_literals(
+    repo_root: Path,
+    *,
+    ast_cache: dict[Path, ast.AST | None] | None = None,
+) -> list[dict[str, Any]]:
     """Detect magic word/sentence/length threshold literals defined outside their canonical owner."""
+    cache = ast_cache if ast_cache is not None else {}
     findings: list[dict[str, Any]] = []
     scan_targets = list(PRODUCTION_SCAN_DIRS) + ["tools"]
 
@@ -160,9 +176,8 @@ def scan_hardcoded_threshold_literals(repo_root: Path) -> list[dict[str, Any]]:
             if "tests" in py.parts:
                 continue
             rel = str(py.relative_to(repo_root)).replace("\\", "/")
-            try:
-                tree = ast.parse(py.read_text(encoding="utf-8", errors="replace"))
-            except SyntaxError:
+            tree = _parse_cached(py, cache)
+            if tree is None:
                 continue
 
             for node in ast.walk(tree):
@@ -341,8 +356,13 @@ def _collect_docstring_node_ids(tree: ast.AST) -> set[int]:
     return doc_ids
 
 
-def scan_ast_hygiene_and_env_sprawl(repo_root: Path) -> list[dict[str, Any]]:
+def scan_ast_hygiene_and_env_sprawl(
+    repo_root: Path,
+    *,
+    ast_cache: dict[Path, ast.AST | None] | None = None,
+) -> list[dict[str, Any]]:
     """Detect unassigned .split() bugs, hardcoded user paths, and uncentralized os.environ reads."""
+    cache = ast_cache if ast_cache is not None else {}
     findings: list[dict[str, Any]] = []
     reg = _load_yaml(repo_root / "config" / "governance" / "centralization_registry.yaml")
     env_ratchet = _load_env_lookup_ratchet(repo_root)
@@ -380,10 +400,8 @@ def scan_ast_hygiene_and_env_sprawl(repo_root: Path) -> list[dict[str, Any]]:
             if "tests" in py.parts or py.name.startswith("test_") or py.name.endswith("_test.py"):
                 continue
             rel = str(py.relative_to(repo_root)).replace("\\", "/")
-            raw_text = py.read_text(encoding="utf-8", errors="replace")
-            try:
-                tree = ast.parse(raw_text)
-            except SyntaxError:
+            tree = _parse_cached(py, cache)
+            if tree is None:
                 continue
 
             doc_ids = _collect_docstring_node_ids(tree)
@@ -435,13 +453,18 @@ def scan_ast_hygiene_and_env_sprawl(repo_root: Path) -> list[dict[str, Any]]:
     return findings
 
 
-def run_hardcoding_scan(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
+def run_hardcoding_scan(
+    repo_root: Path = REPO_ROOT,
+    *,
+    ast_cache: dict[Path, ast.AST | None] | None = None,
+) -> dict[str, Any]:
     """Execute all 4 anti-hardcoding, policy sync, prompt parity, and AST hygiene scans."""
     root = repo_root.resolve()
+    shared_cache = ast_cache if ast_cache is not None else {}
     pol_sync = scan_policy_registry_sync(root)
-    literals = scan_hardcoded_threshold_literals(root)
+    literals = scan_hardcoded_threshold_literals(root, ast_cache=shared_cache)
     parity = scan_prompt_code_parity(root)
-    hygiene = scan_ast_hygiene_and_env_sprawl(root)
+    hygiene = scan_ast_hygiene_and_env_sprawl(root, ast_cache=shared_cache)
     total = len(pol_sync) + len(literals) + len(parity) + len(hygiene)
     return {
         "status": "PASS" if total == 0 else "FAIL",

@@ -406,6 +406,7 @@ def run_retrieval_surface_audit(repo_root: Path | None = None, *, read_only: boo
         "timestamp_utc": datetime.now(timezone.utc).isoformat(),
         "repo_root": str(root),
         "read_only": read_only,
+        "status": "PASS" if is_clean else "FAIL",
         "is_clean": is_clean,
         "passing_pillars": passing_count,
         "total_pillars": len(pillars),

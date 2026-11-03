@@ -386,3 +386,34 @@ def test_storage_hygiene_discovers_outreach_eval_dbs_and_expired_worktree_leases
     assert post["stale_files"] == []
 
 
+def test_validator_rejects_cron_timestamp_or_routing_mismatch_or_missing_manifest_flag(tmp_path: Path) -> None:
+    """Negative control: reject retired cron timestamps, pre-preflight consolidation, and routing drift."""
+    fake_repo = tmp_path / "repo"
+    prompts_dir = fake_repo / "automations" / "prompts"
+    routing_dir = fake_repo / ".agents" / "rules"
+    prompts_dir.mkdir(parents=True)
+    routing_dir.mkdir(parents=True)
+
+    for md_file in (REPO_ROOT / "automations" / "prompts").glob("*.md"):
+        content = md_file.read_text(encoding="utf-8")
+        if md_file.name == "agents_storage_worktree_hygiene_agent.md":
+            content += "\nLegacy schedule (`05:00 ET`, MODE: scheduled)\n"
+        if md_file.name == "agents_ssot_boundary_agent.md":
+            content = content.replace("--write-manifest", "--missing-manifest")
+        (prompts_dir / md_file.name).write_text(content, encoding="utf-8")
+
+    routing_src = (REPO_ROOT / ".agents" / "rules" / "sidecar-automation-routing.md").read_text(encoding="utf-8")
+    (routing_dir / "sidecar-automation-routing.md").write_text(
+        routing_src.replace("tools/e2e_functionality_auditor.py", "ops_scripts/run_e2e_authoritative_smoke.py"),
+        encoding="utf-8",
+    )
+
+    result = validate_sidecar_separation(repo_root=fake_repo, sidecars_root=DEFAULT_SIDECARS_ROOT)
+    assert result["status"] == "FAIL"
+    joined = "\n".join(result["violations"])
+    assert "retains retired daily cron timestamp" in joined
+    assert "--write-manifest" in joined
+    assert "tools/e2e_functionality_auditor.py" in joined
+
+
+

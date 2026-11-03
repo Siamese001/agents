@@ -464,10 +464,11 @@ def try_reuse_recovery_sealed_c0_bridge(
     runtime_payload: dict[str, Any],
 ) -> Any | None:
     import json
-    import os
     import shutil
 
-    manifest_raw = os.environ.get(RECOVERY_SEALED_C0_MANIFEST_ENV, "").strip()
+    from apps_rg.config.runtime_env import get_runtime_env_str
+
+    manifest_raw = (get_runtime_env_str(RECOVERY_SEALED_C0_MANIFEST_ENV, "") or "").strip()
     if not manifest_raw:
         return None
     manifest_path = Path(manifest_raw)

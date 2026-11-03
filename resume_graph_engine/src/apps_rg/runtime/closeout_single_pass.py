@@ -247,16 +247,18 @@ def find_closeout_files_by_name(artifact_dir: Path | str, filename: str) -> list
 
 
 def should_build_review_zip(run_root: Path, *, explicit: bool | None = None) -> bool:
+    from apps_rg.config.runtime_env import get_runtime_env_str
+
     if explicit is not None:
         return bool(explicit)
-    env_raw = os.environ.get(BUILD_REVIEW_ZIP_ENV, "").strip().lower()
+    env_raw = (get_runtime_env_str(BUILD_REVIEW_ZIP_ENV, "") or "").strip().lower()
     if env_raw in ("1", "true", "yes", "on"):
         return True
     if env_raw in ("0", "false", "no", "off"):
         return False
     root = Path(run_root).resolve()
     if (
-        os.environ.get("APPS_RG_WHOLE_RUN_ENVELOPE", "").strip() == "1"
+        (get_runtime_env_str("APPS_RG_WHOLE_RUN_ENVELOPE", "") or "").strip() == "1"
         or (root / "spine_run_manifest.json").is_file()
         or (root / "e2e_stage_ledger.json").is_file()
     ):
