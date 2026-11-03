@@ -70,7 +70,7 @@ slot_bodies:
       strategy, leadership, platform, and market context.
 
     Depth profile behavior:
-    - LIGHT:    Executive summary only. ≤3 evidence chunks per section. Max 500 words.
+    - LIGHT:    Executive summary only. ≤3 evidence chunks per section. Max 1200 words.
     - STANDARD: Executive summary + key sections. ≤10 chunks per section. Max 1500 words.
     - DEEP:     All sections + supporting evidence. ≤20 chunks per section. Max 3000 words.
     - DOSSIER:  Full brief + competitive context + personnel + financials. Max 5000 words.

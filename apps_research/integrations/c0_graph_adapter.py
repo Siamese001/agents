@@ -33,7 +33,7 @@ from apps_rg.runtime.apps_runtime_compat import (
 
 
 # ---------------------------------------------------------------------------
-# W4N policy constants — must match apps_research route_profile.company_brief.v1.yaml
+# W4N policy constants — must match apps_research route_profiles.yaml
 # ---------------------------------------------------------------------------
 
 _GRAPH_SOURCE = "apps_research.company_brief_graph.v1"

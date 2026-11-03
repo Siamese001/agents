@@ -91,6 +91,12 @@ LAYMAN_INTERCEPT_PROMPT = (
     "preserving exact numbers, counts, and plain-English link labels."
 )
 
+WORD_BUDGET_INTERCEPT_PROMPT = (
+    "[OUTPUT BREVITY GOVERNANCE INTERCEPT - INV-OUTPUT-MAX-WORDS] "
+    "Your response exceeded the repository output budget ({issues}). "
+    "Rewrite your response concisely within {max_words} words and {max_chars} characters."
+)
+
 
 def read_hook_input() -> Dict[str, Any]:
     """Read and parse JSON payload from stdin, with safe fallback for testing."""
@@ -578,10 +584,12 @@ def handle_pre_file_write(payload: Dict[str, Any], repo_root: Path) -> int:
 
 
 def handle_post_invocation(payload: Dict[str, Any], repo_root: Path) -> int:
-    """PostInvocation guard enforcing decisive recommendations, post-edit promotion, and zero-jargon prose."""
+    """PostInvocation guard enforcing decisive recommendations, post-edit promotion, word budget, and zero-jargon prose."""
     from tools.validate_turn_gates import (
+        load_policy_registry,
         validate_decisive_recommendation_gate,
         validate_layman_jargon_gate,
+        validate_word_budget_gate,
     )
 
     steps = payload.get("steps") if isinstance(payload.get("steps"), list) else []
@@ -631,6 +639,22 @@ def handle_post_invocation(payload: Dict[str, Any], repo_root: Path) -> int:
     if jargon_res["status"] != "PASS":
         violations_str = ", ".join(jargon_res["violations"][:4])
         msg = LAYMAN_INTERCEPT_PROMPT.format(violations=violations_str)
+        print(json.dumps({"injectSteps": [{"ephemeralMessage": msg}], "terminationBehavior": "force_continue"}))
+        return 0
+
+    try:
+        policies = load_policy_registry(repo_root)
+    except Exception:  # guardian: allow-silent-swallow -- fallback to defaults in isolated test fixtures
+        policies = {}
+    max_words = int(policies.get("INV-OUTPUT-MAX-WORDS", {}).get("threshold", 300) or 300)
+    max_chars = int(policies.get("INV-OUTPUT-MAX-CHARS", {}).get("threshold", 3500) or 3500)
+    word_res = validate_word_budget_gate(candidate_text, max_words=max_words, max_chars=max_chars)
+    if word_res["status"] != "PASS":
+        msg = WORD_BUDGET_INTERCEPT_PROMPT.format(
+            issues="; ".join(word_res["issues"]),
+            max_words=max_words,
+            max_chars=max_chars,
+        )
         print(json.dumps({"injectSteps": [{"ephemeralMessage": msg}], "terminationBehavior": "force_continue"}))
         return 0
 

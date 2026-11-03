@@ -384,7 +384,7 @@
         "summary": {
           "min_lines": 2,
           "max_lines": 4,
-          "max_words": 60,
+          "max_words": 150,
           "required_elements": ["years_experience_or_level", "primary_domains", "key_achievement"]
         },
         "experience": {

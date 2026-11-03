@@ -299,7 +299,7 @@ class AchvBulletSynthesizer:
         Validate bullet word count is within range.
         BLOCKS if outside min-max range.
         """
-        bullet.split()
+        words = bullet.split()
         word_count = len(words)
         if self.config.min_words <= word_count <= self.config.max_words:
             return ValidationResult(

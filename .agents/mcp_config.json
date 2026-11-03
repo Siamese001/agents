@@ -1,23 +1,23 @@
 {
   "mcpServers": {
-    "gitkraken": {
+    "GitKraken": {
       "command": "gk",
-      "args": [
-        "mcp"
-      ]
+      "args": ["mcp"],
+      "required": false,
+      "startup_timeout_sec": 15,
+      "tool_timeout_sec": 120
     },
-    "fetch": {
-      "command": "uvx",
-      "args": [
-        "mcp-server-fetch"
-      ]
+    "adg_sqlite": {
+      "url": "http://127.0.0.1:8765/mcp",
+      "required": false,
+      "startup_timeout_sec": 15,
+      "tool_timeout_sec": 120
     },
-    "github": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-github"
-      ]
+    "deepwiki": {
+      "url": "https://mcp.deepwiki.com/mcp",
+      "required": false,
+      "startup_timeout_sec": 15,
+      "tool_timeout_sec": 120
     },
     "filesystem": {
       "command": "npx",
@@ -25,21 +25,54 @@
         "-y",
         "@modelcontextprotocol/server-filesystem",
         "/Users/amitayer/Git/agents"
-      ]
+      ],
+      "required": false,
+      "startup_timeout_sec": 15,
+      "tool_timeout_sec": 120
+    },
+    "memory": {
+      "url": "http://127.0.0.1:8766/mcp",
+      "required": false,
+      "startup_timeout_sec": 15,
+      "tool_timeout_sec": 120
+    },
+    "vector_db": {
+      "command": "/Users/amitayer/Git/agents/.venv/bin/python",
+      "args": ["-u", "/Users/amitayer/Git/agents/tools/mcp/vector_db_server.py"],
+      "required": false,
+      "startup_timeout_sec": 15,
+      "tool_timeout_sec": 120,
+      "env": {
+        "PYTHONPATH": "/Users/amitayer/Git/agents",
+        "VECTOR_DB_CHROMA_PATH": "/Users/amitayer/Git/agents/resume_graph_engine/data/cache/chromadb",
+        "VECTOR_DB_EMBEDDING_MODEL": "BAAI/bge-m3",
+        "VECTOR_DB_DEVICE": "mps",
+        "EMBEDDING_DEVICE": "mps",
+        "VECTOR_DB_ALLOW_MODEL_DOWNLOAD": "0",
+        "VECTOR_DB_ENABLE_MODEL_PREWARM": "1",
+        "VECTOR_DB_MODEL_LOAD_TIMEOUT": "75",
+        "HF_HUB_OFFLINE": "1",
+        "VECTOR_DB_ENCODE_QUEUE_WAIT_TIMEOUT": "90",
+        "VECTOR_DB_SEARCH_PER_COLLECTION_TIMEOUT": "15",
+        "MCP_MAX_THREADPOOL_WORKERS": "2"
+      }
     },
     "notion": {
       "command": "npx",
-      "args": [
-        "-y",
-        "@notionhq/notion-mcp-server"
-      ]
+      "args": ["-y", "@notionhq/notion-mcp-server"],
+      "required": false,
+      "startup_timeout_sec": 15,
+      "tool_timeout_sec": 120,
+      "env": {
+        "NOTION_TOKEN": "${NOTION_TOKEN}"
+      }
     },
     "context7": {
       "command": "npx",
-      "args": [
-        "-y",
-        "@upstash/context7-mcp"
-      ]
+      "args": ["-y", "@upstash/context7-mcp"],
+      "required": false,
+      "startup_timeout_sec": 15,
+      "tool_timeout_sec": 120
     },
     "playwright": {
       "command": "npx",
@@ -50,27 +83,10 @@
         "artifacts/mcp/playwright",
         "--output-mode",
         "file"
-      ]
-    },
-    "sequential-thinking": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-sequential-thinking"
-      ]
-    },
-    "sqlite": {
-      "command": "uvx",
-      "args": [
-        "--with",
-        "mcp<2",
-        "mcp-server-sqlite",
-        "--db-path",
-        "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/fact_inventory/augmented_skills_graph.sqlite"
-      ]
-    },
-    "deepwiki": {
-      "serverUrl": "https://mcp.deepwiki.com/mcp"
+      ],
+      "required": false,
+      "startup_timeout_sec": 15,
+      "tool_timeout_sec": 120
     }
   }
 }

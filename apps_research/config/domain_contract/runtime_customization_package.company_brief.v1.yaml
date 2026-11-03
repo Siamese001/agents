@@ -11,8 +11,8 @@ schema_version: "1.0"
 
 # Profile references (consumed by L0, L1, C0, PA, L2)
 profile_refs:
-  route_profile: apps_research/config/domain_contract/route_profile.company_brief.v1.yaml
-  cache_profile: apps_research/config/domain_contract/cache_profile.company_brief.v1.yaml
+  route_profile: apps_research/config/domain_contract/route_profiles.yaml
+  cache_profile: apps_research/config/domain_contract/cache_profiles.yaml
   l1_planning_profile: apps_research/config/domain_contract/l1_planning_profile.company_brief.v1.yaml
   c0_grounding_profile: apps_research/config/domain_contract/c0_grounding_profile.company_brief.v1.yaml
   pa_prompt_profile: apps_research/config/domain_contract/pa_prompt_profile.company_brief.v1.yaml

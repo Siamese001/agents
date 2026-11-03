@@ -433,7 +433,7 @@ output_contract:
     summary:
       min_lines: 2
       max_lines: 4
-      max_words: 60
+      max_words: 150
     
     experience:
       max_roles: 5

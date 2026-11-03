@@ -98,7 +98,7 @@ def _apps_rg_expectations() -> dict[str, Any]:
         "expected_x3": "X3D_ALLOW_FINISH",
         "forbidden_terms": ["salary", "age", "photo", "married", "race", "religion"],
         "grounded_claims_required": True,
-        "length_bounds": {"max_words": 160, "min_words": 12},
+        "length_bounds": {"max_words": 150, "min_words": 12},
         "required_artifacts": ["resume.md"],
         "required_output_keys": ["sections"],
         "required_provenance": ["resume:leadership"],
