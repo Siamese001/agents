@@ -15,12 +15,26 @@ import re
 import sqlite3
 import threading
 import time
-from typing import Any, Mapping, Sequence
+from typing import Any
 
 from agents.orchestration.failure_taxonomy import FailureKind
 from infrastructure.config.env_loader import get_env_str
 
-DEFAULT_LEARNING_STORE_PATH = Path("artifacts/learning/feedback_learning.sqlite")
+
+def resolve_primary_repo_root(anchor: Path | None = None) -> Path:
+    """Resolve primary repository root across git worktrees."""
+    cur = (anchor or Path(__file__).resolve()).resolve()
+    base = cur if cur.is_dir() else cur.parent
+    if ".worktrees" in base.parts:
+        idx = base.parts.index(".worktrees")
+        return Path(*base.parts[:idx]).resolve()
+    for parent in (base, *base.parents):
+        if (parent / ".git").exists():
+            return parent.resolve()
+    return Path.cwd().resolve()
+
+
+DEFAULT_LEARNING_STORE_PATH = resolve_primary_repo_root() / "artifacts" / "learning" / "feedback_learning.sqlite"
 
 
 def normalize_constraint_key(constraint: str) -> str:
@@ -64,6 +78,11 @@ class FeedbackLearningStore:
                 check_same_thread=False,
             )
             self._conn.row_factory = sqlite3.Row
+            if not self.is_memory:
+                self._conn.execute("PRAGMA journal_mode = WAL;")
+                self._conn.execute("PRAGMA busy_timeout = 30000;")
+                self._conn.execute("PRAGMA synchronous = NORMAL;")
+                self._conn.execute("PRAGMA foreign_keys = ON;")
         return self._conn
 
     def _init_db(self) -> None:
@@ -147,10 +166,11 @@ class FeedbackLearningStore:
         repair_hint: str = "",
         outcome: str = "SUCCESS",
         timestamp: float | None = None,
+        event_id: str | None = None,
     ) -> None:
         """Record a resolution attempt, updating signature success rates and proven hints."""
         now = timestamp or time.time()
-        event_id = f"res_{hashlib.sha256(f'{signature_hash}:{run_id}:{now}'.encode()).hexdigest()[:12]}"
+        resolved_event_id = event_id or f"res_{hashlib.sha256(f'{signature_hash}:{run_id}:{now}'.encode()).hexdigest()[:12]}"
         is_success = outcome.upper() == "SUCCESS"
 
         with self._lock:
@@ -163,7 +183,7 @@ class FeedbackLearningStore:
                         repair_hint, outcome, occurred_at
                     ) VALUES (?, ?, ?, ?, ?, ?, ?)
                     """,
-                    (event_id, signature_hash, run_id, action_taken, repair_hint, outcome.upper(), now),
+                    (resolved_event_id, signature_hash, run_id, action_taken, repair_hint, outcome.upper(), now),
                 )
 
                 # Fetch updated stats
@@ -177,7 +197,6 @@ class FeedbackLearningStore:
                 ).fetchone()
 
                 if row:
-                    curr_occ = row["occurrence_count"]
                     hints = json.loads(row["effective_repair_hints_json"] or "[]")
                     if is_success and repair_hint and repair_hint not in hints:
                         hints.append(repair_hint)
@@ -271,6 +290,33 @@ class FeedbackLearningStore:
                 "store_location": str(self.db_path),
             }
 
+    def record_feedback_lesson(
+        self,
+        failure_kind: FailureKind | str,
+        constraint: str,
+        *,
+        run_id: str,
+        repair_hint: str,
+        action_taken: str = "OPERATOR_FEEDBACK_RESOLUTION",
+        outcome: str = "SUCCESS",
+        timestamp: float | None = None,
+    ) -> str:
+        """Idempotently record both a failure signature and its verified resolution."""
+        sig_hash = self.record_failure(
+            failure_kind, constraint, run_id=run_id, timestamp=timestamp
+        )
+        det_event_id = f"res_{hashlib.sha256(f'{sig_hash}:{run_id}'.encode()).hexdigest()[:12]}"
+        self.record_resolution(
+            sig_hash,
+            run_id=run_id,
+            action_taken=action_taken,
+            repair_hint=repair_hint,
+            outcome=outcome,
+            timestamp=timestamp,
+            event_id=det_event_id,
+        )
+        return sig_hash
+
     def close(self) -> None:
         """Close SQLite database connection."""
         with self._lock:
@@ -284,4 +330,5 @@ __all__ = [
     "FeedbackLearningStore",
     "compute_failure_signature",
     "normalize_constraint_key",
+    "resolve_primary_repo_root",
 ]

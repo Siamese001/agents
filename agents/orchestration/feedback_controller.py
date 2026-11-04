@@ -8,6 +8,7 @@ model revision loops while strictly enforcing recovery budgets.
 
 from __future__ import annotations
 
+import sys
 import time
 from dataclasses import dataclass, field
 from enum import Enum
@@ -25,6 +26,7 @@ from agents.orchestration.state_contracts import (
     RecoveryCounters,
     ResumeRunState,
 )
+from infrastructure.config.env_loader import get_env_str
 
 
 class ControllerAction(str, Enum):
@@ -79,7 +81,40 @@ class FeedbackController:
         learning_store: Any | None = None,
     ) -> None:
         self.default_budget = default_budget or RecoveryBudget()
-        self.learning_store = learning_store
+        if learning_store is not None:
+            self.learning_store = learning_store
+        else:
+            from agents.orchestration.learning_store import FeedbackLearningStore
+
+            if "pytest" in sys.modules or get_env_str("PYTEST_CURRENT_TEST"):
+                self.learning_store = FeedbackLearningStore(":memory:")
+            else:
+                self.learning_store = FeedbackLearningStore()
+        self._pending_failures_by_run: dict[str, list[tuple[FailureKind, str]]] = {}
+
+    def _track_and_record_failures(
+        self,
+        kind: FailureKind,
+        errors: Sequence[str],
+        run_id: str,
+    ) -> list[str]:
+        """Persist observed failures and retrieve any historical repair hints."""
+        hints: list[str] = []
+        run_key = run_id or "_default"
+        pending = self._pending_failures_by_run.setdefault(run_key, [])
+        for err in errors:
+            if not err:
+                continue
+            item = (kind, err)
+            if item not in pending:
+                pending.append(item)
+            if self.learning_store:
+                try:
+                    self.learning_store.record_failure(kind, err, run_id=run_id)
+                    hints.extend(self.learning_store.get_repair_hints(kind, err))
+                except (OSError, RuntimeError, ValueError, TypeError, KeyError):
+                    pass
+        return hints
 
     def evaluate_result(
         self,
@@ -95,7 +130,28 @@ class FeedbackController:
         **kwargs: Any,
     ) -> FeedbackDecision:
         """Evaluate a validation or judge outcome and decide next orchestration action."""
+        effective_run_id = (
+            state.run_id
+            if state and state.run_id
+            else str(kwargs.get("run_id") or "")
+        )
+        run_key = effective_run_id or "_default"
+
         if validation_passed and not errors:
+            pending_items = list(self._pending_failures_by_run.pop(run_key, []))
+            resolution_hint = str(
+                kwargs.get("repair_hint")
+                or f"Resolved during {step_name or 'validation'}"
+            )
+            for kind, err in pending_items:
+                self.record_resolution_outcome(
+                    kind,
+                    err,
+                    run_id=effective_run_id,
+                    action_taken="VALIDATED_ACCEPT",
+                    repair_hint=resolution_hint,
+                    outcome="SUCCESS",
+                )
             diag = (
                 f"Validation passed cleanly for {step_name}."
                 if step_name
@@ -112,6 +168,11 @@ class FeedbackController:
         # Policy failures never auto-retry or auto-revise
         if effective_kind == FailureKind.POLICY:
             fail_desc = "; ".join(errors) or "Policy validation check failed."
+            self._track_and_record_failures(
+                FailureKind.POLICY,
+                tuple(errors) or (fail_desc,),
+                effective_run_id,
+            )
             failure = ExecutionFailure(
                 failure_kind=FailureKind.POLICY,
                 message=f"Policy violation: {fail_desc}",
@@ -129,6 +190,17 @@ class FeedbackController:
         # Schema errors are deterministically repaired locally
         if effective_kind == FailureKind.SCHEMA:
             schema_err = "; ".join(errors) or "Schema mismatch."
+            prior_hints = self._track_and_record_failures(
+                FailureKind.SCHEMA,
+                tuple(errors) or (schema_err,),
+                effective_run_id,
+            )
+            base_hint = "Apply deterministic JSON/schema repair function."
+            enriched_hint = (
+                f"{base_hint} Empirical hint from prior runs: {'; '.join(prior_hints[:3])}"
+                if prior_hints
+                else base_hint
+            )
             failure = ExecutionFailure(
                 failure_kind=FailureKind.SCHEMA,
                 message=f"Schema violation: {schema_err}",
@@ -141,7 +213,7 @@ class FeedbackController:
                 failure=failure,
                 diagnostic=f"Schema normalization indicated: {schema_err}",
                 can_retry=True,
-                repair_hint="Apply deterministic JSON/schema repair function.",
+                repair_hint=enriched_hint,
             )
 
         # Retrieve counters and budgets
@@ -153,6 +225,11 @@ class FeedbackController:
             current_revisions = counters.semantic_revisions
             max_revisions = budget.max_semantic_revisions
             recovery = derive_recovery_action(effective_kind, current_revisions, max_revisions)
+            prior_hints = self._track_and_record_failures(
+                effective_kind,
+                tuple(errors) or ("Unspecified quality constraint violation",),
+                effective_run_id,
+            )
 
             if recovery == RecoveryAction.TERMINAL_FAIL or current_revisions >= max_revisions:
                 failure = ExecutionFailure(
@@ -186,21 +263,11 @@ class FeedbackController:
                 retryable=True,
                 evidence=tuple(evidence),
             )
-            # Query empirical repair hints from persistent learning store
-            empirical_hint = ""
-            if self.learning_store:
-                try:
-                    for err in errors:
-                        self.learning_store.record_failure(
-                            effective_kind, err, run_id=state.run_id if state else ""
-                        )
-                    hints: list[str] = []
-                    for err in errors:
-                        hints.extend(self.learning_store.get_repair_hints(effective_kind, err))
-                    if hints:
-                        empirical_hint = f"Empirical hint from prior runs: {'; '.join(hints[:3])}"
-                except (OSError, RuntimeError, ValueError, TypeError, KeyError):
-                    pass
+            empirical_hint = (
+                f"Empirical hint from prior runs: {'; '.join(prior_hints[:3])}"
+                if prior_hints
+                else ""
+            )
 
             return FeedbackDecision(
                 action=ControllerAction.REQUEST_SEMANTIC_REVISION,
@@ -215,6 +282,11 @@ class FeedbackController:
         if effective_kind == FailureKind.PLANNING:
             current_replans = counters.cognitive_replans
             max_replans = budget.max_cognitive_replans
+            prior_hints = self._track_and_record_failures(
+                FailureKind.PLANNING,
+                tuple(errors) or ("Plan execution failure",),
+                effective_run_id,
+            )
             if current_replans >= max_replans:
                 failure = ExecutionFailure(
                     failure_kind=FailureKind.PLANNING,
@@ -237,11 +309,17 @@ class FeedbackController:
                 retryable=True,
                 evidence=tuple(evidence),
             )
+            plan_hint = (
+                f"Empirical hint from prior runs: {'; '.join(prior_hints[:3])}"
+                if prior_hints
+                else ""
+            )
             return FeedbackDecision(
                 action=ControllerAction.COGNITIVE_REPLAN,
                 failure=failure,
                 diagnostic=f"Cognitive replanning requested (replan {current_replans + 1}/{max_replans}).",
                 can_retry=True,
+                repair_hint=plan_hint,
             )
 
         # Transport failures
@@ -285,11 +363,21 @@ class FeedbackController:
         outcome: str = "SUCCESS",
     ) -> None:
         """Record resolution efficacy into learning store if configured."""
+        run_key = run_id or "_default"
+        pending = self._pending_failures_by_run.get(run_key)
+        if pending:
+            self._pending_failures_by_run[run_key] = [
+                item for item in pending if item != (failure_kind, constraint)
+            ]
         if self.learning_store:
             try:
                 from agents.orchestration.learning_store import compute_failure_signature
 
                 sig_hash = compute_failure_signature(failure_kind, constraint)
+                if not self.learning_store.get_failure_statistics(sig_hash):
+                    self.learning_store.record_failure(
+                        failure_kind, constraint, run_id=run_id
+                    )
                 self.learning_store.record_resolution(
                     sig_hash,
                     run_id=run_id,
