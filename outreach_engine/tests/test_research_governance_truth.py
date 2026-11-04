@@ -273,7 +273,7 @@ def test_cache_entry_ttl_eviction():
     """Cache entry older than DEFAULT_CACHE_TTL_SECONDS must be evicted on lookup."""
     GovernedBriefingResolver.clear_cache()
 
-    # Manually populate cache with an expired timestamp (8 days old)
+    # Manually populate cache with an expired timestamp (exceeding DEFAULT_CACHE_TTL_SECONDS)
     cache_key = hashlib.sha256("TestTTL::Role::".encode("utf-8")).hexdigest()
     with GovernedBriefingResolver._lock:
         GovernedBriefingResolver._cache[cache_key] = {
@@ -283,7 +283,7 @@ def test_cache_entry_ttl_eviction():
             "evidence_count": 2,
             "airlock_sanitized": True,
             "strategic_priorities": ("Old Priority",),
-            "timestamp": time.time() - (8 * 86400),
+            "timestamp": time.time() - (GovernedBriefingResolver.DEFAULT_CACHE_TTL_SECONDS + 86400),
             "is_verified": True,
         }
 

@@ -40,6 +40,7 @@ LEGACY_SYS_PATH_ALLOWLIST: set[str] = set()
 APPS_RG_MAIN_BLOCK_ALLOWLIST = {
     "__main__.py",
     "bare_pipeline.py",
+    "evals/c03_human_eval/seal_records.py",
     "fact_inventory/apply_agentic_experience_skills_augmentation.py",
     "fact_inventory/run_materialize_augmented_skills_graph_sqlite.py",
     "fact_inventory/skills_graph/materializer.py",

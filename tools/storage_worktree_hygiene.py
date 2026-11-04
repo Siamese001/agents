@@ -266,29 +266,33 @@ def inspect_and_remediate_ephemeral_bloat(
                 unretained_runtime_proofs_mb += sz_mb
                 unretained_full_resume_count += 1
 
-    rt_tests_dir = primary / "resume_graph_engine" / ".runtime" / "tests"
-    rt_runs: list[tuple[float, float, Path]] = []
-    if rt_tests_dir.is_dir():
-        for child in rt_tests_dir.iterdir():
-            if child.is_dir() and not child.is_symlink():
-                try:
-                    mtime = child.stat().st_mtime
-                except OSError:
-                    mtime = 0.0
-                rt_runs.append((mtime, _dir_size_mb(child), child))
-    rt_runs.sort(key=lambda x: x[0], reverse=True)
-    retained_rt_names = {r[2].name for r in rt_runs[:max_retained_runtime_tests]}
+    def _collect_and_prune(rel_dirs: Sequence[str], keep: int) -> tuple[float, int, list[str]]:
+        runs: list[tuple[float, float, Path]] = []
+        for rel in rel_dirs:
+            d = primary / rel
+            if d.is_dir():
+                for ch in d.iterdir():
+                    if ch.is_dir() and not ch.is_symlink():
+                        runs.append((ch.stat().st_mtime if ch.exists() else 0.0, _dir_size_mb(ch), ch))
+        runs.sort(key=lambda x: x[0], reverse=True)
+        keep_names = {r[2].name for r in runs[:keep]}
+        unret_mb, unret_cnt, pruned_names = 0.0, 0, []
+        for _mt, sz, rp in runs:
+            if rp.name not in keep_names:
+                if remediate:
+                    shutil.rmtree(rp, ignore_errors=True)
+                    pruned_names.append(rp.name)
+                else:
+                    unret_mb += sz
+                    unret_cnt += 1
+        return unret_mb, unret_cnt, pruned_names
 
-    unretained_runtime_tests_mb, unretained_runtime_tests_count = 0.0, 0
-    for _mtime, sz_mb, r_path in rt_runs:
-        if r_path.name not in retained_rt_names:
-            if remediate:
-                shutil.rmtree(r_path, ignore_errors=True)
-                reclaimed_mb += sz_mb
-                pruned_runtime_test_runs.append(r_path.name)
-            else:
-                unretained_runtime_tests_mb += sz_mb
-                unretained_runtime_tests_count += 1
+    unretained_runtime_tests_mb, unretained_runtime_tests_count, pruned_runtime_test_runs = _collect_and_prune(
+        ("resume_graph_engine/.runtime/tests",), max_retained_runtime_tests
+    )
+    unretained_outreach_runs_mb, unretained_outreach_runs_count, pruned_outreach_runs = _collect_and_prune(
+        ("outreach_engine/runs", "outreach_engine/.runtime/tests"), max_retained_runtime_tests
+    )
 
     pycache_dirs: list[Path] = []
     pycache_mb = 0.0
@@ -316,6 +320,9 @@ def inspect_and_remediate_ephemeral_bloat(
         "unretained_runtime_tests_mb": round(unretained_runtime_tests_mb, 3),
         "unretained_runtime_tests_count": unretained_runtime_tests_count,
         "pruned_runtime_test_count": len(pruned_runtime_test_runs),
+        "unretained_outreach_runs_mb": round(unretained_outreach_runs_mb, 3),
+        "unretained_outreach_runs_count": unretained_outreach_runs_count,
+        "pruned_outreach_run_count": len(pruned_outreach_runs),
         "pycache_dir_count": len(pycache_dirs),
         "pycache_mb": round(pycache_mb, 3),
         "pruned_pycache_count": pruned_pycache_count,
@@ -501,6 +508,7 @@ def run_six_pillar_hygiene_audit(
         + ephemeral_bloat["duplicate_models_mb"]
         + ephemeral_bloat["unretained_runtime_proofs_mb"]
         + ephemeral_bloat["unretained_runtime_tests_mb"]
+        + ephemeral_bloat["unretained_outreach_runs_mb"]
         + ephemeral_bloat["pycache_mb"],
         3,
     )
@@ -523,6 +531,7 @@ def run_six_pillar_hygiene_audit(
         or ephemeral_bloat["duplicate_models_mb"] > 0.0
         or ephemeral_bloat["unretained_full_resume_count"] > 0
         or ephemeral_bloat["unretained_runtime_tests_count"] > 0
+        or ephemeral_bloat["unretained_outreach_runs_count"] > 0
         or ephemeral_bloat["pycache_dir_count"] > 0
         or pytest_cache_mb > 50.0
     )

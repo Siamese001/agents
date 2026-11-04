@@ -429,6 +429,7 @@ def _audit_pillar_8_thought_leadership_and_roi(repo_root: Path) -> dict[str, Any
         repo_root / "resume_graph_engine" / "src" / "apps_rg" / "runtime" / "providers" / "external_provider.py",
         repo_root / "resume_graph_engine" / "src" / "apps_rg" / "runtime" / "providers" / "anthropic_cache_live_probe.py",
         repo_root / "outreach_engine" / "src" / "apps_lic" / "integrations" / "apps_research_bridge.py",
+        repo_root / "outreach_engine" / "src" / "apps_lic" / "pipeline" / "briefing_resolver.py",
         repo_root / "apps_research" / "integrations" / "provider_gateway.py",
         repo_root / "apps_model_telemetry" / "token_budget_governor.py",
         repo_root / "agents" / "observability" / "prompt_cache.py",

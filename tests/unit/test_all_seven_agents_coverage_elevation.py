@@ -760,3 +760,31 @@ def test_apps_research_and_tools_coverage_elevation() -> None:
     assert callable(verify_graph_integrity_and_embeddings.verify_bge_m3_embeddings)
     assert callable(verify_graph_integrity_and_embeddings.verify_hybrid_retrieval_stage2)
     assert callable(verify_graph_integrity_and_embeddings.run_full_verification)
+
+    from apps_eval.runner.core import render_record
+    from apps_lic.domain.models import ChannelType, OutreachMessageDraft, TouchPoint, TouchSequence
+    from apps_lic.runtime.dispatch.canonical_dispatch import build_cli_ingress_raw
+
+    assert callable(render_record)
+    lic_draft = OutreachMessageDraft(
+        draft_id="d_cov_1",
+        channel=ChannelType.EMAIL,
+        subject="Executive AI Platform Alignment",
+        body="Led enterprise AI platform governance across 4 divisions.",
+    )
+    lic_tp = TouchPoint(
+        touch_number=1,
+        day_offset=0,
+        channel=ChannelType.EMAIL,
+        objective="Initial executive alignment",
+        draft=lic_draft,
+    )
+    lic_seq = TouchSequence(
+        sequence_id="seq_cov_1",
+        candidate_id="cand_1",
+        opportunity_id="opp_1",
+        touches=[lic_tp],
+    )
+    assert len(lic_seq.touches) == 1 and lic_seq.touches[0].touch_number == 1
+    raw_ingress = build_cli_ingress_raw(company="Citi", role="Head of AI Strategy")
+    assert raw_ingress["company"] == "Citi"

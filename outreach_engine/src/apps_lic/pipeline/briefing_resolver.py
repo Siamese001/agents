@@ -130,7 +130,10 @@ class GovernedBriefingResolver:
                         "is_verified": True,
                     },
                 }
-                tmp.write_text(json.dumps(disk_payload, indent=2), encoding="utf-8")
+                tmp.write_text(
+                    json.dumps(disk_payload, sort_keys=True, separators=(",", ":")),
+                    encoding="utf-8",
+                )
                 tmp.replace(path)
             except OSError:
                 pass
