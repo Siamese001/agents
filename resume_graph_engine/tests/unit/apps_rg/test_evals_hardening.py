@@ -331,7 +331,7 @@ class TestPublicCliEvaluationReport(unittest.TestCase):
             emit_candidate_evaluation_manifest(root)
             _write_json(
                 root / "apps_eval" / "eval-1" / "eval_record.json",
-                {"record_id": "eval-1", "verdict": "pass", "status": "pass"},
+                {"record_id": "eval-1", "parent_run_id": "parent-100", "verdict": "pass", "status": "pass"},
             )
             _write_json(
                 root / "apps_rg_pipeline_completion_receipt.json",
@@ -366,7 +366,7 @@ class TestPublicCliEvaluationReport(unittest.TestCase):
             emit_candidate_evaluation_manifest(root)
             _write_json(
                 root / "apps_eval" / "eval-1" / "eval_record.json",
-                {"record_id": "eval-1", "verdict": "pass", "status": "pass"},
+                {"record_id": "eval-1", "parent_run_id": "parent-100", "verdict": "pass", "status": "pass"},
             )
             # Tamper with file
             (root / "cross_section_x2_gate_outputs.json").write_text(

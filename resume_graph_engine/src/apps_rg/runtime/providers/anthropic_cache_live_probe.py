@@ -69,7 +69,7 @@ def _post_message(
     }
     request = urllib.request.Request(
         url,
-        data=json.dumps(body).encode("utf-8"),
+        data=json.dumps(body, separators=(",", ":")).encode("utf-8"),
         headers={
             "Content-Type": "application/json",
             "Accept": "application/json",

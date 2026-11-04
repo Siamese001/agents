@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import os
 import time
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
@@ -18,6 +17,7 @@ from apps_rg.cache.cache_identity import (
     BRIEFING_CACHE_SCHEMA_VERSION,
     compute_briefing_cache_key as _canonical_key,
 )
+from apps_rg.config.runtime_env import get_runtime_env_str
 
 DEFAULT_BRIEFING_TTL_SECONDS = 30 * 24 * 3600  # 30 days
 
@@ -108,7 +108,7 @@ class BriefingCache:
                 safe_key = key.replace(":", "_")
                 path = self._cache_dir / f"{safe_key}.json"
                 tmp = path.with_name(f".{path.name}.tmp")
-                tmp.write_text(json.dumps(asdict(briefing), indent=2), encoding="utf-8")
+                tmp.write_text(json.dumps(asdict(briefing), sort_keys=True, separators=(",", ":")), encoding="utf-8")
                 tmp.replace(path)
             except OSError:
                 pass
@@ -123,7 +123,7 @@ _PYTEST_BRIEFING_CACHE = BriefingCache(cache_dir=None)
 
 def get_global_briefing_cache(cache_dir: Path | None = None) -> BriefingCache:
     global _GLOBAL_BRIEFING_CACHE
-    if cache_dir is None and os.environ.get("PYTEST_CURRENT_TEST"):
+    if cache_dir is None and get_runtime_env_str("PYTEST_CURRENT_TEST"):
         return _PYTEST_BRIEFING_CACHE
     if cache_dir is not None and _GLOBAL_BRIEFING_CACHE._cache_dir != cache_dir:
         _GLOBAL_BRIEFING_CACHE = BriefingCache(cache_dir=cache_dir)

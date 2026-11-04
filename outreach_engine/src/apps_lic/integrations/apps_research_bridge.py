@@ -517,10 +517,10 @@ class AppsResearchBridge:
                 encoding="utf-8",
             )
             (run_dir / "bundle_commit_manifest.json").write_text(
-                json.dumps({"status": "COMMITTED_UNVERIFIED"}) + "\n", encoding="utf-8"
+                json.dumps({"status": "COMMITTED_UNVERIFIED"}, sort_keys=True, separators=(",", ":")) + "\n", encoding="utf-8"
             )
             (run_dir / "apps_research_u0_receipt.json").write_text(
-                json.dumps({"u0_status": "UNVERIFIED"}) + "\n", encoding="utf-8"
+                json.dumps({"u0_status": "UNVERIFIED"}, sort_keys=True, separators=(",", ":")) + "\n", encoding="utf-8"
             )
             metadata_digest = "sha256:" + hashlib.sha256(meta_file.read_bytes()).hexdigest()
             manifest_digest = "sha256:" + hashlib.sha256(envelope_file.read_bytes()).hexdigest()

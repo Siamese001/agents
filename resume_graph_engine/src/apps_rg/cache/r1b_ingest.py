@@ -156,7 +156,7 @@ def chunks_from_output_list(
         chunk_type = str(raw.get("chunk_type") or raw.get("type") or "section_proof_summary")
         section_id = str(raw.get("section_id") or "")
         text = str(raw.get("chunk_text") or raw.get("text") or "")
-        digest = str(raw.get("chunk_digest") or _sha256_hex(text or json.dumps(raw, sort_keys=True)))
+        digest = str(raw.get("chunk_digest") or _sha256_hex(text or json.dumps(raw, sort_keys=True, separators=(",", ":"))))
         cid = str(raw.get("chunk_id") or f"hoc_{parent_intent_record_id[:8]}_{i:03d}")
         out.append(
             HistoricalOutputChunk(

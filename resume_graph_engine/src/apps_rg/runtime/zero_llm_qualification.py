@@ -39,8 +39,6 @@ EXPECTED_LANES: tuple[str, ...] = (
     "ibm_narrative",
     "insurtech_bullets",
     "insurtech_narrative",
-    "slalom_bullets",
-    "slalom_narrative",
     "unify_bullets",
     "unify_narrative",
 )
