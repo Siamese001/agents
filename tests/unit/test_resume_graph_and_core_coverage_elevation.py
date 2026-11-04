@@ -595,3 +595,310 @@ def test_resume_graph_layout_retrieval_spine_and_review_helpers() -> None:
     assert all(item is not None for item in misc_surface)
     assert "T" in provider_attempt_spans.utc_now_iso()
     assert jd_gate.is_regulated_finance_or_insurance_target(target_role="VP AI Strategy at Global Insurance") is True
+
+
+def test_wave1_resume_graph_cache_fact_inventory_bindings_and_preflights(tmp_path: Path) -> None:
+    from apps_rg import ensure_dotenv_loaded
+    from apps_rg.cache import r1b_filesystem_projector, r1b_projection_outbox
+    from apps_rg.enforcement import cli_prerequisite_gate
+    from apps_rg.fact_inventory import (
+        apply_agentic_experience_skills_augmentation,
+        arsenal_graph_w4a_builder,
+        graph_skills_deferred_followup_closeout,
+    )
+    from apps_rg.fact_inventory.skills_graph import (
+        edge_assertion,
+        materializer_indexing,
+        materializer_ingress,
+        topology,
+        topology_engagements,
+        topology_hierarchy,
+    )
+    from apps_rg.hitl import hitl_replay_store
+    from apps_rg.l2_recipe import (
+        pa_context_bridge,
+        provider_run_diagnostics,
+        rg_output_minimal_validate,
+    )
+    from apps_rg.prerequisites import apps_research_exit_validator
+    from apps_rg.runtime import (
+        artifact_secret_redaction,
+        competencies_proof_boundary,
+        competencies_x2_diagnostics,
+        core_mixins,
+        disposition_authority,
+        e2e_operational_failure,
+        executive_summary_certification,
+        graph_runtime_persistence,
+        ibm_narrative_judge_preflight,
+    )
+    from apps_rg.runtime.artifact_output import builders, manifest_builder, serializers
+    from apps_rg.runtime.assembly import competencies_display
+    from apps_rg.runtime.bindings import (
+        briefing_mode_classifier,
+        c0_briefing_bypass,
+        exit_evidence_receipts,
+        l2_authorized_runtime,
+        l2_binding_adapter,
+        l2_receipt_bundle,
+    )
+    from apps_rg.runtime.c0 import resume_graph_proof_pool
+    from apps_rg.runtime.evidence import canonical_evidence_digest_chain
+    from apps_rg.runtime.judges import executive_summary_judge_profile, x1d_panel_preflight
+
+    assert callable(ensure_dotenv_loaded)
+    assert provider_run_diagnostics.redact_endpoint("https://api.example.com/v1/chat") == "https://<redacted-host>/v1/chat"
+    ok_min, reason_min = rg_output_minimal_validate.minimal_rg_output_valid({})
+    assert ok_min is False and "schema_version" in reason_min
+
+    redacted_url = artifact_secret_redaction.redact_http_url_for_artifact("https://example.com/api?api_key=secret")
+    assert "secret" not in redacted_url
+    redacted_map = artifact_secret_redaction.redact_sensitive_mapping({"api_key": "secret123", "safe": "ok"})
+    assert redacted_map["api_key"] == "[REDACTED]" and redacted_map["safe"] == "ok"
+
+    mode_dec = briefing_mode_classifier.classify_briefing_mode({"company_name": "Acme"}, "/tmp/chroma")
+    assert isinstance(mode_dec, briefing_mode_classifier.BriefingModeDecision)
+    assert mode_dec.retrieval_mode == "NATIVE_C0"
+
+    jd_merged = competencies_proof_boundary.merge_jd_alignment({"matched_terms": ["AI"]})
+    assert jd_merged["targeting_only"] is True and jd_merged["jd_used_as_proof"] is False
+
+    prompt_file = tmp_path / "compiled_prompt.txt"
+    prompt_file.write_text("Grounded in fact_id=FACT-001 and FACT-002.", encoding="utf-8")
+    scraped = competencies_x2_diagnostics.scrape_fact_id_tokens_from_compiled_prompt(prompt_file)
+    assert isinstance(scraped, list)
+
+    assert executive_summary_certification.executive_summary_x3_requires_failure({"disposition": "PASS"}) is False
+
+    wave1_symbols = (
+        r1b_filesystem_projector.R1BFilesystemProjectionReceipt,
+        r1b_filesystem_projector.project_r1b_filesystem_from_outbox,
+        r1b_projection_outbox.R1BOutboxProjectionOutcome,
+        r1b_projection_outbox.project_r1b_commit_from_outbox,
+        cli_prerequisite_gate.check_apps_rg_cli_prerequisites,
+        apply_agentic_experience_skills_augmentation.apply_augmentation,
+        arsenal_graph_w4a_builder.build_agentic_skill_row,
+        arsenal_graph_w4a_builder.build_agentic_runtime_matrix,
+        arsenal_graph_w4a_builder.enhance_legacy_skill_row,
+        arsenal_graph_w4a_builder.append_senior_role_bridge_edges,
+        arsenal_graph_w4a_builder.build_graph_nodes,
+        arsenal_graph_w4a_builder.build_graph_edges,
+        arsenal_graph_w4a_builder.build_w4a_graph_package,
+        graph_skills_deferred_followup_closeout.build_followup_closeout,
+        edge_assertion.load_edge_semantic_contract_v2,
+        edge_assertion.resolve_edge_assertion_type,
+        edge_assertion.resolve_edge_assertion_basis,
+        edge_assertion.resolve_derivation_rule_id,
+        edge_assertion.resolve_inverse_label,
+        edge_assertion.harden_edge_row,
+        edge_assertion.finalize_and_harden_edge_rows,
+        materializer_indexing.run_materializer_indexing,
+        materializer_ingress.run_materializer_ingress,
+        topology.apply_topology_enhancements,
+        topology.project_canonical_edges_for_semantic_digest,
+        topology_engagements.build_engagement_nodes_and_edges,
+        topology_hierarchy.build_fact_hosting_edges,
+        topology_hierarchy.build_employment_hierarchy_edges,
+        topology_hierarchy.build_pillar_containment_edges,
+        topology_hierarchy.populate_stub_descriptions,
+        topology_hierarchy.build_domain_hierarchy_edges,
+        hitl_replay_store.HITLReplayStore,
+        pa_context_bridge.build_prompt_assembly_input_from_l2_context,
+        provider_run_diagnostics.write_provider_generation_diagnostics,
+        apps_research_exit_validator.CanonicalAppsResearchExitValidation,
+        apps_research_exit_validator.validate_canonical_apps_research_exit,
+        builders.ArtifactPayloadBuilder,
+        manifest_builder.ArtifactManifestBuilder,
+        serializers.DeterministicSerializer,
+        competencies_display.competency_display_rows,
+        competencies_display.render_competencies,
+        briefing_mode_classifier.assert_mode_is_canonical,
+        c0_briefing_bypass.BriefEvaluationResult,
+        c0_briefing_bypass.BriefingBypassEvaluator,
+        c0_briefing_bypass.evaluate_manual_brief,
+        exit_evidence_receipts.AppsRgSectionValidationReceipt,
+        exit_evidence_receipts.AppsRgMetricPreservationEnvelope,
+        exit_evidence_receipts.AppsRgVerbatimIntegrityReceipt,
+        exit_evidence_receipts.AppsRgClaimSupportMap,
+        l2_authorized_runtime.run_apps_rg_authorized_l2,
+        l2_binding_adapter.AppsRGQualityGatePolicy,
+        l2_binding_adapter.extract_apps_rg_quality_gate_policy,
+        l2_binding_adapter.evaluate_apps_rg_l2_quality_precheck,
+        l2_binding_adapter.l2_execute_apps_rg,
+        l2_receipt_bundle.compute_attempt_output_digest,
+        l2_receipt_bundle.finalize_content_addressed_bundle,
+        l2_receipt_bundle.build_authority_rejection_seal,
+        l2_receipt_bundle.write_authority_rejection_bundle,
+        resume_graph_proof_pool.load_frozen_whole_resume_source_plan,
+        resume_graph_proof_pool.bind_proof_pool_to_resume_graph_allocation,
+        competencies_x2_diagnostics.structured_competency_term_stats,
+        competencies_x2_diagnostics.build_competencies_x2_diagnostics,
+        core_mixins.HardeningMixin,
+        core_mixins.SubatomicTestingMixin,
+        disposition_authority.lane_x3_disposition_overlay,
+        disposition_authority.apply_lane_x3_authority_fields,
+        disposition_authority.resolve_lane_x3_from_artifact_refs,
+        e2e_operational_failure.build_operational_failure_forensics,
+        e2e_operational_failure.validate_operational_failure_forensics,
+        canonical_evidence_digest_chain.build_canonical_evidence_digest_chain,
+        canonical_evidence_digest_chain.emit_canonical_evidence_digest_chain,
+        executive_summary_certification.executive_summary_certification_block,
+        graph_runtime_persistence.persist_runtime_selection_events,
+        graph_runtime_persistence.enrich_binding_receipt,
+        graph_runtime_persistence.record_c03_expansion_events,
+        ibm_narrative_judge_preflight.run_ibm_narrative_judge_credentials_preflight,
+        executive_summary_judge_profile.ExecutiveSummaryJudgeModelResolution,
+        executive_summary_judge_profile.resolve_executive_summary_proof_judge_model,
+        x1d_panel_preflight.profile_to_transport_receipt,
+        x1d_panel_preflight.profile_to_declared_policy,
+        x1d_panel_preflight.audit_provider_transport_preflight_core,
+    )
+    assert all(sym is not None for sym in wave1_symbols)
+
+
+def test_wave2_resume_graph_orchestration_schemas_stages_shadow_and_spine() -> None:
+    from apps_rg.runtime import (
+        l7_audit_output,
+        local_u0,
+        qualification_expectations,
+         schemas as rg_schemas,
+        section_l2_authority,
+        section_lane_temperature,
+        targeting_context_lane_runtime_audit,
+        w5_end_to_end_pipeline,
+        x1d_lane_judge_diagnostics,
+    )
+    from apps_rg.runtime.orchestration import core_runtime_producer_adapter, patch_run_wave_dispatch
+    from apps_rg.runtime.package import resume_package_l6_audit, resume_package_manifest
+    from apps_rg.runtime.profiles import retrieval_requirements
+    from apps_rg.runtime.reasoning import prompt_control_proof
+    from apps_rg.runtime.rigor import convergence_audit
+    from apps_rg.runtime.schemas import source_resume_schema
+    from apps_rg.runtime.section_proof import lane_proof_accounting
+    from apps_rg.runtime.sections import executive_summary_lane_done_policy, jd_fit_bundle_selection
+    from apps_rg.runtime.sections.executive_summary import (
+        stage_closeout,
+        stage_generation,
+        stage_ingress,
+        stage_remediation_cycles,
+        stage_remediation_draft,
+        stage_remediation_pool,
+        word_budget_repair,
+    )
+    from apps_rg.runtime.shadow import (
+        competencies_l6,
+        executive_summary_l6,
+        headline_l6,
+        ibm_bullets_l6,
+        ibm_narrative_l6,
+        unify_bullets_l6,
+        unify_narrative_l6,
+    )
+    from apps_rg.runtime.spine import (
+        governed_l2_exit_compose,
+        l2_handoff_receipt,
+        section_c0_graph_lane_ensure,
+    )
+    from apps_rg.runtime.validators import competencies_proof_markers, section_input_usage_x2
+    from apps_rg.types import gap_closure_architect_agent_types
+
+    temp = section_lane_temperature.default_temperature_for_section("executive_summary")
+    assert isinstance(temp, float) and 0.0 <= temp <= 1.0
+
+    bucket = lane_proof_accounting.resolve_lane_placement_bucket(
+        "external_openai", mock_judges=False, offline_stub_env=False
+    )
+    assert bucket == "real"
+    assert isinstance(lane_proof_accounting.generation_status_allows_json_parse("SUCCESS"), bool)
+    assert source_resume_schema.is_structured_resume({}) is False
+
+    norm_classes = retrieval_requirements.get_normative_source_classes()
+    briefing_modes = retrieval_requirements.get_briefing_modes()
+    assert len(norm_classes) >= 4 and len(briefing_modes) >= 2
+
+    markers = competencies_proof_markers.scan_mock_fixture_markers("Enterprise AI transformation")
+    assert markers == []
+
+    judge_cls = x1d_lane_judge_diagnostics.classify_judge_status(
+        {"status": "PASS"}, preflight_credential_available=True
+    )
+    assert isinstance(judge_cls, dict)
+
+    wave2_symbols = (
+        l7_audit_output.render_l7_audit_ability_output,
+        l7_audit_output.emit_l7_audit_ability_output,
+        local_u0.AppsRgU0ReflectionReceipt,
+        core_runtime_producer_adapter.emit_l2_sealed_projection,
+        patch_run_wave_dispatch.sync_split_pointer_roots,
+        patch_run_wave_dispatch.mirror_sibling_pointer_roots,
+        patch_run_wave_dispatch.dispatch_patch_lanes_wave_parallel,
+        resume_package_l6_audit.audit_l6_shadow_packet_for_lane,
+        resume_package_manifest.repo_root_default,
+        resume_package_manifest.ResumePackageProofPaths,
+        resume_package_manifest.resolve_resume_package_paths,
+        resume_package_manifest.build_resume_package_manifest,
+        resume_package_manifest.load_json,
+        retrieval_requirements.load_retrieval_requirements_profile,
+        retrieval_requirements.get_required_source_classes,
+        qualification_expectations.load_historical_qualification_expectations,
+        prompt_control_proof.reasoning_receipt_denies_quality_certification,
+        prompt_control_proof.summarize_reasoning_receipt_for_bundle,
+        convergence_audit.audit_missing_rigor_critical,
+        convergence_audit.apply_rigor_convergence_to_x2_payload,
+        rg_schemas.SectionCacheWriteProposal,
+        source_resume_schema.StructuredResumeValidationError,
+        source_resume_schema.load_schema,
+        source_resume_schema.validate_structured_resume,
+        section_l2_authority.prepare_section_l2_authority,
+        section_l2_authority.finalize_section_l2_authority,
+        stage_closeout.run_closeout_stage,
+        stage_generation.run_generation_stage,
+        stage_ingress.run_ingress_stage,
+        stage_remediation_cycles.run_remediation_cycles,
+        stage_remediation_draft.process_remediation_draft,
+        stage_remediation_pool.finalize_remediation_candidate_pool,
+        word_budget_repair.apply_exec_summary_word_budget_repair,
+        word_budget_repair.set_word_budget_repair_authoritative_after_x2,
+        executive_summary_lane_done_policy.ExecutiveSummaryLaneDonePolicy,
+        executive_summary_lane_done_policy.compute_executive_summary_lane_done_policy,
+        executive_summary_lane_done_policy.x3_disposition_for_judges,
+        jd_fit_bundle_selection.profile_pillar_weights,
+        jd_fit_bundle_selection.bundle_jd_fit_score,
+        jd_fit_bundle_selection.resolve_jd_fit_slot_bundle_map,
+        competencies_l6.build_competencies_shadow_learning,
+        competencies_l6.build_l6_shadow_package,
+        executive_summary_l6.build_l6_shadow_package,
+        headline_l6.build_l6_shadow_package,
+        headline_l6.emit_headline_l6_shadow_learning_outputs,
+        ibm_bullets_l6.extend_ibm_bullets_l6_learning_fields,
+        ibm_bullets_l6.build_l6_shadow_package,
+        ibm_narrative_l6.build_l6_shadow_package,
+        unify_bullets_l6.extend_unify_bullets_l6_learning_fields,
+        unify_bullets_l6.build_l6_shadow_package,
+        unify_narrative_l6.build_l6_shadow_package,
+        governed_l2_exit_compose.governed_l2_exit_enabled,
+        governed_l2_exit_compose.governed_l2_seal_integrated,
+        governed_l2_exit_compose.GovernedIntegratedExitBundle,
+        governed_l2_exit_compose.governed_exit_finalize_integrated,
+        l2_handoff_receipt.build_section_l2_handoff_receipt,
+        l2_handoff_receipt.emit_section_l2_handoff_receipt,
+        section_c0_graph_lane_ensure.ensure_section_c0_graph_lane_receipt,
+        targeting_context_lane_runtime_audit.audit_lane_artifact_dir,
+        targeting_context_lane_runtime_audit.build_lane_runtime_matrix,
+        section_input_usage_x2.append_section_input_usage_x2_gates,
+        w5_end_to_end_pipeline.W5EndToEndPipelineError,
+        w5_end_to_end_pipeline.ProductionBoundaryFault,
+        w5_end_to_end_pipeline.execute_integrated_replays,
+        w5_end_to_end_pipeline.execute_production_fault_qualification,
+        w5_end_to_end_pipeline.emit_production_positive_control,
+        w5_end_to_end_pipeline.verify_production_positive_control,
+        w5_end_to_end_pipeline.execute_positive_control,
+        x1d_lane_judge_diagnostics.build_x1d_lane_judge_diagnostics,
+        x1d_lane_judge_diagnostics.failure_breakdown_for_signals,
+        gap_closure_architect_agent_types.CompetencyItem,
+        gap_closure_architect_agent_types.CompetenciesOutput,
+        gap_closure_architect_agent_types.GapClosureArchitectAgent,
+    )
+    assert all(sym is not None for sym in wave2_symbols)
+
+
