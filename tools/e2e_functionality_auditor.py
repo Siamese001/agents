@@ -364,9 +364,35 @@ def _probe_authoritative_e2e_smoke(repo_root: Path, *, read_only: bool) -> dict[
         cli_probes_passed = False
 
     inspectors_mod = _require_module(repo_root, "resume_engine/cli_inspectors.py")
-    models_rc = inspectors_mod.handle_models(argparse.Namespace(json=True, role="executive_summary"))
-    cache_rc = inspectors_mod.handle_cache(argparse.Namespace(json=True))
+    with contextlib.redirect_stdout(io.StringIO()):
+        models_rc = inspectors_mod.handle_models(argparse.Namespace(json=True, role="executive_summary"))
+        cache_rc = inspectors_mod.handle_cache(argparse.Namespace(json=True))
     if models_rc != 0 or cache_rc != 0:
+        cli_probes_passed = False
+
+    lic_models_mod = _require_module(repo_root, "outreach_engine/src/apps_lic/domain/models.py")
+    lic_disp_mod = _require_module(repo_root, "outreach_engine/src/apps_lic/runtime/dispatch/canonical_dispatch.py")
+    lic_draft = lic_models_mod.OutreachMessageDraft(
+        draft_id="d_probe_1",
+        channel=lic_models_mod.ChannelType.EMAIL,
+        subject="Executive AI Platform Alignment",
+        body="Led enterprise AI platform governance across 4 divisions.",
+    )
+    lic_tp = lic_models_mod.TouchPoint(
+        touch_number=1,
+        day_offset=0,
+        channel=lic_models_mod.ChannelType.EMAIL,
+        objective="Executive introduction",
+        draft=lic_draft,
+    )
+    lic_seq = lic_models_mod.TouchSequence(
+        sequence_id="seq_probe_1",
+        candidate_id="cand_probe",
+        opportunity_id="opp_probe",
+        touches=[lic_tp],
+    )
+    lic_ingress = lic_disp_mod.build_cli_ingress_raw(company="Citi", role="Head of AI Strategy")
+    if len(lic_seq.touches) != 1 or not isinstance(lic_ingress, dict):
         cli_probes_passed = False
 
     gaps: list[str] = []

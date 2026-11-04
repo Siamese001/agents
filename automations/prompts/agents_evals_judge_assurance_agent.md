@@ -42,7 +42,7 @@ export PRIMARY_REPO_ROOT="/Users/amitayer/Git/agents"
   --repo-root "${PRIMARY_REPO_ROOT}" \
   --json
 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/lint_production_purity.py" --all --repo-root "${PRIMARY_REPO_ROOT}"
-"${PRIMARY_REPO_ROOT}/.venv/bin/pytest" "${PRIMARY_REPO_ROOT}/tests/unit/test_evals_and_budget_full_parity.py" -q --timeout=60
+"${PRIMARY_REPO_ROOT}/.venv/bin/pytest" "${PRIMARY_REPO_ROOT}/tests/unit/test_evals_and_budget_full_parity.py" "${PRIMARY_REPO_ROOT}/outreach_engine/tests/test_executive_judge_panel.py" "${PRIMARY_REPO_ROOT}/apps_eval/tests/test_apps_lic_dev_suite.py" -q --timeout=60
 ```
 
 If both preflight commands exit `0` (`"status": "PASS"`, `"is_clean": true`), fast-exit `COMPLETE` (`PREFLIGHT_ZERO_DEFECT_FAST_EXIT`).
@@ -116,4 +116,4 @@ For each wave (`Wave 1 -> Wave N`):
    - Verify state independently and record the 5-column proof table in `${RUN_DIR}/wave_receipts.md`.
 2. **Closed-Loop System Learning (`C07`)**: Record wave outcome in `HITLDecisionStore`.
 3. **Turn, Commit & Promotion Gates (`C09`, `C10`)**:
-   Run `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/validate_sidecar_separation.py" --repo-root "${WORKTREE_DIR}" --json`, `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/validate_turn_gates.py" --repository-root "${WORKTREE_DIR}" --mode all`, and `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/verify_commit.py" --repo-root "${WORKTREE_DIR}"`, commit via `git -C "${WORKTREE_DIR}" commit`, obtain interactive `ask_question` `PR_MERGE_AUTHORIZATION`, and promote via `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/pr_governance.py" -C "${WORKTREE_DIR}" submit "${BRANCH_NAME}" --title "fix(evals): remediate judge rubric and purity gates"`.
+   Run `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/validate_sidecar_separation.py" --repo-root "${WORKTREE_DIR}" --json`, `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/validate_turn_gates.py" --repository-root "${WORKTREE_DIR}" --mode all`, and `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/verify_commit.py" --repo-root "${WORKTREE_DIR}"`, commit via `git -C "${WORKTREE_DIR}" commit`, and either stage overnight via `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/pr_governance.py" -C "${WORKTREE_DIR}" submit "${BRANCH_NAME}" --stage-only` or obtain interactive `ask_question` `PR_MERGE_AUTHORIZATION` and promote via `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/pr_governance.py" -C "${WORKTREE_DIR}" submit "${BRANCH_NAME}" --title "fix(evals): remediate judge rubric and purity gates"`.

@@ -70,8 +70,19 @@ def test_run_e2e_research_default_disabled(tmp_path: Path):
 def test_run_e2e_with_research_fails_closed(tmp_path: Path):
     """Verify that if research is enabled, but internal apps_research fails/rejects, run_e2e fails closed."""
     parser = agents_cli._build_parser()
-    args = parser.parse_args(["e2e", "--with-research", "--skip-resume", "--artifact-dir", str(tmp_path)])
+    args = parser.parse_args(
+        [
+            "e2e",
+            "--with-research",
+            "--skip-resume",
+            "--company",
+            "NonexistentUnavailableCorp999",
+            "--role",
+            "UnavailableRole999",
+            "--artifact-dir",
+            str(tmp_path),
+        ]
+    )
 
     code = agents_cli.run_e2e(args)
-    # apps_research.__main__ returns exit code 1 because it is an internal library
     assert code != 0

@@ -428,6 +428,8 @@ def run_testing_gaps_audit(
             for rel_t in (
                 "tests/unit/test_sidecar_separation_governance.py",
                 "tests/unit/test_ssot_centralization_auditor.py",
+                "outreach_engine/tests/test_research_governance_truth.py",
+                "tests/unit/test_resume_graph_and_core_coverage_elevation.py",
             )
             if (root / rel_t).is_file()
         ]

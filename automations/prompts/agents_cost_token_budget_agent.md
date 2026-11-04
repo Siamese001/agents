@@ -64,7 +64,7 @@ export PRIMARY_REPO_ROOT="/Users/amitayer/Git/agents"
 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/lint_model_neutral_naming.py" --all --repo-root "${PRIMARY_REPO_ROOT}"
 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/lint_secrets.py" --all --repo-root "${PRIMARY_REPO_ROOT}"
 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/cost_token_budget_auditor.py" --repo-root "${PRIMARY_REPO_ROOT}" --json --strict
-"${PRIMARY_REPO_ROOT}/.venv/bin/pytest" "${PRIMARY_REPO_ROOT}/tests/unit/test_evals_and_budget_full_parity.py" -q --timeout=60
+"${PRIMARY_REPO_ROOT}/.venv/bin/pytest" "${PRIMARY_REPO_ROOT}/tests/unit/test_evals_and_budget_full_parity.py" "${PRIMARY_REPO_ROOT}/outreach_engine/tests/test_research_cost_optimization.py" -q --timeout=60
 ```
 
 If all preflight commands exit `0` (`"status": "PASS"`, `"is_clean": true`), fast-exit `COMPLETE` (`PREFLIGHT_ZERO_DEFECT_FAST_EXIT`).
@@ -138,4 +138,4 @@ For each wave (`Wave 1 -> Wave N`):
    - Verify state independently and record the 5-column proof table in `${RUN_DIR}/wave_receipts.md`.
 2. **Closed-Loop System Learning (`C07`)**: Record wave outcome via `HITLDecisionStore.record_execution_outcome`.
 3. **Turn, Commit & Promotion Gates (`C09`, `C10`)**:
-   Run `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/validate_sidecar_separation.py" --repo-root "${WORKTREE_DIR}" --json`, `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/validate_turn_gates.py" --repository-root "${WORKTREE_DIR}" --mode all`, and `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/verify_commit.py" --repo-root "${WORKTREE_DIR}"`, commit via `git -C "${WORKTREE_DIR}" commit`, obtain interactive `ask_question` `PR_MERGE_AUTHORIZATION`, and promote via `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/pr_governance.py" -C "${WORKTREE_DIR}" submit "${BRANCH_NAME}" --title "perf(tokenomics): optimize caching and token budget caps"`.
+   Run `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/validate_sidecar_separation.py" --repo-root "${WORKTREE_DIR}" --json`, `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/validate_turn_gates.py" --repository-root "${WORKTREE_DIR}" --mode all`, and `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/verify_commit.py" --repo-root "${WORKTREE_DIR}"`, commit via `git -C "${WORKTREE_DIR}" commit`, and either stage overnight via `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/pr_governance.py" -C "${WORKTREE_DIR}" submit "${BRANCH_NAME}" --stage-only` or obtain interactive `ask_question` `PR_MERGE_AUTHORIZATION` and promote via `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/pr_governance.py" -C "${WORKTREE_DIR}" submit "${BRANCH_NAME}" --title "perf(tokenomics): optimize caching and token budget caps"`.

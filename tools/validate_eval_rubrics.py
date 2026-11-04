@@ -231,34 +231,38 @@ def _run_live_apps_eval_probes(repo_root: Path) -> list[str]:
                 if bdoc.get("current_run_mutated") is not False or bdoc.get("future_run_only") is not True:
                     violations.append("l6_shadow_bridge violated non-mutation / future_run_only invariant")
 
-            sample_sc = contracts_mod.Scorecard(
-                suite_id="apps_rg.dev.smoke", app_id="apps_rg", scenario_count=1, finding_count=11,
-                passed_findings=11, failed_findings=0, block_failures=0, score=1.0,
-                verdict="pass", dimension_scores={"grounding": 1.0},
-            )
             sample_reg = contracts_mod.RegressionSummary(
                 compared=True, current_score=1.0, baseline_score=0.98, delta=0.02, verdict="improved"
             )
-            rec_base: dict[str, Any] = {
-                "suite_id": "apps_rg.dev.smoke", "app_id": "apps_rg", "mode": "snapshot",
-                "deterministic_only": True, "scenario_results": [{"scenario_id": "scn_1", "passed": True, "failed_findings": 0}],
-                "scorecard": sample_sc, "regression": sample_reg, "artifact_paths": {}, "rubric_ids": ["rub_1"],
-            }
-            sample_rec = contracts_mod.CompletedEvalRecord(record_id="rec_probe_1", created_at="2026-11-03T00:00:00Z", **rec_base)
-            rendered_md = render_mod.render_report(sample_rec, [])
-            if "# apps_eval report: apps_rg.dev.smoke" not in rendered_md or "Verdict: `pass`" not in rendered_md:
-                violations.append("apps_eval/outputs/render.py failed to render CompletedEvalRecord report")
+            for app_id, suite_id in (("apps_rg", "apps_rg.dev.smoke"), ("apps_lic", "apps_lic.dev.smoke")):
+                sc = contracts_mod.Scorecard(
+                    suite_id=suite_id, app_id=app_id, scenario_count=1, finding_count=11,
+                    passed_findings=11, failed_findings=0, block_failures=0, score=1.0,
+                    verdict="pass", dimension_scores={"grounding": 1.0},
+                )
+                rbase: dict[str, Any] = {
+                    "suite_id": suite_id, "app_id": app_id, "mode": "snapshot",
+                    "deterministic_only": True, "scenario_results": [{"scenario_id": f"scn_{app_id}_1", "passed": True, "failed_findings": 0}],
+                    "scorecard": sc, "regression": sample_reg, "artifact_paths": {}, "rubric_ids": ["rub_1"],
+                }
+                rec = contracts_mod.CompletedEvalRecord(record_id=f"rec_{app_id}_1", created_at="2026-11-03T00:00:00Z", **rbase)
+                md = render_mod.render_report(rec, [])
+                if f"# apps_eval report: {suite_id}" not in md or "Verdict: `pass`" not in md:
+                    violations.append(f"apps_eval/outputs/render.py failed to render {app_id} report")
+                for r_id, ts in (("run1", "2026-11-03T00:00:00Z"), ("run2", "2026-11-03T01:00:00Z")):
+                    rdir = td_path / f"{app_id}_records" / r_id
+                    rdir.mkdir(parents=True, exist_ok=True)
+                    robj = contracts_mod.CompletedEvalRecord(record_id=f"rec_{app_id}_{r_id}", created_at=ts, **rbase)
+                    (rdir / "eval_record.json").write_text(json.dumps(robj.to_dict()), encoding="utf-8")
+                gdec = trends_mod.emit_release_gate(
+                    records_root=td_path / f"{app_id}_records", app_id=app_id, out_dir=td_path / f"{app_id}_trends", emit_l6_shadow=True
+                )
+                if gdec.status != "pass" or gdec.sample_count != 2:
+                    violations.append(f"apps_eval/trends.py emit_release_gate failed for {app_id}: {gdec.status}")
 
-            for r_id, ts in (("run1", "2026-11-03T00:00:00Z"), ("run2", "2026-11-03T01:00:00Z")):
-                rdir = td_path / "records" / r_id
-                rdir.mkdir(parents=True, exist_ok=True)
-                rec_obj = contracts_mod.CompletedEvalRecord(record_id=f"rec_{r_id}", created_at=ts, **rec_base)
-                (rdir / "eval_record.json").write_text(json.dumps(rec_obj.to_dict()), encoding="utf-8")
-            gate_dec = trends_mod.emit_release_gate(
-                records_root=td_path / "records", app_id="apps_rg", out_dir=td_path / "trends_out", emit_l6_shadow=True
-            )
-            if gate_dec.status != "pass" or gate_dec.sample_count != 2:
-                violations.append(f"apps_eval/trends.py emit_release_gate failed clean 2-sample approval: {gate_dec.status}")
+        lic_eval_mod, lic_eval_err = load_repo_module(repo_root, "outreach_engine/src/apps_lic/judges/evaluator.py")
+        if lic_eval_err or lic_eval_mod is None or not hasattr(lic_eval_mod, "ExecutiveOutreachJudgePanel"):
+            violations.append(f"outreach_engine/src/apps_lic/judges/evaluator.py missing ExecutiveOutreachJudgePanel: {lic_eval_err}")
 
         cent_file = repo_root / "config" / "governance" / "centralization_registry.yaml"
         if cent_file.is_file():
@@ -499,10 +503,7 @@ _RUNTIME_BINARY_SIDE_SUFFIXES: tuple[str, ...] = ("-wal", "-shm", "-journal", ".
 
 def _validate_data_holdout_surface(repo_root: Path) -> tuple[int, dict[str, int], list[str]]:
     """Validate structural integrity across all 3 data roots (`data`, `outreach_engine/data`, `resume_graph_engine/data`)."""
-    violations: list[str] = []
-    file_count = 0
-    counts_by_root: dict[str, int] = {}
-
+    violations, file_count, counts_by_root = [], 0, {}
     for d_rel in DATA_ROOTS:
         data_dir = repo_root / d_rel
         if not data_dir.is_dir():
@@ -512,9 +513,7 @@ def _validate_data_holdout_surface(repo_root: Path) -> tuple[int, dict[str, int]
             if not fp.is_file() or fp.is_symlink():
                 continue
             rel_parts = fp.relative_to(data_dir).parts
-            if any(part in _RUNTIME_CACHE_DIR_PARTS for part in rel_parts[:-1]) or fp.name.endswith(
-                _RUNTIME_BINARY_SIDE_SUFFIXES
-            ):
+            if any(p in _RUNTIME_CACHE_DIR_PARTS for p in rel_parts[:-1]) or fp.name.endswith(_RUNTIME_BINARY_SIDE_SUFFIXES):
                 continue
             file_count += 1
             root_count += 1
@@ -536,7 +535,6 @@ def _validate_data_holdout_surface(repo_root: Path) -> tuple[int, dict[str, int]
             except (OSError, json.JSONDecodeError, yaml.YAMLError) as exc:
                 violations.append(f"{rel}: malformed dataset payload ({exc})")
         counts_by_root[d_rel] = root_count
-
     return file_count, counts_by_root, violations
 
 

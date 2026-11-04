@@ -59,6 +59,10 @@ GUARDED_THRESHOLD_NAMES: dict[str, tuple[str, int]] = {
         "resume_graph_engine/src/apps_rg/runtime/sections/section_product_shape_ssot.py",
         58,
     ),
+    "OUTREACH_MAX_CACHE_SIZE": (
+        "outreach_engine/src/apps_lic/pipeline/briefing_resolver.py",
+        128,
+    ),
 }
 
 HOME_PATH_RE = re.compile(r"(?:/Users/[A-Za-z0-9_.\-]+|C:\\\\Users\\\\[A-Za-z0-9_.\-]+|C:\\\\Git\\\\)")

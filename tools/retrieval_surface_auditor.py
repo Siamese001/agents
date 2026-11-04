@@ -433,10 +433,32 @@ def _probe_latency_and_live_caching(repo_root: Path) -> dict[str, Any]:
             os.environ.pop("PYTEST_CURRENT_TEST", None)
         else:
             os.environ["PYTEST_CURRENT_TEST"] = prior_pytest
+
+    import hashlib
+    import time
+    lic_res_mod = _require_module(repo_root, "outreach_engine/src/apps_lic/pipeline/briefing_resolver.py")
+    lic_resolver = lic_res_mod.GovernedBriefingResolver
+    lic_resolver.clear_cache()
+    exp_key = hashlib.sha256("OutreachTTLProbe::VP AI::".encode("utf-8")).hexdigest()
+    with lic_resolver._lock:
+        lic_resolver._cache[exp_key] = {
+            "briefing_text": "# Expired Briefing",
+            "digest": "sha256:expired",
+            "confidence_score": 0.90,
+            "evidence_count": 2,
+            "airlock_sanitized": True,
+            "strategic_priorities": ("Priority A",),
+            "timestamp": time.time() - (lic_resolver.DEFAULT_CACHE_TTL_SECONDS + 86400.0),
+            "is_verified": True,
+        }
+    exp_res = lic_resolver.resolve(company_name="OutreachTTLProbe", target_role="VP AI", auto_research=False)
+    if exp_res.resolution_source != "HERMETIC_FALLBACK" or exp_key in lic_resolver._cache:
+        gaps.append("GovernedBriefingResolver failed to evict expired 30-day TTL entry on lookup")
     return {
         "passed": len(gaps) == 0,
         "gaps": gaps,
         "live_cache_probes": res.get("live_cache_probes", {}),
+        "outreach_ttl_eviction_verified": exp_res.resolution_source == "HERMETIC_FALLBACK",
     }
 
 

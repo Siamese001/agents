@@ -29,20 +29,35 @@ from tools.ssot_sprawl_scanner import KNOWN_DRIFT_ALLOWLIST, run_sprawl_scan
 def analyze_drift(repo_root: Path, *, include_sprawl: bool = False) -> dict[str, Any]:
     root_cfg = repo_root / "config"
     engine_cfg = repo_root / "resume_graph_engine" / "config"
+    outreach_cfg = repo_root / "outreach_engine" / "config"
     root_data = repo_root / "data"
     engine_data = repo_root / "resume_graph_engine" / "data"
+    outreach_data = repo_root / "outreach_engine" / "data"
 
     result: dict[str, Any] = {
         "root_config_exists": root_cfg.is_dir(),
         "engine_config_exists": engine_cfg.is_dir(),
+        "outreach_config_exists": outreach_cfg.is_dir(),
+        "outreach_data_exists": outreach_data.is_dir(),
         "identical": [],
         "differing": [],
         "only_in_root": [],
         "only_in_engine": [],
         "unallowlisted_differing": [],
+        "outreach_config_files_verified": 0,
+        "outreach_data_files_verified": 0,
         "data_identical_count": 0,
         "data_differing": [],
     }
+
+    if outreach_cfg.is_dir():
+        result["outreach_config_files_verified"] = sum(
+            1 for p in outreach_cfg.rglob("*") if p.is_file() and "__pycache__" not in p.parts
+        )
+    if outreach_data.is_dir():
+        result["outreach_data_files_verified"] = sum(
+            1 for p in outreach_data.rglob("*") if p.is_file() and "__pycache__" not in p.parts
+        )
 
     if root_cfg.is_dir() and engine_cfg.is_dir():
         root_files = {p.relative_to(root_cfg) for p in root_cfg.rglob("*") if p.is_file()}

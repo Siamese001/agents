@@ -18,6 +18,7 @@ Consolidates `agents-storage-worktree-hygiene`, `agents-ssot-boundary-governance
    .venv/bin/python tools/lint_secrets.py --all
    .venv/bin/python tools/testing_gaps_auditor.py --include-uncovered-backlog --execute-pytest-smoke --json
    .venv/bin/python tools/validate_sidecar_separation.py --json
+   .venv/bin/pytest outreach_engine/tests tests/unit/test_all_seven_agents_coverage_elevation.py tests/unit/test_resume_graph_and_core_coverage_elevation.py -q --timeout=60
    ```
    If all behavioral gates exit `0` (`is_clean == true`), fast-exit cleanly without creating empty worktrees or synthetic wave plans.
 

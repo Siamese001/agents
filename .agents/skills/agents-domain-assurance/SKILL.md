@@ -20,7 +20,7 @@ Consolidates `agents-outreach-resume-functionality`, `agents-research-retrieval-
    .venv/bin/python tools/run_resume_graph_traversal_probe.py --max-paths 200
    .venv/bin/python tools/verify_pipeline_latency_caching.py
    .venv/bin/python tools/verify_release_gate.py --no-write --json
-   .venv/bin/pytest tests/unit/test_e2e_and_retrieval_full_parity.py tests/unit/test_evals_and_budget_full_parity.py -q --timeout=60
+   .venv/bin/pytest tests/unit/test_e2e_and_retrieval_full_parity.py tests/unit/test_evals_and_budget_full_parity.py outreach_engine/tests -q --timeout=60
    ```
    If all 8 behavioral gates exit `0` (`B_total == 0`), exit immediately (`PREFLIGHT_ZERO_DEFECT_FAST_EXIT`) without creating empty branches or synthetic wave plans.
 
