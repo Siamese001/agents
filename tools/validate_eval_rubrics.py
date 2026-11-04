@@ -268,6 +268,18 @@ def _run_live_apps_eval_probes(repo_root: Path) -> list[str]:
             rg_exp = scenarios_mod._apps_rg_expectations()
             if int((rg_exp.get("length_bounds") or {}).get("max_words", 0)) < exec_max:
                 violations.append("apps_eval/scenarios.py _apps_rg_expectations length_bounds.max_words below EXEC_SUMMARY_MAX_WORDS")
+
+        qrel_mod, qrel_err = load_repo_module(repo_root, "resume_graph_engine/src/apps_rg/evals/owner_solo/c03_rendered_unit_qrel.py")
+        if qrel_err or qrel_mod is None:
+            violations.append(f"c03_rendered_unit_qrel.py failed to load: {qrel_err}")
+        else:
+            q_contract = qrel_mod.load_contract(repo_root)
+            if q_contract.get("status") != "FROZEN":
+                violations.append("c03_rendered_unit_qrel contract status is not FROZEN")
+
+        seal_py = repo_root / "resume_graph_engine" / "src" / "apps_rg" / "evals" / "c03_human_eval" / "seal_records.py"
+        if seal_py.is_file() and 'if __name__ == "__main__":' not in seal_py.read_text(encoding="utf-8"):
+            violations.append("c03_human_eval/seal_records.py missing __main__ CLI entrypoint")
     except Exception as exc:  # guardian: allow-broad-exception -- fail-closed live evaluator probe harness
         violations.append(f"Live apps_eval behavioral probe raised error: {exc}")
 
@@ -558,15 +570,11 @@ def validate_eval_rubrics(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
 
     is_clean = len(violations) == 0
     return {
-        "status": "PASS" if is_clean else "FAIL",
-        "is_clean": is_clean,
+        "status": "PASS" if is_clean else "FAIL", "is_clean": is_clean,
         "config_roots_audited": [r for r in CONFIG_ROOTS if (root / r).is_dir()],
-        "eval_module_count": eval_mod_count,
-        "validated_schema_count": schema_count,
-        "exit_rubric_count": exit_rubric_count,
-        "data_file_count": data_file_count,
-        "data_counts_by_root": data_counts_by_root,
-        "purity_violation_count": len(purity_errs),
+        "eval_module_count": eval_mod_count, "validated_schema_count": schema_count,
+        "exit_rubric_count": exit_rubric_count, "data_file_count": data_file_count,
+        "data_counts_by_root": data_counts_by_root, "purity_violation_count": len(purity_errs),
         "violations": violations,
     }
 
@@ -577,7 +585,6 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--output", type=Path, default=None)
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
-
     rep = validate_eval_rubrics(args.repo_root.resolve())
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
@@ -585,11 +592,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.json:
         print(json.dumps(rep, indent=2))
     else:
-        print(
-            f"[{rep['status']}] Validated {rep['eval_module_count']} eval modules, "
-            f"{rep['validated_schema_count']} schemas, {rep['exit_rubric_count']} rubrics, "
-            f"and {rep['data_file_count']} data files ({len(rep['violations'])} violations)."
-        )
+        print(f"[{rep['status']}] Validated {rep['eval_module_count']} eval modules, {rep['validated_schema_count']} schemas, {rep['exit_rubric_count']} rubrics, and {rep['data_file_count']} data files ({len(rep['violations'])} violations).")
     return 0 if rep["is_clean"] else 1
 
 

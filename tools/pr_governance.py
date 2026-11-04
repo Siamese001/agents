@@ -51,7 +51,7 @@ def _bootstrap_primary_venv() -> None:
             primary_root = common_dir.parent if common_dir.name == ".git" else common_dir
             if primary_root not in candidates:
                 candidates.append(primary_root)
-    except Exception:  # guardian: allow-silent-swallow -- best-effort venv lookup
+    except (OSError, subprocess.SubprocessError):  # guardian: allow-silent-swallow -- best-effort venv lookup
         pass
 
     for root in candidates:

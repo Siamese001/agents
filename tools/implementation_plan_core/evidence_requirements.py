@@ -20,7 +20,7 @@ def _resolve_max_plan_words() -> int:
                     val = entry.get("threshold")
                     if isinstance(val, int) and val > 0:
                         return val
-        except Exception:  # guardian: allow-silent-swallow -- safe fallback when yaml parser unavailable
+        except (ImportError, OSError, ValueError, TypeError, KeyError, AttributeError):  # guardian: allow-silent-swallow -- safe fallback when yaml parser unavailable
             pass
     return 1000
 

@@ -34,12 +34,10 @@ dataset:
     - "insurance_it_strategy_modernization"
   required_sections:
     - "competencies"
-    - "slalom_bullets"
     - "unify_bullets"
     - "ibm_bullets"
     - "insurtech_bullets"
     - "ey_bullets"
-    - "slalom_narrative"
     - "unify_narrative"
     - "ibm_narrative"
     - "insurtech_narrative"
@@ -48,7 +46,6 @@ dataset:
     - "headline"
   required_retrieval_sections:
     - "competencies"
-    - "slalom_bullets"
     - "unify_bullets"
     - "ibm_bullets"
     - "insurtech_bullets"

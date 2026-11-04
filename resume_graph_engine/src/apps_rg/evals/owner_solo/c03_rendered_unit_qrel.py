@@ -31,24 +31,7 @@ GRADES = frozenset({0, 1, 2, 3})
 _COMPETENCY_RENDERING_METHOD = "governed_competency_bundle_resume_surface.v3"
 _COMPETENCY_DEDUP_RENDERING_METHOD = "governed_competency_bundle_resume_surface_dedup.v4"
 _COMPETENCY_TOKEN_STOPWORDS = frozenset(
-    {
-        "a",
-        "ai",
-        "and",
-        "architecture",
-        "capabilities",
-        "capability",
-        "design",
-        "engineering",
-        "enterprise",
-        "for",
-        "in",
-        "of",
-        "platform",
-        "the",
-        "to",
-        "with",
-    }
+    {"a", "ai", "and", "architecture", "capabilities", "capability", "design", "engineering", "enterprise", "for", "in", "of", "platform", "the", "to", "with"}
 )
 
 
@@ -551,7 +534,10 @@ def reconcile_prior_labels(
 
 def load_contract(repo_root: Path | str) -> dict[str, Any]:
     root = Path(repo_root)
-    contract = _read_json(root / CONTRACT_PATH)
+    candidate = root / CONTRACT_PATH
+    if not candidate.is_file() and (root / "resume_graph_engine" / CONTRACT_PATH).is_file():
+        candidate = root / "resume_graph_engine" / CONTRACT_PATH
+    contract = _read_json(candidate)
     if contract.get("schema_version") != "apps_rg.owner_solo_rendered_unit_qrel_contract.v1":
         raise RenderedUnitQrelError("Unexpected rendered-unit QREL contract")
     if contract.get("status") != "FROZEN":

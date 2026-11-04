@@ -46,7 +46,7 @@ def _load_structured(path: Path) -> dict[str, Any] | None:
         if path.suffix.lower() in (".yaml", ".yml") and yaml is not None:
             data = yaml.safe_load(text)
             return data if isinstance(data, dict) else None
-    except Exception:  # guardian: allow-silent-swallow -- skip malformed file in value loader
+    except (OSError, json.JSONDecodeError, ValueError, TypeError) if yaml is None else (OSError, json.JSONDecodeError, ValueError, TypeError, yaml.YAMLError):  # guardian: allow-silent-swallow -- skip malformed file in value loader
         return None
     return None
 
