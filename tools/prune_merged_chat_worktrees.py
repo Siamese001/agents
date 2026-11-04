@@ -55,7 +55,7 @@ def has_active_sidecar_lease(wt_path: Path, now_ts: float | None = None) -> bool
         payload = json.loads(lease_file.read_text(encoding="utf-8"))
         started_at = float(payload.get("started_at", 0.0))
         pid = int(payload.get("pid", 0))
-    except Exception:  # guardian: allow-silent-swallow -- treat unreadable lease with recent mtime conservatively
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError, ValueError, TypeError, AttributeError):  # guardian: allow-silent-swallow -- treat unreadable lease with recent mtime conservatively
         try:
             return (now - lease_file.stat().st_mtime) < 1800.0
         except OSError:
@@ -297,7 +297,7 @@ def prune_merged_worktrees(
                 from tools.pr_governance_core.worktree import safely_unlink_worktree_dependencies
 
                 safely_unlink_worktree_dependencies(wt_path)
-            except Exception:  # guardian: allow-silent-swallow -- best-effort symlink cleanup
+            except (ImportError, OSError):  # guardian: allow-silent-swallow -- best-effort symlink cleanup
                 pass
             with contextlib.suppress(OSError):
                 (wt_path / SIDECAR_ACTIVE_LEASE_FILENAME).unlink()
@@ -373,7 +373,7 @@ def consolidate_single_sidecar_worktree(
         )
 
         lock_cm = worktree_provisioning_lock(timeout_seconds=60.0, root=main_root)
-    except Exception:  # guardian: allow-silent-swallow -- fallback to nullcontext if filelock unavailable
+    except (ImportError, OSError, TimeoutError, ValueError):  # guardian: allow-silent-swallow -- fallback to nullcontext if filelock unavailable
         link_worktree_dependencies = None  # type: ignore[assignment]
         safely_unlink_worktree_dependencies = None  # type: ignore[assignment]
         lock_cm = contextlib.nullcontext()

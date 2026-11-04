@@ -41,7 +41,7 @@ _AGENTS_TOOLS_LINK = ROOT / ".agents" / "tools"
 if (ROOT / ".agents").is_dir() and not _AGENTS_TOOLS_LINK.exists():
     try:
         _AGENTS_TOOLS_LINK.symlink_to("../tools")
-    except Exception:  # guardian: allow-silent-swallow -- best-effort symlink creation
+    except OSError:  # guardian: allow-silent-swallow -- best-effort symlink creation
         pass
 
 try:
@@ -105,7 +105,7 @@ def read_hook_input() -> Dict[str, Any]:
             raw = sys.stdin.read()
             if raw.strip():
                 return json.loads(raw)
-        except Exception:  # guardian: allow-silent-swallow -- fallback to empty dict on malformed stdin
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError, ValueError, TypeError):  # guardian: allow-silent-swallow -- fallback to empty dict on malformed stdin
             pass
     return {}
 
@@ -150,7 +150,7 @@ def handle_pre_edit_plan(payload: Dict[str, Any], repo_root: Path) -> int:
         if target_path.is_file():
             try:
                 content = target_path.read_text(encoding="utf-8")
-            except Exception:  # guardian: allow-silent-swallow -- fallback to replacement content
+            except (OSError, UnicodeDecodeError):  # guardian: allow-silent-swallow -- fallback to replacement content
                 pass
         if not content:
             content = args.get("ReplacementContent") or args.get("Replacement") or ""
@@ -257,7 +257,7 @@ def _extract_questions_list(args: Dict[str, Any]) -> List[Dict[str, Any]]:
     if isinstance(raw_q, str) and raw_q.strip():
         try:
             raw_q = json.loads(raw_q)
-        except Exception:  # guardian: allow-silent-swallow -- treat unparseable string as empty
+        except (json.JSONDecodeError, TypeError, ValueError):  # guardian: allow-silent-swallow -- treat unparseable string as empty
             raw_q = []
     if isinstance(raw_q, list):
         return [q for q in raw_q if isinstance(q, dict)]
@@ -502,7 +502,7 @@ def handle_pre_subagent_delegation(payload: Dict[str, Any], repo_root: Path) -> 
                     errors = validate_delegation_contract(inner)
                     if errors:
                         return emit_decision("deny", reason="; ".join(errors))
-        except Exception:  # guardian: allow-silent-swallow -- ignore non-JSON prose mentions
+        except (json.JSONDecodeError, TypeError, ValueError):  # guardian: allow-silent-swallow -- ignore non-JSON prose mentions
             pass
 
     return emit_decision("allow")
@@ -529,7 +529,7 @@ def _is_primary_root_on_main(repo_root: Path) -> bool:
             check=False,
         ).stdout.strip()
         return branch == "main"
-    except Exception:  # guardian: allow-silent-swallow -- default False if git check fails
+    except (OSError, subprocess.SubprocessError, ValueError):  # guardian: allow-silent-swallow -- default False if git check fails
         return False
 
 
@@ -644,7 +644,7 @@ def handle_post_invocation(payload: Dict[str, Any], repo_root: Path) -> int:
 
     try:
         policies = load_policy_registry(repo_root)
-    except Exception:  # guardian: allow-silent-swallow -- fallback to defaults in isolated test fixtures
+    except (OSError, json.JSONDecodeError, KeyError, TypeError, ValueError):  # guardian: allow-silent-swallow -- fallback to defaults in isolated test fixtures
         policies = {}
     max_words = int(policies.get("INV-OUTPUT-MAX-WORDS", {}).get("threshold", 300) or 300)
     max_chars = int(policies.get("INV-OUTPUT-MAX-CHARS", {}).get("threshold", 3500) or 3500)

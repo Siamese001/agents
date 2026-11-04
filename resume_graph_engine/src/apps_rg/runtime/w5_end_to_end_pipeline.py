@@ -36,8 +36,6 @@ EXPECTED_LANES: tuple[str, ...] = (
     "ibm_narrative",
     "insurtech_bullets",
     "insurtech_narrative",
-    "slalom_bullets",
-    "slalom_narrative",
     "unify_bullets",
     "unify_narrative",
 )
@@ -1434,10 +1432,11 @@ def _fixture_write(path: Path, payload: Mapping[str, Any]) -> Path:
 
 
 def _build_positive_fixture(root: Path) -> tuple[dict[str, str], dict[str, Any]]:
+    from apps_rg.runtime.internal.generated_lane_contract import GENERATED_LANES
     identity = _fixture_identity()
     digest = "sha256:" + "b" * 64
     lane_statuses = []
-    for lane in EXPECTED_LANES:
+    for lane in GENERATED_LANES:
         lane_statuses.append(
             {
                 "lane": lane,
@@ -1607,7 +1606,7 @@ def _build_positive_fixture(root: Path) -> tuple[dict[str, str], dict[str, Any]]
     _fixture_write(
         assembly / "final_resume.json",
         {
-            "sections": [{"section_id": lane} for lane in EXPECTED_LANES]
+            "sections": [{"section_id": lane} for lane in GENERATED_LANES]
             + [
                 {"section_id": "early_career"},
                 {"section_id": "education"},

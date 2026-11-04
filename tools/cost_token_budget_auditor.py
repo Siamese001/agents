@@ -422,7 +422,13 @@ def _audit_pillar_8_thought_leadership_and_roi(repo_root: Path) -> dict[str, Any
 
     compact_surfaces = (
         repo_root / "resume_graph_engine" / "src" / "apps_rg" / "cache" / "cache_identity.py",
+        repo_root / "resume_graph_engine" / "src" / "apps_rg" / "cache" / "briefing_cache.py",
+        repo_root / "resume_graph_engine" / "src" / "apps_rg" / "cache" / "r1b_ingest.py",
+        repo_root / "resume_graph_engine" / "src" / "apps_rg" / "cache" / "r1b_semantic_chunk_builder.py",
         repo_root / "resume_graph_engine" / "src" / "apps_rg" / "runtime" / "targeting_context_authority.py",
+        repo_root / "resume_graph_engine" / "src" / "apps_rg" / "runtime" / "providers" / "external_provider.py",
+        repo_root / "resume_graph_engine" / "src" / "apps_rg" / "runtime" / "providers" / "anthropic_cache_live_probe.py",
+        repo_root / "outreach_engine" / "src" / "apps_lic" / "integrations" / "apps_research_bridge.py",
         repo_root / "apps_research" / "integrations" / "provider_gateway.py",
         repo_root / "apps_model_telemetry" / "token_budget_governor.py",
         repo_root / "agents" / "observability" / "prompt_cache.py",

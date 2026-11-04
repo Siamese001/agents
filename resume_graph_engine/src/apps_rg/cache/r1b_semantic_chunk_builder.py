@@ -227,6 +227,7 @@ def build_section_lane_chunk_rows(
                         "ingest_profile": INGEST_PROFILE_SECTION_LANE,
                     },
                     sort_keys=True,
+                    separators=(",", ":"),
                 ),
             }
         )
@@ -294,6 +295,7 @@ def build_integrated_whole_run_chunk_rows(
                         ),
                     },
                     sort_keys=True,
+                    separators=(",", ":"),
                 ),
             }
         )

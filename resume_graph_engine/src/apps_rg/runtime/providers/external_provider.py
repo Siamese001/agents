@@ -412,7 +412,7 @@ class ExternalProvider:
             "x-api-key": str(self.environ.get(self.api_key_env_var) or ""),
             "anthropic-version": "2023-06-01",
         }
-        data = json.dumps(body).encode("utf-8")
+        data = json.dumps(body, separators=(",", ":")).encode("utf-8")
         # Keep one provider response alive for almost the full governed wall budget.  Replaying a
         # request after response headers or a first byte can duplicate billable remote work and,
         # for slower reasoning models, an 18-second socket timeout repeatedly discarded healthy
@@ -420,10 +420,10 @@ class ExternalProvider:
         wall_budget = resolve_external_section_timeout_s(request.get("timeout_seconds"))
         internal_budget = max(1.0, wall_budget - min(5.0, wall_budget * 0.1))
         per_read = float(
-            os.environ.get("APPS_RG_STREAM_READ_TIMEOUT_S") or internal_budget
+            self.environ.get("APPS_RG_STREAM_READ_TIMEOUT_S") or internal_budget
         )
         per_read = max(1.0, min(per_read, internal_budget))
-        attempts_override = os.environ.get("APPS_RG_STREAM_ATTEMPTS", "").strip()
+        attempts_override = str(self.environ.get("APPS_RG_STREAM_ATTEMPTS") or "").strip()
         if attempts_override:
             _attempts = max(1, min(int(attempts_override), 2))
         else:
@@ -641,7 +641,7 @@ class ExternalProvider:
             evidence.mark_local_dispatch_started()
             http_req = urllib.request.Request(
                 url,
-                data=json.dumps(body).encode("utf-8"),
+                data=json.dumps(body, separators=(",", ":")).encode("utf-8"),
                 headers={
                     "Content-Type": "application/json",
                     "Accept": "application/json",
