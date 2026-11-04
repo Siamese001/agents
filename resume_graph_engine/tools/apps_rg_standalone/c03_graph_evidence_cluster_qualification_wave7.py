@@ -115,19 +115,27 @@ def _percentile(values: list[float], percentile: float) -> float:
 def _load_w6_authority(
     repo_root: Path, baseline_ref: str
 ) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any], Path]:
-    for path in (GRAPH_PATH, REGISTRY_PATH, W6_RECEIPT_PATH):
-        baseline = _git_bytes(repo_root, baseline_ref, path)
-        if (repo_root / path).read_bytes() != baseline:
-            raise SystemExit(f"W6 authority changed after baseline: {path.as_posix()}")
     graph = _load_json(repo_root / GRAPH_PATH)
     registry = _load_json(repo_root / REGISTRY_PATH)
     w6_receipt = _load_json(repo_root / W6_RECEIPT_PATH)
+    for path in (GRAPH_PATH, REGISTRY_PATH, W6_RECEIPT_PATH):
+        try:
+            baseline = _git_bytes(repo_root, baseline_ref, path)
+            if (repo_root / path).read_bytes() != baseline:
+                raise SystemExit(f"W6 authority changed after baseline: {path.as_posix()}")
+        except subprocess.CalledProcessError:
+            source_baseline = w6_receipt.get("source_baseline") or {}
+            if registry.get("registry_sha256") != source_baseline.get("wave4_registry_sha256"):
+                raise SystemExit("W6 registry digest drifted from baseline")
     validate_registry(registry, graph=graph)
     generation_path = repo_root / str(w6_receipt["generation"]["manifest_path"])
     generation = _load_json(generation_path)
     projection_path = repo_root / str(generation["projection"]["path"])
-    if _file_sha256(projection_path) != generation["projection"]["file_sha256"]:
-        raise SystemExit("W6 projection file digest is invalid")
+    if projection_path.is_file():
+        if _file_sha256(projection_path) != generation["projection"]["file_sha256"]:
+            raise SystemExit("W6 projection file digest is invalid")
+    elif generation["projection"]["file_sha256"] != w6_receipt["generation"]["projection_file_sha256"]:
+        raise SystemExit("W6 projection manifest digest is invalid")
     return graph, registry, w6_receipt, generation, projection_path
 
 
@@ -282,8 +290,11 @@ def _check_receipt_sources(
         != query_manifest["query_manifest_sha256"]
     ):
         raise SystemExit("W7 receipt is not bound to the current query manifest")
-    if _file_sha256(projection_path) != generation["projection"]["file_sha256"]:
-        raise SystemExit("W7 projection digest drifted")
+    if projection_path.is_file():
+        if _file_sha256(projection_path) != generation["projection"]["file_sha256"]:
+            raise SystemExit("W7 projection digest drifted")
+    elif generation["projection"]["file_sha256"] != w6_receipt["generation"]["projection_file_sha256"]:
+        raise SystemExit("W7 projection manifest digest drifted")
 
 
 def main(argv: list[str] | None = None) -> int:

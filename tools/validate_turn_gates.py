@@ -289,7 +289,7 @@ def audit_skills_context_budget(
             m = re.search(r"^description\s*:\s*(.+)$", text, re.MULTILINE | re.IGNORECASE)
             desc = m.group(1).strip() if m else text[:300]
             total_tokens += max(1, (len(desc.split()) * 4) // 3)
-        except Exception:  # guardian: allow-silent-swallow -- skip unreadable skill file
+        except (OSError, ValueError, TypeError):  # guardian: allow-silent-swallow -- skip unreadable skill file
             continue
 
     issues: list[str] = []
@@ -638,7 +638,7 @@ def validate_post_turn_gate(
                     "has_completed_waves": has_completed_waves,
                     "has_table": has_table,
                 }
-        except Exception as exc:  # guardian: allow-silent-swallow -- fallback if plan parsing fails
+        except (OSError, ValueError, TypeError) as exc:  # guardian: allow-silent-swallow -- fallback if plan parsing fails
             checks["wave_summary_table"] = {"status": "PASS", "note": str(exc)}
 
     is_structured_governance_artifact = bool(

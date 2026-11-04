@@ -58,17 +58,11 @@ W9_SCHEMA = "apps_rg.c03_human_eval.w9_pair.v1"
 FULL_UNIVERSE_JUDGING_SCOPE = "FULL_FINITE_UNIVERSE"
 RETRIEVAL_SPLIT_POLICY_ID = "secret-hmac-balanced-by-target-profile-v1"
 METRIC_BINDING_FIELDS = (
-    "metric_outcome_id",
-    "normalized_metric_signature",
-    "metric_text",
-    "metric_value",
-    "metric_unit",
+    "metric_outcome_id", "normalized_metric_signature", "metric_text", "metric_value", "metric_unit",
 )
 
 DEFAULT_TARGET_MANIFEST = Path(__file__).with_name("target_cases.v1.yaml")
-CANONICAL_TARGET_MANIFEST_SHA256 = (
-    "d36338de05e681dae2001f6e9c975eee4a79ef0963efd8875b1167456e3640d8"
-)
+CANONICAL_TARGET_MANIFEST_SHA256 = "d36338de05e681dae2001f6e9c975eee4a79ef0963efd8875b1167456e3640d8"
 RUBRIC_FILES: Mapping[str, str] = {
     "claim": "proof_label_rubric.v1.yaml",
     "retrieval": "retrieval_label_rubric.v1.yaml",
@@ -394,6 +388,8 @@ def _target_manifest(path: Path, repo_root: Path) -> dict[str, Any]:
             try:
                 source = resolve_repository_resource(repo_root, relative)
             except ValueError as exc:
+                if "symlink" in str(exc):
+                    raise PacketBuildError(f"{case_id}: frozen {kind} source must not use symlinks") from exc
                 raise PacketBuildError(f"{case_id}: {kind}_path {exc}") from exc
             if path_has_symlink_component(source):
                 raise PacketBuildError(f"{case_id}: frozen {kind} source must not use symlinks")
@@ -1423,7 +1419,7 @@ def assess_source_bundle_readiness(
     }
     try:
         with TemporaryDirectory(prefix="apps-rg-c03-human-eval-") as temp:
-            packet_dir = Path(temp) / "packet"
+            packet_dir = Path(temp).resolve() / "packet"
             manifest = build_packet(
                 source_bundle=source_bundle,
                 source_freeze_receipt=source_freeze_receipt,

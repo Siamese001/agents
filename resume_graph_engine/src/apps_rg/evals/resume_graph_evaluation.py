@@ -149,28 +149,20 @@ def _official_evidence_chain(
     """
 
     evidence = {
-        "export_receipt_sha256": None,
-        "prelabel_packet_manifest_sha256": None,
-        "human_review_authority_receipt_sha256": None,
-        "packet_manifest_sha256": None,
-        "packet_manifest_digest": None,
-        "completed_validation_digest": None,
+        "export_receipt_sha256": None, "prelabel_packet_manifest_sha256": None,
+        "human_review_authority_receipt_sha256": None, "packet_manifest_sha256": None,
+        "packet_manifest_digest": None, "completed_validation_digest": None,
     }
-    missing = []
-    if export_receipt_path is None:
-        missing.append("EXPORT_RECEIPT_PATH")
-    if trusted_export_receipt_sha256 is None:
-        missing.append("TRUSTED_EXPORT_RECEIPT_SHA256")
-    if trusted_prelabel_packet_manifest_sha256 is None:
-        missing.append("TRUSTED_PRELABEL_PACKET_MANIFEST_SHA256")
-    if human_review_authority_receipt_path is None:
-        missing.append("HUMAN_REVIEW_AUTHORITY_RECEIPT_PATH")
-    if trusted_human_review_authority_receipt_sha256 is None:
-        missing.append("TRUSTED_HUMAN_REVIEW_AUTHORITY_RECEIPT_SHA256")
-    if packet_dir is None:
-        missing.append("PACKET_DIR")
-    if labels_dir is None:
-        missing.append("LABELS_DIR")
+    missing = [
+        name for val, name in (
+            (export_receipt_path, "EXPORT_RECEIPT_PATH"),
+            (trusted_export_receipt_sha256, "TRUSTED_EXPORT_RECEIPT_SHA256"),
+            (trusted_prelabel_packet_manifest_sha256, "TRUSTED_PRELABEL_PACKET_MANIFEST_SHA256"),
+            (human_review_authority_receipt_path, "HUMAN_REVIEW_AUTHORITY_RECEIPT_PATH"),
+            (trusted_human_review_authority_receipt_sha256, "TRUSTED_HUMAN_REVIEW_AUTHORITY_RECEIPT_SHA256"),
+            (packet_dir, "PACKET_DIR"), (labels_dir, "LABELS_DIR"),
+        ) if val is None
+    ]
     if missing:
         return ["OFFICIAL_EVIDENCE_CHAIN_REQUIRED:" + ",".join(missing)], evidence
 
@@ -436,6 +428,14 @@ def evaluate_file(
     )
     try:
         if evidence_args_complete:
+            if path_has_symlink_component(dataset_path):
+                return _mark_official_evidence(
+                    _base_report(
+                        profile, status=INSUFFICIENT, source_ref=ref,
+                        reasons=["DATASET_CONTROL_BOUNDARY_INVALID:must not use a symlink alias or reparse point"],
+                    ),
+                    validated=False,
+                )
             privacy_error = private_path_error(dataset_path, directory=False)
             if privacy_error is not None:
                 raise EvaluationDataError(f"DATASET_PRIVACY_INVALID:{privacy_error}")

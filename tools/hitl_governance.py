@@ -50,7 +50,7 @@ def _resolve_default_store_path() -> Path:
             common_dir = (common_raw if common_raw.is_absolute() else (repo_dir / common_raw)).resolve()
             if common_dir.name == ".git":
                 return (common_dir.parent / DEFAULT_STORE_PATH).resolve()
-    except Exception:  # guardian: allow-silent-swallow -- fallback to local repo path if git is unavailable
+    except (OSError, subprocess.SubprocessError):  # guardian: allow-silent-swallow -- fallback to local repo path if git is unavailable
         pass
     return (repo_dir / DEFAULT_STORE_PATH).resolve()
 AUTHENTIC_USER_ARTIFACT_APPROVAL_MARKERS = (
@@ -665,7 +665,7 @@ def load_approved_provider_models(repo_root: Path | str | None = None) -> set[st
 
                 _extract_models(data)
                 continue
-        except Exception:  # guardian: allow-silent-swallow -- fallback to regex parser on unparseable YAML/JSON
+        except (OSError, ValueError, TypeError, KeyError, AttributeError):  # guardian: allow-silent-swallow -- fallback to regex parser on unparseable YAML/JSON
             pass
 
         for line in text.splitlines():

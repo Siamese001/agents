@@ -70,7 +70,7 @@ def _load_yaml(path: Path) -> dict[str, Any]:
     try:
         data = yaml.safe_load(path.read_text(encoding="utf-8", errors="replace"))
         return data if isinstance(data, dict) else {}
-    except Exception:  # guardian: allow-silent-swallow -- return empty dict on malformed YAML
+    except (OSError, ValueError, TypeError, AttributeError) if yaml is None else (OSError, ValueError, TypeError, yaml.YAMLError):  # guardian: allow-silent-swallow -- return empty dict on malformed YAML
         return {}
 
 

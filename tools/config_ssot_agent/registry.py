@@ -135,7 +135,7 @@ class SSOTRegistry:
                 if isinstance(models, dict):
                     for mid in models.keys():
                         self._known_models.add(str(mid).strip().lower())
-            except Exception:  # guardian: allow-silent-swallow -- fallback when catalog is malformed or unreadable
+            except (OSError, json.JSONDecodeError, ValueError, TypeError, KeyError):  # guardian: allow-silent-swallow -- fallback when catalog is malformed or unreadable
                 pass
 
     @property
