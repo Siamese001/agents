@@ -100,6 +100,9 @@ def _apps_rg_unit_test_harness(
         "APPS_RG_C03_GRAPH_SQLITE_CONTEXT_RECEIPT_DIR",
         str(tmp_path / "c03_context_receipts"),
     )
+    from apps_rg.cache.briefing_cache import get_global_briefing_cache
+
+    get_global_briefing_cache().clear()
 
 
 @pytest.fixture(autouse=True)

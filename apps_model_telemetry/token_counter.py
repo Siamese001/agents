@@ -72,7 +72,7 @@ class TokenCounterService:
 
             if resolved:
                 return resolved.tokenizer_family or "o200k_base", resolved.context_window or 131072
-        except Exception:  # guardian: allow-silent-swallow -- fallback to heuristic family resolution
+        except (ImportError, OSError, ValueError, TypeError, KeyError, AttributeError):
             pass
 
         return "o200k_base", 131072
@@ -99,7 +99,7 @@ class TokenCounterService:
             if enc is not None:
                 try:
                     return len(enc.encode(text))
-                except Exception:  # guardian: allow-silent-swallow -- fallback to heuristic token estimate when tiktoken fails
+                except (ValueError, TypeError, RuntimeError, AttributeError):
                     pass
 
         # 2. Exact tokenizer for BGE / HF if available
@@ -108,7 +108,7 @@ class TokenCounterService:
             if tok is not None:
                 try:
                     return len(tok.encode(text, add_special_tokens=False))
-                except Exception:  # guardian: allow-silent-swallow -- fallback to heuristic token estimate when HF tokenizer fails
+                except (ValueError, TypeError, RuntimeError, AttributeError):
                     pass
 
         # 3. Calibrated offline heuristic

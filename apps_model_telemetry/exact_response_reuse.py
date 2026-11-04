@@ -223,7 +223,7 @@ def lookup_exact_response(
                     cost_usd=0.0,
                     provider_status="REUSED",
                 )
-            except Exception:  # guardian: allow-silent-swallow -- non-blocking telemetry emission on cache hit
+            except (ImportError, OSError, ValueError, TypeError, RuntimeError):
                 pass
             return copy.deepcopy(result), str(event["event_digest"])
     return None

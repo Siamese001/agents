@@ -429,7 +429,7 @@ def run_apps_rg_single_action_spine(*args: Any, **kwargs: Any) -> AppsRgSingleAc
                             else "completed"
                         )
                     sealed_for_l1 = disk_sealed
-            except Exception:  # guardian: allow-silent-swallow -- fallback to existing in-memory sealed_for_l1 if disk artifact is unreadable
+            except (OSError, json.JSONDecodeError, TypeError, ValueError):
                 pass
 
         l1_review = evaluate_l1_post_l2_review(

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import time
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
@@ -117,10 +118,13 @@ class BriefingCache:
 
 
 _GLOBAL_BRIEFING_CACHE = BriefingCache(cache_dir=_DEFAULT_SHARED_DISK_BRIEFING_DIR)
+_PYTEST_BRIEFING_CACHE = BriefingCache(cache_dir=None)
 
 
 def get_global_briefing_cache(cache_dir: Path | None = None) -> BriefingCache:
     global _GLOBAL_BRIEFING_CACHE
+    if cache_dir is None and os.environ.get("PYTEST_CURRENT_TEST"):
+        return _PYTEST_BRIEFING_CACHE
     if cache_dir is not None and _GLOBAL_BRIEFING_CACHE._cache_dir != cache_dir:
         _GLOBAL_BRIEFING_CACHE = BriefingCache(cache_dir=cache_dir)
     return _GLOBAL_BRIEFING_CACHE

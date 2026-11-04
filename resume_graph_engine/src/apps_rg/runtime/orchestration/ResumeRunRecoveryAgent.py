@@ -270,7 +270,7 @@ class ResumeRunRecoveryAgent:
                     lane for lane in failing_lanes
                     if not bool(lane_states.get(lane, {}).get("authorized"))
                 ]
-            except Exception:  # guardian: allow-silent-swallow -- fallback to all failing_lanes if state classification fails
+            except (OSError, ValueError, TypeError, KeyError, RuntimeError):
                 pass
 
             if not target_failing:

@@ -607,15 +607,17 @@ def assemble_c03_graph_sqlite_context(
             ).fetchall()
         )
 
+        norm_sec = sec if sec.startswith("section_") else f"section_{sec}"
+        raw_sec = sec[len("section_") :] if sec.startswith("section_") else sec
         section_elig = conn.execute(
             """
             SELECT node_id, section_id, allowed, claim_policy, reason, blocked_reason
             FROM section_eligibility
-            WHERE section_id = ? OR section_id = '*'
+            WHERE section_id IN (?, ?, '*')
             ORDER BY allowed DESC, node_id
             LIMIT 200
             """,
-            (sec,),
+            (norm_sec, raw_sec),
         ).fetchall()
 
         if facts_in:

@@ -364,7 +364,7 @@ def dispatch_lane_with_section_cache(
                             provider_requested=prov_req,
                             provider_attempted=True,
                         )
-                except Exception:  # guardian: allow-silent-swallow -- minimal test fixtures may omit optional telemetry
+                except (OSError, ValueError, TypeError, KeyError, RuntimeError):
                     pass
             ok, _ = lane_run_dir_meets_product_bar(target_lane_dir)
             if ok:

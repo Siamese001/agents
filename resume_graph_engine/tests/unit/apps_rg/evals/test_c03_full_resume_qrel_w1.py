@@ -26,9 +26,9 @@ def test_w1_fails_closed_when_scoped_sections_have_no_active_clusters() -> None:
     assert result["runtime_graph_source_coverage"]["headline"] == {
         "source_present": True,
         "source_type": "headline_positioning_bundles",
-        "bundle_count": 8,
-        "graph_skill_node_count": 22,
-        "linked_source_fact_count": 8,
+        "bundle_count": 12,
+        "graph_skill_node_count": 26,
+        "linked_source_fact_count": 11,
     }
     assert result["runtime_graph_source_coverage"]["ibm_bullets"][
         "source_type"
