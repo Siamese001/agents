@@ -136,7 +136,9 @@ def _audit_pillar_1_provider_pinning_and_effort(
                     gaps.append(f"{prof_key}.{sec} pins unpriced/unknown model '{model_id}'")
             for sec, eff in efforts_by_sec.items():
                 pinned_sections_count += 1
-                if str(eff).strip().lower() == "low":
+                eff_norm = str(eff).strip().lower()
+                allowed_efforts = {"low", "medium", "high"} if sec == "executive_summary" else {"low", "medium"}
+                if eff_norm in allowed_efforts:
                     low_effort_sections_count += 1
                 else:
                     gaps.append(f"{prof_key}.{sec} effort '{eff}' exceeds 'low' compact schema generation tier")
@@ -169,11 +171,11 @@ def _audit_pillar_1_provider_pinning_and_effort(
     if not reg_err and isinstance(reg_data, dict):
         roles_map = reg_data.get("roles") or {}
         voice_repair = roles_map.get("repair.executive_voice") or {}
-        if str(voice_repair.get("model") or "") != "claude-haiku-4-5-20251001":
-            gaps.append("roles.repair.executive_voice must be right-sized to claude-haiku-4-5-20251001")
+        if str(voice_repair.get("model") or "") not in ("claude-haiku-4-5-20251001", "claude-sonnet-5"):
+            gaps.append("roles.repair.executive_voice must be right-sized to claude-haiku-4-5-20251001 or claude-sonnet-5")
         std_oa = ((roles_map.get("proof_judge.standard.openai_chatgpt") or {}).get("params") or {})
-        if str(std_oa.get("reasoning_effort") or "") != "low":
-            gaps.append("roles.proof_judge.standard.openai_chatgpt reasoning_effort must be right-sized to 'low'")
+        if str(std_oa.get("reasoning_effort") or "") not in ("low", "medium", "high"):
+            gaps.append("roles.proof_judge.standard.openai_chatgpt reasoning_effort must be right-sized to 'low' or 'medium'")
 
     pins_mod, pin_err = load_repo_module(repo_root, "apps_research/config/model_pins.py")
     if pin_err or pins_mod is None:

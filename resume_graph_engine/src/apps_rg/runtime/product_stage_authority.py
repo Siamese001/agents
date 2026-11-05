@@ -454,7 +454,7 @@ def emit_post_boundary_authority_receipts(
     )
     parity_advisory = bool(
         parity_path.is_file()
-        and parity.get("future_run_only") is True
+        and (parity.get("future_run_only") is True or l6_advisory)
         and not parity_bound
     )
 

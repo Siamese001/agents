@@ -8,20 +8,13 @@ from pathlib import Path
 from typing import Any
 
 from apps_rg.runtime.validators.executive_summary_x2 import (
-    EXEC_SUMMARY_MAX_WORDS,
-    EXEC_SUMMARY_FORBIDDEN_META_PHRASES,
-    EXEC_SUMMARY_FORBIDDEN_META_PHRASES_LOOSE,
-    GENERIC_FILLER,
-    check_exec_summary_no_sentence_fragment,
-    check_inferred_bridge_claims,
+    EXEC_SUMMARY_FORBIDDEN_META_PHRASES, EXEC_SUMMARY_FORBIDDEN_META_PHRASES_LOOSE,
+    EXEC_SUMMARY_MAX_WORDS, GENERIC_FILLER,
+    check_exec_summary_no_sentence_fragment, check_inferred_bridge_claims,
 )
 
-_EXTENSIVE_EXPERIENCE_RE = re.compile(
-    r"\bwith extensive experience in\b", re.IGNORECASE
-)
-_EXTENSIVE_EXPERIENCE_EXEC_RE = re.compile(
-    r"\ban engineering executive with extensive experience\b", re.IGNORECASE
-)
+_EXTENSIVE_EXPERIENCE_RE = re.compile(r"\bwith extensive experience in\b", re.IGNORECASE)
+_EXTENSIVE_EXPERIENCE_EXEC_RE = re.compile(r"\ban engineering executive with extensive experience\b", re.IGNORECASE)
 
 
 def _fact_corpus_lower(selected_facts: list[dict[str, Any]] | None) -> str:
@@ -127,26 +120,13 @@ _AI_PARTNERSHIP_COHERENCE_COMPACTION: tuple[str, ...] = (
 )
 
 _FILLER_REPLACEMENTS: tuple[tuple[re.Pattern[str], str], ...] = (
-    (
-        re.compile(
-            r"\ban engineering executive with a proven track record in delivering\b",
-            re.IGNORECASE,
-        ),
-        "Engineering executive delivering",
-    ),
-    (
-        re.compile(r"\bwith a proven track record in\b", re.IGNORECASE),
-        " leading",
-    ),
-    (
-        re.compile(r"\bwith a proven track record of\b", re.IGNORECASE),
-        " with a record of",
-    ),
+    (re.compile(r"\ban engineering executive with a proven track record in delivering\b", re.IGNORECASE), "Engineering executive delivering"),
+    (re.compile(r"\bwith a proven track record in\b", re.IGNORECASE), " leading"),
+    (re.compile(r"\bwith a proven track record of\b", re.IGNORECASE), " with a record of"),
     (re.compile(r"\bproven track record\b", re.IGNORECASE), ""),
     (re.compile(r"\bresults-driven\b", re.IGNORECASE), "outcomes-focused"),
     (re.compile(r"\bseasoned executive\b", re.IGNORECASE), "engineering executive"),
 )
-
 
 _META_PHRASE_REPLACEMENTS: tuple[tuple[str, str], ...] = (
     ("with active-voice delivery and governance discipline", "with regulated platform delivery"),
@@ -155,7 +135,23 @@ _META_PHRASE_REPLACEMENTS: tuple[tuple[str, str], ...] = (
     ("across the scope described in selected facts", ""),
     ("canonical facts used as proof", ""),
     ("same fact plan", ""),
+    ("this leadership profile", "That combined technical and commercial foundation"),
+    ("leadership profile", "combined technical and commercial foundation"),
+    ("this summary", "That combined delivery foundation"),
+    ("the candidate", "That executive background"),
+    ("this individual", "That executive background"),
+    ("this executive", "That executive background"),
+    ("can translate into", "translates into"),
+    ("additionally, their", "In parallel, that"),
+    ("furthermore, their", "In parallel, that"),
+    ("additionally,", "In parallel,"),
+    ("furthermore,", "In parallel,"),
+    ("an experienced engineering executive with a strong background", "Engineering executive with a background"),
+    ("an experienced leader in regulated", "Technology leader in regulated"),
+    ("with extensive experience in", "experienced in"),
+    ("with extensive experience", "with deep experience"),
 )
+_BARE_SUBJECTLESS_OPENER_RE = re.compile(r"^(?:positions|can\s+translate|translates\s+into|brings)\b", re.IGNORECASE)
 
 
 def _sentence_has_material_metric(sentence: str) -> bool:
@@ -238,6 +234,8 @@ def build_forward_s6(selected_facts: list[dict[str, Any]] | None) -> str:
 
 def _repair_forbidden_meta_phrases(resume_display_text: str) -> tuple[str, list[str]]:
     """Strip X2-banned meta scaffolding without changing sentence count."""
+    from apps_rg.runtime.validators.executive_summary_sentence_utils import split_sentences
+
     out = str(resume_display_text or "")
     repairs: list[str] = []
     for bad, good in _META_PHRASE_REPLACEMENTS:
@@ -255,6 +253,21 @@ def _repair_forbidden_meta_phrases(resume_display_text: str) -> tuple[str, list[
             repairs.append(f"meta_phrase_strip:{phrase[:40]}")
     out = re.sub(r"\s{2,}", " ", out)
     out = re.sub(r"\s+([.,;])", r"\1", out)
+    sents = split_sentences(out.strip())
+    if sents:
+        fixed_sents: list[str] = []
+        for s in sents:
+            st = s.strip()
+            if not st:
+                continue
+            if _BARE_SUBJECTLESS_OPENER_RE.match(st):
+                st = f"That combined technical and commercial foundation {st[:1].lower()}{st[1:]}"
+                repairs.append("meta_phrase_subject_restored")
+            elif st[:1].isalpha() and st[:1].islower():
+                st = st[:1].upper() + st[1:]
+                repairs.append("meta_phrase_sentence_capitalized")
+            fixed_sents.append(st)
+        out = " ".join(fixed_sents)
     return out.strip(), repairs
 
 
@@ -973,26 +986,13 @@ def _repair_ai_partnership_judge_findings(
 
 
 _STOCK_BRIDGE_OPENERS: tuple[str, ...] = (
-    "building on",
-    "through that",
-    "that operating foundation",
-    "complementing",
-    "with that governance",
-    "against that",
-    "from that",
+    "building on", "through that", "that operating foundation",
+    "complementing", "with that governance", "against that", "from that",
 )
-
 _STOCK_BRIDGE_PREFIX_RE = re.compile(
-    r"^(?:"
-    r"Building on that [^,]{0,80},\s*|"
-    r"Through that [^,]{0,80},\s*|"
-    r"That operating foundation also\s+|"
-    r"That operating foundation\s*,\s*|"
-    r"Complementing [^,]{0,80},\s*|"
-    r"With that governance,\s*|"
-    r"Against that [^,]{0,80},\s*|"
-    r"From that [^,]{0,80},\s*"
-    r")",
+    r"^(?:Building on that [^,]{0,80},\s*|Through that [^,]{0,80},\s*|That operating foundation also\s+|"
+    r"That operating foundation\s*,\s*|Complementing [^,]{0,80},\s*|With that governance,\s*|"
+    r"Against that [^,]{0,80},\s*|From that [^,]{0,80},\s*)",
     re.IGNORECASE,
 )
 

@@ -8,53 +8,29 @@ from pathlib import Path
 from typing import Any
 
 from apps_rg.runtime.sections.executive_summary_repair_policy import (
-    judge_regen_legacy_remediation_block_enabled,
-    judge_regen_max_attempts,
-    judge_regen_prescriptive_delta_enabled,
-    judge_regeneration_enabled,
-    post_regen_judge_rescore_mode,
-    post_x2_judge_refresh_enabled,
-    POST_REGEN_JUDGE_RESCORE_FULL_PANEL,
-    POST_REGEN_JUDGE_RESCORE_SOFT_ONLY,
+    POST_REGEN_JUDGE_RESCORE_FULL_PANEL, POST_REGEN_JUDGE_RESCORE_SOFT_ONLY,
+    judge_regen_legacy_remediation_block_enabled, judge_regen_max_attempts,
+    judge_regen_prescriptive_delta_enabled, judge_regeneration_enabled,
+    post_regen_judge_rescore_mode, post_x2_judge_refresh_enabled,
 )
-from apps_rg.runtime.validators.executive_summary_x2 import (
-    EXEC_SUMMARY_MAX_WORDS,
-    run_x2_gates,
-)
+from apps_rg.runtime.validators.executive_summary_x2 import EXEC_SUMMARY_MAX_WORDS, run_x2_gates
 
-_SYNTHESIS_TAXONOMY = frozenset(
-    {
-        "synthesis",
-        "bullet",
-        "stack",
-        "staccato",
-        "weave",
-        "integrated",
-        "paragraph",
-        "narrative",
-    }
+_SYNTHESIS_TAXONOMY = frozenset({
+    "synthesis", "bullet", "stack", "staccato", "weave", "integrated",
+    "paragraph", "narrative", "fragment", "subjectless", "grammatical", "lowercase",
+})
+_CITED_SENTENCE_SYNTAX_DEFECT_MARKERS = (
+    "subjectless", "omits a grammatical subject", "missing a subject", "missing subject",
+    "sentence fragment", "grammatical fragment", "starts lowercase", "starts with lowercase",
+    "lowercase 'positions'", "syntax_lead_fragment", "closing_fragment",
+    "dropped_subject", "exec_summary_syntax_fragment",
 )
-_EXEC_SIGNAL_TAXONOMY = frozenset(
-    {
-        "executive_signal",
-        "svp",
-        "strategic",
-        "platform",
-        "governance",
-        "commercial",
-        "innovation",
-    }
-)
-_JD_TAXONOMY = frozenset(
-    {
-        "jd",
-        "briefing",
-        "targeting",
-        "innovation",
-        "enterprise architecture",
-        "it strategy",
-    }
-)
+_EXEC_SIGNAL_TAXONOMY = frozenset({
+    "executive_signal", "svp", "strategic", "platform", "governance", "commercial", "innovation",
+})
+_JD_TAXONOMY = frozenset({
+    "jd", "briefing", "targeting", "innovation", "enterprise architecture", "it strategy",
+})
 
 
 def _coerce_judge_dict(judge: Any) -> dict[str, Any]:
@@ -94,6 +70,17 @@ def _taxonomy_tags(blob: str) -> set[str]:
     return tags
 
 
+def _judge_has_cited_sentence_syntax_defect(judge: dict[str, Any]) -> bool:
+    if judge.get("evaluator_mode") != "MODEL_BACKED":
+        return False
+    cited = judge.get("cited_sentence_indexes")
+    blob = _judge_text_blob(judge)
+    has_cited = bool(cited and isinstance(cited, (list, tuple)) and len(cited) > 0)
+    if not has_cited and not re.search(r"\bsentence\s+[1-6]\b|\bs[1-6]\b", blob):
+        return False
+    return any(marker in blob for marker in _CITED_SENTENCE_SYNTAX_DEFECT_MARKERS)
+
+
 def all_model_backed_judges_pass(x1d_judges: list[Any]) -> bool:
     norm = _normalize_judge_list(x1d_judges)
     model_backed = [j for j in norm if j.get("evaluator_mode") == "MODEL_BACKED"]
@@ -103,6 +90,7 @@ def all_model_backed_judges_pass(x1d_judges: list[Any]) -> bool:
         j.get("provider_status") == "MODEL_BACKED_PASS"
         and j.get("pass") is True
         and not j.get("decisive_failure")
+        and not _judge_has_cited_sentence_syntax_defect(j)
         for j in model_backed
     )
 
@@ -119,6 +107,8 @@ def _is_model_backed_soft_fail(judge: dict[str, Any]) -> bool:
     if judge.get("provider_status") == "MODEL_BACKED_FAIL":
         return True
     if judge.get("pass") is False:
+        return True
+    if _judge_has_cited_sentence_syntax_defect(judge):
         return True
     ns = judge.get("normalized_score")
     nt = judge.get("normalized_threshold")
@@ -155,19 +145,15 @@ def evaluate_judge_remediation_trigger(
         receipt["reason"] = "no_model_backed_judges"
         return False, receipt
 
-    pass_count = sum(1 for j in model_backed if j.get("provider_status") == "MODEL_BACKED_PASS" and j.get("pass") is True and not j.get("decisive_failure"))
+    pass_count = sum(1 for j in model_backed if j.get("provider_status") == "MODEL_BACKED_PASS" and j.get("pass") is True and not j.get("decisive_failure") and not _judge_has_cited_sentence_syntax_defect(j))
     receipt["model_backed_pass_count"] = pass_count
-
     soft_fails = [j for j in x1d_judges if _is_model_backed_soft_fail(j)]
     receipt["soft_fail_count"] = len(soft_fails)
-    failed_keys = sorted(
-        {
-            str(j.get("provider_key") or "")
-            for j in model_backed
-            if str(j.get("provider_key") or "")
-            and not (j.get("provider_status") == "MODEL_BACKED_PASS" and j.get("pass") is True and not j.get("decisive_failure"))
-        }
-    )
+    failed_keys = sorted({
+        str(j.get("provider_key") or "")
+        for j in model_backed
+        if str(j.get("provider_key") or "") and not (j.get("provider_status") == "MODEL_BACKED_PASS" and j.get("pass") is True and not j.get("decisive_failure") and not _judge_has_cited_sentence_syntax_defect(j))
+    })
     receipt["failed_provider_keys"] = failed_keys
 
     if all_model_backed_judges_pass(x1d_judges):

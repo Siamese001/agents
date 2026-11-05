@@ -232,11 +232,15 @@ def apply_pre_synthesis_candidate_repairs(
     normalized, _ = apply_voice_repair_to_parsed(normalized, selected_facts=plan_facts)
     normalized = apply_exec_summary_display_authority_repairs(
         normalized,
-        allowed_fact_ids=allowed_ids or None,
+        allowed_fact_ids=allowed_fact_ids_override if allowed_fact_ids_override is not None else (allowed_ids or None),
         plan_facts=plan_facts,
         artifact_dir=None,
         target_company=target_company,
     )
+    from apps_rg.runtime.sections.executive_summary_voice_repair import _repair_forbidden_meta_phrases
+    repaired_text, _ = _repair_forbidden_meta_phrases(str(normalized.get("resume_display_text") or ""))
+    if repaired_text:
+        normalized["resume_display_text"] = repaired_text
     raw_out = json.dumps(
         {k: v for k, v in normalized.items() if k != "selected_fact_plan"},
         ensure_ascii=False,

@@ -185,8 +185,12 @@ def _enhanced_providers() -> tuple[str, ...]:
 
 
 def _standard_providers() -> tuple[str, ...]:
-    # bullets + narratives: single cross-provider backstop — the deterministic C0.3 graph + X2
-    # lineage gates carry the proof; the judge is a light independent check, not the proof itself.
+    # bullets + narratives: single cross-provider backstop by default (narratives use
+    # external_openai and must not self-judge; bullet lanes support dual panel via env).
+    import os
+
+    if os.environ.get("APPS_RG_DUAL_BULLET_JUDGES", "").strip().lower() in ("1", "true", "yes"):
+        return _DUAL_JUDGE_PANEL
     return _SINGLE_JUDGE_PANEL
 
 

@@ -93,6 +93,22 @@ def _source_run_is_authorized(source_dir: Path, *, require_product_auth: bool) -
     ).is_file()
     if not has_resume:
         return False
+    auth_receipt_path = source_dir / "apps_rg_product_authorization_receipt.json"
+    if auth_receipt_path.is_file():
+        try:
+            auth_doc = json.loads(auth_receipt_path.read_text(encoding="utf-8"))
+            if isinstance(auth_doc, dict) and auth_doc.get("authorized") is False:
+                return False
+        except (OSError, json.JSONDecodeError, ValueError, TypeError):
+            return False
+    x3_receipt_path = source_dir / "x3_disposition_receipt.json"
+    if x3_receipt_path.is_file():
+        try:
+            x3_doc = json.loads(x3_receipt_path.read_text(encoding="utf-8"))
+            if isinstance(x3_doc, dict) and "BLOCK" in str(x3_doc.get("x3_disposition") or "").upper():
+                return False
+        except (OSError, json.JSONDecodeError, ValueError, TypeError):
+            return False
     if not require_product_auth:
         return True
     from apps_rg.__main__ import _evaluate_product_run

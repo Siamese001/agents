@@ -402,3 +402,88 @@ def test_section_lane_cache_pointer_rewrite_and_downstream_invalidation(
         kwargs={"section": "slalom_narrative", "target_company": "Anthropic"},
     )
     assert k_before != k_after
+
+
+def test_top_level_run_manifest_aggregates_lane_manifests(tmp_path: Path) -> None:
+    from apps_model_telemetry.run_manifest import build_run_manifest_data
+
+    run_root = tmp_path / "whole_run_agg"
+    lane_exec = run_root / "lanes" / "executive_summary"
+    lane_exec.mkdir(parents=True, exist_ok=True)
+    (lane_exec / "run_manifest.json").write_text(
+        json.dumps(
+            {
+                "requested_models": ["claude-opus-4-7", "gemini-3.8-flash", "gpt-5.6-luna"],
+                "observed_models": ["claude-opus-4-7", "gemini-3.8-flash", "gpt-5.6-luna"],
+                "tokens": {
+                    "total_input_tokens": 12000,
+                    "total_output_tokens": 1800,
+                    "total_cached_tokens": 4000,
+                    "total_cache_write_tokens": 0,
+                    "total_tokens": 13800,
+                },
+                "cost": {"total_cost_usd": 0.0842},
+            }
+        ),
+        encoding="utf-8",
+    )
+    top_manifest = build_run_manifest_data(run_root)
+    assert "claude-opus-4-7" in top_manifest["observed_models"]
+    assert top_manifest["tokens"]["total_tokens"] == 13800
+    assert top_manifest["cost"]["total_cost_usd"] == pytest.approx(0.0842)
+
+
+def test_wave2_meta_phrase_subject_preservation_and_cited_judge_remediation() -> None:
+    from apps_rg.runtime.sections.executive_summary_judge_remediation import (
+        evaluate_judge_remediation_trigger,
+    )
+    from apps_rg.runtime.sections.executive_summary_voice_repair import (
+        _repair_forbidden_meta_phrases,
+    )
+    from apps_rg.runtime.validators.executive_summary_x2 import (
+        check_exec_summary_no_sentence_fragment,
+    )
+
+    raw_s6 = (
+        "Enterprise technology leader who aligns governed AI platforms. "
+        "This leadership profile positions reusable AI platform architecture and governed delivery patterns to scale enterprise adoption."
+    )
+    repaired, _ = _repair_forbidden_meta_phrases(raw_s6)
+    assert "this leadership profile" not in repaired.lower()
+    assert "positions reusable ai platform architecture" in repaired.lower()
+    ok, reason = check_exec_summary_no_sentence_fragment(repaired)
+    assert ok is True, reason
+
+    bad_fragment = (
+        "Enterprise technology leader who aligns governed AI platforms. "
+        "positions reusable AI platform architecture and governed delivery patterns to scale enterprise adoption."
+    )
+    frag_ok, frag_reason = check_exec_summary_no_sentence_fragment(bad_fragment)
+    assert frag_ok is False
+    assert frag_reason and "lowercase_sentence_start" in frag_reason
+
+    judges = [
+        {
+            "provider_key": "gemini_pro",
+            "provider_name": "gemini_pro",
+            "evaluator_mode": "MODEL_BACKED",
+            "provider_status": "MODEL_BACKED_PASS",
+            "pass": True,
+            "decisive_failure": False,
+            "score": 4.15,
+            "normalized_score": 0.83,
+            "normalized_threshold": 0.8,
+            "cited_sentence_indexes": [6],
+            "findings": [
+                "Sentence 6 ('positions reusable AI platform architecture...') omits a grammatical subject and starts lowercase."
+            ],
+            "remediation_suggestions": ["Restore a grammatical subject at the start of Sentence 6."],
+        }
+    ]
+    trig_ok, receipt = evaluate_judge_remediation_trigger(
+        judges, runtime_generation_status="REAL_LLM", x2_passed=True
+    )
+    assert trig_ok is True
+    assert receipt["soft_fail_count"] == 1
+
+

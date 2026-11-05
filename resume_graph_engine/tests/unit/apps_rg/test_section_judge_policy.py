@@ -54,22 +54,22 @@ def test_section_judge_policy_matrix() -> None:
     assert matrix["executive_summary"]["judge_tier"] == JudgeTier.ENHANCED_REASONING.value
     assert matrix["executive_summary"]["judge_runtime_profile"] == {
         "judge_weight": 3,
-        "max_output_tokens": 4096,
-        "max_output_tokens_hard_cap": 6144,
-        "max_attempts": 2,
+        "max_output_tokens": 8192,
+        "max_output_tokens_hard_cap": 8192,
+        "max_attempts": 3,
         "retry_backoff_base_seconds": 0.5,
         "retry_backoff_max_seconds": 2.0,
-        "gemini_thinking_level": "medium",
+        "gemini_thinking_level": "high",
     }
     assert matrix["headline"]["judge_tier"] == JudgeTier.STANDARD_REASONING.value
     assert matrix["headline"]["judge_runtime_profile"] == {
         "judge_weight": 2,
-        "max_output_tokens": 2560,
-        "max_output_tokens_hard_cap": 4096,
+        "max_output_tokens": 4096,
+        "max_output_tokens_hard_cap": 8192,
         "max_attempts": 2,
         "retry_backoff_base_seconds": 0.5,
         "retry_backoff_max_seconds": 1.0,
-        "gemini_thinking_level": "low",
+        "gemini_thinking_level": "medium",
     }
     assert matrix["slalom_bullets"]["judge_tier"] == JudgeTier.BULLET_REWRITE_QUALITY.value
     assert matrix["unify_bullets"]["judge_tier"] == JudgeTier.BULLET_REWRITE_QUALITY.value
@@ -78,12 +78,12 @@ def test_section_judge_policy_matrix() -> None:
     assert matrix["unify_bullets"]["judge_runtime_profile"] == matrix["ibm_bullets"]["judge_runtime_profile"]
     assert matrix["unify_bullets"]["judge_runtime_profile"] == {
         "judge_weight": 2,
-        "max_output_tokens": 2560,
-        "max_output_tokens_hard_cap": 4096,
+        "max_output_tokens": 4096,
+        "max_output_tokens_hard_cap": 8192,
         "max_attempts": 2,
         "retry_backoff_base_seconds": 0.5,
         "retry_backoff_max_seconds": 1.0,
-        "gemini_thinking_level": "low",
+        "gemini_thinking_level": "medium",
     }
     assert matrix["slalom_narrative"]["judge_tier"] == JudgeTier.STANDARD_REASONING.value
     assert matrix["unify_narrative"]["judge_tier"] == JudgeTier.STANDARD_REASONING.value

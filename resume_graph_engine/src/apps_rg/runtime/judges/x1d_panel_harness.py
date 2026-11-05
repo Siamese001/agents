@@ -481,8 +481,32 @@ def extract_x1d_diagnostic(
                 seen_suggestions.add(r_str)
                 remediation_suggestions.append(r_str)
 
+    joined_diag_low = " ".join([*findings, *remediation_suggestions]).lower()
+    has_cited_syntax_defect = bool(
+        cited_sentence_indexes
+        and any(
+            m in joined_diag_low
+            for m in (
+                "subjectless",
+                "omits a grammatical subject",
+                "missing a subject",
+                "missing subject",
+                "sentence fragment",
+                "grammatical fragment",
+                "starts lowercase",
+                "starts with lowercase",
+                "lowercase 'positions'",
+                "syntax_lead_fragment",
+                "closing_fragment",
+                "dropped_subject",
+                "exec_summary_syntax_fragment",
+            )
+        )
+    )
+    repair_needed = (not all_pass) or has_cited_syntax_defect
+
     instructions: list[str] = []
-    if not all_pass:
+    if repair_needed:
         for f in findings:
             instructions.append(f"Resolve finding: {f}")
         for r in remediation_suggestions:
@@ -492,13 +516,13 @@ def extract_x1d_diagnostic(
 
     return {
         "section_id": section_id,
-        "all_pass": all_pass,
+        "all_pass": all_pass and not has_cited_syntax_defect,
         "has_decisive_failure": has_decisive_failure,
         "scores": scores,
         "findings": findings,
         "cited_sentence_indexes": sorted(cited_sentence_indexes),
         "remediation_suggestions": remediation_suggestions,
-        "repair_needed": not all_pass,
+        "repair_needed": repair_needed,
         "instructions": instructions,
     }
 

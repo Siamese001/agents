@@ -17,6 +17,48 @@ from typing import Any, Mapping
 from apps_model_telemetry.pricing import compute_run_cost_rollup
 
 
+def _collect_usage_records_from_root_and_lanes(
+    root: Path,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Collect JSONL usage records and fallback lane run_manifest dicts without double-counting."""
+    records: list[dict[str, Any]] = []
+    seen_lines: set[str] = set()
+    fallback_lane_manifests: list[dict[str, Any]] = []
+
+    def _read_jsonl(p: Path) -> bool:
+        if not p.is_file():
+            return False
+        added = False
+        try:
+            for line in p.read_text(encoding="utf-8").splitlines():
+                s = line.strip()
+                if not s or s in seen_lines:
+                    continue
+                seen_lines.add(s)
+                records.append(json.loads(s))
+                added = True
+        except (OSError, json.JSONDecodeError, ValueError, TypeError):
+            return False
+        return added
+
+    _read_jsonl(root / "external_model_usage_ledger.jsonl")
+
+    lanes_dir = root / "lanes"
+    if lanes_dir.is_dir():
+        for lane_dir in sorted(p for p in lanes_dir.iterdir() if p.is_dir()):
+            has_jsonl = _read_jsonl(lane_dir / "external_model_usage_ledger.jsonl")
+            if not has_jsonl:
+                mf_path = lane_dir / "run_manifest.json"
+                if mf_path.is_file():
+                    try:
+                        doc = json.loads(mf_path.read_text(encoding="utf-8"))
+                        if isinstance(doc, dict):
+                            fallback_lane_manifests.append(doc)
+                    except (OSError, json.JSONDecodeError, ValueError, TypeError):
+                        pass
+    return records, fallback_lane_manifests
+
+
 def build_run_manifest_data(
     artifact_dir: Path | str,
     *,
@@ -24,17 +66,7 @@ def build_run_manifest_data(
 ) -> dict[str, Any]:
     """Extract usage records and assemble the canonical run manifest dictionary."""
     root = Path(artifact_dir).resolve()
-    usage_file = root / "external_model_usage_ledger.jsonl"
-    records: list[dict[str, Any]] = []
-    if usage_file.is_file():
-        try:
-            records = [
-                json.loads(line)
-                for line in usage_file.read_text(encoding="utf-8").splitlines()
-                if line.strip()
-            ]
-        except Exception:
-            records = []
+    records, fallback_lane_manifests = _collect_usage_records_from_root_and_lanes(root)
 
     rollup = compute_run_cost_rollup(records)
 
@@ -46,24 +78,45 @@ def build_run_manifest_data(
     except (ImportError, OSError, ValueError, TypeError, RuntimeError):
         pass
 
-    req_models = sorted(
-        list(
-            {
-                str(r.get("requested_model") or r.get("model"))
-                for r in records
-                if r.get("requested_model") or r.get("model")
-            }
-        )
-    )
-    obs_models = sorted(
-        list(
-            {
-                str(r.get("observed_model") or r.get("model"))
-                for r in records
-                if r.get("observed_model") or r.get("model")
-            }
-        )
-    )
+    req_set = {
+        str(r.get("requested_model") or r.get("model"))
+        for r in records
+        if r.get("requested_model") or r.get("model")
+    }
+    obs_set = {
+        str(r.get("observed_model") or r.get("model"))
+        for r in records
+        if r.get("observed_model") or r.get("model")
+    }
+    for lmf in fallback_lane_manifests:
+        for m in lmf.get("requested_models") or []:
+            if m:
+                req_set.add(str(m))
+        for m in lmf.get("observed_models") or []:
+            if m:
+                obs_set.add(str(m))
+        ltok = lmf.get("tokens")
+        if isinstance(ltok, dict):
+            for k in (
+                "total_input_tokens",
+                "total_output_tokens",
+                "total_cached_tokens",
+                "total_cache_write_tokens",
+                "total_tokens",
+            ):
+                rollup[k] = int(rollup.get(k) or 0) + int(ltok.get(k) or 0)
+        lcost = lmf.get("cost")
+        if isinstance(lcost, dict):
+            c_val = lcost.get("total_cost_usd")
+            if isinstance(c_val, (int, float)):
+                base_c = rollup.get("total_cost_usd")
+                rollup["total_cost_usd"] = round(
+                    (float(base_c) if isinstance(base_c, (int, float)) else 0.0) + float(c_val),
+                    6,
+                )
+
+    req_models = sorted(req_set)
+    obs_models = sorted(obs_set)
 
     if extra_fields:
         if not req_models and extra_fields.get("provider_requested"):
