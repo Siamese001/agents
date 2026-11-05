@@ -13,10 +13,10 @@ MAX_COMPACT_CLAIM_CHARS = 260
 
 
 def resolve_coherence_judge_effort(effort: str | None) -> str:
-    """Calibrate whole-resume coherence judge effort to medium for sub-18s latency."""
+    """Resolve whole-resume coherence judge effort without clamping high effort."""
     norm = str(effort or "").strip().lower()
-    if not norm or norm in ("high", "xhigh"):
-        return "medium"
+    if not norm or norm == "xhigh":
+        return "high"
     return norm
 
 

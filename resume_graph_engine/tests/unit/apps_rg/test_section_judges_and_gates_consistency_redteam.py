@@ -256,12 +256,12 @@ class TestVector4RuntimeProfileMonotonicity:
 
         # Exact expected tier calibration
         assert profiles["optional_advisory_taxonomy_only"]["gemini_thinking_level"] == "low"
-        assert profiles["standard_reasoning"]["gemini_thinking_level"] == "low"
-        assert profiles["enhanced_reasoning"]["gemini_thinking_level"] == "medium"
-        assert judge_cfg["gemini_proof_thinking_level"] == "medium"
+        assert profiles["standard_reasoning"]["gemini_thinking_level"] == "medium"
+        assert profiles["enhanced_reasoning"]["gemini_thinking_level"] == "high"
+        assert judge_cfg["gemini_proof_thinking_level"] == "high"
 
         # Bullet rewrite quality must match standard reasoning
-        assert profiles["bullet_rewrite_quality"]["gemini_thinking_level"] == "low"
+        assert profiles["bullet_rewrite_quality"]["gemini_thinking_level"] == "medium"
 
 
 # ==============================================================================

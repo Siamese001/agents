@@ -1411,6 +1411,10 @@ def _complete_apps_rg_post_x3(
     ):
         if key in section_l6_binding:
             l6_binding[key] = section_l6_binding[key]
+    if section_l6_binding.get("l6_apps_eval_binding_closure_ref"):
+        l6_binding["l6_section_binding_closure_ref"] = str(
+            section_l6_binding["l6_apps_eval_binding_closure_ref"]
+        )
     coverage = dict(eval_record.scorecard.coverage_summary or {})
     eval_quality_pass = (
         evaluation_decision.get("evaluation_validity") == "PASS"

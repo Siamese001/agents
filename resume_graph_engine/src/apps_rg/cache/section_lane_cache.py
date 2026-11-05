@@ -184,12 +184,36 @@ def _resolve_text_or_path_digest(inline_text: str, ref_path: str) -> str:
     return _sha256_bytes(b"")
 
 
+PROSE_REPAIR_CACHE_VERSION: Final[str] = "v2_subject_safe_20261105"
+
+
+def _resolve_lane_model_and_effort_salts(
+    section_id: str, lane_provider: str
+) -> tuple[str, str]:
+    provider = str(lane_provider or "external_claude").strip() or "external_claude"
+    model_salt = ""
+    effort_salt = ""
+    try:
+        from apps_rg.runtime.section_model_limits import (
+            resolve_section_generation_effort,
+            resolve_section_generation_model,
+        )
+
+        effort_salt = str(resolve_section_generation_effort(section_id) or "")
+        model_salt = str(resolve_section_generation_model(provider, section_id) or "")
+    except (ImportError, OSError, ValueError, TypeError, KeyError, RuntimeError):
+        pass
+    return model_salt, effort_salt
+
+
 def compute_section_lane_cache_key(
     *,
     sections_root: Path,
     kwargs: Mapping[str, Any],
 ) -> str:
     section_id = str(kwargs.get("section") or "").strip()
+    lane_provider = str(kwargs.get("lane_provider") or "").strip()
+    model_salt, effort_salt = _resolve_lane_model_and_effort_salts(section_id, lane_provider)
     jd_sha = _resolve_text_or_path_digest(
         str(kwargs.get("job_description_text") or ""),
         str(kwargs.get("job_description_ref") or kwargs.get("jd") or ""),
@@ -199,13 +223,16 @@ def compute_section_lane_cache_key(
     return _sha256_obj(
         {
             "schema": "apps_rg.section_lane_cache_key.v1",
+            "prose_repair_cache_version": PROSE_REPAIR_CACHE_VERSION,
             "section_id": section_id,
             "target_company": str(kwargs.get("target_company") or "").strip().lower(),
             "target_role": str(kwargs.get("target_role") or "").strip().lower(),
             "generation_mode": str(kwargs.get("generation_mode") or "").strip(),
             "jd_sha256": jd_sha,
             "briefing_sha256": brief_sha,
-            "lane_provider": str(kwargs.get("lane_provider") or "").strip(),
+            "lane_provider": lane_provider,
+            "resolved_generation_model": model_salt,
+            "resolved_generation_effort": effort_salt,
             "lane_x1d_judges": str(
                 kwargs.get("lane_x1d_judges") or kwargs.get("x1d_judges") or ""
             ).strip(),

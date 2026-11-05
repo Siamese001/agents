@@ -43,7 +43,7 @@ def test_resolve_generation_roles() -> None:
     assert resolved.snapshot_id == "claude-sonnet-5"
     assert resolved.tier == "frontier"
     assert resolved.proof_eligible is True
-    assert resolved.params.get("effort") == "low"
+    assert resolved.params.get("effort") == "medium"
     assert resolved.tokenizer_family == "claude_bpe"
     assert resolved.pricing["input_cost_per_mtok"] > 0
     assert resolved.pricing["output_cost_per_mtok"] > 0
@@ -62,19 +62,19 @@ def test_resolve_shorthand_role_lookup() -> None:
 def test_resolve_backup_generation_role() -> None:
     resolved = resolve("generation_backup.executive_summary")
     assert resolved.model == "gpt-5.6-luna"
-    assert resolved.params.get("effort") == "medium"
+    assert resolved.params.get("effort") == "high"
     assert resolved.tier == "frontier"
 
 
 def test_resolve_proof_judge_roles() -> None:
     enhanced_gemini = resolve("proof_judge.enhanced.gemini_pro")
     assert enhanced_gemini.model == "gemini-3.8-flash"
-    assert enhanced_gemini.params.get("thinking_level") == "medium"
+    assert enhanced_gemini.params.get("thinking_level") == "high"
     assert enhanced_gemini.proof_eligible is True
 
     standard_gemini = resolve("proof_judge.standard.gemini_pro")
     assert standard_gemini.model == "gemini-3.8-flash"
-    assert standard_gemini.params.get("thinking_level") == "low"
+    assert standard_gemini.params.get("thinking_level") == "medium"
     assert standard_gemini.proof_eligible is True
 
     enhanced_openai = resolve("proof_judge.enhanced.openai_chatgpt")
@@ -111,5 +111,5 @@ def test_get_runtime_limits_contains_required_sections() -> None:
     assert "model_token_governor" in limits
     assert "executive_summary" in limits
     assert "judge" in limits
-    assert limits["judge"]["runtime_profiles"]["enhanced_reasoning"]["gemini_thinking_level"] == "medium"
-    assert limits["judge"]["runtime_profiles"]["standard_reasoning"]["gemini_thinking_level"] == "low"
+    assert limits["judge"]["runtime_profiles"]["enhanced_reasoning"]["gemini_thinking_level"] == "high"
+    assert limits["judge"]["runtime_profiles"]["standard_reasoning"]["gemini_thinking_level"] == "medium"

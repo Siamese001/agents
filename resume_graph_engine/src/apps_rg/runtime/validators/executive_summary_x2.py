@@ -88,24 +88,23 @@ _PARTICIPIAL_OPENER_RE = re.compile(
     re.IGNORECASE,
 )
 
+_SUBJECTLESS_VERB_OPENER_RE = re.compile(r"^(?:positions|can\s+translate|translates\s+into|brings)\b", re.IGNORECASE)
+
 
 def check_exec_summary_no_sentence_fragment(
     resume_display_text: str,
 ) -> tuple[bool, str | None]:
-    """Reject executive summary display text that contains a grammatical fragment.
-
-    A fragment is any sentence that either:
-    1. Matches the participial-opener pattern (noun phrase + ', built/established through...')
-    2. Has no finite verb token (pure noun-phrase sentence)
-
-    RC-B from plan exec-summary-rc-structural-repair-f4a8c2: fact_quant_hpc_003
-    preferred_c0_display_text 'FSA-chartered quantitative foundation, built through...'
-    was a fragment that Gemini-class judges flagged as S4 sentence quality failure.
-    """
+    """Reject executive summary display text that contains a grammatical fragment."""
     fragments: list[str] = []
     for i, sent in enumerate(split_sentences(resume_display_text)):
         sent_stripped = sent.strip()
         if not sent_stripped:
+            continue
+        if sent_stripped[0].isalpha() and sent_stripped[0].islower():
+            fragments.append(f"S{i + 1}(lowercase_sentence_start): {sent_stripped[:80]}")
+            continue
+        if _SUBJECTLESS_VERB_OPENER_RE.search(sent_stripped):
+            fragments.append(f"S{i + 1}(subjectless_verb_opener): {sent_stripped[:80]}")
             continue
         if _PARTICIPIAL_OPENER_RE.search(sent_stripped):
             fragments.append(f"S{i + 1}(participial_fragment): {sent_stripped[:80]}")

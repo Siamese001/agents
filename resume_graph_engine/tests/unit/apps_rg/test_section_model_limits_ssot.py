@@ -30,17 +30,17 @@ def test_generation_profiles_have_no_default_model() -> None:
 
 def test_explicit_section_effort_map() -> None:
     expected = {
-        "competencies": "low",
-        "slalom_bullets": "low",
-        "unify_bullets": "low",
-        "ibm_bullets": "low",
-        "insurtech_bullets": "low",
-        "headline": "low",
-        "executive_summary": "low",
-        "slalom_narrative": "low",
-        "unify_narrative": "low",
-        "ibm_narrative": "low",
-        "insurtech_narrative": "low",
+        "competencies": "medium",
+        "slalom_bullets": "medium",
+        "unify_bullets": "medium",
+        "ibm_bullets": "medium",
+        "insurtech_bullets": "medium",
+        "headline": "medium",
+        "executive_summary": "high",
+        "slalom_narrative": "medium",
+        "unify_narrative": "medium",
+        "ibm_narrative": "medium",
+        "insurtech_narrative": "medium",
     }
     assert {
         section_id: sml.resolve_section_generation_effort(section_id)

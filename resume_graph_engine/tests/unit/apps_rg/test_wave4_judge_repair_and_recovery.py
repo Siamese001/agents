@@ -42,19 +42,19 @@ from apps_rg.runtime.sections.headline_repair_policy import (
 
 
 def test_wave4_judge_effort_and_compact_caps_calibrated() -> None:
-    assert runtime_limit_str("judge.gemini_proof_thinking_level") == "medium"
-    assert runtime_limit_str("judge.openai_proof_reasoning_effort") == "medium"
-    assert runtime_limit_int("judge.x1d_max_output_tokens") == 2560
-    assert runtime_limit_int("judge.x1d_max_output_tokens_hard_cap") == 6144
-    assert runtime_limit_int("judge.x1d_max_attempts") == 2
+    assert runtime_limit_str("judge.gemini_proof_thinking_level") == "high"
+    assert runtime_limit_str("judge.openai_proof_reasoning_effort") == "high"
+    assert runtime_limit_int("judge.x1d_max_output_tokens") == 4096
+    assert runtime_limit_int("judge.x1d_max_output_tokens_hard_cap") == 8192
+    assert runtime_limit_int("judge.x1d_max_attempts") == 3
 
     enhanced = runtime_limit_mapping("judge.runtime_profiles.enhanced_reasoning")
-    assert int(enhanced["max_output_tokens"]) == 4096
-    assert int(enhanced["max_output_tokens_hard_cap"]) == 6144
-    assert int(enhanced["max_attempts"]) == 2
+    assert int(enhanced["max_output_tokens"]) == 8192
+    assert int(enhanced["max_output_tokens_hard_cap"]) == 8192
+    assert int(enhanced["max_attempts"]) == 3
 
-    assert resolve_coherence_judge_effort("high") == "medium"
-    assert resolve_coherence_judge_effort(None) == "medium"
+    assert resolve_coherence_judge_effort("high") == "high"
+    assert resolve_coherence_judge_effort(None) == "high"
     assert resolve_coherence_judge_effort("low") == "low"
 
 
