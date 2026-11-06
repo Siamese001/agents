@@ -199,9 +199,9 @@ def _resolve_lane_model_and_effort_salts(
             resolve_section_generation_model,
         )
 
-        effort_salt = str(resolve_section_generation_effort(section_id) or "")
-        model_salt = str(resolve_section_generation_model(provider, section_id) or "")
-    except (ImportError, OSError, ValueError, TypeError, KeyError, RuntimeError):
+        effort_salt = str(resolve_section_generation_effort(section_id, provider_profile=provider) or "")
+        model_salt = str(resolve_section_generation_model(section_id, provider_profile=provider) or "")
+    except (ImportError, OSError, ValueError, TypeError, KeyError, RuntimeError, AttributeError):
         pass
     return model_salt, effort_salt
 

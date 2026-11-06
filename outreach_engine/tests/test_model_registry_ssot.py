@@ -35,7 +35,7 @@ def test_model_registry_role_lookups():
     # Research and judge roles
     assert OutreachModelRegistry.get_model_for_role("company_brief_generation") == "gpt-5.6-terra"
     assert OutreachModelRegistry.get_model_for_role("handoff_judge") == "gemini-3.8-flash"
-    assert OutreachModelRegistry.get_model_for_role("rubric_judge_panel") == "claude-haiku-4-5-20251001"
+    assert OutreachModelRegistry.get_model_for_role("rubric_judge_panel") == "claude-haiku-5-5"
 
 
 def test_model_registry_unregistered_role_fails_closed():
@@ -55,7 +55,7 @@ def test_model_registry_validation_and_active_models():
     assert "rubric_judge_panel" in active
 
     assert OutreachModelRegistry.validate_model("gpt-5.6-luna") is True
-    assert OutreachModelRegistry.validate_model("claude-haiku-4-5-20251001") is True
+    assert OutreachModelRegistry.validate_model("claude-haiku-5-5") is True
     assert OutreachModelRegistry.validate_model("unapproved_rogue_model_v9") is False
 
 

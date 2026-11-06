@@ -58,14 +58,14 @@ profiles:
     profile_id: outreach_engine::provider::rubric_judge_panel::v1
     provider: anthropic
     provider_class: external_api
-    model: claude-haiku-4-5-20251001
+    model: claude-haiku-5-5
     backup_provider: google
     backup_model: gemini-3.8-flash
     reasoning_effort: low
     ide_internal_tier: argon4_medium
     pin_owner: outreach_engine.judges.panel
     pin_review_after: "2026-11-07"
-    description: "Multi-lens executive outreach rubric evaluator right-sized from legacy Sonnet 3.5 to Haiku 4.5"
+    description: "Multi-lens executive outreach rubric evaluator right-sized to Haiku 5.5 at low effort"
 
   company_brief_generation:
     profile_id: outreach_engine::provider::company_brief_generation::v1

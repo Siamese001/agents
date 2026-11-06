@@ -199,7 +199,7 @@ judge_model_governance:
 selector_models:
   competencies_graph_pool_selector:
     provider_key: anthropic_claude
-    model: claude-sonnet-5
+    model: claude-haiku-5-5
     # The selector has the same 4096-token governed output room and must leave
     # capacity for its compact JSON selection payload.
     reasoning_effort: low
@@ -213,7 +213,7 @@ selector_models:
     proof_eligible: false
   employment_bullet_pool_selector:
     provider_key: anthropic_claude
-    model: claude-sonnet-5
+    model: claude-haiku-5-5
     reasoning_effort: low
     anthropic_limit_backup:
       provider_key: openai_chatgpt

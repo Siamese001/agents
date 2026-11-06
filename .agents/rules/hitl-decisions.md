@@ -56,6 +56,13 @@ Governs Human-in-the-Loop (HITL) decisions, approvals, and clarifications across
    - An unrecognized, misspelled, or unapproved model identifier (e.g. `gpt-6.5-luna`) is **strictly classified as a blocking architectural ambiguity**, NEVER as a cosmetic posture, persona flair, or deferrable clarification.
    - When an unapproved or ambiguous model identifier is encountered, the agent MUST halt and present an atomic HITL decision via `ask_question` with discrete resolution options (e.g. typo resolution to approved pin vs external override). Autonomous execution without operator sign-off on an unapproved model token is strictly prohibited.
 
+9. **Proactive Industry Model Benchmarking & Three-Axis Pin Hardening**
+   - When asked to rationalize, compare, or recommend model pins, always research latest released industry tiers across OpenAI, Anthropic, and Google alongside currently registered catalog pins, explicitly distinguishing industry availability from local catalog approval status.
+   - Evaluate every candidate model migration across three mandatory adversarial axes before recommending promotion:
+     1. **Unit Savings vs. Retry Cascade Math**: Verify whether strict grounding or sentence-count constraints trigger 3x–4x retries that erase unit-token discounts.
+     2. **Adaptive Thinking Ceiling Isolation**: Lock compact selection and grading lanes to `reasoning_effort: low` when thinking tokens share the output token cap.
+     3. **Cross-Family Judge Independence**: Enforce strict provider orthogonality between section generators and proof judges to prevent self-preference bias.
+
 ## Decision Structure
 
 Use the `ask_question` tool with the following parameters:
