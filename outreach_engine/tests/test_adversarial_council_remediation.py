@@ -137,7 +137,7 @@ def test_remediation_defect5_model_registry_backup_model_and_approved_list():
 
     approved = OutreachModelRegistry.list_approved_models()
     assert "gpt-5.6-luna" in approved
-    assert "claude-haiku-4-5-20251001" in approved
+    assert "claude-haiku-5-5" in approved
     assert "gemini-3.8-flash" in approved  # Backup model
 
     assert OutreachModelRegistry.validate_model("gemini-3.8-flash") is True

@@ -64,7 +64,7 @@ section_allocations:
       model: gpt-5.6-luna
       reasoning_effort: low
     selector:
-      primary: claude-sonnet-5
+      primary: claude-haiku-5-5
       backup: gpt-5.6-luna
       reasoning_effort: low
     judge_tier: STANDARD_REASONING
@@ -88,7 +88,7 @@ section_allocations:
       model: gpt-5.6-luna
       reasoning_effort: low
     selector:
-      primary: claude-sonnet-5
+      primary: claude-haiku-5-5
       backup: gpt-5.6-luna
       reasoning_effort: low
     judge_tier: BULLET_REWRITE_QUALITY
@@ -137,7 +137,7 @@ section_allocations:
     rubric_judge_panel:
       primary:
         provider: anthropic
-        model: claude-3-5-sonnet-20241022
+        model: claude-haiku-5-5
         reasoning_effort: low
       backup:
         provider: google_gemini

@@ -164,8 +164,8 @@ def _audit_pillar_1_provider_pinning_and_effort(
             rmodel = str(role_cfg.get("model") or "").strip()
             if not rmodel or (pricing_map and rmodel not in pricing_map):
                 gaps.append(f"outreach_engine.{role_name} pins unpriced or legacy model '{rmodel}'")
-            if role_name == "rubric_judge_panel" and rmodel != "claude-haiku-4-5-20251001":
-                gaps.append(f"outreach_engine.rubric_judge_panel should be right-sized to 'claude-haiku-4-5-20251001', got '{rmodel}'")
+            if role_name == "rubric_judge_panel" and rmodel not in ("claude-haiku-5-5", "claude-haiku-4-5-20251001"):
+                gaps.append(f"outreach_engine.rubric_judge_panel should be right-sized to 'claude-haiku-5-5', got '{rmodel}'")
 
     reg_data, reg_err = load_yaml_strict(repo_root / "resume_graph_engine" / "config" / "models" / "registry.yaml")
     if not reg_err and isinstance(reg_data, dict):

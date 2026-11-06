@@ -55,6 +55,27 @@
         "anthropic_messages": "max_tokens"
       }
     },
+    "claude-haiku-5-5": {
+      "provider": "anthropic",
+      "capability_class": "text_generation",
+      "endpoints": [
+        "anthropic_messages"
+      ],
+      "reasoning_efforts": [
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max"
+      ],
+      "temperature_parameter": "omit",
+      "structured_output": true,
+      "proof_eligible": false,
+      "thinking_mode": "adaptive",
+      "max_output_tokens_parameters": {
+        "anthropic_messages": "max_tokens"
+      }
+    },
     "gemini-3.6-flash": {
       "provider": "google_gemini",
       "capability_class": "text_generation_and_judging",
@@ -168,101 +189,5 @@
     "generic_role_aliases_allowed": false,
     "semantic_aliases_allowed": false,
     "note": "This catalog describes capabilities only. App profiles own routing and receipts own observed identities."
-  },
-  "openai": {
-    "default": "gpt-5.6-luna",
-    "chat_judge": "gpt-5.5",
-    "small_classifier": "gpt-5-mini",
-    "luna": "gpt-5.6-luna",
-    "terra": "gpt-5.6-terra",
-    "sol": "gpt-5.6-sol",
-    "astra": "gpt-6-astra",
-    "omit_temperature": [
-      "gpt-5.5",
-      "gpt-5.6-luna",
-      "gpt-5.6-terra",
-      "gpt-5.6-sol",
-      "gpt-6-astra"
-    ],
-    "non_chat_completions": [
-      "gpt-5.5-pro"
-    ],
-    "families": {
-      "gpt5_prefix": "gpt-5"
-    },
-    "legacy": {
-      "gpt_4": "gpt-4",
-      "gpt_4_0613": "gpt-4-0613",
-      "gpt_4_32k": "gpt-4-32k",
-      "gpt_4_32k_0613": "gpt-4-32k-0613",
-      "gpt_4_turbo": "gpt-4-turbo",
-      "gpt_4o": "gpt-4o",
-      "gpt_4o_2024_08_06": "gpt-4o-2024-08-06",
-      "gpt_4o_mini": "gpt-4o-mini",
-      "gpt_4o_mini_2024_07_18": "gpt-4o-mini-2024-07-18",
-      "gpt_3": "gpt-3",
-      "gpt_35_turbo": "gpt-3.5-turbo",
-      "gpt_35_turbo_0613": "gpt-3.5-turbo-0613",
-      "gpt_35_turbo_16k": "gpt-3.5-turbo-16k",
-      "gpt_35_turbo_16k_0613": "gpt-3.5-turbo-16k-0613"
-    }
-  },
-  "anthropic": {
-    "default": "claude-sonnet-5",
-    "haiku": "claude-haiku-4-5",
-    "haiku_dated": "claude-haiku-4-5-20260101",
-    "sonnet": "claude-sonnet-5",
-    "sonnet_4_20250514": "claude-sonnet-4-20250514",
-    "sonnet_4_5": "claude-sonnet-4-5",
-    "sonnet_4_5_20250929": "claude-sonnet-4-5-20250929",
-    "sonnet_4_5_dot": "claude-sonnet-4.5",
-    "opus": "claude-opus-4-5",
-    "opus_4_5": "claude-opus-4-5",
-    "opus_4_7_dot": "claude-opus-4.7",
-    "haiku_4_5_dot": "claude-haiku-4.5",
-    "haiku_4_5_20251001": "claude-haiku-4-5-20251001",
-    "generic": {
-      "claude_3": "claude-3",
-      "instant": "claude-instant",
-      "opus": "claude-opus",
-      "fable": "claude-fable",
-      "haiku": "claude-haiku",
-      "sonnet": "claude-sonnet"
-    },
-    "legacy": {
-      "sonnet_35_20241022": "claude-3-5-sonnet-20241022"
-    }
-  },
-  "gemini": {
-    "flash": "gemini-3.8-flash",
-    "pro": "gemini-2.5-pro",
-    "legacy": {
-      "flash_36": "gemini-3.6-flash",
-      "gemini_pro": "gemini-pro",
-      "flash_15": "gemini-1.5-flash",
-      "flash_15_002": "gemini-1.5-flash-002",
-      "pro_10": "gemini-1.0-pro",
-      "pro_15": "gemini-1.5-pro",
-      "pro_15_002": "gemini-1.5-pro-002",
-      "flash_20": "gemini-2.0-flash",
-      "flash_20_exp": "gemini-2.0-flash-exp",
-      "flash_25": "gemini-2.5-flash",
-      "pro_25": "gemini-2.5-pro"
-    },
-    "families": {
-      "v2_prefix": "gemini-2",
-      "v3_prefix": "gemini-3"
-    }
-  },
-  "qwen": {
-    "local_27b_mlx": "mlx-community/Qwen3.8-27B-4bit",
-    "local_27b_gguf": "unsloth/Qwen3.8-27B-GGUF",
-    "local_model_id": "qwen-3.8-27b",
-    "local_32b_awq": "Qwen/Qwen2.5-32B-Instruct-AWQ",
-    "vllm_label": "Qwen/vLLM"
-  },
-  "embedding": {
-    "bge_m3": "BAAI/bge-m3",
-    "bge_m3_dimension": 1024
   }
 }
