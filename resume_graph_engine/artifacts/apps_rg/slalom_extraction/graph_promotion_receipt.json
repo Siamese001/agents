@@ -1,28 +1,41 @@
 {
-  "timestamp": "2026-10-05T13:00:25.592790+00:00",
   "plan": "plans/resume-slalom-promotion-b8e4f1.md",
-  "wave": 2,
-  "status": "COMPLETED",
+  "post_promotion_counts": {
+    "graph_edges": 4334,
+    "graph_nodes": 838,
+    "slalom_backed_skills": 69,
+    "slalom_engagements": 10,
+    "slalom_facts": 12,
+    "slalom_j3_journey_paths": 690,
+    "slalom_metrics": 26,
+    "slalom_skill_supported_by_fact_edges": 166,
+    "slalom_skill_surfaces_metric_outcome_edges": 249
+  },
+  "post_promotion_sha256": "0cdc5315700cdcc8f197c7b5ce6d19dd8677110df2a383549e1c383e5d194366",
+  "promoted_at": "2026-11-06T22:56:24.059287+00:00",
   "promotion_targets": {
-    "resume_graph_engine/artifacts/apps_rg/fact_inventory/augmented_skills_graph.sqlite": {
-      "enriched_nodes": 4,
-      "inserted_nodes": 4,
-      "inserted_edges": 4,
-      "total_nodes": 814,
-      "total_edges": 3588,
-      "integrity_check": "ok",
-      "fk_violations": 0,
-      "sha256": "a0ca54dd30497ac82255e05beb5d1a47dfdc40b9174713ce3eb5a42aeed49de8"
-    },
     ".worktrees/slalom-agentic-outcomes/resume_graph_engine/artifacts/apps_rg/fact_inventory/augmented_skills_graph.sqlite": {
       "enriched_nodes": 4,
-      "inserted_nodes": 4,
-      "inserted_edges": 4,
-      "total_nodes": 814,
-      "total_edges": 3588,
-      "integrity_check": "ok",
       "fk_violations": 0,
-      "sha256": "a0ca54dd30497ac82255e05beb5d1a47dfdc40b9174713ce3eb5a42aeed49de8"
+      "inserted_edges": 4,
+      "inserted_nodes": 4,
+      "integrity_check": "ok",
+      "sha256": "a0ca54dd30497ac82255e05beb5d1a47dfdc40b9174713ce3eb5a42aeed49de8",
+      "total_edges": 3588,
+      "total_nodes": 814
+    },
+    "resume_graph_engine/artifacts/apps_rg/fact_inventory/augmented_skills_graph.sqlite": {
+      "enriched_nodes": 4,
+      "fk_violations": 0,
+      "inserted_edges": 4,
+      "inserted_nodes": 4,
+      "integrity_check": "ok",
+      "sha256": "a0ca54dd30497ac82255e05beb5d1a47dfdc40b9174713ce3eb5a42aeed49de8",
+      "total_edges": 3588,
+      "total_nodes": 814
     }
-  }
+  },
+  "status": "COMPLETED",
+  "timestamp": "2026-10-05T13:00:25.592790+00:00",
+  "wave": 2
 }

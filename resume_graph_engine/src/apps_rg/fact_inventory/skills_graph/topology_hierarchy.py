@@ -300,7 +300,7 @@ def populate_stub_descriptions(
             claim = str(cf.get("claim_text") or "").strip()
             company = str(cf.get("company") or "").strip()
             node["description"] = f"[{company}] {claim}" if company else claim
-            node["label"] = str(cf.get("claim_text") or nid)[:80]
+            node["label"] = str(cf["label"]).strip() if cf.get("label") else str(cf.get("claim_text") or nid)[:80]
         elif ntype == "concept" and not node.get("description"):
             clean_term = nid.replace("concept_", "").replace("_", " ").title()
             node["description"] = f"Domain architecture concept: {clean_term}"

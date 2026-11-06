@@ -138,6 +138,12 @@ FACT_TO_EMPLOYMENT_MAP: dict[str, str] = {
     "fact_slalom_004": "employment_exp_slalom_001",
     "fact_slalom_005": "employment_exp_slalom_001",
     "fact_slalom_006": "employment_exp_slalom_001",
+    "fact_slalom_007": "employment_exp_slalom_001",
+    "fact_slalom_008": "employment_exp_slalom_001",
+    "fact_slalom_009": "employment_exp_slalom_001",
+    "fact_slalom_010": "employment_exp_slalom_001",
+    "fact_slalom_011": "employment_exp_slalom_001",
+    "fact_slalom_012": "employment_exp_slalom_001",
 }
 
 

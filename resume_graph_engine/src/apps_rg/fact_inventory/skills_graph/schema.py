@@ -93,6 +93,10 @@ P6_SKILLS: frozenset[str] = frozenset(
         "skill_enterprise_workflow_adoption",
         "skill_operating_model_for_agentic_ai",
         "skill_ai_platform_commercialization",
+        "skill_governed_agentic_systems_architecture",
+        "skill_agentic_control_plane_design",
+        "skill_audit_grade_observability",
+        "skill_reusable_agentic_platform_architecture",
     }
 )
 
@@ -113,6 +117,7 @@ EMPLOYMENT_PHASES: dict[str, tuple[int, int]] = {
     "employment_exp_insurtech_001": (3, 3),
     "employment_exp_ibm_001": (3, 4),
     "employment_exp_unify_001": (5, 6),
+    "employment_exp_slalom_001": (6, 6),
 }
 
 __all__ = [

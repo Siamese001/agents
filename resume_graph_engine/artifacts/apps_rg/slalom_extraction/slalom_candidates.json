@@ -297,7 +297,272 @@
         "asrt_claim_claim_slalom_nea_partnership_briefing_2026_07_12_02"
       ],
       "title": "Reusable Solution Accelerator Library & Delivery Time Compression"
+    },
+    {
+      "candidate_id": "slalom_cand_007",
+      "fact_id_proposed": "fact_slalom_007",
+      "category": "Live Acoustic Airgap & Dual-Track Executive Copilot",
+      "title": "Local Metal MLX Whisper Acoustic Airgap & <250ms Dual-Track Live Copilot",
+      "domain_family": "ENGINEERING_PLATFORM",
+      "role_families_supported": [
+        "ENGINEERING_PLATFORM",
+        "AI_SOLUTIONS_ARCHITECTURE",
+        "PRODUCT_TECHNICAL_STRATEGY"
+      ],
+      "capability_tags": [
+        "acoustic_airgap",
+        "mlx_whisper_stt",
+        "dual_track_copilot",
+        "sub_250ms_latency",
+        "voiceprint_attribution",
+        "shadow_graph_firewall"
+      ],
+      "claim_text": "Architected a 100% local acoustic airgap (<200ms zero-drop PCM audio spooler and Apple Silicon Metal MLX Whisper STT with Knowledge-Graph lexical priming and voiceprint speaker attribution) paired with a Dual-Track Live Executive Copilot delivering <250ms Track 1 Flash-Snap responses over speculative 2-hop RAM subgraphs and <1200ms Track 2 streaming gated by Speak Gate and a shadow-graph isolation firewall.",
+      "proof_text": "Engineered a zero-cloud-audio acoustic airgap with <200ms PCM audio spooler startup, local Metal MLX Whisper speech-to-text, Knowledge-Graph lexical priming, and multi-speaker voiceprint disambiguation, driving a Dual-Track Live Executive Copilot (<250ms Flash-Snap over speculative 2-hop RAM graph prefetches and <1200ms deep streaming behind a shadow-graph isolation firewall).",
+      "metric_values": [
+        "<200ms zero-drop PCM audio spooler startup",
+        "<250ms Track 1 Flash-Snap copilot latency",
+        "<1200ms Track 2 streaming copilot latency",
+        "100% local acoustic airgap"
+      ],
+      "confidence": "HIGH",
+      "validation_status": "verified",
+      "anonymization_status": "generalized_utility_enterprise",
+      "provenance": {
+        "assertion_ids": [
+          "die-arch-l1-acoustic-airgap",
+          "die-arch-l6-dual-track-copilot"
+        ],
+        "source_documents": [
+          "ARCHITECTURE.md",
+          "AGENTS.md"
+        ],
+        "source_chunks": [
+          "dual_pipeline/pipeline_a_intake/fast_bootstrap.py",
+          "dual_pipeline/unified_pipeline/live_copilot_core.py"
+        ]
+      }
+    },
+    {
+      "candidate_id": "slalom_cand_008",
+      "fact_id_proposed": "fact_slalom_008",
+      "category": "Decomposed 3-Stage Multimodal Synthesis & 3-Tier Self-Healing Mesh",
+      "title": "3-Stage Multimodal Synthesis Pipeline (V5.8) & 3-Tier Deterministic Self-Healing Mesh",
+      "domain_family": "AI_SOLUTIONS_ARCHITECTURE",
+      "role_families_supported": [
+        "AI_SOLUTIONS_ARCHITECTURE",
+        "ENGINEERING_PLATFORM",
+        "AI_GOVERNANCE_RISK"
+      ],
+      "capability_tags": [
+        "multimodal_synthesis",
+        "self_healing_mesh",
+        "forensic_transcription",
+        "canonical_signal_projection",
+        "pii_sanitization"
+      ],
+      "claim_text": "Engineered a decomposed 3-stage multimodal synthesis pipeline (Stage 01 Forensic Speaker-Attributed Transcript, Stage 02 Executive Recap, and Stage 03 Canonical Signal Projection) fortified by pre-egress credential/PII sanitization and a deterministic 3-tier self-healing mesh (quote pointer healer, graph healer, and reconciliation coverage healer) achieving 0% silent signal loss.",
+      "proof_text": "Built a decomposed 3-stage multimodal synthesis pipeline separating verbatim forensic speaker-attributed transcription, executive synthesis, and canonical knowledge-graph signal projection, backed by pre-egress PII/credential redaction and a 3-tier self-healing mesh (quote pointer, graph link, and reconciliation coverage healers).",
+      "metric_values": [
+        "3-stage decomposed multimodal synthesis pipeline",
+        "3-tier deterministic self-healing mesh",
+        "0% silent signal loss across executive artifacts"
+      ],
+      "confidence": "HIGH",
+      "validation_status": "verified",
+      "anonymization_status": "generalized_utility_enterprise",
+      "provenance": {
+        "assertion_ids": [
+          "die-arch-l2-synthesis-v58",
+          "die-arch-l2-self-healing-mesh"
+        ],
+        "source_documents": [
+          "ARCHITECTURE.md",
+          "AGENTS.md"
+        ],
+        "source_chunks": [
+          "dual_pipeline/pipeline_b_extraction/quote_pointer_healer.py",
+          "dual_pipeline/pipeline_b_extraction/reconciliation_coverage_healer.py"
+        ]
+      }
+    },
+    {
+      "candidate_id": "slalom_cand_009",
+      "fact_id_proposed": "fact_slalom_009",
+      "category": "Bi-Temporal Knowledge Graph & Hybrid BGE-M3 + FTS5 Retrieval",
+      "title": "Bi-Temporal SQLite WAL Knowledge Graph, 1024-d BGE-M3 + FTS5 Hybrid Retrieval & Merkle Cache",
+      "domain_family": "DATA_ANALYTICS_LEADERSHIP",
+      "role_families_supported": [
+        "DATA_ANALYTICS_LEADERSHIP",
+        "ENGINEERING_PLATFORM",
+        "AI_SOLUTIONS_ARCHITECTURE"
+      ],
+      "capability_tags": [
+        "bitemporal_knowledge_graph",
+        "hybrid_graphrag",
+        "bge_m3_embeddings",
+        "fts5_bm25",
+        "merkle_subgraph_cache",
+        "kv_prefix_alignment"
+      ],
+      "claim_text": "Designed a bi-temporal SQLite WAL Knowledge Graph with RFC-8785 JCS canonical digests, coupling a 1024-d BGE-M3 dense vector sidecar and SQLite FTS5 BM25 lexical fusion across 11 release qualification gates with a cryptographic Merkle subgraph cache and KV-prefix prompt alignment for sub-second multi-hop GraphRAG retrieval.",
+      "proof_text": "Architected a bi-temporal SQLite WAL Knowledge Graph with RFC-8785 canonical hashing, fusing 1024-d BGE-M3 vector embeddings and FTS5 BM25 lexical search under 11 release qualification gates, accelerated by a Merkle tree subgraph cache and deterministic KV-prefix prompt alignment.",
+      "metric_values": [
+        "1024-d BGE-M3 dense + FTS5 BM25 hybrid retrieval",
+        "11 release qualification gates (Recall@10, nDCG@10, MRR)",
+        "Cryptographic Merkle subgraph cache + KV-prefix alignment"
+      ],
+      "confidence": "HIGH",
+      "validation_status": "verified",
+      "anonymization_status": "generalized_utility_enterprise",
+      "provenance": {
+        "assertion_ids": [
+          "die-arch-l0-bitemporal-kg",
+          "die-arch-l3-hybrid-bge-fts5"
+        ],
+        "source_documents": [
+          "ARCHITECTURE.md",
+          "AGENTS.md"
+        ],
+        "source_chunks": [
+          "dual_pipeline/pipeline_c_retrieval/merkle_cache.py",
+          "dual_pipeline/pipeline_c_retrieval/prompt_prefix_aligner.py"
+        ]
+      }
+    },
+    {
+      "candidate_id": "slalom_cand_010",
+      "fact_id_proposed": "fact_slalom_010",
+      "category": "Strategic Decision Intelligence Engine & Bayesian HITL Governance",
+      "title": "18-Role 6-Modality W1-W7 Decision Engine, Dialectical Judge & Bayesian Conjugate-Prior HITL",
+      "domain_family": "AI_GOVERNANCE_RISK",
+      "role_families_supported": [
+        "AI_GOVERNANCE_RISK",
+        "AI_SOLUTIONS_ARCHITECTURE",
+        "EXECUTIVE_LEADERSHIP",
+        "PRODUCT_TECHNICAL_STRATEGY"
+      ],
+      "capability_tags": [
+        "decision_intelligence_engine",
+        "dialectical_deliberation",
+        "bayesian_hitl_governance",
+        "dirichlet_laplace_priors",
+        "llm_judge_panel"
+      ],
+      "claim_text": "Built a 7-wave (W1-W7) Strategic Decision Intelligence Engine orchestrating 18 specialized reasoning roles across 6 cognitive modalities, paired with a Dialectical Judge and Bayesian Dirichlet-Laplace conjugate-prior Human-in-the-Loop (HITL) ambiguity gate enforcing a 20% calibrated confidence margin and 65% floor.",
+      "proof_text": "Engineered a 7-wave Strategic Decision Intelligence Engine coordinating 18 specialized reasoning roles across 6 cognitive modalities with dialectical thesis-antithesis-synthesis adjudication and Bayesian Dirichlet-Laplace conjugate-prior HITL ambiguity gating (20% margin trigger, 65% confidence floor).",
+      "metric_values": [
+        "18 specialized reasoning roles across 6 cognitive modalities",
+        "7-wave (W1-W7) dialectical decision deliberation",
+        "20% calibrated Bayesian HITL ambiguity margin & 65% floor"
+      ],
+      "confidence": "HIGH",
+      "validation_status": "verified",
+      "anonymization_status": "generalized_utility_enterprise",
+      "provenance": {
+        "assertion_ids": [
+          "die-arch-l4-decision-engine",
+          "die-arch-l4-bayesian-hitl"
+        ],
+        "source_documents": [
+          "ARCHITECTURE.md",
+          "AGENTS.md"
+        ],
+        "source_chunks": [
+          "dual_pipeline/evals/decision_intelligence_core.py",
+          "dual_pipeline/evals/hitl_ambiguity_gate.py"
+        ]
+      }
+    },
+    {
+      "candidate_id": "slalom_cand_011",
+      "fact_id_proposed": "fact_slalom_011",
+      "category": "Universal Write Gateway & 5-Check Physical Disk Proof",
+      "title": "Zero-Raw-SQL Universal Write Gateway (UWG), 5-Check Disk Proof & Generational Atomic Swap",
+      "domain_family": "ENGINEERING_PLATFORM",
+      "role_families_supported": [
+        "ENGINEERING_PLATFORM",
+        "AI_GOVERNANCE_RISK",
+        "DATA_ANALYTICS_LEADERSHIP"
+      ],
+      "capability_tags": [
+        "universal_write_gateway",
+        "physical_disk_proof",
+        "generational_atomic_swap",
+        "zero_trust_persistence",
+        "sqlite_wal_concurrency"
+      ],
+      "claim_text": "Architected a zero-raw-SQL Universal Write Gateway (UWG) enforcing 5-check physical disk proofs (SHA-256 file delta, raw disk page byte scan, PRAGMA integrity_check, isolated read-only connection readback, and per-table row deltas) before generational active-pair atomic promotion with automated rollback.",
+      "proof_text": "Implemented a Universal Write Gateway eliminating raw SQL graph mutations outside the custodian core and enforcing a 5-check physical disk proof gate (byte-size/SHA-256 delta, raw disk page scan, PRAGMA integrity_check, isolated read-only readback, and row-count delta) prior to generational active-pair atomic swap.",
+      "metric_values": [
+        "5-check physical disk proof before graph promotion",
+        "100% write custody via Universal Write Gateway (0 raw SQL writes)",
+        "Generational active-pair atomic swap with instant rollback"
+      ],
+      "confidence": "HIGH",
+      "validation_status": "verified",
+      "anonymization_status": "generalized_utility_enterprise",
+      "provenance": {
+        "assertion_ids": [
+          "die-arch-l5-uwg-custody",
+          "die-arch-l5-physical-disk-proof"
+        ],
+        "source_documents": [
+          "ARCHITECTURE.md",
+          "AGENTS.md"
+        ],
+        "source_chunks": [
+          "dual_pipeline/unified_pipeline/graph_writer_core.py",
+          "dual_pipeline/storage/active_pair.py"
+        ]
+      }
+    },
+    {
+      "candidate_id": "slalom_cand_012",
+      "fact_id_proposed": "fact_slalom_012",
+      "category": "7-Layer 119-Package Agentic Platform, 18-Agent SDLC & 8-Surface System Learning",
+      "title": "7-Layer 119-Package Architecture, 6-Stage 18-Agent Governance Pipeline, 6 MCP Servers & 8-Surface Learning",
+      "domain_family": "ENGINEERING_PLATFORM",
+      "role_families_supported": [
+        "ENGINEERING_PLATFORM",
+        "AI_SOLUTIONS_ARCHITECTURE",
+        "EXECUTIVE_LEADERSHIP",
+        "CONSULTING_DELIVERY_LEADERSHIP"
+      ],
+      "capability_tags": [
+        "seven_layer_dag_architecture",
+        "autonomous_agent_mesh",
+        "custom_mcp_servers",
+        "closed_loop_system_learning",
+        "fail_closed_readiness_gates"
+      ],
+      "claim_text": "Engineered a 7-layer (L0-L6), 119-package agentic platform governed by 32 fail-closed main readiness gates, an 18-agent 6-stage autonomous engineering pipeline with worktree-isolated FIFO merge locks, 6 custom Model Context Protocol (MCP) servers, and 8 closed-loop System Learning surfaces.",
+      "proof_text": "Architected a 7-layer (L0-L6), 119-package agentic engineering platform enforcing AST unidirectional imports, <=400-line file budgets, 32 fail-closed readiness gates, an 18-agent 6-stage autonomous SDLC with FIFO merge locks, 6 custom MCP servers, and 8 closed-loop System Learning calibration surfaces.",
+      "metric_values": [
+        "7-layer (L0-L6) architecture across 119 modular subpackages",
+        "18 autonomous engineering agents across 6 pipeline stages",
+        "32 fail-closed main readiness gates & 6 custom MCP servers",
+        "8 closed-loop System Learning calibration surfaces"
+      ],
+      "confidence": "HIGH",
+      "validation_status": "verified",
+      "anonymization_status": "generalized_utility_enterprise",
+      "provenance": {
+        "assertion_ids": [
+          "die-arch-l6-autonomous-sdlc",
+          "die-arch-l6-system-learning"
+        ],
+        "source_documents": [
+          "ARCHITECTURE.md",
+          "AGENTS.md"
+        ],
+        "source_chunks": [
+          "dual_pipeline/unified_pipeline/system_learning_core.py",
+          "tools/verify_main_readiness.py"
+        ]
+      }
     }
   ],
-  "total_candidates": 8
+  "total_candidates": 8,
+  "candidate_count": 14
 }

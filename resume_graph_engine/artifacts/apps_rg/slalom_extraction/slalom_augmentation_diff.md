@@ -2,8 +2,9 @@
 
 ## Overview
 - **Schema Target**: `master_skills_arsenal_graph_v1`
-- **Total Staged Nodes**: 8 (4 Enriched Existing Facts, 2 New Facts, 2 New Metric Outcomes)
-- **Total Staged Edges**: 4 (Typed relationship edges with sidecar assertion semantics)
+- **Total Staged Nodes**: 14 (4 Enriched Existing Facts, 8 New Facts `fact_slalom_005`..`012`, 2 Staged Metric Outcomes + 26 Total Slalom Metric Outcomes in `slalom_role_episode_bundles.json`)
+- **Total Slalom Role-Episode Bundles**: 10 (`reb_slalom_*`)
+- **Total Slalom-Backed Skills**: 69 skills across 166 `skill_supported_by_fact` edges and 690 J3 journey paths
 - **Client Anonymization**: Verified 100% PASS (Zero proprietary client names or program identifiers)
 - **Dry-Run Validation**: Passed `PRAGMA integrity_check` and `PRAGMA foreign_key_check` on copy
 
