@@ -173,6 +173,90 @@
       "source_authority": "die_graph_import",
       "staged_status": "NEW_INSERTION",
       "support_level": "approved_by_graph_presence"
+    },
+    {
+      "activation_status": "ACTIVE_CONFIRMED",
+      "career_epoch": "epoch_ai_platform_commercialization",
+      "confidence": "HIGH",
+      "description": "Architected a 100% local acoustic airgap (<200ms zero-drop PCM audio spooler and Apple Silicon Metal MLX Whisper STT with Knowledge-Graph lexical priming and voiceprint speaker attribution) paired with a Dual-Track Live Executive Copilot delivering <250ms Track 1 Flash-Snap responses over speculative 2-hop RAM subgraphs and <1200ms Track 2 streaming gated by Speak Gate and a shadow-graph isolation firewall.",
+      "external_eligible": 1,
+      "label": "Local Metal MLX Whisper Acoustic Airgap & <250ms Dual-Track Live Copilot",
+      "node_id": "fact_slalom_007",
+      "node_type": "fact",
+      "phase_ordinal": 6,
+      "source_authority": "die_graph_import",
+      "staged_status": "NEW_INSERTION",
+      "support_level": "EVIDENCE_BOUND"
+    },
+    {
+      "activation_status": "ACTIVE_CONFIRMED",
+      "career_epoch": "epoch_ai_platform_commercialization",
+      "confidence": "HIGH",
+      "description": "Engineered a decomposed 3-stage multimodal synthesis pipeline (Stage 01 Forensic Speaker-Attributed Transcript, Stage 02 Executive Recap, and Stage 03 Canonical Signal Projection) fortified by pre-egress credential/PII sanitization and a deterministic 3-tier self-healing mesh (quote pointer healer, graph healer, and reconciliation coverage healer) achieving 0% silent signal loss.",
+      "external_eligible": 1,
+      "label": "3-Stage Multimodal Synthesis Pipeline & 3-Tier Deterministic Self-Healing Mesh",
+      "node_id": "fact_slalom_008",
+      "node_type": "fact",
+      "phase_ordinal": 6,
+      "source_authority": "die_graph_import",
+      "staged_status": "NEW_INSERTION",
+      "support_level": "EVIDENCE_BOUND"
+    },
+    {
+      "activation_status": "ACTIVE_CONFIRMED",
+      "career_epoch": "epoch_ai_platform_commercialization",
+      "confidence": "HIGH",
+      "description": "Designed a bi-temporal SQLite WAL Knowledge Graph with RFC-8785 JCS canonical digests, coupling a 1024-d BGE-M3 dense vector sidecar and SQLite FTS5 BM25 lexical fusion across 11 release qualification gates with a cryptographic Merkle subgraph cache and KV-prefix prompt alignment for sub-second multi-hop GraphRAG retrieval.",
+      "external_eligible": 1,
+      "label": "Bi-Temporal SQLite WAL Knowledge Graph, 1024-d BGE-M3 + FTS5 Hybrid Retrieval & Merkle Cache",
+      "node_id": "fact_slalom_009",
+      "node_type": "fact",
+      "phase_ordinal": 6,
+      "source_authority": "die_graph_import",
+      "staged_status": "NEW_INSERTION",
+      "support_level": "EVIDENCE_BOUND"
+    },
+    {
+      "activation_status": "ACTIVE_CONFIRMED",
+      "career_epoch": "epoch_ai_platform_commercialization",
+      "confidence": "HIGH",
+      "description": "Built a 7-wave (W1-W7) Strategic Decision Intelligence Engine orchestrating 18 specialized reasoning roles across 6 cognitive modalities, paired with a Dialectical Judge and Bayesian Dirichlet-Laplace conjugate-prior Human-in-the-Loop (HITL) ambiguity gate enforcing a 20% calibrated confidence margin and 65% floor.",
+      "external_eligible": 1,
+      "label": "18-Role 6-Modality W1-W7 Decision Engine, Dialectical Judge & Bayesian Conjugate-Prior HITL",
+      "node_id": "fact_slalom_010",
+      "node_type": "fact",
+      "phase_ordinal": 6,
+      "source_authority": "die_graph_import",
+      "staged_status": "NEW_INSERTION",
+      "support_level": "EVIDENCE_BOUND"
+    },
+    {
+      "activation_status": "ACTIVE_CONFIRMED",
+      "career_epoch": "epoch_ai_platform_commercialization",
+      "confidence": "HIGH",
+      "description": "Architected a zero-raw-SQL Universal Write Gateway (UWG) enforcing 5-check physical disk proofs (SHA-256 file delta, raw disk page byte scan, PRAGMA integrity_check, isolated read-only connection readback, and per-table row deltas) before generational active-pair atomic promotion with automated rollback.",
+      "external_eligible": 1,
+      "label": "Zero-Raw-SQL Universal Write Gateway (UWG), 5-Check Disk Proof & Generational Atomic Swap",
+      "node_id": "fact_slalom_011",
+      "node_type": "fact",
+      "phase_ordinal": 6,
+      "source_authority": "die_graph_import",
+      "staged_status": "NEW_INSERTION",
+      "support_level": "EVIDENCE_BOUND"
+    },
+    {
+      "activation_status": "ACTIVE_CONFIRMED",
+      "career_epoch": "epoch_ai_platform_commercialization",
+      "confidence": "HIGH",
+      "description": "Engineered a 7-layer (L0-L6), 119-package agentic platform governed by 32 fail-closed main readiness gates, an 18-agent 6-stage autonomous engineering pipeline with worktree-isolated FIFO merge locks, 6 custom Model Context Protocol (MCP) servers, and 8 closed-loop System Learning surfaces.",
+      "external_eligible": 1,
+      "label": "7-Layer 119-Package Architecture, 6-Stage 18-Agent Governance Pipeline, 6 MCP Servers & 8-Surface Learning",
+      "node_id": "fact_slalom_012",
+      "node_type": "fact",
+      "phase_ordinal": 6,
+      "source_authority": "die_graph_import",
+      "staged_status": "NEW_INSERTION",
+      "support_level": "EVIDENCE_BOUND"
     }
   ],
   "schema_target": "master_skills_arsenal_graph_v1",
@@ -183,8 +267,8 @@
   },
   "summary": {
     "enriched_existing_nodes": 4,
-    "new_staged_nodes": 4,
+    "new_staged_nodes": 10,
     "total_staged_edges": 4,
-    "total_staged_nodes": 8
+    "total_staged_nodes": 14
   }
 }

@@ -52,11 +52,28 @@ def test_adversarial_client_name_leak_detection() -> None:
 
 @pytest.mark.unit
 def test_adversarial_clean_proposal_has_zero_leaks() -> None:
-    """Verify that current staged proposal contains zero client name leaks."""
+    """Verify that current staged proposal, Slalom bundles, and live SQLite Slalom nodes contain zero client name leaks."""
     content = PROPOSAL_PATH.read_text(encoding="utf-8")
     for pat in FORBIDDEN_CLIENT_PATTERNS:
         match = re.search(pat, content, re.IGNORECASE)
         assert match is None, f"Found forbidden pattern '{pat}' in proposal: {match.group(0) if match else ''}"
+
+    bundles_path = REPO_ROOT / "resume_graph_engine/src/apps_rg/fact_inventory/slalom_role_episode_bundles.json"
+    bundles_text = bundles_path.read_text(encoding="utf-8")
+    for pat in FORBIDDEN_CLIENT_PATTERNS:
+        match = re.search(pat, bundles_text, re.IGNORECASE)
+        assert match is None, f"Found forbidden pattern '{pat}' in slalom_role_episode_bundles.json: {match.group(0) if match else ''}"
+
+    conn = sqlite3.connect(LIVE_DB_PATH)
+    rows = conn.execute(
+        "SELECT node_id, label, description FROM graph_nodes WHERE node_id LIKE '%slalom%'"
+    ).fetchall()
+    conn.close()
+    assert len(rows) >= 48
+    for nid, label, desc in rows:
+        combined = f"{nid} {label} {desc}"
+        for pat in FORBIDDEN_CLIENT_PATTERNS:
+            assert re.search(pat, combined, re.IGNORECASE) is None, f"Forbidden leak in SQLite node {nid}"
 
 
 @pytest.mark.unit

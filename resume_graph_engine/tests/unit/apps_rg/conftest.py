@@ -46,13 +46,21 @@ def _repository_artifact_isolation(
 ) -> None:
     """Keep graph refreshes and R1B caches out of repository-owned artifacts."""
     session_root = tmp_path_factory.mktemp("apps_rg_repository_artifacts")
-    source_graph = (
+    rg_graph = (
+        Path(__file__).resolve().parents[3]
+        / "artifacts"
+        / "apps_rg"
+        / "fact_inventory"
+        / "augmented_skills_graph.sqlite"
+    )
+    root_graph = (
         Path(_REPO_ROOT)
         / "artifacts"
         / "apps_rg"
         / "fact_inventory"
         / "augmented_skills_graph.sqlite"
     )
+    source_graph = rg_graph if rg_graph.is_file() else root_graph
     isolated_graph = session_root / "augmented_skills_graph.sqlite"
     if source_graph.is_file():
         shutil.copy2(source_graph, isolated_graph)

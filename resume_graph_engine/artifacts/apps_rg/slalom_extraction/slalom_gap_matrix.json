@@ -88,5 +88,7 @@
     "generation_id": "generation-graph-consolidation-d488dbeff02817be07106935301f",
     "total_assertions": 806,
     "total_sources": 53
-  }
+  },
+  "post_augmentation_slalom_fact_count": 12,
+  "decision_intelligence_engine_pillars_covered": 6
 }

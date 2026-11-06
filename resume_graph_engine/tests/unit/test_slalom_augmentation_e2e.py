@@ -35,7 +35,7 @@ def test_slalom_proposal_schema_and_dryrun_integrity(tmp_path: Path) -> None:
     nodes = proposal.get("nodes", [])
     edges = proposal.get("edges", [])
 
-    assert len(nodes) == 8, f"Expected 8 staged nodes, got {len(nodes)}"
+    assert len(nodes) == 14, f"Expected 14 staged nodes, got {len(nodes)}"
     assert len(edges) == 4, f"Expected 4 staged edges, got {len(edges)}"
 
     # Determine baseline database for dry-run
@@ -43,13 +43,13 @@ def test_slalom_proposal_schema_and_dryrun_integrity(tmp_path: Path) -> None:
 
     conn_check = sqlite3.connect(LIVE_DB_PATH)
     cur_check = conn_check.cursor()
-    cur_check.execute("SELECT COUNT(*) FROM graph_nodes WHERE node_id = 'fact_slalom_005';")
+    cur_check.execute("SELECT COUNT(*) FROM graph_nodes WHERE node_id = 'fact_slalom_012';")
     already_promoted = (cur_check.fetchone()[0] == 1)
     conn_check.close()
 
-    # If backups exist or DB is unpromoted, run dry-run application
-    source_db_for_dryrun = backup_candidates[0] if (already_promoted and backup_candidates) else LIVE_DB_PATH
-    if not already_promoted or backup_candidates:
+    # If pre-promotion backups exist, run legacy dry-run application
+    source_db_for_dryrun = backup_candidates[0] if backup_candidates else LIVE_DB_PATH
+    if backup_candidates:
         tmp_db = tmp_path / "test_augmented_graph.sqlite"
         tmp_db.write_bytes(source_db_for_dryrun.read_bytes())
 
@@ -114,4 +114,25 @@ def test_slalom_proposal_schema_and_dryrun_integrity(tmp_path: Path) -> None:
         for e in edges:
             cur_live.execute("SELECT edge_id FROM graph_edges WHERE edge_id = ?", (e["edge_id"],))
             assert cur_live.fetchone() is not None, f"Edge {e['edge_id']} not found in live database"
+
+        # Verify Decision Intelligence Engine Slalom graph topology (12 facts, 10 engagements, 26 metrics, >=40 skills)
+        slalom_facts = cur_live.execute(
+            "SELECT COUNT(*) FROM graph_nodes WHERE node_id LIKE 'fact_slalom_%'"
+        ).fetchone()[0]
+        assert slalom_facts == 12, f"Expected 12 fact_slalom_* nodes, got {slalom_facts}"
+
+        slalom_engagements = cur_live.execute(
+            "SELECT COUNT(*) FROM graph_nodes WHERE node_id LIKE 'reb_slalom_%'"
+        ).fetchone()[0]
+        assert slalom_engagements == 10, f"Expected 10 reb_slalom_* nodes, got {slalom_engagements}"
+
+        slalom_metrics = cur_live.execute(
+            "SELECT COUNT(*) FROM graph_nodes WHERE node_id LIKE 'metric_slalom_%'"
+        ).fetchone()[0]
+        assert slalom_metrics == 26, f"Expected 26 metric_slalom_* nodes, got {slalom_metrics}"
+
+        slalom_skills = cur_live.execute(
+            "SELECT COUNT(DISTINCT source_node_id) FROM graph_edges WHERE edge_type = 'skill_supported_by_fact' AND target_node_id LIKE 'fact_slalom_%'"
+        ).fetchone()[0]
+        assert slalom_skills >= 40, f"Expected >=40 Slalom-backed skills, got {slalom_skills}"
     conn_live.close()
