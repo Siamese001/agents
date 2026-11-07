@@ -26,3 +26,8 @@ Consolidates `agents-outreach-resume-functionality`, `agents-research-retrieval-
 
 2. **Interactive Remediation Quota (`INV-REMEDIATION-QUOTA-FLOOR`)**:
    When `B_total > 0`, provision an isolated worktree via `.venv/bin/python tools/pr_governance.py start`, remediate at least `Q_min = min(B_total, max(3, ceil(0.02 * B_domain)))` production defects, and include the 7-column Before/After Defect Accounting Table.
+
+3. **Executive Summary 6-Sentence Synthesis Calibration (`executive_summary_synthesis_calibration`)**:
+   Interactive IDE (`ide_argon4_routing_policy`) and C-suite generation must strictly match the external 8-slot prompt assembly (`compile_executive_summary_prompt` + `executive_summary.generate_scratch_v1.yaml`):
+   - **Thesis-First 6-Sentence Arc (`110–148` words, hard cap `150`)**: `S1` present-tense leadership thesis (`<=1` mechanism) -> `S2` governed platform architecture (`<=2` mechanisms) -> `S3–S4` connective bridges (`<=2` stock openers) weaving verified scale/governance metrics -> `S5` woven `FSA-chartered` quantitative rigor -> `S6` forward-modal capstone.
+   - **Zero Backward-Looking Title Stacking or Mail-Merge**: Never emit `"former CTO"`, `"former SVP"`, `"Big-4 Principal"`, `"past principal"`, `"past CTO"`, or target-company mail-merge in the summary paragraph; verify all 7 `executive_summary_x2` gates before output.

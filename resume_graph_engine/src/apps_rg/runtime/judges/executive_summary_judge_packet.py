@@ -62,7 +62,7 @@ SRFS_GRADE_ONLY_RUBRIC = f"""
 Rubric dimensions (SRFS executive summary — product shape **exactly 6 sentences**, one paragraph, max {EXEC_SUMMARY_MAX_WORDS} words):
 1. factual_support: claims supported by allowed_fact_packet and candidate claim_ledger source_fact_ids.
 2. executive_signal: SVP-level platform/governance/partner-motion synthesis, not bullet stacks.
-3. resume_voice: credible third-person executive prose; penalize recruiter filler, "this individual", "Additionally/Furthermore" chains, generic AI-company prose, and anything that would fail a Head of Talent Acquisition screen.
+3. resume_voice: credible third-person executive prose; penalize recruiter filler, backward-looking past-title stacks ("former CTO", "former SVP", "Big-4 Principal", "past principal", "past CTO"), "this individual", "Additionally/Furthermore" chains, generic AI-company prose, and anything that would fail a Head of Talent Acquisition screen.
 4. ats_alignment_without_keyword_stuffing: JD shapes strategic emphasis; no JD-as-proof. Evaluate whether the summary narrative
    connects verified graph facts to target JD priorities (applied AI partnerships, agentic platform architecture, or consulting/PE transformation).
    Penalize off-domain banking or insurance clutter (`BCBS 239`, `monolithic policy administration`, `ERM operating models`) on non-financial JDs with `decisive_failure: true` and `score <= 3.4`.
@@ -124,7 +124,7 @@ Rubric dimensions (graph-only C0.3 augmented skills graph authority, non-SRFS la
    Cite a `factual_support` failure only when prose deviates from the full authorized union (claim +
    override + graph skill refs).**
 2. executive_signal: SVP-level platform/governance/partner-motion synthesis, not bullet stacks.
-3. resume_voice: credible executive prose; no recruiter filler, meta narration, or generic AI-company prose, and nothing that would fail a Head of Talent Acquisition screen.
+3. resume_voice: credible executive prose; no recruiter filler, backward-looking past-title stacks ("former CTO", "former SVP", "Big-4 Principal", "past principal", "past CTO"), meta narration, or generic AI-company prose, and nothing that would fail a Head of Talent Acquisition screen.
 4. ats_alignment_without_keyword_stuffing: JD shapes strategic emphasis; no JD-as-proof. Evaluate whether the summary narrative
    connects verified graph facts to target JD priorities (applied AI partnerships, agentic platform architecture, or consulting/PE transformation).
    Penalize off-domain banking or insurance clutter (`BCBS 239`, `monolithic policy administration`, `ERM operating models`) on non-financial JDs with `decisive_failure: true` and `score <= 3.4`.

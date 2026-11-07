@@ -242,4 +242,58 @@ def test_wave5_csuite_five_section_e2e_across_three_jds(
     validation = validate_csuite_five_section_text(rendered_txt)
     assert validation["status"] == "PASS"
     assert validation["failed_checks"] == []
+    assert validation["checks"]["six_sentence_calibrated_thesis"] is True
     assert not re.search(r"\b(?:2002|2010|2023|2024|2025)\b", rendered_txt.split(f"5. {DATELESS_CREDENTIALS_FOOTER_HEADING}")[-1])
+
+
+def test_wave6_exec_summary_synthesis_calibration_and_anti_past_title_gate() -> None:
+    """Verify IDE/C-suite executive summary synthesis matches the 6-sentence calibration contract and rejects past-title lists."""
+    import yaml
+    from apps_rg.runtime.validators.executive_summary_x2 import (
+        check_exec_summary_meta_filler_patterns,
+        check_exec_summary_no_credential_dump,
+        check_exec_summary_no_mechanism_inventory,
+        check_exec_summary_paragraph_max_words,
+        check_exec_summary_sentence_count_6,
+        check_exec_summary_stock_bridge_count,
+        check_synthesis_quality,
+    )
+
+    base = _load_base_resume()
+    rendered = flatten_csuite_five_section_resume_to_text(
+        base,
+        target_company="Citi",
+        target_role="Head of AI Strategy - Firmwide AI",
+    )
+    sec1_start = rendered.index(f"1. {EXECUTIVE_INVESTMENT_THESIS_HEADING}")
+    sec2_start = rendered.index(f"2. {EXECUTIVE_AGENTIC_CAPABILITIES_HEADING}")
+    sec1_lines = [
+        ln.strip()
+        for ln in rendered[sec1_start:sec2_start].splitlines()[1:]
+        if ln.strip() and not ln.strip().startswith(("[", "|", "-", "+"))
+    ]
+    thesis = " ".join(sec1_lines)
+    for fn in (
+        check_exec_summary_sentence_count_6,
+        check_exec_summary_paragraph_max_words,
+        check_exec_summary_meta_filler_patterns,
+        check_exec_summary_no_credential_dump,
+        check_exec_summary_no_mechanism_inventory,
+        check_exec_summary_stock_bridge_count,
+        check_synthesis_quality,
+    ):
+        ok, reason = fn(thesis)
+        assert ok is True, f"{fn.__name__} failed: {reason}"
+
+    for bad_phrase in ("former CTO", "Big-4 Principal", "past principal", "past CTO"):
+        ok_bad, _ = check_exec_summary_meta_filler_patterns(f"Enterprise executive and {bad_phrase} scaling AI.")
+        assert ok_bad is False
+
+    root_prof = yaml.safe_load((REPO_ROOT / "config" / "provider_profiles.yaml").read_text(encoding="utf-8"))
+    rg_prof = yaml.safe_load((RG_SRC_ROOT / "apps_rg" / "config" / "provider_profiles.yaml").read_text(encoding="utf-8"))
+    cal_root = root_prof["ide_argon4_routing_policy"]["executive_summary_synthesis_calibration"]
+    cal_rg = rg_prof["ide_argon4_routing_policy"]["executive_summary_synthesis_calibration"]
+    assert cal_root == cal_rg
+    assert cal_root["sentence_count_exact"] == 6
+    assert cal_root["thesis_first_generation"] is True
+    assert cal_root["forbid_past_title_stacking"] is True
