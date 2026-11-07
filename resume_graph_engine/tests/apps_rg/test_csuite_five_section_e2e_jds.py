@@ -297,3 +297,20 @@ def test_wave6_exec_summary_synthesis_calibration_and_anti_past_title_gate() -> 
     assert cal_root["sentence_count_exact"] == 6
     assert cal_root["thesis_first_generation"] is True
     assert cal_root["forbid_past_title_stacking"] is True
+
+    bb_rendered = flatten_csuite_five_section_resume_to_text(
+        base,
+        target_company="Brown & Brown",
+        target_role="SVP IT Strategy & Innovation",
+    )
+    assert "github.com/Siamese001/agents" in bb_rendered.splitlines()[1]
+    assert "Boca Raton, FL" not in bb_rendered.splitlines()[1]
+    assert "Insurance Domain, Actuarial Risk & Carrier Operations" in bb_rendered
+    assert "Solvency II and AG43" in bb_rendered
+
+    aig_rendered = flatten_csuite_five_section_resume_to_text(
+        base,
+        target_company="AIG",
+        target_role="VP Global Head Agentic AI",
+    )
+    assert "Insurance Underwriting, Claims & Actuarial Risk (FSA)" in aig_rendered

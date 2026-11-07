@@ -136,8 +136,69 @@ def render_competencies(snapshot: dict[str, Any]) -> str:
     )
 
 
-def csuite_capability_display_rows(base_or_snapshot: dict[str, Any]) -> list[tuple[str, str]]:
-    """Return the 6 flagship-absorbed C-suite capability categories for Section 2."""
+def csuite_capability_display_rows(
+    base_or_snapshot: dict[str, Any],
+    *,
+    target_company: str = "",
+    target_role: str = "",
+) -> list[tuple[str, str]]:
+    """Return the 6 flagship-absorbed C-suite capability categories for Section 2, with JD-aware graph bundle routing."""
+    co_low = str(target_company or "").strip().lower()
+    role_low = str(target_role or "").strip().lower()
+    if "brown" in co_low or ("strategy" in role_low and "innovation" in role_low):
+        return [
+            (
+                "Enterprise Architecture & IT Strategy Modernization",
+                "Multi-year IT strategy, M&A brokerage and carrier platform integration, software dependency-graph legacy modernization, and 106-engineer organization leadership across regulated enterprises.",
+            ),
+            (
+                "Insurance Domain, Actuarial Risk & Carrier Operations",
+                "FSA-chartered actuarial foundation, Solvency II and AG43 statutory reserving, P&C and life underwriting/claims core modernization, and enterprise risk management (ERM) across InsurTech CTO and EY insurance advisory.",
+            ),
+            (
+                "Applied AI & Decision Intelligence Governance",
+                "Governed multi-agent workflows, Bayesian 20%-margin human-in-the-loop risk controls, and X1-to-X3 release verification for insurance brokerage, underwriting, and enterprise operations.",
+            ),
+            (
+                "Enterprise Knowledge Graph & Data Governance",
+                "Bi-temporal knowledge graphs, 1024-d BGE-M3 hybrid retrieval across 11 release gates, end-to-end regulatory lineage, and Universal Write Gateway 5-check write custody.",
+            ),
+            (
+                "Cloud Modernization, FinOps & Commercial P&L",
+                "IP-led AI solution accelerators ($22M revenue, +20% gross margin expansion), cloud-native AWS/Azure/Databricks lakehouse migration (40% infrastructure cost reduction), and 6-month-to-3-week delivery compression.",
+            ),
+            (
+                "Hyperscaler, GSI & InsurTech Partner Ecosystems",
+                "AWS, Azure, and Databricks co-sell alliances ($15M incremental revenue), executive client advisory ($30M transformation portfolios), and board-level capital allocation.",
+            ),
+        ]
+    if "aig" in co_low or ("agentic" in role_low and "global head" in role_low):
+        return [
+            (
+                "Governed Agentic AI & Decision Intelligence",
+                "18-role / 6-modality dialectical reasoning engines (W1 to W7 waves), A2A coordination, <250ms Dual-Track Live Executive Copilot, and 18-agent / 32-gate autonomous delivery.",
+            ),
+            (
+                "Insurance Underwriting, Claims & Actuarial Risk (FSA)",
+                "FSA-chartered actuarial foundation, Solvency II and AG43 capital modeling, P&C/life underwriting and claims workflow automation, and regulated-insurer ERM controls across InsurTech CTO and EY insurance advisory.",
+            ),
+            (
+                "Model Risk & Fail-Closed Runtime Governance",
+                "Bayesian 20%-margin / 65%-floor human-in-the-loop ambiguity gating, X1-to-X3 exit verification, orthogonal LLM judge panels, and 0% silent signal loss across regulated insurer workflows.",
+            ),
+            (
+                "Bi-Temporal Knowledge Graph & Hybrid Grounding",
+                "1024-d BGE-M3 dense + lexical fusion across 11 release qualification gates, Merkle subgraph prefix alignment, and <250ms 2-hop RAM graph retrieval.",
+            ),
+            (
+                "Distributed Systems & Single-Door Write Custody",
+                "Universal Write Gateway with 5-check physical disk proofs, generational atomic swaps, and cloud-native microservices across AWS, Azure, and Databricks lakehouses.",
+            ),
+            (
+                "Platform Commercialization & Hyperscaler Co-Sell ($82M+ P&L)",
+                "IP-led AI solution accelerators ($22M revenue, +20% gross margin), $15M AWS/Azure/Databricks alliances, and 106-engineer organization leadership.",
+            ),
+        ]
     facts = base_or_snapshot.get("facts") if isinstance(base_or_snapshot.get("facts"), dict) else base_or_snapshot
     raw_csuite = facts.get("csuite_capability_categories") if isinstance(facts, dict) else None
     if isinstance(raw_csuite, list) and raw_csuite:

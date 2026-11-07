@@ -477,10 +477,10 @@ def flatten_csuite_five_section_resume_to_text(
     facts = base_resume.get("facts") if isinstance(base_resume.get("facts"), dict) else {}
     name = str(header.get("name") or base_resume.get("candidate_name") or "AMIT AYER").strip().upper()
     contact_bits = [
-        str(header.get("location") or "Boca Raton, FL").strip(),
         str(header.get("phone") or "+1-917-239-3830").strip(),
         str(header.get("email") or "amitayer1@gmail.com").strip(),
         str(header.get("linkedin") or "linkedin.com/in/amitayer1").strip(),
+        str(header.get("github") or "https://github.com/Siamese001/agents").strip(),
     ]
     contact_str = " | ".join(b for b in contact_bits if b)
 
@@ -508,7 +508,7 @@ def flatten_csuite_five_section_resume_to_text(
         )
 
     value_bar = list(facts.get("value_bar") or [])
-    csuite_caps = csuite_capability_display_rows(base_resume)
+    csuite_caps = csuite_capability_display_rows(base_resume, target_company=target_company, target_role=target_role)
     employment = [e for e in (facts.get("employment") or []) if isinstance(e, dict)]
     core_roles = [e for e in employment if not e.get("is_pedigree_capsule") and e.get("experience_tier") != "pedigree_capsule_pre_2017"]
     capsule_roles = [e for e in employment if e.get("is_pedigree_capsule") or e.get("experience_tier") == "pedigree_capsule_pre_2017"]
