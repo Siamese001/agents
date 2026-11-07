@@ -113,6 +113,20 @@
                     "maxLength": 360,
                     "description": "Optional one-sentence role narrative (Unify/IBM; SSOT <=58 words / <=360 chars)"
                   },
+                  "mandate_line": {
+                    "type": "string",
+                    "description": "Optional C-suite Mandate | Scale/Margin | Ecosystem/Role | Tier header line"
+                  },
+                  "experience_tier": {
+                    "type": "string",
+                    "enum": ["core_2017_plus", "pedigree_capsule_pre_2017"]
+                  },
+                  "is_pedigree_capsule": {
+                    "type": "boolean"
+                  },
+                  "earlier_quantitative_foundation": {
+                    "type": "string"
+                  },
                   "bullets": {
                     "type": "array",
                     "maxItems": 6,
@@ -281,6 +295,50 @@
               "date": { "type": "string" },
               "expires": { "type": "string" }
             }
+          }
+        },
+        "value_bar": {
+          "type": "array",
+          "maxItems": 4,
+          "items": {
+            "type": "object",
+            "required": ["header", "items"],
+            "properties": {
+              "column_id": { "type": "string" },
+              "header": { "type": "string" },
+              "items": {
+                "type": "array",
+                "items": { "type": "string" }
+              }
+            }
+          }
+        },
+        "prior_leadership_capsule": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["company", "title", "dates"],
+            "properties": {
+              "company": { "type": "string" },
+              "title": { "type": "string" },
+              "location": { "type": "string" },
+              "dates": { "type": "string" },
+              "mandate_line": { "type": "string" },
+              "bullets": {
+                "type": "array",
+                "items": { "type": "object" }
+              },
+              "earlier_quantitative_foundation": { "type": "string" }
+            }
+          }
+        },
+        "dateless_credentials": {
+          "type": "object",
+          "properties": {
+            "dateless": { "type": "boolean" },
+            "education_line": { "type": "string" },
+            "executive_charter_line": { "type": "string" },
+            "cloud_ai_credentials_line": { "type": "string" }
           }
         }
       }

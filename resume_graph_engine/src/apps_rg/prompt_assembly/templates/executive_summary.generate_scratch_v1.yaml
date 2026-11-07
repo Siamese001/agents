@@ -7,7 +7,7 @@ schema_version: "1.0"
 template_id: executive_summary.generate_scratch_v1
 version: "2.0"
 allowed_stage: L2_EXEC
-description: Executive summary - SVP strategy narrative; facts prove; judges grade synthesis not slot-fill
+description: Executive summary - C-suite / SVP strategy investment thesis; facts prove; judges grade synthesis not slot-fill
 
 pa_core_law_ref: apps_rg/prompt_assembly/pa_core_law_v1.yaml
 forbidden_slot_body_source: strategic_tailor_v1

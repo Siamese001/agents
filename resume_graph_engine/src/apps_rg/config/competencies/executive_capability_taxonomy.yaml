@@ -16,11 +16,13 @@ categories:
     aliases:
       - Agentic AI Platforms
       - Enterprise Architecture
+      - Governed Agentic AI & Decision Intelligence
   - category_id: ai_platform_leadership
     category_label: AI Platform Leadership
     aliases:
       - Agentic AI Platforms
       - AI and Machine Learning
+      - Bi-Temporal Knowledge Graph & Hybrid Grounding
   - category_id: data_analytics_modernization
     category_label: Data & Analytics Modernization
     aliases:
@@ -33,11 +35,13 @@ categories:
       - Governance
       - Quantitative Analysis
       - Enterprise Data and Governance
+      - Model Risk & Fail-Closed Governance
   - category_id: engineering_delivery_leadership
     category_label: Engineering & Delivery Leadership
     aliases:
       - Engineering Leadership
       - Distributed Systems Engineering
+      - Distributed Systems & Single-Door Write Custody
   - category_id: llmops_reliability
     category_label: LLMOps & Reliability
     aliases:
@@ -51,6 +55,7 @@ categories:
       - Revenue Operations
       - Sales Accounts
       - Commercial & Operating Impact
+      - Platform Commercialization & Unit Economics
   - category_id: cloud_partner_ecosystems
     category_label: Cloud & Partner Ecosystems
     aliases:
@@ -58,6 +63,7 @@ categories:
       - Cloud and Distributed Infrastructure
       - Distributed Infrastructure
       - Partnerships & GTM
+      - Regulated Enterprise & Hyperscaler Ecosystems
 
 # Executive capability phrases approved for deterministic backfill (never credentials/fragments).
 backfill_capabilities:

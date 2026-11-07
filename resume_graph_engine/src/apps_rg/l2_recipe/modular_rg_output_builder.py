@@ -32,20 +32,7 @@ from apps_rg.runtime.sections.section_product_shape_export_bounds import (
 _MIN_LOCKED_BULLETS_BY_FACT_ID: Final[Mapping[str, int]] = {"exp_early_career_001": 1}
 OPTIONAL_GENERATED_LANES: Final[frozenset[str]] = frozenset({"ey_bullets", "ey_narrative"})
 
-_MONTHS: Final[tuple[str, ...]] = (
-    "Jan",
-    "Feb",
-    "Mar",
-    "Apr",
-    "May",
-    "Jun",
-    "Jul",
-    "Aug",
-    "Sep",
-    "Oct",
-    "Nov",
-    "Dec",
-)
+_MONTHS: Final[tuple[str, ...]] = ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
 
 
 def _write_json(path: Path, data: Any) -> None:
@@ -539,15 +526,14 @@ def build_rg_output_from_modular_sections(
                 receipt["excluded_locked_roles"] = []
                 return RgOutputBuildResult(None, False, receipt["failure"], False, receipt["failure"], receipt)
 
-        row: dict[str, Any] = {
-            "title": title or "Role",
-            "company": company or "Company",
-            "location": location,
-            "dates": dates,
-            "bullets": bullets,
-        }
+        row: dict[str, Any] = {"title": title or "Role", "company": company or "Company", "location": location, "dates": dates, "bullets": bullets}
         if role_narrative:
             row["role_narrative"] = role_narrative
+        for k in ("mandate_line", "experience_tier", "earlier_quantitative_foundation"):
+            if emp.get(k):
+                row[k] = str(emp[k]).strip()
+        if emp.get("is_pedigree_capsule") is not None:
+            row["is_pedigree_capsule"] = bool(emp["is_pedigree_capsule"])
         experience_out.append(row)
 
     receipt["excluded_locked_roles"] = []
@@ -594,6 +580,9 @@ def build_rg_output_from_modular_sections(
             "skills": skills,
             "education": edu,
             "certifications": _certs_from_base(base_resume),
+            **({"value_bar": list(_facts(base_resume)["value_bar"])} if isinstance(_facts(base_resume).get("value_bar"), list) else {}),
+            **({"prior_leadership_capsule": [r for r in experience_out if r.get("is_pedigree_capsule")]} if any(r.get("is_pedigree_capsule") for r in experience_out) else {}),
+            **({"dateless_credentials": dict(_facts(base_resume)["csuite_credentials_footer"])} if isinstance(_facts(base_resume).get("csuite_credentials_footer"), dict) else {}),
         },
         "citations": [],
         "gaps": [],

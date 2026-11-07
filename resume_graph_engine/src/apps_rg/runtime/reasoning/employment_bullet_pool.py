@@ -83,6 +83,10 @@ FINAL_BULLET_COUNT: Final[dict[str, int]] = {
     "ey_bullets": 0,
 }
 
+CORE_EXPERIENCE_2017_PLUS_EMPLOYERS: Final[tuple[str, ...]] = ("Slalom", "Unify Consulting", "IBM")
+PEDIGREE_CAPSULE_PRE_2017_EMPLOYERS: Final[tuple[str, ...]] = ("InsurTech Cloud Solutions", "Ernst & Young / Early Career Roles")
+CSUITE_EXPERIENCE_SPACE_SPLIT: Final[dict[str, float]] = {"core_2017_plus": 0.85, "pedigree_capsule_pre_2017": 0.15}
+
 PROOF_UNIQUE_SOURCE_FACT_LANES: Final[frozenset[str]] = frozenset(
     {"insurtech_bullets", "ey_bullets"}
 )
@@ -597,6 +601,8 @@ def employment_pool_x1d_judge_rows(
 __all__ = [
     "ADAPTIVE_EMPLOYMENT_BULLET_LANES",
     "COMPETENCIES_SC_PATH_COUNT",
+    "CORE_EXPERIENCE_2017_PLUS_EMPLOYERS",
+    "CSUITE_EXPERIENCE_SPACE_SPLIT",
     "DEFAULT_MIN_SELECTION_SCORE",
     "EMPLOYMENT_BULLET_SELECTOR_PROVIDERS",
     "EMPLOYMENT_BULLET_JUDGE_PROVIDERS",
@@ -605,6 +611,7 @@ __all__ = [
     "EMPLOYMENT_BULLET_WIDE_MAX_SC_PATHS",
     "EmploymentSelectionGate",
     "MAX_SC_PATH_COUNT_BY_LANE",
+    "PEDIGREE_CAPSULE_PRE_2017_EMPLOYERS",
     "competencies_pool_x1d_judge_rows",
     "employment_pool_x1d_judge_rows",
     "FINAL_BULLET_COUNT",

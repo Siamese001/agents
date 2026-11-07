@@ -134,3 +134,27 @@ def render_competencies(snapshot: dict[str, Any]) -> str:
         f"{label}: {', '.join(terms)}"
         for label, terms in competency_display_rows(snapshot)
     )
+
+
+def csuite_capability_display_rows(base_or_snapshot: dict[str, Any]) -> list[tuple[str, str]]:
+    """Return the 6 flagship-absorbed C-suite capability categories for Section 2."""
+    facts = base_or_snapshot.get("facts") if isinstance(base_or_snapshot.get("facts"), dict) else base_or_snapshot
+    raw_csuite = facts.get("csuite_capability_categories") if isinstance(facts, dict) else None
+    if isinstance(raw_csuite, list) and raw_csuite:
+        out: list[tuple[str, str]] = []
+        for item in raw_csuite:
+            if not isinstance(item, dict):
+                continue
+            label = str(item.get("category") or item.get("category_label") or "").strip()
+            summary = str(item.get("summary") or "").strip()
+            if not summary:
+                terms = [_term_text(t) for t in (item.get("terms") or []) if _term_text(t)]
+                summary = ", ".join(terms)
+            if label and summary:
+                out.append((label, summary))
+        if len(out) >= 6:
+            return out[:6]
+    return [
+        (label, ", ".join(terms))
+        for label, terms in competency_display_rows(base_or_snapshot)
+    ][:6]

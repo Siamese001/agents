@@ -12,7 +12,8 @@
     "generic_taxonomy_label_is_display_wrapper_not_proof": true,
     "default_fid_only_support_forbidden": true,
     "config_gate": "ENABLED_WITH_COMPETENCY_BUNDLE_GUARDS",
-    "config_enablement_condition": "competencies graph_expansion_allowed may be enabled only when section generation consumes competency_bundle_id (graph_expansion_mode=competency_bundle_only), not flat taxonomy labels or flat skill lists."
+    "config_enablement_condition": "competencies graph_expansion_allowed may be enabled only when section generation consumes competency_bundle_id (graph_expansion_mode=competency_bundle_only), not flat taxonomy labels or flat skill lists.",
+    "csuite_five_section_flagship_absorbed": true
   },
   "required_capability_families": [
     "agentic_platforms",

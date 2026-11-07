@@ -10,6 +10,7 @@ the renderer cannot invent, omit, or reorder resume claims.
 from __future__ import annotations
 
 import json
+import re
 import zipfile
 from pathlib import Path
 from typing import Any
@@ -18,9 +19,11 @@ from xml.etree import ElementTree
 from apps_rg.runtime.section_display_labels import (
     ALLOWED_COMPETENCIES_HEADINGS,
     CERTIFICATIONS_AND_CREDENTIALS_HEADING,
+    CSUITE_FIVE_SECTION_HEADINGS,
     ENGINEERING_PLATFORM_COMPETENCIES_HEADING,
 )
 from apps_rg.runtime.assembly.full_resume_text import (
+    flatten_csuite_five_section_resume_to_text,
     flatten_final_resume_to_text,
 )
 
@@ -113,6 +116,8 @@ def _document_xml(text: str) -> bytes:
         "HEADLINE",
         "EXECUTIVE SUMMARY",
         *ALLOWED_COMPETENCIES_HEADINGS,
+        *CSUITE_FIVE_SECTION_HEADINGS,
+        *(f"{idx}. {h}" for idx, h in enumerate(CSUITE_FIVE_SECTION_HEADINGS, start=1)),
         "PROFESSIONAL EXPERIENCE",
         "EDUCATION",
         CERTIFICATIONS_AND_CREDENTIALS_HEADING,
@@ -214,4 +219,97 @@ def export(final_resume_path: Path, out_path: Path) -> Path:
     return destination
 
 
-__all__ = ["_is_spine_shaped", "_resolve_final_resume", "export"]
+def export_csuite_five_section_docx(
+    base_resume: dict[str, Any],
+    out_path: Path,
+    *,
+    target_company: str = "",
+    target_role: str = "",
+) -> Path:
+    """Render the 5-section Seven-Figure C-Suite Executive Resume to a DOCX package."""
+    rendered = flatten_csuite_five_section_resume_to_text(
+        base_resume,
+        target_company=target_company,
+        target_role=target_role,
+    )
+    destination = Path(out_path).resolve()
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    temporary = destination.with_suffix(destination.suffix + ".tmp")
+    temporary.unlink(missing_ok=True)
+    try:
+        with zipfile.ZipFile(temporary, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+            archive.writestr("[Content_Types].xml", _CONTENT_TYPES_XML)
+            archive.writestr("_rels/.rels", _PACKAGE_RELS_XML)
+            archive.writestr("word/document.xml", _document_xml(rendered))
+            archive.writestr("word/_rels/document.xml.rels", _DOCUMENT_RELS_XML)
+            archive.writestr("word/styles.xml", _STYLES_XML)
+        temporary.replace(destination)
+    finally:
+        temporary.unlink(missing_ok=True)
+    return destination
+
+
+def validate_csuite_five_section_text(text: str) -> dict[str, Any]:
+    """Deterministically verify all 5 C-suite section gates on rendered text."""
+    numbered_headings = [f"{idx}. {h}" for idx, h in enumerate(CSUITE_FIVE_SECTION_HEADINGS, start=1)]
+    positions = {h: text.find(h) for h in numbered_headings}
+    order_ok = all(v >= 0 for v in positions.values()) and list(positions.values()) == sorted(positions.values())
+    value_bar_ok = all(
+        token in text
+        for token in (
+            "$82M+ COMMERCIAL P&L",
+            "+20% MARGIN & COST",
+            "106-ENGINEER SCALE",
+            "VELOCITY & SAFETY",
+        )
+    )
+    flagship_absorbed_ok = (
+        "FLAGSHIP PRODUCTION AI PLATFORMS" not in text.upper()
+        and "<250ms" in text
+        and "106-software-engineer" in text
+        and "Universal Write Gateway" in text
+    )
+    sec3_pos = positions.get(numbered_headings[2], -1)
+    sec4_pos = positions.get(numbered_headings[3], -1)
+    sec5_pos = positions.get(numbered_headings[4], -1)
+    sec3_body = text[sec3_pos:sec4_pos] if (sec3_pos >= 0 and sec4_pos > sec3_pos) else ""
+    sec4_body = text[sec4_pos:sec5_pos] if (sec4_pos >= 0 and sec5_pos > sec4_pos) else ""
+    sec5_body = text[sec5_pos:] if sec5_pos >= 0 else ""
+
+    core_2017_split_ok = (
+        all(emp in sec3_body for emp in ("Slalom", "Unify Consulting", "IBM"))
+        and "Mandate:" in sec3_body
+        and all(emp in sec4_body for emp in ("InsurTech Cloud Solutions", "Ernst & Young"))
+        and "Earlier Quantitative Foundation:" in sec4_body
+    )
+    sec5_lines = [ln for ln in sec5_body.splitlines() if "EDUCATION, ACTUARIAL CHARTER" not in ln]
+    sec5_years = re.findall(r"\b(?:19|20)\d{2}\b", "\n".join(sec5_lines))
+    dateless_footer_ok = (
+        bool(sec5_lines)
+        and len(sec5_years) == 0
+        and "Fellow of the Society of Actuaries (FSA)" in sec5_body
+    )
+    checks = {
+        "five_section_order": order_ok,
+        "four_column_value_bar": value_bar_ok,
+        "flagship_platforms_absorbed": flagship_absorbed_ok,
+        "experience_2017_split_and_capsule": core_2017_split_ok,
+        "dateless_credentials_footer": dateless_footer_ok,
+    }
+    failed = [k for k, v in checks.items() if not v]
+    return {
+        "status": "PASS" if not failed else "FAIL",
+        "checks": checks,
+        "failed_checks": failed,
+        "heading_positions": positions,
+        "section5_year_tokens": sec5_years,
+    }
+
+
+__all__ = [
+    "_is_spine_shaped",
+    "_resolve_final_resume",
+    "export",
+    "export_csuite_five_section_docx",
+    "validate_csuite_five_section_text",
+]

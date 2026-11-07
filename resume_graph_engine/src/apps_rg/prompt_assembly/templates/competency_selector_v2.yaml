@@ -176,6 +176,12 @@ base_categories:
     - "Engineering & Delivery Leadership"
     - "Commercial & Operating Impact"
     - "Cloud & Partner Ecosystems"
+    - "Governed Agentic AI & Decision Intelligence"
+    - "Model Risk & Fail-Closed Governance"
+    - "Bi-Temporal Knowledge Graph & Hybrid Grounding"
+    - "Distributed Systems & Single-Door Write Custody"
+    - "Platform Commercialization & Unit Economics"
+    - "Regulated Enterprise & Hyperscaler Ecosystems"
   allowed_operations:
     - "Use approved taxonomy category_id and category_label"
     - "Reorder categories for JD emphasis"

@@ -31,7 +31,11 @@ def _verify_deterministic_resume_pipeline(repo_root: Path, artifact_root: Path) 
         if p.is_dir() and s not in sys.path:
             sys.path.insert(0, s)
 
-    from apps_rg.bare_pipeline import evaluate_bare_run, run_bare_deterministic_e2e
+    from apps_rg.bare_pipeline import (
+        evaluate_bare_run,
+        run_bare_deterministic_e2e,
+        run_csuite_five_section_jd_e2e,
+    )
 
     res = run_bare_deterministic_e2e(artifact_root=str(artifact_root))
     if res.get("status") != "SUCCESS" or res.get("outcome_label") != "DETERMINISTIC_OFFLINE_PASS":
@@ -53,6 +57,53 @@ def _verify_deterministic_resume_pipeline(repo_root: Path, artifact_root: Path) 
             "sha256": compute_sha256(fpath),
             "verified_on_disk": True,
         }
+
+    targeting_dir = rg_src / "apps_rg" / "config" / "targeting"
+    csuite_targets = (
+        (
+            "brown_brown",
+            "Brown & Brown",
+            "SVP IT Strategy & Innovation",
+            targeting_dir / "brown_brown_svp_it_strategy_innovation_jd.txt",
+            targeting_dir / "brown_brown_svp_it_strategy_innovation_briefing.md",
+        ),
+        (
+            "aig",
+            "AIG",
+            "VP Global Head Agentic AI",
+            targeting_dir / "aig_vp_global_head_agentic_ai_jd.txt",
+            targeting_dir / "aig_vp_global_head_agentic_ai_briefing.md",
+        ),
+        (
+            "citi",
+            "Citi",
+            "Head of AI Strategy - Firmwide AI",
+            targeting_dir / "citi_head_of_ai_strategy_jd.txt",
+            targeting_dir / "citi_head_of_ai_strategy_briefing.md",
+        ),
+    )
+    for slug, company, role, jd_file, briefing_file in csuite_targets:
+        csuite_res = run_csuite_five_section_jd_e2e(
+            target_company=company,
+            target_role=role,
+            jd_path=jd_file,
+            briefing_path=briefing_file,
+            artifact_root=artifact_root / f"csuite_{slug}",
+        )
+        if csuite_res.get("status") != "PASS":
+            raise RuntimeError(f"C-suite 5-section JD verification failed for {company}: {csuite_res}")
+        csuite_dir = Path(str(csuite_res["artifact_dir"]))
+        for rel_name in ("CSUITE_FINAL_RESUME.txt", "outputs/csuite_resume.docx"):
+            fpath = csuite_dir / rel_name
+            if not fpath.is_file() or fpath.stat().st_size == 0:
+                raise RuntimeError(f"Missing C-suite resume artifact for {company}: {fpath}")
+            verified_resume_files[f"csuite_5section::{slug}::{rel_name}"] = {
+                "path": str(fpath),
+                "bytes": fpath.stat().st_size,
+                "sha256": compute_sha256(fpath),
+                "verified_on_disk": True,
+            }
+
     return {
         "status": "PASSED",
         "outcome_label": str(res["outcome_label"]),

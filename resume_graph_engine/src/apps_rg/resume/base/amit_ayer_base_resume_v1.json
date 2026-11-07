@@ -26,27 +26,32 @@
         "start_date": "2026-06",
         "end_date": "present",
         "is_current": true,
-        "role_narrative": "Lead client delivery, practice scaling, and systems architecture for next-generation agentic AI solutions, commercializing autonomous multi-agent orchestration platforms and converting frontier AI research into governed, high-impact production capabilities across enterprise client portfolios.",
+        "experience_tier": "core_2017_plus",
+        "mandate_line": "Mandate: Enterprise AI Practice & Delivery | Scale: 106-Engineer Footprint (66 Analytics, 40 Digital/IT Ops) | Ecosystem: AWS, Azure, Databricks | Tier: Fortune 500",
+        "role_narrative": "Lead client delivery, practice scaling, and systems architecture for next-generation agentic AI solutions, directing a 106-software-engineer footprint and converting frontier AI research into governed, high-impact production capabilities across enterprise client portfolios.",
         "bullets": [
           {
             "bullet_id": "bul_slalom_001",
-            "text": "Agentic Client Delivery and A2A Orchestration: Architected and delivered enterprise agentic AI client engagements, establishing agent-to-agent (A2A) orchestration protocols, deterministic routing fabrics, and policy-bounded tool execution that scaled client delivery efficiency while ensuring strict execution auditability.",
-            "has_metric": false,
+            "text": "106-Engineer Practice and A2A Orchestration: Directed a 106-software-engineer consulting footprint across advanced analytics (66 engineers) and digital operations (40 engineers) for a premier utility while establishing agent-to-agent (A2A) orchestration protocols, deterministic routing fabrics, and policy-bounded tool execution across enterprise accounts.",
+            "has_metric": true,
+            "metric_raw": "106-software-engineer consulting footprint (66 analytics, 40 digital operations)",
             "technologies": ["A2A orchestration", "multi-agent systems", "deterministic routing", "policy gating"],
             "domain": "AI infrastructure"
           },
           {
             "bullet_id": "bul_slalom_002",
-            "text": "Next-Gen AI Practice Architecture: Established next-generation AI architecture practices and engineering playbooks across distributed client teams, converting advanced reasoning, frontier model capabilities, and multimodal architectures into repeatable client deployment patterns.",
-            "has_metric": false,
-            "technologies": ["frontier models", "reasoning architectures", "prompt engineering", "agentic patterns"],
+            "text": "Production Decision Intelligence and Live Copilot Engine: Architected a 100% local audio airgap (<200ms startup), <250ms Dual-Track Live Executive Copilot, and 18-role / 7-wave strategic decision engine with 20% Bayesian ambiguity gating, 11-gate hybrid BGE-M3 knowledge-graph retrieval, and 0% silent signal loss.",
+            "has_metric": true,
+            "metric_raw": "<200ms audio airgap, <250ms Live Copilot, 18-role / 7-wave decision engine, 20% Bayesian margin, 0% silent signal loss",
+            "technologies": ["frontier models", "reasoning architectures", "prompt engineering", "agentic patterns", "BGE-M3", "GraphRAG"],
             "domain": "platform engineering"
           },
           {
             "bullet_id": "bul_slalom_003",
-            "text": "Governed Runtime Scaling: Engineered enterprise evaluation harnesses and runtime governance mesh incorporating deterministic validation gates, forensic telemetry, and replayable execution proofs to ensure safety and audit-readiness across high-scale agent deployments.",
-            "has_metric": false,
-            "technologies": ["evaluation harnesses", "OpenTelemetry", "runtime governance", "validation mesh"],
+            "text": "Zero-Trust Write Custody and Autonomous Delivery: Engineered a 7-layer, 119-package platform with a 5-check Universal Write Gateway, 18 autonomous engineering agents across 32 fail-closed readiness gates, OpenTelemetry forensic lineage, and a six-figure visual asset intelligence platform SOW.",
+            "has_metric": true,
+            "metric_raw": "7-layer, 119-package platform, 5-check Universal Write Gateway, 18 agents across 32 gates",
+            "technologies": ["evaluation harnesses", "OpenTelemetry", "runtime governance", "validation mesh", "Universal Write Gateway"],
             "domain": "platform engineering"
           },
           {
@@ -67,6 +72,8 @@
         "start_date": "2023-02",
         "end_date": "2026-06",
         "is_current": false,
+        "experience_tier": "core_2017_plus",
+        "mandate_line": "Mandate: $22M IP-Led Platform P&L | Margin: +20% Gross Margin Expansion | Org Scale: Scaled AI Platform Team 3.5x (8 to 28 Specialists) | Tier: Fortune 500 Finance",
         "role_narrative": "Led the platform roadmap, core systems architecture, and commercialization of a production-grade generative AI Solution Accelerator within a consulting firm, serving Fortune 500 financial institutions and converting bespoke client delivery into reusable IP deployed across enterprise lines of business.",
         "bullets": [
           {
@@ -123,6 +130,8 @@
         "start_date": "2017-04",
         "end_date": "2022-10",
         "is_current": false,
+        "experience_tier": "core_2017_plus",
+        "mandate_line": "Mandate: $30M Cloud & AI Transformation P&L (+$15M Hyperscaler Co-Sell) | Role: Lead Enterprise Systems Architect & Commercial Partner | Tier: Global Banking",
         "role_narrative": "Led architecture and commercial ownership of a $30M cloud and AI transformation portfolio, serving as systems architect for Fortune 500 financial institutions migrating to distributed cloud-native data platforms enabling governed analytics and enterprise AI adoption.",
         "bullets": [
           {
@@ -175,6 +184,10 @@
         "start_date": "2014-04",
         "end_date": "2017-03",
         "is_current": false,
+        "experience_tier": "pedigree_capsule_pre_2017",
+        "is_pedigree_capsule": true,
+        "mandate_line": "Mandate: Founder-led 0-to-1 GTM and cloud-native modernization for insurers.",
+        "capsule_bullet": "Directed monolith-to-AWS cloud transformations and SOC 2 control frameworks for regulated insurers, cutting client total cost of ownership by 40% and achieving 99.99% underwriting availability.",
         "role_narrative": "Founded and led a cloud-native engineering firm modernizing legacy insurance technology stacks for middle-market insurers, enabling faster delivery, stronger controls, and greater operating agility.",
         "bullets": [
           {
@@ -210,6 +223,11 @@
         "start_date": "2002-10",
         "end_date": "2014-03",
         "is_current": false,
+        "experience_tier": "pedigree_capsule_pre_2017",
+        "is_pedigree_capsule": true,
+        "mandate_line": "Mandate: Global Banking & Insurance Regulatory Analytics, ERM & Capital Advisory.",
+        "capsule_bullet": "Directed a $15M regulatory analytics transformation that cut audit remediation costs by 40% via automated lineage, and optimized insurer capital reserves by 12% under Solvency II and AG43 using stochastic and multi-Greek hedge models.",
+        "earlier_quantitative_foundation": "Earlier Quantitative Foundation: Actuarial and quantitative derivatives roles at Towers Perrin, ING, and Aetna (exotic options, multi-Greek hedging, HPC valuation).",
         "role_narrative": "Led regulatory analytics, predictive risk modeling, and capital optimization programs at Ernst & Young following early-career quantitative finance and actuarial roles at Towers Perrin, ING, and Aetna.",
         "bullets": [
           {
@@ -407,11 +425,123 @@
       }
     ],
     "metrics_summary": {
-      "total_revenue_impact": "$37M",
-      "total_cost_reduction": "70%+",
-      "team_scale_range": "8 to 28 engineers",
-      "uptime_achieved": "99.9% to 99.99%",
+      "total_revenue_impact": "$82M+",
+      "total_cost_reduction": "30% to 40%",
+      "team_scale_range": "106 software engineers (66 analytics, 40 digital/IT ops) & 8 to 28 AI platform specialists",
+      "uptime_achieved": "99.9% to 99.995%",
       "cycle_time_improvement": "6 months to 3 weeks"
+    },
+    "value_bar": [
+      {
+        "column_id": "commercial_pnl",
+        "header": "$82M+ COMMERCIAL P&L",
+        "items": [
+          "$30M IBM Portfolio",
+          "$22M Unify IP Revenue",
+          "$15M Cloud Co-Sell"
+        ]
+      },
+      {
+        "column_id": "margin_and_cost",
+        "header": "+20% MARGIN & COST",
+        "items": [
+          "+20% Gross Margin",
+          "30%-40% Cost Takeout",
+          "+25% Renewal Uplift"
+        ]
+      },
+      {
+        "column_id": "engineer_scale",
+        "header": "106-ENGINEER SCALE",
+        "items": [
+          "106 Utility Pod SWEs",
+          "8 -> 28 AI Platform",
+          "C-Suite & Board"
+        ]
+      },
+      {
+        "column_id": "velocity_and_safety",
+        "header": "VELOCITY & SAFETY",
+        "items": [
+          "6 Mos -> 3 Wks Cycle",
+          "<250ms Live Copilot",
+          "99.995% Reliability"
+        ]
+      }
+    ],
+    "csuite_capability_categories": [
+      {
+        "category_key": "governed_agentic_ai_decision_intelligence",
+        "category": "Governed Agentic AI & Decision Intelligence",
+        "summary": "18-role / 6-modality dialectical reasoning engines (W1 to W7 waves), A2A coordination, and 18-agent / 32-gate autonomous software delivery across 7 unidirectional architecture layers.",
+        "terms": [
+          "18-role / 6-modality dialectical reasoning engines (W1 to W7 waves)",
+          "Agent-to-agent (A2A) coordination protocols",
+          "18-agent / 32-gate autonomous software delivery across 7 unidirectional layers"
+        ],
+        "source_refs": ["exp_slalom_001", "exp_unify_001"]
+      },
+      {
+        "category_key": "model_risk_fail_closed_governance",
+        "category": "Model Risk & Fail-Closed Governance",
+        "summary": "Bayesian 20%-margin / 65%-floor human-in-the-loop ambiguity gating, X1 to X3 exit verification, orthogonal LLM judge panels, and 8 closed-loop system learning calibration surfaces.",
+        "terms": [
+          "Bayesian 20%-margin / 65%-floor human-in-the-loop ambiguity gating",
+          "X1 to X3 exit verification and orthogonal LLM judge panels",
+          "8 closed-loop system learning calibration surfaces"
+        ],
+        "source_refs": ["exp_slalom_001", "exp_unify_001"]
+      },
+      {
+        "category_key": "bitemporal_knowledge_graph_hybrid_grounding",
+        "category": "Bi-Temporal Knowledge Graph & Hybrid Grounding",
+        "summary": "1024-d BGE-M3 dense + lexical fusion across 11 release qualification gates, Merkle subgraph prefix alignment, <200ms local Metal MLX audio airgap, and <250ms 2-hop RAM graph Flash-Snap.",
+        "terms": [
+          "1024-d BGE-M3 dense + lexical fusion across 11 release qualification gates",
+          "Merkle subgraph prefix alignment and <200ms local Metal MLX audio airgap",
+          "<250ms 2-hop RAM graph Flash-Snap"
+        ],
+        "source_refs": ["exp_slalom_001", "exp_unify_001"]
+      },
+      {
+        "category_key": "distributed_systems_single_door_write_custody",
+        "category": "Distributed Systems & Single-Door Write Custody",
+        "summary": "Universal Write Gateway with 5-check physical disk proofs, generational atomic swaps, and cloud lakehouses.",
+        "terms": [
+          "Universal Write Gateway with 5-check physical disk proofs",
+          "Generational atomic swaps and bi-temporal SQLite WAL persistence",
+          "Cloud-native microservices across AWS and Databricks Lakehouses"
+        ],
+        "source_refs": ["exp_slalom_001", "exp_unify_001", "exp_ibm_001"]
+      },
+      {
+        "category_key": "platform_commercialization_unit_economics",
+        "category": "Platform Commercialization & Unit Economics",
+        "summary": "IP-led AI solution accelerators ($22M revenue, +20% gross margin) and >=2.5x multi-tier tokenomics return.",
+        "terms": [
+          "IP-led AI solution accelerators ($22M revenue, +20% gross margin)",
+          "Lab-to-production compression from 6 months to 3 weeks",
+          ">=2.5x multi-tier tokenomics return and +25% SaaS renewal uplift"
+        ],
+        "source_refs": ["exp_unify_001", "exp_ibm_001"]
+      },
+      {
+        "category_key": "regulated_enterprise_hyperscaler_ecosystems",
+        "category": "Regulated Enterprise & Hyperscaler Ecosystems",
+        "summary": "AWS, Azure, and Databricks co-sell motions ($15M alliances), plus FSA actuarial, Solvency II, and CCAR risk.",
+        "terms": [
+          "AWS, Azure, and Databricks co-sell motions ($15M incremental alliances)",
+          "FSA actuarial charter, Solvency II, and AG43 capital optimization",
+          "Basel / CCAR regulatory lineage and SOC 2 cloud control frameworks"
+        ],
+        "source_refs": ["exp_slalom_001", "exp_ibm_001", "exp_insurtech_001", "exp_early_career_001"]
+      }
+    ],
+    "csuite_credentials_footer": {
+      "dateless": true,
+      "education_line": "M.S. in Biostatistics (with Distinction), Columbia University | B.A. in Biology (Cum Laude), Brown University",
+      "executive_charter_line": "Fellow of the Society of Actuaries (FSA)",
+      "cloud_ai_credentials_line": "AWS Certified Solutions Architect Professional | AWS Certified Machine Learning Engineer Associate | Databricks Lakehouse"
     }
   },
   "fact_metadata": {

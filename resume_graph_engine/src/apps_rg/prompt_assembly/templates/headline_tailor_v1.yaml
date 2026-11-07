@@ -11,7 +11,7 @@ pa_core_law_ref: apps_rg/prompt_assembly/pa_core_law_v1.yaml
 forbidden_slot_body_source: strategic_tailor_v1
 allowed_stage: L2_EXEC
 description: >
-  Executive headline with fixed SVP Engineering prefix and four pipe segments; creative, JD-aware X/Y/Z from facts only;
+  Executive C-suite / SVP headline with fixed SVP Engineering prefix and four pipe segments; creative, JD-aware X/Y/Z from facts only;
   JD/briefing/target/companion targeting-only; compact JSON per R0 schema at compile.
 
 slot_bodies:
