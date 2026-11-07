@@ -78,6 +78,16 @@ BARE_PIPELINE_L2_SYSTEM_PROMPT: Final[str] = (
 )
 
 
+BARE_PIPELINE_CSUITE_FIVE_SECTION_ADDENDUM: Final[str] = (
+    "### CSUITE FIVE-SECTION EXECUTIVE DOSSIER CONTRACT\n"
+    "1. Section 1: EXECUTIVE INVESTMENT THESIS & $82M+ ENTERPRISE VALUE BAR (6-sentence thesis + 4-column Value Bar).\n"
+    "2. Section 2: EXECUTIVE & AGENTIC PLATFORM CAPABILITIES (6 capability categories absorbing flagship platforms; zero standalone projects section).\n"
+    "3. Section 3: EXECUTIVE EXPERIENCE (2017 TO PRESENT) (Slalom, Unify Consulting, IBM with Mandate lines at 85% space allocation).\n"
+    "4. Section 4: PRIOR C-SUITE & PRINCIPAL LEADERSHIP (InsurTech Cloud Solutions and Ernst & Young compact capsule + Earlier Quantitative Foundation at 15% space).\n"
+    "5. Section 5: EDUCATION, ACTUARIAL CHARTER & CLOUD CREDENTIALS (dateless footer with zero four-digit graduation or certification years).\n"
+)
+
+
 BARE_PIPELINE_RESEARCH_SYSTEM_PROMPT: Final[str] = (
     "You are an elite corporate intelligence analyst and enterprise research strategist.\n"
     "Your task is to analyze retrieved web and industry source material and synthesize a rigorous, fact-based research brief "
@@ -139,6 +149,7 @@ BARE_PIPELINE_RESEARCH_SYSTEM_PROMPT: Final[str] = (
 )
 
 __all__ = [
+    "BARE_PIPELINE_CSUITE_FIVE_SECTION_ADDENDUM",
     "BARE_PIPELINE_L2_SYSTEM_PROMPT",
     "BARE_PIPELINE_RESEARCH_SYSTEM_PROMPT",
 ]

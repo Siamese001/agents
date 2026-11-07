@@ -48,38 +48,13 @@ DEFAULT_TARGET_ROLE = "Manager of Applied AI Architecture, Partnerships"
 DEFAULT_JD_FILENAME = "anthropic_manager_applied_ai_architecture_partnerships_jd.txt"
 DETERMINISTIC_SOURCE_PACK_FILENAME = "anthropic_deterministic_source_pack.v1.json"
 DETERMINISTIC_TIMESTAMP = "2000-01-01T00:00:00+00:00"
-CANONICAL_STAGE_ORDER = (
-    "SETUP",
-    "APPS_RESEARCH",
-    "U0",
-    "L1",
-    "L0",
-    "C0",
-    "PA",
-    "L2",
-    "X1",
-    "X3",
-    "DELIVERY",
-)
+CANONICAL_STAGE_ORDER = ("SETUP", "APPS_RESEARCH", "U0", "L1", "L0", "C0", "PA", "L2", "X1", "X3", "DELIVERY")
 REQUIRED_OUTPUT_FILENAMES = {
-    "research_brief": "research.md",
-    "sources": "sources.json",
-    "l2_raw": "l2_raw.md",
-    "resume_markdown": "resume.md",
-    "resume_docx": "resume.docx",
-    "outreach_email": "outreach_email.md",
-    "evaluation": "evaluation.json",
-    "provider_calls": "provider_calls.json",
-    "summary": "run_summary.json",
-    "x3_raw": "x3_raw.txt",
+    "research_brief": "research.md", "sources": "sources.json", "l2_raw": "l2_raw.md",
+    "resume_markdown": "resume.md", "resume_docx": "resume.docx", "outreach_email": "outreach_email.md",
+    "evaluation": "evaluation.json", "provider_calls": "provider_calls.json", "summary": "run_summary.json", "x3_raw": "x3_raw.txt",
 }
-REQUIRED_RESUME_HEADINGS = (
-    "EXECUTIVE SUMMARY",
-    "CORE COMPETENCIES",
-    "PROFESSIONAL EXPERIENCE",
-    "EDUCATION",
-    "CERTIFICATIONS",
-)
+REQUIRED_RESUME_HEADINGS = ("EXECUTIVE SUMMARY", "CORE COMPETENCIES", "PROFESSIONAL EXPERIENCE", "EDUCATION", "CERTIFICATIONS")
 FORBIDDEN_RESUME_HEADINGS = ("TECHNICAL EXPERTISE",)
 X3_GEMINI_TIMEOUT_SECONDS = 90.0
 X3_GEMINI_MAX_TRANSPORT_ATTEMPTS = 2
@@ -2413,13 +2388,7 @@ def evaluate_bare_run(
     }
 
 
-_SHOW_ARTIFACTS = {
-    "resume": "resume.md",
-    "email": "outreach_email.md",
-    "research": "research.md",
-    "summary": "run_summary.json",
-    "evaluation": "evaluation.json",
-}
+_SHOW_ARTIFACTS = {"resume": "resume.md", "email": "outreach_email.md", "research": "research.md", "summary": "run_summary.json", "evaluation": "evaluation.json"}
 
 
 def read_bare_artifact(run_dir: str | Path, artifact: str) -> str:
@@ -2433,10 +2402,30 @@ def read_bare_artifact(run_dir: str | Path, artifact: str) -> str:
     return path.read_text(encoding="utf-8")
 
 
+def run_csuite_five_section_jd_e2e(
+    *, target_company: str, target_role: str, jd_path: str | Path, briefing_path: str | Path | None = None, artifact_root: str | Path | None = None
+) -> dict[str, Any]:
+    """Run deterministic 5-section Seven-Figure C-Suite resume generation & DOCX verification for a target JD."""
+    from apps_rg.runtime.final_resume_outputs import emit_csuite_five_section_outputs
+
+    repo = _repo_root()
+    jd_text, jd_ref = _resolve_text_input(str(jd_path))
+    briefing_text = Path(briefing_path).read_text(encoding="utf-8", errors="replace").strip() if (briefing_path and Path(briefing_path).is_file()) else ""
+    run_dir = _allocate_run_dir(str(artifact_root or ""), repo_root=repo)
+    _write_text(run_dir / "target_jd.txt", jd_text)
+    if briefing_text:
+        _write_text(run_dir / "target_briefing.md", briefing_text)
+    report = emit_csuite_five_section_outputs(run_dir, target_company=target_company, target_role=target_role, repo_root=repo)
+    report.update({"jd_ref": jd_ref, "jd_sha256": _sha256_text(jd_text), "briefing_loaded": bool(briefing_text), "artifact_dir": str(run_dir)})
+    _write_json(run_dir / "csuite_jd_run_summary.json", report)
+    return report
+
+
 __all__ = [
     "BarePipelineError", "CANONICAL_STAGE_ORDER", "compare_deterministic_runs",
     "deterministic_run_projection", "evaluate_bare_run", "read_bare_artifact",
     "run_bare_deterministic_e2e", "run_bare_e2e", "run_bare_live_e2e",
+    "run_csuite_five_section_jd_e2e",
 ]
 
 

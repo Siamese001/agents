@@ -22,7 +22,8 @@
     "metric_claim_truth_source": "metric_outcome_nodes",
     "senior_director_grain": "mechanism_level_skill_and_metric_ids",
     "chronology_policy": "employer_scope_only; graph evidence nodes do not carry time_window as claim authority",
-    "skill_truth_source": "graph_skill_node_ids"
+    "skill_truth_source": "graph_skill_node_ids",
+    "csuite_five_section_flagship_absorbed": true
   },
   "approved_metric_outcome_ids": {
     "metric_slalom_production_agentic_client_engagements": "production agentic AI client engagements delivered across enterprise accounts",

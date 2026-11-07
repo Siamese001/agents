@@ -12,46 +12,25 @@ from pathlib import Path
 from typing import Any
 from xml.etree import ElementTree
 
-from apps_rg.runtime.section_display_labels import (
-    ALLOWED_COMPETENCIES_HEADINGS,
-    ENGINEERING_PLATFORM_COMPETENCIES_HEADING,
-)
+from apps_rg.runtime.section_display_labels import ALLOWED_COMPETENCIES_HEADINGS, ENGINEERING_PLATFORM_COMPETENCIES_HEADING
 from apps_rg.runtime.assembly.full_resume_text import (
-    base_role_header_lines_from_final_resume,
-    base_role_headers_from_final_resume,
-    flatten_final_resume_to_text,
-    format_cert,
-    format_edu,
-    rendered_resume_section_order,
+    base_role_header_lines_from_final_resume, base_role_headers_from_final_resume, flatten_csuite_five_section_resume_to_text,
+    flatten_final_resume_to_text, format_cert, format_edu, rendered_resume_section_order,
 )
-from apps_rg.runtime.full_run_section_status import (
-    LANE_DISPLAY_TXT_CANDIDATES,
-    collect_full_run_section_status,
+from apps_rg.runtime.full_run_section_status import LANE_DISPLAY_TXT_CANDIDATES, collect_full_run_section_status
+from apps_rg.runtime.final_resume_docx import (
+    export as export_final_resume_docx, export_csuite_five_section_docx, validate_csuite_five_section_text,
 )
-from apps_rg.runtime.final_resume_docx import export as export_final_resume_docx
 from apps_rg.runtime.run_output_contract import (
-    FINAL_RESUME_ASSEMBLY_JSON_RELPATH,
-    FINAL_RESUME_DOCX_RELPATH,
-    FINAL_RESUME_OUTPUT_JSON,
-    FINAL_RESUME_OUTPUT_TXT,
+    FINAL_RESUME_ASSEMBLY_JSON_RELPATH, FINAL_RESUME_DOCX_RELPATH, FINAL_RESUME_OUTPUT_JSON, FINAL_RESUME_OUTPUT_TXT,
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 BASE_RESUME_RELPATH = Path("apps_rg/resume/base/amit_ayer_base_resume_v1.json")
 GENERATED_SECTION_IDS: tuple[str, ...] = (
-    "slalom_bullets",
-    "slalom_narrative",
-    "headline",
-    "executive_summary",
-    "competencies",
-    "unify_bullets",
-    "unify_narrative",
-    "ibm_bullets",
-    "ibm_narrative",
-    "insurtech_bullets",
-    "insurtech_narrative",
-    "ey_bullets",
-    "ey_narrative",
+    "slalom_bullets", "slalom_narrative", "headline", "executive_summary", "competencies",
+    "unify_bullets", "unify_narrative", "ibm_bullets", "ibm_narrative",
+    "insurtech_bullets", "insurtech_narrative", "ey_bullets", "ey_narrative",
 )
 
 
@@ -707,7 +686,25 @@ def emit_final_resume_product_outputs(
     return contract
 
 
-__all__ = [
-    "build_final_resume_output_contract",
-    "emit_final_resume_product_outputs",
-]
+def emit_csuite_five_section_outputs(run_root: Path, *, target_company: str, target_role: str, repo_root: Path | None = None) -> dict[str, Any]:
+    """Emit and verify the 5-section Seven-Figure C-Suite text and DOCX outputs."""
+    root = Path(run_root).resolve()
+    root.mkdir(parents=True, exist_ok=True)
+    base = _load_base_resume(repo_root)
+    text = flatten_csuite_five_section_resume_to_text(base, target_company=target_company, target_role=target_role)
+    txt_path, docx_path = root / "CSUITE_FINAL_RESUME.txt", root / "outputs" / "csuite_resume.docx"
+    txt_path.write_text(text, encoding="utf-8")
+    export_csuite_five_section_docx(base, docx_path, target_company=target_company, target_role=target_role)
+    text_validation, docx_validation = validate_csuite_five_section_text(text), validate_csuite_five_section_text(_docx_text(docx_path))
+    ok = text_validation["status"] == "PASS" and docx_validation["status"] == "PASS"
+    report = {
+        "schema_version": "apps_rg.csuite_five_section_output.v1", "generated_at_utc": _utc_now(),
+        "target_company": target_company, "target_role": target_role, "status": "PASS" if ok else "FAIL",
+        "text_artifact": _artifact(txt_path, root), "docx_artifact": _artifact(docx_path, root),
+        "text_validation": text_validation, "docx_validation": docx_validation,
+    }
+    (root / "csuite_five_section_output.json").write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return report
+
+
+__all__ = ["build_final_resume_output_contract", "emit_csuite_five_section_outputs", "emit_final_resume_product_outputs", "validate_csuite_five_section_text"]

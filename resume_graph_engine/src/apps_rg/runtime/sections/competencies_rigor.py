@@ -12,6 +12,14 @@ from apps_rg.runtime.sections.competencies_term_phrase import term_phrase
 
 MIN_CATEGORY_COUNT = 6
 MAX_CATEGORY_COUNT = 8
+CSUITE_CAPABILITY_CATEGORY_LABELS: tuple[str, ...] = (
+    "Governed Agentic AI & Decision Intelligence",
+    "Model Risk & Fail-Closed Governance",
+    "Bi-Temporal Knowledge Graph & Hybrid Grounding",
+    "Distributed Systems & Single-Door Write Custody",
+    "Platform Commercialization & Unit Economics",
+    "Regulated Enterprise & Hyperscaler Ecosystems",
+)
 # HBS/SVP alignment (2026-06): emit only the highest-signal executive categories.
 # The graph pool may consider 8 candidates, but final display is an adaptive 6-8 band
 # selected by JD/briefing emphasis and graph-backed selector score.
@@ -504,6 +512,7 @@ def check_competencies_keyword_repetition_limit(
 
 __all__ = [
     "CANDIDATE_CATEGORY_COUNT",
+    "CSUITE_CAPABILITY_CATEGORY_LABELS",
     "MAX_CATEGORY_COUNT",
     "MAX_ITEMS_PER_CATEGORY",
     "MIN_CATEGORY_COUNT",
