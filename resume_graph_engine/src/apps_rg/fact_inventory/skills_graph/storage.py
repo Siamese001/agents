@@ -162,6 +162,73 @@ def _acquire_sqlite_maintenance_lock(path: Path) -> Path:
 def _release_sqlite_maintenance_lock(lock_path: Path) -> None:
     lock_path.unlink(missing_ok=True)
 
+def verify_sqlite_physical_write_proof(db_path: Path) -> dict[str, Any]:
+    """Execute 5-check physical SQLite write proof before atomic replacement or readback."""
+    path = Path(db_path)
+    if not path.is_file():
+        raise RuntimeError(f"SQLite physical write proof failed (check 1): missing file {path}")
+    size_bytes = path.stat().st_size
+    if size_bytes < 100:
+        raise RuntimeError(
+            f"SQLite physical write proof failed (check 1): truncated file size={size_bytes} bytes at {path}"
+        )
+    digest = _sqlite_projection_digest(path)
+    if not digest or len(digest) != 64:
+        raise RuntimeError(f"SQLite physical write proof failed (check 1): invalid sha256 digest for {path}")
+
+    with path.open("rb") as handle:
+        header = handle.read(16)
+    if header != b"SQLite format 3\x00":
+        raise RuntimeError(
+            f"SQLite physical write proof failed (check 2): invalid SQLite header magic {header!r} at {path}"
+        )
+
+    uri = f"file:{path.resolve(strict=False).as_posix()}?mode=ro"
+    try:
+        conn = sqlite3.connect(uri, uri=True, timeout=15)
+    except sqlite3.Error as exc:
+        raise RuntimeError(
+            f"SQLite physical write proof failed (check 3/4): isolated ro connection failed at {path}: {exc}"
+        ) from exc
+
+    try:
+        conn.execute("PRAGMA query_only=ON")
+        query_only = int(conn.execute("PRAGMA query_only").fetchone()[0])
+        if query_only != 1:
+            raise RuntimeError(
+                f"SQLite physical write proof failed (check 4): query_only pragma not enabled at {path}"
+            )
+        integrity_rows = [str(row[0]) for row in conn.execute("PRAGMA integrity_check").fetchall()]
+        if integrity_rows != ["ok"]:
+            raise RuntimeError(
+                f"SQLite physical write proof failed (check 3): integrity_check={integrity_rows!r} at {path}"
+            )
+        node_count = int(conn.execute("SELECT COUNT(*) FROM graph_nodes").fetchone()[0])
+        edge_count = int(conn.execute("SELECT COUNT(*) FROM graph_edges").fetchone()[0])
+        if node_count <= 0 or edge_count <= 0:
+            raise RuntimeError(
+                "SQLite physical write proof failed (check 5): non-positive row counts "
+                f"(graph_nodes={node_count}, graph_edges={edge_count}) at {path}"
+            )
+    except sqlite3.Error as exc:
+        raise RuntimeError(
+            f"SQLite physical write proof failed (check 3/5): SQLite error during verification at {path}: {exc}"
+        ) from exc
+    finally:
+        conn.close()
+
+    return {
+        "status": "PASS",
+        "size_bytes": size_bytes,
+        "sha256": digest,
+        "header_magic_valid": True,
+        "integrity_check": "ok",
+        "query_only_readback": True,
+        "node_count": node_count,
+        "edge_count": edge_count,
+    }
+
+
 def _replace_sqlite_projection_if_unchanged(
     *,
     target: Path,
@@ -176,6 +243,11 @@ def _replace_sqlite_projection_if_unchanged(
             "SQLite projection changed during maintenance; refusing atomic replace: "
             f"expected={expected_digest!r}, current={current_digest!r}"
         )
+    try:
+        verify_sqlite_physical_write_proof(replacement)
+    except Exception:
+        _cleanup_temp_sqlite(replacement)
+        raise
     last_error: Exception | None = None
     for attempt in range(3):
         try:
@@ -245,4 +317,4 @@ def load_graph_metadata_row(conn: sqlite3.Connection) -> dict[str, Any]:
     }
 
 
-__all__ = ['_repo_root', '_utc_now', '_sha256_hex', '_sqlite_sidecar_paths', '_new_sibling_temp_db_path', '_open_isolated_temp_graph_sqlite', '_cleanup_temp_sqlite', '_require_sidecar_free_atomic_target', '_sqlite_projection_digest', 'inprocess_graph_sqlite_lock', '_sqlite_maintenance_lock_path', '_is_pid_alive', '_check_and_reclaim_stale_lock', '_acquire_sqlite_maintenance_lock', '_release_sqlite_maintenance_lock', '_replace_sqlite_projection_if_unchanged', 'default_graph_sqlite_path', 'open_graph_sqlite', 'load_graph_metadata_row']
+__all__ = ['_repo_root', '_utc_now', '_sha256_hex', '_sqlite_sidecar_paths', '_new_sibling_temp_db_path', '_open_isolated_temp_graph_sqlite', '_cleanup_temp_sqlite', '_require_sidecar_free_atomic_target', '_sqlite_projection_digest', 'inprocess_graph_sqlite_lock', '_sqlite_maintenance_lock_path', '_is_pid_alive', '_check_and_reclaim_stale_lock', '_acquire_sqlite_maintenance_lock', '_release_sqlite_maintenance_lock', '_replace_sqlite_projection_if_unchanged', 'verify_sqlite_physical_write_proof', 'default_graph_sqlite_path', 'open_graph_sqlite', 'load_graph_metadata_row']

@@ -412,20 +412,13 @@ def handle_post_ask_question(payload: Dict[str, Any], repo_root: Path) -> int:
     question = str(q_item.get("question") or q_item.get("prompt") or "").strip()
     options = q_item.get("options") if isinstance(q_item.get("options"), list) else []
     raw_res = (
-        payload.get("toolResult")
-        or payload.get("toolResponse")
-        or payload.get("result")
-        or payload.get("response")
-        or payload.get("selected_option")
-        or q_item.get("selected_option")
+        payload.get("toolResult") or payload.get("toolResponse") or payload.get("result")
+        or payload.get("response") or payload.get("selected_option") or q_item.get("selected_option")
     )
     if isinstance(raw_res, dict):
         raw_res = (
-            raw_res.get("selected_option")
-            or raw_res.get("selected")
-            or raw_res.get("answer")
-            or raw_res.get("output")
-            or raw_res.get("content")
+            raw_res.get("selected_option") or raw_res.get("selected") or raw_res.get("answer")
+            or raw_res.get("output") or raw_res.get("content")
         )
     selected = _normalize_selected_answer(raw_res)
     if not question or not options or not selected or selected.lower() in ("skip", "skipped", "cancel", "cancelled"):
@@ -511,22 +504,12 @@ def handle_pre_subagent_delegation(payload: Dict[str, Any], repo_root: Path) -> 
 def _is_primary_root_on_main(repo_root: Path) -> bool:
     try:
         git_dir = subprocess.run(
-            ["git", "rev-parse", "--git-dir"],
-            cwd=repo_root,
-            capture_output=True,
-            text=True,
-            timeout=5,
-            check=False,
+            ["git", "rev-parse", "--git-dir"], cwd=repo_root, capture_output=True, text=True, timeout=5, check=False
         ).stdout.strip()
         if "worktrees" in git_dir.replace("\\", "/"):
             return False
         branch = subprocess.run(
-            ["git", "rev-parse", "--abbrev-ref", "HEAD"],
-            cwd=repo_root,
-            capture_output=True,
-            text=True,
-            timeout=5,
-            check=False,
+            ["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=repo_root, capture_output=True, text=True, timeout=5, check=False
         ).stdout.strip()
         return branch == "main"
     except (OSError, subprocess.SubprocessError, ValueError):  # guardian: allow-silent-swallow -- default False if git check fails
@@ -556,6 +539,17 @@ def evaluate_main_worktree_write(target_path_str: str, repo_root: Path) -> Tuple
     return False, ""
 
 
+def _is_technical_engineering_artifact(target_file: str) -> bool:
+    """Return True for Rule 6 engineering deliverables where full technical precision is permitted."""
+    norm = str(target_file or "").replace("\\", "/").lower()
+    basename = Path(norm).name if norm else ""
+    if basename in {"implementation_plan.md", "learning_proposal.md", "walkthrough.md", "task.md"}:
+        return True
+    if any(basename.endswith(s) for s in ("_plan.md", "_assessment.md", "_rca.md", "_audit.md", "_walkthrough.md")):
+        return True
+    return "/plans/" in f"/{norm}" or "/docs/plans/" in f"/{norm}"
+
+
 def handle_pre_file_write(payload: Dict[str, Any], repo_root: Path) -> int:
     """PreToolUse combined file-write guard: main-branch isolation + plan validation + model neutrality + layman artifact guard."""
     tool_call = payload.get("toolCall") if isinstance(payload.get("toolCall"), dict) else payload
@@ -567,7 +561,7 @@ def handle_pre_file_write(payload: Dict[str, Any], repo_root: Path) -> int:
         return emit_decision("deny", reason=reason)
 
     meta = args.get("ArtifactMetadata")
-    if isinstance(meta, dict) and bool(meta.get("UserFacing")):
+    if isinstance(meta, dict) and bool(meta.get("UserFacing")) and not _is_technical_engineering_artifact(target_file):
         from tools.validate_turn_gates import validate_layman_jargon_gate
 
         content = str(args.get("Content") or args.get("Replacement") or args.get("CodeContent") or "")

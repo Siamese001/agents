@@ -21,6 +21,9 @@ if str(RG_ROOT) not in sys.path:
 from apps_rg.fact_inventory.graph_sqlite_path_index import (
     validate_graphdb_capability_integrity,
 )
+from apps_rg.fact_inventory.skills_graph.storage import (
+    verify_sqlite_physical_write_proof,
+)
 from apps_rg.runtime.graph_skill_hybrid_retrieval import (
     fuse_dense_bm25,
 )
@@ -29,6 +32,8 @@ from apps_rg.runtime.graph_skill_hybrid_retrieval import (
 def verify_graph_database(db_path: Path) -> dict[str, int | str]:
     if not db_path.is_file():
         raise FileNotFoundError(f"SQLite graph DB not found: {db_path}")
+
+    write_proof = verify_sqlite_physical_write_proof(db_path)
 
     conn = sqlite3.connect(str(db_path))
     c = conn.cursor()
@@ -90,6 +95,7 @@ def verify_graph_database(db_path: Path) -> dict[str, int | str]:
     conn.close()
     return {
         "status": "PASS",
+        "physical_write_proof": str(write_proof.get("status", "PASS")),
         "node_count": node_count,
         "edge_count": edge_count,
         "three_hop_traversal_paths": traversal_count,

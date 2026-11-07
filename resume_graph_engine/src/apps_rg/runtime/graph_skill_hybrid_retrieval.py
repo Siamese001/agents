@@ -67,6 +67,80 @@ def bm25_rank(
     ]
 
 
+def sqlite_fts5_bm25_rank(
+    conn: Any,
+    query_text: str,
+    *,
+    node_ids: set[str] | None = None,
+    node_type: str | None = None,
+) -> list[dict[str, float | str]]:
+    """Rank SQLite graph_nodes using the native FTS5 BM25 virtual index.
+
+    Preserves zero-score candidates in the authority set so results can be
+    passed directly into ``fuse_dense_bm25``. Falls back to ``bm25_rank`` if
+    ``graph_nodes_fts`` is unavailable on a custom connection.
+    """
+    where_clauses: list[str] = []
+    params: list[Any] = []
+    if node_type is not None:
+        where_clauses.append("node_type = ?")
+        params.append(str(node_type))
+    where_sql = f" WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
+    rows = conn.execute(
+        f"SELECT node_id, label, description FROM graph_nodes{where_sql}",
+        tuple(params),
+    ).fetchall()
+
+    candidate_docs: dict[str, str] = {}
+    for row in rows:
+        nid = str(row[0])
+        if node_ids is not None and nid not in node_ids:
+            continue
+        candidate_docs[nid] = f"{row[1] or ''} {row[2] or ''}".strip()
+
+    if node_ids is not None:
+        missing_ids = set(node_ids) - set(candidate_docs)
+        if missing_ids:
+            raise GraphSkillHybridRetrievalError(
+                f"node_ids contains unknown or filtered graph_nodes IDs: {sorted(missing_ids)}"
+            )
+
+    if not candidate_docs:
+        return []
+
+    has_fts = bool(
+        conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE name = 'graph_nodes_fts' LIMIT 1"
+        ).fetchone()
+    )
+    if not has_fts:
+        return bm25_rank(query_text, candidate_docs)
+
+    tokens = list(dict.fromkeys(_tokens(query_text)))
+    fts_scores: dict[str, float] = dict.fromkeys(candidate_docs, 0.0)
+    if tokens:
+        match_expr = " OR ".join(f'"{token}"' for token in tokens)
+        fts_rows = conn.execute(
+            """
+            SELECT node_id, -bm25(graph_nodes_fts, 0.0, 0.0, 1.5, 1.0) AS score
+            FROM graph_nodes_fts
+            WHERE graph_nodes_fts MATCH ?
+            """,
+            (match_expr,),
+        ).fetchall()
+        for nid_raw, raw_score in fts_rows:
+            nid = str(nid_raw)
+            if nid in fts_scores:
+                val = float(raw_score or 0.0)
+                fts_scores[nid] = val if val > 0.0 and math.isfinite(val) else 0.0
+
+    ordered = sorted(candidate_docs, key=lambda aid: (-fts_scores[aid], aid))
+    return [
+        {"assertion_id": assertion_id, "bm25_score": fts_scores[assertion_id]}
+        for assertion_id in ordered
+    ]
+
+
 def reciprocal_rank_fusion(
     rankings: Sequence[Sequence[str]],
     *,
@@ -189,4 +263,5 @@ __all__ = [
     "bm25_rank",
     "fuse_dense_bm25",
     "reciprocal_rank_fusion",
+    "sqlite_fts5_bm25_rank",
 ]
