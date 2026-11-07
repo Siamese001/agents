@@ -306,11 +306,8 @@ VISIBLE_GRAPH_SURFACE_TERM_OVERRIDES: dict[str, tuple[str, ...]] = {
         "event-driven microservices platform for distributed ecosystems",
         "enterprise lakehouse platform modernization for decision intelligence",
     ),
-    "ccb_engineering_leadership": (
-        "enterprise operating model for governed agentic delivery",
-        "executive investment decision governance for portfolio scale",
-        "engineering organization scale-out for enterprise delivery",
-    ),
+    "ccb_engineering_leadership": ("enterprise operating model for governed agentic delivery", "executive investment decision governance for portfolio scale", "engineering organization scale-out for enterprise delivery"),
+    "ccb_insurance_domain_erm": ("FSA actuarial capital modeling and Solvency II/AG43 reserving", "insurance carrier and brokerage platform modernization", "enterprise risk management and regulated insurer controls"),
 }
 
 COMPETENCY_BUNDLE_FAMILY_ROOT_HINTS: dict[str, tuple[str, ...]] = {
@@ -370,6 +367,7 @@ COMPETENCY_BUNDLE_FAMILY_ROOT_HINTS: dict[str, tuple[str, ...]] = {
         "reb_ibm_data_modeling_bi_decision_support",
     ),
     "data_governance_security": ("reb_ibm_data_modeling_bi_decision_support",),
+    "insurance_domain_modernization": ("reb_ey_capital_optimization_solvency", "reb_insurtech_cloud_governance_security", "reb_ey_insurance_core_modernization"),
 }
 
 VISIBLE_GRAPH_SURFACE_TAXONOMY_BY_BUNDLE: dict[str, tuple[str, str]] = {
@@ -382,6 +380,7 @@ VISIBLE_GRAPH_SURFACE_TAXONOMY_BY_BUNDLE: dict[str, tuple[str, str]] = {
     "ccb_llmops_reliability": ("llmops_reliability", "LLMOps & Reliability"),
     "ccb_distributed_systems_engineering": ("data_analytics_modernization", "Data & Analytics Modernization"),
     "ccb_engineering_leadership": ("engineering_delivery_leadership", "Engineering & Delivery Leadership"),
+    "ccb_insurance_domain_erm": ("governance_risk_compliance", "Insurance Domain & Enterprise Risk Management"),
 }
 
 

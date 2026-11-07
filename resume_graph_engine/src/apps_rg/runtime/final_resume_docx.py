@@ -304,8 +304,12 @@ def validate_csuite_five_section_text(text: str) -> dict[str, Any]:
         and len(sec5_years) == 0
         and "Fellow of the Society of Actuaries (FSA)" in sec5_body
     )
+    header_lines = text.splitlines()[:3]
+    header_blob = "\n".join(header_lines)
+    github_header_ok = "github.com/Siamese001/agents" in header_blob and "Boca Raton, FL" not in header_blob
     checks = {
         "five_section_order": order_ok,
+        "github_portfolio_in_header": github_header_ok,
         "six_sentence_calibrated_thesis": thesis_calibrated_ok,
         "four_column_value_bar": value_bar_ok,
         "flagship_platforms_absorbed": flagship_absorbed_ok,
