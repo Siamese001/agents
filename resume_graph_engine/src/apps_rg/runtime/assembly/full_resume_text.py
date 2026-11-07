@@ -499,16 +499,12 @@ def flatten_csuite_five_section_resume_to_text(
         thesis = thesis_override.strip()
     else:
         thesis = (
-            f"Enterprise technology executive and former Chief Technology Officer, Senior Vice President of Engineering, "
-            f"and Big-4 Principal targeting {role_label}{f' at {co_label}' if co_label else ''}. "
-            "Scales autonomous AI platforms and 106-engineer organizations across Fortune 500 utilities, global banks, and insurers. "
-            "Pioneered production decision intelligence systems combining <250ms live executive advisory, 18-role dialectical reasoning, "
-            "and 20%-margin Bayesian human-in-the-loop risk controls with 0% silent signal loss. "
-            "Engineered bi-temporal knowledge graphs with 11-gate hybrid BGE-M3 retrieval and a 5-check Universal Write Gateway enforcing 100% write custody. "
-            "Converts bespoke consulting and legacy estates into reusable platform products generating $22M in IP-led revenue, $30M transformation portfolios, "
-            "and $15M in hyperscaler co-sell alliances across AWS, Azure, and Databricks. "
-            "Combines an FSA actuarial charter with cloud-native platform execution to expand gross margins by 20%+, cut infrastructure and audit costs by 30% to 40%, "
-            "and compress production delivery cycles from 6 months to 3 weeks."
+            "Enterprise AI and technology executive who aligns multi-year architecture strategy, operating governance, and cloud modernization across regulated financial and insurance institutions. "
+            "Guides reusable agentic platforms and decision-intelligence systems with human-in-the-loop controls that turn fragmented legacy estates into governed production capabilities. "
+            "Through that operating model, scaled a 106-engineer organization and over $82M in cumulative commercial growth across $30M transformation portfolios, $22M in platform IP revenue, and $15M in cloud co-sell alliances. "
+            "Across enterprise programs, bi-temporal knowledge graphs and automated release gates enforce end-to-end audit lineage while reducing manual reporting errors and infrastructure overhead by 40%. "
+            "An FSA-chartered actuarial foundation in capital modeling and stochastic risk underpins containerized high-performance compute practices that shorten enterprise stress-testing cycles by 40%. "
+            "Can apply this blend of governed platform engineering, partner ecosystem execution, and quantitative capital discipline to accelerate enterprise-wide AI adoption and durable margin expansion."
         )
 
     value_bar = list(facts.get("value_bar") or [])

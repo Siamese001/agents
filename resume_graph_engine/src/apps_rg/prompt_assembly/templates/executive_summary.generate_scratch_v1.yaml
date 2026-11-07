@@ -74,7 +74,7 @@ slot_bodies:
     </source_fact_id_tokens>
 
     <credential_policy_v1>
-    No trailing cert inventory, employer-name lines, or AWS/Databricks/FSA label stacks in display prose. One woven credibility clause allowed when fact-backed.
+    No trailing cert inventory, employer-name lines, backward-looking past-title stacks ("former CTO", "former SVP", "Big-4 Principal", "past principal", "past CTO"), or AWS/Databricks/FSA label stacks in display prose. One woven credibility clause allowed when fact-backed.
     </credential_policy_v1>
 
     <display_metric_weave_contract>

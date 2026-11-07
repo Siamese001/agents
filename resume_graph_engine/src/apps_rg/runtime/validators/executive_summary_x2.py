@@ -63,6 +63,8 @@ EXEC_SUMMARY_FORBIDDEN_META_PHRASES_LOOSE = [
     "an experienced leader in regulated",
     "with extensive experience in",
     "with extensive experience",
+    "former cto", "former chief technology officer", "former svp", "former senior vice president",
+    "big-4 principal", "past principal", "past cto", "former partner",
 ]
 
 

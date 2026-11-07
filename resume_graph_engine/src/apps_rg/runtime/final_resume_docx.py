@@ -269,9 +269,24 @@ def validate_csuite_five_section_text(text: str) -> dict[str, Any]:
         and "106-software-engineer" in text
         and "Universal Write Gateway" in text
     )
+    sec1_pos = positions.get(numbered_headings[0], -1)
+    sec2_pos = positions.get(numbered_headings[1], -1)
     sec3_pos = positions.get(numbered_headings[2], -1)
     sec4_pos = positions.get(numbered_headings[3], -1)
     sec5_pos = positions.get(numbered_headings[4], -1)
+    sec1_body = text[sec1_pos:sec2_pos] if (sec1_pos >= 0 and sec2_pos > sec1_pos) else ""
+    sec1_para_lines = [
+        ln.strip() for ln in sec1_body.splitlines()[1:]
+        if ln.strip() and not ln.strip().startswith(("[", "|", "-", "+"))
+    ]
+    sec1_thesis = " ".join(sec1_para_lines)
+    from apps_rg.runtime.validators.executive_summary_x2 import (
+        check_exec_summary_meta_filler_patterns,
+        check_exec_summary_sentence_count_6,
+    )
+    s6_ok, _ = check_exec_summary_sentence_count_6(sec1_thesis)
+    meta_ok, _ = check_exec_summary_meta_filler_patterns(sec1_thesis)
+    thesis_calibrated_ok = bool(sec1_thesis) and s6_ok and meta_ok
     sec3_body = text[sec3_pos:sec4_pos] if (sec3_pos >= 0 and sec4_pos > sec3_pos) else ""
     sec4_body = text[sec4_pos:sec5_pos] if (sec4_pos >= 0 and sec5_pos > sec4_pos) else ""
     sec5_body = text[sec5_pos:] if sec5_pos >= 0 else ""
@@ -291,6 +306,7 @@ def validate_csuite_five_section_text(text: str) -> dict[str, Any]:
     )
     checks = {
         "five_section_order": order_ok,
+        "six_sentence_calibrated_thesis": thesis_calibrated_ok,
         "four_column_value_bar": value_bar_ok,
         "flagship_platforms_absorbed": flagship_absorbed_ok,
         "experience_2017_split_and_capsule": core_2017_split_ok,
