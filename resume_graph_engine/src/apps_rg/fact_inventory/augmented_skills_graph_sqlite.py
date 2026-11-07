@@ -120,6 +120,7 @@ from apps_rg.fact_inventory.skills_graph.storage import (
     inprocess_graph_sqlite_lock,
     load_graph_metadata_row,
     open_graph_sqlite,
+    verify_sqlite_physical_write_proof,
 )
 from apps_rg.fact_inventory.skills_graph.validation import (
     validate_hardened_materialized_sqlite,
@@ -175,4 +176,5 @@ __all__ = [
     "resolve_confidence_grade",
     "validate_hardened_materialized_sqlite",
     "validate_materialized_sqlite",
+    "verify_sqlite_physical_write_proof",
 ]

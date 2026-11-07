@@ -205,6 +205,13 @@ def _probe_chunking_and_context_window(repo_root: Path) -> dict[str, Any]:
         gaps.append("TokenBudget.fit_items_to_budget failed to retain high-relevance evidence within cap")
     if not rre_id_1 or not rre_id_2 or len(similar_res) != 2:
         gaps.append("ResearchRetrievalEngine failed to index and retrieve multi-document artifacts")
+    for rid, vec in rre_engine.store._embeddings.items():
+        v_norm = sum(x * x for x in vec) ** 0.5
+        if len(vec) != 1024 or abs(v_norm - 1.0) > 1e-4:
+            gaps.append(
+                f"InMemoryResearchStore vector {rid} violated 1024-d L2-normalized contract: "
+                f"len={len(vec)}, norm={v_norm:.6f}"
+            )
     if not recs or recs[0].get("source") != "sec_10k":
         gaps.append(f"ResearchRetrievalEngine.recommend_sources failed deterministic ranking: {recs}")
     if benchmark.get("sample_size") != 2:

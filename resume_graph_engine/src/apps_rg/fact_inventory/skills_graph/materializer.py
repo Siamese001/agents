@@ -197,6 +197,13 @@ def _materialize_augmented_skills_graph_sqlite_locked(
             """,
             list(node_rows.values()),
         )
+        conn.execute("DELETE FROM graph_nodes_fts")
+        conn.execute(
+            """
+            INSERT INTO graph_nodes_fts (node_id, node_type, label, description)
+            SELECT node_id, node_type, label, description FROM graph_nodes
+            """
+        )
         conn.executemany(
             """
             INSERT INTO graph_edges (
@@ -457,6 +464,7 @@ def _materialize_augmented_skills_graph_sqlite_locked(
         **summary,
         "tables_created": [
             "graph_nodes",
+            "graph_nodes_fts",
             "graph_edges",
             "skill_fact_links",
             "section_eligibility",

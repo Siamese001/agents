@@ -14,6 +14,8 @@ from apps_rg.runtime.apps_runtime_compat import (
 import hashlib
 import json
 import logging
+import math
+import re
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
@@ -208,10 +210,33 @@ class InMemoryResearchStore:
             except Exception as exc:
                 raise RuntimeError(f"LIVE_EMBEDDING_REQUIRED: Failed to generate live embedding in production: {exc}") from exc
 
-        hash_val = hashlib.sha256(text.encode()).hexdigest()
-        emb = [int(hash_val[i : i + 2], 16) / 255.0 for i in range(0, 20, 2)]
+        emb = self._encode_deterministic_1024d_vector(normalized_text)
         self._digest_embedding_cache[digest] = emb
         return list(emb)
+
+    @staticmethod
+    def _encode_deterministic_1024d_vector(text: str) -> list[float]:
+        """Project text into a deterministic 1024-d L2-normalized semantic vector."""
+        dim = 1024
+        vec = [0.0] * dim
+        raw_tokens = re.findall(r"[a-z0-9]{2,}", text.lower())
+        ignore = {"content", "topic", "artifact", "mode", "quality", "score", "source", "count", "claim", "types", "sources"}
+        tokens = [tok for tok in raw_tokens if tok not in ignore] or raw_tokens or ["empty"]
+        features = list(tokens) + [f"{tokens[i]}_{tokens[i + 1]}" for i in range(len(tokens) - 1)]
+
+        for feat in features:
+            h = hashlib.sha256(feat.encode("utf-8")).digest()
+            for slot in range(0, 32, 4):
+                idx = ((h[slot] << 8) | h[slot + 1]) % dim
+                sign = 1.0 if (h[slot + 2] & 1) == 0 else -1.0
+                weight = 0.5 + (h[slot + 3] / 255.0)
+                vec[idx] += sign * weight
+
+        norm = math.sqrt(sum(v * v for v in vec))
+        if norm <= 1e-12:
+            vec[0] = 1.0
+            return vec
+        return [v / norm for v in vec]
 
     def _cosine_similarity(self, a: list[float], b: list[float]) -> float:
         """Calculate cosine similarity."""

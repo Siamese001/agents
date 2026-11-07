@@ -536,6 +536,14 @@ DDL_STATEMENTS: tuple[str, ...] = (
     """
     CREATE INDEX IF NOT EXISTS idx_semantic_unit_member_id ON semantic_unit_member(member_id, member_kind)
     """,
+    """
+    CREATE VIRTUAL TABLE IF NOT EXISTS graph_nodes_fts USING fts5(
+        node_id UNINDEXED,
+        node_type UNINDEXED,
+        label,
+        description
+    )
+    """,
 )
 
 
