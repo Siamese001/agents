@@ -136,6 +136,24 @@ policies:
     enforcer: "tools/validate_turn_gates.py"
     rule_reference: ".agents/rules/output-brevity-governance.md"
 
+  - id: "INV-PROJECTION-PURITY"
+    title: "Skills Graph Derived Projection Read-Only Purity"
+    category: "architecture"
+    threshold: 1
+    unit: "read_only_enforcement"
+    description: "augmented_skills_graph.sqlite is strictly an ephemeral derived projection and must be read-only during agent traversal."
+    enforcer: "tools/validate_turn_gates.py"
+    rule_reference: "docs/architecture/skills_graph_asymmetric_granularity_adr.md"
+
+  - id: "INV-MANIFEST-FRESHNESS"
+    title: "Skills Graph Manifest Freshness Fail-Closed Invariant"
+    category: "architecture"
+    threshold: 1
+    unit: "digest_match"
+    description: "Skills graph projection must match the cryptographic SHA-256 digest of upstream source ledgers or fail closed upon load."
+    enforcer: "tools/validate_turn_gates.py"
+    rule_reference: "docs/architecture/skills_graph_asymmetric_granularity_adr.md"
+
   - id: "INV-WT-ISOLATION"
     title: "Primary Main Worktree Write Protection"
     category: "git_governance"
