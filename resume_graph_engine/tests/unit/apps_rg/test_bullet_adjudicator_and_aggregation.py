@@ -512,3 +512,74 @@ def test_select_from_bullet_pool_with_claude_parses_explicit_runner_up(
     assert sel["runner_up"] == {"path_index": 1, "score": 0.88}
     assert sel["runner_up_score"] == pytest.approx(0.88)
     assert sel["selection_margin"] == pytest.approx(0.03)
+
+
+def test_normalize_bullet_selection_margins_adversarial_edge_cases(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import json
+    from apps_rg.runtime.judges.bullet_adjudicator import TRIGGER_TOP_TWO_WITHIN_MARGIN
+    from apps_rg.runtime.judges.bullet_pool_claude_selector import (
+        normalize_bullet_selection_margins,
+        select_from_bullet_pool_with_claude,
+    )
+    from apps_rg.runtime.judges.executive_summary_x1d import JudgeOutput
+    from apps_rg.runtime.reasoning.bullet_lane_self_consistency import SelfConsistencyPath
+
+    b0 = {"bullet_id": "bul_unify_001", "bullet_text": "P0", "source_fact_ids": ["bul_unify_001"]}
+    b1 = {"bullet_id": "bul_unify_001", "bullet_text": "P1", "source_fact_ids": ["bul_unify_001"]}
+    paths = [
+        SelfConsistencyPath(0, 0.38, "REAL_LLM", "", {"bullets": [b0], "claim_ledger": []}, "", None),
+        SelfConsistencyPath(1, 0.44, "REAL_LLM", "", {"bullets": [b1], "claim_ledger": []}, "", None),
+    ]
+    malformed = [
+        {"bullet_id": "bul_unify_001", "path_index": "path_0", "score": "0.90", "runner_up": {"path_index": "bad", "score": "bad"}},
+        {"bullet_id": "bul_unify_001", "path_index": 1, "score": 0.80},
+        {"bullet_id": "bul_unify_002", "path_index": 0, "score": "NaN"},
+        {"bullet_id": "bul_unify_002", "path_index": 1, "score": "high"},
+    ]
+    norm = normalize_bullet_selection_margins(paths, malformed)
+    json.dumps(norm, allow_nan=False)
+    assert norm[0]["runner_up"]["score"] == pytest.approx(0.80)
+    assert norm[0]["selection_margin"] == pytest.approx(0.10)
+
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
+    stub_judge = JudgeOutput(
+        "x1d_anthropic_claude_bullet_pool_selector", "Anthropic Claude", "anthropic_claude",
+        "MODEL_BACKED", "MODEL_BACKED_PASS", "claude-test", True, False, None, "", "abc", True, "test",
+    )
+    monkeypatch.setattr(
+        "apps_rg.runtime.judges.bullet_pool_claude_selector._call_anthropic_pool_selector",
+        lambda **_kw: (
+            stub_judge,
+            {
+                "selections": [
+                    {"bullet_id": "bul_unify_001", "path_index": 0, "score": 0.80, "passes": True},
+                    {"bullet_id": "bul_unify_001", "path_index": 1, "score": 0.92, "passes": True},
+                ]
+            },
+        ),
+    )
+    out = select_from_bullet_pool_with_claude(
+        section_id="unify_bullets", slot_kind="bullets", paths=paths,
+        required_bullet_ids=("bul_unify_001",), mode="blocked_if_unavailable",
+    )
+    win = out["selections"]["bul_unify_001"]
+    assert win["path_index"] == 1 and win["score"] == pytest.approx(0.92)
+    assert win["runner_up"] == {"path_index": 0, "score": 0.80}
+    assert win["selection_margin"] == pytest.approx(0.12)
+
+    sels_3paths = normalize_bullet_selection_margins(
+        paths,
+        [
+            {"bullet_id": "bul_unify_001", "path_index": 0, "score": 0.95, "runner_up": {"path_index": 1, "score": 0.80}},
+            {"bullet_id": "bul_unify_001", "path_index": 1, "score": 0.80, "runner_up": {"path_index": 2, "score": 0.78}},
+        ],
+    )
+    d = evaluate_bullet_adjudicator_trigger(
+        section_id="unify_bullets", composite_judges=[_judge(0.95)],
+        x2_failed_gate_ids=[], selector_selections=sels_3paths,
+    )
+    assert d.should_escalate is False and TRIGGER_TOP_TWO_WITHIN_MARGIN not in d.triggers
+
+
