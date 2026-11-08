@@ -95,7 +95,7 @@ def isolate_child_output(log_path: Path | str | None = None) -> Iterator[dict[st
 
 def emit_authoritative_lifecycle_json(payload: dict[str, Any], stream=None) -> None:
     """Emit exactly one authoritative lifecycle JSON payload to stdout (or provided stream)."""
-    target = stream or sys.stdout
+    target = stream or sys.__stdout__ or sys.stdout
     serialized = json.dumps(payload, indent=2, sort_keys=False)
     target.write(serialized + "\n")
     target.flush()
