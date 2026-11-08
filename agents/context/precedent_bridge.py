@@ -140,7 +140,7 @@ class RuntimePrecedentBridge:
         if self._store and hasattr(self._store, "close"):
             try:
                 self._store.close()
-            except (OSError, RuntimeError, ValueError):
+            except (OSError, RuntimeError, ValueError):  # guardian: allow-silent-swallow -- store cleanup on close is best-effort
                 pass
             self._store = None
 

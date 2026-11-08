@@ -101,7 +101,7 @@ def _resolve_pytest_cmd() -> list[str]:
         resolved = resolve_pytest(_REPO_ROOT)
         if resolved:
             return resolved
-    except (ImportError, OSError, RuntimeError, ValueError):
+    except (ImportError, OSError, RuntimeError, ValueError):  # guardian: allow-silent-swallow -- fallback to local venv resolution if helper import fails
         pass
     # 1. Local worktree venv
     venv_pytest = _REPO_ROOT / ".venv" / "bin" / "pytest"

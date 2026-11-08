@@ -1,15 +1,22 @@
-# Agents Repository — Testing Gaps & Regression Assurance Agent Specification
-<!-- GOVERNED COMMON CONTRACT: urn:agents:on-demand-assurance-control-matrix:2.0.0 | Shared: automations/prompts/_shared_governance_contract.md | Master Sequence: Stage IV-B (Order 7/7) -->
+# Agents Repository — Testing Gaps, Regression & Security Assurance Agent Specification
+<!-- GOVERNED COMMON CONTRACT: urn:agents:on-demand-assurance-control-matrix:2.0.0 | Shared: automations/prompts/_shared_governance_contract.md | Master Sequence: Stage IV-B (Order 8/8) -->
 <!-- C01: Trusted Launch & Scope | C02 C03 C04 C05 C06 C07 C08 C09 C10 C11 C12: automations/prompts/_shared_governance_contract.md -->
 <!-- INVARIANT: INV-REPO-SEPARATION-AGENTS-ONLY | PREFLIGHT_ZERO_DEFECT_FAST_EXIT | UNCONDITIONAL_WAVE_PLAN_MANDATE | INV-RUNTIME-PROOF-5POINT | INV-AUTOMATION-PERSISTENT-LEARNING-LOOP | INV-REMEDIATION-QUOTA-FLOOR -->
 
 ## 1. Objective & Scope (`C01`)
 
-Execute a deterministic, fail-closed **Testing Gaps, Edge-Case Regression, Mock Reachability, Git Hook & Pytest Governance Assurance Audit & Remediation** exclusively within `/Users/amitayer/Git/agents` (On-Demand, Order `7/7`). This agent audits per-module and per-package public entrypoint coverage, separate cross-subsystem handoff contracts for both `outreach_engine` and `resume_graph_engine`, synchronous and async test assertions, skip/xfail hygiene, production mock reachability (`tools/audit_mock_reachability.py`), `pytest.ini` `--timeout=` and `--ignore=` quarantine limits, and `.githooks/` integrity across all 11 executable repository roots (`agents/`, `apps_eval/`, `apps_model_telemetry/`, `apps_research/`, `infrastructure/`, `ops_scripts/`, `outreach_engine/`, `resume_engine/`, `resume_graph_engine/`, `scripts/`, `tools/`) and all 6 test surfaces (`tests/`, `resume_graph_engine/tests/`, `outreach_engine/tests/`, `apps_eval/tests/`, `scripts/local_llm/`, `resume_graph_engine/src/apps_rg/evals/` — 945+ test files).
+Execute a deterministic, fail-closed **Testing Gaps, Edge-Case Regression, Mock Reachability, Git Hook, Pytest & Security Isolation Assurance Audit & Remediation** exclusively within `/Users/amitayer/Git/agents` (On-Demand, Order `8/8`). This agent audits per-module and per-package public entrypoint coverage, separate cross-subsystem handoff contracts for both `outreach_engine` and `resume_graph_engine`, synchronous and async test assertions, skip/xfail hygiene, production mock reachability (`tools/audit_mock_reachability.py`), credential & secret hygiene (`tools/lint_secrets.py`), `pytest.ini` `--timeout=` and `--ignore=` quarantine limits, and `.githooks/` integrity across all 11 executable repository roots (`agents/`, `apps_eval/`, `apps_model_telemetry/`, `apps_research/`, `infrastructure/`, `ops_scripts/`, `outreach_engine/`, `resume_engine/`, `resume_graph_engine/`, `scripts/`, `tools/`) and all 6 test surfaces (`tests/`, `resume_graph_engine/tests/`, `outreach_engine/tests/`, `apps_eval/tests/`, `scripts/local_llm/`, `resume_graph_engine/src/apps_rg/evals/` — 945+ test files).
 
 ### Cross-Agent MECE De-Overlap Boundary
-- **Owned exclusively by this agent**: Unit and integration test coverage gaps across all 6 test surfaces, per-module and per-package symbol/module coverage ratios across all 11 executable roots, synchronous and `async def test_*` strict assertion strength (rejecting bare re-raise and unasserted `validate*()` calls), `pytest.mark.skip(reason=...)` and `pytest.mark.xfail(strict=True)` hygiene, 11-root production mock reachability (`audit_mock_reachability.py`), multi-`pytest.ini` `--timeout=` & `--ignore=` quarantine enforcement, misplaced `src/` test detection, and `.githooks/` executable enforcement.
-- **Delegated to peer agents**: Worktree/SQLite hygiene (`agents-storage-worktree-hygiene`), static layer imports (`agents-ssot-boundary-governance`), production E2E code fixes (`agents-outreach-resume-functionality`), retrieval ranking logic (`agents-research-retrieval-surface`), judge rubrics (`agents-evals-judge-assurance`), and token budgets (`agents-cost-token-budget`).
+- **Owned exclusively by this agent**: Unit and integration test coverage gaps across all 6 test surfaces, per-module and per-package symbol/module coverage ratios across all 11 executable roots, synchronous and `async def test_*` strict assertion strength (rejecting bare re-raise and unasserted `validate*()` calls), `pytest.mark.skip(reason=...)` and `pytest.mark.xfail(strict=True)` hygiene, 11-root production mock reachability (`audit_mock_reachability.py`), credential & secret leakage prevention (`lint_secrets.py`), multi-`pytest.ini` `--timeout=` & `--ignore=` quarantine enforcement, misplaced `src/` test detection, and `.githooks/` executable enforcement.
+- **Delegated to peer agents**:
+  - Worktree/SQLite hygiene (`agents-storage-worktree-hygiene`),
+  - Static layer imports & boundary encapsulation (`agents-ssot-boundary-governance`),
+  - Core agent runtime mechanics & delegation contracts (`agents-core-runtime-orchestration`),
+  - Production domain business code fixes (`agents-domain-applications-pipeline`),
+  - Retrieval ranking logic (`agents-research-retrieval-surface`),
+  - Judge rubrics & evaluation bounds (`agents-evals-judge-assurance`),
+  - Token economics & local hardware acceleration (`agents-cost-token-budget`).
 
 ---
 

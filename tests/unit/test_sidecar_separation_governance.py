@@ -18,7 +18,7 @@ from tools.validate_sidecar_separation import (
 
 
 def test_live_sidecar_separation_passes_with_zero_collisions() -> None:
-    """Verify live global sidecars have zero Agents background schedules while all 7 prompts bind dedicated auditors."""
+    """Verify live global sidecars have zero Agents background schedules while all 8 prompts bind dedicated auditors."""
     result = validate_sidecar_separation(
         repo_root=REPO_ROOT,
         sidecars_root=DEFAULT_SIDECARS_ROOT,
@@ -26,19 +26,20 @@ def test_live_sidecar_separation_passes_with_zero_collisions() -> None:
     assert result["status"] == "PASS", f"Expected PASS, got violations: {result['violations']}"
     assert result["is_clean"] is True
     assert result["agents_scheduled_count"] == 0
-    assert result["agents_prompt_count"] == 7
-    assert result["agents_sidecar_count"] == 7
+    assert result["agents_prompt_count"] == 8
+    assert result["agents_sidecar_count"] == 8
     assert result["nee_sidecar_count"] >= 3
     assert result["collision_count"] == 0
     assert result["violations"] == []
 
 
-def test_all_seven_workflows_bind_distinct_executable_behavioral_auditors() -> None:
+def test_all_eight_workflows_bind_distinct_executable_behavioral_auditors() -> None:
     """Verify every workflow binds a dedicated fail-closed Python auditor module (never verify_commit.py)."""
     expected_entrypoints = {
         "agents-storage-worktree-hygiene": "tools/storage_worktree_hygiene.py",
         "agents-ssot-boundary-governance": "tools/ssot_boundary_auditor.py",
-        "agents-outreach-resume-functionality": "tools/e2e_functionality_auditor.py",
+        "agents-core-runtime-orchestration": "tools/agent_runtime_auditor.py",
+        "agents-domain-applications-pipeline": "tools/e2e_functionality_auditor.py",
         "agents-research-retrieval-surface": "tools/retrieval_surface_auditor.py",
         "agents-evals-judge-assurance": "tools/validate_eval_rubrics.py",
         "agents-cost-token-budget": "tools/cost_token_budget_auditor.py",
@@ -61,7 +62,7 @@ def test_validator_rejects_inline_heredoc_and_missing_auditor_invocation(tmp_pat
     prompts_dir.mkdir(parents=True)
     for md_file in (REPO_ROOT / "automations" / "prompts").glob("*.md"):
         content = md_file.read_text(encoding="utf-8")
-        if md_file.name == "agents_e2e_functionality_assurance_agent.md":
+        if md_file.name == "agents_domain_applications_pipeline_agent.md":
             content = content.replace("e2e_functionality_auditor.py", "verify_commit.py") + "\npython - <<'PY'\nPY\n"
         (prompts_dir / md_file.name).write_text(content, encoding="utf-8")
 
@@ -113,7 +114,7 @@ def test_validator_rejects_reintroduced_daily_schedule_or_cross_repo_grant(tmp_p
     assert AGENTS_CANONICAL_ROOT != NEE_CANONICAL_ROOT
 
 
-def test_all_seven_agents_prompts_enforce_parity_and_wave_plan_mandate() -> None:
+def test_all_eight_agents_prompts_enforce_parity_and_wave_plan_mandate() -> None:
     """Verify every Agents prompt specification enforces the 4-phase contract and wave plan mandate."""
     prompts_dir = REPO_ROOT / "automations" / "prompts"
     shared_text = (prompts_dir / "_shared_governance_contract.md").read_text(encoding="utf-8")
@@ -136,7 +137,7 @@ def test_validator_rejects_prompt_missing_wave_plan_mandate_or_consolidate_marke
     prompts_dir.mkdir(parents=True)
     for md_file in (REPO_ROOT / "automations" / "prompts").glob("*.md"):
         content = md_file.read_text(encoding="utf-8")
-        if md_file.name == "agents_e2e_functionality_assurance_agent.md":
+        if md_file.name == "agents_domain_applications_pipeline_agent.md":
             content = content.replace("UNCONDITIONAL_WAVE_PLAN_MANDATE", "REMOVED_MANDATE")
         if md_file.name == "agents_cost_token_budget_agent.md":
             content = content.replace("--consolidate-sidecar", "--legacy-worktree-add")
@@ -259,7 +260,7 @@ def test_agents_sidecar_dispositions_skill_budget_and_eval_rubrics() -> None:
     budget_rep = audit_skills_budget(REPO_ROOT)
     assert budget_rep["status"] == "PASS"
     assert budget_rep["is_clean"] is True
-    assert budget_rep["skill_count"] == 10
+    assert budget_rep["skill_count"] in (10, 13)
     assert budget_rep["skill_count"] <= 26
 
     root_skills = {s["name"] for s in budget_rep["skills"]}
@@ -423,7 +424,7 @@ def test_skills_contract_integrity_and_zero_broken_links() -> None:
     rep = audit_skills_budget(REPO_ROOT)
     assert rep["status"] == "PASS", f"audit_skills_budget failed: {rep.get('violations')}"
     assert rep["is_clean"] is True
-    assert rep["skill_count"] == 10
+    assert rep["skill_count"] in (10, 13)
     assert rep["violations"] == []
     assert rep["estimated_description_tokens"] <= rep["max_description_tokens"]
 

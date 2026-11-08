@@ -353,12 +353,12 @@ def _safe_serialize(val: Any) -> Any:
         if hasattr(val, method) and callable(getattr(val, method)):
             try:
                 return _safe_serialize(getattr(val, method)())
-            except (TypeError, ValueError, AttributeError, KeyError):
+            except (TypeError, ValueError, AttributeError, KeyError):  # guardian: allow-silent-swallow -- fallback to str(val) if dict conversion fails
                 pass
     if hasattr(val, "__dict__"):
         try:
             return {str(k): _safe_serialize(v) for k, v in vars(val).items()}
-        except (TypeError, ValueError, AttributeError, KeyError):
+        except (TypeError, ValueError, AttributeError, KeyError):  # guardian: allow-silent-swallow -- fallback to str(val) if dict conversion fails
             pass
     return str(val)
 

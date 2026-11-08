@@ -112,7 +112,7 @@ class FeedbackController:
                 try:
                     self.learning_store.record_failure(kind, err, run_id=run_id)
                     hints.extend(self.learning_store.get_repair_hints(kind, err))
-                except (OSError, RuntimeError, ValueError, TypeError, KeyError):
+                except (OSError, RuntimeError, ValueError, TypeError, KeyError):  # guardian: allow-silent-swallow -- learning store failure recording is non-fatal
                     pass
         return hints
 
@@ -385,5 +385,5 @@ class FeedbackController:
                     repair_hint=repair_hint,
                     outcome=outcome,
                 )
-            except (OSError, RuntimeError, ValueError, TypeError, KeyError):
+            except (OSError, RuntimeError, ValueError, TypeError, KeyError):  # guardian: allow-silent-swallow -- store recording failure on resolution is non-fatal
                 pass
