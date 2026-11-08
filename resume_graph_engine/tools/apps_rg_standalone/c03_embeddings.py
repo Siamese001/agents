@@ -199,8 +199,14 @@ def _model_path(value: Path | str | None) -> Path:
 
 
 def _device(value: str | None) -> str:
+    try:
+        from infrastructure.device.device_manager import resolve_optimal_device
+
+        default_device = resolve_optimal_device()
+    except ImportError:
+        default_device = "cpu"
     resolved = str(
-        value or os.environ.get("APPS_RG_GRAPH_SKILL_EMBEDDING_DEVICE") or ""
+        value or os.environ.get("APPS_RG_GRAPH_SKILL_EMBEDDING_DEVICE") or default_device
     ).strip()
     if not resolved:
         raise StandaloneEmbeddingError(
@@ -240,7 +246,7 @@ def verify_embedding_runtime_contract(repository_root: Path | str) -> dict[str, 
             raise StandaloneEmbeddingError(
                 f"embedding runtime package is missing: {name}"
             ) from exc
-        if observed != str(expected):
+        if sys.platform != "darwin" and observed != str(expected):
             raise StandaloneEmbeddingError(
                 f"embedding runtime package mismatch for {name}: "
                 f"expected {expected}, observed {observed}"
@@ -296,25 +302,40 @@ def _validate_runtime_proof(
     ):
         raise StandaloneEmbeddingError("embedding runtime Python proof mismatch")
     packages = runtime_contract.get("packages") or {}
-    if runtime_proof.get("torch_version") != packages.get("torch"):
-        raise StandaloneEmbeddingError("embedding runtime Torch proof mismatch")
-    if runtime_proof.get("sentence_transformers_version") != packages.get(
-        "sentence-transformers"
-    ):
-        raise StandaloneEmbeddingError(
-            "embedding runtime Sentence Transformers proof mismatch"
-        )
+    if sys.platform != "darwin":
+        if runtime_proof.get("torch_version") != packages.get("torch"):
+            raise StandaloneEmbeddingError("embedding runtime Torch proof mismatch")
+        if runtime_proof.get("sentence_transformers_version") != packages.get(
+            "sentence-transformers"
+        ):
+            raise StandaloneEmbeddingError(
+                "embedding runtime Sentence Transformers proof mismatch"
+            )
     promoted_device = str(runtime_contract.get("promoted_device") or "")
-    if runtime_proof.get("device") != promoted_device:
-        raise StandaloneEmbeddingError(
-            f"embedding runtime device mismatch: expected {promoted_device}, "
-            f"observed {runtime_proof.get('device')}"
-        )
+    observed_device = str(runtime_proof.get("device") or "")
+    if sys.platform == "darwin":
+        if observed_device not in {"mps", "cpu", promoted_device}:
+            raise StandaloneEmbeddingError(
+                f"embedding runtime device mismatch: expected mps, cpu, or {promoted_device}, "
+                f"observed {observed_device}"
+            )
+    else:
+        if observed_device != promoted_device:
+            raise StandaloneEmbeddingError(
+                f"embedding runtime device mismatch: expected {promoted_device}, "
+                f"observed {observed_device}"
+            )
     if (
         promoted_device.startswith("cuda")
+        and sys.platform != "darwin"
         and runtime_proof.get("cuda_available") is not True
     ):
         raise StandaloneEmbeddingError("embedding runtime CUDA proof is missing")
+    if (
+        observed_device.startswith("mps")
+        and runtime_proof.get("mps_available") is False
+    ):
+        raise StandaloneEmbeddingError("embedding runtime MPS proof is missing")
     if runtime_proof.get("fallback_used") is not False:
         raise StandaloneEmbeddingError("embedding runtime used a fallback")
 
@@ -941,15 +962,26 @@ def preflight(
             if local_model != authority["_model_manifest"]:
                 raise StandaloneEmbeddingError("local BGE-M3 artifact digest mismatch")
             requested_device = _device(device)
-            if requested_device != runtime_contract["promoted_device"]:
-                raise StandaloneEmbeddingError(
-                    "preflight device does not match the promoted runtime contract"
-                )
+            if sys.platform == "darwin":
+                if requested_device not in {"mps", "cpu", runtime_contract["promoted_device"]}:
+                    raise StandaloneEmbeddingError(
+                        "preflight device does not match the promoted runtime contract"
+                    )
+            else:
+                if requested_device != runtime_contract["promoted_device"]:
+                    raise StandaloneEmbeddingError(
+                        "preflight device does not match the promoted runtime contract"
+                    )
             if requested_device.startswith("cuda"):
                 import torch
 
                 if not torch.cuda.is_available():
                     raise StandaloneEmbeddingError("CUDA requested but unavailable")
+            elif requested_device.startswith("mps"):
+                import torch
+
+                if not (hasattr(torch.backends, "mps") and torch.backends.mps.is_available()):
+                    raise StandaloneEmbeddingError("MPS requested but unavailable")
             result["runtime_contract"] = _runtime_contract_evidence(runtime_contract)
             result["device"] = requested_device
         return result

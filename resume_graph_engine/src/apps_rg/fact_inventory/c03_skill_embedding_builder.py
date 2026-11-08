@@ -113,6 +113,10 @@ def encode_bge_m3(
         raise SkillEmbeddingBuildError("BGE-M3 runtime dependencies are unavailable") from exc
     if device.startswith("cuda") and not torch.cuda.is_available():
         raise SkillEmbeddingBuildError("CUDA requested but unavailable")
+    if device.startswith("mps") and not (
+        hasattr(torch.backends, "mps") and torch.backends.mps.is_available()
+    ):
+        raise SkillEmbeddingBuildError("MPS requested but unavailable")
     from apps_rg.runtime.bge_embedding import (
         BgeEmbeddingContractError,
         get_bge_runtime,
@@ -131,6 +135,7 @@ def encode_bge_m3(
         "sentence_transformers_version": version("sentence-transformers"),
         "cuda_available": bool(torch.cuda.is_available()),
         "cuda_device_name": (str(torch.cuda.get_device_name(0)) if torch.cuda.is_available() else None),
+        "mps_available": bool(hasattr(torch.backends, "mps") and torch.backends.mps.is_available()),
         "fallback_used": False,
         "vector_count": len(texts),
         "dimension": MODEL_DIMENSION,

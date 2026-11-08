@@ -157,6 +157,9 @@ tools/archive/
 .coverage
 .coverage.*
 Thumbs.db
+# Runtime receipts and temporary run artifacts
+.runtime/
+
 repo_root.txt
 # runtime_adg// (broken pattern — double-slash; superseded by anchored rule below)
 

@@ -17,6 +17,22 @@ from typing import Any, Mapping, Sequence
 
 from apps_rg.runtime.embedding_settings import BGE_M3_DIMENSION
 
+try:
+    from infrastructure.device.device_manager import (
+        empty_cache,
+        resolve_optimal_device,
+        synchronize,
+    )
+except ImportError:
+    def resolve_optimal_device(requested: str | None = None) -> str:
+        return "cpu"
+
+    def synchronize(device: str | None = None) -> None:
+        pass
+
+    def empty_cache(device: str | None = None) -> None:
+        pass
+
 RUNTIME_SCHEMA = "apps_rg.bge_resident_runtime_w2.v1"
 DEFAULT_BACKEND = "sentence_transformers"
 DEFAULT_DTYPE = "float32"
@@ -52,7 +68,10 @@ def _canonical_device(value: str) -> str:
     device = value.strip().lower()
     if device == "cuda":
         return "cuda:0"
-    return device or "cuda:0"
+    if device:
+        return device
+    optimal = resolve_optimal_device()
+    return "cuda:0" if optimal == "cuda" else optimal
 
 
 def resolve_bge_runtime_key(
@@ -69,7 +88,7 @@ def resolve_bge_runtime_key(
         os.environ.get("APPS_RG_HYDRATION_DEVICE", "").strip()
         or os.environ.get("EMBEDDING_DEVICE", "").strip()
         or os.environ.get("VECTOR_DB_DEVICE", "").strip()
-        or "cuda:0"
+        or resolve_optimal_device()
     )
     if dtype is None:
         selected_dtype = resolve_bge_precision_dtype()
@@ -212,6 +231,12 @@ def load_local_bge_model(key: BgeRuntimeKey) -> Any:
     if key.device.startswith("cuda") and not torch.cuda.is_available():
         raise BgeEmbeddingContractError(
             f"{key.device} requested but torch.cuda.is_available() is false"
+        )
+    if key.device.startswith("mps") and not (
+        hasattr(torch.backends, "mps") and torch.backends.mps.is_available()
+    ):
+        raise BgeEmbeddingContractError(
+            f"{key.device} requested but torch.backends.mps.is_available() is false"
         )
     kwargs: dict[str, Any] = {
         "device": key.device,
@@ -361,26 +386,50 @@ class BgeResidentRuntime:
         return observation
 
     def _cuda_memory_observation(self) -> dict[str, float] | None:
-        if not self.key.device.startswith("cuda"):
-            return None
-        try:
-            import torch
+        divisor = 1024.0 * 1024.0
+        if self.key.device.startswith("cuda"):
+            try:
+                import torch
 
-            if not torch.cuda.is_available():
+                if not torch.cuda.is_available():
+                    return None
+                return {
+                    "allocated_mib": round(torch.cuda.memory_allocated() / divisor, 3),
+                    "reserved_mib": round(torch.cuda.memory_reserved() / divisor, 3),
+                    "peak_allocated_mib": round(
+                        torch.cuda.max_memory_allocated() / divisor, 3
+                    ),
+                    "peak_reserved_mib": round(
+                        torch.cuda.max_memory_reserved() / divisor, 3
+                    ),
+                }
+            except (ImportError, RuntimeError):
                 return None
-            divisor = 1024.0 * 1024.0
-            return {
-                "allocated_mib": round(torch.cuda.memory_allocated() / divisor, 3),
-                "reserved_mib": round(torch.cuda.memory_reserved() / divisor, 3),
-                "peak_allocated_mib": round(
-                    torch.cuda.max_memory_allocated() / divisor, 3
-                ),
-                "peak_reserved_mib": round(
-                    torch.cuda.max_memory_reserved() / divisor, 3
-                ),
-            }
-        except (ImportError, RuntimeError):
-            return None
+        if self.key.device.startswith("mps"):
+            try:
+                import torch
+
+                if not (hasattr(torch.backends, "mps") and torch.backends.mps.is_available()):
+                    return None
+                allocated = (
+                    int(torch.mps.current_allocated_memory())
+                    if hasattr(torch.mps, "current_allocated_memory")
+                    else 0
+                )
+                driver = (
+                    int(torch.mps.driver_allocated_memory())
+                    if hasattr(torch.mps, "driver_allocated_memory")
+                    else 0
+                )
+                return {
+                    "allocated_mib": round(allocated / divisor, 3),
+                    "reserved_mib": round(driver / divisor, 3),
+                    "peak_allocated_mib": round(allocated / divisor, 3),
+                    "peak_reserved_mib": round(driver / divisor, 3),
+                }
+            except (ImportError, RuntimeError):
+                return None
+        return None
 
     def warmup(self) -> None:
         with self._lock:
@@ -388,10 +437,7 @@ class BgeResidentRuntime:
                 return
             started = time.perf_counter()
             self._encode([WARMUP_TEXT], batch_size=1)
-            if self.key.device.startswith("cuda"):
-                import torch
-
-                torch.cuda.synchronize(int(self.key.device.split(":", 1)[1]))
+            synchronize(self.key.device)
             self.warmup_elapsed_ms = round((time.perf_counter() - started) * 1000.0, 3)
             self.warmup_completed = True
 
@@ -408,10 +454,7 @@ class BgeResidentRuntime:
             sequence_observation = self._sequence_observation(values)
             started = time.perf_counter()
             vectors = self._encode(values, batch_size=selected_batch_size)
-            if self.key.device.startswith("cuda"):
-                import torch
-
-                torch.cuda.synchronize()
+            synchronize(self.key.device)
             elapsed_ms = (time.perf_counter() - started) * 1000.0
             call_kind = "cold_caller" if self.encode_call_count == 0 else "warm_caller"
             if self.encode_call_count == 0:
@@ -513,10 +556,7 @@ class BgeResidentRuntime:
             try:
                 if model is not None and hasattr(model, "to"):
                     model.to("cpu")
-                import torch
-
-                if self.key.device.startswith("cuda") and torch.cuda.is_available():
-                    torch.cuda.empty_cache()
+                empty_cache(self.key.device)
             except (ImportError, RuntimeError):
                 pass
 
