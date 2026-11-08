@@ -46,26 +46,18 @@ _UNIT_LANES: Final[dict[str, tuple[str, ...]]] = {
     "skills": ("competencies",),
     "skills_block": ("competencies",),
     "experience": (
-        "unify_bullets",
-        "ibm_bullets",
-        "insurtech_bullets",
-        "ey_bullets",
-        "unify_narrative",
-        "ibm_narrative",
-        "insurtech_narrative",
-        "ey_narrative",
+        "slalom_bullets", "unify_bullets", "ibm_bullets", "insurtech_bullets",
+        "slalom_narrative", "unify_narrative", "ibm_narrative", "insurtech_narrative",
     ),
     "experience_block": (
-        "unify_bullets",
-        "ibm_bullets",
-        "insurtech_bullets",
-        "ey_bullets",
-        "unify_narrative",
-        "ibm_narrative",
-        "insurtech_narrative",
-        "ey_narrative",
+        "slalom_bullets", "unify_bullets", "ibm_bullets", "insurtech_bullets",
+        "slalom_narrative", "unify_narrative", "ibm_narrative", "insurtech_narrative",
     ),
 }
+_LEGACY_EXPERIENCE_LANES: Final[tuple[str, ...]] = (
+    "unify_bullets", "ibm_bullets", "insurtech_bullets", "ey_bullets",
+    "unify_narrative", "ibm_narrative", "insurtech_narrative", "ey_narrative",
+)
 _LOCKED_COPY_UNITS: Final[frozenset[str]] = frozenset(
     {"education", "education_block", "certifications", "certifications_block"}
 )
@@ -226,6 +218,9 @@ def _required_lanes(unit_id: str, lane_refs: Mapping[str, str]) -> tuple[str, ..
     normalized = unit_id.strip().lower()
     if normalized in _LOCKED_COPY_UNITS:
         return ("locked_copy",)
+    if normalized in ("experience", "experience_block"):
+        if "slalom_bullets" not in lane_refs and ("ey_bullets" in lane_refs or "ey_narrative" in lane_refs):
+            return _LEGACY_EXPERIENCE_LANES
     if normalized in _UNIT_LANES:
         return _UNIT_LANES[normalized]
     # Single-section plans use their section id as their L2 lane when it is a

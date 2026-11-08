@@ -81,23 +81,41 @@ _GENERIC_CONSULTING_REWRITES: tuple[tuple[re.Pattern[str], str], ...] = (
     (re.compile(r"\bclient delivery engagements\b", re.IGNORECASE), "client platform deployments"),
     (re.compile(r"\bprofessional services delivery\b", re.IGNORECASE), "enterprise platform delivery"),
     (re.compile(r"\bmanaged client relationships\b", re.IGNORECASE), "managed enterprise partner alliances"),
+    (re.compile(r"\bmanaged the relationship\b", re.IGNORECASE), "directed partner technical governance"),
     (re.compile(r"\bdelivery oversight\b", re.IGNORECASE), "engineering delivery governance"),
-    (re.compile(r"\bstakeholder management\b", re.IGNORECASE), "cross-functional executive alignment"),
+    (re.compile(r"\bstakeholder management\b", re.IGNORECASE), "cross-functional executive governance"),
+    (re.compile(r"\bkey stakeholders\b", re.IGNORECASE), "executive technical leaders"),
     (re.compile(r"\bcross-functional collaboration\b", re.IGNORECASE), "cross-functional engineering execution"),
     (re.compile(r"\bsubject matter expertise\b", re.IGNORECASE), "deep technical domain expertise"),
     (re.compile(r"\bdrove business outcomes\b", re.IGNORECASE), "drove commercial platform adoption"),
     (re.compile(r"\bdrive strategic value\b", re.IGNORECASE), "drive commercial platform value"),
-    (re.compile(r"\bensure alignment\b", re.IGNORECASE), "ensure architectural alignment"),
+    (re.compile(r"\bensure alignment\b", re.IGNORECASE), "enforce architectural governance"),
     (re.compile(r"\bleveraged best practices\b", re.IGNORECASE), "operationalized engineering standards"),
     (re.compile(r"\bworked closely with\b", re.IGNORECASE), "partnered with"),
+    (re.compile(r"\bcollaborated to deliver\b", re.IGNORECASE), "architected and shipped"),
+    (re.compile(r"\bensured the platform\b", re.IGNORECASE), "engineered the platform"),
+    (re.compile(r"\bbest-in-class solutions\b", re.IGNORECASE), "production-grade platform architectures"),
+    (re.compile(r"\bvalue-added solutions\b", re.IGNORECASE), "production-grade platform capabilities"),
+    (re.compile(r"\bend-to-end solutions\b", re.IGNORECASE), "end-to-end platform architectures"),
+    (re.compile(r"\bdelivered solutions\b", re.IGNORECASE), "shipped platform capabilities"),
     (re.compile(r"\bpartnered with stakeholders\b", re.IGNORECASE), "aligned cross-functional leadership"),
     (re.compile(r"\baligned with the business\b", re.IGNORECASE), "aligned with enterprise roadmaps"),
     (re.compile(r"\bfacilitating collaboration\b", re.IGNORECASE), "orchestrating technical execution"),
     (re.compile(r"\bdrove strategic alignment\b", re.IGNORECASE), "drove architectural convergence"),
+    (re.compile(r"\bstrategic alignment\b", re.IGNORECASE), "architectural convergence"),
     (re.compile(r"\bdrove alignment\b", re.IGNORECASE), "drove architectural convergence"),
     (re.compile(r"\benabling the business\b", re.IGNORECASE), "scaling platform capabilities"),
     (re.compile(r"\bproviding thought leadership\b", re.IGNORECASE), "establishing reference architecture"),
     (re.compile(r"\bthought leadership\b", re.IGNORECASE), "reference architecture"),
+    (re.compile(r"\bholistic approach\b", re.IGNORECASE), "system-wide architecture"),
+    (re.compile(r"\bsynergies\b", re.IGNORECASE), "platform efficiencies"),
+    (re.compile(r"\brobust framework\b", re.IGNORECASE), "deterministic control framework"),
+    (re.compile(r"\bgo-to-market strategy\b", re.IGNORECASE), "commercial GTM motion"),
+    (re.compile(r"\bdriving growth\b", re.IGNORECASE), "scaling commercial adoption"),
+    (re.compile(r"\benabling innovation\b", re.IGNORECASE), "accelerating platform engineering"),
+    (re.compile(r"\bkey deliverables\b", re.IGNORECASE), "production release milestones"),
+    (re.compile(r"\bseamless integration\b", re.IGNORECASE), "deterministic API integration"),
+    (re.compile(r"\bactionable insights\b", re.IGNORECASE), "decision-ready telemetry"),
     (re.compile(r"\bbest practices\b", re.IGNORECASE), "engineering standards"),
 )
 
@@ -136,6 +154,49 @@ def apply_narrative_consulting_clean(out: dict[str, Any], narrative: str) -> str
         out.setdefault("self_check", {})["consulting_language_cleaned"] = True
         return cleaned
     return narrative
+
+
+def apply_bullet_consulting_clean(out: dict[str, Any]) -> bool:
+    """Deterministically clean generic consulting phrases across bullet rows and claim_ledger."""
+    if not isinstance(out, dict):
+        return False
+    changed = False
+    text_remap: dict[str, str] = {}
+    bullets = out.get("bullets")
+    if isinstance(bullets, list):
+        for row in bullets:
+            if not isinstance(row, dict):
+                continue
+            bt = row.get("bullet_text")
+            if isinstance(bt, str) and bt:
+                cleaned = rewrite_generic_consulting_phrases(bt)
+                if cleaned != bt:
+                    text_remap[bt.strip()] = cleaned
+                    row["bullet_text"] = cleaned
+                    changed = True
+    ledger = out.get("claim_ledger")
+    if isinstance(ledger, list):
+        for entry in ledger:
+            if not isinstance(entry, dict):
+                continue
+            ct = entry.get("claim_text")
+            if isinstance(ct, str) and ct:
+                mapped = text_remap.get(ct.strip())
+                cleaned = mapped if mapped is not None else rewrite_generic_consulting_phrases(ct)
+                if cleaned != ct:
+                    entry["claim_text"] = cleaned
+                    changed = True
+    if changed:
+        changelog = out.setdefault("change_log", [])
+        if isinstance(changelog, list):
+            changelog.append({
+                "operation": "consulting_language_deterministic_clean",
+                "reason": "x2_bullet_technical_specificity_floor_consulting_clean",
+            })
+        self_check = out.setdefault("self_check", {})
+        if isinstance(self_check, dict):
+            self_check["consulting_language_cleaned"] = True
+    return changed
 
 
 def detect_jd_only_phrases(text: str, jd_text: str, *, min_run: int = 6) -> list[str]:
@@ -195,6 +256,7 @@ def is_flat_skill_only_graph_packet(packet: dict[str, Any] | None) -> bool:
 __all__ = [
     "ARCHITECTURE_MECHANISM_VOCAB",
     "GENERIC_CONSULTING_PHRASES",
+    "apply_bullet_consulting_clean",
     "apply_narrative_consulting_clean",
     "base_archive_ngram_overlap",
     "detect_generic_consulting_phrases",

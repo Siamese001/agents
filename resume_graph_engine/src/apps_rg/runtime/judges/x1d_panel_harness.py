@@ -234,9 +234,10 @@ class JudgePanelRunner:
             key_violations: list[TransportParityViolation] = []
 
             from apps_rg.runtime.providers.wallclock_http_guard import (
-                 is_lane_cancelled,
+                is_lane_cancelled,
                 resolve_judge_total_budget_s,
             )
+            import random
             import time
 
             deadline = time.monotonic() + resolve_judge_total_budget_s()
@@ -273,6 +274,11 @@ class JudgePanelRunner:
                             error=str(exc),
                         )
                     )
+                    if attempt < max(max_attempts, 1) and not is_lane_cancelled():
+                        rem = deadline - time.monotonic()
+                        if rem > 0.2:
+                            backoff_s = min(8.0, (1.5 ** (attempt - 1)) + random.uniform(0.15, 0.65))
+                            time.sleep(min(backoff_s, max(0.0, rem - 0.1)))
                     continue
 
             if outcome is None or receipt is None:

@@ -35,35 +35,19 @@ SECTION_EVIDENCE_CONTRACTS_ENV = "APPS_RG_SECTION_FINAL_GRAPH_EVIDENCE_CONTRACTS
 SECTION_SOURCE_PLANS_ENV = "APPS_RG_SECTION_GRAPH_SOURCE_PLANS"
 DEFAULT_MAX_CANDIDATES_PER_SLOT = 256
 
-_ALLOCATION_DIGEST_EXCLUDED_KEYS = frozenset(
-    {
-        "allocation_plan_id",
-        "allocation_plan_digest",
-        "prior_seal",
-        "prior_seals",
-        "downstream_receipt",
-        "downstream_receipts",
-    }
-)
+_ALLOCATION_DIGEST_EXCLUDED_KEYS = frozenset({
+    "allocation_plan_id", "allocation_plan_digest", "prior_seal", "prior_seals", "downstream_receipt", "downstream_receipts",
+})
 
 _WORD_RE = re.compile(r"[a-z0-9]+")
 _DIGIT_LETTER_RE = re.compile(r"(?<=\d)(?=[a-z])|(?<=[a-z])(?=\d)")
 _METRIC_EQUIVALENTS = {
-    "percent": "pct",
-    "percentage": "pct",
-    "million": "m",
-    "millions": "m",
-    "billion": "b",
-    "billions": "b",
-    "dollars": "usd",
-    "dollar": "usd",
+    "percent": "pct", "percentage": "pct", "million": "m", "millions": "m",
+    "billion": "b", "billions": "b", "dollars": "usd", "dollar": "usd",
 }
 _EXACT_METRIC_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
     (re.compile(r"(?:\$|\busd\s*)(\d+(?:\.\d+)?)\s*(m|million|b|billion)?\b", re.I), "USD"),
-    (
-        re.compile(r"\b(\d+(?:\.\d+)?)\s*(%|percent\b|percentage\b)", re.I),
-        "PERCENT",
-    ),
+    (re.compile(r"\b(\d+(?:\.\d+)?)\s*(%|percent\b|percentage\b)", re.I), "PERCENT"),
     (re.compile(r"\b(\d+(?:\.\d+)?)\s*(x|times)\b", re.I), "MULTIPLIER"),
     (
         re.compile(
@@ -83,43 +67,19 @@ CANONICAL_BULLET_CLAIM_UNITS: Mapping[str, tuple[str, ...]] = {
     "ey_bullets": (),
 }
 EMPLOYER_LANE_BY_SECTION: Mapping[str, str] = {
-    "slalom_bullets": "slalom",
-    "unify_bullets": "unify",
-    "ibm_bullets": "ibm",
-    "insurtech_bullets": "insurtech",
-    "ey_bullets": "ey",
+    "slalom_bullets": "slalom", "unify_bullets": "unify", "ibm_bullets": "ibm", "insurtech_bullets": "insurtech", "ey_bullets": "ey",
 }
 NARRATIVE_DERIVATION_POLICY: Mapping[str, str] = {
-    "slalom_narrative": "slalom_bullets",
-    "unify_narrative": "unify_bullets",
-    "ibm_narrative": "ibm_bullets",
-    "insurtech_narrative": "insurtech_bullets",
-    "ey_narrative": "ey_bullets",
+    "slalom_narrative": "slalom_bullets", "unify_narrative": "unify_bullets",
+    "ibm_narrative": "ibm_bullets", "insurtech_narrative": "insurtech_bullets", "ey_narrative": "ey_bullets",
 }
 CANONICAL_VISIBLE_SECTIONS: tuple[str, ...] = (
-    "competencies",
-    "slalom_bullets",
-    "unify_bullets",
-    "ibm_bullets",
-    "insurtech_bullets",
-    "ey_bullets",
-    "executive_summary",
-    "headline",
+    "competencies", "slalom_bullets", "unify_bullets", "ibm_bullets", "insurtech_bullets", "ey_bullets", "executive_summary", "headline",
 )
 ALL_CLAIM_BEARING_SECTIONS: tuple[str, ...] = (
-    "competencies",
-    "slalom_bullets",
-    "unify_bullets",
-    "ibm_bullets",
-    "insurtech_bullets",
-    "ey_bullets",
-    "slalom_narrative",
-    "unify_narrative",
-    "ibm_narrative",
-    "insurtech_narrative",
-    "ey_narrative",
-    "executive_summary",
-    "headline",
+    "competencies", "slalom_bullets", "unify_bullets", "ibm_bullets", "insurtech_bullets", "ey_bullets",
+    "slalom_narrative", "unify_narrative", "ibm_narrative", "insurtech_narrative", "ey_narrative",
+    "executive_summary", "headline",
 )
 
 
@@ -1704,6 +1664,28 @@ def slice_section_plan_for_allocation(
         if isinstance(row, Mapping)
         and str(row.get("role_episode_bundle_id") or row.get("fact_id") or "")
     }
+    for raw in section_plan.get("graph_candidate_decision_ledger") or []:
+        if not isinstance(raw, Mapping) or str(raw.get("candidate_type") or "") != "role_episode_root":
+            continue
+        auth = raw.get("authority")
+        if not (raw.get("authority_pass") is True or (isinstance(auth, Mapping) and auth.get("authority_pass") is True)):
+            continue
+        root_id = str(raw.get("root_id") or raw.get("candidate_id") or "").strip()
+        if root_id and root_id not in source_facts_by_root:
+            source_facts_by_root[root_id] = {
+                "fact_id": root_id,
+                "candidate_fact_id": root_id,
+                "role_episode_bundle_id": root_id,
+                "claim_text": str(raw.get("claim_text") or ""),
+                "employer_lane": str(raw.get("employer_lane") or ""),
+                "source_employment": str(raw.get("employer") or raw.get("employer_lane") or ""),
+                "domain": str(raw.get("bundle_theme") or raw.get("claim_scope") or ""),
+                "linked_source_fact_ids": list(raw.get("linked_source_fact_ids") or []),
+                "linked_identity_fact_ids": list(raw.get("linked_source_fact_ids") or []),
+                "graph_skill_node_ids": list(raw.get("graph_skill_node_ids") or []),
+                "metric_outcome_ids": list(raw.get("metric_outcome_ids") or []),
+                "confidence": "HIGH",
+            }
     source_skills_by_root: dict[str, list[dict[str, Any]]] = {}
     for raw in section_plan.get("selected_skills") or []:
         if not isinstance(raw, Mapping):

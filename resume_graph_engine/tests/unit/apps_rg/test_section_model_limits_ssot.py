@@ -66,11 +66,23 @@ def test_explicit_claude_section_pins() -> None:
 
 
 def test_explicit_openai_section_pins() -> None:
-    for section_id in ("slalom_narrative", "unify_narrative", "ibm_narrative", "insurtech_narrative"):
+    for section_id in (
+        "slalom_bullets",
+        "slalom_narrative",
+        "unify_narrative",
+        "ibm_narrative",
+        "insurtech_narrative",
+    ):
         assert (
             sml.external_openai_generation_model(section_id=section_id)
             == _yaml_openai_section_model(section_id)
             == "gpt-5.6-luna"
+        )
+        assert (
+            sml.resolve_section_generation_effort(
+                section_id, provider_profile="external_openai"
+            )
+            == "medium"
         )
 
 

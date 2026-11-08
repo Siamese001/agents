@@ -54,21 +54,14 @@ def _canonical_json(value: Any) -> str:
 
 
 def _digest(value: Any) -> str:
-    return (
-        f"sha256:{hashlib.sha256(_canonical_json(value).encode('utf-8')).hexdigest()}"
-    )
+    return f"sha256:{hashlib.sha256(_canonical_json(value).encode('utf-8')).hexdigest()}"
 
 
 def _sha256_file(path: Path) -> str:
     return f"sha256:{hashlib.sha256(path.read_bytes()).hexdigest()}"
 
 
-def _read_json_object(
-    path: Path,
-    errors: list[str],
-    *,
-    source_ref: str,
-) -> dict[str, Any]:
+def _read_json_object(path: Path, errors: list[str], *, source_ref: str) -> dict[str, Any]:
     try:
         value = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError, TypeError) as exc:
@@ -88,21 +81,16 @@ def _source_binding(root: Path, path: Path) -> dict[str, Any]:
         raise ValueError(f"whole-run Exit source escapes artifact_dir: {path}") from exc
     present = target.is_file()
     return {
-        "artifact_ref": ref,
-        "present": present,
-        "sha256": _sha256_file(target) if present else "",
-        "byte_length": target.stat().st_size if present else 0,
+        "artifact_ref": ref, "present": present,
+        "sha256": _sha256_file(target) if present else "", "byte_length": target.stat().st_size if present else 0,
     }
 
 
 def _gate_all_pass(payload: Mapping[str, Any]) -> bool:
     gates = payload.get("gates")
     return bool(
-        payload.get("all_pass") is True
-        and not list(payload.get("failed_gate_ids") or ())
-        and isinstance(gates, list)
-        and gates
-        and all(isinstance(row, Mapping) and row.get("pass") is True for row in gates)
+        payload.get("all_pass") is True and not list(payload.get("failed_gate_ids") or ())
+        and isinstance(gates, list) and gates and all(isinstance(row, Mapping) and row.get("pass") is True for row in gates)
     )
 
 
@@ -114,9 +102,7 @@ def _failed_gate_ids(value: Any) -> list[str]:
     return []
 
 
-def build_whole_run_exit_signals(
-    artifact_dir: Path,
-) -> tuple[dict[str, Any], tuple[Path, ...], tuple[str, ...]]:
+def build_whole_run_exit_signals(artifact_dir: Path) -> tuple[dict[str, Any], tuple[Path, ...], tuple[str, ...]]:
     """Derive product Exit inputs from persisted apps_rg artifacts only.
 
     The pinned core wrapper remains runtime-transport evidence.  It cannot
@@ -239,6 +225,19 @@ def build_whole_run_exit_signals(
                 ),
             }
         )
+        runtime_gen_status = str(status.get("runtime_generation_status") or "")
+        is_pre_run_blocked = runtime_gen_status.startswith("PRE_RUN_BLOCKED") or (
+            status.get("executed") is False
+            and not (lane_root / "c0_metrics.json").is_file()
+        )
+        if is_pre_run_blocked:
+            c0_all_pass = False
+            pa_consumed_c0 = False
+            pa_evidence_data_only = False
+            pa_schema_bound = False
+            final_materialized_acceptance_failed_lanes.append(lane)
+            continue
+
         c0_metrics = load(lane_root.relative_to(root) / "c0_metrics.json")
         compiled = load(lane_root.relative_to(root) / "compiled_prompt_artifact.json")
         fec_receipt = load(lane_root.relative_to(root) / "c0_fec_compose_receipt.json")

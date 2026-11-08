@@ -420,6 +420,13 @@ def resolve_section_generation_effort(
             else:
                 res = resolve(f"generation.{sid}")
                 if res.provider != "external_openai":
+                    openai_effort = _ssot_effort_by_section("external_openai_generator").get(sid)
+                    if openai_effort:
+                        if openai_effort not in {"low", "medium", "high", "xhigh"}:
+                            raise SectionModelSSOTError(
+                                f"Invalid generation effort {openai_effort!r} for section={sid!r} in {_PROVIDER_PROFILES_PATH}"
+                            )
+                        return openai_effort
                     raise SectionModelSSOTError(
                         f"Missing profiles.external_openai_generator.effort_by_section.{sid} "
                         f"and Anthropic-limit preflight is inactive in {_PROVIDER_PROFILES_PATH}"
@@ -486,6 +493,9 @@ def resolve_section_generation_model(
         try:
             res = resolve(f"generation.{sid}")
             if res.provider != "external_openai":
+                openai_model = _ssot_model_by_section("external_openai_generator").get(sid)
+                if openai_model:
+                    return openai_model
                 raise SectionModelSSOTError(
                     f"Missing profiles.external_openai_generator.model_by_section.{sid} and "
                     f"Anthropic-limit preflight is inactive in {_PROVIDER_PROFILES_PATH}"

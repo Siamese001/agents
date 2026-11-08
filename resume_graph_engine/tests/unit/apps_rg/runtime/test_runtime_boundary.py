@@ -76,3 +76,51 @@ def test_boundary_detects_later_path_mutation(tmp_path: Path) -> None:
 
     with pytest.raises(RuntimeBoundaryViolation, match="PATH_AUTHORITY_VIOLATION:HF_HOME"):
         assert_apps_rg_runtime_boundary(repo_root=repo, environ=env, policy_path=policy)
+
+
+def test_boundary_allows_symlinked_shared_data_within_trusted_parent_checkout(tmp_path: Path) -> None:
+    parent_checkout = tmp_path / "agents_checkout"
+    parent_checkout.mkdir()
+    (parent_checkout / ".git").mkdir()
+
+    shared_model = parent_checkout / "artifacts" / "models" / "BAAI" / "bge-m3"
+    shared_model.mkdir(parents=True)
+
+    repo = parent_checkout / "resume_graph_engine"
+    repo.mkdir()
+    policy = _policy(repo)
+
+    artifacts_dir = repo / "artifacts"
+    artifacts_dir.mkdir()
+    (artifacts_dir / "models").symlink_to(parent_checkout / "artifacts" / "models")
+
+    env: dict[str, str] = {}
+    boundary = configure_apps_rg_runtime_boundary(repo_root=repo, environ=env, policy_path=policy)
+    verified = assert_apps_rg_runtime_boundary(repo_root=repo, environ=env, policy_path=policy)
+
+    assert boundary.effective_paths["APPS_RG_EMBEDDING_MODEL_PATH"] == shared_model.resolve()
+    assert verified.effective_paths["APPS_RG_EMBEDDING_MODEL_PATH"] == shared_model.resolve()
+
+
+def test_product_entry_does_not_create_orphan_dir_when_boundary_fails(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from apps_rg.runtime import product_entry
+
+    repo = tmp_path / "resume_graph_engine"
+    repo.mkdir()
+    _policy(repo)
+
+    orphan_dir = repo / "artifacts" / "apps_rg" / "runtime_proofs" / "full_resume_test_orphan"
+    monkeypatch.setattr(product_entry, "find_repo_root", lambda: repo)
+    monkeypatch.setenv("HF_HOME", str(tmp_path / "foreign_hf"))
+
+    with pytest.raises(RuntimeBoundaryViolation, match="PATH_AUTHORITY_VIOLATION:HF_HOME"):
+        product_entry.run_product_whole_run_from_primitives(
+            target_company="Anthropic",
+            target_role="Manager of Applied AI Architecture, Partnerships",
+            artifact_dir=str(orphan_dir),
+        )
+
+    assert not orphan_dir.exists()
+

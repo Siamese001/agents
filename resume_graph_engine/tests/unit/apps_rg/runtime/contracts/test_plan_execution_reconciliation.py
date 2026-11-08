@@ -293,3 +293,53 @@ def test_w1_l2_fault_is_recorded_as_generation_failure_when_no_output_is_observe
 
     assert {row["disposition"] for row in receipt["unit_outcomes"]} == {"FAILED"}
     assert {row["failure_code"] for row in receipt["unit_outcomes"]} == {"GENERATION_FAILED"}
+
+
+def test_w1_reconciles_canonical_slalom_experience_lanes(tmp_path: Path) -> None:
+    capsule = _full_resume_capsule()
+    canonical_lanes = (
+        "headline",
+        "executive_summary",
+        "competencies",
+        "unify_bullets",
+        "ibm_bullets",
+        "insurtech_bullets",
+        "slalom_bullets",
+        "unify_narrative",
+        "ibm_narrative",
+        "insurtech_narrative",
+        "slalom_narrative",
+    )
+    lane_refs: dict[str, str] = {}
+    for lane in canonical_lanes:
+        ref = f"modular_r4/sections/{lane}/l2_output.json"
+        _write(tmp_path / ref)
+        lane_refs[lane] = ref
+    _write(tmp_path / "modular_r4/locked_copy/locked_copy_manifest.json")
+    _write(tmp_path / "modular_r4/section_provider_calls.json")
+    _write(tmp_path / "runtime_execution_witness.json")
+    control_receipts = _control_execution_receipts(capsule)
+
+    receipt = build_plan_execution_reconciliation(
+        request_id="w1-request",
+        run_id="w1-run",
+        plan_capsule=capsule,
+        artifact_dir=tmp_path,
+        execution_witness=_witness(),
+        l2_result={"section_output_refs": lane_refs},
+        control_execution_receipts=control_receipts,
+    )
+
+    assert receipt["summary"]["all_planned_units_reconciled"] is True
+    observations = {row["unit_id"]: row for row in receipt["unit_observations"]}
+    assert observations["experience_block"]["required_execution_lanes"] == [
+        "slalom_bullets",
+        "unify_bullets",
+        "ibm_bullets",
+        "insurtech_bullets",
+        "slalom_narrative",
+        "unify_narrative",
+        "ibm_narrative",
+        "insurtech_narrative",
+    ]
+    validate_plan_execution_reconciliation(receipt)

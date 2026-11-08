@@ -61,12 +61,23 @@ _SHARED_DATA_ENV_KEYS = frozenset({"CHROMA_PERSIST_DIR", "APPS_RG_EMBEDDING_MODE
 
 def _resolve_expected_boundary_path(name: str, relative: str, root: Path) -> Path:
     resolved = (root / relative).resolve()
+    if name in _SHARED_DATA_ENV_KEYS:
+        from apps_rg.runtime.worktree_path_resolution import (
+            is_within_trusted_checkout,
+            resolve_existing_trusted_rel_path,
+        )
+
+        allowed, _ = is_within_trusted_checkout(resolved, root)
+        if not allowed:
+            raise RuntimeBoundaryViolation(f"PATH_AUTHORITY_POLICY_ESCAPE:{name}={relative}")
+        if not resolved.exists():
+            resolved = resolve_existing_trusted_rel_path(relative, root)
+            allowed, _ = is_within_trusted_checkout(resolved, root)
+            if not allowed:
+                raise RuntimeBoundaryViolation(f"PATH_AUTHORITY_POLICY_ESCAPE:{name}={relative}")
+        return resolved
     if not _is_within(resolved, root):
         raise RuntimeBoundaryViolation(f"PATH_AUTHORITY_POLICY_ESCAPE:{name}={relative}")
-    if name in _SHARED_DATA_ENV_KEYS and not resolved.exists():
-        from apps_rg.runtime.worktree_path_resolution import resolve_existing_trusted_rel_path
-
-        resolved = resolve_existing_trusted_rel_path(relative, root)
     return resolved
 
 

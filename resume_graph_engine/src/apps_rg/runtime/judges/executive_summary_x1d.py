@@ -8,8 +8,10 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import random
 import re
 import sys
+import threading
 import time
 import urllib.error
 import urllib.request
@@ -40,6 +42,10 @@ DEFAULT_THRESHOLD = 0.80
 VALID_SCORE_SCALES = frozenset({"0_to_1", "0_to_5"})
 JUDGE_REQUIRED_FIELDS = ("score_scale", "score", "threshold", "pass")
 
+_GEMINI_CONCURRENCY_SEMAPHORE = threading.BoundedSemaphore(
+    max(1, int(os.environ.get("APPS_RG_GEMINI_JUDGE_MAX_CONCURRENCY", "2") or 2))
+)
+
 
 def _judge_http_timeout() -> int:
     try:
@@ -49,86 +55,46 @@ def _judge_http_timeout() -> int:
 
 
 def _record_x1d_external_usage(
-    *,
-    artifact_base: Path | None,
-    provider: str,
-    model: str,
-    input_hash: str,
-    section_id: str | None,
-    logical_attempt: int,
-    transport_attempt: int,
-    outcome: str,
-    provider_status: str,
-    usage: Mapping[str, Any] | None = None,
-    response_id: str | None = None,
-    retry_reason: str | None = None,
-    raw_response_ref: str | None = None,
+    *, artifact_base: Path | None, provider: str, model: str, input_hash: str,
+    section_id: str | None, logical_attempt: int, transport_attempt: int,
+    outcome: str, provider_status: str, usage: Mapping[str, Any] | None = None,
+    response_id: str | None = None, retry_reason: str | None = None, raw_response_ref: str | None = None,
 ) -> None:
     """Write diagnostic token telemetry without affecting a judge verdict."""
     try:
         append_external_model_usage(
-            artifact_dir=artifact_base,
-            provider=provider,
-            model=model,
-            request_digest=input_hash,
-            outcome=outcome,
-            provider_status=provider_status,
-            usage=usage,
-            section_id=section_id or "executive_summary",
-            stage="L2.X1D_judge",
-            logical_attempt=logical_attempt,
-            transport_attempt=transport_attempt,
-            retry_reason=retry_reason,
-            response_id=response_id,
-            raw_response_ref=raw_response_ref,
+            artifact_dir=artifact_base, provider=provider, model=model, request_digest=input_hash,
+            outcome=outcome, provider_status=provider_status, usage=usage,
+            section_id=section_id or "executive_summary", stage="L2.X1D_judge",
+            logical_attempt=logical_attempt, transport_attempt=transport_attempt,
+            retry_reason=retry_reason, response_id=response_id, raw_response_ref=raw_response_ref,
         )
     except OSError:
         return
 
 
 def _x1d_token_budget_blocked_output(
-    *,
-    artifact_base: Path | None,
-    provider: str,
-    provider_key: str,
-    model: str,
-    input_hash: str,
-    prompt: str,
-    max_output_tokens: int,
-    section_id: str | None,
-    attempt: int,
+    *, artifact_base: Path | None, provider: str, provider_key: str, model: str,
+    input_hash: str, prompt: str, max_output_tokens: int, section_id: str | None, attempt: int,
 ) -> JudgeOutput | None:
     try:
         reservation = reserve_apps_rg_model_tokens(
-            artifact_dir=artifact_base,
-            provider=provider,
-            model=model,
-            request_digest=input_hash,
-            prompt_text=prompt,
-            max_output_tokens=max_output_tokens,
-            stage="L2.X1D_judge",
-            section_id=section_id or "executive_summary",
-            run_id="",
+            artifact_dir=artifact_base, provider=provider, model=model, request_digest=input_hash,
+            prompt_text=prompt, max_output_tokens=max_output_tokens, stage="L2.X1D_judge",
+            section_id=section_id or "executive_summary", run_id="",
         )
     except ValueError as exc:
         return _make_blocked_output(
-            provider_key,
-            input_hash,
-            "BLOCKED_TOKEN_BUDGET",
-            "BLOCKED_TOKEN_BUDGET",
-            f"External-model token budget ledger invalid: {exc}",
-            model_name=model,
+            provider_key, input_hash, "BLOCKED_TOKEN_BUDGET", "BLOCKED_TOKEN_BUDGET",
+            f"External-model token budget ledger invalid: {exc}", model_name=model,
         )
     if reservation.allowed:
         return None
     return _make_blocked_output(
-        provider_key,
-        input_hash,
-        "BLOCKED_TOKEN_BUDGET",
-        "BLOCKED_TOKEN_BUDGET",
+        provider_key, input_hash, "BLOCKED_TOKEN_BUDGET", "BLOCKED_TOKEN_BUDGET",
         (
-            "External-model token budget preflight blocked: "
-            f"{reservation.reason}; estimated_input_tokens={reservation.estimated_input_tokens}; "
+            f"External-model token budget preflight blocked: {reservation.reason}; "
+            f"estimated_input_tokens={reservation.estimated_input_tokens}; "
             f"prior_reserved_total_tokens={reservation.prior_reserved_total_tokens}; "
             f"max_reserved_tokens_per_run={reservation.max_reserved_tokens_per_run}"
         ),
@@ -204,17 +170,32 @@ def _judge_retry_backoff_seconds(attempt: int) -> float:
 
 
 def _is_retriable_judge_output(output: JudgeOutput) -> bool:
-    """True when another bounded judge attempt may recover (parse/empty/schema)."""
+    """True when another bounded judge attempt may recover (parse/empty/schema/rate-limit)."""
     if not output.provider_blocked:
         return False
     status, err = str(output.provider_status or ""), str(output.exact_provider_error or "").lower()
+    if any(
+        marker in err
+        for marker in (
+            "exceeded its monthly spending cap",
+            "monthly spending cap",
+            "project spend cap",
+            "billing account",
+        )
+    ):
+        return False
+    if status == "BLOCKED_RATE_LIMIT":
+        return True
     if status == "BLOCKED_RESPONSE_PARSE_ERROR":
         return any(n in err for n in ("extract json", "parse error", "no judge text", "empty", "finish_reason", "finishreason", "incomplete judge json", "completion token", "reasoning"))
     if status == "BLOCKED_SCHEMA_VALIDATION_ERROR":
         return True
     if status == "BLOCKED_PROVIDER_UNAVAILABLE":
-        return any(n in err for n in ("timeout", "timed out", "urlerror", "connection reset", "connection refused", "connection aborted", "errno 8", "nodename nor servname", "remote end closed", "temporarily unavailable", "sslerror", "503", "502", "504", "429"))
+        return any(n in err for n in ("timeout", "timed out", "urlerror", "connection reset", "connection refused", "connection aborted", "errno 8", "nodename nor servname", "remote end closed", "temporarily unavailable", "sslerror", "503", "502", "504", "429", "resource_exhausted"))
     return False
+
+
+_is_retriable = _is_retriable_judge_output
 
 
 def _invoke_judge_with_bounded_retries(
@@ -236,7 +217,8 @@ def _invoke_judge_with_bounded_retries(
         if not _is_retriable_judge_output(last) or attempt >= max_attempts or rem <= 0.1 or is_lane_cancelled():
             return last
         backoff = _section_judge_retry_backoff_seconds(section_id, attempt) if section_id else _judge_retry_backoff_seconds(attempt)
-        time.sleep(min(backoff, max(0.0, rem)))
+        jitter = random.uniform(0.1, 0.75)
+        time.sleep(min(backoff + jitter, max(0.0, rem)))
     assert last is not None
     return last
 
@@ -1579,12 +1561,22 @@ def _call_gemini(
 
     for transport_attempt in range(retries + 1):
         try:
-            with urlopen_provider_request(req, timeout=_judge_http_timeout()) as response:
-                raw_response = response.read().decode()
+            with _GEMINI_CONCURRENCY_SEMAPHORE:
+                with urlopen_provider_request(req, timeout=_judge_http_timeout()) as response:
+                    raw_response = response.read().decode()
             break
         except urllib.error.HTTPError as e:
             body = e.read().decode(errors="replace")
-            if transport_attempt < retries and e.code == 429:
+            hard_quota = any(
+                marker in body.lower()
+                for marker in (
+                    "exceeded its monthly spending cap",
+                    "monthly spending cap",
+                    "project spend cap",
+                    "billing account",
+                )
+            )
+            if transport_attempt < retries and e.code == 429 and not hard_quota:
                 _record_x1d_external_usage(
                     artifact_base=artifact_base,
                     provider="gemini",
@@ -1601,7 +1593,9 @@ def _call_gemini(
                     raise TimeoutError("Gemini judge cancelled during rate-limit backoff")
                 wait_s = _parse_gemini_retry_delay_seconds(body)
                 if wait_s is None:
-                    wait_s = min(15.0, 2.0**transport_attempt)
+                    wait_s = min(15.0, (2.0**transport_attempt) + random.uniform(0.25, 1.25))
+                else:
+                    wait_s = float(wait_s) + random.uniform(0.15, 0.75)
                 time.sleep(min(15.0, max(1.0, float(wait_s))))
                 continue
 
