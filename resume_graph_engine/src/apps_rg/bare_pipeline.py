@@ -276,7 +276,10 @@ def _render_deterministic_resume(
         narrative = str(role_fact.get("role_narrative") or "").strip()
         if narrative:
             lines.append(narrative)
-        for bullet in role_fact.get("bullets") or []:
+        role_bullets = list(role_fact.get("bullets") or [])
+        if str(role_fact.get("fact_id") or "") == "exp_insurtech_001":
+            role_bullets = role_bullets[:2]
+        for bullet in role_bullets:
             text = str(bullet.get("text") or "").strip() if isinstance(bullet, Mapping) else ""
             if text:
                 lines.append(f"- {text}")
@@ -2402,30 +2405,10 @@ def read_bare_artifact(run_dir: str | Path, artifact: str) -> str:
     return path.read_text(encoding="utf-8")
 
 
-def run_csuite_five_section_jd_e2e(
-    *, target_company: str, target_role: str, jd_path: str | Path, briefing_path: str | Path | None = None, artifact_root: str | Path | None = None
-) -> dict[str, Any]:
-    """Run deterministic 5-section Seven-Figure C-Suite resume generation & DOCX verification for a target JD."""
-    from apps_rg.runtime.final_resume_outputs import emit_csuite_five_section_outputs
-
-    repo = _repo_root()
-    jd_text, jd_ref = _resolve_text_input(str(jd_path))
-    briefing_text = Path(briefing_path).read_text(encoding="utf-8", errors="replace").strip() if (briefing_path and Path(briefing_path).is_file()) else ""
-    run_dir = _allocate_run_dir(str(artifact_root or ""), repo_root=repo)
-    _write_text(run_dir / "target_jd.txt", jd_text)
-    if briefing_text:
-        _write_text(run_dir / "target_briefing.md", briefing_text)
-    report = emit_csuite_five_section_outputs(run_dir, target_company=target_company, target_role=target_role, jd_text=jd_text, briefing_text=briefing_text, repo_root=repo)
-    report.update({"jd_ref": jd_ref, "jd_sha256": _sha256_text(jd_text), "briefing_loaded": bool(briefing_text), "artifact_dir": str(run_dir)})
-    _write_json(run_dir / "csuite_jd_run_summary.json", report)
-    return report
-
-
 __all__ = [
     "BarePipelineError", "CANONICAL_STAGE_ORDER", "compare_deterministic_runs",
     "deterministic_run_projection", "evaluate_bare_run", "read_bare_artifact",
     "run_bare_deterministic_e2e", "run_bare_e2e", "run_bare_live_e2e",
-    "run_csuite_five_section_jd_e2e",
 ]
 
 

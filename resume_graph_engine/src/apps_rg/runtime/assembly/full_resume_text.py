@@ -7,18 +7,11 @@ from typing import Any
 
 from apps_rg.runtime.section_display_labels import (
     CERTIFICATIONS_AND_CREDENTIALS_HEADING,
-    CSUITE_FIVE_SECTION_HEADINGS,
-    DATELESS_CREDENTIALS_FOOTER_HEADING,
     ENGINEERING_PLATFORM_COMPETENCIES_HEADING,
-    EXECUTIVE_AGENTIC_CAPABILITIES_HEADING,
-    EXECUTIVE_EXPERIENCE_2017_PRESENT_HEADING,
-    EXECUTIVE_INVESTMENT_THESIS_HEADING,
-    PRIOR_CSUITE_PEDIGREE_HEADING,
     resolve_competencies_heading,
 )
 from apps_rg.runtime.assembly.competencies_display import (
     competency_display_rows,
-    csuite_capability_display_rows,
 )
 
 _MONTHS = ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
@@ -161,7 +154,12 @@ def base_role_headers_from_final_resume(final_resume: dict[str, Any]) -> dict[st
         return {}
 
     out: dict[str, dict[str, Any]] = {}
-    for idx, role_key in enumerate(BASE_ROLE_HEADER_KEYS):
+    role_keys = (
+        ("slalom", "unify", "ibm", "insurtech", "early_career")
+        if len(employers) == 5
+        else BASE_ROLE_HEADER_KEYS
+    )
+    for idx, role_key in enumerate(role_keys):
         if idx >= len(employers) or idx >= len(titles) or idx >= len(locations) or idx >= len(dates):
             continue
         date_row = dates[idx]
@@ -229,6 +227,8 @@ def _append_generated_role(
         bullet_snap.get("bullets") or [],
         exclude_texts=(narr,) if narr else (),
     )
+    if missing_label == "insurtech":
+        bullets = bullets[:2]
     if missing_label == "ey" and not narr and not bullets:
         return
     hdr = base_header or narr_snap.get(header_key) or bullet_snap.get(header_key) or {}
@@ -439,157 +439,3 @@ def flatten_final_resume_to_text(final_resume: dict[str, Any]) -> str:
 
     return "\n".join(lines).rstrip() + "\n"
 
-
-def format_value_bar_text(value_bar: list[dict[str, Any]]) -> list[str]:
-    """Render the 4-column C-suite Enterprise Value Bar."""
-    if not value_bar:
-        return []
-    cols = [c for c in value_bar if isinstance(c, dict) and c.get("header")][:4]
-    if not cols:
-        return []
-    headers = [str(c.get("header") or "").strip() for c in cols]
-    max_rows = max((len(c.get("items") or []) for c in cols), default=0)
-    col_w = 24
-    border = "+" + "+".join("-" * col_w for _ in cols) + "+"
-    out = [border]
-    out.append("|" + "|".join(f" {h[: col_w - 2]:<{col_w - 2}} " for h in headers) + "|")
-    for r_idx in range(max_rows):
-        row_cells = []
-        for c in cols:
-            items = c.get("items") or []
-            cell = str(items[r_idx]).strip() if r_idx < len(items) else ""
-            row_cells.append(f" {cell[: col_w - 2]:<{col_w - 2}} ")
-        out.append("|" + "|".join(row_cells) + "|")
-    out.append(border)
-    return out
-
-
-def flatten_csuite_five_section_resume_to_text(
-    base_resume: dict[str, Any],
-    *,
-    target_company: str = "",
-    target_role: str = "",
-    headline_override: str = "",
-    thesis_override: str = "",
-) -> str:
-    """Render the streamlined 5-section Seven-Figure C-Suite Executive Resume."""
-    header = base_resume.get("header") if isinstance(base_resume.get("header"), dict) else {}
-    facts = base_resume.get("facts") if isinstance(base_resume.get("facts"), dict) else {}
-    name = str(header.get("name") or base_resume.get("candidate_name") or "AMIT AYER").strip().upper()
-    contact_bits = [
-        str(header.get("phone") or "+1-917-239-3830").strip(),
-        str(header.get("email") or "amitayer1@gmail.com").strip(),
-        str(header.get("linkedin") or "linkedin.com/in/amitayer1").strip(),
-        str(header.get("github") or "https://github.com/Siamese001/agents").strip(),
-    ]
-    contact_str = " | ".join(b for b in contact_bits if b)
-
-    role_label = str(target_role or "CHIEF AI & TECHNOLOGY OFFICER").strip()
-    co_label = str(target_company or "").strip()
-    if headline_override.strip():
-        headline = headline_override.strip()
-    else:
-        headline = (
-            f"{role_label.upper()} | ENTERPRISE AGENTIC PLATFORMS | P&L LEADER\n"
-            "Architecting Governed Autonomous AI Systems, $82M+ Commercial Growth & 20%+ "
-            f"EBITDA Expansion Across Regulated Enterprises{f' ({co_label})' if co_label else ''}"
-        )
-
-    if thesis_override.strip():
-        thesis = thesis_override.strip()
-    else:
-        thesis = (
-            "Enterprise AI and technology executive who aligns multi-year architecture strategy, operating governance, and cloud modernization across regulated financial and insurance institutions. "
-            "Guides reusable agentic platforms and decision-intelligence systems with human-in-the-loop controls that turn fragmented legacy estates into governed production capabilities. "
-            "Through that operating model, scaled a 106-engineer organization and over $82M in cumulative commercial growth across $30M transformation portfolios, $22M in platform IP revenue, and $15M in cloud co-sell alliances. "
-            "Across enterprise programs, bi-temporal knowledge graphs and automated release gates enforce end-to-end audit lineage while reducing manual reporting errors and infrastructure overhead by 40%. "
-            "An FSA-chartered actuarial foundation in capital modeling and stochastic risk underpins containerized high-performance compute practices that shorten enterprise stress-testing cycles by 40%. "
-            "Can apply this blend of governed platform engineering, partner ecosystem execution, and quantitative capital discipline to accelerate enterprise-wide AI adoption and durable margin expansion."
-        )
-
-    value_bar = list(facts.get("value_bar") or [])
-    csuite_caps = csuite_capability_display_rows(base_resume, target_company=target_company, target_role=target_role)
-    employment = [e for e in (facts.get("employment") or []) if isinstance(e, dict)]
-    core_roles = [e for e in employment if not e.get("is_pedigree_capsule") and e.get("experience_tier") != "pedigree_capsule_pre_2017"]
-    capsule_roles = [e for e in employment if e.get("is_pedigree_capsule") or e.get("experience_tier") == "pedigree_capsule_pre_2017"]
-    cred_footer = facts.get("csuite_credentials_footer") if isinstance(facts.get("csuite_credentials_footer"), dict) else {}
-
-    lines: list[str] = [
-        name,
-        contact_str,
-        headline,
-        "",
-        f"1. {EXECUTIVE_INVESTMENT_THESIS_HEADING}",
-        thesis,
-        "",
-        *format_value_bar_text(value_bar),
-        "",
-        f"2. {EXECUTIVE_AGENTIC_CAPABILITIES_HEADING}",
-    ]
-    for cat_label, cat_summary in csuite_caps:
-        lines.append(f"• {cat_label}: {cat_summary}")
-    lines.append("")
-
-    lines.append(f"3. {EXECUTIVE_EXPERIENCE_2017_PRESENT_HEADING}")
-    for emp in core_roles:
-        employer = str(emp.get("employer") or "").strip()
-        title = str(emp.get("title") or "").strip()
-        loc = str(emp.get("location") or "").strip()
-        dates = format_dates(
-            str(emp.get("start_date") or ""),
-            str(emp.get("end_date") or ""),
-            bool(emp.get("is_current")),
-        )
-        lines.append(f"{employer} | {title} | {loc} | {dates}")
-        mandate = str(emp.get("mandate_line") or "").strip()
-        if mandate:
-            lines.append(mandate)
-        for b in emp.get("bullets") or []:
-            if isinstance(b, dict) and str(b.get("text") or "").strip():
-                lines.append(f"• {str(b['text']).strip()}")
-        lines.append("")
-
-    lines.append(f"4. {PRIOR_CSUITE_PEDIGREE_HEADING}")
-    for emp in capsule_roles:
-        employer = str(emp.get("employer") or "").strip()
-        title = str(emp.get("title") or "").strip()
-        loc = str(emp.get("location") or "").strip()
-        dates = format_dates(
-            str(emp.get("start_date") or ""),
-            str(emp.get("end_date") or ""),
-            bool(emp.get("is_current")),
-        )
-        lines.append(f"{employer} | {title} | {loc} | {dates}")
-        mandate = str(emp.get("mandate_line") or "").strip()
-        if mandate:
-            lines.append(mandate)
-        cap_bullet = str(emp.get("capsule_bullet") or "").strip()
-        if cap_bullet:
-            lines.append(f"• {cap_bullet}")
-        else:
-            for b in (emp.get("bullets") or [])[:2]:
-                if isinstance(b, dict) and str(b.get("text") or "").strip():
-                    lines.append(f"• {str(b['text']).strip()}")
-        eqf = str(emp.get("earlier_quantitative_foundation") or "").strip()
-        if eqf:
-            lines.append(eqf)
-        lines.append("")
-
-    lines.append(f"5. {DATELESS_CREDENTIALS_FOOTER_HEADING}")
-    edu_line = str(cred_footer.get("education_line") or "").strip()
-    charter_line = str(cred_footer.get("executive_charter_line") or "").strip()
-    cloud_line = str(cred_footer.get("cloud_ai_credentials_line") or "").strip()
-    if edu_line:
-        lines.append(f"• Education: {edu_line}")
-    else:
-        edu_entries = [format_edu(e, dateless=True) for e in (facts.get("education") or []) if isinstance(e, dict)]
-        lines.append(f"• Education: {' | '.join(x for x in edu_entries if x)}")
-    if charter_line:
-        lines.append(f"• Executive Charter: {charter_line}")
-    if cloud_line:
-        lines.append(f"• Cloud & AI Credentials: {cloud_line}")
-    else:
-        cert_entries = [format_cert(c, dateless=True) for c in (facts.get("certifications") or []) if isinstance(c, dict)]
-        lines.append(f"• Cloud & AI Credentials: {' | '.join(x for x in cert_entries if x)}")
-
-    return "\n".join(lines).rstrip() + "\n"
