@@ -505,7 +505,7 @@ roles:
     review_after: "2026-11-07"
     backup_role: generation_backup.executive_summary
     params:
-      effort: high
+      effort: medium
       temperature: null
 
   # Anthropic limit backup roles

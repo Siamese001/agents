@@ -129,7 +129,8 @@ BRIEFING_DEFAULT = resolve_briefing_for_lanes(briefing_artifact_ref=None).text
 # 900 truncated live responses mid-JSON (postW4_20260610_1716: cut at char 3373 == the cap,
 # parse_status=TRUNCATED_JSON -> 25-gate cascade). Same defect class as the bullets 2200-cap
 # incident; headline JSON (line + ledger + change_log + self_check) needs headroom, not 900.
-HEADLINE_MAX_OUTPUT_TOKENS = 4000
+# Sonnet 5 adaptive thinking alone can consume ~4000 tokens, so 8000 ensures text output budget.
+HEADLINE_MAX_OUTPUT_TOKENS = 8000
 
 # Parse/normalize model JSON for live generation and for the offline contract stub (same payload shape).
 _HEADLINE_JSON_OUTPUT_STATUSES: frozenset[str] = frozenset({"REAL_LLM", OFFLINE_CONTRACT_STUB_RUNTIME_STATUS})
