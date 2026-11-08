@@ -91,6 +91,7 @@ _ROLE_EMPLOYER_WEIGHTS: dict[str, dict[str, float]] = {
     "executive_agentic_transformation": {"slalom": 1.00, "unify": 1.00, "ibm": 1.00, "ey": 0.90, "insurtech": 0.60},
     "ai_partnerships_gtm": {"slalom": 1.00, "unify": 0.95, "ibm": 0.90, "insurtech": 0.35, "ey": 0.10},
     "insurance_it_strategy": {"insurtech": 1.00, "ey": 0.70, "ibm": 0.55, "unify": 0.30, "slalom": 0.25},
+    "insurance_agentic_ai": {"slalom": 1.00, "unify": 0.95, "insurtech": 0.90, "ey": 0.75, "ibm": 0.65},
     "balanced_enterprise_ai": {"slalom": 0.85, "unify": 0.75, "ibm": 0.70, "insurtech": 0.55, "ey": 0.45},
 }
 
@@ -160,6 +161,7 @@ _HEADLINE_FAMILIES_BY_PROFILE: dict[str, tuple[str, ...]] = {
         "enterprise_ai_architecture",
         "runtime_governance",
     ),
+    "insurance_agentic_ai": ("agentic_ai_platforms", "regulated_ai_systems", "runtime_governance", "enterprise_ai_architecture"),
     "balanced_enterprise_ai": (
         "svp_engineering_leadership",
         "enterprise_ai_architecture",
@@ -209,6 +211,7 @@ _COMPETENCY_FAMILIES_BY_PROFILE: dict[str, tuple[str, ...]] = {
         "platform_productization",
         "runtime_governance",
     ),
+    "insurance_agentic_ai": ("agentic_platforms", "insurance_domain_modernization", "runtime_governance", "retrieval_context_engineering", "llmops_reliability", "distributed_systems_engineering", "platform_productization", "engineering_leadership"),
     "balanced_enterprise_ai": (
         "distributed_systems_engineering",
         "runtime_governance",
@@ -293,7 +296,9 @@ def _infer_target_role_profile(*, target_role: str, jd_text: str, briefing_text:
         )
     )
     if insurance_hits >= 3:
-        return "insurance_it_strategy"
+        return "insurance_agentic_ai" if "agentic" in target_role.lower() else "insurance_it_strategy"
+    if "firmwide ai" in blob or ("ai strategy" in target_role.lower() and any(k in blob for k in ("citi", "banking", "institutional", "capital markets"))):
+        return "balanced_enterprise_ai"
     transformation_consulting_hits = sum(
         token in blob
         for token in (

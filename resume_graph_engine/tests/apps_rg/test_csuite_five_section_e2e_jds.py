@@ -229,6 +229,19 @@ def test_wave5_csuite_five_section_e2e_across_three_jds(
     assert report["briefing_loaded"] is True
     assert report["text_validation"]["status"] == "PASS"
     assert report["docx_validation"]["status"] == "PASS"
+    gp = report["graph_evidence_plan"]
+    assert len(str(gp.get("plan_digest") or "")) == 64
+    assert gp["selected_skill_ids"]
+    if slug == "brown_brown":
+        assert gp["target_role_profile"] == "insurance_it_strategy"
+        assert "insurance_domain_modernization" in gp["selected_competency_families"]
+    elif slug == "aig":
+        assert gp["target_role_profile"] == "insurance_agentic_ai"
+        assert "insurance_domain_modernization" in gp["selected_competency_families"]
+        assert "agentic_platforms" in gp["selected_competency_families"]
+    elif slug == "citi":
+        assert gp["target_role_profile"] == "balanced_enterprise_ai"
+        assert "data_governance_security" in gp["selected_competency_families"]
 
     run_dir = Path(report["artifact_dir"])
     txt_file = run_dir / "CSUITE_FINAL_RESUME.txt"
