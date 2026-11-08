@@ -81,7 +81,7 @@ Traces every `AGENTS.md` section to enforceable rules, skills, hooks, tools, and
 | Rule | `AGENTS.md` | Subsystem encapsulation; autonomous domains, shared utilities in infrastructure |
 | Tool | `tools/lint_layer_imports.py` | Unidirectional layer import linter (L0–L6) |
 | Tool | `tools/lint_architecture_boundaries.py` | Cross-subsystem architectural boundary enforcement |
-| Tool | `tools/ssot_boundary_auditor.py` | Full 9-package cross-subsystem, timeout, config drift, and link auditor |
+| Tool | `tools/ssot_boundary_auditor.py` | Full 11-root cross-subsystem, timeout, config drift, and link auditor |
 
 ### §"Rules & Skills SSOT"
 | Type | Path | Coverage |
@@ -124,7 +124,7 @@ Traces every `AGENTS.md` section to enforceable rules, skills, hooks, tools, and
 | Engine | `tools/ssot_boundary_auditor.py` | Deterministic 6-dimension cross-subsystem boundary, AST floor, MCP/hook, and config/data SSOT auditor |
 | Engine | `tools/validate_eval_rubrics.py` | Deterministic exit-eval rubric `[0.0, 1.0]` bounds, 154-file holdout dataset, and purity validator |
 | Engine | `tools/cost_token_budget_auditor.py` | Deterministic 8-pillar tokenomics, multi-tier caching, and dynamic $\text{ROI} \ge 2.5\times$ Pareto benchmark auditor |
-| Engine | `tools/audit_mock_reachability.py` | Deterministic 9-package production mock reachability auditor |
+| Engine | `tools/audit_mock_reachability.py` | Deterministic 11-root production mock reachability auditor |
 | Test | `tests/unit/test_sidecar_separation_governance.py` | Unit tests for schedule retirement, cross-repo isolation, 6-pillar storage/WAL hygiene, and 8-pillar cost/caching audit |
 
 ### §"Unified Agent Architecture & Delegation Contracts"

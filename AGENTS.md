@@ -38,13 +38,13 @@ Required behavior:
 
 | Server ID | Use For | Example Tools | Notes | Skill |
 |---|---|---|---|---|
-| `GitKraken` | Git operations, GitLens, pull requests, issues | `git_status, git_add_or_commit, git_log_or_diff, pull_request_create` | Use as the git/PR authority. | [agents-governance-hygiene](.agents/skills/agents-governance-hygiene/SKILL.md) |
+| `GitKraken` | Git operations, GitLens, pull requests, issues | `git_status, git_add_or_commit, git_log_or_diff, pull_request_create` | Use as the git/PR authority. | [operational-gates](.agents/skills/operational-gates/SKILL.md) |
 | `adg_sqlite` | Dependency graph, blast radius, layer analysis, refactoring hotspots, graph-layer primitives (mv_*, v_p*, semantic edges) | `adg_health, adg_edge_fanout, adg_edge_fanin, adg_nodes_by_file, adg_nodes_by_layer, adg_violations, adg_p0_wave_plan` | Structural deps + T2/T3 plans; §22 graph layer (mv_*, P-views, semantic edges). | [scope-containment](.agents/skills/scope-containment/SKILL.md) |
 | `deepwiki` | External GitHub repository docs and wiki Q&A | `read_wiki_structure, read_wiki_contents, ask_question` | Do not use for this repo's own code. | [agents-governance-hygiene](.agents/skills/agents-governance-hygiene/SKILL.md) |
-| `filesystem` | Filesystem MCP operations and directory traversal | `read_text_file, read_multiple_files, directory_tree, write_file` | Prefer native reads for ordinary file reads when available. | [agents-governance-hygiene](.agents/skills/agents-governance-hygiene/SKILL.md) |
+| `filesystem` | Filesystem MCP operations and directory traversal | `read_text_file, read_multiple_files, directory_tree, write_file` | Prefer native reads for ordinary file reads when available. | [scope-containment](.agents/skills/scope-containment/SKILL.md) |
 | `memory` | Persistent cross-session knowledge graph | `mem_recall_session_start, create_entities, add_observations, search_nodes` | Read at session start; write back major decisions. | [agents-governance-hygiene](.agents/skills/agents-governance-hygiene/SKILL.md) |
-| `vector_db` | Semantic search and embeddings | `semantic_search, query_collection, vector_stats, list_collections` | Not for structural dependency analysis. | [agents-governance-hygiene](.agents/skills/agents-governance-hygiene/SKILL.md) |
-| `playwright` | Browser automation, accessibility snapshots, end-to-end UI verification | `browser_navigate, browser_snapshot, browser_click, browser_fill_form, browser_evaluate, browser_take_screenshot` | Live UI/E2E; output in artifacts/mcp/playwright/ (gitignored). Close tabs after use. | [agents-governance-hygiene](.agents/skills/agents-governance-hygiene/SKILL.md) |
+| `vector_db` | Semantic search and embeddings | `semantic_search, query_collection, vector_stats, list_collections` | Not for structural dependency analysis. | [agents-domain-assurance](.agents/skills/agents-domain-assurance/SKILL.md) |
+| `playwright` | Browser automation, accessibility snapshots, end-to-end UI verification | `browser_navigate, browser_snapshot, browser_click, browser_fill_form, browser_evaluate, browser_take_screenshot` | Live UI/E2E; output in artifacts/mcp/playwright/ (gitignored). Close tabs after use. | [testing-framework](.agents/skills/testing-framework/SKILL.md) |
 | `notion` | Notion pages and project-management databases | `API-query-data-source, API-retrieve-a-page, API-patch-page` | Manual page/DB read+write only; no plan-status enforcement (Notion plan/wave/status governance removed). | [agents-governance-hygiene](.agents/skills/agents-governance-hygiene/SKILL.md) |
 | `context7` | Up-to-date, versioned official documentation for external libraries | `resolve-library-id, get-library-docs` | External package docs; not this repo. CONTEXT7_API_KEY optional. | [agents-governance-hygiene](.agents/skills/agents-governance-hygiene/SKILL.md) |
 
@@ -108,7 +108,10 @@ Pytest runs with plugin **autoload ON** (CI default); `addopts` carries `--timeo
 
 ## Subsystems vs Infrastructure (summary)
 
-Subsystems (`outreach_engine/`, `resume_graph_engine/`) are autonomous, self-contained domains. Shared runtime utilities, SDK adapters, and cross-cutting components live under `infrastructure/`. Inter-subsystem boundaries and local encapsulation are strictly respected.
+The repository partitions all production code across 11 executable package roots with zero unowned modules:
+- **Autonomous Subsystems (7)**: `agents/` (orchestrators & dispatch), `apps_eval/` (objective multi-judge panel), `apps_model_telemetry/` (pricing & token governor), `apps_research/` (company research & BGE-M3 retrieval), `outreach_engine/` (campaign generation & CRM adapters), `resume_engine/` (candidate modeling & baseline parser), and `resume_graph_engine/` (`apps_rg/` graph allocation & Word docx export).
+- **Shared Infrastructure & Operations (4)**: `infrastructure/` (runtime adapters & config loaders), `ops_scripts/` (smoke runners & operational runbooks), `scripts/` (local model serving), and `tools/` (governance gates, turn validators, PR merge queue).
+Inter-subsystem boundaries and local encapsulation are strictly respected; cross-subsystem direct imports are blocked by `tools/ssot_boundary_auditor.py`.
 
 ## Rules & Skills SSOT
 
@@ -140,7 +143,14 @@ Google Antigravity is the primary execution surface for this repository. Repo-ow
 - Active MCP server configuration is maintained in root `.mcp.json` and `.agents/mcp_config.json`.
 - Workspace runtime boundaries and path containment policies live in `.antigravity/runtime-boundary.json`.
 - Plans are disk-only under `plans/<name>-<6hex>.md`.
-- **On-Demand Assurance Workflows (`INV-REPO-SEPARATION-AGENTS-ONLY`)**: Daily background schedules are retired (`0` active `agents-*` sidecars); the 7 `automations/prompts/agents_*_agent.md` workflows run on demand via `.agents/skills/` and pre-save hooks (contract: `automations/prompts/_shared_governance_contract.md`, routing: `.agents/rules/sidecar-automation-routing.md`, validator: `python tools/validate_sidecar_separation.py`) in strict isolation from `/Users/amitayer/Git/decision-intelligence-engine`.
+- **On-Demand Assurance Workflows (`INV-REPO-SEPARATION-AGENTS-ONLY`)**: Daily background schedules are retired (`0` active `agents-*` sidecars). Continuous enforcement runs locally via `.githooks/pre-commit`, and deep domain sweeps run on demand via the 7-stage master sequence under `automations/prompts/agents_*_agent.md` (`_shared_governance_contract.md`, `.agents/rules/sidecar-automation-routing.md`, validator: `python tools/validate_sidecar_separation.py`):
+  - Stage I (`agents-storage-worktree-hygiene`): 6-pillar storage, worktree pruning, and SQLite WAL across all 11 roots (`tools/storage_worktree_hygiene.py`).
+  - Stage II (`agents-ssot-boundary-governance`): 10-dimension boundary, layer import, and config sprawl audit across all 11 roots (`tools/ssot_boundary_auditor.py`).
+  - Stage III-A (`agents-outreach-resume-functionality`): E2E outreach, resume, and docx generation pipeline (`tools/e2e_functionality_auditor.py`).
+  - Stage III-B (`agents-research-retrieval-surface`): Research retrieval, BGE-M3 dense/sparse RRF, and SQLite write proof (`tools/retrieval_surface_auditor.py`).
+  - Stage III-C (`agents-evals-judge-assurance`): Rubric scales, holdout dataset integrity, and cross-family judge isolation (`tools/validate_eval_rubrics.py`).
+  - Stage IV-A (`agents-cost-token-budget`): 8-pillar tokenomics, multi-tier caching, dynamic ROI >= 2.5x (`tools/cost_token_budget_auditor.py`).
+  - Stage IV-B (`agents-testing-gaps-assurance`): 11-root entrypoint coverage, assertion strength, and mock reachability (`tools/testing_gaps_auditor.py`).
 - **Governed PR Queue & Trunk Reservation Lock**: All feature branches merge into local `main` via `python tools/pr_governance.py [start|sync|review|merge|promote|submit|queue|finish]` under `.git/governed_merge_queue.lock` and `.git/governed_merge_queue_waiters.json` (rule: `.agents/rules/pr-governance.md`). Direct commits to `main` are blocked by `.githooks/pre-commit`; queued branches automatically catch up onto `main` under the trunk lock so `local main` is never a moving target.
 - **Worktree & Branch Post-PR Cleanup**: Following any PR merge into local `main`, the associated local worktree and its feature branch must be cleanly pruned (`git worktree remove <path>` and `git branch -d <branch>`) to maintain zero branch drift and prevent stale worktree accumulation.
 

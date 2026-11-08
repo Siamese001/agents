@@ -1,6 +1,6 @@
 # On-Demand Assurance Routing & Cross-Repository Firewall (`agents-*`)
 
-Governs the 7 on-demand assurance workflows and consolidated skills for the `agents` repository (`agents/`, `apps_model_telemetry/`, `outreach_engine/`, `resume_engine/`, `resume_graph_engine/`, `apps_research/`, `apps_eval/`, `infrastructure/`, and `ops_scripts/`), ensuring zero unattended daily background runs and strict isolation from all Decision Intelligence Engine sidecars.
+Governs the 7 on-demand assurance workflows and consolidated skills for the `agents` repository across all 11 executable package roots (`agents/`, `apps_eval/`, `apps_model_telemetry/`, `apps_research/`, `infrastructure/`, `ops_scripts/`, `outreach_engine/`, `resume_engine/`, `resume_graph_engine/`, `scripts/`, and `tools/`), ensuring zero unattended daily background runs and strict isolation from all Decision Intelligence Engine sidecars.
 
 ## 1. Schedule Retirement & Cross-Repository Isolation (`INV-REPO-SEPARATION-AGENTS-ONLY`)
 
