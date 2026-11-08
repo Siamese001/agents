@@ -66,3 +66,83 @@ def test_signature_block_helpers():
 
     rec_sig = get_recruiter_signature_block("Amit Ayer")
     assert "linkedin.com/in/amitayer1" in rec_sig
+
+
+def test_compiler_connection_note_long_title_and_long_fact_no_double_ellipsis():
+    """Defect 6A & 6B: Long target_title and long fact statement must not produce '......' or drop metrics."""
+    from apps_lic.domain.models import (
+        CandidateFact,
+        CandidateProfile,
+        RecipientClass,
+        RelationshipDistance,
+        TargetOpportunity,
+    )
+
+    compiler = PromptCompiler()
+    cand = CandidateProfile(
+        candidate_id="cand_long",
+        full_name="Jordan Reed",
+        target_title="Executive Vice President of Global Enterprise Cloud Infrastructure and AI Platform Architecture",
+        current_title="EVP Cloud & AI",
+        executive_summary="Scaled cloud platforms.",
+        key_competencies=["Cloud", "AI"],
+        verified_facts=[
+            CandidateFact(
+                fact_id="f_long",
+                category="scale",
+                statement="architected and scaled distributed multi-region payment and risk platforms processing $4.2B annual volume with 99.995% availability across regulated global banking markets",
+                metric="$4.2B",
+                source_reference="resume",
+            )
+        ],
+    )
+    opp = TargetOpportunity(
+        opportunity_id="opp_long",
+        company_name="Global Financial Services Group",
+        role_title="Head of Enterprise Cloud & AI Infrastructure",
+        industry="Banking & Financial Services",
+        recipient_name="Morgan Vance",
+        recipient_title="Chief Information Officer",
+        recipient_class=RecipientClass.HIRING_MANAGER,
+        relationship_distance=RelationshipDistance.COLD,
+        strategic_priorities=[
+            "Modernize core multi-region cloud banking infrastructure and payment resilience across global operations"
+        ],
+    )
+
+    _, body, fact_ids = compiler.render_draft_message(cand, opp, ChannelType.LINKEDIN_CONNECTION)
+    assert len(body) <= 300
+    assert "......" not in body
+    assert "...." not in body
+    assert "$4.2B" in body
+    assert fact_ids == ["f_long"]
+
+
+def test_compiler_follow_up_channel_with_and_without_priorities(sample_candidate, sample_opportunity):
+    """Defect 7: ChannelType.FOLLOW_UP single-draft compilation stays <= 800 chars and grounds company/priorities."""
+    from dataclasses import replace
+
+    compiler = PromptCompiler()
+
+    # 1. With strategic priorities
+    subj1, body1, _ = compiler.render_draft_message(
+        sample_candidate,
+        sample_opportunity,
+        ChannelType.FOLLOW_UP,
+    )
+    assert len(body1) <= 800
+    assert "Following up" in subj1
+    assert sample_opportunity.company_name in body1
+    assert body1.endswith("?")
+
+    # 2. Without strategic priorities
+    opp_empty = replace(sample_opportunity, strategic_priorities=[])
+    subj2, body2, _ = compiler.render_draft_message(
+        sample_candidate,
+        opp_empty,
+        ChannelType.FOLLOW_UP,
+    )
+    assert len(body2) <= 800
+    assert sample_opportunity.company_name in body2
+    assert body2.endswith("?")
+

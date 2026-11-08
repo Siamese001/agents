@@ -42,10 +42,8 @@ def _normalize_argv(argv: Sequence[str] | None) -> list[str]:
         return ["run", "--demo"]
     if values[0] in {"-h", "--help", "-v", "--version"}:
         return values
-    actions = {"run", "eval", "show"}
-    if values[0] not in actions:
-        if values[0].startswith("-"):
-            return ["run", *values]
+    if values[0] not in {"run", "eval", "show", "validate"} and values[0].startswith("-"):
+        return ["run", *values]
     return values
 
 
@@ -86,6 +84,18 @@ def _build_parser(prog: str = "python -m outreach_engine") -> argparse.ArgumentP
     )
     show_parser.add_argument("--json", action="store_true", help="Output machine-readable JSON result")
 
+    # 4. validate action
+    val_parser = subparsers.add_parser("validate", help="Validate an ad-hoc outreach draft against all 10 domain gates and 6 rubric lenses")
+    val_parser.add_argument("--body", default="", help="Draft body text to validate")
+    val_parser.add_argument("--file", dest="draft_file", help="Path to draft text or JSON file to validate")
+    val_parser.add_argument("--subject", default="", help="Draft subject line")
+    val_parser.add_argument("--channel", choices=["inmail", "connection_note", "email", "follow_up"], default="inmail", help="Target channel")
+    val_parser.add_argument("--company", default="Target Company", help="Target company name for resonance and personalization checks")
+    val_parser.add_argument("--role", default="Engineering Leader", help="Target role title")
+    val_parser.add_argument("--priority", dest="priorities", action="append", default=[], help="Verified strategic priority (repeatable)")
+    val_parser.add_argument("--unverified", action="store_true", help="Simulate unverified briefing resolution")
+    val_parser.add_argument("--json", action="store_true", help="Output machine-readable JSON result")
+
     return parser
 
 
@@ -125,13 +135,39 @@ def _handle_run(args: argparse.Namespace, prog: str = "python -m outreach_engine
 
     if brief_path:
         log(f"[outreach_engine] Ingesting mission brief from {brief_path}...")
-        candidate, opportunity = MissionLoader.load_from_file(brief_path)
+        b_file = Path(brief_path)
+        if not b_file.is_file():
+            cand_b = Path(__file__).resolve().parent.parent.parent.parent / brief_path
+            if cand_b.is_file():
+                b_file = cand_b
+        try:
+            raw_brief = b_file.read_text(encoding="utf-8") if b_file.is_file() else ""
+        except OSError as exc:
+            return _emit_error(args, f"Failed reading brief file '{brief_path}': {exc}")
+        if not b_file.is_file() or not raw_brief.strip():
+            return _emit_error(args, f"Brief file '{brief_path}' is missing or empty.")
+        has_explicit_sender_title = False
+        try:
+            parsed_b = json.loads(raw_brief)
+            if isinstance(parsed_b, dict):
+                sp_dict = parsed_b.get("sender_profile")
+                pl_dict = parsed_b.get("payload")
+                has_explicit_sender_title = bool(
+                    (isinstance(sp_dict, dict) and sp_dict.get("title"))
+                    or parsed_b.get("target_title")
+                    or parsed_b.get("candidate_title")
+                    or (isinstance(pl_dict, dict) and pl_dict.get("target_title"))
+                )
+        except json.JSONDecodeError:
+            pass
+        candidate, opportunity = MissionLoader.load_from_file(b_file)
         opp_updates: dict[str, Any] = {}
         if getattr(args, "company", None):
             opp_updates["company_name"] = args.company
         if getattr(args, "role", None) is not None:
             opp_updates["role_title"] = args.role
-            candidate = dataclasses.replace(candidate, target_title=args.role)
+            if not has_explicit_sender_title:
+                candidate = dataclasses.replace(candidate, target_title=args.role)
         if opp_updates:
             opportunity = dataclasses.replace(opportunity, **opp_updates)
     elif args.company:
@@ -154,99 +190,53 @@ def _handle_run(args: argparse.Namespace, prog: str = "python -m outreach_engine
             strategic_priorities=["cloud modern banking core", "zero-downtime reliability"],
         )
 
-    # Resolve artifact directory
-    if args.artifact_dir:
-        artifact_dir = Path(args.artifact_dir).resolve()
-    else:
-        repo_root = Path(__file__).resolve().parent.parent.parent.parent
-        artifact_dir = repo_root / "artifacts" / "outreach_engine" / "runs" / run_id
-
+    repo_root = Path(__file__).resolve().parent.parent.parent.parent
+    artifact_dir = Path(args.artifact_dir).resolve() if args.artifact_dir else (repo_root / "artifacts" / "outreach_engine" / "runs" / run_id)
     artifact_dir.mkdir(parents=True, exist_ok=True)
-
     channel = ChannelType(args.channel)
-    persona = (
-        AudiencePersona.EXECUTIVE_CONTACT
-        if getattr(args, "audience", "executive") == "executive"
-        else AudiencePersona.EXECUTIVE_RECRUITER
-    )
+    persona = AudiencePersona.EXECUTIVE_CONTACT if getattr(args, "audience", "executive") == "executive" else AudiencePersona.EXECUTIVE_RECRUITER
     orchestrator = OutreachOrchestrator()
 
     t_total_start = time.perf_counter()
     try:
-        # Stage 1: Briefing Resolution (Executed once, eliminating redundant second resolution)
         t_res_start = time.perf_counter()
         opportunity = orchestrator.resolve_opportunity_briefing(
-            opportunity,
-            auto_research=args.research,
+            opportunity, auto_research=args.research,
             artifact_runs_root=(artifact_dir / "apps_research" / "runs") if artifact_dir else None,
         )
         lat_res_ms = round((time.perf_counter() - t_res_start) * 1000, 2)
-
-        # Stage 2: Draft Generation & Context Assembly
         t_draft_start = time.perf_counter()
         draft, val = orchestrator.generate_single_draft(
-            candidate,
-            opportunity,
-            channel,
-            audience_persona=persona,
-            auto_research=args.research,
-            artifact_dir=artifact_dir,
+            candidate, opportunity, channel, audience_persona=persona, auto_research=args.research, artifact_dir=artifact_dir,
         )
         lat_draft_ms = round((time.perf_counter() - t_draft_start) * 1000, 2)
-
-        # Stage 3: Validation Verification (derived from AuthoritativeVerdict)
         t_val_start = time.perf_counter()
         lat_val_ms = round((time.perf_counter() - t_val_start) * 1000, 2)
-
-        # Stage 4: Rubric Evaluation
         t_eval_start = time.perf_counter()
-        evaluation = orchestrator.evaluate_draft(
-            draft,
-            candidate,
-            opportunity,
-            artifact_dir=artifact_dir,
-        )
+        evaluation = orchestrator.evaluate_draft(draft, candidate, opportunity, artifact_dir=artifact_dir)
         lat_eval_ms = round((time.perf_counter() - t_eval_start) * 1000, 2)
-
-        # Stage 5: Multi-Touch Campaign Planning
         t_camp_start = time.perf_counter()
         sequence = orchestrator.generate_full_campaign(
-            candidate,
-            opportunity,
-            channel,
-            audience_persona=persona,
-            auto_research=args.research,
-            artifact_dir=artifact_dir,
+            candidate, opportunity, channel, audience_persona=persona, auto_research=args.research, artifact_dir=artifact_dir,
         )
         lat_camp_ms = round((time.perf_counter() - t_camp_start) * 1000, 2)
-
         lat_total_ms = round((time.perf_counter() - t_total_start) * 1000, 2)
         stage_latencies_ms = {
-            "briefing_resolution_ms": lat_res_ms,
-            "draft_generation_ms": lat_draft_ms,
-            "validation_ms": lat_val_ms,
-            "evaluation_ms": lat_eval_ms,
-            "campaign_planning_ms": lat_camp_ms,
-            "total_ms": lat_total_ms,
+            "briefing_resolution_ms": lat_res_ms, "draft_generation_ms": lat_draft_ms,
+            "validation_ms": lat_val_ms, "evaluation_ms": lat_eval_ms,
+            "campaign_planning_ms": lat_camp_ms, "total_ms": lat_total_ms,
         }
-
         has_blocked_touch = bool(sequence.blocked_touches)
         all_touches_passed = not has_blocked_touch
         overall_passed = bool(val.passed and evaluation.passed and all_touches_passed)
         overall_status = "PASSED" if overall_passed else "BLOCKED"
         all_passed = overall_passed
-
         receipt_payload = {
-            "run_id": run_id,
-            "status": overall_status,
-            "overall_passed": overall_passed,
-            "all_touches_passed": all_touches_passed,
-            "sealed": overall_passed,
-            "stage_latencies_ms": stage_latencies_ms,
-            "timestamp": time.time(),
+            "run_id": run_id, "status": overall_status, "overall_passed": overall_passed,
+            "all_touches_passed": all_touches_passed, "sealed": overall_passed,
+            "stage_latencies_ms": stage_latencies_ms, "timestamp": time.time(),
         }
         (artifact_dir / "run_receipt.json").write_text(json.dumps(receipt_payload, indent=2) + "\n", encoding="utf-8")
-
     except Exception as exc:
         lat_total_ms = round((time.perf_counter() - t_total_start) * 1000, 2)
         if getattr(args, "json", False):
@@ -261,42 +251,29 @@ def _handle_run(args: argparse.Namespace, prog: str = "python -m outreach_engine
                 msg = f"Touch {bt['touch_number']}: {r}"
                 if msg not in all_failure_reasons:
                     all_failure_reasons.append(msg)
-
         result_payload = {
-            "run_id": run_id,
-            "artifact_dir": str(artifact_dir),
-            "status": overall_status,
-            "overall_passed": all_passed,
-            "all_touches_passed": not has_blocked_touch,
+            "run_id": run_id, "artifact_dir": str(artifact_dir), "status": overall_status,
+            "overall_passed": all_passed, "all_touches_passed": not has_blocked_touch,
             "audience_persona": persona.value,
             "resolution_source": draft.research_metadata.get("resolution_source", "none"),
-            "stage_latencies_ms": stage_latencies_ms,
-            "total_latency_ms": lat_total_ms,
+            "stage_latencies_ms": stage_latencies_ms, "total_latency_ms": lat_total_ms,
             "draft": {
-                "channel": channel.value,
-                "subject": draft.subject,
-                "body": draft.body if val.passed else "",
-                "character_count": draft.character_count,
+                "channel": channel.value, "subject": draft.subject,
+                "body": draft.body if val.passed else "", "character_count": draft.character_count,
                 "template_id": draft.metadata.get("template_id", "default"),
                 "signature_block": draft.signature_block if val.passed else "",
-                "status": val.status,
-                "sealed": val.passed,
+                "status": val.status, "sealed": val.passed,
             },
             "validation": {
-                "status": val.status,
-                "is_valid": val.is_valid,
-                "violations": val.violations,
-                "warnings": val.warnings,
-                "failure_reasons": val.failure_reasons,
+                "status": val.status, "is_valid": val.is_valid, "violations": val.violations,
+                "warnings": val.warnings, "failure_reasons": val.failure_reasons,
             },
             "evaluation": evaluation.to_dict(),
             "campaign_status": sequence.status,
             "campaign_touches": [
                 {
-                    "touch_number": t.touch_number,
-                    "day_offset": t.day_offset,
-                    "channel": t.channel.value,
-                    "objective": t.objective,
+                    "touch_number": t.touch_number, "day_offset": t.day_offset,
+                    "channel": t.channel.value, "objective": t.objective,
                     "status": t.draft.metadata.get("status", "PASSED"),
                     "passed": bool(t.draft.metadata.get("passed", True)),
                     "promoted": bool(t.draft.metadata.get("passed", True)),
@@ -309,12 +286,10 @@ def _handle_run(args: argparse.Namespace, prog: str = "python -m outreach_engine
         }
         if not all_passed:
             result_payload["failure_reasons"] = all_failure_reasons
-
         print(json.dumps(result_payload, indent=2))
         return 0 if all_passed else 1
 
-    print("\n" + "=" * 60)
-    print(f"OUTREACH DRAFT ({channel.value.upper()} | {persona.value.upper()}):\n" + "=" * 60)
+    print("\n" + "=" * 60 + f"\nOUTREACH DRAFT ({channel.value.upper()} | {persona.value.upper()}):\n" + "=" * 60)
     if val.passed:
         print(f"Subject: {draft.subject}\n" + "-" * 60 + f"\n{draft.body}")
         if draft.signature_block:
@@ -334,18 +309,13 @@ def _handle_run(args: argparse.Namespace, prog: str = "python -m outreach_engine
         print(f"  - {k}: {v:.2f}")
     if evaluation.feedback:
         print(f"Feedback: {evaluation.feedback}")
-    print("=" * 60)
-
-    print(f"\nGenerated Multi-Touch Campaign with {len(sequence.touches)} planned touches (Status: {sequence.status}):")
+    print("=" * 60 + f"\n\nGenerated Multi-Touch Campaign with {len(sequence.touches)} planned touches (Status: {sequence.status}):")
     for t in sequence.touches:
         t_pass_str = "PASSED" if t.draft.metadata.get("passed", True) else "BLOCKED"
         print(f"  - Touch {t.touch_number} (Day {t.day_offset}) via {t.channel.value} [{t_pass_str}]: {t.objective}")
         if t.draft.metadata.get("status") == "BLOCKED":
             print(f"      Failure reasons: {t.draft.metadata.get('failure_reasons', [])}")
-
-    out_msg = f"\n[outreach_engine] Artifacts sealed at: {artifact_dir}" if all_passed else f"\n[outreach_engine] Unsealed diagnostic artifacts stored at: {artifact_dir}"
-    print(out_msg)
-
+    print(f"\n[outreach_engine] Artifacts sealed at: {artifact_dir}" if all_passed else f"\n[outreach_engine] Unsealed diagnostic artifacts stored at: {artifact_dir}")
     if not all_passed:
         sys.stderr.write("\n" + "!" * 60 + "\n[outreach_engine] BLOCKED: Outreach draft or campaign touch failed authoritative verification.\n")
         if val.violations:
@@ -358,8 +328,8 @@ def _handle_run(args: argparse.Namespace, prog: str = "python -m outreach_engine
             sys.stderr.write(f"Touch {bt['touch_number']} Failures: {bt['failure_reasons']}\n")
         sys.stderr.write("!" * 60 + "\n")
         return 1
-
     return 0
+
 
 
 def _reconstruct_eval_draft(run_dir: Path, manifest_data: dict[str, Any] | None = None) -> OutreachMessageDraft | None:
@@ -377,12 +347,9 @@ def _reconstruct_eval_draft(run_dir: Path, manifest_data: dict[str, Any] | None 
                     persona_raw = d.get("audience_persona") or m_persona
                     persona = AudiencePersona.EXECUTIVE_RECRUITER if persona_raw in ("recruiter", "executive_recruiter", AudiencePersona.EXECUTIVE_RECRUITER.value) else AudiencePersona.EXECUTIVE_CONTACT
                     return OutreachMessageDraft(
-                        draft_id=d.get("draft_id", "draft_eval"),
-                        channel=ChannelType(ch_raw),
-                        subject=d.get("subject", ""),
-                        body=d.get("body", ""),
-                        signature_block=d.get("signature_block", ""),
-                        audience_persona=persona,
+                        draft_id=d.get("draft_id", "draft_eval"), channel=ChannelType(ch_raw),
+                        subject=d.get("subject", ""), body=d.get("body", ""),
+                        signature_block=d.get("signature_block", ""), audience_persona=persona,
                         grounded_facts_used=list(d.get("grounded_facts_used", [])),
                         research_metadata=dict(d.get("research_metadata", {})),
                         metadata=dict(d.get("metadata", {})),
@@ -403,12 +370,9 @@ def _reconstruct_eval_draft(run_dir: Path, manifest_data: dict[str, Any] | None 
                 bm = re.search(r"```text\s*\n(.*?)\n```", md_text, re.DOTALL)
                 persona = AudiencePersona.EXECUTIVE_RECRUITER if m_persona in ("recruiter", "executive_recruiter", AudiencePersona.EXECUTIVE_RECRUITER.value) else AudiencePersona.EXECUTIVE_CONTACT
                 return OutreachMessageDraft(
-                    draft_id="draft_from_md",
-                    channel=ChannelType(ch_raw),
-                    subject=subj,
+                    draft_id="draft_from_md", channel=ChannelType(ch_raw), subject=subj,
                     body=bm.group(1).strip() if bm else md_text.strip(),
-                    grounded_facts_used=m_facts,
-                    audience_persona=persona,
+                    grounded_facts_used=m_facts, audience_persona=persona,
                 )
         except (OSError, UnicodeDecodeError, ValueError, TypeError) as exc:
             _log.warning("Failed parsing outreach_draft.md in %s: %s", run_dir, exc)
@@ -425,102 +389,72 @@ def _reconstruct_eval_context(manifest_file: Path) -> tuple[CandidateProfile, Ta
 
     facts = [
         CandidateFact(
-            fact_id=f["fact_id"],
-            category=f.get("category", "general"),
-            statement=f.get("statement", ""),
-            metric=f.get("metric"),
-            source_reference=f.get("source_reference"),
+            fact_id=f["fact_id"], category=f.get("category", "general"), statement=f.get("statement", ""),
+            metric=f.get("metric"), source_reference=f.get("source_reference"),
         )
         for f in cdata.get("verified_facts", [])
         if isinstance(f, dict) and "fact_id" in f
     ]
     cand = CandidateProfile(
-        candidate_id=cdata.get("candidate_id", ""),
-        full_name=cdata.get("full_name", ""),
-        target_title=cdata.get("target_title", ""),
-        current_title=cdata.get("current_title", ""),
-        executive_summary=cdata.get("executive_summary", ""),
-        verified_facts=facts,
+        candidate_id=cdata.get("candidate_id", ""), full_name=cdata.get("full_name", ""),
+        target_title=cdata.get("target_title", ""), current_title=cdata.get("current_title", ""),
+        executive_summary=cdata.get("executive_summary", ""), verified_facts=facts,
         key_competencies=list(cdata.get("key_competencies", [])),
-        linkedin_url=cdata.get("linkedin_url", ""),
-        phone=cdata.get("phone", ""),
+        linkedin_url=cdata.get("linkedin_url", ""), phone=cdata.get("phone", ""),
     )
     rc_raw, rd_raw = odata.get("recipient_class"), odata.get("relationship_distance")
     rc = RecipientClass(rc_raw) if rc_raw in RecipientClass._value2member_map_ else RecipientClass.HIRING_MANAGER
     rd = RelationshipDistance(rd_raw) if rd_raw in RelationshipDistance._value2member_map_ else RelationshipDistance.COLD
     opp = TargetOpportunity(
-        opportunity_id=odata.get("opportunity_id", ""),
-        company_name=odata.get("company_name", ""),
-        role_title=odata.get("role_title", ""),
-        industry=odata.get("industry", ""),
-        recipient_name=odata.get("recipient_name", ""),
-        recipient_title=odata.get("recipient_title", ""),
-        recipient_class=rc,
-        relationship_distance=rd,
+        opportunity_id=odata.get("opportunity_id", ""), company_name=odata.get("company_name", ""),
+        role_title=odata.get("role_title", ""), industry=odata.get("industry", ""),
+        recipient_name=odata.get("recipient_name", ""), recipient_title=odata.get("recipient_title", ""),
+        recipient_class=rc, relationship_distance=rd,
         strategic_priorities=list(odata.get("strategic_priorities", [])),
-        briefing_text=odata.get("briefing_text", ""),
-        research_digest=odata.get("research_digest", ""),
-        evidence_items=list(odata.get("evidence_items", [])),
-        sealed_resolution=odata.get("sealed_resolution"),
+        briefing_text=odata.get("briefing_text", ""), research_digest=odata.get("research_digest", ""),
+        evidence_items=list(odata.get("evidence_items", [])), sealed_resolution=odata.get("sealed_resolution"),
     )
     return cand, opp
+
+
+def _emit_error(args: argparse.Namespace, err_msg: str) -> int:
+    if getattr(args, "json", False):
+        print(json.dumps({"status": "FAILED", "error": err_msg}, indent=2))
+    sys.stderr.write(f"Error: {err_msg}\n")
+    return 1
 
 
 def _handle_eval(args: argparse.Namespace) -> int:
     run_dir = Path(args.run_dir).resolve()
     if not run_dir.is_dir():
-        err_msg = f"Run directory does not exist: {run_dir}"
-        if getattr(args, "json", False):
-            print(json.dumps({"status": "FAILED", "error": err_msg}, indent=2))
-        sys.stderr.write(f"Error: {err_msg}\n")
-        return 1
-
+        return _emit_error(args, f"Run directory does not exist: {run_dir}")
     manifest_file = run_dir / "run_manifest.json"
     if not manifest_file.is_file():
-        err_msg = f"Authentic saved context 'run_manifest.json' not found in: {run_dir}"
-        if getattr(args, "json", False):
-            print(json.dumps({"status": "FAILED", "error": err_msg}, indent=2))
-        sys.stderr.write(f"Error: {err_msg}\n")
-        return 1
+        return _emit_error(args, f"Authentic saved context 'run_manifest.json' not found in: {run_dir}")
 
     try:
         manifest_data = json.loads(manifest_file.read_text(encoding="utf-8"))
         candidate, opportunity = _reconstruct_eval_context(manifest_file)
     except Exception as exc:
-        err_msg = f"Failed to reconstruct authentic saved context from 'run_manifest.json': {exc}"
-        if getattr(args, "json", False):
-            print(json.dumps({"status": "FAILED", "error": err_msg}, indent=2))
-        sys.stderr.write(f"Error: {err_msg}\n")
-        return 1
+        return _emit_error(args, f"Failed to reconstruct authentic saved context from 'run_manifest.json': {exc}")
 
     draft = _reconstruct_eval_draft(run_dir, manifest_data=manifest_data)
     if draft is None:
-        err_msg = f"Neither outreach_draft.json nor outreach_draft.md found or readable in: {run_dir}"
-        if getattr(args, "json", False):
-            print(json.dumps({"status": "FAILED", "error": err_msg}, indent=2))
-        sys.stderr.write(f"Error: {err_msg}\n")
-        return 1
+        return _emit_error(args, f"Neither outreach_draft.json nor outreach_draft.md found or readable in: {run_dir}")
 
     orchestrator = OutreachOrchestrator()
     verdict = orchestrator.evaluate_authoritative_draft(draft, candidate, opportunity, artifact_dir=None)
     eval_report = orchestrator.judge.report_from_verdict(verdict)
-
     val_dict = {
-        "status": verdict.status,
-        "is_valid": verdict.is_valid,
-        "violations": verdict.violations,
-        "warnings": verdict.warnings,
-        "failure_reasons": verdict.failure_reasons,
-        "scores": verdict.scores,
+        "status": verdict.status, "is_valid": verdict.is_valid, "violations": verdict.violations,
+        "warnings": verdict.warnings, "failure_reasons": verdict.failure_reasons, "scores": verdict.scores,
     }
     overall_passed = verdict.passed
 
     if args.json:
         print(json.dumps({
-            "status": "PASSED" if overall_passed else "FAILED",
-            "is_valid": verdict.is_valid,
-            "evaluation": eval_report.to_dict(),
-            "validation": val_dict,
+            "status": "PASSED" if overall_passed else "FAILED", "is_valid": verdict.is_valid,
+            "evaluation": eval_report.to_dict(), "validation": val_dict,
         }, indent=2))
         return 0 if overall_passed else 1
 
@@ -542,11 +476,7 @@ def _handle_eval(args: argparse.Namespace) -> int:
 def _handle_show(args: argparse.Namespace) -> int:
     run_dir = Path(args.run_dir).resolve()
     if not run_dir.is_dir():
-        err = f"Run directory does not exist: {run_dir}"
-        if getattr(args, "json", False):
-            print(json.dumps({"status": "FAILED", "error": err}, indent=2))
-        sys.stderr.write(f"Error: {err}\n")
-        return 1
+        return _emit_error(args, f"Run directory does not exist: {run_dir}")
 
     artifact_map = {
         "draft": ["outreach_draft.md", "outreach_draft.json"],
@@ -568,11 +498,7 @@ def _handle_show(args: argparse.Namespace) -> int:
             break
 
     if not target_file or not target_file.is_file():
-        err = f"Artifact '{args.artifact}' was not found in: {run_dir}"
-        if getattr(args, "json", False):
-            print(json.dumps({"status": "FAILED", "error": err}, indent=2))
-        sys.stderr.write(f"Error: {err}\n")
-        return 1
+        return _emit_error(args, f"Artifact '{args.artifact}' was not found in: {run_dir}")
 
     content = target_file.read_text(encoding="utf-8")
     if getattr(args, "json", False) and not target_file.name.endswith(".json"):
@@ -582,16 +508,85 @@ def _handle_show(args: argparse.Namespace) -> int:
     return 0
 
 
+def _handle_validate(args: argparse.Namespace) -> int:
+    body = str(getattr(args, "body", "") or "").strip()
+    subject = str(getattr(args, "subject", "") or "").strip()
+    draft_file = getattr(args, "draft_file", None)
+    if draft_file and not body:
+        p = Path(draft_file)
+        if not p.is_file():
+            return _emit_error(args, f"Draft file not found: {draft_file}")
+        raw_d = p.read_text(encoding="utf-8")
+        if p.suffix.lower() == ".json":
+            try:
+                loaded_d = json.loads(raw_d)
+                if isinstance(loaded_d, dict):
+                    body = str(loaded_d.get("body") or "").strip()
+                    subject = subject or str(loaded_d.get("subject") or "").strip()
+            except json.JSONDecodeError:
+                body = raw_d.strip()
+        else:
+            body = raw_d.strip()
+    if not body:
+        return _emit_error(args, "No draft body provided (--body or --file required).")
+
+    candidate = CandidateProfileLoader.load_default()
+    priorities = [str(p).strip() for p in (getattr(args, "priorities", None) or []) if str(p).strip()]
+    is_unverified = bool(getattr(args, "unverified", False))
+    company = str(getattr(args, "company", None) or "Target Company").strip()
+    role = str(getattr(args, "role", None) or "Engineering Leader").strip()
+    opportunity = TargetOpportunity(
+        opportunity_id="opp_validate", company_name=company, role_title=role, industry="Enterprise Technology",
+        recipient_name="Hiring Leader", recipient_title=f"Head of {role}", recipient_class=RecipientClass.HIRING_MANAGER,
+        relationship_distance=RelationshipDistance.COLD, strategic_priorities=priorities,
+        briefing_text="UNVERIFIED OFFLINE FALLBACK" if is_unverified else f"Target Company: {company}",
+        sealed_resolution={"is_verified": not is_unverified, "resolution_source": "HERMETIC_FALLBACK" if is_unverified else "MANUAL"},
+    )
+    channel = ChannelType(getattr(args, "channel", "inmail"))
+    draft = OutreachMessageDraft(
+        draft_id="draft_cli_validate", channel=channel, subject=subject, body=body,
+        grounded_facts_used=[f.fact_id for f in candidate.verified_facts],
+    )
+    orchestrator = OutreachOrchestrator()
+    verdict = orchestrator.evaluate_authoritative_draft(draft, candidate, opportunity)
+    payload = {
+        "status": verdict.status, "passed": verdict.passed, "is_valid": verdict.is_valid,
+        "company": company, "strategic_priorities": priorities, "violations": verdict.violations,
+        "warnings": verdict.warnings, "failure_reasons": verdict.failure_reasons,
+        "scores": verdict.scores, "lens_scores": verdict.lens_scores,
+    }
+    if getattr(args, "json", False):
+        print(json.dumps(payload, indent=2))
+    else:
+        print(f"Validation Status: {verdict.status} (passed={verdict.passed})")
+        if verdict.violations:
+            print(f"Violations: {verdict.violations}")
+    return 0 if verdict.passed else 1
+
+
+cmd_run = _handle_run
+cmd_eval = _handle_eval
+cmd_show = _handle_show
+cmd_validate = _handle_validate
+
+
 def main(argv: Sequence[str] | None = None, prog: str | None = None) -> int:
     normalized = _normalize_argv(argv)
     if prog is None:
         prog = "python -m apps_lic" if (len(sys.argv) > 0 and "apps_lic" in sys.argv[0]) else "python -m outreach_engine"
     parser = _build_parser(prog=prog)
     args = parser.parse_args(normalized)
-    handlers = {"run": lambda: _handle_run(args, prog=prog), "eval": lambda: _handle_eval(args), "show": lambda: _handle_show(args)}
+    handlers = {
+        "run": lambda: _handle_run(args, prog=prog),
+        "eval": lambda: _handle_eval(args),
+        "show": lambda: _handle_show(args),
+        "validate": lambda: _handle_validate(args),
+    }
     handler = handlers.get(args.action)
     return handler() if handler else (parser.print_help() or 1)
 
 
 if __name__ == "__main__":
     sys.exit(main())
+
+

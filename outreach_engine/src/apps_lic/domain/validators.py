@@ -239,7 +239,7 @@ class GroundingValidator:
     """
 
     _METRIC_DOLLAR_PAT: Final[re.Pattern[str]] = re.compile(
-        r"\$\s*\d+(?:,\d{3})*(?:\.\d+)?\s*(?:[kKmMbBtT]|billion|million|thousand)?\b",
+        r"\$\s*\d+(?:,\d{3})*(?:\.\d+)?\s*(?:[kKmMbBtT]|billion|million|thousand)?(?:\s*[-–—]\s*\$?\s*\d+(?:,\d{3})*(?:\.\d+)?\s*(?:[kKmMbBtT]|billion|million|thousand)?)?\b",
         re.IGNORECASE,
     )
     _METRIC_PERCENT_PAT: Final[re.Pattern[str]] = re.compile(
@@ -259,25 +259,28 @@ class GroundingValidator:
     def _normalize_dollar_token(raw: str) -> str:
         """Normalize '$1,000,000', '$1M', '$1 million' to a canonical dollar amount string."""
         cleaned = raw.lower().replace("$", "").replace(",", "").strip()
+        if any(sep in cleaned for sep in ("-", "–", "—")):
+            parts = [p.strip() for p in re.split(r"[-–—]", cleaned) if p.strip()]
+            if len(parts) == 2:
+                m1 = re.match(r"^(\d+(?:\.\d+)?)\s*(k|thousand|m|million|b|billion|t)?$", parts[0])
+                m2 = re.match(r"^(\d+(?:\.\d+)?)\s*(k|thousand|m|million|b|billion|t)?$", parts[1])
+                if m1 and m2:
+                    s2 = m2.group(2) or ""
+                    n1 = GroundingValidator._normalize_dollar_token(f"${m1.group(1)}{m1.group(2) or s2}")
+                    n2 = GroundingValidator._normalize_dollar_token(f"${m2.group(1)}{s2}")
+                    return f"{n1}-{n2}"
         m = re.match(r"^(\d+(?:\.\d+)?)\s*(k|thousand|m|million|b|billion|t)?$", cleaned)
         if not m:
             return raw.lower().strip()
-        val = float(m.group(1))
-        suffix = m.group(2) or ""
-        if suffix in ("k", "thousand"):
-            val *= 1_000
-        elif suffix in ("m", "million"):
-            val *= 1_000_000
-        elif suffix in ("b", "billion"):
-            val *= 1_000_000_000
-        elif suffix == "t":
-            val *= 1_000_000_000_000
-        return f"${int(round(val))}"
+        mult = {"k": 1e3, "thousand": 1e3, "m": 1e6, "million": 1e6, "b": 1e9, "billion": 1e9, "t": 1e12}
+        return f"${int(round(float(m.group(1)) * mult.get(m.group(2) or '', 1.0)))}"
 
     def _extract_normalized_dollars(self, text: str) -> set[str]:
         tokens: set[str] = set()
         for m in self._METRIC_DOLLAR_PAT.finditer(text):
-            tokens.add(self._normalize_dollar_token(m.group(0)))
+            norm = self._normalize_dollar_token(m.group(0))
+            tokens.add(norm)
+            tokens.update(s for s in norm.split("-") if "-" in norm and s.startswith("$"))
         return tokens
 
     def validate(
@@ -384,9 +387,15 @@ class ForbiddenClaimsValidator:
     """Hard assertion gate rejecting ungrounded compensation, unverifiable tenure claims, and policy-forbidden phrasing."""
 
     _COMPENSATION_PATTERNS: Final[List[re.Pattern[str]]] = [
-        re.compile(r"\b(?:salary|compensation|base\s+pay|annual\s+pay|equity\s+grant|stock\s+options|signing\s+bonus|hourly\s+rate|expected\s+rate|pay\s+rate|target\s+comp|ote)\b", re.IGNORECASE),
-        re.compile(r"\$\s*\d{2,3}(?:,\d{3})*(?:\.\d+)?\s*(?:k|m|million|thousand|/yr|/year|per\s+year|ote)?\b", re.IGNORECASE),
-        re.compile(r"\b\d{2,3}\s*k\s*(?:ote|salary|base|comp)\b", re.IGNORECASE),
+        re.compile(
+            r"\b(?:salary|compensation|base\s+pay|annual\s+pay|equity\s+grant|stock\s+options|signing\s+bonus|hourly\s+rate|expected\s+rate|pay\s+rate|target\s+comp|comp\s+package|retainer|ote)\b",
+            re.IGNORECASE,
+        ),
+        re.compile(
+            r"[\$€£]\s*\d{1,4}(?:,\d{3})*(?:\.\d+)?\s*(?:k|m|b|million|billion|thousand|/yr|/year|per\s+year|/hr|/hour|per\s+hour|ote)?(?:\s*[-–—]\s*[\$€£]?\s*\d{1,4}(?:,\d{3})*(?:\.\d+)?\s*(?:k|m|b|million|billion|thousand)?)?\b",
+            re.IGNORECASE,
+        ),
+        re.compile(r"\b\d{1,4}\s*k\s*(?:ote|salary|base|comp|retainer|bonus)\b", re.IGNORECASE),
     ]
 
     _TENURE_PATTERNS: Final[List[re.Pattern[str]]] = [
@@ -409,49 +418,58 @@ class ForbiddenClaimsValidator:
     ) -> tuple[bool, List[str]]:
         violations: List[str] = []
         opp_text = str(opportunity_context or "").lower()
+        norm_fn = GroundingValidator._normalize_dollar_token
+        g_val = GroundingValidator()
+        opp_dollars = g_val._extract_normalized_dollars(opp_text)
 
-        # 1. Compensation claims
-        # Patterns 0 and 2 are explicit compensation keywords/terms and must always be rejected
+        # 1. Compensation claims: patterns 0 and 2 are explicit compensation keywords/terms
         for pat in (self._COMPENSATION_PATTERNS[0], self._COMPENSATION_PATTERNS[2]):
             for match in pat.finditer(body):
                 violations.append(
                     f"Forbidden compensation claim detected: '{match.group(0)}'. Compensation discussions are strictly prohibited in cold outreach before first reply."
                 )
 
-        # Pattern 1 is numeric dollar amounts: distinguish business metrics from compensation
-        dollar_pat = self._COMPENSATION_PATTERNS[1]
-        for match in dollar_pat.finditer(body):
+        # Pattern 1 is numeric currency amounts: distinguish business metrics from compensation
+        for match in self._COMPENSATION_PATTERNS[1].finditer(body):
             matched_str = match.group(0)
-            start = max(0, match.start() - 30)
-            end = min(len(body), match.end() + 30)
-            surrounding = body[start:end].lower()
+            norm_matched = norm_fn(re.sub(r"^[€£]", "$", matched_str.strip()))
+            comp_window = body[max(0, match.start() - 30) : min(len(body), match.end() + 30)].lower()
+            biz_window = body[max(0, match.start() - 60) : min(len(body), match.end() + 60)].lower()
 
-            # If surrounding words indicate compensation, it is strictly forbidden
-            if any(w in surrounding for w in ("salary", "compensation", "base", "pay", "signing bonus", "bonus", "equity", "stock", "ote", "hourly", "rate", "target comp")):
+            if re.search(
+                r"\b(?:salary|compensation|base\s+pay|base\s+salary|annual\s+pay|pay\s+rate|pay\s+package|signing\s+bonus|bonus|equity|stock|ote|hourly|rate|target\s+comp|comp\s+package|retainer|per\s+hour|per\s+year)\b|/(?:hr|hour|yr|year)\b",
+                comp_window,
+                re.IGNORECASE,
+            ):
                 violations.append(
                     f"Forbidden compensation claim detected: '{matched_str}'. Compensation discussions are strictly prohibited in cold outreach before first reply."
                 )
                 continue
 
-            # If this dollar amount is part of a verified business fact/metric with provenance, do not flag
             if verified_facts:
                 v_match = False
                 for f in verified_facts:
                     if getattr(f, "has_provenance", False) or bool(getattr(f, "source_reference", None) and str(getattr(f, "source_reference")).strip()):
-                        stmt = str(getattr(f, "statement", "") or "")
-                        met = str(getattr(f, "metric", "") or "")
-                        if matched_str.lower() in stmt.lower() or matched_str.lower() in met.lower():
+                        f_text = f"{getattr(f, 'statement', '') or ''} {getattr(f, 'metric', '') or ''}".lower()
+                        f_dollars = g_val._extract_normalized_dollars(f_text)
+                        if matched_str.lower() in f_text or norm_matched in f_dollars:
                             v_match = True
                             break
                 if v_match:
                     continue
 
-            # If this dollar amount is part of opportunity context, do not flag
-            if opportunity_context and matched_str.lower() in opp_text:
+            if opportunity_context and (matched_str.lower() in opp_text or norm_matched in opp_dollars):
                 continue
 
-            # Also check context around the match for business metrics (ARR, revenue, volume, program, etc.)
-            if any(w in surrounding for w in ("arr", "revenue", "volume", "budget", "valuation", "pipeline", "spend", "deal", "portfolio", "gmv", "assets", "sales", "program", "transformation", "modernization", "initiative", "infrastructure", "platform")):
+            if any(
+                w in biz_window
+                for w in (
+                    "arr", "revenue", "volume", "budget", "valuation", "pipeline", "spend", "deal",
+                    "portfolio", "gmv", "assets", "sales", "program", "transformation", "modernization",
+                    "initiative", "infrastructure", "platform", "savings", "saved", "cost", "costs",
+                    "reduction", "reduced", "efficiency", "opex", "capex", "roi", "run-rate",
+                )
+            ):
                 continue
 
             violations.append(
@@ -462,24 +480,20 @@ class ForbiddenClaimsValidator:
         for pat in self._POLICY_FORBIDDEN_PATTERNS:
             match = pat.search(body)
             if match:
-                violations.append(
-                    f"Policy-forbidden claim detected: '{match.group(0)}'."
-                )
+                violations.append(f"Policy-forbidden claim detected: '{match.group(0)}'.")
 
         # 3. Unverifiable tenure claims
-        verified_text = ""
-        if verified_facts:
-            verified_text = " ".join(
-                str(getattr(f, "statement", f)) + " " + str(getattr(f, "metric", ""))
-                for f in verified_facts
+        verified_text = (
+            " ".join(
+                f"{getattr(f, 'statement', f)} {getattr(f, 'metric', '')}"
+                for f in (verified_facts or ())
                 if getattr(f, "has_provenance", False) or bool(getattr(f, "source_reference", None) and str(getattr(f, "source_reference")).strip())
             ).lower()
-
+        )
         for pat in self._TENURE_PATTERNS:
             match = pat.search(body)
             if match:
-                claimed_tenure = match.group(0).lower()
-                tenure_term = match.group(1).lower()
+                claimed_tenure, tenure_term = match.group(0).lower(), match.group(1).lower()
                 if tenure_term not in verified_text:
                     violations.append(
                         f"Unverifiable tenure claim detected: '{claimed_tenure}'. Claimed duration '{tenure_term}' is not backed by candidate verified facts with source evidence."
@@ -496,46 +510,33 @@ class UnsupportedPersonalizationValidator:
         re.compile(r"\b(?:focus\s+on|priorities\s+in|strategic\s+mandate\s+in)\s+([^.,\n\?]+)", re.IGNORECASE),
     ]
 
-    def validate(
-        self,
-        body: str,
-        opportunity: Optional[Any] = None,
-    ) -> tuple[bool, List[str]]:
+    def validate(self, body: str, opportunity: Optional[Any] = None) -> tuple[bool, List[str]]:
         violations: List[str] = []
         if opportunity is None:
             return True, violations
 
-        # Check verification status
         sealed = getattr(opportunity, "sealed_resolution", None) or {}
-        is_verified = bool(sealed.get("is_verified", True))
-        if sealed.get("resolution_source") == "HERMETIC_FALLBACK":
-            is_verified = False
-        brief_text = getattr(opportunity, "briefing_text", "") or ""
-        if "UNVERIFIED OFFLINE FALLBACK" in brief_text:
+        is_verified = bool(sealed.get("is_verified", True)) and sealed.get("resolution_source") != "HERMETIC_FALLBACK"
+        if "UNVERIFIED OFFLINE FALLBACK" in (getattr(opportunity, "briefing_text", "") or ""):
             is_verified = False
 
         verified_priorities = [p.lower() for p in getattr(opportunity, "strategic_priorities", [])]
-
         for pat in self._PERSONALIZATION_PATTERNS:
             match = pat.search(body)
             if match:
                 claimed_focus = match.group(1).strip()
-                # If the briefing is unverified, asserting company strategic focus is unsupported
                 if not is_verified:
                     violations.append(
                         f"Unsupported personalization detected: draft claims company strategic focus '{claimed_focus}' under an unverified briefing resolution."
                     )
                     break
-                # If verified but no strategic priorities were found
                 if not verified_priorities:
                     violations.append(
                         f"Unsupported personalization detected: draft claims company strategic focus '{claimed_focus}' but opportunity has no verified strategic priorities."
                     )
                     break
-                # If verified priorities exist, ensure claimed focus matches at least one keyword
                 focus_tokens = [tok for tok in re.findall(r"\b[A-Za-z]{4,}\b", claimed_focus.lower())]
-                matched = any(any(tok in p for tok in focus_tokens) for p in verified_priorities)
-                if not matched and focus_tokens:
+                if focus_tokens and not any(any(tok in p for tok in focus_tokens) for p in verified_priorities):
                     violations.append(
                         f"Unsupported personalization detected: claimed focus '{claimed_focus}' does not match verified strategic priorities."
                     )
@@ -555,6 +556,7 @@ class OutboundPrivacyValidator:
     ]
     _PRIVATE_STRATEGY_PATTERNS: Final[List[re.Pattern[str]]] = [
         re.compile(r"\bINTERNAL_ADVISORY\b"),
+        re.compile(r"\[INTERNAL[^\]]*\]", re.IGNORECASE),
         re.compile(r"\bstealth_score\b", re.IGNORECASE),
         re.compile(r"\bcareer\s+leverage\b", re.IGNORECASE),
     ]
@@ -588,3 +590,4 @@ __all__ = [
     "SubordinateToneValidator",
     "UnsupportedPersonalizationValidator",
 ]
+

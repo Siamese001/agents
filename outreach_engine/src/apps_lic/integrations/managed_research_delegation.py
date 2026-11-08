@@ -256,19 +256,24 @@ def _validate_persisted_research_artifacts(
         if req_role and target_role and _norm_role(req_role) != _norm_role(target_role):
             return False, f"research identity role mismatch: request={req_role!r} vs persisted={target_role!r}", {}
 
+        def _norm_trace(val: str) -> str:
+            parts = str(val or "").strip().split(":")
+            return parts[-1] if len(parts) >= 3 and parts[0] == "bridge" else str(val or "").strip()
+
         persisted_run_id = str(identity.get("child_run_id") or identity.get("run_id") or identity.get("parent_run_id") or "").strip()
-        persisted_trace = str(identity.get("trace_root") or identity.get("trace_id") or "").strip()
+        persisted_trace = _norm_trace(identity.get("trace_root") or identity.get("trace_id") or "")
         u0_run_id = str(u0_receipt.get("child_run_id") or u0_receipt.get("parent_run_id") or u0_receipt.get("run_id") or "").strip()
-        u0_trace = str(u0_receipt.get("trace_root") or "").strip()
+        u0_trace = _norm_trace(u0_receipt.get("trace_root") or "")
+        res_trace = _norm_trace(result.trace_id)
 
         # result run_id and trace_id must always match persisted identity
         if result.run_id and persisted_run_id and result.run_id != persisted_run_id:
             return False, f"research identity run_id mismatch: result={result.run_id!r} vs persisted={persisted_run_id!r}", {}
-        if result.trace_id and persisted_trace and result.trace_id != persisted_trace:
+        if res_trace and persisted_trace and res_trace != persisted_trace:
             return False, f"research identity trace mismatch: result={result.trace_id!r} vs persisted={persisted_trace!r}", {}
         if result.run_id and u0_run_id and result.run_id != u0_run_id:
             return False, f"u0 receipt run_id mismatch: result={result.run_id!r} vs u0={u0_run_id!r}", {}
-        if result.trace_id and u0_trace and result.trace_id != u0_trace:
+        if res_trace and u0_trace and res_trace != u0_trace:
             return False, f"u0 receipt trace mismatch: result={result.trace_id!r} vs u0={u0_trace!r}", {}
 
         # If not reused (fresh live dispatch), request execution identity must bind to persisted producer artifacts
@@ -278,7 +283,7 @@ def _validate_persisted_research_artifacts(
             if req_run_id and persisted_run_id and req_run_id != persisted_run_id:
                 return False, f"research identity run_id mismatch: request={req_run_id!r} vs persisted={persisted_run_id!r}", {}
 
-            req_trace = str(request.trace_id or "").strip()
+            req_trace = _norm_trace(request.trace_id or "")
             if req_trace and persisted_trace and req_trace != persisted_trace:
                 return False, f"research identity trace mismatch: request={req_trace!r} vs persisted={persisted_trace!r}", {}
 
@@ -565,10 +570,14 @@ def dispatch_outreach_research_briefing(
     )
 
 
+execute_managed_research = dispatch_outreach_research_briefing
+
 __all__ = [
     "OutreachBriefingReady",
     "RequestForOutreachBriefing",
     "ResearchDispatchFailure",
     "ResearchFailureReason",
     "dispatch_outreach_research_briefing",
+    "execute_managed_research",
 ]
+

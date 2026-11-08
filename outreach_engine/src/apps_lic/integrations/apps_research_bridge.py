@@ -140,15 +140,16 @@ class AppsResearchBridge:
                     company_name=company_name,
                     brief_text=canonical_brief,
                     run_id=r_id,
-                    trace_id=bridge_trace_id,
+                    trace_id=tr_id,
                     role_archetype=job_title or "technology_leadership",
+                    handoff_persistence=self._artifact_runs_root is not None,
                 )
                 raw = SimpleNamespace(
                     run_id=r_id,
                     parent_run_id=r_id,
                     request_id=req_id,
                     trace_root=tr_id,
-                    trace_id=bridge_trace_id,
+                    trace_id=tr_id,
                     tenant_id="default",
                     company_brief_text=canonical_brief,
                     support_coverage=0.90,
@@ -174,7 +175,7 @@ class AppsResearchBridge:
                 return self._translate_and_persist(
                     raw=raw,
                     run_id=r_id,
-                    trace_id=bridge_trace_id,
+                    trace_id=tr_id,
                     request_id=req_id,
                     t_start=t_start,
                     company_name=company_name,
@@ -208,7 +209,7 @@ class AppsResearchBridge:
                     capability_ref=capability_ref,
                     request_id=req_id,
                     run_id=r_id,
-                    trace_id=bridge_trace_id,
+                    trace_id=tr_id,
                     job_description_ref=job_description_ref,
                     job_description_text=job_description_text,
                 ),
@@ -246,15 +247,16 @@ class AppsResearchBridge:
                     company_name=company_name,
                     brief_text=canonical_brief,
                     run_id=r_id,
-                    trace_id=bridge_trace_id,
+                    trace_id=tr_id,
                     role_archetype=job_title or "technology_leadership",
+                    handoff_persistence=self._artifact_runs_root is not None,
                 )
                 raw = SimpleNamespace(
                     run_id=r_id,
                     parent_run_id=r_id,
                     request_id=req_id,
                     trace_root=tr_id,
-                    trace_id=bridge_trace_id,
+                    trace_id=tr_id,
                     tenant_id="default",
                     company_brief_text=canonical_brief,
                     support_coverage=0.90,
@@ -288,7 +290,7 @@ class AppsResearchBridge:
         return self._translate_and_persist(
             raw=raw,
             run_id=r_id,
-            trace_id=bridge_trace_id,
+            trace_id=tr_id,
             request_id=req_id,
             t_start=t_start,
             company_name=company_name,
@@ -385,6 +387,7 @@ class AppsResearchBridge:
         if not research_artifact_dir and self._artifact_runs_root is not None:
             try:
                 jd_text = str(job_description_text or "")
+                eff_role = str(job_title or "Technology Leadership").strip()
                 try:
                     from apps_research.integrations.apps_rg_handoff import (
                         persist_apps_rg_targeting_brief_artifacts,
@@ -393,7 +396,7 @@ class AppsResearchBridge:
                     artifact_bundle = persist_apps_rg_targeting_brief_artifacts(
                         record=raw,
                         target_company=company_name,
-                        target_role=job_title,
+                        target_role=eff_role,
                         jd_text=jd_text,
                         runs_root=self._artifact_runs_root,
                         mode="brief",
@@ -407,7 +410,7 @@ class AppsResearchBridge:
                     artifact_bundle = persist_standalone_outreach_research_bundle(
                         record=raw,
                         target_company=company_name,
-                        target_role=job_title,
+                        target_role=eff_role,
                         jd_text=jd_text,
                         runs_root=self._artifact_runs_root,
                     )

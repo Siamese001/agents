@@ -140,7 +140,8 @@ class DeterministicDraftRepairer:
 
     @classmethod
     def _trim_connection_note(cls, text: str, max_len: int = 295) -> str:
-        """Trims a LinkedIn Connection note gracefully while preserving greeting and question."""
+        """Trims a LinkedIn Connection note gracefully while preserving greeting, grounded metric, and question."""
+        text = re.sub(r"\.{4,}", "...", text)
         if len(text) <= max_len:
             return text
 
@@ -159,9 +160,20 @@ class DeterministicDraftRepairer:
             middle_paras = rem_paras
         middle_text = " ".join(middle_paras)
 
+        # If a long "In my work as <long title>, " or "As <long title>, " clause pushes the metric out of budget, condense title first
         budget = max_len - len(greeting) - len(closing) - 4  # for \n\n separators
         if budget < 30:
             return f"{greeting}Open to connecting?"
+
+        if len(middle_text) > budget:
+            middle_text = re.sub(
+                r"\b(?:In my (?:recent |executive leadership )?work as|As)\s+([^,]{35,}),\s+",
+                lambda m: f"As {m.group(1)[:28].rsplit(' ', 1)[0].rstrip(',/-')}, ",
+                middle_text,
+            )
+
+        if len(middle_text) <= budget:
+            return f"{greeting}{middle_text}\n\n{closing}"
 
         words = middle_text.split()
         accum: list[str] = []
@@ -172,12 +184,13 @@ class DeterministicDraftRepairer:
             accum.append(w)
             cur_len += len(w) + 1
 
-        trimmed_middle = " ".join(accum) + "..."
+        trimmed_middle = " ".join(accum).rstrip(".,;:") + "..."
         return f"{greeting}{trimmed_middle}\n\n{closing}"
 
     @classmethod
     def _trim_generic_body(cls, text: str, max_len: int) -> str:
         """Trims message body content before the terminal inquiry to adhere to channel ceilings."""
+        text = re.sub(r"\.{4,}", "...", text)
         if len(text) <= max_len:
             return text
 
@@ -198,7 +211,7 @@ class DeterministicDraftRepairer:
             accum.append(w)
             cur_len += len(w) + 1
 
-        trimmed_other = " ".join(accum) + "..."
+        trimmed_other = " ".join(accum).rstrip(".,;:") + "..."
         return f"{trimmed_other}\n\n{closing}"
 
     @classmethod

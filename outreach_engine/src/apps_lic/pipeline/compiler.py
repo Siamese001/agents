@@ -265,91 +265,100 @@ class PromptCompiler:
     ) -> str:
         """Compose a LinkedIn connection note strictly bounded under 300 characters."""
         fact_phrase = self._format_fact_phrase(fact_statement)
-        # Bounded fact slice for connection note
-        fact_short = fact_phrase
-        if len(fact_short) > 75:
-            words = fact_short.split()
+        title_short = candidate.target_title.strip()
+        if len(title_short) > 40:
+            title_short = title_short[:38].rsplit(" ", 1)[0].rstrip(",/-")
+
+        def _slice_fact(phrase: str, max_chars: int = 85) -> str:
+            clean_p = phrase.rstrip(".")
+            if len(clean_p) <= max_chars:
+                return clean_p
+            metric_match = re.search(r"(\$\d[\d,.]*\s*(?:[kmbKMB]|million|billion|thousand)?|\b\d+(?:\.\d+)?%)", clean_p)
+            limit = max_chars - 3
+            if metric_match and metric_match.end() <= max_chars + 15:
+                limit = max(limit, metric_match.end())
+            words = clean_p.split()
             accum = ""
             for w in words:
-                if len(accum) + len(w) + 1 > 70:
+                if len(accum) + len(w) + 1 > limit:
                     break
                 accum = f"{accum} {w}" if accum else w
-            fact_short = (accum or " ".join(words[:6])) + "..."
+            base = (accum or " ".join(words[:6])).rstrip(".,;:")
+            return base if base.endswith("...") else f"{base}..."
+
+        fact_short = _slice_fact(fact_phrase, 85)
+        hook_short = hook[:45].rsplit(" ", 1)[0] if len(hook) > 48 else hook
 
         if template_id == "compact_recruiter_arc":
-            search_clause = f"{opportunity.company_name}'s {opportunity.role_title} search in {hook}" if hook else f"{opportunity.company_name}'s {opportunity.role_title} search"
+            role_s = opportunity.role_title[:35].rsplit(" ", 1)[0] if len(opportunity.role_title) > 38 else opportunity.role_title
+            search_clause = f"{opportunity.company_name}'s {role_s} search in {hook_short}" if hook_short else f"{opportunity.company_name}'s {role_s} search"
             if opportunity.relationship_distance == RelationshipDistance.FORMER_COLLEAGUE:
                 body = (
                     f"Hi {opportunity.recipient_name},\n\n"
                     f"Great seeing your work at {opportunity.company_name}. "
-                    f"Following your {opportunity.role_title} search" + (f" in {hook}." if hook else ".") + " "
-                    f"As {candidate.target_title}, {fact_short}.\n\n"
+                    f"Following your {role_s} search" + (f" in {hook_short}." if hook_short else ".") + " "
+                    f"As {title_short}, {fact_short}.\n\n"
                     f"Open to connecting?"
                 )
             elif opportunity.relationship_distance == RelationshipDistance.WARM_REFERRAL:
                 body = (
                     f"Hi {opportunity.recipient_name},\n\n"
                     f"Reaching out via mutual connection regarding {search_clause}. "
-                    f"As {candidate.target_title}, {fact_short}.\n\n"
+                    f"As {title_short}, {fact_short}.\n\n"
                     f"Open to connecting?"
                 )
             else:
                 body = (
                     f"Hi {opportunity.recipient_name},\n\n"
                     f"Following {search_clause}. "
-                    f"As {candidate.target_title}, {fact_short}.\n\n"
+                    f"As {title_short}, {fact_short}.\n\n"
                     f"Open to connecting?"
                 )
         else:
             if opportunity.relationship_distance == RelationshipDistance.FORMER_COLLEAGUE:
-                work_clause = f"Following your work in {hook}." if hook else f"Following your work at {opportunity.company_name}."
+                work_clause = f"Following your work in {hook_short}." if hook_short else f"Following your work at {opportunity.company_name}."
                 body = (
                     f"Hi {opportunity.recipient_name},\n\n"
                     f"Great seeing your momentum at {opportunity.company_name}. "
                     f"{work_clause} "
-                    f"In my work as {candidate.target_title}, {fact_short}.\n\n"
+                    f"In my work as {title_short}, {fact_short}.\n\n"
                     f"Open to catching up?"
                 )
             elif opportunity.relationship_distance == RelationshipDistance.WARM_REFERRAL:
-                focus_clause = f"focus on {hook}" if hook else f"work in {opportunity.industry}"
+                focus_clause = f"focus on {hook_short}" if hook_short else f"work in {opportunity.industry}"
                 body = (
                     f"Hi {opportunity.recipient_name},\n\n"
                     f"Reaching out from our shared network regarding {opportunity.company_name}'s {focus_clause}. "
-                    f"In my work as {candidate.target_title}, {fact_short}.\n\n"
+                    f"In my work as {title_short}, {fact_short}.\n\n"
                     f"Open to exchanging perspectives?"
                 )
             elif opportunity.relationship_distance == RelationshipDistance.SECOND_DEGREE:
-                focus_clause = f"focus on {hook}" if hook else f"work in {opportunity.industry}"
+                focus_clause = f"focus on {hook_short}" if hook_short else f"work in {opportunity.industry}"
                 body = (
                     f"Hi {opportunity.recipient_name},\n\n"
                     f"Following {opportunity.company_name}'s {focus_clause} from our shared circles. "
-                    f"In my work as {candidate.target_title}, {fact_short}.\n\n"
+                    f"In my work as {title_short}, {fact_short}.\n\n"
                     f"Open to exchanging perspectives?"
                 )
             else:
-                focus_clause = f"Noticed {opportunity.company_name}'s focus on {hook}." if hook else f"Following {opportunity.company_name}'s leadership in {opportunity.industry}."
+                focus_clause = f"Noticed {opportunity.company_name}'s focus on {hook_short}." if hook_short else f"Following {opportunity.company_name}'s leadership in {opportunity.industry}."
                 body = (
                     f"Hi {opportunity.recipient_name},\n\n"
                     f"{focus_clause} "
-                    f"In my work as {candidate.target_title}, {fact_short}.\n\n"
+                    f"In my work as {title_short}, {fact_short}.\n\n"
                     f"Open to exchanging perspectives?"
                 )
 
+        body = body.replace("....", "...")
         if len(body) > 295:
-            if hook:
-                body = (
-                    f"Hi {opportunity.recipient_name},\n\n"
-                    f"Following {opportunity.company_name}'s focus on {hook}. "
-                    f"In my work as {candidate.target_title}, {fact_short[:70]}...\n\n"
-                    f"Open to connecting?"
-                )
-            else:
-                body = (
-                    f"Hi {opportunity.recipient_name},\n\n"
-                    f"Following {opportunity.company_name}'s work in {opportunity.industry}. "
-                    f"In my work as {candidate.target_title}, {fact_short[:70]}...\n\n"
-                    f"Open to connecting?"
-                )
+            compact_fact = _slice_fact(fact_phrase, 72)
+            prefix = f"Following {opportunity.company_name}'s focus on {hook_short}." if hook_short else f"Following {opportunity.company_name}'s work in {opportunity.industry}."
+            body = (
+                f"Hi {opportunity.recipient_name},\n\n"
+                f"{prefix} "
+                f"As {title_short}, {compact_fact}\n\n"
+                f"Open to connecting?"
+            ).replace("....", "...")
         return body
 
     def _compose_recruiter_draft(
@@ -497,6 +506,26 @@ class PromptCompiler:
         body = f"Hi {opportunity.recipient_name},\n\n{p1}\n\n{p2}"
         return subject, body
 
+    def _compose_follow_up(
+        self,
+        candidate: CandidateProfile,
+        opportunity: TargetOpportunity,
+        hook: str,
+        fact_statement: str,
+    ) -> tuple[str, str]:
+        """Compose a concise follow-up draft bounded under 800 characters."""
+        fact_phrase = self._format_fact_phrase(fact_statement)
+        subject = f"Following up: {opportunity.company_name} / {opportunity.role_title}"
+        focus_clause = (
+            f"Following up on my earlier note regarding {opportunity.company_name}'s focus on {hook}."
+            if hook
+            else f"Following up on my earlier note regarding {opportunity.company_name}'s {opportunity.role_title} work in {opportunity.industry}."
+        )
+        fit = f"In my work as {candidate.target_title}, {fact_phrase}."
+        ask = "If timing is tight right now, would it be helpful to reconnect next quarter instead?"
+        body = f"Hi {opportunity.recipient_name},\n\n{focus_clause} {fit}\n\n{ask}"
+        return subject, body
+
     def render_draft_message(
         self,
         candidate: CandidateProfile,
@@ -525,10 +554,12 @@ class PromptCompiler:
         raw_hook = opportunity.strategic_priorities[0] if has_verified_priorities else ""
         hook = self._format_strategic_hook(raw_hook, company_name=opportunity.company_name) if raw_hook else ""
 
-        # Connection notes have a strict 300-char limit
+        # Connection notes have a strict 300-char limit; follow-up notes have an 800-char limit
         if channel == ChannelType.LINKEDIN_CONNECTION:
             subject = ""
             body = self._compose_connection_note(candidate, opportunity, template_id, hook, fact_statement)
+        elif channel == ChannelType.FOLLOW_UP:
+            subject, body = self._compose_follow_up(candidate, opportunity, hook, fact_statement)
         elif template_id == "compact_recruiter_arc":
             subject, body = self._compose_recruiter_draft(candidate, opportunity, channel, hook, fact_statement)
         elif template_id == "exec_positioning":

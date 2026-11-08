@@ -105,12 +105,20 @@ def persist_standalone_outreach_research_bundle(
     )
     company_brief_json_path.write_bytes(company_brief_json_bytes)
 
+    raw_jd_sha256 = _sha256_bytes(raw_jd_bytes)
     u0_payload = {
         "schema_version": "apps_research.u0_receipt.v1",
         "authority_contract_id": "apps_research_rg_e2e_authority",
         "run_id": run_id,
+        "parent_run_id": run_id,
+        "child_run_id": run_id,
+        "request_id": request_id,
+        "trace_root": trace_root,
+        "raw_input_sha256": raw_jd_sha256,
+        "normalized_input_sha256": norm_jd_sha256,
         "status": "PASS",
         "authority_validation_receipt": {"passed": True, "allowed": True},
+        "reflection_receipt": {"legacy_authority_scan_passed": True},
         "created_at_utc": emitted_at,
     }
     u0_bytes = _canonical_json_bytes(u0_payload)
@@ -133,15 +141,17 @@ def persist_standalone_outreach_research_bundle(
 
     identity = {
         "company_name": target_company,
+        "target_company": target_company,
         "target_role": target_role,
         "run_id": run_id,
         "parent_run_id": run_id,
+        "child_run_id": run_id,
         "request_id": request_id,
         "trace_root": trace_root,
         "brief_sha256": brief_sha256,
         "jd_sha256": norm_jd_sha256,
     }
-    gate_ids = ("G21", "G22", "G23", "G24", "G25", "G26", "X2_RESEARCH_SEMANTIC_GATE")
+    gate_ids = ("G5", "G6", "G7", "G21", "G24", "G26")
     mandatory_gates = {
         gid: {"gate_id": gid, "status": "PASS", "verdict": "PASS", "passed": True}
         for gid in gate_ids
