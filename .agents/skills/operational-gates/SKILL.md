@@ -1,65 +1,63 @@
 ---
 name: operational-gates
-description: Use this skill when executing destructive, state-changing, migration, deletion, or multi-file operations that need an explicit recovery point, validated tool contract, bounded phase gate, or failure-recovery procedure.
-metadata:
-  owner: platform-team
-  version: "2.0"
+description: Gate destructive, state-changing, migration, deletion, or multi-file operations with explicit recovery points, tool contracts, and failure-recovery protocols.
 ---
 
-# Operational gates
+# Operational Gates
 
-Use this procedure for operations where a partial result would be costly or hard to reverse. Ordinary
-read-only analysis and small edits do not need checkpoint ceremony.
+Use this procedure for operations where a partial result would be costly or difficult to reverse. Ordinary read-only analysis and small edits (<= 20 lines) do not need checkpoint ceremony.
 
-## Pre-operation gate
+## 1. Pre-Operation Gate & Rollback Checkpoint
 
-1. Confirm the exact files, remote resources, and side effects in scope.
-2. Verify the working state and establish a recoverable baseline. Prefer a clean branch, commit, or
-   isolated worktree over copying every file by hand.
-3. Record the intended recovery command and the condition that triggers it. Read
-   [rollback_checkpoint_protocol.md](rollback_checkpoint_protocol.md) for non-Git state.
-4. Inspect the current tool schema or official documentation. Validate required names, types, ranges,
-   and authorization before invoking a write operation.
-5. Identify focused validation and a stop condition for the phase.
-6. Execute one bounded phase, validate it, then continue.
+Before starting any multi-file, migration, or destructive operation:
+1. Confirm the exact files, database tables, remote resources, and side effects in scope.
+2. Verify a clean baseline:
+   ```bash
+   git status --short
+   git rev-parse HEAD
+   ```
+3. Establish a recoverable baseline using an isolated worktree (`.venv/bin/python tools/pr_governance.py start <branch>`) or recorded commit hash.
+4. Record the intended recovery command:
+   ```bash
+   git checkout --force <baseline_commit>
+   git clean -fd
+   ```
 
-Use [phase_gate_validation.md](phase_gate_validation.md) for multi-phase migrations.
+## 2. Multi-Phase Gate Protocol
 
-## Tool-contract validation
+For migrations or refactors spanning multiple files:
+1. Deconstruct work into sequential, testable phases.
+2. Execute exactly one bounded phase at a time.
+3. Validate each phase before advancing:
+   - Check file diff: `git diff --name-only`
+   - Run scoped tests: `.venv/bin/pytest <phase_test_file> -v --timeout=60`
+4. Halt immediately if any intermediate assertion or gate fails.
 
-Validate a tool without mutating production state merely to prove its parameters. Use schema discovery,
-read-only health calls, dry-run support, or a disposable fixture when the tool provides one.
+## 3. Tool-Contract Validation Checklist
 
-Check:
+Validate tool names, parameters, and authorities without mutating production state:
+- Verify the tool is present in the active tool definitions.
+- Required arguments are provided with correct types (`string`, `int`, `bool`, `list`, `dict`).
+- Values reside within allowable boundaries (e.g. timeout <= 180s, word limits <= 300 words).
+- No undocumented or hallucinated parameters are supplied.
+- Dry-run or read-only mode is prioritized before executing write operations.
 
-- The tool exists in the currently exposed namespace.
-- Required arguments are present and correctly typed.
-- Optional defaults are understood.
-- No undocumented arguments are supplied.
-- The caller has the minimum required authority.
-- Timeout, retry, idempotency, and duplicate-execution behavior are known.
+## 4. Failure Recovery & Escalation
 
-Read [mcp_tool_validation_checklist.md](mcp_tool_validation_checklist.md) for MCP-specific calls.
+When an operational gate or validation step fails:
+1. **Stop immediately**: Cease further modifications to prevent cascading corruption.
+2. **Preserve evidence**: Capture error messages, diffs, and execution logs.
+3. **Execute rollback**: Run the declared recovery command to restore baseline state:
+   ```bash
+   git checkout --force <baseline_commit>
+   ```
+4. **Verify restoration**: Ensure `git status --short` returns clean.
+5. **Diagnose and correct**: Address the underlying root cause before retrying.
 
-## Recovery
-
-When a gate or validation step fails:
-
-1. Stop further mutation.
-2. Preserve the failure output and current state.
-3. Execute the declared rollback or compensating action.
-4. Verify restoration before retrying.
-5. Correct the root cause; do not repeat the same operation unchanged.
-
-Use [recovery_procedures.md](recovery_procedures.md) for partial downstream failures and
-[gate_evidence_template.md](gate_evidence_template.md) for formal evidence.
-
-## Validation
+## 5. Validation
 
 ```bash
 git status --short
-python ops_scripts/ci/run_contract_gates.py
+.venv/bin/python tools/validate_turn_gates.py --mode pre-turn
+.venv/bin/python tools/verify_commit.py
 ```
-
-The final report must name the baseline, mutations performed, validation result, and usable rollback or
-repair path.
