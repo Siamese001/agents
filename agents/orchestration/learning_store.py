@@ -239,7 +239,7 @@ class FeedbackLearningStore:
             if row and row["effective_repair_hints_json"]:
                 try:
                     return json.loads(row["effective_repair_hints_json"])
-                except (json.JSONDecodeError, TypeError):
+                except (json.JSONDecodeError, TypeError):  # guardian: allow-silent-swallow -- invalid json in repair hints defaults to empty list
                     return []
         return []
 

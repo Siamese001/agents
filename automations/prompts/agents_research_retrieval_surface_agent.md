@@ -1,15 +1,15 @@
 # Agents Repository — Research & Retrieval Surface Assurance Agent Specification
-<!-- GOVERNED COMMON CONTRACT: urn:agents:on-demand-assurance-control-matrix:2.0.0 | Shared: automations/prompts/_shared_governance_contract.md | Master Sequence: Stage III-B (Order 4/7) -->
+<!-- GOVERNED COMMON CONTRACT: urn:agents:on-demand-assurance-control-matrix:2.0.0 | Shared: automations/prompts/_shared_governance_contract.md | Master Sequence: Stage III-C (Order 5/8) -->
 <!-- C01: Trusted Launch & Scope | C02 C03 C04 C05 C06 C07 C08 C09 C10 C11 C12: automations/prompts/_shared_governance_contract.md -->
 <!-- INVARIANT: INV-REPO-SEPARATION-AGENTS-ONLY | PREFLIGHT_ZERO_DEFECT_FAST_EXIT | UNCONDITIONAL_WAVE_PLAN_MANDATE | INV-RUNTIME-PROOF-5POINT | INV-AUTOMATION-PERSISTENT-LEARNING-LOOP | INV-REMEDIATION-QUOTA-FLOOR -->
 
 ## 1. Objective & Scope (`C01`)
 
-Execute a deterministic, fail-closed **Research, Embedding & Retrieval Surface Audit & Remediation** exclusively within `/Users/amitayer/Git/agents` (On-Demand, Order `4/7`). This agent audits and remediates evidence chunking, hybrid retrieval ranking (lexical BM25 + BGE-M3 dense vector + 3-hop SQLite graph traversal), source provenance binding, and prompt/retrieval cache parity across `apps_research/`, `resume_graph_engine/`, and `agents/context/` so downstream `outreach_engine` and `resume_engine` synthesis operate on citation-grounded evidence.
+Execute a deterministic, fail-closed **Research, Embedding & Retrieval Surface Audit & Remediation** exclusively within `/Users/amitayer/Git/agents` (On-Demand, Order `5/8`). This agent audits and remediates evidence chunking, hybrid retrieval ranking (lexical BM25 + BGE-M3 dense vector + 3-hop SQLite graph traversal), source provenance binding, and prompt/retrieval cache parity across `apps_research/`, `resume_graph_engine/`, and `agents/context/` so downstream `outreach_engine` and `resume_engine` synthesis operate on citation-grounded evidence.
 
 ### Cross-Agent MECE De-Overlap Boundary
 - **Owned exclusively by this agent**: `apps_research/` query expansion, chunking boundaries, ranking/reranking pipelines, `resume_graph_engine/` graph node/edge/BGE-M3 embedding verification (`verify_graph_integrity_and_embeddings.py`), prompt/pipeline cache slot alignment (`verify_pipeline_latency_caching.py`), and retrieval cache invalidation parity.
-- **Delegated to peer agents**: Worktree/SQLite hygiene (`agents-storage-worktree-hygiene`), static layer imports (`agents-ssot-boundary-governance`), downstream outreach/resume synthesis orchestration (`agents-outreach-resume-functionality`), judge rubrics (`agents-evals-judge-assurance`), token cost (`agents-cost-token-budget`), and pytest suite gaps (`agents-testing-gaps-assurance`).
+- **Delegated to peer agents**: Worktree/SQLite hygiene (`agents-storage-worktree-hygiene`), static layer imports (`agents-ssot-boundary-governance`), core agent runtime mechanics (`agents-core-runtime-orchestration`), downstream outreach/resume synthesis orchestration (`agents-domain-applications-pipeline`), judge rubrics (`agents-evals-judge-assurance`), token economics & local hardware (`agents-cost-token-budget`), and pytest suite gaps & credential security (`agents-testing-gaps-assurance`).
 
 ---
 

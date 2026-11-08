@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""Behavioral 6-Pillar End-to-End Pipeline Assurance Auditor (Agent 3).
+"""Behavioral 6-Pillar Domain Business Pipelines Assurance Auditor (Agent 4).
 
 Replaces print-only inline scripts and skipped resume checks with live,
-fail-closed behavioral verification across:
+fail-closed behavioral verification across domain business applications:
 1. apps_research -> outreach_engine live briefing resolution, airlock, and cache reuse.
 2. apps_research -> resume_graph_engine targeting brief contract & fail-closed delegation.
 3. Authoritative E2E lifecycle smoke (outreach + deterministic resume + DOCX) in read-only mode.
 4. Hermetic SQLite multi-hop resume/competency graph traversal.
-5. Fail-closed AST scan rejecting unguarded broad exception empty returns across 5 packages.
+5. Fail-closed AST scan rejecting unguarded broad exception empty returns across domain packages.
 6. Production derivation purity (lint_production_purity).
 """
 

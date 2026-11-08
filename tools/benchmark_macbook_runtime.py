@@ -60,7 +60,7 @@ def _get_cpu_brand() -> str:
         res = subprocess.run(["sysctl", "-n", "machdep.cpu.brand_string"], capture_output=True, text=True, timeout=5)
         if res.returncode == 0 and res.stdout.strip():
             return res.stdout.strip()
-    except Exception:
+    except (subprocess.SubprocessError, OSError, Exception):  # guardian: allow-silent-swallow -- fallback to platform.processor() on non-macOS or failed sysctl
         pass
     return platform.processor() or "Apple Silicon"
 

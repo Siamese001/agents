@@ -1,23 +1,22 @@
 # Agents Repository — 8-Pillar Cost, Multi-Tier Caching, Token Budget & Provider Routing Assurance Agent Specification
-<!-- GOVERNED COMMON CONTRACT: urn:agents:on-demand-assurance-control-matrix:2.0.0 | Shared: automations/prompts/_shared_governance_contract.md | Master Sequence: Stage IV-A (Order 6/7) -->
+<!-- GOVERNED COMMON CONTRACT: urn:agents:on-demand-assurance-control-matrix:2.0.0 | Shared: automations/prompts/_shared_governance_contract.md | Master Sequence: Stage IV-A (Order 7/8) -->
 <!-- C01: Trusted Launch & Scope | C02 C03 C04 C05 C06 C07 C08 C09 C10 C11 C12: automations/prompts/_shared_governance_contract.md -->
 <!-- INVARIANT: INV-REPO-SEPARATION-AGENTS-ONLY | PREFLIGHT_ZERO_DEFECT_FAST_EXIT | UNCONDITIONAL_WAVE_PLAN_MANDATE | INV-RUNTIME-PROOF-5POINT | INV-AUTOMATION-PERSISTENT-LEARNING-LOOP | INV-REMEDIATION-QUOTA-FLOOR -->
 
 ## 1. Objective & Scope (`C01`)
 
-Execute a deterministic, fail-closed **8-Pillar Cost, Multi-Tier Caching, Token Budget, Provider Routing & Secret Hygiene Audit & Remediation** exclusively within `/Users/amitayer/Git/agents` (On-Demand, Order `6/7`). This agent audits, benchmarks, and eliminates token waste, redundant external API spend, and credential exposure across `outreach_engine/` (`apps_lic`), `resume_engine/` + `resume_graph_engine/` (`apps_rg`), `apps_research/`, `apps_model_telemetry/`, `agents/`, `infrastructure/`, `scripts/local_llm/`, `pyproject.toml`, and `config/provider_profiles.yaml` without degrading retrieval recall, proof-carrying evidence contracts, or synthesis quality.
+Execute a deterministic, fail-closed **8-Pillar Cost, Multi-Tier Caching, Token Budget, Provider Routing & Local Hardware Economics Audit & Remediation** exclusively within `/Users/amitayer/Git/agents` (On-Demand, Order `7/8`). This agent audits, benchmarks, and eliminates token waste, redundant external API spend, and optimizes local offline execution across `outreach_engine/` (`apps_lic`), `resume_engine/` + `resume_graph_engine/` (`apps_rg`), `apps_research/`, `apps_model_telemetry/`, `agents/`, `infrastructure/`, `scripts/local_llm/`, `pyproject.toml`, and `config/provider_profiles.yaml` without degrading retrieval recall, proof-carrying evidence contracts, or synthesis quality.
 
 ### Cross-Agent MECE De-Overlap Boundary
-- **Owned exclusively by this agent**:
-  1. Provider profile pinning, pinned-model reassessment against latest lower-cost models (`claude-haiku-4-5-20251001`, `gemini-3.8-flash`) with explicit frontier-retention defense, reasoning effort right-sizing (via `profiles.*.model_by_section`, `judge_models`, and `selector_models` in `config/provider_profiles.yaml`, `outreach_engine/config/provider_profiles.yaml`, and `scripts/local_llm/serve_qwen_m5.py`), and dynamic Pareto cost benchmarking from `resume_graph_engine/config/models/registry.yaml`.
-  2. Multi-provider prompt prefix caching (`anthropic_prompt_cache.py`, `anthropic_section_cache_payload.py` 3-breakpoint stability tiers with `1h` / `5m` TTLs, single-section prefix pre-warming before parallel fan-out, `agents/observability/prompt_cache.py` OpenAI prefix normalization, and Gemini context caching).
-  3. C0 retrieval and generation semantic caching (`c02_semantic_cache_payload.py` `BGE_M3_MODEL_ID` cosine similarity `>= 0.985` + `CacheIdentity` fact-digest parity, `CacheCompatibilityJudge` G25, and `semantic_cache_persistence_quarantine.py` UWG-to-L4 chain verification).
-  4. Multi-tier deterministic, persisted artifact, exact response reuse (`apps_model_telemetry/exact_response_reuse.py`), and unified 30-day cross-engine disk briefing caches (`cache_identity.py`, `briefing_cache.py`, `briefing_resolver.py`, `AppsResearchBridge`, and `MaterialTargetingBundle` frozen digest parity) for zero-provider-call replay.
-  5. Surgical repair/regen token budgets and evidence-preserving optional trims (`executive_summary_token_budget.py` 95% first-pass utilization ceiling, `regen_dispatch_allowed`, `word_budget_repair.py`, `outreach_engine/config/prompt_templates/*.yaml`, and `outreach_engine/src/apps_lic/domain/repair.py` `DeterministicDraftRepairer` zero-token outreach formatting/length repair).
-  6. Lane-calibrated judge retry policies, self-consistency selector pool caching, and zero-LLM post-runtime qualification (`zero_llm_qualification.py`).
-  7. Closed-loop spend governors (`model_token_governor.py` 48k/300k token reservation caps, `infrastructure/live_governor.py` `LiveTokenGovernor` + `LiveTelemetryLock`, `apps_model_telemetry/pricing.py`, `apps_model_telemetry/token_budget_governor.py`, `apps_model_telemetry/token_counter.py`, `agents/context/budgeting.py`, `ResearchBoundaryPolicy` cumulative dollar limits), inline secret & model-neutral naming hygiene (`tools/lint_secrets.py`, `tools/lint_model_neutral_naming.py`), and `HITLDecisionStore` system learning (`record_execution_outcome`).
-  8. Internal Antigravity IDE **Argon 4 (Medium & High reasoning)** vs. external LLM API value-add routing gate, quality non-deterioration defense, compact JSON serialization (`separators=(",", ":")`), and $\text{ROI} \ge 2.5\times$ economic efficiency gates.
-- **Delegated to peer agents**: Worktree/SQLite hygiene (`agents-storage-worktree-hygiene`), static layer imports (`agents-ssot-boundary-governance`), E2E functional handoffs (`agents-outreach-resume-functionality`), retrieval recall (`agents-research-retrieval-surface`), judge rubrics (`agents-evals-judge-assurance`), and pytest coverage (`agents-testing-gaps-assurance`).
+- **Owned exclusively by this agent**: Provider profile pinning, reasoning effort right-sizing, multi-provider prompt prefix caching, semantic caching, exact response reuse, surgical repair budgets, closed-loop spend governors, local model serving (`scripts/local_llm/serve_qwen_m5.py`), Apple Silicon hardware acceleration benchmarks (`tools/benchmark_macbook_runtime.py`), and dynamic Pareto cost optimization.
+- **Delegated to peer agents**:
+  - Worktree/SQLite hygiene (`agents-storage-worktree-hygiene`),
+  - Static layer imports & boundary encapsulation (`agents-ssot-boundary-governance`),
+  - Core agent runtime mechanics & delegation contracts (`agents-core-runtime-orchestration`),
+  - Domain business pipelines (`agents-domain-applications-pipeline`),
+  - Retrieval recall & citation provenance (`agents-research-retrieval-surface`),
+  - Judge rubrics & evaluation bounds (`agents-evals-judge-assurance`),
+  - Test coverage floors & credential/secret hygiene (`agents-testing-gaps-assurance`).
 
 ---
 

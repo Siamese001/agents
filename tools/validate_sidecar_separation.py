@@ -39,9 +39,17 @@ EXPECTED_AGENTS_SIDECARS: dict[str, dict[str, Any]] = {
         "deterministic_entrypoint": "tools/ssot_boundary_auditor.py",
         "requires_remediation_quota": True,
     },
-    "agents-outreach-resume-functionality": {
-        "display_name": "Agents Repo: Outreach & Resume Functionality",
-        "prompt_file": "agents_e2e_functionality_assurance_agent.md",
+    "agents-core-runtime-orchestration": {
+        "display_name": "Agents Repo: Core Runtime & Orchestration",
+        "prompt_file": "agents_core_runtime_orchestration_agent.md",
+        "disposition": "CONSOLIDATE_WITH_RUNTIME_SKILL",
+        "target_skill": "agent-runtime-engineering",
+        "deterministic_entrypoint": "tools/agent_runtime_auditor.py",
+        "requires_remediation_quota": True,
+    },
+    "agents-domain-applications-pipeline": {
+        "display_name": "Agents Repo: Domain Applications & Pipelines",
+        "prompt_file": "agents_domain_applications_pipeline_agent.md",
         "disposition": "CONSOLIDATE_WITH_RETRIEVAL_SKILL",
         "target_skill": "agents-domain-assurance",
         "deterministic_entrypoint": "tools/e2e_functionality_auditor.py",

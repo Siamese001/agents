@@ -95,7 +95,7 @@ class TrajectoryLearningEngine:
                 if "score" in p:
                     try:
                         eval_scores.append(float(p["score"]))
-                    except (ValueError, TypeError):
+                    except (ValueError, TypeError):  # guardian: allow-silent-swallow -- ignore unparseable score field in telemetry event
                         pass
 
         eval_mean = sum(eval_scores) / max(1, len(eval_scores)) if eval_scores else 0.85
