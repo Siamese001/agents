@@ -270,41 +270,36 @@ def audit_skills_context_budget(
     repo_root: Path | None = None,
     max_tokens: int = 4000,
 ) -> dict[str, Any]:
-    """Audit .agents/skills/*/SKILL.md description token utilization."""
+    """Audit .agents/skills/*/SKILL.md description token utilization, contract integrity, and links."""
     root = Path(repo_root or ROOT).resolve()
-    skills_dir = root / ".agents" / "skills"
-    if not skills_dir.is_dir():
-        return {"status": "PASS", "skills_count": 0, "tokens": 0, "issues": []}
-
     policies = load_policy_registry(root)
     if "INV-SKILLS-BUDGET-MAX-TOKENS" in policies:
         max_tokens = int(policies["INV-SKILLS-BUDGET-MAX-TOKENS"].get("threshold", max_tokens))
 
-    total_tokens = 0
-    skill_count = 0
-    for skill_md in sorted(skills_dir.glob("*/SKILL.md")):
-        skill_count += 1
-        try:
-            text = skill_md.read_text(encoding="utf-8", errors="replace")
-            m = re.search(r"^description\s*:\s*(.+)$", text, re.MULTILINE | re.IGNORECASE)
-            desc = m.group(1).strip() if m else text[:300]
-            total_tokens += max(1, (len(desc.split()) * 4) // 3)
-        except (OSError, ValueError, TypeError):  # guardian: allow-silent-swallow -- skip unreadable skill file
-            continue
-
-    issues: list[str] = []
-    if total_tokens > max_tokens:
-        issues.append(
-            f"Skills description token count ({total_tokens}) exceeds budget ({max_tokens} tokens)."
-        )
-    return {
-        "status": "PASS" if not issues else "FAIL",
-        "skills_count": skill_count,
-        "tokens": total_tokens,
-        "max_tokens": max_tokens,
-        "utilization_pct": round((total_tokens / max(1, max_tokens)) * 100.0, 2),
-        "issues": issues,
-    }
+    try:
+        from tools.audit_skills_budget import audit_skills_budget
+        rep = audit_skills_budget(root, max_tokens=max_tokens)
+        return {
+            "status": rep["status"],
+            "skills_count": rep["skill_count"],
+            "tokens": rep["tokens"],
+            "max_tokens": rep["max_tokens"],
+            "utilization_pct": rep["utilization_pct"],
+            "issues": rep["issues"],
+        }
+    except Exception as exc:  # guardian: allow-silent-swallow -- fallback to basic scan if auditor import fails
+        skills_dir = root / ".agents" / "skills"
+        if not skills_dir.is_dir():
+            return {"status": "PASS", "skills_count": 0, "tokens": 0, "issues": []}
+        skill_count = len(list(skills_dir.glob("*/SKILL.md")))
+        return {
+            "status": "FAIL",
+            "skills_count": skill_count,
+            "tokens": 0,
+            "max_tokens": max_tokens,
+            "utilization_pct": 0.0,
+            "issues": [f"Failed executing audit_skills_budget: {exc}"],
+        }
 
 
 

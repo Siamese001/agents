@@ -1,33 +1,39 @@
-# Codex skill-contract hardening
+# Codex Skill-Contract Hardening
 
-Date: 2026-07-13
+Date: 2026-07-13 (Updated: 2026-11-08)
 
 ## Decision
 
-Repository-owned Codex skills are procedural, on-demand adapters. Always-on policy remains in
-`AGENTS.md`, `.agents/rules/`, hooks, and CI. A skill may explain how to comply with a rule, but skill
-activation is not itself proof that the rule was enforced.
+Repository-owned skills under `.agents/skills/` are procedural, on-demand adapters. Always-on policy remains in `AGENTS.md`, `.agents/rules/`, native lifecycle hooks, and deterministic commit gates. A skill explains how to execute or verify work, but invoking a skill is not itself proof that governance was satisfied.
 
-## Active catalog
+## Active Catalog
 
-- Remove deprecated per-server redirect skills from `.agents/skills`.
-- Route configured MCP use through `mcp-integration`; keep `adg-sqlite` separate for structural graph
-  analysis.
-- Keep templates and planned-only capability rosters outside the active skill namespace.
+- Retain strictly the 7 consolidated root skills under `.agents/skills/`:
+  1. `agents-domain-assurance`
+  2. `agents-governance-hygiene`
+  3. `operational-gates`
+  4. `receipt-auditor`
+  5. `scope-containment`
+  6. `security-hardening`
+  7. `testing-framework`
+- Keep skills self-contained; eliminate fragmented companion checklists and unverified sub-documents.
+- Keep external/IDE skills segregated from repository skills.
 
-## Contract gates
+## Contract Gates
 
 The skill control plane validates:
+1. Valid YAML frontmatter with exact `name` matching parent directory.
+2. Concise, intent-focused single-line description within token budget (`INV-SKILLS-BUDGET-MAX-TOKENS`).
+3. Complete link and path integrity: all internal links and tool paths referenced in `SKILL.md` must exist on disk.
+4. No duplicate descriptions across skills.
+5. `agents/openai.yaml` and `evals/` schema integrity for governed skills.
 
-1. YAML frontmatter and Agent Skills field/type/name constraints.
-2. Intent-focused descriptions and active-catalog integrity.
-3. Internal resource links and optional `agents/openai.yaml` interface metadata.
-4. Trigger and output-evaluation fixtures for high-risk core skills.
-
-Canonical entrypoint: `python ops_scripts/ci/run_skill_contract_gates.py`.
+Canonical entrypoints:
+```bash
+.venv/bin/python tools/audit_skills_budget.py --json
+.venv/bin/python tools/validate_turn_gates.py --mode pre-turn
+```
 
 ## Authoring
 
-New skills use `.agents/templates/skill-template.md`, include only reusable procedural knowledge, and
-add `agents/openai.yaml` plus `evals/` when the skill is user-facing or high risk. Detailed variants
-belong in one-level-deep references rather than the main `SKILL.md`.
+New skills must include only reusable procedural knowledge, adhere to the context token budget, and provide `agents/openai.yaml` plus `evals/` when user-facing or state-changing.

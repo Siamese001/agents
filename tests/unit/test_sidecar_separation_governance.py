@@ -416,4 +416,56 @@ def test_validator_rejects_cron_timestamp_or_routing_mismatch_or_missing_manifes
     assert "tools/e2e_functionality_auditor.py" in joined
 
 
+def test_skills_contract_integrity_and_zero_broken_links() -> None:
+    """Verify all 7 skills satisfy the hardened contract with zero broken links or missing script paths."""
+    from tools.audit_skills_budget import audit_skills_budget
+
+    rep = audit_skills_budget(REPO_ROOT)
+    assert rep["status"] == "PASS", f"audit_skills_budget failed: {rep.get('violations')}"
+    assert rep["is_clean"] is True
+    assert rep["skill_count"] == 7
+    assert rep["violations"] == []
+    assert rep["estimated_description_tokens"] <= rep["max_description_tokens"]
+
+    # Verify every skill has a unique description
+    descs = [s["description"].lower().strip() for s in rep["skills"]]
+    assert len(descs) == len(set(descs)), "Duplicate skill descriptions detected"
+
+
+def test_skills_auditor_rejects_broken_link_duplicate_desc_and_missing_script(tmp_path: Path) -> None:
+    """Negative control: verify audit_skills_budget fails closed on broken links, missing scripts, and duplicates."""
+    from tools.audit_skills_budget import audit_skills_budget
+
+    fake_repo = tmp_path / "fake_repo"
+    skills_root = fake_repo / ".agents" / "skills"
+    skills_root.mkdir(parents=True)
+
+    # 1. Broken link
+    s1 = skills_root / "skill-one"
+    s1.mkdir()
+    (s1 / "SKILL.md").write_text(
+        "---\nname: skill-one\ndescription: Unique description one.\n---\n\n"
+        "# Skill One\nSee [broken link](missing_file.md)\n",
+        encoding="utf-8",
+    )
+
+    # 2. Duplicate description & missing script
+    s2 = skills_root / "skill-two"
+    s2.mkdir()
+    (s2 / "SKILL.md").write_text(
+        "---\nname: skill-two\ndescription: Unique description one.\n---\n\n"
+        "# Skill Two\nRun `python ops_scripts/nonexistent_script.py`\n",
+        encoding="utf-8",
+    )
+
+    rep = audit_skills_budget(fake_repo)
+    assert rep["status"] == "FAIL"
+    assert rep["is_clean"] is False
+    violations = "\n".join(rep["violations"])
+    assert "Broken markdown link target 'missing_file.md'" in violations
+    assert "Duplicate description" in violations
+    assert "References nonexistent script 'ops_scripts/nonexistent_script.py'" in violations
+
+
+
 

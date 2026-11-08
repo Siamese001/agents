@@ -1,64 +1,67 @@
 ---
 name: testing-framework
-description: Use this skill when adding or changing tests, selecting graph-backed tests for a code change, triaging pytest failures, reviewing skip or xfail use, or validating collection, execution, determinism, and regression coverage.
-metadata:
-  owner: platform-team
-  version: "2.0"
+description: Design, select, and run rigorous graph-backed tests, manage skips and collection integrity, and validate regression coverage under pytest timeout rules.
 ---
 
-# Testing framework
+# Testing Framework
 
-Use tests to prove behavior rather than to conceal implementation defects. Editing tests is legitimate
-when the intended contract changes, a regression test is added, or test infrastructure is defective;
-weakening assertions merely to make a run pass is not.
+Use tests to prove behavior rather than to conceal defects. Editing tests is legitimate when the intended contract evolves, a regression test is added, or test infrastructure is defective; weakening assertions or adding broad mocks merely to pass a test suite is strictly prohibited.
 
-## Workflow
+## 1. Class A vs Class B Pytest Protocol
 
-1. Use `graph-analysis` to identify production surfaces, direct tests, fixtures, integration entrypoints,
-   and registry/factory reachability.
-2. State the behavior contract and the failure that the test must detect.
-3. Add or update the smallest deterministic test before or alongside the implementation change.
-4. Run exact node IDs first, then the containing file, then broader suites as confidence grows.
-5. Compare collected, selected, executed, skipped, xfailed, and deselected counts.
-6. Run the relevant broader contract gate and inspect the diff for weakened assertions or broad mocks.
+All pytest invocations fall into exactly one of two classes:
 
-Read [pre_code_generation_gate.md](pre_code_generation_gate.md) before a T2/T3 implementation and
-[test_first_protocol.md](test_first_protocol.md) for test-shape guidance.
+### Class A: Debug Run (Fix Cycle)
+- Scope MUST be a single test file or single named test case:
+  ```bash
+  .venv/bin/pytest tests/unit/test_foo.py -v --timeout=60
+  .venv/bin/pytest tests/unit/test_foo.py::TestClass::test_method -v --timeout=60
+  ```
+- Unscoped runs (`pytest` or `pytest tests/`) are strictly forbidden.
+- Synchronous execution only; hard limit `--timeout=60` per test.
+- Background execution is prohibited.
 
-## Required dimensions
+### Class B: Receipt Run (Wave Completion)
+- Executed exactly once per wave after all fixes pass.
+- Scoped strictly to the wave's declared acceptance test files.
+- Mandatory `--timeout=60`.
+- Pass counts and durable receipt paths are recorded in governance ledgers.
 
-Cover the dimensions that can change the result:
+## 2. Test-First & Determinism Requirements
 
-- success and expected state transition;
-- malformed, missing, unauthorized, stale, or replayed input;
-- dependency failure and recovery;
-- repeated or interrupted execution;
-- deterministic output under fixed inputs;
-- side effects and fail-closed behavior.
+1. **Sequence**:
+   - Write the test (confirming failure on baseline).
+   - Write the minimal production code to pass.
+   - Re-run the test (confirming pass).
+   - Verify zero regressions on adjacent tests.
+2. **Determinism**:
+   - Explicit fixed seeds (no random inputs).
+   - Injected timestamps (no wall-clock dependencies).
+   - Identical inputs must yield identical outputs.
+3. **Mock Discipline**:
+   - Mocks are permitted ONLY for external services, hardware, or inaccessible CI environments.
+   - Mocks must NEVER bypass validation, authorization, routing, replay protection, or side-effect guards.
+   - Production imports of mock factories or mock objects are strictly blocked by `tools/audit_mock_reachability.py`.
 
-A bug fix needs a minimal reproducer and at least one adjacent near-miss case.
+## 3. Collection, Skip & XFail Integrity
 
-## Collection and skip integrity
+- **Count Invariants**: `collected == executed` for every targeted run. Unexpected deselections or count drops fail closed.
+- **Skip Rules**: `pytest.mark.skip` or `pytest.mark.skipif` requires explicit `reason=` and ownership tracking. Empty reasons (`"broken"`, `"TODO"`, `"skip for now"`) are constitutional violations.
+- **XFail Rules**: `@pytest.mark.xfail` must strictly declare `strict=True`.
 
-- Unexpected deselection or collection-count reduction is a failure until explained.
-- `xfail` must be strict and tied to a specific unresolved behavior.
-- A skip needs the repository's allowlist metadata, owner, reason, and expiry or removal condition.
-- Do not add `assert True`, empty test bodies, zero-assert mocks, or broad exception swallowing.
+## 4. Application-Owned Testing Model (`apps_*`)
 
-Read [collection_execution_integrity.md](collection_execution_integrity.md) and
-[skip_management_protocol.md](skip_management_protocol.md) when those surfaces change.
+App-owned test surfaces (`tests/apps_*/`, `tests/unit/apps_*/`, `tests/_apps_contract/`) protect governed product behavior, not internal implementation details:
+- **LAW**: Protects system authority, provenance, non-fabrication, and spine authority.
+- **APP CONTRACT**: Validates CLI behavior, dispatch adapters, artifact schemas, and exit codes.
+- **SPINE BINDING**: Verifies subsystem routes through governed canonical pipelines.
+- **EVAL CONTRACT**: Verifies evaluators grade completed snapshots without mutating or rescuing.
+- **HARNESS**: Test fixtures, environment setup, and platform-specific collection.
 
-## Mock discipline
-
-Mock external services, hardware, or inaccessible permissions only. Do not mock away validation,
-authorization, routing, replay protection, or side-effect guards that the test is meant to prove.
-
-## Validation
+## 5. Verification Commands
 
 ```bash
-python -m pytest <exact-nodeids> -q
-python ops_scripts/ci/check_test_integrity.py
+.venv/bin/pytest <exact-nodeids-or-file> -v --timeout=60
+.venv/bin/python tools/testing_gaps_auditor.py --include-uncovered-backlog --json
+.venv/bin/python tools/audit_mock_reachability.py
 ```
-
-For application-owned tests, read [apps_testing_model.md](./apps_testing_model.md). Finish with the
-broader command specified by [post_code_validation.md](post_code_validation.md).
