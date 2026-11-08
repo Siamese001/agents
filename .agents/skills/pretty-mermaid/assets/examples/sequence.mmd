@@ -1,0 +1,8 @@
+sequenceDiagram
+  participant U as User
+  participant A as Agent
+  participant T as Tool
+  U->>A: Request
+  A->>T: Execute
+  T-->>A: Result
+  A-->>U: Answer

@@ -259,7 +259,7 @@ def test_agents_sidecar_dispositions_skill_budget_and_eval_rubrics() -> None:
     budget_rep = audit_skills_budget(REPO_ROOT)
     assert budget_rep["status"] == "PASS"
     assert budget_rep["is_clean"] is True
-    assert budget_rep["skill_count"] == 7
+    assert budget_rep["skill_count"] == 10
     assert budget_rep["skill_count"] <= 26
 
     root_skills = {s["name"] for s in budget_rep["skills"]}
