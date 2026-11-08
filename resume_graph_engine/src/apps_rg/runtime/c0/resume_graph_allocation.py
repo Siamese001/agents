@@ -33,7 +33,7 @@ SECTION_EVIDENCE_CONTRACTS_ENV = "APPS_RG_SECTION_FINAL_GRAPH_EVIDENCE_CONTRACTS
 # Exact C0.3 source plans frozen before lane execution. A whole-resume lane
 # consumes this snapshot; it never reruns graph selection after allocation.
 SECTION_SOURCE_PLANS_ENV = "APPS_RG_SECTION_GRAPH_SOURCE_PLANS"
-DEFAULT_MAX_CANDIDATES_PER_SLOT = 64
+DEFAULT_MAX_CANDIDATES_PER_SLOT = 256
 
 _ALLOCATION_DIGEST_EXCLUDED_KEYS = frozenset(
     {

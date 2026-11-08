@@ -19,11 +19,9 @@ from xml.etree import ElementTree
 from apps_rg.runtime.section_display_labels import (
     ALLOWED_COMPETENCIES_HEADINGS,
     CERTIFICATIONS_AND_CREDENTIALS_HEADING,
-    CSUITE_FIVE_SECTION_HEADINGS,
     ENGINEERING_PLATFORM_COMPETENCIES_HEADING,
 )
 from apps_rg.runtime.assembly.full_resume_text import (
-    flatten_csuite_five_section_resume_to_text,
     flatten_final_resume_to_text,
 )
 
@@ -116,14 +114,27 @@ def _document_xml(text: str) -> bytes:
         "HEADLINE",
         "EXECUTIVE SUMMARY",
         *ALLOWED_COMPETENCIES_HEADINGS,
-        *CSUITE_FIVE_SECTION_HEADINGS,
-        *(f"{idx}. {h}" for idx, h in enumerate(CSUITE_FIVE_SECTION_HEADINGS, start=1)),
         "PROFESSIONAL EXPERIENCE",
         "EDUCATION",
         CERTIFICATIONS_AND_CREDENTIALS_HEADING,
     }
-    for index, line in enumerate(text.splitlines()):
-        style = "Title" if index == 0 else "Heading1" if line in heading_lines else None
+    raw_lines = [ln for ln in text.splitlines() if ln.strip()]
+    for index, line in enumerate(raw_lines):
+        stripped = line.strip()
+        if index == 0:
+            style: str | None = "Title"
+        elif index == 1 and ("@" in stripped or "linkedin.com" in stripped or "github.com" in stripped or "+1" in stripped):
+            style = "ContactLine"
+        elif stripped in heading_lines:
+            style = "Heading1"
+        elif " \u2014 " in stripped and not stripped.startswith("\u2022") and len(stripped) < 120:
+            style = "RoleHeader"
+        elif " | " in stripped and ("\u2013" in stripped or "Present" in stripped) and len(stripped) < 90:
+            style = "RoleMeta"
+        elif stripped.startswith("\u2022"):
+            style = "Bullet"
+        else:
+            style = None
         _paragraph(body, line, style=style)
 
     section = ElementTree.SubElement(body, _qname(_W_NS, "sectPr"))
@@ -172,19 +183,38 @@ _DOCUMENT_RELS_XML = b"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 _STYLES_XML = b"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
   <w:docDefaults>
-    <w:rPrDefault><w:rPr><w:rFonts w:ascii="Aptos" w:hAnsi="Aptos"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr></w:rPrDefault>
-    <w:pPrDefault><w:pPr><w:spacing w:after="80"/></w:pPr></w:pPrDefault>
+    <w:rPrDefault><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/><w:color w:val="1A202C"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr></w:rPrDefault>
+    <w:pPrDefault><w:pPr><w:spacing w:after="60" w:line="256" w:lineRule="auto"/></w:pPr></w:pPrDefault>
   </w:docDefaults>
   <w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/></w:style>
   <w:style w:type="paragraph" w:styleId="Title">
     <w:name w:val="Title"/><w:basedOn w:val="Normal"/>
-    <w:pPr><w:jc w:val="center"/><w:spacing w:after="80"/></w:pPr>
-    <w:rPr><w:b/><w:sz w:val="36"/><w:szCs w:val="36"/></w:rPr>
+    <w:pPr><w:jc w:val="center"/><w:spacing w:before="0" w:after="30"/></w:pPr>
+    <w:rPr><w:b/><w:color w:val="0F2537"/><w:sz w:val="36"/><w:szCs w:val="36"/></w:rPr>
+  </w:style>
+  <w:style w:type="paragraph" w:styleId="ContactLine">
+    <w:name w:val="Contact Line"/><w:basedOn w:val="Normal"/>
+    <w:pPr><w:jc w:val="center"/><w:spacing w:before="0" w:after="100"/></w:pPr>
+    <w:rPr><w:color w:val="334E68"/><w:sz w:val="19"/><w:szCs w:val="19"/></w:rPr>
   </w:style>
   <w:style w:type="paragraph" w:styleId="Heading1">
     <w:name w:val="heading 1"/><w:basedOn w:val="Normal"/>
-    <w:pPr><w:keepNext/><w:spacing w:before="180" w:after="60"/></w:pPr>
+    <w:pPr><w:keepNext/><w:pBdr><w:bottom w:val="single" w:sz="6" w:space="2" w:color="1F3A5F"/></w:pBdr><w:spacing w:before="140" w:after="60"/></w:pPr>
     <w:rPr><w:b/><w:color w:val="1F3A5F"/><w:sz w:val="22"/><w:szCs w:val="22"/></w:rPr>
+  </w:style>
+  <w:style w:type="paragraph" w:styleId="RoleHeader">
+    <w:name w:val="Role Header"/><w:basedOn w:val="Normal"/>
+    <w:pPr><w:keepNext/><w:spacing w:before="100" w:after="20"/></w:pPr>
+    <w:rPr><w:b/><w:color w:val="0F2537"/><w:sz w:val="21"/><w:szCs w:val="21"/></w:rPr>
+  </w:style>
+  <w:style w:type="paragraph" w:styleId="RoleMeta">
+    <w:name w:val="Role Meta"/><w:basedOn w:val="Normal"/>
+    <w:pPr><w:keepNext/><w:spacing w:before="0" w:after="40"/></w:pPr>
+    <w:rPr><w:i/><w:color w:val="4A5568"/><w:sz w:val="19"/><w:szCs w:val="19"/></w:rPr>
+  </w:style>
+  <w:style w:type="paragraph" w:styleId="Bullet">
+    <w:name w:val="Bullet"/><w:basedOn w:val="Normal"/>
+    <w:pPr><w:ind w:left="240" w:hanging="160"/><w:spacing w:before="20" w:after="45"/></w:pPr>
   </w:style>
 </w:styles>
 """
@@ -219,117 +249,8 @@ def export(final_resume_path: Path, out_path: Path) -> Path:
     return destination
 
 
-def export_csuite_five_section_docx(
-    base_resume: dict[str, Any],
-    out_path: Path,
-    *,
-    target_company: str = "",
-    target_role: str = "",
-) -> Path:
-    """Render the 5-section Seven-Figure C-Suite Executive Resume to a DOCX package."""
-    rendered = flatten_csuite_five_section_resume_to_text(
-        base_resume,
-        target_company=target_company,
-        target_role=target_role,
-    )
-    destination = Path(out_path).resolve()
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    temporary = destination.with_suffix(destination.suffix + ".tmp")
-    temporary.unlink(missing_ok=True)
-    try:
-        with zipfile.ZipFile(temporary, "w", compression=zipfile.ZIP_DEFLATED) as archive:
-            archive.writestr("[Content_Types].xml", _CONTENT_TYPES_XML)
-            archive.writestr("_rels/.rels", _PACKAGE_RELS_XML)
-            archive.writestr("word/document.xml", _document_xml(rendered))
-            archive.writestr("word/_rels/document.xml.rels", _DOCUMENT_RELS_XML)
-            archive.writestr("word/styles.xml", _STYLES_XML)
-        temporary.replace(destination)
-    finally:
-        temporary.unlink(missing_ok=True)
-    return destination
-
-
-def validate_csuite_five_section_text(text: str) -> dict[str, Any]:
-    """Deterministically verify all 5 C-suite section gates on rendered text."""
-    numbered_headings = [f"{idx}. {h}" for idx, h in enumerate(CSUITE_FIVE_SECTION_HEADINGS, start=1)]
-    positions = {h: text.find(h) for h in numbered_headings}
-    order_ok = all(v >= 0 for v in positions.values()) and list(positions.values()) == sorted(positions.values())
-    value_bar_ok = all(
-        token in text
-        for token in (
-            "$82M+ COMMERCIAL P&L",
-            "+20% MARGIN & COST",
-            "106-ENGINEER SCALE",
-            "VELOCITY & SAFETY",
-        )
-    )
-    flagship_absorbed_ok = (
-        "FLAGSHIP PRODUCTION AI PLATFORMS" not in text.upper()
-        and "<250ms" in text
-        and "106-software-engineer" in text
-        and "Universal Write Gateway" in text
-    )
-    sec1_pos = positions.get(numbered_headings[0], -1)
-    sec2_pos = positions.get(numbered_headings[1], -1)
-    sec3_pos = positions.get(numbered_headings[2], -1)
-    sec4_pos = positions.get(numbered_headings[3], -1)
-    sec5_pos = positions.get(numbered_headings[4], -1)
-    sec1_body = text[sec1_pos:sec2_pos] if (sec1_pos >= 0 and sec2_pos > sec1_pos) else ""
-    sec1_para_lines = [
-        ln.strip() for ln in sec1_body.splitlines()[1:]
-        if ln.strip() and not ln.strip().startswith(("[", "|", "-", "+"))
-    ]
-    sec1_thesis = " ".join(sec1_para_lines)
-    from apps_rg.runtime.validators.executive_summary_x2 import (
-        check_exec_summary_meta_filler_patterns,
-        check_exec_summary_sentence_count_6,
-    )
-    s6_ok, _ = check_exec_summary_sentence_count_6(sec1_thesis)
-    meta_ok, _ = check_exec_summary_meta_filler_patterns(sec1_thesis)
-    thesis_calibrated_ok = bool(sec1_thesis) and s6_ok and meta_ok
-    sec3_body = text[sec3_pos:sec4_pos] if (sec3_pos >= 0 and sec4_pos > sec3_pos) else ""
-    sec4_body = text[sec4_pos:sec5_pos] if (sec4_pos >= 0 and sec5_pos > sec4_pos) else ""
-    sec5_body = text[sec5_pos:] if sec5_pos >= 0 else ""
-
-    core_2017_split_ok = (
-        all(emp in sec3_body for emp in ("Slalom", "Unify Consulting", "IBM"))
-        and "Mandate:" in sec3_body
-        and all(emp in sec4_body for emp in ("InsurTech Cloud Solutions", "Ernst & Young"))
-        and "Earlier Quantitative Foundation:" in sec4_body
-    )
-    sec5_lines = [ln for ln in sec5_body.splitlines() if "EDUCATION, ACTUARIAL CHARTER" not in ln]
-    sec5_years = re.findall(r"\b(?:19|20)\d{2}\b", "\n".join(sec5_lines))
-    dateless_footer_ok = (
-        bool(sec5_lines)
-        and len(sec5_years) == 0
-        and "Fellow of the Society of Actuaries (FSA)" in sec5_body
-    )
-    header_lines = text.splitlines()[:3]
-    header_blob = "\n".join(header_lines)
-    github_header_ok = "github.com/Siamese001/agents" in header_blob and "Boca Raton, FL" not in header_blob
-    checks = {
-        "five_section_order": order_ok,
-        "github_portfolio_in_header": github_header_ok,
-        "six_sentence_calibrated_thesis": thesis_calibrated_ok,
-        "four_column_value_bar": value_bar_ok,
-        "flagship_platforms_absorbed": flagship_absorbed_ok,
-        "experience_2017_split_and_capsule": core_2017_split_ok,
-        "dateless_credentials_footer": dateless_footer_ok,
-    }
-    failed = [k for k, v in checks.items() if not v]
-    return {
-        "status": "PASS" if not failed else "FAIL",
-        "checks": checks,
-        "failed_checks": failed,
-        "heading_positions": positions,
-        "section5_year_tokens": sec5_years,
-    }
-
-
 __all__ = [
     "_is_spine_shaped",
     "_resolve_final_resume",
     "export",
-    "export_csuite_five_section_docx",
-    "validate_csuite_five_section_text",
 ]

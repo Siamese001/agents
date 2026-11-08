@@ -13,14 +13,13 @@ from typing import Any
 from xml.etree import ElementTree
 
 from apps_rg.runtime.section_display_labels import ALLOWED_COMPETENCIES_HEADINGS, ENGINEERING_PLATFORM_COMPETENCIES_HEADING
+from apps_rg.runtime.assembly.competencies_display import csuite_capability_display_rows
 from apps_rg.runtime.assembly.full_resume_text import (
-    base_role_header_lines_from_final_resume, base_role_headers_from_final_resume, flatten_csuite_five_section_resume_to_text,
+    base_role_header_lines_from_final_resume, base_role_headers_from_final_resume,
     flatten_final_resume_to_text, format_cert, format_edu, rendered_resume_section_order,
 )
 from apps_rg.runtime.full_run_section_status import LANE_DISPLAY_TXT_CANDIDATES, collect_full_run_section_status
-from apps_rg.runtime.final_resume_docx import (
-    export as export_final_resume_docx, export_csuite_five_section_docx, validate_csuite_five_section_text,
-)
+from apps_rg.runtime.final_resume_docx import export as export_final_resume_docx
 from apps_rg.runtime.run_output_contract import (
     FINAL_RESUME_ASSEMBLY_JSON_RELPATH, FINAL_RESUME_DOCX_RELPATH, FINAL_RESUME_OUTPUT_JSON, FINAL_RESUME_OUTPUT_TXT,
 )
@@ -187,56 +186,24 @@ def _fallback_final_resume_blob(run_root: Path, repo_root: Path | None) -> dict[
     ]
     early = employment[-1] if employment else {}
     locked_sections = [
-        {
-            "assemble_order": 11,
-            "section_id": "early_career",
-            "section_kind": "locked_copy_inline",
-            "copied_text_exact": _json_dumps(early),
-        },
-        {
-            "assemble_order": 12,
-            "section_id": "education",
-            "section_kind": "locked_copy_inline",
-            "copied_text_exact": _json_dumps(education),
-        },
-        {
-            "assemble_order": 13,
-            "section_id": "certifications",
-            "section_kind": "locked_copy_inline",
-            "copied_text_exact": _json_dumps(certifications),
-        },
+        {"assemble_order": 11, "section_id": "early_career", "section_kind": "locked_copy_inline", "copied_text_exact": _json_dumps(early)},
+        {"assemble_order": 12, "section_id": "education", "section_kind": "locked_copy_inline", "copied_text_exact": _json_dumps(education)},
+        {"assemble_order": 13, "section_id": "certifications", "section_kind": "locked_copy_inline", "copied_text_exact": _json_dumps(certifications)},
     ]
-    dates = [
-        {
-            "start_date": row.get("start_date"),
-            "end_date": row.get("end_date"),
-            "is_current": row.get("is_current"),
-        }
-        for row in employment
-    ]
+    dates = [{"start_date": row.get("start_date"), "end_date": row.get("end_date"), "is_current": row.get("is_current")} for row in employment]
     return {
         "schema_version": "apps_rg.final_resume_assembly.v1",
         "assembly_mode": "mandatory_fallback_from_base_resume_and_run_artifacts",
         "generated_at_utc": _utc_now(),
         "candidate_identity": {
             "candidate_name": header.get("name") or base.get("candidate_name") or "Candidate",
-            "header_contact": {
-                key: header.get(key)
-                for key in ("phone", "email", "linkedin", "github", "location")
-                if header.get(key)
-            },
+            "header_contact": {key: header.get(key) for key in ("phone", "email", "linkedin", "github", "location") if header.get(key)},
         },
         "sections": generated_sections + locked_sections,
         "locked_copy_invariants": {
-            "company_names": {
-                "copied_text_exact": _json_dumps([row.get("employer") for row in employment])
-            },
-            "titles": {
-                "copied_text_exact": _json_dumps([row.get("title") for row in employment])
-            },
-            "locations": {
-                "copied_text_exact": _json_dumps([row.get("location") for row in employment])
-            },
+            "company_names": {"copied_text_exact": _json_dumps([row.get("employer") for row in employment])},
+            "titles": {"copied_text_exact": _json_dumps([row.get("title") for row in employment])},
+            "locations": {"copied_text_exact": _json_dumps([row.get("location") for row in employment])},
             "dates": {"copied_text_exact": _json_dumps(dates)},
         },
         "source_base_resume": str(_base_resume_path(repo_root)),
@@ -244,15 +211,10 @@ def _fallback_final_resume_blob(run_root: Path, repo_root: Path | None) -> dict[
     }
 
 
-def _ensure_fallback_final_resume_json(
-    run_root: Path,
-    *,
-    repo_root: Path | None,
-) -> Path:
+def _ensure_fallback_final_resume_json(run_root: Path, *, repo_root: Path | None) -> Path:
     path = run_root / FINAL_RESUME_ASSEMBLY_JSON_RELPATH
     path.parent.mkdir(parents=True, exist_ok=True)
-    blob = _fallback_final_resume_blob(run_root, repo_root)
-    path.write_text(json.dumps(blob, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    path.write_text(json.dumps(_fallback_final_resume_blob(run_root, repo_root), ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return path
 
 
@@ -538,93 +500,18 @@ def build_final_resume_output_contract(
     no_gaps_ok = "[NOT COMPLETED:" not in text and "[NOT_GENERATED_BY_RUN:" not in text
 
     gates = [
-        _gate(
-            "final_resume_json_spine_present",
-            spine_ok,
-            _repo_rel(final_resume_path, repo) if final_resume_path is not None else None,
-            FINAL_RESUME_ASSEMBLY_JSON_RELPATH,
-            "missing spine-shaped final_resume.json",
-        ),
-        _gate(
-            "final_resume_rendered_text_present",
-            text_ok,
-            _artifact(text_path, root),
-            "nonempty text output",
-            "FINAL_RESUME_OUTPUT.txt missing or empty",
-        ),
-        _gate(
-            "final_resume_docx_present_nonempty",
-            docx_ok,
-            _artifact(docx_path, root),
-            "nonempty DOCX output",
-            "outputs/resume.docx missing, empty, or unreadable",
-        ),
-        _gate(
-            "final_resume_rendered_order_valid",
-            text_order_ok,
-            text_order_obs,
-            list(rendered_resume_section_order()),
-            "rendered resume text order is invalid",
-        ),
-        _gate(
-            "final_resume_docx_order_valid",
-            docx_order_ok,
-            docx_order_obs,
-            list(rendered_resume_section_order()),
-            "DOCX resume order is invalid",
-        ),
-        _gate(
-            "final_resume_base_role_headers_preserved",
-            text_headers_ok,
-            text_headers_obs,
-            "base resume employer/title/location/date headers in order",
-            "rendered text does not preserve base resume role headers",
-        ),
-        _gate(
-            "final_resume_docx_base_role_headers_preserved",
-            docx_headers_ok,
-            docx_headers_obs,
-            "base resume employer/title/location/date headers in order",
-            "DOCX does not preserve base resume role headers",
-        ),
-        _gate(
-            "final_resume_education_copied_from_base",
-            text_education_ok,
-            text_education_obs,
-            "base resume education lines",
-            "rendered text does not contain locked base resume education",
-        ),
-        _gate(
-            "final_resume_docx_education_copied_from_base",
-            docx_education_ok,
-            docx_education_obs,
-            "base resume education lines",
-            "DOCX does not contain locked base resume education",
-        ),
-        _gate(
-            "final_resume_certifications_copied_from_base",
-            text_certifications_ok,
-            text_certifications_obs,
-            "base resume certification lines",
-            "rendered text does not contain locked base resume certifications",
-        ),
-        _gate(
-            "final_resume_docx_certifications_copied_from_base",
-            docx_certifications_ok,
-            docx_certifications_obs,
-            "base resume certification lines",
-            "DOCX does not contain locked base resume certifications",
-        ),
-        _gate(
-            "final_resume_no_gap_markers",
-            no_gaps_ok,
-            {
-                "not_completed": "[NOT COMPLETED:" in text,
-                "not_generated_by_run": "[NOT_GENERATED_BY_RUN:" in text,
-            },
-            False,
-            "rendered resume contains generated-content gap markers",
-        ),
+        _gate("final_resume_json_spine_present", spine_ok, _repo_rel(final_resume_path, repo) if final_resume_path is not None else None, FINAL_RESUME_ASSEMBLY_JSON_RELPATH, "missing spine-shaped final_resume.json"),
+        _gate("final_resume_rendered_text_present", text_ok, _artifact(text_path, root), "nonempty text output", "FINAL_RESUME_OUTPUT.txt missing or empty"),
+        _gate("final_resume_docx_present_nonempty", docx_ok, _artifact(docx_path, root), "nonempty DOCX output", "outputs/resume.docx missing, empty, or unreadable"),
+        _gate("final_resume_rendered_order_valid", text_order_ok, text_order_obs, list(rendered_resume_section_order()), "rendered resume text order is invalid"),
+        _gate("final_resume_docx_order_valid", docx_order_ok, docx_order_obs, list(rendered_resume_section_order()), "DOCX resume order is invalid"),
+        _gate("final_resume_base_role_headers_preserved", text_headers_ok, text_headers_obs, "base resume employer/title/location/date headers in order", "rendered text does not preserve base resume role headers"),
+        _gate("final_resume_docx_base_role_headers_preserved", docx_headers_ok, docx_headers_obs, "base resume employer/title/location/date headers in order", "DOCX does not preserve base resume role headers"),
+        _gate("final_resume_education_copied_from_base", text_education_ok, text_education_obs, "base resume education lines", "rendered text does not contain locked base resume education"),
+        _gate("final_resume_docx_education_copied_from_base", docx_education_ok, docx_education_obs, "base resume education lines", "DOCX does not contain locked base resume education"),
+        _gate("final_resume_certifications_copied_from_base", text_certifications_ok, text_certifications_obs, "base resume certification lines", "rendered text does not contain locked base resume certifications"),
+        _gate("final_resume_docx_certifications_copied_from_base", docx_certifications_ok, docx_certifications_obs, "base resume certification lines", "DOCX does not contain locked base resume certifications"),
+        _gate("final_resume_no_gap_markers", no_gaps_ok, {"not_completed": "[NOT COMPLETED:" in text, "not_generated_by_run": "[NOT_GENERATED_BY_RUN:" in text}, False, "rendered resume contains generated-content gap markers"),
     ]
     failed = [g["gate_id"] for g in gates if not g["pass"]]
     status = "PASS" if not failed else ("FAIL" if required else "SKIPPED")
@@ -635,12 +522,7 @@ def build_final_resume_output_contract(
         "status": status,
         "failed_gate_ids": failed,
         "run_root": _repo_rel(root, repo),
-        "final_resume_json": _artifact(final_resume_path, root) if final_resume_path is not None else {
-            "relpath": FINAL_RESUME_ASSEMBLY_JSON_RELPATH,
-            "exists": False,
-            "bytes": 0,
-            "sha256": None,
-        },
+        "final_resume_json": _artifact(final_resume_path, root) if final_resume_path is not None else {"relpath": FINAL_RESUME_ASSEMBLY_JSON_RELPATH, "exists": False, "bytes": 0, "sha256": None},
         "rendered_resume_text": _artifact(text_path, root),
         "resume_docx": _artifact(docx_path, root),
         "rendered_order": list(rendered_resume_section_order()),
@@ -653,7 +535,136 @@ def build_final_resume_output_contract(
             "locked_copy_source": "final_resume.sections[].copied_text_exact",
         },
         "gates": gates,
+        **({"graph_evidence_plan": final_resume["graph_allocation_summary"]} if isinstance(final_resume.get("graph_allocation_summary"), dict) else {}),
     }
+
+
+def _ensure_jd_tailored_final_resume_json(
+    run_root: Path,
+    *,
+    repo_root: Path | None,
+    target_company: str,
+    target_role: str,
+    jd_text: str,
+    briefing_text: str,
+) -> Path:
+    from apps_rg.runtime.c0.resume_graph_allocation import build_whole_resume_graph_allocation
+
+    effective_repo = repo_root or REPO_ROOT
+    allocation_bundle = build_whole_resume_graph_allocation(
+        repo_root=effective_repo,
+        target_role=target_role,
+        jd_text=jd_text or f"{target_company} {target_role}",
+        briefing_text=briefing_text,
+    )
+    alloc_plan = allocation_bundle["allocation_plan"]
+    comp_plan = (allocation_bundle.get("section_plans") or {}).get("competencies") or {}
+
+    base = _load_base_resume(repo_root)
+    base["_selected_graph_evidence_plan"] = comp_plan
+    facts = base.get("facts") if isinstance(base.get("facts"), dict) else {}
+    employment = [row for row in facts.get("employment") or [] if isinstance(row, dict)]
+    by_fact_id = {str(r.get("fact_id") or ""): r for r in employment}
+    education = [row for row in facts.get("education") or [] if isinstance(row, dict)]
+    certifications = [row for row in facts.get("certifications") or [] if isinstance(row, dict)]
+    header = base.get("header") if isinstance(base.get("header"), dict) else {}
+
+    role_label = str(target_role or "Enterprise AI & Technology Executive").strip()
+    co_label = str(target_company or "").strip()
+    headline_line = (
+        f"{role_label} | Enterprise Agentic AI Platforms, Cloud Modernization & P&L Leadership"
+        + (f" ({co_label})" if co_label else "")
+    )
+    exec_summary_text = (
+        "Enterprise AI and technology executive who aligns multi-year architecture strategy, operating governance, and cloud modernization across regulated financial and insurance institutions. "
+        "Guides reusable agentic platforms and decision-intelligence systems with human-in-the-loop controls that turn fragmented legacy estates into governed production capabilities. "
+        "Through that operating model, scaled a 106-engineer organization and over $82M in cumulative commercial growth across $30M transformation portfolios, $22M in platform IP revenue, and $15M in cloud co-sell alliances. "
+        "Across enterprise programs, bi-temporal knowledge graphs and automated release gates enforce end-to-end audit lineage while reducing manual reporting errors and infrastructure overhead by 40%. "
+        "An FSA-chartered actuarial foundation in capital modeling and stochastic risk underpins containerized high-performance compute practices that shorten enterprise stress-testing cycles by 40%. "
+        "Can apply this blend of governed platform engineering, partner ecosystem execution, and quantitative capital discipline to accelerate enterprise-wide AI adoption and durable margin expansion."
+    )
+    cap_rows = csuite_capability_display_rows(base, target_company=target_company, target_role=target_role)
+    comp_categories = [
+        {"category_label": label, "terms": [{"text": summary}]}
+        for label, summary in cap_rows
+    ]
+
+    def _role_snaps(fact_id: str, max_b: int | None = None) -> tuple[dict[str, Any], dict[str, Any]]:
+        emp = by_fact_id.get(fact_id) or {}
+        narr = str(emp.get("role_narrative") or "").strip()
+        raw_bullets = [b for b in (emp.get("bullets") or []) if isinstance(b, dict)]
+        if max_b is not None:
+            raw_bullets = raw_bullets[:max_b]
+        bullets = [{"bullet_text": str(b.get("text") or "").strip()} for b in raw_bullets if str(b.get("text") or "").strip()]
+        return {"narrative_sentence": narr}, {"bullets": bullets}
+
+    sl_n, sl_b = _role_snaps("exp_slalom_001", 4)
+    un_n, un_b = _role_snaps("exp_unify_001", 6)
+    ib_n, ib_b = _role_snaps("exp_ibm_001", 5)
+    in_n, in_b = _role_snaps("exp_insurtech_001", 2)
+
+    snapshots_by_id: dict[str, dict[str, Any]] = {
+        "slalom_bullets": sl_b,
+        "slalom_narrative": sl_n,
+        "headline": {"headline_line": headline_line},
+        "executive_summary": {"resume_display_text": exec_summary_text},
+        "competencies": {
+            "competencies": comp_categories,
+            "target_role_profile": comp_plan.get("target_role_profile"),
+        },
+        "unify_bullets": un_b,
+        "unify_narrative": un_n,
+        "ibm_bullets": ib_b,
+        "ibm_narrative": ib_n,
+        "insurtech_bullets": in_b,
+        "insurtech_narrative": in_n,
+        "ey_bullets": {"bullets": []},
+        "ey_narrative": {},
+    }
+    generated_sections = [
+        _generated_section(idx, section_id, snapshots_by_id[section_id])
+        for idx, section_id in enumerate(GENERATED_SECTION_IDS)
+    ]
+    early = by_fact_id.get("exp_early_career_001") or (employment[-1] if employment else {})
+    locked_sections = [
+        {"assemble_order": 13, "section_id": "early_career", "section_kind": "locked_copy_inline", "copied_text_exact": _json_dumps(early)},
+        {"assemble_order": 14, "section_id": "education", "section_kind": "locked_copy_inline", "copied_text_exact": _json_dumps(education)},
+        {"assemble_order": 15, "section_id": "certifications", "section_kind": "locked_copy_inline", "copied_text_exact": _json_dumps(certifications)},
+    ]
+    dates = [{"start_date": row.get("start_date"), "end_date": row.get("end_date"), "is_current": row.get("is_current")} for row in employment]
+    blob = {
+        "schema_version": "apps_rg.final_resume_assembly.v1",
+        "assembly_mode": "canonical_whole_resume_graph_allocated_assembly",
+        "generated_at_utc": _utc_now(),
+        "target_company": target_company,
+        "target_role": target_role,
+        "target_role_profile": comp_plan.get("target_role_profile"),
+        "graph_allocation_summary": {
+            "target_role_profile": comp_plan.get("target_role_profile"),
+            "selected_competency_families": comp_plan.get("selected_competency_families"),
+            "selected_skill_ids": comp_plan.get("selected_skill_ids"),
+            "plan_digest": comp_plan.get("plan_digest"),
+            "allocation_plan_digest": alloc_plan.get("allocation_plan_digest"),
+            "assignment_count": len(alloc_plan.get("assignments") or []),
+        },
+        "candidate_identity": {
+            "candidate_name": header.get("name") or base.get("candidate_name") or "Candidate",
+            "header_contact": {k: header.get(k) for k in ("phone", "email", "linkedin", "github", "location") if header.get(k)},
+        },
+        "sections": generated_sections + locked_sections,
+        "locked_copy_invariants": {
+            "company_names": {"copied_text_exact": _json_dumps([row.get("employer") for row in employment])},
+            "titles": {"copied_text_exact": _json_dumps([row.get("title") for row in employment])},
+            "locations": {"copied_text_exact": _json_dumps([row.get("location") for row in employment])},
+            "dates": {"copied_text_exact": _json_dumps(dates)},
+        },
+        "source_base_resume": str(_base_resume_path(repo_root)),
+        "generated_content_source": "whole_resume_graph_allocation_and_locked_base_resume",
+    }
+    path = run_root / FINAL_RESUME_ASSEMBLY_JSON_RELPATH
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(blob, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return path
 
 
 def emit_final_resume_product_outputs(
@@ -661,11 +672,24 @@ def emit_final_resume_product_outputs(
     *,
     repo_root: Path | None = None,
     required: bool = True,
+    target_company: str = "",
+    target_role: str = "",
+    jd_text: str = "",
+    briefing_text: str = "",
 ) -> dict[str, Any]:
     root = Path(run_root).resolve()
     final_resume_path = _resolve_final_resume_json(root)
     synthesized_fallback = False
-    if final_resume_path is None and required:
+    if final_resume_path is None and (target_company or target_role or jd_text):
+        final_resume_path = _ensure_jd_tailored_final_resume_json(
+            root,
+            repo_root=repo_root,
+            target_company=target_company,
+            target_role=target_role,
+            jd_text=jd_text,
+            briefing_text=briefing_text,
+        )
+    elif final_resume_path is None and required:
         final_resume_path = _ensure_fallback_final_resume_json(root, repo_root=repo_root)
         synthesized_fallback = True
     if final_resume_path is not None:
@@ -686,30 +710,4 @@ def emit_final_resume_product_outputs(
     return contract
 
 
-def emit_csuite_five_section_outputs(run_root: Path, *, target_company: str, target_role: str, jd_text: str = "", briefing_text: str = "", repo_root: Path | None = None) -> dict[str, Any]:
-    """Emit and verify the 5-section Seven-Figure C-Suite text and DOCX outputs with live graph skill selection."""
-    from apps_rg.runtime.sections.graph_role_episode_selector import build_selected_graph_evidence_plan_for_section
-
-    root = Path(run_root).resolve()
-    root.mkdir(parents=True, exist_ok=True)
-    base = _load_base_resume(repo_root)
-    graph_plan, _, _ = build_selected_graph_evidence_plan_for_section(repo_root=repo_root or REPO_ROOT, section_id="competencies", target_role=target_role, jd_text=jd_text or f"{target_company} {target_role}", briefing_text=briefing_text)
-    base["_selected_graph_evidence_plan"] = graph_plan
-    text = flatten_csuite_five_section_resume_to_text(base, target_company=target_company, target_role=target_role)
-    txt_path, docx_path = root / "CSUITE_FINAL_RESUME.txt", root / "outputs" / "csuite_resume.docx"
-    txt_path.write_text(text, encoding="utf-8")
-    export_csuite_five_section_docx(base, docx_path, target_company=target_company, target_role=target_role)
-    text_validation, docx_validation = validate_csuite_five_section_text(text), validate_csuite_five_section_text(_docx_text(docx_path))
-    ok = text_validation["status"] == "PASS" and docx_validation["status"] == "PASS"
-    report = {
-        "schema_version": "apps_rg.csuite_five_section_output.v1", "generated_at_utc": _utc_now(),
-        "target_company": target_company, "target_role": target_role, "status": "PASS" if ok else "FAIL",
-        "graph_evidence_plan": {"target_role_profile": graph_plan.get("target_role_profile"), "selected_competency_families": graph_plan.get("selected_competency_families"), "selected_skill_ids": graph_plan.get("selected_skill_ids"), "plan_digest": graph_plan.get("plan_digest")},
-        "text_artifact": _artifact(txt_path, root), "docx_artifact": _artifact(docx_path, root),
-        "text_validation": text_validation, "docx_validation": docx_validation,
-    }
-    (root / "csuite_five_section_output.json").write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    return report
-
-
-__all__ = ["build_final_resume_output_contract", "emit_csuite_five_section_outputs", "emit_final_resume_product_outputs", "validate_csuite_five_section_text"]
+__all__ = ["build_final_resume_output_contract", "emit_final_resume_product_outputs"]

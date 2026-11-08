@@ -34,7 +34,11 @@ def _verify_deterministic_resume_pipeline(repo_root: Path, artifact_root: Path) 
     from apps_rg.bare_pipeline import (
         evaluate_bare_run,
         run_bare_deterministic_e2e,
-        run_csuite_five_section_jd_e2e,
+    )
+    from apps_rg.runtime.final_resume_outputs import emit_final_resume_product_outputs
+    from apps_rg.runtime.run_output_contract import (
+        FINAL_RESUME_DOCX_RELPATH,
+        FINAL_RESUME_OUTPUT_TXT,
     )
     from apps_rg.runtime.c03_graph_sqlite_context import ensure_c03_graph_sqlite
     from tools.verify_graph_integrity_and_embeddings import (
@@ -95,21 +99,23 @@ def _verify_deterministic_resume_pipeline(repo_root: Path, artifact_root: Path) 
         ),
     )
     for slug, company, role, jd_file, briefing_file in csuite_targets:
-        csuite_res = run_csuite_five_section_jd_e2e(
+        jd_run_dir = artifact_root / f"canonical_jd_{slug}"
+        csuite_res = emit_final_resume_product_outputs(
+            jd_run_dir,
+            repo_root=rg_src,
+            required=True,
             target_company=company,
             target_role=role,
-            jd_path=jd_file,
-            briefing_path=briefing_file,
-            artifact_root=artifact_root / f"csuite_{slug}",
+            jd_text=jd_file.read_text(encoding="utf-8", errors="replace"),
+            briefing_text=briefing_file.read_text(encoding="utf-8", errors="replace"),
         )
         if csuite_res.get("status") != "PASS":
-            raise RuntimeError(f"C-suite 5-section JD verification failed for {company}: {csuite_res}")
-        csuite_dir = Path(str(csuite_res["artifact_dir"]))
-        for rel_name in ("CSUITE_FINAL_RESUME.txt", "outputs/csuite_resume.docx"):
-            fpath = csuite_dir / rel_name
+            raise RuntimeError(f"Canonical JD verification failed for {company}: {csuite_res}")
+        for rel_name in (FINAL_RESUME_OUTPUT_TXT, FINAL_RESUME_DOCX_RELPATH):
+            fpath = jd_run_dir / rel_name
             if not fpath.is_file() or fpath.stat().st_size == 0:
-                raise RuntimeError(f"Missing C-suite resume artifact for {company}: {fpath}")
-            verified_resume_files[f"csuite_5section::{slug}::{rel_name}"] = {
+                raise RuntimeError(f"Missing canonical resume artifact for {company}: {fpath}")
+            verified_resume_files[f"canonical_jd::{slug}::{rel_name}"] = {
                 "path": str(fpath),
                 "bytes": fpath.stat().st_size,
                 "sha256": compute_sha256(fpath),

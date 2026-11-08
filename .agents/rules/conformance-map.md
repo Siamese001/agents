@@ -60,6 +60,7 @@ Traces every `AGENTS.md` section to enforceable rules, skills, hooks, tools, and
 | Rule | `AGENTS.md` L94–L98 | Prohibition of predetermined golden fixtures substituting domain derivation |
 | Tool | `tools/lint_production_purity.py` | AST scanner detecting golden fixtures imported in production paths |
 | Tool | `tools/verify_commit.py` | Category 3 Production Purity verification |
+| Invariant | `resume_graph_engine/src/apps_rg/runtime/final_resume_outputs.py` | Single Canonical Pipeline Invariant (`INV-SINGLE-CANONICAL-PIPELINE`): zero parallel runners or shadow flatteners |
 
 ### §"Plans"
 | Type | Path | Coverage |

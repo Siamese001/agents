@@ -270,6 +270,12 @@ def compute_career_band_filter(
         )
         >= 0.55
     }
+    if section_id == "executive_summary":
+        for r_id, bkt in grouped_section_buckets.items():
+            if any(r_row.get("authority_pass") is True for r_row in bkt["root"]) and any(
+                m_row.get("authority_pass") is True for m_row in bkt.get("metric_outcome", ())
+            ):
+                primary_secondary_roots.add(r_id)
     enforce_career_band = is_shared_top_section and len(primary_secondary_roots) >= 3
     return employer_root_weights, employer_weights, enforce_career_band, primary_secondary_roots
 

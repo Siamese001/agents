@@ -1,4 +1,4 @@
-"""End-to-end verification of the 5-Section Seven-Figure C-Suite Executive Resume across all 3 JDs."""
+"""End-to-end verification of the unified canonical pipeline across Brown & Brown, AIG, and Citi."""
 
 from __future__ import annotations
 
@@ -9,44 +9,29 @@ from typing import Any
 
 import pytest
 
-from apps_rg.bare_pipeline import run_csuite_five_section_jd_e2e
 from apps_rg.runtime.assembly.competencies_display import csuite_capability_display_rows
 from apps_rg.runtime.assembly.full_resume_text import (
-    flatten_csuite_five_section_resume_to_text,
+    flatten_final_resume_to_text,
     format_cert,
     format_edu,
-    format_value_bar_text,
 )
-from apps_rg.runtime.final_resume_outputs import (
-    emit_csuite_five_section_outputs,
-    validate_csuite_five_section_text,
-)
+from apps_rg.runtime.final_resume_outputs import emit_final_resume_product_outputs
 from apps_rg.runtime.reasoning.employment_bullet_pool import (
     CORE_EXPERIENCE_2017_PLUS_EMPLOYERS,
-    CSUITE_EXPERIENCE_SPACE_SPLIT,
+    FINAL_BULLET_COUNT,
     PEDIGREE_CAPSULE_PRE_2017_EMPLOYERS,
+    REQUIRED_BULLET_IDS,
 )
-from apps_rg.runtime.section_display_labels import (
-    CSUITE_FIVE_SECTION_HEADINGS,
-    DATELESS_CREDENTIALS_FOOTER_HEADING,
-    EXECUTIVE_AGENTIC_CAPABILITIES_HEADING,
-    EXECUTIVE_EXPERIENCE_2017_PRESENT_HEADING,
-    EXECUTIVE_INVESTMENT_THESIS_HEADING,
-    PRIOR_CSUITE_PEDIGREE_HEADING,
-    resolve_competencies_heading,
+from apps_rg.runtime.run_output_contract import (
+    FINAL_RESUME_ASSEMBLY_JSON_RELPATH,
+    FINAL_RESUME_DOCX_RELPATH,
+    FINAL_RESUME_OUTPUT_TXT,
 )
 from apps_rg.runtime.sections.competencies_rigor import CSUITE_CAPABILITY_CATEGORY_LABELS
-from apps_rg.runtime.sections.section_product_shape_ssot import (
-    CSUITE_CAPABILITY_CATEGORY_COUNT,
-    CSUITE_FIVE_SECTION_COUNT,
-    CSUITE_VALUE_BAR_COLUMN_COUNT,
-)
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 RG_SRC_ROOT = REPO_ROOT / "resume_graph_engine" / "src"
 BASE_RESUME_PATH = RG_SRC_ROOT / "apps_rg" / "resume" / "base" / "amit_ayer_base_resume_v1.json"
-RG_SCHEMA_PATH = RG_SRC_ROOT / "apps_rg" / "rg_output_schema.json"
-SLALOM_BUNDLES_PATH = RG_SRC_ROOT / "apps_rg" / "fact_inventory" / "slalom_role_episode_bundles.json"
 COMP_BUNDLES_PATH = RG_SRC_ROOT / "apps_rg" / "fact_inventory" / "competency_capability_bundles.json"
 TARGETING_DIR = RG_SRC_ROOT / "apps_rg" / "config" / "targeting"
 
@@ -79,110 +64,82 @@ def _load_base_resume() -> dict[str, Any]:
     return json.loads(BASE_RESUME_PATH.read_text(encoding="utf-8"))
 
 
-def test_wave1_base_fact_store_and_five_section_contract() -> None:
-    """Wave 1: Base facts load with 4 Value Bar metrics, 6 capability categories, and 5-section headings."""
+def test_canonical_base_fact_store_and_consolidated_role_contract() -> None:
+    """Base facts load with consolidated Ernst & Young / Early Career Roles and 2-bullet InsurTech contract."""
     base = _load_base_resume()
     facts = base["facts"]
+    employment = facts["employment"]
 
-    # 1. 4-column Value Bar
-    value_bar = facts.get("value_bar")
-    assert isinstance(value_bar, list)
-    assert len(value_bar) == CSUITE_VALUE_BAR_COLUMN_COUNT == 4
-    headers = [c["header"] for c in value_bar]
-    assert headers == [
-        "$82M+ COMMERCIAL P&L",
-        "+20% MARGIN & COST",
-        "106-ENGINEER SCALE",
-        "VELOCITY & SAFETY",
+    assert [e["employer"] for e in employment] == [
+        "Slalom",
+        "Unify Consulting",
+        "IBM",
+        "InsurTech Cloud Solutions",
+        "Ernst & Young / Early Career Roles",
     ]
+    assert FINAL_BULLET_COUNT["insurtech_bullets"] == 2
+    assert REQUIRED_BULLET_IDS["insurtech_bullets"] == ("bul_insurtech_001", "bul_insurtech_002")
+    assert FINAL_BULLET_COUNT["ey_bullets"] == 0
+    assert REQUIRED_BULLET_IDS["ey_bullets"] == ()
 
-    # 2. 6 capability categories absorbing flagship platforms
-    csuite_caps = facts.get("csuite_capability_categories")
-    assert isinstance(csuite_caps, list)
-    assert len(csuite_caps) == CSUITE_CAPABILITY_CATEGORY_COUNT == 6
-    assert tuple(c["category"] for c in csuite_caps) == CSUITE_CAPABILITY_CATEGORY_LABELS
-
-    # 3. 5-section headings & schema fields
-    assert len(CSUITE_FIVE_SECTION_HEADINGS) == CSUITE_FIVE_SECTION_COUNT == 5
-    assert CSUITE_FIVE_SECTION_HEADINGS == (
-        EXECUTIVE_INVESTMENT_THESIS_HEADING,
-        EXECUTIVE_AGENTIC_CAPABILITIES_HEADING,
-        EXECUTIVE_EXPERIENCE_2017_PRESENT_HEADING,
-        PRIOR_CSUITE_PEDIGREE_HEADING,
-        DATELESS_CREDENTIALS_FOOTER_HEADING,
-    )
-    assert resolve_competencies_heading("csuite_five_section") == EXECUTIVE_AGENTIC_CAPABILITIES_HEADING
-
-    schema = json.loads(RG_SCHEMA_PATH.read_text(encoding="utf-8"))
-    sec_props = schema["properties"]["sections"]["properties"]
-    assert "value_bar" in sec_props
-    assert "prior_leadership_capsule" in sec_props
-    assert "dateless_credentials" in sec_props
-
-    # 4. Slalom & Competency bundle stores mark flagship absorption
-    slalom_bundles = json.loads(SLALOM_BUNDLES_PATH.read_text(encoding="utf-8"))
     comp_bundles = json.loads(COMP_BUNDLES_PATH.read_text(encoding="utf-8"))
-    assert slalom_bundles["invariants"]["csuite_five_section_flagship_absorbed"] is True
-    assert comp_bundles["invariants"]["csuite_five_section_flagship_absorbed"] is True
+    bundle_ids = {b["competency_bundle_id"] for b in comp_bundles["bundles"]}
+    assert "ccb_insurance_domain_erm" in bundle_ids
 
 
-def test_wave2_section1_value_bar_and_section2_flagship_capabilities() -> None:
-    """Wave 2: Section 1 renders headline, 4-column Value Bar, and 6-sentence thesis; Section 2 renders 6 categories."""
-    base = _load_base_resume()
-    vb_lines = format_value_bar_text(base["facts"]["value_bar"])
-    assert len(vb_lines) >= 5
-    vb_blob = "\n".join(vb_lines)
-    for token in ("$82M+ COMMERCIAL P&L", "+20% MARGIN & COST", "106-ENGINEER SCALE", "VELOCITY & SAFETY"):
-        assert token in vb_blob
-
-    cap_rows = csuite_capability_display_rows(base)
-    assert len(cap_rows) == 6
-    labels = tuple(label for label, _ in cap_rows)
-    assert labels == CSUITE_CAPABILITY_CATEGORY_LABELS
-    combined_summaries = " ".join(summary for _, summary in cap_rows)
-    for absorbed in ("18-role", "20%-margin", "1024-d BGE-M3", "Universal Write Gateway", "$22M revenue", "FSA"):
-        assert absorbed in combined_summaries
-
-
-def test_wave3_section3_core_experience_and_section4_pedigree_capsule() -> None:
-    """Wave 3: Section 3 renders 2017+ roles with Mandate lines; Section 4 renders pre-2017 roles as compact capsule."""
+def test_canonical_competency_rows_and_role_Consolidation(tmp_path: Path) -> None:
+    """Canonical pipeline renders standard headings, 2 InsurTech bullets, and consolidated Early Career."""
     assert CORE_EXPERIENCE_2017_PLUS_EMPLOYERS == ("Slalom", "Unify Consulting", "IBM")
     assert PEDIGREE_CAPSULE_PRE_2017_EMPLOYERS == (
         "InsurTech Cloud Solutions",
         "Ernst & Young / Early Career Roles",
     )
-    assert CSUITE_EXPERIENCE_SPACE_SPLIT == {"core_2017_plus": 0.85, "pedigree_capsule_pre_2017": 0.15}
 
     base = _load_base_resume()
-    rendered = flatten_csuite_five_section_resume_to_text(
-        base,
+    cap_rows = csuite_capability_display_rows(base)
+    assert len(cap_rows) == 6
+    assert tuple(label for label, _ in cap_rows) == CSUITE_CAPABILITY_CATEGORY_LABELS
+
+    contract = emit_final_resume_product_outputs(
+        tmp_path,
+        repo_root=RG_SRC_ROOT,
+        required=True,
         target_company="AIG",
         target_role="VP Global Head Agentic AI",
+        jd_text=(TARGETING_DIR / "aig_vp_global_head_agentic_ai_jd.txt").read_text(encoding="utf-8"),
+        briefing_text=(TARGETING_DIR / "aig_vp_global_head_agentic_ai_briefing.md").read_text(encoding="utf-8"),
     )
-    sec3_idx = rendered.index(f"3. {EXECUTIVE_EXPERIENCE_2017_PRESENT_HEADING}")
-    sec4_idx = rendered.index(f"4. {PRIOR_CSUITE_PEDIGREE_HEADING}")
-    sec5_idx = rendered.index(f"5. {DATELESS_CREDENTIALS_FOOTER_HEADING}")
+    assert contract["status"] == "PASS"
+    rendered = (tmp_path / FINAL_RESUME_OUTPUT_TXT).read_text(encoding="utf-8")
 
-    sec3_text = rendered[sec3_idx:sec4_idx]
-    sec4_text = rendered[sec4_idx:sec5_idx]
+    for heading in (
+        "HEADLINE",
+        "EXECUTIVE SUMMARY",
+        "ENGINEERING & PLATFORM COMPETENCIES",
+        "PROFESSIONAL EXPERIENCE",
+        "EDUCATION",
+        "CERTIFICATIONS & CREDENTIALS",
+    ):
+        assert heading in rendered
 
-    for employer in ("Slalom", "Unify Consulting", "IBM"):
-        assert employer in sec3_text
-        assert employer not in sec4_text
-    assert sec3_text.count("Mandate:") == 3
-    assert "106-software-engineer" in sec3_text
-    assert "<250ms Dual-Track Live Executive Copilot" in sec3_text
-    assert "Universal Write Gateway" in sec3_text
+    insurtech_idx = rendered.index("InsurTech Cloud Solutions \u2014 Chief Technology Officer")
+    early_idx = rendered.index("Ernst & Young / Early Career Roles \u2014 Principal / Actuarial & Quantitative Consultant")
+    edu_idx = rendered.index("EDUCATION")
 
-    for employer in ("InsurTech Cloud Solutions", "Ernst & Young"):
-        assert employer in sec4_text
-        assert employer not in sec3_text
-    assert "Earlier Quantitative Foundation:" in sec4_text
-    assert "Towers Perrin, ING, and Aetna" in sec4_text
+    insurtech_block = rendered[insurtech_idx:early_idx]
+    early_block = rendered[early_idx:edu_idx]
+
+    insurtech_bullets = [ln for ln in insurtech_block.splitlines() if ln.strip().startswith("\u2022")]
+    assert len(insurtech_bullets) == 2
+
+    early_bullets = [ln for ln in early_block.splitlines() if ln.strip().startswith("\u2022")]
+    assert len(early_bullets) == 4
+    assert "Solvency II and AG43" in early_block
+    assert "multi-Greek hedging" in early_block
 
 
-def test_wave4_section5_dateless_credentials_footer_and_docx_export(tmp_path: Path) -> None:
-    """Wave 4: Section 5 renders with zero four-digit years in text and Word outputs."""
+def test_canonical_education_and_certification_formatters() -> None:
+    """Verify format_edu and format_cert support both standard and dateless modes."""
     edu_sample = {"degree": "M.S. in Biostatistics", "institution": "Columbia University", "year": "2002"}
     cert_sample = {"name": "Fellow of the Society of Actuaries", "year": "2010"}
     assert "2002" in format_edu(edu_sample, dateless=False)
@@ -190,21 +147,9 @@ def test_wave4_section5_dateless_credentials_footer_and_docx_export(tmp_path: Pa
     assert "2010" in format_cert(cert_sample, dateless=False)
     assert "2010" not in format_cert(cert_sample, dateless=True)
 
-    report = emit_csuite_five_section_outputs(
-        tmp_path,
-        target_company="Brown & Brown",
-        target_role="SVP IT Strategy & Innovation",
-        repo_root=RG_SRC_ROOT,
-    )
-    assert report["status"] == "PASS"
-    assert report["text_validation"]["status"] == "PASS"
-    assert report["docx_validation"]["status"] == "PASS"
-    assert report["text_validation"]["section5_year_tokens"] == []
-    assert report["docx_validation"]["section5_year_tokens"] == []
-
 
 @pytest.mark.parametrize(("slug", "company", "role", "jd_filename", "briefing_filename"), TARGET_JDS)
-def test_wave5_csuite_five_section_e2e_across_three_jds(
+def test_canonical_pipeline_e2e_across_three_jds(
     tmp_path: Path,
     slug: str,
     company: str,
@@ -212,25 +157,29 @@ def test_wave5_csuite_five_section_e2e_across_three_jds(
     jd_filename: str,
     briefing_filename: str,
 ) -> None:
-    """Wave 5: End-to-end 5-section C-suite resume generation and DOCX verification across all 3 target JDs."""
+    """End-to-end canonical pipeline resume generation, whole-resume graph allocation, and DOCX verification."""
     jd_path = TARGETING_DIR / jd_filename
     briefing_path = TARGETING_DIR / briefing_filename
     assert jd_path.is_file(), f"Missing target JD: {jd_path}"
     assert briefing_path.is_file(), f"Missing target briefing: {briefing_path}"
 
-    report = run_csuite_five_section_jd_e2e(
+    run_dir = tmp_path / slug
+    contract = emit_final_resume_product_outputs(
+        run_dir,
+        repo_root=RG_SRC_ROOT,
+        required=True,
         target_company=company,
         target_role=role,
-        jd_path=jd_path,
-        briefing_path=briefing_path,
-        artifact_root=tmp_path / slug,
+        jd_text=jd_path.read_text(encoding="utf-8"),
+        briefing_text=briefing_path.read_text(encoding="utf-8"),
     )
-    assert report["status"] == "PASS"
-    assert report["briefing_loaded"] is True
-    assert report["text_validation"]["status"] == "PASS"
-    assert report["docx_validation"]["status"] == "PASS"
-    gp = report["graph_evidence_plan"]
+    assert contract["status"] == "PASS"
+    assert contract["failed_gate_ids"] == []
+
+    gp = contract["graph_evidence_plan"]
     assert len(str(gp.get("plan_digest") or "")) == 64
+    assert len(str(gp.get("allocation_plan_digest") or "")) == 64
+    assert gp["assignment_count"] == 48
     assert gp["selected_skill_ids"]
     if slug == "brown_brown":
         assert gp["target_role_profile"] == "insurance_it_strategy"
@@ -243,24 +192,22 @@ def test_wave5_csuite_five_section_e2e_across_three_jds(
         assert gp["target_role_profile"] == "balanced_enterprise_ai"
         assert "data_governance_security" in gp["selected_competency_families"]
 
-    run_dir = Path(report["artifact_dir"])
-    txt_file = run_dir / "CSUITE_FINAL_RESUME.txt"
-    docx_file = run_dir / "outputs" / "csuite_resume.docx"
+    spine_file = run_dir / FINAL_RESUME_ASSEMBLY_JSON_RELPATH
+    txt_file = run_dir / FINAL_RESUME_OUTPUT_TXT
+    docx_file = run_dir / FINAL_RESUME_DOCX_RELPATH
+    assert spine_file.is_file()
     assert txt_file.is_file() and txt_file.stat().st_size > 1500
     assert docx_file.is_file() and docx_file.stat().st_size > 2000
 
     rendered_txt = txt_file.read_text(encoding="utf-8")
     assert company in rendered_txt
-    assert role.upper() in rendered_txt or role in rendered_txt
-    validation = validate_csuite_five_section_text(rendered_txt)
-    assert validation["status"] == "PASS"
-    assert validation["failed_checks"] == []
-    assert validation["checks"]["six_sentence_calibrated_thesis"] is True
-    assert not re.search(r"\b(?:2002|2010|2023|2024|2025)\b", rendered_txt.split(f"5. {DATELESS_CREDENTIALS_FOOTER_HEADING}")[-1])
+    assert role in rendered_txt
+    assert "github.com/Siamese001/agents" in rendered_txt.splitlines()[1]
+    assert "Boca Raton, FL" not in rendered_txt.splitlines()[1]
 
 
-def test_wave6_exec_summary_synthesis_calibration_and_anti_past_title_gate() -> None:
-    """Verify IDE/C-suite executive summary synthesis matches the 6-sentence calibration contract and rejects past-title lists."""
+def test_canonical_exec_summary_synthesis_calibration_and_anti_past_title_gate(tmp_path: Path) -> None:
+    """Verify canonical executive summary matches the 6-sentence calibration contract and rejects past-title lists."""
     import yaml
     from apps_rg.runtime.validators.executive_summary_x2 import (
         check_exec_summary_meta_filler_patterns,
@@ -272,20 +219,21 @@ def test_wave6_exec_summary_synthesis_calibration_and_anti_past_title_gate() -> 
         check_synthesis_quality,
     )
 
-    base = _load_base_resume()
-    rendered = flatten_csuite_five_section_resume_to_text(
-        base,
+    citi_dir = tmp_path / "citi"
+    emit_final_resume_product_outputs(
+        citi_dir,
+        repo_root=RG_SRC_ROOT,
+        required=True,
         target_company="Citi",
         target_role="Head of AI Strategy - Firmwide AI",
+        jd_text=(TARGETING_DIR / "citi_head_of_ai_strategy_jd.txt").read_text(encoding="utf-8"),
+        briefing_text=(TARGETING_DIR / "citi_head_of_ai_strategy_briefing.md").read_text(encoding="utf-8"),
     )
-    sec1_start = rendered.index(f"1. {EXECUTIVE_INVESTMENT_THESIS_HEADING}")
-    sec2_start = rendered.index(f"2. {EXECUTIVE_AGENTIC_CAPABILITIES_HEADING}")
-    sec1_lines = [
-        ln.strip()
-        for ln in rendered[sec1_start:sec2_start].splitlines()[1:]
-        if ln.strip() and not ln.strip().startswith(("[", "|", "-", "+"))
-    ]
-    thesis = " ".join(sec1_lines)
+    spine = json.loads((citi_dir / FINAL_RESUME_ASSEMBLY_JSON_RELPATH).read_text(encoding="utf-8"))
+    rendered = flatten_final_resume_to_text(spine)
+    exec_sec = next(s for s in spine["sections"] if s["section_id"] == "executive_summary")
+    thesis = exec_sec["l2_output_snapshot"]["resume_display_text"]
+
     for fn in (
         check_exec_summary_sentence_count_6,
         check_exec_summary_paragraph_max_words,
@@ -311,19 +259,20 @@ def test_wave6_exec_summary_synthesis_calibration_and_anti_past_title_gate() -> 
     assert cal_root["thesis_first_generation"] is True
     assert cal_root["forbid_past_title_stacking"] is True
 
-    bb_rendered = flatten_csuite_five_section_resume_to_text(
-        base,
+    bb_dir = tmp_path / "bb"
+    emit_final_resume_product_outputs(
+        bb_dir,
+        repo_root=RG_SRC_ROOT,
+        required=True,
         target_company="Brown & Brown",
         target_role="SVP IT Strategy & Innovation",
+        jd_text=(TARGETING_DIR / "brown_brown_svp_it_strategy_innovation_jd.txt").read_text(encoding="utf-8"),
+        briefing_text=(TARGETING_DIR / "brown_brown_svp_it_strategy_innovation_briefing.md").read_text(encoding="utf-8"),
     )
+    bb_rendered = (bb_dir / FINAL_RESUME_OUTPUT_TXT).read_text(encoding="utf-8")
     assert "github.com/Siamese001/agents" in bb_rendered.splitlines()[1]
     assert "Boca Raton, FL" not in bb_rendered.splitlines()[1]
     assert "Insurance Domain, Actuarial Risk & Carrier Operations" in bb_rendered
     assert "Solvency II and AG43" in bb_rendered
-
-    aig_rendered = flatten_csuite_five_section_resume_to_text(
-        base,
-        target_company="AIG",
-        target_role="VP Global Head Agentic AI",
-    )
-    assert "Insurance Underwriting, Claims & Actuarial Risk (FSA)" in aig_rendered
+    assert "Ernst & Young / Early Career Roles" in bb_rendered
+    assert "HEADLINE" in rendered
