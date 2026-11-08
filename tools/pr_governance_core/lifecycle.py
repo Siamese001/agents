@@ -451,7 +451,7 @@ def _execute_merge_under_lock(
             env=sanitized_git_env(),
             capture_output=True,
             text=True,
-            timeout=60.0,
+            timeout=180.0,
         )
         if merge_res.returncode != 0:
             print(f"❌ Merge failed:\n{merge_res.stderr}")
@@ -487,7 +487,7 @@ def _execute_merge_under_lock(
             capture_output=True,
             text=True,
             env=commit_env,
-            timeout=60.0,
+            timeout=180.0,
         )
         if commit_res.returncode != 0:
             print(f"❌ Merge commit creation failed:\n{commit_res.stderr}")

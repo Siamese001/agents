@@ -174,7 +174,7 @@ def run_smoke(
             capture_output=True,
             text=True,
             shell=False,
-            timeout=600 if live_resume else 180,
+            timeout=900 if live_resume else 180,
         )
 
         if proc.returncode != 0:

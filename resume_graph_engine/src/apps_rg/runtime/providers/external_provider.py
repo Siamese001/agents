@@ -65,7 +65,7 @@ def _openai_model_omits_temperature(model: Any) -> bool:
         and capabilities.provider == "openai"
         and capabilities.temperature_parameter == "omit"
     )
-DEFAULT_EXTERNAL_PROVIDER_TIMEOUT_SECONDS = 90.0
+DEFAULT_EXTERNAL_PROVIDER_TIMEOUT_SECONDS = 180.0
 ANTHROPIC_SYSTEM_ONLY_USER_PROMPT = "Return the requested JSON object now."
 # Shared upper safety bound for ANY external section provider wall-clock budget.
 # The competencies lane may opt into a longer-than-default budget, but it should
