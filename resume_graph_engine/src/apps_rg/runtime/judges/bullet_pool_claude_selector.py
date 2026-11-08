@@ -56,6 +56,7 @@ from apps_rg.runtime.section_model_limits import (
     selector_role_for_section,
 )
 from apps_rg.runtime.model_token_governor import reserve_apps_rg_model_tokens
+from apps_rg.runtime.reasoning.bullet_pool_sync_helpers import normalize_bullet_selection_margins, select_from_bullet_pool_with_claude
 
 _SELECTOR_PROVIDERS: dict[str, dict[str, str]] = {
     "openai_chatgpt": {"env": "OPENAI_API_KEY"},
@@ -73,15 +74,7 @@ def _extract_anthropic_message_text(data: dict[str, Any]) -> str:
 
 SlotKind = Literal["bullets", "competencies"]
 
-# Bug:BulletPoolSelectorRubricSchemaDrift (AIG attempt4 + patch-run 2, 2026-06-11): the selector
-# previously sent build_x1d_judge_system_prompt(compact=True) as its system prompt. That prompt's
-# JUDGE_COMPACT_OUTPUT block hard-mandates "Return ONLY one compact JSON object" in the GRADE_ONLY
-# rubric shape ({"score_scale", ..., "dimension_verdicts"}), contradicting the user prompt's
-# {"selections": [...]} schema. Claude stochastically resolved the conflict by emitting
-# the rubric object — alone (zero selections, silent MODEL_BACKED degradation) or followed by the
-# selections object as a SECOND top-level JSON object (unparseable by _extract_json_from_text →
-# BLOCKED_RESPONSE_PARSE_ERROR → fallback_first_complete_path → X3_BLOCK). The selector is NOT a
-# rubric judge (see _call_anthropic_pool_selector docstring) — anchor its own output schema.
+# Bug:BulletPoolSelectorRubricSchemaDrift: anchor selector on selections/pool_summary schema.
 POOL_SELECTOR_SYSTEM_PROMPT = (
     "You are a strict pool SELECTOR for resume bullet/competency candidates - not a grading "
     'judge. Return ONLY one compact JSON object whose top-level keys are exactly "selections" '
@@ -751,7 +744,7 @@ def _employment_bullet_selection_prompt(
         f"Briefing (targeting only):\n{briefing[:resolve_bullet_selector_briefing_max_chars()]}\n\n"
         f"Skills graph ref: {skills_ref}\n\n"
         "Return JSON only:\n"
-        f'{{"selections":[{{"bullet_id":"...","path_index":0,"score":0.94,"passes":true,"rationale":"..."}}],'
+        f'{{"selections":[{{"bullet_id":"...","path_index":0,"score":0.94,"runner_up":{{"path_index":1,"score":0.89}},"runner_up_score":0.89,"selection_margin":0.05,"passes":true,"rationale":"..."}}],'
         f'"pool_summary":{{"paths_scored":{n_paths},"final_bullet_count":{n_final},'
         f'"min_score_threshold":{min_score_threshold:.2f},"selector":"{selector_name}"}}}}\n\n'
         "CANDIDATE POOL:\n"
@@ -1632,7 +1625,7 @@ def _fallback_first_complete_path(
             if all(_bullet_by_id(path.parsed, bid) is not None for bid in required_bullet_ids):
                 return PoolSelectionResult(
                     merged_parsed=dict(path.parsed),
-                    selections=_deterministic_bullet_selections(path.path_index),
+                    selections=normalize_bullet_selection_margins(paths, _deterministic_bullet_selections(path.path_index)),
                     judge_output=None,
                     selection_mode="fallback_first_complete_path",
                     source_path_by_slot={bid: path.path_index for bid in required_bullet_ids},
@@ -2223,7 +2216,7 @@ def run_claude_bullet_pool_selection(
             targeting_context=targeting_context,
         )
 
-    selections = list((parsed_sel or {}).get("selections") or [])
+    selections = normalize_bullet_selection_margins(valid_paths, list((parsed_sel or {}).get("selections") or [])) if slot_kind == "bullets" else list((parsed_sel or {}).get("selections") or [])
     base = valid_paths[0].parsed
     tc = targeting_context or {}
     rejected_neighbor_audit: dict[str, Any] | None = None
@@ -2284,4 +2277,5 @@ __all__ = [
     "merge_competency_selections",
     "pool_selector_timeout_s",
     "run_claude_bullet_pool_selection",
+    "select_from_bullet_pool_with_claude",
 ]

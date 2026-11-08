@@ -1113,6 +1113,16 @@ def _default_dispatch_lane(
     # attempt root. The section finalizer still updates the lane pointer only
     # when this real run clears its product bar.
     attempt_artifact_dir = _patch_lane_attempt_artifact_dir(plan, lane)
+    lane_temp = default_temperature_for_section(lane)
+    raw_directives = os.environ.get("APPS_RG_RECOVERY_DIRECTIVES_JSON")
+    if raw_directives:
+        try:
+            directives_blob = json.loads(raw_directives)
+            lane_ov = (directives_blob.get("lane_overrides") or {}).get(lane) if isinstance(directives_blob, Mapping) else None
+            if isinstance(lane_ov, Mapping) and lane_ov.get("temperature") is not None:
+                lane_temp = float(lane_ov["temperature"])
+        except (ValueError, TypeError):
+            pass
     result = run_canonical_apps_rg_from_cli_primitives(
         target_company=t.target_company,
         target_role=t.target_role,
@@ -1128,7 +1138,7 @@ def _default_dispatch_lane(
         section=lane,
         lane_provider=effective_provider,
         lane_provider_resolution_source=provider_source,
-        lane_temperature=default_temperature_for_section(lane),
+        lane_temperature=lane_temp,
         lane_x1d_judges=resolve_cli_x1d_judges(None, section_id=lane),
         lane_mock_judges=False,
         lane_allow_non_allow_exit_zero=resolve_phase1_lane_allow_non_allow_exit_zero(False),
@@ -1517,6 +1527,7 @@ def execute_patch_run(
     aggregate_fn: Callable[..., dict[str, Any]] | None = None,
     lane_timeout_s: float | None = None,
     run_timeout_s: float | None = None,
+    recovery_directives: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Run the patch plan: dispatch target lanes, re-aggregate, write receipt.
 
@@ -1527,7 +1538,12 @@ def execute_patch_run(
     if dry_run:
         print(render_patch_plan(plan), flush=True)
         print("DRY RUN: patch-run plan only — no lanes dispatched, nothing executed.", flush=True)
-        return {"exit_code": 0, "dry_run": True, "target_lanes": list(plan.target_lanes)}
+        return {
+            "exit_code": 0,
+            "dry_run": True,
+            "target_lanes": list(plan.target_lanes),
+            "recovery_directives": dict(recovery_directives) if isinstance(recovery_directives, Mapping) else {},
+        }
 
     from apps_rg.l2_recipe.r4_generation_mode import resolve_apps_rg_modular_lane_provider_override
     from apps_rg.runtime.run_bundle_index import repo_relative_posix
@@ -1604,12 +1620,15 @@ def execute_patch_run(
             MODULAR_R4_SECTIONS_ROOT_ENV,
             _WHOLE_RUN_ENVELOPE_ENV,
             _CORRELATED_CLI_RUN_ENV,
+            "APPS_RG_RECOVERY_DIRECTIVES_JSON",
             *graph_env,
         )
     }
     os.environ[MODULAR_R4_SECTIONS_ROOT_ENV] = str(sections_root.resolve())
     os.environ[_WHOLE_RUN_ENVELOPE_ENV] = "1"
     os.environ[_CORRELATED_CLI_RUN_ENV] = repo_relative_posix(plan.repo, plan.run_dir.resolve())
+    if isinstance(recovery_directives, Mapping) and recovery_directives:
+        os.environ["APPS_RG_RECOVERY_DIRECTIVES_JSON"] = json.dumps(dict(recovery_directives))
     os.environ.update(graph_env)
     try:
         require_manifest_for_modular_sections_root(
@@ -1692,6 +1711,7 @@ def execute_patch_run(
             name: repo_relative_posix(plan.repo, Path(path))
             for name, path in graph_env.items()
         },
+        "recovery_directives": dict(recovery_directives) if isinstance(recovery_directives, Mapping) else {},
         "exit_code": exit_code,
         "explicit_non_claims": [
             "patch-run does not re-emit root X3 — root x3_disposition_receipt.json / "

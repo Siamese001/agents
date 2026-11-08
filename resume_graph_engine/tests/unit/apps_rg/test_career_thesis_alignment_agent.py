@@ -110,6 +110,77 @@ class TestCareerThesisAlignmentAgent(unittest.TestCase):
         self.assertTrue(data["digest"].startswith("sha256:"))
         self.assertTrue(len(data["career_thesis"]["key_themes"]) >= 3)
 
+        receipt_file = self.artifact_dir / "career_thesis_alignment_receipt.json"
+        self.assertTrue(receipt_file.is_file())
+        receipt = json.loads(receipt_file.read_text(encoding="utf-8"))
+        self.assertEqual(receipt["schema_version"], "career_thesis_alignment_receipt_v1")
+        self.assertTrue(receipt["pass"])
+
+    def test_c03_assignment_uniqueness_and_adjacent_pivot_receipt(self) -> None:
+        from apps_rg.runtime.c0.resume_graph_allocation import _validate_assignment_uniqueness
+
+        c03_assignments = [
+            {
+                "claim_unit_id": "headline:001",
+                "section_id": "headline",
+                "skill_id": "skill_distributed_systems",
+                "skill_label": "Distributed Systems Architecture",
+                "root_bundle_theme": "Cloud Platform Transformation",
+                "metric_outcome_id": "",
+                "counts_toward_global_uniqueness": True,
+            },
+            {
+                "claim_unit_id": "executive_summary:001",
+                "section_id": "executive_summary",
+                "skill_id": "skill_llm_governance",
+                "skill_label": "LLM Evaluation & Governance",
+                "root_bundle_theme": "Enterprise AI Safety",
+                "metric_outcome_id": "metric_revenue_22m",
+                "metric_text": "$22M revenue",
+                "counts_toward_global_uniqueness": True,
+            },
+            {
+                "claim_unit_id": "unify_bullets:bul_unify_001",
+                "section_id": "unify_bullets",
+                "skill_id": "skill_kubernetes_scale",
+                "skill_label": "Kubernetes Fleet Scaling",
+                "root_bundle_theme": "High-Throughput Infrastructure",
+                "metric_outcome_id": "metric_margin_35pct",
+                "metric_text": "35% margin",
+                "counts_toward_global_uniqueness": True,
+            },
+        ]
+
+        plan = execute_career_thesis_alignment(
+            self.artifact_dir,
+            target_company="Anthropic",
+            target_role="SVP Agentic Engineering",
+            target_level="SVP",
+            jd_requirements=[
+                {"id": "r1", "text": "Distributed Systems Architecture and Cloud Platform Transformation"},
+                {"id": "r2", "text": "Quantum Sovereign Hardware Foundry Operations"},
+            ],
+            c0_evidence_items=c03_assignments,
+        )
+
+        self.assertIsNotNone(plan.thematic_allocation)
+        self.assertTrue(len(plan.thematic_allocation.competencies_focus) >= 3)
+        self.assertEqual(plan.evidence_gaps[0].gap_status, "DIRECT_MATCH")
+        self.assertEqual(plan.evidence_gaps[1].gap_status, "ADJACENT_PIVOT")
+        self.assertIn("C0.3 bridge anchors", plan.evidence_gaps[1].pivot_strategy)
+
+        uniqueness = _validate_assignment_uniqueness(c03_assignments)
+        self.assertTrue(uniqueness["pass"])
+        self.assertEqual(uniqueness["repeated_skill_ids"], [])
+        self.assertEqual(uniqueness["repeated_metric_outcome_ids"], [])
+
+        receipt = json.loads(
+            (self.artifact_dir / "career_thesis_alignment_receipt.json").read_text(encoding="utf-8")
+        )
+        self.assertTrue(receipt["pass"])
+        self.assertEqual(receipt["adjacent_pivot_count"], 1)
+        self.assertEqual(receipt["uniqueness_receipt"], uniqueness)
+
 
 if __name__ == "__main__":
     unittest.main()

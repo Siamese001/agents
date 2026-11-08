@@ -1994,36 +1994,41 @@ class CompanyBriefEngine(BaseResearchEngine):
             "authoritative_anchor_present": total_sources > 0,
             "source_urls": sorted(set(all_urls))[:50],
             "direct_jd_source_present": direct_jd_role_context,
-            "direct_jd_content_hash": (
-                str(jd_context.get("jd_content_hash") or "")
-                if direct_jd_role_context
-                else ""
-            ),
+            "direct_jd_content_hash": str(jd_context.get("jd_content_hash") or "") if direct_jd_role_context else "",
         }
 
-        # ── ClaimEvidenceMap ────────────────────────────────────────────────
         unsupported = max(0, len(required_families) - covered)
         claim_evidence_map = {
-            "total_claims": len(required_families),
-            "supported_count": covered,
-            "unsupported_direct_evidence_count": unsupported,
-            "unsupported_claim_count": unsupported,
+            "total_claims": len(required_families), "supported_count": covered,
+            "unsupported_direct_evidence_count": unsupported, "unsupported_claim_count": unsupported,
         }
 
-        # ── ContradictionMatrix ─────────────────────────────────────────────
+        from apps_research.reasoning.research_multi_agent import run_dialectical_evidence_triad
+
+        dialectical_claims: List[Dict[str, Any]] = [
+            {"claim_id": f"{fam_key}_{line_idx + 1}", "family": fam_key, "text": line.strip()}
+            for fam_key, blob in findings.items()
+            for line_idx, line in enumerate(str(blob or "").splitlines())
+            if line.strip() and not line.strip().startswith("http")
+        ]
+        triad_result = run_dialectical_evidence_triad(dialectical_claims)
         contradiction_matrix = {
-            "total_contradictions": 0,
-            "unresolved_critical": 0,
-            "resolved_count": 0,
+            "schema_version": "c0_contradiction_matrix.v1",
+            "total_contradictions": int(triad_result.get("total_contradictions", 0)),
+            "contradictions_detected": int(triad_result.get("contradictions_detected", 0)),
+            "unresolved_critical": int(triad_result.get("unresolved_critical", 0)),
+            "resolved_count": int(triad_result.get("resolved_count", 0)),
+            "resolutions": list(triad_result.get("resolutions", [])),
         }
 
-        # ── FreshnessReport ─────────────────────────────────────────────────
+        fresh_summary = triad_result.get("freshness_summary", {})
         freshness_report = {
+            "schema_version": "c0_freshness_report.v1",
             "policy_id": f"freshness::apps_research::{depth_profile.split('_')[-1].lower()}",
-            "sources": [],
-            "stale_excluded_count": 0,
+            "sources": list(fresh_summary.get("stale_sources", [])),
+            "stale_excluded_count": int(fresh_summary.get("stale_excluded_count", 0)),
             "gate_fail_triggered": False,
-            "stale_section_ids": [],
+            "stale_section_ids": list(fresh_summary.get("stale_section_ids", [])),
         }
 
         # ── SectionGapReport ────────────────────────────────────────────────

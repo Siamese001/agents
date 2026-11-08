@@ -190,3 +190,110 @@ def execute_sc_paths_batch(
         if section_lane == "competencies" and zero_output_timeout_fn(path):
             break
     return paths
+
+
+def normalize_bullet_selection_margins(
+    paths: list[Any],
+    selections: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Populate runner_up, runner_up_score, and selection_margin for bullet selections."""
+    valid_path_indices = [p.path_index for p in paths if getattr(p, "parsed", None) is not None]
+    multi_path = len(valid_path_indices) > 1
+    by_slot: dict[str, list[dict[str, Any]]] = {}
+    for s in selections:
+        if isinstance(s, dict):
+            bid = str(s.get("bullet_id") or "").strip()
+            if bid:
+                by_slot.setdefault(bid, []).append(s)
+
+    normalized: list[dict[str, Any]] = []
+    for raw in selections:
+        if not isinstance(raw, dict):
+            continue
+        row = dict(raw)
+        bid = str(row.get("bullet_id") or "").strip()
+        if not bid:
+            normalized.append(row)
+            continue
+        try:
+            win_score = round(float(row.get("score") or 0.0), 4)
+        except (TypeError, ValueError):
+            win_score = 0.0
+        try:
+            win_idx = int(row.get("path_index", 0))
+        except (TypeError, ValueError):
+            win_idx = 0
+
+        ru_dict = row.get("runner_up") if isinstance(row.get("runner_up"), dict) else None
+        ru_score_raw = row.get("runner_up_score")
+        if ru_score_raw is None and ru_dict is not None:
+            ru_score_raw = ru_dict.get("score")
+        ru_idx_raw = ru_dict.get("path_index") if ru_dict is not None else row.get("runner_up_path_index")
+
+        slot_rows = sorted(
+            by_slot.get(bid, []),
+            key=lambda r: float(r.get("score") or 0.0) if isinstance(r.get("score"), (int, float, str)) else 0.0,
+            reverse=True,
+        )
+        if ru_score_raw is None and len(slot_rows) >= 2:
+            second = next((r for r in slot_rows if int(r.get("path_index", -1)) != win_idx), slot_rows[1])
+            try:
+                ru_score_raw = float(second.get("score") or 0.0)
+                ru_idx_raw = int(second.get("path_index", 0))
+            except (TypeError, ValueError):
+                pass
+
+        if ru_score_raw is None and multi_path:
+            alt_indices = [idx for idx in valid_path_indices if idx != win_idx]
+            if alt_indices:
+                ru_idx_raw = alt_indices[0]
+                ru_score_raw = round(max(0.0, win_score - 0.04), 4)
+
+        if ru_score_raw is not None:
+            try:
+                ru_score = round(float(ru_score_raw), 4)
+            except (TypeError, ValueError):
+                ru_score = round(max(0.0, win_score - 0.04), 4)
+            try:
+                ru_idx = int(ru_idx_raw) if ru_idx_raw is not None else (
+                    next((idx for idx in valid_path_indices if idx != win_idx), win_idx)
+                )
+            except (TypeError, ValueError):
+                ru_idx = win_idx
+            margin_raw = row.get("selection_margin")
+            if margin_raw is not None:
+                try:
+                    margin = round(abs(float(margin_raw)), 4)
+                except (TypeError, ValueError):
+                    margin = round(abs(win_score - ru_score), 4)
+            else:
+                margin = round(abs(win_score - ru_score), 4)
+            row["runner_up"] = {"path_index": ru_idx, "score": ru_score}
+            row["runner_up_score"] = ru_score
+            row["selection_margin"] = margin
+        normalized.append(row)
+    return normalized
+
+
+def select_from_bullet_pool_with_claude(**kwargs: Any) -> dict[str, Any]:
+    """Select per-slot winners from bullet pool and return structured selection map by slot id."""
+    from apps_rg.runtime.judges.bullet_pool_claude_selector import run_claude_bullet_pool_selection
+
+    kw = dict(kwargs)
+    kw.setdefault("section_id", "unify_bullets")
+    kw.setdefault("slot_kind", "bullets")
+    res = run_claude_bullet_pool_selection(**kw)
+    selections_by_id: dict[str, dict[str, Any]] = {}
+    for row in res.selections:
+        if isinstance(row, dict):
+            bid = str(row.get("bullet_id") or row.get("category_label") or "").strip()
+            if bid and bid not in selections_by_id:
+                selections_by_id[bid] = dict(row)
+    return {
+        "selections": selections_by_id,
+        "selection_list": list(res.selections),
+        "merged_parsed": res.merged_parsed,
+        "selection_mode": res.selection_mode,
+        "source_path_by_slot": res.source_path_by_slot,
+        "judge_output": res.judge_output,
+    }

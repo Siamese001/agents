@@ -367,6 +367,77 @@ Build core foundation.
         self.assertEqual(res.returncode, 0)
         self.assertEqual(json.loads(res.stdout.strip())["decision"], "allow")
 
+    def test_pre_ask_question_blocks_oversized_truncated_or_jargon_payloads(self) -> None:
+        """pre_ask_question must reject >300-char questions, >250-char options, ellipses, and technical jargon."""
+        bad_cases = [
+            {
+                "question": "Which option should we choose for this step? " + ("More context words " * 16),
+                "options": [
+                    "(Recommended) First plain choice (Confidence: MEDIUM (68%))",
+                    "Second plain choice (Confidence: MEDIUM (55%))",
+                ],
+                "expected_code": "HITL_VIOLATION_QUESTION_LENGTH",
+            },
+            {
+                "question": "Which schedule should we choose?",
+                "options": [
+                    "(Recommended) First plain choice with extra words " + ("padding text " * 18) + "(Confidence: MEDIUM (68%))",
+                    "Second plain choice (Confidence: MEDIUM (55%))",
+                ],
+                "expected_code": "HITL_VIOLATION_OPTION_LENGTH",
+            },
+            {
+                "question": "Should we continue with the truncated option...?",
+                "options": [
+                    "(Recommended) First plain choice (Confidence: MEDIUM (68%))",
+                    "Second plain choice (Confidence: MEDIUM (55%))",
+                ],
+                "expected_code": "HITL_VIOLATION_TRUNCATION",
+            },
+            {
+                "question": "Should we run O2 A2A voice repair in tools/hook_dispatch.py?",
+                "options": [
+                    "(Recommended) Run O2 repair (Confidence: MEDIUM (68%))",
+                    "Skip repair (Confidence: MEDIUM (55%))",
+                ],
+                "expected_code": "HITL_VIOLATION_JARGON_IN_QUESTION",
+            },
+            {
+                "question": "Which delivery order should we follow?",
+                "options": [
+                    "(Recommended) Run ExecutiveVoiceRepairAgent with blast radius check (Confidence: MEDIUM (68%))",
+                    "Wait for review (Confidence: MEDIUM (55%))",
+                ],
+                "expected_code": "HITL_VIOLATION_JARGON_IN_OPTION",
+            },
+        ]
+        for case in bad_cases:
+            payload = {
+                "toolCall": {
+                    "name": "ask_question",
+                    "args": {
+                        "questions": [
+                            {
+                                "question": case["question"],
+                                "options": case["options"],
+                            }
+                        ]
+                    },
+                }
+            }
+            res = subprocess.run(
+                [sys.executable, "tools/hook_dispatch.py", "--hook", "pre_ask_question"],
+                input=json.dumps(payload),
+                capture_output=True,
+                text=True,
+                cwd=ROOT,
+                timeout=10,
+            )
+            self.assertEqual(res.returncode, 1, msg=f"Expected deny for {case['expected_code']}")
+            data = json.loads(res.stdout.strip())
+            self.assertEqual(data["decision"], "deny")
+            self.assertIn(case["expected_code"], data["reason"])
+
     def test_post_ask_question_records_operator_decision(self) -> None:
         """post_ask_question must persist operator answers into HITLDecisionStore."""
         import tempfile

@@ -110,6 +110,7 @@ def check_path_model_neutrality(
         rel = str(path).replace("\\", "/")
         rel = re.sub(r"^.*?/\.gemini/antigravity/brain/[^/]+/", "", rel)
 
+    rel = re.sub(r"^(?:.*/)?\.worktrees/[^/]+/", "", rel)
     if is_path_exempt(rel):
         return []
 

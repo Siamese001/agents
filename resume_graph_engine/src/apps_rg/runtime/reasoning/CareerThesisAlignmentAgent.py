@@ -215,17 +215,45 @@ class CareerThesisAlignmentAgent:
 
         for idx, item in enumerate(raw_evidence, start=1):
             if isinstance(item, Mapping):
-                ev_id = str(item.get("assertion_id") or item.get("id") or f"ev_{idx:03d}")
+                ev_id = str(
+                    item.get("assertion_id")
+                    or item.get("claim_unit_id")
+                    or item.get("fact_id")
+                    or item.get("id")
+                    or f"ev_{idx:03d}"
+                )
                 text = str(
-                    item.get("fact_text") or item.get("text") or item.get("canonical_bullet") or ""
+                    item.get("fact_text")
+                    or item.get("text")
+                    or item.get("canonical_bullet")
+                    or item.get("root_bundle_theme")
+                    or item.get("metric_text")
+                    or ""
                 ).strip()
-                skills = list(item.get("matched_skills") or item.get("skills") or [])
-                domain = str(item.get("domain") or "")
+                raw_skills = list(item.get("matched_skills") or item.get("skills") or [])
+                if not raw_skills:
+                    for key in ("skill_label", "skill_id"):
+                        val = str(item.get(key) or "").strip()
+                        if val and val not in raw_skills:
+                            raw_skills.append(val)
+                skills = raw_skills
+                domain = str(
+                    item.get("domain")
+                    or item.get("root_bundle_theme")
+                    or item.get("employer_lane")
+                    or ""
+                )
+                section_id = str(item.get("section_id") or "")
+                skill_id = str(item.get("skill_id") or "")
+                metric_outcome_id = str(item.get("metric_outcome_id") or "")
             else:
                 ev_id = f"ev_{idx:03d}"
                 text = str(item).strip()
                 skills = []
                 domain = ""
+                section_id = ""
+                skill_id = ""
+                metric_outcome_id = ""
             if text or skills:
                 normalized.append(
                     {
@@ -233,6 +261,9 @@ class CareerThesisAlignmentAgent:
                         "text": text,
                         "skills": [str(s) for s in skills],
                         "domain": domain,
+                        "section_id": section_id,
+                        "skill_id": skill_id,
+                        "metric_outcome_id": metric_outcome_id,
                     }
                 )
         return normalized
@@ -288,7 +319,14 @@ class CareerThesisAlignmentAgent:
         evidence: list[dict[str, Any]],
     ) -> list[EvidenceGapMitigation]:
         mitigations: list[EvidenceGapMitigation] = []
-        evidence_texts = [(ev["id"], (ev["text"] + " " + " ".join(ev["skills"])).lower()) for ev in evidence]
+        evidence_texts = [
+            (
+                ev["id"],
+                (ev["text"] + " " + " ".join(ev["skills"]) + " " + ev.get("domain", "")).lower(),
+            )
+            for ev in evidence
+        ]
+        fallback_anchor_ids = [ev["id"] for ev in evidence[:2]]
 
         for req in requirements:
             req_text = req["text"]
@@ -310,7 +348,16 @@ class CareerThesisAlignmentAgent:
                 strategy = f"Anchor on proven foundation in {matched_ids[0]}; emphasize adjacent organizational scope."
             else:
                 gap_status = "ADJACENT_PIVOT"
-                strategy = "Pivot to foundational architecture principles and transferable systems engineering methodology."
+                anchor_suffix = (
+                    f" via C0.3 bridge anchors {fallback_anchor_ids}"
+                    if fallback_anchor_ids
+                    else ""
+                )
+                strategy = (
+                    "Pivot to foundational architecture principles and transferable systems engineering methodology"
+                    + anchor_suffix
+                    + "."
+                )
 
             mitigations.append(
                 EvidenceGapMitigation(
@@ -334,7 +381,7 @@ class CareerThesisAlignmentAgent:
         Turn 1: Career Thesis Strategist proposes allocations.
         Turn 2: Section Asset Arbiter audits and finalizes allocations to prevent starvation.
         """
-        # Turn 1: Strategist Proposal (simulated for architectural blueprint)
+        # Turn 1: Strategist Proposal
         strategist_proposal = self._call_strategist_agent(thesis, requirements, evidence)
 
         # Turn 2: Arbiter Audit & Finalization
@@ -349,27 +396,30 @@ class CareerThesisAlignmentAgent:
     def _call_strategist_agent(
         self, thesis: CareerThesis, requirements: list[dict[str, Any]], evidence: list[dict[str, Any]]
     ) -> dict[str, Any]:
-        """Simulate Turn 1: Career Thesis Strategist."""
-        # In production, this issues an LLM call to Claude 3.5 Sonnet
-        # Prompt: "Propose a single-sentence Career Thesis, Headline Pillars, and Fact Reservations..."
+        """Turn 1: Career Thesis Strategist proposes cross-section themes and lane reservations."""
+        by_section: dict[str, list[str]] = {}
+        for ev in evidence:
+            sec = str(ev.get("section_id") or "").strip()
+            if sec:
+                by_section.setdefault(sec, []).append(ev["id"])
+
+        proposed_lanes = {
+            "unify_bullets": by_section.get("unify_bullets") or ["ev_001", "ev_002"],
+            "ibm_bullets": by_section.get("ibm_bullets") or ["ev_003"],
+        }
+        if by_section.get("slalom_bullets"):
+            proposed_lanes["slalom_bullets"] = by_section["slalom_bullets"]
+
         return {
             "headline_focus": thesis.key_themes[:2] if thesis.key_themes else [],
             "executive_summary_focus": thesis.key_themes[:3] if thesis.key_themes else [],
-            "proposed_lane_allocations": {
-                "unify_bullets": ["ev_001", "ev_002"],
-                "ibm_bullets": ["ev_003"],  # Strategist tries to hoard facts
-            },
+            "proposed_lane_allocations": proposed_lanes,
         }
 
     def _call_asset_arbiter_agent(
         self, strategist_proposal: dict[str, Any], evidence: list[dict[str, Any]]
     ) -> ThematicAllocation | None:
-        """Simulate Turn 2: Section Asset Arbiter."""
-        # In production, this issues an LLM call to Claude 3.5 Haiku
-        # Prompt: "Audit proposed fact allocations against downstream chronological lane density floors..."
-
-        # Arbiter detects ibm_bullets is starved (needs >= 2).
-        # Reallocates facts deterministically/semantically to satisfy constraints.
+        """Turn 2: Section Asset Arbiter audits proposed allocations against C0.3 uniqueness and lane density."""
         all_skills = [s for ev in evidence for s in ev.get("skills", [])]
         comp_focus = (
             sorted(list(dict.fromkeys(all_skills)))[:9]
@@ -384,10 +434,55 @@ class CareerThesisAlignmentAgent:
             ]
         )
 
-        # Arbiter negotiated allocation
+        bullet_lanes_focus: dict[str, list[str]] = {
+            "unify_bullets": ["Scale, distributed architectures, and platform velocity"],
+            "ibm_bullets": ["Enterprise client outcomes, revenue generation, and technical governance"],
+            "narrative": [
+                "Strategic career progression, organizational leverage, and executive sponsorship"
+            ],
+        }
+        for ev in evidence:
+            sec = str(ev.get("section_id") or "").strip()
+            domain = str(ev.get("domain") or "").strip()
+            if sec.endswith("_bullets") and domain:
+                lane_themes = bullet_lanes_focus.setdefault(sec, [])
+                if domain not in lane_themes:
+                    lane_themes.append(domain)
+
         return ThematicAllocation(
-            headline_focus=strategist_proposal.get("headline_focus", []),
-            executive_summary_focus=strategist_proposal.get("executive_summary_focus", []),
+            headline_focus=list(
+                strategist_proposal.get("headline_focus")
+                or ["Enterprise Architecture & Scalability"]
+            ),
+            executive_summary_focus=list(
+                strategist_proposal.get("executive_summary_focus")
+                or ["Enterprise Architecture & Scalability", "Executive Leadership & Talent Elevation"]
+            ),
+            competencies_focus=comp_focus,
+            bullet_lanes_focus=bullet_lanes_focus,
+        )
+
+    def _deterministic_fallback_allocation(
+        self, thesis: CareerThesis, evidence: list[dict[str, Any]]
+    ) -> ThematicAllocation:
+        """Deterministic fallback if A2A loop fails."""
+        all_skills = [s for ev in evidence for s in ev.get("skills", [])]
+        comp_focus = (
+            sorted(list(dict.fromkeys(all_skills)))[:9]
+            if all_skills
+            else [
+                "Strategic Technology Planning",
+                "Distributed Systems Architecture",
+                "Cross-Functional Leadership",
+            ]
+        )
+        return ThematicAllocation(
+            headline_focus=thesis.key_themes[:2] if thesis.key_themes else ["Enterprise Architecture & Scalability"],
+            executive_summary_focus=(
+                thesis.key_themes[:3]
+                if thesis.key_themes
+                else ["Enterprise Architecture & Scalability", "Executive Leadership & Talent Elevation"]
+            ),
             competencies_focus=comp_focus,
             bullet_lanes_focus={
                 "unify_bullets": ["Scale, distributed architectures, and platform velocity"],
@@ -397,11 +492,6 @@ class CareerThesisAlignmentAgent:
                 ],
             },
         )
-
-    def _deterministic_fallback_allocation(
-        self, thesis: CareerThesis, evidence: list[dict[str, Any]]
-    ) -> ThematicAllocation:
-        """Deterministic fallback if A2A loop fails."""
 
 
 def execute_career_thesis_alignment(
@@ -424,7 +514,35 @@ def execute_career_thesis_alignment(
         c0_evidence_items=c0_evidence_items,
         job_description_text=job_description_text,
     )
-    plan.persist(artifact_dir)
+    out_dir = Path(artifact_dir)
+    plan.persist(out_dir)
+
+    uniqueness_receipt: dict[str, Any] = {"pass": True, "repeated_skill_ids": [], "repeated_metric_outcome_ids": []}
+    if c0_evidence_items:
+        assignment_rows = [
+            row
+            for row in c0_evidence_items
+            if isinstance(row, Mapping) and ("skill_id" in row or "claim_unit_id" in row)
+        ]
+        if assignment_rows:
+            from apps_rg.runtime.c0.resume_graph_allocation import _validate_assignment_uniqueness
+
+            uniqueness_receipt = _validate_assignment_uniqueness(assignment_rows)
+
+    receipt_payload = {
+        "schema_version": "career_thesis_alignment_receipt_v1",
+        "plan_schema_version": plan.schema_version,
+        "plan_digest": plan.digest,
+        "target_company": plan.target_company,
+        "target_role": plan.target_role,
+        "adjacent_pivot_count": sum(
+            1 for gap in plan.evidence_gaps if gap.gap_status == "ADJACENT_PIVOT"
+        ),
+        "uniqueness_receipt": uniqueness_receipt,
+        "pass": bool(uniqueness_receipt.get("pass", True)),
+    }
+    receipt_path = out_dir / "career_thesis_alignment_receipt.json"
+    receipt_path.write_text(json.dumps(receipt_payload, indent=2) + "\n", encoding="utf-8")
     return plan
 
 

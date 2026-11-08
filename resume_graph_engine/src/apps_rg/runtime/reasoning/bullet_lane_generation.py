@@ -458,6 +458,7 @@ def _generate_employment_bullet_lane(
         "selection_mode": pool.selection_mode,
         "source_path_by_slot": pool.source_path_by_slot,
         "claude_selection_count": len(pool.selections),
+        "pool_selection": {"selections": list(pool.selections)},
     }
     meta.update(summarize_selector_emptiness(pool=pool, gate=gate))
     if artifact_dir is not None:

@@ -1,17 +1,5 @@
 #!/usr/bin/env python3
-"""HITL Governance and Ambiguity Gating Engine.
-
-Enforces:
-1. Atomic HITL decision presentation (one at a time, interactive options).
-2. Calibrated confidence scoring (tiers, percentages, floats).
-# 20% Calibrated Ambiguity Margin Rule:
-#    - Delta = c_top - c_second
-#    - When Delta > 20%: Decisively resolved; agent proceeds autonomously under audit receipt.
-#    - When Delta <= 20%: Genuinely ambiguous; agent surfaces atomic question to operator.
-# 4. Multi-factor calibrated confidence calculation (evidence, risk, blast radius, system learning).
-# 5. Persistent SQLite store for system learning and decision precedent tracking.
-# 6. Synthetic stop-hook auto-approval rejection.
-"""
+"""HITL Governance and Ambiguity Gating Engine (20% margin, 65% floor, 300/250-char caps, zero-jargon)."""
 from __future__ import annotations
 
 import argparse
@@ -27,6 +15,8 @@ from typing import Any, Sequence
 
 DEFAULT_AMBIGUITY_THRESHOLD: float = 0.20
 DEFAULT_MIN_CONFIDENCE_FLOOR: float = 0.65
+MAX_QUESTION_LENGTH: int = 300
+MAX_OPTION_LENGTH: int = 250
 DEFAULT_STORE_PATH = Path("artifacts/governance/hitl_decisions.sqlite")
 
 
@@ -39,11 +29,7 @@ def _resolve_default_store_path() -> Path:
     try:
         proc = subprocess.run(
             ["git", "-C", str(repo_dir), "rev-parse", "--git-common-dir"],
-            capture_output=True,
-            text=True,
-            check=False,
-            shell=False,
-            timeout=5,
+            capture_output=True, text=True, check=False, shell=False, timeout=5,
         )
         if proc.returncode == 0 and proc.stdout.strip():
             common_raw = Path(proc.stdout.strip())
@@ -53,12 +39,13 @@ def _resolve_default_store_path() -> Path:
     except (OSError, subprocess.SubprocessError):  # guardian: allow-silent-swallow -- fallback to local repo path if git is unavailable
         pass
     return (repo_dir / DEFAULT_STORE_PATH).resolve()
+
+
 AUTHENTIC_USER_ARTIFACT_APPROVAL_MARKERS = (
     "automatically approved the artifact through their review policy",
     "user has automatically approved the artifact",
     "the user has approved the artifact",
 )
-
 SYNTHETIC_APPROVAL_MARKERS = (
     "autonomous policy supervisor",
     "stop_hook_auto_proceed",
@@ -74,25 +61,15 @@ def parse_confidence_score(val: Any) -> float:
     if isinstance(val, (int, float)):
         num = float(val)
         return num / 100.0 if num > 1.0 else max(0.0, min(1.0, num))
-
     if isinstance(val, dict):
-        if "calibrated_confidence" in val:
-            return parse_confidence_score(val["calibrated_confidence"])
-        if "confidence_score" in val:
-            return parse_confidence_score(val["confidence_score"])
-        if "confidence" in val:
-            return parse_confidence_score(val["confidence"])
-        if "confidence_level" in val:
-            return parse_confidence_score(val["confidence_level"])
-
+        for k in ("calibrated_confidence", "confidence_score", "confidence", "confidence_level"):
+            if k in val:
+                return parse_confidence_score(val[k])
     if isinstance(val, str):
         cleaned = val.strip()
-        # Check percentage string e.g. "85%", "95.5%"
         pct_match = re.search(r"(\d+(?:\.\d+)?)\s*%", cleaned)
         if pct_match:
             return float(pct_match.group(1)) / 100.0
-
-        # Check explicit tier names
         upper = cleaned.upper()
         if "HIGH" in upper:
             return 0.88
@@ -100,12 +77,9 @@ def parse_confidence_score(val: Any) -> float:
             return 0.62
         if "LOW" in upper:
             return 0.35
-
-        # Check raw number in string
         num_match = re.search(r"\b(0(?:\.\d+)?|1(?:\.0+)?)\b", cleaned)
         if num_match:
             return float(num_match.group(1))
-
     return 0.50
 
 
@@ -119,14 +93,8 @@ def calculate_calibrated_confidence(
     blast_radius_layers: int = 1,
     store: HITLDecisionStore | None = None,
 ) -> float:
-    """Calculate multi-factor calibrated confidence combining base score, evidence, risk, and system learning.
-
-    Calibration Formula:
-        Calibrated = clamp(C_base + E_evidence - R_risk + L_learning, 0.05, 0.99)
-    """
+    """Calculate multi-factor calibrated confidence: clamp(C_base + E_evidence - R_risk + L_learning, 0.05, 0.99)."""
     base = parse_confidence_score(option)
-
-    # Extract metadata overrides if option is a dict
     opt_label = ""
     if isinstance(option, dict):
         opt_label = option.get("label", option.get("title", option.get("name", "")))
@@ -145,55 +113,27 @@ def calculate_calibrated_confidence(
     elif isinstance(option, str):
         opt_label = option
 
-    # 1. Evidence factor
-    evidence_boost = 0.0
-    if evidence_refs:
-        evidence_boost += min(len(evidence_refs) * 0.03, 0.09)
-    if has_verification_receipt:
-        evidence_boost += 0.05
-
-    # 2. Risk & blast-radius penalty
-    risk_penalty = 0.0
-    risk_upper = str(risk_level).upper()
-    if risk_upper == "MEDIUM":
-        risk_penalty += 0.04
-    elif risk_upper == "HIGH":
-        risk_penalty += 0.08
-    elif risk_upper == "CRITICAL":
-        risk_penalty += 0.15
-
-    if is_irreversible:
-        risk_penalty += 0.08
-
+    evidence_boost = (min(len(evidence_refs) * 0.03, 0.09) if evidence_refs else 0.0) + (0.05 if has_verification_receipt else 0.0)
+    risk_map = {"MEDIUM": 0.04, "HIGH": 0.08, "CRITICAL": 0.15}
+    risk_penalty = risk_map.get(str(risk_level).upper(), 0.0) + (0.08 if is_irreversible else 0.0)
     if blast_radius_layers > 1:
         risk_penalty += min((blast_radius_layers - 1) * 0.03, 0.09)
-
-    # 3. System learning factor from persistent store
-    learning_factor = 0.0
-    if store and category:
-        learning_factor = store.query_learning_adjustment(category, opt_label)
-
-    calibrated = base + evidence_boost - risk_penalty + learning_factor
-    return round(max(0.05, min(0.99, calibrated)), 4)
+    learning_factor = store.query_learning_adjustment(category, opt_label) if (store and category) else 0.0
+    return round(max(0.05, min(0.99, base + evidence_boost - risk_penalty + learning_factor)), 4)
 
 
 class HITLDecisionStore:
     """Thread-safe persistent SQLite store for HITL decisions and system learning."""
 
     def __init__(self, db_path: Path | str | None = None) -> None:
-        raw_path = Path(db_path).resolve() if db_path is not None else _resolve_default_store_path()
-        self.db_path = raw_path
+        self.db_path = Path(db_path).resolve() if db_path is not None else _resolve_default_store_path()
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._conn: sqlite3.Connection | None = None
         self._init_db()
 
     def _get_connection(self) -> sqlite3.Connection:
         if self._conn is None:
-            self._conn = sqlite3.connect(
-                str(self.db_path),
-                timeout=30.0,
-                check_same_thread=False,
-            )
+            self._conn = sqlite3.connect(str(self.db_path), timeout=30.0, check_same_thread=False)
             self._conn.row_factory = sqlite3.Row
         return self._conn
 
@@ -202,120 +142,52 @@ class HITLDecisionStore:
         conn.execute("PRAGMA journal_mode=WAL;")
         with conn:
             conn.execute(
-                """
-                CREATE TABLE IF NOT EXISTS hitl_decisions (
-                    decision_id TEXT PRIMARY KEY,
-                    task_id TEXT,
-                    category TEXT,
-                    context_summary TEXT,
-                    context_hash TEXT,
-                    options_json TEXT,
-                    selected_option TEXT,
-                    operator_action TEXT,
-                    margin REAL,
-                    calibrated_confidence REAL,
-                    outcome TEXT DEFAULT 'PENDING',
-                    created_at TEXT,
-                    updated_at TEXT
-                )
-                """
+                "CREATE TABLE IF NOT EXISTS hitl_decisions ("
+                "decision_id TEXT PRIMARY KEY, task_id TEXT, category TEXT, context_summary TEXT, "
+                "context_hash TEXT, options_json TEXT, selected_option TEXT, operator_action TEXT, "
+                "margin REAL, calibrated_confidence REAL, outcome TEXT DEFAULT 'PENDING', "
+                "created_at TEXT, updated_at TEXT)"
             )
             conn.execute(
-                """
-                CREATE TABLE IF NOT EXISTS learning_aggregates (
-                    category TEXT PRIMARY KEY,
-                    total_decisions INTEGER DEFAULT 0,
-                    autonomous_proceeds INTEGER DEFAULT 0,
-                    human_approvals INTEGER DEFAULT 0,
-                    human_overrides INTEGER DEFAULT 0,
-                    success_count INTEGER DEFAULT 0,
-                    failure_count INTEGER DEFAULT 0,
-                    mean_margin REAL DEFAULT 0.0,
-                    learning_factor REAL DEFAULT 0.0,
-                    updated_at TEXT
-                )
-                """
+                "CREATE TABLE IF NOT EXISTS learning_aggregates ("
+                "category TEXT PRIMARY KEY, total_decisions INTEGER DEFAULT 0, "
+                "autonomous_proceeds INTEGER DEFAULT 0, human_approvals INTEGER DEFAULT 0, "
+                "human_overrides INTEGER DEFAULT 0, success_count INTEGER DEFAULT 0, "
+                "failure_count INTEGER DEFAULT 0, mean_margin REAL DEFAULT 0.0, "
+                "learning_factor REAL DEFAULT 0.0, updated_at TEXT)"
             )
-            conn.execute(
-                "CREATE INDEX IF NOT EXISTS idx_hitl_category ON hitl_decisions(category)"
-            )
-            conn.execute(
-                "CREATE INDEX IF NOT EXISTS idx_hitl_outcome ON hitl_decisions(outcome)"
-            )
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_hitl_category ON hitl_decisions(category)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_hitl_outcome ON hitl_decisions(outcome)")
 
     def record_decision(
-        self,
-        decision_id: str,
-        task_id: str,
-        category: str,
-        options: Sequence[Any],
-        selected_option: str,
-        operator_action: str,
-        margin: float,
-        calibrated_confidence: float,
-        context_summary: str = "",
-        outcome: str = "PENDING",
+        self, decision_id: str, task_id: str, category: str, options: Sequence[Any],
+        selected_option: str, operator_action: str, margin: float, calibrated_confidence: float,
+        context_summary: str = "", outcome: str = "PENDING",
     ) -> dict[str, Any]:
         """Record a decision into persistent store and update learning aggregates."""
         now = datetime.datetime.now(datetime.timezone.utc).isoformat()
-        ctx_bytes = f"{category}:{context_summary}:{selected_option}".encode("utf-8")
-        ctx_hash = hashlib.sha256(ctx_bytes).hexdigest()[:16]
-
-        opts_serialized = json.dumps(
-            [opt if isinstance(opt, (dict, list, str, int, float)) else str(opt) for opt in options]
-        )
-
+        ctx_hash = hashlib.sha256(f"{category}:{context_summary}:{selected_option}".encode("utf-8")).hexdigest()[:16]
+        opts_serialized = json.dumps([opt if isinstance(opt, (dict, list, str, int, float)) else str(opt) for opt in options])
         conn = self._get_connection()
         with conn:
             conn.execute(
-                """
-                INSERT OR REPLACE INTO hitl_decisions (
-                    decision_id, task_id, category, context_summary, context_hash,
-                    options_json, selected_option, operator_action, margin,
-                    calibrated_confidence, outcome, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    decision_id,
-                    task_id,
-                    category,
-                    context_summary,
-                    ctx_hash,
-                    opts_serialized,
-                    selected_option,
-                    operator_action,
-                    margin,
-                    calibrated_confidence,
-                    outcome,
-                    now,
-                    now,
-                ),
+                "INSERT OR REPLACE INTO hitl_decisions ("
+                "decision_id, task_id, category, context_summary, context_hash, options_json, "
+                "selected_option, operator_action, margin, calibrated_confidence, outcome, created_at, updated_at"
+                ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (decision_id, task_id, category, context_summary, ctx_hash, opts_serialized,
+                 selected_option, operator_action, margin, calibrated_confidence, outcome, now, now),
             )
             self._update_learning_aggregates(category, operator_action, outcome, margin, now)
+        return {"decision_id": decision_id, "category": category, "operator_action": operator_action, "margin": margin, "status": "STORED"}
 
-        return {
-            "decision_id": decision_id,
-            "category": category,
-            "operator_action": operator_action,
-            "margin": margin,
-            "status": "STORED",
-        }
-
-    def record_outcome(
-        self,
-        decision_id: str,
-        outcome: str,
-    ) -> bool:
+    def record_outcome(self, decision_id: str, outcome: str) -> bool:
         """Update the verified execution outcome ('SUCCESS', 'FAILED', 'ROLLED_BACK')."""
         now = datetime.datetime.now(datetime.timezone.utc).isoformat()
         conn = self._get_connection()
         with conn:
             cursor = conn.execute(
-                """
-                UPDATE hitl_decisions
-                SET outcome = ?, updated_at = ?
-                WHERE decision_id = ?
-                """,
+                "UPDATE hitl_decisions SET outcome = ?, updated_at = ? WHERE decision_id = ?",
                 (outcome, now, decision_id),
             )
             if cursor.rowcount > 0:
@@ -328,131 +200,68 @@ class HITLDecisionStore:
                 return True
         return False
 
-    def record_execution_outcome(
-        self,
-        decision_id: str,
-        outcome: str,
-        **_kwargs: Any,
-    ) -> bool:
+    def record_execution_outcome(self, decision_id: str, outcome: str, **_kwargs: Any) -> bool:
         """Record verified execution outcome (alias supporting sidecar automation callers)."""
         return self.record_outcome(decision_id=decision_id, outcome=outcome)
 
     def _update_learning_aggregates(
-        self,
-        category: str,
-        operator_action: str,
-        outcome: str,
-        margin: float,
-        timestamp: str,
+        self, category: str, operator_action: str, outcome: str, margin: float, timestamp: str,
     ) -> None:
         """Recalculate Bayesian learning aggregate factor for the category."""
         conn = self._get_connection()
         row = conn.execute(
-            """
-            SELECT 
-                COUNT(*) as total,
-                SUM(CASE WHEN operator_action = 'PROCEED_AUTONOMOUSLY' THEN 1 ELSE 0 END) as auto_cnt,
-                SUM(CASE WHEN operator_action = 'APPROVED' THEN 1 ELSE 0 END) as app_cnt,
-                SUM(CASE WHEN operator_action = 'OVERRIDDEN' THEN 1 ELSE 0 END) as ovr_cnt,
-                SUM(CASE WHEN outcome = 'SUCCESS' THEN 1 ELSE 0 END) as succ_cnt,
-                SUM(CASE WHEN outcome IN ('FAILED', 'ROLLED_BACK') THEN 1 ELSE 0 END) as fail_cnt,
-                AVG(margin) as avg_margin
-            FROM hitl_decisions
-            WHERE category = ?
-            """,
+            "SELECT COUNT(*) as total, "
+            "SUM(CASE WHEN operator_action = 'PROCEED_AUTONOMOUSLY' THEN 1 ELSE 0 END) as auto_cnt, "
+            "SUM(CASE WHEN operator_action = 'APPROVED' THEN 1 ELSE 0 END) as app_cnt, "
+            "SUM(CASE WHEN operator_action = 'OVERRIDDEN' THEN 1 ELSE 0 END) as ovr_cnt, "
+            "SUM(CASE WHEN outcome = 'SUCCESS' THEN 1 ELSE 0 END) as succ_cnt, "
+            "SUM(CASE WHEN outcome IN ('FAILED', 'ROLLED_BACK') THEN 1 ELSE 0 END) as fail_cnt, "
+            "AVG(margin) as avg_margin FROM hitl_decisions WHERE category = ?",
             (category,),
         ).fetchone()
-
-        total = row["total"] or 0
-        auto_cnt = row["auto_cnt"] or 0
-        app_cnt = row["app_cnt"] or 0
-        ovr_cnt = row["ovr_cnt"] or 0
-        succ_cnt = row["succ_cnt"] or 0
-        fail_cnt = row["fail_cnt"] or 0
+        total, auto_cnt, app_cnt = row["total"] or 0, row["auto_cnt"] or 0, row["app_cnt"] or 0
+        ovr_cnt, succ_cnt, fail_cnt = row["ovr_cnt"] or 0, row["succ_cnt"] or 0, row["fail_cnt"] or 0
         avg_margin = float(row["avg_margin"] or 0.0)
-
-        # Bayesian factor: positive reinforcement on success & human approvals, penalty on failure & overrides
         positives = succ_cnt + (app_cnt * 0.5)
         negatives = fail_cnt + (ovr_cnt * 1.5)
-        denominator = total + 3.0
-        learning_factor = round(((positives - negatives) / denominator) * 0.15, 4)
-        learning_factor = max(-0.25, min(0.15, learning_factor))
-
+        learning_factor = max(-0.25, min(0.15, round(((positives - negatives) / (total + 3.0)) * 0.15, 4)))
         conn.execute(
-            """
-            INSERT OR REPLACE INTO learning_aggregates (
-                category, total_decisions, autonomous_proceeds, human_approvals,
-                human_overrides, success_count, failure_count, mean_margin,
-                learning_factor, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                category,
-                total,
-                auto_cnt,
-                app_cnt,
-                ovr_cnt,
-                succ_cnt,
-                fail_cnt,
-                avg_margin,
-                learning_factor,
-                timestamp,
-            ),
+            "INSERT OR REPLACE INTO learning_aggregates ("
+            "category, total_decisions, autonomous_proceeds, human_approvals, human_overrides, "
+            "success_count, failure_count, mean_margin, learning_factor, updated_at"
+            ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (category, total, auto_cnt, app_cnt, ovr_cnt, succ_cnt, fail_cnt, avg_margin, learning_factor, timestamp),
         )
 
     def query_learning_adjustment(self, category: str, option_label: str = "") -> float:
         """Query Bayesian learning adjustment factor for category/option."""
         conn = self._get_connection()
-        row = conn.execute(
-            "SELECT learning_factor FROM learning_aggregates WHERE category = ?",
-            (category,),
-        ).fetchone()
+        row = conn.execute("SELECT learning_factor FROM learning_aggregates WHERE category = ?", (category,)).fetchone()
         if not row:
             return 0.0
-
         base_factor = float(row["learning_factor"])
-        # If option label is specific, check option precedent
         if option_label:
             opt_row = conn.execute(
-                """
-                SELECT 
-                    SUM(CASE WHEN outcome = 'SUCCESS' THEN 1 ELSE 0 END) as succ,
-                    SUM(CASE WHEN outcome IN ('FAILED', 'ROLLED_BACK') THEN 1 ELSE 0 END) as fail
-                FROM hitl_decisions 
-                WHERE category = ? AND selected_option = ?
-                """,
+                "SELECT SUM(CASE WHEN outcome = 'SUCCESS' THEN 1 ELSE 0 END) as succ, "
+                "SUM(CASE WHEN outcome IN ('FAILED', 'ROLLED_BACK') THEN 1 ELSE 0 END) as fail "
+                "FROM hitl_decisions WHERE category = ? AND selected_option = ?",
                 (category, option_label),
             ).fetchone()
             if opt_row and (opt_row["succ"] or opt_row["fail"]):
-                succ = opt_row["succ"] or 0
-                fail = opt_row["fail"] or 0
+                succ, fail = opt_row["succ"] or 0, opt_row["fail"] or 0
                 opt_bonus = round(((succ - (fail * 2)) / (succ + fail + 2.0)) * 0.10, 4)
                 return max(-0.25, min(0.20, base_factor + opt_bonus))
-
         return base_factor
 
     def get_calibration_metrics(self) -> dict[str, Any]:
         """Return system learning calibration metrics across all categories."""
         conn = self._get_connection()
         total_decisions = conn.execute("SELECT COUNT(*) FROM hitl_decisions").fetchone()[0]
-        categories_cursor = conn.execute("SELECT * FROM learning_aggregates ORDER BY total_decisions DESC")
-        categories_data = [dict(r) for r in categories_cursor.fetchall()]
-
-        outcome_counts = conn.execute(
-            """
-            SELECT outcome, COUNT(*) as cnt 
-            FROM hitl_decisions 
-            GROUP BY outcome
-            """
-        ).fetchall()
-        outcomes = {r["outcome"]: r["cnt"] for r in outcome_counts}
-
+        categories_data = [dict(r) for r in conn.execute("SELECT * FROM learning_aggregates ORDER BY total_decisions DESC").fetchall()]
+        outcomes = {r["outcome"]: r["cnt"] for r in conn.execute("SELECT outcome, COUNT(*) as cnt FROM hitl_decisions GROUP BY outcome").fetchall()}
         return {
-            "total_decisions": total_decisions,
-            "outcomes": outcomes,
-            "categories": categories_data,
-            "ambiguity_threshold": DEFAULT_AMBIGUITY_THRESHOLD,
-            "min_confidence_floor": DEFAULT_MIN_CONFIDENCE_FLOOR,
+            "total_decisions": total_decisions, "outcomes": outcomes, "categories": categories_data,
+            "ambiguity_threshold": DEFAULT_AMBIGUITY_THRESHOLD, "min_confidence_floor": DEFAULT_MIN_CONFIDENCE_FLOOR,
             "store_path": str(self.db_path),
         }
 
@@ -469,74 +278,156 @@ def evaluate_hitl_surfacing_gate(
     store: HITLDecisionStore | None = None,
     category: str | None = None,
 ) -> dict[str, Any]:
-    """Evaluate candidate HITL options against the calibrated 20% ambiguity margin and 65% floor rules.
-
-    Returns:
-        Structured evaluation dict indicating whether to surface HITL or proceed autonomously.
-    """
+    """Evaluate candidate HITL options against the calibrated 20% ambiguity margin and 65% floor rules."""
     if not options:
         return {
-            "should_surface": False,
-            "margin": 0.0,
-            "margin_threshold": margin_threshold,
-            "min_confidence_floor": min_confidence_floor,
-            "below_confidence_floor": False,
-            "top_option": None,
-            "top_score": 0.0,
-            "second_score": 0.0,
-            "action": "EMPTY_OPTIONS",
-            "reason": "No options provided to evaluate.",
+            "should_surface": False, "margin": 0.0, "margin_threshold": margin_threshold,
+            "min_confidence_floor": min_confidence_floor, "below_confidence_floor": False,
+            "top_option": None, "top_score": 0.0, "second_score": 0.0,
+            "action": "EMPTY_OPTIONS", "reason": "No options provided to evaluate.",
         }
-
-    scored: list[tuple[float, Any]] = []
-    for opt in options:
-        score = calculate_calibrated_confidence(opt, category=category, store=store)
-        scored.append((score, opt))
-
-    scored.sort(key=lambda x: x[0], reverse=True)
+    scored = sorted(((calculate_calibrated_confidence(opt, category=category, store=store), opt) for opt in options), key=lambda x: x[0], reverse=True)
     top_score, top_opt = scored[0]
     second_score = scored[1][0] if len(scored) > 1 else 0.0
     margin = round(top_score - second_score, 4)
-
-    # Calibrated rule: diff > threshold AND top_score >= min_confidence_floor proceeds autonomously;
-    # diff <= threshold OR top_score < min_confidence_floor requires human operator sign-off.
     within_margin = margin <= margin_threshold
     below_confidence_floor = top_score < min_confidence_floor
     should_surface = within_margin or below_confidence_floor
     action = "SURFACE_HITL_ATOMIC" if should_surface else "PROCEED_AUTONOMOUSLY"
-
     if within_margin:
-        reason = (
-            f"Margin Delta = {margin:.2%} is within the calibrated {margin_threshold:.0%} threshold "
-            f"(\u0394 \u2264 {margin_threshold:.0%}): genuine ambiguity requires operator input."
-        )
+        reason = f"Margin Delta = {margin:.2%} is within the calibrated {margin_threshold:.0%} threshold (\u0394 \u2264 {margin_threshold:.0%}): genuine ambiguity requires operator input."
     elif below_confidence_floor:
-        reason = (
-            f"Top confidence {top_score:.2%} is below the {min_confidence_floor:.0%} autonomous confidence floor "
-            f"(INV-HITL-MIN-CONFIDENCE-FLOOR): operator input required."
-        )
+        reason = f"Top confidence {top_score:.2%} is below the {min_confidence_floor:.0%} autonomous confidence floor (INV-HITL-MIN-CONFIDENCE-FLOOR): operator input required."
     else:
-        reason = (
-            f"Margin Delta = {margin:.2%} strictly exceeds the calibrated {margin_threshold:.0%} threshold "
-            f"(\u0394 > {margin_threshold:.0%}): proceed autonomously with top option."
-        )
-
+        reason = f"Margin Delta = {margin:.2%} strictly exceeds the calibrated {margin_threshold:.0%} threshold (\u0394 > {margin_threshold:.0%}): proceed autonomously with top option."
     return {
-        "should_surface": should_surface,
-        "margin": margin,
-        "margin_threshold": margin_threshold,
-        "min_confidence_floor": min_confidence_floor,
-        "below_confidence_floor": below_confidence_floor,
-        "top_option": top_opt,
-        "top_score": top_score,
-        "second_score": second_score,
-        "action": action,
-        "reason": reason,
+        "should_surface": should_surface, "margin": margin, "margin_threshold": margin_threshold,
+        "min_confidence_floor": min_confidence_floor, "below_confidence_floor": below_confidence_floor,
+        "top_option": top_opt, "top_score": top_score, "second_score": second_score,
+        "action": action, "reason": reason,
     }
 
 
-def validate_hitl_presentation(payload: Any) -> list[str]:
-    """Validate that a candidate HITL payload adheres to atomic presentation controls."""
+_TRUNCATION_PATTERN = re.compile(r"(?:\.\.\.|…|\[truncated\]|\[cut\s*off\])", re.IGNORECASE)
+_COMPOUND_QUESTION_PATTERN = re.compile(
+    r"(?:;\s*(?:and\s+)?(?:also|what|which|how|should|do|would)\b"
+    r"|\b(?:additionally|secondly|furthermore),?\s+(?:what|which|how|should|do|would)\b)",
+    re.IGNORECASE,
+)
+
+ALLOWED_CAMEL_WHITELIST: frozenset[str] = frozenset({
+    "iPhone", "iPad", "iCloud", "macOS", "iOS", "watchOS", "tvOS", "eBay", "jQuery", "oAuth", "openAI", "graphQL", "iCIMS",
+})
+
+ALLOWED_PASCAL_WHITELIST: frozenset[str] = frozenset({
+    "GitHub", "GitLab", "GitKraken", "LinkedIn", "YouTube", "OpenAI", "ChatGPT", "DeepMind", "DeepWiki", "Context7",
+    "PlayWright", "PowerShell", "JavaScript", "TypeScript", "PostgreSQL", "MySQL", "SQLite", "MongoDB", "DuckDB", "ChromaDB",
+    "FastAPI", "PyTest", "PyTorch", "TensorFlow", "HuggingFace", "LangChain", "LlamaIndex", "AutoGen", "CrewAI", "McKinsey",
+    "PriceWaterhouse", "SharePoint", "OneDrive", "PowerPoint", "WordPress", "SalesForce", "ServiceNow", "WorkDay", "HubSpot",
+    "DataDog", "CloudFlare", "DigitalOcean", "HashiCorp", "SnowFlake", "DataBricks", "ConFluent", "Palantir", "Anthropic",
+    "Google", "Microsoft", "Amazon", "Apple", "Meta", "Netflix", "Option", "Confidence", "Recommended", "Impact", "Action",
+    "Evidence", "Risk", "High", "Medium", "Low", "Decision", "Candidate", "Context", "Summary", "Status", "Approve", "Reject",
+    "Defer", "Keep", "Update", "Remove", "Enable", "Disable", "Proceed", "Cancel", "Retry", "Skip", "NextEra", "TransUnion",
+    "MasterCard", "FedEx", "PayPal", "SpaceX", "BlueOrigin", "LockheedMartin", "Raytheon", "NorthropGrumman", "GeneralElectric",
+    "GeneralMotors", "MorganStanley", "GoldmanSachs", "BlackRock", "JPMorgan", "WellsFargo", "BankOfAmerica", "Citigroup",
+    "AmericanExpress", "CapitalOne", "CharlesSchwab", "Fidelity", "Vanguard", "StateStreet", "PaloAlto", "CrowdStrike",
+    "FortiNet", "CheckPoint", "CyberArk", "Okta", "Zscaler", "SentinelOne", "Splunk", "ElasticSearch", "NewRelic", "Dynatrace",
+    "AppDynamics", "PagerDuty", "Atlassian", "BitBucket", "Confluence", "Trello", "Asana", "Monday", "AirTable", "SmartSheet",
+    "DocuSign", "DropBox", "Zoom", "WebEx", "Slack", "Teams", "Discord", "Telegram", "WhatsApp", "Signal", "Stripe", "Square",
+    "Adyen", "Braintree", "Plaid", "Twilio", "SendGrid", "MailChimp", "Zendesk", "Intercom", "FreshWorks", "Shopify",
+    "BigCommerce", "WooCommerce", "Magento", "Squarespace", "Wix", "WebFlow", "Figma", "Canva", "Adobe", "PhotoShop",
+    "Illustrator", "InDesign", "Premiere", "AfterEffects", "AutoCAD", "SolidWorks", "MatLab", "LabView", "Simulink", "Tableau",
+    "PowerBI", "Looker", "QlikView", "MicroStrategy", "Domo", "Sisense", "Metabase", "Superset", "Grafana", "Prometheus",
+    "Kubernetes", "Docker", "Terraform", "Ansible", "Jenkins", "CircleCI", "TravisCI", "ArgoCD", "Istio", "Envoy", "Nginx",
+    "Apache", "Kafka", "RabbitMQ", "ActiveMQ", "Redis", "Memcached", "Cassandra", "CouchBase", "DynamoDB", "CosmosDB",
+    "BigQuery", "RedShift", "Vertica", "Teradata", "Oracle", "Sybase", "Informix", "DB2", "NetSuite", "QuickBooks", "Xero",
+    "FreshBooks", "Sage", "Wave", "Gusto", "Rippling", "Deel", "Remote", "Oyster", "Lattice", "CultureAmp", "BambooHR",
+    "GreenHouse", "Lever", "Workable", "SmartRecruiters", "JobVite", "Taleo", "SuccessFactors", "Cornerstone", "Degreed",
+    "Coursera", "Udemy", "EdX", "PluralSight", "DataCamp", "LeetCode", "HackerRank", "CodeSignal", "CoderPad", "StackOverflow",
+    "StackExchange", "Reddit", "Quora", "SubStack", "Ghost", "Patreon", "KickStarter", "IndieGogo", "GoFundMe", "EventBrite",
+    "MeetUp", "TicketMaster", "StubHub", "SeatGeek", "DoorDash", "UberEats", "GrubHub", "InstaCart", "PostMates", "Lyft",
+    "AirBnb", "Booking", "Expedia", "TripAdvisor", "SkyScanner", "Kayak", "Zillow", "RedFin", "Realtor", "Trulia", "Compass",
+    "Opendoor", "Carvana", "CarMax", "AutoTrader", "KelleyBlueBook", "RobinHood", "CoinBase", "Binance", "Kraken", "Gemini",
+    "OpenSea", "MetaMask", "Ledger", "Trezor", "BlockChain", "BitCoin", "Ethereum", "Solana", "Cardano", "Polkadot",
+    "Avalanche", "Polygon", "ChainLink", "UniSwap", "Aave", "Compound", "MakerDAO", "TikTok", "SnapChat", "Pinterest",
+    "Twitch", "Spotify", "SoundCloud", "Pandora", "AppleMusic", "AmazonMusic", "YouTubeMusic", "DisneyPlus", "Hulu", "Max",
+    "Peacock", "ParamountPlus", "PrimeVideo", "PlayStation", "Xbox", "Nintendo", "Steam", "EpicGames", "Roblox", "MineCraft",
+    "Fortnite", "Valorant", "LeagueOfLegends", "OverWatch", "WorldOfWarcraft", "CallOfDuty", "GrandTheftAuto", "CyberPunk",
+    "EldenRing", "StarField", "BaldursGate", "Diablo", "StarCraft", "HearthStone", "ApexLegends", "RocketLeague", "AmongUs",
+    "FallGuys", "GenshinImpact", "HonkaiStarRail", "Bayesian",
+})
+
+_QUESTION_JARGON_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
+    (
+        re.compile(r"\bSELECT\s+.+?\s+FROM\s+[a-zA-Z0-9_]+", re.IGNORECASE | re.DOTALL),
+        "inline SQL query",
+    ),
+    (
+        re.compile(r"\b[a-zA-Z][a-zA-Z0-9]*_[a-zA-Z0-9_]+\b"),
+        "snake_case identifier",
+    ),
+    (
+        re.compile(r"\b[a-z]+[A-Z][a-zA-Z0-9]*\b"),
+        "camelCase identifier",
+    ),
+    (
+        re.compile(r"\b[A-Z][a-z0-9]+(?:[A-Z][a-z0-9]+)+\b"),
+        "PascalCase identifier",
+    ),
+    (
+        re.compile(
+            r"(?:^|[\s`\"'(\[{])(?:[a-zA-Z0-9_\-./]+/)?[a-zA-Z0-9_\-]+\.(?:py|sqlite|jsonl|yaml|yml|toml|sh|sql|md|json)\b"
+        ),
+        "file path or extension",
+    ),
+    (
+        re.compile(r"(?:^|\s)--[a-zA-Z0-9][a-zA-Z0-9\-]*\b"),
+        "CLI flag",
+    ),
+    (
+        re.compile(r"\bCandidate\s+ID\s*:", re.IGNORECASE),
+        "Candidate ID slug",
+    ),
+    (
+        re.compile(r"\bO[1-8]\b"),
+        "internal step code (O1-O8)",
+    ),
+    (
+        re.compile(
+            r"\b(?:HITL|A2A|SSOT|WAL|ACID|JSONL|AST|DDL|DML|PRAGMA|CLI|SDK|BM25|RRF|DAG|MCP|SHA|TTL|UUID|SQL|YAML|TOML|"
+            r"blast\s+radius|triad|telemetry|orchestration|deterministic|invariants?|schemas?|payloads?|ratchets?|"
+            r"idempotent|sub-?agents?)\b",
+            re.IGNORECASE,
+        ),
+        "technical or systems jargon",
+    ),
+)
+
+
+def scan_question_jargon(text: str) -> list[str]:
+    """Scan question or option text for technical jargon, code symbols, file paths, or acronyms."""
+    if not text or not isinstance(text, str):
+        return []
+    violations: list[str] = []
+    for pattern, label in _QUESTION_JARGON_PATTERNS:
+        for m in pattern.finditer(text):
+            sample = m.group(0).strip(" `\"'()[]{}")
+            if label == "camelCase identifier" and sample in ALLOWED_CAMEL_WHITELIST:
+                continue
+            if label == "PascalCase identifier" and sample in ALLOWED_PASCAL_WHITELIST:
+                continue
+            entry = f"{label} ('{sample}')"
+            if entry not in violations:
+                violations.append(entry)
+    return violations
+
+
+def validate_hitl_presentation(
+    payload: Any,
+    *,
+    enforce_visibility_and_jargon: bool = False,
+) -> list[str]:
+    """Validate that a candidate HITL payload adheres to atomic presentation, character visibility, and plain-English controls."""
     errors: list[str] = []
 
     # 1. Reject bulk / batched decisions
@@ -559,6 +450,26 @@ def validate_hitl_presentation(payload: Any) -> list[str]:
         errors.append("HITL_VIOLATION_INVALID_PAYLOAD: Decision payload must be a dictionary.")
         return errors
 
+    q_text = str(item.get("question") or item.get("prompt") or "").strip()
+    if enforce_visibility_and_jargon and q_text:
+        if len(q_text) > MAX_QUESTION_LENGTH:
+            errors.append(
+                f"HITL_VIOLATION_QUESTION_LENGTH: Question length ({len(q_text)} chars) exceeds MAX_QUESTION_LENGTH ({MAX_QUESTION_LENGTH} chars)."
+            )
+        if _TRUNCATION_PATTERN.search(q_text):
+            errors.append(
+                "HITL_VIOLATION_TRUNCATION: Question contains ellipsis or truncation marker ('...' or '…'). Write complete, concise sentences."
+            )
+        if q_text.count("?") > 1 or _COMPOUND_QUESTION_PATTERN.search(q_text):
+            errors.append(
+                f"HITL_VIOLATION_BUNDLED_QUESTIONS: Question text contains multiple bundled questions. Ask strictly one question at a time."
+            )
+        q_jargon = scan_question_jargon(q_text)
+        if q_jargon:
+            errors.append(
+                f"HITL_VIOLATION_JARGON_IN_QUESTION: Question text contains technical jargon: {', '.join(q_jargon[:3])}. Use plain English."
+            )
+
     options = item.get("options", [])
     if not isinstance(options, (list, tuple)) or len(options) < 2:
         errors.append(
@@ -568,15 +479,33 @@ def validate_hitl_presentation(payload: Any) -> list[str]:
 
     for idx, opt in enumerate(options):
         has_conf = False
+        opt_label = ""
         if isinstance(opt, dict):
             has_conf = any(k in opt for k in ("confidence", "confidence_level", "confidence_score", "calibrated_confidence"))
+            opt_label = str(opt.get("label") or opt.get("title") or opt.get("text") or "").strip()
         elif isinstance(opt, str):
             has_conf = any(k in opt.lower() for k in ("confidence", "conf:", "high", "medium", "low", "%"))
+            opt_label = opt.strip()
 
         if not has_conf:
             errors.append(
                 f"HITL_VIOLATION_MISSING_CONFIDENCE: Option {idx + 1} lacks an explicit calibrated confidence level."
             )
+
+        if enforce_visibility_and_jargon and opt_label:
+            if len(opt_label) > MAX_OPTION_LENGTH:
+                errors.append(
+                    f"HITL_VIOLATION_OPTION_LENGTH: Option {idx + 1} length ({len(opt_label)} chars) exceeds MAX_OPTION_LENGTH ({MAX_OPTION_LENGTH} chars)."
+                )
+            if _TRUNCATION_PATTERN.search(opt_label):
+                errors.append(
+                    f"HITL_VIOLATION_TRUNCATION: Option {idx + 1} contains ellipsis or truncation marker ('...' or '…')."
+                )
+            opt_jargon = scan_question_jargon(opt_label)
+            if opt_jargon:
+                errors.append(
+                    f"HITL_VIOLATION_JARGON_IN_OPTION: Option {idx + 1} contains technical jargon: {', '.join(opt_jargon[:3])}. Use plain English."
+                )
 
     return errors
 

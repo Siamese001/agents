@@ -129,14 +129,11 @@ class TouchSequencePlanner:
         attempt: int = 0,
     ) -> TouchPoint:
         grounded_facts = candidate.grounded_facts
-        if len(grounded_facts) > 1 and attempt == 0:
-            fact_obj = grounded_facts[1]
+        if len(grounded_facts) > 1:
+            fact_idx = min(1 + attempt, len(grounded_facts) - 1) if attempt > 0 else 1
+            fact_obj = grounded_facts[fact_idx]
             secondary_fact = fact_obj.statement
             facts_used = [fact_obj.fact_id]
-        elif len(grounded_facts) > 1 and attempt > 0:
-            # On retry attempt, use a safe operational transformation without ungrounded metric assertion
-            secondary_fact = "driving measurable operational transformations"
-            facts_used = []
         elif len(grounded_facts) == 1:
             # Only 1 grounded fact available (used in Touch 1). Touch 2 uses non-metric operational clause
             secondary_fact = "driving measurable operational transformations"
@@ -338,6 +335,11 @@ class TouchSequencePlanner:
                 })
 
         seq_status = "PASSED" if not blocked_summary else "BLOCKED"
+        tournament_summary = self._judge_panel.evaluate_persona_tournament(
+            [t.draft for t in final_touches[:2]],
+            candidate,
+            opportunity,
+        )
 
         return TouchSequence(
             sequence_id=sequence_id,
@@ -351,6 +353,8 @@ class TouchSequencePlanner:
                 "unnecessary_synthesis_count": unnecessary_synthesis_count,
                 "regenerated_touches": regenerated_touch_numbers,
                 "max_touch_retries": self.MAX_TOUCH_RETRIES,
+                "persona_tournament": tournament_summary,
+                "requires_human_signoff": bool(tournament_summary.get("requires_human_signoff", False)),
             },
         )
 

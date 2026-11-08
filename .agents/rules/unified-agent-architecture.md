@@ -70,3 +70,10 @@ Upon task completion, the sub-agent must return a structured payload:
 5. **Hook Triggers**: Pre/post/around hooks execute for telemetry, caching, and guardrails.
 6. **Continuous Rule Validation**: Rules continuously validate inputs, outputs, and side effects.
 7. **Upstream Synthesis**: Results flow back upstream; parent agent synthesizes verified response.
+
+## In-Process Domain A2A Protocol Guardrails
+1. **Cross-Family Drafter/Auditor Orthogonality**: Every in-process A2A Drafter/Proponent vs. Auditor/Skeptic loop must resolve orthogonal provider families from `config/provider_profiles.yaml` and lock compact auditor/selector turns to `reasoning_effort: low`.
+2. **Structured JSON Disposition Contract**: Every A2A Auditor, Skeptic, or Arbiter turn must enforce a deterministic JSON response schema (`disposition`, `violated_facts`, `repair_hint`) validated before state mutation.
+3. **No Orphan Directives**: Every A2A diagnostic or negotiation loop (`O1`, `O4`, `REGEN_DELTA`) must bind its output directives directly into the downstream execution call (`execute_patch_run`, `execute_phase1_lanes`), never solely into receipt metadata.
+4. **Subsystem Boundary & Deterministic Floor Preservation**: Preserve W9 ingress-only judge boundaries in `apps_research` and C0.3 unique ID invariants (`resume_graph_allocation.py`) in `resume_graph_engine`.
+

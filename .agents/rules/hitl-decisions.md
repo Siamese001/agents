@@ -12,11 +12,19 @@ Governs Human-in-the-Loop (HITL) decisions, approvals, and clarifications across
    - Decisions must be presented strictly one at a time. Never batch, bundle, or aggregate multiple review items into a single turn or multi-question form.
    - Each decision must be independently resolved before introducing the next.
 
-2. **Interactive Clickable Options**
+2. **Interactive Clickable Options & Full Character Visibility**
    - You must use the `ask_question` tool to present options interactively.
    - Provide concrete, mutually exclusive options. Open-ended or unstructured prompts are strictly prohibited.
    - Plain text markdown lists for options are strictly forbidden.
    - The recommended option must be designated as `(Recommended)` with supporting rationale.
+   - **Full Character Visibility & Display Caps (`INV-HITL-QUESTION-VISIBILITY`)**:
+     - `question` prompt text must never exceed **300 characters** (`MAX_QUESTION_LENGTH = 300`).
+     - Each option string must never exceed **250 characters** (`MAX_OPTION_LENGTH = 250`).
+     - Ellipses and truncation markers (`...`, `…`, `[truncated]`) are strictly prohibited so the operator can read every character in the UI without cutoff.
+   - **Zero-Jargon Layman Standard on Questions & Options (`INV-HITL-ZERO-JARGON`)**:
+     - Both `question` and every `option` must be written in 100% plain layman English with operational impact (`Impact: ...`).
+     - Strictly forbid file paths/extensions, `snake_case`, `camelCase`, `PascalCase` code symbols, CLI flags, internal step codes (`O1`–`O8`), `Candidate ID:` slugs, and systems jargon (`HITL`, `A2A`, `blast radius`, `triad`) in `ask_question` payloads.
+     - Technical precision remains permitted in engineering artifacts (`implementation_plan.md`, `plans/*.md`, `learning_proposal.md`, `walkthrough.md`).
 
 3. **Assigned Confidence Levels**
    - Every option must declare an explicit confidence level:
@@ -65,11 +73,11 @@ Governs Human-in-the-Loop (HITL) decisions, approvals, and clarifications across
 
 ## Decision Structure
 
-Use the `ask_question` tool with the following parameters:
-- `question`: "HITL Decision: [Decision Title / Scope]\n\n**Candidate ID**: `<id>`\n**Context**: [Clear description of ambiguity]"
+Use the `ask_question` tool with concise, fully visible plain-English parameters:
+- `question`: "[Single plain-English question <= 300 characters with zero technical jargon]"
 - `options`:
-  - "(Recommended) [Option A] — Confidence: HIGH (92%) [Action, Evidence, Risk]"
-  - "[Option B] — Confidence: MEDIUM (60%) [Action, Evidence, Risk]"
+  - "(Recommended) [Plain-English Option A] (Confidence: HIGH (85%)). Impact: [Plain-English operational outcome <= 250 chars total]"
+  - "[Plain-English Option B] (Confidence: MEDIUM (71%)). Impact: [Plain-English operational outcome <= 250 chars total]"
 
 ## Governance Enforcement & System Learning
 - Hook: `agents-hitl-atomic-guard` in `.agents/hooks.json`.
