@@ -188,21 +188,15 @@ def _x1d_verdict(payload: Any) -> tuple[str, str, Any, Any]:
             return ("PASS", "x1d overall passed", overall, "PASS") if overall == "PASS" else ("FAIL", f"x1d overall {overall}", overall, "PASS")
         judges = payload.get("judges") or payload.get("judge_results") or payload.get("results")
     if isinstance(judges, list) and judges:
-        failed = [
-            row.get("provider_key") or row.get("judge_id") or idx
-            for idx, row in enumerate(judges)
-            if isinstance(row, dict) and row.get("pass") is False
-        ]
-        unknown = [
-            row.get("provider_key") or row.get("judge_id") or idx
-            for idx, row in enumerate(judges)
-            if isinstance(row, dict) and row.get("pass") is None and not row.get("verdict")
-        ]
+        proof = [r for r in judges if isinstance(r, dict) and not r.get("advisory_only") and r.get("proof_eligible_judge") is not False]
+        target = proof or judges
+        failed = [r.get("provider_key") or r.get("judge_id") or i for i, r in enumerate(target) if isinstance(r, dict) and r.get("pass") is False]
+        unknown = [r.get("provider_key") or r.get("judge_id") or i for i, r in enumerate(target) if isinstance(r, dict) and r.get("pass") is None and not r.get("verdict")]
         if failed:
             return "FAIL", f"x1d failed judges: {failed}", failed, "all judges pass"
         if unknown:
             return "UNKNOWN", f"x1d unknown judges: {unknown}", unknown, "all judges known"
-        return "PASS", "x1d judge rows passed", len(judges), "all pass"
+        return "PASS", "x1d judge rows passed", len(target), "all pass"
     return "UNKNOWN", "x1d judge verdict could not be determined", payload, "judge verdict rows"
 
 

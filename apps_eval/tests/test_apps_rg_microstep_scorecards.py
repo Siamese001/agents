@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 from apps_eval.contracts import AppOutputSnapshot
@@ -89,6 +90,41 @@ def test_apps_rg_microstep_rows_pass_when_required_lane_artifacts_resolve(tmp_pa
 
     assert headline_rows
     assert all(row.verdict == "PASS" for row in headline_rows)
+
+
+def test_apps_rg_microstep_x1d_ignores_advisory_selector_when_proof_judges_pass(tmp_path) -> None:
+    lane_root = tmp_path / "lanes" / "headline"
+    lane_root.mkdir(parents=True)
+    (lane_root / "l2_output.json").write_text('{"runtime_generation_status":"REAL_LLM"}', encoding="utf-8")
+    (lane_root / "runtime_payload.json").write_text('{"proof_pool_metadata":{}}', encoding="utf-8")
+    (lane_root / "x2_gate_outputs.json").write_text('{"gates":[{"gate_id":"g","pass":true}]}', encoding="utf-8")
+    (lane_root / "x1d_llm_judge_outputs.json").write_text(
+        json.dumps({
+            "judges": [
+                {"judge_id": "gemini", "proof_eligible_judge": True, "advisory_only": False, "pass": True},
+                {"judge_id": "claude_pool_selector", "proof_eligible_judge": False, "advisory_only": True, "pass": False},
+            ]
+        }),
+        encoding="utf-8",
+    )
+    (lane_root / "x3_disposition.json").write_text('{"x3_code":"X3D_ALLOW_FINISH"}', encoding="utf-8")
+    (lane_root / "l6_shadow_eval_package.json").write_text('{"offline_only":true,"current_run_mutated":false}', encoding="utf-8")
+    snapshot = AppOutputSnapshot(
+        app_id="apps_rg",
+        scenario_id="scenario",
+        x3_disposition="X3D_ALLOW_FINISH",
+        output={"sections": {}},
+        run_root=str(tmp_path),
+    )
+    evaluation = build_apps_rg_microstep_evaluation(
+        suite_id="apps_rg.dev.resume_generation",
+        scenario_id="scenario",
+        snapshot=snapshot,
+        run_id="run",
+        created_at="1970-01-01T00:00:00Z",
+    )
+    x1d_row = next(r for r in evaluation["rows"] if r.lane_id == "headline" and r.gate_id == "x1d_judge_result_pass")
+    assert x1d_row.verdict == "PASS"
 
 
 def test_apps_rg_microstep_consumes_trace_reconciliation_when_present(tmp_path) -> None:
