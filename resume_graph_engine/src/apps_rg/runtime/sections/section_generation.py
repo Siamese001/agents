@@ -19,7 +19,7 @@ from apps_rg.runtime.providers.provider_gateway import resolve_provider_profile
 from apps_rg.runtime.providers.section_provider_call import call_section_model_provider
 from apps_rg.runtime.section_model_limits import SECTION_MODEL_ID
 
-DEFAULT_SECTION_TIMEOUT_SECONDS = 90
+DEFAULT_SECTION_TIMEOUT_SECONDS = 180
 
 __all__ = [
     "DEFAULT_SECTION_TIMEOUT_SECONDS",

@@ -190,6 +190,7 @@ _ALLOCATION_SURFACE_CATEGORY_OVERRIDES: Mapping[tuple[str, str], str] = {
     ("reb_ey_capital_optimization_solvency", "skill_risk_greek_stress_testing"): "Governance, Risk & Compliance",
     ("reb_slalom_autonomous_agentic_sdlc_mcp", "skill_bounded_agent_execution"): "AI Platform Leadership",
     ("reb_slalom_live_copilot_acoustic_airgap", "skill_layered_runtime_spine_design"): "LLMOps & Reliability",
+    ("reb_slalom_live_copilot_acoustic_airgap", "skill_multi_step_quality_loop_design"): "LLMOps & Reliability",
     ("reb_slalom_engineering_practice_leadership", "skill_operating_model_for_agentic_ai"): "Engineering & Delivery Leadership",
     ("reb_slalom_bitemporal_graphrag_uwg", "skill_no_direct_write_runtime_design"): "Governance, Risk & Compliance",
     ("reb_slalom_live_copilot_acoustic_airgap", "skill_cache_fallback_grounded_action_routing"): "Technology Strategy & Innovation",
