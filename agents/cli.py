@@ -464,6 +464,10 @@ def run_e2e(args: argparse.Namespace) -> int:
         summary_payload["stages"]["executive_outreach"]["latency_ms"] = lat_ms
         return res
 
+    is_offline = bool(getattr(args, "offline_smoke", False))
+    resume_timeout = 180.0 if is_offline else 900.0
+    outreach_timeout = 120.0 if is_offline else 300.0
+
     steps = [
         WorkflowStep(
             step_id="company_research",
@@ -482,7 +486,7 @@ def run_e2e(args: argparse.Namespace) -> int:
             optional=bool(args.skip_resume),
             idempotent=False,
             is_product_stage=True,
-            timeout=180.0,
+            timeout=resume_timeout,
         ),
         WorkflowStep(
             step_id="executive_outreach",
@@ -492,7 +496,7 @@ def run_e2e(args: argparse.Namespace) -> int:
             optional=False,
             idempotent=False,
             is_product_stage=True,
-            timeout=120.0,
+            timeout=outreach_timeout,
         ),
     ]
 
