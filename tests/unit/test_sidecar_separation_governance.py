@@ -417,13 +417,13 @@ def test_validator_rejects_cron_timestamp_or_routing_mismatch_or_missing_manifes
 
 
 def test_skills_contract_integrity_and_zero_broken_links() -> None:
-    """Verify all 7 skills satisfy the hardened contract with zero broken links or missing script paths."""
+    """Verify all 10 skills satisfy the hardened contract with zero broken links or missing script paths."""
     from tools.audit_skills_budget import audit_skills_budget
 
     rep = audit_skills_budget(REPO_ROOT)
     assert rep["status"] == "PASS", f"audit_skills_budget failed: {rep.get('violations')}"
     assert rep["is_clean"] is True
-    assert rep["skill_count"] == 7
+    assert rep["skill_count"] == 10
     assert rep["violations"] == []
     assert rep["estimated_description_tokens"] <= rep["max_description_tokens"]
 
