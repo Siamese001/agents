@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import threading
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields
 from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -135,8 +135,9 @@ class CandidateProfileLoader:
             "location": str(data.get("location") or ""),
         }
         if overrides:
+            valid_keys = {f.name for f in fields(CandidateProfile)}
             for k, v in overrides.items():
-                if v is not None:
+                if v is not None and k in valid_keys:
                     profile_data[k] = v
 
         return CandidateProfile(**profile_data)
@@ -181,6 +182,9 @@ class CandidateProfileLoader:
             cls._cached_path = None
 
 
+_UNSET_RESOLUTION: Any = object()
+
+
 @dataclass(frozen=True)
 class TargetOpportunity:
     """Target context and recipient brief for outbound messaging."""
@@ -196,7 +200,44 @@ class TargetOpportunity:
     briefing_text: str = ""
     research_digest: str = ""
     evidence_items: List[Dict[str, Any]] = field(default_factory=list)
-    sealed_resolution: Optional[Dict[str, Any]] = None
+    sealed_resolution: Optional[Dict[str, Any]] = _UNSET_RESOLUTION
+
+    def __post_init__(self) -> None:
+        if self.sealed_resolution is _UNSET_RESOLUTION:
+            object.__setattr__(self, "sealed_resolution", None)
+            object.__setattr__(self, "_explicit_unsealed", False)
+        else:
+            object.__setattr__(self, "_explicit_unsealed", self.sealed_resolution is None)
+        c_name = str(self.company_name or "Target Company").strip()
+        r_name = str(self.recipient_name or "Hiring Leader").strip()
+        object.__setattr__(self, "company_name", c_name)
+        object.__setattr__(self, "recipient_name", r_name)
+
+        rc = self.recipient_class
+        if isinstance(rc, str):
+            rc_val = rc.lower().strip()
+            if rc_val in RecipientClass._value2member_map_:
+                rc = RecipientClass(rc_val)
+            elif "talent" in rc_val or "recruiter" in rc_val:
+                rc = RecipientClass.TALENT_PARTNER
+            elif "board" in rc_val:
+                rc = RecipientClass.BOARD_MEMBER
+            else:
+                rc = RecipientClass.HIRING_MANAGER
+            object.__setattr__(self, "recipient_class", rc)
+
+        rd = self.relationship_distance
+        if isinstance(rd, str):
+            rd_val = rd.lower().strip()
+            if rd_val in RelationshipDistance._value2member_map_:
+                rd = RelationshipDistance(rd_val)
+            elif "first" in rd_val or "1st" in rd_val or "warm" in rd_val:
+                rd = RelationshipDistance.FIRST_DEGREE
+            elif "second" in rd_val or "2nd" in rd_val:
+                rd = RelationshipDistance.SECOND_DEGREE
+            else:
+                rd = RelationshipDistance.COLD
+            object.__setattr__(self, "relationship_distance", rd)
 
 
 @dataclass

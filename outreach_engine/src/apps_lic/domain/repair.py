@@ -30,14 +30,14 @@ class DeterministicDraftRepairer:
     @classmethod
     def repair_text(
         cls,
-        body: str,
+        body: Optional[str],
         subject: str = "",
         channel: Optional[ChannelType] = None,
         persona: Optional[AudiencePersona] = None,
     ) -> tuple[str, str]:
         """Performs deterministic repairs on body and subject text."""
-        repaired_body = body
-        repaired_subject = subject
+        repaired_body = str(body or "")
+        repaired_subject = str(subject or "")
 
         # 1. Neutralize em dashes
         repaired_body = repaired_body.replace("—", ", ").replace("\u2014", ", ")
@@ -59,18 +59,27 @@ class DeterministicDraftRepairer:
         # 5. Channel length bounding
         eff_channel = channel or ChannelType.LINKEDIN_INMAIL
         ceiling = _CHANNEL_MAX_CHARS.get(eff_channel, 2000)
+        inquiry_reserve = 80 if not repaired_body.strip().endswith("?") else 0
+        target_len = max(50, ceiling - 10 - inquiry_reserve)
 
         if eff_channel == ChannelType.LINKEDIN_CONNECTION and len(repaired_body) > 300:
             repaired_body = cls._trim_connection_note(repaired_body, max_len=295)
-        elif len(repaired_body) > ceiling:
-            repaired_body = cls._trim_generic_body(repaired_body, max_len=ceiling - 10)
+        elif len(repaired_body) > target_len:
+            repaired_body = cls._trim_generic_body(repaired_body, max_len=target_len)
 
         # 6. Ensure low-friction question ending
         repaired_body = cls._ensure_question_ending(repaired_body, eff_channel, persona)
 
-        # Re-check connection note length after question ending
+        # Re-check channel length after question ending for ALL channels
         if eff_channel == ChannelType.LINKEDIN_CONNECTION and len(repaired_body) > 300:
             repaired_body = cls._trim_connection_note(repaired_body, max_len=295)
+        elif len(repaired_body) > ceiling:
+            repaired_body = cls._trim_generic_body(repaired_body, max_len=ceiling - 10)
+            if not repaired_body.strip().endswith("?"):
+                repaired_body = cls._ensure_question_ending(repaired_body, eff_channel, persona)
+                if len(repaired_body) > ceiling:
+                    short_ask = "Open to connecting?" if eff_channel == ChannelType.LINKEDIN_CONNECTION else "Open to discussing?"
+                    repaired_body = repaired_body[: ceiling - len(short_ask) - 5].rstrip(".,;:\n ") + f"...\n\n{short_ask}"
 
         return repaired_body, repaired_subject
 
@@ -87,11 +96,8 @@ class DeterministicDraftRepairer:
             return "Open to connecting?"
 
         # Separate signature block if present
-        sig_tokens = (
-            "linkedin.com", "github.com", "+1-", "+1 ", "@", "officer", "director",
-            "partner", "vp", "chief", "lead", "architect", "engineer", "regards",
-            "sincerely", "best,", "best regards", "--", "__", "tel:", "phone:", "email:",
-        )
+        explicit_sig_starts = ("regards", "best,", "sincerely", "best regards", "--", "__", "cheers")
+        contact_tokens = ("linkedin.com", "github.com", "+1-", "+1 ", "tel:", "phone:", "email:", "@")
         lines = stripped.splitlines()
         main_lines: list[str] = []
         sig_lines: list[str] = []
@@ -101,11 +107,11 @@ class DeterministicDraftRepairer:
             l_strip = line.strip()
             l_lower = l_strip.lower()
             if not in_sig:
-                if any(tok in l_lower for tok in ("regards,", "best,", "sincerely,", "best regards,")):
+                if any(l_lower.startswith(tok) or tok in l_lower for tok in explicit_sig_starts):
                     in_sig = True
                     sig_lines.append(line)
                     continue
-                if any(tok in l_lower for tok in sig_tokens) and i > 0 and len(l_strip) <= 50:
+                if any(tok in l_lower for tok in contact_tokens) and i > 0 and len(l_strip) <= 50:
                     in_sig = True
                     sig_lines.append(line)
                     continue
@@ -198,12 +204,39 @@ class DeterministicDraftRepairer:
         if not paragraphs:
             return text[:max_len]
 
+        if len(paragraphs) == 1:
+            single = paragraphs[0]
+            sentences = re.split(r"(?<=[.?!])\s+", single)
+            if len(sentences) > 1 and sentences[-1].endswith("?"):
+                closing = sentences[-1]
+                other = " ".join(sentences[:-1])
+                budget = max_len - len(closing) - 4
+                if budget > 20:
+                    words = other.split()
+                    accum: list[str] = []
+                    cur_len = 0
+                    for w in words:
+                        if cur_len + len(w) + 1 > budget - 3:
+                            break
+                        accum.append(w)
+                        cur_len += len(w) + 1
+                    return f"{' '.join(accum).rstrip('.,;:')}...\n\n{closing}"
+            words = single.split()
+            accum_single: list[str] = []
+            cur_len = 0
+            for w in words:
+                if cur_len + len(w) + 1 > max_len - 3:
+                    break
+                accum_single.append(w)
+                cur_len += len(w) + 1
+            return " ".join(accum_single).rstrip(".,;:") + "..."
+
         closing = paragraphs[-1]
         other_paras = paragraphs[:-1]
         budget = max_len - len(closing) - 4
 
         words = " ".join(other_paras).split()
-        accum: list[str] = []
+        accum = []
         cur_len = 0
         for w in words:
             if cur_len + len(w) + 1 > budget - 3:
@@ -212,7 +245,19 @@ class DeterministicDraftRepairer:
             cur_len += len(w) + 1
 
         trimmed_other = " ".join(accum).rstrip(".,;:") + "..."
-        return f"{trimmed_other}\n\n{closing}"
+        res = f"{trimmed_other}\n\n{closing}"
+        if len(res) <= max_len:
+            return res
+
+        words_all = res.split()
+        accum_all: list[str] = []
+        cur_len = 0
+        for w in words_all:
+            if cur_len + len(w) + 1 > max_len - 3:
+                break
+            accum_all.append(w)
+            cur_len += len(w) + 1
+        return " ".join(accum_all).rstrip(".,;:") + "..."
 
     @classmethod
     def repair_draft(

@@ -32,15 +32,11 @@ def get_executive_signature_block(candidate: CandidateProfile | str | None = Non
         profile = CandidateProfileLoader.load_default()
 
     lines = [profile.full_name]
-    title = profile.current_title or profile.target_title
-    if title:
-        lines.append(title)
-    if profile.linkedin_url:
-        lines.append(profile.linkedin_url)
-    if profile.github_url:
-        lines.append(profile.github_url)
-    if profile.phone:
-        lines.append(profile.phone)
+    if profile.current_title or profile.target_title:
+        lines.append(profile.current_title or profile.target_title)
+    for attr in (profile.linkedin_url, profile.github_url, profile.phone):
+        if attr:
+            lines.append(attr)
     return "\n".join(lines)
 
 
@@ -55,10 +51,9 @@ def get_recruiter_signature_block(candidate: CandidateProfile | str | None = Non
         profile = CandidateProfileLoader.load_default()
 
     lines = [profile.full_name]
-    if profile.linkedin_url:
-        lines.append(profile.linkedin_url)
-    if profile.phone:
-        lines.append(profile.phone)
+    for attr in (profile.linkedin_url, profile.phone):
+        if attr:
+            lines.append(attr)
     return "\n".join(lines)
 
 
@@ -86,30 +81,26 @@ class PromptCompiler:
 
     def load_template(self, template_name: str) -> Dict[str, Any]:
         """Loads a YAML prompt template definition with mtime-aware caching."""
-        tmpl_file = self.templates_dir / f"{template_name}.yaml"
-        if not tmpl_file.is_file():
-            tmpl_file = self.templates_dir / template_name
-        if tmpl_file.is_file():
-            try:
+        try:
+            base_dir = self.templates_dir.resolve()
+            tmpl_file = (self.templates_dir / f"{template_name}.yaml").resolve()
+            if not tmpl_file.is_file():
+                tmpl_file = (self.templates_dir / template_name).resolve()
+            if tmpl_file.is_file() and tmpl_file.is_relative_to(base_dir):
                 mtime = tmpl_file.stat().st_mtime
-                return dict(_load_cached_yaml_template(str(tmpl_file.resolve()), mtime))
-            except (OSError, ValueError, KeyError, TypeError):
-                pass
+                return dict(_load_cached_yaml_template(str(tmpl_file), mtime))
+        except (OSError, ValueError, KeyError, TypeError):
+            pass
         return {}
 
+
     def select_template_for_channel(
-        self,
-        channel: ChannelType,
-        recipient_class: RecipientClass,
-        audience_persona: Optional[AudiencePersona] = None,
+        self, channel: ChannelType, recipient_class: RecipientClass, audience_persona: Optional[AudiencePersona] = None,
     ) -> str:
         """Selects the optimal production template based on channel, tier, and persona."""
         if audience_persona == AudiencePersona.EXECUTIVE_RECRUITER or recipient_class == RecipientClass.TALENT_PARTNER:
             return "compact_recruiter_arc"
-        if audience_persona == AudiencePersona.EXECUTIVE_CONTACT or recipient_class in (
-            RecipientClass.EXECUTIVE_PEER,
-            RecipientClass.BOARD_MEMBER,
-        ):
+        if audience_persona == AudiencePersona.EXECUTIVE_CONTACT or recipient_class in (RecipientClass.EXECUTIVE_PEER, RecipientClass.BOARD_MEMBER):
             return "exec_positioning"
         return "outreach_draft_v2"
 
@@ -144,25 +135,30 @@ class PromptCompiler:
             "DO NOT invent application or interview stage status.",
             "DO NOT fabricate company initiatives not mentioned in strategic priorities.",
             "DO NOT make claims or quote metrics absent from verified facts.",
-            "DO NOT use em dashes.",
-            "DO NOT use markdown link syntax.",
+            "DO NOT use em dashes.", "DO NOT use markdown link syntax.",
             "DO NOT use subordinate or deferential job-seeker language.",
         ]
         if template_spec.get("forbidden_behaviors"):
             for b in template_spec["forbidden_behaviors"]:
-                clean_b = f"DO NOT {b.replace('_', ' ')}."
-                if clean_b not in forbidden:
-                    forbidden.append(clean_b)
+                if isinstance(b, str) and b.strip():
+                    clean_b = f"DO NOT {b.replace('_', ' ')}."
+                    if clean_b not in forbidden:
+                        forbidden.append(clean_b)
 
-        context = {
+        eff_channel = ChannelType(channel) if isinstance(channel, str) else channel
+        ch_val = eff_channel.value if hasattr(eff_channel, "value") else str(eff_channel)
+        rc = opportunity.recipient_class
+        rc_val = rc.value if hasattr(rc, "value") else str(rc)
+
+        return {
             "template_id": template_id,
-            "template_purpose": template_spec.get("purpose", "").strip(),
+            "template_purpose": str(template_spec.get("purpose") or "").strip(),
             "candidate_name": candidate.full_name,
             "candidate_title": candidate.target_title,
             "candidate_facts": facts_block,
             "recipient_name": opportunity.recipient_name,
             "recipient_title": opportunity.recipient_title,
-            "recipient_class": opportunity.recipient_class.value,
+            "recipient_class": rc_val,
             "company_name": opportunity.company_name,
             "role_title": opportunity.role_title,
             "industry": opportunity.industry,
@@ -170,16 +166,22 @@ class PromptCompiler:
             "briefing_summary": opportunity.briefing_text[:300] if opportunity.briefing_text else "",
             "research_digest": opportunity.research_digest,
             "tone": tone_map.get(opportunity.recipient_class, "professional"),
-            "channel": channel.value,
+            "channel": ch_val,
             "forbidden_behaviors": forbidden,
         }
-        return context
 
     def _format_strategic_hook(self, raw_hook: str, company_name: Optional[str] = None) -> str:
         """Format and condense a raw priority or JD bullet into a clean conversational phrase."""
         clean = (raw_hook or "").strip().rstrip(".!?:;")
-        # If multi-sentence, take the first sentence
-        for sep in (". ", "; ", " - "):
+        # If multi-sentence, take the first sentence, respecting common abbreviations
+        abbrevs = {"dr", "mr", "ms", "mrs", "prof", "sr", "jr", "vs", "u.s", "inc", "corp", "ltd", "co", "e.g", "i.e"}
+        for m in re.finditer(r"\.\s+", clean):
+            preceding = clean[:m.start()].split()
+            last_word = preceding[-1].lower() if preceding else ""
+            if last_word not in abbrevs:
+                clean = clean[:m.start()].strip()
+                break
+        for sep in ("; ", " - "):
             if sep in clean:
                 clean = clean.split(sep)[0].strip()
         # Strip leading bullet, numbering markers, or executive prefixes
@@ -265,9 +267,12 @@ class PromptCompiler:
     ) -> str:
         """Compose a LinkedIn connection note strictly bounded under 300 characters."""
         fact_phrase = self._format_fact_phrase(fact_statement)
-        title_short = candidate.target_title.strip()
+        title_short = (candidate.target_title or "").strip()
         if len(title_short) > 40:
             title_short = title_short[:38].rsplit(" ", 1)[0].rstrip(",/-")
+        as_title = f"As {title_short}, " if title_short else "In leadership, "
+        work_as_title = f"In my work as {title_short}, " if title_short else "In my leadership work, "
+        greeting = f"Hi {opportunity.recipient_name}," if (opportunity.recipient_name or "").strip() else "Hi,"
 
         def _slice_fact(phrase: str, max_chars: int = 85) -> str:
             clean_p = phrase.rstrip(".")
@@ -275,8 +280,8 @@ class PromptCompiler:
                 return clean_p
             metric_match = re.search(r"(\$\d[\d,.]*\s*(?:[kmbKMB]|million|billion|thousand)?|\b\d+(?:\.\d+)?%)", clean_p)
             limit = max_chars - 3
-            if metric_match and metric_match.end() <= max_chars + 15:
-                limit = max(limit, metric_match.end())
+            if metric_match and metric_match.end() <= max_chars + 30:
+                limit = max(limit, metric_match.end() + 2)
             words = clean_p.split()
             accum = ""
             for w in words:
@@ -294,58 +299,58 @@ class PromptCompiler:
             search_clause = f"{opportunity.company_name}'s {role_s} search in {hook_short}" if hook_short else f"{opportunity.company_name}'s {role_s} search"
             if opportunity.relationship_distance == RelationshipDistance.FORMER_COLLEAGUE:
                 body = (
-                    f"Hi {opportunity.recipient_name},\n\n"
+                    f"{greeting}\n\n"
                     f"Great seeing your work at {opportunity.company_name}. "
                     f"Following your {role_s} search" + (f" in {hook_short}." if hook_short else ".") + " "
-                    f"As {title_short}, {fact_short}.\n\n"
+                    f"{as_title}{fact_short}.\n\n"
                     f"Open to connecting?"
                 )
             elif opportunity.relationship_distance == RelationshipDistance.WARM_REFERRAL:
                 body = (
-                    f"Hi {opportunity.recipient_name},\n\n"
+                    f"{greeting}\n\n"
                     f"Reaching out via mutual connection regarding {search_clause}. "
-                    f"As {title_short}, {fact_short}.\n\n"
+                    f"{as_title}{fact_short}.\n\n"
                     f"Open to connecting?"
                 )
             else:
                 body = (
-                    f"Hi {opportunity.recipient_name},\n\n"
+                    f"{greeting}\n\n"
                     f"Following {search_clause}. "
-                    f"As {title_short}, {fact_short}.\n\n"
+                    f"{as_title}{fact_short}.\n\n"
                     f"Open to connecting?"
                 )
         else:
             if opportunity.relationship_distance == RelationshipDistance.FORMER_COLLEAGUE:
                 work_clause = f"Following your work in {hook_short}." if hook_short else f"Following your work at {opportunity.company_name}."
                 body = (
-                    f"Hi {opportunity.recipient_name},\n\n"
+                    f"{greeting}\n\n"
                     f"Great seeing your momentum at {opportunity.company_name}. "
                     f"{work_clause} "
-                    f"In my work as {title_short}, {fact_short}.\n\n"
+                    f"{work_as_title}{fact_short}.\n\n"
                     f"Open to catching up?"
                 )
             elif opportunity.relationship_distance == RelationshipDistance.WARM_REFERRAL:
                 focus_clause = f"focus on {hook_short}" if hook_short else f"work in {opportunity.industry}"
                 body = (
-                    f"Hi {opportunity.recipient_name},\n\n"
+                    f"{greeting}\n\n"
                     f"Reaching out from our shared network regarding {opportunity.company_name}'s {focus_clause}. "
-                    f"In my work as {title_short}, {fact_short}.\n\n"
+                    f"{work_as_title}{fact_short}.\n\n"
                     f"Open to exchanging perspectives?"
                 )
             elif opportunity.relationship_distance == RelationshipDistance.SECOND_DEGREE:
                 focus_clause = f"focus on {hook_short}" if hook_short else f"work in {opportunity.industry}"
                 body = (
-                    f"Hi {opportunity.recipient_name},\n\n"
+                    f"{greeting}\n\n"
                     f"Following {opportunity.company_name}'s {focus_clause} from our shared circles. "
-                    f"In my work as {title_short}, {fact_short}.\n\n"
+                    f"{work_as_title}{fact_short}.\n\n"
                     f"Open to exchanging perspectives?"
                 )
             else:
                 focus_clause = f"Noticed {opportunity.company_name}'s focus on {hook_short}." if hook_short else f"Following {opportunity.company_name}'s leadership in {opportunity.industry}."
                 body = (
-                    f"Hi {opportunity.recipient_name},\n\n"
+                    f"{greeting}\n\n"
                     f"{focus_clause} "
-                    f"In my work as {title_short}, {fact_short}.\n\n"
+                    f"{work_as_title}{fact_short}.\n\n"
                     f"Open to exchanging perspectives?"
                 )
 
@@ -354,9 +359,9 @@ class PromptCompiler:
             compact_fact = _slice_fact(fact_phrase, 72)
             prefix = f"Following {opportunity.company_name}'s focus on {hook_short}." if hook_short else f"Following {opportunity.company_name}'s work in {opportunity.industry}."
             body = (
-                f"Hi {opportunity.recipient_name},\n\n"
+                f"{greeting}\n\n"
                 f"{prefix} "
-                f"As {title_short}, {compact_fact}\n\n"
+                f"{as_title}{compact_fact}\n\n"
                 f"Open to connecting?"
             ).replace("....", "...")
         return body
@@ -380,23 +385,27 @@ class PromptCompiler:
             subject = f"{candidate.full_name} -> {opportunity.company_name} ({opportunity.role_title})"
 
         # Paragraph 1: Opener + Core fit statement and single proof point
+        cand_title = (candidate.target_title or "").strip()
+        as_clause = f"As {cand_title}, " if cand_title else "In my leadership work, "
+        greeting = f"Hi {opportunity.recipient_name}," if (opportunity.recipient_name or "").strip() else "Hi,"
+
         if opportunity.relationship_distance == RelationshipDistance.FORMER_COLLEAGUE:
             search_clause = f"{opportunity.company_name}'s {opportunity.role_title} search in {hook}" if hook else f"{opportunity.company_name}'s {opportunity.role_title} search"
             p1 = (
                 f"Reaching out following our previous collaboration regarding {search_clause}. "
-                f"As {candidate.target_title}, {fact_phrase}."
+                f"{as_clause}{fact_phrase}."
             )
         elif opportunity.relationship_distance == RelationshipDistance.WARM_REFERRAL:
             search_clause = f"{opportunity.company_name}'s {opportunity.role_title} search in {hook}" if hook else f"{opportunity.company_name}'s {opportunity.role_title} search"
             p1 = (
                 f"Reaching out via mutual connection regarding {search_clause}. "
-                f"As {candidate.target_title}, {fact_phrase}."
+                f"{as_clause}{fact_phrase}."
             )
         else:
             priority_clause = f"regarding {opportunity.company_name}'s priorities in {hook}" if hook else f"regarding {opportunity.company_name}'s {opportunity.role_title} role"
             p1 = (
                 f"Reaching out {priority_clause}. "
-                f"As {candidate.target_title}, {fact_phrase}."
+                f"{as_clause}{fact_phrase}."
             )
 
         # Paragraph 2: Low-friction ask
@@ -405,7 +414,7 @@ class PromptCompiler:
         else:
             p2 = "Would you be open to connecting on this role?"
 
-        body = f"Hi {opportunity.recipient_name},\n\n{p1}\n\n{p2}"
+        body = f"{greeting}\n\n{p1}\n\n{p2}"
         return subject, body
 
     def _compose_executive_draft(
@@ -418,6 +427,8 @@ class PromptCompiler:
     ) -> tuple[str, str]:
         """Compose 4-part executive arc aligned with exec_positioning.yaml."""
         fact_phrase = self._format_fact_phrase(fact_statement)
+        cand_title = (candidate.target_title or "").strip()
+        greeting = f"Hi {opportunity.recipient_name}," if (opportunity.recipient_name or "").strip() else "Hi,"
 
         # 1. Subject calibration
         if channel == ChannelType.EMAIL:
@@ -449,9 +460,9 @@ class PromptCompiler:
 
         # 3. Slot 2: Strategic Fit Signal
         if opportunity.recipient_class == RecipientClass.BOARD_MEMBER:
-            fit = f"In my executive leadership work as {candidate.target_title}, {fact_phrase}."
+            fit = f"In my executive leadership work as {cand_title}, {fact_phrase}." if cand_title else f"In my executive leadership work, {fact_phrase}."
         else:
-            fit = f"In my recent work as {candidate.target_title}, {fact_phrase}."
+            fit = f"In my recent work as {cand_title}, {fact_phrase}." if cand_title else f"In my recent leadership work, {fact_phrase}."
 
         # 4. Slot 3: Reciprocity Offer
         if opportunity.recipient_class == RecipientClass.BOARD_MEMBER:
@@ -473,7 +484,7 @@ class PromptCompiler:
 
         p1 = f"{opener} {fit}"
         p2 = f"{reciprocity} {ask}"
-        body = f"Hi {opportunity.recipient_name},\n\n{p1}\n\n{p2}"
+        body = f"{greeting}\n\n{p1}\n\n{p2}"
         return subject, body
 
     def _compose_general_draft(
@@ -486,6 +497,8 @@ class PromptCompiler:
     ) -> tuple[str, str]:
         """Compose general/hiring-manager draft aligned with outreach_draft_v2.yaml."""
         fact_phrase = self._format_fact_phrase(fact_statement)
+        cand_title = (candidate.target_title or "").strip()
+        greeting = f"Hi {opportunity.recipient_name}," if (opportunity.recipient_name or "").strip() else "Hi,"
         subject = f"{opportunity.company_name} / {opportunity.role_title} - Strategic Alignment"
 
         if opportunity.relationship_distance == RelationshipDistance.FORMER_COLLEAGUE:
@@ -497,22 +510,24 @@ class PromptCompiler:
         else:
             opener = f"I have been following {opportunity.company_name}'s focus on {hook}." if hook else f"I have been following {opportunity.company_name}'s work in {opportunity.industry}."
 
-        fit = f"In my recent work as {candidate.target_title}, {fact_phrase}."
+        fit = f"In my recent work as {cand_title}, {fact_phrase}." if cand_title else f"In my recent leadership work, {fact_phrase}."
         reciprocity = "Happy to share our operational scaling framework and metrics if useful for your roadmap."
         ask = "Given your focus, would you be open to a brief conversation next week?"
 
         p1 = f"{opener} {fit}"
         p2 = f"{reciprocity} {ask}"
-        body = f"Hi {opportunity.recipient_name},\n\n{p1}\n\n{p2}"
+        body = f"{greeting}\n\n{p1}\n\n{p2}"
         return subject, body
 
     def _compose_follow_up(self, candidate: CandidateProfile, opportunity: TargetOpportunity, hook: str, fact_statement: str) -> tuple[str, str]:
         fact_phrase = self._format_fact_phrase(fact_statement)
+        cand_title = (candidate.target_title or "").strip()
+        greeting = f"Hi {opportunity.recipient_name}," if (opportunity.recipient_name or "").strip() else "Hi,"
         subject = f"Following up: {opportunity.company_name} / {opportunity.role_title}"
         focus_clause = f"Following up on my earlier note regarding {opportunity.company_name}'s focus on {hook}." if hook else f"Following up on my earlier note regarding {opportunity.company_name}'s {opportunity.role_title} work in {opportunity.industry}."
-        fit = f"In my work as {candidate.target_title}, {fact_phrase}."
+        fit = f"In my work as {cand_title}, {fact_phrase}." if cand_title else f"In my leadership work, {fact_phrase}."
         ask = "If timing is tight right now, would it be helpful to reconnect next quarter instead?"
-        return subject, f"Hi {opportunity.recipient_name},\n\n{focus_clause} {fit}\n\n{ask}"
+        return subject, f"{greeting}\n\n{focus_clause} {fit}\n\n{ask}"
 
     def _select_persona_tournament_lead_fact(self, candidate: CandidateProfile, opportunity: TargetOpportunity, audience_persona: Optional[AudiencePersona] = None) -> Optional[Any]:
         grounded = candidate.grounded_facts
@@ -551,8 +566,11 @@ class PromptCompiler:
 
         # Connection notes have a strict 300-char limit; follow-up notes have an 800-char limit
         if channel == ChannelType.LINKEDIN_CONNECTION:
-            subject = ""
             body = self._compose_connection_note(candidate, opportunity, template_id, hook, fact_statement)
+            if len(body) > 300:
+                from apps_lic.domain.repair import DeterministicDraftRepairer
+                body = DeterministicDraftRepairer._trim_connection_note(body, max_len=295)
+            return "", body, fact_ids
         elif channel == ChannelType.FOLLOW_UP:
             subject, body = self._compose_follow_up(candidate, opportunity, hook, fact_statement)
         elif template_id == "compact_recruiter_arc":

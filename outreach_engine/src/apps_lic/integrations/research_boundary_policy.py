@@ -177,13 +177,20 @@ def _resolve_canonical_targeting_brief(
         if not targeting_dir.is_dir():
             continue
 
+        def _matches_company_stem_whole(st: str) -> bool:
+            st_low = st.lower()
+            st_tokens = set(st_low.split("_"))
+            if company_norm and (company_norm in st_tokens or st_low.startswith(f"{company_norm}_")):
+                return True
+            return any(tok in st_tokens for tok in company_tokens if len(tok) >= 3)
+
         md_candidates = sorted(targeting_dir.glob("*_briefing.md"))
         json_candidates = sorted(targeting_dir.glob("*.json"))
         for candidates in (md_candidates, json_candidates):
             # Priority 1: Company + role match
             for candidate in candidates:
                 stem = candidate.stem.lower()
-                if matches_company_stem(stem, company_norm, company_tokens) and any(tok in stem for tok in role_tokens):
+                if _matches_company_stem_whole(stem) and any(tok in stem for tok in role_tokens):
                     content = _read_candidate_brief(candidate)
                     if content:
                         norm = _normalize_canonical_brief_for_handoff(content) if candidate.suffix.lower() == ".md" else content
@@ -192,7 +199,7 @@ def _resolve_canonical_targeting_brief(
             # Priority 2: Company match
             for candidate in candidates:
                 stem = candidate.stem.lower()
-                if company_norm and company_norm in stem:
+                if _matches_company_stem_whole(stem):
                     content = _read_candidate_brief(candidate)
                     if content:
                         norm = _normalize_canonical_brief_for_handoff(content) if candidate.suffix.lower() == ".md" else content
@@ -339,7 +346,9 @@ def _find_valid_persisted_artifact_bundle(
     freshness_ttl_seconds: float = 7 * 86400.0,
 ) -> tuple[Any | None, str]:
     """Inspect persisted artifact runs root for a matching, valid, and fresh research bundle."""
-    target_company = company_name.strip().lower()
+    target_company = str(company_name or "").strip().lower()
+    if not target_company:
+        return None, "missing_company_name"
     search_roots: list[Path] = []
     if artifact_runs_root is not None and Path(artifact_runs_root).is_dir():
         search_roots.append(Path(artifact_runs_root))
@@ -481,13 +490,36 @@ def _find_valid_persisted_artifact_bundle(
 
 
 def execute_bounded_live_research(
-    *, invoke_fn: Callable[[], Any], timeout_seconds: float, max_retries: int
+    *,
+    invoke_fn: Callable[[], Any],
+    timeout_seconds: float,
+    max_retries: int,
+    cost_per_call_usd: float = 0.0,
+    cost_limit_usd: float = float("inf"),
+    cumulative_cost_usd: float = 0.0,
+    on_attempt_fn: Callable[[int], None] | None = None,
 ) -> Any:
     """Execute live research invocation with bounded timeouts and retries."""
     from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
 
+    current_cost = float(cumulative_cost_usd)
     last_exc: Exception | None = None
     for attempt in range(max(1, max_retries + 1)):
+        # Check if this attempt would exceed the cost limit
+        if cost_limit_usd is not None and cost_per_call_usd > 0.0:
+            if (current_cost + cost_per_call_usd) > cost_limit_usd:
+                _log.warning(
+                    "Cost limit would be exceeded on attempt %d (cost=%.2f, limit=%.2f); aborting retries",
+                    attempt + 1,
+                    current_cost + cost_per_call_usd,
+                    cost_limit_usd,
+                )
+                break
+
+        if on_attempt_fn is not None:
+            on_attempt_fn(attempt)
+        current_cost += cost_per_call_usd
+
         executor = ThreadPoolExecutor(max_workers=1)
         future = executor.submit(invoke_fn)
         try:
@@ -511,59 +543,30 @@ def execute_bounded_live_research(
 
 
 def build_cost_limit_exceeded_result(
-    *,
-    run_id: str,
-    trace_id: str,
-    request_id: str,
-    cumulative_cost_usd: float,
-    cost_per_call_usd: float,
-    cost_limit_usd: float,
-    t_start: float = 0.0,
+    *, run_id: str, trace_id: str, request_id: str, cumulative_cost_usd: float,
+    cost_per_call_usd: float, cost_limit_usd: float, t_start: float = 0.0,
 ) -> Any:
     """Build a blocked ResearchResult when cumulative cost limit is exceeded."""
     from apps_lic.integrations.apps_research_bridge import ResearchResult
-
+    reason = f"COST_LIMIT_EXCEEDED: current spend ${cumulative_cost_usd:.2f} + ${cost_per_call_usd:.2f} exceeds limit ${cost_limit_usd:.2f}"
     return ResearchResult(
-        run_id=run_id,
-        trace_id=trace_id,
-        request_id=request_id,
-        is_blocked=True,
-        block_reason=f"COST_LIMIT_EXCEEDED: current spend ${cumulative_cost_usd:.2f} + ${cost_per_call_usd:.2f} exceeds limit ${cost_limit_usd:.2f}",
-        is_stale=False,
-        evidence_items=(),
-        confidence_score=0.0,
-        brief_sha256="",
-        company_brief_text="",
-        strategic_priorities=(),
-        fetch_duration_ms=(time.time() * 1000.0 - t_start) if t_start > 0 else 5.0,
-        audit_ref=trace_id,
-        resolution_source="HERMETIC_FALLBACK",
-        is_verified=False,
+        run_id=run_id, trace_id=trace_id, request_id=request_id, is_blocked=True, block_reason=reason,
+        is_stale=False, evidence_items=(), confidence_score=0.0, brief_sha256="", company_brief_text="",
+        strategic_priorities=(), fetch_duration_ms=(time.time() * 1000.0 - t_start) if t_start > 0 else 5.0,
+        audit_ref=trace_id, resolution_source="HERMETIC_FALLBACK", is_verified=False,
     )
 
 
 def build_timeout_result(
-    *, run_id: str, trace_id: str, request_id: str, error: Exception | str, t_start: float = 0.0
+    *, run_id: str, trace_id: str, request_id: str, error: Exception | str, t_start: float = 0.0,
 ) -> Any:
     """Build a blocked ResearchResult when live research invocation times out."""
     from apps_lic.integrations.apps_research_bridge import ResearchResult
-
     return ResearchResult(
-        run_id=run_id,
-        trace_id=trace_id,
-        request_id=request_id,
-        is_blocked=True,
-        block_reason=f"TIMEOUT: {error}",
-        is_stale=False,
-        evidence_items=(),
-        confidence_score=0.0,
-        brief_sha256="",
-        company_brief_text="",
-        strategic_priorities=(),
-        fetch_duration_ms=(time.time() * 1000.0 - t_start) if t_start > 0 else 5.0,
-        audit_ref=trace_id,
-        resolution_source="HERMETIC_FALLBACK",
-        is_verified=False,
+        run_id=run_id, trace_id=trace_id, request_id=request_id, is_blocked=True, block_reason=f"TIMEOUT: {error}",
+        is_stale=False, evidence_items=(), confidence_score=0.0, brief_sha256="", company_brief_text="",
+        strategic_priorities=(), fetch_duration_ms=(time.time() * 1000.0 - t_start) if t_start > 0 else 5.0,
+        audit_ref=trace_id, resolution_source="HERMETIC_FALLBACK", is_verified=False,
     )
 
 

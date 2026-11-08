@@ -223,6 +223,7 @@ def test_remediation_defect7_evaluator_composite_score_and_score_bands():
         recipient_class=RecipientClass.EXECUTIVE_PEER,
         relationship_distance=RelationshipDistance.COLD,
         strategic_priorities=["modernizing streaming data architecture"],
+        sealed_resolution={"is_verified": True, "resolution_source": "CANONICAL_FIXTURE"},
     )
 
     draft = OutreachMessageDraft(

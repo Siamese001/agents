@@ -33,12 +33,39 @@ class MissionLoader:
         content = path.read_text(encoding="utf-8")
         if path.suffix.lower() in (".md", ".txt"):
             return MissionLoader.load_from_text(content, default_id=path.stem)
+        if path.suffix.lower() in (".yaml", ".yml"):
+            import yaml
+
+            try:
+                data = yaml.safe_load(content)
+            except Exception as exc:
+                raise ValueError(f"Corrupted YAML in mission file {brief_path}: {exc}") from exc
+            if not isinstance(data, dict):
+                raise ValueError(f"Expected dictionary payload in YAML file {brief_path}, got {type(data).__name__}")
+            return MissionLoader.load_from_dict(data, default_id=path.stem)
+        if path.suffix.lower() == ".json":
+            try:
+                data = json.loads(content)
+            except json.JSONDecodeError as exc:
+                raise ValueError(f"Corrupted JSON in mission file {brief_path}: {exc}") from exc
+            return MissionLoader.load_from_dict(data, default_id=path.stem)
 
         try:
             data = json.loads(content)
             return MissionLoader.load_from_dict(data, default_id=path.stem)
         except json.JSONDecodeError:
             return MissionLoader.load_from_text(content, default_id=path.stem)
+
+    @staticmethod
+    def _coerce_str_list(raw: Any) -> list[str]:
+        if raw is None:
+            return []
+        if isinstance(raw, str):
+            s = raw.strip()
+            return [s] if s else []
+        if isinstance(raw, (list, tuple, set)):
+            return [str(x).strip() for x in raw if str(x).strip()]
+        return []
 
     @staticmethod
     def load_from_text(text: str, default_id: str = "mission_01") -> Tuple[CandidateProfile, TargetOpportunity]:
@@ -54,7 +81,7 @@ class MissionLoader:
 
         first_line = clean_text.splitlines()[0].strip() if clean_text.splitlines() else ""
         title_match = re.match(
-            r"^#*\s*([A-Za-z0-9 &.,'-]+?)\s*-\s*([A-Za-z0-9 &.,'/()-]+?)(?:\s+targeting brief|\s+briefing|\s*$)",
+            r"^#*\s*([^\n-]+?)\s*-\s*([^\n-]+?)(?:\s+targeting brief|\s+briefing|\s*$)",
             first_line,
             re.IGNORECASE,
         )
@@ -171,11 +198,14 @@ class MissionLoader:
 
     @staticmethod
     def load_from_dict(data: Dict[str, Any], default_id: str = "mission_01") -> Tuple[CandidateProfile, TargetOpportunity]:
+        if not isinstance(data, dict):
+            raise ValueError(f"Expected dictionary payload, got {type(data).__name__}")
+
         # Structure 1: Full mission fixture (e.g. charles_truist_mission.json)
         if "sender_profile" in data and "recipient_profile" in data:
-            sp = data["sender_profile"]
-            rp = data["recipient_profile"]
-            jd = data.get("job_description", {})
+            sp = data.get("sender_profile") if isinstance(data.get("sender_profile"), dict) else {}
+            rp = data.get("recipient_profile") if isinstance(data.get("recipient_profile"), dict) else {}
+            jd = data.get("job_description") if isinstance(data.get("job_description"), dict) else {}
             default_cand = CandidateProfileLoader.load_default()
 
             facts = MissionLoader._parse_verified_facts(sp.get("verified_facts") or data.get("verified_facts"))
@@ -211,6 +241,8 @@ class MissionLoader:
                     ),
                 ]
 
+            raw_comps = sp.get("key_competencies")
+            comps = MissionLoader._coerce_str_list(raw_comps) if raw_comps is not None else ["Agentic AI", "Enterprise Architecture", "LLM Guardrails", "HITL Systems", "Cloud Transformation"]
             candidate = CandidateProfile(
                 candidate_id=f"cand_{default_id}",
                 full_name=sp.get("name") or default_cand.full_name,
@@ -218,7 +250,7 @@ class MissionLoader:
                 current_title=sp.get("current_title") or default_cand.current_title,
                 executive_summary=sp.get("background") or default_cand.executive_summary,
                 verified_facts=facts,
-                key_competencies=list(sp.get("key_competencies") or ["Agentic AI", "Enterprise Architecture", "LLM Guardrails", "HITL Systems", "Cloud Transformation"]),
+                key_competencies=comps,
                 linkedin_url=sp.get("linkedin_url") or default_cand.linkedin_url,
                 github_url=sp.get("github_url") or default_cand.github_url,
                 phone=sp.get("phone") or default_cand.phone,
@@ -229,11 +261,11 @@ class MissionLoader:
             company_name = rp.get("company") or jd.get("company") or "Target Company"
             company_context = jd.get("company_context", "")
 
-            priorities = list(jd.get("strategic_priorities") or data.get("strategic_priorities") or [])
+            priorities = MissionLoader._coerce_str_list(jd.get("strategic_priorities") or data.get("strategic_priorities"))
             if jd.get("responsibilities"):
-                priorities.extend(jd["responsibilities"])
+                priorities.extend(MissionLoader._coerce_str_list(jd["responsibilities"]))
             if jd.get("summary"):
-                priorities.append(jd["summary"])
+                priorities.append(str(jd["summary"]).strip())
 
             r_class = MissionLoader._parse_recipient_class(
                 rp.get("recipient_class") or data.get("recipient_class"),
@@ -263,14 +295,14 @@ class MissionLoader:
             from apps_lic.integrations.apps_research_bridge import _extract_priorities_from_text
 
             freeform = str(data.get("freeform_text", "")).strip()
-            priorities = data.get("strategic_priorities") or []
+            priorities = MissionLoader._coerce_str_list(data.get("strategic_priorities"))
             if not priorities and freeform:
                 priorities = _extract_priorities_from_text(freeform)
             if not priorities:
                 priorities = ["Core platform modernization"]
 
             # Classify recipient
-            recipient_title = data.get("recipient_title", "Head of Engineering")
+            recipient_title = str(data.get("recipient_title") or "Head of Engineering").strip()
             lower_title = recipient_title.lower()
             if any(k in lower_title for k in ("chief", "caio", "cio", "cto", "c-level", "evp", "svp")):
                 default_rc = RecipientClass.EXECUTIVE_PEER
@@ -296,10 +328,10 @@ class MissionLoader:
             candidate = CandidateProfileLoader.load_default(overrides=overrides)
             opportunity = TargetOpportunity(
                 opportunity_id=f"opp_{default_id}",
-                company_name=data.get("recipient_company", "Target Company"),
-                role_title=data.get("target_role", "Engineering Leader"),
+                company_name=str(data.get("recipient_company") or "Target Company").strip(),
+                role_title=str(data.get("target_role") or "Engineering Leader").strip(),
                 industry="Financial Services & Banking",
-                recipient_name=data.get("recipient_name", "Hiring Leader"),
+                recipient_name=str(data.get("recipient_name") or "Hiring Leader").strip(),
                 recipient_title=recipient_title,
                 recipient_class=r_class,
                 relationship_distance=rel_dist,
@@ -309,7 +341,7 @@ class MissionLoader:
             return candidate, opportunity
 
         # Structure 3: apps_research handoff envelope format
-        if "payload" in data and "company_brief" in data.get("payload", {}):
+        if isinstance(data.get("payload"), dict) and "company_brief" in (data.get("payload") or {}):
             payload = data["payload"]
             candidate = CandidateProfileLoader.load_default(
                 overrides={
@@ -320,16 +352,21 @@ class MissionLoader:
                 }
             )
             role = payload.get("role_title") or payload.get("target_title") or payload.get("role") or "Head of Engineering"
+            target_co = str(payload.get("company_name") or payload.get("target_company") or "Target Enterprise").strip()
+            strat_p = (
+                MissionLoader._coerce_str_list(payload.get("role_areas_of_focus"))
+                or MissionLoader._coerce_str_list(payload.get("industry_trends"))
+            )
             opportunity = TargetOpportunity(
                 opportunity_id=f"opp_{default_id}",
-                company_name=payload.get("company_brief", "Target Enterprise"),
+                company_name=target_co,
                 role_title=role,
                 industry="Enterprise Technology",
                 recipient_name="Talent Lead",
                 recipient_title="Director of Talent",
                 recipient_class=RecipientClass.TALENT_PARTNER,
                 relationship_distance=RelationshipDistance.COLD,
-                strategic_priorities=payload.get("role_areas_of_focus", []) or payload.get("industry_trends", []),
+                strategic_priorities=strat_p,
                 briefing_text=payload.get("company_brief", ""),
             )
             return candidate, opportunity
