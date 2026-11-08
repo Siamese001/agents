@@ -1825,8 +1825,6 @@ def apply_headline_content_signal_repair(
     )
     if not content_signal_repair_enabled():
         receipt["rejected_reason"] = "kill_switch_off"
-    elif budget_consumed:
-        receipt["rejected_reason"] = "regen_budget_consumed"
     elif _det_trim is not None:
         candidate_line, fixed_parsed, new_clarity, new_gov, new_spec = _det_trim
         sync_selected_fact_plan_required_ids(fixed_parsed, runtime_payload, allowed_fact_ids)
@@ -1853,6 +1851,8 @@ def apply_headline_content_signal_repair(
             replaced_l2=True,
         )
         return json.dumps(fixed_parsed), fixed_parsed, None, True
+    elif budget_consumed:
+        receipt["rejected_reason"] = "regen_budget_consumed"
     else:
         receipt["attempted"] = True
         receipt["regen_call_made"] = True

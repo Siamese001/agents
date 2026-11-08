@@ -112,7 +112,7 @@ profiles:
       insurtech_bullets: medium
       ey_bullets: medium
       headline: medium
-      executive_summary: high
+      executive_summary: medium
     endpoint_env_var: APPS_RG_EXTERNAL_OPENAI_BASE_URL
     api_key_env_var: OPENAI_API_KEY
     capabilities:
@@ -149,7 +149,7 @@ profiles:
       insurtech_bullets: medium
       ey_bullets: medium
       headline: medium
-      executive_summary: high
+      executive_summary: medium
     endpoint_env_var: APPS_RG_EXTERNAL_CLAUDE_BASE_URL
     api_key_env_var: ANTHROPIC_API_KEY
     capabilities:
@@ -271,9 +271,9 @@ runtime_limits:
     # 300k admits that finite proof path while still stopping malformed loops.
     max_reserved_tokens_per_run: 300000
   executive_summary:
-    scratch_max_output_tokens: 8192
-    regen_max_output_tokens: 8192
-    hard_cap_scratch_max_output_tokens: 8192
+    scratch_max_output_tokens: 16384
+    regen_max_output_tokens: 16384
+    hard_cap_scratch_max_output_tokens: 16384
     reserved_system_schema_tokens: 512
     first_pass_input_utilization_max: 0.95
     chars_per_token_estimate: 3
