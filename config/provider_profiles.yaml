@@ -110,7 +110,7 @@ profiles:
       insurtech_bullets: medium
       ey_bullets: medium
       headline: medium
-      executive_summary: high
+      executive_summary: medium
     endpoint_env_var: APPS_RG_EXTERNAL_OPENAI_BASE_URL
     api_key_env_var: OPENAI_API_KEY
     capabilities:
@@ -147,7 +147,7 @@ profiles:
       insurtech_bullets: medium
       ey_bullets: medium
       headline: medium
-      executive_summary: high
+      executive_summary: medium
     endpoint_env_var: APPS_RG_EXTERNAL_CLAUDE_BASE_URL
     api_key_env_var: ANTHROPIC_API_KEY
     capabilities:
