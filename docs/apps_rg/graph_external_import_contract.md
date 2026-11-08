@@ -33,6 +33,14 @@ External systems producing candidate skills, facts, or metric outcomes must form
 
 ### Proposal Schema (`graph_delta_proposal_v1`)
 
+### Asymmetric Granularity Ingestion Constraints
+External proposals originating from `decision-intelligence-engine` (DIE) or external pipelines must comply with the following invariants:
+1. **Discrete Confidence Tiers (`INV-CONFIDENCE-TIER`)**: Continuous decimal scores (e.g. `0.85`, `0.72`) from speech recognition or meeting models must be mapped to discrete tiers (`HIGH`, `MEDIUM`, `LOW`, `UNSCORED`). Raw floating-point values are rejected to prevent ranking instability.
+2. **Active-Only Assertions**: Candidate proposals must only contain confirmed, currently valid assertions. Obsolete, `SUPERSEDED`, or `RETRACTED` claims must be stripped prior to proposal submission.
+3. **Cryptographic Proof Binding (`INV-EVIDENTIAL-COMPLETENESS`)**: Every candidate node or edge must provide verifiable provenance references, including exact source file paths and quote hashes.
+4. **Controlled Vocabulary & Alias Elimination**: Alias deduplication must be resolved prior to ingestion. Proposals must not introduce runtime `entity_redirect` records or database history triggers.
+
+
 ```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
