@@ -3,8 +3,53 @@
 from __future__ import annotations
 
 import os
+import re
+import sqlite3
+import struct
 import subprocess
 from pathlib import Path
+
+_LOCAL_BGE_M3_CORPUS_CACHE: list[tuple[frozenset[str], tuple[float, ...]]] | None = None
+
+
+def load_local_bge_m3_corpus_vectors(caller_root: Path | None = None) -> list[tuple[frozenset[str], tuple[float, ...]]]:
+    """Load and cache the canonical 1024-d BGE-M3 unit_vectors from the local augmented skills graph SQLite."""
+    global _LOCAL_BGE_M3_CORPUS_CACHE
+    if _LOCAL_BGE_M3_CORPUS_CACHE is not None:
+        return _LOCAL_BGE_M3_CORPUS_CACHE
+
+    base_root = (caller_root or Path(__file__).resolve().parents[2]).resolve()
+    roots = [base_root]
+    main_root = get_main_repo_root(base_root)
+    if main_root.is_dir() and main_root not in roots:
+        roots.append(main_root)
+
+    corpus: list[tuple[frozenset[str], tuple[float, ...]]] = []
+    for base in roots:
+        db_path = base / "resume_graph_engine/artifacts/apps_rg/fact_inventory/augmented_skills_graph.sqlite"
+        if not db_path.is_file():
+            continue
+        try:
+            conn = sqlite3.connect(f"file:{db_path.as_posix()}?mode=ro", uri=True, timeout=10)
+            try:
+                rows = conn.execute(
+                    "SELECT su.text, uv.vector FROM semantic_unit su JOIN unit_vectors uv ON su.unit_id = uv.unit_id"
+                ).fetchall()
+            finally:
+                conn.close()
+            for unit_text, blob in rows:
+                if isinstance(blob, bytes) and len(blob) == 1024 * 4:
+                    toks = frozenset(re.findall(r"[a-z0-9]{3,}", str(unit_text or "").lower()))
+                    if toks:
+                        corpus.append((toks, struct.unpack("1024f", blob)))
+            if corpus:
+                break
+        except (OSError, sqlite3.Error, struct.error):
+            continue
+
+    _LOCAL_BGE_M3_CORPUS_CACHE = corpus
+    return corpus
+
 
 
 def get_env_str(name: str, default: str = "") -> str:

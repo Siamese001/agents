@@ -26,6 +26,7 @@ from apps_rg.fact_inventory.skills_graph.storage import (
 )
 from apps_rg.runtime.graph_skill_hybrid_retrieval import (
     fuse_dense_bm25,
+    sqlite_fts5_bm25_rank,
 )
 
 
@@ -87,16 +88,30 @@ def verify_graph_database(db_path: Path) -> dict[str, int | str]:
             f"Reverse edge view count mismatch: {reverse_edge_count} != {edge_count}"
         )
 
-    # 4. Check capability index integrity
+    # 4. Check capability index integrity and native FTS5 BM25 ranking
     integrity = validate_graphdb_capability_integrity(conn)
     if integrity.get("status") != "GRAPHDB_CAPABILITY_INTEGRITY_PASS":
         raise ValueError(f"GraphDB capability integrity failed: {integrity}")
+
+    c.execute("SELECT count(*) FROM graph_nodes_fts")
+    fts_count = int(c.fetchone()[0])
+    if fts_count != node_count:
+        raise ValueError(f"graph_nodes_fts count mismatch: {fts_count} != {node_count}")
+
+    fts_ranked = sqlite_fts5_bm25_rank(
+        conn,
+        "governed agentic platform architecture",
+        node_type="skill",
+    )
+    if not fts_ranked or float(fts_ranked[0]["bm25_score"]) <= 0.0:
+        raise ValueError("sqlite_fts5_bm25_rank failed to rank skills on live graph_nodes_fts")
 
     conn.close()
     return {
         "status": "PASS",
         "physical_write_proof": str(write_proof.get("status", "PASS")),
         "node_count": node_count,
+        "fts_node_count": fts_count,
         "edge_count": edge_count,
         "three_hop_traversal_paths": traversal_count,
         "reverse_edge_count": reverse_edge_count,
@@ -243,7 +258,7 @@ def verify_bge_m3_embeddings(embedding_dirs: list[Path], db_path: Path) -> dict[
     }
 
 
-def verify_hybrid_retrieval_stage2() -> dict[str, str | float]:
+def verify_hybrid_retrieval_stage2(db_path: Path | None = None) -> dict[str, str | float | int]:
     fused = fuse_dense_bm25(
         [
             {"assertion_id": "skill_alpha", "similarity": 0.91},
@@ -288,10 +303,75 @@ def verify_hybrid_retrieval_stage2() -> dict[str, str | float]:
         if "unauthorized IDs" not in str(exc):
             raise
 
+    live_fused_count = 0
+    live_top_skill = ""
+    if db_path is not None and db_path.is_file():
+        conn = sqlite3.connect(f"file:{db_path.as_posix()}?mode=ro", uri=True)
+        try:
+            eligible_skills = {
+                str(r[0])
+                for r in conn.execute(
+                    "SELECT node_id FROM graph_nodes WHERE node_type = 'skill' AND external_eligible = 1"
+                ).fetchall()
+            }
+            bm25_live = sqlite_fts5_bm25_rank(
+                conn,
+                "governed agentic platform architecture hybrid retrieval",
+                node_ids=eligible_skills,
+            )
+            unit_rows = conn.execute(
+                """
+                SELECT su.root_node_id, uv.vector
+                FROM semantic_unit su
+                JOIN unit_vectors uv ON su.unit_id = uv.unit_id
+                WHERE su.unit_type = 'skill_evidence_cluster'
+                """
+            ).fetchall()
+            ref_vec: tuple[float, ...] | None = None
+            skill_vecs: dict[str, tuple[float, ...]] = {}
+            for root_nid, blob in unit_rows:
+                if isinstance(blob, bytes) and len(blob) == 1024 * 4:
+                    unpacked = struct.unpack("1024f", blob)
+                    skill_vecs[str(root_nid)] = unpacked
+                    if str(root_nid) == "skill_governed_agentic_systems_architecture" or ref_vec is None:
+                        ref_vec = unpacked
+            dense_live = []
+            for sid in sorted(eligible_skills):
+                svec = skill_vecs.get(sid)
+                sim = sum(a * b for a, b in zip(ref_vec, svec)) if (ref_vec and svec) else 0.5
+                dense_live.append({"assertion_id": sid, "similarity": float(sim)})
+            metric_skills = {
+                str(r[0])
+                for r in conn.execute(
+                    """
+                    SELECT DISTINCT l.skill_id
+                    FROM skill_fact_links l
+                    JOIN graph_edges e ON e.source_node_id = l.fact_id
+                    WHERE e.edge_type = 'fact_has_metric_outcome'
+                    """
+                ).fetchall()
+                if str(r[0]) in eligible_skills
+            }
+            live_fused = fuse_dense_bm25(
+                dense_live,
+                bm25_live,
+                assertion_ids=eligible_skills,
+                metric_bearing_assertion_ids=metric_skills,
+                metric_boost=0.05,
+            )
+            live_fused_count = len(live_fused)
+            live_top_skill = str(live_fused[0]["assertion_id"]) if live_fused else ""
+            if live_fused_count == 0 or not live_top_skill:
+                raise ValueError("Live non-mock Stage 2 hybrid fusion returned empty ranking")
+        finally:
+            conn.close()
+
     return {
         "status": "PASS",
         "top_assertion": str(fused[0]["assertion_id"]),
         "boost_applied": float(fused[0]["metric_authority_boost"]),
+        "live_fused_skill_count": live_fused_count,
+        "live_top_skill": live_top_skill,
     }
 
 
@@ -334,8 +414,8 @@ def run_full_verification() -> None:
     print(f"    Spectrum: min={emb_res['min_cosine']}, mean={emb_res['mean_cosine']}, max={emb_res['max_cosine']}")
 
     print("--> 3. Verifying Stage 2 Metric Authority Boost & Input Validation...")
-    ret_res = verify_hybrid_retrieval_stage2()
-    print(f"    Hybrid Retrieval: boost={ret_res['boost_applied']}, top={ret_res['top_assertion']}")
+    ret_res = verify_hybrid_retrieval_stage2(db_path)
+    print(f"    Hybrid Retrieval: boost={ret_res['boost_applied']}, top={ret_res['top_assertion']}, live_fused={ret_res.get('live_fused_skill_count', 0)}")
 
     print("\n=======================================================")
     print("GRAPHDB_TRAVERSAL_AND_EMBEDDINGS_PASS")

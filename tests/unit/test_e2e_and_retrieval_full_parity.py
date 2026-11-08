@@ -38,6 +38,7 @@ def test_authoritative_smoke_defaults_to_dual_engine_without_skip_resume(tmp_pat
     assert receipt["skip_resume"] is False
     assert receipt["stages"]["resume_tailoring"]["status"] == "PASSED"
     assert receipt["stages"]["executive_outreach"]["status"] == "PASSED"
+    assert receipt["deterministic_resume_pipeline"]["graph_fts5_and_write_proof_verified"] is True
     verified = receipt["verified_artifacts"]
     assert "final_resume" in verified
     assert "outreach_campaign" in verified

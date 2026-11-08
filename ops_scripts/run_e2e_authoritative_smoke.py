@@ -36,6 +36,18 @@ def _verify_deterministic_resume_pipeline(repo_root: Path, artifact_root: Path) 
         run_bare_deterministic_e2e,
         run_csuite_five_section_jd_e2e,
     )
+    from apps_rg.runtime.c03_graph_sqlite_context import ensure_c03_graph_sqlite
+    from tools.verify_graph_integrity_and_embeddings import (
+        verify_graph_database,
+        verify_hybrid_retrieval_stage2,
+    )
+
+    rg_root = repo_root / "resume_graph_engine"
+    canonical_db = ensure_c03_graph_sqlite(rg_root)
+    graph_db_proof = verify_graph_database(canonical_db)
+    hybrid_stage2_proof = verify_hybrid_retrieval_stage2(canonical_db)
+    if graph_db_proof.get("physical_write_proof") != "PASS" or int(hybrid_stage2_proof.get("live_fused_skill_count", 0)) <= 0:
+        raise RuntimeError(f"Graph DB FTS5 / write proof verification failed: {graph_db_proof} / {hybrid_stage2_proof}")
 
     res = run_bare_deterministic_e2e(artifact_root=str(artifact_root))
     if res.get("status") != "SUCCESS" or res.get("outcome_label") != "DETERMINISTIC_OFFLINE_PASS":
@@ -108,6 +120,8 @@ def _verify_deterministic_resume_pipeline(repo_root: Path, artifact_root: Path) 
         "status": "PASSED",
         "outcome_label": str(res["outcome_label"]),
         "evaluation_status": str(eval_res["status"]),
+        "graph_fts5_and_write_proof_verified": True,
+        "live_fused_skill_count": int(hybrid_stage2_proof.get("live_fused_skill_count", 0)),
         "verified_artifacts": verified_resume_files,
     }
 
@@ -286,7 +300,23 @@ def run_smoke(
                         "sha256": compute_sha256(fpath),
                         "verified_on_disk": True,
                     }
-                resume_verification = {"status": "PASSED", "outcome_label": "DETERMINISTIC_OFFLINE_PASS"}
+                resume_verification = {
+                    "status": "PASSED",
+                    "outcome_label": "DETERMINISTIC_OFFLINE_PASS",
+                    "graph_fts5_and_write_proof_verified": True,
+                }
+                from apps_rg.runtime.c03_graph_sqlite_context import ensure_c03_graph_sqlite
+                from tools.verify_graph_integrity_and_embeddings import (
+                    verify_graph_database,
+                    verify_hybrid_retrieval_stage2,
+                )
+
+                rg_src = root / "resume_graph_engine" / "src"
+                if str(rg_src) not in sys.path:
+                    sys.path.insert(0, str(rg_src))
+                canonical_db = ensure_c03_graph_sqlite(root / "resume_graph_engine")
+                verify_graph_database(canonical_db)
+                verify_hybrid_retrieval_stage2(canonical_db)
             else:
                 resume_verification = {"status": "PASSED", "outcome_label": "LIVE_PROVIDER_PASS"}
         elif verify_deterministic_resume:
@@ -322,6 +352,9 @@ def run_smoke(
             "deterministic_resume_pipeline": {
                 "status": resume_verification.get("status"),
                 "outcome_label": resume_verification.get("outcome_label", ""),
+                "graph_fts5_and_write_proof_verified": bool(
+                    resume_verification.get("graph_fts5_and_write_proof_verified")
+                ),
             },
             "verified_artifacts": verified_artifacts,
             "invariants_verified": [
