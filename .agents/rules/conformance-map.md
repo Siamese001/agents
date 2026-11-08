@@ -32,6 +32,7 @@ Traces every `AGENTS.md` section to enforceable rules, skills, hooks, tools, and
 | :--- | :--- | :--- |
 | Config | `.mcp.json` | Repository MCP Server-of-Record (SSOT) |
 | Rule | `.agents/rules/mcp-config-ssot.md` | MCP configuration and portable transport governance |
+| Skill | `.agents/skills/mcp-engineering/SKILL.md` | MCP server schema contracts, transport verification, and tool-call lifecycle checks |
 | Skill | `.agents/skills/agents-governance-hygiene/SKILL.md` | Consolidated repository boundary and infrastructure hygiene |
 
 ### §"Notion Workspace Map"
@@ -131,6 +132,8 @@ Traces every `AGENTS.md` section to enforceable rules, skills, hooks, tools, and
 | Type | Path | Coverage |
 | :--- | :--- | :--- |
 | Rule | `.agents/rules/unified-agent-architecture.md` | 5 Pillars, 4 Foundations, 7-Step Lifecycle, 10-field contract |
+| Skill | `.agents/skills/agent-subagent-orchestration/SKILL.md` | Practical orchestration patterns, delegation contracts, and return protocols |
+| Skill | `.agents/skills/agent-runtime-engineering/SKILL.md` | Production agent runtime design, supervisor loops, budgets, and retry semantics |
 | Tool | `tools/unified_agent_architecture.py` | Mandatory delegation contract & structured return validators |
 | Hook | `.agents/hooks.json` → `agents-subagent-delegation-guard` | Pre-tool check on browser_subagent / invoke_subagent |
 | Test | `tests/test_unified_agent_architecture.py` | Unit tests for taxonomy, 10-field contracts, budgets, returns |

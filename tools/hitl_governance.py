@@ -272,13 +272,16 @@ class HITLDecisionStore:
 
 
 def evaluate_hitl_surfacing_gate(
-    options: Sequence[Any],
+    options: Sequence[Any] | dict[str, Any],
     margin_threshold: float = DEFAULT_AMBIGUITY_THRESHOLD,
     min_confidence_floor: float = DEFAULT_MIN_CONFIDENCE_FLOOR,
     store: HITLDecisionStore | None = None,
     category: str | None = None,
 ) -> dict[str, Any]:
     """Evaluate candidate HITL options against the calibrated 20% ambiguity margin and 65% floor rules."""
+    if isinstance(options, dict):
+        category = category or options.get("category")
+        options = options.get("options", [])
     if not options:
         return {
             "should_surface": False, "margin": 0.0, "margin_threshold": margin_threshold,
