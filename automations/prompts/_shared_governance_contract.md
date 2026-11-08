@@ -4,7 +4,7 @@
 
 ## 1. Repository Isolation & On-Demand Execution Invariant (`INV-REPO-SEPARATION-AGENTS-ONLY`)
 
-1. **Workspace Containment**: All `agents-*` on-demand assurance workflows are bound exclusively to `/Users/amitayer/Git/agents` and its isolated remediation worktrees under `/Users/amitayer/Git/agents/.worktrees/chore__agents__*`.
+1. **Workspace Containment**: All `agents-*` on-demand assurance workflows are bound exclusively to `/Users/amitayer/Git/agents` and its isolated remediation worktrees under `/Users/amitayer/Git/agents/.worktrees/*` (e.g. `chore__agents__*` or `feat_*`).
 2. **Zero Cross-Repository Mutation**: Assurance agents in this repository are strictly forbidden from reading, modifying, locking, or writing to any file, database, worktree, or sidecar configuration belonging to external repositories.
 3. **Preflight-First Artifact Isolation**: Phase 1 / Phase 1.5 read-only behavioral preflight checks execute without mutating tracked repository files. Whenever actionable findings exist (`B_total > 0`), all remediation runtime artifacts, manifests, plans, and receipts must be written exclusively inside `<WORKTREE_DIR>/artifacts/sidecar_runs/<agent_slug>/<run_id>/` and `<WORKTREE_DIR>/plans/<branch-slug>-<6hex>.md`.
 4. **Zero Daily Background Schedules**: Unattended daily `agents-*` schedules in `/Users/amitayer/.gemini/config/sidecars/` and `/Users/amitayer/.gemini/config/config.json` are permanently retired (`agents_scheduled_count == 0`); continuous structural gates run via `.githooks/pre-commit` (`tools/verify_commit.py`) and deep sweeps run on demand through `.agents/skills/` and `automations/prompts/agents_*_agent.md`.
