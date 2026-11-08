@@ -127,6 +127,15 @@ policies:
     enforcer: "tools/validate_turn_gates.py"
     rule_reference: ".agents/rules/output-brevity-governance.md"
 
+  - id: "INV-DIRECT-INQUIRY-GROUNDING"
+    title: "Direct Inquiry Grounding & Anti-Evasion Invariant"
+    category: "presentation"
+    threshold: 1
+    unit: "direct_dimension_coverage"
+    description: "Itemized technical dimensions in user prompts must be addressed directly in chat without generic analogies or abstract process deflection."
+    enforcer: "tools/validate_turn_gates.py"
+    rule_reference: ".agents/rules/output-brevity-governance.md"
+
   - id: "INV-WT-ISOLATION"
     title: "Primary Main Worktree Write Protection"
     category: "git_governance"
