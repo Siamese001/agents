@@ -442,11 +442,18 @@ def load_bge_sentence_transformer(settings: AppsRgEmbeddingSettings) -> Any:
         raise AppsRgEmbeddingFailClosedError("SentenceTransformer/BGE load forbidden when embeddings_enabled=false")
     if not settings.embedding_model_resolved or not settings.embedding_model_path:
         raise AppsRgEmbeddingFailClosedError(settings.decisive_reason or "BGE path unresolved")
+    try:
+        from infrastructure.device.device_manager import resolve_optimal_device
+
+        default_device = resolve_optimal_device()
+    except ImportError:
+        default_device = "cpu"
+
     device = (
         os.environ.get("APPS_RG_HYDRATION_DEVICE", "").strip()
         or os.environ.get("EMBEDDING_DEVICE", "").strip()
         or os.environ.get("VECTOR_DB_DEVICE", "").strip()
-        or "cuda"
+        or default_device
     ).lower()
     try:
         from apps_rg.runtime.bge_embedding import (

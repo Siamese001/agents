@@ -38,6 +38,12 @@ from apps_rg.repository_layout import repository_root
 from apps_rg.runtime.c0.constants import PROOF_ELIGIBLE, SOURCE_BASE_RESUME
 from apps_rg.runtime.cli_exit_codes import EXIT_GENERIC_FAILURE, EXIT_SUCCESS
 
+try:
+    from infrastructure.device.device_manager import resolve_optimal_device
+except ImportError:
+    def resolve_optimal_device(requested: str | None = None) -> str:
+        return "cpu"
+
 # Generated resume lanes that draw dense enrichment from fact_vectors. Keep this in the same
 # dependency order as apps_rg.runtime.internal.generated_lane_rollup.GENERATED_LANES; this module is
 # intentionally import-light because it runs during bootstrap/index maintenance.
@@ -104,12 +110,12 @@ def _truthy_env(name: str) -> bool:
 
 
 def required_hydration_device() -> str:
-    """Resolve the worker device. Product hydration defaults to CUDA."""
+    """Resolve the worker device using unified device manager with environment overrides."""
     return (
         os.environ.get("APPS_RG_HYDRATION_DEVICE", "").strip()
         or os.environ.get("EMBEDDING_DEVICE", "").strip()
         or os.environ.get("VECTOR_DB_DEVICE", "").strip()
-        or "cuda"
+        or resolve_optimal_device()
     ).lower()
 
 
@@ -265,31 +271,48 @@ def _module_probe() -> tuple[dict[str, str], dict[str, Any]]:
 
 def validate_fact_vector_hydration_runtime(
     *,
-    embedding_model_path: str | None,
+    embedding_model_path: str | None = None,
     require_cuda: bool | None = None,
+    device: str | None = None,
+    cuda_available: bool | None = None,
     raise_on_block: bool = False,
 ) -> dict[str, Any]:
     """Validate the heavy dependency/runtime boundary for live hydration writes."""
-    device = required_hydration_device()
+    resolved_device = (device or required_hydration_device()).lower()
     if require_cuda is None:
-        require_cuda = not _truthy_env("APPS_RG_FACT_VECTOR_ALLOW_CPU")
+        require_cuda = not (
+            _truthy_env("APPS_RG_FACT_VECTOR_ALLOW_CPU")
+            or resolved_device == "mps"
+            or sys.platform == "darwin"
+        )
     failures, modules = _module_probe()
     reasons = [f"missing_or_blocked_dependency:{name}" for name in sorted(failures)]
 
     torch_mod = modules.get("torch")
-    cuda_available = False
+    probe_cuda_available = False
     cuda_device_name = ""
+    probe_mps_available = False
     if torch_mod is not None:
         try:
-            cuda_available = bool(torch_mod.cuda.is_available())
-            if cuda_available:
+            probe_cuda_available = bool(torch_mod.cuda.is_available())
+            if probe_cuda_available:
                 cuda_device_name = str(torch_mod.cuda.get_device_name(0))
         except (AttributeError, OSError, RuntimeError, TypeError) as exc:
             reasons.append(f"torch_cuda_probe_failed:{type(exc).__name__}")
-    if require_cuda and device != "cuda":
-        reasons.append(f"hydration_device_not_cuda:{device}")
-    if require_cuda and not cuda_available:
+        try:
+            probe_mps_available = bool(
+                hasattr(torch_mod.backends, "mps") and torch_mod.backends.mps.is_available()
+            )
+        except (AttributeError, OSError, RuntimeError, TypeError):
+            probe_mps_available = False
+    if cuda_available is not None:
+        probe_cuda_available = cuda_available
+    if require_cuda and resolved_device != "cuda":
+        reasons.append(f"hydration_device_not_cuda:{resolved_device}")
+    if require_cuda and not probe_cuda_available:
         reasons.append("torch_cuda_unavailable")
+    if resolved_device == "mps" and not probe_mps_available:
+        reasons.append("torch_mps_unavailable")
 
     model_path = Path(str(embedding_model_path or "")).expanduser()
     model_path_present = bool(embedding_model_path) and model_path.is_dir()
@@ -304,10 +327,11 @@ def validate_fact_vector_hydration_runtime(
         "reasons": reasons,
         "dependency_failures": failures,
         "required_modules": list(_REQUIRED_HYDRATION_IMPORTS),
-        "device": device,
+        "device": resolved_device,
         "require_cuda": bool(require_cuda),
-        "torch_cuda_available": cuda_available,
+        "torch_cuda_available": probe_cuda_available,
         "cuda_device_name": cuda_device_name,
+        "torch_mps_available": probe_mps_available,
         "embedding_model_path": str(model_path) if embedding_model_path else "",
         "embedding_model_path_present": model_path_present,
         "offline_model_required": True,

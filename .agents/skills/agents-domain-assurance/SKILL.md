@@ -49,3 +49,8 @@ Consolidates `agents-outreach-resume-functionality`, `agents-research-retrieval-
    - Verify all 11 canonical resume sections (`headline`, `executive_summary`, `competencies`, `slalom_bullets`, `slalom_narrative`, `unify_bullets`, `unify_narrative`, `ibm_bullets`, `ibm_narrative`, `insurtech_bullets`, `insurtech_narrative`) are registered in both `section_retrieval_profile.yaml` and `provider_profiles.yaml`.
    - Verify `configure_apps_rg_runtime_boundary(repo_root=Path("resume_graph_engine").resolve())` resolves shared-data symlinks (`artifacts/models/BAAI/bge-m3`) via `is_within_trusted_checkout`.
    - Before launching an 11-lane live run, execute a 1-token live probe against all proof-eligible X1D judge providers (`gemini_pro` and `openai_chatgpt`) to detect account-level monthly spend caps (`HTTP 429 RESOURCE_EXHAUSTED`) early.
+
+7. **Local MacBook (Apple Silicon MPS / Metal) Runtime & Zero-CUDA Assurance**:
+   - Verify zero CUDA dependencies or configurations exist in manifests or lockfiles (`uv lock --check`).
+   - Run dedicated standalone MacBook runtime tests: `PYTHONPATH="resume_graph_engine/src:." .venv/bin/pytest tests/macbook_runtime/ -v --timeout=60`.
+   - Run local operational benchmark harness asserting zero memory leaks and temporal drift: `PYTHONPATH="resume_graph_engine/src:." .venv/bin/python tools/benchmark_macbook_runtime.py --iterations 10 --assert-gates`.

@@ -14,6 +14,8 @@
   },
   "runtime_controls": {
     "required_device": "cuda:0",
+    "darwin_device": "mps",
+    "allowed_devices": ["cuda:0", "mps", "cpu"],
     "maximum_resident_model_loads": 1,
     "minimum_warm_repetitions": 3,
     "local_files_only": true,

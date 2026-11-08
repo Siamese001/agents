@@ -120,7 +120,7 @@
         },
         "device": {
           "type": "string",
-          "enum": ["auto", "cuda", "cpu"],
+          "enum": ["auto", "cuda", "cpu", "mps"],
           "default": "auto"
         },
         "max_latency_ms": {
