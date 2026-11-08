@@ -233,7 +233,7 @@ def _handler_has_guardian_comment(handler: ast.ExceptHandler, lines: list[str]) 
     h_end = getattr(handler, "end_lineno", h_start)
     for i in range(max(1, h_start - 1), min(len(lines), h_end + 2) + 1):
         line = lines[i - 1]
-        if "# guardian:" in line or "# noqa" in line:
+        if ("#" + " guardian:") in line or "# noqa" in line:
             return True
     return False
 

@@ -80,6 +80,7 @@ profiles:
     # Explicit OpenAI generation pins. No provider-level default model is allowed for
     # proof-bearing apps_rg lanes.
     model_by_section:
+      slalom_bullets: gpt-5.6-luna
       slalom_narrative: gpt-5.6-luna
       unify_narrative: gpt-5.6-luna
       ibm_narrative: gpt-5.6-luna
@@ -97,6 +98,7 @@ profiles:
       headline: gpt-5.6-luna
       executive_summary: gpt-5.6-luna
     effort_by_section:
+      slalom_bullets: medium
       slalom_narrative: medium
       unify_narrative: medium
       ibm_narrative: medium
@@ -269,9 +271,9 @@ runtime_limits:
     # 300k admits that finite proof path while still stopping malformed loops.
     max_reserved_tokens_per_run: 300000
   executive_summary:
-    scratch_max_output_tokens: 8192
-    regen_max_output_tokens: 8192
-    hard_cap_scratch_max_output_tokens: 8192
+    scratch_max_output_tokens: 16384
+    regen_max_output_tokens: 16384
+    hard_cap_scratch_max_output_tokens: 16384
     reserved_system_schema_tokens: 512
     first_pass_input_utilization_max: 0.95
     chars_per_token_estimate: 3
