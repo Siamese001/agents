@@ -158,7 +158,42 @@ class TestResumeRunRecoveryAgent(unittest.TestCase):
             receipt_data = json.loads(receipt_file.read_text(encoding="utf-8"))
             self.assertTrue(receipt_data["recovered_successfully"])
             self.assertEqual(receipt_data["lanes_re_dispatched"], ["headline"])
+            self.assertIn("headline", receipt_data["details"]["rca_diagnostic_loop"]["lane_overrides"])
+            self.assertTrue(receipt_data["details"]["patch_result"]["lane_overrides_bound"])
+            _, kwargs = mock_exec.call_args
+            self.assertIn("recovery_directives", kwargs)
+            self.assertIn("headline", kwargs["recovery_directives"]["lane_overrides"])
+
+    def test_patch_run_default_dispatch_lane_applies_recovery_directive_temperature(self) -> None:
+        from apps_rg.runtime.orchestration.patch_run import _default_dispatch_lane
+
+        fake_plan = MagicMock()
+        fake_plan.run_dir = self.artifact_dir
+        fake_plan.targeting = MagicMock(
+            target_company="Anthropic",
+            target_role="SVP Engineering",
+            target_level="SVP",
+            job_description_ref="",
+            job_description_text="Lead distributed systems.",
+            manual_brief="",
+            generation_mode="strategic_tailor",
+        )
+        directives = {"lane_overrides": {"headline": {"temperature": 0.42}}}
+
+        with patch.dict(
+            os.environ,
+            {"APPS_RG_RECOVERY_DIRECTIVES_JSON": json.dumps(directives)},
+        ), patch(
+            "apps_rg.runtime.orchestration.canonical_dispatch.run_canonical_apps_rg_from_cli_primitives",
+            return_value={"exit_status": "success"},
+        ) as mock_canonical:
+            res = _default_dispatch_lane(plan=fake_plan, lane="headline", lane_provider="external_claude")
+            self.assertEqual(res["exit_status"], "success")
+            _, call_kw = mock_canonical.call_args
+            self.assertAlmostEqual(call_kw["lane_temperature"], 0.42)
 
 
 if __name__ == "__main__":
     unittest.main()
+
+

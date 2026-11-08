@@ -64,6 +64,33 @@ policies:
     enforcer: "tools/hook_dispatch.py"
     rule_reference: ".agents/rules/conformance-map.md"
 
+  - id: "INV-HITL-QUESTION-MAX-CHARS"
+    title: "Maximum HITL Question Prompt Length"
+    category: "decision_intelligence"
+    threshold: 300
+    unit: "characters"
+    description: "Maximum allowable character length for ask_question prompt text so every character is visible without UI truncation."
+    enforcer: "tools/hitl_governance.py"
+    rule_reference: ".agents/rules/hitl-decisions.md"
+
+  - id: "INV-HITL-OPTION-MAX-CHARS"
+    title: "Maximum HITL Option Label Length"
+    category: "decision_intelligence"
+    threshold: 250
+    unit: "characters"
+    description: "Maximum allowable character length per ask_question option string so every option is visible without UI truncation."
+    enforcer: "tools/hitl_governance.py"
+    rule_reference: ".agents/rules/hitl-decisions.md"
+
+  - id: "INV-HITL-ZERO-JARGON"
+    title: "Zero-Jargon Plain-English Question & Option Standard"
+    category: "decision_intelligence"
+    threshold: 0
+    unit: "jargon_violations"
+    description: "Both question prompt and option labels in ask_question must contain zero technical jargon, code symbols, file paths, or truncation ellipses."
+    enforcer: "tools/hitl_governance.py"
+    rule_reference: ".agents/rules/hitl-decisions.md"
+
   - id: "INV-TEST-TIMEOUT-HARD"
     title: "Hard Pytest Execution Timeout"
     category: "testing"

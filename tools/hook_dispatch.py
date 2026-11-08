@@ -310,18 +310,9 @@ def handle_pre_ask_question(payload: Dict[str, Any], repo_root: Path) -> int:
     if not q_text:
         return emit_decision("deny", reason="HITL_VIOLATION_EMPTY_QUESTION: Question text is missing or empty.")
 
-    pres_errors = validate_hitl_presentation(q_item)
+    pres_errors = validate_hitl_presentation(q_item, enforce_visibility_and_jargon=True)
     if pres_errors:
         return emit_decision("deny", reason="; ".join(pres_errors))
-
-    # Check question text against raw file paths or inline SQL (Rule 6 Layman Question Guard)
-    if re.search(r"\b(?:tools|scripts|agentic_core|apps_rg|outreach_engine)/[a-zA-Z0-9_\-./]+\.py\b", q_text) or re.search(
-        r"\bSELECT\s+.+?\s+FROM\s+[a-zA-Z0-9_]+", q_text, re.IGNORECASE
-    ):
-        return emit_decision(
-            "deny",
-            reason="HITL_VIOLATION_JARGON_IN_QUESTION: Question text contains raw code paths or SQL syntax. Use plain English.",
-        )
 
     options = q_item.get("options", [])
     if not _is_mandatory_hitl_question(q_text, q_item, args):

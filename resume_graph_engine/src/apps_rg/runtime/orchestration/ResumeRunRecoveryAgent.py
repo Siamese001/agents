@@ -107,17 +107,47 @@ class ResumeRunRecoveryAgent:
         return directives
 
     def _call_diagnostic_agent(self, lanes: list[str], exit_data: dict[str, Any]) -> dict[str, Any]:
-        """Simulate Agent A: Forensic Diagnostic."""
+        """Execute Agent A: Forensic Diagnostic over whole-run exit signals and lane rows."""
+        signals = exit_data.get("signals") if isinstance(exit_data.get("signals"), Mapping) else {}
+        lane_rows = signals.get("lane_rows") if isinstance(signals.get("lane_rows"), list) else []
+        row_by_lane = {
+            str(r.get("lane") or "").strip(): r
+            for r in lane_rows
+            if isinstance(r, Mapping) and str(r.get("lane") or "").strip()
+        }
+        failing_diagnostics: dict[str, str] = {}
+        root_causes: set[str] = set()
+        for lane in lanes:
+            row = row_by_lane.get(lane, {})
+            x2_failed = int(row.get("x2_failed") or 0)
+            x3_code = str(row.get("x3_code") or "X3A_DENY_REROUTE")
+            if x2_failed > 0:
+                failing_diagnostics[lane] = f"Failed X2 deterministic gate ({x2_failed} violations)"
+                root_causes.add("X2_SHAPE_OR_GROUNDING_VIOLATION")
+            else:
+                failing_diagnostics[lane] = f"Non-authorizing X3 disposition ({x3_code})"
+                root_causes.add("EVIDENCE_DEFICIT")
+
         return {
-            "root_cause_identified": "EVIDENCE_DEFICIT",
-            "failing_lanes_diagnostics": {lane: "Failed X2 density floor" for lane in lanes}
+            "root_cause_identified": sorted(root_causes)[0] if root_causes else "EVIDENCE_DEFICIT",
+            "failing_lanes_diagnostics": failing_diagnostics,
         }
 
     def _call_strategy_re_planner(self, diagnostics: dict[str, Any]) -> dict[str, Any]:
-        """Simulate Agent B: Strategy Re-Planner."""
+        """Execute Agent B: Strategy Re-Planner producing lane-scoped dispatch overrides."""
+        lane_diag = diagnostics.get("failing_lanes_diagnostics") or {}
+        lane_overrides: dict[str, dict[str, Any]] = {}
+        for lane, diag_msg in lane_diag.items():
+            is_x2 = "X2" in str(diag_msg)
+            lane_overrides[lane] = {
+                "temperature": 0.4 if is_x2 else 0.7,
+                "force_new_seed": True,
+                "reasoning_effort": "medium",
+                "diagnostic_focus": str(diag_msg),
+            }
         return {
-            "remediation_strategy": "Increase variance and relax temperature to 0.8 to force broader C0 fact exploration.",
-            "lane_overrides": {lane: {"temperature": 0.8, "force_new_seed": True} for lane in diagnostics.get("failing_lanes_diagnostics", {})}
+            "remediation_strategy": "Surgical lane re-dispatch with bounded temperature and seed diversification.",
+            "lane_overrides": lane_overrides,
         }
 
     def identify_failing_lanes(
@@ -174,7 +204,7 @@ class ResumeRunRecoveryAgent:
             failing.add("executive_summary")
 
         # Canonical ordering
-        from apps_rg.l2_recipe.modular_resume_generation import GENERATED_LANES
+        from apps_rg.runtime.internal.generated_lane_rollup import GENERATED_LANES
         return [lane for lane in GENERATED_LANES if lane in failing]
 
     def can_attempt_recovery(
@@ -303,17 +333,28 @@ class ResumeRunRecoveryAgent:
                     encoding="utf-8",
                 )
                 env_updates[RECOVERY_SEALED_C0_MANIFEST_ENV] = str(manifest_path)
+            if isinstance(recovery_directives, Mapping) and recovery_directives.get("lane_overrides"):
+                env_updates["APPS_RG_RECOVERY_DIRECTIVES_JSON"] = json.dumps(recovery_directives)
             details["reused_sealed_c0_lanes"] = sorted(sealed_c0_lanes.keys())
 
             with temporary_env_override(env_updates):
-                patch_result = execute_patch_run(
-                    plan,
-                    dispatch_fn=self.dispatch_fn,
-                    aggregate_fn=self.aggregate_fn,
-                )
+                try:
+                    patch_result = execute_patch_run(
+                        plan,
+                        dispatch_fn=self.dispatch_fn,
+                        aggregate_fn=self.aggregate_fn,
+                        recovery_directives=recovery_directives,
+                    )
+                except TypeError:
+                    patch_result = execute_patch_run(
+                        plan,
+                        dispatch_fn=self.dispatch_fn,
+                        aggregate_fn=self.aggregate_fn,
+                    )
             details["patch_result"] = {
                 "exit_code": patch_result.get("exit_code"),
                 "target_lanes": patch_result.get("target_lanes"),
+                "lane_overrides_bound": bool(recovery_directives.get("lane_overrides")),
             }
             dispatch_success = patch_result.get("exit_code") == 0
         except Exception as exc:  # guardian: allow-broad-exception -- recovery agent logs and records dispatch error in receipt

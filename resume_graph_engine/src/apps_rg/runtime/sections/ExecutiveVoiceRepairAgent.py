@@ -23,6 +23,7 @@ EXECUTIVE_VOICE_REPAIR_MAX_ATTEMPTS = 1
 from apps_rg.runtime.model_registry import resolve
 
 DEFAULT_REPAIR_MODEL = resolve("repair.executive_voice").model
+DEFAULT_AUDITOR_MODEL = resolve("proof_judge.standard.openai_chatgpt").model
 
 
 @dataclass(frozen=True)
@@ -276,54 +277,17 @@ def _mock_repair(
                 elif isinstance(item, str):
                     cleaned.append(item.replace("—", ":").strip())
             while len(cleaned) < 6:
-                cleaned.append(
-                    {
-                        "category": "Strategic Leadership",
-                        "category_label": "Strategic Leadership",
-                        "terms": ["Executive Alignment", "Talent Governance"],
-                        "skills": ["Executive Alignment", "Talent Governance"],
-                    }
-                )
+                cleaned.append({"category": "Strategic Leadership", "category_label": "Strategic Leadership", "terms": ["Executive Alignment", "Talent Governance"], "skills": ["Executive Alignment", "Talent Governance"]})
             cleaned = cleaned[:8]
             updated["competencies"] = cleaned
         else:
             updated["competencies"] = [
-                {
-                    "category": "Enterprise Architecture",
-                    "category_label": "Enterprise Architecture",
-                    "skills": ["Cloud Infrastructure", "Distributed Systems"],
-                    "terms": ["Cloud Infrastructure", "Distributed Systems"],
-                },
-                {
-                    "category": "Strategic AI Delivery",
-                    "category_label": "Strategic AI Delivery",
-                    "skills": ["LLM Evaluation", "Agentic Systems"],
-                    "terms": ["LLM Evaluation", "Agentic Systems"],
-                },
-                {
-                    "category": "Engineering Operations",
-                    "category_label": "Engineering Operations",
-                    "skills": ["DevOps Governance", "FinOps Optimization"],
-                    "terms": ["DevOps Governance", "FinOps Optimization"],
-                },
-                {
-                    "category": "Executive Leadership",
-                    "category_label": "Executive Leadership",
-                    "skills": ["Talent Density", "Board Communications"],
-                    "terms": ["Talent Density", "Board Communications"],
-                },
-                {
-                    "category": "Security & Resilience",
-                    "category_label": "Security & Resilience",
-                    "skills": ["Zero-Trust Posture", "SOC2 Governance"],
-                    "terms": ["Zero-Trust Posture", "SOC2 Governance"],
-                },
-                {
-                    "category": "Product Alignment",
-                    "category_label": "Product Alignment",
-                    "skills": ["Technical Roadmapping", "Commercial Velocity"],
-                    "terms": ["Technical Roadmapping", "Commercial Velocity"],
-                },
+                {"category": "Enterprise Architecture", "category_label": "Enterprise Architecture", "skills": ["Cloud Infrastructure", "Distributed Systems"], "terms": ["Cloud Infrastructure", "Distributed Systems"]},
+                {"category": "Strategic AI Delivery", "category_label": "Strategic AI Delivery", "skills": ["LLM Evaluation", "Agentic Systems"], "terms": ["LLM Evaluation", "Agentic Systems"]},
+                {"category": "Engineering Operations", "category_label": "Engineering Operations", "skills": ["DevOps Governance", "FinOps Optimization"], "terms": ["DevOps Governance", "FinOps Optimization"]},
+                {"category": "Executive Leadership", "category_label": "Executive Leadership", "skills": ["Talent Density", "Board Communications"], "terms": ["Talent Density", "Board Communications"]},
+                {"category": "Security & Resilience", "category_label": "Security & Resilience", "skills": ["Zero-Trust Posture", "SOC2 Governance"], "terms": ["Zero-Trust Posture", "SOC2 Governance"]},
+                {"category": "Product Alignment", "category_label": "Product Alignment", "skills": ["Technical Roadmapping", "Commercial Velocity"], "terms": ["Technical Roadmapping", "Commercial Velocity"]},
             ]
         return updated, True, "deterministic_fast_path"
 
@@ -335,8 +299,13 @@ def _call_llm_repair(
     prompt: str,
     model: str = DEFAULT_REPAIR_MODEL,
 ) -> dict[str, Any] | None:
-    """Call Claude model for repair pass via standard transport."""
-    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    """Call Claude (drafter) or cross-family OpenAI (auditor) model for repair pass via standard transport."""
+    is_openai_auditor = str(model).startswith("gpt-") or model == DEFAULT_AUDITOR_MODEL
+    api_key = (
+        (os.environ.get("OPENAI_API_KEY") or os.environ.get("ANTHROPIC_API_KEY"))
+        if is_openai_auditor
+        else os.environ.get("ANTHROPIC_API_KEY")
+    )
     if not api_key:
         return None
 
@@ -345,11 +314,11 @@ def _call_llm_repair(
         from apps_rg.runtime.model_registry import resolve
         from apps_rg.runtime.model_token_governor import reserve_apps_rg_model_tokens
 
-        resolved = resolve("repair.executive_voice")
-        max_tokens = int(resolved.params.get("max_tokens", 1024))
+        resolved = resolve("proof_judge.standard.openai_chatgpt" if is_openai_auditor else "repair.executive_voice")
+        max_tokens = int(resolved.params.get("max_tokens", 512 if is_openai_auditor else 1024))
         reservation = reserve_apps_rg_model_tokens(
             artifact_dir=None,
-            provider="external_claude",
+            provider="openai_chatgpt" if is_openai_auditor else "external_claude",
             model=model,
             request_digest=hashlib.sha256(prompt.encode("utf-8")).hexdigest(),
             prompt_text=prompt,
@@ -360,9 +329,24 @@ def _call_llm_repair(
         if not reservation.allowed:
             return None
 
-        headers = {"x-api-key": api_key, "anthropic-version": "2023-06-01", "content-type": "application/json"}
-        body = {"model": model, "max_tokens": max_tokens, "temperature": 0.2, "messages": [{"role": "user", "content": prompt}]}
-        req = urllib.request.Request("https://api.anthropic.com/v1/messages", data=json.dumps(body).encode("utf-8"), headers=headers, method="POST")
+        if is_openai_auditor:
+            headers = {"Authorization": f"Bearer {api_key}", "content-type": "application/json"}
+            body = {
+                "model": model,
+                "max_completion_tokens": max_tokens,
+                "reasoning_effort": "low",
+                "messages": [{"role": "user", "content": prompt}],
+            }
+            req = urllib.request.Request(
+                "https://api.openai.com/v1/chat/completions",
+                data=json.dumps(body).encode("utf-8"),
+                headers=headers,
+                method="POST",
+            )
+        else:
+            headers = {"x-api-key": api_key, "anthropic-version": "2023-06-01", "content-type": "application/json"}
+            body = {"model": model, "max_tokens": max_tokens, "temperature": 0.2, "messages": [{"role": "user", "content": prompt}]}
+            req = urllib.request.Request("https://api.anthropic.com/v1/messages", data=json.dumps(body).encode("utf-8"), headers=headers, method="POST")
 
         def _repair_http_timeout() -> int:
             try:
@@ -376,10 +360,15 @@ def _call_llm_repair(
 
         with urlopen_provider_request(req, timeout=_repair_http_timeout()) as resp:
             data = json.loads(resp.read().decode("utf-8"))
-            content_blocks = data.get("content", [])
-            raw_text = "".join(
-                b.get("text", "") for b in content_blocks if isinstance(b, dict) and b.get("type") == "text"
-            ).strip()
+            choices = data.get("choices")
+            if isinstance(choices, list) and choices:
+                msg = choices[0].get("message") if isinstance(choices[0], dict) else {}
+                raw_text = str((msg or {}).get("content") or "").strip()
+            else:
+                content_blocks = data.get("content", [])
+                raw_text = "".join(
+                    b.get("text", "") for b in content_blocks if isinstance(b, dict) and b.get("type") == "text"
+                ).strip()
             clean = raw_text
             if clean.startswith("```"):
                 clean = re.sub(r"^```(?:json)?\s*", "", clean)
@@ -510,38 +499,28 @@ def repair_section_with_executive_voice_agent(
 
     if sec == "executive_summary":
         prompt = _build_executive_summary_repair_prompt(
-            str(candidate_data.get("resume_display_text") or ""),
-            diagnostic,
-            allowed_facts,
-            targeting_context,
+            str(candidate_data.get("resume_display_text") or ""), diagnostic, allowed_facts, targeting_context,
         )
-        # O2: Socratic Voice Refinement (A2A Loop)
-        # Turn 1: Executive Voice Drafter (Claude Sonnet 5)
         resp = _call_llm_repair(sec, prompt, model=DEFAULT_REPAIR_MODEL)
-
         if resp and isinstance(resp.get("repaired_text"), str):
             proposed_text = resp["repaired_text"].strip()
-
-            # Turn 2: Adversarial Factual Auditor
-            auditor_prompt = f"Audit the following revision against ALLOWED FACTS: {json.dumps(allowed_facts)}. Draft: {proposed_text}"
-            audit_resp = _call_llm_repair(sec, auditor_prompt, model=DEFAULT_REPAIR_MODEL)
-
-            # Evaluate Auditor's decision
-            if audit_resp and audit_resp.get("disposition") == "PASS":
+            auditor_prompt = (
+                f"You are a strict cross-family factual auditor. Audit the candidate revision against ALLOWED FACTS: {json.dumps(allowed_facts or [])}.\n"
+                f"Candidate Draft:\n{proposed_text}\n\n"
+                'Return ONLY a JSON object with this exact schema:\n{"disposition": "PASS" | "FAIL", "violated_facts": [], "repair_hint": ""}'
+            )
+            audit_resp = _call_llm_repair(sec, auditor_prompt, model=DEFAULT_AUDITOR_MODEL)
+            if isinstance(audit_resp, dict) and str(audit_resp.get("disposition", "")).upper() == "PASS" and not audit_resp.get("violated_facts"):
                 if len(_split_into_sentences(proposed_text)) == 6:
                     updated_data["resume_display_text"] = proposed_text
                     ok = True
                     mech = "a2a_socratic_repair_loop"
             else:
-                # If Auditor rejects, we either do Turn 3 (not allowed by N<=2) or fail closed to original
                 mech = "a2a_socratic_repair_loop_failed_audit"
 
     elif sec == "headline":
         prompt = _build_headline_repair_prompt(
-            str(candidate_data.get("headline_line") or ""),
-            diagnostic,
-            allowed_facts,
-            targeting_context,
+            str(candidate_data.get("headline_line") or ""), diagnostic, allowed_facts, targeting_context,
         )
         resp = _call_llm_repair(sec, prompt, model=DEFAULT_REPAIR_MODEL)
         if resp and isinstance(resp.get("repaired_headline"), str):
@@ -554,95 +533,52 @@ def repair_section_with_executive_voice_agent(
 
     elif sec == "competencies":
         comps_in = list(candidate_data.get("competencies") or [])
-        has_structured_terms = any(
-            isinstance(t, dict) for c in comps_in if isinstance(c, dict) for t in (c.get("terms") or [])
-        )
+        has_structured_terms = any(isinstance(t, dict) for c in comps_in if isinstance(c, dict) for t in (c.get("terms") or []))
         if has_structured_terms:
-            # Canonical structured graph competencies must preserve their C0 fact
-            # grounding and category bindings. Run deterministic fast-path repair.
             updated_data, ok, mech = _mock_repair(sec, candidate_data, diagnostic)
         else:
-            prompt = _build_competencies_repair_prompt(
-                comps_in,
-                diagnostic,
-                allowed_facts,
-                targeting_context,
-            )
+            prompt = _build_competencies_repair_prompt(comps_in, diagnostic, allowed_facts, targeting_context)
             resp = _call_llm_repair(sec, prompt, model=DEFAULT_REPAIR_MODEL)
-            if resp and isinstance(resp.get("repaired_competencies"), list):
-                comps = resp["repaired_competencies"]
-                if 6 <= len(comps) <= 8:
-                    updated_data["competencies"] = comps
-                    ok = True
+            if resp and isinstance(resp.get("repaired_competencies"), list) and 6 <= len(resp["repaired_competencies"]) <= 8:
+                updated_data["competencies"] = resp["repaired_competencies"]
+                ok = True
 
     if not ok:
         if mock_mode or is_test:
             updated_data, ok, mech = _mock_repair(sec, candidate_data, diagnostic)
         else:
-            mech = "llm_repair_unresolved"
-            updated_data = dict(candidate_data)
+            mech, updated_data = "llm_repair_unresolved", dict(candidate_data)
 
-    repaired_snippet = ""
-    if sec == "executive_summary":
-        repaired_snippet = str(updated_data.get("resume_display_text") or "")[:200]
-    elif sec == "headline":
-        repaired_snippet = str(updated_data.get("headline_line") or "")
-    elif sec == "competencies":
-        comps = updated_data.get("competencies") or []
-        repaired_snippet = f"{len(comps)} categories"
-
+    repaired_snippet = (
+        str(updated_data.get("resume_display_text") or "")[:200] if sec == "executive_summary"
+        else str(updated_data.get("headline_line") or "") if sec == "headline"
+        else f"{len(updated_data.get('competencies') or [])} categories"
+    )
     receipt = ExecutiveVoiceRepairReceipt(
-        section_id=sec,
-        repair_attempted=True,
-        repair_succeeded=ok,
-        repair_mechanism=mech,
+        section_id=sec, repair_attempted=True, repair_succeeded=ok, repair_mechanism=mech,
         diagnostic_summary=diagnostic,
-        repaired_fields=(
-            ("resume_display_text",)
-            if sec == "executive_summary"
-            else ("headline_line",)
-            if sec == "headline"
-            else ("competencies",)
-        ),
-        original_snippet=original_snippet,
-        repaired_snippet=repaired_snippet,
+        repaired_fields=(("resume_display_text",) if sec == "executive_summary" else ("headline_line",) if sec == "headline" else ("competencies",)),
+        original_snippet=original_snippet, repaired_snippet=repaired_snippet,
         notes="LLM repair pass executed" if mech == "llm_repair_agent" else "Fallback repair executed",
     )
-
     from apps_rg.runtime.providers.wallclock_http_guard import is_lane_or_dir_cancelled
     if artifact_dir and not is_lane_or_dir_cancelled(artifact_dir):
         try:
-            (artifact_dir / "x1_repair_receipt.json").write_text(
-                json.dumps(receipt.to_dict(), indent=2), encoding="utf-8"
-            )
+            (artifact_dir / "x1_repair_receipt.json").write_text(json.dumps(receipt.to_dict(), indent=2), encoding="utf-8")
         except OSError:
             pass
-
     return updated_data, receipt
 
 
-# Backward compatibility aliases
-X1RepairAgent = ExecutiveVoiceRepairAgent
-X1RepairReceipt = ExecutiveVoiceRepairReceipt
-repair_section_with_x1_agent = repair_section_with_executive_voice_agent
-x1_repair_enabled = executive_voice_repair_enabled
-X1_REPAIR_MAX_ATTEMPTS = EXECUTIVE_VOICE_REPAIR_MAX_ATTEMPTS
-X1_REPAIR_AGENT_ENABLED_DEFAULT = EXECUTIVE_VOICE_REPAIR_AGENT_ENABLED_DEFAULT
+X1RepairAgent, X1RepairReceipt = ExecutiveVoiceRepairAgent, ExecutiveVoiceRepairReceipt
+repair_section_with_x1_agent, x1_repair_enabled = repair_section_with_executive_voice_agent, executive_voice_repair_enabled
+X1_REPAIR_MAX_ATTEMPTS, X1_REPAIR_AGENT_ENABLED_DEFAULT = EXECUTIVE_VOICE_REPAIR_MAX_ATTEMPTS, EXECUTIVE_VOICE_REPAIR_AGENT_ENABLED_DEFAULT
 
 __all__ = [
-    "DEFAULT_REPAIR_MODEL",
-    "ExecutiveVoiceRepairAgent",
-    "ExecutiveVoiceRepairReceipt",
-    "EXECUTIVE_VOICE_REPAIR_AGENT_ENABLED_DEFAULT",
-    "EXECUTIVE_VOICE_REPAIR_MAX_ATTEMPTS",
-    "repair_section_with_executive_voice_agent",
-    "executive_voice_repair_enabled",
-    "_split_into_sentences",
-    # Aliases
-    "X1RepairAgent",
-    "X1RepairReceipt",
-    "X1_REPAIR_AGENT_ENABLED_DEFAULT",
-    "X1_REPAIR_MAX_ATTEMPTS",
-    "repair_section_with_x1_agent",
-    "x1_repair_enabled",
+    "DEFAULT_AUDITOR_MODEL", "DEFAULT_REPAIR_MODEL", "ExecutiveVoiceRepairAgent", "ExecutiveVoiceRepairReceipt",
+    "EXECUTIVE_VOICE_REPAIR_AGENT_ENABLED_DEFAULT", "EXECUTIVE_VOICE_REPAIR_MAX_ATTEMPTS",
+    "repair_section_with_executive_voice_agent", "executive_voice_repair_enabled", "_split_into_sentences",
+    "X1RepairAgent", "X1RepairReceipt", "X1_REPAIR_AGENT_ENABLED_DEFAULT", "X1_REPAIR_MAX_ATTEMPTS",
+    "repair_section_with_x1_agent", "x1_repair_enabled",
 ]
+

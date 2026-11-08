@@ -1625,35 +1625,23 @@ def run_unify_bullets_execution(
     # Keep the default path at one composite judge, then escalate to the cross-provider
     # panel only when the deterministic aggregation or borderline trigger says the
     # single verdict is risky.
-    from apps_rg.runtime.judges.bullet_adjudicator import (
-        ADJUDICATOR_PANEL_PROVIDER_KEYS,
-        evaluate_bullet_adjudicator_trigger,
-    )
+    from apps_rg.runtime.judges.bullet_adjudicator import ADJUDICATOR_PANEL_PROVIDER_KEYS, evaluate_bullet_adjudicator_trigger
     from apps_rg.runtime.judges.bullet_x2_aggregation import aggregate_bullet_section
 
     _x2_failed_ids = [g["gate_id"] for g in x2 if not g.get("pass", True)]
     _existing_judge_keys = {str(j.get("provider_key") or "") for j in x1d}
+    _sel_map = (gen_meta.get("pool_selection") or {}).get("selections") if isinstance(gen_meta, dict) and isinstance(gen_meta.get("pool_selection"), dict) else None
     _adj_decision = evaluate_bullet_adjudicator_trigger(
-        section_id="unify_bullets",
-        composite_judges=x1d,
-        x2_failed_gate_ids=_x2_failed_ids,
-        bullets=bullets,
+        section_id="unify_bullets", composite_judges=x1d, x2_failed_gate_ids=_x2_failed_ids, bullets=bullets, selector_selections=_sel_map,
     )
     _agg = aggregate_bullet_section(
-        section_id="unify_bullets",
-        composite_judges=x1d,
-        x2_failed_gate_ids=_x2_failed_ids,
+        section_id="unify_bullets", composite_judges=x1d, x2_failed_gate_ids=_x2_failed_ids,
     )
     _should_adjudicate = _adj_decision.should_escalate or _agg.should_adjudicate
-    _panel_keys = [
-        k for k in ADJUDICATOR_PANEL_PROVIDER_KEYS if k and k not in _existing_judge_keys
-    ]
+    _panel_keys = [k for k in ADJUDICATOR_PANEL_PROVIDER_KEYS if k and k not in _existing_judge_keys]
     _adjudication_record: dict[str, Any] = {
-        "section_id": "unify_bullets",
-        "trigger_decision": _adj_decision.to_dict(),
-        "aggregation": _agg.to_dict(),
-        "escalated": False,
-        "panel_provider_keys": [],
+        "section_id": "unify_bullets", "trigger_decision": _adj_decision.to_dict(),
+        "aggregation": _agg.to_dict(), "escalated": False, "panel_provider_keys": [],
     }
     if _should_adjudicate and _panel_keys:
         _panel_rows = [

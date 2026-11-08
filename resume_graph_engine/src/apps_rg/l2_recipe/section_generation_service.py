@@ -329,84 +329,72 @@ class SectionGenerationService:
         graph_skill_embedding_scores: dict[str, dict[str, float]] | None = None
         if graph_skill_embedding_required:
             assert_semantic_unit_activation_status()
-            graph_skill_embedding_candidates = (
-                build_whole_resume_graph_embedding_candidates(
-                    repo_root=repo,
-                    target_company=tc or str(input_package.target_company or ""),
-                    target_role=tr or str(input_package.target_role or ""),
-                    jd_text=effective_jd_text, briefing_text=effective_briefing_text,
-                )
+            graph_skill_embedding_candidates = build_whole_resume_graph_embedding_candidates(
+                repo_root=repo,
+                target_company=tc or str(input_package.target_company or ""),
+                target_role=tr or str(input_package.target_role or ""),
+                jd_text=effective_jd_text, briefing_text=effective_briefing_text,
             )
             graph_skill_embedding_scores = candidate_skill_scores_by_section(
                 graph_skill_embedding_candidates["candidates_by_section"]
             )
 
         resume_graph_bundle = build_whole_resume_graph_allocation(
-            repo_root=repo,
-            target_role=tr or str(input_package.target_role or ""),
-            jd_text=effective_jd_text,
-            briefing_text=effective_briefing_text,
+            repo_root=repo, target_role=tr or str(input_package.target_role or ""),
+            jd_text=effective_jd_text, briefing_text=effective_briefing_text,
             embedding_skill_scores_by_section=graph_skill_embedding_scores,
         )
+        alloc_out_dir = modular_root / "resume_graph_allocation"
         resume_graph_allocation_refs = write_whole_resume_graph_allocation_bundle(
-            resume_graph_bundle,
-            output_dir=modular_root / "resume_graph_allocation",
+            resume_graph_bundle, output_dir=alloc_out_dir,
         )
-        resume_graph_allocation_digest = str(
-            resume_graph_bundle["allocation_plan"].get("allocation_plan_digest") or ""
+        resume_graph_allocation_digest = str(resume_graph_bundle["allocation_plan"].get("allocation_plan_digest") or "")
+
+        from apps_rg.runtime.reasoning.CareerThesisAlignmentAgent import CAREER_THESIS_ALIGNMENT_FILENAME, execute_career_thesis_alignment
+
+        career_thesis_plan = execute_career_thesis_alignment(
+            alloc_out_dir, target_company=tc or str(input_package.target_company or ""),
+            target_role=tr or str(input_package.target_role or ""),
+            c0_evidence_items=resume_graph_bundle["allocation_plan"].get("assignments", []),
+            job_description_text=effective_jd_text,
         )
+        career_thesis_plan_path = str((alloc_out_dir / CAREER_THESIS_ALIGNMENT_FILENAME).resolve())
+        resume_graph_allocation_refs["career_thesis_alignment_plan"] = career_thesis_plan_path
+        resume_graph_allocation_refs["career_thesis_alignment_receipt"] = str((alloc_out_dir / "career_thesis_alignment_receipt.json").resolve())
+        career_thesis_alignment_digest = str(career_thesis_plan.digest or "")
 
         graph_skill_embedding_allowlists_digest = ""
         graph_skill_embedding_runtime_refs: dict[str, str] = {}
         if graph_skill_embedding_candidates is not None:
             lane_embedding_allowlists = build_lane_embedding_allowlists(
                 allocation_plan=resume_graph_bundle["allocation_plan"],
-                candidates_by_section=graph_skill_embedding_candidates[
-                    "candidates_by_section"
-                ],
+                candidates_by_section=graph_skill_embedding_candidates["candidates_by_section"],
                 authority_pins=graph_skill_embedding_candidates["authority"],
             )
-            graph_skill_embedding_allowlists_digest = str(
-                lane_embedding_allowlists.get("allowlists_digest") or ""
-            )
-            graph_skill_embedding_runtime_refs = (
-                write_graph_skill_embedding_runtime_bundle(
-                    {
-                        "lane_allowlists": lane_embedding_allowlists,
-                        "runtime_receipt": {
-                            "schema_version": (
-                                "apps_rg.graph_skill_embedding_runtime_receipt.v1"
-                            ),
-                            "status": "PASS",
-                            "authority": graph_skill_embedding_candidates["authority"],
-                            "allocation_plan_digest": resume_graph_allocation_digest,
-                            "allowlists_digest": graph_skill_embedding_allowlists_digest,
-                            "query_receipts": graph_skill_embedding_candidates[
-                                "query_receipts"
-                            ],
-                            "runtime_proof": graph_skill_embedding_candidates[
-                                "runtime_proof"
-                            ],
-                            "projection_sha256_before": graph_skill_embedding_candidates[
-                                "projection_sha256_before"
-                            ],
-                            "projection_sha256_after": graph_skill_embedding_candidates[
-                                "projection_sha256_after"
-                            ],
-                            "candidate_payload_fields": [
-                                "assertion_id",
-                                "similarity",
-                            ],
-                            "similarity_is_claim_authority": False,
-                            "provider_call_attempted_before_preflight": False,
-                            "durable_graph_state_mutated": False,
-                            "network_used": False,
-                            "fallback_used": False,
-                            "pass": True,
-                        },
+            graph_skill_embedding_allowlists_digest = str(lane_embedding_allowlists.get("allowlists_digest") or "")
+            graph_skill_embedding_runtime_refs = write_graph_skill_embedding_runtime_bundle(
+                {
+                    "lane_allowlists": lane_embedding_allowlists,
+                    "runtime_receipt": {
+                        "schema_version": "apps_rg.graph_skill_embedding_runtime_receipt.v1",
+                        "status": "PASS",
+                        "authority": graph_skill_embedding_candidates["authority"],
+                        "allocation_plan_digest": resume_graph_allocation_digest,
+                        "allowlists_digest": graph_skill_embedding_allowlists_digest,
+                        "query_receipts": graph_skill_embedding_candidates["query_receipts"],
+                        "runtime_proof": graph_skill_embedding_candidates["runtime_proof"],
+                        "projection_sha256_before": graph_skill_embedding_candidates["projection_sha256_before"],
+                        "projection_sha256_after": graph_skill_embedding_candidates["projection_sha256_after"],
+                        "candidate_payload_fields": ["assertion_id", "similarity"],
+                        "similarity_is_claim_authority": False,
+                        "provider_call_attempted_before_preflight": False,
+                        "durable_graph_state_mutated": False,
+                        "network_used": False,
+                        "fallback_used": False,
+                        "pass": True,
                     },
-                    output_dir=modular_root / "graph_skill_embedding_allocation",
-                )
+                },
+                output_dir=modular_root / "graph_skill_embedding_allocation",
             )
 
         def _lane_x1d_judges(lane_id: str) -> str:
@@ -419,10 +407,7 @@ class SectionGenerationService:
         def _lane_provider_for_lane(lane_id: str) -> str:
             lane_key = str(lane_id or "").strip()
             if lane_key not in phase1_lane_provider_by_lane:
-                provider, source, route = cls.resolve_phase1_lane_provider_route_for_section(
-                    profile.phase1_lane_provider,
-                    lane_key,
-                )
+                provider, source, route = cls.resolve_phase1_lane_provider_route_for_section(profile.phase1_lane_provider, lane_key)
                 phase1_lane_provider_by_lane[lane_key] = provider
                 phase1_lane_provider_source_by_lane[lane_key] = source
                 phase1_anthropic_limit_preflight_by_lane[lane_key] = route.to_dict()
@@ -440,9 +425,8 @@ class SectionGenerationService:
             ALLOCATION_USAGE_LEDGER_ENV: os.environ.get(ALLOCATION_USAGE_LEDGER_ENV),
             SECTION_EVIDENCE_CONTRACTS_ENV: os.environ.get(SECTION_EVIDENCE_CONTRACTS_ENV),
             SECTION_SOURCE_PLANS_ENV: os.environ.get(SECTION_SOURCE_PLANS_ENV),
-            GRAPH_SKILL_EMBEDDING_ALLOWLISTS_ENV: os.environ.get(
-                GRAPH_SKILL_EMBEDDING_ALLOWLISTS_ENV
-            ),
+            GRAPH_SKILL_EMBEDDING_ALLOWLISTS_ENV: os.environ.get(GRAPH_SKILL_EMBEDDING_ALLOWLISTS_ENV),
+            "APPS_RG_CAREER_THESIS_PLAN_PATH": os.environ.get("APPS_RG_CAREER_THESIS_PLAN_PATH"),
         }
         try:
             rel_art = art.resolve().relative_to(repo.resolve()).as_posix()
@@ -453,12 +437,9 @@ class SectionGenerationService:
         os.environ["APPS_RG_CORRELATED_CLI_RUN"] = rel_art
         os.environ[ALLOCATION_PLAN_ENV] = resume_graph_allocation_refs["allocation_plan"]
         os.environ[ALLOCATION_USAGE_LEDGER_ENV] = resume_graph_allocation_refs["usage_ledger"]
-        os.environ[SECTION_EVIDENCE_CONTRACTS_ENV] = resume_graph_allocation_refs[
-            "section_final_evidence_contracts"
-        ]
-        os.environ[SECTION_SOURCE_PLANS_ENV] = resume_graph_allocation_refs[
-            "section_plans"
-        ]
+        os.environ[SECTION_EVIDENCE_CONTRACTS_ENV] = resume_graph_allocation_refs["section_final_evidence_contracts"]
+        os.environ[SECTION_SOURCE_PLANS_ENV] = resume_graph_allocation_refs["section_plans"]
+        os.environ["APPS_RG_CAREER_THESIS_PLAN_PATH"] = career_thesis_plan_path
         if graph_skill_embedding_required:
             os.environ[GRAPH_SKILL_EMBEDDING_ALLOWLISTS_ENV] = (
                 graph_skill_embedding_runtime_refs["lane_allowlists"]
@@ -673,6 +654,7 @@ class SectionGenerationService:
                 },
                 "resume_graph_allocation_plan_digest": resume_graph_allocation_digest,
                 "resume_graph_allocation_refs": resume_graph_allocation_refs,
+                "career_thesis_alignment_digest": career_thesis_alignment_digest,
                 "graph_skill_embeddings_required": graph_skill_embedding_required,
                 "graph_skill_embedding_allowlists_digest": graph_skill_embedding_allowlists_digest,
                 "graph_skill_embedding_runtime_refs": graph_skill_embedding_runtime_refs,

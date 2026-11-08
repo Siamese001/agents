@@ -17,10 +17,8 @@ Implemented triggers (all use data that already exists on the composite judge ro
                                score is borderline. Metric bullets are the highest-cost place to
                                accept a wrong single-judge verdict.
 
-NOT implemented (deferred): TOP_TWO_WITHIN_MARGIN. The Claude pool selector currently emits only
-the winning score per slot (no runner-up), so a real candidate-to-candidate margin cannot be
-computed without changing the selector output schema. Documented in
-docs/reports/apps_rg/section_generation_design_pattern.md as a future refinement.
+  4. TOP_TWO_WITHIN_MARGIN  — the winning pool candidate and runner-up score are within a narrow
+                               margin (< 0.05), indicating candidate ambiguity that warrants panel review.
 
 This module makes the DECISION only. The lane performs the panel escalation when
 ``AdjudicatorDecision.should_escalate`` is True.
@@ -36,11 +34,13 @@ from apps_rg.runtime.section_judge_policy import REQUIRED_JUDGE_PROVIDER_KEYS
 # of the pass threshold are "borderline". E.g. threshold 4.0 on a 0-5 scale with band 0.10 ->
 # borderline window [3.6, 4.4] (normalized). Tunable per call site.
 DEFAULT_CONFIDENCE_BAND = 0.10
+DEFAULT_SELECTOR_MARGIN_THRESHOLD = 0.05
 
 # Trigger reason codes (stable strings for artifacts/tests).
 TRIGGER_JUDGE_CONFIDENCE_LOW = "JUDGE_CONFIDENCE_LOW"
 TRIGGER_X2_PASS_JUDGE_RISK = "X2_PASS_JUDGE_RISK"
 TRIGGER_METRIC_BULLET_BORDERLINE = "METRIC_BULLET_BORDERLINE"
+TRIGGER_TOP_TWO_WITHIN_MARGIN = "TOP_TWO_WITHIN_MARGIN"
 
 # The optional adjudicator panel. Reached ONLY when a trigger fires. Judge panel SSOT =
 # section_judge_policy.REQUIRED_JUDGE_PROVIDER_KEYS (cross-provider gemini_pro + openai_chatgpt;
@@ -141,13 +141,33 @@ def _bullet_has_high_value_metric(bullet: Mapping[str, Any]) -> bool:
     return bool(str(moid or "").strip())
 
 
+def _extract_selector_margin(row: Mapping[str, Any]) -> float | None:
+    if row.get("selection_margin") is not None:
+        try:
+            return abs(float(row["selection_margin"]))
+        except (TypeError, ValueError):
+            pass
+    score = row.get("score") if row.get("score") is not None else row.get("selector_score")
+    runner_up = row.get("runner_up_score")
+    if runner_up is None and isinstance(row.get("runner_up"), Mapping):
+        runner_up = row["runner_up"].get("score")
+    if score is not None and runner_up is not None:
+        try:
+            return abs(float(score) - float(runner_up))
+        except (TypeError, ValueError):
+            return None
+    return None
+
+
 def evaluate_bullet_adjudicator_trigger(
     *,
     section_id: str,
     composite_judges: Sequence[Mapping[str, Any]],
     x2_failed_gate_ids: Sequence[str],
     bullets: Sequence[Mapping[str, Any]] | None = None,
+    selector_selections: Sequence[Mapping[str, Any]] | None = None,
     confidence_band: float = DEFAULT_CONFIDENCE_BAND,
+    selector_margin_threshold: float = DEFAULT_SELECTOR_MARGIN_THRESHOLD,
 ) -> AdjudicatorDecision:
     """Decide whether to escalate this bullet section to the multi-provider adjudicator panel.
 
@@ -155,8 +175,10 @@ def evaluate_bullet_adjudicator_trigger(
         section_id: e.g. "ibm_bullets" / "unify_bullets".
         composite_judges: the single-composite-judge X1D rows (already run).
         x2_failed_gate_ids: ids of failed hard X2 gates (empty => all hard gates passed).
-        bullets: section bullets (for the IBM high-value-metric trigger). Optional.
+        bullets: section bullets (for the IBM high-value-metric trigger or runner-up margin). Optional.
+        selector_selections: optional pool selector rows carrying ``score`` and ``runner_up_score`` / ``selection_margin``.
         confidence_band: borderline window relative to the judge threshold.
+        selector_margin_threshold: margin threshold (< 0.05) for TOP_TWO_WITHIN_MARGIN trigger.
 
     Returns:
         AdjudicatorDecision. ``should_escalate`` True means the lane SHOULD invoke the panel.
@@ -203,6 +225,30 @@ def evaluate_bullet_adjudicator_trigger(
         if has_metric_bullet and borderline_any:
             triggers.append(TRIGGER_METRIC_BULLET_BORDERLINE)
 
+    # Trigger 4: TOP_TWO_WITHIN_MARGIN (< 0.05 margin between winning pool candidate and runner-up).
+    margin_candidates: list[Mapping[str, Any]] = []
+    if selector_selections:
+        margin_candidates.extend(selector_selections)
+    if bullets:
+        margin_candidates.extend(bullets)
+
+    narrow_margin_slots: list[dict[str, Any]] = []
+    for row in margin_candidates:
+        if not isinstance(row, Mapping):
+            continue
+        margin = _extract_selector_margin(row)
+        if margin is not None and margin < selector_margin_threshold:
+            narrow_margin_slots.append(
+                {
+                    "bullet_id": str(row.get("bullet_id") or ""),
+                    "margin": round(margin, 4),
+                    "threshold": selector_margin_threshold,
+                }
+            )
+    if narrow_margin_slots:
+        detail["narrow_margin_slots"] = narrow_margin_slots
+        triggers.append(TRIGGER_TOP_TWO_WITHIN_MARGIN)
+
     # De-dupe while preserving order.
     seen: set[str] = set()
     ordered_triggers = tuple(t for t in triggers if not (t in seen or seen.add(t)))
@@ -217,8 +263,10 @@ __all__ = [
     "ADJUDICATOR_PANEL_PROVIDER_KEYS",
     "AdjudicatorDecision",
     "DEFAULT_CONFIDENCE_BAND",
+    "DEFAULT_SELECTOR_MARGIN_THRESHOLD",
     "TRIGGER_JUDGE_CONFIDENCE_LOW",
     "TRIGGER_METRIC_BULLET_BORDERLINE",
+    "TRIGGER_TOP_TWO_WITHIN_MARGIN",
     "TRIGGER_X2_PASS_JUDGE_RISK",
     "evaluate_bullet_adjudicator_trigger",
 ]

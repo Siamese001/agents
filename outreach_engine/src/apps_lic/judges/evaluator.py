@@ -156,6 +156,32 @@ class ExecutiveOutreachJudgePanel:
         """Return True when top two candidate framings score within the margin threshold (default 15%)."""
         return abs(top_score - runner_up_score) <= margin_threshold
 
+    def evaluate_persona_tournament(
+        self, drafts: List[OutreachMessageDraft], candidate: CandidateProfile,
+        opportunity: TargetOpportunity, margin_threshold: float = 0.15,
+    ) -> dict[str, Any]:
+        """Score competing candidate outreach drafts via archetype skeptic evaluation and determine signoff."""
+        if not drafts:
+            return {"winner_draft_id": "", "top_score": 0.0, "runner_up_score": 0.0, "margin": 0.0, "requires_human_signoff": False, "rankings": []}
+        rankings: list[dict[str, Any]] = []
+        for idx, draft in enumerate(drafts):
+            verdict = self.evaluate_authoritative(draft, candidate, opportunity)
+            score = round(min(1.0, verdict.composite_score + (0.02 if draft.grounded_facts_used else 0.0) - (idx * 0.001)), 4)
+            rankings.append({
+                "draft_id": draft.draft_id, "composite_score": verdict.composite_score,
+                "tournament_score": score, "passed": verdict.passed,
+                "grounded_facts_used": list(draft.grounded_facts_used),
+            })
+        rankings.sort(key=lambda r: (r["passed"], r["tournament_score"]), reverse=True)
+        top_score = float(rankings[0]["tournament_score"])
+        runner_up_score = float(rankings[1]["tournament_score"]) if len(rankings) > 1 else 0.0
+        signoff = self.requires_human_signoff(top_score, runner_up_score, margin_threshold=margin_threshold) if len(rankings) > 1 else False
+        return {
+            "winner_draft_id": str(rankings[0]["draft_id"]), "top_score": top_score,
+            "runner_up_score": runner_up_score, "margin": round(abs(top_score - runner_up_score), 4),
+            "requires_human_signoff": signoff, "rankings": rankings,
+        }
+
     def _load_rubrics(self) -> dict[str, dict[str, Any]]:
         rubrics: dict[str, dict[str, Any]] = {}
         if not self.rubrics_dir.is_dir():

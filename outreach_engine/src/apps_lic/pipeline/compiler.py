@@ -506,39 +506,34 @@ class PromptCompiler:
         body = f"Hi {opportunity.recipient_name},\n\n{p1}\n\n{p2}"
         return subject, body
 
-    def _compose_follow_up(
-        self,
-        candidate: CandidateProfile,
-        opportunity: TargetOpportunity,
-        hook: str,
-        fact_statement: str,
-    ) -> tuple[str, str]:
-        """Compose a concise follow-up draft bounded under 800 characters."""
+    def _compose_follow_up(self, candidate: CandidateProfile, opportunity: TargetOpportunity, hook: str, fact_statement: str) -> tuple[str, str]:
         fact_phrase = self._format_fact_phrase(fact_statement)
         subject = f"Following up: {opportunity.company_name} / {opportunity.role_title}"
-        focus_clause = (
-            f"Following up on my earlier note regarding {opportunity.company_name}'s focus on {hook}."
-            if hook
-            else f"Following up on my earlier note regarding {opportunity.company_name}'s {opportunity.role_title} work in {opportunity.industry}."
-        )
+        focus_clause = f"Following up on my earlier note regarding {opportunity.company_name}'s focus on {hook}." if hook else f"Following up on my earlier note regarding {opportunity.company_name}'s {opportunity.role_title} work in {opportunity.industry}."
         fit = f"In my work as {candidate.target_title}, {fact_phrase}."
         ask = "If timing is tight right now, would it be helpful to reconnect next quarter instead?"
-        body = f"Hi {opportunity.recipient_name},\n\n{focus_clause} {fit}\n\n{ask}"
-        return subject, body
+        return subject, f"Hi {opportunity.recipient_name},\n\n{focus_clause} {fit}\n\n{ask}"
 
-    def render_draft_message(
-        self,
-        candidate: CandidateProfile,
-        opportunity: TargetOpportunity,
-        channel: ChannelType,
-        audience_persona: Optional[AudiencePersona] = None,
-    ) -> tuple[str, str, list[str]]:
-        """Renders subject, body, and used fact IDs using template guidance."""
+    def _select_persona_tournament_lead_fact(self, candidate: CandidateProfile, opportunity: TargetOpportunity, audience_persona: Optional[AudiencePersona] = None) -> Optional[Any]:
+        grounded = candidate.grounded_facts
+        if not grounded or len(grounded) == 1:
+            return grounded[0] if grounded else None
+        priority_tokens = {tok.lower() for p in (opportunity.strategic_priorities or []) for tok in re.findall(r"\b[A-Za-z0-9]{3,}\b", str(p))}
+        persona = audience_persona or AudiencePersona.EXECUTIVE_CONTACT
+        best_fact, best_score = grounded[0], -1.0
+        for idx, fact in enumerate(grounded):
+            stmt_lower, cat_lower = str(fact.statement or "").lower(), str(getattr(fact, "category", "") or "").lower()
+            score = 0.50 - (idx * 0.01) + min(sum(1 for tok in priority_tokens if tok in stmt_lower) * 0.15, 0.30) + (0.10 if getattr(fact, "metric", None) else 0.0)
+            if (persona == AudiencePersona.EXECUTIVE_RECRUITER and cat_lower in {"leadership", "scale"}) or (persona == AudiencePersona.EXECUTIVE_CONTACT and cat_lower in {"governance", "scale", "strategy"}):
+                score += 0.10
+            if score > best_score:
+                best_score, best_fact = score, fact
+        return best_fact
+
+    def render_draft_message(self, candidate: CandidateProfile, opportunity: TargetOpportunity, channel: ChannelType, audience_persona: Optional[AudiencePersona] = None) -> tuple[str, str, list[str]]:
         context = self.assemble_context(candidate, opportunity, channel, audience_persona)
         template_id = context["template_id"]
-
-        grounded = candidate.grounded_facts
-        lead_fact = grounded[0] if grounded else None
+        lead_fact = self._select_persona_tournament_lead_fact(candidate, opportunity, audience_persona)
         fact_statement = lead_fact.statement if lead_fact else candidate.executive_summary
         fact_ids = [lead_fact.fact_id] if lead_fact else []
 

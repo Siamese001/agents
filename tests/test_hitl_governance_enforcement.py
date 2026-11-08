@@ -9,11 +9,14 @@ from pathlib import Path
 from tools.hitl_governance import (
     DEFAULT_AMBIGUITY_THRESHOLD,
     HITLDecisionStore,
+    MAX_OPTION_LENGTH,
+    MAX_QUESTION_LENGTH,
     calculate_calibrated_confidence,
     evaluate_hitl_surfacing_gate,
     evaluate_model_token_ambiguity,
     load_approved_provider_models,
     parse_confidence_score,
+    scan_question_jargon,
     validate_approval_origin,
     validate_hitl_presentation,
     validate_model_token_registry,
@@ -332,7 +335,78 @@ class HitlGovernanceEnforcementTests(unittest.TestCase):
             self.assertEqual(metrics["outcomes"].get("SUCCESS"), 1)
             store.close()
 
+    def test_visibility_and_jargon_enforcement_on_question_and_options(self) -> None:
+        """Verify 300-char question cap, 250-char option cap, anti-truncation, and zero-jargon checks."""
+        self.assertEqual(MAX_QUESTION_LENGTH, 300)
+        self.assertEqual(MAX_OPTION_LENGTH, 250)
+
+        # Oversized question (>300 chars)
+        long_q = "Which retry timing should we use for the background check? " * 6
+        errs_long_q = validate_hitl_presentation(
+            {
+                "question": long_q,
+                "options": [
+                    "(Recommended) Wait five seconds (Confidence: MEDIUM (70%)). Impact: Fast retry.",
+                    "Wait thirty seconds (Confidence: MEDIUM (58%)). Impact: Slower retry.",
+                ],
+            },
+            enforce_visibility_and_jargon=True,
+        )
+        self.assertTrue(any("HITL_VIOLATION_QUESTION_LENGTH" in e for e in errs_long_q))
+        self.assertTrue(any("HITL_VIOLATION_BUNDLED_QUESTIONS" in e for e in errs_long_q))
+
+        # Oversized option (>250 chars) and ellipsis truncation
+        long_opt = "(Recommended) Keep the current schedule and wait... " + ("extra detail " * 20) + "(Confidence: MEDIUM (70%))"
+        errs_long_opt = validate_hitl_presentation(
+            {
+                "question": "Which schedule should we apply?",
+                "options": [
+                    long_opt,
+                    "Switch to hourly schedule (Confidence: MEDIUM (58%)). Impact: Higher freshness.",
+                ],
+            },
+            enforce_visibility_and_jargon=True,
+        )
+        self.assertTrue(any("HITL_VIOLATION_OPTION_LENGTH" in e for e in errs_long_opt))
+        self.assertTrue(any("HITL_VIOLATION_TRUNCATION" in e for e in errs_long_opt))
+
+        # Jargon in question and option (HITL, A2A, O2, snake_case, Candidate ID)
+        jargon_payload = {
+            "question": "HITL Decision: Candidate ID: d1-test — Should we run O2 A2A loop on section_service.py?",
+            "options": [
+                "(Recommended) Run ExecutiveVoiceRepairAgent (Confidence: HIGH (85%))",
+                "Skip snake_case check (Confidence: MEDIUM (70%))",
+            ],
+        }
+        errs_jargon = validate_hitl_presentation(jargon_payload, enforce_visibility_and_jargon=True)
+        self.assertTrue(any("HITL_VIOLATION_JARGON_IN_QUESTION" in e for e in errs_jargon))
+        self.assertTrue(any("HITL_VIOLATION_JARGON_IN_OPTION" in e for e in errs_jargon))
+
+        # Compliant plain-English payload passes (including whitelisted proper nouns like GitHub, LinkedIn, macOS)
+        clean_payload = {
+            "question": "Which order should we use to deliver the GitHub and LinkedIn writing upgrades on macOS?",
+            "options": [
+                "(Recommended) Fix plain-English question rules and live resume repair first (Confidence: HIGH (85%)). Impact: Improves reliability now.",
+                "Upgrade company research contradiction checks first (Confidence: MEDIUM (71%)). Impact: Cleaner briefs.",
+            ],
+        }
+        self.assertEqual(validate_hitl_presentation(clean_payload, enforce_visibility_and_jargon=True), [])
+        self.assertEqual(scan_question_jargon(clean_payload["question"]), [])
+
+        # Compound question with single '?' but conjunctive secondary clause fails bundled check
+        compound_payload = {
+            "question": "We are ready to update the schedule; additionally, which retry timing should we use?",
+            "options": [
+                "(Recommended) Wait five seconds (Confidence: MEDIUM (70%)). Impact: Fast retry.",
+                "Wait thirty seconds (Confidence: MEDIUM (58%)). Impact: Slower retry.",
+            ],
+        }
+        errs_compound = validate_hitl_presentation(compound_payload, enforce_visibility_and_jargon=True)
+        self.assertTrue(any("HITL_VIOLATION_BUNDLED_QUESTIONS" in e for e in errs_compound))
+
 
 if __name__ == "__main__":
     unittest.main()
+
+
 

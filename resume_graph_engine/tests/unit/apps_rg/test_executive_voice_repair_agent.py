@@ -259,6 +259,101 @@ class TestExecutiveVoiceRepairAgent(unittest.TestCase):
             if old_harness:
                 os.environ["APPS_RG_TEST_HARNESS"] = old_harness
 
+    def test_o2_a2a_socratic_loop_uses_cross_family_auditor_and_json_schema(self) -> None:
+        from unittest import mock
+        from apps_rg.runtime.sections.ExecutiveVoiceRepairAgent import (
+            DEFAULT_AUDITOR_MODEL,
+            DEFAULT_REPAIR_MODEL,
+        )
+
+        self.assertNotEqual(DEFAULT_REPAIR_MODEL, DEFAULT_AUDITOR_MODEL)
+
+        six_sentences = (
+            "Technology strategy executive who aligns large-scale platform engineering with enterprise business objectives. "
+            "Manages $40M budget across global infrastructure. "
+            "Pioneered distributed systems handling 1M QPS. "
+            "Engineered cloud migrations with zero downtime. "
+            "Orchestrated cross-functional operational improvements delivering $4.2M in recurring savings across enterprise platforms. "
+            "Strategic advisor to executive leadership teams."
+        )
+        calls: list[tuple[str, str]] = []
+
+        def _fake_llm(sec: str, prompt: str, model: str = DEFAULT_REPAIR_MODEL) -> dict[str, object]:
+            calls.append((model, prompt))
+            if len(calls) == 1:
+                return {"repaired_text": six_sentences}
+            return {"disposition": "PASS", "violated_facts": [], "repair_hint": ""}
+
+        with mock.patch.dict(os.environ, {"ANTHROPIC_API_KEY": "sk-test-live"}), mock.patch(
+            "apps_rg.runtime.sections.ExecutiveVoiceRepairAgent._call_llm_repair",
+            side_effect=_fake_llm,
+        ):
+            updated, receipt = repair_section_with_executive_voice_agent(
+                section_id="executive_summary",
+                candidate_data={"resume_display_text": "Old draft."},
+                diagnostic={"repair_needed": True, "findings": ["Fix voice"]},
+                allowed_facts=[{"assertion_id": "f1", "fact_text": "$4.2M recurring savings"}],
+                mock_mode=False,
+            )
+
+        self.assertTrue(receipt.repair_succeeded)
+        self.assertEqual(receipt.repair_mechanism, "a2a_socratic_repair_loop")
+        self.assertEqual(updated["resume_display_text"], six_sentences)
+        self.assertEqual(len(calls), 2)
+        self.assertEqual(calls[0][0], DEFAULT_REPAIR_MODEL)
+        self.assertEqual(calls[1][0], DEFAULT_AUDITOR_MODEL)
+        self.assertIn('"disposition": "PASS" | "FAIL"', calls[1][1])
+
+    def test_call_llm_repair_routes_openai_auditor_to_chat_completions_with_low_reasoning_effort(self) -> None:
+        import json
+        from unittest import mock
+        from apps_rg.runtime.sections.ExecutiveVoiceRepairAgent import (
+            DEFAULT_AUDITOR_MODEL,
+            _call_llm_repair,
+        )
+
+        captured_reqs: list[object] = []
+
+        class _FakeHTTPResp:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+            def read(self) -> bytes:
+                return json.dumps(
+                    {
+                        "choices": [
+                            {
+                                "message": {
+                                    "content": '{"disposition": "PASS", "violated_facts": [], "repair_hint": ""}'
+                                }
+                            }
+                        ]
+                    }
+                ).encode("utf-8")
+
+        def _fake_urlopen(req, timeout=30):
+            captured_reqs.append(req)
+            return _FakeHTTPResp()
+
+        with mock.patch.dict(os.environ, {"OPENAI_API_KEY": "sk-openai-test"}), mock.patch(
+            "apps_rg.runtime.providers.external_provider.urlopen_provider_request",
+            side_effect=_fake_urlopen,
+        ):
+            res = _call_llm_repair("executive_summary", "Audit draft", model=DEFAULT_AUDITOR_MODEL)
+
+        self.assertEqual(res, {"disposition": "PASS", "violated_facts": [], "repair_hint": ""})
+        self.assertEqual(len(captured_reqs), 1)
+        req = captured_reqs[0]
+        self.assertEqual(req.full_url, "https://api.openai.com/v1/chat/completions")
+        body = json.loads(req.data.decode("utf-8"))
+        self.assertEqual(body["model"], DEFAULT_AUDITOR_MODEL)
+        self.assertEqual(body["reasoning_effort"], "low")
+
 
 if __name__ == "__main__":
     unittest.main()
+
+

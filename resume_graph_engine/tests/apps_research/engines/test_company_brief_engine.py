@@ -235,3 +235,48 @@ def test_apps_research_active_contracts_do_not_restore_stale_model_pins() -> Non
         text = path.read_text(encoding="utf-8")
         assert stale_claude not in text
         assert stale_gemini_provider not in text
+
+
+def test_c0_bundle_dialectical_contradiction_matrix_and_w9_boundary() -> None:
+    engine = CompanyBriefEngine()
+    findings = {
+        "financials_and_growth": (
+            "In 2022 Acme generated $120M ARR with 400 employees.\n"
+            "https://acme.example.com/2022\n"
+            "In 2025 Acme generated $310M ARR with 950 employees.\n"
+            "https://acme.example.com/2025"
+        ),
+        "company_basics": (
+            "Acme Enterprise Platform (homonym note: unrelated subsidiary excluded).\n"
+            "https://acme.example.com/about"
+        ),
+    }
+    bundle = engine._build_c0_bundle(
+        topic="Acme",
+        depth_profile="COMPANY_BRIEF_STANDARD",
+        profile_cfg={},
+        findings=findings,
+        synthesis={},
+        jd_context={"company_name": "Acme", "job_title": "SVP Engineering"},
+    )
+    c_matrix = bundle["contradiction_matrix"]
+    assert c_matrix["schema_version"] == "c0_contradiction_matrix.v1"
+    assert c_matrix["contradictions_detected"] >= 1
+    assert c_matrix["resolved_count"] >= 1
+    assert len(c_matrix["resolutions"]) >= 1
+    assert c_matrix["unresolved_critical"] == 0
+
+    fresh = bundle["freshness_report"]
+    assert fresh["schema_version"] == "c0_freshness_report.v1"
+    assert fresh["stale_excluded_count"] >= 1
+    assert "financials_and_growth" in fresh["stale_section_ids"]
+
+    judges_dir = Path(apps_research.__file__).resolve().parent / "engines" / "judges"
+    violations = [
+        py.name
+        for py in sorted(judges_dir.glob("*.py"))
+        if py.name != "__init__.py"
+        and ("def evaluate(" in py.read_text(encoding="utf-8") or "def grade(" in py.read_text(encoding="utf-8"))
+    ]
+    assert violations == []
+

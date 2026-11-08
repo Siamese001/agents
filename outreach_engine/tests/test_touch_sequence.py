@@ -109,3 +109,25 @@ def test_touch_sequence_blocks_forbidden_claims(sample_candidate, sample_opportu
     assert t1.draft.metadata.get("passed") is False
     assert any("compensation" in v.lower() for v in t1.draft.metadata.get("validation_violations", []))
 
+
+def test_touch_2_preserves_grounded_facts_on_retries_and_tournament_signoff(sample_candidate, sample_opportunity):
+    planner = TouchSequencePlanner()
+    t2_retry = planner._generate_touch_2(
+        sample_candidate,
+        sample_opportunity,
+        persona=AudiencePersona.EXECUTIVE_CONTACT,
+        day_offset=4,
+        sequence_id="seq_retry_test",
+        t1_subject="Subject",
+        attempt=1,
+    )
+    assert len(t2_retry.draft.grounded_facts_used) == 1
+
+    seq = planner.plan_sequence(sample_candidate, sample_opportunity)
+    assert "persona_tournament" in seq.metadata
+    assert "requires_human_signoff" in seq.metadata
+    tournament = seq.metadata["persona_tournament"]
+    assert tournament["winner_draft_id"] in {seq.touches[0].draft.draft_id, seq.touches[1].draft.draft_id}
+    assert isinstance(tournament["requires_human_signoff"], bool)
+
+

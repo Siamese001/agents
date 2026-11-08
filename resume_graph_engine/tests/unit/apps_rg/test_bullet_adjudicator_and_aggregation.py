@@ -337,3 +337,178 @@ def test_narrative_upstream_gate_not_applicable_for_non_narrative() -> None:
 
     status, _, _ = evaluate_narrative_upstream_bullets_gate("competencies")
     assert status == "NOT_APPLICABLE"
+
+
+def test_adjudicator_top_two_within_margin_triggers_below_five_percent() -> None:
+    from apps_rg.runtime.judges.bullet_adjudicator import TRIGGER_TOP_TWO_WITHIN_MARGIN
+
+    d_narrow = evaluate_bullet_adjudicator_trigger(
+        section_id="unify_bullets",
+        composite_judges=[_judge(0.95)],
+        x2_failed_gate_ids=[],
+        bullets=[{"bullet_id": "bul_unify_001", "score": 0.92, "runner_up_score": 0.89}],
+    )
+    assert d_narrow.should_escalate is True
+    assert TRIGGER_TOP_TWO_WITHIN_MARGIN in d_narrow.triggers
+
+    d_wide = evaluate_bullet_adjudicator_trigger(
+        section_id="unify_bullets",
+        composite_judges=[_judge(0.95)],
+        x2_failed_gate_ids=[],
+        bullets=[{"bullet_id": "bul_unify_001", "score": 0.94, "runner_up_score": 0.85}],
+    )
+    assert d_wide.should_escalate is False
+    assert TRIGGER_TOP_TWO_WITHIN_MARGIN not in d_wide.triggers
+
+
+def test_socratic_maieutic_loop_and_pct_verifier_reject_unentailed_metrics(tmp_path: Path) -> None:
+    from apps_rg.runtime.reasoning.socratic_maieutic_loop import SocraticMaieuticLoop
+    from apps_rg.runtime.validators.proof_carrying_text_verifier import (
+        build_pct_certificate,
+        verify_pct_certificate,
+    )
+
+    loop = SocraticMaieuticLoop(tmp_path)
+    receipt = loop.execute_loop(
+        raw_fact_text="Scaled enterprise streaming pipeline by 45% across 12 regions.",
+        assertion_id="fact_stream_01",
+        reb_context={"operating_context": "High-throughput event ingestion bottleneck"},
+        reb_bundle_id="reb_unify_01",
+    )
+    assert receipt.pct_verified is True
+    assert receipt.x2_entailment_status == "PASS"
+
+    # Inject an unentailed metric ($99M) not present in source facts -> O8 must fail
+    tampered_bullet = "Under high-throughput contention, delivered $99M savings across 12 regions."
+    tampered_cert = build_pct_certificate(
+        generated_text=tampered_bullet,
+        claimed_fact_ids=["fact_stream_01"],
+        source_facts={"fact_stream_01": "Scaled enterprise streaming pipeline by 45% across 12 regions."},
+    )
+    assert (
+        verify_pct_certificate(
+            generated_text=tampered_bullet,
+            certificate_data=tampered_cert,
+            allowed_fact_ids={"fact_stream_01"},
+            source_facts={"fact_stream_01": "Scaled enterprise streaming pipeline by 45% across 12 regions."},
+        )
+        is False
+    )
+
+
+def test_select_from_bullet_pool_with_claude_emits_runner_up_and_selection_margin() -> None:
+    from apps_rg.runtime.judges.bullet_pool_claude_selector import select_from_bullet_pool_with_claude
+    from apps_rg.runtime.reasoning.bullet_lane_self_consistency import SelfConsistencyPath
+
+    paths = [
+        SelfConsistencyPath(
+            path_index=0,
+            temperature=0.38,
+            runtime_generation_status="REAL_LLM",
+            raw_output="",
+            parsed={
+                "bullets": [
+                    {
+                        "bullet_id": "bul_unify_001",
+                        "bullet_text": "Architected AWS microservices platform, cutting latency by 40%.",
+                        "source_fact_ids": ["bul_unify_001"],
+                    }
+                ],
+                "claim_ledger": [],
+            },
+            parse_error="",
+            provider_result=None,
+        ),
+        SelfConsistencyPath(
+            path_index=1,
+            temperature=0.45,
+            runtime_generation_status="REAL_LLM",
+            raw_output="",
+            parsed={
+                "bullets": [
+                    {
+                        "bullet_id": "bul_unify_001",
+                        "bullet_text": "Directed AWS microservices migration, reducing latency by 40%.",
+                        "source_fact_ids": ["bul_unify_001"],
+                    }
+                ],
+                "claim_ledger": [],
+            },
+            parse_error="",
+            provider_result=None,
+        ),
+    ]
+    res = select_from_bullet_pool_with_claude(
+        section_id="unify_bullets",
+        slot_kind="bullets",
+        paths=paths,
+        required_bullet_ids=("bul_unify_001",),
+        mode="mocked",
+    )
+    sel = res["selections"]["bul_unify_001"]
+    assert "runner_up" in sel
+    assert isinstance(sel["runner_up"], dict)
+    assert sel["runner_up"]["path_index"] == 1
+    assert isinstance(sel["runner_up"]["score"], float)
+    assert "runner_up_score" in sel
+    assert "selection_margin" in sel
+    assert sel["selection_margin"] == pytest.approx(abs(sel["score"] - sel["runner_up_score"]))
+
+
+def test_select_from_bullet_pool_with_claude_parses_explicit_runner_up(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from apps_rg.runtime.judges.bullet_pool_claude_selector import select_from_bullet_pool_with_claude
+    from apps_rg.runtime.judges.executive_summary_x1d import JudgeOutput
+    from apps_rg.runtime.reasoning.bullet_lane_self_consistency import SelfConsistencyPath
+
+    paths = [
+        SelfConsistencyPath(
+            0, 0.38, "REAL_LLM", "",
+            {"bullets": [{"bullet_id": "bul_unify_001", "bullet_text": "Path 0 text", "source_fact_ids": ["bul_unify_001"]}], "claim_ledger": []},
+            "", None,
+        ),
+        SelfConsistencyPath(
+            1, 0.44, "REAL_LLM", "",
+            {"bullets": [{"bullet_id": "bul_unify_001", "bullet_text": "Path 1 text", "source_fact_ids": ["bul_unify_001"]}], "claim_ledger": []},
+            "", None,
+        ),
+    ]
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
+    monkeypatch.setattr(
+        "apps_rg.runtime.judges.bullet_pool_claude_selector._call_anthropic_pool_selector",
+        lambda **_kw: (
+            JudgeOutput(
+                judge_id="x1d_anthropic_claude_bullet_pool_selector",
+                provider_name="Anthropic Claude",
+                provider_key="anthropic_claude",
+                evaluator_mode="MODEL_BACKED",
+                provider_status="MODEL_BACKED_PASS",
+                model_name="claude-test",
+                provider_available=True,
+                provider_blocked=False,
+                exact_provider_error=None,
+                raw_response_ref="",
+                input_hash="abc",
+                pass_=True,
+                rationale="test",
+            ),
+            {
+                "selections": [
+                    {"bullet_id": "bul_unify_001", "path_index": 0, "score": 0.91, "passes": True},
+                    {"bullet_id": "bul_unify_001", "path_index": 1, "score": 0.88, "passes": True},
+                ]
+            },
+        ),
+    )
+    out = select_from_bullet_pool_with_claude(
+        section_id="unify_bullets",
+        slot_kind="bullets",
+        paths=paths,
+        required_bullet_ids=("bul_unify_001",),
+        mode="blocked_if_unavailable",
+    )
+    sel = out["selections"]["bul_unify_001"]
+    assert sel["runner_up"] == {"path_index": 1, "score": 0.88}
+    assert sel["runner_up_score"] == pytest.approx(0.88)
+    assert sel["selection_margin"] == pytest.approx(0.03)
