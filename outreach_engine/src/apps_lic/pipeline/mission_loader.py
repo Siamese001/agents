@@ -106,6 +106,70 @@ class MissionLoader:
         return candidate, opportunity
 
     @staticmethod
+    def _parse_recipient_class(raw: Any, default: RecipientClass) -> RecipientClass:
+        if isinstance(raw, RecipientClass):
+            return raw
+        val = str(raw or "").strip().lower()
+        if not val:
+            return default
+        if "board" in val:
+            return RecipientClass.BOARD_MEMBER
+        if "talent" in val or "recruiter" in val:
+            return RecipientClass.TALENT_PARTNER
+        if "hiring" in val or "manager" in val:
+            return RecipientClass.HIRING_MANAGER
+        if "executive" in val or "peer" in val:
+            return RecipientClass.EXECUTIVE_PEER
+        return default
+
+    @staticmethod
+    def _parse_relationship_distance(raw: Any, default: RelationshipDistance = RelationshipDistance.COLD) -> RelationshipDistance:
+        if isinstance(raw, RelationshipDistance):
+            return raw
+        val = str(raw or "").strip().lower()
+        if not val:
+            return default
+        if "warm" in val or "referral" in val:
+            return RelationshipDistance.WARM_REFERRAL
+        if "former" in val or "colleague" in val:
+            return RelationshipDistance.FORMER_COLLEAGUE
+        if "second" in val:
+            return RelationshipDistance.SECOND_DEGREE
+        return RelationshipDistance.COLD
+
+    @staticmethod
+    def _parse_verified_facts(raw_facts: Any) -> list[CandidateFact]:
+        if not isinstance(raw_facts, (list, tuple)) or not raw_facts:
+            return []
+        parsed: list[CandidateFact] = []
+        for idx, item in enumerate(raw_facts, start=1):
+            if isinstance(item, CandidateFact):
+                parsed.append(item)
+            elif isinstance(item, dict):
+                stmt = str(item.get("statement") or item.get("text") or "").strip()
+                if not stmt:
+                    continue
+                parsed.append(
+                    CandidateFact(
+                        fact_id=str(item.get("fact_id") or f"fact_{idx:02d}"),
+                        category=str(item.get("category") or "achievement"),
+                        statement=stmt,
+                        metric=item.get("metric"),
+                        source_reference=str(item.get("source_reference") or "mission_fixture"),
+                    )
+                )
+            elif isinstance(item, str) and item.strip():
+                parsed.append(
+                    CandidateFact(
+                        fact_id=f"fact_{idx:02d}",
+                        category="achievement",
+                        statement=item.strip(),
+                        source_reference="mission_fixture",
+                    )
+                )
+        return parsed
+
+    @staticmethod
     def load_from_dict(data: Dict[str, Any], default_id: str = "mission_01") -> Tuple[CandidateProfile, TargetOpportunity]:
         # Structure 1: Full mission fixture (e.g. charles_truist_mission.json)
         if "sender_profile" in data and "recipient_profile" in data:
@@ -114,36 +178,38 @@ class MissionLoader:
             jd = data.get("job_description", {})
             default_cand = CandidateProfileLoader.load_default()
 
-            facts = [
-                CandidateFact(
-                    fact_id="fact_01",
-                    category="architecture",
-                    statement="architected layered agentic systems (L0 routing through L6 observability) with AST dependency governance",
-                    metric="L0-L6 AST",
-                    source_reference="canonical_architecture_profile",
-                ),
-                CandidateFact(
-                    fact_id="fact_02",
-                    category="delivery",
-                    statement="delivered multi-MCP enterprise agentic tooling for frontline banking care operations",
-                    metric="Enterprise Care Centers",
-                    source_reference="canonical_care_profile",
-                ),
-                CandidateFact(
-                    fact_id="fact_scale_01",
-                    category="scale",
-                    statement="scaled distributed enterprise platform processing $4.2B annual volume with 99.995% reliability",
-                    metric="$4.2B / 99.995%",
-                    source_reference="canonical_platform_profile",
-                ),
-                CandidateFact(
-                    fact_id="fact_efficiency_04",
-                    category="efficiency",
-                    statement="reduced infrastructure operating expenditures by 38% through governed platform automation",
-                    metric="38%",
-                    source_reference="canonical_efficiency_profile",
-                ),
-            ]
+            facts = MissionLoader._parse_verified_facts(sp.get("verified_facts") or data.get("verified_facts"))
+            if not facts:
+                facts = [
+                    CandidateFact(
+                        fact_id="fact_01",
+                        category="architecture",
+                        statement="architected layered agentic systems (L0 routing through L6 observability) with AST dependency governance",
+                        metric="L0-L6 AST",
+                        source_reference="canonical_architecture_profile",
+                    ),
+                    CandidateFact(
+                        fact_id="fact_02",
+                        category="delivery",
+                        statement="delivered multi-MCP enterprise agentic tooling for frontline banking care operations",
+                        metric="Enterprise Care Centers",
+                        source_reference="canonical_care_profile",
+                    ),
+                    CandidateFact(
+                        fact_id="fact_scale_01",
+                        category="scale",
+                        statement="scaled distributed enterprise platform processing $4.2B annual volume with 99.995% reliability",
+                        metric="$4.2B / 99.995%",
+                        source_reference="canonical_platform_profile",
+                    ),
+                    CandidateFact(
+                        fact_id="fact_efficiency_04",
+                        category="efficiency",
+                        statement="reduced infrastructure operating expenditures by 38% through governed platform automation",
+                        metric="38%",
+                        source_reference="canonical_efficiency_profile",
+                    ),
+                ]
 
             candidate = CandidateProfile(
                 candidate_id=f"cand_{default_id}",
@@ -152,7 +218,7 @@ class MissionLoader:
                 current_title=sp.get("current_title") or default_cand.current_title,
                 executive_summary=sp.get("background") or default_cand.executive_summary,
                 verified_facts=facts,
-                key_competencies=["Agentic AI", "Enterprise Architecture", "LLM Guardrails", "HITL Systems", "Cloud Transformation"],
+                key_competencies=list(sp.get("key_competencies") or ["Agentic AI", "Enterprise Architecture", "LLM Guardrails", "HITL Systems", "Cloud Transformation"]),
                 linkedin_url=sp.get("linkedin_url") or default_cand.linkedin_url,
                 github_url=sp.get("github_url") or default_cand.github_url,
                 phone=sp.get("phone") or default_cand.phone,
@@ -163,21 +229,30 @@ class MissionLoader:
             company_name = rp.get("company") or jd.get("company") or "Target Company"
             company_context = jd.get("company_context", "")
 
-            priorities = []
+            priorities = list(jd.get("strategic_priorities") or data.get("strategic_priorities") or [])
             if jd.get("responsibilities"):
                 priorities.extend(jd["responsibilities"])
             if jd.get("summary"):
                 priorities.append(jd["summary"])
 
+            r_class = MissionLoader._parse_recipient_class(
+                rp.get("recipient_class") or data.get("recipient_class"),
+                default=RecipientClass.EXECUTIVE_PEER,
+            )
+            rel_dist = MissionLoader._parse_relationship_distance(
+                rp.get("relationship_distance") or data.get("relationship_distance"),
+                default=RelationshipDistance.COLD,
+            )
+
             opportunity = TargetOpportunity(
                 opportunity_id=f"opp_{default_id}",
                 company_name=company_name,
                 role_title=jd.get("title", "Head of Enterprise Strategy"),
-                industry="Banking & Financial Services",
+                industry=str(jd.get("industry") or rp.get("industry") or "Banking & Financial Services"),
                 recipient_name=rp.get("name", "Executive Partner"),
                 recipient_title=rp.get("title", "Executive Leader"),
-                recipient_class=RecipientClass.EXECUTIVE_PEER,
-                relationship_distance=RelationshipDistance.COLD,
+                recipient_class=r_class,
+                relationship_distance=rel_dist,
                 strategic_priorities=priorities,
                 briefing_text=company_context,
             )
@@ -198,20 +273,27 @@ class MissionLoader:
             recipient_title = data.get("recipient_title", "Head of Engineering")
             lower_title = recipient_title.lower()
             if any(k in lower_title for k in ("chief", "caio", "cio", "cto", "c-level", "evp", "svp")):
-                r_class = RecipientClass.EXECUTIVE_PEER
+                default_rc = RecipientClass.EXECUTIVE_PEER
             elif "talent" in lower_title or "recruiter" in lower_title:
-                r_class = RecipientClass.TALENT_PARTNER
+                default_rc = RecipientClass.TALENT_PARTNER
+            elif "board" in lower_title:
+                default_rc = RecipientClass.BOARD_MEMBER
             else:
-                r_class = RecipientClass.HIRING_MANAGER
+                default_rc = RecipientClass.HIRING_MANAGER
+
+            r_class = MissionLoader._parse_recipient_class(data.get("recipient_class"), default=default_rc)
+            rel_dist = MissionLoader._parse_relationship_distance(data.get("relationship_distance"), default=RelationshipDistance.COLD)
 
             default_cand = CandidateProfileLoader.load_default()
-            candidate = CandidateProfileLoader.load_default(
-                overrides={
-                    "candidate_id": f"cand_{default_id}",
-                    "full_name": data.get("candidate_name") or default_cand.full_name,
-                    "target_title": data.get("target_role") or default_cand.target_title,
-                }
-            )
+            custom_facts = MissionLoader._parse_verified_facts(data.get("verified_facts"))
+            overrides: dict[str, Any] = {
+                "candidate_id": f"cand_{default_id}",
+                "full_name": data.get("candidate_name") or default_cand.full_name,
+                "target_title": data.get("candidate_title") or data.get("target_title") or data.get("target_role") or default_cand.target_title,
+            }
+            if custom_facts:
+                overrides["verified_facts"] = custom_facts
+            candidate = CandidateProfileLoader.load_default(overrides=overrides)
             opportunity = TargetOpportunity(
                 opportunity_id=f"opp_{default_id}",
                 company_name=data.get("recipient_company", "Target Company"),
@@ -220,7 +302,7 @@ class MissionLoader:
                 recipient_name=data.get("recipient_name", "Hiring Leader"),
                 recipient_title=recipient_title,
                 recipient_class=r_class,
-                relationship_distance=RelationshipDistance.COLD,
+                relationship_distance=rel_dist,
                 strategic_priorities=priorities,
                 briefing_text=freeform,
             )

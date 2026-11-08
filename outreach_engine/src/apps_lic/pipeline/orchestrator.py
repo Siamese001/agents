@@ -24,6 +24,7 @@ from apps_lic.domain.validators import (
     ForbiddenClaimsValidator,
     GroundingValidator,
     MarkdownLinkValidator,
+    OutboundPrivacyValidator,
     QuestionEndingValidator,
     SpamTriggerValidator,
     SubordinateToneValidator,
@@ -54,6 +55,7 @@ class OutreachOrchestrator:
         self.tone_validator = SubordinateToneValidator()
         self.forbidden_validator = ForbiddenClaimsValidator()
         self.unsupported_personalization_validator = UnsupportedPersonalizationValidator()
+        self.privacy_validator = OutboundPrivacyValidator()
         self.judge = RubricJudgeEvaluator()
 
     def resolve_opportunity_briefing(
@@ -88,6 +90,10 @@ class OutreachOrchestrator:
         if not priorities and resolution.strategic_priorities:
             priorities = list(resolution.strategic_priorities)
 
+        ev_items = list(opportunity.evidence_items) or list(resolution.metadata.get("evidence_items", []))
+        if not ev_items and resolution.is_verified and priorities:
+            ev_items = list(priorities)
+
         return TargetOpportunity(
             opportunity_id=opportunity.opportunity_id,
             company_name=opportunity.company_name,
@@ -100,7 +106,7 @@ class OutreachOrchestrator:
             strategic_priorities=priorities,
             briefing_text=resolution.briefing_text,
             research_digest=resolution.digest,
-            evidence_items=list(resolution.metadata.get("evidence_items", [])),
+            evidence_items=ev_items,
             sealed_resolution=resolution.to_dict(),
         )
 
@@ -132,6 +138,11 @@ class OutreachOrchestrator:
             force_fresh=force_fresh,
         )
 
+        upgraded_from: str | None = None
+        if opp.recipient_class == RecipientClass.BOARD_MEMBER and channel == ChannelType.LINKEDIN_CONNECTION:
+            upgraded_from = channel.value
+            channel = ChannelType.LINKEDIN_INMAIL
+
         # Resolve audience persona
         if audience_persona is None:
             if opp.recipient_class == RecipientClass.TALENT_PARTNER:
@@ -151,6 +162,15 @@ class OutreachOrchestrator:
             else:
                 signature = get_executive_signature_block(candidate)
 
+        sealed_ev_count = int((opp.sealed_resolution or {}).get("evidence_count", 0))
+        res_meta: dict[str, Any] = {
+            "resolution_source": opp.sealed_resolution.get("resolution_source") if opp.sealed_resolution else "none",
+            "research_digest": opp.research_digest,
+            "evidence_count": max(len(opp.evidence_items), sealed_ev_count),
+        }
+        if upgraded_from is not None:
+            res_meta["channel_upgraded_from"] = upgraded_from
+
         draft = OutreachMessageDraft(
             draft_id=f"draft_{uuid.uuid4().hex[:8]}",
             channel=channel,
@@ -159,11 +179,7 @@ class OutreachOrchestrator:
             signature_block=signature,
             audience_persona=persona,
             grounded_facts_used=fact_ids,
-            research_metadata={
-                "resolution_source": opp.sealed_resolution.get("resolution_source") if opp.sealed_resolution else "none",
-                "research_digest": opp.research_digest,
-                "evidence_count": len(opp.evidence_items),
-            },
+            research_metadata=res_meta,
             metadata={
                 "context_keys": list(context.keys()),
                 "template_id": context.get("template_id"),
@@ -356,6 +372,10 @@ class OutreachOrchestrator:
         )
         violations.extend(up_viols)
 
+        # 10. Outbound privacy (secrets, internal strategy markers, billing rates)
+        priv_valid, priv_viols = self.privacy_validator.validate(draft.body)
+        violations.extend(priv_viols)
+
         hard_passed = len(violations) == 0
         return ValidationResult(
             is_valid=hard_passed,
@@ -371,6 +391,7 @@ class OutreachOrchestrator:
                 "link_score": 1.0 if link_valid else 0.0,
                 "tone_score": 1.0 if tone_valid else 0.0,
                 "forbidden_claims_score": 1.0 if fc_valid else 0.0,
+                "privacy_score": 1.0 if priv_valid else 0.0,
                 "unsupported_personalization_score": 1.0 if up_valid else 0.0,
             },
         )

@@ -34,13 +34,25 @@ def run_canonical_apps_lic_spine(
     orchestrator = OutreachOrchestrator()
 
     lead = raw_ingress.get("lead_profile") or {}
-    rc_str = str(raw_ingress.get("recipient_class") or "recruiter").lower()
-    if "recruiter" in rc_str or "talent" in rc_str:
+    rc_str = str(raw_ingress.get("recipient_class") or lead.get("recipient_class") or "recruiter").lower()
+    if "board" in rc_str:
+        recipient_class = RecipientClass.BOARD_MEMBER
+    elif "recruiter" in rc_str or "talent" in rc_str:
         recipient_class = RecipientClass.TALENT_PARTNER
     elif "executive" in rc_str or "peer" in rc_str:
         recipient_class = RecipientClass.EXECUTIVE_PEER
     else:
         recipient_class = RecipientClass.HIRING_MANAGER
+
+    rd_str = str(raw_ingress.get("relationship_distance") or lead.get("relationship_distance") or "cold").lower()
+    if "warm" in rd_str or "referral" in rd_str:
+        rel_dist = RelationshipDistance.WARM_REFERRAL
+    elif "former" in rd_str or "colleague" in rd_str:
+        rel_dist = RelationshipDistance.FORMER_COLLEAGUE
+    elif "second" in rd_str:
+        rel_dist = RelationshipDistance.SECOND_DEGREE
+    else:
+        rel_dist = RelationshipDistance.COLD
 
     ch_str = str(raw_ingress.get("channel") or "inmail").lower()
     if "connect" in ch_str:
@@ -60,6 +72,22 @@ def run_canonical_apps_lic_spine(
         or "Engineering Leader"
     )
 
+    raw_priorities = raw_ingress.get("strategic_priorities") or lead.get("strategic_priorities") or []
+    priorities = [str(p).strip() for p in raw_priorities if str(p).strip()] if isinstance(raw_priorities, (list, tuple)) else []
+
+    from apps_lic.domain.models import AudiencePersona
+
+    persona: AudiencePersona | None = None
+    ap_raw = raw_ingress.get("audience_persona")
+    if isinstance(ap_raw, AudiencePersona):
+        persona = ap_raw
+    elif isinstance(ap_raw, str) and ap_raw.strip():
+        ap_lower = ap_raw.strip().lower()
+        if "recruiter" in ap_lower:
+            persona = AudiencePersona.EXECUTIVE_RECRUITER
+        elif "contact" in ap_lower or "executive" in ap_lower:
+            persona = AudiencePersona.EXECUTIVE_CONTACT
+
     candidate = CandidateProfileLoader.load_default(
         overrides={
             "candidate_id": str(raw_ingress.get("candidate_id") or "cand_live"),
@@ -71,16 +99,19 @@ def run_canonical_apps_lic_spine(
         company_name=str(raw_ingress.get("company") or "Target Company"),
         role_title=effective_role,
         industry=str(raw_ingress.get("industry") or "Enterprise Technology"),
-        recipient_name=str(lead.get("name") or "Jordan"),
-        recipient_title=str(lead.get("title") or "Talent Partner"),
+        recipient_name=str(lead.get("name") or raw_ingress.get("recipient_name") or "Jordan"),
+        recipient_title=str(lead.get("title") or raw_ingress.get("recipient_title") or "Talent Partner"),
         recipient_class=recipient_class,
-        briefing_text=str(raw_ingress.get("manual_brief") or ""),
+        relationship_distance=rel_dist,
+        strategic_priorities=priorities,
+        briefing_text=str(raw_ingress.get("manual_brief") or raw_ingress.get("briefing_text") or ""),
     )
 
     draft, val = orchestrator.generate_single_draft(
         candidate,
         opportunity,
         channel,
+        audience_persona=persona,
         artifact_dir=artifact_dir,
     )
 

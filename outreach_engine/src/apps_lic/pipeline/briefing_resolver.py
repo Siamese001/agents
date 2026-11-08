@@ -149,25 +149,41 @@ class GovernedBriefingResolver:
             return None
         try:
             payload = json.loads(path.read_text(encoding="utf-8"))
+            if not isinstance(payload, dict):
+                return None
             created_at = float(payload.get("created_at") or 0.0)
             ttl = float(payload.get("ttl_seconds") or cls.DEFAULT_CACHE_TTL_SECONDS)
-            if (time.time() - created_at) > ttl:
+            if created_at <= 0.0 or (time.time() - created_at) > ttl:
                 path.unlink(missing_ok=True)
                 return None
             meta = payload.get("metadata") if isinstance(payload.get("metadata"), dict) else {}
-            if meta.get("is_verified") is False:
+            if meta.get("is_verified") is not True:
+                return None
+            briefing_text = str(payload.get("briefing_text") or "").strip()
+            digest = str(payload.get("digest") or "").strip()
+            if not briefing_text or not digest.startswith("sha256:") or len(digest) != 71:
+                return None
+            computed = "sha256:" + hashlib.sha256(briefing_text.encode("utf-8")).hexdigest()
+            if digest != computed:
+                clean_b, receipt = _sanitize_briefing_content(briefing_text)
+                if digest != receipt.clean_digest:
+                    return None
+                briefing_text = clean_b
+            confidence = float(meta.get("confidence_score", 0.0))
+            evidence_count = int(meta.get("evidence_count", 0))
+            if confidence <= 0.0 or evidence_count <= 0:
                 return None
             return {
-                "briefing_text": str(payload.get("briefing_text") or ""),
-                "digest": str(payload.get("digest") or ""),
-                "confidence_score": float(meta.get("confidence_score", 1.0)),
-                "evidence_count": int(meta.get("evidence_count", 1)),
+                "briefing_text": briefing_text,
+                "digest": digest,
+                "confidence_score": confidence,
+                "evidence_count": evidence_count,
                 "airlock_sanitized": bool(meta.get("airlock_sanitized", True)),
                 "strategic_priorities": tuple(meta.get("strategic_priorities") or ()),
                 "is_verified": True,
                 "timestamp": created_at,
             }
-        except (OSError, ValueError, TypeError):
+        except (OSError, ValueError, TypeError, RuntimeError):
             return None
 
     @classmethod
@@ -232,7 +248,7 @@ class GovernedBriefingResolver:
                                 confidence_score=float(cached.get("confidence_score", 1.0)),
                                 evidence_count=int(cached.get("evidence_count", 1)),
                                 airlock_sanitized=cached["airlock_sanitized"],
-                                strategic_priorities=priorities,
+                                strategic_priorities=tuple(cached.get("strategic_priorities", priorities)),
                                 is_verified=bool(cached.get("is_verified", True)),
                                 metadata=dict(cached.get("metadata", {})),
                             )
@@ -240,6 +256,12 @@ class GovernedBriefingResolver:
 
             # Sanitize all manual input through the Adversarial Injection Airlock
             clean_brief, receipt = _sanitize_briefing_content(raw_content, trace_id=trace_id)
+            extracted_from_raw = False
+            if not priorities and clean_brief:
+                from apps_lic.integrations.research_boundary_policy import _extract_priorities_from_text
+
+                priorities = tuple(_extract_priorities_from_text(clean_brief))
+                extracted_from_raw = bool(priorities)
             is_verified = bool(clean_brief)
 
             res = SealedBriefingResolution(
@@ -254,7 +276,8 @@ class GovernedBriefingResolver:
                 strategic_priorities=priorities,
                 is_verified=is_verified,
                 metadata={
-                    "source": "manual_fixture",
+                    "source": "RAW_TEXT_EXTRACTION" if extracted_from_raw else "manual_fixture",
+                    "extraction_mode": "RAW_TEXT_EXTRACTION" if extracted_from_raw else "EXPLICIT_FIXTURE",
                     "signals_flagged": list(receipt.injection_signals_detected),
                     "is_verified": is_verified,
                 },
@@ -402,13 +425,15 @@ class GovernedBriefingResolver:
                     dispatch_res.resolution_source != "HERMETIC_FALLBACK"
                     and dispatch_res.confidence_score > 0.0
                 )
+                ev_count = int(dispatch_res.research_evidence_count)
+                ev_items = [str(item.get("label") or item.get("source_id") or "") for item in dispatch_res.evidence_lineage if isinstance(item, dict)]
                 cls._save_to_cache(
                     cache_key,
                     {
                         "briefing_text": clean_brief,
                         "digest": receipt.clean_digest,
                         "confidence_score": dispatch_res.confidence_score,
-                        "evidence_count": dispatch_res.research_evidence_count,
+                        "evidence_count": ev_count,
                         "airlock_sanitized": receipt.sanitized,
                         "strategic_priorities": priorities,
                         "research_artifact_dir": dispatch_res.research_artifact_dir,
@@ -423,7 +448,7 @@ class GovernedBriefingResolver:
                     company_name=company_name,
                     target_role=target_role,
                     confidence_score=dispatch_res.confidence_score,
-                    evidence_count=dispatch_res.research_evidence_count,
+                    evidence_count=ev_count,
                     airlock_sanitized=receipt.sanitized,
                     strategic_priorities=priorities,
                     producer_handoff_ref=dispatch_res.result_hash,
@@ -434,6 +459,7 @@ class GovernedBriefingResolver:
                         "signals_flagged": list(receipt.injection_signals_detected),
                         "duration_ms": dispatch_res.dispatch_duration_ms,
                         "is_verified": is_verified,
+                        "evidence_items": ev_items or list(priorities),
                     },
                 )
             else:

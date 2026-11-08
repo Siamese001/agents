@@ -481,6 +481,8 @@ class ExecutiveOutreachJudgePanel:
             "link_score": 1.0 if link_valid else 0.0,
             "tone_score": 1.0 if tone_valid else 0.0,
             "forbidden_claims_score": 1.0 if fc_valid else 0.0,
+            "privacy_score": 1.0 if priv_valid else 0.0,
+            "unsupported_personalization_score": 1.0 if up_valid else 0.0,
         }
 
         lens_scores = {
