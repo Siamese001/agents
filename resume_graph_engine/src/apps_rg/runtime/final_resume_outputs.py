@@ -686,11 +686,15 @@ def emit_final_resume_product_outputs(
     return contract
 
 
-def emit_csuite_five_section_outputs(run_root: Path, *, target_company: str, target_role: str, repo_root: Path | None = None) -> dict[str, Any]:
-    """Emit and verify the 5-section Seven-Figure C-Suite text and DOCX outputs."""
+def emit_csuite_five_section_outputs(run_root: Path, *, target_company: str, target_role: str, jd_text: str = "", briefing_text: str = "", repo_root: Path | None = None) -> dict[str, Any]:
+    """Emit and verify the 5-section Seven-Figure C-Suite text and DOCX outputs with live graph skill selection."""
+    from apps_rg.runtime.sections.graph_role_episode_selector import build_selected_graph_evidence_plan_for_section
+
     root = Path(run_root).resolve()
     root.mkdir(parents=True, exist_ok=True)
     base = _load_base_resume(repo_root)
+    graph_plan, _, _ = build_selected_graph_evidence_plan_for_section(repo_root=repo_root or REPO_ROOT, section_id="competencies", target_role=target_role, jd_text=jd_text or f"{target_company} {target_role}", briefing_text=briefing_text)
+    base["_selected_graph_evidence_plan"] = graph_plan
     text = flatten_csuite_five_section_resume_to_text(base, target_company=target_company, target_role=target_role)
     txt_path, docx_path = root / "CSUITE_FINAL_RESUME.txt", root / "outputs" / "csuite_resume.docx"
     txt_path.write_text(text, encoding="utf-8")
@@ -700,6 +704,7 @@ def emit_csuite_five_section_outputs(run_root: Path, *, target_company: str, tar
     report = {
         "schema_version": "apps_rg.csuite_five_section_output.v1", "generated_at_utc": _utc_now(),
         "target_company": target_company, "target_role": target_role, "status": "PASS" if ok else "FAIL",
+        "graph_evidence_plan": {"target_role_profile": graph_plan.get("target_role_profile"), "selected_competency_families": graph_plan.get("selected_competency_families"), "selected_skill_ids": graph_plan.get("selected_skill_ids"), "plan_digest": graph_plan.get("plan_digest")},
         "text_artifact": _artifact(txt_path, root), "docx_artifact": _artifact(docx_path, root),
         "text_validation": text_validation, "docx_validation": docx_validation,
     }

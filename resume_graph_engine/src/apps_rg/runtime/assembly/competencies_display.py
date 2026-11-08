@@ -145,7 +145,10 @@ def csuite_capability_display_rows(
     """Return the 6 flagship-absorbed C-suite capability categories for Section 2, with JD-aware graph bundle routing."""
     co_low = str(target_company or "").strip().lower()
     role_low = str(target_role or "").strip().lower()
-    if "brown" in co_low or ("strategy" in role_low and "innovation" in role_low):
+    graph_plan = base_or_snapshot.get("_selected_graph_evidence_plan") if isinstance(base_or_snapshot, dict) else None
+    profile = str((graph_plan or {}).get("target_role_profile") or "").strip()
+    families = set((graph_plan or {}).get("selected_competency_families") or [])
+    if profile == "insurance_it_strategy" or "brown" in co_low or ("strategy" in role_low and "innovation" in role_low):
         return [
             (
                 "Enterprise Architecture & IT Strategy Modernization",
@@ -172,7 +175,7 @@ def csuite_capability_display_rows(
                 "AWS, Azure, and Databricks co-sell alliances ($15M incremental revenue), executive client advisory ($30M transformation portfolios), and board-level capital allocation.",
             ),
         ]
-    if "aig" in co_low or ("agentic" in role_low and "global head" in role_low):
+    if profile == "insurance_agentic_ai" or ("insurance_domain_modernization" in families and "agentic_platforms" in families) or "aig" in co_low or ("agentic" in role_low and "global head" in role_low):
         return [
             (
                 "Governed Agentic AI & Decision Intelligence",

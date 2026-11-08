@@ -2415,7 +2415,7 @@ def run_csuite_five_section_jd_e2e(
     _write_text(run_dir / "target_jd.txt", jd_text)
     if briefing_text:
         _write_text(run_dir / "target_briefing.md", briefing_text)
-    report = emit_csuite_five_section_outputs(run_dir, target_company=target_company, target_role=target_role, repo_root=repo)
+    report = emit_csuite_five_section_outputs(run_dir, target_company=target_company, target_role=target_role, jd_text=jd_text, briefing_text=briefing_text, repo_root=repo)
     report.update({"jd_ref": jd_ref, "jd_sha256": _sha256_text(jd_text), "briefing_loaded": bool(briefing_text), "artifact_dir": str(run_dir)})
     _write_json(run_dir / "csuite_jd_run_summary.json", report)
     return report
