@@ -9,6 +9,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import re
 import time
 import uuid
 from dataclasses import dataclass
@@ -202,6 +203,9 @@ class AppsResearchBridge:
         resolution_source = "WEB_RESEARCH"
         raw: Any = None
         try:
+            def _on_attempt(attempt_idx: int) -> None:
+                self.cumulative_cost_usd += cost_per_call
+
             raw = execute_bounded_live_research(
                 invoke_fn=lambda: self._invoke_apps_research(
                     company_name=company_name,
@@ -215,19 +219,20 @@ class AppsResearchBridge:
                 ),
                 timeout_seconds=effective_timeout,
                 max_retries=effective_retries,
+                cost_per_call_usd=cost_per_call,
+                cost_limit_usd=effective_cost_limit,
+                cumulative_cost_usd=self.cumulative_cost_usd,
+                on_attempt_fn=_on_attempt,
             )
             self.live_invocation_count += 1
-            self.cumulative_cost_usd += cost_per_call
         except TimeoutError as exc:
             self.failed_invocation_count += 1
-            self.cumulative_cost_usd += cost_per_call
             _log.warning("Live apps_research timed out: %s", exc)
             return build_timeout_result(
                 run_id=r_id, trace_id=bridge_trace_id, request_id=req_id, error=exc, t_start=t_start
             )
         except Exception as exc:  # noqa: BLE001
             self.failed_invocation_count += 1
-            self.cumulative_cost_usd += cost_per_call
             _log.info("Live apps_research invocation bypassed or failed: %s", exc)
 
         # FALLBACK RESOLUTION: If live invocation did not produce a brief
@@ -389,29 +394,15 @@ class AppsResearchBridge:
                 jd_text = str(job_description_text or "")
                 eff_role = str(job_title or "Technology Leadership").strip()
                 try:
-                    from apps_research.integrations.apps_rg_handoff import (
-                        persist_apps_rg_targeting_brief_artifacts,
-                    )
-
+                    from apps_research.integrations.apps_rg_handoff import persist_apps_rg_targeting_brief_artifacts
                     artifact_bundle = persist_apps_rg_targeting_brief_artifacts(
-                        record=raw,
-                        target_company=company_name,
-                        target_role=eff_role,
-                        jd_text=jd_text,
-                        runs_root=self._artifact_runs_root,
-                        mode="brief",
-                        depth_profile="COMPANY_BRIEF_STANDARD",
+                        record=raw, target_company=company_name, target_role=eff_role, jd_text=jd_text,
+                        runs_root=self._artifact_runs_root, mode="brief", depth_profile="COMPANY_BRIEF_STANDARD",
                     )
                 except ModuleNotFoundError:
-                    from apps_lic.integrations.research_bridge_support import (
-                        persist_standalone_outreach_research_bundle,
-                    )
-
+                    from apps_lic.integrations.research_bridge_support import persist_standalone_outreach_research_bundle
                     artifact_bundle = persist_standalone_outreach_research_bundle(
-                        record=raw,
-                        target_company=company_name,
-                        target_role=eff_role,
-                        jd_text=jd_text,
+                        record=raw, target_company=company_name, target_role=eff_role, jd_text=jd_text,
                         runs_root=self._artifact_runs_root,
                     )
 
@@ -420,6 +411,12 @@ class AppsResearchBridge:
                 compat_brief = artifact_bundle.run_dir / "company_brief.md"
                 if not compat_brief.is_file() and artifact_bundle.briefing_path.is_file():
                     compat_brief.write_bytes(artifact_bundle.briefing_path.read_bytes())
+                cm_p, u0_p = artifact_bundle.run_dir / "bundle_commit_manifest.json", artifact_bundle.run_dir / "apps_research_u0_receipt.json"
+                if cm_p.is_file() and u0_p.is_file():
+                    cm_d = json.loads(cm_p.read_text(encoding="utf-8"))
+                    if not cm_d.get("u0_receipt_sha256"):
+                        cm_d["u0_receipt_sha256"] = "sha256:" + hashlib.sha256(u0_p.read_bytes()).hexdigest()
+                        cm_p.write_text(json.dumps(cm_d, indent=2) + "\n", encoding="utf-8")
                 metadata_digest = artifact_bundle.result_metadata_digest
                 manifest_digest = artifact_bundle.bundle_manifest_digest
                 brief_sha = artifact_bundle.brief_sha256
@@ -497,7 +494,12 @@ class AppsResearchBridge:
         envelope: dict[str, Any] = {}
 
         if self._artifact_runs_root is not None:
-            run_dir = self._artifact_runs_root / r_id
+            clean_r_id = re.sub(r"[^a-zA-Z0-9_\-\.]", "_", str(r_id or "run")).strip("./")
+            if not clean_r_id:
+                clean_r_id = f"run_{int(time.time())}"
+            run_dir = (self._artifact_runs_root / clean_r_id).resolve()
+            if not run_dir.is_relative_to(self._artifact_runs_root.resolve()):
+                run_dir = self._artifact_runs_root / f"run_sanitized_{int(time.time())}"
             run_dir.mkdir(parents=True, exist_ok=True)
             briefing_file = run_dir / "company_brief.md"
             briefing_file.write_bytes(brief_bytes)

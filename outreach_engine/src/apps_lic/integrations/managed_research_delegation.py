@@ -80,6 +80,7 @@ class OutreachBriefingReady:
     result_metadata_digest: str = ""
     bundle_manifest_digest: str = ""
     resolution_source: str = "WEB_RESEARCH"
+    is_verified: bool = True
 
 
 @dataclass(frozen=True)
@@ -107,6 +108,7 @@ def _is_within(path: Path, root: Path) -> bool:
 def _validate_persisted_research_artifacts(
     result: ResearchResult,
     request: RequestForOutreachBriefing | None = None,
+    bridge: Any = None,
 ) -> tuple[bool, str, dict[str, str]]:
     """Verify that all authentic canonical producer artifacts exist, bind to execution, and pass verification."""
     raw_dir = str(result.research_artifact_dir or "").strip()
@@ -115,6 +117,14 @@ def _validate_persisted_research_artifacts(
     run_dir = Path(raw_dir)
     if not run_dir.is_dir():
         return False, f"research_artifact_dir is not a directory: {raw_dir}", {}
+    if ".." in Path(raw_dir).parts or ".." in raw_dir:
+        return False, f"research_artifact_dir contains directory traversal: {raw_dir}", {}
+    req_root = getattr(request, "artifact_runs_root", None) or getattr(request, "_artifact_runs_root", None)
+    bridge_root = getattr(bridge, "artifact_runs_root", None) or getattr(bridge, "_artifact_runs_root", None)
+    allowed_roots = [Path(r) for r in (req_root, bridge_root) if r]
+    if allowed_roots and not any(_is_within(run_dir, r) for r in allowed_roots):
+        return False, f"research_artifact_dir escapes allowed runs roots: {run_dir}", {}
+
     raw_brief = str(result.briefing_artifact_path or "").strip()
     if not raw_brief:
         return False, "missing briefing_artifact_path", {}
@@ -189,14 +199,17 @@ def _validate_persisted_research_artifacts(
         return False, f"bundle_commit_manifest status is not COMMITTED (got {commit_manifest.get('status')})", {}
     if commit_manifest.get("authority_contract_id") != "apps_research_rg_e2e_authority":
         return False, f"bundle_commit_manifest authority_contract_id invalid: {commit_manifest.get('authority_contract_id')}", {}
-    if commit_manifest.get("u0_receipt_sha256") and commit_manifest.get("u0_receipt_sha256") != exact_u0_sha:
-        return False, "bundle_commit_manifest u0_receipt_sha256 mismatch with persisted u0 receipt", {}
+    if not commit_manifest.get("u0_receipt_sha256") or commit_manifest.get("u0_receipt_sha256") != exact_u0_sha:
+        return False, "bundle_commit_manifest missing or invalid u0_receipt_sha256 matching persisted u0 receipt", {}
 
     # 3. Authentic Handoff v2 Envelope Validation
     if persisted_handoff.get("schema_version") != "apps_research.apps_rg_handoff.v2":
         return False, f"persisted apps_research handoff is not v2 (got {persisted_handoff.get('schema_version')})", {}
     if persisted_handoff.get("authority_contract_id") != "apps_research_rg_e2e_authority":
         return False, f"persisted apps_research handoff authority_contract_id invalid: {persisted_handoff.get('authority_contract_id')}", {}
+    handoff_u0_sha = persisted_handoff.get("artifacts", {}).get("u0_receipt_json", {}).get("sha256")
+    if handoff_u0_sha and handoff_u0_sha != exact_u0_sha:
+        return False, "persisted apps_research handoff u0_receipt_json sha256 mismatch", {}
     if persisted_handoff != (result.apps_research_handoff_envelope or {}):
         return False, "bridge handoff differs from persisted producer manifest", {}
 
@@ -243,8 +256,9 @@ def _validate_persisted_research_artifacts(
     if request is not None:
         target_co = str(identity.get("target_company") or identity.get("company_name") or "").strip().lower()
         req_co = str(request.company_name or "").strip().lower()
-        if req_co and target_co and req_co != target_co:
-            return False, f"research identity company mismatch: request={req_co!r} vs persisted={target_co!r}", {}
+        if req_co:
+            if not target_co or req_co != target_co:
+                return False, f"research identity company mismatch: request={req_co!r} vs persisted={target_co!r}", {}
 
         def _norm_role(val: str) -> str:
             cleaned = re.sub(r"[^a-z0-9]+", " ", val.lower())
@@ -253,8 +267,10 @@ def _validate_persisted_research_artifacts(
 
         target_role = str(identity.get("target_role") or "").strip()
         req_role = str(request.job_title or "").strip()
-        if req_role and target_role and _norm_role(req_role) != _norm_role(target_role):
-            return False, f"research identity role mismatch: request={req_role!r} vs persisted={target_role!r}", {}
+        if req_role:
+            if not target_role or _norm_role(req_role) != _norm_role(target_role):
+                return False, f"research identity role mismatch: request={req_role!r} vs persisted={target_role!r}", {}
+
 
         def _norm_trace(val: str) -> str:
             parts = str(val or "").strip().split(":")
@@ -424,25 +440,27 @@ def dispatch_outreach_research_briefing(
 
     # Validate evidence items source integrity
     for ev in research_result.evidence_items:
-        ev_uri = getattr(ev, "uri", "") or ""
+        ev_uri = getattr(ev, "uri", "") or (ev.get("uri", "") if isinstance(ev, dict) else "")
+        source_id = getattr(ev, "source_id", None) or (ev.get("source_id", "unknown") if isinstance(ev, dict) else "unknown")
         if not str(ev_uri).strip():
             return ResearchDispatchFailure(
                 request_id=request.request_id,
                 run_id=request.run_id,
                 trace_id=request.trace_id,
                 r5_reason_code=ResearchFailureReason.APPS_RESEARCH_FAILED.value,
-                detail=f"Evidence item {getattr(ev, 'source_id', 'unknown')} lacks source URI",
+                detail=f"Evidence item {source_id} lacks source URI",
                 dispatch_duration_ms=_utc_ms() - t_start,
             )
 
-    if research_result.confidence_score < request.min_confidence_threshold:
+    res_conf = float(research_result.confidence_score or 0.0) if research_result.confidence_score is not None else 0.0
+    if res_conf < request.min_confidence_threshold:
         return ResearchDispatchFailure(
             request_id=request.request_id,
             run_id=request.run_id,
             trace_id=request.trace_id,
             r5_reason_code=ResearchFailureReason.APPS_RESEARCH_WEAK_SUPPORT.value,
             detail=(
-                f"confidence_score={research_result.confidence_score:.3f} "
+                f"confidence_score={res_conf:.3f} "
                 f"below threshold={request.min_confidence_threshold:.3f}"
             ),
             dispatch_duration_ms=_utc_ms() - t_start,
@@ -475,7 +493,7 @@ def dispatch_outreach_research_briefing(
                 )
 
         artifacts_valid, artifact_detail, artifact_refs = _validate_persisted_research_artifacts(
-            research_result, request=request
+            research_result, request=request, bridge=bridge
         )
         if not artifacts_valid:
             reason_code = ResearchFailureReason.APPS_RESEARCH_ARTIFACT_MISSING.value
@@ -494,79 +512,73 @@ def dispatch_outreach_research_briefing(
 
     # Emit consumer stage receipts if consumer_artifact_dir is supplied
     if consumer_artifact_dir is not None:
-        c_dir = Path(consumer_artifact_dir)
-        c_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            c_dir = Path(consumer_artifact_dir)
+            c_dir.mkdir(parents=True, exist_ok=True)
 
-        req_receipt = {
-            "request_id": request.request_id,
-            "run_id": request.run_id,
-            "trace_id": request.trace_id,
-            "company_name": request.company_name,
-            "job_title": request.job_title,
-            "research_capability_ref": request.research_capability_ref,
+            req_receipt = {
+                "request_id": request.request_id,
+                "run_id": request.run_id,
+                "trace_id": request.trace_id,
+                "company_name": request.company_name,
+                "job_title": request.job_title,
+                "research_capability_ref": request.research_capability_ref,
+            }
+            (c_dir / "research_bridge_request.json").write_text(
+                json.dumps(req_receipt, indent=2) + "\n", encoding="utf-8"
+            )
+
+            resp_receipt = {
+                "outcome": "OutreachBriefingReady",
+                "research_run_id": research_result.run_id,
+                "confidence_score": res_conf,
+                "evidence_count": len(research_result.evidence_items),
+                "research_artifact_dir": research_result.research_artifact_dir,
+                "research_briefing_path": research_result.briefing_artifact_path,
+            }
+            (c_dir / "research_bridge_response.json").write_text(
+                json.dumps(resp_receipt, indent=2) + "\n", encoding="utf-8"
+            )
+
+            if research_result.briefing_artifact_path:
+                try:
+                    b_path = Path(research_result.briefing_artifact_path).resolve()
+                    if b_path.is_file():
+                        delegated_brief_path = c_dir / "delegated_briefing.md"
+                        shutil.copyfile(b_path, delegated_brief_path)
+                except (OSError, ValueError) as exc:
+                    _log.warning(
+                        "Could not copy briefing artifact from %s: %s",
+                        research_result.briefing_artifact_path,
+                        exc,
+                    )
+        except OSError as exc:
+            _log.warning("Could not write consumer stage receipts to %s: %s", consumer_artifact_dir, exc)
+
+    def _ev_dict(ev: Any) -> dict[str, Any]:
+        g = lambda k, d="": getattr(ev, k, d) or (ev.get(k, d) if isinstance(ev, dict) else d)
+        return {
+            "source_id": g("source_id"), "label": g("label"), "uri": g("uri"),
+            "source_type": g("source_type"), "field_ref": g("field_ref"),
+            "confidence": getattr(ev, "confidence", 0.0) or (ev.get("confidence", 0.0) if isinstance(ev, dict) else 0.0),
         }
-        (c_dir / "research_bridge_request.json").write_text(
-            json.dumps(req_receipt, indent=2) + "\n", encoding="utf-8"
-        )
 
-        resp_receipt = {
-            "outcome": "OutreachBriefingReady",
-            "research_run_id": research_result.run_id,
-            "confidence_score": research_result.confidence_score,
-            "evidence_count": len(research_result.evidence_items),
-            "research_artifact_dir": research_result.research_artifact_dir,
-            "research_briefing_path": research_result.briefing_artifact_path,
-        }
-        (c_dir / "research_bridge_response.json").write_text(
-            json.dumps(resp_receipt, indent=2) + "\n", encoding="utf-8"
-        )
-
-        if research_result.briefing_artifact_path:
-            try:
-                b_path = Path(research_result.briefing_artifact_path).resolve()
-                if b_path.is_file():
-                    delegated_brief_path = c_dir / "delegated_briefing.md"
-                    shutil.copyfile(b_path, delegated_brief_path)
-            except (OSError, ValueError) as exc:
-                _log.warning(
-                    "Could not copy briefing artifact from %s: %s",
-                    research_result.briefing_artifact_path,
-                    exc,
-                )
-
-    lineage = tuple(
-        {
-            "source_id": ev.source_id,
-            "label": ev.label,
-            "uri": ev.uri,
-            "source_type": ev.source_type,
-            "field_ref": ev.field_ref,
-            "confidence": ev.confidence,
-        }
-        for ev in research_result.evidence_items
-    )
-
+    lineage = tuple(_ev_dict(ev) for ev in research_result.evidence_items)
     resolution_source = getattr(research_result, "resolution_source", "WEB_RESEARCH")
+    is_verified = bool(getattr(research_result, "is_verified", True))
 
     return OutreachBriefingReady(
-        request_id=request.request_id,
-        run_id=request.run_id,
-        trace_id=request.trace_id,
-        briefing_text=research_result.company_brief_text,
-        research_run_id=research_result.run_id,
-        research_evidence_count=len(research_result.evidence_items),
-        confidence_score=research_result.confidence_score,
+        request_id=request.request_id, run_id=request.run_id, trace_id=request.trace_id,
+        briefing_text=research_result.company_brief_text, research_run_id=research_result.run_id,
+        research_evidence_count=len(research_result.evidence_items), confidence_score=res_conf,
         strategic_priorities=research_result.strategic_priorities,
         research_artifact_dir=research_result.research_artifact_dir,
         result_hash=research_result.result_metadata_digest or research_result.brief_sha256,
-        evidence_lineage=lineage,
-        apps_research_handoff_envelope=research_result.apps_research_handoff_envelope or {},
-        dispatch_duration_ms=_utc_ms() - t_start,
-        research_briefing_path=research_result.briefing_artifact_path,
-        brief_sha256=research_result.brief_sha256,
-        result_metadata_digest=research_result.result_metadata_digest,
-        bundle_manifest_digest=research_result.bundle_manifest_digest,
-        resolution_source=resolution_source,
+        evidence_lineage=lineage, apps_research_handoff_envelope=research_result.apps_research_handoff_envelope or {},
+        dispatch_duration_ms=_utc_ms() - t_start, research_briefing_path=research_result.briefing_artifact_path,
+        brief_sha256=research_result.brief_sha256, result_metadata_digest=research_result.result_metadata_digest,
+        bundle_manifest_digest=research_result.bundle_manifest_digest, resolution_source=resolution_source,
+        is_verified=is_verified,
     )
 
 

@@ -116,7 +116,12 @@ class OutreachModelRegistry:
             return pin.model or default
         except OutreachModelRegistryError:
             if default:
-                return default
+                stripped_default = default.strip()
+                if stripped_default == "safe-default" or cls.validate_model(stripped_default, config_path):
+                    return stripped_default
+                raise OutreachModelRegistryError(
+                    f"Default fallback model '{default}' is not approved in model registry SSOT."
+                )
             raise
 
     @classmethod
@@ -147,7 +152,7 @@ class OutreachModelRegistry:
         result: Dict[str, str] = {}
         for role, entry in profiles.items():
             if isinstance(entry, dict) and "model" in entry:
-                result[role] = str(entry["model"])
+                result[role] = str(entry["model"]).strip()
         return result
 
     @classmethod
@@ -159,22 +164,27 @@ class OutreachModelRegistry:
         for _, entry in profiles.items():
             if isinstance(entry, dict):
                 if "model" in entry and entry["model"]:
-                    approved.add(str(entry["model"]))
+                    approved.add(str(entry["model"]).strip())
                 if "backup_model" in entry and entry["backup_model"]:
-                    approved.add(str(entry["backup_model"]))
+                    approved.add(str(entry["backup_model"]).strip())
         return approved
 
     @classmethod
     def validate_model(cls, model_name: str, config_path: Path | str | None = None) -> bool:
         """Validates that a model ID is registered in the SSOT (primary or backup)."""
         approved = cls.list_approved_models(config_path)
-        return model_name in approved
+        return str(model_name or "").strip() in approved
 
     @classmethod
     def is_env_override_allowed(cls, config_path: Path | str | None = None) -> bool:
         """Checks if provider profiles allows environment variable model overrides."""
         profiles_doc = cls.get_profiles(config_path)
-        return bool(profiles_doc.get("environment_model_override_allowed", False))
+        if bool(profiles_doc.get("environment_model_override_allowed", False)):
+            return True
+        pin_ownership = profiles_doc.get("model_pin_ownership")
+        if isinstance(pin_ownership, dict):
+            return bool(pin_ownership.get("environment_model_override_allowed", False))
+        return False
 
     @classmethod
     def clear_cache(cls) -> None:

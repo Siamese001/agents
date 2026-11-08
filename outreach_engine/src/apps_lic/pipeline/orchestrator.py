@@ -269,19 +269,23 @@ class OutreachOrchestrator:
                     "industry": opp.industry,
                     "recipient_name": opp.recipient_name,
                     "recipient_title": opp.recipient_title,
-                    "recipient_class": opp.recipient_class.value,
-                    "relationship_distance": opp.relationship_distance.value,
+                    "recipient_class": opp.recipient_class.value if hasattr(opp.recipient_class, "value") else str(opp.recipient_class),
+                    "relationship_distance": opp.relationship_distance.value if hasattr(opp.relationship_distance, "value") else str(opp.relationship_distance),
                     "strategic_priorities": list(opp.strategic_priorities),
                     "briefing_text": opp.briefing_text,
                     "research_digest": opp.research_digest,
                     "evidence_items": list(opp.evidence_items),
                     "sealed_resolution": opp.sealed_resolution,
                 },
-                "channel": channel.value,
-                "audience_persona": persona.value,
+                "channel": channel.value if hasattr(channel, "value") else str(channel),
+                "audience_persona": persona.value if hasattr(persona, "value") else str(persona),
                 "grounded_facts_used": list(draft.grounded_facts_used),
                 "artifact_dir": str(a_dir.resolve()),
-                "completed_stages": ["briefing_resolution", "draft_generation", "authoritative_evaluation"],
+                "completed_stages": (
+                    ["briefing_resolution", "draft_generation", "authoritative_evaluation"]
+                    if verdict.passed
+                    else ["briefing_resolution", "draft_generation"]
+                ),
             }
             (a_dir / "run_manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
 
@@ -471,28 +475,54 @@ class OutreachOrchestrator:
         )
         sequence.sealed_resolution = opp.sealed_resolution
 
-        # Partition touches into successful vs blocked
-        successful_touches = [t for t in sequence.touches if t.draft.metadata.get("passed", False)]
-        blocked_touches = [
-            {
-                "touch_number": t.touch_number,
-                "day_offset": t.day_offset,
-                "channel": t.channel.value,
-                "objective": t.objective,
-                "status": "BLOCKED",
-                "failure_reasons": t.draft.metadata.get("failure_reasons", []),
-                "violations": t.draft.metadata.get("validation_violations", []),
-            }
-            for t in sequence.touches
-            if not t.draft.metadata.get("passed", False)
-        ]
-        campaign_status = "PASSED" if not blocked_touches else "BLOCKED"
+        # Partition touches with strict sequential continuity:
+        # If Touch 1 fails, subsequent touches cannot be dispatched as initial messages.
+        t1_passed = bool(sequence.touches and sequence.touches[0].draft.metadata.get("passed", False))
+
+        successful_touches = []
+        blocked_touches = []
+
+        if not t1_passed and sequence.touches:
+            for idx, t in enumerate(sequence.touches):
+                ch_v = t.channel.value if hasattr(t.channel, "value") else str(t.channel)
+                if idx == 0:
+                    reasons = t.draft.metadata.get("failure_reasons", [])
+                    violations = t.draft.metadata.get("validation_violations", [])
+                else:
+                    reasons = ["Sequential touch continuity failure: Touch 1 was blocked"]
+                    violations = ["touch_1_dependency_blocked"]
+                blocked_touches.append({
+                    "touch_number": t.touch_number,
+                    "day_offset": t.day_offset,
+                    "channel": ch_v,
+                    "objective": t.objective,
+                    "status": "BLOCKED",
+                    "failure_reasons": list(reasons),
+                    "violations": list(violations),
+                })
+        else:
+            for t in sequence.touches:
+                ch_v = t.channel.value if hasattr(t.channel, "value") else str(t.channel)
+                if t.draft.metadata.get("passed", False):
+                    successful_touches.append(t)
+                else:
+                    blocked_touches.append({
+                        "touch_number": t.touch_number,
+                        "day_offset": t.day_offset,
+                        "channel": ch_v,
+                        "objective": t.objective,
+                        "status": "BLOCKED",
+                        "failure_reasons": list(t.draft.metadata.get("failure_reasons", [])),
+                        "violations": list(t.draft.metadata.get("validation_violations", [])),
+                    })
+
+        campaign_status = "PASSED" if (len(sequence.touches) > 0 and len(blocked_touches) == 0) else "BLOCKED"
         sequence.status = campaign_status
         sequence.blocked_touches = blocked_touches
 
         if a_dir is not None:
             a_dir.mkdir(parents=True, exist_ok=True)
-            all_passed = (len(blocked_touches) == 0) and all(bool(t.draft.metadata.get("passed", True)) for t in sequence.touches)
+            all_passed = (len(sequence.touches) > 0) and (len(blocked_touches) == 0) and all(bool(t.draft.metadata.get("passed", True)) for t in sequence.touches)
             seq_dict = {
                 "sequence_id": sequence.sequence_id,
                 "status": campaign_status,
@@ -506,7 +536,7 @@ class OutreachOrchestrator:
                     {
                         "touch_number": t.touch_number,
                         "day_offset": t.day_offset,
-                        "channel": t.channel.value,
+                        "channel": t.channel.value if hasattr(t.channel, "value") else str(t.channel),
                         "objective": t.objective,
                         "subject": t.draft.subject,
                         "body": t.draft.body,

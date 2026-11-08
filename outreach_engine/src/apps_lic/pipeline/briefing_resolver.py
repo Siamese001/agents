@@ -210,7 +210,12 @@ class GovernedBriefingResolver:
         # PATH A: Explicit Manual Brief or Mission Fixture context
         if manual_brief_or_fixture or strategic_priorities:
             raw_content = str(manual_brief_or_fixture or "").strip()
-            priorities = tuple(strategic_priorities)
+            if isinstance(strategic_priorities, str):
+                priorities = (strategic_priorities.strip(),) if strategic_priorities.strip() else ()
+            elif isinstance(strategic_priorities, (list, tuple, set)):
+                priorities = tuple(str(p).strip() for p in strategic_priorities if str(p).strip())
+            else:
+                priorities = ()
             if not raw_content and priorities:
                 raw_content = (
                     f"Target Company: {company_name}\n"
@@ -220,14 +225,23 @@ class GovernedBriefingResolver:
 
             # Check if manual_brief_or_fixture is a local file path to capture mtime
             mtime = 0.0
-            if len(raw_content) < 300 and "\n" not in raw_content and "\0" not in raw_content:
-                try:
-                    p = Path(raw_content)
-                    if p.is_file():
-                        mtime = p.stat().st_mtime
-                        raw_content = p.read_text(encoding="utf-8").strip()
-                except (OSError, ValueError):
-                    pass
+            has_sep = "/" in raw_content or "\\" in raw_content
+            is_path_like = (
+                len(raw_content) < 300
+                and "\n" not in raw_content
+                and "\0" not in raw_content
+                and (
+                    any(raw_content.endswith(ext) for ext in (".txt", ".md", ".json", ".yaml", ".yml"))
+                    or has_sep
+                )
+            )
+            if is_path_like:
+                p = Path(raw_content)
+                if p.is_file():
+                    mtime = p.stat().st_mtime
+                    raw_content = p.read_text(encoding="utf-8").strip()
+                elif has_sep:
+                    raise FileNotFoundError(f"Briefing file not found: {raw_content}")
 
             manual_cache_key = hashlib.sha256(
                 f"MANUAL::{company_name}::{target_role}::{mtime}::{raw_content}::{priorities}".encode("utf-8")

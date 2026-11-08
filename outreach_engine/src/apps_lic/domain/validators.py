@@ -11,34 +11,31 @@ from apps_lic.domain.models import ChannelType, OutreachMessageDraft, Validation
 
 # Curated spam triggers fallback based on apps_lic/config/spam_trigger_phrases.py
 _CRITICAL_SPAM_TRIGGERS: Final[List[re.Pattern[str]]] = [
-    re.compile(r"\bact now\b", re.IGNORECASE),
-    re.compile(r"\burgent response needed\b", re.IGNORECASE),
-    re.compile(r"\blimited time opportunity\b", re.IGNORECASE),
-    re.compile(r"\bguaranteed interview\b", re.IGNORECASE),
-    re.compile(r"\bdon't miss out\b", re.IGNORECASE),
+    re.compile(p, re.IGNORECASE) for p in (
+        r"\bact now\b", r"\burgent response needed\b", r"\blimited time opportunity\b",
+        r"\bguaranteed interview\b", r"\bdon't miss out\b",
+    )
 ]
 
 _HIGH_SPAM_TRIGGERS: Final[List[re.Pattern[str]]] = [
-    re.compile(r"\bonce in a lifetime\b", re.IGNORECASE),
-    re.compile(r"\bexclusive invitation\b", re.IGNORECASE),
-    re.compile(r"\bdouble your income\b", re.IGNORECASE),
-    re.compile(r"\bunbelievable offer\b", re.IGNORECASE),
+    re.compile(p, re.IGNORECASE) for p in (
+        r"\bonce in a lifetime\b", r"\bexclusive invitation\b",
+        r"\bdouble your income\b", r"\bunbelievable offer\b",
+    )
 ]
 
 _GENERIC_OPENER_TRIGGERS: Final[List[re.Pattern[str]]] = [
-    re.compile(r"\bI hope this email finds you well\b", re.IGNORECASE),
-    re.compile(r"\bI hope this message finds you well\b", re.IGNORECASE),
-    re.compile(r"\bI hope you are having a great week\b", re.IGNORECASE),
-    re.compile(r"\bI came across your profile and was impressed\b", re.IGNORECASE),
-    re.compile(r"\bAllow me to introduce myself\b", re.IGNORECASE),
+    re.compile(p, re.IGNORECASE) for p in (
+        r"\bI hope this email finds you well\b", r"\bI hope this message finds you well\b",
+        r"\bI hope you are having a great week\b", r"\bI came across your profile and was impressed\b",
+        r"\bAllow me to introduce myself\b",
+    )
 ]
 
 # Channel length ceilings
 _CHANNEL_MAX_CHARS: Final[dict[ChannelType, int]] = {
-    ChannelType.LINKEDIN_CONNECTION: 300,
-    ChannelType.LINKEDIN_INMAIL: 1900,
-    ChannelType.EMAIL: 1500,
-    ChannelType.FOLLOW_UP: 800,
+    ChannelType.LINKEDIN_CONNECTION: 300, ChannelType.LINKEDIN_INMAIL: 1900,
+    ChannelType.EMAIL: 1500, ChannelType.FOLLOW_UP: 800,
 }
 
 
@@ -74,42 +71,44 @@ class SpamTriggerValidator:
     def __init__(self) -> None:
         self._categories = _load_canonical_spam_phrases()
 
-    def validate(self, text: str) -> tuple[bool, List[str], List[str]]:
+    def validate(self, text: Optional[str]) -> tuple[bool, List[str], List[str]]:
+        text_str = str(text or "")
+        norm_text = re.sub(r"\s+", " ", text_str)
         violations: List[str] = []
         warnings: List[str] = []
 
         # 1. Critical hardcoded patterns (for backward compatibility)
         for pat in _CRITICAL_SPAM_TRIGGERS:
-            if pat.search(text):
+            if pat.search(text_str) or pat.search(norm_text):
                 violations.append(f"Critical spam trigger matched: '{pat.pattern}'")
 
         for pat in _HIGH_SPAM_TRIGGERS:
-            if pat.search(text):
+            if pat.search(text_str) or pat.search(norm_text):
                 violations.append(f"High-severity pushy CTA matched: '{pat.pattern}'")
 
         for pat in _GENERIC_OPENER_TRIGGERS:
-            if pat.search(text):
+            if pat.search(text_str) or pat.search(norm_text):
                 warnings.append(f"Generic cliche opener matched: '{pat.pattern}'")
 
         # 2. Canonical categories from config
         pushy = self._categories.get("pushy_cta", [])
         for pat in pushy:
-            if pat.search(text) and not any(pat.pattern in v for v in violations):
+            if (pat.search(text_str) or pat.search(norm_text)) and not any(pat.pattern in v for v in violations):
                 violations.append(f"Pushy sales CTA matched: '{pat.pattern}'")
 
         urgency = self._categories.get("false_urgency", [])
         for pat in urgency:
-            if pat.search(text) and not any(pat.pattern in v for v in violations):
+            if (pat.search(text_str) or pat.search(norm_text)) and not any(pat.pattern in v for v in violations):
                 violations.append(f"False urgency phrase matched: '{pat.pattern}'")
 
         cliches = self._categories.get("corporate_cliche", [])
         for pat in cliches:
-            if pat.search(text) and not any(pat.pattern in w for w in warnings):
+            if (pat.search(text_str) or pat.search(norm_text)) and not any(pat.pattern in w for w in warnings):
                 warnings.append(f"Corporate cliche matched: '{pat.pattern}'")
 
         openers = self._categories.get("generic_opener", [])
         for pat in openers:
-            if pat.search(text) and not any(pat.pattern in w for w in warnings):
+            if (pat.search(text_str) or pat.search(norm_text)) and not any(pat.pattern in w for w in warnings):
                 warnings.append(f"Formulaic generic opener matched: '{pat.pattern}'")
 
         is_valid = len(violations) == 0
@@ -119,9 +118,10 @@ class SpamTriggerValidator:
 class ChannelLengthValidator:
     """Verifies message body does not exceed strict channel ceilings."""
 
-    def validate(self, channel: ChannelType, body: str) -> tuple[bool, Optional[str]]:
+    def validate(self, channel: ChannelType, body: Optional[str]) -> tuple[bool, Optional[str]]:
+        body_str = str(body or "")
         ceiling = _CHANNEL_MAX_CHARS.get(channel, 2000)
-        actual = len(body)
+        actual = len(body_str)
         if actual > ceiling:
             return False, f"Message length ({actual} chars) exceeds channel ceiling ({ceiling} chars) for {channel.value}."
         return True, None
@@ -130,8 +130,8 @@ class ChannelLengthValidator:
 class QuestionEndingValidator:
     """Verifies that the message concludes with a low-friction inquiry."""
 
-    def validate(self, body: str) -> tuple[bool, Optional[str]]:
-        stripped = body.strip()
+    def validate(self, body: Optional[str]) -> tuple[bool, Optional[str]]:
+        stripped = str(body or "").strip()
         if not stripped:
             return False, "Empty message body."
 
@@ -142,35 +142,23 @@ class QuestionEndingValidator:
 
         # Check if the line before a signature block ends with '?'
         signature_tokens = (
-            "linkedin.com",
-            "github.com",
-            "+1-",
-            "+1 ",
-            "@",
-            "officer",
-            "director",
-            "partner",
-            "vp",
-            "chief",
-            "lead",
-            "architect",
-            "engineer",
-            "regards",
-            "sincerely",
-            "best,",
-            "best regards",
-            "--",
-            "__",
-            "tel:",
-            "phone:",
-            "email:",
+            "linkedin.com", "github.com", "+1-", "+1 ", "@", "officer", "director", "partner", "vp",
+            "chief", "lead", "architect", "engineer", "regards", "sincerely", "best,", "best regards",
+            "--", "__", "tel:", "phone:", "email:",
         )
-        # Check if an inquiry ends with '?' and all trailing lines form a signature block
+        # Check if an inquiry ends with '?' and all trailing lines form a verified signature block
         for i, line in enumerate(lines):
             if line.endswith("?"):
                 trailing = lines[i + 1:]
                 if not trailing:
                     return True, None
+                # Require explicit sign-off trigger among trailing lines
+                has_explicit_signoff = any(
+                    any(tok in t.lower() for tok in ("regards", "best", "sincerely", "--", "—", "linkedin.com", "github.com", "+1", "@", "tel:", "phone:", "email:"))
+                    for t in trailing
+                )
+                if not has_explicit_signoff:
+                    continue
                 is_signature = True
                 for t in trailing:
                     t_lower = t.lower().strip()
@@ -192,8 +180,9 @@ class QuestionEndingValidator:
 class EmDashValidator:
     """Verifies message body contains no em dashes (rule: no_em_dash)."""
 
-    def validate(self, body: str) -> tuple[bool, Optional[str]]:
-        if "—" in body or "\u2014" in body:
+    def validate(self, body: Optional[str]) -> tuple[bool, Optional[str]]:
+        body_str = str(body or "")
+        if "—" in body_str or "\u2014" in body_str:
             return False, "Forbidden em dash detected; use standard punctuation or commas."
         return True, None
 
@@ -201,10 +190,11 @@ class EmDashValidator:
 class MarkdownLinkValidator:
     """Verifies message body uses plain text links rather than markdown links."""
 
-    _MD_LINK_PAT = re.compile(r"\[([^\]]+)\]\((https?://[^\)]+)\)")
+    _MD_LINK_PAT = re.compile(r"\[([^\]]+)\]\(\s*((?:https?://|www\.)[^\)\s]+)\s*\)", re.IGNORECASE)
 
-    def validate(self, body: str) -> tuple[bool, Optional[str]]:
-        if self._MD_LINK_PAT.search(body):
+    def validate(self, body: Optional[str]) -> tuple[bool, Optional[str]]:
+        body_str = str(body or "")
+        if self._MD_LINK_PAT.search(body_str):
             return False, "Forbidden markdown link syntax detected; use plain text URLs only."
         return True, None
 
@@ -213,21 +203,20 @@ class SubordinateToneValidator:
     """Detects deferential or desperate subordinate phrasing in executive outreach."""
 
     _SUBORDINATE_PATTERNS = [
-        re.compile(r"\bwould love to learn more\b", re.IGNORECASE),
-        re.compile(r"\bthink I(?:'d| would) be a (?:great|perfect) fit\b", re.IGNORECASE),
-        re.compile(r"\bhoping for an? (?:opportunity|interview|chance)\b", re.IGNORECASE),
-        re.compile(r"\bgive me a (?:chance|shot)\b", re.IGNORECASE),
-        re.compile(r"\bplease consider my (?:application|resume|c\.?v\.?)\b", re.IGNORECASE),
-        re.compile(r"\bseeking a (?:role|job|position)\b", re.IGNORECASE),
-        re.compile(r"\bgrateful for any (?:role|job|position|opportunity)\b", re.IGNORECASE),
-        re.compile(r"\bhire me\b", re.IGNORECASE),
-        re.compile(r"\byou must hire\b", re.IGNORECASE),
+        re.compile(p, re.IGNORECASE) for p in (
+            r"\bwould love to learn more\b", r"\bthink I(?:'d| would) be a (?:great|perfect) fit\b",
+            r"\bhoping for an? (?:opportunity|interview|chance)\b", r"\bgive me a (?:chance|shot)\b",
+            r"\bplease consider my (?:application|resume|c\.?v\.?)\b", r"\bseeking a (?:role|job|position)\b",
+            r"\bgrateful for any (?:role|job|position|opportunity)\b", r"\bhire me\b", r"\byou must hire\b",
+        )
     ]
 
-    def validate(self, body: str) -> tuple[bool, List[str]]:
+    def validate(self, body: Optional[str]) -> tuple[bool, List[str]]:
+        body_str = str(body or "")
+        norm_body = re.sub(r"\s+", " ", body_str)
         violations: List[str] = []
         for pat in self._SUBORDINATE_PATTERNS:
-            if pat.search(body):
+            if pat.search(body_str) or pat.search(norm_body):
                 violations.append(f"Subordinate or deferential phrasing detected: '{pat.pattern}'")
         return len(violations) == 0, violations
 
@@ -239,7 +228,7 @@ class GroundingValidator:
     """
 
     _METRIC_DOLLAR_PAT: Final[re.Pattern[str]] = re.compile(
-        r"\$\s*\d+(?:,\d{3})*(?:\.\d+)?\s*(?:[kKmMbBtT]|billion|million|thousand)?(?:\s*[-–—]\s*\$?\s*\d+(?:,\d{3})*(?:\.\d+)?\s*(?:[kKmMbBtT]|billion|million|thousand)?)?\b",
+        r"(?:[\$€£]|(?:USD|EUR|GBP)\s*)\s*\d+(?:,\d{3})*(?:\.\d+)?\s*(?:[kKmMbBtT]|billion|million|thousand)?(?:\s*[-–—]\s*(?:[\$€£]|(?:USD|EUR|GBP)\s*)?\s*\d+(?:,\d{3})*(?:\.\d+)?\s*(?:[kKmMbBtT]|billion|million|thousand)?)?\b",
         re.IGNORECASE,
     )
     _METRIC_PERCENT_PAT: Final[re.Pattern[str]] = re.compile(
@@ -257,30 +246,42 @@ class GroundingValidator:
 
     @staticmethod
     def _normalize_dollar_token(raw: str) -> str:
-        """Normalize '$1,000,000', '$1M', '$1 million' to a canonical dollar amount string."""
-        cleaned = raw.lower().replace("$", "").replace(",", "").strip()
+        """Normalize currency token to a canonical dollar amount string."""
+        cleaned = re.sub(r"(?i)[\$€£]|usd|eur|gbp", "", raw).replace(",", "").strip()
         if any(sep in cleaned for sep in ("-", "–", "—")):
             parts = [p.strip() for p in re.split(r"[-–—]", cleaned) if p.strip()]
             if len(parts) == 2:
-                m1 = re.match(r"^(\d+(?:\.\d+)?)\s*(k|thousand|m|million|b|billion|t)?$", parts[0])
-                m2 = re.match(r"^(\d+(?:\.\d+)?)\s*(k|thousand|m|million|b|billion|t)?$", parts[1])
+                m1 = re.match(r"^(\d+(?:\.\d+)?)\s*(k|thousand|m|million|b|billion|t)?$", parts[0], re.IGNORECASE)
+                m2 = re.match(r"^(\d+(?:\.\d+)?)\s*(k|thousand|m|million|b|billion|t)?$", parts[1], re.IGNORECASE)
                 if m1 and m2:
                     s2 = m2.group(2) or ""
                     n1 = GroundingValidator._normalize_dollar_token(f"${m1.group(1)}{m1.group(2) or s2}")
                     n2 = GroundingValidator._normalize_dollar_token(f"${m2.group(1)}{s2}")
                     return f"{n1}-{n2}"
-        m = re.match(r"^(\d+(?:\.\d+)?)\s*(k|thousand|m|million|b|billion|t)?$", cleaned)
+        m = re.match(r"^(\d+(?:\.\d+)?)\s*(k|thousand|m|million|b|billion|t)?$", cleaned, re.IGNORECASE)
         if not m:
             return raw.lower().strip()
-        mult = {"k": 1e3, "thousand": 1e3, "m": 1e6, "million": 1e6, "b": 1e9, "billion": 1e9, "t": 1e12}
-        return f"${int(round(float(m.group(1)) * mult.get(m.group(2) or '', 1.0)))}"
+        num_str = m.group(1)
+        if len(num_str.split(".")[0]) > 20:
+            return f"${num_str}"
+        try:
+            mult = {"k": 1e3, "thousand": 1e3, "m": 1e6, "million": 1e6, "b": 1e9, "billion": 1e9, "t": 1e12}
+            val = float(num_str) * mult.get((m.group(2) or "").lower(), 1.0)
+            return f"${int(round(val))}"
+        except (OverflowError, ValueError):
+            return f"${num_str}"
 
     def _extract_normalized_dollars(self, text: str) -> set[str]:
         tokens: set[str] = set()
+        if not text:
+            return tokens
         for m in self._METRIC_DOLLAR_PAT.finditer(text):
-            norm = self._normalize_dollar_token(m.group(0))
-            tokens.add(norm)
-            tokens.update(s for s in norm.split("-") if "-" in norm and s.startswith("$"))
+            try:
+                norm = self._normalize_dollar_token(m.group(0))
+                tokens.add(norm)
+                tokens.update(s for s in norm.split("-") if "-" in norm and s.startswith("$"))
+            except (OverflowError, ValueError):
+                pass
         return tokens
 
     def validate(
@@ -412,29 +413,36 @@ class ForbiddenClaimsValidator:
 
     def validate(
         self,
-        body: str,
+        body: Optional[str],
         verified_facts: Optional[List[Any]] = None,
         opportunity_context: Optional[str] = None,
     ) -> tuple[bool, List[str]]:
+        body_str = str(body or "")
         violations: List[str] = []
         opp_text = str(opportunity_context or "").lower()
         norm_fn = GroundingValidator._normalize_dollar_token
         g_val = GroundingValidator()
-        opp_dollars = g_val._extract_normalized_dollars(opp_text)
+        try:
+            opp_dollars = g_val._extract_normalized_dollars(opp_text)
+        except Exception:
+            opp_dollars = set()
 
         # 1. Compensation claims: patterns 0 and 2 are explicit compensation keywords/terms
         for pat in (self._COMPENSATION_PATTERNS[0], self._COMPENSATION_PATTERNS[2]):
-            for match in pat.finditer(body):
+            for match in pat.finditer(body_str):
                 violations.append(
                     f"Forbidden compensation claim detected: '{match.group(0)}'. Compensation discussions are strictly prohibited in cold outreach before first reply."
                 )
 
         # Pattern 1 is numeric currency amounts: distinguish business metrics from compensation
-        for match in self._COMPENSATION_PATTERNS[1].finditer(body):
+        for match in self._COMPENSATION_PATTERNS[1].finditer(body_str):
             matched_str = match.group(0)
-            norm_matched = norm_fn(re.sub(r"^[€£]", "$", matched_str.strip()))
-            comp_window = body[max(0, match.start() - 30) : min(len(body), match.end() + 30)].lower()
-            biz_window = body[max(0, match.start() - 60) : min(len(body), match.end() + 60)].lower()
+            try:
+                norm_matched = norm_fn(re.sub(r"^[€£]", "$", matched_str.strip()))
+            except Exception:
+                norm_matched = matched_str
+            comp_window = body_str[max(0, match.start() - 30) : min(len(body_str), match.end() + 30)].lower()
+            biz_window = body_str[max(0, match.start() - 60) : min(len(body_str), match.end() + 60)].lower()
 
             if re.search(
                 r"\b(?:salary|compensation|base\s+pay|base\s+salary|annual\s+pay|pay\s+rate|pay\s+package|signing\s+bonus|bonus|equity|stock|ote|hourly|rate|target\s+comp|comp\s+package|retainer|per\s+hour|per\s+year)\b|/(?:hr|hour|yr|year)\b",
@@ -461,15 +469,8 @@ class ForbiddenClaimsValidator:
             if opportunity_context and (matched_str.lower() in opp_text or norm_matched in opp_dollars):
                 continue
 
-            if any(
-                w in biz_window
-                for w in (
-                    "arr", "revenue", "volume", "budget", "valuation", "pipeline", "spend", "deal",
-                    "portfolio", "gmv", "assets", "sales", "program", "transformation", "modernization",
-                    "initiative", "infrastructure", "platform", "savings", "saved", "cost", "costs",
-                    "reduction", "reduced", "efficiency", "opex", "capex", "roi", "run-rate",
-                )
-            ):
+            biz_kws = ("arr", "revenue", "volume", "budget", "valuation", "pipeline", "spend", "deal", "portfolio", "gmv", "assets", "sales", "program", "transformation", "modernization", "initiative", "infrastructure", "platform", "savings", "saved", "cost", "costs", "reduction", "reduced", "efficiency", "opex", "capex", "roi", "run-rate")
+            if any(w in biz_window for w in biz_kws):
                 continue
 
             violations.append(
@@ -478,7 +479,7 @@ class ForbiddenClaimsValidator:
 
         # 2. Policy-forbidden claims (visa, relocation, unearned interview status)
         for pat in self._POLICY_FORBIDDEN_PATTERNS:
-            match = pat.search(body)
+            match = pat.search(body_str)
             if match:
                 violations.append(f"Policy-forbidden claim detected: '{match.group(0)}'.")
 
@@ -491,7 +492,7 @@ class ForbiddenClaimsValidator:
             ).lower()
         )
         for pat in self._TENURE_PATTERNS:
-            match = pat.search(body)
+            match = pat.search(body_str)
             if match:
                 claimed_tenure, tenure_term = match.group(0).lower(), match.group(1).lower()
                 if tenure_term not in verified_text:
@@ -510,19 +511,25 @@ class UnsupportedPersonalizationValidator:
         re.compile(r"\b(?:focus\s+on|priorities\s+in|strategic\s+mandate\s+in)\s+([^.,\n\?]+)", re.IGNORECASE),
     ]
 
-    def validate(self, body: str, opportunity: Optional[Any] = None) -> tuple[bool, List[str]]:
+    def validate(self, body: Optional[str], opportunity: Optional[Any] = None) -> tuple[bool, List[str]]:
+        body_str = str(body or "")
         violations: List[str] = []
         if opportunity is None:
             return True, violations
 
-        sealed = getattr(opportunity, "sealed_resolution", None) or {}
-        is_verified = bool(sealed.get("is_verified", True)) and sealed.get("resolution_source") != "HERMETIC_FALLBACK"
+        sealed = getattr(opportunity, "sealed_resolution", None)
+        if isinstance(sealed, dict):
+            is_verified = bool(sealed.get("is_verified", False)) and sealed.get("resolution_source") != "HERMETIC_FALLBACK"
+        elif getattr(opportunity, "_explicit_unsealed", False) or sealed is not None:
+            is_verified = False
+        else:
+            is_verified = True
         if "UNVERIFIED OFFLINE FALLBACK" in (getattr(opportunity, "briefing_text", "") or ""):
             is_verified = False
 
         verified_priorities = [p.lower() for p in getattr(opportunity, "strategic_priorities", [])]
         for pat in self._PERSONALIZATION_PATTERNS:
-            match = pat.search(body)
+            match = pat.search(body_str)
             if match:
                 claimed_focus = match.group(1).strip()
                 if not is_verified:
@@ -564,30 +571,24 @@ class OutboundPrivacyValidator:
         re.compile(r"\$\s*\d{2,4}(?:\.\d{2})?\s*/\s*(?:hr|hour)\b", re.IGNORECASE),
     ]
 
-    def validate(self, body: str) -> tuple[bool, List[str]]:
+    def validate(self, body: Optional[str]) -> tuple[bool, List[str]]:
+        body_str = str(body or "")
         violations: List[str] = []
         for pat in self._SECRET_PATTERNS:
-            if pat.search(body):
+            if pat.search(body_str):
                 violations.append("Outbound privacy block: detected API credential or private key pattern.")
         for pat in self._PRIVATE_STRATEGY_PATTERNS:
-            if pat.search(body):
+            if pat.search(body_str):
                 violations.append("Outbound privacy block: detected internal advisory or private career strategy marker.")
         for pat in self._RATE_FLOOR_PATTERNS:
-            if pat.search(body):
+            if pat.search(body_str):
                 violations.append("Outbound privacy block: detected hourly billing rate disclosure.")
         return len(violations) == 0, violations
 
 
 __all__ = [
-    "ChannelLengthValidator",
-    "EmDashValidator",
-    "ForbiddenClaimsValidator",
-    "GroundingValidator",
-    "MarkdownLinkValidator",
-    "OutboundPrivacyValidator",
-    "QuestionEndingValidator",
-    "SpamTriggerValidator",
-    "SubordinateToneValidator",
+    "ChannelLengthValidator", "EmDashValidator", "ForbiddenClaimsValidator",
+    "GroundingValidator", "MarkdownLinkValidator", "OutboundPrivacyValidator",
+    "QuestionEndingValidator", "SpamTriggerValidator", "SubordinateToneValidator",
     "UnsupportedPersonalizationValidator",
 ]
-

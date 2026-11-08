@@ -1,10 +1,5 @@
 """CLI entrypoint for outreach_engine / apps_lic.
-
-Canonical command surface:
-    python -m outreach_engine run [options]
-    python -m outreach_engine eval --run-dir <completed_run>
-    python -m outreach_engine show --run-dir <completed_run> --artifact draft|campaign|evaluation|validation|research
-"""
+Commands: run [opts], eval --run-dir <dir>, show --run-dir <dir> --artifact <art>, validate [opts]."""
 
 from __future__ import annotations
 
@@ -22,15 +17,8 @@ from typing import Any, Sequence
 _log = logging.getLogger(__name__)
 
 from apps_lic.domain.models import (
-    AudiencePersona,
-    CandidateFact,
-    CandidateProfile,
-    CandidateProfileLoader,
-    ChannelType,
-    OutreachMessageDraft,
-    RecipientClass,
-    RelationshipDistance,
-    TargetOpportunity,
+    AudiencePersona, CandidateFact, CandidateProfile, CandidateProfileLoader,
+    ChannelType, OutreachMessageDraft, RecipientClass, RelationshipDistance, TargetOpportunity,
 )
 from apps_lic.pipeline.mission_loader import MissionLoader
 from apps_lic.pipeline.orchestrator import OutreachOrchestrator
@@ -77,9 +65,7 @@ def _build_parser(prog: str = "python -m outreach_engine") -> argparse.ArgumentP
     show_parser = subparsers.add_parser("show", help="Print an exact output artifact from a completed run")
     show_parser.add_argument("--run-dir", required=True, help="Directory of a completed outreach run")
     show_parser.add_argument(
-        "--artifact",
-        required=True,
-        choices=("draft", "campaign", "evaluation", "validation", "research", "manifest", "receipt"),
+        "--artifact", required=True, choices=("draft", "campaign", "evaluation", "validation", "research", "manifest", "receipt"),
         help="Artifact to inspect and print",
     )
     show_parser.add_argument("--json", action="store_true", help="Output machine-readable JSON result")
@@ -142,7 +128,7 @@ def _handle_run(args: argparse.Namespace, prog: str = "python -m outreach_engine
                 b_file = cand_b
         try:
             raw_brief = b_file.read_text(encoding="utf-8") if b_file.is_file() else ""
-        except OSError as exc:
+        except (OSError, UnicodeDecodeError, ValueError) as exc:
             return _emit_error(args, f"Failed reading brief file '{brief_path}': {exc}")
         if not b_file.is_file() or not raw_brief.strip():
             return _emit_error(args, f"Brief file '{brief_path}' is missing or empty.")
@@ -150,17 +136,18 @@ def _handle_run(args: argparse.Namespace, prog: str = "python -m outreach_engine
         try:
             parsed_b = json.loads(raw_brief)
             if isinstance(parsed_b, dict):
-                sp_dict = parsed_b.get("sender_profile")
-                pl_dict = parsed_b.get("payload")
+                sp_d, pl_d = parsed_b.get("sender_profile"), parsed_b.get("payload")
                 has_explicit_sender_title = bool(
-                    (isinstance(sp_dict, dict) and sp_dict.get("title"))
-                    or parsed_b.get("target_title")
-                    or parsed_b.get("candidate_title")
-                    or (isinstance(pl_dict, dict) and pl_dict.get("target_title"))
+                    (isinstance(sp_d, dict) and sp_d.get("title"))
+                    or parsed_b.get("target_title") or parsed_b.get("candidate_title")
+                    or (isinstance(pl_d, dict) and pl_d.get("target_title"))
                 )
         except json.JSONDecodeError:
             pass
-        candidate, opportunity = MissionLoader.load_from_file(b_file)
+        try:
+            candidate, opportunity = MissionLoader.load_from_file(b_file)
+        except Exception as exc:
+            return _emit_error(args, f"Failed loading brief '{brief_path}': {exc}")
         opp_updates: dict[str, Any] = {}
         if getattr(args, "company", None):
             opp_updates["company_name"] = args.company
@@ -192,7 +179,10 @@ def _handle_run(args: argparse.Namespace, prog: str = "python -m outreach_engine
 
     repo_root = Path(__file__).resolve().parent.parent.parent.parent
     artifact_dir = Path(args.artifact_dir).resolve() if args.artifact_dir else (repo_root / "artifacts" / "outreach_engine" / "runs" / run_id)
-    artifact_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        artifact_dir.mkdir(parents=True, exist_ok=True)
+    except OSError as exc:
+        return _emit_error(args, f"Cannot create artifact directory '{artifact_dir}': {exc}")
     channel = ChannelType(args.channel)
     persona = AudiencePersona.EXECUTIVE_CONTACT if getattr(args, "audience", "executive") == "executive" else AudiencePersona.EXECUTIVE_RECRUITER
     orchestrator = OutreachOrchestrator()
@@ -272,11 +262,9 @@ def _handle_run(args: argparse.Namespace, prog: str = "python -m outreach_engine
             "campaign_status": sequence.status,
             "campaign_touches": [
                 {
-                    "touch_number": t.touch_number, "day_offset": t.day_offset,
-                    "channel": t.channel.value, "objective": t.objective,
-                    "status": t.draft.metadata.get("status", "PASSED"),
-                    "passed": bool(t.draft.metadata.get("passed", True)),
-                    "promoted": bool(t.draft.metadata.get("passed", True)),
+                    "touch_number": t.touch_number, "day_offset": t.day_offset, "channel": t.channel.value,
+                    "objective": t.objective, "status": t.draft.metadata.get("status", "PASSED"),
+                    "passed": bool(t.draft.metadata.get("passed", True)), "promoted": bool(t.draft.metadata.get("passed", True)),
                     "failure_reasons": list(t.draft.metadata.get("failure_reasons", [])),
                     "validation_violations": list(t.draft.metadata.get("validation_violations", [])),
                 }
@@ -331,11 +319,11 @@ def _handle_run(args: argparse.Namespace, prog: str = "python -m outreach_engine
     return 0
 
 
-
 def _reconstruct_eval_draft(run_dir: Path, manifest_data: dict[str, Any] | None = None) -> OutreachMessageDraft | None:
     m_ch = manifest_data.get("channel") if manifest_data else None
     m_persona = manifest_data.get("audience_persona") if manifest_data else None
-    m_facts = list(manifest_data.get("grounded_facts_used", [])) if manifest_data else []
+    raw_facts = manifest_data.get("grounded_facts_used") if manifest_data else None
+    m_facts = list(raw_facts) if isinstance(raw_facts, (list, tuple, set)) else []
 
     draft_file = run_dir / "outreach_draft.json"
     if draft_file.is_file():
@@ -350,9 +338,9 @@ def _reconstruct_eval_draft(run_dir: Path, manifest_data: dict[str, Any] | None 
                         draft_id=d.get("draft_id", "draft_eval"), channel=ChannelType(ch_raw),
                         subject=d.get("subject", ""), body=d.get("body", ""),
                         signature_block=d.get("signature_block", ""), audience_persona=persona,
-                        grounded_facts_used=list(d.get("grounded_facts_used", [])),
-                        research_metadata=dict(d.get("research_metadata", {})),
-                        metadata=dict(d.get("metadata", {})),
+                        grounded_facts_used=list(d.get("grounded_facts_used") or []),
+                        research_metadata=dict(d.get("research_metadata") or {}),
+                        metadata=dict(d.get("metadata") or {}),
                     )
             else:
                 _log.warning("Ignoring non-object outreach_draft.json in %s", run_dir)
@@ -388,19 +376,14 @@ def _reconstruct_eval_context(manifest_file: Path) -> tuple[CandidateProfile, Ta
         raise ValueError(f"Corrupt manifest '{manifest_file.name}'")
 
     facts = [
-        CandidateFact(
-            fact_id=f["fact_id"], category=f.get("category", "general"), statement=f.get("statement", ""),
-            metric=f.get("metric"), source_reference=f.get("source_reference"),
-        )
-        for f in cdata.get("verified_facts", [])
-        if isinstance(f, dict) and "fact_id" in f
+        CandidateFact(fact_id=f["fact_id"], category=f.get("category", "general"), statement=f.get("statement", ""), metric=f.get("metric"), source_reference=f.get("source_reference"))
+        for f in (cdata.get("verified_facts") or []) if isinstance(f, dict) and "fact_id" in f
     ]
     cand = CandidateProfile(
         candidate_id=cdata.get("candidate_id", ""), full_name=cdata.get("full_name", ""),
         target_title=cdata.get("target_title", ""), current_title=cdata.get("current_title", ""),
         executive_summary=cdata.get("executive_summary", ""), verified_facts=facts,
-        key_competencies=list(cdata.get("key_competencies", [])),
-        linkedin_url=cdata.get("linkedin_url", ""), phone=cdata.get("phone", ""),
+        key_competencies=list(cdata.get("key_competencies") or []), linkedin_url=cdata.get("linkedin_url", ""), phone=cdata.get("phone", ""),
     )
     rc_raw, rd_raw = odata.get("recipient_class"), odata.get("relationship_distance")
     rc = RecipientClass(rc_raw) if rc_raw in RecipientClass._value2member_map_ else RecipientClass.HIRING_MANAGER
@@ -409,10 +392,9 @@ def _reconstruct_eval_context(manifest_file: Path) -> tuple[CandidateProfile, Ta
         opportunity_id=odata.get("opportunity_id", ""), company_name=odata.get("company_name", ""),
         role_title=odata.get("role_title", ""), industry=odata.get("industry", ""),
         recipient_name=odata.get("recipient_name", ""), recipient_title=odata.get("recipient_title", ""),
-        recipient_class=rc, relationship_distance=rd,
-        strategic_priorities=list(odata.get("strategic_priorities", [])),
+        recipient_class=rc, relationship_distance=rd, strategic_priorities=list(odata.get("strategic_priorities") or []),
         briefing_text=odata.get("briefing_text", ""), research_digest=odata.get("research_digest", ""),
-        evidence_items=list(odata.get("evidence_items", [])), sealed_resolution=odata.get("sealed_resolution"),
+        evidence_items=list(odata.get("evidence_items") or []), sealed_resolution=odata.get("sealed_resolution"),
     )
     return cand, opp
 
@@ -442,9 +424,12 @@ def _handle_eval(args: argparse.Namespace) -> int:
     if draft is None:
         return _emit_error(args, f"Neither outreach_draft.json nor outreach_draft.md found or readable in: {run_dir}")
 
-    orchestrator = OutreachOrchestrator()
-    verdict = orchestrator.evaluate_authoritative_draft(draft, candidate, opportunity, artifact_dir=None)
-    eval_report = orchestrator.judge.report_from_verdict(verdict)
+    try:
+        orchestrator = OutreachOrchestrator()
+        verdict = orchestrator.evaluate_authoritative_draft(draft, candidate, opportunity, artifact_dir=None)
+        eval_report = orchestrator.judge.report_from_verdict(verdict)
+    except Exception as exc:
+        return _emit_error(args, f"Evaluation execution error: {exc}")
     val_dict = {
         "status": verdict.status, "is_valid": verdict.is_valid, "violations": verdict.violations,
         "warnings": verdict.warnings, "failure_reasons": verdict.failure_reasons, "scores": verdict.scores,
@@ -478,14 +463,12 @@ def _handle_show(args: argparse.Namespace) -> int:
     if not run_dir.is_dir():
         return _emit_error(args, f"Run directory does not exist: {run_dir}")
 
+    is_json = getattr(args, "json", False)
     artifact_map = {
-        "draft": ["outreach_draft.md", "outreach_draft.json"],
-        "campaign": ["campaign_sequence.json"],
-        "evaluation": ["evaluation_report.json"],
-        "validation": ["validation_report.json"],
-        "research": ["apps_research/runs/*/company_brief.md", "apps_research/runs/*/company_brief.json"],
-        "manifest": ["run_manifest.json"],
-        "receipt": ["run_receipt.json"],
+        "draft": ["outreach_draft.json", "outreach_draft.md"] if is_json else ["outreach_draft.md", "outreach_draft.json"],
+        "campaign": ["campaign_sequence.json"], "evaluation": ["evaluation_report.json"], "validation": ["validation_report.json"],
+        "research": ["apps_research/runs/*/company_brief.json", "apps_research/runs/*/company_brief.md"] if is_json else ["apps_research/runs/*/company_brief.md", "apps_research/runs/*/company_brief.json"],
+        "manifest": ["run_manifest.json"], "receipt": ["run_receipt.json"],
     }
     target_file = None
     for pattern in artifact_map.get(args.artifact, []):
@@ -500,8 +483,11 @@ def _handle_show(args: argparse.Namespace) -> int:
     if not target_file or not target_file.is_file():
         return _emit_error(args, f"Artifact '{args.artifact}' was not found in: {run_dir}")
 
-    content = target_file.read_text(encoding="utf-8")
-    if getattr(args, "json", False) and not target_file.name.endswith(".json"):
+    try:
+        content = target_file.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError, ValueError) as exc:
+        return _emit_error(args, f"Failed reading artifact file '{target_file}': {exc}")
+    if is_json and not target_file.name.endswith(".json"):
         print(json.dumps({"artifact": args.artifact, "file": target_file.name, "content": content}, indent=2))
     else:
         print(content)
@@ -512,21 +498,44 @@ def _handle_validate(args: argparse.Namespace) -> int:
     body = str(getattr(args, "body", "") or "").strip()
     subject = str(getattr(args, "subject", "") or "").strip()
     draft_file = getattr(args, "draft_file", None)
-    if draft_file and not body:
-        p = Path(draft_file)
-        if not p.is_file():
-            return _emit_error(args, f"Draft file not found: {draft_file}")
-        raw_d = p.read_text(encoding="utf-8")
-        if p.suffix.lower() == ".json":
+    if not body:
+        if draft_file == "-" or (not draft_file and not sys.stdin.isatty()):
             try:
-                loaded_d = json.loads(raw_d)
-                if isinstance(loaded_d, dict):
-                    body = str(loaded_d.get("body") or "").strip()
-                    subject = subject or str(loaded_d.get("subject") or "").strip()
-            except json.JSONDecodeError:
+                raw_d = sys.stdin.read().strip()
+                if raw_d.startswith("{"):
+                    try:
+                        loaded_d = json.loads(raw_d)
+                        if isinstance(loaded_d, dict):
+                            body = str(loaded_d.get("body") or "").strip()
+                            subject = subject or str(loaded_d.get("subject") or "").strip()
+                        else:
+                            body = raw_d
+                    except json.JSONDecodeError:
+                        body = raw_d
+                else:
+                    body = raw_d
+            except Exception as exc:
+                return _emit_error(args, f"Failed reading from stdin: {exc}")
+        elif draft_file:
+            p = Path(draft_file)
+            if not p.is_file():
+                return _emit_error(args, f"Draft file not found: {draft_file}")
+            try:
+                raw_d = p.read_text(encoding="utf-8")
+            except (OSError, UnicodeDecodeError, ValueError) as exc:
+                return _emit_error(args, f"Failed reading draft file '{draft_file}': {exc}")
+            if p.suffix.lower() == ".json":
+                try:
+                    loaded_d = json.loads(raw_d)
+                    if isinstance(loaded_d, dict):
+                        body = str(loaded_d.get("body") or "").strip()
+                        subject = subject or str(loaded_d.get("subject") or "").strip()
+                    else:
+                        body = raw_d.strip()
+                except json.JSONDecodeError:
+                    body = raw_d.strip()
+            else:
                 body = raw_d.strip()
-        else:
-            body = raw_d.strip()
     if not body:
         return _emit_error(args, "No draft body provided (--body or --file required).")
 
@@ -564,10 +573,7 @@ def _handle_validate(args: argparse.Namespace) -> int:
     return 0 if verdict.passed else 1
 
 
-cmd_run = _handle_run
-cmd_eval = _handle_eval
-cmd_show = _handle_show
-cmd_validate = _handle_validate
+cmd_run, cmd_eval, cmd_show, cmd_validate = _handle_run, _handle_eval, _handle_show, _handle_validate
 
 
 def main(argv: Sequence[str] | None = None, prog: str | None = None) -> int:
@@ -577,10 +583,8 @@ def main(argv: Sequence[str] | None = None, prog: str | None = None) -> int:
     parser = _build_parser(prog=prog)
     args = parser.parse_args(normalized)
     handlers = {
-        "run": lambda: _handle_run(args, prog=prog),
-        "eval": lambda: _handle_eval(args),
-        "show": lambda: _handle_show(args),
-        "validate": lambda: _handle_validate(args),
+        "run": lambda: _handle_run(args, prog=prog), "eval": lambda: _handle_eval(args),
+        "show": lambda: _handle_show(args), "validate": lambda: _handle_validate(args),
     }
     handler = handlers.get(args.action)
     return handler() if handler else (parser.print_help() or 1)
@@ -588,5 +592,3 @@ def main(argv: Sequence[str] | None = None, prog: str | None = None) -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
-
-

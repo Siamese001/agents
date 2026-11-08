@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import sys
 import time
 import uuid
@@ -64,16 +65,29 @@ def persist_standalone_outreach_research_bundle(
     runs_root: Path,
 ) -> SimpleNamespace:
     """Self-contained v2 bundle publisher used when external apps_rg runtime is absent."""
-    run_id = str(getattr(record, "run_id", "") or f"run-{uuid.uuid4().hex[:8]}").strip()
+    raw_run_id = str(getattr(record, "run_id", "") or f"run-{uuid.uuid4().hex[:8]}").strip()
+    safe_run_id = re.sub(r"[^a-zA-Z0-9_\-\.]", "_", raw_run_id).strip("._")
+    if not safe_run_id:
+        safe_run_id = f"run-{uuid.uuid4().hex[:8]}"
+    run_id = safe_run_id
+
     trace_root = str(getattr(record, "trace_root", None) or getattr(record, "trace_id", "") or f"trace-{run_id}")
     if trace_root.startswith("bridge:") and trace_root.count(":") >= 2:
         trace_root = trace_root.split(":", 2)[-1]
     request_id = str(getattr(record, "request_id", "") or f"req-{run_id}").strip()
-    brief_text = str(getattr(record, "company_brief_text", "") or "").strip()
+    brief_text = str(
+        getattr(record, "company_brief_text", "")
+        or getattr(record, "brief_text", "")
+        or getattr(record, "briefing_text", "")
+        or ""
+    ).strip()
     if not brief_text:
         raise ValueError("Cannot persist empty company brief")
 
-    run_dir = Path(runs_root).resolve() / run_id
+    base_root = Path(runs_root).resolve()
+    run_dir = (base_root / run_id).resolve()
+    if not run_dir.is_relative_to(base_root):
+        raise ValueError(f"run_dir {run_dir} escapes runs_root {base_root}")
     run_dir.mkdir(parents=True, exist_ok=True)
     emitted_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
@@ -189,6 +203,7 @@ def persist_standalone_outreach_research_bundle(
         "authority_contract_id": "apps_research_rg_e2e_authority",
         "handoff_id": f"apps-research-rg:{run_id}",
         "artifact_manifest_sha256": _sha256_bytes(handoff_v2_bytes),
+        "u0_receipt_sha256": _sha256_bytes(u0_bytes),
         "artifact_count": 6,
         "status": "COMMITTED",
         "created_at_utc": emitted_at,

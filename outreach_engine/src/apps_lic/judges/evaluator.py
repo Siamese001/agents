@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import math
 import re
 import threading
 from dataclasses import dataclass, field
@@ -107,25 +108,14 @@ class EvaluationReport:
 
     def to_dict(self) -> dict[str, Any]:
         return {
-            "passed": self.passed,
-            "status": self.status,
-            "judge_passed": self.judge_passed,
-            "hard_gate_passed": self.hard_gate_passed,
-            "composite_score": self.composite_score,
-            "score_band": self.score_band,
-            "lens1_altitude_score": self.lens1_altitude_score,
-            "lens2_grounding_score": self.lens2_grounding_score,
-            "lens3_resonance_score": self.lens3_resonance_score,
-            "lens4_cta_score": self.lens4_cta_score,
-            "lens5_anti_spam_score": self.lens5_anti_spam_score,
-            "lens6_constraints_score": self.lens6_constraints_score,
-            "hop1_classifier_score": self.hop1_classifier_score,
-            "hop2_grounding_score": self.hop2_grounding_score,
-            "hop6_alignment_score": self.hop6_alignment_score,
-            "hop8_narrative_score": self.hop8_narrative_score,
-            "feedback": list(self.feedback),
-            "remediation_hints": list(self.remediation_hints),
-            "lens_scores": dict(self.lens_scores),
+            "passed": self.passed, "status": self.status, "judge_passed": self.judge_passed,
+            "hard_gate_passed": self.hard_gate_passed, "composite_score": self.composite_score, "score_band": self.score_band,
+            "lens1_altitude_score": self.lens1_altitude_score, "lens2_grounding_score": self.lens2_grounding_score,
+            "lens3_resonance_score": self.lens3_resonance_score, "lens4_cta_score": self.lens4_cta_score,
+            "lens5_anti_spam_score": self.lens5_anti_spam_score, "lens6_constraints_score": self.lens6_constraints_score,
+            "hop1_classifier_score": self.hop1_classifier_score, "hop2_grounding_score": self.hop2_grounding_score,
+            "hop6_alignment_score": self.hop6_alignment_score, "hop8_narrative_score": self.hop8_narrative_score,
+            "feedback": list(self.feedback), "remediation_hints": list(self.remediation_hints), "lens_scores": dict(self.lens_scores),
         }
 
 
@@ -162,24 +152,57 @@ class ExecutiveOutreachJudgePanel:
     ) -> dict[str, Any]:
         """Score competing candidate outreach drafts via archetype skeptic evaluation and determine signoff."""
         if not drafts:
-            return {"winner_draft_id": "", "top_score": 0.0, "runner_up_score": 0.0, "margin": 0.0, "requires_human_signoff": False, "rankings": []}
+            return {"winner_draft_id": "", "top_score": 0.0, "runner_up_score": 0.0, "margin": 0.0, "requires_human_signoff": False, "rankings": [], "passed": False}
         rankings: list[dict[str, Any]] = []
-        for idx, draft in enumerate(drafts):
+        for draft in drafts:
             verdict = self.evaluate_authoritative(draft, candidate, opportunity)
-            score = round(min(1.0, verdict.composite_score + (0.02 if draft.grounded_facts_used else 0.0) - (idx * 0.001)), 4)
+            c_score = verdict.composite_score
+            if math.isnan(c_score) or math.isinf(c_score):
+                c_score = 0.0
+            score = round(min(1.0, c_score + (0.02 if draft.grounded_facts_used else 0.0)), 4)
+            passed = bool(verdict.passed) if c_score > 0.0 else False
             rankings.append({
-                "draft_id": draft.draft_id, "composite_score": verdict.composite_score,
-                "tournament_score": score, "passed": verdict.passed,
+                "draft_id": draft.draft_id, "composite_score": c_score,
+                "tournament_score": score, "passed": passed,
                 "grounded_facts_used": list(draft.grounded_facts_used),
             })
-        rankings.sort(key=lambda r: (r["passed"], r["tournament_score"]), reverse=True)
-        top_score = float(rankings[0]["tournament_score"])
-        runner_up_score = float(rankings[1]["tournament_score"]) if len(rankings) > 1 else 0.0
-        signoff = self.requires_human_signoff(top_score, runner_up_score, margin_threshold=margin_threshold) if len(rankings) > 1 else False
+
+        # Deterministic sorting: passed first, highest tournament_score, most grounded facts, ascending draft_id
+        rankings.sort(
+            key=lambda r: (
+                -1 if r["passed"] else 0,
+                -r["tournament_score"],
+                -len(r.get("grounded_facts_used", [])),
+                r["draft_id"],
+            )
+        )
+
+        passing_rankings = [r for r in rankings if r["passed"]]
+        if not passing_rankings:
+            winner_draft_id = ""
+            tournament_passed = False
+            top_score = float(rankings[0]["tournament_score"])
+            runner_up_score = float(rankings[1]["tournament_score"]) if len(rankings) > 1 else 0.0
+            signoff = False
+        else:
+            winner_draft_id = str(rankings[0]["draft_id"])
+            tournament_passed = True
+            top_score = float(rankings[0]["tournament_score"])
+            if len(passing_rankings) > 1:
+                runner_up_score = float(passing_rankings[1]["tournament_score"])
+                signoff = self.requires_human_signoff(top_score, runner_up_score, margin_threshold=margin_threshold)
+            else:
+                runner_up_score = float(rankings[1]["tournament_score"]) if len(rankings) > 1 else 0.0
+                signoff = False
+
         return {
-            "winner_draft_id": str(rankings[0]["draft_id"]), "top_score": top_score,
-            "runner_up_score": runner_up_score, "margin": round(abs(top_score - runner_up_score), 4),
-            "requires_human_signoff": signoff, "rankings": rankings,
+            "winner_draft_id": winner_draft_id,
+            "top_score": top_score,
+            "runner_up_score": runner_up_score,
+            "margin": round(abs(top_score - runner_up_score), 4),
+            "requires_human_signoff": signoff,
+            "rankings": rankings,
+            "passed": tournament_passed,
         }
 
     def _load_rubrics(self) -> dict[str, dict[str, Any]]:
@@ -188,7 +211,7 @@ class ExecutiveOutreachJudgePanel:
             return rubrics
         for f in self.rubrics_dir.glob("*.yaml"):
             data = _load_cached_rubric_file(f)
-            if isinstance(data, dict) and "rubric_id" in data:
+            if isinstance(data, dict) and isinstance(data.get("rubric_id"), str) and data.get("rubric_id"):
                 rubrics[data["rubric_id"]] = data
         return rubrics
 
@@ -201,37 +224,43 @@ class ExecutiveOutreachJudgePanel:
         return {}
 
     def get_threshold(self, lens_key: str, default: float) -> float:
-        lenses = self._active_rubric.get("lenses", {})
-        lens_spec = lenses.get(lens_key, {})
-        if isinstance(lens_spec, dict) and "threshold" in lens_spec:
+        lenses = self._active_rubric.get("lenses")
+        if isinstance(lenses, dict) and isinstance(lenses.get(lens_key), dict) and "threshold" in lenses[lens_key]:
             try:
-                return float(lens_spec["threshold"])
+                val = float(lenses[lens_key]["threshold"])
+                if not math.isnan(val) and not math.isinf(val):
+                    return val
             except (ValueError, TypeError):
                 pass
         return default
 
     def get_lens_weight(self, lens_key: str, default: float) -> float:
-        lenses = self._active_rubric.get("lenses", {})
-        lens_spec = lenses.get(lens_key, {})
-        if isinstance(lens_spec, dict) and "weight" in lens_spec:
+        lenses = self._active_rubric.get("lenses")
+        if isinstance(lenses, dict) and isinstance(lenses.get(lens_key), dict) and "weight" in lenses[lens_key]:
             try:
-                return float(lens_spec["weight"])
+                val = float(lenses[lens_key]["weight"])
+                if not math.isnan(val) and not math.isinf(val):
+                    return val
             except (ValueError, TypeError):
                 pass
         return default
 
     def get_min_composite_score(self, default: float = 0.75) -> float:
-        criteria = self._active_rubric.get("passing_criteria", {})
+        criteria = self._active_rubric.get("passing_criteria")
         if isinstance(criteria, dict) and "min_composite_score" in criteria:
             try:
-                return float(criteria["min_composite_score"])
+                val = float(criteria["min_composite_score"])
+                if not math.isnan(val) and not math.isinf(val):
+                    return val
             except (ValueError, TypeError):
                 pass
         return default
 
     def get_remediation_hint(self, lens_key: str, default: str) -> str:
-        lenses = self._active_rubric.get("lenses", {})
-        lens_spec = lenses.get(lens_key, {})
+        lenses = self._active_rubric.get("lenses")
+        if not isinstance(lenses, dict):
+            return default
+        lens_spec = lenses.get(lens_key)
         if isinstance(lens_spec, dict) and "remediation_hint" in lens_spec:
             return str(lens_spec["remediation_hint"])
         return default
@@ -435,53 +464,30 @@ class ExecutiveOutreachJudgePanel:
             feedback.append(f"Lens 6 (Constraints) Failure: {link_err}")
             hints.append("Use plain-text URLs instead of markdown link syntax.")
 
-        t_lens1 = self.get_threshold("lens1_altitude", 0.70)
-        t_lens2 = self.get_threshold("lens2_grounding", 0.99)
-        t_lens3 = self.get_threshold("lens3_resonance", 0.70)
-        t_lens4 = self.get_threshold("lens4_cta", 0.70)
-        t_lens5 = self.get_threshold("lens5_anti_spam", 0.70)
-        t_lens6 = self.get_threshold("lens6_constraints", 0.70)
+        t_lens1, t_lens2, t_lens3 = self.get_threshold("lens1_altitude", 0.70), self.get_threshold("lens2_grounding", 0.99), self.get_threshold("lens3_resonance", 0.70)
+        t_lens4, t_lens5, t_lens6 = self.get_threshold("lens4_cta", 0.70), self.get_threshold("lens5_anti_spam", 0.70), self.get_threshold("lens6_constraints", 0.70)
 
-        w_lens1 = self.get_lens_weight("lens1_altitude", 0.15)
-        w_lens2 = self.get_lens_weight("lens2_grounding", 0.25)
-        w_lens3 = self.get_lens_weight("lens3_resonance", 0.20)
-        w_lens4 = self.get_lens_weight("lens4_cta", 0.15)
-        w_lens5 = self.get_lens_weight("lens5_anti_spam", 0.15)
-        w_lens6 = self.get_lens_weight("lens6_constraints", 0.10)
+        w_lens1, w_lens2, w_lens3 = self.get_lens_weight("lens1_altitude", 0.15), self.get_lens_weight("lens2_grounding", 0.25), self.get_lens_weight("lens3_resonance", 0.20)
+        w_lens4, w_lens5, w_lens6 = self.get_lens_weight("lens4_cta", 0.15), self.get_lens_weight("lens5_anti_spam", 0.15), self.get_lens_weight("lens6_constraints", 0.10)
 
         composite_score = round(
-            lens1_score * w_lens1
-            + lens2_score * w_lens2
-            + lens3_score * w_lens3
-            + lens4_score * w_lens4
-            + lens5_score * w_lens5
-            + lens6_score * w_lens6,
-            4,
+            lens1_score * w_lens1 + lens2_score * w_lens2 + lens3_score * w_lens3
+            + lens4_score * w_lens4 + lens5_score * w_lens5 + lens6_score * w_lens6, 4
         )
+        if math.isnan(composite_score) or math.isinf(composite_score):
+            composite_score = 0.0
         min_composite = self.get_min_composite_score(0.75)
 
         all_lenses_passed = (
-            lens1_score >= t_lens1
-            and lens2_score >= t_lens2
-            and lens3_score >= t_lens3
-            and lens4_score >= t_lens4
-            and lens5_score >= t_lens5
-            and lens6_score >= t_lens6
+            lens1_score >= t_lens1 and lens2_score >= t_lens2 and lens3_score >= t_lens3
+            and lens4_score >= t_lens4 and lens5_score >= t_lens5 and lens6_score >= t_lens6
         )
         judge_passed = all_lenses_passed and (composite_score >= min_composite)
 
         if not (composite_score >= min_composite):
-            feedback.append(
-                f"Composite Score Failure: {composite_score:.2f} is below minimum threshold {min_composite:.2f}."
-            )
+            feedback.append(f"Composite Score Failure: {composite_score:.2f} is below minimum threshold {min_composite:.2f}.")
 
-        if composite_score >= 0.85:
-            score_band = "EXEMPLARY"
-        elif composite_score >= 0.70:
-            score_band = "ACCEPTABLE"
-        else:
-            score_band = "FAIL"
-
+        score_band = "EXEMPLARY" if composite_score >= 0.85 else ("ACCEPTABLE" if composite_score >= 0.70 else "FAIL")
         passed = hard_gate_passed and judge_passed
         status = "PASSED" if passed else "BLOCKED"
 
@@ -499,25 +505,17 @@ class ExecutiveOutreachJudgePanel:
                     failure_reasons.append(fb)
 
         scores = {
-            "spam_score": 1.0 if spam_valid else 0.0,
-            "length_score": 1.0 if len_valid else 0.0,
-            "question_score": 1.0 if q_valid else 0.0,
-            "grounding_score": 1.0 if g_valid else 0.0,
-            "dash_score": 1.0 if dash_valid else 0.0,
-            "link_score": 1.0 if link_valid else 0.0,
-            "tone_score": 1.0 if tone_valid else 0.0,
-            "forbidden_claims_score": 1.0 if fc_valid else 0.0,
-            "privacy_score": 1.0 if priv_valid else 0.0,
-            "unsupported_personalization_score": 1.0 if up_valid else 0.0,
+            "spam_score": 1.0 if spam_valid else 0.0, "length_score": 1.0 if len_valid else 0.0,
+            "question_score": 1.0 if q_valid else 0.0, "grounding_score": 1.0 if g_valid else 0.0,
+            "dash_score": 1.0 if dash_valid else 0.0, "link_score": 1.0 if link_valid else 0.0,
+            "tone_score": 1.0 if tone_valid else 0.0, "forbidden_claims_score": 1.0 if fc_valid else 0.0,
+            "privacy_score": 1.0 if priv_valid else 0.0, "unsupported_personalization_score": 1.0 if up_valid else 0.0,
         }
 
         lens_scores = {
-            "lens1_altitude": lens1_score,
-            "lens2_grounding": lens2_score,
-            "lens3_resonance": lens3_score,
-            "lens4_cta": lens4_score,
-            "lens5_anti_spam": lens5_score,
-            "lens6_constraints": lens6_score,
+            "lens1_altitude": lens1_score, "lens2_grounding": lens2_score,
+            "lens3_resonance": lens3_score, "lens4_cta": lens4_score,
+            "lens5_anti_spam": lens5_score, "lens6_constraints": lens6_score,
         }
 
         return AuthoritativeVerdict(
@@ -538,41 +536,40 @@ class ExecutiveOutreachJudgePanel:
 
     def report_from_verdict(self, verdict: AuthoritativeVerdict) -> EvaluationReport:
         """Derive an EvaluationReport directly from an AuthoritativeVerdict without re-evaluating."""
-        hop1 = min(verdict.lens_scores.get("lens1_altitude", 1.0), verdict.lens_scores.get("lens6_constraints", 1.0))
-        hop2 = verdict.lens_scores.get("lens2_grounding", 1.0)
-        hop6 = min(verdict.lens_scores.get("lens3_resonance", 1.0), verdict.lens_scores.get("lens5_anti_spam", 1.0))
-        hop8 = verdict.lens_scores.get("lens4_cta", 1.0)
+        def _safe_lens_score(lens_key: str, default: float = 1.0) -> float:
+            val = verdict.lens_scores.get(lens_key)
+            if val is None:
+                return default
+            try:
+                fval = float(val)
+                return default if (math.isnan(fval) or math.isinf(fval)) else fval
+            except (ValueError, TypeError):
+                return default
+
+        l1 = _safe_lens_score("lens1_altitude")
+        l2 = _safe_lens_score("lens2_grounding")
+        l3 = _safe_lens_score("lens3_resonance")
+        l4 = _safe_lens_score("lens4_cta")
+        l5 = _safe_lens_score("lens5_anti_spam")
+        l6 = _safe_lens_score("lens6_constraints")
+
+        hop1 = min(l1, l6)
+        hop2 = l2
+        hop6 = min(l3, l5)
+        hop8 = l4
 
         return EvaluationReport(
-            passed=verdict.passed,
-            status=verdict.status,
-            judge_passed=verdict.judge_passed,
-            hard_gate_passed=verdict.hard_gate_passed,
-            lens1_altitude_score=verdict.lens_scores.get("lens1_altitude", 1.0),
-            lens2_grounding_score=verdict.lens_scores.get("lens2_grounding", 1.0),
-            lens3_resonance_score=verdict.lens_scores.get("lens3_resonance", 1.0),
-            lens4_cta_score=verdict.lens_scores.get("lens4_cta", 1.0),
-            lens5_anti_spam_score=verdict.lens_scores.get("lens5_anti_spam", 1.0),
-            lens6_constraints_score=verdict.lens_scores.get("lens6_constraints", 1.0),
-            composite_score=verdict.composite_score,
-            score_band=verdict.score_band,
-            hop1_classifier_score=hop1,
-            hop2_grounding_score=hop2,
-            hop6_alignment_score=hop6,
-            hop8_narrative_score=hop8,
-            feedback=list(verdict.feedback),
-            remediation_hints=list(verdict.remediation_hints),
-            lens_scores=dict(verdict.lens_scores),
+            passed=verdict.passed, status=verdict.status, judge_passed=verdict.judge_passed,
+            hard_gate_passed=verdict.hard_gate_passed, lens1_altitude_score=l1, lens2_grounding_score=l2,
+            lens3_resonance_score=l3, lens4_cta_score=l4, lens5_anti_spam_score=l5, lens6_constraints_score=l6,
+            composite_score=verdict.composite_score, score_band=verdict.score_band,
+            hop1_classifier_score=hop1, hop2_grounding_score=hop2, hop6_alignment_score=hop6, hop8_narrative_score=hop8,
+            feedback=list(verdict.feedback), remediation_hints=list(verdict.remediation_hints),
+            lens_scores={k: (v if v is not None else 1.0) for k, v in verdict.lens_scores.items()},
         )
 
-    def evaluate(
-        self,
-        draft: OutreachMessageDraft,
-        candidate: CandidateProfile,
-        opportunity: TargetOpportunity,
-    ) -> EvaluationReport:
-        verdict = self.evaluate_authoritative(draft, candidate, opportunity)
-        return self.report_from_verdict(verdict)
+    def evaluate(self, draft: OutreachMessageDraft, candidate: CandidateProfile, opportunity: TargetOpportunity) -> EvaluationReport:
+        return self.report_from_verdict(self.evaluate_authoritative(draft, candidate, opportunity))
 
 
 # Backward-compatible alias
