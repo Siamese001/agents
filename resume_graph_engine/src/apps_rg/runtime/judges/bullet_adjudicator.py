@@ -141,22 +141,45 @@ def _bullet_has_high_value_metric(bullet: Mapping[str, Any]) -> bool:
     return bool(str(moid or "").strip())
 
 
+def _finite_float(val: Any) -> float | None:
+    if val is None or isinstance(val, bool):
+        return None
+    try:
+        f = float(val)
+    except (TypeError, ValueError):
+        return None
+    import math
+    return f if math.isfinite(f) else None
+
+
 def _extract_selector_margin(row: Mapping[str, Any]) -> float | None:
-    if row.get("selection_margin") is not None:
-        try:
-            return abs(float(row["selection_margin"]))
-        except (TypeError, ValueError):
-            pass
-    score = row.get("score") if row.get("score") is not None else row.get("selector_score")
-    runner_up = row.get("runner_up_score")
-    if runner_up is None and isinstance(row.get("runner_up"), Mapping):
-        runner_up = row["runner_up"].get("score")
+    explicit = _finite_float(row.get("selection_margin"))
+    if explicit is not None:
+        return abs(explicit)
+    score = _finite_float(row.get("score") if row.get("score") is not None else row.get("selector_score"))
+    runner_up_raw = row.get("runner_up_score")
+    if runner_up_raw is None and isinstance(row.get("runner_up"), Mapping):
+        runner_up_raw = row["runner_up"].get("score")
+    runner_up = _finite_float(runner_up_raw)
     if score is not None and runner_up is not None:
-        try:
-            return abs(float(score) - float(runner_up))
-        except (TypeError, ValueError):
-            return None
+        return abs(score - runner_up)
     return None
+
+
+def _top_row_by_slot(rows: Sequence[Mapping[str, Any]]) -> list[Mapping[str, Any]]:
+    by_slot: dict[str, Mapping[str, Any]] = {}
+    unslotted: list[Mapping[str, Any]] = []
+    for row in rows:
+        if not isinstance(row, Mapping):
+            continue
+        bid = str(row.get("bullet_id") or "").strip()
+        if not bid:
+            unslotted.append(row)
+            continue
+        existing = by_slot.get(bid)
+        if existing is None or (_finite_float(row.get("score")) or -1.0) > (_finite_float(existing.get("score")) or -1.0):
+            by_slot[bid] = row
+    return [*by_slot.values(), *unslotted]
 
 
 def evaluate_bullet_adjudicator_trigger(
@@ -228,9 +251,13 @@ def evaluate_bullet_adjudicator_trigger(
     # Trigger 4: TOP_TWO_WITHIN_MARGIN (< 0.05 margin between winning pool candidate and runner-up).
     margin_candidates: list[Mapping[str, Any]] = []
     if selector_selections:
-        margin_candidates.extend(selector_selections)
+        margin_candidates.extend(_top_row_by_slot(selector_selections))
     if bullets:
-        margin_candidates.extend(bullets)
+        seen_bids = {str(r.get("bullet_id") or "").strip() for r in margin_candidates if isinstance(r, Mapping)}
+        margin_candidates.extend(
+            b for b in _top_row_by_slot(bullets)
+            if not str(b.get("bullet_id") or "").strip() or str(b.get("bullet_id") or "").strip() not in seen_bids
+        )
 
     narrow_margin_slots: list[dict[str, Any]] = []
     for row in margin_candidates:

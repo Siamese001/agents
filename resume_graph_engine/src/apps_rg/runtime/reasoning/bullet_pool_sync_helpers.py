@@ -192,6 +192,26 @@ def execute_sc_paths_batch(
     return paths
 
 
+def _safe_finite_float(val: Any) -> float | None:
+    if val is None or isinstance(val, bool):
+        return None
+    try:
+        f = float(val)
+    except (TypeError, ValueError):
+        return None
+    import math
+    return round(f, 4) if math.isfinite(f) else None
+
+
+def _safe_int(val: Any, default: int = 0) -> int:
+    if val is None or isinstance(val, bool):
+        return default
+    try:
+        return int(val)
+    except (TypeError, ValueError):
+        return default
+
+
 def normalize_bullet_selection_margins(
     paths: list[Any],
     selections: list[dict[str, Any]],
@@ -215,59 +235,43 @@ def normalize_bullet_selection_margins(
         if not bid:
             normalized.append(row)
             continue
-        try:
-            win_score = round(float(row.get("score") or 0.0), 4)
-        except (TypeError, ValueError):
+        win_score = _safe_finite_float(row.get("score"))
+        if win_score is None:
             win_score = 0.0
-        try:
-            win_idx = int(row.get("path_index", 0))
-        except (TypeError, ValueError):
-            win_idx = 0
+            row["score"] = 0.0
+        win_idx = _safe_int(row.get("path_index"), 0)
 
         ru_dict = row.get("runner_up") if isinstance(row.get("runner_up"), dict) else None
-        ru_score_raw = row.get("runner_up_score")
-        if ru_score_raw is None and ru_dict is not None:
-            ru_score_raw = ru_dict.get("score")
+        ru_score = _safe_finite_float(row.get("runner_up_score"))
+        if ru_score is None and ru_dict is not None:
+            ru_score = _safe_finite_float(ru_dict.get("score"))
         ru_idx_raw = ru_dict.get("path_index") if ru_dict is not None else row.get("runner_up_path_index")
 
         slot_rows = sorted(
             by_slot.get(bid, []),
-            key=lambda r: float(r.get("score") or 0.0) if isinstance(r.get("score"), (int, float, str)) else 0.0,
+            key=lambda r: _safe_finite_float(r.get("score")) or 0.0,
             reverse=True,
         )
-        if ru_score_raw is None and len(slot_rows) >= 2:
-            second = next((r for r in slot_rows if int(r.get("path_index", -1)) != win_idx), slot_rows[1])
-            try:
-                ru_score_raw = float(second.get("score") or 0.0)
-                ru_idx_raw = int(second.get("path_index", 0))
-            except (TypeError, ValueError):
-                pass
+        if ru_score is None and len(slot_rows) >= 2:
+            second = next(
+                (r for r in slot_rows if r is not raw and _safe_int(r.get("path_index"), -1) != win_idx),
+                next((r for r in slot_rows if r is not raw), slot_rows[1]),
+            )
+            ru_score = _safe_finite_float(second.get("score"))
+            if ru_score is not None:
+                ru_idx_raw = second.get("path_index")
 
-        if ru_score_raw is None and multi_path:
+        if ru_score is None and multi_path:
             alt_indices = [idx for idx in valid_path_indices if idx != win_idx]
             if alt_indices:
                 ru_idx_raw = alt_indices[0]
-                ru_score_raw = round(max(0.0, win_score - 0.04), 4)
-
-        if ru_score_raw is not None:
-            try:
-                ru_score = round(float(ru_score_raw), 4)
-            except (TypeError, ValueError):
                 ru_score = round(max(0.0, win_score - 0.04), 4)
-            try:
-                ru_idx = int(ru_idx_raw) if ru_idx_raw is not None else (
-                    next((idx for idx in valid_path_indices if idx != win_idx), win_idx)
-                )
-            except (TypeError, ValueError):
-                ru_idx = win_idx
-            margin_raw = row.get("selection_margin")
-            if margin_raw is not None:
-                try:
-                    margin = round(abs(float(margin_raw)), 4)
-                except (TypeError, ValueError):
-                    margin = round(abs(win_score - ru_score), 4)
-            else:
-                margin = round(abs(win_score - ru_score), 4)
+
+        if ru_score is not None:
+            default_ru_idx = next((idx for idx in valid_path_indices if idx != win_idx), win_idx)
+            ru_idx = _safe_int(ru_idx_raw, default_ru_idx)
+            margin_val = _safe_finite_float(row.get("selection_margin"))
+            margin = round(abs(margin_val), 4) if margin_val is not None else round(abs(win_score - ru_score), 4)
             row["runner_up"] = {"path_index": ru_idx, "score": ru_score}
             row["runner_up_score"] = ru_score
             row["selection_margin"] = margin
@@ -277,7 +281,10 @@ def normalize_bullet_selection_margins(
 
 def select_from_bullet_pool_with_claude(**kwargs: Any) -> dict[str, Any]:
     """Select per-slot winners from bullet pool and return structured selection map by slot id."""
-    from apps_rg.runtime.judges.bullet_pool_claude_selector import run_claude_bullet_pool_selection
+    from apps_rg.runtime.judges.bullet_pool_claude_selector import (
+        _selection_passes,
+        run_claude_bullet_pool_selection,
+    )
 
     kw = dict(kwargs)
     kw.setdefault("section_id", "unify_bullets")
@@ -285,10 +292,19 @@ def select_from_bullet_pool_with_claude(**kwargs: Any) -> dict[str, Any]:
     res = run_claude_bullet_pool_selection(**kw)
     selections_by_id: dict[str, dict[str, Any]] = {}
     for row in res.selections:
-        if isinstance(row, dict):
-            bid = str(row.get("bullet_id") or row.get("category_label") or "").strip()
-            if bid and bid not in selections_by_id:
-                selections_by_id[bid] = dict(row)
+        if not isinstance(row, dict):
+            continue
+        bid = str(row.get("bullet_id") or row.get("category_label") or "").strip()
+        if not bid:
+            continue
+        existing = selections_by_id.get(bid)
+        if existing is None:
+            selections_by_id[bid] = dict(row)
+            continue
+        row_key = (_selection_passes(row), _safe_finite_float(row.get("score")) or 0.0)
+        ex_key = (_selection_passes(existing), _safe_finite_float(existing.get("score")) or 0.0)
+        if row_key > ex_key:
+            selections_by_id[bid] = dict(row)
     return {
         "selections": selections_by_id,
         "selection_list": list(res.selections),
@@ -297,3 +313,4 @@ def select_from_bullet_pool_with_claude(**kwargs: Any) -> dict[str, Any]:
         "source_path_by_slot": res.source_path_by_slot,
         "judge_output": res.judge_output,
     }
+
