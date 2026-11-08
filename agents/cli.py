@@ -354,48 +354,45 @@ def run_e2e(args: argparse.Namespace) -> int:
         )
         from agents.e2e_output import isolate_child_output
 
-        if getattr(args, "offline_smoke", False):
-            with isolate_child_output(logs_dir / "resume_tailoring.log"):
-                rg_code = run_offline_deterministic_resume_stage(base_dir=base_dir, company=company, role=role, args=args)
-        else:
-            briefing_path = ""
-            research_ctx = ctx.get("step_company_research") or {}
-            if isinstance(research_ctx, dict) and research_ctx.get("briefing_path"):
-                bpath = Path(research_ctx["briefing_path"])
-                if bpath.is_file():
-                    briefing_path = str(bpath)
-            run_proofs_dir = resolve_run_scoped_resume_proofs_dir(run_id)
-            resume_args = ["run", "--target-company", company, "--target-role", role, "--artifact-dir", str(run_proofs_dir)]
-            if briefing_path:
-                resume_args.extend(["--briefing", briefing_path])
-            if args.jd:
-                resume_args.extend(["--jd", args.jd])
-            if args.resume:
-                resume_args.extend(["--resume", args.resume])
-            with isolate_child_output(logs_dir / "resume_tailoring.log"):
-                rg_code = resume_main(resume_args)
+        try:
+            if getattr(args, "offline_smoke", False):
+                with isolate_child_output(logs_dir / "resume_tailoring.log"):
+                    rg_code = run_offline_deterministic_resume_stage(base_dir=base_dir, company=company, role=role, args=args)
+            else:
+                research_ctx = ctx.get("step_company_research") or {}
+                bpath = Path(research_ctx["briefing_path"]) if isinstance(research_ctx, dict) and research_ctx.get("briefing_path") else None
+                briefing_path = str(bpath) if bpath and bpath.is_file() else ""
+                run_proofs_dir = resolve_run_scoped_resume_proofs_dir(run_id)
+                resume_args = ["run", "--target-company", company, "--target-role", role, "--artifact-dir", str(run_proofs_dir)]
+                for flag, val in (("--briefing", briefing_path), ("--jd", args.jd), ("--resume", args.resume)):
+                    if val:
+                        resume_args.extend([flag, val])
+                with isolate_child_output(logs_dir / "resume_tailoring.log"):
+                    rg_code = resume_main(resume_args)
+        except Exception as exc:
+            lat_ms, err_type = round((time.perf_counter() - t_stage_start) * 1000, 2), type(exc).__name__
+            err_msg = f"{err_type}: {exc}"
+            summary_payload["stages"]["resume_tailoring"] = {
+                "exit_code": 1, "status": "FAILED", "error_type": err_type, "error": str(exc),
+                "latency_ms": lat_ms, "failure_reasons": [err_msg],
+            }
+            if not args.json:
+                sys.stderr.write(f"[agents e2e] Error: Resume generation raised {err_msg}\n")
+            raise
 
         lat_ms = round((time.perf_counter() - t_stage_start) * 1000, 2)
-
         if rg_code != 0:
             err_msg = f"apps_rg returned non-zero exit code: {rg_code}"
             summary_payload["stages"]["resume_tailoring"] = {
-                "exit_code": rg_code,
-                "status": "FAILED",
-                "error": err_msg,
-                "latency_ms": lat_ms,
-                "failure_reasons": [err_msg],
+                "exit_code": rg_code, "status": "FAILED", "error_type": "NonZeroExitCode", "error": err_msg,
+                "latency_ms": lat_ms, "failure_reasons": [err_msg],
             }
             if not args.json:
                 sys.stderr.write(f"[agents e2e] Error: Resume generation returned non-zero exit code {rg_code}.\n")
             raise RuntimeError(err_msg)
 
         res = resolve_and_verify_resume_artifact(
-            run_id=run_id,
-            base_dir=base_dir,
-            rg_code=rg_code,
-            summary_payload=summary_payload,
-            args=args,
+            run_id=run_id, base_dir=base_dir, rg_code=rg_code, summary_payload=summary_payload, args=args,
         )
         summary_payload["stages"]["resume_tailoring"]["latency_ms"] = lat_ms
         return res

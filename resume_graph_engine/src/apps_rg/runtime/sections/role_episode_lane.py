@@ -16,78 +16,47 @@ from types import SimpleNamespace
 from typing import Any, Mapping
 
 from apps_rg.runtime.c0.section_proof_loader import (
-    apply_proof_pool_to_usage_ledger,
-    load_section_proof_for_lane,
+    apply_proof_pool_to_usage_ledger, load_section_proof_for_lane,
 )
 from apps_rg.runtime.claim_ledger.canonical_exec_summary_v2 import (
-    build_canonical_claim_ledger_v2_payload,
-    normalize_exec_summary_claim_ledger,
+    build_canonical_claim_ledger_v2_payload, normalize_exec_summary_claim_ledger,
 )
 from apps_rg.runtime.exit.executive_summary_x3 import aggregate_x3
 from apps_rg.runtime.spine.section_x3_finalize import finalize_section_lane_x3
 from apps_rg.runtime.validators.bullet_line_discipline_x2 import check_bullet_single_thought
-from apps_rg.runtime.validators.bullet_quality_floor_x2 import (
-    check_experience_bullet_evidence_density,
-)
+from apps_rg.runtime.validators.bullet_quality_floor_x2 import check_experience_bullet_evidence_density
 from apps_rg.runtime.validators.narrative_mechanical_x2 import check_narrative_exactly_one_sentence
 from apps_rg.runtime.providers import (
-    ExternalProvider,
-    ProviderGateway,
-    ProviderGatewayError,
-    ProviderProfile,
+    ExternalProvider, ProviderGateway, ProviderGatewayError, ProviderProfile,
 )
 from apps_rg.runtime.providers.provider_contract import ProviderResult
 from apps_rg.runtime.section_model_limits import (
-    external_claude_generation_model,
-    external_openai_generation_model,
-    resolve_section_generation_effort,
+    external_claude_generation_model, external_openai_generation_model, resolve_section_generation_effort,
 )
 from apps_rg.runtime.runtime_proof_layout import (
-    finalize_runtime_proof_run,
-    prepare_runtime_proof_run_dir,
-    rel_posix,
+    finalize_runtime_proof_run, prepare_runtime_proof_run_dir, rel_posix,
 )
 from apps_rg.runtime.section_l2_lane_integration import (
-    finalize_section_l2_after_output,
-    prepare_section_l2_before_provider,
+    finalize_section_l2_after_output, prepare_section_l2_before_provider,
 )
 from apps_rg.runtime.section_runtime_exhaust_lane_integration import (
-    finalize_section_runtime_exhaust_before_l6,
-    gate_section_l6_shadow_after_exhaust,
+    finalize_section_runtime_exhaust_before_l6, gate_section_l6_shadow_after_exhaust,
 )
-from apps_rg.runtime.section_proof.section_input_usage_ledger import (
-    build_section_input_usage_ledger_v1,
-)
-from apps_rg.runtime.sections.lane_artifact_io import (
-    runtime_payload_for_json,
-    sha16,
-    write_json,
-)
-from apps_rg.runtime.spine.c0_fec_compose import (
-    merge_compiled_prompt_artifact_fec_fields,
-)
-from apps_rg.runtime.validators.proof_pool_source_fact_validation import (
-    write_x2_source_fact_pool_receipt,
-)
-from apps_rg.runtime.reasoning.bullet_lane_generation import (
-    generate_bullet_lane_with_sc_and_claude,
-)
+from apps_rg.runtime.section_proof.section_input_usage_ledger import build_section_input_usage_ledger_v1
+from apps_rg.runtime.sections.lane_artifact_io import runtime_payload_for_json, sha16, write_json
+from apps_rg.runtime.spine.c0_fec_compose import merge_compiled_prompt_artifact_fec_fields
+from apps_rg.runtime.validators.proof_pool_source_fact_validation import write_x2_source_fact_pool_receipt
+from apps_rg.runtime.reasoning.bullet_lane_generation import generate_bullet_lane_with_sc_and_claude
 from apps_rg.runtime.reasoning.employment_bullet_pool import (
-    FINAL_BULLET_COUNT,
-    REQUIRED_BULLET_IDS,
-    build_employment_targeting_context,
-    employment_pool_x1d_judge_rows,
-    evaluate_employment_selection_quality,
-    is_employment_bullet_lane,
-    is_employment_pool_generation,
+    FINAL_BULLET_COUNT, REQUIRED_BULLET_IDS, build_employment_targeting_context,
+    employment_pool_x1d_judge_rows, evaluate_employment_selection_quality,
+    is_employment_bullet_lane, is_employment_pool_generation,
 )
 
 # W2 (plan prompt-gate-ssot-consolidation-e7c9a2): narrative budgets come from the numeric SSOT,
 # not a re-declared local copy. section_product_shape_ssot is the canonical owner.
 from apps_rg.runtime.sections.section_product_shape_ssot import (
-    NARRATIVE_MAX_CHARS,
-    NARRATIVE_MAX_WORDS,
-    product_shape_gate_ids_for_lane,
+    NARRATIVE_MAX_CHARS, NARRATIVE_MAX_WORDS, product_shape_gate_ids_for_lane,
 )
 from apps_rg.runtime.sections.section_generation import build_section_request
 from apps_rg.runtime.sections.section_final_materialized_binding import (
@@ -572,6 +541,11 @@ def _normalize_bullets(parsed: dict[str, Any], *, cfg: RoleEpisodeLaneConfig, al
             text, _hits = _strip_targeting_only_experience_claims(
                 str(row.get("bullet_text") or row.get("text") or "")
             )
+            from apps_rg.runtime.sections.cross_section_signal_guards import (
+                rewrite_generic_consulting_phrases,
+            )
+
+            text = rewrite_generic_consulting_phrases(text)
             text = _sentence(text)
             if not text:
                 continue
@@ -2074,12 +2048,14 @@ def run_role_episode_lane_execution(
         )
     except (FileNotFoundError, RuntimeError, ValueError) as exc:
         runtime_payload["runtime_generation_status"] = "REQUIRED_PROOF_ABSENT"
+        runtime_payload["blocked_exception_type"] = type(exc).__name__
+        runtime_payload["blocked_exception_message"] = str(exc)
         return _write_blocked_artifacts(
             cfg=cfg,
             args=args,
             artifact_dir=artifact_dir,
             runtime_payload=runtime_payload,
-            reason=f"required upstream proof absent for {sid}: {exc}",
+            reason=f"required upstream proof absent for {sid} ({type(exc).__name__}): {exc}",
             status="REQUIRED_PROOF_ABSENT",
         )
 

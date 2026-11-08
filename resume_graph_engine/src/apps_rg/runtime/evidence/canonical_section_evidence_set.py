@@ -14,7 +14,7 @@ from apps_rg.runtime.spine.c0_fec_compose import SectionFecBridge
 PROOF_CLASS_INCOMPLETE = "INCOMPLETE_PROOF"
 X2_BLOCK_ID_NAMESPACE_SPLIT = "X2_BLOCK_ID_NAMESPACE_SPLIT"
 
-_BULLET_SURFACE_PREFIXES = ("bul_unify_", "bul_ibm_", "bul_insurtech_", "bul_ey_")
+_BULLET_SURFACE_PREFIXES = ("bul_slalom_", "bul_unify_", "bul_ibm_", "bul_insurtech_", "bul_ey_")
 _LEDGER_PREFIX = "fact_"
 
 

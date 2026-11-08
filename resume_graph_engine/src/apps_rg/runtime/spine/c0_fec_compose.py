@@ -32,17 +32,8 @@ FEC_BRIDGE_MODE_LEGACY = "section_fec_bridge"
 _ACCEPTED_FEC_BRIDGE_MODES = frozenset({FEC_BRIDGE_MODE_SECTION, FEC_BRIDGE_MODE_LEGACY})
 
 OBSERVED_CHAIN_WITH_FEC_BRIDGE: tuple[str, ...] = (
-    "CLI",
-    "apps_rg_spine_run",
-    "U0",
-    "L1",
-    "L0",
-    "c0_retrieve_apps_rg",
-    "spine_c0_fec_compose",
-    "pa_compose_apps_rg",
-    "l2_execute_apps_rg",
-    "ExitEvalPipeline",
-    "section_L6_shadow",
+    "CLI", "apps_rg_spine_run", "U0", "L1", "L0", "c0_retrieve_apps_rg",
+    "spine_c0_fec_compose", "pa_compose_apps_rg", "l2_execute_apps_rg", "ExitEvalPipeline", "section_L6_shadow",
 )
 
 _PA_AUTHORITY_KEYS: tuple[str, ...] = (
@@ -99,8 +90,11 @@ _PA_GRAPH_BUNDLE_AUTHORITY_KEYS: tuple[str, ...] = (
     "role_episode_bundle_consumption_mode",
     "role_episode_bundles",
     "role_episode_bundle_ids",
+    "slalom_role_episode_section_packet",
     "unify_role_episode_section_packet",
     "ibm_role_episode_section_packet",
+    "insurtech_role_episode_section_packet",
+    "ey_role_episode_section_packet",
     "graph_expansion_consumes_role_episode_bundles",
     "approved_metric_outcome_ids",
 )

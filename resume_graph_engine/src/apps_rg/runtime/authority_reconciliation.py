@@ -48,46 +48,31 @@ X3A_DENY_REROUTE = "X3A_DENY_REROUTE"
 X3_ALLOW = "X3_ALLOW"
 
 GENERATED_LANES: tuple[str, ...] = (
-    "headline",
-    "executive_summary",
-    "unify_narrative",
-    "unify_bullets",
-    "ibm_narrative",
-    "ibm_bullets",
-    "insurtech_narrative",
-    "insurtech_bullets",
-    "ey_narrative",
-    "ey_bullets",
-    "competencies",
+    "headline", "executive_summary", "slalom_narrative", "slalom_bullets",
+    "unify_narrative", "unify_bullets", "ibm_narrative", "ibm_bullets",
+    "insurtech_narrative", "insurtech_bullets", "competencies",
+)
+_LEGACY_GENERATED_LANES: tuple[str, ...] = (
+    "headline", "executive_summary", "unify_narrative", "unify_bullets",
+    "ibm_narrative", "ibm_bullets", "insurtech_narrative", "insurtech_bullets",
+    "ey_narrative", "ey_bullets", "competencies",
 )
 
 _LEGACY_CORE_PRODUCER = "apps_rg.runtime.entrypoints.integrated_single_action_spine_run"
 _SEALED_LANE_PRODUCER = "apps_rg.runtime.orchestration.app_single_action_spine"
 _COMMON_LANE_REQUIRED_ARTIFACTS: tuple[str, ...] = (
-    "l2_handoff_receipt.json",
-    "l2_spine_receipt.json",
-    CORE_X3_DISPOSITION_ARTIFACT,
-    LANE_X3_MIRROR_ARTIFACT,
-    LANE_EXIT_MIRROR_ARTIFACT,
-    "x2_gate_outputs.json",
+    "l2_handoff_receipt.json", "l2_spine_receipt.json", CORE_X3_DISPOSITION_ARTIFACT,
+    LANE_X3_MIRROR_ARTIFACT, LANE_EXIT_MIRROR_ARTIFACT, "x2_gate_outputs.json",
 )
 _SEALED_LANE_REQUIRED_ARTIFACTS: tuple[str, ...] = (
-    *_COMMON_LANE_REQUIRED_ARTIFACTS,
-    "final_materialized_acceptance_contract.json",
-    "one_spine_certification_receipt.json",
-    "product_certification_receipt.json",
+    *_COMMON_LANE_REQUIRED_ARTIFACTS, "final_materialized_acceptance_contract.json",
+    "one_spine_certification_receipt.json", "product_certification_receipt.json",
 )
 _MODULAR_LANE_REQUIRED_ARTIFACTS: tuple[str, ...] = (
-    *_COMMON_LANE_REQUIRED_ARTIFACTS,
-    "final_materialized_acceptance_contract.json",
-    "section_front_spine_receipt.json",
-    "exit_spine_receipt.json",
-    "apps_rg_spine_proof.json",
+    *_COMMON_LANE_REQUIRED_ARTIFACTS, "final_materialized_acceptance_contract.json",
+    "section_front_spine_receipt.json", "exit_spine_receipt.json", "apps_rg_spine_proof.json",
 )
-_LEGACY_LANE_REQUIRED_ARTIFACTS: tuple[str, ...] = (
-    *_COMMON_LANE_REQUIRED_ARTIFACTS,
-    CORE_RUNTIME_AUTHORITY_ARTIFACT,
-)
+_LEGACY_LANE_REQUIRED_ARTIFACTS: tuple[str, ...] = (*_COMMON_LANE_REQUIRED_ARTIFACTS, CORE_RUNTIME_AUTHORITY_ARTIFACT)
 
 
 class AuthorityReconciliationError(RuntimeError):
@@ -95,12 +80,7 @@ class AuthorityReconciliationError(RuntimeError):
 
 
 def _canonical_json(value: Any) -> str:
-    return json.dumps(
-        value,
-        sort_keys=True,
-        separators=(",", ":"),
-        default=str,
-    )
+    return json.dumps(value, sort_keys=True, separators=(",", ":"), default=str)
 
 
 def canonical_digest(value: Any) -> str:
@@ -181,6 +161,18 @@ def resolve_lane_artifact_root(source_run: Path | str, lane: str) -> Path:
     if flat_lane_root.is_dir():
         return flat_lane_root
     return root / "modular_r4" / "sections" / lane_id
+
+
+lane_artifact_root = resolve_lane_artifact_root
+
+
+def _select_generated_lanes_for_run(source_run: Path | str) -> tuple[str, ...]:
+    root = Path(source_run).resolve()
+    slalom_root = resolve_lane_artifact_root(root, "slalom_bullets")
+    ey_root = resolve_lane_artifact_root(root, "ey_bullets")
+    if not slalom_root.is_dir() and ey_root.is_dir():
+        return _LEGACY_GENERATED_LANES
+    return GENERATED_LANES
 
 
 def derive_lane_authority(source_run: Path | str, lane: str) -> dict[str, Any]:
@@ -534,7 +526,8 @@ def derive_entry_authority(source_run: Path | str) -> dict[str, Any]:
 
 def derive_run_authority(source_run: Path | str) -> dict[str, Any]:
     root = Path(source_run).resolve()
-    lanes = [derive_lane_authority(root, lane) for lane in GENERATED_LANES]
+    active_lanes = _select_generated_lanes_for_run(root)
+    lanes = [derive_lane_authority(root, lane) for lane in active_lanes]
     entry = derive_entry_authority(root)
     assembly = derive_final_assembly_authority(root)
     lane_pass = all(row["authorized"] for row in lanes)
@@ -618,7 +611,11 @@ def run_l0_parallel_artifact_replay(
     root = Path(source_run).resolve()
     manifest = Path(dag_manifest_path).resolve(strict=True)
     dependencies = _parse_dag_dependencies(manifest)
-    selected = tuple(GENERATED_LANES)
+    selected = (
+        _LEGACY_GENERATED_LANES
+        if "ey_bullets" in dependencies and "slalom_bullets" not in dependencies
+        else _select_generated_lanes_for_run(root)
+    )
     manifest_complete = set(dependencies) == set(selected)
     dependency_ids_valid = all(
         dependency in dependencies
@@ -864,5 +861,6 @@ __all__ = [
     "derive_run_authority",
     "emit_w1_authority_reconciliation",
     "lane_artifact_root",
+    "resolve_lane_artifact_root",
     "run_l0_parallel_artifact_replay",
 ]

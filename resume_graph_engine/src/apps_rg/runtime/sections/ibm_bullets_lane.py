@@ -106,19 +106,11 @@ JD_TEXT_DEFAULT = resolve_jd_for_lanes().description
 BRIEFING_DEFAULT = resolve_briefing_for_lanes(briefing_artifact_ref=None).text
 
 DEFAULT_INTENSITY_BY_BULLET = {
-    "bul_ibm_001": "MODERATE",
-    "bul_ibm_002": "MODERATE",
-    "bul_ibm_003": "LIGHT_PROTECTED",
-    "bul_ibm_004": "MODERATE",
-    "bul_ibm_005": "LIGHT_PROTECTED",
+    "bul_ibm_001": "MODERATE", "bul_ibm_002": "MODERATE", "bul_ibm_003": "LIGHT_PROTECTED",
+    "bul_ibm_004": "MODERATE", "bul_ibm_005": "LIGHT_PROTECTED",
 }
 # Lane-internal normalization only; stripped before X2 (retired rewrite-intensity model).
-IBM_DEFAULT_DISTRIBUTION: dict[str, int] = {
-    "HEAVY": 0,
-    "MODERATE": 3,
-    "LIGHT_PROTECTED": 2,
-    "total": 5,
-}
+IBM_DEFAULT_DISTRIBUTION: dict[str, int] = {"HEAVY": 0, "MODERATE": 3, "LIGHT_PROTECTED": 2, "total": 5}
 BULLET_ID_ALIASES = {
     **{f"I{i}": f"bul_ibm_{i:03d}" for i in range(1, 6)},
     **{f"i{i}": f"bul_ibm_{i:03d}" for i in range(1, 6)},
@@ -605,6 +597,11 @@ def normalize_parsed_output(
     parsed.setdefault("gap_notes", [])
     parsed.setdefault("change_log", [])
     parsed.setdefault("self_check", {"normalized_by_dispatch": True})
+    from apps_rg.runtime.sections.cross_section_signal_guards import (
+        apply_bullet_consulting_clean,
+    )
+
+    apply_bullet_consulting_clean(parsed)
     from apps_rg.runtime.reasoning.employment_bullet_output_sanitize import (
         strip_employment_bullet_intensity_model,
     )

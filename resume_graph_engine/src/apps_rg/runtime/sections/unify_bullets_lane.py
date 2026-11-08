@@ -61,40 +61,28 @@ from apps_rg.runtime.offline_contract_status import OFFLINE_CONTRACT_STUB_RUNTIM
 from apps_rg.runtime.sections.section_generation import build_section_request
 from apps_rg.runtime.sections.section_generation import generate_section, tag_reasoning_lane
 from apps_rg.runtime.reasoning.bullet_lane_generation import (
-    generate_bullet_lane_with_sc_and_claude,
-    should_short_circuit_empty_selection,
-    truthful_block_reason,
+    generate_bullet_lane_with_sc_and_claude, should_short_circuit_empty_selection, truthful_block_reason,
 )
 from apps_rg.runtime.reasoning.employment_bullet_pool import (
-    build_employment_targeting_context,
-    employment_pool_x1d_judge_rows,
-    is_employment_pool_generation,
-    sc_path_count_for_lane,
+    build_employment_targeting_context, employment_pool_x1d_judge_rows,
+    is_employment_pool_generation, sc_path_count_for_lane,
 )
 from apps_rg.runtime.resume_resolution import load_lane_base_resume_json
 from apps_rg.runtime.runtime_proof_layout import (
-    finalize_runtime_proof_run,
-    prepare_runtime_proof_run_dir,
-    rel_posix,
+    finalize_runtime_proof_run, prepare_runtime_proof_run_dir, rel_posix,
 )
 from apps_rg.runtime.shadow.unify_bullets_l6 import build_l6_shadow_package, extend_unify_bullets_l6_learning_fields
 from apps_rg.runtime.briefing_resolution import resolve_briefing_for_lanes
 from apps_rg.runtime.jd_resolution import resolve_jd_for_lanes
 from apps_rg.runtime.sections.executive_summary_lane import resolve_provider_model_name, write_x2_gate_outputs
 from apps_rg.runtime.sections.graph_evidence_contract import (
-    build_graph_evidence_runtime_payload,
-    build_selected_graph_evidence_plan,
-    merge_graph_evidence_reporting_into_dict,
+    build_graph_evidence_runtime_payload, build_selected_graph_evidence_plan, merge_graph_evidence_reporting_into_dict,
 )
 from apps_rg.runtime.validators.fact_id_typo_repair import (
-    repair_fact_id_against_allowlist,
-    repair_unify_bullet_surface_id,
+    repair_fact_id_against_allowlist, repair_unify_bullet_surface_id,
 )
 from apps_rg.runtime.validators.unify_bullets_x2 import (
-    PROTECTED_BULLET_DEFAULT,
-    UNIFY_BULLET_IDS,
-    build_unify_bullets_text_claim_coverage,
-    run_unify_bullets_x2_gates,
+    PROTECTED_BULLET_DEFAULT, UNIFY_BULLET_IDS, build_unify_bullets_text_claim_coverage, run_unify_bullets_x2_gates,
 )
 
 
@@ -867,6 +855,11 @@ def normalize_unify_parsed_without_ledger_synthesis(
     _enforce_unify_metric_outcome_surfaces(out, runtime_payload)
     _repair_unify_archive_verbatim_overlap(out, runtime_payload)
     _repair_unify_bullet_evidence_density(out)
+    from apps_rg.runtime.sections.cross_section_signal_guards import (
+        apply_bullet_consulting_clean,
+    )
+
+    apply_bullet_consulting_clean(out)
     _sync_unify_claim_ledger_to_bullets(out, remap=legacy_remap, allowed=allowed)
     from apps_rg.runtime.reasoning.employment_bullet_output_sanitize import (
         strip_employment_bullet_intensity_model,

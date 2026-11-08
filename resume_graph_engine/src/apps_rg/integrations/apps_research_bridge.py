@@ -605,7 +605,17 @@ class AppsResearchBridge:
         brief_text = str(getattr(raw, "company_brief_text", "") or "").strip()
         block_reason, is_blocked = "", bool(getattr(raw, "is_blocked", False))
         terminal_error = str(getattr(raw, "hop_terminal_error", "") or "").strip()
-        allow_fallback = not terminal_error or any(k in terminal_error.lower() for k in ("no grounded findings", "retrieval", "searxng", "connectionrefused"))
+        allow_fallback = not terminal_error or any(
+            k in terminal_error.lower()
+            for k in (
+                "no grounded findings",
+                "retrieval",
+                "searxng",
+                "403",
+                "searxng_http_403_json_format_disabled",
+                "connectionrefused",
+            )
+        )
         if (not brief_text or is_blocked) and allow_fallback:
             canonical_brief, canonical_path = _resolve_canonical_targeting_brief(
                 company_name=company_name,

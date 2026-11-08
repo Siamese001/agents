@@ -229,8 +229,8 @@ def retrieve(sub_query: str, top_k: int = 10) -> list[RetrievedDoc]:
         status_code = exc.code or "unknown"
         if status_code == 403:
             raise RuntimeError(
-                "SearXNG returned 403. Confirm the instance enables JSON output "
-                "for search.format=json."
+                "SEARXNG_HTTP_403_JSON_FORMAT_DISABLED: SearXNG returned 403. "
+                "Confirm the instance enables JSON output for search.format=json."
             ) from exc
         raise RuntimeError(f"SearXNG search failed with HTTP status {status_code}") from exc
     except (TimeoutError, OSError) as exc:

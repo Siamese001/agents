@@ -216,9 +216,7 @@ def compute_distinct_root_sections(
     slot_counts_by_section = Counter(slot.section_id for slot in slots)
     distinct_root_sections: set[str] = set()
     for sec_id, sec_slot_count in slot_counts_by_section.items():
-        if sec_id.endswith("_bullets"):
-            distinct_root_sections.add(sec_id)
-        elif sec_id in {"executive_summary", "headline"}:
+        if sec_id.endswith("_bullets") or sec_id in {"executive_summary", "headline"}:
             sec_roots = {
                 str(r.get("root_id") or "")
                 for s in slots

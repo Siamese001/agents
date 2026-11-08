@@ -256,7 +256,9 @@ def urlopen_with_wallclock_cap(
         except HTTPError as exc:
             try:
                 err_bytes = exc.read()
-                exc.fp = io.BytesIO(err_bytes if isinstance(err_bytes, (bytes, bytearray)) else str(err_bytes).encode("utf-8"))
+                buf = io.BytesIO(err_bytes if isinstance(err_bytes, (bytes, bytearray)) else str(err_bytes).encode("utf-8"))
+                exc.fp = buf
+                exc.file = buf
             except OSError:
                 pass
             result_box.append(("error", exc))

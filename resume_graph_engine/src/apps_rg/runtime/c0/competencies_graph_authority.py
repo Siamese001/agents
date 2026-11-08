@@ -40,242 +40,76 @@ _ROLE_AXIS_SIGNALS: Mapping[str, tuple[str, ...]] = {
 # below proves that before it can be emitted.  This is an output projection,
 # not a new graph fact or an inferred competency.
 _ALLOCATION_VISIBLE_SURFACE_COMPOSITIONS: Mapping[tuple[str, str], str] = {
-    (
-        "reb_slalom_ecosystem_accelerators",
-        "skill_partner_aws_ecosystem",
-    ): "Enterprise hyperscaler partner AWS accelerator ecosystem",
-    (
-        "reb_slalom_ecosystem_accelerators",
-        "skill_reusable_agentic_platform_architecture",
-    ): "reusable accelerator assets for agentic platforms",
-    (
-        "reb_slalom_ecosystem_accelerators",
-        "skill_partner_hyperscaler_cosell",
-    ): "Hyperscaler partner alliance solution accelerator packaging",
-    (
-        "reb_ey_ccar_capital_liquidity_stress_testing",
-        "skill_capital_capital_modeling",
-    ): "Regulated model risk governance and validation",
-    (
-        "reb_ey_capital_optimization_solvency",
-        "skill_risk_greek_stress_testing",
-    ): "Insurance regulatory capital stress testing validation",
-    (
-        "reb_unify_agentic_platform_architecture",
-        "skill_unify_agentic_l0_route_policy_dispatch",
-    ): "Agentic platform route-policy dispatch architecture",
-    (
-        "reb_unify_agentic_platform_architecture",
-        "skill_unify_agentic_graphrag_context_pack_grounding",
-    ): "GraphRAG context pack grounding for governed execution",
-    (
-        "reb_ibm_aws_alliance_partner_cosell_gtm",
-        "skill_partner_cloud_vendor_joint_gtm",
-    ): "Partner AI solution architecture and co-sell execution",
-    (
-        "reb_slalom_agentic_client_delivery",
-        "skill_runtime_gate_mesh_design",
-    ): "runtime gate mesh design for agentic execution",
-    (
-        "reb_ibm_customer_success_value_realization",
-        "skill_partner_customer_deal_support",
-    ): "client value realization operating cadence for expansion",
-    (
-        "reb_ibm_customer_success_value_realization",
-        "skill_p2_gtm_presales_delivery_handoff",
-    ): "Presales-to-delivery customer success operating handoff cadence",
-    (
-        "reb_insurtech_regulated_aws_control_implementation",
-        "skill_pii_encryption_for_insurance_data",
-    ): "PII encryption controls for regulated data",
-    (
-        "reb_insurtech_regulated_aws_control_implementation",
-        "skill_aws_iam_kms_cloudtrail_controls",
-    ): "IAM KMS CloudTrail controls for insurers",
-    (
-        "reb_insurtech_regulated_aws_control_implementation",
-        "skill_soc2_zero_trust_security",
-    ): "SOC2 zero-trust security controls for compliance",
-    (
-        "reb_insurtech_regulated_aws_control_implementation",
-        "skill_sr_insurtech_regulated_insurer_controls",
-    ): "SOC2 control frameworks for regulated insurers",
-    (
-        "reb_insurtech_regulated_aws_control_implementation",
-        "skill_soc2_control_mapping_for_aws",
-    ): "SOC2 AWS control mapping for insurers",
-    (
-        "reb_insurtech_aws_guidewire_core_modernization",
-        "skill_insurance_core_data_model_mapping",
-    ): "Insurance core data mapping for workflows",
-    (
-        "reb_insurtech_aws_migration_execution",
-        "skill_sr_insurtech_legacy_cloud_modernization",
-    ): "AWS-based policy administration architecture execution",
-    (
-        "reb_insurtech_aws_migration_execution",
-        "skill_p2_tech_aws_modernization_patterns",
-    ): "AWS migration patterns for legacy platforms",
-    (
-        "reb_insurtech_aws_migration_execution",
-        "skill_aws_migration_readiness_assessment",
-    ): "Readiness assessments for legacy platforms",
-    (
-        "reb_insurtech_aws_migration_execution",
-        "skill_application_dependency_mapping",
-    ): "Application dependency mapping for migration execution",
-    (
-        "reb_insurtech_aws_migration_execution",
-        "skill_migration_wave_cutover_planning",
-    ): "Migration wave cutover execution planning",
-    (
-        "reb_ey_insurance_core_modernization",
-        "skill_insurance_claims_automation",
-    ): "Insurance claims workflow automation integration",
-    (
-        "reb_ey_insurance_core_modernization",
-        "skill_insurance_core_to_bi_reporting_handoff",
-    ): "Core reporting workflow integration handoff",
-    (
-        "reb_ey_insurance_core_modernization",
-        "skill_insurance_guidewire",
-    ): "Guidewire platform workflow modernization integration",
-    (
-        "reb_ey_erm_risk_governance",
-        "skill_credit_adjudication_default_risk",
-    ): "AI credit adjudication for enterprise risk",
-    (
-        "reb_ey_erm_risk_governance",
-        "skill_risk_three_lines_of_defense",
-    ): "Enterprise three-lines-of-defense risk operating model",
-    (
-        "reb_ey_erm_risk_governance",
-        "skill_risk_model_risk",
-    ): "Model explainability for enterprise risk operating model",
-    (
-        "reb_ibm_offering_accelerator_management",
-        "skill_sr_w12_industry_reference_architecture",
-    ): "Industry reference architecture patterns for regulated modernization",
-    (
-        "reb_ibm_aws_alliance_partner_cosell_gtm",
-        "skill_partner_joint_solution_development",
-    ): "AWS alliance modernization co-sell and joint development",
-    (
-        "reb_ibm_offering_accelerator_management",
-        "skill_p2_tech_reusable_accelerators",
-    ): "Reusable agentic platform service accelerators",
-    (
-        "reb_ibm_offering_accelerator_management",
-        "skill_p2_tech_ibm_cloud_portfolio_anchor",
-    ): "Cloud transformation portfolio architecture ownership",
-    (
-        "reb_ibm_devsecops_release_resilience",
-        "skill_ibm_automated_release_pipelines",
-    ): "Regulated DevSecOps release governance pipelines",
-    (
-        "reb_ibm_presales_solution_engineering",
-        "skill_partner_pre_sales",
-    ): "Buyer-specific solution mapping for enterprise pursuits",
-    (
-        "reb_ibm_revenue_sales_target_execution",
-        "skill_partner_enterprise_negotiations",
-    ): "Enterprise pursuit execution across portfolio expansion motions",
-    (
-        "reb_unify_partner_channel_cosell",
-        "skill_partner_partner_led_ai_solutions",
-    ): "AI co-sell bundling with strategic partners",
-    (
-        "reb_unify_partner_channel_cosell",
-        "skill_partner_cloud_vendor_joint_gtm",
-    ): "Vendor joint AI solution roadmaps for partners",
-    (
-        "reb_unify_partner_channel_cosell",
-        "skill_partner_partner_revenue_3m",
-    ): "Partner-derived AI revenue through alliance channels",
-    (
-        "reb_unify_partner_channel_cosell",
-        "skill_partner_gtm_enablement",
-    ): "AI GTM enablement for alliance channels",
-    (
-        "reb_unify_partner_channel_cosell",
-        "skill_partner_partner_motions",
-    ): "Global AI channel program inception motions",
-    (
-        "reb_unify_distributed_ecosystem_engineering",
-        "skill_sr_cloud_data_platform_engineering",
-    ): "Cloud-native architectures for financial-services clients",
-    (
-        "reb_unify_distributed_ecosystem_engineering",
-        "skill_dense_sparse_exact_retrieval_design",
-    ): "Dense-sparse retrieval execution for evidence grounding",
-    (
-        "reb_unify_distributed_ecosystem_engineering",
-        "skill_sr_w12_databricks_lakehouse_fundamentals",
-    ): "Databricks lakehouse architectures for AWS engineering",
-    (
-        "reb_unify_distributed_ecosystem_engineering",
-        "skill_runtime_resilience_controls",
-    ): "Fail-closed provider resilience control gate",
-    (
-        "reb_unify_distributed_ecosystem_engineering",
-        "skill_provider_and_egress_governance",
-    ): "Provider egress governance for generation paths",
-    (
-        "reb_unify_agentic_platform_architecture",
-        "skill_unify_agentic_human_override_escalation_paths",
-    ): "Governed human override and escalation paths",
-    (
-        "reb_unify_agentic_platform_architecture",
-        "skill_unify_agentic_runtime_proof_bundle_lineage",
-    ): "Runtime proof-bundle lineage for platforms",
-    (
-        "reb_unify_agentic_platform_architecture",
-        "skill_unify_agentic_multi_agent_orchestration_contracts",
-    ): "Multi-agent orchestration contracts for governed execution",
-    (
-        "reb_unify_agentic_platform_architecture",
-        "skill_unify_agentic_replay_key_audit_manifest_design",
-    ): "Agent replay audit architectures for reviewable runs",
-    (
-        "reb_ibm_aws_alliance_partner_cosell_gtm",
-        "skill_partner_hyperscaler_cosell",
-    ): "Financial-services hyperscaler alliance co-sell execution",
+    ("reb_slalom_ecosystem_accelerators", "skill_partner_aws_ecosystem"): "Enterprise hyperscaler partner AWS accelerator ecosystem",
+    ("reb_slalom_ecosystem_accelerators", "skill_reusable_agentic_platform_architecture"): "reusable accelerator assets for agentic platforms",
+    ("reb_slalom_ecosystem_accelerators", "skill_partner_hyperscaler_cosell"): "Hyperscaler partner alliance solution accelerator packaging",
+    ("reb_ey_ccar_capital_liquidity_stress_testing", "skill_capital_capital_modeling"): "Regulated model risk governance and validation",
+    ("reb_ey_capital_optimization_solvency", "skill_risk_greek_stress_testing"): "Insurance regulatory capital stress testing validation",
+    ("reb_unify_agentic_platform_architecture", "skill_unify_agentic_l0_route_policy_dispatch"): "Agentic platform route-policy dispatch architecture",
+    ("reb_unify_agentic_platform_architecture", "skill_unify_agentic_graphrag_context_pack_grounding"): "GraphRAG context pack grounding for governed execution",
+    ("reb_ibm_aws_alliance_partner_cosell_gtm", "skill_partner_cloud_vendor_joint_gtm"): "Partner AI solution architecture and co-sell execution",
+    ("reb_slalom_agentic_client_delivery", "skill_runtime_gate_mesh_design"): "runtime gate mesh design for agentic execution",
+    ("reb_ibm_customer_success_value_realization", "skill_partner_customer_deal_support"): "client value realization operating cadence for expansion",
+    ("reb_ibm_customer_success_value_realization", "skill_p2_gtm_presales_delivery_handoff"): "Presales-to-delivery customer success operating handoff cadence",
+    ("reb_insurtech_regulated_aws_control_implementation", "skill_pii_encryption_for_insurance_data"): "PII encryption controls for regulated data",
+    ("reb_insurtech_regulated_aws_control_implementation", "skill_aws_iam_kms_cloudtrail_controls"): "IAM KMS CloudTrail controls for insurers",
+    ("reb_insurtech_regulated_aws_control_implementation", "skill_soc2_zero_trust_security"): "SOC2 zero-trust security controls for compliance",
+    ("reb_insurtech_regulated_aws_control_implementation", "skill_sr_insurtech_regulated_insurer_controls"): "SOC2 control frameworks for regulated insurers",
+    ("reb_insurtech_regulated_aws_control_implementation", "skill_soc2_control_mapping_for_aws"): "SOC2 AWS control mapping for insurers",
+    ("reb_insurtech_aws_guidewire_core_modernization", "skill_insurance_core_data_model_mapping"): "Insurance core data mapping for workflows",
+    ("reb_insurtech_aws_migration_execution", "skill_sr_insurtech_legacy_cloud_modernization"): "AWS-based policy administration architecture execution",
+    ("reb_insurtech_aws_migration_execution", "skill_p2_tech_aws_modernization_patterns"): "AWS migration patterns for legacy platforms",
+    ("reb_insurtech_aws_migration_execution", "skill_aws_migration_readiness_assessment"): "Readiness assessments for legacy platforms",
+    ("reb_insurtech_aws_migration_execution", "skill_application_dependency_mapping"): "Application dependency mapping for migration execution",
+    ("reb_insurtech_aws_migration_execution", "skill_migration_wave_cutover_planning"): "Migration wave cutover execution planning",
+    ("reb_ey_insurance_core_modernization", "skill_insurance_claims_automation"): "Insurance claims workflow automation integration",
+    ("reb_ey_insurance_core_modernization", "skill_insurance_core_to_bi_reporting_handoff"): "Core reporting workflow integration handoff",
+    ("reb_ey_insurance_core_modernization", "skill_insurance_guidewire"): "Guidewire platform workflow modernization integration",
+    ("reb_ey_erm_risk_governance", "skill_credit_adjudication_default_risk"): "AI credit adjudication for enterprise risk",
+    ("reb_ey_erm_risk_governance", "skill_risk_three_lines_of_defense"): "Enterprise three-lines-of-defense risk operating model",
+    ("reb_ey_erm_risk_governance", "skill_risk_model_risk"): "Model explainability for enterprise risk operating model",
+    ("reb_ibm_offering_accelerator_management", "skill_sr_w12_industry_reference_architecture"): "Industry reference architecture patterns for regulated modernization",
+    ("reb_ibm_aws_alliance_partner_cosell_gtm", "skill_partner_joint_solution_development"): "AWS alliance modernization co-sell and joint development",
+    ("reb_ibm_offering_accelerator_management", "skill_p2_tech_reusable_accelerators"): "Reusable agentic platform service accelerators",
+    ("reb_ibm_offering_accelerator_management", "skill_p2_tech_ibm_cloud_portfolio_anchor"): "Cloud transformation portfolio architecture ownership",
+    ("reb_ibm_devsecops_release_resilience", "skill_ibm_automated_release_pipelines"): "Regulated DevSecOps release governance pipelines",
+    ("reb_ibm_presales_solution_engineering", "skill_partner_pre_sales"): "Buyer-specific solution mapping for enterprise pursuits",
+    ("reb_ibm_revenue_sales_target_execution", "skill_partner_enterprise_negotiations"): "Enterprise pursuit execution across portfolio expansion motions",
+    ("reb_unify_partner_channel_cosell", "skill_partner_partner_led_ai_solutions"): "AI co-sell bundling with strategic partners",
+    ("reb_unify_partner_channel_cosell", "skill_partner_cloud_vendor_joint_gtm"): "Vendor joint AI solution roadmaps for partners",
+    ("reb_unify_partner_channel_cosell", "skill_partner_partner_revenue_3m"): "Partner-derived AI revenue through alliance channels",
+    ("reb_unify_partner_channel_cosell", "skill_partner_gtm_enablement"): "AI GTM enablement for alliance channels",
+    ("reb_unify_partner_channel_cosell", "skill_partner_partner_motions"): "Global AI channel program inception motions",
+    ("reb_unify_distributed_ecosystem_engineering", "skill_sr_cloud_data_platform_engineering"): "Cloud-native architectures for financial-services clients",
+    ("reb_unify_distributed_ecosystem_engineering", "skill_dense_sparse_exact_retrieval_design"): "Dense-sparse retrieval execution for evidence grounding",
+    ("reb_unify_distributed_ecosystem_engineering", "skill_sr_w12_databricks_lakehouse_fundamentals"): "Databricks lakehouse architectures for AWS engineering",
+    ("reb_unify_distributed_ecosystem_engineering", "skill_runtime_resilience_controls"): "Fail-closed provider resilience control gate",
+    ("reb_unify_distributed_ecosystem_engineering", "skill_provider_and_egress_governance"): "Provider egress governance for generation paths",
+    ("reb_unify_agentic_platform_architecture", "skill_unify_agentic_human_override_escalation_paths"): "Governed human override and escalation paths",
+    ("reb_unify_agentic_platform_architecture", "skill_unify_agentic_runtime_proof_bundle_lineage"): "Runtime proof-bundle lineage for platforms",
+    ("reb_unify_agentic_platform_architecture", "skill_unify_agentic_multi_agent_orchestration_contracts"): "Multi-agent orchestration contracts for governed execution",
+    ("reb_unify_agentic_platform_architecture", "skill_unify_agentic_replay_key_audit_manifest_design"): "Agent replay audit architectures for reviewable runs",
+    ("reb_ibm_aws_alliance_partner_cosell_gtm", "skill_partner_hyperscaler_cosell"): "Financial-services hyperscaler alliance co-sell execution",
     ("reb_ibm_aws_alliance_partner_cosell_gtm", "skill_partner_ibm_aws_alliance_joint_revenue"): "joint revenue execution for AWS alliance motions",
     ("reb_slalom_nextgen_ai_solutions", "skill_agentic_control_plane_design"): "AI control plane design for enterprise solutions",
     ("reb_ibm_aws_alliance_partner_cosell_gtm", "skill_partner_alliance_gtm_execution"): "AWS alliance joint architecture leadership",
     ("reb_ibm_aws_alliance_partner_cosell_gtm", "skill_sr_w12_hyperscaler_alliance_co_sell"): "Multi-year hyperscaler co-sell motions for AI growth",
-    (
-        "reb_ibm_aws_alliance_partner_cosell_gtm",
-        "skill_partner_joint_solution_development",
-    ): "AI analytics framework co-development for partners",
-    (
-        "reb_ibm_offering_accelerator_management",
-        "skill_p2_tech_demoable_accelerator",
-    ): "Production-grade accelerator commercialization for client platforms",
-    (
-        "reb_ibm_offering_accelerator_management",
-        "skill_p2_tech_ibm_cloud_portfolio_anchor",
-    ): "Cloud transformation portfolio architecture ownership",
-    (
-        "reb_ibm_offering_accelerator_management",
-        "skill_sr_w12_industry_reference_architecture",
-    ): "Industry modernization reference architecture patterns",
-    (
-        "reb_ibm_aws_modernization_architecture",
-        "skill_p2_tech_aws_modernization_patterns",
-    ): "AWS migration and modernization for regulated workloads",
-    (
-        "reb_ibm_aws_modernization_architecture",
-        "skill_p2_tech_reference_architecture",
-    ): "Regulated financial-services cloud modernization patterns",
-    (
-        "reb_ibm_aws_modernization_architecture",
-        "skill_sr_microservices_integration_platform",
-    ): "Microservices integration for regulated systems",
-    (
-        "reb_ey_insurance_core_modernization",
-        "skill_insurance_core_to_bi_reporting_handoff",
-    ): "Insurance core reporting integration and BI workflows",
+    ("reb_ibm_aws_alliance_partner_cosell_gtm", "skill_partner_joint_solution_development"): "AI analytics framework co-development for partners",
+    ("reb_ibm_offering_accelerator_management", "skill_p2_tech_demoable_accelerator"): "Production-grade accelerator commercialization for client platforms",
+    ("reb_ibm_offering_accelerator_management", "skill_p2_tech_ibm_cloud_portfolio_anchor"): "Cloud transformation portfolio architecture ownership",
+    ("reb_ibm_offering_accelerator_management", "skill_sr_w12_industry_reference_architecture"): "Industry modernization reference architecture patterns",
+    ("reb_ibm_aws_modernization_architecture", "skill_p2_tech_aws_modernization_patterns"): "AWS migration and modernization for regulated workloads",
+    ("reb_ibm_aws_modernization_architecture", "skill_p2_tech_reference_architecture"): "Regulated financial-services cloud modernization patterns",
+    ("reb_ibm_aws_modernization_architecture", "skill_sr_microservices_integration_platform"): "Microservices integration for regulated systems",
+    ("reb_ey_insurance_core_modernization", "skill_insurance_core_to_bi_reporting_handoff"): "Insurance core reporting integration and BI workflows",
+    ("reb_slalom_autonomous_agentic_sdlc_mcp", "skill_bounded_agent_execution"): "Autonomous agentic SDLC bounded agent execution platforms",
+    ("reb_slalom_live_copilot_acoustic_airgap", "skill_layered_runtime_spine_design"): "Layered runtime spine design for executive copilot",
+    ("reb_slalom_engineering_practice_leadership", "skill_operating_model_for_agentic_ai"): "Engineering practice leadership operating model for AI",
+    ("reb_slalom_bitemporal_graphrag_uwg", "skill_no_direct_write_runtime_design"): "Bi-temporal GraphRAG no-direct-write runtime design",
+    ("reb_slalom_live_copilot_acoustic_airgap", "skill_cache_fallback_grounded_action_routing"): "Deterministic grounded action routing for executive copilot",
+    ("reb_slalom_visual_asset_intelligence", "skill_agentic_platform_productization"): "Agentic platform productization for asset intelligence pipelines",
+    ("reb_slalom_bitemporal_graphrag_uwg", "skill_side_effect_bounded_action_design"): "GraphRAG retrieval side-effect bounded action design",
+    ("reb_ibm_revenue_sales_target_execution", "skill_partner_pnl_oversight"): "Revenue target execution and solution leadership motions",
 }
 
 # A joint alliance/co-sell capability is commercial evidence, even when its
@@ -314,6 +148,7 @@ _ALLOCATION_SURFACE_CATEGORY_OVERRIDES: Mapping[tuple[str, str], str] = {
     ): "Cloud & Partner Ecosystems",
     ("reb_ibm_aws_alliance_partner_cosell_gtm", "skill_partner_joint_solution_development"): "Cloud & Partner Ecosystems",
     ("reb_ibm_revenue_sales_target_execution", "skill_partner_enterprise_negotiations"): "Commercial & Operating Impact",
+    ("reb_ibm_revenue_sales_target_execution", "skill_partner_pnl_oversight"): "Commercial & Operating Impact",
     (
         "reb_ibm_presales_solution_engineering",
         "skill_partner_pre_sales",
@@ -353,6 +188,13 @@ _ALLOCATION_SURFACE_CATEGORY_OVERRIDES: Mapping[tuple[str, str], str] = {
     ("reb_slalom_nextgen_ai_solutions", "skill_agentic_control_plane_design"): "Engineering & Delivery Leadership",
     ("reb_ey_ccar_capital_liquidity_stress_testing", "skill_capital_capital_modeling"): "Governance, Risk & Compliance",
     ("reb_ey_capital_optimization_solvency", "skill_risk_greek_stress_testing"): "Governance, Risk & Compliance",
+    ("reb_slalom_autonomous_agentic_sdlc_mcp", "skill_bounded_agent_execution"): "AI Platform Leadership",
+    ("reb_slalom_live_copilot_acoustic_airgap", "skill_layered_runtime_spine_design"): "LLMOps & Reliability",
+    ("reb_slalom_engineering_practice_leadership", "skill_operating_model_for_agentic_ai"): "Engineering & Delivery Leadership",
+    ("reb_slalom_bitemporal_graphrag_uwg", "skill_no_direct_write_runtime_design"): "Governance, Risk & Compliance",
+    ("reb_slalom_live_copilot_acoustic_airgap", "skill_cache_fallback_grounded_action_routing"): "Technology Strategy & Innovation",
+    ("reb_slalom_visual_asset_intelligence", "skill_agentic_platform_productization"): "Cloud & Partner Ecosystems",
+    ("reb_slalom_bitemporal_graphrag_uwg", "skill_side_effect_bounded_action_design"): "Data & Analytics Modernization",
 }
 _SURFACE_COMPOSITION_CONNECTIVES = frozenset(
     {"and", "for", "of", "the", "to", "with", "through", "across", "via"}
@@ -686,20 +528,30 @@ def _composition_is_bound(
     return True
 
 
+from apps_rg.runtime.c0.competencies_surface_synthesis import (
+    phrase_passes_svp_richness as _phrase_passes_svp_richness,
+    synthesize_graph_bound_surface_phrase,
+)
+
+
+def _synthesize_graph_bound_surface_phrase(
+    assignment: Mapping[str, Any],
+    *,
+    root_fact: Mapping[str, Any],
+) -> str:
+    return synthesize_graph_bound_surface_phrase(
+        assignment,
+        root_fact=root_fact,
+        composition_is_bound_fn=_composition_is_bound,
+    )
+
+
 def _allocation_surface_phrase(
     assignment: Mapping[str, Any],
     *,
     selected_plan: Mapping[str, Any],
 ) -> tuple[str, str]:
-    """Resolve one human-readable, graph-authored competency surface.
-
-    The frozen allocation identifies the graph skill and supporting fact, but
-    graph IDs are deliberately not résumé text. Prefer the role-episode
-    bundle's author-authored theme, carried into the sealed allocation. Its
-    selected-plan domain and skill label are bounded fallbacks. This is a
-    projection of existing graph content, never an LLM paraphrase or a newly
-    inferred claim.
-    """
+    """Resolve one human-readable, graph-authored competency surface."""
 
     root_id = str(assignment.get("root_id") or "").strip()
     skill_id = str(assignment.get("skill_id") or "").strip()
@@ -708,12 +560,19 @@ def _allocation_surface_phrase(
         for row in selected_plan.get("facts") or []
         if isinstance(row, Mapping)
     }
+    for row in selected_plan.get("graph_candidate_decision_ledger") or []:
+        if not isinstance(row, Mapping):
+            continue
+        if str(row.get("candidate_type") or "") == "role_episode_root":
+            rid = str(row.get("candidate_id") or row.get("root_id") or "").strip()
+            if rid and rid not in fact_by_root:
+                fact_by_root[rid] = row
     root_fact = fact_by_root.get(root_id) or {}
     composition = _ALLOCATION_VISIBLE_SURFACE_COMPOSITIONS.get((root_id, skill_id))
-    if composition and _composition_is_bound(
-        composition,
-        assignment=assignment,
-        root_fact=root_fact,
+    if (
+        composition
+        and _composition_is_bound(composition, assignment=assignment, root_fact=root_fact)
+        and _phrase_passes_svp_richness(composition)
     ):
         return composition, "graph_authority_surface_composition"
     candidates: list[tuple[str, str]] = [
@@ -735,20 +594,22 @@ def _allocation_surface_phrase(
             candidates.extend(
                 [
                     ("decision_ledger_skill_label", str(row.get("skill_label") or "").strip()),
-                    *[
-                        ("decision_ledger_source_ref", str(ref or "").strip())
-                        for ref in row.get("source_refs") or []
-                    ],
+                    *[("decision_ledger_source_ref", str(ref or "").strip()) for ref in row.get("source_refs") or []],
                 ]
             )
     for source_field, candidate in candidates:
-        phrase = " ".join(candidate.replace("_", " ").split()).strip()
+        phrase = " ".join(candidate.replace("_", " ").split()).strip().rstrip(".")
         if not phrase or phrase.casefold().startswith(("reb ", "skill ", "fact ")):
             continue
-        # A visible competency is a compact executive phrase, not an opaque
-        # graph identifier or a full source sentence.  Continue to the next
-        # graph-authored alternative rather than returning the first (possibly
-        # unusable) field.
+        if _phrase_passes_svp_richness(phrase):
+            return phrase, source_field
+    synthesized = _synthesize_graph_bound_surface_phrase(assignment, root_fact=root_fact)
+    if synthesized:
+        return synthesized, "graph_authority_surface_composition"
+    for source_field, candidate in candidates:
+        phrase = " ".join(candidate.replace("_", " ").split()).strip().rstrip(".")
+        if not phrase or phrase.casefold().startswith(("reb ", "skill ", "fact ")):
+            continue
         if 5 <= len(phrase.split()) <= 7:
             return phrase, source_field
     return "", ""
@@ -775,7 +636,10 @@ def _allocation_surface_category(
             if override_label in {
                 str(category.get("category_label") or "").strip(),
                 str(category.get("resume_display_label") or "").strip(),
-            } and _category_can_accept_allocation(category):
+            } and _category_can_accept_allocation(
+                category,
+                ceiling=_partner_gtm_allocation_display_ceiling(category, assignment),
+            ):
                 return category
     phrase_tokens = _tokens(phrase) | _tokens(assignment.get("skill_id"))
     commercial_tokens = {"customer", "deal", "revenue", "sales", "target", "value"}
@@ -783,7 +647,11 @@ def _allocation_surface_category(
     for index, category in enumerate(categories):
         terms = category.get("terms") or []
         nonempty_terms = sum(1 for term in terms if _term_text(term))
-        if not _category_can_accept_allocation(category):
+        display_ceiling = _partner_gtm_allocation_display_ceiling(
+            category,
+            assignment,
+        )
+        if not _category_can_accept_allocation(category, ceiling=display_ceiling):
             continue
         category_text = " ".join(
             [
@@ -807,11 +675,15 @@ def _allocation_surface_category(
     return best[3] if best is not None else None
 
 
-def _category_can_accept_allocation(category: Mapping[str, Any]) -> bool:
+def _category_can_accept_allocation(
+    category: Mapping[str, Any],
+    *,
+    ceiling: int = 6,
+) -> bool:
     """Whether a category has a free slot or a non-authoritative term to replace."""
 
     terms = [term for term in category.get("terms") or [] if _term_text(term)]
-    if len(terms) < 6:
+    if len(terms) < ceiling:
         return True
     return any(
         not (
@@ -874,6 +746,7 @@ def _partner_gtm_allocation_display_ceiling(
         "Technology Strategy & Innovation",
         "LLMOps & Reliability",
         "AI Platform Leadership",
+        "Data & Analytics Modernization",
     } and str(assignment.get("root_id") or "").strip() in {
         "reb_unify_partner_channel_cosell",
         "reb_ibm_aws_alliance_partner_cosell_gtm",
@@ -883,6 +756,11 @@ def _partner_gtm_allocation_display_ceiling(
         "reb_ibm_presales_solution_engineering",
         "reb_slalom_ecosystem_accelerators",
         "reb_slalom_nextgen_ai_solutions",
+        "reb_slalom_autonomous_agentic_sdlc_mcp",
+        "reb_slalom_live_copilot_acoustic_airgap",
+        "reb_slalom_engineering_practice_leadership",
+        "reb_slalom_bitemporal_graphrag_uwg",
+        "reb_slalom_visual_asset_intelligence",
         "reb_ey_ccar_capital_liquidity_stress_testing",
         "reb_ey_capital_optimization_solvency",
     }:

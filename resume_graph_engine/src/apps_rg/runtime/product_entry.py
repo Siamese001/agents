@@ -160,6 +160,16 @@ def run_product_whole_run_from_primitives(
     """Run preflight and the only product-authorizing whole-run orchestrator."""
 
     repo = find_repo_root()
+    # This P0 guard deliberately precedes directory allocation/creation, input
+    # freezing, preflight, cache inspection, or any provider-facing work.  A
+    # stale shell path must be a deterministic containment failure, never an
+    # invisible pipeline input or orphan artifact directory.
+    from apps_rg.runtime.runtime_boundary import (
+        configure_apps_rg_runtime_boundary,
+        write_apps_rg_runtime_boundary_receipt,
+    )
+
+    boundary = configure_apps_rg_runtime_boundary(repo_root=repo)
     try:
         art = allocate_product_full_resume_artifact_dir(repo, artifact_dir)
     except ValueError as exc:
@@ -167,16 +177,6 @@ def run_product_whole_run_from_primitives(
     if art.exists() and any(art.iterdir()):
         return _non_fresh_artifact_dir_result(art)
     art.mkdir(parents=True, exist_ok=True)
-
-    # This P0 guard deliberately precedes input freezing, preflight, cache
-    # inspection, or any provider-facing work.  A stale shell path must be a
-    # deterministic containment failure, never an invisible pipeline input.
-    from apps_rg.runtime.runtime_boundary import (
-        configure_apps_rg_runtime_boundary,
-        write_apps_rg_runtime_boundary_receipt,
-    )
-
-    boundary = configure_apps_rg_runtime_boundary(repo_root=repo)
     write_apps_rg_runtime_boundary_receipt(art, boundary)
 
     try:

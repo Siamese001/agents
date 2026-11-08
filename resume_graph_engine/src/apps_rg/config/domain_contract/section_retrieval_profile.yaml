@@ -347,6 +347,174 @@ sections:
     fallback_queries:
       - "SMOKE_C0_IBM_NARR_ANCHOR enterprise stakeholder narrative scope outcomes verification"
 
+  - retrieval_profile_id: apps_rg.slalom_bullets.c0_profile
+    section_id: slalom_bullets
+    display_name: Slalom bullets
+    sparse_enabled: true
+    sparse_lane_id: apps_rg.slalom_bullets.sparse
+    sparse_collection_ref: fact_vectors
+    lexical_query_fields:
+      - resume_payload.slalom_bullets
+      - resume_payload.experience
+      - jd_payload.jd_text
+    dense_top_k: 10
+    max_k: 10
+    support_target: high
+    allowed_collections: [fact_vectors]
+    required_metadata_filters:
+      app: apps_rg
+    optional_metadata_filters: {}
+    freshness_profile: default
+    authority_classes_allowed: [PRIMARY, SUPPORTING, REFERENCE]
+    graph_expansion_allowed: true
+    source_authority:
+      candidate_facts_as_proof: false
+      candidate_fact_lineage_allowed: true
+      graph_as_claim_proof: false
+      graph_as_routing_support: true
+      graph_claim_proof_allowed_only_when_fact_bound: true
+      jd_as_proof_allowed: false
+      briefing_as_proof_allowed: false
+      companion_context_authority: false
+    role_episode_bundle_consumption: required
+    graph_expansion_mode: role_episode_bundle_only
+    fallback_policy: use_fallback_queries_if_query_fields_empty
+    expected_evidence_strata: [CANONICAL]
+    source_class_allowlist: [candidate_profile]
+    query_fields:
+      - resume_payload.slalom_bullets
+      - resume_payload.experience
+      - jd_payload.jd_text
+    fallback_queries:
+      - "SMOKE_C0_SLALOM_BULLETS_ANCHOR agentic AI client delivery enterprise architecture metrics"
+
+  - retrieval_profile_id: apps_rg.slalom_narrative.c0_profile
+    section_id: slalom_narrative
+    display_name: Slalom narrative
+    sparse_enabled: true
+    sparse_lane_id: apps_rg.slalom_narrative.sparse
+    sparse_collection_ref: fact_vectors
+    lexical_query_fields:
+      - resume_payload.slalom_narrative
+      - resume_payload.summary
+      - jd_payload.jd_text
+    exact_match_fields:
+      - jd_payload.jd_text
+    dense_top_k: 10
+    max_k: 10
+    support_target: high
+    allowed_collections: [fact_vectors]
+    required_metadata_filters:
+      app: apps_rg
+    optional_metadata_filters: {}
+    freshness_profile: default
+    authority_classes_allowed: [PRIMARY, SUPPORTING, REFERENCE]
+    graph_expansion_allowed: true
+    source_authority:
+      candidate_facts_as_proof: false
+      candidate_fact_lineage_allowed: true
+      graph_as_claim_proof: false
+      graph_as_routing_support: true
+      graph_claim_proof_allowed_only_when_fact_bound: true
+      jd_as_proof_allowed: false
+      briefing_as_proof_allowed: false
+      companion_context_authority: false
+    role_episode_bundle_consumption: required
+    graph_expansion_mode: role_episode_bundle_only
+    fallback_policy: use_fallback_queries_if_query_fields_empty
+    expected_evidence_strata: [CANONICAL]
+    source_class_allowlist: [candidate_profile]
+    query_fields:
+      - resume_payload.slalom_narrative
+      - resume_payload.summary
+      - jd_payload.jd_text
+    fallback_queries:
+      - "SMOKE_C0_SLALOM_NARR_ANCHOR consulting practice leadership enterprise AI transformation"
+
+  - retrieval_profile_id: apps_rg.insurtech_bullets.c0_profile
+    section_id: insurtech_bullets
+    display_name: InsurTech bullets
+    sparse_enabled: true
+    sparse_lane_id: apps_rg.insurtech_bullets.sparse
+    sparse_collection_ref: fact_vectors
+    lexical_query_fields:
+      - resume_payload.insurtech_bullets
+      - resume_payload.experience
+      - jd_payload.jd_text
+    dense_top_k: 10
+    max_k: 10
+    support_target: high
+    allowed_collections: [fact_vectors]
+    required_metadata_filters:
+      app: apps_rg
+    optional_metadata_filters: {}
+    freshness_profile: default
+    authority_classes_allowed: [PRIMARY, SUPPORTING, REFERENCE]
+    graph_expansion_allowed: true
+    source_authority:
+      candidate_facts_as_proof: false
+      candidate_fact_lineage_allowed: true
+      graph_as_claim_proof: false
+      graph_as_routing_support: true
+      graph_claim_proof_allowed_only_when_fact_bound: true
+      jd_as_proof_allowed: false
+      briefing_as_proof_allowed: false
+      companion_context_authority: false
+    role_episode_bundle_consumption: required
+    graph_expansion_mode: role_episode_bundle_only
+    fallback_policy: use_fallback_queries_if_query_fields_empty
+    expected_evidence_strata: [CANONICAL]
+    source_class_allowlist: [candidate_profile]
+    query_fields:
+      - resume_payload.insurtech_bullets
+      - resume_payload.experience
+      - jd_payload.jd_text
+    fallback_queries:
+      - "SMOKE_C0_INSURTECH_BULLETS_ANCHOR regulated cloud modernization AWS platform delivery"
+
+  - retrieval_profile_id: apps_rg.insurtech_narrative.c0_profile
+    section_id: insurtech_narrative
+    display_name: InsurTech narrative
+    sparse_enabled: true
+    sparse_lane_id: apps_rg.insurtech_narrative.sparse
+    sparse_collection_ref: fact_vectors
+    lexical_query_fields:
+      - resume_payload.insurtech_narrative
+      - resume_payload.summary
+      - jd_payload.jd_text
+    exact_match_fields:
+      - jd_payload.jd_text
+    dense_top_k: 10
+    max_k: 10
+    support_target: high
+    allowed_collections: [fact_vectors]
+    required_metadata_filters:
+      app: apps_rg
+    optional_metadata_filters: {}
+    freshness_profile: default
+    authority_classes_allowed: [PRIMARY, SUPPORTING, REFERENCE]
+    graph_expansion_allowed: true
+    source_authority:
+      candidate_facts_as_proof: false
+      candidate_fact_lineage_allowed: true
+      graph_as_claim_proof: false
+      graph_as_routing_support: true
+      graph_claim_proof_allowed_only_when_fact_bound: true
+      jd_as_proof_allowed: false
+      briefing_as_proof_allowed: false
+      companion_context_authority: false
+    role_episode_bundle_consumption: required
+    graph_expansion_mode: role_episode_bundle_only
+    fallback_policy: use_fallback_queries_if_query_fields_empty
+    expected_evidence_strata: [CANONICAL]
+    source_class_allowlist: [candidate_profile]
+    query_fields:
+      - resume_payload.insurtech_narrative
+      - resume_payload.summary
+      - jd_payload.jd_text
+    fallback_queries:
+      - "SMOKE_C0_INSURTECH_NARR_ANCHOR regulated insurance cloud operating model governance"
+
 unavailability_behavior:
   support_status: WEAK_WITH_CAVEATS
   reason: "fact_vectors collection unavailable for section retrieval"
