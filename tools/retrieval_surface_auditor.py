@@ -271,7 +271,7 @@ def _probe_graph_and_embeddings(repo_root: Path) -> dict[str, Any]:
                 materialize_augmented_skills_graph_sqlite(db_path=active_db)
             graph_res = graph_mod.verify_graph_database(active_db)
             emb_res = graph_mod.verify_bge_m3_embeddings(emb_dirs, active_db)
-            stage2_res = graph_mod.verify_hybrid_retrieval_stage2()
+            stage2_res = graph_mod.verify_hybrid_retrieval_stage2(active_db)
             trav_res = trav_mod.run_resume_graph_traversal_probe(max_paths=100)
             from apps_rg.runtime.c0.c03_sqlite_graph_selection import select_c03_sqlite_graph_candidates
             from apps_rg.runtime.c03_graph_sqlite_context import ensure_c03_graph_sqlite

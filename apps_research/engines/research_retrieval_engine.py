@@ -60,6 +60,8 @@ class SourceTrend:
 class InMemoryResearchStore:
     """In-memory store for research artifacts."""
 
+    _LOCAL_BGE_M3_CORPUS: list[tuple[frozenset[str], tuple[float, ...]]] | None = None
+
     def __init__(self) -> None:
         self._research: dict[str, dict[str, Any]] = {}
         self._embeddings: dict[str, list[float]] = {}
@@ -214,9 +216,19 @@ class InMemoryResearchStore:
         self._digest_embedding_cache[digest] = emb
         return list(emb)
 
-    @staticmethod
-    def _encode_deterministic_1024d_vector(text: str) -> list[float]:
-        """Project text into a deterministic 1024-d L2-normalized semantic vector."""
+    @classmethod
+    def _load_local_bge_m3_corpus(cls) -> list[tuple[frozenset[str], tuple[float, ...]]]:
+        if cls._LOCAL_BGE_M3_CORPUS is not None:
+            return cls._LOCAL_BGE_M3_CORPUS
+        from pathlib import Path
+        from infrastructure.config.env_loader import load_local_bge_m3_corpus_vectors
+
+        cls._LOCAL_BGE_M3_CORPUS = load_local_bge_m3_corpus_vectors(Path(__file__).resolve().parents[2])
+        return cls._LOCAL_BGE_M3_CORPUS
+
+    @classmethod
+    def _encode_deterministic_1024d_vector(cls, text: str) -> list[float]:
+        """Project text into a deterministic 1024-d L2-normalized vector grounded in local BGE-M3 unit_vectors."""
         dim = 1024
         vec = [0.0] * dim
         raw_tokens = re.findall(r"[a-z0-9]{2,}", text.lower())
@@ -231,6 +243,21 @@ class InMemoryResearchStore:
                 sign = 1.0 if (h[slot + 2] & 1) == 0 else -1.0
                 weight = 0.5 + (h[slot + 3] / 255.0)
                 vec[idx] += sign * weight
+
+        query_tok_set = frozenset(t for t in tokens if len(t) >= 3)
+        if query_tok_set:
+            corpus = cls._load_local_bge_m3_corpus()
+            if corpus:
+                scored_units: list[tuple[int, tuple[float, ...]]] = []
+                for unit_toks, unit_vec in corpus:
+                    overlap = len(query_tok_set & unit_toks)
+                    if overlap > 0:
+                        scored_units.append((overlap, unit_vec))
+                scored_units.sort(key=lambda item: -item[0])
+                for overlap, unit_vec in scored_units[:5]:
+                    blend_w = float(overlap) * 1.5
+                    for i in range(dim):
+                        vec[i] += blend_w * unit_vec[i]
 
         norm = math.sqrt(sum(v * v for v in vec))
         if norm <= 1e-12:

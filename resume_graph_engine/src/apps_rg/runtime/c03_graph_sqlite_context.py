@@ -21,6 +21,7 @@ from apps_rg.fact_inventory.augmented_skills_graph import (
 from apps_rg.fact_inventory.augmented_skills_graph_sqlite import (
     C03_SQLITE_MATERIALIZER_CODE_VERSION, default_graph_sqlite_path, inprocess_graph_sqlite_lock,
     load_graph_metadata_row, materialize_augmented_skills_graph_sqlite, open_graph_sqlite,
+    verify_sqlite_physical_write_proof,
 )
 from apps_rg.repository_layout import repository_root
 from apps_rg.runtime.c0.c03_errors import (
@@ -255,6 +256,7 @@ def _validate_c03_graph_sqlite_connection(
         required_objects = {
             ("table", "graph_metadata"),
             ("table", "graph_nodes"),
+            ("table", "graph_nodes_fts"),
             ("table", "graph_edges"),
             ("table", "skill_fact_links"),
             ("table", "section_eligibility"),
@@ -359,6 +361,7 @@ def _open_c03_graph_sqlite_read_snapshot(
 
     conn: sqlite3.Connection | None = None
     try:
+        verify_sqlite_physical_write_proof(path)
         conn = open_graph_sqlite(repo_root=root, db_path=path, read_only=True)
         conn.execute("BEGIN")
         meta = _validate_c03_graph_sqlite_connection(
