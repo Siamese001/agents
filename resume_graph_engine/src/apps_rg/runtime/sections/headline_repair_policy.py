@@ -173,6 +173,12 @@ def find_valid_3word_clarity_trim(
     fixed_parsed = dict(parsed)
     fixed_parsed["headline_line"] = candidate_line
     remap_trimmed_headline_claim_ledger(fixed_parsed, segments, new_segs)
+    if isinstance(fixed_parsed.get("self_check"), dict):
+        fixed_parsed["self_check"] = dict(fixed_parsed["self_check"])
+        fixed_parsed["self_check"]["word_count"] = new_wc
+        fixed_parsed["self_check"]["word_count_in_range"] = (
+            HEADLINE_WORD_MIN <= new_wc <= HEADLINE_WORD_MAX
+        )
     return candidate_line, fixed_parsed, new_clarity, new_gov, new_spec
 
 

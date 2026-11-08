@@ -122,7 +122,7 @@ def _resolve_selected_plan(
     def _carries_allocation_authority(value: Any) -> bool:
         return isinstance(value, Mapping) and bool(
             str(value.get("allocation_plan_digest") or "").strip()
-            or value.get("allocation_assignments")
+            or (value.get("allocation_assignments") or value.get("assignments"))
         )
 
     disk = _load_json(artifact_dir / "selected_fact_plan.json")
@@ -164,7 +164,7 @@ def _allocation_context(
     digest = str(plan.get("allocation_plan_digest") or "").strip()
     assignments = [
         dict(row)
-        for row in plan.get("allocation_assignments") or []
+        for row in (plan.get("allocation_assignments") or plan.get("assignments") or [])
         if isinstance(row, Mapping) and str(row.get("section_id") or "") == section_id
     ]
     if not digest and not assignments:
@@ -502,7 +502,7 @@ def validate_claim_rows_against_resume_graph_allocation(
     allocation_digest = str(plan.get("allocation_plan_digest") or "").strip()
     assignments = [
         dict(row)
-        for row in plan.get("allocation_assignments") or []
+        for row in (plan.get("allocation_assignments") or plan.get("assignments") or [])
         if isinstance(row, Mapping)
         and str(row.get("section_id") or "") == str(section_id)
     ]
@@ -568,7 +568,7 @@ def build_pre_x2_resume_graph_claim_binding_gate(
     digest = str(plan.get("allocation_plan_digest") or "").strip()
     assignments = [
         row
-        for row in plan.get("allocation_assignments") or []
+        for row in (plan.get("allocation_assignments") or plan.get("assignments") or [])
         if isinstance(row, Mapping)
         and str(row.get("section_id") or "") == str(section_id)
     ]

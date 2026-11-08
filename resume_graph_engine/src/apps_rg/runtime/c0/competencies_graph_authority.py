@@ -463,10 +463,15 @@ def _match_score(
 
 
 def _allocation_assignments(selected_plan: Mapping[str, Any]) -> list[dict[str, Any]]:
+    rows = (
+        selected_plan.get("allocation_assignments")
+        or selected_plan.get("assignments")
+        or []
+    )
     return sorted(
         (
             dict(row)
-            for row in selected_plan.get("allocation_assignments") or []
+            for row in rows
             if isinstance(row, Mapping) and row.get("section_id") == "competencies"
         ),
         key=lambda row: str(row.get("claim_unit_id") or ""),
@@ -1639,11 +1644,7 @@ def build_competencies_graph_authority_discrepancy_ledger(
 ) -> dict[str, Any]:
     """Record every authority-eligible graph candidate and its final disposition."""
 
-    assignments = [
-        dict(row)
-        for row in selected_plan.get("allocation_assignments") or []
-        if isinstance(row, Mapping) and row.get("section_id") == "competencies"
-    ]
+    assignments = _allocation_assignments(selected_plan)
     assertion_by_skill: dict[str, dict[str, Any]] = {}
     for raw in proof_pool_metadata.get("graph_skill_embedding_assertion_bindings") or []:
         if not isinstance(raw, Mapping):
