@@ -55,7 +55,7 @@ def audit_pillar_1_delegation_contracts(repo_root: Path) -> dict[str, Any]:
         for p in d.rglob("*.py"):
             try:
                 tree = ast.parse(p.read_text(encoding="utf-8"), filename=str(p))
-            except Exception:
+            except Exception:  # guardian: allow-silent-swallow -- skip unparseable or transient python files
                 continue
             for node in ast.walk(tree):
                 if isinstance(node, ast.Dict):
@@ -271,7 +271,7 @@ def audit_pillar_5_exception_hygiene(repo_root: Path) -> dict[str, Any]:
             content = py_file.read_text(encoding="utf-8")
             tree = ast.parse(content, filename=str(py_file))
             lines = content.splitlines()
-        except Exception:
+        except Exception:  # guardian: allow-silent-swallow -- skip unparseable or inaccessible python source files
             continue
         scanned_files += 1
 
