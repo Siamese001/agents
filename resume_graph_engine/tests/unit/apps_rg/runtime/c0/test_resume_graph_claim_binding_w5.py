@@ -599,53 +599,26 @@ def test_real_graph_allocation_slices_bind_for_all_eleven_lanes(tmp_path: Path) 
 
 def test_pre_x2_projection_blocks_causal_merge_across_unrelated_roots() -> None:
     assignments = [
-        {
-            "section_id": "executive_summary",
-            "claim_unit_id": "executive_summary:claim:01",
-            "root_id": "root_revenue",
-            "fact_id": "fact_revenue",
-            "citation_refs": ["fact_revenue"],
-            "counts_toward_global_uniqueness": True,
-        },
-        {
-            "section_id": "executive_summary",
-            "claim_unit_id": "executive_summary:claim:02",
-            "root_id": "root_team",
-            "fact_id": "fact_team",
-            "citation_refs": ["fact_team"],
-            "counts_toward_global_uniqueness": True,
-        },
+        {"section_id": "unify_bullets", "claim_unit_id": "unify_bullets:claim:01", "root_id": "root_revenue", "fact_id": "fact_revenue", "citation_refs": ["fact_revenue"], "counts_toward_global_uniqueness": True},
+        {"section_id": "unify_bullets", "claim_unit_id": "unify_bullets:claim:02", "root_id": "root_team", "fact_id": "fact_team", "citation_refs": ["fact_team"], "counts_toward_global_uniqueness": True},
     ]
     plan = {
         "allocation_plan_digest": "b" * 64,
         "allocation_assignments": assignments,
         "facts": [
-            {
-                "fact_id": "root_revenue",
-                "role_episode_bundle_id": "root_revenue",
-                "allowed_graph_evidence_ids": ["fact_revenue"],
-            },
-            {
-                "fact_id": "root_team",
-                "role_episode_bundle_id": "root_team",
-                "allowed_graph_evidence_ids": ["fact_team"],
-            },
+            {"fact_id": "root_revenue", "role_episode_bundle_id": "root_revenue", "allowed_graph_evidence_ids": ["fact_revenue"]},
+            {"fact_id": "root_team", "role_episode_bundle_id": "root_team", "allowed_graph_evidence_ids": ["fact_team"]},
         ],
     }
-    claims = [
-        {
-            "claim_text": "Revenue growth generated team scale.",
-            "source_fact_ids": ["fact_revenue", "fact_team"],
-        }
-    ]
+    claims = [{"claim_text": "Revenue growth generated team scale.", "source_fact_ids": ["fact_revenue", "fact_team"]}]
 
     failures = validate_claim_rows_against_resume_graph_allocation(
-        section_id="executive_summary",
+        section_id="unify_bullets",
         claim_rows=claims,
         selected_fact_plan=plan,
     )
     gate = build_pre_x2_resume_graph_claim_binding_gate(
-        section_id="executive_summary",
+        section_id="unify_bullets",
         claim_rows=claims,
         selected_fact_plan=plan,
     )
@@ -654,6 +627,14 @@ def test_pre_x2_projection_blocks_causal_merge_across_unrelated_roots() -> None:
     assert gate is not None
     assert gate["gate_id"] == GRAPH_CLAIM_BINDING_GATE_ID
     assert gate["pass"] is False
+
+    # Executive summary is exempt from causal multi-root merge to support multi-milestone claims (R2)
+    exec_failures = validate_claim_rows_against_resume_graph_allocation(
+        section_id="executive_summary",
+        claim_rows=claims,
+        selected_fact_plan=plan,
+    )
+    assert "claim_1:causal_claim_merges_unrelated_graph_roots" not in exec_failures
 
 
 def test_slot_rooted_metric_derivative_binds_to_exact_frozen_bullet_unit() -> None:

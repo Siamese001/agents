@@ -52,11 +52,6 @@ FACT_C0_DISPLAY_OVERRIDES: dict[str, str] = {
         "FSA-chartered actuarial work in capital modeling and portfolio stress analytics, "
         "informing data governance and AI strategy at scale."
     ),
-    DEPENDENCY_GRAPH_FACT_ID: (
-        "Software dependency graph intelligence enables accelerated legacy-system analysis, "
-        "exposes architecture dependency chains, and improves transformation visibility "
-        "across enterprise complexity."
-    ),
 }
 
 SVP_JD_EMPHASIS_THEMES: tuple[str, ...] = (

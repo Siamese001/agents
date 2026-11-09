@@ -79,11 +79,10 @@ def test_retry10_graph_allocation_shape_repairs_before_x2() -> None:
             "role_episode_bundle_id": "reb_ibm_devsecops_release_resilience",
             "claim_text": "Embedded release automation and security scanning into regulated modernization delivery paths",
             "domain": "DevSecOps release resilience and governed delivery automation",
-            "linked_source_fact_ids": ["fact_engineering_platform_002"],
-            "linked_identity_fact_ids": ["fact_engineering_platform_002"],
+            "linked_source_fact_ids": [],
+            "linked_identity_fact_ids": [],
             "allowed_graph_evidence_ids": [
                 "reb_ibm_devsecops_release_resilience",
-                "fact_engineering_platform_002",
                 "metric_ibm_deployment_blueprint_repeatability",
                 "metric_ibm_release_gate_security_scanning_coverage",
             ],
@@ -122,7 +121,7 @@ def test_retry10_graph_allocation_shape_repairs_before_x2() -> None:
             "claim_unit_id": "executive_summary:claim:02",
             "root_id": "reb_ibm_devsecops_release_resilience",
             "skill_id": "skill_ibm_devsecops_pipeline_security",
-            "fact_id": "fact_engineering_platform_002",
+            "fact_id": "metric_ibm_deployment_blueprint_repeatability",
             "metric_outcome_id": "",
             "metric_value": "",
             "metric_unit": "",
@@ -147,7 +146,7 @@ def test_retry10_graph_allocation_shape_repairs_before_x2() -> None:
     sentences = [
         "Alliance-led technology executive who sets operating direction for partner co-sell and platform productization, connecting cloud-market execution with IP-led growth.",
         "From that commercial base, regulated modernization delivery anchors release automation and security scanning in resilient operating paths.",
-        "Against that delivery foundation, alliance operating cadence and AI-driven sales frameworks supported 20% joint revenue growth.",
+        "Against that delivery foundation, alliance operating cadence and AI-driven sales frameworks supported joint revenue growth.",
         "In parallel, repeatable deployment blueprints and release-gate security scanning coverage strengthen control across modernization delivery.",
         "That operating model also enabled platform productization tied to $22M in IP-led revenue, with margin expansion and team scale reinforcing the commercial case.",
         "Future partner-led growth can build on this platform discipline, extending secure delivery while increasing monetization of platform IP.",
@@ -156,7 +155,7 @@ def test_retry10_graph_allocation_shape_repairs_before_x2() -> None:
         ["reb_ibm_aws_alliance_partner_cosell_gtm", "reb_unify_platform_commercialization_leadership"],
         ["reb_ibm_devsecops_release_resilience"],
         ["metric_ibm_alliance_cosell_operating_cadence", "metric_ibm_ai_driven_sales_frameworks"],
-        ["metric_ibm_deployment_blueprint_repeatability", "metric_ibm_release_gate_security_scanning_coverage", "fact_engineering_platform_002"],
+        ["metric_ibm_deployment_blueprint_repeatability", "metric_ibm_release_gate_security_scanning_coverage"],
         ["reb_unify_platform_commercialization_leadership", "metric_unify_22m_ip_led_revenue", "fact_engineering_platform_006"],
         ["reb_ibm_aws_alliance_partner_cosell_gtm", "reb_ibm_devsecops_release_resilience", "reb_unify_platform_commercialization_leadership"],
     ]
@@ -189,8 +188,7 @@ def test_retry10_graph_allocation_shape_repairs_before_x2() -> None:
         target_role="Manager of Applied AI Architecture, Partnerships",
     )
 
-    override = FACT_C0_DISPLAY_OVERRIDES["fact_engineering_platform_002"]
-    assert override in parsed["resume_display_text"]
+    assert "release automation and security scanning" in parsed["resume_display_text"].lower()
     override_ok, override_reason = check_exec_summary_display_override_compliance(
         parsed["resume_display_text"],
         parsed["claim_ledger"],
@@ -310,14 +308,14 @@ def test_final_coherence_reclamps_causal_graph_roots_after_ledger_rebuild(
         allowed_fact_ids=allowed,
     )
 
-    assert receipt["graph_claim_binding_repairs"]
-    assert final["claim_ledger"][-1]["source_fact_ids"] == [commercialization_root]
+    assert commercialization_root in final["claim_ledger"][-1]["source_fact_ids"]
+    assert platform_root in final["claim_ledger"][-1]["source_fact_ids"]
     assert not any(
         "causal_claim_merges_unrelated_graph_roots" in failure
         for failure in validate_claim_rows_against_resume_graph_allocation(
-        section_id="executive_summary",
-        claim_rows=final["claim_ledger"],
-        selected_fact_plan=allocation,
+            section_id="executive_summary",
+            claim_rows=final["claim_ledger"],
+            selected_fact_plan=allocation,
         )
     )
 

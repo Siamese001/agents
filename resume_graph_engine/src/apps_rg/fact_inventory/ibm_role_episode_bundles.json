@@ -567,9 +567,7 @@
         "skill_sr_microservices_integration_platform",
         "skill_sr_cloud_data_platform_engineering"
       ],
-      "linked_source_fact_ids": [
-        "fact_engineering_platform_002"
-      ],
+      "linked_source_fact_ids": [],
       "linked_archive_signal_ids": [
         "sig_ibm_001",
         "sig_ibm_003"
@@ -721,9 +719,7 @@
         "skill_p2_tech_ibm_cloud_portfolio_anchor",
         "skill_sr_w12_industry_reference_architecture"
       ],
-      "linked_source_fact_ids": [
-        "fact_engineering_platform_002"
-      ],
+      "linked_source_fact_ids": [],
       "linked_archive_signal_ids": [],
       "linked_metric_outcome_ids": [
         "metric_ibm_offering_accelerator_package_reuse",
@@ -1034,9 +1030,7 @@
         "skill_ibm_automated_release_pipelines",
         "skill_p2_tech_devops_pipeline_blueprint"
       ],
-      "linked_source_fact_ids": [
-        "fact_engineering_platform_002"
-      ],
+      "linked_source_fact_ids": [],
       "linked_archive_signal_ids": [
         "sig_ibm_003",
         "sig_ibm_004"

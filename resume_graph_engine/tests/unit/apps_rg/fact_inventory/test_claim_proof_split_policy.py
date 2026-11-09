@@ -93,10 +93,10 @@ class TestW2Migrations:
         assert "governed agentic AI platform" in out["claim_text"]
         assert out["claim_proof_split_version"] == CLAIM_PROOF_SCHEMA_VERSION
 
-    def test_platform_002_adds_forward_projection(self) -> None:
+    def test_platform_002_no_forced_canned_override(self) -> None:
         row = {"candidate_fact_id": "fact_engineering_platform_002", "claim_text": "ORIG2"}
         out = apply_w2_offending_fact_migrations(row)
-        assert "forward_projection_preferred_c0_display_text" in out
+        assert "forward_projection_preferred_c0_display_text" not in out
         assert out["proof_text"] == "ORIG2"
         assert out["claim_proof_split_version"] == CLAIM_PROOF_SCHEMA_VERSION
 

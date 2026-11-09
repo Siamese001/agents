@@ -151,7 +151,7 @@
         "skill_static_governance_drift_detection"
       ],
       "linked_source_fact_ids": [
-        "fact_engineering_platform_005"
+        "fact_engineering_platform_002"
       ],
       "linked_archive_signal_ids": [],
       "linked_metric_outcome_ids": [
@@ -296,7 +296,7 @@
         "skill_runtime_resilience_controls"
       ],
       "linked_source_fact_ids": [
-        "fact_engineering_platform_002"
+        "fact_engineering_platform_005"
       ],
       "linked_archive_signal_ids": [],
       "linked_metric_outcome_ids": [
