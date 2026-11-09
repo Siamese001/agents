@@ -476,6 +476,30 @@ class HitlGovernanceEnforcementTests(unittest.TestCase):
             self.assertEqual(updated["tools/shrunk_monolith.py"]["line_limit"], 700)
             self.assertNotIn("tools/fully_modularized.py", updated)
 
+    def test_post_invocation_transcript_and_pre_ask_question_directive(self) -> None:
+        """Verify _load_turn_steps_from_payload loads current turn from transcriptPath and pre_ask_question emits anti-plaintext directive."""
+        import json
+        from tools.hook_dispatch import ANTI_PLAINTEXT_FALLBACK_DIRECTIVE, _load_turn_steps_from_payload
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            transcript_file = Path(tmpdir) / "turn.jsonl"
+            transcript_file.write_text(
+                "\n".join(
+                    [
+                        json.dumps({"type": "USER_INPUT", "source": "USER_EXPLICIT", "content": "Old turn"}),
+                        json.dumps({"type": "PLANNER_RESPONSE", "source": "MODEL", "content": "Old answer"}),
+                        json.dumps({"type": "USER_INPUT", "source": "USER_EXPLICIT", "content": "New turn /teamwork"}),
+                        json.dumps({"type": "PLANNER_RESPONSE", "source": "MODEL", "content": "Please answer the following questions:"}),
+                    ]
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            turn_steps = _load_turn_steps_from_payload({"transcriptPath": str(transcript_file)})
+            self.assertEqual(len(turn_steps), 1)
+            self.assertEqual(turn_steps[0]["content"], "Please answer the following questions:")
+            self.assertIn("NEVER fall back to printing questions or options as plain text in chat", ANTI_PLAINTEXT_FALLBACK_DIRECTIVE)
+
 
 if __name__ == "__main__":
     unittest.main()

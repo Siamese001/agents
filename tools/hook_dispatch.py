@@ -1,21 +1,5 @@
 #!/usr/bin/env python3
-"""Antigravity Lifecycle Hook Dispatcher.
-
-Executes native Antigravity lifecycle hooks configured in .agents/hooks.json:
-- pre_edit_plan: PreToolUse guard on write_to_file / replace_file_content for plans
-- stop_wave_summary: Stop hook (silenced to adhere to output brevity rules without dumping raw tables)
-- pre_run_command: PreToolUse guard on run_command (pytest scope & timeout enforcement)
-- pre_model_neutral: PreToolUse guard on file writes / moves against proprietary model naming
-- pre_ask_question: PreToolUse guard on ask_question / ask_user_question (atomic, confidence, margin bypass, layman)
-- post_ask_question: PostToolUse ledger writer persisting operator choices into HITLDecisionStore
-- pre_subagent_delegation: PreToolUse guard on invoke_subagent / browser_subagent validating 10-field contracts
-- pre_file_write: PreToolUse guard enforcing primary main-worktree write protection & user-facing layman checks
-- post_invocation: PostInvocation guard intercepting disjunctive fence-sitting, unpromoted edits, and jargon
-
-Input/Output Protocol:
-- Reads system and tool invocation context as JSON from sys.stdin
-- Emits decision payload as JSON to sys.stdout
-"""
+"""Antigravity Lifecycle Hook Dispatcher for .agents/hooks.json."""
 from __future__ import annotations
 
 import argparse
@@ -36,7 +20,6 @@ from tools.pr_governance_core.common import bootstrap_shared_venv
 
 bootstrap_shared_venv(ROOT)
 
-# Ensure .agents/tools symlink exists for relative hook invocations from .agents/
 _AGENTS_TOOLS_LINK = ROOT / ".agents" / "tools"
 if (ROOT / ".agents").is_dir() and not _AGENTS_TOOLS_LINK.exists():
     try:
@@ -62,12 +45,7 @@ except ImportError:
     )
 
 
-MANDATORY_HITL_CATEGORIES = {
-    "pr_merge_authorization",
-    "tier_0_irreversible",
-    "release_activation",
-    "destructive",
-}
+MANDATORY_HITL_CATEGORIES = {"pr_merge_authorization", "tier_0_irreversible", "release_activation", "destructive"}
 
 POST_EDIT_PROMOTION_PROMPT = (
     "[HITL GOVERNANCE INTERCEPT - POST-EDIT PROMOTION GATE] "
@@ -95,6 +73,12 @@ WORD_BUDGET_INTERCEPT_PROMPT = (
     "[OUTPUT BREVITY GOVERNANCE INTERCEPT - INV-OUTPUT-MAX-WORDS] "
     "Your response exceeded the repository output budget ({issues}). "
     "Rewrite your response concisely within {max_words} words and {max_chars} characters."
+)
+
+ANTI_PLAINTEXT_FALLBACK_DIRECTIVE = (
+    "NEVER fall back to printing questions or options as plain text in chat; "
+    "immediately invoke ask_question again with ONE atomic plain-English question at a time "
+    "(<= 120 chars per option, Confidence: TIER (N%))."
 )
 
 
@@ -133,13 +117,11 @@ def handle_pre_edit_plan(payload: Dict[str, Any], repo_root: Path) -> int:
 
     target_path = Path(target_file)
     target_name = target_path.name.lower()
-
     is_plan = (
         target_name == "implementation_plan.md"
         or "plans/" in target_file.replace("\\", "/")
         or (target_file.endswith(".md") and "plan" in target_name)
     )
-
     if not is_plan:
         return emit_decision("allow")
 
@@ -199,15 +181,12 @@ def handle_pre_run_command(payload: Dict[str, Any]) -> int:
     tool_call = payload.get("toolCall", {})
     args = tool_call.get("args", {})
     cmd = (args.get("CommandLine") or args.get("command") or "").strip()
-
     if not cmd:
         return emit_decision("allow")
-
     if re.search(r"\bpytest(?:\.exe)?\s*$", cmd) or re.search(r"\bpytest\s+tests/?\s*$", cmd):
         reason = "Bare un-scoped 'pytest' or 'pytest tests/' is blocked by governance. Specify targeted test files."
         sys.stderr.write(f"\n[Antigravity Hook BLOCK] {reason}\n")
         return emit_decision("deny", reason=reason)
-
     return emit_decision("allow")
 
 
@@ -216,10 +195,8 @@ def handle_pre_model_neutral(payload: Dict[str, Any], repo_root: Path = ROOT) ->
     tool_call = payload.get("toolCall", {})
     args = tool_call.get("args", {})
     target_file = args.get("TargetFile") or args.get("Path") or args.get("path") or ""
-
     if not target_file:
         return emit_decision("allow")
-
     from tools.lint_model_neutral_naming import check_path_model_neutrality
 
     path_violations = check_path_model_neutrality(Path(target_file), repo_root)
@@ -227,7 +204,6 @@ def handle_pre_model_neutral(payload: Dict[str, Any], repo_root: Path = ROOT) ->
         reason = f"Model-neutral path violation: {'; '.join(path_violations)}"
         sys.stderr.write(f"\n[Antigravity Hook BLOCK] {reason}\n")
         return emit_decision("deny", reason=reason)
-
     return emit_decision("allow")
 
 
@@ -273,23 +249,13 @@ def _is_mandatory_hitl_question(q_text: str, q_item: Dict[str, Any], args: Dict[
     lower = q_text.lower()
     return any(
         tok in lower
-        for tok in (
-            "[mandatory approval]",
-            "[merge authorization]",
-            "pr_merge_authorization",
-            "authorize governed merge",
-            "approve merge of",
-        )
+        for tok in ("[mandatory approval]", "[merge authorization]", "pr_merge_authorization", "authorize governed merge", "approve merge of")
     )
 
 
 def handle_pre_ask_question(payload: Dict[str, Any], repo_root: Path) -> int:
     """PreToolUse guard on ask_question / ask_user_question enforcing atomic options, confidence, and margin bypass."""
-    from tools.hitl_governance import (
-        HITLDecisionStore,
-        evaluate_hitl_surfacing_gate,
-        validate_hitl_presentation,
-    )
+    from tools.hitl_governance import HITLDecisionStore, evaluate_hitl_surfacing_gate, validate_hitl_presentation
 
     tool_call = payload.get("toolCall") if isinstance(payload.get("toolCall"), dict) else payload
     args = tool_call.get("args") if isinstance(tool_call.get("args"), dict) else payload
@@ -302,7 +268,7 @@ def handle_pre_ask_question(payload: Dict[str, Any], repo_root: Path) -> int:
     if len(qs) > 1:
         return emit_decision(
             "deny",
-            reason=f"HITL_VIOLATION_BULK_DECISION: Attempted to present {len(qs)} questions simultaneously. Present strictly one at a time.",
+            reason=f"HITL_VIOLATION_BULK_DECISION: Attempted to present {len(qs)} questions simultaneously. Present strictly one at a time. {ANTI_PLAINTEXT_FALLBACK_DIRECTIVE}",
         )
 
     q_item = qs[0]
@@ -312,7 +278,7 @@ def handle_pre_ask_question(payload: Dict[str, Any], repo_root: Path) -> int:
 
     pres_errors = validate_hitl_presentation(q_item, enforce_visibility_and_jargon=True)
     if pres_errors:
-        return emit_decision("deny", reason="; ".join(pres_errors))
+        return emit_decision("deny", reason=f"{'; '.join(pres_errors)} {ANTI_PLAINTEXT_FALLBACK_DIRECTIVE}")
 
     options = q_item.get("options", [])
     if not _is_mandatory_hitl_question(q_text, q_item, args):
@@ -467,14 +433,12 @@ def handle_pre_subagent_delegation(payload: Dict[str, Any], repo_root: Path) -> 
             return emit_decision("deny", reason="; ".join(errors))
         return emit_decision("allow")
 
-    # If args directly supply delegation contract fields, validate them against the 10-field schema
     if any(k in args for k in ("task_id", "parent_task_id", "scope_in", "scope_out", "definition_of_done")):
         errors = validate_delegation_contract(args)
         if errors:
             return emit_decision("deny", reason="; ".join(errors))
         return emit_decision("allow")
 
-    # For standard Antigravity invoke_subagent(TypeName, Role, Prompt), check if Prompt embeds a JSON contract
     prompt_text = str(args.get("Prompt") or args.get("prompt") or args.get("Task") or "").strip()
     type_name = str(args.get("TypeName") or args.get("type_name") or "").strip().lower()
     if type_name == "teamwork" and prompt_text:
@@ -576,6 +540,45 @@ def handle_pre_file_write(payload: Dict[str, Any], repo_root: Path) -> int:
     return emit_decision("allow")
 
 
+_POST_INVOCATION_INTERCEPT_MARKERS = (
+    "[HITL GOVERNANCE INTERCEPT",
+    "[LAYMAN ZERO-JARGON GOVERNANCE INTERCEPT",
+    "[OUTPUT BREVITY GOVERNANCE INTERCEPT",
+    "[AUTONOMOUS LEARN INTERCEPT",
+)
+
+
+def _load_turn_steps_from_payload(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Load current turn steps from inline 'steps' or 'transcriptPath' JSONL file."""
+    inline_steps = payload.get("steps")
+    if isinstance(inline_steps, list):
+        raw_steps = [s for s in inline_steps if isinstance(s, dict)]
+    else:
+        raw_steps = []
+        transcript_path = payload.get("transcriptPath")
+        if isinstance(transcript_path, str) and transcript_path.strip() and os.path.exists(transcript_path):
+            try:
+                with open(transcript_path, "r", encoding="utf-8") as fh:
+                    for raw_line in fh:
+                        if raw_line.strip():
+                            try:
+                                parsed = json.loads(raw_line.strip())
+                                if isinstance(parsed, dict):
+                                    raw_steps.append(parsed)
+                            except (json.JSONDecodeError, TypeError, ValueError):  # guardian: allow-silent-swallow -- skip malformed transcript lines
+                                continue
+            except OSError:  # guardian: allow-silent-swallow -- fallback to empty steps if transcript unreadable
+                return []
+
+    last_user_idx = -1
+    for idx, step in enumerate(raw_steps):
+        step_type, source = str(step.get("type") or "").upper(), str(step.get("source") or "").upper()
+        content = str(step.get("content") or "")
+        if (step_type == "USER_INPUT" or source == "USER_EXPLICIT") and not any(m in content for m in _POST_INVOCATION_INTERCEPT_MARKERS):
+            last_user_idx = idx
+    return raw_steps[last_user_idx + 1 :] if last_user_idx >= 0 else raw_steps
+
+
 def handle_post_invocation(payload: Dict[str, Any], repo_root: Path) -> int:
     """PostInvocation guard enforcing decisive recommendations, post-edit promotion, word budget, and zero-jargon prose."""
     from tools.validate_turn_gates import (
@@ -585,11 +588,26 @@ def handle_post_invocation(payload: Dict[str, Any], repo_root: Path) -> int:
         validate_word_budget_gate,
     )
 
-    steps = payload.get("steps") if isinstance(payload.get("steps"), list) else []
+    steps = _load_turn_steps_from_payload(payload)
     candidate_text = str(payload.get("candidate_response") or "")
     if not candidate_text and steps:
-        last_step = steps[-1] if isinstance(steps[-1], dict) else {}
-        candidate_text = str(last_step.get("content") or "")
+        for step in reversed(steps):
+            if not isinstance(step, dict):
+                continue
+            step_type, source = str(step.get("type") or "").upper(), str(step.get("source") or "").upper()
+            tcs = step.get("tool_calls") or step.get("toolCalls") or ([] if not step.get("toolCall") else [step["toolCall"]])
+            content = str(step.get("content") or "").strip()
+            if (
+                step_type in ("PLANNER_RESPONSE", "ASSISTANT", "MODEL_RESPONSE", "")
+                and (source in ("MODEL", "") and step_type not in ("USER_INPUT", "TOOL_RESPONSE", "TOOL_RESULT"))
+                and not tcs
+                and content
+            ):
+                candidate_text = content
+                break
+        if not candidate_text:
+            last_step = steps[-1] if isinstance(steps[-1], dict) else {}
+            candidate_text = str(last_step.get("content") or "")
 
     asked_question = bool(payload.get("invoked_question_tool", False))
     mutated_files = bool(payload.get("mutated_repository_code", False))
@@ -630,8 +648,7 @@ def handle_post_invocation(payload: Dict[str, Any], repo_root: Path) -> int:
 
     jargon_res = validate_layman_jargon_gate(candidate_text)
     if jargon_res["status"] != "PASS":
-        violations_str = ", ".join(jargon_res["violations"][:4])
-        msg = LAYMAN_INTERCEPT_PROMPT.format(violations=violations_str)
+        msg = LAYMAN_INTERCEPT_PROMPT.format(violations=", ".join(jargon_res["violations"][:4]))
         print(json.dumps({"injectSteps": [{"ephemeralMessage": msg}], "terminationBehavior": "force_continue"}))
         return 0
 
@@ -643,11 +660,7 @@ def handle_post_invocation(payload: Dict[str, Any], repo_root: Path) -> int:
     max_chars = int(policies.get("INV-OUTPUT-MAX-CHARS", {}).get("threshold", 3500) or 3500)
     word_res = validate_word_budget_gate(candidate_text, max_words=max_words, max_chars=max_chars)
     if word_res["status"] != "PASS":
-        msg = WORD_BUDGET_INTERCEPT_PROMPT.format(
-            issues="; ".join(word_res["issues"]),
-            max_words=max_words,
-            max_chars=max_chars,
-        )
+        msg = WORD_BUDGET_INTERCEPT_PROMPT.format(issues="; ".join(word_res["issues"]), max_words=max_words, max_chars=max_chars)
         print(json.dumps({"injectSteps": [{"ephemeralMessage": msg}], "terminationBehavior": "force_continue"}))
         return 0
 
@@ -674,12 +687,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         ],
         help="Lifecycle hook handler to execute.",
     )
-    parser.add_argument(
-        "--repo-root",
-        type=Path,
-        default=ROOT,
-        help="Repository root path.",
-    )
+    parser.add_argument("--repo-root", type=Path, default=ROOT, help="Repository root path.")
     args = parser.parse_args(argv)
     payload = read_hook_input()
 
@@ -703,7 +711,6 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         return handle_pre_file_write(payload, args.repo_root)
     elif args.hook == "post_invocation":
         return handle_post_invocation(payload, args.repo_root)
-
     return emit_decision("allow")
 
 
