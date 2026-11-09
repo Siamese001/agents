@@ -67,13 +67,23 @@ def test_wave4_coherence_compaction_and_daemon_panel_dispatch() -> None:
                 {
                     "section_id": "executive_summary",
                     "selected_candidate_facts": [{"fact_id": "f1", "claim_text": long_claim}],
-                    "graph_claim_bindings": [{"fact_ids": ["f1"], "binding_status": "BOUND"}],
+                    "graph_claim_bindings": [
+                        {
+                            "fact_ids": ["f1"],
+                            "binding_status": "BOUND",
+                            "visible_claim_text": long_claim,
+                            "claim_source_fact_ids": ["f1"],
+                        }
+                    ],
                 }
             ],
         }
     )
     claim_out = compacted["sections"][0]["selected_candidate_facts"][0]["claim_text"]
     assert len(claim_out) == MAX_COMPACT_CLAIM_CHARS
+    binding_out = compacted["sections"][0]["graph_claim_bindings"][0]
+    assert len(binding_out["visible_claim_text"]) == MAX_COMPACT_CLAIM_CHARS
+    assert binding_out["claim_source_fact_ids"] == ["f1"]
 
     barrier = threading.Barrier(2, timeout=3.0)
     thread_daemons: list[bool] = []
