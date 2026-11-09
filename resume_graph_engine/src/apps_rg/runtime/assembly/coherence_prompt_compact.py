@@ -56,6 +56,15 @@ def compact_evidence_packet_for_prompt(evidence_packet: dict[str, Any]) -> dict[
                 "fact_ids": b.get("fact_ids") or [],
                 "binding_status": b.get("binding_status"),
             }
+            raw_visible_claim = b.get("visible_claim_text")
+            if isinstance(raw_visible_claim, str) and raw_visible_claim.strip():
+                b_entry["visible_claim_text"] = (
+                    raw_visible_claim[:MAX_COMPACT_CLAIM_CHARS]
+                    if len(raw_visible_claim) > MAX_COMPACT_CLAIM_CHARS
+                    else raw_visible_claim
+                )
+            if b.get("claim_source_fact_ids"):
+                b_entry["claim_source_fact_ids"] = b.get("claim_source_fact_ids")
             if b.get("metric_outcome_id"):
                 b_entry["metric_outcome_id"] = b.get("metric_outcome_id")
             if b.get("metric_value"):

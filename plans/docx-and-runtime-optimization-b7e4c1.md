@@ -5,6 +5,7 @@
 | Wave 1 | Repair Word `.docx` ECMA-376 OpenXML schema ordering and package completeness | COMPLETE |
 | Wave 2 | Eliminate self-consistency and X1D judge output-token truncation cascades | COMPLETE |
 | Wave 3 | Enable compacted-prompt prefix caching, patch-run boundary parity, and parallel Wave-2 scheduling | COMPLETE |
+| Wave 4 | Preserve claim-binding text in coherence evidence compaction and author SVP-rich allocation surface phrases | COMPLETE |
 
 ## Wave 1: Word Document OpenXML Schema & Package Repair
 
@@ -73,3 +74,25 @@ Enable ephemeral prefix caching on compacted `competencies` SC prompts, enforce 
 - **Verify independently:** Verify `execution_waves_for_lanes(GENERATED_CONTENT_LANES)[-1] == ("executive_summary", "headline")` and `validate_turn_gates.py --mode all` passes.
 - **Fail if:** Compacted `competencies` SC prompt falls back to `pa_compiled_system_fallback_uncached_v1` or `headline` blocks on `executive_summary`.
 - **Record:** `artifacts/governance/wave3_caching_parallelism_receipt.json`
+
+## Wave 4: Whole-Resume Coherence Evidence Binding & Competency Surface Recovery
+
+### Objective & Scope
+Preserve truncated `visible_claim_text` and `claim_source_fact_ids` inside `compact_evidence_packet_for_prompt` so whole-resume coherence judges can verify child-fact claim bindings in `executive_summary`, and register graph-bound SVP-rich surface compositions for the five Brown & Brown competency allocation pairs in `_ALLOCATION_VISIBLE_SURFACE_COMPOSITIONS`.
+
+### Milestones & Deliverables
+- `[MODIFY]` `resume_graph_engine/src/apps_rg/runtime/assembly/coherence_prompt_compact.py`: Retain truncated `visible_claim_text` and `claim_source_fact_ids` in `bindings_compact` so `DISPLAY_OVERRIDE` and child-fact bindings remain visible to the coherence judge panel.
+- `[MODIFY]` `resume_graph_engine/src/apps_rg/runtime/c0/competencies_graph_authority.py`: Add/update source-bound 6-word compositions in `_ALLOCATION_VISIBLE_SURFACE_COMPOSITIONS` for `skill_risk_data_aggregation_bcbs239`, `skill_credit_adjudication_default_risk`, `skill_p2_gtm_solution_mapping`, `skill_p2_tech_ibm_cloud_portfolio_anchor`, and `skill_p2_tech_reference_architecture`.
+- `[MODIFY]` `resume_graph_engine/tests/unit/apps_rg/test_wave4_judge_repair_and_recovery.py`: Assert `compact_evidence_packet_for_prompt` retains `visible_claim_text` on `graph_claim_bindings` and all Brown & Brown allocation pairs resolve to SVP-rich phrases.
+
+### Acceptance Criteria
+- `compact_evidence_packet_for_prompt` preserves `visible_claim_text` and `claim_source_fact_ids` on `graph_claim_bindings`.
+- All 8 Brown & Brown competency allocation assignments resolve to clean, human-readable 6-word SVP phrases without fallback token-soup concatenation.
+
+### Runtime Receipt & Completion Gate
+- **Run:** `.venv/bin/python -m pytest resume_graph_engine/tests/unit/apps_rg/test_wave4_judge_repair_and_recovery.py -v --timeout=60`
+- **Input:** `full_resume_11773d943c97` competency allocation plan and coherence evidence packet.
+- **Expected:** Exit code `0`, all unit tests pass, and `patch_run` on `full_resume_11773d943c97` achieves `full_resume_coherence_pass=true` (`decisive_status=PASS`).
+- **Verify independently:** Inspect `x1d_full_resume_judge_outputs.json` (`quorum_pass == True`, `mean_normalized_score >= 0.80`) and `outputs/resume.docx`.
+- **Fail if:** Any allocation surface phrase falls back to token-soup synthesis or whole-resume coherence quorum fails.
+- **Record:** `artifacts/governance/wave4_coherence_surface_receipt.json`
