@@ -11,11 +11,6 @@ from typing import Any
 
 import pytest
 
-pytest.importorskip(
-    "apps_rg_runtime.runtime.contracts.apps_rg_ingress_payload",
-    reason="standalone checkout omits the external Agentic Workflow contract runtime",
-)
-
 from apps_rg.repository_layout import apps_rg_package_root
 from apps_rg.runtime.c0.section_proof_loader import load_section_proof_for_lane
 from apps_rg.runtime.dispatch.unify_bullets_pa import compile_unify_bullets_prompt
@@ -255,3 +250,24 @@ def test_partner_profile_preserves_unify_metric_anchor_slots() -> None:
     assert slot_map["bul_unify_004"] == "reb_unify_production_adoption_lifecycle"
     assert slot_map["bul_unify_006"] == "reb_unify_platform_commercialization_leadership"
     assert "reb_unify_partner_channel_cosell" in set(slot_map.values())
+    assert "reb_unify_hyperscaler_joint_solution_architecture" in set(slot_map.values())
+
+
+def test_all_ten_unify_bundles_are_external_eligible_and_routable() -> None:
+    from apps_rg.runtime.sections.unify_role_episode_evidence import get_bundles_for_section
+
+    unify_bullet_bundles = get_bundles_for_section("unify_bullets")
+    assert len(unify_bullet_bundles) == 10
+    bundle_ids = {b["role_episode_bundle_id"] for b in unify_bullet_bundles}
+    assert "reb_unify_dependency_graph_accelerator" in bundle_ids
+    assert "reb_unify_regulated_enterprise_ai_governance" in bundle_ids
+    assert "reb_unify_hyperscaler_joint_solution_architecture" in bundle_ids
+
+    gov_slot_map = resolve_unify_bullet_slot_bundle_map(
+        "REGULATED_AI_GOVERNANCE",
+        repo_root=REPO,
+    )
+    assert "reb_unify_regulated_enterprise_ai_governance" in set(gov_slot_map.values())
+    assert "reb_unify_dependency_graph_accelerator" in set(gov_slot_map.values())
+
+

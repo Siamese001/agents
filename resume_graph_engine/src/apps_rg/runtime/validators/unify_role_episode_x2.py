@@ -15,33 +15,31 @@ from dataclasses import dataclass
 from typing import Any
 
 from apps_rg.runtime.sections.cross_section_signal_guards import (
-    ARCHITECTURE_MECHANISM_VOCAB,
-    base_archive_ngram_overlap,
-    detect_generic_consulting_phrases,
-    is_flat_skill_only_graph_packet,
-    seniority_floor_score,
-    technical_specificity_score,
+    ARCHITECTURE_MECHANISM_VOCAB, base_archive_ngram_overlap, detect_generic_consulting_phrases,
+    is_flat_skill_only_graph_packet, seniority_floor_score, technical_specificity_score,
 )
 from apps_rg.runtime.sections.role_episode_metric_registry import metric_outcome_nodes_from_path
-from apps_rg.runtime.sections.unify_graph_role_episode_registry import (
-    BUNDLES_PATH as UNIFY_BUNDLES_PATH,
-)
+from apps_rg.runtime.sections.unify_graph_role_episode_registry import BUNDLES_PATH as UNIFY_BUNDLES_PATH
 
 # Numeric/$/% tokens permitted in Unify output (canonical, approved & linked metrics only).
 _ALLOWED_METRIC_TOKENS: frozenset[str] = frozenset({
-    "$22m", "$22 m", "22m",
-    "20%", "20 %",
-    "8", "28",
-    "three weeks", "six months",
-    "$14m", "$14 m", "14m",
+    "$22m", "$22 m", "22m", "20%", "20 %", "8", "28", "three weeks", "six months",
+    "$14m", "$14 m", "14m", "$5m", "$5 m", "5m", "$3m", "$3 m", "3m",
+    "93%", "93 %", "30%", "30 %", "35%", "35 %", "40%", "40 %", "120+", "18",
 })
-
+_APPROVED_METRIC_TOKEN_RES: tuple[re.Pattern[str], ...] = tuple(
+    re.compile(pat, re.IGNORECASE)
+    for pat in (
+        r"^\$\s*22\s*m$", r"^20\s*%$", r"^\$\s*14\s*m$", r"^\$\s*5\s*m$",
+        r"^\$\s*3\s*m$", r"^93\s*%$", r"^30\s*%$", r"^35\s*%$", r"^40\s*%$",
+    )
+)
+_HELD_COMMERCIAL_METRIC_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = ()
 _COMMERCIAL_SCOPE_TOKENS: frozenset[str] = frozenset({
-    "commercialization", "commercialized", "productization", "productized",
-    "revenue", "margin", "operating model", "platform", "organization",
-    "team", "scaled", "roadmap", "ip-led", "reusable platform",
+    "commercialization", "commercialized", "productization", "productized", "revenue", "margin",
+    "operating model", "platform", "organization", "team", "scaled", "roadmap", "ip-led",
+    "reusable platform", "co-sell", "channel", "acv", "renewal", "upsell",
 })
-
 _BASE_NGRAM_THRESHOLD = 0.25
 _NUM_CLAIM_RE = re.compile(r"\$\s?\d[\d,\.]*\s?[mMbBkK]?|\b\d+(?:\.\d+)?\s?%")
 _SURFACE_NORM_RE = re.compile(r"[^a-z0-9%$]+")
@@ -57,23 +55,13 @@ class UnifyEpisodeResult:
 
 
 def unify_role_episode_consumption_active(meta: dict[str, Any] | None) -> bool:
-    return bool(
-        isinstance(meta, dict)
-        and meta.get("role_episode_bundle_consumption")
-        and meta.get("unify_role_episode_section_packet")
-    )
+    return bool(isinstance(meta, dict) and meta.get("role_episode_bundle_consumption") and meta.get("unify_role_episode_section_packet"))
 
 
 def _bundle_index_by_fact(meta: dict[str, Any] | None) -> list[dict[str, Any]]:
     """Role episode bundle records (id + linked facts/skills/metrics) from proof_pool_metadata."""
-    m = meta if isinstance(meta, dict) else {}
-    bundles = m.get("role_episode_bundles")
-    out: list[dict[str, Any]] = []
-    if isinstance(bundles, list):
-        for rec in bundles:
-            if isinstance(rec, dict) and rec.get("role_episode_bundle_id"):
-                out.append(rec)
-    return out
+    bundles = (meta if isinstance(meta, dict) else {}).get("role_episode_bundles")
+    return [rec for rec in bundles if isinstance(rec, dict) and rec.get("role_episode_bundle_id")] if isinstance(bundles, list) else []
 
 
 @lru_cache(maxsize=1)
@@ -345,14 +333,24 @@ def _collect_change_log_bindings(
     }
 
 
-def detect_unsupported_metric_claims(text: str) -> list[str]:
+def detect_unsupported_metric_claims(text: str | list[str] | tuple[str, ...]) -> list[str]:
     """Return $/% numeric claims in text that are not in the approved Unify token allow-list."""
-    low = str(text or "").lower()
+    if isinstance(text, (list, tuple)):
+        joined = "\n".join(str(x or "") for x in text)
+    else:
+        joined = str(text or "")
+    low = joined.lower()
     hits: list[str] = []
+    for label, pat in _HELD_COMMERCIAL_METRIC_PATTERNS:
+        if pat.search(low):
+            hits.append(label)
+    allowed_compact = {t.replace(" ", "") for t in _ALLOWED_METRIC_TOKENS}
     for m in _NUM_CLAIM_RE.findall(low):
         norm = m.strip()
         compact = norm.replace(" ", "")
-        if compact in {t.replace(" ", "") for t in _ALLOWED_METRIC_TOKENS}:
+        if compact in allowed_compact:
+            continue
+        if any(rx.match(norm) for rx in _APPROVED_METRIC_TOKEN_RES):
             continue
         hits.append(norm)
     return hits

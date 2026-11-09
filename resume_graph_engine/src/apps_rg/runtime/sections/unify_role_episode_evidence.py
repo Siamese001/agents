@@ -11,60 +11,53 @@ from pathlib import Path
 from typing import Any
 
 from apps_rg.fact_inventory.augmented_skills_graph import load_augmented_skills_graph
-from apps_rg.runtime.sections.graph_evidence_contract import (
-    require_section_packet,
-    require_selected_graph_evidence_plan,
-)
+from apps_rg.runtime.sections.graph_evidence_contract import require_section_packet, require_selected_graph_evidence_plan
 from apps_rg.runtime.sections.unify_graph_role_episode_registry import (
-    APPROVED_METRIC_OUTCOME_IDS,
-    BUNDLES_PATH as UNIFY_BUNDLES_PATH,
-    UNIFY_EMPLOYER_ID,
-    UNIFY_EMPLOYER_NODE_ID,
-    UNIFY_TIME_WINDOW,
-    assert_role_episode_bundle_id_present,
-    get_bundle_by_id,
-    get_bundles_for_section,
-    validate_bundle,
+    APPROVED_METRIC_OUTCOME_IDS, BUNDLES_PATH as UNIFY_BUNDLES_PATH, UNIFY_EMPLOYER_ID,
+    UNIFY_EMPLOYER_NODE_ID, UNIFY_TIME_WINDOW, assert_role_episode_bundle_id_present,
+    get_bundle_by_id, get_bundles_for_section, validate_bundle,
 )
-from apps_rg.runtime.sections.role_episode_metric_registry import (
-    metric_outcome_nodes_from_path,
-)
+from apps_rg.runtime.sections.role_episode_metric_registry import metric_outcome_nodes_from_path
 
 UNIFY_ROLE_EPISODE_EVIDENCE_MARKER = "UNIFY_ROLE_EPISODE_EVIDENCE_PACK"
-
 UNIFY_BULLET_SLOT_IDS: tuple[str, ...] = (
-    "bul_unify_001",
-    "bul_unify_002",
-    "bul_unify_003",
-    "bul_unify_004",
-    "bul_unify_005",
-    "bul_unify_006",
+    "bul_unify_001", "bul_unify_002", "bul_unify_003", "bul_unify_004", "bul_unify_005", "bul_unify_006",
 )
-
 UNIFY_BULLET_SLOT_BUNDLE_MAP: dict[str, str] = {
     "bul_unify_001": "reb_unify_agentic_platform_architecture",
-    # The legacy dependency-graph accelerator is intentionally internal-only
-    # and is therefore ineligible for a customer-facing résumé claim.  Keep
-    # the visible six-slot shape, but bind slot 002 to an ACTIVE_CONFIRMED
-    # graph bundle with external claim authority.
     "bul_unify_002": "reb_unify_enterprise_adoption_revenue",
     "bul_unify_003": "reb_unify_runtime_reliability_governance",
     "bul_unify_004": "reb_unify_production_adoption_lifecycle",
     "bul_unify_005": "reb_unify_distributed_ecosystem_engineering",
     "bul_unify_006": "reb_unify_platform_commercialization_leadership",
 }
-
 UNIFY_METRIC_PROTECTED_BULLET_SLOT_IDS: set[str] = {"bul_unify_004", "bul_unify_006"}
 
-def resolve_unify_bullet_slot_bundle_map(
-    role_family_key: str = "",
-    *,
-    repo_root: Path | None = None,
-) -> dict[str, str]:
-    """JD-fit slot→bundle map for unify_bullets (fail closed; no static default fallback)."""
-    from apps_rg.runtime.sections.jd_fit_bundle_selection import (
-        resolve_jd_fit_slot_bundle_map,
+_BUNDLE_AXIS_TOKEN_BY_ID: dict[str, str] = {
+    f"reb_unify_{axis}": axis for axis in (
+        "agentic_platform_architecture", "dependency_graph_accelerator", "runtime_reliability_governance",
+        "production_adoption_lifecycle", "distributed_ecosystem_engineering", "platform_commercialization_leadership",
+        "partner_channel_cosell", "enterprise_adoption_revenue", "regulated_enterprise_ai_governance",
+        "hyperscaler_joint_solution_architecture",
     )
+}
+_AXIS_DETECTION_TOKENS: dict[str, tuple[str, ...]] = {
+    "agentic_platform_architecture": ("control plane", "multi-agent", "graphrag", "route-policy", "sandbox"),
+    "dependency_graph_accelerator": ("dependency graph", "120+ service dependencies", "18 architecture violation", "blast-radius"),
+    "runtime_reliability_governance": ("telemetry", "evaluation", "rollback", "observability"),
+    "production_adoption_lifecycle": ("six months to three weeks", "lab-to-production", "lifecycle"),
+    "distributed_ecosystem_engineering": ("databricks", "lakehouse", "vector", "high-availability", "distributed"),
+    "platform_commercialization_leadership": ("$22m", "20%", "8 to 28", "ip-led", "commercialization"),
+    "partner_channel_cosell": ("$3m", "30%", "co-sell", "channel program", "partner-derived"),
+    "enterprise_adoption_revenue": ("$5m", "93%", "cfo", "consumption-based", "annual renewal"),
+    "regulated_enterprise_ai_governance": ("35%", "40%", "regulatory findings", "regulatory submissions", "compliance checkpoints", "llm document intelligence"),
+    "hyperscaler_joint_solution_architecture": ("joint solution roadmaps", "gsi", "executive pre-sales", "value propositions"),
+}
+
+
+def resolve_unify_bullet_slot_bundle_map(role_family_key: str = "", *, repo_root: Path | None = None) -> dict[str, str]:
+    """JD-fit slot→bundle map for unify_bullets (fail closed; no static default fallback)."""
+    from apps_rg.runtime.sections.jd_fit_bundle_selection import resolve_jd_fit_slot_bundle_map
 
     if not role_family_key:
         raise ValueError("unify_bullets: graph packet is mandatory; missing role_family_key")
@@ -252,6 +245,8 @@ def build_unify_graph_traversal_sufficiency_receipt(
     selected_metric_ids = _collect(selected_ids, "linked_metric_outcome_ids")
     rejected_metric_ids = _collect(rejected_ids, "linked_metric_outcome_ids")
     def _axis_for_bundle(bundle_id: str) -> str:
+        if bundle_id in _BUNDLE_AXIS_TOKEN_BY_ID:
+            return _BUNDLE_AXIS_TOKEN_BY_ID[bundle_id]
         bundle = bundle_by_id.get(bundle_id) or {}
         return str(bundle.get("root_capability_node_id") or bundle_id.replace("reb_unify_", ""))
 
@@ -470,7 +465,7 @@ def format_unify_role_episode_evidence_pack(
             "change_log.metric_outcome_ids[]. Do not emit another metric or outcome from the "
             "same bundle."
         ),
-        "- Internal-only signals (dependency graph accelerator, identity controls) are supporting context — not external metrics.",
+        "- Internal-only signals (identity controls, API gateways) are supporting context — not external metrics.",
     ]
     if allowed_fact_ids_raw:
         header_lines.append(
