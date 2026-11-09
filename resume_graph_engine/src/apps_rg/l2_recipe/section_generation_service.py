@@ -362,6 +362,8 @@ class SectionGenerationService:
         resume_graph_allocation_refs["career_thesis_alignment_plan"] = career_thesis_plan_path
         resume_graph_allocation_refs["career_thesis_alignment_receipt"] = str((alloc_out_dir / "career_thesis_alignment_receipt.json").resolve())
         career_thesis_alignment_digest = str(career_thesis_plan.digest or "")
+        resume_graph_bundle["allocation_plan"]["career_thesis_alignment"] = asdict(career_thesis_plan)
+        resume_graph_bundle["allocation_plan"]["career_thesis_alignment_digest"] = career_thesis_alignment_digest
 
         graph_skill_embedding_allowlists_digest = ""
         graph_skill_embedding_runtime_refs: dict[str, str] = {}
@@ -469,6 +471,8 @@ class SectionGenerationService:
 
             def _phase1_dispatch_one_lane(**kwargs: Any) -> dict[str, Any]:
                 lane = str(kwargs.get("section") or "")
+                kwargs.setdefault("career_thesis_plan_path", career_thesis_plan_path)
+                kwargs.setdefault("career_thesis_alignment_digest", career_thesis_alignment_digest)
                 upstream_spec = narrative_upstream.get(lane)
                 if upstream_spec is not None:
                     upstream_lane, expected_ids = upstream_spec

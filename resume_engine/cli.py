@@ -41,7 +41,7 @@ def _build_parser(prog: str = "python -m resume_engine") -> argparse.ArgumentPar
     parser.add_argument("--version", action="version", version="resume_engine 1.0.0")
     parser.add_argument(
         "--l1-cognitive-treatment-arm",
-        default="l1_v2_control",
+        default="l1_v3_treatment",
         help="Apps RG-local experiment arm assignment.",
     )
     subparsers = parser.add_subparsers(dest="action", metavar="ACTION")

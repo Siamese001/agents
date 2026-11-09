@@ -321,6 +321,75 @@ def build_l1_cognitive_c0_outcome_receipt_unchecked(
     return receipt
 
 
+def _normalize_career_thesis_alignment_block(
+    career_thesis_plan: Mapping[str, Any] | Any | None,
+) -> dict[str, Any] | None:
+    if career_thesis_plan is None:
+        return None
+    if hasattr(career_thesis_plan, "__dataclass_fields__"):
+        from dataclasses import asdict
+
+        raw = asdict(career_thesis_plan)
+    elif isinstance(career_thesis_plan, Mapping):
+        raw = dict(career_thesis_plan)
+    else:
+        return None
+    thesis = _mapping(raw.get("career_thesis"))
+    alloc = _mapping(raw.get("thematic_allocation"))
+    gaps_raw = raw.get("evidence_gaps")
+    gaps: list[dict[str, Any]] = []
+    if isinstance(gaps_raw, Sequence) and not isinstance(gaps_raw, (str, bytes)):
+        for row in gaps_raw:
+            if isinstance(row, Mapping):
+                gaps.append(
+                    {
+                        "requirement_text": str(row.get("requirement_text") or ""),
+                        "gap_status": str(row.get("gap_status") or ""),
+                        "pivot_strategy": str(row.get("pivot_strategy") or ""),
+                        "matched_evidence_ids": [
+                            str(eid)
+                            for eid in (row.get("matched_evidence_ids") or ())
+                            if str(eid).strip()
+                        ],
+                    }
+                )
+    return {
+        "schema_version": str(raw.get("schema_version") or "apps_rg_l15_strategic_fit_v1"),
+        "plan_digest": str(raw.get("digest") or ""),
+        "target_company": str(raw.get("target_company") or ""),
+        "target_role": str(raw.get("target_role") or ""),
+        "career_thesis": {
+            "primary_positioning": str(thesis.get("primary_positioning") or ""),
+            "executive_summary_anchor": str(thesis.get("executive_summary_anchor") or ""),
+            "narrative_arc": str(thesis.get("narrative_arc") or ""),
+            "key_themes": [
+                str(t) for t in (thesis.get("key_themes") or ()) if str(t).strip()
+            ],
+        },
+        "evidence_gaps": gaps,
+        "thematic_allocation": {
+            "headline_focus": [
+                str(x) for x in (alloc.get("headline_focus") or ()) if str(x).strip()
+            ],
+            "executive_summary_focus": [
+                str(x)
+                for x in (alloc.get("executive_summary_focus") or ())
+                if str(x).strip()
+            ],
+            "competencies_focus": [
+                str(x)
+                for x in (alloc.get("competencies_focus") or ())
+                if str(x).strip()
+            ],
+            "bullet_lanes_focus": {
+                str(k): [str(item) for item in v if str(item).strip()]
+                for k, v in _mapping(alloc.get("bullet_lanes_focus")).items()
+                if isinstance(v, Sequence) and not isinstance(v, (str, bytes))
+            },
+        },
+    }
+
+
 def build_l1_cognitive_revision_from_c0_outcome(
     *,
     cognitive_plan: Mapping[str, Any],
@@ -328,8 +397,13 @@ def build_l1_cognitive_revision_from_c0_outcome(
     outcome_receipt_ref: str,
     v2_capsule: Mapping[str, Any],
     c0_obligation_receipt: Mapping[str, Any],
+    career_thesis_plan: Mapping[str, Any] | Any | None = None,
 ) -> dict[str, Any]:
     """Build one bounded L1 revision from source-bound C0 failure outcomes."""
+
+    from apps_rg.runtime.bindings.l1_cognitive_planner_v3 import (
+        cognitive_revision_digest,
+    )
 
     validate_l1_cognitive_c0_outcome_receipt(
         outcome_receipt,
@@ -364,6 +438,10 @@ def build_l1_cognitive_revision_from_c0_outcome(
                 c0_outcome_receipt_digest=str(outcome_receipt["receipt_digest"]),
             )
         )
+        alignment_block = _normalize_career_thesis_alignment_block(career_thesis_plan)
+        if alignment_block is not None:
+            revision["career_thesis_alignment"] = alignment_block
+            revision["revision_digest"] = cognitive_revision_digest(revision)
         validate_l1_cognitive_revision_v3(revision, plan=cognitive_plan)
     except L1CognitivePlanError as exc:
         raise L1CognitiveC0OutcomeError("L1 v3 cognitive revision is invalid") from exc

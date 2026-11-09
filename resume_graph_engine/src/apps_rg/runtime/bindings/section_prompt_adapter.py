@@ -72,6 +72,118 @@ def _load_contract(section_id: str) -> dict[str, Any]:
     return dict(data)
 
 
+def _resolve_career_thesis_block(
+    *,
+    career_thesis_plan: Mapping[str, Any] | Any | None,
+    l1_cognitive_revision: Mapping[str, Any] | None,
+) -> dict[str, Any] | None:
+    import json
+    import os
+
+    from apps_rg.runtime.contracts.l1_cognitive_c0_outcome_receipt import (
+        _normalize_career_thesis_alignment_block,
+    )
+
+    if career_thesis_plan is not None:
+        return _normalize_career_thesis_alignment_block(career_thesis_plan)
+    if isinstance(l1_cognitive_revision, Mapping):
+        embedded = l1_cognitive_revision.get("career_thesis_alignment")
+        if isinstance(embedded, Mapping):
+            return _normalize_career_thesis_alignment_block(embedded)
+    env_path = os.environ.get("APPS_RG_CAREER_THESIS_PLAN_PATH", "").strip()
+    if env_path:
+        p = Path(env_path)
+        if p.is_file():
+            try:
+                raw = json.loads(p.read_text(encoding="utf-8"))
+                if isinstance(raw, Mapping):
+                    return _normalize_career_thesis_alignment_block(raw)
+            except (OSError, json.JSONDecodeError):
+                return None
+    return None
+
+
+def _career_thesis_prompt_lines(
+    alignment_block: Mapping[str, Any] | None,
+    *,
+    section_id: str,
+) -> tuple[str, ...]:
+    if not isinstance(alignment_block, Mapping):
+        return ()
+    lines: list[str] = []
+    thesis = alignment_block.get("career_thesis")
+    if isinstance(thesis, Mapping):
+        positioning = str(thesis.get("primary_positioning") or "").strip()
+        anchor = str(thesis.get("executive_summary_anchor") or "").strip()
+        arc = str(thesis.get("narrative_arc") or "").strip()
+        themes = [str(t) for t in (thesis.get("key_themes") or ()) if str(t).strip()]
+        if positioning:
+            lines.append(f"L1 post-C0 career thesis positioning: {positioning}")
+        if anchor and section_id in ("executive_summary", "headline"):
+            lines.append(f"L1 post-C0 executive summary anchor: {anchor}")
+        if arc and ("narrative" in section_id or section_id == "executive_summary"):
+            lines.append(f"L1 post-C0 narrative arc: {arc}")
+        if themes:
+            lines.append(f"L1 post-C0 key themes: {', '.join(themes)}")
+
+    gaps = alignment_block.get("evidence_gaps")
+    if isinstance(gaps, (list, tuple)):
+        for gap in gaps:
+            if isinstance(gap, Mapping):
+                status = str(gap.get("gap_status") or "").strip()
+                strategy = str(gap.get("pivot_strategy") or "").strip()
+                matched = [
+                    str(eid)
+                    for eid in (gap.get("matched_evidence_ids") or ())
+                    if str(eid).strip()
+                ]
+                if status and strategy:
+                    matched_str = f" (matched_evidence_ids={','.join(matched)})" if matched else ""
+                    lines.append(
+                        f"L1 post-C0 gap mitigation [{status}]{matched_str}: {strategy}"
+                    )
+
+    alloc = alignment_block.get("thematic_allocation")
+    if isinstance(alloc, Mapping):
+        if section_id == "headline":
+            focus = [str(x) for x in (alloc.get("headline_focus") or ()) if str(x).strip()]
+            if focus:
+                lines.append(f"L1 post-C0 section allocation [headline]: {', '.join(focus)}")
+        elif section_id == "executive_summary":
+            focus = [
+                str(x)
+                for x in (alloc.get("executive_summary_focus") or ())
+                if str(x).strip()
+            ]
+            if focus:
+                lines.append(
+                    f"L1 post-C0 section allocation [executive_summary]: {', '.join(focus)}"
+                )
+        elif section_id == "competencies":
+            focus = [
+                str(x) for x in (alloc.get("competencies_focus") or ()) if str(x).strip()
+            ]
+            if focus:
+                lines.append(
+                    f"L1 post-C0 section allocation [competencies]: {', '.join(focus)}"
+                )
+        else:
+            lanes = alloc.get("bullet_lanes_focus")
+            if isinstance(lanes, Mapping):
+                lane_key = (
+                    section_id
+                    if section_id in lanes
+                    else ("narrative" if "narrative" in section_id else "")
+                )
+                if lane_key and isinstance(lanes.get(lane_key), (list, tuple)):
+                    focus = [str(x) for x in lanes[lane_key] if str(x).strip()]
+                    if focus:
+                        lines.append(
+                            f"L1 post-C0 section allocation [{section_id}]: {', '.join(focus)}"
+                        )
+    return tuple(lines)
+
+
 def compile_section_prompt(
     assembly_input: PromptAssemblyInput,
     *,
@@ -81,6 +193,7 @@ def compile_section_prompt(
     l1_cognitive_plan: Mapping[str, Any] | None = None,
     l1_cognitive_revision: Mapping[str, Any] | None = None,
     l1_cognitive_revision_advisory: Mapping[str, Any] | None = None,
+    career_thesis_plan: Mapping[str, Any] | Any | None = None,
 ) -> SectionCompiledPrompt:
     """Validate ``section_id`` against its stub contract and compile ``assembly_input``.
 
@@ -177,6 +290,7 @@ def compile_section_prompt(
             ),
             context={"section_id": section_id},
         )
+    revision_lines: tuple[str, ...] = ()
     if l1_cognitive_revision is not None:
         if l1_cognitive_plan is None or l1_cognitive_advisory is None:
             raise PromptAssemblyError(
@@ -204,14 +318,24 @@ def compile_section_prompt(
                 message="L1 cognitive C0 revision is not source-bound to its plan",
                 context={"section_id": section_id},
             ) from exc
-        if revision_lines:
-            revision_block = "<L1_COGNITIVE_C0_REVISION>\n" + "\n".join(
-                revision_lines
-            ) + "\n</L1_COGNITIVE_C0_REVISION>\n\n"
-            assembly_input = replace(
-                assembly_input,
-                u0_user_task=revision_block + assembly_input.u0_user_task,
-            )
+
+    career_thesis_block = _resolve_career_thesis_block(
+        career_thesis_plan=career_thesis_plan,
+        l1_cognitive_revision=l1_cognitive_revision,
+    )
+    thesis_lines = _career_thesis_prompt_lines(
+        career_thesis_block,
+        section_id=section_id,
+    )
+    combined_revision_lines = tuple(revision_lines) + tuple(thesis_lines)
+    if combined_revision_lines:
+        revision_block = "<L1_COGNITIVE_C0_REVISION>\n" + "\n".join(
+            combined_revision_lines
+        ) + "\n</L1_COGNITIVE_C0_REVISION>\n\n"
+        assembly_input = replace(
+            assembly_input,
+            u0_user_task=revision_block + assembly_input.u0_user_task,
+        )
 
     artifact = compile_prompt(assembly_input, base_path=_APPS_RG_ROOT / "prompt_assembly")
     apps_rg_ref = str(contract.get("apps_rg_prompt_template_ref") or "")

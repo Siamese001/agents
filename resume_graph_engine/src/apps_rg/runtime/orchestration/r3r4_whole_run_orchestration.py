@@ -1997,6 +1997,8 @@ def run_whole_run_with_route_governance(
 
     write_cache_miss_receipt(art, preflight, evidence)
 
+    raw_request.setdefault("l1_plan", l1_plan)
+    raw_request.setdefault("max_l1_l2_cycles", 2)
     result = run_integrated_single_action_spine(
         raw_request=raw_request,
         app_name="apps_rg",

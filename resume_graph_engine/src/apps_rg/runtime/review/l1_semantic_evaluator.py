@@ -66,6 +66,46 @@ def _evaluate_subgoal_coverage(subgoal: str, content: str) -> tuple[bool, float]
     return ratio >= 0.5, ratio
 
 
+_STAGE_NAME_SUBGOAL_TOKENS: Final[frozenset[str]] = frozenset(
+    {
+        "u0_validate_apps_rg",
+        "l1_plan_apps_rg",
+        "l0_route_apps_rg",
+        "c0_retrieve_apps_rg",
+        "spine_c0_fec_compose",
+        "pa_compose_apps_rg",
+        "l2_execute_apps_rg",
+        "exitevalpipeline",
+        "section_l6_shadow",
+        "x2_evaluate_apps_rg",
+        "x3_decide_apps_rg",
+        "r5_seal_apps_rg",
+    }
+)
+
+
+def resolve_l1_post_l2_reviewer_role() -> dict[str, Any]:
+    """Resolve the orthogonal low-effort post-L2 reviewer role from the SSOT registry."""
+    from apps_rg.runtime.model_registry import resolve
+
+    resolved = resolve("reasoning.l1_post_l2_reviewer")
+    return {
+        "role_key": "reasoning.l1_post_l2_reviewer",
+        "provider": resolved.provider,
+        "model": resolved.model,
+        "reasoning_effort": "low",
+    }
+
+
+def _is_spine_stage_identifier(subgoal: str) -> bool:
+    norm = subgoal.strip().lower()
+    if norm in _STAGE_NAME_SUBGOAL_TOKENS:
+        return True
+    if re.fullmatch(r"[a-z0-9]+(?:_[a-z0-9]+){2,}", norm) and norm.endswith("_apps_rg"):
+        return True
+    return False
+
+
 def l1_post_l2_semantic_evaluator(
     sealed_artifact: Any,
     l1_plan: Any | None = None,
@@ -84,6 +124,8 @@ def l1_post_l2_semantic_evaluator(
     Returns:
       L1SemanticReviewResult with sufficiency status and strategic adaptation recommendations.
     """
+    reviewer_meta = resolve_l1_post_l2_reviewer_role()
+
     # 1. Check for deterministic failure short-circuit
     if deterministic_result is not None and deterministic_result.status == "FAIL":
         if not deterministic_result.tool_execution_success:
@@ -98,7 +140,13 @@ def l1_post_l2_semantic_evaluator(
                     "Semantic evaluation skipped; tool retry indicated."
                 ),
                 recommended_action="RETRY_TOOL_EXECUTION",
-                suggested_strategy_delta={"deterministic_failures": list(deterministic_result.failure_reasons)},
+                suggested_strategy_delta={
+                    "disposition": "RETRY",
+                    "violated_facts": list(deterministic_result.missing_evidence_ids),
+                    "repair_hint": "Retry tool execution after transient failure.",
+                    "deterministic_failures": list(deterministic_result.failure_reasons),
+                    "reviewer_role": reviewer_meta["role_key"],
+                },
             )
         else:
             return L1SemanticReviewResult(
@@ -113,8 +161,15 @@ def l1_post_l2_semantic_evaluator(
                 ),
                 recommended_action="REPLAN_STRATEGY",
                 suggested_strategy_delta={
+                    "disposition": "REPLAN",
+                    "violated_facts": list(deterministic_result.missing_evidence_ids),
+                    "repair_hint": (
+                        f"Add missing fields {list(deterministic_result.missing_fields)} "
+                        f"and cite required facts {list(deterministic_result.missing_evidence_ids)}."
+                    ),
                     "missing_fields": list(deterministic_result.missing_fields),
                     "missing_evidence_ids": list(deterministic_result.missing_evidence_ids),
+                    "reviewer_role": reviewer_meta["role_key"],
                 },
             )
 
@@ -123,6 +178,42 @@ def l1_post_l2_semantic_evaluator(
         try:
             judge_res = semantic_judge(sealed_artifact, l1_plan)
             if isinstance(judge_res, Mapping):
+                # Support structured JSON disposition contract: (disposition, violated_facts, repair_hint)
+                if "disposition" in judge_res:
+                    disp = str(judge_res.get("disposition") or "SUFFICIENT").upper()
+                    violated_facts = [
+                        str(f) for f in (judge_res.get("violated_facts") or ()) if str(f).strip()
+                    ]
+                    repair_hint = str(judge_res.get("repair_hint") or "").strip()
+                    is_pass = disp in ("SUFFICIENT", "PASS", "ALLOW")
+                    status = "PASS" if is_pass else ("SKIPPED" if disp == "SKIPPED" else "INSUFFICIENT")
+                    delta = dict(judge_res.get("suggested_strategy_delta") or {})
+                    delta.setdefault("disposition", disp)
+                    delta.setdefault("violated_facts", violated_facts)
+                    delta.setdefault("repair_hint", repair_hint)
+                    delta.setdefault("reviewer_role", reviewer_meta["role_key"])
+                    if repair_hint and not delta.get("unfulfilled_subgoals"):
+                        delta["unfulfilled_subgoals"] = [repair_hint]
+                    return L1SemanticReviewResult(
+                        schema_version=L1_SEMANTIC_REVIEW_SCHEMA_VERSION,
+                        status=status,
+                        subgoal_accomplished=bool(judge_res.get("subgoal_accomplished", is_pass)),
+                        evidence_sufficient=bool(
+                            judge_res.get("evidence_sufficient", len(violated_facts) == 0)
+                        ),
+                        plan_adaptation_required=bool(
+                            judge_res.get("plan_adaptation_required", not is_pass)
+                        ),
+                        critique=str(judge_res.get("critique") or repair_hint or f"Disposition: {disp}"),
+                        recommended_action=str(
+                            judge_res.get(
+                                "recommended_action",
+                                "PROCEED_TO_EXIT" if is_pass else "REPLAN_STRATEGY",
+                            )
+                        ),
+                        suggested_strategy_delta=delta,
+                    )
+
                 status_raw = str(judge_res.get("status", "PASS")).upper()
                 status = "PASS" if status_raw == "PASS" else ("SKIPPED" if status_raw == "SKIPPED" else "INSUFFICIENT")
                 return L1SemanticReviewResult(
@@ -155,7 +246,7 @@ def l1_post_l2_semantic_evaluator(
     unfulfilled_subgoals: list[str] = []
     for subgoal in task_plan:
         subgoal_str = str(subgoal).strip()
-        if not subgoal_str:
+        if not subgoal_str or _is_spine_stage_identifier(subgoal_str):
             continue
         covered, _ = _evaluate_subgoal_coverage(subgoal_str, generated_content)
         if not covered:
@@ -178,7 +269,12 @@ def l1_post_l2_semantic_evaluator(
             plan_adaptation_required=False,
             critique="Sealed observation satisfies original L1 objective and planned subgoals.",
             recommended_action="PROCEED_TO_EXIT",
-            suggested_strategy_delta={},
+            suggested_strategy_delta={
+                "disposition": "SUFFICIENT",
+                "violated_facts": [],
+                "repair_hint": "",
+                "reviewer_role": reviewer_meta["role_key"],
+            },
         )
 
     critique_parts: list[str] = []
@@ -187,17 +283,22 @@ def l1_post_l2_semantic_evaluator(
     if not evidence_sufficient:
         critique_parts.append("Grounding is required but no evidence citations were detected in generated content.")
 
+    repair_hint = "; ".join(critique_parts)
     return L1SemanticReviewResult(
         schema_version=L1_SEMANTIC_REVIEW_SCHEMA_VERSION,
         status="INSUFFICIENT",
         subgoal_accomplished=subgoal_accomplished,
         evidence_sufficient=evidence_sufficient,
         plan_adaptation_required=True,
-        critique="; ".join(critique_parts),
+        critique=repair_hint,
         recommended_action="REPLAN_STRATEGY",
         suggested_strategy_delta={
+            "disposition": "REPLAN",
+            "violated_facts": [] if evidence_sufficient else ["missing_grounding_citation"],
+            "repair_hint": repair_hint,
             "unfulfilled_subgoals": unfulfilled_subgoals,
             "evidence_grounding_gap": not evidence_sufficient,
+            "reviewer_role": reviewer_meta["role_key"],
         },
     )
 

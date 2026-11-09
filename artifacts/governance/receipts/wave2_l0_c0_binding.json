@@ -1,0 +1,27 @@
+{
+  "wave": "Wave 2",
+  "title": "L0 Route-Hint Unblock & C0 Semantic Query Binding",
+  "status": "COMPLETE",
+  "timestamp": "2026-11-09T17:46:40Z",
+  "command": ".venv/bin/python -m pytest resume_graph_engine/tests/unit/runtime/test_l0_binding_route_hints.py -v --timeout=60",
+  "exit_code": 0,
+  "tests_passed": 3,
+  "regression_suite": {
+    "command": ".venv/bin/python -m pytest resume_graph_engine/tests/unit/apps_rg/test_l1_planning_capsule_p0.py -v --timeout=60",
+    "exit_code": 0,
+    "tests_passed": 17
+  },
+  "verified_invariants": {
+    "route_hints_unblocked_in_l0": true,
+    "all_six_route_hints_evaluated": [
+      "execution_shape_hint",
+      "multi_work_unit_hint",
+      "merge_needed_hint",
+      "candidate_selection_needed_hint",
+      "grounding_needed_hint",
+      "hitl_risk_hint"
+    ],
+    "c0_retrieval_plan_semantic_sub_queries_bound": true,
+    "competency_weights_propagated": true
+  }
+}

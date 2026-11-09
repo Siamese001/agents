@@ -1,19 +1,11 @@
-"""Source-bound, advisory cognitive planning for the Apps RG L1 boundary.
-
-V3 is deliberately separate from the compatibility v1/v2 capsules.  It
-improves the planner's representation and self-checking without taking route,
-evidence, prompt, execution, model, tool, state-write, or release authority.
-"""
-
+"""Source-bound, advisory cognitive planning for the Apps RG L1 boundary. V3 is deliberately separate from the compatibility v1/v2 capsules.  It improves the planner's representation and self-checking without taking route, evidence, prompt, execution, model, tool, state-write, or release authority."""
 from __future__ import annotations
-
 import hashlib
 import json
 import re
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any, Final
-
 from apps_rg.runtime.bindings.l1_planning_capsule import FrozenDict, _freeze
 from apps_rg.runtime.bindings.l1_planning_capsule_v2 import (
     L1PlanningV2IntegrityError,
@@ -26,12 +18,12 @@ from apps_rg.runtime.bindings.l1_planning_capsule_v2 import (
     build_apps_rg_l1_planning_capsule_v2,
     verify_apps_rg_l1_planning_capsule_v2,
 )
-
-
+from apps_rg.runtime.model_registry import ModelResolutionError, resolve as resolve_model_role
 L1_COGNITIVE_V3_SCHEMA_VERSION: Final[str] = "apps_rg.l1_cognitive_plan.v3"
 L1_COGNITIVE_V3_REVISION_SCHEMA_VERSION: Final[str] = "apps_rg.l1_cognitive_revision.v2"
 _AUTHORITY_CLASS: Final[str] = "PLANNING_ADVISORY_ONLY"
 _APP_SCOPE: Final[str] = "APPS_RG_V2_ONLY"
+_L1_PLANNER_ROLE: Final[str] = "reasoning.l1_cognitive_planner"
 _FORBIDDEN_AUTHORITY_KEYS: Final[frozenset[str]] = frozenset(
     {
         "route_id",
@@ -39,8 +31,6 @@ _FORBIDDEN_AUTHORITY_KEYS: Final[frozenset[str]] = frozenset(
         "selected_route",
         "evidence_items",
         "evidence_refs",
-        "provider",
-        "model",
         "tool_call",
         "write_path",
         "release_approval",
@@ -184,51 +174,31 @@ _VALID_CONSTRAINT_RESOLUTION_REASONS: Final[frozenset[str]] = frozenset(
         "UNSAFE_PREFERENCE_VALUE",
     }
 )
-
-
 class L1CognitivePlanError(ValueError):
     """Raised when an L1 v3 cognitive plan or bounded revision is invalid."""
-
-
 def _canonical_json(value: Any) -> str:
     return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
-
-
 def _sha256(value: Any) -> str:
     return (
         "sha256:" + hashlib.sha256(_canonical_json(value).encode("utf-8")).hexdigest()
     )
-
-
 def _digest_without(value: Mapping[str, Any], field: str) -> str:
     body = dict(value)
     body.pop(field, None)
     return _sha256(body)
-
-
 def cognitive_plan_digest(plan: Mapping[str, Any]) -> str:
     """Return the canonical digest of a cognitive plan excluding itself."""
-
     return _digest_without(plan, "plan_digest")
-
-
 def cognitive_revision_digest(revision: Mapping[str, Any]) -> str:
     """Return the canonical digest of a revision excluding itself."""
-
     return _digest_without(revision, "revision_digest")
-
-
 def _required_string(value: Any, *, field: str) -> str:
     normalized = str(value or "").strip()
     if not normalized:
         raise L1CognitivePlanError(f"{field} is required")
     return normalized
-
-
 def _mapping(value: Any) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
-
-
 def _source_text_for_requirement(
     jd_text: str, requirement: Mapping[str, Any]
 ) -> tuple[str, int]:
@@ -256,8 +226,6 @@ def _source_text_for_requirement(
     while content_start < end and jd_text[content_start].isspace():
         content_start += 1
     return text, content_start
-
-
 def _relation_kind(value: str) -> str:
     normalized = " ".join(str(value or "").lower().split())
     if normalized == "and":
@@ -269,13 +237,9 @@ def _relation_kind(value: str) -> str:
     if normalized in {"except", "unless"}:
         return "EXCEPTION"
     raise L1CognitivePlanError("atomic relation is invalid")
-
-
 def _leading_action(text: str) -> str:
     match = _ACTION_RE.match(str(text or "").strip())
     return str(match.group("verb") or "").upper() if match else ""
-
-
 def _predicate_class(value: str) -> str:
     verb = str(value or "").upper()
     if verb in {"LEAD", "OWN", "MANAGE", "HIRE", "MENTOR", "INFLUENCE"}:
@@ -287,18 +251,8 @@ def _predicate_class(value: str) -> str:
     if verb in {"HAVE", "DEMONSTRATE", "COMMUNICATE", "PARTNER"}:
         return "CAPABILITY_ACTION"
     return "UNSPECIFIED_ACTION"
-
-
 def _inherited_predicate_segment_allowed(*, predicate: str, text: str) -> bool:
-    """Accept a predicate-less coordination only when its scope is explicit.
-
-    The caller carries the most recent explicit predicate across a complete
-    coordination chain.  A known requirement head is deliberately required
-    before that predicate can be inherited: otherwise a bare noun may be an
-    object, qualifier, or another grammatical role rather than a second
-    requirement.
-    """
-
+    """Accept a predicate-less coordination only when its scope is explicit. The caller carries the most recent explicit predicate across a complete coordination chain.  A known requirement head is deliberately required before that predicate can be inherited: otherwise a bare noun may be an object, qualifier, or another grammatical role rather than a second requirement."""
     if not predicate or _leading_action(text):
         return False
     normalized_text = str(text or "").strip()
@@ -307,27 +261,13 @@ def _inherited_predicate_segment_allowed(*, predicate: str, text: str) -> bool:
     ):
         return False
     return bool(_COORDINATED_REQUIREMENT_HEAD_RE.search(normalized_text))
-
-
 def _semantic_text_with_inherited_predicate(*, predicate: str, source_text: str) -> str:
     """Recover a predicate for classification without changing the source span."""
-
     return f"{predicate.lower()} {source_text}".strip() if predicate else source_text
-
-
 def _explicit_sentence_clause_rows(
     text: str, *, absolute_start: int
 ) -> list[dict[str, Any]]:
-    """Split only plainly independent action sentences from one source line.
-
-    The v2 parent capsule is intentionally line-oriented.  A single bullet can
-    still contain several explicit requirements, so a conjunction-only parser
-    leaves a material cognition gap.  We split punctuation only when every
-    resulting segment begins with a recognized action; otherwise the source
-    remains one clause and later ambiguity handling decides whether to
-    escalate.  The punctuation itself is not part of an atom's source span.
-    """
-
+    """Split only plainly independent action sentences from one source line. The v2 parent capsule is intentionally line-oriented.  A single bullet can still contain several explicit requirements, so a conjunction-only parser leaves a material cognition gap.  We split punctuation only when every resulting segment begins with a recognized action; otherwise the source remains one clause and later ambiguity handling decides whether to escalate.  The punctuation itself is not part of an atom's source span."""
     candidates = list(_EXPLICIT_SENTENCE_BOUNDARY_RE.finditer(text))
     if not candidates:
         return []
@@ -337,7 +277,6 @@ def _explicit_sentence_clause_rows(
         raw_segments.append((text[cursor : candidate.start()], cursor))
         cursor = candidate.end()
     raw_segments.append((text[cursor:], cursor))
-
     rows: list[dict[str, Any]] = []
     for ordinal, (raw_segment, relative_start) in enumerate(raw_segments):
         leading = len(raw_segment) - len(raw_segment.lstrip())
@@ -357,18 +296,8 @@ def _explicit_sentence_clause_rows(
             }
         )
     return rows if len(rows) > 1 else []
-
-
 def _atomic_clause_rows(text: str, *, absolute_start: int) -> list[dict[str, Any]]:
-    """Recover unambiguous atomic clauses while retaining source and scope links.
-
-    A connector alone is not enough to split a requirement.  We split when both
-    sides contain an explicit action, or when a leading action unambiguously
-    scopes a coordinated requirement head (for example, ``lead engineering and
-    delivery operations``).  All other coordination remains source-bound as a
-    single atom rather than inventing semantic scope.
-    """
-
+    """Recover unambiguous atomic clauses while retaining source and scope links. A connector alone is not enough to split a requirement.  We split when both sides contain an explicit action, or when a leading action unambiguously scopes a coordinated requirement head (for example, ``lead engineering and delivery operations``).  All other coordination remains source-bound as a single atom rather than inventing semantic scope."""
     explicit_sentences = _explicit_sentence_clause_rows(
         text, absolute_start=absolute_start
     )
@@ -385,11 +314,9 @@ def _atomic_clause_rows(text: str, *, absolute_start: int) -> list[dict[str, Any
                 nested_rows[0]["relation_to_previous"] = "AND"
             rows.extend(nested_rows)
         return rows
-
     candidates = list(_RELATION_RE.finditer(text))
     source_text = text.strip()
     source_start = absolute_start + len(text) - len(text.lstrip())
-
     def preserved_row(*, mode: str) -> list[dict[str, Any]]:
         return [
             {
@@ -402,28 +329,17 @@ def _atomic_clause_rows(text: str, *, absolute_start: int) -> list[dict[str, Any
                 "inherited_predicate": "",
             }
         ]
-
     if not candidates:
         return preserved_row(mode="UNSPLIT_SOURCE_CLAUSE")
-
-    # A linear relation ledger has no way to express precedence for a mixed
-    # connector chain (for example, ``A and B or C``).  More importantly,
-    # silently splitting a later safe-looking connector after an earlier
-    # ambiguous one lets part of an uncertain clause acquire a target.  Treat
-    # the entire source clause as unresolved unless every connector belongs to
-    # one relation family and every segment can be interpreted under a known
-    # explicit or inherited predicate.
     relations = [_relation_kind(str(match.group("relation"))) for match in candidates]
     if len(set(relations)) != 1:
         return preserved_row(mode="AMBIGUOUS_COORDINATION_PRESERVED")
-
     raw_segments: list[tuple[str, int]] = []
     cursor = 0
     for match in candidates:
         raw_segments.append((text[cursor : match.start()], cursor))
         cursor = match.end()
     raw_segments.append((text[cursor:], cursor))
-
     segments: list[tuple[str, int]] = []
     for raw_segment, relative_start in raw_segments:
         leading = len(raw_segment) - len(raw_segment.lstrip())
@@ -431,11 +347,9 @@ def _atomic_clause_rows(text: str, *, absolute_start: int) -> list[dict[str, Any
         if not segment_text:
             return preserved_row(mode="AMBIGUOUS_COORDINATION_PRESERVED")
         segments.append((segment_text, relative_start + leading))
-
     active_predicate = _leading_action(segments[0][0])
     if not active_predicate:
         return preserved_row(mode="AMBIGUOUS_COORDINATION_PRESERVED")
-
     rows: list[dict[str, Any]] = []
     for ordinal, (segment_text, relative_start) in enumerate(segments):
         relation_to_previous = "ROOT" if ordinal == 0 else relations[ordinal - 1]
@@ -445,8 +359,6 @@ def _atomic_clause_rows(text: str, *, absolute_start: int) -> list[dict[str, Any
             if explicit_predicate:
                 active_predicate = explicit_predicate
             elif relations[ordinal - 1] in {"NOT", "EXCEPTION"}:
-                # A restrictive clause remains source-bound and escalated by
-                # relation review even when its semantic head is unknown.
                 inherited_predicate = active_predicate
             elif _inherited_predicate_segment_allowed(
                 predicate=active_predicate,
@@ -474,8 +386,6 @@ def _atomic_clause_rows(text: str, *, absolute_start: int) -> list[dict[str, Any
             }
         )
     return rows
-
-
 def _constraint_classification(key: str, value: Any) -> str:
     normalized_key = str(key or "").lower()
     normalized_value = str(value or "").lower()
@@ -488,36 +398,24 @@ def _constraint_classification(key: str, value: Any) -> str:
     ):
         return "PREFERENCE"
     return "HARD"
-
-
 def _constraint_key_token(value: Any) -> str:
     """Return a deterministic identifier token without retaining request prose."""
-
     return re.sub(r"[^a-z0-9]+", "_", str(value or "").casefold()).strip("_")
-
-
 def _normalized_constraint_value(value: Any) -> str:
     """Normalize only for equality/digest checks; callers never persist this text."""
-
     if isinstance(value, Mapping):
         return _sha256(value)
     if isinstance(value, Sequence) and not isinstance(value, (str, bytes)):
         return "|".join(sorted(_normalized_constraint_value(item) for item in value))
     return _constraint_key_token(value)
-
-
 def _constraint_value_digest(value: Any) -> str:
     return _sha256({"normalized_value": _normalized_constraint_value(value)})
-
-
 def _constraint_is_truthy(value: Any) -> bool:
     if value is True:
         return True
     if isinstance(value, (int, float)) and not isinstance(value, bool):
         return value == 1
     return _constraint_key_token(value) in {"1", "required", "true", "yes"}
-
-
 def _safe_output_format_code(value: Any) -> str:
     values = (
         list(value)
@@ -533,19 +431,10 @@ def _safe_output_format_code(value: Any) -> str:
             return ""
         codes.append(code)
     return "_AND_".join(sorted(set(codes)))
-
-
 def _output_format_families(
     slot: Mapping[str, Any],
 ) -> frozenset[str] | None:
-    """Return compatible output families for one closed-vocabulary directive.
-
-    An executive resume is a narrower form of a resume, but a resume and JSON
-    are competing final-artifact formats.  Keeping the comparison in terms of
-    closed directive families avoids retaining a raw user value in the plan.
-    ``None`` signals an invalid directive code so validation can fail closed.
-    """
-
+    """Return compatible output families for one closed-vocabulary directive. An executive resume is a narrower form of a resume, but a resume and JSON are competing final-artifact formats.  Keeping the comparison in terms of closed directive families avoids retaining a raw user value in the plan. ``None`` signals an invalid directive code so validation can fail closed."""
     if slot.get("semantic_kind") != "OUTPUT_FORMAT":
         return frozenset()
     directive_code = str(slot.get("directive_code") or "").strip()
@@ -561,17 +450,12 @@ def _output_format_families(
             return None
         families.add(family)
     return frozenset(families)
-
-
 def _safe_style_code(value: Any) -> str:
     if isinstance(value, Sequence) and not isinstance(value, (str, bytes)):
         return ""
     return _SAFE_STYLE_CODES.get(_constraint_key_token(value), "")
-
-
 def _numeric_constraint_limit(key: str, value: Any) -> dict[str, Any] | None:
     """Return a non-sensitive numeric output limit when its unit is unambiguous."""
-
     key_token = _constraint_key_token(key).removeprefix("output_preferences_")
     key_tokens = set(key_token.split("_"))
     bound_candidates: set[str] = set()
@@ -583,7 +467,6 @@ def _numeric_constraint_limit(key: str, value: Any) -> dict[str, Any] | None:
         bound_candidates.add("EXACT")
     if len(bound_candidates) != 1:
         return None
-
     unit = ""
     for token, candidate in (
         ("page", "PAGES"),
@@ -604,7 +487,6 @@ def _numeric_constraint_limit(key: str, value: Any) -> dict[str, Any] | None:
         if token in key_tokens:
             unit = candidate
             break
-
     if isinstance(value, bool):
         return None
     rendered_value = str(value or "").strip()
@@ -640,8 +522,6 @@ def _numeric_constraint_limit(key: str, value: Any) -> dict[str, Any] | None:
         "quantity": int(match.group("quantity")),
         "unit": unit,
     }
-
-
 def _constraint_semantic_kind(key_token: str) -> str:
     key_token = key_token.removeprefix("output_preferences_")
     if key_token.startswith("_") or key_token in _CONTEXT_CONSTRAINT_KEYS:
@@ -677,8 +557,6 @@ def _constraint_semantic_kind(key_token: str) -> str:
     if tokens & {"include", "must", "required", "only"}:
         return "INCLUSION"
     return "UNKNOWN"
-
-
 def _constraint_slot(
     *,
     key: str,
@@ -687,13 +565,7 @@ def _constraint_slot(
     value: Any,
     value_digest: str,
 ) -> dict[str, Any]:
-    """Represent a constraint as a safe semantic directive or explicit escalation.
-
-    This is intentionally a small closed vocabulary.  L1 may carry only an
-    unambiguous, non-sensitive directive downstream; arbitrary request prose is
-    withheld and either escalated (hard constraint) or deferred (preference).
-    """
-
+    """Represent a constraint as a safe semantic directive or explicit escalation. This is intentionally a small closed vocabulary.  L1 may carry only an unambiguous, non-sensitive directive downstream; arbitrary request prose is withheld and either escalated (hard constraint) or deferred (preference)."""
     if input_origin not in _VALID_CONSTRAINT_INPUT_ORIGINS:
         raise L1CognitivePlanError("constraint input origin is invalid")
     key_token = _constraint_key_token(key)
@@ -703,7 +575,6 @@ def _constraint_slot(
     scope = "UNRESOLVED"
     directive_code = ""
     numeric_limit: dict[str, Any] | None = None
-
     if kind == "SYSTEM_CONTEXT":
         polarity = "CONTEXT"
         scope = "INGRESS_CONTEXT"
@@ -741,7 +612,6 @@ def _constraint_slot(
             scope = "CONTENT"
         elif kind in {"INCLUSION", "EXCLUSION"}:
             scope = "CONTENT"
-
         if classification == "CONFLICT":
             polarity = "CONFLICT"
             directive_code = ""
@@ -765,7 +635,6 @@ def _constraint_slot(
             interpretation_status = "REVIEW_REQUIRED"
             downstream_handling = "GOVERNED_U0_RESOLUTION"
             resolution_reason = "UNSAFE_HARD_VALUE"
-
     body = {
         "source_key_digest": _sha256(
             {"input_origin": input_origin, "source_key": str(key)}
@@ -785,31 +654,17 @@ def _constraint_slot(
     }
     body["constraint_id"] = "l1constraint-" + _sha256(body).removeprefix("sha256:")[:16]
     return body
-
-
 def _refresh_constraint_identity(slot: Mapping[str, Any]) -> dict[str, Any]:
     """Return a canonical slot after a safe precedence resolution changes it."""
-
     body = dict(slot)
     body.pop("constraint_id", None)
     body["constraint_id"] = "l1constraint-" + _sha256(body).removeprefix("sha256:")[:16]
     return body
-
-
 def _preference_conflict_resolutions(
     constraint_slots: Sequence[Mapping[str, Any]],
 ) -> dict[str, str]:
-    """Return non-binding preference slots that must yield to a conflict.
-
-    A U0 constraint and a separately supplied output preference do not have
-    equal authority.  A hard constraint wins; conflicting preferences are
-    withheld rather than sent downstream with incompatible safe directives.
-    This preserves the explicit hard goal without silently treating a
-    preference as if it were satisfied.
-    """
-
+    """Return non-binding preference slots that must yield to a conflict. A U0 constraint and a separately supplied output preference do not have equal authority.  A hard constraint wins; conflicting preferences are withheld rather than sent downstream with incompatible safe directives. This preserves the explicit hard goal without silently treating a preference as if it were satisfied."""
     resolutions: dict[str, str] = {}
-
     def mark_preference_rows(*rows: Mapping[str, Any]) -> None:
         preference_rows = [
             row for row in rows if row.get("classification") == "PREFERENCE"
@@ -832,7 +687,6 @@ def _preference_conflict_resolutions(
                 != "PREFERENCE_OVERRIDDEN_BY_HARD_CONSTRAINT"
             ):
                 resolutions[source_key_digest] = reason
-
     actionable = [
         dict(row)
         for row in constraint_slots
@@ -855,7 +709,6 @@ def _preference_conflict_resolutions(
                 content_directives.setdefault(directive_code, []).append(slot)
         if slot.get("semantic_kind") == "OUTPUT_FORMAT":
             output_format_slots.append(slot)
-
     for rows in numeric_by_scope_unit.values():
         lower_bounds = [
             row
@@ -879,18 +732,12 @@ def _preference_conflict_resolutions(
                 )
                 if lower_quantity > upper_quantity:
                     mark_preference_rows(lower, upper)
-
     for rows in content_directives.values():
         required = [row for row in rows if row.get("polarity") == "REQUIRE"]
         forbidden = [row for row in rows if row.get("polarity") == "FORBID"]
         for required_row in required:
             for forbidden_row in forbidden:
                 mark_preference_rows(required_row, forbidden_row)
-
-    # A preference must not add a competing final-artifact format beside an
-    # actionable hard constraint.  A multi-family preference is equally
-    # unresolved: defer it rather than passing a synthetic ``JSON_AND_RESUME``
-    # directive to PA.
     for slot in output_format_slots:
         families = _output_format_families(slot)
         if families is None or len(families) > 1:
@@ -903,15 +750,11 @@ def _preference_conflict_resolutions(
             right_families = _output_format_families(right)
             if right_families and len(left_families | right_families) > 1:
                 mark_preference_rows(left, right)
-
     return resolutions
-
-
 def _defer_conflicting_preference(
     slot: Mapping[str, Any], *, reason: str
 ) -> dict[str, Any]:
     """Remove a non-binding directive that conflicts with a hard goal or peer."""
-
     if reason not in {
         "PREFERENCE_OVERRIDDEN_BY_HARD_CONSTRAINT",
         "PREFERENCE_CONFLICT_DEFERRED",
@@ -933,16 +776,12 @@ def _defer_conflicting_preference(
         }
     )
     return _refresh_constraint_identity(result)
-
-
 def _constraint_conflicts(
     constraint_slots: Sequence[Mapping[str, Any]],
 ) -> list[dict[str, Any]]:
     """Find only deterministic semantic conflicts from non-sensitive slot data."""
-
     conflicts: list[dict[str, Any]] = []
     seen_conflicts: set[tuple[str, tuple[str, ...]]] = set()
-
     def add_conflict(*, code: str, constraint_ids: Sequence[str]) -> None:
         normalized_ids = tuple(sorted(set(str(item) for item in constraint_ids)))
         conflict_key = (code, normalized_ids)
@@ -959,14 +798,12 @@ def _constraint_conflicts(
             "l1constraintconflict-" + _sha256(body).removeprefix("sha256:")[:16]
         )
         conflicts.append(body)
-
     for slot in constraint_slots:
         if slot.get("interpretation_status") == "CONFLICT":
             add_conflict(
                 code="DECLARED_CONSTRAINT_CONFLICT",
                 constraint_ids=[str(slot["constraint_id"])],
             )
-
     numeric_by_scope_unit: dict[tuple[str, str], list[Mapping[str, Any]]] = {}
     content_directives: dict[str, list[Mapping[str, Any]]] = {}
     output_format_slots: list[Mapping[str, Any]] = []
@@ -986,7 +823,6 @@ def _constraint_conflicts(
                 content_directives.setdefault(directive_code, []).append(slot)
         if slot.get("semantic_kind") == "OUTPUT_FORMAT":
             output_format_slots.append(slot)
-
     for rows in numeric_by_scope_unit.values():
         lower_bounds: list[Mapping[str, Any]] = []
         upper_bounds: list[Mapping[str, Any]] = []
@@ -1021,7 +857,6 @@ def _constraint_conflicts(
                     str(upper["constraint_id"]),
                 ],
             )
-
     for rows in content_directives.values():
         required = [row for row in rows if row.get("polarity") == "REQUIRE"]
         forbidden = [row for row in rows if row.get("polarity") == "FORBID"]
@@ -1032,10 +867,6 @@ def _constraint_conflicts(
                     str(row["constraint_id"]) for row in [required[0], forbidden[0]]
                 ],
             )
-
-    # Multiple distinct output families cannot describe one final artifact.
-    # Same-family codes (for example RESUME and EXECUTIVE_RESUME) are
-    # compatible; unknown codes are invalid rather than silently accepted.
     for slot in output_format_slots:
         families = _output_format_families(slot)
         if families is None:
@@ -1063,18 +894,8 @@ def _constraint_conflicts(
                     ],
                 )
     return sorted(conflicts, key=lambda row: str(row["conflict_id"]))
-
-
 def _goal_constraint_frame(app_payload: Mapping[str, Any]) -> dict[str, Any]:
-    """Build a source-bound problem frame without persisting raw request text.
-
-    Earlier L1 v3 work recorded only a key and value digest.  That made every
-    ordinary constraint observational: it could be tested for a literal word
-    such as ``conflict`` but neither constrain deliberation nor safely affect a
-    downstream artifact.  The frame now carries a closed, source-bound semantic
-    slot for every constraint and makes unsafe values explicit escalations.
-    """
-
+    """Build a source-bound problem frame without persisting raw request text. Earlier L1 v3 work recorded only a key and value digest.  That made every ordinary constraint observational: it could be tested for a literal word such as ``conflict`` but neither constrain deliberation nor safely affect a downstream artifact.  The frame now carries a closed, source-bound semantic slot for every constraint and makes unsafe values explicit escalations."""
     task = _mapping(app_payload.get("task_spec"))
     user_constraints = _mapping(app_payload.get("user_constraints"))
     output_preferences = _mapping(app_payload.get("output_preferences"))
@@ -1194,8 +1015,6 @@ def _goal_constraint_frame(app_payload: Mapping[str, Any]) -> dict[str, Any]:
             {"target_role": str(app_payload.get("target_role") or "")}
         ),
         "target_level": str(app_payload.get("target_level") or ""),
-        # A boolean evidence-input state is sufficient for critique and avoids
-        # retaining resume text in an L1 planning artifact.
         "source_resume_available": bool(
             str(app_payload.get("source_resume_text") or "").strip()
         ),
@@ -1229,8 +1048,6 @@ def _goal_constraint_frame(app_payload: Mapping[str, Any]) -> dict[str, Any]:
     }
     body["goal_frame_id"] = "l1goal-" + _sha256(body).removeprefix("sha256:")[:16]
     return body
-
-
 def _atomic_requirement_graph(
     *,
     v2_capsule: Mapping[str, Any],
@@ -1374,11 +1191,6 @@ def _atomic_requirement_graph(
                         ),
                     }
                 )
-    # An OR, NOT, or exception relation is not a set of independently
-    # satisfiable atoms.  Until a relation-aware resolver can select a path,
-    # no member of that connected relation may be silently targeted.  This is
-    # deliberately conservative: it prevents an arbitrary first clause from
-    # becoming a proxy for the whole conditional requirement.
     relation_review_ids = {
         str(requirement_id)
         for relation in relations
@@ -1394,7 +1206,6 @@ def _atomic_requirement_graph(
             requirement["coverage_status"] = "ESCALATED"
             requirement["target_unit_ids"] = []
             requirement["escalation_reason"] = "RELATION_SCOPE_REVIEW_REQUIRED"
-
     requirements.sort(key=lambda row: str(row["requirement_id"]))
     relations.sort(
         key=lambda row: (str(row["from_requirement_id"]), str(row["to_requirement_id"]))
@@ -1407,8 +1218,6 @@ def _atomic_requirement_graph(
     }
     body["graph_digest"] = _sha256(body)
     return body
-
-
 def _empty_atomic_requirement_graph() -> dict[str, Any]:
     body = {
         "schema_version": "apps_rg.l1_atomic_requirement_graph.v1",
@@ -1418,11 +1227,8 @@ def _empty_atomic_requirement_graph() -> dict[str, Any]:
     }
     body["graph_digest"] = _sha256(body)
     return body
-
-
 def _feasibility_graph(graph: Mapping[str, Any]) -> dict[str, Any]:
     """Compare an evidence-conditioned target path with a safe escalation path."""
-
     options: list[dict[str, Any]] = []
     for requirement in graph["requirements"]:
         requirement_id = str(requirement["requirement_id"])
@@ -1515,16 +1321,8 @@ def _feasibility_graph(graph: Mapping[str, Any]) -> dict[str, Any]:
     }
     body["graph_digest"] = _sha256(body)
     return body
-
-
 def _goal_constraint_decisions(goal_frame: Mapping[str, Any]) -> list[dict[str, Any]]:
-    """Choose a safe treatment for every source-bound user constraint.
-
-    A semantic slot is not merely a label: L1 explicitly chooses either a
-    closed-vocabulary directive, a retained upstream scope decision, or a
-    governed U0 escalation.  It never forwards arbitrary constraint text.
-    """
-
+    """Choose a safe treatment for every source-bound user constraint. A semantic slot is not merely a label: L1 explicitly chooses either a closed-vocabulary directive, a retained upstream scope decision, or a governed U0 escalation.  It never forwards arbitrary constraint text."""
     slots = goal_frame.get("constraint_slots")
     if not isinstance(slots, Sequence) or isinstance(slots, (str, bytes)):
         raise L1CognitivePlanError("goal constraint slots are invalid")
@@ -1602,15 +1400,12 @@ def _goal_constraint_decisions(goal_frame: Mapping[str, Any]) -> list[dict[str, 
         )
         decisions.append(body)
     return sorted(decisions, key=lambda row: str(row["constraint_decision_id"]))
-
-
 def _alternative_plan_ledger(
     graph: Mapping[str, Any],
     feasibility: Mapping[str, Any],
     goal_frame: Mapping[str, Any],
 ) -> dict[str, Any]:
     """Choose requirements and goal constraints only along safe, explicit paths."""
-
     options_by_requirement: dict[str, list[Mapping[str, Any]]] = {}
     for option in feasibility["options"]:
         options_by_requirement.setdefault(str(option["requirement_id"]), []).append(
@@ -1669,8 +1464,6 @@ def _alternative_plan_ledger(
     }
     body["ledger_digest"] = _sha256(body)
     return body
-
-
 def _critique_finding(
     *,
     requirement_id: str,
@@ -1690,13 +1483,10 @@ def _critique_finding(
     }
     finding["finding_id"] = "l1crit-" + _sha256(finding).removeprefix("sha256:")[:16]
     return finding
-
-
 def _append_goal_constraint_findings(
     findings: list[dict[str, Any]], *, goal_frame: Mapping[str, Any]
 ) -> None:
     """Challenge unresolved constraints before they can become silent omissions."""
-
     raw_slots = goal_frame.get("constraint_slots")
     if not isinstance(raw_slots, Sequence) or isinstance(raw_slots, (str, bytes)):
         raise L1CognitivePlanError("goal constraint slots are invalid")
@@ -1755,7 +1545,6 @@ def _append_goal_constraint_findings(
                     counterexample_or_missing_precondition=counterexample,
                 )
             )
-
     raw_conflicts = goal_frame.get("constraint_conflicts")
     if not isinstance(raw_conflicts, Sequence) or isinstance(
         raw_conflicts, (str, bytes)
@@ -1781,8 +1570,6 @@ def _append_goal_constraint_findings(
                 ),
             )
         )
-
-
 def _critique_ledger(
     *,
     goal_frame: Mapping[str, Any],
@@ -1790,14 +1577,12 @@ def _critique_ledger(
     alternatives: Mapping[str, Any],
 ) -> dict[str, Any]:
     """Perform an inspectable pre-execution challenge of every selected option."""
-
     findings: list[dict[str, Any]] = []
     decisions = {
         str(row.get("requirement_id") or ""): row
         for row in alternatives["decisions"]
         if isinstance(row, Mapping)
     }
-
     def add_finding(
         *,
         requirement_id: str,
@@ -1817,7 +1602,6 @@ def _critique_ledger(
                 counterexample_or_missing_precondition=counterexample_or_missing_precondition,
             )
         )
-
     for requirement in graph["requirements"]:
         requirement_id = str(requirement["requirement_id"])
         decision = decisions.get(requirement_id, {})
@@ -1846,10 +1630,6 @@ def _critique_ledger(
             if requirement.get("parent_c0_obligation_eligible") is False:
                 add_finding(
                     requirement_id=requirement_id,
-                    # The source-bound C0 outcome contract will explicitly turn
-                    # this into insufficiency and a bounded safe revision. It is
-                    # a condition to observe, not an invented assertion that
-                    # should suppress all planning before C0 can inspect it.
                     severity="MEDIUM",
                     code="C0_PARENT_OBLIGATION_PRECONDITION_MISSING",
                     failed_invariant="TARGET_REQUIRES_PARENT_C0_OBLIGATION_OR_SAFE_GAP",
@@ -1874,7 +1654,6 @@ def _critique_ledger(
                 resolver="HUMAN",
                 counterexample_or_missing_precondition="TAXONOMY_HAS_NO_DEFENSIBLE_TYPE",
             )
-
     mapped_by_target: dict[str, list[Mapping[str, Any]]] = {}
     for requirement in graph["requirements"]:
         for target in requirement.get("target_unit_ids") or ():
@@ -1892,7 +1671,6 @@ def _critique_ledger(
                         "MULTIPLE_REQUIREMENT_TYPES_SHARE_TARGET_" + target.upper()
                     ),
                 )
-
     if goal_frame.get("source_resume_available") is not True:
         for requirement in graph["requirements"]:
             if str(requirement.get("coverage_status") or "") == "MAPPED":
@@ -1921,13 +1699,10 @@ def _critique_ledger(
     }
     body["ledger_digest"] = _sha256(body)
     return body
-
-
 def _missing_jd_critique(
     *, goal_frame: Mapping[str, Any], alternatives: Mapping[str, Any]
 ) -> dict[str, Any]:
     """Record missing targeting input without concealing goal-constraint risk."""
-
     findings = [
         _critique_finding(
             requirement_id="",
@@ -1955,8 +1730,6 @@ def _missing_jd_critique(
     }
     body["ledger_digest"] = _sha256(body)
     return body
-
-
 def _contains_forbidden_authority(value: Any) -> bool:
     if isinstance(value, Mapping):
         return any(
@@ -1966,8 +1739,191 @@ def _contains_forbidden_authority(value: Any) -> bool:
     if isinstance(value, Sequence) and not isinstance(value, (str, bytes)):
         return any(_contains_forbidden_authority(item) for item in value)
     return False
-
-
+_GOAL_DECOMPOSITION_LEDGER_SCHEMA_VERSION: Final[str] = (
+    "apps_rg.l1_goal_decomposition_ledger.v1"
+)
+def _resolve_l1_planner_provenance(app_payload: Mapping[str, Any]) -> dict[str, Any]:
+    """Resolve and validate the governed L1 planner model role from registry SSOT."""
+    task_spec = _mapping(app_payload.get("task_spec"))
+    requested_role = str(
+        app_payload.get("l1_planner_role")
+        or task_spec.get("l1_planner_role")
+        or _L1_PLANNER_ROLE
+    ).strip()
+    if requested_role != _L1_PLANNER_ROLE:
+        raise L1CognitivePlanError(
+            f"Unapproved L1 planner role {requested_role!r}; must be {_L1_PLANNER_ROLE!r}"
+        )
+    try:
+        resolved = resolve_model_role(requested_role)
+    except ModelResolutionError as exc:
+        raise L1CognitivePlanError(f"Failed to resolve L1 planner role: {exc}") from exc
+    override_model = str(
+        app_payload.get("l1_model_override")
+        or task_spec.get("l1_model_override")
+        or ""
+    ).strip()
+    if override_model and override_model not in {resolved.model, resolved.snapshot_id}:
+        raise L1CognitivePlanError(
+            f"Unapproved model override {override_model!r} for role {resolved.role!r}"
+        )
+    override_provider = str(
+        app_payload.get("l1_provider_override")
+        or task_spec.get("l1_provider_override")
+        or ""
+    ).strip()
+    if override_provider and override_provider != resolved.provider:
+        raise L1CognitivePlanError(
+            f"Unapproved provider override {override_provider!r} for role {resolved.role!r}"
+        )
+    return {
+        "role": resolved.role,
+        "provider": resolved.provider,
+        "model": resolved.model,
+        "snapshot_id": resolved.snapshot_id,
+        "reasoning_effort": str(resolved.params.get("reasoning_effort") or "high"),
+        "dual_mode_ide_role": "antigravity_in_session_subagent",
+    }
+def _build_goal_decomposition_ledger(
+    *,
+    app_payload: Mapping[str, Any],
+    graph: Mapping[str, Any],
+) -> tuple[dict[str, Any], bool]:
+    """Build the governed goal decomposition ledger using model decomposition or deterministic synthesis."""
+    provenance = _resolve_l1_planner_provenance(app_payload)
+    task_spec = _mapping(app_payload.get("task_spec"))
+    decomposer = app_payload.get("l1_model_decomposer") or task_spec.get(
+        "l1_model_decomposer"
+    )
+    requirements = list(graph.get("requirements") or ())
+    raw_model_output: Mapping[str, Any] | None = None
+    model_invoked = False
+    if callable(decomposer):
+        model_invoked = True
+        result = decomposer(
+            {
+                "role": provenance["role"],
+                "provider": provenance["provider"],
+                "model": provenance["model"],
+                "requirement_ids": [str(r["requirement_id"]) for r in requirements],
+                "requirement_types": [str(r["requirement_type"]) for r in requirements],
+            }
+        )
+        if isinstance(result, str):
+            try:
+                parsed = json.loads(result)
+            except ValueError as exc:
+                raise L1CognitivePlanError(
+                    "L1 model decomposer returned invalid JSON"
+                ) from exc
+            if not isinstance(parsed, Mapping):
+                raise L1CognitivePlanError(
+                    "L1 model decomposer JSON root must be an object"
+                )
+            raw_model_output = parsed
+        elif isinstance(result, Mapping):
+            raw_model_output = dict(result)
+        else:
+            raise L1CognitivePlanError(
+                "L1 model decomposer must return a mapping or JSON string"
+            )
+    elif isinstance(app_payload.get("l1_model_decomposition_response"), Mapping):
+        model_invoked = True
+        raw_model_output = dict(app_payload["l1_model_decomposition_response"])
+    if raw_model_output is not None:
+        resp_model = str(raw_model_output.get("model") or "").strip()
+        if resp_model and resp_model not in {
+            provenance["model"],
+            provenance["snapshot_id"],
+        }:
+            raise L1CognitivePlanError(
+                f"Model response declared unapproved model {resp_model!r}"
+            )
+        resp_provider = str(raw_model_output.get("provider") or "").strip()
+        if resp_provider and resp_provider != provenance["provider"]:
+            raise L1CognitivePlanError(
+                f"Model response declared unapproved provider {resp_provider!r}"
+            )
+    custom_subgoals_by_req: dict[str, Mapping[str, Any]] = {}
+    if raw_model_output is not None:
+        raw_subgoals = raw_model_output.get("subgoals") or ()
+        if not isinstance(raw_subgoals, Sequence) or isinstance(
+            raw_subgoals, (str, bytes)
+        ):
+            raise L1CognitivePlanError("Model decomposition subgoals must be a sequence")
+        for item in raw_subgoals:
+            if not isinstance(item, Mapping):
+                raise L1CognitivePlanError("Model decomposition subgoal must be a mapping")
+            req_id = str(item.get("requirement_id") or "").strip()
+            if req_id:
+                custom_subgoals_by_req[req_id] = item
+    subgoals: list[dict[str, Any]] = []
+    competency_weights: dict[str, float] = {}
+    semantic_sub_queries: list[dict[str, Any]] = []
+    total_reqs = max(len(requirements), 1)
+    for idx, req in enumerate(requirements, start=1):
+        req_id = str(req["requirement_id"])
+        req_type = str(req["requirement_type"])
+        criticality = str(req["criticality"])
+        coverage = str(req["coverage_status"])
+        targets = [str(t) for t in (req.get("target_unit_ids") or ())]
+        custom = custom_subgoals_by_req.get(req_id, {})
+        base_weight = 1.0 if criticality == "CRITICAL" else 0.65
+        weight = float(custom.get("weight", round(base_weight / total_reqs, 4)))
+        if weight <= 0.0 or weight > 1.0:
+            raise L1CognitivePlanError("Subgoal weight must be in (0.0, 1.0]")
+        rationale = str(
+            custom.get("rationale")
+            or (
+                f"Decomposed {criticality.lower()} {req_type.lower()} obligation "
+                f"targeting {','.join(targets) if targets else 'governed_escalation'} "
+                f"with {coverage.lower()} coverage posture."
+            )
+        ).strip()
+        if not rationale:
+            raise L1CognitivePlanError("Subgoal rationale must be non-empty")
+        query_focus = str(
+            custom.get("semantic_query")
+            or f"{req_type.lower()} evidence for {','.join(targets) if targets else 'escalation_review'} ({criticality.lower()})"
+        ).strip()
+        subgoal_entry = {
+            "requirement_id": req_id,
+            "requirement_type": req_type,
+            "criticality": criticality,
+            "coverage_status": coverage,
+            "target_unit_ids": targets,
+            "weight": round(weight, 4),
+            "rationale": rationale,
+            "semantic_query": query_focus,
+        }
+        subgoal_entry["subgoal_id"] = (
+            "l1subgoal-" + _sha256(subgoal_entry).removeprefix("sha256:")[:16]
+        )
+        subgoals.append(subgoal_entry)
+        competency_weights[req_type] = round(
+            competency_weights.get(req_type, 0.0) + round(weight, 4), 4
+        )
+        semantic_sub_queries.append(
+            {
+                "requirement_id": req_id,
+                "requirement_type": req_type,
+                "query_text": query_focus,
+                "weight": round(weight, 4),
+                "target_unit_ids": targets,
+            }
+        )
+    subgoals.sort(key=lambda row: str(row["subgoal_id"]))
+    semantic_sub_queries.sort(key=lambda row: str(row["requirement_id"]))
+    ledger_body = {
+        "schema_version": _GOAL_DECOMPOSITION_LEDGER_SCHEMA_VERSION,
+        "authority_class": _AUTHORITY_CLASS,
+        "model_provenance": provenance,
+        "subgoals": subgoals,
+        "semantic_sub_queries": semantic_sub_queries,
+        "competency_weights": dict(sorted(competency_weights.items())),
+    }
+    ledger_body["ledger_digest"] = _sha256(ledger_body)
+    return ledger_body, model_invoked
 def _plan_body(
     *,
     app_payload: Mapping[str, Any],
@@ -2003,6 +1959,10 @@ def _plan_body(
         if jd_text
         else _empty_atomic_requirement_graph()
     )
+    goal_decomposition_ledger, model_invoked = _build_goal_decomposition_ledger(
+        app_payload=app_payload,
+        graph=graph,
+    )
     feasibility = _feasibility_graph(graph)
     alternatives = _alternative_plan_ledger(graph, feasibility, goal_frame)
     critique = (
@@ -2024,10 +1984,6 @@ def _plan_body(
         "request_id": _required_string(request_id, field="request_id"),
         "run_id": _required_string(run_id, field="run_id"),
         "trace_id": _required_string(trace_id, field="trace_id"),
-        # The established Apps RG L1/v2 contract permits an empty replay key
-        # for a validated request.  Preserve that optional identity field here
-        # rather than making the cognitive add-on reject an otherwise valid
-        # request before its normal briefing and safety gates can run.
         "replay_key": str(replay_key or ""),
         "v2_parent": {
             "capsule_digest": str(verification["capsule_digest"]),
@@ -2047,6 +2003,7 @@ def _plan_body(
         ],
         "goal_constraint_frame": goal_frame,
         "atomic_requirement_graph": graph,
+        "goal_decomposition_ledger": goal_decomposition_ledger,
         "feasibility_graph": feasibility,
         "alternative_plan_ledger": alternatives,
         "critique_ledger": critique,
@@ -2060,15 +2017,15 @@ def _plan_body(
             "no_route_selection": True,
             "no_evidence_retrieval": True,
             "no_prompt_assembly": True,
-            "no_model_call": True,
+            "no_model_call": not model_invoked,
+            "no_unapproved_model_call": True,
+            "no_direct_state_mutation": True,
             "no_tool_call": True,
             "no_l4_write": True,
             "no_candidate_evidence_claim": True,
         },
     }
     return body
-
-
 def build_l1_cognitive_plan_v3(
     *,
     app_payload: Mapping[str, Any],
@@ -2081,7 +2038,6 @@ def build_l1_cognitive_plan_v3(
     v2_capsule: Mapping[str, Any] | None = None,
 ) -> FrozenDict:
     """Build an immutable v3 cognitive plan beside the v1/v2 projections."""
-
     plan = _plan_body(
         app_payload=app_payload,
         request_id=request_id,
@@ -2095,11 +2051,8 @@ def build_l1_cognitive_plan_v3(
     plan["plan_digest"] = cognitive_plan_digest(plan)
     validate_l1_cognitive_plan_v3(plan)
     return _freeze(plan)
-
-
 def _validate_goal_constraint_frame(frame: Mapping[str, Any]) -> None:
     """Verify the complete non-sensitive goal and constraint representation."""
-
     if not isinstance(frame, Mapping):
         raise L1CognitivePlanError("goal constraint frame is invalid")
     if (
@@ -2121,7 +2074,6 @@ def _validate_goal_constraint_frame(frame: Mapping[str, Any]) -> None:
         raise L1CognitivePlanError(
             "goal constraint frame evidence-input state is invalid"
         )
-
     entries = frame.get("constraint_entries")
     if not isinstance(entries, Sequence) or isinstance(entries, (str, bytes)):
         raise L1CognitivePlanError("goal constraint entries are invalid")
@@ -2162,7 +2114,6 @@ def _validate_goal_constraint_frame(frame: Mapping[str, Any]) -> None:
         ),
     ):
         raise L1CognitivePlanError("goal constraint entries are not canonical")
-
     slots = frame.get("constraint_slots")
     if not isinstance(slots, Sequence) or isinstance(slots, (str, bytes)):
         raise L1CognitivePlanError("goal constraint slots are invalid")
@@ -2333,7 +2284,6 @@ def _validate_goal_constraint_frame(frame: Mapping[str, Any]) -> None:
             or slot.get("value_digest") != entry["value_digest"]
         ):
             raise L1CognitivePlanError("goal constraint slot is not source bound")
-
     expected_ids_by_class = {
         classification: sorted(
             str(row["constraint_id"])
@@ -2352,7 +2302,6 @@ def _validate_goal_constraint_frame(frame: Mapping[str, Any]) -> None:
             raise L1CognitivePlanError(
                 "goal constraint frame classification is invalid"
             )
-
     expected_conflicts = _constraint_conflicts(slot_rows)
     conflicted_constraint_ids = {
         str(constraint_id)
@@ -2406,6 +2355,59 @@ def _validate_goal_constraint_frame(frame: Mapping[str, Any]) -> None:
     expected_id = "l1goal-" + _sha256(body).removeprefix("sha256:")[:16]
     if frame.get("goal_frame_id") != expected_id:
         raise L1CognitivePlanError("goal constraint frame identity is invalid")
+def _contains_unapproved_model_keys(value: Any, *, in_model_provenance: bool = False) -> bool:
+    if isinstance(value, Mapping):
+        for key, item in value.items():
+            key_str = str(key)
+            if key_str in {"provider", "model"} and not in_model_provenance:
+                return True
+            if _contains_unapproved_model_keys(
+                item,
+                in_model_provenance=(in_model_provenance or key_str == "model_provenance"),
+            ):
+                return True
+        return False
+    if isinstance(value, Sequence) and not isinstance(value, (str, bytes)):
+        return any(
+            _contains_unapproved_model_keys(item, in_model_provenance=in_model_provenance)
+            for item in value
+        )
+    return False
+def _validate_goal_decomposition_ledger(
+    ledger: Mapping[str, Any], *, requirements: Sequence[Mapping[str, Any]]
+) -> None:
+    if not isinstance(ledger, Mapping):
+        raise L1CognitivePlanError("goal decomposition ledger is invalid")
+    if (
+        ledger.get("schema_version") != _GOAL_DECOMPOSITION_LEDGER_SCHEMA_VERSION
+        or ledger.get("authority_class") != _AUTHORITY_CLASS
+    ):
+        raise L1CognitivePlanError("goal decomposition ledger authority is invalid")
+    ledger_body = dict(ledger)
+    ledger_body.pop("ledger_digest", None)
+    if ledger.get("ledger_digest") != _sha256(ledger_body):
+        raise L1CognitivePlanError("goal decomposition ledger digest is invalid")
+    provenance = _mapping(ledger.get("model_provenance"))
+    expected_role = str(provenance.get("role") or "")
+    if expected_role != _L1_PLANNER_ROLE:
+        raise L1CognitivePlanError("goal decomposition ledger role is invalid")
+    try:
+        resolved = resolve_model_role(expected_role)
+    except ModelResolutionError as exc:
+        raise L1CognitivePlanError("goal decomposition ledger role cannot be resolved") from exc
+    if (
+        provenance.get("provider") != resolved.provider
+        or provenance.get("model") != resolved.model
+    ):
+        raise L1CognitivePlanError("goal decomposition ledger model provenance is unapproved")
+    subgoals = ledger.get("subgoals")
+    if not isinstance(subgoals, Sequence) or isinstance(subgoals, (str, bytes)):
+        raise L1CognitivePlanError("goal decomposition subgoals are invalid")
+    if len(subgoals) != len(requirements):
+        raise L1CognitivePlanError("goal decomposition subgoals must cover all requirements")
+    for item in subgoals:
+        if not isinstance(item, Mapping) or not str(item.get("rationale") or "").strip():
+            raise L1CognitivePlanError("goal decomposition subgoal rationale is required")
 
 
 def validate_l1_cognitive_plan_v3(plan: Mapping[str, Any]) -> None:
@@ -2422,7 +2424,7 @@ def validate_l1_cognitive_plan_v3(plan: Mapping[str, Any]) -> None:
         raise L1CognitivePlanError("cognitive plan authority is invalid")
     if plan.get("plan_digest") != cognitive_plan_digest(plan):
         raise L1CognitivePlanError("cognitive plan digest mismatch")
-    if _contains_forbidden_authority(plan):
+    if _contains_forbidden_authority(plan) or _contains_unapproved_model_keys(plan):
         raise L1CognitivePlanError("cognitive plan contains forbidden authority")
     goal_frame = _mapping(plan.get("goal_constraint_frame"))
     _validate_goal_constraint_frame(goal_frame)
@@ -2439,6 +2441,11 @@ def validate_l1_cognitive_plan_v3(plan: Mapping[str, Any]) -> None:
     requirements = graph.get("requirements")
     if not isinstance(requirements, Sequence) or isinstance(requirements, (str, bytes)):
         raise L1CognitivePlanError("atomic requirement graph is invalid")
+    if "goal_decomposition_ledger" in plan:
+        _validate_goal_decomposition_ledger(
+            _mapping(plan.get("goal_decomposition_ledger")),
+            requirements=requirements,
+        )
     relations = graph.get("relations")
     if not isinstance(relations, Sequence) or isinstance(relations, (str, bytes)):
         raise L1CognitivePlanError("atomic requirement relations are invalid")
@@ -2823,19 +2830,7 @@ def _build_l1_cognitive_revision_from_validated_c0_outcomes(
     observed_outcomes: Sequence[Mapping[str, Any]],
     c0_outcome_receipt_digest: str,
 ) -> FrozenDict:
-    """Produce one bounded delta from already-validated C0 failure outcomes.
-
-    This is intentionally internal to the C0 outcome contract. C0 is currently
-    the only Apps RG authority that can prove an L1 assumption false. PA/L2/L3
-    disposition failures are recorded as downstream defects by their own
-    source-bound contracts; they cannot be passed here to manufacture an L1
-    replan.
-
-    The revision replaces only the failed atom's selected option with that
-    atom's already-declared escalation alternative, records the disproved
-    assumption, and predicts the safe correction. It remains advisory and
-    never retries or executes.
-    """
+    """Produce one bounded delta from already-validated C0 failure outcomes. This is intentionally internal to the C0 outcome contract. C0 is currently the only Apps RG authority that can prove an L1 assumption false. PA/L2/L3 disposition failures are recorded as downstream defects by their own source-bound contracts; they cannot be passed here to manufacture an L1 replan. The revision replaces only the failed atom's selected option with that atom's already-declared escalation alternative, records the disproved assumption, and predicts the safe correction. It remains advisory and never retries or executes."""
 
     validate_l1_cognitive_plan_v3(plan)
     outcome_receipt_digest = _required_string(

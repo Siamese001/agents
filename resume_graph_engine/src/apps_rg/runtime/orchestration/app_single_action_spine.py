@@ -384,64 +384,87 @@ def run_apps_rg_single_action_spine(*args: Any, **kwargs: Any) -> AppsRgSingleAc
     if app_name == "apps_rg" and not isinstance(cache_preflight, Mapping):
         fault = "CACHE_PREFLIGHT_EVIDENCE_REQUIRED"
     else:
-        try:
-            l2_callable = kwargs.get("l2_callable")
-            if callable(l2_callable):
-                result = l2_callable()
-                l2_result = _plain(result) if isinstance(result, Mapping) else {"result": _plain(result)}
-            elif _request_value(raw_request, "execution_scope") == "section":
-                l2_result = _run_section_l2(raw_request, artifact_dir=root)
-                x3_disposition = _section_x3(l2_result) or "X3E_SAFE_ABSTAIN"
-            else:
-                l2_result = _run_full_resume_l2(raw_request, artifact_dir=root, run_id=run_id)
-        except Exception as exc:  # preserve exact runtime failure evidence in the sealed outcome
-            fault = f"{type(exc).__name__}:{exc}"
-
-    if not fault:
-        from apps_rg.runtime.review.l1_semantic_evaluator import evaluate_l1_post_l2_review
+        from apps_rg.runtime.orchestration.l1_l2_loop_controller import L1L2LoopController
         from apps_rg.runtime.contracts.l1_post_tool_review_contracts import L1ReviewVerdict
+        import inspect
 
-        sealed_for_l1 = l2_result
-        if isinstance(l2_result, Mapping):
-            if not l2_result.get("execution_status"):
-                step_results = l2_result.get("step_results")
+        l2_callable = kwargs.get("l2_callable")
+        max_cycles = int(kwargs.get("max_cycles") or raw_request.get("max_l1_l2_cycles") or 2)
+        controller = L1L2LoopController(max_cycles=max_cycles)
+
+        def _extract_sealed_for_l1(raw_l2: dict[str, Any]) -> Any:
+            sealed_for_l1: Any = raw_l2
+            if isinstance(raw_l2, Mapping) and not raw_l2.get("execution_status"):
+                step_results = raw_l2.get("step_results")
                 if isinstance(step_results, list) and step_results:
                     first_step = step_results[0]
                     if isinstance(first_step, Mapping):
                         sec_res = first_step.get("section_result")
                         if isinstance(sec_res, Mapping) and sec_res.get("execution_status"):
-                            sealed_for_l1 = {**l2_result, "execution_status": sec_res.get("execution_status")}
+                            sealed_for_l1 = {**raw_l2, "execution_status": sec_res.get("execution_status")}
                         elif first_step.get("status") in ("ok", "success", "completed"):
-                            sealed_for_l1 = {**l2_result, "execution_status": "completed"}
+                            sealed_for_l1 = {**raw_l2, "execution_status": "completed"}
                         elif first_step.get("execution_status"):
-                            sealed_for_l1 = {**l2_result, "execution_status": first_step.get("execution_status")}
+                            sealed_for_l1 = {**raw_l2, "execution_status": first_step.get("execution_status")}
+            sealed_l2_file = root / "sealed_l2_artifact.json"
+            if sealed_l2_file.is_file():
+                try:
+                    disk_sealed = json.loads(sealed_l2_file.read_text(encoding="utf-8"))
+                    if isinstance(disk_sealed, Mapping):
+                        if not disk_sealed.get("execution_status"):
+                            disk_sealed = dict(disk_sealed)
+                            disk_sealed["execution_status"] = (
+                                sealed_for_l1.get("execution_status", "completed")
+                                if isinstance(sealed_for_l1, Mapping)
+                                else "completed"
+                            )
+                        sealed_for_l1 = disk_sealed
+                except (OSError, json.JSONDecodeError, TypeError, ValueError):
+                    pass
+            return sealed_for_l1
 
-        sealed_l2_file = root / "sealed_l2_artifact.json"
-        if sealed_l2_file.is_file():
-            try:
-                disk_sealed = json.loads(sealed_l2_file.read_text(encoding="utf-8"))
-                if isinstance(disk_sealed, Mapping):
-                    if not disk_sealed.get("execution_status"):
-                        disk_sealed = dict(disk_sealed)
-                        disk_sealed["execution_status"] = (
-                            sealed_for_l1.get("execution_status", "completed")
-                            if isinstance(sealed_for_l1, Mapping)
-                            else "completed"
-                        )
-                    sealed_for_l1 = disk_sealed
-            except (OSError, json.JSONDecodeError, TypeError, ValueError):
-                pass
+        def _planner_fn(req_map: Mapping[str, Any]) -> Any:
+            cont = front_continuation if isinstance(front_continuation, Mapping) else {}
+            return req_map.get("l1_plan") or cont.get("plan_contract") or {}
 
-        l1_review = evaluate_l1_post_l2_review(
-            sealed_artifact=sealed_for_l1,
-            execution_packet=raw_request.get("l2_execution_packet"),
-            l1_plan=raw_request.get("l1_plan"),
-            review_cycle=1,
-        )
-        raw_request["l1_post_tool_review"] = l1_review.as_dict()
-        if l1_review.verdict != L1ReviewVerdict.SUFFICIENT:
-            fault = f"L1_REVIEW_{l1_review.verdict.value}"
-            x3_disposition = "X3A_DENY_REROUTE"
+        def _executor_fn(plan: Any, cycle_req: Mapping[str, Any], cycle: int) -> Any:
+            nonlocal l2_result, x3_disposition
+            effective_req = dict(raw_request)
+            effective_req.update(cycle_req)
+            effective_req["l1_plan"] = plan
+            effective_req["l1_review_cycle"] = cycle
+            if callable(l2_callable):
+                sig = inspect.signature(l2_callable)
+                if len(sig.parameters) >= 3:
+                    result = l2_callable(plan, effective_req, cycle)
+                elif len(sig.parameters) == 1:
+                    result = l2_callable(cycle)
+                else:
+                    result = l2_callable()
+                l2_result = _plain(result) if isinstance(result, Mapping) else {"result": _plain(result)}
+            elif _request_value(effective_req, "execution_scope") == "section":
+                l2_result = _run_section_l2(effective_req, artifact_dir=root)
+                x3_disposition = _section_x3(l2_result) or "X3E_SAFE_ABSTAIN"
+            else:
+                l2_result = _run_full_resume_l2(effective_req, artifact_dir=root, run_id=run_id)
+            return _extract_sealed_for_l1(l2_result)
+
+        try:
+            semantic_judge = kwargs.get("semantic_judge") or raw_request.get("l1_semantic_judge")
+            loop_res = controller.run(
+                initial_request=raw_request,
+                planner_fn=_planner_fn,
+                executor_fn=_executor_fn,
+                semantic_judge=semantic_judge if callable(semantic_judge) else None,
+            )
+            if loop_res.latest_review is not None:
+                raw_request["l1_post_tool_review"] = loop_res.latest_review.as_dict()
+                raw_request["l1_review_cycles_completed"] = loop_res.cycles_completed
+                if loop_res.final_verdict != L1ReviewVerdict.SUFFICIENT:
+                    fault = f"L1_REVIEW_{loop_res.final_verdict.value}"
+                    x3_disposition = "X3A_DENY_REROUTE"
+        except Exception as exc:  # preserve exact runtime failure evidence in the sealed outcome
+            fault = f"{type(exc).__name__}:{exc}"
 
     if fault:
         x3_disposition = "X3A_DENY_REROUTE"

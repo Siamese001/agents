@@ -1,20 +1,16 @@
 """Deterministic, advisory-only L1 v2 decision-model capsule for apps_rg.
-
 V2 is deliberately parallel to the v1 capsule.  It turns U0's validated job
 description into source-span-bound planning requirements and downstream
 obligations, but never reads candidate evidence, chooses a route, schedules
 work, assembles a prompt, calls a provider, or writes run state.
 """
-
 from __future__ import annotations
-
 import hashlib
 import json
 import re
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
-
 from apps_rg.repository_layout import resolve_apps_rg_path
 from apps_rg.runtime.bindings.l1_planning_capsule import (
     FrozenDict,
@@ -23,11 +19,9 @@ from apps_rg.runtime.bindings.l1_planning_capsule import (
     verify_planning_profile_ref_digest,
 )
 from apps_rg.runtime.bindings.u0_profile_manifest import repo_root
-
 L1_V2_CAPSULE_SCHEMA_VERSION = "apps_rg_l1_planning_capsule.v2"
 L1_V2_TAXONOMY_SCHEMA_VERSION = "apps_rg.l1_requirement_taxonomy.v1"
 L1_V2_TAXONOMY_REF = "apps_rg/profiles/rg_l1_requirement_taxonomy.v1.json"
-
 _FULL_RESUME_MODES = frozenset(
     {"strategic_tailor", "tailor_existing", "generate_scratch"}
 )
@@ -69,24 +63,16 @@ _VALID_WORK_DAG_RELATIONS = frozenset(
 _VALID_WORK_DAG_NODE_TYPES = frozenset(
     {"U0_INPUT", "REQUIREMENT", "WORK_UNIT", "VALIDATION", "MERGE"}
 )
-
-
 class L1PlanningV2IntegrityError(ValueError):
     """Raised when a v2 decision-model capsule is not trustworthy."""
-
-
 def _canonical_json(payload: Any) -> str:
     return json.dumps(
         payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False
     )
-
-
 def _sha256(payload: Any) -> str:
     return (
         "sha256:" + hashlib.sha256(_canonical_json(payload).encode("utf-8")).hexdigest()
     )
-
-
 def stable_l1_v2_capsule_digest(capsule: Mapping[str, Any]) -> str:
     """Return the canonical v2 digest, excluding only ``capsule_digest``."""
 
@@ -722,7 +708,8 @@ def build_apps_rg_l1_planning_capsule_v2(
             "no_route_selection": True,
             "no_evidence_retrieval": True,
             "no_prompt_assembly": True,
-            "no_model_call": True,
+            "no_unapproved_model_call": True,
+            "no_direct_state_mutation": True,
             "no_tool_call": True,
             "no_l4_write": True,
             "no_candidate_evidence_claim": True,
@@ -1162,14 +1149,22 @@ def verify_apps_rg_l1_planning_capsule_v2(
         "no_route_selection",
         "no_evidence_retrieval",
         "no_prompt_assembly",
-        "no_model_call",
         "no_tool_call",
         "no_l4_write",
         "no_candidate_evidence_claim",
         "profile_and_taxonomy_digest_bound",
     }
-    if not isinstance(validation, Mapping) or any(
-        validation.get(key) is not True for key in required_assertions
+    has_model_assertion = isinstance(validation, Mapping) and (
+        validation.get("no_model_call") is True
+        or (
+            validation.get("no_unapproved_model_call") is True
+            and validation.get("no_direct_state_mutation") is True
+        )
+    )
+    if (
+        not isinstance(validation, Mapping)
+        or not has_model_assertion
+        or any(validation.get(key) is not True for key in required_assertions)
     ):
         raise L1PlanningV2IntegrityError("L1 v2 validation assertions are incomplete")
     return _freeze(
