@@ -557,6 +557,63 @@ Build core foundation.
             self.assertEqual(len(injected), 1)
             self.assertIn("INV-DECISIVE-RECOMMENDATION", injected[0].get("userMessage", ""))
 
+            # Mid-turn GENERIC tool output step must NOT trigger post_invocation intercept
+            mid_turn_file = Path(tmpdir) / "mid_turn.jsonl"
+            mid_turn_file.write_text(
+                "\n".join(
+                    [
+                        json.dumps({"type": "USER_INPUT", "source": "USER_EXPLICIT", "content": "Inspect file"}),
+                        json.dumps({"type": "PLANNER_RESPONSE", "source": "MODEL", "tool_calls": [{"name": "view_file", "args": {}}], "content": ""}),
+                        json.dumps({"type": "GENERIC", "source": "MODEL", "content": "def helper_func():\n    return None\n"}),
+                    ]
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            res_mid = subprocess.run(
+                [sys.executable, "tools/hook_dispatch.py", "--hook", "post_invocation"],
+                input=json.dumps({"transcriptPath": str(mid_turn_file)}),
+                capture_output=True,
+                text=True,
+                cwd=ROOT,
+                timeout=10,
+            )
+            self.assertEqual(res_mid.returncode, 0)
+            self.assertEqual(json.loads(res_mid.stdout.strip()).get("injectSteps"), [])
+
+            # Denied ask_question followed by plain-text questionnaire MUST still be intercepted
+            denied_file = Path(tmpdir) / "denied_turn.jsonl"
+            denied_file.write_text(
+                "\n".join(
+                    [
+                        json.dumps({"type": "USER_INPUT", "source": "USER_EXPLICIT", "content": "Run /teamwork"}),
+                        json.dumps({"type": "PLANNER_RESPONSE", "source": "MODEL", "tool_calls": [{"name": "ask_question", "args": {"questions": []}}], "content": ""}),
+                        json.dumps({"type": "GENERIC", "source": "MODEL", "content": "Encountered error in step execution: tool call denied by pre-tool hook: PRE_OUTPUT_LAYMAN_GUARD"}),
+                        json.dumps(
+                            {
+                                "type": "PLANNER_RESPONSE",
+                                "source": "MODEL",
+                                "content": "To prepare the task prompt, please answer the following questions:\n1. What should the team deliver?\n(a) Analysis\n(b) Refactor\n",
+                            }
+                        ),
+                    ]
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            res_denied = subprocess.run(
+                [sys.executable, "tools/hook_dispatch.py", "--hook", "post_invocation"],
+                input=json.dumps({"transcriptPath": str(denied_file)}),
+                capture_output=True,
+                text=True,
+                cwd=ROOT,
+                timeout=10,
+            )
+            self.assertEqual(res_denied.returncode, 0)
+            data_denied = json.loads(res_denied.stdout.strip())
+            self.assertEqual(data_denied.get("terminationBehavior"), "force_continue")
+            self.assertIn("INV-DECISIVE-RECOMMENDATION", data_denied["injectSteps"][0].get("userMessage", ""))
+
     def test_pre_ask_question_deny_includes_anti_plaintext_fallback_directive(self) -> None:
         """pre_ask_question deny reason must instruct agent never to fall back to printing plain-text questions."""
         jargon_payload = {

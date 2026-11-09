@@ -591,31 +591,28 @@ def handle_post_invocation(payload: Dict[str, Any], repo_root: Path) -> int:
     steps = _load_turn_steps_from_payload(payload)
     candidate_text = str(payload.get("candidate_response") or "")
     if not candidate_text and steps:
-        for step in reversed(steps):
-            if not isinstance(step, dict):
-                continue
-            step_type, source = str(step.get("type") or "").upper(), str(step.get("source") or "").upper()
-            tcs = step.get("tool_calls") or step.get("toolCalls") or ([] if not step.get("toolCall") else [step["toolCall"]])
-            content = str(step.get("content") or "").strip()
-            if (
-                step_type in ("PLANNER_RESPONSE", "ASSISTANT", "MODEL_RESPONSE", "")
-                and (source in ("MODEL", "") and step_type not in ("USER_INPUT", "TOOL_RESPONSE", "TOOL_RESULT"))
-                and not tcs
-                and content
-            ):
-                candidate_text = content
-                break
-        if not candidate_text:
-            last_step = steps[-1] if isinstance(steps[-1], dict) else {}
-            candidate_text = str(last_step.get("content") or "")
+        last_step = steps[-1] if isinstance(steps[-1], dict) else {}
+        s_type, s_src = str(last_step.get("type") or "").upper(), str(last_step.get("source") or "").upper()
+        tcs = last_step.get("tool_calls") or last_step.get("toolCalls") or ([] if not last_step.get("toolCall") else [last_step["toolCall"]])
+        is_final_reply = s_type in ("PLANNER_RESPONSE", "ASSISTANT", "MODEL_RESPONSE", "") and s_src in ("MODEL", "") and not tcs
+        if not is_final_reply:
+            print(json.dumps({"injectSteps": []}))
+            return 0
+        candidate_text = str(last_step.get("content") or "").strip()
 
     asked_question = bool(payload.get("invoked_question_tool", False))
     mutated_files = bool(payload.get("mutated_repository_code", False))
     completed_merge = bool(payload.get("completed_governed_merge", False))
+    layman_retries = 0
 
     for s in steps:
         if not isinstance(s, dict):
             continue
+        s_content = str(s.get("content") or "")
+        if "[LAYMAN ZERO-JARGON GOVERNANCE INTERCEPT" in s_content:
+            layman_retries += 1
+        if "tool call denied by pre-tool hook" in s_content or "HITL_VIOLATION_" in s_content or "PRE_OUTPUT_LAYMAN_GUARD" in s_content:
+            asked_question = False
         tcs = s.get("tool_calls") or s.get("toolCalls") or ([] if not s.get("toolCall") else [s["toolCall"]])
         for tc in tcs:
             if not isinstance(tc, dict):
@@ -647,7 +644,7 @@ def handle_post_invocation(payload: Dict[str, Any], repo_root: Path) -> int:
         return 0
 
     jargon_res = validate_layman_jargon_gate(candidate_text)
-    if jargon_res["status"] != "PASS":
+    if jargon_res["status"] != "PASS" and layman_retries < 3:
         msg = LAYMAN_INTERCEPT_PROMPT.format(violations=", ".join(jargon_res["violations"][:4]))
         print(json.dumps({"injectSteps": [{"ephemeralMessage": msg}], "terminationBehavior": "force_continue"}))
         return 0
