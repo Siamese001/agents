@@ -653,7 +653,7 @@ def test_competencies_self_consistency_defaults_to_serial_with_bounded_budget(
         section_lane="competencies",
         provider_payload={
             "messages": [{"role": "user", "content": "base"}],
-            "max_tokens": 6000,
+            "max_tokens": DEFAULT_COMPETENCIES_SC_OUTPUT_TOKENS,
         },
         parse_model_json=lambda raw: (json.loads(raw), ""),
         artifact_dir=tmp_path,

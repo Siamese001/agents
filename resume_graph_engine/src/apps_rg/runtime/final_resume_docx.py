@@ -163,21 +163,82 @@ _CONTENT_TYPES_XML = b"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
   <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
   <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/>
+  <Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>
   <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+  <Override PartName="/word/fontTable.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.fontTable+xml"/>
+  <Override PartName="/word/settings.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml"/>
   <Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>
+  <Override PartName="/word/webSettings.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.webSettings+xml"/>
 </Types>
 """
 
 _PACKAGE_RELS_XML = b"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
   <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>
+  <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/>
 </Relationships>
 """
 
 _DOCUMENT_RELS_XML = b"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
   <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings" Target="settings.xml"/>
+  <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/webSettings" Target="webSettings.xml"/>
+  <Relationship Id="rId4" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/fontTable" Target="fontTable.xml"/>
 </Relationships>
+"""
+
+_CORE_PROPS_XML = b"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:dcmitype="http://purl.org/dc/dcmitype/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <dc:title>Executive Resume</dc:title>
+  <dc:creator>Resume Engine</dc:creator>
+  <cp:revision>1</cp:revision>
+</cp:coreProperties>
+"""
+
+_APP_PROPS_XML = b"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">
+  <Template>Normal.dotm</Template>
+  <TotalTime>0</TotalTime>
+  <Pages>2</Pages>
+  <Application>Microsoft Office Word</Application>
+  <DocSecurity>0</DocSecurity>
+  <ScaleCrop>false</ScaleCrop>
+  <LinksUpToDate>false</LinksUpToDate>
+  <SharedDoc>false</SharedDoc>
+  <HyperlinksChanged>false</HyperlinksChanged>
+  <AppVersion>16.0000</AppVersion>
+</Properties>
+"""
+
+_SETTINGS_XML = b"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:settings xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:zoom w:percent="100"/>
+  <w:defaultTabStop w:val="720"/>
+  <w:characterSpacingControl w:val="doNotCompress"/>
+  <w:compat>
+    <w:compatSetting w:name="compatibilityMode" w:uri="http://schemas.microsoft.com/office/word" w:val="15"/>
+  </w:compat>
+</w:settings>
+"""
+
+_WEB_SETTINGS_XML = b"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:webSettings xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:allowPNG/>
+</w:webSettings>
+"""
+
+_FONT_TABLE_XML = b"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:fonts xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:font w:name="Calibri">
+    <w:panose1 w:val="020F0502020204030204"/>
+    <w:charset w:val="00"/>
+    <w:family w:val="swiss"/>
+    <w:pitch w:val="variable"/>
+  </w:font>
+</w:fonts>
 """
 
 _STYLES_XML = b"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -189,12 +250,12 @@ _STYLES_XML = b"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
   <w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/></w:style>
   <w:style w:type="paragraph" w:styleId="Title">
     <w:name w:val="Title"/><w:basedOn w:val="Normal"/>
-    <w:pPr><w:jc w:val="center"/><w:spacing w:before="0" w:after="30"/></w:pPr>
+    <w:pPr><w:spacing w:before="0" w:after="30"/><w:jc w:val="center"/></w:pPr>
     <w:rPr><w:b/><w:color w:val="0F2537"/><w:sz w:val="36"/><w:szCs w:val="36"/></w:rPr>
   </w:style>
   <w:style w:type="paragraph" w:styleId="ContactLine">
     <w:name w:val="Contact Line"/><w:basedOn w:val="Normal"/>
-    <w:pPr><w:jc w:val="center"/><w:spacing w:before="0" w:after="100"/></w:pPr>
+    <w:pPr><w:spacing w:before="0" w:after="100"/><w:jc w:val="center"/></w:pPr>
     <w:rPr><w:color w:val="334E68"/><w:sz w:val="19"/><w:szCs w:val="19"/></w:rPr>
   </w:style>
   <w:style w:type="paragraph" w:styleId="Heading1">
@@ -214,7 +275,7 @@ _STYLES_XML = b"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
   </w:style>
   <w:style w:type="paragraph" w:styleId="Bullet">
     <w:name w:val="Bullet"/><w:basedOn w:val="Normal"/>
-    <w:pPr><w:ind w:left="240" w:hanging="160"/><w:spacing w:before="20" w:after="45"/></w:pPr>
+    <w:pPr><w:spacing w:before="20" w:after="45"/><w:ind w:left="240" w:hanging="160"/></w:pPr>
   </w:style>
 </w:styles>
 """
@@ -240,9 +301,14 @@ def export(final_resume_path: Path, out_path: Path) -> Path:
         with zipfile.ZipFile(temporary, "w", compression=zipfile.ZIP_DEFLATED) as archive:
             archive.writestr("[Content_Types].xml", _CONTENT_TYPES_XML)
             archive.writestr("_rels/.rels", _PACKAGE_RELS_XML)
+            archive.writestr("docProps/core.xml", _CORE_PROPS_XML)
+            archive.writestr("docProps/app.xml", _APP_PROPS_XML)
             archive.writestr("word/document.xml", _document_xml(rendered))
             archive.writestr("word/_rels/document.xml.rels", _DOCUMENT_RELS_XML)
             archive.writestr("word/styles.xml", _STYLES_XML)
+            archive.writestr("word/settings.xml", _SETTINGS_XML)
+            archive.writestr("word/webSettings.xml", _WEB_SETTINGS_XML)
+            archive.writestr("word/fontTable.xml", _FONT_TABLE_XML)
         temporary.replace(destination)
     finally:
         temporary.unlink(missing_ok=True)

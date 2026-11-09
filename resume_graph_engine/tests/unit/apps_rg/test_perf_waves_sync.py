@@ -397,3 +397,11 @@ def test_dispatch_patch_lanes_runs_independent_wave_lanes_concurrently(
     )
     assert latest_bullet_start < earliest_bullet_end
     assert intervals["ibm_narrative"][0] >= intervals["ibm_bullets"][1] - 0.005
+
+
+def test_execution_waves_places_executive_summary_and_headline_in_same_wave() -> None:
+    from apps_rg.runtime.section_execution_plan import execution_waves_for_lanes
+
+    waves = execution_waves_for_lanes(GENERATED_LANES)
+    assert waves[-1] == ("executive_summary", "headline")
+
