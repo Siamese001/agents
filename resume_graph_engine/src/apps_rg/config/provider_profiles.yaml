@@ -303,7 +303,7 @@ runtime_limits:
         gemini_thinking_level: low
       standard_reasoning:
         judge_weight: 2
-        max_output_tokens: 4096
+        max_output_tokens: 8192
         max_output_tokens_hard_cap: 8192
         max_attempts: 2
         retry_backoff_base_seconds: 0.5
@@ -311,7 +311,7 @@ runtime_limits:
         gemini_thinking_level: medium
       bullet_rewrite_quality:
         judge_weight: 2
-        max_output_tokens: 4096
+        max_output_tokens: 8192
         max_output_tokens_hard_cap: 8192
         max_attempts: 2
         retry_backoff_base_seconds: 0.5

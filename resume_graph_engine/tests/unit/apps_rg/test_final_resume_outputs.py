@@ -205,3 +205,46 @@ def test_final_resume_outputs_synthesize_required_failed_run_package(tmp_path: P
     assert gate_ids["final_resume_rendered_text_present"] is True
     assert gate_ids["final_resume_docx_present_nonempty"] is True
     assert gate_ids["final_resume_no_gap_markers"] is False
+
+
+def test_final_resume_docx_ecma376_ppr_order_and_python_docx_load(tmp_path: Path) -> None:
+    import zipfile
+    from xml.etree import ElementTree
+    import docx
+
+    _write_final_resume(tmp_path)
+    contract = emit_final_resume_product_outputs(tmp_path, repo_root=tmp_path, required=True)
+    assert contract["status"] == "PASS"
+
+    docx_path = tmp_path / FINAL_RESUME_DOCX_RELPATH
+    doc = docx.Document(str(docx_path))
+    assert len(doc.paragraphs) >= 10
+    assert doc.paragraphs[0].text == "Amit Ayer"
+
+    order_rank = {"pStyle": 1, "keepNext": 2, "pBdr": 3, "spacing": 4, "ind": 5, "jc": 6}
+    with zipfile.ZipFile(docx_path) as zf:
+        names = set(zf.namelist())
+        for required_part in (
+            "[Content_Types].xml",
+            "_rels/.rels",
+            "docProps/core.xml",
+            "docProps/app.xml",
+            "word/document.xml",
+            "word/_rels/document.xml.rels",
+            "word/styles.xml",
+            "word/settings.xml",
+            "word/webSettings.xml",
+            "word/fontTable.xml",
+        ):
+            assert required_part in names
+
+        for xml_part in ("word/styles.xml", "word/document.xml"):
+            root = ElementTree.fromstring(zf.read(xml_part))
+            for ppr in root.iter("{http://schemas.openxmlformats.org/wordprocessingml/2006/main}pPr"):
+                child_ranks = [
+                    order_rank[child.tag.split("}")[-1]]
+                    for child in list(ppr)
+                    if child.tag.split("}")[-1] in order_rank
+                ]
+                assert child_ranks == sorted(child_ranks), f"Out-of-order <w:pPr> children in {xml_part}: {child_ranks}"
+

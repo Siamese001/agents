@@ -27,7 +27,8 @@ class AnthropicCacheWorkloadKind(str, Enum):
 
 REPEATED_C0_WORKLOADS = frozenset({"REPAIR", "SELF_CONSISTENCY", "SELECTOR", "SUITE_REPLAY"})
 FALLBACK_REPEATED_USER_WORKLOADS = frozenset({"SELF_CONSISTENCY", "SUITE_REPLAY"})
-TIER1_SLOTS = frozenset({"S0", "D0", "I0"})
+COMPACT_SC_SYSTEM_MARKER = "COMPETENCIES_SC_COMPACT_SYSTEM_V1"
+TIER1_SLOTS = frozenset({"S0", "D0", "I0", "COMPETENCIES_SC_COMPACT_SYSTEM"})
 TIER2_SLOTS = frozenset({"C0", "E0", "Y0"})
 VOLATILE_SLOTS = frozenset({"U0", "R0", "H0", "M0"})
 
@@ -202,13 +203,24 @@ def build_anthropic_section_cache_payload(
     if slots:
         compiled = _system_text(source_messages)
         reconstructed = _compiled_slot_text(slots)
+        is_compacted_sc = compiled.startswith(COMPACT_SC_SYSTEM_MARKER)
         if compiled == reconstructed:
             supplemental_tail = ""
         elif compiled.startswith(reconstructed) and compiled[len(reconstructed) :].startswith("\n"):
             supplemental_tail = compiled[len(reconstructed) :].lstrip("\n")
+        elif is_compacted_sc:
+            supplemental_tail = ""
         else:
             semantics_preserved = False
-        if semantics_preserved:
+        if semantics_preserved and is_compacted_sc:
+            entries.append(
+                {
+                    "slot_id": "COMPETENCIES_SC_COMPACT_SYSTEM",
+                    "tier": "tier1_stable",
+                    "text": compiled,
+                }
+            )
+        elif semantics_preserved:
             for slot in slots:
                 slot_id = str(getattr(slot, "slot_id", "") or "").strip()
                 content = str(getattr(slot, "content", "") or "")

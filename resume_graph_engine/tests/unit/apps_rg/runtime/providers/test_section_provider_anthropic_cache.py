@@ -294,3 +294,44 @@ def test_native_anthropic_payload_keeps_cache_control_and_gateway_model() -> Non
     assert body["temperature"] == 0.2
     assert body["stream"] is True
     assert body["system"][0]["cache_control"] == {"type": "ephemeral"}
+
+
+def test_compacted_competencies_sc_system_prompt_preserves_cache_control(
+    monkeypatch,
+    tmp_path,
+) -> None:
+    monkeypatch.setenv("APPS_RG_ANTHROPIC_PROMPT_CACHE", "1")
+    gateway = _CapturingGateway()
+    monkeypatch.setattr(
+        section_provider_call,
+        "build_section_provider_gateway",
+        lambda claude_model=None, openai_model=None: gateway,
+    )
+    artifact = _artifact()
+    compacted_system = "COMPETENCIES_SC_COMPACT_SYSTEM_V1\n" + ("compacted-capability-fact " * 500)
+
+    result = section_provider_call.call_section_model_provider(
+        ProviderProfile.EXTERNAL_CLAUDE,
+        {
+            "messages": [
+                {"role": "system", "content": compacted_system},
+                {"role": "user", "content": "path_index=0"},
+            ],
+            "compiled_prompt_artifact": artifact,
+            "anthropic_workload_kind": "SELF_CONSISTENCY",
+            "_reasoning_section_lane": "competencies",
+            "max_tokens": 8192,
+        },
+        artifact_dir=tmp_path,
+        run_id="run-compact-sc",
+    )
+
+    compiled = gateway.calls[0]["compiled_prompt"]
+    assert compiled.anthropic_payload is not None
+    assert "cache_control" in str(compiled.anthropic_payload["system"])
+    assert result.prompt_cache_receipt is not None
+    assert result.prompt_cache_receipt["cache_enabled"] is True
+    assert result.prompt_cache_receipt["cache_marker_count"] == 1
+    assert result.prompt_cache_receipt["prompt_semantics_preserved"] is True
+    assert result.prompt_cache_receipt["cache_strategy"] == "pa_slot_prefix_tiers_v2"
+

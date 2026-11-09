@@ -1579,7 +1579,9 @@ def execute_patch_run(
         bootstrap_apps_rg_embedding_env,
         write_embedding_settings_receipt,
     )
+    from apps_rg.runtime.runtime_boundary import configure_apps_rg_runtime_boundary
 
+    configure_apps_rg_runtime_boundary(repo_root=plan.repo)
     bootstrap_apps_rg_embedding_env(repo_root=plan.repo)
     emb = apply_apps_rg_embedding_env_guards(
         chroma_persist_dir=os.environ.get("CHROMA_PERSIST_DIR")

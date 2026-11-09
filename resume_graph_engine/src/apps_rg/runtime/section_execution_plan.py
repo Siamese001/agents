@@ -181,7 +181,17 @@ SECTION_EXECUTION_POLICIES: Final[dict[str, SectionExecutionPolicy]] = {
         sc_paths=1,
         attempts=MAX_SECTION_ATTEMPTS,
         mode="final_positioning",
-        dependencies=("executive_summary",),
+        dependencies=(
+            "competencies",
+            "slalom_bullets",
+            "unify_bullets",
+            "ibm_bullets",
+            "insurtech_bullets",
+            "slalom_narrative",
+            "unify_narrative",
+            "ibm_narrative",
+            "insurtech_narrative",
+        ),
     ),
 }
 
