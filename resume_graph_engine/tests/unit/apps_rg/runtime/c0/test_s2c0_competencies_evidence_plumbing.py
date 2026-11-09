@@ -295,3 +295,30 @@ def test_pre_provider_proof_block_does_not_add_graph_claim_binding_failure(
     assert provider_request["provider_attempted"] is False
     assert x2["failed_gates"] == ["x2_competencies_required_proof_present"]
     assert not (artifact_dir / GRAPH_CLAIM_BINDINGS_ARTIFACT).exists()
+
+
+def test_competencies_allocation_visible_surface_deal_support_composition() -> None:
+    from apps_rg.runtime.c0.competencies_graph_authority import (
+        _ALLOCATION_VISIBLE_SURFACE_COMPOSITIONS,
+        _allocation_surface_phrase,
+    )
+
+    key = ("reb_ibm_revenue_sales_target_execution", "skill_p2_gtm_enterprise_deal_support")
+    assert key in _ALLOCATION_VISIBLE_SURFACE_COMPOSITIONS
+    assert (
+        _ALLOCATION_VISIBLE_SURFACE_COMPOSITIONS[key]
+        == "Quota-aligned enterprise deal support and execution"
+    )
+    assignment = {
+        "root_id": "reb_ibm_revenue_sales_target_execution",
+        "skill_id": "skill_p2_gtm_enterprise_deal_support",
+        "fact_id": "fact_revenue_ops_003",
+        "root_bundle_theme": "Revenue target execution and quota-aligned solution leadership",
+        "root_claim_text": "Owned quota-aligned solution leadership across enterprise pursuits and client portfolio expansion motions",
+        "root_claim_scope": "IBM partner role with quota and revenue-target accountability for enterprise financial-services solution motions.",
+        "root_claim_outcome": "Frame as quota-aware technical leadership: pipeline discipline and executive deal support without inventing revenue figures.",
+    }
+    phrase, field = _allocation_surface_phrase(assignment, selected_plan={})
+    assert phrase == "Quota-aligned enterprise deal support and execution"
+    assert field == "graph_authority_surface_composition"
+

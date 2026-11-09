@@ -110,6 +110,7 @@ _ALLOCATION_VISIBLE_SURFACE_COMPOSITIONS: Mapping[tuple[str, str], str] = {
     ("reb_slalom_visual_asset_intelligence", "skill_agentic_platform_productization"): "Agentic platform productization for asset intelligence pipelines",
     ("reb_slalom_bitemporal_graphrag_uwg", "skill_side_effect_bounded_action_design"): "GraphRAG retrieval side-effect bounded action design",
     ("reb_ibm_revenue_sales_target_execution", "skill_partner_pnl_oversight"): "Revenue target execution and solution leadership motions",
+    ("reb_ibm_revenue_sales_target_execution", "skill_p2_gtm_enterprise_deal_support"): "Quota-aligned enterprise deal support and execution",
 }
 
 # A joint alliance/co-sell capability is commercial evidence, even when its
