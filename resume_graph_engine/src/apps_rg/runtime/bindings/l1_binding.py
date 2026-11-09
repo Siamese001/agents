@@ -52,7 +52,8 @@ def l1_plan_apps_rg(validated_request: ValidatedRequest) -> L1PlanContract:
     non_authority_assertion = {
         "no_evidence_retrieval": True,
         "no_pa_assembly": True,
-        "no_model_call": True,
+        "no_unapproved_model_call": True,
+        "no_direct_state_mutation": True,
         "no_c0_import": True,
     }
 

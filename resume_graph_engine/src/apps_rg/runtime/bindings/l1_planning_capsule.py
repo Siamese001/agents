@@ -1,22 +1,17 @@
 """Deterministic, integrity-bound apps_rg L1 planning capsule.
-
 This module is planning-only. It reads app-owned planning priors and U0
 projections, then emits immutable advisory structure for downstream stages.
 It never routes, retrieves evidence, assembles prompts, calls providers, or
 writes run state.
 """
-
 from __future__ import annotations
-
 import hashlib
 import json
 import re
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
-
 import yaml
-
 from apps_rg.repository_layout import resolve_apps_rg_path
 from apps_rg.runtime.bindings.u0_profile_manifest import repo_root
 from apps_rg.runtime.reasoning.section_reasoning_intensity import (
@@ -24,7 +19,6 @@ from apps_rg.runtime.reasoning.section_reasoning_intensity import (
     profile_to_requested_kw,
     section_reasoning_profile,
 )
-
 _FULL_RESUME_GENERATION_MODES = frozenset(
     {"strategic_tailor", "tailor_existing", "generate_scratch"}
 )
@@ -64,27 +58,24 @@ _REQUIRED_VALIDATION_ASSERTIONS = frozenset(
         "no_route_selection",
         "no_evidence_retrieval",
         "no_prompt_assembly",
-        "no_model_call",
         "no_tool_call",
         "no_l4_write",
         "profile_ref_digest_bound",
     }
 )
-
-
+_GOVERNED_MODEL_VALIDATION_ASSERTIONS = frozenset(
+    {
+        "no_unapproved_model_call",
+        "no_direct_state_mutation",
+    }
+)
 class PlanningProfileIntegrityError(ValueError):
     """Raised when an L1 planning profile ref or digest is not trustworthy."""
-
-
 class PlanningCapsuleIntegrityError(ValueError):
     """Raised when a planning capsule is malformed, mutable, or digest-invalid."""
-
-
 class FrozenDict(dict):
     """JSON-compatible recursively frozen dictionary."""
-
     __slots__ = ()
-
     @staticmethod
     def _immutable(*_args: Any, **_kwargs: Any) -> None:
         raise TypeError("planning capsule mappings are immutable")
@@ -485,7 +476,11 @@ def verify_apps_rg_l1_planning_capsule(
     false_assertions = sorted(
         key for key in _REQUIRED_VALIDATION_ASSERTIONS if validation.get(key) is not True
     )
-    if missing_assertions or false_assertions:
+    has_legacy_no_model = validation.get("no_model_call") is True
+    has_governed_model = all(
+        validation.get(key) is True for key in _GOVERNED_MODEL_VALIDATION_ASSERTIONS
+    )
+    if missing_assertions or false_assertions or not (has_legacy_no_model or has_governed_model):
         raise PlanningCapsuleIntegrityError(
             "L1 planning capsule validation assertions are incomplete: "
             f"missing={sorted(missing_assertions)} false={false_assertions}"

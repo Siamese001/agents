@@ -1,7 +1,5 @@
 """Career Thesis Alignment Agent: Post-C0 career thesis synthesis and cross-section thematic allocation."""
-
 from __future__ import annotations
-
 import datetime
 import hashlib
 import json
@@ -11,12 +9,9 @@ import re
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Mapping, Sequence
-
 logger = logging.getLogger(__name__)
-
 CAREER_THESIS_ALIGNMENT_SCHEMA = "apps_rg_l15_strategic_fit_v1"
 CAREER_THESIS_ALIGNMENT_FILENAME = "l15_strategic_fit_plan.json"
-
 _STOPWORDS = frozenset(
     {
         "of",
@@ -43,32 +38,24 @@ _STOPWORDS = frozenset(
         "will",
     }
 )
-
-
 @dataclass
 class EvidenceGapMitigation:
     requirement_text: str
     gap_status: str  # DIRECT_MATCH | PARTIAL_MATCH | ADJACENT_PIVOT | UNSUPPORTED
     pivot_strategy: str
     matched_evidence_ids: list[str] = field(default_factory=list)
-
-
 @dataclass
 class ThematicAllocation:
     headline_focus: list[str] = field(default_factory=list)
     executive_summary_focus: list[str] = field(default_factory=list)
     competencies_focus: list[str] = field(default_factory=list)
     bullet_lanes_focus: dict[str, list[str]] = field(default_factory=dict)
-
-
 @dataclass
 class CareerThesis:
     primary_positioning: str = ""
     executive_summary_anchor: str = ""
     narrative_arc: str = ""
     key_themes: list[str] = field(default_factory=list)
-
-
 @dataclass
 class CareerThesisAlignmentPlan:
     schema_version: str = CAREER_THESIS_ALIGNMENT_SCHEMA
@@ -83,48 +70,31 @@ class CareerThesisAlignmentPlan:
     thematic_allocation: ThematicAllocation = field(default_factory=ThematicAllocation)
     model_provider: str = "deterministic_synthesis"
     digest: str = ""
-
     def compute_digest(self) -> str:
         body = asdict(self)
         body.pop("digest", None)
         canonical = json.dumps(body, sort_keys=True, separators=(",", ":"), default=str)
         return "sha256:" + hashlib.sha256(canonical.encode("utf-8")).hexdigest()
-
     def persist(self, output_dir: Path | str) -> Path:
         self.digest = self.compute_digest()
         path = Path(output_dir) / CAREER_THESIS_ALIGNMENT_FILENAME
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(asdict(self), indent=2) + "\n", encoding="utf-8")
         return path
-
-
 class CareerThesisAlignmentAgent:
-    """Agent that performs post-C0 strategic reasoning before Prompt Assembly (PA).
-
-    Responsibilities:
-    1. Career Thesis Synthesis: Forms an overarching value proposition uniting
-       the candidate's actual C0 evidence with the target role and company.
-    2. Evidence Gap Mitigation: Identifies JD requirements not directly evidenced
-       in the C0 graph and formulates adjacent pivot strategies.
-    3. Cross-Section Thematic Allocation: Distributes narrative themes across
-       Headline, Executive Summary, Competencies, and Experience Bullet lanes to
-       eliminate fact cannibalization.
-    """
-
+    """Agent that performs post-C0 strategic reasoning before Prompt Assembly (PA). Responsibilities: 1. Career Thesis Synthesis: Forms an overarching value proposition uniting the candidate's actual C0 evidence with the target role and company. 2. Evidence Gap Mitigation: Identifies JD requirements not directly evidenced in the C0 graph and formulates adjacent pivot strategies. 3. Cross-Section Thematic Allocation: Distributes narrative themes across Headline, Executive Summary, Competencies, and Experience Bullet lanes to eliminate fact cannibalization."""
     def __init__(
         self,
         model_name: str | None = None,
         provider: str | None = None,
+        model_synthesizer: Any | None = None,
     ) -> None:
-        if not model_name:
-            from apps_rg.runtime.model_registry import resolve
-
-            self.model_name = resolve("reasoning.career_thesis_alignment").model
-        else:
-            self.model_name = model_name
-        self.provider = provider or "anthropic"
-
-
+        from apps_rg.runtime.model_registry import resolve
+        resolved = resolve("reasoning.l1_post_c0_strategist")
+        self.role_key = "reasoning.l1_post_c0_strategist"
+        self.model_name = model_name or resolved.model
+        self.provider = provider or resolved.provider
+        self.model_synthesizer = model_synthesizer
     def synthesize(
         self,
         *,
@@ -134,12 +104,32 @@ class CareerThesisAlignmentAgent:
         jd_requirements: Sequence[str | Mapping[str, Any]] | None = None,
         c0_evidence_items: Sequence[str | Mapping[str, Any]] | None = None,
         job_description_text: str = "",
+        model_synthesizer: Any | None = None,
     ) -> CareerThesisAlignmentPlan:
         """Synthesize strategic fit from target context and C0 evidence pool."""
         normalized_reqs = self._normalize_requirements(jd_requirements, job_description_text)
         evidence_items = self._normalize_evidence(c0_evidence_items)
-
-        # 1. Synthesize career thesis
+        active_synthesizer = model_synthesizer or self.model_synthesizer
+        if callable(active_synthesizer):
+            raw_model_plan = active_synthesizer(
+                {
+                    "role_key": self.role_key,
+                    "target_company": target_company,
+                    "target_role": target_role,
+                    "target_level": target_level,
+                    "requirements": normalized_reqs,
+                    "evidence": evidence_items,
+                }
+            )
+            if isinstance(raw_model_plan, Mapping):
+                return self._build_plan_from_model_payload(
+                    raw_model_plan,
+                    target_company=target_company,
+                    target_role=target_role,
+                    target_level=target_level,
+                    requirements=normalized_reqs,
+                    evidence=evidence_items,
+                )
         thesis = self._synthesize_career_thesis(
             target_company=target_company,
             target_role=target_role,
@@ -147,20 +137,15 @@ class CareerThesisAlignmentAgent:
             requirements=normalized_reqs,
             evidence=evidence_items,
         )
-
-        # 2. Mitigate evidence gaps
         gaps = self._mitigate_evidence_gaps(
             requirements=normalized_reqs,
             evidence=evidence_items,
         )
-
-        # 3. Allocate themes across sections
         allocation = self._allocate_themes(
             thesis=thesis,
             requirements=normalized_reqs,
             evidence=evidence_items,
         )
-
         plan = CareerThesisAlignmentPlan(
             target_company=target_company,
             target_role=target_role,
@@ -172,7 +157,84 @@ class CareerThesisAlignmentAgent:
         )
         plan.digest = plan.compute_digest()
         return plan
-
+    def _build_plan_from_model_payload(
+        self,
+        payload: Mapping[str, Any],
+        *,
+        target_company: str,
+        target_role: str,
+        target_level: str,
+        requirements: list[dict[str, Any]],
+        evidence: list[dict[str, Any]],
+    ) -> CareerThesisAlignmentPlan:
+        raw_thesis = payload.get("career_thesis")
+        if isinstance(raw_thesis, Mapping):
+            thesis = CareerThesis(
+                primary_positioning=str(raw_thesis.get("primary_positioning") or ""),
+                executive_summary_anchor=str(raw_thesis.get("executive_summary_anchor") or ""),
+                narrative_arc=str(raw_thesis.get("narrative_arc") or ""),
+                key_themes=[str(t) for t in (raw_thesis.get("key_themes") or []) if str(t).strip()],
+            )
+        else:
+            thesis = self._synthesize_career_thesis(
+                target_company=target_company,
+                target_role=target_role,
+                target_level=target_level,
+                requirements=requirements,
+                evidence=evidence,
+            )
+        raw_gaps = payload.get("evidence_gaps")
+        gaps: list[EvidenceGapMitigation] = []
+        if isinstance(raw_gaps, Sequence) and not isinstance(raw_gaps, (str, bytes)):
+            for row in raw_gaps:
+                if isinstance(row, Mapping):
+                    gaps.append(
+                        EvidenceGapMitigation(
+                            requirement_text=str(row.get("requirement_text") or ""),
+                            gap_status=str(row.get("gap_status") or "ADJACENT_PIVOT"),
+                            pivot_strategy=str(row.get("pivot_strategy") or ""),
+                            matched_evidence_ids=[
+                                str(eid) for eid in (row.get("matched_evidence_ids") or []) if str(eid).strip()
+                            ],
+                        )
+                    )
+        if not gaps:
+            gaps = self._mitigate_evidence_gaps(requirements=requirements, evidence=evidence)
+        raw_alloc = payload.get("thematic_allocation")
+        if isinstance(raw_alloc, Mapping):
+            raw_lanes = raw_alloc.get("bullet_lanes_focus")
+            lanes: dict[str, list[str]] = {}
+            if isinstance(raw_lanes, Mapping):
+                for k, v in raw_lanes.items():
+                    if isinstance(v, Sequence) and not isinstance(v, (str, bytes)):
+                        lanes[str(k)] = [str(item) for item in v if str(item).strip()]
+            allocation = ThematicAllocation(
+                headline_focus=[str(x) for x in (raw_alloc.get("headline_focus") or []) if str(x).strip()],
+                executive_summary_focus=[
+                    str(x) for x in (raw_alloc.get("executive_summary_focus") or []) if str(x).strip()
+                ],
+                competencies_focus=[
+                    str(x) for x in (raw_alloc.get("competencies_focus") or []) if str(x).strip()
+                ],
+                bullet_lanes_focus=lanes,
+            )
+        else:
+            allocation = self._allocate_themes(
+                thesis=thesis,
+                requirements=requirements,
+                evidence=evidence,
+            )
+        plan = CareerThesisAlignmentPlan(
+            target_company=target_company,
+            target_role=target_role,
+            target_level=target_level,
+            career_thesis=thesis,
+            evidence_gaps=gaps,
+            thematic_allocation=allocation,
+            model_provider=self.provider,
+        )
+        plan.digest = plan.compute_digest()
+        return plan
     def _normalize_requirements(
         self,
         raw_reqs: Sequence[str | Mapping[str, Any]] | None,
@@ -191,20 +253,17 @@ class CareerThesisAlignmentAgent:
                     req_id = ""
                 if text:
                     normalized.append({"id": req_id, "text": text})
-
         if not normalized and jd_text:
             lines = [line.strip() for line in jd_text.splitlines() if line.strip()]
             for i, line in enumerate(lines[:10], start=1):
                 if len(line) > 15:
                     normalized.append({"id": f"jd_req_{i:02d}", "text": line})
-
         if not normalized:
             normalized = [
                 {"id": "gen_01", "text": "High-impact technical leadership and delivery"},
                 {"id": "gen_02", "text": "Architectural governance and scalable platform design"},
             ]
         return normalized
-
     def _normalize_evidence(
         self,
         raw_evidence: Sequence[str | Mapping[str, Any]] | None,
@@ -212,7 +271,6 @@ class CareerThesisAlignmentAgent:
         normalized: list[dict[str, Any]] = []
         if not raw_evidence:
             return normalized
-
         for idx, item in enumerate(raw_evidence, start=1):
             if isinstance(item, Mapping):
                 ev_id = str(
@@ -267,7 +325,6 @@ class CareerThesisAlignmentAgent:
                     }
                 )
         return normalized
-
     def _synthesize_career_thesis(
         self,
         *,
@@ -284,14 +341,11 @@ class CareerThesisAlignmentAgent:
             f"Progressive trajectory from deep technical architecture to organizational leadership, "
             f"consistently translating complex technological challenges into measurable business leverage."
         )
-
         themes: list[str] = [
             "Enterprise Architecture & Scalability",
             "Executive Leadership & Talent Elevation",
             "Operational Resilience & Cost Efficiency",
         ]
-
-        # Extract domain hints from role, requirements, and evidence
         combined_context = (
             f"{target_role} {target_company} "
             + " ".join(r.get("text", "") for r in requirements)
@@ -300,19 +354,16 @@ class CareerThesisAlignmentAgent:
             + " "
             + " ".join(ev.get("text", "") for ev in evidence)
         ).lower()
-
         if any(kw in combined_context for kw in ("ai", "llm", "machine learning", "deep learning", "model")):
             themes.append("Applied AI & Machine Learning Infrastructure")
         if any(kw in combined_context for kw in ("cloud", "distributed", "kubernetes", "streaming", "scale")):
             themes.append("Cloud-Native Systems & Distributed Computing")
-
         return CareerThesis(
             primary_positioning=primary,
             executive_summary_anchor=anchor,
             narrative_arc=arc,
             key_themes=themes,
         )
-
     def _mitigate_evidence_gaps(
         self,
         requirements: list[dict[str, Any]],
@@ -327,7 +378,6 @@ class CareerThesisAlignmentAgent:
             for ev in evidence
         ]
         fallback_anchor_ids = [ev["id"] for ev in evidence[:2]]
-
         for req in requirements:
             req_text = req["text"]
             words = set(re.findall(r"\b[a-zA-Z0-9]{2,}\b", req_text.lower())) - _STOPWORDS
@@ -339,7 +389,6 @@ class CareerThesisAlignmentAgent:
                     matched_ids.append(ev_id)
                 if overlap > best_overlap:
                     best_overlap = overlap
-
             if best_overlap >= 2 or len(matched_ids) >= 2:
                 gap_status = "DIRECT_MATCH"
                 strategy = f"Foreground direct quantitative proof points from {matched_ids[:2]}."
@@ -358,7 +407,6 @@ class CareerThesisAlignmentAgent:
                     + anchor_suffix
                     + "."
                 )
-
             mitigations.append(
                 EvidenceGapMitigation(
                     requirement_text=req_text,
@@ -367,32 +415,19 @@ class CareerThesisAlignmentAgent:
                     matched_evidence_ids=matched_ids,
                 )
             )
-
         return mitigations
-
     def _allocate_themes(
         self,
         thesis: CareerThesis,
         requirements: list[dict[str, Any]],
         evidence: list[dict[str, Any]],
     ) -> ThematicAllocation:
-        """
-        O1: Asset Allocation Negotiator (A2A Loop)
-        Turn 1: Career Thesis Strategist proposes allocations.
-        Turn 2: Section Asset Arbiter audits and finalizes allocations to prevent starvation.
-        """
-        # Turn 1: Strategist Proposal
+        """O1: Asset Allocation Negotiator (A2A Loop) Turn 1: Career Thesis Strategist proposes allocations. Turn 2: Section Asset Arbiter audits and finalizes allocations to prevent starvation."""
         strategist_proposal = self._call_strategist_agent(thesis, requirements, evidence)
-
-        # Turn 2: Arbiter Audit & Finalization
         final_allocation = self._call_asset_arbiter_agent(strategist_proposal, evidence)
-
-        # Fallback to deterministic if A2A negotiation fails or returns empty
         if not final_allocation:
             final_allocation = self._deterministic_fallback_allocation(thesis, evidence)
-
         return final_allocation
-
     def _call_strategist_agent(
         self, thesis: CareerThesis, requirements: list[dict[str, Any]], evidence: list[dict[str, Any]]
     ) -> dict[str, Any]:
@@ -402,20 +437,17 @@ class CareerThesisAlignmentAgent:
             sec = str(ev.get("section_id") or "").strip()
             if sec:
                 by_section.setdefault(sec, []).append(ev["id"])
-
         proposed_lanes = {
             "unify_bullets": by_section.get("unify_bullets") or ["ev_001", "ev_002"],
             "ibm_bullets": by_section.get("ibm_bullets") or ["ev_003"],
         }
         if by_section.get("slalom_bullets"):
             proposed_lanes["slalom_bullets"] = by_section["slalom_bullets"]
-
         return {
             "headline_focus": thesis.key_themes[:2] if thesis.key_themes else [],
             "executive_summary_focus": thesis.key_themes[:3] if thesis.key_themes else [],
             "proposed_lane_allocations": proposed_lanes,
         }
-
     def _call_asset_arbiter_agent(
         self, strategist_proposal: dict[str, Any], evidence: list[dict[str, Any]]
     ) -> ThematicAllocation | None:
@@ -433,7 +465,6 @@ class CareerThesisAlignmentAgent:
                 "Risk Governance & Security",
             ]
         )
-
         bullet_lanes_focus: dict[str, list[str]] = {
             "unify_bullets": ["Scale, distributed architectures, and platform velocity"],
             "ibm_bullets": ["Enterprise client outcomes, revenue generation, and technical governance"],
@@ -448,7 +479,6 @@ class CareerThesisAlignmentAgent:
                 lane_themes = bullet_lanes_focus.setdefault(sec, [])
                 if domain not in lane_themes:
                     lane_themes.append(domain)
-
         return ThematicAllocation(
             headline_focus=list(
                 strategist_proposal.get("headline_focus")
@@ -461,7 +491,6 @@ class CareerThesisAlignmentAgent:
             competencies_focus=comp_focus,
             bullet_lanes_focus=bullet_lanes_focus,
         )
-
     def _deterministic_fallback_allocation(
         self, thesis: CareerThesis, evidence: list[dict[str, Any]]
     ) -> ThematicAllocation:
@@ -492,8 +521,6 @@ class CareerThesisAlignmentAgent:
                 ],
             },
         )
-
-
 def execute_career_thesis_alignment(
     artifact_dir: Path | str,
     *,
@@ -516,7 +543,6 @@ def execute_career_thesis_alignment(
     )
     out_dir = Path(artifact_dir)
     plan.persist(out_dir)
-
     uniqueness_receipt: dict[str, Any] = {"pass": True, "repeated_skill_ids": [], "repeated_metric_outcome_ids": []}
     if c0_evidence_items:
         assignment_rows = [
@@ -526,9 +552,7 @@ def execute_career_thesis_alignment(
         ]
         if assignment_rows:
             from apps_rg.runtime.c0.resume_graph_allocation import _validate_assignment_uniqueness
-
             uniqueness_receipt = _validate_assignment_uniqueness(assignment_rows)
-
     receipt_payload = {
         "schema_version": "career_thesis_alignment_receipt_v1",
         "plan_schema_version": plan.schema_version,

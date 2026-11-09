@@ -1,24 +1,19 @@
 """apps_rg L0 binding — profile-driven RouteContract for resume_generation.
-
 Canonical route profiles: apps_rg/config/domain_contract/route_profiles.yaml
 Per plan p3.2_apps-rg-l0-critical-gaps-remediation-a3f8e1.
 """
 from __future__ import annotations
-
 import hashlib
 import json
 import os
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping
-
 import yaml
-
 from apps_rg.runtime.spine_contracts import L1PlanContract
 from apps_rg.runtime.spine_contracts import GraphTraversePolicy, RouteContract
 from apps_rg.runtime.spine_contracts import RouteGateReceipt
 from apps_rg.repository_layout import repository_root, resolve_apps_rg_path
-
 __all__ = [
     "APPS_RG_L0_CERT_REF",
     "APPS_RG_ROUTE_FAMILY",
@@ -33,11 +28,9 @@ __all__ = [
     "l0_route_apps_rg",
     "reset_route_profiles_cache",
 ]
-
 # W9 / L3 harness — env var name for managed-workflow test activation (stable symbol)
 _MANAGED_ROUTE_TEST_FLAG = "APPS_RG_MANAGED_WORKFLOW_TEST_ENABLED"
 _MANAGED_ROUTE_PRODUCTION_FLAG = "APPS_RG_ENABLE_MANAGED_WORKFLOW_L0"
-
 CANONICAL_L0_ROUTE_IDS: frozenset[str] = frozenset(
     {
         "R1A_EXACT_CACHE",
@@ -57,7 +50,6 @@ _ROUTE_SELECTION_ORDER: dict[str, int] = {
     "R4_SINGLE_ACTION": 50,
     "R3R4_MANAGED_WORKFLOW": 60,
 }
-
 APPS_RG_L0_CERT_REF: str = "l0-apps-rg-resume-generation-w3"
 # Module-level spine labels mirror the default grounded managed profile (SSOT: route_profiles.yaml).
 APPS_RG_ROUTE_FAMILY: str = "R3R4_MANAGED_WORKFLOW"
@@ -65,30 +57,18 @@ APPS_RG_ROUTE_ID: str = "R3R4_MANAGED_WORKFLOW"
 APPS_RG_CACHE_ELIGIBILITY: str = "profile_driven"
 APPS_RG_HITL_POSTURE: str = "advisory"
 APPS_RG_FALLBACK_ROUTE_ID: str = "R5_FALLBACK"
-
 _ROUTE_PROFILE_RELPATH = Path("apps_rg") / "config" / "domain_contract" / "route_profiles.yaml"
-
 _PROFILE_CACHE: list[dict[str, Any]] | None = None
-
-
 class RouteProfileNotFoundError(FileNotFoundError):
     """Canonical route profile missing on disk."""
-
-
 class RouteProfileSchemaError(ValueError):
     """route_profiles.yaml failed structural validation."""
-
-
 def reset_route_profiles_cache() -> None:
     """Test helper — clears the in-process route profile cache."""
     global _PROFILE_CACHE
     _PROFILE_CACHE = None
-
-
 def _repo_root() -> Path:
     return repository_root(Path(__file__))
-
-
 def _load_profiles() -> list[dict[str, Any]]:
     global _PROFILE_CACHE
     if _PROFILE_CACHE is not None:
@@ -108,23 +88,30 @@ def _load_profiles() -> list[dict[str, Any]]:
         _validate_profile_row(row, idx)
     _PROFILE_CACHE = raw
     return _PROFILE_CACHE
-
-
 def _truthy_env(name: str) -> bool:
     return os.environ.get(name, "").strip().lower() in {"1", "true", "yes", "on"}
-
-
+_ALL_SIX_L1_ROUTE_HINT_KEYS: tuple[str, ...] = (
+    "execution_shape_hint",
+    "multi_work_unit_hint",
+    "merge_needed_hint",
+    "candidate_selection_needed_hint",
+    "grounding_needed_hint",
+    "hitl_risk_hint",
+)
 def _advisory_route_hint_map(plan: L1PlanContract) -> Mapping[str, Any]:
-    hints = getattr(plan, "route_" + "hints", {})
+    hints = getattr(plan, "route_hints", {})
     if isinstance(hints, Mapping):
         return hints
     return {}
-
-
+def _evaluated_l1_route_hints(plan: L1PlanContract) -> dict[str, str]:
+    hints = _advisory_route_hint_map(plan)
+    return {
+        key: str(hints.get(key) or "")
+        for key in _ALL_SIX_L1_ROUTE_HINT_KEYS
+        if str(hints.get(key) or "").strip()
+    }
 def _is_test_posture() -> bool:
     return bool(os.environ.get("PYTEST_CURRENT_TEST") or _truthy_env("APPS_RG_L0_TEST_POSTURE"))
-
-
 def _validate_profile_row(row: Any, idx: int) -> None:
     if not isinstance(row, dict) or "spine" not in row:
         raise RouteProfileSchemaError(f"profile row {idx} must be a dict with 'spine'")
@@ -193,7 +180,7 @@ def _condition_value(plan: L1PlanContract, key: str) -> Any:
     elif root == "policy_refs":
         value = plan.policy_refs or {}
     elif root == "route_hints":
-        return None
+        value = _advisory_route_hint_map(plan)
     else:
         value = getattr(plan, root, None)
     for part in parts:
@@ -596,7 +583,13 @@ def l0_route_apps_rg(plan: L1PlanContract) -> RouteContract:
     ts = datetime.now(timezone.utc).isoformat()
     policy_path = str(_ROUTE_PROFILE_RELPATH).replace("\\", "/")
     advisory_hints = _advisory_route_hint_map(plan)
-    hitl_posture = str(advisory_hints.get("hitl_posture") or row.get("hitl_posture") or "none")
+    evaluated_hints = _evaluated_l1_route_hints(plan)
+    hitl_posture = str(
+        advisory_hints.get("hitl_posture")
+        or evaluated_hints.get("hitl_risk_hint")
+        or row.get("hitl_posture")
+        or "none"
+    )
     hitl_gate_ref = str(row.get("hitl_required_gate_ref") or "")
     route_gate_status = "BLOCKED" if blocking_gate_ids else "PASS"
     block_reason = ""
@@ -621,6 +614,8 @@ def l0_route_apps_rg(plan: L1PlanContract) -> RouteContract:
         f"route_gate_status={route_gate_status}",
         f"hitl_posture={hitl_posture}",
     )
+    for hint_key, hint_val in evaluated_hints.items():
+        reason_codes += (f"l1_route_hint:{hint_key}={hint_val}",)
     if hitl_gate_ref:
         reason_codes += (f"hitl_required_gate_ref={hitl_gate_ref}",)
     if blocking_gate_ids:

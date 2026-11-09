@@ -736,6 +736,49 @@ roles:
       effort: medium
       temperature: null
 
+  reasoning.l1_cognitive_planner:
+    model: claude-sonnet-5
+    provider: external_claude
+    tier: frontier
+    proof_eligible: false
+    owner: apps_rg.l1_cognitive_planner
+    review_after: "2026-11-07"
+    backup_role: null
+    params:
+      effort: medium
+      reasoning_effort: medium
+      ide_dual_mode_role: high_reasoning_roles
+      temperature: null
+
+  reasoning.l1_post_c0_strategist:
+    model: claude-sonnet-5
+    provider: external_claude
+    tier: frontier
+    proof_eligible: true
+    owner: apps_rg.l1_post_c0_strategist
+    review_after: "2026-11-07"
+    backup_role: null
+    params:
+      effort: medium
+      reasoning_effort: medium
+      ide_dual_mode_role: high_reasoning_roles
+      temperature: null
+
+  reasoning.l1_post_l2_reviewer:
+    model: gpt-5.6-luna
+    provider: openai_chatgpt
+    tier: frontier
+    proof_eligible: true
+    owner: apps_rg.l1_post_l2_reviewer
+    review_after: "2026-11-07"
+    backup_role: null
+    params:
+      effort: low
+      reasoning_effort: low
+      ide_dual_mode_role: medium_reasoning_roles
+      orthogonal_to_drafter_family: anthropic
+      temperature: null
+
   # Research
   apps_research.company_brief:
     model: gpt-5.6-terra

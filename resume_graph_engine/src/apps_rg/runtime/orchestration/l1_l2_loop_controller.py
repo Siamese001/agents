@@ -77,16 +77,23 @@ def adapt_l1_plan_from_review(
     for ev_id in det.missing_evidence_ids:
         if ev_id not in req_facts:
             req_facts.append(ev_id)
+    for vf_id in strategy_delta.get("violated_facts") or ():
+        vf_str = str(vf_id).strip()
+        if vf_str and vf_str != "missing_grounding_citation" and vf_str not in req_facts:
+            req_facts.append(vf_str)
     support_exp["required_fact_ids"] = tuple(req_facts)
     plan_dict["support_expectation"] = support_exp
 
-    # 3. Adapt Task Plan (subgoals)
+    # 3. Adapt Task Plan (subgoals & repair_hint)
     current_subgoals = list(plan_dict.get("task_plan") or [])
     unfulfilled = strategy_delta.get("unfulfilled_subgoals", [])
     for unf in unfulfilled:
         directive = f"Ensure complete and explicit fulfillment of: {unf}"
         if directive not in current_subgoals:
             current_subgoals.append(directive)
+    repair_hint = str(strategy_delta.get("repair_hint") or "").strip()
+    if repair_hint:
+        plan_dict["repair_hint"] = repair_hint
     plan_dict["task_plan"] = tuple(current_subgoals)
 
     # 4. Attach Re-plan Metadata
@@ -95,6 +102,31 @@ def adapt_l1_plan_from_review(
     plan_dict["adaptation_critique"] = sem.critique
 
     return plan_dict
+
+
+class L1L2LoopController:
+    """Bounded L1 -> L2 -> L1 feedback loop controller (max_cycles=2)."""
+
+    def __init__(self, max_cycles: int = MAX_LOOP_ITERATIONS_LIMIT) -> None:
+        self.max_cycles = min(max(1, max_cycles), MAX_LOOP_ITERATIONS_LIMIT)
+
+    def run(
+        self,
+        *,
+        initial_request: Mapping[str, Any],
+        planner_fn: Callable[[Mapping[str, Any]], Any],
+        executor_fn: Callable[[Any, Mapping[str, Any], int], Any],
+        execution_packet_resolver_fn: Callable[[Any, int], Any] | None = None,
+        semantic_judge: Callable[[Any, Any], Mapping[str, Any]] | None = None,
+    ) -> L1L2LoopResult:
+        return execute_bounded_l1_l2_loop(
+            initial_request=initial_request,
+            planner_fn=planner_fn,
+            executor_fn=executor_fn,
+            execution_packet_resolver_fn=execution_packet_resolver_fn,
+            max_iterations=self.max_cycles,
+            semantic_judge=semantic_judge,
+        )
 
 
 def execute_bounded_l1_l2_loop(
@@ -136,10 +168,17 @@ def execute_bounded_l1_l2_loop(
         if execution_packet_resolver_fn is not None:
             packet = execution_packet_resolver_fn(current_plan, cycle)
         else:
-            packet = initial_request.get("l2_execution_packet")
+            packet = (
+                initial_request.get("_canonical_l2_packet")
+                or initial_request.get("l2_execution_packet")
+            )
 
-        # 2. Execute L2 tool
-        sealed_l2 = executor_fn(current_plan, initial_request, cycle)
+        # 2. Execute L2 tool (pass adapted request with l1_review_cycle and repair_hint)
+        cycle_request = dict(initial_request)
+        cycle_request["l1_review_cycle"] = cycle
+        if isinstance(current_plan, Mapping) and current_plan.get("repair_hint"):
+            cycle_request["repair_hint"] = current_plan["repair_hint"]
+        sealed_l2 = executor_fn(current_plan, cycle_request, cycle)
         final_sealed = sealed_l2
 
         # 3. L1 Post-L2 Review
@@ -193,6 +232,7 @@ def execute_bounded_l1_l2_loop(
 
 __all__ = [
     "MAX_LOOP_ITERATIONS_LIMIT",
+    "L1L2LoopController",
     "L1L2LoopResult",
     "adapt_l1_plan_from_review",
     "execute_bounded_l1_l2_loop",

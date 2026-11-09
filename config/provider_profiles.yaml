@@ -41,10 +41,13 @@ ide_argon4_routing_policy:
     - ibm_narrative
     - insurtech_narrative
     - ey_narrative
+    - reasoning.l1_cognitive_planner
+    - reasoning.l1_post_c0_strategist
   medium_reasoning_roles:
     - competencies_graph_pool_selector
     - employment_bullet_pool_selector
     - repair.executive_voice
+    - reasoning.l1_post_l2_reviewer
   external_api_retained_only_for:
     - headless_unattended_batch_ci
     - cross_family_x1d_dual_provider_proof_judging
@@ -245,6 +248,33 @@ selector_models:
     owner: apps_rg.employment_bullet_pool
     review_after: "2026-11-07"
     proof_eligible: false
+
+reasoning_models:
+  reasoning.l1_cognitive_planner:
+    provider_key: external_claude
+    model: claude-sonnet-5
+    reasoning_effort: medium
+    ide_dual_mode_role: high_reasoning_roles
+    owner: apps_rg.l1_cognitive_planner
+    review_after: "2026-11-07"
+    proof_eligible: false
+  reasoning.l1_post_c0_strategist:
+    provider_key: external_claude
+    model: claude-sonnet-5
+    reasoning_effort: medium
+    ide_dual_mode_role: high_reasoning_roles
+    owner: apps_rg.l1_post_c0_strategist
+    review_after: "2026-11-07"
+    proof_eligible: true
+  reasoning.l1_post_l2_reviewer:
+    provider_key: openai_chatgpt
+    model: gpt-5.6-luna
+    reasoning_effort: low
+    ide_dual_mode_role: medium_reasoning_roles
+    orthogonal_to_drafter_family: anthropic
+    owner: apps_rg.l1_post_l2_reviewer
+    review_after: "2026-11-07"
+    proof_eligible: true
 
 runtime_limits:
   section_context_window: 131072

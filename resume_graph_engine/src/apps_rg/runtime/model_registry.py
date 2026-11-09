@@ -152,10 +152,11 @@ def resolve(role: str, registry_path: Path | None = None) -> ResolvedModel:
 
     # Candidate keys for role lookup
     candidates = [role]
-    if not role.startswith("generation.") and not role.startswith("proof_judge.") and not role.startswith("selector."):
+    if not role.startswith(("generation.", "proof_judge.", "selector.", "reasoning.")):
         candidates.append(f"generation.{role}")
         candidates.append(f"proof_judge.{role}")
         candidates.append(f"selector.{role}")
+        candidates.append(f"reasoning.{role}")
 
     role_spec = None
     resolved_role_key = role

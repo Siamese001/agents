@@ -1,0 +1,24 @@
+{
+  "wave": "Wave 1",
+  "title": "Dual-Mode L1 Role Registry & Pre-L0 Model Decomposition",
+  "status": "COMPLETE",
+  "timestamp": "2026-11-09T17:41:30Z",
+  "command": ".venv/bin/python -m pytest resume_graph_engine/tests/unit/runtime/test_l1_cognitive_planner_v3_model.py -v --timeout=60",
+  "exit_code": 0,
+  "tests_passed": 3,
+  "regression_suite": {
+    "command": ".venv/bin/python -m pytest resume_graph_engine/tests/unit/apps_rg/runtime/bindings/test_l1_cognitive_planner_v3.py -v --timeout=60",
+    "exit_code": 0,
+    "tests_passed": 33
+  },
+  "verified_invariants": {
+    "no_unapproved_model_call": true,
+    "no_direct_state_mutation": true,
+    "roles_registered": [
+      "reasoning.l1_cognitive_planner",
+      "reasoning.l1_post_c0_strategist",
+      "reasoning.l1_post_l2_reviewer"
+    ],
+    "cross_family_reviewer_orthogonality": true
+  }
+}

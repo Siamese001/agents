@@ -194,6 +194,106 @@
     live_wiring_deferred: false
     wiring_gate: LIVE
 
+- route_profile_id: arpf::apps_rg::resume_generation::single_unit_hint_action::v1
+  app_id: apps_rg
+  task_class: resume_generation
+  version: "1.0.0"
+  status: active
+  selection_order: 48
+  production_enabled: true
+  test_only: false
+  required_activation_flags: []
+  conditions:
+    route_hints.execution_shape_hint: single_work_unit_direct
+    route_hints.candidate_selection_needed_hint: "true"
+    route_hints.grounding_needed_hint: "true"
+  spine:
+    canonical_route_id: R4_SINGLE_ACTION
+    app_route_id: R4_SINGLE_ACTION_CANDIDATE
+    route_family: R4_SINGLE_ACTION
+    execution_form: SINGLE_STEP
+    l3_required: false
+  personalization_default: true
+  provider_model_requirement_ref: apps_rg::provider_model::resume_generation::v1
+  hitl_posture: advisory
+  hitl_required_gate_ref: ""
+  managed_workflow:
+    workflow_ref: ""
+    workflow_manifest_ref: ""
+    workflow_registry_ref: ""
+  budget_constraints:
+    enforced: false
+    profile_present: false
+  graph_traverse:
+    graph_expansion_allowed: true
+    max_hops: 1
+    max_nodes: 32
+    max_edges: 64
+    allowed_relation_types:
+      - DERIVED_FROM
+      - IMPLEMENTS
+      - CONTRADICTS
+      - SOURCE_VERSION
+      - EVIDENCE
+      - SUPPORTS
+      - REQUIRES
+      - RELATED_TO
+    contradiction_scan_enabled: true
+    supersession_scan_enabled: false
+    graph_adapter_ref: apps_rg.integrations.c0_graph_adapter
+    live_wiring_deferred: false
+    wiring_gate: LIVE
+
+- route_profile_id: arpf::apps_rg::resume_generation::multi_unit_hint_managed::v1
+  app_id: apps_rg
+  task_class: resume_generation
+  version: "1.0.0"
+  status: active
+  selection_order: 58
+  production_enabled: true
+  test_only: false
+  required_activation_flags: []
+  conditions:
+    route_hints.execution_shape_hint: multi_work_unit_managed_candidate
+    route_hints.candidate_selection_needed_hint: "true"
+    route_hints.grounding_needed_hint: "true"
+  spine:
+    canonical_route_id: R3R4_MANAGED_WORKFLOW
+    app_route_id: R4_MANAGED_DRAFT
+    route_family: R3R4_MANAGED_WORKFLOW
+    execution_form: MANAGED_WORKFLOW
+    l3_required: true
+  personalization_default: true
+  provider_model_requirement_ref: apps_rg::provider_model::resume_generation::v1
+  hitl_posture: advisory
+  hitl_required_gate_ref: ""
+  managed_workflow:
+    workflow_ref: wfm::apps_rg::resume_generation::v1
+    workflow_manifest_ref: wfm::apps_rg::resume_generation::v1
+    workflow_registry_ref: apps_rg/config/route_registry.yaml
+  budget_constraints:
+    enforced: false
+    profile_present: false
+  graph_traverse:
+    graph_expansion_allowed: true
+    max_hops: 1
+    max_nodes: 32
+    max_edges: 64
+    allowed_relation_types:
+      - DERIVED_FROM
+      - IMPLEMENTS
+      - CONTRADICTS
+      - SOURCE_VERSION
+      - EVIDENCE
+      - SUPPORTS
+      - REQUIRES
+      - RELATED_TO
+    contradiction_scan_enabled: true
+    supersession_scan_enabled: false
+    graph_adapter_ref: apps_rg.integrations.c0_graph_adapter
+    live_wiring_deferred: false
+    wiring_gate: LIVE
+
 - route_profile_id: arpf::apps_rg::resume_generation::default_single_step::v1
   app_id: apps_rg
   task_class: resume_generation
@@ -240,3 +340,4 @@
     graph_adapter_ref: apps_rg.integrations.c0_graph_adapter
     live_wiring_deferred: false
     wiring_gate: LIVE
+

@@ -1,17 +1,14 @@
 """Spine C0/FEC compose — RouteContract + proof pool → section PA (d8f4a2).
-
 Product-visible section PA consumes ``final_evidence_contract.json`` (spine C0 compose)
 or canonical ``FinalEvidenceContract``. Raw ``proof_pool_metadata`` is not PA authority.
 """
 from __future__ import annotations
-
 import json
 import os
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
-
 from apps_rg.runtime.proof_pool_resolver import SectionProofPool
 from apps_rg.runtime.section_spine_terminology import (
     CANONICAL_SPINE_CHAIN,
@@ -21,7 +18,6 @@ from apps_rg.runtime.spine.front_contracts import (
     SectionFrontSpineBridge,
     fixture_dev_bypass_active,
 )
-
 FEC_BRIDGE_ARTIFACT = "final_evidence_contract.json"
 FEC_BRIDGE_RECEIPT = "c0_fec_compose_receipt.json"
 FEC_BRIDGE_MODE_SECTION = "spine_c0_fec_compose"
@@ -30,12 +26,10 @@ CANONICAL_FEC_AUTHORITY_SCOPE = "apps_rg_final_evidence_contract"
 # Legacy receipt/compiled-prompt alias (W4/W5 tests, one-spine certification).
 FEC_BRIDGE_MODE_LEGACY = "section_fec_bridge"
 _ACCEPTED_FEC_BRIDGE_MODES = frozenset({FEC_BRIDGE_MODE_SECTION, FEC_BRIDGE_MODE_LEGACY})
-
 OBSERVED_CHAIN_WITH_FEC_BRIDGE: tuple[str, ...] = (
     "CLI", "apps_rg_spine_run", "U0", "L1", "L0", "c0_retrieve_apps_rg",
     "spine_c0_fec_compose", "pa_compose_apps_rg", "l2_execute_apps_rg", "ExitEvalPipeline", "section_L6_shadow",
 )
-
 _PA_AUTHORITY_KEYS: tuple[str, ...] = (
     "evidence_authority",
     "selection_scope",
@@ -69,7 +63,6 @@ _PA_AUTHORITY_KEYS: tuple[str, ...] = (
     "final_graph_evidence_contract_digest",
     "durable_graph_state_mutated",
 )
-
 # Graph bundle consumption flags + packet refs (attach_*_to_proof_pool_metadata).
 _PA_GRAPH_BUNDLE_AUTHORITY_KEYS: tuple[str, ...] = (
     "competency_capability_bundle_consumption",
@@ -98,16 +91,11 @@ _PA_GRAPH_BUNDLE_AUTHORITY_KEYS: tuple[str, ...] = (
     "graph_expansion_consumes_role_episode_bundles",
     "approved_metric_outcome_ids",
 )
-
-
 class SectionFecBridgePreconditionError(RuntimeError):
     """Raised when product-visible PA runs without FEC bridge or canonical FEC."""
-
-
 @dataclass(frozen=True, slots=True)
 class SectionFecBridge:
     """FEC bridge bundle between proof_pool resolution and section PA."""
-
     section_id: str
     bridge_doc: dict[str, Any]
     product_visible: bool = True
@@ -609,12 +597,23 @@ def _attach_l1_cognitive_c0_revision(
             front_spine.l1_plan,
             required=True,
         )
+        career_thesis_plan = runtime_payload.get("career_thesis_plan")
+        if career_thesis_plan is None:
+            env_plan_path = os.environ.get("APPS_RG_CAREER_THESIS_PLAN_PATH", "").strip()
+            if env_plan_path and Path(env_plan_path).is_file():
+                try:
+                    loaded_plan = json.loads(Path(env_plan_path).read_text(encoding="utf-8"))
+                    if isinstance(loaded_plan, dict):
+                        career_thesis_plan = loaded_plan
+                except (OSError, json.JSONDecodeError):
+                    career_thesis_plan = None
         revision = build_l1_cognitive_revision_from_c0_outcome(
             cognitive_plan=cognitive_plan,
             outcome_receipt=outcome_receipt,
             outcome_receipt_ref=sr.FILENAME_L1_COGNITIVE_C0_OUTCOME_RECEIPT,
             v2_capsule=v2_capsule,
             c0_obligation_receipt=obligation_receipt,
+            career_thesis_plan=career_thesis_plan,
         )
         revision_advisory = build_l1_cognitive_revision_advisory(
             cognitive_plan=cognitive_plan,
@@ -635,6 +634,8 @@ def _attach_l1_cognitive_c0_revision(
     )
     runtime_payload["l1_cognitive_revision"] = revision
     runtime_payload["l1_cognitive_revision_advisory"] = revision_advisory
+    if career_thesis_plan is not None:
+        runtime_payload["career_thesis_plan"] = career_thesis_plan
     runtime_payload["l1_cognitive_revision_ref"] = sr.FILENAME_L1_COGNITIVE_REVISION
     runtime_payload["l1_cognitive_revision_advisory_ref"] = (
         sr.FILENAME_L1_COGNITIVE_REVISION_ADVISORY

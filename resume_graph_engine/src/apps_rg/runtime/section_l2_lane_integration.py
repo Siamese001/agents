@@ -185,14 +185,24 @@ def finalize_section_l2_after_output(
         except Exception:
             sealed_data = {}
 
-    execution_packet = runtime_payload.get("l2_execution_packet")
-    l1_plan = runtime_payload.get("l1_plan")
+    execution_packet = (
+        runtime_payload.get("_canonical_l2_packet")
+        or runtime_payload.get("l2_execution_packet")
+    )
+    front_spine = runtime_payload.get("_section_front_spine")
+    l1_plan = (
+        getattr(front_spine, "l1_plan", None)
+        if front_spine is not None and getattr(front_spine, "l1_plan", None) is not None
+        else runtime_payload.get("l1_plan")
+    )
+    semantic_judge = runtime_payload.get("l1_semantic_judge")
 
     review_contract = evaluate_l1_post_l2_review(
         sealed_artifact=sealed_data,
         execution_packet=execution_packet,
         l1_plan=l1_plan,
         review_cycle=int(runtime_payload.get("l1_review_cycle", 1)),
+        semantic_judge=semantic_judge if callable(semantic_judge) else None,
     )
 
     review_path = artifact_dir / "l1_post_tool_review.json"

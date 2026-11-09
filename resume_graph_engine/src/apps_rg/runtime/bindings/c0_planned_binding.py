@@ -30,6 +30,83 @@ from apps_rg.runtime.contracts.l1_cognitive_c0_outcome_receipt import (
 )
 
 
+from dataclasses import dataclass, replace
+import hashlib
+import json
+from typing import Any, Mapping
+
+
+@dataclass(frozen=True)
+class C0RetrievalPlan:
+    """Typed C0 retrieval plan carrying L1 semantic sub-queries and competency weights."""
+
+    request_id: str
+    run_id: str
+    trace_id: str
+    capsule_digest: str
+    semantic_sub_queries: tuple[dict[str, Any], ...]
+    competency_weights: dict[str, float]
+    plan_digest: str
+
+
+def build_c0_retrieval_plan(l1_plan: L1PlanContract) -> C0RetrievalPlan:
+    """Extract L1 semantic sub-queries and competency weights into a C0RetrievalPlan."""
+    capsule, _verification = extract_verified_planning_capsule(l1_plan, required=True)
+    capsule_digest = str(capsule.get("capsule_digest") or "")
+
+    semantic_sub_queries: list[dict[str, Any]] = []
+    competency_weights: dict[str, float] = {}
+
+    cognitive_plan = extract_l1_cognitive_plan(l1_plan, required=False)
+    if isinstance(cognitive_plan, Mapping):
+        decomp = cognitive_plan.get("goal_decomposition_ledger")
+        if isinstance(decomp, Mapping):
+            raw_queries = decomp.get("semantic_sub_queries") or ()
+            for q in raw_queries:
+                if isinstance(q, Mapping):
+                    semantic_sub_queries.append(dict(q))
+            raw_weights = decomp.get("competency_weights")
+            if isinstance(raw_weights, Mapping):
+                competency_weights = {
+                    str(k): float(v) for k, v in raw_weights.items()
+                }
+
+    query_spec = getattr(l1_plan, "query_spec", None)
+    if isinstance(query_spec, Mapping):
+        if not semantic_sub_queries and isinstance(
+            query_spec.get("semantic_sub_queries"), (list, tuple)
+        ):
+            for q in query_spec["semantic_sub_queries"]:
+                if isinstance(q, Mapping):
+                    semantic_sub_queries.append(dict(q))
+        if not competency_weights and isinstance(
+            query_spec.get("competency_weights"), Mapping
+        ):
+            competency_weights = {
+                str(k): float(v) for k, v in query_spec["competency_weights"].items()
+            }
+
+    payload = {
+        "request_id": l1_plan.request_id,
+        "run_id": l1_plan.run_id,
+        "trace_id": l1_plan.trace_id,
+        "capsule_digest": capsule_digest,
+        "semantic_sub_queries": semantic_sub_queries,
+        "competency_weights": competency_weights,
+    }
+    canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str)
+    plan_digest = "sha256:" + hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+    return C0RetrievalPlan(
+        request_id=l1_plan.request_id,
+        run_id=l1_plan.run_id,
+        trace_id=l1_plan.trace_id,
+        capsule_digest=capsule_digest,
+        semantic_sub_queries=tuple(semantic_sub_queries),
+        competency_weights=competency_weights,
+        plan_digest=plan_digest,
+    )
+
+
 def c0_retrieve_apps_rg_planned(
     route: Any,
     validated_request: ValidatedRequest,
@@ -45,6 +122,7 @@ def c0_retrieve_apps_rg_planned(
             f"got {type(l1_plan).__name__}"
         )
     capsule, _verification = extract_verified_planning_capsule(l1_plan, required=True)
+    retrieval_plan = build_c0_retrieval_plan(l1_plan)
     fec = c0_retrieve_apps_rg(
         route,
         validated_request,
@@ -106,7 +184,18 @@ def c0_retrieve_apps_rg_planned(
                 raise C0EvidenceGapError(
                     "C0 completed without exact L1 v3 cognitive outcome reconciliation"
                 )
+    if retrieval_plan.semantic_sub_queries:
+        new_audit_refs = list(audit_refs)
+        subq_ref = f"l1_c0_retrieval_plan_digest:{retrieval_plan.plan_digest}"
+        if subq_ref not in new_audit_refs:
+            new_audit_refs.append(subq_ref)
+        fec = replace(fec, audit_refs=tuple(new_audit_refs))
     return fec
 
 
-__all__ = ["c0_retrieve_apps_rg_planned"]
+__all__ = [
+    "C0RetrievalPlan",
+    "build_c0_retrieval_plan",
+    "c0_retrieve_apps_rg_planned",
+]
+
