@@ -156,15 +156,47 @@ def scan_all_production_files(repo_root: Path, max_lines: int = DEFAULT_MAX_LINE
     return violations
 
 
+def clamp_ratchet_to_current_lines(
+    repo_root: Path,
+    max_lines: int = DEFAULT_MAX_LINES,
+    write: bool = False,
+) -> dict[str, dict[str, int]]:
+    """Tighten grandfathered ratchet ceilings downward when files shrink (Section 7.1)."""
+    ratchet = load_ratchet(repo_root)
+    clamped: dict[str, dict[str, int]] = {}
+    for rel_str, entry in list(ratchet.items()):
+        if not isinstance(entry, dict):
+            continue
+        file_path = repo_root / rel_str
+        if not file_path.is_file():
+            continue
+        line_count = len(file_path.read_text(encoding="utf-8", errors="replace").splitlines())
+        old_limit = int(entry.get("line_limit", max_lines))
+        if line_count <= max_lines:
+            del ratchet[rel_str]
+            clamped[rel_str] = {"old_limit": old_limit, "new_limit": max_lines, "removed": 1}
+        elif line_count < old_limit:
+            entry["line_limit"] = line_count
+            clamped[rel_str] = {"old_limit": old_limit, "new_limit": line_count, "removed": 0}
+    if write and clamped:
+        ratchet_file = repo_root / RATCHET_REL_PATH
+        ratchet_file.write_text(json.dumps(ratchet, indent=2) + "\n", encoding="utf-8")
+    return clamped
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Deterministic file budget linter.")
     parser.add_argument("--files", nargs="*", help="Specific files to check (e.g. from staged changes)")
     parser.add_argument("--all", action="store_true", help="Scan all production Python files in the repository")
+    parser.add_argument("--clamp-ratchet", action="store_true", help="Tighten ratchet ceilings downward to current line counts")
     parser.add_argument("--max-lines", type=int, default=DEFAULT_MAX_LINES, help=f"Max lines budget (default {DEFAULT_MAX_LINES})")
     parser.add_argument("--repo-root", default=".", help="Root of repository")
 
     args = parser.parse_args(argv)
     repo_root = Path(args.repo_root).resolve()
+    if args.clamp_ratchet:
+        clamped = clamp_ratchet_to_current_lines(repo_root, max_lines=args.max_lines, write=True)
+        print(f"[CLAMP] Tightened {len(clamped)} ratchet ceiling(s).")
     ratchet = load_ratchet(repo_root)
 
     violations = []

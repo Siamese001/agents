@@ -71,6 +71,11 @@ Governs Human-in-the-Loop (HITL) decisions, approvals, and clarifications across
      2. **Adaptive Thinking Ceiling Isolation**: Lock compact selection and grading lanes to `reasoning_effort: low` when thinking tokens share the output token cap.
      3. **Cross-Family Judge Independence**: Enforce strict provider orthogonality between section generators and proof judges to prevent self-preference bias.
 
+10. **Multi-Agent & Teamwork Interview Relay Decomposition (`INV-HITL-RELAY-DECOMPOSITION`)**
+   - When relaying an upstream interview questionnaire or task prompt approval draft from `/teamwork` (`teamwork_interviewer`) or any sub-agent, never dump multi-question menus as plain text in chat or pass bundled/jargon questions to `ask_question`.
+   - Decompose genuinely ambiguous scope or design questions ($\Delta \le 20\%$) into sequential, atomic, 100% plain-English `ask_question` calls (`<= 120` characters per option, calibrated confidence, `Impact: ...`).
+   - Resolve default administrative questions with $\Delta > 20\%$ autonomously under a recorded audit receipt, and present the final task prompt draft approval via an atomic `ask_question` call.
+
 ## Decision Structure
 
 Use the `ask_question` tool with concise, fully visible plain-English parameters:

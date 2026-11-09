@@ -476,6 +476,14 @@ def handle_pre_subagent_delegation(payload: Dict[str, Any], repo_root: Path) -> 
 
     # For standard Antigravity invoke_subagent(TypeName, Role, Prompt), check if Prompt embeds a JSON contract
     prompt_text = str(args.get("Prompt") or args.get("prompt") or args.get("Task") or "").strip()
+    type_name = str(args.get("TypeName") or args.get("type_name") or "").strip().lower()
+    if type_name == "teamwork" and prompt_text:
+        try:
+            orig_req = repo_root / ".agents" / "teamwork" / "ORIGINAL_REQUEST.md"
+            orig_req.parent.mkdir(parents=True, exist_ok=True)
+            orig_req.write_text(f"{prompt_text}\n", encoding="utf-8")
+        except OSError:  # guardian: allow-silent-swallow -- best-effort teamwork request sync
+            pass
     if "delegation_contract" in prompt_text:
         try:
             m = re.search(r"\{[\s\S]*\"delegation_contract\"[\s\S]*\}", prompt_text)

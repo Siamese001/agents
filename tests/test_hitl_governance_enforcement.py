@@ -404,6 +404,78 @@ class HitlGovernanceEnforcementTests(unittest.TestCase):
         errs_compound = validate_hitl_presentation(compound_payload, enforce_visibility_and_jargon=True)
         self.assertTrue(any("HITL_VIOLATION_BUNDLED_QUESTIONS" in e for e in errs_compound))
 
+    def test_decisive_recommendation_gate_blocks_plaintext_teamwork_questionnaire(self) -> None:
+        """Plain-text lettered option menus and questionnaire headers must be intercepted."""
+        from tools.validate_turn_gates import validate_decisive_recommendation_gate
+
+        questionnaire_text = (
+            "To prepare the task prompt, please answer the following questions:\n\n"
+            "1. What should the team deliver?\n"
+            "   (a) An explanatory analysis\n"
+            "   (b) Active refactoring\n"
+        )
+        res = validate_decisive_recommendation_gate(questionnaire_text)
+        self.assertEqual(res["status"], "FAIL")
+        self.assertGreaterEqual(len(res["violations"]), 1)
+
+    def test_pre_subagent_delegation_syncs_teamwork_original_request(self) -> None:
+        """Invoking teamwork subagent synchronizes .agents/teamwork/ORIGINAL_REQUEST.md."""
+        from tools.hook_dispatch import handle_pre_subagent_delegation
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_root = Path(tmpdir)
+            orig_req = tmp_root / ".agents" / "teamwork" / "ORIGINAL_REQUEST.md"
+            orig_req.parent.mkdir(parents=True, exist_ok=True)
+            orig_req.write_text("Stale request from prior session\n", encoding="utf-8")
+
+            rc = handle_pre_subagent_delegation(
+                {
+                    "toolCall": {
+                        "name": "invoke_subagent",
+                        "args": {
+                            "TypeName": "teamwork",
+                            "Role": "Teamwork Coordinator",
+                            "Prompt": "Investigate why large files are not modularized.",
+                        },
+                    }
+                },
+                tmp_root,
+            )
+            self.assertEqual(rc, 0)
+            self.assertEqual(orig_req.read_text(encoding="utf-8"), "Investigate why large files are not modularized.\n")
+
+    def test_dynamic_file_budget_ratchet_clamping(self) -> None:
+        """Dynamic ratchet clamping tightens shrunk ceilings and removes files <= 600 lines."""
+        import json
+        from tools.lint_file_budgets import RATCHET_REL_PATH, clamp_ratchet_to_current_lines
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_root = Path(tmpdir)
+            mod_a = tmp_root / "tools" / "shrunk_monolith.py"
+            mod_b = tmp_root / "tools" / "fully_modularized.py"
+            mod_a.parent.mkdir(parents=True, exist_ok=True)
+            mod_a.write_text("x = 1\n" * 700, encoding="utf-8")
+            mod_b.write_text("x = 1\n" * 400, encoding="utf-8")
+
+            ratchet_path = tmp_root / RATCHET_REL_PATH
+            ratchet_path.parent.mkdir(parents=True, exist_ok=True)
+            ratchet_path.write_text(
+                json.dumps(
+                    {
+                        "tools/shrunk_monolith.py": {"line_limit": 900, "justification": "legacy"},
+                        "tools/fully_modularized.py": {"line_limit": 850, "justification": "legacy"},
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            clamped = clamp_ratchet_to_current_lines(tmp_root, max_lines=600, write=True)
+            self.assertEqual(clamped["tools/shrunk_monolith.py"]["new_limit"], 700)
+            self.assertEqual(clamped["tools/fully_modularized.py"]["removed"], 1)
+            updated = json.loads(ratchet_path.read_text(encoding="utf-8"))
+            self.assertEqual(updated["tools/shrunk_monolith.py"]["line_limit"], 700)
+            self.assertNotIn("tools/fully_modularized.py", updated)
+
 
 if __name__ == "__main__":
     unittest.main()
