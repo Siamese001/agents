@@ -425,10 +425,10 @@ def _good_unify_bullets():
     ]
     change_log = [
         {"bullet_id": "bul_unify_001", "role_episode_bundle_id": "reb_unify_agentic_platform_architecture", "graph_skill_node_ids": ["skill_governed_agentic_systems_architecture"], "source_fact_ids": ["fact_engineering_platform_001"]},
-        {"bullet_id": "bul_unify_002", "role_episode_bundle_id": "reb_unify_dependency_graph_accelerator", "graph_skill_node_ids": ["skill_dependency_and_join_control"], "source_fact_ids": ["fact_engineering_platform_005"]},
+        {"bullet_id": "bul_unify_002", "role_episode_bundle_id": "reb_unify_dependency_graph_accelerator", "graph_skill_node_ids": ["skill_dependency_and_join_control"], "source_fact_ids": ["fact_engineering_platform_002"]},
         {"bullet_id": "bul_unify_003", "role_episode_bundle_id": "reb_unify_runtime_reliability_governance", "graph_skill_node_ids": ["skill_audit_grade_observability"], "source_fact_ids": ["fact_engineering_platform_003"]},
         {"bullet_id": "bul_unify_004", "role_episode_bundle_id": "reb_unify_production_adoption_lifecycle", "graph_skill_node_ids": ["skill_managed_workflow_orchestration"], "source_fact_ids": ["fact_engineering_platform_004"], "metric_outcome_ids": ["metric_unify_cycle_six_months_to_three_weeks"]},
-        {"bullet_id": "bul_unify_005", "role_episode_bundle_id": "reb_unify_distributed_ecosystem_engineering", "graph_skill_node_ids": ["skill_sr_cloud_data_platform_engineering"], "source_fact_ids": ["fact_engineering_platform_002"]},
+        {"bullet_id": "bul_unify_005", "role_episode_bundle_id": "reb_unify_distributed_ecosystem_engineering", "graph_skill_node_ids": ["skill_sr_cloud_data_platform_engineering"], "source_fact_ids": ["fact_engineering_platform_005"]},
         {"bullet_id": "bul_unify_006", "role_episode_bundle_id": "reb_unify_platform_commercialization_leadership", "graph_skill_node_ids": ["skill_ai_platform_commercialization"], "source_fact_ids": ["fact_engineering_platform_006"], "metric_outcome_ids": ["metric_unify_22m_ip_led_revenue", "metric_unify_20pct_gross_margin_expansion"]},
     ]
     return bullets, {"bullets": bullets, "change_log": change_log}

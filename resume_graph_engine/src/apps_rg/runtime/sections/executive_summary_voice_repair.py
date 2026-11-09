@@ -113,7 +113,7 @@ _AI_PARTNERSHIP_EVIDENCE_LED_S6 = (
 _AI_PARTNERSHIP_COHERENCE_COMPACTION: tuple[str, ...] = (
     "Engineering executive who embedded release automation and security scanning, including automated release pipelines and DevSecOps scanning, in regulated modernization delivery, strengthening the foundation for secure enterprise-scale platform architecture.",
     "On that foundation, architected an agentic AI platform control plane with explicit decision rules for governed deployment across complex enterprise environments.",
-    "Software dependency graph intelligence enables accelerated legacy-system analysis, exposes architecture dependency chains, and improves transformation visibility across enterprise complexity.",
+    "Established architecture governance and automated release controls to modernize complex systems while maintaining continuous deployment resilience.",
     "Established clear human review and escalation paths for policy-gated AI deployments, keeping intervention and accountability visible at critical decision points.",
     "Expanded enterprise AI adoption through reusable platform solutions, carrying that combined technical and commercial discipline into partner ecosystems.",
     "Generated $22M in IP-led revenue growth through platform productization, converting reusable technical capability into commercialized enterprise solutions.",
@@ -710,11 +710,7 @@ def _dedupe_dependency_graph_sentences(
     if len(graph_idxs) <= 1:
         return sentences
 
-    override = str(FACT_C0_DISPLAY_OVERRIDES.get(DEPENDENCY_GRAPH_FACT_ID) or "").strip()
-    keep = next(
-        (i for i in graph_idxs if _GRAPH_OVERRIDE_ANCHOR in sentences[i].lower()),
-        graph_idxs[0],
-    )
+    keep = graph_idxs[0]
     allowed = {
         str(f.get("fact_id") or "").strip()
         for f in selected_facts or []
@@ -726,8 +722,6 @@ def _dedupe_dependency_graph_sentences(
     out = list(sentences)
     for idx in graph_idxs:
         if idx == keep:
-            if override:
-                out[idx] = override
             continue
         if need_team:
             out[idx] = (
@@ -816,28 +810,8 @@ def _ensure_dependency_graph_display_override(
     selected_facts: list[dict[str, Any]] | None,
     cited_fact_ids: set[str] | None = None,
 ) -> list[str]:
-    """Keep DISPLAY_OVERRIDE graph prose (fact_engineering_platform_002) in the six-sentence arc."""
-    from apps_rg.runtime.sections.executive_summary_synthesis_contract import DEPENDENCY_GRAPH_FACT_ID, FACT_C0_DISPLAY_OVERRIDES
-
-    direct_ids = {str(f.get("fact_id") or f.get("candidate_fact_id") or "").strip() for f in selected_facts or [] if isinstance(f, dict)}
-    auth_ids = _selected_fact_authority_ids(selected_facts)
-    if DEPENDENCY_GRAPH_FACT_ID not in direct_ids and not (DEPENDENCY_GRAPH_FACT_ID in auth_ids and DEPENDENCY_GRAPH_FACT_ID in (cited_fact_ids or set())):
-        return sentences
-    override = str(FACT_C0_DISPLAY_OVERRIDES.get(DEPENDENCY_GRAPH_FACT_ID) or "").strip()
-    if not override:
-        return sentences
-    out = list(sentences)
-    if _GRAPH_OVERRIDE_ANCHOR in " ".join(out).lower():
-        for idx, sent in enumerate(out):
-            if "dependency graph" in sent.lower() and "release automation" not in sent.lower() and "devsecops" not in sent.lower():
-                out[idx] = override
-        return out
-    insert_at = 2 if len(out) > 2 else max(0, len(out) - 1)
-    if insert_at < len(out) and "basel iii" in out[insert_at].lower():
-        insert_at = min(insert_at + 1, len(out) - 1)
-    if insert_at < len(out):
-        out[insert_at] = override
-    return out
+    """Allow natural synthesis for fact_engineering_platform_002 without forced canned override."""
+    return sentences
 
 
 def _weave_agentic_platform_body_bridge(
@@ -1051,11 +1025,6 @@ _CANONICAL_DISPLAY_SENTENCES: dict[str, str] = {
         "Applied across enterprise programs, Basel III and CCAR data lineage and "
         "automated validation frameworks cut regulatory reporting errors by 40%."
     ),
-    "fact_engineering_platform_002": (
-        "Software dependency graph intelligence enables accelerated legacy-system analysis, "
-        "exposes architecture dependency chains, and improves transformation visibility "
-        "across enterprise complexity."
-    ),
     "fact_quant_hpc_003": (
         "That regulatory foundation is grounded in quantitative rigor established through "
         "FSA-chartered actuarial work in capital modeling and portfolio stress analytics, "
@@ -1074,7 +1043,6 @@ _CANONICAL_DISPLAY_SENTENCES: dict[str, str] = {
 
 _CANONICAL_FACT_SLOT: dict[str, int] = {
     "fact_governance_003": 1,
-    "fact_engineering_platform_002": 2,
     "fact_quant_hpc_003": 3,
     "fact_consulting_001": 4,
     "fact_exec_002": 5,
@@ -1198,24 +1166,44 @@ def _source_fact_ids_for_display_sentence(sentence: str) -> list[str]:
     # Metric patterns first — most specific, least ambiguous.
     # $22M IP-led revenue + 20% margin → fact_engineering_platform_006 (commercialization metrics).
     # When the same sentence also names team scale (8→28 from fact_exec_002), cite both.
-    has_revenue_metric = bool(re.search(r"\$22m", low)) and "20%" in low
+    has_revenue_metric = bool(re.search(r"\$22m", low)) and ("20%" in low or "gross margin" in low or "revenue" in low)
     has_team_scale = bool(re.search(r"\b8\s+to\s+28\b", sentence, re.I))
     if bool(re.search(r"\$22m", low)):
-        if "platform commercialization" in low and has_revenue_metric and has_team_scale:
-            return [
-                "reb_unify_platform_commercialization_leadership",
-                "metric_unify_22m_ip_led_revenue",
-                "metric_unify_20pct_gross_margin_expansion",
-            ]
+        is_graph_era_or_multi = (
+            "platform commercialization" in low
+            or "commercialization leadership" in low
+            or "insurtech" in low
+            or "policy administration" in low
+            or "migration execution" in low
+            or "agentic platform" in low
+            or "partner channel" in low
+            or "dependency graph" in low
+            or "regulated delivery foundation" in low
+        )
+        if is_graph_era_or_multi:
+            res: list[str] = ["reb_unify_platform_commercialization_leadership", "metric_unify_22m_ip_led_revenue"]
+            if "20%" in low or "gross margin" in low:
+                res.append("metric_unify_20pct_gross_margin_expansion")
+            if has_team_scale:
+                res.append("metric_unify_team_scaled_8_to_28")
+            if "agentic ai platform" in low or "agentic platform" in low:
+                res.append("reb_unify_agentic_platform_architecture")
+            if "insurtech" in low or "policy administration" in low or "migration execution" in low:
+                res.append("reb_insurtech_aws_migration_execution")
+            if "devsecops" in low or "release automation" in low:
+                res.append("reb_ibm_devsecops_release_resilience")
+            if "distributed cloud" in low or "databricks" in low:
+                res.append("reb_unify_distributed_ecosystem_engineering")
+            if "partner channel" in low or "alliance co-sell" in low or "co-sell" in low:
+                res.append("reb_unify_partner_channel_cosell")
+            if "dependency graph" in low:
+                res.extend(["reb_unify_dependency_graph_accelerator", "fact_engineering_platform_002"])
+            return list(dict.fromkeys(res))
         if has_revenue_metric and has_team_scale:
             return ["fact_engineering_platform_006", "fact_exec_002"]
         if has_revenue_metric:
             return ["fact_engineering_platform_006"]
-        return [
-            "reb_unify_platform_commercialization_leadership",
-            "metric_unify_22m_ip_led_revenue",
-            "skill_agentic_platform_productization",
-        ]
+        return ["reb_unify_platform_commercialization_leadership", "metric_unify_22m_ip_led_revenue"]
     if (
         "regulated delivery foundation" in low
         and "ip-led" in low
@@ -1249,8 +1237,8 @@ def _source_fact_ids_for_display_sentence(sentence: str) -> list[str]:
     _leg_fids = match_legacy_regulated_source_fact_ids(low)
     if _leg_fids is not None:
         return _leg_fids
-    # Graph DISPLAY_OVERRIDE anchor.
-    if _GRAPH_OVERRIDE_ANCHOR in low:
+    # Natural dependency graph mention or legacy anchor.
+    if _GRAPH_OVERRIDE_ANCHOR in low or "dependency graph" in low:
         if "governed agentic ai platform" in low:
             return ["fact_engineering_platform_002", "fact_engineering_platform_001"]
         return ["fact_engineering_platform_002"]
@@ -1517,7 +1505,9 @@ def _rebuild_claim_ledger_from_display(parsed: dict[str, Any]) -> dict[str, Any]
                 "reb_unify_agentic_platform_architecture", "reb_ey_erm_risk_governance",
                 "reb_insurtech_aws_migration_execution", DEPENDENCY_GRAPH_FACT_ID,
             }
-            fids = list(dict.fromkeys(prior_fids + anchor_fids)) if (_anchor_override & set(anchor_fids)) else prior_fids
+            needs_anchor = bool(_anchor_override & set(anchor_fids)) and not bool(_anchor_override & set(prior_fids))
+            is_legacy_profile = any(f.startswith("fact_") for f in prior_fids) and not any(f.startswith("reb_") for f in prior_fids)
+            fids = list(dict.fromkeys(prior_fids + anchor_fids)) if (needs_anchor and not is_legacy_profile) else prior_fids
         else:
             fids = anchor_fids
             if not fids:
@@ -1902,6 +1892,29 @@ def _rebuild_canonical_six_sentence_arc(
         canon = _CANONICAL_DISPLAY_SENTENCES.get(fid, "")
         if canon:
             arc.append(canon)
+    if len(arc) < 6:
+        fact_by_id = {str(f.get("fact_id") or "").strip(): f for f in selected_facts or [] if isinstance(f, dict)}
+        if "fact_engineering_platform_002" in allowed:
+            graph_sent = (
+                "Software dependency graph intelligence exposes architecture dependency chains "
+                "to accelerate modernization across complex distributed systems."
+            )
+            arc.insert(2, graph_sent) if len(arc) >= 2 else arc.append(graph_sent)
+        for fid, fact in fact_by_id.items():
+            if len(arc) >= 6:
+                break
+            if fid in _CANONICAL_FACT_SLOT or fid == "fact_engineering_platform_002":
+                continue
+            claim = str(fact.get("claim_text") or "").strip()
+            if len(claim.split()) >= 6:
+                arc.append(claim if claim.endswith(".") else f"{claim}.")
+        if len(arc) < 6 and sentences:
+            for s in sentences:
+                s_clean = s.strip()
+                if s_clean and s_clean not in arc:
+                    arc.append(s_clean)
+                if len(arc) >= 6:
+                    break
     return arc[:6] if len(arc) >= 6 else arc
 
 
@@ -2035,10 +2048,6 @@ def _align_display_override_anchors_in_resume(
     for fid, anchor in _DISPLAY_OVERRIDE_REQUIRED_SUBSTRINGS.items():
         if fid not in cited or anchor in low:
             continue
-        # Hard gate: never inject a DISPLAY_OVERRIDE for a fact that isn't in the allowed
-        # pool. Voice-repair patterns occasionally surface adjacent facts (e.g. S6 federation
-        # patterns cite the graph fact); aligning to a non-allowed fact creates orphan
-        # citations the lane filter then has to strip.
         if allowed and fid not in allowed:
             continue
         override = str(FACT_C0_DISPLAY_OVERRIDES.get(fid) or "").strip()
@@ -2046,7 +2055,7 @@ def _align_display_override_anchors_in_resume(
             continue
         for idx, sent in enumerate(sentences):
             sent_low = sent.lower()
-            if fid == DEPENDENCY_GRAPH_FACT_ID and "dependency graph" in sent_low:
+            if fid == "fact_quant_hpc_003" and ("fsa" in sent_low or "actuarial" in sent_low):
                 sentences[idx] = override
                 changed = True
                 break

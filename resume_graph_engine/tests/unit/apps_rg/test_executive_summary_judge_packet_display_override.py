@@ -66,7 +66,9 @@ def test_enricher_attaches_display_override_text_for_overridden_fact_ids() -> No
     assert fsa_row["display_substrate_authority"] == "union_claim_text_and_display_override_text"
 
     graph_row = by_fid[DEPENDENCY_GRAPH_FACT_ID]
-    assert graph_row["display_override_text"] == FACT_C0_DISPLAY_OVERRIDES[DEPENDENCY_GRAPH_FACT_ID]
+    assert "display_override_text" not in graph_row, (
+        "fact_engineering_platform_002 has no forced C0 display override"
+    )
 
     gov_row = by_fid["fact_governance_003"]
     assert "display_override_text" not in gov_row, (
@@ -103,7 +105,6 @@ def test_parity_validator_fails_closed_when_override_stripped() -> None:
     assert detail is not None
     assert "judge_packet_missing_display_override_text" in detail
     assert FSA_CREDENTIAL_FACT_ID in detail
-    assert DEPENDENCY_GRAPH_FACT_ID in detail
 
 
 def test_parity_validator_skips_uncited_overrides() -> None:
@@ -173,10 +174,7 @@ def test_full_packet_build_emits_parity_gate_in_deterministic_gate_summary() -> 
         judge_rows_by_fid[FSA_CREDENTIAL_FACT_ID]["display_override_text"]
         == FACT_C0_DISPLAY_OVERRIDES[FSA_CREDENTIAL_FACT_ID]
     )
-    assert (
-        judge_rows_by_fid[DEPENDENCY_GRAPH_FACT_ID]["display_override_text"]
-        == FACT_C0_DISPLAY_OVERRIDES[DEPENDENCY_GRAPH_FACT_ID]
-    )
+    assert "display_override_text" not in judge_rows_by_fid[DEPENDENCY_GRAPH_FACT_ID]
 
 
 if __name__ == "__main__":  # pragma: no cover

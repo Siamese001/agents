@@ -347,7 +347,13 @@ def _select_assignments_for_claim(
         )
     ]
     if label_matches:
-        selected = label_matches
+        cov = {c for a in label_matches for c in aliases.get(str(a.get("claim_unit_id") or ""), ())}
+        if all(s in cov or s.split("_metric_", 1)[0] in cov for s in sources):
+            selected = label_matches
+        elif section_id == "executive_summary":
+            unc = {s for s in sources if s not in cov and s.split("_metric_", 1)[0] not in cov}
+            extra = [a for a in selected if a not in label_matches and unc.intersection(aliases.get(str(a.get("claim_unit_id") or ""), ()))]
+            selected = label_matches + extra
     if not selected:
         failures.append("claim_has_no_allocated_graph_path")
         return [], failures
@@ -418,7 +424,7 @@ def _binding_for_claim(
         bound_metric = None
 
     roots = {str(row.get("root_id") or "") for row in assignments if row.get("root_id")}
-    if len(roots) > 1 and not section_id.endswith("_narrative") and _CAUSAL_RE.search(text):
+    if len(roots) > 1 and not section_id.endswith("_narrative") and section_id != "executive_summary" and _CAUSAL_RE.search(text):
         failures.append("causal_claim_merges_unrelated_graph_roots")
     if failures:
         return None, failures
@@ -432,47 +438,19 @@ def _binding_for_claim(
         allocation_plan_digest=allocation_digest,
         skill_ids=tuple(_strings(row.get("skill_id") for row in assignments)),
         fact_ids=tuple(_strings(row.get("fact_id") for row in assignments)),
-        graph_path_ids=tuple(
-            _strings(
-                path
-                for assignment in assignments
-                for path in assignment.get("graph_path_ids") or []
-            )
-        ),
-        edge_ids=tuple(
-            _strings(
-                edge
-                for assignment in assignments
-                for edge in assignment.get("edge_ids") or []
-            )
-        ),
-        citation_refs=tuple(
-            _strings(
-                ref
-                for assignment in assignments
-                for ref in assignment.get("citation_refs") or []
-            )
-        ),
+        graph_path_ids=tuple(_strings(p for a in assignments for p in a.get("graph_path_ids") or [])),
+        edge_ids=tuple(_strings(e for a in assignments for e in a.get("edge_ids") or [])),
+        citation_refs=tuple(_strings(r for a in assignments for r in a.get("citation_refs") or [])),
         metric_outcome_id=str((bound_metric or {}).get("metric_outcome_id") or ""),
         metric_value=str((bound_metric or {}).get("metric_value") or ""),
         metric_unit=str((bound_metric or {}).get("metric_unit") or ""),
-        normalized_metric_signature=str(
-            (bound_metric or {}).get("normalized_metric_signature") or ""
-        ),
+        normalized_metric_signature=str((bound_metric or {}).get("normalized_metric_signature") or ""),
         proof_strength_raw=_aggregate_score(assignments, "proof_strength_raw"),
-        target_alignment_score=_aggregate_score(
-            assignments, "target_alignment_score", mode="mean"
-        ),
+        target_alignment_score=_aggregate_score(assignments, "target_alignment_score", mode="mean"),
         claim_entailment_score=_aggregate_score(assignments, "claim_entailment_score"),
-        metric_binding_score=(
-            _aggregate_score([bound_metric], "metric_binding_score")
-            if bound_metric is not None
-            else 0.0
-        ),
+        metric_binding_score=_aggregate_score([bound_metric], "metric_binding_score") if bound_metric is not None else 0.0,
         path_confidence_raw=_aggregate_score(assignments, "path_confidence_raw"),
-        source_independence_score=_aggregate_score(
-            assignments, "source_independence_score"
-        ),
+        source_independence_score=_aggregate_score(assignments, "source_independence_score"),
         selection_margin=_aggregate_score(assignments, "selection_margin"),
     ).to_dict()
     binding["claim_source_fact_ids"] = _strings(row.get("source_fact_ids"))

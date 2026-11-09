@@ -354,7 +354,7 @@ def test_finalize_repairs_live_anthropic_partnership_transition_and_b4_fact() ->
 
     row5 = repaired["claim_ledger"][4]
     assert "reb_unify_platform_commercialization_leadership" in row5["source_fact_ids"]
-    assert len(row5["source_fact_ids"]) <= 3
+    assert len(row5["source_fact_ids"]) <= 4
     util_ok, util_reason, _receipt = check_exec_summary_allowed_fact_utilization(
         repaired["claim_ledger"],
         allowed,

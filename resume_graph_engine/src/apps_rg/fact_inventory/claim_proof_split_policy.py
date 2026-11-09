@@ -94,15 +94,6 @@ def apply_w2_offending_fact_migrations(row: dict[str, Any]) -> dict[str, Any]:
     if fid == "fact_engineering_platform_002":
         original = str(out.get("claim_text") or "").strip()
         out["proof_text"] = out.get("proof_text") or original
-        # forward_projection_preferred_c0_display_text: when this fact is assigned to an
-        # S6 capstone position, use this forward-modal framing instead of the backward
-        # past-tense "Built and applied..." claim text. RC-C from plan
-        # exec-summary-rc-structural-repair-f4a8c2.
-        out["forward_projection_preferred_c0_display_text"] = (
-            "Software dependency graph intelligence enables accelerated legacy-system analysis, "
-            "exposes architecture dependency chains, and improves transformation visibility "
-            "across enterprise complexity."
-        )
         out["claim_proof_split_version"] = CLAIM_PROOF_SCHEMA_VERSION
         return out
     if fid == "fact_quant_hpc_003":

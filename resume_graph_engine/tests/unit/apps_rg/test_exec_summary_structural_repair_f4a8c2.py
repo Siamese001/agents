@@ -181,43 +181,27 @@ def test_fragment_gate_in_monotonic_waive_set():
 # W3: FACT_C0_DISPLAY_OVERRIDES forward projection for fact_engineering_platform_002
 # ─────────────────────────────────────────────────────────────────
 
-def test_dependency_graph_fact_has_display_override():
-    """W3 RC-C: FACT_C0_DISPLAY_OVERRIDES must contain fact_engineering_platform_002."""
+def test_dependency_graph_fact_has_no_forced_display_override():
+    """R1: FACT_C0_DISPLAY_OVERRIDES must NOT contain fact_engineering_platform_002 (allow natural synthesis)."""
     from apps_rg.runtime.sections.executive_summary_synthesis_contract import (
         DEPENDENCY_GRAPH_FACT_ID,
         FACT_C0_DISPLAY_OVERRIDES,
     )
     assert DEPENDENCY_GRAPH_FACT_ID == "fact_engineering_platform_002"
-    assert DEPENDENCY_GRAPH_FACT_ID in FACT_C0_DISPLAY_OVERRIDES, (
-        "fact_engineering_platform_002 must have a C0 display override for forward projection"
+    assert DEPENDENCY_GRAPH_FACT_ID not in FACT_C0_DISPLAY_OVERRIDES, (
+        "fact_engineering_platform_002 must not have a forced C0 display override"
     )
 
 
-def test_dependency_graph_display_override_forward_modal():
-    """W3 RC-C: forward projection display text must use present-tense enabling verbs."""
+def test_fsa_display_override_retained():
+    """R1: FSA_CREDENTIAL_FACT_ID remains in FACT_C0_DISPLAY_OVERRIDES."""
     from apps_rg.runtime.sections.executive_summary_synthesis_contract import (
-        DEPENDENCY_GRAPH_FACT_ID,
+        FSA_CREDENTIAL_FACT_ID,
         FACT_C0_DISPLAY_OVERRIDES,
     )
-    text = FACT_C0_DISPLAY_OVERRIDES[DEPENDENCY_GRAPH_FACT_ID]
-    forward_verbs = ("enables", "exposes", "improves", "positions", "can ", "delivers")
-    assert any(v in text.lower() for v in forward_verbs), (
-        f"Dependency graph display override must use forward-modal verbs, got: {text!r}"
-    )
-
-
-def test_dependency_graph_display_override_no_past_tense_opener():
-    """W3 RC-C: forward projection display text must NOT open with past-tense verb."""
-    from apps_rg.runtime.sections.executive_summary_synthesis_contract import (
-        DEPENDENCY_GRAPH_FACT_ID,
-        FACT_C0_DISPLAY_OVERRIDES,
-    )
-    text = FACT_C0_DISPLAY_OVERRIDES[DEPENDENCY_GRAPH_FACT_ID]
-    past_openers = ("Built", "Applied", "Directed", "Designed", "Implemented")
-    for opener in past_openers:
-        assert not text.startswith(opener), (
-            f"Dependency graph display override opens with past-tense '{opener}': {text!r}"
-        )
+    assert FSA_CREDENTIAL_FACT_ID in FACT_C0_DISPLAY_OVERRIDES
+    text = FACT_C0_DISPLAY_OVERRIDES[FSA_CREDENTIAL_FACT_ID]
+    assert "FSA-chartered actuarial work" in text
 
 
 def test_dependency_graph_fact_id_exported():

@@ -228,9 +228,10 @@ def test_display_override_parity_synthesis() -> None:
     )
     from apps_rg.runtime.sections.executive_summary_synthesis_contract import (
         FACT_C0_DISPLAY_OVERRIDES,
+        FSA_CREDENTIAL_FACT_ID,
     )
 
-    override_fid = "fact_engineering_platform_002"
+    override_fid = FSA_CREDENTIAL_FACT_ID
     expected_override = FACT_C0_DISPLAY_OVERRIDES[override_fid]
 
     # Model cited the fact, but allowed_fact_packet did not include the override row

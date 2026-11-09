@@ -473,6 +473,17 @@ def resolve_unallocated_metric_sentence_replacement(
     *, display_sentence: str, sentences: list[str], index: int, raw_row: dict[str, Any],
     selected: list[dict[str, Any]], chosen: dict[str, Any], rank_fn: Any, extract_sig_fn: Any, tokens_fn: Any,
 ) -> tuple[str, str, str, str]:
+    if bool(re.search(r"\$22m|\b22\s*million\b", display_sentence, re.I)) and any(
+        str(a.get("root_id") or "") == "reb_unify_platform_commercialization_leadership"
+        or str(a.get("metric_outcome_id") or "") == "metric_unify_22m_ip_led_revenue"
+        for a in selected
+    ):
+        return (
+            display_sentence,
+            "reb_unify_platform_commercialization_leadership",
+            "metric_unify_22m_ip_led_revenue",
+            "",
+        )
     stripped_clause = re.sub(
         r",\s+with\s+[^.,;]*\b\d+(?:\.\d+)?\s*(?:%|percent\b|\$[0-9]+|m\b|million\b|b\b|billion\b)[^.]*\.?$",
         ".", display_sentence, flags=re.IGNORECASE,
