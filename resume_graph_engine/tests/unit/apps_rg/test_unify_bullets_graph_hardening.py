@@ -191,23 +191,27 @@ def test_selection_method_guard_rejects_company_hint() -> None:
 
 
 def test_unify_slot_map_replaces_internal_only_bundle_before_prompt_or_allocation() -> None:
-    """A JD-fit profile cannot route an external résumé slot to internal-only ADG evidence."""
-    slot_map = resolve_unify_bullet_slot_bundle_map_with_fallback(
-        "PARTNER_APPLIED_AI_ARCHITECTURE",
-        repo_root=REPO,
-    )
-    assert slot_map["bul_unify_001"] == "reb_unify_agentic_platform_architecture"
+    """Partner Applied AI profile routes slots 001 and 003 to the two partner/hyperscaler bundles."""
+    slot_map = resolve_unify_bullet_slot_bundle_map_with_fallback("PARTNER_APPLIED_AI_ARCHITECTURE", repo_root=REPO)
+    assert slot_map["bul_unify_001"] == "reb_unify_partner_channel_cosell"
+    assert slot_map["bul_unify_003"] == "reb_unify_hyperscaler_joint_solution_architecture"
     assert "reb_unify_dependency_graph_accelerator" not in set(slot_map.values())
+
+
+def test_promoted_commercial_and_governance_metrics_pass_x2_detector() -> None:
+    from apps_rg.runtime.validators.unify_role_episode_x2 import detect_unsupported_metric_claims
+
+    assert not detect_unsupported_metric_claims([
+        "Grew $5M ACV and $3M partner-derived revenue with 93% annual renewal and 30% upsell.",
+        "Lowered regulatory findings by 35% and accelerated regulatory submissions by 40% across 120+ service dependencies with 18 patterns gated.",
+    ])
+    assert detect_unsupported_metric_claims(["Generated $99M revenue and 87% margin."]) == ["$99m", "87%"]
 
 
 def test_unify_graph_receipt_uses_the_resolved_external_slot_contract() -> None:
     """Internal-only dependency evidence cannot remain a required external résumé axis."""
-    meta = _partner_role_episode_meta()
-    receipt = meta["unify_graph_traversal_sufficiency_receipt"]
-    axes = receipt["role_specific_axis_coverage"]
-
-    assert axes["missing_axes"] == []
-    assert "dependency_graph_accelerator" not in axes["required_axes"]
+    axes = _partner_role_episode_meta()["unify_graph_traversal_sufficiency_receipt"]["role_specific_axis_coverage"]
+    assert axes["missing_axes"] == [] and "dependency_graph_accelerator" not in axes["required_axes"]
     assert len(axes["required_axes"]) == len(UNIFY_BULLET_IDS)
 
 
@@ -217,22 +221,14 @@ def test_unify_prompt_binds_each_slot_to_one_allocated_metric_outcome() -> None:
     slot_map = meta["unify_bullet_slot_bundle_map_resolved"]
     bundles = {row["role_episode_bundle_id"]: row for row in meta["role_episode_bundles"]}
     facts = [
-        {
-            "fact_id": slot_id,
-            "metric_outcome_ids": [bundles[slot_map[slot_id]]["linked_metric_outcome_ids"][0]],
-        }
+        {"fact_id": slot_id, "metric_outcome_ids": [bundles[slot_map[slot_id]]["linked_metric_outcome_ids"][0]]}
         for slot_id in UNIFY_BULLET_IDS
     ]
     pack = format_unify_role_episode_evidence_pack(
-        {
-            "selected_fact_plan": {"facts": facts},
-            "proof_pool_metadata": meta,
-        },
+        {"selected_fact_plan": {"facts": facts}, "proof_pool_metadata": meta},
         section_id="unify_bullets",
     )
-
-    assert "use exactly the selected_metric_outcome_id" in pack
-    assert "do not emit any other metric/outcome" in pack
+    assert "use exactly the selected_metric_outcome_id" in pack and "do not emit any other metric/outcome" in pack
     assert pack.count("selected_metric_outcome_id:") == len(UNIFY_BULLET_IDS)
 
 

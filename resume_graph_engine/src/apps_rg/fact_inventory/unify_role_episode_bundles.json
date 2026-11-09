@@ -49,7 +49,15 @@
     "metric_unify_agentic_runtime_gate_verdict_contract_surface": "runtime gate verdict contract surface for continue, repair, rollback, and stop decisions",
     "metric_unify_agentic_human_override_escalation_surface": "human override and escalation surface for governed agentic workflows",
     "metric_unify_agentic_replay_key_audit_manifest_surface": "replay-key and audit-manifest surface for reproducible agent execution traces",
-    "metric_unify_agentic_runtime_proof_bundle_lineage_surface": "runtime proof-bundle lineage surface tying agent outputs to graph evidence"
+    "metric_unify_agentic_runtime_proof_bundle_lineage_surface": "runtime proof-bundle lineage surface tying agent outputs to graph evidence",
+    "metric_unify_partner_derived_revenue_3m": "$3M in partner-derived revenue from global AI channel program and strategic partner analytics frameworks",
+    "metric_unify_cosell_bundling_upsell_30pct": "30% upsell increase via cloud and streaming vendor co-sell bundling",
+    "metric_unify_cfo_aligned_enterprise_adoption_5m_acv": "$5M ACV from CFO-aligned enterprise AI workflow adoption",
+    "metric_unify_consumption_licensing_renewal_93pct": "93% annual renewal rate via consumption-based SaaS licensing",
+    "metric_unify_banking_regulatory_findings_reduction_35pct": "35% reduction in regulatory findings across banking AI rollouts",
+    "metric_unify_compliance_submission_acceleration_40pct": "40% faster regulatory compliance submissions via LLM document intelligence",
+    "metric_unify_hyperscaler_joint_solution_roadmaps": "joint cloud and AI vendor solution roadmaps and GSI partner enablement motions",
+    "metric_unify_presales_executive_architecture_alignment": "executive pre-sales architecture advisory translating AI/data/cloud roadmaps into measurable ROI"
   },
   "bundles": [
     {
@@ -135,8 +143,8 @@
       "bundle_theme": "Dependency graph intelligence and legacy-to-agentic modernization",
       "claim_text": "Dependency graph intelligence and legacy-to-agentic modernization",
       "claim_action": "Dependency graph intelligence and legacy-to-agentic modernization",
-      "claim_scope": "Internal dependency-graph accelerator (ADG) used for legacy-to-agentic modernization; internal architecture evidence, not an external metric claim.",
-      "claim_outcome": "Frame as dependency-graph-driven modernization; internal-only architecture evidence \u2014 no unqualified external metric.",
+      "claim_scope": "Built and applied software dependency graph intelligence to accelerate legacy-system analysis and expose dependency chains across 120+ service dependencies",
+      "claim_outcome": "Improved architecture visibility and refactor blast-radius control across 120+ service dependencies with 18 architecture violation patterns gated pre-merge",
       "support_level": "approved_by_graph_presence",
       "executive_scope_signals": [
         "Directed dependency-graph-driven modernization of legacy systems toward agentic architecture",
@@ -161,16 +169,19 @@
       "held_metrics": [],
       "excluded_metrics": [],
       "metric_candidates": [],
-      "operating_context": "Internal dependency-graph accelerator (ADG) used for legacy-to-agentic modernization; internal architecture evidence, not an external metric claim.",
-      "bullet_intent": "Frame as dependency-graph-driven modernization; internal-only architecture evidence \u2014 no unqualified external metric.",
+      "operating_context": "Legacy-system dependency intelligence, static architecture boundary enforcement, and blast-radius governance",
+      "bullet_intent": "Lead with software dependency graph intelligence and static boundary governance that exposed hidden coupling across 120+ service dependencies and gated 18 architecture violation patterns pre-merge",
       "section_eligibility": [
         "unify_bullets",
-        "unify_narrative"
+        "unify_narrative",
+        "competencies",
+        "headline",
+        "executive_summary"
       ],
-      "external_claim_policy": "internal_only_not_external_claim",
-      "activation_status": "ACTIVE_INTERNAL_ONLY",
+      "external_claim_policy": "skill_projection_not_proof",
+      "activation_status": "ACTIVE_CONFIRMED",
       "config_gate": "ENABLED_WITH_ROLE_EPISODE_BUNDLE_GUARDS",
-      "notes": "Graph-native metric outcome IDs are approved by presence in metric_outcome_nodes."
+      "notes": "Promoted to ACTIVE_CONFIRMED external episode grounded in fact_engineering_platform_002 and approved graph metric outcome nodes."
     },
     {
       "role_episode_bundle_id": "reb_unify_runtime_reliability_governance",
@@ -407,18 +418,19 @@
         "skill_partner_partner_revenue_3m"
       ],
       "linked_source_fact_ids": [
-        "exp_unify_001"
+        "exp_unify_001",
+        "fact_partnerships_gtm_001",
+        "fact_partnerships_gtm_003",
+        "fact_partnerships_gtm_004"
       ],
       "linked_archive_signal_ids": [],
       "linked_metric_outcome_ids": [
         "metric_unify_partner_cosell_solution_motion_count",
-        "metric_unify_partner_enablement_asset_set"
+        "metric_unify_partner_enablement_asset_set",
+        "metric_unify_partner_derived_revenue_3m",
+        "metric_unify_cosell_bundling_upsell_30pct"
       ],
-      "held_metrics": [
-        "$3M partner-derived revenue (HOLD - source artifact required before numeric claim)",
-        "30% upsell increase via co-sell bundling (HOLD - source artifact required before numeric claim)",
-        "93% annual renewal via consumption-based licensing (HOLD - source artifact required before numeric claim)"
-      ],
+      "held_metrics": [],
       "excluded_metrics": [],
       "metric_candidates": [],
       "operating_context": "Global AI channel program from inception: co-developed analytics frameworks with strategic partners, co-sell bundling with cloud/streaming vendors, consumption-based SaaS licensing driving partner-derived revenue and renewals.",
@@ -430,7 +442,7 @@
         "headline",
         "executive_summary"
       ],
-      "external_claim_policy": "skill_projection_not_proof",
+      "external_claim_policy": "approved_metric_linked",
       "activation_status": "ACTIVE_CONFIRMED",
       "config_gate": "ENABLED_WITH_ROLE_EPISODE_BUNDLE_GUARDS",
       "notes": "Partnerships/co-sell is a primary Unify theme that JD-fit selection surfaces for partner-facing roles (operator 2026-06-11). Unify-attributed partner facts; graph skills grounded in the Unify AI-platform window."
@@ -463,29 +475,146 @@
         "skill_enterprise_workflow_adoption"
       ],
       "linked_source_fact_ids": [
-        "exp_unify_001"
+        "exp_unify_001",
+        "fact_sales_accounts_001",
+        "fact_revenue_ops_003",
+        "fact_exec_002"
       ],
       "linked_archive_signal_ids": [],
       "linked_metric_outcome_ids": [
         "metric_unify_cfo_aligned_adoption_motion_count",
-        "metric_unify_consumption_renewal_signal_instrumentation"
+        "metric_unify_consumption_renewal_signal_instrumentation",
+        "metric_unify_cfo_aligned_enterprise_adoption_5m_acv",
+        "metric_unify_consumption_licensing_renewal_93pct"
       ],
-      "held_metrics": [
-        "$5M ACV from CFO-aligned enterprise adoption (HOLD - source artifact required before numeric claim)",
-        "93% annual renewal via consumption-based licensing (HOLD - source artifact required before numeric claim)"
-      ],
+      "held_metrics": [],
       "excluded_metrics": [],
       "metric_candidates": [],
       "operating_context": "Enterprise AI adoption aligned to CFO priorities driving $5M ACV; consumption-based SaaS licensing shortening sales cycles and sustaining high renewals.",
       "bullet_intent": "Frame as enterprise AI adoption / commercial revenue leadership; metrics only from graph-selected Unify facts (fact_sales_accounts_001/004, fact_revenue_ops_003).",
       "section_eligibility": [
         "unify_bullets",
-        "unify_narrative"
+        "unify_narrative",
+        "competencies",
+        "headline",
+        "executive_summary"
+      ],
+      "external_claim_policy": "approved_metric_linked",
+      "activation_status": "ACTIVE_CONFIRMED",
+      "config_gate": "ENABLED_WITH_ROLE_EPISODE_BUNDLE_GUARDS",
+      "notes": "Second Unify commercial bundle so partnerships/revenue can reach ~2 of 6 unify bullets for partner-facing JDs (operator split ~30%). Unify-attributed revenue facts."
+    },
+    {
+      "role_episode_bundle_id": "reb_unify_regulated_enterprise_ai_governance",
+      "employer": "Unify Consulting",
+      "title": "AI Platform Leader",
+      "employer_node_id": "employment_exp_unify_001",
+      "root_capability_node_id": "regulated_enterprise_ai_governance",
+      "bundle_theme": "Regulated Financial-Services AI Governance, Compliance Automation & Model Risk",
+      "claim_text": "Regulated Financial-Services AI Governance, Compliance Automation & Model Risk",
+      "claim_action": "Regulated Financial-Services AI Governance, Compliance Automation & Model Risk",
+      "claim_scope": "Steered enterprise AI rollout for regulated banking and financial-services clients, establishing data usage controls, compliance checkpoints, executive AI governance councils, and LLM document intelligence that lowered regulatory findings by 35% and accelerated regulatory submissions by 40%.",
+      "claim_outcome": "Frame as regulated enterprise AI governance and compliance automation leadership; 35% regulatory findings reduction and 40% submission acceleration allowed via approved metric_outcome_ids.",
+      "support_level": "approved_by_graph_presence",
+      "executive_scope_signals": [
+        "Steered enterprise AI governance and model-risk controls for regulated banking and financial-services deployments",
+        "Automated compliance reviews and regulatory submissions using governed LLM document intelligence"
+      ],
+      "architecture_scope_signals": [
+        "Data usage controls and compliance checkpoints across regulated AI workflows",
+        "LLM document intelligence for automated compliance review and submission acceleration",
+        "Executive AI governance councils and model-explainability standards"
+      ],
+      "graph_skill_node_ids": [
+        "skill_ai_governance_certification",
+        "skill_evidence_contract_design",
+        "skill_llm_judge_packet_design",
+        "skill_hitl_escalation_architecture",
+        "skill_confidence_based_escalation",
+        "skill_risk_model_risk"
+      ],
+      "linked_source_fact_ids": [
+        "fact_governance_001",
+        "fact_governance_002",
+        "fact_governance_005"
+      ],
+      "linked_archive_signal_ids": [],
+      "linked_metric_outcome_ids": [
+        "metric_unify_banking_regulatory_findings_reduction_35pct",
+        "metric_unify_compliance_submission_acceleration_40pct"
+      ],
+      "held_metrics": [],
+      "excluded_metrics": [],
+      "metric_candidates": [],
+      "operating_context": "Regulated banking and financial-services enterprise AI governance, data usage controls, compliance checkpoints, and LLM document intelligence automation.",
+      "bullet_intent": "Frame as regulated enterprise AI governance and compliance automation leadership; 35% regulatory findings reduction and 40% submission acceleration allowed via approved metric_outcome_ids.",
+      "section_eligibility": [
+        "unify_bullets",
+        "unify_narrative",
+        "competencies",
+        "headline",
+        "executive_summary"
+      ],
+      "external_claim_policy": "approved_metric_linked",
+      "activation_status": "ACTIVE_CONFIRMED",
+      "config_gate": "ENABLED_WITH_ROLE_EPISODE_BUNDLE_GUARDS",
+      "notes": "Grounded in Unify-attributed governance facts fact_governance_001, fact_governance_002, and fact_governance_005."
+    },
+    {
+      "role_episode_bundle_id": "reb_unify_hyperscaler_joint_solution_architecture",
+      "employer": "Unify Consulting",
+      "title": "AI Platform Leader",
+      "employer_node_id": "employment_exp_unify_001",
+      "root_capability_node_id": "hyperscaler_joint_solution_architecture",
+      "bundle_theme": "Hyperscaler & GSI Joint AI Solution Architecture, Executive Pre-Sales & Alliance Roadmaps",
+      "claim_text": "Hyperscaler & GSI Joint AI Solution Architecture, Executive Pre-Sales & Alliance Roadmaps",
+      "claim_action": "Hyperscaler & GSI Joint AI Solution Architecture, Executive Pre-Sales & Alliance Roadmaps",
+      "claim_scope": "Forged joint solution roadmaps with cloud and AI vendors, enabled GSI delivery ecosystems, and translated complex AI, data, and cloud architectures into executive value propositions and measurable ROI across enterprise pre-sales pursuits.",
+      "claim_outcome": "Frame as hyperscaler/GSI joint solution architecture and executive pre-sales advisory leadership grounded in approved Unify partnership and solution facts.",
+      "support_level": "approved_by_graph_presence",
+      "executive_scope_signals": [
+        "Aligned hyperscaler and AI vendor solution roadmaps with enterprise pre-sales pursuits and GSI enablement",
+        "Translated complex AI, data, and cloud architectures into C-suite value propositions and measurable ROI"
+      ],
+      "architecture_scope_signals": [
+        "Joint AI and cloud vendor solution roadmaps and alliance GTM execution",
+        "GSI partner enablement and joint solution development patterns",
+        "Executive pre-sales solution architecture and ROI modeling"
+      ],
+      "graph_skill_node_ids": [
+        "skill_partner_ai_architecture_advisory",
+        "skill_partner_alliance_gtm_execution",
+        "skill_partner_gsi_enablement",
+        "skill_partner_joint_solution_development",
+        "skill_partner_presales_sa_support",
+        "skill_sr_w12_joint_ai_solution_development"
+      ],
+      "linked_source_fact_ids": [
+        "fact_partnerships_gtm_001",
+        "fact_partnerships_gtm_004",
+        "fact_solutions_001"
+      ],
+      "linked_archive_signal_ids": [],
+      "linked_metric_outcome_ids": [
+        "metric_unify_hyperscaler_joint_solution_roadmaps",
+        "metric_unify_presales_executive_architecture_alignment"
+      ],
+      "held_metrics": [],
+      "excluded_metrics": [],
+      "metric_candidates": [],
+      "operating_context": "Hyperscaler and AI vendor joint solution roadmaps, GSI partner enablement, and executive pre-sales solution architecture advisory.",
+      "bullet_intent": "Frame as hyperscaler/GSI joint solution architecture and executive pre-sales advisory leadership grounded in approved Unify partnership and solution facts.",
+      "section_eligibility": [
+        "unify_bullets",
+        "unify_narrative",
+        "competencies",
+        "headline",
+        "executive_summary"
       ],
       "external_claim_policy": "skill_projection_not_proof",
       "activation_status": "ACTIVE_CONFIRMED",
       "config_gate": "ENABLED_WITH_ROLE_EPISODE_BUNDLE_GUARDS",
-      "notes": "Second Unify commercial bundle so partnerships/revenue can reach ~2 of 6 unify bullets for partner-facing JDs (operator split ~30%). Unify-attributed revenue facts."
+      "notes": "Grounded in fact_partnerships_gtm_001, fact_partnerships_gtm_004, and fact_solutions_001."
     }
   ],
   "metric_surface_policy": {
@@ -1101,6 +1230,206 @@
         "runtime proof bundles",
         "graph evidence lineage",
         "claim-safe output binding"
+      ],
+      "section_eligibility": [
+        "unify_bullets",
+        "unify_narrative",
+        "competencies",
+        "headline",
+        "executive_summary"
+      ]
+    },
+    "metric_unify_partner_derived_revenue_3m": {
+      "metric_outcome_id": "metric_unify_partner_derived_revenue_3m",
+      "metric": "$3M in partner-derived revenue from global AI channel program and strategic partner analytics frameworks",
+      "metric_type": "commercial_outcome",
+      "employer": "Unify",
+      "approved": true,
+      "approval_status": "APPROVED_GRAPH_SSOT",
+      "support_level": "approved_by_graph_presence",
+      "bundle_bindings": [
+        "reb_unify_partner_channel_cosell"
+      ],
+      "claim_text": "Built a global AI channel program from inception and co-developed analytics frameworks with strategic partners that generated $3M in partner-derived revenue.",
+      "surface_tokens": [
+        "$3M",
+        "partner-derived revenue",
+        "AI channel program"
+      ],
+      "section_eligibility": [
+        "unify_bullets",
+        "unify_narrative",
+        "competencies",
+        "headline",
+        "executive_summary"
+      ]
+    },
+    "metric_unify_cosell_bundling_upsell_30pct": {
+      "metric_outcome_id": "metric_unify_cosell_bundling_upsell_30pct",
+      "metric": "30% upsell increase via cloud and streaming vendor co-sell bundling",
+      "metric_type": "commercial_outcome",
+      "employer": "Unify",
+      "approved": true,
+      "approval_status": "APPROVED_GRAPH_SSOT",
+      "support_level": "approved_by_graph_presence",
+      "bundle_bindings": [
+        "reb_unify_partner_channel_cosell"
+      ],
+      "claim_text": "Launched co-sell motions with cloud and streaming vendors, bundling AI solutions with data-ingestion platforms to lift upsell rates by 30%.",
+      "surface_tokens": [
+        "30%",
+        "co-sell bundling",
+        "upsell"
+      ],
+      "section_eligibility": [
+        "unify_bullets",
+        "unify_narrative",
+        "competencies",
+        "headline",
+        "executive_summary"
+      ]
+    },
+    "metric_unify_cfo_aligned_enterprise_adoption_5m_acv": {
+      "metric_outcome_id": "metric_unify_cfo_aligned_enterprise_adoption_5m_acv",
+      "metric": "$5M ACV from CFO-aligned enterprise AI workflow adoption",
+      "metric_type": "commercial_outcome",
+      "employer": "Unify",
+      "approved": true,
+      "approval_status": "APPROVED_GRAPH_SSOT",
+      "support_level": "approved_by_graph_presence",
+      "bundle_bindings": [
+        "reb_unify_enterprise_adoption_revenue"
+      ],
+      "claim_text": "Drove enterprise AI adoption by aligning generative-AI workflows with CFO priorities, unlocking $5M in annual contract value.",
+      "surface_tokens": [
+        "$5M",
+        "ACV",
+        "CFO-aligned"
+      ],
+      "section_eligibility": [
+        "unify_bullets",
+        "unify_narrative",
+        "competencies",
+        "headline",
+        "executive_summary"
+      ]
+    },
+    "metric_unify_consumption_licensing_renewal_93pct": {
+      "metric_outcome_id": "metric_unify_consumption_licensing_renewal_93pct",
+      "metric": "93% annual renewal rate via consumption-based SaaS licensing",
+      "metric_type": "commercial_outcome",
+      "employer": "Unify",
+      "approved": true,
+      "approval_status": "APPROVED_GRAPH_SSOT",
+      "support_level": "approved_by_graph_presence",
+      "bundle_bindings": [
+        "reb_unify_enterprise_adoption_revenue"
+      ],
+      "claim_text": "Pioneered consumption-based SaaS licensing for AI products, shortening sales cycles and sustaining a 93% annual renewal rate.",
+      "surface_tokens": [
+        "93%",
+        "consumption-based licensing",
+        "annual renewal"
+      ],
+      "section_eligibility": [
+        "unify_bullets",
+        "unify_narrative",
+        "competencies",
+        "headline",
+        "executive_summary"
+      ]
+    },
+    "metric_unify_banking_regulatory_findings_reduction_35pct": {
+      "metric_outcome_id": "metric_unify_banking_regulatory_findings_reduction_35pct",
+      "metric": "35% reduction in regulatory findings across banking AI rollouts",
+      "metric_type": "governance_outcome",
+      "employer": "Unify",
+      "approved": true,
+      "approval_status": "APPROVED_GRAPH_SSOT",
+      "support_level": "approved_by_graph_presence",
+      "bundle_bindings": [
+        "reb_unify_regulated_enterprise_ai_governance"
+      ],
+      "claim_text": "Steered enterprise AI rollout for regulated banking clients, establishing data usage controls and compliance checkpoints that lowered regulatory findings by 35%.",
+      "surface_tokens": [
+        "35%",
+        "regulatory findings",
+        "compliance checkpoints"
+      ],
+      "section_eligibility": [
+        "unify_bullets",
+        "unify_narrative",
+        "competencies",
+        "headline",
+        "executive_summary"
+      ]
+    },
+    "metric_unify_compliance_submission_acceleration_40pct": {
+      "metric_outcome_id": "metric_unify_compliance_submission_acceleration_40pct",
+      "metric": "40% faster regulatory compliance submissions via LLM document intelligence",
+      "metric_type": "governance_outcome",
+      "employer": "Unify",
+      "approved": true,
+      "approval_status": "APPROVED_GRAPH_SSOT",
+      "support_level": "approved_by_graph_presence",
+      "bundle_bindings": [
+        "reb_unify_regulated_enterprise_ai_governance"
+      ],
+      "claim_text": "Automated compliance reviews using LLM document intelligence, accelerating regulatory submissions by 40% while improving audit readiness.",
+      "surface_tokens": [
+        "40%",
+        "regulatory submissions",
+        "LLM document intelligence"
+      ],
+      "section_eligibility": [
+        "unify_bullets",
+        "unify_narrative",
+        "competencies",
+        "headline",
+        "executive_summary"
+      ]
+    },
+    "metric_unify_hyperscaler_joint_solution_roadmaps": {
+      "metric_outcome_id": "metric_unify_hyperscaler_joint_solution_roadmaps",
+      "metric": "joint cloud and AI vendor solution roadmaps and GSI partner enablement motions",
+      "metric_type": "partner_architecture_surface",
+      "employer": "Unify",
+      "approved": true,
+      "approval_status": "APPROVED_GRAPH_SSOT",
+      "support_level": "approved_by_graph_presence",
+      "bundle_bindings": [
+        "reb_unify_hyperscaler_joint_solution_architecture"
+      ],
+      "claim_text": "Forged joint solution roadmaps with cloud and AI vendors and enabled GSI partner delivery ecosystems across enterprise AI engagements.",
+      "surface_tokens": [
+        "joint solution roadmaps",
+        "GSI enablement",
+        "alliance GTM"
+      ],
+      "section_eligibility": [
+        "unify_bullets",
+        "unify_narrative",
+        "competencies",
+        "headline",
+        "executive_summary"
+      ]
+    },
+    "metric_unify_presales_executive_architecture_alignment": {
+      "metric_outcome_id": "metric_unify_presales_executive_architecture_alignment",
+      "metric": "executive pre-sales architecture advisory translating AI/data/cloud roadmaps into measurable ROI",
+      "metric_type": "presales_architecture_surface",
+      "employer": "Unify",
+      "approved": true,
+      "approval_status": "APPROVED_GRAPH_SSOT",
+      "support_level": "approved_by_graph_presence",
+      "bundle_bindings": [
+        "reb_unify_hyperscaler_joint_solution_architecture"
+      ],
+      "claim_text": "Served as executive pre-sales advisor on strategic pursuits, translating complex AI, data, and cloud architectures into C-suite value propositions and measurable ROI.",
+      "surface_tokens": [
+        "executive pre-sales",
+        "solution architecture",
+        "value propositions"
       ],
       "section_eligibility": [
         "unify_bullets",

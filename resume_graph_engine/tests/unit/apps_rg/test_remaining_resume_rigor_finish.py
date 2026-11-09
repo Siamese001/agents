@@ -265,50 +265,36 @@ def test_unify_graph_gap_fill_classifies_all_signals():
 
 def test_unify_role_episode_bundles_validate_with_bindings():
     from apps_rg.runtime.sections.unify_graph_role_episode_registry import (
-        UNIFY_EMPLOYER_NODE_ID,
-        UNIFY_TIME_WINDOW,
-        get_all_bundles,
-        validate_bundle,
+        UNIFY_EMPLOYER_NODE_ID, UNIFY_TIME_WINDOW, get_all_bundles, validate_bundle,
     )
 
     bundles = get_all_bundles()
+    assert len(bundles) == 10
     ids = {b["role_episode_bundle_id"] for b in bundles}
-    required = {
-        "reb_unify_agentic_platform_architecture",
-        "reb_unify_dependency_graph_accelerator",
-        "reb_unify_runtime_reliability_governance",
-        "reb_unify_production_adoption_lifecycle",
-        "reb_unify_distributed_ecosystem_engineering",
-        "reb_unify_platform_commercialization_leadership",
-        "reb_unify_partner_channel_cosell",
+    assert ids == {
+        "reb_unify_agentic_platform_architecture", "reb_unify_dependency_graph_accelerator",
+        "reb_unify_runtime_reliability_governance", "reb_unify_production_adoption_lifecycle",
+        "reb_unify_distributed_ecosystem_engineering", "reb_unify_platform_commercialization_leadership",
+        "reb_unify_partner_channel_cosell", "reb_unify_enterprise_adoption_revenue",
+        "reb_unify_regulated_enterprise_ai_governance", "reb_unify_hyperscaler_joint_solution_architecture",
     }
-    assert required <= ids
     for b in bundles:
         ok, violations = validate_bundle(b)
         assert ok, f"{b['role_episode_bundle_id']}: {violations}"
-        assert b["employer_node_id"] == UNIFY_EMPLOYER_NODE_ID
-        assert "time_window" not in b
-        assert UNIFY_TIME_WINDOW == "2023-02 to present"
-        assert b["graph_skill_node_ids"]
+        assert b["employer_node_id"] == UNIFY_EMPLOYER_NODE_ID and "time_window" not in b
+        assert UNIFY_TIME_WINDOW == "2023-02 to present" and b["graph_skill_node_ids"]
+        assert b["activation_status"] == "ACTIVE_CONFIRMED" and not b.get("held_metrics")
     partner_bundle = next(b for b in bundles if b["role_episode_bundle_id"] == "reb_unify_partner_channel_cosell")
     assert "executive_summary" in partner_bundle["section_eligibility"]
 
 
 def test_unify_metric_outcome_nodes_are_graph_ssot():
-    data = json.loads(
-        (APP_ROOT / "fact_inventory" / "unify_role_episode_bundles.json").read_text("utf-8")
-    )
-    nodes = data.get("metric_outcome_nodes") or {}
-    approved = data.get("approved_metric_outcome_ids") or {}
-    policy = data.get("metric_surface_policy") or {}
-
-    assert nodes
-    assert set(nodes) == set(approved)
+    data = json.loads((APP_ROOT / "fact_inventory" / "unify_role_episode_bundles.json").read_text("utf-8"))
+    nodes, approved, policy = data.get("metric_outcome_nodes") or {}, data.get("approved_metric_outcome_ids") or {}, data.get("metric_surface_policy") or {}
+    assert len(nodes) >= 31 and set(nodes) == set(approved)
     assert policy.get("approval_model") == "presence_in_metric_outcome_nodes_is_approval"
     assert policy.get("approved_metric_outcome_ids_role") == "derived_review_index_not_claim_authority"
-    assert policy.get("bundle_metric_surface") == (
-        "linked_metric_outcome_ids only; metric_outcome_nodes is claim authority"
-    )
+    assert policy.get("bundle_metric_surface") == "linked_metric_outcome_ids only; metric_outcome_nodes is claim authority"
     for mid, node in nodes.items():
         assert node["metric_outcome_id"] == mid
         assert node["approved"] is True
@@ -394,8 +380,9 @@ def test_unify_internal_only_bundle_not_external_claim():
 
     b = get_bundle_by_id("reb_unify_dependency_graph_accelerator")
     assert b is not None
-    assert b["external_claim_policy"] == "internal_only_not_external_claim"
-    assert b["activation_status"] == "ACTIVE_INTERNAL_ONLY"
+    assert b["external_claim_policy"] == "skill_projection_not_proof"
+    assert b["activation_status"] == "ACTIVE_CONFIRMED"
+    assert "executive_summary" in b["section_eligibility"]
 
 
 # ---------------------------------------------------------------------------

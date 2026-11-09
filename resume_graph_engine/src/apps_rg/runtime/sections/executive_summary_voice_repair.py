@@ -60,6 +60,7 @@ _S5_META_COMMENTARY_RE = re.compile(
     r"\s+rather than listing credential labels\.?",
     re.IGNORECASE,
 )
+_UNIFY_HELD_METRIC_PATTERNS: tuple[re.Pattern[str], ...] = ()
 _GENERIC_S1_RE = re.compile(
     r"^Technology strategy executive who aligns enterprise IT direction,?\s+"
     r"governed AI platform delivery,?\s+and innovation programs for regulated enterprise scale\.?\s*",
