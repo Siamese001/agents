@@ -544,52 +544,23 @@ def _rendered_section_candidates(
     """
 
     rendered = rendered_resume_text.strip()
-    role_lines = {
-        role_key: _role_title_line(final_resume, role_key)
-        for role_key, _display in _ROLE_CARD_ORDER
-    }
+    role_lines = {role_key: _role_title_line(final_resume, role_key) for role_key, _display in _ROLE_CARD_ORDER}
     early_career_line = _role_title_line(final_resume, "early_career")
-    top = _rendered_slice(
-        rendered,
-        start_line="HEADLINE",
-        end_lines=(_COMPETENCIES_HEADING,),
-        label="top-of-résumé positioning",
-    )
+    hl_snap = next((s.get("l2_output_snapshot") or {} for s in (final_resume.get("sections") or []) if isinstance(s, Mapping) and s.get("section_id") == "headline"), {})
+    hl_line = str(hl_snap.get("headline_line") or "").strip()
+    top_start = "HEADLINE" if "\nHEADLINE\n" in f"\n{rendered}\n" else (hl_line if hl_line and hl_line in rendered else "EXECUTIVE SUMMARY")
+    top = _rendered_slice(rendered, start_line=top_start, end_lines=(_COMPETENCIES_HEADING,), label="top-of-résumé positioning")
     if "EXECUTIVE SUMMARY" not in top:
-        raise FinalResumeOutputReviewError(
-            "Finished résumé top-of-résumé section lacks EXECUTIVE SUMMARY"
-        )
-    competencies = _rendered_slice(
-        rendered,
-        start_line=_COMPETENCIES_HEADING,
-        end_lines=("PROFESSIONAL EXPERIENCE",),
-        label="competencies",
-    )
+        raise FinalResumeOutputReviewError("Finished résumé top-of-résumé section lacks EXECUTIVE SUMMARY")
+    competencies = _rendered_slice(rendered, start_line=_COMPETENCIES_HEADING, end_lines=("PROFESSIONAL EXPERIENCE",), label="competencies")
     sections: list[tuple[str, str, str]] = [
-        (
-            "top_of_resume",
-            "Top of Résumé — Headline & Executive Summary",
-            top,
-        ),
-        (
-            "competencies",
-            "Engineering & Platform Competencies",
-            competencies,
-        ),
+        ("top_of_resume", "Top of Résumé — Headline & Executive Summary", top),
+        ("competencies", "Engineering & Platform Competencies", competencies),
     ]
     role_keys = [role_key for role_key, _display in _ROLE_CARD_ORDER]
     for index, (role_key, display_label) in enumerate(_ROLE_CARD_ORDER):
-        following = (
-            role_lines[role_keys[index + 1]]
-            if index + 1 < len(role_keys)
-            else early_career_line
-        )
-        section = _rendered_slice(
-            rendered,
-            start_line=role_lines[role_key],
-            end_lines=(following, "EDUCATION"),
-            label=display_label,
-        )
+        following = role_lines[role_keys[index + 1]] if index + 1 < len(role_keys) else early_career_line
+        section = _rendered_slice(rendered, start_line=role_lines[role_key], end_lines=(following, "EDUCATION"), label=display_label)
         sections.append((f"{role_key}_experience", display_label, section))
 
     candidates: list[dict[str, Any]] = []

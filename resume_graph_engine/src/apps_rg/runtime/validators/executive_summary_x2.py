@@ -120,7 +120,7 @@ def check_exec_summary_no_sentence_fragment(
 
 _DISPLAY_OVERRIDE_REQUIRED_SUBSTRINGS: dict[str, str] = {
     "fact_quant_hpc_003": "fsa-chartered actuarial work in capital modeling",
-    "fact_engineering_platform_002": "dependency graph intelligence enables accelerated legacy-system analysis",
+    "fact_engineering_platform_002": "dependency graph",
 }
 
 

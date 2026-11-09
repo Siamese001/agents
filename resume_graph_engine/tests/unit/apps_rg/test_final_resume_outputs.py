@@ -69,7 +69,7 @@ def _final_resume_blob() -> dict:
                 "phone": "+1-917-239-3830",
                 "email": "amitayer1@gmail.com",
                 "linkedin": "linkedin.com/in/amitayer1",
-                "github": "https://github.com/Siamese001/agents",
+                "github": "https://github.com/Siamese001/",
                 "location": "Boca Raton, FL",
             },
         },
