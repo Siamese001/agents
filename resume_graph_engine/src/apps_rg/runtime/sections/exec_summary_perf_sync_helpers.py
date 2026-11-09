@@ -397,200 +397,129 @@ def match_legacy_regulated_source_fact_ids(low: str) -> list[str] | None:
     if "aligns governed cloud modernization, enterprise risk discipline, and platform commercialization" in low:
         return ["reb_insurtech_aws_migration_execution"]
     if "agentic platform productization drove ip-led revenue growth" in low:
-        return [
-            "reb_unify_platform_commercialization_leadership",
-            "fact_engineering_platform_006",
-            "skill_agentic_platform_productization",
-        ]
+        return ["reb_unify_platform_commercialization_leadership", "fact_engineering_platform_006", "skill_agentic_platform_productization"]
     if "reusable platform productization, governed cloud modernization" in low:
-        return [
-            "skill_agentic_platform_productization",
-            "reb_unify_platform_commercialization_leadership",
-        ]
+        return ["skill_agentic_platform_productization", "reb_unify_platform_commercialization_leadership"]
     return None
 
 
 def bind_orphan_row_to_best_allocated_root(
-    *,
-    idx: int,
-    row: dict[str, Any],
-    sentence: str,
-    eligible_fids: list[str],
-    fact_by_id: dict[str, dict[str, Any]],
-    tokens_fn: Any,
-    support_text_fn: Any,
-    repairs: list[dict[str, str]],
+    *, idx: int, row: dict[str, Any], sentence: str, eligible_fids: list[str],
+    fact_by_id: dict[str, dict[str, Any]], tokens_fn: Any, support_text_fn: Any, repairs: list[dict[str, str]],
 ) -> None:
     sent_tokens = tokens_fn(sentence)
-    best_fid = max(
-        eligible_fids,
-        key=lambda cand: (len(sent_tokens & tokens_fn(support_text_fn(fact_by_id[cand]))), cand),
-    )
+    best_fid = max(eligible_fids, key=lambda cand: (len(sent_tokens & tokens_fn(support_text_fn(fact_by_id[cand]))), cand))
     row["source_fact_ids"] = [best_fid]
     row["claim"] = str(row.get("claim") or sentence)[:80]
     row["claim_text"] = str(row.get("claim_text") or sentence)
-    repairs.append(
-        {
-            "operation": "repair_orphan_row_with_best_allocated_root",
-            "reason": f"orphan_row_{idx + 1}_bound_allocated_root:{best_fid}",
-        }
+    repairs.append({"operation": "repair_orphan_row_with_best_allocated_root", "reason": f"orphan_row_{idx + 1}_bound_allocated_root:{best_fid}"})
+
+
+def try_preserve_non_orphan_sentence_for_unused_fact(
+    *, idx: int, row: dict[str, Any], fid: str, fact: dict[str, Any], sentences: list[str],
+    ledger: list[dict[str, Any]], eligible_fids: list[str], fact_by_id: dict[str, dict[str, Any]],
+    tokens_fn: Any, support_text_fn: Any, repairs: list[dict[str, str]],
+) -> bool:
+    from apps_rg.runtime.c0.resume_graph_claim_binding import _CAUSAL_RE
+
+    sent = sentences[idx]
+    if len(re.findall(r"\S+", sent)) < 14:
+        return False
+    fact_toks = tokens_fn(support_text_fn(fact))
+    if len(tokens_fn(sent) & fact_toks) >= 2:
+        row["source_fact_ids"], row["claim"], row["claim_text"] = [fid], str(row.get("claim") or sent)[:80], str(row.get("claim_text") or sent)
+        repairs.append({"operation": "repair_orphan_row_with_unused_required_fact", "reason": f"orphan_row_{idx + 1}_bound_unused_fact:{fid}"})
+        return True
+    non_causal = [i for i, s in enumerate(sentences) if i != idx and not _CAUSAL_RE.search(s) and isinstance(ledger[i], dict)]
+    if not non_causal:
+        return False
+    best_i = max(non_causal, key=lambda i: len(tokens_fn(sentences[i]) & fact_toks))
+    if len(tokens_fn(sentences[best_i]) & fact_toks) < 2:
+        return False
+    sids = [str(x).strip() for x in (ledger[best_i].get("source_fact_ids") or []) if str(x).strip()]
+    if fid not in sids:
+        ledger[best_i]["source_fact_ids"] = sids + [fid]
+    bind_orphan_row_to_best_allocated_root(
+        idx=idx, row=row, sentence=sent, eligible_fids=eligible_fids,
+        fact_by_id=fact_by_id, tokens_fn=tokens_fn, support_text_fn=support_text_fn, repairs=repairs,
     )
+    return True
 
 
 def scrub_secondary_causal_metrics(
-    *,
-    display_sentence: str,
-    visible_metrics: list[Any],
-    chosen_signature: tuple[str, str],
-    visible_metric_re: Any,
-    extract_sig_fn: Any,
+    *, display_sentence: str, visible_metrics: list[Any], chosen_signature: tuple[str, str],
+    visible_metric_re: Any, extract_sig_fn: Any,
 ) -> str:
     clauses = re.split(r"\s*,?\s+\b(?:while|whereas)\b\s+", display_sentence, maxsplit=1)
     if len(clauses) == 2:
-        candidate_clauses = [
-            clause.strip()
-            for clause in clauses
-            if len(visible_metric_re.findall(clause)) == 1
-            and extract_sig_fn(clause) == chosen_signature
-        ]
-        if len(candidate_clauses) == 1:
-            return candidate_clauses[0]
+        cand = [c.strip() for c in clauses if len(visible_metric_re.findall(c)) == 1 and extract_sig_fn(c) == chosen_signature]
+        if len(cand) == 1:
+            return cand[0]
     scrubbed = display_sentence
     for match in reversed(visible_metrics):
         if extract_sig_fn(match.group(0)) == chosen_signature:
             continue
         m_start, m_end = match.span()
-        prefix = re.sub(
-            r"\s+\b(?:by|of|over|nearly|roughly|approximately)\s*$",
-            "",
-            scrubbed[:m_start],
-            flags=re.IGNORECASE,
-        )
+        prefix = re.sub(r"\s+\b(?:by|of|over|nearly|roughly|approximately)\s*$", "", scrubbed[:m_start], flags=re.IGNORECASE)
         suffix = re.sub(r"^\s+in(?=\s+[a-zA-Z])", "", scrubbed[m_end:], flags=re.IGNORECASE)
         scrubbed = prefix + suffix
-    scrubbed = re.sub(r"\s{2,}", " ", scrubbed).strip()
-    scrubbed = re.sub(r"\s+([.,;:])", r"\1", scrubbed)
-    if (
-        len(visible_metric_re.findall(scrubbed)) == 1
-        and extract_sig_fn(scrubbed) == chosen_signature
-        and len(scrubbed.split()) >= 8
-    ):
+    scrubbed = re.sub(r"\s+([.,;:])", r"\1", re.sub(r"\s{2,}", " ", scrubbed).strip())
+    if len(visible_metric_re.findall(scrubbed)) == 1 and extract_sig_fn(scrubbed) == chosen_signature and len(scrubbed.split()) >= 8:
         return scrubbed
     return ""
 
 
 def resolve_unallocated_metric_sentence_replacement(
-    *,
-    display_sentence: str,
-    sentences: list[str],
-    index: int,
-    raw_row: dict[str, Any],
-    selected: list[dict[str, Any]],
-    chosen: dict[str, Any],
-    rank_fn: Any,
-    extract_sig_fn: Any,
-    tokens_fn: Any,
+    *, display_sentence: str, sentences: list[str], index: int, raw_row: dict[str, Any],
+    selected: list[dict[str, Any]], chosen: dict[str, Any], rank_fn: Any, extract_sig_fn: Any, tokens_fn: Any,
 ) -> tuple[str, str, str, str]:
     stripped_clause = re.sub(
         r",\s+with\s+[^.,;]*\b\d+(?:\.\d+)?\s*(?:%|percent\b|\$[0-9]+|m\b|million\b|b\b|billion\b)[^.]*\.?$",
-        ".",
-        display_sentence,
-        flags=re.IGNORECASE,
+        ".", display_sentence, flags=re.IGNORECASE,
     ).strip()
-    existing_norms = {
-        s.strip().rstrip(".!?").lower()
-        for idx_s, s in enumerate(sentences)
-        if idx_s != index and s.strip()
-    }
+    existing_norms = {s.strip().rstrip(".!?").lower() for idx_s, s in enumerate(sentences) if idx_s != index and s.strip()}
     non_metric_roots = [
-        assignment
-        for assignment in selected
-        if str(assignment.get("root_id") or "")
-        and str(assignment.get("root_id") or "") in (raw_row.get("source_fact_ids") or [])
+        a for a in selected if str(a.get("root_id") or "") and str(a.get("root_id") or "") in (raw_row.get("source_fact_ids") or [])
     ]
-    has_non_metric_source_ids = any(
-        str(fid or "").strip() and not str(fid or "").strip().startswith("metric_")
-        for fid in (raw_row.get("source_fact_ids") or [])
-    )
-    chosen_root_norm = (
-        str(chosen.get("root_claim_text") or chosen.get("root_claim_action") or "")
-        .strip()
-        .rstrip(".!?")
-        .lower()
-    )
-    if (
-        has_non_metric_source_ids
-        or non_metric_roots
-        or (chosen_root_norm and chosen_root_norm in existing_norms)
-    ) and (stripped_clause == display_sentence or any(extract_sig_fn(stripped_clause))):
+    has_non_metric_source_ids = any(str(fid or "").strip() and not str(fid or "").strip().startswith("metric_") for fid in (raw_row.get("source_fact_ids") or []))
+    chosen_root_norm = str(chosen.get("root_claim_text") or chosen.get("root_claim_action") or "").strip().rstrip(".!?").lower()
+    if (has_non_metric_source_ids or non_metric_roots or (chosen_root_norm and chosen_root_norm in existing_norms)) and (
+        stripped_clause == display_sentence or any(extract_sig_fn(stripped_clause))
+    ):
         inline_scrub = re.sub(
             r"\s+\b(?:by|of|over|nearly|roughly|approximately)\s+\$?\d+(?:\.\d+)?\s*(?:%|percent\b|m\b|million\b|b\b|billion\b)(?:\s+in\b)?",
-            "",
-            stripped_clause,
-            flags=re.IGNORECASE,
+            "", stripped_clause, flags=re.IGNORECASE,
         )
         inline_scrub = re.sub(
-            r"\b\$?\d+(?:\.\d+)?\s*(?:%|percent\b|m\b|million\b|b\b|billion\b)\s+(?:in\s+)?(?=[a-zA-Z])",
-            "",
-            inline_scrub,
-            flags=re.IGNORECASE,
+            r"(?:\$|\b)\d+(?:\.\d+)?\s*(?:%|percent\b|m\b|million\b|b\b|billion\b)\s+(?:in\s+)?(?=[a-zA-Z])",
+            "", inline_scrub, flags=re.IGNORECASE,
         )
-        inline_scrub = re.sub(r"\s{2,}", " ", inline_scrub).strip()
-        inline_scrub = re.sub(r"\s+([.,;:])", r"\1", inline_scrub)
+        inline_scrub = re.sub(r"\s+([.,;:])", r"\1", re.sub(r"\s{2,}", " ", inline_scrub).strip())
         inline_scrub = re.sub(
             r"\b([Aa])\s+(?=(?![uU](?:ni(?:f|q|t|v)|se|su|ti)|[eE]u|[oO]ne\b)[aeiouAEIOU][a-z])",
-            lambda m: "An " if m.group(1) == "A" else "an ",
-            inline_scrub,
+            lambda m: "An " if m.group(1) == "A" else "an ", inline_scrub,
         )
         inline_scrub = re.sub(
             r"\b([Aa])n\s+(?=(?!(?:hour|honest|honor|heir))[bcdfghjklmnpqrstvwxyz][a-z])",
-            lambda m: "A " if m.group(1) == "A" else "a ",
-            inline_scrub,
+            lambda m: "A " if m.group(1) == "A" else "a ", inline_scrub,
         )
         stripped_clause = inline_scrub
-    if (
-        stripped_clause
-        and stripped_clause != display_sentence
-        and not any(extract_sig_fn(stripped_clause))
-        and len(stripped_clause.split()) >= 8
-    ):
+    if stripped_clause and stripped_clause != display_sentence and not any(extract_sig_fn(stripped_clause)) and len(stripped_clause.split()) >= 8:
         matched_roots = [
-            a
-            for a in non_metric_roots
-            if len(
-                tokens_fn(stripped_clause)
-                & tokens_fn(
-                    " ".join(
-                        str(a.get(k) or "")
-                        for k in ("root_bundle_theme", "root_claim_text", "root_claim_scope")
-                    )
-                )
-            )
-            > 0
+            a for a in non_metric_roots
+            if len(tokens_fn(stripped_clause) & tokens_fn(" ".join(str(a.get(k) or "") for k in ("root_bundle_theme", "root_claim_text", "root_claim_scope")))) > 0
         ]
         chosen_non_metric = max(matched_roots or non_metric_roots or [chosen], key=rank_fn)
         return (
-            stripped_clause,
-            str(chosen_non_metric.get("root_id") or "").strip(),
-            str(chosen_non_metric.get("fact_id") or "").strip(),
-            str(chosen_non_metric.get("skill_id") or "").strip(),
+            stripped_clause, str(chosen_non_metric.get("root_id") or "").strip(),
+            str(chosen_non_metric.get("fact_id") or "").strip(), str(chosen_non_metric.get("skill_id") or "").strip(),
         )
     non_dup_candidates = [
-        a
-        for a in selected
-        if str(a.get("root_claim_text") or a.get("root_claim_action") or "")
-        .strip()
-        .rstrip(".!?")
-        .lower()
-        not in existing_norms
+        a for a in selected if str(a.get("root_claim_text") or a.get("root_claim_action") or "").strip().rstrip(".!?").lower() not in existing_norms
     ]
     fallback_target = max(non_dup_candidates, key=rank_fn) if non_dup_candidates else chosen
-    replacement = str(
-        fallback_target.get("root_claim_text") or fallback_target.get("root_claim_action") or ""
-    ).strip()
+    replacement = str(fallback_target.get("root_claim_text") or fallback_target.get("root_claim_action") or "").strip()
     return (
-        replacement,
-        str(fallback_target.get("root_id") or "").strip(),
-        str(fallback_target.get("fact_id") or "").strip(),
-        str(fallback_target.get("skill_id") or "").strip(),
+        replacement, str(fallback_target.get("root_id") or "").strip(),
+        str(fallback_target.get("fact_id") or "").strip(), str(fallback_target.get("skill_id") or "").strip(),
     )

@@ -546,7 +546,12 @@ def strip_unsupported_source_sensitive_prose(
                 receipt["replacements"].append("governance_framework_to_basel")
 
     if "audit" not in supported:
-        new = re.sub(r"\baudit-ready\b", "lineage-ready", rewritten, flags=re.IGNORECASE)
+        new = re.sub(
+            r"\baudit-ready\b",
+            lambda m: "traceable" if re.match(r"^\s+lineage\b", rewritten[m.end():], re.I) else "lineage-ready",
+            rewritten,
+            flags=re.IGNORECASE,
+        )
         if new != rewritten:
             rewritten = new
             receipt["replacements"].append("audit_ready_to_lineage_ready")
@@ -796,6 +801,8 @@ def _selected_fact_authority_ids(
             *list(fact.get("linked_identity_fact_ids") or []),
             *list(fact.get("linked_source_fact_ids") or []),
             *list(fact.get("allowed_graph_evidence_ids") or []),
+            *list(fact.get("graph_skill_node_ids") or []),
+            *list(fact.get("metric_outcome_ids") or []),
         ):
             text = str(value or "").strip()
             if text:
@@ -807,12 +814,14 @@ def _ensure_dependency_graph_display_override(
     sentences: list[str],
     *,
     selected_facts: list[dict[str, Any]] | None,
+    cited_fact_ids: set[str] | None = None,
 ) -> list[str]:
     """Keep DISPLAY_OVERRIDE graph prose (fact_engineering_platform_002) in the six-sentence arc."""
     from apps_rg.runtime.sections.executive_summary_synthesis_contract import DEPENDENCY_GRAPH_FACT_ID, FACT_C0_DISPLAY_OVERRIDES
 
     direct_ids = {str(f.get("fact_id") or f.get("candidate_fact_id") or "").strip() for f in selected_facts or [] if isinstance(f, dict)}
-    if DEPENDENCY_GRAPH_FACT_ID not in direct_ids:
+    auth_ids = _selected_fact_authority_ids(selected_facts)
+    if DEPENDENCY_GRAPH_FACT_ID not in direct_ids and not (DEPENDENCY_GRAPH_FACT_ID in auth_ids and DEPENDENCY_GRAPH_FACT_ID in (cited_fact_ids or set())):
         return sentences
     override = str(FACT_C0_DISPLAY_OVERRIDES.get(DEPENDENCY_GRAPH_FACT_ID) or "").strip()
     if not override:
@@ -1508,7 +1517,7 @@ def _rebuild_claim_ledger_from_display(parsed: dict[str, Any]) -> dict[str, Any]
                 "reb_unify_agentic_platform_architecture", "reb_ey_erm_risk_governance",
                 "reb_insurtech_aws_migration_execution", DEPENDENCY_GRAPH_FACT_ID,
             }
-            fids = anchor_fids if (_anchor_override & set(anchor_fids)) else prior_fids
+            fids = list(dict.fromkeys(prior_fids + anchor_fids)) if (_anchor_override & set(anchor_fids)) else prior_fids
         else:
             fids = anchor_fids
             if not fids:
@@ -1913,12 +1922,13 @@ def polish_executive_summary_judge_alignment(
     if not isinstance(parsed, dict):
         return parsed, receipt
 
-    from apps_rg.runtime.validators.executive_summary_x2 import split_sentences
+    from apps_rg.runtime.validators.executive_summary_x2 import collect_cited_source_fact_ids, split_sentences
 
     text = str(parsed.get("resume_display_text") or "").strip()
     sentences = split_sentences(text)
     if len(sentences) < 1:
         return parsed, receipt
+    cited_fact_ids = collect_cited_source_fact_ids(list(parsed.get("claim_ledger") or []))
 
     # Clamp to 6 sentences; rebuild canonical arc when LLM produced a degenerate output.
     if len(sentences) > 6:
@@ -1931,24 +1941,9 @@ def polish_executive_summary_judge_alignment(
 
     for name, fn in (
         ("dedupe_dependency_graph", lambda s: _dedupe_dependency_graph_sentences(s, selected_facts=selected_facts)),
-        (
-            "ensure_dependency_graph_override",
-            lambda s: _ensure_dependency_graph_display_override(
-                s, selected_facts=selected_facts
-            ),
-        ),
-        (
-            "weave_agentic_platform_body",
-            lambda s: _weave_agentic_platform_body_bridge(
-                s, selected_facts=selected_facts
-            ),
-        ),
-        (
-            "repair_ai_partnership_judge_findings",
-            lambda s: _repair_ai_partnership_judge_findings(
-                s, selected_facts=selected_facts
-            ),
-        ),
+        ("ensure_dependency_graph_override", lambda s: _ensure_dependency_graph_display_override(s, selected_facts=selected_facts, cited_fact_ids=cited_fact_ids)),
+        ("weave_agentic_platform_body", lambda s: _weave_agentic_platform_body_bridge(s, selected_facts=selected_facts)),
+        ("repair_ai_partnership_judge_findings", lambda s: _repair_ai_partnership_judge_findings(s, selected_facts=selected_facts)),
         ("reduce_formulaic_bridges", _reduce_formulaic_bridge_echo),
         ("consulting_connective_prefix", _soften_consulting_fact_echo),
         (

@@ -271,14 +271,7 @@ def test_apply_repair_commercialization_sanitize_when_no_other_flags() -> None:
 
 def test_ensure_governance_fact_utilization_inserts_basel_sentence() -> None:
     parsed = {
-        "resume_display_text": (
-            "Enterprise technology leader who aligns governed AI platforms. "
-            "Designs and operates platform runtimes with deterministic controls. "
-            "Directed large-scale regulatory IT transformations across institutions. "
-            "Software dependency graph intelligence enables legacy analysis. "
-            "FSA-chartered actuarial work informs data governance at scale. "
-            "Federated platform capabilities preserve lineage discipline at scale."
-        ),
+        "resume_display_text": "Enterprise technology leader who aligns governed AI platforms. Designs and operates platform runtimes with deterministic controls. Directed large-scale regulatory IT transformations across institutions. Software dependency graph intelligence enables legacy analysis. FSA-chartered actuarial work informs data governance at scale. Federated platform capabilities preserve lineage discipline at scale.",
         "claim_ledger": [
             {"claim_text": "a", "source_fact_ids": ["fact_exec_002"]},
             {"claim_text": "b", "source_fact_ids": ["fact_engineering_platform_001"]},
@@ -289,36 +282,25 @@ def test_ensure_governance_fact_utilization_inserts_basel_sentence() -> None:
         ],
     }
     facts = [
-        {"fact_id": "fact_exec_002", "claim_text": "Scaled team"},
-        {"fact_id": "fact_engineering_platform_001", "claim_text": "Platform"},
-        {"fact_id": "fact_consulting_001", "claim_text": "Consulting"},
-        {"fact_id": "fact_engineering_platform_002", "claim_text": "Graph"},
-        {"fact_id": "fact_quant_hpc_003", "claim_text": "FSA work"},
-        {"fact_id": "fact_governance_003", "claim_text": "Basel III cut errors 40%"},
-        {"fact_id": "fact_certs_001", "claim_text": "Certs"},
+        {"fact_id": fid, "claim_text": ct}
+        for fid, ct in (
+            ("fact_exec_002", "Scaled team"), ("fact_engineering_platform_001", "Platform"),
+            ("fact_consulting_001", "Consulting"), ("fact_engineering_platform_002", "Graph"),
+            ("fact_quant_hpc_003", "FSA work"), ("fact_governance_003", "Basel III cut errors 40%"),
+            ("fact_certs_001", "Certs"),
+        )
     ]
     patched, receipt = ensure_required_allowed_fact_utilization(parsed, selected_facts=facts)
     assert "fact_governance_003" in receipt.get("patched_fact_ids", [])
     assert "basel iii" in str(patched.get("resume_display_text") or "").lower()
     assert "40%" in str(patched.get("resume_display_text") or "")
-    cited = {
-        fid
-        for row in patched.get("claim_ledger") or []
-        for fid in (row.get("source_fact_ids") or [])
-    }
+    cited = {fid for row in patched.get("claim_ledger") or [] for fid in (row.get("source_fact_ids") or [])}
     assert "fact_governance_003" in cited
 
 
 def test_ensure_unify_commercialization_fact_utilization_inserts_b4_sentence() -> None:
     parsed = {
-        "resume_display_text": (
-            "Enterprise technology leader who led AWS modernization for regulated workloads. "
-            "Governed agentic platform architecture gave teams reliable runtime controls. "
-            "IBM-AWS co-sell motions and accelerators packaged modernization patterns. "
-            "Insurance regulatory standards kept partner-led delivery compliant. "
-            "Decision-support data models connected modernization to executive decisions. "
-            "Distributed cloud execution paired with partner-channel leadership for alliance GTM."
-        ),
+        "resume_display_text": "Enterprise technology leader who led AWS modernization for regulated workloads. Governed agentic platform architecture gave teams reliable runtime controls. IBM-AWS co-sell motions and accelerators packaged modernization patterns. Insurance regulatory standards kept partner-led delivery compliant. Decision-support data models connected modernization to executive decisions. Distributed cloud execution paired with partner-channel leadership for alliance GTM.",
         "claim_ledger": [
             {"claim_text": "a", "source_fact_ids": ["reb_insurtech_aws_migration_execution"]},
             {"claim_text": "b", "source_fact_ids": ["reb_unify_agentic_platform_architecture"]},
@@ -329,44 +311,27 @@ def test_ensure_unify_commercialization_fact_utilization_inserts_b4_sentence() -
         ],
     }
     facts = [
-        {"fact_id": "reb_insurtech_aws_migration_execution", "claim_text": "AWS modernization"},
-        {"fact_id": "reb_unify_agentic_platform_architecture", "claim_text": "Agentic platform architecture"},
-        {"fact_id": "reb_ibm_aws_alliance_partner_cosell_gtm", "claim_text": "IBM-AWS co-sell"},
-        {
-            "fact_id": "reb_insurtech_insurance_regulatory_cloud_adoption_standards",
-            "claim_text": "Insurance regulatory cloud adoption standards",
-        },
-        {"fact_id": "reb_ibm_data_modeling_bi_decision_support", "claim_text": "Decision support"},
-        {"fact_id": "reb_unify_partner_channel_cosell", "claim_text": "Partner channel co-sell"},
-        {
-            "fact_id": "reb_unify_platform_commercialization_leadership",
-            "claim_text": "Platform commercialization leadership grew IP-led revenue and margins",
-        },
+        {"fact_id": fid, "claim_text": ct}
+        for fid, ct in (
+            ("reb_insurtech_aws_migration_execution", "AWS modernization"),
+            ("reb_unify_agentic_platform_architecture", "Agentic platform architecture"),
+            ("reb_ibm_aws_alliance_partner_cosell_gtm", "IBM-AWS co-sell"),
+            ("reb_insurtech_insurance_regulatory_cloud_adoption_standards", "Insurance regulatory cloud adoption standards"),
+            ("reb_ibm_data_modeling_bi_decision_support", "Decision support"),
+            ("reb_unify_partner_channel_cosell", "Partner channel co-sell"),
+            ("reb_unify_platform_commercialization_leadership", "Platform commercialization leadership grew IP-led revenue and margins"),
+        )
     ]
-
     patched, receipt = ensure_required_allowed_fact_utilization(parsed, selected_facts=facts)
-
     assert "reb_unify_platform_commercialization_leadership" in receipt.get("patched_fact_ids", [])
     assert "ip-led revenue" in str(patched.get("resume_display_text") or "").lower()
-    cited = {
-        fid
-        for row in patched.get("claim_ledger") or []
-        for fid in (row.get("source_fact_ids") or [])
-    }
+    cited = {fid for row in patched.get("claim_ledger") or [] for fid in (row.get("source_fact_ids") or [])}
     assert "reb_unify_platform_commercialization_leadership" in cited
 
 
 def test_ensure_devsecops_brushstroke_survives_dependency_graph_override() -> None:
-    """A required IBM delivery root must not be lost to the graph display anchor."""
     parsed = {
-        "resume_display_text": (
-            "Engineering executive leads governed agentic AI platform architecture for regulated enterprises. "
-            "Software dependency graph intelligence enables accelerated legacy-system analysis, exposes architecture dependency chains, and improves transformation visibility across enterprise complexity. "
-            "The agentic platform control plane keeps autonomous execution traceable end to end. "
-            "Human override paths keep autonomous execution reviewable. "
-            "Platform productization converted governed architecture into $22M in IP-led revenue. "
-            "That productized footing extends applied AI partner architecture into enterprise ecosystems."
-        ),
+        "resume_display_text": "Engineering executive leads governed agentic AI platform architecture for regulated enterprises. Software dependency graph intelligence enables accelerated legacy-system analysis, exposes architecture dependency chains, and improves transformation visibility across enterprise complexity. The agentic platform control plane keeps autonomous execution traceable end to end. Human override paths keep autonomous execution reviewable. Platform productization converted governed architecture into $22M in IP-led revenue. That productized footing extends applied AI partner architecture into enterprise ecosystems.",
         "claim_ledger": [
             {"claim_text": "s1", "source_fact_ids": ["reb_unify_agentic_platform_architecture"]},
             {"claim_text": "s2", "source_fact_ids": ["fact_engineering_platform_002"]},
@@ -382,36 +347,19 @@ def test_ensure_devsecops_brushstroke_survives_dependency_graph_override() -> No
         {"fact_id": "reb_ibm_devsecops_release_resilience", "claim_text": "Embedded release automation and security scanning"},
         {"fact_id": "reb_unify_platform_commercialization_leadership", "claim_text": "Platform productization"},
     ]
-
     patched, receipt = ensure_required_allowed_fact_utilization(parsed, selected_facts=facts)
-
     assert "reb_ibm_devsecops_release_resilience" in receipt["patched_fact_ids"]
     assert "regulated devsecops release governance" in str(patched["resume_display_text"]).lower()
     ok, reason, _ = check_exec_summary_allowed_fact_utilization(
-        patched["claim_ledger"],
-        {str(f["fact_id"]) for f in facts},
-        required_brushstroke_groups=[
-            ["reb_unify_agentic_platform_architecture"],
-            ["reb_ibm_devsecops_release_resilience"],
-            ["reb_unify_platform_commercialization_leadership"],
-        ],
+        patched["claim_ledger"], {str(f["fact_id"]) for f in facts},
+        required_brushstroke_groups=[["reb_unify_agentic_platform_architecture"], ["reb_ibm_devsecops_release_resilience"], ["reb_unify_platform_commercialization_leadership"]],
     )
     assert ok, reason
 
 
-def test_finalize_reapplies_required_fact_utilization_after_terminal_polish(
-    monkeypatch,
-) -> None:
-    """Later polish must not erase a final required graph binding."""
+def test_finalize_reapplies_required_fact_utilization_after_terminal_polish(monkeypatch) -> None:
     parsed = {
-        "resume_display_text": (
-            "Engineering executive leads governed agentic AI platform architecture for regulated enterprises. "
-            "Software dependency graph intelligence enables accelerated legacy-system analysis, exposes architecture dependency chains, and improves transformation visibility across enterprise complexity. "
-            "The agentic platform control plane keeps autonomous execution traceable end to end. "
-            "Human override paths keep autonomous execution reviewable. "
-            "Platform productization converted governed architecture into $22M in IP-led revenue. "
-            "That productized footing extends applied AI partner architecture into enterprise ecosystems."
-        ),
+        "resume_display_text": "Engineering executive leads governed agentic AI platform architecture for regulated enterprises. Software dependency graph intelligence enables accelerated legacy-system analysis, exposes architecture dependency chains, and improves transformation visibility across enterprise complexity. The agentic platform control plane keeps autonomous execution traceable end to end. Human override paths keep autonomous execution reviewable. Platform productization converted governed architecture into $22M in IP-led revenue. That productized footing extends applied AI partner architecture into enterprise ecosystems.",
         "claim_ledger": [
             {"claim_text": "s1", "source_fact_ids": ["reb_unify_agentic_platform_architecture"]},
             {"claim_text": "s2", "source_fact_ids": ["fact_engineering_platform_002"]},
@@ -433,64 +381,33 @@ def test_finalize_reapplies_required_fact_utilization_after_terminal_polish(
         out["resume_display_text"] = str(out["resume_display_text"]).replace(
             "Regulated DevSecOps release governance strengthened modernization delivery with controlled deployment discipline.",
             "In parallel, proof-bundle lineage preserves accountable intervention across the runtime.",
-        )
-        out["resume_display_text"] = str(out["resume_display_text"]).replace(
+        ).replace(
             "From that foundation, the leader architects an agentic AI platform control plane with explicit decision rules.",
             "Engineering leadership sets regulated enterprise direction.",
         )
         ledger = [dict(row) for row in out.get("claim_ledger") or []]
-        ledger[0] = {
-            "claim_text": "Engineering leadership sets regulated enterprise direction.",
-            "source_fact_ids": ["fact_engineering_platform_002"],
-        }
-        ledger[3] = {
-            "claim_text": "In parallel, proof-bundle lineage preserves accountable intervention across the runtime.",
-            "source_fact_ids": ["skill_unify_agentic_runtime_proof_bundle_lineage"],
-        }
+        ledger[0] = {"claim_text": "Engineering leadership sets regulated enterprise direction.", "source_fact_ids": ["fact_engineering_platform_002"]}
+        ledger[3] = {"claim_text": "In parallel, proof-bundle lineage preserves accountable intervention across the runtime.", "source_fact_ids": ["skill_unify_agentic_runtime_proof_bundle_lineage"]}
         out["claim_ledger"] = ledger
         return out, {"applied": True}
 
-    monkeypatch.setattr(
-        voice_repair,
-        "polish_executive_summary_judge_alignment",
-        _erase_required_bindings_after_initial_repair,
-    )
-
+    monkeypatch.setattr(voice_repair, "polish_executive_summary_judge_alignment", _erase_required_bindings_after_initial_repair)
     finalized, receipt = finalize_executive_summary_coherence(
-        parsed,
-        selected_facts=facts,
-        allowed_fact_ids={str(fact["fact_id"]) for fact in facts},
+        parsed, selected_facts=facts, allowed_fact_ids={str(fact["fact_id"]) for fact in facts},
         target_role="Manager of Applied AI Architecture, Partnerships",
     )
-
     repaired_ids = receipt["final_allowed_fact_utilization"]["patched_fact_ids"]
     assert "reb_ibm_devsecops_release_resilience" in repaired_ids
     assert "reb_unify_agentic_platform_architecture" in repaired_ids
-    assert "regulated devsecops release governance" in str(
-        finalized["resume_display_text"]
-    ).lower()
-    assert "agentic ai platform control plane" in str(
-        finalized["resume_display_text"]
-    ).lower()
-    cited = {
-        str(fact_id)
-        for row in finalized["claim_ledger"]
-        for fact_id in row.get("source_fact_ids") or []
-    }
+    assert "regulated devsecops release governance" in str(finalized["resume_display_text"]).lower()
+    assert "agentic ai platform control plane" in str(finalized["resume_display_text"]).lower()
+    cited = {str(fact_id) for row in finalized["claim_ledger"] for fact_id in row.get("source_fact_ids") or []}
     assert "reb_ibm_devsecops_release_resilience" in cited
     assert "reb_unify_agentic_platform_architecture" in cited
 
 
 def test_polish_dedupes_dependency_graph_and_weaves_team_metric() -> None:
-    duplicate_resume = (
-        "Enterprise technology leader who unifies governed AI platforms. "
-        "Through that operating model, Basel III and CCAR data lineage cut regulatory reporting errors by 40%. "
-        "Software dependency graph intelligence enables accelerated legacy-system analysis, "
-        "exposes architecture dependency chains, and improves transformation visibility across enterprise complexity. "
-        "That regulatory foundation is grounded in FSA-chartered actuarial work in capital modeling. "
-        "Directed large-scale regulatory IT transformations and legacy-modernization programs for major institutions. "
-        "Built and applied software dependency graph intelligence to accelerate legacy-system analysis."
-    )
+    duplicate_resume = "Enterprise technology leader who unifies governed AI platforms. Through that operating model, Basel III and CCAR data lineage cut regulatory reporting errors by 40%. Software dependency graph intelligence enables accelerated legacy-system analysis, exposes architecture dependency chains, and improves transformation visibility across enterprise complexity. That regulatory foundation is grounded in FSA-chartered actuarial work in capital modeling. Directed large-scale regulatory IT transformations and legacy-modernization programs for major institutions. Built and applied software dependency graph intelligence to accelerate legacy-system analysis."
     parsed = {
         "resume_display_text": duplicate_resume,
         "claim_ledger": [
@@ -514,25 +431,13 @@ def test_polish_dedupes_dependency_graph_and_weaves_team_metric() -> None:
     assert receipt.get("applied") is True
     assert text.count("dependency graph") == 1
     assert "8 to 28" in text
-    cited = {
-        fid
-        for row in polished.get("claim_ledger") or []
-        for fid in (row.get("source_fact_ids") or [])
-    }
+    cited = {fid for row in polished.get("claim_ledger") or [] for fid in (row.get("source_fact_ids") or [])}
     assert "fact_engineering_platform_002" in cited
 
 
 def test_polish_restores_graph_override_when_team_displaced_slot() -> None:
-    """Regression: platform weave must not replace dependency-graph DISPLAY_OVERRIDE."""
     parsed = {
-        "resume_display_text": (
-            "Enterprise technology leader who unifies governed AI platforms. "
-            "Through that operating model, Basel III and CCAR data lineage cut regulatory reporting errors by 40%. "
-            "Scaled the ML engineering organization from 8 to 28 specialists. "
-            "That regulatory foundation is grounded in FSA-chartered actuarial work in capital modeling. "
-            "Directed large-scale regulatory IT transformations for major financial institutions. "
-            "Designs and operates platform runtimes with deterministic controls and traceable execution."
-        ),
+        "resume_display_text": "Enterprise technology leader who unifies governed AI platforms. Through that operating model, Basel III and CCAR data lineage cut regulatory reporting errors by 40%. Scaled the ML engineering organization from 8 to 28 specialists. That regulatory foundation is grounded in FSA-chartered actuarial work in capital modeling. Directed large-scale regulatory IT transformations for major financial institutions. Designs and operates platform runtimes with deterministic controls and traceable execution.",
         "claim_ledger": [],
     }
     facts = [
@@ -547,25 +452,13 @@ def test_polish_restores_graph_override_when_team_displaced_slot() -> None:
     text = str(polished.get("resume_display_text") or "").lower()
     assert receipt.get("applied") is True
     assert "dependency graph intelligence enables accelerated" in text
-    cited = {
-        fid
-        for row in polished.get("claim_ledger") or []
-        for fid in (row.get("source_fact_ids") or [])
-    }
+    cited = {fid for row in polished.get("claim_ledger") or [] for fid in (row.get("source_fact_ids") or [])}
     assert "fact_engineering_platform_002" in cited
 
 
 def test_graph_override_preserves_required_devsecops_brushstroke() -> None:
-    """A late graph display override cannot evict the composition's sole DevSecOps fact."""
     parsed = {
-        "resume_display_text": (
-            "Technology strategy executive who leads governed agentic AI platform architecture. "
-            "Designs and operates the agentic platform control plane with bounded review. "
-            "Embedded release automation and security scanning into regulated modernization delivery paths. "
-            "Runtime proof-bundle lineage gives decisions a traceable evidentiary record. "
-            "Platform productization generated $22M in IP-led revenue. "
-            "Platform commercialization leadership integrates enterprise-scale outcomes."
-        ),
+        "resume_display_text": "Technology strategy executive who leads governed agentic AI platform architecture. Designs and operates the agentic platform control plane with bounded review. Embedded release automation and security scanning into regulated modernization delivery paths. Runtime proof-bundle lineage gives decisions a traceable evidentiary record. Platform productization generated $22M in IP-led revenue. Platform commercialization leadership integrates enterprise-scale outcomes.",
         "claim_ledger": [
             {"claim_text": "s1", "source_fact_ids": ["reb_unify_agentic_platform_architecture"]},
             {"claim_text": "s2", "source_fact_ids": ["skill_unify_agentic_human_override_escalation_paths"]},
@@ -589,21 +482,14 @@ def test_graph_override_preserves_required_devsecops_brushstroke() -> None:
         {"fact_id": "fact_engineering_platform_002", "claim_text": "Dependency graph"},
         {"fact_id": "reb_unify_platform_commercialization_leadership", "claim_text": "Commercialization"},
     ]
-
     polished, _receipt = polish_executive_summary_judge_alignment(parsed, selected_facts=facts)
     text = str(polished.get("resume_display_text") or "").lower()
-    cited = {
-        fact_id
-        for row in polished.get("claim_ledger") or []
-        for fact_id in (row.get("source_fact_ids") or [])
-    }
+    cited = {fact_id for row in polished.get("claim_ledger") or [] for fact_id in (row.get("source_fact_ids") or [])}
     plan = parsed["executive_summary_composition_plan"]
     utilization_ok, reason, _ = check_exec_summary_allowed_fact_utilization(
-        list(polished.get("claim_ledger") or []),
-        {fact["fact_id"] for fact in facts},
+        list(polished.get("claim_ledger") or []), {fact["fact_id"] for fact in facts},
         required_brushstroke_groups=brushstroke_required_groups_from_composition_plan(plan),
     )
-
     assert "dependency graph intelligence enables accelerated" in text
     assert "release automation and security scanning" in text
     assert "reb_ibm_devsecops_release_resilience" in cited
@@ -611,18 +497,8 @@ def test_graph_override_preserves_required_devsecops_brushstroke() -> None:
 
 
 def test_graph_override_preserves_live_devsecops_pipeline_wording() -> None:
-    """The live provider wording must be recognized before an override selects a slot."""
     parsed = {
-        "resume_display_text": (
-            "An engineering executive leads governed agentic AI platform architecture. "
-            "Designs the control plane for a multi-agent orchestration system, combining policy-gated routing, "
-            "human override escalation paths, and replay-key audit manifest lineage. "
-            "From that commercial base, embedding automated release pipelines and DevSecOps scanning into "
-            "modernization delivery paths gave platform teams a repeatable deployment blueprint. "
-            "Runtime proof-bundle lineage gives decisions a traceable evidentiary record. "
-            "Platform productization generated $22M in IP-led revenue. "
-            "Platform commercialization leadership integrates enterprise-scale outcomes."
-        ),
+        "resume_display_text": "An engineering executive leads governed agentic AI platform architecture. Designs the control plane for a multi-agent orchestration system, combining policy-gated routing, human override escalation paths, and replay-key audit manifest lineage. From that commercial base, embedding automated release pipelines and DevSecOps scanning into modernization delivery paths gave platform teams a repeatable deployment blueprint. Runtime proof-bundle lineage gives decisions a traceable evidentiary record. Platform productization generated $22M in IP-led revenue. Platform commercialization leadership integrates enterprise-scale outcomes.",
         "claim_ledger": [],
         "executive_summary_composition_plan": {
             "brushstrokes": [
@@ -639,29 +515,54 @@ def test_graph_override_preserves_live_devsecops_pipeline_wording() -> None:
         {"fact_id": "fact_engineering_platform_002", "claim_text": "Dependency graph"},
         {"fact_id": "reb_unify_platform_commercialization_leadership", "claim_text": "Commercialization"},
     ]
-
     polished, _receipt = polish_executive_summary_judge_alignment(parsed, selected_facts=facts)
     text = str(polished.get("resume_display_text") or "").lower()
-    cited = {
-        fact_id
-        for row in polished.get("claim_ledger") or []
-        for fact_id in (row.get("source_fact_ids") or [])
-    }
-
+    cited = {fact_id for row in polished.get("claim_ledger") or [] for fact_id in (row.get("source_fact_ids") or [])}
     assert "dependency graph intelligence enables accelerated" in text
     assert "automated release pipelines and devsecops scanning" in text
     assert "reb_ibm_devsecops_release_resilience" in cited
-    mechanism_ok, mechanism_reason = check_exec_summary_no_mechanism_inventory(
-        str(polished.get("resume_display_text") or ""),
-        polished,
-    )
+    mechanism_ok, mechanism_reason = check_exec_summary_no_mechanism_inventory(str(polished.get("resume_display_text") or ""), polished)
     assert mechanism_ok is True, mechanism_reason
 
 
 def test_strategy_lane_blocks_commercialization_thread() -> None:
-    ok, reason = check_exec_summary_strategy_no_commercialization_thread(
-        "Leader aligning commercialization into one IT strategy agenda.",
-        target_role="SVP IT Strategy & Innovation",
-    )
-    assert not ok
-    assert reason and "commercialization" in reason.lower()
+    ok, reason = check_exec_summary_strategy_no_commercialization_thread("Leader aligning commercialization into one IT strategy agenda.", target_role="SVP IT Strategy & Innovation")
+    assert not ok and reason and "commercialization" in reason.lower()
+
+
+def test_strip_unsupported_source_sensitive_prose_avoids_tautological_lineage_ready_lineage() -> None:
+    from apps_rg.runtime.sections.executive_summary_voice_repair import strip_unsupported_source_sensitive_prose
+
+    parsed = {"resume_display_text": "In parallel, application dependency mapping and migration-wave cutover planning delivered audit-ready lineage for workload classification.", "claim_ledger": []}
+    repaired, receipt = strip_unsupported_source_sensitive_prose(parsed, selected_facts=[{"fact_id": "reb_ibm_aws_modernization_architecture", "claim_text": "AWS modernization"}])
+    assert receipt["repaired"] is True
+    assert "lineage-ready lineage" not in repaired["resume_display_text"].lower()
+    assert "traceable lineage" in repaired["resume_display_text"].lower()
+
+
+def test_causal_multi_root_clamp_prioritizes_exact_metric_bearing_assignment() -> None:
+    from apps_rg.runtime.sections.section_authority_repairs import repair_exec_summary_causal_multi_root_allocation_rows, repair_exec_summary_unallocated_metric_rows
+
+    plan = {
+        "allocation_plan_digest": "test-plan",
+        "facts": [
+            {"fact_id": "reb_unify_platform_commercialization_leadership", "role_episode_bundle_id": "reb_unify_platform_commercialization_leadership", "claim_text": "Platform productization, IP-led revenue, margin expansion, team scale", "allowed_graph_evidence_ids": ["reb_unify_platform_commercialization_leadership", "metric_unify_22m_ip_led_revenue"]},
+            {"fact_id": "reb_insurtech_aws_migration_execution", "role_episode_bundle_id": "reb_insurtech_aws_migration_execution", "claim_text": "Led AWS modernization execution for monolithic policy administration and insurance platform workloads", "allowed_graph_evidence_ids": ["reb_insurtech_aws_migration_execution", "exp_insurtech_001"]},
+        ],
+        "allocation_assignments": [
+            {"section_id": "executive_summary", "claim_unit_id": "executive_summary:claim:01", "root_id": "reb_unify_platform_commercialization_leadership", "fact_id": "fact_engineering_platform_006", "metric_outcome_id": "metric_unify_22m_ip_led_revenue", "metric_value": "22", "metric_unit": "USD_M", "root_bundle_theme": "Platform productization, IP-led revenue, margin expansion, team scale", "root_claim_text": "Platform productization, IP-led revenue, margin expansion, team scale", "claim_entailment_score": 0.9, "target_alignment_score": 0.9},
+            {"section_id": "executive_summary", "claim_unit_id": "executive_summary:claim:02", "root_id": "reb_insurtech_aws_migration_execution", "fact_id": "exp_insurtech_001", "metric_outcome_id": "", "metric_value": "", "metric_unit": "", "root_bundle_theme": "AWS migration execution, wave sequencing, and insurtech platform modernization", "root_claim_text": "Led AWS modernization execution for monolithic policy administration and insurance platform workloads", "claim_entailment_score": 0.9, "target_alignment_score": 0.9},
+        ],
+    }
+    s3 = "That same platform discipline extended into insurtech core-system migration, moving monolithic policy administration workloads through classified migration waves while platform productization generated $22M in IP-led revenue and margin expansion."
+    parsed = {
+        "resume_display_text": s3,
+        "claim_ledger": [{"claim_text": s3, "source_fact_ids": ["reb_insurtech_aws_migration_execution", "reb_unify_platform_commercialization_leadership", "metric_unify_22m_ip_led_revenue"]}],
+        "selected_fact_plan": plan,
+    }
+    assert len(repair_exec_summary_causal_multi_root_allocation_rows(parsed)) == 1
+    assert parsed["claim_ledger"][0]["source_fact_ids"] == ["reb_unify_platform_commercialization_leadership", "metric_unify_22m_ip_led_revenue"]
+    assert repair_exec_summary_unallocated_metric_rows(parsed) == []
+    assert "$22M in IP-led revenue" in parsed["resume_display_text"]
+    assert "$IP-led" not in parsed["resume_display_text"]
+
