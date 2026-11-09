@@ -519,6 +519,78 @@ Build core foundation.
         self.assertEqual(data.get("terminationBehavior"), "force_continue")
         self.assertTrue(len(data.get("injectSteps", [])) > 0)
 
+    def test_post_invocation_loads_transcript_path_and_intercepts_plaintext_questionnaire(self) -> None:
+        """post_invocation must load current turn steps from transcriptPath when inline steps/candidate_response are absent."""
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            transcript_file = Path(tmpdir) / "transcript.jsonl"
+            lines = [
+                json.dumps({"type": "USER_INPUT", "source": "USER_EXPLICIT", "content": "Why are large files not modularized? /teamwork"}),
+                json.dumps(
+                    {
+                        "type": "PLANNER_RESPONSE",
+                        "source": "MODEL",
+                        "content": (
+                            "To prepare the task prompt, please answer the following questions:\n\n"
+                            "1. What should the team deliver?\n"
+                            "   (a) An explanatory analysis\n"
+                            "   (b) Active refactoring\n"
+                        ),
+                    }
+                ),
+            ]
+            transcript_file.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+            res = subprocess.run(
+                [sys.executable, "tools/hook_dispatch.py", "--hook", "post_invocation"],
+                input=json.dumps({"transcriptPath": str(transcript_file)}),
+                capture_output=True,
+                text=True,
+                cwd=ROOT,
+                timeout=10,
+            )
+            self.assertEqual(res.returncode, 0)
+            data = json.loads(res.stdout.strip())
+            self.assertEqual(data.get("terminationBehavior"), "force_continue")
+            injected = data.get("injectSteps", [])
+            self.assertEqual(len(injected), 1)
+            self.assertIn("INV-DECISIVE-RECOMMENDATION", injected[0].get("userMessage", ""))
+
+    def test_pre_ask_question_deny_includes_anti_plaintext_fallback_directive(self) -> None:
+        """pre_ask_question deny reason must instruct agent never to fall back to printing plain-text questions."""
+        jargon_payload = {
+            "toolCall": {
+                "name": "ask_question",
+                "args": {
+                    "questions": [
+                        {
+                            "question": "Should we refactor executive_summary_voice_repair.py now?",
+                            "options": [
+                                "(Recommended) Refactor executive_summary_voice_repair.py (Confidence: MEDIUM (70%))",
+                                "Keep current file (Confidence: MEDIUM (58%))",
+                            ],
+                        }
+                    ]
+                },
+            }
+        }
+        res = subprocess.run(
+            [sys.executable, "tools/hook_dispatch.py", "--hook", "pre_ask_question"],
+            input=json.dumps(jargon_payload),
+            capture_output=True,
+            text=True,
+            cwd=ROOT,
+            timeout=10,
+        )
+        self.assertEqual(res.returncode, 1)
+        data = json.loads(res.stdout.strip())
+        self.assertEqual(data["decision"], "deny")
+        self.assertIn(
+            "NEVER fall back to printing questions or options as plain text in chat; immediately invoke ask_question again with ONE atomic plain-English question at a time (<= 120 chars per option, Confidence: TIER (N%)).",
+            data["reason"],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
