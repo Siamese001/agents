@@ -511,6 +511,8 @@ _DISJUNCTIVE_PROSE_PATTERNS = (
         r"\b(?:would\s+you\s+like\s+(?:me\s+)?to|should\s+we\s+(?:proceed\s+with|address|execute|run))\s+[^?\n]{3,140}\s+or\s+",
         re.IGNORECASE,
     ),
+    re.compile(r"\bplease\s+answer\s+the\s+following\s+questions\s*:", re.IGNORECASE),
+    re.compile(r"(?:^|\n)\s*\(a\)\s+[^\n]+\n\s*\(b\)\s+", re.IGNORECASE),
 )
 
 
