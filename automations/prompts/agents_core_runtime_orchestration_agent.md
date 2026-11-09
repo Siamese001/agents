@@ -39,30 +39,34 @@ Execute a deterministic, fail-closed **Core Agent Runtime, Supervisor State Mach
 4. **Pillar 4 — Session Persistence**: Verify `JsonlEventStore` serializes and retrieves monotonic event streams without tamper.
 5. **Pillar 5 — Exception Hygiene**: Verify zero unguarded silent exception swallows across all modules in `agents/`.
 
-### Phase 1.5: Deterministic Auditor CLI Invocation
-Execute the dedicated fail-closed checker against the primary checkout:
+### Phase 1.5: Mandatory Executable Read-Only Preflight Scanners
+Execute the dedicated fail-closed checker and scoped unit suite against the primary checkout (`timeout <= 90s`):
 ```bash
+export PRIMARY_REPO_ROOT="/Users/amitayer/Git/agents"
 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/agent_runtime_auditor.py" \
   --repo-root "${PRIMARY_REPO_ROOT}" \
   --json
+"${PRIMARY_REPO_ROOT}/.venv/bin/pytest" "${PRIMARY_REPO_ROOT}/tests/unit/test_sidecar_separation_governance.py" -q --timeout=60
 ```
 If `status == "PASS"` and `is_clean == true`, exit `COMPLETE` immediately (`PREFLIGHT_ZERO_DEFECT_FAST_EXIT`).
 
 ---
 
-## 4. Phase 0: Isolated Worktree Provisioning (`Step 0.1`)
+## 4. Phase 0: Conditional Isolated Worktree Provisioning on Findings (`Step 0.1` — `C02`)
 
-When actionable defects exist, provision an isolated worktree:
+When Phase 1.5 reports `>= 1` actionable findings (`is_clean == false`), provision an isolated worktree, write `manifest.json` via `--write-manifest`, and switch into `${WORKTREE_DIR}`:
 ```bash
 export PRIMARY_REPO_ROOT="/Users/amitayer/Git/agents"
 export RUN_TS="$(date -u +%Y%m%dT%H%M%SZ)"
-export HEX6="$(head -c 3 /dev/urandom | xxd -p)"
+export HEX6="$(python3 -c 'import secrets; print(secrets.token_hex(3))')"
 export BRANCH_SLUG="agents-core-runtime-${RUN_TS}"
 export BRANCH_NAME="chore/${BRANCH_SLUG}"
 export WORKTREE_SLUG="$(echo "${BRANCH_NAME}" | tr '/-' '__')"
 export WORKTREE_DIR="${PRIMARY_REPO_ROOT}/.worktrees/${WORKTREE_SLUG}"
 export RUN_DIR="${WORKTREE_DIR}/artifacts/sidecar_runs/agents_core_runtime/${RUN_TS}"
+export PLAN_REL="plans/core-runtime-orchestration-${HEX6}.md"
 
+git -C "${PRIMARY_REPO_ROOT}" worktree prune
 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/prune_merged_chat_worktrees.py" \
   --repo-root "${PRIMARY_REPO_ROOT}" \
   --consolidate-sidecar \
@@ -71,24 +75,47 @@ export RUN_DIR="${WORKTREE_DIR}/artifacts/sidecar_runs/agents_core_runtime/${RUN
   --write-manifest "${RUN_DIR}/manifest.json" \
   --agent-id "agents-core-runtime-orchestration" \
   --run-id "${RUN_TS}" \
-  --mode "on-demand"
-
+  --mode "interactive" \
+  --plan-path "${PLAN_REL}"
 cd "${WORKTREE_DIR}"
+mkdir -p "${RUN_DIR}" "${WORKTREE_DIR}/plans"
+export PRE_STATE_SHA256="$(git -C "${WORKTREE_DIR}" rev-parse HEAD)"
+"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/agent_runtime_auditor.py" \
+  --repo-root "${WORKTREE_DIR}" \
+  --output "${RUN_DIR}/audit_report.json" \
+  --json || true
 ```
 
 ---
 
-## 5. Phase 2: Remediation Wave Planning & Governance Approval
+## 5. Phase 2: Unconditional Wave Plan Generation & 20% Margin HITL Gate (`C04`, `C05`)
 
-1. Author the wave plan at `${WORKTREE_DIR}/plans/core-runtime-orchestration-${HEX6}.md`.
-2. Validate using `validate_implementation_plan.py --file "${WORKTREE_DIR}/plans/core-runtime-orchestration-${HEX6}.md"`.
-3. Copy plan: `cp "${WORKTREE_DIR}/plans/core-runtime-orchestration-${HEX6}.md" "${RUN_DIR}/implementation_plan.md"`.
-4. Surface the **Dimension Findings Table** and resolve atomic decisions with `HITLDecisionStore`.
+### Step 2.1: Unconditional Wave-Based Plan Generation (`UNCONDITIONAL_WAVE_PLAN_MANDATE`)
+Author `${WORKTREE_DIR}/plans/core-runtime-orchestration-${HEX6}.md` (500–800 words, max 1,000 words) structured into sequential waves:
+- `## Wave 1: Delegation Contract, Supervisor State Machine & Context Budget Remediation`
+- `## Wave 2: Event Store Persistence & Exception Hygiene Enforcement`
+Each wave MUST include `### Objective & Scope`, `### Milestones & Deliverables`, `### Acceptance Criteria`, and `### Runtime Receipt & Completion Gate` (`Run:`, `Input:`, `Expected:`, `Verify independently:`, `Fail if:`, `Record:`).
+Validate immediately:
+```bash
+"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/validate_implementation_plan.py" --file "${WORKTREE_DIR}/plans/core-runtime-orchestration-${HEX6}.md"
+cp "${WORKTREE_DIR}/plans/core-runtime-orchestration-${HEX6}.md" "${RUN_DIR}/implementation_plan.md"
+```
+
+### Step 2.2: Mandatory Pre-HITL Dimension Findings Table & Calibrated HITL Gate
+Render the **Dimension Findings Table** (`| Dimension | Score / Status | Concrete Findings | Planned Action |`) across all 5 runtime pillars.
+Compute multi-factor calibrated confidence via `tools/hitl_governance.py` (`calculate_calibrated_confidence`, `evaluate_hitl_surfacing_gate`, `HITLDecisionStore` at `artifacts/governance/hitl_decisions.sqlite`).
+- Surface one atomic `ask_question` decision if $\Delta \le 0.20$; proceed autonomously under a sealed receipt if $\Delta > 0.20$.
 
 ---
 
-## 6. Phase 3: Sequential Wave Execution & Governed Promotion
+## 6. Phase 3: Sequential Wave Execution, 5-Point Proof & Mainline Merge (`C06–C10`)
 
-1. Execute bounded edits wave-by-wave with 5-Point Counterfactual Runtime Proofs.
-2. Verify state with `agent_runtime_auditor.py`.
-3. Commit on `${BRANCH_NAME}` and promote via `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/pr_governance.py" -C "${WORKTREE_DIR}" submit "${BRANCH_NAME}" --title "chore(agents): core runtime orchestration assurance"`.
+For each wave (`Wave 1 -> Wave N`):
+1. **5-Point Counterfactual Runtime Proof (`INV-RUNTIME-PROOF-5POINT`)**:
+   - Capture `PRE_MUTATION_RUN` runtime metric before edit (`"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/agent_runtime_auditor.py" --repo-root "${WORKTREE_DIR}" --json`).
+   - Apply bounded fixes in `agents/` (`orchestration/`, `context/`, `persistence/`, `observability/`).
+   - Run `POST_MUTATION_RUN` `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/agent_runtime_auditor.py" --repo-root "${WORKTREE_DIR}" --json` and scoped pytest (`--timeout=60`, `WaitMsBeforeAsync >= 15000`).
+   - Verify state independently and record the 5-column proof table in `${RUN_DIR}/wave_receipts.md`.
+2. **Closed-Loop System Learning (`C07`)**: Record wave outcome in `HITLDecisionStore`.
+3. **Turn, Commit & Promotion Gates (`C09`, `C10`)**:
+   Run `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/validate_sidecar_separation.py" --repo-root "${WORKTREE_DIR}" --json`, `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/validate_turn_gates.py" --repository-root "${WORKTREE_DIR}" --mode all`, and `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/verify_commit.py" --repo-root "${WORKTREE_DIR}"`, commit via `git -C "${WORKTREE_DIR}" commit`, and either stage overnight via `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/pr_governance.py" -C "${WORKTREE_DIR}" submit "${BRANCH_NAME}" --stage-only` or obtain interactive `ask_question` `PR_MERGE_AUTHORIZATION` and promote via `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/pr_governance.py" -C "${WORKTREE_DIR}" submit "${BRANCH_NAME}" --title "chore(agents): core runtime orchestration assurance"`.
