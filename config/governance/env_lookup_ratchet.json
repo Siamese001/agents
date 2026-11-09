@@ -96,8 +96,6 @@
     "resume_graph_engine/src/apps_rg/runtime/sections/executive_summary_publish_disposition.py": 1,
     "resume_graph_engine/src/apps_rg/runtime/sections/executive_summary_targeting_publish.py": 1,
     "resume_graph_engine/src/apps_rg/runtime/sections/executive_summary_token_budget.py": 1,
-    "resume_graph_engine/src/apps_rg/runtime/sections/headline_lane.py": 1,
-    "resume_graph_engine/src/apps_rg/runtime/sections/headline_repair_policy.py": 2,
     "resume_graph_engine/src/apps_rg/runtime/sections/ibm_narrative_lane_execution.py": 1,
     "resume_graph_engine/src/apps_rg/runtime/sections/ibm_narrative_repair_policy.py": 2,
     "resume_graph_engine/src/apps_rg/runtime/sections/role_episode_lane.py": 2,

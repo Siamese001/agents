@@ -284,7 +284,7 @@
     "justification": "Baseline legacy module pending decomposition"
   },
   "resume_graph_engine/src/apps_rg/fact_inventory/graph_sqlite_path_index.py": {
-    "line_limit": 2355,
+    "line_limit": 2300,
     "justification": "Baseline legacy module pending decomposition"
   },
   "resume_graph_engine/src/apps_rg/fact_inventory/c03_graph_edge_semantic_hardening.py": {
@@ -623,10 +623,6 @@
     "line_limit": 832,
     "justification": "Baseline legacy module pending decomposition"
   },
-  "resume_graph_engine/src/apps_rg/runtime/sections/ExecutiveVoiceRepairAgent.py": {
-    "line_limit": 652,
-    "justification": "Baseline legacy module pending decomposition"
-  },
   "resume_graph_engine/src/apps_rg/runtime/spine/c0_fec_compose.py": {
     "line_limit": 995,
     "justification": "Baseline legacy module pending decomposition"
@@ -664,7 +660,7 @@
     "justification": "Baseline legacy module pending decomposition"
   },
   "resume_graph_engine/src/apps_rg/runtime/c0/competencies_graph_authority.py": {
-    "line_limit": 1891,
+    "line_limit": 1800,
     "justification": "Baseline legacy module pending decomposition"
   },
   "resume_graph_engine/src/apps_rg/runtime/c0/c06_weak_refine.py": {
@@ -712,7 +708,7 @@
     "justification": "Baseline legacy module pending decomposition"
   },
   "resume_graph_engine/src/apps_rg/runtime/internal/final_resume_assembler.py": {
-    "line_limit": 1318,
+    "line_limit": 1280,
     "justification": "Baseline legacy module pending decomposition"
   },
   "resume_graph_engine/src/apps_rg/runtime/internal/generated_lane_rollup.py": {
@@ -760,7 +756,7 @@
     "justification": "Baseline legacy module pending decomposition"
   },
   "resume_graph_engine/src/apps_rg/runtime/orchestration/patch_run.py": {
-    "line_limit": 1948,
+    "line_limit": 1850,
     "justification": "Baseline legacy module pending decomposition"
   },
   "resume_graph_engine/src/apps_rg/runtime/orchestration/r3r4_whole_run_orchestration.py": {
@@ -924,7 +920,7 @@
     "justification": "Baseline ceiling when expanding PRODUCTION_DIRECTORIES to all 11 executable roots including tools/"
   },
   "tools/hitl_governance.py": {
-    "line_limit": 800,
+    "line_limit": 750,
     "justification": "Baseline ceiling when expanding PRODUCTION_DIRECTORIES to all 11 executable roots including tools/"
   },
   "tools/hook_dispatch.py": {
