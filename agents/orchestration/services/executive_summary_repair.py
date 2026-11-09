@@ -11,6 +11,12 @@ import re
 from dataclasses import dataclass, field
 from typing import Sequence
 
+from agents.orchestration.services.swarm_challenger import (
+    SwarmChallenger,
+    SwarmDisposition,
+    SwarmExecutionReceipt,
+)
+
 
 @dataclass(frozen=True, slots=True)
 class RepairRule:
@@ -66,6 +72,7 @@ class RepairResult:
     applied_rules: tuple[str, ...]
     is_valid: bool
     errors: tuple[str, ...] = ()
+    swarm_receipt: SwarmExecutionReceipt | None = None
 
     @property
     def is_successful(self) -> bool:
@@ -75,11 +82,22 @@ class RepairResult:
 class ExecutiveSummaryRepairService:
     """Domain service executing deterministic, rule-based executive summary repairs."""
 
-    def __init__(self, rules: Sequence[RepairRule] | None = None) -> None:
+    def __init__(
+        self,
+        rules: Sequence[RepairRule] | None = None,
+        challenger: SwarmChallenger | None = None,
+    ) -> None:
         self._rules = tuple(rules or DEFAULT_VOICE_RULES)
+        self._challenger = challenger or SwarmChallenger()
 
-    def repair(self, text: str, max_rules_applied: int = 10) -> RepairResult:
-        """Apply configured repair rules deterministically."""
+    def repair(
+        self,
+        text: str,
+        max_rules_applied: int = 10,
+        enable_challenger: bool = False,
+        canonical_assertions: Sequence[str] | None = None,
+    ) -> RepairResult:
+        """Apply configured repair rules deterministically, optionally verified by swarm challenger."""
         if not text.strip():
             return RepairResult(
                 original_text=text,
@@ -116,6 +134,19 @@ class ExecutiveSummaryRepairService:
         if len(current.strip()) == 0 and len(text.strip()) > 0:
             errors.append("Repair rule inadvertently stripped all content.")
 
+        # Multi-Agent Swarm Challenger Verification Gate
+        swarm_receipt: SwarmExecutionReceipt | None = None
+        if enable_challenger and len(errors) == 0:
+            swarm_receipt = self._challenger.execute(
+                text=current,
+                workflow_id="executive_summary_repair_deliberation",
+                canonical_assertions=canonical_assertions,
+            )
+            current = swarm_receipt.final_text
+            if swarm_receipt.final_disposition != SwarmDisposition.APPROVED:
+                err_msg = swarm_receipt.escalation_reason or "Challenger swarm deliberation did not reach consensus."
+                errors.append(err_msg)
+
         was_modified = current != text
         is_valid = len(errors) == 0
 
@@ -126,4 +157,5 @@ class ExecutiveSummaryRepairService:
             applied_rules=tuple(applied),
             is_valid=is_valid,
             errors=tuple(errors),
+            swarm_receipt=swarm_receipt,
         )
