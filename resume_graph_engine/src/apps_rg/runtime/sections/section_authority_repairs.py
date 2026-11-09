@@ -212,6 +212,13 @@ def repair_exec_summary_orphan_rows_with_unused_required_facts(
         if unused_required:
             fid = unused_required.pop(0)
             fact = fact_by_id.get(fid) or {}
+            from apps_rg.runtime.sections.exec_summary_perf_sync_helpers import try_preserve_non_orphan_sentence_for_unused_fact
+            if try_preserve_non_orphan_sentence_for_unused_fact(
+                idx=idx, row=row, fid=fid, fact=fact, sentences=sentences, ledger=ledger,
+                eligible_fids=eligible_fids, fact_by_id=fact_by_id,
+                tokens_fn=_citation_repair_tokens, support_text_fn=_fact_support_text, repairs=repairs,
+            ):
+                continue
             replacement = _first_sentence_of_claim(str(fact.get("claim_text") or ""))
             if not replacement:
                 continue
@@ -565,6 +572,7 @@ def repair_exec_summary_causal_multi_root_allocation_rows(
     if not isinstance(plan, dict) or not isinstance(ledger, list):
         return []
 
+    from apps_rg.runtime.c0.resume_graph_allocation import extract_exact_metric_value_unit
     from apps_rg.runtime.c0.resume_graph_claim_binding import (
         _CAUSAL_RE,
         _assignment_aliases,
@@ -573,19 +581,14 @@ def repair_exec_summary_causal_multi_root_allocation_rows(
     )
 
     assignments = [
-        dict(row)
-        for row in plan.get("allocation_assignments") or []
-        if isinstance(row, dict)
-        and str(row.get("section_id") or "") == "executive_summary"
+        dict(row) for row in plan.get("allocation_assignments") or []
+        if isinstance(row, dict) and str(row.get("section_id") or "") == "executive_summary"
     ]
     if not assignments:
         return []
     aliases_by_root = _fact_aliases_by_root(plan)
     aliases = {
-        str(row.get("claim_unit_id") or ""): _assignment_aliases(
-            row,
-            aliases_by_root=aliases_by_root,
-        )
+        str(row.get("claim_unit_id") or ""): _assignment_aliases(row, aliases_by_root=aliases_by_root)
         for row in assignments
     }
 
@@ -597,30 +600,29 @@ def repair_exec_summary_causal_multi_root_allocation_rows(
         if not _CAUSAL_RE.search(claim_text):
             continue
         selected, _ = _select_assignments_for_claim(
-            raw_row,
-            section_id="executive_summary",
-            assignments=assignments,
-            aliases=aliases,
+            raw_row, section_id="executive_summary", assignments=assignments, aliases=aliases
         )
         roots = {str(row.get("root_id") or "") for row in selected if row.get("root_id")}
         if len(roots) <= 1:
             continue
+        metric_val, metric_unit = extract_exact_metric_value_unit(claim_text)
         claim_tokens = _citation_repair_tokens(claim_text)
 
-        def rank(assignment: dict[str, Any]) -> tuple[int, float, float, str]:
+        def rank(assignment: dict[str, Any]) -> tuple[int, int, float, float, str]:
             support = " ".join(
                 str(assignment.get(key) or "")
                 for key in (
-                    "root_bundle_theme",
-                    "root_claim_text",
-                    "root_claim_action",
-                    "root_claim_scope",
-                    "root_claim_outcome",
-                    "skill_label",
+                    "root_bundle_theme", "root_claim_text", "root_claim_action",
+                    "root_claim_scope", "root_claim_outcome", "skill_label",
                 )
             )
+            metric_match = int(
+                bool(metric_val or metric_unit)
+                and str(assignment.get("metric_value") or "") == metric_val
+                and str(assignment.get("metric_unit") or "") == metric_unit
+            )
             return (
-                len(claim_tokens & _citation_repair_tokens(support)),
+                metric_match, len(claim_tokens & _citation_repair_tokens(support)),
                 float(assignment.get("claim_entailment_score") or 0.0),
                 float(assignment.get("target_alignment_score") or 0.0),
                 str(assignment.get("claim_unit_id") or ""),
@@ -1046,43 +1048,29 @@ def apply_exec_summary_display_authority_repairs(
             if isinstance(f, dict) and str(f.get("fact_id") or "").strip()
         }
     if _orphan_facts and _orphan_allowed:
-        _orphan_repairs = repair_exec_summary_orphan_rows_with_unused_required_facts(
-            parsed,
-            allowed_fact_ids=set(_orphan_allowed),
-            plan_facts=_orphan_facts,
-        )
-        if _orphan_repairs and artifact_dir is not None:
-            from apps_rg.runtime.section_repair_ledger import (
-                KIND_DETERMINISTIC_REWRITE,
-                record_repair,
-            )
-
-            record_repair(
-                artifact_dir,
-                kind=KIND_DETERMINISTIC_REWRITE,
-                operation="repair_orphan_row_with_unused_required_fact",
-                reason=str(_orphan_repairs[0].get("reason") or "")[:240],
-                replaced_l2=True,
-            )
-        text = str(parsed.get("resume_display_text") or "").strip()
         _brushstroke_repairs = repair_required_brushstroke_citations_from_materialized_sentences(
-            parsed,
-            allowed_fact_ids=set(_orphan_allowed),
-            plan_facts=_orphan_facts,
+            parsed, allowed_fact_ids=set(_orphan_allowed), plan_facts=_orphan_facts
         )
         if _brushstroke_repairs and artifact_dir is not None:
-            from apps_rg.runtime.section_repair_ledger import (
-                KIND_DETERMINISTIC_REWRITE,
-                record_repair,
-            )
+            from apps_rg.runtime.section_repair_ledger import KIND_DETERMINISTIC_REWRITE, record_repair
 
             record_repair(
-                artifact_dir,
-                kind=KIND_DETERMINISTIC_REWRITE,
+                artifact_dir, kind=KIND_DETERMINISTIC_REWRITE,
                 operation="repair_required_brushstroke_citation",
-                reason=str(_brushstroke_repairs[0].get("reason") or "")[:240],
-                replaced_l2=True,
+                reason=str(_brushstroke_repairs[0].get("reason") or "")[:240], replaced_l2=True,
             )
+        _orphan_repairs = repair_exec_summary_orphan_rows_with_unused_required_facts(
+            parsed, allowed_fact_ids=set(_orphan_allowed), plan_facts=_orphan_facts
+        )
+        if _orphan_repairs and artifact_dir is not None:
+            from apps_rg.runtime.section_repair_ledger import KIND_DETERMINISTIC_REWRITE, record_repair
+
+            record_repair(
+                artifact_dir, kind=KIND_DETERMINISTIC_REWRITE,
+                operation="repair_orphan_row_with_unused_required_fact",
+                reason=str(_orphan_repairs[0].get("reason") or "")[:240], replaced_l2=True,
+            )
+        text = str(parsed.get("resume_display_text") or "").strip()
         _thin_repairs = repair_exec_summary_thin_sentence_weave(parsed)
         if _thin_repairs and artifact_dir is not None:
             from apps_rg.runtime.section_repair_ledger import (
