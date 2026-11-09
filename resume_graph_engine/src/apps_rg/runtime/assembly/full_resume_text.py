@@ -304,7 +304,6 @@ def flatten_final_resume_to_text(final_resume: dict[str, Any]) -> str:
 
     snap = (by_id.get("headline") or {}).get("l2_output_snapshot") or {}
     hl = str(snap.get("headline_line") or "").strip()
-    lines.append("HEADLINE")
     if hl:
         lines.append(hl)
         lines.append("")

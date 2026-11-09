@@ -111,7 +111,6 @@ def _document_xml(text: str) -> bytes:
     document = ElementTree.Element(_qname(_W_NS, "document"))
     body = ElementTree.SubElement(document, _qname(_W_NS, "body"))
     heading_lines = {
-        "HEADLINE",
         "EXECUTIVE SUMMARY",
         *ALLOWED_COMPETENCIES_HEADINGS,
         "PROFESSIONAL EXPERIENCE",
@@ -125,6 +124,8 @@ def _document_xml(text: str) -> bytes:
             style: str | None = "Title"
         elif index == 1 and ("@" in stripped or "linkedin.com" in stripped or "github.com" in stripped or "+1" in stripped):
             style = "ContactLine"
+        elif index == 2 and stripped not in heading_lines:
+            style = "RoleHeader"
         elif stripped in heading_lines:
             style = "Heading1"
         elif " \u2014 " in stripped and not stripped.startswith("\u2022") and len(stripped) < 120:

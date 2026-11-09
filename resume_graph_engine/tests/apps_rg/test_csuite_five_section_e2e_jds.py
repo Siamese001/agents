@@ -113,7 +113,6 @@ def test_canonical_competency_rows_and_role_Consolidation(tmp_path: Path) -> Non
     rendered = (tmp_path / FINAL_RESUME_OUTPUT_TXT).read_text(encoding="utf-8")
 
     for heading in (
-        "HEADLINE",
         "EXECUTIVE SUMMARY",
         "ENGINEERING & PLATFORM COMPETENCIES",
         "PROFESSIONAL EXPERIENCE",
@@ -121,6 +120,7 @@ def test_canonical_competency_rows_and_role_Consolidation(tmp_path: Path) -> Non
         "CERTIFICATIONS & CREDENTIALS",
     ):
         assert heading in rendered
+    assert "\nHEADLINE\n" not in f"\n{rendered}\n"
 
     insurtech_idx = rendered.index("InsurTech Cloud Solutions \u2014 Chief Technology Officer")
     early_idx = rendered.index("Ernst & Young / Early Career Roles \u2014 Principal / Actuarial & Quantitative Consultant")
@@ -202,7 +202,7 @@ def test_canonical_pipeline_e2e_across_three_jds(
     rendered_txt = txt_file.read_text(encoding="utf-8")
     assert company in rendered_txt
     assert role in rendered_txt
-    assert "github.com/Siamese001/agents" in rendered_txt.splitlines()[1]
+    assert "https://github.com/Siamese001/" in rendered_txt.splitlines()[1]
     assert "Boca Raton, FL" not in rendered_txt.splitlines()[1]
 
 
@@ -270,9 +270,9 @@ def test_canonical_exec_summary_synthesis_calibration_and_anti_past_title_gate(t
         briefing_text=(TARGETING_DIR / "brown_brown_svp_it_strategy_innovation_briefing.md").read_text(encoding="utf-8"),
     )
     bb_rendered = (bb_dir / FINAL_RESUME_OUTPUT_TXT).read_text(encoding="utf-8")
-    assert "github.com/Siamese001/agents" in bb_rendered.splitlines()[1]
+    assert "https://github.com/Siamese001/" in bb_rendered.splitlines()[1]
     assert "Boca Raton, FL" not in bb_rendered.splitlines()[1]
     assert "Insurance Domain, Actuarial Risk & Carrier Operations" in bb_rendered
     assert "Solvency II and AG43" in bb_rendered
     assert "Ernst & Young / Early Career Roles" in bb_rendered
-    assert "HEADLINE" in rendered
+    assert "\nHEADLINE\n" not in f"\n{rendered}\n"

@@ -809,28 +809,20 @@ def _ensure_dependency_graph_display_override(
     selected_facts: list[dict[str, Any]] | None,
 ) -> list[str]:
     """Keep DISPLAY_OVERRIDE graph prose (fact_engineering_platform_002) in the six-sentence arc."""
-    from apps_rg.runtime.sections.executive_summary_synthesis_contract import (
-        DEPENDENCY_GRAPH_FACT_ID,
-        FACT_C0_DISPLAY_OVERRIDES,
-    )
+    from apps_rg.runtime.sections.executive_summary_synthesis_contract import DEPENDENCY_GRAPH_FACT_ID, FACT_C0_DISPLAY_OVERRIDES
 
-    allowed = _selected_fact_authority_ids(selected_facts)
-    if DEPENDENCY_GRAPH_FACT_ID not in allowed:
+    direct_ids = {str(f.get("fact_id") or f.get("candidate_fact_id") or "").strip() for f in selected_facts or [] if isinstance(f, dict)}
+    if DEPENDENCY_GRAPH_FACT_ID not in direct_ids:
         return sentences
     override = str(FACT_C0_DISPLAY_OVERRIDES.get(DEPENDENCY_GRAPH_FACT_ID) or "").strip()
     if not override:
         return sentences
-
     out = list(sentences)
-    blob = " ".join(out).lower()
-    if _GRAPH_OVERRIDE_ANCHOR in blob:
+    if _GRAPH_OVERRIDE_ANCHOR in " ".join(out).lower():
         for idx, sent in enumerate(out):
-            if "dependency graph" in sent.lower():
-                if "release automation" in sent.lower() or "devsecops" in sent.lower():
-                    continue
+            if "dependency graph" in sent.lower() and "release automation" not in sent.lower() and "devsecops" not in sent.lower():
                 out[idx] = override
         return out
-
     insert_at = 2 if len(out) > 2 else max(0, len(out) - 1)
     if insert_at < len(out) and "basel iii" in out[insert_at].lower():
         insert_at = min(insert_at + 1, len(out) - 1)
