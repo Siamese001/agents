@@ -17,3 +17,17 @@ def test_headline_text_claim_coverage_passes_with_segment_rows() -> None:
     assert doc["schema"] == "headline_text_claim_coverage_v1"
     assert doc["overall_pass"] is True
     assert len(doc["segments"]) == 3
+
+
+def test_headline_text_claim_coverage_passes_with_senior_vice_president_prefix() -> None:
+    hl_svp = "Senior Vice President | Regulated Risk Governance | Hyperscaler Alliance Ecosystem | Client Value Platform"
+    ledger = [
+        {"claim_text": "Regulated Risk Governance", "source_fact_ids": ["bul_1"]},
+        {"claim_text": "Hyperscaler Alliance Ecosystem", "source_fact_ids": ["bul_1"]},
+        {"claim_text": "Client Value Platform", "source_fact_ids": ["bul_1"]},
+    ]
+    doc = build_headline_text_claim_coverage(hl_svp, ledger, {"bul_1"})
+    assert doc["schema"] == "headline_text_claim_coverage_v1"
+    assert doc["overall_pass"] is True
+    assert len(doc["segments"]) == 3
+
