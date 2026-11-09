@@ -41,6 +41,10 @@ _ALLOWED_HEADLINE_PREFIXES: tuple[str, ...] = (
     "SVP Technology Strategy",
     "SVP Enterprise AI",
     "SVP Agentic AI Platforms",
+    "Senior Vice President",
+    "Partner",
+    "Executive Director",
+    "Managing Director",
 )
 
 
@@ -52,7 +56,11 @@ def _headline_positioning_segments(headline_line: str) -> tuple[str, str, str] |
     if len(parts) != 4 or not all(parts):
         return None
     seg0 = parts[0]
-    if not (seg0 in _ALLOWED_HEADLINE_PREFIXES or (seg0.startswith("SVP ") and len(seg0.split()) in (2, 3))):
+    if not (
+        seg0 in _ALLOWED_HEADLINE_PREFIXES
+        or (seg0.startswith("SVP ") and len(seg0.split()) in (2, 3, 4))
+        or (seg0.startswith(("Senior Vice President", "Executive Director", "Managing Director", "Partner")) and len(seg0.split()) <= 4)
+    ):
         return None
     return parts[1], parts[2], parts[3]
 
