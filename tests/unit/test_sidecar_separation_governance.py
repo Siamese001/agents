@@ -26,6 +26,7 @@ def test_live_sidecar_separation_passes_with_zero_collisions() -> None:
     assert result["status"] == "PASS", f"Expected PASS, got violations: {result['violations']}"
     assert result["is_clean"] is True
     assert result["agents_scheduled_count"] == 0
+    assert result["agents_catalog_count"] == 8
     assert result["agents_prompt_count"] == 8
     assert result["agents_sidecar_count"] == 8
     assert result["nee_sidecar_count"] >= 3

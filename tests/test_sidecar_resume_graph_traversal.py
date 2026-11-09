@@ -24,7 +24,7 @@ def test_agents_retrieval_and_outreach_sidecar_prompts_bind_live_graph_probe() -
 
     for fname in (
         "agents_research_retrieval_surface_agent.md",
-        "agents_e2e_functionality_assurance_agent.md",
+        "agents_domain_applications_pipeline_agent.md",
     ):
         text = (prompts_dir / fname).read_text(encoding="utf-8")
         assert "python3 tools/run_resume_graph_traversal_probe.py" in text
