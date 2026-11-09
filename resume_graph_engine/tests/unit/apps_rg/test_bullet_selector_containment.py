@@ -302,3 +302,46 @@ def test_empty_selection_writer_emits_single_honest_block_bundle(tmp_path: Path)
     assert authorized is False
     assert exit_status == "error"
     assert x3_code == "X3_BLOCK"
+
+
+def test_merge_bullet_selections_handles_none_path_index() -> None:
+    from apps_rg.runtime.judges.bullet_pool_claude_selector import merge_bullet_selections
+    from apps_rg.runtime.reasoning.bullet_lane_self_consistency import SelfConsistencyPath
+
+    p0 = SelfConsistencyPath(
+        path_index=0,
+        temperature=0.2,
+        runtime_generation_status="REAL_LLM",
+        raw_output="{}",
+        parsed={
+            "bullets": [
+                {
+                    "bullet_id": "bul_01",
+                    "bullet_text": (
+                        "Architected scalable microservices delivering 30% latency reduction across enterprise cloud platforms."
+                    ),
+                }
+            ]
+        },
+        parse_error="",
+        provider_result=None,
+    )
+    selections = [
+        {
+            "bullet_id": "bul_01",
+            "path_index": None,
+            "score": 0.0,
+            "passes": False,
+            "rationale": "Missing slot simulation",
+        }
+    ]
+    merged, source_map = merge_bullet_selections(
+        [p0],
+        selections,
+        required_bullet_ids=("bul_01",),
+        base_parsed=p0.parsed,
+    )
+    assert "bullets" in merged
+    assert len(merged["bullets"]) == 1
+    assert merged["bullets"][0]["bullet_id"] == "bul_01"
+

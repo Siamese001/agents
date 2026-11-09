@@ -56,7 +56,11 @@ from apps_rg.runtime.section_model_limits import (
     selector_role_for_section,
 )
 from apps_rg.runtime.model_token_governor import reserve_apps_rg_model_tokens
-from apps_rg.runtime.reasoning.bullet_pool_sync_helpers import normalize_bullet_selection_margins, select_from_bullet_pool_with_claude
+from apps_rg.runtime.reasoning.bullet_pool_sync_helpers import (
+    _safe_int,
+    normalize_bullet_selection_margins,
+    select_from_bullet_pool_with_claude,
+)
 
 _SELECTOR_PROVIDERS: dict[str, dict[str, str]] = {
     "openai_chatgpt": {"env": "OPENAI_API_KEY"},
@@ -1729,7 +1733,7 @@ def merge_bullet_selections(
     def _bullet_for_selection(sel: dict[str, Any] | None, bid: str) -> dict[str, Any] | None:
         if not isinstance(sel, dict):
             return None
-        path = path_by_index.get(int(sel.get("path_index", 0)))
+        path = path_by_index.get(_safe_int(sel.get("path_index"), 0))
         return _bullet_by_id(path.parsed or {}, bid) if path and path.parsed else None
 
     for bid in required_bullet_ids:
@@ -1751,7 +1755,7 @@ def merge_bullet_selections(
             sel = ranked[0] if ranked else None
         if sel is None:
             sel = next((s for s in selections if str(s.get("bullet_id") or "").strip() == bid), None)
-        path_idx = int(sel.get("path_index", 0)) if isinstance(sel, dict) else 0
+        path_idx = _safe_int(sel.get("path_index"), 0) if isinstance(sel, dict) else 0
         path = path_by_index.get(path_idx) or paths[0]
         bullet = _bullet_by_id(path.parsed or {}, bid) if path and path.parsed else None
         if bullet is None:
@@ -1837,7 +1841,7 @@ def merge_competency_selections(
         label = str(sel.get("category_label") or "").strip()
         if not label:
             continue
-        path_idx = int(sel.get("path_index", 0))
+        path_idx = _safe_int(sel.get("path_index"), 0)
         path = path_by_index.get(path_idx)
         cat = _category_by_label(path.parsed or {}, label) if path and path.parsed else None
         if cat is not None:
@@ -1910,10 +1914,7 @@ def _complete_governed_required_bundle_selections(
             continue
         row = dict(raw)
         label = str(row.get("category_label") or "").strip()
-        try:
-            path_index = int(row.get("path_index", 0))
-        except (TypeError, ValueError):
-            path_index = 0
+        path_index = _safe_int(row.get("path_index"), 0)
         path = path_by_index.get(path_index)
         category = (
             _category_by_label(path.parsed or {}, label)
