@@ -7,7 +7,9 @@ import os
 import sys
 from apps_rg.runtime.assembly.coherence_prompt_compact import (
     compact_evidence_packet_for_prompt as _compact_evidence_packet_for_prompt,
-    dispatch_coherence_judges, resolve_coherence_judge_effort,
+    dispatch_coherence_judges,
+    finding_is_negative_assertion as _finding_is_negative_assertion,
+    resolve_coherence_judge_effort,
 )
 from datetime import datetime, timezone
 from pathlib import Path
@@ -610,35 +612,6 @@ def _block_after_heading(text: str, heading: str, *, stop_headings: tuple[str, .
     return block[:cut]
 
 
-def _finding_is_negative_assertion(text: str) -> bool:
-    """True if finding asserts the ABSENCE of a defect rather than presence of a defect."""
-    low = str(text or "").strip().lower()
-    if not low:
-        return False
-    if low.startswith(("no ", "zero ", "none ", "not ", "neither ")):
-        return True
-    if any(
-        phrase in low
-        for phrase in (
-            "is not evident",
-            "not evident",
-            "not found",
-            "not present",
-            "not observed",
-            "no evidence",
-            "free of",
-            "without invention",
-            "without distortion",
-        )
-    ):
-        return True
-    if "is evident" in low:
-        first_part = low.split("is evident")[0]
-        if any(neg in first_part for neg in ("no ", "neither ", "not ", "zero ")):
-            return True
-    return False
-
-
 def aggregate_full_resume_coherence(
     judge_outputs: list[JudgeOutput],
     *,
@@ -712,13 +685,19 @@ def aggregate_full_resume_coherence(
         if o.pass_ and not o.decisive_failure:
             continue
         warnings.append(f"judge_dissent:{o.judge_id}")
+        dim_verdicts = o.dimension_verdicts if isinstance(o.dimension_verdicts, dict) else {}
+        factual_dim = dim_verdicts.get("factual_support") if isinstance(dim_verdicts, dict) else None
+        factual_failed = (
+            bool(o.unsupported_claims)
+            or (isinstance(factual_dim, dict) and factual_dim.get("pass") is False)
+        )
         for f in o.findings or []:
             if _finding_is_negative_assertion(str(f)):
                 continue
             low = str(f).lower()
-            if "jd" in low and "proof" in low:
+            if "jd" in low and "proof" in low and factual_failed:
                 blockers.append(f"unsupported_jd_proof:{o.judge_id}")
-            elif "briefing" in low and "proof" in low:
+            elif "briefing" in low and "proof" in low and factual_failed:
                 blockers.append(f"unsupported_briefing_proof:{o.judge_id}")
             elif "certification" in low and "competenc" in low:
                 blockers.append(f"cert_duplication_judge:{o.judge_id}")

@@ -369,3 +369,15 @@ def test_wave4_compact_overlong_headline_and_ledger() -> None:
     )
     assert new_clarity["pass"] is True
     assert fixed_parsed["claim_ledger"][2]["claim_text"] == "Distributed Lakehouse Infrastructure"
+
+
+def test_wave5_negative_assertion_blocker_guard() -> None:
+    from apps_rg.runtime.assembly.full_resume_llm_coherence import (
+        _finding_is_negative_assertion,
+    )
+
+    msg = (
+        "Chronology, seniority, credential ownership, and candidate-evidence binding "
+        "are otherwise coherent, with no unsupported JD-only proof or credential duplication detected."
+    )
+    assert _finding_is_negative_assertion(msg) is True

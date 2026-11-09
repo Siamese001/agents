@@ -108,3 +108,36 @@ def dispatch_coherence_judges(roster: list[str], *, mode: str, evaluate_fn: Any)
                     ) from exc
             return results
     return [evaluate_fn(key) for key in roster]
+
+
+def finding_is_negative_assertion(text: str) -> bool:
+    """True if finding asserts the ABSENCE of a defect rather than presence of a defect."""
+    low = str(text or "").strip().lower()
+    if not low:
+        return False
+    if low.startswith(("no ", "zero ", "none ", "not ", "neither ")):
+        return True
+    if any(
+        phrase in low
+        for phrase in (
+            "is not evident",
+            "not evident",
+            "not found",
+            "not present",
+            "not observed",
+            "no evidence",
+            "with no ",
+            "no unsupported",
+            "zero unsupported",
+            "free of",
+            "without invention",
+            "without distortion",
+            "without unsupported",
+        )
+    ):
+        return True
+    if "is evident" in low:
+        first_part = low.split("is evident")[0]
+        if any(neg in first_part for neg in ("no ", "neither ", "not ", "zero ")):
+            return True
+    return False
