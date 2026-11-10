@@ -20,13 +20,7 @@ from apps_rg.runtime.section_judge_policy import get_section_judge_policy
 def _hydrate_dispatch_helpers() -> None:
     import apps_rg.runtime.sections.competencies_lane_runtime as _cd
 
-    _skip = frozenset({
-        "run_competencies_execution",
-        "run_competencies_lane_execution",
-        "run_dispatch",
-        "main",
-        "build_parser",
-    })
+    _skip = frozenset({"run_competencies_execution", "run_competencies_lane_execution", "run_dispatch", "main", "build_parser"})
     g = globals()
     for name in dir(_cd):
         if name.startswith("__") or name in _skip:
@@ -50,6 +44,9 @@ def _format_sample_ids(values: Any, *, limit: int = 6) -> str:
     sample = ids[:limit]
     suffix = f" (+{len(ids) - limit} more)" if len(ids) > limit else ""
     return ", ".join(sample) + suffix if sample else "none"
+
+
+from apps_rg.runtime.assembly.competencies_display import ensure_allocation_plan_coverage as _ensure_allocation_plan_coverage
 
 
 def _format_competencies_graph_sourcing_assessment(
@@ -734,6 +731,7 @@ def run_competencies_lane_execution(
             allocation_v3_sync = synchronize_competencies_allocation_bindings_to_categories(
                 parsed
             )
+            _ensure_allocation_plan_coverage(parsed, selected_plan=selected_graph_plan)
             # Keep the claim ledger's allocation identity after the final
             # reconciliation.  The builder now preserves explicit claim-unit
             # IDs rather than silently replacing them with text-only rows.

@@ -237,18 +237,16 @@ def compact_competencies_self_consistency_messages(
     return out
 
 PARTNERSHIP_FIRST_COMPETENCIES_BUNDLE_ORDER: tuple[str, ...] = (
-    "ccb_partner_applied_ai_architecture",
-    "ccb_agentic_platforms",
-    "ccb_runtime_governance",
-    "ccb_retrieval_context_engineering",
-    "ccb_platform_productization",
-    "ccb_llmops_reliability",
-    "ccb_distributed_systems_engineering",
-    "ccb_engineering_leadership",
-    "ccb_partnerships_ecosystem_execution",
-    "ccb_data_governance_security",
-    "ccb_devsecops_delivery_governance",
-    "ccb_insurance_domain_erm",
+    "ccb_partner_applied_ai_architecture", "ccb_agentic_platforms", "ccb_runtime_governance",
+    "ccb_retrieval_context_engineering", "ccb_platform_productization", "ccb_llmops_reliability",
+    "ccb_distributed_systems_engineering", "ccb_engineering_leadership", "ccb_partnerships_ecosystem_execution",
+    "ccb_data_governance_security", "ccb_devsecops_delivery_governance", "ccb_insurance_domain_erm",
+)
+INSURANCE_IT_STRATEGY_COMPETENCIES_BUNDLE_ORDER: tuple[str, ...] = (
+    "ccb_agentic_platforms", "ccb_runtime_governance", "ccb_distributed_systems_engineering",
+    "ccb_retrieval_context_engineering", "ccb_engineering_leadership", "ccb_llmops_reliability",
+    "ccb_platform_productization", "ccb_partner_applied_ai_architecture", "ccb_partnerships_ecosystem_execution",
+    "ccb_data_governance_security", "ccb_devsecops_delivery_governance", "ccb_insurance_domain_erm",
 )
 
 VISIBLE_GRAPH_TERMS_MIN = 3
@@ -1363,7 +1361,10 @@ def enrich_competencies_visible_graph_surface(
     if not by_id:
         return {}
 
-    order = {bundle_id: idx for idx, bundle_id in enumerate(PARTNERSHIP_FIRST_COMPETENCIES_BUNDLE_ORDER)}
+    target_profile = str((selected_graph_evidence_plan or {}).get("target_role_profile") or "").strip()
+    active_bundle_order = INSURANCE_IT_STRATEGY_COMPETENCIES_BUNDLE_ORDER if target_profile == "insurance_it_strategy" else PARTNERSHIP_FIRST_COMPETENCIES_BUNDLE_ORDER
+    order_policy = "insurance_it_strategy_relevance_first" if target_profile == "insurance_it_strategy" else "anthropic_partnership_relevance_first"
+    order = {bundle_id: idx for idx, bundle_id in enumerate(active_bundle_order)}
     receipt_rows: list[dict[str, Any]] = []
     token_counts: dict[str, int] = {}
     surface_category_counts: dict[str, dict[str, int]] = {}
@@ -1390,7 +1391,7 @@ def enrich_competencies_visible_graph_surface(
         # unbound category remains visible for downstream fail-closed gates
         # instead of being rebound to an unrelated capability family.
         selected_bundle_ids = [
-            bid for bid in PARTNERSHIP_FIRST_COMPETENCIES_BUNDLE_ORDER if bid in by_bundle
+            bid for bid in active_bundle_order if bid in by_bundle
         ]
         selected_bundle_ids.extend(
             bid for bid in by_bundle if bid not in selected_bundle_ids
@@ -1479,7 +1480,7 @@ def enrich_competencies_visible_graph_surface(
             cat["selection_score"] = graph_surface_score
             cat["selector_confidence"] = graph_surface_score
             cat["resume_display_label"] = display_label
-            cat["resume_display_order_reason"] = "anthropic_partnership_relevance_first"
+            cat["resume_display_order_reason"] = order_policy
             cat["visible_graph_surface"] = True
             cat["graph_surface_term_source"] = "competency_bundle_vocabulary_anchors"
             out.append(cat)
@@ -1518,8 +1519,8 @@ def enrich_competencies_visible_graph_surface(
         "schema_version": "competencies_visible_graph_surface_enrichment_receipt_v1",
         "producer": "apps_rg.runtime.sections.competency_capability_evidence.enrich_competencies_visible_graph_surface",
         "section_id": "competencies",
-        "order_policy": "anthropic_partnership_relevance_first",
-        "bundle_order": list(PARTNERSHIP_FIRST_COMPETENCIES_BUNDLE_ORDER),
+        "order_policy": order_policy,
+        "bundle_order": list(active_bundle_order),
         "visible_terms_min": VISIBLE_GRAPH_TERMS_MIN,
         "visible_terms_max": VISIBLE_GRAPH_TERMS_MAX,
         "category_count_policy": "preserve_selector_authorized_adaptive_6_8",

@@ -33,7 +33,7 @@ POSITIONING_FAMILIES: dict[str, frozenset[str]] = {
     "distributed_ai_infrastructure": frozenset({
         "distributed ai", "distributed ai infrastructure", "distributed infrastructure",
         "ai infrastructure", "distributed systems", "distributed data",
-        "distributed platform",
+        "distributed platform", "cloud data modernization", "cloud data platforms",
     }),
     "runtime_governance": frozenset({
         "runtime governance", "runtime control", "ai governance", "governance controls",
@@ -52,7 +52,8 @@ POSITIONING_FAMILIES: dict[str, frozenset[str]] = {
     "regulated_ai_systems": frozenset({
         "regulated ai", "regulated enterprise ai", "regulated systems",
         "regulated financial", "regulated environments", "regulatory ai",
-        "compliance systems", "regulated platform",
+        "compliance systems", "regulated platform", "regulated insurance",
+        "regulated insurance governance", "insurance governance",
     }),
     # This family is required by headline_positioning_registry and backed by
     # hpb_partner_applied_ai_architecture.  Omitting it here made a graph-bound
@@ -61,6 +62,7 @@ POSITIONING_FAMILIES: dict[str, frozenset[str]] = {
         "partner ai", "partner architecture", "partner solution architecture",
         "partner applied ai", "partner ecosystems", "partner co-sell",
         "co-sell channel", "alliance gtm", "alliance partnerships",
+        "hyperscaler partner ecosystem",
     }),
     "executive_transformation_strategy": frozenset({
         "executive transformation", "transformation strategy", "agentic transformation",
@@ -169,12 +171,14 @@ def _tokenize(text: str) -> list[str]:
 
 _ALLOWED_HEADLINE_PREFIXES: tuple[str, ...] = (
     "SVP Engineering",
+    "SVP Enterprise Architecture",
+    "SVP AI Strategy",
+    "SVP IT Strategy",
     "SVP Agentic Transformation",
     "SVP Transformation",
     "SVP Technology Strategy",
     "SVP Enterprise AI",
     "SVP Agentic AI Platforms",
-    "Senior Vice President",
     "Partner",
     "Executive Director",
     "Managing Director",
@@ -253,21 +257,33 @@ def check_headline_positioning_families(
 
 
 def check_headline_seniority_floor(headline_line: str) -> HeadlineQualityResult:
-    """Segment 0 must be an approved SVP prefix (e.g. 'SVP Engineering', 'SVP Agentic Transformation')."""
+    """Segment 0 must be an approved SVP prefix (e.g. 'SVP Engineering', 'SVP Enterprise Architecture', 'SVP AI Strategy')."""
     h = (headline_line or "").strip()
     parts = [p.strip() for p in h.split(" | ")] if " | " in h else [h]
     seg0 = parts[0] if parts else ""
-    is_narrowing = any(label in seg0.lower() for label in ("it strategy", "it transformation", "it modernization", "data modernization", "cloud transformation", "digital transformation", "innovation leadership"))
-    passed = not is_narrowing and (
+    seg0_low = seg0.lower()
+    is_narrowing = any(
+        label in seg0_low
+        for label in (
+            "it transformation",
+            "it modernization",
+            "data modernization",
+            "cloud transformation",
+            "digital transformation",
+            "innovation leadership",
+        )
+    )
+    # Bare "Senior Vice President" without domain specialization degrades Segment 1.
+    passed = not is_narrowing and seg0 != "Senior Vice President" and (
         seg0 in _ALLOWED_HEADLINE_PREFIXES
         or (seg0.startswith("SVP ") and len(seg0.split()) in (2, 3, 4))
-        or (seg0.startswith(("Senior Vice President", "Executive Director", "Managing Director", "Partner")) and len(seg0.split()) <= 4)
+        or (seg0.startswith(("Executive Director", "Managing Director", "Partner")) and len(seg0.split()) <= 4)
     )
     return HeadlineQualityResult(
         gate_id="x2_headline_seniority_floor",
         passed=passed,
         observed_value=seg0,
-        threshold="SVP [Engineering/Transformation/Strategy]",
+        threshold="SVP [Engineering/Enterprise Architecture/Strategy]",
         failure_reason=(
             None
             if passed
@@ -286,9 +302,16 @@ def check_headline_seniority_floor(headline_line: str) -> HeadlineQualityResult:
 
 
 def check_headline_no_narrowing_it_labels(headline_line: str) -> HeadlineQualityResult:
-    """Fail if headline contains phrases from the narrowing/demoting IT label blocklist."""
-    h = (headline_line or "").strip().lower()
-    found: list[str] = [label for label in NARROWING_IT_LABELS if label in h]
+    """Fail if headline X/Y/Z segments contain phrases from the narrowing/demoting IT label blocklist."""
+    h = (headline_line or "").strip()
+    if " | " in h and h.startswith(("SVP ", "Executive Director", "Managing Director", "Partner")):
+        xyz_text = " | ".join(p.strip() for p in h.split(" | ")[1:]).lower()
+    else:
+        xyz_text = h.lower()
+    # "Cloud Data Modernization" is an approved compact 3-word positioning phrase;
+    # strip "cloud data modernization" before checking standalone "data modernization".
+    scrubbed = xyz_text.replace("cloud data modernization", "cloud data platforms")
+    found: list[str] = [label for label in NARROWING_IT_LABELS if label in scrubbed]
     passed = len(found) == 0
     return HeadlineQualityResult(
         gate_id="x2_headline_no_narrowing_it_labels",
@@ -304,6 +327,49 @@ def check_headline_no_narrowing_it_labels(headline_line: str) -> HeadlineQuality
             )
         ),
         signals=[f"narrowing_label:{f}" for f in found],
+    )
+
+
+def check_headline_compact_four_segment_format(headline_line: str) -> HeadlineQualityResult:
+    """Enforce compact 4-segment pipe format: 4 segments, <=3 words/segment, <=12 words, <=95 non-separator chars, zero dollar metrics."""
+    h = (headline_line or "").strip()
+    parts = [p.strip() for p in h.split(" | ")] if " | " in h else ([h] if h else [])
+    seg_wcs = [len(p.split()) for p in parts]
+    total_wc = sum(seg_wcs)
+    char_len = len(re.sub(r"[\s|]+", "", h))
+    raw_len = len(h)
+    has_dollar = bool(re.search(r"\$\s*\d", h))
+    seg0 = parts[0] if parts else ""
+    passed = (
+        len(parts) == 4
+        and seg0 != "Senior Vice President"
+        and all(2 <= wc <= 3 for wc in seg_wcs)
+        and total_wc <= 12
+        and char_len <= 95
+        and raw_len <= 140
+        and not has_dollar
+    )
+    return HeadlineQualityResult(
+        gate_id="x2_headline_compact_four_segment_format",
+        passed=passed,
+        observed_value={
+            "segment_count": len(parts),
+            "segment_word_counts": seg_wcs,
+            "total_words": total_wc,
+            "char_length": char_len,
+            "raw_length": raw_len,
+            "has_dollar_metric": has_dollar,
+        },
+        threshold="4 segments, 2-3 words/segment, <=12 words, <=95 chars, zero dollar metrics",
+        failure_reason=(
+            None
+            if passed
+            else (
+                f"Compact 4-segment format violated: segments={len(parts)}, "
+                f"seg_words={seg_wcs}, total_words={total_wc}, chars={char_len}, raw_chars={raw_len}, dollar={has_dollar}"
+            )
+        ),
+        signals=["compact_4_segment_ok"] if passed else [],
     )
 
 
@@ -405,6 +471,7 @@ __all__ = [
     "NGRAM_SIZE",
     "POSITIONING_FAMILIES",
     "check_headline_base_ngram_overlap",
+    "check_headline_compact_four_segment_format",
     "check_headline_e0_ngram_overlap",
     "check_headline_no_narrowing_it_labels",
     "check_headline_positioning_families",

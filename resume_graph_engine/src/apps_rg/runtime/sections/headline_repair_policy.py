@@ -60,7 +60,31 @@ def deterministic_clarity_trim_enabled(
     )
 
 
+_FORBIDDEN_BACKOFFICE_HEADLINE_SEGMENTS: frozenset[str] = frozenset(
+    {
+        "three lines governance",
+        "three lines risk governance",
+        "client adoption systems",
+    }
+)
+
+_SHARP_POSITIONING_SEGMENT_REWRITES: dict[str, str] = {
+    "three lines governance": "Regulated Insurance Governance",
+    "three lines risk governance": "Regulated Insurance Governance",
+    "three lines of defense governance": "Regulated Insurance Governance",
+    "client adoption systems": "Cloud Data Modernization",
+    "client value realization systems": "Cloud Data Modernization",
+    "regulated aws migration execution": "Cloud Data Modernization",
+    "regulated insurance cloud modernization": "Cloud Data Modernization",
+    "governed agentic ai platforms": "Agentic AI Platforms",
+    "enterprise agentic ai platforms": "Agentic AI Platforms",
+}
+
+
 def candidate_3word_subsequences(seg: str) -> list[str]:
+    low = (seg or "").strip().lower()
+    if low in _SHARP_POSITIONING_SEGMENT_REWRITES:
+        return [_SHARP_POSITIONING_SEGMENT_REWRITES[low]]
     words = seg.split()
     if len(words) < 4:
         return []
@@ -72,6 +96,9 @@ def candidate_3word_subsequences(seg: str) -> list[str]:
     ]
     out: list[str] = []
     for c in raw_cands:
+        c_low = c.strip().lower()
+        if c_low in _FORBIDDEN_BACKOFFICE_HEADLINE_SEGMENTS:
+            c = _SHARP_POSITIONING_SEGMENT_REWRITES.get(c_low, "")
         if c and c not in out:
             out.append(c)
     return out
@@ -104,6 +131,9 @@ def find_valid_3word_clarity_trim(
     if segments is None or len(segments) != 3:
         return None
     opaque = set((clarity_report_fn(headline_line) or {}).get("opaque_segments") or [])
+    for s in segments:
+        if s.strip().lower() in _FORBIDDEN_BACKOFFICE_HEADLINE_SEGMENTS or len(s.split()) > 3:
+            opaque.add(s)
     if not opaque:
         return None
     prefix = headline_line.split(" | ")[0].strip() if " | " in headline_line else "SVP Engineering"
@@ -120,9 +150,12 @@ def find_valid_3word_clarity_trim(
     new_segs = list(segments)
     modified = False
     for idx, seg in enumerate(new_segs):
-        if seg not in opaque or len(seg.split()) < 4:
+        seg_low = seg.strip().lower()
+        if seg not in opaque or (len(seg.split()) < 4 and seg_low not in _SHARP_POSITIONING_SEGMENT_REWRITES):
             continue
         for cand_seg in candidate_3word_subsequences(seg):
+            if cand_seg.strip().lower() in _FORBIDDEN_BACKOFFICE_HEADLINE_SEGMENTS or len(cand_seg.split()) > 3:
+                continue
             trial_segs = list(new_segs)
             trial_segs[idx] = cand_seg
             trial_line = f"{prefix} | {' | '.join(trial_segs)}"

@@ -260,13 +260,19 @@ def compute_career_band_filter(
         for r_id, bkt in grouped_section_buckets.items()
         for r_row in bkt["root"]
         if r_row.get("authority_pass") is True
-        and float(
-            employer_root_weights.get(
-                r_id,
-                employer_weights.get(str(r_row.get("employer_lane") or ""), 1.0),
+        and (
+            float(
+                employer_root_weights.get(
+                    r_id,
+                    employer_weights.get(str(r_row.get("employer_lane") or ""), 1.0),
+                )
+            )
+            >= 0.55
+            or (
+                is_shared_top_section
+                and str(r_row.get("employer_lane") or "") in {"slalom", "unify"}
             )
         )
-        >= 0.55
     }
     if section_id == "executive_summary":
         for r_id, bkt in grouped_section_buckets.items():
