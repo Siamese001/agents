@@ -562,56 +562,33 @@ def run_unify_bullets_role_episode_x2_gates(
     )
 
     consulting = detect_generic_consulting_phrases(combined)
-    add(
-        "x2_unify_generic_consulting_language_forbidden",
-        not consulting,
-        consulting or "none",
-        "zero generic consulting-delivery phrases",
-        f"Generic consulting language: {consulting}" if consulting else None,
-    )
+    add("x2_unify_generic_consulting_language_forbidden", not consulting, consulting or "none",
+        "zero generic consulting-delivery phrases", f"Generic consulting language: {consulting}" if consulting else None)
+
+    unsupported = detect_unsupported_metric_claims(combined)
+    add("x2_unify_unsupported_new_claim_forbidden", not unsupported, unsupported or "none",
+        "no $/% claims outside the approved Unify metric allow-list",
+        f"Unsupported new metric claims: {unsupported}" if unsupported else None)
 
     refs = list(base_texts or []) + list(archive_texts or [])
     overlap = base_archive_ngram_overlap(combined, refs)
     over_thr = bool(refs) and overlap > _BASE_NGRAM_THRESHOLD
-    add(
-        "x2_unify_base_archive_ngram_overlap_forbidden_or_warn",
-        not over_thr,  # HARD when base/archive prose supplied AND threshold breached; else WARN/pass
-        round(overlap, 4),
+    add("x2_unify_base_archive_ngram_overlap_forbidden_or_warn", not over_thr, round(overlap, 4),
         f"<= {_BASE_NGRAM_THRESHOLD:.0%} 4-gram overlap with base/archive",
-        f"base/archive overlap {overlap:.1%} exceeds threshold" if over_thr else None,
-    )
+        f"base/archive overlap {overlap:.1%} exceeds threshold" if over_thr else None)
 
     sen = seniority_floor_score(combined)
-    add(
-        "x2_unify_seniority_floor_met",
-        sen >= 1,
-        sen,
-        ">=1 strong executive ownership verb",
-        None if sen >= 1 else "No strong ownership verb across Unify bullets.",
-    )
+    add("x2_unify_seniority_floor_met", sen >= 1, sen, ">=1 strong executive ownership verb",
+        None if sen >= 1 else "No strong ownership verb across Unify bullets.")
     tech = technical_specificity_score(combined)
-    add(
-        "x2_unify_technical_specificity_floor_met",
-        tech >= 1,
-        tech,
-        ">=1 named mechanism/technology token",
-        None if tech >= 1 else "No named mechanism/technology token across Unify bullets.",
-    )
+    add("x2_unify_technical_specificity_floor_met", tech >= 1, tech, ">=1 named mechanism/technology token",
+        None if tech >= 1 else "No named mechanism/technology token across Unify bullets.")
     arch = technical_specificity_score(combined, vocab=ARCHITECTURE_MECHANISM_VOCAB)
-    add(
-        "x2_unify_architecture_mechanism_required",
-        arch >= 1,
-        arch,
-        ">=1 architecture mechanism token",
-        None if arch >= 1 else "No architecture mechanism named across Unify bullets.",
-    )
-    add(
-        "x2_unify_commercial_or_operating_scope_required",
-        _has_commercial_scope(combined),
-        _has_commercial_scope(combined),
+    add("x2_unify_architecture_mechanism_required", arch >= 1, arch, ">=1 architecture mechanism token",
+        None if arch >= 1 else "No architecture mechanism named across Unify bullets.")
+    add("x2_unify_commercial_or_operating_scope_required", _has_commercial_scope(combined), _has_commercial_scope(combined),
         ">=1 commercial/operating scope signal",
-        None if _has_commercial_scope(combined) else "No commercial/operating scope signal across Unify bullets.",
-    )
+        None if _has_commercial_scope(combined) else "No commercial/operating scope signal across Unify bullets.")
     return results
 
 
