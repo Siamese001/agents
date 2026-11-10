@@ -122,7 +122,7 @@ def test_canonical_competency_rows_and_role_Consolidation(tmp_path: Path) -> Non
         assert heading in rendered
     assert "\nHEADLINE\n" not in f"\n{rendered}\n"
 
-    insurtech_idx = rendered.index("InsurTech Cloud Solutions \u2014 Chief Technology Officer")
+    insurtech_idx = rendered.index("InsurTech Cloud Solutions \u2014 Co-Founder & VP of Engineering")
     early_idx = rendered.index("Ernst & Young / Early Career Roles \u2014 Principal / Actuarial & Quantitative Consultant")
     edu_idx = rendered.index("EDUCATION")
 

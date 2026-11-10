@@ -43,12 +43,12 @@ EMPLOYMENT_DATES_AND_TITLES: dict[str, dict[str, Any]] = {
         "operating_context": "Regulatory analytics modernization program for global banks",
     },
     "employment_exp_insurtech_001": {
-        "title": "Chief Technology Officer",
+        "title": "Co-Founder & VP of Engineering",
         "employer": "InsurTech Cloud Solutions",
         "start_date": "2014-04",
         "end_date": "2017-03",
         "is_current": 0,
-        "operating_context": "Cloud-native engineering firm modernizing legacy insurance technology stacks",
+        "operating_context": "Stealth 8-person cloud-native engineering firm modernizing legacy Guidewire and insurance technology stacks across 3 regional P&C carrier design partners",
     },
     "employment_exp_ibm_001": {
         "title": "Partner",
