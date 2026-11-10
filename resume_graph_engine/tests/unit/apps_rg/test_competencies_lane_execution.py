@@ -6,7 +6,11 @@ from apps_rg.runtime.assembly.competencies_display import (
     render_competencies,
 )
 from apps_rg.runtime.c0.competencies_graph_authority import (
+    _ALLOCATION_VISIBLE_SURFACE_COMPOSITIONS,
     normalize_competency_surface_term,
+)
+from apps_rg.runtime.c0.competencies_surface_synthesis import (
+    phrase_passes_svp_richness,
 )
 from apps_rg.runtime.c0.resume_graph_allocation import (
     _default_slot_specs,
@@ -15,10 +19,17 @@ from apps_rg.runtime.c0.resume_graph_allocation import (
 from apps_rg.runtime.sections.competencies_lane_execution import (
     _ensure_allocation_plan_coverage,
 )
+from apps_rg.runtime.sections.competencies_lane_runtime import (
+    collect_employment_bullets,
+    load_base_resume,
+)
 from apps_rg.runtime.sections.role_episode_lane import (
     _repair_role_episode_bullet_evidence_density,
     _role_episode_evidence_block,
 )
+from apps_rg.runtime.validators.competencies_x2 import _bullet_restatement
+
+_GRAPH_AUTHORITY_SURFACE_COMPOSITIONS = _ALLOCATION_VISIBLE_SURFACE_COMPOSITIONS
 
 
 def test_normalize_competency_surface_term_lowercases_non_acronyms_and_preserves_acronyms() -> None:
@@ -292,3 +303,17 @@ def test_role_episode_evidence_block_and_slalom_100pct_metric_injection() -> Non
     )
     assert "100%" in bullets[0]["bullet_text"]
     assert repairs
+
+
+def test_graph_authority_surface_compositions_pass_svp_richness_and_avoid_bullet_restatement() -> None:
+    base, _, _ = load_base_resume()
+    _rows, _allowed, bullet_lowers = collect_employment_bullets(base)
+    assert bullet_lowers
+    assert _GRAPH_AUTHORITY_SURFACE_COMPOSITIONS
+
+    for key, phrase in _GRAPH_AUTHORITY_SURFACE_COMPOSITIONS.items():
+        assert phrase_passes_svp_richness(phrase), f"Composition {key} failed SVP richness: {phrase!r}"
+        assert not _bullet_restatement(phrase, bullet_lowers), (
+            f"Composition {key} triggered _bullet_restatement against canonical base resume bullets: {phrase!r}"
+        )
+

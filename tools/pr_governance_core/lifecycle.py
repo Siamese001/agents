@@ -487,7 +487,7 @@ def _execute_merge_under_lock(
             capture_output=True,
             text=True,
             env=commit_env,
-            timeout=180.0,
+            timeout=300.0,
         )
         if commit_res.returncode != 0:
             print(f"❌ Merge commit creation failed:\n{commit_res.stderr}")
