@@ -28,10 +28,42 @@ _MIN_TERMS_PER_DISPLAY_CLUSTER = 3
 _MAX_TERMS_PER_DISPLAY_CLUSTER = 5
 
 
+_INSURANCE_IT_STRATEGY_DISPLAY_LABEL_PRIORITY: dict[str, int] = {
+    "Governed Agentic AI Platform Architecture": 0,
+    "AI Platform Leadership": 0,
+    "Model Risk Governance & AI Runtime Control Gates": 1,
+    "Governance, Risk & Compliance": 1,
+    "Distributed Systems & Cloud Data Engineering": 2,
+    "Insurance Core Data & Workflow Modernization": 2,
+    "Data & Analytics Modernization": 2,
+    "GraphRAG, Hybrid Retrieval & Context Engineering": 3,
+    "AI Risk, Decisioning & Context Engineering": 3,
+    "Technology Strategy & Innovation": 3,
+    "Engineering Leadership & Operating Model": 4,
+    "AWS Migration Execution & Leadership": 4,
+    "Engineering & Delivery Leadership": 4,
+    "LLMOps, Evaluation & Runtime Reliability": 5,
+    "Modernization Delivery & Reliability": 5,
+    "LLMOps & Reliability": 5,
+    "Platform Productization & Commercialization": 6,
+    "Partner Commercialization & Value Realization": 6,
+    "Cloud Security, Transformation & Productization": 6,
+    "Commercial & Operating Impact": 6,
+    "Partner Applied AI Architecture": 7,
+    "Cloud & Partner Ecosystems": 7,
+}
+
+
 def _term_text(term: Any) -> str:
+    from apps_rg.runtime.c0.competencies_graph_authority import (
+        normalize_competency_surface_term,
+    )
+
     if isinstance(term, dict):
-        return str(term.get("text") or term.get("term") or "").strip()
-    return str(term or "").strip()
+        raw = str(term.get("text") or term.get("term") or "").strip()
+    else:
+        raw = str(term or "").strip()
+    return normalize_competency_surface_term(raw)
 
 
 def _normalised(text: str) -> str:
@@ -63,6 +95,17 @@ def _cluster_terms(categories: list[dict[str, Any]]) -> list[str]:
     return terms
 
 
+def _is_insurance_it_strategy_snapshot(snapshot: dict[str, Any], categories: list[dict[str, Any]]) -> bool:
+    for key in ("selected_fact_plan", "_selected_graph_evidence_plan", "competencies_frozen_allocation_output_projection"):
+        sub = snapshot.get(key)
+        if isinstance(sub, dict) and str(sub.get("target_role_profile") or "").strip() == "insurance_it_strategy":
+            return True
+    for cat in categories:
+        if str(cat.get("resume_display_order_reason") or "").strip() == "insurance_it_strategy_relevance_first":
+            return True
+    return False
+
+
 def competency_display_rows(snapshot: dict[str, Any]) -> list[tuple[str, list[str]]]:
     """Return the concise, reader-facing competency rows for a final résumé.
 
@@ -75,14 +118,24 @@ def competency_display_rows(snapshot: dict[str, Any]) -> list[tuple[str, list[st
     if not categories:
         return []
 
+    is_insurance_it = _is_insurance_it_strategy_snapshot(snapshot, categories)
+
     # When the snapshot contains a rich, evidence-backed set of distinct categories (>= 6) with explicit labels,
     # display each category directly so all 6-8 categories are visible on the finished résumé.
     has_explicit_labels = sum(
         1 for c in categories if (c.get("resume_display_label") or c.get("category_label"))
     ) >= 6
     if has_explicit_labels:
+        ordered_categories = list(categories)
+        if is_insurance_it:
+            ordered_categories.sort(
+                key=lambda c: _INSURANCE_IT_STRATEGY_DISPLAY_LABEL_PRIORITY.get(
+                    str(c.get("resume_display_label") or c.get("category_label") or "").strip(),
+                    50,
+                )
+            )
         rows: list[tuple[str, list[str]]] = []
-        for category in categories:
+        for category in ordered_categories:
             label = str(
                 category.get("resume_display_label") or category.get("category_label") or ""
             ).strip()
@@ -101,7 +154,16 @@ def competency_display_rows(snapshot: dict[str, Any]) -> list[tuple[str, list[st
 
     claimed_ids: set[int] = set()
     rows = []
-    for label, category_ids in _DISPLAY_GROUPS:
+    display_groups = (
+        (
+            _DISPLAY_GROUPS[1],
+            _DISPLAY_GROUPS[2],
+            _DISPLAY_GROUPS[0],
+        )
+        if is_insurance_it
+        else _DISPLAY_GROUPS
+    )
+    for label, category_ids in display_groups:
         selected = [
             category
             for category in categories
@@ -126,6 +188,53 @@ def competency_display_rows(snapshot: dict[str, Any]) -> list[tuple[str, list[st
         if label and terms:
             rows.append((label, terms))
     return rows
+
+
+def ensure_allocation_plan_coverage(
+    parsed: dict[str, Any],
+    *,
+    selected_plan: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Normalize mid-line capitalized claim splices and align category ordering with target profile."""
+    if not isinstance(parsed, dict):
+        return parsed
+    from apps_rg.runtime.c0.competencies_graph_authority import (
+        normalize_competency_surface_term,
+    )
+
+    target_profile = str((selected_plan or {}).get("target_role_profile") or "").strip()
+    for surface_key in ("categories", "competencies"):
+        raw_cats = parsed.get(surface_key)
+        if not isinstance(raw_cats, list):
+            continue
+        cats = [c for c in raw_cats if isinstance(c, dict)]
+        for cat in cats:
+            new_terms: list[Any] = []
+            for term in cat.get("terms") or []:
+                if isinstance(term, dict):
+                    raw_txt = str(term.get("text") or term.get("term") or "").strip()
+                    norm_txt = normalize_competency_surface_term(raw_txt)
+                    term["text"] = norm_txt
+                    term["term"] = norm_txt
+                    new_terms.append(term)
+                elif isinstance(term, str):
+                    new_terms.append(normalize_competency_surface_term(term))
+                else:
+                    new_terms.append(term)
+            cat["terms"] = new_terms
+        if target_profile == "insurance_it_strategy" and len(cats) >= 6:
+            cats.sort(
+                key=lambda c: _INSURANCE_IT_STRATEGY_DISPLAY_LABEL_PRIORITY.get(
+                    str(c.get("resume_display_label") or c.get("category_label") or "").strip(),
+                    50,
+                )
+            )
+            parsed[surface_key] = cats
+    if isinstance(parsed.get("claim_ledger"), list):
+        for row in parsed["claim_ledger"]:
+            if isinstance(row, dict) and row.get("claim_text"):
+                row["claim_text"] = normalize_competency_surface_term(str(row["claim_text"]))
+    return parsed
 
 
 def render_competencies(snapshot: dict[str, Any]) -> str:

@@ -601,30 +601,26 @@ def allocate_candidate_sets(
     from apps_rg.runtime.c0.c0_perf_sync_helpers import compute_distinct_root_sections, slot_priority_tier
     distinct_root_sections = compute_distinct_root_sections(slots, eligible_by_slot)
 
+    _AWS_MIGRATION_EXEC_SUMMARY_ROOTS = frozenset({
+        "reb_insurtech_aws_migration_execution", "reb_ibm_aws_modernization_architecture",
+    })
+
     def feasible_rows(slot: _Slot) -> list[dict[str, Any]]:
         rows: list[dict[str, Any]] = []
         for row in eligible_by_slot[slot.slot_id]:
             visible = slot.counts_toward_global_uniqueness
-            skill_id = str(row["skill_id"])
-            metric_id = str(row.get("metric_outcome_id") or "")
-            signature = str(row.get("normalized_metric_signature") or "")
-            fact_id = str(row["fact_id"])
-            family = str(row["source_family"])
-            root_id = str(row["root_id"])
-            if visible and skill_id in used_skills:
-                continue
-            if visible and metric_id and metric_id in used_metrics:
-                continue
-            if visible and signature and signature in used_signatures:
+            skill_id, metric_id, signature = str(row["skill_id"]), str(row.get("metric_outcome_id") or ""), str(row.get("normalized_metric_signature") or "")
+            fact_id, family, root_id = str(row["fact_id"]), str(row["source_family"]), str(row["root_id"])
+            if (visible and skill_id in used_skills) or (visible and metric_id and metric_id in used_metrics) or (visible and signature and signature in used_signatures):
                 continue
             if slot.section_id in distinct_root_sections and root_id and root_id in used_section_roots[slot.section_id]:
                 continue
-            if visible and fact_counts[fact_id] >= max_fact_reuse:
+            if slot.section_id == "executive_summary" and root_id in _AWS_MIGRATION_EXEC_SUMMARY_ROOTS and (used_section_roots["executive_summary"] & _AWS_MIGRATION_EXEC_SUMMARY_ROOTS):
                 continue
-            if visible and family_counts[family] >= max_family_uses:
+            if (visible and fact_counts[fact_id] >= max_fact_reuse) or (visible and family_counts[family] >= max_family_uses):
                 continue
             rows.append(row)
-        rows.sort(key=lambda row: (fact_counts[str(row["fact_id"])], *_candidate_sort_key(row)))
+        rows.sort(key=lambda row: (1 if (slot.section_id == "headline" and str(row.get("skill_id") or "") in {"skill_risk_three_lines_of_defense", "skill_p2_tech_adoption_derisking"}) else 0, fact_counts[str(row["fact_id"])], *_candidate_sort_key(row)))
         return rows
 
     def search() -> bool:
@@ -923,25 +919,40 @@ def _default_slot_specs(
     for section_id, claim_units in CANONICAL_BULLET_CLAIM_UNITS.items():
         if not claim_units:
             continue
+        section_roots_map = _authority_rows_by_root(section_plans.get(section_id, {}))
         metric_available = any(
             extract_exact_metric_value_unit(str(row.get("metric") or ""))[0]
-            for bucket in _authority_rows_by_root(section_plans.get(section_id, {})).values()
+            for bucket in section_roots_map.values()
             for row in bucket["metric_outcome"]
             if row.get("authority_pass") is True
         )
         for index, claim_unit in enumerate(claim_units):
+            unify_req_root = (
+                str(unify_slot_roots.get(claim_unit) or "").strip()
+                if section_id == "unify_bullets"
+                else ""
+            )
+            unify_slot_numeric_eligible = (
+                section_id == "unify_bullets"
+                and bool(unify_req_root)
+                and any(
+                    extract_exact_metric_value_unit(str(row.get("metric") or ""))[0]
+                    for row in section_roots_map.get(unify_req_root, {}).get("metric_outcome", [])
+                    if row.get("authority_pass") is True
+                )
+            )
             slots.append(
                 {
                     "slot_id": f"{section_id}:{claim_unit}",
                     "section_id": section_id,
                     # Unify's resume bullets have a graph-authored role-episode
                     # contract.  Each slot receives one approved metric outcome;
-                    # it is not valid to move the first numeric outcome into the
-                    # first presentation slot merely because that slot is first.
+                    # numeric-eligible Unify slots set metric_required: True.
                     "metric_required": (
                         metric_available
                         and (
                             (index == 0 and section_id not in ("unify_bullets", "ibm_bullets", "slalom_bullets"))
+                            or (section_id == "unify_bullets" and unify_slot_numeric_eligible)
                             or (section_id == "ibm_bullets" and index == len(claim_units) - 1)
                             or (section_id == "slalom_bullets" and index == 2)
                         )
@@ -950,9 +961,7 @@ def _default_slot_specs(
                     "employer_lane": EMPLOYER_LANE_BY_SECTION[section_id],
                     **(
                         {
-                            "required_root_id": str(
-                                unify_slot_roots.get(claim_unit) or ""
-                            ).strip()
+                            "required_root_id": unify_req_root
                         }
                         if section_id == "unify_bullets"
                         else {

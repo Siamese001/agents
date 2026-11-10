@@ -80,25 +80,13 @@ _EXECUTIVE_ABSTRACTION_RE = re.compile(
 )
 
 _PREFERRED_HEADLINE_ABSTRACTIONS: tuple[str, ...] = (
-    "Enterprise AI Platforms",
-    "Cloud Data Platforms",
-    "Runtime Governance Architecture",
-    "Partner AI Ecosystems",
-    "Platform Commercialization",
-    "Regulated AI Systems",
+    "Enterprise AI Platforms", "Cloud Data Platforms", "Runtime Governance Architecture",
+    "Partner AI Ecosystems", "Platform Commercialization", "Regulated AI Systems",
 )
 
-_HEADLINE_SCHEMA_KEYS = frozenset(
-    {
-        "headline_line",
-        "selected_fact_plan",
-        "claim_ledger",
-        "jd_alignment",
-        "gap_notes",
-        "change_log",
-        "self_check",
-    }
-)
+_HEADLINE_SCHEMA_KEYS = frozenset({
+    "headline_line", "selected_fact_plan", "claim_ledger", "jd_alignment", "gap_notes", "change_log", "self_check",
+})
 
 
 def _model_jd_alignment_for_proof(parsed_output: dict[str, Any] | None) -> dict[str, Any] | None:
@@ -866,16 +854,20 @@ def validate_raw_headline_claim_ledger(parsed: dict[str, Any] | None) -> tuple[b
 def has_valid_headline_prefix(headline_line: str) -> bool:
     """Check if headline starts with an approved executive seniority prefix."""
     h = (headline_line or "").strip()
+    if h.startswith("Senior Vice President | "):
+        return False
     return any(
         h.startswith(f"{p} | ")
         for p in (
             "SVP Engineering",
+            "SVP Enterprise Architecture",
+            "SVP AI Strategy",
+            "SVP IT Strategy",
             "SVP Agentic Transformation",
             "SVP Transformation",
             "SVP Enterprise AI",
             "SVP Technology Strategy",
             "SVP Agentic AI Platforms",
-            "Senior Vice President",
             "Partner",
             "Executive Director",
             "Managing Director",
@@ -885,7 +877,7 @@ def has_valid_headline_prefix(headline_line: str) -> bool:
             h.startswith("SVP ")
             or any(
                 h.startswith(f"{p} ")
-                for p in ("Senior Vice President", "Executive Director", "Managing Director", "Partner")
+                for p in ("Executive Director", "Managing Director", "Partner")
             )
         )
         and " | " in h

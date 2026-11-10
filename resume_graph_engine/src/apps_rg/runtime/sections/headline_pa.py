@@ -148,6 +148,72 @@ def format_narrowing_it_labels_blocklist_block() -> str:
     )
 
 
+_ALLOCATION_ROOT_COMPACT_PHRASES: dict[str, str] = {
+    "reb_unify_agentic_platform_architecture": "Agentic AI Platforms",
+    "reb_slalom_agentic_client_delivery": "Agentic AI Platforms",
+    "reb_slalom_nextgen_ai_solutions": "Agentic AI Platforms",
+    "reb_slalom_governed_runtime_scaling": "Runtime Governance Controls",
+    "reb_unify_distributed_ecosystem_engineering": "Cloud Data Modernization",
+    "reb_ibm_aws_modernization_architecture": "Cloud Data Modernization",
+    "reb_insurtech_aws_migration_execution": "Cloud Data Modernization",
+    "reb_insurtech_regulated_aws_control_implementation": "Regulated Insurance Governance",
+    "reb_ey_insurance_core_modernization": "Regulated Insurance Governance",
+    "reb_ey_erm_risk_governance": "Regulated Insurance Governance",
+    "reb_ibm_aws_alliance_partner_cosell_gtm": "Hyperscaler Partner Ecosystem",
+    "reb_unify_partner_channel_cosell": "Hyperscaler Partner Ecosystem",
+    "reb_ibm_customer_success_value_realization": "Enterprise AI Architecture",
+    "reb_ibm_offering_accelerator_management": "Enterprise AI Architecture",
+}
+
+
+def _format_allocation_authority_block(
+    plan: dict[str, Any] | None,
+    *,
+    prefix: str = "SVP Enterprise Architecture",
+) -> str:
+    """Format assigned headline allocation units with compact <=3-word executive positioning guidance."""
+    if not isinstance(plan, dict):
+        return ""
+    rows = [
+        r
+        for r in (plan.get("allocation_assignments") or [])
+        if isinstance(r, dict)
+        and str(r.get("section_id") or "") == "headline"
+        and str(r.get("root_id") or "").strip()
+    ]
+    if not rows:
+        return ""
+    headline_allocs = [f"{r.get('claim_unit_id')}:{r.get('root_id')}" for r in rows]
+    recommended_phrases: list[str] = []
+    for r in rows:
+        rid = str(r.get("root_id") or "").strip()
+        rec = _ALLOCATION_ROOT_COMPACT_PHRASES.get(rid)
+        if rec:
+            recommended_phrases.append(f"{rid} -> '{rec}'")
+    rec_clause = (
+        f" Recommended 3-word positioning phrases for assigned roots: {'; '.join(recommended_phrases)}."
+        if recommended_phrases
+        else ""
+    )
+    prefix_wc = len(prefix.split())
+    return (
+        "MANDATORY WHOLE-RESUME ALLOCATION BINDING: Every assigned headline allocation unit "
+        f"({', '.join(headline_allocs)}) MUST be represented 1-to-1 across X, Y, and Z and its root_id "
+        "MUST be cited in claim_ledger (set each claim_ledger row's claim_text to the exact X/Y/Z segment "
+        "and cite that segment's assigned root_id). Never exclude any assigned root_id to gap_notes, and "
+        "never spend two segments on one root_id while dropping another."
+        + rec_clause
+        + " FORBIDDEN BACK-OFFICE LABELS: Never emit 'Three Lines Governance' or 'Client Adoption Systems'; "
+        "express governance/insurance roots as 'Regulated Insurance Governance' or 'Runtime Governance Controls', "
+        "and express modernization/platform roots as 'Agentic AI Platforms', 'Cloud Data Modernization', or "
+        "'Enterprise AI Architecture'. "
+        f"STRICT COMPACT 4-SEGMENT ARITHMETIC: Prefix '{prefix}' is {prefix_wc} words, and every X/Y/Z segment "
+        "MUST be 2 to 3 words (<= 3 words per segment, <= 12 words total, <= 95 characters total, zero dollar metrics; "
+        "never emit 4-word segments, never stack redundant trailing nouns like 'Accelerators Platform' or "
+        "'Infrastructure Systems', and never embed vendor names like 'Databricks' inside 4-word segments).\n"
+    )
+
+
 def build_headline_assembly_input(
     runtime_payload: dict[str, Any],
     fact_lines: str,
@@ -225,32 +291,16 @@ def build_headline_assembly_input(
         "Return RAW JSON only: first character {, last character }. No markdown fences.\n",
         "Anti-copy: do not default-copy examples, identity-reference lines, JD title, JD phrases, briefing phrases, or the base resume headline verbatim — "
         "prefer fresh fact-led wording unless verbatim text is truly best and still compliant.\n",
-        f"headline_line MUST use exact prefix '{prefix} | ', exactly three ' | ' separators (four non-empty segments), 10–13 words total, ",
+        f"headline_line MUST use exact prefix '{prefix} | ', exactly three ' | ' separators (four non-empty segments), 10–13 words total (each segment <= 3 words), ",
         "no metrics, no employer or target company names, no candidate names, no inline source tags, no first person, no em dash.\n",
         "claim_ledger MUST be an array of OBJECT rows with claim_text (non-empty string) and ",
         "source_fact_ids (non-empty string array drawn exactly from ALLOWED_SOURCE_FACT_IDS; graph-era reb_* and skill_* IDs are valid when explicitly allowed). ",
         "FORBIDDEN: flat arrays of strings such as [\"bul_unify_001\",\"bul_unify_005\"] — invalid for proof.\n",
         "jd_alignment must include jd_used_as_proof: false and briefing_used_as_proof: false (both booleans).\n",
     ]
-    headline_allocs = [
-        f"{r.get('claim_unit_id')}:{r.get('root_id')}"
-        for r in (plan.get("allocation_assignments") or [])
-        if isinstance(r, dict)
-        and str(r.get("section_id") or "") == "headline"
-        and str(r.get("root_id") or "").strip()
-    ]
-    if headline_allocs:
-        u0_parts.append(
-            "MANDATORY WHOLE-RESUME ALLOCATION BINDING: Every assigned headline allocation unit "
-            f"({', '.join(headline_allocs)}) MUST be represented 1-to-1 across X, Y, and Z and its root_id "
-            "MUST be cited in claim_ledger (set each claim_ledger row's claim_text to the exact X/Y/Z segment "
-            "and cite that segment's assigned root_id). Never exclude any assigned root_id to gap_notes, and "
-            "never spend two segments on one root_id while dropping another. "
-            "STRICT 10-13 WORD ARITHMETIC: Prefix is 2 words, so X+Y+Z combined MUST total 8 to 11 words "
-            "(never emit three 4-word segments = 14 words; keep at least two segments at 3 words, never "
-            "stack redundant trailing nouns like 'Accelerators Platform' or 'Infrastructure Systems', and "
-            "never embed vendor names like 'Databricks' inside 4-word segments — write 'Distributed Lakehouse Infrastructure').\n"
-        )
+    alloc_block = _format_allocation_authority_block(plan, prefix=prefix)
+    if alloc_block:
+        u0_parts.append(alloc_block)
     if companion_context_nonempty:
         u0_parts.append(
             "Because U_TIER_COMPANION_CONTEXT is included below (non-empty), jd_alignment MUST also include "
@@ -339,6 +389,7 @@ def compile_headline_prompt(
 
 
 __all__ = [
+    "_format_allocation_authority_block",
     "build_headline_assembly_input",
     "compile_headline_prompt",
     "load_headline_template_slots",

@@ -19,6 +19,15 @@ from typing import Any, Callable
 DEFAULT_FUNCTIONAL_PILLAR_WEIGHT = 0.55
 DEPRIORITIZED_PILLAR_WEIGHT = 0.10
 
+_ROLE_FAMILY_ALIASES: dict[str, str] = {
+    "insurance_it_strategy": "AI_FINANCIAL_SERVICES",
+    "insurance_agentic_ai": "AI_FINANCIAL_SERVICES",
+    "svp_agentic_engineering": "SVP_ENGINEERING_AI_PLATFORM",
+    "executive_agentic_transformation": "CHIEF_AI_OFFICER",
+    "ai_partnerships_gtm": "PARTNER_APPLIED_AI_ARCHITECTURE",
+    "balanced_enterprise_ai": "SVP_ENGINEERING_AI_PLATFORM",
+}
+
 
 def profile_pillar_weights(
     role_family_key: str, graph: dict[str, Any]
@@ -26,7 +35,13 @@ def profile_pillar_weights(
     """(pillar_id -> weight, deprioritized pillar ids) for a projection profile."""
     if not role_family_key:
         return {}, set()
-    profile = (graph.get("role_family_projection_profiles") or {}).get(role_family_key) or {}
+    profiles = graph.get("role_family_projection_profiles") or {}
+    resolved_key = (
+        role_family_key
+        if role_family_key in profiles
+        else _ROLE_FAMILY_ALIASES.get(role_family_key, role_family_key)
+    )
+    profile = profiles.get(resolved_key) or {}
     weights = {
         str(p.get("pillar_id")): float(p.get("weight") or 0.0)
         for p in (profile.get("top_weighted_pillars") or [])
@@ -117,10 +132,34 @@ def resolve_jd_fit_slot_bundle_map(
     return new_map
 
 
+def select_jd_fit_slot_bundle_map(
+    section_id: str,
+    role_family_key: str,
+    *,
+    repo_root: Any | None = None,
+) -> dict[str, str]:
+    """Convenience entrypoint resolving section JD-fit slot→bundle map by section_id."""
+    if section_id == "unify_bullets":
+        from apps_rg.runtime.sections.unify_role_episode_evidence import (
+            resolve_unify_bullet_slot_bundle_map,
+        )
+
+        return resolve_unify_bullet_slot_bundle_map(role_family_key, repo_root=repo_root)
+    if section_id == "ibm_bullets":
+        from apps_rg.runtime.sections.ibm_role_episode_evidence import (
+            IBM_BULLET_SLOT_BUNDLE_MAP,
+        )
+
+        return dict(IBM_BULLET_SLOT_BUNDLE_MAP)
+    raise ValueError(f"Unsupported section_id for JD-fit bundle selection: {section_id!r}")
+
+
 __all__ = [
     "DEFAULT_FUNCTIONAL_PILLAR_WEIGHT",
     "DEPRIORITIZED_PILLAR_WEIGHT",
+    "_ROLE_FAMILY_ALIASES",
     "bundle_jd_fit_score",
     "profile_pillar_weights",
     "resolve_jd_fit_slot_bundle_map",
+    "select_jd_fit_slot_bundle_map",
 ]

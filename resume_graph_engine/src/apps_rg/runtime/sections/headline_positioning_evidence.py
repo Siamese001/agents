@@ -28,28 +28,76 @@ HEADLINE_SENIORITY_FLOOR = "SVP Engineering"
 HEADLINE_TECHNICAL_SPECIFICITY_FLOOR = 2  # >=2 positioning families in X/Y/Z
 
 
-def infer_headline_prefix(target_title: str | None) -> str:
-    """Infer executive title prefix from target title, defaulting to HEADLINE_SENIORITY_FLOOR."""
-    t = (target_title or "").strip().replace(",", "")
+def derive_headline_title_anchor(target_title: str | None) -> str:
+    """Derive a compact 2-3 word SVP executive title anchor from target_title.
+
+    Abbreviates 'Senior Vice President' to 'SVP' and retains a 2-word executive
+    domain specialization (e.g. 'SVP Enterprise Architecture', 'SVP AI Strategy',
+    or 'SVP IT Strategy') within the 3-word segment cap, never returning bare
+    'Senior Vice President'.
+    """
+    raw = (target_title or "").strip()
+    if not raw:
+        return HEADLINE_SENIORITY_FLOOR
+    t_low = raw.lower()
+    t_clean = raw.replace(",", " ").strip()
+    words_clean = [w for w in t_clean.split() if w]
+
+    # Map Senior Vice President + specialization into compact 3-word SVP <Domain>
+    if t_low.startswith("senior vice president") or t_low.startswith("svp"):
+        if "strategy & innovation" in t_low or "strategy and innovation" in t_low or "enterprise architecture" in t_low:
+            return "SVP Enterprise Architecture"
+        if "agentic transformation" in t_low:
+            return "SVP Agentic Transformation"
+        if "agentic ai" in t_low:
+            return "SVP Agentic AI"
+        if "enterprise ai" in t_low:
+            return "SVP Enterprise AI"
+        if "ai strategy" in t_low or ("ai" in t_low and "strategy" in t_low):
+            return "SVP AI Strategy"
+        if "it strategy" in t_low:
+            return "SVP IT Strategy"
+        if "technology strategy" in t_low:
+            return "SVP Technology Strategy"
+        if "transformation" in t_low:
+            return "SVP Transformation"
+        if "engineering" in t_low:
+            return "SVP Engineering"
+        if t_low.startswith("svp ") and 2 <= len(words_clean) <= 3:
+            return " ".join(words_clean[:3])
+        if t_low.startswith("senior vice president"):
+            suffix = raw[len("senior vice president") :].lstrip(" ,;-–—")
+            suffix_words = [
+                w for w in suffix.replace("&", " ").replace(",", " ").split()
+                if w.lower() not in {"of", "for", "and", "the", "in"}
+            ]
+            if len(suffix_words) >= 2:
+                return f"SVP {suffix_words[0]} {suffix_words[1]}"
+            if len(suffix_words) == 1:
+                return f"SVP {suffix_words[0]}"
+            return "SVP Enterprise Architecture"
+
     for pref in (
+        "SVP Enterprise Architecture",
         "SVP Agentic Transformation",
         "SVP Transformation",
         "SVP Technology Strategy",
         "SVP Enterprise AI",
-        "SVP Agentic AI Platforms",
+        "SVP AI Strategy",
+        "SVP IT Strategy",
         "SVP Engineering",
-        "Senior Vice President",
         "Executive Director",
         "Managing Director",
         "Partner",
     ):
-        if t.lower().startswith(pref.lower()):
+        if t_clean.lower().startswith(pref.lower()):
             return pref
-    if t.lower().startswith("svp"):
-        words = t.split()
-        if len(words) >= 2:
-            return " ".join(words[:3]) if len(words) >= 3 and words[1].lower() in ("agentic", "enterprise", "digital", "technology") else " ".join(words[:2])
     return HEADLINE_SENIORITY_FLOOR
+
+
+def infer_headline_prefix(target_title: str | None) -> str:
+    """Infer executive title prefix from target title, delegating to derive_headline_title_anchor."""
+    return derive_headline_title_anchor(target_title)
 
 _AUTHORITY_HEADER_LINES: tuple[str, ...] = (
     "proof_authority = graph_positioning_bundles_plus_linked_source_facts",
@@ -67,7 +115,6 @@ _AUTHORITY_HEADER_LINES: tuple[str, ...] = (
 _FORBIDDEN_C0_SUBSTRINGS: tuple[str, ...] = (
     "Lakehouse Microservices Architecture",
     "AI Lifecycle Standardization",
-    "SVP IT Strategy",
 )
 
 
@@ -359,6 +406,8 @@ __all__ = [
     "assert_headline_positioning_evidence_pack_has_no_forbidden_leaks",
     "attach_headline_positioning_bundles_to_proof_pool_metadata",
     "build_headline_positioning_section_packet",
+    "derive_headline_title_anchor",
     "format_headline_positioning_evidence_pack",
+    "infer_headline_prefix",
     "is_flat_skill_only_packet",
 ]

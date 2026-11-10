@@ -764,6 +764,11 @@ _MACHINE_HEADLINE_SEGMENT_REWRITES: dict[str, str] = {
     "audit grade observability controls": "Audit Observability Controls",
     "audit grade observability systems": "Audit Observability Controls",
     "audit grade observability": "Audit Observability Controls",
+    "three lines governance": "Regulated Insurance Governance",
+    "three lines risk governance": "Regulated Insurance Governance",
+    "three lines of defense governance": "Regulated Insurance Governance",
+    "client adoption systems": "Cloud Data Modernization",
+    "hyperscaler alliance ecosystem": "Hyperscaler Partner Ecosystem",
 }
 
 
@@ -771,7 +776,7 @@ def _rewrite_machine_headline_segments(headline_line: str) -> tuple[str, list[di
     """Replace unnatural AI-ish headline fragments with evidence-native executive phrasing."""
     hl = str(headline_line or "").strip()
     parts = [p.strip() for p in hl.split(" | ")]
-    if len(parts) != 4 or parts[0] != "SVP Engineering":
+    if len(parts) != 4 or not has_valid_headline_prefix(hl):
         return hl, []
     changes: list[dict[str, str]] = []
     for idx in range(1, 4):
