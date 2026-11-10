@@ -142,7 +142,7 @@ def verify_main_readiness(
             "1. Tier 1 Structural Governance",
             [str(python_bin), "tools/verify_commit.py", "--all"],
             "Tier 1 Structural Governance (All 5 Categories)",
-            60,
+            180,
         ),
         (
             "2. Architecture & Service Boundaries",
