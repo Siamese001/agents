@@ -118,44 +118,23 @@ def _partner_metric_surface_payload() -> tuple[list[dict], dict, dict]:
     slot_map = meta["unify_bullet_slot_bundle_map_resolved"]
     bundle_by_id = {b["role_episode_bundle_id"]: b for b in meta["role_episode_bundles"]}
     metric_nodes = metric_outcome_nodes_from_path(UNIFY_BUNDLES_PATH)
-    bullets: list[dict] = []
-    ledger: list[dict] = []
-    change_log: list[dict] = []
+    bullets, ledger, change_log = [], [], []
     for bid in UNIFY_BULLET_IDS:
         bundle = bundle_by_id[slot_map[bid]]
         mid = str(bundle["linked_metric_outcome_ids"][0])
         token = str((metric_nodes[mid].get("surface_tokens") or [metric_nodes[mid]["metric"]])[0])
-        text = (
-            f"Owned {token} across governed enterprise AI platform work, tying architecture "
-            f"execution to measurable adoption outcomes."
-        )
-        bullets.append(
-            {
-                "bullet_id": bid,
-                "bullet_text": text,
-                "has_metric": True,
-                "metric_raw": mid,
-                "source_fact_ids": [bid],
-            }
-        )
+        text = f"Owned {token} across governed enterprise AI platform work, tying architecture execution to measurable adoption outcomes."
+        bullets.append({"bullet_id": bid, "bullet_text": text, "has_metric": True, "metric_raw": mid, "source_fact_ids": [bid]})
         ledger.append({"claim_text": text, "source_fact_ids": [bid]})
-        change_log.append(
-            {
-                "bullet_id": bid,
-                "role_episode_bundle_id": bundle["role_episode_bundle_id"],
-                "graph_skill_node_ids": list(bundle["graph_skill_node_ids"])[:3],
-                "fact_ids_used": [bid, *list(bundle["linked_source_fact_ids"])[:1]],
-                "metric_outcome_ids": [mid],
-            }
-        )
+        change_log.append({
+            "bullet_id": bid, "role_episode_bundle_id": bundle["role_episode_bundle_id"],
+            "graph_skill_node_ids": list(bundle["graph_skill_node_ids"])[:3],
+            "fact_ids_used": [bid, *list(bundle["linked_source_fact_ids"])[:1]], "metric_outcome_ids": [mid],
+        })
     parsed = {
-        "bullets": bullets,
-        "selected_fact_plan": {"selection_method": TRACK_RANKED_SELECTION_METHOD, "facts": []},
-        "claim_ledger": ledger,
-        "jd_alignment": {"targeting_only": True, "jd_used_as_proof": False},
-        "gap_notes": [],
-        "change_log": change_log,
-        "self_check": {"bullets_composed_from_graph_evidence": True},
+        "bullets": bullets, "selected_fact_plan": {"selection_method": TRACK_RANKED_SELECTION_METHOD, "facts": []},
+        "claim_ledger": ledger, "jd_alignment": {"targeting_only": True, "jd_used_as_proof": False},
+        "gap_notes": [], "change_log": change_log, "self_check": {"bullets_composed_from_graph_evidence": True},
     }
     return bullets, parsed, meta
 
@@ -163,7 +142,6 @@ def _partner_metric_surface_payload() -> tuple[list[dict], dict, dict]:
 def test_unify_x1d_outputs_are_written_once_after_adjudication() -> None:
     source = (APP_ROOT / "runtime/sections/unify_bullets_lane.py").read_text(encoding="utf-8")
     write_call = 'write_json(artifact_dir / "x1d_llm_judge_outputs.json"'
-
     assert source.count(write_call) == 1
     assert source.find(write_call) > source.find("if _should_adjudicate and _panel_keys:")
     assert source.find(write_call) < source.find("run_bullet_judge_reselection(")
@@ -171,16 +149,10 @@ def test_unify_x1d_outputs_are_written_once_after_adjudication() -> None:
 
 def test_legacy_six_pack_detector() -> None:
     assert is_legacy_six_pack_ledger_order(list(LEGACY_SIX_PACK_LEDGER_ORDER))
-    assert not is_legacy_six_pack_ledger_order(
-        [
-            "fact_engineering_platform_004",
-            "fact_engineering_platform_006",
-            "fact_engineering_platform_003",
-            "fact_engineering_platform_001",
-            "fact_exec_002",
-            "fact_engineering_platform_002",
-        ]
-    )
+    assert not is_legacy_six_pack_ledger_order([
+        "fact_engineering_platform_004", "fact_engineering_platform_006", "fact_engineering_platform_003",
+        "fact_engineering_platform_001", "fact_exec_002", "fact_engineering_platform_002",
+    ])
 
 
 def test_selection_method_guard_rejects_company_hint() -> None:
@@ -206,6 +178,26 @@ def test_promoted_commercial_and_governance_metrics_pass_x2_detector() -> None:
         "Lowered regulatory findings by 35% and accelerated regulatory submissions by 40% across 120+ service dependencies with 18 patterns gated.",
     ])
     assert detect_unsupported_metric_claims(["Generated $99M revenue and 87% margin."]) == ["$99m", "87%"]
+
+
+def test_all_ten_unify_bundles_emit_mechanism_vocab_and_pass_e2e_role_episode_gates() -> None:
+    from apps_rg.runtime.sections.unify_role_episode_evidence import (
+        _mechanism_vocab_from_bundle, external_eligible_unify_role_episode_bundles, load_unify_role_episode_bundles,
+    )
+
+    all_bundles = load_unify_role_episode_bundles()
+    assert len(all_bundles) == 10 and len(external_eligible_unify_role_episode_bundles()) == 10
+    for b in all_bundles:
+        assert _mechanism_vocab_from_bundle(b), f"{b['role_episode_bundle_id']} emitted empty mechanism_vocab"
+    bullets, parsed, meta = _partner_metric_surface_payload()
+    bullets[0]["bullet_text"] = "Owned $3M in partner-derived revenue and 30% upsell across governed agentic platform co-sell motions with deterministic routing."
+    parsed["claim_ledger"][0]["claim_text"] = bullets[0]["bullet_text"]
+    parsed["change_log"][0]["metric_outcome_ids"] = ["metric_unify_partner_derived_revenue_3m", "metric_unify_cosell_bundling_upsell_30pct"]
+    bullets[1]["bullet_text"] = "Directed $5M ACV and 93% annual renewal across consumption-based enterprise platform deployments with telemetry and evaluation gates."
+    parsed["claim_ledger"][1]["claim_text"] = bullets[1]["bullet_text"]
+    parsed["change_log"][1]["metric_outcome_ids"] = ["metric_unify_cfo_aligned_enterprise_adoption_5m_acv", "metric_unify_consumption_licensing_renewal_93pct"]
+    gates = run_unify_bullets_role_episode_x2_gates(bullets=bullets, parsed_output=parsed, proof_pool_metadata=meta, jd_text=JD)
+    assert all(g.passed for g in gates), [g for g in gates if not g.passed]
 
 
 def test_unify_graph_receipt_uses_the_resolved_external_slot_contract() -> None:

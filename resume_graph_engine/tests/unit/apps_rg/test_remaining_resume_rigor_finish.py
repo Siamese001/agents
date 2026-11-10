@@ -442,6 +442,7 @@ def test_unify_bullets_gates_pass_on_bundle_backed_packet():
         "x2_unify_metric_outcome_id_required_when_has_metric",
         "x2_unify_flat_skill_only_graph_packet_forbidden",
         "x2_unify_generic_consulting_language_forbidden",
+        "x2_unify_unsupported_new_claim_forbidden",
         "x2_unify_seniority_floor_met",
         "x2_unify_technical_specificity_floor_met",
         "x2_unify_architecture_mechanism_required",
@@ -452,75 +453,65 @@ def test_unify_bullets_gates_pass_on_bundle_backed_packet():
         assert gates[gid].passed, f"{gid} should pass: {gates[gid].failure_reason}"
 
 
+def test_unify_bullets_rejects_unsupported_new_metric_claim():
+    from apps_rg.runtime.validators.unify_role_episode_x2 import run_unify_bullets_role_episode_x2_gates
+
+    bullets, parsed = _good_unify_bullets()
+    bullets[5]["bullet_text"] += " and $99M fabricated revenue."
+    gates = _gate_map(run_unify_bullets_role_episode_x2_gates(
+        bullets=bullets, parsed_output=parsed, proof_pool_metadata=_unify_bullets_proof_meta()
+    ))
+    assert not gates["x2_unify_unsupported_new_claim_forbidden"].passed
+    assert "$99m" in gates["x2_unify_unsupported_new_claim_forbidden"].observed_value
+
+
 def test_unify_bullets_rejects_flat_skill_only_packet():
-    from apps_rg.runtime.validators.unify_role_episode_x2 import (
-        run_unify_bullets_role_episode_x2_gates,
-    )
+    from apps_rg.runtime.validators.unify_role_episode_x2 import run_unify_bullets_role_episode_x2_gates
 
     bullets, parsed = _good_unify_bullets()
     flat_meta = {"role_episode_bundle_consumption": True, "graph_skill_node_ids": ["skill_x"]}
-    gates = _gate_map(
-        run_unify_bullets_role_episode_x2_gates(
-            bullets=bullets, parsed_output=parsed, proof_pool_metadata=flat_meta
-        )
-    )
+    gates = _gate_map(run_unify_bullets_role_episode_x2_gates(
+        bullets=bullets, parsed_output=parsed, proof_pool_metadata=flat_meta
+    ))
     assert not gates["x2_unify_flat_skill_only_graph_packet_forbidden"].passed
     assert not gates["x2_unify_role_episode_bundles_in_proof_pool"].passed
 
 
 def test_unify_bullets_rejects_generic_consulting_and_missing_bundle_id():
-    from apps_rg.runtime.validators.unify_role_episode_x2 import (
-        run_unify_bullets_role_episode_x2_gates,
-    )
+    from apps_rg.runtime.validators.unify_role_episode_x2 import run_unify_bullets_role_episode_x2_gates
 
     bullets, parsed = _good_unify_bullets()
     bullets[0]["bullet_text"] = "Partnered with stakeholders and delivered consulting engagements to drive strategic value."
     parsed["change_log"] = [{"bullet_id": "bul_unify_001"}]  # no bundle id / skills
-    gates = _gate_map(
-        run_unify_bullets_role_episode_x2_gates(
-            bullets=bullets, parsed_output=parsed, proof_pool_metadata=_unify_bullets_proof_meta()
-        )
-    )
+    gates = _gate_map(run_unify_bullets_role_episode_x2_gates(
+        bullets=bullets, parsed_output=parsed, proof_pool_metadata=_unify_bullets_proof_meta()
+    ))
     assert not gates["x2_unify_generic_consulting_language_forbidden"].passed
     assert not gates["x2_unify_bullet_role_episode_bundle_id_required"].passed
 
 
 def test_unify_bullets_rejects_metric_without_outcome_id():
-    """Under derive_from_cited_facts (dec_19e9c91073ae4b5ab) a has_metric bullet must bind a bundle
-    with an approved metric_outcome_id. A metric bullet that echoes no outcome id AND cites no
-    bundle-linked fact (so no bundle/metric can be derived) must fail."""
-    from apps_rg.runtime.validators.unify_role_episode_x2 import (
-        run_unify_bullets_role_episode_x2_gates,
-    )
+    """A metric bullet that echoes no outcome id AND cites no bundle-linked fact must fail."""
+    from apps_rg.runtime.validators.unify_role_episode_x2 import run_unify_bullets_role_episode_x2_gates
 
     bullets, parsed = _good_unify_bullets()
     for entry in parsed["change_log"]:
         entry.pop("metric_outcome_ids", None)
-        # Sever fact citations so no bundle (and thus no approved metric) can be derived.
         entry["source_fact_ids"] = ["fact_not_in_any_bundle_zzz"]
-    gates = _gate_map(
-        run_unify_bullets_role_episode_x2_gates(
-            bullets=bullets, parsed_output=parsed, proof_pool_metadata=_unify_bullets_proof_meta()
-        )
-    )
+    gates = _gate_map(run_unify_bullets_role_episode_x2_gates(
+        bullets=bullets, parsed_output=parsed, proof_pool_metadata=_unify_bullets_proof_meta()
+    ))
     assert not gates["x2_unify_metric_outcome_id_required_when_has_metric"].passed
 
 
 def test_unify_bullets_rejects_base_archive_hydration():
-    from apps_rg.runtime.validators.unify_role_episode_x2 import (
-        run_unify_bullets_role_episode_x2_gates,
-    )
+    from apps_rg.runtime.validators.unify_role_episode_x2 import run_unify_bullets_role_episode_x2_gates
 
     bullets, parsed = _good_unify_bullets()
     combined = "\n".join(b["bullet_text"] for b in bullets)
-    gates = _gate_map(
-        run_unify_bullets_role_episode_x2_gates(
-            bullets=bullets,
-            parsed_output=parsed,
-            proof_pool_metadata=_unify_bullets_proof_meta(),
-            base_texts=[combined],
-        )
-    )
+    gates = _gate_map(run_unify_bullets_role_episode_x2_gates(
+        bullets=bullets, parsed_output=parsed, proof_pool_metadata=_unify_bullets_proof_meta(), base_texts=[combined]
+    ))
     assert not gates["x2_unify_base_archive_ngram_overlap_forbidden_or_warn"].passed
 
 

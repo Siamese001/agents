@@ -187,6 +187,16 @@ def _metric_option_label(metric_id: str) -> str:
     return metric_id
 
 
+def load_unify_role_episode_bundles(path: Path = UNIFY_BUNDLES_PATH) -> list[dict[str, Any]]:
+    from apps_rg.runtime.sections.unify_graph_role_episode_registry import get_all_bundles
+    return get_all_bundles(path)
+
+
+def external_eligible_unify_role_episode_bundles(section_id: str = "unify_bullets", path: Path = UNIFY_BUNDLES_PATH) -> list[dict[str, Any]]:
+    return [b for b in get_bundles_for_section(section_id, path)
+            if b.get("activation_status") == "ACTIVE_CONFIRMED" and b.get("external_claim_policy") != "internal_only_not_external_claim"]
+
+
 def _mechanism_vocab_from_bundle(bundle: dict[str, Any]) -> list[str]:
     tokens: list[str] = []
     for sig in (bundle.get("architecture_scope_signals") or []):
@@ -194,12 +204,13 @@ def _mechanism_vocab_from_bundle(bundle: dict[str, Any]) -> list[str]:
         if not s:
             continue
         for kw in (
-            "deterministic routing", "multi-agent orchestration", "GraphRAG",
-            "sandboxed execution", "policy gates", "replayable execution traces",
-            "telemetry", "rollback controls", "evaluation gates", "dependency graph",
-            "architecture visibility", "vector services", "API gateways", "Databricks",
-            "Lakehouse", "high availability", "parallel decision workflows",
-            "reusable platform services", "commercialization",
+            "deterministic routing", "multi-agent orchestration", "GraphRAG", "sandboxed execution", "policy gates",
+            "replayable execution traces", "telemetry", "rollback controls", "evaluation gates", "dependency graph",
+            "architecture visibility", "vector services", "API gateways", "Databricks", "Lakehouse", "high availability",
+            "parallel decision workflows", "reusable platform services", "commercialization", "deterministic auditability",
+            "cross-environment validation", "co-sell motions", "analytics framework", "consumption-based", "usage telemetry",
+            "compliance checkpoints", "LLM document intelligence", "model-explainability", "solution roadmaps",
+            "GSI partner enablement", "pre-sales solution architecture",
         ):
             if kw.lower() in s.lower() and kw not in tokens:
                 tokens.append(kw)
@@ -614,23 +625,15 @@ def _format_narrative_bundle_block(bundle_record: dict[str, Any]) -> str:
 def assert_unify_section_may_consume_graph_context(context: dict[str, Any]) -> None:
     assert_role_episode_bundle_id_present(context)
     if is_flat_skill_only_graph_packet(context):
-        raise ValueError(
-            "Unify section graph context is flat skill-only; role_episode_bundle_id required."
-        )
+        raise ValueError("Unify section graph context is flat skill-only; role_episode_bundle_id required.")
 
 
 __all__ = [
-    "UNIFY_BULLET_SLOT_BUNDLE_MAP",
-    "UNIFY_BULLET_SLOT_IDS",
-    "UNIFY_METRIC_PROTECTED_BULLET_SLOT_IDS",
-    "UNIFY_ROLE_EPISODE_EVIDENCE_MARKER",
-    "resolve_unify_bullet_slot_bundle_map_with_fallback",
-    "assert_unify_role_episode_evidence_pack_has_no_forbidden_leaks",
-    "assert_unify_section_may_consume_graph_context",
-    "attach_role_episode_bundles_to_proof_pool_metadata",
-    "build_unify_graph_traversal_sufficiency_receipt",
-    "build_unify_role_episode_section_packet",
-    "resolve_unify_bullet_slot_bundle_map",
-    "format_unify_role_episode_evidence_pack",
-    "is_flat_skill_only_graph_packet",
+    "UNIFY_BULLET_SLOT_BUNDLE_MAP", "UNIFY_BULLET_SLOT_IDS", "UNIFY_METRIC_PROTECTED_BULLET_SLOT_IDS",
+    "UNIFY_ROLE_EPISODE_EVIDENCE_MARKER", "resolve_unify_bullet_slot_bundle_map_with_fallback",
+    "assert_unify_role_episode_evidence_pack_has_no_forbidden_leaks", "assert_unify_section_may_consume_graph_context",
+    "attach_role_episode_bundles_to_proof_pool_metadata", "build_unify_graph_traversal_sufficiency_receipt",
+    "build_unify_role_episode_section_packet", "external_eligible_unify_role_episode_bundles",
+    "load_unify_role_episode_bundles", "resolve_unify_bullet_slot_bundle_map",
+    "format_unify_role_episode_evidence_pack", "is_flat_skill_only_graph_packet",
 ]
