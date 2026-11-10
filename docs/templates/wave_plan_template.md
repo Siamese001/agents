@@ -1,12 +1,19 @@
 # Wave-Based Implementation Plan Template
 
+| Wave | Description | Status |
+| :--- | :--- | :--- |
+| Wave 1 | Core subsystem foundation and typed interface contracts | NOT_STARTED |
+| Wave 2 | Execution engine integration and dispatch wiring | NOT_STARTED |
+| Wave 3 | End-to-end verification and closeout | NOT_STARTED |
+
 Canonical reference template for wave-based engineering implementation plans in this repository. All implementation plans (including planning-mode artifacts and stored plans) must adhere to the structural and governance rules defined in [.agents/rules/wave-progression.md](../../.agents/rules/wave-progression.md).
 
 ## Governance Summary
 
+- **Status Table Header**: Include the 3-column `| Wave | Description | Status |` table at the top of `implementation_plan.md`.
 - **Wave Decomposition**: Deconstruct engineering work into sequential numbered waves (`## Wave 1: <Title>`, `## Wave 2: <Title>`) starting at Wave 0 or 1 with no gaps.
 - **Mandatory Subsections**: Each wave must contain exactly four subsections: `### Objective & Scope`, `### Milestones & Deliverables`, `### Acceptance Criteria`, and `### Runtime Receipt & Completion Gate`.
-- **Completion Gate Fields**: Every wave completion gate must explicitly specify all six runtime evidence fields: `Run:`, `Input:`, `Expected:`, `Verify independently:`, `Fail if:`, and `Record:`.
+- **Completion Gate Fields**: Every wave completion gate must explicitly specify all six runtime evidence fields without wrapping the field labels in backticks (`- **Run:**` or `- Run:`, `- **Input:**`, `- **Expected:**`, `- **Verify independently:**`, `- **Fail if:**`, and `- **Record:**`).
 - **Word Budget (`INV-WAVE-PLAN-MAX-WORDS`)**: The entire plan should normally target 500–800 words, with a hard maximum of 1,000 words. Keep descriptions bounded, precise, and free of conversational padding.
 - **Chat Reporting Separation**: Do not dump all-wave status tables into ordinary chat turns. Chat completion responses target ~120 words (hard max 300 words).
 
