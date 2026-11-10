@@ -276,7 +276,17 @@ def compute_career_band_filter(
     }
     if section_id == "executive_summary":
         for r_id, bkt in grouped_section_buckets.items():
-            if any(r_row.get("authority_pass") is True for r_row in bkt["root"]) and any(
+            if any(
+                r_row.get("authority_pass") is True
+                and float(
+                    employer_root_weights.get(
+                        r_id,
+                        employer_weights.get(str(r_row.get("employer_lane") or ""), 1.0),
+                    )
+                )
+                >= 0.55
+                for r_row in bkt["root"]
+            ) and any(
                 m_row.get("authority_pass") is True for m_row in bkt.get("metric_outcome", ())
             ):
                 primary_secondary_roots.add(r_id)
@@ -299,7 +309,20 @@ def compute_candidate_alignment_and_independence(
         + float(skill.get("target_alignment_score") or 0.0)
         + float((metric or {}).get("target_alignment_score") or 0.0)
     ) / (3 if metric is not None else 2)
-    proof_score = 1.0 if raw_proof >= 1.0 else raw_proof
+    root_id = str(root.get("root_id") or root.get("candidate_id") or "")
+    proof_score = (
+        1.0
+        if (
+            raw_proof >= 1.0
+            or (
+                raw_proof >= 0.85
+                and root_id.startswith("reb_")
+                and root.get("authority_pass") is True
+                and skill.get("authority_pass") is True
+            )
+        )
+        else raw_proof
+    )
     align_score = round(raw_align * root_weight, 6)
     indep_score = (
         1.0
@@ -505,12 +528,7 @@ def try_reuse_recovery_sealed_c0_bridge(
     if str(bridge_doc.get("section_id") or "") != section_id or not bridge_doc.get("c07_handoff_safe"):
         return None
 
-    ident = compute_c0_input_identity(
-        section_id=section_id,
-        target_role=target_role,
-        jd_text=jd_text,
-        pool=pool,
-    )
+    ident = compute_c0_input_identity(section_id=section_id, target_role=target_role, jd_text=jd_text, pool=pool)
     exp_role = str(entry.get("expected_target_role") or "").strip()
     exp_jd = str(entry.get("expected_jd_sha256") or "").strip()
     exp_pool = str(entry.get("expected_proof_pool_sha256") or "").strip()
@@ -543,42 +561,27 @@ def try_reuse_recovery_sealed_c0_bridge(
     canonical = build_canonical_section_evidence_set(pool)
     snap = dict(bridge_doc.get("final_evidence_contract_snapshot") or {})
     c04_allowed = list(snap.get("allowed_fact_ids") or [])
-    allowed, fec_materialization_receipt = materialize_fec_allowed_from_c04(
-        c04_allowed=c04_allowed,
-        canonical=canonical,
-    )
+    allowed, fec_materialization_receipt = materialize_fec_allowed_from_c04(c04_allowed=c04_allowed, canonical=canonical)
     runtime_payload["canonical_section_evidence_set"] = canonical.as_dict()
     runtime_payload["fec_materialization_receipt"] = fec_materialization_receipt
     bridge_doc["c0_recovery_reused_from"] = str(src_dir.resolve())
     bridge = SectionFecBridge(section_id=section_id, bridge_doc=bridge_doc)
     apply_canonical_section_evidence_materialization(
-        pool=pool,
-        runtime_payload=runtime_payload,
-        bridge=bridge,
-        fec_allowed=allowed,
-        fec_materialization_receipt=fec_materialization_receipt,
+        pool=pool, runtime_payload=runtime_payload, bridge=bridge,
+        fec_allowed=allowed, fec_materialization_receipt=fec_materialization_receipt,
     )
     authority = bridge_authority_fields()
-    runtime_payload["section_fec_bridge"] = bridge.bridge_doc
-    runtime_payload["fec_bridge_ref"] = FEC_BRIDGE_ARTIFACT
-    runtime_payload["final_evidence_contract_ref"] = FEC_BRIDGE_ARTIFACT
-    runtime_payload["c0_fec_bridge_receipt_ref"] = FEC_BRIDGE_RECEIPT
-    runtime_payload["canonical_final_evidence_contract_snapshot"] = snap
-    runtime_payload["raw_proof_pool_direct_to_pa"] = False
-    runtime_payload["product_visible"] = True
-    runtime_payload["c0_authority_mode"] = authority["c0_authority_mode"]
+    runtime_payload.update({
+        "section_fec_bridge": bridge.bridge_doc,
+        "fec_bridge_ref": FEC_BRIDGE_ARTIFACT,
+        "final_evidence_contract_ref": FEC_BRIDGE_ARTIFACT,
+        "c0_fec_bridge_receipt_ref": FEC_BRIDGE_RECEIPT,
+        "canonical_final_evidence_contract_snapshot": snap,
+        "raw_proof_pool_direct_to_pa": False,
+        "product_visible": True,
+        "c0_authority_mode": authority["c0_authority_mode"],
+    })
     emit_spine_c0_fec_artifacts(artifact_dir, bridge)
-    (artifact_dir / "c0_recovery_reuse_receipt.json").write_text(
-        json.dumps(
-            {
-                "schema_version": "c0_recovery_reuse_receipt_v1",
-                "section_id": section_id,
-                "reused_from": str(src_dir.resolve()),
-                "c0_input_identity": ident,
-            },
-            indent=2,
-        )
-        + "\n",
-        encoding="utf-8",
-    )
+    receipt_doc = {"schema_version": "c0_recovery_reuse_receipt_v1", "section_id": section_id, "reused_from": str(src_dir.resolve()), "c0_input_identity": ident}
+    (artifact_dir / "c0_recovery_reuse_receipt.json").write_text(json.dumps(receipt_doc, indent=2) + "\n", encoding="utf-8")
     return bridge
