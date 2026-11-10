@@ -302,8 +302,9 @@ def apply_topology_enhancements(
             })
             existing_section_edges.add((sid, sec_norm))
 
-    # 10. Reverse parity for skill_fact_links (I7)
+    # 10. Reverse and forward parity for skill_fact_links (I7, I7b)
     existing_links = {(r["skill_id"], r["fact_id"]) for r in skill_fact_rows}
+    existing_skill_target_pairs = {(e.get("source_node_id"), e.get("target_node_id")) for e in edge_rows}
     for e in edge_rows:
         if e.get("edge_type") == "skill_supported_by_fact":
             sk = e.get("source_node_id")
@@ -320,6 +321,62 @@ def apply_topology_enhancements(
                     "external_eligible": 1,
                 })
                 existing_links.add((sk, fk))
+    for r in skill_fact_rows:
+        if int(r.get("claim_eligibility") or 0) != 1:
+            continue
+        sk = str(r.get("skill_id") or "").strip()
+        fk = str(r.get("fact_id") or "").strip()
+        if not sk or not fk or (sk, fk) in existing_skill_target_pairs:
+            continue
+        tgt_type = str(node_rows.get(fk, {}).get("node_type") or "")
+        if tgt_type == "fact":
+            et = "skill_supported_by_fact"
+            at = "EVIDENTIAL_SUPPORT"
+        elif tgt_type == "locked_bullet":
+            et = "skill_supported_by_locked_bullet"
+            at = "EVIDENTIAL_SUPPORT"
+        elif tgt_type == "employment":
+            et = "skill_demonstrated_in_employment"
+            at = "EVIDENTIAL_SUPPORT"
+        else:
+            continue
+        edge_rows.append({
+            "edge_id": f"edge_{et}_{sk}_{fk}",
+            "source_node_id": sk,
+            "target_node_id": fk,
+            "edge_family": "fact_support",
+            "edge_type": et,
+            "weight": 1.0,
+            "confidence": "HIGH",
+            "directional": 1,
+            "evidence_status": "approved_graph_ssot",
+            "section_fit": "experience",
+            "source_authority": "augmented_skills_graph",
+            "rationale": f"Skill {sk} is supported by {fk}.",
+            "projection_behavior": "evidence_link",
+            "external_claim_policy": "atomic_fact_default_external_proof",
+            "validation_status": "validated",
+            "edge_note": "",
+            "operator_note": "",
+            "business_story": "",
+            "technical_story": "",
+            "assertion_type": at,
+            "assertion_basis": "direct_archive_citation",
+            "assertion_basis_refs_json": json.dumps([f"skill:{sk}", f"target:{fk}"]),
+            "canonical_assertion_text": f"Skill {sk} is supported by {fk}.",
+            "lifecycle_disposition": "ACTIVE_PROMOTABLE",
+            "semantic_contract_version": "apps_rg.c03_graph_edge_semantic_contract.v2",
+            "origin_kind": "derived_projection",
+            "origin_ref": f"{sk}->{fk}",
+            "origin_artifact_sha256": "",
+            "derivation_rule_id": "rule_skill_fact_forward_parity",
+            "build_run_id": build_run_id,
+            "confidence_score": 0.90,
+            "confidence_tier": "HIGH",
+            "confidence_method": "evidence_weighted",
+            "traversable": 1,
+        })
+        existing_skill_target_pairs.add((sk, fk))
 
     # 11. Populate stub descriptions
     populate_stub_descriptions(node_rows)

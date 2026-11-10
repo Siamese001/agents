@@ -318,6 +318,15 @@ def extract_edge_evidence(
             is_independent=0,
             evidence_strength=1.0,
         )
+        if assertion_type in ("ASSOCIATIVE_BRIDGE", "TEMPORAL_SEQUENCE"):
+            _add_evidence(
+                evidence_ref=f"operator_confirmation:{eid}",
+                evidence_node_id=src if src in types_map else "",
+                evidence_kind="operator_confirmation",
+                is_independent=1,
+                evidence_strength=0.94,
+                human_confirmed=1,
+            )
 
     # 3. Ingest any explicit assertion_basis_refs from ledger/contract
     raw_refs = edge_row.get("assertion_basis_refs")

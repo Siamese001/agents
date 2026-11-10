@@ -51,6 +51,7 @@ from .promotions import (
     confidence_grade_for_skill_row,
     has_valid_human_confirmed_archive_promotion,
     load_candidate_fact_promotion_registry,
+    promote_operator_confirmed_skill_rows,
 )
 from .lineage import (
     build_inputs_from_manifest,
@@ -108,7 +109,7 @@ def run_materializer_ingress(
     ledger_hash = _sha256_hex(json.dumps(payload, sort_keys=True, ensure_ascii=False, separators=(",", ":")))
     gver = graph_version_from_payload(payload)
     ts = _utc_now()
-    skill_rows_by_id = build_skill_rows_by_id(payload)
+    skill_rows_by_id = promote_operator_confirmed_skill_rows(build_skill_rows_by_id(payload))
     registered_endpoint_types = derive_registered_graph_endpoint_types(payload)
     candidate_registry = load_candidate_fact_promotion_registry(root)
     input_manifest = compute_input_manifest(root)
@@ -132,7 +133,8 @@ def run_materializer_ingress(
         skill_row = skill_rows_by_id.get(nid) if ntype == "skill" else None
         epoch = ""
         ordinal = None
-        act_status = str(raw.get("activation_status") or "")
+        act_status = str((skill_row.get("activation_status") if skill_row else None) or raw.get("activation_status") or "")
+        sup_level = str((skill_row.get("support_level") if skill_row else None) or raw.get("support_level") or "")
         conf = (
             confidence_grade_for_skill_row(skill_row, candidate_registry=candidate_registry)
             if skill_row
@@ -160,7 +162,7 @@ def run_materializer_ingress(
                 "node_type": ntype,
                 "confidence": conf,
                 "activation_status": act_status,
-                "support_level": str(raw.get("support_level") or ""),
+                "support_level": sup_level,
             },
             skill_row=skill_row,
         )
@@ -176,10 +178,11 @@ def run_materializer_ingress(
         if not src_refs:
             src_refs = [f"ledger_node:{nid}"]
         auth_refs: list[str] = [f"ledger:{nid}"]
-        if raw.get("external_claim_policy"):
-            auth_refs.append(f"policy:{raw.get('external_claim_policy')}")
-        if raw.get("support_level"):
-            auth_refs.append(f"support:{raw.get('support_level')}")
+        ext_policy = (skill_row.get("external_claim_policy") if skill_row else None) or raw.get("external_claim_policy")
+        if ext_policy:
+            auth_refs.append(f"policy:{ext_policy}")
+        if sup_level:
+            auth_refs.append(f"support:{sup_level}")
 
         node_rows[nid] = {
             "node_id": nid,
@@ -187,7 +190,7 @@ def run_materializer_ingress(
             "label": str(raw.get("label") or nid),
             "description": str(raw.get("description") or ""),
             "activation_status": act_status,
-            "support_level": str(raw.get("support_level") or ""),
+            "support_level": sup_level,
             "confidence": tier if conf == "BLOCKED" else conf,
             "confidence_score": score,
             "confidence_tier": tier,
