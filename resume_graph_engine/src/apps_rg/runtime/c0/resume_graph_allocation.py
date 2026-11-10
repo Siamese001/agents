@@ -605,22 +605,29 @@ def allocate_candidate_sets(
         "reb_insurtech_aws_migration_execution", "reb_ibm_aws_modernization_architecture",
     })
 
+    def _fact_reuse_key(row: Mapping[str, Any]) -> str:
+        fact_id = str(row.get("fact_id") or "")
+        root_id = str(row.get("root_id") or "")
+        if fact_id.startswith("exp_") and root_id.startswith("reb_"):
+            return f"{fact_id}:{root_id}"
+        return fact_id
+
     def feasible_rows(slot: _Slot) -> list[dict[str, Any]]:
         rows: list[dict[str, Any]] = []
         for row in eligible_by_slot[slot.slot_id]:
             visible = slot.counts_toward_global_uniqueness
             skill_id, metric_id, signature = str(row["skill_id"]), str(row.get("metric_outcome_id") or ""), str(row.get("normalized_metric_signature") or "")
-            fact_id, family, root_id = str(row["fact_id"]), str(row["source_family"]), str(row["root_id"])
+            fact_key, family, root_id = _fact_reuse_key(row), str(row["source_family"]), str(row["root_id"])
             if (visible and skill_id in used_skills) or (visible and metric_id and metric_id in used_metrics) or (visible and signature and signature in used_signatures):
                 continue
             if slot.section_id in distinct_root_sections and root_id and root_id in used_section_roots[slot.section_id]:
                 continue
             if slot.section_id == "executive_summary" and root_id in _AWS_MIGRATION_EXEC_SUMMARY_ROOTS and (used_section_roots["executive_summary"] & _AWS_MIGRATION_EXEC_SUMMARY_ROOTS):
                 continue
-            if (visible and fact_counts[fact_id] >= max_fact_reuse) or (visible and family_counts[family] >= max_family_uses):
+            if (visible and fact_counts[fact_key] >= max_fact_reuse) or (visible and family_counts[family] >= max_family_uses):
                 continue
             rows.append(row)
-        rows.sort(key=lambda row: (1 if (slot.section_id == "headline" and str(row.get("skill_id") or "") in {"skill_risk_three_lines_of_defense", "skill_p2_tech_adoption_derisking"}) else 0, fact_counts[str(row["fact_id"])], *_candidate_sort_key(row)))
+        rows.sort(key=lambda row: (1 if (slot.section_id == "headline" and str(row.get("skill_id") or "") in {"skill_risk_three_lines_of_defense", "skill_p2_tech_adoption_derisking"}) else 0, fact_counts[_fact_reuse_key(row)], *_candidate_sort_key(row)))
         return rows
 
     def search() -> bool:
@@ -642,7 +649,7 @@ def allocate_candidate_sets(
             skill_id = str(row["skill_id"])
             metric_id = str(row.get("metric_outcome_id") or "")
             signature = str(row.get("normalized_metric_signature") or "")
-            fact_id = str(row["fact_id"])
+            fact_key = _fact_reuse_key(row)
             family = str(row["source_family"])
             root_id = str(row["root_id"])
             chosen[slot.slot_id] = row
@@ -654,7 +661,7 @@ def allocate_candidate_sets(
                     used_metrics.add(metric_id)
                 if signature:
                     used_signatures.add(signature)
-                fact_counts[fact_id] += 1
+                fact_counts[fact_key] += 1
                 family_counts[family] += 1
             remaining_feasible = all(
                 bool(feasible_rows(other))
@@ -671,7 +678,7 @@ def allocate_candidate_sets(
                     used_metrics.remove(metric_id)
                 if signature:
                     used_signatures.remove(signature)
-                fact_counts[fact_id] -= 1
+                fact_counts[fact_key] -= 1
                 family_counts[family] -= 1
             del chosen[slot.slot_id]
         return False

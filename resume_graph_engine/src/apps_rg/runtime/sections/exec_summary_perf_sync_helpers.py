@@ -35,6 +35,11 @@ def fact_supports_brushstroke_facet(
                 "head of",
                 "svp",
                 "director",
+                "insurance",
+                "insurtech",
+                "carrier",
+                "brokerage",
+                "actuarial",
             )
         )
     if role == "B2_governed_platform_system":
@@ -51,6 +56,14 @@ def fact_supports_brushstroke_facet(
                 "reusable",
                 "modernization",
                 "cloud",
+                "guidewire",
+                "policycenter",
+                "claimcenter",
+                "billingcenter",
+                "policy administration",
+                "underwriting",
+                "claims",
+                "billing",
             )
         )
     if role == "B3_control_evidence_discipline":
@@ -71,6 +84,10 @@ def fact_supports_brushstroke_facet(
                 "risk",
                 "standard",
                 "playbook",
+                "solvency",
+                "actuarial",
+                "regulatory",
+                "capital modeling",
             )
         )
     if role == "B4_business_role_fit":
@@ -104,8 +121,8 @@ def resolve_fallback_brushstroke_facts(
             for f in facts
             if isinstance(f, dict)
             and any(
-                k in str(f.get("fact_id") or "").lower()
-                for k in ("slalom", "unify", "ibm", "partner", "leadership", "transformation")
+                k in f"{str(f.get('fact_id') or '')} {str(f.get('role_episode_bundle_id') or '')}".lower()
+                for k in ("insurtech", "ey", "insurance", "slalom", "unify", "ibm", "partner", "leadership", "transformation")
             )
         ]
         return [preferred_b1[0]] if preferred_b1 else [facts[0]]
@@ -149,8 +166,9 @@ def resolve_target_picture_for_archetype(
         )
     if strategy_executive:
         return (
-            "Executive portrait: leadership-first technology strategy leader aligning governed AI platforms, "
-            "regulatory lineage, and digital innovation programs into one enterprise IT direction "
+            "Executive portrait: insurance and financial services technology executive aligning P&C carrier and "
+            "brokerage core modernization (Guidewire PolicyCenter, ClaimCenter, BillingCenter), governed agentic AI "
+            "platforms, and FSA-chartered actuarial risk governance into one enterprise IT direction "
             f"(targeting context: {role_s or 'SVP IT strategy'}; company name never in prose)."
         )
     return (

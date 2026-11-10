@@ -34,6 +34,8 @@ POSITIONING_FAMILIES: dict[str, frozenset[str]] = {
         "distributed ai", "distributed ai infrastructure", "distributed infrastructure",
         "ai infrastructure", "distributed systems", "distributed data",
         "distributed platform", "cloud data modernization", "cloud data platforms",
+        "insurance platform modernization", "insurance core modernization",
+        "insurance cloud architecture",
     }),
     "runtime_governance": frozenset({
         "runtime governance", "runtime control", "ai governance", "governance controls",
@@ -47,13 +49,15 @@ POSITIONING_FAMILIES: dict[str, frozenset[str]] = {
     "platform_productization": frozenset({
         "platform productization", "platform commercialization", "product platform",
         "saas platform", "ai productization", "platform engineering",
-        "platform buildout", "platform roadmap",
+        "platform buildout", "platform roadmap", "insurance platform modernization",
     }),
     "regulated_ai_systems": frozenset({
         "regulated ai", "regulated enterprise ai", "regulated systems",
         "regulated financial", "regulated environments", "regulatory ai",
         "compliance systems", "regulated platform", "regulated insurance",
         "regulated insurance governance", "insurance governance",
+        "insurance platform modernization", "insurance core modernization",
+        "insurance cloud architecture", "policy administration platforms",
     }),
     # This family is required by headline_positioning_registry and backed by
     # hpb_partner_applied_ai_architecture.  Omitting it here made a graph-bound

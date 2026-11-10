@@ -29,28 +29,33 @@ _MAX_TERMS_PER_DISPLAY_CLUSTER = 5
 
 
 _INSURANCE_IT_STRATEGY_DISPLAY_LABEL_PRIORITY: dict[str, int] = {
-    "Governed Agentic AI Platform Architecture": 0,
-    "AI Platform Leadership": 0,
-    "Model Risk Governance & AI Runtime Control Gates": 1,
-    "Governance, Risk & Compliance": 1,
-    "Distributed Systems & Cloud Data Engineering": 2,
-    "Insurance Core Data & Workflow Modernization": 2,
-    "Data & Analytics Modernization": 2,
+    "Insurance Core Modernization & Guidewire (P&C)": 0,
+    "Insurance Core Data & Workflow Modernization": 0,
+    "Underwriting, Claims & Billing Workflow Reliability": 1,
+    "Modernization Delivery & Reliability": 1,
+    "Actuarial, Regulatory Risk & AI Control Gates": 2,
+    "Model Risk Governance & AI Runtime Control Gates": 2,
+    "Governance, Risk & Compliance": 2,
+    "P&C Underwriting Decisioning & GraphRAG Context": 3,
     "GraphRAG, Hybrid Retrieval & Context Engineering": 3,
     "AI Risk, Decisioning & Context Engineering": 3,
     "Technology Strategy & Innovation": 3,
-    "Engineering Leadership & Operating Model": 4,
-    "AWS Migration Execution & Leadership": 4,
-    "Engineering & Delivery Leadership": 4,
-    "LLMOps, Evaluation & Runtime Reliability": 5,
-    "Modernization Delivery & Reliability": 5,
-    "LLMOps & Reliability": 5,
-    "Platform Productization & Commercialization": 6,
-    "Partner Commercialization & Value Realization": 6,
-    "Cloud Security, Transformation & Productization": 6,
-    "Commercial & Operating Impact": 6,
-    "Partner Applied AI Architecture": 7,
-    "Cloud & Partner Ecosystems": 7,
+    "Governed Agentic AI Platform Architecture": 4,
+    "AI Platform Leadership": 4,
+    "Carrier & Brokerage Cloud Migration Leadership": 5,
+    "Engineering Leadership & Operating Model": 5,
+    "AWS Migration Execution & Leadership": 5,
+    "Engineering & Delivery Leadership": 5,
+    "Distributed Systems & Cloud Data Engineering": 6,
+    "Data & Analytics Modernization": 6,
+    "LLMOps, Evaluation & Runtime Reliability": 6,
+    "LLMOps & Reliability": 6,
+    "Platform Productization & Commercialization": 7,
+    "Partner Commercialization & Value Realization": 7,
+    "Cloud Security, Transformation & Productization": 7,
+    "Commercial & Operating Impact": 7,
+    "Partner Applied AI Architecture": 8,
+    "Cloud & Partner Ecosystems": 8,
 }
 
 
@@ -260,12 +265,16 @@ def csuite_capability_display_rows(
     if profile == "insurance_it_strategy" or "brown" in co_low or ("strategy" in role_low and "innovation" in role_low):
         return [
             (
-                "Enterprise Architecture & IT Strategy Modernization",
-                "Multi-year IT strategy, M&A brokerage and carrier platform integration, software dependency-graph legacy modernization, and 106-engineer organization leadership across regulated enterprises.",
+                "Insurance Core Modernization & Guidewire (P&C)",
+                "Guidewire PolicyCenter, ClaimCenter, and BillingCenter workflow modernization, P&C carrier and brokerage policy administration migration on AWS, and core-to-analytics data integration across InsurTech CTO and EY insurance advisory.",
             ),
             (
                 "Insurance Domain, Actuarial Risk & Carrier Operations",
                 "FSA-chartered actuarial foundation, Solvency II and AG43 statutory reserving, P&C and life underwriting/claims core modernization, and enterprise risk management (ERM) across InsurTech CTO and EY insurance advisory.",
+            ),
+            (
+                "Enterprise Architecture & IT Strategy Modernization",
+                "Multi-year IT strategy, M&A brokerage and carrier platform integration, software dependency-graph legacy modernization, and 106-engineer organization leadership across regulated enterprises.",
             ),
             (
                 "Applied AI & Decision Intelligence Governance",
@@ -278,10 +287,6 @@ def csuite_capability_display_rows(
             (
                 "Cloud Modernization, FinOps & Commercial P&L",
                 "IP-led AI solution accelerators ($22M revenue, +20% gross margin expansion), cloud-native AWS/Azure/Databricks lakehouse migration (40% infrastructure cost reduction), and 6-month-to-3-week delivery compression.",
-            ),
-            (
-                "Hyperscaler, GSI & InsurTech Partner Ecosystems",
-                "AWS, Azure, and Databricks co-sell alliances ($15M incremental revenue), executive client advisory ($30M transformation portfolios), and board-level capital allocation.",
             ),
         ]
     if profile == "insurance_agentic_ai" or ("insurance_domain_modernization" in families and "agentic_platforms" in families) or "aig" in co_low or ("agentic" in role_low and "global head" in role_low):
