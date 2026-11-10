@@ -106,7 +106,7 @@ _ALLOCATION_VISIBLE_SURFACE_COMPOSITIONS: Mapping[tuple[str, str], str] = {
     ("reb_ibm_data_modeling_bi_decision_support", "skill_p2_tech_reference_architecture"): "governed reference architecture for modernization programs",
     ("reb_ibm_revenue_sales_target_execution", "skill_partner_enterprise_negotiations"): "enterprise pursuit execution across portfolio expansion motions",
     ("reb_unify_partner_channel_cosell", "skill_partner_partner_led_ai_solutions"): "AI co-sell bundling with strategic partners",
-    ("reb_unify_partner_channel_cosell", "skill_partner_cloud_vendor_joint_gtm"): "vendor joint AI solution roadmaps for partners",
+    ("reb_unify_partner_channel_cosell", "skill_partner_cloud_vendor_joint_gtm"): "cloud vendor joint AI GTM for partners",
     ("reb_unify_partner_channel_cosell", "skill_partner_partner_revenue_3m"): "partner-derived AI revenue through alliance channels",
     ("reb_unify_partner_channel_cosell", "skill_partner_gtm_enablement"): "AI GTM enablement for alliance channels",
     ("reb_unify_partner_channel_cosell", "skill_partner_partner_motions"): "global AI channel program inception motions",
