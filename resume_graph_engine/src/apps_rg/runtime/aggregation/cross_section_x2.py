@@ -80,71 +80,50 @@ def _extract_claim_rows(section: dict[str, Any]) -> list[dict[str, Any]]:
     if not isinstance(snap, dict):
         return []
     rows: list[dict[str, Any]] = []
+    seen_norms: set[str] = set()
     ledger = snap.get("claim_ledger")
     if isinstance(ledger, list):
         for i, row in enumerate(ledger):
             if not isinstance(row, dict):
                 continue
             ct = str(row.get("claim_text") or row.get("claim_summary") or "").strip()
-            if not ct:
+            norm = normalize_claim_text(ct) if ct else ""
+            if not norm or norm in seen_norms:
                 continue
+            seen_norms.add(norm)
             sf = [str(x) for x in (row.get("source_fact_ids") or []) if x]
-            key = sha256_utf8(f"{sid}|{i}|{normalize_claim_text(ct)}|{','.join(sorted(sf))}")
-            rows.append(
-                {
-                    "claim_key": key,
-                    "section_id": sid,
-                    "claim_text": ct,
-                    "source_fact_ids": sf,
-                    "normalized_text": normalize_claim_text(ct),
-                },
-            )
-    # Bullet structural claims
+            key = sha256_utf8(f"{sid}|{i}|{norm}|{','.join(sorted(sf))}")
+            rows.append({"claim_key": key, "section_id": sid, "claim_text": ct, "source_fact_ids": sf, "normalized_text": norm})
     bullets = snap.get("bullets")
-    if isinstance(bullets, list):
+    if isinstance(bullets, list) and not rows:
         for b in bullets:
             if not isinstance(b, dict):
                 continue
             ct = str(b.get("bullet_text") or "").strip()
-            if not ct:
+            norm = normalize_claim_text(ct) if ct else ""
+            if not norm or norm in seen_norms:
                 continue
+            seen_norms.add(norm)
             sf = [str(x) for x in (b.get("source_fact_ids") or []) if x]
-            bid = str(b.get("bullet_id") or "")
-            key = sha256_utf8(f"{sid}|bullet|{bid}|{normalize_claim_text(ct)}")
-            rows.append(
-                {
-                    "claim_key": key,
-                    "section_id": sid,
-                    "claim_text": ct,
-                    "source_fact_ids": sf,
-                    "normalized_text": normalize_claim_text(ct),
-                },
-            )
+            key = sha256_utf8(f"{sid}|bullet|{str(b.get('bullet_id') or '')}|{norm}")
+            rows.append({"claim_key": key, "section_id": sid, "claim_text": ct, "source_fact_ids": sf, "normalized_text": norm})
     return rows
 
 
 def _section_plaintext(section: dict[str, Any]) -> str:
     snap = section.get("l2_output_snapshot")
     if not isinstance(snap, dict):
-        copied = section.get("copied_text_exact")
-        return str(copied) if copied else ""
-    parts: list[str] = []
-    for key in ("headline_line", "resume_display_text", "narrative_sentence"):
-        v = snap.get(key)
-        if isinstance(v, str) and v.strip():
-            parts.append(v)
-    bullets = snap.get("bullets")
-    if isinstance(bullets, list):
-        for b in bullets:
-            if isinstance(b, dict):
-                parts.append(str(b.get("bullet_text") or ""))
-    comps = snap.get("competencies")
-    if isinstance(comps, list):
-        for c in comps:
-            if isinstance(c, str):
-                parts.append(c)
-            elif isinstance(c, dict):
-                parts.append(str(c.get("term") or c.get("competency") or ""))
+        parts = [str(section.get(k)).strip() for k in ("copied_text_exact", "role_narrative", "earlier_quantitative_foundation", "degree", "institution", "name") if isinstance(section.get(k), str) and str(section.get(k)).strip()]
+        for b in section.get("bullets") or []:
+            if isinstance(b, dict) and str(b.get("text") or b.get("bullet_text") or "").strip():
+                parts.append(str(b.get("text") or b.get("bullet_text") or "").strip())
+        return "\n".join(parts)
+    parts = [str(snap.get(k)).strip() for k in ("headline_line", "resume_display_text", "narrative_sentence") if isinstance(snap.get(k), str) and str(snap.get(k)).strip()]
+    for b in snap.get("bullets") or []:
+        if isinstance(b, dict):
+            parts.append(str(b.get("bullet_text") or ""))
+    for c in snap.get("competencies") or []:
+        parts.append(c if isinstance(c, str) else str(c.get("term") or c.get("competency") or "") if isinstance(c, dict) else "")
     return "\n".join(parts)
 
 
@@ -471,67 +450,27 @@ def build_overlap_artifacts(
     seen_kept_keys: set[str] = set()
 
     for norm, group in by_norm.items():
-        if len(group) <= 1 or not norm:
+        if len(group) <= 1 or not norm or len({str(c.get("section_id") or "") for c in group}) <= 1:
             continue
         w = _winner(group)
         for c in group:
-            if c["claim_key"] == w["claim_key"]:
+            if c["claim_key"] == w["claim_key"] or c["section_id"] == w["section_id"]:
                 if c["claim_key"] not in seen_kept_keys:
                     kept.append({**c, "disposition": "kept", "overlap_class": "exact_duplicate"})
                     seen_kept_keys.add(c["claim_key"])
             else:
-                removed.append(
-                    {
-                        **c,
-                        "disposition": "removed",
-                        "overlap_class": "exact_duplicate",
-                        "kept_in_section": w["section_id"],
-                        "kept_claim_key": w["claim_key"],
-                        "provenance_retained": True,
-                        "note": "L2 snapshot unchanged; aggregate overlap audit only",
-                    },
-                )
-                decisions.append(
-                    {
-                        "overlap_class": "exact_duplicate",
-                        "removed_section": c["section_id"],
-                        "kept_section": w["section_id"],
-                        "claim_text_preview": norm[:120],
-                    },
-                )
+                removed.append({**c, "disposition": "removed", "overlap_class": "exact_duplicate", "kept_in_section": w["section_id"], "kept_claim_key": w["claim_key"], "provenance_retained": True, "note": "L2 snapshot unchanged; aggregate overlap audit only"})
+                decisions.append({"overlap_class": "exact_duplicate", "removed_section": c["section_id"], "kept_section": w["section_id"], "claim_text_preview": norm[:120]})
 
     for sf_key, group in by_sf.items():
-        if not sf_key or len(group) <= 1:
-            continue
-        texts = {c["normalized_text"] for c in group}
-        if len(texts) <= 1:
+        if not sf_key or len(group) <= 1 or len({str(c.get("section_id") or "") for c in group}) <= 1 or len({c["normalized_text"] for c in group}) <= 1:
             continue
         w = _winner(group)
         for c in group:
-            if c["normalized_text"] == w["normalized_text"]:
+            if c["normalized_text"] == w["normalized_text"] or c["section_id"] == w["section_id"] or c["claim_key"] in seen_kept_keys or any(r.get("claim_key") == c["claim_key"] for r in removed):
                 continue
-            if c["claim_key"] in seen_kept_keys:
-                continue
-            if any(r.get("claim_key") == c["claim_key"] for r in removed):
-                continue
-            removed.append(
-                {
-                    **c,
-                    "disposition": "removed",
-                    "overlap_class": "same_claim_different_wording",
-                    "kept_in_section": w["section_id"],
-                    "kept_claim_key": w["claim_key"],
-                    "provenance_retained": True,
-                },
-            )
-            decisions.append(
-                {
-                    "overlap_class": "same_claim_different_wording",
-                    "source_fact_ids": c["source_fact_ids"],
-                    "removed_section": c["section_id"],
-                    "kept_section": w["section_id"],
-                },
-            )
+            removed.append({**c, "disposition": "removed", "overlap_class": "same_claim_different_wording", "kept_in_section": w["section_id"], "kept_claim_key": w["claim_key"], "provenance_retained": True})
+            decisions.append({"overlap_class": "same_claim_different_wording", "source_fact_ids": c["source_fact_ids"], "removed_section": c["section_id"], "kept_section": w["section_id"]})
 
     # Near duplicate across sections (token Jaccard)
     gen_claims = [c for c in all_claims if c["section_id"] in GENERATED_LANE_IDS]
@@ -761,15 +700,27 @@ def run_cross_section_x2_gates(
         ),
     )
 
-    # Em dash
-    corpus_parts = [_section_plaintext(s) for s in sections if s.get("section_kind") == "generated_lane"]
-    corpus = "\n".join(corpus_parts)
-    em_fail = EM_DASH in corpus
+    # Em dash and first-person across all sections (including locked_copy_inline)
+    corpus_parts = [
+        _section_plaintext(s)
+        for s in sections
+        if s.get("section_kind") in ("generated_lane", "locked_copy_inline")
+    ]
+    corpus = "\n".join(p for p in corpus_parts if p)
+    first_person_hit = bool(re.search(r"\b(i|my|me|mine|myself|we|our|ours)\b", corpus, re.IGNORECASE))
+    em_fail = EM_DASH in corpus or first_person_hit
+    em_reason = None
+    if EM_DASH in corpus and first_person_hit:
+        em_reason = "em dash and first-person pronoun present in assembled corpus"
+    elif EM_DASH in corpus:
+        em_reason = "em dash present in assembled generated corpus"
+    elif first_person_hit:
+        em_reason = "first-person pronoun present in assembled corpus"
     gates.append(
         CrossSectionGateResult(
             gate_id="x2_cross_section_no_em_dash",
             verdict=VERDICT_FAIL if em_fail else VERDICT_PASS,
-            decisive_reason="em dash present in assembled generated corpus" if em_fail else None,
+            decisive_reason=em_reason,
         ),
     )
 

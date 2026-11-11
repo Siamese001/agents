@@ -8,21 +8,7 @@ from typing import Any, Iterable, Mapping
 from apps_rg.runtime.c0.c03_resume_graph_contracts import stable_digest
 
 _TOKEN_RE = re.compile(r"[a-z0-9]+")
-_IDENTITY_NOISE = frozenset(
-    {
-        "skill",
-        "p2",
-        "sr",
-        "w12",
-        "tech",
-        "the",
-        "and",
-        "for",
-        "from",
-        "with",
-        "across",
-    }
-)
+_IDENTITY_NOISE = frozenset({"skill", "p2", "sr", "w12", "tech", "the", "and", "for", "from", "with", "across"})
 _ROLE_AXIS_SIGNALS: Mapping[str, tuple[str, ...]] = {
     "partner_motions": ("partner", "partnership", "alliance"),
     "co_sell": ("co_sell", "cosell", "co-selling", "co_selling"),
@@ -30,15 +16,6 @@ _ROLE_AXIS_SIGNALS: Mapping[str, tuple[str, ...]] = {
     "joint_solution": ("joint_solution", "joint solution", "partner_led_ai_solutions"),
     "gtm_enablement": ("enablement", "gtm", "technical_close", "go-to-market"),
 }
-
-# The allocation is intentionally more granular than the eight résumé
-# categories.  When a selected graph skill has no matching visible term, these
-# are the compact résumé surfaces for the small set of graph paths whose
-# source labels are themselves too terse to meet the final competency-shape
-# contract.  Each phrase is composed solely from the selected skill path and
-# its root's graph-authored claim/domain/source text; `_composition_is_bound`
-# below proves that before it can be emitted.  This is an output projection,
-# not a new graph fact or an inferred competency.
 _ACRONYM_LEAD_TOKENS: frozenset[str] = frozenset({
     "AWS", "AWS-based", "AI", "IAM", "KMS", "SOC2", "PII", "BCBS239", "BI", "GTM",
     "DevSecOps", "GraphRAG", "SDLC", "FSA", "CloudTrail", "Databricks", "Guidewire",
@@ -141,6 +118,14 @@ _ALLOCATION_VISIBLE_SURFACE_COMPOSITIONS: Mapping[tuple[str, str], str] = {
     ("reb_slalom_bitemporal_graphrag_uwg", "skill_side_effect_bounded_action_design"): "GraphRAG retrieval side-effect bounded action design",
     ("reb_ibm_revenue_sales_target_execution", "skill_partner_pnl_oversight"): "revenue target execution and solution leadership motions",
     ("reb_ibm_revenue_sales_target_execution", "skill_p2_gtm_enterprise_deal_support"): "quota-aligned enterprise deal support and execution",
+    ("reb_slalom_dialectical_decision_bayesian_hitl", "skill_risk_and_hitl_route_posture"): "human-in-the-loop risk routing and policy governance",
+    ("reb_slalom_governed_runtime_scaling", "skill_risk_and_hitl_route_posture"): "human-in-the-loop risk routing and policy governance",
+    ("reb_slalom_autonomous_agentic_sdlc_mcp", "skill_learning_firewall_controls"): "sandboxed model learning and release controls",
+    ("reb_slalom_governed_runtime_scaling", "skill_learning_firewall_controls"): "sandboxed model learning and release controls",
+    ("reb_unify_hyperscaler_joint_solution_architecture", "skill_partner_ai_architecture_advisory"): "enterprise partner AI solution architecture advisory",
+    ("reb_slalom_nextgen_ai_solutions", "skill_partner_ai_architecture_advisory"): "enterprise partner AI solution architecture advisory",
+    ("reb_unify_hyperscaler_joint_solution_architecture", "skill_partner_alliance_gtm_execution"): "cloud alliance solution architecture execution",
+    ("reb_unify_partner_channel_cosell", "skill_partner_alliance_gtm_execution"): "cloud alliance solution architecture execution",
 }
 
 # A joint alliance/co-sell capability is commercial evidence, even when its
@@ -556,6 +541,10 @@ def _composition_is_bound(
         if token == "soc2" and {"soc", "2"} <= source_tokens:
             continue
         if token == "validation" and "testing" in source_tokens:
+            continue
+        if token == "policy" and ({"hitl", "governance"} <= source_tokens or {"risk", "routing"} <= source_tokens):
+            continue
+        if token in {"sandboxed", "model", "release"} and {"learning", "firewall", "controls"} <= source_tokens:
             continue
         if token.endswith("s") and token[:-1] in source_tokens:
             continue

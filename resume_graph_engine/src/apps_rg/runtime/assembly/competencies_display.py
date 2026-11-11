@@ -29,6 +29,7 @@ _MAX_TERMS_PER_DISPLAY_CLUSTER = 5
 
 
 _INSURANCE_IT_STRATEGY_DISPLAY_LABEL_PRIORITY: dict[str, int] = {
+    "P&C Insurance & Core Platform Modernization": 0,
     "Insurance Core Modernization & Guidewire (P&C)": 0,
     "Insurance Core Data & Workflow Modernization": 0,
     "Underwriting, Claims & Billing Workflow Reliability": 1,
@@ -111,6 +112,11 @@ def _is_insurance_it_strategy_snapshot(snapshot: dict[str, Any], categories: lis
     return False
 
 
+_COMPETENCY_LABEL_REWRITES: dict[str, str] = {
+    "Insurance Core Modernization & Guidewire (P&C)": "P&C Insurance & Core Platform Modernization",
+}
+
+
 def competency_display_rows(snapshot: dict[str, Any]) -> list[tuple[str, list[str]]]:
     """Return the concise, reader-facing competency rows for a final résumé.
 
@@ -144,6 +150,7 @@ def competency_display_rows(snapshot: dict[str, Any]) -> list[tuple[str, list[st
             label = str(
                 category.get("resume_display_label") or category.get("category_label") or ""
             ).strip()
+            label = _COMPETENCY_LABEL_REWRITES.get(label, label)
             terms: list[str] = []
             seen: set[str] = set()
             for term in category.get("terms") or []:
@@ -214,6 +221,10 @@ def ensure_allocation_plan_coverage(
             continue
         cats = [c for c in raw_cats if isinstance(c, dict)]
         for cat in cats:
+            for lbl_key in ("resume_display_label", "category_label", "label", "category"):
+                lbl_val = str(cat.get(lbl_key) or "").strip()
+                if lbl_val in _COMPETENCY_LABEL_REWRITES:
+                    cat[lbl_key] = _COMPETENCY_LABEL_REWRITES[lbl_val]
             new_terms: list[Any] = []
             for term in cat.get("terms") or []:
                 if isinstance(term, dict):
@@ -265,8 +276,8 @@ def csuite_capability_display_rows(
     if profile == "insurance_it_strategy" or "brown" in co_low or ("strategy" in role_low and "innovation" in role_low):
         return [
             (
-                "Insurance Core Modernization & Guidewire (P&C)",
-                "Guidewire PolicyCenter, ClaimCenter, and BillingCenter workflow modernization, P&C carrier and brokerage policy administration migration on AWS, and core-to-analytics data integration across InsurTech CTO and EY insurance advisory.",
+                "P&C Insurance & Core Platform Modernization",
+                "Policy administration, claims, and billing platform workflow modernization, P&C carrier and brokerage policy administration migration on AWS, and core-to-analytics data integration across InsurTech CTO and EY insurance advisory.",
             ),
             (
                 "Insurance Domain, Actuarial Risk & Carrier Operations",
