@@ -113,7 +113,17 @@ def _extract_claim_rows(section: dict[str, Any]) -> list[dict[str, Any]]:
 def _section_plaintext(section: dict[str, Any]) -> str:
     snap = section.get("l2_output_snapshot")
     if not isinstance(snap, dict):
-        parts = [str(section.get(k)).strip() for k in ("copied_text_exact", "role_narrative", "earlier_quantitative_foundation", "degree", "institution", "name") if isinstance(section.get(k), str) and str(section.get(k)).strip()]
+        copied_raw = section.get("copied_text_exact")
+        copied_str = ""
+        if isinstance(copied_raw, str) and copied_raw.strip():
+            copied_str = copied_raw.strip()
+            if copied_str.startswith(("{", "[")):
+                try:
+                    copied_str = json.dumps(json.loads(copied_str), ensure_ascii=False)
+                except (json.JSONDecodeError, ValueError):
+                    pass
+        parts = [copied_str] if copied_str else []
+        parts.extend(str(section.get(k)).strip() for k in ("role_narrative", "earlier_quantitative_foundation", "degree", "institution", "name") if isinstance(section.get(k), str) and str(section.get(k)).strip())
         for b in section.get("bullets") or []:
             if isinstance(b, dict) and str(b.get("text") or b.get("bullet_text") or "").strip():
                 parts.append(str(b.get("text") or b.get("bullet_text") or "").strip())
