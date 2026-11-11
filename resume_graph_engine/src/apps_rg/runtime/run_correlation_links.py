@@ -234,7 +234,10 @@ def discover_aggregate_refs(repo_root: Path, corpus: str) -> list[dict[str, Any]
     return aggs
 
 
-def build_modular_sections_root_attachment(repo_root: Path) -> dict[str, Any]:
+def build_modular_sections_root_attachment(
+    repo_root: Path,
+    integrated_dir: Path | None = None,
+) -> dict[str, Any]:
     """Describe ``APPS_RG_MODULAR_R4_SECTIONS_ROOT`` for correlation (W4.1).
 
     Raises ``ValueError`` when the env var is set without the required sibling manifest.
@@ -245,6 +248,23 @@ def build_modular_sections_root_attachment(repo_root: Path) -> dict[str, Any]:
     default_notes = (
         f"{env_lit} is not set; lane runtime proofs default under artifacts/apps_rg/runtime_proofs."
     )
+
+    if not raw and integrated_dir is not None:
+        local_sr = (Path(integrated_dir) / "modular_r4" / "sections").resolve()
+        local_mf = local_sr / SECTIONS_ROOT_MANIFEST_FILENAME
+        if local_mf.is_file():
+            manifest_ref = repo_relative_posix(repo_root, local_mf)
+            root_path = repo_relative_posix(repo_root, local_sr)
+            return {
+                "mode": "env_manifest",
+                "source_env_var": env_lit,
+                "manifest_ref": manifest_ref,
+                "root_path": root_path,
+                "exists": True,
+                "notes": (
+                    f"{env_lit} resolved from integrated modular sections tree `{root_path}`."
+                ),
+            }
 
     if not raw:
         return {
@@ -319,7 +339,7 @@ def build_run_links_document(
         "integrated_bundle_index_ref": integrated_bundle_index_ref,
         "lane_bundle_refs": lane_refs,
         "aggregate_refs": discover_aggregate_refs(repo_root, corpus),
-        "modular_sections_root": build_modular_sections_root_attachment(repo_root),
+        "modular_sections_root": build_modular_sections_root_attachment(repo_root, integrated_dir),
     }
     if notes:
         doc["notes"] = notes

@@ -81,6 +81,7 @@ def _result_summary(result: dict[str, Any] | None, run_root: Path) -> dict[str, 
         "apps_eval_record_ref": result.get("apps_eval_record_ref") or "",
         "l6_shadow_bridge_ref": result.get("l6_shadow_bridge_ref") or "",
         "l7_audit_status": result.get("l7_audit_status") or "",
+        "pipeline_complete": bool(result.get("pipeline_complete", result_pass)),
     }
 
 

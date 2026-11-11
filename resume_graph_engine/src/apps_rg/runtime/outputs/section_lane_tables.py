@@ -133,6 +133,8 @@ def _classify_failure(
         if isinstance(g, dict) and g.get("observed_value") not in (None, "", [], {})
     ).lower()
     combined = f"{gate_ids} {reasons} {observed}"
+    if not failed_gates and str(x3_code or "") == "X3_ALLOW":
+        return "No section-level failure recorded."
     if "competenc" in section_id:
         return "Evidence mapping failure: visible content was not fully backed by source facts or graph lineage."
     if section_id == "executive_summary" and (
