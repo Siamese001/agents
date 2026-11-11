@@ -18,6 +18,7 @@ methodology_contract:
     - "three-bullet recap"
     - "comma-packed list of bullet topics"
     - "new first-principles graph traversal in narrative"
+    - "bare or undefined acronyms (e.g. MGA/MGAs must be expanded as managing general agents (MGAs))"
     - "JD or briefing used as claim evidence"
 output_contract:
   format: json_object

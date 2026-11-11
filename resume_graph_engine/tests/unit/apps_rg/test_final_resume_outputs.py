@@ -280,3 +280,40 @@ def test_cross_section_x2_locked_copy_escaped_em_dash_and_self_collision(tmp_pat
     assert em_gate.decisive_reason == "em dash and first-person pronoun present in assembled corpus"
 
 
+def test_cross_section_x2_no_undefined_mga_acronym(tmp_path: Path) -> None:
+    from apps_rg.runtime.aggregation.cross_section_x2 import run_cross_section_x2_gates
+
+    # Test 1: Bare MGAs without definition must fail
+    blob_fail = _final_resume_blob()
+    for sec in blob_fail["sections"]:
+        if sec.get("section_id") == "insurtech_narrative":
+            sec["l2_output_snapshot"]["narrative_sentence"] = (
+                "Directed cloud-native architecture across P&C carriers and MGAs."
+            )
+            sec["l2_output_snapshot"]["claim_ledger"] = [
+                {"claim_text": "Directed cloud-native architecture across P&C carriers and MGAs.", "source_fact_ids": ["f1"]}
+            ]
+
+    gates_fail, *_ = run_cross_section_x2_gates(repo=tmp_path, final_resume_blob=blob_fail, fingerprint={}, sealed_index={})
+    mga_gate_fail = next(g for g in gates_fail if g.gate_id == "x2_cross_section_no_undefined_mga_acronym")
+    assert mga_gate_fail.verdict == "FAIL"
+    assert "undefined acronym MGA/MGAs" in mga_gate_fail.decisive_reason
+
+    # Test 2: Defined MGAs (e.g. managing general agents (MGAs)) must pass
+    blob_pass = _final_resume_blob()
+    for sec in blob_pass["sections"]:
+        if sec.get("section_id") == "insurtech_narrative":
+            sec["l2_output_snapshot"]["narrative_sentence"] = (
+                "Directed cloud-native architecture across P&C carriers and managing general agents (MGAs)."
+            )
+            sec["l2_output_snapshot"]["claim_ledger"] = [
+                {"claim_text": "Directed cloud-native architecture across P&C carriers and managing general agents (MGAs).", "source_fact_ids": ["f1"]}
+            ]
+
+    gates_pass, *_ = run_cross_section_x2_gates(repo=tmp_path, final_resume_blob=blob_pass, fingerprint={}, sealed_index={})
+    mga_gate_pass = next(g for g in gates_pass if g.gate_id == "x2_cross_section_no_undefined_mga_acronym")
+    assert mga_gate_pass.verdict == "PASS"
+    assert mga_gate_pass.decisive_reason is None
+
+
+

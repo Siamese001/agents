@@ -98,6 +98,10 @@ The knowledge-graph Memory MCP is optional for graph queries or writeback when i
 
 No production-executable directory may evade applicable architecture governance merely because of directory placement.
 
+### Production Resume & Acronym Clarity Invariant (`INV-RESUME-NO-UNDEFINED-ACRONYMS`)
+
+Specialized insurance and financial industry acronyms (specifically `MGA`/`MGAs` for Managing General Agents) must never appear bare or undefined in executive-facing candidate resumes, narrative lanes, or product outputs. All occurrences must be explicitly defined on first use (e.g. `managing general agents (MGAs)`) or fully written out. Enforced deterministically in cross-section verification (`cross_section_x2.py` gate `x2_cross_section_no_undefined_mga_acronym`).
+
 ## Plans
 
 Lookup: `.agents/rules/codex-config-lookup.md` and `.agents/rules/plan-location.md`. New plans are disk-only under `plans/<name>-<6hex>.md`; `.codex/plans/` is an archive of migrated historical plans, not the write target for new work.

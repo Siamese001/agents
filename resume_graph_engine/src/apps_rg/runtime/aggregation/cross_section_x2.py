@@ -734,6 +734,25 @@ def run_cross_section_x2_gates(
         ),
     )
 
+    # Undefined industry acronyms across all sections (INV-RESUME-NO-UNDEFINED-ACRONYMS)
+    # Bare MGA/MGAs without explicit definition (e.g. "managing general agents (MGAs)") is forbidden.
+    mga_hit = bool(re.search(r"\bMGAs?\b", corpus))
+    mga_defined = bool(re.search(r"\bmanaging\s+general\s+agents?\b", corpus, re.IGNORECASE))
+    mga_undefined = mga_hit and not mga_defined
+    gates.append(
+        CrossSectionGateResult(
+            gate_id="x2_cross_section_no_undefined_mga_acronym",
+            verdict=VERDICT_FAIL if mga_undefined else VERDICT_PASS,
+            decisive_reason=(
+                "undefined acronym MGA/MGAs present in assembled corpus; "
+                "must be defined as 'managing general agents (MGAs)' or expanded"
+                if mga_undefined
+                else None
+            ),
+            observed={"mga_present": mga_hit, "mga_defined": mga_defined},
+        ),
+    )
+
     review_lanes = list(fingerprint.get("review_lanes") or [])
     gates.append(
         CrossSectionGateResult(
