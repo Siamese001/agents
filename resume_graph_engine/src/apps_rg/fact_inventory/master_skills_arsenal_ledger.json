@@ -96,8 +96,10 @@
    "non_retrieval_eligible_count": 56,
    "node_count": 376,
    "edge_count": 2316,
-   "current_graph_nodes_sha256": "b9bcb945706e2973ef4ce30a157fbfd3885fe1163f32d5c0832c6b0aed02a2ec",
-   "current_graph_edges_sha256": "360eea5689c347f13a73b250f832548ecd6b23c00a52da797ad4175787e99a74"
+   "current_graph_nodes_sha256": "2667167e60254807ee9752097fffaa32cc4d1399f44d52cc49c1b5f4ad8a269b",
+   "current_graph_edges_sha256": "bdac4b6d9141823f5caf4e722cb92f06bbc7c2e56960015c656b0185051c0d66",
+   "current_edge_count": 2482,
+   "current_skill_rows_sha256": "fb7a16524cf62513baa6bea4b3ca1968c0178c6e26e35e564d323e4f1b15f060"
   },
   "node_count": 376,
   "edge_count": 2322
@@ -517,8 +519,8 @@
    "source_w2_marker_sha256": "2331f9df60b5f4f7a63f08221a96b902e2531ef053e5a2eea9db5b364c96ac24",
    "current_edge_count": 2482,
    "current_graph_edges_sha256": "bdac4b6d9141823f5caf4e722cb92f06bbc7c2e56960015c656b0185051c0d66",
-   "current_graph_nodes_sha256": "10725cf41cb2611a0f96c87bd521b6dc5910afb82db4e07108936b9e77b3abc7",
-   "current_skill_rows_sha256": "b37a883afc8e3d3b14e2d9d65149409350faae0096822b1da9263cbec710827b",
+   "current_graph_nodes_sha256": "2667167e60254807ee9752097fffaa32cc4d1399f44d52cc49c1b5f4ad8a269b",
+   "current_skill_rows_sha256": "fb7a16524cf62513baa6bea4b3ca1968c0178c6e26e35e564d323e4f1b15f060",
    "retired_edge_count": 122,
    "retired_edge_reason_counts": {
     "EXTERNAL_ELIGIBLE_EDGE_CONFLICTS_WITH_INELIGIBLE_ROW": 24,
@@ -5178,7 +5180,8 @@
    "confidence_grade_derived": "HIGH",
    "skill_id": "skill_sr_regulated_financial_institutions_fluency",
    "fact_id_links": [
-    "fact_sales_accounts_003"
+    "fact_sales_accounts_003",
+    "fact_governance_003"
    ],
    "pillar": "pillar_banking_platform_responsible_ai",
    "subpillar": "regulated_financial_institutions_fluency",
@@ -5192,13 +5195,17 @@
    "user_confirmed": true,
    "role_family_weights": {
     "BANKING_PLATFORM_AI": 1.0,
-    "REGULATED_AI_GOVERNANCE": 1.0
+    "REGULATED_AI_GOVERNANCE": 1.0,
+    "INSURANCE_CARRIER_TRANSFORMATION": 1.0
    },
    "allowed_phrases": [
     "financial institutions",
     "Basel",
     "CCAR",
-    "regulatory IT"
+    "regulatory IT",
+    "insurers",
+    "insurance carriers",
+    "regulated financial and insurance institutions"
    ],
    "forbidden_phrases": [],
    "allowed_sections": [
@@ -82104,7 +82111,8 @@
   {
    "skill_id": "skill_sr_regulated_financial_institutions_fluency",
    "fact_id_links": [
-    "fact_sales_accounts_003"
+    "fact_sales_accounts_003",
+    "fact_governance_003"
    ],
    "pillar": "pillar_banking_platform_responsible_ai",
    "subpillar": "regulated_financial_institutions_fluency",
@@ -82119,13 +82127,17 @@
    "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
    "role_family_weights": {
     "BANKING_PLATFORM_AI": 1.0,
-    "REGULATED_AI_GOVERNANCE": 1.0
+    "REGULATED_AI_GOVERNANCE": 1.0,
+    "INSURANCE_CARRIER_TRANSFORMATION": 1.0
    },
    "allowed_phrases": [
     "financial institutions",
     "Basel",
     "CCAR",
-    "regulatory IT"
+    "regulatory IT",
+    "insurers",
+    "insurance carriers",
+    "regulated financial and insurance institutions"
    ],
    "forbidden_phrases": [],
    "allowed_sections": [
