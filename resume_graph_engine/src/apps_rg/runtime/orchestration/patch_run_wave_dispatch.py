@@ -31,7 +31,9 @@ def _write_json_doc(path: Path, data: Any) -> None:
 
 
 def sync_split_pointer_roots(run_dir: Path | str) -> None:
-    """Synchronize split lane pointers when both lanes/ and modular_r4/sections/ exist."""
+    """Synchronize split lane pointers and flat lane artifacts when both lanes/ and modular_r4/sections/ exist."""
+    import shutil
+
     rd = Path(str(run_dir)).resolve()
     modular_root = rd / "modular_r4" / "sections"
     lanes_root = rd / "lanes"
@@ -40,6 +42,7 @@ def sync_split_pointer_roots(run_dir: Path | str) -> None:
     lanes_has_manifest = (lanes_root / "sections_root_manifest.json").is_file()
     modular_has_manifest = (modular_root / "sections_root_manifest.json").is_file()
     for lane in GENERATED_LANES:
+        winner_ptr: dict[str, Any] | None = None
         for ptr_name in ("latest_real_run.json", "latest_successful_real_run.json"):
             p_lanes = lanes_root / lane / ptr_name
             p_mod = modular_root / lane / ptr_name
@@ -49,9 +52,11 @@ def sync_split_pointer_roots(run_dir: Path | str) -> None:
                 continue
             if d_lanes is not None and d_mod is None:
                 _write_json_doc(p_mod, d_lanes)
+                winner_ptr = d_lanes
                 continue
             if d_mod is not None and d_lanes is None:
                 _write_json_doc(p_lanes, d_mod)
+                winner_ptr = d_mod
                 continue
             assert d_lanes is not None and d_mod is not None
             ts_lanes = str(d_lanes.get("generated_at_utc") or "")
@@ -66,6 +71,25 @@ def sync_split_pointer_roots(run_dir: Path | str) -> None:
                 _write_json_doc(p_lanes, winner)
             if d_mod != winner:
                 _write_json_doc(p_mod, winner)
+            winner_ptr = winner
+        if winner_ptr is not None:
+            rel_dir = str(winner_ptr.get("run_dir") or winner_ptr.get("run_dir_repo_relative") or "").strip()
+            flat_dir = lanes_root / lane
+            if rel_dir and flat_dir.is_dir():
+                src_dir: Path | None = None
+                cand_abs = Path(rel_dir)
+                if cand_abs.is_absolute() and cand_abs.is_dir():
+                    src_dir = cand_abs
+                else:
+                    for anc in [rd, *rd.parents]:
+                        c = (anc / rel_dir).resolve()
+                        if c.is_dir():
+                            src_dir = c
+                            break
+                if src_dir is not None and src_dir.resolve() != flat_dir.resolve():
+                    for item in src_dir.iterdir():
+                        if item.is_file():
+                            shutil.copy2(item, flat_dir / item.name)
 
 
 def mirror_sibling_pointer_roots(
@@ -243,7 +267,14 @@ def dispatch_patch_lanes_wave_parallel(
             for lane in ready_lanes:
                 idx = lane_idx_map.get(lane, 0)
                 lane_start, future, cancel_ev = futures[lane]
-                remaining_wait = max(0.05, lane_timeout - (time.monotonic() - lane_start))
+                now_mono = time.monotonic()
+                remaining_wait = max(
+                    0.05,
+                    min(
+                        lane_timeout - (now_mono - lane_start),
+                        run_timeout - (now_mono - clock_start),
+                    ),
+                )
                 timed_out = False
                 try:
                     results[lane] = future.result(timeout=remaining_wait)

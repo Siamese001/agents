@@ -463,7 +463,12 @@ def render_full_run_section_status_markdown(
     repo = (repo_root or find_repo_root(Path(run_root))).resolve()
     for row in rows:
         if row.display_txt_rel and row.display_txt_abs:
-            link = f"[{row.display_txt_rel}]({_repo_rel(Path(row.display_txt_abs), repo)})"
+            rel_target = _display_ref(
+                Path(row.display_txt_abs),
+                run_root=Path(run_root),
+                repo_root=repo,
+            )
+            link = f"[{row.display_txt_rel}]({rel_target})"
         else:
             link = "— (missing)"
         judges = row.judge_summary or "—"

@@ -892,20 +892,26 @@ def _default_slot_specs(
     section_plans: Mapping[str, Mapping[str, Any]],
 ) -> list[dict[str, Any]]:
     slots: list[dict[str, Any]] = []
+    target_role_profile = str(
+        (section_plans.get("executive_summary") or {}).get("target_role_profile")
+        or (section_plans.get("competencies") or {}).get("target_role_profile")
+        or ""
+    ).strip()
+    comp_roots_map = _authority_rows_by_root(section_plans.get("competencies", {}))
+    insurance_comp_roots = {
+        1: "reb_insurtech_aws_migration_execution", 2: "reb_ey_insurance_core_modernization",
+        3: "reb_ey_erm_risk_governance", 4: "reb_unify_distributed_ecosystem_engineering",
+        5: "reb_slalom_autonomous_agentic_sdlc_mcp", 6: "reb_insurtech_aws_shared_responsibility_operating_model",
+        7: "reb_unify_platform_commercialization_leadership", 8: "reb_unify_hyperscaler_joint_solution_architecture",
+    }
+    use_insurance_comp_roots = target_role_profile == "insurance_it_strategy" and all(r in comp_roots_map for r in insurance_comp_roots.values())
     for index in range(1, 9):
-        slots.append(
-            {
-                "slot_id": f"competencies:skill:{index:02d}",
-                "section_id": "competencies",
-                "metric_required": False,
-            }
-        )
-    unify_slot_roots = section_plans.get("unify_bullets", {}).get(
-        "unify_bullet_slot_bundle_map_resolved"
-    )
-    if not isinstance(unify_slot_roots, Mapping) or set(unify_slot_roots) != set(
-        CANONICAL_BULLET_CLAIM_UNITS["unify_bullets"]
-    ):
+        slot_row: dict[str, Any] = {"slot_id": f"competencies:skill:{index:02d}", "section_id": "competencies", "metric_required": False}
+        if use_insurance_comp_roots:
+            slot_row["required_root_id"] = insurance_comp_roots[index]
+        slots.append(slot_row)
+    unify_slot_roots = section_plans.get("unify_bullets", {}).get("unify_bullet_slot_bundle_map_resolved")
+    if not isinstance(unify_slot_roots, Mapping) or set(unify_slot_roots) != set(CANONICAL_BULLET_CLAIM_UNITS["unify_bullets"]):
         raise ResumeGraphAllocationError(
             "unify_bullets: frozen source plan lacks the complete slot-to-role-episode contract",
             receipt={
@@ -917,12 +923,21 @@ def _default_slot_specs(
     if any(not str(root_id).strip() for root_id in unify_slot_roots.values()):
         raise ResumeGraphAllocationError(
             "unify_bullets: slot-to-role-episode contract contains an empty root",
-            receipt={
-                "schema_version": "resume_graph_allocation_failure_v1",
-                "unsatisfied_constraints": ["unify_slot_role_episode_contract"],
-            },
+            receipt={"schema_version": "resume_graph_allocation_failure_v1", "unsatisfied_constraints": ["unify_slot_role_episode_contract"]},
         )
-
+    slalom_slot_roots = {
+        "bul_slalom_001": "reb_slalom_agentic_client_delivery", "bul_slalom_002": "reb_slalom_nextgen_ai_solutions",
+        "bul_slalom_003": "reb_slalom_governed_runtime_scaling", "bul_slalom_004": "reb_slalom_ecosystem_accelerators",
+    }
+    ibm_slot_roots = {
+        "bul_ibm_001": "reb_ibm_customer_success_value_realization", "bul_ibm_002": "reb_ibm_presales_solution_engineering",
+        "bul_ibm_003": "reb_ibm_revenue_sales_target_execution", "bul_ibm_004": "reb_ibm_data_modeling_bi_decision_support",
+        "bul_ibm_005": "reb_ibm_aws_alliance_partner_cosell_gtm",
+    }
+    insurtech_slot_roots = {
+        "bul_insurtech_001": "reb_insurtech_aws_migration_execution",
+        "bul_insurtech_002": "reb_insurtech_regulated_aws_control_implementation",
+    }
     for section_id, claim_units in CANONICAL_BULLET_CLAIM_UNITS.items():
         if not claim_units:
             continue
@@ -934,18 +949,19 @@ def _default_slot_specs(
             if row.get("authority_pass") is True
         )
         for index, claim_unit in enumerate(claim_units):
-            unify_req_root = (
-                str(unify_slot_roots.get(claim_unit) or "").strip()
-                if section_id == "unify_bullets"
-                else ""
-            )
+            unify_req_root = str(unify_slot_roots.get(claim_unit) or "").strip() if section_id == "unify_bullets" else ""
             unify_slot_numeric_eligible = (
-                section_id == "unify_bullets"
-                and bool(unify_req_root)
-                and any(
+                section_id == "unify_bullets" and bool(unify_req_root) and any(
                     extract_exact_metric_value_unit(str(row.get("metric") or ""))[0]
                     for row in section_roots_map.get(unify_req_root, {}).get("metric_outcome", [])
                     if row.get("authority_pass") is True
+                )
+            )
+            req_root_id = unify_req_root if section_id == "unify_bullets" else (
+                str(slalom_slot_roots.get(claim_unit) or "").strip() if section_id == "slalom_bullets" else (
+                    str(ibm_slot_roots.get(claim_unit) or "").strip() if section_id == "ibm_bullets" and str(ibm_slot_roots.get(claim_unit) or "").strip() in section_roots_map else (
+                        str(insurtech_slot_roots.get(claim_unit) or "").strip() if section_id == "insurtech_bullets" and str(insurtech_slot_roots.get(claim_unit) or "").strip() in section_roots_map else ""
+                    )
                 )
             )
             slots.append(
@@ -958,7 +974,7 @@ def _default_slot_specs(
                     "metric_required": (
                         metric_available
                         and (
-                            (index == 0 and section_id not in ("unify_bullets", "ibm_bullets", "slalom_bullets"))
+                            (index == 0 and section_id not in ("unify_bullets", "ibm_bullets", "slalom_bullets", "insurtech_bullets"))
                             or (section_id == "unify_bullets" and unify_slot_numeric_eligible)
                             or (section_id == "ibm_bullets" and index == len(claim_units) - 1)
                             or (section_id == "slalom_bullets" and index == 2)
@@ -966,47 +982,37 @@ def _default_slot_specs(
                     ),
                     "metric_outcome_required": section_id == "unify_bullets",
                     "employer_lane": EMPLOYER_LANE_BY_SECTION[section_id],
-                    **(
-                        {
-                            "required_root_id": unify_req_root
-                        }
-                        if section_id == "unify_bullets"
-                        else {
-                            "required_root_id": str(
-                                {
-                                    "bul_slalom_001": "reb_slalom_agentic_client_delivery",
-                                    "bul_slalom_002": "reb_slalom_nextgen_ai_solutions",
-                                    "bul_slalom_003": "reb_slalom_governed_runtime_scaling",
-                                    "bul_slalom_004": "reb_slalom_ecosystem_accelerators",
-                                }.get(claim_unit)
-                                or ""
-                            ).strip()
-                        }
-                        if section_id == "slalom_bullets"
-                        else {}
-                    ),
+                    **({"required_root_id": req_root_id} if req_root_id else {}),
                 }
             )
+    exec_roots_map = _authority_rows_by_root(section_plans.get("executive_summary", {}))
+    insurance_exec_roots = {
+        1: "reb_unify_regulated_enterprise_ai_governance",
+        2: "reb_insurtech_aws_migration_execution",
+        3: "reb_unify_agentic_platform_architecture",
+    }
+    use_insurance_exec_roots = target_role_profile == "insurance_it_strategy" and all(r in exec_roots_map for r in insurance_exec_roots.values())
     for index in range(1, 4):
-        slots.append(
-            {
-                "slot_id": f"executive_summary:claim:{index:02d}",
-                "section_id": "executive_summary",
-                "metric_required": index == 1,
-            }
-        )
+        exec_slot: dict[str, Any] = {"slot_id": f"executive_summary:claim:{index:02d}", "section_id": "executive_summary", "metric_required": index == 1}
+        if use_insurance_exec_roots:
+            exec_slot["required_root_id"] = insurance_exec_roots[index]
+        slots.append(exec_slot)
     # The fixed headline product shape is ``SVP Engineering | X | Y | Z``.
     # Allocate one independent graph authority per visible positioning pillar;
     # two slots force one root to be reused across two pillars and routinely
     # produce semantically duplicate, judge-rejected headlines.
+    head_roots_map = _authority_rows_by_root(section_plans.get("headline", {}))
+    insurance_head_roots = {
+        1: "reb_insurtech_aws_guidewire_core_modernization",
+        2: "reb_insurtech_regulated_aws_control_implementation",
+        3: "reb_unify_distributed_ecosystem_engineering",
+    }
+    use_insurance_head_roots = target_role_profile == "insurance_it_strategy" and all(r in head_roots_map for r in insurance_head_roots.values())
     for index in range(1, 4):
-        slots.append(
-            {
-                "slot_id": f"headline:skill:{index:02d}",
-                "section_id": "headline",
-                "metric_required": False,
-            }
-        )
+        head_slot: dict[str, Any] = {"slot_id": f"headline:skill:{index:02d}", "section_id": "headline", "metric_required": False}
+        if use_insurance_head_roots:
+            head_slot["required_root_id"] = insurance_head_roots[index]
+        slots.append(head_slot)
     return slots
 
 
@@ -1071,44 +1077,28 @@ def _candidate_sets_from_section_plans(
                         if metric is not None:
                             graph_path_ids.append(str(metric.get("candidate_path_id") or ""))
                             edge_ids.append(stable_edge_id(root_id, "role_episode_has_metric_outcome", metric_id))
-                        citation_refs = _strings(
-                            list(fact.get("source_refs") or [])
-                            + list((fact.get("authority") or {}).get("source_refs") or [])
-                            + [fact_id]
-                        )
-                        skill_sources = _strings(
-                            list(skill.get("source_refs") or [])
-                            + list((skill.get("authority") or {}).get("source_refs") or [])
-                        )
+                        citation_refs = _strings(list(fact.get("source_refs") or []) + list((fact.get("authority") or {}).get("source_refs") or []) + [fact_id])
+                        skill_sources = _strings(list(skill.get("source_refs") or []) + list((skill.get("authority") or {}).get("source_refs") or []))
                         metric_text = str((metric or {}).get("metric") or "")
                         proof_score, align_score, indep_score = compute_candidate_alignment_and_independence(
                             root=root, skill=skill, metric=metric, root_weight=root_weight,
                             citation_refs=citation_refs, skill_sources=skill_sources,
                         )
+                        if slot.section_id == "ibm_bullets" and metric_id == "metric_ibm_20pct_joint_revenue_growth":
+                            align_score = round(align_score + 0.5, 6)
                         candidate: dict[str, Any] = {
-                            "section_id": slot.section_id,
-                            "claim_unit_id": slot.slot_id,
-                            "skill_id": skill_id,
-                            "skill_label": str(skill.get("skill_label") or ""),
-                            "fact_id": fact_id,
-                            "metric_outcome_id": metric_id,
-                            "metric_text": metric_text,
-                            "metric_value": str((metric or {}).get("metric_value") or ""),
+                            "section_id": slot.section_id, "claim_unit_id": slot.slot_id,
+                            "skill_id": skill_id, "skill_label": str(skill.get("skill_label") or ""),
+                            "fact_id": fact_id, "metric_outcome_id": metric_id,
+                            "metric_text": metric_text, "metric_value": str((metric or {}).get("metric_value") or ""),
                             "metric_unit": str((metric or {}).get("metric_unit") or ""),
                             "normalized_metric_signature": normalize_metric_signature(metric_text),
-                            "root_id": root_id,
-                            "employer_lane": employer_lane,
-                            "source_family": employer_lane,
-                            "authority_pass": True,
-                            "proof_strength_raw": proof_score,
-                            "target_alignment_score": align_score,
-                            "claim_entailment_score": 1.0,
+                            "root_id": root_id, "employer_lane": employer_lane, "source_family": employer_lane,
+                            "authority_pass": True, "proof_strength_raw": proof_score,
+                            "target_alignment_score": align_score, "claim_entailment_score": 1.0,
                             "metric_binding_score": 1.0 if metric is not None else 0.0,
-                            "path_confidence_raw": 1.0,
-                            "source_independence_score": indep_score,
-                            "graph_path_ids": _strings(graph_path_ids),
-                            "edge_ids": edge_ids,
-                            "citation_refs": citation_refs,
+                            "path_confidence_raw": 1.0, "source_independence_score": indep_score,
+                            "graph_path_ids": _strings(graph_path_ids), "edge_ids": edge_ids, "citation_refs": citation_refs,
                             "root_bundle_theme": str(root.get("bundle_theme") or ""),
                             "root_claim_text": str(root.get("claim_text") or ""),
                             "root_claim_action": str(root.get("claim_action") or ""),
