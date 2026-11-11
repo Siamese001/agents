@@ -117,11 +117,11 @@ def _build_inline_required_output(doc: dict[str, Any]) -> dict[str, Any]:
         {"question": "Decision", "answer": "Do not authorize; fix P0 gates first." if not authorized else "Authorized; preserve evidence."},
     ]
     evidence_map = [
-        {"label": "Mandatory run ledger", "path": f"@{doc['run_root_abs']}\\{MANDATORY_RUN_OUTPUT_MD}"},
-        {"label": "Machine-readable ledger", "path": f"@{doc['run_root_abs']}\\{MANDATORY_RUN_OUTPUT_JSON}"},
-        {"label": "Final resume text", "path": f"@{doc['run_root_abs']}\\{FINAL_RESUME_OUTPUT_TXT}"},
-        {"label": "Final resume output contract", "path": f"@{doc['run_root_abs']}\\{FINAL_RESUME_OUTPUT_JSON}"},
-        {"label": "Resume DOCX", "path": f"@{doc['run_root_abs']}\\{FINAL_RESUME_DOCX_RELPATH}"},
+        {"label": "Mandatory run ledger", "path": f"@{doc['run_root_abs']}/{MANDATORY_RUN_OUTPUT_MD}"},
+        {"label": "Machine-readable ledger", "path": f"@{doc['run_root_abs']}/{MANDATORY_RUN_OUTPUT_JSON}"},
+        {"label": "Final resume text", "path": f"@{doc['run_root_abs']}/{FINAL_RESUME_OUTPUT_TXT}"},
+        {"label": "Final resume output contract", "path": f"@{doc['run_root_abs']}/{FINAL_RESUME_OUTPUT_JSON}"},
+        {"label": "Resume DOCX", "path": f"@{doc['run_root_abs']}/{FINAL_RESUME_DOCX_RELPATH}"},
     ]
     evidence_map.extend(_forensic_evidence_map_rows(doc))
     return {

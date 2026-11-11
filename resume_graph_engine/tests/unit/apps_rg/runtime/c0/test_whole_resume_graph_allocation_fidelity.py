@@ -97,3 +97,32 @@ def test_patch_wave_dispatch_caps_lane_wait_by_run_timeout() -> None:
     src = inspect.getsource(patch_run_wave_dispatch.dispatch_patch_lanes_wave_parallel)
     assert "run_timeout - (now_mono - clock_start)" in src
 
+
+def test_mandatory_output_posix_paths_and_passing_section_classification() -> None:
+    from apps_rg.runtime.outputs.bcg_inline_output import _build_inline_required_output
+    from apps_rg.runtime.outputs.section_lane_tables import _classify_failure
+
+    assert (
+        _classify_failure("competencies", [], {}, x3_code="X3_ALLOW")
+        == "No section-level failure recorded."
+    )
+    assert "Evidence mapping failure" in _classify_failure(
+        "competencies",
+        [{"gate_id": "x2_competencies_source_fact"}],
+        {},
+        x3_code="X3_BLOCK",
+    )
+    doc = {
+        "run_root_abs": "/tmp/run_root",
+        "result_summary": {"outcome_authorized": True, "x3_disposition": "X3_ALLOW", "completion_status": "PASS"},
+        "section_counts": {"total": 12, "ran_real_llm": 11, "allowed": 12, "blocked": 0, "pre_run_blocked": 0, "not_run": 0},
+        "section_lane_table": [],
+        "final_resume_output": {"status": "PASS"},
+        "rca_findings": [],
+        "sections": [],
+    }
+    inline = _build_inline_required_output(doc)
+    for item in inline["bcg"]["evidence_map"]:
+        assert "\\" not in item["path"]
+
+

@@ -607,15 +607,15 @@ def finalize_integrated_run_lane_evidence(
         encoding="utf-8",
     )
 
+    from apps_rg.runtime.run_bundle_index import build_integrated_run_bundle_document, write_run_bundle_index
     from apps_rg.runtime.run_correlation_links import build_run_links_document, write_run_links
-
-    links_doc = build_run_links_document(
-        repo_root,
+    write_run_bundle_index(
         integrated_dir,
-        integrated_run_id=integrated_dir.name,
-        correlation_id=cid,
-        notes="W8B modular_r4 lane evidence packaging",
-        lane_bundle_refs_override=lane_refs,
+        build_integrated_run_bundle_document(repo_root, integrated_dir, run_id=integrated_dir.name, correlation_id=cid),
+    )
+    links_doc = build_run_links_document(
+        repo_root, integrated_dir, integrated_run_id=integrated_dir.name,
+        correlation_id=cid, notes="W8B modular_r4 lane evidence packaging", lane_bundle_refs_override=lane_refs,
     )
     write_run_links(integrated_dir, links_doc)
 
