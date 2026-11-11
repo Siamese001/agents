@@ -306,22 +306,20 @@ def _build_proof_pool_graph_binding_materiality_summary(
 
     native = meta.get("native_c03_final_evidence")
     native_meta = meta.get("c03_pa_metadata") if isinstance(meta.get("c03_pa_metadata"), Mapping) else {}
-    native_active = isinstance(native, Mapping) or str(meta.get("native_c03_status") or "") == "EMITTED"
-    native_fact_ids = set()
-    if isinstance(native, Mapping):
-        native_fact_ids.update(_collect_values_for_keys([native], {"selected_source_fact_ids"}))
+    selected_plan = meta.get("selected_graph_evidence_plan") if isinstance(meta.get("selected_graph_evidence_plan"), Mapping) else {}
+    final_contract = meta.get("final_graph_evidence_contract") if isinstance(meta.get("final_graph_evidence_contract"), Mapping) else {}
+    native_active = isinstance(native, Mapping) or str(meta.get("native_c03_status") or "") == "EMITTED" or bool(selected_plan)
+    native_fact_ids = _collect_values_for_keys([native], {"selected_source_fact_ids"}) if isinstance(native, Mapping) else set()
     native_fact_ids.update(_collect_values_for_keys([native_meta], {"c03_allowed_fact_ids"}))
+    native_fact_ids.update(str(r.get("fact_id") or "").strip() for r in (selected_plan.get("allocation_assignments") or []) if isinstance(r, Mapping) and str(r.get("fact_id") or "").strip())
+    native_fact_ids.update(str(r.get("fact_id") or "").strip() for r in (final_contract.get("claim_bindings") or []) if isinstance(r, Mapping) and str(r.get("fact_id") or "").strip())
 
     role_active = bool(meta.get("role_episode_bundle_consumption") or meta.get("role_episode_bundles"))
     role_bundle_ids, role_skill_ids, role_fact_ids = _role_episode_bundles_from_metadata(meta)
 
     used_fact_ids = _collect_values_for_keys(usage_payloads, {"source_fact_ids", "fact_ids", "cited_fact_ids"})
-    used_bundle_ids = _collect_values_for_keys(
-        usage_payloads, {"role_episode_bundle_id", "role_episode_bundle_ids"}
-    )
-    used_skill_ids = _collect_values_for_keys(
-        usage_payloads, {"graph_skill_node_ids", "source_skill_ids", "skill_ids_used"}
-    )
+    used_bundle_ids = _collect_values_for_keys(usage_payloads, {"role_episode_bundle_id", "role_episode_bundle_ids"})
+    used_skill_ids = _collect_values_for_keys(usage_payloads, {"graph_skill_node_ids", "source_skill_ids", "skill_ids_used"})
 
     has_candidate_material = bool(candidate or parsed or ledger)
     violations: list[dict[str, str]] = []
@@ -332,26 +330,11 @@ def _build_proof_pool_graph_binding_materiality_summary(
 
     if has_candidate_material:
         if native_active and native_fact_ids and not native_matched:
-            violations.append(
-                {
-                    "reason_code": "native_c03_metadata_without_cited_fact_use",
-                    "detail": "native C0.3 selected_source_fact_ids were not cited by candidate output",
-                }
-            )
+            violations.append({"reason_code": "native_c03_metadata_without_cited_fact_use", "detail": "native C0.3 selected_source_fact_ids were not cited by candidate output"})
         if role_active and role_bundle_ids and not role_bundle_matched:
-            violations.append(
-                {
-                    "reason_code": "role_episode_metadata_without_bundle_use",
-                    "detail": "role_episode_bundle_ids were not present in candidate output",
-                }
-            )
+            violations.append({"reason_code": "role_episode_metadata_without_bundle_use", "detail": "role_episode_bundle_ids were not present in candidate output"})
         if role_active and role_skill_ids and not (role_skill_matched or role_fact_matched):
-            violations.append(
-                {
-                    "reason_code": "role_episode_metadata_without_skill_or_fact_use",
-                    "detail": "role episode graph_skill_node_ids or linked_source_fact_ids were not used",
-                }
-            )
+            violations.append({"reason_code": "role_episode_metadata_without_skill_or_fact_use", "detail": "role episode graph_skill_node_ids or linked_source_fact_ids were not used"})
 
     if not (native_active or role_active):
         status = "NO_GRAPH_BINDING_METADATA"

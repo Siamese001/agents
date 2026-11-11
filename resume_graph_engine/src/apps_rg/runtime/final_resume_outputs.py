@@ -682,12 +682,8 @@ def emit_final_resume_product_outputs(
     synthesized_fallback = False
     if final_resume_path is None and (target_company or target_role or jd_text):
         final_resume_path = _ensure_jd_tailored_final_resume_json(
-            root,
-            repo_root=repo_root,
-            target_company=target_company,
-            target_role=target_role,
-            jd_text=jd_text,
-            briefing_text=briefing_text,
+            root, repo_root=repo_root, target_company=target_company,
+            target_role=target_role, jd_text=jd_text, briefing_text=briefing_text,
         )
     elif final_resume_path is None and required:
         final_resume_path = _ensure_fallback_final_resume_json(root, repo_root=repo_root)
@@ -702,6 +698,11 @@ def emit_final_resume_product_outputs(
             docx_path = root / FINAL_RESUME_DOCX_RELPATH
             docx_path.parent.mkdir(parents=True, exist_ok=True)
             export_final_resume_docx(final_resume_path, docx_path)
+            serialized_final = json.dumps(final_resume, ensure_ascii=False, indent=2) + "\n"
+            for rel in ("modular_r4/outputs/final_resume.json", "outputs/generated_resume.json"):
+                sec_p = root / rel
+                if sec_p.exists() and sec_p.resolve() != final_resume_path.resolve():
+                    sec_p.write_text(serialized_final, encoding="utf-8")
 
     contract = build_final_resume_output_contract(root, repo_root=repo_root, required=required)
     _write_output_manifest(root, final_resume_path=final_resume_path, contract=contract)

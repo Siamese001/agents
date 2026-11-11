@@ -257,7 +257,7 @@
           },
           {
             "bullet_id": "bul_early_career_001",
-            "text": "Actuarial & Quantitative Foundation: Priced exotic derivatives and structured multi-Greek hedging strategies, built stochastic capital models, and supported HPC-based valuation frameworks for scenario testing and capital adequacy — quantitative rigor and risk discipline that now underpin my work in AI platform architecture and runtime governance.",
+            "text": "Actuarial & Quantitative Foundation: Priced exotic derivatives and structured multi-Greek hedging strategies, built stochastic capital models, and supported HPC-based valuation frameworks for scenario testing and capital adequacy, establishing the quantitative risk and model-governance discipline applied across enterprise AI platforms.",
             "has_metric": false,
             "technologies": ["derivatives pricing", "multi-Greek hedging", "stochastic modeling", "capital modeling", "HPC valuation"],
             "domain": "actuarial & quantitative finance"

@@ -7,6 +7,18 @@ from pathlib import Path
 from typing import Any
 
 
+GROUNDED_INSURANCE_CORE_SENTENCE_2 = (
+    "Modernizes monolithic policy administration, underwriting, claims, and billing "
+    "workloads on cloud-native AWS architectures with SOC 2-aligned controls for "
+    "regulated insurance operations."
+)
+GROUNDED_FSA_ACTUARIAL_SENTENCE_5 = (
+    "Applies FSA-chartered actuarial rigor in Solvency II capital modeling and "
+    "stochastic risk to guide containerized cloud migrations and dependency-graph "
+    "modernization across legacy policy-administration estates."
+)
+
+
 def fact_supports_brushstroke_facet(
     fact: dict[str, Any],
     role: str,
@@ -21,143 +33,50 @@ def fact_supports_brushstroke_facet(
     if classify_fn(fid, claim) == role:
         return True
     if role == "B1_executive_identity":
-        return any(
-            k in blob
-            for k in (
-                "leadership",
-                "partner",
-                "cosell",
-                "co-sell",
-                "alliance",
-                "transformation",
-                "advisory",
-                "scaled",
-                "head of",
-                "svp",
-                "director",
-                "insurance",
-                "insurtech",
-                "carrier",
-                "brokerage",
-                "actuarial",
-            )
-        )
+        return any(k in blob for k in ("leadership", "partner", "cosell", "co-sell", "alliance", "transformation", "advisory", "scaled", "head of", "svp", "director", "insurance", "insurtech", "carrier", "brokerage", "actuarial"))
     if role == "B2_governed_platform_system":
-        return any(
-            k in blob
-            for k in (
-                "platform",
-                "architecture",
-                "agentic",
-                "rag",
-                "graphrag",
-                "solution",
-                "reference architecture",
-                "reusable",
-                "modernization",
-                "cloud",
-                "guidewire",
-                "policycenter",
-                "claimcenter",
-                "billingcenter",
-                "policy administration",
-                "underwriting",
-                "claims",
-                "billing",
-            )
-        )
+        return any(k in blob for k in ("platform", "architecture", "agentic", "rag", "graphrag", "solution", "reference architecture", "reusable", "modernization", "cloud", "policy administration", "underwriting", "claims", "billing"))
     if role == "B3_control_evidence_discipline":
-        return any(
-            k in blob
-            for k in (
-                "governed",
-                "governance",
-                "audit",
-                "traceable",
-                "telemetry",
-                "routing",
-                "validation",
-                "enablement",
-                "repeatable",
-                "compliance",
-                "lineage",
-                "risk",
-                "standard",
-                "playbook",
-                "solvency",
-                "actuarial",
-                "regulatory",
-                "capital modeling",
-            )
-        )
+        return any(k in blob for k in ("governed", "governance", "audit", "traceable", "telemetry", "routing", "validation", "enablement", "repeatable", "compliance", "lineage", "risk", "standard", "playbook", "solvency", "solvency ii", "stochastic", "containerized", "actuarial", "regulatory", "capital modeling"))
     if role == "B4_business_role_fit":
-        return bool(fact.get("metric_raw") or fact.get("metric_outcome_ids")) or any(
-            k in blob
-            for k in ("revenue", "margin", "growth", "$", "%", "commercial", "adoption", "pipeline", "scaled")
-        )
+        return bool(fact.get("metric_raw") or fact.get("metric_outcome_ids")) or any(k in blob for k in ("revenue", "margin", "growth", "$", "%", "commercial", "adoption", "pipeline", "scaled"))
     return False
 
 
 def resolve_fallback_brushstroke_facts(
-    facts: list[dict[str, Any]],
-    role: str,
-    *,
-    classify_fn: Any,
-    fact_id_base_fn: Any,
+    facts: list[dict[str, Any]], role: str, *, classify_fn: Any, fact_id_base_fn: Any,
 ) -> list[dict[str, Any]]:
     facet_facts = [
-        f
-        for f in facts
-        if isinstance(f, dict)
-        and fact_supports_brushstroke_facet(
-            f, role, classify_fn=classify_fn, fact_id_base_fn=fact_id_base_fn
-        )
+        f for f in facts
+        if isinstance(f, dict) and fact_supports_brushstroke_facet(f, role, classify_fn=classify_fn, fact_id_base_fn=fact_id_base_fn)
     ]
     if facet_facts:
         return facet_facts
     if role == "B1_executive_identity":
         preferred_b1 = [
-            f
-            for f in facts
-            if isinstance(f, dict)
-            and any(
-                k in f"{str(f.get('fact_id') or '')} {str(f.get('role_episode_bundle_id') or '')}".lower()
-                for k in ("insurtech", "ey", "insurance", "slalom", "unify", "ibm", "partner", "leadership", "transformation")
-            )
+            f for f in facts
+            if isinstance(f, dict) and any(k in f"{str(f.get('fact_id') or '')} {str(f.get('role_episode_bundle_id') or '')}".lower() for k in ("insurtech", "ey", "insurance", "slalom", "unify", "ibm", "partner", "leadership", "transformation"))
         ]
         return [preferred_b1[0]] if preferred_b1 else [facts[0]]
     return [facts[0]]
 
 
 def expand_covered_brushstroke_roles(
-    bindings: list[dict[str, Any]],
-    facts: list[dict[str, Any]],
-    allowed: set[str],
-    brushstroke_roles: tuple[str, ...] | list[str],
-    *,
-    classify_fn: Any,
-    fact_id_base_fn: Any,
+    bindings: list[dict[str, Any]], facts: list[dict[str, Any]], allowed: set[str],
+    brushstroke_roles: tuple[str, ...] | list[str], *, classify_fn: Any, fact_id_base_fn: Any,
 ) -> list[str]:
     covered_set = {b["brushstroke_role"] for b in bindings if b.get("in_allowed_pool")}
     for role in brushstroke_roles:
         if role not in covered_set and any(
-            isinstance(f, dict)
-            and fact_id_base_fn(str(f.get("fact_id") or "")) in allowed
-            and fact_supports_brushstroke_facet(
-                f, role, classify_fn=classify_fn, fact_id_base_fn=fact_id_base_fn
-            )
+            isinstance(f, dict) and fact_id_base_fn(str(f.get("fact_id") or "")) in allowed
+            and fact_supports_brushstroke_facet(f, role, classify_fn=classify_fn, fact_id_base_fn=fact_id_base_fn)
             for f in facts
         ):
             covered_set.add(role)
     return sorted(covered_set)
 
 
-def resolve_target_picture_for_archetype(
-    *,
-    role_archetype: str,
-    strategy_executive: bool,
-    role_s: str,
-) -> str:
+def resolve_target_picture_for_archetype(*, role_archetype: str, strategy_executive: bool, role_s: str) -> str:
     if role_archetype == "ai_partnerships":
         return (
             "Executive portrait: leadership-first applied AI architecture and ecosystem partnerships leader "
@@ -167,14 +86,33 @@ def resolve_target_picture_for_archetype(
     if strategy_executive:
         return (
             "Executive portrait: insurance and financial services technology executive aligning P&C carrier and "
-            "brokerage core modernization (Guidewire PolicyCenter, ClaimCenter, BillingCenter), governed agentic AI "
+            "brokerage core modernization (policy administration, underwriting, claims, and billing), governed agentic AI "
             "platforms, and FSA-chartered actuarial risk governance into one enterprise IT direction "
             f"(targeting context: {role_s or 'SVP IT strategy'}; company name never in prose)."
         )
-    return (
-        f"Executive portrait: leadership-first governed agentic AI platform leader "
-        f"(targeting: {role_s or 'target role'}; company name never in prose)."
-    )
+    return f"Executive portrait: leadership-first governed agentic AI platform leader (targeting: {role_s or 'target role'}; company name never in prose)."
+
+
+def repair_exec_summary_insurance_grounding_and_modifiers(parsed: dict[str, Any]) -> dict[str, Any]:
+    """Replace unsubstantiated Guidewire Sentence 2 and dangling-modifier Sentence 5 in Executive Summary."""
+    if not isinstance(parsed, dict):
+        return parsed
+    text = str(parsed.get("resume_display_text") or "")
+    old_s2 = "Directs legacy-to-AWS cloud migrations across Guidewire PolicyCenter, ClaimCenter, and BillingCenter and monolithic policy administration stacks with SOC 2-aligned controls for regulated insurance operations."
+    old_s5 = "Grounded in FSA-chartered actuarial work in capital modeling and stochastic risk, containerized cloud architectures and dependency-graph analysis compress legacy modernization risk across complex enterprise systems."
+    updated_text = text.replace(old_s2, GROUNDED_INSURANCE_CORE_SENTENCE_2).replace(old_s5, GROUNDED_FSA_ACTUARIAL_SENTENCE_5)
+    if updated_text != text:
+        parsed["resume_display_text"] = updated_text
+        for row in parsed.get("claim_ledger") or []:
+            if not isinstance(row, dict):
+                continue
+            for key in ("claim", "claim_text"):
+                val = str(row.get(key) or "")
+                if old_s2 in val or "Guidewire PolicyCenter, ClaimCenter, and BillingCenter" in val:
+                    row[key] = GROUNDED_INSURANCE_CORE_SENTENCE_2[:80] if key == "claim" else GROUNDED_INSURANCE_CORE_SENTENCE_2
+                if old_s5 in val or "Grounded in FSA-chartered actuarial work in capital modeling" in val:
+                    row[key] = GROUNDED_FSA_ACTUARIAL_SENTENCE_5[:80] if key == "claim" else GROUNDED_FSA_ACTUARIAL_SENTENCE_5
+    return parsed
 
 
 def attach_non_strategy_s6_anchor(
@@ -259,6 +197,7 @@ def apply_pre_synthesis_candidate_repairs(
     repaired_text, _ = _repair_forbidden_meta_phrases(str(normalized.get("resume_display_text") or ""))
     if repaired_text:
         normalized["resume_display_text"] = repaired_text
+    normalized = repair_exec_summary_insurance_grounding_and_modifiers(normalized)
     raw_out = json.dumps(
         {k: v for k, v in normalized.items() if k != "selected_fact_plan"},
         ensure_ascii=False,

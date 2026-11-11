@@ -323,6 +323,28 @@ def bind_proof_pool_to_resume_graph_allocation(pool: Any) -> Any:
             }
         )
         metadata["graph_selection_binding_receipt"] = updated_binding_receipt
+    assignment_fact_ids = [
+        str(row.get("fact_id") or "").strip()
+        for row in (sliced.get("allocation_assignments") or [])
+        if isinstance(row, Mapping) and str(row.get("fact_id") or "").strip()
+    ]
+    post_slice_fact_ids = list(
+        dict.fromkeys([*list(ordered), *assignment_fact_ids])
+    )
+    native = metadata.get("native_c03_final_evidence")
+    if isinstance(native, Mapping) and post_slice_fact_ids:
+        updated_native = dict(native)
+        updated_native["selected_source_fact_ids"] = list(
+            dict.fromkeys([*list(native.get("selected_source_fact_ids") or []), *post_slice_fact_ids])
+        )
+        metadata["native_c03_final_evidence"] = updated_native
+    c03_pa_meta = metadata.get("c03_pa_metadata")
+    if isinstance(c03_pa_meta, Mapping) and post_slice_fact_ids:
+        updated_c03_pa = dict(c03_pa_meta)
+        updated_c03_pa["c03_allowed_fact_ids"] = list(
+            dict.fromkeys([*list(c03_pa_meta.get("c03_allowed_fact_ids") or []), *post_slice_fact_ids])
+        )
+        metadata["c03_pa_metadata"] = updated_c03_pa
     return replace(
         pool,
         proof_pool_digest=digest,

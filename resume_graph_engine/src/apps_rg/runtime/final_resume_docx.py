@@ -90,15 +90,28 @@ def _resolve_final_resume(arg: str | Path) -> Path:
     return preferred[0] if preferred else spine[0]
 
 
-def _paragraph(body: ElementTree.Element, text: str, *, style: str | None = None) -> None:
+def _paragraph(
+    body: ElementTree.Element,
+    text: str,
+    *,
+    style: str | None = None,
+    align: str | None = None,
+) -> None:
     paragraph = ElementTree.SubElement(body, _qname(_W_NS, "p"))
-    if style:
+    if style or align:
         properties = ElementTree.SubElement(paragraph, _qname(_W_NS, "pPr"))
-        ElementTree.SubElement(
-            properties,
-            _qname(_W_NS, "pStyle"),
-            {_qname(_W_NS, "val"): style},
-        )
+        if style:
+            ElementTree.SubElement(
+                properties,
+                _qname(_W_NS, "pStyle"),
+                {_qname(_W_NS, "val"): style},
+            )
+        if align:
+            ElementTree.SubElement(
+                properties,
+                _qname(_W_NS, "jc"),
+                {_qname(_W_NS, "val"): align},
+            )
     if not text:
         return
     run = ElementTree.SubElement(paragraph, _qname(_W_NS, "r"))
@@ -120,12 +133,14 @@ def _document_xml(text: str) -> bytes:
     raw_lines = [ln for ln in text.splitlines() if ln.strip()]
     for index, line in enumerate(raw_lines):
         stripped = line.strip()
+        align: str | None = None
         if index == 0:
             style: str | None = "Title"
         elif index == 1 and ("@" in stripped or "linkedin.com" in stripped or "github.com" in stripped or "+1" in stripped):
             style = "ContactLine"
         elif index == 2 and stripped not in heading_lines:
             style = "RoleHeader"
+            align = "center"
         elif stripped in heading_lines:
             style = "Heading1"
         elif " \u2014 " in stripped and not stripped.startswith("\u2022") and len(stripped) < 120:
@@ -136,7 +151,7 @@ def _document_xml(text: str) -> bytes:
             style = "Bullet"
         else:
             style = None
-        _paragraph(body, line, style=style)
+        _paragraph(body, line, style=style, align=align)
 
     section = ElementTree.SubElement(body, _qname(_W_NS, "sectPr"))
     ElementTree.SubElement(
