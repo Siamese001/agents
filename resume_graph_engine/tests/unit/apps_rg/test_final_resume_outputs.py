@@ -220,6 +220,8 @@ def test_final_resume_docx_ecma376_ppr_order_and_python_docx_load(tmp_path: Path
     doc = docx.Document(str(docx_path))
     assert len(doc.paragraphs) >= 10
     assert doc.paragraphs[0].text == "Amit Ayer"
+    assert doc.paragraphs[2].style.name == "Role Header"
+    assert doc.paragraphs[2].alignment == docx.enum.text.WD_ALIGN_PARAGRAPH.CENTER
 
     order_rank = {"pStyle": 1, "keepNext": 2, "pBdr": 3, "spacing": 4, "ind": 5, "jc": 6}
     with zipfile.ZipFile(docx_path) as zf:
@@ -247,4 +249,34 @@ def test_final_resume_docx_ecma376_ppr_order_and_python_docx_load(tmp_path: Path
                     if child.tag.split("}")[-1] in order_rank
                 ]
                 assert child_ranks == sorted(child_ranks), f"Out-of-order <w:pPr> children in {xml_part}: {child_ranks}"
+
+
+def test_cross_section_x2_locked_copy_escaped_em_dash_and_self_collision(tmp_path: Path) -> None:
+    from apps_rg.runtime.aggregation.cross_section_x2 import build_overlap_artifacts, run_cross_section_x2_gates
+
+    blob = _final_resume_blob()
+    # Add identical claim_ledger and bullets in slalom_bullets to verify zero intra-section self-collision
+    for sec in blob["sections"]:
+        if sec.get("section_id") == "slalom_bullets":
+            sec["l2_output_snapshot"]["claim_ledger"] = [
+                {"claim_text": "Generated Slalom bullet.", "source_fact_ids": ["bul_slalom_001"]}
+            ]
+            sec["l2_output_snapshot"]["bullets"] = [
+                {"bullet_id": "b1", "bullet_text": "Generated Slalom bullet.", "source_fact_ids": ["bul_slalom_001"]}
+            ]
+        elif sec.get("section_id") == "early_career":
+            # Default json.dumps escapes \u2014 as \\u2014
+            sec["copied_text_exact"] = json.dumps(
+                {"role_narrative": "Base early career narrative.", "bullets": [{"text": "Base early bullet \u2014 my work."}]}
+            )
+
+    _, removed, _, decisions = build_overlap_artifacts(final_resume_blob=blob, sealed_index={}, repo=tmp_path)
+    assert removed == []
+    assert decisions == []
+
+    gates, *_ = run_cross_section_x2_gates(repo=tmp_path, final_resume_blob=blob, fingerprint={}, sealed_index={})
+    em_gate = next(g for g in gates if g.gate_id == "x2_cross_section_no_em_dash")
+    assert em_gate.verdict == "FAIL"
+    assert em_gate.decisive_reason == "em dash and first-person pronoun present in assembled corpus"
+
 
