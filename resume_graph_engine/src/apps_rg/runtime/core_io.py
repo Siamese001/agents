@@ -82,6 +82,10 @@ class _AppsRgWriteGateway:
             with os.fdopen(handle, "w", encoding=encoding, newline="\n") as stream:
                 stream.write(serialized)
             os.replace(temporary, target)
+            try:
+                os.chmod(target, 0o644)
+            except OSError:
+                pass
         except BaseException:
             Path(temporary).unlink(missing_ok=True)
             raise

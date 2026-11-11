@@ -62,28 +62,24 @@ def _load_json(path: Path) -> dict[str, Any] | None:
 
 
 def discover_integrated_cli_run_from_path(repo_root: Path, path: Path) -> Path | None:
-    """Resolve ``artifacts/apps_rg/runs/cli_*`` ancestor of a modular lane run dir."""
-    resolved = path.resolve()
-    runs_root = (repo_root / "artifacts" / "apps_rg" / "runs").resolve()
+    """Resolve ``artifacts/apps_rg/runs/cli_*`` or ``runtime_proofs/full_resume_*`` ancestor."""
+    resolved, runs_root = path.resolve(), (repo_root / "artifacts" / "apps_rg" / "runs").resolve()
+    proofs_root = (repo_root / "artifacts" / "apps_rg" / "runtime_proofs").resolve()
     for parent in [resolved, *resolved.parents]:
-        if not parent.is_dir() or not parent.name.startswith("cli_"):
-            continue
         try:
-            if parent.parent.resolve() == runs_root:
+            if parent.is_dir() and (
+                (parent.name.startswith("cli_") and parent.parent.resolve() == runs_root)
+                or (parent.name.startswith("full_resume_") and parent.parent.resolve() == proofs_root)
+            ):
                 return parent
         except (OSError, ValueError):
             continue
     return None
 
 
-def discover_integrated_cli_run_by_ancestor(
-    repo_root: Path,
-    artifact_dir: Path,
-) -> tuple[Path | None, str | None]:
+def discover_integrated_cli_run_by_ancestor(repo_root: Path, artifact_dir: Path) -> tuple[Path | None, str | None]:
     hit = discover_integrated_cli_run_from_path(repo_root, artifact_dir)
-    if hit is not None:
-        return hit, _CORRELATION_METHOD_ANCESTOR_CLI
-    return None, None
+    return (hit, _CORRELATION_METHOD_ANCESTOR_CLI) if hit is not None else (None, None)
 
 
 def _lane_x3_from_artifact_dir(artifact_dir: Path) -> str | None:

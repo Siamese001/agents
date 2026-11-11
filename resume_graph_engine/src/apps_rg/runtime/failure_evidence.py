@@ -24,6 +24,10 @@ def atomic_write_json(path: Path, payload: Mapping[str, Any]) -> Path:
         encoding="utf-8",
     )
     os.replace(temporary, target)
+    try:
+        os.chmod(target, 0o644)
+    except OSError:
+        pass
     return target
 
 
