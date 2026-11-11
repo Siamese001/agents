@@ -35,10 +35,11 @@
       "bundle_bindings": [
         "reb_ibm_aws_modernization_architecture"
       ],
-      "claim_text": "IBM modernization work executed 16 enterprise on-prem-to-AWS migration waves across 5 Tier-1 banking clients, cutting legacy infrastructure overhead by 32%.",
+      "claim_text": "IBM modernization work executed 16 enterprise on-prem-to-AWS migration waves across 5 Tier-1 banking and insurance clients, cutting legacy infrastructure overhead by 32%.",
       "surface_tokens": [
         "16 on-prem to AWS migration waves",
         "5 Tier-1 banking clients",
+        "Tier-1 banking and insurance clients",
         "32% infrastructure overhead reduction",
         "migration waves"
       ],
@@ -60,10 +61,11 @@
       "bundle_bindings": [
         "reb_ibm_aws_modernization_architecture"
       ],
-      "claim_text": "9 reusable BCBS 239 and OCC-compliant regulated reference architectures supported 14 repeatable banking pursuits with 99.9% production uptime.",
+      "claim_text": "9 reusable BCBS 239, OCC, and insurance-compliant regulated reference architectures supported 14 repeatable financial pursuits with 99.9% production uptime.",
       "surface_tokens": [
         "9 regulated reference architectures",
         "14 banking pursuits",
+        "financial pursuits",
         "99.9% production uptime",
         "reference architecture reuse"
       ],
@@ -110,7 +112,7 @@
       "bundle_bindings": [
         "reb_ibm_cognitive_business_decision_support"
       ],
-      "claim_text": "Scenario outputs were packaged into 100% traceable business decision-support workflows across 1,200+ CCAR and Basel III scenarios, cutting reporting errors by 38% and latency by 48%.",
+      "claim_text": "100% audit lineage across 1,200+ CCAR, Basel III, and liquidity stress scenarios across 3 banking and insurance business units (cutting reporting errors by 38% and latency by 48%).",
       "surface_tokens": [
         "1,200+ stress scenarios",
         "100% scenario traceability",
@@ -182,12 +184,12 @@
       "bundle_bindings": [
         "reb_ibm_offering_accelerator_management"
       ],
-      "claim_text": "IBM offering work packaged 7 reusable cloud, data, and AI modernization accelerators across 10+ global financial institutions, driving a 24% renewal lift.",
+      "claim_text": "7 reusable cloud, Confluent Kafka, and AI solution accelerators deployed across 10+ global financial and insurance institutions (driving 24% renewal lift)",
       "surface_tokens": [
-        "7 reusable accelerator packages",
+        "7 reusable cloud, Confluent Kafka, and AI accelerators",
         "10+ global financial institutions",
-        "24% renewal lift",
-        "cloud, data, and AI modernization"
+        "financial and insurance institutions",
+        "24% renewal lift"
       ],
       "section_eligibility": [
         "ibm_bullets",
@@ -497,7 +499,7 @@
       "bundle_bindings": [
         "reb_ibm_devsecops_release_resilience"
       ],
-      "claim_text": "DevSecOps delivery work embedded 100% automated SAST, DAST, and container security release gates into regulated banking CI/CD paths, sustaining 99.9% uptime.",
+      "claim_text": "100% automated SAST, DAST, and container security release-gate scanning across regulated banking and insurance CI/CD pipelines (sustaining 99.9% production uptime)",
       "surface_tokens": [
         "100% automated security scanning",
         "99.9% production uptime",
@@ -580,14 +582,14 @@
       "employer_node_id": "employment_exp_ibm_001",
       "root_capability_node_id": "aws_modernization_architecture",
       "bundle_theme": "AWS modernization architecture from on-prem estate constraints",
-      "claim_text": "Led AWS modernization architecture for regulated financial-services workloads moving from on-prem constraints to cloud-native delivery patterns",
-      "claim_action": "Led AWS modernization architecture for regulated financial-services workloads moving from on-prem constraints to cloud-native delivery patterns",
-      "claim_scope": "IBM financial-services modernization portfolio; regulated client workloads moving from legacy on-prem platforms into AWS-centered architecture patterns.",
+      "claim_text": "Led AWS modernization architecture for regulated banking and insurance workloads moving from on-prem constraints to cloud-native delivery patterns",
+      "claim_action": "Led AWS modernization architecture for regulated banking and insurance workloads moving from on-prem constraints to cloud-native delivery patterns",
+      "claim_scope": "IBM financial-services modernization portfolio; regulated banking and insurance client workloads moving from legacy on-prem platforms into AWS-centered architecture patterns.",
       "claim_outcome": "Frame as architecture leadership: migration design, workload decomposition, and regulated cloud delivery without unapproved savings claims.",
       "support_level": "approved_by_graph_presence",
       "executive_scope_signals": [
-        "Led AWS modernization architecture for regulated financial-services workloads moving from on-prem constraints to cloud-native delivery patterns",
-        "Converted legacy platform constraints into migration-ready reference architectures and implementation sequences"
+        "Led AWS modernization architecture for regulated banking and insurance workloads moving from on-prem constraints to cloud-native delivery patterns",
+        "Converted legacy platform constraints into migration-ready reference architectures and implementation sequences across regulated institutions"
       ],
       "architecture_scope_signals": [
         "AWS landing-zone and workload migration pattern selection",
@@ -598,9 +600,14 @@
         "skill_p2_tech_aws_modernization_patterns",
         "skill_p2_tech_reference_architecture",
         "skill_sr_microservices_integration_platform",
-        "skill_sr_cloud_data_platform_engineering"
+        "skill_sr_cloud_data_platform_engineering",
+        "skill_sr_regulated_financial_institutions_fluency"
       ],
-      "linked_source_fact_ids": [],
+      "linked_source_fact_ids": [
+        "fact_data_analytics_002",
+        "fact_data_analytics_003",
+        "fact_sales_accounts_002"
+      ],
       "linked_archive_signal_ids": [
         "sig_ibm_001",
         "sig_ibm_003"
@@ -612,7 +619,7 @@
       "held_metrics": [],
       "excluded_metrics": [],
       "metric_candidates": [],
-      "operating_context": "IBM financial-services modernization portfolio; regulated client workloads moving from legacy on-prem platforms into AWS-centered architecture patterns.",
+      "operating_context": "IBM financial-services modernization portfolio; regulated banking and insurance client workloads moving from legacy on-prem platforms into AWS-centered architecture patterns.",
       "bullet_intent": "Frame as architecture leadership: migration design, workload decomposition, and regulated cloud delivery without unapproved savings claims.",
       "section_eligibility": [
         "ibm_bullets",
@@ -632,14 +639,14 @@
       "employer_node_id": "employment_exp_ibm_001",
       "root_capability_node_id": "cognitive_business_decision_support",
       "bundle_theme": "Cognitive business decision support for regulated risk and portfolio decisions",
-      "claim_text": "Translated analytics and ML-enabled decision support into executive decision workflows for regulated financial clients",
-      "claim_action": "Translated analytics and ML-enabled decision support into executive decision workflows for regulated financial clients",
-      "claim_scope": "IBM cognitive decision-support engagements for financial-services risk, finance, and portfolio operating decisions.",
+      "claim_text": "Translated analytics and ML-enabled decision support into executive decision workflows for regulated banking and insurance clients",
+      "claim_action": "Translated analytics and ML-enabled decision support into executive decision workflows for regulated banking and insurance clients",
+      "claim_scope": "IBM cognitive decision-support engagements for banking and insurance risk, actuarial/finance, and portfolio operating decisions.",
       "claim_outcome": "Frame as decision-support modernization: analytics-to-executive workflow, scenario acceleration, and governed decision visibility.",
       "support_level": "approved_by_graph_presence",
       "executive_scope_signals": [
-        "Translated analytics and ML-enabled decision support into executive decision workflows for regulated financial clients",
-        "Connected scenario analysis, risk signals, and business rules into decision-support operating models"
+        "Translated analytics and ML-enabled decision support into executive decision workflows for regulated banking and insurance clients",
+        "Connected scenario analysis, risk signals, and business rules into decision-support operating models across financial institutions"
       ],
       "architecture_scope_signals": [
         "HPC stress-test simulations for risk scenario analysis",
@@ -651,7 +658,10 @@
         "skill_sr_cloud_data_platform_engineering",
         "skill_sr_regulated_financial_institutions_fluency"
       ],
-      "linked_source_fact_ids": [],
+      "linked_source_fact_ids": [
+        "fact_quant_hpc_001",
+        "fact_data_analytics_001"
+      ],
       "linked_archive_signal_ids": [
         "sig_ibm_002",
         "sig_ibm_006"
@@ -663,7 +673,7 @@
       "held_metrics": [],
       "excluded_metrics": [],
       "metric_candidates": [],
-      "operating_context": "IBM cognitive decision-support engagements for financial-services risk, finance, and portfolio operating decisions.",
+      "operating_context": "IBM cognitive decision-support engagements for banking and insurance risk, actuarial/finance, and portfolio operating decisions.",
       "bullet_intent": "Frame as decision-support modernization: analytics-to-executive workflow, scenario acceleration, and governed decision visibility.",
       "section_eligibility": [
         "ibm_bullets",
@@ -683,7 +693,7 @@
       "bundle_theme": "Technical pre-sales solution engineering and buyer-specific architecture mapping",
       "claim_text": "Led technical discovery and solution mapping for enterprise financial-services pursuits",
       "claim_action": "Led technical discovery and solution mapping for enterprise financial-services pursuits",
-      "claim_scope": "IBM technical pre-sales role surface; partner-level solution engineering across regulated client pursuits.",
+      "claim_scope": "IBM pre-sales solution engineering and technical discovery engagements across banking and insurance enterprise accounts.",
       "claim_outcome": "Frame as commercial-technical leadership: buyer discovery, architecture mapping, and delivery-ready solution handoff with no unsupported dollar claims.",
       "support_level": "approved_by_graph_presence",
       "executive_scope_signals": [
@@ -699,7 +709,8 @@
         "skill_p2_gtm_discovery_qualification",
         "skill_p2_gtm_solution_mapping",
         "skill_p2_gtm_executive_buyer_alignment",
-        "skill_partner_pre_sales"
+        "skill_partner_pre_sales",
+        "skill_sr_regulated_financial_institutions_fluency"
       ],
       "linked_source_fact_ids": [
         "fact_revenue_ops_001",
@@ -713,7 +724,7 @@
       "held_metrics": [],
       "excluded_metrics": [],
       "metric_candidates": [],
-      "operating_context": "IBM technical pre-sales role surface; partner-level solution engineering across regulated client pursuits.",
+      "operating_context": "IBM pre-sales solution engineering and technical discovery engagements across banking and insurance enterprise accounts.",
       "bullet_intent": "Frame as commercial-technical leadership: buyer discovery, architecture mapping, and delivery-ready solution handoff with no unsupported dollar claims.",
       "section_eligibility": [
         "ibm_bullets",
@@ -732,14 +743,14 @@
       "employer_node_id": "employment_exp_ibm_001",
       "root_capability_node_id": "offering_accelerator_management",
       "bundle_theme": "Offering management and reusable accelerator packaging",
-      "claim_text": "Shaped reusable solution accelerators that packaged IBM cloud, data, and AI modernization patterns for repeatable client pursuits",
-      "claim_action": "Shaped reusable solution accelerators that packaged IBM cloud, data, and AI modernization patterns for repeatable client pursuits",
-      "claim_scope": "IBM offering and accelerator management around repeatable cloud/data/AI modernization patterns for enterprise financial clients.",
+      "claim_text": "Directed offering accelerator management, scaling repeatable cloud and AI solution blueprints across regulated financial and insurance institutions",
+      "claim_action": "Directed offering accelerator management, scaling repeatable cloud and AI solution blueprints across regulated financial and insurance institutions",
+      "claim_scope": "IBM offering accelerator portfolio anchored by repeatable cloud, Confluent Kafka, and AI assets deployed across banking and insurance client engagements.",
       "claim_outcome": "Frame as offering discipline: packaged accelerators, reusable architecture assets, and adoption-risk reduction rather than one-off delivery.",
       "support_level": "approved_by_graph_presence",
       "executive_scope_signals": [
-        "Shaped reusable solution accelerators that packaged IBM cloud, data, and AI modernization patterns for repeatable client pursuits",
-        "Managed offering content from technical pattern to demoable client-facing artifact"
+        "Directed offering accelerator management, scaling repeatable cloud and AI solution blueprints across regulated banking and insurance institutions",
+        "Packaged reusable reference architectures and migration assets into market-facing delivery accelerators"
       ],
       "architecture_scope_signals": [
         "Reusable accelerator packaging for reference architectures, demos, and implementation playbooks",
@@ -750,9 +761,14 @@
         "skill_p2_tech_demoable_accelerator",
         "skill_p2_tech_reusable_accelerators",
         "skill_p2_tech_ibm_cloud_portfolio_anchor",
-        "skill_sr_w12_industry_reference_architecture"
+        "skill_sr_w12_industry_reference_architecture",
+        "skill_sr_regulated_financial_institutions_fluency"
       ],
-      "linked_source_fact_ids": [],
+      "linked_source_fact_ids": [
+        "fact_partnerships_gtm_002",
+        "fact_sales_accounts_003",
+        "fact_data_analytics_002"
+      ],
       "linked_archive_signal_ids": [],
       "linked_metric_outcome_ids": [
         "metric_ibm_offering_accelerator_package_reuse",
@@ -761,7 +777,7 @@
       "held_metrics": [],
       "excluded_metrics": [],
       "metric_candidates": [],
-      "operating_context": "IBM offering and accelerator management around repeatable cloud/data/AI modernization patterns for enterprise financial clients.",
+      "operating_context": "IBM offering accelerator portfolio anchored by repeatable cloud, Confluent Kafka, and AI assets deployed across banking and insurance client engagements.",
       "bullet_intent": "Frame as offering discipline: packaged accelerators, reusable architecture assets, and adoption-risk reduction rather than one-off delivery.",
       "section_eligibility": [
         "ibm_bullets",
@@ -783,7 +799,7 @@
       "bundle_theme": "Revenue target execution and quota-aligned solution leadership",
       "claim_text": "Owned quota-aligned solution leadership across enterprise pursuits and client portfolio expansion motions",
       "claim_action": "Owned quota-aligned solution leadership across enterprise pursuits and client portfolio expansion motions",
-      "claim_scope": "IBM partner role with quota and revenue-target accountability for enterprise financial-services solution motions.",
+      "claim_scope": "IBM enterprise sales execution and quota governance across priority banking and insurance accounts.",
       "claim_outcome": "Frame as quota-aware technical leadership: pipeline discipline and executive deal support without inventing revenue figures.",
       "support_level": "approved_by_graph_presence",
       "executive_scope_signals": [
@@ -799,12 +815,13 @@
         "skill_partner_sales_revenue_targets",
         "skill_partner_pnl_oversight",
         "skill_partner_enterprise_negotiations",
-        "skill_p2_gtm_enterprise_deal_support"
+        "skill_p2_gtm_enterprise_deal_support",
+        "skill_sr_regulated_financial_institutions_fluency"
       ],
       "linked_source_fact_ids": [
         "fact_revenue_ops_001",
         "fact_revenue_ops_002",
-        "fact_revenue_ops_003"
+        "fact_sales_accounts_002"
       ],
       "linked_archive_signal_ids": [],
       "linked_metric_outcome_ids": [
@@ -814,7 +831,7 @@
       "held_metrics": [],
       "excluded_metrics": [],
       "metric_candidates": [],
-      "operating_context": "IBM partner role with quota and revenue-target accountability for enterprise financial-services solution motions.",
+      "operating_context": "IBM enterprise sales execution and quota governance across priority banking and insurance accounts.",
       "bullet_intent": "Frame as quota-aware technical leadership: pipeline discipline and executive deal support without inventing revenue figures.",
       "section_eligibility": [
         "ibm_bullets",
@@ -833,14 +850,14 @@
       "employer_node_id": "employment_exp_ibm_001",
       "root_capability_node_id": "nlp_ml_decision_support",
       "bundle_theme": "NLP and ML-enabled workflow support for financial-services operations",
-      "claim_text": "Applied ML-era analytics patterns to improve regulated business workflows and decision support from 2017 to 2022",
-      "claim_action": "Applied ML-era analytics patterns to improve regulated business workflows and decision support from 2017 to 2022",
-      "claim_scope": "IBM-era analytics and ML decision-support work for financial-services operating workflows; qualitative only unless future graph metrics are linked.",
+      "claim_text": "Architected NLP and ML decision-support pipelines translating unstructured regulatory and risk signals into actionable compliance workflows for banking and insurance institutions",
+      "claim_action": "Architected NLP and ML decision-support pipelines translating unstructured regulatory and risk signals into actionable compliance workflows for banking and insurance institutions",
+      "claim_scope": "IBM ML and NLP decision-support systems for regulatory compliance, risk governance, and portfolio analytics across banking and insurance institutions.",
       "claim_outcome": "Frame as applied ML decision support and workflow design, avoiding unsupported product/tool claims and unapproved metrics.",
       "support_level": "approved_by_graph_presence",
       "executive_scope_signals": [
-        "Applied ML-era analytics patterns to improve regulated business workflows and decision support from 2017 to 2022",
-        "Translated model outputs and text-heavy operational signals into reviewable business actions"
+        "Architected NLP and ML decision-support pipelines translating unstructured regulatory and risk signals into actionable compliance workflows for banking and insurance institutions",
+        "Established data lineage and model explainability governance for high-stakes risk evaluation"
       ],
       "architecture_scope_signals": [
         "ML feature and signal interpretation for financial-services workflows",
@@ -850,9 +867,14 @@
       "graph_skill_node_ids": [
         "skill_sr_cloud_data_platform_engineering",
         "skill_sr_regulated_financial_institutions_fluency",
-        "skill_p2_tech_reference_architecture"
+        "skill_p2_tech_reference_architecture",
+        "skill_sr_enterprise_portfolio_data_governance"
       ],
-      "linked_source_fact_ids": [],
+      "linked_source_fact_ids": [
+        "fact_governance_003",
+        "fact_data_analytics_001",
+        "fact_quant_hpc_001"
+      ],
       "linked_archive_signal_ids": [],
       "linked_metric_outcome_ids": [
         "metric_ibm_text_signal_to_review_queue",
@@ -861,7 +883,7 @@
       "held_metrics": [],
       "excluded_metrics": [],
       "metric_candidates": [],
-      "operating_context": "IBM-era analytics and ML decision-support work for financial-services operating workflows; qualitative only unless future graph metrics are linked.",
+      "operating_context": "IBM ML and NLP decision-support systems for regulatory compliance, risk governance, and portfolio analytics across banking and insurance institutions.",
       "bullet_intent": "Frame as applied ML decision support and workflow design, avoiding unsupported product/tool claims and unapproved metrics.",
       "section_eligibility": [
         "ibm_bullets",
@@ -881,7 +903,7 @@
       "bundle_theme": "Data warehousing, modeling, and BI decision support",
       "claim_text": "Built decision-support data models and BI views that connected modernization programs to executive operating decisions",
       "claim_action": "Built decision-support data models and BI views that connected modernization programs to executive operating decisions",
-      "claim_scope": "IBM data modeling and BI work supporting portfolio, finance, and delivery decisions for regulated financial-services clients.",
+      "claim_scope": "IBM data modeling, delivery-cost analytics, and executive BI dashboards across regulated financial and insurance transformation programs.",
       "claim_outcome": "Frame as decision-grade BI and data modeling: governed data views, portfolio transparency, and executive operating cadence.",
       "support_level": "approved_by_graph_presence",
       "executive_scope_signals": [
@@ -896,11 +918,13 @@
       "graph_skill_node_ids": [
         "skill_sr_cloud_data_platform_engineering",
         "skill_sr_enterprise_portfolio_data_governance",
-        "skill_p2_tech_reference_architecture"
+        "skill_p2_tech_reference_architecture",
+        "skill_sr_regulated_financial_institutions_fluency"
       ],
       "linked_source_fact_ids": [
         "fact_revenue_ops_004",
-        "fact_revenue_ops_005"
+        "fact_revenue_ops_005",
+        "fact_governance_003"
       ],
       "linked_archive_signal_ids": [],
       "linked_metric_outcome_ids": [
@@ -910,7 +934,7 @@
       "held_metrics": [],
       "excluded_metrics": [],
       "metric_candidates": [],
-      "operating_context": "IBM data modeling and BI work supporting portfolio, finance, and delivery decisions for regulated financial-services clients.",
+      "operating_context": "IBM data modeling, delivery-cost analytics, and executive BI dashboards across regulated financial and insurance transformation programs.",
       "bullet_intent": "Frame as decision-grade BI and data modeling: governed data views, portfolio transparency, and executive operating cadence.",
       "section_eligibility": [
         "ibm_bullets",
@@ -932,7 +956,7 @@
       "bundle_theme": "Customer success and value-realization operating cadence",
       "claim_text": "Ran client value-realization motions that connected adoption progress, stakeholder alignment, and expansion readiness",
       "claim_action": "Ran client value-realization motions that connected adoption progress, stakeholder alignment, and expansion readiness",
-      "claim_scope": "IBM customer success and value-realization motion across financial-services modernization programs.",
+      "claim_scope": "IBM customer success, post-sales value realization, and adoption-risk governance across regulated banking and insurance clients.",
       "claim_outcome": "Frame as adoption and value-realization leadership: client success cadence, risk removal, and expansion readiness without unsupported NPS or savings figures.",
       "support_level": "approved_by_graph_presence",
       "executive_scope_signals": [
@@ -948,10 +972,12 @@
         "skill_partner_customer_deal_support",
         "skill_partner_product_feedback_loops",
         "skill_p2_tech_adoption_derisking",
-        "skill_p2_gtm_presales_delivery_handoff"
+        "skill_p2_gtm_presales_delivery_handoff",
+        "skill_sr_regulated_financial_institutions_fluency"
       ],
       "linked_source_fact_ids": [
-        "fact_revenue_ops_004"
+        "fact_revenue_ops_004",
+        "fact_data_analytics_001"
       ],
       "linked_archive_signal_ids": [],
       "linked_metric_outcome_ids": [
@@ -961,7 +987,7 @@
       "held_metrics": [],
       "excluded_metrics": [],
       "metric_candidates": [],
-      "operating_context": "IBM customer success and value-realization motion across financial-services modernization programs.",
+      "operating_context": "IBM customer success, post-sales value realization, and adoption-risk governance across regulated banking and insurance clients.",
       "bullet_intent": "Frame as adoption and value-realization leadership: client success cadence, risk removal, and expansion readiness without unsupported NPS or savings figures.",
       "section_eligibility": [
         "ibm_bullets",
@@ -982,7 +1008,7 @@
       "bundle_theme": "AWS partnership, alliance co-sell, and joint GTM execution",
       "claim_text": "Led IBM-AWS alliance co-sell motions for financial-services modernization opportunities",
       "claim_action": "Led IBM-AWS alliance co-sell motions for financial-services modernization opportunities",
-      "claim_scope": "IBM-AWS financial-services alliance and co-sell motion across cloud and AI modernization opportunities.",
+      "claim_scope": "IBM-AWS strategic alliance and joint co-sell GTM across regulated financial and insurance accounts.",
       "claim_outcome": "Frame as alliance GTM leadership: joint planning, solution architecture, co-sell execution, and 20% joint revenue growth only when the metric outcome ID is selected.",
       "support_level": "approved_by_graph_presence",
       "executive_scope_signals": [
@@ -1006,10 +1032,12 @@
         "skill_partner_cloud_vendor_joint_gtm",
         "skill_partner_hyperscaler_cosell",
         "skill_partner_joint_solution_development",
-        "skill_partner_alliance_gtm_execution"
+        "skill_partner_alliance_gtm_execution",
+        "skill_sr_regulated_financial_institutions_fluency"
       ],
       "linked_source_fact_ids": [
-        "fact_partnerships_gtm_002"
+        "fact_partnerships_gtm_002",
+        "fact_sales_accounts_002"
       ],
       "linked_archive_signal_ids": [
         "sig_ibm_009",
@@ -1023,7 +1051,7 @@
       "held_metrics": [],
       "excluded_metrics": [],
       "metric_candidates": [],
-      "operating_context": "IBM-AWS financial-services alliance and co-sell motion across cloud and AI modernization opportunities.",
+      "operating_context": "IBM-AWS strategic alliance and joint co-sell GTM across regulated financial and insurance accounts.",
       "bullet_intent": "Frame as alliance GTM leadership: joint planning, solution architecture, co-sell execution, and 20% joint revenue growth only when the metric outcome ID is selected.",
       "section_eligibility": [
         "ibm_bullets",
@@ -1044,14 +1072,14 @@
       "employer_node_id": "employment_exp_ibm_001",
       "root_capability_node_id": "devsecops_release_resilience",
       "bundle_theme": "DevSecOps release resilience and governed delivery automation",
-      "claim_text": "Embedded release automation and security scanning into regulated modernization delivery paths",
-      "claim_action": "Embedded release automation and security scanning into regulated modernization delivery paths",
-      "claim_scope": "IBM regulated delivery programs requiring release governance, security scanning, and deployment repeatability.",
+      "claim_text": "Engineered DevSecOps release resilience frameworks, establishing automated security scanning and deployment blueprints across regulated hybrid-cloud workloads",
+      "claim_action": "Engineered DevSecOps release resilience frameworks, establishing automated security scanning and deployment blueprints across regulated hybrid-cloud workloads",
+      "claim_scope": "IBM DevSecOps pipeline blueprints and release automation frameworks for regulated banking and insurance platforms.",
       "claim_outcome": "Frame as delivery resilience: pipeline automation and security controls, qualitative unless future graph metrics are linked.",
       "support_level": "approved_by_graph_presence",
       "executive_scope_signals": [
-        "Embedded release automation and security scanning into regulated modernization delivery paths",
-        "Improved delivery resilience through pipeline controls, code scanning, and repeatable deployment gates"
+        "Engineered DevSecOps release resilience frameworks, establishing automated security scanning and deployment blueprints across regulated hybrid-cloud workloads",
+        "Integrated release-gate compliance policies and container governance across multi-tenant enterprise platforms"
       ],
       "architecture_scope_signals": [
         "Automated release pipelines for containerized workloads",
@@ -1061,9 +1089,13 @@
       "graph_skill_node_ids": [
         "skill_ibm_devsecops_pipeline_security",
         "skill_ibm_automated_release_pipelines",
-        "skill_p2_tech_devops_pipeline_blueprint"
+        "skill_p2_tech_devops_pipeline_blueprint",
+        "skill_sr_regulated_financial_institutions_fluency"
       ],
-      "linked_source_fact_ids": [],
+      "linked_source_fact_ids": [
+        "fact_data_analytics_003",
+        "fact_data_analytics_002"
+      ],
       "linked_archive_signal_ids": [
         "sig_ibm_003",
         "sig_ibm_004"
@@ -1075,7 +1107,7 @@
       "held_metrics": [],
       "excluded_metrics": [],
       "metric_candidates": [],
-      "operating_context": "IBM regulated delivery programs requiring release governance, security scanning, and deployment repeatability.",
+      "operating_context": "IBM DevSecOps pipeline blueprints and release automation frameworks for regulated banking and insurance platforms.",
       "bullet_intent": "Frame as delivery resilience: pipeline automation and security controls, qualitative unless future graph metrics are linked.",
       "section_eligibility": [
         "ibm_bullets",

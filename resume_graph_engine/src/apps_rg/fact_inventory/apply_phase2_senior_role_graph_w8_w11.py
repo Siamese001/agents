@@ -416,15 +416,13 @@ SENIOR_ROLE_W811_MATRIX: list[dict[str, Any]] = [
         "target_pillar": P_BANK_AI,
         "career_epoch": "epoch_enterprise_risk_governance",
         "source_resume_file": "Amit Ayer Resume - Strategic Account Executive.txt",
-        "source_evidence": (
-            "Regulatory IT transformations for top banks and insurers with Basel and CCAR compliance emphasis."
-        ),
+        "source_evidence": "Regulatory IT transformations for top banks and insurers with Basel and CCAR compliance emphasis.",
         "support_status": "DIRECT_FROM_RESUME_ARCHIVE",
-        "allowed_phrases": ["financial institutions", "Basel", "CCAR", "regulatory IT"],
-        "role_relevance": ["BANKING_PLATFORM_AI", "REGULATED_AI_GOVERNANCE"],
-        "where_to_use": ["competencies", "ibm_narrative"],
-        "risk_notes": "Broad regulated-enterprise fluency — not payments/liquidity/trade claims.",
-        "linked_fact_id": None,
+        "allowed_phrases": ["financial institutions", "Basel", "CCAR", "regulatory IT", "insurers", "insurance carriers", "regulated financial and insurance institutions"],
+        "role_relevance": ["BANKING_PLATFORM_AI", "REGULATED_AI_GOVERNANCE", "INSURANCE_CARRIER_TRANSFORMATION"],
+        "where_to_use": ["competencies", "ibm_narrative", "ibm_bullets"],
+        "risk_notes": "Broad regulated-enterprise fluency across banking and insurance — not payments/liquidity/trade claims.",
+        "linked_fact_id": "fact_governance_003",
         "evidence_confidence": "HIGH",
     },
     {

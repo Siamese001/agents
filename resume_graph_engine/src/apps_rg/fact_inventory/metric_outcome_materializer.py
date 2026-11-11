@@ -36,6 +36,7 @@ from typing import Any
 
 from apps_rg.fact_inventory.skills_graph.topology import (
     FACT_TO_EMPLOYMENT_MAP,
+    fact_supports_employment,
     normalize_employment_id,
     normalize_section_id,
 )
@@ -428,8 +429,7 @@ def metric_outcome_node_and_edge_rows(
                 if not mid_s or mid_s not in rows:
                     continue
                 for fid_s in resolved_fids:
-                    fact_emp = FACT_TO_EMPLOYMENT_MAP.get(fid_s)
-                    if fact_emp and bundle_emp and fact_emp != bundle_emp:
+                    if bundle_emp and not fact_supports_employment(fid_s, bundle_emp):
                         continue
                     is_bullet = fid_s.startswith("bul_")
                     et = "locked_bullet_has_metric_outcome" if is_bullet else "fact_has_metric_outcome"
@@ -473,7 +473,7 @@ def metric_outcome_node_and_edge_rows(
                         for fid in resolved_fids
                         if str(fid).strip()
                         and (sid_s, str(fid).strip()) in skill_fact_pairs
-                        and (not FACT_TO_EMPLOYMENT_MAP.get(str(fid).strip()) or not bundle_emp or FACT_TO_EMPLOYMENT_MAP.get(str(fid).strip()) == bundle_emp)
+                        and (not bundle_emp or fact_supports_employment(str(fid).strip(), bundle_emp))
                     ]
                     if not connecting_facts:
                         # Drop unproven bundle co-occurrence edges per Wave 2 HITL decision

@@ -98,6 +98,7 @@ FACT_TO_EMPLOYMENT_MAP: dict[str, str] = {
     "fact_insurtech_aws_001": "employment_exp_insurtech_001",
     # IBM
     "fact_data_analytics_001": "employment_exp_ibm_001",
+    "fact_data_analytics_002": "employment_exp_ibm_001",
     "fact_data_analytics_003": "employment_exp_ibm_001",
     "fact_governance_003": "employment_exp_ibm_001",
     "fact_partnerships_gtm_002": "employment_exp_ibm_001",
@@ -145,6 +146,30 @@ FACT_TO_EMPLOYMENT_MAP: dict[str, str] = {
     "fact_slalom_011": "employment_exp_slalom_001",
     "fact_slalom_012": "employment_exp_slalom_001",
 }
+
+MULTI_EMPLOYMENT_FACTS_MAP: dict[str, set[str]] = {
+    "fact_consulting_001": {"employment_exp_ey_001", "employment_exp_ibm_001"},
+    "fact_governance_003": {"employment_exp_ey_001", "employment_exp_ibm_001"},
+    "fact_solutions_002": {
+        "employment_exp_ibm_001",
+        "employment_exp_ey_001",
+        "employment_exp_unify_001",
+    },
+    "fact_partnerships_gtm_003": {"employment_exp_ibm_001", "employment_exp_unify_001"},
+    "fact_quant_hpc_004": {"employment_exp_ey_001", "employment_exp_unify_001"},
+    "fact_governance_005": {"employment_exp_unify_001"},
+}
+
+
+def fact_supports_employment(fid: str, emp_id: str) -> bool:
+    """Check if a fact supports an employment tenure, accounting for multi-employer facts."""
+    if not emp_id or not fid:
+        return True
+    multi = MULTI_EMPLOYMENT_FACTS_MAP.get(fid)
+    if multi is not None:
+        return emp_id in multi
+    mapped = FACT_TO_EMPLOYMENT_MAP.get(fid)
+    return not mapped or mapped == emp_id
 
 
 def normalize_employment_id(raw_id: str) -> str:
@@ -199,6 +224,8 @@ __all__ = [
     "CANONICAL_EMPLOYMENT_EPOCHS",
     "EMPLOYMENT_DATES_AND_TITLES",
     "FACT_TO_EMPLOYMENT_MAP",
+    "MULTI_EMPLOYMENT_FACTS_MAP",
+    "fact_supports_employment",
     "normalize_employment_id",
     "normalize_section_id",
     "split_polymorphic_edge",
