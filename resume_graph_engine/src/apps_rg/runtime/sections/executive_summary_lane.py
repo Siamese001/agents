@@ -121,15 +121,7 @@ def _reconcile_final_plan_c03_allowlist(
     proof_pool_digest: str,
     jd_text: str,
 ) -> dict[str, Any]:
-    """Reconcile the early graph-targeting view with the sealed final plan.
-
-    C0 may inspect a wider, non-claimable graph neighborhood before the
-    whole-resume allocator seals this section's finite fact set.  Once that
-    allocation exists, the lane must carry forward only its claimable C0.3
-    evidence while retaining the wider neighborhood exclusively as recorded
-    targeting context.  The returned filter receipt is later checked by X2;
-    it is not an allowlist expansion or a fallback.
-    """
+    """Reconcile the early graph-targeting view with the sealed final plan."""
 
     c03 = proof_pool_metadata.get("c03_graphrag_bound")
     if not isinstance(c03, dict):
@@ -585,11 +577,12 @@ def coerce_resume_display_sentence_count_band(resume: str) -> str:
     text = re.sub(r"([.!?])\1+", r"\1", text)
 
     sentences = [s for s in split_sentences(text) if str(s).strip()]
-    if len(sentences) != _EXEC_SUMMARY_TARGET_SENTENCES - 1:
-        # Only handle the dominant 5->6 case deterministically; leave others to X2.
+    if 4 <= len(sentences) <= _EXEC_SUMMARY_TARGET_SENTENCES:
+        return join_executive_summary_sentences(sentences)
+    if len(sentences) != 3:
         return join_executive_summary_sentences(sentences) if sentences else text
 
-    # 2. Split the longest sentence that has a safe internal boundary.
+    # 2. When 3 sentences are present, split the longest sentence that has a safe internal boundary to reach 4.
     order = sorted(range(len(sentences)), key=lambda i: len(sentences[i]), reverse=True)
     for i in order:
         split = _split_compound_sentence(sentences[i])
@@ -655,7 +648,7 @@ def _repair_speculative_exec_summary_capstone(
     )
 
     sentences = [str(value).strip() for value in split_sentences(resume)]
-    if len(sentences) != _EXEC_SUMMARY_TARGET_SENTENCES:
+    if not (4 <= len(sentences) <= _EXEC_SUMMARY_TARGET_SENTENCES):
         return resume
     repaired = re.sub(
         r"\bcan\s+guide\s+future\s+",

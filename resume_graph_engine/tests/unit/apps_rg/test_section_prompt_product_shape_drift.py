@@ -183,5 +183,5 @@ def test_compiled_prompt_includes_product_shape_block() -> None:
     content = str(out.artifact.messages[-1]["content"])
     assert "PRODUCT_SHAPE" in content
     assert "INPUT_AUTHORITY" in content
-    assert re.search(r"exactly\s+6|6\s+sentences", content, re.IGNORECASE)
-    assert not re.search(r"4\s*[-–]\s*5\s+dense", content, re.IGNORECASE)
+    assert re.search(r"4\s*[-–to]+\s*6|exactly\s+6|6\s+sentences", content, re.IGNORECASE)
+    assert not re.search(r"2\s*[-–]\s*3\s+dense\s+sentences\s+by\s+default", content, re.IGNORECASE)

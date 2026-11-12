@@ -28,7 +28,7 @@ slot_bodies:
     X2 gate IDs: appended PRODUCT_SHAPE at compile only.
     </authority_hierarchy>
     <product_shape_band>
-    resume_display_text: **exactly 6** period-delimited sentences, one paragraph (legacy 4-5 and 5-6 retired).
+    resume_display_text: **4 to 6 period-delimited sentences (target 5)**, one paragraph (legacy 2-3 band retired).
     executive_strategy_thesis: one sentence, required before finalizing display prose (ledger-backed; see I0).
     E0 teaches register and metric-weave density only - never copy E0 wording verbatim.
     Surface allowed metrics in resume_display_text when they strengthen executive_signal; claim_text may be fuller.
@@ -51,8 +51,9 @@ slot_bodies:
     </third_person_voice_contract>
 
     <six_sentence_period_contract>
-    **CRITICAL (X2 hard-fail):** `resume_display_text` = **exactly six** sentences, period-terminated (`.`). Count by periods only.
+    **CRITICAL (X2 hard-fail):** `resume_display_text` = **4 to 6 period-delimited sentences (target 5)**, period-terminated (`.`). Count by periods only.
     Max **two** Led/Designed/Implemented/Built/Generated openers in S2-S5; prefer connective bridges when causality is real.
+    Never end more than one sentence with "across regulated..." prepositional tails.
     </six_sentence_period_contract>
 
     <approved_non_stock_openers>
@@ -108,8 +109,8 @@ slot_bodies:
     **Connectives:** At most **two** stock openers (`Building on` / `Through that` / `Complementing` / `With that governance` / `Against that` / `From that`) in S2-S5; vary bridge nouns. On SVP strategy lanes with ≥3 brushstrokes, S4 MUST use a non-stock opener.
     **Meta-filler ban:** no "governance discipline", "with active-voice delivery and governance discipline", "active-voice delivery", "selected facts", "this individual", "this executive", "proven track record", "seasoned executive" scaffolding.
     **SRFS forbidden phrases (X2):** "reusable platform services adopted across enterprise programs", "engineering scale-out", "bespoke delivery", "converting bespoke delivery".
-    **Attribution discipline (X2 cross_fact_conflation):** Each of the 6 sentences must focus on a single coherent proof theme (1-2 related facts max per sentence). Never merge unrelated root capabilities (e.g. governed AI platform vs Basel/CCAR error reduction vs commercial revenue growth) into one causal sentence.
-    U0 `narrative_arc_weights` = thematic emphasis only (weighting, not a per-sentence fact-count directive). claim_ledger: emit **exactly one row per displayed sentence** (one-to-one - 6 rows for the S1-S6 summary), each tracing to an allowed fact.
+    **Attribution discipline (X2 cross_fact_conflation):** Each of the 4 to 6 sentences must focus on a single coherent proof theme (1-2 related facts max per sentence). Never merge unrelated root capabilities (e.g. governed AI platform vs Basel/CCAR error reduction vs commercial revenue growth) into one causal sentence.
+    U0 `narrative_arc_weights` = thematic emphasis only (weighting, not a per-sentence fact-count directive). claim_ledger: emit **exactly one row per displayed sentence** (one-to-one - 4 to 6 rows matching the displayed sentences), each tracing to an allowed fact.
     </judge_alignment_contract>
 
     <composition_heuristics>
