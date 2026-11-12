@@ -301,7 +301,7 @@ VISIBLE_GRAPH_SURFACE_TERM_OVERRIDES: dict[str, tuple[str, ...]] = {
     ),
     "ccb_distributed_systems_engineering": (
         "regulated cloud-native data architecture reference patterns",
-        "event-driven microservices platform for distributed ecosystems",
+        "event-driven microservices architecture for distributed ecosystems",
         "enterprise lakehouse platform modernization for decision intelligence",
     ),
     "ccb_engineering_leadership": ("enterprise operating model for governed agentic delivery", "executive investment decision governance for portfolio scale", "engineering organization scale-out for enterprise delivery"),
