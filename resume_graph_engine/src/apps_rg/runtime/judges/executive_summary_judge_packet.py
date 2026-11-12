@@ -59,7 +59,7 @@ Mandatory rules:
 """.strip()
 
 SRFS_GRADE_ONLY_RUBRIC = f"""
-Rubric dimensions (SRFS executive summary — product shape **exactly 6 sentences**, one paragraph, max {EXEC_SUMMARY_MAX_WORDS} words):
+Rubric dimensions (SRFS executive summary — product shape **4 to 6 sentences (target 5)**, one paragraph, max {EXEC_SUMMARY_MAX_WORDS} words):
 1. factual_support: claims supported by allowed_fact_packet and candidate claim_ledger source_fact_ids.
 2. executive_signal: SVP-level platform/governance/partner-motion synthesis, not bullet stacks.
 3. resume_voice: credible third-person executive prose; penalize recruiter filler, backward-looking past-title stacks ("former CTO", "former SVP", "Big-4 Principal", "past principal", "past CTO"), "this individual", "Additionally/Furthermore" chains, generic AI-company prose, and anything that would fail a Head of Talent Acquisition screen.
@@ -68,14 +68,14 @@ Rubric dimensions (SRFS executive summary — product shape **exactly 6 sentence
    Penalize off-domain banking or insurance clutter (`BCBS 239`, `monolithic policy administration`, `ERM operating models`) on non-financial JDs with `decisive_failure: true` and `score <= 3.4`.
 5. anti_overfit: no unsupported metrics/credentials; no target company as candidate experience; no repeated metric inventory
    or company-name mirroring; no AI-authenticity dead giveaways such as em dashes, buzzword soup, or template phrasing.
-6. synthesis_quality: **exactly six** integrated sentences with optional composition themes (identity, platform/governance,
-   partner motion, adoption motion, outcomes, implied credibility). **Not** a fixed S1–S5 slot checklist. Fewer than six sentences
+6. synthesis_quality: **4 to 6** integrated sentences (target 5) with optional composition themes (identity, platform/governance,
+   partner motion, adoption motion, outcomes, implied credibility). **Not** a fixed S1–S5 slot checklist. Fewer than four sentences
    is a decisive failure (aligned with x2_exec_summary_sentence_count_6). **Concise alone is insufficient** when
    evidence_utilization lists unused high-confidence facts, repeated metric surfaces recur across sentences, or prose reads as stacked bullets.
    Credential facts are **optional** — omit vendor cert inventories (AWS/Databricks/Associate-level labels); one FSA rigor weave is allowed
    when X2 passes (C0.3 phase-1, not a cert dump). Penalize AWS+FSA stacks or certification laundry lists. For SVP IT strategy targets,
    penalize metric-inventory S3–S5 and reward connective emphasis on enterprise architecture, partner ecosystems, adoption motion, and
-   multi-year IT strategy (JD targeting only — never JD-as-proof). Sentence 6 must integrate the arc, not recap prior sentences thinly.
+   multi-year IT strategy (JD targeting only — never JD-as-proof). The closing sentence must integrate the arc, not recap prior sentences thinly.
    Keep the cadence human enough to pass a Head of Talent Acquisition screen without machine-generated tells.
 7. evidence_utilization: penalize under-use of allowed_fact_packet when unused_fact_ids is non-empty and synthesis is thin; reward
    distinct evidence themes instead of reusing the same proof surface repeatedly.
@@ -133,8 +133,8 @@ Rubric dimensions (graph-only C0.3 augmented skills graph authority, non-SRFS la
    **`display_override_text` content is NOT an unsupported credential/metric — it is X2-authorized
    substrate. Do not cite override phrases (e.g. "FSA-chartered", "informing data governance and AI
    strategy at scale") as anti_overfit violations.**
-6. synthesis_quality: **exactly six** integrated sentences (X2 band); reward connective SVP IT strategy emphasis when
-   ledger-backed; penalize thin recap S6, repeated metric surfaces, and bullet-stacked prose. **Do not** soft-penalize
+6. synthesis_quality: **4 to 6** integrated sentences (target 5, X2 band); reward connective SVP IT strategy emphasis when
+   ledger-backed; penalize thin recap closers, repeated metric surfaces, and bullet-stacked prose. **Do not** soft-penalize
    credential/metric inventory, unused_fact_ids weave targets, or mechanism dumps when the mapped deterministic gate shows `"pass": true`.
    Keep the cadence human enough to pass a Head of Talent Acquisition screen without machine-generated tells.
 7. evidence_utilization: when `x2_exec_summary_evidence_utilization` is `"pass": true`, unused_fact_ids are optional weave
@@ -412,7 +412,7 @@ def build_deterministic_gate_summary(
         },
         "product_shape_note": {
             "pass": True,
-            "detail": "exactly 6 sentences; composition heuristics; no mandatory S1-S5 arc",
+            "detail": "4 to 6 sentences (target 5); composition heuristics; no mandatory S1-S5 arc",
         },
     }
 

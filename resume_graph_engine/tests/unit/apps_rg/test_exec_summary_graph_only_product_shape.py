@@ -7,6 +7,7 @@ from apps_rg.runtime.sections.exec_summary_graph_only_quality import (
 )
 from apps_rg.runtime.validators.executive_summary_sentence_utils import split_sentences
 from apps_rg.runtime.validators.executive_summary_x2 import (
+    EXEC_SUMMARY_MAX_SENTENCES,
     EXEC_SUMMARY_MIN_SENTENCES,
     check_exec_summary_paragraph_max_words,
     check_exec_summary_sentence_count_6,
@@ -47,7 +48,7 @@ def _plan_facts() -> list[dict]:
 def test_graph_only_builds_six_sentences_and_passes_x2() -> None:
     allowed = {f["fact_id"] for f in _plan_facts()}
     resume, ledger = build_graph_only_executive_summary_from_facts(_plan_facts(), allowed)
-    assert len(split_sentences(resume)) == EXEC_SUMMARY_MIN_SENTENCES
+    assert EXEC_SUMMARY_MIN_SENTENCES <= len(split_sentences(resume)) <= EXEC_SUMMARY_MAX_SENTENCES
     assert check_exec_summary_sentence_count_6(resume)[0] is True
     assert check_exec_summary_paragraph_max_words(resume)[0] is True
     assert len(ledger) >= 1

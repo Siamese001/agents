@@ -34,7 +34,7 @@ def test_executive_summary_template_rejects_legacy_2_3_default_band():
     raw = TEMPLATE.read_text(encoding="utf-8")
     for pat in _LEGACY_DEFAULT_PATTERNS:
         assert pat.search(raw) is None, f"legacy 2-3 default still present: {pat.pattern}"
-    assert "exactly 6" in raw.lower() or "6 period-delimited" in raw.lower()
+    assert "4 to 6" in raw.lower() or "exactly 6" in raw.lower() or "6 period-delimited" in raw.lower()
     assert "legacy" in raw.lower()
 
 
@@ -97,7 +97,11 @@ def test_lane_registry_exec_summary_critical_gates_include_proof_flags():
         ),
         (
             "One. Two. Three. Four. Five.",
-            False,
+            True,
+        ),
+        (
+            "One. Two. Three. Four.",
+            True,
         ),
         (
             "One. Two.",

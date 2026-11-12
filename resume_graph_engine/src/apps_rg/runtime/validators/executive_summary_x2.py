@@ -13,7 +13,8 @@ from apps_rg.runtime.section_judge_policy import REQUIRED_JUDGE_PROVIDER_KEYS
 from apps_rg.runtime.section_model_limits import resolve_section_generation_model
 from apps_rg.runtime.validators.executive_summary_sentence_utils import split_sentences
 
-EXEC_SUMMARY_MIN_SENTENCES = 6
+EXEC_SUMMARY_MIN_SENTENCES = 4
+EXEC_SUMMARY_TARGET_SENTENCES = 5
 EXEC_SUMMARY_MAX_SENTENCES = 6
 EXEC_SUMMARY_MAX_WORDS = 150
 EXEC_SUMMARY_MAX_WORDS_PER_SENTENCE = 45
@@ -744,10 +745,10 @@ def check_exec_summary_partner_narrative_continuity(
 
 
 def check_exec_summary_speculative_capstone(text: str) -> tuple[bool, str | None]:
-    """Reject cover-letter-style future speculation in the six-sentence capstone."""
+    """Reject cover-letter-style future speculation in the 4-6 sentence capstone."""
 
     sentences = split_sentences(text)
-    if len(sentences) != EXEC_SUMMARY_MAX_SENTENCES:
+    if not (EXEC_SUMMARY_MIN_SENTENCES <= len(sentences) <= EXEC_SUMMARY_MAX_SENTENCES):
         return True, None
     s6 = sentences[-1].casefold()
     if re.search(r"\bcan\s+guide\s+future\b|\bguide\s+future\s+partner\b", s6):
@@ -1679,14 +1680,14 @@ def check_raw_json_no_selected_fact_plan_echo(raw_output: str | None) -> tuple[b
 
 
 def check_exec_summary_sentence_count_6(resume_display_text: str) -> tuple[bool, str | None]:
-    """Single product shape: exactly six polished sentences."""
+    """Single product shape: 4 to 6 polished sentences (target 5)."""
     sentences = [s for s in split_sentences(resume_display_text) if str(s).strip()]
     n = len(sentences)
-    if n != EXEC_SUMMARY_MIN_SENTENCES:
+    if not (EXEC_SUMMARY_MIN_SENTENCES <= n <= EXEC_SUMMARY_MAX_SENTENCES):
         return (
             False,
-            f"resume_display_text must have exactly {EXEC_SUMMARY_MIN_SENTENCES} sentences; found {n} "
-            "(legacy 4–5 and 5–6 bands retired)",
+            f"resume_display_text must have {EXEC_SUMMARY_MIN_SENTENCES}–{EXEC_SUMMARY_MAX_SENTENCES} sentences; found {n} "
+            "(legacy 2–3 band retired)",
         )
     return True, None
 

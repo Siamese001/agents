@@ -103,8 +103,10 @@ def test_sentence_count_6_pass_and_legacy_bands_fail():
     assert check_exec_summary_sentence_count_6(good)[0] is True
     legacy = "One sentence here. Two sentences here."
     assert check_exec_summary_sentence_count_6(legacy)[0] is False
-    five_only = _six_good_sentences().rsplit(". ", 1)[0] + "."
-    assert check_exec_summary_sentence_count_6(five_only)[0] is False
+    five_sents = _six_good_sentences().rsplit(". ", 1)[0] + "."
+    assert check_exec_summary_sentence_count_6(five_sents)[0] is True
+    four_sents = " ".join([f"Sentence {i} states executive platform value." for i in range(4)])
+    assert check_exec_summary_sentence_count_6(four_sents)[0] is True
     six = " ".join([f"Sentence {i} states executive platform value." for i in range(6)])
     assert check_exec_summary_sentence_count_6(six)[0] is True
     seven = " ".join([f"Sentence {i} states executive platform value." for i in range(7)])

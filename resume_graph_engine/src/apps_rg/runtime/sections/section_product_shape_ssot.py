@@ -53,32 +53,9 @@ JD_ALIGNMENT_PROOF_FIELDS: tuple[str, ...] = (
     "companion_used_as_proof",
 )
 
-# ---------------------------------------------------------------------------
-# SECTION_CONSTRAINTS — the per-lane numeric SSOT (W1, plan
-# prompt-gate-ssot-consolidation-e7c9a2). Every value below REFERENCES a
-# canonical constant imported above — NO re-typed magic numbers:
-#   executive_summary -> executive_summary_x2 (EXEC_SUMMARY_*)
-#   headline / narrative -> declared in this module (HEADLINE_* / NARRATIVE_*)
-#   competencies -> competencies_rigor (category/items) + competencies_quality_x2 (generic terms)
-#   *_bullets -> employment_bullet_pool (FINAL_BULLET_COUNT / SC_PATH_COUNT_BY_LANE)
-# This is the single structure the prompt generator (W3) and the numeric-equality
-# drift gate (W4) iterate; `test_section_constraints_ssot` asserts each value still
-# equals its owner constant and that every GENERATED_LANE is covered.
-# ---------------------------------------------------------------------------
-_BULLET_LANES: tuple[str, ...] = (
-    "slalom_bullets",
-    "unify_bullets",
-    "ibm_bullets",
-    "insurtech_bullets",
-    "ey_bullets",
-)
-_NARRATIVE_LANES: tuple[str, ...] = (
-    "slalom_narrative",
-    "unify_narrative",
-    "ibm_narrative",
-    "insurtech_narrative",
-    "ey_narrative",
-)
+# SECTION_CONSTRAINTS — per-lane numeric SSOT referencing canonical constants imported above.
+_BULLET_LANES: tuple[str, ...] = ("slalom_bullets", "unify_bullets", "ibm_bullets", "insurtech_bullets", "ey_bullets")
+_NARRATIVE_LANES: tuple[str, ...] = ("slalom_narrative", "unify_narrative", "ibm_narrative", "insurtech_narrative", "ey_narrative")
 
 SECTION_CONSTRAINTS: dict[str, dict[str, int]] = {
     "executive_summary": {
@@ -143,8 +120,6 @@ FORBIDDEN_LEGACY_EXEC_SUMMARY: tuple[str, ...] = (
     r"section budget explicitly allows",
     r"95-160 words",
     r"hard minimum 95",
-    r"4\s*[-–]\s*5\s+sentences",
-    r"4 or 5 sentences",
     r"max\s+220\s+words",
 )
 FORBIDDEN_LEGACY_HEADLINE: tuple[str, ...] = (
@@ -254,7 +229,7 @@ def _exec_summary_shape() -> SectionProductShape:
         x2_module_ref="apps_rg/runtime/validators/executive_summary_x2.py",
         display_field="resume_display_text",
         shape_summary=(
-            f"exactly {EXEC_SUMMARY_MIN_SENTENCES} sentences; "
+            f"{EXEC_SUMMARY_MIN_SENTENCES}-{EXEC_SUMMARY_MAX_SENTENCES} sentences (target 5); "
             f"max {EXEC_SUMMARY_MAX_WORDS} words; "
             f"max {EXEC_SUMMARY_MAX_WORDS_PER_SENTENCE} words/sentence; "
             "fit_to_evidence; claim_ledger required; no inline source tags in display text"
@@ -284,6 +259,7 @@ def _exec_summary_shape() -> SectionProductShape:
             "x2_exec_summary_no_credential_dump",
         ),
         required_any_text_patterns=(
+            r"4\s*[-–to]+\s*6\s+(?:period-delimited\s+)?sentences",
             r"exactly\s+6",
             r"\b6\s+sentences\b",
         ),
@@ -507,7 +483,11 @@ def _unify_narrative_shape() -> SectionProductShape:
             "x2_claim_ledger_claim_text_non_empty",
         ),
         style_gate_ids=(),
-        required_any_text_patterns=(r"Exactly\s+one\s+sentence", r"exactly one sentence"),
+        required_any_text_patterns=(
+            r"Exactly\s+one\s+sentence",
+            r"exactly one sentence",
+            r"exactly\s+one\s+(?:complete[,\s]+inspiring\s+executive\s+)?sentence",
+        ),
         required_all_text_patterns=(
             r"58\s+words",
             r"360",
@@ -600,7 +580,11 @@ def _ibm_narrative_shape() -> SectionProductShape:
             "x2_claim_ledger_claim_text_non_empty",
         ),
         style_gate_ids=("x2_ibm_narrative_no_meta_disclaimer_in_display",),
-        required_any_text_patterns=(r"Exactly\s+one\s+sentence", r"exactly one sentence"),
+        required_any_text_patterns=(
+            r"Exactly\s+one\s+sentence",
+            r"exactly one sentence",
+            r"exactly\s+one\s+(?:complete[,\s]+inspiring\s+executive\s+)?sentence",
+        ),
         required_all_text_patterns=(r"58\s+words", r"360", "bul_ibm_"),
         forbidden_text_patterns=FORBIDDEN_LEGACY_NARRATIVE + (r"bul_unify_", r"bul_insurtech_", r"bul_ey_"),
         jd_alignment_proof_fields=("targeting_only", "jd_used_as_proof"),
@@ -679,7 +663,11 @@ def _role_narrative_shape(section_id: str, *, employer_label: str, bullet_prefix
             f"x2_{section_id}_runtime_real_llm",
         ),
         style_gate_ids=("x2_no_first_person", "x2_no_em_dash"),
-        required_any_text_patterns=(r"Exactly\s+one\s+sentence", r"exactly one sentence"),
+        required_any_text_patterns=(
+            r"Exactly\s+one\s+sentence",
+            r"exactly one sentence",
+            r"exactly\s+one\s+(?:complete[,\s]+inspiring\s+executive\s+)?sentence",
+        ),
         required_all_text_patterns=(bullet_prefix, "targeting_only"),
         forbidden_text_patterns=FORBIDDEN_LEGACY_NARRATIVE,
         jd_alignment_proof_fields=("targeting_only", "jd_used_as_proof"),

@@ -30,9 +30,7 @@ from apps_rg.runtime.validators.executive_summary_x2 import (
 
 # Live-product patterns that must not appear outside historical/retired contexts.
 RETIRED_SHAPE_PROSE_PATTERNS: tuple[str, ...] = (
-    r"4\s*[-–]\s*5\s+dense",
-    r"4\s+sentences\s+is\s+valid",
-    r"4-5\s+dense\s+executive",
+    r"2\s*[-–]\s*3\s+dense\s+sentences\s+by\s+default",
 )
 
 
@@ -126,8 +124,6 @@ def judge_rubric_shape_constraints(shape: SectionProductShape, rubric: str) -> l
         for pat in FORBIDDEN_LEGACY_EXEC_SUMMARY + RETIRED_SHAPE_PROSE_PATTERNS:
             if re.search(pat, rubric, re.IGNORECASE):
                 issues.append(f"forbidden pattern /{pat}/")
-        if "4 sentences is valid" in rubric.lower():
-            issues.append("4 sentences is valid")
     if shape.section_id in ("unify_narrative", "ibm_narrative"):
         if re.search(r"two\s+sentences", rubric, re.IGNORECASE):
             issues.append("two sentences")

@@ -244,7 +244,7 @@ def _build_synthesis_repair_user(
     length_note = ""
     if "exceeds maximum" in blob:
         length_note = (
-            f"LENGTH: trim to one executive paragraph (exactly 6 sentences, max {EXEC_SUMMARY_MAX_WORDS} words) without dropping supported proof; "
+            f"LENGTH: trim to one executive paragraph (4 to 6 sentences, target 5, max {EXEC_SUMMARY_MAX_WORDS} words) without dropping supported proof; "
             "do not remove claim_ledger rows. "
         )
     else:
@@ -258,19 +258,18 @@ def _build_synthesis_repair_user(
             f"and claim_ledger rows (minimum {prior_ledger_rows} rows, prefer 5+ when pool has 6+ facts). "
         )
     sentence_count_note = ""
-    if "found 5" in blob or "found 4" in blob or "sentences; found" in blob or "sentence_count" in blob:
+    if "sentences; found" in blob or "sentence_count" in blob:
         sentence_count_note = (
             "SENTENCE COUNT HARD FAIL: your previous draft had the wrong number of sentences. "
-            "The output MUST have EXACTLY 6 period-terminated sentences — no more, no fewer. "
-            "If the fact pool is tight, SPLIT a multi-beat sentence into two: e.g. S3 governance + S4 lineage outcome. "
-            "Do NOT compress to 5 to 'fit' facts — add an S6 forward synthesis that is NOT a recap. "
+            "The output MUST have 4 to 6 period-terminated sentences (target 5). "
+            "Never pad with generic filler or mechanical split bridges. "
         )
     utilization_note = ""
     if "claim_ledger_rows" in blob or "need_at_least" in blob or "sentences" in blob:
         utilization_note = (
-            "EVIDENCE_WEAVE: add claim_ledger OBJECT rows (one per major sentence) with distinct source_fact_ids "
+            "EVIDENCE_WEAVE: add claim_ledger OBJECT rows (one per displayed sentence) with distinct source_fact_ids "
             "from selected_fact_plan; weave unused high-confidence facts into prose — no repeated sentence themes. "
-            "Always produce exactly 6 sentences regardless of pool size — split multi-beat sentences to reach 6. "
+            "Produce 4 to 6 integrated sentences (target 5) matched to the allocated evidence roots. "
         )
     mechanism_note = ""
     if (
@@ -394,8 +393,8 @@ def _build_synthesis_repair_user(
         f"SYNTHESIS REJECTED: {reject_reason}. {attempt_note}{sentence_count_note}{length_note}{utilization_note}"
         f"{mechanism_note}{meta_note}{jd_copy_note}{filler_note}{conflation_note}{graph_binding_note}{stock_bridge_note}{s5_note}{svp_note}"
         "Return a NEW complete JSON object (RAW JSON only; first char {, last char }). "
-        f"Rewrite resume_display_text as exactly 6 period-delimited sentences (one executive paragraph, max {EXEC_SUMMARY_MAX_WORDS} words), "
-        "fit_to_evidence integrated narrative — not 4 compressed sentences; do not pad with filler. "
+        f"Rewrite resume_display_text as 4 to 6 period-delimited sentences (target 5, one executive paragraph, max {EXEC_SUMMARY_MAX_WORDS} words), "
+        "fit_to_evidence integrated narrative; do not pad with filler. "
         "Sentence 1 must be grammatically complete; vary openers (avoid six Led/Built/Delivered chains). "
         "No certification labels in display text. "
         "FORBIDDEN: \"this individual\", \"this executive\", \"the candidate\", "
