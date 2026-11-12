@@ -252,9 +252,13 @@ def apply_route_signing_posture(repo_root: Path | str | None = None) -> str | No
         if os.environ.get("APPS_RG_ROUTE_SIGNING_POSTURE") == "ephemeral_dev":
             import json
             import secrets
+            from apps_rg.runtime.worktree_path_resolution import _git_common_checkout_root_str
 
-            resolved_repo = _resolve_repo_root(repo_root)
-            key_file = resolved_repo / ".local" / "governance" / "ephemeral_dev_route_hmac.json"
+            resolved_repo = (Path(repo_root) if repo_root else find_repo_root()).resolve()
+            search_base = resolved_repo.parent if resolved_repo.name == "resume_graph_engine" else resolved_repo
+            common_root_str = _git_common_checkout_root_str(str(search_base))
+            canonical_root = Path(common_root_str).resolve() if common_root_str else search_base
+            key_file = canonical_root / ".local" / "governance" / "ephemeral_dev_route_hmac.json"
             secret = ""
             key_id = ""
             if key_file.is_file():

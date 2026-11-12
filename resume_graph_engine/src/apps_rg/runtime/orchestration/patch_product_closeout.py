@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping
 
-from apps_rg.runtime.spine import spine_receipts as sr
+from apps_rg.runtime.dispatch import spine_stage_receipts as sr
 
 
 def _utc_now() -> str:
@@ -301,7 +301,9 @@ def _rewind_product_stage_ledger_to_l0(artifact_dir: Path, *, preflight_rebound:
     from apps_rg.runtime.terminal_manifest import PIPELINE_COMPLETION_RECEIPT_FILENAME, TERMINAL_MANIFEST_FILENAME
 
     root = Path(artifact_dir).resolve()
-    for fname in (E2E_STAGE_LEDGER_SEAL_FILENAME, TERMINAL_MANIFEST_FILENAME, PIPELINE_COMPLETION_RECEIPT_FILENAME):
+    import shutil
+    shutil.rmtree(root / "apps_eval", ignore_errors=True)
+    for fname in (E2E_STAGE_LEDGER_SEAL_FILENAME, TERMINAL_MANIFEST_FILENAME, PIPELINE_COMPLETION_RECEIPT_FILENAME, "apps_rg_product_authorization_receipt.json", "apps_rg_product_authorization_correction_receipt.json"):
         (root / fname).unlink(missing_ok=True)
 
     ledger_path = root / E2E_STAGE_LEDGER_FILENAME
@@ -378,15 +380,7 @@ def close_patched_product_run(
     preflight_rebound = _rebind_preflight_if_needed(art, canonical_identity)
     refresh_root_spine_bundle_after_patch(art, x3_disposition=_PRODUCT_SUCCESS_X3)
 
-    whole_run_exit_identity = {
-        "parent_run_id": str(canonical_identity.get("parent_run_id") or art.name),
-        "child_run_id": str(canonical_identity.get("child_run_id") or ""),
-        "request_id": str(canonical_identity.get("request_id") or ""),
-        "trace_root": str(canonical_identity.get("trace_root") or ""),
-        "tenant_id": str(canonical_identity.get("tenant_id") or "default"),
-        "target_company": str(canonical_identity.get("target_company") or ""),
-        "target_role": str(canonical_identity.get("target_role") or ""),
-    }
+    whole_run_exit_identity = dict(canonical_identity)
     try:
         emit_core_runtime_authority(art)
     except Exception:
@@ -505,11 +499,6 @@ def close_patched_product_run(
         payload["research_bridge_response"] = str(art / sr.FILENAME_RESEARCH_BRIDGE_RESPONSE)
 
     _emit_terminal_mandatory_closeout(artifact_dir=art, repo_root=repo, payload=payload, final_resume_outputs_pre_emitted=True)
-    try:
-        emit_core_runtime_authority(art)
-    except Exception:
-        pass
-    emit_whole_run_exit_review_packet(artifact_dir=art, identity=whole_run_exit_identity)
     payload["product_diagnostic_redaction_receipt"] = str(redact_product_diagnostics(art))
     if is_integrated_whole_run_artifact_dir(art):
         try:
@@ -560,15 +549,7 @@ def run_patch_post_receipt_closeout(
     refresh_root_spine_bundle_after_patch(run_dir)
     emit_core_runtime_authority(run_dir)
     exit_identity = (
-        {
-            "parent_run_id": str(patch_identity.get("parent_run_id") or run_dir.name),
-            "child_run_id": str(patch_identity.get("child_run_id") or ""),
-            "request_id": str(patch_identity.get("request_id") or ""),
-            "trace_root": str(patch_identity.get("trace_root") or ""),
-            "tenant_id": str(patch_identity.get("tenant_id") or "default"),
-            "target_company": str(patch_identity.get("target_company") or ""),
-            "target_role": str(patch_identity.get("target_role") or ""),
-        }
+        dict(patch_identity)
         if patch_identity
         else {"parent_run_id": str(run_dir.name), "target_company": str(target_company or ""), "target_role": str(target_role or "")}
     )
