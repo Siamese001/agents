@@ -134,11 +134,23 @@ def _metric_outcome_to_node_row(
         if metric.get("bundle_bindings")
         else metric_id
     )
+    from apps_rg.fact_inventory.skills_graph.topology_normalization import (
+        EMPLOYMENT_DATES_AND_TITLES,
+        normalize_employment_id,
+    )
+
+    employer = str(metric.get("employer") or "").strip()
+    if employer == "Unify":
+        employer = "Unify Consulting"
+    if not employer:
+        emp_nid = normalize_employment_id(str(metric.get("employer_node_id") or "").strip())
+        employer = str((EMPLOYMENT_DATES_AND_TITLES.get(emp_nid) or {}).get("employer") or "")
     return {
         "node_id": metric_id,
         "node_type": "metric_outcome",
         "label": label,
         "description": description,
+        "employer": employer,
         "activation_status": approval,
         "support_level": support,
         "confidence": "",

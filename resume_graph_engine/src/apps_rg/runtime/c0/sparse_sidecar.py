@@ -414,14 +414,14 @@ class AppsRgSparseIndex:
         try:
             connection = _get_thread_read_connection(self._db_path)
             rows = connection.execute(
-                "SELECT id, document FROM docs_fts WHERE docs_fts MATCH ? "
-                "ORDER BY rank, id LIMIT ?",
+                "SELECT id, document, bm25(docs_fts) FROM docs_fts WHERE docs_fts MATCH ? "
+                "ORDER BY bm25(docs_fts), id LIMIT ?",
                 (" ".join(tokens), maximum * 2),
             ).fetchall()
             if not rows and len(tokens) > 1:
                 rows = connection.execute(
-                    "SELECT id, document FROM docs_fts WHERE docs_fts MATCH ? "
-                    "ORDER BY rank, id LIMIT ?",
+                    "SELECT id, document, bm25(docs_fts) FROM docs_fts WHERE docs_fts MATCH ? "
+                    "ORDER BY bm25(docs_fts), id LIMIT ?",
                     (" OR ".join(tokens), maximum * 2),
                 ).fetchall()
 
@@ -443,12 +443,14 @@ class AppsRgSparseIndex:
                             meta_by_id[str(m_id)] = decoded
 
             results: list[dict[str, object]] = []
-            for rank, (document_id, document) in enumerate(top_rows):
+            for rank, (document_id, document, bm25_raw) in enumerate(top_rows):
+                bm25_mag = abs(float(bm25_raw or 0.0))
+                bm25_norm = round(bm25_mag / (1.0 + bm25_mag), 6) if bm25_mag > 0.0 else round(1.0 / (1.0 + rank), 6)
                 results.append(
                     {
                         "id": str(document_id),
                         "content": str(document or ""),
-                        "score": 1.0 / (1.0 + rank),
+                        "score": bm25_norm,
                         "metadata": meta_by_id.get(str(document_id), {}),
                         "source": "apps_rg_sparse_fts",
                     }

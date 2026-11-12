@@ -112,6 +112,41 @@ def c02_atom_to_fact_vector_chunk(
     # >=2 normative source classes (single-class evidence is WEAK). Clamp to the allowed pair.
     sc_hint = str(atom.get("fact_vector_source_class") or "").strip()
     source_class = sc_hint if sc_hint in ("candidate_profile", "project_evidence") else "candidate_profile"
+    from apps_rg.fact_inventory.skills_graph.topology_normalization import (
+        EMPLOYMENT_DATES_AND_TITLES,
+        FACT_TO_EMPLOYMENT_MAP,
+        normalize_employment_id,
+    )
+
+    company = str(atom.get("company") or atom.get("employer") or "").strip()
+    role = str(atom.get("role") or atom.get("title") or "").strip()
+    if company == "Unify":
+        company = "Unify Consulting"
+    if not company or not role:
+        emp_id = FACT_TO_EMPLOYMENT_MAP.get(fid, "")
+        if not emp_id:
+            for gref in atom.get("graph_node_refs") or []:
+                norm_ref = normalize_employment_id(str(gref or "").strip())
+                if norm_ref in EMPLOYMENT_DATES_AND_TITLES:
+                    emp_id = norm_ref
+                    break
+        if not emp_id:
+            fl = fid.lower()
+            if "_slalom_" in fl or fl.startswith(("reb_slalom", "bul_slalom")):
+                emp_id = "employment_exp_slalom_001"
+            elif "_unify_" in fl or fl.startswith(("reb_unify", "bul_unify")):
+                emp_id = "employment_exp_unify_001"
+            elif "_ibm_" in fl or fl.startswith(("reb_ibm", "bul_ibm")):
+                emp_id = "employment_exp_ibm_001"
+            elif "_insurtech_" in fl or fl.startswith(("reb_insurtech", "bul_insurtech")):
+                emp_id = "employment_exp_insurtech_001"
+            elif "_ey_" in fl or fl.startswith(("reb_ey", "bul_ey")):
+                emp_id = "employment_exp_ey_001"
+        emp_meta = EMPLOYMENT_DATES_AND_TITLES.get(emp_id) or {}
+        if not company:
+            company = str(emp_meta.get("employer") or "Slalom")
+        if not role:
+            role = str(emp_meta.get("title") or "Senior Director")
     return FactVectorChunk(
         chunk_id=chunk_id,
         content=text,
@@ -122,8 +157,8 @@ def c02_atom_to_fact_vector_chunk(
         source_version_hash=ledger_version_hash or digest,
         skills_mentioned=skills,
         section_type=section_id,
-        company="",
-        role="",
+        company=company,
+        role=role,
         section_targets=section_targets or section_id,
         citation_anchor=str(atom.get("source_span_ref") or f"ledger:{fid}"),
         chunk_digest=digest,

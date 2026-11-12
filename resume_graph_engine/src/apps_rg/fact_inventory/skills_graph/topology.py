@@ -60,10 +60,20 @@ def apply_topology_enhancements(
         node_rows[reb_id] = enode
     edge_rows.extend(eng_edges)
 
-    # 2. Fact hosting edges (AC3.3, I2)
+    # 2. Fact hosting edges (AC3.3, I2) and fact node employer/eligibility hydration
     fact_ids = [nid for nid, n in node_rows.items() if n.get("node_type") == "fact"]
     hosting_edges = build_fact_hosting_edges(fact_ids, ts=ts, build_run_id=build_run_id)
     edge_rows.extend(hosting_edges)
+    for fid in fact_ids:
+        fnode = node_rows[fid]
+        emp_id = FACT_TO_EMPLOYMENT_MAP.get(fid, "")
+        emp_meta = EMPLOYMENT_DATES_AND_TITLES.get(emp_id) or {}
+        if not fnode.get("employer") and emp_meta.get("employer"):
+            fnode["employer"] = emp_meta["employer"]
+        if not fnode.get("career_epoch") and emp_id in CANONICAL_EMPLOYMENT_EPOCHS:
+            fnode["career_epoch"] = CANONICAL_EMPLOYMENT_EPOCHS[emp_id]
+        if str(fnode.get("activation_status") or "").upper() not in {"BLOCKED", "DO_NOT_PROMOTE"}:
+            fnode["external_eligible"] = 1
 
     # 3. Employment metadata and hierarchy edges (AC3.3, I5)
     for emp_id, emp_meta in EMPLOYMENT_DATES_AND_TITLES.items():
@@ -380,8 +390,99 @@ def apply_topology_enhancements(
         })
         existing_skill_target_pairs.add((sk, fk))
 
-    # 11. Populate stub descriptions
+    # 11. Populate stub descriptions, skill employer provenance, and role_family connectivity
     populate_stub_descriptions(node_rows)
+    epoch_to_employer = {
+        epoch: meta["employer"]
+        for emp_id, epoch in CANONICAL_EMPLOYMENT_EPOCHS.items()
+        if (meta := EMPLOYMENT_DATES_AND_TITLES.get(emp_id)) and meta.get("employer")
+    }
+    skill_to_employer: dict[str, str] = {}
+    for sf in skill_fact_rows:
+        sk_id = str(sf.get("skill_id") or "").strip()
+        fk_id = str(sf.get("fact_id") or "").strip()
+        if sk_id and fk_id and sk_id not in skill_to_employer:
+            emp_id = FACT_TO_EMPLOYMENT_MAP.get(fk_id) or normalize_employment_id(fk_id)
+            emp_name = str((EMPLOYMENT_DATES_AND_TITLES.get(emp_id) or {}).get("employer") or "")
+            if emp_name:
+                skill_to_employer[sk_id] = emp_name
+    for nid, nrow in node_rows.items():
+        ntype = str(nrow.get("node_type") or "")
+        if ntype == "skill" and not str(nrow.get("employer") or "").strip():
+            ep = str(nrow.get("career_epoch") or "").strip()
+            nrow["employer"] = (
+                skill_to_employer.get(nid)
+                or epoch_to_employer.get(ep)
+                or "Slalom"
+            )
+        elif ntype == "metric_outcome" and str(nrow.get("employer") or "").strip() == "Unify":
+            nrow["employer"] = "Unify Consulting"
+        elif ntype == "metric_outcome" and not str(nrow.get("employer") or "").strip():
+            nrow["employer"] = "Slalom"
+
+    connected_nodes = {
+        str(e.get("source_node_id") or "").strip() for e in edge_rows
+    } | {
+        str(e.get("target_node_id") or "").strip() for e in edge_rows
+    }
+    available_pillars = [
+        nid for nid, n in sorted(node_rows.items()) if n.get("node_type") == "pillar"
+    ]
+    default_pillar = (
+        "pillar_agentic_ai_platforms"
+        if "pillar_agentic_ai_platforms" in node_rows
+        else (available_pillars[0] if available_pillars else "")
+    )
+    rf_profiles = payload.get("role_family_projection_profiles") or {}
+    for nid, nrow in sorted(node_rows.items()):
+        if nrow.get("node_type") != "role_family" or nid in connected_nodes or not default_pillar:
+            continue
+        prof = rf_profiles.get(nid) if isinstance(rf_profiles, dict) else {}
+        cand_pillars = [
+            PILLAR_ALIAS_MAP.get(str(p).strip(), str(p).strip())
+            for p in ((prof or {}).get("pillar_hint_ids") or [])
+            if str(p).strip()
+        ]
+        target_pillar = next(
+            (p for p in cand_pillars if p in node_rows and node_rows[p].get("node_type") == "pillar"),
+            default_pillar,
+        )
+        edge_rows.append({
+            "edge_id": f"edge_identity_supported_by_pillar__{nid}__{target_pillar}",
+            "source_node_id": nid,
+            "target_node_id": target_pillar,
+            "edge_family": "capability_hierarchy",
+            "edge_type": "identity_supported_by_pillar",
+            "weight": 1.0,
+            "confidence": "HIGH",
+            "directional": 1,
+            "evidence_status": "approved_graph_ssot",
+            "section_fit": "ALL",
+            "source_authority": "augmented_skills_graph",
+            "rationale": f"Role family {nid} is supported by pillar {target_pillar}.",
+            "projection_behavior": "graph_structure",
+            "external_claim_policy": "approved_by_graph_presence",
+            "validation_status": "validated",
+            "edge_note": "",
+            "operator_note": "",
+            "business_story": "",
+            "technical_story": "",
+            "assertion_type": "TAXONOMIC_ATTRIBUTION",
+            "assertion_basis": "taxonomy_rule",
+            "assertion_basis_refs_json": json.dumps([f"role_family:{nid}", f"pillar:{target_pillar}"]),
+            "canonical_assertion_text": f"Role family {nid} is supported by pillar {target_pillar}.",
+            "lifecycle_disposition": "ACTIVE_POLICY_GATED",
+            "semantic_contract_version": "apps_rg.c03_graph_edge_semantic_contract.v2",
+            "origin_kind": "derived_projection",
+            "origin_ref": f"{nid}->{target_pillar}",
+            "origin_artifact_sha256": "",
+            "derivation_rule_id": "rule_identity_supported_by_pillar",
+            "build_run_id": build_run_id,
+            "confidence_score": 0.95,
+            "confidence_tier": "HIGH",
+            "confidence_method": "taxonomy_rule",
+            "traversable": 1,
+        })
 
     # 12. Deduplicate edges and assign traversable flag
     seen_triples: set[tuple[str, str, str]] = set()

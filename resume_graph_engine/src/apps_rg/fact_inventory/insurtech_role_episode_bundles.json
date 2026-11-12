@@ -60,7 +60,8 @@
         "skill_early_adopter_insurer_customer_development"
       ],
       "linked_source_fact_ids": [
-        "exp_insurtech_001"
+        "exp_insurtech_001",
+        "fact_insurtech_aws_001"
       ],
       "linked_archive_signal_ids": [],
       "linked_metric_outcome_ids": [
@@ -111,7 +112,8 @@
         "skill_proposal_sow_development_for_insurers"
       ],
       "linked_source_fact_ids": [
-        "exp_insurtech_001"
+        "exp_insurtech_001",
+        "fact_insurtech_aws_001"
       ],
       "linked_archive_signal_ids": [],
       "linked_metric_outcome_ids": [
@@ -161,7 +163,8 @@
         "skill_agile_delivery_for_regulated_insurers"
       ],
       "linked_source_fact_ids": [
-        "exp_insurtech_001"
+        "exp_insurtech_001",
+        "fact_insurtech_aws_001"
       ],
       "linked_archive_signal_ids": [],
       "linked_metric_outcome_ids": [
@@ -212,7 +215,8 @@
         "skill_hybrid_cloud_transition_architecture"
       ],
       "linked_source_fact_ids": [
-        "exp_insurtech_001"
+        "exp_insurtech_001",
+        "fact_insurtech_aws_001"
       ],
       "linked_archive_signal_ids": [],
       "linked_metric_outcome_ids": [
@@ -273,7 +277,8 @@
         "skill_cost_explorer_budget_forecasting"
       ],
       "linked_source_fact_ids": [
-        "exp_insurtech_001"
+        "exp_insurtech_001",
+        "fact_insurtech_aws_001"
       ],
       "linked_archive_signal_ids": [],
       "linked_metric_outcome_ids": [
@@ -338,7 +343,8 @@
         "skill_p2_tech_aws_modernization_patterns"
       ],
       "linked_source_fact_ids": [
-        "exp_insurtech_001"
+        "exp_insurtech_001",
+        "fact_insurtech_aws_001"
       ],
       "linked_archive_signal_ids": [],
       "linked_metric_outcome_ids": [
@@ -392,7 +398,8 @@
         "skill_regulated_cloud_adoption_guardrails"
       ],
       "linked_source_fact_ids": [
-        "exp_insurtech_001"
+        "exp_insurtech_001",
+        "fact_insurtech_aws_001"
       ],
       "linked_archive_signal_ids": [],
       "linked_metric_outcome_ids": [
@@ -442,7 +449,8 @@
         "skill_insurance_commissioner_exam_readiness"
       ],
       "linked_source_fact_ids": [
-        "exp_insurtech_001"
+        "exp_insurtech_001",
+        "fact_insurtech_aws_001"
       ],
       "linked_archive_signal_ids": [],
       "linked_metric_outcome_ids": [
@@ -495,7 +503,8 @@
         "skill_soc2_zero_trust_security"
       ],
       "linked_source_fact_ids": [
-        "exp_insurtech_001"
+        "exp_insurtech_001",
+        "fact_insurtech_aws_001"
       ],
       "linked_archive_signal_ids": [],
       "linked_metric_outcome_ids": [
@@ -546,7 +555,8 @@
         "skill_insurance_core_data_model_mapping"
       ],
       "linked_source_fact_ids": [
-        "exp_insurtech_001"
+        "exp_insurtech_001",
+        "fact_insurtech_aws_001"
       ],
       "linked_archive_signal_ids": [],
       "linked_metric_outcome_ids": [
@@ -596,7 +606,8 @@
         "skill_pricing_loss_ratio_reporting"
       ],
       "linked_source_fact_ids": [
-        "exp_insurtech_001"
+        "exp_insurtech_001",
+        "fact_insurtech_aws_001"
       ],
       "linked_archive_signal_ids": [],
       "linked_metric_outcome_ids": [
@@ -649,7 +660,8 @@
         "skill_sr_insurance_systems_resilience_internal"
       ],
       "linked_source_fact_ids": [
-        "exp_insurtech_001"
+        "exp_insurtech_001",
+        "fact_insurtech_aws_001"
       ],
       "linked_archive_signal_ids": [],
       "linked_metric_outcome_ids": [

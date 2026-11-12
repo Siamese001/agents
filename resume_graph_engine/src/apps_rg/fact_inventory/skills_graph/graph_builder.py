@@ -306,6 +306,8 @@ def _external_eligible_node(
     status = str(node.get("activation_status") or "")
     if status in NON_PROMOTE_ACTIVATION:
         return False
+    if ntype == "fact":
+        return True
     return False
 
 def _parse_section_id(target: str) -> str:
@@ -356,7 +358,7 @@ def _ensure_fact_node(
         "activation_status": act_status,
         "support_level": support_lvl,
         "confidence": conf,
-        "external_eligible": 0,
+        "external_eligible": 1 if act_status not in NON_PROMOTE_ACTIVATION else 0,
         "career_epoch": epoch,
         "phase_ordinal": ordinal,
         "source_authority": "augmented_skills_graph",

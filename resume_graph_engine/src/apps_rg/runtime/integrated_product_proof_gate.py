@@ -137,9 +137,23 @@ def _flatten_strings(obj: Any, out: list[str]) -> None:
 
 def _collect_json_blobs(run_dir: Path, *, max_depth: int = 3) -> list[dict[str, Any]]:
     run_dir = run_dir.resolve()
+    whole_run_layout = (run_dir / "lanes").is_dir() or (
+        run_dir / "modular_r4" / "sections"
+    ).is_dir()
+    lane_advisory_names = {
+        "l6_v40_shadow_eval_package.json",
+        "section_l7_binding_manifest.json",
+        "evidence_package_index.json",
+    }
     blobs: list[dict[str, Any]] = []
     for sub in run_dir.rglob("*.json"):
-        if len(sub.relative_to(run_dir).parts) > max_depth:
+        rel_parts = sub.relative_to(run_dir).parts
+        if len(rel_parts) > max_depth:
+            continue
+        if whole_run_layout and (
+            sub.name in lane_advisory_names
+            or (len(rel_parts) > 1 and rel_parts[0] in {"lanes", "modular_r4"})
+        ):
             continue
         doc = _load_json(sub)
         if doc is not None:

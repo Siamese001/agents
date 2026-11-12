@@ -440,7 +440,14 @@ def _selected_plan_graph_selection(
             reason_codes=decision.get("reason_codes") or [],
         )
 
-    decisions.sort(key=lambda row: str(row.get("candidate_path_id") or ""))
+    dedup_decisions: dict[str, dict[str, Any]] = {}
+    for row in decisions:
+        cpid = str(row.get("candidate_path_id") or "")
+        if cpid not in dedup_decisions:
+            dedup_decisions[cpid] = row
+        elif dedup_decisions[cpid].get("decision") != "selected" and row.get("decision") == "selected":
+            dedup_decisions[cpid] = row
+    decisions = sorted(dedup_decisions.values(), key=lambda row: str(row.get("candidate_path_id") or ""))
     candidate_receipt = build_candidate_receipt(section_id=section_id, decisions=decisions)
     traversal_receipt = recorder.build_receipt(decisions=decisions)
     authority_rows = [dict(row.get("authority") or {}) for row in decisions]
@@ -507,13 +514,19 @@ def _bundle_root_graph_selection(*, fact_ids: list[str], section_id: str, repo_r
     root = Path(repo_root)
     facts: list[dict[str, Any]] = []
     for filename in (
+        "slalom_role_episode_bundles.json",
         "unify_role_episode_bundles.json",
         "ibm_role_episode_bundles.json",
         "insurtech_role_episode_bundles.json",
         "ey_role_episode_bundles.json",
     ):
-        path = root / "apps_rg" / "fact_inventory" / filename
-        if not path.is_file():
+        candidates = (
+            root / "apps_rg" / "fact_inventory" / filename,
+            root / "src" / "apps_rg" / "fact_inventory" / filename,
+            root / "resume_graph_engine" / "src" / "apps_rg" / "fact_inventory" / filename,
+        )
+        path = next((cand for cand in candidates if cand.is_file()), None)
+        if path is None:
             continue
         doc = json.loads(path.read_text(encoding="utf-8"))
         for bundle in doc.get("bundles") or []:
@@ -635,7 +648,14 @@ def _combine_component_receipts(
             if isinstance(decision, Mapping):
                 authority_rows.append(dict(decision.get("authority") or {}))
 
-    decisions.sort(key=lambda row: str(row.get("candidate_path_id") or ""))
+    dedup_decisions: dict[str, dict[str, Any]] = {}
+    for row in decisions:
+        cpid = str(row.get("candidate_path_id") or "")
+        if cpid not in dedup_decisions:
+            dedup_decisions[cpid] = row
+        elif dedup_decisions[cpid].get("decision") != "selected" and row.get("decision") == "selected":
+            dedup_decisions[cpid] = row
+    decisions = sorted(dedup_decisions.values(), key=lambda row: str(row.get("candidate_path_id") or ""))
     for index, event in enumerate(events):
         event["event_index"] = index
     candidate_receipt = build_candidate_receipt(section_id=section_id, decisions=decisions)
@@ -879,6 +899,30 @@ def expand_c03_graph_bindings(
         for query_id, surfaces in query_to_surfaces.items()
         if query_id in canonical_fact_ids
     }
+    if not query_to_surfaces and isinstance(selected_graph_plan, Mapping):
+        for plan_fact in selected_graph_plan.get("facts") or []:
+            if not isinstance(plan_fact, Mapping):
+                continue
+            surface = str(plan_fact.get("fact_id") or plan_fact.get("candidate_fact_id") or "").strip()
+            if not surface:
+                continue
+            linked = [
+                str(fid).strip()
+                for fid in (plan_fact.get("linked_source_fact_ids") or plan_fact.get("source_fact_ids") or [])
+                if str(fid).strip() in canonical_fact_ids
+            ]
+            if not linked and surface in canonical_fact_ids:
+                linked = [surface]
+            for lfid in linked:
+                if surface not in query_to_surfaces.setdefault(lfid, []):
+                    query_to_surfaces[lfid].append(surface)
+    if not query_to_surfaces:
+        for atom in atoms:
+            surface = str(atom.get("fact_id") or "").strip()
+            qid = _atom_query_fact_id(atom)
+            if qid in canonical_fact_ids and surface:
+                if surface not in query_to_surfaces.setdefault(qid, []):
+                    query_to_surfaces[qid].append(surface)
     pillar_hints = resolve_c0_pillar_hints(role_family_key, repo_root=repo_root)
     projection = resolve_role_family_projection(role_family_key, repo_root=repo_root)
     pillar_hints = tuple(projection.get("pillar_hint_ids") or ()) or pillar_hints

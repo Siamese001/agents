@@ -1420,11 +1420,19 @@ def _merge_section_dense_sparse_items(
                 )
             )
         elif row.lexical_score > 0.0:
+            sparse_meta = row.metadata if isinstance(row.metadata, Mapping) else {}
+            sparse_src_id = str(
+                sparse_meta.get("source_document_id")
+                or sparse_meta.get("candidate_fact_id")
+                or sparse_meta.get("source_id")
+                or row.chunk_id
+            )
             out.append(
                 EvidenceItem(
                     source=f"sparse:retrieval:{row.chunk_id}",
                     content=row.content,
                     source_type="fact_vectors",
+                    source_id=sparse_src_id,
                     evidence_id=f"sparse:{row.chunk_id}",
                     citation_anchor=f"urn:chunk:{row.chunk_id}",
                     chunk_digest=hashlib.sha256(
@@ -2076,34 +2084,30 @@ class MetadataFilterProfile:
 
     def _load_profile(self) -> None:
         """Load profile from YAML."""
-        if self.PROFILE_PATH.exists():
-            import yaml
+        candidates = (
+            self.PROFILE_PATH,
+            Path(__file__).resolve().parents[2]
+            / "config"
+            / "domain_contract"
+            / "metadata_filter_profile.yaml",
+        )
+        for cand in candidates:
+            if cand.exists():
+                import yaml
 
-            with open(self.PROFILE_PATH, encoding="utf-8") as f:
-                self._config = yaml.safe_load(f)
-                self._filterable_fields = self._config.get("filterable_fields", [])
-        else:
-            self._config = self._default_config()
-            self._filterable_fields = self._config.get("filterable_fields", [])
+                with open(cand, encoding="utf-8") as f:
+                    self._config = yaml.safe_load(f) or {}
+                    self._filterable_fields = self._config.get("filterable_fields", [])
+                return
+        self._config = self._default_config()
+        self._filterable_fields = self._config.get("filterable_fields", [])
 
     def _default_config(self) -> dict[str, Any]:
-        """Default configuration."""
+        """Default configuration aligned with metadata_filter_profile.yaml."""
         return {
             "enabled": True,
             "collection": "fact_vectors",
             "filterable_fields": [
-                {
-                    "field_name": "company",
-                    "chroma_metadata_key": "company",
-                    "display_name": "Company",
-                    "query_sources": ["jd_payload.target_company"],
-                },
-                {
-                    "field_name": "role",
-                    "chroma_metadata_key": "role",
-                    "display_name": "Role",
-                    "query_sources": ["jd_payload.target_role"],
-                },
                 {
                     "field_name": "certification",
                     "chroma_metadata_key": "certification",

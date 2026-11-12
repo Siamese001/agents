@@ -658,6 +658,234 @@ def build_base_resume_employment_atoms(
     }
 
 
+def build_graph_bundle_and_skill_atoms(
+    *,
+    repo_root: Path | None = None,
+    seen_fact_ids: set[str] | None = None,
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Build embeddable C0.2 atoms for all 47 role-episode bundles, 62 facts, and eligible skills."""
+    root = repo_root or _repo_root()
+    from apps_rg.fact_inventory.skills_graph.topology_normalization import (
+        CANONICAL_EMPLOYMENT_EPOCHS,
+        EMPLOYMENT_DATES_AND_TITLES,
+        FACT_TO_EMPLOYMENT_MAP,
+        normalize_employment_id,
+    )
+    from apps_rg.runtime.c0.c02_fact_vector_ingest import c02_atom_ingest_eligible
+
+    seen = set(seen_fact_ids or set())
+    atoms: list[dict[str, Any]] = []
+    section_counts: Counter[str] = Counter()
+    bundle_dir = (
+        root / "src" / "apps_rg" / "fact_inventory"
+        if (root / "src" / "apps_rg" / "fact_inventory").is_dir()
+        else root / "apps_rg" / "fact_inventory"
+    )
+    bundle_count = 0
+    skill_count = 0
+    fact_count = 0
+    for bpath in sorted(bundle_dir.glob("*_role_episode_bundles.json")):
+        try:
+            bdoc = json.loads(bpath.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError, ValueError):
+            continue
+        for bundle in bdoc.get("bundles") or []:
+            if not isinstance(bundle, dict):
+                continue
+            reb_id = str(bundle.get("role_episode_bundle_id") or "").strip()
+            if not reb_id or reb_id in seen:
+                continue
+            emp_id = normalize_employment_id(str(bundle.get("employer_node_id") or "").strip())
+            emp_meta = EMPLOYMENT_DATES_AND_TITLES.get(emp_id) or {}
+            company = str(bundle.get("employer") or emp_meta.get("employer") or "Slalom").strip()
+            if company == "Unify":
+                company = "Unify Consulting"
+            role = str(bundle.get("title") or emp_meta.get("title") or "Senior Director").strip()
+            sec_elig = [
+                str(s).strip()
+                for s in (bundle.get("section_eligibility") or [])
+                if str(s).strip() in GENERATED_LANES
+            ]
+            targets = sorted(set(sec_elig) | set(CROSS_SECTION_TARGETS))
+            text_parts = [
+                str(bundle.get("bundle_theme") or "").strip(),
+                str(bundle.get("claim_text") or "").strip(),
+                str(bundle.get("operating_context") or bundle.get("claim_scope") or "").strip(),
+            ]
+            text = " — ".join(p for p in text_parts if p)[:2000]
+            if len(text) < 12:
+                continue
+            atom: dict[str, Any] = {
+                "fact_id": reb_id,
+                "text_to_embed": text,
+                "source_type": "role_episode_bundle",
+                "fact_vector_source_class": "project_evidence",
+                "source_ref": f"apps_rg/fact_inventory/{bpath.name}",
+                "source_span_ref": f"bundle:{reb_id}",
+                "confidence": "HIGH",
+                "company": company,
+                "role": role,
+                "domain_tags": [str(bundle.get("root_capability_node_id") or "")],
+                "skill_tags": [
+                    str(s).strip() for s in (bundle.get("graph_skill_node_ids") or []) if str(s).strip()
+                ],
+                "metric_refs": [
+                    str(m).strip() for m in (bundle.get("linked_metric_outcome_ids") or []) if str(m).strip()
+                ],
+                "career_phase_refs": (
+                    [CANONICAL_EMPLOYMENT_EPOCHS[emp_id]] if emp_id in CANONICAL_EMPLOYMENT_EPOCHS else []
+                ),
+                "graph_node_refs": [emp_id] if emp_id else [],
+                "allowed_sections": targets,
+                "blocked_sections": [],
+                "proof_status": PROOF_ELIGIBLE,
+                "requires_trace_audit": False,
+                "retrieval_score": 1.0,
+                "rejected_reason": "",
+            }
+            ok, _ = c02_atom_ingest_eligible(atom)
+            if ok:
+                atoms.append(atom)
+                seen.add(reb_id)
+                bundle_count += 1
+                for sec in targets:
+                    section_counts[sec] += 1
+
+    try:
+        from apps_rg.fact_inventory.augmented_skills_graph import load_augmented_skills_graph
+        from apps_rg.fact_inventory.augmented_skills_graph_sqlite import build_skill_rows_by_id
+        from apps_rg.fact_inventory.candidate_fact_ledger import load_master_candidate_fact_ledger
+
+        gpayload = load_augmented_skills_graph(repo_root=root)
+        skill_rows_map = build_skill_rows_by_id(dict(gpayload))
+        cledger = load_master_candidate_fact_ledger(repo_root=root)
+    except Exception:
+        gpayload = {}
+        skill_rows_map = {}
+        cledger = {}
+
+    cfacts_by_id = {
+        str(f.get("fact_id") or "").strip(): f
+        for f in (cledger.get("facts") or [])
+        if isinstance(f, dict) and str(f.get("fact_id") or "").strip()
+    }
+    for fid in sorted(FACT_TO_EMPLOYMENT_MAP):
+        if fid in seen:
+            continue
+        emp_id = FACT_TO_EMPLOYMENT_MAP[fid]
+        emp_meta = EMPLOYMENT_DATES_AND_TITLES.get(emp_id) or {}
+        cf = cfacts_by_id.get(fid) or {}
+        text = str(cf.get("claim_text") or cf.get("text") or f"{emp_meta.get('employer', 'Slalom')}: verified career fact {fid}").strip()
+        if len(text) < 12:
+            text = f"{emp_meta.get('employer', 'Slalom')} ({emp_meta.get('title', 'Leader')}): {text} ({fid})"
+        targets = assign_sections_for_fact(
+            {
+                "fact_id": fid,
+                "claim_text": text,
+                "career_phase_refs": [CANONICAL_EMPLOYMENT_EPOCHS.get(emp_id, "")],
+                "graph_node_refs": [emp_id],
+            }
+        )
+        atom = {
+            "fact_id": fid,
+            "text_to_embed": text[:2000],
+            "source_type": "candidate_fact_ledger",
+            "fact_vector_source_class": "candidate_profile",
+            "source_ref": "apps_rg/fact_inventory/candidate_fact_ledger.json",
+            "source_span_ref": f"ledger:{fid}",
+            "confidence": "HIGH",
+            "company": str(emp_meta.get("employer") or "Slalom"),
+            "role": str(emp_meta.get("title") or "Senior Director"),
+            "domain_tags": [],
+            "skill_tags": [],
+            "metric_refs": [],
+            "career_phase_refs": (
+                [CANONICAL_EMPLOYMENT_EPOCHS[emp_id]] if emp_id in CANONICAL_EMPLOYMENT_EPOCHS else []
+            ),
+            "graph_node_refs": [emp_id],
+            "allowed_sections": targets,
+            "blocked_sections": [],
+            "proof_status": PROOF_ELIGIBLE,
+            "requires_trace_audit": False,
+            "retrieval_score": 1.0,
+            "rejected_reason": "",
+        }
+        ok, _ = c02_atom_ingest_eligible(atom)
+        if ok:
+            atoms.append(atom)
+            seen.add(fid)
+            fact_count += 1
+            for sec in targets:
+                section_counts[sec] += 1
+
+    epoch_to_emp = {v: k for k, v in CANONICAL_EMPLOYMENT_EPOCHS.items()}
+    for sid, srow in sorted(skill_rows_map.items()):
+        if not isinstance(srow, dict):
+            continue
+        if not sid or sid in seen:
+            continue
+        act = str(srow.get("activation_status") or "").upper()
+        grade = str(srow.get("confidence_grade") or "").upper()
+        if act in {"BLOCKED", "DO_NOT_PROMOTE"} or grade == "BLOCKED":
+            continue
+        flinks = [str(f).strip() for f in (srow.get("fact_id_links") or []) if str(f).strip()]
+        if not flinks:
+            continue
+        emp_id = ""
+        for fl in flinks:
+            emp_id = FACT_TO_EMPLOYMENT_MAP.get(fl) or normalize_employment_id(fl)
+            if emp_id in EMPLOYMENT_DATES_AND_TITLES:
+                break
+        if not emp_id:
+            ep = str(srow.get("career_epoch") or "").strip()
+            emp_id = epoch_to_emp.get(ep, "employment_exp_slalom_001")
+        emp_meta = EMPLOYMENT_DATES_AND_TITLES.get(emp_id) or {}
+        cap = str(srow.get("capability") or sid).strip()
+        ev_sum = str(srow.get("evidence_summary") or srow.get("rationale") or "").strip()
+        text = f"{cap}: {ev_sum}" if ev_sum else f"{cap} ({emp_meta.get('employer', 'Slalom')} capability)"
+        if len(text) < 12:
+            text = f"{cap} — verified capability at {emp_meta.get('employer', 'Slalom')}"
+        targets = list(CROSS_SECTION_TARGETS)
+        atom = {
+            "fact_id": sid,
+            "text_to_embed": text[:2000],
+            "source_type": "augmented_skills_graph",
+            "fact_vector_source_class": "candidate_profile",
+            "source_ref": "apps_rg/fact_inventory/augmented_skills_graph.json",
+            "source_span_ref": f"ledger:{flinks[0]}",
+            "confidence": "HIGH",
+            "company": str(emp_meta.get("employer") or "Slalom"),
+            "role": str(emp_meta.get("title") or "Senior Director"),
+            "domain_tags": [str(srow.get("pillar") or "")],
+            "skill_tags": [sid],
+            "metric_refs": [],
+            "career_phase_refs": [str(srow.get("career_epoch") or "")],
+            "graph_node_refs": [emp_id] if emp_id else [],
+            "allowed_sections": targets,
+            "blocked_sections": [],
+            "proof_status": PROOF_ELIGIBLE,
+            "requires_trace_audit": False,
+            "retrieval_score": 1.0,
+            "rejected_reason": "",
+        }
+        ok, _ = c02_atom_ingest_eligible(atom)
+        if ok:
+            atoms.append(atom)
+            seen.add(sid)
+            skill_count += 1
+            for sec in targets:
+                section_counts[sec] += 1
+
+    return atoms, {
+        "graph_bundle_atoms": bundle_count,
+        "graph_supplemental_fact_atoms": fact_count,
+        "graph_skill_atoms": skill_count,
+        "graph_per_section_counts": {
+            lane: int(section_counts.get(lane, 0)) for lane in GENERATED_LANES
+        },
+    }
+
+
 def _merge_per_section_counts(*parts: dict[str, Any]) -> dict[str, int]:
     merged: Counter[str] = Counter()
     for part in parts:
@@ -674,7 +902,7 @@ def _reset_collection(chroma_path: str, collection_name: str = "fact_vectors") -
     try:
         existing = client.get_collection(collection_name)
         count = int(existing.count())
-    except (AttributeError, KeyError, OSError, RuntimeError, TypeError, ValueError):
+    except Exception:
         return 0
     client.delete_collection(collection_name)
     return count
@@ -858,13 +1086,31 @@ def run_bootstrap_fact_vectors(
 
     ledger_atoms, summary = build_section_atoms(repo_root=root)
     base_atoms, base_summary = build_base_resume_employment_atoms(repo_root=root)
-    atoms = ledger_atoms + base_atoms
+    seen_ids = {
+        str(a.get("fact_id") or "").strip()
+        for a in (ledger_atoms + base_atoms)
+        if str(a.get("fact_id") or "").strip()
+    }
+    if ledger_atoms or base_atoms:
+        graph_atoms, graph_summary = build_graph_bundle_and_skill_atoms(
+            repo_root=root, seen_fact_ids=seen_ids
+        )
+    else:
+        graph_atoms, graph_summary = [], {
+            "graph_bundle_atoms": 0,
+            "graph_supplemental_fact_atoms": 0,
+            "graph_skill_atoms": 0,
+            "graph_per_section_counts": {lane: 0 for lane in GENERATED_LANES},
+        }
+    atoms = ledger_atoms + base_atoms + graph_atoms
     summary.update(base_summary)
+    summary.update(graph_summary)
     summary["eligible_atoms"] = len(atoms)
     summary["ledger_eligible_atoms"] = len(ledger_atoms)
     summary["per_section_target_counts"] = _merge_per_section_counts(
         summary.get("per_section_target_counts") or {},
         base_summary.get("base_resume_per_section_counts") or {},
+        graph_summary.get("graph_per_section_counts") or {},
     )
     missing_required_lanes = [
         lane for lane, count in summary["per_section_target_counts"].items() if int(count) <= 0

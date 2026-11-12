@@ -520,12 +520,17 @@ def _materialize_ibm_bullets_from_frozen_allocation(
         )
 
     ordered: list[dict[str, Any]] = []
+    rehydrated_any = False
     for bullet_id in active_bullet_ids:
         row = by_bullet[bullet_id]
         allocation = allocation_by_bullet[bullet_id]
-        row["bullet_text"] = allocation["bullet_text"]
-        row["has_metric"] = bool(allocation["metric_text"])
-        row["metric_raw"] = allocation["metric_text"] or None
+        existing_text = str(row.get("bullet_text") or "").strip()
+        metric = allocation["metric_text"]
+        if not existing_text or (metric and metric.casefold() not in existing_text.casefold()):
+            row["bullet_text"] = allocation["bullet_text"]
+            rehydrated_any = True
+        row["has_metric"] = bool(metric) or bool(row.get("has_metric"))
+        row["metric_raw"] = metric or row.get("metric_raw") or None
         row["source_fact_ids"] = [bullet_id]
         ordered.append(row)
     parsed["bullets"] = ordered
@@ -533,7 +538,7 @@ def _materialize_ibm_bullets_from_frozen_allocation(
         {"claim_text": row["bullet_text"], "source_fact_ids": [row["bullet_id"]]}
         for row in ordered
     ]
-    parsed["frozen_allocation_display_rehydrated"] = True
+    parsed["frozen_allocation_display_rehydrated"] = rehydrated_any
     return True
 
 

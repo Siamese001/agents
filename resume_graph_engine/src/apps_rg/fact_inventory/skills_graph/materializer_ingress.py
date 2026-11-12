@@ -194,7 +194,7 @@ def run_materializer_ingress(
             "confidence": tier if conf == "BLOCKED" else conf,
             "confidence_score": score,
             "confidence_tier": tier,
-            "external_eligible": 0,
+            "external_eligible": 1 if ntype == "fact" and act_status not in NON_PROMOTE_ACTIVATION else 0,
             "career_epoch": epoch,
             "phase_ordinal": ordinal,
             "source_authority": "augmented_skills_graph",
@@ -434,6 +434,11 @@ def run_materializer_ingress(
                     "external_eligible": 1 if claim_ok else 0,
                 }
             )
+
+    from .topology_normalization import FACT_TO_EMPLOYMENT_MAP
+
+    for fid_map in sorted(FACT_TO_EMPLOYMENT_MAP):
+        _ensure_fact_node(node_rows, fid_map, ts=ts, candidate_registry=candidate_registry)
 
     for sid, row in skill_rows_by_id.items():
         if sid in FORBIDDEN_SKILL_NODE_IDS:

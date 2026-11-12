@@ -46,6 +46,8 @@ def build_engagement_nodes_and_edges(
             emp_id = normalize_employment_id(raw_emp)
             title = str(b.get("title") or "").strip()
             employer = str(b.get("employer") or "").strip()
+            if employer == "Unify":
+                employer = "Unify Consulting"
             context = str(b.get("operating_context") or b.get("claim_scope") or "").strip()
             theme = str(b.get("bundle_theme") or title or reb_id).strip()
             claim = str(b.get("claim_text") or context or theme).strip()

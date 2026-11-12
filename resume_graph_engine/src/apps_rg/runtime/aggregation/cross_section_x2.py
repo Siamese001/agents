@@ -564,7 +564,7 @@ def run_cross_section_x2_gates(
             "(provenance retained; L2 snapshots unchanged)"
         )
     elif exact:
-        exact_verdict = VERDICT_WARN
+        exact_verdict = VERDICT_FAIL
         exact_reason = f"{len(exact)} exact duplicate claim groups pending overlap disposition"
     else:
         exact_verdict = VERDICT_PASS
@@ -600,7 +600,7 @@ def run_cross_section_x2_gates(
             "(provenance retained)"
         )
     elif same_diff:
-        same_verdict = VERDICT_WARN
+        same_verdict = VERDICT_FAIL
         same_reason = f"{len(same_diff)} same-fact-id wording variants pending overlap disposition"
     else:
         same_verdict = VERDICT_PASS
@@ -780,6 +780,17 @@ def run_cross_section_x2_gates(
             sealed_index=sealed_index,
         ),
     )
+    pillar_gate = check_cross_section_pillar_coherence(sections)
+    if pillar_gate.verdict == VERDICT_UNKNOWN:
+        pillar_gate = CrossSectionGateResult(
+            gate_id=pillar_gate.gate_id,
+            verdict=VERDICT_WARN,
+            decisive_reason=pillar_gate.decisive_reason,
+            threshold=pillar_gate.threshold,
+            observed=pillar_gate.observed,
+            evidence_refs=pillar_gate.evidence_refs,
+        )
+    gates.append(pillar_gate)
 
     whole_resume = final_resume_blob.get("whole_resume_graph_evidence_contract")
     if isinstance(whole_resume, Mapping) and whole_resume.get("active") is True:

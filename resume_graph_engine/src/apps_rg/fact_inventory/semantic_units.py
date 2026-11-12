@@ -190,8 +190,21 @@ def build_skill_evidence_clusters(
             members.append(SemanticUnitMember(unit_id, "node", m_id, "outcome"))
             members.append(SemanticUnitMember(unit_id, "edge", edge_id, "outcome"))
         if employer:
-            members.append(SemanticUnitMember(unit_id, "node", employer, "context"))
-        if epoch:
+            from apps_rg.fact_inventory.skills_graph.topology_normalization import (
+                EMPLOYMENT_DATES_AND_TITLES,
+            )
+
+            emp_node_id = next(
+                (
+                    k
+                    for k, v in EMPLOYMENT_DATES_AND_TITLES.items()
+                    if v.get("employer") == employer or k == employer
+                ),
+                "",
+            )
+            if emp_node_id:
+                members.append(SemanticUnitMember(unit_id, "node", emp_node_id, "context"))
+        if epoch and epoch.startswith("epoch_"):
             members.append(SemanticUnitMember(unit_id, "node", epoch, "context"))
 
         text = render_semantic_unit_text_v2(
