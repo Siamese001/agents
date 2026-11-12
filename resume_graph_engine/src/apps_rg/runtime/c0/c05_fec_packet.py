@@ -35,6 +35,11 @@ def _merge_hybrid_enrichment_items(
     count = 0
     for raw_it in hybrid_items:
         it = raw_it
+        raw_sid = str(getattr(it, "source_id", "") or "").strip()
+        if not raw_sid:
+            fallback_sid = str(getattr(it, "evidence_id", "") or it.source or "").strip()
+            if fallback_sid:
+                it = replace(it, source_id=fallback_sid)
         key = getattr(it, "source_id", "") or it.source
         if key in allowed_set:
             hybrid_excluded.append(f"product_hybrid_not_admitted_as_proof:{key}")

@@ -126,3 +126,55 @@ def test_mandatory_output_posix_paths_and_passing_section_classification() -> No
         assert "\\" not in item["path"]
 
 
+def test_multi_archetype_dynamic_jd_allocation_diversity() -> None:
+    repo = _repo_root()
+    ins_bundle = build_whole_resume_graph_allocation(
+        repo_root=repo,
+        target_role="Senior Vice President, IT Strategy & Innovation",
+        jd_text=(
+            "Brown & Brown Insurance - Senior Vice President, IT Strategy & Innovation. "
+            "Lead enterprise technology strategy, core P&C insurance platform modernization, "
+            "underwriting and claims automation, Guidewire policy administration, and enterprise architecture."
+        ),
+        briefing_text="Target role: SVP IT Strategy & Innovation at Brown & Brown Insurance.",
+    )
+    ai_bundle = build_whole_resume_graph_allocation(
+        repo_root=repo,
+        target_role="SVP Engineering, Agentic AI & Knowledge Graph Platforms",
+        jd_text=(
+            "Lead agentic AI platform engineering, multi-agent orchestration, bitemporal GraphRAG "
+            "hybrid retrieval, LLM runtime control planes, and MCP tool governance."
+        ),
+        briefing_text="Target role: SVP Engineering, Agentic AI & Knowledge Graph Platforms.",
+    )
+    cloud_bundle = build_whole_resume_graph_allocation(
+        repo_root=repo,
+        target_role="SVP Cloud Architecture & Distributed Data Platforms",
+        jd_text=(
+            "Citi Institutional Banking - Firmwide AI Strategy & Cloud Architecture. "
+            "Lead AWS cloud modernization, microservices event-driven Kafka architectures, "
+            "Databricks lakehouse data pipelines, and DevSecOps release resilience."
+        ),
+        briefing_text="Target role: SVP Cloud Architecture & Distributed Data Platforms.",
+    )
+
+    def _visible_roots(bundle: dict) -> set[str]:
+        return {
+            str(r["root_id"])
+            for r in bundle["allocation_plan"]["assignments"]
+            if r.get("counts_toward_global_uniqueness") is not False
+        }
+
+    ins_roots = _visible_roots(ins_bundle)
+    ai_roots = _visible_roots(ai_bundle)
+    cloud_roots = _visible_roots(cloud_bundle)
+
+    # Unrelated archetypes must dynamically select distinct role-episode roots (< 55% Jaccard overlap)
+    jacc_ins_ai = len(ins_roots & ai_roots) / len(ins_roots | ai_roots)
+    jacc_ai_cloud = len(ai_roots & cloud_roots) / len(ai_roots | cloud_roots)
+    assert jacc_ins_ai < 0.55, f"Expected < 0.55 Jaccard overlap between Insurance and AI/ML JDs, got {jacc_ins_ai:.3f}"
+    assert jacc_ai_cloud < 0.55, f"Expected < 0.55 Jaccard overlap between AI/ML and Cloud JDs, got {jacc_ai_cloud:.3f}"
+    assert "reb_slalom_bi_temporal_knowledge_graph_hybrid_retrieval" in ai_roots or "reb_slalom_autonomous_agentic_sdlc_mcp" in ai_roots
+
+
+

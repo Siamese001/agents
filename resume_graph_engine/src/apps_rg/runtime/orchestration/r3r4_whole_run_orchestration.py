@@ -2115,12 +2115,17 @@ def run_whole_run_with_route_governance(
         except OSError:
             section_status_md = None
 
+    from apps_rg.runtime.orchestration.core_runtime_authority import emit_core_runtime_authority
     from apps_rg.runtime.whole_run_exit import emit_whole_run_exit_review_packet
 
     whole_run_exit_identity = _whole_run_exit_identity(
         raw_request=raw_request,
         validated_request=validated_request,
     )
+    try:
+        emit_core_runtime_authority(art)
+    except Exception:  # guardian: allow-broad-exception -- best-effort authority emission before exit packet
+        pass
     whole_run_exit = emit_whole_run_exit_review_packet(
         artifact_dir=art,
         identity=whole_run_exit_identity,
@@ -2152,6 +2157,8 @@ def run_whole_run_with_route_governance(
                     raw_request=raw_request,
                     validated_request=validated_request,
                 )
+                if not exec_summary_blocked and _product_x3_authorizes(effective_x3):
+                    result = dataclasses.replace(result, fault="", x3_disposition=effective_x3) if dataclasses.is_dataclass(result) else result
         except Exception:  # guardian: allow-broad-exception -- recovery failure must fail closed to original exit
             pass
     pre_uwg_eligible = (
@@ -2503,16 +2510,15 @@ def run_whole_run_with_route_governance(
         payload=payload,
         final_resume_outputs_pre_emitted=final_resume_outputs_pre_emitted,
     )
+    try:
+        emit_core_runtime_authority(art)
+    except Exception:  # guardian: allow-broad-exception -- best-effort refresh of core runtime authority
+        pass
+    whole_run_exit = emit_whole_run_exit_review_packet(
+        artifact_dir=art,
+        identity=whole_run_exit_identity,
+    )
     if not immutable_product_authorized:
-        # Failure closeout may materialize a gap-marked FINAL_RESUME_OUTPUT
-        # after the first Exit packet was emitted.  Re-derive the blocked
-        # packet now so its source bindings and diagnosis describe the final
-        # persisted failure state.  A product-authorized packet is immutable
-        # and is never rewritten here.
-        whole_run_exit = emit_whole_run_exit_review_packet(
-            artifact_dir=art,
-            identity=whole_run_exit_identity,
-        )
         if not exec_summary_blocked:
             effective_x3 = str(
                 whole_run_exit.get("x3_disposition") or "X3A_DENY_REROUTE"

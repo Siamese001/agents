@@ -1479,6 +1479,18 @@ def aggregate_patched_run(
     )
 
     _augment_integrated_manifest_with_apps_rg_docx(art)
+    try:
+        from apps_rg.runtime.full_run_section_status import emit_full_run_section_status
+
+        emit_full_run_section_status(art, repo_root=repo, print_stdout=False)
+    except Exception:
+        pass
+    try:
+        from apps_rg.runtime.orchestration.core_runtime_authority import emit_core_runtime_authority
+
+        emit_core_runtime_authority(art)
+    except Exception:
+        pass
 
     eligibility: dict[str, Any] = {"eligible": False, "reasons": ["output_manifest_missing"]}
     manifest_doc = _load_json(art / "apps_rg_output_manifest.json")

@@ -363,6 +363,12 @@ class ResumeRunRecoveryAgent:
 
         # Re-derive whole_run_exit packet
         try:
+            from apps_rg.runtime.orchestration.core_runtime_authority import emit_core_runtime_authority
+
+            try:
+                emit_core_runtime_authority(self.artifact_dir)
+            except Exception:
+                pass
             updated_whole_run_exit = emit_whole_run_exit_review_packet(
                 artifact_dir=self.artifact_dir,
                 identity=whole_run_exit_identity,

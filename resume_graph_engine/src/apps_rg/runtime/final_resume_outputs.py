@@ -680,11 +680,13 @@ def emit_final_resume_product_outputs(
     root = Path(run_root).resolve()
     final_resume_path = _resolve_final_resume_json(root)
     synthesized_fallback = False
+    synthesized_jd_tailored_assembly = False
     if final_resume_path is None and (target_company or target_role or jd_text):
         final_resume_path = _ensure_jd_tailored_final_resume_json(
             root, repo_root=repo_root, target_company=target_company,
             target_role=target_role, jd_text=jd_text, briefing_text=briefing_text,
         )
+        synthesized_jd_tailored_assembly = True
     elif final_resume_path is None and required:
         final_resume_path = _ensure_fallback_final_resume_json(root, repo_root=repo_root)
         synthesized_fallback = True
@@ -705,6 +707,12 @@ def emit_final_resume_product_outputs(
                     sec_p.write_text(serialized_final, encoding="utf-8")
 
     contract = build_final_resume_output_contract(root, repo_root=repo_root, required=required)
+    contract["synthesized_fallback"] = bool(synthesized_fallback or synthesized_jd_tailored_assembly)
+    contract["synthesized_fallback_mode"] = (
+        "fallback_final_resume"
+        if synthesized_fallback
+        else ("jd_tailored_graph_assembly" if synthesized_jd_tailored_assembly else "none")
+    )
     _write_output_manifest(root, final_resume_path=final_resume_path, contract=contract)
     contract_path = root / FINAL_RESUME_OUTPUT_JSON
     contract_path.write_text(json.dumps(contract, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

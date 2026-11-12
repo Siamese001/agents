@@ -289,6 +289,29 @@ def _probe_graph_and_embeddings(repo_root: Path) -> dict[str, Any]:
             )
             if not c03_sel.get("selected_candidates"):
                 gaps.append("select_c03_sqlite_graph_candidates returned 0 selected_candidates for executive_summary")
+            import sqlite3
+            with sqlite3.connect(active_db) as conn:
+                blank_emp = conn.execute(
+                    "SELECT COUNT(*) FROM graph_nodes WHERE node_type IN ('fact','skill','metric_outcome') AND COALESCE(TRIM(employer),'') = ''"
+                ).fetchone()[0]
+                if blank_emp > 0:
+                    gaps.append(f"augmented_skills_graph.sqlite has {blank_emp} blank employer rows on fact/skill/metric_outcome")
+                elig_facts = conn.execute(
+                    "SELECT COUNT(*) FROM graph_nodes WHERE node_type = 'fact' AND external_eligible = 1"
+                ).fetchone()[0]
+                if elig_facts < 60:
+                    gaps.append(f"augmented_skills_graph.sqlite has only {elig_facts} external_eligible=1 facts (<60)")
+                orphan_rf = conn.execute(
+                    "SELECT COUNT(*) FROM graph_nodes n WHERE n.node_type = 'role_family' AND NOT EXISTS (SELECT 1 FROM graph_edges e WHERE e.source_node_id = n.node_id OR e.target_node_id = n.node_id)"
+                ).fetchone()[0]
+                if orphan_rf > 0:
+                    gaps.append(f"augmented_skills_graph.sqlite has {orphan_rf} orphaned role_family nodes")
+            fv_fts = rg_root / "data/cache/sparse/fact_vectors.db"
+            if fv_fts.is_file():
+                with sqlite3.connect(fv_fts) as fconn:
+                    fts_count = fconn.execute("SELECT COUNT(*) FROM docs").fetchone()[0]
+                    if fts_count < 328:
+                        gaps.append(f"fact_vectors.db has only {fts_count} indexed rows (<328)")
         if trav_res.get("status") != "PASS":
             gaps.append("run_resume_graph_traversal_probe did not return PASS")
     except Exception as exc:  # guardian: allow-broad-exception -- capture graph/embedding verification failure into pillar gaps

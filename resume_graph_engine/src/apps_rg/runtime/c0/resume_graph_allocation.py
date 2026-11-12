@@ -957,10 +957,12 @@ def _default_slot_specs(
                     if row.get("authority_pass") is True
                 )
             )
-            req_root_id = unify_req_root if section_id == "unify_bullets" else (
-                str(slalom_slot_roots.get(claim_unit) or "").strip() if section_id == "slalom_bullets" else (
-                    str(ibm_slot_roots.get(claim_unit) or "").strip() if section_id == "ibm_bullets" and str(ibm_slot_roots.get(claim_unit) or "").strip() in section_roots_map else (
-                        str(insurtech_slot_roots.get(claim_unit) or "").strip() if section_id == "insurtech_bullets" and str(insurtech_slot_roots.get(claim_unit) or "").strip() in section_roots_map else ""
+            req_root_id = (
+                unify_req_root if (section_id == "unify_bullets" and target_role_profile == "insurance_it_strategy") else (
+                    str(slalom_slot_roots.get(claim_unit) or "").strip() if (section_id == "slalom_bullets" and target_role_profile == "insurance_it_strategy") else (
+                        str(ibm_slot_roots.get(claim_unit) or "").strip() if (section_id == "ibm_bullets" and target_role_profile == "insurance_it_strategy" and str(ibm_slot_roots.get(claim_unit) or "").strip() in section_roots_map) else (
+                            str(insurtech_slot_roots.get(claim_unit) or "").strip() if (section_id == "insurtech_bullets" and target_role_profile == "insurance_it_strategy" and str(insurtech_slot_roots.get(claim_unit) or "").strip() in section_roots_map) else ""
+                        )
                     )
                 )
             )
@@ -1083,6 +1085,7 @@ def _candidate_sets_from_section_plans(
                         proof_score, align_score, indep_score = compute_candidate_alignment_and_independence(
                             root=root, skill=skill, metric=metric, root_weight=root_weight,
                             citation_refs=citation_refs, skill_sources=skill_sources,
+                            sec_plan=section_plans.get(slot.section_id) or {},
                         )
                         if slot.section_id == "ibm_bullets" and metric_id == "metric_ibm_20pct_joint_revenue_growth":
                             align_score = round(align_score + 0.5, 6)

@@ -90,6 +90,16 @@ def sync_split_pointer_roots(run_dir: Path | str) -> None:
                     for item in src_dir.iterdir():
                         if item.is_file():
                             shutil.copy2(item, flat_dir / item.name)
+            if (lanes_root / lane / "latest_successful_real_run.json").is_file() or (
+                modular_root / lane / "latest_successful_real_run.json"
+            ).is_file():
+                for stale_dir in (lanes_root / lane, modular_root / lane):
+                    stale_fail = stale_dir / "integrated_lane_pre_run_failure.json"
+                    if stale_fail.is_file():
+                        try:
+                            stale_fail.unlink()
+                        except OSError:
+                            pass
 
 
 def mirror_sibling_pointer_roots(

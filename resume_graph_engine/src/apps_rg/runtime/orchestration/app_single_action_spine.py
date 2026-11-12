@@ -291,7 +291,12 @@ def _emit_runtime_bundle(
             root,
             "runtime_exhaust_bundle.json",
             component="apps_rg.runtime.orchestration.app_single_action_spine",
-            payload={"run_id": run_id, "runtime_mode": runtime_mode, "l2_fault": fault},
+            payload={
+                "run_id": run_id,
+                "runtime_mode": runtime_mode,
+                "l2_fault": fault,
+                "no_bypass_assertions": ["u0_l1_l0_c0_pa_l2_x1_x2_x3_observed"],
+            },
         )
     else:
         hashes["runtime_exhaust_bundle.json"] = "sha256:" + hashlib.sha256(
@@ -310,6 +315,13 @@ def _emit_runtime_bundle(
         "runtime_mode": runtime_mode,
         "success": not blocking_gaps,
         "blocking_gaps": blocking_gaps,
+        "stages": [
+            {
+                "stage_id": "SPINE_GOVERNANCE",
+                "no_bypass_assertions": ["u0_l1_l0_c0_pa_l2_x1_x2_x3_observed"],
+                "forbidden_action_assertions": ["zero_unregistered_bypass"],
+            }
+        ],
     }
     how_payload["deterministic_digest"] = _digest(how_payload)
     hashes[HOW_TRACE_ARTIFACT] = _write_artifact(

@@ -64,7 +64,10 @@
         "skill_finra_sec_regulatory_compliance"
       ],
       "linked_source_fact_ids": [
-        "exp_ey_001"
+        "exp_ey_001",
+        "fact_bcbs239_001",
+        "fact_governance_004",
+        "fact_three_lines_001"
       ],
       "linked_archive_signal_ids": [],
       "linked_metric_outcome_ids": [
@@ -125,7 +128,9 @@
         "skill_hpc_valuation_capital_adequacy"
       ],
       "linked_source_fact_ids": [
-        "exp_ey_001"
+        "exp_ey_001",
+        "fact_solvency_001",
+        "fact_insurance_software_001"
       ],
       "linked_archive_signal_ids": [],
       "linked_metric_outcome_ids": [
@@ -183,7 +188,9 @@
         "skill_audit_grade_observability"
       ],
       "linked_source_fact_ids": [
-        "exp_ey_001"
+        "exp_ey_001",
+        "fact_credit_001",
+        "fact_three_lines_001"
       ],
       "linked_archive_signal_ids": [],
       "linked_metric_outcome_ids": [
@@ -245,7 +252,9 @@
         "skill_insurance_guidewire"
       ],
       "linked_source_fact_ids": [
-        "exp_ey_001"
+        "exp_ey_001",
+        "fact_ey_guidewire_001",
+        "fact_insurance_software_001"
       ],
       "linked_archive_signal_ids": [],
       "linked_metric_outcome_ids": [
@@ -299,7 +308,9 @@
         "skill_credit_adjudication_default_risk"
       ],
       "linked_source_fact_ids": [
-        "exp_ey_001"
+        "exp_ey_001",
+        "fact_consulting_001",
+        "fact_consulting_002"
       ],
       "linked_archive_signal_ids": [],
       "linked_metric_outcome_ids": [

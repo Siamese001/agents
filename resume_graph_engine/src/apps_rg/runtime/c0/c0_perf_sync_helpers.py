@@ -255,9 +255,16 @@ def compute_career_band_filter(
         for k, v in dict(((sec_plan.get("graph_weight_profile") or {}).get("employer_weights")) or {}).items()
     }
     is_shared_top_section = section_id in {"executive_summary", "headline", "competencies"}
+    profile = str(sec_plan.get("target_role_profile") or "")
+    selected_root_set = (
+        {str(r) for r in (sec_plan.get("selected_nodes") or []) if str(r).strip()}
+        if profile and profile != "insurance_it_strategy"
+        else set()
+    )
     primary_secondary_roots = {
         r_id
         for r_id, bkt in grouped_section_buckets.items()
+        if not selected_root_set or r_id in selected_root_set
         for r_row in bkt["root"]
         if r_row.get("authority_pass") is True
         and (
@@ -276,6 +283,8 @@ def compute_career_band_filter(
     }
     if section_id == "executive_summary":
         for r_id, bkt in grouped_section_buckets.items():
+            if selected_root_set and r_id not in selected_root_set:
+                continue
             if any(
                 r_row.get("authority_pass") is True
                 and float(
@@ -294,6 +303,54 @@ def compute_career_band_filter(
     return employer_root_weights, employer_weights, enforce_career_band, primary_secondary_roots
 
 
+_ARCHETYPE_ROOT_BOOSTS: dict[str, tuple[tuple[str, ...], dict[str, float]]] = {
+    "cloud_arch": (
+        ("cloud architecture", "microservices", "event-driven", "kafka", "devsecops", "lakehouse", "databricks", "distributed systems"),
+        {
+            "reb_slalom_ecosystem_accelerators": 1.8,
+            "reb_slalom_governed_runtime_scaling": 1.7,
+            "reb_slalom_visual_asset_intelligence": 1.6,
+            "reb_slalom_engineering_practice_leadership": 1.5,
+            "reb_unify_distributed_ecosystem_engineering": 1.8,
+            "reb_unify_dependency_graph_accelerator": 1.7,
+            "reb_unify_hyperscaler_joint_solution_architecture": 1.6,
+            "reb_unify_production_adoption_lifecycle": 1.5,
+            "reb_unify_runtime_reliability_governance": 1.4,
+            "reb_unify_platform_commercialization_leadership": 1.3,
+            "reb_ibm_aws_modernization_architecture": 1.8,
+            "reb_ibm_microservices_event_driven_architecture": 1.7,
+            "reb_ibm_devsecops_release_resilience": 1.6,
+            "reb_ibm_enterprise_data_architecture_governance": 1.5,
+            "reb_ibm_aws_alliance_partner_cosell_gtm": 1.4,
+            "reb_insurtech_aws_cloud_architecture": 1.7,
+            "reb_insurtech_data_pipeline_modernization": 1.6,
+        },
+    ),
+    "ai_ml_platform": (
+        ("agentic", "graphrag", "multi-agent", "llm", "mcp", "control plane", "copilot", "bitemporal"),
+        {
+            "reb_slalom_bi_temporal_knowledge_graph_hybrid_retrieval": 1.9,
+            "reb_slalom_autonomous_agentic_sdlc_mcp": 1.8,
+            "reb_slalom_live_copilot_acoustic_air_gap": 1.7,
+            "reb_slalom_multi_agent_orchestration_governance": 1.6,
+            "reb_unify_agentic_platform_architecture": 1.9,
+            "reb_unify_runtime_reliability_governance": 1.8,
+            "reb_unify_regulated_enterprise_ai_governance": 1.7,
+            "reb_unify_production_adoption_lifecycle": 1.6,
+            "reb_unify_enterprise_adoption_revenue": 1.5,
+            "reb_unify_partner_channel_cosell": 1.4,
+            "reb_ibm_enterprise_ai_analytics_reference_architecture": 1.8,
+            "reb_ibm_data_modeling_bi_decision_support": 1.7,
+            "reb_ibm_presales_solution_engineering": 1.6,
+            "reb_ibm_executive_discovery_csuite_advisory": 1.5,
+            "reb_ibm_revenue_sales_target_execution": 1.4,
+            "reb_insurtech_underwriting_decision_support": 1.7,
+            "reb_insurtech_claims_automation_analytics": 1.6,
+        },
+    ),
+}
+
+
 def compute_candidate_alignment_and_independence(
     *,
     root: dict[str, Any],
@@ -302,6 +359,7 @@ def compute_candidate_alignment_and_independence(
     root_weight: float,
     citation_refs: list[str],
     skill_sources: list[str],
+    sec_plan: Mapping[str, Any] | None = None,
 ) -> tuple[float, float, float]:
     raw_proof = float(skill.get("proof_strength_raw") or 0.0)
     raw_align = (
@@ -310,6 +368,26 @@ def compute_candidate_alignment_and_independence(
         + float((metric or {}).get("target_alignment_score") or 0.0)
     ) / (3 if metric is not None else 2)
     root_id = str(root.get("root_id") or root.get("candidate_id") or "")
+    profile = str((sec_plan or {}).get("target_role_profile") or "")
+    if profile and profile != "insurance_it_strategy":
+        root_text = " ".join(
+            str(root.get(k) or "")
+            for k in ("root_id", "bundle_theme", "claim_text", "claim_scope", "claim_outcome")
+        ).lower()
+        skill_text = f"{skill.get('candidate_id', '')} {skill.get('skill_label', '')}".lower()
+        cand_blob = f"{root_text} {skill_text}"
+        for _arch, (triggers, root_boosts) in _ARCHETYPE_ROOT_BOOSTS.items():
+            if root_id in root_boosts:
+                if _arch == "ai_ml_platform" and profile in {"svp_agentic_engineering", "insurance_agentic_ai"}:
+                    raw_align += root_boosts[root_id]
+                elif _arch == "cloud_arch" and profile in {"balanced_enterprise_ai", "ai_partnerships_gtm", "executive_agentic_transformation"}:
+                    raw_align += root_boosts[root_id]
+            hit_count = sum(1 for t in triggers if t in cand_blob)
+            if hit_count:
+                if _arch == "ai_ml_platform" and profile in {"svp_agentic_engineering", "insurance_agentic_ai"}:
+                    raw_align += hit_count * 0.25
+                elif _arch == "cloud_arch" and profile in {"balanced_enterprise_ai", "ai_partnerships_gtm"}:
+                    raw_align += hit_count * 0.25
     proof_score = (
         1.0
         if (

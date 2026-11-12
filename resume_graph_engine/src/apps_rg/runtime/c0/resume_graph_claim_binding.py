@@ -836,6 +836,13 @@ def bind_final_claims_to_resume_graph_allocation(
         for claim in claims
         if str(claim.get("claim_unit_id") or "") in allocated_claim_units
     )
+    bound_consumption_counts: Counter[str] = Counter()
+    for binding in bindings:
+        for cuid in binding.get("allocation_claim_unit_ids") or []:
+            cuid_str = str(cuid or "").strip()
+            if cuid_str in allocated_claim_units:
+                bound_consumption_counts[cuid_str] += 1
+    effective_consumption_counts = explicit_consumption_counts or bound_consumption_counts
     reconciliation_receipt = _load_json(
         artifact_dir / "competencies_allocation_claim_reconciliation_receipt.json"
     )
@@ -896,7 +903,7 @@ def bind_final_claims_to_resume_graph_allocation(
         "required_allocated_claim_unit_count": len(required_allocated_claim_units),
         "bound_allocation_claim_unit_count": len(used_claim_units),
         "allocation_claim_unit_consumption_counts": {
-            claim_unit_id: int(explicit_consumption_counts.get(claim_unit_id, 0))
+            claim_unit_id: int(effective_consumption_counts.get(claim_unit_id, 0))
             for claim_unit_id in sorted(allocated_claim_units)
         },
         "allocation_claim_unit_consumption_exactly_once_pass": not invalid_consumption_counts,

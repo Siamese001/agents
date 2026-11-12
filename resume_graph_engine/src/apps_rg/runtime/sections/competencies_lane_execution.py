@@ -260,6 +260,11 @@ def run_competencies_lane_execution(
     )
     if blocked is not None:
         return blocked
+    allowed_fact_ids = {str(x) for x in (runtime_payload.get("allowed_fact_ids") or allowed_fact_ids)}
+    selected_fact_plan = dict(runtime_payload.get("selected_fact_plan") or selected_fact_plan or {})
+    if isinstance(selected_fact_plan.get("facts"), list) and selected_fact_plan["facts"]:
+        bullet_rows = [dict(r) for r in selected_fact_plan["facts"] if isinstance(r, dict)]
+        bullet_lowers = [str(r.get("claim_text") or "").lower() for r in bullet_rows]
 
     fact_lines = "\n".join(
         f"- {row['fact_id']}: {row['claim_text']}"

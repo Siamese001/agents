@@ -299,7 +299,8 @@
       ],
       "linked_archive_signal_ids": [],
       "linked_metric_outcome_ids": [
-        "metric_slalom_visual_asset_intelligence_sow_delivery"
+        "metric_slalom_visual_asset_intelligence_sow_delivery",
+        "metric_slalom_enterprise_ai_adoption_rate"
       ],
       "held_metrics": [],
       "excluded_metrics": [],
@@ -348,7 +349,8 @@
       ],
       "linked_archive_signal_ids": [],
       "linked_metric_outcome_ids": [
-        "metric_slalom_consulting_engineering_footprint_scale"
+        "metric_slalom_consulting_engineering_footprint_scale",
+        "metric_slalom_delivery_cycle_compression_pct"
       ],
       "held_metrics": [],
       "excluded_metrics": [],
