@@ -65,7 +65,7 @@ def select_non_colliding_competency_synonym(
     sub = synonym_map.get(worst.lower(), "delivery")
     lower_words = [w.lower() for w in words]
     if sub.lower() in lower_words:
-        return "platform" if "platform" not in lower_words else "operational"
+        return "operational" if "operational" not in lower_words else "enterprise"
     return sub
 
 

@@ -625,7 +625,6 @@ _KEYWORD_STUFFING_STOPWORDS = frozenset(
         "using",
         "based",
         "enterprise",
-        "platform",
         "systems",
         "engineering",
         "delivery",
@@ -635,7 +634,6 @@ _KEYWORD_STUFFING_STOPWORDS = frozenset(
         "ml",
         "execution",
         "operations",
-        "architecture",
         "management",
     }
 )
@@ -766,7 +764,8 @@ def reduce_competency_keyword_stuffing(parsed: dict[str, Any]) -> None:
             synonym_map = {
                 "execution": "rollout", "operating": "operational", "governance": "controls",
                 "management": "oversight", "workflows": "pipelines", "discovery": "assessment",
-                "pursuits": "initiatives", "motions": "engagements", "agentic": "platform",
+                "pursuits": "initiatives", "motions": "engagements", "agentic": "autonomous",
+                "platform": "ecosystem", "architecture": "blueprint",
             }
             replaced = False
             for cat in comps:
