@@ -216,7 +216,8 @@ def _rebind_preflight_if_needed(artifact_dir: Path, identity: Mapping[str, Any])
         E2E_PREFLIGHT_CONTINUATION_CONSUMPTION_FILENAME,
         E2E_PREFLIGHT_CONTINUATION_RECEIPT_FILENAME,
         E2E_PREFLIGHT_PRODUCT_ENTRY_RECEIPT_FILENAME,
-        _continuation_body, _payload_digest, _sha256_bytes, _signature, _write_receipt,
+        E2E_PREFLIGHT_RECEIPT_FILENAME,
+        _continuation_body, _payload_digest, _sha256_bytes, _signature, _write_legacy_non_product_projection, _write_receipt,
     )
 
     root = Path(artifact_dir).resolve()
@@ -241,8 +242,14 @@ def _rebind_preflight_if_needed(artifact_dir: Path, identity: Mapping[str, Any])
         return False
 
     cont_body = _continuation_body(cont)
-    expected_sig = _signature(secret, cont_body)
-    if (not key_id or str(cont.get("route_signing_key_id") or "") == key_id) and str(cont.get("continuation_signature") or "") == expected_sig:
+    expected_cont_sig = _signature(secret, cont_body)
+    cons_body = {k: v for k, v in cons.items() if k != "consumption_signature"}
+    expected_cons_sig = _signature(secret, cons_body)
+    if (
+        (not key_id or str(cont.get("route_signing_key_id") or "") == key_id)
+        and str(cont.get("continuation_signature") or "") == expected_cont_sig
+        and str(cons.get("consumption_signature") or "") == expected_cons_sig
+    ):
         return False
 
     if key_id:
@@ -251,6 +258,12 @@ def _rebind_preflight_if_needed(artifact_dir: Path, identity: Mapping[str, Any])
     cont["continuation_payload_digest"] = _payload_digest(cont_body)
     cont["continuation_signature"] = _signature(secret, cont_body)
     _write_receipt(cont_path, cont)
+    if (root / E2E_PREFLIGHT_RECEIPT_FILENAME).is_file():
+        _write_legacy_non_product_projection(
+            path=root / E2E_PREFLIGHT_RECEIPT_FILENAME,
+            authoritative_path=cont_path,
+            receipt=cont,
+        )
     cont_bytes = cont_path.read_bytes()
 
     cons_body = {k: v for k, v in cons.items() if k != "consumption_signature"}
@@ -295,28 +308,33 @@ def _rewind_product_stage_ledger_to_l0(artifact_dir: Path, *, preflight_rebound:
     )
     from apps_rg.runtime.e2e_stage_ledger import (
         E2E_LEDGER_RECEIPT_SNAPSHOT_DIR, E2E_STAGE_LEDGER_FILENAME, E2E_STAGE_LEDGER_SEAL_FILENAME,
-        ReceiptDerivedE2EStageLedger, _artifact_binding, _sha256_bytes,
+        E2E_STAGE_LEDGER_V2_SCHEMA_VERSION, ReceiptDerivedE2EStageLedger, StageTransitionError,
+        _artifact_binding, _sha256_bytes,
     )
     from apps_rg.runtime.failure_evidence import atomic_write_json
     from apps_rg.runtime.terminal_manifest import PIPELINE_COMPLETION_RECEIPT_FILENAME, TERMINAL_MANIFEST_FILENAME
 
     root = Path(artifact_dir).resolve()
+    ledger_path = root / E2E_STAGE_LEDGER_FILENAME
+    payload = json.loads(ledger_path.read_text(encoding="utf-8"))
+    if str(payload.get("schema_version") or "") != E2E_STAGE_LEDGER_V2_SCHEMA_VERSION:
+        raise StageTransitionError("cannot rewind non-v2 stage ledger for product closeout")
+    entries = list(payload.get("entries") or [])
+
+    l0_index = next((idx for idx, item in enumerate(entries) if isinstance(item, dict) and str(item.get("stage_id") or "").upper() == "APPS_RG_L0"), None)
+    if l0_index is None:
+        raise StageTransitionError("cannot rewind product stage ledger: APPS_RG_L0 stage not reached")
+    if str(entries[l0_index].get("status") or "").upper() != "PASS":
+        raise StageTransitionError("cannot rewind product stage ledger: APPS_RG_L0 did not PASS")
+
     import shutil
     shutil.rmtree(root / "apps_eval", ignore_errors=True)
     for fname in (E2E_STAGE_LEDGER_SEAL_FILENAME, TERMINAL_MANIFEST_FILENAME, PIPELINE_COMPLETION_RECEIPT_FILENAME, "apps_rg_product_authorization_receipt.json", "apps_rg_product_authorization_correction_receipt.json"):
         (root / fname).unlink(missing_ok=True)
 
-    ledger_path = root / E2E_STAGE_LEDGER_FILENAME
-    payload = json.loads(ledger_path.read_text(encoding="utf-8"))
-    entries = list(payload.get("entries") or [])
-
-    l0_index = next((idx for idx, item in enumerate(entries) if isinstance(item, dict) and str(item.get("stage_id") or "").upper() == "APPS_RG_L0"), None)
-    if l0_index is not None:
-        kept_entries = entries[: l0_index + 1]
-        if kept_entries:
-            kept_entries[-1]["next_stage_id"] = "APPS_RG_C0"
-    else:
-        kept_entries = entries
+    kept_entries = entries[: l0_index + 1]
+    if kept_entries:
+        kept_entries[-1]["next_stage_id"] = "APPS_RG_C0"
 
     snap_dir = root / E2E_LEDGER_RECEIPT_SNAPSHOT_DIR
     if snap_dir.is_dir():
@@ -392,6 +410,9 @@ def close_patched_product_run(
         if bool(exec_summary_block.get("blocked"))
         else str(whole_run_exit.get("x3_disposition") or "X3A_DENY_REROUTE")
     )
+    if effective_x3 != _PRODUCT_SUCCESS_X3:
+        refresh_root_spine_bundle_after_patch(art, x3_disposition=effective_x3)
+        raise ProductE2EAuthorityError(f"whole-run exit blocked after patch: {effective_x3}")
 
     product_stage_ledger = _rewind_product_stage_ledger_to_l0(art, preflight_rebound=preflight_rebound)
     runtime_authority = emit_runtime_stage_authority_receipts(artifact_dir=art, identity=canonical_identity)
