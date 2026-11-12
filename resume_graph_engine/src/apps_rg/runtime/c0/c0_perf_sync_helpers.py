@@ -255,16 +255,9 @@ def compute_career_band_filter(
         for k, v in dict(((sec_plan.get("graph_weight_profile") or {}).get("employer_weights")) or {}).items()
     }
     is_shared_top_section = section_id in {"executive_summary", "headline", "competencies"}
-    profile = str(sec_plan.get("target_role_profile") or "")
-    selected_root_set = (
-        {str(r) for r in (sec_plan.get("selected_nodes") or []) if str(r).strip()}
-        if profile and profile != "insurance_it_strategy"
-        else set()
-    )
     primary_secondary_roots = {
         r_id
         for r_id, bkt in grouped_section_buckets.items()
-        if not selected_root_set or r_id in selected_root_set
         for r_row in bkt["root"]
         if r_row.get("authority_pass") is True
         and (
@@ -283,8 +276,6 @@ def compute_career_band_filter(
     }
     if section_id == "executive_summary":
         for r_id, bkt in grouped_section_buckets.items():
-            if selected_root_set and r_id not in selected_root_set:
-                continue
             if any(
                 r_row.get("authority_pass") is True
                 and float(
@@ -370,6 +361,9 @@ def compute_candidate_alignment_and_independence(
     root_id = str(root.get("root_id") or root.get("candidate_id") or "")
     profile = str((sec_plan or {}).get("target_role_profile") or "")
     if profile and profile != "insurance_it_strategy":
+        selected_root_set = {str(r) for r in ((sec_plan or {}).get("selected_nodes") or []) if str(r).strip()}
+        if root_id in selected_root_set:
+            raw_align += 0.45
         root_text = " ".join(
             str(root.get(k) or "")
             for k in ("root_id", "bundle_theme", "claim_text", "claim_scope", "claim_outcome")
@@ -408,6 +402,24 @@ def compute_candidate_alignment_and_independence(
         else round(min(len(set(citation_refs + skill_sources)), 4) / 4, 6)
     )
     return proof_score, align_score, indep_score
+
+
+def diversify_slot_candidates(rows: list[dict[str, Any]], *, required_root_id: str, section_id: str) -> list[dict[str, Any]]:
+    if required_root_id or len(rows) <= 32:
+        return rows
+    cap = 2 if section_id == "competencies" else 3
+    kept: list[dict[str, Any]] = []
+    overflow: list[dict[str, Any]] = []
+    seen_by_root: dict[str, set[str]] = {}
+    for r in rows:
+        rid, sid = str(r.get("root_id") or ""), str(r.get("skill_id") or "")
+        s_set = seen_by_root.setdefault(rid, set())
+        if len(s_set) < cap and sid not in s_set:
+            s_set.add(sid)
+            kept.append(r)
+        else:
+            overflow.append(r)
+    return kept if len(kept) >= 12 else (kept + overflow)
 
 
 def build_targeting_provenance(

@@ -471,6 +471,9 @@ def test_sqlite_authority_gate_rejects_explicit_section_block(tmp_path: Path) ->
         )
         raw_summary = conn.execute("SELECT graph_count_summary FROM graph_metadata").fetchone()[0]
         summary = json.loads(raw_summary)
+        summary["section_eligibility_count"] = conn.execute(
+            "SELECT COUNT(*) FROM section_eligibility"
+        ).fetchone()[0]
         summary["sqlite_graph_digest"] = compute_sqlite_graph_digest(conn)
         conn.execute(
             "UPDATE graph_metadata SET graph_count_summary = ?",

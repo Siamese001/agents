@@ -179,6 +179,11 @@ class InMemoryResearchStore:
             try:
                 catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
                 resolved = str((catalog.get("embedding") or {}).get("bge_m3") or "").strip()
+                if not resolved and isinstance(catalog.get("models"), dict):
+                    for model_key, model_meta in catalog["models"].items():
+                        if isinstance(model_meta, dict) and model_meta.get("capability_class") == "embedding":
+                            resolved = str(model_key).strip()
+                            break
                 if resolved:
                     return resolved
             except (OSError, ValueError, TypeError):

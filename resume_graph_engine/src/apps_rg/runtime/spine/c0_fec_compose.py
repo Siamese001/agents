@@ -599,7 +599,9 @@ def _attach_l1_cognitive_c0_revision(
         )
         career_thesis_plan = runtime_payload.get("career_thesis_plan")
         if career_thesis_plan is None:
-            env_plan_path = os.environ.get("APPS_RG_CAREER_THESIS_PLAN_PATH", "").strip()
+            from apps_rg.config.runtime_env import get_runtime_env_str
+
+            env_plan_path = get_runtime_env_str("APPS_RG_CAREER_THESIS_PLAN_PATH", "").strip()
             if env_plan_path and Path(env_plan_path).is_file():
                 try:
                     loaded_plan = json.loads(Path(env_plan_path).read_text(encoding="utf-8"))

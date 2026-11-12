@@ -519,6 +519,11 @@ def _materialize_ibm_bullets_from_frozen_allocation(
             },
         )
 
+    from apps_rg.runtime.validators.bullet_quality_floor_x2 import (
+        check_bullet_technical_specificity_floor,
+        check_experience_bullet_evidence_density,
+    )
+
     ordered: list[dict[str, Any]] = []
     rehydrated_any = False
     for bullet_id in active_bullet_ids:
@@ -526,7 +531,13 @@ def _materialize_ibm_bullets_from_frozen_allocation(
         allocation = allocation_by_bullet[bullet_id]
         existing_text = str(row.get("bullet_text") or "").strip()
         metric = allocation["metric_text"]
-        if not existing_text or (metric and metric.casefold() not in existing_text.casefold()):
+        keep_existing = (
+            bool(existing_text)
+            and check_experience_bullet_evidence_density(bullet_id, existing_text).passed
+            and check_bullet_technical_specificity_floor(bullet_id, existing_text).passed
+            and (not metric or metric.casefold() in existing_text.casefold())
+        )
+        if not keep_existing:
             row["bullet_text"] = allocation["bullet_text"]
             rehydrated_any = True
         row["has_metric"] = bool(metric) or bool(row.get("has_metric"))

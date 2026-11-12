@@ -78,8 +78,8 @@ def _resolve_career_thesis_block(
     l1_cognitive_revision: Mapping[str, Any] | None,
 ) -> dict[str, Any] | None:
     import json
-    import os
 
+    from apps_rg.config.runtime_env import get_runtime_env_str
     from apps_rg.runtime.contracts.l1_cognitive_c0_outcome_receipt import (
         _normalize_career_thesis_alignment_block,
     )
@@ -90,7 +90,7 @@ def _resolve_career_thesis_block(
         embedded = l1_cognitive_revision.get("career_thesis_alignment")
         if isinstance(embedded, Mapping):
             return _normalize_career_thesis_alignment_block(embedded)
-    env_path = os.environ.get("APPS_RG_CAREER_THESIS_PLAN_PATH", "").strip()
+    env_path = get_runtime_env_str("APPS_RG_CAREER_THESIS_PLAN_PATH", "").strip()
     if env_path:
         p = Path(env_path)
         if p.is_file():

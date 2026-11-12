@@ -367,7 +367,7 @@ class ResumeRunRecoveryAgent:
 
             try:
                 emit_core_runtime_authority(self.artifact_dir)
-            except Exception:
+            except Exception:  # guardian: allow-silent-swallow -- best-effort core runtime authority refresh before exit packet
                 pass
             updated_whole_run_exit = emit_whole_run_exit_review_packet(
                 artifact_dir=self.artifact_dir,

@@ -60,7 +60,11 @@ def _fixture_handoff(
             (repo / "config/certification/apps_research_rg_e2e_authority_contract.v1.json").read_bytes()
         ),
         blueprint_hash=sha256_bytes(
-            (repo / "src/apps_research/config/domain_contract/runtime_customization_package.company_brief.v1.json").read_bytes()
+            (
+                (repo.parent / "apps_research/config/domain_contract/runtime_customization_package.company_brief.v1.json")
+                if (repo.parent / "apps_research/config/domain_contract/runtime_customization_package.company_brief.v1.json").is_file()
+                else (repo / "src/apps_research/config/domain_contract/runtime_customization_package.company_brief.v1.json")
+            ).read_bytes()
         ),
         secret=_FIXTURE_SECRET,
     )
@@ -111,13 +115,9 @@ def test_anthropic_partnership_fixture_e2e_runs_real_u0_l1_l0_and_fixture_eval(
     from apps_rg.cache.whole_run_entrypoint_preflight import WholeRunCachePreflightOutcome
     from apps_rg.runtime.orchestration import r3r4_whole_run_orchestration as orch
 
-    import shutil
-
-    run_root = _repo_root() / "artifacts" / "test_runs" / "anthropic_fixture_run"
-    if run_root.exists():
-        shutil.rmtree(run_root, ignore_errors=True)
-    run_root.mkdir(parents=True, exist_ok=True)
+    run_root = tmp_path / "anthropic_fixture_run"
     jd_path = _repo_root() / "src/apps_rg/config/targeting/jd_anthropic_partnerships_2026.json"
+    monkeypatch.setenv("APPS_RG_TEST_HARNESS", "1")
     monkeypatch.setenv("APPS_RG_DETERMINISTIC_FIXTURE_HMAC_SECRET", _FIXTURE_SECRET)
     monkeypatch.setenv("APPS_RG_L1_ALLOW_EMPTY_PROFILE_DIGEST", "1")
     monkeypatch.delenv("APPS_RG_MOCK_RESEARCH", raising=False)

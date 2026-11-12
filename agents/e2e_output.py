@@ -14,8 +14,9 @@ from typing import Any, Iterator
 class _TeeStream:
     """Stream that captures written bytes into an in-memory buffer and optional file."""
 
-    def __init__(self, file_obj=None) -> None:
+    def __init__(self, file_obj=None, orig_stream=None) -> None:
         self.file_obj = file_obj
+        self.orig_stream = orig_stream
         self.buffer = io.StringIO()
 
     def write(self, data: str) -> int:
@@ -61,8 +62,8 @@ def isolate_child_output(log_path: Path | str | None = None) -> Iterator[dict[st
         except Exception:
             file_obj = None
 
-    stdout_tee = _TeeStream(file_obj)
-    stderr_tee = _TeeStream(file_obj)
+    stdout_tee = _TeeStream(file_obj, orig_stream=orig_stdout)
+    stderr_tee = _TeeStream(file_obj, orig_stream=orig_stderr)
 
     # Intercept any root loggers pointing to orig streams
     modified_handlers = []
@@ -95,7 +96,12 @@ def isolate_child_output(log_path: Path | str | None = None) -> Iterator[dict[st
 
 def emit_authoritative_lifecycle_json(payload: dict[str, Any], stream=None) -> None:
     """Emit exactly one authoritative lifecycle JSON payload to stdout (or provided stream)."""
-    target = stream or sys.__stdout__ or sys.stdout
+    if stream is not None:
+        target = stream
+    elif isinstance(sys.stdout, _TeeStream):
+        target = sys.stdout.orig_stream or sys.__stdout__ or sys.stdout
+    else:
+        target = sys.stdout or sys.__stdout__
     serialized = json.dumps(payload, indent=2, sort_keys=False)
     target.write(serialized + "\n")
     target.flush()

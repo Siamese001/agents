@@ -399,7 +399,14 @@ def _binding_for_claim(
     if not text:
         return None, ["visible_claim_text_missing"]
     metric_surfaces = _VISIBLE_METRIC_RE.findall(text)
-    if len(metric_surfaces) > 1:
+    allocated_surfaces = [
+        s
+        for a in assignments
+        for s in _VISIBLE_METRIC_RE.findall(
+            f"{a.get('skill_label') or ''} {a.get('metric_text') or ''}"
+        )
+    ]
+    if len(metric_surfaces) > max(1, len(allocated_surfaces)):
         failures.append("multiple_rendered_metrics_in_one_claim")
     metric_value, metric_unit = extract_exact_metric_value_unit(text)
     metric_assignments = [
