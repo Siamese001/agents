@@ -505,7 +505,11 @@ def promote_operator_confirmed_skill_rows(
     """Return shallow-copied skill rows with operator-confirmed promotion applied."""
     out = {sid: dict(r) for sid, r in skill_rows_by_id.items()}
     for sid, srow in out.items():
-        if sid == "skill_risk_enterprise_risk_controls" or sid in FORBIDDEN_SKILL_NODE_IDS:
+        if (
+            sid == "skill_risk_enterprise_risk_controls"
+            or sid in FORBIDDEN_SKILL_NODE_IDS
+            or sid.startswith("skill:c03:")
+        ):
             continue
         if (
             str(srow.get("confidence_grade") or "").upper() != "HIGH"

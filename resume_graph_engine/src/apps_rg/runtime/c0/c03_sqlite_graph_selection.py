@@ -144,10 +144,11 @@ def _query_candidates(
                 f.support_level,
                 f.external_eligible,
                 f.source_trace,
-                COALESCE(se_norm.allowed, se_raw.allowed, se_any.allowed, 0) AS section_allowed,
-                CASE WHEN COALESCE(se_norm.allowed, se_raw.allowed, se_any.allowed, 0) = 0 THEN 1 ELSE 0 END
-                    AS section_explicitly_blocked,
-                COALESCE(se_norm.blocked_reason, se_raw.blocked_reason, se_any.blocked_reason, '') AS section_blocked_reason,
+                CASE WHEN se_norm.allowed = 0 OR se_raw.allowed = 0 OR se_any.allowed = 0 THEN 0
+                     ELSE COALESCE(se_norm.allowed, se_raw.allowed, se_any.allowed, 0) END AS section_allowed,
+                CASE WHEN se_norm.allowed = 0 OR se_raw.allowed = 0 OR se_any.allowed = 0
+                          OR COALESCE(se_norm.allowed, se_raw.allowed, se_any.allowed, 0) = 0 THEN 1 ELSE 0 END AS section_explicitly_blocked,
+                COALESCE(NULLIF(se_raw.blocked_reason, ''), NULLIF(se_norm.blocked_reason, ''), NULLIF(se_any.blocked_reason, ''), '') AS section_blocked_reason,
                 COALESCE((
                     SELECT p.path_signature FROM graph_paths p
                     WHERE p.start_node_id = l.skill_id AND p.end_node_id = l.fact_id

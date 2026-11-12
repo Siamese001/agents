@@ -9,6 +9,7 @@ preventing hallucinated outreach claims and establishing a cryptographic chain o
 from __future__ import annotations
 
 import hashlib
+import importlib
 import json
 import re
 import time
@@ -16,15 +17,6 @@ from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
 from typing import Any, Sequence
-
-from apps_rg.runtime.resume_swarm_challenger import (
-    ResumeSwarmDisposition,
-    ResumeSwarmReceipt,
-)
-from apps_lic.pipeline.coordinator import (
-    CertifiedOutreachPackage,
-    OutreachSwarmCoordinator,
-)
 
 
 class DossierDisposition(str, Enum):
@@ -123,12 +115,15 @@ def verify_dossier_integrity(receipt: CrossEngineDossierReceipt) -> bool:
 class ProvenanceDossierBridge:
     """Cross-engine coordinator bridging resume verification with outreach synthesis."""
 
-    def __init__(self, coordinator: OutreachSwarmCoordinator | None = None) -> None:
-        self._coordinator = coordinator or OutreachSwarmCoordinator()
+    def __init__(self, coordinator: Any | None = None) -> None:
+        if coordinator is None:
+            coord_mod = importlib.import_module("apps_lic.pipeline.coordinator")
+            coordinator = coord_mod.OutreachSwarmCoordinator()
+        self._coordinator = coordinator
 
     def bridge_and_dispatch(
         self,
-        resume_receipt: ResumeSwarmReceipt,
+        resume_receipt: Any,
         campaign_id: str,
         recipient_name: str,
         candidate_claims: Sequence[str] | None = None,
@@ -140,10 +135,8 @@ class ProvenanceDossierBridge:
         dossier_id = f"dos_{hashlib.sha256(f'{resume_receipt.run_id}_{campaign_id}'.encode()).hexdigest()[:12]}"
 
         # Gate 1: Check resume swarm disposition
-        is_resume_approved = (
-            resume_receipt.final_disposition == ResumeSwarmDisposition.APPROVED
-            or str(resume_receipt.final_disposition) == "APPROVED"
-        )
+        disp_val = getattr(resume_receipt.final_disposition, "value", str(resume_receipt.final_disposition))
+        is_resume_approved = disp_val == "APPROVED" or str(resume_receipt.final_disposition).endswith("APPROVED")
         if not is_resume_approved:
             digest = compute_dossier_digest(
                 dossier_id=dossier_id,
@@ -237,7 +230,7 @@ class ProvenanceDossierBridge:
             )
 
         # Gate 4: Deliberate via Outreach Swarm Coordinator
-        outreach_package: CertifiedOutreachPackage = self._coordinator.compile_and_certify(
+        outreach_package: Any = self._coordinator.compile_and_certify(
             campaign_id=campaign_id,
             recipient_name=recipient_name,
             value_props=verified_claims,

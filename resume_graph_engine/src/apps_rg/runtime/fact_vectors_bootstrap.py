@@ -902,7 +902,7 @@ def _reset_collection(chroma_path: str, collection_name: str = "fact_vectors") -
     try:
         existing = client.get_collection(collection_name)
         count = int(existing.count())
-    except Exception:
+    except Exception:  # guardian: allow-silent-swallow -- missing collection during reset returns zero count
         return 0
     client.delete_collection(collection_name)
     return count

@@ -899,12 +899,21 @@ def expand_c03_graph_bindings(
         for query_id, surfaces in query_to_surfaces.items()
         if query_id in canonical_fact_ids
     }
-    if not query_to_surfaces and isinstance(selected_graph_plan, Mapping):
+    uncovered_atom_ids = {
+        str(atom.get("fact_id") or "").strip()
+        for atom in atoms
+        if str(atom.get("fact_id") or "").strip()
+        and str(atom.get("fact_id") or "").strip() not in covered_fact_ids
+    }
+    if not query_to_surfaces and uncovered_atom_ids and isinstance(selected_graph_plan, Mapping):
         for plan_fact in selected_graph_plan.get("facts") or []:
             if not isinstance(plan_fact, Mapping):
                 continue
             surface = str(plan_fact.get("fact_id") or plan_fact.get("candidate_fact_id") or "").strip()
-            if not surface:
+            cand_fid = str(plan_fact.get("candidate_fact_id") or "").strip()
+            if not surface or surface in covered_fact_ids or (cand_fid and cand_fid in covered_fact_ids):
+                continue
+            if surface not in uncovered_atom_ids and cand_fid not in uncovered_atom_ids:
                 continue
             linked = [
                 str(fid).strip()
@@ -916,9 +925,11 @@ def expand_c03_graph_bindings(
             for lfid in linked:
                 if surface not in query_to_surfaces.setdefault(lfid, []):
                     query_to_surfaces[lfid].append(surface)
-    if not query_to_surfaces:
+    if not query_to_surfaces and uncovered_atom_ids:
         for atom in atoms:
             surface = str(atom.get("fact_id") or "").strip()
+            if not surface or surface in covered_fact_ids:
+                continue
             qid = _atom_query_fact_id(atom)
             if qid in canonical_fact_ids and surface:
                 if surface not in query_to_surfaces.setdefault(qid, []):

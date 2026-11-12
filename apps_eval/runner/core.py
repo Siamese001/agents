@@ -1827,11 +1827,9 @@ def run_eval(
                 registry_digest=app_microstep_contract_digest,
             )
             if fixture_profile:
-                fixture_hash_payload = snapshot.to_dict()
-                fixture_hash_payload.pop("deterministic_hash", None)
                 snapshot = replace(
                     snapshot,
-                    deterministic_hash=_canonical_digest(fixture_hash_payload),
+                    deterministic_hash=_snapshot_deterministic_hash(snapshot),
                 )
             apps_rg_snapshots.append(snapshot)
         snapshot_payload = snapshot.to_dict()

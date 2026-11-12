@@ -151,14 +151,28 @@ def scan_policy_registry_sync(repo_root: Path) -> list[dict[str, Any]]:
     return findings
 
 
+_GLOBAL_AST_CACHE: dict[Path, tuple[int, str, ast.AST | None]] = {}
+
+
 def _parse_cached(py: Path, ast_cache: dict[Path, ast.AST | None]) -> ast.AST | None:
     if py in ast_cache:
         return ast_cache[py]
     try:
-        tree: ast.AST | None = ast.parse(py.read_text(encoding="utf-8", errors="replace"), filename=str(py))
+        mtime_ns = py.stat().st_mtime_ns
+    except OSError:
+        mtime_ns = -1
+    g_cached = _GLOBAL_AST_CACHE.get(py)
+    if g_cached is not None and g_cached[0] == mtime_ns:
+        ast_cache[py] = g_cached[2]
+        return g_cached[2]
+    raw_text = py.read_text(encoding="utf-8", errors="replace")
+    try:
+        tree: ast.AST | None = ast.parse(raw_text, filename=str(py))
     except SyntaxError:
         tree = None
     ast_cache[py] = tree
+    if mtime_ns != -1:
+        _GLOBAL_AST_CACHE[py] = (mtime_ns, raw_text, tree)
     return tree
 
 
@@ -437,7 +451,8 @@ def scan_ast_hygiene_and_env_sprawl(
             doc_ids = _collect_docstring_node_ids(tree)
             file_env_hits: list[dict[str, Any]] = []
 
-            raw_text = py.read_text(encoding="utf-8", errors="replace")
+            g_entry = _GLOBAL_AST_CACHE.get(py)
+            raw_text = g_entry[1] if g_entry is not None else py.read_text(encoding="utf-8", errors="replace")
             for lineno, line_txt in enumerate(raw_text.splitlines(), start=1):
                 m_guard = re.search(r"#\s*guardian:\s*(.+)$", line_txt)
                 if m_guard and "--" not in m_guard.group(1):

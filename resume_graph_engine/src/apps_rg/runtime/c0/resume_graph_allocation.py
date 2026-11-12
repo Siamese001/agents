@@ -1030,7 +1030,7 @@ def _candidate_sets_from_section_plans(
     }
     for raw_slot in slot_specs:
         slot = _slot_from_row(raw_slot)
-        from apps_rg.runtime.c0.c0_perf_sync_helpers import compute_candidate_alignment_and_independence, compute_career_band_filter
+        from apps_rg.runtime.c0.c0_perf_sync_helpers import compute_candidate_alignment_and_independence, compute_career_band_filter, diversify_slot_candidates
         employer_root_weights, employer_weights, enforce_career_band, primary_secondary_roots = compute_career_band_filter(
             section_id=slot.section_id, sec_plan=section_plans.get(slot.section_id) or {}, grouped_section_buckets=grouped_by_section[slot.section_id],
         )
@@ -1111,7 +1111,7 @@ def _candidate_sets_from_section_plans(
                         candidate["candidate_id"] = "alloc-cand:" + stable_digest(candidate)[:24]
                         rows.append(candidate)
         rows.sort(key=_candidate_sort_key)
-        out[slot.slot_id] = rows
+        out[slot.slot_id] = diversify_slot_candidates(rows, required_root_id=slot.required_root_id, section_id=slot.section_id)
     return out
 
 
@@ -2128,7 +2128,7 @@ def build_whole_resume_graph_allocation(
         except (OSError, ValueError):
             pass
 
-    from apps_rg.runtime.c0.c03_resume_graph_contracts import ResumeGraphSelectionPolicyV2
+    from apps_rg.runtime.c0.c03_resume_graph_contracts import ResumeGraphSelectionPolicyV2, finalize_canonical_section_plan
     from apps_rg.runtime.sections.graph_role_episode_selector import (
         build_selected_graph_evidence_plan_for_section,
     )
@@ -2212,6 +2212,11 @@ def build_whole_resume_graph_allocation(
         max_source_family_share=policy.max_source_family_share,
     )
     plan["selection_policy"] = policy.to_dict()
+    unify_alloc = {str(r["claim_unit_id"]).split(":", 1)[-1]: str(r["root_id"]) for r in plan.get("assignments") or [] if str(r.get("section_id") or "") == "unify_bullets" and ":" in str(r.get("claim_unit_id") or "")}
+    if unify_alloc and section_plans.get("unify_bullets", {}).get("unify_bullet_slot_bundle_map_resolved") != unify_alloc:
+        u_plan = {k: v for k, v in section_plans["unify_bullets"].items() if k not in ("plan_id", "plan_digest")}
+        section_plans["unify_bullets"] = finalize_canonical_section_plan({**u_plan, "unify_bullet_slot_bundle_map_resolved": dict(unify_alloc)})
+        plan["section_plan_digests"]["unify_bullets"] = str(section_plans["unify_bullets"].get("plan_digest") or "")
     plan["targeting_provenance"] = {
         "target_role": str(target_role or "").strip(),
         "jd_sha256": hashlib.sha256(str(jd_text or "").encode("utf-8")).hexdigest() if jd_text else "",

@@ -168,7 +168,7 @@ def resolve_and_verify_resume_artifact(
         ).strip()
         if x3_disp not in {"X3D_ALLOW_FINISH", "X3D_ALLOW"}:
             _fail_resume(
-                f"Resume X3 disposition receipt indicates blocked or missing disposition ({x3_disp or 'MISSING'}): {x3_receipt_file}"
+                f"Resume X3 disposition receipt indicates blocked run or missing disposition ({x3_disp or 'MISSING'}): {x3_receipt_file}"
             )
 
     resume_sha = hashlib.sha256(dest_resume_file.read_bytes()).hexdigest()

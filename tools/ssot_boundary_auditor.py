@@ -83,6 +83,10 @@ class _ParsedPyEntry(NamedTuple):
     tree: ast.AST | None
 
 
+_GLOBAL_PARSE_CACHE: dict[Path, tuple[int, _ParsedPyEntry]] = {}
+_WALK_CACHE: dict[tuple[Path, Path, bool], tuple[Path, ...]] = {}
+
+
 def _iter_py_files(base: Path, repo_root: Path, *, skip_tests: bool = False) -> Iterator[Path]:
     """Yield sorted Python files under `base`, pruning non-source runtime/cache/venv trees."""
     if not base.exists():
@@ -91,7 +95,10 @@ def _iter_py_files(base: Path, repo_root: Path, *, skip_tests: bool = False) -> 
         if base.suffix == ".py":
             yield base
         return
-    root_resolved = repo_root.resolve()
+    cache_key = (base, repo_root, skip_tests)
+    if repo_root == REPO_ROOT and cache_key in _WALK_CACHE:
+        yield from _WALK_CACHE[cache_key]
+        return
     collected: list[Path] = []
     for cur_root, dirs, files in os.walk(base, topdown=True, followlinks=False):
         cur_path = Path(cur_root)
@@ -103,7 +110,7 @@ def _iter_py_files(base: Path, repo_root: Path, *, skip_tests: bool = False) -> 
                 continue
             cand = cur_path / dname
             try:
-                rel = cand.resolve().relative_to(root_resolved).as_posix()
+                rel = cand.relative_to(repo_root).as_posix()
             except ValueError:
                 rel = ""
             if rel in _PRUNED_REL_TREES:
@@ -113,20 +120,43 @@ def _iter_py_files(base: Path, repo_root: Path, *, skip_tests: bool = False) -> 
         for fname in sorted(files):
             if fname.endswith(".py"):
                 collected.append(cur_path / fname)
-    yield from sorted(collected)
+    res = tuple(sorted(collected))
+    if repo_root == REPO_ROOT:
+        _WALK_CACHE[cache_key] = res
+    yield from res
 
 
 def _get_parsed_py(py: Path, cache: dict[Path, _ParsedPyEntry]) -> _ParsedPyEntry:
     cached = cache.get(py)
     if cached is not None:
         return cached
-    lines = py.read_text(encoding="utf-8", errors="replace").splitlines()
     try:
-        tree: ast.AST | None = ast.parse("\n".join(lines), filename=str(py))
+        mtime_ns = py.stat().st_mtime_ns
+    except OSError:
+        mtime_ns = -1
+    g_cached = _GLOBAL_PARSE_CACHE.get(py)
+    if g_cached is not None and g_cached[0] == mtime_ns:
+        cache[py] = g_cached[1]
+        return g_cached[1]
+    from tools.ssot_hardcoding_scanner import _GLOBAL_AST_CACHE
+
+    hc_cached = _GLOBAL_AST_CACHE.get(py)
+    if hc_cached is not None and hc_cached[0] == mtime_ns:
+        entry = _ParsedPyEntry(lines=hc_cached[1].splitlines(), tree=hc_cached[2])
+        cache[py] = entry
+        _GLOBAL_PARSE_CACHE[py] = (mtime_ns, entry)
+        return entry
+    raw_text = py.read_text(encoding="utf-8", errors="replace")
+    lines = raw_text.splitlines()
+    try:
+        tree: ast.AST | None = ast.parse(raw_text, filename=str(py))
     except SyntaxError:
         tree = None
     entry = _ParsedPyEntry(lines=lines, tree=tree)
     cache[py] = entry
+    if mtime_ns != -1:
+        _GLOBAL_PARSE_CACHE[py] = (mtime_ns, entry)
+        _GLOBAL_AST_CACHE[py] = (mtime_ns, raw_text, tree)
     return entry
 
 

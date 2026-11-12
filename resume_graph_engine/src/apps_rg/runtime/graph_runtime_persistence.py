@@ -59,18 +59,30 @@ def persist_runtime_selection_events(
 
             facts_to_check: set[tuple[str, str]] = set()
             for c in selected_candidates:
-                fid = str(c.get("fact_id") or "")
+                fid = str(c.get("ledger_fact_id") or c.get("fact_id") or "")
                 sid = str(c.get("skill_id") or "")
-                if fid:
+                if fid and sid:
                     facts_to_check.add((fid, sid))
             if not facts_to_check:
                 for r in rejections:
-                    fid = str(r.get("fact_id") or r.get("root_id") or "")
+                    fid = str(r.get("ledger_fact_id") or r.get("fact_id") or r.get("root_id") or "")
                     sid = str(r.get("skill_id") or "")
-                    if fid:
+                    if fid and sid:
                         facts_to_check.add((fid, sid))
             for fid, sid in facts_to_check:
                 cur = conn.cursor()
+                valid_pair = cur.execute(
+                    """
+                    SELECT 1
+                    FROM graph_nodes fn
+                    JOIN graph_nodes sn ON sn.node_id = ? AND sn.node_type = 'skill'
+                    WHERE fn.node_id = ? AND fn.node_type IN ('fact', 'locked_bullet', 'employment', 'certification')
+                    LIMIT 1
+                    """,
+                    (sid, fid),
+                ).fetchone()
+                if not valid_pair:
+                    continue
                 cur.execute(
                     """
                     SELECT target_node_id FROM graph_edges

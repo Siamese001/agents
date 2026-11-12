@@ -145,7 +145,7 @@ class ArchitectureAuditor:
                                 suggested_fix="Modularize file into cohesive domain sub-services.",
                             )
                         )
-                except Exception:
+                except OSError:  # guardian: allow-silent-swallow -- unreadable file skipped during line-budget scan
                     pass
 
         return findings
