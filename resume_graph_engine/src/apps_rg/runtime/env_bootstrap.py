@@ -259,24 +259,22 @@ def apply_route_signing_posture(repo_root: Path | str | None = None) -> str | No
             common_root_str = _git_common_checkout_root_str(str(search_base))
             canonical_root = Path(common_root_str).resolve() if common_root_str else search_base
             key_file = canonical_root / ".local" / "governance" / "ephemeral_dev_route_hmac.json"
-            secret = ""
-            key_id = ""
+            loaded_secret = ""
+            loaded_key_id = ""
             if key_file.is_file():
                 try:
                     raw = json.loads(key_file.read_text(encoding="utf-8"))
                     if isinstance(raw, dict):
-                        secret = str(raw.get("secret") or "").strip()
-                        key_id = str(raw.get("key_id") or "").strip()
+                        loaded_secret = str(raw.get("secret") or "").strip()
+                        loaded_key_id = str(raw.get("key_id") or "").strip()
                 except (OSError, ValueError, TypeError):
-                    secret = ""
-                    key_id = ""
-            if not secret:
-                secret = secrets.token_hex(32)
-            if not key_id:
-                key_id = f"session-key-{secrets.token_hex(8)}"
+                    loaded_secret = ""
+                    loaded_key_id = ""
+            secret = loaded_secret or secrets.token_hex(32)
+            key_id = loaded_key_id or f"session-key-{secrets.token_hex(8)}"
             try:
                 key_file.parent.mkdir(parents=True, exist_ok=True)
-                if not key_file.is_file():
+                if not key_file.is_file() or secret != loaded_secret or key_id != loaded_key_id:
                     key_file.write_text(
                         json.dumps(
                             {
