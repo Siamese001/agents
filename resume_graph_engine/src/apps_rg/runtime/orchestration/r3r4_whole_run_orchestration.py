@@ -2514,15 +2514,15 @@ def run_whole_run_with_route_governance(
         payload=payload,
         final_resume_outputs_pre_emitted=final_resume_outputs_pre_emitted,
     )
-    try:
-        emit_core_runtime_authority(art)
-    except Exception:  # guardian: allow-broad-exception -- best-effort refresh of core runtime authority
-        pass
-    whole_run_exit = emit_whole_run_exit_review_packet(
-        artifact_dir=art,
-        identity=whole_run_exit_identity,
-    )
     if not immutable_product_authorized:
+        try:
+            emit_core_runtime_authority(art)
+        except Exception:  # guardian: allow-broad-exception -- best-effort refresh of core runtime authority
+            pass
+        whole_run_exit = emit_whole_run_exit_review_packet(
+            artifact_dir=art,
+            identity=whole_run_exit_identity,
+        )
         if not exec_summary_blocked:
             effective_x3 = str(
                 whole_run_exit.get("x3_disposition") or "X3A_DENY_REROUTE"

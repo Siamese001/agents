@@ -93,9 +93,8 @@ def _bootstrap_apps_rg_env_for_live_replay() -> None:
     if "pytest" in sys.modules or os.environ.get("APPS_RG_TEST_HARNESS"):
         return
     try:
-        from apps_rg.runtime.env_bootstrap import bootstrap_apps_rg_env
-
-        bootstrap_apps_rg_env()
+        from apps_rg.runtime.env_bootstrap import apply_route_signing_posture, bootstrap_apps_rg_env
+        bootstrap_apps_rg_env(); os.environ.setdefault("APPS_RG_ROUTE_SIGNING_POSTURE", "ephemeral_dev"); apply_route_signing_posture()
     except (ImportError, OSError, ValueError, RuntimeError):
         return
 
