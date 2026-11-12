@@ -239,20 +239,57 @@ def temporary_env_override(updates: Mapping[str, str | None]) -> Iterator[None]:
                 os.environ[k] = v
 
 
-def apply_route_signing_posture() -> str | None:
+def apply_route_signing_posture(repo_root: Path | str | None = None) -> str | None:
     """Evaluate route signing posture after environment bootstrap.
 
     If APPS_RG_ROUTE_HMAC_SECRET is missing but APPS_RG_ROUTE_SIGNING_POSTURE == "ephemeral_dev",
-    generate ephemeral keys for isolated local development and record posture.
+    load or generate a persistent local development HMAC secret/key_id so multi-process
+    workflows (`run`, `patch-run`, `eval`, `agents e2e`) share consistent route-signing
+    verification material across CLI invocations.
     Returns the applied posture name, or None.
     """
     if not os.environ.get("APPS_RG_ROUTE_HMAC_SECRET"):
         if os.environ.get("APPS_RG_ROUTE_SIGNING_POSTURE") == "ephemeral_dev":
+            import json
             import secrets
 
-            os.environ["APPS_RG_ROUTE_HMAC_SECRET"] = secrets.token_hex(32)
+            resolved_repo = _resolve_repo_root(repo_root)
+            key_file = resolved_repo / ".local" / "governance" / "ephemeral_dev_route_hmac.json"
+            secret = ""
+            key_id = ""
+            if key_file.is_file():
+                try:
+                    raw = json.loads(key_file.read_text(encoding="utf-8"))
+                    if isinstance(raw, dict):
+                        secret = str(raw.get("secret") or "").strip()
+                        key_id = str(raw.get("key_id") or "").strip()
+                except (OSError, ValueError, TypeError):
+                    secret = ""
+                    key_id = ""
+            if not secret:
+                secret = secrets.token_hex(32)
+            if not key_id:
+                key_id = f"session-key-{secrets.token_hex(8)}"
+            try:
+                key_file.parent.mkdir(parents=True, exist_ok=True)
+                if not key_file.is_file():
+                    key_file.write_text(
+                        json.dumps(
+                            {
+                                "schema_version": "apps_rg.ephemeral_dev_route_hmac.v1",
+                                "key_id": key_id,
+                                "secret": secret,
+                            },
+                            indent=2,
+                        )
+                        + "\n",
+                        encoding="utf-8",
+                    )
+            except OSError:
+                pass
+            os.environ["APPS_RG_ROUTE_HMAC_SECRET"] = secret
             if not os.environ.get("APPS_RG_ROUTE_HMAC_KEY_ID"):
-                os.environ["APPS_RG_ROUTE_HMAC_KEY_ID"] = f"session-key-{secrets.token_hex(8)}"
+                os.environ["APPS_RG_ROUTE_HMAC_KEY_ID"] = key_id
             os.environ["APPS_RG_ROUTE_SIGNING_POSTURE_APPLIED"] = "ephemeral_dev"
             return "ephemeral_dev"
     return None

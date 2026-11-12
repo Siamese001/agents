@@ -2159,6 +2159,10 @@ def run_whole_run_with_route_governance(
                 )
                 if not exec_summary_blocked and _product_x3_authorizes(effective_x3):
                     result = dataclasses.replace(result, fault="", x3_disposition=effective_x3) if dataclasses.is_dataclass(result) else result
+                    final_resume_outputs_pre_emitted = True
+                    from apps_rg.runtime.orchestration.patch_product_closeout import refresh_root_spine_bundle_after_patch as _r
+                    _r(art, x3_disposition=effective_x3); emit_core_runtime_authority(art)
+                    whole_run_exit = emit_whole_run_exit_review_packet(artifact_dir=art, identity=whole_run_exit_identity)
         except Exception:  # guardian: allow-broad-exception -- recovery failure must fail closed to original exit
             pass
     pre_uwg_eligible = (

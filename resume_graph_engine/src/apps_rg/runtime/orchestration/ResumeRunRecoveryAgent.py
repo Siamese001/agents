@@ -344,6 +344,7 @@ class ResumeRunRecoveryAgent:
                         dispatch_fn=self.dispatch_fn,
                         aggregate_fn=self.aggregate_fn,
                         recovery_directives=recovery_directives,
+                        close_product_run=False,
                     )
                 except TypeError:
                     patch_result = execute_patch_run(
@@ -364,7 +365,15 @@ class ResumeRunRecoveryAgent:
         # Re-derive whole_run_exit packet
         try:
             from apps_rg.runtime.orchestration.core_runtime_authority import emit_core_runtime_authority
+            from apps_rg.runtime.orchestration.patch_product_closeout import (
+                refresh_root_spine_bundle_after_patch,
+            )
 
+            if dispatch_success:
+                try:
+                    refresh_root_spine_bundle_after_patch(self.artifact_dir)
+                except Exception:
+                    pass
             try:
                 emit_core_runtime_authority(self.artifact_dir)
             except Exception:  # guardian: allow-silent-swallow -- best-effort core runtime authority refresh before exit packet

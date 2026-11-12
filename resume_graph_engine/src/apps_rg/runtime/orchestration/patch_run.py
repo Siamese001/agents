@@ -26,12 +26,7 @@ clear error (exit 2) when inputs cannot be derived.
 """
 from __future__ import annotations
 
-import concurrent.futures
-import json
-import hashlib
-import os
-import time
-import uuid
+import concurrent.futures, contextlib, hashlib, json, os, time, uuid
 from collections import Counter
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -1540,6 +1535,7 @@ def execute_patch_run(
     lane_timeout_s: float | None = None,
     run_timeout_s: float | None = None,
     recovery_directives: Mapping[str, Any] | None = None,
+    close_product_run: bool = True,
 ) -> dict[str, Any]:
     """Run the patch plan: dispatch target lanes, re-aggregate, write receipt.
 
@@ -1741,6 +1737,10 @@ def execute_patch_run(
         ],
     }
     _write_json(plan.run_dir / PATCH_RUN_RECEIPT_ARTIFACT, receipt)
+    if exit_code == 0:
+        with contextlib.suppress(Exception):
+            from apps_rg.runtime.orchestration.patch_product_closeout import run_patch_post_receipt_closeout
+            run_patch_post_receipt_closeout(run_dir=plan.run_dir, repo=plan.repo, patch_identity=patch_identity, target_company=plan.targeting.target_company, target_role=plan.targeting.target_role, close_product_run=close_product_run)
 
     total_elapsed = time.monotonic() - run_start_time
     print(
