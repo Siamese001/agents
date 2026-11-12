@@ -29,8 +29,10 @@ for p in (_REPO_ROOT, _RG_SRC, _OE_SRC):
 
 # Bootstrap environment from env_agents / .env SSOT
 try:
-    from apps_rg.runtime.env_bootstrap import bootstrap_apps_rg_env
+    from apps_rg.runtime.env_bootstrap import apply_route_signing_posture, bootstrap_apps_rg_env
     bootstrap_apps_rg_env(repo_root=_REPO_ROOT)
+    os.environ.setdefault("APPS_RG_ROUTE_SIGNING_POSTURE", "ephemeral_dev")
+    apply_route_signing_posture(repo_root=_REPO_ROOT)
 except (ImportError, OSError, RuntimeError, ValueError):  # guardian: allow-silent-swallow -- fallback if apps_rg runtime environment bootstrap is not yet present
     pass
 
