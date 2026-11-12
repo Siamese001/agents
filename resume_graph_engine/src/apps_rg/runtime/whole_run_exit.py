@@ -346,9 +346,10 @@ def build_whole_run_exit_signals(artifact_dir: Path) -> tuple[dict[str, Any], tu
     except (TypeError, ValueError):
         quorum_required = 0
     model_backed_pass_count = sum(1 for judge in judges if isinstance(judge, Mapping) and judge.get("pass") is True)
+    quorum_met_flag = aggregation.get("quorum_met") is True or aggregation.get("decisive_reason") == "quorum_pass_no_blockers"
     judge_quorum_satisfied = bool(
         quorum_required > 0
-        and (model_backed_pass_count >= quorum_required or (aggregation.get("quorum_met") is True and model_backed_pass_count >= 1))
+        and (model_backed_pass_count >= quorum_required or (quorum_met_flag and model_backed_pass_count >= 1))
         and aggregation.get("full_resume_coherence_pass") is True
         and not list(aggregation.get("blockers") or ())
     )
