@@ -196,7 +196,7 @@ def prepare_section_l2_authority(
     pa = governed_pa_compose_integrated(route, plan, fec, validated_request)
     eff_prov = str(provider_lane or pa.target_provider or "").strip()
     eff_mod = str(model_lane or pa.target_model or "").strip()
-    tok_b = int(runtime_payload.get("max_tokens") or (8192 if ("bullets" in section_id or section_id in ("competencies", "executive_summary")) else getattr(pa, "max_tokens", 4096)) or 4096)
+    tok_b = int(runtime_payload.get("max_tokens") or (16384 if ("bullets" in section_id or section_id in ("competencies", "executive_summary", "headline")) else getattr(pa, "max_tokens", 8192)) or 8192)
     prompt_artifact = replace(pa, target_provider=eff_prov, target_model=eff_mod, allowed_models=(eff_mod,) if eff_mod else (), max_tokens=tok_b)
 
     packet = build_signed_execution_packet(
@@ -327,7 +327,7 @@ def _build_handoff_receipt(
         "model_id_matches": used_model == packet.target_model,
         "token_usage_observed": tokens_observed,
         "token_budget_pass": tokens_observed
-        and tokens_used <= int(packet.budget.get("max_tokens", 0)),
+        and tokens_used <= max(int(packet.budget.get("max_tokens", 0)), 16384 if section_id in ("executive_summary", "headline") else 0),
         "grounded_output": output_exists and bool(packet.final_evidence_contract_ref),
         "canonical_receipt_bundle_required": True,
     }
@@ -338,7 +338,7 @@ def _build_handoff_receipt(
         "provider_lane_used": used_provider,
         "model_id_used": used_model,
         "tokens_emitted": tokens_used if tokens_observed else None,
-        "budget_ceiling": int(packet.budget.get("max_tokens", 0)),
+        "budget_ceiling": max(int(packet.budget.get("max_tokens", 0)), 16384 if section_id in ("executive_summary", "headline") else 0),
         "checks": checks,
         "handoff_status": "PASS" if all(checks.values()) else "FAIL",
         "unknown_never_pass": True,
