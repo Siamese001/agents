@@ -754,9 +754,9 @@ def run_unify_bullets_x2_gates(
         text = str(claim.get("claim_text", "")).lower()
         ids = claim.get("source_fact_ids") or []
         if "$22m" in text or "margin" in text:
-            metric_granular_ok = metric_granular_ok and any("bul_unify_006" in str(i) for i in ids)
+            metric_granular_ok = metric_granular_ok and any(("bul_unify_006" in str(i) or "fact_engineering_platform_006" in str(i)) for i in ids)
         if "six months" in text or "three weeks" in text:
-            metric_granular_ok = metric_granular_ok and any("bul_unify_004" in str(i) for i in ids)
+            metric_granular_ok = metric_granular_ok and any(("bul_unify_004" in str(i) or "fact_engineering_platform_004" in str(i)) for i in ids)
     add(
         "x2_metric_fact_id_granularity",
         metric_granular_ok,
