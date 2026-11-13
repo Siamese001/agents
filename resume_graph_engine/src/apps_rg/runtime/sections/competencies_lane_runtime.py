@@ -777,7 +777,13 @@ def reduce_competency_keyword_stuffing(parsed: dict[str, Any]) -> None:
                 for idx, raw_t in enumerate(terms_raw):
                     phrase = term_phrase(raw_t) if isinstance(raw_t, dict) else str(raw_t or "")
                     words = _competency_term_content_words(phrase)
-                    frozen_allocation = isinstance(raw_t, dict) and bool(str(raw_t.get("allocation_claim_unit_id") or "").strip())
+                    frozen_allocation = (
+                        isinstance(raw_t, dict)
+                        and (
+                            bool(str(raw_t.get("allocation_claim_unit_id") or "").strip())
+                            or raw_t.get("executive_cluster_surface") is True
+                        )
+                    ) or cat.get("executive_cluster_surface") is True
                     if not frozen_allocation and worst in words:
                         from apps_rg.runtime.sections.lane_perf_sync_helpers import select_non_colliding_competency_synonym
                         sub = select_non_colliding_competency_synonym(worst, words, synonym_map)

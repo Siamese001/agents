@@ -353,6 +353,13 @@ def insurance_it_strategy_frozen_layout_is_present(
     )
 
 
+from .competencies_executive_clusters import (
+    _INSURANCE_IT_STRATEGY_8UNIT_KEYS,
+    insurance_it_strategy_executive_clusters_layout_is_present,
+    project_insurance_it_strategy_executive_clusters,
+)
+
+
 def _strings(values: Iterable[Any] | None) -> list[str]:
     result: list[str] = []
     seen: set[str] = set()
@@ -1427,7 +1434,9 @@ def reconcile_competencies_allocation_claim_units(
                     term=term,
                     root_authority=root_authority,
                 )
-                if explicit_unit_id == assignment_unit_id and score > 0:
+                if explicit_unit_id == assignment_unit_id:
+                    if score <= 0:
+                        score = 2_000
                     score += 1_000_000
                     reasons = ["EXPLICIT_ALLOCATION_CLAIM_UNIT_ID", *reasons]
                 if score <= 0:
@@ -1777,9 +1786,11 @@ def build_competencies_graph_authority_discrepancy_ledger(
 
 __all__ = [
     "build_competencies_graph_authority_discrepancy_ledger",
+    "insurance_it_strategy_executive_clusters_layout_is_present",
     "insurance_it_strategy_frozen_layout_is_present",
     "materialize_unmatched_competencies_allocation_terms",
     "project_insurance_it_strategy_competencies_from_frozen_allocation",
+    "project_insurance_it_strategy_executive_clusters",
     "reconcile_competencies_allocation_claim_units",
     "synchronize_competencies_allocation_bindings_to_categories",
 ]

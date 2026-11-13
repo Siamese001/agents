@@ -53,8 +53,8 @@ REQUIRED_CAPABILITY_FAMILIES: dict[str, frozenset[str]] = {
     }),
     "partner_architecture": frozenset({
         "partner", "partnership", "co-sell", "cosell", "alliance",
-        "reference", "accelerator", "enablement", "partner-ready",
-        "pursuit", "commercial",
+        "reference", "accelerator", "accelerators", "enablement", "partner-ready",
+        "pursuit", "commercial", "hyperscaler",
     }),
     "engineering_leadership": frozenset({
         "engineering", "leadership", "organization", "operating", "model",

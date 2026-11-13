@@ -646,42 +646,21 @@ def run_competencies_lane_execution(
         ):
             from apps_rg.runtime.c0.competencies_graph_authority import (
                 build_competencies_graph_authority_discrepancy_ledger,
-                insurance_it_strategy_frozen_layout_is_present,
                 materialize_unmatched_competencies_allocation_terms,
-                project_insurance_it_strategy_competencies_from_frozen_allocation,
                 reconcile_competencies_allocation_claim_units,
                 synchronize_competencies_allocation_bindings_to_categories,
             )
+            from apps_rg.runtime.c0.competencies_executive_clusters import (
+                project_insurance_it_strategy_competencies_if_applicable,
+            )
 
-            if insurance_it_strategy_frozen_layout_is_present(selected_graph_plan):
-                allocation_output_projection = (
-                    project_insurance_it_strategy_competencies_from_frozen_allocation(
-                        parsed,
-                        selected_plan=selected_graph_plan,
-                        allowed_fact_ids=allowed_fact_ids,
-                    )
+            allocation_output_projection = (
+                project_insurance_it_strategy_competencies_if_applicable(
+                    parsed,
+                    selected_plan=selected_graph_plan,
+                    allowed_fact_ids=allowed_fact_ids,
                 )
-            else:
-                allocation_output_projection = {
-                    "schema_version": "competencies_frozen_allocation_output_projection_v1",
-                    "section_id": "competencies",
-                    "target_role_profile": str(
-                        selected_graph_plan.get("target_role_profile") or ""
-                    ),
-                    "allocation_plan_digest": str(
-                        selected_graph_plan.get("allocation_plan_digest") or ""
-                    ),
-                    "applicable": False,
-                    "pass": True,
-                    "status": "NOT_APPLICABLE_GENERIC_ALLOCATION",
-                    "reason": (
-                        "selected allocation does not carry the exact "
-                        "insurance_it_strategy frozen 24-unit layout"
-                    ),
-                }
-                allocation_output_projection["receipt_digest"] = stable_digest(
-                    allocation_output_projection
-                )
+            )
             write_json(
                 artifact_dir
                 / "competencies_frozen_allocation_output_projection_receipt.json",

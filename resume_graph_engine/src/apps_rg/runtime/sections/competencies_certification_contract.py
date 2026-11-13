@@ -46,7 +46,7 @@ _CREDENTIAL_TERM_RE = re.compile(
     r"^(?:aws\s+)?certified\b|"
     r"\baccreditation\b|"
     r"\bfellow of the\b|"
-    r"\bfsa\b|"
+    r"(?<!\()\bfsa\b(?!\))|"
     r"\bprofessional certification",
     re.IGNORECASE,
 )

@@ -29,6 +29,12 @@ _MAX_TERMS_PER_DISPLAY_CLUSTER = 5
 
 
 _INSURANCE_IT_STRATEGY_DISPLAY_LABEL_PRIORITY: dict[str, int] = {
+    "Insurance Core & Cloud Modernization": 0,
+    "Enterprise Architecture & M&A Integration": 1,
+    "Data Lakehouse, BI & Regulatory Lineage": 2,
+    "Agentic AI & Runtime Governance": 3,
+    "Retrieval, Context & Production LLMOps": 4,
+    "IT Strategy, Risk & Operating Model": 5,
     "P&C Insurance & Core Platform Modernization": 0,
     "Insurance Core Modernization & Guidewire (P&C)": 0,
     "Insurance Core Data & Workflow Modernization": 0,
@@ -229,12 +235,18 @@ def ensure_allocation_plan_coverage(
             for term in cat.get("terms") or []:
                 if isinstance(term, dict):
                     raw_txt = str(term.get("text") or term.get("term") or "").strip()
-                    norm_txt = normalize_competency_surface_term(raw_txt)
+                    if cat.get("executive_cluster_surface") is True or term.get("executive_cluster_surface") is True:
+                        norm_txt = raw_txt
+                    else:
+                        norm_txt = normalize_competency_surface_term(raw_txt)
                     term["text"] = norm_txt
                     term["term"] = norm_txt
                     new_terms.append(term)
                 elif isinstance(term, str):
-                    new_terms.append(normalize_competency_surface_term(term))
+                    if cat.get("executive_cluster_surface") is True:
+                        new_terms.append(term)
+                    else:
+                        new_terms.append(normalize_competency_surface_term(term))
                 else:
                     new_terms.append(term)
             cat["terms"] = new_terms
@@ -246,10 +258,15 @@ def ensure_allocation_plan_coverage(
                 )
             )
             parsed[surface_key] = cats
+    has_exec_cluster = any(
+        isinstance(c, dict) and c.get("executive_cluster_surface") is True
+        for c in (parsed.get("categories") or [])
+    )
     if isinstance(parsed.get("claim_ledger"), list):
         for row in parsed["claim_ledger"]:
             if isinstance(row, dict) and row.get("claim_text"):
-                row["claim_text"] = normalize_competency_surface_term(str(row["claim_text"]))
+                if not has_exec_cluster:
+                    row["claim_text"] = normalize_competency_surface_term(str(row["claim_text"]))
     return parsed
 
 
@@ -276,28 +293,28 @@ def csuite_capability_display_rows(
     if profile == "insurance_it_strategy" or "brown" in co_low or ("strategy" in role_low and "innovation" in role_low):
         return [
             (
-                "P&C Insurance & Core Platform Modernization",
-                "Policy administration, claims, and billing platform workflow modernization, P&C carrier and brokerage policy administration migration on AWS, and core-to-analytics data integration across InsurTech CTO and EY insurance advisory.",
+                "Insurance Core & Cloud Modernization",
+                "P&C Core Modernization (Policy, Billing, Claims), Guidewire Core Platform Modernization, AWS Cloud Migration & SOC 2 Controls, Regulated Cloud & Shared-Responsibility Controls",
             ),
             (
-                "Insurance Domain, Actuarial Risk & Carrier Operations",
-                "FSA-chartered actuarial foundation, Solvency II and AG43 statutory reserving, P&C and life underwriting/claims core modernization, and enterprise risk management (ERM) across InsurTech CTO and EY insurance advisory.",
+                "Enterprise Architecture & M&A Integration",
+                "Post-M&A Technology & Data Integration, Event-Driven Architecture & API Integration, Application Dependency & Cutover Planning, Hyperscaler AI Solution Architecture",
             ),
             (
-                "Enterprise Architecture & IT Strategy Modernization",
-                "Multi-year IT strategy, M&A brokerage and carrier platform integration, software dependency-graph legacy modernization, and 106-engineer organization leadership across regulated enterprises.",
+                "Data Lakehouse, BI & Regulatory Lineage",
+                "Enterprise Data Lakehouse & BI Governance, Databricks Lakehouse Platform & Cataloging, BCBS 239 & CCAR Data Lineage, Enterprise Metadata & RBAC Governance",
             ),
             (
-                "Applied AI & Decision Intelligence Governance",
-                "Governed multi-agent workflows, Bayesian 20%-margin human-in-the-loop risk controls, and X1-to-X3 release verification for insurance brokerage, underwriting, and enterprise operations.",
+                "Agentic AI & Runtime Governance",
+                "Multi-Agent Orchestration & Guardrails, AI Runtime Policy & Release Controls, Reusable AI Platform Accelerators, Regulated Banking & Insurance AI Compliance",
             ),
             (
-                "Enterprise Knowledge Graph & Data Governance",
-                "Bi-temporal knowledge graphs, 1024-d BGE-M3 hybrid retrieval across 11 release gates, end-to-end regulatory lineage, and Universal Write Gateway 5-check write custody.",
+                "Retrieval, Context & Production LLMOps",
+                "GraphRAG & Hybrid Search Architecture, LLM Evaluation & Schema Validation, Audit-Grade Telemetry & Provider Failover, Governed Prompt & Context Engineering",
             ),
             (
-                "Cloud Modernization, FinOps & Commercial P&L",
-                "IP-led AI solution accelerators ($22M revenue, +20% gross margin expansion), cloud-native AWS/Azure/Databricks lakehouse migration (40% infrastructure cost reduction), and 6-month-to-3-week delivery compression.",
+                "IT Strategy, Risk & Operating Model",
+                "AI Commercialization & Operating Model Design, Three-Lines-of-Defense Risk Governance, Actuarial & Solvency Risk Modeling (FSA), Global Engineering Organization Scale-Out",
             ),
         ]
     if profile == "insurance_agentic_ai" or ("insurance_domain_modernization" in families and "agentic_platforms" in families) or "aig" in co_low or ("agentic" in role_low and "global head" in role_low):
