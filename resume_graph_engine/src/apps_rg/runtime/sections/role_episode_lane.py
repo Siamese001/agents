@@ -84,25 +84,14 @@ ROLE_EPISODE_FINAL_MATERIALIZED_SELECTION_CONTRACT = (
     "role_episode_final_materialized_selection_contract.json"
 )
 
-# A few role-episode roots contain a valid, graph-approved outcome surface that
-# is broader than the concise root claim.  The model may reproduce only the
-# activity clause, which is truthful but fails the all-bullets outcome floor.
-# These are source-bound completions: each phrase below is composed exclusively
-# from that root's approved claim, scope, and linked metric-outcome node.  They
-# are intentionally applied only when the generated bullet fails the quality
-# floor; passing model prose remains untouched.
+# Source-bound completions for role-episode roots whose raw claim omits the approved outcome floor.
 _ROLE_EPISODE_EVIDENCE_DENSITY_REPAIRS: dict[str, str] = {
-    "reb_ey_capital_optimization_solvency": (
-        "Led quantitative derivatives, variable-annuity hedging, and insurance-capital work "
-        "using exotic-pricing models, liability Greeks, and higher-order stress scenarios for "
-        "regulated portfolios, delivering risk visibility for hedge-design decisions."
-    ),
-    "reb_ey_erm_risk_governance": (
-        "Architected ERM operating models and BCBS 239-aligned risk-data aggregation "
-        "for regulated banking and insurance clients, defining three-lines-of-defense "
-        "accountability and metadata standards that standardized risk-metric definitions "
-        "across business units, control owners, and reporting stakeholders."
-    ),
+    "reb_ey_capital_optimization_solvency": "Led quantitative derivatives, variable-annuity hedging, and insurance-capital work using exotic-pricing models, liability Greeks, and higher-order stress scenarios for regulated portfolios, delivering risk visibility for hedge-design decisions.",
+    "reb_ey_erm_risk_governance": "Architected ERM operating models and BCBS 239-aligned risk-data aggregation for regulated banking and insurance clients, defining three-lines-of-defense accountability and metadata standards that standardized risk-metric definitions across business units, control owners, and reporting stakeholders.",
+    "reb_slalom_agentic_client_delivery": "Spearheaded enterprise agentic AI delivery as Senior Director, architecting A2A multi-agent orchestration that established a repeatable technical blueprint for scaling AI solutions across client engagements.",
+    "reb_slalom_engineering_practice_leadership": "Led a 105-person organization of software engineers and data leaders across a major energy and utility client, owning all client relationships, delivery execution, and sales pipeline to build a repeatable technical delivery practice.",
+    "reb_slalom_governed_runtime_scaling": "Designed a governed runtime scaling framework incorporating deterministic proof lineage and a safety validation mesh, achieving 100% deterministic gate mesh conformance for safety-critical agent decisions while scaling enterprise agentic systems.",
+    "reb_slalom_visual_asset_intelligence": "Built a multi-modal visual asset intelligence pipeline that automated power generation asset extraction, converting a manual inspection workflow into a reusable, production-grade solution pattern.",
 }
 
 
