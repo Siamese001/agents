@@ -19,9 +19,9 @@
 | `fact_slalom_003` | `fact` | ENRICH | Outcome-Based Agentic Evaluation Mesh & Observability Backplane | DIE Graph `source_brien_sherpa_feedback_notes_2026_07_10` |
 | `fact_slalom_004` | `fact` | ENRICH | Hyperscaler Strategic Co-Sell Alliances & Reusable Accelerators | DIE Graph `source_slalom_nea_partnership_briefing_2026_07_12` |
 | `fact_slalom_005` | `fact` | INSERT NEW | Multi-Modal Visual Asset Intelligence Pipeline (Project Lens) | DIE Graph `source-7e1bccf65e636b8622943955` (LENS SOW 1) |
-| `fact_slalom_006` | `fact` | INSERT NEW | Large-Scale Engineering Practice Leadership (106-Engineer Scale) | DIE Graph `source_v33_slalom_engineering_footprint_user_confirmed_2026_07_10` |
+| `fact_slalom_006` | `fact` | INSERT NEW | Large-Scale Engineering & Data Leadership (105 SWE & Data Leaders) | DIE Graph `source_v33_slalom_engineering_footprint_user_confirmed_2026_07_10` |
 | `metric_slalom_visual_asset_intelligence_sow_delivery` | `metric_outcome` | INSERT NEW | six-figure visual asset intelligence platform delivered across generation sites | Grounded in SOW 1 commercial scope |
-| `metric_slalom_consulting_engineering_footprint_scale` | `metric_outcome` | INSERT NEW | 106-software-engineer footprint mobilized across analytics & digital operations | Grounded in 106-SWE user confirmation |
+| `metric_slalom_consulting_engineering_footprint_scale` | `metric_outcome` | INSERT NEW | 105 software engineers and data leaders directed across a leading energy and utility company, managing all client relationships, delivery execution, and sales pipeline | Grounded in 105-SWE & Data Leaders user confirmation |
 
 ---
 

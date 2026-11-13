@@ -926,7 +926,7 @@ def _default_slot_specs(
             receipt={"schema_version": "resume_graph_allocation_failure_v1", "unsatisfied_constraints": ["unify_slot_role_episode_contract"]},
         )
     slalom_slot_roots = {
-        "bul_slalom_001": "reb_slalom_agentic_client_delivery", "bul_slalom_002": "reb_slalom_nextgen_ai_solutions",
+        "bul_slalom_001": "reb_slalom_engineering_practice_leadership", "bul_slalom_002": "reb_slalom_agentic_client_delivery",
         "bul_slalom_003": "reb_slalom_governed_runtime_scaling", "bul_slalom_004": "reb_slalom_ecosystem_accelerators",
     }
     ibm_slot_roots = {

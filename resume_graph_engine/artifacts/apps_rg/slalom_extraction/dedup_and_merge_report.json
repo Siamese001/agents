@@ -29,7 +29,7 @@
     },
     {
       "candidate_id": "slalom_candidate_005",
-      "rationale": "Novel large-scale team metric (106-software-engineer footprint leadership); creates fact_slalom_006 and metric_slalom_consulting_engineering_footprint_scale.",
+      "rationale": "Novel large-scale team metric (105 software engineers and data leaders leadership across leading energy and utility company); creates fact_slalom_006 and metric_slalom_consulting_engineering_footprint_scale.",
       "resolution": "NEW",
       "target_node_id": "fact_slalom_006"
     },

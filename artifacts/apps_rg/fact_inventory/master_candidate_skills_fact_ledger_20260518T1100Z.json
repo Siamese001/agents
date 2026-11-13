@@ -1629,13 +1629,14 @@
       "capability_tags": [
         "practice_leadership",
         "engineering_scale",
-        "pod_governance",
-        "consulting_delivery"
+        "client_relationship_management",
+        "delivery_execution",
+        "sales_pipeline_ownership"
       ],
-      "claim_text": "Directed a 106-software-engineer consulting footprint across advanced analytics (66 engineers) and digital operations/IT (40 engineers) for a premier utility client, structuring pod-level leadership, delivery governance, and technical alignment.",
+      "claim_text": "Led 105 software engineers and data leaders across a leading energy and utility company, managing all client relationships, delivery execution, and sales pipeline across advanced analytics and digital operations.",
       "metric_values": [
-        "106-software-engineer footprint mobilized",
-        "66 analytics + 40 IT/digital operations engineers"
+        "105 software engineers and data leaders directed across a leading energy and utility company",
+        "End-to-end ownership of client relationships, delivery execution, and sales pipeline"
       ],
       "company": "Slalom",
       "source_resume_variants": [
@@ -1648,11 +1649,12 @@
       "role_families_supported": [
         "CONSULTING_DELIVERY_LEADERSHIP",
         "EXECUTIVE_LEADERSHIP",
-        "ENGINEERING_PLATFORM"
+        "ENGINEERING_PLATFORM",
+        "SALES_STRATEGIC_ACCOUNTS"
       ],
-      "proof_text": "Directed a 106-software-engineer consulting delivery footprint across 66 advanced analytics engineers and 40 IT/digital operations engineers for a regulated utility client, establishing pod governance and cross-functional technical alignment.",
+      "proof_text": "Directed 105 software engineers and data leaders across a leading energy and utility company, managing all executive client relationships, multi-workstream delivery execution, and commercial sales pipeline growth across advanced analytics and enterprise digital operations.",
       "claim_proof_split_version": "master_skills_arsenal_claim_proof_v2",
-      "label": "Large-Scale Engineering Practice Leadership (106-Engineer Scale)"
+      "label": "Large-Scale Engineering & Data Leadership (105 SWE & Data Leaders)"
     },
     {
       "candidate_fact_id": "fact_slalom_007",
