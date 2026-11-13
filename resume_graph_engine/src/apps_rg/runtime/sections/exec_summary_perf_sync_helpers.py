@@ -93,8 +93,24 @@ def resolve_target_picture_for_archetype(*, role_archetype: str, strategy_execut
     return f"Executive portrait: leadership-first governed agentic AI platform leader (targeting: {role_s or 'target role'}; company name never in prose)."
 
 
+_EXEC_COSINE_DEDUP_SUBS: tuple[tuple[str, str], ...] = (
+    ("Building on that platform foundation", "Building on that distributed runtime"),
+    ("platform foundation", "distributed runtime"),
+    ("hyperscaler and GSI", "cloud and systems-integrator"),
+    ("joint solution development", "co-engineered delivery blueprints"),
+    ("presales executive architecture alignment", "buyer-aligned technical validation"),
+    ("alliance co-sell motions", "partner channel origination"),
+    ("reusable platform architecture", "modular engineering systems"),
+    ("joint go-to-market execution", "co-marketed field execution"),
+    ("partner-facing teams", "field engineering pods"),
+    ("executive pre-sales", "C-suite technical discovery"),
+)
+
+
 def repair_exec_summary_bullet_echo_sentences(sentences: list[str]) -> list[str]:
     """Rewrite Executive Summary sentences that closely echo experience bullets or contain article anomalies."""
+    from apps_rg.runtime.validators.narrative_quality_x2 import compute_text_cosine_similarity
+
     out: list[str] = []
     for sent in sentences:
         s = re.sub(
@@ -116,6 +132,25 @@ def repair_exec_summary_bullet_echo_sentences(sentences: list[str]) -> list[str]
                 "structured system assessment and cutover governance."
             )
         out.append(s)
+    for i in range(len(out)):
+        for j in range(i + 1, len(out)):
+            sim = compute_text_cosine_similarity(out[i], out[j], content_only=True)
+            if sim <= 0.34:
+                continue
+            for bad, good in _EXEC_COSINE_DEDUP_SUBS:
+                if bad not in out[j]:
+                    continue
+                cand = out[j].replace(bad, good, 1)
+                new_sim = compute_text_cosine_similarity(out[i], cand, content_only=True)
+                other_max = max(
+                    (compute_text_cosine_similarity(out[k], cand, content_only=True) for k in range(len(out)) if k != j),
+                    default=0.0,
+                )
+                if new_sim < sim and other_max <= max(0.34, sim):
+                    out[j] = cand
+                    sim = new_sim
+                    if sim <= 0.30:
+                        break
     return out
 
 
@@ -391,7 +426,7 @@ def repair_legacy_regulated_partnership_arc(
                 "architecture teams to accelerate enterprise AI deployment and "
                 "commercial adoption."
             )
-    return out
+    return repair_exec_summary_bullet_echo_sentences(out)
 
 
 def match_legacy_regulated_source_fact_ids(low: str) -> list[str] | None:
