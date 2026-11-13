@@ -482,6 +482,8 @@ def _materialize_augmented_skills_graph_sqlite_locked(
             "graph_selection_rejections",
             "graph_edges_reverse",
             "v_partner_architecture_competency_candidates",
+            "assertion_learned_sparse",
+            "assertion_colbert_vectors",
             "graph_metadata",
         ],
     }

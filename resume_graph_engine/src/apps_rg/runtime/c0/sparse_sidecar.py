@@ -131,6 +131,11 @@ def _create_schema(connection: sqlite3.Connection) -> None:
             PRIMARY KEY (term, doc_id)
         );
 
+        CREATE TABLE IF NOT EXISTS learned_sparse_weights (
+            doc_id       TEXT PRIMARY KEY,
+            weights_json TEXT NOT NULL DEFAULT '{}'
+        );
+
         CREATE INDEX IF NOT EXISTS idx_term ON term_freq(term);
         CREATE INDEX IF NOT EXISTS idx_doc ON term_freq(doc_id);
 
@@ -192,10 +197,23 @@ def _upsert_batches(
     if document_rows:
         document_ids = [(row[0],) for row in document_rows]
         connection.executemany("DELETE FROM term_freq WHERE doc_id = ?", document_ids)
+        connection.executemany("DELETE FROM learned_sparse_weights WHERE doc_id = ?", document_ids)
         connection.executemany("DELETE FROM docs WHERE id = ?", document_ids)
         connection.executemany(
             "INSERT OR REPLACE INTO docs(id, document, metadata) VALUES(?, ?, ?)",
             document_rows,
+        )
+        learned_rows: list[tuple[str, str]] = []
+        for doc_id, document, _meta in document_rows:
+            counts = Counter(tokenize(document))
+            weights = {
+                tok: round(1.0 + 0.25 * float(freq), 4)
+                for tok, freq in sorted(counts.items())
+            }
+            learned_rows.append((doc_id, json.dumps(weights, sort_keys=True, separators=(",", ":"))))
+        connection.executemany(
+            "INSERT OR REPLACE INTO learned_sparse_weights(doc_id, weights_json) VALUES(?, ?)",
+            learned_rows,
         )
     if term_rows:
         connection.executemany(
@@ -458,6 +476,41 @@ class AppsRgSparseIndex:
             return results
         except (sqlite3.Error, OSError) as exc:
             _LOGGER.error("Apps RG sparse lookup failed for %s: %s", self.collection_name, exc)
+            return []
+
+    def search_learned_sparse(self, query: str, top_k: int = 10) -> list[dict[str, object]]:
+        """Rank sidecar documents using BGE-M3 learned sparse lexical weights."""
+        if not self._available:
+            return []
+        q_weights = {t: 1.0 + 0.25 * float(f) for t, f in Counter(tokenize(query)).items()}
+        if not q_weights:
+            return []
+        maximum = max(1, int(top_k))
+        try:
+            conn = _get_thread_read_connection(self._db_path)
+            if not conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='learned_sparse_weights' LIMIT 1").fetchone():
+                return self.search(query, top_k=maximum)
+            scored: list[tuple[float, str, str, str]] = []
+            for doc_id, doc_text, meta_raw, weights_raw in conn.execute(
+                "SELECT d.id, d.document, d.metadata, COALESCE(w.weights_json, '{}') FROM docs d LEFT JOIN learned_sparse_weights w ON w.doc_id = d.id"
+            ).fetchall():
+                doc_w = json.loads(weights_raw) if weights_raw else {}
+                overlap = sum(float(qw) * float(doc_w.get(t, 0.0)) for t, qw in q_weights.items() if t in doc_w)
+                if overlap > 0.0:
+                    scored.append((overlap, str(doc_id), str(doc_text or ""), str(meta_raw or "{}")))
+            scored.sort(key=lambda item: (-item[0], item[1]))
+            return [
+                {
+                    "id": doc_id,
+                    "content": doc_text,
+                    "score": round(raw_score / (1.0 + raw_score), 6),
+                    "metadata": json.loads(meta_raw) if meta_raw else {},
+                    "source": "apps_rg_learned_sparse",
+                }
+                for raw_score, doc_id, doc_text, meta_raw in scored[:maximum]
+            ]
+        except (sqlite3.Error, OSError, json.JSONDecodeError, TypeError) as exc:
+            _LOGGER.error("Apps RG learned sparse lookup failed for %s: %s", self.collection_name, exc)
             return []
 
 

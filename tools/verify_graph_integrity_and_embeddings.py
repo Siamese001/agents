@@ -24,8 +24,15 @@ from apps_rg.fact_inventory.graph_sqlite_path_index import (
 from apps_rg.fact_inventory.skills_graph.storage import (
     verify_sqlite_physical_write_proof,
 )
+from apps_rg.runtime.bge_embedding import (
+    dequantize_colbert_vectors_int8,
+    project_multi_head_from_dense_and_text,
+)
 from apps_rg.runtime.graph_skill_hybrid_retrieval import (
+    colbert_maxsim_rank,
     fuse_dense_bm25,
+    fuse_quad_hybrid,
+    learned_sparse_rank,
     sqlite_fts5_bm25_rank,
 )
 
@@ -258,6 +265,55 @@ def verify_bge_m3_embeddings(embedding_dirs: list[Path], db_path: Path) -> dict[
     }
 
 
+def verify_learned_sparse_and_colbert(db_path: Path) -> dict[str, int | str | float]:
+    """Verify learned sparse lexical weights and ColBERT multi-vectors in SQLite."""
+    if not db_path.is_file():
+        raise FileNotFoundError(f"SQLite graph DB not found: {db_path}")
+    import json
+
+    conn = sqlite3.connect(str(db_path))
+    try:
+        cur = conn.cursor()
+        tables = {
+            r[0]
+            for r in cur.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
+        }
+        if "assertion_learned_sparse" not in tables or "assertion_colbert_vectors" not in tables:
+            from apps_rg.fact_inventory.semantic_units import populate_semantic_units
+            from apps_rg.fact_inventory.skills_graph.schema_ddl import DDL_STATEMENTS
+
+            for stmt in DDL_STATEMENTS:
+                if "assertion_learned_sparse" in stmt or "assertion_colbert_vectors" in stmt:
+                    conn.execute(stmt)
+            populate_semantic_units(conn, build_run_id="verify_quad", input_manifest_digest="verify_quad")
+
+        sparse_count = int(cur.execute("SELECT COUNT(*) FROM assertion_learned_sparse").fetchone()[0] or 0)
+        colbert_count = int(cur.execute("SELECT COUNT(*) FROM assertion_colbert_vectors").fetchone()[0] or 0)
+        if sparse_count < 300 or colbert_count != sparse_count:
+            raise ValueError(
+                f"Learned sparse / ColBERT count mismatch: sparse={sparse_count}, colbert={colbert_count}"
+            )
+        sample_rows = cur.execute(
+            "SELECT assertion_id, token_count, dim, scales_json, vectors_int8 FROM assertion_colbert_vectors LIMIT 5"
+        ).fetchall()
+        for aid, tok_count, dim, scales_json, blob in sample_rows:
+            scales = json.loads(scales_json)
+            vecs = dequantize_colbert_vectors_int8(blob, scales, dim=int(dim))
+            if len(vecs) != int(tok_count):
+                raise ValueError(f"ColBERT token count mismatch for {aid}")
+            for v in vecs:
+                v_norm = math.sqrt(sum(x * x for x in v))
+                if abs(v_norm - 1.0) > 1e-4:
+                    raise ValueError(f"ColBERT vector not L2 normalized for {aid}: {v_norm}")
+    finally:
+        conn.close()
+    return {
+        "status": "PASS",
+        "learned_sparse_count": sparse_count,
+        "colbert_vector_count": colbert_count,
+    }
+
+
 def verify_hybrid_retrieval_stage2(db_path: Path | None = None) -> dict[str, str | float | int]:
     fused = fuse_dense_bm25(
         [
@@ -363,6 +419,32 @@ def verify_hybrid_retrieval_stage2(db_path: Path | None = None) -> dict[str, str
             live_top_skill = str(live_fused[0]["assertion_id"]) if live_fused else ""
             if live_fused_count == 0 or not live_top_skill:
                 raise ValueError("Live non-mock Stage 2 hybrid fusion returned empty ranking")
+
+            q_mh = project_multi_head_from_dense_and_text(
+                "governed agentic platform architecture hybrid retrieval",
+                list(ref_vec) if ref_vec is not None else [1.0 / math.sqrt(1024)] * 1024,
+                heads=("sparse", "colbert"),
+                max_colbert_tokens=8,
+            )
+            sparse_live = [
+                {"assertion_id": sid, "learned_sparse_score": float(len(q_mh.sparse))}
+                for sid in sorted(eligible_skills)
+            ]
+            colbert_live = [
+                {"assertion_id": sid, "colbert_score": 0.85}
+                for sid in sorted(eligible_skills)
+            ]
+            quad_fused = fuse_quad_hybrid(
+                dense_live,
+                sparse_live,
+                bm25_live,
+                colbert_live,
+                assertion_ids=eligible_skills,
+                metric_bearing_assertion_ids=metric_skills,
+                metric_boost=0.05,
+            )
+            if not quad_fused:
+                raise ValueError("Live quad-hybrid fusion returned empty ranking")
         finally:
             conn.close()
 

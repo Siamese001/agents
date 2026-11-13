@@ -538,6 +538,15 @@ def populate_semantic_units(
         """,
         vector_rows,
     )
+    from apps_rg.runtime.bge_multi_head import populate_quad_embedding_tables
+
+    sparse_cnt, colbert_cnt = populate_quad_embedding_tables(
+        conn,
+        units=all_units,
+        unit_vector_rows=vector_rows,
+        input_manifest_digest=input_manifest_digest,
+        encode_unit_vec_fn=_encode_unit_vector_1024,
+    )
     conn.commit()
 
     return {
@@ -546,6 +555,8 @@ def populate_semantic_units(
         "skill_evidence_cluster_count": len(skill_units),
         "engagement_episode_count": len(eng_units),
         "metric_outcome_story_count": len(metric_units),
+        "learned_sparse_count": sparse_cnt,
+        "colbert_vector_count": colbert_cnt,
     }
 
 
