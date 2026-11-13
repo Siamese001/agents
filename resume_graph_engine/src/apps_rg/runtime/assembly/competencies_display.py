@@ -298,7 +298,7 @@ def csuite_capability_display_rows(
             ),
             (
                 "Enterprise Architecture & M&A Integration",
-                "Post-M&A Technology & Data Integration, Event-Driven Architecture & API Integration, Application Dependency & Cutover Planning, Hyperscaler AI Solution Architecture",
+                "Post-M&A Technology & Data Integration, Event-Driven Architecture & API Integration, Application Dependency & Cutover Planning, Hyperscaler Joint AI Solution Architecture",
             ),
             (
                 "Data Lakehouse, BI & Regulatory Lineage",
@@ -314,7 +314,7 @@ def csuite_capability_display_rows(
             ),
             (
                 "IT Strategy, Risk & Operating Model",
-                "AI Commercialization & Operating Model Design, Three-Lines-of-Defense Risk Governance, Actuarial & Solvency Risk Modeling (FSA), Global Engineering Organization Scale-Out",
+                "AI Commercialization & Operating Model Design, Three-Lines-of-Defense Risk Governance, Actuarial & Solvency Risk Modeling, Global Engineering Organization Scale-Out",
             ),
         ]
     if profile == "insurance_agentic_ai" or ("insurance_domain_modernization" in families and "agentic_platforms" in families) or "aig" in co_low or ("agentic" in role_low and "global head" in role_low):
