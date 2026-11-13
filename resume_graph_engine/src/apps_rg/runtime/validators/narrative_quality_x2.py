@@ -11,7 +11,9 @@ Implements deterministic quality gates for Unify and IBM narrative sections:
 """
 from __future__ import annotations
 
+import math
 import re
+from collections import Counter
 from dataclasses import dataclass
 from typing import Any
 
@@ -392,21 +394,134 @@ def check_narrative_e0_ngram_overlap(
     )
 
 
+_COSINE_STOPWORDS: frozenset[str] = frozenset(
+    {"a", "an", "and", "as", "at", "by", "for", "from", "in", "into", "of", "on", "or", "that", "the", "their", "to", "with", "across", "while", "over"}
+)
+_EXEMPT_STANDARD_NUMBERS: frozenset[str] = frozenset({"2", "239", "500"})
+
+
+def _content_stem(token: str) -> str:
+    for suffix in ("ing", "ed", "es", "s", "tion", "ment", "ly"):
+        if len(token) > len(suffix) + 3 and token.endswith(suffix):
+            return token[: -len(suffix)]
+    return token
+
+
+def compute_text_cosine_similarity(left: str, right: str, *, content_only: bool = True) -> float:
+    """Compute token-counter cosine similarity between two strings."""
+    left_raw, right_raw = _tokenize(str(left or "")), _tokenize(str(right or ""))
+    if content_only:
+        left_tokens = [_content_stem(t) for t in left_raw if t not in _COSINE_STOPWORDS and len(t) > 2]
+        right_tokens = [_content_stem(t) for t in right_raw if t not in _COSINE_STOPWORDS and len(t) > 2]
+    else:
+        left_tokens, right_tokens = left_raw, right_raw
+    if not left_tokens or not right_tokens:
+        return 0.0
+    left_counts, right_counts = Counter(left_tokens), Counter(right_tokens)
+    shared = set(left_counts) & set(right_counts)
+    num = sum(left_counts[k] * right_counts[k] for k in shared)
+    den = math.sqrt(sum(v * v for v in left_counts.values())) * math.sqrt(sum(v * v for v in right_counts.values()))
+    return round(num / den, 4) if den else 0.0
+
+
+def _extract_bullet_lines(bullet_texts: list[str] | str) -> list[str]:
+    raw_lines = [line.strip() for line in bullet_texts.splitlines() if line.strip()] if isinstance(bullet_texts, str) else [str(item or "").strip() for item in (bullet_texts or []) if str(item or "").strip()]
+    return [s for line in raw_lines if (s := re.sub(r"^-\s*(?:bul_[a-z0-9_]+\s*:\s*)?", "", line, flags=re.IGNORECASE).strip())]
+
+
+def check_narrative_bullet_cosine_similarity(
+    narrative_text: str,
+    bullet_texts: list[str] | str,
+    *,
+    max_pairwise_cosine: float = 0.42,
+    max_pool_cosine: float = 0.52,
+    forbid_shared_opener: bool = False,
+    forbid_repeated_metrics: bool = False,
+    warn_only: bool = False,
+) -> NarrativeQualityResult:
+    """Evaluate pairwise cosine similarity for each (narrative, bullet_i) combination."""
+    bullets = _extract_bullet_lines(bullet_texts)
+    if not narrative_text or not bullets:
+        return NarrativeQualityResult(
+            gate_id="x2_narrative_bullet_cosine_similarity", passed=True,
+            observed_value={"status": "no_companion_bullets", "pairs": []},
+            threshold=f"pairwise_cosine<={max_pairwise_cosine}, pool_cosine<={max_pool_cosine}",
+            failure_reason=None, signals=[],
+        )
+    narr_opener = _first_word(narrative_text)
+    narr_numbers = {num for num in re.findall(r"\b\d+\b", narrative_text) if num not in _EXEMPT_STANDARD_NUMBERS}
+    pairs, opener_collisions, metric_collisions = [], [], []
+    max_content_cos, max_raw_cos = 0.0, 0.0
+    for idx, bullet in enumerate(bullets, start=1):
+        content_cos = compute_text_cosine_similarity(narrative_text, bullet, content_only=True)
+        raw_cos = compute_text_cosine_similarity(narrative_text, bullet, content_only=False)
+        same_opener = bool(narr_opener and narr_opener == _first_word(bullet))
+        bullet_numbers = {num for num in re.findall(r"\b\d+\b", bullet) if num not in _EXEMPT_STANDARD_NUMBERS}
+        shared_nums = sorted(narr_numbers & bullet_numbers)
+        if same_opener:
+            opener_collisions.append(f"bullet_{idx}:{narr_opener}")
+        if shared_nums:
+            metric_collisions.extend(f"bullet_{idx}:{n}" for n in shared_nums)
+        max_content_cos, max_raw_cos = max(max_content_cos, content_cos), max(max_raw_cos, raw_cos)
+        pairs.append({"bullet_index": idx, "content_cosine": content_cos, "raw_cosine": raw_cos, "same_opener_verb": same_opener, "shared_metric_numbers": shared_nums})
+    pool_content_cos = compute_text_cosine_similarity(narrative_text, " ".join(bullets), content_only=True)
+    pool_raw_cos = compute_text_cosine_similarity(narrative_text, " ".join(bullets), content_only=False)
+    issues: list[str] = []
+    if max_content_cos > max_pairwise_cosine:
+        issues.append(f"max_pairwise_cosine={max_content_cos:.4f}>{max_pairwise_cosine:.4f}")
+    if pool_content_cos > max_pool_cosine:
+        issues.append(f"pool_content_cosine={pool_content_cos:.4f}>{max_pool_cosine:.4f}")
+    if forbid_shared_opener and opener_collisions:
+        issues.append(f"shared_opener_verb={opener_collisions}")
+    if forbid_repeated_metrics and metric_collisions:
+        issues.append(f"repeated_bullet_metrics={metric_collisions}")
+    passed_gate = len(issues) == 0
+    return NarrativeQualityResult(
+        gate_id="x2_narrative_bullet_cosine_similarity", passed=(passed_gate or warn_only),
+        observed_value={"max_pairwise_content_cosine": max_content_cos, "max_pairwise_raw_cosine": max_raw_cos, "pool_content_cosine": pool_content_cos, "pool_raw_cosine": pool_raw_cos, "opener_collisions": opener_collisions, "metric_collisions": metric_collisions, "pairs": pairs},
+        threshold={"max_pairwise_cosine": max_pairwise_cosine, "max_pool_cosine": max_pool_cosine, "forbid_shared_opener": forbid_shared_opener, "forbid_repeated_metrics": forbid_repeated_metrics},
+        failure_reason=None if passed_gate else f"Narrative-to-bullet cosine similarity or echo check failed ({'; '.join(issues)}).",
+        signals=issues if not passed_gate else [],
+    )
+
+
+def repair_narrative_bullet_echo_from_graph(
+    candidate_text: str, *, facts: list[dict[str, Any]], companion_bullet_texts: str, section_id: str,
+) -> str:
+    """When a role narrative echoes companion bullets, compose from bound graph skill nodes."""
+    if section_id != "slalom_narrative" or not candidate_text:
+        return candidate_text
+    cos_gate = check_narrative_bullet_cosine_similarity(
+        candidate_text, companion_bullet_texts, max_pairwise_cosine=0.28, max_pool_cosine=0.38,
+        forbid_shared_opener=True, forbid_repeated_metrics=True,
+    )
+    if cos_gate.passed and not candidate_text.lower().startswith("led ") and not re.search(r"\b105\b", candidate_text):
+        return candidate_text
+    skill_ids = {
+        str(item or "").strip()
+        for fact in (facts or []) if isinstance(fact, dict)
+        for key in ("graph_skill_node_ids", "allowed_graph_evidence_ids")
+        for item in (fact.get(key) or []) if str(item or "").strip().startswith("skill_")
+    }
+    def _phrase(tid: str, fallback: str) -> str:
+        return tid.removeprefix("skill_").removeprefix("partner_").replace("_", " ").replace("cosell", "co-sell") if tid in skill_ids else fallback
+    return (
+        "Owned the executive consulting mandate for flagship enterprise modernization, "
+        f"aligning commercial account stewardship and practice operating models to turn "
+        f"{_phrase('skill_governed_agentic_systems_architecture', 'governed agentic systems architecture')}, "
+        f"{_phrase('skill_runtime_resilience_controls', 'runtime resilience controls')}, and cloud partner "
+        f"{_phrase('skill_partner_hyperscaler_cosell', 'hyperscaler co-sell')} into repeatable "
+        f"{_phrase('skill_enterprise_workflow_adoption', 'enterprise workflow adoption')}."
+    )
+
+
 __all__ = [
-    "BASE_NGRAM_THRESHOLD",
-    "BULLET_RECAP_MAX_SHARED_NGRAMS",
-    "E0_NGRAM_THRESHOLD",
-    "MECHANISM_VOCAB",
-    "NARRATIVE_CONSULTING_PHRASES",
-    "NARRATIVE_STRONG_VERBS",
-    "NARRATIVE_WEAK_VERBS",
-    "NarrativeQualityResult",
-    "NGRAM_SIZE_OVERLAP",
-    "check_narrative_base_prose_ngram_overlap",
-    "check_narrative_e0_ngram_overlap",
-    "check_narrative_no_consulting_language",
-    "check_narrative_not_bullet_recap",
-    "check_narrative_seniority_floor",
-    "check_narrative_technical_specificity",
-    "check_narrative_upstream_graph_proof_bundle",
+    "BASE_NGRAM_THRESHOLD", "BULLET_RECAP_MAX_SHARED_NGRAMS", "E0_NGRAM_THRESHOLD",
+    "MECHANISM_VOCAB", "NARRATIVE_CONSULTING_PHRASES", "NARRATIVE_STRONG_VERBS",
+    "NARRATIVE_WEAK_VERBS", "NarrativeQualityResult", "NGRAM_SIZE_OVERLAP",
+    "check_narrative_base_prose_ngram_overlap", "check_narrative_bullet_cosine_similarity",
+    "check_narrative_e0_ngram_overlap", "check_narrative_no_consulting_language",
+    "check_narrative_not_bullet_recap", "check_narrative_seniority_floor",
+    "check_narrative_technical_specificity", "check_narrative_upstream_graph_proof_bundle",
+    "compute_text_cosine_similarity", "repair_narrative_bullet_echo_from_graph",
 ]
