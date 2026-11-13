@@ -435,6 +435,50 @@ def is_upstream_blocked_runtime_status(runtime_generation_status: str | None) ->
     return is_hard_no_retry_runtime_status(runtime_generation_status)
 
 
+def load_role_episode_companion_bullets(
+    repo_root: Any,
+    *,
+    section_id: str,
+    role_key: str,
+    is_bullet_lane: bool,
+    required_bullet_ids: tuple[str, ...],
+    artifact_dir: Any = None,
+) -> tuple[dict[str, Any], str]:
+    """Load finalized companion bullets for role-episode narrative lanes."""
+    if is_bullet_lane or section_id not in ("slalom_narrative", "insurtech_narrative"):
+        return {}, ""
+    upstream_sid = f"{role_key}_bullets"
+    ctx = build_companion_bullets_context(
+        Path(repo_root),
+        upstream_section_id=upstream_sid,
+        expected_bullet_ids=required_bullet_ids,
+    )
+    text = str(ctx.get("text") or "").strip()
+    if not text and artifact_dir is not None:
+        sibling_l2 = Path(artifact_dir).parent / upstream_sid / "l2_output.json"
+        if sibling_l2.is_file():
+            try:
+                l2_doc = json.loads(sibling_l2.read_text(encoding="utf-8"))
+                bullets = l2_doc.get("bullets") or []
+                lines = [
+                    f"- {b.get('bullet_id')}: {b.get('bullet_text', '')}"
+                    for b in bullets
+                    if isinstance(b, dict) and str(b.get("bullet_text") or "").strip()
+                ]
+                if lines:
+                    text = "\n".join(lines)
+                    ctx = {
+                        **ctx,
+                        "status": "ACCEPTED_FINALIZED",
+                        "reason": "sibling_lane_l2_output",
+                        "text": text,
+                        "bullet_ids": [str(b.get("bullet_id")) for b in bullets if isinstance(b, dict)],
+                    }
+            except (OSError, json.JSONDecodeError):
+                pass
+    return ctx, text
+
+
 __all__ = [
     "ACCEPTED_FINALIZED_COMPANION_STATUS",
     "COMPANION_FINALIZED_X3_CODES",
@@ -449,6 +493,7 @@ __all__ = [
     "companion_run_dir_accepted",
     "evaluate_companion_bullet_lane_finalized",
     "evaluate_narrative_upstream_bullets_gate",
+    "load_role_episode_companion_bullets",
     "resolve_companion_bullets_l2_path",
     "UpstreamBulletsGateStatus",
 ]

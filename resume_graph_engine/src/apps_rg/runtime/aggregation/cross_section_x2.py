@@ -666,26 +666,31 @@ def run_cross_section_x2_gates(
         ),
     )
 
-    # Section intent conflict: narrative substring in bullets
+    # Section intent conflict: narrative substring or high pairwise cosine similarity vs bullets
+    from apps_rg.runtime.validators.narrative_quality_x2 import check_narrative_bullet_cosine_similarity
+
     conflicts: list[str] = []
     by_id = {str(s.get("section_id")): s for s in sections}
     for narr_sid, bullet_sid in (
-        ("slalom_narrative", "slalom_bullets"),
-        ("unify_narrative", "unify_bullets"),
-        ("ibm_narrative", "ibm_bullets"),
-        ("insurtech_narrative", "insurtech_bullets"),
-        ("ey_narrative", "ey_bullets"),
+        ("slalom_narrative", "slalom_bullets"), ("unify_narrative", "unify_bullets"),
+        ("ibm_narrative", "ibm_bullets"), ("insurtech_narrative", "insurtech_bullets"), ("ey_narrative", "ey_bullets"),
     ):
-        narr = by_id.get(narr_sid)
-        bullets = by_id.get(bullet_sid)
+        narr, bullets = by_id.get(narr_sid), by_id.get(bullet_sid)
         if not narr or not bullets:
             continue
-        ntext = normalize_claim_text(_section_plaintext(narr))
+        raw_ntext, raw_btext = _section_plaintext(narr), _section_plaintext(bullets)
+        ntext, btext = normalize_claim_text(raw_ntext), normalize_claim_text(raw_btext)
         if len(ntext) < 40:
             continue
-        btext = normalize_claim_text(_section_plaintext(bullets))
         if ntext in btext or btext in ntext:
             conflicts.append(f"{narr_sid}_vs_{bullet_sid}_substring")
+        cos_res = check_narrative_bullet_cosine_similarity(
+            raw_ntext, raw_btext, max_pairwise_cosine=0.28 if narr_sid == "slalom_narrative" else 0.42,
+            max_pool_cosine=0.38 if narr_sid == "slalom_narrative" else 0.52,
+            forbid_shared_opener=(narr_sid == "slalom_narrative"), forbid_repeated_metrics=(narr_sid == "slalom_narrative"),
+        )
+        if not cos_res.passed:
+            conflicts.append(f"{narr_sid}_vs_{bullet_sid}_cosine({';'.join(cos_res.signals)})")
 
     exec_sec = by_id.get("executive_summary")
     if exec_sec:

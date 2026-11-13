@@ -25,7 +25,11 @@ from apps_rg.runtime.exit.executive_summary_x3 import aggregate_x3
 from apps_rg.runtime.spine.section_x3_finalize import finalize_section_lane_x3
 from apps_rg.runtime.validators.bullet_line_discipline_x2 import check_bullet_single_thought
 from apps_rg.runtime.validators.bullet_quality_floor_x2 import check_experience_bullet_evidence_density
+from apps_rg.runtime.validators.companion_bullet_finalization import load_role_episode_companion_bullets
 from apps_rg.runtime.validators.narrative_mechanical_x2 import check_narrative_exactly_one_sentence
+from apps_rg.runtime.validators.narrative_quality_x2 import (
+    check_narrative_bullet_cosine_similarity, repair_narrative_bullet_echo_from_graph,
+)
 from apps_rg.runtime.providers import (
     ExternalProvider, ProviderGateway, ProviderGatewayError, ProviderProfile,
 )
@@ -1044,6 +1048,8 @@ def _proof_authorized_narrative_from_selection(
     parsed: dict[str, Any],
     facts: list[dict[str, Any]],
     allowed: list[str],
+    section_id: str = "",
+    companion_bullet_texts: str = "",
 ) -> tuple[str, list[str], str, bool]:
     proof_by_id = _proof_fact_by_id(facts, allowed)
     source_ids = _source_ids_from_parsed_claim_ledger(parsed, allowed)
@@ -1059,6 +1065,9 @@ def _proof_authorized_narrative_from_selection(
                     candidate_text = _t_pat.sub("enterprise AI", candidate_text)
                 elif _t_label == "partner_led_deployment_as_experience":
                     candidate_text = _t_pat.sub("enterprise client deployments", candidate_text)
+        candidate_text = repair_narrative_bullet_echo_from_graph(
+            candidate_text, facts=facts, companion_bullet_texts=companion_bullet_texts, section_id=section_id,
+        )
         for fid in source_ids:
             fact = proof_by_id.get(fid)
             if fact:
@@ -1391,25 +1400,22 @@ def _compiled_prompt(cfg: RoleEpisodeLaneConfig, runtime_payload: dict[str, Any]
         else "Return JSON with narrative_sentence, claim_ledger:[{claim_text, source_fact_ids}], "
         "jd_alignment:{targeting_only:true,jd_used_as_proof:false}. The narrative is exactly one complete, inspiring executive sentence "
         f"of between 15 and {NARRATIVE_MAX_WORDS} words (at most {NARRATIVE_MAX_CHARS} characters), "
-        "in first-person-implied resume voice: MUST start with an executive past-tense action verb (e.g. Led, Directed, Architected, Spearheaded, Championed, Owned) and NEVER start with a title fragment ('Senior Director ...') or third-person subject. "
+        "in first-person-implied resume voice: MUST start with an executive mandate verb (e.g. Owned, Steered, Championed, Anchored, Drove, Established, Operationalized) and NEVER start with 'Led' or a title fragment ('Senior Director ...') or third-person subject. "
+        "Do NOT repeat numeric metrics from the companion bullets (e.g. 105, 100%) and do NOT list bullet phrases in a comma-packed inventory. "
         "Do NOT use targeting buzzwords like 'frontier AI' as an experience claim (use 'enterprise AI' or 'next-generation AI'). "
-        "It must be an inspiring role thesis conveying executive consulting leadership and client transformation stature, "
-        "not a recap of the bullets."
+        "Synthesize why the role mattered by connecting the candidate's bound graph skill capabilities to the target JD's strategic priorities, "
+        "keeping pairwise cosine similarity against every companion bullet low (<= 0.28)."
     )
 
-    # JD-targeted tailoring path: when role-episode graph bundles are attached, steer prose by the
-    # target JD using the candidate's bound graph skills (parity with the Unify/IBM lanes), while
-    # keeping the locked-identity law and fact-bound proof contract intact. Falls back to the legacy
-    # fact-only prompt when no bundles are present (proof-absent / non-targeted runs).
-    ppm = runtime_payload.get("proof_pool_metadata") or {}
-    evidence_block = (
-        _role_episode_evidence_block(runtime_payload)
-        if ppm.get("role_episode_bundle_consumption")
-        else ""
+    companion_text = str(runtime_payload.get("companion_bullet_texts") or "").strip()
+    companion_block = (
+        f"ACCEPTED_COMPANION_BULLETS (READ_ONLY_SYNTHESIS_CONTEXT — DO NOT COPY PHRASES, OPENERS, OR METRICS):\n{companion_text}"
+        if (not cfg.is_bullet_lane and companion_text) else ""
     )
+    ppm = runtime_payload.get("proof_pool_metadata") or {}
+    evidence_block = _role_episode_evidence_block(runtime_payload) if ppm.get("role_episode_bundle_consumption") else ""
     if evidence_block:
         from apps_rg.runtime.sections.executive_summary_pa import format_jd_targeting_block
-
         jd_block = format_jd_targeting_block(
             target_title=str(runtime_payload.get("target_title") or ""),
             target_company=str(runtime_payload.get("target_company") or ""),
@@ -1423,30 +1429,16 @@ def _compiled_prompt(cfg: RoleEpisodeLaneConfig, runtime_payload: dict[str, Any]
             "The runtime renders visible text from selected proof fact claim_text only. Every claim "
             "MUST cite only allowed source_fact_ids; graph-skill phrases are selection hints, not "
             "proof or approved display wording. targeting_only=true; jd_used_as_proof=false."
+            if cfg.is_bullet_lane
+            else "Use JD_TEXT, BRIEFING, GRAPH_SKILL_EVIDENCE, and ACCEPTED_COMPANION_BULLETS to synthesize "
+            "one executive role thesis grounded in the candidate's allowed graph bundles. Do NOT copy verbatim "
+            "fact claim_text lists or companion bullet metrics; retain graph anchor vocabulary across cited "
+            "source_fact_ids while keeping pairwise cosine similarity against each companion bullet <= 0.28. "
+            "targeting_only=true; jd_used_as_proof=false."
         )
-        return "\n".join(
-            [
-                f"Section: {cfg.section_id}",
-                role_methodology,
-                instruction,
-                jd_block,
-                evidence_block,
-                shape,
-                "Allowed facts (claim proof — source_fact_ids must cite only these):",
-                *fact_lines,
-            ]
-        )
+        return "\n".join([b for b in [f"Section: {cfg.section_id}", role_methodology, instruction, jd_block, evidence_block, companion_block, shape, "Allowed facts (claim proof — source_fact_ids must cite only these):", *fact_lines] if b])
 
-    return "\n".join(
-        [
-            f"Section: {cfg.section_id}",
-            role_methodology,
-            "Use only source_fact_ids from the allowed facts below. Do not use JD or briefing as claim proof.",
-            shape,
-            "Allowed facts:",
-            *fact_lines,
-        ]
-    )
+    return "\n".join([b for b in [f"Section: {cfg.section_id}", role_methodology, "Use only source_fact_ids from the allowed facts below. Do not use JD or briefing as claim proof.", companion_block, shape, "Allowed facts:", *fact_lines] if b])
 
 
 def _prompt_object(prompt_text: str, *, run_id: str, prompt_hash: str) -> SimpleNamespace:
@@ -1785,6 +1777,14 @@ def _x2_gates(
                 ),
             ]
         )
+        companion_text_for_x2 = str(l2.get("companion_bullet_texts") or "").strip()
+        if companion_text_for_x2:
+            is_slalom_narr = cfg.section_id == "slalom_narrative"
+            cos_res = check_narrative_bullet_cosine_similarity(
+                sent, companion_text_for_x2, max_pairwise_cosine=0.28 if is_slalom_narr else 0.42,
+                max_pool_cosine=0.38 if is_slalom_narr else 0.52, forbid_shared_opener=is_slalom_narr, forbid_repeated_metrics=is_slalom_narr,
+            )
+            gates.append(_x2_gate(f"x2_{cfg.section_id}_narrative_bullet_cosine_similarity", cos_res.passed, cos_res.failure_reason or "", cos_res.observed_value))
     return gates
 
 
@@ -2129,6 +2129,15 @@ def run_role_episode_lane_execution(
             status="REQUIRED_PROOF_ABSENT",
         )
 
+    companion_ctx, companion_text = load_role_episode_companion_bullets(
+        REPO_ROOT, section_id=sid, role_key=cfg.role_key, is_bullet_lane=cfg.is_bullet_lane,
+        required_bullet_ids=tuple(REQUIRED_BULLET_IDS.get(f"{cfg.role_key}_bullets", ())), artifact_dir=artifact_dir,
+    )
+    if not cfg.is_bullet_lane and companion_text:
+        runtime_payload.update({"companion_bullets_context": companion_ctx, "companion_bullet_texts": companion_text})
+        write_json(artifact_dir / f"companion_{cfg.role_key}_bullets_context.json", companion_ctx)
+        (artifact_dir / f"companion_{cfg.role_key}_bullets_context.txt").write_text(companion_text + "\n", encoding="utf-8")
+
     prompt_text = _compiled_prompt(cfg, runtime_payload)
     prompt_hash = hashlib.sha256(prompt_text.encode("utf-8")).hexdigest()
     compiled_obj = _prompt_object(prompt_text, run_id=run_id, prompt_hash=prompt_hash)
@@ -2328,6 +2337,8 @@ def run_role_episode_lane_execution(
                 parsed=parsed or {},
                 facts=facts,
                 allowed=allowed_fact_ids,
+                section_id=sid,
+                companion_bullet_texts=companion_text,
             )
             parsed_ledger_source_ids = _parsed_claim_ledger_source_ids_for_narrative(
                 parsed=parsed or {},
@@ -2407,6 +2418,8 @@ def run_role_episode_lane_execution(
             "prompt_hash": prompt_hash[:16],
             **generation_receipt,
         }
+        if companion_text:
+            l2["companion_bullet_texts"] = companion_text
         l2["generation_receipt"] = dict(generation_receipt)
 
     proof_meta = dict(pool.proof_pool_metadata or {})
