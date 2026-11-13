@@ -488,8 +488,13 @@ def run_canonical_apps_rg_from_cli_primitives(
     lane_mock_judges: bool = False,
     lane_allow_non_allow_exit_zero: bool = False,
     lane_allow_test_mock_judges: bool = False,
+    career_thesis_plan_path: str = "",
+    career_thesis_alignment_digest: str = "",
 ) -> dict[str, Any]:
     """Dispatch full scope to product entry; section scope is non-product tooling."""
+    _ = career_thesis_alignment_digest
+    if career_thesis_plan_path and not os.environ.get("APPS_RG_CAREER_THESIS_PLAN_PATH"):
+        os.environ["APPS_RG_CAREER_THESIS_PLAN_PATH"] = str(career_thesis_plan_path)
     sid = str(section).strip()
     if not sid:
         from apps_rg.runtime.product_entry import run_product_whole_run_from_primitives

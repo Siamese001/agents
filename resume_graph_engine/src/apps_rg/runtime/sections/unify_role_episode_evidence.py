@@ -394,23 +394,15 @@ def attach_role_episode_bundles_to_proof_pool_metadata(
     out["approved_metric_outcome_ids"] = packet["approved_metric_outcome_ids"]
     if section_id == "unify_bullets":
         plan = out.get("selected_graph_evidence_plan") if isinstance(out.get("selected_graph_evidence_plan"), dict) else {}
-        target_role_profile = str(
-            plan.get("role_family_key")
-            or plan.get("target_role_profile")
-            or out.get("role_family_key")
-            or out.get("target_role_profile")
-            or ""
-        ).strip()
-        slot_bundle_map = resolve_unify_bullet_slot_bundle_map_with_fallback(
-            target_role_profile,
-            repo_root=repo_root,
-        )
+        target_role_profile = str(plan.get("role_family_key") or plan.get("target_role_profile") or out.get("role_family_key") or out.get("target_role_profile") or "").strip()
+        frozen_slot_map = plan.get("unify_bullet_slot_bundle_map_resolved") or out.get("unify_bullet_slot_bundle_map_resolved")
+        if isinstance(frozen_slot_map, dict) and set(frozen_slot_map) == set(UNIFY_BULLET_SLOT_IDS) and all(str(frozen_slot_map.get(s) or "").strip() for s in UNIFY_BULLET_SLOT_IDS):
+            slot_bundle_map = {s: str(frozen_slot_map[s]).strip() for s in UNIFY_BULLET_SLOT_IDS}
+        else:
+            slot_bundle_map = resolve_unify_bullet_slot_bundle_map_with_fallback(target_role_profile, repo_root=repo_root)
         out["unify_bullet_slot_bundle_map_resolved"] = slot_bundle_map
         out["unify_graph_traversal_sufficiency_receipt"] = build_unify_graph_traversal_sufficiency_receipt(
-            section_id=section_id,
-            target_role_profile=target_role_profile or "DEFAULT",
-            slot_bundle_map=slot_bundle_map,
-            packet=packet,
+            section_id=section_id, target_role_profile=target_role_profile or "DEFAULT", slot_bundle_map=slot_bundle_map, packet=packet,
         )
     return out
 
