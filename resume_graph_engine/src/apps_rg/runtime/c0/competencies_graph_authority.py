@@ -126,6 +126,9 @@ _ALLOCATION_VISIBLE_SURFACE_COMPOSITIONS: Mapping[tuple[str, str], str] = {
     ("reb_slalom_nextgen_ai_solutions", "skill_partner_ai_architecture_advisory"): "enterprise partner AI solution architecture advisory",
     ("reb_unify_hyperscaler_joint_solution_architecture", "skill_partner_alliance_gtm_execution"): "cloud alliance solution architecture execution",
     ("reb_unify_partner_channel_cosell", "skill_partner_alliance_gtm_execution"): "cloud alliance solution architecture execution",
+    ("reb_unify_regulated_enterprise_ai_governance", "skill_llm_judge_packet_design"): "LLM judge packet design for regulated compliance",
+    ("reb_unify_runtime_reliability_governance", "skill_context_engineering"): "context engineering for runtime evaluation governance",
+    ("reb_ibm_presales_solution_engineering", "skill_p2_gtm_executive_buyer_alignment"): "executive buyer architecture alignment for enterprise pursuits",
 }
 
 # A joint alliance/co-sell capability is commercial evidence, even when its
@@ -212,6 +215,9 @@ _ALLOCATION_SURFACE_CATEGORY_OVERRIDES: Mapping[tuple[str, str], str] = {
     ("reb_slalom_live_copilot_acoustic_airgap", "skill_cache_fallback_grounded_action_routing"): "Technology Strategy & Innovation",
     ("reb_slalom_visual_asset_intelligence", "skill_agentic_platform_productization"): "Cloud & Partner Ecosystems",
     ("reb_slalom_bitemporal_graphrag_uwg", "skill_side_effect_bounded_action_design"): "Data & Analytics Modernization",
+    ("reb_unify_regulated_enterprise_ai_governance", "skill_llm_judge_packet_design"): "LLMOps & Reliability",
+    ("reb_unify_runtime_reliability_governance", "skill_context_engineering"): "Technology Strategy & Innovation",
+    ("reb_ibm_presales_solution_engineering", "skill_p2_gtm_executive_buyer_alignment"): "Cloud & Partner Ecosystems",
 }
 _SURFACE_COMPOSITION_CONNECTIVES = frozenset(
     {"and", "for", "of", "the", "to", "with", "through", "across", "via"}
@@ -796,6 +802,10 @@ def _partner_gtm_allocation_display_ceiling(
         "reb_slalom_visual_asset_intelligence",
         "reb_ey_ccar_capital_liquidity_stress_testing",
         "reb_ey_capital_optimization_solvency",
+        "reb_unify_agentic_platform_architecture",
+        "reb_unify_regulated_enterprise_ai_governance",
+        "reb_unify_runtime_reliability_governance",
+        "reb_slalom_dialectical_decision_bayesian_hitl",
     }:
         return 3
     return 6
@@ -982,31 +992,18 @@ def materialize_unmatched_competencies_allocation_terms(
                 ):
                     unit_added = True
                 continue
-            display_ceiling = _partner_gtm_allocation_display_ceiling(
-                category,
-                assignment,
-            )
-            replacement = _make_category_capacity(
-                category,
-                ceiling=display_ceiling,
-            )
-            if (
-                sum(1 for term in category.get("terms") or [] if _term_text(term))
-                >= display_ceiling
-            ):
+            display_ceiling = _partner_gtm_allocation_display_ceiling(category, assignment)
+            while sum(1 for term in category.get("terms") or [] if _term_text(term)) >= display_ceiling:
+                replacement = _make_category_capacity(category, ceiling=display_ceiling)
+                if replacement is None:
+                    break
+                replacements.append({
+                    "surface": surface_name,
+                    "category_label": str(category.get("resume_display_label") or category.get("category_label") or ""),
+                    **replacement,
+                })
+            if sum(1 for term in category.get("terms") or [] if _term_text(term)) >= display_ceiling:
                 continue
-            if replacement is not None:
-                replacements.append(
-                    {
-                        "surface": surface_name,
-                        "category_label": str(
-                            category.get("resume_display_label")
-                            or category.get("category_label")
-                            or ""
-                        ),
-                        **replacement,
-                    }
-                )
             terms = list(category.get("terms") or [])
             terms.append(
                 {
