@@ -258,10 +258,177 @@ def fuse_dense_bm25(
     return result
 
 
+def learned_sparse_rank(
+    query_weights: Mapping[str, float],
+    document_weights: Mapping[str, Mapping[str, float]],
+) -> list[dict[str, float | str]]:
+    """Rank immutable candidate documents using BGE-M3 learned sparse lexical weights."""
+    assertion_ids = sorted(str(assertion_id) for assertion_id in document_weights)
+    if not assertion_ids:
+        return []
+    for tok, qw in query_weights.items():
+        if not str(tok).strip() or not math.isfinite(float(qw)) or float(qw) < 0.0:
+            raise GraphSkillHybridRetrievalError("query learned sparse weights must be finite and non-negative")
+    scores: list[tuple[float, str]] = []
+    for aid in assertion_ids:
+        doc_w = document_weights[aid]
+        overlap = 0.0
+        for tok, qw in query_weights.items():
+            if tok in doc_w:
+                dw = float(doc_w[tok])
+                if not math.isfinite(dw) or dw < 0.0:
+                    raise GraphSkillHybridRetrievalError("document learned sparse weights must be finite and non-negative")
+                overlap += float(qw) * dw
+        scores.append((round(overlap, 6), aid))
+    scores.sort(key=lambda row: (-row[0], row[1]))
+    return [
+        {"assertion_id": assertion_id, "learned_sparse_score": score}
+        for score, assertion_id in scores
+    ]
+
+
+def colbert_maxsim_score(
+    query_vectors: Sequence[Sequence[float]],
+    doc_vectors: Sequence[Sequence[float]],
+) -> float:
+    """Compute ColBERT MaxSim late-interaction score between query and document token vectors."""
+    if not query_vectors or not doc_vectors:
+        return 0.0
+    total = 0.0
+    for q_vec in query_vectors:
+        q_floats = [float(v) for v in q_vec]
+        best_token_sim = -1.0
+        for d_vec in doc_vectors:
+            if len(d_vec) != len(q_floats):
+                raise GraphSkillHybridRetrievalError("ColBERT token vector dimension mismatch")
+            dot = math.fsum(a * float(b) for a, b in zip(q_floats, d_vec))
+            if not math.isfinite(dot):
+                raise GraphSkillHybridRetrievalError("ColBERT token similarity must be finite")
+            if dot > best_token_sim:
+                best_token_sim = dot
+        total += max(0.0, best_token_sim)
+    return round(total / len(query_vectors), 6)
+
+
+def colbert_maxsim_rank(
+    query_vectors: Sequence[Sequence[float]],
+    document_vectors: Mapping[str, Sequence[Sequence[float]]],
+) -> list[dict[str, float | str]]:
+    """Rank candidate documents using ColBERT multi-vector MaxSim late interaction."""
+    assertion_ids = sorted(str(assertion_id) for assertion_id in document_vectors)
+    if not assertion_ids:
+        return []
+    scores: list[tuple[float, str]] = []
+    for aid in assertion_ids:
+        sim = colbert_maxsim_score(query_vectors, document_vectors[aid])
+        scores.append((sim, aid))
+    scores.sort(key=lambda row: (-row[0], row[1]))
+    return [
+        {"assertion_id": assertion_id, "colbert_score": score}
+        for score, assertion_id in scores
+    ]
+
+
+def fuse_quad_hybrid(
+    dense_candidates: Sequence[Mapping[str, Any]],
+    learned_sparse_candidates: Sequence[Mapping[str, Any]],
+    bm25_candidates: Sequence[Mapping[str, Any]],
+    colbert_candidates: Sequence[Mapping[str, Any]],
+    *,
+    assertion_ids: set[str],
+    rank_constant: int = 60,
+    colbert_stage2_weight: float = 0.15,
+    authority_boosts: Mapping[str, float] | None = None,
+    metric_bearing_assertion_ids: set[str] | None = None,
+    metric_boost: float = 0.05,
+) -> list[dict[str, float | int | str | None]]:
+    """Fuse all 4 retrieval signals (Dense + Learned Sparse + BM25 + Stage-2 ColBERT MaxSim)."""
+    if not math.isfinite(float(colbert_stage2_weight)) or float(colbert_stage2_weight) < 0.0 or float(colbert_stage2_weight) > 0.50:
+        raise GraphSkillHybridRetrievalError("colbert_stage2_weight must be within [0.0, 0.50]")
+
+    def _extract_lane(
+        candidates: Sequence[Mapping[str, Any]], score_key: str, label: str
+    ) -> dict[str, float]:
+        lane_scores: dict[str, float] = {}
+        for candidate in candidates:
+            if set(candidate) != {"assertion_id", score_key}:
+                raise GraphSkillHybridRetrievalError(f"{label} candidate shape is invalid")
+            aid = str(candidate["assertion_id"])
+            val = float(candidate[score_key])
+            if aid not in assertion_ids:
+                raise GraphSkillHybridRetrievalError(f"{label} candidate is outside the authority set")
+            if aid in lane_scores or not math.isfinite(val):
+                raise GraphSkillHybridRetrievalError(f"{label} candidates must be unique and finite")
+            lane_scores[aid] = val
+        return lane_scores
+
+    dense_scores = _extract_lane(dense_candidates, "similarity", "dense")
+    learned_sparse_scores = _extract_lane(learned_sparse_candidates, "learned_sparse_score", "learned_sparse")
+    bm25_scores = _extract_lane(bm25_candidates, "bm25_score", "BM25")
+    colbert_scores = _extract_lane(colbert_candidates, "colbert_score", "ColBERT")
+
+    dense_ordered = [aid for aid, _ in sorted(dense_scores.items(), key=lambda x: (-x[1], x[0]))]
+    sparse_ordered = [aid for aid, _ in sorted(learned_sparse_scores.items(), key=lambda x: (-x[1], x[0]))]
+    bm25_ordered = [aid for aid, _ in sorted(bm25_scores.items(), key=lambda x: (-x[1], x[0]))]
+    colbert_ordered = [aid for aid, _ in sorted(colbert_scores.items(), key=lambda x: (-x[1], x[0]))]
+
+    fused = reciprocal_rank_fusion(
+        [dense_ordered, sparse_ordered, bm25_ordered, colbert_ordered],
+        assertion_ids=assertion_ids,
+        rank_constant=rank_constant,
+        authority_boosts=authority_boosts,
+    )
+
+    if metric_bearing_assertion_ids is not None:
+        if not math.isfinite(float(metric_boost)) or float(metric_boost) < 0.0 or float(metric_boost) > 0.20:
+            raise GraphSkillHybridRetrievalError(
+                "metric_boost must be non-negative, finite, and <= 0.20"
+            )
+        invalid_metric_aids = set(metric_bearing_assertion_ids) - assertion_ids
+        if invalid_metric_aids:
+            raise GraphSkillHybridRetrievalError(
+                f"metric_bearing_assertion_ids contains unauthorized IDs: {sorted(invalid_metric_aids)}"
+            )
+
+    out: list[dict[str, float | int | str | None]] = []
+    for row in fused:
+        aid = str(row["assertion_id"])
+        colbert_val = float(colbert_scores.get(aid, 0.0))
+        stage2_colbert_boost = round(colbert_val * float(colbert_stage2_weight), 6)
+        m_boost = (
+            float(metric_boost)
+            if (metric_bearing_assertion_ids is not None and aid in metric_bearing_assertion_ids)
+            else 0.0
+        )
+        final_val = round(float(row["rrf_score"]) + stage2_colbert_boost + m_boost, 6)
+        out.append(
+            row
+            | {
+                "dense_similarity": dense_scores.get(aid),
+                "learned_sparse_score": learned_sparse_scores.get(aid),
+                "bm25_score": bm25_scores.get(aid),
+                "colbert_score": colbert_scores.get(aid),
+                "dense_rank": row["ranks"][0],
+                "learned_sparse_rank": row["ranks"][1],
+                "bm25_rank": row["ranks"][2],
+                "colbert_rank": row["ranks"][3],
+                "colbert_stage2_boost": stage2_colbert_boost,
+                "metric_authority_boost": m_boost,
+                "final_score": final_val,
+            }
+        )
+    out.sort(key=lambda r: (-float(r["final_score"]), str(r["assertion_id"])))
+    return out
+
+
 __all__ = [
     "GraphSkillHybridRetrievalError",
     "bm25_rank",
+    "colbert_maxsim_rank",
+    "colbert_maxsim_score",
     "fuse_dense_bm25",
+    "fuse_quad_hybrid",
+    "learned_sparse_rank",
     "reciprocal_rank_fusion",
     "sqlite_fts5_bm25_rank",
 ]

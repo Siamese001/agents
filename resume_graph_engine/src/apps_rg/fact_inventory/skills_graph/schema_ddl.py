@@ -531,6 +531,27 @@ DDL_STATEMENTS: tuple[str, ...] = (
     )
     """,
     """
+    CREATE TABLE IF NOT EXISTS assertion_learned_sparse (
+        assertion_id TEXT PRIMARY KEY CHECK (TRIM(assertion_id) <> ''),
+        entity_kind TEXT NOT NULL DEFAULT 'semantic_unit' CHECK (entity_kind IN ('skill', 'semantic_unit')),
+        model_manifest_sha TEXT NOT NULL DEFAULT '',
+        weights_sha256 TEXT NOT NULL DEFAULT '',
+        weights_json TEXT NOT NULL DEFAULT '{}' CHECK (json_valid(weights_json) AND json_type(weights_json) = 'object')
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS assertion_colbert_vectors (
+        assertion_id TEXT PRIMARY KEY CHECK (TRIM(assertion_id) <> ''),
+        entity_kind TEXT NOT NULL DEFAULT 'semantic_unit' CHECK (entity_kind IN ('skill', 'semantic_unit')),
+        model_manifest_sha TEXT NOT NULL DEFAULT '',
+        token_count INTEGER NOT NULL DEFAULT 1 CHECK (token_count >= 1),
+        dim INTEGER NOT NULL DEFAULT 1024 CHECK (dim = 1024),
+        scales_json TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(scales_json) AND json_type(scales_json) = 'array'),
+        vectors_int8 BLOB NOT NULL,
+        vectors_sha256 TEXT NOT NULL DEFAULT ''
+    )
+    """,
+    """
     CREATE INDEX IF NOT EXISTS idx_semantic_unit_type ON semantic_unit(unit_type)
     """,
     """

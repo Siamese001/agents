@@ -65,6 +65,8 @@ class InMemoryResearchStore:
     def __init__(self) -> None:
         self._research: dict[str, dict[str, Any]] = {}
         self._embeddings: dict[str, list[float]] = {}
+        self._learned_sparse: dict[str, dict[str, float]] = {}
+        self._colbert_vectors: dict[str, list[list[float]]] = {}
         self._digest_embedding_cache: dict[str, list[float]] = {}
 
     @traces_execute(layer="L4_STATE")
@@ -83,7 +85,18 @@ class InMemoryResearchStore:
         }
         # Mock embedding from research content
         content_str = json.dumps(research_data, sort_keys=True)
-        self._embeddings[research_id] = self._mock_embed(content_str)
+        dense_vec = self._mock_embed(content_str)
+        self._embeddings[research_id] = dense_vec
+        from apps_rg.runtime.bge_embedding import project_multi_head_from_dense_and_text
+
+        mh = project_multi_head_from_dense_and_text(
+            content_str,
+            dense_vec,
+            heads=("sparse", "colbert"),
+            max_colbert_tokens=16,
+        )
+        self._learned_sparse[research_id] = mh.sparse
+        self._colbert_vectors[research_id] = mh.colbert
         return True
 
     def query_similar(
@@ -139,6 +152,66 @@ class InMemoryResearchStore:
             )
 
         return results
+
+    def query_quad_hybrid(
+        self,
+        query_text: str,
+        n_results: int = 5,
+        filters: dict[str, Any] | None = None,
+    ) -> list[dict[str, Any]]:
+        """Query research artifacts using 4-tier hybrid fusion (Dense + Learned Sparse + BM25 + ColBERT)."""
+        if not self._research:
+            return []
+        eligible_ids: set[str] = set()
+        docs: dict[str, str] = {}
+        for rid, rs in self._research.items():
+            meta = rs["metadata"]
+            if filters and not all(meta.get(k) == v for k, v in filters.items()):
+                continue
+            eligible_ids.add(rid)
+            docs[rid] = f"{meta.get('topic', '')} {rs['data'].get('content', '')}".strip()
+        if not eligible_ids:
+            return []
+
+        from apps_rg.runtime.bge_embedding import project_multi_head_from_dense_and_text
+        from apps_rg.runtime.graph_skill_hybrid_retrieval import (
+            bm25_rank,
+            colbert_maxsim_rank,
+            fuse_quad_hybrid,
+            learned_sparse_rank,
+        )
+
+        q_dense = self._mock_embed(query_text)
+        q_mh = project_multi_head_from_dense_and_text(
+            query_text,
+            q_dense,
+            heads=("sparse", "colbert"),
+            max_colbert_tokens=16,
+        )
+        dense_cands = [
+            {
+                "assertion_id": rid,
+                "similarity": self._cosine_similarity(q_dense, self._embeddings[rid]),
+            }
+            for rid in sorted(eligible_ids)
+        ]
+        sparse_cands = learned_sparse_rank(
+            q_mh.sparse,
+            {rid: self._learned_sparse.get(rid, {}) for rid in eligible_ids},
+        )
+        bm25_cands = bm25_rank(query_text, docs)
+        colbert_cands = colbert_maxsim_rank(
+            q_mh.colbert,
+            {rid: self._colbert_vectors.get(rid, []) for rid in eligible_ids},
+        )
+        fused = fuse_quad_hybrid(
+            dense_cands,
+            sparse_cands,
+            bm25_cands,
+            colbert_cands,
+            assertion_ids=eligible_ids,
+        )
+        return fused[: max(1, int(n_results))]
 
     def get_by_mode(self, mode: str, limit: int = 10) -> list[RetrievedResearch]:
         """Get research artifacts by mode."""

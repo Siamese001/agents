@@ -15,7 +15,17 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
+from apps_rg.runtime.bge_multi_head import (
+    MultiHeadEmbedding,
+    VALID_BGE_HEADS,
+    dequantize_colbert_vectors_int8,
+    embed_multi_head,
+    load_bge_m3_linear_heads,
+    project_multi_head_from_dense_and_text,
+    quantize_colbert_vectors_int8,
+)
 from apps_rg.runtime.embedding_settings import BGE_M3_DIMENSION
+
 
 try:
     from infrastructure.device.device_manager import (
@@ -475,20 +485,19 @@ class BgeResidentRuntime:
             }
             return vectors
 
+    def encode_multi_head(self, texts: Sequence[str], *, heads: Sequence[str] = VALID_BGE_HEADS, batch_size: int | None = None, max_colbert_tokens: int = 32) -> list[MultiHeadEmbedding]:
+        """Produce simultaneous dense, learned sparse, and ColBERT embeddings on the resident runtime."""
+        dense_vectors = self.encode(texts, batch_size=batch_size)
+        return [project_multi_head_from_dense_and_text(str(t), dv, heads=heads, model_path=self.key.model_path, max_colbert_tokens=max_colbert_tokens) for t, dv in zip(texts, dense_vectors)]
+
     def observation(self) -> dict[str, Any]:
         model = self._model
         warm_samples = list(self.warm_caller_elapsed_ms)
         warm_summary = (
             {
                 "sample_count": len(warm_samples),
-                "p50_ms": _length_summary(
-                    [round(value * 1000.0) for value in warm_samples]
-                )["p50"]
-                / 1000.0,
-                "p95_ms": _length_summary(
-                    [round(value * 1000.0) for value in warm_samples]
-                )["p95"]
-                / 1000.0,
+                "p50_ms": _length_summary([round(v * 1000.0) for v in warm_samples])["p50"] / 1000.0,
+                "p95_ms": _length_summary([round(v * 1000.0) for v in warm_samples])["p95"] / 1000.0,
             }
             if warm_samples
             else {"sample_count": 0, "p50_ms": None, "p95_ms": None}
@@ -497,19 +506,12 @@ class BgeResidentRuntime:
         try:
             import torch
 
+            cuda_ok = self.key.device.startswith("cuda") and torch.cuda.is_available()
             runtime_environment = {
                 "torch_version": str(torch.__version__),
                 "cuda_runtime_version": str(torch.version.cuda),
-                "gpu_name": (
-                    torch.cuda.get_device_name()
-                    if self.key.device.startswith("cuda") and torch.cuda.is_available()
-                    else None
-                ),
-                "compute_capability": (
-                    list(torch.cuda.get_device_capability())
-                    if self.key.device.startswith("cuda") and torch.cuda.is_available()
-                    else None
-                ),
+                "gpu_name": torch.cuda.get_device_name() if cuda_ok else None,
+                "compute_capability": list(torch.cuda.get_device_capability()) if cuda_ok else None,
             }
         except (ImportError, RuntimeError):
             runtime_environment = {}
@@ -518,9 +520,7 @@ class BgeResidentRuntime:
             "created_at": self.created_at,
             "load_ordinal": self.load_ordinal,
             "model_object_id": id(model) if model is not None else None,
-            "model_device": str(getattr(model, "device", ""))
-            if model is not None
-            else None,
+            "model_device": str(getattr(model, "device", "")) if model is not None else None,
             "warmup_completed": self.warmup_completed,
             "warmup_elapsed_ms": self.warmup_elapsed_ms,
             "encode_call_count": self.encode_call_count,
@@ -528,11 +528,7 @@ class BgeResidentRuntime:
             "last_batch_size": self.last_batch_size,
             "runtime_environment": runtime_environment,
             "caller_timing": {
-                "cold_elapsed_ms": (
-                    round(self.cold_caller_elapsed_ms, 3)
-                    if self.cold_caller_elapsed_ms is not None
-                    else None
-                ),
+                "cold_elapsed_ms": round(self.cold_caller_elapsed_ms, 3) if self.cold_caller_elapsed_ms is not None else None,
                 "warm": warm_summary,
                 "history_limit": 128,
             },
@@ -678,11 +674,18 @@ __all__ = [
     "BgeEmbeddingContractError",
     "BgeResidentRuntime",
     "BgeRuntimeKey",
+    "MultiHeadEmbedding",
+    "VALID_BGE_HEADS",
+    "dequantize_colbert_vectors_int8",
+    "embed_multi_head",
     "embed_text",
     "get_bge_runtime",
     "get_bge_runtime_for_settings",
+    "load_bge_m3_linear_heads",
     "load_local_bge_model",
     "load_bge_precision_profile",
+    "project_multi_head_from_dense_and_text",
+    "quantize_colbert_vectors_int8",
     "receipt_sha256",
     "reset_bge_runtime_for_testing",
     "resident_runtime_observation",
