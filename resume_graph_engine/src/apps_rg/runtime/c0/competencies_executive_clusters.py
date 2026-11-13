@@ -391,8 +391,8 @@ _INSURANCE_IT_STRATEGY_8UNIT_EXECUTIVE_CLUSTER_LAYOUT: tuple[dict[str, Any], ...
                 "executive_cluster_surface": True,
             },
             {
-                "term": "Actuarial & Solvency Risk Modeling (FSA)",
-                "text": "Actuarial & Solvency Risk Modeling (FSA)",
+                "term": "Actuarial & Solvency Risk Modeling",
+                "text": "Actuarial & Solvency Risk Modeling",
                 "source_fact_id": "fact_consulting_002",
                 "source_fact_ids": ["fact_consulting_002"],
                 "source_skill_ids": ["skill_risk_three_lines_of_defense"],
