@@ -11,6 +11,7 @@ from typing import Any, Sequence
 
 from apps_rg.runtime.embedding_settings import BGE_M3_DIMENSION
 
+BGE_DENSE_DIM = BGE_M3_DIMENSION
 VALID_BGE_HEADS = ("dense", "sparse", "colbert")
 _MULTI_HEAD_TOKEN_RE = re.compile(r"[a-z0-9_]{2,}")
 _MULTI_HEAD_STOPWORDS = frozenset(
@@ -45,6 +46,21 @@ class MultiHeadEmbedding:
     dense: list[float]
     sparse: dict[str, float]
     colbert: list[list[float]]
+
+    @property
+    def dense_vector(self) -> list[float]:
+        """Return the 1024-d L2-normalized dense vector."""
+        return self.dense
+
+    @property
+    def learned_sparse_weights(self) -> dict[str, float]:
+        """Return the learned sparse lexical weights mapping."""
+        return self.sparse
+
+    @property
+    def colbert_vectors(self) -> list[list[float]]:
+        """Return the ColBERT multi-vector token representations."""
+        return self.colbert
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -392,13 +408,62 @@ def populate_quad_embedding_tables(
     return len(learned_sparse_rows), len(colbert_rows)
 
 
+def decode_colbert_int8(
+    blob: bytes,
+    scales: Sequence[float] | str,
+    *,
+    token_count: int | None = None,
+    dim: int = BGE_M3_DIMENSION,
+    colbert_dim: int | None = None,
+) -> tuple[tuple[float, ...], ...]:
+    """Decode int8 ColBERT blob and scales (list or JSON string) into tuple of token vectors."""
+    import json
+
+    parsed_scales: Sequence[float] = (
+        json.loads(scales) if isinstance(scales, str) else scales
+    )
+    resolved_dim = int(colbert_dim or dim)
+    if token_count is not None and len(parsed_scales) != int(token_count):
+        raise ValueError(f"ColBERT token_count mismatch: {len(parsed_scales)} != {token_count}")
+    vecs = dequantize_colbert_vectors_int8(blob, parsed_scales, dim=resolved_dim)
+    return tuple(tuple(float(v) for v in row) for row in vecs)
+
+
+def project_text_multi_head(
+    text: str,
+    *,
+    heads: Sequence[str] = VALID_BGE_HEADS,
+    model_path: Path | str | None = None,
+    max_colbert_tokens: int = 16,
+) -> MultiHeadEmbedding:
+    """Project arbitrary text deterministically into 1024-d dense, learned sparse, and ColBERT heads."""
+    toks = _extract_meaningful_tokens(text, max_tokens=max(8, max_colbert_tokens))
+    acc = [0.0] * BGE_M3_DIMENSION
+    for tok in toks:
+        tvec = _deterministic_token_vector(tok, dim=BGE_M3_DIMENSION)
+        for i, v in enumerate(tvec):
+            acc[i] += v
+    norm = math.sqrt(sum(v * v for v in acc)) or 1.0
+    dense_vec = [v / norm for v in acc]
+    return project_multi_head_from_dense_and_text(
+        text,
+        dense_vec,
+        heads=heads,
+        model_path=model_path,
+        max_colbert_tokens=max_colbert_tokens,
+    )
+
+
 __all__ = [
+    "BGE_DENSE_DIM",
     "MultiHeadEmbedding",
     "VALID_BGE_HEADS",
+    "decode_colbert_int8",
     "dequantize_colbert_vectors_int8",
     "embed_multi_head",
     "load_bge_m3_linear_heads",
     "populate_quad_embedding_tables",
     "project_multi_head_from_dense_and_text",
+    "project_text_multi_head",
     "quantize_colbert_vectors_int8",
 ]

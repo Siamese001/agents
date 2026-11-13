@@ -10,6 +10,154 @@ from typing import Any
 
 _TOKEN_RE = re.compile(r"[a-z0-9]+")
 
+CALIBRATED_HYBRID_RRF_WEIGHTS: dict[str, float] = {
+    "dense": 0.20,
+    "sparse": 0.15,
+    "bm25": 0.40,
+    "colbert": 0.25,
+}
+DEFAULT_GRAPH_SIGNAL_WEIGHT = 0.15
+
+
+def renormalize_active_rrf_weights(
+    weights: Mapping[str, float],
+    active_modalities: set[str],
+) -> dict[str, float]:
+    """Renormalize RRF weights across active non-empty retrieval channels."""
+    filtered = {
+        str(k): float(v)
+        for k, v in weights.items()
+        if str(k) in active_modalities and math.isfinite(float(v)) and float(v) > 0.0
+    }
+    total = math.fsum(filtered.values())
+    if total <= 0.0:
+        if not active_modalities:
+            return {}
+        equal = round(1.0 / len(active_modalities), 6)
+        return {str(k): equal for k in sorted(active_modalities)}
+    return {k: round(v / total, 6) for k, v in sorted(filtered.items())}
+
+
+def compute_candidate_union(
+    preliminary_ranks: Mapping[str, Mapping[str, int]],
+    weights: Mapping[str, float],
+    *,
+    rrf_k: int = 60,
+    union_limit: int = 100,
+    min_per_modality: int | None = None,
+) -> list[str]:
+    """Form Stage-1 candidate union with DIE per-modality admission quota before RRF fill."""
+    if rrf_k <= 0 or union_limit <= 0:
+        raise GraphSkillHybridRetrievalError("rrf_k and union_limit must be positive")
+    quota = (
+        int(min_per_modality)
+        if min_per_modality is not None
+        else min(15, max(1, int(union_limit) // 4))
+    )
+    admitted: list[str] = []
+    seen: set[str] = set()
+    for modality in ("dense", "sparse", "bm25"):
+        r_map = preliminary_ranks.get(modality, {})
+        ordered = [rid for rid, _ in sorted(r_map.items(), key=lambda item: (item[1], item[0]))]
+        count = 0
+        for rid in ordered:
+            if rid not in seen:
+                seen.add(rid)
+                admitted.append(rid)
+                count += 1
+            if count >= quota or len(admitted) >= union_limit:
+                break
+        if len(admitted) >= union_limit:
+            return admitted[:union_limit]
+
+    all_ids: set[str] = set()
+    for r_map in preliminary_ranks.values():
+        all_ids.update(r_map.keys())
+    active_weights = renormalize_active_rrf_weights(
+        weights, {m for m, r_map in preliminary_ranks.items() if r_map}
+    )
+    prelim_scores: list[tuple[float, str]] = []
+    for rid in all_ids - seen:
+        sc = 0.0
+        for mod, w in active_weights.items():
+            pos = preliminary_ranks.get(mod, {}).get(rid)
+            if pos is not None:
+                sc += float(w) / (rrf_k + pos)
+        prelim_scores.append((sc, rid))
+    prelim_scores.sort(key=lambda item: (-item[0], item[1]))
+    for _, rid in prelim_scores:
+        if len(admitted) >= union_limit:
+            break
+        admitted.append(rid)
+    return admitted
+
+
+def compute_graph_expand_signals(
+    conn: Any,
+    seed_ids: Sequence[str],
+    candidate_ids: Sequence[str],
+) -> tuple[dict[str, int], dict[str, float]]:
+    """Compute 1-hop graph neighborhood/member/edge overlap signals from top seed records."""
+    if not seed_ids or not candidate_ids:
+        return {}, {}
+    cand_set = {str(cid) for cid in candidate_ids}
+    seed_set = {str(sid) for sid in seed_ids}
+
+    seed_nodes: set[str] = set(seed_set)
+    has_unit_member = bool(
+        conn.execute("SELECT 1 FROM sqlite_master WHERE name = 'semantic_unit_member' LIMIT 1").fetchone()
+    )
+    if has_unit_member:
+        placeholders = ",".join("?" for _ in seed_set)
+        rows = conn.execute(
+            f"SELECT member_id FROM semantic_unit_member WHERE unit_id IN ({placeholders}) AND member_kind = 'node'",
+            tuple(sorted(seed_set)),
+        ).fetchall()
+        seed_nodes.update(str(r[0]) for r in rows if r[0])
+
+    neighbor_counts: Counter[str] = Counter()
+    has_edges = bool(
+        conn.execute("SELECT 1 FROM sqlite_master WHERE name = 'graph_edges' LIMIT 1").fetchone()
+    )
+    if has_edges and seed_nodes:
+        ph = ",".join("?" for _ in seed_nodes)
+        params = tuple(sorted(seed_nodes))
+        edge_rows = conn.execute(
+            f"SELECT source_node_id, target_node_id, weight FROM graph_edges WHERE source_node_id IN ({ph}) OR target_node_id IN ({ph})",
+            params + params,
+        ).fetchall()
+        for src, dst, w in edge_rows:
+            wf = max(0.1, float(w or 1.0))
+            if str(src) in seed_nodes:
+                neighbor_counts[str(dst)] += wf
+            if str(dst) in seed_nodes:
+                neighbor_counts[str(src)] += wf
+
+    scores: dict[str, float] = {}
+    if has_unit_member and neighbor_counts:
+        ph_c = ",".join("?" for _ in cand_set)
+        u_rows = conn.execute(
+            f"SELECT unit_id, member_id FROM semantic_unit_member WHERE unit_id IN ({ph_c}) AND member_kind = 'node'",
+            tuple(sorted(cand_set)),
+        ).fetchall()
+        for uid, mid in u_rows:
+            if str(mid) in neighbor_counts:
+                scores[str(uid)] = round(scores.get(str(uid), 0.0) + float(neighbor_counts[str(mid)]), 6)
+
+    for cid in cand_set:
+        if cid in neighbor_counts:
+            scores[cid] = round(scores.get(cid, 0.0) + float(neighbor_counts[cid]), 6)
+        elif cid in seed_set and cid not in scores:
+            scores[cid] = 1.0
+
+    if not scores:
+        return {}, {}
+    max_sc = max(scores.values()) or 1.0
+    norm_scores = {cid: round(sc / max_sc, 6) for cid, sc in scores.items() if sc > 0.0}
+    ordered = [cid for cid, _ in sorted(norm_scores.items(), key=lambda item: (-item[1], item[0]))]
+    ranks = {cid: rank for rank, cid in enumerate(ordered, start=1)}
+    return ranks, norm_scores
+
 
 class GraphSkillHybridRetrievalError(ValueError):
     """Raised when ranked candidate inputs cannot be fused safely."""
@@ -422,13 +570,18 @@ def fuse_quad_hybrid(
 
 
 __all__ = [
+    "CALIBRATED_HYBRID_RRF_WEIGHTS",
+    "DEFAULT_GRAPH_SIGNAL_WEIGHT",
     "GraphSkillHybridRetrievalError",
     "bm25_rank",
     "colbert_maxsim_rank",
     "colbert_maxsim_score",
+    "compute_candidate_union",
+    "compute_graph_expand_signals",
     "fuse_dense_bm25",
     "fuse_quad_hybrid",
     "learned_sparse_rank",
     "reciprocal_rank_fusion",
+    "renormalize_active_rrf_weights",
     "sqlite_fts5_bm25_rank",
 ]

@@ -319,6 +319,53 @@ class GraphSkillEmbeddingIndex:
             for score, assertion_id in ranked[:k]
         ]
 
+    def query_quad_hybrid(
+        self,
+        query_text: str,
+        query_vector: Sequence[float],
+        *,
+        corpus: Mapping[str, Any],
+        k: int,
+        section_id: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """Execute 4-modality hybrid retrieval (Dense + Learned Sparse + BM25 + ColBERT MaxSim) over the index."""
+        from apps_rg.runtime.bge_multi_head import project_text_multi_head
+        from apps_rg.runtime.graph_skill_hybrid_retrieval import (
+            bm25_rank,
+            colbert_maxsim_rank,
+            fuse_quad_hybrid,
+            learned_sparse_rank,
+        )
+
+        dense_rows = self.query(query_vector, k=max(k, 10000), section_id=section_id)
+        if not dense_rows:
+            return []
+        allowed_ids = {str(r["assertion_id"]) for r in dense_rows}
+        assertions = {
+            str(r.get("assertion_id") or ""): str(r.get("embedding_text") or "")
+            for r in corpus.get("assertions") or []
+            if isinstance(r, Mapping) and str(r.get("assertion_id") or "") in allowed_ids
+        }
+        q_head = project_text_multi_head(query_text)
+        doc_sparse: dict[str, dict[str, float]] = {}
+        doc_colbert: dict[str, tuple[tuple[float, ...], ...]] = {}
+        for aid in sorted(allowed_ids):
+            d_head = project_text_multi_head(assertions.get(aid, aid))
+            doc_sparse[aid] = d_head.learned_sparse_weights
+            doc_colbert[aid] = d_head.colbert_vectors
+
+        sparse_rows = learned_sparse_rank(q_head.learned_sparse_weights, doc_sparse)
+        bm25_rows = bm25_rank(query_text, assertions)
+        colbert_rows = colbert_maxsim_rank(q_head.colbert_vectors, doc_colbert)
+        fused = fuse_quad_hybrid(
+            dense_rows,
+            sparse_rows,
+            bm25_rows,
+            colbert_rows,
+            assertion_ids=allowed_ids,
+        )
+        return fused[: max(1, int(k))]
+
 
 def rehydrate_assertion_candidates(
     candidates: Sequence[Mapping[str, Any]],

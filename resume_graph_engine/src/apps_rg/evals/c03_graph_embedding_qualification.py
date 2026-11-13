@@ -12,8 +12,11 @@ from pathlib import Path
 from typing import Any
 
 from apps_rg.fact_inventory.c03_skill_assertion_corpus import canonical_sha256
+from apps_rg.runtime.bge_multi_head import project_text_multi_head
 from apps_rg.runtime.graph_skill_hybrid_retrieval import (
     bm25_rank,
+    colbert_maxsim_rank,
+    learned_sparse_rank,
     reciprocal_rank_fusion as _reciprocal_rank_fusion,
 )
 
@@ -355,7 +358,15 @@ def evaluate_graph_embedding_qualification(
     exact_rankings: dict[str, list[str]] = {}
     fact_rankings: dict[str, list[str]] = {}
     bm25_rankings: dict[str, list[str]] = {}
+    learned_sparse_rankings: dict[str, list[str]] = {}
+    colbert_rankings: dict[str, list[str]] = {}
     normalized_dense_rankings: dict[str, list[str]] = {}
+    doc_sparse_map: dict[str, dict[str, float]] = {}
+    doc_colbert_map: dict[str, tuple[tuple[float, ...], ...]] = {}
+    for aid, txt in exact_documents.items():
+        d_head = project_text_multi_head(txt or aid)
+        doc_sparse_map[aid] = d_head.learned_sparse_weights
+        doc_colbert_map[aid] = d_head.colbert_vectors
     stale_ids: set[str] = set()
     orphan_ids: set[str] = set()
     unauthorized_ids: set[str] = set()
@@ -367,11 +378,20 @@ def evaluate_graph_embedding_qualification(
     for query in queries:
         query_id = str(query.get("query_id") or "")
         query_text = str(query.get("query_text") or "")
+        q_head = project_text_multi_head(query_text)
         exact_rankings[query_id] = _sparse_rank(query_text, exact_documents)
         fact_rankings[query_id] = _sparse_rank(query_text, fact_documents)
         bm25_rankings[query_id] = [
             str(row["assertion_id"])
             for row in bm25_rank(query_text, exact_documents)
+        ]
+        learned_sparse_rankings[query_id] = [
+            str(row["assertion_id"])
+            for row in learned_sparse_rank(q_head.learned_sparse_weights, doc_sparse_map)
+        ]
+        colbert_rankings[query_id] = [
+            str(row["assertion_id"])
+            for row in colbert_maxsim_rank(q_head.colbert_vectors, doc_colbert_map)
         ]
         dense_rows = list(dense_rankings.get(query_id) or [])
         dense_ids: list[str] = []
@@ -440,6 +460,8 @@ def evaluate_graph_embedding_qualification(
             [
                 bm25_rankings.get(str(query.get("query_id") or ""), []),
                 normalized_dense_rankings.get(str(query.get("query_id") or ""), []),
+                learned_sparse_rankings.get(str(query.get("query_id") or ""), []),
+                colbert_rankings.get(str(query.get("query_id") or ""), []),
             ],
             assertion_ids=assertion_ids,
             rank_constant=int(thresholds["rrf_rank_constant"]),
@@ -454,6 +476,8 @@ def evaluate_graph_embedding_qualification(
         ("exact", exact_rankings),
         ("fact_vector", fact_rankings),
         ("bm25", bm25_rankings),
+        ("learned_sparse", learned_sparse_rankings),
+        ("colbert", colbert_rankings),
         ("dense", normalized_dense_rankings),
         ("hybrid", hybrid_rankings),
     ):

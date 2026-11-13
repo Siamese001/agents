@@ -121,3 +121,63 @@ def test_in_memory_research_store_quad_hybrid_query(monkeypatch: pytest.MonkeyPa
     assert quad_hits[0]["assertion_id"] == id_target
     assert float(quad_hits[0]["colbert_score"]) > 0.0
     assert float(quad_hits[0]["learned_sparse_score"]) > 0.0
+
+
+def test_die_aligned_candidate_union_and_quad_graph_retriever() -> None:
+    import sqlite3
+    from pathlib import Path
+    from apps_rg.runtime.graph_skill_hybrid_retrieval import (
+        CALIBRATED_HYBRID_RRF_WEIGHTS,
+        compute_candidate_union,
+        renormalize_active_rrf_weights,
+    )
+    from apps_rg.runtime.quad_graph_retriever import expand_connected_quad_graph
+    from apps_rg.runtime.semantic_unit_retrieval import retrieve_semantic_units_quad_hybrid
+
+    prelim = {
+        "dense": {"u1": 1, "u2": 2},
+        "sparse": {"u2": 1, "u3": 2},
+        "bm25": {"u3": 1, "u4": 2},
+    }
+    union_ids = compute_candidate_union(
+        prelim, CALIBRATED_HYBRID_RRF_WEIGHTS, union_limit=4, min_per_modality=1
+    )
+    assert set(union_ids) == {"u1", "u2", "u3", "u4"}
+    weights = renormalize_active_rrf_weights(CALIBRATED_HYBRID_RRF_WEIGHTS, {"dense", "sparse"})
+    assert abs(sum(weights.values()) - 1.0) < 1e-4
+
+    repo_root = Path(__file__).resolve().parents[4]
+    db_path = (
+        repo_root
+        / "resume_graph_engine"
+        / "artifacts"
+        / "apps_rg"
+        / "fact_inventory"
+        / "augmented_skills_graph.sqlite"
+    )
+    if db_path.is_file():
+        conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+        try:
+            su_res = retrieve_semantic_units_quad_hybrid(
+                conn,
+                "governed agentic platform architecture hybrid retrieval",
+                db_path=str(db_path),
+                limit=8,
+            )
+            assert su_res["unit_count"] > 0
+            assert su_res["dense_executed"] is True
+            assert su_res["sparse_executed"] is True
+            assert su_res["bm25_executed"] is True
+            assert su_res["colbert_executed"] is True
+
+            expanded = expand_connected_quad_graph(
+                conn,
+                "governed agentic platform architecture hybrid retrieval",
+                db_path=str(db_path),
+                top_k_seeds=6,
+                max_depth=2,
+            )
+            assert expanded["graph_traversal_executed"] is True
+            assert expanded["expanded_path_count"] > 0
+        finally:
+            conn.close()

@@ -285,7 +285,14 @@ def verify_learned_sparse_and_colbert(db_path: Path) -> dict[str, int | str | fl
             for stmt in DDL_STATEMENTS:
                 if "assertion_learned_sparse" in stmt or "assertion_colbert_vectors" in stmt:
                     conn.execute(stmt)
-            populate_semantic_units(conn, build_run_id="verify_quad", input_manifest_digest="verify_quad")
+            meta_row = cur.execute(
+                "SELECT graph_count_summary FROM graph_metadata ORDER BY rowid DESC LIMIT 1"
+            ).fetchone()
+            summary = json.loads(meta_row[0]) if meta_row and meta_row[0] else {}
+            manifest_digest = str(summary.get("input_manifest_digest") or "verify_quad")
+            populate_semantic_units(
+                conn, build_run_id="verify_quad", input_manifest_digest=manifest_digest
+            )
 
         sparse_count = int(cur.execute("SELECT COUNT(*) FROM assertion_learned_sparse").fetchone()[0] or 0)
         colbert_count = int(cur.execute("SELECT COUNT(*) FROM assertion_colbert_vectors").fetchone()[0] or 0)
@@ -445,6 +452,27 @@ def verify_hybrid_retrieval_stage2(db_path: Path | None = None) -> dict[str, str
             )
             if not quad_fused:
                 raise ValueError("Live quad-hybrid fusion returned empty ranking")
+
+            from apps_rg.runtime.quad_graph_retriever import expand_connected_quad_graph
+            from apps_rg.runtime.semantic_unit_retrieval import retrieve_semantic_units_quad_hybrid
+
+            su_quad = retrieve_semantic_units_quad_hybrid(
+                conn,
+                "governed agentic platform architecture hybrid retrieval",
+                db_path=str(db_path),
+                limit=10,
+            )
+            if not su_quad["units"] or not su_quad["colbert_executed"]:
+                raise ValueError("QuadGraphHybridRetriever semantic unit retrieval failed")
+            c03_expanded = expand_connected_quad_graph(
+                conn,
+                "governed agentic platform architecture hybrid retrieval",
+                db_path=str(db_path),
+                top_k_seeds=6,
+                max_depth=2,
+            )
+            if not c03_expanded["graph_traversal_executed"] or not c03_expanded["expanded_paths"]:
+                raise ValueError("expand_connected_quad_graph C0.1->C0.3 traversal failed")
         finally:
             conn.close()
 
