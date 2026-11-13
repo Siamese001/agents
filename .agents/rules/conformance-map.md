@@ -64,6 +64,7 @@ Traces every `AGENTS.md` section to enforceable rules, skills, hooks, tools, and
 | Invariant | `resume_graph_engine/src/apps_rg/runtime/final_resume_outputs.py` | Single Canonical Pipeline Invariant (`INV-SINGLE-CANONICAL-PIPELINE`): zero parallel runners or shadow flatteners |
 | Invariant | `resume_graph_engine/src/apps_rg/runtime/aggregation/cross_section_x2.py` | Production Resume & Acronym Clarity Invariant (`INV-RESUME-NO-UNDEFINED-ACRONYMS`): zero undefined MGA/MGAs acronyms in assembled corpus |
 | Invariant | `resume_graph_engine/src/apps_rg/runtime/c0/resume_graph_allocation.py` | Whole-Resume Bundle Coherence & Wave Timeout Invariant (`INV-RESUME-BUNDLE-COHERENCE-AND-WAVE-TIMEOUT`): exact raw-chunk fact resolution, wave `run_timeout` cap, mean-quorum parity, POSIX paths, and `0644` artifact permissions |
+| Invariant | `resume_graph_engine/src/apps_rg/runtime/quad_graph_retriever.py` | DIE-Aligned 4-Channel Graph Hybrid Retrieval Invariant (`INV-QUAD-GRAPH-HYBRID-RETRIEVAL`): Stage-1 candidate union admission quota, generational dense/sparse/ColBERT caches, 1-hop graph signal injection, and C0.3 convergent path expansion |
 
 ### §"Plans"
 | Type | Path | Coverage |
