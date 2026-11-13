@@ -13,6 +13,10 @@ from pathlib import Path
 from typing import Any
 
 from apps_rg.runtime.graph_traversal import TraversalPath, traverse
+from apps_rg.runtime.quad_graph_retriever import (
+    QuadGraphHybridRetriever,
+    expand_connected_quad_graph,
+)
 
 ACTIVATION_STATUS_BLOCKED = "BLOCKED_HUMAN_REVIEW_INPUTS"
 ACTIVATION_STATUS_ACTIVE = "ACTIVE_GOVERNED"
@@ -220,6 +224,56 @@ def expand_semantic_unit_subgraph(
     }
 
 
+def retrieve_semantic_units_quad_hybrid(
+    conn: sqlite3.Connection,
+    query_text: str,
+    *,
+    db_path: str = ":memory:",
+    unit_type: str | None = None,
+    section_id: str | None = None,
+    limit: int = 25,
+) -> dict[str, Any]:
+    """Retrieve semantic units using the DIE-aligned 4-retrieval stack + 1-hop graph expansion."""
+    base_units = retrieve_semantic_units(
+        conn, unit_type=unit_type, section_id=section_id, limit=5000
+    )
+    unit_map = {str(u["unit_id"]): u for u in base_units}
+    allowed_ids = set(unit_map)
+    retriever = QuadGraphHybridRetriever(conn, db_path=db_path)
+    bundle = retriever.retrieve(
+        query_text, allowed_ids=allowed_ids, top_k=limit, union_limit=max(100, limit * 2)
+    )
+    enriched: list[dict[str, Any]] = []
+    for row in bundle["results"]:
+        uid = str(row["record_id"])
+        u_meta = unit_map.get(uid, {})
+        enriched.append({**u_meta, **row, "unit_id": uid})
+    return {
+        **bundle,
+        "units": enriched,
+        "unit_count": len(enriched),
+    }
+
+
+def retrieve_and_expand_semantic_units(
+    conn: sqlite3.Connection,
+    query_text: str,
+    *,
+    db_path: str = ":memory:",
+    top_k_seeds: int = 8,
+    max_depth: int = 2,
+) -> dict[str, Any]:
+    """Execute C0.1 -> C0.2 (quad-hybrid + 1-hop) -> C0.3 multi-seed convergent subgraph expansion."""
+    check_semantic_unit_freshness(conn)
+    return expand_connected_quad_graph(
+        conn,
+        query_text,
+        db_path=db_path,
+        top_k_seeds=top_k_seeds,
+        max_depth=max_depth,
+    )
+
+
 __all__ = [
     "ACTIVATION_STATUS_BLOCKED",
     "RUNTIME_AUTHORITATIVE_STORE",
@@ -229,5 +283,7 @@ __all__ = [
     "assert_semantic_unit_activation_status",
     "check_semantic_unit_freshness",
     "expand_semantic_unit_subgraph",
+    "retrieve_and_expand_semantic_units",
     "retrieve_semantic_units",
+    "retrieve_semantic_units_quad_hybrid",
 ]
