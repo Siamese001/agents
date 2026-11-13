@@ -111,3 +111,73 @@ def test_slalom_narrative_bullet_cosine_similarity_rejects_bullet_recap_and_synt
     assert synth_gate.observed_value["pool_content_cosine"] <= 0.38
     assert synth_gate.observed_value["opener_collisions"] == []
     assert synth_gate.observed_value["metric_collisions"] == []
+
+
+def test_all_role_narratives_within_bullets_and_exec_summary_cosine_similarity() -> None:
+    from apps_rg.runtime.sections.exec_summary_perf_sync_helpers import repair_exec_summary_bullet_echo_sentences
+    from apps_rg.runtime.validators.narrative_quality_x2 import (
+        check_exec_summary_bullet_cosine_similarity,
+        check_within_section_bullet_cosine_similarity,
+        repair_narrative_bullet_echo_from_graph,
+    )
+
+    insurtech_bullets = "\n".join(
+        [
+            "- bul_insurtech_001: Executed multi-wave AWS migration for monolithic policy administration and insurance platform workloads, classifying core systems by cloud fit and completing dependency-mapped cutover waves for critical billing infrastructure.",
+            "- bul_insurtech_002: Implemented regulated AWS cloud security and compliance controls across insurance platform workloads, enforcing IAM least-privilege boundaries, KMS encryption, and audit-ready release gates.",
+        ]
+    )
+    ins_repaired = repair_narrative_bullet_echo_from_graph(
+        "Led AWS migration execution across monolithic policy administration and insurance platform workloads, paired with regulated cloud security and encryption controls.",
+        facts=[], companion_bullet_texts=insurtech_bullets, section_id="insurtech_narrative",
+    )
+    assert check_narrative_bullet_cosine_similarity(
+        ins_repaired, insurtech_bullets, max_pairwise_cosine=0.28, max_pool_cosine=0.38,
+        forbid_shared_opener=True, forbid_repeated_metrics=True,
+    ).passed is True
+
+    unify_bullets = "\n".join(
+        [
+            "- bul_unify_001: Built and scaled Unify's AI consulting and platform engineering practice from 8 to 28 specialists while driving $22M in IP-led platform revenue and 20% gross margin expansion.",
+            "- bul_unify_006: Designed and operated the control-plane architecture for an agentic AI platform, embedding governance directly into platform engineering to ensure safe, auditable execution across regulated enterprise deployments.",
+        ]
+    )
+    unify_repaired = repair_narrative_bullet_echo_from_graph(
+        "Built and scaled Unify Consulting's governed agentic AI platform and cloud engineering practice, converting reusable architecture IP into repeatable enterprise modernization.",
+        facts=[], companion_bullet_texts=unify_bullets, section_id="unify_narrative",
+    )
+    assert check_narrative_bullet_cosine_similarity(
+        unify_repaired, unify_bullets, max_pairwise_cosine=0.28, max_pool_cosine=0.38,
+        forbid_shared_opener=True, forbid_repeated_metrics=True,
+    ).passed is True
+
+    ibm_bullets = "\n".join(
+        [
+            "- bul_ibm_001: Architected industry-specific AI, analytics, and cloud modernization reference architectures, establishing governed portfolio views and executive operating cadence for financial-services decision support.",
+            "- bul_ibm_002: Led technical pre-sales discovery and solution architecture mapping for enterprise financial-services pursuits, establishing delivery-ready cloud platform blueprints to accelerate deal velocity.",
+            "- bul_ibm_003: Owned P&L oversight and quota-aligned solution leadership across enterprise cloud platform pursuits, establishing account-level pipeline operating views to steer client portfolio expansion motions.",
+        ]
+    )
+    assert check_within_section_bullet_cosine_similarity(ibm_bullets, max_pairwise_cosine=0.35).passed is True
+    ibm_repaired = repair_narrative_bullet_echo_from_graph(
+        "Directed enterprise cloud modernization, DevSecOps release governance, and AWS alliance co-sell execution across regulated financial-services portfolios.",
+        facts=[], companion_bullet_texts=ibm_bullets, section_id="ibm_narrative",
+    )
+    assert check_narrative_bullet_cosine_similarity(
+        ibm_repaired, ibm_bullets, max_pairwise_cosine=0.28, max_pool_cosine=0.38,
+        forbid_shared_opener=True, forbid_repeated_metrics=True,
+    ).passed is True
+
+    exec_sents = repair_exec_summary_bullet_echo_sentences(
+        [
+            "Technology Strategy Executive who aligns governed cloud modernization, enterprise risk discipline, and agentic AI platform engineering into one IT strategy and digital innovation agenda for regulated enterprises.",
+            "Designs and operates the control-plane architecture for an agentic AI platform, embedding governance directly into platform engineering to ensure safe, traceable execution across regulated enterprise deployments.",
+            "Building on that governed platform foundation, executed multi-wave AWS migration for monolithic policy administration and insurance platform workloads, classifying core systems by cloud fit and completing dependency-mapped cutover waves for critical billing infrastructure.",
+            "Complementing that regulated delivery posture, built an traceable lineage foundation.",
+        ]
+    )
+    assert "a traceable lineage foundation" in exec_sents[3]
+    assert check_exec_summary_bullet_cosine_similarity(
+        " ".join(exec_sents), f"{insurtech_bullets}\n{unify_bullets}\n{ibm_bullets}",
+        max_pairwise_cosine=0.35, max_internal_cosine=0.35,
+    ).passed is True

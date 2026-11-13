@@ -1104,19 +1104,19 @@ def run_unify_bullets_x2_gates(
         )
         traversal = role_episode_rows.get(UNIFY_ROLE_EPISODE_GRAPH_TRAVERSAL_GATE_ID)
         add(
-            UNIFY_ROLE_EPISODE_GRAPH_TRAVERSAL_GATE_ID,
-            bool(traversal and traversal.passed),
+            UNIFY_ROLE_EPISODE_GRAPH_TRAVERSAL_GATE_ID, bool(traversal and traversal.passed),
             traversal.observed_value if traversal else "delegated_to_role_episode_metric_outcome_contract",
             traversal.threshold if traversal else "role_episode_metric_outcome_contract",
             traversal.failure_reason if traversal else "delegated graph traversal gate missing",
         )
         granularity = role_episode_rows.get(UNIFY_ROLE_EPISODE_GRAPH_GRANULARITY_GATE_ID)
         add(
-            UNIFY_ROLE_EPISODE_GRAPH_GRANULARITY_GATE_ID,
-            bool(granularity and granularity.passed),
+            UNIFY_ROLE_EPISODE_GRAPH_GRANULARITY_GATE_ID, bool(granularity and granularity.passed),
             granularity.observed_value if granularity else "delegated_to_role_episode_metric_outcome_contract",
             granularity.threshold if granularity else "role_episode_metric_outcome_contract",
             granularity.failure_reason if granularity else "delegated graph granularity gate missing",
         )
-
+    from apps_rg.runtime.validators.narrative_quality_x2 import check_within_section_bullet_cosine_similarity
+    ub_cos = check_within_section_bullet_cosine_similarity([str(b.get("bullet_text") or "") for b in (bullets or []) if isinstance(b, dict)], max_pairwise_cosine=0.35)
+    add(ub_cos.gate_id, ub_cos.passed, ub_cos.observed_value, ub_cos.threshold, ub_cos.failure_reason)
     return gates

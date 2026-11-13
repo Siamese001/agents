@@ -279,20 +279,18 @@ def parse_model_json(raw: str) -> tuple[dict[str, Any] | None, str]:
     return None, "Model output was not a JSON object."
 
 
-def _ensure_ibm_narrative_mechanism(narrative: str) -> str:
-    from apps_rg.runtime.validators.narrative_quality_x2 import check_narrative_technical_specificity
+def _ensure_ibm_narrative_mechanism(narrative: str, companion_text: str = "") -> str:
+    from apps_rg.runtime.validators.narrative_quality_x2 import (
+        check_narrative_technical_specificity, repair_narrative_bullet_echo_from_graph,
+    )
+    narrative = repair_narrative_bullet_echo_from_graph(narrative, facts=[], companion_bullet_texts=companion_text, section_id="ibm_narrative")
     if check_narrative_technical_specificity(narrative).passed:
         return narrative
     for p, r in (
-        (r"\bcloud delivery\b", "AWS cloud delivery"),
-        (r"\bcloud modern\b", "AWS cloud modern"),
-        (r"\bcloud architecture\b", "AWS cloud architecture"),
-        (r"\bcloud platforms?\b", "AWS cloud platforms"),
-        (r"\bcloud\b", "AWS cloud"),
-        (r"\bsecure release\b", "secure release pipeline"),
-        (r"\brelease\b", "release pipeline"),
-        (r"\bdelivery\b", "pipeline delivery"),
-        (r"\barchitecture\b", "AWS architecture"),
+        (r"\bcloud delivery\b", "AWS cloud delivery"), (r"\bcloud modern\b", "AWS cloud modern"),
+        (r"\bcloud architecture\b", "AWS cloud architecture"), (r"\bcloud platforms?\b", "AWS cloud platforms"),
+        (r"\bcloud\b", "AWS cloud"), (r"\bsecure release\b", "secure release pipeline"),
+        (r"\brelease\b", "release pipeline"), (r"\bdelivery\b", "pipeline delivery"), (r"\barchitecture\b", "AWS architecture"),
     ):
         if re.search(p, narrative, re.IGNORECASE):
             cand = re.sub(p, r, narrative, count=1, flags=re.IGNORECASE)
@@ -316,7 +314,7 @@ def normalize_parsed_output(
             narrative = re.sub(r",\s+", " ", narrative, count=1)
     if narrative and not narrative.endswith((".", "!", "?")):
         narrative += "."
-    mech_grounded = _ensure_ibm_narrative_mechanism(narrative)
+    mech_grounded = _ensure_ibm_narrative_mechanism(narrative, companion_text)
     if mech_grounded != narrative:
         old_narrative = narrative
         out["narrative_sentence"] = mech_grounded

@@ -621,59 +621,34 @@ def run_unify_narrative_x2_gates(
     # Narrative alignment quality gates (seniority, consulting blocklist, specificity, etc.)
     # -----------------------------------------------------------------------
     from apps_rg.runtime.validators.narrative_quality_x2 import (
-        check_narrative_base_prose_ngram_overlap,
-        check_narrative_e0_ngram_overlap,
-        check_narrative_no_consulting_language,
-        check_narrative_not_bullet_recap,
-        check_narrative_seniority_floor,
-        check_narrative_technical_specificity,
-        check_narrative_upstream_graph_proof_bundle,
+        check_narrative_base_prose_ngram_overlap, check_narrative_bullet_cosine_similarity,
+        check_narrative_e0_ngram_overlap, check_narrative_no_consulting_language,
+        check_narrative_not_bullet_recap, check_narrative_seniority_floor,
+        check_narrative_technical_specificity, check_narrative_upstream_graph_proof_bundle,
     )
 
     # Gate: seniority floor (HARD FAIL)
     sen_r = check_narrative_seniority_floor(narrative_sentence)
-    add(
-        sen_r.gate_id,
-        sen_r.passed,
-        sen_r.observed_value,
-        sen_r.threshold,
-        sen_r.failure_reason,
-    )
+    add(sen_r.gate_id, sen_r.passed, sen_r.observed_value, sen_r.threshold, sen_r.failure_reason)
 
     # Gate: no consulting language (HARD FAIL)
     consult_r = check_narrative_no_consulting_language(narrative_sentence)
-    add(
-        consult_r.gate_id,
-        consult_r.passed,
-        consult_r.observed_value,
-        consult_r.threshold,
-        consult_r.failure_reason,
-    )
+    add(consult_r.gate_id, consult_r.passed, consult_r.observed_value, consult_r.threshold, consult_r.failure_reason)
 
     # Gate: technical specificity floor (HARD FAIL)
     spec_r = check_narrative_technical_specificity(narrative_sentence)
-    add(
-        spec_r.gate_id,
-        spec_r.passed,
-        spec_r.observed_value,
-        spec_r.threshold,
-        spec_r.failure_reason,
-    )
+    add(spec_r.gate_id, spec_r.passed, spec_r.observed_value, spec_r.threshold, spec_r.failure_reason)
 
     # Gate: not bullet recap (WARN mode — calibrate before promoting)
-    companion_bullets_list = [
-        line.strip()
-        for line in (companion_bullet_texts or "").split("\n")
-        if line.strip()
-    ]
+    companion_bullets_list = [line.strip() for line in (companion_bullet_texts or "").split("\n") if line.strip()]
     recap_r = check_narrative_not_bullet_recap(narrative_sentence, companion_bullets_list, warn_only=True)
-    add(
-        recap_r.gate_id,
-        recap_r.passed,
-        recap_r.observed_value,
-        recap_r.threshold,
-        recap_r.failure_reason,
-    )
+    add(recap_r.gate_id, recap_r.passed, recap_r.observed_value, recap_r.threshold, recap_r.failure_reason)
+    if companion_bullets_list:
+        cos_r = check_narrative_bullet_cosine_similarity(
+            narrative_sentence, companion_bullets_list, max_pairwise_cosine=0.28, max_pool_cosine=0.38,
+            forbid_shared_opener=True, forbid_repeated_metrics=True,
+        )
+        add(cos_r.gate_id, cos_r.passed, cos_r.observed_value, cos_r.threshold, cos_r.failure_reason)
 
     # Gate: upstream graph proof required (WARN mode — Unify bullet graph_skill_node_ids currently fails on live runs)
     upstream_x2 = [

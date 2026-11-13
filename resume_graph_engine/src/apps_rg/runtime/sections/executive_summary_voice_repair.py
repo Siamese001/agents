@@ -550,9 +550,9 @@ def strip_unsupported_source_sensitive_prose(
         new = re.sub(
             r"\baudit-ready\b",
             lambda m: "traceable" if re.match(r"^\s+lineage\b", rewritten[m.end():], re.I) else "lineage-ready",
-            rewritten,
-            flags=re.IGNORECASE,
+            rewritten, flags=re.IGNORECASE,
         )
+        new = re.sub(r"\b([Aa])n\s+(?=traceable|lineage-ready)", lambda m: "A " if m.group(1) == "A" else "a ", new)
         if new != rewritten:
             rewritten = new
             receipt["replacements"].append("audit_ready_to_lineage_ready")
@@ -1563,14 +1563,10 @@ def _scrub_graph_era_surface_anomalies(sentences: list[str]) -> list[str]:
             new,
             flags=re.IGNORECASE,
         )
-        new = re.sub(
-            r"\bembed with GSI and cloud partner ecosystems\b",
-            "guide integrator and hyperscaler ecosystems",
-            new,
-            flags=re.IGNORECASE,
-        )
+        new = re.sub(r"\bembed with GSI and cloud partner ecosystems\b", "guide integrator and hyperscaler ecosystems", new, flags=re.IGNORECASE)
         out.append(new)
-    return out
+    from apps_rg.runtime.sections.exec_summary_perf_sync_helpers import repair_exec_summary_bullet_echo_sentences
+    return repair_exec_summary_bullet_echo_sentences(out)
 
 
 def _upgrade_thin_s6(
