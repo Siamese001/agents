@@ -44,10 +44,12 @@ def insurance_it_strategy_executive_clusters_layout_is_present(
 _INSURANCE_IT_STRATEGY_8UNIT_EXECUTIVE_CLUSTER_LAYOUT: tuple[dict[str, Any], ...] = (
     {
         "category_id": "governance_risk_compliance",
-        "category_label": "Insurance Domain & Enterprise Risk Management",
+        "category_label": "Governance, Risk & Compliance",
         "resume_display_label": "Insurance Core & Cloud Modernization",
         "competency_bundle_id": "ccb_insurance_domain_erm",
         "capability_family": "insurance_domain_modernization",
+        "confidence": 0.885,
+        "selection_score": 0.885,
         "source_fact_ids": ["fact_insurance_software_001", "exp_insurtech_001"],
         "graph_skill_node_ids": [
             "skill_insurance_claims_automation",
@@ -110,6 +112,8 @@ _INSURANCE_IT_STRATEGY_8UNIT_EXECUTIVE_CLUSTER_LAYOUT: tuple[dict[str, Any], ...
         "resume_display_label": "Enterprise Architecture & M&A Integration",
         "competency_bundle_id": "ccb_partner_applied_ai_architecture",
         "capability_family": "partner_applied_ai_architecture",
+        "confidence": 0.865,
+        "selection_score": 0.865,
         "source_fact_ids": ["fact_engineering_platform_005", "fact_partnerships_gtm_004"],
         "graph_skill_node_ids": [
             "skill_application_dependency_mapping",
@@ -151,8 +155,8 @@ _INSURANCE_IT_STRATEGY_8UNIT_EXECUTIVE_CLUSTER_LAYOUT: tuple[dict[str, Any], ...
                 "executive_cluster_surface": True,
             },
             {
-                "term": "Hyperscaler AI Solution Architecture",
-                "text": "Hyperscaler AI Solution Architecture",
+                "term": "Hyperscaler Joint AI Solution Architecture",
+                "text": "Hyperscaler Joint AI Solution Architecture",
                 "source_fact_id": "fact_partnerships_gtm_004",
                 "source_fact_ids": ["fact_partnerships_gtm_004"],
                 "source_skill_ids": ["skill_partner_ai_architecture_advisory"],
@@ -170,6 +174,8 @@ _INSURANCE_IT_STRATEGY_8UNIT_EXECUTIVE_CLUSTER_LAYOUT: tuple[dict[str, Any], ...
         "resume_display_label": "Data Lakehouse, BI & Regulatory Lineage",
         "competency_bundle_id": "ccb_distributed_systems_engineering",
         "capability_family": "distributed_systems_engineering",
+        "confidence": 0.850,
+        "selection_score": 0.850,
         "source_fact_ids": ["fact_insurance_software_001", "fact_engineering_platform_005", "fact_consulting_002"],
         "graph_skill_node_ids": [
             "skill_insurance_core_to_bi_reporting_handoff",
@@ -230,6 +236,8 @@ _INSURANCE_IT_STRATEGY_8UNIT_EXECUTIVE_CLUSTER_LAYOUT: tuple[dict[str, Any], ...
         "resume_display_label": "Agentic AI & Runtime Governance",
         "competency_bundle_id": "ccb_agentic_platforms",
         "capability_family": "agentic_platforms",
+        "confidence": 0.890,
+        "selection_score": 0.890,
         "source_fact_ids": ["fact_slalom_012", "fact_engineering_platform_006"],
         "graph_skill_node_ids": [
             "skill_learning_firewall_controls",
@@ -289,6 +297,8 @@ _INSURANCE_IT_STRATEGY_8UNIT_EXECUTIVE_CLUSTER_LAYOUT: tuple[dict[str, Any], ...
         "resume_display_label": "Retrieval, Context & Production LLMOps",
         "competency_bundle_id": "ccb_llmops_reliability",
         "capability_family": "llmops_reliability",
+        "confidence": 0.840,
+        "selection_score": 0.840,
         "source_fact_ids": ["fact_engineering_platform_005", "fact_slalom_012"],
         "graph_skill_node_ids": [
             "skill_dense_sparse_exact_retrieval_design",
@@ -343,11 +353,13 @@ _INSURANCE_IT_STRATEGY_8UNIT_EXECUTIVE_CLUSTER_LAYOUT: tuple[dict[str, Any], ...
         ],
     },
     {
-        "category_id": "engineering_delivery_leadership",
-        "category_label": "Engineering & Delivery Leadership",
+        "category_id": "tech_strategy_innovation",
+        "category_label": "Technology Strategy & Innovation",
         "resume_display_label": "IT Strategy, Risk & Operating Model",
-        "competency_bundle_id": "ccb_engineering_leadership",
-        "capability_family": "engineering_leadership",
+        "competency_bundle_id": "ccb_tech_strategy_innovation",
+        "capability_family": "tech_strategy_innovation",
+        "confidence": 0.870,
+        "selection_score": 0.870,
         "source_fact_ids": ["fact_engineering_platform_006", "fact_consulting_002"],
         "graph_skill_node_ids": [
             "skill_operating_model_for_agentic_ai",
