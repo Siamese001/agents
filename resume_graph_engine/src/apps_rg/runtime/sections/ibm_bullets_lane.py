@@ -343,8 +343,8 @@ _IBM_FROZEN_ALLOCATION_DISPLAY_COMPOSITIONS: dict[tuple[str, str], str] = {
         "reb_ibm_revenue_sales_target_execution",
         "skill_partner_pnl_oversight",
     ): (
-        "Owned P&L oversight across the enterprise client portfolio, establishing account-level pipeline operating views "
-        "to steer expansion motions."
+        "Owned P&L oversight and quota-aligned solution leadership across enterprise cloud platform pursuits, "
+        "establishing account-level pipeline operating views to steer client portfolio expansion motions."
     ),
     (
         "reb_ibm_data_modeling_bi_decision_support",
@@ -520,9 +520,9 @@ def _materialize_ibm_bullets_from_frozen_allocation(
         )
 
     from apps_rg.runtime.validators.bullet_quality_floor_x2 import (
-        check_bullet_technical_specificity_floor,
-        check_experience_bullet_evidence_density,
+        check_bullet_technical_specificity_floor, check_experience_bullet_evidence_density,
     )
+    from apps_rg.runtime.validators.narrative_quality_x2 import compute_text_cosine_similarity
 
     ordered: list[dict[str, Any]] = []
     rehydrated_any = False
@@ -536,6 +536,7 @@ def _materialize_ibm_bullets_from_frozen_allocation(
             and check_experience_bullet_evidence_density(bullet_id, existing_text).passed
             and check_bullet_technical_specificity_floor(bullet_id, existing_text).passed
             and (not metric or metric.casefold() in existing_text.casefold())
+            and all(compute_text_cosine_similarity(existing_text, str(p.get("bullet_text") or "")) <= 0.35 for p in ordered)
         )
         if not keep_existing:
             row["bullet_text"] = allocation["bullet_text"]

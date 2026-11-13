@@ -28,7 +28,7 @@ from apps_rg.runtime.validators.bullet_quality_floor_x2 import check_experience_
 from apps_rg.runtime.validators.companion_bullet_finalization import load_role_episode_companion_bullets
 from apps_rg.runtime.validators.narrative_mechanical_x2 import check_narrative_exactly_one_sentence
 from apps_rg.runtime.validators.narrative_quality_x2 import (
-    check_narrative_bullet_cosine_similarity, repair_narrative_bullet_echo_from_graph,
+    check_narrative_bullet_cosine_similarity, check_within_section_bullet_cosine_similarity, repair_narrative_bullet_echo_from_graph,
 )
 from apps_rg.runtime.providers import (
     ExternalProvider, ProviderGateway, ProviderGatewayError, ProviderProfile,
@@ -1722,19 +1722,12 @@ def _x2_gates(
                         if isinstance(b, dict)
                     ),
                     "each experience bullet needs an action, concrete delivery detail, and a graph-bound outcome",
-                    [
-                        asdict(
-                            check_experience_bullet_evidence_density(
-                                str(b.get("bullet_id") or ""),
-                                str(b.get("bullet_text") or ""),
-                            )
-                        )
-                        for b in bullets
-                        if isinstance(b, dict)
-                    ],
+                    [asdict(check_experience_bullet_evidence_density(str(b.get("bullet_id") or ""), str(b.get("bullet_text") or ""))) for b in bullets if isinstance(b, dict)],
                 ),
             ]
         )
+        b_cos = check_within_section_bullet_cosine_similarity([str(b.get("bullet_text") or "") for b in bullets if isinstance(b, dict)], max_pairwise_cosine=0.35)
+        gates.append(_x2_gate(f"x2_{cfg.section_id}_within_section_bullet_cosine_similarity", b_cos.passed, b_cos.failure_reason or "", b_cos.observed_value))
     else:
         sent = str(l2.get("narrative_sentence") or "").strip()
         sent_ok, sent_count, _sent_reason = check_narrative_exactly_one_sentence(sent)
@@ -1779,10 +1772,9 @@ def _x2_gates(
         )
         companion_text_for_x2 = str(l2.get("companion_bullet_texts") or "").strip()
         if companion_text_for_x2:
-            is_slalom_narr = cfg.section_id == "slalom_narrative"
             cos_res = check_narrative_bullet_cosine_similarity(
-                sent, companion_text_for_x2, max_pairwise_cosine=0.28 if is_slalom_narr else 0.42,
-                max_pool_cosine=0.38 if is_slalom_narr else 0.52, forbid_shared_opener=is_slalom_narr, forbid_repeated_metrics=is_slalom_narr,
+                sent, companion_text_for_x2, max_pairwise_cosine=0.28,
+                max_pool_cosine=0.38, forbid_shared_opener=True, forbid_repeated_metrics=True,
             )
             gates.append(_x2_gate(f"x2_{cfg.section_id}_narrative_bullet_cosine_similarity", cos_res.passed, cos_res.failure_reason or "", cos_res.observed_value))
     return gates

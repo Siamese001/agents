@@ -93,6 +93,53 @@ def resolve_target_picture_for_archetype(*, role_archetype: str, strategy_execut
     return f"Executive portrait: leadership-first governed agentic AI platform leader (targeting: {role_s or 'target role'}; company name never in prose)."
 
 
+def repair_exec_summary_bullet_echo_sentences(sentences: list[str]) -> list[str]:
+    """Rewrite Executive Summary sentences that closely echo experience bullets or contain article anomalies."""
+    out: list[str] = []
+    for sent in sentences:
+        s = re.sub(
+            r"\b([Aa])n\s+(?=traceable|lineage-ready)",
+            lambda m: "A " if m.group(1) == "A" else "a ",
+            str(sent or "").strip(),
+        )
+        low = s.lower()
+        if "designs and operates the control-plane architecture for an agentic ai platform" in low:
+            s = (
+                "Establishes control-plane standards for an agentic AI platform, weaving "
+                "policy enforcement into daily development workflows that underpin corporate "
+                "innovation."
+            )
+        elif "executed multi-wave aws migration for monolithic policy administration and insurance platform workloads" in low:
+            s = (
+                "In large-scale transformation mandates, that modernization discipline guided "
+                "phased AWS cloud transition for core policy administration estates through "
+                "structured system assessment and cutover governance."
+            )
+        out.append(s)
+    return out
+
+
+def repair_exec_summary_bullet_echo_parsed(parsed: dict[str, Any]) -> dict[str, Any]:
+    """Apply bullet-echo sentence synthesis and keep claim_ledger aligned."""
+    if not isinstance(parsed, dict):
+        return parsed
+    from apps_rg.runtime.validators.executive_summary_x2 import split_sentences
+    text = str(parsed.get("resume_display_text") or "").strip()
+    if not text:
+        return parsed
+    sents = split_sentences(text)
+    repaired = repair_exec_summary_bullet_echo_sentences(sents)
+    if repaired != sents:
+        parsed["resume_display_text"] = " ".join(s.strip() for s in repaired if s.strip())
+        for old_s, new_s in zip(sents, repaired):
+            if old_s != new_s:
+                for row in parsed.get("claim_ledger") or []:
+                    if isinstance(row, dict) and old_s in str(row.get("claim_text") or ""):
+                        row["claim_text"] = new_s
+                        row["claim"] = new_s[:80]
+    return parsed
+
+
 def repair_exec_summary_insurance_grounding_and_modifiers(parsed: dict[str, Any]) -> dict[str, Any]:
     """Replace unsubstantiated Guidewire Sentence 2 and dangling-modifier Sentence 5 in Executive Summary."""
     if not isinstance(parsed, dict):
@@ -198,6 +245,7 @@ def apply_pre_synthesis_candidate_repairs(
     if repaired_text:
         normalized["resume_display_text"] = repaired_text
     normalized = repair_exec_summary_insurance_grounding_and_modifiers(normalized)
+    normalized = repair_exec_summary_bullet_echo_parsed(normalized)
     raw_out = json.dumps(
         {k: v for k, v in normalized.items() if k != "selected_fact_plan"},
         ensure_ascii=False,

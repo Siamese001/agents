@@ -1213,6 +1213,12 @@ def run_ibm_bullets_x2_gates(
             fail_ib,
         )
 
+    from apps_rg.runtime.validators.narrative_quality_x2 import check_within_section_bullet_cosine_similarity
+    ibm_b_cos = check_within_section_bullet_cosine_similarity(
+        [str(b.get("bullet_text") or "") for b in (bullets or []) if isinstance(b, dict)], max_pairwise_cosine=0.35,
+    )
+    add(ibm_b_cos.gate_id, ibm_b_cos.passed, ibm_b_cos.observed_value, ibm_b_cos.threshold, ibm_b_cos.failure_reason)
+
     append_section_input_usage_x2_gates(
         gates,
         artifacts_dir=artifacts_dir or Path("artifacts/apps_rg/runtime_proofs/ibm_bullets"),

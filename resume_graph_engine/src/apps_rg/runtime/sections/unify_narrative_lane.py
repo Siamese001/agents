@@ -423,19 +423,18 @@ def _collapse_unify_narrative_metric_recap(narrative: str, companion_text: str) 
     return left if left else s
 
 
-def _collapse_unify_narrative_companion_copy(narrative: str) -> str:
+def _collapse_unify_narrative_companion_copy(narrative: str, companion_text: str = "") -> str:
     """Trim exact companion overlap without changing the underlying claim."""
+    from apps_rg.runtime.validators.narrative_quality_x2 import repair_narrative_bullet_echo_from_graph
     s = str(narrative or "").strip()
     if not s:
         return s
     for bad, good in _UNIFY_COMPANION_COPY_REWRITE_RULES:
         s = bad.sub(good, s)
-    s = re.sub(r"\s{2,}", " ", s)
-    s = re.sub(r"\s+([.,;:])", r"\1", s)
-    s = s.strip()
+    s = re.sub(r"\s+([.,;:])", r"\1", re.sub(r"\s{2,}", " ", s)).strip()
     if s and s[-1] not in ".!?":
         s += "."
-    return s
+    return repair_narrative_bullet_echo_from_graph(s, facts=[], companion_bullet_texts=companion_text, section_id="unify_narrative")
 
 
 def _collapse_unify_narrative_comma_stack(narrative: str) -> str:
@@ -576,7 +575,7 @@ def normalize_unify_narrative_parsed(
         if isinstance(out["self_check"], dict):
             out["self_check"]["companion_metric_budget_trimmed"] = True
         narrative = metric_collapsed
-    companion_collapsed = _collapse_unify_narrative_companion_copy(narrative)
+    companion_collapsed = _collapse_unify_narrative_companion_copy(narrative, companion_text)
     if companion_collapsed != narrative:
         old_narrative = narrative
         out["narrative_sentence"] = companion_collapsed

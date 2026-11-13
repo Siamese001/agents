@@ -667,7 +667,10 @@ def run_cross_section_x2_gates(
     )
 
     # Section intent conflict: narrative substring or high pairwise cosine similarity vs bullets
-    from apps_rg.runtime.validators.narrative_quality_x2 import check_narrative_bullet_cosine_similarity
+    from apps_rg.runtime.validators.narrative_quality_x2 import (
+        check_exec_summary_bullet_cosine_similarity, check_narrative_bullet_cosine_similarity,
+        check_within_section_bullet_cosine_similarity,
+    )
 
     conflicts: list[str] = []
     by_id = {str(s.get("section_id")): s for s in sections}
@@ -685,25 +688,29 @@ def run_cross_section_x2_gates(
         if ntext in btext or btext in ntext:
             conflicts.append(f"{narr_sid}_vs_{bullet_sid}_substring")
         cos_res = check_narrative_bullet_cosine_similarity(
-            raw_ntext, raw_btext, max_pairwise_cosine=0.28 if narr_sid == "slalom_narrative" else 0.42,
-            max_pool_cosine=0.38 if narr_sid == "slalom_narrative" else 0.52,
-            forbid_shared_opener=(narr_sid == "slalom_narrative"), forbid_repeated_metrics=(narr_sid == "slalom_narrative"),
+            raw_ntext, raw_btext, max_pairwise_cosine=0.28, max_pool_cosine=0.38,
+            forbid_shared_opener=True, forbid_repeated_metrics=True,
         )
         if not cos_res.passed:
             conflicts.append(f"{narr_sid}_vs_{bullet_sid}_cosine({';'.join(cos_res.signals)})")
 
     exec_sec = by_id.get("executive_summary")
-    if exec_sec:
-        etext = normalize_claim_text(_section_plaintext(exec_sec))
-        for bullet_sid in ("slalom_bullets", "unify_bullets", "ibm_bullets", "insurtech_bullets", "ey_bullets"):
-            bullets = by_id.get(bullet_sid)
-            if not bullets:
-                continue
+    raw_exec_text = _section_plaintext(exec_sec) if exec_sec else ""
+    etext = normalize_claim_text(raw_exec_text)
+    for bullet_sid in ("slalom_bullets", "unify_bullets", "ibm_bullets", "insurtech_bullets", "ey_bullets"):
+        bullets = by_id.get(bullet_sid)
+        if not bullets:
+            continue
+        raw_btext = _section_plaintext(bullets)
+        b_within = check_within_section_bullet_cosine_similarity(raw_btext, max_pairwise_cosine=0.35)
+        if not b_within.passed:
+            conflicts.append(f"{bullet_sid}_within_cosine({';'.join(b_within.signals)})")
+        if raw_exec_text:
+            e_cos = check_exec_summary_bullet_cosine_similarity(raw_exec_text, raw_btext, max_pairwise_cosine=0.35, max_internal_cosine=0.35)
+            if not e_cos.passed:
+                conflicts.append(f"executive_summary_vs_{bullet_sid}_cosine({';'.join(e_cos.signals)})")
             for stem in (" ".join(tokenize(etext)[:6]),):
-                if len(stem) < 20:
-                    continue
-                btext = normalize_claim_text(_section_plaintext(bullets))
-                if stem in btext:
+                if len(stem) >= 20 and stem in normalize_claim_text(raw_btext):
                     conflicts.append(f"executive_summary_vs_{bullet_sid}_stem")
 
     gates.append(
@@ -954,21 +961,8 @@ def _extract_pillar_ids_from_section(section: dict[str, Any]) -> set[str]:
     return ids
 
 
-def check_cross_section_pillar_coherence(
-    sections: list[dict[str, Any]],
-) -> CrossSectionGateResult:
-    """Verify that primary resume sections target overlapping JD pillar IDs.
-
-    Computes pairwise Jaccard similarity of ``pillar_hint_ids`` / ``targeting_graph_refs``
-    across sections whose ``section_id`` is in _PRIMARY_COHERENCE_SECTIONS.
-
-    Verdict:
-    - PASS  — all primary-section pairs have Jaccard ≥ 0.4, or only one primary section.
-    - WARN  — at least one primary-section pair is below the threshold.
-    - UNKNOWN — fewer than two primary sections have pillar data.
-
-    This gate is advisory only. It never blocks resume generation.
-    """
+def check_cross_section_pillar_coherence(sections: list[dict[str, Any]]) -> CrossSectionGateResult:
+    """Verify that primary resume sections target overlapping JD pillar IDs (advisory only)."""
     primary_pillar_map: dict[str, set[str]] = {}
     for sec in sections:
         sid = str(sec.get("section_id") or "")
@@ -980,14 +974,9 @@ def check_cross_section_pillar_coherence(
 
     if len(primary_pillar_map) < 2:
         return CrossSectionGateResult(
-            gate_id="x2_cross_section_pillar_coherence",
-            verdict=VERDICT_UNKNOWN,
-            decisive_reason=(
-                "fewer than 2 primary sections with pillar targeting data — cannot assess coherence"
-            ),
-            threshold=_PILLAR_COHERENCE_JACCARD_WARN_THRESHOLD,
-            observed=None,
-            evidence_refs=[],
+            gate_id="x2_cross_section_pillar_coherence", verdict=VERDICT_UNKNOWN,
+            decisive_reason="fewer than 2 primary sections with pillar targeting data — cannot assess coherence",
+            threshold=_PILLAR_COHERENCE_JACCARD_WARN_THRESHOLD, observed=None, evidence_refs=[],
         )
 
     section_ids = sorted(primary_pillar_map.keys())

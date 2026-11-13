@@ -3026,6 +3026,9 @@ def run_x2_gates(
     # Gate 11: x2_unsupported_industry_claim_zero
     industry_claim_ok, industry_claim_reason = check_unsupported_industry_claims(resume_display_text, selected_facts)
     add("x2_unsupported_industry_claim_zero", industry_claim_ok, industry_claim_reason, None, industry_claim_reason)
+    from apps_rg.runtime.validators.narrative_quality_x2 import check_exec_summary_bullet_cosine_similarity
+    exec_cos_r = check_exec_summary_bullet_cosine_similarity(resume_display_text, [], max_internal_cosine=0.35)
+    add(exec_cos_r.gate_id, exec_cos_r.passed, exec_cos_r.observed_value, exec_cos_r.threshold, exec_cos_r.failure_reason)
     from apps_rg.runtime.validators.allocation_jd_alignment_gate import append_allocation_jd_alignment_x2_gate
     append_allocation_jd_alignment_x2_gate(add, section_id="executive_summary", candidate_text=resume_display_text, selected_facts=selected_facts, target_role=str(target_role or ""), jd_text=str(jd_text or ""))
 
