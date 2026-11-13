@@ -13,9 +13,14 @@ from apps_rg.runtime.c0.competencies_graph_authority import (
     reconcile_competencies_allocation_claim_units,
 )
 from apps_rg.runtime.sections.competencies_rigor import (
+    check_competencies_approved_category_labels,
     check_competencies_keyword_repetition_limit,
     check_competencies_no_fragment_or_one_word_terms,
     check_competencies_visible_terms_svp_agentic_richness,
+)
+from apps_rg.runtime.validators.competencies_quality_x2 import (
+    check_competencies_capability_family_coverage,
+    check_per_category_confidence_nonconstant,
 )
 
 
@@ -140,6 +145,9 @@ def test_insurance_it_strategy_executive_clusters_projection_and_reconciliation(
     assert check_competencies_visible_terms_svp_agentic_richness(categories) == (True, None)
     assert check_competencies_keyword_repetition_limit(categories) == (True, None)
     assert check_competencies_no_fragment_or_one_word_terms(categories) == (True, None)
+    assert check_competencies_approved_category_labels(categories) == (True, None)
+    assert check_per_category_confidence_nonconstant(categories).passed is True
+    assert check_competencies_capability_family_coverage(categories).passed is True
 
     all_terms = [
         str(t.get("text") or t.get("term"))
