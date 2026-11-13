@@ -27,14 +27,14 @@
         "end_date": "present",
         "is_current": true,
         "experience_tier": "core_2017_plus",
-        "mandate_line": "Mandate: Enterprise AI Practice & Delivery | Scale: 106-Engineer Footprint (66 Analytics, 40 Digital/IT Ops) | Ecosystem: AWS, Azure, Databricks | Tier: Fortune 500",
-        "role_narrative": "Lead client delivery, practice scaling, and systems architecture for next-generation agentic AI solutions, directing a 106-software-engineer footprint and converting frontier AI research into governed, high-impact production capabilities across enterprise client portfolios.",
+        "mandate_line": "Mandate: Enterprise AI Practice & Delivery | Scale: 105 SWE & Data Leaders (Leading Energy & Utility) | Ecosystem: AWS, Azure, Databricks | Tier: Fortune 500",
+        "role_narrative": "Lead client delivery, practice scaling, and systems architecture for next-generation agentic AI solutions, directing 105 software engineers and data leaders across a leading energy and utility company while managing all client relationships, delivery execution, and sales pipeline.",
         "bullets": [
           {
             "bullet_id": "bul_slalom_001",
-            "text": "106-Engineer Practice and A2A Orchestration: Directed a 106-software-engineer consulting footprint across advanced analytics (66 engineers) and digital operations (40 engineers) for a premier utility while establishing agent-to-agent (A2A) orchestration protocols, deterministic routing fabrics, and policy-bounded tool execution across enterprise accounts.",
+            "text": "105-SWE & Data Leadership and A2A Orchestration: Led 105 software engineers and data leaders across a leading energy and utility company, managing all client relationships, delivery execution, and sales pipeline while establishing agent-to-agent (A2A) orchestration protocols, deterministic routing fabrics, and policy-bounded tool execution across enterprise accounts.",
             "has_metric": true,
-            "metric_raw": "106-software-engineer consulting footprint (66 analytics, 40 digital operations)",
+            "metric_raw": "105 software engineers and data leaders across a leading energy and utility company",
             "technologies": ["A2A orchestration", "multi-agent systems", "deterministic routing", "policy gating"],
             "domain": "AI infrastructure"
           },
@@ -428,7 +428,7 @@
     "metrics_summary": {
       "total_revenue_impact": "$82M+",
       "total_cost_reduction": "30% to 40%",
-      "team_scale_range": "106 software engineers (66 analytics, 40 digital/IT ops) & 8 to 28 AI platform specialists",
+      "team_scale_range": "105 software engineers and data leaders (leading energy & utility) & 8 to 28 AI platform specialists",
       "uptime_achieved": "99.9% to 99.995%",
       "cycle_time_improvement": "6 months to 3 weeks"
     },
@@ -453,9 +453,9 @@
       },
       {
         "column_id": "engineer_scale",
-        "header": "106-ENGINEER SCALE",
+        "header": "105 SWE & DATA LEADERS",
         "items": [
-          "106 Utility Pod SWEs",
+          "105 Utility SWE & Data Leaders",
           "8 -> 28 AI Platform",
           "C-Suite & Board"
         ]

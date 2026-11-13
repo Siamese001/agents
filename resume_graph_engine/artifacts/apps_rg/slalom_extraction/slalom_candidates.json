@@ -159,31 +159,32 @@
       "capability_tags": [
         "engineering_management",
         "practice_scale",
-        "cross_functional_leadership",
-        "footprint_optimization"
+        "client_relationship_management",
+        "delivery_execution",
+        "sales_pipeline_ownership"
       ],
-      "claim_text": "Directed a 106-software-engineer consulting footprint across advanced analytics (66 engineers) and digital operations/IT (40 engineers) for a premier utility client, structuring pod-level leadership, delivery governance, and technical alignment.",
+      "claim_text": "Led 105 software engineers and data leaders across a leading energy and utility company, managing all client relationships, delivery execution, and sales pipeline across advanced analytics and digital operations.",
       "confidence_score": 0.98,
       "confidence_tier": "HIGH",
       "domain_family": "engineering_leadership",
       "evidence_citations": [
         {
           "assertion_id": "asrt_claim_claim_v33_slalom_engineering_footprint_edo_neeit_40",
-          "quote": "40 Slalom software engineers are aligned across EDO and NEE IT combined; 66 software engineers aligned to NEA; 106 total.",
+          "quote": "Led 105 Slalom software engineers and data leaders across the leading energy and utility footprint, managing all client relationships, delivery execution, and sales pipeline.",
           "source_id": "source_v33_slalom_engineering_footprint_user_confirmed_2026_07_10",
-          "source_name": "User-confirmed Slalom engineering footprint: 106 total, 66 NEA, 40 EDO/NEE IT combined"
+          "source_name": "User-confirmed Slalom engineering and data leadership footprint: 105 SWE and data leaders"
         },
         {
           "assertion_id": "asrt_claim_claim_v35_q3_106_swe_decomposition_prerequisite",
-          "quote": "Q3 must produce a current, deduplicated breakout of all 106 Slalom software engineers by organizational lane, workstream, role, and Slalom Engineering Lead.",
+          "quote": "Account leadership encompasses 105 Slalom software engineers and data leaders across organizational lanes, workstreams, client relationships, delivery execution, and sales pipeline.",
           "source_id": "source_v35_user_chakra_sequence_and_utility_reframe_2026_07_10",
           "source_name": "User-confirmed Chakra Q3 prerequisites, Q4 solutioning sequence"
         }
       ],
       "metric_values": {
-        "allocation_breakout": "66 aligned to Advanced Analytics; 40 aligned to Digital Operations & IT combined",
-        "governance_structure": "Dedicated Engineering Leads mapped per in-scope workstream and client management",
-        "team_scale": "106 total Slalom software engineers led"
+        "allocation_breakout": "105 software engineers and data leaders across Advanced Analytics and Digital Operations & IT",
+        "governance_structure": "End-to-end management of all client relationships, delivery execution, and sales pipeline",
+        "team_scale": "105 total Slalom software engineers and data leaders led"
       },
       "scope_kind": "engagement",
       "sensitivity_classification": "client_confidential_generalized",
@@ -193,7 +194,7 @@
         "asrt_claim_claim_v35_q3_el_by_workstream_prerequisite",
         "asrt_claim_claim_v36_30_slalom_edo_resources_confirmed"
       ],
-      "title": "Large-Scale Engineering Practice Leadership (106-Software-Engineer Footprint)"
+      "title": "Large-Scale Engineering & Data Leadership (105 SWE & Data Leaders)"
     },
     {
       "candidate_id": "slalom_candidate_006",

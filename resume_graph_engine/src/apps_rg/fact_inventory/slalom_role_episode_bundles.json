@@ -39,7 +39,7 @@
     "metric_slalom_cloud_partner_cosell_initiatives": "joint partner co-sell solution motions across AWS, Azure, and Databricks",
     "metric_slalom_reusable_ip_asset_library_count": "reusable agentic IP asset library driving high-margin delivery motions",
     "metric_slalom_visual_asset_intelligence_sow_delivery": "six-figure multi-modal visual asset intelligence platform delivered across utility generation sites",
-    "metric_slalom_consulting_engineering_footprint_scale": "106-software-engineer footprint mobilized across advanced analytics and enterprise digital operations",
+    "metric_slalom_consulting_engineering_footprint_scale": "105 software engineers and data leaders directed across a leading energy and utility company, managing all client relationships, delivery execution, and sales pipeline",
     "metric_slalom_acoustic_airgap_pcm_spooler_200ms": "<200ms zero-drop PCM audio spooler startup & 100% local Metal MLX Whisper STT airgap",
     "metric_slalom_dual_track_copilot_flash_snap_250ms": "<250ms Track 1 Flash-Snap over speculative 2-hop RAM graph prefetches & <1200ms Track 2 streaming",
     "metric_slalom_multimodal_3stage_self_healing_zero_loss": "3-stage multimodal synthesis pipeline & 3-tier self-healing mesh achieving 0% silent signal loss",
@@ -325,19 +325,19 @@
       "title": "Senior Director",
       "employer_node_id": "employment_exp_slalom_001",
       "root_capability_node_id": "engineering_practice_leadership",
-      "bundle_theme": "Large-scale engineering practice leadership across advanced analytics and IT digital operations",
-      "claim_text": "Large-scale engineering practice leadership across advanced analytics and IT digital operations",
-      "claim_action": "Directed 106-software-engineer consulting footprint across analytics and digital operations",
-      "claim_scope": "106 software engineers across advanced analytics (66 engineers) and digital operations/IT (40 engineers) for premier utility.",
-      "claim_outcome": "Mobilized pod-level leadership, delivery governance, and technical alignment across enterprise workstreams.",
+      "bundle_theme": "Leadership of 105 software engineers and data leaders across a leading energy and utility company, managing all client relationships, delivery execution, and sales pipeline",
+      "claim_text": "Leadership of 105 software engineers and data leaders across a leading energy and utility company, managing all client relationships, delivery execution, and sales pipeline",
+      "claim_action": "Led 105 software engineers and data leaders across a leading energy and utility company, managing all client relationships, delivery execution, and sales pipeline",
+      "claim_scope": "105 software engineers and data leaders across a leading energy and utility company; end-to-end management of all client relationships, delivery execution, and sales pipeline.",
+      "claim_outcome": "Managed all executive client relationships, multi-workstream delivery execution, and commercial sales pipeline expansion across advanced analytics and enterprise digital operations.",
       "support_level": "approved_by_graph_presence",
       "executive_scope_signals": [
-        "Directed 106-software-engineer practice footprint across advanced analytics and enterprise digital operations",
-        "Structured pod-level leadership, delivery governance, and cross-functional technical alignment"
+        "Led 105 software engineers and data leaders across a leading energy and utility company, managing all client relationships, delivery execution, and sales pipeline",
+        "Owned executive client relationships, multi-workstream delivery governance, and commercial sales pipeline across advanced analytics and digital operations"
       ],
       "architecture_scope_signals": [
-        "Cross-lane engineering practice governance and talent alignment",
-        "Pod-based delivery execution model across analytics and IT operations"
+        "Cross-discipline engineering and data leadership governance across 105 software engineers and data leaders",
+        "Integrated account relationship management, delivery execution governance, and commercial sales pipeline orchestration"
       ],
       "graph_skill_node_ids": [
         "skill_enterprise_workflow_adoption",
@@ -968,7 +968,7 @@
     },
     "metric_slalom_consulting_engineering_footprint_scale": {
       "metric_outcome_id": "metric_slalom_consulting_engineering_footprint_scale",
-      "metric": "106-software-engineer footprint mobilized across advanced analytics and enterprise digital operations",
+      "metric": "105 software engineers and data leaders directed across a leading energy and utility company, managing all client relationships, delivery execution, and sales pipeline",
       "metric_type": "practice_scale_metric",
       "employer": "Slalom",
       "approved": true,
@@ -977,12 +977,13 @@
       "bundle_bindings": [
         "reb_slalom_engineering_practice_leadership"
       ],
-      "claim_text": "large-scale client consulting footprint spanning 66 analytics engineers and 40 digital operations/IT engineers",
+      "claim_text": "Leadership of 105 software engineers and data leaders across a leading energy and utility company, managing all client relationships, delivery execution, and sales pipeline",
       "surface_tokens": [
-        "106 software engineers",
-        "practice leadership",
-        "advanced analytics",
-        "digital operations"
+        "105 software engineers and data leaders",
+        "leading energy and utility company",
+        "client relationships",
+        "delivery execution",
+        "sales pipeline"
       ],
       "section_eligibility": [
         "slalom_bullets",

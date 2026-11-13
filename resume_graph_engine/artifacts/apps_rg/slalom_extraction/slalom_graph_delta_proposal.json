@@ -16,7 +16,7 @@
       "weight": 1.0
     },
     {
-      "business_story": "Directs a 106-software-engineer footprint across advanced analytics and IT digital operations.",
+      "business_story": "Leads 105 software engineers and data leaders across a leading energy and utility company, managing all client relationships, delivery execution, and sales pipeline.",
       "confidence": 0.98,
       "directional": 1,
       "edge_family": "fact_metric",
@@ -27,7 +27,7 @@
       "source_authority": "die_graph_import",
       "source_node_id": "fact_slalom_006",
       "target_node_id": "metric_slalom_consulting_engineering_footprint_scale",
-      "technical_story": "Binds 106-engineer leadership fact to organizational scale metric outcome.",
+      "technical_story": "Binds 105 software engineers and data leaders leadership fact to organizational scale metric outcome.",
       "weight": 1.0
     },
     {
@@ -46,7 +46,7 @@
       "weight": 1.0
     },
     {
-      "business_story": "Binds 106-engineer footprint metric to Slalom Senior Director role.",
+      "business_story": "Binds 105 software engineers and data leaders footprint metric to Slalom Senior Director role.",
       "confidence": 0.98,
       "directional": 1,
       "edge_family": "metric_employer",
@@ -136,9 +136,9 @@
       "activation_status": "ACTIVE_CONFIRMED",
       "career_epoch": "epoch_slalom_agentic_consulting",
       "confidence": "HIGH",
-      "description": "Directed a 106-software-engineer consulting footprint across advanced analytics (66 engineers) and digital operations/IT (40 engineers) for a premier utility client, structuring pod-level leadership, delivery governance, and technical alignment.",
+      "description": "Led 105 software engineers and data leaders across a leading energy and utility company, managing all client relationships, delivery execution, and sales pipeline across advanced analytics and digital operations.",
       "external_eligible": 1,
-      "label": "Large-Scale Engineering Practice Leadership (106-Engineer Scale)",
+      "label": "Large-Scale Engineering & Data Leadership (105 SWE & Data Leaders)",
       "node_id": "fact_slalom_006",
       "node_type": "fact",
       "phase_ordinal": 4,
@@ -164,9 +164,9 @@
       "activation_status": "APPROVED_GRAPH_SSOT",
       "career_epoch": "epoch_slalom_agentic_consulting",
       "confidence": "HIGH",
-      "description": "large-scale client consulting footprint spanning 66 analytics engineers and 40 digital operations/IT engineers",
+      "description": "Leadership of 105 software engineers and data leaders across a leading energy and utility company, managing all client relationships, delivery execution, and sales pipeline",
       "external_eligible": 1,
-      "label": "106-software-engineer footprint mobilized across advanced analytics and enterprise digital operations",
+      "label": "105 software engineers and data leaders directed across a leading energy and utility company, managing all client relationships, delivery execution, and sales pipeline",
       "node_id": "metric_slalom_consulting_engineering_footprint_scale",
       "node_type": "metric_outcome",
       "phase_ordinal": 4,

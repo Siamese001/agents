@@ -578,7 +578,7 @@ def _ensure_jd_tailored_final_resume_json(
     exec_summary_text = (
         "Enterprise AI and technology executive who aligns multi-year architecture strategy, operating governance, and cloud modernization across regulated financial and insurance institutions. "
         "Guides reusable agentic platforms and decision-intelligence systems with human-in-the-loop controls that turn fragmented legacy estates into governed production capabilities. "
-        "Through that operating model, scaled a 106-engineer organization and over $82M in cumulative commercial growth across $30M transformation portfolios, $22M in platform IP revenue, and $15M in cloud co-sell alliances. "
+        "Through that operating model, led 105 software engineers and data leaders across a leading energy and utility company and over $82M in cumulative commercial growth across $30M transformation portfolios, $22M in platform IP revenue, and $15M in cloud co-sell alliances. "
         "Across enterprise programs, bi-temporal knowledge graphs and automated release gates enforce end-to-end audit lineage while reducing manual reporting errors and infrastructure overhead by 40%. "
         "An FSA-chartered actuarial foundation in capital modeling and stochastic risk underpins containerized high-performance compute practices that shorten enterprise stress-testing cycles by 40%. "
         "Can apply this blend of governed platform engineering, partner ecosystem execution, and quantitative capital discipline to accelerate enterprise-wide AI adoption and durable margin expansion."

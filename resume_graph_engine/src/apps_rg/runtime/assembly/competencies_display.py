@@ -341,7 +341,7 @@ def csuite_capability_display_rows(
             ),
             (
                 "Platform Commercialization & Hyperscaler Co-Sell ($82M+ P&L)",
-                "IP-led AI solution accelerators ($22M revenue, +20% gross margin), $15M AWS/Azure/Databricks alliances, and 106-engineer organization leadership.",
+                "IP-led AI solution accelerators ($22M revenue, +20% gross margin), $15M AWS/Azure/Databricks alliances, and 105 software engineers and data leaders organization leadership.",
             ),
         ]
     facts = base_or_snapshot.get("facts") if isinstance(base_or_snapshot.get("facts"), dict) else base_or_snapshot

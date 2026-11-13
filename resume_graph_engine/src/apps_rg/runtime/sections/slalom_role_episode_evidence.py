@@ -37,8 +37,8 @@ SLALOM_BULLET_SLOT_IDS: tuple[str, ...] = (
 
 # Output slots remain presentation ids; claim evidence uses role_episode_bundle_id.
 SLALOM_BULLET_SLOT_BUNDLE_MAP: dict[str, str] = {
-    "bul_slalom_001": "reb_slalom_agentic_client_delivery",
-    "bul_slalom_002": "reb_slalom_nextgen_ai_solutions",
+    "bul_slalom_001": "reb_slalom_engineering_practice_leadership",
+    "bul_slalom_002": "reb_slalom_agentic_client_delivery",
     "bul_slalom_003": "reb_slalom_governed_runtime_scaling",
     "bul_slalom_004": "reb_slalom_ecosystem_accelerators",
 }
