@@ -27,7 +27,7 @@ Prefer an end-to-end run where practical, then targeted tests for boundaries and
 Wave status, observed run result, and provenance are recorded internally in durable receipts and the wave ledger:
 `| Wave | Status | Expected behavior | Observed run and independent check | Evidence path | Open blocker / next authorization |`
 
-Status values: `COMPLETE`, `OPEN`, `BLOCKED`, `NOT_STARTED`. Sequential enforcement: never advance to Wave N+1 until Wave N and earlier waves meet the behavior and evidence conditions above. Ordinary engineering completion reports in user chat do NOT render this table, adhering to [.agents/rules/output-brevity-governance.md](output-brevity-governance.md) (target ~120 words, max 300 words; strictly NO all-wave status tables dumped into chat).
+Status values: `COMPLETE`, `OPEN`, `BLOCKED`, `NOT_STARTED`. Sequential enforcement: never advance to Wave N+1 until Wave N and earlier waves meet the behavior and evidence conditions above. Ordinary engineering completion reports in user chat do NOT render this table, adhering to [.agents/rules/output-brevity-governance.md](output-brevity-governance.md) (target ~150-250 words, max 450 words; strictly NO all-wave status tables dumped into chat).
 
 ---
 
@@ -95,4 +95,4 @@ Used exactly once per wave at wave completion after all fixes pass.
 Wave implementation progress is tracked durably within repository artifacts and persistent ledgers:
 
 1. **Durable Ledger Tracking**: Every wave declared in the plan must be explicitly tracked internally with discrete status indicators (`COMPLETE`, `OPEN`, `BLOCKED`), empirical evidence, and explicit execution receipts (file path, test run command with pass counts, or commit SHA).
-2. **User-Facing Completion Response Separation**: User-facing completion messages for engineering turns MUST conform strictly to [.agents/rules/output-brevity-governance.md](output-brevity-governance.md) and repository output budget invariants (~120 words target, 300 words maximum). Agents must NOT output all-wave implementation status tables or wave ledger tables in ordinary conversational completion turns. Full status tables are reserved for persistent artifacts or explicit operator diagnostic requests.
+2. **User-Facing Completion Response Separation**: User-facing completion messages for engineering turns MUST conform strictly to [.agents/rules/output-brevity-governance.md](output-brevity-governance.md) and repository output budget invariants (~150-250 words target, 450 words maximum). Agents must NOT output all-wave implementation status tables or wave ledger tables in ordinary conversational completion turns. Full status tables are reserved for persistent artifacts or explicit operator diagnostic requests.

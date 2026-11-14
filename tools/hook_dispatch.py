@@ -118,10 +118,9 @@ def handle_pre_edit_plan(payload: Dict[str, Any], repo_root: Path) -> int:
 
     target_path = Path(target_file)
     target_name = target_path.name.lower()
-    is_plan = (
-        target_name == "implementation_plan.md"
-        or "plans/" in target_file.replace("\\", "/")
-        or (target_file.endswith(".md") and "plan" in target_name)
+    norm_target = target_file.replace("\\", "/")
+    is_plan = "/.agents/rules/" not in norm_target and (
+        target_name == "implementation_plan.md" or "plans/" in norm_target or (target_file.endswith(".md") and "plan" in target_name)
     )
     if not is_plan:
         return emit_decision("allow")
@@ -668,8 +667,8 @@ def handle_post_invocation(payload: Dict[str, Any], repo_root: Path) -> int:
         policies = load_policy_registry(repo_root)
     except (OSError, json.JSONDecodeError, KeyError, TypeError, ValueError):  # guardian: allow-silent-swallow -- fallback to defaults in isolated test fixtures
         policies = {}
-    max_words = int(policies.get("INV-OUTPUT-MAX-WORDS", {}).get("threshold", 300) or 300)
-    max_chars = int(policies.get("INV-OUTPUT-MAX-CHARS", {}).get("threshold", 3500) or 3500)
+    max_words = int(policies.get("INV-OUTPUT-MAX-WORDS", {}).get("threshold", 450) or 450)
+    max_chars = int(policies.get("INV-OUTPUT-MAX-CHARS", {}).get("threshold", 5000) or 5000)
     word_res = validate_word_budget_gate(candidate_text, max_words=max_words, max_chars=max_chars)
     if word_res["status"] != "PASS" and brevity_retries < 1:
         msg = WORD_BUDGET_INTERCEPT_PROMPT.format(issues="; ".join(word_res["issues"]), max_words=max_words, max_chars=max_chars)

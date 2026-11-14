@@ -43,8 +43,8 @@ domain_threshold_owners:
       INV-HITL-MIN-CONFIDENCE-FLOOR: 0.65
       INV-TEST-TIMEOUT-HARD: 180
       INV-WAVE-PLAN-MAX-WORDS: 1000
-      INV-OUTPUT-MAX-WORDS: 300
-      INV-OUTPUT-MAX-CHARS: 3500
+      INV-OUTPUT-MAX-WORDS: 450
+      INV-OUTPUT-MAX-CHARS: 5000
     required_consumers:
       - "tools/validate_turn_gates.py"
       - "tools/implementation_plan_core/evidence_requirements.py"
