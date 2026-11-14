@@ -204,3 +204,50 @@ def test_ibm_sibling_slot_20pct_claim_not_entailed_own_slot_entailed() -> None:
     )
     assert entailed_005 is True
     assert missing_005 == []
+
+
+def test_metric_phrase_entailed_in_text_flexible_stems_and_numbers() -> None:
+    from apps_rg.runtime.reasoning.bullet_fact_entailment import metric_phrase_entailed_in_text
+
+    metric = "$3M in partner-derived revenue from global AI channel program and strategic partner analytics frameworks"
+    natural_bullet = (
+        "Built a global AI channel program from inception by co-developing analytics frameworks "
+        "with strategic partners, driving $3M in partner-derived revenue."
+    )
+    assert metric_phrase_entailed_in_text(metric, natural_bullet) is True
+    assert metric_phrase_entailed_in_text(
+        metric,
+        "Built a global AI channel program from inception with strategic partners.",
+    ) is False
+
+
+def test_slalom_singular_partner_led_deployment_rewrite_and_narrative_de_echo() -> None:
+    from apps_rg.runtime.sections.role_episode_lane import _strip_targeting_only_experience_claims
+    from apps_rg.runtime.validators.narrative_quality_x2 import repair_narrative_bullet_echo_from_graph
+
+    cleaned, hits = _strip_targeting_only_experience_claims(
+        "Directed co-innovation and licensing partnerships with Google Cloud, Anthropic Claude, and OpenAI "
+        "to build reusable enterprise AI accelerators that expanded partner-led deployment reach."
+    )
+    assert hits == []
+    assert "expanded client deployment reach." in cleaned
+    assert "deployments reach" not in cleaned
+
+    companions = (
+        "- Led a 105-person team of software engineers and data leaders across a major energy and utility enterprise transformation.\n"
+        "- Architected production agentic AI client delivery and A2A multi-agent orchestration that scaled enterprise transformation engagements.\n"
+        "- Engineered governed runtime architectures and deterministic proof lineage by building a safety validation mesh enforcing 100% gate conformance.\n"
+        "- Directed co-innovation and licensing partnerships with Google Cloud, Anthropic Claude, and OpenAI to build reusable enterprise AI accelerators."
+    )
+    raw_slalom_nar = (
+        "Steered enterprise AI from partner co-innovation into deployable, governed transformation by aligning "
+        "reusable accelerators, production agent orchestration, and deterministic safety controls with the "
+        "commercial and delivery systems required to scale trusted adoption."
+    )
+    repaired_nar = repair_narrative_bullet_echo_from_graph(
+        raw_slalom_nar, facts=[], companion_bullet_texts=companions, section_id="slalom_narrative"
+    )
+    assert "ecosystem collaboration" in repaired_nar
+    assert "modular solution blueprints" in repaired_nar
+    assert "Owned the executive consulting mandate" not in repaired_nar
+

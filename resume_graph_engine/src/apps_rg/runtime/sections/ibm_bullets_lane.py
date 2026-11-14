@@ -511,7 +511,7 @@ def _materialize_ibm_bullets_from_frozen_allocation(
             and check_experience_bullet_evidence_density(bullet_id, existing_text).passed
             and check_bullet_technical_specificity_floor(bullet_id, existing_text).passed
             and metric_phrase_entailed_in_text(metric, existing_text)
-            and all(compute_text_cosine_similarity(existing_text, str(p.get("bullet_text") or "")) <= 0.35 for p in ordered)
+            and all(compute_text_cosine_similarity(existing_text, str(p.get("bullet_text") or "")) <= 0.45 for p in ordered)
         )
         if not keep_existing:
             row["bullet_text"] = allocation["bullet_text"]

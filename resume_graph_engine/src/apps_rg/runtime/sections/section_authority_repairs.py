@@ -380,7 +380,7 @@ def _expand_short_exec_summary_sentence(sentence: str) -> str:
             count=1,
             flags=re.IGNORECASE,
         ).rstrip() + "."
-    if "enterprise adoption" in lower:
+    if " enterprise adoption" in lower or lower.startswith("enterprise adoption"):
         return re.sub(
             r"enterprise adoption\b",
             "enterprise adoption across production environments",
@@ -388,6 +388,8 @@ def _expand_short_exec_summary_sentence(sentence: str) -> str:
             count=1,
             flags=re.IGNORECASE,
         ).rstrip() + "."
+    if "across enterprise production environments" in lower:
+        return f"{core} to scale governed enterprise delivery."
     return f"{core} across enterprise production environments."
 
 
@@ -868,6 +870,32 @@ def repair_exec_summary_unallocated_metric_rows(
         ]
         if len(exact) == 1:
             continue
+        disp_sent = str(sentences[index] or "").strip() if index < len(sentences) else ""
+        disp_val, disp_unit = extract_exact_metric_value_unit(disp_sent)
+        if disp_sent and (disp_val, disp_unit) != (metric_value, metric_unit):
+            exact_disp = [
+                assignment
+                for assignment in selected
+                if str(assignment.get("metric_value") or "") == disp_val
+                and str(assignment.get("metric_unit") or "") == disp_unit
+            ]
+            if (disp_val and disp_unit and len(exact_disp) == 1) or (not disp_val and not disp_unit):
+                matched_a = exact_disp[0] if len(exact_disp) == 1 else selected[0]
+                sync_ids = [
+                    str(v).strip()
+                    for v in (
+                        matched_a.get("root_id"),
+                        matched_a.get("fact_id"),
+                        matched_a.get("metric_outcome_id") if (disp_val and disp_unit) else "",
+                    )
+                    if str(v or "").strip()
+                ]
+                if sync_ids:
+                    raw_row["claim"] = disp_sent[:80]
+                    raw_row["claim_text"] = disp_sent
+                    raw_row["source_fact_ids"] = list(dict.fromkeys(sync_ids))
+                    repairs.append({"operation": "repair_exec_summary_unallocated_metric_row", "reason": f"claim_{index + 1}_ledger_synced_to_clean_display_sentence", "sentence_index": index + 1, "source_fact_ids": raw_row["source_fact_ids"]})
+                    continue
         claim_tokens = _citation_repair_tokens(claim_text)
 
         def rank(assignment: dict[str, Any]) -> tuple[int, float, float, str]:
