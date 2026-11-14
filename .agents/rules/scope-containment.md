@@ -1,51 +1,50 @@
 
-# Scope Containment — No Gold-Plating, One Task At A Time
+# Scope Containment — Full-Ripple Alignment, Zero Unrelated Drift
 
-> ⛔ **Scope of the current response = (a) what the user asked for + (b) files in the active plan's `Files In Scope` + (c) files required to satisfy (a)+(b) transitively. Nothing else.**
+> ⛔ **Scope of the current task = (a) what the user asked for + (b) files in the active plan's `Files In Scope` + (c) all connected upstream producers, shared schemas/configs, sibling lanes, downstream validators, and tests whose contracts or thresholds are impacted by (a)+(b). Unconnected subsystems and cosmetic drift are out of scope.**
 
-Operationalizes constitutional §18 (no hidden scope expansion).
+Operationalizes constitutional §18 (no hidden unrelated scope expansion) and `INV-HOLISTIC-PIPELINE-PLANNING`.
 
-## The Four Hard Rules
+## Core Principles
 
-1. **No gold-plating.** Don't improve code Claude Code "noticed needed improving" while doing something else. File a `NEXT_STEP:` marker; move on.
-2. **No "while I'm here" edits.** Touching an unrelated file because it's open / nearby = scope expansion — forbidden without explicit user approval this turn.
-3. **One active task at a time.** Asked for X → do X. Don't start Y because Y "also needs doing". Concurrent scopes require an explicit user turn naming both.
-4. **Out-of-scope improvements → `NEXT_STEP:` marker, NOT an edit.** Per constitutional §24 (native `spawn_task`), surface out-of-scope work; DO NOT implement.
+1. **Mandatory Full-Ripple Inspection (Read Everything Connected)**:
+   - When you make a change, you must inspect all connected upstream producers, sibling lanes, shared schemas/configs, and downstream validators/consumers by definition.
+   - Reading, searching, and tracing connected files across the call graph or data flow is **NEVER capped**.
+2. **Cohesive Ripple Edit Scope (Change Everything Connected)**:
+   - Any upstream allocator/producer, shared contract, or downstream validator whose assumptions or thresholds are impacted by the change is part of the core change by definition and MUST be updated together.
+   - Never use "scope containment" as an excuse to leave upstream producers or downstream validators out of sync with a modified lane.
+3. **Block Unintentional Drift Only**:
+   - **No unrelated gold-plating**: Do not touch subsystems or modules with zero call-graph or data-flow connection to the task.
+   - **No unrequested cosmetic churn**: Do not reformat, rename, or refactor unconnected files just because they were viewed during investigation.
+   - **One cohesive objective at a time**: Surface unrelated future ideas via `NEXT_STEP:` or backlog rather than bundling unconnected work.
 
 ## In-Scope vs Out-of-Scope
 
-**In scope**: files the user named (path / `@` mention / quoted snippet); files in plan `Files In Scope`; files required for (a)+(b) to compile / type-check / pass tests; tests covering the above.
+**In scope (by definition)**:
+- Files the user named or that appear in the approved wave plan.
+- Connected upstream producers/allocators, shared schemas/configs, sibling lanes, and downstream validators/aggregators whose contracts or thresholds are affected by the change.
+- Files required for the cohesive change to compile, type-check, and pass end-to-end and unit tests.
 
-**Out of scope by default**: files only discovered via `grep_search` / `code_search` (read-only context, never edit); unrelated anti-pattern / lint / formatting touches; doc / README updates unless requested; new tests for code paths outside active scope.
+**Out of scope (unintentional drift)**:
+- Unconnected subsystems or modules with zero call-graph, schema, or data-flow coupling to the task.
+- Unrequested formatting, lint, or doc touches in unconnected files.
+- Mutating credentials, secrets, or canonical production state.
 
-## Retrieval Discipline
+## Structural & Ripple Tracing Discipline
 
-**Caps**: `grep_search`+`code_search` ≤3/response; file reads ≤10/response. **ADG > grep** for dependencies. See `scope-containment` skill for detailed procedure.
+- Use **ADG (`adg_sqlite`)** and structural queries first to trace upstream/downstream dependencies, fan-in/fan-out, and layer boundaries, supplemented by unconstrained file reads and text searches as needed to verify every connected contract.
+- See `.agents/skills/scope-containment/SKILL.md` for full-ripple inspection and verification procedure.
 
 ## Scope Markers
 
 | Marker | When | Format |
 |--------|------|--------|
 | `SCOPE_RESET:` | Cross-turn topic shift | `SCOPE_RESET: from=<prior> to=<new> dropped=<files>` |
-| `NEXT_STEP:` | Out-of-scope ideas (don't implement) | `NEXT_STEP:` + description |
-
-Triggers: different top-level dir, layer (L0→L4), app (apps_qna→apps_rg), task type (refactor→debug→plan), explicit "switch to".
+| `NEXT_STEP:` | Unconnected ideas (don't implement) | `NEXT_STEP:` + description |
 
 ## Forbidden Patterns
 
-- ❌ "I also noticed X could be improved, so I fixed it too" — gold-plating.
-- ❌ Editing files across 3+ modules the user did not mention in one response.
-- ❌ Starting a new plan/task/refactor mid-response because current work "reminded me".
-- ❌ `grep_search` >3× without a matching `adg_*` or ADG-SQLite direct-read attempt first.
-- ❌ Renaming / moving / deleting files outside active scope — even if the filename looks obviously wrong.
-
-## Escape Hatches
-
-- User approved expansion ("yes, also fix Y") — proceed
-- Transitive requirement — state inline before editing
-- Emergency rollback — constitutional §7
-- Scripted batch — `SCOPE_CONTAINMENT_BYPASS=1`
-
-## Enforcement
-
-`post_agent_grep_budget_audit.py` (text-search cap) · `post_agent_read_budget_audit.py` (file-read cap) · `post_agent_token_telemetry.py` (telemetry). `scope-containment` skill for detailed procedure. Constitutional §18, §28, §31. Sibling: constitutional §24 (native `spawn_task`).
+- ❌ Truncating a multi-stage pipeline change into a symptom-only local patch while ignoring coupled upstream producers or downstream validators.
+- ❌ Artificially capping file reads or searches before tracing all connected callers, schemas, and validators.
+- ❌ Touching unconnected subsystems or performing unrequested cosmetic cleanup in files with zero data-flow or call-graph relationship to the task.
+- ❌ Renaming, moving, or deleting unconnected files outside the active ripple scope.

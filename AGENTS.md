@@ -4,7 +4,7 @@
 
 Root AGENTS.md is the primary agent execution adapter. Repo governance, rules, and skills live under .agents/ and .antigravity/.
 
-**T2/T3** (2+ files, cross-layer, architecture, multi-file debug): enter native plan mode and present the plan for approval before any edit. Use the `structured-reasoning` skill only as decomposition / retrieval guidance inside that plan-mode workflow. See `.agents/rules/plan-first-enforcement.md`.
+**T2/T3** (2+ files, cross-layer, architecture, multi-file debug): enter native plan mode, inspect all connected upstream/downstream dependencies (see `scope-containment`), and present the plan for approval before any edit. See `.agents/rules/plan-first-enforcement.md`.
 
 **T0/T1**: single file ≤20 lines or questions — answer/edit directly.
 
