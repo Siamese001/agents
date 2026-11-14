@@ -233,7 +233,7 @@
         "bullets": [
           {
             "bullet_id": "bul_ey_001",
-            "text": "Regulatory Analytics Modernization: Directed a $15M transformation program that improved lineage, controls, and predictive risk capabilities across audit and regulatory workflows.",
+            "text": "Directed a $15M transformation program that improved lineage, controls, and predictive risk capabilities across audit and regulatory workflows.",
             "has_metric": true,
             "metric_raw": "$15M transformation program",
             "technologies": ["predictive risk modeling", "data lineage", "audit workflows"],
@@ -241,7 +241,7 @@
           },
           {
             "bullet_id": "bul_ey_002",
-            "text": "Commercial Turnaround: Achieved a 40% reduction in audit remediation costs by implementing automated data lineage and predictive risk modeling across regulatory workflows.",
+            "text": "Achieved a 40% reduction in audit remediation costs by implementing automated data lineage and predictive risk modeling across regulatory workflows.",
             "has_metric": true,
             "metric_raw": "40% cost reduction",
             "technologies": ["automated lineage", "risk modeling", "regulatory workflows"],
@@ -249,7 +249,7 @@
           },
           {
             "bullet_id": "bul_ey_003",
-            "text": "Capital Optimization: Optimized capital reserve requirements under Solvency II and AG43, reducing redundant capital holdings for insurance clients by 12% while maintaining full compliance.",
+            "text": "Optimized capital reserve requirements under Solvency II and AG43, reducing redundant capital holdings for insurance clients by 12% while maintaining full compliance.",
             "has_metric": true,
             "metric_raw": "12% capital reduction",
             "technologies": ["Solvency II", "AG43", "actuarial modeling"],
@@ -257,7 +257,7 @@
           },
           {
             "bullet_id": "bul_early_career_001",
-            "text": "Actuarial & Quantitative Foundation: Priced exotic derivatives and structured multi-Greek hedging strategies, built stochastic capital models, and supported HPC-based valuation frameworks for scenario testing and capital adequacy, establishing the quantitative risk and model-governance discipline applied across enterprise AI platforms.",
+            "text": "Priced exotic derivatives and structured multi-Greek hedging strategies, built stochastic capital models, and supported HPC-based valuation frameworks for scenario testing and capital adequacy, establishing the quantitative risk and model-governance discipline applied across enterprise AI platforms.",
             "has_metric": false,
             "technologies": ["derivatives pricing", "multi-Greek hedging", "stochastic modeling", "capital modeling", "HPC valuation"],
             "domain": "actuarial & quantitative finance"

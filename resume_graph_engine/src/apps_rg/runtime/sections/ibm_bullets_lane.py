@@ -454,7 +454,8 @@ def _materialize_ibm_bullets_from_frozen_allocation(
                 text,
             )
             metric = str(row.get("metric_text") or "").strip()
-            if metric and metric.casefold() not in display.casefold():
+            from apps_rg.runtime.reasoning.bullet_fact_entailment import metric_phrase_entailed_in_text
+            if metric and not metric_phrase_entailed_in_text(metric, display):
                 compact_metric = re.sub(
                     r"\s*\(\+20%\s+joint\s+alliance\s+revenue\s+and\s+",
                     " (",
@@ -509,7 +510,7 @@ def _materialize_ibm_bullets_from_frozen_allocation(
             bool(existing_text)
             and check_experience_bullet_evidence_density(bullet_id, existing_text).passed
             and check_bullet_technical_specificity_floor(bullet_id, existing_text).passed
-            and (not metric or metric.casefold() in existing_text.casefold())
+            and metric_phrase_entailed_in_text(metric, existing_text)
             and all(compute_text_cosine_similarity(existing_text, str(p.get("bullet_text") or "")) <= 0.35 for p in ordered)
         )
         if not keep_existing:

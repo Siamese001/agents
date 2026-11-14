@@ -88,9 +88,9 @@ ROLE_EPISODE_FINAL_MATERIALIZED_SELECTION_CONTRACT = (
 _ROLE_EPISODE_EVIDENCE_DENSITY_REPAIRS: dict[str, str] = {
     "reb_ey_capital_optimization_solvency": "Led quantitative derivatives, variable-annuity hedging, and insurance-capital work using exotic-pricing models, liability Greeks, and higher-order stress scenarios for regulated portfolios, delivering risk visibility for hedge-design decisions.",
     "reb_ey_erm_risk_governance": "Architected ERM operating models and BCBS 239-aligned risk-data aggregation for regulated banking and insurance clients, defining three-lines-of-defense accountability and metadata standards that standardized risk-metric definitions across business units, control owners, and reporting stakeholders.",
-    "reb_slalom_agentic_client_delivery": "Spearheaded enterprise agentic AI delivery as Senior Director, architecting A2A multi-agent orchestration that established a repeatable technical blueprint for scaling AI solutions across client engagements.",
+    "reb_slalom_agentic_client_delivery": "Architected enterprise agentic AI delivery across regulated client accounts, deploying A2A multi-agent orchestration and deterministic routing contracts from discovery through production cutover.",
     "reb_slalom_engineering_practice_leadership": "Led a 105-person organization of software engineers and data leaders across a major energy and utility client, owning all client relationships, delivery execution, and sales pipeline to build a repeatable technical delivery practice.",
-    "reb_slalom_governed_runtime_scaling": "Designed a governed runtime scaling framework incorporating deterministic proof lineage and a safety validation mesh, achieving 100% deterministic gate mesh conformance for safety-critical agent decisions while scaling enterprise agentic systems.",
+    "reb_slalom_governed_runtime_scaling": "Engineered governed runtime architectures incorporating deterministic proof lineage and a safety validation mesh, achieving 100% gate conformance for safety-critical agent decisions across enterprise production workflows.",
     "reb_slalom_ecosystem_accelerators": "Directed Google Cloud (GCP), Anthropic Claude, and OpenAI partner co-sell and licensing expansion, scaling Gemini Enterprise from 750 to 5,750+ seats toward 10,000+ across Vertex AI and Model Armor, launching a $2.4M Claude enablement workstream with 45-day Claude Code pods, and cutting human handoffs 15 percentage points in 10 days via OpenAI Codex.",
     "reb_slalom_visual_asset_intelligence": "Built a multi-modal visual asset intelligence pipeline that automated power generation asset extraction, converting a manual inspection workflow into a reusable, production-grade solution pattern.",
 }
@@ -611,11 +611,7 @@ def _repair_role_episode_bullet_evidence_density(
                 }
             )
         elif root_id == "reb_slalom_governed_runtime_scaling" and "100%" not in text:
-            out["bullet_text"] = (
-                "Designed a governed runtime scaling framework incorporating deterministic proof lineage "
-                "and a safety validation mesh, achieving 100% deterministic gate mesh conformance for "
-                "safety-critical agent decisions while scaling enterprise agentic systems."
-            )
+            out["bullet_text"] = _ROLE_EPISODE_EVIDENCE_DENSITY_REPAIRS["reb_slalom_governed_runtime_scaling"]
             repairs.append(
                 {
                     "bullet_id": str(out.get("bullet_id") or ""),
@@ -1427,9 +1423,11 @@ def _compiled_prompt(cfg: RoleEpisodeLaneConfig, runtime_payload: dict[str, Any]
         instruction = (
             "Use JD_TEXT and BRIEFING only to choose emphasis, ordering, and allowed source_fact_ids "
             "for the target role — NOT to create display claim wording, employers, tools, or metrics. "
-            "The runtime renders visible text from selected proof fact claim_text only. Every claim "
-            "MUST cite only allowed source_fact_ids; graph-skill phrases are selection hints, not "
-            "proof or approved display wording. targeting_only=true; jd_used_as_proof=false."
+            "Compose each bullet as a complete, single-sentence executive achievement starting with a strong past-tense action verb, "
+            "incorporating the bundle's concrete mechanisms and any allocated metric_text from GRAPH_SKILL_EVIDENCE. "
+            "SENTENCE CADENCE VARIETY: Vary clause structures across the bullet set (mix 'by <gerund>', 'to <verb>', and 'that/which <verb>' clauses; "
+            "do not end every bullet with an identical ', <gerund>ing ...' participial tail). "
+            "Every claim MUST cite only allowed source_fact_ids. targeting_only=true; jd_used_as_proof=false."
             if cfg.is_bullet_lane
             else "Use JD_TEXT, BRIEFING, GRAPH_SKILL_EVIDENCE, and ACCEPTED_COMPANION_BULLETS to synthesize "
             "one executive role thesis grounded in the candidate's allowed graph bundles. Do NOT copy verbatim "

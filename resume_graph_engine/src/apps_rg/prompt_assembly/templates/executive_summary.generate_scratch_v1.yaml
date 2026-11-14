@@ -57,12 +57,13 @@ slot_bodies:
     </six_sentence_period_contract>
 
     <approved_non_stock_openers>
-    **S2–S5 transitions (compile advisory):** Prefer approved non-stock openers when varying rhythm:
+    **S2–S5 transitions (compile advisory):** Open body sentences naturally with direct scope anchors, domain subjects, or varied non-stock openers rather than stacking essay-style "Building on..." / "Within that..." signposts on every sentence:
     - Across enterprise programs,
-    - Within that ecosystem model,
+    - From that commercial base,
     - In parallel,
     - That platform productization discipline,
     - The same platform discipline,
+    - That operating foundation also,
     </approved_non_stock_openers>
 
     <proof_law_v1>
@@ -104,7 +105,7 @@ slot_bodies:
     **S4:** Governance/lineage as parallel beat with an allowed outcome metric in display when one is cited; no forced "extended to" bridges across unrelated facts. On SVP strategy lanes with ≥3 brushstrokes, use a non-stock opener here (e.g. `In parallel,` / `Across enterprise programs,`) - both stock-bridge slots are expected to be consumed in S2–S3.
     **S4 sentence completeness:** S4 MUST be a complete sentence with a finite main verb, never a noun-phrase fragment. Use the DISPLAY_OVERRIDE text for fact_quant_hpc_003 verbatim if provided.
     **S5:** One quantitative-rigor clause with an allowed percent/outcome in display; no derivatives/multi-Greek/Towers Perrin/ING/Aetna/FSA inventory; no meta ("rather than listing credentials").
-    **S2–S5 connective tissue:** Open S2-S5 with thesis-referent connectors, not bare achievement-verb openers; avoid an achievement bullet stack.
+    **S2–S5 connective tissue:** Vary sentence openings across S2-S5 using direct domain scope anchors, non-stock openers, or natural executive verbs (at most two past-tense action-verb openers in S2-S5); avoid stacking artificial "Building on that..." / "Within that..." signpost transitions on consecutive sentences.
     **S6:** Forward capstone grounded in cited source_fact_ids; may use composition_plan TARGETING_FORWARD_ANCHOR as targeting-only. Forbid "Looking ahead," "extend that arc toward", "this leadership profile", "can translate into", S2-S5 recap, and unsupported "audit/audit-ready." Open with modal/future-forward language, not past-tense delivery verbs.
     **Connectives:** At most **two** stock openers (`Building on` / `Through that` / `Complementing` / `With that governance` / `Against that` / `From that`) in S2-S5; vary bridge nouns. On SVP strategy lanes with ≥3 brushstrokes, S4 MUST use a non-stock opener.
     **Meta-filler ban:** no "governance discipline", "with active-voice delivery and governance discipline", "active-voice delivery", "selected facts", "this individual", "this executive", "proven track record", "seasoned executive" scaffolding.

@@ -383,12 +383,12 @@ def _expand_short_exec_summary_sentence(sentence: str) -> str:
     if "enterprise adoption" in lower:
         return re.sub(
             r"enterprise adoption\b",
-            "enterprise adoption through operating discipline",
+            "enterprise adoption across production environments",
             core,
             count=1,
             flags=re.IGNORECASE,
         ).rstrip() + "."
-    return f"{core} through operating discipline."
+    return f"{core} across enterprise production environments."
 
 
 def repair_exec_summary_thin_sentence_weave(parsed: dict[str, Any]) -> list[dict[str, Any]]:

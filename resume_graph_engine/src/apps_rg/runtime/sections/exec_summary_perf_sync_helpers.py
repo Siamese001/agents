@@ -542,11 +542,11 @@ def resolve_unallocated_metric_sentence_replacement(
         stripped_clause == display_sentence or any(extract_sig_fn(stripped_clause))
     ):
         inline_scrub = re.sub(
-            r"\s+\b(?:by|of|over|nearly|roughly|approximately)\s+\$?\d+(?:\.\d+)?\s*(?:%|percent\b|m\b|million\b|b\b|billion\b)(?:\s+in\b)?",
+            r"\s+\b(?:by|of|over|nearly|roughly|approximately)\s+\$?\d+(?:\.\d+)?\+?\s*(?:%|percent\b|m\b|million\b|b\b|billion\b)?(?:\s+in\b)?",
             "", stripped_clause, flags=re.IGNORECASE,
         )
         inline_scrub = re.sub(
-            r"(?:\$|\b)\d+(?:\.\d+)?\s*(?:%|percent\b|m\b|million\b|b\b|billion\b)\s+(?:in\s+)?(?=[a-zA-Z])",
+            r"(?:\$|\b)\d+(?:\.\d+)?\+?\s*(?:%|percent\b|m\b|million\b|b\b|billion\b)?\s+(?:in\s+)?(?=[a-zA-Z])",
             "", inline_scrub, flags=re.IGNORECASE,
         )
         inline_scrub = re.sub(r"\s+([.,;:])", r"\1", re.sub(r"\s{2,}", " ", inline_scrub).strip())

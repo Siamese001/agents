@@ -548,24 +548,17 @@ def repair_narrative_bullet_echo_from_graph(
     )
     if cos_gate.passed and not candidate_text.lower().startswith("led ") and not re.search(r"\b105\b", candidate_text):
         return candidate_text
+    if not re.search(r"\b105\b", candidate_text):
+        for verb in ("Anchored", "Steered", "Orchestrated"):
+            swapped = re.sub(r"^[A-Za-z-]+(?=\s)", verb, candidate_text.strip(), count=1)
+            if check_narrative_bullet_cosine_similarity(swapped, companion_bullet_texts, max_pairwise_cosine=0.28, max_pool_cosine=0.38, forbid_shared_opener=True, forbid_repeated_metrics=True).passed:
+                return swapped
     if section_id == "insurtech_narrative":
-        return (
-            "Steered the engineering mandate for legacy transformation, pairing application "
-            "dependency mapping and migration wave cutover planning with zero-trust security "
-            "and PII data encryption."
-        )
+        return "Steered the engineering mandate for legacy transformation, pairing application dependency mapping and migration wave cutover planning with zero-trust security and PII data encryption."
     if section_id == "unify_narrative":
-        return (
-            "Steered the multi-year platform mandate at Unify Consulting to industrialize "
-            "governed agentic runtime systems, turning proprietary engineering architecture "
-            "into commercialized assets and repeatable deployment discipline for regulated institutions."
-        )
+        return "Steered the multi-year platform mandate at Unify Consulting to industrialize governed agentic runtime systems, turning proprietary engineering architecture into commercialized assets and repeatable deployment discipline for regulated institutions."
     if section_id == "ibm_narrative":
-        return (
-            "Anchored partner-level advisory for enterprise cloud transformation at IBM, "
-            "connecting reference architecture governance with BI analytics and joint alliance "
-            "strategy to institutionalize repeatable modernization across global delivery teams."
-        )
+        return "Anchored partner-level advisory for enterprise cloud transformation at IBM, connecting reference architecture governance with hyperscaler alliance co-sell and executive solution architecture to institutionalize repeatable modernization across global delivery teams."
     skill_ids = {
         str(item or "").strip()
         for fact in (facts or []) if isinstance(fact, dict)

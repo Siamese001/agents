@@ -284,6 +284,10 @@ def _metric_token_visible_in_text(metric_id: str, text: str) -> str | None:
         r"\b(?:engineering\s+)?team\b.{0,48}\b8\s*(?:to|-)\s*28\b", low
     ):
         return "engineering team from 8 to 28"
+    from apps_rg.runtime.reasoning.bullet_fact_entailment import metric_phrase_entailed_in_text
+    for token in _metric_surface_tokens(metric_id):
+        if len(token.split()) >= 2 and metric_phrase_entailed_in_text(token, text):
+            return token
     return None
 
 
@@ -383,7 +387,15 @@ def _append_metric_surface_clause(text: str, token: str) -> str:
     if not clean or not surface:
         return clean
     stem = clean[:-1].rstrip() if clean.endswith(".") else clean
-    clause = f" using {surface}"
+    s_low = surface.lower()
+    if s_low.startswith(("$", "+", "1", "2", "3", "4", "5", "6", "7", "8", "9")):
+        clause = f", delivering {surface}"
+    elif any(k in s_low for k in ("gate", "control", "compliance", "audit", "telemetry")):
+        clause = f", enforcing {surface}"
+    elif any(k in s_low for k in ("co-sell", "playbook", "enablement", "motion", "framework")):
+        clause = f", establishing {surface}"
+    else:
+        clause = f" across {surface}" if "account" in s_low or "program" in s_low else f", delivering {surface}"
     candidate = f"{stem}{clause}."
     if len(candidate) <= 300:
         return candidate

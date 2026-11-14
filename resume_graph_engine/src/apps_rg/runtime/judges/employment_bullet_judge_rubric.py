@@ -154,6 +154,8 @@ def pool_selector_scoring_instruction(section_id: str) -> str:
         "- Calibration band: Award 0.92 to 0.98 when a candidate variant cites valid source_fact_ids, "
         "opens with a strong executive action verb, names a concrete technical/operating mechanism, "
         "and terminates in a graph-bound business or operational outcome without copying JD phrases. "
+        "Prefer natural sentence cadence across the selected set (mixing 'by <gerund>', 'to <verb>', and 'that/which <verb>' clauses "
+        "rather than repeating identical ', <gerund>ing ...' participial tails on every bullet). "
         "Never penalize a candidate variant merely because it is the only available variant for its slot.\n"
         "- Composite score = minimum across dimensions (weakest dimension governs).\n"
         "- Apply min_selection_score as the pass floor for pool selection (score below floor => passes=false)."

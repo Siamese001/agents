@@ -164,6 +164,60 @@ def numeric_entailment_check(bullet_text: str, corpus_text: str) -> tuple[bool, 
     return (not missing, missing)
 
 
+_METRIC_STEM_STOPWORDS = frozenset(
+    {
+        "a", "an", "and", "are", "as", "at", "be", "by", "for", "from", "in", "into",
+        "is", "it", "of", "on", "or", "that", "the", "their", "this", "to", "was",
+        "were", "with", "within", "across", "over", "under", "through", "via", "per",
+        "using", "used", "while", "where", "which", "who",
+    }
+)
+
+
+def _metric_content_stems(text: str) -> set[str]:
+    stems: set[str] = set()
+    for m in re.finditer(r"[a-zA-Z][a-zA-Z0-9+-]*", str(text or "").lower()):
+        tok = m.group(0).strip("+-")
+        if len(tok) < 3 or tok in _METRIC_STEM_STOPWORDS or tok.isdigit():
+            continue
+        for suffix in ("izations", "ization", "ments", "ment", "ings", "ing", "ed", "es", "s"):
+            if len(tok) > len(suffix) + 3 and tok.endswith(suffix):
+                tok = tok[: -len(suffix)]
+                break
+        stems.add(tok)
+    return stems
+
+
+def metric_phrase_entailed_in_text(
+    metric: str,
+    text: str,
+    *,
+    min_stem_ratio: float = 0.60,
+) -> bool:
+    """Return True when ``text`` contains ``metric`` verbatim OR entails all numeric
+    magnitudes in ``metric`` and at least ``min_stem_ratio`` of ``metric``'s content stems.
+    """
+    m_clean = str(metric or "").strip()
+    t_clean = str(text or "").strip()
+    if not m_clean:
+        return True
+    if not t_clean:
+        return False
+    if m_clean.casefold() in t_clean.casefold():
+        return True
+    nums_ok, _ = numeric_entailment_check(m_clean, t_clean)
+    if not nums_ok:
+        return False
+    m_stems = _metric_content_stems(m_clean)
+    if not m_stems:
+        return True
+    t_stems = _metric_content_stems(t_clean)
+    matched = len(m_stems & t_stems)
+    min_required = min(2, len(m_stems))
+    return matched >= min_required and (matched / len(m_stems)) >= min_stem_ratio
+
+
+
 def _slot_bundle_lookup_for_lane(section_lane: str) -> tuple[dict[str, str], Any]:
     """Lazy per-lane (slot->bundle map, get_bundle_by_id) — empty map for other lanes."""
     lane = str(section_lane or "").strip().lower()
@@ -213,6 +267,17 @@ def build_slot_entailment_corpus(
     if not isinstance(facts, list):
         return {}
     bundle_map, get_bundle = _slot_bundle_lookup_for_lane(section_lane)
+    alloc_by_slot: dict[str, str] = {}
+    for row in (plan.get("allocation_assignments") or plan.get("assignments") or []):
+        if isinstance(row, dict):
+            cid = str(row.get("claim_unit_id") or "").strip().rsplit(":", 1)[-1]
+            mtxt = " ".join(
+                str(row.get(k) or "").strip()
+                for k in ("metric_text", "root_claim_text", "root_claim_action")
+                if str(row.get(k) or "").strip()
+            )
+            if cid and mtxt:
+                alloc_by_slot[cid] = mtxt
     corpus: dict[str, str] = {}
     for fact in facts:
         if not isinstance(fact, dict):
@@ -223,6 +288,7 @@ def build_slot_entailment_corpus(
         parts = [
             str(fact.get("claim_text") or "").strip(),
             str(fact.get("metric_raw") or "").strip(),
+            alloc_by_slot.get(slot_id, ""),
         ]
         bundle_id = bundle_map.get(slot_id, "")
         if bundle_id and get_bundle is not None:
@@ -245,6 +311,7 @@ __all__ = [
     "ENTAILMENT_REJECTION_REASON",
     "build_slot_entailment_corpus",
     "extract_numeric_tokens",
+    "metric_phrase_entailed_in_text",
     "normalize_numeric_token",
     "numeric_entailment_check",
 ]

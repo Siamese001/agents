@@ -100,6 +100,10 @@ def _metric_token_visible_in_text(metric_id: str, text: str) -> str | None:
         r"\b(?:engineering\s+)?team\b.{0,48}\b8\s*(?:to|-)\s*28\b", low
     ):
         return "engineering team from 8 to 28"
+    from apps_rg.runtime.reasoning.bullet_fact_entailment import metric_phrase_entailed_in_text
+    for token in _metric_surface_tokens(metric_id):
+        if len(token.split()) >= 2 and metric_phrase_entailed_in_text(token, text):
+            return token
     return None
 
 
