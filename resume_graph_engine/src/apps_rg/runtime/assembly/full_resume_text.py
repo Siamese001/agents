@@ -108,6 +108,12 @@ def _normalized_role_sentence(value: Any) -> str:
     return " ".join(str(value or "").split()).casefold()
 
 
+_EARLY_CAREER_CATEGORY_PREFIX_RE = re.compile(
+    r"^(?:Regulatory Analytics Modernization|Commercial Turnaround|Capital Optimization|Actuarial & Quantitative Foundation)\s*(?:\([^)]+\))?\s*:\s*",
+    re.IGNORECASE,
+)
+
+
 def bullets_from_list(
     bullets: list[Any],
     *,
@@ -122,7 +128,9 @@ def bullets_from_list(
     for b in bullets or []:
         if not isinstance(b, dict):
             continue
-        t = str(b.get("bullet_text") or b.get("text") or "").strip()
+        t = _EARLY_CAREER_CATEGORY_PREFIX_RE.sub(
+            "", str(b.get("bullet_text") or b.get("text") or "").strip()
+        ).strip()
         if t and _normalized_role_sentence(t) not in excluded:
             rows.append(f"• {t}")
     return rows

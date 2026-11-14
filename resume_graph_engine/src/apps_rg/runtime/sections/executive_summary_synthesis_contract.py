@@ -96,8 +96,9 @@ SENTENCE_ARC_AI_PARTNERSHIPS: tuple[dict[str, str], ...] = (
         "arc_role": "governed_deployment_enablement",
         "guidance": (
             "S4: repeatable delivery governance, field solution playbooks, safety guardrails, and production "
-            "adoption discipline compressing enterprise onboarding from months to weeks; use a non-stock opener "
-            "(e.g. 'In parallel,' or 'Across enterprise programs,')."
+            "adoption discipline compressing enterprise onboarding from months to weeks; open directly with a "
+            "domain scope anchor or non-stock opener (e.g. 'Across enterprise programs,' or 'In parallel,') "
+            "rather than repeating a stock signpost."
         ),
     },
     {

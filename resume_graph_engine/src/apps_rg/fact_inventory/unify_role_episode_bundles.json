@@ -33,13 +33,13 @@
     "metric_unify_replayable_runtime_traceability": "replayable runtime traceability for governed agent execution",
     "metric_unify_dependency_graph_refactor_blast_radius_visibility": "dependency-graph blast-radius visibility for modernization planning",
     "metric_unify_semantic_edge_refactor_governance_controls": "semantic-edge governance controls for refactor safety",
-    "metric_unify_eval_telemetry_rollback_control_set": "evaluation-gate, telemetry, and rollback control set for runtime reliability",
+    "metric_unify_eval_telemetry_rollback_control_set": "automated evaluation gates, telemetry, and rollback controls for runtime reliability",
     "metric_unify_audit_grade_runtime_observability_coverage": "audit-grade runtime observability coverage for regulated AI workflows",
-    "metric_unify_production_readiness_gate_set": "production-readiness gate set across the AI solution lifecycle",
+    "metric_unify_production_readiness_gate_set": "production-readiness gates across the AI solution lifecycle",
     "metric_unify_cloud_data_runtime_integration_patterns": "cloud data/runtime integration patterns across Databricks, vector services, and API gateways",
     "metric_unify_high_availability_distributed_service_patterns": "high-availability distributed service patterns for enterprise AI platforms",
-    "metric_unify_partner_cosell_solution_motion_count": "partner co-sell solution motions packaged around reusable AI platform services",
-    "metric_unify_partner_enablement_asset_set": "partner enablement asset set for AI solution accelerator commercialization",
+    "metric_unify_partner_cosell_solution_motion_count": "joint partner co-sell motions packaged around reusable AI platform services",
+    "metric_unify_partner_enablement_asset_set": "reusable partner enablement playbooks and solution accelerators for enterprise commercialization",
     "metric_unify_cfo_aligned_adoption_motion_count": "CFO-aligned enterprise adoption motions tied to reusable AI platform commercialization",
     "metric_unify_consumption_renewal_signal_instrumentation": "consumption and renewal signal instrumentation for enterprise AI platform adoption",
     "metric_unify_agentic_l0_route_policy_dispatch_surface": "L0 route-policy dispatch surface for deterministic agent workflow selection",
@@ -826,7 +826,7 @@
     },
     "metric_unify_eval_telemetry_rollback_control_set": {
       "metric_outcome_id": "metric_unify_eval_telemetry_rollback_control_set",
-      "metric": "evaluation-gate, telemetry, and rollback control set for runtime reliability",
+      "metric": "automated evaluation gates, telemetry, and rollback controls for runtime reliability",
       "metric_type": "runtime_control_set",
       "employer": "Unify Consulting",
       "approved": true,
@@ -835,7 +835,7 @@
       "bundle_bindings": [
         "reb_unify_runtime_reliability_governance"
       ],
-      "claim_text": "Graph evidence supports an evaluation-gate, telemetry, and rollback control set for runtime reliability.",
+      "claim_text": "Graph evidence supports automated evaluation gates, telemetry, and rollback controls for runtime reliability.",
       "surface_tokens": [
         "evaluation gates",
         "telemetry controls",
@@ -875,7 +875,7 @@
     },
     "metric_unify_production_readiness_gate_set": {
       "metric_outcome_id": "metric_unify_production_readiness_gate_set",
-      "metric": "production-readiness gate set across the AI solution lifecycle",
+      "metric": "production-readiness gates across the AI solution lifecycle",
       "metric_type": "lifecycle_gate_metric",
       "employer": "Unify Consulting",
       "approved": true,
@@ -948,7 +948,7 @@
     },
     "metric_unify_partner_cosell_solution_motion_count": {
       "metric_outcome_id": "metric_unify_partner_cosell_solution_motion_count",
-      "metric": "partner co-sell solution motions packaged around reusable AI platform services",
+      "metric": "joint partner co-sell motions packaged around reusable AI platform services",
       "metric_type": "partner_motion_metric",
       "employer": "Unify Consulting",
       "approved": true,
@@ -957,7 +957,7 @@
       "bundle_bindings": [
         "reb_unify_partner_channel_cosell"
       ],
-      "claim_text": "Graph evidence supports partner co-sell solution motions packaged around reusable AI platform services.",
+      "claim_text": "Graph evidence supports joint partner co-sell motions packaged around reusable AI platform services.",
       "surface_tokens": [
         "partner co-sell motions",
         "reusable AI platform services"
@@ -972,7 +972,7 @@
     },
     "metric_unify_partner_enablement_asset_set": {
       "metric_outcome_id": "metric_unify_partner_enablement_asset_set",
-      "metric": "partner enablement asset set for AI solution accelerator commercialization",
+      "metric": "reusable partner enablement playbooks and solution accelerators for enterprise commercialization",
       "metric_type": "partner_enablement_metric",
       "employer": "Unify Consulting",
       "approved": true,
@@ -984,6 +984,7 @@
       "claim_text": "Graph evidence supports partner enablement assets for AI solution accelerator commercialization.",
       "surface_tokens": [
         "partner enablement assets",
+        "partner enablement playbooks",
         "solution accelerator commercialization"
       ],
       "section_eligibility": [
