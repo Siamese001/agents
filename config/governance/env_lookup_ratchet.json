@@ -1,6 +1,7 @@
 {
-  "schema_version": "1.0.0",
-  "description": "Per-file ceiling ratchet for legacy os.environ/os.getenv lookups pending migration to infrastructure.config.env_loader. Zero growth permitted; new files fail closed.",
+  "schema_version": "1.1.0",
+  "description": "Per-file and package-prefix ceiling ratchet for legacy os.environ/os.getenv lookups pending migration to infrastructure.config.env_loader. Zero growth permitted; new files fail closed.",
+  "package_counts": {},
   "file_counts": {
     "resume_graph_engine/src/apps_rg/__init__.py": 2,
     "resume_graph_engine/src/apps_rg/bare_pipeline.py": 11,

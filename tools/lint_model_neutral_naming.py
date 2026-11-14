@@ -76,12 +76,17 @@ EXEMPT_PATH_PATTERNS = [
     re.compile(r"^archive/"),
     re.compile(r"^artifacts/"),
     re.compile(r"^docs/archive/"),
-    re.compile(r"^tools/run_luna_.*\.py$"),
     re.compile(r"^plans/live-llm-enforcement-wave1-b7d14e\.md$"),
     re.compile(r"(?:^|/)tests/"),
     re.compile(r"^scratch/"),
-    re.compile(r"^infrastructure/sdks_mcps/gemini_client\.py$"),
-    re.compile(r"^resume_graph_engine/src/apps_rg/runtime/judges/bullet_pool_claude_selector\.py$"),
+]
+
+# Legacy/exempted single-file modules that may be refactored into submodule packages;
+# child submodules inherit the parent exemption when their own subpath is model-neutral.
+EXEMPT_PACKAGE_PREFIX_PATTERNS = [
+    r"^tools/run_luna_[^/]+",
+    r"^infrastructure/sdks_mcps/gemini_client",
+    r"^resume_graph_engine/src/apps_rg/runtime/judges/bullet_pool_claude_selector",
 ]
 
 GUARDIAN_PATTERN = re.compile(
@@ -90,13 +95,44 @@ GUARDIAN_PATTERN = re.compile(
 )
 
 
+def _find_prohibited_token_violations(subpath: str, display_rel: str) -> list[str]:
+    tokens = [t for t in re.split(r"[/\\._\-]+", subpath) if t]
+    violations: list[str] = []
+    for pattern in PROHIBITED_TOKEN_PATTERNS:
+        for token in tokens:
+            if pattern.fullmatch(token) or pattern.search(token):
+                violations.append(
+                    f"Path '{display_rel}' contains prohibited model identifier '{token}' matching '{pattern.pattern}'."
+                )
+                break
+    return violations
+
+
 def is_path_exempt(rel_path: str) -> bool:
     """Check if the given relative path is exempt from model-naming constraints."""
     normalized = rel_path.replace("\\", "/")
     for pattern in EXEMPT_PATH_PATTERNS:
         if pattern.search(normalized):
             return True
+    for prefix_pat in EXEMPT_PACKAGE_PREFIX_PATTERNS:
+        if re.search(f"{prefix_pat}(?:\\.py)?$", normalized):
+            return True
+        match = re.match(f"{prefix_pat}/(.+)$", normalized)
+        if match and not _find_prohibited_token_violations(match.group(1), normalized):
+            return True
     return False
+
+
+def _is_canonical_model_catalog_path(file_path: Path, repo_root: Path) -> bool:
+    """Return True for canonical model catalog files or extracted catalog submodule packages."""
+    if any(file_path.name == b or file_path.name.endswith(b) for b in CANONICAL_MODEL_CATALOG_FILES):
+        return True
+    catalog_stems = {Path(b).stem for b in CANONICAL_MODEL_CATALOG_FILES}
+    try:
+        rel_parts = file_path.resolve().relative_to(repo_root.resolve()).parts[:-1]
+    except ValueError:
+        rel_parts = file_path.parts[:-1]
+    return any(part in catalog_stems for part in rel_parts)
 
 
 def check_path_model_neutrality(
@@ -114,18 +150,7 @@ def check_path_model_neutrality(
     if is_path_exempt(rel):
         return []
 
-    tokens = [t for t in re.split(r"[/\\._\-]+", rel) if t]
-    violations: list[str] = []
-
-    for pattern in PROHIBITED_TOKEN_PATTERNS:
-        for token in tokens:
-            if pattern.fullmatch(token) or pattern.search(token):
-                violations.append(
-                    f"Path '{rel}' contains prohibited model identifier '{token}' matching '{pattern.pattern}'."
-                )
-                break
-
-    return violations
+    return _find_prohibited_token_violations(rel, rel)
 
 
 def is_production_file(path: Path, repo_root: Path) -> bool:
@@ -155,10 +180,6 @@ def check_file_model_neutrality(
     if not file_path.exists() or not is_production_file(file_path, repo_root):
         return []
 
-    # Check if this is a bootstrap/catalog file
-    if any(file_path.name == b or file_path.name.endswith(b) for b in CANONICAL_MODEL_CATALOG_FILES):
-        return []
-
     violations: list[tuple[int, str, str]] = []
 
     # 1. Check path naming for production files
@@ -166,8 +187,8 @@ def check_file_model_neutrality(
     for issue in path_issues:
         violations.append((1, file_path.name, issue))
 
-    # Check if this is a bootstrap/catalog file
-    if any(file_path.name == b or file_path.name.endswith(b) for b in CANONICAL_MODEL_CATALOG_FILES):
+    # 2. Skip hardcoded model-ID literal scanning inside canonical model catalog files/packages
+    if _is_canonical_model_catalog_path(file_path, repo_root):
         return violations
 
     if lines is None:

@@ -28,6 +28,7 @@ from tools.cost_token_budget_governor_probes import (  # noqa: E402
     run_pillar_7_live_probes,
 )
 from tools.cost_token_budget_probes import (  # noqa: E402
+    iter_module_and_package_files,
     load_repo_module,
     load_yaml_strict,
     run_pillar_2_live_probes,
@@ -78,27 +79,29 @@ def _verify_local_llm_catalog_ast(script_path: Path, catalog_path: Path) -> list
         except Exception as exc:  # guardian: allow-broad-exception -- report malformed model catalog
             gaps.append(f"Malformed config/model_catalog.json: {exc}")
 
-    if not script_path.is_file():
+    ast_files = iter_module_and_package_files(script_path)
+    if not ast_files:
         gaps.append("Missing scripts/local_llm/serve_qwen_m5.py")
         return gaps
 
-    try:
-        tree = ast.parse(script_path.read_text(encoding="utf-8"), filename=str(script_path))
-    except SyntaxError as exc:
-        return gaps + [f"SyntaxError in scripts/local_llm/serve_qwen_m5.py: {exc}"]
-
-    references_catalog = any(
-        isinstance(n, ast.Constant) and isinstance(n.value, str) and n.value.endswith("model_catalog.json")
-        for n in ast.walk(tree)
-    )
-    uses_json_loader = any(
-        isinstance(n, ast.Call)
-        and isinstance(n.func, ast.Attribute)
-        and n.func.attr in {"load", "loads"}
-        and isinstance(n.func.value, ast.Name)
-        and n.func.value.id == "json"
-        for n in ast.walk(tree)
-    )
+    references_catalog = False
+    uses_json_loader = False
+    for py_file in ast_files:
+        try:
+            tree = ast.parse(py_file.read_text(encoding="utf-8"), filename=str(py_file))
+        except SyntaxError as exc:
+            return gaps + [f"SyntaxError in {py_file.name}: {exc}"]
+        for n in ast.walk(tree):
+            if isinstance(n, ast.Constant) and isinstance(n.value, str) and n.value.endswith("model_catalog.json"):
+                references_catalog = True
+            elif (
+                isinstance(n, ast.Call)
+                and isinstance(n.func, ast.Attribute)
+                and n.func.attr in {"load", "loads"}
+                and isinstance(n.func.value, ast.Name)
+                and n.func.value.id == "json"
+            ):
+                uses_json_loader = True
     if not (references_catalog and uses_json_loader):
         gaps.append("scripts/local_llm/serve_qwen_m5.py must parse config/model_catalog.json via json.load/loads")
     return gaps

@@ -39,10 +39,18 @@ def load_yaml_strict(path: Path) -> tuple[dict[str, Any], str | None]:
 
 
 def load_repo_module(repo_root: Path, rel_path: str) -> tuple[types.ModuleType | None, str | None]:
-    """Load and execute a Python module from repo_root/rel_path with isolated sys.path."""
-    target = (repo_root / rel_path).resolve()
+    """Load and execute a Python module or package facade from repo_root/rel_path with isolated sys.path."""
+    rel_norm = rel_path.replace("\\", "/")
+    target = (repo_root / rel_norm).resolve()
     if not target.is_file():
-        return None, f"Missing module {rel_path}"
+        pkg_base = target.with_suffix("") if target.suffix == ".py" else target
+        pkg_init = pkg_base / "__init__.py"
+        if pkg_init.is_file():
+            target = pkg_init.resolve()
+            base_rel = rel_norm[:-3] if rel_norm.endswith(".py") else rel_norm.rstrip("/")
+            rel_norm = f"{base_rel}/__init__.py"
+        else:
+            return None, f"Missing module {rel_path}"
 
     search_entries = [
         str(repo_root.resolve()),
@@ -52,28 +60,29 @@ def load_repo_module(repo_root: Path, rel_path: str) -> tuple[types.ModuleType |
     ]
     primary_root = Path(__file__).resolve().parents[1]
     if primary_root != repo_root.resolve():
-        search_entries.extend(
-            [
-                str(primary_root),
-                str(primary_root / "resume_graph_engine" / "src"),
-                str(primary_root / "outreach_engine" / "src"),
-                str(primary_root / "resume_engine" / "src"),
-            ]
-        )
+        for extra in ("", "resume_graph_engine/src", "outreach_engine/src", "resume_engine/src"):
+            search_entries.append(str((primary_root / extra) if extra else primary_root))
 
     digest = hashlib.sha256(str(target).encode("utf-8")).hexdigest()[:10]
-    parent_pkg = ""
-    rel_norm = rel_path.replace("\\", "/")
+    is_pkg = target.name == "__init__.py"
+    parts: list[str] = []
     for prefix in ("resume_graph_engine/src/", "outreach_engine/src/", "resume_engine/src/", ""):
         if not prefix or rel_norm.startswith(prefix):
             sub = rel_norm[len(prefix) :]
             parts = [p for p in sub.split("/")[:-1] if p]
-            if parts:
-                parent_pkg = ".".join(parts)
             break
 
-    mod_name = f"{parent_pkg}.{target.stem}" if parent_pkg else f"_cost_audit_probe_{digest}_{target.stem}"
-    prior_mod = sys.modules.get(mod_name)
+    if is_pkg:
+        parent_pkg = ".".join(parts[:-1])
+        mod_name = ".".join(parts) if parts else f"_cost_audit_probe_{digest}_{target.parent.name}"
+        pkg_locs: list[str] | None = [str(target.parent)]
+    else:
+        parent_pkg = ".".join(parts)
+        mod_name = f"{parent_pkg}.{target.stem}" if parent_pkg else f"_cost_audit_probe_{digest}_{target.stem}"
+        pkg_locs = None
+
+    sub_prefix = f"{mod_name}."
+    prior_mods = {k: v for k, v in sys.modules.items() if k == mod_name or k.startswith(sub_prefix)}
     added: list[str] = []
     for entry in reversed(search_entries):
         if entry not in sys.path:
@@ -82,58 +91,122 @@ def load_repo_module(repo_root: Path, rel_path: str) -> tuple[types.ModuleType |
     try:
         if parent_pkg:
             importlib.import_module(parent_pkg)
-        spec = importlib.util.spec_from_file_location(mod_name, target)
+        spec = importlib.util.spec_from_file_location(mod_name, target, submodule_search_locations=pkg_locs)
         if spec is None or spec.loader is None:
             return None, f"Cannot build module spec for {rel_path}"
         module = importlib.util.module_from_spec(spec)
-        if parent_pkg:
-            module.__package__ = parent_pkg
+        module.__package__ = mod_name if is_pkg else parent_pkg
         sys.modules[mod_name] = module
         spec.loader.exec_module(module)
         return module, None
     except Exception as exc:  # guardian: allow-broad-exception -- surface import/exec failure as audit gap
         return None, f"Failed loading {rel_path}: {type(exc).__name__}: {exc}"
     finally:
-        if prior_mod is not None:
-            sys.modules[mod_name] = prior_mod
-        else:
-            sys.modules.pop(mod_name, None)
+        for k in [k for k in list(sys.modules) if k == mod_name or k.startswith(sub_prefix)]:
+            if k in prior_mods:
+                sys.modules[k] = prior_mods[k]
+            else:
+                sys.modules.pop(k, None)
         for entry in added:
             if entry in sys.path:
                 sys.path.remove(entry)
 
 
+def _iter_pkg_py(pkg_dir: Path) -> list[Path]:
+    return [
+        p.resolve()
+        for p in sorted(pkg_dir.rglob("*.py"))
+        if "__pycache__" not in p.parts and "tests" not in p.parts
+    ]
+
+
+def resolve_import_from_files(src: Path, node: ast.ImportFrom, search_bases: tuple[Path, ...] | list[Path]) -> list[Path]:
+    """Resolve an ast.ImportFrom node to existing local .py or package __init__.py paths."""
+    if node.module == "__future__":
+        return []
+    bases = ([src.parents[node.level - 1]] if node.level - 1 < len(src.parents) else []) if node.level > 0 else list(search_bases)
+    parts = node.module.split(".") if node.module else []
+    hits: list[Path] = []
+    for base in bases:
+        mod_base = base.joinpath(*parts) if parts else base
+        cands = [mod_base.with_suffix(".py"), mod_base / "__init__.py"] if parts else []
+        cands.extend(
+            c
+            for a in node.names
+            if a.name != "*"
+            for c in ((mod_base / a.name).with_suffix(".py"), mod_base / a.name / "__init__.py")
+        )
+        for cand in cands:
+            if cand.is_file():
+                hits.append(cand.resolve())
+    return hits
+
+
+def iter_module_and_package_files(path: Path) -> list[Path]:
+    """Return entry module and any converted package submodules or local facade targets."""
+    resolved = path.resolve()
+    pkg_dir = resolved.with_suffix("") if resolved.suffix == ".py" else resolved
+    seeds: list[Path] = []
+    if resolved.is_dir():
+        seeds.extend(_iter_pkg_py(resolved))
+    elif resolved.name == "__init__.py" and resolved.is_file():
+        seeds.extend(_iter_pkg_py(resolved.parent))
+    elif resolved.is_file():
+        seeds.append(resolved)
+        if pkg_dir.is_dir():
+            seeds.extend(_iter_pkg_py(pkg_dir))
+    elif resolved.suffix == ".py" and (pkg_dir / "__init__.py").is_file():
+        seeds.extend(_iter_pkg_py(pkg_dir))
+
+    if not seeds:
+        return []
+
+    entry_dir = resolved if resolved.is_dir() else resolved.parent
+    seen: set[Path] = set()
+    ordered: list[Path] = []
+    queue = list(seeds)
+    while queue:
+        cur = queue.pop(0)
+        if cur in seen or not cur.is_file():
+            continue
+        seen.add(cur)
+        ordered.append(cur)
+        try:
+            tree = ast.parse(cur.read_text(encoding="utf-8"), filename=str(cur))
+        except SyntaxError:
+            continue
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.ImportFrom):
+                continue
+            for rc in resolve_import_from_files(cur, node, cur.parents[:6]):
+                if rc.is_relative_to(entry_dir) and rc not in seen:
+                    queue.extend(_iter_pkg_py(rc.parent) if rc.name == "__init__.py" else [rc])
+    return ordered
+
+
 def verify_ast_compact_json_surface(path: Path) -> list[str]:
-    """Verify via AST that json.dumps calls in compact-cache surfaces specify compact separators."""
-    if not path.is_file():
+    """Verify via AST that json.dumps calls in compact-cache surfaces (or packages) specify compact separators."""
+    files = iter_module_and_package_files(path)
+    if not files:
         return [f"Missing compact serialization surface: {path.name}"]
-    try:
-        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
-    except SyntaxError as exc:
-        return [f"Syntax error in {path.name}: {exc}"]
 
     found_compact_dumps = False
-    for node in ast.walk(tree):
-        if not isinstance(node, ast.Call):
-            continue
-        func = node.func
-        is_json_dumps = (
-            isinstance(func, ast.Attribute)
-            and func.attr == "dumps"
-            and isinstance(func.value, ast.Name)
-            and func.value.id == "json"
-        )
-        if not is_json_dumps:
-            continue
-        for kw in node.keywords:
-            if kw.arg == "separators" and isinstance(kw.value, (ast.Tuple, ast.List)) and len(kw.value.elts) == 2:
-                vals = [
-                    elt.value
-                    for elt in kw.value.elts
-                    if isinstance(elt, ast.Constant) and isinstance(elt.value, str)
-                ]
-                if vals == [",", ":"]:
-                    found_compact_dumps = True
+    for py_file in files:
+        try:
+            tree = ast.parse(py_file.read_text(encoding="utf-8"), filename=str(py_file))
+        except SyntaxError as exc:
+            return [f"Syntax error in {py_file.name}: {exc}"]
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+            func = node.func
+            if not (isinstance(func, ast.Attribute) and func.attr == "dumps" and isinstance(func.value, ast.Name) and func.value.id == "json"):
+                continue
+            for kw in node.keywords:
+                if kw.arg == "separators" and isinstance(kw.value, (ast.Tuple, ast.List)) and len(kw.value.elts) == 2:
+                    vals = [elt.value for elt in kw.value.elts if isinstance(elt, ast.Constant) and isinstance(elt.value, str)]
+                    if vals == [",", ":"]:
+                        found_compact_dumps = True
     if not found_compact_dumps:
         return [f"{path.name} lacks AST-verified json.dumps(..., separators=(',', ':'))"]
     return []
@@ -435,38 +508,19 @@ def run_pillar_4_live_probes(repo_root: Path, model_pin: str) -> tuple[list[str]
     try:
         # 1. CacheIdentity sentinel rejection + mutation sensitivity
         bad_id = cid.CacheIdentity(
-            resolved_model_snapshot="unknown",
-            registry_digest="reg_123",
-            prompt_template_hash="tpl_123",
-            generation_params={"temperature": 0.0},
+            resolved_model_snapshot="unknown", registry_digest="reg_123",
+            prompt_template_hash="tpl_123", generation_params={"temperature": 0.0},
         )
         if bad_id.is_cacheable() or bad_id.compute_key() != "":
             gaps.append("CacheIdentity failed to reject sentinel 'unknown' model snapshot")
 
-        k1 = cid.CacheIdentity(
-            resolved_model_snapshot=model_pin,
-            registry_digest="reg_123",
-            prompt_template_hash="tpl_123",
-            generation_params={"b": 2, "a": 1},
-            input_digests={"jd": "h1"},
-            role="SVP",
-        ).compute_key()
-        k2 = cid.CacheIdentity(
-            resolved_model_snapshot=model_pin,
-            registry_digest="reg_123",
-            prompt_template_hash="tpl_123",
-            generation_params={"a": 1, "b": 2},
-            input_digests={"jd": "h1"},
-            role="SVP",
-        ).compute_key()
-        k3 = cid.CacheIdentity(
-            resolved_model_snapshot=model_pin,
-            registry_digest="reg_123",
-            prompt_template_hash="tpl_MUTATED",
-            generation_params={"a": 1, "b": 2},
-            input_digests={"jd": "h1"},
-            role="SVP",
-        ).compute_key()
+        base_cid = dict(
+            resolved_model_snapshot=model_pin, registry_digest="reg_123",
+            prompt_template_hash="tpl_123", input_digests={"jd": "h1"}, role="SVP",
+        )
+        k1 = cid.CacheIdentity(**base_cid, generation_params={"b": 2, "a": 1}).compute_key()
+        k2 = cid.CacheIdentity(**base_cid, generation_params={"a": 1, "b": 2}).compute_key()
+        k3 = cid.CacheIdentity(**{**base_cid, "prompt_template_hash": "tpl_MUTATED"}, generation_params={"a": 1, "b": 2}).compute_key()
         if len(k1) != 64 or k1 != k2 or k1 == k3:
             gaps.append("CacheIdentity key failed 64-hex canonical stability or template mutation sensitivity")
 
@@ -480,42 +534,17 @@ def run_pillar_4_live_probes(repo_root: Path, model_pin: str) -> tuple[list[str]
         with tempfile.TemporaryDirectory() as tmp:
             cdir = Path(tmp) / "briefings"
             bkey = bcache.compute_briefing_cache_key(
-                company_name="Acme Corp",
-                jd_hash="jd_hash_001",
-                target_role="SVP AI Platform",
-                model_pin=model_pin,
+                company_name="Acme Corp", jd_hash="jd_hash_001", target_role="SVP AI Platform", model_pin=model_pin,
             )
             cache_w = bcache.BriefingCache(cache_dir=cdir)
-            cache_w.put(
-                bkey,
-                bcache.CachedBriefing(
-                    company_name="Acme Corp",
-                    target_role="SVP AI Platform",
-                    briefing_text=sample_brief,
-                    digest="dig_1",
-                    source="PROBE",
-                    created_at=time.time(),
-                    ttl_seconds=3600.0,
-                ),
-            )
-            cache_r = bcache.BriefingCache(cache_dir=cdir)
-            hit = cache_r.get(bkey)
+            base_cb = dict(company_name="Acme Corp", target_role="SVP AI Platform", briefing_text=sample_brief, source="PROBE")
+            cache_w.put(bkey, bcache.CachedBriefing(**base_cb, digest="dig_1", created_at=time.time(), ttl_seconds=3600.0))
+            hit = bcache.BriefingCache(cache_dir=cdir).get(bkey)
             if hit is None or hit.briefing_text != sample_brief:
                 gaps.append("BriefingCache disk reload missed valid non-expired briefing")
 
             exp_key = bkey + "_exp"
-            cache_w.put(
-                exp_key,
-                bcache.CachedBriefing(
-                    company_name="Acme Corp",
-                    target_role="SVP AI Platform",
-                    briefing_text=sample_brief,
-                    digest="dig_exp",
-                    source="PROBE",
-                    created_at=time.time() - 500.0,
-                    ttl_seconds=10.0,
-                ),
-            )
+            cache_w.put(exp_key, bcache.CachedBriefing(**base_cb, digest="dig_exp", created_at=time.time() - 500.0, ttl_seconds=10.0))
             if bcache.BriefingCache(cache_dir=cdir).get(exp_key) is not None:
                 gaps.append("BriefingCache served expired TTL entry")
 
@@ -523,33 +552,21 @@ def run_pillar_4_live_probes(repo_root: Path, model_pin: str) -> tuple[list[str]
             resolver.GovernedBriefingResolver.clear_cache()
             try:
                 unverified = resolver.GovernedBriefingResolver.resolve(
-                    company_name="UnknownOfflineCorp",
-                    target_role="VP Platform",
-                    job_description_text="Offline probe",
-                    auto_research=False,
-                    force_fresh=False,
+                    company_name="UnknownOfflineCorp", target_role="VP Platform",
+                    job_description_text="Offline probe", auto_research=False, force_fresh=False,
                 )
                 if unverified.resolution_source != "HERMETIC_FALLBACK" or len(resolver.GovernedBriefingResolver._cache) != 0:
                     gaps.append("Unverified HERMETIC_FALLBACK must not poison GovernedBriefingResolver._cache")
 
                 with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
-                    shared_disk = Path(tmp) / "shared_briefing_disk"
-                    resolver.GovernedBriefingResolver.SHARED_DISK_CACHE_DIR = shared_disk
-                    res1 = resolver.GovernedBriefingResolver.resolve(
-                        company_name="Citi",
-                        target_role="Head of AI Strategy",
-                        job_description_text="Lead enterprise AI strategy and governance.",
-                        auto_research=True,
-                        force_fresh=False,
+                    resolver.GovernedBriefingResolver.SHARED_DISK_CACHE_DIR = Path(tmp) / "shared_briefing_disk"
+                    citi_req = dict(
+                        company_name="Citi", target_role="Head of AI Strategy",
+                        job_description_text="Lead enterprise AI strategy and governance.", force_fresh=False,
                     )
+                    res1 = resolver.GovernedBriefingResolver.resolve(**citi_req, auto_research=True)
                     resolver.GovernedBriefingResolver.clear_cache()
-                    res2 = resolver.GovernedBriefingResolver.resolve(
-                        company_name="Citi",
-                        target_role="Head of AI Strategy",
-                        job_description_text="Lead enterprise AI strategy and governance.",
-                        auto_research=False,
-                        force_fresh=False,
-                    )
+                    res2 = resolver.GovernedBriefingResolver.resolve(**citi_req, auto_research=False)
                 if (
                     res2.resolution_source != "CACHE_HIT"
                     or res1.digest != res2.digest
@@ -562,60 +579,24 @@ def run_pillar_4_live_probes(repo_root: Path, model_pin: str) -> tuple[list[str]
                 resolver.GovernedBriefingResolver.clear_cache()
 
             # 4. Targeting binding digest sensitivity
-            td1 = tca.build_targeting_binding_digest(
-                target_title="SVP AI",
-                target_company="Acme",
-                jd_text="Lead AI platform",
-                briefing_text=sample_brief,
-            )
-            td2 = tca.build_targeting_binding_digest(
-                target_title="SVP AI",
-                target_company="Acme",
-                jd_text="Lead DIFFERENT role",
-                briefing_text=sample_brief,
-            )
+            td1 = tca.build_targeting_binding_digest(target_title="SVP AI", target_company="Acme", jd_text="Lead AI platform", briefing_text=sample_brief)
+            td2 = tca.build_targeting_binding_digest(target_title="SVP AI", target_company="Acme", jd_text="Lead DIFFERENT role", briefing_text=sample_brief)
             if len(td1) != 64 or td1 == td2:
                 gaps.append("build_targeting_binding_digest failed JD mutation sensitivity")
 
             # 5. ExactRequestIdentity unbound rejection + store/lookup round-trip
-            unbound = err_mod.build_exact_request_identity(
-                run_id="",
-                stage="L2",
-                section_id="executive_summary",
-                provider="external_openai",
-                model=model_pin,
-                request_digest="req_1",
-                prompt_text="prompt",
-                native_payload={"a": 1},
-                temperature=0.0,
-                max_output_tokens=400,
-                timeout_seconds=30.0,
+            exact_req = dict(
+                stage="L2", section_id="executive_summary", provider="external_openai", model=model_pin,
+                request_digest="req_1", native_payload={"a": 1}, temperature=0.0, max_output_tokens=400, timeout_seconds=30.0,
             )
-            if unbound is not None:
+            if err_mod.build_exact_request_identity(run_id="", prompt_text="prompt", **exact_req) is not None:
                 gaps.append("build_exact_request_identity must return None for unbound empty run_id")
 
-            bound = err_mod.build_exact_request_identity(
-                run_id="run_probe_1",
-                stage="L2",
-                section_id="executive_summary",
-                provider="external_openai",
-                model=model_pin,
-                request_digest="req_1",
-                prompt_text="prompt body",
-                native_payload={"a": 1},
-                temperature=0.0,
-                max_output_tokens=400,
-                timeout_seconds=30.0,
-            )
+            bound = err_mod.build_exact_request_identity(run_id="run_probe_1", prompt_text="prompt body", **exact_req)
             reusable_result = {
-                "provider_requested": "external_openai",
-                "provider_attempted": True,
-                "provider_available": True,
-                "runtime_generation_status": "REAL_LLM",
-                "model": model_pin,
-                "stub": False,
-                "exact_provider_error": "",
-                "raw_model_output": '{"ok":true}',
+                "provider_requested": "external_openai", "provider_attempted": True, "provider_available": True,
+                "runtime_generation_status": "REAL_LLM", "model": model_pin, "stub": False,
+                "exact_provider_error": "", "raw_model_output": '{"ok":true}',
             }
             ev_dig = err_mod.store_exact_response(artifact_dir=Path(tmp), identity=bound, result=reusable_result)
             looked = err_mod.lookup_exact_response(artifact_dir=Path(tmp), identity=bound)

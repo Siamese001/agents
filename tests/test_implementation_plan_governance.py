@@ -783,6 +783,246 @@ Skip resume_graph_allocation.py and cross_section_x2.py completely and only patc
         self.assertTrue(any("Upstream Producer/Allocation stage" in err for err in errors))
         self.assertTrue(any("Downstream Cross-Section/X2 Validation stage" in err for err in errors))
 
+    def test_headline_and_executive_summary_lanes_require_holistic_spine(self) -> None:
+        """Verify headline_lane.py and executive_summary_lane.py trigger INV-HOLISTIC-PIPELINE-PLANNING."""
+        for lane_path, lane_name in (
+            ("resume_graph_engine/src/apps_rg/runtime/sections/headline_lane.py", "headline_lane.py"),
+            ("resume_graph_engine/src/apps_rg/runtime/sections/executive_summary_lane.py", "executive_summary_lane.py"),
+        ):
+            narrow_plan = f"""# Narrow Lane Plan: {lane_name}
+
+## Wave 1: Local Lane Adjustment
+### Objective & Scope
+Adjust {lane_name} phrasing locally.
+
+### Milestones & Deliverables
+- [MODIFY] `{lane_path}`
+
+### Acceptance Criteria
+- Output reads smoothly.
+
+### Runtime Receipt & Completion Gate
+- Run: .venv/bin/python -m pytest resume_graph_engine/tests/unit/apps_rg/test_lane.py -v --timeout=60
+- Input: lane fixture
+- Expected: 0 failures
+- Verify independently: git diff --stat
+- Fail if: exit code != 0
+- Record: artifacts/receipts/narrow_{lane_name}.json
+"""
+            is_valid, errors = validate_plan_content(narrow_plan, f"narrow_{lane_name}.md")
+            self.assertFalse(is_valid, f"Expected rejection for {lane_name}")
+            self.assertTrue(any("INV-HOLISTIC-PIPELINE-PLANNING" in err for err in errors))
+            self.assertTrue(any("Upstream Producer/Allocation stage" in err for err in errors))
+            self.assertTrue(any("Downstream Cross-Section/X2 Validation stage" in err for err in errors))
+
+        holistic_plan = """# Holistic Headline and Executive Summary Spine Plan
+
+## Wave 1: Upstream C0, Section Lanes, and X2 Gate Alignment
+### Objective & Scope
+Align `resume_graph_allocation.py`, `headline_lane.py`, `executive_summary_lane.py`, `headline_x2.py`, and `executive_summary_x2.py`.
+
+### Milestones & Deliverables
+- [MODIFY] `resume_graph_engine/src/apps_rg/runtime/c0/resume_graph_allocation.py`
+- [MODIFY] `resume_graph_engine/src/apps_rg/runtime/sections/headline_lane.py`
+- [MODIFY] `resume_graph_engine/src/apps_rg/runtime/sections/executive_summary_lane.py`
+- [MODIFY] `resume_graph_engine/src/apps_rg/runtime/validators/headline_x2.py`
+- [MODIFY] `resume_graph_engine/src/apps_rg/runtime/validators/executive_summary_x2.py`
+
+### Acceptance Criteria
+- Upstream FactAnchor and downstream X2 validators stay aligned.
+
+### Runtime Receipt & Completion Gate
+- Run: .venv/bin/python -m pytest resume_graph_engine/tests/unit/apps_rg/test_headline.py -v --timeout=60
+- Input: headline and executive summary bundles
+- Expected: 0 failures
+- Verify independently: git diff --stat
+- Fail if: exit code != 0
+- Record: artifacts/receipts/holistic_headline_exec.json
+"""
+        is_valid, errors = validate_plan_content(holistic_plan, "holistic_headline_exec.md")
+        self.assertTrue(is_valid, f"Expected pass, got: {errors}")
+
+    def test_outreach_engine_intermediate_lanes_require_holistic_spine(self) -> None:
+        """Verify outreach_engine intermediate pipeline modules enforce briefing upstream and validator/repair downstream."""
+        narrow_outreach = """# Narrow Outreach Sequence Plan
+
+## Wave 1: Sequence Tweak
+### Objective & Scope
+Edit outreach sequence generation in compiler.py and touch_sequence.py.
+
+### Milestones & Deliverables
+- [MODIFY] `outreach_engine/src/apps_lic/pipeline/compiler.py`
+- [MODIFY] `outreach_engine/src/apps_lic/pipeline/touch_sequence.py`
+
+### Acceptance Criteria
+- Outreach sequence text compiles.
+
+### Runtime Receipt & Completion Gate
+- Run: .venv/bin/python -m pytest outreach_engine/tests/test_touch_sequence.py -v --timeout=60
+- Input: sequence fixture
+- Expected: 0 failures
+- Verify independently: git diff --stat
+- Fail if: exit code != 0
+- Record: artifacts/receipts/narrow_outreach.json
+"""
+        is_valid, errors = validate_plan_content(narrow_outreach, "narrow_outreach.md")
+        self.assertFalse(is_valid)
+        self.assertTrue(any("INV-HOLISTIC-PIPELINE-PLANNING" in err for err in errors))
+        self.assertTrue(any("Upstream Briefing/Research stage" in err for err in errors))
+        self.assertTrue(any("Downstream Outreach Validation/Repair stage" in err for err in errors))
+
+        holistic_outreach = """# Holistic Outreach Spine Plan
+
+## Wave 1: Briefing, Compiler/Sequence, and Validator/Repair Alignment
+### Objective & Scope
+Align `briefing_resolver.py`, `apps_research_bridge.py`, `compiler.py`, `touch_sequence.py`, `domain/validators.py`, and `domain/repair.py`.
+
+### Milestones & Deliverables
+- [MODIFY] `outreach_engine/src/apps_lic/pipeline/briefing_resolver.py`
+- [MODIFY] `outreach_engine/src/apps_lic/integrations/apps_research_bridge.py`
+- [MODIFY] `outreach_engine/src/apps_lic/pipeline/compiler.py`
+- [MODIFY] `outreach_engine/src/apps_lic/pipeline/touch_sequence.py`
+- [MODIFY] `outreach_engine/src/apps_lic/domain/validators.py`
+- [MODIFY] `outreach_engine/src/apps_lic/domain/repair.py`
+
+### Acceptance Criteria
+- Upstream briefing signals and downstream outreach validators remain synchronized.
+
+### Runtime Receipt & Completion Gate
+- Run: .venv/bin/python -m pytest outreach_engine/tests/test_touch_sequence.py -v --timeout=60
+- Input: outreach sequence bundle
+- Expected: 0 failures
+- Verify independently: git diff --stat
+- Fail if: exit code != 0
+- Record: artifacts/receipts/holistic_outreach.json
+"""
+        is_valid, errors = validate_plan_content(holistic_outreach, "holistic_outreach.md")
+        self.assertTrue(is_valid, f"Expected holistic outreach plan to pass, got: {errors}")
+
+    def test_apps_research_intermediate_engines_require_holistic_spine(self) -> None:
+        """Verify apps_research engines require upstream retrieval/JD-intent and downstream handoff/contract alignment."""
+        narrow_research = """# Narrow Research Brief Plan
+
+## Wave 1: Company Brief Engine Adjustment
+### Objective & Scope
+Adjust synthesis in company_brief_engine.py and research_assembly_engine.py.
+
+### Milestones & Deliverables
+- [MODIFY] `apps_research/engines/company_brief_engine.py`
+- [MODIFY] `apps_research/engines/research_assembly_engine.py`
+
+### Acceptance Criteria
+- Brief markdown renders cleanly.
+
+### Runtime Receipt & Completion Gate
+- Run: .venv/bin/python -m pytest tests/test_company_brief.py -v --timeout=60
+- Input: company fixture
+- Expected: 0 failures
+- Verify independently: git diff --stat
+- Fail if: exit code != 0
+- Record: artifacts/receipts/narrow_research.json
+"""
+        is_valid, errors = validate_plan_content(narrow_research, "narrow_research.md")
+        self.assertFalse(is_valid)
+        self.assertTrue(any("INV-HOLISTIC-PIPELINE-PLANNING" in err for err in errors))
+        self.assertTrue(any("Upstream Retrieval/JD-Intent stage" in err for err in errors))
+        self.assertTrue(any("Downstream Handoff/Targeting-Brief stage" in err for err in errors))
+
+        holistic_research = """# Holistic Research Engine Spine Plan
+
+## Wave 1: Retrieval, Synthesis, and Handoff Contract Alignment
+### Objective & Scope
+Align `search_retrieval.py`, `jd_intent_coverage.py`, `company_brief_engine.py`, `research_assembly_engine.py`, `apps_rg_handoff.py`, and `apps_rg_targeting_brief_contract.py`.
+
+### Milestones & Deliverables
+- [MODIFY] `apps_research/integrations/search_retrieval.py`
+- [MODIFY] `apps_research/types/jd_intent_coverage.py`
+- [MODIFY] `apps_research/engines/company_brief_engine.py`
+- [MODIFY] `apps_research/engines/research_assembly_engine.py`
+- [MODIFY] `apps_research/integrations/apps_rg_handoff.py`
+- [MODIFY] `apps_research/types/apps_rg_targeting_brief_contract.py`
+
+### Acceptance Criteria
+- Retrieval intent coverage and downstream apps_rg targeting handoff remain aligned.
+
+### Runtime Receipt & Completion Gate
+- Run: .venv/bin/python -m pytest tests/test_company_brief.py -v --timeout=60
+- Input: research fixture
+- Expected: 0 failures
+- Verify independently: git diff --stat
+- Fail if: exit code != 0
+- Record: artifacts/receipts/holistic_research.json
+"""
+        is_valid, errors = validate_plan_content(holistic_research, "holistic_research.md")
+        self.assertTrue(is_valid, f"Expected holistic research plan to pass, got: {errors}")
+
+    def test_monolith_split_milestone_requires_facade_submodule_boundary_and_tests(self) -> None:
+        """Verify monolith split plans require facade, <=600-line submodules, ratchet/boundary, and test alignment."""
+        incomplete_split = """# Split Headline Lane Monolith Plan
+
+## Wave 1: Monolith Split
+### Objective & Scope
+Split `headline_lane.py` monolith into smaller modules.
+
+### Milestones & Deliverables
+- [MODIFY] `resume_graph_engine/src/apps_rg/runtime/sections/headline_lane.py`: Split monolith into submodules.
+
+### Acceptance Criteria
+- Helper modules extracted cleanly.
+
+### Runtime Receipt & Completion Gate
+- Run: .venv/bin/python -m pytest resume_graph_engine/tests/unit/apps_rg/test_headline.py -v --timeout=60
+- Input: headline fixture
+- Expected: 0 failures
+- Verify independently: git diff --stat
+- Fail if: exit code != 0
+- Record: artifacts/receipts/incomplete_split.json
+"""
+        is_valid, errors = validate_plan_content(incomplete_split, "incomplete_split.md")
+        self.assertFalse(is_valid)
+        self.assertTrue(any("INV-HOLISTIC-PIPELINE-PLANNING" in err for err in errors))
+        self.assertTrue(any("re-export facade compatibility" in err for err in errors))
+        self.assertTrue(any("SSOT/ratchet/boundary alignment" in err for err in errors))
+        self.assertTrue(any("test coverage/monkeypatch alignment" in err for err in errors))
+
+        complete_split = """# Holistic Monolith Decomposition Plan
+
+## Wave 1: Decompose headline_lane.py Behind Re-Export Facade
+### Objective & Scope
+Decompose `headline_lane.py` into `<= 600`-line submodules behind an intact `ImportFrom` facade.
+
+### Milestones & Deliverables
+- [MODIFY] `resume_graph_engine/src/apps_rg/runtime/sections/headline_lane.py`: Split into `headline_lane/` submodules (`<= 600` lines) behind an `ImportFrom` re-export facade.
+- [MODIFY] `config/governance/file_budgets_ratchet.json` and `config/governance/env_lookup_ratchet.json`: Clamp ratchets and update `centralization_registry.yaml` package prefixes.
+- [MODIFY] `resume_graph_engine/tests/unit/apps_rg/test_headline_lane.py`: Align monkeypatches to public seams and satisfy `testing_gaps_auditor.py` module coverage.
+
+### Acceptance Criteria
+- Re-export facade keeps public imports intact and submodules remain <= 600 lines.
+
+### Runtime Receipt & Completion Gate
+- Run: .venv/bin/python -m pytest resume_graph_engine/tests/unit/apps_rg/test_headline_lane.py -v --timeout=60
+- Input: headline lane fixture
+- Expected: 0 failures
+- Verify independently: .venv/bin/python tools/lint_file_budgets.py
+- Fail if: exit code != 0
+- Record: artifacts/receipts/complete_split.json
+"""
+        is_valid, errors = validate_plan_content(complete_split, "complete_split.md")
+        self.assertTrue(is_valid, f"Expected complete monolith split plan to pass, got: {errors}")
+
+    def test_existing_repo_plans_pass_expanded_validation(self) -> None:
+        """Verify existing valid plans in plans/ continue passing validate_file."""
+        for plan_name in (
+            "sidecar-agents-decision-intel-parity-b7d4e1.md",
+            "cost-token-budget-6ab7fb.md",
+            "docx-and-runtime-optimization-b7e4c1.md",
+            "selector-pin-optimization-c4a8e2.md",
+        ):
+            plan_path = ROOT / "plans" / plan_name
+            if plan_path.is_file():
+                is_valid, errors = validate_file(plan_path, repo_root=ROOT)
+                self.assertTrue(is_valid, f"{plan_name} failed validation: {errors}")
+
 
 if __name__ == "__main__":
     unittest.main()

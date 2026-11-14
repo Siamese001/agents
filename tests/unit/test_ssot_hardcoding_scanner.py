@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
+from tools.lint_file_budgets import check_file_budget, is_production_path, is_reexport_facade
 from tools.ssot_hardcoding_scanner import (
     run_hardcoding_scan,
     scan_ast_hygiene_and_env_sprawl,
@@ -134,3 +136,193 @@ def test_clean_sandbox_passes_hardcoding_scan(tmp_path: Path) -> None:
     rep = run_hardcoding_scan(tmp_path)
     assert rep["is_clean"] is True
     assert rep["status"] == "PASS"
+
+
+def test_package_prefix_owner_allows_split_threshold_submodules_and_blocks_rogue(tmp_path: Path) -> None:
+    gov_dir = tmp_path / "config" / "governance"
+    gov_dir.mkdir(parents=True)
+    (gov_dir / "centralization_registry.yaml").write_text(
+        "version: '1.0.0'\n"
+        "domain_threshold_owners:\n"
+        "  resume_executive_summary_shape:\n"
+        "    owner_file: 'resume_graph_engine/src/apps_rg/runtime/validators/executive_summary_x2.py'\n"
+        "    owner_package:\n"
+        "      - 'resume_graph_engine/src/apps_rg/runtime/validators/executive_summary/'\n"
+        "      - 'resume_graph_engine/src/apps_rg/runtime/contracts/'\n"
+        "    Aggregator_ssot: 'resume_graph_engine/src/apps_rg/runtime/sections/section_product_shape_ssot.py'\n"
+        "    aggregator_package:\n"
+        "      - 'resume_graph_engine/src/apps_rg/runtime/sections/shape_ssot/'\n"
+        "    canonical_symbols:\n"
+        "      EXEC_SUMMARY_MAX_WORDS: 150\n"
+        "      EXEC_SUMMARY_MAX_WORDS_PER_SENTENCE: 45\n"
+        "  resume_narrative_and_headline_shape:\n"
+        "    owner_file: 'resume_graph_engine/src/apps_rg/runtime/sections/section_product_shape_ssot.py'\n"
+        "    owner_package:\n"
+        "      - 'resume_graph_engine/src/apps_rg/runtime/sections/shape_ssot/'\n"
+        "    canonical_symbols:\n"
+        "      NARRATIVE_MAX_WORDS: 58\n",
+        encoding="utf-8",
+    )
+
+    val_pkg = tmp_path / "resume_graph_engine" / "src" / "apps_rg" / "runtime" / "validators" / "executive_summary"
+    val_pkg.mkdir(parents=True)
+    (val_pkg / "__init__.py").write_text("from .bounds import EXEC_SUMMARY_MAX_WORDS\n", encoding="utf-8")
+    (val_pkg / "bounds.py").write_text(
+        "EXEC_SUMMARY_MAX_WORDS = 150\nEXEC_SUMMARY_MAX_WORDS_PER_SENTENCE = 45\n",
+        encoding="utf-8",
+    )
+
+    shape_pkg = tmp_path / "resume_graph_engine" / "src" / "apps_rg" / "runtime" / "sections" / "shape_ssot"
+    shape_pkg.mkdir(parents=True)
+    (shape_pkg / "__init__.py").write_text("from .constants import NARRATIVE_MAX_WORDS\n", encoding="utf-8")
+    (shape_pkg / "constants.py").write_text("NARRATIVE_MAX_WORDS = 58\n", encoding="utf-8")
+
+    contracts_pkg = tmp_path / "resume_graph_engine" / "src" / "apps_rg" / "runtime" / "contracts"
+    contracts_pkg.mkdir(parents=True)
+    (contracts_pkg / "shared_bounds.py").write_text("EXEC_SUMMARY_MAX_WORDS = 150\n", encoding="utf-8")
+
+    # Module-to-package split (<stem>/constants.py) also resolves cleanly
+    stem_pkg = tmp_path / "resume_graph_engine" / "src" / "apps_rg" / "runtime" / "validators" / "executive_summary_x2"
+    stem_pkg.mkdir(parents=True)
+    (stem_pkg / "constants.py").write_text("EXEC_SUMMARY_MAX_WORDS = 150\n", encoding="utf-8")
+
+    assert scan_hardcoded_threshold_literals(tmp_path) == []
+
+    # Governed consumer directory still fails closed on unauthorized constant redefinition
+    sec_exec = tmp_path / "resume_graph_engine" / "src" / "apps_rg" / "runtime" / "sections" / "executive_summary"
+    sec_exec.mkdir(parents=True)
+    (sec_exec / "rogue.py").write_text("EXEC_SUMMARY_MAX_WORDS = 120\n", encoding="utf-8")
+    findings = scan_hardcoded_threshold_literals(tmp_path)
+    assert len(findings) == 1
+    assert findings[0]["category"] == "DUPLICATE_CONSTANT_LITERAL"
+    assert findings[0]["file"].endswith("sections/executive_summary/rogue.py")
+
+
+def test_env_ratchet_package_prefix_and_split_module_aggregation(tmp_path: Path) -> None:
+    gov_dir = tmp_path / "config" / "governance"
+    gov_dir.mkdir(parents=True)
+    (gov_dir / "centralization_registry.yaml").write_text(
+        "version: '1.0.0'\n"
+        "approved_env_loader_paths:\n"
+        "  - 'infrastructure/'\n"
+        "  - 'resume_graph_engine/src/apps_rg/runtime/env_bootstrap.py'\n",
+        encoding="utf-8",
+    )
+    (gov_dir / "env_lookup_ratchet.json").write_text(
+        json.dumps(
+            {
+                "schema_version": "1.1.0",
+                "package_counts": {
+                    "resume_graph_engine/src/apps_rg/runtime/sections/role_episode/": 2,
+                },
+                "file_counts": {
+                    "resume_graph_engine/src/apps_rg/runtime/sections/role_episode_lane.py": 2,
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    # Split approved env loader module -> package allowed
+    boot_pkg = tmp_path / "resume_graph_engine" / "src" / "apps_rg" / "runtime" / "env_bootstrap"
+    boot_pkg.mkdir(parents=True)
+    (boot_pkg / "loader.py").write_text("import os\nVAL = os.environ.get('X')\n", encoding="utf-8")
+
+    # Package-prefix env ratchet allows <= 2 aggregate lookups across submodules
+    role_pkg = tmp_path / "resume_graph_engine" / "src" / "apps_rg" / "runtime" / "sections" / "role_episode"
+    role_pkg.mkdir(parents=True)
+    (role_pkg / "a.py").write_text("import os\nA = os.getenv('A')\n", encoding="utf-8")
+    (role_pkg / "b.py").write_text("import os\nB = os.getenv('B')\n", encoding="utf-8")
+
+    # Module-to-package split shares file_counts ceiling across submodules
+    lane_pkg = tmp_path / "resume_graph_engine" / "src" / "apps_rg" / "runtime" / "sections" / "role_episode_lane"
+    lane_pkg.mkdir(parents=True)
+    (lane_pkg / "p1.py").write_text("import os\nP1 = os.getenv('P1')\n", encoding="utf-8")
+    (lane_pkg / "p2.py").write_text("import os\nP2 = os.getenv('P2')\n", encoding="utf-8")
+
+    assert scan_ast_hygiene_and_env_sprawl(tmp_path) == []
+
+    # Exceeding package aggregate ceiling by 1 fails closed
+    (role_pkg / "c.py").write_text("import os\nC = os.getenv('C')\n", encoding="utf-8")
+    findings = scan_ast_hygiene_and_env_sprawl(tmp_path)
+    assert len(findings) == 1
+    assert findings[0]["category"] == "UNCENTRALIZED_ENV_LOOKUP"
+    assert findings[0]["file"].endswith("role_episode/c.py")
+
+
+def test_policy_registry_sync_and_prompt_parity_support_split_packages(tmp_path: Path) -> None:
+    gov_dir = tmp_path / "config" / "governance"
+    gov_dir.mkdir(parents=True)
+    (gov_dir / "policy_registry.yaml").write_text(
+        "policies:\n"
+        "  - id: INV-WAVE-PLAN-MAX-WORDS\n"
+        "    threshold: 1000\n"
+        "    enforcer: tools/validate_implementation_plan.py\n"
+        "    rule_reference: docs/refactoring-wave-protocol.md\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "docs").mkdir(parents=True)
+    (tmp_path / "docs" / "refactoring-wave-protocol.md").write_text("# protocol\n", encoding="utf-8")
+
+    plan_pkg = tmp_path / "tools" / "validate_implementation_plan"
+    plan_pkg.mkdir(parents=True)
+    (plan_pkg / "__init__.py").write_text("from .core import main\n", encoding="utf-8")
+    (plan_pkg / "core.py").write_text("def main():\n    return 0\n", encoding="utf-8")
+
+    ev_pkg = tmp_path / "tools" / "implementation_plan_core" / "evidence_requirements"
+    ev_pkg.mkdir(parents=True)
+    (ev_pkg / "__init__.py").write_text("from .loader import MAX_PLAN_WORDS\n", encoding="utf-8")
+    (ev_pkg / "loader.py").write_text("POLICY = 'config/governance/policy_registry.yaml'\nMAX_PLAN_WORDS = 1000\n", encoding="utf-8")
+
+    assert scan_policy_registry_sync(tmp_path) == []
+
+    exec_pkg = tmp_path / "resume_graph_engine" / "src" / "apps_rg" / "runtime" / "sections" / "executive_summary_lane"
+    exec_pkg.mkdir(parents=True)
+    (exec_pkg / "repair.py").write_text('PROMPT = "Target 105-120 words."\n', encoding="utf-8")
+    parity_findings = scan_prompt_code_parity(tmp_path)
+    assert any(f["category"] == "PROMPT_VALIDATOR_BOUND_DRIFT" and f["file"].endswith("executive_summary_lane/repair.py") for f in parity_findings)
+
+
+def test_lint_file_budgets_excludes_nested_tests_and_supports_facade_shims(tmp_path: Path) -> None:
+    nested_tests = [
+        tmp_path / "resume_graph_engine" / "tests" / "unit" / "test_big.py",
+        tmp_path / "outreach_engine" / "tests" / "test_big.py",
+        tmp_path / "apps_research" / "tests" / "test_big.py",
+        tmp_path / "resume_graph_engine" / "src" / "apps_rg" / "evals" / "authoritative" / "tests" / "test_auth.py",
+    ]
+    for tf in nested_tests:
+        tf.parent.mkdir(parents=True, exist_ok=True)
+        tf.write_text("x = 1\n" * 900, encoding="utf-8")
+        assert is_production_path(tf, tmp_path) is False
+        passed, _, msg = check_file_budget(tf, tmp_path, ratchet={})
+        assert passed is True
+        assert "non-production" in msg
+
+    # Production subpackages with 'artifacts' in subsystem path stay governed
+    prod_art = tmp_path / "apps_eval" / "artifacts" / "apps_rg_resolver.py"
+    prod_art.parent.mkdir(parents=True, exist_ok=True)
+    prod_art.write_text("x = 1\n", encoding="utf-8")
+    assert is_production_path(prod_art, tmp_path) is True
+
+    # Clean re-export facade shims (<= 150 lines) pass within budgets
+    facade_init = tmp_path / "resume_graph_engine" / "src" / "apps_rg" / "runtime" / "contracts" / "__init__.py"
+    facade_init.parent.mkdir(parents=True, exist_ok=True)
+    facade_lines = ['"""Contracts facade."""', "from .shared import A"] + [f"from .m{i} import S{i}" for i in range(115)] + ["__all__ = ['A']"]
+    facade_init.write_text("\n".join(facade_lines) + "\n", encoding="utf-8")
+    assert is_reexport_facade(facade_init) is True
+    passed_init, count_init, msg_init = check_file_budget(facade_init, tmp_path, max_lines=100, ratchet={})
+    assert passed_init is True
+    assert count_init == len(facade_lines)
+    assert "Facade shim OK" in msg_init
+
+    # Non-facade module exceeding max_lines still fails
+    non_facade = tmp_path / "resume_graph_engine" / "src" / "apps_rg" / "runtime" / "contracts" / "heavy.py"
+    non_facade.write_text("def compute() -> int:\n    return 1\n" * 60, encoding="utf-8")
+    assert is_reexport_facade(non_facade) is False
+    passed_heavy, _, msg_heavy = check_file_budget(non_facade, tmp_path, max_lines=100, ratchet={})
+    assert passed_heavy is False
+    assert "VIOLATION" in msg_heavy
+
+    # Live file_budgets_ratchet.json must retain zero nested /tests/ entries
+    live_ratchet = json.loads((Path(__file__).resolve().parents[2] / "config" / "governance" / "file_budgets_ratchet.json").read_text(encoding="utf-8"))
+    assert not [k for k in live_ratchet if "/tests/" in f"/{k}"]

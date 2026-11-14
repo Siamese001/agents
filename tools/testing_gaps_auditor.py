@@ -123,27 +123,16 @@ def _test_fn_has_assertion(
         if isinstance(fn, ast.Name) and fn.id in module_fns:
             target = module_fns[fn.id]
             if target is not fn_node and _test_fn_has_assertion(
-                target,
-                module_fns=module_fns,
-                class_methods=class_methods,
-                is_method=False,
-                depth=depth + 1,
+                target, module_fns=module_fns, class_methods=class_methods, is_method=False, depth=depth + 1
             ):
                 return True
         elif (
-            is_method
-            and isinstance(fn, ast.Attribute)
-            and isinstance(fn.value, ast.Name)
-            and fn.value.id == "self"
+            is_method and isinstance(fn, ast.Attribute) and isinstance(fn.value, ast.Name) and fn.value.id == "self"
             and fn.attr in class_methods
         ):
             target_m = class_methods[fn.attr]
             if target_m is not fn_node and _test_fn_has_assertion(
-                target_m,
-                module_fns=module_fns,
-                class_methods=class_methods,
-                is_method=True,
-                depth=depth + 1,
+                target_m, module_fns=module_fns, class_methods=class_methods, is_method=True, depth=depth + 1
             ):
                 return True
     return False
@@ -196,6 +185,50 @@ def _inspect_decorators_and_calls_for_skip_xfail(
                 if not has_strict:
                     non_strict_xfails.append(f"{rel_path}:{node.lineno}: mark.xfail missing strict=True")
     return unreasoned_skips, non_strict_xfails
+
+
+def _parse_pure_reexport_facade(tree: ast.Module) -> list[ast.ImportFrom] | None:
+    """Return non-future ImportFrom nodes when body holds only docstrings, __all__, and ImportFrom."""
+    imports: list[ast.ImportFrom] = []
+    for node in tree.body:
+        if isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant) and isinstance(node.value.value, str):
+            continue
+        if isinstance(node, ast.ImportFrom):
+            if node.module != "__future__":
+                imports.append(node)
+            continue
+        if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name) and node.targets[0].id == "__all__":
+            continue
+        if isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name) and node.target.id == "__all__":
+            continue
+        return None
+    return imports or None
+
+
+def _resolve_facade_targets(facade_py: Path, imports: Sequence[ast.ImportFrom], search_roots: Sequence[Path]) -> list[Path]:
+    """Resolve ImportFrom statements in a pure re-export facade to target module files."""
+    targets: list[Path] = []
+    for imp in imports:
+        if imp.level > 0:
+            if imp.level - 1 >= len(facade_py.parents):
+                continue
+            bases: Sequence[Path] = (facade_py.parents[imp.level - 1],)
+        else:
+            bases = search_roots
+        for base in bases:
+            mod_base = base.joinpath(*imp.module.split(".")) if imp.module else base
+            if imp.module:
+                for cand in (mod_base.with_suffix(".py"), mod_base / "__init__.py"):
+                    if cand.is_file():
+                        targets.append(cand.resolve())
+            for alias in imp.names:
+                if alias.name == "*":
+                    continue
+                sub_base = mod_base / alias.name
+                for cand in (sub_base.with_suffix(".py"), sub_base / "__init__.py"):
+                    if cand.is_file():
+                        targets.append(cand.resolve())
+    return targets
 
 
 def _audit_pytest_inis_and_src_layout(root: Path) -> tuple[list[str], list[str], list[str]]:
@@ -296,6 +329,9 @@ def run_testing_gaps_audit(
                     referenced_symbols.add(sub.id)
                 elif isinstance(sub, ast.Attribute):
                     referenced_symbols.add(sub.attr)
+                elif isinstance(sub, ast.Import):
+                    for alias in sub.names:
+                        referenced_symbols.update(alias.name.split("."))
                 elif isinstance(sub, ast.ImportFrom):
                     if sub.module:
                         referenced_symbols.update(sub.module.split("."))
@@ -318,46 +354,32 @@ def run_testing_gaps_audit(
             if py.name == "conftest.py":
                 continue
 
-            module_fns = {
-                n.name: n
-                for n in tree.body
-                if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
-            }
+            module_fns = {n.name: n for n in tree.body if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))}
             for node in tree.body:
-                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name.startswith("test_"):
-                    if _is_pytest_fixture(node):
-                        continue
-                    if not _test_fn_has_assertion(
-                        node, module_fns=module_fns, class_methods={}, is_method=False
-                    ):
+                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name.startswith("test_") and not _is_pytest_fixture(node):
+                    if not _test_fn_has_assertion(node, module_fns=module_fns, class_methods={}, is_method=False):
                         zero_assertion_tests.append({"file": rel, "line": node.lineno, "test": node.name})
                 elif isinstance(node, ast.ClassDef):
-                    methods = {
-                        m.name: m
-                        for m in node.body
-                        if isinstance(m, (ast.FunctionDef, ast.AsyncFunctionDef))
-                    }
+                    methods = {m.name: m for m in node.body if isinstance(m, (ast.FunctionDef, ast.AsyncFunctionDef))}
                     for m in methods.values():
                         if m.name.startswith("test_") and not _is_pytest_fixture(m):
-                            if not _test_fn_has_assertion(
-                                m, module_fns=module_fns, class_methods=methods, is_method=True
-                            ):
-                                zero_assertion_tests.append(
-                                    {"file": rel, "line": m.lineno, "test": f"{node.name}.{m.name}"}
-                                )
+                            if not _test_fn_has_assertion(m, module_fns=module_fns, class_methods=methods, is_method=True):
+                                zero_assertion_tests.append({"file": rel, "line": m.lineno, "test": f"{node.name}.{m.name}"})
 
     package_coverage: dict[str, dict[str, Any]] = {}
     uncovered_packages: list[str] = []
     under_covered_packages: list[str] = []
+    facade_search_roots = tuple(
+        dict.fromkeys([root, *(root / p for p in ("resume_graph_engine/src", "outreach_engine/src", "resume_engine/src") if (root / p).is_dir())])
+    )
     for pkg_name, rel_dirs in PRODUCTION_PACKAGES:
         existing_dirs = [root / rd for rd in rel_dirs if (root / rd).is_dir()]
         if not existing_dirs:
             continue
-        total_pub = 0
-        covered_pub = 0
-        total_mods = 0
-        covered_mods = 0
+        total_pub, covered_pub, total_mods, covered_mods = 0, 0, 0, 0
         uncovered_mod_paths: list[str] = []
+        mod_covered: dict[Path, bool] = {}
+        facade_imports: dict[Path, list[ast.ImportFrom]] = {}
         for pdir in existing_dirs:
             for py in sorted(pdir.rglob("*.py")):
                 if "tests" in py.parts or "__pycache__" in py.parts or py.name.startswith("test_"):
@@ -367,21 +389,46 @@ def run_testing_gaps_audit(
                 except SyntaxError:
                     continue
                 pubs = [
-                    n.name
-                    for n in ptree.body
-                    if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))
-                    and not n.name.startswith("_")
+                    n.name for n in ptree.body
+                    if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) and not n.name.startswith("_")
                 ]
-                if not pubs:
-                    continue
+                rp = py.resolve()
+                if pubs:
+                    total_mods += 1
+                    mod_cov = sum(1 for sym in pubs if sym in referenced_symbols)
+                    total_pub += len(pubs)
+                    covered_pub += mod_cov
+                    is_cov = mod_cov > 0 or py.stem in referenced_symbols
+                    mod_covered[rp] = is_cov
+                    if is_cov:
+                        covered_mods += 1
+                    else:
+                        uncovered_mod_paths.append(str(py.relative_to(root)))
+                elif (imps := _parse_pure_reexport_facade(ptree)):
+                    facade_imports[rp] = imps
+
+        pkg_roots = tuple(dict.fromkeys([*facade_search_roots, *(d.resolve() for d in existing_dirs)]))
+
+        def _is_facade_covered(fpy: Path, seen: set[Path] | None = None) -> bool:
+            seen = set() if seen is None else seen
+            if fpy in seen:
+                return False
+            seen.add(fpy)
+            fname = fpy.parent.name if fpy.name == "__init__.py" else fpy.stem
+            if fname in referenced_symbols:
+                return True
+            for imp in facade_imports[fpy]:
+                if any((a.asname or a.name) in referenced_symbols or a.name in referenced_symbols for a in imp.names if a.name != "*"):
+                    return True
+            for tgt in _resolve_facade_targets(fpy, facade_imports[fpy], pkg_roots):
+                if mod_covered.get(tgt) or (tgt in facade_imports and _is_facade_covered(tgt, seen)):
+                    return True
+            return False
+
+        for fpy in facade_imports:
+            if _is_facade_covered(fpy):
                 total_mods += 1
-                mod_cov = sum(1 for sym in pubs if sym in referenced_symbols)
-                total_pub += len(pubs)
-                covered_pub += mod_cov
-                if mod_cov > 0 or py.stem in referenced_symbols:
-                    covered_mods += 1
-                else:
-                    uncovered_mod_paths.append(str(py.relative_to(root)))
+                covered_mods += 1
 
         sym_ratio = round(covered_pub / float(max(total_pub, 1)), 4)
         mod_ratio = round(covered_mods / float(max(total_mods, 1)), 4)
@@ -399,9 +446,7 @@ def run_testing_gaps_audit(
         elif total_pub >= MIN_SYMBOLS_FOR_RATIO_GATE and (
             sym_ratio < MIN_SYMBOL_COVERAGE_RATIO or mod_ratio < MIN_MODULE_COVERAGE_RATIO
         ):
-            under_covered_packages.append(
-                f"{pkg_name}(sym={sym_ratio:.2%}, mod={mod_ratio:.2%})"
-            )
+            under_covered_packages.append(f"{pkg_name}(sym={sym_ratio:.2%}, mod={mod_ratio:.2%})")
 
     mock_violations: list[str] = []
     for prod_rel in _PRODUCTION_ROOTS:

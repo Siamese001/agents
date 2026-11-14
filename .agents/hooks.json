@@ -97,20 +97,6 @@
       }
     ]
   },
-  "agents-pre-edit-plan-guard": {
-    "PreToolUse": [
-      {
-        "matcher": "write_to_file|replace_file_content|multi_replace_file_content|write_file|edit_file",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 tools/hook_dispatch.py --hook pre_edit_plan",
-            "timeout": 30
-          }
-        ]
-      }
-    ]
-  },
   "agents-model-registry-conformance-guard": {
     "PreToolUse": [
       {

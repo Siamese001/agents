@@ -95,14 +95,6 @@
     "justification": "Baseline legacy module pending decomposition",
     "line_limit": 664
   },
-  "resume_graph_engine/src/apps_rg/evals/authoritative/tests/test_authoritative_measurement.py": {
-    "justification": "Baseline legacy module pending decomposition",
-    "line_limit": 952
-  },
-  "resume_graph_engine/src/apps_rg/evals/authoritative/tests/test_cluster_qrel_review.py": {
-    "justification": "Baseline legacy module pending decomposition",
-    "line_limit": 625
-  },
   "resume_graph_engine/src/apps_rg/evals/c03_graph_evidence_cluster_human_intake.py": {
     "justification": "Baseline legacy module pending decomposition",
     "line_limit": 920
@@ -178,10 +170,6 @@
   "resume_graph_engine/src/apps_rg/evals/resume_graph_evaluation.py": {
     "justification": "Baseline legacy module pending decomposition",
     "line_limit": 849
-  },
-  "resume_graph_engine/src/apps_rg/evals/tests/test_l1_cognitive_rollout_gate.py": {
-    "justification": "Baseline legacy module pending decomposition",
-    "line_limit": 781
   },
   "resume_graph_engine/src/apps_rg/fact_inventory/apply_agentic_experience_skills_augmentation.py": {
     "justification": "Augmentation script for agentic experience graph skills",
@@ -734,178 +722,6 @@
   "resume_graph_engine/src/apps_rg/runtime/zero_llm_qualification.py": {
     "justification": "Baseline legacy module pending decomposition",
     "line_limit": 1920
-  },
-  "resume_graph_engine/tests/unit/apps_model_telemetry/test_otel_runtime_w4.py": {
-    "justification": "Baseline legacy module pending decomposition",
-    "line_limit": 900
-  },
-  "resume_graph_engine/tests/unit/apps_research/test_apps_rg_handoff_canonical_exit.py": {
-    "justification": "Baseline legacy module pending decomposition",
-    "line_limit": 647
-  },
-  "resume_graph_engine/tests/unit/apps_research/test_s2_grounded_retrieval_recovery.py": {
-    "justification": "Baseline legacy module pending decomposition",
-    "line_limit": 780
-  },
-  "resume_graph_engine/tests/unit/apps_rg/evals/test_c03_human_eval_packet.py": {
-    "justification": "Baseline legacy module pending decomposition",
-    "line_limit": 2276
-  },
-  "resume_graph_engine/tests/unit/apps_rg/evals/test_c03_owner_solo_qrel.py": {
-    "justification": "Baseline legacy module pending decomposition",
-    "line_limit": 608
-  },
-  "resume_graph_engine/tests/unit/apps_rg/evals/test_resume_graph_evaluation.py": {
-    "justification": "Baseline legacy module pending decomposition",
-    "line_limit": 1768
-  },
-  "resume_graph_engine/tests/unit/apps_rg/fact_inventory/test_augmented_skills_graph_sqlite.py": {
-    "justification": "Baseline legacy module pending decomposition",
-    "line_limit": 850
-  },
-  "resume_graph_engine/tests/unit/apps_rg/fact_inventory/test_c03_graph_kpi_health.py": {
-    "justification": "Baseline legacy module pending decomposition",
-    "line_limit": 1456
-  },
-  "resume_graph_engine/tests/unit/apps_rg/fact_inventory/test_graph_sqlite_constraints.py": {
-    "justification": "Baseline legacy module pending decomposition",
-    "line_limit": 846
-  },
-  "resume_graph_engine/tests/unit/apps_rg/fact_inventory/test_graph_sqlite_path_index.py": {
-    "justification": "Baseline legacy module pending decomposition",
-    "line_limit": 860
-  },
-  "resume_graph_engine/tests/unit/apps_rg/runtime/bindings/test_l1_cognitive_planner_v3.py": {
-    "justification": "Baseline legacy module pending decomposition",
-    "line_limit": 1000
-  },
-  "resume_graph_engine/tests/unit/apps_rg/runtime/c0/test_c03_graph_sqlite_read_purity.py": {
-    "justification": "Baseline legacy module pending decomposition",
-    "line_limit": 665
-  },
-  "resume_graph_engine/tests/unit/apps_rg/runtime/c0/test_resume_graph_claim_binding_w5.py": {
-    "justification": "Baseline legacy module pending decomposition",
-    "line_limit": 698
-  },
-  "resume_graph_engine/tests/unit/apps_rg/runtime/c0/test_s2g1_competencies_graph_authority.py": {
-    "justification": "Baseline legacy module pending decomposition",
-    "line_limit": 1655
-  },
-  "resume_graph_engine/tests/unit/apps_rg/runtime/providers/test_external_provider.py": {
-    "justification": "Baseline legacy module pending decomposition",
-    "line_limit": 680
-  },
-  "resume_graph_engine/tests/unit/apps_rg/runtime/sections/test_headline_lane_hardening.py": {
-    "justification": "Baseline legacy module pending decomposition",
-    "line_limit": 1784
-  },
-  "resume_graph_engine/tests/unit/apps_rg/runtime/sections/test_ibm_narrative_theme_overpack_repair.py": {
-    "justification": "Baseline legacy module pending decomposition",
-    "line_limit": 692
-  },
-  "resume_graph_engine/tests/unit/apps_rg/runtime/test_terminal_closeout_replay_w4.py": {
-    "justification": "Baseline legacy module pending decomposition",
-    "line_limit": 652
-  },
-  "resume_graph_engine/tests/unit/apps_rg/section_rigor/weak_payloads.py": {
-    "justification": "Baseline legacy module pending decomposition",
-    "line_limit": 1154
-  },
-  "resume_graph_engine/tests/unit/apps_rg/test_bullet_judge_reselection.py": {
-    "justification": "Baseline legacy module pending decomposition",
-    "line_limit": 775
-  },
-  "resume_graph_engine/tests/unit/apps_rg/test_bullet_lane_sc_claude_selection.py": {
-    "justification": "Baseline legacy module pending decomposition",
-    "line_limit": 1218
-  },
-  "resume_graph_engine/tests/unit/apps_rg/test_c0_evidence_room.py": {
-    "justification": "Baseline legacy module pending decomposition",
-    "line_limit": 682
-  },
-  "resume_graph_engine/tests/unit/apps_rg/test_competencies_10x6_pool.py": {
-    "justification": "Baseline legacy module pending decomposition",
-    "line_limit": 1059
-  },
-  "resume_graph_engine/tests/unit/apps_rg/test_competencies_capability_bundle_wiring.py": {
-    "justification": "Baseline legacy module pending decomposition",
-    "line_limit": 1297
-  },
-  "resume_graph_engine/tests/unit/apps_rg/test_competencies_transport_orchestration_w1_w6.py": {
-    "justification": "Baseline legacy module pending decomposition",
-    "line_limit": 791
-  },
-  "resume_graph_engine/tests/unit/apps_rg/test_e2e_failure_20260808_w0.py": {
-    "justification": "Baseline legacy module pending decomposition",
-    "line_limit": 661
-  },
-  "resume_graph_engine/tests/unit/apps_rg/test_e2e_stage_ledger_v2.py": {
-    "justification": "Baseline legacy module pending decomposition",
-    "line_limit": 1232
-  },
-  "resume_graph_engine/tests/unit/apps_rg/test_exec_summary_rc_narrative_quality_c4e9a1.py": {
-    "justification": "Baseline legacy module pending decomposition",
-    "line_limit": 667
-  },
-  "resume_graph_engine/tests/unit/apps_rg/test_executive_summary_judge_remediation.py": {
-    "justification": "Baseline legacy module pending decomposition",
-    "line_limit": 697
-  },
-  "resume_graph_engine/tests/unit/apps_rg/test_executive_summary_voice_repair_synthesis.py": {
-    "justification": "Baseline legacy module pending decomposition",
-    "line_limit": 1031
-  },
-  "resume_graph_engine/tests/unit/apps_rg/test_mandatory_run_outputs.py": {
-    "justification": "Baseline legacy module pending decomposition",
-    "line_limit": 2126
-  },
-  "resume_graph_engine/tests/unit/apps_rg/test_modular_rg_output_builder.py": {
-    "justification": "Baseline legacy module pending decomposition",
-    "line_limit": 765
-  },
-  "resume_graph_engine/tests/unit/apps_rg/test_patch_run.py": {
-    "justification": "Baseline legacy module pending decomposition",
-    "line_limit": 1015
-  },
-  "resume_graph_engine/tests/unit/apps_rg/test_post_x3_completion.py": {
-    "justification": "Baseline legacy module pending decomposition",
-    "line_limit": 616
-  },
-  "resume_graph_engine/tests/unit/apps_rg/test_product_evidence_authority_contract.py": {
-    "justification": "Baseline legacy module pending decomposition",
-    "line_limit": 762
-  },
-  "resume_graph_engine/tests/unit/apps_rg/test_r3r4_whole_run_reachability.py": {
-    "justification": "Baseline legacy module pending decomposition",
-    "line_limit": 1369
-  },
-  "resume_graph_engine/tests/unit/apps_rg/test_remaining_resume_rigor_finish.py": {
-    "justification": "Baseline legacy module pending decomposition",
-    "line_limit": 863
-  },
-  "resume_graph_engine/tests/unit/apps_rg/test_role_episode_x2_gates.py": {
-    "justification": "Baseline legacy module pending decomposition",
-    "line_limit": 917
-  },
-  "resume_graph_engine/tests/unit/apps_rg/test_section_authority_repairs.py": {
-    "justification": "Baseline legacy module pending decomposition",
-    "line_limit": 1229
-  },
-  "resume_graph_engine/tests/unit/apps_rg/test_section_x3_finalize.py": {
-    "justification": "Baseline legacy module pending decomposition",
-    "line_limit": 689
-  },
-  "resume_graph_engine/tests/unit/apps_rg/test_unify_bullets_graph_hardening.py": {
-    "justification": "Baseline legacy module pending decomposition",
-    "line_limit": 1059
-  },
-  "resume_graph_engine/tests/unit/apps_rg/test_whole_run_exit_authority.py": {
-    "justification": "Baseline legacy module pending decomposition",
-    "line_limit": 871
-  },
-  "resume_graph_engine/tests/unit/apps_rg/validators/test_headline_x2_fixed_prefix_contract.py": {
-    "justification": "Baseline legacy module pending decomposition",
-    "line_limit": 911
   },
   "resume_graph_engine/tools/apps_rg_standalone/c03_embeddings.py": {
     "justification": "Baseline legacy module pending decomposition",
