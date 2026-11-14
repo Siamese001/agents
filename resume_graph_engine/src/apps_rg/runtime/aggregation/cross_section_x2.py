@@ -667,6 +667,7 @@ def run_cross_section_x2_gates(
     )
 
     # Section intent conflict: narrative substring or high pairwise cosine similarity vs bullets
+    from apps_rg.runtime.validators.bullet_quality_floor_x2 import count_participial_gerunds
     from apps_rg.runtime.validators.narrative_quality_x2 import (
         check_exec_summary_bullet_cosine_similarity, check_narrative_bullet_cosine_similarity,
         check_within_section_bullet_cosine_similarity,
@@ -705,6 +706,10 @@ def run_cross_section_x2_gates(
         b_within = check_within_section_bullet_cosine_similarity(raw_btext, max_pairwise_cosine=0.35)
         if not b_within.passed:
             conflicts.append(f"{bullet_sid}_within_cosine({';'.join(b_within.signals)})")
+        for b_line in [ln.strip() for ln in raw_btext.splitlines() if ln.strip()]:
+            if len(count_participial_gerunds(b_line)) > 2:
+                conflicts.append(f"{bullet_sid}_gerund_rhythm_excess")
+                break
         if raw_exec_text:
             e_cos = check_exec_summary_bullet_cosine_similarity(raw_exec_text, raw_btext, max_pairwise_cosine=0.35, max_internal_cosine=0.35)
             if not e_cos.passed:

@@ -101,7 +101,7 @@ _ROLE_EMPLOYER_WEIGHTS: dict[str, dict[str, float]] = {
 # varied phrases emitted by job descriptions and graph bundles.
 _CANONICAL_REQUIREMENT_PATTERNS: dict[str, tuple[str, ...]] = {
     "partner_cosell": ("co-sell", "co sell", "co-selling", "joint gtm", "joint go to market"),
-    "hyperscaler_alliance": ("hyperscaler", "aws alliance", "cloud alliance", "strategic alliance"),
+    "hyperscaler_alliance": ("hyperscaler", "aws alliance", "cloud alliance", "strategic alliance", "gcp", "google cloud", "vertex ai", "model armor", "anthropic", "claude", "openai", "codex"),
     "si_enablement": ("systems integrator", "system integrator", " si ", "sis", "isv", "partner enablement"),
     "solution_architecture": ("solution architecture", "reference architecture", "applied ai architecture"),
     "deployment_adoption": ("deployment", "adoption", "production rollout", "go live"),
@@ -225,34 +225,14 @@ _COMPETENCY_FAMILIES_BY_PROFILE: dict[str, tuple[str, ...]] = {
 }
 
 _TARGET_TERMS = (
-    "agentic",
-    "graphrag",
-    "multi agent",
-    "llm",
-    "runtime",
-    "orchestration",
-    "control plane",
-    "ai",
-    "aws",
-    "cloud",
-    "insurance",
-    "brokerage",
-    "policy",
-    "underwriting",
-    "claims",
-    "guidewire",
-    "data",
-    "platform",
-    "gtm",
-    "partnership",
-    "alliance",
-    "co sell",
-    "modernization",
-    "governance",
-    "risk",
-    "regulatory",
-    "revenue",
-    "engineering leadership",
+    "agentic", "graphrag", "multi agent", "llm", "runtime", "orchestration",
+    "control plane", "ai", "aws", "gcp", "google cloud", "vertex ai",
+    "model armor", "anthropic", "claude", "openai", "codex", "cloud",
+    "insurance", "brokerage", "policy", "underwriting", "claims", "guidewire",
+    "data", "platform", "gtm", "partnership", "alliance", "co sell",
+    "modernization", "governance", "risk", "regulatory", "revenue",
+    "engineering leadership", "architected", "directed", "engineered", "scaled",
+    "compressed", "automated", "commercialized", "delivered",
 )
 _WORD_RE = re.compile(r"[a-z0-9]+")
 

@@ -31,7 +31,7 @@ import json
 import re
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
 from apps_rg.runtime.core_io import write_gateway as _wg
 
@@ -440,12 +440,13 @@ def _materialize_ibm_bullets_from_frozen_allocation(
     of those claims before X1D evaluates it.
     """
 
-    allocation_by_bullet: dict[str, dict[str, str]] = {}
+    allocation_by_bullet: dict[str, dict[str, Any]] = {}
     for row in selected_fact_plan.get("allocation_assignments") or []:
         if not isinstance(row, dict) or str(row.get("section_id") or "") != "ibm_bullets":
             continue
         bullet_id = str(row.get("claim_unit_id") or "").rsplit(":", 1)[-1]
-        text = str(row.get("root_claim_text") or row.get("root_claim_action") or "").strip()
+        anchor = row.get("fact_anchor") if isinstance(row.get("fact_anchor"), Mapping) else {}
+        text = str(row.get("root_claim_text") or anchor.get("resolved_raw_chunk") or row.get("raw_chunk") or row.get("root_claim_action") or "").strip()
         if bullet_id in IBM_BULLET_IDS and text:
             root_id = str(row.get("root_id") or "").strip()
             skill_id = str(row.get("skill_id") or "").strip()
@@ -470,6 +471,7 @@ def _materialize_ibm_bullets_from_frozen_allocation(
             allocation_by_bullet[bullet_id] = {
                 "bullet_text": display,
                 "metric_text": metric,
+                "fact_anchor": dict(anchor) if anchor else {},
             }
     active_bullet_ids = [b for b in IBM_BULLET_IDS if b in allocation_by_bullet] or sorted(allocation_by_bullet.keys())
     if not active_bullet_ids:

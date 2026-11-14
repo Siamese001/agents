@@ -23,6 +23,7 @@ from apps_rg.runtime.c0.c03_resume_graph_contracts import (
     build_candidate_receipt,
     stable_digest,
 )
+from apps_rg.runtime.c0.c0_fact_anchor import build_fact_anchor, select_disjoint_narrative_candidates
 
 WHOLE_RESUME_SCOPE = "WHOLE_RESUME"
 SECTION_ONLY_SCOPE = "SECTION_ONLY"
@@ -321,44 +322,24 @@ def _normalize_candidate(
             reasons.append("metric_required_missing_exact_value")
         if not str(row.get("metric_unit") or "").strip():
             reasons.append("metric_required_missing_exact_unit")
+    anchor = build_fact_anchor(row)
+    row["fact_anchor"] = anchor
+    row["raw_chunk"] = anchor["resolved_raw_chunk"]
     return row, reasons
 
 
 def _assignment_view(row: Mapping[str, Any], *, slot: _Slot) -> dict[str, Any]:
     fields = (
-        "candidate_id",
-        "section_id",
-        "claim_unit_id",
-        "skill_id",
-        "skill_label",
-        "fact_id",
-        "metric_outcome_id",
-        "metric_text",
-        "metric_value",
-        "metric_unit",
-        "normalized_metric_signature",
-        "root_id",
-        "employer_lane",
-        "source_family",
-        "proof_strength_raw",
-        "target_alignment_score",
-        "claim_entailment_score",
-        "metric_binding_score",
-        "path_confidence_raw",
-        "source_independence_score",
-        "selection_margin",
-        "selection_margin_available",
-        "selection_margin_basis",
-        "best_eligible_rejected_candidate_id",
-        "graph_path_ids",
-        "edge_ids",
-        "citation_refs",
-        "source_refs",
-        "root_bundle_theme",
-        "root_claim_text",
-        "root_claim_action",
-        "root_claim_scope",
-        "root_claim_outcome",
+        "candidate_id", "section_id", "claim_unit_id", "skill_id", "skill_label", "fact_id",
+        "metric_outcome_id", "metric_text", "metric_value", "metric_unit",
+        "normalized_metric_signature", "root_id", "employer_lane", "source_family",
+        "proof_strength_raw", "target_alignment_score", "claim_entailment_score",
+        "metric_binding_score", "path_confidence_raw", "source_independence_score",
+        "selection_margin", "selection_margin_available", "selection_margin_basis",
+        "best_eligible_rejected_candidate_id", "graph_path_ids", "edge_ids",
+        "citation_refs", "source_refs", "root_bundle_theme", "root_claim_text",
+        "root_claim_action", "root_claim_scope", "root_claim_outcome",
+        "fact_anchor", "raw_chunk",
     )
     out = {key: row.get(key) for key in fields if key in row}
     out["section_id"] = slot.section_id
@@ -627,7 +608,9 @@ def allocate_candidate_sets(
             if (visible and fact_counts[fact_key] >= max_fact_reuse) or (visible and family_counts[family] >= max_family_uses):
                 continue
             rows.append(row)
-        rows.sort(key=lambda row: (1 if (slot.section_id == "headline" and str(row.get("skill_id") or "") in {"skill_risk_three_lines_of_defense", "skill_p2_tech_adoption_derisking"}) else 0, fact_counts[_fact_reuse_key(row)], *_candidate_sort_key(row)))
+        exec_roots = used_section_roots.get("executive_summary", set())
+        prefer_non_exec = slot.section_id.endswith("_bullets") and not slot.required_root_id and any(str(r.get("root_id") or "") not in exec_roots for r in rows)
+        rows.sort(key=lambda row: (1 if (slot.section_id == "headline" and str(row.get("skill_id") or "") in {"skill_risk_three_lines_of_defense", "skill_p2_tech_adoption_derisking"}) else 0, 1 if (prefer_non_exec and str(row.get("root_id") or "") in exec_roots) else 0, fact_counts[_fact_reuse_key(row)], *_candidate_sort_key(row)))
         return rows
 
     def search() -> bool:
@@ -1192,21 +1175,24 @@ def _bind_assignment_embedding_scores(
     return finalize_resume_graph_allocation_plan(out)
 
 
-def _append_derived_narrative_assignments(plan: Mapping[str, Any]) -> dict[str, Any]:
+def _append_derived_narrative_assignments(
+    plan: Mapping[str, Any],
+    *,
+    section_plans: Mapping[str, Mapping[str, Any]] | None = None,
+) -> dict[str, Any]:
     out = dict(plan)
     assignments = [dict(row) for row in plan.get("assignments") or []]
     decisions = [dict(row) for row in plan.get("candidate_decisions") or []]
     for narrative_section, bullet_section in sorted(NARRATIVE_DERIVATION_POLICY.items()):
         upstream = [row for row in assignments if row.get("section_id") == bullet_section]
-        for index, source in enumerate(upstream, start=1):
-            derived = dict(source)
-            derived["section_id"] = narrative_section
-            derived["claim_unit_id"] = f"{narrative_section}:derived:{index:02d}"
-            derived["candidate_id"] = f"derived:{narrative_section}:{source['candidate_id']}"
-            derived["derived_from_section_id"] = bullet_section
-            derived["derived_from_claim_unit_id"] = str(source.get("claim_unit_id") or "")
-            derived["counts_toward_global_uniqueness"] = False
-            derived["metric_required"] = False
+        derived_rows = select_disjoint_narrative_candidates(
+            narrative_section=narrative_section,
+            bullet_section=bullet_section,
+            upstream_bullet_assignments=upstream,
+            all_assignments=assignments,
+            section_plans=section_plans,
+        )
+        for derived in derived_rows:
             assignments.append(derived)
             decisions.append(
                 {
@@ -1816,6 +1802,8 @@ def slice_section_plan_for_allocation(
                     str(row.get("claim_unit_id") or "") for row in rows
                 ],
                 "allocation_plan_digest": allocation_digest,
+                "fact_anchor": first.get("fact_anchor") or build_fact_anchor({**fact, **first}),
+                "raw_chunk": str(first.get("raw_chunk") or (first.get("fact_anchor") or {}).get("resolved_raw_chunk") or build_fact_anchor({**fact, **first})["resolved_raw_chunk"]),
             }
         )
         facts.append(fact)
@@ -1989,6 +1977,8 @@ def slice_section_plan_for_allocation(
                     ),
                     "allocation_claim_unit_ids": [claim_unit_id],
                     "allocation_plan_digest": allocation_digest,
+                    "fact_anchor": assignment.get("fact_anchor") or build_fact_anchor({**root_fact, **assignment}),
+                    "raw_chunk": str(assignment.get("raw_chunk") or (assignment.get("fact_anchor") or {}).get("resolved_raw_chunk") or build_fact_anchor({**root_fact, **assignment})["resolved_raw_chunk"]),
                 }
             )
             if skill_id:
@@ -2229,7 +2219,7 @@ def build_whole_resume_graph_allocation(
         }
         for section_id, section_plan in sorted(section_plans.items())
     }
-    plan = _append_derived_narrative_assignments(plan)
+    plan = _append_derived_narrative_assignments(plan, section_plans=section_plans)
     if embedding_skill_scores_by_section is not None:
         plan = _bind_assignment_embedding_scores(
             plan,

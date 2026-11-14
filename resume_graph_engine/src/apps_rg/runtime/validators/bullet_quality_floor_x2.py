@@ -358,6 +358,67 @@ def check_experience_bullet_evidence_density(
     )
 
 
+BULLET_MIN_WORDS = 18
+BULLET_MAX_CHARS = 320
+BULLET_MAX_GERUNDS = 2
+_GERUND_WORD_RE = re.compile(r"\b[a-z]{5,}ing\b", re.IGNORECASE)
+_NON_GERUND_ING_WORDS: frozenset[str] = frozenset({
+    "during", "using", "including", "following", "according", "regarding",
+    "concerning", "within", "nothing", "something", "everything", "anything",
+    "engineering", "underwriting", "billing", "reporting", "accounting",
+    "banking", "consulting", "marketing", "pricing", "rating", "routing",
+    "licensing", "forecasting", "monitoring", "onboarding", "tooling",
+    "training", "testing", "planning", "modeling", "staffing", "sourcing",
+})
+
+
+def count_participial_gerunds(bullet_text: str) -> list[str]:
+    """Return participial -ing gerund tokens (excluding domain nouns like engineering/underwriting)."""
+    hits: list[str] = []
+    for match in _GERUND_WORD_RE.finditer(str(bullet_text or "").lower()):
+        word = match.group(0)
+        if word not in _NON_GERUND_ING_WORDS:
+            hits.append(word)
+    return hits
+
+
+def check_bullet_word_floor_and_gerund_rhythm(
+    bullet_id: str,
+    bullet_text: str,
+    *,
+    min_words: int = BULLET_MIN_WORDS,
+    max_chars: int = BULLET_MAX_CHARS,
+    max_gerunds: int = BULLET_MAX_GERUNDS,
+) -> QualityFloorResult:
+    """Enforce >=18-word floor, single-sentence <=320-char cap, and <=2 participial -ing gerunds."""
+    from apps_rg.runtime.validators.executive_summary_sentence_utils import split_sentences
+
+    text = str(bullet_text or "").strip()
+    words = text.split()
+    word_count = len(words)
+    char_count = len(text)
+    sentence_count = len(split_sentences(text)) if text else 0
+    gerunds = count_participial_gerunds(text)
+    failures: list[str] = []
+    if word_count < min_words:
+        failures.append(f"word_count={word_count}<{min_words}")
+    if char_count > max_chars:
+        failures.append(f"char_count={char_count}>{max_chars}")
+    if sentence_count != 1:
+        failures.append(f"sentence_count={sentence_count}!=1")
+    if len(gerunds) > max_gerunds:
+        failures.append(f"gerund_count={len(gerunds)}>{max_gerunds}({gerunds})")
+    passed = not failures
+    return QualityFloorResult(
+        gate_id="x2_bullet_word_floor_and_gerund_rhythm",
+        passed=passed,
+        bullet_id=bullet_id,
+        score=1 if passed else 0,
+        signals=[f"words:{word_count}", f"chars:{char_count}", f"gerunds:{len(gerunds)}"],
+        failure_reason=f"{bullet_id}: {'; '.join(failures)}" if failures else None,
+    )
+
+
 def run_bullet_quality_floor_gates(
     bullets: list[dict[str, Any]],
     *,
@@ -406,6 +467,9 @@ def run_bullet_quality_floor_gates(
 
 
 __all__ = [
+    "BULLET_MAX_CHARS",
+    "BULLET_MAX_GERUNDS",
+    "BULLET_MIN_WORDS",
     "GENERIC_CONSULTING_SUBSTITUTIONS",
     "SCALE_SIGNALS",
     "SENIORITY_FLOOR_SCORE",
@@ -415,6 +479,8 @@ __all__ = [
     "check_bullet_no_generic_consulting_substitution",
     "check_bullet_seniority_floor",
     "check_bullet_technical_specificity_floor",
+    "check_bullet_word_floor_and_gerund_rhythm",
     "check_experience_bullet_evidence_density",
+    "count_participial_gerunds",
     "run_bullet_quality_floor_gates",
 ]
