@@ -42,6 +42,72 @@ _FIELD_PATTERNS = {
     "Record": re.compile(r"^\s*(?:[-*+]|\d+\.)?\s*(?:\*\*)?Record(?:\*\*)?\s*:", re.IGNORECASE),
 }
 
+# INV-HOLISTIC-PIPELINE-PLANNING patterns
+_SECTION_BULLET_DELIVERABLE_RE = re.compile(
+    r"(?:runtime/sections/(?:role_episode_lane|ibm_bullets_lane|unify_bullets_lane|"
+    r"exec_summary_perf_sync_helpers|executive_summary_voice_repair|section_authority_repairs|"
+    r"ibm_bullets_pa|unify_bullets_pa|executive_summary_pa)|"
+    r"\b(?:role_episode_lane|ibm_bullets_lane|unify_bullets_lane|section_authority_repairs|"
+    r"exec_summary_perf_sync_helpers|executive_summary_voice_repair)\.py\b)",
+    re.IGNORECASE,
+)
+_UPSTREAM_PRODUCER_RE = re.compile(
+    r"(?:runtime/c0/|resume_graph_allocation|c0_fact_anchor|c0_perf_sync_helpers|"
+    r"quad_graph_retriever|graph_role_episode_selector|fact_anchor|FactAnchor|"
+    r"what\s+stays\s+unchanged|upstream\s+(?:c0|allocation|retrieval|producer))",
+    re.IGNORECASE,
+)
+_DOWNSTREAM_VALIDATOR_RE = re.compile(
+    r"(?:cross_section_x2|bullet_quality_floor_x2|bullet_line_discipline_x2|"
+    r"narrative_quality_x2|executive_summary_x2|bullet_fact_entailment|"
+    r"runtime/(?:validators|aggregation)/|\bx2\s+(?:gate|validator|deduplication|floor))",
+    re.IGNORECASE,
+)
+
+
+def validate_holistic_pipeline_alignment(
+    content: str, waves: Sequence[object], filename: str
+) -> list[str]:
+    """Enforce INV-HOLISTIC-PIPELINE-PLANNING on domain section/bullet generation plans.
+
+    When a plan modifies intermediate section/bullet generation or authority-repair lanes
+    (e.g., role_episode_lane.py, ibm_bullets_lane.py, unify_bullets_lane.py,
+    section_authority_repairs.py), it must also verify or realign both:
+      1. Upstream Producer / Allocation (Stage-1 Retrieval / Stage-2 C0.3 Graph Allocation & FactAnchor), and
+      2. Downstream Cross-Section / Quality-Floor Validation (Stage-4 X2 validators / entailment gates).
+    """
+    deliverable_text = "\n".join(
+        item
+        for wave in waves
+        for item in getattr(wave, "deliverable_items", [])
+    )
+    if not _SECTION_BULLET_DELIVERABLE_RE.search(deliverable_text):
+        return []
+
+    errors: list[str] = []
+    has_upstream = bool(_UPSTREAM_PRODUCER_RE.search(content))
+    has_downstream = bool(_DOWNSTREAM_VALIDATOR_RE.search(content))
+
+    missing_stages: list[str] = []
+    if not has_upstream:
+        missing_stages.append(
+            "Upstream Producer/Allocation stage (e.g., Stage-1 retrieval / Stage-2 C0.3 "
+            "resume_graph_allocation.py / FactAnchor contract or explicit upstream defense)"
+        )
+    if not has_downstream:
+        missing_stages.append(
+            "Downstream Cross-Section/X2 Validation stage (e.g., Stage-4 cross_section_x2.py / "
+            "bullet_quality_floor_x2.py / narrative_quality_x2.py / bullet_fact_entailment.py)"
+        )
+
+    if missing_stages:
+        errors.append(
+            f"{filename}: [INV-HOLISTIC-PIPELINE-PLANNING] Plan modifies intermediate section/bullet "
+            "generation or repair lanes without addressing coupled pipeline stages: "
+            f"{'; '.join(missing_stages)}. Trace the full Producer -> Consumer -> Validator spine."
+        )
+    return errors
+
 
 def _gate_lines(wave: object) -> list[str]:
     lines = getattr(wave, "lines", [])
@@ -83,4 +149,5 @@ def validate_execution_evidence(content: str, waves: Sequence[object], filename:
                 f"{filename}: Wave {number} completion gate must specify: {', '.join(missing)}. "
                 "Receipts document runs; independently observed behavior determines completion."
             )
+    errors.extend(validate_holistic_pipeline_alignment(content, waves, filename))
     return errors

@@ -10,9 +10,16 @@ Keep investigation broad enough to establish empirical evidence while strictly l
 ## 1. Scope Triaging & Separation
 
 Separate touched files into three distinct categories before making any edits:
-- **Edit Scope**: Explicitly approved in the wave plan, or strictly required for build/test correctness.
-- **Read-Only Evidence**: Consulted to understand contracts, interfaces, or system behavior without mutation.
+- **Edit Scope**: Explicitly approved in the wave plan, or strictly required for build/test correctness **and end-to-end Producer-Consumer-Validator pipeline contract alignment**.
+- **Read-Only Evidence**: Consulted to understand contracts, interfaces, or system behavior without mutation (only after verifying the upstream producer and downstream validator contracts already satisfy the target behavior).
 - **Deferred Backlog**: Tangential cleanups or future enhancements placed in backlog rather than expanding active scope.
+
+### Producer-Consumer-Validator Coupling Exception (`INV-HOLISTIC-PIPELINE-PLANNING`)
+
+Scope containment prohibits *unrelated* gold-plating; it must **never** be used to truncate a multi-stage pipeline refactor into a symptom-only local patch:
+- When a task modifies a domain pipeline lane (e.g., `runtime/sections/`, `prompt_assembly/`, or `runtime/reasoning/`), you MUST trace one hop upstream to the **Data Producer / Allocator** (e.g., Stage-1 retrieval / Stage-2 `runtime/c0/` graph allocation & `FactAnchor` projection) and one hop downstream to the **Quality Gate / Cross-Section Validator** (e.g., Stage-4 `runtime/validators/` & `runtime/aggregation/cross_section_x2.py`).
+- If a downstream lane relies on hardcoded fallback dictionaries, regex scrubs, or prose overrides because the upstream allocator projected an incomplete schema (or cloned shared facts across overview and bullet lanes), fixing the upstream allocator and unifying the downstream X2 validator thresholds are **mandatory transitive Edit Scope**, never "out-of-scope gold-plating".
+- Every pipeline implementation plan must either include the coupled upstream producer and downstream validator files in `Milestones & Deliverables` or document an explicit architectural defense proving why those stages require zero changes.
 
 ## 2. Structural Retrieval Discipline
 

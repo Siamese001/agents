@@ -635,6 +635,126 @@ Setup tools.
                 else:
                     os.environ.pop("ANTIGRAVITY_ARTIFACTS_DIR", None)
 
+    def test_narrow_symptom_only_section_plan_is_rejected(self) -> None:
+        """Verify INV-HOLISTIC-PIPELINE-PLANNING rejects section/bullet plans that omit upstream C0 allocation or downstream X2 gates."""
+        symptom_only_plan = """# Bullet Naturalness Post-Processing Plan
+
+## Wave 1: Section Authority & Repair Tweaks
+### Objective & Scope
+Patch downstream bullet repair dictionaries in role_episode_lane.py and ibm_bullets_lane.py.
+
+### Milestones & Deliverables
+- [MODIFY] `resume_graph_engine/src/apps_rg/runtime/sections/role_episode_lane.py`
+- [MODIFY] `resume_graph_engine/src/apps_rg/runtime/sections/ibm_bullets_lane.py`
+- [MODIFY] `resume_graph_engine/src/apps_rg/runtime/sections/section_authority_repairs.py`
+
+### Acceptance Criteria
+- Local bullet repair strings sound less repetitive.
+
+### Runtime Receipt & Completion Gate
+- Run: .venv/bin/pytest resume_graph_engine/tests/unit/apps_rg/test_role_episode_lane.py -v --timeout=60
+- Input: role_episode_lane.py fixtures
+- Expected: 0 failures
+- Verify independently: git diff --stat
+- Fail if: exit code != 0
+- Record: artifacts/receipts/wave1_symptom_patch.json
+"""
+        is_valid, errors = validate_plan_content(symptom_only_plan, "symptom_only_plan.md")
+        self.assertFalse(is_valid)
+        self.assertTrue(
+            any("INV-HOLISTIC-PIPELINE-PLANNING" in err for err in errors),
+            f"Expected INV-HOLISTIC-PIPELINE-PLANNING error, got: {errors}",
+        )
+        self.assertTrue(
+            any("Upstream Producer/Allocation stage" in err for err in errors),
+            f"Expected missing Upstream Producer/Allocation diagnostic, got: {errors}",
+        )
+        self.assertTrue(
+            any("Downstream Cross-Section/X2 Validation stage" in err for err in errors),
+            f"Expected missing Downstream Cross-Section/X2 diagnostic, got: {errors}",
+        )
+
+    def test_section_plan_missing_upstream_producer_is_rejected(self) -> None:
+        """Verify INV-HOLISTIC-PIPELINE-PLANNING rejects plans that include X2 validators but omit upstream C0 allocation."""
+        missing_upstream_plan = """# Bullet Naturalness and X2 Gate Plan
+
+## Wave 1: Section Repairs and X2 Validator Tweaks
+### Objective & Scope
+Update role_episode_lane.py and narrative_quality_x2.py without checking C0 allocation.
+
+### Milestones & Deliverables
+- [MODIFY] `resume_graph_engine/src/apps_rg/runtime/sections/role_episode_lane.py`
+- [MODIFY] `resume_graph_engine/src/apps_rg/runtime/validators/narrative_quality_x2.py`
+
+### Acceptance Criteria
+- Narrative echo repairs pass.
+
+### Runtime Receipt & Completion Gate
+- Run: .venv/bin/pytest resume_graph_engine/tests/unit/apps_rg/test_narrative_quality_x2.py -v --timeout=60
+- Input: narrative_quality_x2.py fixtures
+- Expected: 0 failures
+- Verify independently: git diff --stat
+- Fail if: exit code != 0
+- Record: artifacts/receipts/wave1_no_upstream.json
+"""
+        is_valid, errors = validate_plan_content(missing_upstream_plan, "missing_upstream.md")
+        self.assertFalse(is_valid)
+        self.assertTrue(any("INV-HOLISTIC-PIPELINE-PLANNING" in err for err in errors))
+        self.assertTrue(any("Upstream Producer/Allocation stage" in err for err in errors))
+        self.assertFalse(any("Downstream Cross-Section/X2 Validation stage" in err for err in errors))
+
+    def test_holistic_pipeline_plan_with_upstream_c0_and_downstream_x2_passes(self) -> None:
+        """Verify INV-HOLISTIC-PIPELINE-PLANNING passes when upstream C0 FactAnchor allocation and downstream X2 validation are both addressed."""
+        holistic_plan = """# Holistic C0.3 FactAnchor, Section Bullet Generation, and X2 Gate Realignment Plan
+
+## Executive Architectural Defense
+- What Stays Unchanged: `quad_graph_retriever.py` Stage-1 4-channel hybrid retrieval math requires zero changes.
+- What Realigns: Stage-2 `resume_graph_allocation.py` projects structured `FactAnchor` with `resolved_raw_chunk`, Stage-3 `role_episode_lane.py` and `ibm_bullets_lane.py` consume `FactAnchor` directly, and Stage-4 `cross_section_x2.py` and `bullet_quality_floor_x2.py` enforce 18-word floor, 60% stem grounding, and max-2-gerund rhythm.
+
+## Wave 1: C0.3 FactAnchor Projection & Disjoint Partitioning
+### Objective & Scope
+Attach structured `FactAnchor` in `resume_graph_allocation.py` and bind `role_episode_lane.py` and `ibm_bullets_lane.py`.
+
+### Milestones & Deliverables
+- [MODIFY] `resume_graph_engine/src/apps_rg/runtime/c0/resume_graph_allocation.py`
+- [MODIFY] `resume_graph_engine/src/apps_rg/runtime/sections/role_episode_lane.py`
+- [MODIFY] `resume_graph_engine/src/apps_rg/runtime/sections/ibm_bullets_lane.py`
+
+### Acceptance Criteria
+- 100% of C0.3 assignments emit `FactAnchor` with zero overview-vs-bullet `fact_id` overlap.
+
+### Runtime Receipt & Completion Gate
+- Run: .venv/bin/pytest tests/unit/resume_graph_engine/test_c0_resume_graph_allocation.py -v --timeout=60
+- Input: C0.3 allocation fixtures
+- Expected: 0 failures
+- Verify independently: Inspect serialized C0.3 allocation JSON for `fact_anchor.resolved_raw_chunk`
+- Fail if: exit code != 0
+- Record: artifacts/receipts/wave1_c0_fact_anchor.json
+
+## Wave 2: X2 Quality Floor & Cross-Section Gate Unification
+### Objective & Scope
+Unify `bullet_fact_entailment.py`, `bullet_quality_floor_x2.py`, and `cross_section_x2.py` around the 18-word floor and 60% stem entailment.
+
+### Milestones & Deliverables
+- [MODIFY] `resume_graph_engine/src/apps_rg/runtime/reasoning/bullet_fact_entailment.py`
+- [MODIFY] `resume_graph_engine/src/apps_rg/runtime/validators/bullet_quality_floor_x2.py`
+- [MODIFY] `resume_graph_engine/src/apps_rg/runtime/aggregation/cross_section_x2.py`
+
+### Acceptance Criteria
+- Zero cross-section intent conflicts and all bullets meet >=18 words and <=2 gerunds.
+
+### Runtime Receipt & Completion Gate
+- Run: .venv/bin/pytest tests/unit/resume_graph_engine/test_cross_section_x2.py -v --timeout=60
+- Input: Assembled whole-resume bundle
+- Expected: 0 failures
+- Verify independently: Inspect X2 evaluation JSON for zero intent conflicts
+- Fail if: exit code != 0
+- Record: artifacts/receipts/wave2_x2_gates.json
+"""
+        is_valid, errors = validate_plan_content(holistic_plan, "holistic_plan.md")
+        self.assertTrue(is_valid, f"Holistic plan should pass, but failed with: {errors}")
+        self.assertEqual(len(errors), 0)
+
 
 if __name__ == "__main__":
     unittest.main()
