@@ -393,7 +393,7 @@ _IBM_FROZEN_ALLOCATION_DISPLAY_COMPOSITIONS: dict[tuple[str, str], str] = {
     ),
     ("reb_ibm_aws_alliance_partner_cosell_gtm", "skill_sr_w12_hyperscaler_alliance_co_sell"): (
         "Drove enterprise hyperscaler alliance co-sell execution across financial-services cloud pursuits, "
-        "scaling joint solution architectures to deliver 20% joint revenue growth."
+        "scaling joint solution architectures to expand partner-sourced pipeline."
     ),
     ("reb_ibm_aws_modernization_architecture", "skill_p2_tech_aws_modernization_patterns"): (
         "Led AWS modernization architecture for regulated financial-services workloads, "
@@ -455,7 +455,16 @@ def _materialize_ibm_bullets_from_frozen_allocation(
             )
             metric = str(row.get("metric_text") or "").strip()
             if metric and metric.casefold() not in display.casefold():
-                display = f"{display.rstrip('.')} , delivering {metric}.".replace(" ,", ",")
+                compact_metric = re.sub(
+                    r"\s*\(\+20%\s+joint\s+alliance\s+revenue\s+and\s+",
+                    " (",
+                    metric,
+                    flags=re.IGNORECASE,
+                )
+                cand_display = f"{display.rstrip('.')} , delivering {compact_metric}.".replace(" ,", ",")
+                if len(cand_display) > 315:
+                    cand_display = f"Led IBM-AWS alliance co-sell across financial-services pursuits, delivering {compact_metric}."
+                display = cand_display
             display = display.strip().rstrip(".") + "."
             allocation_by_bullet[bullet_id] = {
                 "bullet_text": display,

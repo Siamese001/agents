@@ -96,6 +96,8 @@ def resolve_target_picture_for_archetype(*, role_archetype: str, strategy_execut
 _EXEC_COSINE_DEDUP_SUBS: tuple[tuple[str, str], ...] = (
     ("Building on that platform foundation", "Building on that distributed runtime"),
     ("platform foundation", "distributed runtime"),
+    ("reusable agentic platform productization and hyperscaler alliance co-sell architecture to accelerate enterprise AI deployment velocity", "governed multi-model orchestration and strategic partner channel execution to scale commercial AI adoption"),
+    ("reusable agentic AI platform architecture is productized", "modular multi-agent engineering blueprints are operationalized"),
     ("hyperscaler and GSI", "cloud and systems-integrator"),
     ("joint solution development", "co-engineered delivery blueprints"),
     ("presales executive architecture alignment", "buyer-aligned technical validation"),
