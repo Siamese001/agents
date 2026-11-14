@@ -1169,6 +1169,9 @@ def apply_exec_summary_display_authority_repairs(
             )
     parsed["resume_display_text"] = text
     parsed["change_log"] = clog
+    from apps_rg.runtime.sections.exec_summary_perf_sync_helpers import repair_exec_summary_bullet_echo_parsed
+    parsed = repair_exec_summary_bullet_echo_parsed(parsed)
+    text = str(parsed.get("resume_display_text") or "").strip()
     shape_ok, reject_reason = _exec_summary_shape_ok(text, parsed)
     if shape_ok:
         return parsed
