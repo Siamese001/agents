@@ -72,7 +72,8 @@ LAYMAN_INTERCEPT_PROMPT = (
 WORD_BUDGET_INTERCEPT_PROMPT = (
     "[OUTPUT BREVITY GOVERNANCE INTERCEPT - INV-OUTPUT-MAX-WORDS] "
     "Your response exceeded the repository output budget ({issues}). "
-    "Rewrite your response concisely within {max_words} words and {max_chars} characters."
+    "Cut at least 25% of sentences/bullets and rewrite concisely within {max_words} words and {max_chars} characters "
+    "(Evidence & Graph Lineage footer and link URLs are excluded from the count)."
 )
 
 ANTI_PLAINTEXT_FALLBACK_DIRECTIVE = (
@@ -603,7 +604,8 @@ def handle_post_invocation(payload: Dict[str, Any], repo_root: Path) -> int:
     asked_question = bool(payload.get("invoked_question_tool", False))
     mutated_files = bool(payload.get("mutated_repository_code", False))
     completed_merge = bool(payload.get("completed_governed_merge", False))
-    layman_retries = 0
+    layman_retries = brevity_retries = disjunctive_retries = promotion_retries = 0
+    model_replies: List[str] = []
 
     for s in steps:
         if not isinstance(s, dict):
@@ -611,9 +613,17 @@ def handle_post_invocation(payload: Dict[str, Any], repo_root: Path) -> int:
         s_content = str(s.get("content") or "")
         if "[LAYMAN ZERO-JARGON GOVERNANCE INTERCEPT" in s_content:
             layman_retries += 1
+        if "[OUTPUT BREVITY GOVERNANCE INTERCEPT" in s_content:
+            brevity_retries += 1
+        if "[HITL GOVERNANCE INTERCEPT - INV-DECISIVE-RECOMMENDATION]" in s_content:
+            disjunctive_retries += 1
+        if "[HITL GOVERNANCE INTERCEPT - POST-EDIT PROMOTION GATE]" in s_content:
+            promotion_retries += 1
         if "tool call denied by pre-tool hook" in s_content or "HITL_VIOLATION_" in s_content or "PRE_OUTPUT_LAYMAN_GUARD" in s_content:
             asked_question = False
         tcs = s.get("tool_calls") or s.get("toolCalls") or ([] if not s.get("toolCall") else [s["toolCall"]])
+        if not tcs and str(s.get("type") or "").upper() in ("PLANNER_RESPONSE", "ASSISTANT", "MODEL_RESPONSE") and s_content.strip():
+            model_replies.append(s_content.strip())
         for tc in tcs:
             if not isinstance(tc, dict):
                 continue
@@ -630,7 +640,12 @@ def handle_post_invocation(payload: Dict[str, Any], repo_root: Path) -> int:
                 if "pr_governance.py" in cmd and any(k in cmd for k in ("merge", "submit", "promote")):
                     completed_merge = True
 
-    if mutated_files and not (asked_question or completed_merge):
+    total_intercepts = layman_retries + brevity_retries + disjunctive_retries + promotion_retries
+    if total_intercepts >= 2 or (len(model_replies) >= 2 and model_replies[-1] == model_replies[-2]):
+        print(json.dumps({"injectSteps": []}))
+        return 0
+
+    if mutated_files and not (asked_question or completed_merge) and promotion_retries < 1:
         print(json.dumps({"injectSteps": [{"userMessage": POST_EDIT_PROMOTION_PROMPT}], "terminationBehavior": "force_continue"}))
         return 0
 
@@ -639,12 +654,12 @@ def handle_post_invocation(payload: Dict[str, Any], repo_root: Path) -> int:
         return 0
 
     decisive_res = validate_decisive_recommendation_gate(candidate_text)
-    if decisive_res["status"] != "PASS":
+    if decisive_res["status"] != "PASS" and disjunctive_retries < 1:
         print(json.dumps({"injectSteps": [{"userMessage": DISJUNCTIVE_INTERCEPT_PROMPT}], "terminationBehavior": "force_continue"}))
         return 0
 
     jargon_res = validate_layman_jargon_gate(candidate_text)
-    if jargon_res["status"] != "PASS" and layman_retries < 3:
+    if jargon_res["status"] != "PASS" and layman_retries < 1:
         msg = LAYMAN_INTERCEPT_PROMPT.format(violations=", ".join(jargon_res["violations"][:4]))
         print(json.dumps({"injectSteps": [{"ephemeralMessage": msg}], "terminationBehavior": "force_continue"}))
         return 0
@@ -656,7 +671,7 @@ def handle_post_invocation(payload: Dict[str, Any], repo_root: Path) -> int:
     max_words = int(policies.get("INV-OUTPUT-MAX-WORDS", {}).get("threshold", 300) or 300)
     max_chars = int(policies.get("INV-OUTPUT-MAX-CHARS", {}).get("threshold", 3500) or 3500)
     word_res = validate_word_budget_gate(candidate_text, max_words=max_words, max_chars=max_chars)
-    if word_res["status"] != "PASS":
+    if word_res["status"] != "PASS" and brevity_retries < 1:
         msg = WORD_BUDGET_INTERCEPT_PROMPT.format(issues="; ".join(word_res["issues"]), max_words=max_words, max_chars=max_chars)
         print(json.dumps({"injectSteps": [{"ephemeralMessage": msg}], "terminationBehavior": "force_continue"}))
         return 0
@@ -671,44 +686,27 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         "--hook",
         required=True,
         choices=[
-            "pre_edit_plan",
-            "stop_wave_summary",
-            "pre_run_command",
-            "pre_model_neutral",
-            "pre_model_registry",
-            "pre_ask_question",
-            "post_ask_question",
-            "pre_subagent_delegation",
-            "pre_file_write",
-            "post_invocation",
+            "pre_edit_plan", "stop_wave_summary", "pre_run_command", "pre_model_neutral", "pre_model_registry",
+            "pre_ask_question", "post_ask_question", "pre_subagent_delegation", "pre_file_write", "post_invocation",
         ],
         help="Lifecycle hook handler to execute.",
     )
     parser.add_argument("--repo-root", type=Path, default=ROOT, help="Repository root path.")
     args = parser.parse_args(argv)
     payload = read_hook_input()
-
-    if args.hook == "pre_edit_plan":
-        return handle_pre_edit_plan(payload, args.repo_root)
-    elif args.hook == "stop_wave_summary":
-        return handle_stop_wave_summary(payload, args.repo_root)
-    elif args.hook == "pre_run_command":
-        return handle_pre_run_command(payload)
-    elif args.hook == "pre_model_neutral":
-        return handle_pre_model_neutral(payload, args.repo_root)
-    elif args.hook == "pre_model_registry":
-        return handle_pre_model_registry(payload, args.repo_root)
-    elif args.hook == "pre_ask_question":
-        return handle_pre_ask_question(payload, args.repo_root)
-    elif args.hook == "post_ask_question":
-        return handle_post_ask_question(payload, args.repo_root)
-    elif args.hook == "pre_subagent_delegation":
-        return handle_pre_subagent_delegation(payload, args.repo_root)
-    elif args.hook == "pre_file_write":
-        return handle_pre_file_write(payload, args.repo_root)
-    elif args.hook == "post_invocation":
-        return handle_post_invocation(payload, args.repo_root)
-    return emit_decision("allow")
+    handlers = {
+        "pre_edit_plan": lambda: handle_pre_edit_plan(payload, args.repo_root),
+        "stop_wave_summary": lambda: handle_stop_wave_summary(payload, args.repo_root),
+        "pre_run_command": lambda: handle_pre_run_command(payload),
+        "pre_model_neutral": lambda: handle_pre_model_neutral(payload, args.repo_root),
+        "pre_model_registry": lambda: handle_pre_model_registry(payload, args.repo_root),
+        "pre_ask_question": lambda: handle_pre_ask_question(payload, args.repo_root),
+        "post_ask_question": lambda: handle_post_ask_question(payload, args.repo_root),
+        "pre_subagent_delegation": lambda: handle_pre_subagent_delegation(payload, args.repo_root),
+        "pre_file_write": lambda: handle_pre_file_write(payload, args.repo_root),
+        "post_invocation": lambda: handle_post_invocation(payload, args.repo_root),
+    }
+    return handlers[args.hook]() if args.hook in handlers else emit_decision("allow")
 
 
 if __name__ == "__main__":
