@@ -5,7 +5,8 @@
 ## Invariant Specification
 
 - **Target Word Count**: Approximately 120 words per response.
-- **Hard Word Ceiling**: 300 words maximum strictly enforced under all conditions.
+- **Hard Word Ceiling**: 300 words maximum strictly enforced on visible prose (`### Evidence & Graph Lineage` footers, HTML comments, Markdown link URLs, and table divider tokens are excluded from prose word/character counts).
+- **Post-Turn Circuit Breaker**: `PostInvocation` brevity and prose rewrites fire at most once per gate (`< 1` retry) and at most twice across all post-turn intercepts per user turn, halting immediately if consecutive replies are identical so the chat UI never loops.
 - **Information Density**: Deliver direct facts, verifiable code actions, and actionable results. Eliminate conversational preamble, pleasantries, fluff, and unnecessary repetition.
 
 ## Direct Inquiry Grounding & Anti-Evasion Invariant (`INV-DIRECT-INQUIRY-GROUNDING`)

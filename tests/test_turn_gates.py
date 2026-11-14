@@ -261,6 +261,25 @@ Wave 1 completed cleanly!
             self.assertEqual(res["status"], "FAIL")
             self.assertTrue(any("Failed loading policy registry" in iss for iss in res["issues"]))
 
+    def test_word_budget_gate_excludes_lineage_footer_and_markdown_link_urls(self) -> None:
+        """Verify validate_word_budget_gate excludes ### Evidence & Graph Lineage footer and file:/// link URLs."""
+        from tools.validate_turn_gates import validate_word_budget_gate
+
+        body_words = " ".join(["summary"] * 265)
+        long_links = " [Audit Report](file:///Users/amitayer/Git/agents/artifacts/very/long/path/to/report.md)" * 5
+        lineage_footer = (
+            "\n\n### Evidence & Graph Lineage\n\n"
+            "| Metric | Value |\n"
+            "| :--- | :--- |\n"
+            "| Canonical Graph Coverage | 100% (10/10 sections) |\n"
+            "| Primary Evidence Sources | " + " ".join(["source"] * 60) + " |\n"
+        )
+        full_text = body_words + long_links + lineage_footer
+        self.assertGreater(len(full_text.split()), 330)
+        res = validate_word_budget_gate(full_text, max_words=300, max_chars=3500)
+        self.assertEqual(res["status"], "PASS", f"Expected PASS when lineage footer excluded, got: {res}")
+        self.assertEqual(res["word_count"], 275)
+
 
 if __name__ == "__main__":
     unittest.main()

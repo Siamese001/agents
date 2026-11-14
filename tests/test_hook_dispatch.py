@@ -648,6 +648,53 @@ Build core foundation.
             data["reason"],
         )
 
+    def test_post_invocation_word_budget_circuit_breaker_prevents_infinite_loop(self) -> None:
+        """post_invocation must intercept overlong prose at most once per turn and never loop infinitely."""
+        overlong_reply = " ".join(["word"] * 320)
+        first_payload = {
+            "steps": [
+                {"type": "USER_INPUT", "source": "USER_EXPLICIT", "content": "Review bullet generation"},
+                {"type": "PLANNER_RESPONSE", "source": "MODEL", "content": overlong_reply},
+            ]
+        }
+        res1 = subprocess.run(
+            [sys.executable, "tools/hook_dispatch.py", "--hook", "post_invocation"],
+            input=json.dumps(first_payload),
+            capture_output=True,
+            text=True,
+            cwd=ROOT,
+            timeout=10,
+        )
+        self.assertEqual(res1.returncode, 0)
+        data1 = json.loads(res1.stdout.strip())
+        self.assertEqual(data1.get("terminationBehavior"), "force_continue")
+        self.assertIn("INV-OUTPUT-MAX-WORDS", data1["injectSteps"][0].get("ephemeralMessage", ""))
+
+        # Second attempt in the same turn after 1 brevity intercept MUST trip circuit breaker and allow exit
+        second_payload = {
+            "steps": [
+                {"type": "USER_INPUT", "source": "USER_EXPLICIT", "content": "Review bullet generation"},
+                {"type": "PLANNER_RESPONSE", "source": "MODEL", "content": overlong_reply},
+                {
+                    "type": "EPHEMERAL_MESSAGE",
+                    "source": "SYSTEM_SDK",
+                    "content": "[OUTPUT BREVITY GOVERNANCE INTERCEPT - INV-OUTPUT-MAX-WORDS] Your response exceeded the repository output budget.",
+                },
+                {"type": "PLANNER_RESPONSE", "source": "MODEL", "content": overlong_reply + " extra"},
+            ]
+        }
+        res2 = subprocess.run(
+            [sys.executable, "tools/hook_dispatch.py", "--hook", "post_invocation"],
+            input=json.dumps(second_payload),
+            capture_output=True,
+            text=True,
+            cwd=ROOT,
+            timeout=10,
+        )
+        self.assertEqual(res2.returncode, 0)
+        data2 = json.loads(res2.stdout.strip())
+        self.assertEqual(data2.get("injectSteps"), [])
+
 
 if __name__ == "__main__":
     unittest.main()

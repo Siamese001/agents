@@ -427,6 +427,10 @@ def validate_scratchpad_transparency(markdown_text: str) -> dict[str, Any]:
 
 _MARKDOWN_LINK_RE = re.compile(r"\[([^\]]+)\]\((?:file:///|https?://|conversation://)[^)]+\)")
 _FENCED_BLOCK_RE = re.compile(r"```[\s\S]*?```")
+_LINEAGE_FOOTER_STRIP_RE = re.compile(
+    r"(?:^|\n)(?:---\s*\n+)?#{2,3}\s+Evidence\s+(?:&\s+Graph\s+Lineage|&\s+Footnotes|Lineage)\b[\s\S]*$", re.IGNORECASE
+)
+_HTML_COMMENT_STRIP_RE = re.compile(r"<!--[\s\S]*?-->")
 
 _TECHNICAL_JARGON_PATTERNS = (
     (
@@ -479,25 +483,18 @@ def validate_layman_jargon_gate(markdown_text: str) -> dict[str, Any]:
     """Verify that user-facing prose contains zero technical, code, or systems architecture jargon."""
     if not markdown_text or not isinstance(markdown_text, str):
         return {"status": "PASS", "violations": [], "issues": []}
-
-    scannable = _MARKDOWN_LINK_RE.sub(r"\1", markdown_text)
-    scannable_no_fences = _FENCED_BLOCK_RE.sub(" ", scannable)
-
+    prose_only = _HTML_COMMENT_STRIP_RE.sub(" ", _LINEAGE_FOOTER_STRIP_RE.sub("", markdown_text))
+    scannable_no_fences = _FENCED_BLOCK_RE.sub(" ", _MARKDOWN_LINK_RE.sub(r"\1", prose_only))
     violations: list[str] = []
     for pattern, label in _TECHNICAL_JARGON_PATTERNS:
-        matches = pattern.findall(scannable_no_fences)
-        if matches:
-            for m in matches[:3]:
-                sample = str(m).strip(" `\"'()[]{}")
-                entry = f"{label} ('{sample}')"
-                if entry not in violations:
-                    violations.append(entry)
-
-    issues = [f"Technical jargon violation: {v}" for v in violations]
+        for m in pattern.findall(scannable_no_fences)[:3]:
+            entry = f"{label} ('{str(m).strip(' `\"\'()[]{}')}')"
+            if entry not in violations:
+                violations.append(entry)
     return {
         "status": "PASS" if not violations else "FAIL",
         "violations": violations,
-        "issues": issues,
+        "issues": [f"Technical jargon violation: {v}" for v in violations],
     }
 
 
@@ -544,19 +541,16 @@ def validate_word_budget_gate(
     """Verify that engineering completion text complies with INV-OUTPUT-MAX-WORDS and INV-OUTPUT-MAX-CHARS."""
     if not markdown_text or not isinstance(markdown_text, str):
         return {"status": "PASS", "word_count": 0, "char_count": 0, "issues": []}
-    words = len(markdown_text.split())
-    chars = len(markdown_text)
+    prose_only = _HTML_COMMENT_STRIP_RE.sub(" ", _LINEAGE_FOOTER_STRIP_RE.sub("", markdown_text))
+    visible_prose = _MARKDOWN_LINK_RE.sub(r"\1", prose_only).strip()
+    words = len([tok for tok in visible_prose.split() if not re.fullmatch(r"[#*|\-:]+", tok)])
+    chars = len(visible_prose)
     issues: list[str] = []
     if words > max_words:
         issues.append(f"Response word count ({words}) exceeds {max_words}-word ceiling.")
     if chars > max_chars:
         issues.append(f"Response character count ({chars}) exceeds {max_chars}-character ceiling.")
-    return {
-        "status": "PASS" if not issues else "FAIL",
-        "word_count": words,
-        "char_count": chars,
-        "issues": issues,
-    }
+    return {"status": "PASS" if not issues else "FAIL", "word_count": words, "char_count": chars, "issues": issues}
 
 
 def validate_post_turn_gate(
