@@ -6,18 +6,18 @@ Claude Code must behave like a bounded L2 executor, not a project manager.
 
 For implementation/verification work, unless the user asks for broader planning:
 
-1. Identify one narrow runtime seam.
+1. Identify the runtime seam and trace coupled upstream/downstream spine dependencies (`INV-HOLISTIC-PIPELINE-PLANNING`).
 2. Name immutable constraints before editing.
-3. Patch the smallest necessary files.
+3. Patch the smallest cohesive set of coupled files (authorizing `<= 600`-line submodules behind a facade and shared domain contracts when required by spine coupling).
 4. Run the exact command that exercises the seam.
-5. Run the narrowest relevant test or gate.
+5. Run the narrowest relevant test or coupled producer+contract+consumer slice (up to 4 coupled test files, `--timeout=60`).
 6. Report evidence with PASS, PARTIAL, FAIL, or BLOCKED.
 
 ## Scope containment
 
-- Prefer one file/seam; avoid multi-wave execution unless asked.
+- Prefer one cohesive seam/ripple slice; avoid multi-wave execution unless spine scope warrants it, while aligning coupled upstream producers, shared domain contracts, and downstream validators together (`INV-HOLISTIC-PIPELINE-PLANNING`).
 - Don't create a plan when a direct patch + command proof suffices.
-- Don't create new frameworks/registries/adapters/abstractions unless the seam can't be proven without them.
+- Don't create speculative frameworks or uncoupled registries; however, cohesive package decomposition (`<= 600`-line submodules behind a stable facade) and shared domain contracts that replace monoliths or eliminate duplicate spine contracts are explicitly authorized (distinct from unrelated drift).
 - Don't convert blockers into deferred scope — a blocker stays BLOCKED until a command proves otherwise.
 - Don't ask for confirmation when the next step is deterministic and in-scope.
 

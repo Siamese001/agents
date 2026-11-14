@@ -25,9 +25,9 @@ Execute a deterministic, fail-closed **Testing Gaps, Edge-Case Regression, Mock 
 - **Shared Governance Contract**: Dereferences `automations/prompts/_shared_governance_contract.md` (`C01–C12`).
 - **Repository Boundary (`INV-REPO-SEPARATION-AGENTS-ONLY`)**: Bound exclusively to `/Users/amitayer/Git/agents`.
 - **Pytest Run Protocol**:
-  - Class A (Debug): Scoped to a single test file or test case with `--timeout=60` and synchronous `WaitMsBeforeAsync >= 15000`.
+  - Class A (Debug): Scoped to a single test file, test case, or coupled multi-file producer+contract+consumer test slice (up to 4 directly coupled test files) with `--timeout=60` and synchronous `WaitMsBeforeAsync >= 15000`.
   - Class B (Receipt): Scoped to declared wave acceptance test files with `--timeout=60` and synchronous `WaitMsBeforeAsync >= 120000`.
-  - Bare `pytest` or `pytest tests/` without scope is strictly forbidden.
+  - Bare `pytest`, unbounded `pytest tests/`, or > 4 unrelated test files without authorization is strictly forbidden.
 - **Preflight-First Fast-Exit & Wave-Based Plan Mandate (`C03`, `PREFLIGHT_ZERO_DEFECT_FAST_EXIT`, `UNCONDITIONAL_WAVE_PLAN_MANDATE`)**:
   - Execute Phase 1 & Phase 1.5 read-only behavioral preflight **first** against `${PRIMARY_REPO_ROOT}`. When `0` actionable findings exist (`is_clean: true`), fast-exit `COMPLETE` immediately (`PREFLIGHT_ZERO_DEFECT_FAST_EXIT`) without creating an ephemeral worktree or authoring a synthetic plan.
   - Whenever `>= 1` findings exist (`is_clean: false`), execute Phase 0 isolated worktree provisioning, author a wave-based remediation plan at `${WORKTREE_DIR}/plans/testing-gaps-assurance-${HEX6}.md` (and copy to `${RUN_DIR}/implementation_plan.md`) decomposed into sequential numbered waves (`## Wave 1: ...`, `## Wave 2: ...`), and validate it via `validate_implementation_plan.py --file "${WORKTREE_DIR}/plans/testing-gaps-assurance-${HEX6}.md"` (`exit code 0`).

@@ -70,7 +70,7 @@ All pytest invocations fall into exactly one of two classes. No other class is p
 
 ### Class A — Debug run
 Used during fix cycle to verify a specific change.
-- Scope MUST be a single test file or single named test case (`pytest tests/test_foo.py -v` or `pytest tests/test_foo.py::ClassName::test_method -v`). Multi-file or full suite (`pytest tests/`) is forbidden.
+- Scope MUST be a single test file, a single named test case, or a coupled multi-file producer+contract+consumer test slice (up to 4 directly coupled test files, e.g., `pytest tests/unit/test_producer.py tests/unit/test_contract.py tests/unit/test_consumer.py -v --timeout=60`). Unbounded multi-file sweeps (> 4 unrelated files) or full-suite runs (`pytest` or `pytest tests/`) without authorization are strictly forbidden.
 - Must include `--timeout=60` (per-test hard limit).
 - Must be synchronous (`WaitMsBeforeAsync >= 15000`). Does not produce a receipt.
 - **Background forbidden**: If run exceeds `WaitMsBeforeAsync`, something is wrong — kill immediately; do not send to background.
@@ -85,7 +85,7 @@ Used exactly once per wave at wave completion after all fixes pass.
 ### Prohibited patterns
 - `pytest` (no args) or `pytest tests/` (unbounded full suite).
 - pytest sent to background (`WaitMsBeforeAsync` too short).
-- Multi-file pytest during fix cycle.
+- Unbounded or unrelated multi-file pytest during fix cycle (> 4 files or test files lacking direct producer+contract+consumer coupling).
 - pytest without `--timeout=60`.
 - Running pytest again after it already passed.
 

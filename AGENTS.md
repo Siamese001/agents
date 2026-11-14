@@ -19,12 +19,11 @@ Before performing refactoring work, read and follow:
 Required behavior:
 
 - Execute only the currently approved wave.
-- Make the smallest sufficient change.
+- Make the smallest sufficient change that aligns coupled upstream/downstream spine dependencies (`INV-HOLISTIC-PIPELINE-PLANNING`); cohesive `<= 600`-line submodule decomposition behind a facade and shared domain contracts are explicitly authorized.
 - Preserve behavior not explicitly targeted.
-- Do not perform unrelated cleanup or later-wave work.
+- Do not perform unrelated drift or later-wave work (directly coupled producer/contract/validator alignment is cohesive refactoring, not drift).
 - Obtain human-in-the-loop approval before any material scope deviation.
-- Stop and raise a deviation request when the approved objective cannot be
-  completed safely without expanding scope.
+- Stop and raise a deviation request when the objective requires expanding into unrelated subsystems or undeclared external contracts.
 - Validate the wave before claiming completion.
 - Place optional findings in the subsequent-refactoring backlog.
 - Complete the core objective within no more than six waves.
@@ -108,7 +107,7 @@ Lookup: `.agents/rules/codex-config-lookup.md` and `.agents/rules/plan-location.
 
 ## Pytest
 
-Pytest runs with plugin **autoload ON** (CI default); `addopts` carries `--timeout=180` but no `-p pytest_timeout`. **Do NOT** set `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1` for ad-hoc runs — it strips pytest-timeout and `--timeout` aborts collection. See companion for the duplicate-registration caveat (don't add `-p pytest_timeout` either).
+Pytest runs with plugin **autoload ON** (CI default); `addopts` carries `--timeout=180` but no `-p pytest_timeout`. **Do NOT** set `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1` for ad-hoc runs — it strips pytest-timeout and `--timeout` aborts collection. See companion for the duplicate-registration caveat (don't add `-p pytest_timeout` either). Class A debug runs allow single files, named cases, or coupled multi-file producer+contract+consumer slices (up to 4 coupled test files, `--timeout=60`); unbounded `pytest tests/` remains forbidden without authorization.
 
 ## Subsystems vs Infrastructure (summary)
 

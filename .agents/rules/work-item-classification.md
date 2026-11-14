@@ -13,8 +13,12 @@
 | `ENHANCEMENT_MINOR` | T0/T1 | In-scope, ≤20 lines | Fix if in scope; `spawn_task` if deferred |
 | `ENHANCEMENT_BACKLOG` | T2 | Out-of-scope improvement | `spawn_task` chip |
 | `ENHANCEMENT_ROADMAP` | T3 | Multi-session strategic | Backlog Item |
-| `PLAN_MICRO` | T1/T2 | <2 waves AND ≤~3 files | Native plan mode only — no disk file |
-| `PLAN_MULTI_WAVE` | T2/T3 | ≥2 waves OR ≥~10 files / cross-layer (single-session does NOT exempt) | `plans/<slug>-<6hex>.md` disk SSOT, minted at the start |
+| `PLAN_MICRO` | T1/T2 | <2 waves AND (≤~3 files or single-wave `<= 600`-line cohesive package decomposition behind a facade) | Native plan mode only — no disk file |
+| `PLAN_MULTI_WAVE` | T2/T3 | ≥2 waves OR ≥~10 files / cross-layer spine refactor (single-session does NOT exempt) | `plans/<slug>-<6hex>.md` disk SSOT, minted at the start |
+
+## Cohesive Package Decomposition & Spine Refactoring (`INV-HOLISTIC-PIPELINE-PLANNING`)
+
+Decomposing oversized files into cohesive `<= 600`-line submodules behind an intact facade and extracting or aligning shared domain contracts across traced upstream/downstream spine dependencies is explicitly authorized and treated as cohesive refactoring rather than unrelated drift. Keep coupled producer+contract+consumer updates unified rather than fragmenting them into isolated local patches.
 
 ## Plan-FIRST ≠ plan-PERSISTENCE
 
@@ -23,7 +27,7 @@ Native plan mode (`EnterPlanMode`/`ExitPlanMode`) satisfies think-before-editing
 ## The Four Anti-Reflex Rules
 
 1. **Found a bug → classify first.** T0/T1 in-scope → fix now. T2 deferred → `spawn_task`. T3 systemic → Backlog Item.
-2. **apps_rg finding → append a row, never a plan** (Master Gap Inventory `plans/apps-rg-lane-aggregation-gap-closure-b8c3d1.md`).
+2. **apps_rg tactical finding → append a row; structural decomposition → plan.** Small tactical findings append a row (`plans/apps-rg-lane-aggregation-gap-closure-b8c3d1.md`), whereas cohesive `<= 600`-line package splits behind a facade or coupled spine contract realignments (`INV-HOLISTIC-PIPELINE-PLANNING`) are authorized to use a cohesive plan (`PLAN_MINT_OK=1`).
 3. **Need to plan → size it.** Small = native plan mode; complex (≥2 waves / ≥~10 files / cross-layer T3) = mint a disk plan at the start.
 4. **Native plan mode persists nothing durable** — don't default to it for complex work.
 

@@ -500,6 +500,66 @@ class HitlGovernanceEnforcementTests(unittest.TestCase):
             self.assertEqual(turn_steps[0]["content"], "Please answer the following questions:")
             self.assertIn("NEVER fall back to printing questions or options as plain text in chat", ANTI_PLAINTEXT_FALLBACK_DIRECTIVE)
 
+    def test_cohesive_refactor_exempt_from_blast_radius_layer_penalty(self) -> None:
+        """Cohesive cross-layer refactors (cohesive_refactor=True) incur 0.0 blast_radius_layers penalty."""
+        # Legacy default and explicit cohesive_refactor=False retain (blast_radius_layers - 1) * 0.03 penalty (capped at 0.09)
+        self.assertAlmostEqual(
+            calculate_calibrated_confidence({"confidence": 0.70}, blast_radius_layers=3),
+            0.64,
+        )
+        self.assertAlmostEqual(
+            calculate_calibrated_confidence({"confidence": 0.70}, blast_radius_layers=4, cohesive_refactor=False),
+            0.61,
+        )
+        self.assertAlmostEqual(
+            calculate_calibrated_confidence(
+                {"confidence": 0.70},
+                risk_level="HIGH",
+                is_irreversible=True,
+                blast_radius_layers=3,
+                cohesive_refactor=False,
+            ),
+            0.48,
+        )
+
+        # Cohesive refactor applies 0.0 layer penalty across blast_radius_layers >= 3 while preserving risk_level/irreversible penalties
+        for layers in (3, 4, 5):
+            self.assertAlmostEqual(
+                calculate_calibrated_confidence({"confidence": 0.70}, blast_radius_layers=layers, cohesive_refactor=True),
+                0.70,
+            )
+        self.assertAlmostEqual(
+            calculate_calibrated_confidence(
+                {"confidence": 0.70},
+                risk_level="HIGH",
+                is_irreversible=True,
+                blast_radius_layers=3,
+                cohesive_refactor=True,
+            ),
+            0.54,
+        )
+
+        # Option dictionary flag propagates through evaluate_hitl_surfacing_gate without eroding margin
+        gate_cohesive = evaluate_hitl_surfacing_gate(
+            [
+                {
+                    "label": "Cohesive producer-contract-validator package split",
+                    "confidence": 0.85,
+                    "blast_radius_layers": 4,
+                    "cohesive_refactor": True,
+                },
+                {
+                    "label": "Local single-file patch",
+                    "confidence": 0.60,
+                    "blast_radius_layers": 1,
+                },
+            ]
+        )
+        self.assertFalse(gate_cohesive["should_surface"])
+        self.assertAlmostEqual(gate_cohesive["top_score"], 0.85)
+        self.assertAlmostEqual(gate_cohesive["margin"], 0.25)
+        self.assertEqual(gate_cohesive["action"], "PROCEED_AUTONOMOUSLY")
+
 
 if __name__ == "__main__":
     unittest.main()
