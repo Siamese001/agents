@@ -755,6 +755,34 @@ Unify `bullet_fact_entailment.py`, `bullet_quality_floor_x2.py`, and `cross_sect
         self.assertTrue(is_valid, f"Holistic plan should pass, but failed with: {errors}")
         self.assertEqual(len(errors), 0)
 
+    def test_section_plan_with_negated_stage_dismissal_is_rejected(self) -> None:
+        """Verify INV-HOLISTIC-PIPELINE-PLANNING rejects plans that only mention upstream/downstream modules in negated dismissal prose."""
+        negated_dismissal_plan = """# Bullet Repair Without Upstream Realignment Plan
+
+## Wave 1: Section Repair Only
+### Objective & Scope
+Skip resume_graph_allocation.py and cross_section_x2.py completely and only patch role_episode_lane.py without checking C0 allocation or X2 validator.
+
+### Milestones & Deliverables
+- [MODIFY] `resume_graph_engine/src/apps_rg/runtime/sections/role_episode_lane.py`
+
+### Acceptance Criteria
+- Local bullet repair strings pass unit checks.
+
+### Runtime Receipt & Completion Gate
+- Run: .venv/bin/pytest tests/unit/resume_graph_engine/test_role_episode_and_bullet_lanes.py -v --timeout=60
+- Input: role_episode_lane.py fixtures
+- Expected: 0 failures
+- Verify independently: git diff --stat
+- Fail if: exit code != 0
+- Record: artifacts/receipts/wave1_negated_dismissal.json
+"""
+        is_valid, errors = validate_plan_content(negated_dismissal_plan, "negated_dismissal.md")
+        self.assertFalse(is_valid)
+        self.assertTrue(any("INV-HOLISTIC-PIPELINE-PLANNING" in err for err in errors))
+        self.assertTrue(any("Upstream Producer/Allocation stage" in err for err in errors))
+        self.assertTrue(any("Downstream Cross-Section/X2 Validation stage" in err for err in errors))
+
 
 if __name__ == "__main__":
     unittest.main()
