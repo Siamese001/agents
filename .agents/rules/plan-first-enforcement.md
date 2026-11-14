@@ -40,7 +40,7 @@ The legacy mandatory 4-column Status Table in markdown plan files is retired. Im
   3. `### Acceptance Criteria`
   4. `### Runtime Receipt & Completion Gate` (`Run:`, `Input:`, `Expected:`, `Verify independently:`, `Fail if:`, `Record:`)
 - **Word Budget**: Target 500–800 words, hard limit 1,000 words (`INV-WAVE-PLAN-MAX-WORDS`).
-- **Status Tracking & Reporting**: Wave status is tracked durably within repository artifacts and persistent ledgers. Ordinary conversational chat outputs must NOT dump all-wave status tables into chat (target ~120 words, max 300 words).
+- **Status Tracking & Reporting**: Wave status is tracked durably within repository artifacts and persistent ledgers. Ordinary conversational chat outputs must NOT dump all-wave status tables into chat (target ~150-250 words, max 450 words).
 - **Canonical Template**: See [docs/templates/wave_plan_template.md](../../docs/templates/wave_plan_template.md).
 
 ## Retrieval discipline at T2/T3 (unchanged)

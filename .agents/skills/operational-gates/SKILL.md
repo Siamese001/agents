@@ -38,7 +38,7 @@ For migrations or refactors spanning multiple files:
 Validate tool names, parameters, and authorities without mutating production state:
 - Verify the tool is present in the active tool definitions.
 - Required arguments are provided with correct types (`string`, `int`, `bool`, `list`, `dict`).
-- Values reside within allowable boundaries (e.g. timeout <= 180s, word limits <= 300 words).
+- Values reside within allowable boundaries (e.g. timeout <= 180s, word limits <= 450 words).
 - No undocumented or hallucinated parameters are supplied.
 - Dry-run or read-only mode is prioritized before executing write operations.
 

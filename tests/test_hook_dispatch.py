@@ -650,7 +650,7 @@ Build core foundation.
 
     def test_post_invocation_word_budget_circuit_breaker_prevents_infinite_loop(self) -> None:
         """post_invocation must intercept overlong prose at most once per turn and never loop infinitely."""
-        overlong_reply = " ".join(["word"] * 320)
+        overlong_reply = " ".join(["word"] * 465)
         first_payload = {
             "steps": [
                 {"type": "USER_INPUT", "source": "USER_EXPLICIT", "content": "Review bullet generation"},

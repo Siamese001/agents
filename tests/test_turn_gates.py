@@ -237,8 +237,8 @@ Wave 1 completed cleanly!
         self.assertEqual(result["checks"]["decisive_recommendation_gate"]["status"], "FAIL")
 
     def test_post_turn_gate_rejects_responses_exceeding_300_words(self) -> None:
-        """Verify post-turn gate enforces the 300-word ceiling."""
-        overlong = " ".join(["clear"] * 310)
+        """Verify post-turn gate enforces the 450-word ceiling."""
+        overlong = " ".join(["clear"] * 460)
         result = validate_post_turn_gate(
             repo_root=ROOT,
             candidate_response=overlong,
@@ -276,7 +276,7 @@ Wave 1 completed cleanly!
         )
         full_text = body_words + long_links + lineage_footer
         self.assertGreater(len(full_text.split()), 330)
-        res = validate_word_budget_gate(full_text, max_words=300, max_chars=3500)
+        res = validate_word_budget_gate(full_text, max_words=450, max_chars=5000)
         self.assertEqual(res["status"], "PASS", f"Expected PASS when lineage footer excluded, got: {res}")
         self.assertEqual(res["word_count"], 275)
 

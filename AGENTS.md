@@ -89,7 +89,7 @@ The knowledge-graph Memory MCP is optional for graph queries or writeback when i
 - No bare `except Exception` without guardian
 - No edits during planning phase
 - ADG before grep for structure (§28); grep for literals/TODOs only
-- Output Brevity & Word Budget Invariant: Target ~120 words with a strict ceiling of 300 words. Focus on direct facts, empirical verification, and actionable results without conversational fluff.
+- Output Brevity & Word Budget Invariant: Target ~150-250 words with a strict ceiling of 450 words (5,000 characters). Focus on direct facts, empirical verification, and actionable results without conversational fluff.
 - Full rules: `AGENTS.md` + `.agents/rules/conformance-map.md` · expanded lists: legacy compatibility notes only
 
 ## Production Derivation Integrity
@@ -161,6 +161,6 @@ Google Antigravity is the primary execution surface for this repository. Repo-ow
 
 ## Output Brevity & Word Budget Invariant
 
-- **Target Word Count**: Every output must target approximately 120 words.
-- **Hard Word Ceiling**: Every output must strictly never exceed a maximum of 300 words.
+- **Target Word Count**: Every output must target approximately 150 to 250 words.
+- **Hard Word Ceiling**: Every output must strictly never exceed a maximum of 450 words (5,000 visible prose characters, excluding `### Evidence & Graph Lineage` footers and link URLs).
 - **Information Density**: Deliver direct facts, verifiable code actions, and actionable results. Eliminate conversational preamble, pleasantries, fluff, and unnecessary repetition.

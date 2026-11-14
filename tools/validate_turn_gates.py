@@ -535,8 +535,8 @@ def validate_decisive_recommendation_gate(markdown_text: str) -> dict[str, Any]:
 
 def validate_word_budget_gate(
     markdown_text: str,
-    max_words: int = 300,
-    max_chars: int = 3500,
+    max_words: int = 450,
+    max_chars: int = 5000,
 ) -> dict[str, Any]:
     """Verify that engineering completion text complies with INV-OUTPUT-MAX-WORDS and INV-OUTPUT-MAX-CHARS."""
     if not markdown_text or not isinstance(markdown_text, str):
@@ -657,8 +657,8 @@ def validate_post_turn_gate(
     # Check 7: Output Brevity & Word Budget Gate (INV-OUTPUT-MAX-WORDS / INV-OUTPUT-MAX-CHARS)
     if candidate_response and not is_structured_governance_artifact:
         policies = load_policy_registry(root)
-        max_w = int(policies.get("INV-OUTPUT-MAX-WORDS", {}).get("threshold", 300))
-        max_c = int(policies.get("INV-OUTPUT-MAX-CHARS", {}).get("threshold", 3500))
+        max_w = int(policies.get("INV-OUTPUT-MAX-WORDS", {}).get("threshold", 450))
+        max_c = int(policies.get("INV-OUTPUT-MAX-CHARS", {}).get("threshold", 5000))
         budget_eval = validate_word_budget_gate(candidate_response, max_words=max_w, max_chars=max_c)
         checks["word_budget_gate"] = budget_eval
         issues.extend(budget_eval["issues"])

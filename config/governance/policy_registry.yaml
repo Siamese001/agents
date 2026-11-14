@@ -112,18 +112,18 @@ policies:
   - id: "INV-OUTPUT-MAX-WORDS"
     title: "Maximum Engineering Completion Word Ceiling"
     category: "presentation"
-    threshold: 300
+    threshold: 450
     unit: "words"
-    description: "Maximum allowable whitespace-delimited words in ordinary turn completion response (target ~120 words)."
+    description: "Maximum allowable whitespace-delimited words in ordinary turn completion response (target ~150-250 words)."
     enforcer: "tools/validate_turn_gates.py"
     rule_reference: ".agents/rules/output-brevity-governance.md"
 
   - id: "INV-OUTPUT-MAX-CHARS"
     title: "Maximum Engineering Completion Character Ceiling"
     category: "presentation"
-    threshold: 3500
+    threshold: 5000
     unit: "characters"
-    description: "Maximum allowable raw characters in ordinary turn completion response."
+    description: "Maximum allowable visible prose characters in ordinary turn completion response."
     enforcer: "tools/validate_turn_gates.py"
     rule_reference: ".agents/rules/output-brevity-governance.md"
 
