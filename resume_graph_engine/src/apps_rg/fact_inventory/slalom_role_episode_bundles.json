@@ -35,9 +35,9 @@
     "metric_slalom_governed_runtime_telemetry_coverage": "governed runtime telemetry and verification mesh coverage for deployed agents",
     "metric_slalom_validation_gate_mesh_conformance_pct": "100% deterministic gate mesh conformance for safety-critical agent decisions",
     "metric_slalom_audit_grade_lineage_assurance": "audit-grade execution lineage assurance across multi-agent traces",
-    "metric_slalom_accelerator_adoption_acceleration_months_to_weeks": "client adoption compressed from months to weeks via reusable solution accelerators",
-    "metric_slalom_cloud_partner_cosell_initiatives": "joint partner co-sell solution motions across AWS, Azure, and Databricks",
-    "metric_slalom_reusable_ip_asset_library_count": "reusable agentic IP asset library driving high-margin delivery motions",
+    "metric_slalom_accelerator_adoption_acceleration_months_to_weeks": "client adoption compressed from months to weeks via Google Cloud Gemini Enterprise, Claude Code, and OpenAI Codex accelerators",
+    "metric_slalom_cloud_partner_cosell_initiatives": "joint AI partner co-sell and licensing expansion across Google Cloud (scaling Gemini Enterprise from 750 to 5,750+ seats toward 10,000+), Anthropic Claude ($2.4M enablement workstream and 45-day Claude Code pods), and OpenAI Codex (15 percentage point handoff reduction in 10 days)",
+    "metric_slalom_reusable_ip_asset_library_count": "reusable multi-model agentic IP asset library spanning Google Cloud Vertex AI, Claude Managed Agents, and OpenAI Frontier driving high-margin delivery motions",
     "metric_slalom_visual_asset_intelligence_sow_delivery": "six-figure multi-modal visual asset intelligence platform delivered across utility generation sites",
     "metric_slalom_consulting_engineering_footprint_scale": "105 software engineers and data leaders directed across a leading energy and utility company, managing all client relationships, delivery execution, and sales pipeline",
     "metric_slalom_acoustic_airgap_pcm_spooler_200ms": "<200ms zero-drop PCM audio spooler startup & 100% local Metal MLX Whisper STT airgap",
@@ -221,30 +221,36 @@
       "title": "Senior Director",
       "employer_node_id": "employment_exp_slalom_001",
       "root_capability_node_id": "ecosystem_accelerators",
-      "bundle_theme": "Reusable enterprise solution accelerators and cloud partner co-innovation",
-      "claim_text": "Reusable enterprise solution accelerators and cloud partner co-innovation",
-      "claim_action": "Productized reusable agentic accelerators and scaled partner co-sell motions across AWS, Azure, and Databricks",
-      "claim_scope": "Hyperscaler partner alliances, multi-cloud accelerator architecture, and high-margin IP packaging.",
-      "claim_outcome": "Compressed client time-to-value from months to weeks and established high-margin repeatable delivery assets.",
+      "bundle_theme": "Google Cloud (GCP), Anthropic Claude, and OpenAI partnership co-innovation, licensing expansion, and reusable enterprise AI accelerators",
+      "claim_text": "Google Cloud (GCP), Anthropic Claude, and OpenAI partnership co-innovation, licensing expansion, and reusable enterprise AI accelerators",
+      "claim_action": "Led strategic AI partner co-sell, licensing expansion, and joint feature enablement across Google Cloud (GCP Gemini Enterprise & Vertex AI), Anthropic (Claude Code & Managed Agents), OpenAI (Codex & Frontier), AWS, Azure, and Databricks",
+      "claim_scope": "Google Cloud Gemini Enterprise seat scaling (750 to 5,750+ seats toward 10,000+ with 2,000 Plus tier, deployment vouchers, and partner rebates), Vertex AI / Agent Designer / NotebookLM / Deep Research / Model Armor enablement, Anthropic Claude $2.4M enterprise enablement workstream and 45-day Claude Code FDX pods on GCP, and OpenAI Presence + Codex continuous-improvement loops.",
+      "claim_outcome": "Scaled Google Cloud Gemini Enterprise licensing past 5,750 seats, launched a $2.4M Anthropic Claude enterprise enablement workstream with 45-day Claude Code pods, cut human handoffs 15 percentage points in 10 days (75% automated resolution) via OpenAI Codex, and compressed client adoption from months to weeks.",
       "support_level": "approved_by_graph_presence",
       "executive_scope_signals": [
-        "Built and scaled strategic partner solution motions across AWS, Microsoft Azure, and Databricks ecosystems",
-        "Productized bespoke client agentic patterns into firm-wide reusable solution accelerators"
+        "Directed Google Cloud (GCP) partnership licensing and feature adoption, scaling Gemini Enterprise from 750 to 5,750+ seats toward 10,000+ (including 2,000 Plus seats), structuring partner rebates and deployment vouchers, and enabling Vertex AI, Agent Designer, NotebookLM, Deep Research, and GE 101-301 curricula",
+        "Spearheaded Anthropic partnership motions including a $2.4M ($2,376K NAV) enterprise AI enablement workstream, 45-day parallel Claude Code Forward Deployed Experience pods on shared GCP Landing Zones, and Claude Managed Agents in Slalom Traverse",
+        "Operationalized OpenAI partner solutions pairing OpenAI Presence with OpenAI Codex automated pull-request loops (cutting human handoffs 15 percentage points in 10 days and resolving 75% of inbound issues) alongside OpenAI Sol (54% higher token efficiency) and OpenAI Frontier across AWS, Azure, and Databricks"
       ],
       "architecture_scope_signals": [
-        "Multi-cloud agentic microservice deployment patterns across AWS, Azure, and Databricks",
-        "Modular accelerator packaging for rapid enterprise client onboarding",
-        "Co-sell solution architecture and joint go-to-market enablement assets"
+        "Google Cloud Gemini Enterprise Agent Platform, Vertex AI, Model Armor guardrails, BigQuery, Apigee, and shared GCP Landing Zone security patterns",
+        "Anthropic Claude Code 45-day parallel engineering pods, Claude Managed Agents (Slalom Traverse Layer 3), and multi-model Opus / Sonnet / Haiku routing",
+        "OpenAI Presence and OpenAI Codex continuous-improvement PR automation, OpenAI Sol and Frontier evaluation harnesses, and multi-cloud accelerator packaging across GCP, AWS, Azure, and Databricks"
       ],
       "graph_skill_node_ids": [
         "skill_p2_tech_reusable_accelerators",
         "skill_partner_cloud_partner_ecosystem",
         "skill_partner_aws_ecosystem",
         "skill_partner_hyperscaler_cosell",
-        "skill_reusable_agentic_platform_architecture"
+        "skill_reusable_agentic_platform_architecture",
+        "skill_agentic_platform_productization",
+        "skill_ai_platform_commercialization"
       ],
       "linked_source_fact_ids": [
-        "fact_slalom_004"
+        "exp_slalom_001",
+        "fact_slalom_004",
+        "fact_slalom_007",
+        "fact_slalom_008"
       ],
       "linked_archive_signal_ids": [],
       "linked_metric_outcome_ids": [
@@ -255,7 +261,7 @@
       "held_metrics": [],
       "excluded_metrics": [],
       "metric_candidates": [],
-      "operating_context": "2026-present Slalom Senior Director role episode for client delivery and agentic solution scaling.",
+      "operating_context": "2026-present Slalom Senior Director role episode for Google Cloud, Anthropic, and OpenAI partnership co-innovation, licensing expansion, and agentic solution scaling.",
       "bullet_intent": "Use only role_episode_bundle_id-bound evidence; metric_outcome_nodes are the approved metric surface.",
       "section_eligibility": [
         "slalom_bullets",
@@ -864,7 +870,7 @@
     },
     "metric_slalom_accelerator_adoption_acceleration_months_to_weeks": {
       "metric_outcome_id": "metric_slalom_accelerator_adoption_acceleration_months_to_weeks",
-      "metric": "client adoption compressed from months to weeks via reusable solution accelerators",
+      "metric": "client adoption compressed from months to weeks via Google Cloud Gemini Enterprise, Claude Code, and OpenAI Codex accelerators",
       "metric_type": "adoption_acceleration_metric",
       "employer": "Slalom",
       "approved": true,
@@ -873,9 +879,13 @@
       "bundle_bindings": [
         "reb_slalom_ecosystem_accelerators"
       ],
-      "claim_text": "Graph evidence supports client adoption compressed from months to weeks via reusable solution accelerators.",
+      "claim_text": "Graph evidence supports client adoption compressed from months to weeks via Google Cloud Gemini Enterprise, Claude Code, and OpenAI Codex accelerators.",
       "surface_tokens": [
         "months to weeks",
+        "Google Cloud",
+        "Gemini Enterprise",
+        "Claude Code",
+        "OpenAI Codex",
         "reusable solution accelerators"
       ],
       "section_eligibility": [
@@ -889,7 +899,7 @@
     },
     "metric_slalom_cloud_partner_cosell_initiatives": {
       "metric_outcome_id": "metric_slalom_cloud_partner_cosell_initiatives",
-      "metric": "joint partner co-sell solution motions across AWS, Azure, and Databricks",
+      "metric": "joint AI partner co-sell and licensing expansion across Google Cloud (scaling Gemini Enterprise from 750 to 5,750+ seats toward 10,000+), Anthropic Claude ($2.4M enablement workstream and 45-day Claude Code pods), and OpenAI Codex (15 percentage point handoff reduction in 10 days)",
       "metric_type": "partner_cosell_metric",
       "employer": "Slalom",
       "approved": true,
@@ -898,9 +908,14 @@
       "bundle_bindings": [
         "reb_slalom_ecosystem_accelerators"
       ],
-      "claim_text": "Graph evidence supports joint partner co-sell solution motions across AWS, Azure, and Databricks.",
+      "claim_text": "Graph evidence supports joint AI partner co-sell and licensing expansion across Google Cloud (scaling Gemini Enterprise from 750 to 5,750+ seats toward 10,000+), Anthropic Claude ($2.4M enablement workstream and 45-day Claude Code pods), and OpenAI Codex (15 percentage point handoff reduction in 10 days).",
       "surface_tokens": [
         "partner co-sell",
+        "Google Cloud",
+        "Gemini Enterprise",
+        "5,750+",
+        "Claude Code",
+        "OpenAI Codex",
         "AWS",
         "Azure",
         "Databricks"
@@ -916,7 +931,7 @@
     },
     "metric_slalom_reusable_ip_asset_library_count": {
       "metric_outcome_id": "metric_slalom_reusable_ip_asset_library_count",
-      "metric": "reusable agentic IP asset library driving high-margin delivery motions",
+      "metric": "reusable multi-model agentic IP asset library spanning Google Cloud Vertex AI, Claude Managed Agents, and OpenAI Frontier driving high-margin delivery motions",
       "metric_type": "ip_asset_metric",
       "employer": "Slalom",
       "approved": true,
@@ -925,9 +940,12 @@
       "bundle_bindings": [
         "reb_slalom_ecosystem_accelerators"
       ],
-      "claim_text": "Graph evidence supports reusable agentic IP asset library driving high-margin delivery motions.",
+      "claim_text": "Graph evidence supports reusable multi-model agentic IP asset library spanning Google Cloud Vertex AI, Claude Managed Agents, and OpenAI Frontier driving high-margin delivery motions.",
       "surface_tokens": [
         "reusable agentic IP",
+        "Vertex AI",
+        "Claude Managed Agents",
+        "OpenAI Frontier",
         "high-margin delivery"
       ],
       "section_eligibility": [

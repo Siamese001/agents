@@ -958,9 +958,9 @@ def _default_slot_specs(
                 )
             )
             req_root_id = (
-                unify_req_root if (section_id == "unify_bullets" and target_role_profile == "insurance_it_strategy") else (
-                    str(slalom_slot_roots.get(claim_unit) or "").strip() if (section_id == "slalom_bullets" and target_role_profile == "insurance_it_strategy") else (
-                        str(ibm_slot_roots.get(claim_unit) or "").strip() if (section_id == "ibm_bullets" and target_role_profile == "insurance_it_strategy" and str(ibm_slot_roots.get(claim_unit) or "").strip() in section_roots_map) else (
+                unify_req_root if (section_id == "unify_bullets" and target_role_profile in {"insurance_it_strategy", "ai_partnerships_gtm"} and unify_req_root in section_roots_map) else (
+                    str(slalom_slot_roots.get(claim_unit) or "").strip() if (section_id == "slalom_bullets" and target_role_profile in {"insurance_it_strategy", "ai_partnerships_gtm"} and str(slalom_slot_roots.get(claim_unit) or "").strip() in section_roots_map) else (
+                        str(ibm_slot_roots.get(claim_unit) or "").strip() if (section_id == "ibm_bullets" and target_role_profile in {"insurance_it_strategy", "ai_partnerships_gtm"} and str(ibm_slot_roots.get(claim_unit) or "").strip() in section_roots_map) else (
                             str(insurtech_slot_roots.get(claim_unit) or "").strip() if (section_id == "insurtech_bullets" and target_role_profile == "insurance_it_strategy" and str(insurtech_slot_roots.get(claim_unit) or "").strip() in section_roots_map) else ""
                         )
                     )
@@ -970,9 +970,6 @@ def _default_slot_specs(
                 {
                     "slot_id": f"{section_id}:{claim_unit}",
                     "section_id": section_id,
-                    # Unify's resume bullets have a graph-authored role-episode
-                    # contract.  Each slot receives one approved metric outcome;
-                    # numeric-eligible Unify slots set metric_required: True.
                     "metric_required": (
                         metric_available
                         and (
@@ -988,27 +985,19 @@ def _default_slot_specs(
                 }
             )
     exec_roots_map = _authority_rows_by_root(section_plans.get("executive_summary", {}))
-    insurance_exec_roots = {
-        1: "reb_unify_regulated_enterprise_ai_governance",
-        2: "reb_insurtech_aws_migration_execution",
-        3: "reb_unify_agentic_platform_architecture",
-    }
+    insurance_exec_roots = {1: "reb_unify_regulated_enterprise_ai_governance", 2: "reb_insurtech_aws_migration_execution", 3: "reb_unify_agentic_platform_architecture"}
+    partnerships_exec_roots = {1: "reb_unify_partner_channel_cosell", 2: "reb_slalom_ecosystem_accelerators", 3: "reb_ibm_aws_alliance_partner_cosell_gtm"}
     use_insurance_exec_roots = target_role_profile == "insurance_it_strategy" and all(r in exec_roots_map for r in insurance_exec_roots.values())
+    use_partnerships_exec_roots = target_role_profile == "ai_partnerships_gtm" and all(r in exec_roots_map for r in partnerships_exec_roots.values())
     for index in range(1, 4):
         exec_slot: dict[str, Any] = {"slot_id": f"executive_summary:claim:{index:02d}", "section_id": "executive_summary", "metric_required": index == 1}
         if use_insurance_exec_roots:
             exec_slot["required_root_id"] = insurance_exec_roots[index]
+        elif use_partnerships_exec_roots:
+            exec_slot["required_root_id"] = partnerships_exec_roots[index]
         slots.append(exec_slot)
-    # The fixed headline product shape is ``SVP Engineering | X | Y | Z``.
-    # Allocate one independent graph authority per visible positioning pillar;
-    # two slots force one root to be reused across two pillars and routinely
-    # produce semantically duplicate, judge-rejected headlines.
     head_roots_map = _authority_rows_by_root(section_plans.get("headline", {}))
-    insurance_head_roots = {
-        1: "reb_insurtech_aws_guidewire_core_modernization",
-        2: "reb_insurtech_regulated_aws_control_implementation",
-        3: "reb_unify_distributed_ecosystem_engineering",
-    }
+    insurance_head_roots = {1: "reb_insurtech_aws_guidewire_core_modernization", 2: "reb_insurtech_regulated_aws_control_implementation", 3: "reb_unify_distributed_ecosystem_engineering"}
     use_insurance_head_roots = target_role_profile == "insurance_it_strategy" and all(r in head_roots_map for r in insurance_head_roots.values())
     for index in range(1, 4):
         head_slot: dict[str, Any] = {"slot_id": f"headline:skill:{index:02d}", "section_id": "headline", "metric_required": False}

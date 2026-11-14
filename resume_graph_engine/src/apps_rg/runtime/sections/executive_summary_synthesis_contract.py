@@ -67,41 +67,46 @@ SENTENCE_ARC_AI_PARTNERSHIPS: tuple[dict[str, str], ...] = (
         "brushstroke_id": "B1_executive_identity",
         "arc_role": "partnerships_thesis",
         "guidance": (
-            "Leadership-first applied AI architecture and ecosystem partnerships thesis; "
-            "connect reusable agentic platform architecture, hyperscaler/GSI co-sell enablement, "
-            "and commercial platform adoption (targeting vocabulary — not JD-as-proof)."
+            "Leadership-first applied AI architecture and multi-ecosystem partnerships thesis; "
+            "lead with current and recent cloud/AI partner co-sell and commercial platform adoption "
+            "across Google Cloud (GCP Gemini Enterprise & Vertex AI), frontier AI coding/agent platforms, "
+            "and hyperscaler/GSI channel ecosystems before prior alliance programs (never open with IBM-AWS alone, "
+            "never name employer brands or TARGET_COMPANY)."
         ),
     },
     {
         "brushstroke_id": "B2_governed_platform_system",
         "arc_role": "platform_architecture",
         "guidance": (
-            "S2: reusable agentic AI platform architecture, reference architectures, and solution patterns "
-            "from allowed facts; max two mechanism terms verbatim."
+            "S2: reusable multi-model agentic AI platform architecture, Google Cloud Vertex AI and Gemini Enterprise "
+            "reference architectures, and joint cloud/AI solution patterns from allowed facts; max two mechanism terms verbatim."
         ),
     },
     {
         "brushstroke_id": "B2_governed_platform_system",
         "arc_role": "partner_cosell_motion",
         "guidance": (
-            "S3: hyperscaler alliance, GSI/ISV partner enablement, and joint go-to-market execution from "
-            "allowed facts; describe partner co-sell and joint revenue expansion qualitatively unless a numeric metric is explicitly reserved for executive_summary."
+            "S3: multi-cloud and AI partner co-sell execution, enterprise seat licensing expansion, joint GSI/ISV "
+            "solution bundling, and AWS/GCP/Azure/Databricks ecosystem enablement from allowed facts; weave reserved "
+            "partner revenue or seat-scaling metrics only when explicitly allocated to executive_summary."
         ),
     },
     {
         "brushstroke_id": "B3_control_evidence_discipline",
         "arc_role": "governed_deployment_enablement",
         "guidance": (
-            "S4: repeatable delivery governance, field solution playbooks, or production adoption discipline "
-            "from allowed facts; use a non-stock opener (e.g. 'In parallel,' or 'Across enterprise programs,')."
+            "S4: repeatable delivery governance, field solution playbooks, safety guardrails, and production "
+            "adoption discipline compressing enterprise onboarding from months to weeks; use a non-stock opener "
+            "(e.g. 'In parallel,' or 'Across enterprise programs,')."
         ),
     },
     {
         "brushstroke_id": "B4_business_role_fit",
         "arc_role": "commercial_outcomes",
         "guidance": (
-            "S5: weave reserved commercial outcomes from allowed facts (e.g. $22M IP-led "
-            "platform revenue, margin expansion, and delivery scale) into flowing display prose without quoting unreserved partner percentages."
+            "S5: weave reserved commercial and partner-derived outcomes from allowed facts (e.g. $3M partner-derived "
+            "co-sell revenue or $22M IP-led platform revenue, high-margin reusable IP, and enterprise seat scale) "
+            "into flowing display prose without quoting unreserved percentages."
         ),
     },
     {
@@ -109,8 +114,8 @@ SENTENCE_ARC_AI_PARTNERSHIPS: tuple[dict[str, str], ...] = (
         "arc_role": "ecosystem_capstone",
         "guidance": (
             "S6: forward-modal capstone grounded in cited source_fact_ids projecting how reusable AI platform "
-            "productization and partner co-sell architecture accelerate enterprise AI deployment and ecosystem scale; "
-            "never name TARGET_COMPANY."
+            "productization, multi-cloud licensing expansion, and partner co-sell architecture accelerate enterprise "
+            "AI deployment and ecosystem scale; never name TARGET_COMPANY."
         ),
     },
 )
