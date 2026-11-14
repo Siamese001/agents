@@ -296,7 +296,7 @@ def compute_career_band_filter(
 
 _ARCHETYPE_ROOT_BOOSTS: dict[str, tuple[tuple[str, ...], dict[str, float]]] = {
     "cloud_arch": (
-        ("cloud architecture", "microservices", "event-driven", "kafka", "devsecops", "lakehouse", "databricks", "distributed systems"),
+        ("cloud architecture", "microservices", "event-driven", "kafka", "devsecops", "lakehouse", "databricks", "distributed systems", "aws", "gcp", "google cloud", "architected", "scaled"),
         {
             "reb_slalom_ecosystem_accelerators": 1.8, "reb_slalom_governed_runtime_scaling": 1.7,
             "reb_slalom_visual_asset_intelligence": 1.6, "reb_slalom_engineering_practice_leadership": 1.5,
@@ -310,7 +310,7 @@ _ARCHETYPE_ROOT_BOOSTS: dict[str, tuple[tuple[str, ...], dict[str, float]]] = {
         },
     ),
     "ai_ml_platform": (
-        ("agentic", "graphrag", "multi-agent", "llm", "mcp", "control plane", "copilot", "bitemporal"),
+        ("agentic", "graphrag", "multi-agent", "llm", "mcp", "control plane", "copilot", "bitemporal", "vertex ai", "model armor", "anthropic", "claude", "openai", "codex", "engineered", "automated"),
         {
             "reb_slalom_bi_temporal_knowledge_graph_hybrid_retrieval": 1.9, "reb_slalom_autonomous_agentic_sdlc_mcp": 1.8,
             "reb_slalom_live_copilot_acoustic_air_gap": 1.7, "reb_slalom_multi_agent_orchestration_governance": 1.6,
@@ -325,7 +325,7 @@ _ARCHETYPE_ROOT_BOOSTS: dict[str, tuple[tuple[str, ...], dict[str, float]]] = {
         },
     ),
     "ai_partnerships_gtm": (
-        ("partner", "alliance", "co-sell", "cosell", "ecosystem", "hyperscaler", "gsi", "channel"),
+        ("partner", "alliance", "co-sell", "cosell", "ecosystem", "hyperscaler", "gsi", "channel", "aws", "gcp", "google cloud", "vertex ai", "model armor", "anthropic", "claude", "openai", "codex", "commercialized", "directed"),
         {
             "reb_slalom_ecosystem_accelerators": 2.1, "reb_slalom_nextgen_ai_solutions": 1.8,
             "reb_slalom_agentic_client_delivery": 1.7, "reb_slalom_governed_runtime_scaling": 1.6,

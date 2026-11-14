@@ -260,11 +260,13 @@ def build_employment_targeting_context(
         "selector_requires_valid_candidates": bool(allowed_fact_ids),
     }
     # W4.3 (G15/G17): per-slot numeric-entailment corpus from the C0-pool selected_fact_plan
-    # (NOT base-resume extract_*_employment rows) + slot bundle non-metric text.
-    ctx["slot_entailment_corpus"] = build_slot_entailment_corpus(
-        lane,
-        runtime_payload.get("selected_fact_plan") or {},
-    )
+    sfp = runtime_payload.get("selected_fact_plan") or {}
+    ctx["slot_entailment_corpus"] = build_slot_entailment_corpus(lane, sfp)
+    ctx["slot_fact_anchors"] = {
+        str(f.get("fact_id") or ""): dict(f.get("fact_anchor") or {})
+        for f in (sfp.get("facts") or [])
+        if isinstance(f, dict) and str(f.get("fact_id") or "") and isinstance(f.get("fact_anchor"), dict)
+    }
     return ctx
 
 
@@ -449,20 +451,14 @@ def competencies_pool_x1d_judge_rows(
     categories_ok = bool(selections) and all(float(s.get("score") or 0.0) >= threshold for s in selections)
     passed = gate_ok and categories_ok and n_min <= len(selections) <= n_max
 
-    # E2E-08 guard: distinguish an EMPTY selection input (selector returned no candidates,
-    # or bullet_pool_selection.json absent) from a genuine below-threshold model-quality
-    # failure. Without this, an empty merge silently emits a score=0.0 / pass=False row that
-    # reads downstream as a judge/content failure when the real condition is upstream "no
-    # candidates selected". Fail closed either way, but name the cause.
+    # E2E-08 guard: distinguish EMPTY selection input from below-threshold quality failure.
     empty_selection = not selections
     selection_file_present = sel_path.is_file()
-    diagnostic_reason = None
-    if empty_selection:
-        diagnostic_reason = (
-            "selector_returned_no_candidates"
-            if selection_file_present
-            else "no_selection_input_artifact"
-        )
+    diagnostic_reason = (
+        ("selector_returned_no_candidates" if selection_file_present else "no_selection_input_artifact")
+        if empty_selection
+        else None
+    )
 
     selector_provider_key, selector_model, selector_model_source = _selector_model_row(lane, slot_kind="competencies")
     selector_provider_name = "Anthropic Claude" if selector_provider_key == "anthropic_claude" else "OpenAI ChatGPT"

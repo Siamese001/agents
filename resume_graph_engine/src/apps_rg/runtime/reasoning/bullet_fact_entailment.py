@@ -193,13 +193,20 @@ def metric_phrase_entailed_in_text(
     text: str,
     *,
     min_stem_ratio: float = 0.60,
+    fact_anchor: dict[str, Any] | None = None,
 ) -> bool:
     """Return True when ``text`` contains ``metric`` verbatim OR entails all numeric
-    magnitudes in ``metric`` and at least ``min_stem_ratio`` of ``metric``'s content stems.
+    magnitudes in ``metric`` and at least ``min_stem_ratio`` of ``metric``'s content stems
+    (or ``fact_anchor.content_word_stems`` when supplied).
     """
     m_clean = str(metric or "").strip()
     t_clean = str(text or "").strip()
     if not m_clean:
+        if isinstance(fact_anchor, dict) and fact_anchor.get("content_word_stems"):
+            anchor_stems = {str(s).lower() for s in (fact_anchor.get("content_word_stems") or []) if str(s).strip()}
+            t_stems = _metric_content_stems(t_clean)
+            matched_a = sum(1 for a in anchor_stems if any(ts.startswith(a) or a.startswith(ts) for ts in t_stems))
+            return bool(anchor_stems) and (matched_a / min(len(anchor_stems), 5)) >= min_stem_ratio
         return True
     if not t_clean:
         return False
@@ -212,7 +219,7 @@ def metric_phrase_entailed_in_text(
     if not m_stems:
         return True
     t_stems = _metric_content_stems(t_clean)
-    matched = len(m_stems & t_stems)
+    matched = sum(1 for ms in m_stems if any(ts == ms or ts.startswith(ms[:5]) or ms.startswith(ts[:5]) for ts in t_stems))
     min_required = min(2, len(m_stems))
     return matched >= min_required and (matched / len(m_stems)) >= min_stem_ratio
 
@@ -285,9 +292,12 @@ def build_slot_entailment_corpus(
         slot_id = str(fact.get("fact_id") or "").strip()
         if not slot_id:
             continue
+        anchor = fact.get("fact_anchor") if isinstance(fact.get("fact_anchor"), dict) else {}
         parts = [
             str(fact.get("claim_text") or "").strip(),
             str(fact.get("metric_raw") or "").strip(),
+            str(anchor.get("resolved_raw_chunk") or fact.get("raw_chunk") or "").strip(),
+            " ".join(str(x) for x in (anchor.get("numeric_tokens") or [])),
             alloc_by_slot.get(slot_id, ""),
         ]
         bundle_id = bundle_map.get(slot_id, "")

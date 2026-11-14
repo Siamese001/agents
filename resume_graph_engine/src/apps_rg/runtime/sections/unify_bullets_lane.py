@@ -732,7 +732,7 @@ def _claim_text_by_unify_slot(plan: Any) -> dict[str, str]:
     if not isinstance(plan, dict):
         return {}
     return {
-        str(f.get("fact_id") or ""): str(f.get("claim_text") or "")
+        str(f.get("fact_id") or ""): str(f.get("claim_text") or (f.get("fact_anchor") or {}).get("resolved_raw_chunk") or f.get("raw_chunk") or "")
         for f in (plan.get("facts") or [])
         if isinstance(f, dict) and str(f.get("fact_id") or "").startswith("bul_unify_")
     }

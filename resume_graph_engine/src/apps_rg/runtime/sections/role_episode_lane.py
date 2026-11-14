@@ -732,20 +732,15 @@ _MODEL_SURFACE_NON_ANCHOR_TOKENS = frozenset(
 
 
 def _proof_fact_surface_tokens(fact: Mapping[str, Any]) -> set[str]:
+    anchor = fact.get("fact_anchor") if isinstance(fact.get("fact_anchor"), Mapping) else {}
     values: list[Any] = [
-        fact.get("claim_text"),
-        fact.get("text"),
-        fact.get("domain"),
-        fact.get("role_episode_bundle_id"),
-        fact.get("graph_skill_node_ids"),
-        fact.get("allowed_graph_evidence_ids"),
+        fact.get("claim_text"), fact.get("text"), fact.get("raw_chunk"),
+        anchor.get("resolved_raw_chunk"), anchor.get("content_word_stems"),
+        anchor.get("numeric_tokens"), anchor.get("partner_theme_tags"),
+        fact.get("domain"), fact.get("role_episode_bundle_id"),
+        fact.get("graph_skill_node_ids"), fact.get("allowed_graph_evidence_ids"),
     ]
-    return set(
-        re.findall(
-            r"[a-z0-9]+",
-            " ".join(str(value or "") for value in values).casefold(),
-        )
-    )
+    return set(re.findall(r"[a-z0-9]+", " ".join(str(value or "") for value in values).casefold()))
 
 
 def _proof_fact_composition_is_bound(phrase: str, fact: Mapping[str, Any]) -> bool:
@@ -793,7 +788,9 @@ def _proof_fact_text(fact: dict[str, Any]) -> str:
         composition = _PROOF_FACT_SURFACE_COMPOSITIONS.get((fact_id, skill_ids[0]))
         if composition and _proof_fact_composition_is_bound(composition, fact):
             return _sentence(composition)
-    return _sentence(str(fact.get("claim_text") or fact.get("text") or ""))
+    anchor = fact.get("fact_anchor") if isinstance(fact.get("fact_anchor"), Mapping) else {}
+    base = str(fact.get("claim_text") or fact.get("text") or anchor.get("resolved_raw_chunk") or fact.get("raw_chunk") or "")
+    return _sentence(base)
 
 
 def _proof_fact_by_id(facts: list[dict[str, Any]], allowed: list[str]) -> dict[str, dict[str, Any]]:
@@ -1376,7 +1373,7 @@ def _role_episode_evidence_block(runtime_payload: dict[str, Any]) -> str:
 def _compiled_prompt(cfg: RoleEpisodeLaneConfig, runtime_payload: dict[str, Any]) -> str:
     facts = _facts_from_plan(runtime_payload.get("selected_fact_plan") or {})
     fact_lines = [
-        f"- {f.get('fact_id')}: {_compact_text(str(f.get('claim_text') or f.get('text') or ''), max_chars=280)}"
+        f"- {f.get('fact_id')}: {_compact_text(str((f.get('fact_anchor') or {}).get('resolved_raw_chunk') or f.get('raw_chunk') or f.get('claim_text') or f.get('text') or ''), max_chars=280)}"
         for f in facts
     ]
     role_methodology = (
