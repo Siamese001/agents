@@ -142,6 +142,14 @@ _META_PHRASE_REPLACEMENTS: tuple[tuple[str, str], ...] = (
     ("the candidate", "That executive background"),
     ("this individual", "That executive background"),
     ("this executive", "That executive background"),
+    ("this leader directed ", "directed "),
+    ("this leader led ", "led "),
+    ("this leader built ", "built "),
+    ("this leader drove ", "drove "),
+    ("this leader engineered ", "engineered "),
+    ("this leader architected ", "architected "),
+    ("this leader steered ", "steered "),
+    ("cosell", "co-sell"),
     ("can translate into", "translates into"),
     ("additionally, their", "In parallel, that"),
     ("furthermore, their", "In parallel, that"),
@@ -1765,7 +1773,6 @@ def _trim_paragraph_word_budget(
             (" legacy-modernization ", " modernization "),
             (" autonomous ", " "),
             (" decentralized ", " "),
-            (" one ", " "),
         )
         for bad, good in low_signal_rewrites:
             if _wc(out) <= max_words:

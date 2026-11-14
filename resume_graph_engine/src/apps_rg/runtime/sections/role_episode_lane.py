@@ -515,7 +515,8 @@ def _strip_targeting_only_experience_claims(text: str) -> tuple[str, list[str]]:
     if re.search(r"\bfrontier\s+AI\b", cleaned, re.IGNORECASE):
         replacement = "enterprise AI" if re.search(r"next-gen", cleaned, re.IGNORECASE) else "next-generation AI"
         cleaned = re.sub(r"\bfrontier\s+AI\b", replacement, cleaned, flags=re.IGNORECASE)
-    cleaned = re.sub(r"\bpartner-led\s+deployments?\b", "enterprise client deployments", cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r"\bpartner-led\s+deployments\b", "client deployments", cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r"\bpartner-led\s+deployment\b", "client deployment", cleaned, flags=re.IGNORECASE)
     cleaned = re.sub(r"\s{2,}", " ", cleaned)
     cleaned = re.sub(r"\s+([.,;:])", r"\1", cleaned).strip(" ,;:")
     if cleaned != original and cleaned:
@@ -601,6 +602,8 @@ def _repair_role_episode_bullet_evidence_density(
         density = check_experience_bullet_evidence_density(
             str(out.get("bullet_id") or ""), text
         )
+        alloc_metric = str((fact or {}).get("metric_text") or (fact or {}).get("metric_outcome_id") or "").strip()
+        requires_100pct = not alloc_metric or "100%" in alloc_metric or "conformance_pct" in alloc_metric
         if replacement and not density.passed:
             out["bullet_text"] = replacement
             repairs.append(
@@ -610,7 +613,7 @@ def _repair_role_episode_bullet_evidence_density(
                     "reason": "graph_bound_evidence_density_completion",
                 }
             )
-        elif root_id == "reb_slalom_governed_runtime_scaling" and "100%" not in text:
+        elif root_id == "reb_slalom_governed_runtime_scaling" and requires_100pct and not re.search(r"\b100(?:\s*%|\s+percent)\b", text, re.IGNORECASE):
             out["bullet_text"] = _ROLE_EPISODE_EVIDENCE_DENSITY_REPAIRS["reb_slalom_governed_runtime_scaling"]
             repairs.append(
                 {
@@ -1061,7 +1064,12 @@ def _proof_authorized_narrative_from_selection(
                 if _t_label == "frontier_ai_as_experience":
                     candidate_text = _t_pat.sub("enterprise AI", candidate_text)
                 elif _t_label == "partner_led_deployment_as_experience":
-                    candidate_text = _t_pat.sub("enterprise client deployments", candidate_text)
+                    candidate_text = re.sub(
+                        r"\bpartner-led\s+deployments\b",
+                        "client deployments",
+                        re.sub(r"\bpartner-led\s+deployment\b", "client deployment", candidate_text, flags=re.IGNORECASE),
+                        flags=re.IGNORECASE,
+                    )
         candidate_text = repair_narrative_bullet_echo_from_graph(
             candidate_text, facts=facts, companion_bullet_texts=companion_bullet_texts, section_id=section_id,
         )

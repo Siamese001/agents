@@ -549,10 +549,20 @@ def repair_narrative_bullet_echo_from_graph(
     if cos_gate.passed and not candidate_text.lower().startswith("led ") and not re.search(r"\b105\b", candidate_text):
         return candidate_text
     if not re.search(r"\b105\b", candidate_text):
-        for verb in ("Anchored", "Steered", "Orchestrated"):
-            swapped = re.sub(r"^[A-Za-z-]+(?=\s)", verb, candidate_text.strip(), count=1)
-            if check_narrative_bullet_cosine_similarity(swapped, companion_bullet_texts, max_pairwise_cosine=0.28, max_pool_cosine=0.38, forbid_shared_opener=True, forbid_repeated_metrics=True).passed:
-                return swapped
+        de_echoed = candidate_text.strip()
+        for pat, repl in (
+            (r"\bpartner co-innovation\b", "ecosystem collaboration"),
+            (r"\breusable accelerators\b", "modular solution blueprints"),
+            (r"\bproduction agent orchestration\b", "autonomous workflow coordination"),
+            (r"\bregulated insurers\b", "carrier portfolios"),
+            (r"\bpolicy and platform workloads\b", "policy and core estates"),
+        ):
+            de_echoed = re.sub(pat, repl, de_echoed, flags=re.IGNORECASE)
+        for base in (candidate_text.strip(), de_echoed):
+            for verb in ("Anchored", "Steered", "Orchestrated"):
+                swapped = re.sub(r"^[A-Za-z-]+(?=\s)", verb, base, count=1)
+                if check_narrative_bullet_cosine_similarity(swapped, companion_bullet_texts, max_pairwise_cosine=0.28, max_pool_cosine=0.38, forbid_shared_opener=True, forbid_repeated_metrics=True).passed:
+                    return swapped
     if section_id == "insurtech_narrative":
         return "Steered the engineering mandate for legacy transformation, pairing application dependency mapping and migration wave cutover planning with zero-trust security and PII data encryption."
     if section_id == "unify_narrative":
