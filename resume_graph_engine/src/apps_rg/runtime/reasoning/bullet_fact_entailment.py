@@ -30,6 +30,15 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from apps_rg.runtime.contracts.metric_lexical_primitives import (
+    ENTAILMENT_NORMALIZE_RE as _NORMALIZE_RE,
+    ENTAILMENT_NUMERIC_TOKEN_RE as _NUMERIC_TOKEN_RE,
+    ENTAILMENT_SCALE_SUFFIXES as _SCALE_SUFFIXES,
+    METRIC_STEM_STOPWORDS as _METRIC_STEM_STOPWORDS,
+    extract_entailment_numeric_tokens,
+    normalize_numeric_token,
+)
+
 ENTAILMENT_BYPASS_ENV = "APPS_RG_SELECTOR_FACT_ENTAILMENT_BYPASS"
 ENTAILMENT_RECEIPT_FILENAME = "bullet_pool_fact_entailment.json"
 ENTAILMENT_REJECTION_REASON = "numeric_token_not_entailed"
@@ -37,34 +46,6 @@ CORPUS_SOURCE_LABEL = "selected_fact_plan_c0_pool_facts_plus_bundle_non_metric_t
 
 # Plain integers below this are list ordinals / small counts, not metric claims.
 _MIN_BARE_NUMBER = 10
-
-# Ordered alternation: currency first so "$10M" is never re-tokenized as bare "10".
-_NUMERIC_TOKEN_RE = re.compile(
-    r"""
-    (?P<currency>\$\s*\d[\d,]*(?:\.\d+)?(?:\s*(?:mm|million|billion|thousand|bn|k|m|b)\b)?)
-    | (?P<percent>\d[\d,]*(?:\.\d+)?\s*(?:%|percent\b))
-    | (?P<multiplier>\d+(?:\.\d+)?\s*x\b)
-    | (?P<worded>\d[\d,]*(?:\.\d+)?\s+(?:million|billion|thousand)\b)
-    | (?P<bare>\d[\d,]*(?:\.\d+)?)
-    """,
-    re.IGNORECASE | re.VERBOSE,
-)
-
-_NORMALIZE_RE = re.compile(
-    r"^\$?\s*(?P<num>\d[\d,]*(?:\.\d+)?)\s*(?P<suffix>mm|million|billion|thousand|bn|k|m|b|%|percent|x)?$",
-    re.IGNORECASE,
-)
-
-_SCALE_SUFFIXES = {
-    "k": 1_000.0,
-    "thousand": 1_000.0,
-    "m": 1_000_000.0,
-    "mm": 1_000_000.0,
-    "million": 1_000_000.0,
-    "b": 1_000_000_000.0,
-    "bn": 1_000_000_000.0,
-    "billion": 1_000_000_000.0,
-}
 
 # Bundle fields admitted into the slot corpus. Deliberately EXCLUDES the metric-bearing
 # fields (linked_metric_outcome_ids, held_metrics, excluded_metrics,
@@ -76,50 +57,7 @@ _BUNDLE_NON_METRIC_LIST_FIELDS = ("executive_scope_signals", "architecture_scope
 def extract_numeric_tokens(text: str) -> list[str]:
     """Extract metric-bearing numeric tokens (currency, percent, multiplier, worded scale,
     bare integers >= 10) from ``text`` in document order."""
-    tokens: list[str] = []
-    for match in _NUMERIC_TOKEN_RE.finditer(str(text or "")):
-        raw = match.group(0).strip()
-        if match.lastgroup == "bare":
-            try:
-                value = float(raw.replace(",", ""))
-            except ValueError:
-                continue
-            if value < _MIN_BARE_NUMBER:
-                continue
-        tokens.append(raw)
-    return tokens
-
-
-def normalize_numeric_token(token: str) -> tuple[str, str] | None:
-    """Normalize a numeric token to ``(magnitude, unit)``.
-
-    Units: ``usd`` (currency), ``pct`` (percent), ``x`` (multiplier), ``count`` (other).
-    "$10M", "$10,000,000", and "10 million" all normalize to magnitude "10000000".
-    """
-    s = str(token or "").strip().lower()
-    if not s:
-        return None
-    is_usd = s.startswith("$")
-    m = _NORMALIZE_RE.match(s)
-    if m is None:
-        return None
-    try:
-        value = float(m.group("num").replace(",", ""))
-    except ValueError:
-        return None
-    suffix = (m.group("suffix") or "").lower()
-    unit = "usd" if is_usd else "count"
-    if suffix in ("%", "percent"):
-        unit = "pct" if not is_usd else unit
-    elif suffix == "x" and not is_usd:
-        unit = "x"
-    if suffix in _SCALE_SUFFIXES:
-        value *= _SCALE_SUFFIXES[suffix]
-    if value == int(value):
-        magnitude = str(int(value))
-    else:
-        magnitude = str(round(value, 6))
-    return magnitude, unit
+    return extract_entailment_numeric_tokens(text, min_bare_number=_MIN_BARE_NUMBER)
 
 
 def _entailment_units_compatible(bullet_unit: str, corpus_unit: str) -> bool:
@@ -162,16 +100,6 @@ def numeric_entailment_check(bullet_text: str, corpus_text: str) -> tuple[bool, 
         if not entailed and raw not in missing:
             missing.append(raw)
     return (not missing, missing)
-
-
-_METRIC_STEM_STOPWORDS = frozenset(
-    {
-        "a", "an", "and", "are", "as", "at", "be", "by", "for", "from", "in", "into",
-        "is", "it", "of", "on", "or", "that", "the", "their", "this", "to", "was",
-        "were", "with", "within", "across", "over", "under", "through", "via", "per",
-        "using", "used", "while", "where", "which", "who",
-    }
-)
 
 
 def _metric_content_stems(text: str) -> set[str]:

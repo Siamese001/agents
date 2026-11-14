@@ -7,6 +7,7 @@ from typing import Any
 
 from .lane_constants import *
 from .context_assembler import *
+from .parent_proxy import _lane_attr
 from .prompt_builder import *
 
 WORD_BUDGET_REPAIR_RECEIPT_FILENAME = "exec_summary_word_budget_repair_receipt.json"
@@ -67,12 +68,10 @@ def _emit_dimension_upstream_triangulation(
 
 def _build_word_budget_repair_user(words_pre: int, *, word_ceiling: int) -> str:
     """Assistant-echo + user revision message for the bounded word-budget regen."""
-    target_lo = max(90, word_ceiling - 30)
-    target_hi = max(target_lo + 5, word_ceiling - 15)
     return (
         f"Your paragraph is {words_pre} words; the hard ceiling is {word_ceiling} words "
         "AFTER deterministic post-processing adds a bridge sentence. "
-        f"Rewrite the SAME evidence arc at {target_lo} to {target_hi} words, preserving the six-row claim_ledger "
+        f"Rewrite the SAME evidence arc at {max(90, word_ceiling - 30)} to {max(95, word_ceiling - 15)} words, preserving the six-row claim_ledger "
         "structure while keeping each row to at most three directly supporting source_fact_ids. "
         "Do not preserve over-dense or indirect fact IDs just to keep the old ledger shape. "
         "Keep exactly six sentences and the same narrative arc. "
@@ -144,7 +143,7 @@ def apply_exec_summary_word_budget_repair(
         "kill_switch": word_budget_repair_env_state(),
     }
     if not fired:
-        write_json(artifact_dir / WORD_BUDGET_REPAIR_RECEIPT_FILENAME, receipt)
+        _lane_attr("write_json", write_json)(artifact_dir / WORD_BUDGET_REPAIR_RECEIPT_FILENAME, receipt)
         return raw_output, parsed, resume_display_text, claim_ledger, False
 
     from apps_rg.runtime.section_repair_ledger import (
@@ -189,7 +188,7 @@ def apply_exec_summary_word_budget_repair(
             {"role": "assistant", "content": str(raw_output or "")},
             {
                 "role": "user",
-                "content": _build_word_budget_repair_user(
+                "content": _lane_attr("_build_word_budget_repair_user", _build_word_budget_repair_user)(
                     words_pre, word_ceiling=EXEC_SUMMARY_MAX_WORDS
                 ),
             },
@@ -217,15 +216,15 @@ def apply_exec_summary_word_budget_repair(
             receipt["rejected_reason"] = "provider_not_real"
         else:
             new_raw = str(result.raw_model_output or "")
-            new_parsed, new_err = parse_model_json(new_raw)
+            new_parsed, new_err = _lane_attr("parse_model_json", parse_model_json)(new_raw)
             mark_regen_call_parse(artifact_dir, outcome.call_id, parse_ok=bool(new_parsed))
             if not isinstance(new_parsed, dict):
                 receipt["rejected_reason"] = f"parse_failed:{str(new_err or '')[:160]}"
             else:
                 # Re-apply the FULL deterministic polish chain (same order as attempt-1).
                 plan_facts = list(selected_fact_plan.get("facts") or [])
-                candidate = normalize_executive_summary_llm_output(new_parsed, selected_fact_plan)
-                prune_exec_summary_claim_ledger_orphans(candidate, allowed_fact_ids)
+                candidate = _lane_attr("normalize_executive_summary_llm_output", normalize_executive_summary_llm_output)(new_parsed, selected_fact_plan)
+                _lane_attr("prune_exec_summary_claim_ledger_orphans", prune_exec_summary_claim_ledger_orphans)(candidate, allowed_fact_ids)
                 _coerced = coerce_resume_display_sentence_count_band(
                     str(candidate.get("resume_display_text") or "")
                 )
@@ -258,7 +257,7 @@ def apply_exec_summary_word_budget_repair(
                     _wb_finalize_receipt.get("final_word_budget_trim_applied")
                 )
                 if _wb_finalize_receipt.get("orphan_citations_stripped") and artifact_dir is not None:
-                    write_json(
+                    _lane_attr("write_json", write_json)(
                         artifact_dir / "voice_repair_orphan_citations_stripped.json",
                         {
                             "stripped": list(_wb_finalize_receipt.get("orphan_citations_stripped") or []),
@@ -314,7 +313,7 @@ def apply_exec_summary_word_budget_repair(
                     receipt["accepted"] = True
                     receipt["words_post"] = words_post
 
-    write_json(artifact_dir / WORD_BUDGET_REPAIR_RECEIPT_FILENAME, receipt)
+    _lane_attr("write_json", write_json)(artifact_dir / WORD_BUDGET_REPAIR_RECEIPT_FILENAME, receipt)
     return raw_output, parsed, resume_display_text, claim_ledger, accepted
 
 

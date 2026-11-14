@@ -1,0 +1,126 @@
+{
+  "wave": "Wave 3",
+  "title": "Shared Domain Contracts & Monolith Decomposition",
+  "status": "COMPLETE",
+  "timestamp": "2026-11-14T23:33:42Z",
+  "worktree": "/Users/amitayer/Git/agents/.worktrees/feat-de-risk-holistic-factoring",
+  "ratchet_clamp": {
+    "entries_before": 195,
+    "entries_after": 183,
+    "tightened_total": 106,
+    "removed_decomposed_monoliths_count": 12,
+    "tightened_existing_ceilings_count": 94,
+    "removed_decomposed_monoliths": [
+      "apps_research/engines/company_brief_engine.py",
+      "resume_graph_engine/src/apps_rg/runtime/aggregation/cross_section_x2.py",
+      "resume_graph_engine/src/apps_rg/runtime/c0/resume_graph_allocation.py",
+      "resume_graph_engine/src/apps_rg/runtime/sections/executive_summary_lane.py",
+      "resume_graph_engine/src/apps_rg/runtime/sections/executive_summary_voice_repair.py",
+      "resume_graph_engine/src/apps_rg/runtime/sections/ibm_bullets_lane.py",
+      "resume_graph_engine/src/apps_rg/runtime/sections/role_episode_lane.py",
+      "resume_graph_engine/src/apps_rg/runtime/sections/section_authority_repairs.py",
+      "resume_graph_engine/src/apps_rg/runtime/sections/unify_bullets_lane.py",
+      "resume_graph_engine/src/apps_rg/runtime/validators/executive_summary_x2.py",
+      "resume_graph_engine/src/apps_rg/runtime/validators/ibm_bullets_x2.py",
+      "resume_graph_engine/src/apps_rg/runtime/validators/unify_bullets_x2.py"
+    ]
+  },
+  "commands": [
+    {
+      "command": "/Users/amitayer/Git/agents/.venv/bin/python tools/lint_file_budgets.py --clamp",
+      "exit_code": 0,
+      "status": "PASS",
+      "tightened_ceilings": 106
+    },
+    {
+      "command": "/Users/amitayer/Git/agents/.venv/bin/python tools/lint_file_budgets.py",
+      "exit_code": 0,
+      "status": "PASS"
+    },
+    {
+      "command": "/Users/amitayer/Git/agents/.venv/bin/pytest tests/unit/resume_graph_engine/test_role_episode_and_bullet_lanes.py resume_graph_engine/tests/unit/apps_rg/validators/test_executive_summary_x2_runtime_proof.py resume_graph_engine/tests/unit/apps_research/engines/test_company_brief_engine.py resume_graph_engine/tests/unit/apps_rg/test_bullet_adjudicator_and_aggregation.py resume_graph_engine/tests/unit/apps_rg/test_unify_bullets_graph_hardening.py -v --timeout=60",
+      "exit_code": 1,
+      "total_collected": 117,
+      "passed": 114,
+      "failed": 3,
+      "duration_seconds": 16.31,
+      "new_wave3_regressions": 0,
+      "pre_existing_main_failures_verified_against_bf92ca4021": [
+        "resume_graph_engine/tests/unit/apps_rg/validators/test_executive_summary_x2_runtime_proof.py::test_executive_summary_model_allowlist_accepts_only_pinned_claude_primary",
+        "resume_graph_engine/tests/unit/apps_research/engines/test_company_brief_engine.py::TestBuildSynthesisPrompt::test_includes_topic_and_facets",
+        "resume_graph_engine/tests/unit/apps_rg/test_unify_bullets_graph_hardening.py::test_role_episode_gates_fail_when_metric_outcome_not_visible"
+      ]
+    },
+    {
+      "command": "/Users/amitayer/Git/agents/.venv/bin/python tools/lint_layer_imports.py",
+      "exit_code": 0,
+      "status": "PASS"
+    },
+    {
+      "command": "/Users/amitayer/Git/agents/.venv/bin/python tools/lint_architecture_boundaries.py",
+      "exit_code": 0,
+      "status": "PASS"
+    },
+    {
+      "command": "/Users/amitayer/Git/agents/.venv/bin/python tools/lint_model_neutral_naming.py --all --repo-root .",
+      "exit_code": 0,
+      "status": "PASS"
+    },
+    {
+      "command": "/Users/amitayer/Git/agents/.venv/bin/python tools/ssot_boundary_auditor.py --json",
+      "exit_code": 1,
+      "dim_1_cross_subsystem_encapsulation": "PASS",
+      "dim_2_layer_and_purity_boundaries": "PASS",
+      "dim_3_model_pins_and_ssot_drift": "PASS",
+      "dim_4_constitutional_ast_floor": "FAIL (3 pre-existing unowned files: ResumeRunRecoveryAgent.py:375, patch_product_closeout.py:209,404)",
+      "dim_5_mcp_hooks_and_conformance_links": "PASS",
+      "dim_6_sidecar_separation": "PASS",
+      "dim_7_multi_folder_config_sprawl": "PASS",
+      "dim_8_policy_registry_synchronization": "PASS",
+      "dim_9_unowned_hardcoded_thresholds": "FAIL (7 pre-existing main UNCENTRALIZED_ENV_LOOKUP findings; 0 hardcoded_threshold_literals; 0 policy_registry_sync_issues; 0 new Wave 3 findings)",
+      "dim_10_prompt_to_code_numeric_parity": "PASS"
+    },
+    {
+      "command": "/Users/amitayer/Git/agents/.venv/bin/python tools/verify_commit.py --files <125 Wave 3 files>",
+      "exit_code": 0,
+      "files_checked": 125,
+      "status": "PASS"
+    },
+    {
+      "command": "/Users/amitayer/Git/agents/.venv/bin/python tools/validate_turn_gates.py --mode all --repository-root /Users/amitayer/Git/agents/.worktrees/feat-de-risk-holistic-factoring",
+      "exit_code": 0,
+      "pre_turn_status": "PASS",
+      "post_turn_status": "PASS"
+    },
+    {
+      "command": "/Users/amitayer/Git/agents/.venv/bin/python tools/retrieval_surface_auditor.py",
+      "exit_code": 0,
+      "pillars_passing": "7/7",
+      "gaps": 0
+    },
+    {
+      "command": "/Users/amitayer/Git/agents/.venv/bin/python tools/cost_token_budget_auditor.py",
+      "exit_code": 0,
+      "pillars_passing": "8/8",
+      "roi": "2.57x",
+      "gaps": 0
+    },
+    {
+      "command": "/Users/amitayer/Git/agents/.venv/bin/python tools/testing_gaps_auditor.py",
+      "exit_code": 0,
+      "pillars_passing": "6/6",
+      "scanned_test_files": 986,
+      "zero_assert": 0,
+      "mock_violations": 0
+    }
+  ],
+  "verified_criteria": {
+    "all_wave3_files_within_600_line_budget": true,
+    "shared_cross_subsystem_contracts_isolated_to_infrastructure_types": true,
+    "zero_cross_app_imports": true,
+    "all_12_monoliths_removed_from_file_budget_ratchet": true,
+    "zero_new_ssot_or_boundary_findings": true,
+    "zero_wave3_test_regressions": true
+  },
+  "changed_files_count": 125
+}

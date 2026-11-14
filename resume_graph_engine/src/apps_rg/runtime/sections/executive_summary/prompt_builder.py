@@ -8,6 +8,7 @@ from typing import Any
 
 from .lane_constants import *
 from .context_assembler import *
+from .parent_proxy import _lane_attr
 
 L2_BRIDGE_PHRASE_PATTERN = re.compile(
     r"\bthis (?:was|is) achieved (?:while|through|by)\b",

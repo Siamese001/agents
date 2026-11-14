@@ -11,6 +11,7 @@ from typing import Any
 
 from apps_rg.runtime.core_io import write_gateway as _wg
 from .lane_constants import *
+from .parent_proxy import _lane_attr
 
 __all__ = ['_reconcile_final_plan_c03_allowlist', '_args_target_title', '_strip_targeting_cap_notice', '_args_jd_text', 'truncate_briefing_for_exec_summary_external_model', 'sha16', 'write_json', 'load_base_resume', 'extract_allowed_facts', 'build_selected_fact_plan', 'build_runtime_payload', '_finalize_executive_summary_l7_binding', '_first_sentence_from_prose', '_fact_body_for_mock_synthesis', '_proof_pool_mode_from_payload', 'build_mock_output', 'resolve_provider_model_name', 'write_x2_gate_outputs']
 
@@ -261,9 +262,9 @@ def build_mock_output(runtime_payload: dict[str, Any]) -> dict[str, Any]:
         claims.append({"claim_text": body, "source_fact_ids": ids})
 
     if claims:
-        s2 = _first_sentence_from_prose(claims[min(1, len(claims) - 1)]["claim_text"])
-        s3 = _first_sentence_from_prose(claims[min(2, len(claims) - 1)]["claim_text"])
-        s4 = _first_sentence_from_prose(claims[-1]["claim_text"])
+        s2 = _lane_attr("_first_sentence_from_prose", _first_sentence_from_prose)(claims[min(1, len(claims) - 1)]["claim_text"])
+        s3 = _lane_attr("_first_sentence_from_prose", _first_sentence_from_prose)(claims[min(2, len(claims) - 1)]["claim_text"])
+        s4 = _lane_attr("_first_sentence_from_prose", _first_sentence_from_prose)(claims[-1]["claim_text"])
         text = (
             "Engineering executive accountable for governed AI platform delivery, deterministic runtime controls, "
             "and production-grade reliability across enterprise programs. "
@@ -329,7 +330,7 @@ def write_x2_gate_outputs(
     failed = [g["gate_id"] for g in gates if not g["pass"]]
     passed_count = sum(1 for g in gates if g["pass"])
     failed_count = len(failed)
-    write_json(
+    _lane_attr("write_json", write_json)(
         path,
         {
             "gates": gates,

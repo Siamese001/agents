@@ -8,6 +8,19 @@ from pathlib import Path
 from typing import Final, List, Optional
 
 from apps_lic.domain.models import ChannelType, OutreachMessageDraft, ValidationResult
+from infrastructure.types.metric_lexical_primitives import (
+    METRIC_DOLLAR_PAT,
+    METRIC_PERCENT_PAT,
+    METRIC_SCALE_PAT,
+    extract_normalized_dollars,
+    normalize_dollar_token,
+)
+
+_METRIC_DOLLAR_PAT = METRIC_DOLLAR_PAT
+_METRIC_PERCENT_PAT = METRIC_PERCENT_PAT
+_METRIC_SCALE_PAT = METRIC_SCALE_PAT
+_normalize_dollar_token = normalize_dollar_token
+_extract_normalized_dollars = extract_normalized_dollars
 
 # Curated spam triggers fallback based on apps_lic/config/spam_trigger_phrases.py
 _CRITICAL_SPAM_TRIGGERS: Final[List[re.Pattern[str]]] = [
@@ -227,18 +240,9 @@ class GroundingValidator:
     claims even when fact IDs are valid. Fails closed on missing provenance.
     """
 
-    _METRIC_DOLLAR_PAT: Final[re.Pattern[str]] = re.compile(
-        r"(?:[\$€£]|(?:USD|EUR|GBP)\s*)\s*\d+(?:,\d{3})*(?:\.\d+)?\s*(?:[kKmMbBtT]|billion|million|thousand)?(?:\s*[-–—]\s*(?:[\$€£]|(?:USD|EUR|GBP)\s*)?\s*\d+(?:,\d{3})*(?:\.\d+)?\s*(?:[kKmMbBtT]|billion|million|thousand)?)?\b",
-        re.IGNORECASE,
-    )
-    _METRIC_PERCENT_PAT: Final[re.Pattern[str]] = re.compile(
-        r"\b\d+(?:\.\d+)?%"
-    )
-    _METRIC_SCALE_PAT: Final[re.Pattern[str]] = re.compile(
-        r"\b\d+\s*\+\s*(?:engineers?|professionals?|people|team|members?|clients?|customers?)\b|"
-        r"\b\d+(?:\.\d+)?\s*(?:[mMbBkK])\s+(?:DAU|MAU|users?|requests?|events?|queries|qps)\b",
-        re.IGNORECASE,
-    )
+    _METRIC_DOLLAR_PAT: Final[re.Pattern[str]] = METRIC_DOLLAR_PAT
+    _METRIC_PERCENT_PAT: Final[re.Pattern[str]] = METRIC_PERCENT_PAT
+    _METRIC_SCALE_PAT: Final[re.Pattern[str]] = METRIC_SCALE_PAT
     _UNGROUNDED_ASSERTION_PAT: Final[re.Pattern[str]] = re.compile(
         r"\b(?:personally invented|co-invented|patented the|invented the|won an? (?:olympic|nobel|pulitzer))\b",
         re.IGNORECASE,
@@ -247,42 +251,10 @@ class GroundingValidator:
     @staticmethod
     def _normalize_dollar_token(raw: str) -> str:
         """Normalize currency token to a canonical dollar amount string."""
-        cleaned = re.sub(r"(?i)[\$€£]|usd|eur|gbp", "", raw).replace(",", "").strip()
-        if any(sep in cleaned for sep in ("-", "–", "—")):
-            parts = [p.strip() for p in re.split(r"[-–—]", cleaned) if p.strip()]
-            if len(parts) == 2:
-                m1 = re.match(r"^(\d+(?:\.\d+)?)\s*(k|thousand|m|million|b|billion|t)?$", parts[0], re.IGNORECASE)
-                m2 = re.match(r"^(\d+(?:\.\d+)?)\s*(k|thousand|m|million|b|billion|t)?$", parts[1], re.IGNORECASE)
-                if m1 and m2:
-                    s2 = m2.group(2) or ""
-                    n1 = GroundingValidator._normalize_dollar_token(f"${m1.group(1)}{m1.group(2) or s2}")
-                    n2 = GroundingValidator._normalize_dollar_token(f"${m2.group(1)}{s2}")
-                    return f"{n1}-{n2}"
-        m = re.match(r"^(\d+(?:\.\d+)?)\s*(k|thousand|m|million|b|billion|t)?$", cleaned, re.IGNORECASE)
-        if not m:
-            return raw.lower().strip()
-        num_str = m.group(1)
-        if len(num_str.split(".")[0]) > 20:
-            return f"${num_str}"
-        try:
-            mult = {"k": 1e3, "thousand": 1e3, "m": 1e6, "million": 1e6, "b": 1e9, "billion": 1e9, "t": 1e12}
-            val = float(num_str) * mult.get((m.group(2) or "").lower(), 1.0)
-            return f"${int(round(val))}"
-        except (OverflowError, ValueError):
-            return f"${num_str}"
+        return normalize_dollar_token(raw)
 
     def _extract_normalized_dollars(self, text: str) -> set[str]:
-        tokens: set[str] = set()
-        if not text:
-            return tokens
-        for m in self._METRIC_DOLLAR_PAT.finditer(text):
-            try:
-                norm = self._normalize_dollar_token(m.group(0))
-                tokens.add(norm)
-                tokens.update(s for s in norm.split("-") if "-" in norm and s.startswith("$"))
-            except (OverflowError, ValueError):
-                pass
-        return tokens
+        return extract_normalized_dollars(text)
 
     def validate(
         self,

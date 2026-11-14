@@ -5,6 +5,8 @@ import argparse
 import hashlib
 import json
 import os
+import re
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -14,6 +16,8 @@ from .prompt_builder import *
 from .synthesis_shape_repair import *
 from .synthesis_retry import *
 from .word_budget_repair import *
+from .parent_proxy import _lane_attr
+
 from .stage_remediation_cycles import run_remediation_cycles
 
 
@@ -43,59 +47,61 @@ def should_skip_unchanged_summary_judge_refresh(
     )
 
 
-def run_remediation_stage(ctx: dict[str, Any]) -> None:
+def run_remediation_stage(
+    ctx: dict[str, Any],
+    *,
+    emit_initial_gate_artifacts: bool = True,
+) -> None:
+    """Run X1D refresh, voice agent pre-repair, and bounded judge remediation cycles."""
     args = ctx["args"]
     artifact_dir = ctx["artifact_dir"]
     runtime_payload = ctx["runtime_payload"]
-    proof_pool_metadata = ctx["proof_pool_metadata"]
-    targeting_ingress = ctx["targeting_ingress"]
-    messages = ctx["messages"]
-    req = ctx["req"]
-    scratch_max_tokens = ctx["scratch_max_tokens"]
     token_budget_receipt = ctx["token_budget_receipt"]
     usage_doc = ctx["usage_doc"]
-    briefing_text_bounded = ctx["briefing_text_bounded"]
-    pool = ctx["pool"]
-    base_path = ctx["base_path"]
-    base_hash = ctx["base_hash"]
-    base = ctx["base"]
-    selected_fact_plan = ctx["selected_fact_plan"]
     allowed_fact_ids = ctx["allowed_fact_ids"]
-    allowed_fact_ids_ordered = ctx["allowed_fact_ids_ordered"]
-    result = ctx["result"]
-    provider_result_data = ctx["provider_result_data"]
     raw_output = ctx["raw_output"]
     runtime_generation_status = ctx["runtime_generation_status"]
     parsed = ctx["parsed"]
-    parse_error = ctx["parse_error"]
     resume_display_text = ctx["resume_display_text"]
     claim_ledger = ctx["claim_ledger"]
     _word_budget_repair_accepted = ctx["_word_budget_repair_accepted"]
-    _word_budget_repair_audit = ctx["_word_budget_repair_audit"]
-    _composition_plan_early = ctx["_composition_plan_early"]
     parsed_for_x2 = ctx["parsed_for_x2"]
     x2 = ctx["x2"]
+    x1d = ctx["x1d"]
     _generation_material = ctx["_generation_material"]
     _bundle_mat = ctx["_bundle_mat"]
     _targeting_parity = ctx["_targeting_parity"]
-
-    if x2_failed_initial or runtime_generation_status != "REAL_LLM":
-        write_json(
-            artifact_dir / "fact_check_result.json",
-            {
-                "passed": not x2_failed_initial,
-                "failed_gates": [g["gate_id"] for g in x2_failed_initial],
-            },
+    selected_facts_for_x2 = ctx["selected_facts_for_x2"]
+    _judge_jd = ctx["_judge_jd"]
+    _judge_briefing = ctx["_judge_briefing"]
+    judge_keys = ctx["judge_keys"]
+    judge_mode = ctx["judge_mode"]
+    compiled_prompt = ctx["compiled_prompt"]
+    x2_failed_initial = ctx.get("x2_failed_initial")
+    if x2_failed_initial is None:
+        x2_failed_initial = [g for g in x2 if not g["pass"]]
+        ctx["x2_failed_initial"] = x2_failed_initial
+    if emit_initial_gate_artifacts:
+        if x2_failed_initial or runtime_generation_status != "REAL_LLM":
+            _lane_attr("write_json", write_json)(
+                artifact_dir / "fact_check_result.json",
+                {
+                    "passed": not x2_failed_initial,
+                    "failed_gates": [g["gate_id"] for g in x2_failed_initial],
+                },
+            )
+        _lane_attr(
+            "set_word_budget_repair_authoritative_after_x2",
+            set_word_budget_repair_authoritative_after_x2,
+        )(
+            artifact_dir,
+            accepted=_word_budget_repair_accepted,
+            x2_gates=x2,
         )
-    set_word_budget_repair_authoritative_after_x2(
-        artifact_dir,
-        accepted=_word_budget_repair_accepted,
-        x2_gates=x2,
-    )
-    if x2_failed_initial and not (artifact_dir / "x1d_llm_judge_outputs.json").is_file():
-        _write_x1d_judge_artifacts(artifact_dir, x1d)
+        if x2_failed_initial and not (artifact_dir / "x1d_llm_judge_outputs.json").is_file():
+            _lane_attr("_write_x1d_judge_artifacts", _write_x1d_judge_artifacts)(artifact_dir, x1d)
     if x2_failed_initial:
-        _emit_dimension_upstream_triangulation(
+        _lane_attr("_emit_dimension_upstream_triangulation", _emit_dimension_upstream_triangulation)(
             artifact_dir,
             x1d_judges=x1d,
             x2_gates=x2,
@@ -111,6 +117,9 @@ def run_remediation_stage(ctx: dict[str, Any]) -> None:
         except (OSError, json.JSONDecodeError):  # guardian: allow-default-fallback -- P2 burndown: fail-soft optional boundary
             _composition_plan_refresh = {}
 
+    ctx.setdefault("_pool_publish_applied", False)
+    _graph_bindings_lane = None
+    _gtc_lane_dict = None
     if runtime_generation_status == "REAL_LLM" and not x2_failed_initial:
         from apps_rg.runtime.sections.executive_summary_judge_remediation import (
             refresh_x1d_judges_after_full_x2,
@@ -118,11 +127,12 @@ def run_remediation_stage(ctx: dict[str, Any]) -> None:
         from apps_rg.runtime.validators.executive_summary_x2 import (
             append_executive_summary_x1d_x2_gate_dicts,
         )
+        from apps_rg.runtime.c0.c03_graph_ref_policy import (
+            extract_c03_bindings_from_runtime_payload,
+        )
 
         _gtc_lane = runtime_payload.get("graph_targeting_capsule")
         _gtc_lane_dict = dict(_gtc_lane) if isinstance(_gtc_lane, dict) else None
-        from apps_rg.runtime.c0.c03_graph_ref_policy import extract_c03_bindings_from_runtime_payload
-
         _graph_bindings_lane = extract_c03_bindings_from_runtime_payload(runtime_payload)
         _prior_judged_sha = str(ctx.get("_x1d_judged_display_sha256") or "")
         if should_skip_unchanged_summary_judge_refresh(
@@ -131,10 +141,7 @@ def run_remediation_stage(ctx: dict[str, Any]) -> None:
             prior_display_sha256=_prior_judged_sha,
         ):
             _judged_display_sha = _prior_judged_sha
-            _x1d_refresh_receipt = {
-                "skipped": "unchanged_resume_display_text",
-                "display_sha256": _judged_display_sha,
-            }
+            _x1d_refresh_receipt = {"skipped": "unchanged_resume_display_text"}
         else:
             x1d, _x1d_refresh_receipt = refresh_x1d_judges_after_full_x2(
                 x2_gates=x2,
@@ -142,7 +149,7 @@ def run_remediation_stage(ctx: dict[str, Any]) -> None:
                 claim_ledger=claim_ledger,
                 allowed_fact_packet=selected_facts_for_x2,
                 allowed_fact_ids=allowed_fact_ids,
-                target_title=_args_target_title(args),
+                target_title=_lane_attr("_args_target_title", _args_target_title)(args),
                 target_company=str(args.target_company),
                 jd_text=_judge_jd,
                 briefing_text=_judge_briefing,
@@ -173,7 +180,10 @@ def run_remediation_stage(ctx: dict[str, Any]) -> None:
                 candidate_data={"resume_display_text": resume_display_text, "claim_ledger": claim_ledger},
                 diagnostic=exec_diag,
                 allowed_facts=selected_facts_for_x2 if isinstance(selected_facts_for_x2, list) else None,
-                targeting_context={"target_title": _args_target_title(args), "target_company": str(args.target_company)},
+                targeting_context={
+                    "target_title": _lane_attr("_args_target_title", _args_target_title)(args),
+                    "target_company": str(args.target_company),
+                },
                 mock_mode=(judge_mode == "mocked"),
                 artifact_dir=artifact_dir,
             )
@@ -191,7 +201,6 @@ def run_remediation_stage(ctx: dict[str, Any]) -> None:
                         }
                 elif repaired_text.strip():
                     resume_display_text = repaired_text
-                    ctx["resume_display_text"] = resume_display_text
                     if isinstance(parsed, dict):
                         parsed["resume_display_text"] = resume_display_text
                     if isinstance(parsed_for_x2, dict):
@@ -202,7 +211,7 @@ def run_remediation_stage(ctx: dict[str, Any]) -> None:
                         claim_ledger=claim_ledger,
                         allowed_fact_packet=selected_facts_for_x2,
                         allowed_fact_ids=allowed_fact_ids,
-                        target_title=_args_target_title(args),
+                        target_title=_lane_attr("_args_target_title", _args_target_title)(args),
                         target_company=str(args.target_company),
                         jd_text=_judge_jd,
                         briefing_text=_judge_briefing,
@@ -219,7 +228,6 @@ def run_remediation_stage(ctx: dict[str, Any]) -> None:
                         graph_bindings=_graph_bindings_lane,
                         repo_root=REPO_ROOT,
                     )
-                    ctx["_x1d_judged_display_sha256"] = _display_text_sha256(resume_display_text)
         from apps_rg.runtime.sections.executive_summary_repair_policy import (
             judge_regeneration_enabled,
         )
@@ -230,9 +238,9 @@ def run_remediation_stage(ctx: dict[str, Any]) -> None:
                 "phase": "post_x2_initial",
                 "rescore_only": not judge_regeneration_enabled(),
             }
-        write_json(artifact_dir / "post_x2_x1d_refresh_receipt.json", _x1d_refresh_receipt)
-        _write_x1d_judge_artifacts(artifact_dir, x1d)
-        _emit_dimension_upstream_triangulation(
+        _lane_attr("write_json", write_json)(artifact_dir / "post_x2_x1d_refresh_receipt.json", _x1d_refresh_receipt)
+        _lane_attr("_write_x1d_judge_artifacts", _write_x1d_judge_artifacts)(artifact_dir, x1d)
+        _lane_attr("_emit_dimension_upstream_triangulation", _emit_dimension_upstream_triangulation)(
             artifact_dir,
             x1d_judges=x1d,
             x2_gates=x2,
@@ -245,7 +253,7 @@ def run_remediation_stage(ctx: dict[str, Any]) -> None:
                 required_providers=judge_keys,
             )
         )
-        write_x2_gate_outputs(artifact_dir / "x2_gate_outputs.json", x2, section_id="executive_summary")
+        _lane_attr("write_x2_gate_outputs", write_x2_gate_outputs)(artifact_dir / "x2_gate_outputs.json", x2, section_id="executive_summary")
         judge_packet = resolve_judge_packet_for_parity(artifact_dir, fallback={})
         judge_packet_ref = str(
             artifact_dir / "executive_summary_judge_packet_post_x2.json"
@@ -256,18 +264,8 @@ def run_remediation_stage(ctx: dict[str, Any]) -> None:
             generation_material=_generation_material,
             judge_packet=judge_packet,
             usage_doc=usage_doc,
-            write_json_fn=write_json,
+            write_json_fn=_lane_attr("write_json", write_json),
         )
-
-
-    ctx["x1d"] = x1d
-    ctx["x2"] = x2
-    ctx["x2_failed_initial"] = x2_failed_initial
-    if "judge_packet" in locals():
-        ctx["judge_packet"] = judge_packet
-    if "judge_packet_ref" in locals():
-        ctx["judge_packet_ref"] = judge_packet_ref
-
     if runtime_generation_status == "REAL_LLM" and not x2_failed_initial and parsed_for_x2:
         from apps_rg.runtime.section_repair_policy import judge_remediation_regen_allowed
         from apps_rg.runtime.sections.executive_summary_judge_remediation import (
@@ -293,29 +291,38 @@ def run_remediation_stage(ctx: dict[str, Any]) -> None:
             best_effort_publish_allowed_from_env,
             resolve_publish_disposition,
         )
-
-        ctx["_judge_prompt_x1d"] = _judge_prompt_x1d
-        ctx["_gtc_lane_dict"] = _gtc_lane_dict
-        ctx["_pool_publish_applied"] = _pool_publish_applied
-
+        ctx.update({
+            "x1d": x1d,
+            "x2": x2,
+            "resume_display_text": resume_display_text,
+            "parsed": parsed,
+            "parsed_for_x2": parsed_for_x2,
+            "judge_packet": judge_packet,
+            "judge_packet_ref": judge_packet_ref,
+            "_targeting_parity": _targeting_parity,
+            "usage_doc": usage_doc,
+            "_composition_plan_refresh": _composition_plan_refresh,
+            "_graph_bindings_lane": _graph_bindings_lane,
+            "_gtc_lane_dict": _gtc_lane_dict,
+            "_regen_ok": _regen_ok,
+        })
         if judge_remediation_regen_allowed() and _regen_ok:
             run_remediation_cycles(ctx)
-        elif judge_remediation_regen_allowed() and not _regen_ok:
-            write_json(
-                artifact_dir / "judge_remediation_cycles.json",
-                {
-                    "schema": "executive_summary_judge_remediation_cycles_v2",
-                    "schema_version": 2,
-                    "skipped": "targeting_parity_required",
-                    "reason": _regen_parity_reason,
-                    "generation_material_digest": _generation_material.generation_material_digest,
-                },
-            )
-        else:
-            _trigger_ok0, _trigger0 = evaluate_judge_remediation_trigger(
-                x1d,
-                runtime_generation_status=runtime_generation_status,
-                x2_passed=True,
-            )
-            write_json(artifact_dir / "judge_remediation_trigger.json", _trigger0)
-
+    elif judge_remediation_regen_allowed() and not _regen_ok:
+        _lane_attr("write_json", write_json)(
+            artifact_dir / "judge_remediation_cycles.json",
+            {
+                "schema": "executive_summary_judge_remediation_cycles_v2",
+                "schema_version": 2,
+                "skipped": "targeting_parity_required",
+                "reason": _regen_parity_reason,
+                "generation_material_digest": _generation_material.generation_material_digest,
+            },
+        )
+    else:
+        _trigger_ok0, _trigger0 = evaluate_judge_remediation_trigger(
+            x1d,
+            runtime_generation_status=runtime_generation_status,
+            x2_passed=True,
+        )
+        _lane_attr("write_json", write_json)(artifact_dir / "judge_remediation_trigger.json", _trigger0)

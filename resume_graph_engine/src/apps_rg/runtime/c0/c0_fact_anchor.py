@@ -2,14 +2,20 @@
 
 from __future__ import annotations
 
-from collections import Counter
 from functools import lru_cache
 import json
 from pathlib import Path
-import re
 from typing import Any, Mapping, Sequence
 
 from apps_rg.repository_layout import resolve_apps_rg_path
+from apps_rg.runtime.contracts.metric_lexical_primitives import (
+    NUMERIC_TOKEN_RE as _NUMERIC_TOKEN_RE,
+    STOPWORDS as _STOPWORDS,
+    WORD_TOKEN_RE as _WORD_TOKEN_RE,
+    extract_content_word_stems,
+    extract_numeric_tokens,
+    stem_token as _stem_token,
+)
 
 _BUNDLE_FILES: tuple[tuple[str, str], ...] = (
     ("slalom", "slalom_role_episode_bundles.json"),
@@ -36,54 +42,6 @@ PARTNER_THEME_PATTERNS: Mapping[str, tuple[str, ...]] = {
     "guidewire": ("guidewire", "policycenter", "claimcenter", "billingcenter"),
     "snowflake": ("snowflake",),
 }
-
-_NUMERIC_TOKEN_RE = re.compile(
-    r"(?:\$\d+(?:\.\d+)?[BMKbmk]?|\b\d+(?:\.\d+)?(?:\+|%|x|bps|ms|s|m|b|k)?\b)",
-    re.I,
-)
-_WORD_TOKEN_RE = re.compile(r"[a-z][a-z0-9]{2,}")
-_STOPWORDS: frozenset[str] = frozenset({
-    "the", "and", "for", "with", "that", "this", "from", "into", "over", "under",
-    "across", "through", "while", "where", "when", "which", "their", "there",
-    "these", "those", "have", "has", "had", "were", "was", "are", "been", "being",
-    "will", "would", "could", "should", "about", "after", "before", "between",
-    "within", "without", "using", "used", "via", "per", "all", "any", "both",
-    "each", "more", "most", "other", "some", "such", "than", "too", "very",
-    "role", "episode", "bundle", "claim", "unit", "section", "slot", "root",
-})
-
-
-def _stem_token(word: str) -> str:
-    token = word.lower().strip()
-    for suffix in ("ization", "ational", "fulness", "ousness", "iveness", "ments", "ment", "ings", "ing", "edly", "ed", "ies", "es", "s"):
-        if len(token) > len(suffix) + 3 and token.endswith(suffix):
-            token = token[: -len(suffix)]
-            break
-    return token[:6] if len(token) > 6 else token
-
-
-def extract_numeric_tokens(text: str) -> list[str]:
-    seen: list[str] = []
-    for match in _NUMERIC_TOKEN_RE.finditer(str(text or "")):
-        tok = match.group(0).strip()
-        if tok and tok not in seen:
-            seen.append(tok)
-    return seen
-
-
-def extract_content_word_stems(text: str, *, max_stems: int = 32) -> list[str]:
-    stems: list[str] = []
-    for match in _WORD_TOKEN_RE.finditer(str(text or "").lower()):
-        word = match.group(0)
-        if word in _STOPWORDS or word.isdigit():
-            continue
-        stem = _stem_token(word)
-        if len(stem) >= 3 and stem not in stems:
-            stems.append(stem)
-            if len(stems) >= max_stems:
-                break
-    return stems
-
 
 def extract_partner_theme_tags(text: str) -> list[str]:
     blob = f" {str(text or '').lower()} "
