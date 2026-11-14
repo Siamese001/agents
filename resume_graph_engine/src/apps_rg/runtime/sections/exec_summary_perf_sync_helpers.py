@@ -98,6 +98,8 @@ _EXEC_COSINE_DEDUP_SUBS: tuple[tuple[str, str], ...] = (
     ("platform foundation", "distributed runtime"),
     ("reusable agentic platform productization and hyperscaler alliance co-sell architecture to accelerate enterprise AI deployment velocity", "governed multi-model orchestration and strategic partner channel execution to scale commercial AI adoption"),
     ("reusable agentic AI platform architecture is productized", "modular multi-agent engineering blueprints are operationalized"),
+    ("builds reusable multi-model agentic AI platform architecture spanning Google Cloud and frontier AI coding and agent platform accelerators to productize enterprise solutions", "engineers modular multi-model orchestration blueprints across Google Cloud, Claude Code, and OpenAI Codex to operationalize production workflows"),
+    ("to accelerate enterprise AI deployment and ecosystem-wide adoption", "to expand commercial partner channels and production rollouts"),
     ("hyperscaler and GSI", "cloud and systems-integrator"),
     ("joint solution development", "co-engineered delivery blueprints"),
     ("presales executive architecture alignment", "buyer-aligned technical validation"),

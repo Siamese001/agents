@@ -129,7 +129,7 @@ _ALLOCATION_VISIBLE_SURFACE_COMPOSITIONS: Mapping[tuple[str, str], str] = {
     ("reb_unify_regulated_enterprise_ai_governance", "skill_llm_judge_packet_design"): "LLM judge packet design for regulated compliance",
     ("reb_unify_runtime_reliability_governance", "skill_context_engineering"): "context engineering for runtime evaluation governance",
     ("reb_ibm_presales_solution_engineering", "skill_p2_gtm_executive_buyer_alignment"): "executive buyer architecture alignment for enterprise pursuits",
-    ("reb_unify_dependency_graph_accelerator", "skill_dependency_and_join_control"): "dependency graph governance and join control architecture",
+    ("reb_unify_dependency_graph_accelerator", "skill_dependency_and_join_control"): "dependency graph intelligence and join control architecture",
 }
 
 # A joint alliance/co-sell capability is commercial evidence, even when its
