@@ -91,6 +91,7 @@ _ROLE_EPISODE_EVIDENCE_DENSITY_REPAIRS: dict[str, str] = {
     "reb_slalom_agentic_client_delivery": "Spearheaded enterprise agentic AI delivery as Senior Director, architecting A2A multi-agent orchestration that established a repeatable technical blueprint for scaling AI solutions across client engagements.",
     "reb_slalom_engineering_practice_leadership": "Led a 105-person organization of software engineers and data leaders across a major energy and utility client, owning all client relationships, delivery execution, and sales pipeline to build a repeatable technical delivery practice.",
     "reb_slalom_governed_runtime_scaling": "Designed a governed runtime scaling framework incorporating deterministic proof lineage and a safety validation mesh, achieving 100% deterministic gate mesh conformance for safety-critical agent decisions while scaling enterprise agentic systems.",
+    "reb_slalom_ecosystem_accelerators": "Directed Google Cloud (GCP), Anthropic Claude, and OpenAI partner co-sell and licensing expansion, scaling Gemini Enterprise from 750 to 5,750+ seats toward 10,000+ across Vertex AI and Model Armor, launching a $2.4M Claude enablement workstream with 45-day Claude Code pods, and cutting human handoffs 15 percentage points in 10 days via OpenAI Codex.",
     "reb_slalom_visual_asset_intelligence": "Built a multi-modal visual asset intelligence pipeline that automated power generation asset extraction, converting a manual inspection workflow into a reusable, production-grade solution pattern.",
 }
 
@@ -487,7 +488,7 @@ _TARGETING_ONLY_TAIL_REPAIRS: tuple[re.Pattern[str], ...] = (
 )
 
 _TARGETING_ONLY_EXPERIENCE_MARKERS: tuple[tuple[str, re.Pattern[str]], ...] = (
-    ("target_company_name", re.compile(r"\bAnthropic\b", re.IGNORECASE)),
+    ("target_company_name", re.compile(r"\b(?:for|at|to)\s+Anthropic\b", re.IGNORECASE)),
     ("frontier_ai_as_experience", re.compile(r"\bfrontier\s+AI\b", re.IGNORECASE)),
     (
         "partner_led_deployment_as_experience",
@@ -620,6 +621,17 @@ def _repair_role_episode_bullet_evidence_density(
                     "bullet_id": str(out.get("bullet_id") or ""),
                     "role_episode_bundle_id": root_id,
                     "reason": "allocated_metric_outcome_100pct_completion",
+                }
+            )
+        elif root_id == "reb_slalom_ecosystem_accelerators" and (
+            "Google Cloud" not in text or "Claude" not in text or "OpenAI" not in text
+        ):
+            out["bullet_text"] = _ROLE_EPISODE_EVIDENCE_DENSITY_REPAIRS["reb_slalom_ecosystem_accelerators"]
+            repairs.append(
+                {
+                    "bullet_id": str(out.get("bullet_id") or ""),
+                    "role_episode_bundle_id": root_id,
+                    "reason": "allocated_multi_partner_ecosystem_completion",
                 }
             )
         repaired.append(out)

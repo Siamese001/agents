@@ -163,6 +163,9 @@ _ALLOCATION_ROOT_COMPACT_PHRASES: dict[str, str] = {
     "reb_ey_erm_risk_governance": "Regulated Insurance Governance",
     "reb_ibm_aws_alliance_partner_cosell_gtm": "Hyperscaler Partner Ecosystem",
     "reb_unify_partner_channel_cosell": "Hyperscaler Partner Ecosystem",
+    "reb_slalom_ecosystem_accelerators": "AI Partner Ecosystems",
+    "reb_unify_hyperscaler_joint_solution_architecture": "Joint Solution Architecture",
+    "reb_unify_enterprise_adoption_revenue": "Enterprise AI Adoption",
     "reb_ibm_customer_success_value_realization": "Enterprise AI Architecture",
     "reb_ibm_offering_accelerator_management": "Enterprise AI Architecture",
 }
