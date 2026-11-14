@@ -28,15 +28,9 @@ except ImportError:
     from hitl_governance import validate_model_token_registry  # type: ignore
 
 try:
-    from tools.implementation_plan_core.evidence_requirements import (
-        MAX_PLAN_WORDS,
-        validate_execution_evidence,
-    )
+    from tools.implementation_plan_core.evidence_requirements import MAX_PLAN_WORDS, validate_execution_evidence, validate_holistic_pipeline_alignment
 except ImportError:
-    from implementation_plan_core.evidence_requirements import (  # type: ignore
-        MAX_PLAN_WORDS,
-        validate_execution_evidence,
-    )
+    from implementation_plan_core.evidence_requirements import MAX_PLAN_WORDS, validate_execution_evidence, validate_holistic_pipeline_alignment  # type: ignore
 
 # Historical / frozen plans grandfathered from strict wave schema
 DEFAULT_LEGACY_EXEMPTIONS = {
