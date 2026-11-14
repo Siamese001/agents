@@ -225,6 +225,16 @@ Wave 1 completed cleanly!
             result["checks"]["skills_budget"]["max_tokens"],
         )
 
+    def test_scope_containment_skill_enforces_full_ripple_without_retrieval_caps(self) -> None:
+        """Verify scope-containment skill removes artificial read/search caps and mandates full-ripple inspection."""
+        skill_path = ROOT / ".agents" / "skills" / "scope-containment" / "SKILL.md"
+        skill_text = skill_path.read_text(encoding="utf-8")
+        for forbidden_cap in ("<= 3", "<= 10", "≤3", "≤10", "Halt retrieval broadening"):
+            self.assertNotIn(forbidden_cap, skill_text)
+        self.assertIn("Mandatory Full-Ripple Inspection", skill_text)
+        self.assertIn("Cohesive Ripple Edit Scope", skill_text)
+        self.assertIn("What Scope Containment Actually Blocks", skill_text)
+
     def test_post_turn_gate_rejects_disjunctive_fence_sitting_prose(self) -> None:
         """Verify post-turn gate fails when response ends with disjunctive fence-sitting prose."""
         fence_sitting = "The update is ready. Would you like me to run the full check or skip to the next item?"

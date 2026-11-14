@@ -43,12 +43,14 @@ The legacy mandatory 4-column Status Table in markdown plan files is retired. Im
 - **Status Tracking & Reporting**: Wave status is tracked durably within repository artifacts and persistent ledgers. Ordinary conversational chat outputs must NOT dump all-wave status tables into chat (target ~150-250 words, max 450 words).
 - **Canonical Template**: See [docs/templates/wave_plan_template.md](../../docs/templates/wave_plan_template.md).
 
-## Retrieval discipline at T2/T3 (unchanged)
+## Retrieval & full-ripple inspection discipline at T2/T3
 
 Before synthesis, pull evidence in this order: local repo guidance + nearby docs → exact files /
 symbols / commands / config values → ADG / structured MCP for dependency, blast-radius, runtime
 questions → semantic retrieval only when exact lookup leaves gaps → external research only when local
-evidence is insufficient. Facts first, synthesis second.
+evidence is insufficient. Facts first, synthesis second. Reading and searching connected files across
+upstream producers, shared schemas, sibling lanes, and downstream validators is **never capped**—when
+making a change, inspect every connected component by definition.
 
 ## Holistic End-to-End Pipeline Contract Trace (`INV-HOLISTIC-PIPELINE-PLANNING`)
 

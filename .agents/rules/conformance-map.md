@@ -12,7 +12,7 @@ Traces every `AGENTS.md` section to enforceable rules, skills, hooks, tools, and
 | Type | Path | Coverage |
 | :--- | :--- | :--- |
 | Rule | `.agents/rules/plan-first-enforcement.md` | T2/T3 plan-mode gating, decomposition, and review |
-| Skill | `.agents/skills/scope-containment/SKILL.md` | Bounded scope decomposition and retrieval guidance in plan mode |
+| Skill | `.agents/skills/scope-containment/SKILL.md` | Full-ripple dependency inspection, cohesive producer-consumer-validator alignment, and unrelated drift prevention |
 | Hook | `.agents/hooks.json` → `agents-implementation-plan-guard` | Mechanical wave plan validation before writing |
 | Tool | `tools/validate_turn_gates.py` | Pre-turn contract integrity check |
 
