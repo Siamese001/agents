@@ -304,25 +304,23 @@ def run_ibm_narrative_lane_execution(
                         replaced_l2=False,
                     )
             if parsed is not None:
-                parsed = normalize_parsed_output(parsed, runtime_payload, companion_text)
-                _pre_trim = str(parsed.get("narrative_sentence") or "")
-                apply_companion_metric_budget_trim(
-                    parsed, companion_text, runtime_payload=runtime_payload
+                parsed = _sanitize_regen_unsupported_companion_theme_phrases(
+                    normalize_parsed_output(parsed, runtime_payload, companion_text), companion_text
                 )
+                _pre_trim = str(parsed.get("narrative_sentence") or "")
+                apply_companion_metric_budget_trim(parsed, companion_text, runtime_payload=runtime_payload)
                 if str(parsed.get("narrative_sentence") or "") != _pre_trim:
                     from apps_rg.runtime.section_repair_ledger import KIND_MECHANICAL, record_repair
 
                     record_repair(
-                        artifact_dir,
-                        kind=KIND_MECHANICAL,
+                        artifact_dir, kind=KIND_MECHANICAL,
                         operation="companion_metric_budget_deterministic_trim",
-                        reason="deterministic_pre_x2",
-                        replaced_l2=False,
+                        reason="deterministic_pre_x2", replaced_l2=False,
                     )
-                parsed = normalize_parsed_output(parsed, runtime_payload, companion_text)
-                remap_ibm_narrative_claim_ledger_to_fact_pool(
-                    parsed, runtime_payload, companion_text
+                parsed = _sanitize_regen_unsupported_companion_theme_phrases(
+                    normalize_parsed_output(parsed, runtime_payload, companion_text), companion_text
                 )
+                remap_ibm_narrative_claim_ledger_to_fact_pool(parsed, runtime_payload, companion_text)
                 from apps_rg.runtime.sections.ibm_canonical_hydration import (
                     decompose_ibm_narrative_claim_ledger_by_clause,
                 )

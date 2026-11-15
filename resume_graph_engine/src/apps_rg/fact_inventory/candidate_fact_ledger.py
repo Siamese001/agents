@@ -69,6 +69,8 @@ def default_ledger_path(repo_root: Path | None = None) -> Path:
     # preserve arbitrary caller-supplied roots, including isolated test trees.
     if root.name == "src" and (root / "apps_rg" / "__init__.py").is_file():
         root = repository_root(root)
+    elif root.name == "apps_rg" and (root / "__init__.py").is_file():
+        root = repository_root(root)
     return root / REPO_APPS_REL
 
 
