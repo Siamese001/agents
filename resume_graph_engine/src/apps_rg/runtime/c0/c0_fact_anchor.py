@@ -67,9 +67,9 @@ def _load_canonical_fact_corpora(repo_root_str: str) -> tuple[dict[str, dict[str
             doc = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, ValueError, FileNotFoundError):
             continue
-        for bundle in doc.get("role_episode_bundles") or []:
+        for bundle in doc.get("role_episode_bundles") or doc.get("bundles") or []:
             if isinstance(bundle, Mapping):
-                bid = str(bundle.get("bundle_id") or "").strip()
+                bid = str(bundle.get("bundle_id") or bundle.get("role_episode_bundle_id") or "").strip()
                 if bid:
                     bundles_by_id[bid] = {"employer_lane": employer_lane, **dict(bundle)}
     try:
@@ -290,11 +290,19 @@ def select_disjoint_narrative_candidates(
                 elif ctype == "leaf_skill":
                     skills_by_root.setdefault(rid, []).append(dict(raw))
 
+            cosell_roots = {
+                "reb_unify_partner_channel_cosell",
+                "reb_unify_hyperscaler_joint_solution_architecture",
+                "reb_slalom_ecosystem_accelerators",
+                "reb_ibm_aws_alliance_partner_cosell_gtm",
+            }
             for rid, root_row in sorted(
                 roots_by_id.items(),
                 key=lambda item: (-float(item[1].get("ranking_score") or item[1].get("target_alignment_score") or 0.0), item[0]),
             ):
                 if rid in bullet_roots or rid in exec_roots:
+                    continue
+                if target_profile == "svp_agentic_engineering" and rid in cosell_roots:
                     continue
                 r_facts = facts_by_root.get(rid) or []
                 r_skills = skills_by_root.get(rid) or []

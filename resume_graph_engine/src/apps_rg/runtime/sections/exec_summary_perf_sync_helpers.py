@@ -85,7 +85,7 @@ def resolve_target_picture_for_archetype(*, role_archetype: str, strategy_execut
         )
     if strategy_executive:
         return (
-            "Executive portrait: insurance and financial services technology executive aligning P&C carrier and "
+            "Executive portrait: leadership-first insurance and financial services technology executive aligning P&C carrier and "
             "brokerage core modernization (policy administration, underwriting, claims, and billing), governed agentic AI "
             "platforms, and FSA-chartered actuarial risk governance into one enterprise IT direction "
             f"(targeting context: {role_s or 'SVP IT strategy'}; company name never in prose)."

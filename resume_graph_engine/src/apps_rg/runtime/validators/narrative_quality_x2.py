@@ -32,18 +32,10 @@ NARRATIVE_WEAK_VERBS: frozenset[str] = frozenset({
 })
 
 NARRATIVE_CONSULTING_PHRASES: frozenset[str] = frozenset({
-    "drive strategic value",
-    "ensure alignment",
-    "leveraged best practices",
-    "worked closely with",
-    "partnered with stakeholders",
-    "aligned with the business",
-    "facilitating collaboration",
-    "drove alignment",
-    "drove strategic alignment",
-    "enabling the business",
-    "providing thought leadership",
-    "thought leadership",
+    "drive strategic value", "ensure alignment", "leveraged best practices",
+    "worked closely with", "partnered with stakeholders", "aligned with the business",
+    "facilitating collaboration", "drove alignment", "drove strategic alignment",
+    "enabling the business", "providing thought leadership", "thought leadership",
     "best practices",
 })
 
@@ -68,20 +60,13 @@ NARRATIVE_AUTHORITY_SIGNALS: frozenset[str] = frozenset({
 
 # Mechanism vocabulary for technical specificity
 MECHANISM_VOCAB: frozenset[str] = frozenset({
-    # AI / ML specific
     "agentic", "llm", "rag", "graphrag", "embedding", "vector", "retrieval",
     "orchestration", "evaluation", "eval", "fine-tuning", "inference",
-    # Platform / infra
     "lakehouse", "databricks", "microservices", "kubernetes", "spark",
     "streaming", "pipeline", "runtime", "gateway", "api", "aws",
-    "bi", "dashboard", "dashboards",
-    # Engineering practices
-    "telemetry", "tracing", "observability", "monitoring", "cicd", "devops",
-    "lineage",
-    # Domain-specific
-    "ccar", "basel", "insuretech", "underwriting", "actuarial", "hpc",
-    "hyperscaler", "hyperscalers",
-    # Enterprise commercial / transformation mechanisms
+    "bi", "dashboard", "dashboards", "telemetry", "tracing", "observability",
+    "monitoring", "cicd", "devops", "lineage", "ccar", "basel", "insuretech",
+    "underwriting", "actuarial", "hpc", "hyperscaler", "hyperscalers",
     "salesforce", "m&a", "ebitda", "valuation", "synergy", "synergies",
 })
 
@@ -90,10 +75,6 @@ E0_NGRAM_THRESHOLD = 0.20
 BULLET_RECAP_MAX_SHARED_NGRAMS = 3
 NGRAM_SIZE_OVERLAP = 4
 NGRAM_SIZE_RECAP = 5
-
-# ---------------------------------------------------------------------------
-# Result dataclass
-# ---------------------------------------------------------------------------
 
 
 @dataclass
@@ -105,10 +86,6 @@ class NarrativeQualityResult:
     failure_reason: str | None
     signals: list[str]
 
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
 
 _TOKEN_RE = re.compile(r"[a-z0-9]+")
 
@@ -122,20 +99,13 @@ def _first_word(text: str) -> str:
     return tokens[0] if tokens else ""
 
 
-# ---------------------------------------------------------------------------
-# Gate: seniority floor (strong verb + authority scope)
-# ---------------------------------------------------------------------------
-
-
 def check_narrative_seniority_floor(text: str) -> NarrativeQualityResult:
     """Require ≥1 strong action verb AND ≥1 authority scope signal in the narrative."""
     tokens = set(_tokenize(text))
     strong_hits = list(NARRATIVE_STRONG_VERBS & tokens)
     authority_hits = list(NARRATIVE_AUTHORITY_SIGNALS & tokens)
-
     first_w = _first_word(text)
     weak_opener = first_w in NARRATIVE_WEAK_VERBS
-
     passed = bool(strong_hits) and bool(authority_hits) and not weak_opener
     issues: list[str] = []
     if not strong_hits:
@@ -144,28 +114,18 @@ def check_narrative_seniority_floor(text: str) -> NarrativeQualityResult:
         issues.append("no_authority_scope_signal")
     if weak_opener:
         issues.append(f"weak_opener:{first_w!r}")
-
     return NarrativeQualityResult(
         gate_id="x2_narrative_seniority_floor",
         passed=passed,
         observed_value={"strong_verbs": strong_hits, "authority": authority_hits, "issues": issues},
         threshold="≥1 strong verb + ≥1 authority scope signal, no weak opener",
-        failure_reason=(
-            None
-            if passed
-            else (
-                f"Seniority floor failed: {', '.join(issues)}. "
-                "Narrative must open with a senior executive ownership verb "
-                "(Owned, Drove, Scaled, Championed, etc.) and reference a platform/mandate/architecture scope."
-            )
+        failure_reason=None if passed else (
+            f"Seniority floor failed: {', '.join(issues)}. "
+            "Narrative must open with a senior executive ownership verb "
+            "(Owned, Drove, Scaled, Championed, etc.) and reference a platform/mandate/architecture scope."
         ),
         signals=issues,
     )
-
-
-# ---------------------------------------------------------------------------
-# Gate: no consulting language
-# ---------------------------------------------------------------------------
 
 
 def check_narrative_no_consulting_language(text: str) -> NarrativeQualityResult:
@@ -178,13 +138,9 @@ def check_narrative_no_consulting_language(text: str) -> NarrativeQualityResult:
         passed=passed,
         observed_value=found if found else "none",
         threshold="zero consulting phrases",
-        failure_reason=(
-            None
-            if passed
-            else (
-                f"Consulting language detected: {found}. "
-                "Remove these vague consulting phrases and replace with specific mechanism vocabulary."
-            )
+        failure_reason=None if passed else (
+            f"Consulting language detected: {found}. "
+            "Remove these vague consulting phrases and replace with specific mechanism vocabulary."
         ),
         signals=[f"consulting:{f}" for f in found],
     )
@@ -567,22 +523,48 @@ def repair_narrative_bullet_echo_from_graph(
         return "Steered the engineering mandate for legacy transformation, pairing application dependency mapping and migration wave cutover planning with zero-trust security and PII data encryption."
     if section_id == "unify_narrative":
         return "Steered the multi-year platform mandate at Unify Consulting to industrialize governed agentic runtime systems, turning proprietary engineering architecture into commercialized assets and repeatable deployment discipline for regulated institutions."
-    if section_id == "ibm_narrative":
-        return "Anchored partner-level advisory for enterprise cloud transformation at IBM, establishing AWS alliance co-sell and BI governance discipline across global delivery teams."
     skill_ids = {
         str(item or "").strip()
         for fact in (facts or []) if isinstance(fact, dict)
         for key in ("graph_skill_node_ids", "allowed_graph_evidence_ids")
         for item in (fact.get(key) or []) if str(item or "").strip().startswith("skill_")
     }
+    fact_blob = " ".join(
+        f"{fact.get('fact_id', '')} {fact.get('role_episode_bundle_id', '')} {fact.get('claim_text', '')}"
+        for fact in (facts or []) if isinstance(fact, dict)
+    ).lower()
+    if section_id == "ibm_narrative":
+        comp_low = str(companion_bullet_texts or "").lower()
+        has_ibm_cosell = (
+            "co-sell" in fact_blob
+            or "cosell" in fact_blob
+            or "alliance" in fact_blob
+            or bool(skill_ids & {"skill_partner_alliance_gtm_execution", "skill_sr_w12_hyperscaler_alliance_co_sell"})
+            or (not facts and "alliance" in comp_low and "modernization" not in comp_low)
+        )
+        if has_ibm_cosell:
+            return "Anchored partner-level advisory for enterprise cloud transformation at IBM, establishing AWS alliance co-sell and BI governance discipline across global delivery teams."
+        if not comp_low or "modernization" in comp_low:
+            return "Anchored partner-level advisory for enterprise cloud modernization at IBM, establishing AWS architecture and BI governance discipline across global delivery teams."
+        return "Anchored partner-level advisory for enterprise cloud transformation at IBM, establishing AWS architecture and BI governance discipline across global delivery teams."
     def _phrase(tid: str, fallback: str) -> str:
         return tid.removeprefix("skill_").removeprefix("partner_").replace("_", " ").replace("cosell", "co-sell") if tid in skill_ids else fallback
+    has_slalom_cosell = (
+        "skill_partner_hyperscaler_cosell" in skill_ids
+        or "co-sell" in fact_blob
+        or "cosell" in fact_blob
+        or "reb_slalom_ecosystem_accelerators" in fact_blob
+    )
+    third_pillar = (
+        f"cloud partner {_phrase('skill_partner_hyperscaler_cosell', 'hyperscaler co-sell')}"
+        if has_slalom_cosell
+        else _phrase("skill_managed_workflow_orchestration", "multi-agent workflow orchestration")
+    )
     return (
         "Owned the executive consulting mandate for flagship enterprise modernization, "
         f"aligning commercial account stewardship and practice operating models to turn "
         f"{_phrase('skill_governed_agentic_systems_architecture', 'governed agentic systems architecture')}, "
-        f"{_phrase('skill_runtime_resilience_controls', 'runtime resilience controls')}, and cloud partner "
-        f"{_phrase('skill_partner_hyperscaler_cosell', 'hyperscaler co-sell')} into repeatable "
+        f"{_phrase('skill_runtime_resilience_controls', 'runtime resilience controls')}, and {third_pillar} into repeatable "
         f"{_phrase('skill_enterprise_workflow_adoption', 'enterprise workflow adoption')}."
     )
 

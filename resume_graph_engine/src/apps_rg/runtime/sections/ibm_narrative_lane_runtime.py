@@ -279,12 +279,23 @@ def parse_model_json(raw: str) -> tuple[dict[str, Any] | None, str]:
     return None, "Model output was not a JSON object."
 
 
-def _ensure_ibm_narrative_mechanism(narrative: str, companion_text: str = "", *, allow_echo_repair: bool = True) -> str:
+def _ensure_ibm_narrative_mechanism(
+    narrative: str,
+    companion_text: str = "",
+    *,
+    allow_echo_repair: bool = True,
+    facts: list[dict[str, Any]] | None = None,
+) -> str:
     from apps_rg.runtime.validators.narrative_quality_x2 import (
         check_narrative_technical_specificity, repair_narrative_bullet_echo_from_graph,
     )
     if allow_echo_repair:
-        narrative = repair_narrative_bullet_echo_from_graph(narrative, facts=[], companion_bullet_texts=companion_text, section_id="ibm_narrative")
+        narrative = repair_narrative_bullet_echo_from_graph(
+            narrative,
+            facts=list(facts or []),
+            companion_bullet_texts=companion_text,
+            section_id="ibm_narrative",
+        )
     if check_narrative_technical_specificity(narrative).passed:
         return narrative
     for p, r in (
@@ -313,7 +324,14 @@ def normalize_parsed_output(
             narrative = re.sub(r",\s+", " ", narrative, count=1)
     if narrative and not narrative.endswith((".", "!", "?")):
         narrative += "."
-    mech_grounded = _ensure_ibm_narrative_mechanism(narrative, companion_text, allow_echo_repair=allow_echo_repair)
+    plan_facts = (
+        list((runtime_payload.get("selected_fact_plan") or {}).get("facts") or [])
+        if isinstance(runtime_payload, dict) and isinstance(runtime_payload.get("selected_fact_plan"), dict)
+        else []
+    )
+    mech_grounded = _ensure_ibm_narrative_mechanism(
+        narrative, companion_text, allow_echo_repair=allow_echo_repair, facts=plan_facts
+    )
     if mech_grounded != narrative:
         old_narrative = narrative
         out["narrative_sentence"] = mech_grounded

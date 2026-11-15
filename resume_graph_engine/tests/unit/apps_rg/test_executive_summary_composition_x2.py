@@ -205,3 +205,129 @@ def test_execution_fact_id_does_not_misclassify_as_b1_and_ai_partnerships_popula
     assert plan["brushstroke_missing_ids"] == []
     assert all(bs["support_status"] == "SUPPORTED" for bs in plan["brushstrokes"])
     assert plan["sentence_arc"][0]["arc_role"] == "partnerships_thesis"
+
+
+def test_fde_truist_target_classifies_as_agentic_platform_not_ai_partnerships() -> None:
+    from apps_rg.runtime.sections.executive_summary_synthesis_contract import (
+        classify_exec_summary_role_archetype,
+        format_s6_briefing_forward_targeting_anchor,
+    )
+
+    truist_jd = (
+        "Head of Forward Deployed Engineering leading embedded AI engineering teams from "
+        "rapid prototyping to production activation across business lines, in change management "
+        "partnership with enterprise risk and applied AI platform governance."
+    )
+    archetype = classify_exec_summary_role_archetype(
+        target_role="Head of Forward Deployed Engineering",
+        jd_text=truist_jd,
+        briefing_text="Forward Deployed Engineering & Agentic AI",
+    )
+    assert archetype == "agentic_platform"
+
+    s6_anchor = format_s6_briefing_forward_targeting_anchor(
+        briefing_text="Forward Deployed Engineering & Agentic AI",
+        jd_text=truist_jd,
+    )
+    assert "forward-deployed AI engineering execution" in s6_anchor
+    assert "partner-facing" not in s6_anchor
+    assert "co-sell" not in s6_anchor
+
+
+def test_non_partner_allowed_fact_utilization_and_narrative_echo_avoid_cosell() -> None:
+    from apps_rg.runtime.sections.voice_repair.fact_utilization import (
+        ensure_required_allowed_fact_utilization,
+    )
+    from apps_rg.runtime.validators.narrative_quality_x2 import (
+        repair_narrative_bullet_echo_from_graph,
+    )
+
+    fde_facts = [
+        {"fact_id": "reb_unify_platform_commercialization_leadership"},
+        {"fact_id": "reb_insurtech_aws_migration_execution"},
+        {"fact_id": "reb_slalom_agentic_client_delivery"},
+    ]
+    parsed_input = {
+        "resume_display_text": (
+            "Engineering executive building governed agentic AI platforms across enterprise teams. "
+            "Architected multi-agent orchestration across regulated workflows. "
+            "Delivered enterprise lakehouse platforms across Fortune 500 accounts. "
+            "Established governance and release discipline across distributed clouds. "
+            "Modernized policy and core insurance platforms on AWS. "
+            "Advances forward-deployed AI engineering execution at scale."
+        ),
+        "claim_ledger": [
+            {"sentence_index": 1, "source_fact_ids": ["reb_slalom_agentic_client_delivery"]},
+            {"sentence_index": 5, "source_fact_ids": ["reb_insurtech_aws_migration_execution"]},
+        ],
+    }
+    repaired_parsed, _ = ensure_required_allowed_fact_utilization(
+        parsed_input,
+        selected_facts=fde_facts,
+    )
+    repaired_summary = str(repaired_parsed.get("resume_display_text") or "")
+    assert "partner-led" not in repaired_summary.lower()
+    assert "alliance gtm" not in repaired_summary.lower()
+    assert "platform commercialization" in repaired_summary.lower()
+
+    slalom_text = (
+        "Led a 105-person data and AI engineering organization at Slalom. "
+        "Delivered enterprise lakehouse platforms across Fortune 500 clients."
+    )
+    slalom_repaired = repair_narrative_bullet_echo_from_graph(
+        slalom_text,
+        facts=[
+            {
+                "fact_id": "reb_slalom_agentic_client_delivery",
+                "claim_text": "Directed forward-deployed multi-agent AI engineering delivery across 30+ Fortune 500 accounts.",
+            }
+        ],
+        companion_bullet_texts="Delivered enterprise lakehouse platforms across Fortune 500 clients.",
+        section_id="slalom_narrative",
+    )
+    assert "co-sell" not in slalom_repaired.lower()
+    assert "multi-agent workflow orchestration" in slalom_repaired.lower()
+
+
+def test_competencies_visible_graph_surface_svp_agentic_engineering_avoids_partner_label() -> None:
+    from apps_rg.runtime.sections.competency_capability_evidence import (
+        enrich_competencies_visible_graph_surface,
+    )
+
+    parsed: dict = {
+        "competencies": [
+            {
+                "category_id": "cat_partner",
+                "category_label": "Partner Applied AI Architecture",
+                "competency_bundle_id": "ccb_partner_applied_ai_architecture",
+                "terms": [{"term": "partner-ready applied AI reference architectures"}],
+            },
+            {
+                "category_id": "cat_agentic",
+                "category_label": "Agentic AI Platforms",
+                "competency_bundle_id": "ccb_agentic_platforms",
+                "terms": [{"term": "governed multi-agent orchestration control planes"}],
+            },
+        ]
+    }
+    receipt = enrich_competencies_visible_graph_surface(
+        parsed,
+        packet=None,
+        allowed_fact_ids={"reb_unify_agentic_platform_architecture"},
+        selected_graph_evidence_plan={
+            "target_role_profile": "svp_agentic_engineering",
+            "facts": [{"fact_id": "reb_unify_agentic_platform_architecture"}],
+        },
+    )
+    assert receipt["order_policy"] == "svp_agentic_engineering_relevance_first"
+    comps = parsed["competencies"]
+    assert comps[0]["competency_bundle_id"] == "ccb_agentic_platforms"
+    assert comps[1]["competency_bundle_id"] == "ccb_partner_applied_ai_architecture"
+    assert comps[1]["resume_display_label"] == "Applied AI Reference Architecture & Enablement"
+    terms_blob = " ".join(str(t.get("term") or "") for t in comps[1]["terms"]).lower()
+    assert "partner" not in terms_blob
+    assert "reference" in terms_blob
+    assert "accelerators" in terms_blob
+    assert "enablement" in terms_blob
+
+

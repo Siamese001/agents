@@ -177,4 +177,68 @@ def test_multi_archetype_dynamic_jd_allocation_diversity() -> None:
     assert "reb_slalom_bi_temporal_knowledge_graph_hybrid_retrieval" in ai_roots or "reb_slalom_autonomous_agentic_sdlc_mcp" in ai_roots
 
 
+def test_truist_forward_deployed_engineering_allocation_excludes_cosell_bundles() -> None:
+    from apps_rg.fact_inventory.candidate_fact_ledger import load_master_role_family_taxonomy
+    from apps_rg.fact_inventory.track_weighted_graph_expansion import infer_projection_role_family_key
+
+    repo = _repo_root()
+    jd_text = (
+        "Head of Forward Deployed Engineering - Truist Financial Corporation. "
+        "Build and lead the Forward Deployed Engineering organization, embed with business "
+        "and technology teams as design partners, translate complex workflows into rapid "
+        "AI prototypes and production-grade enterprise solutions on AWS, and enforce SR 11-7 "
+        "model risk management, auditability, and cybersecurity guardrails."
+    )
+    briefing_text = (
+        "Target Role: Head of Forward Deployed Engineering at Truist Financial Corporation. "
+        "Emphasize 105-person engineering organization leadership, rapid prototyping to production "
+        "activation, governed agentic AI runtime controls, and regulated banking MRM/SR 11-7 compliance."
+    )
+    rf_key = infer_projection_role_family_key(
+        target_role="Head of Forward Deployed Engineering",
+        jd_text=jd_text,
+        briefing_text=briefing_text,
+        taxonomy=load_master_role_family_taxonomy(repo_root=repo),
+    )
+    assert rf_key == "SVP_ENGINEERING_AI_PLATFORM"
+
+    bundle = build_whole_resume_graph_allocation(
+        repo_root=repo,
+        target_role="Head of Forward Deployed Engineering",
+        jd_text=jd_text,
+        briefing_text=briefing_text,
+    )
+    plan = bundle["allocation_plan"]
+    assert validate_resume_graph_allocation_plan(plan) == []
+    assert plan["uniqueness_receipt"]["pass"] is True
+    assert bundle["section_plans"]["executive_summary"]["target_role_profile"] == "svp_agentic_engineering"
+
+    cosell_roots = {
+        "reb_unify_partner_channel_cosell",
+        "reb_unify_hyperscaler_joint_solution_architecture",
+        "reb_slalom_ecosystem_accelerators",
+        "reb_ibm_aws_alliance_partner_cosell_gtm",
+    }
+    allocated_roots = {str(row["root_id"]) for row in plan["assignments"]}
+    assert not (allocated_roots & cosell_roots)
+    slalom_bullet_roots = {
+        str(row["root_id"])
+        for row in plan["assignments"]
+        if str(row["section_id"]) == "slalom_bullets"
+    }
+    assert {
+        "reb_slalom_engineering_practice_leadership",
+        "reb_slalom_agentic_client_delivery",
+        "reb_slalom_governed_runtime_scaling",
+    }.issubset(slalom_bullet_roots)
+    assert {
+        "reb_slalom_engineering_practice_leadership",
+        "reb_slalom_agentic_client_delivery",
+        "reb_unify_regulated_enterprise_ai_governance",
+        "reb_unify_agentic_platform_architecture",
+        "reb_ibm_aws_modernization_architecture",
+    }.issubset(allocated_roots)
+
+
+
 

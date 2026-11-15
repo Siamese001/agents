@@ -30,12 +30,12 @@ def _scrub_graph_era_surface_anomalies(sentences: list[str]) -> list[str]:
         new = sent
         new = re.sub(
             r"\b20%\s+joint\s+(?:outcome|across)\b",
-            lambda m: "joint revenue growth across" if m.group(0).lower().endswith("across") else "joint revenue growth",
+            lambda m: "20% joint revenue growth across" if m.group(0).lower().endswith("across") else "20% joint revenue growth",
             new, flags=re.IGNORECASE,
         )
         new = re.sub(
             r"\btranslated into\s+(?:in\s+)?IP-led(?:\s+of)?\s+and\s+20%\s+expansion\b",
-            "delivered $22M in IP-led revenue and gross margin expansion",
+            "delivered $22M in IP-led revenue and 20% gross margin expansion",
             new,
             flags=re.IGNORECASE,
         )
@@ -436,11 +436,31 @@ def polish_executive_summary_judge_alignment(
             return parsed, receipt
         receipt["actions"].append("canonical_arc_rebuild")
 
+    _role_low = str(target_role or "").lower()
+    _skip_partnership_polish = any(
+        k in _role_low
+        for k in (
+            "forward deployed",
+            "forward-deployed",
+            "forward deployment",
+            "field engineering",
+            "deployment engineering",
+        )
+    ) and not any(
+        k in _role_low
+        for k in ("partner", "partnership", "alliance", "ecosystem", "channel", "co-sell", "cosell")
+    )
+
     for name, fn in (
         ("dedupe_dependency_graph", lambda s: _p("_dedupe_dependency_graph_sentences", _dedupe_dependency_graph_sentences)(s, selected_facts=selected_facts)),
         ("ensure_dependency_graph_override", lambda s: _p("_ensure_dependency_graph_display_override", _ensure_dependency_graph_display_override)(s, selected_facts=selected_facts, cited_fact_ids=cited_fact_ids)),
         ("weave_agentic_platform_body", lambda s: _p("_weave_agentic_platform_body_bridge", _weave_agentic_platform_body_bridge)(s, selected_facts=selected_facts)),
-        ("repair_ai_partnership_judge_findings", lambda s: _p("_repair_ai_partnership_judge_findings", _repair_ai_partnership_judge_findings)(s, selected_facts=selected_facts)),
+        (
+            "repair_ai_partnership_judge_findings",
+            (lambda s: s)
+            if _skip_partnership_polish
+            else (lambda s: _p("_repair_ai_partnership_judge_findings", _repair_ai_partnership_judge_findings)(s, selected_facts=selected_facts)),
+        ),
         ("reduce_formulaic_bridges", _reduce_formulaic_bridge_echo),
         ("consulting_connective_prefix", _soften_consulting_fact_echo),
         (
