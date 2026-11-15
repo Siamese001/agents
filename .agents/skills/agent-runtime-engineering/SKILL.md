@@ -74,6 +74,13 @@ Produce:
 - failure/resilience table;
 - framework-specific code only after semantics are locked.
 
+## Antigravity SDK Runtime Wiring Checklist
+
+When wiring agent runtimes in this repository to the Google Antigravity SDK (`google.antigravity`), enforce:
+- **Client & Local Runtime Configs**: Use `create_antigravity_agent_config()` (`LocalAgentConfig` with `GEMINI_API_KEY` primary precedence and optional Vertex Standard/Express or `ServiceTier.PRIORITY`), `create_litert_agent_config()` (`LiteRTAgentConfig` with `GPU`/`NPU` backend and speculative decoding), or `create_local_openai_agent_config()` (`LocalOpenAIAgentConfig(...).lightweight()` without requiring a dummy API key).
+- **Subagents & Tools**: Project 10-field delegation contracts via `SubAgentDefinition.to_antigravity_subagent_config()` + `build_antigravity_capabilities_config()` (`BuiltinTools.START_SUBAGENT`), and wrap stateful tools with `ToolContext` (`ctx.get_state` / `ctx.set_state`).
+- **Structured Output, Cancellation & Observability**: Prefer `LocalAgentConfig(response_schema=ModelClass)` with `await response.structured_output()`, cancel streams via `await response.cancel()` catching `AntigravityCancelledError` (`BaseException` subclass) before `except Exception:`, bridge token/call limits to `types.BudgetConfig` + `response.stop_reason`, and export `thoughts_token_count` (`gen_ai.usage.thought_tokens`) from `agent.conversation.total_usage`.
+
 ## Blocking failures
 
 - No explicit termination condition.
