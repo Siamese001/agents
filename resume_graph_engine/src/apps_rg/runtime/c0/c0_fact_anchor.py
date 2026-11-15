@@ -302,7 +302,7 @@ def select_disjoint_narrative_candidates(
             ):
                 if rid in bullet_roots or rid in exec_roots:
                     continue
-                if target_profile == "svp_agentic_engineering" and rid in cosell_roots:
+                if target_profile != "ai_partnerships_gtm" and rid in cosell_roots:
                     continue
                 r_facts = facts_by_root.get(rid) or []
                 r_skills = skills_by_root.get(rid) or []
