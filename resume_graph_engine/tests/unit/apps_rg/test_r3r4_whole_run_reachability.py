@@ -4,6 +4,8 @@ R3R4 whole-run reachability with apps_research delegation enabled.
 """
 from __future__ import annotations
 
+import copy
+import hashlib
 import json
 import uuid as uuid_module
 from pathlib import Path
@@ -11,16 +13,20 @@ from types import SimpleNamespace
 
 import pytest
 
-from apps_rg.repository_layout import resolve_apps_rg_path
-from apps_rg.integrations.apps_research_bridge import EvidenceItem, ResearchResult
-from apps_rg.prerequisites.briefing_validator import validate_apps_research_handoff
+from apps_research.config.model_pins import (
+    apps_rg_handoff_judge_pin,
+    company_brief_generation_pin,
+)
 from apps_research.integrations.apps_rg_handoff import (
     persist_apps_rg_targeting_brief_artifacts,
 )
-from tests.unit.apps_research.test_apps_rg_handoff_canonical_exit import (
-    _record,
-    _record_for_identity,
+from apps_rg.integrations.apps_research_bridge import EvidenceItem, ResearchResult
+from apps_rg.integrations.managed_research_delegation import (
+    ResearchDispatchFailure,
+    ResumeBriefingReady,
 )
+from apps_rg.prerequisites.briefing_validator import validate_apps_research_handoff
+from apps_rg.repository_layout import resolve_apps_rg_path
 from apps_rg.runtime.dispatch.spine_stage_receipts import (
     FILENAME_DELEGATED_BRIEFING,
     FILENAME_L1_PLANNING_CAPSULE,
@@ -33,7 +39,6 @@ from apps_rg.runtime.dispatch.spine_stage_receipts import (
 from apps_rg.runtime.mandatory_run_outputs import MANDATORY_OUTPUT_HARD_STOP_GATE_ID
 from apps_rg.runtime.orchestration.r3r4_whole_run_orchestration import (
     ROUTE_FAMILY_R3R4,
-    _product_x3_authorizes,
     apps_research_handoff_authorized,
     briefing_input_present,
     research_delegation_enabled,
@@ -45,6 +50,177 @@ _REQUEST_UUID = uuid_module.UUID("11111111-1111-1111-1111-111111111111")
 _RUN_UUID = uuid_module.UUID("22222222-2222-2222-2222-222222222222")
 _TRACE_UUID = uuid_module.UUID("33333333-3333-3333-3333-333333333333")
 _JD_TEXT = "Target JD text for route-decision pytest."
+_CANONICAL_BRIEF_TEXT = (
+    "Anthropic - Manager Applied AI Architecture Partnerships targeting brief\n"
+    "| Manager Applied AI Architecture Partnerships | band | Reports to Partnerships |\n\n"
+    "## JD Complement\n"
+    "- Company DNA centers on safe frontier AI deployment with partner-led enterprise adoption.\n"
+    "- Operating model favors technical architecture depth paired with ecosystem motion.\n\n"
+    "## Company DNA & Operating Model\n"
+    "- Company DNA emphasizes research-to-product translation for enterprise AI systems.\n"
+    "- Operating model blends platform architecture and leadership decision rights.\n\n"
+    "## Company Strategy & Operating Pressure\n"
+    "- Strategy pressure focuses on scaling trusted AI adoption through partner ecosystems.\n"
+    "- Recent urgency centers on durable enterprise deployment and platform governance.\n\n"
+    "## Leadership & Stakeholder Map\n"
+    "- Leadership stakeholders need architects who translate roadmap into technical close.\n"
+    "- Stakeholder map spans partnerships, platform, data, and customer architecture teams.\n\n"
+    "## AI, Data, Platform, Architecture Signals\n"
+    "- AI platform signal favors secure integration, evaluation loops, and data governance.\n"
+    "- Architecture signal points to reusable enterprise deployment patterns.\n\n"
+    "## Partnership / Ecosystem Motion\n"
+    "- Co-sell motion depends on joint solution design, enablement, and technical close.\n"
+    "- Partner ecosystem signal includes GSI and ISV channels supporting adoption.\n\n"
+    "## Recent Events & Urgency\n"
+    "- Recent events create urgency for forward-looking enterprise AI operating models.\n"
+    "- Urgency supports positioning around safe deployment and measurable adoption.\n\n"
+    "## apps_rg Positioning Themes\n"
+    "- Positioning should connect platform architecture, partner delivery, and trust.\n"
+    "- Themes remain targeting context and never become proof for resume claims.\n\n"
+    "## apps_lic Outreach Angles\n"
+    "- Outreach can emphasize ecosystem revenue, enablement, and adoption motion.\n"
+    "- Outreach mirrors company strategy without copying JD responsibilities.\n\n"
+    "## Do Not Use As Proof\n"
+    "- This briefing is targeting context only and cannot support candidate claims.\n"
+)
+
+
+def _build_provider_evidence(pin, *, trace_id: str, suffix: str) -> dict:
+    receipt = {
+        "schema_version": "apps_research.provider_attempt_validation.v1",
+        "gateway_id": "apps_research.provider_gateway_v1",
+        "role": pin.role,
+        "provider": pin.provider,
+        "requested_model": pin.model,
+        "observed_model": pin.model,
+        "reasoning_effort": pin.reasoning_effort,
+        "attempt_id": f"attempt-{suffix}",
+        "logical_attempt_id": f"run:logical:{suffix}",
+        "transport_attempt_id": f"run:logical:{suffix}:transport:1",
+        "run_id": "run",
+        "trace_id": trace_id,
+        "request_digest": suffix * 64,
+        "provider_response_id": f"response-{suffix}",
+        "lifecycle": {
+            "local_dispatch_started": True,
+            "request_bytes_sent": False,
+            "response_headers_received": pin.provider == "google_gemini",
+            "first_byte_received": pin.provider == "google_gemini",
+            "sdk_response_returned": pin.provider == "external_openai",
+            "remote_outcome": "PROVIDER_RESPONDED",
+        },
+        "transport_response_received": True,
+        "response_schema_valid": True,
+        "model_pin_valid": True,
+        "application_output_valid": True,
+        "overall_success": True,
+        "terminal_status": "SUCCESS",
+        "validation_reason": "ALL_VALIDATIONS_PASSED",
+        "usage": {},
+    }
+    event = {
+        "schema_version": "apps.external_model_usage_event.v1",
+        "gateway_id": "apps_research.provider_gateway_v1",
+        "provider_role": pin.role,
+        "provider": pin.provider,
+        "requested_model": pin.model,
+        "observed_model": pin.model,
+        "request_digest": receipt["request_digest"],
+        "outcome": "SUCCESS",
+        "transport_response_received": True,
+        "response_schema_valid": True,
+        "model_pin_valid": True,
+        "application_output_valid": True,
+        "overall_success": True,
+        "attempt_id": receipt["attempt_id"],
+        "logical_attempt_id": receipt["logical_attempt_id"],
+        "transport_attempt_id": receipt["transport_attempt_id"],
+        "trace_id": trace_id,
+    }
+    event["event_digest"] = hashlib.sha256(
+        json.dumps(event, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+    receipt["ledger_event_digest"] = event["event_digest"]
+    receipt["ledger_event"] = event
+    return receipt
+
+
+def _build_canonical_handoff_record(
+    *,
+    run_id: str,
+    trace_id: str,
+    request_id: str,
+    tenant_id: str = "default",
+) -> SimpleNamespace:
+    generation_pin = company_brief_generation_pin()
+    judge_pin = apps_rg_handoff_judge_pin()
+    sidecar = {
+        "brief_text_sha256": hashlib.sha256(
+            _CANONICAL_BRIEF_TEXT.strip().encode("utf-8")
+        ).hexdigest(),
+        "generation_provider": generation_pin.provider,
+        "generation_model_requested": generation_pin.model,
+        "generation_model": generation_pin.model,
+        "generation_reasoning_effort": generation_pin.reasoning_effort,
+        "generation_model_observation_status": "OBSERVED_PROVIDER_RESPONSE",
+        "generation_provider_evidence": _build_provider_evidence(
+            generation_pin,
+            trace_id=trace_id,
+            suffix="a",
+        ),
+        "provider_call_attempted": True,
+        "handoff_eligible": True,
+        "reason": "ok",
+        "x2_judge_receipt": {
+            "schema_version": "apps_research.apps_rg_handoff_x2_judge_receipt.v1",
+            "gate_id": "X2_RESEARCH_SEMANTIC_GATE",
+            "judge_name": judge_pin.provider_key,
+            "judge_provider": judge_pin.provider,
+            "judge_model_requested": judge_pin.model,
+            "judge_model": judge_pin.model,
+            "thinking_level": judge_pin.reasoning_effort,
+            "model_observation_status": "OBSERVED_PROVIDER_RESPONSE",
+            "threshold": 0.75,
+            "model_backed": True,
+            "status": "PASS",
+            "score": 0.91,
+            "verdict": "PASS",
+            "provider_status": "MODEL_BACKED_PASS",
+            "provider_evidence": _build_provider_evidence(
+                judge_pin,
+                trace_id=trace_id,
+                suffix="b",
+            ),
+        },
+        "role_archetype": "partnerships",
+        "required_sections_present": ["jd complement"],
+        "missing_sections": [],
+        "source_families_present": ["overview", "partner_ecosystem"],
+        "source_families_missing": [],
+        "signal_terms_present": ["company dna", "co-sell"],
+        "signal_terms_missing": [],
+        "source_register": [
+            {"family": "overview", "has_content": True, "char_count": 500},
+            {"family": "partner_ecosystem", "has_content": True, "char_count": 500},
+        ],
+    }
+    return SimpleNamespace(
+        run_id=run_id,
+        request_id=request_id,
+        parent_run_id=run_id,
+        trace_id=trace_id,
+        tenant_id=tenant_id,
+        topic="Anthropic",
+        company_brief_text=_CANONICAL_BRIEF_TEXT,
+        fec_run_context={
+            "company_brief": {
+                "apps_rg_targeting_brief_sidecar": copy.deepcopy(sidecar),
+            }
+        },
+        confidence_score=0.91,
+        support_coverage=0.88,
+        hop_terminal_error="",
+    )
 
 
 def _publish_observed_fixture_result(
@@ -58,8 +234,7 @@ def _publish_observed_fixture_result(
     tenant_id: str = "default",
     jd_text: str = _JD_TEXT,
 ) -> ResearchResult:
-    base = _record(run_id)
-    producer_record = _record_for_identity(
+    producer_record = _build_canonical_handoff_record(
         run_id=run_id,
         trace_id=trace_id,
         request_id=request_id,
@@ -90,14 +265,14 @@ def _publish_observed_fixture_result(
                 confidence=0.91,
             ),
         ),
-        confidence_score=base.confidence_score,
+        confidence_score=producer_record.confidence_score,
         result_hash=bundle.bundle_manifest_digest,
         company_brief_hash=bundle.brief_sha256,
         fetch_duration_ms=0.0,
         audit_ref=str(bundle.run_dir),
         research_artifact_dir=str(bundle.run_dir),
         briefing_artifact_path=str(bundle.briefing_path),
-        company_brief_text=base.company_brief_text,
+        company_brief_text=producer_record.company_brief_text,
         apps_research_handoff_envelope=bundle.envelope,
         brief_sha256=bundle.brief_sha256,
         result_metadata_digest=bundle.result_metadata_digest,
@@ -107,7 +282,14 @@ def _publish_observed_fixture_result(
 
 
 class _ObservedFixtureBridge:
-    def __init__(self, artifact_runs_root: Path) -> None:
+    def __init__(
+        self,
+        *,
+        artifact_runs_root: Path,
+        capability_ref: str = "apps_research.v1",
+        confidence_score: float = 0.88,
+    ) -> None:
+        del capability_ref, confidence_score
         self._artifact_runs_root = artifact_runs_root
 
     def fetch(self, **kwargs) -> ResearchResult:
@@ -122,10 +304,96 @@ class _ObservedFixtureBridge:
         )
 
 
-def test_product_x3_taxonomy_rejects_legacy_success_aliases() -> None:
-    assert _product_x3_authorizes("X3D_ALLOW_FINISH") is True
-    for legacy_alias in ("X3D", "X3C", "EXIT_OK", "EXIT_PARTIAL", "ALLOW"):
-        assert _product_x3_authorizes(legacy_alias) is False
+@pytest.mark.parametrize(
+    ("x3_code", "expected_fault"),
+    [
+        ("X3D_ALLOW_FINISH", "FRESH_PREFLIGHT_REQUIRED_FOR_PRODUCT_AUTHORIZATION"),
+        ("X3D", "PRODUCT_X3D_ALLOW_FINISH_REQUIRED"),
+        ("X3C", "PRODUCT_X3D_ALLOW_FINISH_REQUIRED"),
+        ("EXIT_OK", "PRODUCT_X3D_ALLOW_FINISH_REQUIRED"),
+        ("EXIT_PARTIAL", "PRODUCT_X3D_ALLOW_FINISH_REQUIRED"),
+        ("ALLOW", "PRODUCT_X3D_ALLOW_FINISH_REQUIRED"),
+    ],
+)
+def test_product_x3_taxonomy_rejects_legacy_success_aliases(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    x3_code: str,
+    expected_fault: str,
+) -> None:
+    monkeypatch.setenv("APPS_RG_MOCK_RESEARCH", "1")
+    monkeypatch.setenv("APPS_RG_L1_ALLOW_EMPTY_PROFILE_DIGEST", "1")
+
+    from apps_rg.cache.whole_run_entrypoint_preflight import WholeRunCachePreflightOutcome
+    from apps_rg.runtime.orchestration import r3r4_whole_run_orchestration as orch
+
+    class _FakeResult:
+        run_id = "draft-run-x3-taxonomy"
+        request_id = "req-x3-taxonomy"
+        x3_disposition = x3_code
+        fault = ""
+        terminal_r5 = False
+
+    def _fake_spine(**kwargs: object) -> _FakeResult:
+        art = Path(kwargs["artifact_dir"])
+        art.mkdir(parents=True, exist_ok=True)
+        (art / "r4_run_manifest.json").write_text(
+            json.dumps({"chain_kind": "R4_SINGLE_ACTION", "route_family": "R4_SINGLE_ACTION"}),
+            encoding="utf-8",
+        )
+        return _FakeResult()
+
+    monkeypatch.setattr(orch, "run_integrated_single_action_spine", _fake_spine)
+    monkeypatch.setattr(
+        "apps_rg.cache.whole_run_entrypoint_preflight.run_whole_run_cache_preflight",
+        lambda **kwargs: WholeRunCachePreflightOutcome(
+            entrypoint="canonical_dispatch",
+            generation_required=True,
+        ),
+    )
+    monkeypatch.setattr(orch, "emit_integrated_run_bundle_index", lambda *a, **k: None)
+    monkeypatch.setattr(
+        "apps_rg.cache.whole_run_entrypoint_preflight.maybe_ingest_r1b_post_exit",
+        lambda **k: None,
+    )
+    monkeypatch.setattr(
+        "apps_rg.runtime.full_resume_review_bundle.emit_full_resume_review_bundle",
+        lambda run_root: run_root / "review_bundle.zip",
+    )
+    monkeypatch.setattr(
+        "apps_rg.cache.cache_preflight_evidence.write_whole_run_cache_preflight_artifact",
+        lambda *a, **k: None,
+    )
+    monkeypatch.setattr(
+        "apps_rg.cache.cache_preflight_evidence.write_cache_miss_receipt",
+        lambda *a, **k: None,
+    )
+    monkeypatch.setattr(
+        "apps_rg.runtime.whole_run_exit.emit_whole_run_exit_review_packet",
+        lambda **kwargs: {"x3_disposition": x3_code},
+    )
+    monkeypatch.setattr(
+        "apps_rg.runtime.orchestration.ResumeRunRecoveryAgent.ResumeRunRecoveryAgent.can_attempt_recovery",
+        lambda self, *args, **kwargs: False,
+    )
+
+    brief, jd = _write_authorized_apps_research_handoff(tmp_path)
+    result = orch.run_whole_run_with_route_governance(
+        target_company="Anthropic",
+        target_role="Manager of Applied AI Architecture, Partnerships",
+        jd=str(jd),
+        job_description_text=_JD_TEXT,
+        manual_brief=str(brief),
+        source_resume_text="Experienced applied AI architecture and partnerships leader.",
+        generation_mode="strategic_tailor",
+        auto_research_internal=True,
+        artifact_dir=str(tmp_path / f"run_{x3_code}"),
+        require_fresh_preflight=False,
+    )
+
+    assert result["exit_status"] == "error"
+    assert result["product_authorized"] is False
+    assert result["fault"] == expected_fault
 
 
 @pytest.fixture(autouse=True)
@@ -145,9 +413,12 @@ def _stable_cli_run_identity(monkeypatch: pytest.MonkeyPatch) -> None:
 
     monkeypatch.setattr(orch, "uuid", _UuidProxy())
     monkeypatch.setattr(
-        orch,
-        "_research_bridge",
-        lambda *, artifact_runs_root: _ObservedFixtureBridge(artifact_runs_root),
+        "apps_rg.integrations.apps_research_bridge.AppsResearchBridge",
+        _ObservedFixtureBridge,
+    )
+    monkeypatch.setattr(
+        "apps_rg.integrations.apps_research_bridge.MockAppsResearchBridge",
+        _ObservedFixtureBridge,
     )
 
 
@@ -278,7 +549,6 @@ def test_whole_run_static_json_is_replaced_by_delegated_brief(
         "apps_rg.cache.cache_preflight_evidence.write_cache_miss_receipt",
         lambda *a, **k: None,
     )
-    monkeypatch.setattr(orch, "_default_artifact_dir", lambda explicit: tmp_path / "static_json_run")
 
     brief_json = Path("tests/fixtures/apps_rg/brief_anthropic_partnerships_2026.json")
     jd_json = resolve_apps_rg_path(
@@ -405,7 +675,6 @@ def test_whole_run_redelegates_a_foreign_handoff_before_u0(
         "apps_rg.cache.cache_preflight_evidence.write_cache_miss_receipt",
         lambda *a, **k: None,
     )
-    monkeypatch.setattr(orch, "_default_artifact_dir", lambda explicit: tmp_path / "foreign_handoff_run")
 
     foreign_brief, jd = _write_authorized_apps_research_handoff(
         tmp_path,
@@ -474,9 +743,15 @@ def test_whole_run_research_failure_fails_closed_with_manual_brief(
 
     monkeypatch.setattr(orch, "run_integrated_single_action_spine", _fake_spine)
     monkeypatch.setattr(
-        orch,
-        "_run_r3r4_research_hop",
-        lambda **kwargs: (False, "APPS_RESEARCH_BLOCKED", ""),
+        "apps_rg.integrations.managed_research_delegation.dispatch_resume_research_briefing",
+        lambda req, **_kwargs: ResearchDispatchFailure(
+            request_id=req.request_id,
+            run_id=req.run_id,
+            trace_id=req.trace_id,
+            r5_reason_code="APPS_RESEARCH_BLOCKED",
+            detail="apps_research blocked in pytest",
+            dispatch_duration_ms=1.0,
+        ),
     )
     monkeypatch.setattr(
         "apps_rg.cache.whole_run_entrypoint_preflight.run_whole_run_cache_preflight",
@@ -502,7 +777,6 @@ def test_whole_run_research_failure_fails_closed_with_manual_brief(
         "apps_rg.cache.cache_preflight_evidence.write_cache_miss_receipt",
         lambda *a, **k: None,
     )
-    monkeypatch.setattr(orch, "_default_artifact_dir", lambda explicit: tmp_path / "fallback_run")
 
     brief = tmp_path / "manual_brief.md"
     brief.write_text("Manual Anthropic partner briefing with usable targeting context.", encoding="utf-8")
@@ -563,20 +837,11 @@ def test_research_hop_rejects_ready_result_without_producer_artifact(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
+    monkeypatch.setenv("APPS_RG_L1_ALLOW_EMPTY_PROFILE_DIGEST", "1")
     from apps_rg.integrations import managed_research_delegation as delegation
-    from apps_rg.integrations.apps_research_bridge import MockAppsResearchBridge
     from apps_rg.runtime.orchestration import r3r4_whole_run_orchestration as orch
 
-    monkeypatch.setattr(
-        orch,
-        "_research_bridge",
-        lambda *, artifact_runs_root: MockAppsResearchBridge(
-            confidence_score=0.88,
-            artifact_runs_root=artifact_runs_root,
-        ),
-    )
-
-    outcome = delegation.ResumeBriefingReady(
+    outcome = ResumeBriefingReady(
         request_id="req-missing-artifact",
         run_id="run-missing-artifact",
         trace_id="trace-missing-artifact",
@@ -591,40 +856,43 @@ def test_research_hop_rejects_ready_result_without_producer_artifact(
         dispatch_duration_ms=1.0,
     )
     monkeypatch.setattr(
+        "apps_rg.integrations.apps_research_bridge.AppsResearchBridge",
+        lambda **_kwargs: object(),
+    )
+    monkeypatch.setattr(
         delegation,
         "dispatch_resume_research_briefing",
         lambda *_args, **_kwargs: outcome,
     )
     monkeypatch.setattr(
         orch,
-        "_research_bridge",
-        lambda *, artifact_runs_root: object(),
-    )
-    route = SimpleNamespace(
-        request_id="req-missing-artifact",
-        run_id="run-missing-artifact",
-        trace_id="trace-missing-artifact",
-        route_id=ROUTE_FAMILY_R3R4,
-        route_family=ROUTE_FAMILY_R3R4,
-        execution_form="MANAGED_WORKFLOW",
-        l3_required=True,
-        grounding_required=True,
-        route_profile_ref="test://r3r4",
-        reason_codes=(),
+        "run_integrated_single_action_spine",
+        lambda **_kwargs: pytest.fail("draft spine must not run when producer artifact is missing"),
     )
 
-    ok, reason, brief_path = orch._run_r3r4_research_hop(
-        route=route,
-        validated_request=SimpleNamespace(),
-        artifact_dir=tmp_path / "run",
+    run_dir = tmp_path / "run"
+    jd = tmp_path / "jd.txt"
+    jd.write_text(_JD_TEXT, encoding="utf-8")
+    result = orch.run_whole_run_with_route_governance(
         target_company="Anthropic",
         target_role="Manager of Applied AI Architecture, Partnerships",
+        jd=str(jd),
+        job_description_text=_JD_TEXT,
+        manual_brief="",
+        source_resume_text="Experienced applied AI architecture and partnerships leader.",
+        generation_mode="strategic_tailor",
+        auto_research_internal=True,
+        artifact_dir=str(run_dir),
+        require_fresh_preflight=False,
     )
 
-    assert ok is False
-    assert reason == "APPS_RESEARCH_ARTIFACT_MISSING"
-    assert brief_path == ""
-    assert not (tmp_path / "run" / FILENAME_DELEGATED_BRIEFING).exists()
+    assert result["exit_status"] == "error"
+    assert result["fault"] == "APPS_RESEARCH_ARTIFACT_MISSING"
+    bridge_response = json.loads(
+        (run_dir / FILENAME_RESEARCH_BRIDGE_RESPONSE).read_text(encoding="utf-8")
+    )
+    assert bridge_response["r5_reason_code"] == "APPS_RESEARCH_ARTIFACT_MISSING"
+    assert not (run_dir / FILENAME_DELEGATED_BRIEFING).exists()
 
 
 def test_whole_run_route_mismatch_fails_closed_when_apps_research_required(
@@ -634,13 +902,10 @@ def test_whole_run_route_mismatch_fails_closed_when_apps_research_required(
     monkeypatch.setenv("APPS_RG_L1_ALLOW_EMPTY_PROFILE_DIGEST", "1")
 
     from apps_rg.runtime.orchestration import r3r4_whole_run_orchestration as orch
-    delegated, jd = _write_authorized_apps_research_handoff(tmp_path)
+    _, jd = _write_authorized_apps_research_handoff(tmp_path)
 
     def _fake_spine(**kwargs: object) -> object:
         pytest.fail("draft spine must not run when apps_research-required routing mismatches")
-
-    def _fake_research_hop(**kwargs: object) -> tuple[bool, str, str]:
-        return True, "ResumeBriefingReady", str(delegated)
 
     def _simple_route(plan: object) -> SimpleNamespace:
         return SimpleNamespace(
@@ -658,7 +923,6 @@ def test_whole_run_route_mismatch_fails_closed_when_apps_research_required(
 
     monkeypatch.setattr(orch, "l0_route_apps_rg", _simple_route)
     monkeypatch.setattr(orch, "run_integrated_single_action_spine", _fake_spine)
-    monkeypatch.setattr(orch, "_run_r3r4_research_hop", _fake_research_hop)
     monkeypatch.setattr(orch, "emit_integrated_run_bundle_index", lambda *a, **k: None)
     monkeypatch.setattr(
         "apps_rg.cache.cache_preflight_evidence.write_whole_run_cache_preflight_artifact",
@@ -668,7 +932,6 @@ def test_whole_run_route_mismatch_fails_closed_when_apps_research_required(
         "apps_rg.cache.cache_preflight_evidence.write_cache_miss_receipt",
         lambda *a, **k: None,
     )
-    monkeypatch.setattr(orch, "_default_artifact_dir", lambda explicit: tmp_path / "route_mismatch_run")
 
     brief = tmp_path / "manual_brief.md"
     brief.write_text("Static manual briefing that was not produced by apps_research.", encoding="utf-8")
@@ -744,11 +1007,6 @@ def test_whole_run_r3r4_reachable_without_research_delegation(monkeypatch: pytes
     monkeypatch.setattr(
         "apps_rg.cache.cache_preflight_evidence.write_cache_miss_receipt",
         lambda *a, **k: None,
-    )
-    monkeypatch.setattr(
-        orch,
-        "_default_artifact_dir",
-        lambda explicit: tmp_path / "full_resume_test01",
     )
 
     brief, jd = _write_authorized_apps_research_handoff(
@@ -865,7 +1123,6 @@ def test_whole_run_custom_artifact_dir_emits_output_gates(monkeypatch: pytest.Mo
         "apps_rg.cache.cache_preflight_evidence.write_cache_miss_receipt",
         lambda *a, **k: None,
     )
-    monkeypatch.setattr(orch, "_default_artifact_dir", lambda explicit: tmp_path / "anthropic_custom_run")
 
     brief, jd = _write_authorized_apps_research_handoff(tmp_path)
 
@@ -967,11 +1224,6 @@ def test_whole_run_hard_fails_without_complete_section_forensics(
             },
         },
     )
-    monkeypatch.setattr(
-        orch,
-        "_default_artifact_dir",
-        lambda explicit: tmp_path / "full_resume_missing_forensics",
-    )
 
     brief, jd = _write_authorized_apps_research_handoff(tmp_path)
 
@@ -1072,11 +1324,6 @@ def test_whole_run_fails_when_exec_summary_judge_not_certified(
     monkeypatch.setattr(
         "apps_rg.cache.cache_preflight_evidence.write_cache_miss_receipt",
         lambda *a, **k: None,
-    )
-    monkeypatch.setattr(
-        orch,
-        "_default_artifact_dir",
-        lambda explicit: tmp_path / "full_resume_test02",
     )
 
     brief, jd = _write_authorized_apps_research_handoff(tmp_path)
@@ -1238,11 +1485,6 @@ def test_whole_run_success_requires_post_x3_uwg_eval_l6(
         "apps_rg.runtime.whole_run_exit.emit_whole_run_exit_review_packet",
         lambda **kwargs: {"x3_disposition": "X3D_ALLOW_FINISH"},
     )
-    monkeypatch.setattr(
-        orch,
-        "_default_artifact_dir",
-        lambda explicit: tmp_path / "full_resume_success01",
-    )
 
     brief, jd = _write_authorized_apps_research_handoff(tmp_path)
 
@@ -1339,11 +1581,6 @@ def test_whole_run_blocks_when_post_x3_l6_bridge_missing(
     monkeypatch.setattr(
         "apps_rg.runtime.whole_run_exit.emit_whole_run_exit_review_packet",
         lambda **kwargs: {"x3_disposition": "X3D_ALLOW_FINISH"},
-    )
-    monkeypatch.setattr(
-        orch,
-        "_default_artifact_dir",
-        lambda explicit: tmp_path / "full_resume_no_l6",
     )
 
     brief, jd = _write_authorized_apps_research_handoff(tmp_path)

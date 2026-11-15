@@ -4,22 +4,19 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from apps_rg.runtime.c0.c0_fact_anchor import build_fact_anchor
+from apps_rg.runtime.c0.c0_fact_anchor import build_fact_anchor, resolve_raw_chunk_text
 from apps_rg.runtime.c0.resume_graph_allocation import (
     NARRATIVE_DERIVATION_POLICY,
     build_whole_resume_graph_allocation,
     slice_section_plan_for_allocation,
 )
+from apps_rg.runtime.contracts.metric_lexical_primitives import proof_fact_surface_tokens
 from apps_rg.runtime.sections.ibm_bullets_lane import (
     _materialize_ibm_bullets_from_frozen_allocation,
 )
-from apps_rg.runtime.sections.role_episode_lane import (
-    _model_bullet_surface_binding,
-    _proof_fact_surface_tokens,
-    _proof_fact_text,
-)
+from apps_rg.runtime.sections.role_episode_lane import run_slalom_bullets_x2_gates
 from apps_rg.runtime.sections.unify_bullets_lane import (
-    _claim_text_by_unify_slot,
+    normalize_unify_parsed_without_ledger_synthesis,
 )
 
 
@@ -93,29 +90,104 @@ def test_role_episode_ibm_and_unify_lanes_consume_fact_anchor() -> None:
     fact_row["fact_anchor"] = anchor
     fact_row["raw_chunk"] = anchor["resolved_raw_chunk"]
 
-    tokens = _proof_fact_surface_tokens(fact_row)
+    tokens = proof_fact_surface_tokens(fact_row)
     assert {"google", "vertex", "anthropic", "claude", "120m"}.issubset(tokens)
-    rendered = _proof_fact_text(fact_row)
+    rendered = resolve_raw_chunk_text(fact_row)
     assert len(rendered.split()) >= 18
 
-    bound, matched = _model_bullet_surface_binding(
-        "Directed multi-partner AI ecosystem expansion across Google Cloud, Vertex AI, and Anthropic Claude delivering $120M+ total contract value.",
-        fact_row,
+    bound_text = (
+        "Directed multi-partner AI ecosystem expansion across Google Cloud, Vertex AI, "
+        "and Anthropic Claude delivering $120M+ total contract value."
     )
-    assert bound is True
+    bound_gates = run_slalom_bullets_x2_gates(
+        l2={
+            "display_text_authority": "model_selected_graph_bound_surface",
+            "selected_fact_plan": {"facts": [fact_row]},
+            "bullets": [
+                {
+                    "bullet_id": "bul_slalom_001",
+                    "bullet_text": bound_text,
+                    "source_fact_ids": ["bul_slalom_001"],
+                }
+            ],
+            "claim_ledger": [
+                {
+                    "claim_text": bound_text,
+                    "source_fact_ids": ["bul_slalom_001"],
+                }
+            ],
+        },
+        allowed=["bul_slalom_001"],
+        runtime_generation_status="REAL_LLM",
+    )
+    bound_auth_gate = next(
+        g for g in bound_gates if g["gate_id"] == "x2_slalom_bullets_display_text_proof_authorized"
+    )
+    assert bound_auth_gate["pass"] is True
+    matched = bound_auth_gate["observed_value"]["rows"][0]["model_surface_binding"][0]["anchor_tokens"]
     assert len(matched) >= 3
 
-    unify_plan = {
-        "facts": [
-            {
-                "fact_id": "bul_unify_001",
-                "claim_text": "",
-                "fact_anchor": anchor,
-            }
-        ]
+    unbound_gates = run_slalom_bullets_x2_gates(
+        l2={
+            "display_text_authority": "model_selected_graph_bound_surface",
+            "selected_fact_plan": {"facts": [fact_row]},
+            "bullets": [
+                {
+                    "bullet_id": "bul_slalom_001",
+                    "bullet_text": "Managed quarterly vendor invoices across retail branches.",
+                    "source_fact_ids": ["bul_slalom_001"],
+                }
+            ],
+            "claim_ledger": [
+                {
+                    "claim_text": "Managed quarterly vendor invoices across retail branches.",
+                    "source_fact_ids": ["bul_slalom_001"],
+                }
+            ],
+        },
+        allowed=["bul_slalom_001"],
+        runtime_generation_status="REAL_LLM",
+    )
+    unbound_auth_gate = next(
+        g for g in unbound_gates if g["gate_id"] == "x2_slalom_bullets_display_text_proof_authorized"
+    )
+    assert unbound_auth_gate["pass"] is False
+
+    unify_runtime_payload = {
+        "allowed_fact_ids": ["bul_unify_004"],
+        "selected_fact_plan": {
+            "facts": [
+                {
+                    "fact_id": "bul_unify_004",
+                    "claim_text": "",
+                    "fact_anchor": anchor,
+                }
+            ]
+        },
     }
-    unify_claims = _claim_text_by_unify_slot(unify_plan)
-    assert len(unify_claims["bul_unify_001"].split()) >= 18
+    unify_norm = normalize_unify_parsed_without_ledger_synthesis(
+        {
+            "bullets": [
+                {
+                    "bullet_id": "bul_unify_004",
+                    "bullet_text": rendered,
+                    "source_fact_ids": ["bul_unify_004"],
+                }
+            ],
+            "claim_ledger": [
+                {
+                    "claim_text": rendered,
+                    "source_fact_ids": ["bul_unify_004"],
+                }
+            ],
+        },
+        unify_runtime_payload,
+    )
+    assert unify_norm is not None
+    assert any(
+        isinstance(entry, dict) and entry.get("operation") == "repair_unify_archive_verbatim_overlap"
+        for entry in (unify_norm.get("change_log") or [])
+    )
 
     ibm_parsed: dict[str, object] = {"bullets": []}
     ibm_plan = {

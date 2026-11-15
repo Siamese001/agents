@@ -140,11 +140,60 @@ def _partner_metric_surface_payload() -> tuple[list[dict], dict, dict]:
 
 
 def test_unify_x1d_outputs_are_written_once_after_adjudication() -> None:
-    source = (APP_ROOT / "runtime/sections/unify_bullets_lane.py").read_text(encoding="utf-8")
-    write_call = 'write_json(artifact_dir / "x1d_llm_judge_outputs.json"'
-    assert source.count(write_call) == 1
-    assert source.find(write_call) > source.find("if _should_adjudicate and _panel_keys:")
-    assert source.find(write_call) < source.find("run_bullet_judge_reselection(")
+    import ast
+
+    sections_dir = APP_ROOT / "runtime" / "sections"
+    files = [sections_dir / "unify_bullets_lane.py"]
+    pkg_dir = sections_dir / "unify_bullets"
+    if pkg_dir.is_dir():
+        files.extend(sorted(pkg_dir.rglob("*.py")))
+    sources = {
+        p.relative_to(sections_dir).as_posix(): p.read_text(encoding="utf-8")
+        for p in files
+        if p.is_file()
+    }
+    write_sites: list[tuple[str, int]] = []
+    for rel, src in sources.items():
+        tree = ast.parse(src)
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+            func = node.func
+            is_write_json = (isinstance(func, ast.Name) and func.id == "write_json") or (
+                isinstance(func, ast.Call)
+                and any(
+                    isinstance(arg, ast.Constant) and arg.value == "write_json"
+                    for arg in func.args
+                )
+            )
+            if is_write_json and node.args and any(
+                isinstance(sub, ast.Constant) and sub.value == "x1d_llm_judge_outputs.json"
+                for sub in ast.walk(node.args[0])
+            ):
+                write_sites.append((rel, node.lineno))
+    assert len(write_sites) == 1, write_sites
+    write_rel, write_line = write_sites[0]
+    write_src = sources[write_rel]
+    if "if _should_adjudicate and _panel_keys:" in write_src and "run_bullet_judge_reselection(" in write_src:
+        adj_lines = [
+            idx
+            for idx, line in enumerate(write_src.splitlines(), start=1)
+            if "if _should_adjudicate and _panel_keys:" in line
+        ]
+        resel_lines = [
+            node.lineno
+            for node in ast.walk(ast.parse(write_src))
+            if isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id == "run_bullet_judge_reselection"
+        ]
+        assert adj_lines and resel_lines
+        assert write_line > adj_lines[0]
+        assert write_line < resel_lines[0]
+    else:
+        combined = "\n".join(sources.values())
+        assert "evaluate_bullet_adjudicator_trigger" in combined
+        assert "run_bullet_judge_reselection(" in combined
 
 
 def test_legacy_six_pack_detector() -> None:

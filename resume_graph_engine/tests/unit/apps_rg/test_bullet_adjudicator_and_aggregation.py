@@ -144,29 +144,107 @@ def test_adjudicator_no_escalation_when_x2_hard_fails_and_score_high() -> None:
     assert TRIGGER_X2_PASS_JUDGE_RISK not in d.triggers
 
 
+def _collect_bullet_lane_sources(lane_file: str) -> dict[str, str]:
+    sections_dir = resolve_apps_rg_path(REPO_ROOT, "runtime", "sections")
+    files: list[Path] = []
+    lane_path = sections_dir / lane_file
+    if lane_path.is_file():
+        files.append(lane_path)
+    pkg_dir = sections_dir / lane_file.removesuffix("_lane.py")
+    if pkg_dir.is_dir():
+        files.extend(sorted(pkg_dir.rglob("*.py")))
+    return {
+        path.relative_to(sections_dir).as_posix(): path.read_text(encoding="utf-8")
+        for path in files
+    }
+
+
+def _has_path_join(source: str, filename: str) -> bool:
+    import ast
+
+    tree = ast.parse(source)
+    return any(
+        isinstance(node, ast.BinOp)
+        and isinstance(node.op, ast.Div)
+        and isinstance(node.right, ast.Constant)
+        and node.right.value == filename
+        for node in ast.walk(tree)
+    )
+
+
+def _find_x1d_write_lines(source: str) -> list[int]:
+    import ast
+
+    tree = ast.parse(source)
+    lines: list[int] = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        func = node.func
+        is_write_json = (isinstance(func, ast.Name) and func.id == "write_json") or (
+            isinstance(func, ast.Call)
+            and any(
+                isinstance(arg, ast.Constant) and arg.value == "write_json"
+                for arg in func.args
+            )
+        )
+        if not is_write_json or not node.args:
+            continue
+        if any(
+            isinstance(sub, ast.Constant) and sub.value == "x1d_llm_judge_outputs.json"
+            for sub in ast.walk(node.args[0])
+        ):
+            lines.append(node.lineno)
+    return lines
+
+
 @pytest.mark.parametrize("lane_file", ["unify_bullets_lane.py", "ibm_bullets_lane.py"])
 def test_unify_and_ibm_bullet_lanes_wire_optional_adjudicator(lane_file: str) -> None:
-    source = resolve_apps_rg_path(
-        REPO_ROOT, "runtime", "sections", lane_file
-    ).read_text(encoding="utf-8")
+    sources = _collect_bullet_lane_sources(lane_file)
+    assert sources
+    combined = "\n".join(sources.values())
 
-    assert "evaluate_bullet_adjudicator_trigger" in source
-    assert "aggregate_bullet_section" in source
-    assert "ADJUDICATOR_PANEL_PROVIDER_KEYS" in source
-    assert 'artifact_dir / "bullet_adjudication.json"' in source
-    assert 'artifact_dir / "bullet_x2_aggregation.json"' in source
+    assert "evaluate_bullet_adjudicator_trigger" in combined
+    assert "aggregate_bullet_section" in combined
+    assert "ADJUDICATOR_PANEL_PROVIDER_KEYS" in combined
+    assert any(_has_path_join(src, "bullet_adjudication.json") for src in sources.values())
+    assert any(_has_path_join(src, "bullet_x2_aggregation.json") for src in sources.values())
 
 
 @pytest.mark.parametrize("lane_file", ["unify_bullets_lane.py", "ibm_bullets_lane.py"])
 def test_unify_and_ibm_x1d_outputs_written_once_after_adjudication(lane_file: str) -> None:
-    source = resolve_apps_rg_path(
-        REPO_ROOT, "runtime", "sections", lane_file
-    ).read_text(encoding="utf-8")
-    write_call = 'write_json(artifact_dir / "x1d_llm_judge_outputs.json"'
+    import ast
 
-    assert source.count(write_call) == 1
-    assert source.find(write_call) > source.find("if _should_adjudicate and _panel_keys:")
-    assert source.find(write_call) < source.find("run_bullet_judge_reselection(")
+    sources = _collect_bullet_lane_sources(lane_file)
+    write_sites = [
+        (rel, lineno)
+        for rel, src in sources.items()
+        for lineno in _find_x1d_write_lines(src)
+    ]
+    assert len(write_sites) == 1, write_sites
+    write_rel, write_line = write_sites[0]
+    write_src = sources[write_rel]
+
+    if "if _should_adjudicate and _panel_keys:" in write_src and "run_bullet_judge_reselection(" in write_src:
+        adj_lines = [
+            idx
+            for idx, line in enumerate(write_src.splitlines(), start=1)
+            if "if _should_adjudicate and _panel_keys:" in line
+        ]
+        resel_lines = [
+            node.lineno
+            for node in ast.walk(ast.parse(write_src))
+            if isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id == "run_bullet_judge_reselection"
+        ]
+        assert adj_lines and resel_lines
+        assert write_line > adj_lines[0]
+        assert write_line < resel_lines[0]
+    else:
+        combined = "\n".join(sources.values())
+        assert "evaluate_bullet_adjudicator_trigger" in combined
+        assert "run_bullet_judge_reselection(" in combined
 
 
 # --------------------------------------------------------------- X2 aggregation accept/reject

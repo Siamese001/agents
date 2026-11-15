@@ -1,0 +1,89 @@
+{
+  "wave": "Wave 4",
+  "title": "Test Decoupling from Raw Source Text & Private Monkeypatching",
+  "status": "COMPLETE",
+  "timestamp": "2026-11-15T00:01:41Z",
+  "worktree": "/Users/amitayer/Git/agents/.worktrees/feat-de-risk-holistic-factoring",
+  "commands": [
+    {
+      "command": "PYTHONPATH=$WT/resume_graph_engine/src:$WT/outreach_engine/src:$WT /Users/amitayer/Git/agents/.venv/bin/pytest tests/unit/test_cost_token_budget_behavioral.py resume_graph_engine/tests/unit/apps_rg/test_bullet_adjudicator_and_aggregation.py resume_graph_engine/tests/unit/apps_rg/validators/test_executive_summary_x2_runtime_proof.py resume_graph_engine/tests/unit/apps_rg/test_unify_bullets_graph_hardening.py resume_graph_engine/tests/unit/apps_rg/test_per_section_model_pin_wiring.py resume_graph_engine/tests/unit/apps_rg/runtime/test_section_repair_ledger_p1.py resume_graph_engine/tests/unit/apps_research/engines/test_company_brief_engine.py resume_graph_engine/tests/unit/apps_research/test_targeting_brief_grounding_failclosed.py outreach_engine/tests/test_research_cost_optimization.py tests/unit/resume_graph_engine/test_role_episode_and_bullet_lanes.py resume_graph_engine/tests/unit/apps_rg/test_r3r4_whole_run_reachability.py -v --timeout=60",
+      "exit_code": 1,
+      "total_collected": 194,
+      "passed": 191,
+      "failed": 3,
+      "duration_seconds": 69.16,
+      "new_wave4_regressions": 0,
+      "pre_existing_main_failures_verified_against_bf92ca4021": [
+        "resume_graph_engine/tests/unit/apps_rg/validators/test_executive_summary_x2_runtime_proof.py::test_executive_summary_model_allowlist_accepts_only_pinned_claude_primary",
+        "resume_graph_engine/tests/unit/apps_rg/test_unify_bullets_graph_hardening.py::test_role_episode_gates_fail_when_metric_outcome_not_visible",
+        "resume_graph_engine/tests/unit/apps_research/engines/test_company_brief_engine.py::TestBuildSynthesisPrompt::test_includes_topic_and_facets"
+      ]
+    },
+    {
+      "command": "/Users/amitayer/Git/agents/.venv/bin/python tools/verify_commit.py",
+      "exit_code": 0,
+      "mode": "all repository files",
+      "status": "PASS"
+    },
+    {
+      "command": "/Users/amitayer/Git/agents/.venv/bin/python tools/verify_commit.py --files <11 Wave 4 test files>",
+      "exit_code": 0,
+      "files_checked": 11,
+      "status": "PASS"
+    },
+    {
+      "command": "/Users/amitayer/Git/agents/.venv/bin/python tools/testing_gaps_auditor.py",
+      "exit_code": 0,
+      "pillars_passing": "6/6",
+      "scanned_test_files": 986,
+      "zero_assert": 0,
+      "mock_violations": 0
+    },
+    {
+      "command": "/Users/amitayer/Git/agents/.venv/bin/python tools/lint_file_budgets.py",
+      "exit_code": 0,
+      "status": "PASS"
+    },
+    {
+      "command": "/Users/amitayer/Git/agents/.venv/bin/python tools/validate_turn_gates.py --mode all --repository-root /Users/amitayer/Git/agents/.worktrees/feat-de-risk-holistic-factoring",
+      "exit_code": 0,
+      "pre_turn_status": "PASS",
+      "post_turn_status": "PASS"
+    },
+    {
+      "command": "/Users/amitayer/Git/agents/.venv/bin/python tools/ssot_boundary_auditor.py --json",
+      "exit_code": 1,
+      "dim_1_cross_subsystem_encapsulation": "PASS",
+      "dim_2_layer_and_purity_boundaries": "PASS",
+      "dim_3_model_pins_and_ssot_drift": "PASS",
+      "dim_4_constitutional_ast_floor": "FAIL (3 pre-existing unowned files: ResumeRunRecoveryAgent.py:375, patch_product_closeout.py:209,404)",
+      "dim_5_mcp_hooks_and_conformance_links": "PASS",
+      "dim_6_sidecar_separation": "PASS",
+      "dim_7_multi_folder_config_sprawl": "PASS",
+      "dim_8_policy_registry_synchronization": "PASS",
+      "dim_9_unowned_hardcoded_thresholds": "FAIL (7 pre-existing main UNCENTRALIZED_ENV_LOOKUP findings; 0 new Wave 4 findings)",
+      "dim_10_prompt_to_code_numeric_parity": "PASS"
+    }
+  ],
+  "verified_criteria": {
+    "zero_production_files_modified_in_wave4": true,
+    "source_scan_tests_decoupled_to_package_and_behavioral_checks": true,
+    "private_monkeypatch_tests_migrated_to_public_seams": true,
+    "testing_gaps_auditor_clean_zero_violations": true,
+    "verify_commit_full_repo_pass": true,
+    "zero_wave4_test_regressions": true
+  },
+  "modified_files": [
+    "outreach_engine/tests/test_research_cost_optimization.py",
+    "resume_graph_engine/tests/unit/apps_research/engines/test_company_brief_engine.py",
+    "resume_graph_engine/tests/unit/apps_research/test_targeting_brief_grounding_failclosed.py",
+    "resume_graph_engine/tests/unit/apps_rg/runtime/test_section_repair_ledger_p1.py",
+    "resume_graph_engine/tests/unit/apps_rg/test_bullet_adjudicator_and_aggregation.py",
+    "resume_graph_engine/tests/unit/apps_rg/test_per_section_model_pin_wiring.py",
+    "resume_graph_engine/tests/unit/apps_rg/test_r3r4_whole_run_reachability.py",
+    "resume_graph_engine/tests/unit/apps_rg/test_unify_bullets_graph_hardening.py",
+    "resume_graph_engine/tests/unit/apps_rg/validators/test_executive_summary_x2_runtime_proof.py",
+    "tests/unit/resume_graph_engine/test_role_episode_and_bullet_lanes.py",
+    "tests/unit/test_cost_token_budget_behavioral.py"
+  ]
+}

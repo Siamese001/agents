@@ -102,18 +102,30 @@ def test_gateway_empty_model_fails_closed():
 
 
 def test_legacy_bullet_lanes_pass_explicit_section_model_pin_to_section_request():
+    from apps_rg.runtime.section_model_limits import (
+        resolve_section_generation_model,
+    )
+
     repo_root = Path(__file__).resolve().parents[3]
-    for lane_relpath in (
-        "apps_rg/runtime/sections/unify_bullets_lane.py",
-        "apps_rg/runtime/sections/ibm_bullets_lane.py",
+    for lane_id, lane_file in (
+        ("unify_bullets", "unify_bullets_lane.py"),
+        ("ibm_bullets", "ibm_bullets_lane.py"),
     ):
-        source = resolve_apps_rg_path(
-            repo_root, *Path(lane_relpath).parts[1:]
-        ).read_text(encoding="utf-8")
-        assert "resolve_section_generation_model(" in source
-        assert "LANE_KEY, provider_profile=str(args.provider)" in source
-        assert "external_openai_generation_model(section_id=LANE_KEY)" in source
-        assert "model=section_model" in source
+        lane_path = resolve_apps_rg_path(repo_root, "runtime", "sections", lane_file)
+        files = [lane_path] if lane_path.is_file() else []
+        pkg_dir = lane_path.parent / lane_id
+        if pkg_dir.is_dir():
+            files.extend(sorted(pkg_dir.rglob("*.py")))
+        combined = "\n".join(path.read_text(encoding="utf-8") for path in files)
+        assert "resolve_section_generation_model(" in combined
+        assert "LANE_KEY, provider_profile=str(args.provider)" in combined
+        assert "external_openai_generation_model(section_id=LANE_KEY)" in combined
+        assert "model=section_model" in combined
+
+        resolved_model = resolve_section_generation_model(
+            lane_id, provider_profile="external_claude"
+        )
+        assert isinstance(resolved_model, str) and bool(resolved_model.strip())
 
 
 if __name__ == "__main__":  # pragma: no cover

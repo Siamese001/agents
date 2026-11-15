@@ -34,7 +34,6 @@ from apps_lic.integrations.apps_research_bridge import (
     MockAppsResearchBridge,
     ResearchBoundaryPolicy,
     ResearchResult,
-    _find_valid_persisted_artifact_bundle,
 )
 from apps_lic.integrations.managed_research_delegation import (
     OutreachBriefingReady,
@@ -229,7 +228,7 @@ def test_boundary_timeout_enforced():
         time.sleep(0.3)
         return MagicMock()
 
-    with patch.object(bridge, "_invoke_apps_research", side_effect=slow_research):
+    with patch("apps_research.integrations.spine_handoff.run_research_via_spine", side_effect=slow_research):
         res = bridge.fetch(company_name="SlowCo", job_title="CTO")
         assert res.is_blocked
         assert "TIMEOUT" in res.block_reason
@@ -246,7 +245,7 @@ def test_boundary_timeout_enforced():
         timeout_seconds=0.1,
         max_retries=0,
     )
-    with patch.object(bridge, "_invoke_apps_research", side_effect=slow_research):
+    with patch("apps_research.integrations.spine_handoff.run_research_via_spine", side_effect=slow_research):
         outcome = dispatch_outreach_research_briefing(req, bridge=bridge)
         assert isinstance(outcome, ResearchDispatchFailure)
         assert outcome.r5_reason_code == ResearchFailureReason.APPS_RESEARCH_TIMEOUT.value
@@ -275,7 +274,7 @@ def test_boundary_retries_transient_failure_then_succeeds():
         raw.evidence_items = []
         return raw
 
-    with patch.object(bridge, "_invoke_apps_research", side_effect=flaky_research):
+    with patch("apps_research.integrations.spine_handoff.run_research_via_spine", side_effect=flaky_research):
         res = bridge.fetch(company_name="FlakyCo", job_title="Staff")
         assert not res.is_blocked
         assert res.is_verified is True
@@ -296,14 +295,14 @@ def test_failed_live_research_retry_attempts_accounted_in_cumulative_cost():
         raise RuntimeError("Live research provider exploded")
 
     # Call 1: live call fails -> increments failed_invocation_count and cumulative_cost_usd
-    with patch.object(bridge, "_invoke_apps_research", side_effect=failing_research):
+    with patch("apps_research.integrations.spine_handoff.run_research_via_spine", side_effect=failing_research):
         res1 = bridge.fetch(company_name="FailCo1", job_title="Engineer")
         assert res1.is_verified is False
         assert bridge.failed_invocation_count == 1
         assert bridge.cumulative_cost_usd == pytest.approx(0.05)
 
     # Call 2: $0.05 + $0.05 = $0.10 > $0.08 limit -> MUST halt before invocation
-    with patch.object(bridge, "_invoke_apps_research", side_effect=failing_research):
+    with patch("apps_research.integrations.spine_handoff.run_research_via_spine", side_effect=failing_research):
         res2 = bridge.fetch(company_name="FailCo2", job_title="Engineer")
         assert res2.is_blocked
         assert "COST_LIMIT_EXCEEDED" in res2.block_reason
