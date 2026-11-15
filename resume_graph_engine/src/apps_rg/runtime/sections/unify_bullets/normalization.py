@@ -165,6 +165,12 @@ _UNIFY_SENIORITY_TENSE_REPAIRS: dict[str, str] = {
     "Establish ": "Established ",
     "Standardize ": "Standardized ",
     "Architect ": "Architected ",
+    "Served as ": "Directed ",
+    "Serve as ": "Directed ",
+    "Aligned ": "Directed ",
+    "Align ": "Directed ",
+    "Advised ": "Directed ",
+    "Advise ": "Directed ",
     # "Compressed" is an evidence-faithful outcome verb, but it is not part
     # of the shared seniority-floor vocabulary.  "Accelerated" preserves the
     # six-month-to-three-week claim while giving the deterministic X2 proxy a

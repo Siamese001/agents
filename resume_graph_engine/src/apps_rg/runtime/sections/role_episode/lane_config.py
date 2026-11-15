@@ -9,6 +9,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
+from apps_rg.repository_layout import repository_root
 from apps_rg.runtime.sections.lane_artifact_io import runtime_payload_for_json, sha16
 from apps_rg.runtime.sections.section_product_shape_ssot import (
     NARRATIVE_MAX_CHARS,
@@ -16,7 +17,7 @@ from apps_rg.runtime.sections.section_product_shape_ssot import (
     product_shape_gate_ids_for_lane,
 )
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
+REPO_ROOT = repository_root(Path(__file__))
 MAX_OUTPUT_TOKENS = 900
 ROLE_EPISODE_MAX_OUTPUT_TOKENS_BY_SECTION: dict[str, int] = {
     # Three-bullet lanes emit full bullet rows plus claim-ledger rows; Anthropic can truncate
