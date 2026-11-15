@@ -35,6 +35,7 @@ shadow_copy_pairs:
 domain_threshold_owners:
   governance_turn_and_plan_budgets:
     owner_file: "config/governance/policy_registry.yaml"
+    owner_package: "config/governance/"
     canonical_symbols:
       INV-BUDGET-FILE-LINES: 600
       INV-AGENTS-MD-MAX-LINES: 200
@@ -57,7 +58,14 @@ domain_threshold_owners:
 
   resume_executive_summary_shape:
     owner_file: "resume_graph_engine/src/apps_rg/runtime/validators/executive_summary_x2.py"
+    owner_package:
+      - "resume_graph_engine/src/apps_rg/runtime/validators/executive_summary_x2/"
+      - "resume_graph_engine/src/apps_rg/runtime/validators/executive_summary/"
+      - "resume_graph_engine/src/apps_rg/runtime/contracts/"
     Aggregator_ssot: "resume_graph_engine/src/apps_rg/runtime/sections/section_product_shape_ssot.py"
+    aggregator_package:
+      - "resume_graph_engine/src/apps_rg/runtime/sections/section_product_shape_ssot/"
+      - "resume_graph_engine/src/apps_rg/runtime/sections/shape_ssot/"
     canonical_symbols:
       EXEC_SUMMARY_MAX_WORDS: 150
       EXEC_SUMMARY_MAX_WORDS_PER_SENTENCE: 45
@@ -68,13 +76,19 @@ domain_threshold_owners:
       - "resume_graph_engine/src/apps_rg/rg_style_profile.yaml"
       - "resume_graph_engine/src/apps_rg/prompt_assembly/section_contracts/executive_summary_contract.yaml"
       - "resume_graph_engine/src/apps_rg/prompt_assembly/templates/strategic_tailor_v1.yaml"
+      - "resume_graph_engine/src/apps_rg/runtime/sections/executive_summary/"
       - "resume_graph_engine/src/apps_rg/runtime/sections/executive_summary/policy.py"
       - "resume_graph_engine/src/apps_rg/runtime/sections/executive_summary/word_budget_repair.py"
       - "resume_graph_engine/src/apps_rg/runtime/sections/executive_summary_lane.py"
+      - "resume_graph_engine/src/apps_rg/runtime/sections/executive_summary_lane/"
       - "apps_eval/scenarios.py"
 
   resume_narrative_and_headline_shape:
     owner_file: "resume_graph_engine/src/apps_rg/runtime/sections/section_product_shape_ssot.py"
+    owner_package:
+      - "resume_graph_engine/src/apps_rg/runtime/sections/section_product_shape_ssot/"
+      - "resume_graph_engine/src/apps_rg/runtime/sections/shape_ssot/"
+      - "resume_graph_engine/src/apps_rg/runtime/contracts/"
     canonical_symbols:
       NARRATIVE_MAX_WORDS: 58
       NARRATIVE_MAX_CHARS: 360
@@ -88,11 +102,16 @@ domain_threshold_owners:
       - "resume_graph_engine/src/apps_rg/prompt_assembly/templates/unify_position_narrative_v1.yaml"
       - "resume_graph_engine/src/apps_rg/prompt_assembly/templates/strategic_tailor_v2.yaml"
       - "resume_graph_engine/src/apps_rg/runtime/sections/role_episode_lane.py"
+      - "resume_graph_engine/src/apps_rg/runtime/sections/role_episode/"
+      - "resume_graph_engine/src/apps_rg/runtime/sections/role_episode_lane/"
       - "resume_graph_engine/src/apps_rg/runtime/sections/ibm_narrative_pa.py"
       - "resume_graph_engine/src/apps_rg/runtime/sections/unify_narrative_pa.py"
 
   outreach_channel_bounds:
     owner_file: "outreach_engine/src/apps_lic/domain/validators.py"
+    owner_package:
+      - "outreach_engine/src/apps_lic/domain/validators/"
+      - "outreach_engine/src/apps_lic/domain/contracts/"
     canonical_symbols:
       LINKEDIN_CONNECTION_MAX_CHARS: 300
       LINKEDIN_INMAIL_MAX_CHARS: 1900
@@ -100,10 +119,13 @@ domain_threshold_owners:
       FOLLOW_UP_MAX_CHARS: 800
     governed_surfaces:
       - "apps_eval/rubrics/apps_lic_outreach_v1.yaml"
-      - "apps_eval/fixtures/dev/apps_lic"
+      - "apps_eval/fixtures/dev/apps_lic/"
 
   research_mode_word_budgets:
     owner_file: "apps_research/config/agent_spec_config.py"
+    owner_package:
+      - "apps_research/config/agent_spec_config/"
+      - "apps_research/config/"
     canonical_symbols:
       DEFAULT_MAX_WORDS: 1500
       BRIEF_MAX_WORDS: 1200
@@ -114,6 +136,16 @@ domain_threshold_owners:
     governed_surfaces:
       - "apps_research/prompt_assembly/templates/company_brief_synthesis_v1.yaml"
       - "apps_research/config/domain_contract/output_schema.company_brief.v1.json"
+
+  outreach_pipeline_cache:
+    owner_file: "outreach_engine/src/apps_lic/pipeline/briefing_resolver.py"
+    owner_package:
+      - "outreach_engine/src/apps_lic/pipeline/briefing_resolver/"
+      - "outreach_engine/src/apps_lic/pipeline/"
+    canonical_symbols:
+      OUTREACH_MAX_CACHE_SIZE: 128
+    governed_surfaces:
+      - "outreach_engine/src/apps_lic/pipeline/"
 
 approved_env_loader_paths:
   - "infrastructure/"

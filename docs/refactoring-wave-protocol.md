@@ -52,6 +52,8 @@ Do not create waves whose primary purpose is:
 - Additional abstraction without demonstrated necessity.
 - Expanding the problem being solved.
 
+Cohesive factoring exception: Decomposing oversized modules into cohesive <= 600-line submodules behind a stable facade and introducing shared domain contracts needed when tracing upstream/downstream spine dependencies (INV-HOLISTIC-PIPELINE-PLANNING) are authorized convergence mechanisms, distinct from speculative abstraction or unrelated drift.
+
 The process must converge on a completed solution rather than continuously discovering additional work.
 
 ======================================================================
@@ -110,7 +112,7 @@ Avoid prompts containing large inventories of required outputs, excessive sub-de
 
 When more work exists than can safely fit in one wave:
 
-- Prioritize the smallest coherent milestone.
+- Prioritize the smallest coherent milestone that keeps directly coupled upstream producers, shared domain contracts, and downstream validators aligned (INV-HOLISTIC-PIPELINE-PLANNING). Cohesive package decomposition (<= 600-line submodules behind an intact facade) counts as one coherent milestone and must not be fragmented across waves in ways that leave contracts out of sync.
 - Complete it.
 - Validate it.
 - Use the result to plan the next wave.
@@ -147,7 +149,7 @@ Codex must execute only the approved wave.
 Codex must:
 
 - Preserve the approved problem statement and target end-state.
-- Make the smallest sufficient change that satisfies the wave objective.
+- Make the smallest sufficient change that satisfies the wave objective while keeping coupled upstream/downstream spine dependencies aligned (INV-HOLISTIC-PIPELINE-PLANNING); cohesive <= 600-line submodule decomposition behind a facade and shared domain contracts are authorized within the approved wave.
 - Avoid unrelated cleanup or modernization.
 - Preserve existing behavior unless behavior change is explicitly required.
 - Run the required validation.
@@ -156,9 +158,9 @@ Codex must:
 
 Codex must not:
 
-- Expand the wave because adjacent code could also be improved.
-- Introduce new frameworks, dependencies, abstractions, or architectural patterns without explicit approval.
-- Silently change interfaces, contracts, schemas, or behavior.
+- Expand the wave into unrelated subsystems because adjacent code could also be improved (updating directly coupled producer/contract/consumer spine files is cohesive refactoring, not unrelated drift).
+- Introduce speculative frameworks, third-party dependencies, or uncoupled abstractions without explicit approval (cohesive <= 600-line facade submodules and shared domain contracts within the ripple scope are authorized).
+- Silently change public interfaces, contracts, or schemas without aligning coupled upstream producers and downstream validators.
 - Begin work intended for a later wave.
 - Treat discovered scope as automatically approved.
 - claim completion when validation has not passed.
@@ -179,6 +181,8 @@ A material deviation includes:
 - Performing unrelated cleanup.
 - Replacing the planned implementation approach.
 - Adding work that could materially affect cost, risk, timeline, security, or operations.
+
+Cohesive factoring clarification: Cohesive package decomposition (<= 600-line submodules behind an intact public facade) and shared domain contract alignment across directly coupled upstream/downstream spine dependencies (INV-HOLISTIC-PIPELINE-PLANNING) within the declared ripple graph do not constitute a material scope deviation; modifying unrelated subsystems or breaking undeclared external contracts does.
 
 ChatGPT or Codex may recommend a deviation only when there is high-confidence evidence that:
 
@@ -264,9 +268,10 @@ OUT OF SCOPE
 - [Explicit exclusion]
 
 EXECUTION GUARDRAILS
-- Make the smallest sufficient change.
+- Make the smallest sufficient change that keeps coupled upstream/downstream spine contracts aligned (INV-HOLISTIC-PIPELINE-PLANNING).
+- Cohesive package decomposition (<= 600-line submodules behind a facade) and shared domain contracts are authorized within scope; exclude unrelated drift.
 - Preserve behavior not explicitly targeted.
-- Do not expand scope without HITL approval.
+- Do not expand into unrelated subsystems without HITL approval.
 - Place optional findings in the backlog.
 - Stop and raise a deviation request when required.
 

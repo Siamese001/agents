@@ -26,13 +26,137 @@ _REPO_ROOT = str(Path(__file__).resolve().parents[4])
 if sys.path[0] != _REPO_ROOT:
     sys.path.insert(0, _REPO_ROOT)
 
-from tests.helpers import apps_rg_model_pins as pins  # noqa: E402
-
+from apps_research.config.model_pins import (  # noqa: E402
+    apps_rg_handoff_judge_pin,
+    company_brief_generation_pin,
+)
 from apps_research.engines.company_brief_engine import (  # noqa: E402
     CompanyBriefEngine,
     CompanyBriefUnavailableError,
-    _v2_enabled,
 )
+from apps_research.integrations.search_retrieval import RetrievedDoc  # noqa: E402
+
+
+_FULL_SYNTHESIS_JSON = json.dumps(
+    {
+        "company_archetype": "scale-up enterprise vendor",
+        "company_dna": {
+            "archetype": "scale-up enterprise vendor",
+            "commercial_motion": "partner-led growth",
+            "partner_ecosystem": "GSI + ISV",
+            "adoption_motion": "technical close and enablement",
+            "operating_tension": "speed versus governance",
+            "distinguishing_traits": ["co-sell discipline", "ecosystem revenue"],
+        },
+        "tagline": "Acme modernizes enterprise workflows through partner-led platform adoption.",
+        "core_offerings": ["platform", "services"],
+        "strategic_priorities": ["partner scale", "AI adoption"],
+        "verticals": ["insurance"],
+        "buyer_titles": ["SVP"],
+        "tech_stack_signals": ["AWS"],
+        "commercial_motion": ["co-sell"],
+        "partner_ecosystem": ["GSI", "ISV"],
+        "adoption_motion": ["pilot to production"],
+        "leadership": [{"name": "A", "title": "CEO", "background": "exec"}],
+        "competitive_set": ["Competitor"],
+        "recent_moves": [{"date": "2026-01-01", "event": "launch", "signal": "partner"}],
+        "language_to_mirror": ["partner-led"],
+        "language_to_avoid": ["generic"],
+    }
+)
+
+
+_TARGETING_BRIEF_MD = "\n".join(
+    [
+        "## JD Complement",
+        "- Partner ecosystem scale through repeatable architecture across enterprise accounts.",
+        "",
+        "## Company Strategy & Operating Pressure",
+        "- Enterprise AI deployment momentum drives cloud standardization across regulated buyers.",
+        "",
+        "## Leadership & Stakeholder Map",
+        "- Executive sponsors balance platform consolidation with governance discipline.",
+        "",
+        "## AI, Data, Platform, Architecture Signals",
+        "- Cloud platform investments focus on multi-model orchestration and observability.",
+    ]
+)
+
+
+def _pass_x2_receipt() -> dict[str, object]:
+    judge_pin = apps_rg_handoff_judge_pin()
+    return {
+        "schema_version": "apps_research.apps_rg_handoff_x2_judge_receipt.v1",
+        "gate_id": "X2_RESEARCH_SEMANTIC_GATE",
+        "judge_name": judge_pin.provider_key,
+        "judge_provider": judge_pin.provider,
+        "judge_model_requested": judge_pin.model,
+        "judge_model": judge_pin.model,
+        "thinking_level": judge_pin.reasoning_effort,
+        "model_observation_status": "OBSERVED_PROVIDER_RESPONSE",
+        "threshold": 0.75,
+        "model_backed": True,
+        "status": "PASS",
+        "score": 0.91,
+        "verdict": "PASS",
+        "provider_status": "MODEL_BACKED_PASS",
+    }
+
+
+def _patch_company_brief_gateways(
+    monkeypatch,
+    *,
+    retrieve_fn=None,
+    openai_content: str | None = None,
+    captured_messages: list[list[dict[str, str]]] | None = None,
+    x2_receipt: dict[str, object] | None = None,
+) -> None:
+    generation_pin = company_brief_generation_pin()
+    if retrieve_fn is None:
+        counter = [0]
+
+        def _default_retrieve(query: str, *, top_k: int = 10):
+            counter[0] += 1
+            return [
+                RetrievedDoc(
+                    url=f"https://example.com/research/{counter[0]}",
+                    title="Grounded public company signal",
+                    snippet=f"Verified public operating signal for {query}",
+                    score=1.0,
+                    engines=("bing",),
+                )
+            ]
+
+        retrieve_fn = _default_retrieve
+
+    monkeypatch.setattr("apps_research.integrations.search_retrieval.retrieve", retrieve_fn)
+    monkeypatch.setattr(
+        "apps_research.integrations.reranker_adapter.rerank",
+        lambda _query, docs, *, cutoff=5: list(docs)[:cutoff],
+    )
+    payload = _FULL_SYNTHESIS_JSON if openai_content is None else openai_content
+
+    class _StubCompletions:
+        def create(self, **kwargs):
+            if captured_messages is not None:
+                captured_messages.append(list(kwargs.get("messages") or []))
+            return SimpleNamespace(
+                id="resp-company-brief-test",
+                model=generation_pin.model,
+                choices=[SimpleNamespace(message=SimpleNamespace(content=payload))],
+                usage={"prompt_tokens": 120, "completion_tokens": 80, "total_tokens": 200},
+            )
+
+    stub_client = SimpleNamespace(chat=SimpleNamespace(completions=_StubCompletions()))
+    monkeypatch.setattr(
+        "apps_research.integrations.provider_gateway.create_openai_sync_client",
+        lambda: stub_client,
+    )
+    if x2_receipt is not None:
+        monkeypatch.setattr(
+            "apps_research.integrations.apps_rg_handoff.run_apps_rg_handoff_x2_judge",
+            lambda **_kwargs: dict(x2_receipt),
+        )
 
 
 @pytest.fixture
@@ -59,8 +183,6 @@ class TestW4AdaptiveResearchLoop:
     def test_v2_retrieval_runs_bounded_jd_promoted_follow_up_for_coverage_gap(
         self, monkeypatch, engine, tmp_path
     ):
-        from apps_research.integrations.search_retrieval import RetrievedDoc
-
         calls: list[str] = []
 
         def _retrieve(query: str, *, top_k: int = 10):
@@ -77,30 +199,33 @@ class TestW4AdaptiveResearchLoop:
                 )
             ]
 
-        monkeypatch.setattr(
-            "apps_research.integrations.search_retrieval.retrieve", _retrieve
-        )
-        monkeypatch.setattr(
-            "apps_research.integrations.reranker_adapter.rerank",
-            lambda _query, docs, *, cutoff=5: list(docs)[:cutoff],
-        )
+        monkeypatch.setenv("APPS_RESEARCH_RETRIEVAL_V2", "1")
+        _patch_company_brief_gateways(monkeypatch, retrieve_fn=_retrieve)
         receipt_path = tmp_path / "run" / "retrieval_receipt.json"
         (receipt_path.parent / "runs").mkdir(parents=True)
 
-        findings = engine._run_research_v2(
-            topic="Anthropic",
-            depth="standard",
-            jd_context={
-                "company_name": "Anthropic",
-                "job_title": "Partnerships Architect",
-                "content": "Lead GSI and cloud partnerships with partner enablement.",
-            },
-            retrieval_receipt_path=receipt_path,
+        brief = engine.execute(
+            {
+                "topic": "Anthropic",
+                "depth": "standard",
+                "jd_context": {
+                    "company_name": "Anthropic",
+                    "job_title": "Partnerships Architect",
+                    "content": "Lead GSI and cloud partnerships with partner enablement.",
+                    "_retrieval_receipt_path": str(receipt_path),
+                },
+            }
         )
         receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
 
         assert "Anthropic official partnerships alliances cloud ecosystem primary sources" in calls
-        assert findings["partner_ecosystem"].strip()
+        partner_family = next(
+            row
+            for row in brief["_c0_bundle"]["briefing_coverage_matrix"]["families"]
+            if row["family"] == "partner_ecosystem"
+        )
+        assert partner_family["covered"] is True
+        assert partner_family["source_count"] >= 1
         assert receipt["adaptive_research_revision"]["revision_status"] == "FOLLOW_UP_PROPOSED"
         follow_up = next(
             row
@@ -115,74 +240,141 @@ class TestW4AdaptiveResearchLoop:
 
 
 class TestV2Flag:
-    def test_disabled_by_default(self, monkeypatch):
+    @staticmethod
+    def _v2_stage_flag(brief: dict) -> bool:
+        fetch_stage = next(
+            stage
+            for stage in brief["_sub_stages"]
+            if stage["sub_stage_id"] == "research.fetch"
+        )
+        return bool(fetch_stage["meta"]["v2"])
+
+    def test_disabled_by_default(self, monkeypatch, engine):
         monkeypatch.delenv("APPS_RESEARCH_RETRIEVAL_V2", raising=False)
-        assert _v2_enabled() is False
+        _patch_company_brief_gateways(monkeypatch)
+        brief = engine.execute({"topic": "Acme Corp"})
+        assert self._v2_stage_flag(brief) is False
 
     @pytest.mark.parametrize("val", ["1", "true", "yes", "on"])
-    def test_truthy_values_enable(self, monkeypatch, val):
+    def test_truthy_values_enable(self, monkeypatch, engine, val):
         monkeypatch.setenv("APPS_RESEARCH_RETRIEVAL_V2", val)
-        assert _v2_enabled() is True
+        _patch_company_brief_gateways(monkeypatch)
+        brief = engine.execute({"topic": "Acme Corp"})
+        assert self._v2_stage_flag(brief) is True
 
     @pytest.mark.parametrize("val", ["0", "false", "no", ""])
-    def test_falsey_values_disable(self, monkeypatch, val):
+    def test_falsey_values_disable(self, monkeypatch, engine, val):
         monkeypatch.setenv("APPS_RESEARCH_RETRIEVAL_V2", val)
-        assert _v2_enabled() is False
+        _patch_company_brief_gateways(monkeypatch)
+        brief = engine.execute({"topic": "Acme Corp"})
+        assert self._v2_stage_flag(brief) is False
 
 
 class TestExtract:
-    def test_extract_from_dict(self, engine):
-        assert engine._extract({"topic": "Acme"}, "topic") == "Acme"
+    def test_extract_from_dict(self, monkeypatch, engine):
+        _patch_company_brief_gateways(monkeypatch)
+        brief = engine.execute({"topic": "Acme"})
+        assert brief["company"] == "Acme"
 
-    def test_extract_from_attr(self, engine):
+    def test_extract_from_attr(self, monkeypatch, engine):
+        _patch_company_brief_gateways(monkeypatch)
+
         class Obj:
             topic = "Beta"
 
-        assert engine._extract(Obj(), "topic") == "Beta"
+        brief = engine.execute(Obj())
+        assert brief["company"] == "Beta"
 
     def test_extract_missing_returns_default(self, engine):
-        assert engine._extract({}, "missing", default="fallback") == "fallback"
+        with pytest.raises(ValueError, match="non-empty 'topic'"):
+            engine.execute({})
 
     def test_extract_non_dict_non_attr_returns_default(self, engine):
-        assert engine._extract(42, "topic") is None
+        with pytest.raises(ValueError, match="non-empty 'topic'"):
+            engine.execute(42)
 
 
 class TestBuildSynthesisPrompt:
-    def test_includes_topic_and_facets(self, engine):
-        prompt = engine._build_synthesis_prompt(
-            topic="Acme Corp",
-            findings={"overview": "founded 2010"},
-            jd_facets=["python", "data"],
+    def test_includes_topic_and_facets(self, monkeypatch, engine, tmp_path):
+        captured: list[list[dict[str, str]]] = []
+        monkeypatch.setenv("APPS_RESEARCH_RETRIEVAL_V2", "0")
+        _patch_company_brief_gateways(
+            monkeypatch,
+            retrieve_fn=lambda _q, top_k=10: [
+                RetrievedDoc(
+                    url="https://acme.example.com/about",
+                    title="Acme Overview",
+                    snippet="founded 2010",
+                    score=1.0,
+                    engines=("bing",),
+                )
+            ],
+            captured_messages=captured,
         )
+        jd_anchor = tmp_path / "jd.json"
+        jd_anchor.write_text(
+            json.dumps({"keywords": ["python", "data"]}),
+            encoding="utf-8",
+        )
+        engine.execute({"topic": "Acme Corp", "jd_anchor": jd_anchor})
+        prompt = captured[-1][1]["content"]
         assert "Acme Corp" in prompt
         assert "python, data" in prompt
         assert "founded 2010" in prompt
         assert "strictly JSON" in prompt
 
-    def test_empty_findings_marked(self, engine):
-        prompt = engine._build_synthesis_prompt(
-            topic="X", findings={"overview": ""}, jd_facets=[]
+    def test_empty_findings_marked(self, monkeypatch, engine):
+        captured: list[list[dict[str, str]]] = []
+        calls = [0]
+
+        def _partial_retrieve(_q: str, *, top_k: int = 10):
+            calls[0] += 1
+            if calls[0] > 1:
+                return []
+            return [
+                RetrievedDoc(
+                    url="https://x.example.com/about",
+                    title="X Overview",
+                    snippet="founded 2015",
+                    score=1.0,
+                    engines=("bing",),
+                )
+            ]
+
+        monkeypatch.setenv("APPS_RESEARCH_RETRIEVAL_V2", "0")
+        _patch_company_brief_gateways(
+            monkeypatch,
+            retrieve_fn=_partial_retrieve,
+            captured_messages=captured,
         )
+        engine.execute({"topic": "X"})
+        prompt = captured[-1][1]["content"]
         assert "(no research available)" in prompt
         assert "(none provided)" in prompt
 
 
 class TestParseSynthesis:
-    def test_extracts_embedded_json(self, engine):
-        out = engine._parse_synthesis(
-            'noise {"tagline": "hi", "core_offerings": ["x"]} trailing',
-            topic="X",
-            jd_facets=[],
+    def test_extracts_embedded_json(self, monkeypatch, engine):
+        _patch_company_brief_gateways(
+            monkeypatch,
+            openai_content='noise {"tagline": "hi", "core_offerings": ["x"]} trailing',
         )
-        assert out["tagline"] == "hi"
+        out = engine.execute({"topic": "X"})
+        assert out["overview"]["tagline"] == "hi"
 
-    def test_invalid_json_raises(self, engine):
-        with pytest.raises(CompanyBriefUnavailableError, match="structured synthesis JSON parse failed"):
-            engine._parse_synthesis("no json here", topic="Acme", jd_facets=["data"])
+    def test_invalid_json_raises(self, monkeypatch, engine):
+        _patch_company_brief_gateways(monkeypatch, openai_content="no json here")
+        with pytest.raises(
+            CompanyBriefUnavailableError, match="structured synthesis JSON parse failed"
+        ):
+            engine.execute({"topic": "Acme"})
 
-    def test_malformed_braces_raises(self, engine):
-        with pytest.raises(CompanyBriefUnavailableError, match="structured synthesis JSON parse failed"):
-            engine._parse_synthesis("{not valid json", topic="Acme", jd_facets=[])
+    def test_malformed_braces_raises(self, monkeypatch, engine):
+        _patch_company_brief_gateways(monkeypatch, openai_content="{not valid json")
+        with pytest.raises(
+            CompanyBriefUnavailableError, match="structured synthesis JSON parse failed"
+        ):
+            engine.execute({"topic": "Acme"})
 
 
 class TestStubSynthesis:
@@ -192,29 +384,38 @@ class TestStubSynthesis:
 
 
 class TestResolveJdContext:
-    def test_no_jd_returns_empty(self, engine):
-        assert engine._resolve_jd_context({"topic": "X"}) == {}
+    def test_no_jd_returns_empty(self, monkeypatch, engine):
+        _patch_company_brief_gateways(monkeypatch)
+        brief = engine.execute({"topic": "X"})
+        assert brief.get("_jd_context", {}) == {}
 
-    def test_empty_jd_dict_returns_empty(self, engine):
-        assert engine._resolve_jd_context({"jd_context": {}}) == {}
+    def test_empty_jd_dict_returns_empty(self, monkeypatch, engine):
+        _patch_company_brief_gateways(monkeypatch)
+        brief = engine.execute({"topic": "X", "jd_context": {}})
+        assert brief.get("_jd_context", {}) == {}
 
-    def test_content_hash_computed_when_absent(self, engine):
-        out = engine._resolve_jd_context({"jd_context": {"content": "JD body text"}})
+    def test_content_hash_computed_when_absent(self, monkeypatch, engine):
+        _patch_company_brief_gateways(monkeypatch)
+        brief = engine.execute({"topic": "X", "jd_context": {"content": "JD body text"}})
         expected = "sha256-" + hashlib.sha256(b"JD body text").hexdigest()[:16]
-        assert out["jd_content_hash"] == expected
+        assert brief["_jd_context"]["jd_content_hash"] == expected
 
-    def test_existing_hash_preserved(self, engine):
-        out = engine._resolve_jd_context(
-            {"jd_context": {"content": "x", "jd_content_hash": "preset"}}
+    def test_existing_hash_preserved(self, monkeypatch, engine):
+        _patch_company_brief_gateways(monkeypatch)
+        brief = engine.execute(
+            {"topic": "X", "jd_context": {"content": "x", "jd_content_hash": "preset"}}
         )
-        assert out["jd_content_hash"] == "preset"
+        assert brief["_jd_context"]["jd_content_hash"] == "preset"
 
-    def test_reads_attribute_form(self, engine):
+    def test_reads_attribute_form(self, monkeypatch, engine):
+        _patch_company_brief_gateways(monkeypatch)
+
         class Obj:
+            topic = "X"
             jd_context = {"jd_ref": "ref-1"}
 
-        out = engine._resolve_jd_context(Obj())
-        assert out["jd_content_hash"].startswith("sha256-")
+        brief = engine.execute(Obj())
+        assert brief["_jd_context"]["jd_content_hash"].startswith("sha256-")
 
 
 class TestCuratedTargetingFallback:
@@ -222,39 +423,39 @@ class TestCuratedTargetingFallback:
         self, monkeypatch, engine
     ):
         monkeypatch.setenv("APPS_RESEARCH_RETRIEVAL_V2", "1")
-        monkeypatch.setattr(
-            engine,
-            "_run_research_v2",
-            lambda **_kwargs: {"company_basics": "grounded public evidence"},
+        idx = [0]
+
+        def _selective_retrieve(query: str, *, top_k: int = 10):
+            if "company overview founding" in query or "executive team" in query:
+                return [
+                    RetrievedDoc(
+                        url=f"https://unify.example.com/{i}",
+                        title="Unify Consulting evidence",
+                        snippet="Unify Consulting verified operating signal",
+                        score=1.0,
+                        engines=("bing",),
+                    )
+                    for i in range(idx[0], idx[0] + 3)
+                ]
+            idx[0] += 3
+            return []
+
+        _patch_company_brief_gateways(
+            monkeypatch,
+            retrieve_fn=_selective_retrieve,
+            openai_content=_TARGETING_BRIEF_MD,
+            x2_receipt=_pass_x2_receipt(),
         )
-        monkeypatch.setattr(engine, "_load_jd_facets", lambda _anchor: [])
-        monkeypatch.setattr(
-            engine,
-            "_synthesize",
-            lambda **_kwargs: {
-                "targeting_brief_disposition": "SEALED",
-                "apps_rg_targeting_brief_markdown": "grounded targeting brief",
-                "apps_rg_targeting_brief_sidecar": {"handoff_eligible": True},
-            },
-        )
-        monkeypatch.setattr(
-            engine,
-            "_build_c0_bundle",
-            lambda **_kwargs: {"synthesis_guidance": {}},
-        )
-        monkeypatch.setattr(
-            engine,
-            "_evaluate_c0_pa_gate",
-            lambda **_kwargs: ("WEAK_WITH_CAVEATS", "role_context missing", ""),
-        )
-        monkeypatch.setattr(engine, "_assemble_brief", lambda **_kwargs: {})
 
         brief = engine.execute(
             {
                 "topic": "Unify Consulting",
+                "depth": "shallow",
                 "jd_context": {
                     "company_name": "Unify Consulting",
                     "job_title": "SVP Technical Pre-Sales",
+                    "output_format": "apps_rg_targeting_brief_v1",
+                    "synthesis_template": "apps_rg_targeting_brief_synthesis_v1",
                 },
             }
         )
@@ -269,72 +470,61 @@ class TestCuratedTargetingFallback:
         self, monkeypatch, engine
     ):
         monkeypatch.setenv("APPS_RESEARCH_RETRIEVAL_V2", "1")
-        monkeypatch.setattr(
-            engine,
-            "_run_research_v2",
-            lambda **_kwargs: {"tech_stack_and_tools": "grounded public evidence"},
+        url_counter = [0]
+
+        def _selective_retrieve(query: str, *, top_k: int = 10):
+            if any(
+                marker in query
+                for marker in (
+                    "company overview founding",
+                    "commercial motion",
+                    "competitors alternatives",
+                    "latest funding valuation",
+                    "AI technology innovation",
+                )
+            ):
+                docs = []
+                for _ in range(4):
+                    url_counter[0] += 1
+                    docs.append(
+                        RetrievedDoc(
+                            url=f"https://unify.example.com/caveat/{url_counter[0]}",
+                            title="Unify Consulting public evidence",
+                            snippet="Unify Consulting commercial and platform signal",
+                            score=1.0,
+                            engines=("bing",),
+                        )
+                    )
+                return docs
+            return []
+
+        _patch_company_brief_gateways(
+            monkeypatch,
+            retrieve_fn=_selective_retrieve,
+            openai_content=_TARGETING_BRIEF_MD,
+            x2_receipt=_pass_x2_receipt(),
         )
-        monkeypatch.setattr(engine, "_load_jd_facets", lambda _anchor: [])
-        monkeypatch.setattr(
-            engine,
-            "_synthesize",
-            lambda **_kwargs: {
-                "targeting_brief_disposition": "SEALED",
-                "apps_rg_targeting_brief_markdown": "grounded targeting brief",
-                "apps_rg_targeting_brief_sidecar": {"handoff_eligible": True},
-            },
-        )
-        monkeypatch.setattr(
-            engine,
-            "_build_c0_bundle",
-            lambda **_kwargs: {
-                "briefing_coverage_matrix": {
-                    "families": [
-                        {"family": "role_context", "covered": True},
-                        {"family": "tech_stack_and_tools", "covered": True},
-                        {"family": "adoption_motion", "covered": True},
-                    ]
-                },
-                "jd_retrieval_contract": {
-                    "required_evidence_families": [
-                        "tech_stack_and_tools",
-                        "adoption_motion",
-                    ]
-                },
-                "source_portfolio_summary": {
-                    "authoritative_anchor_present": True,
-                    "total_final_sources": 3,
-                },
-                "contradiction_matrix": {"unresolved_critical": 0},
-                "freshness_report": {"gate_fail_triggered": False},
-                "synthesis_guidance": {},
-            },
-        )
-        monkeypatch.setattr(
-            engine,
-            "_evaluate_c0_pa_gate",
-            lambda **_kwargs: ("WEAK_WITH_CAVEATS", "optional-family gap", ""),
-        )
-        monkeypatch.setattr(engine, "_assemble_brief", lambda **_kwargs: {})
 
         brief = engine.execute(
             {
                 "topic": "Unify Consulting",
+                "depth": "deep",
                 "jd_context": {
                     "company_name": "Unify Consulting",
                     "job_title": "SVP Technical Pre-Sales",
+                    "content": "Lead SVP technical pre-sales.",
+                    "output_format": "apps_rg_targeting_brief_v1",
+                    "synthesis_template": "apps_rg_targeting_brief_synthesis_v1",
                 },
             }
         )
 
         assert brief["targeting_brief_disposition"] == "SEALED"
-        assert brief["company_brief_text"] == "grounded targeting brief"
+        assert "Partner ecosystem scale through repeatable architecture" in brief["company_brief_text"]
         assert brief["targeting_brief_c0_disposition"] == "CAVEATED_JD_COMPLETE"
-        assert brief["targeting_brief_c0_caveat"] == "optional-family gap"
+        assert brief["targeting_brief_c0_caveat"]
 
     def test_v2_research_returns_coverage_family_keys(self, monkeypatch, engine):
-        from apps_research.integrations.search_retrieval import RetrievedDoc
-
         calls: list[str] = []
 
         def _retrieve(query: str, *, top_k: int = 10):
@@ -349,44 +539,45 @@ class TestCuratedTargetingFallback:
                 )
             ]
 
-        def _rerank(query: str, docs, *, cutoff: int = 5):
-            return list(docs)[:cutoff]
+        monkeypatch.setenv("APPS_RESEARCH_RETRIEVAL_V2", "1")
+        _patch_company_brief_gateways(monkeypatch, retrieve_fn=_retrieve)
 
-        monkeypatch.setattr(
-            "apps_research.integrations.search_retrieval.retrieve",
-            _retrieve,
+        brief = engine.execute(
+            {
+                "topic": "Anthropic",
+                "depth": "standard",
+                "jd_context": {
+                    "company_name": "Anthropic",
+                    "job_title": "Manager of Applied AI Architecture, Partnerships",
+                    "content": (
+                        "Lead partner solutions architects for GSIs, cloud partners, "
+                        "joint solution development, indirect revenue, GTM strategy, "
+                        "enterprise AI deployments, API integrations, and Claude adoption."
+                    ),
+                },
+            }
         )
-        monkeypatch.setattr(
-            "apps_research.integrations.reranker_adapter.rerank",
-            _rerank,
+        fetch_stage = next(
+            stage
+            for stage in brief["_sub_stages"]
+            if stage["sub_stage_id"] == "research.fetch"
         )
+        query_families = set(fetch_stage["meta"]["query_families"])
 
-        findings = engine._run_research_v2(
-            topic="Anthropic",
-            depth="standard",
-            jd_context={
-                "company_name": "Anthropic",
-                "job_title": "Manager of Applied AI Architecture, Partnerships",
-                "content": (
-                    "Lead partner solutions architects for GSIs, cloud partners, "
-                    "joint solution development, indirect revenue, GTM strategy, "
-                    "enterprise AI deployments, API integrations, and Claude adoption."
-                ),
-            },
+        assert "overview" not in query_families
+        assert "company_basics" in query_families
+        assert "partner_ecosystem" in query_families
+        assert "commercial_motion" in query_families
+        assert "adoption_motion" in query_families
+        assert "tech_stack_and_tools" in query_families
+        assert "recent_news_and_signals" in query_families
+        assert "competitive_landscape" in query_families
+        assert "leadership_and_org" in query_families
+        assert "financials_and_growth" in query_families
+        assert any(
+            url.startswith("https://example.com/")
+            for url in brief["_c0_bundle"]["source_portfolio_summary"]["source_urls"]
         )
-
-        assert "overview" not in findings
-        assert "company_basics" in findings
-        assert "partner_ecosystem" in findings
-        assert "commercial_motion" in findings
-        assert "adoption_motion" in findings
-        assert "tech_stack_and_tools" in findings
-        assert "recent_news_and_signals" in findings
-        assert "competitive_landscape" in findings
-        assert "leadership_and_org" in findings
-        assert "financials_and_growth" in findings
-        assert all(value.strip() for value in findings.values())
-        assert all("\nhttps://example.com/" in value for value in findings.values())
 
     def test_adaptive_research_blocks_when_search_is_empty_instead_of_curated_pack(
         self, monkeypatch, engine
@@ -394,22 +585,22 @@ class TestCuratedTargetingFallback:
         def _boom(*_args, **_kwargs):
             raise RuntimeError("usage limit")
 
-        monkeypatch.setattr(
-            "apps_research.integrations.search_retrieval.retrieve",
-            _boom,
-        )
+        monkeypatch.setenv("APPS_RESEARCH_RETRIEVAL_V2", "0")
+        _patch_company_brief_gateways(monkeypatch, retrieve_fn=_boom)
 
         with pytest.raises(
             CompanyBriefUnavailableError,
             match="adaptive research returned no grounded findings",
         ):
-            engine._run_research_adaptive(
-                topic="Anthropic",
-                depth_profile="COMPANY_BRIEF_STANDARD",
-                jd_context={
-                    "company_name": "Anthropic",
-                    "job_title": "Manager of Applied AI Architecture, Partnerships",
-                },
+            engine.execute(
+                {
+                    "topic": "Anthropic",
+                    "depth": "standard",
+                    "jd_context": {
+                        "company_name": "Anthropic",
+                        "job_title": "Manager of Applied AI Architecture, Partnerships",
+                    },
+                }
             )
 
     def test_active_company_brief_retrieval_path_does_not_import_tavily(self):
@@ -418,125 +609,222 @@ class TestCuratedTargetingFallback:
         source = inspect.getsource(CompanyBriefEngine)
         assert "apps_research.integrations.tavily_retrieval" not in source
 
-    def test_jd_restatement_bullet_scrub_is_deterministic(self, engine):
+    def test_jd_restatement_bullet_scrub_is_deterministic(self, monkeypatch, engine):
         draft = "\n".join(
             [
-                "## apps_rg Positioning Themes (targeting only, not proof)",
-                "- Building foundational teams in uncertain growth phases",
+                "## JD Complement",
                 "- Partner ecosystem scale through repeatable architecture",
+                "",
+                "## Company Strategy & Operating Pressure",
+                "- Enterprise cloud adoption accelerates governance priorities",
+                "",
+                "## Leadership & Stakeholder Map",
+                "- Executive leadership aligns platform roadmap to commercial goals",
+                "",
+                "## Apps_RG Positioning Themes (targeting only, not proof)",
+                "- Building foundational teams in uncertain growth phases",
+                "- Ecosystem architecture differentiates regulated enterprise delivery",
             ]
         )
-
-        scrubbed = engine._drop_jd_restatement_bullets(
-            draft,
-            (
-                "jd_restatement_in_bullet_text:Building foundational teams in uncertain growth phases",
-            ),
+        monkeypatch.setenv("APPS_RESEARCH_RETRIEVAL_V2", "1")
+        _patch_company_brief_gateways(
+            monkeypatch,
+            openai_content=draft,
+            x2_receipt=_pass_x2_receipt(),
+        )
+        brief = engine.execute(
+            {
+                "topic": "Anthropic",
+                "depth": "shallow",
+                "jd_context": {
+                    "company_name": "Anthropic",
+                    "job_title": "Partnerships Architect",
+                    "content": "Building foundational teams in uncertain growth phases across cloud accounts.",
+                    "output_format": "apps_rg_targeting_brief_v1",
+                    "synthesis_template": "apps_rg_targeting_brief_synthesis_v1",
+                },
+            }
         )
 
+        scrubbed = brief["company_brief_text"]
         assert "Building foundational teams" not in scrubbed
         assert "Partner ecosystem scale" in scrubbed
 
-    def test_unsupported_named_leadership_claim_scrub_is_deterministic(self, engine):
+    def test_unsupported_named_leadership_claim_scrub_is_deterministic(
+        self, monkeypatch, engine
+    ):
         draft = "\n".join(
             [
+                "## JD Complement",
+                "- Partner ecosystem scale through repeatable architecture",
+                "",
+                "## Company Strategy & Operating Pressure",
+                "- Platform adoption spans regulated financial buyers",
+                "",
                 "## Leadership & Stakeholder Map",
-                "Dario Amodei is the CEO and a central strategic voice for Anthropic.",
-                "The likely stakeholder map spans partnerships, sales, product, and engineering.",
+                "- Dario Amodei is the CEO and a central strategic voice for Anthropic.",
+                "- The likely stakeholder map spans partnerships, sales, product, and engineering.",
+                "",
+                "## AI, Data, Platform, Architecture Signals",
+                "- Enterprise API orchestration prioritizes safety and reliability.",
             ]
         )
+        monkeypatch.setenv("APPS_RESEARCH_RETRIEVAL_V2", "1")
+        idx = [0]
 
-        scrubbed = engine._drop_unsupported_named_leadership_claims(
-            draft,
-            research_notes="Anthropic has public partner ecosystem and platform adoption signals.",
+        def _partners_only_retrieve(query: str, *, top_k: int = 10):
+            idx[0] += 1
+            return [
+                RetrievedDoc(
+                    url=f"https://www.anthropic.com/partners/{idx[0]}",
+                    title="Anthropic Partner Ecosystem",
+                    snippet="Anthropic has public partner ecosystem and platform adoption signals.",
+                    score=1.0,
+                    engines=("bing",),
+                )
+            ]
+
+        _patch_company_brief_gateways(
+            monkeypatch,
+            retrieve_fn=_partners_only_retrieve,
+            openai_content=draft,
+            x2_receipt=_pass_x2_receipt(),
+        )
+        brief = engine.execute(
+            {
+                "topic": "Anthropic",
+                "depth": "shallow",
+                "jd_context": {
+                    "company_name": "Anthropic",
+                    "job_title": "Partnerships Architect",
+                    "content": "Lead partner ecosystem architecture.",
+                    "output_format": "apps_rg_targeting_brief_v1",
+                    "synthesis_template": "apps_rg_targeting_brief_synthesis_v1",
+                },
+            }
         )
 
+        scrubbed = brief["company_brief_text"]
         assert "## Leadership & Stakeholder Map" in scrubbed
         assert "Dario Amodei" not in scrubbed
         assert "likely stakeholder map spans partnerships" in scrubbed
 
-    def test_supported_named_leadership_claim_is_preserved(self, engine):
-        draft = "Dario Amodei is the CEO and a central strategic voice for Anthropic."
+    def test_supported_named_leadership_claim_is_preserved(self, monkeypatch, engine):
+        draft = "\n".join(
+            [
+                "## JD Complement",
+                "- Partner ecosystem scale through repeatable architecture",
+                "",
+                "## Company Strategy & Operating Pressure",
+                "- Platform adoption spans regulated financial buyers",
+                "",
+                "## Leadership & Stakeholder Map",
+                "- Dario Amodei is the CEO and a central strategic voice for Anthropic.",
+                "",
+                "## AI, Data, Platform, Architecture Signals",
+                "- Enterprise API orchestration prioritizes safety and reliability.",
+            ]
+        )
+        monkeypatch.setenv("APPS_RESEARCH_RETRIEVAL_V2", "1")
+        idx = [0]
 
-        scrubbed = engine._drop_unsupported_named_leadership_claims(
-            draft,
-            research_notes="Anthropic leadership coverage names Dario Amodei as CEO.",
+        def _leadership_retrieve(query: str, *, top_k: int = 10):
+            idx[0] += 1
+            return [
+                RetrievedDoc(
+                    url=f"https://www.anthropic.com/leadership/{idx[0]}",
+                    title="Anthropic Leadership",
+                    snippet="Anthropic leadership coverage names Dario Amodei as CEO.",
+                    score=1.0,
+                    engines=("bing",),
+                )
+            ]
+
+        _patch_company_brief_gateways(
+            monkeypatch,
+            retrieve_fn=_leadership_retrieve,
+            openai_content=draft,
+            x2_receipt=_pass_x2_receipt(),
+        )
+        brief = engine.execute(
+            {
+                "topic": "Anthropic",
+                "depth": "shallow",
+                "jd_context": {
+                    "company_name": "Anthropic",
+                    "job_title": "Partnerships Architect",
+                    "content": "Lead partner ecosystem architecture.",
+                    "output_format": "apps_rg_targeting_brief_v1",
+                    "synthesis_template": "apps_rg_targeting_brief_synthesis_v1",
+                },
+            }
         )
 
-        assert "Dario Amodei is the CEO" in scrubbed
+        assert "Dario Amodei is the CEO" in brief["company_brief_text"]
 
-    def test_sidecar_reason_preserves_deterministic_semantic_block(self, engine):
-        semantics = SimpleNamespace(
-            score=0.9,
-            judge_name="gemini_pro",
-            judge_model=pins.GEMINI_PROOF_JUDGE_MODEL,
-            handoff_eligible=False,
-            reason="missing_sections",
-            role_archetype="partnerships",
-            evidence_intents=("partnerships",),
-            required_sections_present=("jd complement",),
-            missing_sections=("leadership & stakeholder map",),
-            source_families_present=("partner_ecosystem",),
-            source_families_missing=(),
-            signal_terms_present=("co-sell",),
-            signal_terms_missing=(),
-            as_dict=lambda: {"handoff_eligible": False, "reason": "missing_sections"},
+    def test_sidecar_reason_preserves_deterministic_semantic_block(
+        self, monkeypatch, engine
+    ):
+        incomplete_sections_md = "\n".join(
+            [
+                "## JD Complement",
+                "- Valid targeting brief text aligning company dna, operating model, strategy, leadership, and urgency.",
+                "",
+                "## Company Strategy & Operating Pressure",
+                "- Scaling cloud platform execution across enterprise customers with co-sell partner motion.",
+                "",
+                "## AI, Data, Platform, Architecture Signals",
+                "- Governed orchestration pipelines standardize model adoption across ecosystem partners.",
+                "",
+                "## Apps_RG Positioning Themes",
+                "- Align delivery operating model with partner ecosystem leverage and leadership priorities.",
+            ]
         )
-        sidecar = engine._build_targeting_brief_sidecar(
-            company_name="Anthropic",
-            brief_text="## JD Complement\n- Valid targeting brief text.",
-            jd_text="Lead partner architecture.",
-            research_notes="Anthropic partner ecosystem and co-sell notes.",
-            findings={"partner_ecosystem": "co-sell notes"},
-            gate_verdict="PASS",
-            gate_reason="",
-            model_name=pins.RESEARCH_GENERATOR_MODEL,
-            semantic_override=semantics,
-            x2_judge_receipt={
-                "status": "PASS",
-                "model_backed": True,
-                "judge_model": pins.GEMINI_PROOF_JUDGE_MODEL,
-                "judge_provider": "google_gemini",
-                "judge_model_requested": pins.GEMINI_PROOF_JUDGE_MODEL,
-                "model_observation_status": "OBSERVED_PROVIDER_RESPONSE",
-                "thinking_level": pins.RESEARCH_JUDGE_REASONING_EFFORT,
-                "score": 1.0,
-                "threshold": 0.75,
-            },
+        monkeypatch.setenv("APPS_RESEARCH_RETRIEVAL_V2", "1")
+        idx = [0]
+
+        def _full_coverage_retrieve(query: str, *, top_k: int = 10):
+            idx[0] += 1
+            return [
+                RetrievedDoc(
+                    url=f"https://www.anthropic.com/sidecar/{idx[0]}",
+                    title="Anthropic ecosystem partner co-sell overview",
+                    snippet="Anthropic public strategy, leadership, and partner ecosystem co-sell signals.",
+                    score=1.0,
+                    engines=("bing",),
+                )
+            ]
+
+        _patch_company_brief_gateways(
+            monkeypatch,
+            retrieve_fn=_full_coverage_retrieve,
+            openai_content=incomplete_sections_md,
+            x2_receipt=_pass_x2_receipt(),
         )
+        brief = engine.execute(
+            {
+                "topic": "Anthropic",
+                "depth": "deep",
+                "jd_context": {
+                    "company_name": "Anthropic",
+                    "job_title": "Partnerships Architect",
+                    "content": "Lead partner architecture.",
+                    "output_format": "apps_rg_targeting_brief_v1",
+                    "synthesis_template": "apps_rg_targeting_brief_synthesis_v1",
+                },
+            }
+        )
+        sidecar = brief["apps_rg_targeting_brief_sidecar"]
 
         assert sidecar["handoff_eligible"] is False
-        assert sidecar["reason"] == "missing_sections"
+        assert "missing_sections" in sidecar["reason"]
+        assert "leadership & stakeholder map" in sidecar["missing_sections"]
 
 
 class TestAssembleBrief:
-    def test_schema_shape(self, engine):
-        synthesis = {
-            "company_archetype": "scale-up enterprise vendor",
-            "company_dna": {
-                "archetype": "scale-up enterprise vendor",
-                "commercial_motion": "partner-led growth",
-                "partner_ecosystem": "GSI + ISV",
-                "adoption_motion": "technical close and enablement",
-                "operating_tension": "speed versus governance",
-                "distinguishing_traits": ["co-sell discipline", "ecosystem revenue"],
-            },
-            "tagline": "Acme modernizes enterprise workflows through partner-led platform adoption.",
-            "core_offerings": ["platform", "services"],
-            "strategic_priorities": ["partner scale", "AI adoption"],
-            "verticals": ["insurance"],
-            "buyer_titles": ["SVP"],
-            "tech_stack_signals": ["AWS"],
-            "commercial_motion": ["co-sell"],
-            "partner_ecosystem": ["GSI", "ISV"],
-            "adoption_motion": ["pilot to production"],
-            "leadership": [{"name": "A", "title": "CEO", "background": "exec"}],
-            "competitive_set": ["Competitor"],
-            "recent_moves": [{"date": "2026-01-01", "event": "launch", "signal": "partner"}],
-            "language_to_mirror": ["partner-led"],
-            "language_to_avoid": ["generic"],
-        }
-        brief = engine._assemble_brief(topic="Acme", synthesis=synthesis)
+    def test_schema_shape(self, monkeypatch, engine):
+        _patch_company_brief_gateways(monkeypatch, openai_content=_FULL_SYNTHESIS_JSON)
+        brief = engine.execute({"topic": "Acme"})
         assert brief["company"] == "Acme"
         assert brief["source"] == "apps_research"
         assert brief["freshness_ttl_days"] == 30
@@ -547,13 +835,15 @@ class TestAssembleBrief:
         assert "partner_ecosystem" in brief
         assert "customer_profile" in brief
 
-    def test_missing_synthesis_keys_default_to_empty(self, engine):
-        brief = engine._assemble_brief(topic="Acme", synthesis={})
+    def test_missing_synthesis_keys_default_to_empty(self, monkeypatch, engine):
+        _patch_company_brief_gateways(monkeypatch, openai_content="{}")
+        brief = engine.execute({"topic": "Acme"})
         assert brief["overview"]["tagline"] == "Acme"  # falls back to topic
         assert brief["strategic_priorities"] == []
         assert brief["language_to_mirror"] == []
 
-    def test_fetched_at_is_iso_timestamp(self, engine):
-        brief = engine._assemble_brief(topic="Acme", synthesis={})
+    def test_fetched_at_is_iso_timestamp(self, monkeypatch, engine):
+        _patch_company_brief_gateways(monkeypatch, openai_content="{}")
+        brief = engine.execute({"topic": "Acme"})
         # ISO 8601 with timezone — contains a 'T' separator.
         assert "T" in brief["fetched_at"]

@@ -30,7 +30,7 @@ For migrations or refactors spanning multiple files:
 2. Execute exactly one bounded phase at a time.
 3. Validate each phase before advancing:
    - Check file diff: `git diff --name-only`
-   - Run scoped tests: `.venv/bin/pytest <phase_test_file> -v --timeout=60`
+   - Run scoped tests (single file or coupled producer+contract+consumer slice up to 4 test files): `.venv/bin/pytest <coupled_phase_test_files> -v --timeout=60`
 4. Halt immediately if any intermediate assertion or gate fails.
 
 ## 3. Tool-Contract Validation Checklist

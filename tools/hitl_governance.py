@@ -92,6 +92,7 @@ def calculate_calibrated_confidence(
     is_irreversible: bool = False,
     blast_radius_layers: int = 1,
     store: HITLDecisionStore | None = None,
+    cohesive_refactor: bool = False,
 ) -> float:
     """Calculate multi-factor calibrated confidence: clamp(C_base + E_evidence - R_risk + L_learning, 0.05, 0.99)."""
     base = parse_confidence_score(option)
@@ -108,6 +109,8 @@ def calculate_calibrated_confidence(
             is_irreversible = bool(option["is_irreversible"])
         if blast_radius_layers == 1 and "blast_radius_layers" in option:
             blast_radius_layers = int(option["blast_radius_layers"])
+        if not cohesive_refactor and "cohesive_refactor" in option:
+            cohesive_refactor = bool(option["cohesive_refactor"])
         if not category and "category" in option:
             category = str(option["category"])
     elif isinstance(option, str):
@@ -115,9 +118,9 @@ def calculate_calibrated_confidence(
 
     evidence_boost = (min(len(evidence_refs) * 0.03, 0.09) if evidence_refs else 0.0) + (0.05 if has_verification_receipt else 0.0)
     risk_map = {"MEDIUM": 0.04, "HIGH": 0.08, "CRITICAL": 0.15}
-    risk_penalty = risk_map.get(str(risk_level).upper(), 0.0) + (0.08 if is_irreversible else 0.0)
-    if blast_radius_layers > 1:
-        risk_penalty += min((blast_radius_layers - 1) * 0.03, 0.09)
+    # INV-HOLISTIC-PIPELINE-PLANNING: cohesive cross-layer refactors incur 0.0 layer penalty.
+    layer_penalty = 0.0 if cohesive_refactor or blast_radius_layers <= 1 else min((blast_radius_layers - 1) * 0.03, 0.09)
+    risk_penalty = risk_map.get(str(risk_level).upper(), 0.0) + (0.08 if is_irreversible else 0.0) + layer_penalty
     learning_factor = store.query_learning_adjustment(category, opt_label) if (store and category) else 0.0
     return round(max(0.05, min(0.99, base + evidence_boost - risk_penalty + learning_factor)), 4)
 

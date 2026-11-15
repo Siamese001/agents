@@ -37,7 +37,7 @@ or any effort) is fine; rediscovery is the thing to catch, at any agent count.
 | Re-run inventory/discovery a **detailed plan already provides** | Execute the plan; produce the outputs |
 | "Look thorough" because the effort tier is high | Raise rigor inline; **depth ≠ agent count** |
 | A single-fact lookup you could do directly | Read the file / run the one query yourself |
-| Sequential, coherent authoring with no independent parts | Do it inline (this very rule was authored that way) |
+| Sequential, coherent single-file authoring with no independent parts | Do it inline (parallel `<= 600`-line submodules behind a facade or shared domain contract DO count as independent parts) |
 
 ## Effort tiers ≠ agent count
 
@@ -66,7 +66,7 @@ verification of the outputs**, not on rediscovery. The Workflow contract frames 
 
 ## References
 
-- `.codex/rules/001-runtime-seam-execution.md` — bounded L2 executor; avoid multi-wave unless explicitly asked
-- `.codex/rules/scope-containment.md` — retrieval budgets; no gold-plating; one task at a time
-- `.codex/rules/work-item-classification.md` — tier-aware Fix / File / Plan; `PLAN_MICRO` = native plan mode only
+- `.agents/rules/001-runtime-seam-execution.md` — bounded execution across coupled spine seams (`INV-HOLISTIC-PIPELINE-PLANNING`), authorizing `<= 600`-line facade decomposition and shared domain contracts
+- `.agents/rules/scope-containment.md` — unbounded full-ripple inspection and cohesive producer-contract-consumer alignment; blocks unrelated drift only
+- `.agents/rules/work-item-classification.md` — tier-aware Fix / File / Plan; authorizes cohesive package decomposition behind a facade (`PLAN_MICRO` = native plan mode only)
 - Workflow tool contract — opt-in only; scale to the ask; pipeline/parallel patterns are tools, not defaults

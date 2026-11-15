@@ -10,6 +10,7 @@ from .lane_constants import *
 from .context_assembler import *
 from .prompt_builder import *
 from .synthesis_shape_repair import *
+from .parent_proxy import _lane_attr
 
 __all__ = ['retry_provider_for_synthesis']
 
@@ -38,15 +39,15 @@ def retry_provider_for_synthesis(
     if not synthesis_regeneration_enabled():
         return raw_output, parsed, ""
 
+    if isinstance(selected_fact_plan, dict) and selected_fact_plan:
+        parsed = _lane_attr("_apply_pre_synthesis_candidate_repairs", _apply_pre_synthesis_candidate_repairs)(parsed, selected_fact_plan)
+        raw_output = json.dumps({k: v for k, v in parsed.items() if k != "selected_fact_plan"}, ensure_ascii=False, separators=(",", ":"))
+
     first_raw = raw_output
     first_parsed = parsed
     first_text = str(parsed.get("resume_display_text") or "")
-    shape_ok, reject_reason = _synthesis_shape_reject_reason(
-        first_text,
-        parsed,
-        selected_facts=selected_facts,
-        selected_fact_plan=selected_fact_plan,
-        jd_text=jd_text,
+    shape_ok, reject_reason = _lane_attr("_synthesis_shape_reject_reason", _synthesis_shape_reject_reason)(
+        first_text, parsed, selected_facts=selected_facts, selected_fact_plan=selected_fact_plan, jd_text=jd_text,
     )
     if shape_ok:
         return raw_output, parsed, ""
@@ -78,7 +79,7 @@ def retry_provider_for_synthesis(
 
     best_raw = raw_output
     best_parsed = parsed
-    best_fail_count = _shape_failure_count(
+    best_fail_count = _lane_attr("_shape_failure_count", _shape_failure_count)(
         first_text,
         parsed,
         selected_facts=selected_facts,
@@ -91,7 +92,7 @@ def retry_provider_for_synthesis(
         resume_text = str(current_parsed.get("resume_display_text") or "")
         prior_wc = len(re.findall(r"\S+", resume_text))
         prior_ledger_rows = len(list(current_parsed.get("claim_ledger") or []))
-        shape_ok, reject_reason = _synthesis_shape_reject_reason(
+        shape_ok, reject_reason = _lane_attr("_synthesis_shape_reject_reason", _synthesis_shape_reject_reason)(
             resume_text,
             current_parsed,
             selected_facts=selected_facts,
@@ -103,10 +104,10 @@ def retry_provider_for_synthesis(
             regen_receipt["accepted_via"] = "shape_pass"
             regen_receipt["final_resume_word_count"] = prior_wc
             if artifact_dir is not None:
-                write_json(artifact_dir / "synthesis_regen_receipt.json", regen_receipt)
+                _lane_attr("write_json", write_json)(artifact_dir / "synthesis_regen_receipt.json", regen_receipt)
             return current_raw, current_parsed, parse_err
 
-        repair_user = _build_synthesis_repair_user(
+        repair_user = _lane_attr("_build_synthesis_repair_user", _build_synthesis_repair_user)(
             reject_reason,
             attempt_index=attempt,
             prior_word_count=prior_wc,
@@ -157,16 +158,23 @@ def retry_provider_for_synthesis(
             break
         attempt_record["runtime_status"] = result.runtime_generation_status
         new_raw = result.raw_model_output
-        new_parsed, new_err = parse_model_json(new_raw)
+        new_parsed, new_err = _lane_attr("parse_model_json", parse_model_json)(new_raw)
         parse_err = new_err or ""
         attempt_record["parse_ok"] = bool(new_parsed)
         mark_regen_call_parse(artifact_dir, regen_outcome.call_id, parse_ok=bool(new_parsed))
         if new_parsed:
+            if isinstance(selected_fact_plan, dict) and selected_fact_plan:
+                new_parsed = _lane_attr("_apply_pre_synthesis_candidate_repairs", _apply_pre_synthesis_candidate_repairs)(new_parsed, selected_fact_plan)
+                new_raw = json.dumps(
+                    {k: v for k, v in new_parsed.items() if k != "selected_fact_plan"},
+                    ensure_ascii=False,
+                    separators=(",", ":"),
+                )
             regen_text = str(new_parsed.get("resume_display_text") or "")
             attempt_record["candidate_digest"] = sha16(regen_text)
             attempt_record["regen_resume_word_count"] = len(re.findall(r"\S+", regen_text))
             attempt_record["regen_claim_ledger_rows"] = len(list(new_parsed.get("claim_ledger") or []))
-            new_shape_ok, new_shape_reason = _synthesis_shape_reject_reason(
+            new_shape_ok, new_shape_reason = _lane_attr("_synthesis_shape_reject_reason", _synthesis_shape_reject_reason)(
                 regen_text,
                 new_parsed,
                 selected_facts=selected_facts,
@@ -183,7 +191,7 @@ def retry_provider_for_synthesis(
                 "pass": new_shape_ok,
                 "failed_reasons": attempt_record["defects_after"],
             }
-            new_fail_count = _shape_failure_count(
+            new_fail_count = _lane_attr("_shape_failure_count", _shape_failure_count)(
                 regen_text,
                 new_parsed,
                 selected_facts=selected_facts,
@@ -212,11 +220,11 @@ def retry_provider_for_synthesis(
                 current_raw = new_raw
                 current_parsed = new_parsed
                 if artifact_dir is not None and attempt == 0:
-                    write_json(artifact_dir / "provider_response_synthesis_regen.json", result.to_dict())
+                    _lane_attr("write_json", write_json)(artifact_dir / "provider_response_synthesis_regen.json", result.to_dict())
             else:
                 last_mono_rejected = True
                 attempt_record["skipped"] = "monotonicity_rejected"
-            if _regen_candidate_preferred(
+            if _lane_attr("_regen_candidate_preferred", _regen_candidate_preferred)(
                 new_fail_count=new_fail_count,
                 new_ledger_rows=new_ledger_rows,
                 new_word_count=attempt_record["regen_resume_word_count"],
@@ -235,14 +243,14 @@ def retry_provider_for_synthesis(
         regen_receipt["attempts"].append(attempt_record)
 
     final_text = str(current_parsed.get("resume_display_text") or "")
-    final_ok, final_reason = _synthesis_shape_reject_reason(
+    final_ok, final_reason = _lane_attr("_synthesis_shape_reject_reason", _synthesis_shape_reject_reason)(
         final_text,
         current_parsed,
         selected_facts=selected_facts,
         selected_fact_plan=selected_fact_plan,
         jd_text=jd_text,
     )
-    final_fail_count = _shape_failure_count(
+    final_fail_count = _lane_attr("_shape_failure_count", _shape_failure_count)(
         final_text,
         current_parsed,
         selected_facts=selected_facts,
@@ -251,7 +259,7 @@ def retry_provider_for_synthesis(
     )
     best_wc = len(re.findall(r"\S+", str(best_parsed.get("resume_display_text") or "")))
     best_text = str(best_parsed.get("resume_display_text") or "")
-    best_ok, _best_reason = _synthesis_shape_reject_reason(
+    best_ok, _best_reason = _lane_attr("_synthesis_shape_reject_reason", _synthesis_shape_reject_reason)(
         best_text,
         best_parsed,
         selected_facts=selected_facts,
@@ -262,7 +270,7 @@ def retry_provider_for_synthesis(
         not final_ok
         and best_ok
         and best_fail_count == 0
-        and _regen_candidate_preferred(
+        and _lane_attr("_regen_candidate_preferred", _regen_candidate_preferred)(
             new_fail_count=best_fail_count,
             new_ledger_rows=best_ledger_rows,
             new_word_count=best_wc,
@@ -276,7 +284,7 @@ def retry_provider_for_synthesis(
         current_parsed = best_parsed
         regen_receipt["accepted_via"] = "best_candidate_fallback"
         final_text = str(current_parsed.get("resume_display_text") or "")
-        final_ok, final_reason = _synthesis_shape_reject_reason(
+        final_ok, final_reason = _lane_attr("_synthesis_shape_reject_reason", _synthesis_shape_reject_reason)(
             final_text,
             current_parsed,
             selected_facts=selected_facts,
@@ -322,8 +330,7 @@ def retry_provider_for_synthesis(
                     2,
                     reason="synthesis_regen_shape_pass",
                 )
-        write_json(artifact_dir / "synthesis_regen_receipt.json", regen_receipt)
+        _lane_attr("write_json", write_json)(artifact_dir / "synthesis_regen_receipt.json", regen_receipt)
     if not regen_receipt.get("accepted"):
         return first_raw, first_parsed, parse_err
     return current_raw, current_parsed, parse_err
-

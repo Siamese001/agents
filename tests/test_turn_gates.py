@@ -235,6 +235,47 @@ Wave 1 completed cleanly!
         self.assertIn("Cohesive Ripple Edit Scope", skill_text)
         self.assertIn("What Scope Containment Actually Blocks", skill_text)
 
+    def test_class_a_pytest_permits_coupled_multi_file_slice_and_turn_gates_pass(self) -> None:
+        """Verify Class A pytest rules permit coupled multi-file slices while turn gates pass."""
+        wave_prog_text = (ROOT / ".agents" / "rules" / "wave-progression.md").read_text(encoding="utf-8")
+        testing_skill_text = (ROOT / ".agents" / "skills" / "testing-framework" / "SKILL.md").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn("coupled multi-file producer+contract+consumer test slice", wave_prog_text)
+        self.assertIn("up to 4 directly coupled test files", wave_prog_text)
+        self.assertIn("pytest tests/", wave_prog_text)
+        self.assertNotIn("- Multi-file pytest during fix cycle.", wave_prog_text)
+
+        self.assertIn("coupled multi-file producer+contract+consumer test slice", testing_skill_text)
+        self.assertIn("up to 4 directly coupled test files", testing_skill_text)
+        self.assertIn("pytest tests/", testing_skill_text)
+        self.assertNotIn("Scope MUST be a single test file or single named test case:", testing_skill_text)
+
+        pre_result = validate_pre_turn_gate(ROOT)
+        self.assertEqual(pre_result["status"], "PASS", f"Pre-turn gate failed: {pre_result['issues']}")
+        self.assertEqual(pre_result["checks"]["operating_contract"]["status"], "PASS")
+        self.assertLessEqual(pre_result["checks"]["operating_contract"]["line_count"], 200)
+        self.assertEqual(pre_result["checks"]["skills_budget"]["status"], "PASS")
+        self.assertLessEqual(
+            pre_result["checks"]["skills_budget"]["tokens"],
+            pre_result["checks"]["skills_budget"]["max_tokens"],
+        )
+
+        post_result = validate_post_turn_gate(repo_root=ROOT)
+        self.assertEqual(post_result["status"], "PASS", f"Post-turn gate failed: {post_result['issues']}")
+
+    def test_holistic_factoring_rules_authorize_cohesive_decomposition_and_shared_contracts(self) -> None:
+        """Verify root AGENTS.md and wave protocol authorize <= 600-line facade decomposition and shared domain contracts."""
+        agents_text = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
+        protocol_text = (ROOT / "docs" / "refactoring-wave-protocol.md").read_text(encoding="utf-8")
+        for doc_text in (agents_text, protocol_text):
+            self.assertIn("<= 600", doc_text)
+            self.assertIn("facade", doc_text)
+            self.assertIn("shared domain contracts", doc_text)
+            self.assertIn("INV-HOLISTIC-PIPELINE-PLANNING", doc_text)
+            self.assertIn("unrelated drift", doc_text)
+
     def test_post_turn_gate_rejects_disjunctive_fence_sitting_prose(self) -> None:
         """Verify post-turn gate fails when response ends with disjunctive fence-sitting prose."""
         fence_sitting = "The update is ready. Would you like me to run the full check or skip to the next item?"

@@ -129,3 +129,30 @@ def test_validate_unified_architecture_governance_tampered(tmp_path: Path) -> No
     assert any("Missing hooks" in e for e in errors)
     assert any("Rules directory" in e for e in errors)
     assert any("Skills directory" in e for e in errors)
+
+
+def test_validate_unified_architecture_governance_requires_canonical_plan_guard(tmp_path: Path) -> None:
+    """Governance expects agents-implementation-plan-guard (not removed duplicate agents-pre-edit-plan-guard)."""
+    agents_dir = tmp_path / ".agents"
+    rules_dir = agents_dir / "rules"
+    skills_dir = agents_dir / "skills"
+    rules_dir.mkdir(parents=True)
+    skills_dir.mkdir(parents=True)
+    (rules_dir / "core.md").write_text("# Rule\n", encoding="utf-8")
+
+    (agents_dir / "hooks.json").write_text(
+        json.dumps(
+            {
+                "agents-pre-edit-plan-guard": {},
+                "agents-pytest-scope-guard": {},
+                "agents-hitl-atomic-guard": {},
+            }
+        ),
+        encoding="utf-8",
+    )
+    errors = validate_unified_architecture_governance(tmp_path)
+    assert any("agents-implementation-plan-guard" in err for err in errors)
+
+    repo_hooks = json.loads((Path(__file__).resolve().parents[1] / ".agents" / "hooks.json").read_text(encoding="utf-8"))
+    assert "agents-implementation-plan-guard" in repo_hooks
+    assert "agents-pre-edit-plan-guard" not in repo_hooks

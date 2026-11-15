@@ -11,12 +11,14 @@ Governance Rule:
 from __future__ import annotations
 
 import argparse
+import ast
 import json
 import sys
 from pathlib import Path
 from typing import Sequence
 
 DEFAULT_MAX_LINES = 600
+FACADE_SHIM_MAX_LINES = 150
 
 # Production-executable directories subject to architectural governance
 PRODUCTION_DIRECTORIES: tuple[str, ...] = (
@@ -33,13 +35,23 @@ PRODUCTION_DIRECTORIES: tuple[str, ...] = (
     "agents",
 )
 
-# Explicitly excluded non-production directories
+# Explicitly excluded non-production directories (top-level)
 NON_PRODUCTION_DIRECTORIES: tuple[str, ...] = (
     "tests",
     "fixtures",
     "docs",
     "artifacts",
     "scratch",
+    ".git",
+    ".venv",
+    ".pytest_cache",
+    ".ruff_cache",
+)
+
+# Directories excluded wherever they appear in a relative path (e.g. subsystem/tests/)
+NESTED_NON_PRODUCTION_DIRECTORIES: tuple[str, ...] = (
+    "tests",
+    "fixtures",
     ".git",
     ".venv",
     ".pytest_cache",
@@ -68,7 +80,11 @@ def is_production_path(path: Path | str, repo_root: Path) -> bool:
     except ValueError:
         return False
 
-    # Exclude non-production paths explicitly
+    parts = rel.split("/")
+    if any(part in NESTED_NON_PRODUCTION_DIRECTORIES for part in parts):
+        return False
+
+    # Exclude top-level non-production paths explicitly (e.g. docs/, artifacts/, scratch/)
     for non_prod in NON_PRODUCTION_DIRECTORIES:
         if rel == non_prod or rel.startswith(f"{non_prod}/"):
             return False
@@ -79,6 +95,44 @@ def is_production_path(path: Path | str, repo_root: Path) -> bool:
             return True
 
     return False
+
+
+def _is_all_target(target: ast.expr) -> bool:
+    return isinstance(target, ast.Name) and target.id == "__all__"
+
+
+def _is_facade_stmt(stmt: ast.stmt) -> bool:
+    if isinstance(stmt, (ast.Import, ast.ImportFrom)):
+        return True
+    if isinstance(stmt, ast.Expr) and isinstance(stmt.value, ast.Constant) and isinstance(stmt.value.value, str):
+        return True
+    if isinstance(stmt, ast.Assign) and stmt.targets and all(_is_all_target(t) for t in stmt.targets):
+        return True
+    if isinstance(stmt, ast.AugAssign) and _is_all_target(stmt.target):
+        return True
+    if isinstance(stmt, ast.AnnAssign) and _is_all_target(stmt.target):
+        return True
+    if isinstance(stmt, ast.If):
+        is_tc = (isinstance(stmt.test, ast.Name) and stmt.test.id == "TYPE_CHECKING") or (
+            isinstance(stmt.test, ast.Attribute) and stmt.test.attr == "TYPE_CHECKING"
+        )
+        if is_tc and not stmt.orelse and all(_is_facade_stmt(inner) or isinstance(inner, ast.Pass) for inner in stmt.body):
+            return True
+    return False
+
+
+def is_reexport_facade(file_path: Path) -> bool:
+    """Return True when file_path is an __init__.py or thin pure re-export module."""
+    if file_path.suffix != ".py" or not file_path.is_file():
+        return False
+    try:
+        tree = ast.parse(file_path.read_text(encoding="utf-8", errors="replace"), filename=str(file_path))
+    except (OSError, SyntaxError):
+        return False
+    if not all(_is_facade_stmt(stmt) for stmt in tree.body):
+        return False
+    has_import = any(isinstance(stmt, (ast.Import, ast.ImportFrom)) for stmt in tree.body)
+    return file_path.name == "__init__.py" or has_import
 
 
 def check_file_budget(
@@ -105,6 +159,9 @@ def check_file_budget(
 
     lines = file_path.read_text(encoding="utf-8", errors="replace").splitlines()
     line_count = len(lines)
+
+    if line_count <= FACADE_SHIM_MAX_LINES and is_reexport_facade(file_path):
+        return True, line_count, f"Facade shim OK ({line_count}/{FACADE_SHIM_MAX_LINES} lines)"
 
     if ratchet is None:
         ratchet = load_ratchet(repo_root)
@@ -168,10 +225,17 @@ def clamp_ratchet_to_current_lines(
         if not isinstance(entry, dict):
             continue
         file_path = repo_root / rel_str
+        old_limit = int(entry.get("line_limit", max_lines))
         if not file_path.is_file():
+            if file_path.with_suffix("").is_dir():
+                del ratchet[rel_str]
+                clamped[rel_str] = {"old_limit": old_limit, "new_limit": max_lines, "removed": 1}
+            continue
+        if not is_production_path(file_path, repo_root):
+            del ratchet[rel_str]
+            clamped[rel_str] = {"old_limit": old_limit, "new_limit": 0, "removed": 1}
             continue
         line_count = len(file_path.read_text(encoding="utf-8", errors="replace").splitlines())
-        old_limit = int(entry.get("line_limit", max_lines))
         if line_count <= max_lines:
             del ratchet[rel_str]
             clamped[rel_str] = {"old_limit": old_limit, "new_limit": max_lines, "removed": 1}

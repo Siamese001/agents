@@ -74,14 +74,53 @@ def test_live_cost_token_budget_auditor_passes_and_emits_pure_json(
     assert payload["roi_benchmark"]["roi_multiple"] >= MIN_REQUIRED_ROI_MULTIPLE
     assert payload["roi_benchmark"]["briefing_cache_hits_verified"] >= 5
 
-    auditor_src = (REPO_ROOT / "tools" / "cost_token_budget_auditor.py").read_text(encoding="utf-8")
-    assert "_parse_simple_yaml" not in auditor_src
-    assert "if marker not in" not in auditor_src
+    from tools.cost_token_budget_probes import iter_module_and_package_files
+
+    auditor_files = iter_module_and_package_files(
+        REPO_ROOT / "tools" / "cost_token_budget_auditor.py"
+    )
+    assert auditor_files
+    for auditor_file in auditor_files:
+        auditor_src = auditor_file.read_text(encoding="utf-8")
+        assert "_parse_simple_yaml" not in auditor_src, auditor_file
+        assert "if marker not in" not in auditor_src, auditor_file
+
+
+def _resolve_mutation_target(entry_rel: str, needle: str) -> str:
+    """Resolve the module containing ``needle`` across monolith, package, and helper files."""
+    from tools.cost_token_budget_probes import iter_module_and_package_files
+
+    entry_path = REPO_ROOT / entry_rel
+    candidates: list[Path] = []
+    seen: set[Path] = set()
+    pkg_dir = entry_path.with_suffix("")
+    if pkg_dir.is_dir():
+        for path in sorted(pkg_dir.rglob("*.py")):
+            resolved = path.resolve()
+            if resolved not in seen:
+                seen.add(resolved)
+                candidates.append(resolved)
+    if entry_path.exists():
+        for path in iter_module_and_package_files(entry_path):
+            resolved = path.resolve()
+            if resolved not in seen:
+                seen.add(resolved)
+                candidates.append(resolved)
+    matches = [
+        path
+        for path in candidates
+        if path.is_file() and needle in path.read_text(encoding="utf-8")
+    ]
+    assert matches, f"No module under {entry_rel} contains mutation target {needle!r}"
+    return matches[0].relative_to(REPO_ROOT.resolve()).as_posix()
 
 
 def test_broken_cache_identity_collision_fails_with_keywords_intact(tmp_path: Path) -> None:
     """Injecting a constant SHA-256 collision into CacheIdentity.compute_key must fail Pillar 4."""
-    rel = "resume_graph_engine/src/apps_rg/cache/cache_identity.py"
+    rel = _resolve_mutation_target(
+        "resume_graph_engine/src/apps_rg/cache/cache_identity.py",
+        "return hashlib.sha256(encoded).hexdigest()",
+    )
     shadow, target = _build_shadow_repo(tmp_path, rel)
     original = target.read_text(encoding="utf-8")
     mutated = original.replace(
@@ -101,7 +140,10 @@ def test_broken_cache_identity_collision_fails_with_keywords_intact(tmp_path: Pa
 
 def test_weakened_uwg_quarantine_allowing_shadow_chroma_fails_pillar_3(tmp_path: Path) -> None:
     """Bypassing NON_DURABLE_INDEX_WRITE classification on uncommitted runs must fail Pillar 3."""
-    rel = "resume_graph_engine/src/apps_rg/runtime/semantic_cache_persistence_quarantine.py"
+    rel = _resolve_mutation_target(
+        "resume_graph_engine/src/apps_rg/runtime/semantic_cache_persistence_quarantine.py",
+        "return CHROMA_CLASS_NON_DURABLE",
+    )
     shadow, target = _build_shadow_repo(tmp_path, rel)
     original = target.read_text(encoding="utf-8")
     mutated = original.replace(
@@ -119,7 +161,10 @@ def test_weakened_uwg_quarantine_allowing_shadow_chroma_fails_pillar_3(tmp_path:
 
 def test_degraded_cache_read_multiplier_fails_pillar_2(tmp_path: Path) -> None:
     """Mutating CACHE_READ_INPUT_MULTIPLIER from 0.10 to 1.00 must fail Pillar 2 live math."""
-    rel = "resume_graph_engine/src/apps_rg/runtime/providers/anthropic_prompt_cache.py"
+    rel = _resolve_mutation_target(
+        "resume_graph_engine/src/apps_rg/runtime/providers/anthropic_prompt_cache.py",
+        "CACHE_READ_INPUT_MULTIPLIER = 0.10",
+    )
     shadow, target = _build_shadow_repo(tmp_path, rel)
     original = target.read_text(encoding="utf-8")
     mutated = original.replace("CACHE_READ_INPUT_MULTIPLIER = 0.10", "CACHE_READ_INPUT_MULTIPLIER = 1.00")
@@ -134,7 +179,10 @@ def test_degraded_cache_read_multiplier_fails_pillar_2(tmp_path: Path) -> None:
 
 def test_token_budget_overrun_bypass_fails_pillar_7(tmp_path: Path) -> None:
     """Allowing input tokens > max_input_tokens_per_attempt in reserve_token_budget must fail Pillar 7."""
-    rel = "apps_model_telemetry/token_budget_governor.py"
+    rel = _resolve_mutation_target(
+        "apps_model_telemetry/token_budget_governor.py",
+        "if estimated_input > policy.max_input_tokens_per_attempt:",
+    )
     shadow, target = _build_shadow_repo(tmp_path, rel)
     original = target.read_text(encoding="utf-8")
     mutated = original.replace(

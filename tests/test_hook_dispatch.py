@@ -695,6 +695,71 @@ Build core foundation.
         data2 = json.loads(res2.stdout.strip())
         self.assertEqual(data2.get("injectSteps"), [])
 
+    def test_hooks_json_deduplicated_pre_edit_plan(self) -> None:
+        """Verify .agents/hooks.json retains agents-implementation-plan-guard once with no duplicate pre_edit_plan."""
+        hooks_path = ROOT / ".agents" / "hooks.json"
+        hooks_data = json.loads(hooks_path.read_text(encoding="utf-8"))
+        self.assertIn("agents-implementation-plan-guard", hooks_data)
+        self.assertNotIn("agents-pre-edit-plan-guard", hooks_data)
+        self.assertEqual(len(hooks_data), 8)
+
+        pre_edit_commands = [
+            hook.get("command", "")
+            for entry in hooks_data.values()
+            if isinstance(entry, dict)
+            for phase_list in entry.values()
+            if isinstance(phase_list, list)
+            for matcher_block in phase_list
+            if isinstance(matcher_block, dict)
+            for hook in (matcher_block.get("hooks", []) if isinstance(matcher_block.get("hooks"), list) else [matcher_block])
+            if isinstance(hook, dict) and "--hook pre_edit_plan" in str(hook.get("command", ""))
+        ]
+        self.assertEqual(len(pre_edit_commands), 1)
+
+    def test_pre_edit_plan_blocks_expanded_holistic_blindspots(self) -> None:
+        """Verify pre_edit_plan hook blocks narrow headline_lane and outreach_engine plans."""
+        narrow_outreach = """# Narrow Outreach Plan
+
+## Wave 1: Sequence Tweak
+### Objective & Scope
+Tweak compiler.py without upstream or downstream alignment.
+
+### Milestones & Deliverables
+- [MODIFY] `outreach_engine/src/apps_lic/pipeline/compiler.py`
+
+### Acceptance Criteria
+- Compiles cleanly.
+
+### Runtime Receipt & Completion Gate
+- Run: pytest outreach_engine/tests/test_compiler.py --timeout=60
+- Input: compiler fixture
+- Expected: 0 failures
+- Verify independently: git diff --stat
+- Fail if: exit code != 0
+- Record: receipt.json
+"""
+        payload = {
+            "toolCall": {
+                "name": "write_to_file",
+                "args": {
+                    "TargetFile": "plans/narrow_outreach.md",
+                    "CodeContent": narrow_outreach,
+                },
+            }
+        }
+        res = subprocess.run(
+            [sys.executable, "tools/hook_dispatch.py", "--hook", "pre_edit_plan"],
+            input=json.dumps(payload),
+            capture_output=True,
+            text=True,
+            cwd=ROOT,
+            timeout=10,
+        )
+        self.assertEqual(res.returncode, 1)
+        data = json.loads(res.stdout.strip())
+        self.assertEqual(data["decision"], "deny")
+        self.assertIn("INV-HOLISTIC-PIPELINE-PLANNING", data["reason"])
+
 
 if __name__ == "__main__":
     unittest.main()

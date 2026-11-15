@@ -1,18 +1,45 @@
 """Coordinator for remediation retry cycles across attempt, evaluation, and pool selection."""
 from __future__ import annotations
 
+import argparse
+import hashlib
 import json
+import os
 import re
+import sys
 from pathlib import Path
 from typing import Any
 
 from .lane_constants import *
 from .context_assembler import *
 from .prompt_builder import *
+from .synthesis_shape_repair import *
+from .synthesis_retry import *
+from .word_budget_repair import *
+from .parent_proxy import _lane_attr
+
 from .stage_remediation_draft import process_remediation_draft
 from .stage_remediation_pool import finalize_remediation_candidate_pool
 
+
 def run_remediation_cycles(ctx: dict[str, Any]) -> None:
+    """Execute bounded judge remediation retry cycles and publish winning candidate."""
+    from apps_rg.runtime.sections.executive_summary_judge_remediation import (
+        all_model_backed_judges_pass,
+        evaluate_judge_remediation_trigger,
+        retry_provider_for_judge_remediation,
+    )
+    from apps_rg.runtime.sections.executive_summary_publish_disposition import (
+        best_effort_publish_allowed_from_env,
+        resolve_publish_disposition,
+    )
+    from apps_rg.runtime.sections.executive_summary_repair_policy import (
+        judge_regen_max_attempts,
+    )
+    from apps_rg.runtime.validators.executive_summary_x2 import (
+        collect_unused_allowed_fact_ids,
+    )
+
     args = ctx["args"]
     artifact_dir = ctx["artifact_dir"]
     runtime_payload = ctx["runtime_payload"]
@@ -24,17 +51,16 @@ def run_remediation_cycles(ctx: dict[str, Any]) -> None:
     claim_ledger = ctx["claim_ledger"]
     parsed_for_x2 = ctx["parsed_for_x2"]
     x2 = ctx["x2"]
-    _generation_material = ctx["_generation_material"]
-    _bundle_mat = ctx["_bundle_mat"]
-    _targeting_parity = ctx["_targeting_parity"]
     x1d = ctx["x1d"]
-    _judge_prompt_x1d = ctx["_judge_prompt_x1d"]
-    _gtc_lane_dict = ctx["_gtc_lane_dict"]
-    _pool_publish_applied = ctx["_pool_publish_applied"]
-    token_budget_receipt = ctx["token_budget_receipt"]
+    _generation_material = ctx["_generation_material"]
+    _targeting_parity = ctx["_targeting_parity"]
+    _composition_plan_refresh = ctx["_composition_plan_refresh"]
     allowed_fact_ids = ctx["allowed_fact_ids"]
     selected_fact_plan = ctx["selected_fact_plan"]
-    pool = ctx["pool"]
+    provider_payload = ctx["provider_payload"]
+    model_name = ctx["model_name"]
+    prompt_hash = ctx["prompt_hash"]
+    judge_keys = ctx["judge_keys"]
 
     _max_judge_cycles = judge_regen_max_attempts()
     _regen_messages = list(messages)
@@ -73,6 +99,7 @@ def run_remediation_cycles(ctx: dict[str, Any]) -> None:
     )
     from apps_rg.runtime.sections.executive_summary_candidate_pool import (
         SCORES_FRESHNESS_CARRIED_FORWARD,
+        SCORES_FRESHNESS_FULL_PANEL,
         SCORES_FRESHNESS_SOFT_FAILED_ONLY,
         CandidatePool,
         finalize_pool_publish,
@@ -82,6 +109,11 @@ def run_remediation_cycles(ctx: dict[str, Any]) -> None:
     _candidate_pool = CandidatePool()
     _provider_lane = str(
         provider_payload.get("provider") or provider_payload.get("lane") or ""
+    )
+    _scratch_freshness = (
+        SCORES_FRESHNESS_FULL_PANEL
+        if x1d and len(x1d) >= len(judge_keys)
+        else SCORES_FRESHNESS_CARRIED_FORWARD
     )
     _candidate_pool.add(
         freeze_candidate_snapshot(
@@ -100,11 +132,10 @@ def run_remediation_cycles(ctx: dict[str, Any]) -> None:
                 "provider_request": str(artifact_dir / "provider_request.json"),
                 "provider_response": str(artifact_dir / "provider_response.json"),
             },
-            scores_freshness=SCORES_FRESHNESS_CARRIED_FORWARD,
+            scores_freshness=_scratch_freshness,
             publish_eligible=True,
         ),
     )
-
 
 
     for _cycle_idx in range(_max_judge_cycles):
@@ -118,12 +149,12 @@ def run_remediation_cycles(ctx: dict[str, Any]) -> None:
             x2_passed=True,
         )
         trigger_receipt["cycle"] = _cycle_idx + 1
-        write_json(
+        _lane_attr("write_json", write_json)(
             artifact_dir / f"judge_remediation_trigger_cycle_{_cycle_idx + 1}.json",
             trigger_receipt,
         )
         if _cycle_idx == 0:
-            write_json(artifact_dir / "judge_remediation_trigger.json", trigger_receipt)
+            _lane_attr("write_json", write_json)(artifact_dir / "judge_remediation_trigger.json", trigger_receipt)
 
         if not trigger_ok:
             _cycles_receipt["stopped_reason"] = str(
@@ -224,47 +255,44 @@ def run_remediation_cycles(ctx: dict[str, Any]) -> None:
         _regen_attempt_parsed_snapshot: dict[str, Any] | None = None
 
         if _draft_parse_ok or _j_receipt.get("prefilter_applied"):
-            ctx["_cycle_idx"] = _cycle_idx
-            ctx["_max_judge_cycles"] = _max_judge_cycles
-            ctx["_regen_messages"] = _regen_messages
-            ctx["_prior_regen_output_hash"] = _prior_regen_output_hash
-            ctx["_cycles_receipt"] = _cycles_receipt
-            ctx["_candidate_pool"] = _candidate_pool
-            ctx["_scratch_digest"] = _scratch_digest
-            ctx["_published_digest"] = _published_digest
-            ctx["_wg"] = _wg
-            ctx["_cycle_record"] = _cycle_record
-            ctx["_draft_parse_ok"] = _draft_parse_ok
-            ctx["_j_receipt"] = _j_receipt
-            ctx["_pre_parsed"] = _pre_parsed
-            ctx["_pre_raw"] = _pre_raw
-            ctx["_pre_resume"] = _pre_resume
-            ctx["_pre_ledger"] = _pre_ledger
-            ctx["_pre_x2"] = _pre_x2
-            ctx["_pre_wc"] = _pre_wc
-            ctx["_pre_ledger_rows"] = _pre_ledger_rows
-            ctx["_x1d_before_regen"] = _x1d_before_regen
-            ctx["_scores_before_regen"] = _scores_before_regen
-            ctx["_cycle_delta_class"] = _cycle_delta_class
-            ctx["selected_facts_for_x2"] = selected_facts_for_x2
-            ctx["provider_payload"] = provider_payload
-            ctx["model_name"] = model_name
-            ctx["prompt_hash"] = prompt_hash
-            ctx["compiled_prompt"] = compiled_prompt
-            ctx["temperature"] = temperature
-            ctx["pp_x2"] = pp_x2
-            ctx["proof_pool_x2_active"] = proof_pool_x2_active
-            ctx["input_payload_hash"] = input_payload_hash
-            ctx["_judge_jd"] = _judge_jd
-            ctx["_reject_gate"] = _reject_gate
-            ctx["raw_output"] = raw_output
-            ctx["parsed"] = parsed
-            ctx["parsed_for_x2"] = parsed_for_x2
-            ctx["resume_display_text"] = resume_display_text
-            ctx["claim_ledger"] = claim_ledger
-            ctx["x1d"] = x1d
-            ctx["x2"] = x2
-
+            ctx.update({
+                "_cycle_idx": _cycle_idx,
+                "_max_judge_cycles": _max_judge_cycles,
+                "_regen_messages": _regen_messages,
+                "_prior_regen_output_hash": _prior_regen_output_hash,
+                "_cycles_receipt": _cycles_receipt,
+                "_candidate_pool": _candidate_pool,
+                "_provider_lane": _provider_lane,
+                "_operator_judge_floor": _operator_judge_floor,
+                "_judge_prompt_x1d": _judge_prompt_x1d,
+                "_regen_incremental_anchor_parsed": _regen_incremental_anchor_parsed,
+                "_regen_prior_cycle_judges": _regen_prior_cycle_judges,
+                "_scratch_anchor_resume": _scratch_anchor_resume,
+                "_last_regen_candidate": _last_regen_candidate,
+                "_cycle_record": _cycle_record,
+                "_draft_parse_ok": _draft_parse_ok,
+                "_j_receipt": _j_receipt,
+                "parsed_regen": parsed_regen,
+                "raw_output": raw_output,
+                "_pre_parsed": _pre_parsed,
+                "_pre_raw": _pre_raw,
+                "_pre_resume": _pre_resume,
+                "_pre_ledger": _pre_ledger,
+                "_pre_x2": _pre_x2,
+                "_pre_wc": _pre_wc,
+                "_pre_ledger_rows": _pre_ledger_rows,
+                "_x1d_before_regen": _x1d_before_regen,
+                "_scores_before_regen": _scores_before_regen,
+                "_cycle_delta_class": _cycle_delta_class,
+                "_strategy_exec_regen": _strategy_exec_regen,
+                "_regen_attempt_parsed_snapshot": _regen_attempt_parsed_snapshot,
+                "parsed": parsed,
+                "parsed_for_x2": parsed_for_x2,
+                "resume_display_text": resume_display_text,
+                "claim_ledger": claim_ledger,
+                "x1d": x1d,
+                "x2": x2,
+            })
             action = process_remediation_draft(ctx)
             x1d = ctx["x1d"]
             x2 = ctx["x2"]
@@ -274,10 +302,14 @@ def run_remediation_cycles(ctx: dict[str, Any]) -> None:
             resume_display_text = ctx["resume_display_text"]
             raw_output = ctx["raw_output"]
             _prior_regen_output_hash = ctx["_prior_regen_output_hash"]
-
+            _regen_messages = ctx["_regen_messages"]
+            _judge_prompt_x1d = ctx["_judge_prompt_x1d"]
+            _regen_incremental_anchor_parsed = ctx["_regen_incremental_anchor_parsed"]
+            _regen_prior_cycle_judges = ctx["_regen_prior_cycle_judges"]
+            _last_regen_candidate = ctx["_last_regen_candidate"]
             if action == "break":
                 break
-            elif action == "continue":
+            if action == "continue":
                 continue
         else:
             _cycle_record["skipped"] = "regen_not_accepted"
@@ -296,20 +328,17 @@ def run_remediation_cycles(ctx: dict[str, Any]) -> None:
                 break
             continue
 
-
-    ctx["_cycles_receipt"] = _cycles_receipt
-    ctx["_candidate_pool"] = _candidate_pool
-    ctx["_scratch_digest"] = _scratch_digest
-    ctx["_published_digest"] = _published_digest
-    ctx["_generation_material"] = _generation_material
-    ctx["_targeting_parity"] = _targeting_parity
-    ctx["raw_output"] = raw_output
-    ctx["parsed_for_x2"] = parsed_for_x2
-    ctx["parsed"] = parsed
-    ctx["resume_display_text"] = resume_display_text
-    ctx["claim_ledger"] = claim_ledger
-    ctx["x2"] = x2
-    ctx["x1d"] = x1d
-    ctx["_wg"] = _wg
-
+    ctx.update({
+        "_cycles_receipt": _cycles_receipt,
+        "_candidate_pool": _candidate_pool,
+        "_operator_judge_floor": _operator_judge_floor,
+        "_scratch_anchor_resume": _scratch_anchor_resume,
+        "raw_output": raw_output,
+        "parsed_for_x2": parsed_for_x2,
+        "parsed": parsed,
+        "resume_display_text": resume_display_text,
+        "claim_ledger": claim_ledger,
+        "x2": x2,
+        "x1d": x1d,
+    })
     finalize_remediation_candidate_pool(ctx)

@@ -193,7 +193,7 @@ def validate_unified_architecture_governance(repo_root: Path | None = None) -> l
                 hook_ids = set(data.keys())
             else:
                 hook_ids = set()
-            expected_essential = {"agents-pre-edit-plan-guard", "agents-pytest-scope-guard", "agents-hitl-atomic-guard"}
+            expected_essential = {"agents-implementation-plan-guard", "agents-pytest-scope-guard", "agents-hitl-atomic-guard"}
             missing_hooks = expected_essential - hook_ids
             if missing_hooks:
                 errors.append(f"Missing essential hooks in .agents/hooks.json: {missing_hooks}")

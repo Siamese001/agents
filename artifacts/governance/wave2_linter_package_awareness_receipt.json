@@ -1,0 +1,137 @@
+{
+  "wave": "Wave 2",
+  "title": "Linter, SSOT Registry, File-Budget & Auditor Package Awareness",
+  "status": "COMPLETE",
+  "timestamp": "2026-11-14T22:52:32Z",
+  "worktree": "/Users/amitayer/Git/agents/.worktrees/feat-de-risk-holistic-factoring",
+  "commands": [
+    {
+      "command": "/Users/amitayer/Git/agents/.venv/bin/python -m pytest tests/test_implementation_plan_governance.py tests/test_hook_dispatch.py tests/test_unified_agent_architecture.py tests/unit/test_ssot_hardcoding_scanner.py -v --timeout=60",
+      "exit_code": 0,
+      "passed": 71,
+      "failed": 0,
+      "duration_seconds": 11.35
+    },
+    {
+      "command": "/Users/amitayer/Git/agents/.venv/bin/python -m pytest tests/unit/test_auditor_package_awareness.py tests/test_model_neutral_naming.py tests/test_turn_gates.py -v --timeout=60",
+      "exit_code": 0,
+      "passed": 31,
+      "failed": 0,
+      "duration_seconds": 1.65
+    },
+    {
+      "command": "/Users/amitayer/Git/agents/.venv/bin/python tools/lint_file_budgets.py",
+      "exit_code": 0,
+      "status": "PASS"
+    },
+    {
+      "command": "/Users/amitayer/Git/agents/.venv/bin/python tools/validate_turn_gates.py --mode all --repository-root /Users/amitayer/Git/agents/.worktrees/feat-de-risk-holistic-factoring",
+      "exit_code": 0,
+      "pre_turn_status": "PASS",
+      "post_turn_status": "PASS",
+      "hook_count": 8,
+      "agents_md_line_count": 165,
+      "skills_budget_status": "PASS"
+    },
+    {
+      "command": "/Users/amitayer/Git/agents/.venv/bin/python tools/validate_implementation_plan.py --all-plans",
+      "exit_code": 0,
+      "plans_passed": 5
+    },
+    {
+      "command": "/Users/amitayer/Git/agents/.venv/bin/python tools/validate_implementation_plan.py --file /Users/amitayer/.gemini/antigravity/brain/22c183b3-3507-466d-8162-e262d0e3ef39/implementation_plan.md",
+      "exit_code": 0,
+      "status": "PASS"
+    },
+    {
+      "command": "/Users/amitayer/Git/agents/.venv/bin/python tools/ssot_sprawl_scanner.py",
+      "exit_code": 0,
+      "total_findings": 0
+    },
+    {
+      "command": "/Users/amitayer/Git/agents/.venv/bin/python tools/check_config_ssot_drift.py",
+      "exit_code": 0,
+      "unallowlisted_differing_config_files": 0,
+      "differing_common_data_files": 0
+    },
+    {
+      "command": "/Users/amitayer/Git/agents/.venv/bin/python tools/lint_model_neutral_naming.py --all --repo-root .",
+      "exit_code": 0,
+      "status": "PASS"
+    },
+    {
+      "command": "/Users/amitayer/Git/agents/.venv/bin/python tools/retrieval_surface_auditor.py",
+      "exit_code": 0,
+      "pillars_passing": "7/7",
+      "gaps": 0
+    },
+    {
+      "command": "/Users/amitayer/Git/agents/.venv/bin/python tools/cost_token_budget_auditor.py",
+      "exit_code": 0,
+      "pillars_passing": "8/8",
+      "roi": "2.57x",
+      "gaps": 0
+    },
+    {
+      "command": "/Users/amitayer/Git/agents/.venv/bin/python tools/testing_gaps_auditor.py",
+      "exit_code": 0,
+      "pillars_passing": "6/6",
+      "scanned_test_files": 986,
+      "zero_assert": 0,
+      "mock_violations": 0
+    },
+    {
+      "command": "/Users/amitayer/Git/agents/.venv/bin/python tools/ssot_hardcoding_scanner.py --json",
+      "exit_code": 1,
+      "total_findings": 7,
+      "policy_registry_sync_issues": 0,
+      "hardcoded_threshold_literals": 0,
+      "prompt_code_parity_issues": 0,
+      "new_or_package_split_findings": 0,
+      "pre_existing_main_baseline_findings": [
+        "resume_graph_engine/src/apps_rg/runtime/orchestration/canonical_dispatch.py:496 (UNCENTRALIZED_ENV_LOOKUP, main bf92ca4021 baseline)",
+        "resume_graph_engine/src/apps_rg/runtime/orchestration/canonical_dispatch.py:497 (UNCENTRALIZED_ENV_LOOKUP, main bf92ca4021 baseline)",
+        "resume_graph_engine/src/apps_rg/runtime/orchestration/patch_run.py:1679 (UNCENTRALIZED_ENV_LOOKUP, main bf92ca4021 baseline)",
+        "resume_graph_engine/src/apps_rg/runtime/runtime_boundary.py:240 (UNCENTRALIZED_ENV_LOOKUP, main bf92ca4021 baseline)",
+        "resume_graph_engine/src/apps_rg/runtime/runtime_boundary.py:241 (UNCENTRALIZED_ENV_LOOKUP, main bf92ca4021 baseline)",
+        "resume_graph_engine/src/apps_rg/runtime/orchestration/patch_product_closeout.py:224 (UNCENTRALIZED_ENV_LOOKUP, main bf92ca4021 baseline)",
+        "resume_graph_engine/src/apps_rg/runtime/orchestration/patch_product_closeout.py:225 (UNCENTRALIZED_ENV_LOOKUP, main bf92ca4021 baseline)"
+      ]
+    }
+  ],
+  "verified_criteria": {
+    "file_budgets_ratchet_pruned_misclassified_tests": true,
+    "file_budgets_ratchet_entries_before": 241,
+    "file_budgets_ratchet_entries_after": 195,
+    "file_budgets_ratchet_pruned_tests_count": 46,
+    "env_lookup_ratchet_strict_file_ceilings_preserved": true,
+    "env_lookup_ratchet_file_counts": 114,
+    "env_lookup_ratchet_schema_version": "1.1.0",
+    "hooks_json_zero_duplicate_pre_edit_plan": true,
+    "hooks_json_total_hooks": 8,
+    "ssot_package_prefix_and_facade_awareness_verified": true,
+    "auditor_package_and_facade_awareness_verified": true,
+    "holistic_pipeline_alignment_expanded_verified": true
+  },
+  "modified_files": [
+    ".agents/hooks.json",
+    "config/governance/centralization_registry.yaml",
+    "config/governance/env_lookup_ratchet.json",
+    "config/governance/file_budgets_ratchet.json",
+    "tests/test_hook_dispatch.py",
+    "tests/test_implementation_plan_governance.py",
+    "tests/test_model_neutral_naming.py",
+    "tests/test_unified_agent_architecture.py",
+    "tests/unit/test_auditor_package_awareness.py",
+    "tests/unit/test_ssot_hardcoding_scanner.py",
+    "tools/cost_token_budget_auditor.py",
+    "tools/cost_token_budget_probes.py",
+    "tools/implementation_plan_core/evidence_requirements.py",
+    "tools/lint_file_budgets.py",
+    "tools/lint_model_neutral_naming.py",
+    "tools/retrieval_surface_auditor.py",
+    "tools/ssot_hardcoding_scanner.py",
+    "tools/testing_gaps_auditor.py",
+    "tools/unified_agent_architecture.py"
+  ]
+}

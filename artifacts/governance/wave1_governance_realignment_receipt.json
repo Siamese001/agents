@@ -1,0 +1,65 @@
+{
+  "wave": "Wave 1",
+  "title": "Governance, HITL, Class A Pytest & Rules Realignment for Holistic Factoring",
+  "status": "COMPLETE",
+  "timestamp": "2026-11-14T22:28:25Z",
+  "worktree": "/Users/amitayer/Git/agents/.worktrees/feat-de-risk-holistic-factoring",
+  "commands": [
+    {
+      "command": "/Users/amitayer/Git/agents/.venv/bin/python -m pytest tests/test_hitl_governance_enforcement.py tests/test_turn_gates.py -v --timeout=60",
+      "exit_code": 0,
+      "passed": 46,
+      "failed": 0,
+      "duration_seconds": 1.55
+    },
+    {
+      "command": "/Users/amitayer/Git/agents/.venv/bin/python tools/validate_turn_gates.py --mode all --repository-root /Users/amitayer/Git/agents/.worktrees/feat-de-risk-holistic-factoring",
+      "exit_code": 0,
+      "pre_turn_status": "PASS",
+      "post_turn_status": "PASS",
+      "agents_md_line_count": 165,
+      "skills_budget_tokens": 302,
+      "skills_budget_max_tokens": 4000
+    },
+    {
+      "command": "/Users/amitayer/Git/agents/.venv/bin/python tools/lint_file_budgets.py",
+      "exit_code": 0,
+      "status": "PASS"
+    },
+    {
+      "command": "/Users/amitayer/Git/agents/.venv/bin/python -m pytest tests/unit/test_sidecar_separation_governance.py -v --timeout=60",
+      "exit_code": 0,
+      "passed": 16,
+      "failed": 0,
+      "duration_seconds": 24.74
+    }
+  ],
+  "verified_criteria": {
+    "agents_md_line_count_le_200": true,
+    "agents_md_lines": 165,
+    "hitl_cohesive_refactor_zero_layer_penalty": true,
+    "hitl_governance_lines": 735,
+    "class_a_coupled_multi_file_slice_up_to_4_authorized": true,
+    "unbounded_pytest_tests_still_forbidden": true,
+    "cohesive_package_split_le_600_behind_facade_authorized": true,
+    "shared_domain_contracts_and_holistic_pipeline_planning_aligned": true,
+    "sidecar_separation_governance_regression_clean": true
+  },
+  "modified_files": [
+    ".agents/rules/001-runtime-seam-execution.md",
+    ".agents/rules/agent-fanout-restraint.md",
+    ".agents/rules/apps-rg-execution-bias.md",
+    ".agents/rules/hitl-decisions.md",
+    ".agents/rules/ssot-folder-enforcement.md",
+    ".agents/rules/wave-progression.md",
+    ".agents/rules/work-item-classification.md",
+    ".agents/skills/operational-gates/SKILL.md",
+    ".agents/skills/testing-framework/SKILL.md",
+    "AGENTS.md",
+    "automations/prompts/agents_testing_gaps_assurance_agent.md",
+    "docs/refactoring-wave-protocol.md",
+    "tests/test_hitl_governance_enforcement.py",
+    "tests/test_turn_gates.py",
+    "tools/hitl_governance.py"
+  ]
+}
