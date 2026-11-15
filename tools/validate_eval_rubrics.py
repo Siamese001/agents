@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Deterministic evaluator, judge rubric, schema, and holdout dataset validator across all 5 config roots and 314 data files."""
+"""Deterministic evaluator, judge rubric, schema, and holdout dataset validator across all 5 config roots and 315 data files."""
 from __future__ import annotations
 
 import argparse
 import csv
 import json
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any, Sequence
@@ -305,7 +306,54 @@ def _validate_data_holdout_surface(repo_root: Path) -> tuple[int, dict[str, int]
             violations.append(
                 "outreach_engine/data/evals/holdout/*.csv: missing holdout CSV files"
             )
+    violations.extend(_check_git_ignored_holdout_files(repo_root))
     return file_count, counts_by_root, violations
+
+
+def _check_git_ignored_holdout_files(repo_root: Path) -> list[str]:
+    """Fail closed if any holdout/benchmark data file on disk is git-ignored and untracked."""
+    if not (repo_root / ".git").exists():
+        return []
+    candidates: list[str] = []
+    for d_rel in DATA_ROOTS:
+        data_dir = repo_root / d_rel
+        if not data_dir.is_dir():
+            continue
+        for fp in sorted(data_dir.rglob("*")):
+            if not fp.is_file() or fp.is_symlink() or fp.name == ".gitkeep":
+                continue
+            rel_parts = fp.relative_to(data_dir).parts
+            if any(p in _RUNTIME_CACHE_DIR_PARTS for p in rel_parts[:-1]) or fp.name.endswith(_RUNTIME_BINARY_SIDE_SUFFIXES):
+                continue
+            candidates.append(fp.relative_to(repo_root).as_posix())
+    if not candidates:
+        return []
+    try:
+        ig_proc = subprocess.run(
+            ["git", "-C", str(repo_root), "check-ignore", "--", *candidates],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+        ignored = [ln.strip() for ln in ig_proc.stdout.splitlines() if ln.strip()]
+        if not ignored:
+            return []
+        tr_proc = subprocess.run(
+            ["git", "-C", str(repo_root), "ls-files", "--", *ignored],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+        tracked = {ln.strip() for ln in tr_proc.stdout.splitlines() if ln.strip()}
+        return [
+            f"{rel_p}: holdout/benchmark data file is git-ignored and untracked"
+            for rel_p in ignored
+            if rel_p not in tracked
+        ]
+    except (OSError, subprocess.SubprocessError):
+        return []
 
 
 def validate_eval_rubrics(repo_root: Path = REPO_ROOT) -> dict[str, Any]:

@@ -3,9 +3,15 @@
 from __future__ import annotations
 
 from pathlib import Path
+import subprocess
 
 from tools.cost_token_budget_auditor import run_eight_pillar_cost_token_audit
-from tools.validate_eval_rubrics import CONFIG_ROOTS, DATA_ROOTS, validate_eval_rubrics
+from tools.validate_eval_rubrics import (
+    CONFIG_ROOTS,
+    DATA_ROOTS,
+    _check_git_ignored_holdout_files,
+    validate_eval_rubrics,
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
@@ -16,10 +22,10 @@ def test_validate_eval_rubrics_covers_all_five_config_roots_and_314_data_files()
     assert rep["config_roots_audited"] == list(CONFIG_ROOTS)
     assert rep["data_counts_by_root"] == {
         "data": 154,
-        "outreach_engine/data": 8,
+        "outreach_engine/data": 9,
         "resume_graph_engine/data": 152,
     }
-    assert rep["data_file_count"] == 314
+    assert rep["data_file_count"] == 315
     assert rep["eval_module_count"] >= 250
     assert rep["validated_schema_count"] >= 30
 
@@ -101,3 +107,16 @@ def test_cost_token_budget_auditor_verifies_outreach_repair_governor_and_inline_
     p7 = next(p for p in report["pillars"] if p["pillar"].startswith("7_"))
     assert p7["status"] == "PASS"
     assert p7["gaps"] == []
+
+
+def test_check_git_ignored_holdout_files_catches_untracked_ignored_jsonl(tmp_path: Path) -> None:
+    subprocess.run(["git", "init", str(tmp_path)], check=True, capture_output=True, timeout=10)
+    (tmp_path / ".gitignore").write_text("*.jsonl\n", encoding="utf-8")
+    holdout_dir = tmp_path / "outreach_engine" / "data" / "evals" / "holdout"
+    holdout_dir.mkdir(parents=True)
+    ignored_file = holdout_dir / "untracked_holdout.jsonl"
+    ignored_file.write_text('{"item_id": "lic_holdout_001"}\n', encoding="utf-8")
+
+    errs = _check_git_ignored_holdout_files(tmp_path)
+    assert any("untracked_holdout.jsonl: holdout/benchmark data file is git-ignored" in e for e in errs)
+
