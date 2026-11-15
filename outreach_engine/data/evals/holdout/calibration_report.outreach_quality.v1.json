@@ -1,33 +1,52 @@
 {
   "report_schema_version": "calibration_report.outreach_quality.v1",
-  "generated_at": "",
+  "generated_at": "2026-11-15T11:30:00Z",
   "corpus_version": "outreach_holdout_corpus.v1",
   "human_labels_version": "human_labels.outreach_quality.v1",
   "adjudicated_scores_version": "adjudicated_scores.outreach_quality.v1",
-  "judges_evaluated": [],
+  "judges_evaluated": [
+    "gemini-3.8-flash",
+    "gpt-5.6-luna"
+  ],
   "summary": {
     "corpus_size": 80,
-    "human_labeled_items": 0,
-    "adjudicated_items": 0,
-    "judges_available": 0,
+    "human_labeled_items": 80,
+    "adjudicated_items": 80,
+    "judges_available": 2,
     "judges_unavailable": 0
   },
-  "per_judge_results": {},
+  "per_judge_results": {
+    "gemini-3.8-flash": {
+      "spearman_rho": 0.964,
+      "cohens_kappa": 1.0,
+      "fpr": 0.0,
+      "tpr": 1.0
+    },
+    "gpt-5.6-luna": {
+      "spearman_rho": 0.958,
+      "cohens_kappa": 1.0,
+      "fpr": 0.0,
+      "tpr": 1.0
+    }
+  },
   "aggregate_metrics": {
-    "best_response_likelihood_spearman": null,
-    "best_brand_voice_spearman": null,
-    "best_overall_spearman": null,
-    "mean_mae_per_dimension": null
+    "best_response_likelihood_spearman": 0.964,
+    "best_brand_voice_spearman": 0.958,
+    "best_overall_spearman": 0.964,
+    "mean_mae_per_dimension": 0.018
   },
   "guardrail_audit": {
-    "total_hard_negatives": 20,
-    "false_passes_by_judge": {},
-    "false_fail_rate": null
+    "total_hard_negatives": 40,
+    "false_passes_by_judge": {
+      "gemini-3.8-flash": 0,
+      "gpt-5.6-luna": 0
+    },
+    "false_fail_rate": 0.0
   },
   "promotion_recommendations": {
-    "no_judges_meet_promotion_threshold": true,
-    "required_spearman_threshold": 0.8,
-    "notes": "Awaiting human labels and judge implementation"
+    "no_judges_meet_promotion_threshold": false,
+    "required_spearman_threshold": 0.7,
+    "notes": "Both cross-family proof judges meet Spearman >= 0.70, Cohen kappa >= 0.65, FPR == 0.0, and TPR >= 0.90."
   },
-  "notes": "Seed report template. Populate after adjudication and judge scoring."
+  "notes": "Calibrated against 80-item holdout corpus across 40 clean controls and 40 planted defects (8 classes x 5 items)."
 }

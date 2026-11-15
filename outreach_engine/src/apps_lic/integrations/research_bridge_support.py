@@ -19,15 +19,15 @@ from typing import Any
 
 from infrastructure.config.env_loader import get_env_str
 
-from apps_lic.integrations.apps_research_bridge import (
-    AppsResearchBridge,
-    EvidenceItem,
-    ResearchResult,
-)
 from apps_lic.integrations.research_boundary_policy import (
     ResearchBoundaryPolicy,
     _find_valid_persisted_artifact_bundle,
     build_cost_limit_exceeded_result,
+)
+from apps_lic.integrations.research_bridge_pkg.bridge import AppsResearchBridge
+from apps_lic.integrations.research_bridge_pkg.models import (
+    EvidenceItem,
+    ResearchResult,
 )
 
 _CANONICAL_MOCK_BRIEF = (
@@ -177,6 +177,7 @@ def persist_standalone_outreach_research_bundle(
         "status": "PASS",
         "is_blocked": False,
         "confidence_score": confidence,
+        "never_treated_as_candidate_proof": True,
         "identity": identity,
         "producer": {
             "producer_app_id": "apps_research",

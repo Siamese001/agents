@@ -6,6 +6,7 @@ import argparse
 import contextlib
 import hashlib
 import json
+import stat
 import subprocess
 import sys
 import tempfile
@@ -130,6 +131,72 @@ def _verify_deterministic_resume_pipeline(repo_root: Path, artifact_root: Path) 
         "live_fused_skill_count": int(hybrid_stage2_proof.get("live_fused_skill_count", 0)),
         "verified_artifacts": verified_resume_files,
     }
+
+
+def _verify_outreach_rigor_parity(repo_root: Path, sandbox_root: Path) -> dict[str, Any]:
+    """Verify outreach_engine C-suite targeting briefs, 8-slot PA, X1D quorum, and 4-format 0644 exports."""
+    for p in (repo_root, repo_root / "outreach_engine" / "src", repo_root / "resume_graph_engine" / "src"):
+        if p.is_dir() and str(p) not in sys.path:
+            sys.path.insert(0, str(p))
+    from apps_lic.judges.evaluator import GradeOnlyJudgePacket, evaluate_x1d_judge_quorum, load_x1d_exit_rubric
+    from apps_lic.pipeline.briefing_resolver import GovernedBriefingResolver
+    from apps_lic.prompt_assembly.compiler import OutreachPromptCompiler
+    from apps_lic.runtime.final_outreach_outputs import (
+        CANONICAL_OUTREACH_EXPORT_FILENAMES, export_final_outreach_bundle, verify_docx_ecma376_compliance,
+    )
+
+    targets = (
+        ("citi", "Citi", "Head of AI Strategy", "citi_head_of_ai_strategy_briefing.md"),
+        ("aig", "AIG", "SVP Enterprise Architecture", "aig_svp_enterprise_architecture_briefing.md"),
+        ("brown_brown", "Brown & Brown", "Chief AI Architect", "brown_brown_chief_ai_architect_briefing.md"),
+    )
+    GovernedBriefingResolver.clear_cache()
+    try:
+        pa_compiled = OutreachPromptCompiler().compile(
+            candidate_claims=["[fact_id:fact_platform_001] Led enterprise AI governance across 4 divisions."],
+            untrusted_brief="Enterprise AI governance and risk mandate.", allowed_fact_ids={"fact_platform_001"},
+        )
+        if pa_compiled.slot_order != ("S0", "D0", "I0", "C0", "E0", "Y0", "U0", "R0") or not pa_compiled.has_no_fabrication_oath or not pa_compiled.untrusted_fenced or len(pa_compiled.prompt_hash) != 64:
+            raise RuntimeError("8-slot PA compile check failed in outreach rigor parity smoke")
+        rubric = load_x1d_exit_rubric()
+        quorum = evaluate_x1d_judge_quorum(GradeOnlyJudgePacket(
+            run_id="smoke_x1d", mission_id="mission_smoke",
+            touches=({"touch_number": 1, "subject": "Enterprise AI Governance", "body": "Led platform transformation [fact_id:fact_platform_001]. Would a brief exchange next week make sense?", "cited_fact_ids": ["fact_platform_001"]},),
+            allocated_fact_ids_by_touch={1: ["fact_platform_001"]}, x2_passed=True,
+        ))
+        if rubric.get("rubric_id") != "lic_x1d_v1" or not quorum.quorum_passed or not quorum.drafter_judge_orthogonal:
+            raise RuntimeError(f"X1D rubric/quorum check failed: {quorum.to_dict()}")
+        verified_exports: dict[str, dict[str, Any]] = {}
+        for slug, company, role, brief_fname in targets:
+            brief_path = repo_root / "outreach_engine" / "config" / "targeting" / brief_fname
+            if not brief_path.is_file():
+                raise RuntimeError(f"Missing outreach targeting brief: {brief_path}")
+            res = GovernedBriefingResolver.resolve(
+                company_name=company, target_role=role,
+                job_description_text=f"Lead enterprise AI strategy for {company} ({role}).",
+                auto_research=True, force_fresh=False,
+            )
+            if not res.is_verified or not res.briefing_text.strip():
+                raise RuntimeError(f"GovernedBriefingResolver failed for {company} ({role})")
+            out_dir = sandbox_root / f"outreach_export_{slug}"
+            bundle = export_final_outreach_bundle(out_dir, target_company=company, target_role=role)
+            if not bundle.passed or not bundle.permissions_verified or not bundle.posix_paths_verified:
+                raise RuntimeError(f"export_final_outreach_bundle failed for {company}")
+            for fname in CANONICAL_OUTREACH_EXPORT_FILENAMES:
+                fpath = out_dir / fname
+                if not fpath.is_file() or fpath.stat().st_size == 0 or stat.S_IMODE(fpath.stat().st_mode) != 0o644:
+                    raise RuntimeError(f"Invalid 0644 export {fname} for {company}")
+                verified_exports[f"outreach_parity::{slug}::{fname}"] = {
+                    "path": fpath.as_posix(), "bytes": fpath.stat().st_size, "sha256": compute_sha256(fpath), "verified_on_disk": True,
+                }
+            if not verify_docx_ecma376_compliance(out_dir / "executive_outreach_packet.docx").get("passed"):
+                raise RuntimeError(f"DOCX ECMA-376 compliance failed for {company}")
+        return {
+            "status": "PASSED", "targets_verified": ["Citi", "AIG", "Brown & Brown"],
+            "pa_prompt_hash": pa_compiled.prompt_hash, "x1d_quorum_passed": quorum.quorum_passed, "verified_exports": verified_exports,
+        }
+    finally:
+        GovernedBriefingResolver.clear_cache()
 
 
 def run_smoke(
@@ -351,9 +418,21 @@ def run_smoke(
                 print("[FAIL] Stage 3 executive_outreach did not pass or outreach_campaign missing")
             return 1
 
+        lic_sandbox = (
+            (temp_root / "outreach_rigor_parity")
+            if temp_root is not None
+            else Path(stack.enter_context(tempfile.TemporaryDirectory(prefix="agents_lic_parity_")))
+        )
+        try:
+            outreach_parity = _verify_outreach_rigor_parity(root, lic_sandbox)
+        except Exception as exc:  # guardian: allow-broad-exception -- fail closed on outreach rigor parity error
+            if not quiet:
+                print(f"[FAIL] Outreach rigor parity verification failed: {exc}")
+            return 1
+
         receipt = {
             "receipt_id": "rcpt_e2e_authoritative_json_smoke",
-            "wave": 3,
+            "wave": 6,
             "status": "PASSED",
             "skip_resume": skip_resume,
             "read_only": read_only,
@@ -367,6 +446,13 @@ def run_smoke(
                 "graph_fts5_and_write_proof_verified": bool(
                     resume_verification.get("graph_fts5_and_write_proof_verified")
                 ),
+            },
+            "outreach_rigor_parity": {
+                "status": outreach_parity["status"],
+                "targets_verified": outreach_parity["targets_verified"],
+                "pa_prompt_hash": outreach_parity["pa_prompt_hash"],
+                "x1d_quorum_passed": outreach_parity["x1d_quorum_passed"],
+                "export_artifact_count": len(outreach_parity["verified_exports"]),
             },
             "verified_artifacts": verified_artifacts,
             "invariants_verified": [
@@ -401,40 +487,16 @@ def run_smoke(
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Run real E2E smoke and verify outreach + resume artifacts")
     mode_group = parser.add_mutually_exclusive_group()
-    mode_group.add_argument(
-        "--skip-resume",
-        action="store_true",
-        help="Explicitly skip Stage 2 resume tailoring inside agents e2e",
-    )
-    mode_group.add_argument(
-        "--live-resume",
-        "--full-resume",
-        dest="live_resume",
-        action="store_true",
-        help="Run live provider apps_rg stage inside agents e2e instead of offline deterministic resume smoke",
-    )
-    parser.add_argument(
-        "--outreach-only",
-        action="store_true",
-        help="Skip offline deterministic resume verification when --skip-resume is set",
-    )
-    parser.add_argument(
-        "--read-only",
-        "--no-write",
-        dest="read_only",
-        action="store_true",
-        help="Write run outputs and receipt to temporary paths so tracked folders remain untouched",
-    )
+    mode_group.add_argument("--skip-resume", action="store_true", help="Explicitly skip Stage 2 resume tailoring inside agents e2e")
+    mode_group.add_argument("--live-resume", "--full-resume", dest="live_resume", action="store_true", help="Run live provider apps_rg stage")
+    parser.add_argument("--outreach-only", action="store_true", help="Skip offline deterministic resume verification when --skip-resume is set")
+    parser.add_argument("--read-only", "--no-write", dest="read_only", action="store_true", help="Write run outputs and receipt to temporary paths")
     parser.add_argument("--receipt-out", type=Path, default=None, help="Explicit receipt output path")
     parser.add_argument("--repo-root", type=Path, default=_DEFAULT_REPO_ROOT, help="Repository root")
     args = parser.parse_args(argv)
     return run_smoke(
-        skip_resume=bool(args.skip_resume),
-        live_resume=bool(args.live_resume),
-        read_only=args.read_only,
-        receipt_out=args.receipt_out,
-        repo_root=args.repo_root,
-        verify_deterministic_resume=not args.outreach_only,
+        skip_resume=bool(args.skip_resume), live_resume=bool(args.live_resume), read_only=args.read_only,
+        receipt_out=args.receipt_out, repo_root=args.repo_root, verify_deterministic_resume=not args.outreach_only,
     )
 
 

@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "apps_lic.completion_receipt.v1",
+  "title": "Apps LIC Pipeline Completion Receipt v1",
+  "description": "Terminal completion receipt recording X3 disposition, judge quorum pass state, sequence-wide X2 validation, PCT certificate counts, and exported bundle files.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "run_id",
+    "mission_id",
+    "completed_at",
+    "x3_disposition",
+    "execution_mode",
+    "quorum_passed",
+    "x2_passed",
+    "pct_certificates_count",
+    "export_files"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "apps_lic.completion_receipt.v1"
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "mission_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "x3_disposition": {
+      "type": "string",
+      "enum": [
+        "X3A_REPAIR_INLINE",
+        "X3B_ESCALATE_HITL",
+        "X3C_PATCH_RERUN",
+        "X3D_ALLOW_FINISH",
+        "X3E_SAFE_ABSTAIN"
+      ]
+    },
+    "execution_mode": {
+      "type": "string",
+      "enum": [
+        "REAL_LLM",
+        "OFFLINE_SMOKE"
+      ]
+    },
+    "quorum_passed": {
+      "type": "boolean"
+    },
+    "x2_passed": {
+      "type": "boolean"
+    },
+    "pct_certificates_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "export_files": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  }
+}

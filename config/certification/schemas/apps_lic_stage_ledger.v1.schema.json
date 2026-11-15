@@ -1,0 +1,123 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "apps_lic.stage_ledger.v1",
+  "title": "Apps LIC Stage Execution Ledger v1",
+  "description": "Governed stage execution ledger recording sequential spine execution across U0, D0, C0, PA, X1A, X1B, X1C, X2, X1D, and X3 for outreach campaigns.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "run_id",
+    "mission_id",
+    "execution_mode",
+    "allocation_plan_digest",
+    "candidate_graph_db_sha256",
+    "stages"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "apps_lic.stage_ledger.v1"
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "mission_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "execution_mode": {
+      "type": "string",
+      "enum": [
+        "REAL_LLM",
+        "OFFLINE_SMOKE"
+      ]
+    },
+    "allocation_plan_digest": {
+      "$ref": "#/$defs/Digest"
+    },
+    "candidate_graph_db_sha256": {
+      "$ref": "#/$defs/Digest"
+    },
+    "stages": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/StageRecord"
+      }
+    }
+  },
+  "$defs": {
+    "Digest": {
+      "type": "string",
+      "pattern": "^(sha256:)?[0-9a-f]{64}$"
+    },
+    "StageId": {
+      "type": "string",
+      "enum": [
+        "U0",
+        "D0",
+        "C0",
+        "PA",
+        "X1A",
+        "X1B",
+        "X1C",
+        "X2",
+        "X1D",
+        "X3"
+      ]
+    },
+    "StageStatus": {
+      "type": "string",
+      "enum": [
+        "PASS",
+        "FAIL",
+        "BLOCKED",
+        "SKIPPED_NON_PRODUCT"
+      ]
+    },
+    "StageRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stage_id",
+        "status",
+        "input_digest",
+        "output_digest",
+        "duration_ms",
+        "metrics"
+      ],
+      "properties": {
+        "stage_id": {
+          "$ref": "#/$defs/StageId"
+        },
+        "status": {
+          "$ref": "#/$defs/StageStatus"
+        },
+        "input_digest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "output_digest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "duration_ms": {
+          "type": "number",
+          "minimum": 0
+        },
+        "metrics": {
+          "type": "object",
+          "additionalProperties": {
+            "type": [
+              "number",
+              "integer",
+              "string",
+              "boolean",
+              "null"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

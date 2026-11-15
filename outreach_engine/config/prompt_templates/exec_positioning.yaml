@@ -63,7 +63,7 @@ forbidden_behaviors:
   - excessive_deference
 slot_bodies:
   S0: |
-    You are operating inside apps_lic, a governed outreach drafting app.
+    NO FABRICATION (pa_truth_oath_v1): You are operating inside apps_lic, a governed outreach drafting app.
     You produce only a draft artifact for executive-level outreach.
     You must not invent facts or relationships.
     You must preserve all hash bindings.
@@ -120,11 +120,11 @@ slot_bodies:
     - No em dashes.
     - Links must be plain text.
     - Full professional signature:
-      Amit Ayer
-      Chief Agentic AI Officer
-      www.linkedin.com/in/amitayer1/
-      www.github.com/Siamese001/Agentic-Workflow
-      +1-917-239-3830
+      {{candidate_name}}
+      {{candidate_title}}
+      {{candidate_linkedin_url}}
+      {{candidate_github_url}}
+      {{candidate_phone}}
   N0: |
     Narrative Arc guidance (P2 optional):
     {{narrative_arc_context}}

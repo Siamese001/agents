@@ -2,565 +2,102 @@
 
 from __future__ import annotations
 
-import importlib.util
-import re
-from pathlib import Path
-from typing import Final, List, Optional
-
-from apps_lic.domain.models import ChannelType, OutreachMessageDraft, ValidationResult
-from infrastructure.types.metric_lexical_primitives import (
-    METRIC_DOLLAR_PAT,
-    METRIC_PERCENT_PAT,
-    METRIC_SCALE_PAT,
-    extract_normalized_dollars,
-    normalize_dollar_token,
+from apps_lic.domain.validators_pkg.grounding_and_claims import (
+    ForbiddenClaimsValidator,
+    GroundingValidator,
+    METRIC_LAUNDERED_FROM_OPPORTUNITY,
+    MetricGroundingVerificationResult,
+    OutboundPrivacyValidator,
+    PCTCertificate,
+    UNGROUNDED_CANDIDATE_METRIC,
+    UnsupportedPersonalizationValidator,
+    _METRIC_DOLLAR_PAT,
+    _METRIC_PERCENT_PAT,
+    _METRIC_SCALE_PAT,
+    _extract_normalized_dollars,
+    _normalize_dollar_token,
+    verify_candidate_metric_grounding,
+)
+from apps_lic.domain.validators_pkg.lexical_and_style import (
+    ChannelLengthValidator,
+    EMAIL_MAX_CHARS,
+    EmDashValidator,
+    FOLLOW_UP_MAX_CHARS,
+    LINKEDIN_CONNECTION_MAX_CHARS,
+    LINKEDIN_INMAIL_MAX_CHARS,
+    MarkdownLinkValidator,
+    QuestionEndingValidator,
+    SpamTriggerValidator,
+    SubordinateToneValidator,
+    _CHANNEL_MAX_CHARS,
+    _CRITICAL_SPAM_TRIGGERS,
+    _GENERIC_OPENER_TRIGGERS,
+    _HIGH_SPAM_TRIGGERS,
+    _load_canonical_spam_phrases,
+)
+from apps_lic.domain.validators_pkg.sequence_x2 import (
+    EXEMPLAR_4GRAM_OVERLAP_EXCEEDED,
+    INV_LIC_C0_DISJOINT_TOUCH_FACTS,
+    INV_RESUME_NO_UNDEFINED_ACRONYMS,
+    MAX_EXEMPLAR_4GRAM_OVERLAP,
+    MAX_PAIRWISE_TOUCH_COSINE,
+    PAIRWISE_COSINE_EXCEEDED,
+    SequenceX2Report,
+    TouchX2Violation,
+    UndefinedAcronymValidator,
+    ZERO_DUPLICATE_OPENERS_AND_CTAS,
+    check_undefined_mga_acronym,
+    compute_exemplar_4gram_overlap,
+    compute_touch_cosine_similarity,
+    extract_touch_cta,
+    extract_touch_opener,
+    validate_sequence_x2,
 )
 
-_METRIC_DOLLAR_PAT = METRIC_DOLLAR_PAT
-_METRIC_PERCENT_PAT = METRIC_PERCENT_PAT
-_METRIC_SCALE_PAT = METRIC_SCALE_PAT
-_normalize_dollar_token = normalize_dollar_token
-_extract_normalized_dollars = extract_normalized_dollars
-
-# Curated spam triggers fallback based on apps_lic/config/spam_trigger_phrases.py
-_CRITICAL_SPAM_TRIGGERS: Final[List[re.Pattern[str]]] = [
-    re.compile(p, re.IGNORECASE) for p in (
-        r"\bact now\b", r"\burgent response needed\b", r"\blimited time opportunity\b",
-        r"\bguaranteed interview\b", r"\bdon't miss out\b",
-    )
-]
-
-_HIGH_SPAM_TRIGGERS: Final[List[re.Pattern[str]]] = [
-    re.compile(p, re.IGNORECASE) for p in (
-        r"\bonce in a lifetime\b", r"\bexclusive invitation\b",
-        r"\bdouble your income\b", r"\bunbelievable offer\b",
-    )
-]
-
-_GENERIC_OPENER_TRIGGERS: Final[List[re.Pattern[str]]] = [
-    re.compile(p, re.IGNORECASE) for p in (
-        r"\bI hope this email finds you well\b", r"\bI hope this message finds you well\b",
-        r"\bI hope you are having a great week\b", r"\bI came across your profile and was impressed\b",
-        r"\bAllow me to introduce myself\b",
-    )
-]
-
-# Channel length ceilings
-_CHANNEL_MAX_CHARS: Final[dict[ChannelType, int]] = {
-    ChannelType.LINKEDIN_CONNECTION: 300, ChannelType.LINKEDIN_INMAIL: 1900,
-    ChannelType.EMAIL: 1500, ChannelType.FOLLOW_UP: 800,
-}
-
-
-def _load_canonical_spam_phrases() -> dict[str, list[re.Pattern[str]]]:
-    """Load canonical spam triggers from config/spam_trigger_phrases.py without mutating sys.path."""
-    try:
-        config_file = Path(__file__).resolve().parent.parent.parent.parent / "config" / "spam_trigger_phrases.py"
-        if config_file.is_file():
-            spec = importlib.util.spec_from_file_location("outreach_spam_triggers", str(config_file))
-            if spec and spec.loader:
-                mod = importlib.util.module_from_spec(spec)
-                spec.loader.exec_module(mod)
-                spam_dict = getattr(mod, "SPAM_TRIGGER_PHRASES", {})
-                compiled: dict[str, list[re.Pattern[str]]] = {}
-                for cat, phrases in spam_dict.items():
-                    compiled[cat] = [
-                        re.compile(r"\b" + re.escape(p) + r"\b", re.IGNORECASE) for p in phrases
-                    ]
-                if compiled:
-                    return compiled
-    except (OSError, ValueError, KeyError, TypeError):
-        pass
-
-    return {
-        "pushy_cta": _HIGH_SPAM_TRIGGERS + _CRITICAL_SPAM_TRIGGERS,
-        "generic_opener": _GENERIC_OPENER_TRIGGERS,
-    }
-
-
-class SpamTriggerValidator:
-    """Scans text for aggressive CTAs, false urgency, or generic cliches."""
-
-    def __init__(self) -> None:
-        self._categories = _load_canonical_spam_phrases()
-
-    def validate(self, text: Optional[str]) -> tuple[bool, List[str], List[str]]:
-        text_str = str(text or "")
-        norm_text = re.sub(r"\s+", " ", text_str)
-        violations: List[str] = []
-        warnings: List[str] = []
-
-        # 1. Critical hardcoded patterns (for backward compatibility)
-        for pat in _CRITICAL_SPAM_TRIGGERS:
-            if pat.search(text_str) or pat.search(norm_text):
-                violations.append(f"Critical spam trigger matched: '{pat.pattern}'")
-
-        for pat in _HIGH_SPAM_TRIGGERS:
-            if pat.search(text_str) or pat.search(norm_text):
-                violations.append(f"High-severity pushy CTA matched: '{pat.pattern}'")
-
-        for pat in _GENERIC_OPENER_TRIGGERS:
-            if pat.search(text_str) or pat.search(norm_text):
-                warnings.append(f"Generic cliche opener matched: '{pat.pattern}'")
-
-        # 2. Canonical categories from config
-        pushy = self._categories.get("pushy_cta", [])
-        for pat in pushy:
-            if (pat.search(text_str) or pat.search(norm_text)) and not any(pat.pattern in v for v in violations):
-                violations.append(f"Pushy sales CTA matched: '{pat.pattern}'")
-
-        urgency = self._categories.get("false_urgency", [])
-        for pat in urgency:
-            if (pat.search(text_str) or pat.search(norm_text)) and not any(pat.pattern in v for v in violations):
-                violations.append(f"False urgency phrase matched: '{pat.pattern}'")
-
-        cliches = self._categories.get("corporate_cliche", [])
-        for pat in cliches:
-            if (pat.search(text_str) or pat.search(norm_text)) and not any(pat.pattern in w for w in warnings):
-                warnings.append(f"Corporate cliche matched: '{pat.pattern}'")
-
-        openers = self._categories.get("generic_opener", [])
-        for pat in openers:
-            if (pat.search(text_str) or pat.search(norm_text)) and not any(pat.pattern in w for w in warnings):
-                warnings.append(f"Formulaic generic opener matched: '{pat.pattern}'")
-
-        is_valid = len(violations) == 0
-        return is_valid, violations, warnings
-
-
-class ChannelLengthValidator:
-    """Verifies message body does not exceed strict channel ceilings."""
-
-    def validate(self, channel: ChannelType, body: Optional[str]) -> tuple[bool, Optional[str]]:
-        body_str = str(body or "")
-        ceiling = _CHANNEL_MAX_CHARS.get(channel, 2000)
-        actual = len(body_str)
-        if actual > ceiling:
-            return False, f"Message length ({actual} chars) exceeds channel ceiling ({ceiling} chars) for {channel.value}."
-        return True, None
-
-
-class QuestionEndingValidator:
-    """Verifies that the message concludes with a low-friction inquiry."""
-
-    def validate(self, body: Optional[str]) -> tuple[bool, Optional[str]]:
-        stripped = str(body or "").strip()
-        if not stripped:
-            return False, "Empty message body."
-
-        # Check if last non-whitespace sentence ends with '?'
-        lines = [line.strip() for line in stripped.splitlines() if line.strip()]
-        if lines[-1].endswith("?"):
-            return True, None
-
-        # Check if the line before a signature block ends with '?'
-        signature_tokens = (
-            "linkedin.com", "github.com", "+1-", "+1 ", "@", "officer", "director", "partner", "vp",
-            "chief", "lead", "architect", "engineer", "regards", "sincerely", "best,", "best regards",
-            "--", "__", "tel:", "phone:", "email:",
-        )
-        # Check if an inquiry ends with '?' and all trailing lines form a verified signature block
-        for i, line in enumerate(lines):
-            if line.endswith("?"):
-                trailing = lines[i + 1:]
-                if not trailing:
-                    return True, None
-                # Require explicit sign-off trigger among trailing lines
-                has_explicit_signoff = any(
-                    any(tok in t.lower() for tok in ("regards", "best", "sincerely", "--", "—", "linkedin.com", "github.com", "+1", "@", "tel:", "phone:", "email:"))
-                    for t in trailing
-                )
-                if not has_explicit_signoff:
-                    continue
-                is_signature = True
-                for t in trailing:
-                    t_lower = t.lower().strip()
-                    has_sig_token = any(tok in t_lower for tok in signature_tokens)
-                    is_short_name = (
-                        len(t.split()) <= 4
-                        and len(t) <= 40
-                        and not t.endswith((".", "!", ";", "?"))
-                    )
-                    if not (has_sig_token or is_short_name or t.startswith(("--", "—", "-"))):
-                        is_signature = False
-                        break
-                if is_signature:
-                    return True, None
-
-        return False, "Message does not conclude with a low-friction question mark."
-
-
-class EmDashValidator:
-    """Verifies message body contains no em dashes (rule: no_em_dash)."""
-
-    def validate(self, body: Optional[str]) -> tuple[bool, Optional[str]]:
-        body_str = str(body or "")
-        if "—" in body_str or "\u2014" in body_str:
-            return False, "Forbidden em dash detected; use standard punctuation or commas."
-        return True, None
-
-
-class MarkdownLinkValidator:
-    """Verifies message body uses plain text links rather than markdown links."""
-
-    _MD_LINK_PAT = re.compile(r"\[([^\]]+)\]\(\s*((?:https?://|www\.)[^\)\s]+)\s*\)", re.IGNORECASE)
-
-    def validate(self, body: Optional[str]) -> tuple[bool, Optional[str]]:
-        body_str = str(body or "")
-        if self._MD_LINK_PAT.search(body_str):
-            return False, "Forbidden markdown link syntax detected; use plain text URLs only."
-        return True, None
-
-
-class SubordinateToneValidator:
-    """Detects deferential or desperate subordinate phrasing in executive outreach."""
-
-    _SUBORDINATE_PATTERNS = [
-        re.compile(p, re.IGNORECASE) for p in (
-            r"\bwould love to learn more\b", r"\bthink I(?:'d| would) be a (?:great|perfect) fit\b",
-            r"\bhoping for an? (?:opportunity|interview|chance)\b", r"\bgive me a (?:chance|shot)\b",
-            r"\bplease consider my (?:application|resume|c\.?v\.?)\b", r"\bseeking a (?:role|job|position)\b",
-            r"\bgrateful for any (?:role|job|position|opportunity)\b", r"\bhire me\b", r"\byou must hire\b",
-        )
-    ]
-
-    def validate(self, body: Optional[str]) -> tuple[bool, List[str]]:
-        body_str = str(body or "")
-        norm_body = re.sub(r"\s+", " ", body_str)
-        violations: List[str] = []
-        for pat in self._SUBORDINATE_PATTERNS:
-            if pat.search(body_str) or pat.search(norm_body):
-                violations.append(f"Subordinate or deferential phrasing detected: '{pat.pattern}'")
-        return len(violations) == 0, violations
-
-
-class GroundingValidator:
-    """Ensures drafts do not fabricate claims outside allowed candidate facts,
-    binds factual statements and metrics to source evidence, and rejects unsupported
-    claims even when fact IDs are valid. Fails closed on missing provenance.
-    """
-
-    _METRIC_DOLLAR_PAT: Final[re.Pattern[str]] = METRIC_DOLLAR_PAT
-    _METRIC_PERCENT_PAT: Final[re.Pattern[str]] = METRIC_PERCENT_PAT
-    _METRIC_SCALE_PAT: Final[re.Pattern[str]] = METRIC_SCALE_PAT
-    _UNGROUNDED_ASSERTION_PAT: Final[re.Pattern[str]] = re.compile(
-        r"\b(?:personally invented|co-invented|patented the|invented the|won an? (?:olympic|nobel|pulitzer))\b",
-        re.IGNORECASE,
-    )
-
-    @staticmethod
-    def _normalize_dollar_token(raw: str) -> str:
-        """Normalize currency token to a canonical dollar amount string."""
-        return normalize_dollar_token(raw)
-
-    def _extract_normalized_dollars(self, text: str) -> set[str]:
-        return extract_normalized_dollars(text)
-
-    def validate(
-        self,
-        draft_facts_used: List[str],
-        allowed_fact_ids: set[str],
-        body: Optional[str] = None,
-        candidate_facts: Optional[List[Any]] = None,
-        opportunity_context: Optional[str] = None,
-    ) -> tuple[bool, List[str]]:
-        violations: List[str] = []
-
-        # 1. Fact ID validation and provenance enforcement (fail closed on missing provenance)
-        cf_by_id: dict[str, Any] = {}
-        if candidate_facts:
-            for f in candidate_facts:
-                fid = getattr(f, "fact_id", None)
-                if fid:
-                    cf_by_id[fid] = f
-
-        for fid in draft_facts_used:
-            if fid not in allowed_fact_ids:
-                violations.append(f"Ungrounded fact referenced: '{fid}'")
-                continue
-
-            if cf_by_id:
-                f_obj = cf_by_id.get(fid)
-                if f_obj is None:
-                    violations.append(f"Referenced fact ID '{fid}' not found in candidate facts.")
-                else:
-                    source_ref = getattr(f_obj, "source_reference", None)
-                    if not source_ref or not str(source_ref).strip():
-                        violations.append(
-                            f"Fact '{fid}' has missing provenance (source_reference is missing); failing closed."
-                        )
-
-        # 2. Body-level claim and metric verification
-        if body and body.strip():
-            declared_facts_text = ""
-            if cf_by_id and draft_facts_used:
-                declared_texts: List[str] = []
-                for fid in draft_facts_used:
-                    f_obj = cf_by_id.get(fid)
-                    if f_obj and (getattr(f_obj, "has_provenance", False) or getattr(f_obj, "source_reference", None)):
-                        stmt = str(getattr(f_obj, "statement", "") or "")
-                        met = str(getattr(f_obj, "metric", "") or "")
-                        declared_texts.append(f"{stmt} {met}".lower())
-                declared_facts_text = " ".join(declared_texts)
-
-            opp_text = str(opportunity_context or "").lower()
-            declared_dollars = self._extract_normalized_dollars(declared_facts_text)
-            opp_dollars = self._extract_normalized_dollars(opp_text)
-
-            # A. Dollar metrics check (with normalized numeric matching)
-            for m in self._METRIC_DOLLAR_PAT.finditer(body):
-                matched = m.group(0).lower()
-                norm_val = self._normalize_dollar_token(m.group(0))
-                in_declared = (matched in declared_facts_text) or (norm_val in declared_dollars)
-                in_opp = (matched in opp_text) or (norm_val in opp_dollars)
-                if not in_declared and not in_opp:
-                    if not draft_facts_used:
-                        violations.append(
-                            f"Message body cites metric '{m.group(0)}' without declaring any grounded fact ID backed by source evidence."
-                        )
-                    else:
-                        violations.append(
-                            f"Unsupported dollar metric claim in message body: '{m.group(0)}'. Not supported by declared candidate facts with source evidence."
-                        )
-
-            # B. Percentage metrics check (with word boundary check so 10% does not match 110%)
-            for m in self._METRIC_PERCENT_PAT.finditer(body):
-                matched = m.group(0).lower()
-                boundary_pat = re.compile(r"(?<!\d)" + re.escape(matched))
-                in_declared = bool(boundary_pat.search(declared_facts_text))
-                in_opp = bool(boundary_pat.search(opp_text))
-                if not in_declared and not in_opp:
-                    violations.append(
-                        f"Unsupported percentage metric claim in message body: '{m.group(0)}'. Not supported by declared candidate facts with source evidence."
-                    )
-
-            # C. Scale metrics check (e.g. 180+ professionals, 10M DAU)
-            for m in self._METRIC_SCALE_PAT.finditer(body):
-                matched = m.group(0).lower()
-                in_declared = matched in declared_facts_text
-                in_opp = matched in opp_text
-                if not in_declared and not in_opp:
-                    violations.append(
-                        f"Unsupported scale metric claim in message body: '{m.group(0)}'. Not supported by declared candidate facts with source evidence."
-                    )
-
-            # D. Unsupported superlative / invention claims
-            for m in self._UNGROUNDED_ASSERTION_PAT.finditer(body):
-                matched = m.group(0).lower()
-                in_declared = matched in declared_facts_text
-                if not in_declared:
-                    violations.append(
-                        f"Unsupported factual assertion in message body: '{m.group(0)}'. Not grounded in candidate verified facts with source evidence."
-                    )
-
-        return len(violations) == 0, violations
-
-
-class ForbiddenClaimsValidator:
-    """Hard assertion gate rejecting ungrounded compensation, unverifiable tenure claims, and policy-forbidden phrasing."""
-
-    _COMPENSATION_PATTERNS: Final[List[re.Pattern[str]]] = [
-        re.compile(
-            r"\b(?:salary|compensation|base\s+pay|annual\s+pay|equity\s+grant|stock\s+options|signing\s+bonus|hourly\s+rate|expected\s+rate|pay\s+rate|target\s+comp|comp\s+package|retainer|ote)\b",
-            re.IGNORECASE,
-        ),
-        re.compile(
-            r"[\$€£]\s*\d{1,4}(?:,\d{3})*(?:\.\d+)?\s*(?:k|m|b|million|billion|thousand|/yr|/year|per\s+year|/hr|/hour|per\s+hour|ote)?(?:\s*[-–—]\s*[\$€£]?\s*\d{1,4}(?:,\d{3})*(?:\.\d+)?\s*(?:k|m|b|million|billion|thousand)?)?\b",
-            re.IGNORECASE,
-        ),
-        re.compile(r"\b\d{1,4}\s*k\s*(?:ote|salary|base|comp|retainer|bonus)\b", re.IGNORECASE),
-    ]
-
-    _TENURE_PATTERNS: Final[List[re.Pattern[str]]] = [
-        re.compile(r"\b(?:over\s+)?(\d+|ten|fifteen|twenty|twenty-five|thirty)\+?\s+years?\s+(?:of\s+)?(?:experience|leading|leadership|in|track\s+record)\b", re.IGNORECASE),
-        re.compile(r"\b((?:two|three|four)\s+decades?)\s+(?:of\s+)?(?:experience|leadership|in)\b", re.IGNORECASE),
-        re.compile(r"\b(\d+)\s*(?:\+|-)\s*year\s+(?:veteran|career|leader)\b", re.IGNORECASE),
-    ]
-
-    _POLICY_FORBIDDEN_PATTERNS: Final[List[re.Pattern[str]]] = [
-        re.compile(r"\b(?:visa\s+sponsorship|require\s+sponsorship|sponsorship\s+required|h-?1b|opt\s+stem|green\s*card\s+sponsorship)\b", re.IGNORECASE),
-        re.compile(r"\b(?:relocation\s+(?:package|assistance|allowance|bonus)|paid\s+relocation)\b", re.IGNORECASE),
-        re.compile(r"\b(?:status\s+of\s+my\s+application|following\s+up\s+on\s+my\s+(?:job\s+)?application|submitted\s+my\s+resume|check\s+on\s+my\s+interview\s+status|pending\s+application)\b", re.IGNORECASE),
-    ]
-
-    def validate(
-        self,
-        body: Optional[str],
-        verified_facts: Optional[List[Any]] = None,
-        opportunity_context: Optional[str] = None,
-    ) -> tuple[bool, List[str]]:
-        body_str = str(body or "")
-        violations: List[str] = []
-        opp_text = str(opportunity_context or "").lower()
-        norm_fn = GroundingValidator._normalize_dollar_token
-        g_val = GroundingValidator()
-        try:
-            opp_dollars = g_val._extract_normalized_dollars(opp_text)
-        except Exception:
-            opp_dollars = set()
-
-        # 1. Compensation claims: patterns 0 and 2 are explicit compensation keywords/terms
-        for pat in (self._COMPENSATION_PATTERNS[0], self._COMPENSATION_PATTERNS[2]):
-            for match in pat.finditer(body_str):
-                violations.append(
-                    f"Forbidden compensation claim detected: '{match.group(0)}'. Compensation discussions are strictly prohibited in cold outreach before first reply."
-                )
-
-        # Pattern 1 is numeric currency amounts: distinguish business metrics from compensation
-        for match in self._COMPENSATION_PATTERNS[1].finditer(body_str):
-            matched_str = match.group(0)
-            try:
-                norm_matched = norm_fn(re.sub(r"^[€£]", "$", matched_str.strip()))
-            except Exception:
-                norm_matched = matched_str
-            comp_window = body_str[max(0, match.start() - 30) : min(len(body_str), match.end() + 30)].lower()
-            biz_window = body_str[max(0, match.start() - 60) : min(len(body_str), match.end() + 60)].lower()
-
-            if re.search(
-                r"\b(?:salary|compensation|base\s+pay|base\s+salary|annual\s+pay|pay\s+rate|pay\s+package|signing\s+bonus|bonus|equity|stock|ote|hourly|rate|target\s+comp|comp\s+package|retainer|per\s+hour|per\s+year)\b|/(?:hr|hour|yr|year)\b",
-                comp_window,
-                re.IGNORECASE,
-            ):
-                violations.append(
-                    f"Forbidden compensation claim detected: '{matched_str}'. Compensation discussions are strictly prohibited in cold outreach before first reply."
-                )
-                continue
-
-            if verified_facts:
-                v_match = False
-                for f in verified_facts:
-                    if getattr(f, "has_provenance", False) or bool(getattr(f, "source_reference", None) and str(getattr(f, "source_reference")).strip()):
-                        f_text = f"{getattr(f, 'statement', '') or ''} {getattr(f, 'metric', '') or ''}".lower()
-                        f_dollars = g_val._extract_normalized_dollars(f_text)
-                        if matched_str.lower() in f_text or norm_matched in f_dollars:
-                            v_match = True
-                            break
-                if v_match:
-                    continue
-
-            if opportunity_context and (matched_str.lower() in opp_text or norm_matched in opp_dollars):
-                continue
-
-            biz_kws = ("arr", "revenue", "volume", "budget", "valuation", "pipeline", "spend", "deal", "portfolio", "gmv", "assets", "sales", "program", "transformation", "modernization", "initiative", "infrastructure", "platform", "savings", "saved", "cost", "costs", "reduction", "reduced", "efficiency", "opex", "capex", "roi", "run-rate")
-            if any(w in biz_window for w in biz_kws):
-                continue
-
-            violations.append(
-                f"Forbidden compensation claim detected: '{matched_str}'. Compensation discussions are strictly prohibited in cold outreach before first reply."
-            )
-
-        # 2. Policy-forbidden claims (visa, relocation, unearned interview status)
-        for pat in self._POLICY_FORBIDDEN_PATTERNS:
-            match = pat.search(body_str)
-            if match:
-                violations.append(f"Policy-forbidden claim detected: '{match.group(0)}'.")
-
-        # 3. Unverifiable tenure claims
-        verified_text = (
-            " ".join(
-                f"{getattr(f, 'statement', f)} {getattr(f, 'metric', '')}"
-                for f in (verified_facts or ())
-                if getattr(f, "has_provenance", False) or bool(getattr(f, "source_reference", None) and str(getattr(f, "source_reference")).strip())
-            ).lower()
-        )
-        for pat in self._TENURE_PATTERNS:
-            match = pat.search(body_str)
-            if match:
-                claimed_tenure, tenure_term = match.group(0).lower(), match.group(1).lower()
-                if tenure_term not in verified_text:
-                    violations.append(
-                        f"Unverifiable tenure claim detected: '{claimed_tenure}'. Claimed duration '{tenure_term}' is not backed by candidate verified facts with source evidence."
-                    )
-
-        return len(violations) == 0, violations
-
-
-class UnsupportedPersonalizationValidator:
-    """Detects and blocks unsupported personalization claiming company strategic priorities without verified briefing evidence."""
-
-    _PERSONALIZATION_PATTERNS = [
-        re.compile(r"\b(?:following|noticed)\s+[^,\n]+(?:'s|’s)\s+(?:focus\s+on|priorities\s+in)\s+([^.,\n\?]+)", re.IGNORECASE),
-        re.compile(r"\b(?:focus\s+on|priorities\s+in|strategic\s+mandate\s+in)\s+([^.,\n\?]+)", re.IGNORECASE),
-    ]
-
-    def validate(self, body: Optional[str], opportunity: Optional[Any] = None) -> tuple[bool, List[str]]:
-        body_str = str(body or "")
-        violations: List[str] = []
-        if opportunity is None:
-            return True, violations
-
-        sealed = getattr(opportunity, "sealed_resolution", None)
-        if isinstance(sealed, dict):
-            is_verified = bool(sealed.get("is_verified", False)) and sealed.get("resolution_source") != "HERMETIC_FALLBACK"
-        elif getattr(opportunity, "_explicit_unsealed", False) or sealed is not None:
-            is_verified = False
-        else:
-            is_verified = True
-        if "UNVERIFIED OFFLINE FALLBACK" in (getattr(opportunity, "briefing_text", "") or ""):
-            is_verified = False
-
-        verified_priorities = [p.lower() for p in getattr(opportunity, "strategic_priorities", [])]
-        for pat in self._PERSONALIZATION_PATTERNS:
-            match = pat.search(body_str)
-            if match:
-                claimed_focus = match.group(1).strip()
-                if not is_verified:
-                    violations.append(
-                        f"Unsupported personalization detected: draft claims company strategic focus '{claimed_focus}' under an unverified briefing resolution."
-                    )
-                    break
-                if not verified_priorities:
-                    violations.append(
-                        f"Unsupported personalization detected: draft claims company strategic focus '{claimed_focus}' but opportunity has no verified strategic priorities."
-                    )
-                    break
-                focus_tokens = [tok for tok in re.findall(r"\b[A-Za-z]{4,}\b", claimed_focus.lower())]
-                if focus_tokens and not any(any(tok in p for tok in focus_tokens) for p in verified_priorities):
-                    violations.append(
-                        f"Unsupported personalization detected: claimed focus '{claimed_focus}' does not match verified strategic priorities."
-                    )
-                    break
-
-        return len(violations) == 0, violations
-
-
-class OutboundPrivacyValidator:
-    """Blocks outbound messages containing API secrets, private strategy notes, or personal billing rates."""
-
-    _SECRET_PATTERNS: Final[List[re.Pattern[str]]] = [
-        re.compile(r"\bsk-[A-Za-z0-9_-]{16,}\b"),
-        re.compile(r"\bAKIA[0-9A-Z]{16}\b"),
-        re.compile(r"\bghp_[A-Za-z0-9]{20,}\b"),
-        re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----"),
-    ]
-    _PRIVATE_STRATEGY_PATTERNS: Final[List[re.Pattern[str]]] = [
-        re.compile(r"\bINTERNAL_ADVISORY\b"),
-        re.compile(r"\[INTERNAL[^\]]*\]", re.IGNORECASE),
-        re.compile(r"\bstealth_score\b", re.IGNORECASE),
-        re.compile(r"\bcareer\s+leverage\b", re.IGNORECASE),
-    ]
-    _RATE_FLOOR_PATTERNS: Final[List[re.Pattern[str]]] = [
-        re.compile(r"\$\s*\d{2,4}(?:\.\d{2})?\s*/\s*(?:hr|hour)\b", re.IGNORECASE),
-    ]
-
-    def validate(self, body: Optional[str]) -> tuple[bool, List[str]]:
-        body_str = str(body or "")
-        violations: List[str] = []
-        for pat in self._SECRET_PATTERNS:
-            if pat.search(body_str):
-                violations.append("Outbound privacy block: detected API credential or private key pattern.")
-        for pat in self._PRIVATE_STRATEGY_PATTERNS:
-            if pat.search(body_str):
-                violations.append("Outbound privacy block: detected internal advisory or private career strategy marker.")
-        for pat in self._RATE_FLOOR_PATTERNS:
-            if pat.search(body_str):
-                violations.append("Outbound privacy block: detected hourly billing rate disclosure.")
-        return len(violations) == 0, violations
-
-
 __all__ = [
-    "ChannelLengthValidator", "EmDashValidator", "ForbiddenClaimsValidator",
-    "GroundingValidator", "MarkdownLinkValidator", "OutboundPrivacyValidator",
-    "QuestionEndingValidator", "SpamTriggerValidator", "SubordinateToneValidator",
+    "ChannelLengthValidator",
+    "EMAIL_MAX_CHARS",
+    "EXEMPLAR_4GRAM_OVERLAP_EXCEEDED",
+    "EmDashValidator",
+    "FOLLOW_UP_MAX_CHARS",
+    "ForbiddenClaimsValidator",
+    "GroundingValidator",
+    "INV_LIC_C0_DISJOINT_TOUCH_FACTS",
+    "INV_RESUME_NO_UNDEFINED_ACRONYMS",
+    "LINKEDIN_CONNECTION_MAX_CHARS",
+    "LINKEDIN_INMAIL_MAX_CHARS",
+    "MAX_EXEMPLAR_4GRAM_OVERLAP",
+    "MAX_PAIRWISE_TOUCH_COSINE",
+    "METRIC_LAUNDERED_FROM_OPPORTUNITY",
+    "MarkdownLinkValidator",
+    "MetricGroundingVerificationResult",
+    "OutboundPrivacyValidator",
+    "PAIRWISE_COSINE_EXCEEDED",
+    "PCTCertificate",
+    "QuestionEndingValidator",
+    "SequenceX2Report",
+    "SpamTriggerValidator",
+    "SubordinateToneValidator",
+    "TouchX2Violation",
+    "UNGROUNDED_CANDIDATE_METRIC",
+    "UndefinedAcronymValidator",
     "UnsupportedPersonalizationValidator",
+    "ZERO_DUPLICATE_OPENERS_AND_CTAS",
+    "_CHANNEL_MAX_CHARS",
+    "_CRITICAL_SPAM_TRIGGERS",
+    "_GENERIC_OPENER_TRIGGERS",
+    "_HIGH_SPAM_TRIGGERS",
+    "_METRIC_DOLLAR_PAT",
+    "_METRIC_PERCENT_PAT",
+    "_METRIC_SCALE_PAT",
+    "_extract_normalized_dollars",
+    "_load_canonical_spam_phrases",
+    "_normalize_dollar_token",
+    "check_undefined_mga_acronym",
+    "compute_exemplar_4gram_overlap",
+    "compute_touch_cosine_similarity",
+    "extract_touch_cta",
+    "extract_touch_opener",
+    "validate_sequence_x2",
+    "verify_candidate_metric_grounding",
 ]

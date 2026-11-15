@@ -1,8 +1,7 @@
 """Outreach Swarm Challenger Service: Runtime Multi-Agent Tone and Delivery Verification.
 
-Part of Monorepo-Wide Swarm Integration (Wave 2).
 Coordinates Value Proposition Drafter, Tone & Compliance Critic, and Delivery Arbiter
-within a bounded 3-turn Socratic loop to eliminate spam triggers, em-dashes, and sycophancy.
+within a bounded 3-turn Socratic loop unified onto the canonical 10-stage spine (`U0..X3`).
 """
 
 from __future__ import annotations
@@ -13,7 +12,15 @@ import time
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Mapping, Sequence
+from typing import Any, Sequence
+
+from apps_lic.runtime.spine_contracts import (
+    ExecutionMode,
+    SpineStageId,
+    SpineStageStatus,
+)
+from apps_lic.runtime.stage_ledger import OutreachStageLedgerBuilder
+from apps_lic.runtime.whole_run_exit import WholeRunExitDecision, evaluate_whole_run_exit
 
 
 class OutreachSwarmRole(str, Enum):
@@ -110,9 +117,19 @@ class ValuePropositionDrafter:
             if "remove em-dash" in d.lower():
                 current = re.sub(r"[\u2014\u2013]|--", " - ", current)
             elif "remove sycophancy" in d.lower():
-                current = re.sub(r"\b(I hope you don't mind me reaching out|I know you're super busy)\b", "", current, flags=re.IGNORECASE)
+                current = re.sub(
+                    r"\b(I hope you don't mind me reaching out|I know you're super busy)\b",
+                    "",
+                    current,
+                    flags=re.IGNORECASE,
+                )
             elif "remove spam" in d.lower():
-                current = re.sub(r"\b(guaranteed|risk-free|100% free|revolutionary)\b", "proven", current, flags=re.IGNORECASE)
+                current = re.sub(
+                    r"\b(guaranteed|risk-free|100% free|revolutionary)\b",
+                    "proven",
+                    current,
+                    flags=re.IGNORECASE,
+                )
             elif "trim length" in d.lower():
                 words = current.split()
                 if len(words) > 150:
@@ -124,21 +141,27 @@ class ValuePropositionDrafter:
 class ToneCritic:
     """Critic agent enforcing brevity, peer executive tone, and compliance."""
 
-    SPAM_PATTERNS = (r"\bguaranteed\b", r"\brisk-free\b", r"\b100% free\b", r"\brevolutionary\b")
+    SPAM_PATTERNS = (
+        r"\bguaranteed\b",
+        r"\brisk-free\b",
+        r"\b100% free\b",
+        r"\brevolutionary\b",
+    )
     SUBORDINATE_PATTERNS = (
         r"\bi hope you don't mind\b",
         r"\bi know you're super busy\b",
         r"\bsorry to bother you\b",
     )
 
-    def evaluate(self, text: str, turn: int, max_words: int = 150, min_words: int = 30) -> OutreachSwarmCritique:
+    def evaluate(
+        self, text: str, turn: int, max_words: int = 150, min_words: int = 30
+    ) -> OutreachSwarmCritique:
         """Audit message text for tone, brevity, and anti-spam rules."""
         issues: list[str] = []
         directives: list[str] = []
         words = text.split()
         word_count = len(words)
 
-        # 1. Brevity check
         is_length_compliant = min_words <= word_count <= max_words
         if word_count > max_words:
             issues.append(f"Message exceeds maximum word limit ({word_count} > {max_words}).")
@@ -146,13 +169,11 @@ class ToneCritic:
         elif word_count < min_words:
             issues.append(f"Message is too short ({word_count} < {min_words}).")
 
-        # 2. Em-dash check
         em_dash_count = len(re.findall(r"[\u2014\u2013]|--", text))
         if em_dash_count > 0:
             issues.append(f"Found {em_dash_count} forbidden em-dashes.")
             directives.append("remove em-dash")
 
-        # 3. Tone & Sycophancy check
         found_subordinate = False
         for p in self.SUBORDINATE_PATTERNS:
             if re.search(p, text, flags=re.IGNORECASE):
@@ -161,7 +182,6 @@ class ToneCritic:
                 found_subordinate = True
                 break
 
-        # 4. Spam trigger check
         found_spam: list[str] = []
         for p in self.SPAM_PATTERNS:
             matches = re.findall(p, text, flags=re.IGNORECASE)
@@ -185,7 +205,6 @@ class ToneCritic:
             em_dashes_found=em_dash_count,
             issues=tuple(issues),
         )
-
         return OutreachSwarmCritique(
             turn=turn,
             audit=audit,
@@ -207,21 +226,24 @@ class DeliveryArbiter:
         ambiguity_margin: float = 0.20,
     ) -> tuple[OutreachSwarmDisposition, float, float, str | None]:
         """Compute disposition, calibrated confidence, and decision margin."""
-        calibrated_conf = round((critique.tone_score * 0.50) + (critique.compliance_score * 0.50), 2)
+        calibrated_conf = round(
+            (critique.tone_score * 0.50) + (critique.compliance_score * 0.50), 2
+        )
         alternative_score = round(1.0 - calibrated_conf, 2)
         margin = round(abs(calibrated_conf - alternative_score), 2)
 
         if critique.is_passing and calibrated_conf >= 0.80:
             return OutreachSwarmDisposition.APPROVED, calibrated_conf, margin, None
-
         if turn >= max_turns:
-            reason = f"Outreach deliberation limit ({max_turns} turns) exhausted with remaining issues."
+            reason = (
+                f"Outreach deliberation limit ({max_turns} turns) exhausted with remaining issues."
+            )
             return OutreachSwarmDisposition.ESCALATED, calibrated_conf, margin, reason
-
         if margin <= ambiguity_margin and turn > 1:
-            reason = f"Confidence spread ({margin:.2f}) within ambiguity margin ({ambiguity_margin:.2f})."
+            reason = (
+                f"Confidence spread ({margin:.2f}) within ambiguity margin ({ambiguity_margin:.2f})."
+            )
             return OutreachSwarmDisposition.ESCALATED, calibrated_conf, margin, reason
-
         return OutreachSwarmDisposition.REVISE, calibrated_conf, margin, None
 
 
@@ -239,6 +261,8 @@ class OutreachSwarmChallenger:
         self._drafter = drafter or ValuePropositionDrafter()
         self._critic = critic or ToneCritic()
         self._arbiter = arbiter or DeliveryArbiter()
+        self.last_stage_ledger: dict[str, Any] | None = None
+        self.last_exit_decision: WholeRunExitDecision | None = None
 
     def execute(
         self,
@@ -254,6 +278,7 @@ class OutreachSwarmChallenger:
         final_conf = 0.50
         final_margin = 0.0
         total_issues_resolved = 0
+        turn_idx = 1
 
         for turn_idx in range(1, bounded_turns + 1):
             critique = self._critic.evaluate(current_text, turn=turn_idx)
@@ -267,13 +292,47 @@ class OutreachSwarmChallenger:
             final_disposition = disposition
             escalation_reason = reason
 
-            if disposition == OutreachSwarmDisposition.APPROVED:
-                break
-            if disposition == OutreachSwarmDisposition.ESCALATED:
+            if disposition in (
+                OutreachSwarmDisposition.APPROVED,
+                OutreachSwarmDisposition.ESCALATED,
+            ):
                 break
 
             total_issues_resolved += len(critique.repair_directives)
             current_text = self._drafter.draft(current_text, critique.repair_directives)
+
+        approved = final_disposition == OutreachSwarmDisposition.APPROVED
+        escalated = final_disposition == OutreachSwarmDisposition.ESCALATED
+        exit_decision = evaluate_whole_run_exit(
+            run_id=campaign_id,
+            mission_id=campaign_id,
+            execution_mode=ExecutionMode.REAL_LLM,
+            x2_passed=approved,
+            quorum_passed=approved,
+            hitl_escalate=escalated,
+        )
+        builder = OutreachStageLedgerBuilder(
+            run_id=campaign_id,
+            mission_id=campaign_id,
+            execution_mode=ExecutionMode.REAL_LLM,
+        )
+        builder.record_remaining_canonical_stages(
+            stage_statuses={
+                SpineStageId.X2.value: (
+                    SpineStageStatus.PASS if approved else SpineStageStatus.FAIL
+                ),
+                SpineStageId.X1D.value: (
+                    SpineStageStatus.PASS if approved else SpineStageStatus.FAIL
+                ),
+                SpineStageId.X3.value: (
+                    SpineStageStatus.PASS
+                    if exit_decision.allow_finish
+                    else SpineStageStatus.BLOCKED
+                ),
+            }
+        )
+        self.last_stage_ledger = builder.to_dict()
+        self.last_exit_decision = exit_decision
 
         return OutreachSwarmReceipt(
             campaign_id=campaign_id,
@@ -319,3 +378,16 @@ class OutreachSwarmChallenger:
             max_subagent_depth=2,
             allowed_subagents=[r.value.lower() for r in OutreachSwarmRole],
         ).to_dict()
+
+
+__all__ = [
+    "DeliveryArbiter",
+    "OutreachMessageAudit",
+    "OutreachSwarmChallenger",
+    "OutreachSwarmCritique",
+    "OutreachSwarmDisposition",
+    "OutreachSwarmReceipt",
+    "OutreachSwarmRole",
+    "ToneCritic",
+    "ValuePropositionDrafter",
+]

@@ -84,6 +84,40 @@ def snapshot_process_env() -> dict[str, str]:
     return dict(os.environ)
 
 
+def get_outreach_candidate_graph_db_path(repo_root: Path | None = None) -> Path:
+    """Resolve the candidate evidence graph SQLite path from env or canonical repository layout."""
+    env_override = get_env_optional_path("OUTREACH_CANDIDATE_GRAPH_DB_PATH")
+    if env_override is not None:
+        return env_override
+
+    base_root = (repo_root or Path(__file__).resolve().parents[2]).resolve()
+    roots = [base_root]
+    main_root = get_main_repo_root(base_root)
+    if main_root.is_dir() and main_root not in roots:
+        roots.append(main_root)
+
+    rel_candidates = (
+        "resume_graph_engine/artifacts/apps_rg/fact_inventory/augmented_skills_graph.sqlite",
+        "artifacts/apps_rg/fact_inventory/augmented_skills_graph.sqlite",
+    )
+    for base in roots:
+        for rel in rel_candidates:
+            cand = (base / rel).resolve()
+            if cand.is_file():
+                return cand
+    return (base_root / rel_candidates[0]).resolve()
+
+
+def get_apps_lic_enable_r1b_semantic_cache(default: bool = False) -> bool:
+    """Return whether opt-in R1B semantic caching is enabled for outreach_engine."""
+    return get_env_bool("APPS_LIC_ENABLE_R1B_SEMANTIC_CACHE", default=default)
+
+
+def get_apps_lic_test_fault_inject(default: str = "") -> str:
+    """Return optional test fault injection token for outreach_engine runtime testing."""
+    return get_env_str("APPS_LIC_TEST_FAULT_INJECT", default=default).strip()
+
+
 def get_main_repo_root(repo_root: Path | None = None) -> Path:
     """Resolve the primary Git checkout root even when called from a linked worktree."""
     root = (repo_root or Path.cwd()).resolve()

@@ -5,7 +5,7 @@
 # to its single authoritative owner across the repository.
 
 version: "1.0.0"
-updated_at: "2026-11-03T05:20:00Z"
+updated_at: "2026-11-15T09:32:00Z"
 description: "Authoritative ownership map enforcing zero configuration sprawl and zero unowned threshold literals."
 
 canonical_config_roots:
@@ -111,6 +111,7 @@ domain_threshold_owners:
     owner_file: "outreach_engine/src/apps_lic/domain/validators.py"
     owner_package:
       - "outreach_engine/src/apps_lic/domain/validators/"
+      - "outreach_engine/src/apps_lic/domain/validators_pkg/"
       - "outreach_engine/src/apps_lic/domain/contracts/"
     canonical_symbols:
       LINKEDIN_CONNECTION_MAX_CHARS: 300
@@ -141,11 +142,31 @@ domain_threshold_owners:
     owner_file: "outreach_engine/src/apps_lic/pipeline/briefing_resolver.py"
     owner_package:
       - "outreach_engine/src/apps_lic/pipeline/briefing_resolver/"
+      - "outreach_engine/src/apps_lic/pipeline/briefing_resolver_pkg/"
       - "outreach_engine/src/apps_lic/pipeline/"
     canonical_symbols:
       OUTREACH_MAX_CACHE_SIZE: 128
     governed_surfaces:
       - "outreach_engine/src/apps_lic/pipeline/"
+
+allowed_reexport_facades:
+  - "outreach_engine/src/apps_lic/pipeline/compiler.py"
+  - "outreach_engine/src/apps_lic/pipeline/compiler_pkg/__init__.py"
+  - "outreach_engine/src/apps_lic/pipeline/orchestrator.py"
+  - "outreach_engine/src/apps_lic/pipeline/orchestrator_pkg/__init__.py"
+  - "outreach_engine/src/apps_lic/pipeline/briefing_resolver.py"
+  - "outreach_engine/src/apps_lic/pipeline/briefing_resolver_pkg/__init__.py"
+  - "outreach_engine/src/apps_lic/domain/validators.py"
+  - "outreach_engine/src/apps_lic/domain/validators_pkg/__init__.py"
+  - "outreach_engine/src/apps_lic/judges/evaluator.py"
+  - "outreach_engine/src/apps_lic/judges/evaluator_pkg/__init__.py"
+  - "outreach_engine/src/apps_lic/cli_subcommands/__init__.py"
+  - "outreach_engine/src/apps_lic/integrations/managed_research_delegation.py"
+  - "outreach_engine/src/apps_lic/integrations/managed_research_pkg/__init__.py"
+  - "outreach_engine/src/apps_lic/integrations/apps_research_bridge.py"
+  - "outreach_engine/src/apps_lic/integrations/research_bridge_pkg/__init__.py"
+  - "outreach_engine/src/apps_lic/integrations/research_boundary_policy.py"
+  - "outreach_engine/src/apps_lic/integrations/boundary_policy_pkg/__init__.py"
 
 approved_env_loader_paths:
   - "infrastructure/"
@@ -154,6 +175,7 @@ approved_env_loader_paths:
   - "ops_scripts/"
   - "scripts/"
   - "agents/cli.py"
+  - "agents/_cli_helpers.py"
   - "agents/live_preflight.py"
   - "resume_engine/cli.py"
   - "apps_model_telemetry/"

@@ -225,3 +225,128 @@ def test_outbound_privacy_validator_and_orchestrator_validate_draft_wiring():
     assert len(verdict.scores) >= 10
 
 
+def test_pct_certificate_and_metric_laundering_blocked():
+    from apps_lic.domain.models import CandidateFact
+    from apps_lic.domain.validators import (
+        METRIC_LAUNDERED_FROM_OPPORTUNITY,
+        PCTCertificate,
+        verify_candidate_metric_grounding,
+    )
+
+    cand_facts = [
+        CandidateFact(
+            fact_id="f_cand_18m",
+            category="efficiency",
+            statement="Generated $18M in annual infrastructure cost savings",
+            metric="$18M",
+            source_reference="chunk_cand_01",
+        )
+    ]
+    opp_ctx = "Truist is executing a $50M core banking cloud migration initiative."
+
+    # 1. Valid candidate metric produces verified PCTCertificate
+    res_ok = verify_candidate_metric_grounding(
+        "In my recent work, I generated $18M in annual infrastructure cost savings.",
+        candidate_facts=cand_facts,
+        opportunity_context=opp_ctx,
+        declared_fact_ids=["f_cand_18m"],
+    )
+    assert res_ok.passed
+    assert len(res_ok.certificates) == 1
+    cert: PCTCertificate = res_ok.certificates[0]
+    assert cert.in_cand is True
+    assert cert.verified is True
+    assert cert.fact_id == "f_cand_18m"
+    assert cert.source_chunk_id == "chunk_cand_01"
+
+    # 2. Candidate-attributed metric coming ONLY from opportunity context fails closed
+    res_laundered = verify_candidate_metric_grounding(
+        "In my recent work, I delivered a $50M core banking cloud migration.",
+        candidate_facts=cand_facts,
+        opportunity_context=opp_ctx,
+        declared_fact_ids=["f_cand_18m"],
+    )
+    assert not res_laundered.passed
+    assert any(METRIC_LAUNDERED_FROM_OPPORTUNITY in v for v in res_laundered.violations)
+    assert res_laundered.certificates[0].in_opp is True
+    assert res_laundered.certificates[0].in_cand is False
+
+
+def test_sequence_x2_validator_and_reserve_pool_repair():
+    from apps_lic.domain.models import CandidateFact
+    from apps_lic.domain.repair import repair_touch_with_reserve_pool
+    from apps_lic.domain.validators import (
+        EXEMPLAR_4GRAM_OVERLAP_EXCEEDED,
+        INV_LIC_C0_DISJOINT_TOUCH_FACTS,
+        INV_RESUME_NO_UNDEFINED_ACRONYMS,
+        PAIRWISE_COSINE_EXCEEDED,
+        ZERO_DUPLICATE_OPENERS_AND_CTAS,
+        check_undefined_mga_acronym,
+        validate_sequence_x2,
+    )
+
+    assert check_undefined_mga_acronym("Scaled underwriting across MGAs nationwide.")[0] is False
+    assert check_undefined_mga_acronym("Scaled underwriting across Managing General Agents (MGAs) nationwide.")[0] is True
+
+    cand_facts = [
+        CandidateFact(fact_id="f1", category="scale", statement="Scaled platform to $18M annual savings", metric="$18M", source_reference="c1"),
+        CandidateFact(fact_id="f2", category="speed", statement="Cut deployment latency by 42% across regions", metric="42%", source_reference="c2"),
+        CandidateFact(fact_id="f_res", category="growth", statement="Expanded enterprise adoption across 120 production services", metric="120", source_reference="c_res"),
+    ]
+    alloc_plan = {
+        "allocated_fact_ids_by_touch": {1: ["f1"], 2: ["f2"]},
+        "reserve_repair_pool_fact_ids": ["f_res"],
+        "reserve_repair_pool_facts": [cand_facts[2]],
+    }
+
+    bad_touches = [
+        {"touch_number": 1, "body": "Hi Alex, I scaled platform architecture to $18M annual savings for MGAs. Open to connecting?", "grounded_facts_used": ["f1"]},
+        {"touch_number": 2, "body": "Hi Alex, I scaled platform architecture to $18M annual savings for enterprise teams. Open to connecting?", "grounded_facts_used": ["f1"]},
+    ]
+    rep_bad = validate_sequence_x2(
+        bad_touches,
+        allocation_plan=alloc_plan,
+        e0_exemplars=["scaled platform architecture to annual savings for enterprise teams"],
+        candidate_facts=cand_facts,
+    )
+    assert not rep_bad.passed
+    codes = set(rep_bad.violation_codes)
+    assert PAIRWISE_COSINE_EXCEEDED in codes
+    assert ZERO_DUPLICATE_OPENERS_AND_CTAS in codes
+    assert EXEMPLAR_4GRAM_OVERLAP_EXCEEDED in codes
+    assert INV_LIC_C0_DISJOINT_TOUCH_FACTS in codes
+    assert INV_RESUME_NO_UNDEFINED_ACRONYMS in codes
+
+    # Repair Touch 2 using reserve pool and verify clean sequence passes X2
+    good_touches = [
+        {
+            "touch_number": 1,
+            "body": "Hi Alex, following Truist's platform modernization, I scaled infrastructure to $18M annual savings for Managing General Agents (MGAs). Open to a brief exchange next week?",
+            "grounded_facts_used": ["f1"],
+        },
+        {
+            "touch_number": 2,
+            "body": "Hello Alex, regarding distributed release velocity, I cut deployment latency by $18M across global regions. Would Thursday work for a quick call?",
+            "grounded_facts_used": ["f1"],
+        },
+    ]
+    repair_res = repair_touch_with_reserve_pool(
+        good_touches[1],
+        allocation_plan=alloc_plan,
+        colliding_metric="$18M",
+    )
+    assert repair_res.repaired
+    assert repair_res.replacement_fact_id == "f_res"
+    assert repair_res.certificate.verified is True
+    assert "120" in good_touches[1]["body"]
+
+    rep_good = validate_sequence_x2(
+        good_touches,
+        allocation_plan=alloc_plan,
+        e0_exemplars=["distinct exemplar text with zero four gram overlap against outreach body"],
+        candidate_facts=cand_facts,
+    )
+    assert rep_good.passed, f"Expected repaired sequence to pass X2, got: {rep_good.violation_messages}"
+
+
+

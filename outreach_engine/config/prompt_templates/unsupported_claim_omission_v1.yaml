@@ -31,7 +31,7 @@ forbidden_behaviors:
   - mutate_state
 slot_bodies:
   S0: |
-    You are repairing an outreach draft under E4 Heal.
+    NO FABRICATION (pa_truth_oath_v1): You are repairing an outreach draft under E4 Heal.
     You may only remove unsupported optional claims and preserve supported content.
     You must not add new facts.
     You must not create implied unsupported facts.

@@ -1,6 +1,6 @@
 provider_profile_registry_id: outreach_engine::provider_profiles::v1
 app_id: outreach_engine
-version: "1.1.0"
+version: "1.2.0"
 status: active
 
 # outreach_engine model and provider routing SSOT.
@@ -22,6 +22,8 @@ ide_argon4_routing_policy:
     - company_brief_generation
   medium_reasoning_roles:
     - rubric_judge_panel
+    - x1d_proof_judge_primary
+    - x1d_proof_judge_secondary
     - handoff_judge
   external_api_retained_only_for:
     - headless_unattended_batch_ci
@@ -33,26 +35,38 @@ ide_argon4_routing_policy:
 
 profiles:
   executive_outreach_generator:
-    profile_id: outreach_engine::provider::executive_outreach_generator::v1
-    provider: openai
+    profile_id: outreach_engine::provider::executive_outreach_generator::v2
+    provider: anthropic
     provider_class: external_api
-    model: gpt-5.6-luna
+    model: claude-sonnet-5
+    backup_provider: openai
+    backup_model: gpt-5.6-luna
     reasoning_effort: low
+    thinking_budget_tokens: 2048
+    max_output_tokens: 4096
+    advisory_only: false
+    proof_eligible: false
     ide_internal_tier: argon4_high
     pin_owner: outreach_engine.generator.executive
     pin_review_after: "2026-11-07"
-    description: "Peer-to-peer executive outreach draft synthesis"
+    description: "Peer-to-peer executive outreach draft synthesis with cross-family backup"
 
   recruiter_outreach_generator:
-    profile_id: outreach_engine::provider::recruiter_outreach_generator::v1
-    provider: openai
+    profile_id: outreach_engine::provider::recruiter_outreach_generator::v2
+    provider: anthropic
     provider_class: external_api
-    model: gpt-5.6-luna
+    model: claude-sonnet-5
+    backup_provider: openai
+    backup_model: gpt-5.6-luna
     reasoning_effort: low
+    thinking_budget_tokens: 2048
+    max_output_tokens: 4096
+    advisory_only: false
+    proof_eligible: false
     ide_internal_tier: argon4_high
     pin_owner: outreach_engine.generator.recruiter
     pin_review_after: "2026-11-07"
-    description: "Scannable executive recruiter outreach synthesis"
+    description: "Scannable executive recruiter outreach synthesis with cross-family backup"
 
   rubric_judge_panel:
     profile_id: outreach_engine::provider::rubric_judge_panel::v1
@@ -62,10 +76,46 @@ profiles:
     backup_provider: google
     backup_model: gemini-3.8-flash
     reasoning_effort: low
+    thinking_budget_tokens: 1024
+    max_output_tokens: 2048
+    advisory_only: true
+    proof_eligible: false
     ide_internal_tier: argon4_medium
     pin_owner: outreach_engine.judges.panel
     pin_review_after: "2026-11-07"
     description: "Multi-lens executive outreach rubric evaluator right-sized to Haiku 5.5 at low effort"
+
+  x1d_proof_judge_primary:
+    profile_id: outreach_engine::provider::x1d_proof_judge_primary::v1
+    provider: google_gemini
+    provider_class: external_api
+    model: gemini-3.8-flash
+    reasoning_effort: low
+    thinking_budget_tokens: 1024
+    max_output_tokens: 4096
+    advisory_only: false
+    proof_eligible: true
+    orthogonal_to_drafter_family: anthropic
+    ide_internal_tier: argon4_medium
+    pin_owner: outreach_engine.judges.x1d_primary
+    pin_review_after: "2026-11-07"
+    description: "Primary cross-family X1D proof judge (Gemini 3.8 Flash at low effort)"
+
+  x1d_proof_judge_secondary:
+    profile_id: outreach_engine::provider::x1d_proof_judge_secondary::v1
+    provider: openai
+    provider_class: external_api
+    model: gpt-5.6-luna
+    reasoning_effort: low
+    thinking_budget_tokens: 1024
+    max_output_tokens: 4096
+    advisory_only: false
+    proof_eligible: true
+    orthogonal_to_drafter_family: anthropic
+    ide_internal_tier: argon4_medium
+    pin_owner: outreach_engine.judges.x1d_secondary
+    pin_review_after: "2026-11-07"
+    description: "Secondary cross-family X1D proof judge (GPT-5.6 Luna at low effort)"
 
   company_brief_generation:
     profile_id: outreach_engine::provider::company_brief_generation::v1
@@ -73,6 +123,10 @@ profiles:
     provider_class: external_api
     model: gpt-5.6-terra
     reasoning_effort: low
+    thinking_budget_tokens: 2048
+    max_output_tokens: 4096
+    advisory_only: false
+    proof_eligible: false
     ide_internal_tier: argon4_high
     pin_owner: outreach_engine.research.generation
     pin_review_after: "2026-11-07"
@@ -84,6 +138,10 @@ profiles:
     provider_class: external_api
     model: gemini-3.8-flash
     reasoning_effort: low
+    thinking_budget_tokens: 1024
+    max_output_tokens: 2048
+    advisory_only: false
+    proof_eligible: true
     ide_internal_tier: argon4_medium
     pin_owner: outreach_engine.research.judge
     pin_review_after: "2026-11-07"
