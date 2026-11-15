@@ -133,6 +133,7 @@ tools/archive/
 *.egg-info
 *.gz
 *.jsonl
+!outreach_engine/data/evals/holdout/outreach_holdout_corpus.v1.jsonl
 *.log
 *.pb
 *.pkl
