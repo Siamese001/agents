@@ -113,6 +113,7 @@ Avoid prompts containing large inventories of required outputs, excessive sub-de
 When more work exists than can safely fit in one wave:
 
 - Prioritize the smallest coherent milestone that keeps directly coupled upstream producers, shared domain contracts, and downstream validators aligned (INV-HOLISTIC-PIPELINE-PLANNING). Cohesive package decomposition (<= 600-line submodules behind an intact facade) counts as one coherent milestone and must not be fragmented across waves in ways that leave contracts out of sync.
+- Once shared contracts are locked in an upstream wave (e.g. Wave 1), pairwise-disjoint subsystem or submodule slices may be planned as fork-join sharded sub-waves (e.g. Wave 2A, Wave 2B with `Depends On: Wave 1` and a validated `shard-manifest` annex) and assembled through `pr_governance.py shard-ready` and `pr_governance.py train --wave <N> --shards ...`.
 - Complete it.
 - Validate it.
 - Use the result to plan the next wave.

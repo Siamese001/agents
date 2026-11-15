@@ -130,3 +130,19 @@ def execute_with_hooks(action, context):
    - Sub-millisecond (`< 1.0ms`) warm query routing and `FastPathSyncAgent` (`concurrency-and-storage-safety.md` §3).
    - Deterministic `U0/L1/L0/C0` normalization, `UniversalWriteGateway` / `GovernedGraphWriter.apply`, and the 5 physical SQLite checks (`trust_scope="packet_integrity_only"`).
    - Pre-egress sanitization (`LocalPreEgressSanitizer`) and `ComputePosture` barrier enforcement.
+
+---
+
+## 7. Multi-Agent Sharded Wave & Merge-Train Playbook
+
+When executing broad multi-file refactors across `/swarm`, `/teamwork`, or `run_workflow`:
+
+1. **Fork-Join Wave Plan & `shard-manifest` Annex**:
+   - Define shared contracts in `## Wave 1`, then fan out into parallel disjoint shards (`## Wave 2A`, `## Wave 2B` with `Depends On: Wave 1`) and attach a fenced `shard-manifest` block (`minItems: 2`, pairwise disjoint `scope_in`, `verify_independently`).
+2. **Cross-Worktree Scope Lease Registration**:
+   - Register each worker's 10-field contract via `register_and_check_subagent_scope(..., check_cross_workspace=True)` (or set `preauth_manifest_id` in the contract) so overlapping `scope_in` paths fail closed even across `share` and `branch` worktrees.
+3. **Scoped Impact Test Selection & Fast Shard Qualification**:
+   - Select Class A test batches (`<= 4` files per invocation) via `.venv/bin/python tools/adg_impact_tests.py --changed-files <files>`.
+   - Qualify each worker branch via `.venv/bin/python tools/pr_governance.py shard-ready <shard_branch>` (`verify_commit.py --shard-fast` + SHA-bound `reports/pr_shard_<slug>_receipt.json`).
+4. **Coordinator Wave Merge Train & Promotion**:
+   - Assemble all verified shards into a single wave train via `.venv/bin/python tools/pr_governance.py train --wave <N> --shards <b1> <b2> ...` (`feat/wave-<N>-train`), then promote once to `main` via `.venv/bin/python tools/pr_governance.py promote feat/wave-<N>-train`.
