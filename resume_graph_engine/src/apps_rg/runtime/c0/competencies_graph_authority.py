@@ -76,7 +76,7 @@ _ALLOCATION_VISIBLE_SURFACE_COMPOSITIONS: Mapping[tuple[str, str], str] = {
     ("reb_ibm_offering_accelerator_management", "skill_sr_w12_industry_reference_architecture"): "industry reference architecture patterns for regulated modernization",
     ("reb_ibm_aws_alliance_partner_cosell_gtm", "skill_partner_joint_solution_development"): "AWS alliance modernization co-sell and joint development",
     ("reb_ibm_offering_accelerator_management", "skill_p2_tech_reusable_accelerators"): "reusable agentic platform service accelerators",
-    ("reb_ibm_offering_accelerator_management", "skill_p2_tech_ibm_cloud_portfolio_anchor"): "enterprise cloud modernization portfolio architecture assets",
+    ("reb_ibm_offering_accelerator_management", "skill_p2_tech_ibm_cloud_portfolio_anchor"): "cloud portfolio architecture for reusable AI offerings",
     ("reb_ibm_devsecops_release_resilience", "skill_ibm_automated_release_pipelines"): "Regulated DevSecOps release governance pipelines",
     ("reb_ibm_presales_solution_engineering", "skill_partner_pre_sales"): "Buyer-specific solution mapping for enterprise pursuits",
     ("reb_ibm_presales_solution_engineering", "skill_p2_gtm_solution_mapping"): "enterprise solution architecture mapping for pursuits",
@@ -103,7 +103,6 @@ _ALLOCATION_VISIBLE_SURFACE_COMPOSITIONS: Mapping[tuple[str, str], str] = {
     ("reb_ibm_aws_alliance_partner_cosell_gtm", "skill_sr_w12_hyperscaler_alliance_co_sell"): "multi-year hyperscaler co-sell motions for AI growth",
     ("reb_ibm_aws_alliance_partner_cosell_gtm", "skill_partner_joint_solution_development"): "AI analytics framework co-development for partners",
     ("reb_ibm_offering_accelerator_management", "skill_p2_tech_demoable_accelerator"): "production-grade accelerator commercialization for client platforms",
-    ("reb_ibm_offering_accelerator_management", "skill_p2_tech_ibm_cloud_portfolio_anchor"): "enterprise cloud modernization portfolio architecture assets",
     ("reb_ibm_offering_accelerator_management", "skill_sr_w12_industry_reference_architecture"): "industry modernization reference architecture patterns",
     ("reb_ibm_aws_modernization_architecture", "skill_p2_tech_aws_modernization_patterns"): "AWS migration and modernization for regulated workloads",
     ("reb_ibm_aws_modernization_architecture", "skill_p2_tech_reference_architecture"): "regulated financial-services cloud modernization patterns",
@@ -130,6 +129,10 @@ _ALLOCATION_VISIBLE_SURFACE_COMPOSITIONS: Mapping[tuple[str, str], str] = {
     ("reb_unify_runtime_reliability_governance", "skill_context_engineering"): "context engineering for runtime evaluation governance",
     ("reb_ibm_presales_solution_engineering", "skill_p2_gtm_executive_buyer_alignment"): "executive buyer architecture alignment for enterprise pursuits",
     ("reb_unify_dependency_graph_accelerator", "skill_dependency_and_join_control"): "dependency graph intelligence and join control architecture",
+    ("reb_unify_enterprise_adoption_revenue", "skill_partner_customer_deal_support"): "consumption-based licensing for enterprise AI renewals",
+    ("reb_unify_enterprise_adoption_revenue", "skill_enterprise_workflow_adoption"): "CFO-aligned enterprise AI workflow adoption and renewals",
+    ("reb_unify_enterprise_adoption_revenue", "skill_partner_sales_revenue_targets"): "consumption-based licensing for enterprise AI renewals",
+    ("reb_unify_enterprise_adoption_revenue", "skill_revops_usage_based_subscription_forecasting"): "usage-based subscription forecasting for enterprise AI renewals",
 }
 
 # A joint alliance/co-sell capability is commercial evidence, even when its
@@ -162,33 +165,15 @@ _ALLOCATION_SURFACE_CATEGORY_OVERRIDES: Mapping[tuple[str, str], str] = {
             "skill_sr_w12_hyperscaler_alliance_co_sell",
         )
     },
-    (
-        "reb_ibm_aws_alliance_partner_cosell_gtm",
-        "skill_partner_alliance_gtm_execution",
-    ): "Cloud & Partner Ecosystems",
+    ("reb_ibm_aws_alliance_partner_cosell_gtm", "skill_partner_alliance_gtm_execution"): "Cloud & Partner Ecosystems",
     ("reb_ibm_aws_alliance_partner_cosell_gtm", "skill_partner_joint_solution_development"): "Cloud & Partner Ecosystems",
     ("reb_ibm_revenue_sales_target_execution", "skill_partner_enterprise_negotiations"): "Commercial & Operating Impact",
     ("reb_ibm_revenue_sales_target_execution", "skill_partner_pnl_oversight"): "Commercial & Operating Impact",
-    (
-        "reb_ibm_presales_solution_engineering",
-        "skill_partner_pre_sales",
-    ): "Cloud & Partner Ecosystems",
-    (
-        "reb_ibm_customer_success_value_realization",
-        "skill_p2_gtm_presales_delivery_handoff",
-    ): "Engineering & Delivery Leadership",
-    (
-        "reb_slalom_agentic_client_delivery",
-        "skill_runtime_gate_mesh_design",
-    ): "Governance, Risk & Compliance",
-    (
-        "reb_ibm_customer_success_value_realization",
-        "skill_partner_customer_deal_support",
-    ): "Commercial & Operating Impact",
-    (
-        "reb_ibm_devsecops_release_resilience",
-        "skill_ibm_automated_release_pipelines",
-    ): "Governance, Risk & Compliance",
+    ("reb_ibm_presales_solution_engineering", "skill_partner_pre_sales"): "Cloud & Partner Ecosystems",
+    ("reb_ibm_customer_success_value_realization", "skill_p2_gtm_presales_delivery_handoff"): "Engineering & Delivery Leadership",
+    ("reb_slalom_agentic_client_delivery", "skill_runtime_gate_mesh_design"): "Governance, Risk & Compliance",
+    ("reb_ibm_customer_success_value_realization", "skill_partner_customer_deal_support"): "Commercial & Operating Impact",
+    ("reb_ibm_devsecops_release_resilience", "skill_ibm_automated_release_pipelines"): "Governance, Risk & Compliance",
     ("reb_unify_distributed_ecosystem_engineering", "skill_runtime_resilience_controls"): "LLMOps & Reliability",
     ("reb_unify_distributed_ecosystem_engineering", "skill_provider_and_egress_governance"): "Governance, Risk & Compliance",
     ("reb_unify_distributed_ecosystem_engineering", "skill_sr_w12_databricks_lakehouse_fundamentals"): "Data & Analytics Modernization",
@@ -219,6 +204,10 @@ _ALLOCATION_SURFACE_CATEGORY_OVERRIDES: Mapping[tuple[str, str], str] = {
     ("reb_unify_regulated_enterprise_ai_governance", "skill_llm_judge_packet_design"): "LLMOps & Reliability",
     ("reb_unify_runtime_reliability_governance", "skill_context_engineering"): "Technology Strategy & Innovation",
     ("reb_ibm_presales_solution_engineering", "skill_p2_gtm_executive_buyer_alignment"): "Cloud & Partner Ecosystems",
+    ("reb_unify_enterprise_adoption_revenue", "skill_partner_customer_deal_support"): "Commercial & Operating Impact",
+    ("reb_unify_enterprise_adoption_revenue", "skill_enterprise_workflow_adoption"): "Commercial & Operating Impact",
+    ("reb_unify_enterprise_adoption_revenue", "skill_partner_sales_revenue_targets"): "Commercial & Operating Impact",
+    ("reb_unify_enterprise_adoption_revenue", "skill_revops_usage_based_subscription_forecasting"): "Commercial & Operating Impact",
 }
 _SURFACE_COMPOSITION_CONNECTIVES = frozenset(
     {"and", "for", "of", "the", "to", "with", "through", "across", "via"}
@@ -807,6 +796,7 @@ def _partner_gtm_allocation_display_ceiling(
         "reb_unify_regulated_enterprise_ai_governance",
         "reb_unify_runtime_reliability_governance",
         "reb_slalom_dialectical_decision_bayesian_hitl",
+        "reb_unify_enterprise_adoption_revenue",
     }:
         return 3
     return 6

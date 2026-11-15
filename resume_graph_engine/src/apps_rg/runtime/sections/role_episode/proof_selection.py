@@ -386,6 +386,9 @@ def _proof_authorized_narrative_from_selection(
         if fact:
             text = _proof_fact_text(fact)
             if text:
+                text = repair_narrative_bullet_echo_from_graph(
+                    text, facts=facts, companion_bullet_texts=companion_bullet_texts, section_id=section_id,
+                )
                 return text, [fid], selected_source, False
     return "", [], selected_source, False
 

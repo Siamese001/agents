@@ -520,6 +520,9 @@ def repair_narrative_bullet_echo_from_graph(
                 if check_narrative_bullet_cosine_similarity(swapped, companion_bullet_texts, max_pairwise_cosine=0.28, max_pool_cosine=0.38, forbid_shared_opener=True, forbid_repeated_metrics=True).passed:
                     return swapped
     if section_id == "insurtech_narrative":
+        ins_fids = {str(f.get("fact_id") or f.get("role_episode_bundle_id") or "") for f in (facts or []) if isinstance(f, dict)}
+        if "reb_insurtech_public_vs_private_cloud_strategy" in ins_fids or "reb_insurtech_lean_delivery_operating_model" in ins_fids:
+            return "Steered public-cloud versus private on-prem architecture strategy and lean delivery execution with audit-ready control discipline across carrier technology programs."
         return "Steered the engineering mandate for legacy transformation, pairing application dependency mapping and migration wave cutover planning with zero-trust security and PII data encryption."
     if section_id == "unify_narrative":
         return "Steered the multi-year platform mandate at Unify Consulting to industrialize governed agentic runtime systems, turning proprietary engineering architecture into commercialized assets and repeatable deployment discipline for regulated institutions."

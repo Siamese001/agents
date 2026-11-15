@@ -152,7 +152,7 @@ _ALLOCATION_ROOT_COMPACT_PHRASES: dict[str, str] = {
     "reb_unify_agentic_platform_architecture": "Agentic AI Platforms",
     "reb_slalom_agentic_client_delivery": "Agentic AI Systems",
     "reb_slalom_nextgen_ai_solutions": "Agentic AI Solutions",
-    "reb_slalom_engineering_practice_leadership": "Enterprise Engineering Leadership",
+    "reb_slalom_engineering_practice_leadership": "Client Delivery Leadership",
     "reb_slalom_enterprise_lakehouse_platforms": "Cloud Data Platforms",
     "reb_slalom_cloud_operating_model_transformation": "Cloud Modernization Architecture",
     "reb_slalom_regulated_data_governance_quality": "Regulated Data Governance",

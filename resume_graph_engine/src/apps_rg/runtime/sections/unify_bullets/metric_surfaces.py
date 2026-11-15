@@ -121,6 +121,20 @@ def _ensure_change_log_entry(
     if target is None:
         target = {"bullet_id": bullet_id}
         change_log.append(target)
+    plan = out.get("selected_fact_plan")
+    if isinstance(plan, dict):
+        for fact in plan.get("facts") or []:
+            if isinstance(fact, dict) and str(fact.get("fact_id") or "") == bullet_id:
+                if not target.get("role_episode_bundle_id") and fact.get("role_episode_bundle_id"):
+                    target["role_episode_bundle_id"] = str(fact["role_episode_bundle_id"])
+                if not (target.get("skill_ids_used") or target.get("graph_skill_node_ids")):
+                    sids = [str(s).strip() for s in (fact.get("graph_skill_node_ids") or []) if str(s).strip()]
+                    if sids:
+                        target["skill_ids_used"] = sids
+                if not target.get("fact_ids_used"):
+                    cand_fid = str(fact.get("candidate_fact_id") or "").strip()
+                    target["fact_ids_used"] = [bullet_id, cand_fid] if cand_fid else [bullet_id]
+                break
     existing = [str(x) for x in (target.get("metric_outcome_ids") or []) if str(x).strip()]
     for mid in metric_ids:
         if mid not in existing:
