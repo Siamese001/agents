@@ -212,13 +212,17 @@ def run_git(args: List[str], check: bool = True, cwd: Path | None = None, timeou
 
 def slugify_branch(branch: str) -> str:
     """Produces a clean filesystem slug, sanitizing prohibited model naming tokens."""
-    tokens = re.split(r"[^a-zA-Z0-9]+", branch)
+    tokens = [t for t in re.split(r"[^a-zA-Z0-9]+", branch) if t]
     prohibited = {"gpt", "astra", "luna", "sol", "terra", "claude", "gemini", "llama", "sonnet", "haiku", "opus", "o1", "o3"}
     filtered = [
         t for t in tokens
-        if t and t.lower() not in prohibited and not any(t.lower().startswith(p) for p in ("gpt", "claude", "gemini", "llama"))
+        if t.lower() not in prohibited and not any(t.lower().startswith(p) for p in ("gpt", "claude", "gemini", "llama"))
     ]
-    return "_".join(filtered) or "feature"
+    base = "_".join(filtered) or "feature"
+    if len(filtered) < len(tokens):
+        suffix = hashlib.sha256(branch.encode("utf-8")).hexdigest()[:6]
+        return f"{base}_{suffix}"
+    return base
 
 
 def check_diff_syntax(diff_names: list[str], target_cwd: Path) -> Tuple[bool, Optional[str]]:

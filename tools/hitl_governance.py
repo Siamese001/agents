@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
 import datetime
 import hashlib
 import json
@@ -11,7 +12,7 @@ from pathlib import Path
 import re
 import sqlite3
 import subprocess
-from typing import Any, Sequence
+from typing import Any, Iterator, Sequence
 
 DEFAULT_AMBIGUITY_THRESHOLD: float = 0.20
 DEFAULT_MIN_CONFIDENCE_FLOOR: float = 0.65
@@ -136,14 +137,27 @@ class HITLDecisionStore:
 
     def _get_connection(self) -> sqlite3.Connection:
         if self._conn is None:
-            self._conn = sqlite3.connect(str(self.db_path), timeout=30.0, check_same_thread=False)
+            self._conn = sqlite3.connect(
+                str(self.db_path), timeout=30.0, check_same_thread=False, isolation_level=None
+            )
             self._conn.row_factory = sqlite3.Row
         return self._conn
+
+    @contextlib.contextmanager
+    def _immediate_tx(self, conn: sqlite3.Connection) -> Iterator[None]:
+        conn.execute("BEGIN IMMEDIATE;")
+        try:
+            yield
+            conn.commit()
+        except Exception:
+            if conn.in_transaction:
+                conn.rollback()
+            raise
 
     def _init_db(self) -> None:
         conn = self._get_connection()
         conn.execute("PRAGMA journal_mode=WAL;")
-        with conn:
+        with self._immediate_tx(conn):
             conn.execute(
                 "CREATE TABLE IF NOT EXISTS hitl_decisions ("
                 "decision_id TEXT PRIMARY KEY, task_id TEXT, category TEXT, context_summary TEXT, "
@@ -172,7 +186,7 @@ class HITLDecisionStore:
         ctx_hash = hashlib.sha256(f"{category}:{context_summary}:{selected_option}".encode("utf-8")).hexdigest()[:16]
         opts_serialized = json.dumps([opt if isinstance(opt, (dict, list, str, int, float)) else str(opt) for opt in options])
         conn = self._get_connection()
-        with conn:
+        with self._immediate_tx(conn):
             conn.execute(
                 "INSERT OR REPLACE INTO hitl_decisions ("
                 "decision_id, task_id, category, context_summary, context_hash, options_json, "
@@ -188,7 +202,7 @@ class HITLDecisionStore:
         """Update the verified execution outcome ('SUCCESS', 'FAILED', 'ROLLED_BACK')."""
         now = datetime.datetime.now(datetime.timezone.utc).isoformat()
         conn = self._get_connection()
-        with conn:
+        with self._immediate_tx(conn):
             cursor = conn.execute(
                 "UPDATE hitl_decisions SET outcome = ?, updated_at = ? WHERE decision_id = ?",
                 (outcome, now, decision_id),
