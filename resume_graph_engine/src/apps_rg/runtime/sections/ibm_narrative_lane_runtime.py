@@ -279,11 +279,12 @@ def parse_model_json(raw: str) -> tuple[dict[str, Any] | None, str]:
     return None, "Model output was not a JSON object."
 
 
-def _ensure_ibm_narrative_mechanism(narrative: str, companion_text: str = "") -> str:
+def _ensure_ibm_narrative_mechanism(narrative: str, companion_text: str = "", *, allow_echo_repair: bool = True) -> str:
     from apps_rg.runtime.validators.narrative_quality_x2 import (
         check_narrative_technical_specificity, repair_narrative_bullet_echo_from_graph,
     )
-    narrative = repair_narrative_bullet_echo_from_graph(narrative, facts=[], companion_bullet_texts=companion_text, section_id="ibm_narrative")
+    if allow_echo_repair:
+        narrative = repair_narrative_bullet_echo_from_graph(narrative, facts=[], companion_bullet_texts=companion_text, section_id="ibm_narrative")
     if check_narrative_technical_specificity(narrative).passed:
         return narrative
     for p, r in (
@@ -300,9 +301,7 @@ def _ensure_ibm_narrative_mechanism(narrative: str, companion_text: str = "") ->
 
 
 def normalize_parsed_output(
-    parsed: dict[str, Any] | None,
-    runtime_payload: dict[str, Any],
-    companion_text: str = "",
+    parsed: dict[str, Any] | None, runtime_payload: dict[str, Any], companion_text: str = "", *, allow_echo_repair: bool = True,
 ) -> dict[str, Any] | None:
     if not parsed:
         return parsed
@@ -314,7 +313,7 @@ def normalize_parsed_output(
             narrative = re.sub(r",\s+", " ", narrative, count=1)
     if narrative and not narrative.endswith((".", "!", "?")):
         narrative += "."
-    mech_grounded = _ensure_ibm_narrative_mechanism(narrative, companion_text)
+    mech_grounded = _ensure_ibm_narrative_mechanism(narrative, companion_text, allow_echo_repair=allow_echo_repair)
     if mech_grounded != narrative:
         old_narrative = narrative
         out["narrative_sentence"] = mech_grounded
@@ -549,11 +548,7 @@ def _sanitize_regen_unsupported_companion_theme_phrases(
     if not narrative or not companion_text:
         return parsed
     before = {
-        value
-        for value in ibm_narrative_material_fact_ids_for_sentence(
-            narrative,
-            companion_text,
-        )
+        value for value in ibm_narrative_material_fact_ids_for_sentence(narrative, companion_text)
         if value.startswith("unsupported_companion_theme:")
     }
     if not before:
@@ -561,64 +556,41 @@ def _sanitize_regen_unsupported_companion_theme_phrases(
 
     repaired = narrative
     if "unsupported_companion_theme:regulated_financial" in before:
-        repaired = re.sub(
-            r"\bregulated(?=[\s-]+financial\b)",
-            "",
-            repaired,
-            flags=re.IGNORECASE,
-        )
-    if before.intersection(
-        {
-            "unsupported_companion_theme:ecosystem",
-            "unsupported_companion_theme:ecosystems",
-        }
-    ):
-        repaired = re.sub(
-            r"(?:,\s*)?(?:and\s+)?(?:partner\s+)?ecosystems?\b",
-            "",
-            repaired,
-            flags=re.IGNORECASE,
-        )
+        repaired = re.sub(r"\bregulated(?=[\s-]+financial\b)", "", repaired, flags=re.IGNORECASE)
+    if "unsupported_companion_theme:hyperscaler" in before and "aws" in companion_text.lower():
+        repaired = re.sub(r"\bhyperscalers?\b", "AWS", repaired, flags=re.IGNORECASE)
+    if before.intersection({"unsupported_companion_theme:ecosystem", "unsupported_companion_theme:ecosystems"}):
+        repaired = re.sub(r"(?:,\s*)?(?:and\s+)?(?:partner\s+)?ecosystems?\b", "", repaired, flags=re.IGNORECASE)
     repaired = re.sub(r"\s{2,}", " ", repaired)
     repaired = re.sub(r"\s+,", ",", repaired)
-    repaired = re.sub(r",\s*(?=at\s+scale\b)", " ", repaired, flags=re.IGNORECASE)
-    repaired = repaired.strip()
+    repaired = re.sub(r",\s*(?=at\s+scale\b)", " ", repaired, flags=re.IGNORECASE).strip()
     if repaired == narrative or not repaired:
         return parsed
     after = {
-        value
-        for value in ibm_narrative_material_fact_ids_for_sentence(
-            repaired,
-            companion_text,
-        )
+        value for value in ibm_narrative_material_fact_ids_for_sentence(repaired, companion_text)
         if value.startswith("unsupported_companion_theme:")
     }
     if not after < before:
         return parsed
     parsed["narrative_sentence"] = repaired
     change_log = list(parsed.get("change_log") or [])
-    change_log.append(
-        {
-            "operation": "sanitize_regen_unsupported_companion_theme_phrases",
-            "removed_theme_markers": sorted(before - after),
-        }
-    )
+    change_log.append({
+        "operation": "sanitize_regen_unsupported_companion_theme_phrases",
+        "removed_theme_markers": sorted(before - after),
+    })
     parsed["change_log"] = change_log
     return parsed
 
 
 def _run_ibm_narrative_deterministic_ledger_chain(
-    parsed: dict[str, Any],
-    runtime_payload: dict[str, Any],
-    companion_text: str = "",
+    parsed: dict[str, Any], runtime_payload: dict[str, Any], companion_text: str = "",
 ) -> dict[str, Any] | None:
     """Same deterministic chain the lane applies to attempt 1: normalize → remap → decompose → bind."""
     from apps_rg.runtime.sections.ibm_canonical_hydration import (
-        bind_missing_ibm_narrative_theme_citations,
-        decompose_ibm_narrative_claim_ledger_by_clause,
+        bind_missing_ibm_narrative_theme_citations, decompose_ibm_narrative_claim_ledger_by_clause,
     )
 
-    out = normalize_parsed_output(parsed, runtime_payload, companion_text)
+    out = normalize_parsed_output(parsed, runtime_payload, companion_text, allow_echo_repair=False)
     if out is None:
         return None
     out = _sanitize_regen_unsupported_companion_theme_phrases(out, companion_text)

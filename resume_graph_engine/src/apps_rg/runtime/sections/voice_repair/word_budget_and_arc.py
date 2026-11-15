@@ -421,10 +421,16 @@ def polish_executive_summary_judge_alignment(
         return parsed, receipt
     cited_fact_ids = collect_cited_source_fact_ids(list(parsed.get("claim_ledger") or []))
 
-    # Clamp to 6 sentences; rebuild canonical arc when LLM produced a degenerate output.
+    # Clamp to 6 sentences; rebuild canonical arc when LLM produced a degenerate output
+    # or when legacy canonical slot IDs are active.
+    _has_legacy_slots = any(
+        str(f.get("fact_id") or "").strip() in _CANONICAL_FACT_SLOT
+        for f in (selected_facts or [])
+        if isinstance(f, dict)
+    )
     if len(sentences) > 6:
         sentences = sentences[:6]
-    elif len(sentences) < 6:
+    elif len(sentences) < 4 or (len(sentences) < 6 and _has_legacy_slots):
         sentences = _p("_rebuild_canonical_six_sentence_arc", _rebuild_canonical_six_sentence_arc)(sentences, selected_facts=selected_facts)
         if len(sentences) < 6:
             return parsed, receipt

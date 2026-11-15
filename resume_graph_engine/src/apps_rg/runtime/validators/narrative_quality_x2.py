@@ -568,7 +568,7 @@ def repair_narrative_bullet_echo_from_graph(
     if section_id == "unify_narrative":
         return "Steered the multi-year platform mandate at Unify Consulting to industrialize governed agentic runtime systems, turning proprietary engineering architecture into commercialized assets and repeatable deployment discipline for regulated institutions."
     if section_id == "ibm_narrative":
-        return "Anchored partner-level advisory for enterprise cloud transformation at IBM, connecting reference architecture governance with hyperscaler alliance co-sell and executive solution architecture to institutionalize repeatable modernization across global delivery teams."
+        return "Anchored partner-level advisory for enterprise cloud transformation at IBM, establishing AWS alliance co-sell and BI governance discipline across global delivery teams."
     skill_ids = {
         str(item or "").strip()
         for fact in (facts or []) if isinstance(fact, dict)
