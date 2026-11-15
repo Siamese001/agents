@@ -90,6 +90,12 @@ Produce as applicable:
 - MCP contract test plan;
 - architecture/sequence source through `mermaid-architecture` when available.
 
+## Antigravity SDK MCP & Hook Guard Alignment
+
+When registering MCP servers or lifecycle hooks in this repository:
+- **On-Disk Script Existence & SDK Projection**: Every stdio Python server declared in `.mcp.json` and `.agents/mcp_config.json` must resolve to an existing file on disk (verified by `tools/ssot_boundary_auditor.py`) and project cleanly via `load_antigravity_mcp_servers()` into `McpStdioServer` / `McpStreamableHttpServer` specifications.
+- **Built-in Tool Matcher Completeness**: Pre-tool file-write and subagent guards in `.agents/hooks.json` and `tools/hook_dispatch.py` must always include `create_file` (`BuiltinTools.CREATE_FILE`) alongside `write_file`/`edit_file` and `start_subagent` (`BuiltinTools.START_SUBAGENT`) alongside `invoke_subagent`/`browser_subagent`.
+
 ## Blocking failures
 
 Do not mark production-ready when:

@@ -331,6 +331,16 @@ Wave 1 completed cleanly!
         self.assertEqual(res["status"], "PASS", f"Expected PASS when lineage footer excluded, got: {res}")
         self.assertEqual(res["word_count"], 275)
 
+    def test_layman_jargon_gate_strips_sidecar_links_without_snake_case_false_positive(self) -> None:
+        """Verify validate_layman_jargon_gate strips sidecar:// markdown link targets so swarm_board/auto_open do not trigger snake_case errors."""
+        text = (
+            "The audit swarm has completed its investigation across all 3 tracks.\n\n"
+            "[Open the Swarm Board](sidecar://swarm/swarm_board/?auto_open=false)"
+        )
+        res = validate_layman_jargon_gate(text)
+        self.assertEqual(res["status"], "PASS", f"Unexpected violations on sidecar:// link: {res['violations']}")
+        self.assertEqual(res["violations"], [])
+
 
 if __name__ == "__main__":
     unittest.main()

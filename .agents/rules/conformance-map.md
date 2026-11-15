@@ -131,7 +131,10 @@ Traces every `AGENTS.md` section to enforceable rules, skills, hooks, tools, and
 | Engine | `tools/validate_eval_rubrics.py` | Deterministic exit-eval rubric `[0.0, 1.0]` bounds, 154-file holdout dataset, and purity validator |
 | Engine | `tools/cost_token_budget_auditor.py` | Deterministic 8-pillar tokenomics, multi-tier caching, and dynamic $\text{ROI} \ge 2.5\times$ Pareto benchmark auditor |
 | Engine | `tools/audit_mock_reachability.py` | Deterministic 11-root production mock reachability auditor |
+| Server | `tools/mcp/vector_db_server.py` | Governed stdio MCP vector database server registered in `.mcp.json` |
 | Test | `tests/unit/test_sidecar_separation_governance.py` | Unit tests for schedule retirement, cross-repo isolation, 6-pillar storage/WAL hygiene, and 8-pillar cost/caching audit |
+| Test | `tests/unit/test_client_wrappers_sdk.py` | Unit tests for `LocalAgentConfig`, keyless `LiteRTAgentConfig` / `LocalOpenAIAgentConfig`, and `GEMINI_API_KEY` precedence |
+| Test | `tests/unit/test_model_registry_antigravity.py` | Unit tests for provider profile to `LocalAgentConfig` projection and `gemma4-26b` / `.litertlm` registry support |
 
 ### §"Unified Agent Architecture & Delegation Contracts"
 | Type | Path | Coverage |

@@ -425,7 +425,7 @@ def validate_scratchpad_transparency(markdown_text: str) -> dict[str, Any]:
     }
 
 
-_MARKDOWN_LINK_RE = re.compile(r"\[([^\]]+)\]\((?:file:///|https?://|conversation://)[^)]+\)")
+_MARKDOWN_LINK_RE = re.compile(r"\[([^\]]+)\]\((?:file:///|https?://|conversation://|sidecar://)[^)]+\)")
 _FENCED_BLOCK_RE = re.compile(r"```[\s\S]*?```")
 _LINEAGE_FOOTER_STRIP_RE = re.compile(
     r"(?:^|\n)(?:---\s*\n+)?#{2,3}\s+Evidence\s+(?:&\s+Graph\s+Lineage|&\s+Footnotes|Lineage)\b[\s\S]*$", re.IGNORECASE
