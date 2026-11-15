@@ -15,9 +15,23 @@ class OutreachModelRegistryError(RuntimeError):
     """Raised when model registry configuration is missing, corrupt, or unapproved."""
 
 
+def _normalize_family(provider_or_model: str) -> str:
+    token = str(provider_or_model or "").strip().lower()
+    if any(k in token for k in ("anthropic", "claude")):
+        return "anthropic"
+    if any(k in token for k in ("openai", "gpt")):
+        return "openai"
+    if any(k in token for k in ("google", "gemini")):
+        return "google"
+    if any(k in token for k in ("hugging_face", "bge", "local")):
+        return "hugging_face"
+    return token
+
+
 @dataclass(frozen=True)
 class OutreachModelPin:
     """An immutable, governed model pin definition."""
+
     role: str
     provider: str
     model: str
@@ -25,6 +39,23 @@ class OutreachModelPin:
     backup_provider: str = ""
     backup_model: str = ""
     description: str = ""
+    thinking_budget_tokens: int = 2048
+    max_output_tokens: int = 4096
+    advisory_only: bool = False
+    proof_eligible: bool = False
+    orthogonal_to_drafter_family: str = ""
+
+    @property
+    def provider_family(self) -> str:
+        """Normalized provider family ('anthropic', 'openai', 'google')."""
+        return _normalize_family(self.provider or self.model)
+
+    @property
+    def backup_provider_family(self) -> str:
+        """Normalized provider family for the configured backup model."""
+        if not self.backup_provider and not self.backup_model:
+            return ""
+        return _normalize_family(self.backup_provider or self.backup_model)
 
 
 class OutreachModelRegistry:
@@ -35,6 +66,25 @@ class OutreachModelRegistry:
     _cached_mtime: float = -1.0
     _cached_path: Optional[Path] = None
 
+    _ROLE_ALIASES: Dict[str, str] = {
+        "primary_drafter": "executive_outreach_generator",
+        "drafter": "executive_outreach_generator",
+        "outreach_drafter": "executive_outreach_generator",
+        "sequence_drafter": "executive_outreach_generator",
+        "selector": "rubric_judge_panel",
+        "advisory_selector": "rubric_judge_panel",
+        "rubric_selector": "rubric_judge_panel",
+        "proof_judge_primary": "x1d_proof_judge_primary",
+        "judge_primary": "x1d_proof_judge_primary",
+        "proof_judge_secondary": "x1d_proof_judge_secondary",
+        "judge_secondary": "x1d_proof_judge_secondary",
+    }
+
+    @classmethod
+    def normalize_provider_family(cls, provider_or_model: str) -> str:
+        """Normalize a provider or model string to its canonical provider family."""
+        return _normalize_family(provider_or_model)
+
     @classmethod
     def _resolve_config_path(cls, explicit_path: Path | str | None = None) -> Path:
         if explicit_path is not None:
@@ -44,12 +94,10 @@ class OutreachModelRegistry:
             p = Path(env_override).resolve()
             if p.is_file():
                 return p
-        # Default: outreach_engine/config/provider_profiles.yaml
         pkg_root = Path(__file__).resolve().parent.parent.parent.parent
         default_path = pkg_root / "config" / "provider_profiles.yaml"
         if default_path.is_file():
             return default_path
-        # Repo root fallback
         repo_root = pkg_root.parent
         repo_config = repo_root / "config" / "provider_profiles.yaml"
         if repo_config.is_file():
@@ -94,22 +142,33 @@ class OutreachModelRegistry:
         """Resolves the authoritative OutreachModelPin for a given functional role."""
         profiles_doc = cls.get_profiles(config_path)
         profiles = profiles_doc.get("profiles", {})
-        entry = profiles.get(role)
+        canonical_role = cls._ROLE_ALIASES.get(role, role)
+        entry = profiles.get(canonical_role)
         if not entry or not isinstance(entry, dict):
-            raise OutreachModelRegistryError(f"Role '{role}' is not registered in outreach model registry SSOT.")
+            raise OutreachModelRegistryError(
+                f"Role '{role}' is not registered in outreach model registry SSOT."
+            )
 
+        default_thinking = 1024 if ("judge" in canonical_role or "panel" in canonical_role) else 2048
         return OutreachModelPin(
-            role=role,
+            role=canonical_role,
             provider=str(entry.get("provider", "")).strip(),
             model=str(entry.get("model", "")).strip(),
             reasoning_effort=str(entry.get("reasoning_effort", "low")).strip(),
             backup_provider=str(entry.get("backup_provider", "")).strip(),
             backup_model=str(entry.get("backup_model", "")).strip(),
             description=str(entry.get("description", "")).strip(),
+            thinking_budget_tokens=int(entry.get("thinking_budget_tokens", default_thinking)),
+            max_output_tokens=int(entry.get("max_output_tokens", 4096)),
+            advisory_only=bool(entry.get("advisory_only", False)),
+            proof_eligible=bool(entry.get("proof_eligible", False)),
+            orthogonal_to_drafter_family=str(entry.get("orthogonal_to_drafter_family", "")).strip(),
         )
 
     @classmethod
-    def get_model_for_role(cls, role: str, default: str = "", config_path: Path | str | None = None) -> str:
+    def get_model_for_role(
+        cls, role: str, default: str = "", config_path: Path | str | None = None
+    ) -> str:
         """Convenience accessor returning the pinned model ID for a role."""
         try:
             pin = cls.get_model_pin(role, config_path)
@@ -117,7 +176,9 @@ class OutreachModelRegistry:
         except OutreachModelRegistryError:
             if default:
                 stripped_default = default.strip()
-                if stripped_default == "safe-default" or cls.validate_model(stripped_default, config_path):
+                if stripped_default == "safe-default" or cls.validate_model(
+                    stripped_default, config_path
+                ):
                     return stripped_default
                 raise OutreachModelRegistryError(
                     f"Default fallback model '{default}' is not approved in model registry SSOT."
@@ -125,7 +186,9 @@ class OutreachModelRegistry:
             raise
 
     @classmethod
-    def get_provider_for_role(cls, role: str, default: str = "", config_path: Path | str | None = None) -> str:
+    def get_provider_for_role(
+        cls, role: str, default: str = "", config_path: Path | str | None = None
+    ) -> str:
         """Convenience accessor returning the provider name for a role."""
         try:
             pin = cls.get_model_pin(role, config_path)
@@ -136,13 +199,67 @@ class OutreachModelRegistry:
             raise
 
     @classmethod
-    def get_effort_for_role(cls, role: str, default: str = "low", config_path: Path | str | None = None) -> str:
+    def get_effort_for_role(
+        cls, role: str, default: str = "low", config_path: Path | str | None = None
+    ) -> str:
         """Convenience accessor returning reasoning effort for a role."""
         try:
             pin = cls.get_model_pin(role, config_path)
             return pin.reasoning_effort or default
         except OutreachModelRegistryError:
             return default
+
+    @classmethod
+    def get_thinking_budget_for_role(
+        cls, role: str, default: int = 2048, config_path: Path | str | None = None
+    ) -> int:
+        """Convenience accessor returning the thinking_budget_tokens cap for a role."""
+        try:
+            pin = cls.get_model_pin(role, config_path)
+            return pin.thinking_budget_tokens
+        except OutreachModelRegistryError:
+            return default
+
+    @classmethod
+    def is_proof_eligible_role(cls, role: str, config_path: Path | str | None = None) -> bool:
+        """Return True if the role is eligible for authoritative X1D proof judging."""
+        pin = cls.get_model_pin(role, config_path)
+        return bool(pin.proof_eligible and not pin.advisory_only)
+
+    @classmethod
+    def is_advisory_only_role(cls, role: str, config_path: Path | str | None = None) -> bool:
+        """Return True if the role is restricted to advisory selection/pre-screening."""
+        pin = cls.get_model_pin(role, config_path)
+        return bool(pin.advisory_only)
+
+    @classmethod
+    def get_x1d_proof_judge_pins(
+        cls, config_path: Path | str | None = None
+    ) -> tuple[OutreachModelPin, OutreachModelPin]:
+        """Return the dual cross-family X1D proof judge pins (primary, secondary)."""
+        primary = cls.get_model_pin("x1d_proof_judge_primary", config_path)
+        secondary = cls.get_model_pin("x1d_proof_judge_secondary", config_path)
+        return primary, secondary
+
+    @classmethod
+    def verify_cross_family_orthogonality(
+        cls,
+        drafter_family_or_model: str,
+        judge_role_or_pin: str | OutreachModelPin,
+        config_path: Path | str | None = None,
+    ) -> bool:
+        """Verify that a judge pin is proof_eligible, non-advisory, and family-orthogonal to the drafter."""
+        pin = (
+            judge_role_or_pin
+            if isinstance(judge_role_or_pin, OutreachModelPin)
+            else cls.get_model_pin(judge_role_or_pin, config_path)
+        )
+        if not pin.proof_eligible or pin.advisory_only:
+            return False
+        drafter_family = _normalize_family(drafter_family_or_model)
+        if not drafter_family:
+            return False
+        return pin.provider_family != drafter_family
 
     @classmethod
     def list_active_models(cls, config_path: Path | str | None = None) -> Dict[str, str]:

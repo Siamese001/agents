@@ -3,38 +3,92 @@
 Prices usage from the Model Registry v2 SSOT pricing table.
 - Distinct pricing for non-cached input, cached input, cache creation, and output.
 - Provider-specific cached-token subtraction rules (Anthropic vs OpenAI/Gemini).
+- Supports direct model IDs, snapshot IDs, apps_rg roles, and outreach_engine roles.
 - Unpriced models return None (never 0.0) so missing pricing is detectable.
 """
 
 from __future__ import annotations
 
-from typing import Any, Mapping, Optional
+from pathlib import Path
+from typing import Any, Mapping
+import yaml
+
+_CACHED_REGISTRY_MTIME: float = -1.0
+_CACHED_REGISTRY_DATA: dict[str, Any] | None = None
+_CACHED_OUTREACH_MTIME: float = -1.0
+_CACHED_OUTREACH_ROLES: dict[str, str] | None = None
+
+
+def _load_yaml_pricing_registry() -> dict[str, Any]:
+    global _CACHED_REGISTRY_MTIME, _CACHED_REGISTRY_DATA
+    repo_root = Path(__file__).resolve().parents[1]
+    reg_path = repo_root / "resume_graph_engine" / "config" / "models" / "registry.yaml"
+    if not reg_path.is_file():
+        return {}
+    mtime = reg_path.stat().st_mtime
+    if _CACHED_REGISTRY_DATA is not None and _CACHED_REGISTRY_MTIME == mtime:
+        return _CACHED_REGISTRY_DATA
+    data = yaml.safe_load(reg_path.read_text(encoding="utf-8")) or {}
+    if isinstance(data, dict):
+        _CACHED_REGISTRY_DATA = data
+        _CACHED_REGISTRY_MTIME = mtime
+        return data
+    return {}
+
+
+def _load_outreach_role_models() -> dict[str, str]:
+    global _CACHED_OUTREACH_MTIME, _CACHED_OUTREACH_ROLES
+    repo_root = Path(__file__).resolve().parents[1]
+    prof_path = repo_root / "outreach_engine" / "config" / "provider_profiles.yaml"
+    if not prof_path.is_file():
+        return {}
+    mtime = prof_path.stat().st_mtime
+    if _CACHED_OUTREACH_ROLES is not None and _CACHED_OUTREACH_MTIME == mtime:
+        return _CACHED_OUTREACH_ROLES
+    doc = yaml.safe_load(prof_path.read_text(encoding="utf-8")) or {}
+    roles_map: dict[str, str] = {}
+    if isinstance(doc, dict):
+        profiles = doc.get("profiles") or {}
+        if isinstance(profiles, dict):
+            for rname, rcfg in profiles.items():
+                if isinstance(rcfg, dict) and rcfg.get("model"):
+                    roles_map[str(rname)] = str(rcfg["model"]).strip()
+    _CACHED_OUTREACH_ROLES = roles_map
+    _CACHED_OUTREACH_MTIME = mtime
+    return roles_map
 
 
 def get_model_pricing(model: str) -> tuple[dict[str, float] | None, str | None]:
-    """Look up pricing configuration and registry version for a given model or snapshot ID."""
+    """Look up pricing configuration and registry version for a given model, snapshot ID, or role."""
     try:
-        from apps_rg.runtime.model_registry import _load_registry_data
-
-        data, _ = _load_registry_data()
-        version = data.get("version", "2.0.0")
+        data = _load_yaml_pricing_registry()
+        version = str(data.get("version", "2.0.0"))
         models = data.get("models", {})
+        if not isinstance(models, dict):
+            return None, None
 
         # 1. Direct model key match
-        if model in models and models[model].get("pricing"):
-            return models[model]["pricing"], version
+        if model in models and isinstance(models[model], dict) and models[model].get("pricing"):
+            return dict(models[model]["pricing"]), version
 
         # 2. Match by snapshot_id
-        for m_id, m_def in models.items():
+        for _, m_def in models.items():
             if isinstance(m_def, dict) and m_def.get("snapshot_id") == model and m_def.get("pricing"):
-                return m_def["pricing"], version
+                return dict(m_def["pricing"]), version
 
-        # 3. Match by role
+        # 3. Match by apps_rg role
         roles = data.get("roles", {})
-        if model in roles:
-            m_id = roles[model].get("model")
-            if m_id and m_id in models and models[m_id].get("pricing"):
-                return models[m_id]["pricing"], version
+        if isinstance(roles, dict) and model in roles and isinstance(roles[model], dict):
+            m_id = str(roles[model].get("model") or "").strip()
+            if m_id and m_id in models and isinstance(models[m_id], dict) and models[m_id].get("pricing"):
+                return dict(models[m_id]["pricing"]), version
+
+        # 4. Match by outreach_engine role
+        outreach_roles = _load_outreach_role_models()
+        if model in outreach_roles:
+            m_id = outreach_roles[model]
+            if m_id in models and isinstance(models[m_id], dict) and models[m_id].get("pricing"):
+                return dict(models[m_id]["pricing"]), version
     except (OSError, ValueError, TypeError, KeyError, AttributeError):
         pass
 
@@ -93,6 +147,7 @@ def price_usage(
         "output_tokens": effective_output,
         "input_cost_usd": round(input_cost, 6),
         "cached_input_cost_usd": round(cached_cost, 6),
+        "cache_write_tokens_cost_usd": round(cache_write_cost, 6),
         "cache_write_cost_usd": round(cache_write_cost, 6),
         "output_cost_usd": round(output_cost, 6),
         "total_cost_usd": total_cost,
@@ -128,7 +183,6 @@ def compute_run_cost_rollup(records: list[Mapping[str, Any]]) -> dict[str, Any]:
 
         row_cost = row.get("cost_usd")
         if row_cost is None:
-            # Attempt to price if missing
             priced, _, _ = price_usage(model, row, provider=row.get("provider"))
             if priced is None:
                 has_unpriced = True

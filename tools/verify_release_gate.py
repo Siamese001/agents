@@ -15,8 +15,10 @@ import glob
 import hashlib
 import json
 import os
+import stat
 import subprocess
 import sys
+import tempfile
 import time
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
@@ -46,7 +48,7 @@ def run_command_buffered(cmd: list[str], cwd: Path, timeout: int = 180) -> tuple
     start = time.perf_counter()
     env = dict(os.environ)
     existing_pythonpath = env.get("PYTHONPATH", "")
-    env["PYTHONPATH"] = f"resume_graph_engine/src:.{':' + existing_pythonpath if existing_pythonpath else ''}"
+    env["PYTHONPATH"] = f"outreach_engine/src:resume_graph_engine/src:.{':' + existing_pythonpath if existing_pythonpath else ''}"
     try:
         res = subprocess.run(
             cmd,
@@ -188,6 +190,128 @@ def run_antipattern_wave_suites(repo_root: Path, target_suites: list[str] | None
     return results
 
 
+def run_outreach_rigor_parity_gate(repo_root: Path) -> CheckResult:
+    """Verify outreach_engine rigor parity (Citi/AIG/Brown & Brown briefs, 8-slot PA, X1D quorum, 4-format 0644 export)."""
+    start = time.perf_counter()
+    violations: list[str] = []
+    for p in (repo_root, repo_root / "outreach_engine" / "src", repo_root / "resume_graph_engine" / "src"):
+        if p.is_dir() and str(p) not in sys.path:
+            sys.path.insert(0, str(p))
+    try:
+        from apps_lic.judges.evaluator import GradeOnlyJudgePacket, evaluate_x1d_judge_quorum, load_x1d_exit_rubric
+        from apps_lic.pipeline.briefing_resolver import GovernedBriefingResolver
+        from apps_lic.prompt_assembly.compiler import OutreachPromptCompiler
+        from apps_lic.runtime.final_outreach_outputs import (
+            CANONICAL_OUTREACH_EXPORT_FILENAMES,
+            export_final_outreach_bundle,
+            verify_docx_ecma376_compliance,
+        )
+
+        targets = (
+            ("Citi", "Head of AI Strategy", "citi_head_of_ai_strategy_briefing.md"),
+            ("AIG", "SVP Enterprise Architecture", "aig_svp_enterprise_architecture_briefing.md"),
+            ("Brown & Brown", "Chief AI Architect", "brown_brown_chief_ai_architect_briefing.md"),
+        )
+        GovernedBriefingResolver.clear_cache()
+        for company, role, brief_fname in targets:
+            brief_file = repo_root / "outreach_engine" / "config" / "targeting" / brief_fname
+            if not brief_file.is_file():
+                violations.append(f"Missing targeting brief file: {brief_fname}")
+                continue
+            res = GovernedBriefingResolver.resolve(
+                company_name=company,
+                target_role=role,
+                job_description_text=f"Lead enterprise AI architecture for {company} ({role}).",
+                auto_research=True,
+                force_fresh=False,
+            )
+            if not res.is_verified or len(res.briefing_text.strip()) < 100:
+                violations.append(f"GovernedBriefingResolver failed verified resolution for {company} ({role})")
+
+        pa_compiled = OutreachPromptCompiler().compile(
+            candidate_claims=["[fact_id:fact_platform_001] Led enterprise AI governance across 4 divisions."],
+            untrusted_brief="Citi enterprise AI governance and model risk mandate.",
+            allowed_fact_ids={"fact_platform_001"},
+        )
+        if (
+            pa_compiled.slot_order != ("S0", "D0", "I0", "C0", "E0", "Y0", "U0", "R0")
+            or not pa_compiled.has_no_fabrication_oath
+            or not pa_compiled.untrusted_fenced
+            or len(pa_compiled.prompt_hash) != 64
+        ):
+            violations.append("OutreachPromptCompiler 8-slot PA verification failed")
+
+        rubric = load_x1d_exit_rubric()
+        packet = GradeOnlyJudgePacket(
+            run_id="release_gate_x1d",
+            mission_id="mission_citi",
+            touches=(
+                {
+                    "touch_number": 1,
+                    "subject": "Enterprise AI Governance",
+                    "body": "Led platform transformation [fact_id:fact_platform_001]. Would a brief exchange next week make sense?",
+                    "cited_fact_ids": ["fact_platform_001"],
+                },
+            ),
+            pct_certificates=(
+                {
+                    "certificate_id": "pct_1",
+                    "touch_number": 1,
+                    "claim_span": "4 divisions",
+                    "metric_token": "4",
+                    "fact_id": "fact_platform_001",
+                    "source_chunk_id": "chunk_1",
+                    "verbatim_span": "4 divisions",
+                    "in_cand": True,
+                    "in_opp": False,
+                    "verified": True,
+                },
+            ),
+            allocated_fact_ids_by_touch={1: ["fact_platform_001"]},
+            x2_passed=True,
+        )
+        quorum = evaluate_x1d_judge_quorum(packet)
+        if (
+            rubric.get("rubric_id") != "lic_x1d_v1"
+            or not quorum.quorum_passed
+            or not quorum.drafter_judge_orthogonal
+            or not quorum.target_free_verified
+            or quorum.recommended_x3_disposition != "X3D_ALLOW_FINISH"
+        ):
+            violations.append(f"X1D rubric/quorum verification failed: {quorum.to_dict()}")
+
+        with tempfile.TemporaryDirectory(prefix="release_gate_lic_export_") as td:
+            td_path = Path(td)
+            for company, role, _ in targets:
+                slug = company.lower().replace("&", "and").replace(" ", "_")
+                out_dir = td_path / slug
+                bundle = export_final_outreach_bundle(out_dir, target_company=company, target_role=role)
+                if not bundle.passed or not bundle.permissions_verified or not bundle.posix_paths_verified:
+                    violations.append(f"export_final_outreach_bundle failed for {company}")
+                for fname in CANONICAL_OUTREACH_EXPORT_FILENAMES:
+                    fpath = out_dir / fname
+                    if not fpath.is_file() or fpath.stat().st_size == 0:
+                        violations.append(f"Missing/empty export {fname} for {company}")
+                    elif stat.S_IMODE(fpath.stat().st_mode) != 0o644:
+                        violations.append(f"Export {fname} mode is not 0644 for {company}")
+                docx_rep = verify_docx_ecma376_compliance(out_dir / "executive_outreach_packet.docx")
+                if not docx_rep.get("passed"):
+                    violations.append(f"DOCX ECMA-376 compliance failed for {company}: {docx_rep}")
+    except Exception as exc:  # guardian: allow-broad-exception -- capture parity check failure into release gate result
+        violations.append(f"Outreach rigor parity check error: {exc}")
+    finally:
+        GovernedBriefingResolver.clear_cache()
+
+    dur = time.perf_counter() - start
+    return CheckResult(
+        check_name="Outreach Engine Rigor Parity Gate (Briefs, 8-Slot PA, X1D Quorum, 0644 Exports)",
+        status="PASSED" if not violations else "FAILED",
+        duration_seconds=round(dur, 3),
+        details="Citi/AIG/Brown & Brown targeting briefs, 8-slot PA, X1D rubric/quorum, 4-format 0644 sandbox export",
+        violations=violations,
+    )
+
+
 def execute_release_gate(
     repo_root: Path,
     output_dir: Path | None = None,
@@ -207,6 +331,9 @@ def execute_release_gate(
     # 3. Anti-pattern wave test suites
     wave_results = run_antipattern_wave_suites(repo_root, target_suites=wave_suites)
     checks.extend(wave_results)
+
+    # 4. Outreach engine rigor parity gate
+    checks.append(run_outreach_rigor_parity_gate(repo_root))
 
     # 4. Optional full repository unit suite
     if run_full_suite:

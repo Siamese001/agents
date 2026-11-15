@@ -34,7 +34,7 @@ forbidden_behaviors:
   - mutate_state
 slot_bodies:
   S0: |
-    You are shortening an outreach draft under E4 Heal.
+    NO FABRICATION (pa_truth_oath_v1): You are shortening an outreach draft under E4 Heal.
     You must keep the message within the configured channel ceiling.
     You must preserve supported claims, CTA intent, and required signature rules.
   I0: |

@@ -18,6 +18,7 @@ import ast
 import contextlib
 import io
 import json
+import stat
 import subprocess
 import sys
 import tempfile
@@ -142,66 +143,52 @@ def _require_module(repo_root: Path, rel_path: str) -> Any:
 
 
 def _probe_research_to_outreach_handoff(repo_root: Path) -> dict[str, Any]:
-    resolver_mod = _require_module(
-        repo_root,
-        "outreach_engine/src/apps_lic/pipeline/briefing_resolver.py",
-    )
+    resolver_mod = _require_module(repo_root, "outreach_engine/src/apps_lic/pipeline/briefing_resolver.py")
     resolver_cls = resolver_mod.GovernedBriefingResolver
     resolver_cls.clear_cache()
+    targets = (
+        ("Citi", "Head of AI Strategy", "Lead enterprise AI strategy and governance."),
+        ("AIG", "SVP Enterprise Architecture", "Scale enterprise architecture and agentic AI across P&C."),
+        ("Brown & Brown", "Chief AI Architect", "Drive federated enterprise architecture and M&A data integration."),
+    )
+    resolved_targets: dict[str, Any] = {}
     try:
         fallback = resolver_cls.resolve(
-            company_name="Nonexistent_Shadow_Corp_999",
-            target_role="VP AI",
-            job_description_text="Offline probe",
-            auto_research=False,
-            force_fresh=False,
+            company_name="Nonexistent_Shadow_Corp_999", target_role="VP AI",
+            job_description_text="Offline probe", auto_research=False, force_fresh=False,
         )
         cache_len_after_fallback = len(resolver_cls._cache)
         with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
-            grounded = resolver_cls.resolve(
-                company_name="Citi",
-                target_role="Head of AI Strategy",
-                job_description_text="Lead enterprise AI strategy and governance.",
-                auto_research=True,
-                force_fresh=False,
-            )
+            for company, role, jd in targets:
+                resolved_targets[company] = resolver_cls.resolve(
+                    company_name=company, target_role=role, job_description_text=jd,
+                    auto_research=True, force_fresh=False,
+                )
+            grounded = resolved_targets["Citi"]
             cached = resolver_cls.resolve(
-                company_name="Citi",
-                target_role="Head of AI Strategy",
+                company_name="Citi", target_role="Head of AI Strategy",
                 job_description_text="Lead enterprise AI strategy and governance.",
-                auto_research=False,
-                force_fresh=False,
+                auto_research=False, force_fresh=False,
             )
     finally:
         resolver_cls.clear_cache()
 
-    outreach_delegation_mod = _require_module(
-        repo_root,
-        "outreach_engine/src/apps_lic/integrations/managed_research_delegation.py",
-    )
-    outreach_bridge_mod = _require_module(
-        repo_root,
-        "outreach_engine/src/apps_lic/integrations/apps_research_bridge.py",
-    )
+    outreach_delegation_mod = _require_module(repo_root, "outreach_engine/src/apps_lic/integrations/managed_research_delegation.py")
+    outreach_bridge_mod = _require_module(repo_root, "outreach_engine/src/apps_lic/integrations/apps_research_bridge.py")
     unauth_outreach_req = outreach_delegation_mod.RequestForOutreachBriefing(
-        request_id="req_outreach_unauth_probe",
-        run_id="run_outreach_unauth_probe",
-        trace_id="trace_outreach_unauth_probe",
-        company_name="Citi",
-        job_title="Head of AI Strategy",
-        research_authorized=False,
+        request_id="req_outreach_unauth_probe", run_id="run_outreach_unauth_probe",
+        trace_id="trace_outreach_unauth_probe", company_name="Citi",
+        job_title="Head of AI Strategy", research_authorized=False,
     )
     with tempfile.TemporaryDirectory(prefix="e2e_aud_outreach_bridge_") as td:
         out_bridge = outreach_bridge_mod.AppsResearchBridge(artifact_runs_root=Path(td))
-        unauth_outreach_res = outreach_delegation_mod.dispatch_outreach_research_briefing(
-            unauth_outreach_req,
-            bridge=out_bridge,
-        )
+        unauth_outreach_res = outreach_delegation_mod.dispatch_outreach_research_briefing(unauth_outreach_req, bridge=out_bridge)
     unauth_outreach_blocked = isinstance(unauth_outreach_res, outreach_delegation_mod.ResearchDispatchFailure)
 
     gaps: list[str] = []
-    if not grounded.is_verified or not grounded.briefing_text.strip():
-        gaps.append("GovernedBriefingResolver failed to resolve verified company brief")
+    for company, res_obj in resolved_targets.items():
+        if not res_obj.is_verified or not res_obj.briefing_text.strip():
+            gaps.append(f"GovernedBriefingResolver failed to resolve verified company brief for {company}")
     if cached.resolution_source != "CACHE_HIT" or cached.digest != grounded.digest:
         gaps.append(f"Expected second resolve to hit BriefingCache, got {cached.resolution_source!r}")
     if fallback.resolution_source != "HERMETIC_FALLBACK" or cache_len_after_fallback != 0:
@@ -211,6 +198,7 @@ def _probe_research_to_outreach_handoff(repo_root: Path) -> dict[str, Any]:
     return {
         "passed": len(gaps) == 0,
         "gaps": gaps,
+        "targets_verified": [c for c, r in resolved_targets.items() if r.is_verified and r.briefing_text.strip()],
         "grounded_chars": len(grounded.briefing_text),
         "cache_status": cached.resolution_source,
         "fallback_status": fallback.resolution_source,
@@ -372,28 +360,40 @@ def _probe_authoritative_e2e_smoke(repo_root: Path, *, read_only: bool) -> dict[
 
     lic_models_mod = _require_module(repo_root, "outreach_engine/src/apps_lic/domain/models.py")
     lic_disp_mod = _require_module(repo_root, "outreach_engine/src/apps_lic/runtime/dispatch/canonical_dispatch.py")
+    lic_cli_mod = _require_module(repo_root, "outreach_engine/src/apps_lic/__main__.py")
+    lic_out_mod = _require_module(repo_root, "outreach_engine/src/apps_lic/runtime/final_outreach_outputs.py")
     lic_draft = lic_models_mod.OutreachMessageDraft(
-        draft_id="d_probe_1",
-        channel=lic_models_mod.ChannelType.EMAIL,
-        subject="Executive AI Platform Alignment",
-        body="Led enterprise AI platform governance across 4 divisions.",
+        draft_id="d_probe_1", channel=lic_models_mod.ChannelType.EMAIL,
+        subject="Executive AI Platform Alignment", body="Led enterprise AI platform governance across 4 divisions.",
     )
     lic_tp = lic_models_mod.TouchPoint(
-        touch_number=1,
-        day_offset=0,
-        channel=lic_models_mod.ChannelType.EMAIL,
-        objective="Executive introduction",
-        draft=lic_draft,
+        touch_number=1, day_offset=0, channel=lic_models_mod.ChannelType.EMAIL,
+        objective="Executive introduction", draft=lic_draft,
     )
     lic_seq = lic_models_mod.TouchSequence(
-        sequence_id="seq_probe_1",
-        candidate_id="cand_probe",
-        opportunity_id="opp_probe",
-        touches=[lic_tp],
+        sequence_id="seq_probe_1", candidate_id="cand_probe", opportunity_id="opp_probe", touches=[lic_tp],
     )
     lic_ingress = lic_disp_mod.build_cli_ingress_raw(company="Citi", role="Head of AI Strategy")
-    if len(lic_seq.touches) != 1 or not isinstance(lic_ingress, dict):
+    lic_parser = lic_cli_mod._build_parser()
+    lic_subcmds = {
+        cmd for act in getattr(lic_parser, "_actions", ()) for cmd in (getattr(act, "choices", None) or {})
+    }
+    expected_9_cli = {"run", "patch-run", "eval", "validate", "show", "preflight", "models", "cache", "doctor"}
+    if len(lic_seq.touches) != 1 or not isinstance(lic_ingress, dict) or not expected_9_cli.issubset(lic_subcmds):
         cli_probes_passed = False
+
+    export_0644_ok = True
+    with tempfile.TemporaryDirectory(prefix="e2e_aud_lic_export_") as td_exp:
+        exp_dir = Path(td_exp)
+        bundle = lic_out_mod.export_final_outreach_bundle(exp_dir, target_company="Citi", target_role="Head of AI Strategy")
+        if not bundle.passed or not bundle.permissions_verified or not bundle.posix_paths_verified:
+            export_0644_ok = False
+        for fname in lic_out_mod.CANONICAL_OUTREACH_EXPORT_FILENAMES:
+            fp = exp_dir / fname
+            if not fp.is_file() or fp.stat().st_size == 0 or stat.S_IMODE(fp.stat().st_mode) != 0o644:
+                export_0644_ok = False
+        if not lic_out_mod.verify_docx_ecma376_compliance(exp_dir / "executive_outreach_packet.docx").get("passed"):
+            export_0644_ok = False
 
     gaps: list[str] = []
     if rc != 0:
@@ -403,7 +403,9 @@ def _probe_authoritative_e2e_smoke(repo_root: Path, *, read_only: bool) -> dict[
     if not has_resume:
         gaps.append("Stage 2 resume_tailoring PASSED or final_resume / resume.md / resume.docx missing from smoke receipt")
     if not cli_probes_passed:
-        gaps.append("Unified CLI subcommand help probe failed across resume/outreach/e2e")
+        gaps.append(f"Unified CLI or 9-subcommand outreach surface probe failed (found={sorted(lic_subcmds)})")
+    if not export_0644_ok:
+        gaps.append("Outreach 4-format 0644 POSIX export or DOCX ECMA-376 compliance check failed")
 
     return {
         "passed": len(gaps) == 0,
@@ -412,6 +414,8 @@ def _probe_authoritative_e2e_smoke(repo_root: Path, *, read_only: bool) -> dict[
         "verified_artifact_count": len(verified),
         "det_resume_status": (rcpt_data.get("deterministic_resume_pipeline") or {}).get("status"),
         "cli_subcommands_verified": cli_probes_passed,
+        "outreach_9_cli_subcommands": sorted(lic_subcmds & expected_9_cli),
+        "outreach_0644_exports_verified": export_0644_ok,
     }
 
 

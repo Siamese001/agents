@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "apps_lic.terminal_manifest.v1",
+  "title": "Apps LIC Terminal Run Manifest v1",
+  "description": "Terminal run manifest sealing execution mode, X3 disposition, model provenance, allocation plan digest, and emitted bundle artifacts for an outreach campaign run.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "run_id",
+    "mission_id",
+    "execution_mode",
+    "x3_disposition",
+    "provider_id",
+    "model_id",
+    "prompt_hash",
+    "allocation_plan_digest",
+    "artifacts",
+    "bundle_index_digest"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "apps_lic.terminal_manifest.v1"
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "mission_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "execution_mode": {
+      "type": "string",
+      "enum": [
+        "REAL_LLM",
+        "OFFLINE_SMOKE"
+      ]
+    },
+    "x3_disposition": {
+      "type": "string",
+      "enum": [
+        "X3A_REPAIR_INLINE",
+        "X3B_ESCALATE_HITL",
+        "X3C_PATCH_RERUN",
+        "X3D_ALLOW_FINISH",
+        "X3E_SAFE_ABSTAIN"
+      ]
+    },
+    "provider_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "model_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "prompt_hash": {
+      "$ref": "#/$defs/Digest"
+    },
+    "allocation_plan_digest": {
+      "$ref": "#/$defs/Digest"
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "oneOf": [
+          {
+            "type": "string",
+            "minLength": 1
+          },
+          {
+            "$ref": "#/$defs/ArtifactEntry"
+          }
+        ]
+      }
+    },
+    "bundle_index_digest": {
+      "$ref": "#/$defs/Digest"
+    }
+  },
+  "$defs": {
+    "Digest": {
+      "type": "string",
+      "pattern": "^(sha256:)?[0-9a-f]{64}$"
+    },
+    "ArtifactEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifact_ref",
+        "sha256"
+      ],
+      "properties": {
+        "artifact_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "artifact_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "$ref": "#/$defs/Digest"
+        },
+        "byte_length": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}

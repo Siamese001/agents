@@ -38,7 +38,7 @@ forbidden_behaviors:
   - mutate_state
 slot_bodies:
   S0: |
-    You are converting a BriefingReady object into manifest-ready context inside apps_lic.
+    NO FABRICATION (pa_truth_oath_v1): You are converting a BriefingReady object into manifest-ready context inside apps_lic.
     You must preserve lineage, hashes, freshness, confidence, unsupported gaps, origin labels, and audit refs.
     You do not generate outreach.
     You do not improve, repair, or invent briefing facts.

@@ -1,0 +1,295 @@
+"""Contracts and artifact validation for managed apps_research delegation."""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import re
+import time
+from dataclasses import dataclass
+from enum import Enum
+from pathlib import Path
+from typing import Any
+
+from apps_lic.integrations.apps_research_bridge import ResearchResult
+
+
+class ResearchFailureReason(str, Enum):
+    APPS_RESEARCH_FAILED = "APPS_RESEARCH_FAILED"
+    APPS_RESEARCH_EMPTY = "APPS_RESEARCH_EMPTY"
+    APPS_RESEARCH_BLOCKED = "APPS_RESEARCH_BLOCKED"
+    APPS_RESEARCH_STALE = "APPS_RESEARCH_STALE"
+    APPS_RESEARCH_WEAK_SUPPORT = "APPS_RESEARCH_WEAK_SUPPORT"
+    APPS_RESEARCH_ARTIFACT_MISSING = "APPS_RESEARCH_ARTIFACT_MISSING"
+    APPS_RESEARCH_TIMEOUT = "APPS_RESEARCH_TIMEOUT"
+    APPS_RESEARCH_COST_LIMIT_EXCEEDED = "APPS_RESEARCH_COST_LIMIT_EXCEEDED"
+
+
+@dataclass(frozen=True)
+class RequestForOutreachBriefing:
+    request_id: str
+    run_id: str
+    trace_id: str
+    company_name: str
+    job_title: str
+    research_authorized: bool = True
+    tenant_id: str = "default"
+    research_capability_ref: str = "apps_research.v1"
+    freshness_ttl_days: int = 7
+    min_confidence_threshold: float = 0.60
+    job_description_ref: str = ""
+    job_description_text: str = ""
+    artifact_runs_root: Path | None = None
+    require_evidence: bool = False
+    force_fresh: bool = False
+    timeout_seconds: float = 30.0
+    max_retries: int = 2
+    cost_limit_usd: float | None = None
+
+
+@dataclass(frozen=True)
+class OutreachBriefingReady:
+    request_id: str
+    run_id: str
+    trace_id: str
+    briefing_text: str
+    research_run_id: str
+    research_evidence_count: int
+    confidence_score: float
+    strategic_priorities: tuple[str, ...]
+    research_artifact_dir: str
+    result_hash: str
+    evidence_lineage: tuple[dict[str, Any], ...]
+    apps_research_handoff_envelope: dict[str, Any]
+    dispatch_duration_ms: float
+    research_briefing_path: str = ""
+    brief_sha256: str = ""
+    result_metadata_digest: str = ""
+    bundle_manifest_digest: str = ""
+    resolution_source: str = "WEB_RESEARCH"
+    is_verified: bool = True
+
+
+@dataclass(frozen=True)
+class ResearchDispatchFailure:
+    request_id: str
+    run_id: str
+    trace_id: str
+    r5_reason_code: str
+    detail: str
+    dispatch_duration_ms: float
+
+
+def _utc_ms() -> float:
+    return time.time() * 1000.0
+
+
+def _is_within(path: Path, root: Path) -> bool:
+    try:
+        path.resolve().relative_to(root.resolve())
+    except (OSError, ValueError):
+        return False
+    return True
+
+
+def _validate_persisted_research_artifacts(
+    result: ResearchResult,
+    request: RequestForOutreachBriefing | None = None,
+    bridge: Any = None,
+) -> tuple[bool, str, dict[str, str]]:
+    """Verify that all authentic canonical producer artifacts exist, bind to execution, and pass verification."""
+    raw_dir = str(result.research_artifact_dir or "").strip()
+    if not raw_dir:
+        return False, "missing research_artifact_dir", {}
+    run_dir = Path(raw_dir)
+    if not run_dir.is_dir():
+        return False, f"research_artifact_dir is not a directory: {raw_dir}", {}
+    if ".." in Path(raw_dir).parts or ".." in raw_dir:
+        return False, f"research_artifact_dir contains directory traversal: {raw_dir}", {}
+    req_root = getattr(request, "artifact_runs_root", None) or getattr(request, "_artifact_runs_root", None)
+    bridge_root = getattr(bridge, "artifact_runs_root", None) or getattr(bridge, "_artifact_runs_root", None)
+    allowed_roots = [Path(r) for r in (req_root, bridge_root) if r]
+    if allowed_roots and not any(_is_within(run_dir, r) for r in allowed_roots):
+        return False, f"research_artifact_dir escapes allowed runs roots: {run_dir}", {}
+
+    raw_brief = str(result.briefing_artifact_path or "").strip()
+    if not raw_brief:
+        return False, "missing briefing_artifact_path", {}
+    briefing_path = Path(raw_brief)
+    company_brief_path = run_dir / "company_brief.json"
+    metadata_path = run_dir / "run_metadata.json"
+    handoff_v2_path = run_dir / "apps_research_apps_rg_handoff_v2.json"
+    commit_manifest_path = run_dir / "bundle_commit_manifest.json"
+    u0_receipt_path = run_dir / "apps_research_u0_receipt.json"
+
+    required = (
+        briefing_path,
+        company_brief_path,
+        metadata_path,
+        handoff_v2_path,
+        commit_manifest_path,
+        u0_receipt_path,
+    )
+    for path in required:
+        if not _is_within(path, run_dir):
+            return False, f"producer artifact escapes research_artifact_dir: {path}", {}
+        if not path.is_file() or path.stat().st_size <= 0:
+            return False, f"missing persisted apps_research artifact: {path}", {}
+
+    try:
+        persisted_text = briefing_path.read_text(encoding="utf-8").strip()
+        persisted_company_brief = json.loads(company_brief_path.read_text(encoding="utf-8"))
+        persisted_meta = json.loads(metadata_path.read_text(encoding="utf-8"))
+        persisted_handoff = json.loads(handoff_v2_path.read_text(encoding="utf-8"))
+        commit_manifest = json.loads(commit_manifest_path.read_text(encoding="utf-8"))
+        u0_receipt = json.loads(u0_receipt_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        return False, f"unreadable persisted apps_research artifact: {type(exc).__name__}", {}
+
+    if not persisted_text:
+        return False, "persisted briefing text is empty", {}
+    if persisted_text != str(result.company_brief_text or "").strip():
+        return False, "persisted briefing text does not match bridge result", {}
+    if not isinstance(persisted_handoff, dict):
+        return False, "persisted apps_research handoff v2 is not an object", {}
+    if not isinstance(commit_manifest, dict):
+        return False, "bundle_commit_manifest is not an object", {}
+    if not isinstance(u0_receipt, dict):
+        return False, "apps_research_u0_receipt is not an object", {}
+    if not isinstance(persisted_meta, dict):
+        return False, "run_metadata is not an object", {}
+    if not isinstance(persisted_company_brief, dict):
+        return False, "company_brief is not an object", {}
+
+    if u0_receipt.get("schema_version") != "apps_research.u0_receipt.v1":
+        return False, f"apps_research_u0_receipt schema_version is not apps_research.u0_receipt.v1 (got {u0_receipt.get('schema_version')})", {}
+    if u0_receipt.get("status") != "PASS":
+        return False, f"apps_research_u0_receipt status is not PASS (got {u0_receipt.get('status')})", {}
+    if u0_receipt.get("authority_contract_id") != "apps_research_rg_e2e_authority":
+        return False, f"apps_research_u0_receipt authority_contract_id invalid: {u0_receipt.get('authority_contract_id')}", {}
+    auth_receipt = u0_receipt.get("authority_validation_receipt")
+    if not isinstance(auth_receipt, dict) or auth_receipt.get("passed") is not True or auth_receipt.get("allowed") is not True:
+        return False, "apps_research_u0_receipt missing verified authority_validation_receipt", {}
+    reflection = u0_receipt.get("reflection_receipt")
+    if not isinstance(reflection, dict) or reflection.get("legacy_authority_scan_passed") is not True:
+        return False, "apps_research_u0_receipt missing verified reflection_receipt", {}
+    if not u0_receipt.get("raw_input_sha256") or not u0_receipt.get("normalized_input_sha256"):
+        return False, "apps_research_u0_receipt missing input digests", {}
+
+    exact_u0_sha = "sha256:" + hashlib.sha256(u0_receipt_path.read_bytes()).hexdigest()
+
+    if commit_manifest.get("schema_version") != "apps_research.apps_rg_bundle_commit_manifest.v1":
+        return False, f"bundle_commit_manifest schema_version is not apps_research.apps_rg_bundle_commit_manifest.v1 (got {commit_manifest.get('schema_version')})", {}
+    if commit_manifest.get("status") != "COMMITTED":
+        return False, f"bundle_commit_manifest status is not COMMITTED (got {commit_manifest.get('status')})", {}
+    if commit_manifest.get("authority_contract_id") != "apps_research_rg_e2e_authority":
+        return False, f"bundle_commit_manifest authority_contract_id invalid: {commit_manifest.get('authority_contract_id')}", {}
+    if not commit_manifest.get("u0_receipt_sha256") or commit_manifest.get("u0_receipt_sha256") != exact_u0_sha:
+        return False, "bundle_commit_manifest missing or invalid u0_receipt_sha256 matching persisted u0 receipt", {}
+
+    if persisted_handoff.get("schema_version") != "apps_research.apps_rg_handoff.v2":
+        return False, f"persisted apps_research handoff is not v2 (got {persisted_handoff.get('schema_version')})", {}
+    if persisted_handoff.get("authority_contract_id") != "apps_research_rg_e2e_authority":
+        return False, f"persisted apps_research handoff authority_contract_id invalid: {persisted_handoff.get('authority_contract_id')}", {}
+    handoff_u0_sha = persisted_handoff.get("artifacts", {}).get("u0_receipt_json", {}).get("sha256")
+    if handoff_u0_sha and handoff_u0_sha != exact_u0_sha:
+        return False, "persisted apps_research handoff u0_receipt_json sha256 mismatch", {}
+    if persisted_handoff != (result.apps_research_handoff_envelope or {}):
+        return False, "bridge handoff differs from persisted producer manifest", {}
+
+    gate_receipts = persisted_handoff.get("mandatory_gate_receipts")
+    if not isinstance(gate_receipts, dict):
+        return False, "persisted apps_research handoff missing mandatory_gate_receipts", {}
+    expected_gates = {"G5", "G6", "G7", "G21", "G24", "G26"}
+    if set(gate_receipts.keys()) != expected_gates:
+        return False, f"mandatory_gate_receipts does not match expected gates: {set(gate_receipts.keys())} != {expected_gates}", {}
+    for gid in expected_gates:
+        gr = gate_receipts.get(gid)
+        if not isinstance(gr, dict) or gr.get("status") != "PASS":
+            return False, f"mandatory gate {gid} status is not PASS: {gr}", {}
+
+    exit_auth = persisted_handoff.get("exit_authorization")
+    if not isinstance(exit_auth, dict):
+        return False, "persisted apps_research handoff missing exit_authorization", {}
+    if exit_auth.get("x3_code") != "X3D_ALLOW_FINISH":
+        return False, f"exit authorization x3_code is not X3D_ALLOW_FINISH (got {exit_auth.get('x3_code')})", {}
+
+    producer = persisted_handoff.get("producer")
+    if not isinstance(producer, dict) or producer.get("producer_app_id") != "apps_research" or not producer.get("attestation_sha256"):
+        return False, "persisted apps_research handoff missing valid producer attestation", {}
+
+    exact_brief_sha = "sha256:" + hashlib.sha256(briefing_path.read_bytes()).hexdigest()
+    metadata_sha = "sha256:" + hashlib.sha256(metadata_path.read_bytes()).hexdigest()
+    manifest_sha = "sha256:" + hashlib.sha256(handoff_v2_path.read_bytes()).hexdigest()
+
+    if result.brief_sha256 and result.brief_sha256 != exact_brief_sha:
+        return False, "bridge brief_sha256 differs from committed bytes", {}
+    if result.result_metadata_digest and result.result_metadata_digest != metadata_sha:
+        return False, "bridge result_metadata_digest differs from committed bytes", {}
+    if result.bundle_manifest_digest and result.bundle_manifest_digest != manifest_sha:
+        return False, "bridge bundle_manifest_digest differs from committed bytes", {}
+
+    identity = persisted_handoff.get("identity")
+    if not isinstance(identity, dict):
+        return False, "persisted apps_research handoff missing identity object", {}
+    if identity.get("brief_sha256") and identity.get("brief_sha256") != exact_brief_sha:
+        return False, "persisted apps_research briefing digest mismatch", {}
+
+    if request is not None:
+        target_co = str(identity.get("target_company") or identity.get("company_name") or "").strip().lower()
+        req_co = str(request.company_name or "").strip().lower()
+        if req_co and (not target_co or req_co != target_co):
+            return False, f"research identity company mismatch: request={req_co!r} vs persisted={target_co!r}", {}
+
+        def _norm_role(val: str) -> str:
+            cleaned = re.sub(r"[^a-z0-9]+", " ", val.lower())
+            tokens = [t for t in cleaned.split() if t not in ("of", "the", "and", "for", "in", "at", "to")]
+            return " ".join(tokens)
+
+        target_role = str(identity.get("target_role") or "").strip()
+        req_role = str(request.job_title or "").strip()
+        if req_role and (not target_role or _norm_role(req_role) != _norm_role(target_role)):
+            return False, f"research identity role mismatch: request={req_role!r} vs persisted={target_role!r}", {}
+
+        def _norm_trace(val: str) -> str:
+            parts = str(val or "").strip().split(":")
+            return parts[-1] if len(parts) >= 3 and parts[0] == "bridge" else str(val or "").strip()
+
+        persisted_run_id = str(identity.get("child_run_id") or identity.get("run_id") or identity.get("parent_run_id") or "").strip()
+        persisted_trace = _norm_trace(identity.get("trace_root") or identity.get("trace_id") or "")
+        u0_run_id = str(u0_receipt.get("child_run_id") or u0_receipt.get("parent_run_id") or u0_receipt.get("run_id") or "").strip()
+        u0_trace = _norm_trace(u0_receipt.get("trace_root") or "")
+        res_trace = _norm_trace(result.trace_id)
+
+        if result.run_id and persisted_run_id and result.run_id != persisted_run_id:
+            return False, f"research identity run_id mismatch: result={result.run_id!r} vs persisted={persisted_run_id!r}", {}
+        if res_trace and persisted_trace and res_trace != persisted_trace:
+            return False, f"research identity trace mismatch: result={result.trace_id!r} vs persisted={persisted_trace!r}", {}
+        if result.run_id and u0_run_id and result.run_id != u0_run_id:
+            return False, f"u0 receipt run_id mismatch: result={result.run_id!r} vs u0={u0_run_id!r}", {}
+        if res_trace and u0_trace and res_trace != u0_trace:
+            return False, f"u0 receipt trace mismatch: result={result.trace_id!r} vs u0={u0_trace!r}", {}
+
+        is_reused = getattr(result, "resolution_source", "") == "PERSISTED_ARTIFACT"
+        if not is_reused:
+            req_run_id = str(request.run_id or "").strip()
+            if req_run_id and persisted_run_id and req_run_id != persisted_run_id:
+                return False, f"research identity run_id mismatch: request={req_run_id!r} vs persisted={persisted_run_id!r}", {}
+            req_trace = _norm_trace(request.trace_id or "")
+            if req_trace and persisted_trace and req_trace != persisted_trace:
+                return False, f"research identity trace mismatch: request={req_trace!r} vs persisted={persisted_trace!r}", {}
+            if req_run_id and u0_run_id and req_run_id != u0_run_id:
+                return False, f"u0 receipt run_id mismatch: request={req_run_id!r} vs u0={u0_run_id!r}", {}
+            if req_trace and u0_trace and req_trace != u0_trace:
+                return False, f"u0 receipt trace mismatch: request={req_trace!r} vs u0={u0_trace!r}", {}
+
+    return True, "ok", {
+        "run_dir": str(run_dir.resolve()),
+        "briefing_path": str(briefing_path.resolve()),
+        "company_brief_path": str(company_brief_path.resolve()),
+        "envelope_path": str(handoff_v2_path.resolve()),
+        "metadata_path": str(metadata_path.resolve()),
+        "handoff_v2_path": str(handoff_v2_path.resolve()),
+        "commit_manifest_path": str(commit_manifest_path.resolve()),
+        "u0_receipt_path": str(u0_receipt_path.resolve()),
+    }

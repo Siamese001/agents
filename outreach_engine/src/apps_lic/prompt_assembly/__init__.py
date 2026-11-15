@@ -1,0 +1,63 @@
+"""apps_lic 8-slot Prompt Assembly (PA) package."""
+
+from __future__ import annotations
+
+from apps_lic.prompt_assembly.compiler import (
+    FACT_TAG_PATTERN,
+    OutreachPromptCompiler,
+    compile_outreach_prompt,
+    fence_untrusted_text,
+    neutralize_untrusted_breakouts,
+    validate_c0_claims,
+    validate_canonical_slot_order,
+    validate_no_fabrication_oath,
+    validate_r0_schema,
+)
+from apps_lic.prompt_assembly.contracts import (
+    CANONICAL_SLOT_ORDER,
+    DEFAULT_R0_JSON_SCHEMA,
+    LOWER_AUTHORITY_SLOTS,
+    NO_FABRICATION_OATH_TOKEN,
+    PA_COMPILED_SCHEMA_VERSION,
+    PROTECTED_SLOTS,
+    R0_REQUIRED_FIELDS,
+    SLOT_AUTHORITY_PRECEDENCE,
+    SLOT_TO_AUTHORITY,
+    UNTRUSTED_CLOSE_TAG,
+    UNTRUSTED_OPEN_TAG,
+    CompiledOutreachPrompt,
+    PromptAssemblyError,
+    PromptSlotId,
+    PromptSlotSpec,
+    SlotAuthority,
+    compute_compiled_prompt_hash,
+)
+
+__all__ = [
+    "CANONICAL_SLOT_ORDER",
+    "CompiledOutreachPrompt",
+    "DEFAULT_R0_JSON_SCHEMA",
+    "FACT_TAG_PATTERN",
+    "LOWER_AUTHORITY_SLOTS",
+    "NO_FABRICATION_OATH_TOKEN",
+    "OutreachPromptCompiler",
+    "PA_COMPILED_SCHEMA_VERSION",
+    "PROTECTED_SLOTS",
+    "PromptAssemblyError",
+    "PromptSlotId",
+    "PromptSlotSpec",
+    "R0_REQUIRED_FIELDS",
+    "SLOT_AUTHORITY_PRECEDENCE",
+    "SLOT_TO_AUTHORITY",
+    "SlotAuthority",
+    "UNTRUSTED_CLOSE_TAG",
+    "UNTRUSTED_OPEN_TAG",
+    "compile_outreach_prompt",
+    "compute_compiled_prompt_hash",
+    "fence_untrusted_text",
+    "neutralize_untrusted_breakouts",
+    "validate_c0_claims",
+    "validate_canonical_slot_order",
+    "validate_no_fabrication_oath",
+    "validate_r0_schema",
+]

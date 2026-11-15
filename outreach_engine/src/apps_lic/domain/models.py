@@ -94,12 +94,6 @@ class CandidateProfileLoader:
                 return p
         pkg_root = Path(__file__).resolve().parent.parent.parent.parent
         default_path = pkg_root / "config" / "candidate_profile.json"
-        if default_path.is_file():
-            return default_path
-        repo_root = pkg_root.parent
-        repo_fallback = repo_root / "resume_graph_engine" / "src" / "apps_rg" / "resume" / "base" / "candidate_static_profile.json"
-        if repo_fallback.is_file():
-            return repo_fallback
         return default_path
 
     @classmethod

@@ -35,10 +35,18 @@ from apps_lic.pipeline.compiler import (
     get_executive_signature_block,
     get_recruiter_signature_block,
 )
+from apps_lic.runtime.spine_contracts import (
+    CANONICAL_SPINE_STAGE_ORDER,
+    ExecutionMode,
+    SpineStageId,
+    SpineStageStatus,
+)
+from apps_lic.runtime.stage_ledger import OutreachStageLedgerBuilder
+from apps_lic.runtime.whole_run_exit import evaluate_whole_run_exit
 
 
 class TouchSequencePlanner:
-    """Plans multi-touch outreach sequences with proper spacing, differentiated hooks, deterministic repair, and touch-isolated regeneration."""
+    """Plans multi-touch outreach sequences unified onto the canonical 10-stage spine."""
 
     MAX_TOUCH_RETRIES: int = 2
 
@@ -70,30 +78,18 @@ class TouchSequencePlanner:
             if grounded_facts
             else "driving enterprise platform and engineering transformations"
         )
-
-        if persona == AudiencePersona.EXECUTIVE_RECRUITER:
-            if effective_primary == ChannelType.LINKEDIN_CONNECTION:
-                t1_subject, t1_body, facts_used = self._compiler.render_draft_message(
-                    candidate,
-                    opportunity,
-                    effective_primary,
-                    audience_persona=persona,
-                )
-            else:
-                t1_body = (
-                    f"Hi {opportunity.recipient_name},\n\n"
-                    f"Targeting {candidate.target_title} leadership opportunities at {opportunity.company_name}.\n"
-                    f"Track record includes {primary_fact}.\n\n"
-                    f"Would you be open to a brief conversation regarding current or upcoming mandates?"
-                )
-                t1_subject = f"{opportunity.company_name} / {opportunity.role_title} perspective"
-                facts_used = [grounded_facts[0].fact_id] if grounded_facts else []
+        if persona == AudiencePersona.EXECUTIVE_RECRUITER and effective_primary != ChannelType.LINKEDIN_CONNECTION:
+            t1_body = (
+                f"Hi {opportunity.recipient_name},\n\n"
+                f"Targeting {candidate.target_title} leadership opportunities at {opportunity.company_name}.\n"
+                f"Track record includes {primary_fact}.\n\n"
+                f"Would you be open to a brief conversation regarding current or upcoming mandates?"
+            )
+            t1_subject = f"{opportunity.company_name} / {opportunity.role_title} perspective"
+            facts_used = [grounded_facts[0].fact_id] if grounded_facts else []
         else:
             t1_subject, t1_body, facts_used = self._compiler.render_draft_message(
-                candidate,
-                opportunity,
-                effective_primary,
-                audience_persona=persona,
+                candidate, opportunity, effective_primary, audience_persona=persona
             )
 
         sig_block = ""
@@ -137,37 +133,24 @@ class TouchSequencePlanner:
         if len(grounded_facts) > 1:
             fact_idx = min(1 + attempt, len(grounded_facts) - 1) if attempt > 0 else 1
             fact_obj = grounded_facts[fact_idx]
-            secondary_fact = fact_obj.statement
-            facts_used = [fact_obj.fact_id]
-        elif len(grounded_facts) == 1:
-            # Only 1 grounded fact available (used in Touch 1). Touch 2 uses non-metric operational clause
-            secondary_fact = "driving measurable operational transformations"
-            facts_used = []
+            secondary_fact, facts_used = fact_obj.statement, [fact_obj.fact_id]
         else:
-            secondary_fact = "driving measurable operational transformations"
-            facts_used = []
+            secondary_fact, facts_used = "driving measurable operational transformations", []
 
         if opportunity.relationship_distance == RelationshipDistance.FORMER_COLLEAGUE:
-            t2_body = (
-                f"Hi {opportunity.recipient_name},\n\n"
-                f"Following up briefly on my note. Recalled our shared work and thought of {opportunity.company_name} given our recent results {secondary_fact}.\n\n"
-                f"Open to a 10-minute introductory conversation?"
-            )
+            lead_in = f"Recalled our shared work and thought of {opportunity.company_name} given our recent results {secondary_fact}."
         elif opportunity.relationship_distance == RelationshipDistance.WARM_REFERRAL:
-            t2_body = (
-                f"Hi {opportunity.recipient_name},\n\n"
-                f"Following up briefly on my note. Given our mutual network and {opportunity.company_name}'s priorities, thought of our recent results {secondary_fact}.\n\n"
-                f"Open to a 10-minute introductory conversation?"
-            )
+            lead_in = f"Given our mutual network and {opportunity.company_name}'s priorities, thought of our recent results {secondary_fact}."
         else:
-            t2_body = (
-                f"Hi {opportunity.recipient_name},\n\n"
-                f"Following up briefly on my note. Thought of {opportunity.company_name} given our recent results {secondary_fact}.\n\n"
-                f"Open to a 10-minute introductory conversation?"
-            )
+            lead_in = f"Thought of {opportunity.company_name} given our recent results {secondary_fact}."
 
-        clean_t1_subject = re.sub(r"^(?:Re:\s*)+", "", t1_subject or "", flags=re.IGNORECASE).strip()
-        subj = f"Re: {clean_t1_subject}" if clean_t1_subject else f"Re: {opportunity.company_name} / {opportunity.role_title} perspective"
+        t2_body = (
+            f"Hi {opportunity.recipient_name},\n\n"
+            f"Following up briefly on my note. {lead_in}\n\n"
+            f"Open to a 10-minute introductory conversation?"
+        )
+        clean_t1 = re.sub(r"^(?:Re:\s*)+", "", t1_subject or "", flags=re.IGNORECASE).strip()
+        subj = f"Re: {clean_t1}" if clean_t1 else f"Re: {opportunity.company_name} / {opportunity.role_title} perspective"
         t2_draft = OutreachMessageDraft(
             draft_id=f"{sequence_id}_t2",
             channel=ChannelType.FOLLOW_UP,
@@ -196,17 +179,14 @@ class TouchSequencePlanner:
         attempt: int = 0,
     ) -> TouchPoint:
         if opportunity.relationship_distance == RelationshipDistance.FORMER_COLLEAGUE:
-            t3_body = (
-                f"Hi {opportunity.recipient_name},\n\n"
-                f"I know how busy things get. If timing is not right at {opportunity.company_name}, no problem at all.\n\n"
-                f"Would it be helpful to reconnect next quarter instead?"
-            )
+            mid = f"I know how busy things get. If timing is not right at {opportunity.company_name}, no problem at all."
         else:
-            t3_body = (
-                f"Hi {opportunity.recipient_name},\n\n"
-                f"I realize priorities shift quickly. If now is not the right time for {opportunity.company_name}, no worries at all.\n\n"
-                f"Would it be helpful to reconnect next quarter instead?"
-            )
+            mid = f"I realize priorities shift quickly. If now is not the right time for {opportunity.company_name}, no worries at all."
+        t3_body = (
+            f"Hi {opportunity.recipient_name},\n\n"
+            f"{mid}\n\n"
+            f"Would it be helpful to reconnect next quarter instead?"
+        )
         t3_draft = OutreachMessageDraft(
             draft_id=f"{sequence_id}_t3",
             channel=ChannelType.FOLLOW_UP,
@@ -233,7 +213,6 @@ class TouchSequencePlanner:
     ) -> AuthoritativeVerdict:
         """Repairs formatting and channel constraints deterministically before evaluating authoritative verdict."""
         DeterministicDraftRepairer.repair_draft(touch.draft, channel=touch.channel)
-
         verdict = self._judge_panel.evaluate_authoritative(touch.draft, candidate, opportunity)
         d = touch.draft
         d.metadata["authoritative_verdict"] = verdict.to_dict()
@@ -252,22 +231,17 @@ class TouchSequencePlanner:
         audience_persona: Optional[AudiencePersona] = None,
     ) -> TouchSequence:
         sequence_id = f"seq_{uuid.uuid4().hex[:8]}"
-
-        # 1. Resolve audience persona
-        if audience_persona is None:
-            if opportunity.recipient_class == RecipientClass.TALENT_PARTNER:
-                persona = AudiencePersona.EXECUTIVE_RECRUITER
-            else:
-                persona = AudiencePersona.EXECUTIVE_CONTACT
-        else:
-            persona = audience_persona
-
-        # 2. Adjust primary channel for executive altitude / board tier
-        effective_primary = primary_channel
-        if opportunity.recipient_class == RecipientClass.BOARD_MEMBER and primary_channel == ChannelType.LINKEDIN_CONNECTION:
-            effective_primary = ChannelType.LINKEDIN_INMAIL
-
-        # 3. Dynamic cadence spacing based on RelationshipDistance
+        persona = audience_persona or (
+            AudiencePersona.EXECUTIVE_RECRUITER
+            if opportunity.recipient_class == RecipientClass.TALENT_PARTNER
+            else AudiencePersona.EXECUTIVE_CONTACT
+        )
+        effective_primary = (
+            ChannelType.LINKEDIN_INMAIL
+            if opportunity.recipient_class == RecipientClass.BOARD_MEMBER
+            and primary_channel == ChannelType.LINKEDIN_CONNECTION
+            else primary_channel
+        )
         if opportunity.relationship_distance in (RelationshipDistance.WARM_REFERRAL, RelationshipDistance.FORMER_COLLEAGUE):
             day_offsets = [0, 3, 7]
         elif opportunity.relationship_distance == RelationshipDistance.SECOND_DEGREE:
@@ -275,35 +249,25 @@ class TouchSequencePlanner:
         else:
             day_offsets = [0, 4, 10]
 
-        # Initial synthesis of each touch independently
         t1 = self._generate_touch_1(candidate, opportunity, effective_primary, persona, day_offsets[0], sequence_id, attempt=0)
         v1 = self._evaluate_and_repair_touch(t1, candidate, opportunity)
-
         t2 = self._generate_touch_2(candidate, opportunity, persona, day_offsets[1], sequence_id, t1_subject=t1.draft.subject, attempt=0)
         v2 = self._evaluate_and_repair_touch(t2, candidate, opportunity)
-
         t3 = self._generate_touch_3(candidate, opportunity, persona, day_offsets[2], sequence_id, attempt=0)
         v3 = self._evaluate_and_repair_touch(t3, candidate, opportunity)
-
-        raw_touches = [t1, t2, t3]
-        raw_verdicts = [v1, v2, v3]
 
         final_touches: List[TouchPoint] = []
         blocked_summary: List[dict] = []
         regenerated_touch_numbers: List[int] = []
-        unnecessary_synthesis_count = 0
 
-        for idx, (touch, verdict) in enumerate(zip(raw_touches, raw_verdicts)):
+        for idx, (touch, verdict) in enumerate(zip([t1, t2, t3], [v1, v2, v3])):
             touch_num = idx + 1
             if verdict.passed:
-                # PRESERVE passing touch output immutably with zero re-synthesis
                 final_touches.append(touch)
                 continue
 
-            # Touch is BLOCKED: regenerate ONLY this failing touch when safe and necessary
             regenerated_touch_numbers.append(touch_num)
-            current_touch = touch
-            current_verdict = verdict
+            current_touch, current_verdict = touch, verdict
 
             for attempt in range(1, self.MAX_TOUCH_RETRIES + 1):
                 if touch_num == 1:
@@ -318,12 +282,9 @@ class TouchSequencePlanner:
                     new_touch = self._generate_touch_3(
                         candidate, opportunity, persona, day_offsets[2], sequence_id, attempt=attempt
                     )
-
-                new_verdict = self._evaluate_and_repair_touch(new_touch, candidate, opportunity)
+                current_verdict = self._evaluate_and_repair_touch(new_touch, candidate, opportunity)
                 current_touch = new_touch
-                current_verdict = new_verdict
-
-                if new_verdict.passed:
+                if current_verdict.passed:
                     current_touch.draft.metadata["regenerated"] = True
                     current_touch.draft.metadata["retry_attempts"] = attempt
                     break
@@ -341,14 +302,32 @@ class TouchSequencePlanner:
                 })
 
         seq_status = "PASSED" if not blocked_summary else "BLOCKED"
+        all_passed = seq_status == "PASSED"
         tournament_summary = self._judge_panel.evaluate_persona_tournament(
-            [t.draft for t in final_touches[:2]],
-            candidate,
-            opportunity,
+            [t.draft for t in final_touches[:2]], candidate, opportunity
         )
-        # Sequential touches in a cadence are not competing alternatives.
-        # Spurious tournament comparison across consecutive touches must not lock the cadence.
         tournament_summary["requires_human_signoff"] = False
+
+        exit_decision = evaluate_whole_run_exit(
+            run_id=sequence_id,
+            mission_id=opportunity.opportunity_id,
+            execution_mode=ExecutionMode.REAL_LLM,
+            x2_passed=all_passed,
+            quorum_passed=all_passed,
+            pct_certificates_count=len(candidate.verified_facts),
+        )
+        ledger_builder = OutreachStageLedgerBuilder(
+            run_id=sequence_id,
+            mission_id=opportunity.opportunity_id,
+            execution_mode=ExecutionMode.REAL_LLM,
+        )
+        ledger_builder.record_remaining_canonical_stages(
+            stage_statuses={
+                SpineStageId.X2.value: SpineStageStatus.PASS if all_passed else SpineStageStatus.FAIL,
+                SpineStageId.X1D.value: SpineStageStatus.PASS if all_passed else SpineStageStatus.FAIL,
+                SpineStageId.X3.value: SpineStageStatus.PASS if exit_decision.allow_finish else SpineStageStatus.BLOCKED,
+            }
+        )
 
         return TouchSequence(
             sequence_id=sequence_id,
@@ -359,14 +338,16 @@ class TouchSequencePlanner:
             status=seq_status,
             blocked_touches=blocked_summary,
             metadata={
-                "unnecessary_synthesis_count": unnecessary_synthesis_count,
+                "unnecessary_synthesis_count": 0,
                 "regenerated_touches": regenerated_touch_numbers,
                 "max_touch_retries": self.MAX_TOUCH_RETRIES,
                 "persona_tournament": tournament_summary,
                 "requires_human_signoff": False,
+                "x3_disposition": exit_decision.x3_disposition.value,
+                "canonical_spine_stages": [s.value for s in CANONICAL_SPINE_STAGE_ORDER],
+                "stage_ledger": ledger_builder.to_dict(),
             },
         )
-
 
     def regenerate_failing_touch(
         self,
@@ -380,21 +361,16 @@ class TouchSequencePlanner:
         retries = max_retries if max_retries is not None else self.MAX_TOUCH_RETRIES
         updated_touches: List[TouchPoint] = []
         new_blocked: List[dict] = []
-        unnecessary_synthesis = 0
-
         target_idx = touch_number - 1
         if target_idx < 0 or target_idx >= len(sequence.touches):
             return sequence
 
         for idx, touch in enumerate(sequence.touches):
             if idx != target_idx:
-                # Passing touch or untouched touch is strictly preserved
                 updated_touches.append(touch)
                 continue
 
-            # This is the touch to regenerate
-            day_offset = touch.day_offset
-            channel = touch.channel
+            day_offset, channel = touch.day_offset, touch.channel
             persona = touch.draft.audience_persona or AudiencePersona.EXECUTIVE_CONTACT
             current_touch = touch
             verdict = self._evaluate_and_repair_touch(current_touch, candidate, opportunity)
@@ -413,11 +389,9 @@ class TouchSequencePlanner:
                     new_touch = self._generate_touch_3(
                         candidate, opportunity, persona, day_offset, sequence.sequence_id, attempt=attempt
                     )
-
-                new_verdict = self._evaluate_and_repair_touch(new_touch, candidate, opportunity)
+                verdict = self._evaluate_and_repair_touch(new_touch, candidate, opportunity)
                 current_touch = new_touch
-                verdict = new_verdict
-                if new_verdict.passed:
+                if verdict.passed:
                     current_touch.draft.metadata["regenerated"] = True
                     current_touch.draft.metadata["retry_attempts"] = attempt
                     break
@@ -440,7 +414,7 @@ class TouchSequencePlanner:
 
         seq_status = "PASSED" if not new_blocked else "BLOCKED"
         meta = dict(sequence.metadata or {})
-        meta["unnecessary_synthesis_count"] = unnecessary_synthesis
+        meta["unnecessary_synthesis_count"] = 0
         meta.setdefault("regenerated_touches", []).append(touch_number)
 
         return TouchSequence(

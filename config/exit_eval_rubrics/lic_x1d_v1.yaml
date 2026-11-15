@@ -1,0 +1,90 @@
+schema_version: "1.0.0"
+rubric_id: "lic_x1d_v1"
+gate: "X1D"
+version: "LIC_X1D@v1"
+subsystem: "outreach_engine"
+composition: "weighted"
+pass_threshold: 0.85
+aggregate_threshold: 0.85
+max_judge_spread: 0.20
+reasoning_effort: "low"
+cross_family_orthogonality_required: true
+post_x2_gate_required: true
+target_free_grade_only_packet: true
+proof_judges:
+  - "gemini-3.8-flash"
+  - "gpt-5.6-luna"
+metadata:
+  description: >
+    Canonical X1D whole-sequence outreach exit evaluation rubric for outreach_engine.
+    Evaluates target-free GradeOnlyJudgePacket inputs strictly post-X2 using a dual
+    cross-family proof-judge quorum (gemini-3.8-flash primary + gpt-5.6-luna secondary)
+    at low reasoning effort. Requires mean_score >= 0.85 and spread <= 0.20, and
+    blocks same-family self-grading when the OpenAI fallback drafter was used.
+dimensions:
+  - id: "candidate_evidence_grounding"
+    name: "candidate_evidence_grounding"
+    grader_class: "model_based"
+    scale: [0.0, 1.0]
+    min_bound: 0.0
+    max_bound: 1.0
+    weight: 0.30
+    threshold: 0.90
+    is_hard_gate: false
+    abstain_allowed: true
+    description: "Zero-hallucination candidate fact fidelity and verified PCTCertificate backing."
+  - id: "sequence_coherence_and_progression"
+    name: "sequence_coherence_and_progression"
+    grader_class: "model_based"
+    scale: [0.0, 1.0]
+    min_bound: 0.0
+    max_bound: 1.0
+    weight: 0.20
+    threshold: 0.85
+    is_hard_gate: false
+    abstain_allowed: true
+    description: "Disjoint cross-touch fact progression across Touch 1..N with non-redundant narrative value."
+  - id: "executive_altitude_and_peer_framing"
+    name: "executive_altitude_and_peer_framing"
+    grader_class: "model_based"
+    scale: [0.0, 1.0]
+    min_bound: 0.0
+    max_bound: 1.0
+    weight: 0.15
+    threshold: 0.80
+    is_hard_gate: false
+    abstain_allowed: true
+    description: "Peer-to-peer executive altitude without subordinate job-seeking or transactional phrasing."
+  - id: "citation_and_pct_support"
+    name: "citation_and_pct_support"
+    grader_class: "code_based"
+    scale: [0.0, 1.0]
+    min_bound: 0.0
+    max_bound: 1.0
+    weight: 0.15
+    threshold: 0.95
+    is_hard_gate: false
+    abstain_allowed: false
+    description: "Resolvable [fact_id:...] citations and verified PCTCertificate bindings per touch."
+  - id: "cta_and_friction_calibration"
+    name: "cta_and_friction_calibration"
+    grader_class: "model_based"
+    scale: [0.0, 1.0]
+    min_bound: 0.0
+    max_bound: 1.0
+    weight: 0.10
+    threshold: 0.80
+    is_hard_gate: false
+    abstain_allowed: true
+    description: "Low-friction closing inquiry ending with a question mark and distinct per-touch CTA."
+  - id: "constraint_and_hygiene_compliance"
+    name: "constraint_and_hygiene_compliance"
+    grader_class: "code_based"
+    scale: [0.0, 1.0]
+    min_bound: 0.0
+    max_bound: 1.0
+    weight: 0.10
+    threshold: 0.85
+    is_hard_gate: false
+    abstain_allowed: false
+    description: "Acronym expansion, channel length compliance, anti-spam guardrails, and target-free hygiene."

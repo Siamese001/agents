@@ -1,6 +1,14 @@
 """Narrow optional live adapters for product runtimes."""
 
-from apps_eval.adapters.outreach_engine import run_apps_lic_live, run_outreach_engine_live
+from apps_eval.adapters.outreach_engine import (
+    OutreachEngineEvalAdapter,
+    evaluate_sealed_outreach_bundle,
+    normalize_existing_apps_lic_run_snapshot,
+    normalize_existing_outreach_run_snapshot,
+    run_apps_lic_live,
+    run_outreach_engine_live,
+    verify_sealed_outreach_run_bundle,
+)
 from apps_eval.adapters import resume_graph_engine as _resume_graph_engine
 from apps_eval.adapters import outreach_engine as _outreach_engine
 
@@ -32,10 +40,15 @@ resume_graph_engine = _resume_graph_engine
 outreach_engine = _outreach_engine
 
 __all__ = [
+    "OutreachEngineEvalAdapter",
+    "evaluate_sealed_outreach_bundle",
+    "normalize_existing_apps_lic_run_snapshot",
+    "normalize_existing_outreach_run_snapshot",
     "run_apps_lic_live",
     "run_apps_rg_live",
     "run_outreach_engine_live",
     "run_resume_graph_engine_live",
+    "verify_sealed_outreach_run_bundle",
     "apps_rg",
     "apps_lic",
     "resume_graph_engine",

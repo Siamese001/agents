@@ -346,7 +346,7 @@ class MissionLoader:
             candidate = CandidateProfileLoader.load_default(
                 overrides={
                     "candidate_id": f"cand_{default_id}",
-                    "full_name": payload.get("candidate_name", "Alex Mercer"),
+                    "full_name": payload.get("candidate_name", "Executive Candidate"),
                     "target_title": payload.get("target_title", "VP of Engineering"),
                     "executive_summary": payload.get("executive_summary", "Enterprise engineering leader."),
                 }
