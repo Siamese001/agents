@@ -452,27 +452,24 @@ def infer_projection_role_family_key(
                 priorities = (consulting,) + tuple(
                     p for p in priorities if p.role_family != consulting.role_family
                 )
+    fde_signals = ("forward deployed", "forward-deployed", "deployed engineering", "rapid prototyping", "prototype to production")
+    explicit_partner_signals = ("partner ade", "systems integrator", "system integrator", "gsi", "isv", "co-sell", "cosell", "partner ecosystem", "channel partner")
+    has_partner_context = any(sig in corp for sig in explicit_partner_signals) or "partner" in target_role.lower()
+    if priorities and any(sig in corp for sig in fde_signals) and not has_partner_context:
+        eng = next((p for p in priorities if p.role_family == "ENGINEERING_PLATFORM"), None)
+        if eng and eng.score > 0 and priorities[0].role_family != "ENGINEERING_PLATFORM":
+            priorities = (eng,) + tuple(p for p in priorities if p.role_family != eng.role_family)
     ade_signals = (
-        "deployment engineering",
-        "partner ade",
-        "systems integrator",
-        "genai",
-        "openai api",
-        "ai deployment",
-        "prototype to production",
+        "deployment engineering", "partner ade", "systems integrator",
+        "genai", "openai api", "ai deployment", "prototype to production",
     )
     ade_hits = sum(1 for sig in ade_signals if sig in corp)
-    if priorities and ade_hits >= 3:
-        partner = next(
-            (p for p in priorities if p.role_family == "PARTNER_APPLIED_AI_ARCHITECTURE"),
-            None,
-        )
+    if priorities and ade_hits >= 3 and has_partner_context:
+        partner = next((p for p in priorities if p.role_family == "PARTNER_APPLIED_AI_ARCHITECTURE"), None)
         if partner and partner.score > 0:
             top = priorities[0]
             if top.role_family != "PARTNER_APPLIED_AI_ARCHITECTURE" and partner.score >= top.score - 1:
-                priorities = (partner,) + tuple(
-                    p for p in priorities if p.role_family != partner.role_family
-                )
+                priorities = (partner,) + tuple(p for p in priorities if p.role_family != partner.role_family)
     carrier_signals = (
         "insurance",
         "underwriting",

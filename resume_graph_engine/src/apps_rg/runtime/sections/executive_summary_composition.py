@@ -143,10 +143,7 @@ def _classify_fact_brushstroke_role(fact_id: str, claim_text: str) -> str:
     tokens = set(re.findall(r"[a-z0-9]+", fid))
     if any(x in fid for x in ("revenue", "sales", "commercial", "margin", "ops")):
         return "B4_business_role_fit"
-    if (
-        tokens & {"exec", "leadership", "partner", "cosell", "alliance", "transformation", "advisory"}
-        or ("organization" in low and "ml engineering" in low)
-    ):
+    if tokens & {"exec", "leadership", "partner", "cosell", "alliance", "transformation", "advisory", "practice"} or ("organization" in low and "ml engineering" in low) or "105-person" in low:
         return "B1_executive_identity"
     if any(x in fid for x in ("cert", "quant", "hpc", "actuarial")):
         return "B4_business_role_fit"

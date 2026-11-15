@@ -106,7 +106,21 @@ _CANONICAL_REQUIREMENT_PATTERNS: dict[str, tuple[str, ...]] = {
     "solution_architecture": ("solution architecture", "reference architecture", "applied ai architecture"),
     "deployment_adoption": ("deployment", "adoption", "production rollout", "go live"),
     "partner_gtm": ("partner gtm", "partner motion", "channel", "ecosystem", "partner-led"),
+    "forward_deployed_execution": ("forward deployed", "forward deployment", "rapid prototyping", "prototype to production", "client delivery"),
+    "engineering_org_leadership": ("105 software engineers", "engineering practice leadership", "build the fde team", "operating model"),
+    "regulated_ai_governance": ("model risk", "sr 11 7", "bcbs 239", "ccar", "regulated financial", "banking"),
 }
+_PARTNER_ONLY_REQUIREMENT_IDS = frozenset({"partner_cosell", "hyperscaler_alliance", "si_enablement", "partner_gtm"})
+_COSELL_HEAVY_ROOT_IDS = frozenset({
+    "reb_unify_partner_channel_cosell", "reb_unify_hyperscaler_joint_solution_architecture",
+    "reb_slalom_ecosystem_accelerators", "reb_ibm_aws_alliance_partner_cosell_gtm",
+})
+_FDE_CORE_ROOT_IDS = frozenset({
+    "reb_slalom_engineering_practice_leadership", "reb_slalom_agentic_client_delivery", "reb_slalom_governed_runtime_scaling",
+    "reb_unify_agentic_platform_architecture", "reb_unify_production_adoption_lifecycle", "reb_unify_regulated_enterprise_ai_governance",
+    "reb_unify_runtime_reliability_governance", "reb_ibm_aws_modernization_architecture", "reb_ibm_devsecops_release_resilience",
+    "reb_ibm_offering_accelerator_management", "reb_ibm_presales_solution_engineering",
+})
 
 # Employer history remains useful when two candidates offer materially the
 # same evidence.  It is intentionally too small to reserve a root slot ahead
@@ -115,71 +129,27 @@ _EMPLOYER_TIEBREAK_WEIGHT = 0.05
 _REQUIREMENT_COVERAGE_BONUS = 1.25
 
 _CAPS_BY_BAND: dict[str, dict[str, tuple[int, int]]] = {
-    "executive_summary": {
-        "primary": (5, 3),
-        "secondary": (3, 2),
-        "tertiary": (2, 1),
-        "context": (1, 0),
-    },
-    "headline": {
-        "primary": (4, 2),
-        "secondary": (3, 1),
-        "tertiary": (1, 0),
-        "context": (0, 0),
-    },
-    "competencies": {
-        "primary": (5, 2),
-        "secondary": (3, 1),
-        "tertiary": (2, 1),
-        "context": (1, 0),
-    },
+    "executive_summary": {"primary": (5, 3), "secondary": (3, 2), "tertiary": (2, 1), "context": (1, 0)},
+    "headline": {"primary": (4, 2), "secondary": (3, 1), "tertiary": (1, 0), "context": (0, 0)},
+    "competencies": {"primary": (5, 2), "secondary": (3, 1), "tertiary": (2, 1), "context": (1, 0)},
 }
 
 _HEADLINE_FAMILIES_BY_PROFILE: dict[str, tuple[str, ...]] = {
-    "svp_agentic_engineering": (
-        "svp_engineering_leadership",
-        "agentic_ai_platforms",
-        "runtime_governance",
-        "enterprise_ai_architecture",
-    ),
+    "svp_agentic_engineering": ("svp_engineering_leadership", "agentic_ai_platforms", "runtime_governance", "enterprise_ai_architecture"),
     "executive_agentic_transformation": (
-        "executive_transformation_strategy",
-        "agentic_ai_platforms",
-        "enterprise_operating_model",
-        "pe_due_diligence_value_creation",
-        "csuite_transformation_advisory",
+        "executive_transformation_strategy", "agentic_ai_platforms", "enterprise_operating_model",
+        "pe_due_diligence_value_creation", "csuite_transformation_advisory",
     ),
-    "ai_partnerships_gtm": (
-        "svp_engineering_leadership",
-        "partner_applied_ai_architecture",
-        "platform_productization",
-        "enterprise_ai_architecture",
-    ),
-    "insurance_it_strategy": (
-        "svp_engineering_leadership",
-        "regulated_ai_systems",
-        "enterprise_ai_architecture",
-        "runtime_governance",
-    ),
+    "ai_partnerships_gtm": ("svp_engineering_leadership", "partner_applied_ai_architecture", "platform_productization", "enterprise_ai_architecture"),
+    "insurance_it_strategy": ("svp_engineering_leadership", "regulated_ai_systems", "enterprise_ai_architecture", "runtime_governance"),
     "insurance_agentic_ai": ("agentic_ai_platforms", "regulated_ai_systems", "runtime_governance", "enterprise_ai_architecture"),
-    "balanced_enterprise_ai": (
-        "svp_engineering_leadership",
-        "enterprise_ai_architecture",
-        "distributed_ai_infrastructure",
-        "runtime_governance",
-    ),
+    "balanced_enterprise_ai": ("svp_engineering_leadership", "enterprise_ai_architecture", "distributed_ai_infrastructure", "runtime_governance"),
 }
 
 _COMPETENCY_FAMILIES_BY_PROFILE: dict[str, tuple[str, ...]] = {
     "svp_agentic_engineering": (
-        "agentic_platforms",
-        "runtime_governance",
-        "retrieval_context_engineering",
-        "llmops_reliability",
-        "distributed_systems_engineering",
-        "platform_productization",
-        "partnerships_ecosystem_execution",
-        "engineering_leadership",
+        "agentic_platforms", "runtime_governance", "retrieval_context_engineering", "llmops_reliability",
+        "distributed_systems_engineering", "platform_productization", "engineering_leadership", "data_governance_security",
     ),
     "executive_agentic_transformation": (
         "agentic_platforms",
@@ -233,6 +203,9 @@ _TARGET_TERMS = (
     "modernization", "governance", "risk", "regulatory", "revenue",
     "engineering leadership", "architected", "directed", "engineered", "scaled",
     "compressed", "automated", "commercialized", "delivered",
+    "forward deployed", "rapid prototyping", "prototype", "deployment",
+    "operating model", "model risk", "sr 11 7", "bcbs 239", "ccar", "banking",
+    "financial services", "devsecops", "microservices", "105",
 )
 _WORD_RE = re.compile(r"[a-z0-9]+")
 
@@ -297,33 +270,27 @@ def _infer_target_role_profile(*, target_role: str, jd_text: str, briefing_text:
     )
     if transformation_consulting_hits >= 3 or ("transformation" in target_role.lower() and "consulting" in blob):
         return "executive_agentic_transformation"
+    role_lower = target_role.lower()
+    if any(k in role_lower for k in ("forward deployed", "forward-deployed", "deployed engineering")) and not any(
+        k in role_lower for k in ("partner", "alliance", "gtm", "co-sell", "cosell")
+    ):
+        return "svp_agentic_engineering"
     gtm_hits = sum(
         token in blob
         for token in (
-            "partnership",
-            "partner",
-            "alliance",
-            "gtm",
-            "go-to-market",
-            "co-sell",
-            "cosell",
-            "hyperscaler",
-            "aws partner",
-            "revenue",
-            "quota",
+            "partnerships", "partner ecosystem", "channel partner", "partner-led",
+            "alliance", "gtm", "go-to-market", "co-sell", "cosell",
+            "hyperscaler", "aws partner", "revenue", "quota",
         )
     )
     agentic_hits = sum(
         token in blob
         for token in (
-            "agentic",
-            "multi-agent",
-            "graphrag",
-            "llm",
-            "runtime",
-            "orchestration",
-            "control plane",
-            "svp engineering",
+            "agentic", "multi-agent", "graphrag", "llm", "runtime",
+            "orchestration", "control plane", "svp engineering",
+            "forward deployed", "forward-deployed", "deployed engineering",
+            "rapid prototyping", "prototype to production", "ai platform",
+            "model risk", "sr 11-7",
         )
     )
     if gtm_hits >= 3 and gtm_hits >= agentic_hits:
@@ -978,7 +945,13 @@ def build_selected_graph_evidence_plan_for_section(
             if str(root_id).strip()
         }
     target_blob = f"{target_role}\n{jd_text}\n{briefing_text}"
-    required_requirement_ids = _canonical_requirement_ids(target_blob)
+    required_requirement_ids = tuple(
+        rid for rid in _canonical_requirement_ids(target_blob)
+        if target_role_profile == "ai_partnerships_gtm" or rid not in _PARTNER_ONLY_REQUIREMENT_IDS
+    )
+    fde_context = target_role_profile == "svp_agentic_engineering" and any(
+        k in target_blob.lower() for k in ("forward deployed", "forward-deployed", "truist", "sr 11-7", "model risk")
+    )
     briefing_signal_packet = {
         **extract_briefing_signal_packet(briefing_text),
         "role_family_key": target_role_profile,
@@ -1014,6 +987,11 @@ def build_selected_graph_evidence_plan_for_section(
             briefing_text=briefing_text,
             briefing_signal_packet=briefing_signal_packet,
         )
+        bundle_id_str = str(root["bundle"].get("role_episode_bundle_id") or "")
+        if target_role_profile == "svp_agentic_engineering" and bundle_id_str in _COSELL_HEAVY_ROOT_IDS:
+            root_alignment = max(0.1, round(root_alignment - 1.5, 6))
+        elif fde_context and bundle_id_str in _FDE_CORE_ROOT_IDS:
+            root_alignment = round(root_alignment + 1.25, 6)
         root["target_alignment_score"] = root_alignment
         # Employer affinity must never reserve a root slot ahead of a more
         # relevant graph-approved candidate.  Keep it as a small deterministic

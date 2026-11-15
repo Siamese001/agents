@@ -37,6 +37,12 @@ role_families:
       - lifecycle management
       - global head
       - operating model
+      - forward deployed engineering
+      - head of forward deployed engineering
+      - forward-deployed
+      - rapid prototyping
+      - prototype to production
+      - production activation
 
   - id: AI_SOLUTIONS_ARCHITECTURE
     summary: >-

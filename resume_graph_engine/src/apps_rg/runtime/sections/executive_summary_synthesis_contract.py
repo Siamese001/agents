@@ -131,8 +131,35 @@ def classify_exec_summary_role_archetype(
     """Classify executive summary role archetype for prompt and sentence-arc adaptation."""
     title_low = str(target_role or "").lower()
     blob = f"{target_role} {jd_text} {briefing_text}".lower()
-    if any(k in title_low for k in ("partnership", "alliances", "ecosystem", "partner", "channel", "co-sell", "cosell")) or (
-        "partnership" in blob and any(k in blob for k in ("applied ai", "solution architecture", "gsi", "hyperscaler", "co-sell"))
+    is_partner_title = any(
+        k in title_low
+        for k in ("partnership", "alliances", "ecosystem", "partner", "channel", "co-sell", "cosell")
+    )
+    if not is_partner_title and any(
+        k in title_low
+        for k in (
+            "forward deployed",
+            "forward-deployed",
+            "forward deployment",
+            "field engineering",
+            "deployment engineering",
+        )
+    ):
+        return "agentic_platform"
+    if is_partner_title or (
+        any(
+            k in blob
+            for k in (
+                "co-sell",
+                "cosell",
+                "channel partner",
+                "hyperscaler alliance",
+                "joint go-to-market",
+                "gsi",
+                "system integrator",
+            )
+        )
+        and any(k in blob for k in ("applied ai", "solution architecture", "gsi", "hyperscaler", "co-sell", "cosell"))
     ):
         return "ai_partnerships"
     if any(k in title_low for k in ("it strategy", "strategy & innovation", "strategy and innovation", "chief information", "cio", "cito")):
@@ -209,7 +236,37 @@ def format_s6_briefing_forward_targeting_anchor(
     """Targeting-only S6 forward themes from JD/briefing (never proof)."""
     blob = f"{briefing_text} {jd_text}".lower()
     themes: list[str] = []
-    if any(tok in blob for tok in ("partnership", "co-sell", "cosell", "gsi", "system integrator", "hyperscaler", "ecosystem")):
+    has_fde_signal = any(
+        tok in blob
+        for tok in (
+            "forward deployed",
+            "forward-deployed",
+            "rapid prototyping",
+            "prototype to production",
+            "production activation",
+            "embedded engineering",
+        )
+    )
+    has_explicit_partner_channel = any(
+        tok in blob
+        for tok in (
+            "co-sell",
+            "cosell",
+            "gsi",
+            "system integrator",
+            "hyperscaler alliance",
+            "channel partner",
+            "joint go-to-market",
+            "partner-led",
+        )
+    )
+    if has_fde_signal and not has_explicit_partner_channel:
+        themes.append(
+            "forward-deployed AI engineering execution, rapid prototyping-to-production activation, and business-line engineering alignment"
+        )
+    elif has_explicit_partner_channel or (
+        "partnership" in blob and any(tok in blob for tok in ("hyperscaler", "co-sell", "cosell", "gsi"))
+    ):
         themes.append("partner-facing applied AI solution architecture and joint go-to-market execution")
     if any(tok in blob for tok in ("deployment", "commercial adoption", "production rollout", "reusable")):
         themes.append("enterprise AI deployment velocity and commercial platform adoption")
@@ -222,7 +279,7 @@ def format_s6_briefing_forward_targeting_anchor(
     if ("multi-year" in blob or "roadmap" in blob) and len(themes) < 2:
         themes.append("multi-year IT strategy roadmap")
     if not themes:
-        themes.append("enterprise AI platform direction and partner-enabled adoption")
+        themes.append("enterprise AI platform direction, production engineering execution, and governed business adoption")
     joined = "; ".join(themes)
     return (
         f"TARGETING_FORWARD_ANCHOR (targeting only — jd_used_as_proof=false): {joined}."

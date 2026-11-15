@@ -172,16 +172,27 @@ def ensure_required_allowed_fact_utilization(
         text = str(out.get("resume_display_text") or "").strip()
         insurtech_present = "insurance regulatory cloud adoption standards" in text.lower()
 
+    has_partner_cosell_allowed = bool(
+        {"reb_unify_partner_channel_cosell", "reb_ibm_aws_alliance_partner_cosell_gtm"} & allowed
+    )
     if needs_insurtech and not insurtech_present:
         sentences = split_sentences(text)
         if len(sentences) != 6:
             return parsed, receipt
-        sentences[3] = _INSURTECH_POOL_UTILIZATION_SENTENCE
+        insurtech_sentence = (
+            _INSURTECH_POOL_UTILIZATION_SENTENCE
+            if has_partner_cosell_allowed
+            else _INSURTECH_POOL_UTILIZATION_SENTENCE.replace(
+                "grounding partner-led AI solutions",
+                "grounding enterprise AI solutions",
+            )
+        )
+        sentences[3] = insurtech_sentence
         out["resume_display_text"] = " ".join(s.strip() for s in sentences if s.strip())
         ledger = [dict(r) for r in (out.get("claim_ledger") or []) if isinstance(r, dict)]
         if len(ledger) >= 4:
             ins_row = dict(ledger[3])
-            ins_row["claim_text"] = _INSURTECH_POOL_UTILIZATION_SENTENCE
+            ins_row["claim_text"] = insurtech_sentence
             source_ids = [
                 str(x).strip()
                 for x in (ins_row.get("source_fact_ids") or [])
@@ -195,7 +206,7 @@ def ensure_required_allowed_fact_utilization(
             ledger.append(
                 {
                     "claim": "Insurance regulatory cloud adoption standards",
-                    "claim_text": _INSURTECH_POOL_UTILIZATION_SENTENCE,
+                    "claim_text": insurtech_sentence,
                     "source_fact_ids": [
                         "reb_insurtech_insurance_regulatory_cloud_adoption_standards"
                     ],
@@ -261,15 +272,25 @@ def ensure_required_allowed_fact_utilization(
         sentences = split_sentences(text)
         if len(sentences) != 6:
             return parsed, receipt
-        sentences[5] = _UNIFY_PLATFORM_COMMERCIALIZATION_UTILIZATION_SENTENCE
+        comm_sentence = (
+            _UNIFY_PLATFORM_COMMERCIALIZATION_UTILIZATION_SENTENCE
+            if has_partner_cosell_allowed
+            else (
+                "Platform commercialization, IP-led revenue, margin expansion, and team scale "
+                "reinforce governed enterprise AI platform delivery and production adoption."
+            )
+        )
+        sentences[5] = comm_sentence
         out["resume_display_text"] = " ".join(s.strip() for s in sentences if s.strip())
         ledger = [dict(r) for r in (out.get("claim_ledger") or []) if isinstance(r, dict)]
         row_source_ids = ["reb_unify_platform_commercialization_leadership"]
         if "reb_unify_partner_channel_cosell" in allowed:
             row_source_ids.append("reb_unify_partner_channel_cosell")
         row = {
-            "claim": "Platform commercialization and partner AI GTM",
-            "claim_text": _UNIFY_PLATFORM_COMMERCIALIZATION_UTILIZATION_SENTENCE,
+            "claim": "Platform commercialization and enterprise AI delivery"
+            if not has_partner_cosell_allowed
+            else "Platform commercialization and partner AI GTM",
+            "claim_text": comm_sentence,
             "source_fact_ids": row_source_ids,
         }
         if len(ledger) >= 6:

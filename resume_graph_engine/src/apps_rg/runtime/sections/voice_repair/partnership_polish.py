@@ -222,6 +222,11 @@ def _repair_ai_partnership_judge_findings(
         )
     ):
         compacted = list(_AI_PARTNERSHIP_COHERENCE_COMPACTION)
+        if not has_partner_evidence:
+            compacted[4] = compacted[4].replace(
+                "into partner ecosystems.",
+                "across regulated enterprise programs.",
+            )
         s5_has_22m = len(out) > 4 and bool(re.search(r"\$22m", out[4], re.I))
         s6_has_22m = len(out) > 5 and bool(re.search(r"\$22m", out[5], re.I))
         if s5_has_22m and not s6_has_22m:

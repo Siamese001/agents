@@ -248,6 +248,17 @@ INSURANCE_IT_STRATEGY_COMPETENCIES_BUNDLE_ORDER: tuple[str, ...] = (
     "ccb_platform_productization", "ccb_partner_applied_ai_architecture", "ccb_partnerships_ecosystem_execution",
     "ccb_data_governance_security", "ccb_devsecops_delivery_governance", "ccb_insurance_domain_erm",
 )
+AGENTIC_ENGINEERING_COMPETENCIES_BUNDLE_ORDER: tuple[str, ...] = (
+    "ccb_agentic_platforms", "ccb_runtime_governance", "ccb_retrieval_context_engineering",
+    "ccb_llmops_reliability", "ccb_distributed_systems_engineering", "ccb_engineering_leadership",
+    "ccb_platform_productization", "ccb_partner_applied_ai_architecture", "ccb_data_governance_security",
+    "ccb_devsecops_delivery_governance", "ccb_partnerships_ecosystem_execution", "ccb_insurance_domain_erm",
+)
+_NON_PARTNER_APPLIED_AI_TERMS: tuple[str, ...] = (
+    "enterprise applied AI reference architectures",
+    "reusable AI solution accelerators for business lines",
+    "production AI deployment enablement and assurance patterns",
+)
 
 VISIBLE_GRAPH_TERMS_MIN = 3
 VISIBLE_GRAPH_TERMS_MAX = 3
@@ -1362,8 +1373,12 @@ def enrich_competencies_visible_graph_surface(
         return {}
 
     target_profile = str((selected_graph_evidence_plan or {}).get("target_role_profile") or "").strip()
-    active_bundle_order = INSURANCE_IT_STRATEGY_COMPETENCIES_BUNDLE_ORDER if target_profile == "insurance_it_strategy" else PARTNERSHIP_FIRST_COMPETENCIES_BUNDLE_ORDER
-    order_policy = "insurance_it_strategy_relevance_first" if target_profile == "insurance_it_strategy" else "anthropic_partnership_relevance_first"
+    if target_profile == "insurance_it_strategy":
+        active_bundle_order, order_policy = INSURANCE_IT_STRATEGY_COMPETENCIES_BUNDLE_ORDER, "insurance_it_strategy_relevance_first"
+    elif target_profile == "svp_agentic_engineering":
+        active_bundle_order, order_policy = AGENTIC_ENGINEERING_COMPETENCIES_BUNDLE_ORDER, "svp_agentic_engineering_relevance_first"
+    else:
+        active_bundle_order, order_policy = PARTNERSHIP_FIRST_COMPETENCIES_BUNDLE_ORDER, "anthropic_partnership_relevance_first"
     order = {bundle_id: idx for idx, bundle_id in enumerate(active_bundle_order)}
     receipt_rows: list[dict[str, Any]] = []
     token_counts: dict[str, int] = {}
@@ -1383,57 +1398,39 @@ def enrich_competencies_visible_graph_surface(
             else:
                 surplus.append(cat)
 
-        # The graph-pool selector is the authority for the adaptive 6-8
-        # product shape.  This projection used to iterate the entire bundle
-        # registry and create categories for bundles the selector omitted,
-        # silently turning an authorized six-category result into eight.  It
-        # must enrich and reorder only the selected bundle identities; an
-        # unbound category remains visible for downstream fail-closed gates
-        # instead of being rebound to an unrelated capability family.
-        selected_bundle_ids = [
-            bid for bid in active_bundle_order if bid in by_bundle
-        ]
-        selected_bundle_ids.extend(
-            bid for bid in by_bundle if bid not in selected_bundle_ids
-        )
+        selected_bundle_ids = [bid for bid in active_bundle_order if bid in by_bundle]
+        selected_bundle_ids.extend(bid for bid in by_bundle if bid not in selected_bundle_ids)
         out: list[dict[str, Any]] = []
         for bid in selected_bundle_ids:
             rec = by_id.get(bid)
             if not rec:
-                # Retain the selected category so missing packet authority is
-                # observable to the bundle gates.  Dropping it here would
-                # mutate the selector decision and hide the defect.
                 out.append(by_bundle[bid])
                 continue
             display_idx = len(out)
             cat = by_bundle[bid]
             before_label = str(cat.get("resume_display_label") or cat.get("category_label") or "").strip()
             display_label = str(rec.get("display_label_candidate") or before_label).strip()
-            taxonomy_id, taxonomy_label = visible_graph_surface_taxonomy_for_bundle(
-                bid,
-                record=rec,
-            )
+            non_partner_arch = bid == "ccb_partner_applied_ai_architecture" and target_profile not in {"ai_partnerships_gtm", ""}
+            if non_partner_arch:
+                display_label = "Applied AI Reference Architecture & Enablement"
+            taxonomy_id, taxonomy_label = visible_graph_surface_taxonomy_for_bundle(bid, record=rec)
             if not taxonomy_id or not taxonomy_label:
-                # Keep the defect observable; downstream taxonomy gates will
-                # fail closed instead of receiving a fabricated wrapper.
                 taxonomy_id = str(cat.get("category_id") or bid)
                 taxonomy_label = str(cat.get("category_label") or before_label or display_label)
             linked_fact_ids = _bundle_allowed_linked_facts(
-                rec,
-                cat,
-                allowed_fact_ids=allowed_fact_ids,
-                selected_graph_evidence_plan=selected_graph_evidence_plan,
+                rec, cat, allowed_fact_ids=allowed_fact_ids, selected_graph_evidence_plan=selected_graph_evidence_plan,
             )
             fact_ids = linked_fact_ids or _category_fact_ids(cat, allowed_fact_ids)
             if not fact_ids:
                 fact_ids = _plan_fact_ids_for_bundle(
-                    rec,
-                    cat=cat,
-                    selected_graph_evidence_plan=selected_graph_evidence_plan,
-                    allowed_fact_ids=allowed_fact_ids,
+                    rec, cat=cat, selected_graph_evidence_plan=selected_graph_evidence_plan, allowed_fact_ids=allowed_fact_ids,
                 )
             skill_ids = _category_skill_ids(cat, rec)
-            phrases = _graph_surface_phrases_for_bundle(rec)
+            phrases = (
+                list(_NON_PARTNER_APPLIED_AI_TERMS) + [p for p in _graph_surface_phrases_for_bundle(rec) if "partner" not in p.lower()]
+                if non_partner_arch
+                else _graph_surface_phrases_for_bundle(rec)
+            )
             if len(phrases) < VISIBLE_GRAPH_TERMS_MIN:
                 existing = [term_phrase(t) for t in (cat.get("terms") or []) if term_phrase(t)]
                 for phrase in existing:
@@ -1771,7 +1768,7 @@ __all__ = [
     "COMPETENCY_CAPABILITY_EVIDENCE_PACK_MARKER",
     "COMPETENCIES_SC_COMPACT_SYSTEM_MARKER",
     "COMPETENCIES_PATH_DIVERSITY_LENSES",
-    "PARTNERSHIP_FIRST_COMPETENCIES_BUNDLE_ORDER",
+    "AGENTIC_ENGINEERING_COMPETENCIES_BUNDLE_ORDER", "PARTNERSHIP_FIRST_COMPETENCIES_BUNDLE_ORDER",
     "attach_competency_bundles_to_proof_pool_metadata",
     "append_competencies_path_diversity_to_messages",
     "augment_bound_category_family_terms",

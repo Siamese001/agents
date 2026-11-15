@@ -85,7 +85,8 @@ def _default_slot_specs(
         )
     slalom_slot_roots = {
         "bul_slalom_001": "reb_slalom_engineering_practice_leadership", "bul_slalom_002": "reb_slalom_agentic_client_delivery",
-        "bul_slalom_003": "reb_slalom_governed_runtime_scaling", "bul_slalom_004": "reb_slalom_ecosystem_accelerators",
+        "bul_slalom_003": "reb_slalom_governed_runtime_scaling",
+        "bul_slalom_004": "" if target_role_profile == "svp_agentic_engineering" else "reb_slalom_ecosystem_accelerators",
     }
     ibm_slot_roots = {
         "bul_ibm_001": "reb_ibm_customer_success_value_realization", "bul_ibm_002": "reb_ibm_presales_solution_engineering",
@@ -116,8 +117,8 @@ def _default_slot_specs(
                 )
             )
             req_root_id = (
-                unify_req_root if (section_id == "unify_bullets" and target_role_profile in {"insurance_it_strategy", "ai_partnerships_gtm"} and unify_req_root in section_roots_map) else (
-                    str(slalom_slot_roots.get(claim_unit) or "").strip() if (section_id == "slalom_bullets" and target_role_profile in {"insurance_it_strategy", "ai_partnerships_gtm"} and str(slalom_slot_roots.get(claim_unit) or "").strip() in section_roots_map) else (
+                unify_req_root if (section_id == "unify_bullets" and target_role_profile in {"insurance_it_strategy", "ai_partnerships_gtm", "svp_agentic_engineering"} and unify_req_root in section_roots_map) else (
+                    str(slalom_slot_roots.get(claim_unit) or "").strip() if (section_id == "slalom_bullets" and target_role_profile in {"insurance_it_strategy", "ai_partnerships_gtm", "svp_agentic_engineering"} and str(slalom_slot_roots.get(claim_unit) or "").strip() in section_roots_map) else (
                         str(ibm_slot_roots.get(claim_unit) or "").strip() if (section_id == "ibm_bullets" and target_role_profile in {"insurance_it_strategy", "ai_partnerships_gtm"} and str(ibm_slot_roots.get(claim_unit) or "").strip() in section_roots_map) else (
                             str(insurtech_slot_roots.get(claim_unit) or "").strip() if (section_id == "insurtech_bullets" and target_role_profile == "insurance_it_strategy" and str(insurtech_slot_roots.get(claim_unit) or "").strip() in section_roots_map) else ""
                         )
@@ -183,12 +184,37 @@ def _candidate_sets_from_section_plans(
     }
     for raw_slot in slot_specs:
         slot = _slot_from_row(raw_slot)
+        sec_plan = section_plans.get(slot.section_id) or {}
+        sec_profile = str(sec_plan.get("target_role_profile") or "")
         employer_root_weights, employer_weights, enforce_career_band, primary_secondary_roots = compute_career_band_filter(
-            section_id=slot.section_id, sec_plan=section_plans.get(slot.section_id) or {}, grouped_section_buckets=grouped_by_section[slot.section_id],
+            section_id=slot.section_id, sec_plan=sec_plan, grouped_section_buckets=grouped_by_section[slot.section_id],
         )
+        cosell_roots = {
+            "reb_unify_partner_channel_cosell",
+            "reb_unify_hyperscaler_joint_solution_architecture",
+            "reb_slalom_ecosystem_accelerators",
+            "reb_ibm_aws_alliance_partner_cosell_gtm",
+        }
+        non_cosell_root_count = sum(
+            1
+            for rid, bkt in grouped_by_section[slot.section_id].items()
+            if rid not in cosell_roots
+            and (not enforce_career_band or rid in primary_secondary_roots)
+            and any(r.get("authority_pass") is True for r in bkt["root"])
+            and any(r.get("authority_pass") is True for r in bkt["leaf_skill"])
+            and any(r.get("authority_pass") is True for r in bkt["source_fact"])
+        )
+        sec_slot_count = sum(1 for rs in slot_specs if str(rs.get("section_id") or "") == slot.section_id)
         rows: list[dict[str, Any]] = []
         for root_id, bucket in grouped_by_section[slot.section_id].items():
             if enforce_career_band and root_id not in primary_secondary_roots:
+                continue
+            if (
+                sec_profile == "svp_agentic_engineering"
+                and not slot.required_root_id
+                and root_id in cosell_roots
+                and non_cosell_root_count >= sec_slot_count
+            ):
                 continue
             roots = [row for row in bucket["root"] if row.get("authority_pass") is True]
             skills = [row for row in bucket["leaf_skill"] if row.get("authority_pass") is True]
@@ -239,7 +265,11 @@ def _candidate_sets_from_section_plans(
                             citation_refs=citation_refs, skill_sources=skill_sources,
                             sec_plan=section_plans.get(slot.section_id) or {},
                         )
-                        if slot.section_id == "ibm_bullets" and metric_id == "metric_ibm_20pct_joint_revenue_growth":
+                        if (
+                            slot.section_id == "ibm_bullets"
+                            and metric_id == "metric_ibm_20pct_joint_revenue_growth"
+                            and sec_profile in {"insurance_it_strategy", "ai_partnerships_gtm"}
+                        ):
                             align_score = round(align_score + 0.5, 6)
                         candidate: dict[str, Any] = {
                             "section_id": slot.section_id, "claim_unit_id": slot.slot_id,

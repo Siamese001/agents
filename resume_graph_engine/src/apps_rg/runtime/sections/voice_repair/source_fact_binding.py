@@ -104,6 +104,13 @@ def _source_fact_ids_for_display_sentence(sentence: str) -> list[str]:
             "metric_unify_20pct_gross_margin_expansion",
             "metric_unify_team_scaled_8_to_28",
         ]
+    if "platform commercialization, ip-led revenue, margin expansion, and team scale" in low:
+        if "partner-led" in low or "alliance gtm" in low:
+            return [
+                "reb_unify_platform_commercialization_leadership",
+                "reb_unify_partner_channel_cosell",
+            ]
+        return ["reb_unify_platform_commercialization_leadership"]
     if has_team_scale:
         return ["fact_exec_002"]
     if "basel iii" in low and "40%" in low:
@@ -375,11 +382,20 @@ def _rebuild_claim_ledger_from_display(parsed: dict[str, Any]) -> dict[str, Any]
             # that bounded anchor set so brushstroke coverage cannot be lost by a
             # stale provider row.
             from apps_rg.runtime.sections.executive_summary_synthesis_contract import DEPENDENCY_GRAPH_FACT_ID
+            all_prior_cited = {
+                str(fid).strip()
+                for r in prior_rows
+                if isinstance(r, dict)
+                for fid in (r.get("source_fact_ids") or [])
+                if str(fid).strip()
+            }
             _anchor_override = {
                 "reb_unify_platform_commercialization_leadership", "reb_ibm_devsecops_release_resilience",
                 "reb_unify_agentic_platform_architecture", "reb_ey_erm_risk_governance",
-                "reb_insurtech_aws_migration_execution", DEPENDENCY_GRAPH_FACT_ID,
+                DEPENDENCY_GRAPH_FACT_ID,
             }
+            if "reb_insurtech_aws_migration_execution" not in all_prior_cited:
+                _anchor_override.add("reb_insurtech_aws_migration_execution")
             needs_anchor = bool(_anchor_override & set(anchor_fids)) and not bool(_anchor_override & set(prior_fids))
             is_legacy_profile = any(f.startswith("fact_") for f in prior_fids) and not any(f.startswith("reb_") for f in prior_fids)
             fids = list(dict.fromkeys(prior_fids + anchor_fids)) if (needs_anchor and not is_legacy_profile) else prior_fids
