@@ -266,17 +266,19 @@ def run_remediation_stage(
             usage_doc=usage_doc,
             write_json_fn=_lane_attr("write_json", write_json),
         )
+    from apps_rg.runtime.section_repair_policy import judge_remediation_regen_allowed
+    from apps_rg.runtime.sections.executive_summary_judge_remediation import (
+        all_model_backed_judges_pass,
+        build_judge_remediation_user_message,
+        evaluate_judge_remediation_trigger,
+        repair_judge_regen_after_x2_fail,
+        rerun_soft_failed_judges,
+        rerun_x2_after_judge_remediation,
+        retry_provider_for_judge_remediation,
+    )
+    _regen_ok = False
+    _regen_parity_reason = "x2_failed_initial"
     if runtime_generation_status == "REAL_LLM" and not x2_failed_initial and parsed_for_x2:
-        from apps_rg.runtime.section_repair_policy import judge_remediation_regen_allowed
-        from apps_rg.runtime.sections.executive_summary_judge_remediation import (
-            all_model_backed_judges_pass,
-            build_judge_remediation_user_message,
-            evaluate_judge_remediation_trigger,
-            repair_judge_regen_after_x2_fail,
-            rerun_soft_failed_judges,
-            rerun_x2_after_judge_remediation,
-            retry_provider_for_judge_remediation,
-        )
         from apps_rg.runtime.sections.executive_summary_repair_policy import judge_regen_max_attempts
         from apps_rg.runtime.validators.executive_summary_x2 import collect_unused_allowed_fact_ids
 
@@ -308,21 +310,21 @@ def run_remediation_stage(
         })
         if judge_remediation_regen_allowed() and _regen_ok:
             run_remediation_cycles(ctx)
-    elif judge_remediation_regen_allowed() and not _regen_ok:
-        _lane_attr("write_json", write_json)(
-            artifact_dir / "judge_remediation_cycles.json",
-            {
-                "schema": "executive_summary_judge_remediation_cycles_v2",
-                "schema_version": 2,
-                "skipped": "targeting_parity_required",
-                "reason": _regen_parity_reason,
-                "generation_material_digest": _generation_material.generation_material_digest,
-            },
-        )
+        elif judge_remediation_regen_allowed() and not _regen_ok:
+            _lane_attr("write_json", write_json)(
+                artifact_dir / "judge_remediation_cycles.json",
+                {
+                    "schema": "executive_summary_judge_remediation_cycles_v2",
+                    "schema_version": 2,
+                    "skipped": "targeting_parity_required",
+                    "reason": _regen_parity_reason,
+                    "generation_material_digest": _generation_material.generation_material_digest,
+                },
+            )
     else:
         _trigger_ok0, _trigger0 = evaluate_judge_remediation_trigger(
             x1d,
             runtime_generation_status=runtime_generation_status,
-            x2_passed=True,
+            x2_passed=not x2_failed_initial,
         )
         _lane_attr("write_json", write_json)(artifact_dir / "judge_remediation_trigger.json", _trigger0)
