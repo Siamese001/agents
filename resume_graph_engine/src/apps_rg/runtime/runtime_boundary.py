@@ -15,6 +15,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Mapping, MutableMapping
 
+from apps_rg.runtime.env_bootstrap import is_pytest_or_test_harness_env
 from apps_rg.runtime.runtime_proof_layout import find_repo_root
 
 RUNTIME_BOUNDARY_POLICY_RELATIVE = Path(".antigravity") / "runtime-boundary.json"
@@ -236,10 +237,9 @@ def write_apps_rg_runtime_boundary_receipt(
     import tempfile
 
     root = Path(artifact_dir).resolve()
-    in_test_tmp = bool(
-        os.environ.get("PYTEST_CURRENT_TEST")
-        or os.environ.get("APPS_RG_TEST_HARNESS") == "1"
-    ) and _is_within(root, Path(tempfile.gettempdir()).resolve())
+    in_test_tmp = is_pytest_or_test_harness_env() and _is_within(
+        root, Path(tempfile.gettempdir()).resolve()
+    )
     if not _is_within(root, boundary.repo_root) and not in_test_tmp:
         raise RuntimeBoundaryViolation(f"PATH_AUTHORITY_ARTIFACT_ESCAPE:{root}")
     root.mkdir(parents=True, exist_ok=True)

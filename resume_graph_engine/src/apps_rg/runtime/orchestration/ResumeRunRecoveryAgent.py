@@ -372,7 +372,7 @@ class ResumeRunRecoveryAgent:
             if dispatch_success:
                 try:
                     refresh_root_spine_bundle_after_patch(self.artifact_dir)
-                except Exception:
+                except Exception:  # guardian: allow-silent-swallow -- best-effort root spine bundle refresh during recovery
                     pass
             try:
                 emit_core_runtime_authority(self.artifact_dir)

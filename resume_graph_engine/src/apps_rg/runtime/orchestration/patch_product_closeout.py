@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import hashlib
 import json
-import os
 from datetime import datetime, timezone
+
+from apps_rg.runtime.env_bootstrap import get_route_hmac_env
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -206,7 +207,7 @@ def refresh_root_spine_bundle_after_patch(
                 plan_execution_receipt_path=execution_receipt,
                 artifact_dir=root,
             )
-        except Exception:
+        except Exception:  # guardian: allow-silent-swallow -- best-effort plan execution reconciliation emission
             pass
 
 
@@ -221,8 +222,7 @@ def _rebind_preflight_if_needed(artifact_dir: Path, identity: Mapping[str, Any])
     )
 
     root = Path(artifact_dir).resolve()
-    secret = str(os.environ.get("APPS_RG_ROUTE_HMAC_SECRET") or "").strip()
-    key_id = str(os.environ.get("APPS_RG_ROUTE_HMAC_KEY_ID") or "").strip()
+    secret, key_id = get_route_hmac_env()
     if not secret:
         return False
 
@@ -401,7 +401,7 @@ def close_patched_product_run(
     whole_run_exit_identity = dict(canonical_identity)
     try:
         emit_core_runtime_authority(art)
-    except Exception:
+    except Exception:  # guardian: allow-silent-swallow -- best-effort core runtime authority emission before exit review
         pass
     whole_run_exit = emit_whole_run_exit_review_packet(artifact_dir=art, identity=whole_run_exit_identity)
     exec_summary_block = executive_summary_certification_block(art)

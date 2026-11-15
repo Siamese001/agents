@@ -35,6 +35,7 @@ from typing import Any, Callable, Mapping
 
 from apps_rg.repository_layout import resolve_repository_path
 from apps_rg.runtime.internal.generated_lane_rollup import GENERATED_LANES
+from apps_rg.runtime.env_bootstrap import temporary_env_override
 from apps_rg.runtime.runtime_proof_layout import (
     MODULAR_R4_SECTIONS_ROOT_ENV,
     find_repo_root,
@@ -1629,23 +1630,16 @@ def execute_patch_run(
     if product_fail_closed_runtime() and _whole_resume_graph_digest_for_run(plan.run_dir):
         _whole_resume_graph_rollup_authority(repo=plan.repo, run_dir=plan.run_dir)
 
-    saved_env = {
-        name: os.environ.get(name)
-        for name in (
-            MODULAR_R4_SECTIONS_ROOT_ENV,
-            _WHOLE_RUN_ENVELOPE_ENV,
-            _CORRELATED_CLI_RUN_ENV,
-            "APPS_RG_RECOVERY_DIRECTIVES_JSON",
-            *graph_env,
-        )
+    env_updates: dict[str, str | None] = {
+        MODULAR_R4_SECTIONS_ROOT_ENV: str(sections_root.resolve()),
+        _WHOLE_RUN_ENVELOPE_ENV: "1",
+        _CORRELATED_CLI_RUN_ENV: repo_relative_posix(plan.repo, plan.run_dir.resolve()),
+        **graph_env,
     }
-    os.environ[MODULAR_R4_SECTIONS_ROOT_ENV] = str(sections_root.resolve())
-    os.environ[_WHOLE_RUN_ENVELOPE_ENV] = "1"
-    os.environ[_CORRELATED_CLI_RUN_ENV] = repo_relative_posix(plan.repo, plan.run_dir.resolve())
     if isinstance(recovery_directives, Mapping) and recovery_directives:
-        os.environ["APPS_RG_RECOVERY_DIRECTIVES_JSON"] = json.dumps(dict(recovery_directives))
-    os.environ.update(graph_env)
-    try:
+        env_updates["APPS_RG_RECOVERY_DIRECTIVES_JSON"] = json.dumps(dict(recovery_directives))
+
+    with temporary_env_override(env_updates):
         require_manifest_for_modular_sections_root(
             sections_root, env_name=MODULAR_R4_SECTIONS_ROOT_ENV
         )
@@ -1671,12 +1665,6 @@ def execute_patch_run(
             lane_provider=lane_provider,
             run_token=run_token,
         )
-    finally:
-        for name, val in saved_env.items():
-            if val is None:
-                os.environ.pop(name, None)
-            else:
-                os.environ[name] = val
 
     new_states_full = classify_all_lane_states(plan.repo, plan.run_dir)
     new_states = {lane: new_states_full[lane]["state"] for lane in GENERATED_LANES}

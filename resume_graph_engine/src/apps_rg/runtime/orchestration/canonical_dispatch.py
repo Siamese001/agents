@@ -24,9 +24,8 @@ from apps_rg.runtime.orchestration.integrated_spine_runner import (
 )
 from apps_rg.runtime.resume_resolution import resolve_resume_for_lanes
 from apps_rg.runtime.run_bundle_index import emit_integrated_run_bundle_index
-from apps_rg.runtime.runtime_proof_layout import (
-    find_repo_root,
-)
+from apps_rg.runtime.env_bootstrap import ensure_career_thesis_plan_env
+from apps_rg.runtime.runtime_proof_layout import find_repo_root
 from apps_rg.runtime.section_cli_defaults import COMPETENCIES_DEFAULT_X1D_JUDGES
 from apps_rg.runtime.section_judge_policy import REQUIRED_JUDGE_PROVIDER_KEYS
 
@@ -493,8 +492,7 @@ def run_canonical_apps_rg_from_cli_primitives(
 ) -> dict[str, Any]:
     """Dispatch full scope to product entry; section scope is non-product tooling."""
     _ = career_thesis_alignment_digest
-    if career_thesis_plan_path and not os.environ.get("APPS_RG_CAREER_THESIS_PLAN_PATH"):
-        os.environ["APPS_RG_CAREER_THESIS_PLAN_PATH"] = str(career_thesis_plan_path)
+    ensure_career_thesis_plan_env(career_thesis_plan_path)
     sid = str(section).strip()
     if not sid:
         from apps_rg.runtime.product_entry import run_product_whole_run_from_primitives
