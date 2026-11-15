@@ -297,6 +297,25 @@ def apply_route_signing_posture(repo_root: Path | str | None = None) -> str | No
     return None
 
 
+def ensure_career_thesis_plan_env(plan_path: str) -> None:
+    """Set APPS_RG_CAREER_THESIS_PLAN_PATH if non-empty and not already set."""
+    if plan_path and not os.environ.get("APPS_RG_CAREER_THESIS_PLAN_PATH"):
+        os.environ["APPS_RG_CAREER_THESIS_PLAN_PATH"] = str(plan_path)
+
+
+def get_route_hmac_env() -> tuple[str, str]:
+    """Retrieve normalized route HMAC secret and key ID tuple."""
+    return (
+        str(os.environ.get("APPS_RG_ROUTE_HMAC_SECRET") or "").strip(),
+        str(os.environ.get("APPS_RG_ROUTE_HMAC_KEY_ID") or "").strip(),
+    )
+
+
+def is_pytest_or_test_harness_env() -> bool:
+    """Check if current execution is under pytest or test harness."""
+    return bool(os.environ.get("PYTEST_CURRENT_TEST") or os.environ.get("APPS_RG_TEST_HARNESS") == "1")
+
+
 __all__ = [
     "APPS_RG_DOTENV_ENV_VAR",
     "AppsRgEnvBootstrapResult",
@@ -305,5 +324,8 @@ __all__ = [
     "bootstrap_apps_rg_env",
     "bootstrap_process_env_if_needed",
     "canonical_home_dotenv",
+    "ensure_career_thesis_plan_env",
+    "get_route_hmac_env",
+    "is_pytest_or_test_harness_env",
     "temporary_env_override",
 ]
