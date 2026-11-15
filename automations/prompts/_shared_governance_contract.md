@@ -30,11 +30,11 @@
 
 Every `agents_*_agent.md` specification inherits and enforces the 12 mandatory controls below:
 
-- **`C01` — Trusted Launch & Full-Repository Scope Boundary**:
+- **`C01` — Trusted Launch & Per-Stage Scope Boundary**:
   - `trust_level: workspace_trusted`, `sandbox_mode: workspace-write`, `network_access: disabled`.
-  - Allowed write paths (inside isolated worktree on findings): `agents/`, `apps_model_telemetry/`, `outreach_engine/`, `resume_engine/`, `resume_graph_engine/`, `apps_research/`, `apps_eval/`, `infrastructure/`, `data/`, `ops_scripts/`, `scripts/`, `tools/`, `tests/`, `config/`, `plans/`, `reports/`, `docs/`, `scratch/`, `automations/`, `.agents/`, `.antigravity/`, `.githooks/`, `AGENTS.md`, `pyproject.toml`, `.mcp.json`, `artifacts/`.
+  - Allowed write paths (inside isolated worktree on findings, bounded per `AGY_SIDECAR_AGENT_ID` via `PROMPT_STAGE_ALLOWED_WRITE_PATHS` in `tools/prompt_scope_isolation.py`): `agents/`, `apps_model_telemetry/`, `outreach_engine/`, `resume_engine/`, `resume_graph_engine/`, `apps_research/`, `apps_eval/`, `infrastructure/`, `data/`, `ops_scripts/`, `scripts/`, `tools/`, `tests/`, `config/`, `plans/`, `reports/`, `docs/`, `scratch/`, `automations/`, `.agents/`, `.antigravity/`, `.githooks/`, `AGENTS.md`, `pyproject.toml`, `.mcp.json`, `artifacts/`.
 - **`C02` — Preflight-First Ordering & Conditional Phase 0 Single-Worktree Provisioning (`Step 0.1`)**:
-  - Every run executes Phase 1 & Phase 1.5 read-only behavioral preflight **first** against `${PRIMARY_REPO_ROOT}` so zero-defect runs never churn branches or unlink active session directories.
+  - Every run executes Phase 1 & Phase 1.5 read-only behavioral preflight **first** against `${PRIMARY_REPO_ROOT}` using `PYTHONDONTWRITEBYTECODE=1` and pytest `-p no:cacheprovider` so zero-defect runs never churn branches, write `__pycache__`, or unlink active session directories. Each Phase 0 branch slug appends `${RUN_TS}-${HEX6}` for concurrent uniqueness and exports `AGY_SIDECAR_AGENT_ID`.
   - When `B_total > 0` (`is_clean == false`), Phase 0 (`Step 0.1`) deduplicates clean merged chat worktrees (preserving `.agents/tools` hook symlinks), provisions a single isolated worktree off local `main`, writes `${RUN_DIR}/manifest.json` deterministically via `--write-manifest`, and switches into `${WORKTREE_DIR}` (`cd "${WORKTREE_DIR}"`):
     `"/Users/amitayer/Git/agents/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/prune_merged_chat_worktrees.py" --repo-root "${PRIMARY_REPO_ROOT}" --consolidate-sidecar --worktree-dir "${WORKTREE_DIR}" --branch "${BRANCH_NAME}" --write-manifest "${RUN_DIR}/manifest.json"`
 - **`C03` — On-Demand Interactive Execution & Zero-Churn Fast-Exit (`PREFLIGHT_ZERO_DEFECT_FAST_EXIT`)**:

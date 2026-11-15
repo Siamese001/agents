@@ -42,10 +42,11 @@ Execute the bounded 10-dimension boundary, sprawl, anti-hardcoding, and ratchet-
 
 ```bash
 export PRIMARY_REPO_ROOT="/Users/amitayer/Git/agents"
-"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/ssot_boundary_auditor.py" --repo-root "${PRIMARY_REPO_ROOT}" --include-ratchet-backlog --json
-"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/lint_contract_schemas.py" --all --repo-root "${PRIMARY_REPO_ROOT}"
-"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/lint_file_budgets.py" --all --repo-root "${PRIMARY_REPO_ROOT}"
-"${PRIMARY_REPO_ROOT}/.venv/bin/pytest" "${PRIMARY_REPO_ROOT}/tests/unit/test_ssot_centralization_auditor.py" -q --timeout=60
+export PYTHONDONTWRITEBYTECODE=1
+PYTHONDONTWRITEBYTECODE=1 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/ssot_boundary_auditor.py" --repo-root "${PRIMARY_REPO_ROOT}" --include-ratchet-backlog --json
+PYTHONDONTWRITEBYTECODE=1 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/lint_contract_schemas.py" --all --repo-root "${PRIMARY_REPO_ROOT}"
+PYTHONDONTWRITEBYTECODE=1 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/lint_file_budgets.py" --all --repo-root "${PRIMARY_REPO_ROOT}"
+"${PRIMARY_REPO_ROOT}/.venv/bin/pytest" "${PRIMARY_REPO_ROOT}/tests/unit/test_ssot_centralization_auditor.py" -q -p no:cacheprovider --timeout=60
 ```
 
 If all preflight commands exit `0` (`"status": "PASS"`, `"is_clean": true`, zero ratchet backlog), fast-exit `COMPLETE` (`PREFLIGHT_ZERO_DEFECT_FAST_EXIT`). When `--include-ratchet-backlog` returns `BACKLOG_ACTION_REQUIRED` (`exit code 1`), proceed to Phase 0 and burn down at least `Q_min` grandfathered ratchet or duplicate items.
@@ -58,9 +59,11 @@ When Phase 1.5 reports `>= 1` actionable findings (`is_clean == false`), provisi
 
 ```bash
 export PRIMARY_REPO_ROOT="/Users/amitayer/Git/agents"
+export PYTHONDONTWRITEBYTECODE=1
+export AGY_SIDECAR_AGENT_ID="agents-ssot-boundary-governance"
 export RUN_TS="$(date -u +%Y%m%dT%H%M%SZ)"
 export HEX6="$(python3 -c 'import secrets; print(secrets.token_hex(3))')"
-export BRANCH_SLUG="agents-ssot-boundary-${RUN_TS}"
+export BRANCH_SLUG="agents-ssot-boundary-${RUN_TS}-${HEX6}"
 export BRANCH_NAME="chore/${BRANCH_SLUG}"
 export WORKTREE_SLUG="$(echo "${BRANCH_NAME}" | tr '/-' '__')"
 export WORKTREE_DIR="${PRIMARY_REPO_ROOT}/.worktrees/${WORKTREE_SLUG}"
@@ -68,7 +71,7 @@ export RUN_DIR="${WORKTREE_DIR}/artifacts/sidecar_runs/agents_ssot_boundary/${RU
 export PLAN_REL="plans/ssot-boundary-remediation-${HEX6}.md"
 
 git -C "${PRIMARY_REPO_ROOT}" worktree prune
-"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/prune_merged_chat_worktrees.py" \
+PYTHONDONTWRITEBYTECODE=1 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/prune_merged_chat_worktrees.py" \
   --repo-root "${PRIMARY_REPO_ROOT}" \
   --consolidate-sidecar \
   --worktree-dir "${WORKTREE_DIR}" \
@@ -81,7 +84,7 @@ git -C "${PRIMARY_REPO_ROOT}" worktree prune
 cd "${WORKTREE_DIR}"
 mkdir -p "${RUN_DIR}" "${WORKTREE_DIR}/plans"
 export PRE_STATE_SHA256="$(git -C "${WORKTREE_DIR}" rev-parse HEAD)"
-"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/ssot_boundary_auditor.py" \
+PYTHONDONTWRITEBYTECODE=1 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/ssot_boundary_auditor.py" \
   --repo-root "${WORKTREE_DIR}" \
   --output "${RUN_DIR}/audit_report.json" \
   --json || true

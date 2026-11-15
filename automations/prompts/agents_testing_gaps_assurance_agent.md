@@ -58,13 +58,14 @@ Execute the fail-closed 6-pillar behavioral testing gaps auditor (`tools/testing
 
 ```bash
 export PRIMARY_REPO_ROOT="/Users/amitayer/Git/agents"
-"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/testing_gaps_auditor.py" \
+export PYTHONDONTWRITEBYTECODE=1
+PYTHONDONTWRITEBYTECODE=1 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/testing_gaps_auditor.py" \
   --repo-root "${PRIMARY_REPO_ROOT}" \
   --include-uncovered-backlog \
   --execute-pytest-smoke \
   --json
-"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/audit_mock_reachability.py" --repo-root "${PRIMARY_REPO_ROOT}"
-"${PRIMARY_REPO_ROOT}/.venv/bin/pytest" "${PRIMARY_REPO_ROOT}/tests/unit/test_testing_gaps_full_parity.py" "${PRIMARY_REPO_ROOT}/tests/unit/test_all_seven_agents_coverage_elevation.py" "${PRIMARY_REPO_ROOT}/tests/unit/test_resume_graph_and_core_coverage_elevation.py" "${PRIMARY_REPO_ROOT}/outreach_engine/tests" -q --timeout=60
+PYTHONDONTWRITEBYTECODE=1 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/audit_mock_reachability.py" --repo-root "${PRIMARY_REPO_ROOT}"
+"${PRIMARY_REPO_ROOT}/.venv/bin/pytest" "${PRIMARY_REPO_ROOT}/tests/unit/test_testing_gaps_full_parity.py" "${PRIMARY_REPO_ROOT}/tests/unit/test_all_seven_agents_coverage_elevation.py" "${PRIMARY_REPO_ROOT}/tests/unit/test_resume_graph_and_core_coverage_elevation.py" "${PRIMARY_REPO_ROOT}/outreach_engine/tests" -q -p no:cacheprovider --timeout=60
 ```
 
 Verify `testing_gaps_auditor.py` exits `0` (`zero_assertion_tests == []`, `unreasoned_skips == []`, `non_strict_xfails == []`, `mock_reachability_violations == []`, zero uncovered module backlog) across all 6 test surfaces (`tests`, `resume_graph_engine/tests`, `outreach_engine/tests`, `apps_eval/tests`, `scripts/local_llm`, `resume_graph_engine/src/apps_rg/evals`); if `BACKLOG_ACTION_REQUIRED` (`exit code 1`), proceed to Phase 0 and author behavioral unit tests for uncovered modules.
@@ -77,9 +78,11 @@ When Phase 1.5 reports `>= 1` actionable findings (`is_clean == false`), provisi
 
 ```bash
 export PRIMARY_REPO_ROOT="/Users/amitayer/Git/agents"
+export PYTHONDONTWRITEBYTECODE=1
+export AGY_SIDECAR_AGENT_ID="agents-testing-gaps-assurance"
 export RUN_TS="$(date -u +%Y%m%dT%H%M%SZ)"
 export HEX6="$(python3 -c 'import secrets; print(secrets.token_hex(3))')"
-export BRANCH_SLUG="agents-testing-gaps-${RUN_TS}"
+export BRANCH_SLUG="agents-testing-gaps-${RUN_TS}-${HEX6}"
 export BRANCH_NAME="chore/${BRANCH_SLUG}"
 export WORKTREE_SLUG="$(echo "${BRANCH_NAME}" | tr '/-' '__')"
 export WORKTREE_DIR="${PRIMARY_REPO_ROOT}/.worktrees/${WORKTREE_SLUG}"
@@ -87,7 +90,7 @@ export RUN_DIR="${WORKTREE_DIR}/artifacts/sidecar_runs/agents_testing_gaps_assur
 export PLAN_REL="plans/testing-gaps-assurance-${HEX6}.md"
 
 git -C "${PRIMARY_REPO_ROOT}" worktree prune
-"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/prune_merged_chat_worktrees.py" \
+PYTHONDONTWRITEBYTECODE=1 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/prune_merged_chat_worktrees.py" \
   --repo-root "${PRIMARY_REPO_ROOT}" \
   --consolidate-sidecar \
   --worktree-dir "${WORKTREE_DIR}" \
@@ -100,8 +103,9 @@ git -C "${PRIMARY_REPO_ROOT}" worktree prune
 cd "${WORKTREE_DIR}"
 mkdir -p "${RUN_DIR}" "${WORKTREE_DIR}/plans"
 export PRE_STATE_SHA256="$(git -C "${WORKTREE_DIR}" rev-parse HEAD)"
-"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/testing_gaps_auditor.py" \
+PYTHONDONTWRITEBYTECODE=1 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/testing_gaps_auditor.py" \
   --repo-root "${WORKTREE_DIR}" \
+  --include-uncovered-backlog \
   --output "${RUN_DIR}/audit_report.json" \
   --json || true
 ```
