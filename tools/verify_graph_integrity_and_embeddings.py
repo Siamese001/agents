@@ -4,6 +4,7 @@ Plan: graph-skills-metrics-embeddings-completion-b4e8a2 Wave 5.
 """
 from __future__ import annotations
 
+import argparse
 import math
 import sqlite3
 import struct
@@ -37,13 +38,22 @@ from apps_rg.runtime.graph_skill_hybrid_retrieval import (
 )
 
 
-def verify_graph_database(db_path: Path) -> dict[str, int | str]:
+def _connect_sqlite(db_path: Path, *, read_only: bool = False) -> sqlite3.Connection:
+    """Open SQLite DB connection, enforcing URI read-only + query_only when read_only=True."""
+    if read_only:
+        conn = sqlite3.connect(f"file:{db_path.as_posix()}?mode=ro", uri=True)
+        conn.execute("PRAGMA query_only=ON")
+        return conn
+    return sqlite3.connect(str(db_path))
+
+
+def verify_graph_database(db_path: Path, *, read_only: bool = False) -> dict[str, int | str]:
     if not db_path.is_file():
         raise FileNotFoundError(f"SQLite graph DB not found: {db_path}")
 
-    write_proof = verify_sqlite_physical_write_proof(db_path)
+    write_proof = {"status": "SKIPPED_READ_ONLY"} if read_only else verify_sqlite_physical_write_proof(db_path)
 
-    conn = sqlite3.connect(str(db_path))
+    conn = _connect_sqlite(db_path, read_only=read_only)
     c = conn.cursor()
 
     # 1. Check basic node and edge volume
@@ -125,7 +135,12 @@ def verify_graph_database(db_path: Path) -> dict[str, int | str]:
     }
 
 
-def verify_bge_m3_embeddings(embedding_dirs: list[Path], db_path: Path) -> dict[str, int | str | float]:
+def verify_bge_m3_embeddings(
+    embedding_dirs: list[Path],
+    db_path: Path,
+    *,
+    read_only: bool = False,
+) -> dict[str, int | str | float]:
     total_vectors = 0
     dim_target = 1024
     vector_files = []
@@ -140,7 +155,7 @@ def verify_bge_m3_embeddings(embedding_dirs: list[Path], db_path: Path) -> dict[
         raise FileNotFoundError(f"No vector SQLite files found in {embedding_dirs}")
 
     # Get retrieval-eligible skill IDs and semantic unit IDs from SQLite
-    conn = sqlite3.connect(str(db_path))
+    conn = _connect_sqlite(db_path, read_only=read_only)
     cur = conn.cursor()
     cur.execute("SELECT node_id FROM graph_nodes WHERE node_type = 'skill' AND external_eligible = 1")
     eligible_ids = set(r[0] for r in cur.fetchall())
@@ -153,7 +168,7 @@ def verify_bge_m3_embeddings(embedding_dirs: list[Path], db_path: Path) -> dict[
     mean_sim_global = 0.0
 
     for vf in vector_files:
-        conn = sqlite3.connect(str(vf))
+        conn = _connect_sqlite(vf, read_only=read_only)
         c = conn.cursor()
         c.execute("SELECT name FROM sqlite_master WHERE type='table'")
         tables = [r[0] for r in c.fetchall()]
@@ -265,13 +280,13 @@ def verify_bge_m3_embeddings(embedding_dirs: list[Path], db_path: Path) -> dict[
     }
 
 
-def verify_learned_sparse_and_colbert(db_path: Path) -> dict[str, int | str | float]:
+def verify_learned_sparse_and_colbert(db_path: Path, *, read_only: bool = False) -> dict[str, int | str | float]:
     """Verify learned sparse lexical weights and ColBERT multi-vectors in SQLite."""
     if not db_path.is_file():
         raise FileNotFoundError(f"SQLite graph DB not found: {db_path}")
     import json
 
-    conn = sqlite3.connect(str(db_path))
+    conn = _connect_sqlite(db_path, read_only=read_only)
     try:
         cur = conn.cursor()
         tables = {
@@ -279,6 +294,8 @@ def verify_learned_sparse_and_colbert(db_path: Path) -> dict[str, int | str | fl
             for r in cur.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
         }
         if "assertion_learned_sparse" not in tables or "assertion_colbert_vectors" not in tables:
+            if read_only:
+                raise RuntimeError("Missing learned sparse or ColBERT tables in read-only mode")
             from apps_rg.fact_inventory.semantic_units import populate_semantic_units
             from apps_rg.fact_inventory.skills_graph.schema_ddl import DDL_STATEMENTS
 
@@ -494,7 +511,7 @@ def _resolve_artifact_roots() -> list[Path]:
     return roots
 
 
-def run_full_verification() -> None:
+def run_full_verification(*, read_only: bool = False) -> None:
     artifact_roots = _resolve_artifact_roots()
     db_path = RG_ROOT / "artifacts/apps_rg/fact_inventory/augmented_skills_graph.sqlite"
     for base in artifact_roots:
@@ -515,13 +532,15 @@ def run_full_verification() -> None:
         )
 
     print("--> 1. Verifying GraphDB Traversal, Acyclicity & Capabilities...")
-    graph_res = verify_graph_database(db_path)
+    graph_res = verify_graph_database(db_path, read_only=read_only)
     print(f"    GraphDB: nodes={graph_res['node_count']}, edges={graph_res['edge_count']}, 3-hop paths={graph_res['three_hop_traversal_paths']}")
 
     print("--> 2. Verifying BGE-M3 Embeddings & Cosine Spectrum...")
-    emb_res = verify_bge_m3_embeddings(emb_dirs, db_path)
+    emb_res = verify_bge_m3_embeddings(emb_dirs, db_path, read_only=read_only)
     print(f"    Embeddings: verified {emb_res['verified_vectors_count']} vectors, dim={emb_res['dimension']}, L2-norm=1.000000")
     print(f"    Spectrum: min={emb_res['min_cosine']}, mean={emb_res['mean_cosine']}, max={emb_res['max_cosine']}")
+    sc_res = verify_learned_sparse_and_colbert(db_path, read_only=read_only)
+    print(f"    Sparse+ColBERT: sparse={sc_res['learned_sparse_count']}, colbert={sc_res['colbert_vector_count']}")
 
     print("--> 3. Verifying Stage 2 Metric Authority Boost & Input Validation...")
     ret_res = verify_hybrid_retrieval_stage2(db_path)
@@ -533,5 +552,8 @@ def run_full_verification() -> None:
 
 
 if __name__ == "__main__":
-    run_full_verification()
+    parser = argparse.ArgumentParser(description="Verify GraphDB integrity, embeddings, and quad-hybrid retrieval.")
+    parser.add_argument("--read-only", action="store_true", help="Open SQLite DBs in read-only URI mode without DDL/DML writes")
+    cli_args = parser.parse_args()
+    run_full_verification(read_only=cli_args.read_only)
 

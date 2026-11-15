@@ -280,7 +280,7 @@ def _probe_chunking_and_context_window(repo_root: Path) -> dict[str, Any]:
     }
 
 
-def _probe_graph_and_embeddings(repo_root: Path) -> dict[str, Any]:
+def _probe_graph_and_embeddings(repo_root: Path, *, read_only: bool = True) -> dict[str, Any]:
     from infrastructure.config.env_loader import get_main_repo_root
 
     graph_mod = _require_module(repo_root, "tools/verify_graph_integrity_and_embeddings.py")
@@ -322,9 +322,9 @@ def _probe_graph_and_embeddings(repo_root: Path) -> dict[str, Any]:
 
                 active_db = Path(td) / "augmented_skills_graph.sqlite"
                 materialize_augmented_skills_graph_sqlite(db_path=active_db)
-            graph_res = graph_mod.verify_graph_database(active_db)
-            emb_res = graph_mod.verify_bge_m3_embeddings(emb_dirs, active_db)
-            quad_res = graph_mod.verify_learned_sparse_and_colbert(active_db)
+            graph_res = graph_mod.verify_graph_database(active_db, read_only=read_only)
+            emb_res = graph_mod.verify_bge_m3_embeddings(emb_dirs, active_db, read_only=read_only)
+            quad_res = graph_mod.verify_learned_sparse_and_colbert(active_db, read_only=read_only)
             stage2_res = graph_mod.verify_hybrid_retrieval_stage2(active_db)
             if quad_res.get("status") != "PASS":
                 gaps.append("verify_learned_sparse_and_colbert did not return PASS")
@@ -343,7 +343,7 @@ def _probe_graph_and_embeddings(repo_root: Path) -> dict[str, Any]:
             if not c03_sel.get("selected_candidates"):
                 gaps.append("select_c03_sqlite_graph_candidates returned 0 selected_candidates for executive_summary")
             import sqlite3
-            with sqlite3.connect(active_db) as conn:
+            with sqlite3.connect(f"file:{active_db.as_posix()}?mode=ro" if read_only else str(active_db), uri=read_only) as conn:
                 blank_emp = conn.execute(
                     "SELECT COUNT(*) FROM graph_nodes WHERE node_type IN ('fact','skill','metric_outcome') AND COALESCE(TRIM(employer),'') = ''"
                 ).fetchone()[0]
@@ -361,7 +361,7 @@ def _probe_graph_and_embeddings(repo_root: Path) -> dict[str, Any]:
                     gaps.append(f"augmented_skills_graph.sqlite has {orphan_rf} orphaned role_family nodes")
             fv_fts = rg_root / "data/cache/sparse/fact_vectors.db"
             if fv_fts.is_file():
-                with sqlite3.connect(fv_fts) as fconn:
+                with sqlite3.connect(f"file:{fv_fts.as_posix()}?mode=ro" if read_only else str(fv_fts), uri=read_only) as fconn:
                     fts_count = fconn.execute("SELECT COUNT(*) FROM docs").fetchone()[0]
                     if fts_count < 328:
                         gaps.append(f"fact_vectors.db has only {fts_count} indexed rows (<328)")
@@ -552,7 +552,7 @@ def run_retrieval_surface_audit(repo_root: Path | None = None, *, read_only: boo
     pillars = {
         "pillar_1_query_decomposition_and_intent_routing": _probe_query_decomposition_and_intent_routing(root),
         "pillar_2_chunking_and_context_window": _probe_chunking_and_context_window(root),
-        "pillar_3_graphdb_traversal_and_embeddings": _probe_graph_and_embeddings(root),
+        "pillar_3_graphdb_traversal_and_embeddings": _probe_graph_and_embeddings(root, read_only=read_only),
         "pillar_4_provenance_and_citation_hygiene": _probe_citation_and_provenance_contract(root),
         "pillar_5_empty_result_fail_closed_abstention": _probe_fail_closed_abstention(root),
         "pillar_6_latency_and_live_multi_tier_caching": _probe_latency_and_live_caching(root),
