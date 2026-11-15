@@ -193,7 +193,7 @@ _TECH_TOKEN_PATTERN = re.compile(
     r"runtime|control.plane|route.policy|deterministic|policy.gate|"
     r"policy.gating|execution.trace|traceability|sandbox|"
     r"cloud.native|cloud|platform|architecture|infrastructure|pipelines?|devsecops|ci/cd|cicd|"
-    r"bi|dashboard|dashboards|data.model|data.models|semantic.view|semantic.views|"
+    r"bi|dashboard|dashboards|data.model|data.models|semantic.view|semantic.views|dependency.graph|semantic.edge|"
     r"regulatory|compliance|basel|ccar|sox|iso|"
     r"saas|paas|iaas|serverless|lambda|"
     r"consumption.based\s+licensing|renewal.signal\s+instrumentation|"
