@@ -10,6 +10,11 @@
     "apps_eval",
     "infrastructure"
   ],
+  "app_data_dir": ".antigravity/app_data",
+  "save_dir": "artifacts/sessions",
+  "workspaces": [
+    "."
+  ],
   "description": "Root boundary enforcing execution containment across declared repository subsystems.",
   "boundaryLevel": "monorepo_root",
   "projectName": "Agentic-Workflow"

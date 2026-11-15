@@ -305,3 +305,36 @@ class SwarmChallenger:
             unverified_claims_detected=unverified_count,
             escalation_reason=escalation_reason,
         )
+
+    @staticmethod
+    def build_subagent_configs() -> list[dict[str, Any]]:
+        """Project Proponent, Critic, and Arbiter roles into Antigravity SubagentConfig dicts."""
+        from tools.unified_agent_architecture import BuiltinTools, SubAgentDefinition
+
+        roles = (
+            (SwarmRole.PROPONENT.value.lower(), "Drafts candidate text and applies repair directives."),
+            (SwarmRole.CRITIC.value.lower(), "Audits draft text against canonical assertions and style rules."),
+            (SwarmRole.ARBITER.value.lower(), "Computes calibrated confidence, margin, and disposition."),
+        )
+        return [
+            SubAgentDefinition(
+                id=role_id,
+                parent_agent_id="swarm_challenger",
+                domain_focus=desc,
+            )
+            .to_antigravity_subagent_config(allowed_subagents=[r[0] for r in roles if r[0] != role_id])
+            .to_dict()
+            | {"allowed_tools": [BuiltinTools.START_SUBAGENT.value, BuiltinTools.VIEW_FILE.value]}
+            for role_id, desc in roles
+        ]
+
+    @staticmethod
+    def build_capabilities_config() -> dict[str, Any]:
+        """Return CapabilitiesConfig enabling subagent delegation across the challenger triad."""
+        from tools.unified_agent_architecture import CapabilitiesConfig
+
+        return CapabilitiesConfig(
+            enable_subagents=True,
+            max_subagent_depth=2,
+            allowed_subagents=[r.value.lower() for r in SwarmRole],
+        ).to_dict()

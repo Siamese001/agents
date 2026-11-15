@@ -22,7 +22,9 @@ from apps_rg.runtime.orchestration.section_lane_executor import (
 )
 from apps_rg.runtime.product_output_policy import PHASE1_PRIOR_LANE_FAILED_BLOCKER
 from apps_rg.runtime.providers.wallclock_http_guard import (
+    AntigravityCancelledError,
     DaemonWorkerPool,
+    cancel_antigravity_response_async,
     mark_artifact_dir_cancelled,
     resolve_section_lane_timeout_s,
     resolve_section_run_timeout_s,
@@ -396,4 +398,9 @@ def dispatch_phase1_lanes_managed(
     return {lane: outcomes[lane] for lane in lanes_in_order if lane in outcomes}
 
 
-__all__ = ["dispatch_phase1_lanes_managed", "LaneWave"]
+__all__ = [
+    "AntigravityCancelledError",
+    "LaneWave",
+    "cancel_antigravity_response_async",
+    "dispatch_phase1_lanes_managed",
+]

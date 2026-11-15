@@ -193,30 +193,14 @@ class PromptCompiler:
 
         # Convert common leading verbs to -ing gerund for natural sentence flow after "focus on ..."
         verb_map = {
-            "translate": "translating",
-            "modernize": "modernizing",
-            "transform": "transforming",
-            "optimize": "optimizing",
-            "execute": "executing",
-            "deliver": "delivering",
-            "drive": "driving",
-            "accelerate": "accelerating",
-            "architect": "architecting",
-            "deploy": "deploying",
-            "migrate": "migrating",
-            "consolidate": "consolidating",
-            "streamline": "streamlining",
-            "navigate": "navigating",
-            "build": "building",
-            "scale": "scaling",
-            "lead": "leading",
-            "integrate": "integrating",
-            "standardize": "standardizing",
-            "move": "moving",
-            "generate": "generating",
-            "expand": "expanding",
-            "advance": "advancing",
-            "establish": "establishing",
+            "translate": "translating", "modernize": "modernizing", "transform": "transforming",
+            "optimize": "optimizing", "execute": "executing", "deliver": "delivering",
+            "drive": "driving", "accelerate": "accelerating", "architect": "architecting",
+            "deploy": "deploying", "migrate": "migrating", "consolidate": "consolidating",
+            "streamline": "streamlining", "navigate": "navigating", "build": "building",
+            "scale": "scaling", "lead": "leading", "integrate": "integrating",
+            "standardize": "standardizing", "move": "moving", "generate": "generating",
+            "expand": "expanding", "advance": "advancing", "establish": "establishing",
         }
         for v, g in verb_map.items():
             if re.match(rf"^{v}\b", clean, flags=re.IGNORECASE):
@@ -589,3 +573,15 @@ class PromptCompiler:
         )
 
         return subject, body, fact_ids
+
+    @staticmethod
+    def build_templated_system_instructions(context: Dict[str, Any]) -> Any:
+        """Build Antigravity SDK TemplatedSystemInstructions from compiled prompt context."""
+        from tools.unified_agent_architecture import TemplatedSystemInstructions
+
+        forbidden = "\n".join(context.get("forbidden_behaviors") or [])
+        return TemplatedSystemInstructions(
+            identity=f"{context.get('candidate_name', 'Executive')} ({context.get('candidate_title', 'Leader')})",
+            guidelines=forbidden,
+            communication_style=str(context.get("tone", "professional")),
+        )

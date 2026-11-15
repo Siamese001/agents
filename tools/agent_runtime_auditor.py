@@ -19,11 +19,47 @@ import json
 import os
 import sys
 import tempfile
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Sequence
+from typing import Any, Callable, Sequence
 
 DEFAULT_REPO_ROOT = Path(__file__).resolve().parents[1]
+
+
+class AntigravityValidationError(ValueError):
+    """SDK validation error surfaced to OnToolErrorHook."""
+
+
+class AntigravityConnectionError(ConnectionError):
+    """SDK connection error surfaced to OnToolErrorHook."""
+
+
+@dataclass(frozen=True)
+class RetryConfig:
+    """Antigravity SDK RetryConfig contract."""
+
+    api_retry: int = 3
+    model_output_retry: int = 2
+
+    @classmethod
+    def benchmark(cls) -> RetryConfig:
+        """Preset benchmark RetryConfig with extended retry resiliency."""
+        return cls(api_retry=5, model_output_retry=3)
+
+
+@dataclass(frozen=True)
+class CompactionConfig:
+    """Antigravity SDK CompactionConfig contract."""
+
+    token_threshold: int = 1200
+
+
+@dataclass(frozen=True)
+class OnToolErrorHook:
+    """Antigravity SDK OnToolErrorHook wrapper."""
+
+    handler: Callable[[Exception], dict[str, Any]]
 
 
 def _ensure_paths(repo_root: Path) -> None:
@@ -147,6 +183,12 @@ def audit_pillar_3_context_budget_compaction(repo_root: Path) -> dict[str, Any]:
         budget = TokenBudget(max_total_tokens=2000, reserved_output_tokens=500)
         if budget.max_context_tokens != 1500:
             gaps.append(f"TokenBudget context token ceiling expected 1500, got {budget.max_context_tokens}")
+        compaction = CompactionConfig(**budget.to_compaction_config(ratio=0.8))
+        if compaction.token_threshold != 1200:
+            gaps.append(f"CompactionConfig token_threshold expected 1200, got {compaction.token_threshold}")
+        sdk_budget = budget.to_antigravity_budget_config()
+        if sdk_budget.max_total_tokens != 2000:
+            gaps.append(f"BudgetConfig max_total_tokens expected 2000, got {sdk_budget.max_total_tokens}")
 
         snap = ContextSnapshot(
             snapshot_id="snap-audit-001",

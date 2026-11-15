@@ -82,6 +82,26 @@ class TokenBudget:
             max_token_budget=self.max_context_tokens,
         )
 
+    def to_antigravity_budget_config(self, *, scope: str = "forward_looking") -> Any:
+        """Project context TokenBudget into Antigravity SDK BudgetConfig."""
+        from infrastructure.live_governor import BudgetConfig, BudgetScope
+
+        resolved_scope = (
+            BudgetScope.FORWARD_LOOKING
+            if str(scope).lower() == "forward_looking"
+            else BudgetScope.LIFETIME
+        )
+        return BudgetConfig(
+            max_input_tokens=self.max_context_tokens,
+            max_output_tokens=self.reserved_output_tokens,
+            max_total_tokens=self.max_total_tokens,
+            scope=resolved_scope,
+        )
+
+    def to_compaction_config(self, *, ratio: float = 0.8) -> dict[str, Any]:
+        """Project context ceiling into Antigravity SDK CompactionConfig(token_threshold=...)."""
+        return {"token_threshold": max(1, int(self.max_context_tokens * ratio))}
+
 
 class TrajectoryExemplarIndex:
     """Index of mined golden trajectory exemplars that converts to prompt ContextItems."""

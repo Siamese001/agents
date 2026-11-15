@@ -95,4 +95,27 @@ def try_unwrap_raw_text_to_resume(raw_text: str) -> tuple[dict[str, Any] | None,
     return inner, receipt
 
 
-__all__ = ["try_unwrap_raw_text_to_resume"]
+async def unwrap_structured_response_async(
+    response: Any,
+) -> tuple[dict[str, Any] | None, dict[str, Any]]:
+    """Prefer native Antigravity SDK `await response.structured_output()` before raw-text unwrap."""
+    if hasattr(response, "structured_output") and callable(response.structured_output):
+        parsed = await response.structured_output()
+        if hasattr(parsed, "model_dump") and callable(parsed.model_dump):
+            payload = parsed.model_dump()
+        elif isinstance(parsed, dict):
+            payload = dict(parsed)
+        else:
+            payload = None
+        if isinstance(payload, dict):
+            return payload, {
+                "repair_applied": False,
+                "repair_type": "NATIVE_STRUCTURED_OUTPUT",
+                "original_shape": "STRUCTURED_SCHEMA",
+                "validation_status": "PASS",
+            }
+    raw_text = getattr(response, "text", None) or (response if isinstance(response, str) else "")
+    return try_unwrap_raw_text_to_resume(str(raw_text))
+
+
+__all__ = ["try_unwrap_raw_text_to_resume", "unwrap_structured_response_async"]

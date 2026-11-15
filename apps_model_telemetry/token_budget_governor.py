@@ -45,6 +45,31 @@ class TokenBudgetPolicy:
         if self.max_reserved_tokens_per_run < self.max_input_tokens_per_attempt:
             raise ValueError("max_reserved_tokens_per_run must cover one input attempt")
 
+    def to_antigravity_budget_config(
+        self,
+        *,
+        max_output_tokens: int = 8192,
+        max_model_calls: int = 12,
+        max_tool_calls: int = 24,
+        scope: str = "lifetime",
+    ) -> Any:
+        """Project TokenBudgetPolicy into Antigravity SDK BudgetConfig."""
+        from infrastructure.live_governor import BudgetConfig, BudgetScope
+
+        resolved_scope = (
+            BudgetScope.FORWARD_LOOKING
+            if str(scope).lower() == "forward_looking"
+            else BudgetScope.LIFETIME
+        )
+        return BudgetConfig(
+            max_model_calls=max_model_calls,
+            max_tool_calls=max_tool_calls,
+            max_input_tokens=self.max_input_tokens_per_attempt,
+            max_output_tokens=max_output_tokens,
+            max_total_tokens=self.max_reserved_tokens_per_run,
+            scope=resolved_scope,
+        )
+
 
 @dataclass(frozen=True)
 class TokenBudgetReservation:
@@ -299,12 +324,20 @@ def reconcile_token_reservation(
     }
 
 
+def inspect_antigravity_stop_reason(response: Any) -> str:
+    """Return canonical StopReason string from an Antigravity SDK response."""
+    from infrastructure.live_governor import LiveTokenGovernor
+
+    return LiveTokenGovernor.inspect_stop_reason(response).value
+
+
 __all__ = [
     "RESERVATION_FILENAME",
     "RESERVATION_SCHEMA_VERSION",
     "TokenBudgetPolicy",
     "TokenBudgetReservation",
     "estimate_input_tokens",
+    "inspect_antigravity_stop_reason",
     "reconcile_token_reservation",
     "reserve_token_budget",
 ]

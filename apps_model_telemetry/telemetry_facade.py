@@ -90,6 +90,8 @@ def record_llm_call(
                     span.set_attribute("gen_ai.usage.input_tokens", int(norm_usage["prompt_tokens"]))
                 if norm_usage.get("output_tokens") is not None:
                     span.set_attribute("gen_ai.usage.output_tokens", int(norm_usage["output_tokens"]))
+                if norm_usage.get("thought_tokens") is not None:
+                    span.set_attribute("gen_ai.usage.thought_tokens", int(norm_usage["thought_tokens"]))
                 if norm_usage.get("cached_tokens") is not None:
                     span.set_attribute("gen_ai.usage.cached_tokens", int(norm_usage["cached_tokens"]))
                 if norm_usage.get("total_tokens") is not None:

@@ -1696,45 +1696,36 @@ def persist_apps_rg_targeting_brief_artifacts(
         if not required.is_file() or required.stat().st_size <= 0:
             raise RuntimeError(f"apps_research failed to publish required artifact: {required}")
     return AppsRgTargetingArtifactBundle(
-        run_id=run_id,
-        run_dir=run_dir.resolve(),
-        briefing_path=briefing_path.resolve(),
-        company_brief_path=company_brief_path.resolve(),
-        envelope_path=envelope_path.resolve(),
-        metadata_path=metadata_path.resolve(),
-        envelope=handoff_v2,
-        gate_mesh_path=gate_mesh_path.resolve(),
-        sealed_workflow_path=sealed_workflow_path.resolve(),
-        exit_review_path=exit_review_path.resolve(),
-        exit_disposition_path=exit_disposition_path.resolve(),
-        runtime_exhaust_path=runtime_exhaust_path.resolve(),
-        handoff_v2_path=handoff_v2_path.resolve(),
-        commit_manifest_path=commit_manifest_path.resolve(),
-        u0_receipt_path=u0_receipt_path.resolve(),
-        raw_input_path=raw_input_path.resolve(),
-        normalized_input_path=normalized_input_path.resolve(),
-        brief_sha256=exact_brief_sha256,
+        run_id=run_id, run_dir=run_dir.resolve(), briefing_path=briefing_path.resolve(),
+        company_brief_path=company_brief_path.resolve(), envelope_path=envelope_path.resolve(),
+        metadata_path=metadata_path.resolve(), envelope=handoff_v2, gate_mesh_path=gate_mesh_path.resolve(),
+        sealed_workflow_path=sealed_workflow_path.resolve(), exit_review_path=exit_review_path.resolve(),
+        exit_disposition_path=exit_disposition_path.resolve(), runtime_exhaust_path=runtime_exhaust_path.resolve(),
+        handoff_v2_path=handoff_v2_path.resolve(), commit_manifest_path=commit_manifest_path.resolve(),
+        u0_receipt_path=u0_receipt_path.resolve(), raw_input_path=raw_input_path.resolve(),
+        normalized_input_path=normalized_input_path.resolve(), brief_sha256=exact_brief_sha256,
         result_metadata_digest=_sha256_bytes(artifact_payloads["run_metadata.json"]),
         bundle_manifest_digest=_sha256_bytes(handoff_v2_bytes),
     )
 
 
+def build_handoff_judge_agent_config(response_schema: Any = None) -> dict[str, Any]:
+    """Return Antigravity SDK LocalAgentConfig metadata with response_schema for handoff judge."""
+    from tools.unified_agent_architecture import TemplatedSystemInstructions
+
+    instr = TemplatedSystemInstructions(
+        identity=APPS_RG_HANDOFF_JUDGE_NAME,
+        guidelines="Evaluate handoff brief grounding and return structured verdict.",
+    )
+    return {"model": APPS_RG_HANDOFF_JUDGE_MODEL, "system_instructions": instr, "response_schema": response_schema}
+
+
 __all__ = [
-    "APPS_RG_HANDOFF_EXIT_PROFILE_ID",
-    "APPS_RG_HANDOFF_GENERATION_PROVIDER",
-    "APPS_RG_HANDOFF_JUDGE_MODEL",
-    "APPS_RG_HANDOFF_JUDGE_NAME",
-    "APPS_RG_HANDOFF_JUDGE_PROVIDER",
-    "APPS_RG_HANDOFF_X2_THRESHOLD",
-    "AppsRgHandoffExitAuthorization",
-    "AppsRgTargetingArtifactBundle",
-    "build_apps_rg_handoff_gate_mesh",
-    "find_apps_rg_targeting_sidecar",
-    "looks_like_stub_company_brief",
-    "persist_apps_rg_targeting_brief_artifacts",
-    "run_apps_rg_handoff_exit_authorization",
-    "run_apps_rg_handoff_x2_judge",
-    "sha256_text",
-    "validate_apps_rg_handoff_sidecar",
-    "x2_judge_receipt_passes",
+    "APPS_RG_HANDOFF_EXIT_PROFILE_ID", "APPS_RG_HANDOFF_GENERATION_PROVIDER",
+    "APPS_RG_HANDOFF_JUDGE_MODEL", "APPS_RG_HANDOFF_JUDGE_NAME", "APPS_RG_HANDOFF_JUDGE_PROVIDER",
+    "APPS_RG_HANDOFF_X2_THRESHOLD", "AppsRgHandoffExitAuthorization", "AppsRgTargetingArtifactBundle",
+    "build_apps_rg_handoff_gate_mesh", "build_handoff_judge_agent_config", "find_apps_rg_targeting_sidecar",
+    "looks_like_stub_company_brief", "persist_apps_rg_targeting_brief_artifacts",
+    "run_apps_rg_handoff_exit_authorization", "run_apps_rg_handoff_x2_judge", "sha256_text",
+    "validate_apps_rg_handoff_sidecar", "x2_judge_receipt_passes",
 ]

@@ -84,3 +84,17 @@ def ingest(path: Path, chunk_tokens: int = 512, overlap_tokens: int = 50) -> lis
         )
         for i, piece in enumerate(pieces)
     ]
+
+
+def load_multimodal_document(path: Path | str) -> object:
+    """Load a PDF or text document via Antigravity SDK `types.Document.from_file`."""
+    from tools.unified_agent_architecture import Document
+
+    return Document.from_file(path)
+
+
+def load_multimodal_image(path: Path | str) -> object:
+    """Load a diagram/slide image via Antigravity SDK `types.Image.from_file`."""
+    from tools.unified_agent_architecture import Image
+
+    return Image.from_file(path)

@@ -344,3 +344,22 @@ def resolve_judge_total_budget_s(override: float | None = None) -> float:
         "judge_http.total_budget_seconds",
         150.0,  # ssot: exempt(HARDCODED_TIMEOUT)
     )
+
+
+from tools.unified_agent_architecture import AntigravityCancelledError
+
+
+async def cancel_antigravity_response_async(response: Any) -> bool:
+    """Cancel an in-flight Antigravity SDK response stream (`await response.cancel()`).
+
+    Catches `AntigravityCancelledError` (a `BaseException` subclass) explicitly before `Exception`.
+    """
+    if hasattr(response, "cancel") and callable(response.cancel):
+        try:
+            await response.cancel()
+            return True
+        except AntigravityCancelledError:
+            return True
+        except Exception:  # guardian: allow-broad-exception -- best-effort stream cancel cleanup
+            return False
+    return False

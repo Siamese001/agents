@@ -8,7 +8,7 @@ Repository-owned skills under `.agents/skills/` are procedural, on-demand adapte
 
 ## Active Catalog
 
-- Retain strictly the 7 consolidated root skills under `.agents/skills/`:
+- Enforce the repository skill ceiling (`MAX_SKILLS_CAP = 26` in `tools/audit_skills_budget.py`) across `.agents/skills/*/SKILL.md`, including the 7 core assurance skills:
   1. `agents-domain-assurance`
   2. `agents-governance-hygiene`
   3. `operational-gates`
@@ -16,6 +16,7 @@ Repository-owned skills under `.agents/skills/` are procedural, on-demand adapte
   5. `scope-containment`
   6. `security-hardening`
   7. `testing-framework`
+- Pass `skills_paths=[str(repo_root / ".agents" / "skills")]` to `LocalAgentConfig` when provisioning Antigravity SDK agents.
 - Keep skills self-contained; eliminate fragmented companion checklists and unverified sub-documents.
 - Keep external/IDE skills segregated from repository skills.
 

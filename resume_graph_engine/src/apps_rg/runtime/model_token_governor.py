@@ -51,4 +51,15 @@ def reserve_apps_rg_model_tokens(
     )
 
 
-__all__ = ["apps_rg_model_token_budget_policy", "reserve_apps_rg_model_tokens"]
+def apps_rg_antigravity_budget_config(*, max_output_tokens: int = 8192) -> object:
+    """Project apps_rg token governor policy into Antigravity SDK BudgetConfig."""
+    return apps_rg_model_token_budget_policy().to_antigravity_budget_config(
+        max_output_tokens=max_output_tokens,
+    )
+
+
+__all__ = [
+    "apps_rg_antigravity_budget_config",
+    "apps_rg_model_token_budget_policy",
+    "reserve_apps_rg_model_tokens",
+]

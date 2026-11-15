@@ -152,6 +152,37 @@ REQUIRED_PROMPT_PARITY_MARKERS: tuple[str, ...] = (
 )
 
 
+def resolve_antigravity_skills_paths(repo_root: Path = REPO_ROOT) -> list[str]:
+    """Return canonical skills_paths list for LocalAgentConfig(skills_paths=[...])."""
+    return [str((repo_root / ".agents" / "skills").resolve())]
+
+
+def build_antigravity_sdk_triggers(repo_root: Path = REPO_ROOT) -> list[dict[str, Any]]:
+    """Build programmatic google.antigravity.triggers (every, on_file_change) specs for assurance workflows."""
+    try:
+        from google.antigravity import triggers as ag_triggers  # type: ignore
+    except ImportError:
+        ag_triggers = None
+
+    trigger_specs: list[dict[str, Any]] = []
+    for workflow_id, spec in EXPECTED_AGENTS_SIDECARS.items():
+        cron_expr = str(spec.get("cron") or "CRON_TZ=America/New_York 0 5 * * *")
+        det_ep = str(spec.get("deterministic_entrypoint") or "")
+        entry: dict[str, Any] = {
+            "workflow_id": workflow_id,
+            "every": cron_expr,
+            "on_file_change": det_ep,
+            "skills_paths": resolve_antigravity_skills_paths(repo_root),
+            "enabled": False,
+        }
+        if ag_triggers is not None:
+            for attr in ("every", "on_file_change"):
+                if hasattr(ag_triggers, attr):
+                    entry[f"sdk_{attr}_available"] = True
+        trigger_specs.append(entry)
+    return trigger_specs
+
+
 def build_agents_sidecar_payload(workflow_id: str, spec: dict[str, Any]) -> dict[str, Any]:
     """Construct the thin SSOT pointer sidecar.json payload for an Agents workflow."""
     prompt_abs = f"{AGENTS_CANONICAL_ROOT}/automations/prompts/{spec['prompt_file']}"

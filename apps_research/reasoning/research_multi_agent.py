@@ -382,64 +382,42 @@ class ResearchOrchestrator:
 
         # Define agent execution pipeline
         agents: list[ResearchAgentRequest] = [
-            ResearchAgentRequest(
-                agent_type=ResearchAgentType.QUERY_ANALYZE,
-                agent_id="AGENT-01-QUERY",
-                context={"topic": topic, "mode": artifact_mode},
-                timeout_ms=20000,
-            ),
-            ResearchAgentRequest(
-                agent_type=ResearchAgentType.SOURCE_GATHER,
-                agent_id="AGENT-02-SOURCES",
-                dependencies=["AGENT-01-QUERY"],
-                context={"topic": topic},
-                timeout_ms=60000,
-            ),
-            ResearchAgentRequest(
-                agent_type=ResearchAgentType.EVIDENCE_EXTRACT,
-                agent_id="AGENT-03-EVIDENCE",
-                dependencies=["AGENT-02-SOURCES"],
-                context={},
-                timeout_ms=45000,
-            ),
-            ResearchAgentRequest(
-                agent_type=ResearchAgentType.CONTENT_SYNTHESIZE,
-                agent_id="AGENT-04-SYNTHESIZE",
-                dependencies=["AGENT-03-EVIDENCE"],
-                context={"topic": topic, "mode": artifact_mode},
-                timeout_ms=40000,
-            ),
-            ResearchAgentRequest(
-                agent_type=ResearchAgentType.CLAIM_TYPE,
-                agent_id="AGENT-05-TYPE",
-                dependencies=["AGENT-04-SYNTHESIZE"],
-                context={},
-                timeout_ms=20000,
-            ),
-            ResearchAgentRequest(
-                agent_type=ResearchAgentType.QUALITY_VALIDATE,
-                agent_id="AGENT-06-VALIDATE",
-                dependencies=["AGENT-05-TYPE"],
-                context={},
-                timeout_ms=15000,
-            ),
+            ResearchAgentRequest(ResearchAgentType.QUERY_ANALYZE, "AGENT-01-QUERY", context={"topic": topic, "mode": artifact_mode}, timeout_ms=20000),
+            ResearchAgentRequest(ResearchAgentType.SOURCE_GATHER, "AGENT-02-SOURCES", ["AGENT-01-QUERY"], {"topic": topic}, 60000),
+            ResearchAgentRequest(ResearchAgentType.EVIDENCE_EXTRACT, "AGENT-03-EVIDENCE", ["AGENT-02-SOURCES"], {}, 45000),
+            ResearchAgentRequest(ResearchAgentType.CONTENT_SYNTHESIZE, "AGENT-04-SYNTHESIZE", ["AGENT-03-EVIDENCE"], {"topic": topic, "mode": artifact_mode}, 40000),
+            ResearchAgentRequest(ResearchAgentType.CLAIM_TYPE, "AGENT-05-TYPE", ["AGENT-04-SYNTHESIZE"], {}, 20000),
+            ResearchAgentRequest(ResearchAgentType.QUALITY_VALIDATE, "AGENT-06-VALIDATE", ["AGENT-05-TYPE"], {}, 15000),
         ]
-
-        # Compute execution order
         execution_order = self._compute_execution_order(agents)
-
         return ResearchOrchestrationPlan(
             agents=agents,
             execution_order=execution_order,
-            estimated_total_time_ms=200000,  # Sum of all timeouts
-            critical_path=[
-                "AGENT-01-QUERY",
-                "AGENT-02-SOURCES",
-                "AGENT-03-EVIDENCE",
-                "AGENT-04-SYNTHESIZE",
-                "AGENT-06-VALIDATE",
-            ],
+            estimated_total_time_ms=200000,
+            critical_path=["AGENT-01-QUERY", "AGENT-02-SOURCES", "AGENT-03-EVIDENCE", "AGENT-04-SYNTHESIZE", "AGENT-06-VALIDATE"],
         )
+
+    @staticmethod
+    def build_subagent_configs() -> list[dict[str, Any]]:
+        """Project AGENT-01-QUERY..AGENT-06-VALIDATE into Antigravity SubagentConfig dicts."""
+        from tools.unified_agent_architecture import BuiltinTools, SubAgentDefinition
+
+        ids = ("AGENT-01-QUERY", "AGENT-02-SOURCES", "AGENT-03-EVIDENCE", "AGENT-04-SYNTHESIZE", "AGENT-05-TYPE", "AGENT-06-VALIDATE")
+        return [
+            SubAgentDefinition(id=aid, parent_agent_id="research_orchestrator", domain_focus=f"Research pipeline stage {aid}")
+            .to_antigravity_subagent_config(allowed_subagents=[x for x in ids if x != aid])
+            .to_dict()
+            | {"allowed_tools": [BuiltinTools.START_SUBAGENT.value, BuiltinTools.VIEW_FILE.value]}
+            for aid in ids
+        ]
+
+    @staticmethod
+    def build_capabilities_config() -> dict[str, Any]:
+        """Return CapabilitiesConfig enabling subagent delegation across the 6 research stages."""
+        from tools.unified_agent_architecture import CapabilitiesConfig
+
+        ids = ["AGENT-01-QUERY", "AGENT-02-SOURCES", "AGENT-03-EVIDENCE", "AGENT-04-SYNTHESIZE", "AGENT-05-TYPE", "AGENT-06-VALIDATE"]
+        return CapabilitiesConfig(enable_subagents=True, max_subagent_depth=2, allowed_subagents=ids).to_dict()
 
     async def execute_plan(self, plan: ResearchOrchestrationPlan) -> list[ResearchAgentResult]:
         """Execute the orchestration plan."""

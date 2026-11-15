@@ -157,6 +157,9 @@ def run_pillar_6_live_probes(repo_root: Path, profiles_data: dict[str, Any]) -> 
         prof = r_profiles.get(prof_name) or {}
         if prof.get("max_attempts") != max_att:
             gaps.append(f"judge.runtime_profiles.{prof_name}.max_attempts != {max_att}")
+    ara, e_ara = load_repo_module(repo_root, "tools/agent_runtime_auditor.py")
+    if e_ara or ara is None or ara.RetryConfig.benchmark().api_retry < 3:
+        gaps.append(e_ara or "RetryConfig.benchmark() invalid in tools/agent_runtime_auditor.py")
 
     pg, e1 = load_repo_module(repo_root, "apps_research/integrations/provider_gateway.py")
     zlq, e2 = load_repo_module(repo_root, "resume_graph_engine/src/apps_rg/runtime/zero_llm_qualification.py")

@@ -9,11 +9,24 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Mapping, Sequence
 import uuid
+
+
+def configure_antigravity_sdk_logger(
+    level: int = logging.INFO,
+    handler: logging.Handler | None = None,
+) -> logging.Logger:
+    """Configure and return the official `google.antigravity` SDK logger."""
+    sdk_logger = logging.getLogger("google.antigravity")
+    sdk_logger.setLevel(level)
+    if handler is not None and handler not in sdk_logger.handlers:
+        sdk_logger.addHandler(handler)
+    return sdk_logger
 
 
 class AgentEventType(str, Enum):

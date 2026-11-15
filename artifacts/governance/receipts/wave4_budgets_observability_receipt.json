@@ -1,0 +1,16 @@
+{
+  "wave": 4,
+  "title": "Budgets, Retries, Compaction, Session Persistence & Observability",
+  "status": "COMPLETE",
+  "command": ".venv/bin/python -m pytest tests/unit/test_cost_token_budget_auditor.py -v --timeout=60 && .venv/bin/python tools/cost_token_budget_auditor.py",
+  "exit_code": 0,
+  "tests_passed": 3,
+  "pillars_passing": "8/8",
+  "roi_multiplier": 2.57,
+  "gaps": 0,
+  "verified_features": [
+    "BudgetConfig and StopReason projections across all 4 token governors",
+    "RetryConfig.benchmark(), CompactionConfig, OnToolErrorHook, and session persistence config",
+    "antigravity_usage_metrics, gen_ai.usage.thought_tokens, and google.antigravity logger"
+  ]
+}

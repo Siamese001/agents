@@ -286,3 +286,36 @@ class OutreachSwarmChallenger:
             issues_resolved=total_issues_resolved,
             escalation_reason=escalation_reason,
         )
+
+    @staticmethod
+    def build_subagent_configs() -> list[dict[str, Any]]:
+        """Project Outreach Drafter, ToneCritic, and DeliveryArbiter into SubagentConfig dicts."""
+        from tools.unified_agent_architecture import BuiltinTools, SubAgentDefinition
+
+        roles = (
+            (OutreachSwarmRole.DRAFTER.value.lower(), "Crafts executive outreach messaging and applies repairs."),
+            (OutreachSwarmRole.TONE_CRITIC.value.lower(), "Audits brevity, peer tone, em-dashes, and spam triggers."),
+            (OutreachSwarmRole.DELIVERY_ARBITER.value.lower(), "Evaluates calibrated confidence and signs off on delivery."),
+        )
+        return [
+            SubAgentDefinition(
+                id=role_id,
+                parent_agent_id="outreach_swarm_challenger",
+                domain_focus=desc,
+            )
+            .to_antigravity_subagent_config(allowed_subagents=[r[0] for r in roles if r[0] != role_id])
+            .to_dict()
+            | {"allowed_tools": [BuiltinTools.START_SUBAGENT.value, BuiltinTools.VIEW_FILE.value]}
+            for role_id, desc in roles
+        ]
+
+    @staticmethod
+    def build_capabilities_config() -> dict[str, Any]:
+        """Return CapabilitiesConfig for OutreachSwarmChallenger subagents."""
+        from tools.unified_agent_architecture import CapabilitiesConfig
+
+        return CapabilitiesConfig(
+            enable_subagents=True,
+            max_subagent_depth=2,
+            allowed_subagents=[r.value.lower() for r in OutreachSwarmRole],
+        ).to_dict()

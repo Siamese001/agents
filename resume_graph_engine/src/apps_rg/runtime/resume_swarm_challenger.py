@@ -283,6 +283,39 @@ class ResumeSwarmChallenger:
             escalation_reason=escalation_reason,
         )
 
+    @staticmethod
+    def build_subagent_configs() -> list[dict[str, Any]]:
+        """Project Resume Matcher, FactualCritic, and VoiceArbiter into SubagentConfig dicts."""
+        from tools.unified_agent_architecture import BuiltinTools, SubAgentDefinition
+
+        roles = (
+            (ResumeSwarmRole.MATCHER.value.lower(), "Aligns candidate experience with target job competencies."),
+            (ResumeSwarmRole.FACTUAL_CRITIC.value.lower(), "Cross-checks assertions and eliminates ungrounded metrics."),
+            (ResumeSwarmRole.VOICE_ARBITER.value.lower(), "Calibrates executive voice, confidence, and disposition."),
+        )
+        return [
+            SubAgentDefinition(
+                id=role_id,
+                parent_agent_id="resume_swarm_challenger",
+                domain_focus=desc,
+            )
+            .to_antigravity_subagent_config(allowed_subagents=[r[0] for r in roles if r[0] != role_id])
+            .to_dict()
+            | {"allowed_tools": [BuiltinTools.START_SUBAGENT.value, BuiltinTools.VIEW_FILE.value]}
+            for role_id, desc in roles
+        ]
+
+    @staticmethod
+    def build_capabilities_config() -> dict[str, Any]:
+        """Return CapabilitiesConfig for ResumeSwarmChallenger subagents."""
+        from tools.unified_agent_architecture import CapabilitiesConfig
+
+        return CapabilitiesConfig(
+            enable_subagents=True,
+            max_subagent_depth=2,
+            allowed_subagents=[r.value.lower() for r in ResumeSwarmRole],
+        ).to_dict()
+
 
 def verify_with_swarm(
     bullets: Sequence[str],

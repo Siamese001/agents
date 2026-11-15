@@ -96,3 +96,30 @@ def chat_usage_metrics(response: Any) -> dict[str, int | float]:
         "output_tokens": output_tokens,
         "cache_read_ratio": ratio,
     }
+
+
+def antigravity_usage_metrics(response_or_agent: Any) -> dict[str, int | float]:
+    """Extract Antigravity SDK UsageMetadata (`response.usage` or `agent.conversation.total_usage`)."""
+    conv = getattr(response_or_agent, "conversation", None)
+    usage = getattr(conv, "total_usage", None) if conv is not None else getattr(response_or_agent, "usage", response_or_agent)
+    if isinstance(usage, Mapping):
+        prompt = int(usage.get("prompt_token_count") or usage.get("prompt_tokens") or 0)
+        candidates = int(usage.get("candidates_token_count") or usage.get("completion_tokens") or 0)
+        thoughts = int(usage.get("thoughts_token_count") or usage.get("thought_tokens") or 0)
+        cached = int(usage.get("cached_content_token_count") or usage.get("cached_tokens") or 0)
+        total = int(usage.get("total_token_count") or usage.get("total_tokens") or (prompt + candidates + thoughts))
+    else:
+        prompt = int(getattr(usage, "prompt_token_count", 0) or getattr(usage, "prompt_tokens", 0) or 0)
+        candidates = int(getattr(usage, "candidates_token_count", 0) or getattr(usage, "completion_tokens", 0) or 0)
+        thoughts = int(getattr(usage, "thoughts_token_count", 0) or getattr(usage, "thought_tokens", 0) or 0)
+        cached = int(getattr(usage, "cached_content_token_count", 0) or getattr(usage, "cached_tokens", 0) or 0)
+        total = int(getattr(usage, "total_token_count", 0) or getattr(usage, "total_tokens", 0) or (prompt + candidates + thoughts))
+    ratio = round(cached / prompt, 4) if prompt > 0 else 0.0
+    return {
+        "prompt_token_count": prompt,
+        "candidates_token_count": candidates,
+        "thoughts_token_count": thoughts,
+        "cached_content_token_count": cached,
+        "total_token_count": total,
+        "cache_read_ratio": ratio,
+    }

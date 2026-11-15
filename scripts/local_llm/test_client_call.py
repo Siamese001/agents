@@ -14,7 +14,11 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
 from infrastructure.live_execution import LiveExecutionError
-from infrastructure.sdks_mcps.client_wrappers import create_local_openai_client
+from infrastructure.sdks_mcps.client_wrappers import (
+    create_litert_agent_config,
+    create_local_openai_agent_config,
+    create_local_openai_client,
+)
 
 
 def _resolve_local_model_id(catalog_override: Path | None = None) -> str:
@@ -48,8 +52,14 @@ def test_resolve_local_model_id_and_client_wrapper(tmp_path: Path, monkeypatch: 
     with pytest.raises(LiveExecutionError, match="LOCAL_PROVIDER_ERROR"):
         create_local_openai_client()
 
-    mp.setenv("LOCAL_OPENAI_API_KEY", "local-test-token")
     mp.setenv("LOCAL_OPENAI_BASE_URL", "http://127.0.0.1:8000/v1")
+    keyless_cfg = create_local_openai_agent_config(model=model_id)
+    assert keyless_cfg.keyless is True
+    assert keyless_cfg.is_lightweight is True
+    litert_cfg = create_litert_agent_config("models/gemma4-26b.litertlm")
+    assert litert_cfg.keyless is True
+
+    mp.setenv("LOCAL_OPENAI_API_KEY", "local-test-token")
     client = create_local_openai_client()
     assert client is not None
     assert str(client.base_url).startswith("http://127.0.0.1:8000")

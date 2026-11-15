@@ -48,7 +48,7 @@ When delegating work to a sub-agent, use this canonical JSON structure:
   ],
   "allowed_tools": [
     "view_file",
-    "replace_file_content",
+    "edit_file",
     "run_command"
   ],
   "deliverable": {
