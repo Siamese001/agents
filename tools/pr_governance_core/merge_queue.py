@@ -144,9 +144,12 @@ def _can_bypass_priors(cand: QueueItem, priors: list[QueueItem]) -> bool:
     if any(p.bypass_count >= MAX_BYPASS_COUNT for p in priors):
         return False
 
+    is_train = cand.branch.startswith("feat/wave-") and cand.branch.endswith("-train")
     cand_files = set(cand.changed_files)
     for p in priors:
-        if not cand_files.isdisjoint(p.changed_files) or p.has_valid_receipt:
+        if not cand_files.isdisjoint(p.changed_files):
+            return False
+        if p.has_valid_receipt and p.status == "PENDING" and not is_train:
             return False
 
     return True
@@ -179,6 +182,7 @@ def _evaluate_candidate_eligibility(
     branch: str,
     tag: str,
     dirty: bool,
+    consume_bypass: bool = True,
 ) -> bool:
     """Evaluates whether a candidate branch/tag can bypass pending priors."""
     cand_matches = [w for w in live_pending if w.branch == branch and w.enqueued_by == tag]
@@ -196,13 +200,16 @@ def _evaluate_candidate_eligibility(
             _write_waiters(common_dir, pruned)
         return False
 
-    for p in priors:
-        p.bypass_count += 1
-    _write_waiters(common_dir, pruned)
-    logger.info(
-        f"Disjoint bypass: '{branch}' bypassed {len(priors)} prior waiter(s) "
-        f"(head bypass_count={priors[0].bypass_count}/{MAX_BYPASS_COUNT})."
-    )
+    if consume_bypass:
+        for p in priors:
+            p.bypass_count += 1
+        _write_waiters(common_dir, pruned)
+        logger.info(
+            f"Disjoint bypass: '{branch}' bypassed {len(priors)} prior waiter(s) "
+            f"(head bypass_count={priors[0].bypass_count}/{MAX_BYPASS_COUNT})."
+        )
+    elif dirty:
+        _write_waiters(common_dir, pruned)
     return True
 
 
@@ -258,6 +265,7 @@ def is_first_live_waiter(
     pid: int,
     changed_files: Optional[list[str]] = None,
     has_valid_receipt: Optional[bool] = None,
+    consume_bypass: bool = True,
 ) -> bool:
     """Returns True if (branch, pid) is eligible to acquire the lock under Starvation-Bounded Disjoint-First scheduling."""
     tag = f"pid:{pid}"
@@ -280,7 +288,9 @@ def is_first_live_waiter(
                 _write_waiters(common_dir, pruned)
             return True
 
-        return _evaluate_candidate_eligibility(common_dir, pruned, live_pending, branch, tag, dirty)
+        return _evaluate_candidate_eligibility(
+            common_dir, pruned, live_pending, branch, tag, dirty, consume_bypass=consume_bypass
+        )
 
 
 def enqueue_pr(branch: str, title: str, repo_root: Optional[Path] = None) -> QueueItem:

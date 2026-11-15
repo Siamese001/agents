@@ -1023,6 +1023,78 @@ Decompose `headline_lane.py` into `<= 600`-line submodules behind an intact `Imp
                 is_valid, errors = validate_file(plan_path, repo_root=ROOT)
                 self.assertTrue(is_valid, f"{plan_name} failed validation: {errors}")
 
+    def test_fork_join_sharded_waves_and_shard_manifest_annex(self) -> None:
+        """Verify Wave 2A / Wave 2B fork-join DAG headers and validated shard-manifest annex."""
+        from tools.implementation_plan_core.wave_dag import (
+            strip_and_validate_shard_manifests,
+            validate_wave_dag_sequence,
+        )
+
+        sharded_plan = """# Fork Join Sharded Refactor Plan
+
+```json shard-manifest
+{
+  "shards": [
+    {"shard_id": "2A", "scope_in": ["tools/mod_a.py"], "verify_independently": "pytest tests/test_a.py --timeout=60"},
+    {"shard_id": "2B", "scope_in": ["tools/mod_b.py"], "verify_independently": "pytest tests/test_b.py --timeout=60"}
+  ]
+}
+```
+
+## Wave 1: Contract Setup
+### Objective & Scope
+Define shared contract.
+### Milestones & Deliverables
+- [NEW] `tools/contract.py`
+### Acceptance Criteria
+- Contract passes.
+### Runtime Receipt & Completion Gate
+- Run: pytest tests/test_contract.py --timeout=60
+- Input: fixture
+- Expected: 0 failures
+- Verify independently: git diff --stat
+- Fail if: exit != 0
+- Record: reports/w1.json
+
+## Wave 2A: Shard A Implementation
+Depends On: Wave 1
+### Objective & Scope
+Implement shard A.
+### Milestones & Deliverables
+- [NEW] `tools/mod_a.py`
+### Acceptance Criteria
+- Shard A passes.
+### Runtime Receipt & Completion Gate
+- Run: pytest tests/test_a.py --timeout=60
+- Input: fixture
+- Expected: 0 failures
+- Verify independently: git diff --stat
+- Fail if: exit != 0
+- Record: reports/w2a.json
+
+## Wave 2B: Shard B Implementation
+Depends On: Wave 1
+### Objective & Scope
+Implement shard B.
+### Milestones & Deliverables
+- [NEW] `tools/mod_b.py`
+### Acceptance Criteria
+- Shard B passes.
+### Runtime Receipt & Completion Gate
+- Run: pytest tests/test_b.py --timeout=60
+- Input: fixture
+- Expected: 0 failures
+- Verify independently: git diff --stat
+- Fail if: exit != 0
+- Record: reports/w2b.json
+"""
+        stripped, m_errs = strip_and_validate_shard_manifests(sharded_plan, "sharded.md")
+        self.assertEqual(m_errs, [])
+        self.assertNotIn("shard-manifest", stripped)
+        is_valid, errors = validate_plan_content(sharded_plan, "sharded.md")
+        self.assertTrue(is_valid, f"Expected sharded plan to pass, got: {errors}")
+        self.assertEqual(validate_wave_dag_sequence([], "empty.md"), [])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -45,8 +45,11 @@ CONVENTIONAL_BRANCH_RE = re.compile(
 )
 
 GENERATED_ARTIFACT_PATTERNS = (
+    "reports/",
     "reports/pr_review_",
     "reports/pr_merge_",
+    "reports/pr_shard_",
+    "reports/pr_train_",
     "reports/pr_queue_detail.json",
     "reports/readiness/",
     "reports/local_main_readiness_",

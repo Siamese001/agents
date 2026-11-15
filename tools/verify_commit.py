@@ -76,6 +76,7 @@ from concurrent.futures import ThreadPoolExecutor
 EXEMPT_DIR_NAMES: set[str] = {
     ".venv",
     ".git",
+    ".worktrees",
     "artifacts",
     "__pycache__",
     ".pytest_cache",
@@ -189,14 +190,32 @@ def check_standard_code_hygiene(files: Sequence[Path], repo_root: Path) -> tuple
     return len(errors) == 0, errors
 
 
+def _files_touch_repo_wide_governance(files: Sequence[Path] | None, repo_root: Path) -> bool:
+    if files is None:
+        return True
+    triggers = ("config/", "data/", "judges/", "tools/", ".agents/", "agents/orchestration/services/")
+    exact = {"pyproject.toml", "pytest.ini", ".mcp.json"}
+    for f in files:
+        try:
+            rel = f.resolve().relative_to(repo_root.resolve()).as_posix()
+        except ValueError:
+            rel = str(f).replace("\\", "/")
+        if rel in exact or any(rel.startswith(p) or f"/{p}" in f"/{rel}" for p in triggers):
+            return True
+    return False
+
+
 def _run_extended_architectural_checks(
     files: Sequence[Path] | None,
     repo_root: Path,
     mode_name: str = "all",
+    shard_fast: bool = False,
 ) -> list[str]:
     """Run architectural boundary, layer boundary, and model pin integrity checks."""
     errs: list[str] = []
     if mode_name == "unit-test-explicit":
+        return errs
+    if shard_fast and not _files_touch_repo_wide_governance(files, repo_root):
         return errs
 
     arch_res = run_architecture_linter(repo_root)
@@ -223,10 +242,13 @@ def _run_ssot_drift_checks(
     files: Sequence[Path] | None,
     repo_root: Path,
     mode_name: str = "all",
+    shard_fast: bool = False,
 ) -> list[str]:
     """Run strict configuration and data SSOT drift checks."""
     errs: list[str] = []
     if mode_name == "unit-test-explicit":
+        return errs
+    if shard_fast and not _files_touch_repo_wide_governance(files, repo_root):
         return errs
     if not (repo_root / "config").is_dir() or not (repo_root / "resume_graph_engine" / "config").is_dir():
         return errs
@@ -316,6 +338,7 @@ def run_precommit_gate(
     target_files: list[Path] | None,
     repo_root: Path,
     mode_name: str = "staged",
+    shard_fast: bool = False,
 ) -> tuple[int, dict[str, tuple[bool, list[str]]]]:
     """Execute all five categories and report individual statuses with parallel acceleration."""
     results: dict[str, tuple[bool, list[str]]] = {}
@@ -349,7 +372,7 @@ def run_precommit_gate(
             err_a.extend(g)
             err_p.extend(p)
 
-    err_a.extend(_run_extended_architectural_checks(target_files, repo_root, mode_name=mode_name))
+    err_a.extend(_run_extended_architectural_checks(target_files, repo_root, mode_name=mode_name, shard_fast=shard_fast))
 
     results["1. Standard Code Hygiene"] = (len(err_h) == 0, err_h)
     results["2. Architectural Governance"] = (len(err_a) == 0, err_a)
@@ -365,7 +388,7 @@ def run_precommit_gate(
             except ValueError:
                 rel = str(f)
             err_c.append(f"[Schema/Contract] {rel}: {msg}")
-    err_c.extend(_run_ssot_drift_checks(target_files, repo_root, mode_name=mode_name))
+    err_c.extend(_run_ssot_drift_checks(target_files, repo_root, mode_name=mode_name, shard_fast=shard_fast))
     results["4. Contract / Schema Validation"] = (len(err_c) == 0, err_c)
 
     # 4. Secrets / Credential Protection (Parallel)
@@ -414,6 +437,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--files", nargs="*", help="Specific files to check")
     parser.add_argument("--all", action="store_true", help="Scan full repository")
     parser.add_argument("--staged", action="store_true", help="Scan only git staged files (pre-commit default)")
+    parser.add_argument("--shard-fast", action="store_true", help="Fast per-shard verification on target files")
     parser.add_argument("--repo-root", default=".", help="Root of repository")
 
     args = parser.parse_args(argv)
@@ -421,13 +445,13 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     if args.files:
         files = [Path(f) if Path(f).is_absolute() else repo_root / f for f in args.files]
-        code, _ = run_precommit_gate(files, repo_root, mode_name=f"explicit ({len(files)} files)")
+        code, _ = run_precommit_gate(files, repo_root, mode_name=f"explicit ({len(files)} files)", shard_fast=args.shard_fast)
     elif args.all:
         code, _ = run_precommit_gate(None, repo_root, mode_name="all repository files")
     else:
         staged = get_staged_files(repo_root)
         if staged:
-            code, _ = run_precommit_gate(staged, repo_root, mode_name=f"staged ({len(staged)} files)")
+            code, _ = run_precommit_gate(staged, repo_root, mode_name=f"staged ({len(staged)} files)", shard_fast=args.shard_fast)
         else:
             code, _ = run_precommit_gate(None, repo_root, mode_name="all repository files (no staged files)")
 

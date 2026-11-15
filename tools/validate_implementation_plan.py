@@ -29,8 +29,10 @@ except ImportError:
 
 try:
     from tools.implementation_plan_core.evidence_requirements import MAX_PLAN_WORDS, validate_execution_evidence, validate_holistic_pipeline_alignment
+    from tools.implementation_plan_core.wave_dag import strip_and_validate_shard_manifests, validate_wave_dag_sequence
 except ImportError:
     from implementation_plan_core.evidence_requirements import MAX_PLAN_WORDS, validate_execution_evidence, validate_holistic_pipeline_alignment  # type: ignore
+    from implementation_plan_core.wave_dag import strip_and_validate_shard_manifests, validate_wave_dag_sequence  # type: ignore
 
 # Historical / frozen plans grandfathered from strict wave schema
 DEFAULT_LEGACY_EXEMPTIONS = {
@@ -43,7 +45,7 @@ DEFAULT_LEGACY_EXEMPTIONS = {
 
 # Regex patterns for wave parsing
 RE_TITLE = re.compile(r"^#\s+(.+)$", re.MULTILINE)
-RE_WAVE_HEADER = re.compile(r"^(#{2,3})\s+Wave\s+(\d+)(?:[:\s\-]+(.*))?$", re.IGNORECASE)
+RE_WAVE_HEADER = re.compile(r"^(#{2,3})\s+Wave\s+(\d+)([A-Z]{0,2})(?:[:\s\-]+(.*))?$", re.IGNORECASE)
 
 # Patterns for required wave subsections
 RE_OBJECTIVE = re.compile(
@@ -177,8 +179,10 @@ def find_status_table(
 class WaveSection:
     """Represents a parsed wave block within an implementation plan."""
 
-    def __init__(self, number: int, title: str, start_line: int, header_level: int = 2):
+    def __init__(self, number: int, title: str, start_line: int, header_level: int = 2, shard_suffix: str = ""):
         self.number = number
+        self.shard_suffix = (shard_suffix or "").upper()
+        self.wave_id = f"{number}{self.shard_suffix}"
         self.title = title
         self.start_line = start_line
         self.header_level = header_level
@@ -301,8 +305,9 @@ def validate_plan_content(
         if wave_match:
             hashes = wave_match.group(1)
             wave_num = int(wave_match.group(2))
-            wave_title = (wave_match.group(3) or "").strip()
-            current_wave = WaveSection(wave_num, wave_title, idx, header_level=len(hashes))
+            wave_sfx = (wave_match.group(3) or "").upper()
+            wave_title = (wave_match.group(4) or "").strip()
+            current_wave = WaveSection(wave_num, wave_title, idx, header_level=len(hashes), shard_suffix=wave_sfx)
             waves.append(current_wave)
             continue
 
@@ -322,28 +327,16 @@ def validate_plan_content(
         )
         return False, errors
 
-    # 3. Validate Sequential Wave Numbering
-    start_num = waves[0].number
-    if start_num not in (0, 1):
-        errors.append(
-            f"{filename}: First wave must be numbered Wave 0 or Wave 1. Found Wave {start_num} at line {waves[0].start_line}."
-        )
-
-    expected_num = start_num
-    for w in waves:
-        if w.number != expected_num:
-            errors.append(
-                f"{filename}: Non-sequential wave numbering at line {w.start_line}. "
-                f"Expected Wave {expected_num}, found Wave {w.number}."
-            )
-            expected_num = w.number + 1
-        else:
-            expected_num += 1
+    # 3. Validate Sequential or Fork-Join Sharded Wave Numbering & Depends On DAG
+    errors.extend(validate_wave_dag_sequence(waves, filename))
 
     # 4. Validate Required Subsections and Deliverables per Wave
     _validate_wave_subsections(waves, filename, errors)
     if strict:
         errors.extend(validate_execution_evidence(content, waves, filename))
+    else:
+        _, manifest_errs = strip_and_validate_shard_manifests(content, filename)
+        errors.extend(manifest_errs)
 
     # 5. Status Table Validation (Optional)
     # Plans without status tables pass unconditionally. If an implementation status table is provided,
@@ -378,7 +371,7 @@ def validate_plan_content(
 
             # Check that all declared waves are represented in the status table
             for w in waves:
-                wave_pattern = re.compile(rf"\b(?:wave\s+)?{w.number}\b", re.IGNORECASE)
+                wave_pattern = re.compile(rf"\b(?:wave\s+)?(?:{w.wave_id}|{w.number})\b", re.IGNORECASE)
                 matched = False
                 for _, cells in status_table.rows:
                     wave_cell = cells[wave_idx] if wave_idx < len(cells) else ""
@@ -387,7 +380,7 @@ def validate_plan_content(
                         break
                 if not matched:
                     errors.append(
-                        f"{filename}: Wave {w.number} (declared at line {w.start_line}) is missing from the "
+                        f"{filename}: Wave {w.wave_id} (declared at line {w.start_line}) is missing from the "
                         "Implementation Status Table."
                     )
 
@@ -435,8 +428,8 @@ def extract_wave_summary_entries(content: str) -> Tuple[List[dict], List[str]]:
         for line in lines:
             m = RE_WAVE_HEADER.match(line.strip())
             if m:
-                w_num = f"Wave {m.group(2)}"
-                w_title = (m.group(3) or "").strip()
+                w_num = f"Wave {m.group(2)}{(m.group(3) or '').upper()}"
+                w_title = (m.group(4) or "").strip()
                 waves.append({
                     "wave": w_num,
                     "description": w_title,
@@ -531,6 +524,10 @@ def render_markdown_wave_summary_table(plan_name: str, entries: List[dict]) -> s
 def get_active_plan_file(repo_root: Optional[Path] = None) -> Optional[Path]:
     """Discover the active implementation plan file on disk, prioritizing workspace and IDE artifacts."""
     root = (repo_root or ROOT).resolve()
+
+    explicit_plan = os.environ.get("AGY_PLAN_FILE")
+    if explicit_plan and Path(explicit_plan).is_file():
+        return Path(explicit_plan).resolve()
 
     # 1. Check explicit environment variables
     for env_var in ("ANTIGRAVITY_ARTIFACTS_DIR", "ARTIFACT_DIRECTORY_PATH"):

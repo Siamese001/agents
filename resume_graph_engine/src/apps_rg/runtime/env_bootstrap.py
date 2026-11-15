@@ -250,45 +250,69 @@ def apply_route_signing_posture(repo_root: Path | str | None = None) -> str | No
     """
     if not os.environ.get("APPS_RG_ROUTE_HMAC_SECRET"):
         if os.environ.get("APPS_RG_ROUTE_SIGNING_POSTURE") == "ephemeral_dev":
+            import fcntl
             import json
             import secrets
+            import tempfile
             from apps_rg.runtime.worktree_path_resolution import _git_common_checkout_root_str
 
             resolved_repo = (Path(repo_root) if repo_root else find_repo_root()).resolve()
             search_base = resolved_repo.parent if resolved_repo.name == "resume_graph_engine" else resolved_repo
             common_root_str = _git_common_checkout_root_str(str(search_base))
             canonical_root = Path(common_root_str).resolve() if common_root_str else search_base
-            key_file = canonical_root / ".local" / "governance" / "ephemeral_dev_route_hmac.json"
+            wt_local = search_base / ".local"
+            base_local = (
+                Path(os.environ["AGY_LOCAL_STATE_DIR"]).resolve()
+                if os.environ.get("AGY_LOCAL_STATE_DIR")
+                else (wt_local if wt_local.is_dir() and not wt_local.is_symlink() else canonical_root / ".local")
+            )
+            key_file = base_local / "governance" / "ephemeral_dev_route_hmac.json"
+            lock_file = base_local / "governance" / ".ephemeral_dev_route_hmac.lock"
             loaded_secret = ""
             loaded_key_id = ""
-            if key_file.is_file():
-                try:
-                    raw = json.loads(key_file.read_text(encoding="utf-8"))
-                    if isinstance(raw, dict):
-                        loaded_secret = str(raw.get("secret") or "").strip()
-                        loaded_key_id = str(raw.get("key_id") or "").strip()
-                except (OSError, ValueError, TypeError):
-                    loaded_secret = ""
-                    loaded_key_id = ""
-            secret = loaded_secret or secrets.token_hex(32)
-            key_id = loaded_key_id or f"session-key-{secrets.token_hex(8)}"
             try:
                 key_file.parent.mkdir(parents=True, exist_ok=True)
-                if not key_file.is_file() or secret != loaded_secret or key_id != loaded_key_id:
-                    key_file.write_text(
-                        json.dumps(
-                            {
-                                "schema_version": "apps_rg.ephemeral_dev_route_hmac.v1",
-                                "key_id": key_id,
-                                "secret": secret,
-                            },
-                            indent=2,
-                        )
-                        + "\n",
-                        encoding="utf-8",
-                    )
+                with open(lock_file, "a+", encoding="utf-8") as lfh:
+                    fcntl.flock(lfh.fileno(), fcntl.LOCK_EX)
+                    try:
+                        if key_file.is_file():
+                            try:
+                                raw = json.loads(key_file.read_text(encoding="utf-8"))
+                                if isinstance(raw, dict):
+                                    loaded_secret = str(raw.get("secret") or "").strip()
+                                    loaded_key_id = str(raw.get("key_id") or "").strip()
+                            except (OSError, ValueError, TypeError):
+                                loaded_secret = ""
+                                loaded_key_id = ""
+                        secret = loaded_secret or secrets.token_hex(32)
+                        key_id = loaded_key_id or f"session-key-{secrets.token_hex(8)}"
+                        if not key_file.is_file() or secret != loaded_secret or key_id != loaded_key_id:
+                            payload = (
+                                json.dumps(
+                                    {
+                                        "schema_version": "apps_rg.ephemeral_dev_route_hmac.v1",
+                                        "key_id": key_id,
+                                        "secret": secret,
+                                    },
+                                    indent=2,
+                                )
+                                + "\n"
+                            )
+                            fd, tmp_p = tempfile.mkstemp(prefix=".hmac_", suffix=".tmp", dir=str(key_file.parent))
+                            try:
+                                with os.fdopen(fd, "w", encoding="utf-8") as tfh:
+                                    tfh.write(payload)
+                                os.chmod(tmp_p, 0o600)
+                                os.replace(tmp_p, key_file)
+                            except Exception:
+                                if os.path.exists(tmp_p):
+                                    os.unlink(tmp_p)
+                                raise
+                    finally:
+                        fcntl.flock(lfh.fileno(), fcntl.LOCK_UN)
             except OSError:
-                pass
+                secret = loaded_secret or secrets.token_hex(32)
+                key_id = loaded_key_id or f"session-key-{secrets.token_hex(8)}"
             os.environ["APPS_RG_ROUTE_HMAC_SECRET"] = secret
             if not os.environ.get("APPS_RG_ROUTE_HMAC_KEY_ID"):
                 os.environ["APPS_RG_ROUTE_HMAC_KEY_ID"] = key_id

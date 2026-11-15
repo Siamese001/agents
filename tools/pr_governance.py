@@ -83,9 +83,11 @@ from tools.pr_governance_core import (  # noqa: E402
     cmd_queue,
     cmd_rebase,
     cmd_review,
+    cmd_shard_ready,
     cmd_start,
     cmd_submit,
     cmd_sync,
+    cmd_train,
     cmd_worktree_list,
     compute_first_parent_sync,
     derive_branch_merge_title,
@@ -115,9 +117,11 @@ __all__ = [
     "cmd_queue",
     "cmd_rebase",
     "cmd_review",
+    "cmd_shard_ready",
     "cmd_start",
     "cmd_submit",
     "cmd_sync",
+    "cmd_train",
     "cmd_worktree_list",
     "compute_first_parent_sync",
     "derive_branch_merge_title",
@@ -268,6 +272,17 @@ def build_parser() -> argparse.ArgumentParser:
     p_q.add_argument("--title", default=None, help="Title for enqueue.")
     p_q.add_argument("--json", action="store_true", help="Output JSON.")
 
+    p_shd = sub.add_parser("shard-ready", help="Qualify a worker shard branch with fast per-shard checks.")
+    _add_workspace_flags(p_shd)
+    p_shd.add_argument("branch", help="Name of shard branch (e.g. feat/wave2a-shard).")
+    p_shd.add_argument("--skip-verify", action="store_true", help="Skip verify_commit --shard-fast check.")
+
+    p_trn = sub.add_parser("train", help="Assemble verified disjoint shard branches into a wave merge train.")
+    _add_workspace_flags(p_trn)
+    p_trn.add_argument("--wave", required=True, help="Wave identifier (e.g. 2).")
+    p_trn.add_argument("--shards", nargs="+", required=True, help="Shard branches to assemble.")
+    p_trn.add_argument("--train-branch", default=None, help="Override train branch name.")
+
     return parser
 
 
@@ -290,6 +305,8 @@ def main(argv: list[str] | None = None) -> int:
         "worktrees": cmd_worktree_list,
         "doctor": cmd_doctor,
         "queue": cmd_queue,
+        "shard-ready": cmd_shard_ready,
+        "train": cmd_train,
     }
     if args.command in dispatch:
         return dispatch[args.command](args)

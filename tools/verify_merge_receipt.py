@@ -119,8 +119,14 @@ def verify_merge_receipt(
     slug = slugify_branch(branch)
     receipt_filename = f"pr_review_{slug}_receipt.json"
     local_receipt = repo_root / "reports" / receipt_filename
+    head_branch_res = run_git(["rev-parse", "--abbrev-ref", "HEAD"], cwd=repo_root)
+    head_branch = head_branch_res.stdout.strip() if head_branch_res.returncode == 0 else ""
+    is_train_target = bool(re.match(r"^feat/wave-[a-zA-Z0-9_\-\.]+-train$", head_branch))
+    shard_receipt_filename = f"pr_shard_{slug}_receipt.json"
+    local_shard_receipt = repo_root / "reports" / shard_receipt_filename
 
-    forgery_err = _check_governed_merge_forgery(branch, repo_root, local_receipt)
+    effective_local = local_shard_receipt if (is_train_target and local_shard_receipt.exists()) else local_receipt
+    forgery_err = _check_governed_merge_forgery(branch, repo_root, effective_local)
     if forgery_err:
         return False, forgery_err
 
@@ -130,6 +136,10 @@ def verify_merge_receipt(
     actual_head = rev_res.stdout.strip() if rev_res.returncode == 0 else ""
 
     receipt_data, parse_err = _load_receipt_data(branch, receipt_filename, repo_root, local_receipt)
+    if receipt_data is None and is_train_target:
+        receipt_data, parse_err = _load_receipt_data(
+            branch, shard_receipt_filename, repo_root, local_shard_receipt
+        )
     if parse_err:
         return False, parse_err
 
