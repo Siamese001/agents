@@ -36,7 +36,7 @@ All implementation plans—including planning-mode artifacts (`implementation_pl
 
 ### Required Plan Structure
 1. Top-level `# <Plan Title>`.
-2. Sequential Numbered Waves: `## Wave 1: <Title>`, `## Wave 2: <Title>`, incrementing consecutively without gaps (starting at Wave 0 or Wave 1).
+2. Sequential or Fork-Join Sharded Numbered Waves: `## Wave 1: <Title>`, `## Wave 2A: <Title>`, `## Wave 2B: <Title>`, `## Wave 3: <Title>`, incrementing consecutively without base-number gaps (starting at Wave 0 or Wave 1). Sharded waves may declare `Depends On: Wave 1` (validated for acyclicity by `tools/implementation_plan_core/wave_dag.py`) and an optional fenced ```` ```yaml shard-manifest ```` / ```` ```json shard-manifest ```` annex (`minItems: 2`, `<= 160` char strings, pairwise disjoint `scope_in`, non-empty `verify_independently`), which is validated before being excluded from the `1,000`-word prose cap.
 3. Mandatory Subsections Per Wave:
    - `### Objective & Scope`: Exact bounded sub-goal and boundary.
    - `### Milestones & Deliverables`: Itemized list (`[NEW]`, `[MODIFY]`, `[DELETE]`, schemas, configs, artifacts).
@@ -70,7 +70,7 @@ All pytest invocations fall into exactly one of two classes. No other class is p
 
 ### Class A — Debug run
 Used during fix cycle to verify a specific change.
-- Scope MUST be a single test file, a single named test case, or a coupled multi-file producer+contract+consumer test slice (up to 4 directly coupled test files, e.g., `pytest tests/unit/test_producer.py tests/unit/test_contract.py tests/unit/test_consumer.py -v --timeout=60`). Unbounded multi-file sweeps (> 4 unrelated files) or full-suite runs (`pytest` or `pytest tests/`) without authorization are strictly forbidden.
+- Scope MUST be a single test file, a single named test case, or a coupled multi-file producer+contract+consumer test slice (up to 4 directly coupled test files, e.g., `pytest tests/unit/test_producer.py tests/unit/test_contract.py tests/unit/test_consumer.py -v --timeout=60`). Use `.venv/bin/python tools/adg_impact_tests.py --changed-files <files>` to compute Class-A-bounded (`<= 4` files per batch) transitive impact test slices across all 6 test roots. Unbounded multi-file sweeps (> 4 unrelated files) or full-suite runs (`pytest` or `pytest <root>/tests/`) without authorization are strictly forbidden.
 - Must include `--timeout=60` (per-test hard limit).
 - Must be synchronous (`WaitMsBeforeAsync >= 15000`). Does not produce a receipt.
 - **Background forbidden**: If run exceeds `WaitMsBeforeAsync`, something is wrong — kill immediately; do not send to background.

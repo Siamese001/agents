@@ -24,6 +24,7 @@ Traces every `AGENTS.md` section to enforceable rules, skills, hooks, tools, and
 | Hook | `.agents/hooks.json` → `agents-wave-completion-guard` | Stop hook wave completion summary table display |
 | Dispatcher | `tools/hook_dispatch.py` | Antigravity native lifecycle hook dispatcher and wave table generator |
 | Tool | `tools/validate_implementation_plan.py` | Mechanical status table, brain plan discovery, and markdown table validator |
+| Tool | `tools/implementation_plan_core/wave_dag.py` | Fork-join wave DAG (`Wave 2A`/`2B`), `Depends On:` acyclicity, and `shard-manifest` annex validator |
 | Test | `tests/test_implementation_plan_governance.py` | Plan governance and status table invariant tests |
 | Test | `tests/test_hook_dispatch.py` | Antigravity hook dispatcher and wave summary tests |
 
@@ -77,6 +78,7 @@ Traces every `AGENTS.md` section to enforceable rules, skills, hooks, tools, and
 | :--- | :--- | :--- |
 | Config | `pytest.ini` | Autoload ON, `--timeout=180`, default timeout options |
 | Hook | `.agents/hooks.json` → `agents-pytest-scope-guard` | Blocks bare `pytest` sweeps; mandates scoped execution |
+| Tool | `tools/adg_impact_tests.py` | Transitive dependency impact test selector emitting Class-A (`<= 4` files) batches across 6 test roots |
 | Skill | `.agents/skills/testing-framework/SKILL.md` | Scoped pytest Class A/B run protocol and collection checks |
 
 ### §"Subsystems vs Infrastructure (summary)"
@@ -150,6 +152,7 @@ Traces every `AGENTS.md` section to enforceable rules, skills, hooks, tools, and
 | Hook | `.githooks/pre-push` | Pre-push gate verifying all turn gates, active plans, commit invariants |
 | Hook | `.githooks/post-merge` | Post-merge gate automatically pruning merged worktrees and local branches |
 | Tool | `tools/pr_governance.py` | Governed PR queue, trunk reservation lock, catch-up under lock, worktree lifecycle |
+| Tool | `tools/pr_governance_core/merge_train.py` | Multi-agent `shard-ready` fast qualification and `train` wave merge-train assembly |
 | Tool | `tools/verify_post_merge.py` | Two-parent merge certification and out-of-tree receipt verification |
 | Tool | `tools/prune_merged_chat_worktrees.py` | Automated ancestry-verified worktree and branch pruning tool |
 | Tool | `tools/install_githooks.py` | Automated installation and executable permission tool |
