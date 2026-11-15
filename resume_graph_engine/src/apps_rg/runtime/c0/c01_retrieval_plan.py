@@ -14,11 +14,11 @@ _JD_EXCERPT_MAX = 300
 _JD_ROLE_AXIS_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     (
         "partner_motions",
-        re.compile(r"\b(partner(ship(s)?|s)?|alliance|alliances|ecosystem)\b", re.IGNORECASE),
+        re.compile(r"\b(partnerships|partner[- ]led|partner\s+ecosystem|partner\s+gtm|alliance|alliances|channel\s+partner)\b", re.IGNORECASE),
     ),
     (
         "partner_gtm",
-        re.compile(r"\b(GTM|go[- ]?to[- ]?market|marketplace|channel)\b", re.IGNORECASE),
+        re.compile(r"\b(GTM|go[- ]?to[- ]?market|marketplace|channel\s+partner|channel\s+gtm)\b", re.IGNORECASE),
     ),
     (
         "co_sell",
@@ -26,7 +26,7 @@ _JD_ROLE_AXIS_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ),
     (
         "hyperscaler_alliance",
-        re.compile(r"\b(hyperscaler|AWS|Azure|GCP|Google Cloud|cloud partner)\b", re.IGNORECASE),
+        re.compile(r"\b(hyperscaler|cloud\s+partner|aws\s+alliance|azure\s+alliance|gcp\s+alliance|cloud\s+alliance)\b", re.IGNORECASE),
     ),
     (
         "systems_integrator_enablement",

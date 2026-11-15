@@ -436,20 +436,12 @@ def polish_executive_summary_judge_alignment(
             return parsed, receipt
         receipt["actions"].append("canonical_arc_rebuild")
 
-    _role_low = str(target_role or "").lower()
-    _skip_partnership_polish = any(
+    _role_low = str(target_role or "").strip().lower()
+    _has_partner_role_title = any(
         k in _role_low
-        for k in (
-            "forward deployed",
-            "forward-deployed",
-            "forward deployment",
-            "field engineering",
-            "deployment engineering",
-        )
-    ) and not any(
-        k in _role_low
-        for k in ("partner", "partnership", "alliance", "ecosystem", "channel", "co-sell", "cosell")
+        for k in ("partner", "partnership", "partnerships", "alliance", "alliances", "ecosystem", "channel", "co-sell", "cosell")
     )
+    _skip_partnership_polish = bool(_role_low) and not _has_partner_role_title
 
     for name, fn in (
         ("dedupe_dependency_graph", lambda s: _p("_dedupe_dependency_graph_sentences", _dedupe_dependency_graph_sentences)(s, selected_facts=selected_facts)),

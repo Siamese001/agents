@@ -286,8 +286,12 @@ def briefing_signal_bonus(
     # the packet, so including it here would self-match every theme and flatten the score.
     blob = bundle_blob.lower()
     theme_counts = dict(packet.get("theme_counts") or {})
+    rf = str(packet.get("role_family_key") or "").strip()
+    non_partner_rf = bool(rf) and rf != "ai_partnerships_gtm" and "PARTNER" not in rf.upper()
     total = 0.0
     for theme, weight in _BRIEFING_SIGNAL_BONUS_WEIGHTS.items():
+        if theme == "partner_ecosystem" and non_partner_rf:
+            continue
         if theme_counts.get(theme, 0) <= 0:
             continue
         keywords = _BRIEFING_THEME_KEYWORDS.get(theme, ())

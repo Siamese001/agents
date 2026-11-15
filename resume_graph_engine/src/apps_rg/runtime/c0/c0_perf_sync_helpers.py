@@ -298,14 +298,14 @@ _ARCHETYPE_ROOT_BOOSTS: dict[str, tuple[tuple[str, ...], dict[str, float]]] = {
     "cloud_arch": (
         ("cloud architecture", "microservices", "event-driven", "kafka", "devsecops", "lakehouse", "databricks", "distributed systems", "aws", "gcp", "google cloud", "architected", "scaled"),
         {
-            "reb_slalom_ecosystem_accelerators": 1.8, "reb_slalom_governed_runtime_scaling": 1.7,
-            "reb_slalom_visual_asset_intelligence": 1.6, "reb_slalom_engineering_practice_leadership": 1.5,
+            "reb_slalom_governed_runtime_scaling": 1.7,
+            "reb_slalom_visual_asset_intelligence": 1.8, "reb_slalom_engineering_practice_leadership": 1.5,
             "reb_unify_distributed_ecosystem_engineering": 1.8, "reb_unify_dependency_graph_accelerator": 1.7,
-            "reb_unify_hyperscaler_joint_solution_architecture": 1.6, "reb_unify_production_adoption_lifecycle": 1.5,
+            "reb_unify_production_adoption_lifecycle": 1.5,
             "reb_unify_runtime_reliability_governance": 1.4, "reb_unify_platform_commercialization_leadership": 1.3,
             "reb_ibm_aws_modernization_architecture": 1.8, "reb_ibm_microservices_event_driven_architecture": 1.7,
             "reb_ibm_devsecops_release_resilience": 1.6, "reb_ibm_enterprise_data_architecture_governance": 1.5,
-            "reb_ibm_aws_alliance_partner_cosell_gtm": 1.4, "reb_insurtech_aws_cloud_architecture": 1.7, "reb_insurtech_data_pipeline_modernization": 1.6,
+            "reb_insurtech_aws_cloud_architecture": 1.7, "reb_insurtech_data_pipeline_modernization": 1.6,
         },
     ),
     "ai_ml_platform": (
@@ -368,15 +368,19 @@ def compute_candidate_alignment_and_independence(
         cand_blob = f"{root_text} {skill_text}"
         for _arch, (triggers, root_boosts) in _ARCHETYPE_ROOT_BOOSTS.items():
             if root_id in root_boosts:
-                if _arch == "ai_ml_platform" and profile in {"svp_agentic_engineering", "insurance_agentic_ai"}:
+                if _arch == "ai_ml_platform" and profile in {"svp_agentic_engineering", "insurance_agentic_ai", "executive_agentic_transformation"}:
                     raw_align += root_boosts[root_id]
-                elif _arch == "cloud_arch" and profile in {"balanced_enterprise_ai", "ai_partnerships_gtm", "executive_agentic_transformation"}:
+                elif _arch == "cloud_arch" and profile in {"balanced_enterprise_ai", "executive_agentic_transformation"}:
+                    raw_align += root_boosts[root_id]
+                elif _arch == "ai_partnerships_gtm" and profile == "ai_partnerships_gtm":
                     raw_align += root_boosts[root_id]
             hit_count = sum(1 for t in triggers if t in cand_blob)
             if hit_count:
-                if _arch == "ai_ml_platform" and profile in {"svp_agentic_engineering", "insurance_agentic_ai"}:
+                if _arch == "ai_ml_platform" and profile in {"svp_agentic_engineering", "insurance_agentic_ai", "executive_agentic_transformation"}:
                     raw_align += hit_count * 0.25
-                elif _arch == "cloud_arch" and profile in {"balanced_enterprise_ai", "ai_partnerships_gtm"}:
+                elif _arch == "cloud_arch" and profile in {"balanced_enterprise_ai"}:
+                    raw_align += hit_count * 0.25
+                elif _arch == "ai_partnerships_gtm" and profile == "ai_partnerships_gtm":
                     raw_align += hit_count * 0.25
     proof_score = (
         1.0
@@ -432,37 +436,25 @@ def build_targeting_provenance(
 
 
 def build_frozen_competencies_proof_payload(
-    selected_graph_plan: dict[str, Any],
-    *,
-    graph_ref: str,
+    selected_graph_plan: dict[str, Any], *, graph_ref: str,
 ) -> dict[str, Any]:
     return {
         "graph_source": graph_ref,
-        "selection_method": str(
-            selected_graph_plan.get("selection_method") or "frozen_whole_resume_fact_allocation"
-        ),
+        "selection_method": str(selected_graph_plan.get("selection_method") or "frozen_whole_resume_fact_allocation"),
         "selected_skill_rows": list(selected_graph_plan.get("selected_skills") or []),
         "selected_tracks": list(selected_graph_plan.get("selected_tracks") or []),
-        "selected_skill_count_by_track": dict(
-            selected_graph_plan.get("selected_skill_count_by_track") or {}
-        ),
-        "selected_fact_count_by_track": dict(
-            selected_graph_plan.get("selected_fact_count_by_track") or {}
-        ),
+        "selected_skill_count_by_track": dict(selected_graph_plan.get("selected_skill_count_by_track") or {}),
+        "selected_fact_count_by_track": dict(selected_graph_plan.get("selected_fact_count_by_track") or {}),
         "legacy_broad_skills_ledger_path": None,
         "track_expansion": {
             "c03_graph_bound_status": "BOUND",
             "c03_graph_hop_paths_count": len(
-                selected_graph_plan.get("allocation_assignments")
-                or selected_graph_plan.get("facts")
-                or []
+                selected_graph_plan.get("allocation_assignments") or selected_graph_plan.get("facts") or []
             ),
             "tracks_with_facts": list(selected_graph_plan.get("selected_tracks") or []),
         },
         "track_weighted_expansion_ref": str(selected_graph_plan.get("allocation_plan_ref") or ""),
-        "graph_hop_paths_sample": list(
-            (selected_graph_plan.get("allocation_assignments") or [])[:5]
-        ),
+        "graph_hop_paths_sample": list((selected_graph_plan.get("allocation_assignments") or [])[:5]),
     }
 
 

@@ -331,3 +331,68 @@ def test_competencies_visible_graph_surface_svp_agentic_engineering_avoids_partn
     assert "enablement" in terms_blob
 
 
+def test_partner_by_default_purged_across_profiles_and_briefing() -> None:
+    from apps_rg.runtime.sections.competency_capability_evidence import (
+        enrich_competencies_visible_graph_surface,
+    )
+    from apps_rg.runtime.sections.executive_summary_briefing import (
+        briefing_signal_bonus,
+        extract_briefing_signal_packet,
+    )
+    from apps_rg.runtime.sections.graph_role_episode_selector import (
+        _infer_target_role_profile,
+    )
+
+    # 1. Non-partner role with incidental "partner", "ecosystem", "revenue", "gtm" defaults to svp_agentic_engineering
+    profile = _infer_target_role_profile(
+        target_role="VP of AI Platform Engineering",
+        jd_text="Partner with product teams across the Microsoft/Azure ecosystem to drive revenue and go-to-market execution.",
+        briefing_text="Technology partners and advisor enablement AI across stakeholder ecosystems.",
+    )
+    assert profile == "svp_agentic_engineering"
+
+    # 2. Explicit partner role title activates ai_partnerships_gtm
+    partner_profile = _infer_target_role_profile(
+        target_role="Manager of Applied AI Architecture, Partnerships",
+        jd_text="Lead GSI co-sell and partner ecosystem architecture.",
+        briefing_text="Anthropic partnership GTM.",
+    )
+    assert partner_profile == "ai_partnerships_gtm"
+
+    # 3. Briefing signal bonus ignores partner_ecosystem theme when role_family_key is non-partner
+    pkt = {
+        **extract_briefing_signal_packet(
+            "## Partnership\n- Microsoft/Azure ecosystem modernization and advisor enablement AI for banking."
+        ),
+        "role_family_key": "svp_agentic_engineering",
+    }
+    assert briefing_signal_bonus(pkt, bundle_blob="partner co-sell alliance ecosystem") == 0.0
+
+    # 4. Empty or balanced_enterprise_ai profile in competencies defaults to svp_agentic_engineering_relevance_first
+    for non_partner_prof in ("", "balanced_enterprise_ai", "executive_agentic_transformation"):
+        parsed = {
+            "competencies": [
+                {
+                    "category_id": "cloud_partner_ecosystems",
+                    "category_label": "Cloud & Partner Ecosystems",
+                    "resume_display_label": "Partner Applied AI Architecture",
+                    "competency_bundle_id": "ccb_partner_applied_ai_architecture",
+                    "source_fact_ids": ["reb_unify_agentic_platform_architecture"],
+                    "terms": [{"term": "partner-ready applied AI reference architectures", "source_fact_ids": ["reb_unify_agentic_platform_architecture"]}],
+                }
+            ]
+        }
+        rec = enrich_competencies_visible_graph_surface(
+            parsed,
+            packet=None,
+            allowed_fact_ids={"reb_unify_agentic_platform_architecture"},
+            selected_graph_evidence_plan={
+                "target_role_profile": non_partner_prof,
+                "facts": [{"fact_id": "reb_unify_agentic_platform_architecture"}],
+            },
+        )
+        assert rec["order_policy"] == "svp_agentic_engineering_relevance_first"
+        assert parsed["competencies"][0]["resume_display_label"] == "Applied AI Reference Architecture & Enablement"
+
+
+
