@@ -17,6 +17,7 @@ Separate touched files into three distinct categories based on call-graph and da
 - **Cohesive Ripple Edit Scope (Change Everything Connected)**:
   - Any upstream producer, shared contract, sibling lane, or downstream validator whose assumptions, schemas, or thresholds are impacted by the change is part of the core change by definition and MUST be updated together in the same wave or plan (`INV-HOLISTIC-PIPELINE-PLANNING`).
   - Fixing an incomplete upstream allocator schema (`runtime/c0/`) or unifying downstream quality/cross-section validators (`runtime/validators/`, `runtime/aggregation/cross_section_x2.py`) alongside a section or prompt change (`runtime/sections/`, `prompt_assembly/`, `runtime/reasoning/`) is mandatory cohesive scope, never "out-of-scope gold-plating".
+  - When adding or removing benchmark, holdout, or calibration files under `DATA_ROOTS` (`data/`, `outreach_engine/data/`, `resume_graph_engine/data/`), always inspect coupled dataset-count assertions (`rg "data_counts_by_root|data_file_count" tests/ tools/ .agents/ automations/`) and verify `.gitignore` custody (`git check-ignore`) in the same wave so untracked files never disappear on worktree teardown.
 - **What Scope Containment Actually Blocks (Unintentional Drift Only)**:
   - Touching unrelated subsystems with zero call-graph or data-flow connection to the task.
   - Unrequested cosmetic, formatting, or refactor churn in unconnected files ("while I'm here" edits).
