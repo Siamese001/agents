@@ -353,3 +353,21 @@ def evaluate_active_subagent_write_scope(
             return True, f"SUBAGENT_SCOPE_VIOLATION: '{rel}' is outside scope_in for '{effective_task_id}'"
 
     return False, "subagent write scope allowed"
+
+
+def _sync_teamwork_request_atomic(repo_root: Path, prompt_text: str) -> None:
+    """Atomically sync .agents/teamwork/ORIGINAL_REQUEST.md using tempfile + os.replace."""
+    orig_req = repo_root / ".agents" / "teamwork" / "ORIGINAL_REQUEST.md"
+    try:
+        orig_req.parent.mkdir(parents=True, exist_ok=True)
+        fd, tmp_name = tempfile.mkstemp(prefix=".orig_req_", suffix=".tmp", dir=str(orig_req.parent))
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as handle:
+                handle.write(f"{prompt_text}\n")
+            os.replace(tmp_name, orig_req)
+        except Exception:  # guardian: allow-broad-exception-cleanup -- clean temp file before re-raising
+            if os.path.exists(tmp_name):
+                os.unlink(tmp_name)
+            raise
+    except OSError:  # guardian: allow-silent-swallow -- best-effort atomic teamwork request sync
+        pass

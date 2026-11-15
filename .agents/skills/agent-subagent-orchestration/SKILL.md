@@ -73,7 +73,7 @@ Sub-agents must report back to the parent agent using this structure:
 ```json
 {
   "task_id": "task_sub_extract_001",
-  "status": "COMPLETE",
+  "status": "SUCCESS",
   "deliverable": {
     "extracted_entities_count": 8,
     "normalized_nodes": ["person:marcus_balk", "org:slalom"]

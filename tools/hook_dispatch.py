@@ -418,49 +418,50 @@ def handle_post_ask_question(payload: Dict[str, Any], repo_root: Path) -> int:
 
 
 def handle_pre_subagent_delegation(payload: Dict[str, Any], repo_root: Path) -> int:
-    """PreToolUse guard on invoke_subagent / browser_subagent validating 10-field delegation contracts."""
-    from tools.unified_agent_architecture import MANDATORY_DELEGATION_FIELDS, validate_delegation_contract
+    """PreToolUse guard on invoke_subagent / browser_subagent validating 10-field delegation contracts and scope leases."""
+    from tools.prompt_scope_isolation import _sync_teamwork_request_atomic, register_and_check_subagent_scope
+    from tools.unified_agent_architecture import validate_delegation_contract
 
     tool_call = payload.get("toolCall") if isinstance(payload.get("toolCall"), dict) else payload
     args = tool_call.get("args") if isinstance(tool_call.get("args"), dict) else payload
     if not isinstance(args, dict):
         return emit_decision("allow")
 
-    contract = args.get("delegation_contract") or args.get("contract")
-    if isinstance(contract, dict):
-        errors = validate_delegation_contract(contract)
-        if errors:
-            return emit_decision("deny", reason="; ".join(errors))
-        return emit_decision("allow")
-
-    if any(k in args for k in ("task_id", "parent_task_id", "scope_in", "scope_out", "definition_of_done")):
-        errors = validate_delegation_contract(args)
-        if errors:
-            return emit_decision("deny", reason="; ".join(errors))
-        return emit_decision("allow")
-
     prompt_text = str(args.get("Prompt") or args.get("prompt") or args.get("Task") or "").strip()
     type_name = str(args.get("TypeName") or args.get("type_name") or "").strip().lower()
-    if type_name == "teamwork" and prompt_text:
-        try:
-            orig_req = repo_root / ".agents" / "teamwork" / "ORIGINAL_REQUEST.md"
-            orig_req.parent.mkdir(parents=True, exist_ok=True)
-            orig_req.write_text(f"{prompt_text}\n", encoding="utf-8")
-        except OSError:  # guardian: allow-silent-swallow -- best-effort teamwork request sync
-            pass
-    if "delegation_contract" in prompt_text:
+    workspace_mode = str(args.get("Workspace") or args.get("workspace") or "inherit").strip().lower()
+
+    resolved_contract: Optional[Dict[str, Any]] = None
+    contract = args.get("delegation_contract") or args.get("contract")
+    if isinstance(contract, dict):
+        resolved_contract = contract
+    elif any(k in args for k in ("task_id", "parent_task_id", "scope_in", "scope_out", "definition_of_done")):
+        resolved_contract = args
+    elif "delegation_contract" in prompt_text:
         try:
             m = re.search(r"\{[\s\S]*\"delegation_contract\"[\s\S]*\}", prompt_text)
-            if m:
-                parsed = json.loads(m.group(0))
-                inner = parsed.get("delegation_contract", parsed)
-                if isinstance(inner, dict):
-                    errors = validate_delegation_contract(inner)
-                    if errors:
-                        return emit_decision("deny", reason="; ".join(errors))
+            parsed = json.loads(m.group(0)) if m else None
+            inner = parsed.get("delegation_contract", parsed) if isinstance(parsed, dict) else None
+            if isinstance(inner, dict):
+                resolved_contract = inner
         except (json.JSONDecodeError, TypeError, ValueError):  # guardian: allow-silent-swallow -- ignore non-JSON prose mentions
             pass
 
+    if resolved_contract is not None:
+        errors = validate_delegation_contract(resolved_contract)
+        if errors:
+            return emit_decision("deny", reason="; ".join(errors))
+        ok, reason, _ = register_and_check_subagent_scope(repo_root, resolved_contract, workspace_mode=workspace_mode)
+        if not ok:
+            return emit_decision("deny", reason=reason)
+    elif type_name == "self" and workspace_mode in ("", "inherit"):
+        return emit_decision(
+            "deny",
+            reason="DELEGATION_VIOLATION_MISSING_CONTRACT: invoke_subagent(TypeName='self') on shared inherit workspace requires a 10-field delegation_contract.",
+        )
+
+    if type_name == "teamwork" and prompt_text:
+        _sync_teamwork_request_atomic(repo_root, prompt_text)
     return emit_decision("allow")
 
 
@@ -516,12 +517,20 @@ def _is_technical_engineering_artifact(target_file: str) -> bool:
 def handle_pre_file_write(payload: Dict[str, Any], repo_root: Path) -> int:
     """PreToolUse combined file-write guard: main-branch isolation + plan validation + model neutrality + layman artifact guard."""
     tool_call = payload.get("toolCall") if isinstance(payload.get("toolCall"), dict) else payload
-    args = tool_call.get("args") if isinstance(tool_call.get("args"), dict) else {}
+    args = tool_call.get("args") if isinstance(tool_call.get("args"), dict) else (tool_call if isinstance(tool_call, dict) else {})
     target_file = str(args.get("TargetFile") or args.get("Path") or args.get("path") or "").strip()
 
     blocked, reason = evaluate_main_worktree_write(target_file, repo_root)
     if blocked:
         return emit_decision("deny", reason=reason)
+
+    if target_file:
+        from tools.prompt_scope_isolation import evaluate_active_subagent_write_scope, evaluate_prompt_stage_write_scope
+
+        for scope_fn in (evaluate_prompt_stage_write_scope, evaluate_active_subagent_write_scope):
+            scope_blocked, scope_reason = scope_fn(target_file, repo_root)
+            if scope_blocked:
+                return emit_decision("deny", reason=scope_reason)
 
     meta = args.get("ArtifactMetadata")
     if isinstance(meta, dict) and bool(meta.get("UserFacing")) and not _is_technical_engineering_artifact(target_file):
@@ -532,19 +541,14 @@ def handle_pre_file_write(payload: Dict[str, Any], repo_root: Path) -> int:
         jargon_res = validate_layman_jargon_gate(f"{summary}\n{content}")
         if jargon_res["status"] != "PASS":
             sample = ", ".join(jargon_res["violations"][:3])
-            return emit_decision(
-                "deny",
-                reason=f"PRE_OUTPUT_LAYMAN_GUARD (Rule 6): User-facing artifact contains technical jargon ({sample}). Rewrite in plain English.",
-            )
+            return emit_decision("deny", reason=f"PRE_OUTPUT_LAYMAN_GUARD (Rule 6): User-facing artifact contains technical jargon ({sample}). Rewrite in plain English.")
 
     return emit_decision("allow")
 
 
 _POST_INVOCATION_INTERCEPT_MARKERS = (
-    "[HITL GOVERNANCE INTERCEPT",
-    "[LAYMAN ZERO-JARGON GOVERNANCE INTERCEPT",
-    "[OUTPUT BREVITY GOVERNANCE INTERCEPT",
-    "[AUTONOMOUS LEARN INTERCEPT",
+    "[HITL GOVERNANCE INTERCEPT", "[LAYMAN ZERO-JARGON GOVERNANCE INTERCEPT",
+    "[OUTPUT BREVITY GOVERNANCE INTERCEPT", "[AUTONOMOUS LEARN INTERCEPT",
 )
 
 
@@ -681,31 +685,24 @@ def handle_post_invocation(payload: Dict[str, Any], repo_root: Path) -> int:
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
     parser = argparse.ArgumentParser(description="Antigravity Lifecycle Hook Dispatcher.")
-    parser.add_argument(
-        "--hook",
-        required=True,
-        choices=[
-            "pre_edit_plan", "stop_wave_summary", "pre_run_command", "pre_model_neutral", "pre_model_registry",
-            "pre_ask_question", "post_ask_question", "pre_subagent_delegation", "pre_file_write", "post_invocation",
-        ],
-        help="Lifecycle hook handler to execute.",
-    )
+    choices = [
+        "pre_edit_plan", "stop_wave_summary", "pre_run_command", "pre_model_neutral", "pre_model_registry",
+        "pre_ask_question", "post_ask_question", "pre_subagent_delegation", "pre_file_write", "post_invocation",
+    ]
+    parser.add_argument("--hook", required=True, choices=choices, help="Lifecycle hook handler to execute.")
     parser.add_argument("--repo-root", type=Path, default=ROOT, help="Repository root path.")
     args = parser.parse_args(argv)
     payload = read_hook_input()
     handlers = {
-        "pre_edit_plan": lambda: handle_pre_edit_plan(payload, args.repo_root),
-        "stop_wave_summary": lambda: handle_stop_wave_summary(payload, args.repo_root),
-        "pre_run_command": lambda: handle_pre_run_command(payload),
-        "pre_model_neutral": lambda: handle_pre_model_neutral(payload, args.repo_root),
-        "pre_model_registry": lambda: handle_pre_model_registry(payload, args.repo_root),
-        "pre_ask_question": lambda: handle_pre_ask_question(payload, args.repo_root),
-        "post_ask_question": lambda: handle_post_ask_question(payload, args.repo_root),
-        "pre_subagent_delegation": lambda: handle_pre_subagent_delegation(payload, args.repo_root),
-        "pre_file_write": lambda: handle_pre_file_write(payload, args.repo_root),
-        "post_invocation": lambda: handle_post_invocation(payload, args.repo_root),
+        "pre_edit_plan": handle_pre_edit_plan, "stop_wave_summary": handle_stop_wave_summary,
+        "pre_run_command": lambda p, _r: handle_pre_run_command(p),
+        "pre_model_neutral": handle_pre_model_neutral, "pre_model_registry": handle_pre_model_registry,
+        "pre_ask_question": handle_pre_ask_question, "post_ask_question": handle_post_ask_question,
+        "pre_subagent_delegation": handle_pre_subagent_delegation,
+        "pre_file_write": handle_pre_file_write, "post_invocation": handle_post_invocation,
     }
-    return handlers[args.hook]() if args.hook in handlers else emit_decision("allow")
+    handler = handlers.get(args.hook)
+    return handler(payload, args.repo_root) if handler else emit_decision("allow")
 
 
 if __name__ == "__main__":

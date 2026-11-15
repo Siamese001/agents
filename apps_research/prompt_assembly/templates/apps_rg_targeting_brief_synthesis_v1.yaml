@@ -58,7 +58,7 @@ slot_bodies:
   R0: |
     Output ONLY the final targeting brief markdown. No JSON. No wrapper fences.
     If company cannot be identified from JD, output exactly:
-    BLOCKED: COMPANY_NOT_IDENTIFIABLE_FROM_JD
+    BLOCKED: COMPANY_NOT_IDENTIFIABLE
 output_contract:
   type: AppsRgTargetingBrief
   format: plain_text

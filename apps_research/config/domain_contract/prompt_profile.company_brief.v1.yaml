@@ -9,7 +9,7 @@ task_class: company_brief
 schema_version: "1.0"
 
 # Prompt BOM reference
-prompt_bom_ref: apps_research/prompts/prompt_bom.yaml
+prompt_bom_ref: apps_research/prompt_assembly/prompt_bom.yaml
 
 # Prompt registry reference
 prompt_registry_ref: apps_research/prompts/prompt_registry.yaml
