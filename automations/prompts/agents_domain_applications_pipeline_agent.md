@@ -44,11 +44,12 @@ Execute a deterministic, fail-closed **Domain Business Pipelines (`outreach_engi
 Execute the fail-closed 6-pillar behavioral auditor, multi-hop resume graph probe, and scoped unit suite in read-only mode (`timeout <= 120s`):
 ```bash
 export PRIMARY_REPO_ROOT="/Users/amitayer/Git/agents"
-"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/e2e_functionality_auditor.py" \
+export PYTHONDONTWRITEBYTECODE=1
+PYTHONDONTWRITEBYTECODE=1 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/e2e_functionality_auditor.py" \
   --repo-root "${PRIMARY_REPO_ROOT}" \
   --json
-python3 tools/run_resume_graph_traversal_probe.py --max-paths 200
-"${PRIMARY_REPO_ROOT}/.venv/bin/pytest" "${PRIMARY_REPO_ROOT}/tests/test_sidecar_resume_graph_traversal.py" -q --timeout=60
+PYTHONDONTWRITEBYTECODE=1 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/run_resume_graph_traversal_probe.py" --max-paths 200
+"${PRIMARY_REPO_ROOT}/.venv/bin/pytest" "${PRIMARY_REPO_ROOT}/tests/test_sidecar_resume_graph_traversal.py" -q -p no:cacheprovider --timeout=60
 ```
 If `status == "PASS"` and `is_clean == true`, exit `COMPLETE` immediately (`PREFLIGHT_ZERO_DEFECT_FAST_EXIT`).
 
@@ -59,9 +60,11 @@ If `status == "PASS"` and `is_clean == true`, exit `COMPLETE` immediately (`PREF
 When Phase 1.5 reports `>= 1` actionable findings (`is_clean == false`), provision an isolated worktree, write `manifest.json` via `--write-manifest`, and switch into `${WORKTREE_DIR}`:
 ```bash
 export PRIMARY_REPO_ROOT="/Users/amitayer/Git/agents"
+export PYTHONDONTWRITEBYTECODE=1
+export AGY_SIDECAR_AGENT_ID="agents-domain-applications-pipeline"
 export RUN_TS="$(date -u +%Y%m%dT%H%M%SZ)"
 export HEX6="$(python3 -c 'import secrets; print(secrets.token_hex(3))')"
-export BRANCH_SLUG="agents-domain-pipeline-${RUN_TS}"
+export BRANCH_SLUG="agents-domain-pipeline-${RUN_TS}-${HEX6}"
 export BRANCH_NAME="chore/${BRANCH_SLUG}"
 export WORKTREE_SLUG="$(echo "${BRANCH_NAME}" | tr '/-' '__')"
 export WORKTREE_DIR="${PRIMARY_REPO_ROOT}/.worktrees/${WORKTREE_SLUG}"
@@ -69,7 +72,7 @@ export RUN_DIR="${WORKTREE_DIR}/artifacts/sidecar_runs/agents_domain_pipeline/${
 export PLAN_REL="plans/domain-applications-pipeline-${HEX6}.md"
 
 git -C "${PRIMARY_REPO_ROOT}" worktree prune
-"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/prune_merged_chat_worktrees.py" \
+PYTHONDONTWRITEBYTECODE=1 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/prune_merged_chat_worktrees.py" \
   --repo-root "${PRIMARY_REPO_ROOT}" \
   --consolidate-sidecar \
   --worktree-dir "${WORKTREE_DIR}" \
@@ -82,7 +85,7 @@ git -C "${PRIMARY_REPO_ROOT}" worktree prune
 cd "${WORKTREE_DIR}"
 mkdir -p "${RUN_DIR}" "${WORKTREE_DIR}/plans"
 export PRE_STATE_SHA256="$(git -C "${WORKTREE_DIR}" rev-parse HEAD)"
-"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/e2e_functionality_auditor.py" \
+PYTHONDONTWRITEBYTECODE=1 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/e2e_functionality_auditor.py" \
   --repo-root "${WORKTREE_DIR}" \
   --output "${RUN_DIR}/audit_report.json" \
   --json || true

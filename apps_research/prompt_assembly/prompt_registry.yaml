@@ -20,7 +20,7 @@ templates:
   apps_rg_targeting_brief_synthesis_v1:
     path: apps_research/prompt_assembly/templates/apps_rg_targeting_brief_synthesis_v1.yaml
     description: >
-      apps_rg targeting brief (=== SECTION === markdown, under 2400 chars).
+      apps_rg targeting brief (=== SECTION === markdown, 4000-6500 chars, max 8000 chars).
       Consumed by apps_rg as --manual-brief / delegated_briefing.txt.
     depth_profiles:
       - LIGHT

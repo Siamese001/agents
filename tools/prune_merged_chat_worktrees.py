@@ -55,18 +55,19 @@ def has_active_sidecar_lease(wt_path: Path, now_ts: float | None = None) -> bool
         payload = json.loads(lease_file.read_text(encoding="utf-8"))
         started_at = float(payload.get("started_at", 0.0))
         pid = int(payload.get("pid", 0))
+        ppid = int(payload.get("ppid", 0))
     except (OSError, UnicodeDecodeError, json.JSONDecodeError, ValueError, TypeError, AttributeError):  # guardian: allow-silent-swallow -- treat unreadable lease with recent mtime conservatively
         try:
-            return (now - lease_file.stat().st_mtime) < 1800.0
+            return (now - lease_file.stat().st_mtime) < SIDECAR_LEASE_TTL_SECONDS
         except OSError:
             return False
     age = now - started_at
     if age < 0 or age > SIDECAR_LEASE_TTL_SECONDS:
         return False
-    if pid == os.getpid() or _pid_is_alive(pid):
+    if pid == os.getpid() or _pid_is_alive(pid) or (ppid > 0 and _pid_is_alive(ppid)):
         return True
-    # Protect newly created sibling worktrees across separate subprocesses within a 30m window
-    return age < 1800.0
+    # Protect newly created sibling worktrees across separate subprocesses for full lease TTL
+    return age < SIDECAR_LEASE_TTL_SECONDS
 
 
 def write_sidecar_lease(wt_path: Path, branch_name: str) -> Path:
@@ -74,6 +75,7 @@ def write_sidecar_lease(wt_path: Path, branch_name: str) -> Path:
     lease_file = wt_path / SIDECAR_ACTIVE_LEASE_FILENAME
     payload = {
         "pid": os.getpid(),
+        "ppid": os.getppid(),
         "branch": branch_name,
         "started_at": time.time(),
     }
@@ -221,12 +223,34 @@ def _preserve_cwd_stub_if_needed(
     return False
 
 
+def _has_active_gitignored_work(wt_path: Path, max_age_seconds: float = SIDECAR_LEASE_TTL_SECONDS) -> bool:
+    """Return True if worktree holds recent gitignored plans/*.md or sidecar run manifests."""
+    now = time.time()
+    candidates: list[Path] = []
+    plans_dir = wt_path / "plans"
+    if plans_dir.is_dir():
+        candidates.extend(plans_dir.glob("*.md"))
+    runs_dir = wt_path / "artifacts" / "sidecar_runs"
+    if runs_dir.is_dir():
+        candidates.extend(runs_dir.rglob("manifest.json"))
+    for fp in candidates:
+        if fp.is_file() and not fp.is_symlink():
+            try:
+                if (now - fp.stat().st_mtime) <= max_age_seconds:
+                    return True
+            except OSError:
+                continue
+    return False
+
+
 def is_worktree_clean(wt_path: Path) -> bool:
-    """Return True if the worktree exists and has no uncommitted or untracked changes."""
+    """Return True if worktree exists with no uncommitted changes or recent gitignored sidecar work."""
     if not wt_path.is_dir():
         return True
     res = _run_git(["status", "--porcelain"], cwd=wt_path)
-    return res.returncode == 0 and not res.stdout.strip()
+    if res.returncode != 0 or bool(res.stdout.strip()):
+        return False
+    return not _has_active_gitignored_work(wt_path)
 
 
 def prune_merged_worktrees(
@@ -371,15 +395,26 @@ def consolidate_single_sidecar_worktree(
             safely_unlink_worktree_dependencies,
             worktree_provisioning_lock,
         )
-
-        lock_cm = worktree_provisioning_lock(timeout_seconds=60.0, root=main_root)
-    except (ImportError, OSError, TimeoutError, ValueError):  # guardian: allow-silent-swallow -- fallback to nullcontext if filelock unavailable
+    except ImportError:  # guardian: allow-silent-swallow -- fallback to nullcontext when optional lock helper absent
         link_worktree_dependencies = None  # type: ignore[assignment]
         safely_unlink_worktree_dependencies = None  # type: ignore[assignment]
         lock_cm = contextlib.nullcontext()
+    else:
+        lock_cm = worktree_provisioning_lock(timeout_seconds=60.0, root=main_root)
 
     with lock_cm:
         _run_git(["worktree", "prune"], cwd=main_root)
+
+        if has_active_sidecar_lease(resolved_target):
+            try:
+                lease_payload = json.loads((resolved_target / SIDECAR_ACTIVE_LEASE_FILENAME).read_text(encoding="utf-8"))
+                lease_branch = str(lease_payload.get("branch", "")).strip()
+            except (OSError, UnicodeDecodeError, json.JSONDecodeError, ValueError):  # guardian: allow-silent-swallow -- treat unreadable lease branch as empty
+                lease_branch = ""
+            if lease_branch and lease_branch != branch_name:
+                raise RuntimeError(
+                    f"Active sidecar lease on '{resolved_target}' belongs to branch '{lease_branch}', cannot switch to '{branch_name}'"
+                )
 
         worktrees = list_worktrees(main_root)
         merged_branches = get_merged_branches(main_root, target_ref=target_ref)
@@ -468,12 +503,8 @@ def write_sidecar_manifest(
         rev = _run_git(["rev-parse", "HEAD"], cwd=resolved_wt)
         sha = rev.stdout.strip() if rev.returncode == 0 else "unknown"
     payload = {
-        "agent_id": agent_id,
-        "run_id": run_id,
-        "mode": mode,
-        "pre_state_sha256": sha,
-        "worktree_dir": str(resolved_wt),
-        "plan_path": plan_path,
+        "agent_id": agent_id, "run_id": run_id, "mode": mode,
+        "pre_state_sha256": sha, "worktree_dir": str(resolved_wt), "plan_path": plan_path,
     }
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
     manifest_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
@@ -487,11 +518,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--active-cwd", type=Path, default=None, help="Explicit active working directory to protect.")
     parser.add_argument("--dry-run", action="store_true", help="Report merged worktrees/branches without deleting.")
     parser.add_argument("--delete-merged", action="store_true", help="Remove merged worktrees and delete merged branches.")
-    parser.add_argument(
-        "--consolidate-sidecar",
-        action="store_true",
-        help="Deduplicate clean external chat worktrees and provision a single in-repo sidecar worktree.",
-    )
+    parser.add_argument("--consolidate-sidecar", action="store_true", help="Deduplicate clean external chat worktrees and provision a single in-repo sidecar worktree.")
     parser.add_argument("--worktree-dir", type=Path, default=None, help="Target .worktrees/<slug> path for --consolidate-sidecar.")
     parser.add_argument("--branch", default=None, help="Target branch name for --consolidate-sidecar.")
     parser.add_argument("--write-manifest", type=Path, default=None, help="Optional path to write canonical 6-field manifest.json.")
@@ -508,20 +535,14 @@ def main(argv: list[str] | None = None) -> int:
         if not args.worktree_dir or not args.branch:
             parser.error("--consolidate-sidecar requires both --worktree-dir and --branch")
         cons_res = consolidate_single_sidecar_worktree(
-            repo_root=repo_root,
-            worktree_dir=args.worktree_dir.resolve(),
-            branch_name=args.branch,
-            target_ref=args.target_ref,
-            caller_cwd=caller_cwd,
+            repo_root=repo_root, worktree_dir=args.worktree_dir.resolve(),
+            branch_name=args.branch, target_ref=args.target_ref, caller_cwd=caller_cwd,
         )
         if args.write_manifest:
             write_sidecar_manifest(
-                args.write_manifest.resolve(),
-                worktree_dir=Path(cons_res["worktree_dir"]),
-                agent_id=args.agent_id,
-                run_id=args.run_id or time.strftime("%Y%m%dT%H%M%SZ", time.gmtime()),
-                mode=args.mode,
-                plan_path=args.plan_path,
+                args.write_manifest.resolve(), worktree_dir=Path(cons_res["worktree_dir"]),
+                agent_id=args.agent_id, run_id=args.run_id or time.strftime("%Y%m%dT%H%M%SZ", time.gmtime()),
+                mode=args.mode, plan_path=args.plan_path,
             )
         for wt in cons_res["deduplicated_worktrees"]:
             print(f"[worktree consolidation] Deduplicated external chat worktree: {wt}")
@@ -533,21 +554,15 @@ def main(argv: list[str] | None = None) -> int:
     if args.write_manifest:
         target_wt = args.worktree_dir.resolve() if args.worktree_dir else repo_root
         write_sidecar_manifest(
-            args.write_manifest.resolve(),
-            worktree_dir=target_wt,
-            agent_id=args.agent_id,
-            run_id=args.run_id or time.strftime("%Y%m%dT%H%M%SZ", time.gmtime()),
-            mode=args.mode,
-            plan_path=args.plan_path,
+            args.write_manifest.resolve(), worktree_dir=target_wt,
+            agent_id=args.agent_id, run_id=args.run_id or time.strftime("%Y%m%dT%H%M%SZ", time.gmtime()),
+            mode=args.mode, plan_path=args.plan_path,
         )
         return 0
 
     delete_flag = bool(args.delete_merged and not args.dry_run)
     result = prune_merged_worktrees(
-        repo_root=repo_root,
-        target_ref=args.target_ref,
-        delete_merged=delete_flag,
-        active_cwd=caller_cwd,
+        repo_root=repo_root, target_ref=args.target_ref, delete_merged=delete_flag, active_cwd=caller_cwd,
     )
 
     if delete_flag:

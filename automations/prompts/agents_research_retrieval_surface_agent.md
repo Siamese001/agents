@@ -39,14 +39,15 @@ Execute the fail-closed 7-pillar behavioral retrieval auditor, BGE-M3 embedding 
 
 ```bash
 export PRIMARY_REPO_ROOT="/Users/amitayer/Git/agents"
-"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/retrieval_surface_auditor.py" \
+export PYTHONDONTWRITEBYTECODE=1
+PYTHONDONTWRITEBYTECODE=1 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/retrieval_surface_auditor.py" \
   --repo-root "${PRIMARY_REPO_ROOT}" \
   --read-only \
   --json
-"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/verify_graph_integrity_and_embeddings.py"
-"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/run_resume_graph_traversal_probe.py" --max-paths 200
-"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/verify_pipeline_latency_caching.py" --repo-root "${PRIMARY_REPO_ROOT}"
-"${PRIMARY_REPO_ROOT}/.venv/bin/pytest" "${PRIMARY_REPO_ROOT}/tests/unit/test_e2e_and_retrieval_full_parity.py" "${PRIMARY_REPO_ROOT}/outreach_engine/tests/test_research_governance_truth.py" -q --timeout=60
+PYTHONDONTWRITEBYTECODE=1 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/verify_graph_integrity_and_embeddings.py" --read-only
+PYTHONDONTWRITEBYTECODE=1 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/run_resume_graph_traversal_probe.py" --max-paths 200
+PYTHONDONTWRITEBYTECODE=1 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/verify_pipeline_latency_caching.py" --repo-root "${PRIMARY_REPO_ROOT}"
+"${PRIMARY_REPO_ROOT}/.venv/bin/pytest" "${PRIMARY_REPO_ROOT}/tests/unit/test_e2e_and_retrieval_full_parity.py" "${PRIMARY_REPO_ROOT}/outreach_engine/tests/test_research_governance_truth.py" -q -p no:cacheprovider --timeout=60
 ```
 
 If all preflight commands exit `0` (`"status": "PASS"`, `"is_clean": true`), fast-exit `COMPLETE` (`PREFLIGHT_ZERO_DEFECT_FAST_EXIT`).
@@ -59,9 +60,11 @@ When Phase 1.5 reports `>= 1` actionable findings (`is_clean == false`), provisi
 
 ```bash
 export PRIMARY_REPO_ROOT="/Users/amitayer/Git/agents"
+export PYTHONDONTWRITEBYTECODE=1
+export AGY_SIDECAR_AGENT_ID="agents-research-retrieval-surface"
 export RUN_TS="$(date -u +%Y%m%dT%H%M%SZ)"
 export HEX6="$(python3 -c 'import secrets; print(secrets.token_hex(3))')"
-export BRANCH_SLUG="agents-research-retrieval-${RUN_TS}"
+export BRANCH_SLUG="agents-research-retrieval-${RUN_TS}-${HEX6}"
 export BRANCH_NAME="chore/${BRANCH_SLUG}"
 export WORKTREE_SLUG="$(echo "${BRANCH_NAME}" | tr '/-' '__')"
 export WORKTREE_DIR="${PRIMARY_REPO_ROOT}/.worktrees/${WORKTREE_SLUG}"
@@ -69,7 +72,7 @@ export RUN_DIR="${WORKTREE_DIR}/artifacts/sidecar_runs/agents_research_retrieval
 export PLAN_REL="plans/research-retrieval-surface-${HEX6}.md"
 
 git -C "${PRIMARY_REPO_ROOT}" worktree prune
-"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/prune_merged_chat_worktrees.py" \
+PYTHONDONTWRITEBYTECODE=1 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/prune_merged_chat_worktrees.py" \
   --repo-root "${PRIMARY_REPO_ROOT}" \
   --consolidate-sidecar \
   --worktree-dir "${WORKTREE_DIR}" \
@@ -82,7 +85,7 @@ git -C "${PRIMARY_REPO_ROOT}" worktree prune
 cd "${WORKTREE_DIR}"
 mkdir -p "${RUN_DIR}" "${WORKTREE_DIR}/plans"
 export PRE_STATE_SHA256="$(git -C "${WORKTREE_DIR}" rev-parse HEAD)"
-"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/retrieval_surface_auditor.py" \
+PYTHONDONTWRITEBYTECODE=1 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/retrieval_surface_auditor.py" \
   --repo-root "${WORKTREE_DIR}" \
   --read-only \
   --output "${RUN_DIR}/audit_report.json" \

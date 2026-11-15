@@ -69,3 +69,4 @@ template_registry_refs:
   - evidence_gap_analysis_v1
   - brief_citation_repair_v1
   - depth_profile_downgrade_v1
+  - apps_rg_targeting_brief_synthesis_v1

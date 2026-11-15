@@ -77,10 +77,7 @@ def worktree_provisioning_lock(timeout_seconds: float = 120.0, root: Path = ROOT
 
 
 def link_worktree_dependencies(root: Path, worktree_dir: Path) -> list[str]:
-    """
-    Symlinks runtime dependencies, editor configs, and agent governance
-    into the isolated worktree using robust relative symlinks.
-    """
+    """Symlink runtime dependencies, editor configs, and governance directories into worktree_dir."""
     linked: list[str] = []
     candidates = (".venv", ".local", ".vscode", ".agents", ".antigravity")
     for link_name in candidates:
@@ -103,16 +100,13 @@ def link_worktree_dependencies(root: Path, worktree_dir: Path) -> list[str]:
 
 
 def safely_unlink_worktree_dependencies(worktree_dir: Path) -> list[str]:
-    """
-    Safely unlinks all symlinks inside worktree_dir before rmtree/git remove.
-    Prevents recursive traversal into target directories (e.g. root .venv).
-    """
+    """Safely unlink symlinks and sidecar lock files inside worktree_dir before removal."""
     unlinked: list[str] = []
     if not worktree_dir.exists() or not worktree_dir.is_dir():
         return unlinked
 
     for item in list(worktree_dir.iterdir()):
-        if item.is_symlink():
+        if item.is_symlink() or item.name == ".sidecar_active_run.lock":
             try:
                 item.unlink()
                 unlinked.append(item.name)
@@ -533,6 +527,9 @@ def cmd_start(args: argparse.Namespace) -> int:
         except Exception as e:
             print(f"❌ Failed to create worktree: {e}")
             return 1
+        if (worktree_dir / ".gitignore").exists():
+            from tools.prune_merged_chat_worktrees import write_sidecar_lease
+            write_sidecar_lease(worktree_dir, branch)
 
         print("\n" + "=" * 80)
         print("✅ Isolated worktree created successfully!")

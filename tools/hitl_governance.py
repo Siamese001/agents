@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
 import datetime
 import hashlib
 import json
@@ -11,7 +12,8 @@ from pathlib import Path
 import re
 import sqlite3
 import subprocess
-from typing import Any, Sequence
+import threading
+from typing import Any, Iterator, Sequence
 
 DEFAULT_AMBIGUITY_THRESHOLD: float = 0.20
 DEFAULT_MIN_CONFIDENCE_FLOOR: float = 0.65
@@ -132,18 +134,34 @@ class HITLDecisionStore:
         self.db_path = Path(db_path).resolve() if db_path is not None else _resolve_default_store_path()
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._conn: sqlite3.Connection | None = None
+        self._tx_lock = threading.RLock()
         self._init_db()
 
     def _get_connection(self) -> sqlite3.Connection:
-        if self._conn is None:
-            self._conn = sqlite3.connect(str(self.db_path), timeout=30.0, check_same_thread=False)
-            self._conn.row_factory = sqlite3.Row
-        return self._conn
+        with self._tx_lock:
+            if self._conn is None:
+                self._conn = sqlite3.connect(
+                    str(self.db_path), timeout=30.0, check_same_thread=False, isolation_level=None
+                )
+                self._conn.row_factory = sqlite3.Row
+            return self._conn
+
+    @contextlib.contextmanager
+    def _immediate_tx(self, conn: sqlite3.Connection) -> Iterator[None]:
+        with self._tx_lock:
+            conn.execute("BEGIN IMMEDIATE;")
+            try:
+                yield
+                conn.commit()
+            except Exception:
+                if conn.in_transaction:
+                    conn.rollback()
+                raise
 
     def _init_db(self) -> None:
         conn = self._get_connection()
         conn.execute("PRAGMA journal_mode=WAL;")
-        with conn:
+        with self._immediate_tx(conn):
             conn.execute(
                 "CREATE TABLE IF NOT EXISTS hitl_decisions ("
                 "decision_id TEXT PRIMARY KEY, task_id TEXT, category TEXT, context_summary TEXT, "
@@ -172,7 +190,7 @@ class HITLDecisionStore:
         ctx_hash = hashlib.sha256(f"{category}:{context_summary}:{selected_option}".encode("utf-8")).hexdigest()[:16]
         opts_serialized = json.dumps([opt if isinstance(opt, (dict, list, str, int, float)) else str(opt) for opt in options])
         conn = self._get_connection()
-        with conn:
+        with self._immediate_tx(conn):
             conn.execute(
                 "INSERT OR REPLACE INTO hitl_decisions ("
                 "decision_id, task_id, category, context_summary, context_hash, options_json, "
@@ -188,7 +206,7 @@ class HITLDecisionStore:
         """Update the verified execution outcome ('SUCCESS', 'FAILED', 'ROLLED_BACK')."""
         now = datetime.datetime.now(datetime.timezone.utc).isoformat()
         conn = self._get_connection()
-        with conn:
+        with self._immediate_tx(conn):
             cursor = conn.execute(
                 "UPDATE hitl_decisions SET outcome = ?, updated_at = ? WHERE decision_id = ?",
                 (outcome, now, decision_id),
@@ -641,10 +659,7 @@ def validate_model_token_registry(
     return len(unapproved) == 0, unapproved, approved
 
 
-def evaluate_model_token_ambiguity(
-    unapproved_token: str,
-    approved_models: set[str] | None = None,
-) -> dict[str, Any]:
+def evaluate_model_token_ambiguity(unapproved_token: str, approved_models: set[str] | None = None) -> dict[str, Any]:
     """Formulate and score candidate options for an unapproved model token to determine ambiguity margin."""
     import difflib
 
@@ -655,43 +670,26 @@ def evaluate_model_token_ambiguity(
     # Calibrated to represent genuine ambiguity between typo hypothesis vs literal unreleased override
     option_a = {
         "label": f"Resolve as typo for approved canonical pin '{best_candidate}'",
-        "confidence_score": 0.56,
-        "evidence_refs": ["config/provider_profiles.yaml"],
-        "has_verification_receipt": False,
-        "risk_level": "MEDIUM",
+        "confidence_score": 0.56, "evidence_refs": ["config/provider_profiles.yaml"], "has_verification_receipt": False, "risk_level": "MEDIUM",
     }
     option_b = {
         "label": f"Treat '{unapproved_token}' as intentional unreleased external model override",
-        "confidence_score": 0.50,
-        "evidence_refs": [],
-        "has_verification_receipt": False,
-        "risk_level": "HIGH",
+        "confidence_score": 0.50, "evidence_refs": [], "has_verification_receipt": False, "risk_level": "HIGH",
     }
 
     eval_result = evaluate_hitl_surfacing_gate([option_a, option_b])
     return {
-        "unapproved_token": unapproved_token,
-        "suggested_match": best_candidate,
-        "options": [option_a, option_b],
-        "margin": eval_result["margin"],
-        "should_surface": eval_result["should_surface"],
-        "action": eval_result["action"],
+        "unapproved_token": unapproved_token, "suggested_match": best_candidate, "options": [option_a, option_b],
+        "margin": eval_result["margin"], "should_surface": eval_result["should_surface"], "action": eval_result["action"],
     }
 
 
-def validate_plan_only_firewall(
-    user_prompt: str,
-    artifact_metadata: dict[str, Any] | None,
-) -> tuple[bool, str]:
+def validate_plan_only_firewall(user_prompt: str, artifact_metadata: dict[str, Any] | None) -> tuple[bool, str]:
     """Validate that when user requests plan-only, RequestFeedback is false to prevent auto-proceed triggers."""
-    lower = user_prompt.lower()
-    is_plan_only = any(t in lower for t in PLAN_ONLY_TRIGGERS)
-    if not is_plan_only:
+    if not any(t in user_prompt.lower() for t in PLAN_ONLY_TRIGGERS):
         return True, "STANDARD_EXECUTION_ALLOWED"
-
     if artifact_metadata and artifact_metadata.get("RequestFeedback") is True:
         return False, "PLAN_ONLY_FIREWALL_VIOLATION: User requested plan-only mode; RequestFeedback must be false to prevent auto-execution."
-
     return True, "PLAN_ONLY_FIREWALL_SATISFIED"
 
 
@@ -720,11 +718,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         print("  (No decision aggregates recorded yet)")
     else:
         for cat in metrics["categories"]:
-            print(
-                f"  - {cat['category']}: Total={cat['total_decisions']}, "
-                f"Auto={cat['autonomous_proceeds']}, Approved={cat['human_approvals']}, "
-                f"Success={cat['success_count']}, Factor={cat['learning_factor']:+.4f}"
-            )
+            print(f"  - {cat['category']}: Total={cat['total_decisions']}, Auto={cat['autonomous_proceeds']}, Approved={cat['human_approvals']}, Success={cat['success_count']}, Factor={cat['learning_factor']:+.4f}")
 
     store.close()
     return 0

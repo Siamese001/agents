@@ -320,8 +320,14 @@ def run_smoke(
                 rg_src = root / "resume_graph_engine" / "src"
                 if str(rg_src) not in sys.path:
                     sys.path.insert(0, str(rg_src))
-                canonical_db = ensure_c03_graph_sqlite(root / "resume_graph_engine")
-                verify_graph_database(canonical_db)
+                rg_root = root / "resume_graph_engine"
+                cand_db = rg_root / "artifacts" / "apps_rg" / "fact_inventory" / "augmented_skills_graph.sqlite"
+                if cand_db.is_file():
+                    canonical_db = cand_db
+                else:
+                    graph_tmp = Path(stack.enter_context(tempfile.TemporaryDirectory(prefix="agents_c03_graph_")))
+                    canonical_db = ensure_c03_graph_sqlite(rg_root, graph_tmp / "augmented_skills_graph.sqlite")
+                verify_graph_database(canonical_db, read_only=True)
                 verify_hybrid_retrieval_stage2(canonical_db)
             else:
                 resume_verification = {"status": "PASSED", "outcome_label": "LIVE_PROVIDER_PASS"}

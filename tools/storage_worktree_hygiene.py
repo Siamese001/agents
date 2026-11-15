@@ -50,8 +50,9 @@ MAX_RETAINED_RUNTIME_TEST_RUNS: int = 1
 SQLITE_MAGIC_HEADER: bytes = b"SQLite format 3\x00"
 SQLITE_SUFFIXES: frozenset[str] = frozenset({".sqlite", ".sqlite3", ".db"})
 EXEMPT_LOCK_NAMES: frozenset[str] = frozenset(
-    {"uv.lock", "poetry.lock", "Cargo.lock", "package-lock.json", ".sidecar_active_run.lock"}
+    {"uv.lock", "poetry.lock", "Cargo.lock", "package-lock.json", ".sidecar_active_run.lock", ".provisioning.lock"}
 )
+ATOMIC_PROJECTION_SQLITE_NAMES: frozenset[str] = frozenset({"augmented_skills_graph.sqlite"})
 EXEMPT_PATH_PARTS: frozenset[str] = frozenset(
     {".git", ".worktrees", ".venv", "venv", "node_modules", "__pycache__"}
 )
@@ -64,9 +65,11 @@ DB_SKIP_DIRS: frozenset[str] = frozenset(
 )
 
 
-def _storage_roots(repo_root: Path) -> list[Path]:
-    """Return [repo_root] plus primary checkout root when running inside a linked worktree."""
+def _storage_roots(repo_root: Path, *, include_primary_root: bool = False) -> list[Path]:
+    """Return [repo_root], optionally including primary root when authorized."""
     root = repo_root.resolve()
+    if not include_primary_root:
+        return [root]
     primary = get_main_repo_root(root).resolve()
     return [root, primary] if (primary != root and primary.is_dir()) else [root]
 
@@ -98,10 +101,10 @@ def _is_sqlite_file(path: Path) -> bool:
         return False
 
 
-def _discover_sqlite_dbs(repo_root: Path) -> list[Path]:
-    """Locate repository SQLite/Chroma/vector state databases across active and primary roots."""
+def _discover_sqlite_dbs(repo_root: Path, *, include_primary_root: bool = False) -> list[Path]:
+    """Locate repository SQLite/Chroma/vector state databases across scoped roots."""
     found: set[Path] = set()
-    for base in _storage_roots(repo_root):
+    for base in _storage_roots(repo_root, include_primary_root=include_primary_root):
         try:
             for root_entry in base.iterdir():
                 if root_entry.suffix.lower() in SQLITE_SUFFIXES and _is_sqlite_file(root_entry):
@@ -132,11 +135,11 @@ def _format_rel_path(target: Path, roots: Sequence[Path]) -> str:
     return str(resolved)
 
 
-def inspect_sqlite_databases(repo_root: Path) -> list[dict[str, Any]]:
+def inspect_sqlite_databases(repo_root: Path, *, include_primary_root: bool = False) -> list[dict[str, Any]]:
     """Run read-only PRAGMA integrity_check, journal_mode, and WAL/SHM size checks."""
-    roots = _storage_roots(repo_root)
+    roots = _storage_roots(repo_root, include_primary_root=include_primary_root)
     reports: list[dict[str, Any]] = []
-    for db_path in _discover_sqlite_dbs(repo_root):
+    for db_path in _discover_sqlite_dbs(repo_root, include_primary_root=include_primary_root):
         wal_path, shm_path = Path(str(db_path) + "-wal"), Path(str(db_path) + "-shm")
         wal_mb = round(wal_path.stat().st_size / (1024 * 1024), 3) if wal_path.exists() else 0.0
         shm_mb = round(shm_path.stat().st_size / (1024 * 1024), 3) if shm_path.exists() else 0.0
@@ -153,44 +156,46 @@ def inspect_sqlite_databases(repo_root: Path) -> list[dict[str, Any]]:
             integrity, jmode = f"ERROR: {exc}", "unknown"
 
         reports.append({
-            "db": _format_rel_path(db_path, roots),
-            "size_mb": size_mb,
-            "integrity": integrity,
-            "journal_mode": jmode,
-            "wal_mb": wal_mb,
-            "shm_mb": shm_mb,
-            "wal_bloat": wal_mb > WAL_BLOAT_THRESHOLD_MB or shm_mb > WAL_BLOAT_THRESHOLD_MB,
-            "sha256": sha256_before,
+            "db": _format_rel_path(db_path, roots), "size_mb": size_mb, "integrity": integrity,
+            "journal_mode": jmode, "wal_mb": wal_mb, "shm_mb": shm_mb,
+            "wal_bloat": wal_mb > WAL_BLOAT_THRESHOLD_MB or shm_mb > WAL_BLOAT_THRESHOLD_MB, "sha256": sha256_before,
         })
     return reports
 
 
-def remediate_sqlite_wal(repo_root: Path) -> list[dict[str, Any]]:
-    """Enforce PRAGMA journal_mode=WAL and PRAGMA wal_checkpoint(TRUNCATE) on all repository SQLite DBs."""
-    roots = _storage_roots(repo_root)
+def remediate_sqlite_wal(repo_root: Path, *, include_primary_root: bool = False) -> list[dict[str, Any]]:
+    """Enforce DELETE mode on atomic graph projections and WAL/TRUNCATE on other SQLite DBs."""
+    roots = _storage_roots(repo_root, include_primary_root=include_primary_root)
     results: list[dict[str, Any]] = []
-    for db_path in _discover_sqlite_dbs(repo_root):
+    for db_path in _discover_sqlite_dbs(repo_root, include_primary_root=include_primary_root):
         pre_sha = hashlib.sha256(db_path.read_bytes()).hexdigest()
         conn = sqlite3.connect(str(db_path), timeout=30.0)
         pre_mode_row = conn.execute("PRAGMA journal_mode;").fetchone()
         pre_mode = str(pre_mode_row[0]).lower() if pre_mode_row else "unknown"
-        post_mode_row = conn.execute("PRAGMA journal_mode=WAL;").fetchone()
+        target_delete = db_path.name in ATOMIC_PROJECTION_SQLITE_NAMES
+        if target_delete:
+            chk_row = conn.execute("PRAGMA wal_checkpoint(TRUNCATE);").fetchone()
+            post_mode_row = conn.execute("PRAGMA journal_mode=DELETE;").fetchone()
+        else:
+            post_mode_row = conn.execute("PRAGMA journal_mode=WAL;").fetchone()
+            chk_row = conn.execute("PRAGMA wal_checkpoint(TRUNCATE);").fetchone()
         post_mode = str(post_mode_row[0]).lower() if post_mode_row else "unknown"
-        chk_row = conn.execute("PRAGMA wal_checkpoint(TRUNCATE);").fetchone()
         integ_row = conn.execute("PRAGMA integrity_check;").fetchone()
         conn.close()
-
+        if target_delete:
+            for sp in (Path(str(db_path) + "-wal"), Path(str(db_path) + "-shm")):
+                if sp.is_file() and not sp.is_symlink():
+                    try:
+                        sp.unlink()
+                    except OSError:  # guardian: allow-silent-swallow -- best-effort sidecar unlink
+                        pass
         wal_path = Path(str(db_path) + "-wal")
         wal_mb = round(wal_path.stat().st_size / (1024 * 1024), 3) if wal_path.exists() else 0.0
         results.append({
-            "db": _format_rel_path(db_path, roots),
-            "pre_journal_mode": pre_mode,
-            "post_journal_mode": post_mode,
+            "db": _format_rel_path(db_path, roots), "pre_journal_mode": pre_mode, "post_journal_mode": post_mode,
             "checkpoint_result": list(chk_row) if chk_row else [],
-            "integrity": str(integ_row[0]) if integ_row else "unknown",
-            "wal_mb": wal_mb,
-            "pre_sha256": pre_sha,
-            "post_sha256": hashlib.sha256(db_path.read_bytes()).hexdigest(),
+            "integrity": str(integ_row[0]) if integ_row else "unknown", "wal_mb": wal_mb,
+            "pre_sha256": pre_sha, "post_sha256": hashlib.sha256(db_path.read_bytes()).hexdigest(),
         })
     return results
 
@@ -311,41 +316,30 @@ def inspect_and_remediate_ephemeral_bloat(
                 pycache_mb += sz_mb
 
     return {
-        "duplicate_models_mb": round(duplicate_models_mb, 3),
-        "deduplicated_models": deduplicated_models,
+        "duplicate_models_mb": round(duplicate_models_mb, 3), "deduplicated_models": deduplicated_models,
         "unretained_runtime_proofs_mb": round(unretained_runtime_proofs_mb, 3),
         "unretained_full_resume_count": unretained_full_resume_count,
-        "retained_full_resume_runs": sorted(retained_names),
-        "pruned_full_resume_count": len(pruned_full_resume_runs),
+        "retained_full_resume_runs": sorted(retained_names), "pruned_full_resume_count": len(pruned_full_resume_runs),
         "unretained_runtime_tests_mb": round(unretained_runtime_tests_mb, 3),
-        "unretained_runtime_tests_count": unretained_runtime_tests_count,
-        "pruned_runtime_test_count": len(pruned_runtime_test_runs),
+        "unretained_runtime_tests_count": unretained_runtime_tests_count, "pruned_runtime_test_count": len(pruned_runtime_test_runs),
         "unretained_outreach_runs_mb": round(unretained_outreach_runs_mb, 3),
-        "unretained_outreach_runs_count": unretained_outreach_runs_count,
-        "pruned_outreach_run_count": len(pruned_outreach_runs),
-        "pycache_dir_count": len(pycache_dirs),
-        "pycache_mb": round(pycache_mb, 3),
-        "pruned_pycache_count": pruned_pycache_count,
-        "reclaimed_mb": round(reclaimed_mb, 3),
+        "unretained_outreach_runs_count": unretained_outreach_runs_count, "pruned_outreach_run_count": len(pruned_outreach_runs),
+        "pycache_dir_count": len(pycache_dirs), "pycache_mb": round(pycache_mb, 3),
+        "pruned_pycache_count": pruned_pycache_count, "reclaimed_mb": round(reclaimed_mb, 3),
     }
 
 
-def scan_stale_locks_and_temps(repo_root: Path, max_age_seconds: float = STALE_LOCK_AGE_SECONDS) -> list[str]:
-    """Identify orphaned .lock or .tmp files older than max_age_seconds across engines, artifacts, and worktrees."""
+def scan_stale_locks_and_temps(
+    repo_root: Path, max_age_seconds: float = STALE_LOCK_AGE_SECONDS, *, include_primary_root: bool = False
+) -> list[str]:
+    """Identify orphaned .lock or .tmp files older than max_age_seconds across scoped roots."""
     now = time.time()
     cutoff, lease_cutoff = now - max_age_seconds, now - max(max_age_seconds, SIDECAR_LEASE_TTL_SECONDS)
     stale: set[str] = set()
     skip_walk = set(EXEMPT_PATH_PARTS) | {"models", "career_calls", "runs"}
 
-    for base in _storage_roots(repo_root):
+    for base in _storage_roots(repo_root, include_primary_root=include_primary_root):
         wt_root = base / ".worktrees"
-        prov_lock = wt_root / ".provisioning.lock"
-        if prov_lock.is_file() and not prov_lock.is_symlink():
-            try:
-                if prov_lock.stat().st_mtime < cutoff:
-                    stale.add(str(prov_lock.relative_to(base)))
-            except OSError:
-                pass
         if wt_root.is_dir():
             for wt_child in sorted(wt_root.iterdir()):
                 if not wt_child.is_dir() or wt_child.is_symlink():
@@ -378,10 +372,10 @@ def scan_stale_locks_and_temps(repo_root: Path, max_age_seconds: float = STALE_L
     return sorted(stale)
 
 
-def scan_scratch_violations(repo_root: Path) -> list[str]:
+def scan_scratch_violations(repo_root: Path, *, include_primary_root: bool = False) -> list[str]:
     """Scan scratch/ for secret credentials and cross-repository path leaks."""
     violations: list[str] = []
-    for base in _storage_roots(repo_root):
+    for base in _storage_roots(repo_root, include_primary_root=include_primary_root):
         scratch_dir = base / "scratch"
         if not scratch_dir.is_dir():
             continue
@@ -401,25 +395,18 @@ def scan_scratch_violations(repo_root: Path) -> list[str]:
     return sorted(set(violations))
 
 
-def collect_storage_inventory(repo_root: Path) -> dict[str, float]:
-    """Measure full storage inventory across all engines, caches, data roots, worktrees, plans, reports, and scratch."""
-    primary = _storage_roots(repo_root)[-1]
+def collect_storage_inventory(repo_root: Path, *, include_primary_root: bool = False) -> dict[str, float]:
+    """Measure storage inventory across engines, caches, data roots, worktrees, plans, reports, and scratch."""
+    primary = _storage_roots(repo_root, include_primary_root=include_primary_root)[-1]
     tracked_dirs = {
-        "models_mb": primary / "artifacts" / "models",
-        "career_calls_mb": primary / "artifacts" / "career_calls",
-        "outreach_engine_mb": primary / "outreach_engine",
-        "resume_engine_mb": primary / "resume_engine",
+        "models_mb": primary / "artifacts" / "models", "career_calls_mb": primary / "artifacts" / "career_calls",
+        "outreach_engine_mb": primary / "outreach_engine", "resume_engine_mb": primary / "resume_engine",
         "resume_graph_artifacts_mb": primary / "resume_graph_engine" / "artifacts",
         "resume_graph_runtime_mb": primary / "resume_graph_engine" / ".runtime",
-        "resume_graph_data_mb": primary / "resume_graph_engine" / "data",
-        "apps_research_mb": primary / "apps_research",
-        "apps_eval_mb": primary / "apps_eval",
-        "apps_model_telemetry_mb": primary / "apps_model_telemetry",
-        "data_mb": primary / "data",
-        "worktrees_mb": primary / ".worktrees",
-        "reports_mb": primary / "reports",
-        "plans_mb": primary / "plans",
-        "scratch_mb": primary / "scratch",
+        "resume_graph_data_mb": primary / "resume_graph_engine" / "data", "apps_research_mb": primary / "apps_research",
+        "apps_eval_mb": primary / "apps_eval", "apps_model_telemetry_mb": primary / "apps_model_telemetry",
+        "data_mb": primary / "data", "worktrees_mb": primary / ".worktrees", "reports_mb": primary / "reports",
+        "plans_mb": primary / "plans", "scratch_mb": primary / "scratch",
     }
     inventory = {key: _dir_size_mb(path) for key, path in tracked_dirs.items()}
     inventory["total_inventory_mb"] = round(sum(inventory.values()), 3)
@@ -458,7 +445,14 @@ def _scan_and_prune_zombie_chat_shells(
         if not child.is_dir() or child.is_symlink():
             continue
         cres = child.resolve()
-        if cres in registered or cres in protected or (child / ".git").exists() or has_active_sidecar_lease(child):
+        if (
+            cres in registered
+            or cres in protected
+            or (child / ".git").exists()
+            or (child / ".agents" / "tools").is_symlink()
+            or (child / "scripts").is_symlink()
+            or has_active_sidecar_lease(child)
+        ):
             continue
         if remediate:
             shutil.rmtree(child, ignore_errors=True)
@@ -472,15 +466,19 @@ def run_six_pillar_hygiene_audit(
     repo_root: Path = REPO_ROOT,
     sidecars_root: Path = DEFAULT_SIDECARS_ROOT,
     remediate: bool = False,
+    include_primary_root: bool = False,
 ) -> dict[str, Any]:
     """Execute the 6-pillar storage, worktree, and SQLite hygiene audit (and optional remediation)."""
     root = repo_root.resolve()
-    roots = _storage_roots(root)
-    primary = roots[-1]
+    roots = _storage_roots(root, include_primary_root=include_primary_root)
+    primary = get_main_repo_root(root).resolve()
+    bloat_root = primary if include_primary_root else root
 
     prune_merged_worktrees(repo_root=root, target_ref="main", delete_merged=remediate, active_cwd=root)
     worktrees = list_worktrees(root)
-    orphaned_chat_shells = _scan_and_prune_zombie_chat_shells(root, primary, worktrees, remediate=remediate)
+    orphaned_chat_shells = _scan_and_prune_zombie_chat_shells(
+        root, primary, worktrees, remediate=(remediate and (include_primary_root or root == primary))
+    )
     protected_active_branches: set[str] = {
         str(wt["branch"])
         for wt in worktrees
@@ -493,37 +491,34 @@ def run_six_pillar_hygiene_audit(
     active_worktree_branches = sorted(protected_active_branches)
     prunable_worktrees = [str(wt["path"]) for wt in worktrees if wt.get("prunable")]
 
-    sqlite_remediation = remediate_sqlite_wal(root) if remediate else []
-    db_reports = inspect_sqlite_databases(root)
-    ephemeral_bloat = inspect_and_remediate_ephemeral_bloat(primary, remediate=remediate)
+    sqlite_remediation = remediate_sqlite_wal(root, include_primary_root=include_primary_root) if remediate else []
+    db_reports = inspect_sqlite_databases(root, include_primary_root=include_primary_root)
+    ephemeral_bloat = inspect_and_remediate_ephemeral_bloat(bloat_root, remediate=remediate)
 
-    sidecar_runs_mb = _dir_size_mb(primary / "artifacts" / "sidecar_runs")
-    playwright_mb = _dir_size_mb(primary / "artifacts" / "mcp" / "playwright")
+    sidecar_runs_mb = _dir_size_mb(bloat_root / "artifacts" / "sidecar_runs")
+    playwright_mb = _dir_size_mb(bloat_root / "artifacts" / "mcp" / "playwright")
     pytest_cache_mb = round(
-        sum(_dir_size_mb(primary / rel) for rel in (".pytest_cache", "outreach_engine/.pytest_cache", "resume_graph_engine/.pytest_cache", "apps_eval/.pytest_cache")),
+        sum(_dir_size_mb(bloat_root / rel) for rel in (".pytest_cache", "outreach_engine/.pytest_cache", "resume_graph_engine/.pytest_cache", "apps_eval/.pytest_cache")),
         3,
     )
     total_sprawl_mb = round(
-        sidecar_runs_mb + playwright_mb + pytest_cache_mb
-        + ephemeral_bloat["duplicate_models_mb"]
-        + ephemeral_bloat["unretained_runtime_proofs_mb"]
-        + ephemeral_bloat["unretained_runtime_tests_mb"]
-        + ephemeral_bloat["unretained_outreach_runs_mb"]
-        + ephemeral_bloat["pycache_mb"],
+        sidecar_runs_mb + playwright_mb + pytest_cache_mb + ephemeral_bloat["duplicate_models_mb"]
+        + ephemeral_bloat["unretained_runtime_proofs_mb"] + ephemeral_bloat["unretained_runtime_tests_mb"]
+        + ephemeral_bloat["unretained_outreach_runs_mb"] + ephemeral_bloat["pycache_mb"],
         3,
     )
-    storage_inventory = collect_storage_inventory(root)
+    storage_inventory = collect_storage_inventory(root, include_primary_root=include_primary_root)
 
-    stale_files = scan_stale_locks_and_temps(root)
-    scratch_violations = scan_scratch_violations(root)
+    stale_files = scan_stale_locks_and_temps(root, include_primary_root=include_primary_root)
+    scratch_violations = scan_scratch_violations(root, include_primary_root=include_primary_root)
     if remediate and (stale_files or scratch_violations):
         for rel_file in list(stale_files) + list(scratch_violations):
             for base in roots:
                 target = base / rel_file
                 if target.is_file() and not target.is_symlink():
                     target.unlink()
-        stale_files = scan_stale_locks_and_temps(root)
-        scratch_violations = scan_scratch_violations(root)
+        stale_files = scan_stale_locks_and_temps(root, include_primary_root=include_primary_root)
+        scratch_violations = scan_scratch_violations(root, include_primary_root=include_primary_root)
 
     separation = validate_sidecar_separation(repo_root=root, sidecars_root=sidecars_root)
     has_bloat_findings = (
@@ -538,7 +533,11 @@ def run_six_pillar_hygiene_audit(
 
     pillar_status = {
         "pillar_1_worktree_branch_drift": "PASS" if (not prunable_worktrees and not merged_branches and not orphaned_chat_shells) else "FINDINGS",
-        "pillar_2_sqlite_integrity_wal": "PASS" if all(d["integrity"] == "ok" and d["journal_mode"] == "wal" for d in db_reports) else "FINDINGS",
+        "pillar_2_sqlite_integrity_wal": "PASS" if all(
+            d["integrity"] == "ok"
+            and d["journal_mode"] == ("delete" if Path(d["db"]).name in ATOMIC_PROJECTION_SQLITE_NAMES else "wal")
+            for d in db_reports
+        ) else "FINDINGS",
         "pillar_3_wal_shm_bloat": "PASS" if not any(d["wal_bloat"] for d in db_reports) else "FINDINGS",
         "pillar_4_artifact_sprawl": "PASS" if not has_bloat_findings else "FINDINGS",
         "pillar_5_stale_locks_temps": "PASS" if (not stale_files and not scratch_violations) else "FINDINGS",
@@ -547,30 +546,17 @@ def run_six_pillar_hygiene_audit(
 
     overall_clean = all(v == "PASS" for v in pillar_status.values())
     return {
-        "status": "PASS" if overall_clean else "FINDINGS",
-        "is_clean": overall_clean,
-        "repo_root": str(root),
-        "remediated": remediate,
-        "pillar_status": pillar_status,
-        "worktree_prunable_count": len(prunable_worktrees),
-        "orphaned_chat_shells": orphaned_chat_shells,
-        "merged_branches": merged_branches,
-        "active_worktree_branches": active_worktree_branches,
-        "db_count": len(db_reports),
-        "dbs": db_reports,
-        "sqlite_remediation": sqlite_remediation,
+        "status": "PASS" if overall_clean else "FINDINGS", "is_clean": overall_clean,
+        "repo_root": str(root), "remediated": remediate, "pillar_status": pillar_status,
+        "worktree_prunable_count": len(prunable_worktrees), "orphaned_chat_shells": orphaned_chat_shells,
+        "merged_branches": merged_branches, "active_worktree_branches": active_worktree_branches,
+        "db_count": len(db_reports), "dbs": db_reports, "sqlite_remediation": sqlite_remediation,
         "sprawl": {
-            "sidecar_runs_mb": sidecar_runs_mb,
-            "playwright_mb": playwright_mb,
-            "pytest_cache_mb": pytest_cache_mb,
-            **ephemeral_bloat,
-            "total_mb": total_sprawl_mb,
-            "threshold_mb": ARTIFACT_SPRAWL_THRESHOLD_MB,
+            "sidecar_runs_mb": sidecar_runs_mb, "playwright_mb": playwright_mb, "pytest_cache_mb": pytest_cache_mb,
+            **ephemeral_bloat, "total_mb": total_sprawl_mb, "threshold_mb": ARTIFACT_SPRAWL_THRESHOLD_MB,
         },
-        "storage_inventory": storage_inventory,
-        "stale_files": stale_files,
-        "scratch_violations": scratch_violations,
-        "sidecar_separation": separation,
+        "storage_inventory": storage_inventory, "stale_files": stale_files,
+        "scratch_violations": scratch_violations, "sidecar_separation": separation,
     }
 
 
@@ -579,11 +565,17 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--repo-root", type=Path, default=REPO_ROOT, help="Repository root path")
     parser.add_argument("--sidecars-root", type=Path, default=DEFAULT_SIDECARS_ROOT, help="Global sidecars root")
     parser.add_argument("--remediate", action="store_true", help="Execute bounded WAL, bloat, and worktree remediation")
+    parser.add_argument("--include-primary-root", action="store_true", help="Also scan/remediate primary repo root when run from a worktree")
     parser.add_argument("--output", type=Path, default=None, help="Optional JSON output file path")
     parser.add_argument("--json", action="store_true", help="Print JSON report to stdout")
     args = parser.parse_args(argv)
 
-    report = run_six_pillar_hygiene_audit(repo_root=args.repo_root, sidecars_root=args.sidecars_root, remediate=args.remediate)
+    report = run_six_pillar_hygiene_audit(
+        repo_root=args.repo_root,
+        sidecars_root=args.sidecars_root,
+        remediate=args.remediate,
+        include_primary_root=args.include_primary_root,
+    )
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
