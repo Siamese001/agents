@@ -84,6 +84,17 @@ def resolve_optimal_device(requested: str | None = None) -> str:
     return "cpu"
 
 
+def resolve_litert_backend(requested: str | None = None) -> str:
+    """Resolve the optimal Antigravity LiteRTBackend ('GPU', 'NPU', or 'CPU') for .litertlm execution."""
+    raw = (requested or os.environ.get("LITERT_BACKEND") or "").strip().upper()
+    if raw in {"GPU", "NPU", "CPU"}:
+        return raw
+    dev = resolve_optimal_device(requested)
+    if dev.startswith(("mps", "cuda")):
+        return "GPU"
+    return "CPU"
+
+
 def synchronize(device: str | None = None) -> None:
     """Block until all outstanding kernels/operations on device finish."""
     target = (device or resolve_optimal_device()).strip().lower()

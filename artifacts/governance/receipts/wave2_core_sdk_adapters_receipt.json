@@ -1,0 +1,23 @@
+{
+  "wave": "Wave 2",
+  "title": "Core Antigravity SDK Dependencies, Client Lifecycle & Local Runtime Adapters",
+  "status": "COMPLETE",
+  "timestamp": "2026-11-15T14:35:40Z",
+  "test_command": ".venv/bin/python -m pytest tests/unit/test_client_wrappers_sdk.py -v --timeout=60",
+  "tests_passed": 18,
+  "tests_failed": 0,
+  "independent_verification": "AST check on infrastructure/live_execution.py and infrastructure/sdks_mcps/client_wrappers.py",
+  "independent_verification_status": "PASS",
+  "deliverables": [
+    "pyproject.toml",
+    "infrastructure/live_execution.py",
+    "infrastructure/sdks_mcps/gemini_client.py",
+    "infrastructure/sdks_mcps/client_wrappers.py",
+    "agents/gateway/model_gateway.py",
+    "config/provider_profiles.yaml",
+    "resume_graph_engine/src/apps_rg/config/provider_profiles.yaml",
+    "infrastructure/device/device_manager.py",
+    "scripts/local_llm/test_client_call.py",
+    "tests/unit/test_client_wrappers_sdk.py"
+  ]
+}

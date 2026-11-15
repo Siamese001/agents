@@ -13,9 +13,40 @@ import threading
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+from enum import Enum
 from typing import Any, Mapping
 
 from infrastructure.live_execution import key_fingerprint
+
+
+class BudgetScope(str, Enum):
+    """Antigravity SDK BudgetScope enum."""
+
+    LIFETIME = "lifetime"
+    FORWARD_LOOKING = "forward_looking"
+
+
+class StopReason(str, Enum):
+    """Antigravity SDK StopReason enum."""
+
+    COMPLETED = "COMPLETED"
+    MAX_MODEL_CALLS = "MAX_MODEL_CALLS"
+    MAX_TOOL_CALLS = "MAX_TOOL_CALLS"
+    MAX_INPUT_TOKENS = "MAX_INPUT_TOKENS"
+    MAX_OUTPUT_TOKENS = "MAX_OUTPUT_TOKENS"
+    MAX_TOTAL_TOKENS = "MAX_TOTAL_TOKENS"
+
+
+@dataclass(frozen=True)
+class BudgetConfig:
+    """Antigravity SDK BudgetConfig contract."""
+
+    max_model_calls: int | None = None
+    max_tool_calls: int | None = None
+    max_input_tokens: int | None = None
+    max_output_tokens: int | None = None
+    max_total_tokens: int | None = None
+    scope: BudgetScope = BudgetScope.LIFETIME
 
 
 class TokenBudgetExceededError(RuntimeError):
@@ -34,6 +65,23 @@ class TokenBudget:
     max_completion_tokens: int = 8192
     max_total_tokens: int = 40000
     max_run_tokens: int = 150000
+
+    def to_antigravity_budget_config(
+        self,
+        *,
+        max_model_calls: int = 10,
+        max_tool_calls: int = 20,
+        scope: BudgetScope = BudgetScope.LIFETIME,
+    ) -> BudgetConfig:
+        """Project TokenBudget into Antigravity SDK BudgetConfig."""
+        return BudgetConfig(
+            max_model_calls=max_model_calls,
+            max_tool_calls=max_tool_calls,
+            max_input_tokens=self.max_prompt_tokens,
+            max_output_tokens=self.max_completion_tokens,
+            max_total_tokens=self.max_run_tokens if scope == BudgetScope.LIFETIME else self.max_total_tokens,
+            scope=scope,
+        )
 
 
 @dataclass(frozen=True)
@@ -161,6 +209,18 @@ class LiveTokenGovernor:
     def cumulative_tokens_consumed(self) -> int:
         with self._lock:
             return self._cumulative_tokens_consumed
+
+    @staticmethod
+    def inspect_stop_reason(response: Any) -> StopReason:
+        """Inspect `response.stop_reason` against Antigravity SDK StopReason values."""
+        raw = getattr(response, "stop_reason", None)
+        if raw is None and isinstance(response, Mapping):
+            raw = response.get("stop_reason")
+        val = str(getattr(raw, "value", raw) or "COMPLETED").upper()
+        try:
+            return StopReason(val)
+        except ValueError:
+            return StopReason.COMPLETED
 
 
 @dataclass(frozen=True)

@@ -7,12 +7,15 @@ seven-step lifecycle flow, and ten-field delegation contract enforcement.
 from __future__ import annotations
 
 import json
+import sys
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
 from typing import Any, List, Optional, Sequence, Union
 
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 MANDATORY_DELEGATION_FIELDS = (
     "task_id",
@@ -98,6 +101,124 @@ class AgentDefinition:
 
 
 @dataclass
+class SubagentCapabilities:
+    max_subagent_depth: int = 1
+    allowed_subagents: list[str] = field(default_factory=list)
+
+
+@dataclass
+class SubagentConfig:
+    name: str
+    description: str
+    system_instructions: str = ""
+    allowed_tools: list[str] = field(default_factory=list)
+    capabilities: SubagentCapabilities = field(default_factory=SubagentCapabilities)
+    budget: dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "name": self.name,
+            "description": self.description,
+            "system_instructions": self.system_instructions,
+            "allowed_tools": list(self.allowed_tools),
+            "capabilities": {
+                "max_subagent_depth": self.capabilities.max_subagent_depth,
+                "allowed_subagents": list(self.capabilities.allowed_subagents),
+            },
+            "budget": dict(self.budget),
+            "metadata": dict(self.metadata),
+        }
+
+
+@dataclass
+class CapabilitiesConfig:
+    enable_subagents: bool = True
+    max_subagent_depth: int = 2
+    allowed_subagents: list[str] = field(default_factory=list)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "enable_subagents": self.enable_subagents,
+            "max_subagent_depth": self.max_subagent_depth,
+            "allowed_subagents": list(self.allowed_subagents),
+        }
+
+
+class BuiltinTools(str, Enum):
+    START_SUBAGENT = "start_subagent"
+    CREATE_FILE = "create_file"
+    EDIT_FILE = "edit_file"
+    RUN_COMMAND = "run_command"
+    VIEW_FILE = "view_file"
+
+
+@dataclass
+class TemplatedSystemInstructions:
+    identity: str = ""
+    guidelines: str = ""
+    communication_style: str = ""
+
+
+@dataclass
+class CustomSystemInstructions:
+    text: str = ""
+
+
+@dataclass
+class Document:
+    path: str
+    mime_type: str = "application/pdf"
+    content_bytes: bytes = b""
+
+    @classmethod
+    def from_file(cls, file_path: str | Path) -> Document:
+        p = Path(file_path)
+        if not p.exists():
+            raise FileNotFoundError(f"Document file not found: {p}")
+        suffix = p.suffix.lower()
+        mime = "application/pdf" if suffix == ".pdf" else "text/plain"
+        return cls(path=str(p), mime_type=mime, content_bytes=p.read_bytes())
+
+
+@dataclass
+class Image:
+    path: str
+    mime_type: str = "image/png"
+    content_bytes: bytes = b""
+
+    @classmethod
+    def from_file(cls, file_path: str | Path) -> Image:
+        p = Path(file_path)
+        if not p.exists():
+            raise FileNotFoundError(f"Image file not found: {p}")
+        return cls(path=str(p), mime_type="image/png", content_bytes=p.read_bytes())
+
+
+class ToolContext:
+    """Typed Antigravity SDK ToolContext for stateful tool execution."""
+
+    def __init__(self, initial_state: dict[str, Any] | None = None) -> None:
+        self._state: dict[str, Any] = dict(initial_state or {})
+
+    def get_state(self, key: str, default: Any = None) -> Any:
+        return self._state.get(key, default)
+
+    def set_state(self, key: str, value: Any) -> None:
+        self._state[key] = value
+
+    def as_dict(self) -> dict[str, Any]:
+        return dict(self._state)
+
+
+try:
+    from google.antigravity.errors import AntigravityCancelledError  # type: ignore[import-not-found]
+except ImportError:
+    class AntigravityCancelledError(BaseException):
+        """Raised when an Antigravity SDK response stream is cancelled."""
+
+
+@dataclass
 class SubAgentDefinition:
     id: str
     parent_agent_id: str
@@ -106,6 +227,65 @@ class SubAgentDefinition:
     can_have_sub_agents: bool = True
     returns_results_upstream: bool = True
     assigned_skills: list[str] = field(default_factory=list)
+
+    def to_antigravity_subagent_config(
+        self,
+        contract: dict[str, Any] | None = None,
+        *,
+        allowed_subagents: list[str] | None = None,
+    ) -> SubagentConfig:
+        """Project SubAgentDefinition and optional 10-field contract into SubagentConfig."""
+        if contract is not None:
+            errs = validate_delegation_contract(contract)
+            if errs:
+                raise ValueError(f"Invalid delegation contract: {errs}")
+            tools = [str(t) for t in contract.get("allowed_tools", [])]
+            budget_raw = contract.get("budget")
+            budget_dict = dict(budget_raw) if isinstance(budget_raw, dict) else {"limit": budget_raw}
+            objective = str(contract.get("objective", self.domain_focus))
+            meta = {
+                "task_id": contract.get("task_id"),
+                "parent_task_id": contract.get("parent_task_id"),
+                "scope_in": list(contract.get("scope_in", [])),
+                "scope_out": list(contract.get("scope_out", [])),
+                "deliverable": contract.get("deliverable"),
+                "definition_of_done": contract.get("definition_of_done"),
+                "escalation_rule": contract.get("escalation_rule"),
+            }
+        else:
+            tools = [BuiltinTools.VIEW_FILE.value]
+            budget_dict = {"max_turns": 3, "timeout_seconds": 60}
+            objective = self.domain_focus
+            meta = {"parent_agent_id": self.parent_agent_id, "assigned_skills": list(self.assigned_skills)}
+
+        if self.can_have_sub_agents and BuiltinTools.START_SUBAGENT.value not in tools:
+            tools.append(BuiltinTools.START_SUBAGENT.value)
+
+        return SubagentConfig(
+            name=self.id,
+            description=objective,
+            system_instructions=f"Domain focus: {self.domain_focus}. Return structured output upstream to {self.parent_agent_id}.",
+            allowed_tools=tools,
+            capabilities=SubagentCapabilities(
+                max_subagent_depth=1 if self.can_have_sub_agents else 0,
+                allowed_subagents=list(allowed_subagents or []),
+            ),
+            budget=budget_dict,
+            metadata=meta,
+        )
+
+
+def contract_to_subagent_config(contract: dict[str, Any]) -> SubagentConfig:
+    """Validate a 10-field delegation contract and project it to an Antigravity SubagentConfig."""
+    errs = validate_delegation_contract(contract)
+    if errs:
+        raise ValueError(f"Invalid delegation contract: {errs}")
+    sub_def = SubAgentDefinition(
+        id=str(contract["task_id"]),
+        parent_agent_id=str(contract["parent_task_id"]),
+        domain_focus=str(contract["objective"]),
+    )
+    return sub_def.to_antigravity_subagent_config(contract)
 
 
 @dataclass
@@ -218,3 +398,22 @@ def validate_unified_architecture_governance(repo_root: Path | None = None) -> l
         errors.append(f"Skills directory missing: {skills_dir}")
 
     return errors
+
+
+if __name__ == "__main__":
+    sample_contract = {
+        "task_id": "subtask-verify-01",
+        "parent_task_id": "wave-3",
+        "objective": "Verify Antigravity SubagentConfig projection",
+        "scope_in": ["tools/"],
+        "scope_out": ["resume_graph_engine/"],
+        "allowed_tools": [BuiltinTools.VIEW_FILE.value, BuiltinTools.START_SUBAGENT.value],
+        "deliverable": "Serialized SubagentConfig JSON",
+        "definition_of_done": "Zero governance errors and valid SubagentConfig",
+        "budget": {"max_turns": 3, "timeout_seconds": 60},
+        "escalation_rule": "Escalate on contract violation",
+    }
+    cfg = contract_to_subagent_config(sample_contract)
+    gov_errors = validate_unified_architecture_governance()
+    print(json.dumps({"subagent_config": cfg.to_dict(), "governance_errors": gov_errors}, indent=2))
+    raise SystemExit(1 if gov_errors else 0)

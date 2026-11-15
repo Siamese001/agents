@@ -469,5 +469,27 @@ def test_skills_auditor_rejects_broken_link_duplicate_desc_and_missing_script(tm
     assert "References nonexistent script 'ops_scripts/nonexistent_script.py'" in violations
 
 
+def test_mcp_sdk_loader_and_triggers_wiring() -> None:
+    """Verify .mcp.json translates to McpStdioServer / McpStreamableHttpServer and skills_paths/triggers resolve."""
+    from tools.ssot_boundary_auditor import audit_mcp_hooks_and_links, load_antigravity_mcp_servers
+    from tools.validate_sidecar_separation import (
+        build_antigravity_sdk_triggers,
+        resolve_antigravity_skills_paths,
+    )
+
+    servers = load_antigravity_mcp_servers(REPO_ROOT)
+    types_seen = {s["type"] for s in servers}
+    assert "McpStdioServer" in types_seen
+    assert "McpStreamableHttpServer" in types_seen
+    assert any(s["name"] == "vector_db" and s["type"] == "McpStdioServer" for s in servers)
+    assert audit_mcp_hooks_and_links(REPO_ROOT) == []
+
+    skills_paths = resolve_antigravity_skills_paths(REPO_ROOT)
+    assert len(skills_paths) == 1 and skills_paths[0].endswith(".agents/skills")
+    triggers = build_antigravity_sdk_triggers(REPO_ROOT)
+    assert len(triggers) == 8
+    assert all(t["skills_paths"] == skills_paths for t in triggers)
+
+
 
 

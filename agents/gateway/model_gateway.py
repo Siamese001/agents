@@ -113,6 +113,60 @@ class ModelCapabilityGateway:
         with ThreadPoolExecutor(max_workers=workers) as executor:
             return list(executor.map(self.execute, requests))
 
+    async def async_execute_with_antigravity_agent(
+        self,
+        request: CapabilityRequest,
+        *,
+        config: Any = None,
+        agent_cls: Any = None,
+    ) -> CapabilityResponse:
+        """Execute a CapabilityRequest through an async Antigravity Agent context manager, streaming tokens and thoughts."""
+        self.validate_pre_commit(request)
+        start_time = time.perf_counter()
+        prompt_text = request.prompt_snapshot.assemble_text()
+
+        resolved_agent_cls = agent_cls
+        if resolved_agent_cls is None:
+            try:
+                from google.antigravity import Agent as _SDKAgent  # type: ignore
+
+                resolved_agent_cls = _SDKAgent
+            except ImportError:
+                resolved_agent_cls = None
+
+        if resolved_agent_cls is None:
+            return await self.async_execute(request)
+
+        if config is None:
+            from infrastructure.sdks_mcps.client_wrappers import create_antigravity_agent_config
+
+            config = create_antigravity_agent_config()
+
+        tokens: list[str] = []
+        thoughts: list[str] = []
+        async with resolved_agent_cls(config) as agent:
+            response = await agent.chat(prompt_text)
+            if hasattr(response, "thoughts") and response.thoughts is not None:
+                async for thought in response.thoughts:
+                    thoughts.append(str(thought))
+            async for token in response:
+                tokens.append(str(token))
+
+        content = "".join(tokens)
+        elapsed_ms = (time.perf_counter() - start_time) * 1000.0
+        model_id = str(getattr(config, "model", "gemini-3.8-flash"))  # guardian: allow-model-id -- SDK default
+        return CapabilityResponse(
+            content=content,
+            provider="google_antigravity",
+            model_id=model_id,
+            status="SUCCESS",
+            prompt_tokens=request.prompt_snapshot.total_estimated_tokens,
+            output_tokens=max(1, len(content) // 4),
+            latency_ms=elapsed_ms,
+            batch_id=request.batch_id,
+            correlation_id=request.correlation_id,
+        )
+
     async def async_execute(self, request: CapabilityRequest) -> CapabilityResponse:
         """Asynchronously dispatch capability request non-blockingly."""
         import asyncio

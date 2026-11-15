@@ -140,11 +140,28 @@ class WorkflowStep:
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
+from tools.unified_agent_architecture import AntigravityCancelledError, ToolContext
+
+
+async def cancel_antigravity_response(response: Any) -> bool:
+    """Invoke `await response.cancel()` on an Antigravity SDK stream, handling AntigravityCancelledError."""
+    if hasattr(response, "cancel") and callable(response.cancel):
+        try:
+            await response.cancel()
+            return True
+        except AntigravityCancelledError:
+            return True
+    return False
+
+
 __all__ = [
+    "AntigravityCancelledError",
     "ExecutionRetry",
     "OrchestrationPrimitive",
     "Replan",
     "SemanticRepair",
+    "ToolContext",
     "WorkflowStatus",
     "WorkflowStep",
+    "cancel_antigravity_response",
 ]

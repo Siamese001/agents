@@ -156,3 +156,83 @@ def test_validate_unified_architecture_governance_requires_canonical_plan_guard(
     repo_hooks = json.loads((Path(__file__).resolve().parents[1] / ".agents" / "hooks.json").read_text(encoding="utf-8"))
     assert "agents-implementation-plan-guard" in repo_hooks
     assert "agents-pre-edit-plan-guard" not in repo_hooks
+
+
+def test_wave3_subagent_config_and_swarm_capabilities() -> None:
+    """Verify 10-field contract projection to SubagentConfig and swarm CapabilitiesConfig."""
+    from agents.orchestration.services.swarm_challenger import SwarmChallenger
+    from apps_lic.runtime.outreach_swarm_challenger import OutreachSwarmChallenger
+    from apps_research.reasoning.research_multi_agent import ResearchOrchestrator
+    from apps_rg.runtime.resume_swarm_challenger import ResumeSwarmChallenger
+    from tools.unified_agent_architecture import BuiltinTools, contract_to_subagent_config
+
+    contract = {
+        "task_id": "subtask-301",
+        "parent_task_id": "wave-3",
+        "objective": "Verify subagent config mapping",
+        "scope_in": ["tools/"],
+        "scope_out": ["resume_graph_engine/"],
+        "allowed_tools": [BuiltinTools.VIEW_FILE.value],
+        "deliverable": "SubagentConfig",
+        "definition_of_done": "Valid SubagentConfig",
+        "budget": {"max_turns": 3, "timeout_seconds": 60},
+        "escalation_rule": "Escalate on failure",
+    }
+    cfg = contract_to_subagent_config(contract)
+    assert cfg.name == "subtask-301"
+    assert BuiltinTools.START_SUBAGENT.value in cfg.allowed_tools
+
+    for cls in (SwarmChallenger, OutreachSwarmChallenger, ResumeSwarmChallenger, ResearchOrchestrator):
+        sub_cfgs = cls.build_subagent_configs()
+        cap_cfg = cls.build_capabilities_config()
+        assert len(sub_cfgs) >= 3
+        assert cap_cfg["enable_subagents"] is True
+        assert cap_cfg["max_subagent_depth"] == 2
+        assert len(cap_cfg["allowed_subagents"]) == len(sub_cfgs)
+
+
+def test_wave3_structured_output_multimodal_toolcontext_and_cancel(tmp_path: Path) -> None:
+    """Verify structured_output(), TemplatedSystemInstructions, Document.from_file, ToolContext, and cancel()."""
+    import asyncio
+    from agents.orchestration.primitives import AntigravityCancelledError, ToolContext, cancel_antigravity_response
+    from apps_lic.pipeline.compiler import PromptCompiler
+    from apps_research.engines.company_brief.synthesis import _CompanyBriefSynthesisMixin
+    from apps_research.integrations.apps_rg_handoff import build_handoff_judge_agent_config
+    from apps_research.integrations.pdf_ingest import load_multimodal_document, load_multimodal_image
+    from apps_rg.l2_recipe.raw_text_json_unwrap import unwrap_structured_response_async
+    from apps_rg.runtime.providers.external_provider import build_external_system_instructions
+    from apps_rg.runtime.providers.wallclock_http_guard import cancel_antigravity_response_async
+
+    class _FakeResponse:
+        async def structured_output(self) -> dict[str, str]:
+            return {"headline": "SVP AI", "status": "ok"}
+
+        async def cancel(self) -> None:
+            raise AntigravityCancelledError("stream cancelled")
+
+    parsed, receipt = asyncio.run(unwrap_structured_response_async(_FakeResponse()))
+    assert parsed == {"headline": "SVP AI", "status": "ok"}
+    assert receipt["repair_type"] == "NATIVE_STRUCTURED_OUTPUT"
+
+    assert issubclass(AntigravityCancelledError, BaseException)
+    assert asyncio.run(cancel_antigravity_response(_FakeResponse())) is True
+    assert asyncio.run(cancel_antigravity_response_async(_FakeResponse())) is True
+
+    ctx = ToolContext({"counter": 1})
+    assert ctx.get_state("counter") == 1
+    ctx.set_state("counter", 2)
+    assert ctx.get_state("counter") == 2
+
+    doc_file = tmp_path / "sample.pdf"
+    doc_file.write_bytes(b"%PDF-1.4 sample")
+    img_file = tmp_path / "chart.png"
+    img_file.write_bytes(b"\x89PNG\r\n")
+    doc = load_multimodal_document(doc_file)
+    img = load_multimodal_image(img_file)
+    assert getattr(doc, "mime_type", "") == "application/pdf"
+    assert getattr(img, "mime_type", "") == "image/png"
+
+    assert _CompanyBriefSynthesisMixin.build_structured_agent_config({"type": "object"})["response_schema"] == {"type": "object"}
+    assert build_handoff_judge_agent_config({"type": "object"})["response_schema"] == {"type": "object"}
+    assert PromptCompiler.build_templated_system_instructions({"candidate_name": "Alex", "tone": "direct"}).communication_style == "direct"
+    assert build_external_system_instructions("Strict JSON", identity="Reviewer").identity == "Reviewer"

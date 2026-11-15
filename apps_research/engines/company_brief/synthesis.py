@@ -279,5 +279,28 @@ class _CompanyBriefSynthesisMixin:
         unavailable_err = _cbe("CompanyBriefUnavailableError", RuntimeError)
         raise unavailable_err(f"{topic}: stub synthesis disabled")
 
+    @staticmethod
+    def build_company_brief_system_instructions(
+        identity: str = "Company Brief Research Synthesis Engine",
+        guidelines: str = "Synthesize grounded company findings into schema-compliant JSON.",
+        communication_style: str = "Concise, analytical, zero speculation.",
+    ) -> Any:
+        """Build Antigravity SDK TemplatedSystemInstructions for company brief synthesis."""
+        from tools.unified_agent_architecture import TemplatedSystemInstructions
+
+        return TemplatedSystemInstructions(
+            identity=identity,
+            guidelines=guidelines,
+            communication_style=communication_style,
+        )
+
+    @staticmethod
+    def build_structured_agent_config(response_schema: Any = None) -> dict[str, Any]:
+        """Build LocalAgentConfig dictionary with response_schema for structured synthesis."""
+        return {
+            "system_instructions": _CompanyBriefSynthesisMixin.build_company_brief_system_instructions(),
+            "response_schema": response_schema,
+        }
+
 
 __all__ = ["_CompanyBriefSynthesisMixin"]

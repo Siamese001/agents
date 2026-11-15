@@ -251,6 +251,60 @@ def audit_constitutional_ast_floor(
     return {"missing_timeouts": missing_timeouts, "unguarded_exceptions": unguarded_exceptions}
 
 
+def load_antigravity_mcp_servers(repo_root: Path = REPO_ROOT) -> list[dict[str, Any]]:
+    """Translate .mcp.json entries into McpStdioServer / McpStreamableHttpServer config objects."""
+    mcp_path = repo_root / ".mcp.json"
+    if not mcp_path.is_file():
+        return []
+    raw_data = json.loads(mcp_path.read_text(encoding="utf-8"))
+    servers: list[dict[str, Any]] = []
+    try:
+        from google.antigravity import types as ag_types  # type: ignore
+    except ImportError:
+        ag_types = None
+
+    for srv_name, srv_cfg in (raw_data.get("mcpServers") or {}).items():
+        if not isinstance(srv_cfg, dict):
+            continue
+        enabled_tools = srv_cfg.get("enabled_tools")
+        disabled_tools = srv_cfg.get("disabled_tools")
+        if "url" in srv_cfg:
+            entry: dict[str, Any] = {
+                "type": "McpStreamableHttpServer",
+                "name": srv_name,
+                "url": str(srv_cfg["url"]),
+                "enabled_tools": enabled_tools,
+                "disabled_tools": disabled_tools,
+            }
+            if ag_types is not None and hasattr(ag_types, "McpStreamableHttpServer"):
+                try:
+                    entry["sdk_object"] = ag_types.McpStreamableHttpServer(name=srv_name, url=str(srv_cfg["url"]))
+                except Exception:  # guardian: allow-silent-swallow -- optional SDK object instantiation
+                    pass
+            servers.append(entry)
+        elif "command" in srv_cfg:
+            args_list = [str(a) for a in (srv_cfg.get("args") or [])]
+            env_map = dict(srv_cfg.get("env") or {})
+            entry = {
+                "type": "McpStdioServer",
+                "name": srv_name,
+                "command": str(srv_cfg["command"]),
+                "args": args_list,
+                "env": env_map,
+                "enabled_tools": enabled_tools,
+                "disabled_tools": disabled_tools,
+            }
+            if ag_types is not None and hasattr(ag_types, "McpStdioServer"):
+                try:
+                    entry["sdk_object"] = ag_types.McpStdioServer(
+                        name=srv_name, command=str(srv_cfg["command"]), args=args_list, env=env_map
+                    )
+                except Exception:  # guardian: allow-silent-swallow -- optional SDK object instantiation
+                    pass
+            servers.append(entry)
+    return servers
+
+
 def audit_mcp_hooks_and_links(repo_root: Path) -> list[str]:
     """Verify portable MCP launchers, runtime boundary subsystems, and AGENTS.md / conformance-map links."""
     issues: list[str] = []
@@ -262,8 +316,24 @@ def audit_mcp_hooks_and_links(repo_root: Path) -> list[str]:
         raw = mcp_path.read_text(encoding="utf-8")
         data = json.loads(raw)
         for srv_name, srv_cfg in (data.get("mcpServers") or {}).items():
-            if isinstance(srv_cfg, dict) and srv_cfg.get("command") == "cmd":
+            if not isinstance(srv_cfg, dict):
+                continue
+            if srv_cfg.get("command") == "cmd":
                 issues.append(f"{mcp_rel}::{srv_name}: non-portable Windows 'cmd' launcher")
+            for arg in srv_cfg.get("args") or []:
+                arg_str = str(arg)
+                if arg_str.endswith(".py"):
+                    cand = Path(arg_str)
+                    rel_script = (
+                        cand.name
+                        if not cand.is_Absolute()
+                        else arg_str.split("/agents/", 1)[-1]
+                        if "/agents/" in arg_str
+                        else ""
+                    ) if hasattr(cand, "is_Absolute") else (arg_str.split("/agents/", 1)[-1] if "/agents/" in arg_str else arg_str)
+                    local_target = (repo_root / rel_script) if rel_script and not Path(rel_script).is_absolute() else cand
+                    if not local_target.is_file() and not cand.is_file():
+                        issues.append(f"{mcp_rel}::{srv_name}: missing stdio server script '{arg_str}'")
         if "C:\\Git\\" in raw:
             issues.append(f"{mcp_rel}: hardcoded Windows C:\\Git\\ path")
 

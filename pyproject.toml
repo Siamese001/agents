@@ -33,6 +33,7 @@ authors = [
 ]
 dependencies = [
     "pydantic>=2.0.0",
+    "google-antigravity>=0.1.0",
     "google-genai>=1.0.0",
     "pinecone>=5.0.0",
     "redis>=5.0.0",
@@ -108,6 +109,7 @@ telemetry = [
 ]
 infra = [
     "anthropic>=0.5.0",
+    "litert-lm>=0.1.0",
     "torch>=2.0.0",
     "pdfplumber>=0.10.0",
     "pdf2image>=1.16.0",

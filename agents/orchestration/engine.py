@@ -22,12 +22,15 @@ from agents.orchestration.failure_taxonomy import (
     derive_recovery_action,
 )
 from agents.orchestration.primitives import (
+    AntigravityCancelledError,
     ExecutionRetry,
     OrchestrationPrimitive,
     Replan,
     SemanticRepair,
+    ToolContext,
     WorkflowStatus,
     WorkflowStep,
+    cancel_antigravity_response,
 )
 from agents.orchestration.state_contracts import (
     RecoveryBudget,
@@ -90,34 +93,23 @@ class WorkflowExecutionEngine:
             else (self.state_machine.current_status == WorkflowStatus.COMPLETED)
         )
         report_dict = {
-            "workflow_id": self.workflow_id,
-            "correlation": self.correlation.to_dict(),
+            "workflow_id": self.workflow_id, "correlation": self.correlation.to_dict(),
             "final_status": self.state_machine.current_status.value,
             "final_phase": self.state_machine.current_phase.value,
-            "checkpoint": chk.as_dict(),
-            "checkpoints_count": len(self._checkpoints),
-            "success": success_val,
-            "telemetry_events_count": len(self.emitter.events),
+            "checkpoint": chk.as_dict(), "checkpoints_count": len(self._checkpoints),
+            "success": success_val, "telemetry_events_count": len(self.emitter.events),
             "recovery_counters": {
-                "transport_retries": self.counters.transport_retries,
-                "schema_repairs": self.counters.schema_repairs,
-                "semantic_revisions": self.counters.semantic_revisions,
-                "cognitive_replans": self.counters.cognitive_replans,
+                "transport_retries": self.counters.transport_retries, "schema_repairs": self.counters.schema_repairs,
+                "semantic_revisions": self.counters.semantic_revisions, "cognitive_replans": self.counters.cognitive_replans,
             },
             "budget": {
-                "max_transport_retries": self.budget.max_transport_retries,
-                "max_schema_repairs": self.budget.max_schema_repairs,
-                "max_semantic_revisions": self.budget.max_semantic_revisions,
-                "max_cognitive_replans": self.budget.max_cognitive_replans,
+                "max_transport_retries": self.budget.max_transport_retries, "max_schema_repairs": self.budget.max_schema_repairs,
+                "max_semantic_revisions": self.budget.max_semantic_revisions, "max_cognitive_replans": self.budget.max_cognitive_replans,
             },
             "steps": {k: v.as_dict() for k, v in step_results.items()},
-            "state_machine": self.state_machine.as_dict(),
-            "failure_diagnostics": failure_diagnostics or {},
+            "state_machine": self.state_machine.as_dict(), "failure_diagnostics": failure_diagnostics or {},
         }
-        out_file.write_text(
-            json.dumps(report_dict, indent=2, ensure_ascii=False) + "\n",
-            encoding="utf-8",
-        )
+        out_file.write_text(json.dumps(report_dict, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
         return str(out_file)
 
     def _execute_step_handler(
@@ -308,6 +300,11 @@ class WorkflowExecutionEngine:
                             break
                         step_passed, step_err = True, ""
                         break
+                except AntigravityCancelledError as cancel_exc:
+                    step_err = f"Antigravity stream cancelled: {cancel_exc}"
+                    step_failure_kind = FailureKind.TRANSPORT
+                    step_diagnostics = {"cancelled": True, "error": step_err}
+                    break
                 except Exception as exc:
                     is_exc = True
                     exc_obj = exc

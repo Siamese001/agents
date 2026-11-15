@@ -828,44 +828,32 @@ class DistributedStateManager:
     async def store_layer_state(self, layer_type: LayerType, state_data: dict[str, Any]) -> str:
         """Store layer state."""
         snapshot_id = f"layer_state_{layer_type.value}_{uuid.uuid4().hex}"
-
         snapshot = StateSnapshot(
-            snapshot_id=snapshot_id,
-            state_type=StateType.CACHE_STATE,
-            layer_type=layer_type,
-            region=self.primary_region,
-            timestamp=datetime.now(),
-            data=state_data,
-            checksum="",  # Will be auto-calculated in __post_init__
+            snapshot_id=snapshot_id, state_type=StateType.CACHE_STATE, layer_type=layer_type,
+            region=self.primary_region, timestamp=datetime.now(), data=state_data, checksum="",
         )
-
-        success = await self.replicator.store_state(snapshot)
-        if success:
+        if await self.replicator.store_state(snapshot):
             return snapshot_id
-        else:
-            raise Exception(f"Failed to store layer state for {layer_type}")
+        raise Exception(f"Failed to store layer state for {layer_type}")
 
-    async def retrieve_layer_state(
-        self,
-        layer_type: LayerType,
-        snapshot_id: str | None = None,
-    ) -> dict[str, Any] | None:
+    async def retrieve_layer_state(self, layer_type: LayerType, snapshot_id: str | None = None) -> dict[str, Any] | None:
         """Retrieve layer state."""
         if snapshot_id:
             snapshot = await self.replicator.retrieve_state(snapshot_id)
         else:
-            # Get latest snapshot for layer
             storage = self.replicator.storage_backends.get(self.primary_region)
-            if storage:
-                snapshots = await storage.list_snapshots(
-                    state_type=StateType.CACHE_STATE,
-                    layer_type=layer_type,
-                )
-                snapshot = snapshots[0] if snapshots else None
-            else:
-                snapshot = None
-
+            snapshots = await storage.list_snapshots(state_type=StateType.CACHE_STATE, layer_type=layer_type) if storage else []
+            snapshot = snapshots[0] if snapshots else None
         return snapshot.data if snapshot and snapshot.verify_integrity() else None
+
+    @staticmethod
+    def build_antigravity_session_persistence_config(
+        save_dir: str = "artifacts/sessions",
+        conversation_id: str | None = None,
+        app_data_dir: str = ".antigravity/app_data",
+    ) -> dict[str, Any]:
+        """Build Antigravity SDK LocalAgentConfig persistence parameters (save_dir, conversation_id, app_data_dir)."""
+        return {"save_dir": save_dir, "conversation_id": conversation_id, "app_data_dir": app_data_dir, "workspaces": ["."]}
 
     async def create_system_backup(self) -> str:
         """Create complete system backup."""

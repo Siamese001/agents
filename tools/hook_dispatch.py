@@ -16,7 +16,15 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from tools.antigravity_sdk_hooks import build_antigravity_sandbox_config, build_antigravity_sdk_hooks
 from tools.pr_governance_core.common import bootstrap_shared_venv
+from tools.validate_implementation_plan import (
+    extract_wave_summary_entries,
+    get_active_plan_file,
+    render_markdown_wave_summary_table,
+    render_wave_summary_table,
+    validate_plan_content,
+)
 
 bootstrap_shared_venv(ROOT)
 
@@ -26,23 +34,6 @@ if (ROOT / ".agents").is_dir() and not _AGENTS_TOOLS_LINK.exists():
         _AGENTS_TOOLS_LINK.symlink_to("../tools")
     except OSError:  # guardian: allow-silent-swallow -- best-effort symlink creation
         pass
-
-try:
-    from tools.validate_implementation_plan import (
-        extract_wave_summary_entries,
-        get_active_plan_file,
-        render_markdown_wave_summary_table,
-        render_wave_summary_table,
-        validate_plan_content,
-    )
-except ImportError:
-    from validate_implementation_plan import (  # type: ignore
-        extract_wave_summary_entries,
-        get_active_plan_file,
-        render_markdown_wave_summary_table,
-        render_wave_summary_table,
-        validate_plan_content,
-    )
 
 
 MANDATORY_HITL_CATEGORIES = {"pr_merge_authorization", "tier_0_irreversible", "release_activation", "destructive"}
@@ -126,8 +117,8 @@ def handle_pre_edit_plan(payload: Dict[str, Any], repo_root: Path) -> int:
         return emit_decision("allow")
 
     content = ""
-    if tool_name in ("write_to_file", "write_file"):
-        content = args.get("CodeContent") or args.get("Content") or ""
+    if tool_name in ("write_to_file", "write_file", "create_file"):
+        content = args.get("CodeContent") or args.get("Content") or args.get("content") or ""
     elif tool_name in ("replace_file_content", "multi_replace_file_content", "edit_file"):
         if target_path.is_file():
             try:
@@ -448,10 +439,14 @@ def handle_pre_subagent_delegation(payload: Dict[str, Any], repo_root: Path) -> 
         ok, reason, _ = register_and_check_subagent_scope(repo_root, resolved_contract, workspace_mode=workspace_mode)
         if not ok:
             return emit_decision("deny", reason=reason)
-    elif type_name == "self" and workspace_mode in ("", "inherit"):
+    elif type_name in ("self", "") and (
+        workspace_mode in ("", "inherit")
+        and str(tool_call.get("name") or "").split(":")[-1] == "start_subagent"
+        or type_name == "self"
+    ):
         return emit_decision(
             "deny",
-            reason="DELEGATION_VIOLATION_MISSING_CONTRACT: invoke_subagent(TypeName='self') on shared inherit workspace requires a 10-field delegation_contract.",
+            reason="DELEGATION_VIOLATION_MISSING_CONTRACT: invoke_subagent/start_subagent on shared inherit workspace requires a 10-field delegation_contract.",
         )
 
     if type_name == "teamwork" and prompt_text:
@@ -628,8 +623,8 @@ def handle_post_invocation(payload: Dict[str, Any], repo_root: Path) -> int:
             targs = tc.get("args") if isinstance(tc.get("args"), dict) else {}
             if tname in ("ask_question", "ask_user_question"):
                 asked_question = True
-            elif tname in ("write_file", "edit_file", "write_to_file", "replace_file_content", "multi_replace_file_content"):
-                p_str = str(targs.get("Path") or targs.get("TargetFile") or "").replace("\\", "/")
+            elif tname in ("write_file", "edit_file", "create_file", "write_to_file", "replace_file_content", "multi_replace_file_content"):
+                p_str = str(targs.get("Path") or targs.get("TargetFile") or targs.get("path") or "").replace("\\", "/")
                 if p_str and not any(x in p_str for x in ("/brain/", "/.gemini/", "implementation_plan.md", "plans/")):
                     mutated_files = True
             elif tname == "run_command":

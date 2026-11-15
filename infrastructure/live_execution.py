@@ -134,11 +134,13 @@ def api_key(provider: str, environ: Mapping[str, str] | None = None) -> str:
     aliases = {
         "openai": ("OPENAI_API_KEY",),
         "anthropic": ("ANTHROPIC_API_KEY",),
-        "google": ("GOOGLE_API_KEY", "GEMINI_API_KEY"),
-        "gemini": ("GOOGLE_API_KEY", "GEMINI_API_KEY"),
+        "google": ("GEMINI_API_KEY", "GOOGLE_API_KEY"),
+        "gemini": ("GEMINI_API_KEY", "GOOGLE_API_KEY"),
     }
 
     p_norm = provider.lower().strip()
+    if p_norm in {"litert", "local_litert", "local_openai", "local", "litertagentconfig", "localopenaiagentconfig"}:
+        return "keyless-local"
     try:
         names = aliases[p_norm]
     except KeyError:
@@ -185,15 +187,25 @@ def reject_mock_environment(environ: Mapping[str, str] | None = None) -> None:
         )
 
 
-def require_live_pipeline(providers: Iterable[str], environ: Mapping[str, str] | None = None) -> dict[str, str]:
-    """Ensure mock environment is clean and all requested providers have live API keys.
+def require_live_pipeline(
+    providers: Iterable[str],
+    environ: Mapping[str, str] | None = None,
+    *,
+    allow_keyless_local: bool = True,
+) -> dict[str, str]:
+    """Ensure mock environment is clean and all requested providers have live API keys (or keyless local configs).
 
     Returns:
         Mapping of provider_name -> key_fingerprint
     """
     reject_mock_environment(environ=environ)
     fingerprints: dict[str, str] = {}
+    keyless_providers = {"litert", "local_litert", "local_openai", "local", "litertagentconfig", "localopenaiagentconfig"}
     for p in sorted(set(providers)):
+        p_norm = p.lower().strip()
+        if allow_keyless_local and p_norm in keyless_providers:
+            fingerprints[p] = "keyless-local"
+            continue
         k = api_key(p, environ=environ)
         fingerprints[p] = key_fingerprint(k)
     return fingerprints

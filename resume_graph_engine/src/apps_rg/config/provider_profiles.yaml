@@ -24,6 +24,7 @@ wave10a_policy:
 
 ide_argon4_routing_policy:
   interactive_ide_enabled: true
+  antigravity_sdk_config_adapter: infrastructure.sdks_mcps.client_wrappers.load_agent_config_from_profile
   marginal_api_cost_per_mtok_usd: 0.0
   context_window_tokens: 131072
   thinking_separation_guaranteed: true

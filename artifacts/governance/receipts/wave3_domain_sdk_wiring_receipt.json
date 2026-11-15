@@ -1,0 +1,17 @@
+{
+  "wave": 3,
+  "title": "Subagent Delegation, Structured Output, Multimodal & Custom Tools",
+  "status": "COMPLETE",
+  "command": ".venv/bin/python -m pytest tests/test_unified_agent_architecture.py -v --timeout=60 && .venv/bin/python tools/unified_agent_architecture.py",
+  "exit_code": 0,
+  "tests_passed": 10,
+  "governance_errors": 0,
+  "verified_features": [
+    "SubAgentDefinition.to_antigravity_subagent_config and contract_to_subagent_config",
+    "CapabilitiesConfig(enable_subagents=True, max_subagent_depth=2, allowed_subagents=...)",
+    "unwrap_structured_response_async calling await response.structured_output()",
+    "TemplatedSystemInstructions and CustomSystemInstructions adapters",
+    "Document.from_file and Image.from_file multimodal loaders",
+    "ToolContext get_state/set_state and cancel_antigravity_response / AntigravityCancelledError"
+  ]
+}

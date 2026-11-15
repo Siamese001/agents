@@ -2,7 +2,7 @@
   "agents-implementation-plan-guard": {
     "PreToolUse": [
       {
-        "matcher": "write_to_file|replace_file_content|multi_replace_file_content|write_file|edit_file",
+        "matcher": "write_to_file|replace_file_content|multi_replace_file_content|write_file|edit_file|create_file",
         "hooks": [
           {
             "type": "command",
@@ -39,7 +39,7 @@
   "agents-model-neutral-artifact-guard": {
     "PreToolUse": [
       {
-        "matcher": "write_to_file|replace_file_content|multi_replace_file_content|write_file|edit_file",
+        "matcher": "write_to_file|replace_file_content|multi_replace_file_content|write_file|edit_file|create_file",
         "hooks": [
           {
             "type": "command",
@@ -86,7 +86,7 @@
   "agents-subagent-delegation-guard": {
     "PreToolUse": [
       {
-        "matcher": "invoke_subagent|browser_subagent",
+        "matcher": "invoke_subagent|browser_subagent|start_subagent",
         "hooks": [
           {
             "type": "command",
@@ -100,7 +100,7 @@
   "agents-model-registry-conformance-guard": {
     "PreToolUse": [
       {
-        "matcher": "write_to_file|replace_file_content|multi_replace_file_content|write_file|edit_file",
+        "matcher": "write_to_file|replace_file_content|multi_replace_file_content|write_file|edit_file|create_file",
         "hooks": [
           {
             "type": "command",
@@ -114,7 +114,7 @@
   "agents-main-worktree-write-guard": {
     "PreToolUse": [
       {
-        "matcher": "write_to_file|replace_file_content|multi_replace_file_content|write_file|edit_file",
+        "matcher": "write_to_file|replace_file_content|multi_replace_file_content|write_file|edit_file|create_file",
         "hooks": [
           {
             "type": "command",

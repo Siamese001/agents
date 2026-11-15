@@ -50,7 +50,11 @@ def _nonnegative_int(value: Any) -> int | None:
 
 
 def _mapping(value: Any) -> Mapping[str, Any]:
-    return value if isinstance(value, Mapping) else {}
+    if isinstance(value, Mapping):
+        return value
+    if value is not None and hasattr(value, "__dict__"):
+        return vars(value)
+    return {}
 
 
 def _first_int(*values: Any) -> int | None:
@@ -88,12 +92,21 @@ def normalize_usage(provider: str, usage: Mapping[str, Any] | None) -> dict[str,
         cache_write = _first_int(raw.get("cache_creation_input_tokens"))
         total = _first_int(raw.get("total_tokens"))
     else:
-        prompt = _first_int(raw.get("input_tokens"), raw.get("prompt_tokens"))
-        output = _first_int(raw.get("output_tokens"), raw.get("completion_tokens"))
-        thought = _first_int(raw.get("reasoning_tokens"), output_details.get("reasoning_tokens"))
-        cached = _first_int(raw.get("cached_tokens"), input_details.get("cached_tokens"))
+        prompt = _first_int(raw.get("input_tokens"), raw.get("prompt_tokens"), raw.get("prompt_token_count"))
+        output = _first_int(raw.get("output_tokens"), raw.get("completion_tokens"), raw.get("candidates_token_count"))
+        thought = _first_int(
+            raw.get("reasoning_tokens"),
+            output_details.get("reasoning_tokens"),
+            raw.get("thoughts_token_count"),
+            raw.get("thoughtsTokenCount"),
+        )
+        cached = _first_int(
+            raw.get("cached_tokens"),
+            input_details.get("cached_tokens"),
+            raw.get("cached_content_token_count"),
+        )
         cache_write = _first_int(raw.get("cache_creation_input_tokens"))
-        total = _first_int(raw.get("total_tokens"))
+        total = _first_int(raw.get("total_tokens"), raw.get("total_token_count"))
 
     if total is None and prompt is not None and output is not None and thought is None:
         total = prompt + output

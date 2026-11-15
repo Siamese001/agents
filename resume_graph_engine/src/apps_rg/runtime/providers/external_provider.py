@@ -1039,35 +1039,22 @@ class ExternalProvider:
             if stop_reason:
                 detail_parts.append(f"stop_reason={stop_reason}")
             if isinstance(output_details, Mapping):
-                detail_parts.append(
-                    "output_tokens_details="
-                    + json.dumps(dict(output_details), sort_keys=True, separators=(",", ":"))
-                )
+                detail_parts.append("output_tokens_details=" + json.dumps(dict(output_details), sort_keys=True, separators=(",", ":")))
             detail = f" ({'; '.join(detail_parts)})" if detail_parts else ""
             error = f"External provider returned empty text{detail}"
             return ProviderResult(
-                provider_requested=self.provider_profile.value,
-                provider_attempted=True,
-                provider_available=False,
-                exact_provider_error=error,
-                runtime_generation_status="BLOCKED",
-                model=resolved_model,
-                raw_model_output="",
+                provider_requested=self.provider_profile.value, provider_attempted=True,
+                provider_available=False, exact_provider_error=error,
+                runtime_generation_status="BLOCKED", model=resolved_model, raw_model_output="",
                 provider_response=_provider_response_with_attempt(
                     {
-                        "provider_profile": self.provider_profile.value,
-                        "model": resolved_model,
-                        "request_digest": request_digest,
-                        "effective_timeout_seconds": provider_timeout_seconds,
-                        "transport_timing": response.get("transport_timing"),
-                        "transport_response": response,
+                        "provider_profile": self.provider_profile.value, "model": resolved_model,
+                        "request_digest": request_digest, "effective_timeout_seconds": provider_timeout_seconds,
+                        "transport_timing": response.get("transport_timing"), "transport_response": response,
                         "anthropic_cache_receipt_seed": request.get("anthropic_cache_receipt_seed"),
                     },
-                    provider_attempted=True,
-                    provider_available=False,
-                    runtime_generation_status="BLOCKED",
-                    exact_provider_error=error,
-                    model=resolved_model,
+                    provider_attempted=True, provider_available=False,
+                    runtime_generation_status="BLOCKED", exact_provider_error=error, model=resolved_model,
                 ),
             )
         raw_response = response.get("raw_response") if isinstance(response.get("raw_response"), Mapping) else {}
@@ -1106,13 +1093,18 @@ class ExternalProvider:
         )
 
 
+def build_external_system_instructions(system_text: str, *, identity: str = "") -> Any:
+    """Wrap system prompts into Antigravity SDK TemplatedSystemInstructions or CustomSystemInstructions."""
+    from tools.unified_agent_architecture import CustomSystemInstructions, TemplatedSystemInstructions
+
+    if identity:
+        return TemplatedSystemInstructions(identity=identity, guidelines=system_text)
+    return CustomSystemInstructions(text=system_text)
+
+
 __all__ = [
-    "ExternalProvider",
-    "ExternalTransport",
-    "anthropic_model_omits_temperature",
-    "anthropic_model_uses_adaptive_thinking",
-    "apply_anthropic_adaptive_thinking_config",
-    "apply_anthropic_temperature_capability",
-    "external_provider_timeout_max_s",
-    "resolve_external_section_timeout_s",
+    "ExternalProvider", "ExternalTransport", "anthropic_model_omits_temperature",
+    "anthropic_model_uses_adaptive_thinking", "apply_anthropic_adaptive_thinking_config",
+    "apply_anthropic_temperature_capability", "build_external_system_instructions",
+    "external_provider_timeout_max_s", "resolve_external_section_timeout_s",
 ]

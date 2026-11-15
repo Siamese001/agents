@@ -783,6 +783,66 @@ Tweak compiler.py without upstream or downstream alignment.
         )
         self.assertEqual(res.returncode, 1)
 
+    def test_create_file_and_start_subagent_matchers_and_sdk_helpers(self) -> None:
+        """Verify create_file and start_subagent are guarded in .agents/hooks.json and hook_dispatch.py."""
+        from tools.hook_dispatch import build_antigravity_sandbox_config, build_antigravity_sdk_hooks
+
+        hooks_path = ROOT / ".agents" / "hooks.json"
+        hooks_data = json.loads(hooks_path.read_text(encoding="utf-8"))
+        for guard_name in (
+            "agents-implementation-plan-guard",
+            "agents-model-neutral-artifact-guard",
+            "agents-model-registry-conformance-guard",
+            "agents-main-worktree-write-guard",
+        ):
+            matcher = hooks_data[guard_name]["PreToolUse"][0]["matcher"]
+            self.assertIn("create_file", matcher)
+        sub_matcher = hooks_data["agents-subagent-delegation-guard"]["PreToolUse"][0]["matcher"]
+        self.assertIn("start_subagent", sub_matcher)
+
+        bad_plan_payload = {
+            "toolCall": {
+                "name": "create_file",
+                "args": {
+                    "TargetFile": "plans/bad_create_plan.md",
+                    "CodeContent": "# Flat Plan\n",
+                },
+            }
+        }
+        res_create = subprocess.run(
+            [sys.executable, "tools/hook_dispatch.py", "--hook", "pre_edit_plan"],
+            input=json.dumps(bad_plan_payload),
+            capture_output=True,
+            text=True,
+            cwd=ROOT,
+            timeout=10,
+        )
+        self.assertEqual(res_create.returncode, 1)
+        self.assertEqual(json.loads(res_create.stdout.strip())["decision"], "deny")
+
+        bad_sub_payload = {
+            "toolCall": {
+                "name": "start_subagent",
+                "args": {"TypeName": "self", "Workspace": "inherit"},
+            }
+        }
+        res_sub = subprocess.run(
+            [sys.executable, "tools/hook_dispatch.py", "--hook", "pre_subagent_delegation"],
+            input=json.dumps(bad_sub_payload),
+            capture_output=True,
+            text=True,
+            cwd=ROOT,
+            timeout=10,
+        )
+        self.assertEqual(res_sub.returncode, 1)
+        self.assertEqual(json.loads(res_sub.stdout.strip())["decision"], "deny")
+
+        sdk_hooks = build_antigravity_sdk_hooks(ROOT)
+        self.assertIn("create_file", sdk_hooks["guarded_file_write_tools"])
+        self.assertIn("start_subagent", sdk_hooks["guarded_subagent_tools"])
+        sandbox_cfg = build_antigravity_sandbox_config(enable_sandbox=True)
+        self.assertTrue(sandbox_cfg.get("enable_sandbox") or "run_command" in sandbox_cfg)
+
 
 if __name__ == "__main__":
     unittest.main()
