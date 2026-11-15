@@ -674,6 +674,41 @@ class TestPRMergeQueueGovernance(unittest.TestCase):
         self.assertIn("1. Tier 1 Structural Governance", passed)
         self.assertNotIn("2. Architecture & Service Boundaries", passed)
 
+        stale_passed = _load_prior_passing_stages(rcpt_file, expected_head_sha="deadbeef")
+        self.assertEqual(stale_passed, set())
+
+    def test_21_shard_ready_and_wave_merge_train(self) -> None:
+        """cmd_shard_ready and cmd_train assemble disjoint shards into feat/wave-<N>-train."""
+        import argparse
+        from tools.pr_governance_core.lint_file_budgets_bridge import clamp_ratchet_if_available
+        from tools.pr_governance_core.merge_train import cmd_shard_ready, cmd_train
+        from tools.verify_merge_receipt import verify_merge_receipt
+
+        self.assertIsInstance(clamp_ratchet_if_available(self.repo_root), dict)
+
+        for shard_name, fname in (("feat/wave2a-shard", "mod_a.py"), ("feat/wave2b-shard", "mod_b.py")):
+            _git(["checkout", "-b", shard_name, "main"], self.repo_root)
+            (self.repo_root / fname).write_text("x = 1\n", encoding="utf-8")
+            _git(["add", fname], self.repo_root)
+            _git(["commit", "-m", f"feat: add {fname}"], self.repo_root)
+            rc_s = cmd_shard_ready(
+                argparse.Namespace(branch=shard_name, repo_root=str(self.repo_root), skip_verify=True)
+            )
+            self.assertEqual(rc_s, 0)
+
+        _git(["checkout", "main"], self.repo_root)
+        rc_t = cmd_train(
+            argparse.Namespace(
+                wave="2",
+                shards=["feat/wave2a-shard", "feat/wave2b-shard"],
+                train_branch=None,
+                repo_root=str(self.repo_root),
+            )
+        )
+        self.assertEqual(rc_t, 0)
+        ok_rcpt, _ = verify_merge_receipt(branch="feat/wave2a-shard", repo_root=self.repo_root)
+        self.assertTrue(ok_rcpt)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -588,19 +588,16 @@ def cmd_merge(args: argparse.Namespace) -> int:
         if not _validate_merge_receipt(branch, slug, branch_head_sha, repo_root=repo_root):
             return 1
 
-    # Intelligent FIFO Queue Lock
     q_lock = GovernedMergeQueueLock(branch=branch, repo_root=repo_root)
     max_lock_cycles = 3
-
-    for cycle in range(max_lock_cycles):
-        print(f"\n[Lock Cycle {cycle + 1}/{max_lock_cycles}] Acquiring trunk reservation lock...")
-        q_lock.acquire()
-
-        try:
+    pre_merge_main_sha = ""
+    try:
+        for cycle in range(max_lock_cycles):
+            print(f"\n[Lock Cycle {cycle + 1}/{max_lock_cycles}] Acquiring trunk reservation lock...")
+            q_lock.acquire()
             catchup_ok, is_disjoint = _catch_up_queued_branch_under_lock(branch, slug, repo_root)
             if not catchup_ok:
                 return 1
-
             branch_head_sha = run_git(["rev-parse", branch], cwd=repo_root).strip()
             if not _validate_merge_receipt(branch, slug, branch_head_sha, repo_root=repo_root):
                 if not is_disjoint:
@@ -611,50 +608,46 @@ def cmd_merge(args: argparse.Namespace) -> int:
                         print("❌ Validation failed after catch-up. Merge aborted.")
                         return rev_rc
                     continue
-                else:
-                    return 1
-
+                return 1
             current_branch = run_git(["rev-parse", "--abbrev-ref", "HEAD"], cwd=repo_root, check=True).strip()
             if current_branch != "main":
                 print("Checking out 'main'...")
                 run_git(["checkout", "main"], cwd=repo_root, check=True)
-
             pre_merge_main_sha = run_git(["rev-parse", "main"], cwd=repo_root, check=True).strip()
-
             merge_rc = _execute_merge_under_lock(branch, title, slug, repo_root=repo_root)
             if merge_rc != 0:
                 return merge_rc
             break
-        finally:
-            if q_lock.is_acquired():
-                q_lock.release()
-    else:
-        print(f"❌ Exhausted {max_lock_cycles} lock cycles attempting to catch up and land '{branch}'.")
-        return 1
-
-    # Post-merge verification
-    py = resolve_python()
-    post_verify_script = repo_root / "tools" / "verify_post_merge.py"
-    if not post_verify_script.exists():
-        from .common import CHECKOUT_ROOT
-
-        post_verify_script = CHECKOUT_ROOT / "tools" / "verify_post_merge.py"
-
-    if post_verify_script.exists():
-        print("\nCertifying the committed merge tree on 'main'...")
-        post_verify = subprocess.run(
-            [py, "-B", str(post_verify_script), "--repo-root", str(repo_root)],
-            cwd=repo_root,
-            capture_output=True,
-            text=True,
-            timeout=120.0,
-        )
-        if post_verify.returncode != 0:
-            print(f"❌ Post-merge certification failed:\n{post_verify.stdout}{post_verify.stderr}")
-            rolled_back = atomic_rollback_main_to_sha(repo_root, pre_merge_main_sha)
-            print(f"⏪ Atomic auto-rollback of 'main' to {pre_merge_main_sha[:10]}: {'SUCCESS' if rolled_back else 'FAILED'}")
+        else:
+            print(f"❌ Exhausted {max_lock_cycles} lock cycles attempting to catch up and land '{branch}'.")
             return 1
-        print(f"✅ {post_verify.stdout.strip()}")
+
+        # Post-merge verification held under trunk lock so rollback is atomic
+        py = resolve_python()
+        post_verify_script = repo_root / "tools" / "verify_post_merge.py"
+        if not post_verify_script.exists():
+            from .common import CHECKOUT_ROOT
+
+            post_verify_script = CHECKOUT_ROOT / "tools" / "verify_post_merge.py"
+
+        if post_verify_script.exists():
+            print("\nCertifying the committed merge tree on 'main'...")
+            post_verify = subprocess.run(
+                [py, "-B", str(post_verify_script), "--repo-root", str(repo_root)],
+                cwd=repo_root,
+                capture_output=True,
+                text=True,
+                timeout=120.0,
+            )
+            if post_verify.returncode != 0:
+                print(f"❌ Post-merge certification failed:\n{post_verify.stdout}{post_verify.stderr}")
+                rolled_back = atomic_rollback_main_to_sha(repo_root, pre_merge_main_sha)
+                print(f"⏪ Atomic auto-rollback of 'main' to {pre_merge_main_sha[:10]}: {'SUCCESS' if rolled_back else 'FAILED'}")
+                return 1
+            print(f"✅ {post_verify.stdout.strip()}")
+    finally:
+        if q_lock.is_acquired():
+            q_lock.release()
 
     # Teardown merged worktree and branch
     delete_br = getattr(args, "delete_branch", True)

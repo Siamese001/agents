@@ -760,6 +760,29 @@ Tweak compiler.py without upstream or downstream alignment.
         self.assertEqual(data["decision"], "deny")
         self.assertIn("INV-HOLISTIC-PIPELINE-PLANNING", data["reason"])
 
+    def test_adg_impact_tests_and_sub_root_pytest_guard(self) -> None:
+        """Verify select_impacted_tests and sub-root pytest guard."""
+        from tools.adg_impact_tests import select_impacted_tests
+
+        impact = select_impacted_tests(["tools/hook_dispatch.py"], repo_root=ROOT)
+        self.assertIn("tests/test_hook_dispatch.py", impact["selected_tests"])  # type: ignore[arg-type]
+
+        payload = {
+            "toolCall": {
+                "name": "run_command",
+                "args": {"CommandLine": "pytest resume_graph_engine/tests/"},
+            }
+        }
+        res = subprocess.run(
+            [sys.executable, "tools/hook_dispatch.py", "--hook", "pre_run_command"],
+            input=json.dumps(payload),
+            capture_output=True,
+            text=True,
+            cwd=ROOT,
+            timeout=10,
+        )
+        self.assertEqual(res.returncode, 1)
+
 
 if __name__ == "__main__":
     unittest.main()

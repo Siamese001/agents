@@ -39,20 +39,12 @@ PROMPT_STAGE_ALLOWED_WRITE_PATHS: dict[str, tuple[str, ...]] = {
         "data/",
         ".mcp.json",
         "pytest.ini",
+        "pyproject.toml",
         "AGENTS.md",
         ".agents/",
         ".antigravity/",
         "automations/",
-        "tools/ssot_boundary_auditor.py",
-        "tools/check_config_ssot_drift.py",
-        "tools/lint_architecture_boundaries.py",
-        "tools/lint_layer_imports.py",
-        "tools/ssot_sprawl_scanner.py",
-        "tools/validate_sidecar_separation.py",
-        "tools/validate_turn_gates.py",
-        "tools/verify_commit.py",
-        "tools/lint_file_budgets.py",
-        "tools/prompt_scope_isolation.py",
+        "tools/",
         "outreach_engine/config/",
         "resume_engine/config/",
         "resume_graph_engine/config/",
@@ -220,6 +212,16 @@ def _scope_registry_lock(gov_dir: Path) -> Iterator[Path]:
             fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
 
 
+def _is_pid_alive(pid: int) -> bool:
+    if pid <= 0:
+        return True
+    try:
+        os.kill(pid, 0)
+        return True
+    except OSError:
+        return False
+
+
 def _load_active_leases(registry_path: Path, now_ts: float) -> list[dict[str, Any]]:
     if not registry_path.is_file():
         return []
@@ -228,7 +230,15 @@ def _load_active_leases(registry_path: Path, now_ts: float) -> list[dict[str, An
     except (OSError, json.JSONDecodeError):  # guardian: allow-silent-swallow -- treat corrupt lease JSON as empty
         return []
     leases = raw.get("leases", []) if isinstance(raw, dict) else []
-    return [entry for entry in leases if isinstance(entry, dict) and float(entry.get("expires_at", 0.0)) > now_ts]
+    active: list[dict[str, Any]] = []
+    for entry in leases:
+        if not isinstance(entry, dict) or float(entry.get("expires_at", 0.0)) <= now_ts:
+            continue
+        owner_pid = int(entry.get("owner_pid", 0) or 0)
+        if owner_pid > 0 and not _is_pid_alive(owner_pid):
+            continue
+        active.append(entry)
+    return active
 
 
 def _write_leases_atomic(registry_path: Path, leases: list[dict[str, Any]]) -> None:
@@ -249,15 +259,17 @@ def register_and_check_subagent_scope(
     contract: dict[str, Any],
     *,
     workspace_mode: str = "inherit",
+    check_cross_workspace: bool = False,
     now_ts: float | None = None,
 ) -> tuple[bool, str, str]:
-    """Register a subagent delegation scope lease and fail closed on overlapping inherit scope_in claims."""
+    """Register a subagent delegation scope lease and fail closed on overlapping scope_in claims."""
     task_id = str(contract.get("task_id", "")).strip()
     if not task_id:
         return False, "DELEGATION_VIOLATION: missing non-empty task_id", ""
 
     mode = (workspace_mode or "inherit").strip().lower()
-    if mode not in ("", "inherit"):
+    enforce_cross = bool(check_cross_workspace or contract.get("preauth_manifest_id") or contract.get("check_cross_workspace"))
+    if mode not in ("", "inherit") and not enforce_cross:
         return True, f"isolated workspace mode '{mode}' bypasses shared workspace contention", task_id
 
     ts = float(now_ts if now_ts is not None else time.time())
@@ -272,7 +284,9 @@ def register_and_check_subagent_scope(
     with _scope_registry_lock(gov_dir) as registry_path:
         active = _load_active_leases(registry_path, ts)
         for existing in active:
-            if existing.get("workspace_root") != workspace_key or existing.get("task_id") == task_id:
+            if existing.get("task_id") == task_id:
+                continue
+            if not enforce_cross and existing.get("workspace_root") != workspace_key:
                 continue
             for new_path in scope_in:
                 for held_path in existing.get("scope_in", []):
@@ -286,15 +300,15 @@ def register_and_check_subagent_scope(
                             task_id,
                         )
         updated = [entry for entry in active if entry.get("task_id") != task_id]
-        updated.append(
-            {
-                "task_id": task_id,
-                "workspace_root": workspace_key,
-                "scope_in": scope_in,
-                "scope_out": scope_out,
-                "expires_at": ts + ttl,
-            }
-        )
+        lease_record = {
+            "task_id": task_id,
+            "workspace_root": workspace_key,
+            "workspace_mode": mode or "inherit",
+            "scope_in": scope_in,
+            "scope_out": scope_out,
+            "expires_at": ts + ttl,
+        }
+        updated.append(lease_record)
         _write_leases_atomic(registry_path, updated)
     return True, "registered active subagent scope", task_id
 
@@ -309,6 +323,28 @@ def release_subagent_scope(repo_root: Path, task_id: str) -> bool:
             return False
         _write_leases_atomic(registry_path, remaining)
     return True
+
+
+def _resolve_worktree_lease_task_id(repo_root: Path) -> str:
+    env_tid = os.environ.get("AGY_SUBAGENT_TASK_ID", "").strip()
+    if env_tid:
+        return env_tid
+    try:
+        git_marker = repo_root / ".git"
+        git_dir = git_marker
+        if git_marker.is_file():
+            raw = git_marker.read_text(encoding="utf-8").strip()
+            if raw.startswith("gitdir:"):
+                git_dir = Path(raw.split("gitdir:", 1)[1].strip())
+                if not git_dir.is_absolute():
+                    git_dir = (repo_root / git_dir).resolve()
+        lease_file = git_dir / "agy_active_lease.json"
+        if lease_file.is_file():
+            data = json.loads(lease_file.read_text(encoding="utf-8"))
+            return str(data.get("task_id", "")).strip()
+    except (OSError, json.JSONDecodeError, ValueError):
+        pass
+    return ""
 
 
 def evaluate_active_subagent_write_scope(
@@ -330,7 +366,7 @@ def evaluate_active_subagent_write_scope(
 
     ts = float(now_ts if now_ts is not None else time.time())
     workspace_key = str(repo_root.resolve())
-    effective_task_id = (task_id if task_id is not None else os.environ.get("AGY_SUBAGENT_TASK_ID", "")).strip()
+    effective_task_id = (task_id if task_id is not None else _resolve_worktree_lease_task_id(repo_root)).strip()
     with _scope_registry_lock(gov_dir) as locked_path:
         active = [e for e in _load_active_leases(locked_path, ts) if e.get("workspace_root") == workspace_key]
 
@@ -355,19 +391,23 @@ def evaluate_active_subagent_write_scope(
     return False, "subagent write scope allowed"
 
 
-def _sync_teamwork_request_atomic(repo_root: Path, prompt_text: str) -> None:
-    """Atomically sync .agents/teamwork/ORIGINAL_REQUEST.md using tempfile + os.replace."""
-    orig_req = repo_root / ".agents" / "teamwork" / "ORIGINAL_REQUEST.md"
-    try:
-        orig_req.parent.mkdir(parents=True, exist_ok=True)
-        fd, tmp_name = tempfile.mkstemp(prefix=".orig_req_", suffix=".tmp", dir=str(orig_req.parent))
+def _sync_teamwork_request_atomic(repo_root: Path, prompt_text: str, run_id: str | None = None) -> None:
+    """Atomically sync .agents/teamwork/ORIGINAL_REQUEST.md and optional per-run request file."""
+    effective_run = (run_id or os.environ.get("AGY_TEAMWORK_RUN_ID", "")).strip()
+    targets = [repo_root / ".agents" / "teamwork" / "ORIGINAL_REQUEST.md"]
+    if effective_run:
+        targets.append(repo_root / ".agents" / "teamwork" / "runs" / effective_run / "ORIGINAL_REQUEST.md")
+    for orig_req in targets:
         try:
-            with os.fdopen(fd, "w", encoding="utf-8") as handle:
-                handle.write(f"{prompt_text}\n")
-            os.replace(tmp_name, orig_req)
-        except Exception:  # guardian: allow-broad-exception-cleanup -- clean temp file before re-raising
-            if os.path.exists(tmp_name):
-                os.unlink(tmp_name)
-            raise
-    except OSError:  # guardian: allow-silent-swallow -- best-effort atomic teamwork request sync
-        pass
+            orig_req.parent.mkdir(parents=True, exist_ok=True)
+            fd, tmp_name = tempfile.mkstemp(prefix=".orig_req_", suffix=".tmp", dir=str(orig_req.parent))
+            try:
+                with os.fdopen(fd, "w", encoding="utf-8") as handle:
+                    handle.write(f"{prompt_text}\n")
+                os.replace(tmp_name, orig_req)
+            except Exception:  # guardian: allow-broad-exception-cleanup -- clean temp file before re-raising
+                if os.path.exists(tmp_name):
+                    os.unlink(tmp_name)
+                raise
+        except OSError:  # guardian: allow-silent-swallow -- best-effort atomic teamwork request sync
+            pass

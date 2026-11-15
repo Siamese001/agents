@@ -19,13 +19,8 @@ from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional, Set, Tuple
 
 from .common import (
-    CONVENTIONAL_BRANCH_RE,
-    GENERATED_ARTIFACT_PATTERNS,
-    ROOT,
-    kill_ghost_processes,
-    run_git,
-    sanitized_git_env,
-    slugify_branch,
+    CONVENTIONAL_BRANCH_RE, GENERATED_ARTIFACT_PATTERNS, ROOT,
+    kill_ghost_processes, run_git, sanitized_git_env, slugify_branch,
 )
 
 logger = logging.getLogger("tools.pr_governance_core.worktree")
@@ -33,14 +28,7 @@ logger = logging.getLogger("tools.pr_governance_core.worktree")
 VALUABLE_IGNORED_EXTENSIONS = (".sqlite-wal", ".sqlite", ".db")
 VALUABLE_IGNORED_PREFIXES = ("output/", "output\\", "artifacts/")
 BENIGN_IGNORED_SUBSTRINGS = (
-    "__pycache__",
-    ".pytest_cache",
-    ".venv",
-    ".local",
-    ".git",
-    ".DS_Store",
-    ".pyc",
-    ".sqlite-shm",
+    "__pycache__", ".pytest_cache", ".venv", ".local", ".git", ".DS_Store", ".pyc", ".sqlite-shm",
 )
 
 
@@ -77,22 +65,26 @@ def worktree_provisioning_lock(timeout_seconds: float = 120.0, root: Path = ROOT
 
 
 def link_worktree_dependencies(root: Path, worktree_dir: Path) -> list[str]:
-    """Symlink runtime dependencies, editor configs, and governance directories into worktree_dir."""
+    """Symlink runtime dependencies, editor configs, and read-only toolchains into worktree_dir."""
     linked: list[str] = []
-    candidates = (".venv", ".local", ".vscode", ".agents", ".antigravity")
-    for link_name in candidates:
-        src = root / link_name
-        dst = worktree_dir / link_name
+    for link_name in (".venv", ".vscode", ".agents", ".antigravity"):
+        src, dst = root / link_name, worktree_dir / link_name
         if (src.exists() or src.is_symlink()) and not (dst.exists() or dst.is_symlink()):
-            try:
-                rel_target = os.path.relpath(src, worktree_dir)
-                os.symlink(rel_target, dst)
+            with contextlib.suppress(OSError):
+                os.symlink(os.path.relpath(src, worktree_dir), dst)
                 linked.append(link_name)
-            except Exception as e:
-                print(f"  ⚠️ Could not symlink {link_name}: {e}")
+    src_local, dst_local = root / ".local", worktree_dir / ".local"
+    if (src_local.exists() or src_local.is_symlink()) and not dst_local.is_symlink():
+        with contextlib.suppress(OSError):
+            dst_local.mkdir(exist_ok=True)
+            for sub in ("bin", "node", "share"):
+                sub_src, sub_dst = src_local / sub, dst_local / sub
+                if (sub_src.exists() or sub_src.is_symlink()) and not (sub_dst.exists() or sub_dst.is_symlink()):
+                    os.symlink(os.path.relpath(sub_src, dst_local), sub_dst)
+                    linked.append(f".local/{sub}")
     agents_dir = worktree_dir / ".agents"
     agents_tools_link = agents_dir / "tools"
-    if agents_dir.is_dir() and not (agents_tools_link.exists() or agents_tools_link.is_symlink()):
+    if agents_dir.is_dir() and not agents_dir.is_symlink() and not (agents_tools_link.exists() or agents_tools_link.is_symlink()):
         with contextlib.suppress(OSError):
             os.symlink("../tools", agents_tools_link)
             linked.append(".agents/tools")
@@ -104,14 +96,18 @@ def safely_unlink_worktree_dependencies(worktree_dir: Path) -> list[str]:
     unlinked: list[str] = []
     if not worktree_dir.exists() or not worktree_dir.is_dir():
         return unlinked
-
+    local_dir = worktree_dir / ".local"
+    if local_dir.is_dir() and not local_dir.is_symlink():
+        for sub in list(local_dir.iterdir()):
+            if sub.is_symlink():
+                with contextlib.suppress(OSError):
+                    sub.unlink()
+                    unlinked.append(f".local/{sub.name}")
     for item in list(worktree_dir.iterdir()):
         if item.is_symlink() or item.name == ".sidecar_active_run.lock":
-            try:
+            with contextlib.suppress(OSError):
                 item.unlink()
                 unlinked.append(item.name)
-            except Exception as e:
-                print(f"  ⚠️ Could not unlink symlink {item.name}: {e}")
     return unlinked
 
 

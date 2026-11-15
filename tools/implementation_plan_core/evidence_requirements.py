@@ -435,8 +435,12 @@ def _gate_lines(wave: object) -> list[str]:
 
 def validate_execution_evidence(content: str, waves: Sequence[object], filename: str) -> list[str]:
     """Require bounded plans and explicit run/evidence fields in each wave gate."""
+    from tools.implementation_plan_core.wave_dag import strip_and_validate_shard_manifests
+
     errors: list[str] = []
-    word_count = len(content.split())
+    prose_content, manifest_errors = strip_and_validate_shard_manifests(content, filename)
+    errors.extend(manifest_errors)
+    word_count = len(prose_content.split())
     if word_count > MAX_PLAN_WORDS:
         errors.append(
             f"{filename}: Plan has {word_count} words; newly authored wave plans are capped at "
@@ -453,7 +457,7 @@ def validate_execution_evidence(content: str, waves: Sequence[object], filename:
         }
         missing = [label for label in _FIELD_PATTERNS if label not in present]
         if missing:
-            number = getattr(wave, "number", "?")
+            number = getattr(wave, "wave_id", getattr(wave, "number", "?"))
             errors.append(
                 f"{filename}: Wave {number} completion gate must specify: {', '.join(missing)}. "
                 "Receipts document runs; independently observed behavior determines completion."

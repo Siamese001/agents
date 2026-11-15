@@ -64,6 +64,10 @@ from .promotion import (
     resolve_effective_repo_root,
     stage_overnight_branch,
 )
+from .merge_train import (
+    cmd_shard_ready,
+    cmd_train,
+)
 from .sync import (
     RebaseOutcome,
     cmd_rebase,
@@ -109,9 +113,11 @@ __all__ = [
     "cmd_queue",
     "cmd_rebase",
     "cmd_review",
+    "cmd_shard_ready",
     "cmd_start",
     "cmd_submit",
     "cmd_sync",
+    "cmd_train",
     "cmd_worktree_list",
     "compute_first_parent_sync",
     "dequeue_pr",

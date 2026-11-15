@@ -374,8 +374,18 @@ class GovernedMergeQueueLock:
                     pid,
                     changed_files=self.changed_files,
                     has_valid_receipt=self.has_valid_receipt,
+                    consume_bypass=False,
                 )
                 if can_try and self._try_flock_acquire():
+                    if not self.non_blocking:
+                        is_first_live_waiter(
+                            self.git_common_dir,
+                            self.branch,
+                            pid,
+                            changed_files=self.changed_files,
+                            has_valid_receipt=self.has_valid_receipt,
+                            consume_bypass=True,
+                        )
                     if self.waited_in_fifo:
                         unregister_fifo_waiter(self.git_common_dir, self.branch, pid)
                     return True

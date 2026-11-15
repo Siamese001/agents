@@ -91,11 +91,13 @@ def _resolve_branch_and_sha(repo_root: Path, explicit_branch: str | None) -> tup
     return branch, head_sha
 
 
-def _load_prior_passing_stages(receipt_path: Path) -> set[str]:
+def _load_prior_passing_stages(receipt_path: Path, expected_head_sha: str | None = None) -> set[str]:
     if not receipt_path.is_file():
         return set()
     try:
         data = json.loads(receipt_path.read_text(encoding="utf-8"))
+        if expected_head_sha and data.get("head_commit_sha") != expected_head_sha:
+            return set()
         stages = data.get("stages", [])
         return {
             str(s.get("stage_name"))
@@ -127,7 +129,11 @@ def verify_main_readiness(
 
     receipt_dir = repo_root / "reports" / "readiness"
     receipt_path = receipt_dir / f"local_main_readiness_{slug}_receipt.json"
-    prior_passed = _load_prior_passing_stages(receipt_path) if recheck_failed_only else set()
+    prior_passed = (
+        _load_prior_passing_stages(receipt_path, expected_head_sha=head_sha)
+        if recheck_failed_only
+        else set()
+    )
 
     categories: dict[str, tuple[bool, str]] = {}
     stage_records: list[dict[str, Any]] = []

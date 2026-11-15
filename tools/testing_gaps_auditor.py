@@ -88,17 +88,11 @@ def _node_has_direct_assertion(fn_node: ast.AST) -> bool:
     assertion_call_prefixes = ("assert", "_assert", "require_", "_check_")
     assertion_call_exact = {"raises", "warns", "fail", "deprecated_call", "check_schema"}
     for sub in ast.walk(fn_node):
-        if isinstance(sub, ast.Assert):
-            return True
-        if isinstance(sub, ast.Raise) and sub.exc is not None:
+        if isinstance(sub, ast.Assert) or (isinstance(sub, ast.Raise) and sub.exc is not None):
             return True
         if isinstance(sub, ast.Call):
             fn = sub.func
-            name = ""
-            if isinstance(fn, ast.Name):
-                name = fn.id
-            elif isinstance(fn, ast.Attribute):
-                name = fn.attr
+            name = fn.id if isinstance(fn, ast.Name) else (fn.attr if isinstance(fn, ast.Attribute) else "")
             if name in assertion_call_exact or name.startswith(assertion_call_prefixes):
                 return True
     return False
@@ -188,7 +182,7 @@ def _inspect_decorators_and_calls_for_skip_xfail(
 
 
 def _parse_pure_reexport_facade(tree: ast.Module) -> list[ast.ImportFrom] | None:
-    """Return non-future ImportFrom nodes when body holds only docstrings, __all__, and ImportFrom."""
+    """Return non-future ImportFrom nodes when body holds only docstrings, __all__, Import/ImportFrom, or TYPE_CHECKING."""
     imports: list[ast.ImportFrom] = []
     for node in tree.body:
         if isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant) and isinstance(node.value.value, str):
@@ -197,9 +191,16 @@ def _parse_pure_reexport_facade(tree: ast.Module) -> list[ast.ImportFrom] | None
             if node.module != "__future__":
                 imports.append(node)
             continue
+        if isinstance(node, ast.Import):
+            continue
         if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name) and node.targets[0].id == "__all__":
             continue
         if isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name) and node.target.id == "__all__":
+            continue
+        if isinstance(node, ast.If) and not node.orelse and (
+            (isinstance(node.test, ast.Name) and node.test.id == "TYPE_CHECKING")
+            or (isinstance(node.test, ast.Attribute) and node.test.attr == "TYPE_CHECKING")
+        ) and all(isinstance(inner, (ast.Import, ast.ImportFrom, ast.Pass)) for inner in node.body):
             continue
         return None
     return imports or None

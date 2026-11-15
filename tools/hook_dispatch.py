@@ -183,8 +183,9 @@ def handle_pre_run_command(payload: Dict[str, Any]) -> int:
     cmd = (args.get("CommandLine") or args.get("command") or "").strip()
     if not cmd:
         return emit_decision("allow")
-    if re.search(r"\bpytest(?:\.exe)?\s*$", cmd) or re.search(r"\bpytest\s+tests/?\s*$", cmd):
-        reason = "Bare un-scoped 'pytest' or 'pytest tests/' is blocked by governance. Specify targeted test files."
+    root_pat = r"(?:tests|(?:resume_graph_engine|outreach_engine|apps_eval|resume_engine|apps_research)/tests)"
+    if re.search(r"\bpytest(?:\.exe)?\s*$", cmd) or re.search(rf"\bpytest\s+{root_pat}/?\s*$", cmd):
+        reason = "Bare un-scoped 'pytest' or 'pytest <root>/tests/' is blocked by governance. Specify targeted test files."
         sys.stderr.write(f"\n[Antigravity Hook BLOCK] {reason}\n")
         return emit_decision("deny", reason=reason)
     return emit_decision("allow")
@@ -216,10 +217,10 @@ def handle_pre_model_registry(payload: Dict[str, Any], repo_root: Path = ROOT) -
     if not target_file or not content or not target_file.endswith(".md") or "plans/" not in target_file.replace("\\", "/"):
         return emit_decision("allow")
     try:
-        from tools.hitl_governance import detect_unapproved_model_tokens
+        from tools.hitl_governance import validate_model_token_registry
 
-        unapproved = detect_unapproved_model_tokens(content, repo_root=repo_root)
-        if unapproved:
+        is_valid, unapproved, _ = validate_model_token_registry(content, repo_root=repo_root)
+        if not is_valid and unapproved:
             reason = f"Unapproved model identifier(s) in plan: {', '.join(unapproved)}. Resolve against config/provider_profiles.yaml."
             sys.stderr.write(f"\n[Antigravity Hook BLOCK] {reason}\n")
             return emit_decision("deny", reason=reason)
@@ -256,26 +257,19 @@ def _is_mandatory_hitl_question(q_text: str, q_item: Dict[str, Any], args: Dict[
 def handle_pre_ask_question(payload: Dict[str, Any], repo_root: Path) -> int:
     """PreToolUse guard on ask_question / ask_user_question enforcing atomic options, confidence, and margin bypass."""
     from tools.hitl_governance import HITLDecisionStore, evaluate_hitl_surfacing_gate, validate_hitl_presentation
-
     tool_call = payload.get("toolCall") if isinstance(payload.get("toolCall"), dict) else payload
     args = tool_call.get("args") if isinstance(tool_call.get("args"), dict) else payload
     if not isinstance(args, dict):
         return emit_decision("deny", reason="HITL_VIOLATION_INVALID_PAYLOAD: Question arguments must be a dictionary.")
-
     qs = _extract_questions_list(args)
     if not qs:
         return emit_decision("deny", reason="HITL_VIOLATION_EMPTY_QUESTION: No question provided in tool call.")
     if len(qs) > 1:
-        return emit_decision(
-            "deny",
-            reason=f"HITL_VIOLATION_BULK_DECISION: Attempted to present {len(qs)} questions simultaneously. Present strictly one at a time. {ANTI_PLAINTEXT_FALLBACK_DIRECTIVE}",
-        )
-
+        return emit_decision("deny", reason=f"HITL_VIOLATION_BULK_DECISION: Attempted to present {len(qs)} questions simultaneously. Present strictly one at a time. {ANTI_PLAINTEXT_FALLBACK_DIRECTIVE}")
     q_item = qs[0]
     q_text = str(q_item.get("question") or q_item.get("prompt") or "").strip()
     if not q_text:
         return emit_decision("deny", reason="HITL_VIOLATION_EMPTY_QUESTION: Question text is missing or empty.")
-
     pres_errors = validate_hitl_presentation(q_item, enforce_visibility_and_jargon=True)
     if pres_errors:
         return emit_decision("deny", reason=f"{'; '.join(pres_errors)} {ANTI_PLAINTEXT_FALLBACK_DIRECTIVE}")
@@ -640,9 +634,12 @@ def handle_post_invocation(payload: Dict[str, Any], repo_root: Path) -> int:
                     mutated_files = True
             elif tname == "run_command":
                 cmd = str(targs.get("CommandLine") or targs.get("command") or "")
-                if "pr_governance.py" in cmd and any(k in cmd for k in ("merge", "submit", "promote")):
+                tc_failed = str(tc.get("status") or s.get("status") or "").upper() in ("ERROR", "FAILED")
+                if not tc_failed and "pr_governance.py" in cmd and any(k in cmd for k in ("merge", "submit", "promote", "shard-ready", "train")):
                     completed_merge = True
 
+    if os.environ.get("AGY_SWARM_WORKER") == "1" or os.environ.get("AGY_WORKFLOW_RUN") == "1":
+        completed_merge = True
     total_intercepts = layman_retries + brevity_retries + disjunctive_retries + promotion_retries
     if total_intercepts >= 2 or (len(model_replies) >= 2 and model_replies[-1] == model_replies[-2]):
         print(json.dumps({"injectSteps": []}))

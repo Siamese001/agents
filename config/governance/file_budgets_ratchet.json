@@ -465,7 +465,7 @@
   },
   "resume_graph_engine/src/apps_rg/runtime/orchestration/patch_run.py": {
     "justification": "Baseline legacy module pending decomposition",
-    "line_limit": 1843
+    "line_limit": 1831
   },
   "resume_graph_engine/src/apps_rg/runtime/orchestration/r3r4_whole_run_orchestration.py": {
     "justification": "Baseline legacy module pending decomposition",
@@ -697,11 +697,11 @@
   },
   "tools/hitl_governance.py": {
     "justification": "Baseline ceiling when expanding PRODUCTION_DIRECTORIES to all 11 executable roots including tools/",
-    "line_limit": 735
+    "line_limit": 729
   },
   "tools/hook_dispatch.py": {
     "justification": "Baseline ceiling when expanding PRODUCTION_DIRECTORIES to all 11 executable roots including tools/",
-    "line_limit": 712
+    "line_limit": 706
   },
   "tools/modularize_executive_summary.py": {
     "justification": "Baseline ceiling when expanding PRODUCTION_DIRECTORIES to all 11 executable roots including tools/",
@@ -717,15 +717,15 @@
   },
   "tools/pr_governance_core/lifecycle.py": {
     "justification": "Baseline ceiling when expanding PRODUCTION_DIRECTORIES to all 11 executable roots including tools/",
-    "line_limit": 666
+    "line_limit": 659
   },
   "tools/pr_governance_core/worktree.py": {
     "justification": "Baseline ceiling when expanding PRODUCTION_DIRECTORIES to all 11 executable roots including tools/",
-    "line_limit": 642
+    "line_limit": 635
   },
   "tools/validate_implementation_plan.py": {
     "justification": "Baseline ceiling when expanding PRODUCTION_DIRECTORIES to all 11 executable roots including tools/",
-    "line_limit": 696
+    "line_limit": 693
   },
   "tools/validate_turn_gates.py": {
     "justification": "Baseline ceiling when expanding PRODUCTION_DIRECTORIES to all 11 executable roots including tools/",
