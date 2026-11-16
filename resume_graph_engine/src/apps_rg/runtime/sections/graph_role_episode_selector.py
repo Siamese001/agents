@@ -108,7 +108,8 @@ _CANONICAL_REQUIREMENT_PATTERNS: dict[str, tuple[str, ...]] = {
     "partner_gtm": ("partner gtm", "partner motion", "channel", "ecosystem", "partner-led"),
     "forward_deployed_execution": ("forward deployed", "forward deployment", "rapid prototyping", "prototype to production", "client delivery"),
     "engineering_org_leadership": ("105 software engineers", "engineering practice leadership", "build the fde team", "operating model"),
-    "regulated_ai_governance": ("model risk", "sr 11 7", "bcbs 239", "ccar", "regulated financial", "banking"),
+    "regulated_ai_governance": ("model risk", "sr 11 7", "bcbs 239", "ccar", "regulated financial", "banking", "ai governance", "regulatory", "compliance"),
+    "insurance_core_modernization": ("insurance", "underwriting", "claims", "guidewire", "policy administration", "brokerage", "carrier"),
 }
 _PARTNER_ONLY_REQUIREMENT_IDS = frozenset({"partner_cosell", "hyperscaler_alliance", "si_enablement", "partner_gtm"})
 _COSELL_HEAVY_ROOT_IDS = frozenset({
@@ -992,7 +993,7 @@ def build_selected_graph_evidence_plan_for_section(
             briefing_signal_packet=briefing_signal_packet,
         )
         bundle_id_str = str(root["bundle"].get("role_episode_bundle_id") or "")
-        if target_role_profile == "svp_agentic_engineering" and not has_explicit_cosell and bundle_id_str in _COSELL_HEAVY_ROOT_IDS:
+        if target_role_profile != "ai_partnerships_gtm" and not has_explicit_cosell and bundle_id_str in _COSELL_HEAVY_ROOT_IDS:
             root_alignment = max(0.1, round(root_alignment - 1.5, 6))
         elif fde_context and bundle_id_str in _FDE_CORE_ROOT_IDS:
             root_alignment = round(root_alignment + 1.25, 6)

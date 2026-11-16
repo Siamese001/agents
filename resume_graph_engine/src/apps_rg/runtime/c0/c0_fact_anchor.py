@@ -269,73 +269,72 @@ def select_disjoint_narrative_candidates(
         target_profile = str(nar_plan.get("target_role_profile") or "").strip()
         nar_reqs = set(nar_plan.get("canonical_jd_requirement_ids") or ())
         has_explicit_cosell = bool(nar_reqs & {"partner_cosell", "hyperscaler_alliance", "si_enablement", "partner_gtm"})
-        if target_profile != "insurance_it_strategy":
-            ledger = nar_plan.get("graph_candidate_decision_ledger") or []
-            roots_by_id: dict[str, dict[str, Any]] = {}
-            facts_by_root: dict[str, list[dict[str, Any]]] = {}
-            skills_by_root: dict[str, list[dict[str, Any]]] = {}
-            for raw in ledger:
-                if not isinstance(raw, Mapping):
-                    continue
-                auth = raw.get("authority")
-                auth_ok = raw.get("authority_pass") is True or (isinstance(auth, Mapping) and auth.get("authority_pass") is True)
-                if not auth_ok:
-                    continue
-                ctype = str(raw.get("candidate_type") or "")
-                rid = str(raw.get("root_id") or raw.get("candidate_id") or "").strip()
-                if not rid:
-                    continue
-                if ctype == "role_episode_root":
-                    roots_by_id[rid] = dict(raw)
-                elif ctype == "source_fact":
-                    facts_by_root.setdefault(rid, []).append(dict(raw))
-                elif ctype == "leaf_skill":
-                    skills_by_root.setdefault(rid, []).append(dict(raw))
+        ledger = nar_plan.get("graph_candidate_decision_ledger") or []
+        roots_by_id: dict[str, dict[str, Any]] = {}
+        facts_by_root: dict[str, list[dict[str, Any]]] = {}
+        skills_by_root: dict[str, list[dict[str, Any]]] = {}
+        for raw in ledger:
+            if not isinstance(raw, Mapping):
+                continue
+            auth = raw.get("authority")
+            auth_ok = raw.get("authority_pass") is True or (isinstance(auth, Mapping) and auth.get("authority_pass") is True)
+            if not auth_ok:
+                continue
+            ctype = str(raw.get("candidate_type") or "")
+            rid = str(raw.get("root_id") or raw.get("candidate_id") or "").strip()
+            if not rid:
+                continue
+            if ctype == "role_episode_root":
+                roots_by_id[rid] = dict(raw)
+            elif ctype == "source_fact":
+                facts_by_root.setdefault(rid, []).append(dict(raw))
+            elif ctype == "leaf_skill":
+                skills_by_root.setdefault(rid, []).append(dict(raw))
 
-            cosell_roots = {
-                "reb_unify_partner_channel_cosell",
-                "reb_unify_hyperscaler_joint_solution_architecture",
-                "reb_slalom_ecosystem_accelerators",
-                "reb_ibm_aws_alliance_partner_cosell_gtm",
-            }
-            for rid, root_row in sorted(
-                roots_by_id.items(),
-                key=lambda item: (-float(item[1].get("ranking_score") or item[1].get("target_alignment_score") or 0.0), item[0]),
-            ):
-                if rid in bullet_roots or rid in exec_roots:
-                    continue
-                if target_profile == "svp_agentic_engineering" and not has_explicit_cosell and rid in cosell_roots:
-                    continue
-                r_facts = facts_by_root.get(rid) or []
-                r_skills = skills_by_root.get(rid) or []
-                if not r_facts or not r_skills:
-                    continue
-                chosen_fact = next(
-                    (f for f in r_facts if str(f.get("candidate_id") or "") not in used_Visible_facts),
-                    r_facts[0],
-                )
-                chosen_skill = r_skills[0]
-                fact_id_str = str(chosen_fact.get("candidate_id") or "")
-                skill_id_str = str(chosen_skill.get("candidate_id") or "")
-                alt_pool.append({
-                    "root_id": rid,
-                    "fact_id": fact_id_str,
-                    "skill_id": skill_id_str,
-                    "skill_label": str(chosen_skill.get("skill_label") or ""),
-                    "employer_lane": str(root_row.get("employer_lane") or ""),
-                    "source_family": str(root_row.get("employer_lane") or ""),
-                    "root_bundle_theme": str(root_row.get("bundle_theme") or ""),
-                    "root_claim_text": str(root_row.get("claim_text") or ""),
-                    "root_claim_action": str(root_row.get("claim_action") or ""),
-                    "root_claim_scope": str(root_row.get("claim_scope") or ""),
-                    "root_claim_outcome": str(root_row.get("claim_outcome") or ""),
-                    "citation_refs": [fact_id_str or rid],
-                    "graph_path_ids": [
-                        str(root_row.get("candidate_path_id") or f"root:{rid}"),
-                        str(chosen_skill.get("candidate_path_id") or f"root:{rid}/skill:{skill_id_str}"),
-                        str(chosen_fact.get("candidate_path_id") or f"root:{rid}/fact:{fact_id_str}"),
-                    ],
-                })
+        cosell_roots = {
+            "reb_unify_partner_channel_cosell",
+            "reb_unify_hyperscaler_joint_solution_architecture",
+            "reb_slalom_ecosystem_accelerators",
+            "reb_ibm_aws_alliance_partner_cosell_gtm",
+        }
+        for rid, root_row in sorted(
+            roots_by_id.items(),
+            key=lambda item: (-float(item[1].get("ranking_score") or item[1].get("target_alignment_score") or 0.0), item[0]),
+        ):
+            if rid in bullet_roots or rid in exec_roots:
+                continue
+            if target_profile != "ai_partnerships_gtm" and not has_explicit_cosell and rid in cosell_roots:
+                continue
+            r_facts = facts_by_root.get(rid) or []
+            r_skills = skills_by_root.get(rid) or []
+            if not r_facts or not r_skills:
+                continue
+            chosen_fact = next(
+                (f for f in r_facts if str(f.get("candidate_id") or "") not in used_Visible_facts),
+                r_facts[0],
+            )
+            chosen_skill = r_skills[0]
+            fact_id_str = str(chosen_fact.get("candidate_id") or "")
+            skill_id_str = str(chosen_skill.get("candidate_id") or "")
+            alt_pool.append({
+                "root_id": rid,
+                "fact_id": fact_id_str,
+                "skill_id": skill_id_str,
+                "skill_label": str(chosen_skill.get("skill_label") or ""),
+                "employer_lane": str(root_row.get("employer_lane") or ""),
+                "source_family": str(root_row.get("employer_lane") or ""),
+                "root_bundle_theme": str(root_row.get("bundle_theme") or ""),
+                "root_claim_text": str(root_row.get("claim_text") or ""),
+                "root_claim_action": str(root_row.get("claim_action") or ""),
+                "root_claim_scope": str(root_row.get("claim_scope") or ""),
+                "root_claim_outcome": str(root_row.get("claim_outcome") or ""),
+                "citation_refs": [fact_id_str or rid],
+                "graph_path_ids": [
+                    str(root_row.get("candidate_path_id") or f"root:{rid}"),
+                    str(chosen_skill.get("candidate_path_id") or f"root:{rid}/skill:{skill_id_str}"),
+                    str(chosen_fact.get("candidate_path_id") or f"root:{rid}/fact:{fact_id_str}"),
+                ],
+            })
 
     derived_rows: list[dict[str, Any]] = []
     for index, source in enumerate(upstream_bullet_assignments, start=1):
