@@ -268,7 +268,7 @@ def test_wave4_subagent_scope_hooks_and_prompt_catalog_parity(tmp_path: Path, mo
 
     # Edge cases: empty select_impacted_tests, explicit >4 batch size, and split-package model baseline inheritance
     from tools.adg_impact_tests import select_impacted_tests
-    from tools.verify_commit import _MODEL_BASELINE_COUNTS, _resolve_model_baseline_count
+    from tools.verify_commit import _MODEL_BASELINE_COUNTS, _resolve_model_baseline_count, check_architectural_governance
 
     empty_impact = select_impacted_tests([], repo_root=REPO_ROOT)
     assert empty_impact["batches"] == [] and empty_impact["total_selected"] == 0
@@ -283,11 +283,31 @@ def test_wave4_subagent_scope_hooks_and_prompt_catalog_parity(tmp_path: Path, mo
     assert len(multi_impact["batches"][0]) == 10  # type: ignore[index]
     unbounded_impact = select_impacted_tests(changed_sample, repo_root=REPO_ROOT)
     assert len(unbounded_impact["batches"]) == 1 and len(unbounded_impact["batches"][0]) >= 10  # type: ignore[index]
-    with mock.patch.dict(_MODEL_BASELINE_COUNTS, {"agents/legacy_mod.py": 3}, clear=False):
-        assert _resolve_model_baseline_count("agents/legacy_mod.py") == 3
-        assert _resolve_model_baseline_count("agents/legacy_mod/helper.py") == 3
-        assert _resolve_model_baseline_count("agents/legacy_mod_pkg/helper.py") == 3
+    with mock.patch.dict(_MODEL_BASELINE_COUNTS, {"agents/legacy_mod.py": 2}, clear=True):
+        assert _resolve_model_baseline_count("agents/legacy_mod.py") == 2
+        assert _resolve_model_baseline_count("agents/legacy_mod/helper.py") == 2
+        assert _resolve_model_baseline_count("agents/legacy_mod_pkg/helper.py") == 2
         assert _resolve_model_baseline_count("agents/unrelated_mod.py") == 0
+
+        split_pkg = tmp_path / "split_repo" / "agents" / "legacy_mod"
+        split_pkg.mkdir(parents=True)
+        (split_pkg / "part_a.py").write_text('M1 = "gpt-4o"\n', encoding="utf-8")
+        (split_pkg / "part_b.py").write_text('M2 = "claude-3-5-sonnet"\n', encoding="utf-8")
+        _, ok_split_errs = check_architectural_governance([split_pkg / "part_b.py"], tmp_path / "split_repo")
+        assert not [e for e in ok_split_errs if "[Model Neutrality]" in e]
+
+        (split_pkg / "part_a.py").write_text('M1 = "gpt-4o"\nM2 = "claude-3-5-sonnet"\n', encoding="utf-8")
+        (split_pkg / "part_b.py").write_text('M3 = "gpt-4o"\nM4 = "claude-3-5-sonnet"\n', encoding="utf-8")
+        _, dup_split_errs = check_architectural_governance([split_pkg / "part_b.py"], tmp_path / "split_repo")
+        model_bucket_errs = [e for e in dup_split_errs if "[Model Neutrality]" in e]
+        assert len(model_bucket_errs) == 2
+
+    for stage_prompt in sorted((REPO_ROOT / "automations" / "prompts").glob("agents_*_agent.md")):
+        stage_txt = stage_prompt.read_text(encoding="utf-8")
+        assert "max 1,000 words" not in stage_txt
+        assert "up to 4 directly coupled test files" not in stage_txt
+    assert "pairwise-disjoint" not in (REPO_ROOT / ".agents" / "rules" / "pr-governance.md").read_text(encoding="utf-8")
+    assert "disjoint shard branches" not in (REPO_ROOT / "tools" / "pr_governance.py").read_text(encoding="utf-8")
 
     # Hook enforcement: contractless self on inherit and branch both allowed for /boost & /swarm; teamwork syncs request atomically
     allow_self = _run_hook(

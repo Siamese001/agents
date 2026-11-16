@@ -417,7 +417,7 @@ class ResearchOrchestrator:
         from tools.unified_agent_architecture import CapabilitiesConfig
 
         ids = ["AGENT-01-QUERY", "AGENT-02-SOURCES", "AGENT-03-EVIDENCE", "AGENT-04-SYNTHESIZE", "AGENT-05-TYPE", "AGENT-06-VALIDATE"]
-        return CapabilitiesConfig(enable_subagents=True, max_subagent_depth=2, allowed_subagents=ids).to_dict()
+        return CapabilitiesConfig(enable_subagents=True, max_subagent_depth=5, allowed_subagents=ids).to_dict()
 
     async def execute_plan(self, plan: ResearchOrchestrationPlan) -> list[ResearchAgentResult]:
         """Execute the orchestration plan."""

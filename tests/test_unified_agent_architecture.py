@@ -182,12 +182,15 @@ def test_wave3_subagent_config_and_swarm_capabilities() -> None:
     assert cfg.name == "subtask-301"
     assert BuiltinTools.START_SUBAGENT.value in cfg.allowed_tools
 
+    from tools.unified_agent_architecture import CapabilitiesConfig
+
+    assert CapabilitiesConfig().max_subagent_depth == 5
     for cls in (SwarmChallenger, OutreachSwarmChallenger, ResumeSwarmChallenger, ResearchOrchestrator):
         sub_cfgs = cls.build_subagent_configs()
         cap_cfg = cls.build_capabilities_config()
         assert len(sub_cfgs) >= 3
         assert cap_cfg["enable_subagents"] is True
-        assert cap_cfg["max_subagent_depth"] == 2
+        assert cap_cfg["max_subagent_depth"] == 5
         assert len(cap_cfg["allowed_subagents"]) == len(sub_cfgs)
 
 

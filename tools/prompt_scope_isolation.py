@@ -1,4 +1,4 @@
-"""Mechanical stage write-scope and parallel subagent scope isolation guards."""
+"""Mechanical stage write-scope and subagent scope lease helpers (opt-in exclusive locks; full-repo root-cause writes)."""
 
 from __future__ import annotations
 
@@ -222,6 +222,60 @@ def _is_pid_alive(pid: int) -> bool:
         return False
 
 
+def resolve_persistent_caller_pid() -> int:
+    """Resolve persistent parent/host PID across direct subprocesses and transient '-c' shell wrappers."""
+    env_pid = os.environ.get("AGY_HOST_PID", "").strip()
+    if env_pid.isdigit() and int(env_pid) > 1:
+        return int(env_pid)
+    pid = os.getppid() if os.getppid() > 1 else os.getpid()
+    for _ in range(4):
+        if pid <= 1:
+            break
+        try:
+            proc = subprocess.run(
+                ["ps", "-o", "ppid=,comm=,args=", "-p", str(pid)],
+                capture_output=True,
+                text=True,
+                check=False,
+                timeout=2.0,
+            )
+            line = proc.stdout.strip()
+            if not line:
+                break
+            parts = line.split(None, 2)
+            ppid = int(parts[0])
+            comm = os.path.basename(parts[1]) if len(parts) > 1 else ""
+            cmd_args = parts[2] if len(parts) > 2 else ""
+            if comm in ("sh", "bash", "zsh", "dash") and " -c " in f" {cmd_args} " and ppid > 1:
+                pid = ppid
+                continue
+        except (OSError, subprocess.SubprocessError, ValueError):  # guardian: allow-silent-swallow -- fallback to current ppid
+            pass
+        break
+    return pid
+
+
+def is_subagent_turn(steps: list[dict[str, Any]], payload: dict[str, Any] | None = None) -> bool:
+    """Return True when post_invocation is evaluating a delegated /boost or /swarm subagent turn."""
+    if os.environ.get("AGY_SUBAGENT_TASK_ID", "").strip():
+        return True
+    if isinstance(payload, dict) and bool(payload.get("is_subagent", False)):
+        return True
+    for step in steps:
+        if not isinstance(step, dict):
+            continue
+        content = str(step.get("content") or "")
+        if "<subagent_reminder>" in content or ("<SYSTEM_MESSAGE>" in content and "sender=" in content and "<original_task>" in content):
+            return True
+        tcs = step.get("tool_calls") or step.get("toolCalls") or ([] if not step.get("toolCall") else [step["toolCall"]])
+        for tc in tcs:
+            if isinstance(tc, dict):
+                tname = str(tc.get("name") or tc.get("tool_name") or "").split(":")[-1]
+                if tname == "send_message":
+                    return True
+    return False
+
+
 def _load_active_leases(registry_path: Path, now_ts: float) -> list[dict[str, Any]]:
     if not registry_path.is_file():
         return []
@@ -261,8 +315,9 @@ def register_and_check_subagent_scope(
     workspace_mode: str = "inherit",
     check_cross_workspace: bool = False,
     now_ts: float | None = None,
+    owner_pid: int | None = None,
 ) -> tuple[bool, str, str]:
-    """Register a subagent delegation scope lease and fail closed on overlapping scope_in claims."""
+    """Register a subagent delegation scope lease (opt-in exclusive_lock / enforce_strict_scope)."""
     task_id = str(contract.get("task_id", "")).strip()
     if not task_id:
         return False, "DELEGATION_VIOLATION: missing non-empty task_id", ""
@@ -280,6 +335,8 @@ def register_and_check_subagent_scope(
     scope_out = [str(p) for p in contract.get("scope_out", []) if str(p).strip()]
     workspace_key = str(repo_root.resolve())
     gov_dir = _resolve_common_git_root(repo_root) / ".local" / "governance"
+    raw_owner_pid = contract.get("owner_pid") if owner_pid is None else owner_pid
+    effective_owner_pid = int(raw_owner_pid) if isinstance(raw_owner_pid, int) and raw_owner_pid > 0 else os.getpid()
 
     with _scope_registry_lock(gov_dir) as registry_path:
         active = _load_active_leases(registry_path, ts)
@@ -306,7 +363,7 @@ def register_and_check_subagent_scope(
         updated = [entry for entry in active if entry.get("task_id") != task_id]
         lease_record = {
             "task_id": task_id,
-            "owner_pid": os.getpid(),
+            "owner_pid": effective_owner_pid,
             "workspace_root": workspace_key,
             "workspace_mode": mode or "inherit",
             "scope_in": scope_in,

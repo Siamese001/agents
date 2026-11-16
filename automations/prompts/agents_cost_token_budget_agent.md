@@ -113,7 +113,7 @@ PYTHONDONTWRITEBYTECODE=1 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DI
 ## 5. Phase 2: Unconditional Wave Plan Generation & 20% Margin HITL Gate (`C04`, `C05`)
 
 ### Step 2.1: Unconditional Wave-Based Plan Generation (`UNCONDITIONAL_WAVE_PLAN_MANDATE`)
-Author `${WORKTREE_DIR}/plans/cost-token-budget-${HEX6}.md` (500–800 words, max 1,000 words) structured into sequential waves:
+Author `${WORKTREE_DIR}/plans/cost-token-budget-${HEX6}.md` (unbounded word count, `INV-WAVE-PLAN-MAX-WORDS = 0`) structured into sequential waves:
 - `## Wave 1: Provider Profile Conformance, Pinned Model Right-Sizing & Internal Argon 4 Routing`
 - `## Wave 2: Prompt Prefix Pre-Warming, Semantic Fact-Digest Caching & Unified 30-Day Briefing Persistence`
 Each wave MUST include `### Objective & Scope`, `### Milestones & Deliverables`, `### Acceptance Criteria`, and `### Runtime Receipt & Completion Gate` (`Run:`, `Input:`, `Expected:`, `Verify independently:`, `Fail if:`, `Record:`).

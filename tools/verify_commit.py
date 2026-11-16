@@ -53,18 +53,69 @@ if _BASELINE_PATH.is_file():
         pass
 
 
-def _resolve_model_baseline_count(rel: str) -> int:
-    """Resolve model literal baseline count, allowing submodules split from a ratcheted parent file."""
+def _resolve_model_baseline_bucket(rel: str) -> tuple[str, int]:
+    """Map relative path to (bucket_key, ceiling), aggregating split <stem>/ and <stem>_pkg/ submodules."""
     norm = rel.replace("\\", "/")
     if norm in _MODEL_BASELINE_COUNTS:
-        return _MODEL_BASELINE_COUNTS[norm]
-    for owner_file, ceiling in _MODEL_BASELINE_COUNTS.items():
+        return f"owner:{norm}", _MODEL_BASELINE_COUNTS[norm]
+    for owner_file, ceiling in sorted(_MODEL_BASELINE_COUNTS.items()):
         norm_owner = owner_file.replace("\\", "/")
         if norm_owner.endswith(".py") and (
             norm.startswith(f"{norm_owner[:-3]}/") or norm.startswith(f"{norm_owner[:-3]}_pkg/")
         ):
-            return ceiling
-    return 0
+            return f"owner:{norm_owner}", ceiling
+    return f"file:{norm}", 0
+
+
+def _resolve_model_baseline_count(rel: str) -> int:
+    """Resolve model literal baseline count, allowing submodules split from a ratcheted parent file."""
+    return _resolve_model_baseline_bucket(rel)[1]
+
+
+def _check_ratcheted_model_buckets(py_files: Sequence[Path], repo_root: Path) -> list[str]:
+    """Enforce aggregate model-literal baseline ceilings across parent + split-package submodules."""
+    if not _MODEL_BASELINE_COUNTS:
+        return []
+    touched_owners: dict[str, int] = {}
+    for f in py_files:
+        try:
+            rel = f.resolve().relative_to(repo_root.resolve()).as_posix()
+        except ValueError:
+            rel = str(f).replace("\\", "/")
+        bucket_key, ceiling = _resolve_model_baseline_bucket(rel)
+        if bucket_key.startswith("owner:") and ceiling > 0:
+            touched_owners[bucket_key[6:]] = ceiling
+    if not touched_owners:
+        return []
+
+    errs: list[str] = []
+    for norm_owner, ceiling in sorted(touched_owners.items()):
+        candidates: list[Path] = []
+        owner_path = repo_root / norm_owner
+        if owner_path.is_file():
+            candidates.append(owner_path)
+        if norm_owner.endswith(".py"):
+            for pkg_dir in (repo_root / norm_owner[:-3], repo_root / f"{norm_owner[:-3]}_pkg"):
+                if pkg_dir.is_dir():
+                    candidates.extend(sorted(pkg_dir.rglob("*.py")))
+        seen: set[Path] = set()
+        bucket_hits: list[tuple[str, int, str]] = []
+        for cand in candidates:
+            resolved = cand.resolve()
+            if resolved in seen or not cand.is_file():
+                continue
+            seen.add(resolved)
+            cand_rel = resolved.relative_to(repo_root.resolve()).as_posix()
+            for lineno, _val, msg in check_file_model_neutrality(cand, repo_root):
+                bucket_hits.append((cand_rel, lineno, msg))
+        bucket_hits.sort(key=lambda item: (item[0], item[1]))
+        if len(bucket_hits) > ceiling:
+            for cand_rel, lineno, msg in bucket_hits[ceiling:]:
+                errs.append(
+                    f"[Model Neutrality] {cand_rel}:{lineno}: {msg} "
+                    f"(split-package bucket '{norm_owner}' total {len(bucket_hits)} exceeds baseline of {ceiling})"
+                )
+    return errs
 
 
 def get_staged_files(repo_root: Path) -> list[Path]:
@@ -295,6 +346,9 @@ def check_architectural_governance(files: Sequence[Path] | None, repo_root: Path
     for f in target_py:
         _, g_errs, _ = _analyze_single_python_file(f, repo_root)
         errors.extend(g_errs)
+    for b_err in _check_ratcheted_model_buckets(target_py, repo_root):
+        if b_err not in errors:
+            errors.append(b_err)
     errors.extend(_run_extended_architectural_checks(files, repo_root))
     return len(errors) == 0, errors
 
@@ -386,6 +440,9 @@ def run_precommit_gate(
             err_a.extend(g)
             err_p.extend(p)
 
+    for b_err in _check_ratcheted_model_buckets(py_files, repo_root):
+        if b_err not in err_a:
+            err_a.append(b_err)
     err_a.extend(_run_extended_architectural_checks(target_files, repo_root, mode_name=mode_name, shard_fast=shard_fast))
 
     results["1. Standard Code Hygiene"] = (len(err_h) == 0, err_h)

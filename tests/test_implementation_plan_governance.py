@@ -1114,6 +1114,36 @@ Implement shard B.
         _, strict_errs = strip_and_validate_shard_manifests(strict_disjoint, "strict_disjoint.md")
         self.assertTrue(any("scope_in overlap" in e for e in strict_errs))
 
+        # Focused bug-fix plans with explicit What Stays Unchanged upstream/downstream defense pass across all 3 domains
+        for domain_target in (
+            "resume_graph_engine/src/apps_rg/runtime/sections/headline_lane.py",
+            "outreach_engine/src/apps_lic/pipeline/compiler.py",
+            "apps_research/engines/company_brief_engine.py",
+        ):
+            bugfix_plan = f"""# Focused Bug Fix Plan
+
+## What Stays Unchanged
+- Upstream producers and input contracts remain unchanged.
+- Downstream validators and consumers remain unchanged.
+
+## Wave 1: Guard Null Input
+### Objective & Scope
+Fix null-input handling in `{domain_target}`.
+### Milestones & Deliverables
+- [MODIFY] `{domain_target}`: Guard null field access.
+### Acceptance Criteria
+- Null input handled cleanly while upstream contracts and downstream validators pass unchanged.
+### Runtime Receipt & Completion Gate
+- Run: .venv/bin/python -m pytest tests/ --timeout=60
+- Input: null fixture
+- Expected: 0 failures
+- Verify independently: git diff --stat
+- Fail if: exit != 0
+- Record: reports/bugfix.json
+"""
+            ok_bf, bf_errs = validate_plan_content(bugfix_plan, "bugfix.md")
+            self.assertTrue(ok_bf, f"Expected bugfix plan for {domain_target} to pass, got: {bf_errs}")
+
 
 if __name__ == "__main__":
     unittest.main()
