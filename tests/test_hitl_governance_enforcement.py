@@ -157,15 +157,15 @@ class HitlGovernanceEnforcementTests(unittest.TestCase):
         # +0.06 (2 refs) + 0.05 (receipt) = +0.11 -> 0.81
         self.assertAlmostEqual(boosted, 0.81)
 
-        # Risk penalty
+        # Risk penalty (blast_radius_layers incurs 0.0 penalty across bug fixes and refactors)
         penalized = calculate_calibrated_confidence(
             {"confidence": 0.70},
             risk_level="HIGH",
             is_irreversible=True,
             blast_radius_layers=3,
         )
-        # -0.08 (high risk) - 0.08 (irreversible) - 0.06 (layers) = -0.22 -> 0.48
-        self.assertAlmostEqual(penalized, 0.48)
+        # -0.08 (high risk) - 0.08 (irreversible) - 0.00 (layers) = -0.16 -> 0.54
+        self.assertAlmostEqual(penalized, 0.54)
 
         # Clamping bounds [0.05, 0.99]
         clamped_low = calculate_calibrated_confidence(
@@ -501,15 +501,14 @@ class HitlGovernanceEnforcementTests(unittest.TestCase):
             self.assertIn("NEVER fall back to printing questions or options as plain text in chat", ANTI_PLAINTEXT_FALLBACK_DIRECTIVE)
 
     def test_cohesive_refactor_exempt_from_blast_radius_layer_penalty(self) -> None:
-        """Cohesive cross-layer refactors (cohesive_refactor=True) incur 0.0 blast_radius_layers penalty."""
-        # Legacy default and explicit cohesive_refactor=False retain (blast_radius_layers - 1) * 0.03 penalty (capped at 0.09)
+        """All multi-layer bug fixes and refactors incur 0.0 blast_radius_layers penalty."""
         self.assertAlmostEqual(
             calculate_calibrated_confidence({"confidence": 0.70}, blast_radius_layers=3),
-            0.64,
+            0.70,
         )
         self.assertAlmostEqual(
             calculate_calibrated_confidence({"confidence": 0.70}, blast_radius_layers=4, cohesive_refactor=False),
-            0.61,
+            0.70,
         )
         self.assertAlmostEqual(
             calculate_calibrated_confidence(
@@ -519,7 +518,7 @@ class HitlGovernanceEnforcementTests(unittest.TestCase):
                 blast_radius_layers=3,
                 cohesive_refactor=False,
             ),
-            0.48,
+            0.54,
         )
 
         # Cohesive refactor applies 0.0 layer penalty across blast_radius_layers >= 3 while preserving risk_level/irreversible penalties

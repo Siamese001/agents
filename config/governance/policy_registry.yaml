@@ -103,9 +103,9 @@ policies:
   - id: "INV-WAVE-PLAN-MAX-WORDS"
     title: "Maximum New Wave Plan Length"
     category: "planning"
-    threshold: 1000
+    threshold: 0
     unit: "words"
-    description: "Maximum word budget for newly authored wave-based implementation plans."
+    description: "Unbounded prose word budget (0 = no ceiling) for wave-based implementation and refactoring plans."
     enforcer: "tools/validate_implementation_plan.py"
     rule_reference: "docs/refactoring-wave-protocol.md"
 

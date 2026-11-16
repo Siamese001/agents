@@ -1,41 +1,27 @@
-# Work-Item Classification — Fix, File, or Plan
+# Work-Item Classification — Zero Bug-Deferral & Unbounded Root-Cause Refactoring
 
-> Origin (2026-06-10): 145 plans / 119 "Completed" / 0 shipped. Replaces the plan-creation reflex with a decision tree enforced by hooks.
+> Bugs discovered anywhere in the repository — whether single-file, cross-layer, `apps_rg` pipeline, `/boost`, or `/swarm` — are traced to their root cause and fixed immediately with zero file-count, line-count, wave-count, or blast-radius limits. Modular `<= 600`-line file budgets (`tools/lint_file_budgets.py`) and inter-subsystem import boundaries (`tools/ssot_boundary_auditor.py`) remain strictly enforced.
 
 ## Classification Matrix
 
-| Class | Tier | Condition | Action |
-|---|---|---|---|
-| `BUG_IMMEDIATE` | T0/T1 | ≤3 files, provable this turn | Fix directly; proof receipt is the artifact |
-| `BUG_DEFERRED` | T2 | Multi-file, out-of-scope now | `spawn_task` chip |
-| `BUG_SYSTEMIC` | T3 | Cross-layer, multi-session | Backlog Item; disk plan only if ≥2 waves |
-| `FINDING_APPS_RG` | Any | apps_rg gap / lane issue | Row in Master Gap Inventory |
-| `ENHANCEMENT_MINOR` | T0/T1 | In-scope, ≤20 lines | Fix if in scope; `spawn_task` if deferred |
-| `ENHANCEMENT_BACKLOG` | T2 | Out-of-scope improvement | `spawn_task` chip |
-| `ENHANCEMENT_ROADMAP` | T3 | Multi-session strategic | Backlog Item |
-| `PLAN_MICRO` | T1/T2 | <2 waves AND (≤~3 files or single-wave `<= 600`-line cohesive package decomposition behind a facade) | Native plan mode only — no disk file |
-| `PLAN_MULTI_WAVE` | T2/T3 | ≥2 waves OR ≥~10 files / cross-layer spine refactor (single-session does NOT exempt) | `plans/<slug>-<6hex>.md` disk SSOT, minted at the start |
+| Class | Condition | Action |
+|---|---|---|
+| `BUG_ROOT_CAUSE` | Any bug (1 file or 50+ files, single-layer or cross-layer, `/boost` or `/swarm`, including `apps_rg`) | Trace to owning producer/contract/consumer/validator and fix end-to-end immediately; never defer bugs due to file count or blast radius |
+| `REFACTOR_COHESIVE` | Cohesive `<= 600`-line package decomposition behind a facade or cross-spine contract alignment (`INV-HOLISTIC-PIPELINE-PLANNING`) | Execute across all coupled files, tests, and ratchets without artificial file-count or wave-count caps |
+| `ENHANCEMENT_IN_SCOPE` | Requested feature or improvement | Implement across all impacted layers and verify end-to-end |
+| `UNCONNECTED_IDEA` | Speculative future feature unrelated to any bug or requested task | Note briefly without introducing unrelated cosmetic drift |
+| `PLAN_WAVE` | Multi-wave architectural design (`plans/<slug>-<6hex>.md`) | Disk-only wave plan (`INV-WAVE-PLAN-MAX-WORDS = 0`, unbounded word and wave count) |
 
 ## Cohesive Package Decomposition & Spine Refactoring (`INV-HOLISTIC-PIPELINE-PLANNING`)
 
-Decomposing oversized files into cohesive `<= 600`-line submodules behind an intact facade and extracting or aligning shared domain contracts across traced upstream/downstream spine dependencies is explicitly authorized and treated as cohesive refactoring rather than unrelated drift. Keep coupled producer+contract+consumer updates unified rather than fragmenting them into isolated local patches.
+Decomposing oversized files into cohesive `<= 600`-line submodules behind an intact facade (`<= 150` lines) and extracting or aligning shared domain contracts across traced upstream/downstream spine dependencies is explicitly authorized across any number of modules. Keep coupled producer+contract+consumer+validator updates unified rather than fragmenting them into symptom-only local patches.
 
-## Plan-FIRST ≠ plan-PERSISTENCE
+## Core Operating Rules
 
-Native plan mode (`EnterPlanMode`/`ExitPlanMode`) satisfies think-before-editing but writes to `deprecated IDE plan locations` — **it persists nothing to the repo SSOT**. Complexity, not session-span, decides persistence: a big change done in ONE session still deserves a durable `plans/<slug>-<6hex>.md` (RCA 2026-06-14 / ADR-104). Plans are **disk-only** (no Notion). Mint the disk plan for ≥2-wave or large/cross-layer work (request `PLAN_MINT_OK=1`); keep native plan mode for small work.
-
-## The Four Anti-Reflex Rules
-
-1. **Found a bug → classify first.** T0/T1 in-scope → fix now. T2 deferred → `spawn_task`. T3 systemic → Backlog Item.
-2. **apps_rg tactical finding → append a row; structural decomposition → plan.** Small tactical findings append a row (`plans/apps-rg-lane-aggregation-gap-closure-b8c3d1.md`), whereas cohesive `<= 600`-line package splits behind a facade or coupled spine contract realignments (`INV-HOLISTIC-PIPELINE-PLANNING`) are authorized to use a cohesive plan (`PLAN_MINT_OK=1`).
-3. **Need to plan → size it.** Small = native plan mode; complex (≥2 waves / ≥~10 files / cross-layer T3) = mint a disk plan at the start.
-4. **Native plan mode persists nothing durable** — don't default to it for complex work.
-
-## Enforcement
-
-- `pre_write_plan_mint_gate.py` (PreToolUse) — blocks new plan files without `PLAN_MINT_OK=1`.
-- `post_agent_work_classification_audit.py` (Stop) — catches plan-reflex (over-planning) AND unpersisted multi-wave execution (under-persisting).
+1. **Found a bug -> fix its root cause now.** Never downgrade a multi-file or cross-layer bug to `BUG_DEFERRED`, `spawn_task`, or a backlog row because it touches `> 3` files or `> 20` lines.
+2. **Scale `/boost` and `/swarm` freely.** Spawn parallel investigation, implementation, and verification workers as needed without artificial fan-out, file-count, or disjoint-scope blocks.
+3. **Preserve modular size & architectural boundaries.** Every production `.py` module stays `<= 600` lines (outside ratcheted legacy ceilings, which only clamp downward) and respects unidirectional layer and inter-subsystem import boundaries.
 
 ## References
 
-- `.agents/rules/apps-rg-execution-bias.md` · `.agents/rules/plan-location.md` · constitutional §24 (`spawn_task` — no `DEFERRED_SCOPE:` marker).
+- `.agents/rules/apps-rg-execution-bias.md` · `.agents/rules/plan-location.md` · `.agents/rules/scope-containment.md`

@@ -19,11 +19,11 @@ def _resolve_max_plan_words() -> int:
             for entry in raw.get("policies", []):
                 if isinstance(entry, dict) and entry.get("id") == "INV-WAVE-PLAN-MAX-WORDS":
                     val = entry.get("threshold")
-                    if isinstance(val, int) and val > 0:
+                    if isinstance(val, int) and val >= 0:
                         return val
         except (ImportError, OSError, ValueError, TypeError, KeyError, AttributeError):  # guardian: allow-silent-swallow -- safe fallback when yaml parser unavailable
             pass
-    return 1000
+    return 0
 
 
 MAX_PLAN_WORDS: int = _resolve_max_plan_words()
@@ -441,10 +441,10 @@ def validate_execution_evidence(content: str, waves: Sequence[object], filename:
     prose_content, manifest_errors = strip_and_validate_shard_manifests(content, filename)
     errors.extend(manifest_errors)
     word_count = len(prose_content.split())
-    if word_count > MAX_PLAN_WORDS:
+    if MAX_PLAN_WORDS > 0 and word_count > MAX_PLAN_WORDS:
         errors.append(
             f"{filename}: Plan has {word_count} words; newly authored wave plans are capped at "
-            f"{MAX_PLAN_WORDS} words (target 500–800)."
+            f"{MAX_PLAN_WORDS} words."
         )
 
     for wave in waves:

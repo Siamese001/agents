@@ -678,18 +678,25 @@ class TestPRMergeQueueGovernance(unittest.TestCase):
         self.assertEqual(stale_passed, set())
 
     def test_21_shard_ready_and_wave_merge_train(self) -> None:
-        """cmd_shard_ready and cmd_train assemble disjoint shards into feat/wave-<N>-train."""
+        """cmd_shard_ready and cmd_train assemble shards (including non-conflicting shared-file edits) into feat/wave-<N>-train."""
         import argparse
         from tools.pr_governance_core.lint_file_budgets_bridge import clamp_ratchet_if_available
         from tools.pr_governance_core.merge_train import cmd_shard_ready, cmd_train
         from tools.verify_merge_receipt import verify_merge_receipt
 
         self.assertIsInstance(clamp_ratchet_if_available(self.repo_root), dict)
+        (self.repo_root / "shared_facade.py").write_text("a = 0\n\n\n\nb = 0\n", encoding="utf-8")
+        _git(["add", "shared_facade.py"], self.repo_root)
+        _git(["commit", "-m", "chore: seed shared facade"], self.repo_root)
 
-        for shard_name, fname in (("feat/wave2a-shard", "mod_a.py"), ("feat/wave2b-shard", "mod_b.py")):
+        for shard_name, fname, facade_body in (
+            ("feat/wave2a-shard", "mod_a.py", "a = 1\n\n\n\nb = 0\n"),
+            ("feat/wave2b-shard", "mod_b.py", "a = 0\n\n\n\nb = 1\n"),
+        ):
             _git(["checkout", "-b", shard_name, "main"], self.repo_root)
             (self.repo_root / fname).write_text("x = 1\n", encoding="utf-8")
-            _git(["add", fname], self.repo_root)
+            (self.repo_root / "shared_facade.py").write_text(facade_body, encoding="utf-8")
+            _git(["add", fname, "shared_facade.py"], self.repo_root)
             _git(["commit", "-m", f"feat: add {fname}"], self.repo_root)
             rc_s = cmd_shard_ready(
                 argparse.Namespace(branch=shard_name, repo_root=str(self.repo_root), skip_verify=True)

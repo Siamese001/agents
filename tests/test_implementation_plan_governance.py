@@ -530,12 +530,12 @@ Setup tools.
         self.assertFalse(is_valid)
         self.assertTrue(any("completion gate must specify:" in err for err in errors))
 
-    def test_word_count_exceeds_1000_is_rejected(self) -> None:
-        """Verify that plans exceeding the 1000-word limit fail validation."""
-        long_body = "word " * 1050
+    def test_word_count_exceeds_1000_is_accepted_without_artificial_cap(self) -> None:
+        """Verify that large multi-wave refactoring plans (>1000 words) pass without artificial word cap."""
+        long_body = "word " * 1250
         long_plan = f"""# Long Plan Title
 
-## Wave 1: Large Scope
+## Wave 1: Large Cross-Repo Refactoring Scope
 ### Objective & Scope
 {long_body}
 
@@ -554,8 +554,8 @@ Setup tools.
 - Record: receipt.json
 """
         is_valid, errors = validate_plan_content(long_plan, "long_plan.md")
-        self.assertFalse(is_valid)
-        self.assertTrue(any("capped at 1000 words" in err for err in errors))
+        self.assertTrue(is_valid, f"Expected large refactoring plan to pass, got: {errors}")
+        self.assertEqual(errors, [])
 
     def test_extract_wave_summary_entries_from_status_table(self) -> None:
         """Verify extraction of wave number, description, status, and check/open status."""
@@ -1035,8 +1035,8 @@ Decompose `headline_lane.py` into `<= 600`-line submodules behind an intact `Imp
 ```json shard-manifest
 {
   "shards": [
-    {"shard_id": "2A", "scope_in": ["tools/mod_a.py"], "verify_independently": "pytest tests/test_a.py --timeout=60"},
-    {"shard_id": "2B", "scope_in": ["tools/mod_b.py"], "verify_independently": "pytest tests/test_b.py --timeout=60"}
+    {"shard_id": "2A", "scope_in": ["tools/mod_a.py", "tools/__init__.py"], "verify_independently": "pytest tests/test_a.py --timeout=60"},
+    {"shard_id": "2B", "scope_in": ["tools/mod_b.py", "tools/__init__.py"], "verify_independently": "pytest tests/test_b.py --timeout=60"}
   ]
 }
 ```
@@ -1094,6 +1094,25 @@ Implement shard B.
         is_valid, errors = validate_plan_content(sharded_plan, "sharded.md")
         self.assertTrue(is_valid, f"Expected sharded plan to pass, got: {errors}")
         self.assertEqual(validate_wave_dag_sequence([], "empty.md"), [])
+
+        # Edge cases: single-shard manifest passes, empty shards rejected, opt-in require_disjoint enforced
+        single_shard = '```json shard-manifest\n{"shards": [{"shard_id": "1A", "scope_in": ["tools/a.py"], "verify_independently": "pytest tests/test_a.py --timeout=60"}]}\n```'
+        _, single_errs = strip_and_validate_shard_manifests(single_shard, "single.md")
+        self.assertEqual(single_errs, [])
+
+        empty_shard = '```json shard-manifest\n{"shards": []}\n```'
+        _, empty_errs = strip_and_validate_shard_manifests(empty_shard, "empty_shards.md")
+        self.assertTrue(any("minItems: 1" in e for e in empty_errs))
+
+        strict_disjoint = (
+            '```json shard-manifest\n'
+            '{"require_disjoint": true, "shards": ['
+            '{"shard_id": "2A", "scope_in": ["tools/shared.py"], "verify_independently": "pytest tests/test_a.py --timeout=60"},'
+            '{"shard_id": "2B", "scope_in": ["tools/shared.py"], "verify_independently": "pytest tests/test_b.py --timeout=60"}'
+            ']}\n```'
+        )
+        _, strict_errs = strip_and_validate_shard_manifests(strict_disjoint, "strict_disjoint.md")
+        self.assertTrue(any("scope_in overlap" in e for e in strict_errs))
 
 
 if __name__ == "__main__":

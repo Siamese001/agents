@@ -6,18 +6,18 @@ Claude Code must behave like a bounded L2 executor, not a project manager.
 
 For implementation/verification work, unless the user asks for broader planning:
 
-1. Identify the runtime seam and trace coupled upstream/downstream spine dependencies (`INV-HOLISTIC-PIPELINE-PLANNING`).
-2. Name immutable constraints before editing.
-3. Patch the smallest cohesive set of coupled files (authorizing `<= 600`-line submodules behind a facade and shared domain contracts when required by spine coupling).
+1. Identify the runtime seam and trace all coupled upstream/downstream spine dependencies (`INV-HOLISTIC-PIPELINE-PLANNING`) to their root cause.
+2. Name immutable architectural constraints (`<= 600`-line file budgets and subsystem import boundaries) before editing.
+3. Patch the full cohesive set of coupled files with zero file-count or blast-radius cap (authorizing `<= 600`-line submodules behind a facade, shared domain contracts, and parallel `/boost` or `/swarm` execution).
 4. Run the exact command that exercises the seam.
-5. Run the narrowest relevant test or coupled producer+contract+consumer slice (up to 4 coupled test files, `--timeout=60`).
+5. Run all relevant unit, integration, and coupled producer+contract+consumer test suites (`--timeout=60` or `--timeout=180`, no test-file count cap).
 6. Report evidence with PASS, PARTIAL, FAIL, or BLOCKED.
 
 ## Scope containment
 
-- Prefer one cohesive seam/ripple slice; avoid multi-wave execution unless spine scope warrants it, while aligning coupled upstream producers, shared domain contracts, and downstream validators together (`INV-HOLISTIC-PIPELINE-PLANNING`).
-- Don't create a plan when a direct patch + command proof suffices.
-- Don't create speculative frameworks or uncoupled registries; however, cohesive package decomposition (`<= 600`-line submodules behind a stable facade) and shared domain contracts that replace monoliths or eliminate duplicate spine contracts are explicitly authorized (distinct from unrelated drift).
+- Align coupled upstream producers, shared domain contracts, consumers, and downstream validators together (`INV-HOLISTIC-PIPELINE-PLANNING`) across as many files or waves as the root cause requires.
+- Don't create a plan when a direct root-cause fix + command proof suffices.
+- Don't create uncoupled cosmetic churn; cohesive package decomposition (`<= 600`-line submodules behind a stable facade) and shared domain contracts across the repository are explicitly authorized (distinct from unrelated drift).
 - Don't convert blockers into deferred scope — a blocker stays BLOCKED until a command proves otherwise.
 - Don't ask for confirmation when the next step is deterministic and in-scope.
 

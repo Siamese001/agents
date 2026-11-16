@@ -4,9 +4,7 @@
 
 ## Scope
 
-`apps_rg` owns app-specific prompt assembly, runtime sections, contracts, profiles, tests, and evidence artifacts under `apps_rg/`.
-
-`apps_rg` provides its own enforcement. App-specific behavior must not be added without a migration receipt.
+`apps_rg` owns app-specific prompt assembly, runtime sections, contracts, profiles, tests, and evidence artifacts under `apps_rg/`. Root-cause bug fixes and cohesive cross-spine refactors across `apps_rg/` and its upstream/downstream contracts execute freely with zero file-count or blast-radius caps while keeping modules `<= 600` lines and inter-subsystem import boundaries intact.
 
 ## Core invariants
 

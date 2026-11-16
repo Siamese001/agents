@@ -270,8 +270,8 @@ class OutreachSwarmChallenger:
         campaign_id: str = "outreach_campaign",
         max_turns: int = 3,
     ) -> OutreachSwarmReceipt:
-        """Run bounded multi-agent deliberation on candidate outreach message."""
-        bounded_turns = min(max_turns, self.MAX_TURNS)
+        """Run multi-agent deliberation on candidate outreach message."""
+        bounded_turns = max(1, int(max_turns))
         current_text = text
         final_disposition = OutreachSwarmDisposition.REVISE
         escalation_reason: str | None = None

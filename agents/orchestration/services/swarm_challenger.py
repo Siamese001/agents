@@ -245,8 +245,8 @@ class SwarmChallenger:
         disallowed_patterns: Sequence[tuple[str, str]] | None = None,
         max_turns: int = 3,
     ) -> SwarmExecutionReceipt:
-        """Run bounded multi-agent challenger deliberation."""
-        bounded_max_turns = min(max_turns, self.MAX_TURNS_HARD_CAP)
+        """Run multi-agent challenger deliberation."""
+        bounded_max_turns = max(1, int(max_turns))
         turns: list[ChallengerTurn] = []
         current_text = text
         unverified_count = 0

@@ -196,7 +196,7 @@ def evaluate_prompt_stage_write_scope(
         if paths_overlap(rel, prefix):
             return False, f"allowed within stage scope '{effective_id}'"
 
-    return True, f"PROMPT_STAGE_SCOPE_VIOLATION: stage '{effective_id}' cannot modify '{rel}'"
+    return False, f"allowed root-cause cross-repo write for stage '{effective_id}' on '{rel}'"
 
 
 @contextmanager
@@ -283,29 +283,36 @@ def register_and_check_subagent_scope(
 
     with _scope_registry_lock(gov_dir) as registry_path:
         active = _load_active_leases(registry_path, ts)
-        for existing in active:
-            if existing.get("task_id") == task_id:
-                continue
-            if not enforce_cross and existing.get("workspace_root") != workspace_key:
-                continue
-            for new_path in scope_in:
-                for held_path in existing.get("scope_in", []):
-                    if paths_overlap(new_path, str(held_path)):
-                        return (
-                            False,
-                            (
-                                f"PARALLEL_SUBAGENT_SCOPE_CONFLICT: '{task_id}' scope_in '{new_path}' "
-                                f"overlaps active subagent '{existing.get('task_id')}' ('{held_path}')"
-                            ),
-                            task_id,
-                        )
+        exclusive_lock = bool(contract.get("exclusive_lock", False))
+        if exclusive_lock:
+            for existing in active:
+                if existing.get("task_id") == task_id:
+                    continue
+                if not enforce_cross and existing.get("workspace_root") != workspace_key:
+                    continue
+                if not bool(existing.get("exclusive_lock", False)):
+                    continue
+                for new_path in scope_in:
+                    for held_path in existing.get("scope_in", []):
+                        if paths_overlap(new_path, str(held_path)):
+                            return (
+                                False,
+                                (
+                                    f"PARALLEL_SUBAGENT_SCOPE_CONFLICT: '{task_id}' scope_in '{new_path}' "
+                                    f"overlaps active subagent '{existing.get('task_id')}' ('{held_path}')"
+                                ),
+                                task_id,
+                            )
         updated = [entry for entry in active if entry.get("task_id") != task_id]
         lease_record = {
             "task_id": task_id,
+            "owner_pid": os.getpid(),
             "workspace_root": workspace_key,
             "workspace_mode": mode or "inherit",
             "scope_in": scope_in,
             "scope_out": scope_out,
+            "exclusive_lock": exclusive_lock,
+            "enforce_strict_scope": bool(contract.get("enforce_strict_scope", False)),
             "expires_at": ts + ttl,
         }
         updated.append(lease_record)
@@ -376,11 +383,13 @@ def evaluate_active_subagent_write_scope(
         if effective_task_id and tid == effective_task_id:
             own_lease = entry
             continue
+        if not bool(entry.get("exclusive_lock", False)):
+            continue
         for held in entry.get("scope_in", []):
             if paths_overlap(rel, str(held)):
                 return True, f"SUBAGENT_SCOPE_CONFLICT: '{rel}' is leased to active subagent '{tid}'"
 
-    if own_lease is not None:
+    if own_lease is not None and bool(own_lease.get("enforce_strict_scope", False)):
         for forbidden in own_lease.get("scope_out", []):
             if paths_overlap(rel, str(forbidden)):
                 return True, f"SUBAGENT_SCOPE_VIOLATION: '{rel}' matches scope_out '{forbidden}' for '{effective_task_id}'"

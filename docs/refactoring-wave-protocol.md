@@ -3,14 +3,11 @@ CHATGPT PLANNING → CODEX EXECUTION
 
 ROLE
 
-Operate as a controlled refactoring system in which:
+Operate as a convergence-driven refactoring and root-cause bug-resolution system in which:
 
-- ChatGPT identifies the problem, defines the target solution, and plans exactly one wave at a time.
-- Codex executes only the currently approved wave.
-- Human-in-the-loop approval is required for any material scope deviation.
-- The core objective must be completed within no more than six execution waves.
-
-This is a convergence-driven refactoring process, not an open-ended code exploration exercise.
+- Every root-cause bug discovered before or during refactoring is traced across the repository and fixed end-to-end with zero artificial file-count, subsystem-span, or blast-radius caps.
+- Multi-wave plans and `/boost` or `/swarm` parallel shards scale freely to the true architectural extent of the problem (zero cap on wave count or shard count).
+- Modular `<= 600`-line file budgets (`tools/lint_file_budgets.py`) and inter-subsystem / unidirectional layer boundaries (`tools/ssot_boundary_auditor.py`, `tools/lint_layer_imports.py`) remain strictly enforced.
 
 ======================================================================
 1. PRIMARY OBJECTIVE
@@ -57,66 +54,32 @@ Cohesive factoring exception: Decomposing oversized modules into cohesive <= 600
 The process must converge on a completed solution rather than continuously discovering additional work.
 
 ======================================================================
-3. SIX-WAVE LIMIT
+3. UNBOUNDED WAVE SCALE & IMMEDIATE BUG RESOLUTION
 ======================================================================
 
-The core objective must be completed within a maximum of six waves.
+There is no cap on the number of waves, tasks per wave, or files touched when resolving a root-cause bug or executing a cross-repository refactor.
 
-ChatGPT must maintain an explicit convergence forecast showing:
+Maintain an explicit convergence forecast showing:
 
-- Current wave number.
+- Current wave or shard identifiers.
 - What remains before the core objective is complete.
-- Whether completion within six waves remains achievable.
-- Which remaining work is essential versus optional.
+- Which coupled upstream producers, shared domain contracts, consumers, validators, and tests are included.
 
-By the end of Wave 6:
+When a root-cause defect is discovered during any wave:
 
-- The approved core objective must be complete and validated.
-- Any unresolved critical blocker must be explicitly identified.
-- All nonessential findings must be moved to a subsequent-refactoring backlog.
-- No seventh wave may be created as an automatic continuation of the same refactoring effort.
-
-Work discovered after or during Wave 6 must be itemized separately under:
-
-SUBSEQUENT REFACTORING CANDIDATES
-
-Each candidate must include:
-
-- Problem found.
-- Business or technical impact.
-- Recommended priority.
-- Dependency on the completed solution.
-- Reason it was excluded from the six-wave scope.
-
-Do not allow newly discovered improvements to prevent completion of the approved core objective.
+- Trace it across all connected layers and packages immediately.
+- Repair the owning producer, shared contract, consumer, validator, and regression tests in place rather than deferring the bug to a backlog.
+- Keep all production Python modules `<= 600` lines (`<= 150` lines for pure facades) and preserve clean subsystem import boundaries.
 
 ======================================================================
-4. ONE-WAVE-AT-A-TIME CONTROL
+4. SEQUENTIAL & PARALLEL SHARDED EXECUTION (`/boost` & `/swarm`)
 ======================================================================
 
-ChatGPT may plan only the next executable wave.
+Waves may be planned either sequentially (`Wave 1`, `Wave 2`, ...) or as parallel fork-join `/boost` and `/swarm` shards (`Wave 2A`, `Wave 2B`, ... with `Depends On:` and optional `shard-manifest` blocks).
 
-Do not produce a complete multi-wave implementation specification for Codex.
-
-A high-level six-wave forecast may be maintained, but only the current wave may contain executable instructions.
-
-Each ChatGPT-to-Codex handoff must contain no more than five primary sections:
-
-1. Wave objective.
-2. In-scope changes.
-3. Explicit exclusions.
-4. Validation requirements.
-5. Completion output.
-
-Avoid prompts containing large inventories of required outputs, excessive sub-deliverables, or more than ten individually actionable tasks.
-
-When more work exists than can safely fit in one wave:
-
-- Prioritize the smallest coherent milestone that keeps directly coupled upstream producers, shared domain contracts, and downstream validators aligned (INV-HOLISTIC-PIPELINE-PLANNING). Cohesive package decomposition (<= 600-line submodules behind an intact facade) counts as one coherent milestone and must not be fragmented across waves in ways that leave contracts out of sync.
-- Once shared contracts are locked in an upstream wave (e.g. Wave 1), pairwise-disjoint subsystem or submodule slices may be planned as fork-join sharded sub-waves (e.g. Wave 2A, Wave 2B with `Depends On: Wave 1` and a validated `shard-manifest` annex) and assembled through `pr_governance.py shard-ready` and `pr_governance.py train --wave <N> --shards ...`.
-- Complete it.
-- Validate it.
-- Use the result to plan the next wave.
+- Align directly coupled upstream producers, shared domain contracts, and downstream validators (`INV-HOLISTIC-PIPELINE-PLANNING`). Cohesive package decomposition (`<= 600`-line submodules behind an intact facade) is explicitly authorized across any number of modules.
+- Sharded `/swarm` workers qualify branches via `pr_governance.py shard-ready` and assemble via `pr_governance.py train --wave <N> --shards ...` without artificial file-overlap aborts whenever Git merges the branches cleanly.
+- Complete each wave or shard with empirical runtime and test validation.
 
 ======================================================================
 5. CHATGPT RESPONSIBILITIES
@@ -142,72 +105,27 @@ ChatGPT must not:
 - Produce a prompt so broad that Codex must invent its own priorities.
 
 ======================================================================
-6. CODEX RESPONSIBILITIES
+6. EXECUTOR RESPONSIBILITIES
 ======================================================================
 
-Codex must execute only the approved wave.
+Executors (including `/boost` and `/swarm` workers) must:
 
-Codex must:
-
-- Preserve the approved problem statement and target end-state.
-- Make the smallest sufficient change that satisfies the wave objective while keeping coupled upstream/downstream spine dependencies aligned (INV-HOLISTIC-PIPELINE-PLANNING); cohesive <= 600-line submodule decomposition behind a facade and shared domain contracts are authorized within the approved wave.
-- Avoid unrelated cleanup or modernization.
-- Preserve existing behavior unless behavior change is explicitly required.
-- Run the required validation.
-- Report incomplete work, blockers, regressions, and newly discovered scope.
-- Distinguish required fixes from optional recommendations.
-
-Codex must not:
-
-- Expand the wave into unrelated subsystems because adjacent code could also be improved (updating directly coupled producer/contract/consumer spine files is cohesive refactoring, not unrelated drift).
-- Introduce speculative frameworks, third-party dependencies, or uncoupled abstractions without explicit approval (cohesive <= 600-line facade submodules and shared domain contracts within the ripple scope are authorized).
-- Silently change public interfaces, contracts, or schemas without aligning coupled upstream producers and downstream validators.
-- Begin work intended for a later wave.
-- Treat discovered scope as automatically approved.
-- claim completion when validation has not passed.
+- Preserve the approved problem statement and target end-state while fixing any root-cause bugs uncovered along the dependency graph.
+- Align all coupled upstream/downstream spine dependencies (`INV-HOLISTIC-PIPELINE-PLANNING`); cohesive `<= 600`-line submodule decomposition behind a facade and shared domain contracts are authorized across any number of files.
+- Avoid unrequested cosmetic churn or unrelated drift in uncoupled modules.
+- Preserve existing behavior unless behavior change is required by the objective or a verified bug fix.
+- Run comprehensive empirical validation across all impacted test suites.
 
 ======================================================================
-7. SCOPE-DEVIATION GATE
+7. ARCHITECTURAL & SCOPE GUARDRAILS
 ======================================================================
 
-Any material deviation from the approved wave requires human-in-the-loop approval before execution.
+Root-cause bug fixes, cohesive package decomposition (`<= 600`-line submodules behind an intact public facade), and shared domain contract alignment across coupled upstream/downstream spine dependencies (`INV-HOLISTIC-PIPELINE-PLANNING`) never require a deviation halt regardless of file count or layer span.
 
-A material deviation includes:
+Human-in-the-loop approval is reserved strictly for:
 
-- Changing the approved problem or end-state.
-- Modifying components outside the declared scope.
-- Introducing a new dependency or technology.
-- Changing public interfaces, APIs, schemas, or contracts.
-- Expanding the wave objective.
-- Performing unrelated cleanup.
-- Replacing the planned implementation approach.
-- Adding work that could materially affect cost, risk, timeline, security, or operations.
-
-Cohesive factoring clarification: Cohesive package decomposition (<= 600-line submodules behind an intact public facade) and shared domain contract alignment across directly coupled upstream/downstream spine dependencies (INV-HOLISTIC-PIPELINE-PLANNING) within the declared ripple graph do not constitute a material scope deviation; modifying unrelated subsystems or breaking undeclared external contracts does.
-
-ChatGPT or Codex may recommend a deviation only when there is high-confidence evidence that:
-
-- The approved core objective cannot be completed without it.
-- The current approach would produce a materially defective solution.
-- A critical security, compliance, data-integrity, or production risk would otherwise remain.
-- The deviation materially reduces total implementation risk or prevents substantial rework.
-
-A deviation recommendation must include:
-
-DEVIATION REQUEST
-
-- Current approved scope:
-- Proposed deviation:
-- Evidence requiring the deviation:
-- Why the core objective cannot be completed safely without it:
-- Risks of approving:
-- Risks of rejecting:
-- Smallest viable deviation:
-- Impact on the six-wave convergence plan:
-
-Do not execute the deviation until explicit approval is received.
-
-Low-confidence, speculative, stylistic, or convenience-based deviations must be placed in the subsequent-refactoring backlog instead.
+- Changing the user's high-level product goal or external business requirements when genuine ambiguity exists ($\Delta \le 20\%$).
+- Destructive or irreversible external actions, credential changes, or breaking architectural subsystem import boundaries.
 
 ======================================================================
 8. BLOCKERS AND AMBIGUITY
@@ -248,7 +166,7 @@ Partial implementation without validation does not count as wave completion.
 
 ChatGPT must use the following concise format for each Codex handoff:
 
-WAVE [N] OF MAXIMUM 6
+WAVE [N]
 
 CORE PROBLEM
 [One concise statement of the problem being solved.]
@@ -257,41 +175,32 @@ TARGET END-STATE
 [One concise, observable definition of success.]
 
 WAVE OBJECTIVE
-[The single milestone Codex must complete in this wave.]
+[The milestone to complete in this wave or shard.]
 
 IN SCOPE
 - [Required change]
 - [Required change]
-- [Required change]
 
 OUT OF SCOPE
-- [Explicit exclusion]
-- [Explicit exclusion]
+- [Unconnected cosmetic drift]
 
 EXECUTION GUARDRAILS
-- Make the smallest sufficient change that keeps coupled upstream/downstream spine contracts aligned (INV-HOLISTIC-PIPELINE-PLANNING).
-- Cohesive package decomposition (<= 600-line submodules behind a facade) and shared domain contracts are authorized within scope; exclude unrelated drift.
+- Align all coupled upstream/downstream spine contracts (`INV-HOLISTIC-PIPELINE-PLANNING`) and fix root-cause bugs completely without artificial file-count or blast-radius caps.
+- Cohesive package decomposition (`<= 600`-line submodules behind a facade) and shared domain contracts are authorized; exclude unrelated drift and preserve inter-subsystem import boundaries.
 - Preserve behavior not explicitly targeted.
-- Do not expand into unrelated subsystems without HITL approval.
-- Place optional findings in the backlog.
-- Stop and raise a deviation request when required.
 
 VALIDATION
-- [Test or observable validation]
 - [Test or observable validation]
 
 REQUIRED COMPLETION OUTPUT
 1. Changes completed.
 2. Validation results.
 3. Remaining blockers, if any.
-4. Scope deviations requested or avoided.
-5. Newly discovered backlog items.
 
 CONVERGENCE STATUS
 - Current wave: [N]
 - Core objective completion estimate: [percentage or milestone status]
 - Essential work remaining: [concise statement]
-- Expected completion wave: [N through 6]
 
 ======================================================================
 11. CODEX RESPONSE FORMAT
@@ -338,11 +247,7 @@ ChatGPT may declare the refactoring complete only when:
 - No essential requirement remains hidden in the backlog.
 - Any remaining findings are genuinely separate follow-on improvements.
 
-The goal is not to complete six waves.
-
-The goal is to complete the core objective in the fewest safe waves, with six waves as the absolute maximum.
-
-When the core objective is completed before Wave 6, stop the wave process and produce the final completion report.
+The goal is to complete the core objective and resolve all root-cause defects cleanly across as many waves or parallel `/boost` / `/swarm` shards as needed while keeping all production modules `<= 600` lines and inter-subsystem boundaries intact.
 
 FINAL COMPLETION REPORT
 

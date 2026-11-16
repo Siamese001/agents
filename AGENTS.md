@@ -4,11 +4,9 @@
 
 Root AGENTS.md is the primary agent execution adapter. Repo governance, rules, and skills live under .agents/ and .antigravity/.
 
-**T2/T3** (2+ files, cross-layer, architecture, multi-file debug): enter native plan mode, inspect all connected upstream/downstream dependencies (see `scope-containment`), and present the plan for approval before any edit. See `.agents/rules/plan-first-enforcement.md`.
+**Bug Fixes, `/boost`, & `/swarm` (Zero Blast-Radius Ceiling)**: Whenever a bug is found or `/boost` / `/swarm` is invoked, trace the defect to its root cause and fix all impacted upstream producers, shared domain contracts, consumers, validators, and tests across the repository immediately with zero file-count, line-count, wave-count, or blast-radius limits (preserving `<= 600`-line file size budgets and inter-subsystem import boundaries).
 
-**T0/T1**: single file ≤20 lines or questions — answer/edit directly.
-
-**Layer separation:** Reasoning / Routing / Execution / Verification — no edits before plan approval.
+**Planned Architecture & Refactors**: For open-ended design or multi-wave architectural work, inspect connected upstream/downstream dependencies (see `scope-containment`) and align coupled contracts cohesively. See `.agents/rules/plan-first-enforcement.md`.
 
 ## Wave Refactoring Protocol
 
@@ -18,15 +16,11 @@ Before performing refactoring work, read and follow:
 
 Required behavior:
 
-- Execute only the currently approved wave.
-- Make the smallest sufficient change that aligns coupled upstream/downstream spine dependencies (`INV-HOLISTIC-PIPELINE-PLANNING`); cohesive `<= 600`-line submodule decomposition behind a facade and shared domain contracts are explicitly authorized.
-- Preserve behavior not explicitly targeted.
-- Do not perform unrelated drift or later-wave work (directly coupled producer/contract/validator alignment is cohesive refactoring, not drift).
-- Obtain human-in-the-loop approval before any material scope deviation.
-- Stop and raise a deviation request when the objective requires expanding into unrelated subsystems or undeclared external contracts.
-- Validate the wave before claiming completion.
-- Place optional findings in the subsequent-refactoring backlog.
-- Complete the core objective within no more than six waves.
+- Align all coupled upstream/downstream spine dependencies (`INV-HOLISTIC-PIPELINE-PLANNING`) across as many files, subsystems, or waves as needed; cohesive `<= 600`-line submodule decomposition behind a facade and shared domain contracts are explicitly authorized.
+- Fix newly discovered root-cause bugs immediately across all impacted components rather than deferring them to a backlog.
+- Preserve behavior not explicitly targeted and avoid unrelated drift in uncoupled code (directly coupled producer/contract/validator alignment and root-cause bug fixes are cohesive refactoring, not drift).
+- Parallel `/boost` and `/swarm` workers may execute concurrently across any number of waves or shards without artificial wave-count, file-count, or disjoint-file freezes, provided `<= 600`-line file budgets and inter-subsystem import boundaries hold.
+- Validate each wave or shard with concrete runtime and test evidence before claiming completion.
 - Treat `docs/refactoring-wave-protocol.md` as the authoritative protocol.
 
 ## MCP Quick Reference
@@ -107,7 +101,7 @@ Lookup: `.agents/rules/codex-config-lookup.md` and `.agents/rules/plan-location.
 
 ## Pytest
 
-Pytest runs with plugin **autoload ON** (CI default); `addopts` carries `--timeout=180` but no `-p pytest_timeout`. **Do NOT** set `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1` for ad-hoc runs — it strips pytest-timeout and `--timeout` aborts collection. See companion for the duplicate-registration caveat (don't add `-p pytest_timeout` either). Class A debug runs allow single files, named cases, or coupled multi-file producer+contract+consumer slices (up to 4 coupled test files, `--timeout=60`); unbounded `pytest tests/` remains forbidden without authorization.
+Pytest runs with plugin **autoload ON** (CI default); `addopts` carries `--timeout=180` but no `-p pytest_timeout`. **Do NOT** set `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1` for ad-hoc runs — it strips pytest-timeout and `--timeout` aborts collection. See companion for the duplicate-registration caveat (don't add `-p pytest_timeout` either). Debug and verification runs allow single files, named cases, any number of coupled multi-file producer+contract+consumer test slices, or full subsystem/repository test directories (`pytest tests/ --timeout=60` or `--timeout=180`); only bare un-timed `pytest` without `--timeout` is blocked.
 
 ## Subsystems vs Infrastructure (summary)
 

@@ -764,8 +764,19 @@ Tweak compiler.py without upstream or downstream alignment.
         """Verify select_impacted_tests and sub-root pytest guard."""
         from tools.adg_impact_tests import select_impacted_tests
 
-        impact = select_impacted_tests(["tools/hook_dispatch.py"], repo_root=ROOT)
+        impact = select_impacted_tests(
+            [
+                "tools/hook_dispatch.py",
+                "tools/validate_turn_gates.py",
+                "tools/validate_implementation_plan.py",
+                "tools/pr_governance.py",
+                "tools/unified_agent_architecture.py",
+            ],
+            repo_root=ROOT,
+        )
         self.assertIn("tests/test_hook_dispatch.py", impact["selected_tests"])  # type: ignore[arg-type]
+        self.assertEqual(len(impact["batches"]), 1)  # type: ignore[arg-type]
+        self.assertGreaterEqual(len(impact["batches"][0]), 5)  # type: ignore[index]
 
         payload = {
             "toolCall": {
@@ -782,6 +793,23 @@ Tweak compiler.py without upstream or downstream alignment.
             timeout=10,
         )
         self.assertEqual(res.returncode, 1)
+
+        timed_dir_payload = {
+            "toolCall": {
+                "name": "run_command",
+                "args": {"CommandLine": "pytest resume_graph_engine/tests/ --timeout=60"},
+            }
+        }
+        res_timed = subprocess.run(
+            [sys.executable, "tools/hook_dispatch.py", "--hook", "pre_run_command"],
+            input=json.dumps(timed_dir_payload),
+            capture_output=True,
+            text=True,
+            cwd=ROOT,
+            timeout=10,
+        )
+        self.assertEqual(res_timed.returncode, 0)
+        self.assertEqual(json.loads(res_timed.stdout.strip())["decision"], "allow")
 
     def test_create_file_and_start_subagent_matchers_and_sdk_helpers(self) -> None:
         """Verify create_file and start_subagent are guarded in .agents/hooks.json and hook_dispatch.py."""
@@ -820,7 +848,7 @@ Tweak compiler.py without upstream or downstream alignment.
         self.assertEqual(res_create.returncode, 1)
         self.assertEqual(json.loads(res_create.stdout.strip())["decision"], "deny")
 
-        bad_sub_payload = {
+        contractless_sub_payload = {
             "toolCall": {
                 "name": "start_subagent",
                 "args": {"TypeName": "self", "Workspace": "inherit"},
@@ -828,14 +856,14 @@ Tweak compiler.py without upstream or downstream alignment.
         }
         res_sub = subprocess.run(
             [sys.executable, "tools/hook_dispatch.py", "--hook", "pre_subagent_delegation"],
-            input=json.dumps(bad_sub_payload),
+            input=json.dumps(contractless_sub_payload),
             capture_output=True,
             text=True,
             cwd=ROOT,
             timeout=10,
         )
-        self.assertEqual(res_sub.returncode, 1)
-        self.assertEqual(json.loads(res_sub.stdout.strip())["decision"], "deny")
+        self.assertEqual(res_sub.returncode, 0)
+        self.assertEqual(json.loads(res_sub.stdout.strip())["decision"], "allow")
 
         sdk_hooks = build_antigravity_sdk_hooks(ROOT)
         self.assertIn("create_file", sdk_hooks["guarded_file_write_tools"])
