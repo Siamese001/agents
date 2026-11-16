@@ -7,7 +7,7 @@ Operate as a convergence-driven refactoring and root-cause bug-resolution system
 
 - Every root-cause bug discovered before or during refactoring is traced across the repository and fixed end-to-end with zero artificial file-count, subsystem-span, or blast-radius caps.
 - Multi-wave plans and `/boost` or `/swarm` parallel shards scale freely to the true architectural extent of the problem (zero cap on wave count or shard count).
-- Modular `<= 600`-line file budgets (`tools/lint_file_budgets.py`) and inter-subsystem / unidirectional layer boundaries (`tools/ssot_boundary_auditor.py`, `tools/lint_layer_imports.py`) remain strictly enforced.
+- Directional inter-subsystem, storage-interface, and unidirectional layer boundaries (`tools/ssot_boundary_auditor.py`, `tools/lint_architecture_boundaries.py`, `tools/lint_layer_imports.py`) remain strictly enforced, with zero artificial file-size or line-ratchet ceilings (`INV-BUDGET-FILE-LINES = 0`).
 
 ======================================================================
 1. PRIMARY OBJECTIVE
@@ -49,7 +49,7 @@ Do not create waves whose primary purpose is:
 - Additional abstraction without demonstrated necessity.
 - Expanding the problem being solved.
 
-Cohesive factoring exception: Decomposing oversized modules into cohesive <= 600-line submodules behind a stable facade and introducing shared domain contracts needed when tracing upstream/downstream spine dependencies (INV-HOLISTIC-PIPELINE-PLANNING) are authorized convergence mechanisms, distinct from speculative abstraction or unrelated drift.
+Cohesive factoring exception: Decomposing oversized modules into cohesive submodules behind a stable facade and introducing shared domain contracts needed when tracing upstream/downstream spine dependencies (INV-HOLISTIC-PIPELINE-PLANNING) are authorized convergence mechanisms, distinct from speculative abstraction or unrelated drift.
 
 The process must converge on a completed solution rather than continuously discovering additional work.
 
@@ -69,7 +69,7 @@ When a root-cause defect is discovered during any wave:
 
 - Trace it across all connected layers and packages immediately.
 - Repair the owning producer, shared contract, consumer, validator, and regression tests in place rather than deferring the bug to a backlog.
-- Keep all production Python modules `<= 600` lines (`<= 150` lines for pure facades) and preserve clean subsystem import boundaries.
+- Preserve clean directional inter-subsystem and storage import boundaries across all touched modules.
 
 ======================================================================
 4. SEQUENTIAL & PARALLEL SHARDED EXECUTION (`/boost` & `/swarm`)
@@ -77,7 +77,7 @@ When a root-cause defect is discovered during any wave:
 
 Waves may be planned either sequentially (`Wave 1`, `Wave 2`, ...) or as parallel fork-join `/boost` and `/swarm` shards (`Wave 2A`, `Wave 2B`, ... with `Depends On:` and optional `shard-manifest` blocks).
 
-- Align directly coupled upstream producers, shared domain contracts, and downstream validators (`INV-HOLISTIC-PIPELINE-PLANNING`). Cohesive package decomposition (`<= 600`-line submodules behind an intact facade) is explicitly authorized across any number of modules.
+- Align directly coupled upstream producers, shared domain contracts, and downstream validators (`INV-HOLISTIC-PIPELINE-PLANNING`). Cohesive package decomposition (cohesive submodules behind an intact facade) is explicitly authorized across any number of modules.
 - Sharded `/swarm` workers qualify branches via `pr_governance.py shard-ready` and assemble via `pr_governance.py train --wave <N> --shards ...` without artificial file-overlap aborts whenever Git merges the branches cleanly.
 - Complete each wave or shard with empirical runtime and test validation.
 
@@ -111,7 +111,7 @@ ChatGPT must not:
 Executors (including `/boost` and `/swarm` workers) must:
 
 - Preserve the approved problem statement and target end-state while fixing any root-cause bugs uncovered along the dependency graph.
-- Align all coupled upstream/downstream spine dependencies (`INV-HOLISTIC-PIPELINE-PLANNING`); cohesive `<= 600`-line submodule decomposition behind a facade and shared domain contracts are authorized across any number of files.
+- Align all coupled upstream/downstream spine dependencies (`INV-HOLISTIC-PIPELINE-PLANNING`); cohesive cohesive submodule decomposition behind a facade and shared domain contracts are authorized across any number of files.
 - Avoid unrequested cosmetic churn or unrelated drift in uncoupled modules.
 - Preserve existing behavior unless behavior change is required by the objective or a verified bug fix.
 - Run comprehensive empirical validation across all impacted test suites.
@@ -120,7 +120,7 @@ Executors (including `/boost` and `/swarm` workers) must:
 7. ARCHITECTURAL & SCOPE GUARDRAILS
 ======================================================================
 
-Root-cause bug fixes, cohesive package decomposition (`<= 600`-line submodules behind an intact public facade), and shared domain contract alignment across coupled upstream/downstream spine dependencies (`INV-HOLISTIC-PIPELINE-PLANNING`) never require a deviation halt regardless of file count or layer span.
+Root-cause bug fixes, cohesive package decomposition (cohesive submodules behind an intact public facade), and shared domain contract alignment across coupled upstream/downstream spine dependencies (`INV-HOLISTIC-PIPELINE-PLANNING`) never require a deviation halt regardless of file count or layer span.
 
 Human-in-the-loop approval is reserved strictly for:
 
@@ -186,7 +186,7 @@ OUT OF SCOPE
 
 EXECUTION GUARDRAILS
 - Align all coupled upstream/downstream spine contracts (`INV-HOLISTIC-PIPELINE-PLANNING`) and fix root-cause bugs completely without artificial file-count or blast-radius caps.
-- Cohesive package decomposition (`<= 600`-line submodules behind a facade) and shared domain contracts are authorized; exclude unrelated drift and preserve inter-subsystem import boundaries.
+- Cohesive package decomposition (cohesive submodules behind a facade) and shared domain contracts are authorized; exclude unrelated drift and preserve inter-subsystem import boundaries.
 - Preserve behavior not explicitly targeted.
 
 VALIDATION
@@ -225,9 +225,6 @@ CORE OBJECTIVE PROGRESS
 BLOCKERS
 [Only blockers that prevent completion.]
 
-DEVIATION REQUESTS
-[None, or use the required deviation-request format.]
-
 SUBSEQUENT REFACTORING CANDIDATES
 [Optional findings excluded from the current objective.]
 
@@ -247,7 +244,7 @@ ChatGPT may declare the refactoring complete only when:
 - No essential requirement remains hidden in the backlog.
 - Any remaining findings are genuinely separate follow-on improvements.
 
-The goal is to complete the core objective and resolve all root-cause defects cleanly across as many waves or parallel `/boost` / `/swarm` shards as needed while keeping all production modules `<= 600` lines and inter-subsystem boundaries intact.
+The goal is to complete the core objective and resolve all root-cause defects cleanly across as many waves or parallel `/boost` / `/swarm` shards as needed while keeping directional inter-subsystem and storage boundaries intact.
 
 FINAL COMPLETION REPORT
 

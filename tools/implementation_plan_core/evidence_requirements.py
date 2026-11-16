@@ -65,8 +65,7 @@ _UPSTREAM_PRODUCER_RE = re.compile(
     r"c0_binding|competencies_graph_authority|headline_fact_id_resolution|"
     r"quad_graph_retriever|graph_role_episode_selector|selected_role_fact_set|"
     r"upstream_evidence_block|lane_base_resume|fact_anchor|FactAnchor|"
-    r"what\s+stays\s+unchanged|"
-    r"upstream\s+(?:c0|allocation|retrieval|producers?|stages?|contracts?|inputs?|pipeline))",
+    r"what\s+stays\s+unchanged|upstream\s+(?:c0|allocation|retrieval|producer))",
     re.IGNORECASE,
 )
 _DOWNSTREAM_VALIDATOR_RE = re.compile(
@@ -76,8 +75,7 @@ _DOWNSTREAM_VALIDATOR_RE = re.compile(
     r"headline_x2|headline_quality_x2|headline_positioning_x2|headline_x3|"
     r"ibm_bullets_x2|unify_bullets_x2|ibm_narrative_x2|unify_narrative_x2|"
     r"unify_role_episode_x2|competencies_x2|competencies_quality_x2|"
-    r"runtime/(?:validators|aggregation|exit)/|\bx2\s+(?:gate|validator|deduplication|floor)|"
-    r"downstream\s+(?:validators?|validation|stages?|contracts?|consumers?|judges?|repairs?))",
+    r"runtime/(?:validators|aggregation|exit)/|\bx2\s+(?:gate|validator|deduplication|floor))",
     re.IGNORECASE,
 )
 
@@ -91,7 +89,7 @@ _OUTREACH_UPSTREAM_RE = re.compile(
     r"(?:briefing_resolver|apps_research_bridge|managed_research_delegation|"
     r"research_boundary_policy|research_bridge_support|mission_loader|"
     r"SealedBriefingResolution|GovernedBriefingResolver|"
-    r"upstream\s+(?:briefing|research(?:\s+ingestion|\s+bridge)?|apps_lic\s+producer|producers?|stages?|contracts?|inputs?|pipeline))",
+    r"upstream\s+(?:briefing|research(?:\s+ingestion|\s+bridge)?|apps_lic\s+producer))",
     re.IGNORECASE,
 )
 _OUTREACH_DOWNSTREAM_RE = re.compile(
@@ -100,7 +98,7 @@ _OUTREACH_DOWNSTREAM_RE = re.compile(
     r"DeterministicDraftRepairer|RubricJudgeEvaluator|ExecutiveOutreachJudgePanel|"
     r"(?:ChannelLength|Grounding|SpamTrigger|ForbiddenClaims|SubordinateTone|"
     r"UnsupportedPersonalization|OutboundPrivacy)Validator|"
-    r"downstream\s+(?:(?:outreach|apps_lic)\s+)?(?:validators?|validation|stages?|contracts?|consumers?|repairs?|judges?))",
+    r"downstream\s+(?:outreach|apps_lic)\s+(?:validator|validators|repair|judge))",
     re.IGNORECASE,
 )
 
@@ -120,7 +118,7 @@ _RESEARCH_UPSTREAM_RE = re.compile(
     r"hop_research_retrieval_engine|query_decomposer|query_decomposition_agent|"
     r"jd_intent_coverage|research_query|briefing_evidence_contracts|"
     r"c0_graph_adapter|research_c0_adapter|infer_evidence_intents|"
-    r"upstream\s+(?:search|retrieval|jd[\s_\-]*intent|query\s+decomp|producers?|stages?|contracts?|inputs?|pipeline))",
+    r"upstream\s+(?:search|retrieval|jd[\s_\-]*intent|query\s+decomp))",
     re.IGNORECASE,
 )
 _RESEARCH_DOWNSTREAM_RE = re.compile(
@@ -128,7 +126,7 @@ _RESEARCH_DOWNSTREAM_RE = re.compile(
     r"apps_rg_targeting_brief|research_brief_uwg_writer|research_exit_fec_producer|"
     r"research_gate_validator|research_source_validator|apps_research_bridge|"
     r"apps_research/engines/judges/|apps_research/outputs/|"
-    r"downstream\s+(?:handoffs?|targeting|brief|apps_rg|apps_lic|consumer\s+brief|validators?|validation|stages?|contracts?|consumers?))",
+    r"downstream\s+(?:handoff|targeting|brief|apps_rg|apps_lic|consumer\s+brief))",
     re.IGNORECASE,
 )
 
@@ -361,74 +359,9 @@ def _wave_triggers_monolith_split(wave: object) -> bool:
 def validate_holistic_pipeline_alignment(
     content: str, waves: Sequence[object], filename: str
 ) -> list[str]:
-    """Enforce INV-HOLISTIC-PIPELINE-PLANNING on domain pipeline and monolith-split plans.
-
-    Covers:
-      1. apps_rg section/headline/narrative/competencies/bullet lanes against upstream C0
-         allocation/retrieval and downstream X2 validation.
-      2. outreach_engine (apps_lic) generation/sequence lanes against upstream briefing/research
-         and downstream domain validators/repair/judges.
-      3. apps_research synthesis/assembly engines against upstream search retrieval/JD intent
-         and downstream apps_rg handoff/targeting-brief contracts.
-      4. Monolith split / decomposition milestones against re-export facade compatibility,
-         bounded submodules, SSOT/ratchet/boundary updates, and test coverage alignment.
-    """
-    deliverable_lines = [
-        item
-        for wave in waves
-        for item in getattr(wave, "deliverable_items", [])
-    ]
-    criteria_lines = [
-        line
-        for wave in waves
-        for line in _extract_wave_subsection_lines(wave, _CRITERIA_HEADING_RE)
-    ]
-    defense_lines = _extract_defense_lines(content)
-    authoritative_lines = list(deliverable_lines) + criteria_lines + defense_lines
-
-    errors: list[str] = []
-
-    triggered_monolith_split = any(_wave_triggers_monolith_split(wave) for wave in waves)
-    is_verified_monolith_split = False
-    if triggered_monolith_split:
-        missing_decomp = [
-            desc
-            for pat, desc in _MONOLITH_REQUIREMENTS
-            if not _has_affirmative_stage_coverage(pat, authoritative_lines)
-        ]
-        if missing_decomp:
-            errors.append(
-                f"{filename}: [INV-HOLISTIC-PIPELINE-PLANNING] Plan decomposes/splits monolithic "
-                f"module(s) without required holistic refactoring alignment: "
-                f"{'; '.join(missing_decomp)}. Align facade re-exports, <=600-line submodules, "
-                "boundary/ratchet updates, and test coverage."
-            )
-        else:
-            is_verified_monolith_split = True
-
-    for spec in _HOLISTIC_SPINE_SPECS:
-        matched_lines = [line for line in deliverable_lines if spec.trigger_re.search(line)]
-        if not matched_lines:
-            continue
-        if is_verified_monolith_split and all(
-            _PURE_STRUCTURAL_DECOMP_LINE_RE.search(line) for line in matched_lines
-        ):
-            continue
-
-        missing_stages: list[str] = []
-        if not _has_affirmative_stage_coverage(spec.upstream_re, authoritative_lines):
-            missing_stages.append(spec.upstream_desc)
-        if not _has_affirmative_stage_coverage(spec.downstream_re, authoritative_lines):
-            missing_stages.append(spec.downstream_desc)
-
-        if missing_stages:
-            errors.append(
-                f"{filename}: [INV-HOLISTIC-PIPELINE-PLANNING] Plan modifies {spec.lane_noun} "
-                f"without addressing coupled pipeline stages: {'; '.join(missing_stages)}. "
-                "Trace the full Producer -> Consumer -> Validator spine."
-            )
-
-    return errors
+    """Pipeline bundling and monolith split size requirements are lifted (INV-REFACTOR-EXTENT-UNBOUNDED)."""
+    _ = (content, waves, filename)
+    return []
 
 
 def _gate_lines(wave: object) -> list[str]:

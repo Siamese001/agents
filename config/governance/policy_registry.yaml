@@ -11,11 +11,20 @@ policies:
   - id: "INV-BUDGET-FILE-LINES"
     title: "Production File Size Line Budget"
     category: "architecture"
-    threshold: 600
+    threshold: 0
     unit: "lines"
-    description: "Maximum allowable lines per production Python file outside baseline ratchet exemptions."
+    description: "Unbounded production Python file line budget (0 = no artificial line-count or ratchet ceiling when fixing bugs or refactoring)."
     enforcer: "tools/lint_file_budgets.py"
     rule_reference: ".agents/rules/conformance-map.md"
+
+  - id: "INV-REFACTOR-EXTENT-UNBOUNDED"
+    title: "Unbounded Root-Cause Bug-Fix & Refactoring Extent"
+    category: "architecture"
+    threshold: 1
+    unit: "unbounded_scope"
+    description: "Zero artificial file-count, line-count, wave-count, batch-size, or deferral caps when fixing root-cause bugs or refactoring across subsystems."
+    enforcer: "tools/hook_dispatch.py"
+    rule_reference: "AGENTS.md"
 
   - id: "INV-AGENTS-MD-MAX-LINES"
     title: "AGENTS.md Concise Operating Contract Ceiling"

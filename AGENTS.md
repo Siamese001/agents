@@ -4,7 +4,7 @@
 
 Root AGENTS.md is the primary agent execution adapter. Repo governance, rules, and skills live under .agents/ and .antigravity/.
 
-**Bug Fixes, `/boost`, & `/swarm` (Zero Blast-Radius Ceiling)**: Whenever a bug is found or `/boost` / `/swarm` is invoked, trace the defect to its root cause and fix all impacted upstream producers, shared domain contracts, consumers, validators, and tests across the repository immediately with zero file-count, line-count, wave-count, or blast-radius limits (preserving `<= 600`-line file size budgets and inter-subsystem import boundaries).
+**Bug Fixes, `/boost`, & `/swarm` (Zero Blast-Radius Ceiling, `INV-REFACTOR-EXTENT-UNBOUNDED`, `INV-ZERO-BUGFIX-BLAST-RADIUS-CAP`)**: Whenever a bug is found or `/boost` / `/swarm` is invoked, trace the defect to its root cause and fix all impacted upstream producers, shared domain contracts, consumers, validators, and tests across the repository immediately with zero file-count, file-size, line-count, wave-count, or blast-radius limits (preserving directional inter-subsystem and storage import boundaries).
 
 **Planned Architecture & Refactors**: For open-ended design or multi-wave architectural work, inspect connected upstream/downstream dependencies (see `scope-containment`) and align coupled contracts cohesively. See `.agents/rules/plan-first-enforcement.md`.
 
@@ -16,10 +16,10 @@ Before performing refactoring work, read and follow:
 
 Required behavior:
 
-- Align all coupled upstream/downstream spine dependencies (`INV-HOLISTIC-PIPELINE-PLANNING`) across as many files, subsystems, or waves as needed; cohesive `<= 600`-line submodule decomposition behind a facade and shared domain contracts are explicitly authorized.
+- Align all coupled upstream/downstream spine dependencies (`INV-REFACTOR-EXTENT-UNBOUNDED`) across as many files, lines, subsystems, or waves as needed; cohesive submodule decomposition behind a facade and shared domain contracts are explicitly authorized without file-size or line-ratchet caps.
 - Fix newly discovered root-cause bugs immediately across all impacted components rather than deferring them to a backlog.
 - Preserve behavior not explicitly targeted and avoid unrelated drift in uncoupled code (directly coupled producer/contract/validator alignment and root-cause bug fixes are cohesive refactoring, not drift).
-- Parallel `/boost` and `/swarm` workers may execute concurrently across any number of waves or shards without artificial wave-count, file-count, or disjoint-file freezes, provided `<= 600`-line file budgets and inter-subsystem import boundaries hold.
+- Parallel `/boost` and `/swarm` workers may execute concurrently across any number of waves or shards without artificial wave-count, file-count, file-size, or disjoint-file freezes, provided directional inter-subsystem and storage import boundaries hold.
 - Validate each wave or shard with concrete runtime and test evidence before claiming completion.
 - Treat `docs/refactoring-wave-protocol.md` as the authoritative protocol.
 
@@ -54,13 +54,13 @@ Bot: **Agentic-Workflow** | Workspace: **Amit Ayer's Space**
 | Database | Data Source ID (reads) | Database ID (writes) | Read Trigger | Write Trigger (auto-route) |
 |----------|-----------------------|----------------------|--------------|----------------------------|
 | Backlog Items | `fc7f6bf4-6a73-43cd-a4e8-1ef23267dbe7` | `aa8d2507-101e-4384-81d9-60ea3fe33876` | "plan status", "phase progress", "wave status", "what's blocked" — **but prefer the Backlog Snapshot page for top-N/dashboard queries (see below)** | On wave/phase completion or status change. The DEFERRED_SCOPE/NEXT_STEP auto-post hooks were retired (enforcement-surface-consolidation-d8b3f6 W7); out-of-scope work now surfaces via native spawn_task (constitutional §24 / ADR-096). The deferred_scope_scorer P-Band engine is retained for batch backlog scoring. |
-| Plans | `ac53d31b-3068-4039-9ebe-856c12caab32` | `6aba34d9-4d0b-4f4c-b956-b2bdea541ca9` | "which plans exist", "plan status", "is this plan on disk" — relation target from Backlog Items.Plan | On new plan creation under `plans/<slug>-<6hex>.md` (repo-root SSOT). `.codex/plans/` is archive-only. Create Plans row with Status=Not Started, Exists On Disk=true, Plan File Path set. |
-| SC/AP Violation Backlog | ~~`803834e1-0af8-4c3c-b45a-f513f80a7fef`~~ | ~~`0a3b8072-eabd-4516-9473-3c321bb011ff`~~ | \u274c **ARCHIVED 2026-05-02** | Filesystem SSOT: `artifacts/adg/*.sqlite` + violation JSON. No Notion write. |
-| Constitutional Rules Registry | ~~`9bd2523e-7a6e-434d-89a7-ce4166457069`~~ | ~~`1c1379bc-32ca-4216-898a-3672f0316f69`~~ | \u274c **ARCHIVED 2026-05-02** | Filesystem SSOT: `.codex/rules/*.md`. No Notion write. |
+| Plans | `ac53d31b-3068-4039-9ebe-856c12caab32` | `6aba34d9-4d0b-4f4c-b956-b2bdea541ca9` | "which plans exist", "plan status", "is this plan on disk" — relation target from Backlog Items.Plan | On new plan creation under `plans/<slug>-<6hex>.md` (repo-root SSOT). Historical archive plans are read-only. Create Plans row with Status=Not Started, Exists On Disk=true, Plan File Path set. |
+| SC/AP Violation Backlog | ~~`803834e1-0af8-4c3c-b45a-f513f80a7fef`~~ | ~~`0a3b8072-eabd-4516-9473-3c321bb011ff`~~ | \u274c **ARCHIVED 2026-05-02** | Filesystem SSOT: `artifacts/adg/` violation JSON (when generated). No Notion write. |
+| Constitutional Rules Registry | ~~`9bd2523e-7a6e-434d-89a7-ce4166457069`~~ | ~~`1c1379bc-32ca-4216-898a-3672f0316f69`~~ | \u274c **ARCHIVED 2026-05-02** | Filesystem SSOT: `.agents/rules/*.md`. No Notion write. |
 | MCP Registry | ~~`e7b149b4-0496-4e98-a5dd-074dbe31881b`~~ | ~~`59693bbc-71b1-4c63-bc9f-b31eb8b08a0e`~~ | \u274c **ARCHIVED 2026-05-02** | Filesystem SSOT: root `.mcp.json` only. Deprecated compatibility copies are non-authoritative. |
-| Anti-Pattern Burndown | ~~`4599fe37-8c24-4d89-96af-438b99a967c4`~~ | ~~`80b30bc9-6622-4288-aa4c-6fc526b6a5c5`~~ | ❌ **ARCHIVED 2026-05-11** (404 confirmed — DB not accessible to integration) | Filesystem SSOT: `artifacts/adg/` ratchet files are canonical. No Notion write. (See .codex/rules/notion-archived-databases.md.) |
+| Anti-Pattern Burndown | ~~`4599fe37-8c24-4d89-96af-438b99a967c4`~~ | ~~`80b30bc9-6622-4288-aa4c-6fc526b6a5c5`~~ | ❌ **ARCHIVED 2026-05-11** (404 confirmed — DB not accessible to integration) | Filesystem SSOT: `artifacts/adg/` ratchet files are canonical. No Notion write. |
 | ADR Registry | ~~`e59d7640-dc09-48f9-8bdc-b0c94bf98c2a`~~ | ~~`6ed25e12-bd92-4352-ac7a-3a971311f024`~~ | ❌ **ARCHIVED 2026-05-02** | Filesystem SSOT: `docs/architecture/adr/ADR-NNN-*.md`. No Notion write. |
-| Author-Gate Decision Ledger | ~~`5b60fdde-7259-491e-9f2d-e088f1f741ef`~~ | ~~`18bb9145-1320-4191-8b14-6c309776bcf5`~~ | ❌ **ARCHIVED 2026-05-02** | Filesystem SSOT: `.codex/state/refactor_decisions/refactor_decision_ledger.sqlite`. No Notion write. |
+| Author-Gate Decision Ledger | ~~`5b60fdde-7259-491e-9f2d-e088f1f741ef`~~ | ~~`18bb9145-1320-4191-8b14-6c309776bcf5`~~ | ❌ **ARCHIVED 2026-05-02** | Filesystem SSOT: `artifacts/governance/hitl_decisions.sqlite`. No Notion write. |
 
 **Query pattern (reads)**: `API-query-data-source` with `data_source_id` from column 2. Add `filter`/`sorts` as needed.
 **Write pattern (creates)**: `API-post-page` with `parent: {type: "database_id", database_id: <column 3>}`. Using data_source_id for writes returns 404.
@@ -71,7 +71,7 @@ Procedural routing + manual-Notion-use note: [plan-location.md](.agents/rules/pl
 
 ## Memory
 
-At session start, load native file memory from `memory/MEMORY.md`. For non-trivial work, also read `memory/codex/memory_summary.md` when Codex-specific run history, branch workflow memory, or repo-specific Codex skills could affect the task.
+At session start, load native file memory from `.agents/rules/MEMORY.md`. For non-trivial work, also consult `.agents/rules/memory_summary.md` when run history or branch workflow memory could affect the task.
 
 The knowledge-graph Memory MCP is optional for graph queries or writeback when its transport is healthy; if it fails, continue from file memory and do not retry-loop on the transport. Treat external global memories as user memory only; do not make them the SSOT for Agentic Workflow project memory.
 
@@ -81,7 +81,7 @@ The knowledge-graph Memory MCP is optional for graph queries or writeback when i
 - No `pytest.mark.xfail` without `strict=True` and no `pytest.mark.skip` without explicit `reason=`
 - No bare `except Exception` without guardian
 - Honor explicit `PLAN ONLY` / `NO IMPLEMENT` prompts; otherwise execute root-cause bug fixes, `/boost`, and `/swarm` end-to-end
-- Use ADG (`adg_sqlite`), AST inspection, and `grep_search` freely together across structural and literal lookups
+- Use ADG (`adg_sqlite`), AST inspection, and `grep_search` freely together across structural and literal lookups; never self-block when `adg_sqlite` is offline
 - Output Brevity & Word Budget Invariant: Target ~150-250 words with a strict ceiling of 450 words (5,000 characters). Focus on direct facts, empirical verification, and actionable results without conversational fluff.
 - Full rules: `AGENTS.md` + `.agents/rules/conformance-map.md` · expanded lists: legacy compatibility notes only
 
@@ -97,11 +97,11 @@ Specialized insurance and financial industry acronyms (specifically `MGA`/`MGAs`
 
 ## Plans
 
-Lookup: `.agents/rules/codex-config-lookup.md` and `.agents/rules/plan-location.md`. New plans are disk-only under `plans/<name>-<6hex>.md`; `.codex/plans/` is an archive of migrated historical plans, not the write target for new work.
+Lookup: `.agents/rules/codex-config-lookup.md` and `.agents/rules/plan-location.md`. New plans are disk-only under `plans/<name>-<6hex>.md`; historical archive plans are read-only reference, not the write target for new work.
 
 ## Pytest
 
-Pytest runs with plugin **autoload ON** (CI default); `addopts` carries `--timeout=180` but no `-p pytest_timeout`. **Do NOT** set `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1` for ad-hoc runs — it strips pytest-timeout and `--timeout` aborts collection. See companion for the duplicate-registration caveat (don't add `-p pytest_timeout` either). Debug and verification runs allow single files, named cases, any number of coupled multi-file producer+contract+consumer test slices, or full subsystem/repository test directories (`pytest tests/ --timeout=60` or `--timeout=180`); only bare un-timed `pytest` without `--timeout` is blocked.
+Pytest runs with plugin **autoload ON** (CI default); `addopts` carries `--timeout=180` in `pytest.ini`. **Do NOT** set `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1` for ad-hoc runs — it strips pytest-timeout and `--timeout` aborts collection. Debug and verification runs allow single files, named cases, any number of coupled multi-file producer+contract+consumer test slices, or full subsystem/repository test directories (`pytest tests/ --timeout=60` or `--timeout=180`) with zero batch-size or scope restrictions.
 
 ## Subsystems vs Infrastructure (summary)
 

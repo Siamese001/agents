@@ -77,28 +77,9 @@ refs:
   meta_feedback_profile: "apps_research/config/domain_contract/meta_feedback_profile.yaml"
 ```
 
-## Existing Core Bindings
-
-`apps_research` has temporary bindings in `apps_rg/`:
-
-| Binding | Layer | Status | Migration Target |
-|---------|-------|--------|------------------|
-| `apps_research_l0_binding.py` | L0 | TEMPORARY_THIN_ADAPTER | Generic L0 + route profile |
-| `apps_research_l0_binding_v2.py` | L0 | TEMPORARY_THIN_ADAPTER | Consolidate with v1 first |
-| `apps_research_l1_binding.py` | L1 | TEMPORARY_THIN_ADAPTER | Generic L1 + planning profile |
-| `apps_research_l1_binding_v2.py` | L1 | TEMPORARY_THIN_ADAPTER | Consolidate with v1 first |
-| `apps_research_l2_binding.py` | L2 | TEMPORARY_THIN_ADAPTER | Generic L2 + execution profile |
-| `apps_research_c0_binding.py` | C0 | TEMPORARY_THIN_ADAPTER | Generic C0 + retrieval profile |
-| `apps_research_pa_binding.py` | PA | TEMPORARY_THIN_ADAPTER | Generic PA + prompt profile |
-| `apps_research_exit_binding.py` | Exit | TEMPORARY_THIN_ADAPTER | Generic Exit + Exit profile |
-| `u0_apps_research_binding.py` | U0_Entry | TEMPORARY_THIN_ADAPTER | Generic U0 entry + package |
-| `u0_apps_research_binding_v2.py` | U0_Entry | TEMPORARY_THIN_ADAPTER | Consolidate with v1 first |
-
-**Note**: Versioned bindings (v2) indicate ongoing consolidation. Merge v1/v2 before migration to generic engines.
-
 ## Customization & Root-Cause Bug Resolution
 
-Root-cause bug fixes and cohesive cross-spine refactors across `apps_research/` and its connected upstream/downstream contracts execute freely with zero file-count or blast-radius caps while preserving `<= 600`-line file budgets and the Core Boundaries above:
+Root-cause bug fixes and cohesive cross-spine refactors across `apps_research/` and its connected upstream/downstream contracts execute freely with zero file-count, file-size, line-count, or blast-radius caps (`INV-REFACTOR-EXTENT-UNBOUNDED`) while preserving directional inter-subsystem import boundaries and the Core Boundaries above:
 
 - [ ] Profile defined in `config/domain_contract/` when adding new U0 customization surfaces
 - [ ] Schema and field map aligned if ingress changes
@@ -108,6 +89,6 @@ Root-cause bug fixes and cohesive cross-spine refactors across `apps_research/` 
 ## Related
 
 - Root `AGENTS.md` — Architecture law
-- `apps_rg/AGENTS.md` — Core boundary rules
-- `.codex/rules/apps-customization.md` — App customization guidance
-- `.codex/rules/boundary-audit-required.md` — Audit triggers
+- `resume_graph_engine/src/apps_rg/AGENTS.md` — Core boundary rules
+- `.agents/rules/apps-customization.md` — App customization guidance
+- `tools/ssot_boundary_auditor.py` — Boundary audit runner

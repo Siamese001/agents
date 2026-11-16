@@ -1,9 +1,9 @@
 """Mechanical anti-regression gate for INV-ZERO-BUGFIX-BLAST-RADIUS-CAP.
 
 Verifies that root-cause bug fixes, cohesive refactors, /boost subagents, and /swarm
-workers remain free of artificial file-count, wave-count, plan-word, test-batch,
-blast-radius confidence penalty, default subagent write-lock, and ghost-hook barriers,
-while preserving <= 600-line file budgets and inter-subsystem boundaries.
+workers remain free of artificial file-count, file-size, line-ratchet, wave-count, plan-word,
+test-batch, blast-radius confidence penalty, default subagent write-lock, and ghost-hook barriers,
+while preserving directional inter-subsystem and storage boundaries.
 """
 
 from __future__ import annotations
@@ -67,6 +67,11 @@ def validate_zero_bugfix_constraint_floor(repo_root: Path | None = None) -> dict
             issues.append(
                 f"INV-ZERO-BUGFIX-BLAST-RADIUS-CAP must remain 0, found {zero_cap_pol.get('threshold')}"
             )
+        line_pol = policies.get("INV-BUDGET-FILE-LINES")
+        if line_pol is not None and int(line_pol.get("threshold", 0) or 0) != 0:
+            issues.append(
+                f"INV-BUDGET-FILE-LINES must remain 0 (unbounded), found {line_pol.get('threshold')}"
+            )
 
     # 2. Root AGENTS.md and rule surfaces free of deferral matrices and dead ghost-hook citations
     agents_md = root / "AGENTS.md"
@@ -86,6 +91,13 @@ def validate_zero_bugfix_constraint_floor(repo_root: Path | None = None) -> dict
         for pat in FORBIDDEN_DEFERRAL_ROWS:
             if pat.search(rtxt):
                 issues.append(f"{rel_rule} contains forbidden bug-deferral or grep-ban clause ('{pat.pattern}').")
+
+    rules_dir = root / ".agents" / "rules"
+    if rules_dir.is_dir():
+        for rule_md in sorted(rules_dir.glob("*.md")):
+            rlines = rule_md.read_text(encoding="utf-8").splitlines()
+            if len(rlines) < 3 or rlines[0].strip() != "---" or not rlines[1].startswith("trigger:"):
+                issues.append(f".agents/rules/{rule_md.name} missing YAML frontmatter 'trigger:' header.")
 
     # 3. Runtime behavior invariants on primary repository workspace
     if (root / "tools" / "hitl_governance.py").is_file():

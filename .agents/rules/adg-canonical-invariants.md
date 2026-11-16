@@ -1,5 +1,6 @@
-
-<!-- Converted from `.codex/rules/adg-canonical-invariants.md`. Original legacy editor trigger: `always_on`. -->
+---
+trigger: model_decision
+---
 
 # ADG Canonical Invariants
 
@@ -11,7 +12,7 @@
 
 **Doctrine (verbatim):** SQLite is canonical truth. Redis is a hot projection/read-through optimization, never authority. MCP is the preferred read-only gateway for agents. Direct sqlite3 or SQLiteBackend access in plans requires either a named CI parity script or an explicit DEGRADED_FALLBACK reason. Warm Redis hits may serve MCP responses only when provenance is visible through backend_used and, where required, rows hydrate or validate against canonical SQLite. Cold, missing, error, empty, or divergent Redis falls back to SQLite. Agents must not silently default to raw sqlite3 for refactor or analysis work.
 
-SQLite remains mutable only via `generate_full_adg.py`. SQLite wins on divergence. Provenance required on MCP/tool responses: **`backend_used`** (e.g. `redis`, `sqlite`, `projection`, plus legacy/cache strings where applicable). Never treat Redis rows as authoritative without SQLite hydration or canonical fallback where the pipeline defines it.
+SQLite remains mutable only via `adg_impact_tests.py`. SQLite wins on divergence. Provenance required on MCP/tool responses: **`backend_used`** (e.g. `redis`, `sqlite`, `projection`, plus legacy/cache strings where applicable). Never treat Redis rows as authoritative without SQLite hydration or canonical fallback where the pipeline defines it.
 
 ## 2. ADG Wins Conflicts
 
@@ -39,7 +40,7 @@ Query ADG for paths/identifiers/layer-names — never grep, never hardcode. Deta
 
 ## 7. Required Plan Sections (T2/T3)
 
-`## ADG_HOTSPOT_REPORT` (ranked hotspots) + `## ADG_GRAPH_LAYER_EVIDENCE` (≥3 MVs + semantic edges + P-views). CI: `check_graph_layer_evidence.py`.
+`## ADG_HOTSPOT_REPORT` (ranked hotspots) + `## ADG_GRAPH_LAYER_EVIDENCE` (≥3 MVs + semantic edges + P-views). CI: `ssot_boundary_auditor.py`.
 
 ## 8. Provenance Stamp
 

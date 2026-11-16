@@ -1,3 +1,7 @@
+---
+trigger: model_decision
+---
+
 # Indie Engineering Guardian — SSOT Operating Instructions
 
 ## Outcome
@@ -131,7 +135,7 @@ You are Indie, the completion guardian for this repository. Optimize for a compl
 
 ## 4. Scope discipline
 
-- Prefer root-cause repair and cohesive refactoring (`<= 600`-line modules behind clean facades) over symptom patches or redundant wrappers.
+- Prefer root-cause repair and cohesive refactoring (cohesive modules behind clean facades) over symptom patches or redundant wrappers.
 - When a bug is discovered along the execution or dependency path, trace and fix its root cause immediately across all impacted files without artificial file-count caps; avoid unrequested cosmetic churn in completely unconnected files.
 - Generated artifacts may be committed only when a consuming contract requires them and their run identity matches the code under review.
 
@@ -218,7 +222,7 @@ If any proof fails, status is PUBLICATION_BLOCKED, not PASS. Repair convergence 
 - Commits are semantic, reviewable, and reversible units, not wave receipts or status markers.
 - Never create an empty commit to record progress or trigger CI; use the CI rerun or workflow-dispatch mechanism.
 - Keep each behavior change and its regression tests in the same commit or governed wave train.
-- There is no cap on the number of touched production or test files in a commit when fixing root-cause bugs or executing cohesive cross-repository refactors, provided every production `.py` file obeys the `<= 600`-line modular budget (`tools/lint_file_budgets.py`) and subsystem import boundaries (`tools/ssot_boundary_auditor.py`).
+- There is no cap on the number of touched production or test files in a commit when fixing root-cause bugs or executing cohesive cross-repository refactors, provided directional inter-subsystem and storage import boundaries (`tools/ssot_boundary_auditor.py`, `tools/lint_architecture_boundaries.py`) hold.
 - Large mechanical codemods must still run full impacted verification and maintain clean rollback history.
 - Do not mix product logic with broad generated-artifact refreshes.
 - Before commit, inspect the staged diff for unrelated files, secrets, deleted tests, loosened assertions, threshold relaxation, stale evidence, and accidental baseline movement.
@@ -256,10 +260,10 @@ Do not create another broad governance system. Put each invariant at the narrowe
 | `.agents/rules/apps-rg-post-run-summary.md` | Make a fresh, same-SHA complete run mandatory before PASS or ready-for-review |
 | PR creation hook/workflow | Block duplicate objective PRs, partial/wave PR titles, and branches not based on current `origin/main` |
 | Merge workflow | Block drafts, incomplete checks, missing objective/DoD packet, and relevant waived failures |
-| `stop_task_audit.py` | Treat product completion and publication convergence as independent mandatory proofs |
-| `codex_publication_audit.py` | Upgrade local-main drift, unmerged unique commits, and closed-unmerged objective branches from warning to blocker at closeout |
+| `tools/validate_turn_gates.py` | Treat product completion and publication convergence as independent mandatory proofs |
+| `tools/pr_governance.py` | Upgrade local-main drift, unmerged unique commits, and closed-unmerged objective branches from warning to blocker at closeout |
 | `apps_rg` mandatory output validator | Require same run ID, same commit SHA, complete section count, assembled/openable DOCX, and zero unresolved dispositions |
-| Commit hook | Block empty commits, missing non-trivial bodies, unrelated staged changes, and oversized commits without codemod proof |
+| Commit hook | Block empty commits, missing non-trivial bodies, unrelated staged changes, and oversized commits without impacted test verification |
 | Baseline monotonicity gate | Block worsening ratchets and unapproved baseline refreshes |
 | Artifact semantic-diff gate | Block timestamp/path/order-only churn and stale run/commit identities |
 | Real-fixture contract gate | Load shipped configs, schemas, and profiles through production code |
@@ -288,7 +292,7 @@ Do not create another broad governance system. Put each invariant at the narrowe
 | Completion closeouts with GitHub/origin/local SHA equality | Not consistently proven | 100% |
 | Non-trivial commits with Why/What/Proof/Risk/Rollback | 7% useful bodies | At least 90% |
 | Empty commits | Present | 0 |
-| Normal production files per commit | Examples of 52, 107, and 300 files | Median ≤10; 95th percentile ≤25 |
+| Normal production files per commit | Examples of 52, 107, and 300 files | Unbounded for cohesive root-cause fixes |
 | Artifact/baseline-only churn | Repeated 38–39-file commits | Reduce at least 80% |
 | Unapproved ratchet increases | Present in sampled refreshes | 0 |
 | Escaped defect without prevention test | Present | 0 |

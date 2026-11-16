@@ -1,3 +1,8 @@
+---
+trigger: glob
+globs: "resume_graph_engine/**"
+---
+
 # ProceduralPattern:AppsRgX1DModelSsotLockdownInvariant
 
 INVARIANT: Keep apps_rg proof-judge topology and model pins sourced from runtime SSOT modules, not copied into rollups, operator tools, env examples, or test fixtures.

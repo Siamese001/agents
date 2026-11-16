@@ -1,3 +1,7 @@
+---
+trigger: model_decision
+---
+
 # Artifact Provenance Discipline — stub
 
 > On-demand (plan `always-on-rule-surface-cut-c7f3a1`). ⚠️ Doctrine-only (no enforcing hook) — invariant preserved here.

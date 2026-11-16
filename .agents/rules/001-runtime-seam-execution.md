@@ -1,3 +1,7 @@
+---
+trigger: model_decision
+---
+
 # Runtime Seam Execution Contract
 
 Claude Code must behave like a bounded L2 executor, not a project manager.
@@ -62,7 +66,7 @@ NOTES:
 - one or two important caveats only
 ```
 
-**Receipt hyperlinks (required):** every repo path in `FILES_CHANGED` / `ARTIFACTS` / `REPORTS_GENERATED` MUST be a markdown link `[label](path)` with forward slashes. JSON manifests SHOULD add parallel `*_links` via `ops_scripts/apps_rg/l6_benchmarks/receipt_links.py`.
+**Receipt hyperlinks (required):** every repo path in `FILES_CHANGED` / `ARTIFACTS` / `REPORTS_GENERATED` MUST be a markdown link `[label](path)` with forward slashes. JSON manifests SHOULD add parallel `*_links` via `ops_scripts/apps_rg/l6_benchmarks/validate_turn_gates.py`.
 
 ## Canonical post-turn output — one template, with precedence
 
@@ -73,12 +77,12 @@ There is ONE post-turn shape for repo work: the **Response floor**, expanded by 
    plan file's status table: it lists completed waves (or `NONE` when there are none) plus exactly
    the current open wave with a short description. On `PLAN_COMPLETE:` closeout, all listed rows are
    complete and no open row is required.
-2. **§37 Outcome frame — MANDATORY on every refactoring (T2/T3) turn.** It proves the `STATUS:` verdict, doesn't re-vote it. The two apps_rg rules layer on it, never replace it: `apps-rg-executive-summary-response` (simplify / layman-lead — how the RCA + next-step content reads) and `apps-rg-post-run-summary` (additive `render_run_summary.py` evidence table — the artifact ground truth the verdict is checked against).
+2. **§37 Outcome frame — MANDATORY on every refactoring (T2/T3) turn.** It proves the `STATUS:` verdict, doesn't re-vote it. The two apps_rg rules layer on it, never replace it: `apps-rg-executive-summary-response` (simplify / layman-lead — how the RCA + next-step content reads) and `apps-rg-post-run-summary` (additive `mandatory_run_outputs.py` evidence table — the artifact ground truth the verdict is checked against).
 3. **Sole exception — `generate_full_adg` runs:** the ADG burndown + gates output (`adg-post-run-burndown` § Completion Gate, its own non-bypassable gate) supersedes both floor and frame; don't stamp either on top.
 
 A non-repo turn (pure question / T0 lookup / nothing changed) doesn't need the floor.
 
-**Backstop:** `post_agent_runtime_rca_audit.py` flags a dropped floor (`missing_response_floor`) or a refactoring turn missing the frame (`missing_refactor_outcome`) → `artifacts/governance/runtime_rca_violations.jsonl` (advisory). Bypass: `RUNTIME_RCA_AUDIT_BYPASS=1`. `generate_full_adg` runs are exempt (governed by the ADG burndown gate).
+**Backstop:** `validate_turn_gates.py` flags a dropped floor (`missing_response_floor`) or a refactoring turn missing the frame (`missing_refactor_outcome`) → `artifacts/governance/runtime_rca_violations.jsonl` (advisory). Bypass: `RUNTIME_RCA_AUDIT_BYPASS=1`. `generate_full_adg` runs are exempt (governed by the ADG burndown gate).
 
 ## Runtime failure ⇒ RCA mandatory
 
@@ -122,4 +126,4 @@ Confidence / unknowns: <confirmed vs needs-a-targeted-rerun>
 <smallest next action + the exact command to rerun>
 ```
 
-**Depth is the enforced part — dig to the true root.** If you can still ask *why did that happen?* after your Root cause, you named a symptom — keep digging. Required ≥2 descent levels, Root cause ≠ Immediate symptom, and the failing layer isolated from the surfacing layer. Stopping at the symptom is `shallow_rca`. Enforced by `post_agent_runtime_rca_audit.py` (kinds `missing_rca` / `incomplete_rca` / `status_signal_mismatch` / `shallow_rca`; §37). Bypass: `RUNTIME_RCA_AUDIT_BYPASS=1`.
+**Depth is the enforced part — dig to the true root.** If you can still ask *why did that happen?* after your Root cause, you named a symptom — keep digging. Required ≥2 descent levels, Root cause ≠ Immediate symptom, and the failing layer isolated from the surfacing layer. Stopping at the symptom is `shallow_rca`. Enforced by `validate_turn_gates.py` (kinds `missing_rca` / `incomplete_rca` / `status_signal_mismatch` / `shallow_rca`; §37). Bypass: `RUNTIME_RCA_AUDIT_BYPASS=1`.

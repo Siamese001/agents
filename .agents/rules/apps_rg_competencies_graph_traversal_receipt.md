@@ -1,3 +1,8 @@
+---
+trigger: glob
+globs: "resume_graph_engine/**"
+---
+
 # ProceduralPattern:AppsRgCompetenciesGraphTraversalReceipt
 
 - INVARIANT: apps_rg competencies bundle mode must not certify graph-backed competencies without a traversal sufficiency receipt and graph granularity gates.

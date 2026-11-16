@@ -45,8 +45,8 @@ Traces every `AGENTS.md` section to enforceable rules, skills, hooks, tools, and
 ### §"Memory"
 | Type | Path | Coverage |
 | :--- | :--- | :--- |
-| State | `memory/MEMORY.md` | Native session start file memory |
-| State | `memory/codex/memory_summary.md` | Run history and worktree workflow memory |
+| State | `.agents/rules/MEMORY.md` | Native session start file memory |
+| State | `.agents/rules/memory_summary.md` | Run history and worktree workflow memory |
 | Rule | `.agents/rules/memory-management.md` | Memory hygiene and persistence constraints |
 
 ### §"Constitutional floor"
@@ -59,7 +59,7 @@ Traces every `AGENTS.md` section to enforceable rules, skills, hooks, tools, and
 ### §"Production Derivation Integrity"
 | Type | Path | Coverage |
 | :--- | :--- | :--- |
-| Rule | `AGENTS.md` L94–L98 | Prohibition of predetermined golden fixtures substituting domain derivation |
+| Rule | `AGENTS.md` | Prohibition of predetermined golden fixtures substituting domain derivation |
 | Tool | `tools/lint_production_purity.py` | AST scanner detecting golden fixtures imported in production paths |
 | Tool | `tools/verify_commit.py` | Category 3 Production Purity verification |
 | Invariant | `resume_graph_engine/src/apps_rg/runtime/final_resume_outputs.py` | Single Canonical Pipeline Invariant (`INV-SINGLE-CANONICAL-PIPELINE`): zero parallel runners or shadow flatteners |
@@ -77,7 +77,7 @@ Traces every `AGENTS.md` section to enforceable rules, skills, hooks, tools, and
 | Type | Path | Coverage |
 | :--- | :--- | :--- |
 | Config | `pytest.ini` | Autoload ON, `--timeout=180`, default timeout options |
-| Hook | `.agents/hooks.json` → `agents-pytest-scope-guard` | Blocks bare un-timed `pytest` without `--timeout`; permits multi-file and directory runs with `--timeout` |
+| Hook | `.agents/hooks.json` → `agents-pytest-scope-guard` | Permits single-file, multi-file, and full directory pytest sweeps across all 6 test roots (`--timeout=180` default in `pytest.ini`) |
 | Tool | `tools/adg_impact_tests.py` | Transitive dependency impact test selector across all 6 test roots with zero batch-size ceiling |
 | Skill | `.agents/skills/testing-framework/SKILL.md` | Impacted pytest verification protocol and collection checks |
 

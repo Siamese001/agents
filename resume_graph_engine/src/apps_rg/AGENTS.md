@@ -4,7 +4,7 @@
 
 ## Scope
 
-`apps_rg` owns app-specific prompt assembly, runtime sections, contracts, profiles, tests, and evidence artifacts under `apps_rg/`. Root-cause bug fixes and cohesive cross-spine refactors across `apps_rg/` and its upstream/downstream contracts execute freely with zero file-count or blast-radius caps while keeping modules `<= 600` lines and inter-subsystem import boundaries intact.
+`apps_rg` owns app-specific prompt assembly, runtime sections, contracts, profiles, tests, and evidence artifacts under `apps_rg/`. Root-cause bug fixes and cohesive cross-spine refactors across `apps_rg/` and its upstream/downstream contracts execute freely with zero file-count, file-size, line-count, or blast-radius caps (`INV-REFACTOR-EXTENT-UNBOUNDED`) while keeping directional inter-subsystem and storage import boundaries intact.
 
 ## Core invariants
 
@@ -12,7 +12,7 @@
 - Runtime selection narrows evidence, but cannot add evidence.
 - Whole-run caches stay separate from per-section C0 semantic payloads.
 - Shared lanes such as `executive_summary`, `headline`, and `competencies` may only claim from their section-specific evidence plan.
-- Locked deterministic copy stays fixed unless explicitly authorized.
+- Deterministic copy and section templates remain grounded in canonical graph claims, and may be updated freely when resolving root-cause bugs or aligning section contracts.
 
 ## Working rules
 

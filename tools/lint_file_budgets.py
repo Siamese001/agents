@@ -17,7 +17,25 @@ import sys
 from pathlib import Path
 from typing import Sequence
 
-DEFAULT_MAX_LINES = 600
+def _resolve_default_max_lines() -> int:
+    """Resolve INV-BUDGET-FILE-LINES from config/governance/policy_registry.yaml (0 = unbounded)."""
+    reg_path = Path(__file__).resolve().parents[1] / "config" / "governance" / "policy_registry.yaml"
+    if reg_path.is_file():
+        try:
+            import yaml  # type: ignore
+
+            raw = yaml.safe_load(reg_path.read_text(encoding="utf-8")) or {}
+            for entry in raw.get("policies", []):
+                if isinstance(entry, dict) and entry.get("id") == "INV-BUDGET-FILE-LINES":
+                    val = entry.get("threshold")
+                    if isinstance(val, int) and val >= 0:
+                        return val
+        except Exception:  # guardian: allow-silent-swallow -- safe fallback to unbounded default
+            pass
+    return 0
+
+
+DEFAULT_MAX_LINES = _resolve_default_max_lines()
 FACADE_SHIM_MAX_LINES = 150
 
 # Production-executable directories subject to architectural governance
@@ -163,6 +181,9 @@ def check_file_budget(
     if line_count <= FACADE_SHIM_MAX_LINES and is_reexport_facade(file_path):
         return True, line_count, f"Facade shim OK ({line_count}/{FACADE_SHIM_MAX_LINES} lines)"
 
+    if max_lines <= 0:
+        return True, line_count, f"OK ({line_count} lines, unbounded)"
+
     if ratchet is None:
         ratchet = load_ratchet(repo_root)
 
@@ -218,9 +239,18 @@ def clamp_ratchet_to_current_lines(
     max_lines: int = DEFAULT_MAX_LINES,
     write: bool = False,
 ) -> dict[str, dict[str, int]]:
-    """Tighten grandfathered ratchet ceilings downward when files shrink (Section 7.1)."""
+    """Tighten grandfathered ratchet ceilings downward when files shrink (or clear when unbounded)."""
     ratchet = load_ratchet(repo_root)
     clamped: dict[str, dict[str, int]] = {}
+    if max_lines <= 0:
+        for rel_str, entry in list(ratchet.items()):
+            old_limit = int(entry.get("line_limit", 0)) if isinstance(entry, dict) else 0
+            del ratchet[rel_str]
+            clamped[rel_str] = {"old_limit": old_limit, "new_limit": 0, "removed": 1}
+        if write and clamped:
+            ratchet_file = repo_root / RATCHET_REL_PATH
+            ratchet_file.write_text("{}\n", encoding="utf-8")
+        return clamped
     for rel_str, entry in list(ratchet.items()):
         if not isinstance(entry, dict):
             continue

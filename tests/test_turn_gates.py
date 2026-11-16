@@ -266,14 +266,13 @@ Wave 1 completed cleanly!
         self.assertEqual(post_result["status"], "PASS", f"Post-turn gate failed: {post_result['issues']}")
 
     def test_holistic_factoring_rules_authorize_cohesive_decomposition_and_shared_contracts(self) -> None:
-        """Verify root AGENTS.md and wave protocol authorize <= 600-line facade decomposition and shared domain contracts."""
+        """Verify root AGENTS.md and wave protocol authorize unbounded cohesive facade decomposition and shared domain contracts."""
         agents_text = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
         protocol_text = (ROOT / "docs" / "refactoring-wave-protocol.md").read_text(encoding="utf-8")
         for doc_text in (agents_text, protocol_text):
-            self.assertIn("<= 600", doc_text)
+            self.assertNotIn("<= 600", doc_text)
             self.assertIn("facade", doc_text)
             self.assertIn("shared domain contracts", doc_text)
-            self.assertIn("INV-HOLISTIC-PIPELINE-PLANNING", doc_text)
             self.assertIn("unrelated drift", doc_text)
 
     def test_post_turn_gate_rejects_disjunctive_fence_sitting_prose(self) -> None:

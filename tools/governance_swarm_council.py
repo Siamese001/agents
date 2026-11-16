@@ -122,7 +122,7 @@ class ArchitectureAuditor:
     """Audits layer imports, line count budgets, and isolation boundaries."""
 
     def evaluate(self, repo_root: Path) -> list[CouncilFinding]:
-        from tools.lint_file_budgets import check_file_budget, load_ratchet
+        from tools.lint_file_budgets import DEFAULT_MAX_LINES, check_file_budget, load_ratchet
 
         findings: list[CouncilFinding] = []
         production_dirs = ["agents", "apps_research", "outreach_engine", "resume_graph_engine"]
@@ -134,16 +134,15 @@ class ArchitectureAuditor:
                 continue
 
             for py_file in target_dir.rglob("*.py"):
-                # Line count budget check (<= 600 lines outside tests/ and baseline ratchet)
                 try:
-                    passed, line_count, _ = check_file_budget(py_file, repo_root, max_lines=600, ratchet=ratchet)
+                    passed, line_count, _ = check_file_budget(py_file, repo_root, max_lines=DEFAULT_MAX_LINES, ratchet=ratchet)
                     if not passed:
                         findings.append(
                             CouncilFinding(
                                 member=CouncilMember.ARCHITECTURE_AUDITOR,
                                 category="line_budget_overflow",
                                 severity="WARNING",
-                                description=f"File exceeds 600 lines ({line_count} lines)",
+                                description=f"File exceeds configured budget ({line_count} lines)",
                                 target_path=str(py_file.relative_to(repo_root)),
                                 suggested_fix="Modularize file into cohesive domain sub-services.",
                             )

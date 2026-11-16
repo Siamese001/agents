@@ -1,3 +1,7 @@
+---
+trigger: model_decision
+---
+
 # Raw Memories
 
 Merged stage-1 raw memories (stable ascending thread-id order):
@@ -53,7 +57,7 @@ Reusable knowledge:
 - the repo main checkout was dirty, so a detached merge worktree (`C:\Git\Agentic-Workflow-FRESH-worktrees\codex-main-merge-push`) was the safe place to merge/push
 - final push commit was `52361afcf5f60b439388e41d0c502de4a07b0bbd`
 - `tools/archive/` is ignored by `.gitignore`, so restoring compatibility code there requires `git add -f`
-- stale collection failure came from `tests/unit/tools/archive/test_archive_old_adg_sqlite_guard.py` importing `tools.archive.archive_old_adg`
+- stale collection failure came from `tests/unit/tools/archive/test_archive_old_adg_sqlite_guard (retired)` importing `tools.archive.archive_old_adg`
 - the minimal compatibility shim needed only `_has_sqlite` and `identify_runs_to_archive`
 - after merging the newer remote tip, final verification was: focused U0 regression `60 passed`; broad `tests -k apps_rg --collect-only` `6674/57243 collected`, Guardian Shield `PASS`
 
@@ -66,8 +70,8 @@ References:
 - merge commit: `961f0d3f91` `Merge branch 'codex/apps-rg-wave2-tests' into main`
 - compatibility shim commit: `c062e0580e` `test(tools): restore ADG archive retention shim`
 - final merge/push commit: `52361afcf5f60b439388e41d0c502de4a07b0bbd`
-- focused regression: `python -m pytest -q tests/_apps_contract/test_apps_rg_u0_structured_resume_support.py --tb=short` -> `60 passed`
-- archive regression: `python -m pytest -q tests/unit/tools/archive/test_archive_old_adg_sqlite_guard.py --tb=short` -> `8 passed`
+- focused regression: `python -m pytest -q tests/_apps_contract/test_apps_rg_u0_structured_resume_support (retired) --tb=short` -> `60 passed`
+- archive regression: `python -m pytest -q tests/unit/tools/archive/test_archive_old_adg_sqlite_guard (retired) --tb=short` -> `8 passed`
 - broad collection gate: `python -m pytest -q tests -k apps_rg --collect-only --tb=short` -> `6674/57243 collected`, Guardian Shield `PASS`
 - remote verification: `git ls-remote origin refs/heads/main` -> `52361afcf5f60b439388e41d0c502de4a07b0bbd refs/heads/main`
 
@@ -97,7 +101,7 @@ Preference signals:
 
 Reusable knowledge:
 - `git worktree list --porcelain` + `git branch --merged/--no-merged` is the fastest reliable way to identify which local branches are already contained in `main` versus still active.
-- `work/apps-lic-w1-model-ssot` merged cleanly into `main`; the targeted verification command passed: `python -m pytest tests/apps_lic/test_w4_eval_lane_matrix.py tests/apps_lic/test_w5_c0_readiness_and_jd_gate.py tests/apps_lic/test_w6_shared_ssot_briefing_ops.py -q` -> `11 passed, 4 warnings`.
+- `work/apps-lic-w1-model-ssot` merged cleanly into `main`; the targeted verification command passed: `python -m pytest tests/apps_lic/test_w4_eval_lane_matrix (retired) tests/apps_lic/test_w5_c0_readiness_and_jd_gate (retired) tests/apps_lic/test_w6_shared_ssot_briefing_ops (retired) -q` -> `11 passed, 4 warnings`.
 - Direct push to `origin/main` succeeded, but GitHub reported bypassed required checks on the direct push.
 
 Failures and how to do differently:
@@ -134,7 +138,7 @@ Failures and how to do differently:
 References:
 - Remaining local branch before the archival step: `codex/preserve-local-main-20260614`
 - Normal merge failure snippet: `Automatic merge failed; fix conflicts and then commit the result.`
-- Conflict clusters: `.codex/hooks/*`, `docs/reports/adg/*`, `ops_scripts/ci/baselines/*`, `tools/git/*`
+- Conflict clusters: `legacy_codex/hooks/*`, `docs/reports/adg/*`, `ops_scripts/ci/baselines/*`, `tools/git/*`
 - Archive merge commit: `4ca3997164` (`Merge branch 'codex/preserve-local-main-20260614'`)
 - Final local/remote confirmation: `git rev-parse --short HEAD` -> `4ca3997164`; `git ls-remote origin refs/heads/main` -> `4ca3997164`
 

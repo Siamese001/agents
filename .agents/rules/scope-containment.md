@@ -1,7 +1,10 @@
+---
+trigger: always_on
+---
 
 # Scope Containment — Zero Blast-Radius Cap on Root-Cause Fixes, Zero Unrelated Drift
 
-> **Scope of the current task = (a) what the user asked for + (b) files in any active plan + (c) every connected upstream producer, shared schema/config, sibling lane, consumer, downstream validator, ratchet, and test needed to resolve root-cause bugs or complete cohesive refactoring across the repository (`INV-HOLISTIC-PIPELINE-PLANNING`). There is ZERO ceiling on file count, layer span, wave count, `/boost` subagents, or `/swarm` workers. Only `<= 600`-line file budgets, inter-subsystem import boundaries, and unrequested cosmetic churn in completely unconnected code remain bounded.**
+> **Scope of the current task = (a) what the user asked for + (b) files in any active plan + (c) every connected upstream producer, shared schema/config, sibling lane, consumer, downstream validator, ratchet, and test needed to resolve root-cause bugs or complete cohesive refactoring across the repository (`INV-HOLISTIC-PIPELINE-PLANNING`). There is ZERO ceiling on file count, layer span, wave count, `/boost` subagents, or `/swarm` workers. Only directional inter-subsystem and storage import boundaries plus unrequested cosmetic churn in completely unconnected code remain bounded.**
 
 Operationalizes constitutional §18 (no hidden unrelated scope expansion) and `INV-HOLISTIC-PIPELINE-PLANNING`.
 

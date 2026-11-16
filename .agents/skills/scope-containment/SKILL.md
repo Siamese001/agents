@@ -5,7 +5,7 @@ description: Enforce full-ripple dependency inspection and cohesive upstream-to-
 
 # Scope Containment: Full-Ripple Alignment vs. Unrelated Drift
 
-When you make a change, find a bug, or run `/boost` or `/swarm`, you must inspect and align all connected changes across the call graph and data flow with **zero artificial cap on blast radius, file count, wave count, or refactoring extent**. Scope containment exists solely to prevent unrequested cosmetic churn in completely unconnected code while keeping modular `<= 600`-line file sizes (`tools/lint_file_budgets.py`) and inter-subsystem import boundaries (`tools/ssot_boundary_auditor.py`) intact. The always-on scope rule (`.agents/rules/scope-containment.md`) remains authoritative.
+When you make a change, find a bug, or run `/boost` or `/swarm`, you must inspect and align all connected changes across the call graph and data flow with **zero artificial cap on blast radius, file count, wave count, or refactoring extent**. Scope containment exists solely to prevent unrequested cosmetic churn in completely unconnected code while keeping directional inter-subsystem and storage import boundaries (`tools/ssot_boundary_auditor.py`, `tools/lint_architecture_boundaries.py`) intact. The always-on scope rule (`.agents/rules/scope-containment.md`) remains authoritative.
 
 ## 1. Full-Ripple Inspection & Cohesive Edit Scope
 

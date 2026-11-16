@@ -1,3 +1,8 @@
+---
+trigger: glob
+globs: "resume_graph_engine/**"
+---
+
 # ProceduralPattern:AppsRgRoleEpisodeProofAuthorizedDisplayText
 
 ```json

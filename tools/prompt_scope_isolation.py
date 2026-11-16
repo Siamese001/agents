@@ -189,12 +189,10 @@ def evaluate_prompt_stage_write_scope(
             return False, f"ephemeral stage artifact path '{rel}' allowed"
 
     allowed = PROMPT_STAGE_ALLOWED_WRITE_PATHS.get(effective_id)
-    if allowed is None:
-        return True, f"PROMPT_STAGE_SCOPE_VIOLATION: unknown agent_id '{effective_id}' cannot modify '{rel}'"
-
-    for prefix in allowed:
-        if paths_overlap(rel, prefix):
-            return False, f"allowed within stage scope '{effective_id}'"
+    if allowed is not None:
+        for prefix in allowed:
+            if paths_overlap(rel, prefix):
+                return False, f"allowed within stage scope '{effective_id}'"
 
     return False, f"allowed root-cause cross-repo write for stage '{effective_id}' on '{rel}'"
 

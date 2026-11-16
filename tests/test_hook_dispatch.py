@@ -221,8 +221,8 @@ Build core foundation.
         self.assertNotIn("Wave Summary Table", res.stdout)
         self.assertEqual(json.loads(res.stdout.strip()), {})
 
-    def test_pre_run_command_blocks_bare_pytest(self) -> None:
-        """pre_run_command must deny un-scoped pytest invocations."""
+    def test_pre_run_command_allows_bare_pytest(self) -> None:
+        """pre_run_command must allow bare and suite-wide pytest sweeps (timeouts enforced via pytest.ini)."""
         payload = {
             "toolCall": {
                 "name": "run_command",
@@ -237,9 +237,9 @@ Build core foundation.
             cwd=ROOT,
             timeout=10,
         )
-        self.assertEqual(res.returncode, 1)
+        self.assertEqual(res.returncode, 0)
         data = json.loads(res.stdout.strip())
-        self.assertEqual(data["decision"], "deny")
+        self.assertEqual(data["decision"], "allow")
 
     def test_pre_run_command_allows_scoped_pytest(self) -> None:
         """pre_run_command must allow scoped test execution."""
@@ -477,29 +477,52 @@ Build core foundation.
             self.assertEqual(out["category"], "pr_merge_authorization")
             self.assertEqual(out["operator_action"], "APPROVED")
 
-    def test_pre_subagent_delegation_validates_contract(self) -> None:
-        """pre_subagent_delegation must reject incomplete 10-field delegation contracts."""
-        bad_payload = {
+    def test_pre_subagent_delegation_allows_lightweight_and_strict_contracts(self) -> None:
+        """pre_subagent_delegation allows lightweight subagent invocations while supporting opt-in strict contract checks."""
+        partial_payload = {
             "toolCall": {
                 "name": "invoke_subagent",
                 "args": {
                     "delegation_contract": {
                         "task_id": "t1",
-                        "objective": "Missing fields",
+                        "objective": "Lightweight parallel bug fix",
                     }
                 },
             }
         }
         res = subprocess.run(
             [sys.executable, "tools/hook_dispatch.py", "--hook", "pre_subagent_delegation"],
-            input=json.dumps(bad_payload),
+            input=json.dumps(partial_payload),
             capture_output=True,
             text=True,
             cwd=ROOT,
             timeout=10,
         )
-        self.assertEqual(res.returncode, 1)
-        self.assertEqual(json.loads(res.stdout.strip())["decision"], "deny")
+        self.assertEqual(res.returncode, 0)
+        self.assertEqual(json.loads(res.stdout.strip())["decision"], "allow")
+
+        strict_bad_payload = {
+            "toolCall": {
+                "name": "invoke_subagent",
+                "args": {
+                    "delegation_contract": {
+                        "task_id": "t2",
+                        "objective": "Opt-in strict validation",
+                        "enforce_strict_contract": True,
+                    }
+                },
+            }
+        }
+        res_strict = subprocess.run(
+            [sys.executable, "tools/hook_dispatch.py", "--hook", "pre_subagent_delegation"],
+            input=json.dumps(strict_bad_payload),
+            capture_output=True,
+            text=True,
+            cwd=ROOT,
+            timeout=10,
+        )
+        self.assertEqual(res_strict.returncode, 1)
+        self.assertEqual(json.loads(res_strict.stdout.strip())["decision"], "deny")
 
     def test_post_invocation_intercepts_disjunctive_prose_and_unpromoted_edits(self) -> None:
         """post_invocation must emit force_continue when turn ends with disjunctive fence-sitting or unpromoted edits."""
@@ -648,12 +671,18 @@ Build core foundation.
             data["reason"],
         )
 
-    def test_post_invocation_word_budget_circuit_breaker_prevents_infinite_loop(self) -> None:
-        """post_invocation must intercept overlong prose at most once per turn and never loop infinitely."""
-        overlong_reply = " ".join(["word"] * 465)
+    def test_post_invocation_never_forces_rewrite_on_engineering_prose_or_swarm_workers(self) -> None:
+        """post_invocation must never emit force_continue traps on technical prose, >450-word RCA reports, or /swarm workers."""
+        overlong_reply = " ".join(["word"] * 465) + " Modified tools/hook_dispatch.py in worktree."
         first_payload = {
             "steps": [
                 {"type": "USER_INPUT", "source": "USER_EXPLICIT", "content": "Review bullet generation"},
+                {
+                    "type": "PLANNER_RESPONSE",
+                    "source": "MODEL",
+                    "tool_calls": [{"name": "edit_file", "args": {"Path": "tools/hook_dispatch.py"}}],
+                    "content": "",
+                },
                 {"type": "PLANNER_RESPONSE", "source": "MODEL", "content": overlong_reply},
             ]
         }
@@ -667,33 +696,35 @@ Build core foundation.
         )
         self.assertEqual(res1.returncode, 0)
         data1 = json.loads(res1.stdout.strip())
-        self.assertEqual(data1.get("terminationBehavior"), "force_continue")
-        self.assertIn("INV-OUTPUT-MAX-WORDS", data1["injectSteps"][0].get("ephemeralMessage", ""))
+        self.assertEqual(data1.get("injectSteps"), [])
+        self.assertIsNone(data1.get("terminationBehavior"))
 
-        # Second attempt in the same turn after 1 brevity intercept MUST trip circuit breaker and allow exit
-        second_payload = {
+        swarm_payload = {
             "steps": [
-                {"type": "USER_INPUT", "source": "USER_EXPLICIT", "content": "Review bullet generation"},
-                {"type": "PLANNER_RESPONSE", "source": "MODEL", "content": overlong_reply},
+                {"type": "USER_INPUT", "source": "USER_EXPLICIT", "content": "Fix shard bug"},
                 {
-                    "type": "EPHEMERAL_MESSAGE",
-                    "source": "SYSTEM_SDK",
-                    "content": "[OUTPUT BREVITY GOVERNANCE INTERCEPT - INV-OUTPUT-MAX-WORDS] Your response exceeded the repository output budget.",
+                    "type": "PLANNER_RESPONSE",
+                    "source": "MODEL",
+                    "tool_calls": [{"name": "edit_file", "args": {"Path": "agents/cli.py"}}],
+                    "content": "",
                 },
-                {"type": "PLANNER_RESPONSE", "source": "MODEL", "content": overlong_reply + " extra"},
+                {
+                    "type": "PLANNER_RESPONSE",
+                    "source": "MODEL",
+                    "content": "@coordinator [done] Fixed root cause across 4 files; ready for next direction or merge.",
+                },
             ]
         }
-        res2 = subprocess.run(
+        res_swarm = subprocess.run(
             [sys.executable, "tools/hook_dispatch.py", "--hook", "post_invocation"],
-            input=json.dumps(second_payload),
+            input=json.dumps(swarm_payload),
             capture_output=True,
             text=True,
             cwd=ROOT,
             timeout=10,
         )
-        self.assertEqual(res2.returncode, 0)
-        data2 = json.loads(res2.stdout.strip())
-        self.assertEqual(data2.get("injectSteps"), [])
+        self.assertEqual(res_swarm.returncode, 0)
+        self.assertEqual(json.loads(res_swarm.stdout.strip()).get("injectSteps"), [])
 
     def test_hooks_json_deduplicated_pre_edit_plan(self) -> None:
         """Verify .agents/hooks.json retains agents-implementation-plan-guard once with no duplicate pre_edit_plan."""
@@ -716,13 +747,13 @@ Build core foundation.
         ]
         self.assertEqual(len(pre_edit_commands), 1)
 
-    def test_pre_edit_plan_blocks_expanded_holistic_blindspots(self) -> None:
-        """Verify pre_edit_plan hook blocks narrow headline_lane and outreach_engine plans."""
+    def test_pre_edit_plan_allows_focused_single_module_bugfix_plans(self) -> None:
+        """Verify pre_edit_plan hook allows focused single-module bug-fix plans without forced pipeline bundling."""
         narrow_outreach = """# Narrow Outreach Plan
 
 ## Wave 1: Sequence Tweak
 ### Objective & Scope
-Tweak compiler.py without upstream or downstream alignment.
+Tweak compiler.py without artificial pipeline-bundling rejection.
 
 ### Milestones & Deliverables
 - [MODIFY] `outreach_engine/src/apps_lic/pipeline/compiler.py`
@@ -755,13 +786,12 @@ Tweak compiler.py without upstream or downstream alignment.
             cwd=ROOT,
             timeout=10,
         )
-        self.assertEqual(res.returncode, 1)
+        self.assertEqual(res.returncode, 0)
         data = json.loads(res.stdout.strip())
-        self.assertEqual(data["decision"], "deny")
-        self.assertIn("INV-HOLISTIC-PIPELINE-PLANNING", data["reason"])
+        self.assertEqual(data["decision"], "allow")
 
     def test_adg_impact_tests_and_sub_root_pytest_guard(self) -> None:
-        """Verify select_impacted_tests and sub-root pytest guard."""
+        """Verify select_impacted_tests and sub-root pytest suite sweeps are allowed."""
         from tools.adg_impact_tests import select_impacted_tests
 
         impact = select_impacted_tests(
@@ -792,7 +822,8 @@ Tweak compiler.py without upstream or downstream alignment.
             cwd=ROOT,
             timeout=10,
         )
-        self.assertEqual(res.returncode, 1)
+        self.assertEqual(res.returncode, 0)
+        self.assertEqual(json.loads(res.stdout.strip())["decision"], "allow")
 
         timed_dir_payload = {
             "toolCall": {
