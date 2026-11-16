@@ -1,3 +1,8 @@
+---
+trigger: glob
+globs: "apps_research/**"
+---
+
 # ProceduralPattern:AppsResearchAppsRgHandoffEnvelopeInvariant
 
 INVARIANT: apps_research may pass a targeting brief to apps_rg only through an apps_research-owned handoff envelope with external_openai generation metadata, model-backed X2 judge proof, and X3 ALLOW authorization.
@@ -10,4 +15,4 @@ violation_examples: emitting `handoff_eligible=True` from deterministic sidecar 
 
 canonical_pattern: generate the brief with `external_openai` / `gpt-5.4-mini-2026-03-17`, run the X2 LLM judge with `gemini_pro` / `gemini-3.1-pro-preview`, write `apps_research_briefing_envelope.json` beside the delegated briefing, and let apps_rg render X2/X3 from that envelope.
 
-doctrine_ref: `memory/codex/apps_rg_x1d_model_ssot_lockdown.md`; discovered: 2026-07-04, validated: 2026-07-04.
+doctrine_ref: `.agents/rules/apps_rg_x1d_model_ssot_lockdown.md`; discovered: 2026-07-04, validated: 2026-07-04.

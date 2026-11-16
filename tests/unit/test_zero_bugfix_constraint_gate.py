@@ -32,6 +32,8 @@ class TestZeroBugfixConstraintGate(unittest.TestCase):
 
             (gov_dir / "policy_registry.yaml").write_text(
                 "policies:\n"
+                "  - id: INV-BUDGET-FILE-LINES\n"
+                "    threshold: 600\n"
                 "  - id: INV-WAVE-PLAN-MAX-WORDS\n"
                 "    threshold: 1000\n"
                 "  - id: INV-ZERO-BUGFIX-BLAST-RADIUS-CAP\n"
@@ -51,12 +53,14 @@ class TestZeroBugfixConstraintGate(unittest.TestCase):
             res = validate_zero_bugfix_constraint_floor(tmp_root)
             self.assertEqual(res["status"], "FAIL")
             joined = "\n".join(res["issues"])
+            self.assertIn("INV-BUDGET-FILE-LINES must remain 0", joined)
             self.assertIn("INV-WAVE-PLAN-MAX-WORDS must remain 0", joined)
             self.assertIn("INV-ZERO-BUGFIX-BLAST-RADIUS-CAP must remain 0", joined)
             self.assertIn("Zero Blast-Radius Ceiling", joined)
             self.assertIn("BUG_DEFERRED", joined)
             self.assertIn("post_agent_adg_audit.py", joined)
             self.assertIn("grep_search", joined)
+            self.assertIn("missing YAML frontmatter", joined)
 
 
 if __name__ == "__main__":

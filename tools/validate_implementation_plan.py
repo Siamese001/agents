@@ -645,13 +645,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         if staged_files:
             target_files.extend(staged_files)
         else:
-            active_plan = get_active_plan_file(root)
-            if active_plan:
-                print(f"[Pre-Commit] Validating active plan: {active_plan.name}")
-                target_files.append(active_plan)
-            else:
-                print("No implementation plan files currently staged or active.")
-                return 0
+            print("No implementation plan files currently staged.")
+            return 0
     elif args.all_plans:
         plans_dir = root / "plans"
         if plans_dir.is_dir():

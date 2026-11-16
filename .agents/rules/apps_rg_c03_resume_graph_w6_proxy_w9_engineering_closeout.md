@@ -1,3 +1,8 @@
+---
+trigger: glob
+globs: "resume_graph_engine/**"
+---
+
 # apps_rg C0.3 W6 proxy through W9 engineering closeout
 
 Date: 2026-07-14

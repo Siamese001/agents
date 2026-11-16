@@ -1,3 +1,8 @@
+---
+trigger: glob
+globs: "resume_graph_engine/**"
+---
+
 # apps_rg C0.3 GraphDB Overwrite Validation Repairs
 
 Type: ProceduralPattern

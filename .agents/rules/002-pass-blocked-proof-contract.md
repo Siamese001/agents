@@ -1,3 +1,6 @@
+---
+trigger: model_decision
+---
 
 # PASS / PARTIAL / FAIL / BLOCKED Proof Contract
 
@@ -25,7 +28,7 @@ Use BLOCKED when execution cannot proceed due to missing provider/model/API key,
 
 ## Receipt hyperlinks
 
-In chat responses and on-disk `*_receipt.md` / manifest JSON, list every repo path in `FILES_CHANGED`, `ARTIFACTS`, and `REPORTS_GENERATED` as a markdown link `[basename](forward/slash/path)`. Manifests SHOULD include parallel `*_links` entries (`path` + `markdown`) — see `ops_scripts/apps_rg/l6_benchmarks/receipt_links.py`.
+In chat responses and on-disk `*_receipt.md` / manifest JSON, list every repo path in `FILES_CHANGED`, `ARTIFACTS`, and `REPORTS_GENERATED` as a markdown link `[basename](forward/slash/path)`. Manifests SHOULD include parallel `*_links` entries (`path` + `markdown`) — see `ops_scripts/apps_rg/l6_benchmarks/validate_turn_gates.py`.
 
 **Receipt block separation.** In chat, the receipt is emitted as its own visually-separated block — preceded by a `---` rule and a `### ⬛ Turn Receipt` heading — and is **not** wrapped in a code fence (a fence renders the `[label](path)` links as literal text). SSOT: `001-runtime-seam-execution.md` § Response floor for repo work.
 

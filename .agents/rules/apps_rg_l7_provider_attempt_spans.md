@@ -1,3 +1,8 @@
+---
+trigger: glob
+globs: "resume_graph_engine/**"
+---
+
 # apps_rg L7 Provider Attempt Spans
 
 Protected memory type: ProceduralPattern

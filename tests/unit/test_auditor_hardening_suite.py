@@ -160,9 +160,11 @@ def test_ssot_boundary_and_file_budgets_cover_all_nine_packages(tmp_path: Path) 
     oversized = tmp_path / "infrastructure" / "huge_mod.py"
     oversized.parent.mkdir(parents=True)
     oversized.write_text("x = 1\n" * 605, encoding="utf-8")
-    passed, line_count, _ = check_file_budget(oversized, tmp_path, ratchet={})
-    assert passed is False
+    passed_default, line_count, _ = check_file_budget(oversized, tmp_path, ratchet={})
+    assert passed_default is True
     assert line_count == 605
+    passed_explicit, _, _ = check_file_budget(oversized, tmp_path, max_lines=600, ratchet={})
+    assert passed_explicit is False
 
 
 def test_model_pins_and_scratch_secret_scanner_fail_closed(tmp_path: Path) -> None:

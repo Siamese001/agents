@@ -1,5 +1,6 @@
-
-<!-- Converted from `.codex/rules/constitutional.md`. Original legacy editor trigger: `always_on`. -->
+---
+trigger: always_on
+---
 
 > See `AGENTS.md` for shared retrieval / enforcement guidance.
 
@@ -11,14 +12,14 @@
 
 0. **Subprocess timeout required.** `subprocess.run(argv, shell=False, timeout=30)`. PowerShell is permitted (primary Windows shell); the legacy legacy editor-era PowerShell ban is lifted. (Slot §14 retained for stable numbering.)
 1. **No test skipping.** No `pytest.mark.skip`, no `xfail` without `strict=True`.
-2. **Root-cause bug resolution without artificial barriers.** Trace and fix discovered bugs across all impacted files, contracts, and tests immediately without file-count or blast-radius caps (keeping `<= 600`-line file budgets and inter-subsystem import boundaries intact).
+2. **Root-cause bug resolution without artificial barriers.** Trace and fix discovered bugs across all impacted files, contracts, and tests immediately without file-count or blast-radius caps (keeping directional inter-subsystem and storage import boundaries intact).
 3. **Clean dead-code retirement.** Dead or superseded modules/agents with zero live callers may be retired or consolidated cleanly during refactoring once full reference checks pass.
 4. **Tier 1 & Tier 2 verification.** `python tools/verify_commit.py` and `python tools/verify_main_readiness.py`.
 5. **Structural dependency tracing.** Use ADG (`adg_sqlite`), AST analysis, and unconstrained file/text search to inspect full upstream/downstream ripple impact across the repository.
 6. **Ambiguity-gated HITL (`ask_question`).** Surface one atomic plain-English question via `ask_question` only when genuine ambiguity exists ($\Delta \le 20\%$ or top confidence $< 65\%$); multi-layer blast radius incurs zero confidence penalty.
 7. **RCA auto-closure.** Execute corrective actions immediately across all root-cause layers. Never leave RCA unresolved or defer multi-file bugs.
 8. **Guardian exemptions require rationale.** `# guardian: allow-<type> -- <specific justification>`. Generic words forbidden.
-9. **SVP Engineering rigor for architecture.** Operational simplicity, `<= 600`-line modular files, clean inter-subsystem boundaries, zero-regression.
+9. **SVP Engineering rigor for architecture.** Operational simplicity, cohesive modular boundaries, clean inter-subsystem separation, zero-regression.
 10. **Zero-loss refactor.** After refactoring or decomposing monoliths, verify public facade exports and module/symbol test coverage (`tools/testing_gaps_auditor.py`).
 11. **Terminal process lifecycle.** All `run_command`/subprocess invocations must terminate cleanly and reap background tasks.
 12. **No imports from `archives/` in production.**
@@ -26,7 +27,7 @@
 14. **Subprocess timeout required** — reserved alias of §0, kept for stable numbering (sibling rules `query-progress-bar.md` and `python-dash-c-quote-hazard.md` cite "§14"; do not renumber to dedupe). See §0.
 15. **Precise exception handling.** Catch specific types. Bare `except:` and `except Exception` without guardian comment FORBIDDEN.
 16. **Progress reporting on long-running loops.** Emit clear progress indicators on heavy batch operations (>5s). See `query-progress-bar.md`.
-17. **Memory lifecycle (native file memory).** Recall project memory at session start and write back significant decisions/patterns. SSOT is native file memory (`memory/MEMORY.md` + per-fact files); the knowledge-graph MCP is optional for genuine graph queries. W3 supersession (ADR-095) retired the mandatory `mem_recall_session_start` first-call ritual and the purge/staleness gates.
+17. **Memory lifecycle (native file memory).** Recall project memory at session start and write back significant decisions/patterns. SSOT is native file memory (`.agents/rules/MEMORY.md` + `.agents/rules/memory_summary.md`); the knowledge-graph MCP is optional for genuine graph queries. W3 supersession (ADR-095) retired the mandatory `mem_recall_session_start` first-call ritual and the purge/staleness gates.
 
 ### Process Discipline (§18–§21)
 
@@ -57,7 +58,7 @@
 | Surface | Scope Ceiling | Verification Requirement |
 |------|-------|----------------|
 | **Questions / Read-Only** | Zero code changes | Direct evidence from repo files / ADG |
-| **Bug Fixes, `/boost`, & `/swarm`** | **Unbounded** (1 to N files across any layers/packages) | Root-cause tests + `verify_commit.py` (`<= 600`-line file budget & boundary linters) |
+| **Bug Fixes, `/boost`, & `/swarm`** | **Unbounded** (1 to N files across any layers/packages) | Root-cause tests + `verify_commit.py` (directional inter-subsystem & storage boundary linters) |
 | **Cohesive Refactoring** | **Unbounded** (as many files, submodules, or waves as needed) | Full-ripple producer+contract+validator alignment + impacted test suites |
 
 Use ADG (`adg_sqlite`), AST inspection, and `rg`/`grep_search` freely together to trace imports, callers, schemas, and literals across the entire repository without tool-call or file-count caps.

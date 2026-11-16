@@ -1,3 +1,8 @@
+---
+trigger: glob
+globs: "resume_graph_engine/**"
+---
+
 # apps_rg Graph SQLite Path Index Runtime
 
 Entity shape:

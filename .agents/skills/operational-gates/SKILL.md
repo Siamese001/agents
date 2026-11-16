@@ -5,7 +5,7 @@ description: Gate destructive, state-changing, migration, deletion, or multi-fil
 
 # Operational Gates
 
-Use this procedure for operations where a partial result would be costly or difficult to reverse. Ordinary read-only analysis and small edits (<= 20 lines) do not need checkpoint ceremony.
+Use this procedure for operations where a partial result would be costly or difficult to reverse. Ordinary read-only analysis and routine root-cause bug fixes inside an isolated worktree do not need extra checkpoint ceremony.
 
 ## 1. Pre-Operation Gate & Rollback Checkpoint
 

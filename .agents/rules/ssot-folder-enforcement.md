@@ -1,3 +1,7 @@
+---
+trigger: model_decision
+---
+
 # SSOT Folder Routing
 
 > Loads on demand when creating new governance, tooling, or production files.

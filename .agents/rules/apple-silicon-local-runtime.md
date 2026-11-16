@@ -1,3 +1,7 @@
+---
+trigger: model_decision
+---
+
 # Apple Silicon Local MacBook Runtime Invariant
 
 Governs local development and execution across macOS (Darwin) environments.

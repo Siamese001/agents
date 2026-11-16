@@ -1,3 +1,7 @@
+---
+trigger: model_decision
+---
+
 # Local LLM Runtime (WSL2/Docker) — pointer stub
 
 > Reference-only (no enforcement hook). Demoted from the always-on surface to cut context

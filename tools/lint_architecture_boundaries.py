@@ -20,7 +20,7 @@ _REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-from tools.lint_file_budgets import scan_all_production_files
+from tools.lint_file_budgets import DEFAULT_MAX_LINES, scan_all_production_files
 
 FORBIDDEN_STORAGE_MODULES = {
     "sqlite3",
@@ -51,7 +51,7 @@ DOMAIN_SERVICE_DIRS = [
     "agents/orchestration/services",
 ]
 
-LINE_BUDGET_CEILING = 600
+LINE_BUDGET_CEILING = DEFAULT_MAX_LINES
 
 
 def check_domain_storage_isolation(

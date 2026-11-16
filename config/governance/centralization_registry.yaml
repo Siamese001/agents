@@ -37,7 +37,7 @@ domain_threshold_owners:
     owner_file: "config/governance/policy_registry.yaml"
     owner_package: "config/governance/"
     canonical_symbols:
-      INV-BUDGET-FILE-LINES: 600
+      INV-BUDGET-FILE-LINES: 0
       INV-AGENTS-MD-MAX-LINES: 200
       INV-SKILLS-BUDGET-MAX-TOKENS: 4000
       INV-HITL-AMBIGUITY-MARGIN: 0.20

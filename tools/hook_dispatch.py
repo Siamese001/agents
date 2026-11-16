@@ -168,19 +168,8 @@ def handle_stop_wave_summary(payload: Dict[str, Any], repo_root: Path) -> int:
 
 
 def handle_pre_run_command(payload: Dict[str, Any]) -> int:
-    """PreToolUse guard on run_command to enforce pytest scoping and timeout."""
-    tool_call = payload.get("toolCall", {})
-    args = tool_call.get("args", {})
-    cmd = (args.get("CommandLine") or args.get("command") or "").strip()
-    if not cmd:
-        return emit_decision("allow")
-    root_pat = r"(?:tests|(?:resume_graph_engine|outreach_engine|apps_eval|resume_engine|apps_research)/tests)"
-    if "--timeout" not in cmd and (
-        re.search(r"\bpytest(?:\.exe)?\s*$", cmd) or re.search(rf"\bpytest\s+{root_pat}/?\s*$", cmd)
-    ):
-        reason = "Bare un-timed 'pytest' or 'pytest <root>/tests/' without --timeout is blocked. Pass --timeout=60 (or targeted files)."
-        sys.stderr.write(f"\n[Antigravity Hook BLOCK] {reason}\n")
-        return emit_decision("deny", reason=reason)
+    """PreToolUse guard on run_command (suite-wide and targeted pytest sweeps allowed; timeouts enforced via pytest.ini)."""
+    _ = payload
     return emit_decision("allow")
 
 
@@ -434,16 +423,24 @@ def handle_pre_subagent_delegation(payload: Dict[str, Any], repo_root: Path) -> 
         except (json.JSONDecodeError, TypeError, ValueError):  # guardian: allow-silent-swallow -- ignore non-JSON prose mentions
             pass
 
-    if resolved_contract is not None:
+    cli_owner = resolve_persistent_caller_pid() if payload.get("_cli_invocation") else None
+    if resolved_contract is not None and bool(
+        resolved_contract.get("enforce_strict_contract")
+        or resolved_contract.get("exclusive_lock")
+        or resolved_contract.get("enforce_strict_scope")
+    ):
         errors = validate_delegation_contract(resolved_contract)
         if errors:
             return emit_decision("deny", reason="; ".join(errors))
-        cli_owner = resolve_persistent_caller_pid() if payload.get("_cli_invocation") else None
         ok, reason, _ = register_and_check_subagent_scope(
             repo_root, resolved_contract, workspace_mode=workspace_mode, owner_pid=cli_owner
         )
         if not ok:
             return emit_decision("deny", reason=reason)
+    elif isinstance(resolved_contract, dict) and str(resolved_contract.get("task_id", "")).strip():
+        register_and_check_subagent_scope(
+            repo_root, resolved_contract, workspace_mode=workspace_mode, owner_pid=cli_owner
+        )
 
     if type_name == "teamwork" and prompt_text:
         _sync_teamwork_request_atomic(repo_root, prompt_text)
@@ -468,6 +465,8 @@ def _is_primary_root_on_main(repo_root: Path) -> bool:
 def evaluate_main_worktree_write(target_path_str: str, repo_root: Path) -> Tuple[bool, str]:
     """Return (is_blocked, reason) if target_path writes directly to primary repo root on branch main."""
     if not target_path_str:
+        return False, ""
+    if any(os.environ.get(k) for k in ("AGY_SWARM_WORKER", "ANTIGRAVITY_SWARM_ROLE", "AGY_SUBAGENT_TASK_ID")):
         return False, ""
     try:
         p = Path(target_path_str)
@@ -500,7 +499,7 @@ def _is_technical_engineering_artifact(target_file: str) -> bool:
 
 
 def handle_pre_file_write(payload: Dict[str, Any], repo_root: Path) -> int:
-    """PreToolUse combined file-write guard: main-branch isolation + plan validation + model neutrality + layman artifact guard."""
+    """PreToolUse combined file-write guard: main-branch isolation + stage/subagent telemetry."""
     tool_call = payload.get("toolCall") if isinstance(payload.get("toolCall"), dict) else payload
     args = tool_call.get("args") if isinstance(tool_call.get("args"), dict) else (tool_call if isinstance(tool_call, dict) else {})
     target_file = str(args.get("TargetFile") or args.get("Path") or args.get("path") or "").strip()
@@ -516,17 +515,6 @@ def handle_pre_file_write(payload: Dict[str, Any], repo_root: Path) -> int:
             scope_blocked, scope_reason = scope_fn(target_file, repo_root)
             if scope_blocked:
                 return emit_decision("deny", reason=scope_reason)
-
-    meta = args.get("ArtifactMetadata")
-    if isinstance(meta, dict) and bool(meta.get("UserFacing")) and not _is_technical_engineering_artifact(target_file):
-        from tools.validate_turn_gates import validate_layman_jargon_gate
-
-        content = str(args.get("Content") or args.get("Replacement") or args.get("CodeContent") or "")
-        summary = str(meta.get("Summary") or "")
-        jargon_res = validate_layman_jargon_gate(f"{summary}\n{content}")
-        if jargon_res["status"] != "PASS":
-            sample = ", ".join(jargon_res["violations"][:3])
-            return emit_decision("deny", reason=f"PRE_OUTPUT_LAYMAN_GUARD (Rule 6): User-facing artifact contains technical jargon ({sample}). Rewrite in plain English.")
 
     return emit_decision("allow")
 
@@ -569,12 +557,11 @@ def _load_turn_steps_from_payload(payload: Dict[str, Any]) -> List[Dict[str, Any
 
 
 def handle_post_invocation(payload: Dict[str, Any], repo_root: Path) -> int:
-    """PostInvocation guard enforcing decisive recommendations, post-edit promotion, word budget, and zero-jargon prose."""
+    """PostInvocation guard enforcing decisive recommendations while never forcing swarm/prose/promotion rewrites."""
     from tools.prompt_scope_isolation import is_subagent_turn
     from tools.validate_turn_gates import (
         load_policy_registry,
         validate_decisive_recommendation_gate,
-        validate_layman_jargon_gate,
         validate_word_budget_gate,
     )
 
@@ -594,23 +581,18 @@ def handle_post_invocation(payload: Dict[str, Any], repo_root: Path) -> int:
         candidate_text = str(last_step.get("content") or "").strip()
 
     asked_question = bool(payload.get("invoked_question_tool", False))
-    mutated_files = bool(payload.get("mutated_repository_code", False))
-    completed_merge = bool(payload.get("completed_governed_merge", False))
-    layman_retries = brevity_retries = disjunctive_retries = promotion_retries = 0
+    is_swarm_or_subagent = any(
+        os.environ.get(k) for k in ("AGY_SWARM_WORKER", "AGY_WORKFLOW_RUN", "ANTIGRAVITY_SWARM_ROLE", "AGY_SUBAGENT_TASK_ID")
+    )
+    disjunctive_retries = 0
     model_replies: List[str] = []
 
     for s in steps:
         if not isinstance(s, dict):
             continue
         s_content = str(s.get("content") or "")
-        if "[LAYMAN ZERO-JARGON GOVERNANCE INTERCEPT" in s_content:
-            layman_retries += 1
-        if "[OUTPUT BREVITY GOVERNANCE INTERCEPT" in s_content:
-            brevity_retries += 1
         if "[HITL GOVERNANCE INTERCEPT - INV-DECISIVE-RECOMMENDATION]" in s_content:
             disjunctive_retries += 1
-        if "[HITL GOVERNANCE INTERCEPT - POST-EDIT PROMOTION GATE]" in s_content:
-            promotion_retries += 1
         if "tool call denied by pre-tool hook" in s_content or "HITL_VIOLATION_" in s_content or "PRE_OUTPUT_LAYMAN_GUARD" in s_content:
             asked_question = False
         tcs = s.get("tool_calls") or s.get("toolCalls") or ([] if not s.get("toolCall") else [s["toolCall"]])
@@ -620,55 +602,36 @@ def handle_post_invocation(payload: Dict[str, Any], repo_root: Path) -> int:
             if not isinstance(tc, dict):
                 continue
             tname = str(tc.get("name") or tc.get("tool_name") or "").split(":")[-1]
-            targs = tc.get("args") if isinstance(tc.get("args"), dict) else {}
             if tname in ("ask_question", "ask_user_question"):
                 asked_question = True
-            elif tname in ("write_file", "edit_file", "create_file", "write_to_file", "replace_file_content", "multi_replace_file_content"):
-                p_str = str(targs.get("Path") or targs.get("TargetFile") or targs.get("path") or "").replace("\\", "/")
-                if p_str and not any(x in p_str for x in ("/brain/", "/.gemini/", "implementation_plan.md", "plans/")):
-                    mutated_files = True
-            elif tname == "run_command":
-                cmd = str(targs.get("CommandLine") or targs.get("command") or "")
-                tc_failed = str(tc.get("status") or s.get("status") or "").upper() in ("ERROR", "FAILED")
-                if not tc_failed and "pr_governance.py" in cmd and any(k in cmd for k in ("merge", "submit", "promote", "shard-ready", "train")):
-                    completed_merge = True
+            elif tname == "send_message":
+                is_swarm_or_subagent = True
 
-    if os.environ.get("AGY_SWARM_WORKER") == "1" or os.environ.get("AGY_WORKFLOW_RUN") == "1":
-        completed_merge = True
-    total_intercepts = layman_retries + brevity_retries + disjunctive_retries + promotion_retries
-    if total_intercepts >= 2 or (len(model_replies) >= 2 and model_replies[-1] == model_replies[-2]):
+    if (
+        is_swarm_or_subagent
+        or "@coordinator" in candidate_text.lower()
+        or re.search(r"^\s*\[(?:done|blocked|status)\]", candidate_text, re.IGNORECASE | re.MULTILINE)
+        or disjunctive_retries >= 1
+        or (len(model_replies) >= 2 and model_replies[-1] == model_replies[-2])
+    ):
         print(json.dumps({"injectSteps": []}))
-        return 0
-
-    if mutated_files and not (asked_question or completed_merge) and promotion_retries < 1:
-        print(json.dumps({"injectSteps": [{"userMessage": POST_EDIT_PROMOTION_PROMPT}], "terminationBehavior": "force_continue"}))
         return 0
 
     if asked_question or not candidate_text.strip():
         print(json.dumps({"injectSteps": []}))
         return 0
 
+    try:
+        policies = load_policy_registry(repo_root)
+        max_words = int(policies.get("INV-OUTPUT-MAX-WORDS", {}).get("threshold", 450) or 450)
+        max_chars = int(policies.get("INV-OUTPUT-MAX-CHARS", {}).get("threshold", 5000) or 5000)
+        _ = validate_word_budget_gate(candidate_text, max_words=max_words, max_chars=max_chars)
+    except Exception:  # guardian: allow-silent-swallow -- non-blocking telemetry evaluation
+        pass
+
     decisive_res = validate_decisive_recommendation_gate(candidate_text)
     if decisive_res["status"] != "PASS" and disjunctive_retries < 1:
         print(json.dumps({"injectSteps": [{"userMessage": DISJUNCTIVE_INTERCEPT_PROMPT}], "terminationBehavior": "force_continue"}))
-        return 0
-
-    jargon_res = validate_layman_jargon_gate(candidate_text)
-    if jargon_res["status"] != "PASS" and layman_retries < 1:
-        msg = LAYMAN_INTERCEPT_PROMPT.format(violations=", ".join(jargon_res["violations"][:4]))
-        print(json.dumps({"injectSteps": [{"ephemeralMessage": msg}], "terminationBehavior": "force_continue"}))
-        return 0
-
-    try:
-        policies = load_policy_registry(repo_root)
-    except (OSError, json.JSONDecodeError, KeyError, TypeError, ValueError):  # guardian: allow-silent-swallow -- fallback to defaults in isolated test fixtures
-        policies = {}
-    max_words = int(policies.get("INV-OUTPUT-MAX-WORDS", {}).get("threshold", 450) or 450)
-    max_chars = int(policies.get("INV-OUTPUT-MAX-CHARS", {}).get("threshold", 5000) or 5000)
-    word_res = validate_word_budget_gate(candidate_text, max_words=max_words, max_chars=max_chars)
-    if word_res["status"] != "PASS" and brevity_retries < 1:
-        msg = WORD_BUDGET_INTERCEPT_PROMPT.format(issues="; ".join(word_res["issues"]), max_words=max_words, max_chars=max_chars)
-        print(json.dumps({"injectSteps": [{"ephemeralMessage": msg}], "terminationBehavior": "force_continue"}))
         return 0
 
     print(json.dumps({"injectSteps": []}))

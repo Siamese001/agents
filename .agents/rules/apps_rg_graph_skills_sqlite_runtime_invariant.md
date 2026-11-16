@@ -1,3 +1,8 @@
+---
+trigger: glob
+globs: "resume_graph_engine/**"
+---
+
 # apps_rg Graph Skills SQLite Runtime Invariant
 
 Entity shape:

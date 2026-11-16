@@ -1,3 +1,7 @@
+---
+trigger: model_decision
+---
+
 # Plan-First Enforcement (native plan mode)
 
 > **Renamed W2.** Formerly `sequential-thinking-enforcement.md`
@@ -12,7 +16,7 @@
 
 ## When plan mode applies vs. immediate root-cause execution
 
-- **Root-Cause Bug Fixes, `/boost`, & `/swarm` (Execute Directly Without File-Count Limits)**: Whenever a bug is discovered or `/boost` / `/swarm` is invoked, trace the defect across all connected layers and fix every impacted producer, shared contract, consumer, validator, and test immediately with zero file-count, line-count, or blast-radius barriers (preserving `<= 600`-line file budgets and inter-subsystem import boundaries).
+- **Root-Cause Bug Fixes, `/boost`, & `/swarm` (Execute Directly Without File-Count Limits)**: Whenever a bug is discovered or `/boost` / `/swarm` is invoked, trace the defect across all connected layers and fix every impacted producer, shared contract, consumer, validator, and test immediately with zero file-count, line-count, or blast-radius barriers (preserving directional inter-subsystem and storage import boundaries).
 - **Open-Ended Architecture & Design**: When the operator requests `/plan` or open-ended architectural design with genuine ambiguity ($\Delta \le 20\%$), gather evidence, structure the wave plan, and resolve ambiguity before editing.
 
 ## Contract
@@ -51,7 +55,7 @@ When a plan or refactor modifies any intermediate domain pipeline stage (e.g., `
 3. **Stage-3 Section Generation, Prompt Assembly & Pool Selection** (`runtime/sections/`, `prompt_assembly/`, `runtime/reasoning/`, `runtime/judges/`): Consume the upstream contract directly rather than masking upstream schema omissions with post-LLM prose overrides.
 4. **Stage-4 Downstream Cross-Section & Quality Floor Validation** (`runtime/aggregation/cross_section_x2.py`, `runtime/validators/bullet_quality_floor_x2.py`, `narrative_quality_x2.py`, `bullet_fact_entailment.py`): Unify word floors, sentence caps, stem-entailment ratios, cadence rules, and cosine similarity ceilings with the updated generation contract.
 
-Symptom-only plans that patch Stage-3 section generators or post-processing repairs while omitting coupled Stage-1/Stage-2 upstream producers or Stage-4 downstream validators are strictly prohibited and rejected by `tools/validate_implementation_plan.py`.
+Focused single-module bug-fix plans pass `tools/validate_implementation_plan.py` without artificial pipeline-bundling blocks (`INV-REFACTOR-EXTENT-UNBOUNDED`), while cross-stage changes should align coupled upstream/downstream contracts cohesively.
 
 ## Anti-patterns (forbidden)
 

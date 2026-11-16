@@ -1,4 +1,6 @@
-<!-- Trigger: model_decision (load when orchestrating sub-agents / workflows). -->
+---
+trigger: model_decision
+---
 
 # Agent, `/boost`, & `/swarm` Fan-Out — Unconstrained Root-Cause & Parallel Execution
 

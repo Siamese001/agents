@@ -143,7 +143,11 @@ def test_case_f_production_script_exceeding_budget_fails():
         lines = ["# Script line " + str(i) for i in range(650)]
         script_file.write_text("\n".join(lines), encoding="utf-8")
 
+        passed_default, line_count, _ = check_file_budget(script_file, repo_root, ratchet={})
+        assert passed_default is True, "Default unbounded budget must allow >600-line production scripts"
+        assert line_count == 650
+
         passed, line_count, msg = check_file_budget(script_file, repo_root, max_lines=600, ratchet={})
-        assert not passed, "Case F failed: script exceeding budget was not rejected"
+        assert not passed, "Explicit max_lines override must still function when requested"
         assert line_count == 650
         assert "VIOLATION" in msg

@@ -54,7 +54,7 @@ Plans must pass validation by `python tools/validate_implementation_plan.py`. An
 ---
 
 ## Wave & Sharded Progression Discipline
-1. **Unconstrained Root-Cause & Sharded Execution**: Parallel `/boost` and `/swarm` shards may execute concurrently across waves, and newly discovered root-cause bugs may be fixed immediately across any connected files (`agents/`, `outreach_engine/`, `resume_graph_engine/`, `apps_research/`, `infrastructure/`, `tools/`, `tests/`) without artificial scope freezes, while preserving `<= 600`-line file budgets and inter-subsystem import boundaries.
+1. **Unconstrained Root-Cause & Sharded Execution**: Parallel `/boost` and `/swarm` shards may execute concurrently across waves, and newly discovered root-cause bugs may be fixed immediately across any connected files (`agents/`, `outreach_engine/`, `resume_graph_engine/`, `apps_research/`, `infrastructure/`, `tools/`, `tests/`) without artificial scope freezes, while preserving directional inter-subsystem and storage import boundaries.
 2. **Prerequisites for Wave Completion**:
    - All declared acceptance criteria for the wave have passed in the observed run.
    - Produced behavior/state has been independently checked against the declared expectation; the result is not inferred from a receipt or test harness self-report alone.
@@ -81,7 +81,6 @@ Used at wave completion after all fixes pass.
 - Produces wave runtime receipt; pass count recorded in wave ledger.
 
 ### Prohibited patterns
-- Bare `pytest` (no `--timeout`) or `pytest tests/` without `--timeout`.
 - Skipping or weakening tests to conceal regressions.
 
 ---

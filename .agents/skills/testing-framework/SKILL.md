@@ -14,9 +14,9 @@ All pytest invocations fall into exactly one of two classes:
 ### Class A: Debug & Verification Run (Fix & Refactor Cycle)
 - Scope may be a single test file, single named test case, any coupled multi-file producer+contract+consumer test slice (no file-count cap), or full subsystem/repository test directories (`pytest tests/ --timeout=60`, `pytest resume_graph_engine/tests/ --timeout=60`):
   ```bash
-  .venv/bin/pytest tests/unit/test_foo.py -v --timeout=60
-  .venv/bin/pytest tests/unit/test_foo.py::TestClass::test_method -v --timeout=60
-  .venv/bin/pytest tests/unit/test_producer.py tests/unit/test_contract.py tests/unit/test_consumer.py -v --timeout=60
+  .venv/bin/pytest tests/test_hook_dispatch.py -v --timeout=60
+  .venv/bin/pytest tests/test_hook_dispatch.py::TestClass::test_method -v --timeout=60
+  .venv/bin/pytest tests/test_hook_dispatch.py tests/test_turn_gates.py -v --timeout=60
   .venv/bin/pytest resume_graph_engine/tests/ -q --timeout=60
   ```
 - Bare un-timed `pytest` or `pytest tests/` without `--timeout` is blocked; always include `--timeout=60` (or `--timeout=180`).

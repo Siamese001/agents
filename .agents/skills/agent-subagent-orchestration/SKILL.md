@@ -123,7 +123,7 @@ def execute_with_hooks(action, context):
    - Post-hoc `executor_fn=None` telemetry stubs are prohibited when a coordinator broker is bound.
 2. **Where A2A Multi-Angle Reasoning is Required**:
    - Pre-verdict dialectical decision deliberation (`RedTeamRiskAgent`, `StrategicFeasibilityAgent`, `CounterfactualDevilAdvocateAgent`, and all 18 roles from `CANONICAL_18_ROLES` in Round 1 with focused dissenting-role Round 2 rebuttal).
-   - Multi-angle constraint-mutation negotiation when all human-proposed options fail hard constraints (`option_synthesizer.py`).
+   - Multi-angle constraint-mutation negotiation when all human-proposed options fail hard constraints (`tools/hitl_governance.py`).
    - Multi-perspective query decomposition and starved-perspective graph re-query (`RetrievalCoordinator` + `RetrievalPerspectiveHealerAgent` + `MultiHopQueryNavigatorAgent`).
    - Compute-forked extraction (`CLIENT_SAFE` vs. default `INTERNAL_ADVISORY` in `ExtractionCoordinator`).
 3. **Where A2A is Strictly Prohibited**:

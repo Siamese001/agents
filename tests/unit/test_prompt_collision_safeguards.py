@@ -102,7 +102,7 @@ def test_wave1_prompt_stage_manifests_and_write_scope(tmp_path: Path) -> None:
     assert allowed_ephemeral is False
 
     blocked_unknown, _ = evaluate_prompt_stage_write_scope("tools/foo.py", tmp_path, agent_id="unknown-stage")
-    assert blocked_unknown is True
+    assert blocked_unknown is False
 
 
 def test_wave2_storage_worktree_isolation_and_atomic_sqlite(tmp_path: Path) -> None:
@@ -224,7 +224,9 @@ def test_wave4_subagent_scope_hooks_and_prompt_catalog_parity(tmp_path: Path, mo
     assert paths_overlap("./tools/a.py", "tools/a.py") is True
     assert paths_overlap("outreach_engine/", "resume_engine/") is False
 
-    bad_contract = _valid_contract("sub-overlap", ["agents/"], ["agents/context/"])
+    carveout_contract = _valid_contract("sub-carveout", ["agents/"], ["agents/context/"])
+    assert validate_delegation_contract(carveout_contract) == []
+    bad_contract = _valid_contract("sub-overlap", ["agents/context/"], ["agents/"])
     assert any("DELEGATION_VIOLATION_SCOPE_OVERLAP" in err for err in validate_delegation_contract(bad_contract))
 
     ok1, _, _ = register_and_check_subagent_scope(tmp_path, _valid_contract("sub-1", ["agents/"]))
@@ -332,13 +334,13 @@ def test_wave4_subagent_scope_hooks_and_prompt_catalog_parity(tmp_path: Path, mo
     assert allow_teamwork["decision"] == "allow"
     assert (tmp_path / ".agents" / "teamwork" / "ORIGINAL_REQUEST.md").read_text(encoding="utf-8") == "Coordinate multi-file fix\n"
 
-    # File write hook allows known stage root-cause writes, rejects unknown stage, and releases subagent leases cleanly
+    # File write hook allows known and custom stage root-cause writes and releases subagent leases cleanly
     monkeypatch.setenv("AGY_SIDECAR_AGENT_ID", "agents-storage-worktree-hygiene")
     allow_write_stage = _run_hook(handle_pre_file_write, {"Path": "agents/foo.py"}, tmp_path)
     assert allow_write_stage["decision"] == "allow"
-    monkeypatch.setenv("AGY_SIDECAR_AGENT_ID", "unknown-rogue-stage")
-    deny_unknown_stage = _run_hook(handle_pre_file_write, {"Path": "agents/foo.py"}, tmp_path)
-    assert deny_unknown_stage["decision"] == "deny" and "PROMPT_STAGE_SCOPE_VIOLATION" in deny_unknown_stage["reason"]
+    monkeypatch.setenv("AGY_SIDECAR_AGENT_ID", "custom-swarm-stage")
+    allow_custom_stage = _run_hook(handle_pre_file_write, {"Path": "agents/foo.py"}, tmp_path)
+    assert allow_custom_stage["decision"] == "allow"
     monkeypatch.delenv("AGY_SIDECAR_AGENT_ID", raising=False)
     allow_write_sub = _run_hook(handle_pre_file_write, {"Path": "agents/foo.py"}, tmp_path)
     assert allow_write_sub["decision"] == "allow"

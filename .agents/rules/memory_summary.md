@@ -1,3 +1,7 @@
+---
+trigger: model_decision
+---
+
 v1
 
 ## User Profile
@@ -37,11 +41,11 @@ The user is operating a local Codex memory system on Windows + PowerShell and is
 #### 2026-07-01
 
 - apps_rg X1D/model SSOT lockdown: REQUIRED_JUDGE_PROVIDER_KEYS, provider_profiles.yaml, apps_research provider_profile.company_brief.v1.yaml, gemini_pro sidecar key
-  - desc: Use `memory/codex/apps_rg_x1d_model_ssot_lockdown.md` when fixing apps_rg/apps_research model-pin drift or Anthropic proof-judge regressions.
+  - desc: Use `.agents/rules/apps_rg_x1d_model_ssot_lockdown.md` when fixing apps_rg/apps_research model-pin drift or Anthropic proof-judge regressions.
   - learnings: Policy-only fixes are insufficient; rollups, operator tools, env examples, and synthetic test bundles must import/runtime-resolve the same SSOT or they can reintroduce stale X1D topology.
 
 - apps_rg residual SSOT repair: fresh briefing, BGE dimension, mandatory outputs, apps_lic model/reason-code mirrors
-  - desc: Use `memory/codex/apps_rg_residual_ssot_repair.md` when auditing or fixing post-model-pin SSOT drift across apps_rg/apps_research/apps_lic.
+  - desc: Use `.agents/rules/apps_rg_residual_ssot_repair.md` when auditing or fixing post-model-pin SSOT drift across apps_rg/apps_research/apps_lic.
   - learnings: Whole-run section lanes must fail closed on missing fresh briefing; BGE dimensions and mandatory filenames need importable contracts; apps_lic YAML/profile and research reason-code mirrors must be fail-closed or re-export-only.
 
 #### 2026-06-15

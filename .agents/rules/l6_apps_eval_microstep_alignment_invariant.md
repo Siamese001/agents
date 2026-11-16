@@ -1,3 +1,7 @@
+---
+trigger: model_decision
+---
+
 # L6 / apps_eval Microstep Alignment Invariant
 
 ## Fact
@@ -6,7 +10,7 @@ INVARIANT: L6 shadow observability must use the same `microstep_id` join key as 
 
 ## Scope
 
-- `agentic_core/L6_observability/shadow_eval/microsteps.py`
+- `agentic_core/L6_observability/shadow_eval/microsteps (retired)`
 - `apps_eval/l6_shadow_bridge.py`
 - `apps_rg/runtime/shadow/l6_microstep_observability.py`
 - `apps_rg/runtime/spine/l6_shadow_eval_runner.py`
@@ -24,9 +28,9 @@ INVARIANT: L6 shadow observability must use the same `microstep_id` join key as 
 Run:
 
 ```powershell
-python -m pytest tests/unit/agentic_core/L6_observability/shadow_eval/test_microsteps.py tests/unit/apps_rg/test_l6_microstep_observability.py tests/e2e/test_l6_v40_apps_rg_apps_eval.py -q
-python ops_scripts/ci/check_no_l6_current_run_mutation.py
-python ops_scripts/ci/check_no_l6_direct_l4_write.py
+python -m pytest tests/unit/agentic_core/L6_observability/shadow_eval/test_microsteps (retired) tests/unit/apps_rg/test_l6_microstep_observability.py tests/e2e/test_l6_v40_apps_rg_apps_eval (retired) -q
+python ops_scripts/ci/check_no_l6_current_run_mutation (retired)
+python ops_scripts/ci/check_no_l6_direct_l4_write (retired)
 ```
 
 ## Provenance
