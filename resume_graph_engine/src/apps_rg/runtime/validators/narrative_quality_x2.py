@@ -488,6 +488,8 @@ def repair_narrative_bullet_echo_from_graph(
         )
         if has_ibm_cosell:
             return "Anchored partner-level advisory for enterprise cloud transformation at IBM, establishing AWS alliance co-sell and BI governance discipline across global delivery teams."
+        if "aws modernization" in comp_low and not re.search(r"\bbi\b", comp_low):
+            return "Anchored partner-level advisory for AWS modernization at IBM, establishing cloud governance discipline across global delivery teams."
         if not comp_low or "modernization" in comp_low:
             return "Anchored partner-level advisory for enterprise cloud modernization at IBM, establishing AWS architecture and BI governance discipline across global delivery teams."
         return "Anchored partner-level advisory for enterprise cloud transformation at IBM, establishing AWS architecture and BI governance discipline across global delivery teams."

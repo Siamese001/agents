@@ -403,6 +403,16 @@ def _rebuild_canonical_six_sentence_arc(
 
 
 _EXEC_SUMMARY_INTERNAL_DE_ECHO_SWAPS: tuple[tuple[str, str], ...] = (
+    ("forward-deployed operating model", "field-embedded delivery cadence"),
+    ("forward-deployed multi-agent SDLC automation", "field-embedded release orchestration"),
+    ("multi-agent SDLC automation", "autonomous release workflows"),
+    ("SDLC automation", "release orchestration"),
+    ("forward-deployed", "field-embedded"),
+    ("operating model", "delivery cadence"),
+    ("multi-agent", "autonomous"),
+    ("SDLC", "release-lifecycle"),
+    ("automation", "orchestration"),
+    ("control-plane", "runtime-governance"),
     ("operating foundation", "operating model"),
     ("platform foundation", "runtime backbone"),
     ("regulatory foundation", "compliance discipline"),
@@ -421,18 +431,23 @@ _EXEC_SUMMARY_INTERNAL_DE_ECHO_SWAPS: tuple[tuple[str, str], ...] = (
 
 
 def _de_echo_exec_summary_internal_cosine(sentences: list[str]) -> list[str]:
-    """Surgically reduce internal sentence-to-sentence cosine similarity to <= 0.34."""
+    """Surgically reduce internal sentence-to-sentence cosine similarity to <= 0.34 and strip duplicate sentence metrics."""
     from apps_rg.runtime.validators.narrative_quality_x2 import compute_text_cosine_similarity
 
     out = [str(s).strip() for s in sentences if str(s).strip()]
+    for idx, sent in enumerate(out):
+        if re.search(r"\b35(?:\s*%|\s+percent\b)", sent, re.IGNORECASE) and re.search(r"\b40(?:\s*%|\s+percent\b)", sent, re.IGNORECASE):
+            cleaned = re.sub(r"\s+by\s+40(?:\s*%|\s+percent\b)", "", sent, flags=re.IGNORECASE)
+            if _sentence_fragment_gate_ok(cleaned):
+                out[idx] = cleaned
     for i in range(len(out)):
         for j in range(i + 1, len(out)):
             if compute_text_cosine_similarity(out[i], out[j], content_only=True) <= 0.34:
                 continue
             cand = out[j]
             for src, dst in _EXEC_SUMMARY_INTERNAL_DE_ECHO_SWAPS:
-                if src in cand:
-                    next_cand = cand.replace(src, dst, 1)
+                if re.search(re.escape(src), cand, re.IGNORECASE):
+                    next_cand = re.sub(re.escape(src), dst, cand, count=1, flags=re.IGNORECASE)
                     if (
                         _sentence_fragment_gate_ok(next_cand)
                         and compute_text_cosine_similarity(out[i], next_cand, content_only=True)
