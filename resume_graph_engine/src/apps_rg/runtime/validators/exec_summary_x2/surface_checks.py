@@ -19,8 +19,11 @@ from apps_rg.runtime.validators.exec_summary_x2.constants import (
     EVIDENCE_UTIL_MIN_WORDS_PER_SENTENCE_WHEN_FOUR,
     EXEC_SUMMARY_FORBIDDEN_META_PHRASES,
     EXEC_SUMMARY_FORBIDDEN_META_PHRASES_LOOSE,
+    EXEC_SUMMARY_INTERNAL_PLUMBING_BANNED_SUBSTRINGS,
     EXEC_SUMMARY_MECHANICAL_OPENERS,
     EXEC_SUMMARY_ROBOTIC_TRANSITION_PREFIXES,
+    EXEC_SUMMARY_STUTTERED_STEM_PATTERNS,
+    EXEC_SUMMARY_WEAK_S1_SUBJECT_OPENERS,
     EXECUTIVE_SUMMARY_SECTION_ID,
     EXPECTED_PA_SHELL_TEMPLATE_ID,
     EXPECTED_PROMPT_ID,
@@ -191,6 +194,33 @@ def check_exec_summary_strategy_no_commercialization_thread(
     return True, None
 
 
+def check_exec_summary_no_internal_plumbing_or_stutter(
+    resume_display_text: str,
+) -> tuple[bool, str | None]:
+    """Fail immediately on internal repo micro-plumbing specs, stuttered stems, or weak S1 subject openers."""
+    text = str(resume_display_text or "")
+    lowered = text.lower()
+    hits: list[str] = []
+    for token in EXEC_SUMMARY_INTERNAL_PLUMBING_BANNED_SUBSTRINGS:
+        if token in lowered:
+            hits.append(f"internal_plumbing:{token}")
+    for pat in EXEC_SUMMARY_STUTTERED_STEM_PATTERNS:
+        if pat in lowered:
+            hits.append(f"stuttered_stem:{pat}")
+    if re.search(r"\bregulated[\s-]+enterprises?\s+regulatory\b", lowered):
+        if not any(h.startswith("stuttered_stem:") for h in hits):
+            hits.append("stuttered_stem:regulated_enterprise_regulatory")
+    sentences = split_sentences(text)
+    if sentences:
+        s1_low = sentences[0].strip().lower()
+        for opener in EXEC_SUMMARY_WEAK_S1_SUBJECT_OPENERS:
+            if s1_low.startswith(opener):
+                hits.append(f"weak_s1_opener:{opener.strip()}")
+    if hits:
+        return False, f"Executive summary internal plumbing, stutter, or weak S1 opener: {hits}"
+    return True, None
+
+
 def check_exec_summary_meta_filler_patterns(resume_display_text: str) -> tuple[bool, str | None]:
     lowered = resume_display_text.lower()
     hits: list[str] = []
@@ -204,6 +234,9 @@ def check_exec_summary_meta_filler_patterns(resume_display_text: str) -> tuple[b
         words = [w.lower().strip(".,;:") for w in sent.split() if w.strip()]
         if words and words[0] in ("additionally", "furthermore", "moreover"):
             hits.append(f"sentence_{i}_opens_with_{words[0]}")
+    plumbing_ok, plumbing_reason = check_exec_summary_no_internal_plumbing_or_stutter(resume_display_text)
+    if not plumbing_ok and plumbing_reason:
+        hits.append(plumbing_reason)
     if hits:
         return False, f"Executive summary meta or filler scaffolding: {hits}"
     return True, None

@@ -60,6 +60,46 @@ EXEC_SUMMARY_FORBIDDEN_META_PHRASES_LOOSE = [
     "big-4 principal", "past principal", "past cto", "former partner",
 ]
 
+EXEC_SUMMARY_INTERNAL_PLUMBING_BANNED_SUBSTRINGS: tuple[str, ...] = (
+    "119-package",
+    "119 modular subpackages",
+    "32 readiness gates",
+    "thirty-two readiness gates",
+    "32 fail-closed",
+    "six mcp servers",
+    "6 custom mcp servers",
+    "6 mcp servers",
+    "sqlite wal",
+    "fts5",
+    "1024-d",
+    "bge-m3",
+    "dirichlet-laplace",
+    "merkle-cached",
+    "merkle subgraph",
+    "universal write gateway",
+    "8-surface system learning",
+    "8 closed-loop system learning",
+    "dual-track live executive copilot",
+    "pcm audio spooler",
+    "mlx whisper",
+)
+
+EXEC_SUMMARY_STUTTERED_STEM_PATTERNS: tuple[str, ...] = (
+    "regulated enterprise regulatory findings",
+    "regulated enterprises regulatory findings",
+    "regulated enterprise regulatory",
+    "regulated enterprises regulatory",
+)
+
+EXEC_SUMMARY_WEAK_S1_SUBJECT_OPENERS: tuple[str, ...] = (
+    "executive leadership architects",
+    "executive leadership identity",
+    "the candidate ",
+    "this leader ",
+    "this executive ",
+    "this individual ",
+)
+
 
 # Finite-verb pattern: matches common present/past tense verbs and auxiliary constructions.
 # A sentence is a fragment if it has NO finite verb — it's a noun phrase or participial phrase.

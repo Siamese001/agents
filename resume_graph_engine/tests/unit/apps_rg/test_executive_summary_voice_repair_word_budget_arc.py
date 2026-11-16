@@ -463,3 +463,32 @@ def test_real_llm_finalize_coherence_preserves_custom_jd_tailored_sentences() ->
         for fid in (row.get("source_fact_ids") or [])
     }
     assert "fact_governance_003" in cited
+
+
+def test_scrub_unsupported_industry_claims_preserves_banking_and_prevents_stutter() -> None:
+    from apps_rg.runtime.sections.voice_repair.word_budget_and_arc import (
+        _scrub_graph_era_surface_anomalies,
+        _scrub_unsupported_industry_claims,
+    )
+
+    sents = [
+        "Executive leadership architects the control-plane for a regulated-enterprise agentic AI platform.",
+        "That control plane runs a seven-layer, 119-package platform through an eighteen-agent, six-stage autonomous SDLC across thirty-two readiness gates and six MCP servers.",
+        "In parallel, regulated enterprise AI governance built on evidence-contract design and model-risk discipline reduced banking regulatory findings by 35%.",
+    ]
+    selected_facts = [
+        {
+            "fact_id": "reb_unify_regulated_enterprise_ai_governance",
+            "claim_text": "Regulated Financial-Services AI Governance, Compliance Automation & Model Risk",
+            "metric_outcome_ids": ["metric_unify_banking_regulatory_findings_reduction_35pct"],
+            "metric_values": ["35% reduction in regulatory findings across banking AI rollouts"],
+        }
+    ]
+    scrubbed = _scrub_unsupported_industry_claims(sents, selected_facts=selected_facts)
+    scrubbed = _scrub_graph_era_surface_anomalies(scrubbed)
+    joined = " ".join(scrubbed)
+    assert "reduced banking regulatory findings by 35%" in joined
+    assert "regulated enterprise regulatory findings" not in joined.lower()
+    assert "119-package" not in joined.lower()
+    assert "six mcp servers" not in joined.lower()
+    assert scrubbed[0].startswith("Engineering executive who architects")

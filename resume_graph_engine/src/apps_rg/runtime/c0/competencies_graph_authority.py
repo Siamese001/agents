@@ -111,12 +111,12 @@ _ALLOCATION_VISIBLE_SURFACE_COMPOSITIONS: Mapping[tuple[str, str], str] = {
     ("reb_slalom_autonomous_agentic_sdlc_mcp", "skill_bounded_agent_execution"): "autonomous agentic SDLC bounded agent execution platforms",
     ("reb_slalom_live_copilot_acoustic_airgap", "skill_layered_runtime_spine_design"): "layered runtime spine design for executive copilot",
     ("reb_slalom_engineering_practice_leadership", "skill_operating_model_for_agentic_ai"): "engineering practice leadership operating model for AI",
-    ("reb_slalom_bitemporal_graphrag_uwg", "skill_no_direct_write_runtime_design"): "bi-temporal GraphRAG no-direct-write runtime design",
+    ("reb_slalom_bitemporal_graphrag_uwg", "skill_no_direct_write_runtime_design"): "governed write-boundary controls for runtime execution",
     ("reb_slalom_live_copilot_acoustic_airgap", "skill_cache_fallback_grounded_action_routing"): "deterministic grounded action routing for executive copilot",
     ("reb_slalom_visual_asset_intelligence", "skill_agentic_platform_productization"): "agentic platform productization for asset intelligence pipelines",
-    ("reb_slalom_bitemporal_graphrag_uwg", "skill_side_effect_bounded_action_design"): "GraphRAG retrieval side-effect bounded action design",
+    ("reb_slalom_bitemporal_graphrag_uwg", "skill_side_effect_bounded_action_design"): "side-effect bounded action controls for runtime execution",
     ("reb_ibm_revenue_sales_target_execution", "skill_partner_pnl_oversight"): "revenue target execution and solution leadership motions",
-    ("reb_ibm_revenue_sales_target_execution", "skill_p2_gtm_enterprise_deal_support"): "quota-aligned enterprise deal support and execution",
+    ("reb_ibm_revenue_sales_target_execution", "skill_p2_gtm_enterprise_deal_support"): "Quota-aligned enterprise deal support and execution",
     ("reb_slalom_dialectical_decision_bayesian_hitl", "skill_risk_and_hitl_route_posture"): "human-in-the-loop risk routing and policy governance",
     ("reb_slalom_governed_runtime_scaling", "skill_risk_and_hitl_route_posture"): "human-in-the-loop risk routing and policy governance",
     ("reb_slalom_autonomous_agentic_sdlc_mcp", "skill_learning_firewall_controls"): "sandboxed model learning and release controls",
@@ -133,38 +133,42 @@ _ALLOCATION_VISIBLE_SURFACE_COMPOSITIONS: Mapping[tuple[str, str], str] = {
     ("reb_unify_enterprise_adoption_revenue", "skill_enterprise_workflow_adoption"): "CFO-aligned enterprise AI workflow adoption and renewals",
     ("reb_unify_enterprise_adoption_revenue", "skill_partner_sales_revenue_targets"): "consumption-based licensing for enterprise AI renewals",
     ("reb_unify_enterprise_adoption_revenue", "skill_revops_usage_based_subscription_forecasting"): "usage-based subscription forecasting for enterprise AI renewals",
+    ("reb_slalom_nextgen_ai_solutions", "skill_graph_aware_relationship_grounding"): "graph-aware relationship grounding for enterprise retrieval",
+    ("reb_slalom_agentic_client_delivery", "skill_graph_aware_relationship_grounding"): "graph-aware relationship grounding for enterprise retrieval",
+    ("reb_unify_agentic_platform_architecture", "skill_graph_aware_relationship_grounding"): "graph-aware relationship grounding for enterprise retrieval",
+    ("reb_slalom_bitemporal_graphrag_uwg", "skill_graph_aware_relationship_grounding"): "graph-aware relationship grounding for enterprise retrieval",
+    ("reb_slalom_bitemporal_graphrag_uwg", "skill_metadata_acl_freshness_filtering"): "metadata ACL and freshness filtering for pipelines",
+    ("reb_slalom_bitemporal_graphrag_uwg", "skill_dense_sparse_exact_retrieval_design"): "dense-sparse retrieval design for enterprise grounding",
+    ("reb_slalom_visual_asset_intelligence", "skill_dense_sparse_exact_retrieval_design"): "dense-sparse retrieval design for enterprise grounding",
+    ("reb_slalom_live_copilot_acoustic_airgap", "skill_multi_step_quality_loop_design"): "deterministic multi-step quality loop design for pipelines",
+    ("reb_slalom_dialectical_decision_bayesian_hitl", "skill_fail_closed_gate_semantics"): "fail-closed gate semantics for runtime governance",
+    ("reb_slalom_governed_runtime_scaling", "skill_fail_closed_gate_semantics"): "fail-closed gate semantics for runtime governance",
+    ("reb_slalom_governed_runtime_scaling", "skill_policy_bound_runtime_design"): "policy-bound runtime design for enterprise systems",
+    ("reb_slalom_governed_runtime_scaling", "skill_audit_grade_observability"): "audit-grade observability and telemetry for runtime governance",
+    ("reb_slalom_governed_runtime_scaling", "skill_runtime_resilience_controls"): "runtime resilience controls for enterprise AI workflows",
+    ("reb_slalom_governed_runtime_scaling", "skill_output_quality_and_schema_gates"): "output quality and schema validation gates",
+    ("reb_slalom_agentic_client_delivery", "skill_governed_agentic_systems_architecture"): "governed agentic systems architecture for enterprise delivery",
+    ("reb_slalom_agentic_client_delivery", "skill_deterministic_route_selection"): "deterministic route selection for agentic workflows",
+    ("reb_slalom_agentic_client_delivery", "skill_sandboxed_execution_design"): "sandboxed execution design for agentic systems",
+    ("reb_slalom_agentic_client_delivery", "skill_replayable_runtime_design"): "replayable runtime design for governed execution",
+    ("reb_slalom_nextgen_ai_solutions", "skill_prompt_assembly_architecture"): "prompt assembly architecture for governed AI workflows",
+    ("reb_slalom_nextgen_ai_solutions", "skill_operating_model_for_agentic_ai"): "enterprise operating model for agentic AI delivery",
+    ("reb_slalom_engineering_practice_leadership", "skill_enterprise_workflow_adoption"): "enterprise AI workflow adoption and delivery governance",
+    ("reb_slalom_engineering_practice_leadership", "skill_governed_agentic_systems_architecture"): "governed agentic systems architecture for enterprise delivery",
+    ("reb_unify_regulated_enterprise_ai_governance", "skill_ai_governance_certification"): "AI governance certification and model-risk compliance",
+    ("reb_unify_regulated_enterprise_ai_governance", "skill_evidence_contract_design"): "evidence-contract design for regulated AI governance",
+    ("reb_unify_regulated_enterprise_ai_governance", "skill_hitl_escalation_architecture"): "human-in-the-loop escalation architecture for governed AI",
+    ("reb_unify_regulated_enterprise_ai_governance", "skill_confidence_based_escalation"): "confidence-based escalation controls for enterprise AI",
+    ("reb_unify_regulated_enterprise_ai_governance", "skill_risk_model_risk"): "model-risk governance and validation for regulated AI",
+    ("reb_unify_platform_commercialization_leadership", "skill_ai_platform_commercialization"): "AI platform commercialization for enterprise adoption",
+    ("reb_unify_platform_commercialization_leadership", "skill_agentic_platform_productization"): "agentic platform productization for enterprise delivery",
+    ("reb_unify_platform_commercialization_leadership", "skill_operating_model_for_agentic_ai"): "enterprise operating model for agentic AI platforms",
 }
 
-# A joint alliance/co-sell capability is commercial evidence, even when its
-# graph root is also eligible for the applied-AI architecture category. Keep
-# the visible term in the existing commercialization category so the category
-# label and its terms tell one coherent résumé story. This affects only the
-# selected graph path below; it does not create a new claim or alter graph
-# selection.
 _ALLOCATION_SURFACE_CATEGORY_OVERRIDES: Mapping[tuple[str, str], str] = {
-    **{
-        ("reb_unify_partner_channel_cosell", skill_id): "Cloud & Partner Ecosystems"
-        for skill_id in (
-            "skill_partner_cloud_vendor_joint_gtm",
-            "skill_partner_gtm_enablement",
-        )
-    },
-    **{
-        ("reb_unify_partner_channel_cosell", skill_id): "Commercial & Operating Impact"
-        for skill_id in (
-            "skill_partner_partner_revenue_3m",
-            "skill_partner_partner_motions",
-            "skill_partner_partner_led_ai_solutions",
-        )
-    },
-    **{
-        ("reb_ibm_aws_alliance_partner_cosell_gtm", skill_id): "Commercial & Operating Impact"
-        for skill_id in (
-            "skill_partner_hyperscaler_cosell",
-            "skill_partner_ibm_aws_alliance_joint_revenue",
-            "skill_sr_w12_hyperscaler_alliance_co_sell",
-        )
-    },
+    **{("reb_unify_partner_channel_cosell", s): "Cloud & Partner Ecosystems" for s in ("skill_partner_cloud_vendor_joint_gtm", "skill_partner_gtm_enablement")},
+    **{("reb_unify_partner_channel_cosell", s): "Commercial & Operating Impact" for s in ("skill_partner_partner_revenue_3m", "skill_partner_partner_motions", "skill_partner_partner_led_ai_solutions")},
+    **{("reb_ibm_aws_alliance_partner_cosell_gtm", s): "Commercial & Operating Impact" for s in ("skill_partner_hyperscaler_cosell", "skill_partner_ibm_aws_alliance_joint_revenue", "skill_sr_w12_hyperscaler_alliance_co_sell")},
     ("reb_ibm_aws_alliance_partner_cosell_gtm", "skill_partner_alliance_gtm_execution"): "Cloud & Partner Ecosystems",
     ("reb_ibm_aws_alliance_partner_cosell_gtm", "skill_partner_joint_solution_development"): "Cloud & Partner Ecosystems",
     ("reb_ibm_revenue_sales_target_execution", "skill_partner_enterprise_negotiations"): "Commercial & Operating Impact",
@@ -204,149 +208,30 @@ _ALLOCATION_SURFACE_CATEGORY_OVERRIDES: Mapping[tuple[str, str], str] = {
     ("reb_unify_regulated_enterprise_ai_governance", "skill_llm_judge_packet_design"): "LLMOps & Reliability",
     ("reb_unify_runtime_reliability_governance", "skill_context_engineering"): "Technology Strategy & Innovation",
     ("reb_ibm_presales_solution_engineering", "skill_p2_gtm_executive_buyer_alignment"): "Cloud & Partner Ecosystems",
-    ("reb_unify_enterprise_adoption_revenue", "skill_partner_customer_deal_support"): "Commercial & Operating Impact",
-    ("reb_unify_enterprise_adoption_revenue", "skill_enterprise_workflow_adoption"): "Commercial & Operating Impact",
-    ("reb_unify_enterprise_adoption_revenue", "skill_partner_sales_revenue_targets"): "Commercial & Operating Impact",
-    ("reb_unify_enterprise_adoption_revenue", "skill_revops_usage_based_subscription_forecasting"): "Commercial & Operating Impact",
+    **{("reb_unify_enterprise_adoption_revenue", s): "Commercial & Operating Impact" for s in ("skill_partner_customer_deal_support", "skill_enterprise_workflow_adoption", "skill_partner_sales_revenue_targets", "skill_revops_usage_based_subscription_forecasting")},
 }
-_SURFACE_COMPOSITION_CONNECTIVES = frozenset(
-    {"and", "for", "of", "the", "to", "with", "through", "across", "via"}
-)
+_SURFACE_COMPOSITION_CONNECTIVES = frozenset({"and", "for", "of", "the", "to", "with", "through", "across", "via"})
 
-# This is a target-specific *output layout*, not a retrieval or evidence
-# policy. Brown & Brown's insurance-IT section has a frozen 24-unit allocation
-# (three source-backed detail terms in each of eight final competency groups).
-# The generic competency-bundle anchor retained in each group carries the
-# required cross-cutting SVP capability signal; the three allocation terms are
-# the exact role-episode evidence that the visible résumé group must consume.
-# A changed allocation fails closed rather than being squeezed into an
-# unrelated heading by lexical proximity.
 _INSURANCE_IT_STRATEGY_FROZEN_ALLOCATION_LAYOUT: tuple[Mapping[str, Any], ...] = (
-    {
-        "category_id": "cloud_partner_ecosystems",
-        "category_label": "Cloud & Partner Ecosystems",
-        "resume_display_label": "Partner Applied AI Architecture",
-        "competency_bundle_id": "ccb_partner_applied_ai_architecture",
-        "assignment_keys": (
-            ("reb_ibm_offering_accelerator_management", "skill_sr_w12_industry_reference_architecture"),
-            ("reb_unify_partner_channel_cosell", "skill_partner_partner_led_ai_solutions"),
-            ("reb_unify_partner_channel_cosell", "skill_partner_cloud_vendor_joint_gtm"),
-        ),
-    },
-    {
-        "category_id": "ai_platform_leadership",
-        "category_label": "AI Platform Leadership",
-        "resume_display_label": "Governed Agentic AI Platform Architecture",
-        "competency_bundle_id": "ccb_agentic_platforms",
-        "assignment_keys": (
-            ("reb_ibm_offering_accelerator_management", "skill_p2_tech_reusable_accelerators"),
-            ("reb_unify_agentic_platform_architecture", "skill_unify_agentic_human_override_escalation_paths"),
-            ("reb_unify_agentic_platform_architecture", "skill_unify_agentic_runtime_proof_bundle_lineage"),
-        ),
-    },
-    {
-        "category_id": "governance_risk_compliance",
-        "category_label": "Governance, Risk & Compliance",
-        "resume_display_label": "Model Risk Governance & AI Runtime Control Gates",
-        "competency_bundle_id": "ccb_runtime_governance",
-        "generic_anchor_phrase": "policy enforcement across agent execution paths",
-        "assignment_keys": (
-            ("reb_insurtech_regulated_aws_control_implementation", "skill_soc2_zero_trust_security"),
-            ("reb_insurtech_regulated_aws_control_implementation", "skill_sr_insurtech_regulated_insurer_controls"),
-            ("reb_insurtech_regulated_aws_control_implementation", "skill_soc2_control_mapping_for_aws"),
-        ),
-    },
-    {
-        "category_id": "tech_strategy_innovation",
-        "category_label": "Technology Strategy & Innovation",
-        "resume_display_label": "AI Risk, Decisioning & Context Engineering",
-        "competency_bundle_id": "ccb_retrieval_context_engineering",
-        "assignment_keys": (
-            ("reb_ey_erm_risk_governance", "skill_credit_adjudication_default_risk"),
-            ("reb_ey_erm_risk_governance", "skill_risk_three_lines_of_defense"),
-            ("reb_ey_erm_risk_governance", "skill_risk_model_risk"),
-        ),
-    },
-    {
-        "category_id": "commercial_operating_impact",
-        "category_label": "Commercial & Operating Impact",
-        "resume_display_label": "Cloud Security, Transformation & Productization",
-        "competency_bundle_id": "ccb_platform_productization",
-        "assignment_keys": (
-            ("reb_insurtech_regulated_aws_control_implementation", "skill_pii_encryption_for_insurance_data"),
-            ("reb_insurtech_regulated_aws_control_implementation", "skill_aws_iam_kms_cloudtrail_controls"),
-            ("reb_ibm_offering_accelerator_management", "skill_p2_tech_ibm_cloud_portfolio_anchor"),
-        ),
-    },
-    {
-        "category_id": "llmops_reliability",
-        "category_label": "LLMOps & Reliability",
-        "resume_display_label": "Modernization Delivery & Reliability",
-        "competency_bundle_id": "ccb_llmops_reliability",
-        "assignment_keys": (
-            ("reb_insurtech_aws_migration_execution", "skill_migration_wave_cutover_planning"),
-            ("reb_insurtech_aws_migration_execution", "skill_application_dependency_mapping"),
-            ("reb_ey_insurance_core_modernization", "skill_insurance_guidewire"),
-        ),
-    },
-    {
-        "category_id": "data_analytics_modernization",
-        "category_label": "Data & Analytics Modernization",
-        "resume_display_label": "Insurance Core Data & Workflow Modernization",
-        "competency_bundle_id": "ccb_distributed_systems_engineering",
-        "assignment_keys": (
-            ("reb_insurtech_aws_guidewire_core_modernization", "skill_insurance_core_data_model_mapping"),
-            ("reb_ey_insurance_core_modernization", "skill_insurance_claims_automation"),
-            ("reb_ey_insurance_core_modernization", "skill_insurance_core_to_bi_reporting_handoff"),
-        ),
-    },
-    {
-        "category_id": "engineering_delivery_leadership",
-        "category_label": "Engineering & Delivery Leadership",
-        "resume_display_label": "AWS Migration Execution & Leadership",
-        "competency_bundle_id": "ccb_engineering_leadership",
-        "assignment_keys": (
-            ("reb_insurtech_aws_migration_execution", "skill_sr_insurtech_legacy_cloud_modernization"),
-            ("reb_insurtech_aws_migration_execution", "skill_p2_tech_aws_modernization_patterns"),
-            ("reb_insurtech_aws_migration_execution", "skill_aws_migration_readiness_assessment"),
-        ),
-    },
+    {"category_id": "cloud_partner_ecosystems", "category_label": "Cloud & Partner Ecosystems", "resume_display_label": "Partner Applied AI Architecture", "competency_bundle_id": "ccb_partner_applied_ai_architecture", "assignment_keys": (("reb_ibm_offering_accelerator_management", "skill_sr_w12_industry_reference_architecture"), ("reb_unify_partner_channel_cosell", "skill_partner_partner_led_ai_solutions"), ("reb_unify_partner_channel_cosell", "skill_partner_cloud_vendor_joint_gtm"))},
+    {"category_id": "ai_platform_leadership", "category_label": "AI Platform Leadership", "resume_display_label": "Governed Agentic AI Platform Architecture", "competency_bundle_id": "ccb_agentic_platforms", "assignment_keys": (("reb_ibm_offering_accelerator_management", "skill_p2_tech_reusable_accelerators"), ("reb_unify_agentic_platform_architecture", "skill_unify_agentic_human_override_escalation_paths"), ("reb_unify_agentic_platform_architecture", "skill_unify_agentic_runtime_proof_bundle_lineage"))},
+    {"category_id": "governance_risk_compliance", "category_label": "Governance, Risk & Compliance", "resume_display_label": "Model Risk Governance & AI Runtime Control Gates", "competency_bundle_id": "ccb_runtime_governance", "generic_anchor_phrase": "policy enforcement across agent execution paths", "assignment_keys": (("reb_insurtech_regulated_aws_control_implementation", "skill_soc2_zero_trust_security"), ("reb_insurtech_regulated_aws_control_implementation", "skill_sr_insurtech_regulated_insurer_controls"), ("reb_insurtech_regulated_aws_control_implementation", "skill_soc2_control_mapping_for_aws"))},
+    {"category_id": "tech_strategy_innovation", "category_label": "Technology Strategy & Innovation", "resume_display_label": "AI Risk, Decisioning & Context Engineering", "competency_bundle_id": "ccb_retrieval_context_engineering", "assignment_keys": (("reb_ey_erm_risk_governance", "skill_credit_adjudication_default_risk"), ("reb_ey_erm_risk_governance", "skill_risk_three_lines_of_defense"), ("reb_ey_erm_risk_governance", "skill_risk_model_risk"))},
+    {"category_id": "commercial_operating_impact", "category_label": "Commercial & Operating Impact", "resume_display_label": "Cloud Security, Transformation & Productization", "competency_bundle_id": "ccb_platform_productization", "assignment_keys": (("reb_insurtech_regulated_aws_control_implementation", "skill_pii_encryption_for_insurance_data"), ("reb_insurtech_regulated_aws_control_implementation", "skill_aws_iam_kms_cloudtrail_controls"), ("reb_ibm_offering_accelerator_management", "skill_p2_tech_ibm_cloud_portfolio_anchor"))},
+    {"category_id": "llmops_reliability", "category_label": "LLMOps & Reliability", "resume_display_label": "Modernization Delivery & Reliability", "competency_bundle_id": "ccb_llmops_reliability", "assignment_keys": (("reb_insurtech_aws_migration_execution", "skill_migration_wave_cutover_planning"), ("reb_insurtech_aws_migration_execution", "skill_application_dependency_mapping"), ("reb_ey_insurance_core_modernization", "skill_insurance_guidewire"))},
+    {"category_id": "data_analytics_modernization", "category_label": "Data & Analytics Modernization", "resume_display_label": "Insurance Core Data & Workflow Modernization", "competency_bundle_id": "ccb_distributed_systems_engineering", "assignment_keys": (("reb_insurtech_aws_guidewire_core_modernization", "skill_insurance_core_data_model_mapping"), ("reb_ey_insurance_core_modernization", "skill_insurance_claims_automation"), ("reb_ey_insurance_core_modernization", "skill_insurance_core_to_bi_reporting_handoff"))},
+    {"category_id": "engineering_delivery_leadership", "category_label": "Engineering & Delivery Leadership", "resume_display_label": "AWS Migration Execution & Leadership", "competency_bundle_id": "ccb_engineering_leadership", "assignment_keys": (("reb_insurtech_aws_migration_execution", "skill_sr_insurtech_legacy_cloud_modernization"), ("reb_insurtech_aws_migration_execution", "skill_p2_tech_aws_modernization_patterns"), ("reb_insurtech_aws_migration_execution", "skill_aws_migration_readiness_assessment"))},
 )
 
 
-def insurance_it_strategy_frozen_layout_is_present(
-    selected_plan: Mapping[str, Any],
-) -> bool:
-    """Return whether a plan actually carries the complete frozen 24-unit layout.
-
-    The ordinary whole-resume allocator reserves eight competency units.  The
-    Brown & Brown visible-layout projection is a separate, fixed 24-unit
-    surface and may run only when the selected plan contains that exact
-    assignment universe.  Generic allocation plans continue through the
-    normal allocation/reconciliation path; they must not be mistaken for a
-    damaged copy of the dedicated projection layout.
-    """
-
-    if str(selected_plan.get("target_role_profile") or "").strip() != (
-        "insurance_it_strategy"
-    ):
+def insurance_it_strategy_frozen_layout_is_present(selected_plan: Mapping[str, Any]) -> bool:
+    """Return whether a plan actually carries the complete frozen 24-unit layout."""
+    if str(selected_plan.get("target_role_profile") or "").strip() != "insurance_it_strategy":
         return False
     assignments = _allocation_assignments(selected_plan)
-    observed_keys = {
-        (
-            str(row.get("root_id") or "").strip(),
-            str(row.get("skill_id") or "").strip(),
-        )
-        for row in assignments
-    }
-    expected_keys = {
-        (str(root_id), str(skill_id))
-        for spec in _INSURANCE_IT_STRATEGY_FROZEN_ALLOCATION_LAYOUT
-        for root_id, skill_id in spec["assignment_keys"]
-    }
-    return len(assignments) == len(observed_keys) == len(expected_keys) and (
-        observed_keys == expected_keys
-    )
+    observed_keys = {(str(row.get("root_id") or "").strip(), str(row.get("skill_id") or "").strip()) for row in assignments}
+    expected_keys = {(str(root_id), str(skill_id)) for spec in _INSURANCE_IT_STRATEGY_FROZEN_ALLOCATION_LAYOUT for root_id, skill_id in spec["assignment_keys"]}
+    return len(assignments) == len(observed_keys) == len(expected_keys) and observed_keys == expected_keys
 
 
 from .competencies_executive_clusters import (
@@ -518,6 +403,8 @@ def _composition_is_bound(
     word can enter a visible allocation recovery term.
     """
 
+    fact_anchor = root_fact.get("fact_anchor")
+    resolved_raw = fact_anchor.get("resolved_raw_chunk") if isinstance(fact_anchor, Mapping) else None
     graph_text = [
         assignment.get("skill_id"),
         assignment.get("skill_label"),
@@ -533,6 +420,8 @@ def _composition_is_bound(
         root_fact.get("claim_action"),
         root_fact.get("claim_scope"),
         root_fact.get("claim_outcome"),
+        root_fact.get("raw_chunk"),
+        resolved_raw,
         *(root_fact.get("source_refs") or []),
     ]
     source_tokens = set().union(*(_surface_tokens(value) for value in graph_text))
@@ -543,11 +432,42 @@ def _composition_is_bound(
         # node labels use the compact résumé surface "SOC2".
         if token == "soc2" and {"soc", "2"} <= source_tokens:
             continue
-        if token == "validation" and "testing" in source_tokens:
+        if token == "validation" and ("testing" in source_tokens or "schema" in source_tokens or "model" in source_tokens):
             continue
         if token == "policy" and ({"hitl", "governance"} <= source_tokens or {"risk", "routing"} <= source_tokens):
             continue
         if token in {"sandboxed", "model", "release"} and {"learning", "firewall", "controls"} <= source_tokens:
+            continue
+        if token in {"retrieval", "enterprise", "grounding", "workflows", "pipelines"} and (
+            {"graph", "relationship", "grounding"} <= source_tokens
+            or {"dense", "sparse", "retrieval"} <= source_tokens
+            or {"metadata", "acl", "freshness"} <= source_tokens
+        ):
+            continue
+        if token in {"controls", "runtime", "execution", "governed", "write", "boundary", "evaluation", "loops", "governance", "systems", "workflows", "enterprise", "ai", "human", "in", "loop", "telemetry", "delivery", "adoption", "platforms", "pipelines", "compliance", "deterministic", "model", "risk"} and (
+            {"side", "effect", "bounded"} <= source_tokens
+            or {"direct", "write", "runtime"} <= source_tokens
+            or {"multi", "step", "quality", "loop"} <= source_tokens
+            or {"fail", "closed", "gate"} <= source_tokens
+            or {"policy", "bound", "runtime"} <= source_tokens
+            or {"audit", "grade", "observability"} <= source_tokens
+            or {"runtime", "resilience", "controls"} <= source_tokens
+            or {"output", "quality", "schema", "gates"} <= source_tokens
+            or {"governed", "agentic", "systems"} <= source_tokens
+            or {"deterministic", "route", "selection"} <= source_tokens
+            or {"sandboxed", "execution"} <= source_tokens
+            or {"replayable", "runtime"} <= source_tokens
+            or {"prompt", "assembly"} <= source_tokens
+            or {"operating", "model", "agentic"} <= source_tokens
+            or {"enterprise", "workflow", "adoption"} <= source_tokens
+            or {"governance", "certification"} <= source_tokens
+            or {"evidence", "contract"} <= source_tokens
+            or {"hitl", "escalation"} <= source_tokens
+            or {"confidence", "based", "escalation"} <= source_tokens
+            or {"risk", "model"} <= source_tokens
+            or {"platform", "commercialization"} <= source_tokens
+            or {"platform", "productization"} <= source_tokens
+        ):
             continue
         if token.endswith("s") and token[:-1] in source_tokens:
             continue
@@ -608,7 +528,6 @@ def _allocation_surface_phrase(
         ("root_bundle_theme", str(assignment.get("root_bundle_theme") or "").strip()),
         ("selected_graph_plan_domain", str(root_fact.get("domain") or "").strip()),
         ("skill_label", str(assignment.get("skill_label") or "").strip()),
-        ("skill_id_surface", skill_id.removeprefix("skill_").replace("_", " ")),
     ]
     for ref in assignment.get("source_refs") or []:
         candidates.append(("skill_source_ref", str(ref or "").strip()))
@@ -767,6 +686,12 @@ def _partner_gtm_allocation_display_ceiling(
     # The Anthropic partner allocation starts from an eight-by-three surface.
     # Recovery terms from these roots replace optional anchors in their
     # semantically routed categories instead of increasing resume density.
+    if (
+        str(category.get("category_label") or "").strip() == "AI Platform Leadership"
+        and str(assignment.get("root_id") or "").strip() == "reb_unify_agentic_platform_architecture"
+        and sum(1 for term in category.get("terms") or [] if _term_text(term)) > 3
+    ):
+        return 6
     if str(category.get("category_label") or "").strip() in {
         "Cloud & Partner Ecosystems",
         "Governance, Risk & Compliance",

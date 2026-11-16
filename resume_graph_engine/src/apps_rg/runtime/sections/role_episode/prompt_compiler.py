@@ -127,6 +127,9 @@ def _compiled_prompt(cfg: RoleEpisodeLaneConfig, runtime_payload: dict[str, Any]
             "incorporating the bundle's concrete mechanisms and any allocated metric_text from GRAPH_SKILL_EVIDENCE. "
             "SENTENCE CADENCE VARIETY: Vary clause structures across the bullet set (mix 'by <gerund>', 'to <verb>', and 'that/which <verb>' clauses; "
             "do not end every bullet with an identical ', <gerund>ing ...' participial tail). "
+            "EXECUTIVE REGISTER: Frame every bullet at C-suite/SVP engineering and client-delivery level; never list internal codebase package counts, "
+            "MCP server counts, readiness gate counts, or low-level database file internals (e.g. SQLite WAL, FTS5, 119-package, 32 readiness gates, "
+            "6 MCP servers, Dirichlet-Laplace, Universal Write Gateway). "
             "Every claim MUST cite only allowed source_fact_ids. targeting_only=true; jd_used_as_proof=false."
             if cfg.is_bullet_lane
             else "Use JD_TEXT, BRIEFING, GRAPH_SKILL_EVIDENCE, and ACCEPTED_COMPANION_BULLETS to synthesize "

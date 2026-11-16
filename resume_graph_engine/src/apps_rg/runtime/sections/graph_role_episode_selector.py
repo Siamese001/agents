@@ -118,6 +118,7 @@ _COSELL_HEAVY_ROOT_IDS = frozenset({
 })
 _FDE_CORE_ROOT_IDS = frozenset({
     "reb_slalom_engineering_practice_leadership", "reb_slalom_agentic_client_delivery", "reb_slalom_governed_runtime_scaling",
+    "reb_slalom_nextgen_ai_solutions", "reb_slalom_visual_asset_intelligence",
     "reb_unify_agentic_platform_architecture", "reb_unify_production_adoption_lifecycle", "reb_unify_regulated_enterprise_ai_governance",
     "reb_unify_runtime_reliability_governance", "reb_ibm_aws_modernization_architecture", "reb_ibm_devsecops_release_resilience",
     "reb_ibm_offering_accelerator_management", "reb_ibm_presales_solution_engineering",

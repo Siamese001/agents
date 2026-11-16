@@ -293,13 +293,20 @@ def normalize_executive_summary_llm_output(
     runtime_selected_fact_plan: dict[str, Any],
 ) -> dict[str, Any]:
     """Collapse legacy R0 aliases; runtime owns selected_fact_plan (no model echo for proof SSOT)."""
+    from apps_rg.runtime.sections.executive_summary_composition import (
+        normalize_exec_summary_recruiter_openers,
+    )
+
     resume = str(
         parsed.get("resume_display_text")
         or parsed.get("executive_summary")
         or ""
     ).strip()
+    resume = normalize_exec_summary_recruiter_openers(resume)
     resume = coerce_resume_display_sentence_count_band(resume)
-    thesis = str(parsed.get("executive_strategy_thesis") or "").strip()
+    thesis = normalize_exec_summary_recruiter_openers(
+        str(parsed.get("executive_strategy_thesis") or "").strip()
+    )
     claims = parsed.get("claim_ledger")
     if claims is None:
         claims = parsed.get("claim_ledger_emitted")

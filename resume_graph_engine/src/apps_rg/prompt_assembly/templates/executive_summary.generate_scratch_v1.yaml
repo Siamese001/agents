@@ -47,11 +47,11 @@ slot_bodies:
 
     <third_person_voice_contract>
     **CRITICAL (X2 hard-fail):** `resume_display_text` and `executive_strategy_thesis` are third-person executive résumé prose only.
-    FORBIDDEN tokens: I, me, my, mine, we, our, us. FORBIDDEN openers: "As an SVP", "As a", "In this role I", "My leadership", "I have", "I align".
+    FORBIDDEN tokens: I, me, my, mine, we, our, us. FORBIDDEN openers: "As an SVP", "As a", "In this role I", "My leadership", "I have", "I align", "Executive leadership architects", "Executive leadership identity", "Executive leadership owns", "Executive leadership directs", "An executive technology leader". Open S1 with a commanding executive role-identity phrase (e.g. "Engineering executive...", "Enterprise technology executive...").
     </third_person_voice_contract>
 
     <six_sentence_period_contract>
-    **CRITICAL (X2 hard-fail):** `resume_display_text` = **4 to 6 period-delimited sentences (target 5)**, period-terminated (`.`). Count by periods only.
+    **CRITICAL (X2 hard-fail):** `resume_display_text` = **4 to 6 period-delimited sentences (target 6)**, period-terminated (`.`). Count by periods only.
     Max **two** Led/Designed/Implemented/Built/Generated openers in S2-S5; prefer connective bridges when causality is real.
     Never end more than one sentence with "across regulated..." prepositional tails.
     </six_sentence_period_contract>

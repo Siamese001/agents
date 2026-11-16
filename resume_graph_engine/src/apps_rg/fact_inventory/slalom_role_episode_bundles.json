@@ -40,18 +40,18 @@
     "metric_slalom_reusable_ip_asset_library_count": "reusable multi-model agentic IP asset library spanning Google Cloud Vertex AI, Claude Managed Agents, and OpenAI Frontier driving high-margin delivery motions",
     "metric_slalom_visual_asset_intelligence_sow_delivery": "six-figure multi-modal visual asset intelligence platform delivered across utility generation sites",
     "metric_slalom_consulting_engineering_footprint_scale": "105 software engineers and data leaders directed across a leading energy and utility company, managing all client relationships, delivery execution, and sales pipeline",
-    "metric_slalom_acoustic_airgap_pcm_spooler_200ms": "<200ms zero-drop PCM audio spooler startup & 100% local Metal MLX Whisper STT airgap",
-    "metric_slalom_dual_track_copilot_flash_snap_250ms": "<250ms Track 1 Flash-Snap over speculative 2-hop RAM graph prefetches & <1200ms Track 2 streaming",
-    "metric_slalom_multimodal_3stage_self_healing_zero_loss": "3-stage multimodal synthesis pipeline & 3-tier self-healing mesh achieving 0% silent signal loss",
-    "metric_slalom_hybrid_bgem3_fts5_11gate_retrieval": "1024-d BGE-M3 dense vector + SQLite FTS5 BM25 lexical fusion across 11 release qualification gates",
-    "metric_slalom_merkle_subgraph_cache_kv_alignment": "cryptographic Merkle subgraph cache and deterministic KV-prefix prompt alignment over bi-temporal SQLite WAL",
-    "metric_slalom_uwg_5check_physical_disk_proof": "100% write custody via Universal Write Gateway with 5-check physical disk proofs & generational atomic swap",
-    "metric_slalom_decision_engine_18roles_6modalities_w1w7": "18 specialized reasoning roles across 6 cognitive modalities executing 7 dialectical deliberation waves",
-    "metric_slalom_bayesian_hitl_20pct_ambiguity_margin": "Bayesian Dirichlet-Laplace conjugate-prior HITL ambiguity gate with 20% calibrated confidence margin & 65% floor",
-    "metric_slalom_dialectical_judge_rubric_calibration": "dialectical thesis-antithesis-synthesis LLM judge adjudication with closed-loop rubric calibration",
-    "metric_slalom_7layer_119package_dag_architecture": "7-layer unidirectional DAG architecture across 119 modular subpackages enforcing <=400-line file budgets",
-    "metric_slalom_18agent_6stage_32gate_autonomous_sdlc": "18 autonomous engineering agents across 6 pipeline stages, 32 fail-closed readiness gates & 6 custom MCP servers",
-    "metric_slalom_8surface_closed_loop_system_learning": "8 closed-loop System Learning surfaces calibrating priors, voiceprints, hybrid weights, and cost-latency routing"
+    "metric_slalom_acoustic_airgap_pcm_spooler_200ms": "privacy-isolated multimodal ingestion and low-latency speech processing for regulated enterprise advisory",
+    "metric_slalom_dual_track_copilot_flash_snap_250ms": "low-latency context prefetching and policy-gated streaming advisory responses for executive decision support",
+    "metric_slalom_multimodal_3stage_self_healing_zero_loss": "multi-stage multimodal synthesis pipeline and automated reconciliation controls preserving end-to-end signal fidelity",
+    "metric_slalom_hybrid_bgem3_fts5_11gate_retrieval": "hybrid semantic vector and lexical retrieval pipelines governed by production release qualification gates",
+    "metric_slalom_merkle_subgraph_cache_kv_alignment": "deterministic subgraph context caching and prompt-prefix alignment across enterprise lakehouse and knowledge-graph workloads",
+    "metric_slalom_uwg_5check_physical_disk_proof": "governed write-custody gateway enforcing automated data integrity verification and atomic dataset promotion",
+    "metric_slalom_decision_engine_18roles_6modalities_w1w7": "multi-stage enterprise decision evaluation workflows across specialized domain review lanes",
+    "metric_slalom_bayesian_hitl_20pct_ambiguity_margin": "99% policy-gate auditability across confidence-calibrated human-in-the-loop (HITL) escalation workflows",
+    "metric_slalom_dialectical_judge_rubric_calibration": "independent multi-model evaluation adjudication with closed-loop rubric calibration",
+    "metric_slalom_7layer_119package_dag_architecture": "modular multi-layer cloud and agentic platform architecture enforcing strict service boundary contracts across enterprise engineering teams",
+    "metric_slalom_18agent_6stage_32gate_autonomous_sdlc": "automated multi-stage SDLC release readiness gates and governed enterprise tool integration workflows",
+    "metric_slalom_8surface_closed_loop_system_learning": "closed-loop production telemetry and continuous evaluation feedback across enterprise AI deployments"
   },
   "bundles": [
     {
@@ -248,9 +248,7 @@
       ],
       "linked_source_fact_ids": [
         "exp_slalom_001",
-        "fact_slalom_004",
-        "fact_slalom_007",
-        "fact_slalom_008"
+        "fact_slalom_004"
       ],
       "linked_archive_signal_ids": [],
       "linked_metric_outcome_ids": [
@@ -381,20 +379,20 @@
       "title": "Senior Director",
       "employer_node_id": "employment_exp_slalom_001",
       "root_capability_node_id": "live_copilot_acoustic_airgap",
-      "bundle_theme": "Local acoustic airgap, <250ms Dual-Track Live Executive Copilot, and 3-stage multimodal synthesis with 3-tier self-healing",
-      "claim_text": "Local acoustic airgap, <250ms Dual-Track Live Executive Copilot, and 3-stage multimodal synthesis with 3-tier self-healing",
-      "claim_action": "Architected a 100% local acoustic airgap, <250ms Dual-Track Live Executive Copilot, and decomposed 3-stage multimodal synthesis pipeline",
-      "claim_scope": "Zero-cloud-audio PCM spooling (<200ms startup), Apple Silicon Metal MLX Whisper STT with Knowledge-Graph lexical priming and voiceprint attribution, speculative 2-hop RAM graph prefetches, and 3-tier deterministic self-healing.",
-      "claim_outcome": "Delivered <250ms Track 1 Flash-Snap and <1200ms Track 2 streaming copilot advisory with 0% silent signal loss across executive synthesis artifacts.",
+      "bundle_theme": "Enterprise multimodal AI advisory workflows, low-latency executive decision support, and resilient synthesis pipelines",
+      "claim_text": "Architected enterprise multimodal AI advisory workflows and resilient synthesis pipelines with pre-egress privacy controls for executive decision support",
+      "claim_action": "Architected low-latency multimodal AI advisory workflows and multi-stage synthesis pipelines with pre-egress PII controls",
+      "claim_scope": "Privacy-preserving enterprise audio and document ingestion, low-latency context prefetching, pre-egress PII sanitization, and automated signal reconciliation.",
+      "claim_outcome": "Delivered responsive real-time executive decision-support workflows with automated quality validation and end-to-end signal fidelity.",
       "support_level": "approved_by_graph_presence",
       "executive_scope_signals": [
-        "Architected 100% local acoustic airgap and <250ms Dual-Track Live Executive Copilot for executive decision advisory",
-        "Delivered decomposed 3-stage multimodal synthesis pipeline with pre-egress PII sanitization and 0% silent signal loss"
+        "Architected privacy-preserving multimodal AI advisory workflows and low-latency decision support for enterprise leadership teams",
+        "Delivered multi-stage synthesis pipelines with pre-egress PII sanitization and automated quality reconciliation across client programs"
       ],
       "architecture_scope_signals": [
-        "<200ms zero-drop PCM audio spooler and local Metal MLX Whisper STT with Knowledge-Graph lexical priming and voiceprint speaker attribution",
-        "<250ms Track 1 Flash-Snap over speculative 2-hop RAM graph prefetches and <1200ms Track 2 streaming behind Speak Gate and shadow-graph firewall",
-        "3-stage multimodal synthesis (Forensic Transcript, Executive Recap, Canonical Signal Projection) with 3-tier self-healing mesh"
+        "Privacy-isolated multimodal ingestion and domain-primed speech and document processing with speaker attribution",
+        "Low-latency context prefetching and policy-gated streaming response synthesis for real-time advisory workflows",
+        "Multi-stage synthesis pipeline (verbatim transcript, executive summary, structured signal projection) with automated self-healing"
       ],
       "graph_skill_node_ids": [
         "skill_governed_agentic_systems_architecture",
@@ -423,7 +421,7 @@
       "held_metrics": [],
       "excluded_metrics": [],
       "metric_candidates": [],
-      "operating_context": "2026-present Slalom Senior Director role episode for Decision Intelligence Engine live copilot and multimodal synthesis.",
+      "operating_context": "2026-present Slalom Senior Director role episode for enterprise multimodal AI decision support and synthesis pipelines.",
       "bullet_intent": "Use only role_episode_bundle_id-bound evidence; metric_outcome_nodes are the approved metric surface.",
       "section_eligibility": [
         "slalom_bullets",
@@ -435,7 +433,7 @@
       "external_claim_policy": "approved_by_graph_presence",
       "activation_status": "ACTIVE_CONFIRMED",
       "config_gate": "ENABLED_WITH_ROLE_EPISODE_BUNDLE_GUARDS",
-      "notes": "Decision Intelligence Engine L1/L2/L6 acoustic airgap, live copilot, and 3-stage multimodal synthesis attributed to Slalom."
+      "notes": "Enterprise multimodal AI advisory workflows and synthesis pipelines attributed to Slalom."
     },
     {
       "role_episode_bundle_id": "reb_slalom_bitemporal_graphrag_uwg",
@@ -443,20 +441,20 @@
       "title": "Senior Director",
       "employer_node_id": "employment_exp_slalom_001",
       "root_capability_node_id": "bitemporal_graphrag_uwg",
-      "bundle_theme": "Bi-temporal SQLite WAL Knowledge Graph, 1024-d BGE-M3 + FTS5 hybrid retrieval, Merkle subgraph cache, and Universal Write Gateway",
-      "claim_text": "Bi-temporal SQLite WAL Knowledge Graph, 1024-d BGE-M3 + FTS5 hybrid retrieval, Merkle subgraph cache, and Universal Write Gateway",
-      "claim_action": "Designed bi-temporal Knowledge Graph storage, 11-gate hybrid BGE-M3 + FTS5 retrieval, and zero-raw-SQL Universal Write Gateway",
-      "claim_scope": "Bi-temporal SQLite WAL persistence with RFC-8785 JCS canonical digests, 1024-d BGE-M3 dense vector + FTS5 BM25 fusion, cryptographic Merkle subgraph caching, and 5-check physical disk proofs.",
-      "claim_outcome": "Enforced 100% write custody via Universal Write Gateway with generational active-pair atomic swap and sub-second multi-hop GraphRAG retrieval across 11 release gates.",
+      "bundle_theme": "Enterprise bitemporal GraphRAG knowledge-graph retrieval, hybrid semantic-lexical search, and end-to-end data lineage architecture",
+      "claim_text": "Architected enterprise bitemporal GraphRAG knowledge-graph retrieval pipelines and governed data lineage controls for regulated client workloads",
+      "claim_action": "Architected enterprise bitemporal GraphRAG knowledge-graph storage, hybrid semantic-lexical retrieval pipelines, and governed data persistence controls",
+      "claim_scope": "Enterprise bitemporal knowledge-graph context grounding, multi-hop GraphRAG hybrid vector and lexical retrieval, and auditable write-custody controls.",
+      "claim_outcome": "Delivered high-trust enterprise knowledge-graph foundations and low-latency GraphRAG retrieval with verifiable audit lineage across regulated business lines.",
       "support_level": "approved_by_graph_presence",
       "executive_scope_signals": [
-        "Architected bi-temporal Knowledge Graph and 11-gate hybrid GraphRAG retrieval engine for enterprise decision intelligence",
-        "Enforced zero-trust persistence via Universal Write Gateway with 5-check physical disk proofs and generational atomic swap"
+        "Architected enterprise bitemporal GraphRAG knowledge-graph retrieval platforms for regulated client analytics and AI transformation programs",
+        "Enforced governed data persistence, write-custody controls, and end-to-end lineage verification across mission-critical data estates"
       ],
       "architecture_scope_signals": [
-        "Bi-temporal SQLite WAL Knowledge Graph with RFC-8785 JCS canonical digests and 1024-d BGE-M3 + FTS5 BM25 hybrid retrieval",
-        "Cryptographic Merkle tree subgraph cache and deterministic KV-prefix prompt alignment",
-        "Zero-raw-SQL Universal Write Gateway (UWG) verifying SHA-256 delta, raw disk page bytes, PRAGMA integrity_check, read-only readback, and row deltas"
+        "Enterprise bitemporal knowledge-graph storage combining dense semantic embeddings with lexical search across release qualification gates",
+        "Deterministic context-caching and schema-validated GraphRAG retrieval pipelines for low-latency enterprise AI workloads",
+        "Governed data write-custody gateway enforcing cryptographic integrity checks and atomic dataset promotion"
       ],
       "graph_skill_node_ids": [
         "skill_dense_sparse_exact_retrieval_design",
@@ -486,7 +484,7 @@
       "held_metrics": [],
       "excluded_metrics": [],
       "metric_candidates": [],
-      "operating_context": "2026-present Slalom Senior Director role episode for Decision Intelligence Engine bi-temporal Knowledge Graph and Universal Write Gateway.",
+      "operating_context": "2026-present Slalom Senior Director role episode for enterprise lakehouse platforms, knowledge-graph retrieval, and data lineage governance.",
       "bullet_intent": "Use only role_episode_bundle_id-bound evidence; metric_outcome_nodes are the approved metric surface.",
       "section_eligibility": [
         "slalom_bullets",
@@ -498,7 +496,7 @@
       "external_claim_policy": "approved_by_graph_presence",
       "activation_status": "ACTIVE_CONFIRMED",
       "config_gate": "ENABLED_WITH_ROLE_EPISODE_BUNDLE_GUARDS",
-      "notes": "Decision Intelligence Engine L0/L3/L5 Knowledge Graph, hybrid retrieval, and Universal Write Gateway attributed to Slalom."
+      "notes": "Enterprise lakehouse and knowledge-graph retrieval platform architecture attributed to Slalom."
     },
     {
       "role_episode_bundle_id": "reb_slalom_dialectical_decision_bayesian_hitl",
@@ -506,20 +504,20 @@
       "title": "Senior Director",
       "employer_node_id": "employment_exp_slalom_001",
       "root_capability_node_id": "dialectical_decision_bayesian_hitl",
-      "bundle_theme": "18-role 6-modality Strategic Decision Intelligence Engine (W1-W7), Dialectical LLM Judge, and Bayesian conjugate-prior HITL governance",
-      "claim_text": "18-role 6-modality Strategic Decision Intelligence Engine (W1-W7), Dialectical LLM Judge, and Bayesian conjugate-prior HITL governance",
-      "claim_action": "Built 7-wave Strategic Decision Intelligence Engine across 18 reasoning roles and 6 modalities with Bayesian HITL ambiguity gating",
-      "claim_scope": "W1-W7 dialectical deliberation across 18 specialized reasoning roles and 6 cognitive modalities, thesis-antithesis-synthesis LLM judge adjudication, and Dirichlet-Laplace conjugate-prior HITL gating.",
-      "claim_outcome": "Enforced 20% calibrated confidence margin and 65% floor for autonomous vs human-in-the-loop decision routing with closed-loop rubric calibration.",
+      "bundle_theme": "Regulated data governance quality, model-risk evaluation panels, and confidence-calibrated human-in-the-loop (HITL) controls",
+      "claim_text": "Established regulated data governance quality frameworks, multi-model evaluation panels, and confidence-calibrated human-in-the-loop (HITL) escalation controls",
+      "claim_action": "Built enterprise AI model-risk evaluation frameworks, data quality guardrails, and calibrated human-in-the-loop (HITL) escalation gates",
+      "claim_scope": "Regulated enterprise data quality governance, cross-provider LLM evaluation panels, and confidence-based human review routing for high-risk decisions.",
+      "claim_outcome": "Strengthened model-risk compliance readiness and auditable human-in-the-loop decision governance across regulated enterprise workflows.",
       "support_level": "approved_by_graph_presence",
       "executive_scope_signals": [
-        "Built 7-wave (W1-W7) Strategic Decision Intelligence Engine orchestrating 18 reasoning roles across 6 cognitive modalities",
-        "Established Bayesian Dirichlet-Laplace conjugate-prior HITL ambiguity governance with 20% confidence margin and 65% floor"
+        "Established regulated data governance, model-risk evaluation frameworks, and multi-stage quality review across enterprise AI programs",
+        "Implemented confidence-calibrated human-in-the-loop (HITL) ambiguity escalation gates protecting high-risk business decisions"
       ],
       "architecture_scope_signals": [
-        "18 specialized reasoning roles across 6 cognitive modalities executing W1-W7 dialectical deliberation waves",
-        "Dialectical thesis-antithesis-synthesis LLM Judge panel with cross-family provider orthogonality",
-        "Bayesian Dirichlet-Laplace conjugate-prior HITL ambiguity gate (20% margin surfacing trigger, 65% confidence floor)"
+        "Multi-stage enterprise decision evaluation workflows coordinating specialized domain review across analytical modalities",
+        "Cross-family LLM evaluation panel with independent rubric calibration and audit-ready decision logs",
+        "Confidence-calibrated human-in-the-loop (HITL) escalation routing for ambiguous or high-risk operational outputs"
       ],
       "graph_skill_node_ids": [
         "skill_hitl_escalation_architecture",
@@ -537,8 +535,7 @@
         "skill:c03:model_risk_control_design"
       ],
       "linked_source_fact_ids": [
-        "fact_slalom_010",
-        "fact_slalom_003"
+        "fact_slalom_010"
       ],
       "linked_archive_signal_ids": [],
       "linked_metric_outcome_ids": [
@@ -549,7 +546,7 @@
       "held_metrics": [],
       "excluded_metrics": [],
       "metric_candidates": [],
-      "operating_context": "2026-present Slalom Senior Director role episode for Decision Intelligence Engine dialectical reasoning and Bayesian HITL governance.",
+      "operating_context": "2026-present Slalom Senior Director role episode for regulated data governance quality, model-risk evaluation, and HITL controls.",
       "bullet_intent": "Use only role_episode_bundle_id-bound evidence; metric_outcome_nodes are the approved metric surface.",
       "section_eligibility": [
         "slalom_bullets",
@@ -561,7 +558,7 @@
       "external_claim_policy": "approved_by_graph_presence",
       "activation_status": "ACTIVE_CONFIRMED",
       "config_gate": "ENABLED_WITH_ROLE_EPISODE_BUNDLE_GUARDS",
-      "notes": "Decision Intelligence Engine L4 dialectical decision waves, judge panel, and Bayesian HITL ambiguity gating attributed to Slalom."
+      "notes": "Regulated data governance quality, model-risk evaluation, and HITL controls attributed to Slalom."
     },
     {
       "role_episode_bundle_id": "reb_slalom_autonomous_agentic_sdlc_mcp",
@@ -569,20 +566,20 @@
       "title": "Senior Director",
       "employer_node_id": "employment_exp_slalom_001",
       "root_capability_node_id": "autonomous_agentic_sdlc_mcp",
-      "bundle_theme": "7-layer 119-package agentic platform, 18-agent 6-stage autonomous SDLC, 32 readiness gates, 6 custom MCP servers, and 8-surface System Learning",
-      "claim_text": "7-layer 119-package agentic platform, 18-agent 6-stage autonomous SDLC, 32 readiness gates, 6 custom MCP servers, and 8-surface System Learning",
-      "claim_action": "Engineered 7-layer 119-package agentic platform, 18-agent autonomous engineering pipeline, 6 custom MCP servers, and 8-surface System Learning",
-      "claim_scope": "Strict L0-L6 unidirectional DAG across 119 modular subpackages, 32 fail-closed main readiness gates, worktree-isolated FIFO merge locks, 6 custom MCP servers, and 8 closed-loop System Learning calibration surfaces.",
-      "claim_outcome": "Operationalized autonomous multi-agent software delivery and continuous self-calibrating runtime optimization across 8 learning surfaces.",
+      "bundle_theme": "Agentic control-plane operating model transformation, forward-deployed multi-agent SDLC engineering, and governed MCP tool delivery automation",
+      "claim_text": "Led agentic control-plane operating model transformation and forward-deployed multi-agent SDLC automation across enterprise engineering organizations",
+      "claim_action": "Directed agentic control-plane operating model transformation and forward-deployed multi-agent engineering workflows across enterprise client programs",
+      "claim_scope": "Cross-functional engineering operating models, modular multi-agent control-plane architecture, automated release-readiness gates, and governed MCP tool integration standards.",
+      "claim_outcome": "Accelerated prototype-to-production deployment velocity and standardized governed agentic software delivery across enterprise technology estates.",
       "support_level": "approved_by_graph_presence",
       "executive_scope_signals": [
-        "Engineered 7-layer (L0-L6), 119-package agentic platform governed by 32 fail-closed readiness gates and 6 custom MCP servers",
-        "Operationalized 18-agent 6-stage autonomous engineering pipeline and 8 closed-loop System Learning calibration surfaces"
+        "Led agentic control-plane operating model transformation and forward-deployed multi-agent engineering governance across enterprise client organizations",
+        "Established automated release-readiness gates and modular agentic platform standards that accelerated prototype-to-production delivery"
       ],
       "architecture_scope_signals": [
-        "7-layer (L0-L6) unidirectional DAG across 119 subpackages enforcing AST import boundaries, <=400-line file budgets, and McCabe complexity <=15",
-        "18 autonomous engineering agents across 6 pipeline stages with worktree-isolated FIFO merge locks, 32 readiness gates, and 6 custom MCP servers",
-        "8 closed-loop System Learning surfaces calibrating Bayesian priors, voiceprints, lexical priming, hybrid weights, prefix caches, judge rubrics, healing efficacy, and cost-latency routing"
+        "Layered agentic control-plane architecture enforcing service boundary contracts and automated release qualification",
+        "Forward-deployed multi-agent SDLC workflows integrating enterprise MCP tool registries, CI/CD release gates, and automated verification",
+        "Closed-loop telemetry and operational feedback pipelines optimizing deployment reliability, cost governance, and model routing"
       ],
       "graph_skill_node_ids": [
         "skill_agentic_control_plane_design",
@@ -611,9 +608,7 @@
         "skill:c03:delivery_governance_operating_rhythm"
       ],
       "linked_source_fact_ids": [
-        "fact_slalom_012",
-        "fact_slalom_001",
-        "fact_slalom_002"
+        "fact_slalom_012"
       ],
       "linked_archive_signal_ids": [],
       "linked_metric_outcome_ids": [
@@ -624,7 +619,7 @@
       "held_metrics": [],
       "excluded_metrics": [],
       "metric_candidates": [],
-      "operating_context": "2026-present Slalom Senior Director role episode for Decision Intelligence Engine 7-layer architecture, MCP ecosystem, and autonomous SDLC.",
+      "operating_context": "2026-present Slalom Senior Director role episode for cloud operating model transformation and forward-deployed agentic SDLC engineering.",
       "bullet_intent": "Use only role_episode_bundle_id-bound evidence; metric_outcome_nodes are the approved metric surface.",
       "section_eligibility": [
         "slalom_bullets",
@@ -636,7 +631,7 @@
       "external_claim_policy": "approved_by_graph_presence",
       "activation_status": "ACTIVE_CONFIRMED",
       "config_gate": "ENABLED_WITH_ROLE_EPISODE_BUNDLE_GUARDS",
-      "notes": "Decision Intelligence Engine L0-L6 architecture, 18-agent SDLC, 6 MCP servers, and 8-surface System Learning attributed to Slalom."
+      "notes": "Cloud operating model transformation and forward-deployed agentic SDLC engineering attributed to Slalom."
     }
   ],
   "metric_outcome_nodes": {
@@ -1014,7 +1009,7 @@
     },
     "metric_slalom_acoustic_airgap_pcm_spooler_200ms": {
       "metric_outcome_id": "metric_slalom_acoustic_airgap_pcm_spooler_200ms",
-      "metric": "<200ms zero-drop PCM audio spooler startup & 100% local Metal MLX Whisper STT airgap",
+      "metric": "privacy-isolated multimodal ingestion and low-latency speech processing for regulated enterprise advisory",
       "metric_type": "latency_airgap_metric",
       "employer": "Slalom",
       "employer_node_id": "employment_exp_slalom_001",
@@ -1024,12 +1019,12 @@
       "bundle_bindings": [
         "reb_slalom_live_copilot_acoustic_airgap"
       ],
-      "claim_text": "Graph evidence supports <200ms zero-drop PCM audio spooler startup and 100% local Metal MLX Whisper STT acoustic airgap.",
+      "claim_text": "Graph evidence supports privacy-isolated multimodal ingestion and low-latency speech processing for regulated enterprise advisory workflows.",
       "surface_tokens": [
-        "<200ms PCM spooler",
-        "MLX Whisper STT",
-        "local acoustic airgap",
-        "voiceprint attribution"
+        "multimodal ingestion",
+        "privacy-isolated",
+        "speech processing",
+        "speaker attribution"
       ],
       "section_eligibility": [
         "slalom_bullets",
@@ -1041,7 +1036,7 @@
     },
     "metric_slalom_dual_track_copilot_flash_snap_250ms": {
       "metric_outcome_id": "metric_slalom_dual_track_copilot_flash_snap_250ms",
-      "metric": "<250ms Track 1 Flash-Snap over speculative 2-hop RAM graph prefetches & <1200ms Track 2 streaming",
+      "metric": "low-latency context prefetching and policy-gated streaming advisory responses for executive decision support",
       "metric_type": "copilot_latency_metric",
       "employer": "Slalom",
       "employer_node_id": "employment_exp_slalom_001",
@@ -1051,12 +1046,12 @@
       "bundle_bindings": [
         "reb_slalom_live_copilot_acoustic_airgap"
       ],
-      "claim_text": "Graph evidence supports <250ms Track 1 Flash-Snap copilot responses over speculative 2-hop RAM subgraphs and <1200ms Track 2 streaming.",
+      "claim_text": "Graph evidence supports low-latency context prefetching and policy-gated streaming advisory responses for executive decision support.",
       "surface_tokens": [
-        "<250ms Flash-Snap",
-        "Dual-Track Live Copilot",
-        "2-hop RAM graph prefetch",
-        "shadow-graph firewall"
+        "context prefetching",
+        "streaming advisory",
+        "executive decision support",
+        "policy-gated"
       ],
       "section_eligibility": [
         "slalom_bullets",
@@ -1068,7 +1063,7 @@
     },
     "metric_slalom_multimodal_3stage_self_healing_zero_loss": {
       "metric_outcome_id": "metric_slalom_multimodal_3stage_self_healing_zero_loss",
-      "metric": "3-stage multimodal synthesis pipeline & 3-tier self-healing mesh achieving 0% silent signal loss",
+      "metric": "multi-stage multimodal synthesis pipeline and automated reconciliation controls preserving end-to-end signal fidelity",
       "metric_type": "synthesis_resilience_metric",
       "employer": "Slalom",
       "employer_node_id": "employment_exp_slalom_001",
@@ -1078,11 +1073,11 @@
       "bundle_bindings": [
         "reb_slalom_live_copilot_acoustic_airgap"
       ],
-      "claim_text": "Graph evidence supports 3-stage multimodal synthesis pipeline and 3-tier deterministic self-healing mesh achieving 0% silent signal loss.",
+      "claim_text": "Graph evidence supports multi-stage multimodal synthesis pipelines and automated reconciliation controls preserving end-to-end signal fidelity.",
       "surface_tokens": [
-        "3-stage multimodal synthesis",
-        "3-tier self-healing mesh",
-        "0% silent signal loss",
+        "multimodal synthesis",
+        "automated reconciliation",
+        "signal fidelity",
         "pre-egress PII sanitization"
       ],
       "section_eligibility": [
@@ -1095,7 +1090,7 @@
     },
     "metric_slalom_hybrid_bgem3_fts5_11gate_retrieval": {
       "metric_outcome_id": "metric_slalom_hybrid_bgem3_fts5_11gate_retrieval",
-      "metric": "1024-d BGE-M3 dense vector + SQLite FTS5 BM25 lexical fusion across 11 release qualification gates",
+      "metric": "hybrid semantic vector and lexical retrieval pipelines governed by production release qualification gates",
       "metric_type": "hybrid_retrieval_metric",
       "employer": "Slalom",
       "employer_node_id": "employment_exp_slalom_001",
@@ -1105,12 +1100,12 @@
       "bundle_bindings": [
         "reb_slalom_bitemporal_graphrag_uwg"
       ],
-      "claim_text": "Graph evidence supports 1024-d BGE-M3 dense vector and SQLite FTS5 BM25 lexical fusion governed by 11 release qualification gates.",
+      "claim_text": "Graph evidence supports hybrid semantic vector and lexical retrieval pipelines governed by production release qualification gates.",
       "surface_tokens": [
-        "1024-d BGE-M3",
-        "FTS5 BM25",
-        "11 release qualification gates",
-        "hybrid GraphRAG"
+        "hybrid semantic retrieval",
+        "lexical fusion",
+        "release qualification gates",
+        "knowledge-graph retrieval"
       ],
       "section_eligibility": [
         "slalom_bullets",
@@ -1122,7 +1117,7 @@
     },
     "metric_slalom_merkle_subgraph_cache_kv_alignment": {
       "metric_outcome_id": "metric_slalom_merkle_subgraph_cache_kv_alignment",
-      "metric": "cryptographic Merkle subgraph cache and deterministic KV-prefix prompt alignment over bi-temporal SQLite WAL",
+      "metric": "deterministic subgraph context caching and prompt-prefix alignment across enterprise lakehouse and knowledge-graph workloads",
       "metric_type": "cache_efficiency_metric",
       "employer": "Slalom",
       "employer_node_id": "employment_exp_slalom_001",
@@ -1132,12 +1127,12 @@
       "bundle_bindings": [
         "reb_slalom_bitemporal_graphrag_uwg"
       ],
-      "claim_text": "Graph evidence supports cryptographic Merkle subgraph caching and deterministic KV-prefix prompt alignment over a bi-temporal SQLite WAL Knowledge Graph.",
+      "claim_text": "Graph evidence supports deterministic subgraph context caching and prompt-prefix alignment across enterprise lakehouse and knowledge-graph workloads.",
       "surface_tokens": [
-        "Merkle subgraph cache",
-        "KV-prefix alignment",
-        "bi-temporal SQLite WAL",
-        "RFC-8785 JCS"
+        "subgraph context caching",
+        "prompt-prefix alignment",
+        "enterprise lakehouse",
+        "knowledge-graph workloads"
       ],
       "section_eligibility": [
         "slalom_bullets",
@@ -1149,7 +1144,7 @@
     },
     "metric_slalom_uwg_5check_physical_disk_proof": {
       "metric_outcome_id": "metric_slalom_uwg_5check_physical_disk_proof",
-      "metric": "100% write custody via Universal Write Gateway with 5-check physical disk proofs & generational atomic swap",
+      "metric": "governed write-custody gateway enforcing automated data integrity verification and atomic dataset promotion",
       "metric_type": "persistence_integrity_metric",
       "employer": "Slalom",
       "employer_node_id": "employment_exp_slalom_001",
@@ -1159,12 +1154,12 @@
       "bundle_bindings": [
         "reb_slalom_bitemporal_graphrag_uwg"
       ],
-      "claim_text": "Graph evidence supports 100% write custody via the Universal Write Gateway enforcing 5-check physical disk proofs before generational atomic swap.",
+      "claim_text": "Graph evidence supports governed write-custody controls enforcing automated data integrity verification before atomic dataset promotion.",
       "surface_tokens": [
-        "Universal Write Gateway",
-        "5-check physical disk proof",
-        "generational atomic swap",
-        "zero raw SQL writes"
+        "governed write-custody",
+        "data integrity verification",
+        "atomic dataset promotion",
+        "end-to-end data lineage"
       ],
       "section_eligibility": [
         "slalom_bullets",
@@ -1176,7 +1171,7 @@
     },
     "metric_slalom_decision_engine_18roles_6modalities_w1w7": {
       "metric_outcome_id": "metric_slalom_decision_engine_18roles_6modalities_w1w7",
-      "metric": "18 specialized reasoning roles across 6 cognitive modalities executing 7 dialectical deliberation waves",
+      "metric": "multi-stage enterprise decision evaluation workflows across specialized domain review lanes",
       "metric_type": "decision_intelligence_metric",
       "employer": "Slalom",
       "employer_node_id": "employment_exp_slalom_001",
@@ -1186,12 +1181,12 @@
       "bundle_bindings": [
         "reb_slalom_dialectical_decision_bayesian_hitl"
       ],
-      "claim_text": "Graph evidence supports 18 specialized reasoning roles across 6 cognitive modalities executing 7 dialectical deliberation waves (W1-W7).",
+      "claim_text": "Graph evidence supports multi-stage enterprise decision evaluation workflows across specialized domain review lanes.",
       "surface_tokens": [
-        "18 reasoning roles",
-        "6 cognitive modalities",
-        "W1-W7 dialectical waves",
-        "Decision Intelligence Engine"
+        "multi-stage decision evaluation",
+        "domain review lanes",
+        "regulated data governance",
+        "model-risk evaluation"
       ],
       "section_eligibility": [
         "slalom_bullets",
@@ -1203,7 +1198,7 @@
     },
     "metric_slalom_bayesian_hitl_20pct_ambiguity_margin": {
       "metric_outcome_id": "metric_slalom_bayesian_hitl_20pct_ambiguity_margin",
-      "metric": "Bayesian Dirichlet-Laplace conjugate-prior HITL ambiguity gate with 20% calibrated confidence margin & 65% floor",
+      "metric": "99% policy-gate auditability across confidence-calibrated human-in-the-loop (HITL) escalation workflows",
       "metric_type": "hitl_governance_metric",
       "employer": "Slalom",
       "employer_node_id": "employment_exp_slalom_001",
@@ -1213,12 +1208,12 @@
       "bundle_bindings": [
         "reb_slalom_dialectical_decision_bayesian_hitl"
       ],
-      "claim_text": "Graph evidence supports Bayesian Dirichlet-Laplace conjugate-prior HITL ambiguity gating with a 20% calibrated confidence margin and 65% floor.",
+      "claim_text": "Graph evidence supports 99% policy-gate auditability across confidence-calibrated human-in-the-loop (HITL) escalation workflows.",
       "surface_tokens": [
-        "Bayesian conjugate-prior HITL",
-        "Dirichlet-Laplace",
-        "20% ambiguity margin",
-        "65% confidence floor"
+        "confidence-calibrated HITL",
+        "escalation gates",
+        "high-risk operational decisions",
+        "human review routing"
       ],
       "section_eligibility": [
         "slalom_bullets",
@@ -1230,7 +1225,7 @@
     },
     "metric_slalom_dialectical_judge_rubric_calibration": {
       "metric_outcome_id": "metric_slalom_dialectical_judge_rubric_calibration",
-      "metric": "dialectical thesis-antithesis-synthesis LLM judge adjudication with closed-loop rubric calibration",
+      "metric": "independent multi-model evaluation adjudication with closed-loop rubric calibration",
       "metric_type": "judge_calibration_metric",
       "employer": "Slalom",
       "employer_node_id": "employment_exp_slalom_001",
@@ -1240,12 +1235,12 @@
       "bundle_bindings": [
         "reb_slalom_dialectical_decision_bayesian_hitl"
       ],
-      "claim_text": "Graph evidence supports dialectical thesis-antithesis-synthesis LLM judge adjudication with closed-loop rubric calibration.",
+      "claim_text": "Graph evidence supports independent multi-model evaluation adjudication with closed-loop rubric calibration.",
       "surface_tokens": [
-        "Dialectical LLM Judge",
-        "thesis-antithesis-synthesis",
+        "multi-model evaluation",
         "rubric calibration",
-        "cross-family judge"
+        "cross-family judge",
+        "model-risk governance"
       ],
       "section_eligibility": [
         "slalom_bullets",
@@ -1257,7 +1252,7 @@
     },
     "metric_slalom_7layer_119package_dag_architecture": {
       "metric_outcome_id": "metric_slalom_7layer_119package_dag_architecture",
-      "metric": "7-layer unidirectional DAG architecture across 119 modular subpackages enforcing <=400-line file budgets",
+      "metric": "modular multi-layer cloud and agentic platform architecture enforcing strict service boundary contracts across enterprise engineering teams",
       "metric_type": "architecture_scale_metric",
       "employer": "Slalom",
       "employer_node_id": "employment_exp_slalom_001",
@@ -1267,12 +1262,12 @@
       "bundle_bindings": [
         "reb_slalom_autonomous_agentic_sdlc_mcp"
       ],
-      "claim_text": "Graph evidence supports a 7-layer unidirectional DAG architecture across 119 modular subpackages enforcing <=400-line file budgets and McCabe complexity <=15.",
+      "claim_text": "Graph evidence supports modular multi-layer cloud and agentic platform architecture enforcing strict service boundary contracts across enterprise engineering teams.",
       "surface_tokens": [
-        "7-layer DAG",
-        "119 modular subpackages",
-        "<=400-line budget",
-        "AST boundary enforcement"
+        "modular cloud architecture",
+        "service boundary contracts",
+        "operating model transformation",
+        "agentic platform architecture"
       ],
       "section_eligibility": [
         "slalom_bullets",
@@ -1284,7 +1279,7 @@
     },
     "metric_slalom_18agent_6stage_32gate_autonomous_sdlc": {
       "metric_outcome_id": "metric_slalom_18agent_6stage_32gate_autonomous_sdlc",
-      "metric": "18 autonomous engineering agents across 6 pipeline stages, 32 fail-closed readiness gates & 6 custom MCP servers",
+      "metric": "automated multi-stage SDLC release readiness gates and governed enterprise tool integration workflows",
       "metric_type": "autonomous_sdlc_metric",
       "employer": "Slalom",
       "employer_node_id": "employment_exp_slalom_001",
@@ -1294,12 +1289,12 @@
       "bundle_bindings": [
         "reb_slalom_autonomous_agentic_sdlc_mcp"
       ],
-      "claim_text": "Graph evidence supports 18 autonomous engineering agents across 6 pipeline stages, 32 fail-closed main readiness gates, and 6 custom MCP servers.",
+      "claim_text": "Graph evidence supports automated multi-stage SDLC release readiness gates and governed enterprise tool integration workflows.",
       "surface_tokens": [
-        "18 autonomous agents",
-        "32 readiness gates",
-        "6 custom MCP servers",
-        "FIFO merge lock"
+        "SDLC release readiness gates",
+        "forward-deployed engineering",
+        "enterprise tool integration",
+        "governed delivery automation"
       ],
       "section_eligibility": [
         "slalom_bullets",
@@ -1311,7 +1306,7 @@
     },
     "metric_slalom_8surface_closed_loop_system_learning": {
       "metric_outcome_id": "metric_slalom_8surface_closed_loop_system_learning",
-      "metric": "8 closed-loop System Learning surfaces calibrating priors, voiceprints, hybrid weights, and cost-latency routing",
+      "metric": "closed-loop production telemetry and continuous evaluation feedback across enterprise AI deployments",
       "metric_type": "system_learning_metric",
       "employer": "Slalom",
       "employer_node_id": "employment_exp_slalom_001",
@@ -1321,12 +1316,12 @@
       "bundle_bindings": [
         "reb_slalom_autonomous_agentic_sdlc_mcp"
       ],
-      "claim_text": "Graph evidence supports 8 closed-loop System Learning surfaces calibrating Bayesian priors, speaker voiceprints, lexical priming, hybrid retrieval weights, prefix caches, judge rubrics, self-healing efficacy, and cost-latency routing.",
+      "claim_text": "Graph evidence supports closed-loop production telemetry and continuous evaluation feedback calibrating runtime reliability and cost-latency routing across enterprise AI deployments.",
       "surface_tokens": [
-        "8 System Learning surfaces",
-        "closed-loop calibration",
+        "closed-loop telemetry",
+        "continuous evaluation feedback",
         "cost-latency routing",
-        "hybrid weight tuning"
+        "runtime reliability"
       ],
       "section_eligibility": [
         "slalom_bullets",

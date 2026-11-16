@@ -90,7 +90,12 @@ def resolve_target_picture_for_archetype(*, role_archetype: str, strategy_execut
             "platforms, and FSA-chartered actuarial risk governance into one enterprise IT direction "
             f"(targeting context: {role_s or 'SVP IT strategy'}; company name never in prose)."
         )
-    return f"Executive portrait: leadership-first governed agentic AI platform leader (targeting: {role_s or 'target role'}; company name never in prose)."
+    return (
+        "Executive portrait: leadership-first senior engineering and AI platform executive uniting "
+        "organizational leadership scale, forward-deployed prototype-to-production client activation, "
+        "governed agentic AI runtime architecture, and regulated financial-services/enterprise risk governance "
+        f"(targeting: {role_s or 'target role'}; company name never in prose)."
+    )
 
 
 _EXEC_COSINE_DEDUP_SUBS: tuple[tuple[str, str], ...] = (

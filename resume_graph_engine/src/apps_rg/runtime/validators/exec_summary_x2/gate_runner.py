@@ -85,6 +85,7 @@ from apps_rg.runtime.validators.exec_summary_x2.shape_and_credential_checks impo
 from apps_rg.runtime.validators.exec_summary_x2.surface_checks import (
     check_exec_summary_display_override_compliance,
     check_exec_summary_meta_filler_patterns,
+    check_exec_summary_no_internal_plumbing_or_stutter,
     check_exec_summary_no_sentence_fragment,
     check_exec_summary_strategy_no_commercialization_thread,
     check_judge_packet_display_override_parity,
@@ -300,6 +301,14 @@ def _run_x2_gates_impl(
         meta_filler_reason or "ok",
         [],
         meta_filler_reason,
+    )
+    plumbing_ok, plumbing_reason = check_exec_summary_no_internal_plumbing_or_stutter(resume_display_text)
+    add(
+        "x2_exec_summary_no_internal_plumbing_or_stutter",
+        plumbing_ok,
+        plumbing_reason or "ok",
+        [],
+        plumbing_reason,
     )
     colon_stitch_ok, colon_stitch_reason = check_resume_display_colon_space_discipline(resume_display_text)
     add(

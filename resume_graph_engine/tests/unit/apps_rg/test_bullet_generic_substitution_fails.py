@@ -9,10 +9,16 @@ from __future__ import annotations
 
 from apps_rg.runtime.validators.bullet_quality_floor_x2 import (
     GENERIC_CONSULTING_SUBSTITUTIONS,
-    check_experience_bullet_evidence_density,
     check_bullet_no_generic_consulting_substitution,
+    check_bullet_no_internal_plumbing_or_stutter,
     check_bullet_technical_specificity_floor,
+    check_experience_bullet_evidence_density,
     run_bullet_quality_floor_gates,
+)
+from apps_rg.runtime.validators.executive_summary_x2 import (
+    check_exec_summary_no_internal_plumbing_or_stutter,
+    check_unsupported_industry_claims,
+    run_x2_gates,
 )
 
 
@@ -208,3 +214,95 @@ class TestBulletQualityFloorRunner:
         assert sen_pass, "All IBM bullets should pass seniority floor"
         assert tech_pass, "All IBM bullets should pass technical specificity floor"
         assert cons_pass, f"All IBM bullets should pass consulting gate; failures: {[r.failure_reason for r in cons_results if r.failure_reason]}"
+
+
+class TestInternalPlumbingAndStutterGates:
+    def test_internal_repo_plumbing_slalom_bullets_fail_immediately(self) -> None:
+        horrific_slalom_bullets = [
+            (
+                "bul_slalom_002",
+                "Architected a fully local acoustic airgap paired with a sub-250ms Dual-Track Live "
+                "Executive Copilot, routing dual-channel audio through a custom PCM audio spooler "
+                "and MLX Whisper to deliver 100% cloud-free executive transcription.",
+            ),
+            (
+                "bul_slalom_003",
+                "Built a seven-wave, 18-role Strategic Decision Intelligence Engine backed by a "
+                "Bayesian Dirichlet-Laplace conjugate-prior HITL ambiguity gate and an 8-surface "
+                "System Learning memory store, enforcing a 20% calibrated confidence margin.",
+            ),
+            (
+                "bul_slalom_004",
+                "Engineered a bi-temporal SQLite WAL knowledge graph with an 11-gate hybrid "
+                "GraphRAG retrieval engine, combining 1024-d BGE-M3 dense embeddings with FTS5 "
+                "sparse search and a Merkle-cached subgraph layer, to enforce zero-trust "
+                "persistence through a Universal Write Gateway.",
+            ),
+        ]
+        for bid, text in horrific_slalom_bullets:
+            plumbing_res = check_bullet_no_internal_plumbing_or_stutter(bid, text)
+            assert not plumbing_res.passed, f"Expected plumbing gate fail for {bid}"
+            cons_res = check_bullet_no_generic_consulting_substitution(bid, text)
+            assert not cons_res.passed, f"Expected consulting gate fail for {bid}"
+            ev_res = check_experience_bullet_evidence_density(bid, text)
+            assert not ev_res.passed, f"Expected evidence density fail for {bid}"
+            assert "internal_plumbing_or_stutter:" in (ev_res.failure_reason or "")
+
+    def test_horrific_executive_summary_fails_plumbing_stutter_and_s1_opener(self) -> None:
+        horrific_summary = (
+            "Executive leadership architects the control-plane for a regulated-enterprise agentic AI "
+            "platform, setting the operating model that moves AI capabilities safely into production. "
+            "That control plane runs a seven-layer, 119-package platform through an eighteen-agent, "
+            "six-stage autonomous SDLC across thirty-two readiness gates and six MCP servers. Across "
+            "enterprise programs, sandboxed execution design and human-override escalation pair with "
+            "confidence-based, HITL architecture to keep agents bounded and safely recoverable. In "
+            "parallel, regulated enterprise AI governance built on evidence-contract design and "
+            "model-risk discipline reduced regulated enterprise regulatory findings by 35%. The same "
+            "platform discipline accelerated compliance submission cycles, pairing governance rigor "
+            "with deployment speed for business-line activation."
+        )
+        passed, reason = check_exec_summary_no_internal_plumbing_or_stutter(horrific_summary)
+        assert not passed
+        reason_str = reason or ""
+        assert "119-package" in reason_str
+        assert "thirty-two readiness gates" in reason_str
+        assert "six mcp servers" in reason_str
+        assert "stuttered_stem:" in reason_str
+        assert "weak_s1_opener:executive leadership architects" in reason_str
+
+        gates = run_x2_gates(
+            resume_display_text=horrific_summary,
+            parsed_output={"resume_display_text": horrific_summary},
+            claim_ledger=[],
+            text_claim_coverage={},
+            allowed_fact_ids={"fact_unify_005"},
+            target_company="Truist",
+            jd_text="Head of Forward Deployed Engineering",
+            temperature=0.2,
+            runtime_generation_status="SUCCESS",
+            monolithic_prompt_invoked=False,
+            strategic_tailor_v1_invoked=False,
+            selected_facts=[{"fact_id": "fact_unify_005", "raw_chunk": "35% reduction in findings"}],
+        )
+        gate_map = {g.gate_id: g for g in gates}
+        assert not gate_map["x2_exec_summary_no_internal_plumbing_or_stutter"].pass_
+        assert not gate_map["x2_exec_summary_meta_filler_zero"].pass_
+
+    def test_banking_supported_by_unify_governance_bundle_metric_fields(self) -> None:
+        summary = (
+            "Engineering executive building governed agentic AI platforms and model risk controls "
+            "that reduced banking regulatory findings by 35% while accelerating compliance "
+            "submission cycles across enterprise lines of business."
+        )
+        selected_facts = [
+            {
+                "fact_id": "reb_unify_regulated_enterprise_ai_governance",
+                "claim": "Established regulated enterprise AI governance and MRM controls",
+                "proof": "35% reduction in regulatory findings",
+                "metric_values": ["35% reduction in banking and insurance regulatory findings"],
+                "metric_outcome_ids": ["metric_unify_banking_regulatory_findings_reduction_35pct"],
+            }
+        ]
+        passed, unsupported = check_unsupported_industry_claims(summary, selected_facts)
+        assert passed, f"Expected banking to be supported by metric fields, got {unsupported}"
+

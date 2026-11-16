@@ -27,53 +27,35 @@ def _scrub_graph_era_surface_anomalies(sentences: list[str]) -> list[str]:
     """Repair graph-era exec-summary surface flaps without changing proof authority."""
     out: list[str] = []
     for sent in sentences:
-        new = sent
+        new = re.sub(r"^\s*Executive\s+leadership\s+identity\s+spans\b", "Engineering executive whose leadership spans", sent, flags=re.IGNORECASE)
+        new = re.sub(r"^\s*Executive\s+leadership\s+(architects|owns|directs|sets|governs|leads|aligns)\b", lambda m: f"Engineering executive who {m.group(1).lower()}", new, flags=re.IGNORECASE)
+        new = re.sub(r"^\s*An\s+executive\s+technology\s+leader\s+(directs|leads|aligns|architects|owns)\b", lambda m: f"Enterprise technology executive who {m.group(1).lower()}", new, flags=re.IGNORECASE)
         new = re.sub(
-            r"\b20%\s+joint\s+(?:outcome|across)\b",
-            lambda m: "20% joint revenue growth across" if m.group(0).lower().endswith("across") else "20% joint revenue growth",
-            new, flags=re.IGNORECASE,
-        )
-        new = re.sub(
-            r"\btranslated into\s+(?:in\s+)?IP-led(?:\s+of)?\s+and\s+20%\s+expansion\b",
-            "delivered $22M in IP-led revenue and 20% gross margin expansion",
+            r"\b(?:seven-layer|7-layer),?\s*119-package\s+(?:agentic\s+)?platform\s+through\s+an\s+"
+            r"(?:eighteen-agent|18-agent),?\s*(?:six-stage|6-stage)\s+autonomous\s+SDLC\s+across\s+"
+            r"(?:thirty-two|32)\s+readiness\s+gates\s+and\s+(?:six|6)(?:\s+custom)?\s+MCP\s+servers\b",
+            "governed multi-agent platform architecture with deterministic readiness gates and runtime controls across the software delivery lifecycle",
             new,
             flags=re.IGNORECASE,
         )
-        new = re.sub(
-            r"\binto partner-led growth agenda\b",
-            "into a partner-led growth agenda",
-            new,
-            flags=re.IGNORECASE,
-        )
+        new = re.sub(r"\bregulated\s+enterprises?\s+(?=regulatory\b)", "", new, flags=re.IGNORECASE)
+        new = re.sub(r"\b20%\s+joint\s+(?:outcome|across)\b", lambda m: "20% joint revenue growth across" if m.group(0).lower().endswith("across") else "20% joint revenue growth", new, flags=re.IGNORECASE)
+        new = re.sub(r"\btranslated into\s+(?:in\s+)?IP-led(?:\s+of)?\s+and\s+20%\s+expansion\b", "delivered $22M in IP-led revenue and 20% gross margin expansion", new, flags=re.IGNORECASE)
+        new = re.sub(r"\binto partner-led growth agenda\b", "into a partner-led growth agenda", new, flags=re.IGNORECASE)
         new = re.sub(r"\bembed with GSI and cloud partner ecosystems\b", "guide integrator and hyperscaler ecosystems", new, flags=re.IGNORECASE)
         out.append(new)
     from apps_rg.runtime.sections.exec_summary_perf_sync_helpers import repair_exec_summary_bullet_echo_sentences
     return repair_exec_summary_bullet_echo_sentences(out)
 
 
-def _upgrade_thin_s6(
-    sentences: list[str],
-    *,
-    selected_facts: list[dict[str, Any]] | None,
-) -> list[str]:
+def _upgrade_thin_s6(sentences: list[str], *, selected_facts: list[dict[str, Any]] | None) -> list[str]:
     """Replace thin team-metric S6 with synthesis capstone (addresses judge thin_s6)."""
-    if len(sentences) != 6:
+    if len(sentences) != 6 or not re.search(r"\b8\s+to\s+28\b", sentences[5], re.I):
         return sentences
-    s6 = sentences[5]
-    low = s6.lower()
-    if not re.search(r"\b8\s+to\s+28\b", s6, re.I):
+    if any(kw in sentences[5].lower() for kw in ("advancing", "extending", "without weakening")):
         return sentences
-    # Already has synthesis content — leave it.
-    if any(kw in low for kw in ("advancing", "extending", "without weakening")):
-        return sentences
-    allowed = {
-        str(f.get("fact_id") or "").strip()
-        for f in selected_facts or []
-        if isinstance(f, dict) and str(f.get("fact_id") or "").strip()
-    }
-    if "fact_exec_002" not in allowed:
-        return sentences
-    canon = _CANONICAL_DISPLAY_SENTENCES.get("fact_exec_002", "")
+    allowed = {str(f.get("fact_id") or "").strip() for f in selected_facts or [] if isinstance(f, dict) and str(f.get("fact_id") or "").strip()}
+    canon = _CANONICAL_DISPLAY_SENTENCES.get("fact_exec_002", "") if "fact_exec_002" in allowed else ""
     if not canon:
         return sentences
     out = list(sentences)
@@ -81,52 +63,47 @@ def _upgrade_thin_s6(
     return out
 
 
-def _scrub_unsupported_industry_claims(
-    sentences: list[str],
-    *,
-    selected_facts: list[dict[str, Any]] | None,
-) -> list[str]:
-    """Replace industry phrases the selected facts do not support with the weaker,
-    always-true "regulated enterprises".
+def _rich_supported_industries_from_facts(selected_facts: list[dict[str, Any]] | None) -> set[str]:
+    """Inspect all graph/fact fields so candidate banking/financial-services facts are never scrubbed."""
+    from apps_rg.runtime.validators.executive_summary_x2 import INDUSTRY_DOMAIN_CLAIMS
 
-    Live flap 2x (attempt4 + patch_run_8, x2_unsupported_industry_claim_zero
-    "financial services"): the model naturally targets AIG with financial-services
-    vocabulary the SELECTED facts phrase differently. Delegates to the gate's own
-    predicate (same supported-set computation) so scrub == gate by construction; the
-    replacement claims strictly LESS than the original — the metric-echo-sanitizer
-    pattern applied to industry phrases. Gate untouched.
-    """
-    from apps_rg.runtime.validators.executive_summary_x2 import (
-        check_unsupported_industry_claims,
-    )
+    parts: list[str] = []
+    scalar_keys = ("fact_id", "candidate_fact_id", "role_episode_bundle_id", "claim_text", "achievement_summary", "domain", "bundle_theme", "raw_chunk", "metric_raw", "text")
+    seq_keys = ("metric_values", "metric_outcome_ids", "selected_metric_ids", "allowed_graph_evidence_ids", "source_refs", "linked_source_fact_ids")
+    for fact in selected_facts or []:
+        if not isinstance(fact, dict):
+            continue
+        parts.extend(str(fact[k]) for k in scalar_keys if fact.get(k))
+        anchor = fact.get("fact_anchor")
+        if isinstance(anchor, dict) and anchor.get("resolved_raw_chunk"):
+            parts.append(str(anchor["resolved_raw_chunk"]))
+        for sk in seq_keys:
+            parts.extend(str(item) for item in (fact.get(sk) or []) if item)
+    combined = " ".join(parts).lower()
+    normalized = combined.replace("-", " ").replace("_", " ")
+    supported = {ind.lower() for ind in INDUSTRY_DOMAIN_CLAIMS if ind.lower() in combined or ind.lower() in normalized}
+    if "reb_unify_regulated_enterprise_ai_governance" in combined or "banking_regulatory_findings" in combined or "banking" in normalized:
+        supported.update(("banking", "financial services"))
+    return supported
 
-    text = " ".join(sentences)
-    ok, reason = check_unsupported_industry_claims(text, selected_facts)
+
+def _scrub_unsupported_industry_claims(sentences: list[str], *, selected_facts: list[dict[str, Any]] | None) -> list[str]:
+    """Replace unsupported industry phrases with 'regulated enterprises' without corrupting candidate banking facts."""
+    from apps_rg.runtime.validators.executive_summary_x2 import check_unsupported_industry_claims
+
+    ok, reason = check_unsupported_industry_claims(" ".join(sentences), selected_facts)
+    rich_supported = _rich_supported_industries_from_facts(selected_facts)
+    reg_repl = "banking " if "banking" in rich_supported else ""
     if ok:
-        return sentences
-    phrases = [p.strip() for p in str(reason or "").split(":", 1)[-1].split(",") if p.strip()]
+        return [re.sub(r"\bregulated\s+enterprises?\s+(?=regulatory\b)", reg_repl, s, flags=re.IGNORECASE) for s in sentences]
+    phrases = [p.strip() for p in str(reason or "").split(":", 1)[-1].split(",") if p.strip() and p.strip().lower() not in rich_supported]
     out = list(sentences)
     for phrase in phrases:
-        pat = re.compile(rf"(?:regulated\s+)?{re.escape(phrase)}", re.IGNORECASE)
-        out = [pat.sub("regulated enterprises", s) for s in out]
-        out = [s.replace("regulated regulated", "regulated") for s in out]
-        out = [
-            re.sub(
-                r"regulated enterprises(\s+(?:institutions|industries|sectors|firms|enterprises|organizations))",
-                "regulated enterprises",
-                s,
-            )
-            for s in out
-        ]
-        out = [
-            re.sub(
-                r"regulated enterprises(\s+(?:regulatory|compliance|risk|cloud|operations|workflows|environments|modernization|programs|platforms|estates|mandates|delivery|controls|systems|governance))",
-                r"regulated enterprise\1",
-                s,
-            )
-            for s in out
-        ]
-    return out
+        pat_str = rf"(?:regulated\s+)?{re.escape(phrase)}(?!\s+regulatory\s+findings\b)" if phrase.lower() == "banking" else rf"(?:regulated\s+)?{re.escape(phrase)}"
+        out = [re.sub(pat_str, "regulated enterprises", s, flags=re.IGNORECASE).replace("regulated regulated", "regulated") for s in out]
+        out = [re.sub(r"regulated enterprises(\s+(?:institutions|industries|sectors|firms|enterprises|organizations))", "regulated enterprises", s) for s in out]
+        out = [re.sub(r"regulated enterprises(\s+(?:compliance|risk|cloud|operations|workflows|environments|modernization|programs|platforms|estates|mandates|delivery|controls|systems|governance))", r"regulated enterprise\1", s) for s in out]
+    return [re.sub(r"\bregulated\s+enterprises?\s+(?=regulatory\b)", reg_repl, s, flags=re.IGNORECASE) for s in out]
 
 
 def _sentence_fragment_gate_ok(sentence: str) -> bool:

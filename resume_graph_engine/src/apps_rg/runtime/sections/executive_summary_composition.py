@@ -27,79 +27,34 @@ BRUSHSTROKE_ROLES = (
 
 # Six-sentence product band: index 0..5 maps to brushstroke + arc role (runtime + PA injection).
 SENTENCE_ARC_DEFAULT: tuple[dict[str, str], ...] = (
-    {
-        "brushstroke_id": "B1_executive_identity",
-        "arc_role": "thesis",
-        "guidance": "Executive leadership thesis and operating scope; no mechanism inventory.",
-    },
-    {
-        "brushstroke_id": "B2_governed_platform_system",
-        "arc_role": "platform_system",
-        "guidance": "One synthesized platform/runtime clause; max two mechanism terms verbatim from facts.",
-    },
-    {
-        "brushstroke_id": "B2_governed_platform_system",
-        "arc_role": "operating_model",
-        "guidance": "Lifecycle, scale-out, or operating-model substance from allowed facts.",
-    },
-    {
-        "brushstroke_id": "B3_control_evidence_discipline",
-        "arc_role": "governance_evidence",
-        "guidance": "Governance, lineage, or validation discipline when facts support it.",
-    },
-    {
-        "brushstroke_id": "B4_business_role_fit",
-        "arc_role": "commercial_outcomes",
-        "guidance": "Metrics and commercial outcomes woven into narrative; not a bullet dump.",
-    },
-    {
-        "brushstroke_id": "B4_business_role_fit",
-        "arc_role": "integrated_capstone",
-        "guidance": "Integrated credibility or enterprise-direction capstone from allowed facts only.",
-    },
+    {"brushstroke_id": "B1_executive_identity", "arc_role": "thesis", "guidance": "Commanding SVP/Senior Director engineering executive thesis uniting 100+ person organization leadership or enterprise practice scale, forward-deployed AI & cloud transformation, and regulated enterprise delivery from allowed facts (open with 'Engineering executive...' or 'Enterprise technology executive...'; never open with 'Executive leadership architects...' or mechanism inventories)."},
+    {"brushstroke_id": "B2_governed_platform_system", "arc_role": "platform_system", "guidance": "One synthesized governed agentic platform/runtime clause from allowed facts; max two mechanism terms verbatim (never dump internal codebase package, gate, or MCP server counts)."},
+    {"brushstroke_id": "B2_governed_platform_system", "arc_role": "operating_model", "guidance": "Forward-deployed delivery operating model, client activation velocity (e.g. prototype-to-production compression from months to weeks when in allowed facts), or scale-out substance from allowed facts."},
+    {"brushstroke_id": "B3_control_evidence_discipline", "arc_role": "governance_evidence", "guidance": "Regulated financial-services/banking or enterprise AI governance, lineage, model-risk, and validation discipline when facts support it (weave allowed percentage reductions cleanly into display prose)."},
+    {"brushstroke_id": "B4_business_role_fit", "arc_role": "commercial_outcomes", "guidance": "Metrics and commercial/adoption outcomes woven into narrative from allowed facts; not a bullet dump."},
+    {"brushstroke_id": "B4_business_role_fit", "arc_role": "integrated_capstone", "guidance": "Forward-looking credibility and enterprise-direction capstone from allowed facts only projecting how governed platform architecture, forward-deployed execution, and regulatory rigor scale business-line AI activation."},
 )
 
 MECHANISM_TERMS = (
-    "routing",
-    "retrieval",
-    "graphrag",
-    "graph-aware retrieval",
-    "telemetry",
-    "sandboxing",
-    "sandboxed",
-    "orchestration",
-    "multi-agent",
-    "policy",
-    "replay",
-    "write control",
-    "gates",
-    "deterministic",
-    "vector services",
-    "microservices",
-    "pipelines",
+    "routing", "retrieval", "graphrag", "graph-aware retrieval", "telemetry", "sandboxing",
+    "sandboxed", "orchestration", "multi-agent", "policy", "replay", "write control",
+    "gates", "deterministic", "vector services", "microservices", "pipelines",
 )
 
 GENERIC_AI_HYPE = (
-    "cutting-edge",
-    "state-of-the-art",
-    "world-class",
-    "best-in-class",
-    "synergy",
-    "leverage ai",
-    "unlock value",
-    "paradigm",
-    "disruptive innovation",
+    "cutting-edge", "state-of-the-art", "world-class", "best-in-class", "synergy", "leverage ai",
+    "unlock value", "paradigm", "disruptive innovation", "119-package", "six mcp servers",
+    "6 custom mcp servers", "thirty-two readiness gates", "32 readiness gates",
+    "8-surface system learning", "regulated enterprise regulatory findings",
+    "regulated enterprises regulatory findings",
 )
 
 EXEC_VOICE_BAD_OPENERS = (
-    "engineering executive with expertise in",
-    "with extensive experience",
-    "an experienced leader",
-    "an experienced engineering executive",
-    "seasoned executive",
-    "results-driven",
-    "proven track record",
-    "dynamic leader",
+    "engineering executive with expertise in", "with extensive experience", "an experienced leader",
+    "an experienced engineering executive", "seasoned executive", "results-driven",
+    "proven track record", "dynamic leader", "executive leadership architects",
+    "executive leadership identity", "executive leadership owns", "executive leadership directs",
+    "executive leadership sets", "executive leadership governs", "an executive technology leader",
 )
 
 _KEYWORD_SKILL_REFS: tuple[tuple[str, str], ...] = (
@@ -256,10 +211,10 @@ def _brushstroke_for_role(
     )
     skill_refs = _infer_graph_skill_refs(role_facts, proof_pool_metadata=proof_pool_metadata)
     image_goals = {
-        "B1_executive_identity": "Establish executive leadership identity and operating scope.",
-        "B2_governed_platform_system": "Paint the governed agentic platform system (runtime, retrieval, orchestration).",
-        "B3_control_evidence_discipline": "Show control, lineage, validation, and audit-ready evidence discipline.",
-        "B4_business_role_fit": "Close with commercial, scale, and credibility outcomes tied to role fit.",
+        "B1_executive_identity": "Establish senior engineering executive role identity, organizational leadership scale, and enterprise operating scope (never start with 'Executive leadership...').",
+        "B2_governed_platform_system": "Synthesize the governed agentic AI platform system (runtime, retrieval, orchestration, delivery operating model) without internal codebase package/gate/server counts.",
+        "B3_control_evidence_discipline": "Show regulated financial-services/enterprise control, lineage, validation, and model-risk evidence discipline.",
+        "B4_business_role_fit": "Close with commercial adoption, delivery velocity, and credibility outcomes tied to role fit.",
     }
     return {
         "brushstroke_id": role,
@@ -573,6 +528,14 @@ def normalize_exec_summary_recruiter_openers(resume_display_text: str) -> str:
         ("engineering executive with expertise in", "Engineering executive building"),
         ("engineering executive with expertise", "Engineering executive building"),
         ("technology strategy executive with extensive experience in", "Technology strategy executive who operationalizes"),
+        ("executive leadership identity spans", "Engineering executive whose leadership spans"),
+        ("executive leadership architects", "Engineering executive who architects"),
+        ("executive leadership owns", "Engineering executive who owns"),
+        ("executive leadership directs", "Engineering executive who directs"),
+        ("executive leadership sets", "Engineering executive who sets"),
+        ("executive leadership governs", "Engineering executive who governs"),
+        ("an executive technology leader directs", "Enterprise technology executive who directs"),
+        ("an executive technology leader leads", "Enterprise technology executive who leads"),
     )
     for old, new in replacements:
         if low.startswith(old):

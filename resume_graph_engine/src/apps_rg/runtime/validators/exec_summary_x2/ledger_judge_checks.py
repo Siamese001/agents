@@ -183,6 +183,26 @@ def check_metric_fact_id_granularity(text_claim_coverage: dict[str, Any]) -> tup
     return True, None
 
 
+def _fact_support_text_blob(fact: dict[str, Any]) -> str:
+    anchor = fact.get("fact_anchor") if isinstance(fact.get("fact_anchor"), dict) else {}
+    parts = [
+        str(fact.get("fact_id") or ""),
+        str(fact.get("candidate_fact_id") or ""),
+        str(fact.get("role_episode_bundle_id") or ""),
+        str(fact.get("claim_text") or ""),
+        str(fact.get("achievement_summary") or ""),
+        str(fact.get("domain") or ""),
+        str(fact.get("claim_scope") or ""),
+        str(fact.get("claim_outcome") or ""),
+        str(fact.get("raw_chunk") or ""),
+        str(anchor.get("resolved_raw_chunk") or ""),
+        " ".join(str(x) for x in (fact.get("metric_values") or [])),
+        " ".join(str(x) for x in (fact.get("metric_outcome_ids") or [])),
+        " ".join(str(x) for x in (fact.get("selected_metric_ids") or [])),
+    ]
+    return " ".join(p for p in parts if p).lower()
+
+
 def check_inferred_bridge_claims(resume_display_text: str, selected_facts: list[dict[str, Any]] | None) -> tuple[bool, str | None]:
     """Check for unsupported bridge language in text."""
     text_lower = resume_display_text.lower()
@@ -191,9 +211,9 @@ def check_inferred_bridge_claims(resume_display_text: str, selected_facts: list[
     supported_phrases = set()
     if selected_facts:
         for fact in selected_facts:
-            claim_text = fact.get("claim_text", "").lower()
-            achievement = fact.get("achievement_summary", "").lower()
-            combined = claim_text + " " + achievement
+            if not isinstance(fact, dict):
+                continue
+            combined = _fact_support_text_blob(fact)
             for phrase in INFERRED_BRIDGE_PHRASES:
                 if phrase in combined:
                     supported_phrases.add(phrase)
@@ -256,12 +276,16 @@ def check_unsupported_industry_claims(resume_display_text: str, selected_facts: 
     supported_industries = set()
     if selected_facts:
         for fact in selected_facts:
-            claim_text = fact.get("claim_text", "").lower()
-            achievement = fact.get("achievement_summary", "").lower()
-            combined = claim_text + " " + achievement
+            if not isinstance(fact, dict):
+                continue
+            combined = _fact_support_text_blob(fact)
             for industry in INDUSTRY_DOMAIN_CLAIMS:
                 if industry in combined:
                     supported_industries.add(industry)
+            if "banking" in combined or "financial_services" in combined or "financial services" in combined:
+                supported_industries.update({"banking", "financial services", "regulated industries"})
+            if "insurance" in combined or "insurtech" in combined:
+                supported_industries.update({"insurance", "financial services", "regulated industries"})
     
     unsupported_industries = []
     for industry in INDUSTRY_DOMAIN_CLAIMS:

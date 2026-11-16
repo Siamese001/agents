@@ -238,6 +238,12 @@ def test_truist_forward_deployed_engineering_allocation_excludes_cosell_bundles(
         if str(row["section_id"]) == "slalom_bullets"
     }
     assert slalom_bullet_roots.isdisjoint(exec_roots)
+    assert "reb_slalom_autonomous_agentic_sdlc_mcp" not in exec_roots
+    assert {
+        "reb_slalom_engineering_practice_leadership",
+        "reb_slalom_agentic_client_delivery",
+        "reb_slalom_governed_runtime_scaling",
+    }.issubset(slalom_bullet_roots)
     assert {
         "reb_slalom_engineering_practice_leadership",
         "reb_slalom_agentic_client_delivery",
@@ -245,6 +251,28 @@ def test_truist_forward_deployed_engineering_allocation_excludes_cosell_bundles(
         "reb_unify_agentic_platform_architecture",
         "reb_ibm_aws_modernization_architecture",
     }.issubset(allocated_roots)
+
+    banned_plumbing = (
+        "119-package",
+        "32 readiness gates",
+        "6 custom mcp servers",
+        "sqlite wal",
+        "1024-d bge-m3",
+        "dirichlet-laplace",
+        "universal write gateway",
+        "dual-track live executive copilot",
+    )
+    for sec_id, sec_plan in bundle["section_plans"].items():
+        for fact in sec_plan.get("selected_facts") or []:
+            prose_blob = " ".join(
+                str(fact.get(k) or "")
+                for k in ("claim", "proof", "raw_chunk", "metric_values")
+            ).lower()
+            for token in banned_plumbing:
+                assert (
+                    token not in prose_blob
+                ), f"Internal repo plumbing token {token!r} leaked in {sec_id}"
+
 
 
 

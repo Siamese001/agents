@@ -32,20 +32,7 @@ EXEC_SUMMARY_STOCK_BRIDGE_PREFIXES: tuple[str, ...] = (
 # Fact ID for dependency graph intelligence (RC-C: past-tense S6 issue).
 DEPENDENCY_GRAPH_FACT_ID = "fact_engineering_platform_002"
 
-# C0 display override for framing-sensitive facts whose claim_text contains
-# phrases that trigger X2 display gates (e.g. derivatives inventory in S5)
-# or that produce backward-looking past-tense prose when used as S6 capstone.
-# Applied by format_selected_facts_for_c0 unconditionally — before claim_text
-# and before the evidence capsule path — to guarantee the forbidden phrase never
-# reaches the LLM prompt. Keyed by fact_id.
-#
-# RC-B fix (exec-summary-rc-structural-repair-f4a8c2): FSA_CREDENTIAL_FACT_ID
-# previously mapped to "FSA-chartered quantitative foundation, built through..."
-# which is a noun-phrase fragment (no finite verb). Changed to a complete SVO sentence.
-#
-# RC-C fix (exec-summary-rc-structural-repair-f4a8c2): DEPENDENCY_GRAPH_FACT_ID
-# previously had claim_text "Built and applied..." — past-tense; produces backward
-# S6. Changed to forward-modal "enables...exposes...improves" framing.
+# C0 display override for framing-sensitive facts (checked for 1-to-1 parity with judge packet).
 FACT_C0_DISPLAY_OVERRIDES: dict[str, str] = {
     FSA_CREDENTIAL_FACT_ID: (
         "That regulatory foundation is grounded in quantitative rigor established through "
@@ -272,7 +259,7 @@ def format_s6_briefing_forward_targeting_anchor(
         themes.append("enterprise AI deployment velocity and commercial platform adoption")
     if any(tok in blob for tok in ("decentral", "autonomous unit", "federated", "operating unit")):
         themes.append("decentralized operating units")
-    if "innovation" in blob and not themes:
+    if "innovation" in blob and not has_fde_signal:
         themes.append("innovation incubation and architecture standards")
     if ("enterprise architecture" in blob or " ea " in f" {blob} ") and len(themes) < 2:
         themes.append("enterprise architecture governance")
@@ -299,8 +286,12 @@ def format_leadership_first_exec_summary_block(*, target_title: str = "") -> str
     role = (target_title or "the target role").strip()
     return (
         "LEADERSHIP_FIRST_EXEC_SUMMARY (targeting only - NOT PROOF):\n"
-        "- Regardless of JD or role family, lead the executive summary with leadership identity, scope, "
-        "decision-making, and operating model before domain-specific keywords.\n"
+        "- Regardless of JD or role family, lead the executive summary with a commanding executive role-identity "
+        "phrase (e.g. 'Engineering executive...', 'Enterprise technology and AI platform executive...'), "
+        "organizational leadership scope, decision-making, and operating model before domain-specific keywords; "
+        "never open with robotic third-person subjects like 'Executive leadership architects...' or 'Executive leadership identity...'.\n"
+        "- Synthesize a cohesive 5-to-6 sentence executive arc across the allowed C0 facts without dumping internal "
+        "codebase package, readiness-gate, or MCP server counts.\n"
         "- JD and briefing only tune emphasis among proven facts; they do not reorder the arc or replace "
         "graph-backed evidence.\n"
         f"- Write for {role} as a leadership story first, then weave role-specific evidence and graph skills.\n"

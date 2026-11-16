@@ -132,12 +132,27 @@ def resolve_raw_chunk_text(
                 break
 
     segments: list[str] = []
+    _quarantined_ledger_fact_ids = {
+        "fact_slalom_007",
+        "fact_slalom_008",
+        "fact_slalom_009",
+        "fact_slalom_010",
+        "fact_slalom_011",
+        "fact_slalom_012",
+    }
+    use_fact_entry = not (
+        bundle
+        and (
+            fact_id in _quarantined_ledger_fact_ids
+            or str(fact_entry.get("candidate_fact_id") or "") in _quarantined_ledger_fact_ids
+        )
+    )
     for candidate_text in (
         str(row.get("claim_text") or "").strip(),
         str(row.get("root_claim_text") or "").strip(),
         str(bundle.get("claim_text") or "").strip(),
-        str(fact_entry.get("claim_text") or "").strip(),
-        str(fact_entry.get("proof_text") or "").strip(),
+        str(fact_entry.get("claim_text") or "").strip() if use_fact_entry else "",
+        str(fact_entry.get("proof_text") or "").strip() if use_fact_entry else "",
     ):
         if candidate_text and candidate_text not in segments and not candidate_text.startswith("reb_"):
             segments.append(candidate_text.rstrip("."))
