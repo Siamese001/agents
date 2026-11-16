@@ -335,6 +335,6 @@ class SwarmChallenger:
 
         return CapabilitiesConfig(
             enable_subagents=True,
-            max_subagent_depth=2,
+            max_subagent_depth=5,
             allowed_subagents=[r.value.lower() for r in SwarmRole],
         ).to_dict()

@@ -33,7 +33,7 @@ Execute a deterministic, fail-closed **Core Agent Runtime, Supervisor State Mach
 ## 3. Phase 1 & Phase 1.5: 5-Pillar Read-Only Preflight Audit & Fast-Exit Gate
 
 ### Phase 1: 5-Pillar Core Runtime Audit
-1. **Pillar 1 — Delegation Contracts**: Verify all subagent delegations construct the mandatory 10 fields (`task_id`, `parent_task_id`, `objective`, `scope_in`, `scope_out`, `allowed_tools`, `deliverable`, `definition_of_done`, `budget`, `escalation_rule`).
+1. **Pillar 1 — Delegation Contracts**: Verify explicit subagent `delegation_contract` payloads construct the mandatory 10 fields (`task_id`, `parent_task_id`, `objective`, `scope_in`, `scope_out`, `allowed_tools`, `deliverable`, `definition_of_done`, `budget`, `escalation_rule`), while interactive `/boost` and `/swarm` subagents launch freely without contract or scope lockouts.
 2. **Pillar 2 — State Machine Invariants**: Verify `WorkflowStateMachine` initial states, valid transitions, and illegal transition rejection.
 3. **Pillar 3 — Context Budgeting**: Verify `TokenBudget` enforces maximum context token ceilings and raises `TokenBudgetExceededError` on overflow.
 4. **Pillar 4 — Session Persistence**: Verify `JsonlEventStore` serializes and retrieves monotonic event streams without tamper.
@@ -94,7 +94,7 @@ PYTHONDONTWRITEBYTECODE=1 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DI
 ## 5. Phase 2: Unconditional Wave Plan Generation & 20% Margin HITL Gate (`C04`, `C05`)
 
 ### Step 2.1: Unconditional Wave-Based Plan Generation (`UNCONDITIONAL_WAVE_PLAN_MANDATE`)
-Author `${WORKTREE_DIR}/plans/core-runtime-orchestration-${HEX6}.md` (500–800 words, max 1,000 words) structured into sequential waves:
+Author `${WORKTREE_DIR}/plans/core-runtime-orchestration-${HEX6}.md` (unbounded word count, `INV-WAVE-PLAN-MAX-WORDS = 0`) structured into sequential waves:
 - `## Wave 1: Delegation Contract, Supervisor State Machine & Context Budget Remediation`
 - `## Wave 2: Event Store Persistence & Exception Hygiene Enforcement`
 Each wave MUST include `### Objective & Scope`, `### Milestones & Deliverables`, `### Acceptance Criteria`, and `### Runtime Receipt & Completion Gate` (`Run:`, `Input:`, `Expected:`, `Verify independently:`, `Fail if:`, `Record:`).

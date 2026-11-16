@@ -871,6 +871,82 @@ Tweak compiler.py without upstream or downstream alignment.
         sandbox_cfg = build_antigravity_sandbox_config(enable_sandbox=True)
         self.assertTrue(sandbox_cfg.get("enable_sandbox") or "run_command" in sandbox_cfg)
 
+    def test_cli_hook_subagent_lease_persists_across_subprocesses_and_boost_post_invocation_clean(self) -> None:
+        """CLI hook subprocess leases bind persistent caller PID (direct + /bin/sh -c) and /boost subagents skip promotion trap."""
+        import tempfile
+
+        hook_script = ROOT / "tools" / "hook_dispatch.py"
+        with tempfile.TemporaryDirectory() as tmpdir:
+            wt = Path(tmpdir)
+            (wt / ".git").mkdir()
+            (wt / "agents").mkdir()
+            target = wt / "agents" / "foo.py"
+            target.write_text("x = 1\n", encoding="utf-8")
+
+            strict_contract = {
+                "task_id": "cli-sub-strict",
+                "parent_task_id": "orch-1",
+                "objective": "Patch foo.py under opt-in exclusive lock",
+                "scope_in": ["agents/foo.py"],
+                "scope_out": ["outreach_engine/"],
+                "allowed_tools": ["edit_file"],
+                "deliverable": "patched foo.py",
+                "definition_of_done": "tests pass",
+                "budget": {"max_turns": 10, "timeout_seconds": 300},
+                "escalation_rule": "escalate",
+                "exclusive_lock": True,
+                "enforce_strict_scope": True,
+            }
+            reg_payload = json.dumps(
+                {"toolCall": {"name": "invoke_subagent", "args": {"Workspace": "inherit", "delegation_contract": strict_contract}}}
+            )
+            res_reg = subprocess.run(
+                ["/bin/sh", "-c", f'"{sys.executable}" "{hook_script}" --hook pre_subagent_delegation --repo-root "{wt}"'],
+                input=reg_payload,
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            self.assertEqual(res_reg.returncode, 0)
+
+            res_parent_write = subprocess.run(
+                [sys.executable, str(hook_script), "--hook", "pre_file_write", "--repo-root", str(wt)],
+                input=json.dumps({"toolCall": {"name": "edit_file", "args": {"Path": str(target)}}}),
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            self.assertEqual(res_parent_write.returncode, 1)
+            self.assertIn("SUBAGENT_SCOPE_CONFLICT", json.loads(res_parent_write.stdout.strip())["reason"])
+
+        boost_subagent_payload = {
+            "steps": [
+                {
+                    "type": "PLANNER_RESPONSE",
+                    "source": "MODEL",
+                    "tool_calls": [{"name": "edit_file", "args": {"Path": "agents/foo.py"}}],
+                    "content": "",
+                },
+                {
+                    "type": "PLANNER_RESPONSE",
+                    "source": "MODEL",
+                    "tool_calls": [{"name": "send_message", "args": {"Recipient": "parent-1", "Message": "Fixed foo.py"}}],
+                    "content": "",
+                },
+                {"type": "PLANNER_RESPONSE", "source": "MODEL", "content": "Completed delegated fix."},
+            ]
+        }
+        res_boost = subprocess.run(
+            [sys.executable, str(hook_script), "--hook", "post_invocation", "--repo-root", str(ROOT)],
+            input=json.dumps(boost_subagent_payload),
+            capture_output=True,
+            text=True,
+            cwd=ROOT,
+            timeout=10,
+        )
+        self.assertEqual(res_boost.returncode, 0)
+        self.assertEqual(json.loads(res_boost.stdout.strip()).get("injectSteps"), [])
+
 
 if __name__ == "__main__":
     unittest.main()

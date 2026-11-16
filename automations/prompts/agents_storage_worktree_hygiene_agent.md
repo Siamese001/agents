@@ -91,7 +91,7 @@ PYTHONDONTWRITEBYTECODE=1 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DI
 ## 5. Phase 2: Unconditional Wave Plan Generation & 20% Margin HITL Gate (`C04`, `C05`)
 
 ### Step 2.1: Unconditional Wave-Based Plan Generation (`UNCONDITIONAL_WAVE_PLAN_MANDATE`)
-Author `${WORKTREE_DIR}/plans/storage-hygiene-${HEX6}.md` (500–800 words, max 1,000 words) structured as sequential waves:
+Author `${WORKTREE_DIR}/plans/storage-hygiene-${HEX6}.md` (unbounded word count, `INV-WAVE-PLAN-MAX-WORDS = 0`) structured as sequential waves:
 - `## Wave 1: Worktree, Merged Branch, Scratch & Lock Hygiene`
 - `## Wave 2: SQLite WAL Checkpoint, Model Deduplication & Artifact Retention`
 Each wave MUST include `### Objective & Scope`, `### Milestones & Deliverables`, `### Acceptance Criteria`, and `### Runtime Receipt & Completion Gate` (`Run:`, `Input:`, `Expected:`, `Verify independently:`, `Fail if:`, `Record:`).

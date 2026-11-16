@@ -95,7 +95,7 @@ PYTHONDONTWRITEBYTECODE=1 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DI
 ## 5. Phase 2: Unconditional Wave Plan Generation & 20% Margin HITL Gate (`C04`, `C05`)
 
 ### Step 2.1: Unconditional Wave-Based Plan Generation (`UNCONDITIONAL_WAVE_PLAN_MANDATE`)
-Author `${WORKTREE_DIR}/plans/ssot-boundary-remediation-${HEX6}.md` (500–800 words, max 1,000 words) structured into sequential centralization-first waves:
+Author `${WORKTREE_DIR}/plans/ssot-boundary-remediation-${HEX6}.md` (unbounded word count, `INV-WAVE-PLAN-MAX-WORDS = 0`) structured into sequential centralization-first waves:
 - `## Wave 1: Configuration Sprawl Consolidation, Intra-File Schema Fixes & Centralization Registry Sync`
 - `## Wave 2: Hardcoded Threshold Elimination, Prompt-to-Code Parity & Subsystem Boundary Remediation`
 Each wave MUST include `### Objective & Scope`, `### Milestones & Deliverables`, `### Acceptance Criteria`, and `### Runtime Receipt & Completion Gate` (`Run:`, `Input:`, `Expected:`, `Verify independently:`, `Fail if:`, `Record:`).
@@ -118,7 +118,7 @@ For each wave (`Wave 1 -> Wave N`):
 1. **5-Point Counterfactual Runtime Proof (`INV-RUNTIME-PROOF-5POINT`)**:
    - Capture `PRE_MUTATION_RUN` linter/AST violations.
    - Apply bounded boundary/SSOT centralization fixes.
-   - Run `POST_MUTATION_RUN` linters and scoped single-file pytest (`--timeout=60`, `WaitMsBeforeAsync >= 15000`):
+   - Run `POST_MUTATION_RUN` linters and impacted pytest suites (`--timeout=60`, `WaitMsBeforeAsync >= 15000`):
      `"${PRIMARY_REPO_ROOT}/.venv/bin/pytest" "${WORKTREE_DIR}/tests/test_model_neutral_naming.py" -v --timeout=60`
      `"${PRIMARY_REPO_ROOT}/.venv/bin/pytest" "${WORKTREE_DIR}/tests/test_turn_gates.py" -v --timeout=60`
    - Verify state independently and record the 5-column proof table in `${RUN_DIR}/wave_receipts.md`.

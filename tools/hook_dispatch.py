@@ -406,7 +406,7 @@ def handle_post_ask_question(payload: Dict[str, Any], repo_root: Path) -> int:
 
 def handle_pre_subagent_delegation(payload: Dict[str, Any], repo_root: Path) -> int:
     """PreToolUse guard on invoke_subagent / browser_subagent validating 10-field delegation contracts and scope leases."""
-    from tools.prompt_scope_isolation import _sync_teamwork_request_atomic, register_and_check_subagent_scope
+    from tools.prompt_scope_isolation import _sync_teamwork_request_atomic, register_and_check_subagent_scope, resolve_persistent_caller_pid
     from tools.unified_agent_architecture import validate_delegation_contract
 
     tool_call = payload.get("toolCall") if isinstance(payload.get("toolCall"), dict) else payload
@@ -438,7 +438,10 @@ def handle_pre_subagent_delegation(payload: Dict[str, Any], repo_root: Path) -> 
         errors = validate_delegation_contract(resolved_contract)
         if errors:
             return emit_decision("deny", reason="; ".join(errors))
-        ok, reason, _ = register_and_check_subagent_scope(repo_root, resolved_contract, workspace_mode=workspace_mode)
+        cli_owner = resolve_persistent_caller_pid() if payload.get("_cli_invocation") else None
+        ok, reason, _ = register_and_check_subagent_scope(
+            repo_root, resolved_contract, workspace_mode=workspace_mode, owner_pid=cli_owner
+        )
         if not ok:
             return emit_decision("deny", reason=reason)
 
@@ -567,6 +570,7 @@ def _load_turn_steps_from_payload(payload: Dict[str, Any]) -> List[Dict[str, Any
 
 def handle_post_invocation(payload: Dict[str, Any], repo_root: Path) -> int:
     """PostInvocation guard enforcing decisive recommendations, post-edit promotion, word budget, and zero-jargon prose."""
+    from tools.prompt_scope_isolation import is_subagent_turn
     from tools.validate_turn_gates import (
         load_policy_registry,
         validate_decisive_recommendation_gate,
@@ -575,6 +579,9 @@ def handle_post_invocation(payload: Dict[str, Any], repo_root: Path) -> int:
     )
 
     steps = _load_turn_steps_from_payload(payload)
+    if is_subagent_turn(steps, payload):
+        print(json.dumps({"injectSteps": []}))
+        return 0
     candidate_text = str(payload.get("candidate_response") or "")
     if not candidate_text and steps:
         last_step = steps[-1] if isinstance(steps[-1], dict) else {}
@@ -678,6 +685,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     parser.add_argument("--repo-root", type=Path, default=ROOT, help="Repository root path.")
     args = parser.parse_args(argv)
     payload = read_hook_input()
+    if isinstance(payload, dict):
+        payload["_cli_invocation"] = True
     handlers = {
         "pre_edit_plan": handle_pre_edit_plan, "stop_wave_summary": handle_stop_wave_summary,
         "pre_run_command": lambda p, _r: handle_pre_run_command(p),

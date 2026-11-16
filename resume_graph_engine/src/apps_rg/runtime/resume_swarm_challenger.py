@@ -312,7 +312,7 @@ class ResumeSwarmChallenger:
 
         return CapabilitiesConfig(
             enable_subagents=True,
-            max_subagent_depth=2,
+            max_subagent_depth=5,
             allowed_subagents=[r.value.lower() for r in ResumeSwarmRole],
         ).to_dict()
 

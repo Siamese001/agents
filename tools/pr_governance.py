@@ -277,7 +277,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_shd.add_argument("branch", help="Name of shard branch (e.g. feat/wave2a-shard).")
     p_shd.add_argument("--skip-verify", action="store_true", help="Skip verify_commit --shard-fast check.")
 
-    p_trn = sub.add_parser("train", help="Assemble verified disjoint shard branches into a wave merge train.")
+    p_trn = sub.add_parser("train", help="Assemble verified shard branches into a wave merge train.")
     _add_workspace_flags(p_trn)
     p_trn.add_argument("--wave", required=True, help="Wave identifier (e.g. 2).")
     p_trn.add_argument("--shards", nargs="+", required=True, help="Shard branches to assemble.")

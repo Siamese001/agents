@@ -65,7 +65,8 @@ _UPSTREAM_PRODUCER_RE = re.compile(
     r"c0_binding|competencies_graph_authority|headline_fact_id_resolution|"
     r"quad_graph_retriever|graph_role_episode_selector|selected_role_fact_set|"
     r"upstream_evidence_block|lane_base_resume|fact_anchor|FactAnchor|"
-    r"what\s+stays\s+unchanged|upstream\s+(?:c0|allocation|retrieval|producer))",
+    r"what\s+stays\s+unchanged|"
+    r"upstream\s+(?:c0|allocation|retrieval|producers?|stages?|contracts?|inputs?|pipeline))",
     re.IGNORECASE,
 )
 _DOWNSTREAM_VALIDATOR_RE = re.compile(
@@ -75,7 +76,8 @@ _DOWNSTREAM_VALIDATOR_RE = re.compile(
     r"headline_x2|headline_quality_x2|headline_positioning_x2|headline_x3|"
     r"ibm_bullets_x2|unify_bullets_x2|ibm_narrative_x2|unify_narrative_x2|"
     r"unify_role_episode_x2|competencies_x2|competencies_quality_x2|"
-    r"runtime/(?:validators|aggregation|exit)/|\bx2\s+(?:gate|validator|deduplication|floor))",
+    r"runtime/(?:validators|aggregation|exit)/|\bx2\s+(?:gate|validator|deduplication|floor)|"
+    r"downstream\s+(?:validators?|validation|stages?|contracts?|consumers?|judges?|repairs?))",
     re.IGNORECASE,
 )
 
@@ -89,7 +91,7 @@ _OUTREACH_UPSTREAM_RE = re.compile(
     r"(?:briefing_resolver|apps_research_bridge|managed_research_delegation|"
     r"research_boundary_policy|research_bridge_support|mission_loader|"
     r"SealedBriefingResolution|GovernedBriefingResolver|"
-    r"upstream\s+(?:briefing|research(?:\s+ingestion|\s+bridge)?|apps_lic\s+producer))",
+    r"upstream\s+(?:briefing|research(?:\s+ingestion|\s+bridge)?|apps_lic\s+producer|producers?|stages?|contracts?|inputs?|pipeline))",
     re.IGNORECASE,
 )
 _OUTREACH_DOWNSTREAM_RE = re.compile(
@@ -98,7 +100,7 @@ _OUTREACH_DOWNSTREAM_RE = re.compile(
     r"DeterministicDraftRepairer|RubricJudgeEvaluator|ExecutiveOutreachJudgePanel|"
     r"(?:ChannelLength|Grounding|SpamTrigger|ForbiddenClaims|SubordinateTone|"
     r"UnsupportedPersonalization|OutboundPrivacy)Validator|"
-    r"downstream\s+(?:outreach|apps_lic)\s+(?:validator|validators|repair|judge))",
+    r"downstream\s+(?:(?:outreach|apps_lic)\s+)?(?:validators?|validation|stages?|contracts?|consumers?|repairs?|judges?))",
     re.IGNORECASE,
 )
 
@@ -118,7 +120,7 @@ _RESEARCH_UPSTREAM_RE = re.compile(
     r"hop_research_retrieval_engine|query_decomposer|query_decomposition_agent|"
     r"jd_intent_coverage|research_query|briefing_evidence_contracts|"
     r"c0_graph_adapter|research_c0_adapter|infer_evidence_intents|"
-    r"upstream\s+(?:search|retrieval|jd[\s_\-]*intent|query\s+decomp))",
+    r"upstream\s+(?:search|retrieval|jd[\s_\-]*intent|query\s+decomp|producers?|stages?|contracts?|inputs?|pipeline))",
     re.IGNORECASE,
 )
 _RESEARCH_DOWNSTREAM_RE = re.compile(
@@ -126,7 +128,7 @@ _RESEARCH_DOWNSTREAM_RE = re.compile(
     r"apps_rg_targeting_brief|research_brief_uwg_writer|research_exit_fec_producer|"
     r"research_gate_validator|research_source_validator|apps_research_bridge|"
     r"apps_research/engines/judges/|apps_research/outputs/|"
-    r"downstream\s+(?:handoff|targeting|brief|apps_rg|apps_lic|consumer\s+brief))",
+    r"downstream\s+(?:handoffs?|targeting|brief|apps_rg|apps_lic|consumer\s+brief|validators?|validation|stages?|contracts?|consumers?))",
     re.IGNORECASE,
 )
 

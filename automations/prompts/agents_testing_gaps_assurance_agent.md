@@ -25,9 +25,9 @@ Execute a deterministic, fail-closed **Testing Gaps, Edge-Case Regression, Mock 
 - **Shared Governance Contract**: Dereferences `automations/prompts/_shared_governance_contract.md` (`C01–C12`).
 - **Repository Boundary (`INV-REPO-SEPARATION-AGENTS-ONLY`)**: Bound exclusively to `/Users/amitayer/Git/agents`.
 - **Pytest Run Protocol**:
-  - Class A (Debug): Scoped to a single test file, test case, or coupled multi-file producer+contract+consumer test slice (up to 4 directly coupled test files) with `--timeout=60` and synchronous `WaitMsBeforeAsync >= 15000`.
-  - Class B (Receipt): Scoped to declared wave acceptance test files with `--timeout=60` and synchronous `WaitMsBeforeAsync >= 120000`.
-  - Bare `pytest`, unbounded `pytest tests/`, or > 4 unrelated test files without authorization is strictly forbidden.
+  - Class A (Debug): Single test file, test case, any coupled multi-file producer+contract+consumer test slice (no file-count ceiling), or full subsystem/repository test directories (`pytest tests/ --timeout=60`) with `--timeout=60` and synchronous `WaitMsBeforeAsync >= 15000`.
+  - Class B (Receipt): All declared wave acceptance and impacted regression test files with `--timeout=60` and synchronous `WaitMsBeforeAsync >= 120000`.
+  - Bare un-timed `pytest` without `--timeout` is strictly forbidden.
 - **Preflight-First Fast-Exit & Wave-Based Plan Mandate (`C03`, `PREFLIGHT_ZERO_DEFECT_FAST_EXIT`, `UNCONDITIONAL_WAVE_PLAN_MANDATE`)**:
   - Execute Phase 1 & Phase 1.5 read-only behavioral preflight **first** against `${PRIMARY_REPO_ROOT}`. When `0` actionable findings exist (`is_clean: true`), fast-exit `COMPLETE` immediately (`PREFLIGHT_ZERO_DEFECT_FAST_EXIT`) without creating an ephemeral worktree or authoring a synthetic plan.
   - Whenever `>= 1` findings exist (`is_clean: false`), execute Phase 0 isolated worktree provisioning, author a wave-based remediation plan at `${WORKTREE_DIR}/plans/testing-gaps-assurance-${HEX6}.md` (and copy to `${RUN_DIR}/implementation_plan.md`) decomposed into sequential numbered waves (`## Wave 1: ...`, `## Wave 2: ...`), and validate it via `validate_implementation_plan.py --file "${WORKTREE_DIR}/plans/testing-gaps-assurance-${HEX6}.md"` (`exit code 0`).
@@ -115,7 +115,7 @@ PYTHONDONTWRITEBYTECODE=1 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DI
 ## 5. Phase 2: Unconditional Wave Plan Generation & 20% Margin HITL Gate (`C04`, `C05`)
 
 ### Step 2.1: Unconditional Wave-Based Plan Generation (`UNCONDITIONAL_WAVE_PLAN_MANDATE`)
-Author `${WORKTREE_DIR}/plans/testing-gaps-assurance-${HEX6}.md` (500–800 words, max 1,000 words) structured into sequential waves:
+Author `${WORKTREE_DIR}/plans/testing-gaps-assurance-${HEX6}.md` (unbounded word count, `INV-WAVE-PLAN-MAX-WORDS = 0`) structured into sequential waves:
 - `## Wave 1: Outreach, Resume & Research Handoff Contract Unit Tests`
 - `## Wave 2: Edge-Case Boundary Assertions & Strict Xfail/Skip Hygiene`
 Each wave MUST include `### Objective & Scope`, `### Milestones & Deliverables`, `### Acceptance Criteria`, and `### Runtime Receipt & Completion Gate` (`Run:`, `Input:`, `Expected:`, `Verify independently:`, `Fail if:`, `Record:`).

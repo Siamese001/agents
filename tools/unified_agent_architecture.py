@@ -134,7 +134,7 @@ class SubagentConfig:
 @dataclass
 class CapabilitiesConfig:
     enable_subagents: bool = True
-    max_subagent_depth: int = 2
+    max_subagent_depth: int = 5
     allowed_subagents: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
