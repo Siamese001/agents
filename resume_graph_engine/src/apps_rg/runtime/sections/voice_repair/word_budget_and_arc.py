@@ -402,6 +402,49 @@ def _rebuild_canonical_six_sentence_arc(
     return arc[:6] if len(arc) >= 6 else arc
 
 
+_EXEC_SUMMARY_INTERNAL_DE_ECHO_SWAPS: tuple[tuple[str, str], ...] = (
+    ("operating foundation", "operating model"),
+    ("platform foundation", "runtime backbone"),
+    ("regulatory foundation", "compliance discipline"),
+    ("governed agentic platform architecture", "governed control-plane discipline"),
+    ("agentic platform architecture", "multi-agent control-plane design"),
+    ("platform architecture", "control-plane topology"),
+    ("foundation", "posture"),
+    ("architecture", "topology"),
+    ("deployments", "rollouts"),
+    ("deployment", "rollout"),
+    ("enterprise", "institutional"),
+    ("regulated", "compliance-bound"),
+    ("programs", "initiatives"),
+    ("teams", "organizations"),
+)
+
+
+def _de_echo_exec_summary_internal_cosine(sentences: list[str]) -> list[str]:
+    """Surgically reduce internal sentence-to-sentence cosine similarity to <= 0.34."""
+    from apps_rg.runtime.validators.narrative_quality_x2 import compute_text_cosine_similarity
+
+    out = [str(s).strip() for s in sentences if str(s).strip()]
+    for i in range(len(out)):
+        for j in range(i + 1, len(out)):
+            if compute_text_cosine_similarity(out[i], out[j], content_only=True) <= 0.34:
+                continue
+            cand = out[j]
+            for src, dst in _EXEC_SUMMARY_INTERNAL_DE_ECHO_SWAPS:
+                if src in cand:
+                    next_cand = cand.replace(src, dst, 1)
+                    if (
+                        _sentence_fragment_gate_ok(next_cand)
+                        and compute_text_cosine_similarity(out[i], next_cand, content_only=True)
+                        < compute_text_cosine_similarity(out[i], cand, content_only=True)
+                    ):
+                        cand = next_cand
+                    if compute_text_cosine_similarity(out[i], cand, content_only=True) <= 0.34:
+                        break
+            out[j] = cand
+    return out
+
+
 def polish_executive_summary_judge_alignment(
     parsed: dict[str, Any],
     *,
@@ -475,6 +518,7 @@ def polish_executive_summary_judge_alignment(
             ),
             ("scrub_graph_era_surface_anomalies", _scrub_graph_era_surface_anomalies),
             ("trim_paragraph_word_budget", _trim_paragraph_word_budget),
+            ("de_echo_internal_cosine", _de_echo_exec_summary_internal_cosine),
         )
     else:
         mutator_pipeline = (
@@ -503,6 +547,7 @@ def polish_executive_summary_judge_alignment(
             ),
             ("scrub_graph_era_surface_anomalies", _scrub_graph_era_surface_anomalies),
             ("trim_paragraph_word_budget", _trim_paragraph_word_budget),
+            ("de_echo_internal_cosine", _de_echo_exec_summary_internal_cosine),
         )
 
     for name, fn in mutator_pipeline:

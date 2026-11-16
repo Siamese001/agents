@@ -202,7 +202,55 @@ _IBM_FROZEN_ALLOCATION_DISPLAY_COMPOSITIONS: dict[tuple[str, str], str] = {
         "Architected NLP and ML decision-support reference architectures translating unstructured regulatory signals into governed workflows, "
         "establishing compliance readiness across banking and insurance institutions."
     ),
+    ("reb_ibm_offering_accelerator_management", "skill_p2_tech_reference_architecture"): (
+        "Directed offering accelerator management, packaging repeatable Confluent Kafka and AI solution blueprints "
+        "into market-facing delivery assets deployed across financial and carrier client engagements."
+    ),
+    ("reb_ibm_offering_accelerator_management", "skill_sr_cloud_data_platform_engineering"): (
+        "Directed offering accelerator management, packaging repeatable Confluent Kafka and AI data platform blueprints "
+        "into market-facing delivery assets deployed across financial and carrier client engagements."
+    ),
 }
+
+
+_IBM_WITHIN_SECTION_DE_ECHO_SWAPS: tuple[tuple[str, str], ...] = (
+    ("reference architectures", "solution blueprints"),
+    ("reference architecture", "solution blueprint"),
+    ("modernization playbooks", "delivery assets"),
+    ("modernization", "transformation"),
+    ("regulated banking and insurance", "financial and carrier"),
+    ("banking and insurance", "financial and carrier"),
+    ("enterprise offering", "offering"),
+    ("reusable cloud,", "repeatable"),
+    ("workloads", "environments"),
+)
+
+
+def _de_echo_ibm_ordered_bullets(ordered: list[dict[str, Any]]) -> bool:
+    """Surgically reduce content cosine similarity if any two IBM bullets exceed 0.34."""
+    from apps_rg.runtime.validators.narrative_quality_x2 import compute_text_cosine_similarity
+
+    changed = False
+    for i in range(len(ordered)):
+        for j in range(i + 1, len(ordered)):
+            ti = str(ordered[i].get("bullet_text") or "")
+            tj = str(ordered[j].get("bullet_text") or "")
+            if compute_text_cosine_similarity(ti, tj, content_only=True) <= 0.34:
+                continue
+            target_idx = i if ordered[j].get("has_metric") and not ordered[i].get("has_metric") else j
+            other_idx = j if target_idx == i else i
+            cand = str(ordered[target_idx].get("bullet_text") or "")
+            other = str(ordered[other_idx].get("bullet_text") or "")
+            for src, dst in _IBM_WITHIN_SECTION_DE_ECHO_SWAPS:
+                if src in cand:
+                    next_cand = cand.replace(src, dst, 1)
+                    if compute_text_cosine_similarity(next_cand, other, content_only=True) < compute_text_cosine_similarity(cand, other, content_only=True):
+                        cand = next_cand
+                        changed = True
+                    if compute_text_cosine_similarity(cand, other, content_only=True) <= 0.34:
+                        break
+            ordered[target_idx]["bullet_text"] = cand
+    return changed
 
 
 def _materialize_ibm_bullets_from_frozen_allocation(
@@ -292,7 +340,10 @@ def _materialize_ibm_bullets_from_frozen_allocation(
             and check_experience_bullet_evidence_density(bullet_id, existing_text).passed
             and check_bullet_technical_specificity_floor(bullet_id, existing_text).passed
             and metric_phrase_entailed_in_text(metric, existing_text)
-            and all(compute_text_cosine_similarity(existing_text, str(p.get("bullet_text") or "")) <= 0.45 for p in ordered)
+            and all(
+                compute_text_cosine_similarity(existing_text, str(p.get("bullet_text") or ""), content_only=True) <= 0.34
+                for p in ordered
+            )
         )
         if not keep_existing:
             row["bullet_text"] = allocation["bullet_text"]
@@ -301,6 +352,8 @@ def _materialize_ibm_bullets_from_frozen_allocation(
         row["metric_raw"] = metric or row.get("metric_raw") or None
         row["source_fact_ids"] = [bullet_id]
         ordered.append(row)
+    if _de_echo_ibm_ordered_bullets(ordered):
+        rehydrated_any = True
     parsed["bullets"] = ordered
     parsed["claim_ledger"] = [
         {"claim_text": row["bullet_text"], "source_fact_ids": [row["bullet_id"]]}
