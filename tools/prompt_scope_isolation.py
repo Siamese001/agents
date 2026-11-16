@@ -415,6 +415,7 @@ def evaluate_active_subagent_write_scope(
     task_id: str | None = None,
     *,
     now_ts: float | None = None,
+    is_subagent_caller: bool = False,
 ) -> tuple[bool, str]:
     """Return (blocked, reason) if target_file violates active subagent scope_in/scope_out leases."""
     rel = _resolve_repo_relative_path(target_file, repo_root)
@@ -431,6 +432,11 @@ def evaluate_active_subagent_write_scope(
     effective_task_id = (task_id if task_id is not None else _resolve_worktree_lease_task_id(repo_root)).strip()
     with _scope_registry_lock(gov_dir) as locked_path:
         active = [e for e in _load_active_leases(locked_path, ts) if e.get("workspace_root") == workspace_key]
+
+    if not effective_task_id and is_subagent_caller:
+        exclusive_entries = [e for e in active if bool(e.get("exclusive_lock", False))]
+        if len(exclusive_entries) == 1:
+            effective_task_id = str(exclusive_entries[0].get("task_id", "")).strip()
 
     own_lease: dict[str, Any] | None = None
     for entry in active:

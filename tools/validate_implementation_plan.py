@@ -521,9 +521,40 @@ def render_markdown_wave_summary_table(plan_name: str, entries: List[dict]) -> s
     return "\n".join(lines)
 
 
+def _resolve_common_repo_root(root: Path) -> Path:
+    try:
+        res = subprocess.run(
+            ["git", "rev-parse", "--git-common-dir"],
+            cwd=root,
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=5,
+        )
+        raw = res.stdout.strip()
+        if res.returncode == 0 and raw:
+            common_git = Path(raw) if Path(raw).is_absolute() else (root / raw).resolve()
+            if common_git.name == ".git":
+                return common_git.parent.resolve()
+    except (OSError, subprocess.SubprocessError):
+        pass
+    return root
+
+
+def _has_wave_header(plan_path: Path) -> bool:
+    if plan_path.name in DEFAULT_LEGACY_EXEMPTIONS:
+        return True
+    try:
+        txt = plan_path.read_text(encoding="utf-8")
+    except OSError:
+        return False
+    return any(RE_WAVE_HEADER.match(ln.strip()) for ln in txt.splitlines())
+
+
 def get_active_plan_file(repo_root: Optional[Path] = None) -> Optional[Path]:
     """Discover the active implementation plan file on disk, prioritizing workspace and IDE artifacts."""
     root = (repo_root or ROOT).resolve()
+    common_root = _resolve_common_repo_root(root)
 
     explicit_plan = os.environ.get("AGY_PLAN_FILE")
     if explicit_plan and Path(explicit_plan).is_file():
@@ -542,42 +573,64 @@ def get_active_plan_file(repo_root: Optional[Path] = None) -> Optional[Path]:
     if imp_plan.is_file():
         return imp_plan
 
-    # 3. Check Antigravity IDE conversation-specific brain artifacts directory
+    # 3. Check Antigravity IDE conversation-specific brain artifacts directories
     conv_id = os.environ.get("ANTIGRAVITY_CONVERSATION_ID")
-    ide_brain_dir = Path.home() / ".gemini" / "antigravity-ide" / "brain"
-    if conv_id and ide_brain_dir.is_dir():
-        conv_plan = ide_brain_dir / conv_id / "implementation_plan.md"
-        if conv_plan.is_file():
-            return conv_plan
+    app_data = os.environ.get("ANTIGRAVITY_APP_DATA_DIR")
+    brain_dirs = [
+        *(
+            [Path(app_data) / "brain"]
+            if app_data
+            else []
+        ),
+        Path.home() / ".gemini" / "antigravity" / "brain",
+        Path.home() / ".gemini" / "antigravity-ide" / "brain",
+    ]
+    if conv_id:
+        for bdir in brain_dirs:
+            if bdir.is_dir():
+                conv_plan = bdir / conv_id / "implementation_plan.md"
+                if conv_plan.is_file():
+                    return conv_plan
 
-    # 4. Check recent brain plans if they belong to this repository
-    if not conv_id and ide_brain_dir.is_dir():
-        recent_brain_plans = sorted(
-            ide_brain_dir.glob("*/implementation_plan.md"),
-            key=lambda p: p.stat().st_mtime,
-            reverse=True,
-        )
-        for cand in recent_brain_plans:
-            try:
-                content = cand.read_text(encoding="utf-8")
-                git_dir_matches = re.findall(r"/Users/[^/\s]+/Git/([^/\s\"'\`\)]+)", content)
-                if git_dir_matches and not any(m == root.name for m in git_dir_matches):
-                    continue
-                plans_dir = root / "plans"
-                if plans_dir.is_dir():
-                    recent_plans = sorted(plans_dir.glob("*.md"), key=lambda p: p.stat().st_mtime, reverse=True)
-                    if recent_plans and recent_plans[0].stat().st_mtime > cand.stat().st_mtime:
-                        return recent_plans[0]
-                return cand
-            except (OSError, ValueError):
+    # 4. Check recent brain plans when no conversation ID is bound
+    if not conv_id:
+        for bdir in brain_dirs:
+            if not bdir.is_dir():
                 continue
+            recent_brain_plans = sorted(
+                bdir.glob("*/implementation_plan.md"),
+                key=lambda p: p.stat().st_mtime,
+                reverse=True,
+            )
+            for cand in recent_brain_plans:
+                try:
+                    content = cand.read_text(encoding="utf-8")
+                    git_dir_matches = re.findall(r"/Users/[^/\s]+/Git/([^/\s\"'\`\)]+)", content)
+                    if git_dir_matches and not any(m in (root.name, common_root.name) for m in git_dir_matches):
+                        continue
+                    for pdir in (root / "plans", common_root / "plans"):
+                        if pdir.is_dir():
+                            recent_plans = [
+                                p
+                                for p in sorted(pdir.glob("*.md"), key=lambda p: p.stat().st_mtime, reverse=True)
+                                if _has_wave_header(p)
+                            ]
+                            if recent_plans and recent_plans[0].stat().st_mtime > cand.stat().st_mtime:
+                                return recent_plans[0]
+                    return cand
+                except (OSError, ValueError):
+                    continue
 
-    # 5. Fall back to plans/ directory
-    plans_dir = root / "plans"
-    if plans_dir.is_dir():
-        recent_plans = sorted(plans_dir.glob("*.md"), key=lambda p: p.stat().st_mtime, reverse=True)
-        if recent_plans:
-            return recent_plans[0]
+    # 5. Fall back to plans/ directory (skipping gitignored/untracked scratch notes without wave headers)
+    for pdir in (root / "plans", common_root / "plans"):
+        if pdir.is_dir():
+            recent_plans = [
+                p
+                for p in sorted(pdir.glob("*.md"), key=lambda p: p.stat().st_mtime, reverse=True)
+                if _has_wave_header(p)
+            ]
+            if recent_plans:
+                return recent_plans[0]
     return None
 
 

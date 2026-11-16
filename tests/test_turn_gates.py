@@ -40,8 +40,32 @@ class TurnGatesValidationTests(unittest.TestCase):
         self.assertEqual(checks["tier1_tools"]["status"], "PASS")
         self.assertEqual(checks["conformance_map"]["status"], "PASS")
         self.assertEqual(checks["implementation_plan"]["status"], "PASS")
-        self.assertGreater(checks["implementation_plan"]["wave_count"], 0)
         self.assertIn("wave_summary", checks["implementation_plan"])
+        if checks["implementation_plan"]["active_plan"] is not None:
+            self.assertGreater(checks["implementation_plan"]["wave_count"], 0)
+        else:
+            self.assertEqual(checks["implementation_plan"]["wave_count"], 0)
+
+    def test_pre_turn_gate_handles_absent_plan_and_unstaged_scratch_notes(self) -> None:
+        """Verify pre-turn gate passes cleanly when active_plan is None or unstaged scratch notes exist in plans/."""
+        from unittest import mock
+
+        with mock.patch("tools.validate_implementation_plan.get_active_plan_file", return_value=None):
+            res_none = validate_pre_turn_gate(ROOT)
+            self.assertEqual(res_none["status"], "PASS", f"Unexpected issues: {res_none['issues']}")
+            self.assertEqual(res_none["checks"]["implementation_plan"]["wave_count"], 0)
+            self.assertEqual(res_none["checks"]["implementation_plan"]["wave_summary"], [])
+
+        plans_dir = ROOT / "plans"
+        if plans_dir.is_dir():
+            scratch = plans_dir / "zzz_unstaged_scratch_note_test.md"
+            try:
+                scratch.write_text("# Unstaged scratch notes\n- investigating root cause\n", encoding="utf-8")
+                res_scratch = validate_pre_turn_gate(ROOT)
+                self.assertEqual(res_scratch["status"], "PASS", f"Unexpected issues: {res_scratch['issues']}")
+            finally:
+                if scratch.exists():
+                    scratch.unlink()
 
 
     def test_hitl_ambiguity_autonomous_proceed_when_delta_gt_20(self) -> None:

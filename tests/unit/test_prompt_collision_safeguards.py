@@ -19,7 +19,11 @@ import yaml
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 from tools.hitl_governance import HITLDecisionStore
-from tools.hook_dispatch import handle_pre_file_write, handle_pre_subagent_delegation
+from tools.hook_dispatch import (
+    handle_post_subagent_delegation,
+    handle_pre_file_write,
+    handle_pre_subagent_delegation,
+)
 from tools.pr_governance_core.common import slugify_branch
 from tools.prompt_scope_isolation import (
     PROMPT_STAGE_ALLOWED_WRITE_PATHS,
@@ -256,6 +260,18 @@ def test_wave4_subagent_scope_hooks_and_prompt_catalog_parity(tmp_path: Path, mo
     ok_s2, reason_s2, _ = register_and_check_subagent_scope(tmp_path, strict_c2)
     assert ok_s2 is False and "PARALLEL_SUBAGENT_SCOPE_CONFLICT" in reason_s2
     assert evaluate_active_subagent_write_scope("docs/foo.md", tmp_path, task_id="strict-1")[0] is True
+    assert evaluate_active_subagent_write_scope("agents/foo.py", tmp_path, task_id="other-sub")[0] is True
+    # Delegated subagent inside Antigravity (without AGY_SUBAGENT_TASK_ID) writes its own scope_in without self-deadlock
+    monkeypatch.delenv("AGY_SUBAGENT_TASK_ID", raising=False)
+    sub_turn_payload = {
+        "Path": "agents/foo.py",
+        "steps": [{"type": "USER_INPUT", "content": "<subagent_reminder>delegated worker</subagent_reminder>"}],
+    }
+    assert _run_hook(handle_pre_file_write, sub_turn_payload, tmp_path)["decision"] == "allow"
+    # PostToolUse on invoke_subagent automatically releases the lease so parent is never locked out for 30 minutes
+    handle_post_subagent_delegation({"delegation_contract": strict_c1}, tmp_path)
+    assert _run_hook(handle_pre_file_write, {"Path": "agents/foo.py"}, tmp_path)["decision"] == "allow"
+    register_and_check_subagent_scope(tmp_path, strict_c1)
     # Dead owner_pid on exclusive lease is automatically evicted rather than orphaning for 30-120 minutes
     scopes_json = tmp_path / ".local" / "governance" / "active_subagent_scopes.json"
     lease_data = json.loads(scopes_json.read_text(encoding="utf-8"))

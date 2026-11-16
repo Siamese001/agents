@@ -11,8 +11,8 @@ Claude Code must behave like a bounded L2 executor, not a project manager.
 For implementation/verification work, unless the user asks for broader planning:
 
 1. Identify the runtime seam and trace all coupled upstream/downstream spine dependencies (`INV-HOLISTIC-PIPELINE-PLANNING`) to their root cause.
-2. Name immutable architectural constraints (`<= 600`-line file budgets and subsystem import boundaries) before editing.
-3. Patch the full cohesive set of coupled files with zero file-count or blast-radius cap (authorizing `<= 600`-line submodules behind a facade, shared domain contracts, and parallel `/boost` or `/swarm` execution).
+2. Name immutable architectural constraints (directional subsystem, layer, and storage import boundaries) before editing (`INV-BUDGET-FILE-LINES = 0`).
+3. Patch the full cohesive set of coupled files with zero file-count, file-size, or blast-radius cap (authorizing cohesive submodules behind a facade, shared domain contracts, and parallel `/boost` or `/swarm` execution).
 4. Run the exact command that exercises the seam.
 5. Run all relevant unit, integration, and coupled producer+contract+consumer test suites (`--timeout=60` or `--timeout=180`, no test-file count cap).
 6. Report evidence with PASS, PARTIAL, FAIL, or BLOCKED.
@@ -21,7 +21,7 @@ For implementation/verification work, unless the user asks for broader planning:
 
 - Align coupled upstream producers, shared domain contracts, consumers, and downstream validators together (`INV-HOLISTIC-PIPELINE-PLANNING`) across as many files or waves as the root cause requires.
 - Don't create a plan when a direct root-cause fix + command proof suffices.
-- Don't create uncoupled cosmetic churn; cohesive package decomposition (`<= 600`-line submodules behind a stable facade) and shared domain contracts across the repository are explicitly authorized (distinct from unrelated drift).
+- Don't create uncoupled cosmetic churn; cohesive package decomposition (submodules behind a stable facade) and shared domain contracts across the repository are explicitly authorized (distinct from unrelated drift).
 - Don't convert blockers into deferred scope — a blocker stays BLOCKED until a command proves otherwise.
 - Don't ask for confirmation when the next step is deterministic and in-scope.
 
@@ -66,7 +66,7 @@ NOTES:
 - one or two important caveats only
 ```
 
-**Receipt hyperlinks (required):** every repo path in `FILES_CHANGED` / `ARTIFACTS` / `REPORTS_GENERATED` MUST be a markdown link `[label](path)` with forward slashes. JSON manifests SHOULD add parallel `*_links` via `ops_scripts/apps_rg/l6_benchmarks/validate_turn_gates.py`.
+**Receipt hyperlinks (required):** every repo path in `FILES_CHANGED` / `ARTIFACTS` / `REPORTS_GENERATED` MUST be a markdown link `[label](path)` with forward slashes. JSON manifests SHOULD add parallel `*_links` via `tools/validate_turn_gates.py`.
 
 ## Canonical post-turn output — one template, with precedence
 

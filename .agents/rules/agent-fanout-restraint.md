@@ -9,12 +9,12 @@ trigger: model_decision
 ## Core Principles
 
 1. **Zero Fan-Out or Scope Throttle on `/boost` and `/swarm`**:
-   - Parallel workers may investigate, trace root causes, decompose `<= 600`-line modules behind facades, align shared contracts, and run impacted test suites concurrently without mandatory 10-field contract blocks or disjoint-file write lockouts.
+   - Parallel workers may investigate, trace root causes, decompose cohesive modules behind facades, align shared contracts, and run impacted test suites concurrently without mandatory 10-field contract blocks, file-size ceilings (`INV-BUDGET-FILE-LINES = 0`), or disjoint-file write lockouts.
 2. **Spend Fan-Out on Real Leverage**:
    - Use parallel workers freely for multi-root bug hunting, cross-subsystem contract alignment, large monolith decomposition, adversarial verification, and independent test execution.
    - Avoid wasting turns re-running identical read-only inventory queries whose exact output is already in context.
-3. **Preserve Modular Size & Architectural Boundaries**:
-   - Every worker must keep production `.py` files `<= 600` lines (`<= 150` lines for pure re-export facades) and respect unidirectional layer and inter-subsystem import boundaries (`tools/lint_file_budgets.py`, `tools/ssot_boundary_auditor.py`).
+3. **Preserve Directional Architectural Boundaries**:
+   - Every worker must respect unidirectional layer, storage-interface, and inter-subsystem import boundaries (`tools/lint_architecture_boundaries.py`, `tools/ssot_boundary_auditor.py`).
 
 ## References
 

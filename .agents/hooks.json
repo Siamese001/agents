@@ -95,6 +95,18 @@
           }
         ]
       }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "invoke_subagent|browser_subagent|start_subagent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 tools/hook_dispatch.py --hook post_subagent_delegation",
+            "timeout": 15
+          }
+        ]
+      }
     ]
   },
   "agents-model-registry-conformance-guard": {
