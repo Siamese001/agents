@@ -327,20 +327,22 @@ def validate_delegation_contract(payload: dict[str, Any]) -> list[str]:
     elif budget is not None and not isinstance(budget, (int, float, str)):
         errors.append("DELEGATION_VIOLATION_INVALID_BUDGET: Budget must be a numeric limit or bounded object.")
 
-    # Validate scope separation (prefix-aware across subdirectories and normalization variants)
+    # Validate scope separation (allow subpath carve-outs in scope_out; reject exact or parent-swallowing contradictions)
     scope_in = payload.get("scope_in")
     scope_out = payload.get("scope_out")
     if isinstance(scope_in, (list, tuple)) and isinstance(scope_out, (list, tuple)):
-        from tools.prompt_scope_isolation import paths_overlap
+        from tools.prompt_scope_isolation import _normalize_token
 
-        overlaps = sorted({
-            f"{pin} <-> {pout}"
-            for pin in scope_in
-            for pout in scope_out
-            if str(pin).strip() and str(pout).strip() and paths_overlap(str(pin), str(pout))
-        })
+        overlaps: set[str] = set()
+        for pin in scope_in:
+            for pout in scope_out:
+                s_in, s_out = _normalize_token(str(pin)), _normalize_token(str(pout))
+                if not s_in or not s_out:
+                    continue
+                if s_in == s_out or s_out in (".", "*") or s_in.startswith(f"{s_out}/"):
+                    overlaps.add(f"{pin} <-> {pout}")
         if overlaps:
-            errors.append(f"DELEGATION_VIOLATION_SCOPE_OVERLAP: Contradictory overlap between scope_in and scope_out: {overlaps}")
+            errors.append(f"DELEGATION_VIOLATION_SCOPE_OVERLAP: Contradictory overlap between scope_in and scope_out: {sorted(overlaps)}")
 
     return errors
 

@@ -118,12 +118,32 @@ def verify_merge_receipt(
 
     slug = slugify_branch(branch)
     receipt_filename = f"pr_review_{slug}_receipt.json"
+    common_res = run_git(["rev-parse", "--path-format=absolute", "--git-common-dir"], cwd=repo_root)
+    common_root = Path(common_res.stdout.strip()).resolve().parent if (common_res.returncode == 0 and common_res.stdout.strip()) else repo_root
     local_receipt = repo_root / "reports" / receipt_filename
+    if not local_receipt.exists() and (common_root / "reports" / receipt_filename).exists():
+        local_receipt = common_root / "reports" / receipt_filename
     head_branch_res = run_git(["rev-parse", "--abbrev-ref", "HEAD"], cwd=repo_root)
     head_branch = head_branch_res.stdout.strip() if head_branch_res.returncode == 0 else ""
-    is_train_target = bool(re.match(r"^feat/wave-[a-zA-Z0-9_\-\.]+-train$", head_branch))
     shard_receipt_filename = f"pr_shard_{slug}_receipt.json"
     local_shard_receipt = repo_root / "reports" / shard_receipt_filename
+    if not local_shard_receipt.exists() and (common_root / "reports" / shard_receipt_filename).exists():
+        local_shard_receipt = common_root / "reports" / shard_receipt_filename
+    has_train_manifest = False
+    for rbase in {repo_root, common_root}:
+        rep_d = rbase / "reports"
+        if rep_d.is_dir():
+            for mf in rep_d.glob("pr_train_*_manifest.json"):
+                try:
+                    mdata = json.loads(mf.read_text(encoding="utf-8"))
+                    if mdata.get("terminal_outcome") == "PASS" and any(
+                        isinstance(s, dict) and s.get("branch") == branch for s in (mdata.get("shards") or [])
+                    ):
+                        has_train_manifest = True
+                        break
+                except (OSError, ValueError, TypeError):
+                    continue
+    is_train_target = bool(re.match(r"^feat/wave-[a-zA-Z0-9_\-\.]+-train$", head_branch)) or has_train_manifest
 
     effective_local = local_shard_receipt if (is_train_target and local_shard_receipt.exists()) else local_receipt
     forgery_err = _check_governed_merge_forgery(branch, repo_root, effective_local)

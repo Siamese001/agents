@@ -48,8 +48,17 @@ def resolve_effective_repo_root(args: argparse.Namespace) -> Path:
 
 def derive_branch_merge_title(branch: str, repo_root: Path) -> str:
     """Derive a conventional merge commit title from the latest branch commit subject."""
-    prefix_raw = branch.split("/", 1)[0].lower() if "/" in branch else "chore"
-    prefix_map = {"feature": "feat", "enhance": "feat", "ingest": "feat", "audio": "feat", "transcript": "feat"}
+    prefix_raw = branch.split("/", 1)[0].split("-", 1)[0].lower()
+    prefix_map = {
+        "feature": "feat",
+        "enhance": "feat",
+        "ingest": "feat",
+        "audio": "feat",
+        "transcript": "feat",
+        "swarm": "feat",
+        "boost": "feat",
+        "automation": "chore",
+    }
     conv_type = prefix_map.get(prefix_raw, prefix_raw)
     if conv_type not in {"feat", "fix", "docs", "style", "refactor", "perf", "test", "build", "ci", "chore", "revert"}:
         conv_type = "chore"

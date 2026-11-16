@@ -8,7 +8,13 @@
     "resume_graph_engine",
     "apps_research",
     "apps_eval",
-    "infrastructure"
+    "infrastructure",
+    "tools",
+    "scripts",
+    "ops_scripts",
+    "config",
+    "tests",
+    "automations"
   ],
   "app_data_dir": ".antigravity/app_data",
   "save_dir": "artifacts/sessions",
