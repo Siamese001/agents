@@ -201,13 +201,14 @@ def validate_pre_turn_gate(repo_root: Path | None = None) -> dict[str, Any]:
     if skills_check["status"] != "PASS":
         issues.extend(skills_check.get("issues", []))
 
-    overall_status = "PASS" if not issues else "FAIL"
-    return {
-        "gate": "PRE_TURN",
-        "status": overall_status,
-        "issues": issues,
-        "checks": checks,
-    }
+    # Check 10: Zero Bug-Fix & Blast-Radius Constraint Floor (INV-ZERO-BUGFIX-BLAST-RADIUS-CAP)
+    from tools.zero_bugfix_constraint_gate import validate_zero_bugfix_constraint_floor
+    zero_cap_check = validate_zero_bugfix_constraint_floor(root)
+    checks["zero_bugfix_constraints"] = zero_cap_check
+    if zero_cap_check["status"] != "PASS":
+        issues.extend(zero_cap_check.get("issues", []))
+
+    return {"gate": "PRE_TURN", "status": "PASS" if not issues else "FAIL", "issues": issues, "checks": checks}
 
 
 def load_policy_registry(repo_root: Path | None = None) -> dict[str, dict[str, Any]]:
@@ -335,21 +336,11 @@ def evaluate_hitl_ambiguity(
     margin_threshold: float = 0.20,
     min_confidence_floor: float = 0.65,
 ) -> dict[str, Any]:
-    """Evaluate candidate HITL options against the calibrated 20% ambiguity margin and 65% floor rules.
-
-    If delta = c_top - c_second > margin_threshold AND c_top >= min_confidence_floor:
-        Decision is decisively resolved; agent should proceed autonomously.
-    Otherwise:
-        Decision requires human review; agent must surface atomic HITL.
-    """
+    """Evaluate candidate HITL options against the calibrated 20% ambiguity margin and 65% floor rules."""
     if not options:
         return {
-            "requires_hitl": False,
-            "status": "EMPTY",
-            "top_option": None,
-            "margin": 0.0,
-            "min_confidence_floor": min_confidence_floor,
-            "recommendation": "No options evaluated.",
+            "requires_hitl": False, "status": "EMPTY", "top_option": None, "margin": 0.0,
+            "min_confidence_floor": min_confidence_floor, "recommendation": "No options evaluated.",
         }
 
     scored = []

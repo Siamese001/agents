@@ -1,18 +1,17 @@
-# ProceduralPattern:ADGTransportOpenPerTurnGate
+# ProceduralPattern:ADGTransportNonBlockingFallback
 
 ```json
 {
   "entities": [{
-    "name": "ProceduralPattern:ADGTransportOpenPerTurnGate",
+    "name": "ProceduralPattern:ADGTransportNonBlockingFallback",
     "entityType": "ProceduralPattern",
     "observations": [
-      "INVARIANT: Ordinary T2/T3 prompts must require ADG SQLite SSOT health and active-session ADG MCP transport proof before graph-dependent work proceeds.",
-      "scope: .codex/governance/scripts/pre_user_prompt_adg_ssot_gate.py, tools/adg/mcp/supervisor.py, .codex/hooks/after_mcp_execution.py, scripts/governance/codex_readiness.py",
-      "enforcement: UserPromptSubmit blocks unless tools.adg.mcp.supervisor.transport_status(session_id).status is open; PostToolUse writes artifacts/mcp_heartbeat/adg_sqlite_callable_proof.json only after adg_health/adg_runtime_info/adg_process_identity succeeds.",
-      "violation_examples: treating a live ADG Python process, a fresh heartbeat, or readable artifacts/adg/adg_indexed_*.sqlite as proof that Codex can call mcp__adg_sqlite tools.",
-      "canonical_pattern: let explicit ADG transport recovery/RCA prompts proceed, but keep ordinary T2/T3 prompts blocked until env or file proof matches a live authoritative heartbeat PID.",
-      "doctrine_ref: .codex/rules/constitutional.md §13; tools/adg/mcp/OPERATIONS.md",
-      "discovered: 2026-07-01, validated: 2026-07-01"
+      "INVARIANT: Prefer adg_sqlite MCP and artifacts/adg/*.sqlite when healthy, and fall back immediately to AST and code search without blocking root-cause bug fixes, /boost, or /swarm execution.",
+      "scope: .mcp.json, tools/adg_impact_tests.py, tools/ssot_boundary_auditor.py",
+      "enforcement: Non-blocking inspection fallback; closed or unavailable MCP transports never stall multi-file bug remediation or cohesive refactoring.",
+      "canonical_pattern: Query adg_sqlite when available for fast fan-in/fan-out views, and combine freely with direct AST and grep inspection across all 11 repository roots.",
+      "doctrine_ref: .agents/rules/constitutional.md §13 and §28",
+      "updated: 2026-11-16"
     ]
   }]
 }

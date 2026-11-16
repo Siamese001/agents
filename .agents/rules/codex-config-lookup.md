@@ -1,3 +1,3 @@
-# Codex Config Lookup — stub
+# Workspace Config Lookup
 
-> On-demand for config-lookup questions (plan `always-on-rule-surface-cut-c7f3a1`). For Codex behavior and this repo's `.codex` config, search local-first: AGENTS.md -> `.codex/rules/*.md` -> `.codex/skills/**/SKILL.md` -> `.codex/agents/*.md` -> `.codex/hooks.json` + `.codex/hooks/**` -> `.mcp.json` + `.codex/mcp-notes.md` -> `.codex/commands/*.md`. `.cursor/`/`.windsurf/` are legacy; the one live dependency is `.codex/governance/scripts/**`.
+> On-demand for configuration and customization lookup questions. Search local-first in Antigravity SSOT order: `AGENTS.md` -> `.agents/rules/*.md` -> `.agents/skills/*/SKILL.md` -> `.agents/hooks.json` -> `tools/` -> `config/governance/policy_registry.yaml` -> `.mcp.json`. Legacy `.codex/`, `.cursor/`, and `.windsurf/` paths are retired.
