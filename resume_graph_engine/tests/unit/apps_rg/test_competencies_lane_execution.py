@@ -317,3 +317,44 @@ def test_graph_authority_surface_compositions_pass_svp_richness_and_avoid_bullet
             f"Composition {key} triggered _bullet_restatement against canonical base resume bullets: {phrase!r}"
         )
 
+
+def test_competencies_allocation_surface_eliminates_raw_skill_slugs() -> None:
+    from apps_rg.runtime.c0.competencies_graph_authority import _allocation_surface_phrase
+
+    cases = [
+        (
+            "reb_slalom_nextgen_ai_solutions",
+            "skill_graph_aware_relationship_grounding",
+            "graph-aware relationship grounding for enterprise retrieval",
+        ),
+        (
+            "reb_slalom_bitemporal_graphrag_uwg",
+            "skill_side_effect_bounded_action_design",
+            "side-effect bounded action controls for runtime execution",
+        ),
+        (
+            "reb_slalom_bitemporal_graphrag_uwg",
+            "skill_no_direct_write_runtime_design",
+            "governed write-boundary controls for runtime execution",
+        ),
+        (
+            "reb_slalom_bitemporal_graphrag_uwg",
+            "skill_metadata_acl_freshness_filtering",
+            "metadata ACL and freshness filtering for pipelines",
+        ),
+    ]
+    for root_id, skill_id, expected in cases:
+        assignment = {
+            "root_id": root_id,
+            "skill_id": skill_id,
+            "fact_id": root_id,
+        }
+        phrase, src = _allocation_surface_phrase(
+            assignment,
+            selected_plan={"facts": [{"role_episode_bundle_id": root_id, "claim_text": expected}]},
+        )
+        assert phrase == expected
+        assert src == "graph_authority_surface_composition"
+        assert "agentic graph aware relationship grounding enterprise" not in phrase
+        assert "GraphRAG retrieval side-effect bounded action design" not in phrase
+

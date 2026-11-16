@@ -30,40 +30,18 @@ from apps_rg.runtime.sections.executive_summary_synthesis_contract import (
 def _repo_root() -> Path:
     here = Path(__file__).resolve()
     for parent in [here.parent, *here.parents]:
-        if (
-            parent
-            / "apps_rg"
-            / "prompt_assembly"
-            / "templates"
-            / "executive_summary.generate_scratch_v1.yaml"
-        ).is_file():
+        if (parent / "apps_rg" / "prompt_assembly" / "templates" / "executive_summary.generate_scratch_v1.yaml").is_file():
             return parent
-    raise FileNotFoundError(
-        "Cannot resolve repo root from executive_summary_pa.py (template yaml not found in parents)"
-    )
+    raise FileNotFoundError("Cannot resolve repo root from executive_summary_pa.py (template yaml not found in parents)")
 
 
 _REPO_ROOT = _repo_root()
-_TEMPLATE_PATH = (
-    _REPO_ROOT
-    / "apps_rg"
-    / "prompt_assembly"
-    / "templates"
-    / "executive_summary.generate_scratch_v1.yaml"
-)
+_TEMPLATE_PATH = _REPO_ROOT / "apps_rg" / "prompt_assembly" / "templates" / "executive_summary.generate_scratch_v1.yaml"
 
 _EXEC_SUMMARY_OUTPUT_SCHEMA_JSON = json.dumps(
     {
         "type": "object",
-        "required": [
-            "executive_strategy_thesis",
-            "resume_display_text",
-            "claim_ledger",
-            "jd_alignment",
-            "gap_notes",
-            "change_log",
-            "self_check",
-        ],
+        "required": ["executive_strategy_thesis", "resume_display_text", "claim_ledger", "jd_alignment", "gap_notes", "change_log", "self_check"],
         "properties": {
             "executive_strategy_thesis": {"type": "string", "minLength": 1},
             "resume_display_text": {"type": "string"},
@@ -72,20 +50,10 @@ _EXEC_SUMMARY_OUTPUT_SCHEMA_JSON = json.dumps(
                 "items": {
                     "type": "object",
                     "required": ["claim_text", "source_fact_ids"],
-                    "properties": {
-                        "claim_text": {"type": "string", "minLength": 1},
-                        "claim": {"type": "string"},
-                        "source_fact_ids": {
-                            "type": "array",
-                            "items": {"type": "string"},
-                        },
-                    },
+                    "properties": {"claim_text": {"type": "string", "minLength": 1}, "claim": {"type": "string"}, "source_fact_ids": {"type": "array", "items": {"type": "string"}}},
                 },
             },
-            "jd_alignment": {"type": "object"},
-            "gap_notes": {"type": "array"},
-            "change_log": {"type": "array"},
-            "self_check": {"type": "object"},
+            "jd_alignment": {"type": "object"}, "gap_notes": {"type": "array"}, "change_log": {"type": "array"}, "self_check": {"type": "object"},
         },
     },
     sort_keys=True,
@@ -131,19 +99,9 @@ def is_strategy_executive_target_title(target_title: str) -> bool:
     if not blob:
         return False
     markers = (
-        "it strategy",
-        "strategy & innovation",
-        "strategy and innovation",
-        "technology strategy",
-        "chief information",
-        "cio",
-        "cito",
-        "enterprise architecture",
-        "digital innovation",
-        "transformation",
-        "agentic transformation",
-        "advisory",
-        "consulting",
+        "it strategy", "strategy & innovation", "strategy and innovation", "technology strategy",
+        "chief information", "cio", "cito", "enterprise architecture", "digital innovation",
+        "transformation", "agentic transformation", "advisory", "consulting",
     )
     return any(m in blob for m in markers) or (
         "svp" in blob and ("strategy" in blob or "innovation" in blob or "transformation" in blob or "advisory" in blob)
@@ -265,17 +223,10 @@ GRAPH_EVIDENCE_FORBIDDEN_PHRASE_CONTRACT_MARKER = "GRAPH_EVIDENCE_FORBIDDEN_PHRA
 
 # W4C: global resume_display_text bans (prompt contract; judge_safe may also strip at repair).
 GRAPH_EVIDENCE_FORBIDDEN_PHRASES_ALWAYS: tuple[str, ...] = (
-    "applied depth",
-    "documented credential training",
-    "quantitative methods training",
-    "distributed systems training",
-    "fully autonomous production agents",
-    "self-learning runtime",
-    "autonomous AGI without oversight",
-    "unsupervised production agents",
-    "bespoke delivery",
-    "reusable platform services adopted across enterprise programs",
-    "engineering scale-out",
+    "applied depth", "documented credential training", "quantitative methods training",
+    "distributed systems training", "fully autonomous production agents", "self-learning runtime",
+    "autonomous AGI without oversight", "unsupervised production agents", "bespoke delivery",
+    "reusable platform services adopted across enterprise programs", "engineering scale-out",
     "converting bespoke delivery",
 )
 
@@ -332,6 +283,40 @@ def format_graph_evidence_style_quality_block() -> str:
     )
 
 
+_INTERNAL_REPO_PLUMBING_TOKENS: tuple[str, ...] = (
+    "119-package",
+    "6 custom mcp servers",
+    "six mcp servers",
+    "32 readiness gates",
+    "thirty-two readiness gates",
+    "8-surface system learning",
+    "sqlite wal",
+    "1024-d bge-m3",
+    "dirichlet-laplace",
+    "universal write gateway",
+    "dual-track live executive copilot",
+)
+
+
+def _sanitize_c0_fact_text(fid: str, claim_text: str, raw_chunk: str = "") -> str:
+    ct = str(claim_text or "").strip()
+    low = ct.lower()
+    if any(tok in low for tok in _INTERNAL_REPO_PLUMBING_TOKENS):
+        return (
+            "Governed enterprise agentic AI platform architecture, multi-agent SDLC delivery, "
+            "and production readiness gates across enterprise client transformations"
+        )
+    if str(fid).startswith("reb_") and raw_chunk and len(ct.split()) <= 10:
+        rc = str(raw_chunk).strip()
+        if not any(tok in rc.lower() for tok in _INTERNAL_REPO_PLUMBING_TOKENS):
+            parts = [p.strip() for p in rc.split(". ") if p.strip() and not p.strip().lower().startswith("frame as")]
+            if len(parts) >= 2:
+                combined = ". ".join(parts[:3]).rstrip(".") + "."
+                if len(combined) <= 360:
+                    return combined
+    return ct
+
+
 def format_selected_facts_for_c0(facts: list[dict[str, Any]], allowed_source_fact_ids: list[str]) -> str:
     header = format_allowed_source_fact_ids_contract(allowed_source_fact_ids)
     prohibition_lines: list[str] = []
@@ -343,10 +328,17 @@ def format_selected_facts_for_c0(facts: list[dict[str, Any]], allowed_source_fac
             str(fact.get("preferred_c0_display_text") or "").strip()
             or str(FACT_C0_DISPLAY_OVERRIDES.get(str(fid), "")).strip()
         )
-        ct = display_override or str(fact.get("claim_text") or "").strip()
+        ct = display_override or _sanitize_c0_fact_text(
+            str(fid),
+            str(fact.get("claim_text") or "").strip(),
+            str(fact.get("raw_chunk") or "").strip(),
+        )
         extra = ""
-        if fact.get("metric_raw"):
-            extra = f" metric_raw={fact.get('metric_raw')!r}"
+        mr = fact.get("metric_raw")
+        if not mr and fact.get("metric_values"):
+            mr = "; ".join(str(m).strip() for m in (fact.get("metric_values") or []) if str(m).strip())
+        if mr:
+            extra = f" metric_raw={mr!r}"
         if display_override:
             prohibition_lines.append(
                 f"- {fid}: MUST NOT write 'derivatives pricing' or 'multi-Greek' in resume_display_text — "

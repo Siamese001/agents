@@ -89,12 +89,20 @@ def apply_voice_repair_to_parsed(
     selected_facts: list[dict[str, Any]] | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     """Apply filler repair to ``resume_display_text`` in-place copy of parsed output."""
+    from .filler_and_meta import _repair_forbidden_meta_phrases
+
     out = dict(parsed)
     text, receipt = _p("repair_generic_filler_prose", repair_generic_filler_prose)(
         str(out.get("resume_display_text") or ""),
         selected_facts=selected_facts,
     )
     out["resume_display_text"] = text
+    thesis = str(out.get("executive_strategy_thesis") or "").strip()
+    if thesis:
+        repaired_thesis, thesis_repairs = _repair_forbidden_meta_phrases(thesis)
+        if thesis_repairs and repaired_thesis:
+            out["executive_strategy_thesis"] = repaired_thesis
+            receipt["thesis_repaired"] = True
     if receipt.get("repaired"):
         out = _p("reconcile_claim_ledger_after_voice_repair", reconcile_claim_ledger_after_voice_repair)(out)
         receipt["claim_ledger_reconciled"] = True

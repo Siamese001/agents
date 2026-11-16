@@ -39,8 +39,24 @@ def _fact_corpus_lower(selected_facts: list[dict[str, Any]] | None) -> str:
     for row in selected_facts or []:
         if not isinstance(row, dict):
             continue
-        parts.append(str(row.get("claim_text") or ""))
-        parts.append(str(row.get("achievement_summary") or ""))
+        for key in (
+            "fact_id",
+            "candidate_fact_id",
+            "role_episode_bundle_id",
+            "claim_text",
+            "achievement_summary",
+            "domain",
+            "bundle_theme",
+            "raw_chunk",
+            "metric_raw",
+        ):
+            val = row.get(key)
+            if val:
+                parts.append(str(val))
+        for seq_key in ("metric_values", "metric_outcome_ids", "allowed_graph_evidence_ids"):
+            for item in row.get(seq_key) or []:
+                if item:
+                    parts.append(str(item))
     return " ".join(parts).lower()
 
 

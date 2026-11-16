@@ -20,8 +20,11 @@ from apps_rg.runtime.validators.exec_summary_x2.constants import (
     EXECUTIVE_SUMMARY_SECTION_ID,
     EXEC_SUMMARY_FORBIDDEN_META_PHRASES,
     EXEC_SUMMARY_FORBIDDEN_META_PHRASES_LOOSE,
+    EXEC_SUMMARY_INTERNAL_PLUMBING_BANNED_SUBSTRINGS,
     EXEC_SUMMARY_MECHANICAL_OPENERS,
     EXEC_SUMMARY_ROBOTIC_TRANSITION_PREFIXES,
+    EXEC_SUMMARY_STUTTERED_STEM_PATTERNS,
+    EXEC_SUMMARY_WEAK_S1_SUBJECT_OPENERS,
     EXPECTED_PA_SHELL_TEMPLATE_ID,
     EXPECTED_PROMPT_ID,
     EXPECTED_PROMPT_TEMPLATE_REF,
@@ -61,6 +64,7 @@ from apps_rg.runtime.validators.exec_summary_x2.surface_checks import (
     check_exec_summary_display_override_compliance,
     check_exec_summary_mechanical_opener_stack,
     check_exec_summary_meta_filler_patterns,
+    check_exec_summary_no_internal_plumbing_or_stutter,
     check_exec_summary_no_sentence_fragment,
     check_exec_summary_robotic_transition_stack,
     check_exec_summary_stock_bridge_count,
@@ -271,6 +275,7 @@ def run_x2_gates(
     add("x2_target_company_as_experience_zero")
     add("x2_generic_filler_zero")
     add("x2_exec_summary_meta_filler_zero")
+    add("x2_exec_summary_no_internal_plumbing_or_stutter")
     add("x2_exec_summary_colon_stitch_zero")
     add("x2_exec_summary_sentence_count_6")
     add("x2_exec_summary_display_roundtrip_integrity")

@@ -54,6 +54,7 @@ Mandatory rules:
   demonstrate skills listed in `claim_support_graph_refs`. Treat `graph_proof_refs.source_resume_files` as
   authoritative provenance for resume-backed skill claims — not as optional decoration.
 - **OFF_DOMAIN_CLUTTER_ENFORCEMENT (CRITICAL):** If a non-financial / non-insurance target role (such as AI Partnerships, Applied AI Architecture, or Agentic Engineering) contains banking regulatory or insurance policy administration clutter (e.g., `BCBS 239`, `monolithic policy administration`, `three-lines-of-defense`, `ERM operating models`, `CCAR`, `Guidewire`), you MUST set `decisive_failure: true`, `pass: false`, and `score <= 3.4` (`0.68`).
+- **INTERNAL_REPO_PLUMBING_AND_STUTTER_BAN (CRITICAL):** If the candidate executive summary contains internal codebase/repo micro-plumbing specs (e.g., `119-package`, `32 readiness gates`, `thirty-two readiness gates`, `six MCP servers`, `6 custom MCP servers`, `SQLite WAL`, `FTS5`, `1024-d BGE-M3`, `Dirichlet-Laplace`, `Merkle-cached`, `Universal Write Gateway`, `8-surface System Learning`, `Dual-Track Live Executive Copilot`), stuttered adjacent stems (`regulated enterprise regulatory findings`, `regulated enterprises regulatory findings`), or weak third-person S1 openers (`Executive leadership architects`, `The candidate `, `This leader `), you MUST set `decisive_failure: true`, `pass: false`, and `score <= 3.0`.
 - **SCORE CALIBRATION (0_to_5):** When all 8 dimensions have `pass=true`, `unsupported_claims` is empty, and all deterministic X2 gates pass, score between **4.5 and 4.9** (4.7+ when prose is cohesive, role-aligned, and grounded in every allocated fact).
 - Return ONLY the required structured judge JSON schema (no markdown fences, no prose).
 """.strip()
@@ -93,6 +94,7 @@ Decisive failure triggers (must be supported by allowed facts and deterministic_
 - first-person narrative
 - credential/certification inventory block (x2_exec_summary_no_credential_dump alignment)
 - mechanism inventory in opening sentence or comma-chain architecture dump
+- internal repo/codebase micro-plumbing laundry lists ("119-package", "32 readiness gates", "six MCP servers", "SQLite WAL", "FTS5", "1024-d BGE-M3", "Dirichlet-Laplace", "Universal Write Gateway", "Dual-Track Live Executive Copilot"), stuttered duplicate stems ("regulated enterprise regulatory findings"), or robotic S1 opener ("Executive leadership architects", "The candidate ", "This leader ")
 - obvious rewrite recommendation that invents new claims
 """.strip()
 
@@ -151,6 +153,7 @@ Decisive failure triggers (must align with deterministic_gate_summary failures w
 - unsupported business metric or credential (when x2 gates failed or decisive unsupported claim)
 - JD or briefing used as proof
 - first-person narrative
+- internal repo/codebase micro-plumbing laundry lists ("119-package", "32 readiness gates", "six MCP servers", "SQLite WAL", "FTS5", "1024-d BGE-M3", "Dirichlet-Laplace", "Universal Write Gateway", "Dual-Track Live Executive Copilot"), stuttered duplicate stems ("regulated enterprise regulatory findings"), or robotic S1 opener ("Executive leadership architects", "The candidate ", "This leader ")
 - obvious rewrite recommendation that invents new claims
 """.strip()
 
@@ -230,16 +233,8 @@ def enrich_allowed_fact_packet_for_judges(
     repo_root: Any = None,
     cited_fact_ids: list[str] | set[str] | None = None,
 ) -> list[dict[str, Any]]:
-    """Include metric-derivative rows AND attach C0 display-override text so X1D judges see the same fact substrate as X2/PROVIDER_MODEL.
-
-    Without ``display_override_text``, judges grade against the raw ``claim_text`` and
-    flag the authorized override phrases as unsupported extensions, producing structural
-    soft-fail loops (closes Bug:ExecSummaryJudgeDisplayOverrideInvisible,
-    plan exec-summary-judge-display-override-parity-7c3e8a).
-    """
-    from apps_rg.runtime.sections.executive_summary_synthesis_contract import (
-        FACT_C0_DISPLAY_OVERRIDES,
-    )
+    """Include metric-derivative rows and C0 display-override text so X1D judges see the same fact substrate as X2."""
+    from apps_rg.runtime.sections.executive_summary_synthesis_contract import FACT_C0_DISPLAY_OVERRIDES
     from apps_rg.runtime.sections.graph_evidence_contract import metric_derivative_fact_id
 
     bindings_by_fact = _bindings_by_fact_id(list(graph_bindings or []))

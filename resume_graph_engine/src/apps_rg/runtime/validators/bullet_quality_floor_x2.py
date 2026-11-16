@@ -226,6 +226,47 @@ def _has_consulting_substitution(bullet_text: str) -> list[str]:
     return [phrase for phrase in GENERIC_CONSULTING_SUBSTITUTIONS if phrase in text_lower]
 
 
+INTERNAL_PLUMBING_AND_STUTTER_BANNED_SUBSTRINGS: frozenset[str] = frozenset({
+    "119-package",
+    "119 modular subpackages",
+    "32 readiness gates",
+    "thirty-two readiness gates",
+    "32 fail-closed",
+    "six mcp servers",
+    "6 custom mcp servers",
+    "6 mcp servers",
+    "sqlite wal",
+    "fts5",
+    "1024-d",
+    "bge-m3",
+    "dirichlet-laplace",
+    "merkle-cached",
+    "merkle subgraph",
+    "universal write gateway",
+    "8-surface system learning",
+    "8 closed-loop system learning",
+    "dual-track live executive copilot",
+    "pcm audio spooler",
+    "mlx whisper",
+    "regulated enterprise regulatory findings",
+    "regulated enterprises regulatory findings",
+})
+
+REAL_L2_MOCK_LANGUAGE_BANNED_SUBSTRINGS: tuple[str, ...] = tuple(
+    sorted(INTERNAL_PLUMBING_AND_STUTTER_BANNED_SUBSTRINGS)
+)
+
+
+def _has_internal_plumbing_or_stutter(bullet_text: str) -> list[str]:
+    """Return internal repo micro-plumbing or stuttered stem matches in bullet_text."""
+    text_lower = str(bullet_text or "").lower()
+    hits = [tok for tok in INTERNAL_PLUMBING_AND_STUTTER_BANNED_SUBSTRINGS if tok in text_lower]
+    if re.search(r"\bregulated[\s-]+enterprises?\s+regulatory\b", text_lower):
+        if not any("regulated enterprise" in h for h in hits):
+            hits.append("regulated_enterprise_regulatory_stutter")
+    return sorted(hits)
+
+
 # ---------------------------------------------------------------------------
 # Gate runner
 # ---------------------------------------------------------------------------
@@ -283,11 +324,30 @@ def check_bullet_technical_specificity_floor(
     )
 
 
+def check_bullet_no_internal_plumbing_or_stutter(
+    bullet_id: str,
+    bullet_text: str,
+) -> QualityFloorResult:
+    hits = _has_internal_plumbing_or_stutter(bullet_text)
+    return QualityFloorResult(
+        gate_id="x2_bullet_no_internal_plumbing_or_stutter",
+        passed=not hits,
+        bullet_id=bullet_id,
+        score=0 if hits else 1,
+        signals=hits,
+        failure_reason=(
+            f"{bullet_id}: internal repo plumbing or stuttered phrase: {hits}"
+            if hits
+            else None
+        ),
+    )
+
+
 def check_bullet_no_generic_consulting_substitution(
     bullet_id: str,
     bullet_text: str,
 ) -> QualityFloorResult:
-    hits = _has_consulting_substitution(bullet_text)
+    hits = _has_consulting_substitution(bullet_text) + _has_internal_plumbing_or_stutter(bullet_text)
     return QualityFloorResult(
         gate_id="x2_no_generic_consulting_substitution",
         passed=not hits,
@@ -295,7 +355,7 @@ def check_bullet_no_generic_consulting_substitution(
         score=0 if hits else 1,
         signals=hits,
         failure_reason=(
-            f"{bullet_id}: consulting-speak substitution phrases: {hits}"
+            f"{bullet_id}: consulting-speak substitution or internal plumbing phrases: {hits}"
             if hits
             else None
         ),
@@ -325,6 +385,7 @@ def check_experience_bullet_evidence_density(
     )
     has_outcome = bool(_NUMERIC_SIGNAL_PATTERN.search(text) or _OUTCOME_SIGNAL_PATTERN.search(text))
     capability_only = bool(_CAPABILITY_ONLY_PATTERN.search(text)) and not has_outcome
+    plumbing_hits = _has_internal_plumbing_or_stutter(text)
     signals = [
         signal
         for signal, present in (
@@ -332,10 +393,11 @@ def check_experience_bullet_evidence_density(
             ("concrete_delivery_detail", has_delivery_detail),
             ("outcome_signal", has_outcome),
             ("capability_only", capability_only),
+            (f"internal_plumbing_or_stutter:{plumbing_hits}", bool(plumbing_hits)),
         )
         if present
     ]
-    passed = has_action and has_delivery_detail and has_outcome and not capability_only
+    passed = has_action and has_delivery_detail and has_outcome and not capability_only and not plumbing_hits
     missing = [
         label
         for label, present in (
@@ -347,11 +409,13 @@ def check_experience_bullet_evidence_density(
     ]
     if capability_only:
         missing.append("capability_only_statement")
+    if plumbing_hits:
+        missing.append(f"internal_plumbing_or_stutter:{plumbing_hits}")
     return QualityFloorResult(
         gate_id="x2_experience_bullet_evidence_density_required",
         passed=passed,
         bullet_id=bullet_id,
-        score=int(has_action) + int(has_delivery_detail) + int(has_outcome) - int(capability_only),
+        score=int(has_action) + int(has_delivery_detail) + int(has_outcome) - int(capability_only) - int(bool(plumbing_hits)),
         signals=signals,
         failure_reason=(
             f"{bullet_id}: insufficient experience-bullet evidence density; missing={missing}"
@@ -474,12 +538,15 @@ __all__ = [
     "BULLET_MAX_GERUNDS",
     "BULLET_MIN_WORDS",
     "GENERIC_CONSULTING_SUBSTITUTIONS",
+    "INTERNAL_PLUMBING_AND_STUTTER_BANNED_SUBSTRINGS",
+    "REAL_L2_MOCK_LANGUAGE_BANNED_SUBSTRINGS",
     "SCALE_SIGNALS",
     "SENIORITY_FLOOR_SCORE",
     "STRONG_ACTION_VERBS",
     "WEAK_ACTION_VERBS",
     "QualityFloorResult",
     "check_bullet_no_generic_consulting_substitution",
+    "check_bullet_no_internal_plumbing_or_stutter",
     "check_bullet_seniority_floor",
     "check_bullet_technical_specificity_floor",
     "check_bullet_word_floor_and_gerund_rhythm",

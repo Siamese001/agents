@@ -41,6 +41,7 @@ Decisive failure triggers:
 - JD, briefing, or target company used as proof of experience
 - wrong source namespace, cross-employer leakage, mixed graph evidence, or missing role source_fact_ids
 - keyword stuffing, copied JD phrases, or ATS laundry-list phrasing
+- internal repo/codebase micro-plumbing specs ("119-package", "32 readiness gates", "six MCP servers", "SQLite WAL", "FTS5", "1024-d BGE-M3", "Dirichlet-Laplace", "Merkle-cached", "Universal Write Gateway", "Dual-Track Live Executive Copilot", "PCM audio spooler", "MLX Whisper", "8-surface System Learning") or stuttered duplicate stems ("regulated enterprise regulatory findings")
 - wrong output shape: unexpected bullet count or multiple sentences for narrative lanes
 """.strip()
 
