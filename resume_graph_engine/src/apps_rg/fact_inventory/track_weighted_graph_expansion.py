@@ -453,15 +453,8 @@ def infer_projection_role_family_key(
                     p for p in priorities if p.role_family != consulting.role_family
                 )
     fde_signals = ("forward deployed", "forward-deployed", "deployed engineering", "rapid prototyping", "prototype to production")
-    explicit_partner_signals = ("partner ade", "systems integrator", "system integrator", "gsi", "isv", "co-sell", "cosell", "channel partner", "hyperscaler alliance", "partner gtm")
-    role_low = target_role.lower()
-    is_partner_title = any(k in role_low for k in ("partner", "partnership", "partnerships", "alliance", "alliances", "channel", "co-sell", "cosell", "ecosystem"))
-    has_partner_context = is_partner_title or (not role_low and any(sig in corp for sig in explicit_partner_signals))
-    if priorities and not has_partner_context:
-        partner_family_ids = {"PARTNER_APPLIED_AI_ARCHITECTURE", "PARTNERSHIPS_GTM", "HYPERSCALER_MARKETPLACE_GTM"}
-        non_partner_priorities = tuple(p for p in priorities if p.role_family not in partner_family_ids)
-        if non_partner_priorities:
-            priorities = non_partner_priorities
+    explicit_partner_signals = ("partner ade", "systems integrator", "system integrator", "gsi", "isv", "co-sell", "cosell", "partner ecosystem", "channel partner")
+    has_partner_context = any(sig in corp for sig in explicit_partner_signals) or "partner" in target_role.lower()
     if priorities and any(sig in corp for sig in fde_signals) and not has_partner_context:
         eng = next((p for p in priorities if p.role_family == "ENGINEERING_PLATFORM"), None)
         if eng and eng.score > 0 and priorities[0].role_family != "ENGINEERING_PLATFORM":
@@ -512,23 +505,42 @@ def infer_projection_role_family_key(
     )
     broker_hits = sum(1 for sig in broker_it_signals if sig in corp)
     if priorities and broker_hits >= 4:
-        broker = next((p for p in priorities if p.role_family == "INSURANCE_BROKERAGE_IT_INNOVATION"), None)
-        insurer_it = next((p for p in priorities if p.role_family == "INSURER_IT_AI_ENABLEMENT"), None)
-        pick = insurer_it if (broker and insurer_it and insurer_it.score > broker.score) else broker
+        broker = next(
+            (p for p in priorities if p.role_family == "INSURANCE_BROKERAGE_IT_INNOVATION"),
+            None,
+        )
+        insurer_it = next(
+            (p for p in priorities if p.role_family == "INSURER_IT_AI_ENABLEMENT"),
+            None,
+        )
+        pick = broker
+        if broker and insurer_it and insurer_it.score > broker.score:
+            pick = insurer_it
         if pick and pick.score > 0:
             top = priorities[0]
             if pick.role_family != top.role_family and pick.score >= top.score - 1:
-                priorities = (pick,) + tuple(p for p in priorities if p.role_family != pick.role_family)
+                priorities = (pick,) + tuple(
+                    p for p in priorities if p.role_family != pick.role_family
+                )
     if priorities:
         top = priorities[0]
         banking = next((p for p in priorities if p.role_family == "BANKING_PLATFORM_AI"), None)
         regulated = next((p for p in priorities if p.role_family == "REGULATED_AI_GOVERNANCE"), None)
-        if banking and regulated and banking.score >= 2 and banking.score >= regulated.score - 2:
+        if (
+            banking
+            and regulated
+            and banking.score >= 2
+            and banking.score >= regulated.score - 2
+        ):
             mapped = TAXONOMY_TO_PROJECTION_ROLE.get("BANKING_PLATFORM_AI")
             if mapped:
                 return mapped
 
-        senior_hits = [p for p in priorities if p.role_family in SENIOR_ROLE_TAXONOMY_IDS and p.score > 0]
+        senior_hits = [
+            p
+            for p in priorities
+            if p.role_family in SENIOR_ROLE_TAXONOMY_IDS and p.score > 0
+        ]
         if senior_hits:
             best_score = max(p.score for p in senior_hits)
             if top.score > best_score:
@@ -539,11 +551,11 @@ def infer_projection_role_family_key(
                 "INSURANCE_CARRIER_TRANSFORMATION",
                 "INSURANCE_BROKERAGE_IT_INNOVATION",
                 "INSURER_IT_AI_ENABLEMENT",
+                "PARTNER_APPLIED_AI_ARCHITECTURE",
                 "BANKING_PLATFORM_AI",
                 "CONSULTING_DELIVERY_LEADERSHIP",
-                "REGULATED_AI_GOVERNANCE",
-                "PARTNER_APPLIED_AI_ARCHITECTURE",
                 "HYPERSCALER_MARKETPLACE_GTM",
+                "REGULATED_AI_GOVERNANCE",
             )
             order_rank = {rid: idx for idx, rid in enumerate(tie_order)}
             tied = [p for p in senior_hits if p.score == best_score]

@@ -86,11 +86,7 @@ def _default_slot_specs(
     slalom_slot_roots = {
         "bul_slalom_001": "reb_slalom_engineering_practice_leadership", "bul_slalom_002": "reb_slalom_agentic_client_delivery",
         "bul_slalom_003": "reb_slalom_governed_runtime_scaling",
-        "bul_slalom_004": (
-            "reb_slalom_ecosystem_accelerators"
-            if target_role_profile in {"ai_partnerships_gtm", "insurance_it_strategy"}
-            else ("reb_slalom_visual_asset_intelligence" if target_role_profile == "balanced_enterprise_ai" else "")
-        ),
+        "bul_slalom_004": "reb_slalom_ecosystem_accelerators",
     }
     ibm_slot_roots = {
         "bul_ibm_001": "reb_ibm_customer_success_value_realization", "bul_ibm_002": "reb_ibm_presales_solution_engineering",
@@ -121,8 +117,8 @@ def _default_slot_specs(
                 )
             )
             req_root_id = (
-                unify_req_root if (section_id == "unify_bullets" and target_role_profile in {"insurance_it_strategy", "ai_partnerships_gtm", "svp_agentic_engineering"} and unify_req_root in section_roots_map) else (
-                    str(slalom_slot_roots.get(claim_unit) or "").strip() if (section_id == "slalom_bullets" and target_role_profile in {"insurance_it_strategy", "ai_partnerships_gtm", "svp_agentic_engineering", "balanced_enterprise_ai"} and str(slalom_slot_roots.get(claim_unit) or "").strip() in section_roots_map) else (
+                unify_req_root if (section_id == "unify_bullets" and target_role_profile in {"insurance_it_strategy", "ai_partnerships_gtm"} and unify_req_root in section_roots_map) else (
+                    str(slalom_slot_roots.get(claim_unit) or "").strip() if (section_id == "slalom_bullets" and target_role_profile in {"insurance_it_strategy", "ai_partnerships_gtm"} and str(slalom_slot_roots.get(claim_unit) or "").strip() in section_roots_map) else (
                         str(ibm_slot_roots.get(claim_unit) or "").strip() if (section_id == "ibm_bullets" and target_role_profile in {"insurance_it_strategy", "ai_partnerships_gtm"} and str(ibm_slot_roots.get(claim_unit) or "").strip() in section_roots_map) else (
                             str(insurtech_slot_roots.get(claim_unit) or "").strip() if (section_id == "insurtech_bullets" and target_role_profile == "insurance_it_strategy" and str(insurtech_slot_roots.get(claim_unit) or "").strip() in section_roots_map) else ""
                         )
@@ -190,6 +186,8 @@ def _candidate_sets_from_section_plans(
         slot = _slot_from_row(raw_slot)
         sec_plan = section_plans.get(slot.section_id) or {}
         sec_profile = str(sec_plan.get("target_role_profile") or "")
+        sec_reqs = set(sec_plan.get("canonical_jd_requirement_ids") or ())
+        has_explicit_cosell = bool(sec_reqs & {"partner_cosell", "hyperscaler_alliance", "si_enablement", "partner_gtm"})
         employer_root_weights, employer_weights, enforce_career_band, primary_secondary_roots = compute_career_band_filter(
             section_id=slot.section_id, sec_plan=sec_plan, grouped_section_buckets=grouped_by_section[slot.section_id],
         )
@@ -214,7 +212,8 @@ def _candidate_sets_from_section_plans(
             if enforce_career_band and root_id not in primary_secondary_roots:
                 continue
             if (
-                sec_profile in {"svp_agentic_engineering", "executive_agentic_transformation", "insurance_agentic_ai"}
+                sec_profile == "svp_agentic_engineering"
+                and not has_explicit_cosell
                 and not slot.required_root_id
                 and root_id in cosell_roots
                 and non_cosell_root_count >= sec_slot_count

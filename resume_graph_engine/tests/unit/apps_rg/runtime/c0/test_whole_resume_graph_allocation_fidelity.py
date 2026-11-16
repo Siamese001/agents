@@ -221,16 +221,17 @@ def test_truist_forward_deployed_engineering_allocation_excludes_cosell_bundles(
     }
     allocated_roots = {str(row["root_id"]) for row in plan["assignments"]}
     assert not (allocated_roots & cosell_roots)
+    exec_roots = {
+        str(row["root_id"])
+        for row in plan["assignments"]
+        if str(row["section_id"]) == "executive_summary"
+    }
     slalom_bullet_roots = {
         str(row["root_id"])
         for row in plan["assignments"]
         if str(row["section_id"]) == "slalom_bullets"
     }
-    assert {
-        "reb_slalom_engineering_practice_leadership",
-        "reb_slalom_agentic_client_delivery",
-        "reb_slalom_governed_runtime_scaling",
-    }.issubset(slalom_bullet_roots)
+    assert slalom_bullet_roots.isdisjoint(exec_roots)
     assert {
         "reb_slalom_engineering_practice_leadership",
         "reb_slalom_agentic_client_delivery",

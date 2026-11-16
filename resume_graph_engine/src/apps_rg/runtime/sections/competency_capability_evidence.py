@@ -1373,12 +1373,12 @@ def enrich_competencies_visible_graph_surface(
         return {}
 
     target_profile = str((selected_graph_evidence_plan or {}).get("target_role_profile") or "").strip()
-    if target_profile == "ai_partnerships_gtm" or selected_graph_evidence_plan is None:
-        active_bundle_order, order_policy = PARTNERSHIP_FIRST_COMPETENCIES_BUNDLE_ORDER, "anthropic_partnership_relevance_first"
-    elif target_profile == "insurance_it_strategy":
+    if target_profile == "insurance_it_strategy":
         active_bundle_order, order_policy = INSURANCE_IT_STRATEGY_COMPETENCIES_BUNDLE_ORDER, "insurance_it_strategy_relevance_first"
-    else:
+    elif target_profile == "svp_agentic_engineering":
         active_bundle_order, order_policy = AGENTIC_ENGINEERING_COMPETENCIES_BUNDLE_ORDER, "svp_agentic_engineering_relevance_first"
+    else:
+        active_bundle_order, order_policy = PARTNERSHIP_FIRST_COMPETENCIES_BUNDLE_ORDER, "anthropic_partnership_relevance_first"
     order = {bundle_id: idx for idx, bundle_id in enumerate(active_bundle_order)}
     receipt_rows: list[dict[str, Any]] = []
     token_counts: dict[str, int] = {}
@@ -1410,7 +1410,8 @@ def enrich_competencies_visible_graph_surface(
             cat = by_bundle[bid]
             before_label = str(cat.get("resume_display_label") or cat.get("category_label") or "").strip()
             display_label = str(rec.get("display_label_candidate") or before_label).strip()
-            if bid == "ccb_partner_applied_ai_architecture" and selected_graph_evidence_plan is not None and target_profile != "ai_partnerships_gtm":
+            non_partner_arch = bid == "ccb_partner_applied_ai_architecture" and target_profile not in {"ai_partnerships_gtm", ""}
+            if non_partner_arch:
                 display_label = "Applied AI Reference Architecture & Enablement"
             taxonomy_id, taxonomy_label = visible_graph_surface_taxonomy_for_bundle(bid, record=rec)
             if not taxonomy_id or not taxonomy_label:
