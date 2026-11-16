@@ -107,19 +107,30 @@ def _repair_role_episode_bullet_evidence_density(
                     "reason": "graph_bound_evidence_density_completion",
                 }
             )
-        elif root_id == "reb_slalom_governed_runtime_scaling" and requires_100pct and not re.search(r"\b100(?:\s*%|\s+percent)\b", text, re.IGNORECASE):
-            if density.passed and len(text.split()) >= 14:
-                base_txt = text.rstrip(".!?").strip()
-                out["bullet_text"] = f"{base_txt}, enforcing 100% conformance to enterprise governance controls."
-            else:
-                out["bullet_text"] = _ROLE_EPISODE_EVIDENCE_DENSITY_REPAIRS["reb_slalom_governed_runtime_scaling"]
-            repairs.append(
-                {
-                    "bullet_id": str(out.get("bullet_id") or ""),
-                    "role_episode_bundle_id": root_id,
-                    "reason": "allocated_metric_outcome_100pct_completion",
-                }
-            )
+        elif root_id == "reb_slalom_governed_runtime_scaling" and requires_100pct:
+            pct_matches = list(re.finditer(r"\b100(?:\s*%|\s+percent\b)", text, re.IGNORECASE))
+            if not pct_matches:
+                if density.passed and len(text.split()) >= 14:
+                    base_txt = text.rstrip(".!?").strip()
+                    out["bullet_text"] = f"{base_txt}, enforcing 100% conformance to enterprise governance controls."
+                else:
+                    out["bullet_text"] = _ROLE_EPISODE_EVIDENCE_DENSITY_REPAIRS["reb_slalom_governed_runtime_scaling"]
+                repairs.append(
+                    {
+                        "bullet_id": str(out.get("bullet_id") or ""),
+                        "role_episode_bundle_id": root_id,
+                        "reason": "allocated_metric_outcome_100pct_completion",
+                    }
+                )
+            elif len(pct_matches) > 1:
+                deduped = re.sub(
+                    r",\s*(?:enforcing|achieving|delivering|sustaining)\s+100(?:\s*%|\s+percent\b)[^.]*\.$",
+                    ".",
+                    text,
+                    flags=re.IGNORECASE,
+                )
+                if deduped != text and len(re.findall(r"\b100(?:\s*%|\s+percent\b)", deduped, re.IGNORECASE)) == 1:
+                    out["bullet_text"] = deduped
         repaired.append(out)
     return repaired, repairs
 
