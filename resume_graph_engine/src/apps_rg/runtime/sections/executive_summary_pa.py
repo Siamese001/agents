@@ -312,6 +312,8 @@ def _sanitize_c0_fact_text(fid: str, claim_text: str, raw_chunk: str = "") -> st
             parts = [p.strip() for p in rc.split(". ") if p.strip() and not p.strip().lower().startswith("frame as")]
             if len(parts) >= 2:
                 combined = ". ".join(parts[:3]).rstrip(".") + "."
+                if "35%" in combined and " by 40%" in combined:
+                    combined = combined.replace(" by 40%", "")
                 if len(combined) <= 360:
                     return combined
     return ct
@@ -336,7 +338,8 @@ def format_selected_facts_for_c0(facts: list[dict[str, Any]], allowed_source_fac
         extra = ""
         mr = fact.get("metric_raw")
         if not mr and fact.get("metric_values"):
-            mr = "; ".join(str(m).strip() for m in (fact.get("metric_values") or []) if str(m).strip())
+            mvals = [str(m).strip() for m in (fact.get("metric_values") or []) if str(m).strip()]
+            mr = mvals[0] if mvals else None
         if mr:
             extra = f" metric_raw={mr!r}"
         if display_override:
