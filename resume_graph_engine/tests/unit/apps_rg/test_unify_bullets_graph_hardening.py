@@ -504,8 +504,8 @@ def test_role_episode_gates_pass_deep_metric_outcome_surfaces() -> None:
 def test_role_episode_gates_fail_when_metric_outcome_not_visible() -> None:
     bullets, parsed, meta = _partner_metric_surface_payload()
     bullets[1]["bullet_text"] = (
-        "Owned alliance execution across governed enterprise AI platform work, tying architecture "
-        "execution to measurable adoption outcomes."
+        "Owned alliance execution across governed system architecture work, tying technical "
+        "execution to measurable client delivery outcomes."
     )
     parsed["claim_ledger"][1]["claim_text"] = bullets[1]["bullet_text"]
     gates = run_unify_bullets_role_episode_x2_gates(

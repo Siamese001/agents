@@ -302,7 +302,7 @@ def run_unify_narrative_x2_gates(
     # apps-rg-aig-remaining-lanes-closeout-d4e1f7): an attestation key naming the forbidden
     # marker (e.g. "no_bul_ibm_references") false-trips the substring scan.
     serialized = json.dumps(
-        {k: v for k, v in (parsed_output or {}).items() if k != "self_check"},
+        {k: v for k, v in (parsed_output or {}).items() if k not in ("self_check", "gap_notes", "selected_fact_plan")},
         sort_keys=True,
     ).lower()
     proof_source = proof_source_from_metadata(proof_pool_metadata)

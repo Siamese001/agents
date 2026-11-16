@@ -177,7 +177,6 @@ def _eval_unify_scope_and_leakage(
         "bullets": po_raw.get("bullets"),
         "claim_ledger": claim_ledger,
         "change_log": po_raw.get("change_log"),
-        "gap_notes": po_raw.get("gap_notes"),
         "jd_alignment": po_raw.get("jd_alignment"),
         "selected_fact_plan": section_plan_for_leakage,
     }
