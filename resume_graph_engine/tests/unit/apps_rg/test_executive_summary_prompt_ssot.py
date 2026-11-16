@@ -97,11 +97,11 @@ def test_lane_registry_exec_summary_critical_gates_include_proof_flags():
         ),
         (
             "One. Two. Three. Four. Five.",
-            True,
+            False,
         ),
         (
             "One. Two. Three. Four.",
-            True,
+            False,
         ),
         (
             "One. Two.",

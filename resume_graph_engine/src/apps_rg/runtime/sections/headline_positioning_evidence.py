@@ -95,7 +95,7 @@ def derive_headline_title_anchor(target_title: str | None) -> str:
 
     # Derive JD-aligned 2-3 word SVP specialization for non-SVP role titles
     if "forward deployed" in t_low or "forward-deployed" in t_low or "deployed engineering" in t_low:
-        return "SVP Deployed Engineering"
+        return "SVP Engineering"
     if "field engineering" in t_low:
         return "SVP Field Engineering"
     if ("partner" in t_low or "alliance" in t_low) and "ai" in t_low:

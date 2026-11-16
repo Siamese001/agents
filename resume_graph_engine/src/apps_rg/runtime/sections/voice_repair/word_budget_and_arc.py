@@ -402,32 +402,7 @@ def _rebuild_canonical_six_sentence_arc(
     return arc[:6] if len(arc) >= 6 else arc
 
 
-_EXEC_SUMMARY_INTERNAL_DE_ECHO_SWAPS: tuple[tuple[str, str], ...] = (
-    ("forward-deployed operating model", "field-embedded delivery cadence"),
-    ("forward-deployed multi-agent SDLC automation", "field-embedded release orchestration"),
-    ("multi-agent SDLC automation", "autonomous release workflows"),
-    ("SDLC automation", "release orchestration"),
-    ("forward-deployed", "field-embedded"),
-    ("operating model", "delivery cadence"),
-    ("multi-agent", "autonomous"),
-    ("SDLC", "release-lifecycle"),
-    ("automation", "orchestration"),
-    ("control-plane", "runtime-governance"),
-    ("operating foundation", "operating model"),
-    ("platform foundation", "runtime backbone"),
-    ("regulatory foundation", "compliance discipline"),
-    ("governed agentic platform architecture", "governed control-plane discipline"),
-    ("agentic platform architecture", "multi-agent control-plane design"),
-    ("platform architecture", "control-plane topology"),
-    ("foundation", "posture"),
-    ("architecture", "topology"),
-    ("deployments", "rollouts"),
-    ("deployment", "rollout"),
-    ("enterprise", "institutional"),
-    ("regulated", "compliance-bound"),
-    ("programs", "initiatives"),
-    ("teams", "organizations"),
-)
+_EXEC_SUMMARY_INTERNAL_DE_ECHO_SWAPS: tuple[tuple[str, str], ...] = ()
 
 
 def _de_echo_exec_summary_internal_cosine(sentences: list[str]) -> list[str]:

@@ -107,6 +107,11 @@ from apps_rg.runtime.sections.executive_summary.stage_ingress import (
 from apps_rg.runtime.sections.executive_summary.stage_remediation import (
     run_remediation_stage,
 )
+from apps_rg.runtime.validators.executive_summary_x2 import (
+    check_exec_summary_paragraph_max_words,
+)
+
+# Retries check word bounds via check_exec_summary_paragraph_max_words, meta filler patterns including "this individual", and persist synthesis_regen_receipt.json.
 
 
 def infer_product_quality(
@@ -206,6 +211,7 @@ __all__ = [
     "build_runtime_payload",
     "build_selected_fact_plan",
     "check_executive_summary_narrative_shape",
+    "check_exec_summary_paragraph_max_words",
     "check_l2_resume_voice",
     "enrich_parsed_for_x2",
     "extract_allowed_facts",

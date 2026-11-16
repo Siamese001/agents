@@ -229,10 +229,10 @@ def _exec_summary_shape() -> SectionProductShape:
         x2_module_ref="apps_rg/runtime/validators/executive_summary_x2.py",
         display_field="resume_display_text",
         shape_summary=(
-            f"{EXEC_SUMMARY_MIN_SENTENCES}-{EXEC_SUMMARY_MAX_SENTENCES} sentences (target 5); "
+            f"exactly {EXEC_SUMMARY_MIN_SENTENCES} sentences; "
             f"max {EXEC_SUMMARY_MAX_WORDS} words; "
             f"max {EXEC_SUMMARY_MAX_WORDS_PER_SENTENCE} words/sentence; "
-            "fit_to_evidence; claim_ledger required; no inline source tags in display text"
+            "fit_to_evidence; claim_ledger required (exactly 6 rows); no inline source tags in display text"
         ),
         bounds_gate_ids=(
             "x2_exec_summary_sentence_count_6",
@@ -259,7 +259,7 @@ def _exec_summary_shape() -> SectionProductShape:
             "x2_exec_summary_no_credential_dump",
         ),
         required_any_text_patterns=(
-            r"4\s*[-–to]+\s*6\s+(?:period-delimited\s+)?sentences",
+            r"exactly\s+6\s+(?:period-delimited\s+)?sentences",
             r"exactly\s+6",
             r"\b6\s+sentences\b",
         ),
