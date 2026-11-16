@@ -608,30 +608,59 @@ def get_active_plan_file(repo_root: Optional[Path] = None) -> Optional[Path]:
                     git_dir_matches = re.findall(r"/Users/[^/\s]+/Git/([^/\s\"'\`\)]+)", content)
                     if git_dir_matches and not any(m in (root.name, common_root.name) for m in git_dir_matches):
                         continue
-                    for pdir in (root / "plans", common_root / "plans"):
-                        if pdir.is_dir():
-                            recent_plans = [
-                                p
-                                for p in sorted(pdir.glob("*.md"), key=lambda p: p.stat().st_mtime, reverse=True)
-                                if _has_wave_header(p)
-                            ]
-                            if recent_plans and recent_plans[0].stat().st_mtime > cand.stat().st_mtime:
-                                return recent_plans[0]
+                    for base_root in (root, common_root):
+                        recent_plans = sorted(
+                            [p for p in get_governed_plan_files(base_root) if _has_wave_header(p)],
+                            key=lambda p: p.stat().st_mtime,
+                            reverse=True,
+                        )
+                        if recent_plans and recent_plans[0].stat().st_mtime > cand.stat().st_mtime:
+                            return recent_plans[0]
                     return cand
                 except (OSError, ValueError):
                     continue
 
-    # 5. Fall back to plans/ directory (skipping gitignored/untracked scratch notes without wave headers)
-    for pdir in (root / "plans", common_root / "plans"):
-        if pdir.is_dir():
-            recent_plans = [
-                p
-                for p in sorted(pdir.glob("*.md"), key=lambda p: p.stat().st_mtime, reverse=True)
-                if _has_wave_header(p)
-            ]
-            if recent_plans:
-                return recent_plans[0]
+    # 5. Fall back to governed plans/ files (ignoring untracked gitignored legacy/scratch files)
+    for base_root in (root, common_root):
+        recent_plans = sorted(
+            [p for p in get_governed_plan_files(base_root) if _has_wave_header(p)],
+            key=lambda p: p.stat().st_mtime,
+            reverse=True,
+        )
+        if recent_plans:
+            return recent_plans[0]
     return None
+
+
+def get_governed_plan_files(repo_root: Path) -> List[Path]:
+    """Return tracked or staged plans under plans/ (falling back to wave-headed files only when none are tracked)."""
+    plans_dir = repo_root / "plans"
+    if not plans_dir.is_dir():
+        return []
+    if (repo_root / ".git").exists():
+        try:
+            res = subprocess.run(
+                ["git", "ls-files", "plans"],
+                cwd=repo_root,
+                capture_output=True,
+                text=True,
+                check=False,
+                timeout=10,
+            )
+            if res.returncode == 0:
+                tracked = {
+                    (repo_root / ln.strip())
+                    for ln in res.stdout.splitlines()
+                    if ln.strip().endswith(".md") and (repo_root / ln.strip()).is_file()
+                }
+                for sp in get_staged_plan_files(repo_root):
+                    if sp.parent.resolve() == plans_dir.resolve():
+                        tracked.add(sp)
+                if tracked:
+                    return sorted(tracked)
+        except (OSError, subprocess.SubprocessError):
+            pass
+    return [p for p in sorted(plans_dir.glob("*.md")) if _has_wave_header(p)]
 
 
 def get_staged_plan_files(repo_root: Path) -> List[Path]:
@@ -701,9 +730,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             print("No implementation plan files currently staged.")
             return 0
     elif args.all_plans:
-        plans_dir = root / "plans"
-        if plans_dir.is_dir():
-            target_files.extend(sorted(plans_dir.glob("*.md")))
+        target_files.extend(get_governed_plan_files(root))
     else:
         active_plan = get_active_plan_file(root)
         if active_plan:
