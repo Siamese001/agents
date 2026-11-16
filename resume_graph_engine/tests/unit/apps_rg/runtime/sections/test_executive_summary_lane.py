@@ -56,7 +56,8 @@ def test_normalize_executive_summary_llm_output_coerces_resume_and_uses_runtime_
     assert split_sentences(normalized["resume_display_text"]) == [
         "First sentence establishes the context.",
         "Second sentence keeps the pace.",
-        "The operating model keeps release cadence steady, enabling the team to prove policy controls without slowing delivery.",
+        "The operating model keeps release cadence steady.",
+        "That capability enables the team to prove policy controls without slowing delivery.",
         "Fourth sentence closes the middle.",
         "Fifth sentence closes the arc.",
     ]
@@ -111,23 +112,20 @@ def test_normalize_repairs_retry28_speculative_capstone_and_syncs_ledger() -> No
 
 
 def test_coerce_resume_display_sentence_count_band_splits_one_compound_sentence() -> None:
-    three_sentence_resume = (
-        "First sentence establishes the context. "
-        "Second sentence keeps the pace. "
-        "The operating model keeps release cadence steady, enabling the team to prove policy "
-        "controls without slowing delivery."
-    )
-    coerced = coerce_resume_display_sentence_count_band(three_sentence_resume)
+    five_sentence_resume = _five_sentence_resume()
+    coerced = coerce_resume_display_sentence_count_band(five_sentence_resume)
 
     assert split_sentences(coerced) == [
         "First sentence establishes the context.",
         "Second sentence keeps the pace.",
         "The operating model keeps release cadence steady.",
         "That capability enables the team to prove policy controls without slowing delivery.",
+        "Fourth sentence closes the middle.",
+        "Fifth sentence closes the arc.",
     ]
     assert ".." not in coerced
-    # Five sentences remain preserved without artificial splitting:
-    assert split_sentences(coerce_resume_display_sentence_count_band(_five_sentence_resume())) == split_sentences(_five_sentence_resume())
+    # Six sentences remain preserved without artificial splitting:
+    assert split_sentences(coerce_resume_display_sentence_count_band(coerced)) == split_sentences(coerced)
 
 
 def test_reconcile_claim_ledger_to_sentence_count_appends_split_sentence_row() -> None:
