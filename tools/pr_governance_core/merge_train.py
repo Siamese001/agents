@@ -142,15 +142,23 @@ def cmd_train(args: argparse.Namespace) -> int:
         shard_files[shard] = files
         shard_heads[shard] = str(receipt.get("head_sha", ""))
 
+    slug = slugify_branch(train_branch)
     train_wt = _resolve_wt_path(repo_root, train_branch)
     if train_wt == repo_root:
+        isolated_train_wt = (repo_root / ".worktrees" / slug).resolve()
+        isolated_train_wt.parent.mkdir(parents=True, exist_ok=True)
         existing_ref = run_git(["branch", "--list", train_branch], check=False, cwd=repo_root).strip()
-        if existing_ref:
-            run_git(["checkout", train_branch], check=True, cwd=repo_root)
-            run_git(["reset", "--hard", "main"], check=True, cwd=repo_root)
+        if isolated_train_wt.is_dir() and (isolated_train_wt / ".git").exists():
+            train_cwd = isolated_train_wt
+            run_git(["checkout", train_branch], check=True, cwd=train_cwd)
+            run_git(["reset", "--hard", "main"], check=True, cwd=train_cwd)
         else:
-            run_git(["checkout", "-b", train_branch, "main"], check=True, cwd=repo_root)
-        train_cwd = repo_root
+            if existing_ref:
+                run_git(["branch", "-f", train_branch, "main"], check=True, cwd=repo_root)
+                run_git(["worktree", "add", str(isolated_train_wt), train_branch], check=True, cwd=repo_root)
+            else:
+                run_git(["worktree", "add", "-b", train_branch, str(isolated_train_wt), "main"], check=True, cwd=repo_root)
+            train_cwd = isolated_train_wt
     else:
         train_cwd = train_wt
         run_git(["checkout", train_branch], check=True, cwd=train_cwd)
@@ -169,8 +177,43 @@ def cmd_train(args: argparse.Namespace) -> int:
         )
         if res.returncode != 0:
             subprocess.run(["git", "merge", "--abort"], cwd=train_cwd, env=merge_env, check=False, timeout=15)
-            print(f"❌ Failed merging shard '{shard}' into '{train_branch}':\n{res.stdout}\n{res.stderr}")
-            return 1
+            tmp_reb_branch = f"_reb_{slugify_branch(shard)}_{os.getpid()}"
+            tmp_reb_wt = (repo_root / ".worktrees" / tmp_reb_branch).resolve()
+            rebased_ok = False
+            try:
+                run_git(["worktree", "add", "-b", tmp_reb_branch, str(tmp_reb_wt), shard], check=True, cwd=repo_root)
+                reb_res = subprocess.run(
+                    ["git", "rebase", train_branch],
+                    cwd=tmp_reb_wt,
+                    env=merge_env,
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                    timeout=60,
+                )
+                if reb_res.returncode == 0:
+                    res2 = subprocess.run(
+                        ["git", "merge", "--no-ff", tmp_reb_branch, "-m", f"chore(train): merge rebased shard {shard} into {train_branch}"],
+                        cwd=train_cwd,
+                        env=merge_env,
+                        capture_output=True,
+                        text=True,
+                        check=False,
+                        timeout=60,
+                    )
+                    rebased_ok = res2.returncode == 0
+                    if not rebased_ok:
+                        subprocess.run(["git", "merge", "--abort"], cwd=train_cwd, env=merge_env, check=False, timeout=15)
+                else:
+                    subprocess.run(["git", "rebase", "--abort"], cwd=tmp_reb_wt, env=merge_env, check=False, timeout=15)
+            except Exception:  # guardian: allow-silent-swallow -- cleanup temporary rebase worktree below
+                rebased_ok = False
+            finally:
+                subprocess.run(["git", "worktree", "remove", "--force", str(tmp_reb_wt)], cwd=repo_root, env=merge_env, check=False, timeout=15)
+                subprocess.run(["git", "branch", "-D", tmp_reb_branch], cwd=repo_root, env=merge_env, check=False, timeout=15)
+            if not rebased_ok:
+                print(f"❌ Failed merging shard '{shard}' into '{train_branch}':\n{res.stdout}\n{res.stderr}")
+                return 1
 
     clamped = clamp_ratchet_if_available(train_cwd)
     if clamped:

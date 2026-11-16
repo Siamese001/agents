@@ -167,6 +167,29 @@ def get_merged_branches(repo_root: Path, target_ref: str = "main") -> set[str]:
     }
 
 
+def get_truly_merged_branches(repo_root: Path, target_ref: str = "main") -> set[str]:
+    """Return ancestor branches that authored commits (excluding 0-commit parallel worktrees)."""
+    ancestors = get_merged_branches(repo_root, target_ref=target_ref)
+    if not ancestors:
+        return set()
+    fp_res = _run_git(["rev-list", "--first-parent", target_ref], cwd=repo_root)
+    first_parents = {ln.strip() for ln in fp_res.stdout.splitlines() if ln.strip()} if fp_res.returncode == 0 else set()
+    mp_res = _run_git(["rev-list", "--merges", "--parents", target_ref], cwd=repo_root)
+    merge_parents = {p for ln in mp_res.stdout.splitlines() for p in ln.strip().split()[2:]} if mp_res.returncode == 0 else set()
+    truly_merged: set[str] = set()
+    for branch in ancestors:
+        tip = _run_git(["rev-parse", f"refs/heads/{branch}"], cwd=repo_root).stdout.strip()
+        if not tip:
+            continue
+        if tip in merge_parents or (first_parents and tip not in first_parents):
+            truly_merged.add(branch)
+            continue
+        rl = _run_git(["reflog", "show", "--format=%gs", f"refs/heads/{branch}"], cwd=repo_root)
+        if rl.returncode == 0 and any(a.strip().lower().startswith(("commit:", "commit (amend):", "rebase", "cherry-pick", "merge")) for a in rl.stdout.splitlines()):
+            truly_merged.add(branch)
+    return truly_merged
+
+
 def is_in_repo_worktree(main_root: Path, wt_path: Path) -> bool:
     """Return True if wt_path is inside <main_root>/.worktrees/."""
     allowed_dir = (main_root.resolve() / ".worktrees").resolve()
@@ -276,7 +299,8 @@ def prune_merged_worktrees(
         _run_git(["worktree", "prune"], cwd=main_root)
 
     worktrees = list_worktrees(main_root)
-    merged_branches = get_merged_branches(main_root, target_ref=target_ref)
+    ancestor_branches = get_merged_branches(main_root, target_ref=target_ref)
+    merged_branches = get_truly_merged_branches(main_root, target_ref=target_ref)
 
     removed_worktrees: list[str] = []
     deleted_branches: list[str] = []
@@ -295,7 +319,10 @@ def prune_merged_worktrees(
 
         if not branch or branch in PROTECTED_BRANCHES:
             continue
+        if branch not in ancestor_branches:
+            continue
         if branch not in merged_branches:
+            skipped.append({"branch": branch, "path": str(wt_path), "reason": "zero_commit_unmerged_worktree"})
             continue
 
         # Protect caller's active working directory from self-deletion while running inside it
@@ -303,16 +330,9 @@ def prune_merged_worktrees(
             skipped.append({"branch": branch, "path": str(wt_path), "reason": "active_cwd"})
             continue
 
-        if wt.get("locked"):
-            skipped.append({"branch": branch, "path": str(wt_path), "reason": "locked"})
-            continue
-
-        if has_active_sidecar_lease(wt_path):
-            skipped.append({"branch": branch, "path": str(wt_path), "reason": "active_sidecar_lease"})
-            continue
-
-        if not is_worktree_clean(wt_path):
-            skipped.append({"branch": branch, "path": str(wt_path), "reason": "dirty_worktree"})
+        skip_reason = "locked" if wt.get("locked") else "active_sidecar_lease" if has_active_sidecar_lease(wt_path) else "dirty_worktree" if not is_worktree_clean(wt_path) else None
+        if skip_reason:
+            skipped.append({"branch": branch, "path": str(wt_path), "reason": skip_reason})
             continue
 
         candidates.append({"branch": branch, "path": str(wt_path)})
@@ -336,13 +356,9 @@ def prune_merged_worktrees(
                 if br_res.returncode == 0:
                     deleted_branches.append(branch)
                 else:
-                    skipped.append(
-                        {"branch": branch, "path": str(wt_path), "reason": f"branch_delete_failed: {br_res.stderr.strip()}"}
-                    )
+                    skipped.append({"branch": branch, "path": str(wt_path), "reason": f"branch_delete_failed: {br_res.stderr.strip()}"})
             else:
-                skipped.append(
-                    {"branch": branch, "path": str(wt_path), "reason": f"worktree_remove_failed: {rm_res.stderr.strip()}"}
-                )
+                skipped.append({"branch": branch, "path": str(wt_path), "reason": f"worktree_remove_failed: {rm_res.stderr.strip()}"})
 
     # Also clean up merged local branches that have no checked-out worktree
     for branch in sorted(merged_branches):
@@ -417,7 +433,8 @@ def consolidate_single_sidecar_worktree(
                 )
 
         worktrees = list_worktrees(main_root)
-        merged_branches = get_merged_branches(main_root, target_ref=target_ref)
+        ancestor_branches = get_merged_branches(main_root, target_ref=target_ref)
+        truly_merged = get_truly_merged_branches(main_root, target_ref=target_ref)
 
         deduplicated_worktrees: list[str] = []
         deduplicated_branches: list[str] = []
@@ -430,7 +447,10 @@ def consolidate_single_sidecar_worktree(
                 continue
             if has_active_sidecar_lease(wt_path):
                 continue
-            if not branch or branch in PROTECTED_BRANCHES or branch not in merged_branches:
+            if not branch or branch in PROTECTED_BRANCHES or branch not in ancestor_branches:
+                continue
+            is_caller_wt = effective_cwd == wt_path or wt_path in effective_cwd.parents
+            if not is_caller_wt and branch not in truly_merged:
                 continue
             if is_in_repo_worktree(main_root, wt_path) and not branch.startswith(("chore/agents-", "chore/agents_")):
                 continue
@@ -457,15 +477,10 @@ def consolidate_single_sidecar_worktree(
 
         resolved_target.parent.mkdir(parents=True, exist_ok=True)
         existing_branches_res = _run_git(["branch", "--format=%(refname:short)"], cwd=main_root)
-        existing_branches = {
-            b.strip() for b in existing_branches_res.stdout.splitlines() if b.strip()
-        }
+        existing_branches = {b.strip() for b in existing_branches_res.stdout.splitlines() if b.strip()}
 
         if not resolved_target.exists() or not (resolved_target / ".git").exists():
-            if branch_name in existing_branches:
-                add_cmd = ["worktree", "add", str(resolved_target), branch_name]
-            else:
-                add_cmd = ["worktree", "add", str(resolved_target), "-b", branch_name, target_ref]
+            add_cmd = ["worktree", "add", str(resolved_target), branch_name] if branch_name in existing_branches else ["worktree", "add", str(resolved_target), "-b", branch_name, target_ref]
             add_res = _run_git(add_cmd, cwd=main_root)
             if add_res.returncode != 0:
                 raise RuntimeError(

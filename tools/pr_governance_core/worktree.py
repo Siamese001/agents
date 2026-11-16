@@ -138,13 +138,12 @@ def deduplicate_external_chat_worktrees(
 ) -> list[str]:
     """Removes clean external chat worktrees merged into base_branch while preserving CWD stub directories."""
     from tools.prune_merged_chat_worktrees import (
-        _preserve_cwd_stub_if_needed,
-        get_merged_branches,
-        is_worktree_clean,
+        _preserve_cwd_stub_if_needed, get_truly_merged_branches, has_active_sidecar_lease, is_worktree_clean
     )
 
     resolved_root = root.resolve()
-    merged = get_merged_branches(resolved_root, target_ref=base_branch)
+    eff_cwd = (preserve_cwd or Path.cwd()).resolve()
+    merged = get_truly_merged_branches(resolved_root, target_ref=base_branch)
     removed_branches: list[str] = []
 
     for ext in find_external_worktrees(resolved_root, ignore_review_artifacts=True):
@@ -152,15 +151,12 @@ def deduplicate_external_chat_worktrees(
         branch = str(ext.get("branch") or "")
         if not branch or branch in ("main", "master", "HEAD", "detached", "unknown"):
             continue
+        if eff_cwd == wt_path or wt_path in eff_cwd.parents or has_active_sidecar_lease(wt_path):
+            continue
         if branch not in merged or ext.get("dirty") or not is_worktree_clean(wt_path):
             continue
         if _remove_worktree_files(wt_path, force=False, root=resolved_root):
-            _preserve_cwd_stub_if_needed(
-                wt_path,
-                resolved_root,
-                preserve_cwd=preserve_cwd or Path.cwd(),
-                force_stub_for_antigravity=True,
-            )
+            _preserve_cwd_stub_if_needed(wt_path, resolved_root, preserve_cwd=eff_cwd, force_stub_for_antigravity=True)
             with contextlib.suppress(Exception):
                 run_git(["branch", "-D", branch], cwd=resolved_root, check=True)
                 removed_branches.append(branch)
@@ -177,7 +173,9 @@ def provision_isolated_worktree(
     Provisions a new git worktree with relative dependency symlinks.
     Strictly enforces that worktree_dir resides inside <root>/.worktrees/.
     """
-    if not is_within_in_repo_worktrees(root, worktree_dir):
+    from tools.prune_merged_chat_worktrees import is_antigravity_chat_worktree
+
+    if not is_within_in_repo_worktrees(root, worktree_dir) and not is_antigravity_chat_worktree(worktree_dir):
         allowed_dir = (root.resolve() / ".worktrees").resolve()
         raise ValueError(
             f"Governance violation: worktree path '{worktree_dir}' must reside strictly inside '{allowed_dir}'."

@@ -41,7 +41,7 @@ CONVENTIONAL_COMMIT_RE = re.compile(
 )
 
 CONVENTIONAL_BRANCH_RE = re.compile(
-    r"^(feat|feature|enhance|fix|ingest|audio|transcript|docs|style|refactor|perf|test|build|ci|chore|revert)/[a-zA-Z0-9_\-\.]+$"
+    r"^(?:(?:feat|feature|enhance|fix|ingest|audio|transcript|docs|style|refactor|perf|test|build|ci|chore|revert|swarm|boost|automation)/[a-zA-Z0-9_\-\./]+|(?:swarm|boost|codex)-[a-zA-Z0-9_\-\.]+)$"
 )
 
 GENERATED_ARTIFACT_PATTERNS = (

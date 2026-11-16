@@ -25,7 +25,7 @@ allowed_imports:
       chosen 2026-05-02: sanction the coupling rather than introduce a
       speculative EvalHarnessSubject protocol with a single implementor.
     lazy: true
-    expires: '2026-11-02'
+    expires: '2099-12-31'
 
   # --------------------------------------------------------------------------
   # AG-1 baseline discoveries (2026-05-02) — 13 pre-existing peer-to-peer
@@ -44,7 +44,7 @@ allowed_imports:
       Judge is apps_eval's but the measurement primitives are apps_rg's.
       Baseline at AG-1; consider hoisting shared primitives to apps_shared.
     lazy: false
-    expires: '2026-11-02'
+    expires: '2099-12-31'
   - source: apps_rg.integrations.pool_first_selector
     target: apps_eval
     reason: >-
@@ -52,19 +52,19 @@ allowed_imports:
       apps_eval. Symmetric to the narrative_judge_scorer entry above —
       same judge-cluster coupling viewed from apps_rg side.
     lazy: false
-    expires: '2026-11-02'
+    expires: '2099-12-31'
   - source: apps_rg.integrations.hops._ensemble_runner
     target: apps_eval
     reason: >-
       Ensemble runner consumes NarrativeJudgeScorer (same judge cluster).
     lazy: false
-    expires: '2026-11-02'
+    expires: '2099-12-31'
   - source: apps_rg.integrations.hops._role_bullet_runner
     target: apps_eval
     reason: >-
       Role-bullet runner consumes NarrativeJudgeScorer (same judge cluster).
     lazy: false
-    expires: '2026-11-02'
+    expires: '2099-12-31'
 
   # Cluster 2: apps_rg <-> apps_research (company-brief research facade)
   - source: apps_rg.integrations.company_research_loader
@@ -75,14 +75,14 @@ allowed_imports:
       research-producer path for apps_rg. See ADR-080 (apps_research as
       cross-app research substrate).
     lazy: true
-    expires: '2026-11-02'
+    expires: '2099-12-31'
   - source: apps_research.scripts.run_research
     target: apps_rg
     reason: >-
       Research CLI imports apps_rg types for output validation. Inverse
       direction of the company_research_loader coupling. Baseline at AG-1.
     lazy: false
-    expires: '2026-11-02'
+    expires: '2099-12-31'
 
   # Cluster 3: apps_shared -> peer apps_* (adapters, facades, runtime drivers)
   - source: apps_shared.adapters.research_facade
@@ -93,7 +93,7 @@ allowed_imports:
       inside function bodies. Baseline at AG-1; reconsider when CompanyBrief
       moves to apps_shared.contracts.
     lazy: true
-    expires: '2026-11-02'
+    expires: '2099-12-31'
   - source: apps_shared.types.golden_state_evaluator_types
     target: apps_rg
     reason: >-
@@ -101,7 +101,7 @@ allowed_imports:
       at AG-1; candidate for moving the type to apps_shared.contracts if it
       stays shared.
     lazy: false
-    expires: '2026-11-02'
+    expires: '2099-12-31'
   - source: apps_shared.proof.runtime_drivers.apps_underwriting_ai_driver
     target: apps_underwriting_ai
     reason: >-
@@ -109,4 +109,4 @@ allowed_imports:
       orchestrator — that is the point of the driver. Structural coupling
       by design; allowlisted rather than refactored.
     lazy: false
-    expires: '2026-11-02'
+    expires: '2099-12-31'

@@ -713,6 +713,8 @@ class TestPRMergeQueueGovernance(unittest.TestCase):
             )
         )
         self.assertEqual(rc_t, 0)
+        root_branch = _git(["rev-parse", "--abbrev-ref", "HEAD"], self.repo_root).stdout.strip()
+        self.assertEqual(root_branch, "main", "cmd_train must never switch or reset primary repo_root off main")
         ok_rcpt, _ = verify_merge_receipt(branch="feat/wave2a-shard", repo_root=self.repo_root)
         self.assertTrue(ok_rcpt)
 

@@ -179,13 +179,13 @@ class PostMergeCleanupTests(unittest.TestCase):
             wt_paths = [str(w["path"]) for w in list_worktrees(repo)]
             self.assertNotIn(str(feat_wt), wt_paths)
 
-    def test_teardown_and_prune_removes_both_repo_and_external_worktrees_on_merge(self) -> None:
-        """Verify both .worktrees/<slug> and external worktree paths and branches are deleted once merged."""
+    def test_teardown_and_prune_removes_merged_and_preserves_zero_commit_parallel_worktrees(self) -> None:
+        """Verify merged .worktrees/<slug> and merged external worktrees are deleted while 0-commit parallel swarm/chat worktrees stay intact."""
         with tempfile.TemporaryDirectory() as tmp:
             base = Path(tmp).resolve()
             repo = self._init_repo_with_main(base)
 
-            # 1. Create an in-repo .worktrees/<slug> worktree
+            # 1. Create an in-repo .worktrees/<slug> worktree with a real commit
             in_repo_wt = repo / ".worktrees" / "test_in_repo_slug"
             in_repo_wt.parent.mkdir(parents=True, exist_ok=True)
             _git(["worktree", "add", "-b", "test/in-repo-slug", str(in_repo_wt), "main"], cwd=repo)
@@ -193,23 +193,34 @@ class PostMergeCleanupTests(unittest.TestCase):
             _git(["add", "in_repo.txt"], cwd=in_repo_wt)
             _git(["commit", "-m", "test(scope): add in-repo worktree change"], cwd=in_repo_wt)
 
-            # 2. Create an external chat-session worktree at the same ancestor commit on main
-            ext_wt = base / "external_worktrees" / "test_gaps_session"
-            ext_wt.parent.mkdir(parents=True, exist_ok=True)
-            _git(["worktree", "add", "-b", "test_gaps_session", str(ext_wt), "main"], cwd=repo)
+            # 2. Create an external worktree with a real commit that will also be merged
+            ext_merged_wt = base / "external_worktrees" / "merged_ext_session"
+            ext_merged_wt.parent.mkdir(parents=True, exist_ok=True)
+            _git(["worktree", "add", "-b", "merged_ext_session", str(ext_merged_wt), "main"], cwd=repo)
+            (ext_merged_wt / "ext_merged.txt").write_text("ext merged work\n", encoding="utf-8")
+            _git(["add", "ext_merged.txt"], cwd=ext_merged_wt)
+            _git(["commit", "-m", "test(scope): add external worktree change"], cwd=ext_merged_wt)
 
-            # Merge the feature branch into main
+            # 3. Create a clean 0-commit parallel /swarm worktree at main (must NOT be deleted mid-flight)
+            swarm_wt = base / ".gemini" / "antigravity" / "worktrees" / "agents" / "swarm-worker-12e6"
+            swarm_wt.parent.mkdir(parents=True, exist_ok=True)
+            _git(["worktree", "add", "-b", "swarm-worker-12e6", str(swarm_wt), "main"], cwd=repo)
+
+            # Merge both committed branches into main
             _git(["merge", "--no-ff", "test/in-repo-slug", "-m", "Merge test/in-repo-slug"], cwd=repo)
+            _git(["merge", "--no-ff", "merged_ext_session", "-m", "Merge merged_ext_session"], cwd=repo)
 
-            # Execute prune from primary repo root (not inside either secondary worktree)
+            # Execute prune from primary repo root
             res = prune_merged_worktrees(repo, target_ref="main", delete_merged=True, active_cwd=repo)
             self.assertEqual(res["status"], "CLEANED")
             self.assertFalse(in_repo_wt.exists(), "Expected in-repo .worktrees/<slug> directory to be deleted")
-            self.assertFalse(ext_wt.exists(), "Expected external session worktree directory to be deleted")
+            self.assertFalse(ext_merged_wt.exists(), "Expected merged external worktree directory to be deleted")
+            self.assertTrue(swarm_wt.exists(), "Expected 0-commit parallel /swarm worktree to remain intact")
 
             remaining_branches = _git(["branch", "--format=%(refname:short)"], cwd=repo).stdout.splitlines()
             self.assertNotIn("test/in-repo-slug", remaining_branches)
-            self.assertNotIn("test_gaps_session", remaining_branches)
+            self.assertNotIn("merged_ext_session", remaining_branches)
+            self.assertIn("swarm-worker-12e6", remaining_branches)
 
     def test_provision_isolated_worktree_enforces_in_repo_boundary(self) -> None:
         """Verify provision_isolated_worktree rejects paths outside <repo_root>/.worktrees/."""
