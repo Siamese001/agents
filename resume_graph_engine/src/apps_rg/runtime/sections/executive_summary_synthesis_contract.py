@@ -147,8 +147,7 @@ def classify_exec_summary_role_archetype(
     ):
         return "agentic_platform"
     if is_partner_title or (
-        not title_low
-        and any(
+        any(
             k in blob
             for k in (
                 "co-sell",
@@ -156,7 +155,8 @@ def classify_exec_summary_role_archetype(
                 "channel partner",
                 "hyperscaler alliance",
                 "joint go-to-market",
-                "partner gtm",
+                "gsi",
+                "system integrator",
             )
         )
         and any(k in blob for k in ("applied ai", "solution architecture", "gsi", "hyperscaler", "co-sell", "cosell"))

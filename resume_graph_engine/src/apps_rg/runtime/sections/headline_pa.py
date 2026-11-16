@@ -299,7 +299,7 @@ def build_headline_assembly_input(
         f"pick the three strongest fact-supported positioning themes for the target role; express them as {prefix} | X | Y | Z.</role>\n",
         f"North Star: headline_line MUST be exactly {prefix} | X | Y | Z — X/Y/Z are creative executive phrases from the fact ledger, ranked by JD/briefing relevance only (never proof).\n",
         "Headline display policy: X/Y/Z MUST be executive positioning labels backed by grounded proof, not raw vendor/tool architecture. "
-        "Prefer abstractions such as Enterprise AI Platforms, Cloud Data Platforms, Runtime Governance Architecture, Agentic AI Delivery, "
+        "Prefer abstractions such as Enterprise AI Platforms, Cloud Data Platforms, Runtime Governance Architecture, Partner AI Ecosystems, "
         "Platform Commercialization, and Regulated AI Systems. Vendor/product names such as Databricks, AWS, Snowflake, Anthropic, or OpenAI "
         "belong in source facts/proof; do not use them as standalone headline segments unless the target explicitly requires vendor-specialist positioning "
         "and the segment still contains an executive abstraction.\n",

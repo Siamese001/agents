@@ -96,10 +96,10 @@ def resolve_target_picture_for_archetype(*, role_archetype: str, strategy_execut
 _EXEC_COSINE_DEDUP_SUBS: tuple[tuple[str, str], ...] = (
     ("Building on that platform foundation", "Building on that distributed runtime"),
     ("platform foundation", "distributed runtime"),
-    ("reusable agentic platform productization and hyperscaler alliance co-sell architecture to accelerate enterprise AI deployment velocity", "governed multi-model orchestration and enterprise architecture standards to scale production AI adoption"),
+    ("reusable agentic platform productization and hyperscaler alliance co-sell architecture to accelerate enterprise AI deployment velocity", "governed multi-model orchestration and strategic partner channel execution to scale commercial AI adoption"),
     ("reusable agentic AI platform architecture is productized", "modular multi-agent engineering blueprints are operationalized"),
     ("builds reusable multi-model agentic AI platform architecture spanning Google Cloud and frontier AI coding and agent platform accelerators to productize enterprise solutions", "engineers modular multi-model orchestration blueprints across Google Cloud, Claude Code, and OpenAI Codex to operationalize production workflows"),
-    ("to accelerate enterprise AI deployment and ecosystem-wide adoption", "to scale governed enterprise AI production rollouts"),
+    ("to accelerate enterprise AI deployment and ecosystem-wide adoption", "to expand commercial partner channels and production rollouts"),
     ("hyperscaler and GSI", "cloud and systems-integrator"),
     ("joint solution development", "co-engineered delivery blueprints"),
     ("presales executive architecture alignment", "buyer-aligned technical validation"),
@@ -402,7 +402,7 @@ def repair_legacy_regulated_partnership_arc(
             out[0] = (
                 "Enterprise technology leader who aligns governed cloud modernization, "
                 "enterprise risk discipline, and platform commercialization into one "
-                "leadership agenda for regulated enterprise delivery."
+                "leadership agenda for regulated, partner-driven delivery."
             )
             out[1] = (
                 "Led AWS modernization execution for monolithic policy administration "
@@ -426,9 +426,9 @@ def repair_legacy_regulated_partnership_arc(
             )
             out[5] = (
                 "Reusable platform productization, governed cloud modernization, and "
-                "auditable risk-lineage standards position enterprise architecture and "
-                "platform teams to accelerate enterprise AI deployment and "
-                "production adoption."
+                "auditable risk-lineage standards position partner-facing solution "
+                "architecture teams to accelerate enterprise AI deployment and "
+                "commercial adoption."
             )
     return repair_exec_summary_bullet_echo_sentences(out)
 

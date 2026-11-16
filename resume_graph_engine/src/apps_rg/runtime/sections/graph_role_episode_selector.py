@@ -153,13 +153,13 @@ _COMPETENCY_FAMILIES_BY_PROFILE: dict[str, tuple[str, ...]] = {
     ),
     "executive_agentic_transformation": (
         "agentic_platforms",
-        "runtime_governance",
+        "partner_applied_ai_architecture",
         "platform_productization",
+        "runtime_governance",
         "enterprise_ai_architecture",
         "engineering_leadership",
+        "partnerships_ecosystem_execution",
         "distributed_systems_engineering",
-        "cloud_hpc_modernization",
-        "data_governance_security",
     ),
     "ai_partnerships_gtm": (
         "partner_applied_ai_architecture",
@@ -203,7 +203,9 @@ _TARGET_TERMS = (
     "modernization", "governance", "risk", "regulatory", "revenue",
     "engineering leadership", "architected", "directed", "engineered", "scaled",
     "compressed", "automated", "commercialized", "delivered",
-    "forward deployed", "rapid prototyping", "model risk", "sr 11 7", "bcbs 239", "ccar",
+    "forward deployed", "rapid prototyping", "prototype", "deployment",
+    "operating model", "model risk", "sr 11 7", "bcbs 239", "ccar", "banking",
+    "financial services", "devsecops", "microservices", "105",
 )
 _WORD_RE = re.compile(r"[a-z0-9]+")
 
@@ -268,51 +270,36 @@ def _infer_target_role_profile(*, target_role: str, jd_text: str, briefing_text:
     )
     if transformation_consulting_hits >= 3 or ("transformation" in target_role.lower() and "consulting" in blob):
         return "executive_agentic_transformation"
-    role_lower = target_role.lower().strip()
-    is_partner_role_title = any(
-        k in role_lower
-        for k in (
-            "partner",
-            "partnership",
-            "partnerships",
-            "alliance",
-            "alliances",
-            "channel",
-            "co-sell",
-            "cosell",
-            "ecosystem",
-        )
-    )
-    if any(k in role_lower for k in ("forward deployed", "forward-deployed", "deployed engineering")) and not is_partner_role_title:
+    role_lower = target_role.lower()
+    if any(k in role_lower for k in ("forward deployed", "forward-deployed", "deployed engineering")) and not any(
+        k in role_lower for k in ("partner", "alliance", "gtm", "co-sell", "cosell")
+    ):
         return "svp_agentic_engineering"
-    explicit_partner_gtm_hits = sum(
+    gtm_hits = sum(
         token in blob
         for token in (
-            "partner gtm",
-            "channel partner",
-            "partner-led",
-            "hyperscaler alliance",
-            "aws alliance",
-            "co-sell",
-            "cosell",
-            "joint gtm",
-            "joint go-to-market",
-            "applied ai architecture, partnerships",
-            "partner solutions architect",
-            "partner ade",
-            "partner enablement",
-            "technical close",
-            "ecosystem revenue",
+            "partnerships", "partner ecosystem", "channel partner", "partner-led",
+            "alliance", "gtm", "go-to-market", "co-sell", "cosell",
+            "hyperscaler", "aws partner", "revenue", "quota",
         )
     )
-    if is_partner_role_title and (
-        explicit_partner_gtm_hits >= 1
-        or any(k in blob for k in ("partnerships", "alliance", "channel", "co-sell", "cosell", "gsi", "hyperscaler"))
-    ):
+    agentic_hits = sum(
+        token in blob
+        for token in (
+            "agentic", "multi-agent", "graphrag", "llm", "runtime",
+            "orchestration", "control plane", "svp engineering",
+            "forward deployed", "forward-deployed", "deployed engineering",
+            "rapid prototyping", "prototype to production", "ai platform",
+            "model risk", "sr 11-7",
+        )
+    )
+    if gtm_hits >= 3 and gtm_hits >= agentic_hits:
         return "ai_partnerships_gtm"
-    if explicit_partner_gtm_hits >= 3:
+    if agentic_hits >= 2:
+        return "svp_agentic_engineering"
+    if gtm_hits >= 2:
         return "ai_partnerships_gtm"
-    return "svp_agentic_engineering"
+    return "balanced_enterprise_ai"
 
 
 def _weight_band(weight: float) -> str:
@@ -958,9 +945,13 @@ def build_selected_graph_evidence_plan_for_section(
             if str(root_id).strip()
         }
     target_blob = f"{target_role}\n{jd_text}\n{briefing_text}"
+    has_explicit_cosell = any(
+        k in target_blob.lower()
+        for k in ("co-sell", "cosell", "hyperscaler alliance", "partner gtm", "channel partner", "joint gtm", "joint go-to-market")
+    )
     required_requirement_ids = tuple(
         rid for rid in _canonical_requirement_ids(target_blob)
-        if target_role_profile == "ai_partnerships_gtm" or rid not in _PARTNER_ONLY_REQUIREMENT_IDS
+        if target_role_profile == "ai_partnerships_gtm" or has_explicit_cosell or rid not in _PARTNER_ONLY_REQUIREMENT_IDS
     )
     fde_context = target_role_profile == "svp_agentic_engineering" and any(
         k in target_blob.lower() for k in ("forward deployed", "forward-deployed", "truist", "sr 11-7", "model risk")
@@ -1001,7 +992,7 @@ def build_selected_graph_evidence_plan_for_section(
             briefing_signal_packet=briefing_signal_packet,
         )
         bundle_id_str = str(root["bundle"].get("role_episode_bundle_id") or "")
-        if target_role_profile not in {"ai_partnerships_gtm", "insurance_it_strategy"} and bundle_id_str in _COSELL_HEAVY_ROOT_IDS:
+        if target_role_profile == "svp_agentic_engineering" and not has_explicit_cosell and bundle_id_str in _COSELL_HEAVY_ROOT_IDS:
             root_alignment = max(0.1, round(root_alignment - 1.5, 6))
         elif fde_context and bundle_id_str in _FDE_CORE_ROOT_IDS:
             root_alignment = round(root_alignment + 1.25, 6)
