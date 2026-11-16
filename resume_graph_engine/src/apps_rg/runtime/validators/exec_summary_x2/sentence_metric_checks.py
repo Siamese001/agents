@@ -314,14 +314,14 @@ def check_raw_json_no_selected_fact_plan_echo(raw_output: str | None) -> tuple[b
 
 
 def check_exec_summary_sentence_count_6(resume_display_text: str) -> tuple[bool, str | None]:
-    """Single product shape: 4 to 6 polished sentences (target 5)."""
+    """Single product shape: exactly six polished sentences."""
     from apps_rg.runtime.validators.executive_summary_x2 import EXEC_SUMMARY_MAX_SENTENCES, EXEC_SUMMARY_MIN_SENTENCES, EXEC_SUMMARY_TARGET_SENTENCES
     sentences = [s for s in split_sentences(resume_display_text) if str(s).strip()]
     n = len(sentences)
-    if not (EXEC_SUMMARY_MIN_SENTENCES <= n <= EXEC_SUMMARY_MAX_SENTENCES):
+    if n != EXEC_SUMMARY_MIN_SENTENCES:
         return (
             False,
-            f"resume_display_text must have {EXEC_SUMMARY_MIN_SENTENCES}–{EXEC_SUMMARY_MAX_SENTENCES} sentences; found {n} "
+            f"resume_display_text must have exactly {EXEC_SUMMARY_MIN_SENTENCES} sentences; found {n} "
             "(legacy 2–3 band retired)",
         )
     return True, None

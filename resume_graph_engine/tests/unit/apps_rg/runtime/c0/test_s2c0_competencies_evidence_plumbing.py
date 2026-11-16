@@ -307,7 +307,7 @@ def test_competencies_allocation_visible_surface_deal_support_composition() -> N
     assert key in _ALLOCATION_VISIBLE_SURFACE_COMPOSITIONS
     assert (
         _ALLOCATION_VISIBLE_SURFACE_COMPOSITIONS[key]
-        == "Quota-aligned enterprise deal support and execution"
+        == "enterprise deal support and solution execution"
     )
     assignment = {
         "root_id": "reb_ibm_revenue_sales_target_execution",
@@ -319,6 +319,6 @@ def test_competencies_allocation_visible_surface_deal_support_composition() -> N
         "root_claim_outcome": "Frame as quota-aware technical leadership: pipeline discipline and executive deal support without inventing revenue figures.",
     }
     phrase, field = _allocation_surface_phrase(assignment, selected_plan={})
-    assert phrase == "Quota-aligned enterprise deal support and execution"
+    assert phrase == "enterprise deal support and solution execution"
     assert field == "graph_authority_surface_composition"
 

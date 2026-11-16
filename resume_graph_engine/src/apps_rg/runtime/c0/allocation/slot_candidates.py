@@ -109,12 +109,14 @@ def _default_slot_specs(
                     "employer_lane": EMPLOYER_LANE_BY_SECTION[section_id],
                 }
             )
-    for index in range(1, 4):
+    exec_employer_lanes = ("slalom", "unify", "ibm", "insurtech")
+    for index, employer_lane in enumerate(exec_employer_lanes, start=1):
         slots.append(
             {
                 "slot_id": f"executive_summary:claim:{index:02d}",
                 "section_id": "executive_summary",
                 "metric_required": index == 1,
+                "employer_lane": employer_lane,
             }
         )
     for index in range(1, 4):
@@ -171,7 +173,7 @@ def _candidate_sets_from_section_plans(
         sec_slot_count = sum(1 for rs in slot_specs if str(rs.get("section_id") or "") == slot.section_id)
         rows: list[dict[str, Any]] = []
         for root_id, bucket in grouped_by_section[slot.section_id].items():
-            if enforce_career_band and root_id not in primary_secondary_roots:
+            if enforce_career_band and not slot.employer_lane and root_id not in primary_secondary_roots:
                 continue
             if (
                 sec_profile in {"svp_agentic_engineering", "insurance_it_strategy"}
