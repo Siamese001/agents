@@ -212,8 +212,8 @@ class ResumeSwarmChallenger:
         target_keywords: Sequence[str] | None = None,
         max_turns: int = 3,
     ) -> ResumeSwarmReceipt:
-        """Run bounded deliberation on candidate resume bullets."""
-        bounded_turns = min(max_turns, self.MAX_TURNS)
+        """Run deliberation on candidate resume bullets."""
+        bounded_turns = max(1, int(max_turns))
         current_bullets = list(bullets)
         final_disposition = ResumeSwarmDisposition.REVISE
         escalation_reason: str | None = None

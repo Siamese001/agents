@@ -72,9 +72,9 @@ def _scan_test_imports(test_file: Path) -> set[str]:
 def select_impacted_tests(
     changed_files: Sequence[str],
     repo_root: Path = REPO_ROOT,
-    max_files_per_batch: int = 4,
+    max_files_per_batch: int = 0,
 ) -> dict[str, object]:
-    """Compute impacted test files and Class-A-compliant batches (<= 4 files per batch)."""
+    """Compute impacted test files across all 6 test roots with optional batch chunking (0 = unbounded)."""
     root = repo_root.resolve()
     norm_changed = [f.replace("\\", "/").strip("/") for f in changed_files if f.strip()]
     selected: list[str] = []
@@ -114,8 +114,11 @@ def select_impacted_tests(
                 if target_tokens.intersection(imported):
                     selected.append(rel_tf)
 
-    batch_size = max(1, min(int(max_files_per_batch), 4))
-    batches = [selected[i : i + batch_size] for i in range(0, len(selected), batch_size)]
+    if max_files_per_batch and int(max_files_per_batch) > 0:
+        batch_size = max(1, int(max_files_per_batch))
+        batches = [selected[i : i + batch_size] for i in range(0, len(selected), batch_size)]
+    else:
+        batches = [selected] if selected else []
     return {
         "changed_files": norm_changed,
         "selected_tests": selected,
@@ -128,10 +131,15 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Select transitive impacted pytest files for changed files.")
     parser.add_argument("--changed-files", nargs="*", default=[], help="Changed repository-relative file paths.")
     parser.add_argument("--repo-root", type=Path, default=REPO_ROOT, help="Repository root.")
+    parser.add_argument("--max-files-per-batch", type=int, default=0, help="Optional batch size (0 = unbounded).")
     parser.add_argument("--json", action="store_true", help="Emit JSON output.")
     args = parser.parse_args(argv)
 
-    result = select_impacted_tests(args.changed_files, repo_root=args.repo_root.resolve())
+    result = select_impacted_tests(
+        args.changed_files,
+        repo_root=args.repo_root.resolve(),
+        max_files_per_batch=args.max_files_per_batch,
+    )
     if args.json:
         print(json.dumps(result, indent=2))
     else:

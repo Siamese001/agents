@@ -32,11 +32,11 @@ Status values: `COMPLETE`, `OPEN`, `BLOCKED`, `NOT_STARTED`. Sequential enforcem
 ---
 
 ## Wave-Based Implementation Plan Standard
-All implementation plans—including planning-mode artifacts (`implementation_plan.md`) and repository markdown plans in `plans/` or `docs/`—must strictly adhere to the wave-based governance architecture. Monolithic, flat, or unstructured plans fail closed. New wave plans must be concise enough to execute and review without hiding required behavior or gates: use the shortest plan that fully specifies the work, normally 500–800 words, with a hard limit of 1,000 words (`INV-WAVE-PLAN-MAX-WORDS`). Small changes may need fewer than 500 words.
+All implementation plans—including planning-mode artifacts (`implementation_plan.md`) and repository markdown plans in `plans/` or `docs/`—must strictly adhere to the wave-based governance architecture. Monolithic, flat, or unstructured plans fail closed. Wave plans have no artificial word-count or wave-count ceiling (`INV-WAVE-PLAN-MAX-WORDS = 0`), allowing full multi-wave architectural specifications and cross-repo refactoring plans of any required extent.
 
 ### Required Plan Structure
 1. Top-level `# <Plan Title>`.
-2. Sequential or Fork-Join Sharded Numbered Waves: `## Wave 1: <Title>`, `## Wave 2A: <Title>`, `## Wave 2B: <Title>`, `## Wave 3: <Title>`, incrementing consecutively without base-number gaps (starting at Wave 0 or Wave 1). Sharded waves may declare `Depends On: Wave 1` (validated for acyclicity by `tools/implementation_plan_core/wave_dag.py`) and an optional fenced ```` ```yaml shard-manifest ```` / ```` ```json shard-manifest ```` annex (`minItems: 2`, `<= 160` char strings, pairwise disjoint `scope_in`, non-empty `verify_independently`), which is validated before being excluded from the `1,000`-word prose cap.
+2. Sequential or Fork-Join Sharded Numbered Waves: `## Wave 1: <Title>`, `## Wave 2A: <Title>`, `## Wave 2B: <Title>`, `## Wave 3: <Title>`, incrementing consecutively without base-number gaps (starting at Wave 0 or Wave 1). Sharded waves may declare `Depends On: Wave 1` (validated for acyclicity by `tools/implementation_plan_core/wave_dag.py`) and an optional fenced ```` ```yaml shard-manifest ```` / ```` ```json shard-manifest ```` annex (`minItems: 1`, non-empty `scope_in`, non-empty `verify_independently`).
 3. Mandatory Subsections Per Wave:
    - `### Objective & Scope`: Exact bounded sub-goal and boundary.
    - `### Milestones & Deliverables`: Itemized list (`[NEW]`, `[MODIFY]`, `[DELETE]`, schemas, configs, artifacts).
@@ -53,41 +53,36 @@ Plans must pass validation by `python tools/validate_implementation_plan.py`. An
 
 ---
 
-## Sequential Wave Progression Gate Lock
-1. **Strict Execution Boundary**: Forbidden from modifying code (`agents/`, `outreach_engine/`, `resume_graph_engine/`, `infrastructure/`), generating tests (`tests/`), or executing mutating commands for Wave N+1 until Wave N is verified `COMPLETE`.
-2. **Prerequisites for Advancing**:
-   - All declared acceptance criteria for Wave N have passed in the observed run.
+## Wave & Sharded Progression Discipline
+1. **Unconstrained Root-Cause & Sharded Execution**: Parallel `/boost` and `/swarm` shards may execute concurrently across waves, and newly discovered root-cause bugs may be fixed immediately across any connected files (`agents/`, `outreach_engine/`, `resume_graph_engine/`, `apps_research/`, `infrastructure/`, `tools/`, `tests/`) without artificial scope freezes, while preserving `<= 600`-line file budgets and inter-subsystem import boundaries.
+2. **Prerequisites for Wave Completion**:
+   - All declared acceptance criteria for the wave have passed in the observed run.
    - Produced behavior/state has been independently checked against the declared expectation; the result is not inferred from a receipt or test harness self-report alone.
    - Durable runtime provenance and evidence links are recorded in the wave ledger table.
-   - All HITL design decisions for Wave N resolved.
-3. **Failure-Closed Halt**: If any milestone or criterion in Wave N fails, wave status is `BLOCKED`. Execution halts immediately.
-4. **Distinct Engineering-Wave Scope vs Production Isolation**: Engineering waves and test suites verify code changes and contracts within disposable, isolated temporary sandboxes and MUST NEVER mutate deployment or canonical production environments.
+   - Any genuine HITL ambiguity ($\Delta \le 20\%$) is resolved.
+3. **Failure-Closed Verification**: If a criterion fails, diagnose and repair the root cause before marking the wave `COMPLETE`.
+4. **Distinct Engineering-Wave Scope vs Production Isolation**: Engineering waves and test suites verify code changes and contracts within isolated worktrees/sandboxes without mutating external repositories.
 
 ---
 
 ## pytest Run Protocol
-All pytest invocations fall into exactly one of two classes. No other class is permitted.
+All pytest invocations fall into debug/verification runs or wave receipt runs:
 
-### Class A — Debug run
-Used during fix cycle to verify a specific change.
-- Scope MUST be a single test file, a single named test case, or a coupled multi-file producer+contract+consumer test slice (up to 4 directly coupled test files, e.g., `pytest tests/unit/test_producer.py tests/unit/test_contract.py tests/unit/test_consumer.py -v --timeout=60`). Use `.venv/bin/python tools/adg_impact_tests.py --changed-files <files>` to compute Class-A-bounded (`<= 4` files per batch) transitive impact test slices across all 6 test roots. Unbounded multi-file sweeps (> 4 unrelated files) or full-suite runs (`pytest` or `pytest <root>/tests/`) without authorization are strictly forbidden.
-- Must include `--timeout=60` (per-test hard limit).
-- Must be synchronous (`WaitMsBeforeAsync >= 15000`). Does not produce a receipt.
-- **Background forbidden**: If run exceeds `WaitMsBeforeAsync`, something is wrong — kill immediately; do not send to background.
+### Class A — Debug & Verification run
+Used during bug fixes, `/boost`, `/swarm`, and refactoring cycles to verify changes across any number of impacted files or suites.
+- Scope may be a single test file, a single named test case, any coupled multi-file producer+contract+consumer test slice (no file-count cap), or full subsystem/repository test directories (`pytest tests/ --timeout=60`, `pytest resume_graph_engine/tests/ --timeout=60`, etc.). Use `.venv/bin/python tools/adg_impact_tests.py --changed-files <files>` to compute all transitive impacted test files across all 6 test roots.
+- Must include `--timeout=60` (or `--timeout=180` for broad E2E/integration suites).
+- Must be synchronous (`WaitMsBeforeAsync >= 10000`).
 
 ### Class B — Receipt run
-Used exactly once per wave at wave completion after all fixes pass.
-- Scope MUST be only the wave's declared acceptance test files.
-- Must include `--timeout=60`. Synchronous (`WaitMsBeforeAsync >= 120000`).
+Used at wave completion after all fixes pass.
+- Scope covers all declared acceptance and impacted regression test files.
+- Must include `--timeout=60` (or `--timeout=180`). Synchronous (`WaitMsBeforeAsync >= 10000`).
 - Produces wave runtime receipt; pass count recorded in wave ledger.
-- Full suite runs require explicit user authorization.
 
 ### Prohibited patterns
-- `pytest` (no args) or `pytest tests/` (unbounded full suite).
-- pytest sent to background (`WaitMsBeforeAsync` too short).
-- Unbounded or unrelated multi-file pytest during fix cycle (> 4 files or test files lacking direct producer+contract+consumer coupling).
-- pytest without `--timeout=60`.
-- Running pytest again after it already passed.
+- Bare `pytest` (no `--timeout`) or `pytest tests/` without `--timeout`.
+- Skipping or weakening tests to conceal regressions.
 
 ---
 

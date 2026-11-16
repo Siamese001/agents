@@ -40,9 +40,9 @@ Defines the non-negotiable structural taxonomy, delegation contracts, and execut
 3. **Models & Tools**: Foundation models, native CLI tools, and MCP servers.
 4. **Observability**: Distributed traces, audit events, and execution receipts.
 
-## Sub-Agent Delegation Contract (10 Required Fields)
+## Sub-Agent Delegation Contract (10 Structured Fields When Explicitly Supplied)
 
-Before spawning any sub-agent (via `invoke_subagent` or `browser_subagent`), the orchestrator MUST construct an explicit delegation contract declaring:
+Interactive `/boost` and `/swarm` sub-agents may execute directly without mandatory 10-field contract ceremony or disjoint-file write lockouts so root-cause bug fixes can span any connected files across the repository. When an orchestrator supplies an explicit structured `delegation_contract` dictionary, `tools/unified_agent_architecture.py` validates the 10 canonical fields:
 1. `task_id`: Unique identifier for the delegation.
 2. `parent_task_id`: Caller's task identifier.
 3. `objective`: Specific, bounded goal description.

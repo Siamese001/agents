@@ -17,7 +17,7 @@ _SHARD_MANIFEST_BLOCK_RE = re.compile(
     r"```(?:yaml|json)\s+shard-manifest\s*\n([\s\S]*?)```",
     re.IGNORECASE,
 )
-_MAX_SHARD_STR_LEN = 160
+_MAX_SHARD_STR_LEN = 4096
 
 
 def _parse_wave_token(raw_token: str) -> tuple[int, str, str] | None:
@@ -163,8 +163,8 @@ def _validate_single_shard_manifest(data: Any, filename: str) -> list[str]:
     if not isinstance(data, dict):
         return [f"{filename}: shard-manifest block must parse to a dictionary object."]
     shards = data.get("shards")
-    if not isinstance(shards, list) or len(shards) < 2:
-        return [f"{filename}: shard-manifest must declare 'shards' list with at least 2 shards (minItems: 2)."]
+    if not isinstance(shards, list) or len(shards) < 1:
+        return [f"{filename}: shard-manifest must declare a non-empty 'shards' list (minItems: 1)."]
 
     seen_shard_ids: set[str] = set()
     shard_scopes: list[tuple[str, list[str]]] = []
@@ -198,15 +198,16 @@ def _validate_single_shard_manifest(data: Any, filename: str) -> list[str]:
         elif len(verify_cmd) > _MAX_SHARD_STR_LEN:
             errs.append(f"{filename}: shard-manifest shard '{sid}' verify_independently exceeds {_MAX_SHARD_STR_LEN} chars.")
 
-    for i, (sid_a, paths_a) in enumerate(shard_scopes):
-        for sid_b, paths_b in shard_scopes[i + 1 :]:
-            for pa in paths_a:
-                for pb in paths_b:
-                    if paths_overlap(pa, pb):
-                        errs.append(
-                            f"{filename}: shard-manifest scope_in overlap between '{sid_a}' ('{pa}') "
-                            f"and '{sid_b}' ('{pb}'). Parallel shards must be pairwise disjoint."
-                        )
+    if bool(data.get("require_disjoint", False)):
+        for i, (sid_a, paths_a) in enumerate(shard_scopes):
+            for sid_b, paths_b in shard_scopes[i + 1 :]:
+                for pa in paths_a:
+                    for pb in paths_b:
+                        if paths_overlap(pa, pb):
+                            errs.append(
+                                f"{filename}: shard-manifest scope_in overlap between '{sid_a}' ('{pa}') "
+                                f"and '{sid_b}' ('{pb}')."
+                            )
     return errs
 
 

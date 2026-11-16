@@ -138,11 +138,11 @@ def execute_with_hooks(action, context):
 When executing broad multi-file refactors across `/swarm`, `/teamwork`, or `run_workflow`:
 
 1. **Fork-Join Wave Plan & `shard-manifest` Annex**:
-   - Define shared contracts in `## Wave 1`, then fan out into parallel disjoint shards (`## Wave 2A`, `## Wave 2B` with `Depends On: Wave 1`) and attach a fenced `shard-manifest` block (`minItems: 2`, pairwise disjoint `scope_in`, `verify_independently`).
-2. **Cross-Worktree Scope Lease Registration**:
-   - Register each worker's 10-field contract via `register_and_check_subagent_scope(..., check_cross_workspace=True)` (or set `preauth_manifest_id` in the contract) so overlapping `scope_in` paths fail closed even across `share` and `branch` worktrees.
-3. **Scoped Impact Test Selection & Fast Shard Qualification**:
-   - Select Class A test batches (`<= 4` files per invocation) via `.venv/bin/python tools/adg_impact_tests.py --changed-files <files>`.
+   - Define shared contracts in `## Wave 1`, then fan out into parallel `/boost` or `/swarm` shards (`## Wave 2A`, `## Wave 2B` with `Depends On: Wave 1`) and attach an optional fenced `shard-manifest` block (`minItems: 1`, `scope_in`, `verify_independently`).
+2. **Optional Scope Lease Registration**:
+   - Register worker contracts via `register_and_check_subagent_scope(...)` with automatic `owner_pid` tracking; parallel `/boost` and `/swarm` workers are never blocked from fixing cross-file root causes unless `exclusive_lock: true` is explicitly requested.
+3. **Impacted Test Selection & Fast Shard Qualification**:
+   - Select all impacted test files across all 6 test roots via `.venv/bin/python tools/adg_impact_tests.py --changed-files <files>` (zero batch-size cap).
    - Qualify each worker branch via `.venv/bin/python tools/pr_governance.py shard-ready <shard_branch>` (`verify_commit.py --shard-fast` + SHA-bound `reports/pr_shard_<slug>_receipt.json`).
 4. **Coordinator Wave Merge Train & Promotion**:
-   - Assemble all verified shards into a single wave train via `.venv/bin/python tools/pr_governance.py train --wave <N> --shards <b1> <b2> ...` (`feat/wave-<N>-train`), then promote once to `main` via `.venv/bin/python tools/pr_governance.py promote feat/wave-<N>-train`.
+   - Assemble verified shards (including shards sharing non-conflicting facade, contract, or test edits) into a wave train via `.venv/bin/python tools/pr_governance.py train --wave <N> --shards <b1> ...` (`feat/wave-<N>-train`), then promote to `main` via `.venv/bin/python tools/pr_governance.py promote feat/wave-<N>-train`.

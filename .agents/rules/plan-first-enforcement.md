@@ -10,25 +10,15 @@
 > SR_APPROVAL / SR_EXECUTE / SR_VERIFY` marker packet is retired. Native **plan mode** is the
 > "no edits before approval" contract it emulated.
 
-## When plan mode is required
+## When plan mode applies vs. immediate root-cause execution
 
-MANDATORY for **T2/T3** tasks: planning / decomposition, architecture decisions, multi-file debugging,
-refactors spanning files, ADG / dependency analysis, test-strategy design. NOT required for T0/T1
-(question, typo, single config value, single import).
+- **Root-Cause Bug Fixes, `/boost`, & `/swarm` (Execute Directly Without File-Count Limits)**: Whenever a bug is discovered or `/boost` / `/swarm` is invoked, trace the defect across all connected layers and fix every impacted producer, shared contract, consumer, validator, and test immediately with zero file-count, line-count, or blast-radius barriers (preserving `<= 600`-line file budgets and inter-subsystem import boundaries).
+- **Open-Ended Architecture & Design**: When the operator requests `/plan` or open-ended architectural design with genuine ambiguity ($\Delta \le 20\%$), gather evidence, structure the wave plan, and resolve ambiguity before editing.
 
 ## Contract
 
-- T2/T3 ⇒ `EnterPlanMode`, gather evidence (reads only), present the plan via `ExitPlanMode`, and make
-  **no edits until the plan is approved**.
-- One explicit approval for the presented plan authorizes execution of that unchanged scope through
-  implementation, verification, and requested local git closeout. Do **not** ask for separate
-  "design approval", "implementation approval", "refactor approval", or "commit/merge approval" unless
-  the user limited the approval, the scope materially changes, a new Author-Gate-class decision appears,
-  or the next action is destructive, external publication, or credential/security sensitive.
-- A direct user instruction such as "implement", "fix it", "remove it", "commit", "merge to local main",
-  or "execute PR" counts as approval for that named action when it stays inside the current approved
-  scope. Ask again only when the requested action would exceed that scope.
-- T0/T1 ⇒ proceed directly.
+- Direct user instructions (`implement`, `fix`, `/boost`, `/swarm`, `/learn`, `refactor`, `commit`, `promote`) authorize full end-to-end execution across all connected files, contracts, ratchets, and tests needed to solve the root cause cleanly.
+- Do **not** ask for separate "design approval", "implementation approval", "refactor approval", or ">10-file blast-radius approval" once execution is authorized, unless genuine high-level product ambiguity ($\Delta \le 20\%$) or a destructive external action arises.
 
 ## Wave-Based Implementation Plan Standard (Supersedes Status Table)
 
@@ -39,7 +29,7 @@ The legacy mandatory 4-column Status Table in markdown plan files is retired. Im
   2. `### Milestones & Deliverables` (`[NEW]`, `[MODIFY]`, `[DELETE]`)
   3. `### Acceptance Criteria`
   4. `### Runtime Receipt & Completion Gate` (`Run:`, `Input:`, `Expected:`, `Verify independently:`, `Fail if:`, `Record:`)
-- **Word Budget**: Target 500–800 words, hard limit 1,000 words (`INV-WAVE-PLAN-MAX-WORDS`).
+- **Word & Wave Budget**: Unbounded (`INV-WAVE-PLAN-MAX-WORDS = 0`); scale waves and `/boost` / `/swarm` shards freely to match the full architectural scope.
 - **Status Tracking & Reporting**: Wave status is tracked durably within repository artifacts and persistent ledgers. Ordinary conversational chat outputs must NOT dump all-wave status tables into chat (target ~150-250 words, max 450 words).
 - **Canonical Template**: See [docs/templates/wave_plan_template.md](../../docs/templates/wave_plan_template.md).
 

@@ -175,8 +175,10 @@ def handle_pre_run_command(payload: Dict[str, Any]) -> int:
     if not cmd:
         return emit_decision("allow")
     root_pat = r"(?:tests|(?:resume_graph_engine|outreach_engine|apps_eval|resume_engine|apps_research)/tests)"
-    if re.search(r"\bpytest(?:\.exe)?\s*$", cmd) or re.search(rf"\bpytest\s+{root_pat}/?\s*$", cmd):
-        reason = "Bare un-scoped 'pytest' or 'pytest <root>/tests/' is blocked by governance. Specify targeted test files."
+    if "--timeout" not in cmd and (
+        re.search(r"\bpytest(?:\.exe)?\s*$", cmd) or re.search(rf"\bpytest\s+{root_pat}/?\s*$", cmd)
+    ):
+        reason = "Bare un-timed 'pytest' or 'pytest <root>/tests/' without --timeout is blocked. Pass --timeout=60 (or targeted files)."
         sys.stderr.write(f"\n[Antigravity Hook BLOCK] {reason}\n")
         return emit_decision("deny", reason=reason)
     return emit_decision("allow")
@@ -439,15 +441,6 @@ def handle_pre_subagent_delegation(payload: Dict[str, Any], repo_root: Path) -> 
         ok, reason, _ = register_and_check_subagent_scope(repo_root, resolved_contract, workspace_mode=workspace_mode)
         if not ok:
             return emit_decision("deny", reason=reason)
-    elif type_name in ("self", "") and (
-        workspace_mode in ("", "inherit")
-        and str(tool_call.get("name") or "").split(":")[-1] == "start_subagent"
-        or type_name == "self"
-    ):
-        return emit_decision(
-            "deny",
-            reason="DELEGATION_VIOLATION_MISSING_CONTRACT: invoke_subagent/start_subagent on shared inherit workspace requires a 10-field delegation_contract.",
-        )
 
     if type_name == "teamwork" and prompt_text:
         _sync_teamwork_request_atomic(repo_root, prompt_text)

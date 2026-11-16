@@ -19,7 +19,7 @@ Traces every `AGENTS.md` section to enforceable rules, skills, hooks, tools, and
 ### §"Wave Refactoring Protocol"
 | Type | Path | Coverage |
 | :--- | :--- | :--- |
-| Policy | `docs/refactoring-wave-protocol.md` | 6-wave maximum, sequential scope, receipt validation |
+| Policy | `docs/refactoring-wave-protocol.md` | Unbounded wave & sharded `/boost`/`/swarm` convergence, root-cause bug resolution, receipt validation |
 | Hook | `.agents/hooks.json` → `agents-implementation-plan-guard` | Implementation status table and wave plan validation before writing |
 | Hook | `.agents/hooks.json` → `agents-wave-completion-guard` | Stop hook wave completion summary table display |
 | Dispatcher | `tools/hook_dispatch.py` | Antigravity native lifecycle hook dispatcher and wave table generator |
@@ -77,9 +77,9 @@ Traces every `AGENTS.md` section to enforceable rules, skills, hooks, tools, and
 | Type | Path | Coverage |
 | :--- | :--- | :--- |
 | Config | `pytest.ini` | Autoload ON, `--timeout=180`, default timeout options |
-| Hook | `.agents/hooks.json` → `agents-pytest-scope-guard` | Blocks bare `pytest` sweeps; mandates scoped execution |
-| Tool | `tools/adg_impact_tests.py` | Transitive dependency impact test selector emitting Class-A (`<= 4` files) batches across 6 test roots |
-| Skill | `.agents/skills/testing-framework/SKILL.md` | Scoped pytest Class A/B run protocol and collection checks |
+| Hook | `.agents/hooks.json` → `agents-pytest-scope-guard` | Blocks bare un-timed `pytest` without `--timeout`; permits multi-file and directory runs with `--timeout` |
+| Tool | `tools/adg_impact_tests.py` | Transitive dependency impact test selector across all 6 test roots with zero batch-size ceiling |
+| Skill | `.agents/skills/testing-framework/SKILL.md` | Impacted pytest verification protocol and collection checks |
 
 ### §"Subsystems vs Infrastructure (summary)"
 | Type | Path | Coverage |

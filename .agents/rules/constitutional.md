@@ -11,18 +11,18 @@
 
 0. **Subprocess timeout required.** `subprocess.run(argv, shell=False, timeout=30)`. PowerShell is permitted (primary Windows shell); the legacy legacy editor-era PowerShell ban is lifted. (Slot §14 retained for stable numbering.)
 1. **No test skipping.** No `pytest.mark.skip`, no `xfail` without `strict=True`.
-2. **No editing while exploring.** All five repair gates must pass before any edit.
-3. **No agent deletion without authorization.** AGENT-DELETION-AUTHORIZED marker, 90-day deprecation, zero references.
-4. **CI enforces all of this.** `python ops_scripts/ci/run_contract_gates.py`
-5. **ADG before T2/T3 work.** Ingest `artifacts/adg/adg_indexed_<ts>.sqlite` before any query/edit. Regenerate: `python tools/generate_full_adg.py`.
-6. **Author-Gate for ambiguous decisions.** Use Codex `request_user_input` when ≥2 plausible approaches have different blast radius and no unambiguous directive; include `questions[].id`, `header`, 2-3 options, and mark the recommended option. If the tool is unavailable in the current mode, ask one plain-text clarifying question directly with the same recommended-first option shape and do not claim the UI rendered. The old packet/marker/ledger pipeline is retired. See `AGENTS.md` § Author-Gate.
-7. **RCA auto-closure.** Execute corrective actions immediately. Never leave RCA unresolved.
-8. **Guardian exemptions require Author-Gate.** `# guardian: allow-<type> -- <specific justification>`. Generic words forbidden. Gate: `guardian_exemption_gate.py`.
-9. **SVP Engineering persona for T3 architecture.** Operational simplicity, dependency hygiene, archival over deletion, ADRs, zero-regression.
-10. **Zero-loss refactor.** After removing boilerplate, check for hollow files. Gate: `zero_loss_refactor_verifier.py`.
-11. **Terminal process lifecycle.** All `run_command`/subprocess must terminate. Gate: `check_terminal_cleanup.py`.
-12. **No imports from `archives/` in production.** Gate: `check_no_archives_imports.py`.
-13. **ADG SQLite SSOT and MCP transport green light before T2/T3 edits.** The ADG SQLite snapshot (`artifacts/adg/adg_indexed_*.sqlite`) is the SSOT: no readable canonical snapshot ⇒ **BLOCKED**. T2/T3 edit/execution, proof, eval, and publication work also requires active-session ADG MCP transport proof (`transport_status().status == "open"`); heartbeat/process evidence or direct SQLite fallback cannot substitute for a closed transport. Read-only analysis/recommendation prompts may proceed from the SQLite SSOT with degraded provenance, but edits must wait for live transport proof. Explicit ADG transport recovery/RCA prompts may proceed to repair the route. Redis is a non-authoritative hot cache (`adg_redis_ingest.py --check`) — cold/absent ⇒ advisory warning only, **never blocks** (a Redis hit may not substitute for an unavailable SSOT; see `adg-canonical-invariants.md` §1). Gate: `pre_user_prompt_adg_ssot_gate.py`, dispatched from `before_submit_prompt.py`. Bypass: `ADG_SSOT_GATE_BYPASS=1`. (Detail: plan `adg-redis-hotcache-enforcement-b9f4c2`.)
+2. **Root-cause bug resolution without artificial barriers.** Trace and fix discovered bugs across all impacted files, contracts, and tests immediately without file-count or blast-radius caps (keeping `<= 600`-line file budgets and inter-subsystem import boundaries intact).
+3. **Clean dead-code retirement.** Dead or superseded modules/agents with zero live callers may be retired or consolidated cleanly during refactoring once full reference checks pass.
+4. **Tier 1 & Tier 2 verification.** `python tools/verify_commit.py` and `python tools/verify_main_readiness.py`.
+5. **Structural dependency tracing.** Use ADG (`adg_sqlite`), AST analysis, and unconstrained file/text search to inspect full upstream/downstream ripple impact across the repository.
+6. **Ambiguity-gated HITL (`ask_question`).** Surface one atomic plain-English question via `ask_question` only when genuine ambiguity exists ($\Delta \le 20\%$ or top confidence $< 65\%$); multi-layer blast radius incurs zero confidence penalty.
+7. **RCA auto-closure.** Execute corrective actions immediately across all root-cause layers. Never leave RCA unresolved or defer multi-file bugs.
+8. **Guardian exemptions require rationale.** `# guardian: allow-<type> -- <specific justification>`. Generic words forbidden.
+9. **SVP Engineering rigor for architecture.** Operational simplicity, `<= 600`-line modular files, clean inter-subsystem boundaries, zero-regression.
+10. **Zero-loss refactor.** After refactoring or decomposing monoliths, verify public facade exports and module/symbol test coverage (`tools/testing_gaps_auditor.py`).
+11. **Terminal process lifecycle.** All `run_command`/subprocess invocations must terminate cleanly and reap background tasks.
+12. **No imports from `archives/` in production.**
+13. **Non-blocking structural inspection fallback.** Prefer `adg_sqlite` MCP or `artifacts/adg/*.sqlite` when available; if unavailable or closed, proceed immediately using direct AST/code search without blocking root-cause edits or `/boost` / `/swarm` workers.
 14. **Subprocess timeout required** — reserved alias of §0, kept for stable numbering (sibling rules `query-progress-bar.md` and `python-dash-c-quote-hazard.md` cite "§14"; do not renumber to dedupe). See §0.
 15. **Precise exception handling.** Catch specific types. Bare `except:` and `except Exception` without guardian comment FORBIDDEN.
 16. **Query progress bar mandatory.** Operations >5s, loops >10 lines, heavy-named functions (`scan_*`/`build_*`/`query_*`) >12 lines. Gate: `check_query_progress_bar.py`. See `query-progress-bar.md`.
@@ -30,14 +30,14 @@
 
 ### Process Discipline (§18–§21)
 
-18. **No hidden scope expansion.** State scope growth in the working packet; keep changes bounded.
-19. **Mode separation mandatory.** `analyze` (no edits) / `plan` (no edits) / `edit` / `verify`. Don't blur.
+18. **Cohesive root-cause scope (zero blast-radius cap).** Expand freely across all connected producers, contracts, consumers, validators, and tests needed to fix a bug or complete a refactor; avoid unrelated cosmetic churn only.
+19. **Plan-only firewall respected.** Honor explicit `PLAN ONLY` / `NO IMPLEMENT` prompts; otherwise execute root-cause fixes, `/boost`, and `/swarm` end-to-end.
 20. **Fact grading mandatory.** Classify claims as **DIRECTLY OBSERVED** / **DERIVED** / **UNRESOLVED**. Don't present unresolved as fact.
-21. **Zero-loss overwrite discipline.** When overwriting rule/skill/workflow: preserve constraints + script-relied references; remove redundancy; don't silently delete operational intent.
+21. **Zero-loss overwrite discipline.** When overwriting rule/skill/workflow: preserve active constraints + script-relied references; remove obsolete caps.
 
-22. **ADG graph layer is primary for refactoring.** MVs (`mv_*`), semantic edges (`flows_to`/`emits_side_effect`/`resolves_callsite`/`controls_flow`/`reads_from`/`writes_to`), P-views (`v_p0_*`..`v_p3_*`) MUST drive T2/T3 plans — not raw `edges`/`violations`. Plans missing `## ADG_GRAPH_LAYER_EVIDENCE` invalid. Gate: `check_graph_layer_evidence.py`. See `adg-analysis-procedures.md` §3.
-23. **ADG canonical invariants.** SQLite=truth, Redis=hot projection, MCP=read-only gateway. ADG wins vs text-search/intuition. Hotspot rows MUST classify by archetype (`CENTRAL_DEPENDENCY`/`ORCHESTRATOR`/`STATE_NODE`/`SAFETY_GATEKEEPER`) + cross-ref 5 Surfaces (Execution/Write/Security/State/Observability). Layer multipliers: L0/L5 ×2.0, L3/L4 ×1.75, L1/L2 ×1.0, L6 ×0.75. Static ADG (`adg_sqlite`) ≠ Runtime ADG (`otel_mcp`). Detail: `adg-canonical-invariants.md`.
-24. **Deferred-scope capture — native spawn_task (ADR-096).** Out-of-scope work surfaces via the native `spawn_task` background-task chip (one click -> its own session/worktree), not a `DEFERRED_SCOPE:`/`NEXT_STEP:` marker -> hook -> Notion pipeline. Notion remains an optional durable backlog via explicit user action. Slot retained for stable numbering.
+22. **ADG & AST structural analysis.** Use ADG views (`mv_*`, semantic edges, `v_p0_*`..`v_p3_*`) and AST/search inspection to trace full transitive dependencies during refactoring; missing optional ADG sections never block valid wave plans.
+23. **ADG canonical invariants.** SQLite=truth, Redis=hot projection, MCP=read-only gateway. Detail: `adg-canonical-invariants.md`.
+24. **Zero bug-deferral rule.** Fix discovered bugs immediately at their root cause regardless of file count or layer span; reserve `spawn_task` / backlog items strictly for optional future feature ideas unrelated to active bugs.
 25. *(Reserved — no rule occupies §25. Slot intentionally vacant; numbering held stable because `§`-citations are load-bearing across rules. Do not renumber to close the gap.)*
 26. **No interactive pagers in `run_command`.** `more`/`less`/`most`/`more.com` (pipe or bare) FORBIDDEN — Codex cannot answer pager prompts; pagers hang the turn. Pattern: redirect to file (`> out.txt`) + `read_file`. Long-running: `Blocking=false` + `WaitMsBeforeAsync`. Gate: `pre_run_gate.py`.
 27. **Config schema purity.** `.agents/hooks.json` (only `command`+`working_directory`+`show_output`) and `.mcp.json` (only `command`+`args`+`env`+`disabled`) MUST contain ONLY official-schema fields. Unknown keys silently disable subsystem. Gate: config schema verification.
@@ -52,18 +52,15 @@
 36. **Plan–Notion registration — RETIRED (notion-wave-enforcement-removal).** The plan→Notion registration pipeline never functioned and is removed. **Plans are disk-only.** The only plan gates are the disk-side format lints (`check_plan_format_compliance`, `check_plan_wave_summary_top`, `check_plan_definition_of_done`) + `plan-location.md`. Slot retained for stable numbering.
 37. **RCA mandatory on runtime failure.** Any repo-work response that sets `STATUS: FAIL` or surfaces a runtime-failure signal (`X3_BLOCK`, traceback, non-zero exit, pytest `N failed`, `PRE_RUN_BLOCKED`, `BLOCKED_*`/`MISSING_GRAPH_PATH`) MUST carry an `RCA:` block — symptom · root_cause (graded §20) · evidence · fix_or_next (§7) · recurrence_guard. A green/PASS status over a body failure-signal is forbidden (an exit code or X3 label alone is not a runtime outcome). **On refactoring turns (T2/T3 code changes) the response MUST use the Outcome frame on EVERY turn (pass or fail) — Did it run? + verdict source + provenance · What worked · Failure · Next (the PASS/FAIL verdict is the `STATUS:` line; the frame proves it, it does not re-vote); omitting it is `missing_refactor_outcome`. On a failure the frame MUST carry the deep Layered RCA: Immediate symptom → Failing layer (isolated from the surfacing layer) → Why-chain (apply "but why?" and dig until the true root, even across many levels; ≥2 descent levels) → Root cause (DISTINCT from the symptom) → Evidence → Confidence. Stopping at a symptom, a single-hop cause, or root==symptom is `shallow_rca`.** Detail: `001-runtime-seam-execution.md` § Runtime failure ⇒ RCA mandatory. Audit: `post_agent_runtime_rca_audit.py` → `artifacts/governance/runtime_rca_violations.jsonl` (kinds `missing_refactor_outcome`/`missing_rca`/`incomplete_rca`/`status_signal_mismatch`/`shallow_rca`). Bypass: `RUNTIME_RCA_AUDIT_BYPASS=1`.
 
-## Tier Classification
+## Scope & Execution Posture
 
-| Tier | Scope | ADG Requirement |
+| Surface | Scope Ceiling | Verification Requirement |
 |------|-------|----------------|
-| **T0 — Question** | No code changes | ADG cache optional |
-| **T1 — Trivial** | ≤1 file, ≤20 lines | Scoped tests only |
-| **T2 — Scoped** | 2–5 files, single layer | Query ADG blast radius |
-| **T3 — Architectural** | >5 files or cross-layer | Full ADG protocol mandatory |
+| **Questions / Read-Only** | Zero code changes | Direct evidence from repo files / ADG |
+| **Bug Fixes, `/boost`, & `/swarm`** | **Unbounded** (1 to N files across any layers/packages) | Root-cause tests + `verify_commit.py` (`<= 600`-line file budget & boundary linters) |
+| **Cohesive Refactoring** | **Unbounded** (as many files, submodules, or waves as needed) | Full-ripple producer+contract+validator alignment + impacted test suites |
 
-ADG graph is the **primary** analysis primitive. `grep_search` for dependency analysis FORBIDDEN. Decision tree: `.codex/skills/graph-analysis/tool_routing_decision_tree.md` (auto-load via `graph-analysis` skill). Any query about imports / consumers / references / blast radius / layers / function-or-class names → ADG MCP, never grep. Literal text / TODOs / non-Python content → `grep_search` allowed.
-
-**Degraded fallback** (§28): before grep for any graph query, call `adg_health`. Fallback only when health red AND response contains `DEGRADED_FALLBACK: reason=<...>`. Silent fallback = `severity: critical` in `adg_first_violations.jsonl`. Enforcement chain: `graph-analysis` skill (auto-load) → `pre_prompt_classifier.py` step 0 → this rule → `post_agent_adg_audit.py`.
+Use ADG (`adg_sqlite`), AST inspection, and `rg`/`grep_search` freely together to trace imports, callers, schemas, and literals across the entire repository without tool-call or file-count caps.
 
 ## Quick Gates
 

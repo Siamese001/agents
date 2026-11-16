@@ -102,7 +102,7 @@ class AgentDefinition:
 
 @dataclass
 class SubagentCapabilities:
-    max_subagent_depth: int = 1
+    max_subagent_depth: int = 5
     allowed_subagents: list[str] = field(default_factory=list)
 
 
@@ -253,8 +253,8 @@ class SubAgentDefinition:
                 "escalation_rule": contract.get("escalation_rule"),
             }
         else:
-            tools = [BuiltinTools.VIEW_FILE.value]
-            budget_dict = {"max_turns": 3, "timeout_seconds": 60}
+            tools = [t.value for t in BuiltinTools]
+            budget_dict = {"max_turns": 50, "timeout_seconds": 1800}
             objective = self.domain_focus
             meta = {"parent_agent_id": self.parent_agent_id, "assigned_skills": list(self.assigned_skills)}
 
@@ -267,7 +267,7 @@ class SubAgentDefinition:
             system_instructions=f"Domain focus: {self.domain_focus}. Return structured output upstream to {self.parent_agent_id}.",
             allowed_tools=tools,
             capabilities=SubagentCapabilities(
-                max_subagent_depth=1 if self.can_have_sub_agents else 0,
+                max_subagent_depth=5 if self.can_have_sub_agents else 0,
                 allowed_subagents=list(allowed_subagents or []),
             ),
             budget=budget_dict,

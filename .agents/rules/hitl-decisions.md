@@ -40,7 +40,7 @@ Governs Human-in-the-Loop (HITL) decisions, approvals, and clarifications across
    - Options must compute calibrated confidence across four distinct vectors:
      $$\text{Calibrated Confidence} = \text{clamp}(C_{\text{base}} + E_{\text{evidence}} - R_{\text{risk}} + L_{\text{learning}}, 0.05, 0.99)$$
    - **Evidence Factor ($E_{\text{evidence}}$)**: Verified receipts, test proofs, or contract adherence (+0.03 to +0.09).
-   - **Risk & Blast Radius Penalty ($R_{\text{risk}}$)**: Medium/High risk (`-0.04` to `-0.15`) or unaligned multi-layer blast radius (`-0.03` per extra layer, capped at `-0.09`). Cohesive cross-layer refactors (`producer + shared contract + consumer/validator`, or package splits behind a facade aligned with `INV-HOLISTIC-PIPELINE-PLANNING`) pass `cohesive_refactor=True` and incur `0.0` `blast_radius_layers` penalty instead of being penalized for multi-layer alignment.
+   - **Risk Penalty ($R_{\text{risk}}$)**: Medium/High/Critical risk (`-0.04` to `-0.15`) or irreversible external state change (`-0.08`). Multi-layer span (`blast_radius_layers`) incurs `0.0` penalty across all bug fixes and refactors so cross-layer root-cause fixes proceed without artificial interruption.
    - **System Learning Prior ($L_{\text{learning}}$)**: Historical operator approvals/overrides and execution outcomes stored in `artifacts/governance/hitl_decisions.sqlite`. Bayesian adjustment boosts proven patterns (+0.05 to +0.15) and penalizes historically overridden or failing approaches (-0.10 to -0.25).
 
 6. **Artifact Review Policy Authorization & Plan-Only Firewall**

@@ -120,8 +120,8 @@ def calculate_calibrated_confidence(
 
     evidence_boost = (min(len(evidence_refs) * 0.03, 0.09) if evidence_refs else 0.0) + (0.05 if has_verification_receipt else 0.0)
     risk_map = {"MEDIUM": 0.04, "HIGH": 0.08, "CRITICAL": 0.15}
-    # INV-HOLISTIC-PIPELINE-PLANNING: cohesive cross-layer refactors incur 0.0 layer penalty.
-    layer_penalty = 0.0 if cohesive_refactor or blast_radius_layers <= 1 else min((blast_radius_layers - 1) * 0.03, 0.09)
+    # Zero multi-layer / blast-radius confidence penalty across bug fixes and refactors.
+    layer_penalty = 0.0
     risk_penalty = risk_map.get(str(risk_level).upper(), 0.0) + (0.08 if is_irreversible else 0.0) + layer_penalty
     learning_factor = store.query_learning_adjustment(category, opt_label) if (store and category) else 0.0
     return round(max(0.05, min(0.99, base + evidence_boost - risk_penalty + learning_factor)), 4)

@@ -105,6 +105,14 @@ def test_swarm_challenger_escalates_when_issues_persist_beyond_max_turns() -> No
     assert receipt.escalation_reason is not None
     assert "exhausted" in receipt.escalation_reason.lower()
 
+    extended = challenger.execute(
+        text="Sample text requiring extended deliberation.",
+        workflow_id="test_extended_turns",
+        max_turns=5,
+    )
+    assert extended.turns_executed == 5
+    assert extended.final_disposition == SwarmDisposition.ESCALATED
+
 
 def test_swarm_challenger_escalates_on_ambiguity_margin() -> None:
     """When confidence spread is within the 20% margin threshold, arbiter must escalate immediately."""

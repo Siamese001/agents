@@ -96,17 +96,14 @@ refs:
 
 **Note**: Versioned bindings (v2) indicate ongoing consolidation. Merge v1/v2 before migration to generic engines.
 
-## Customization Checklist
+## Customization & Root-Cause Bug Resolution
 
-When adding new `apps_research` behavior:
+Root-cause bug fixes and cohesive cross-spine refactors across `apps_research/` and its connected upstream/downstream contracts execute freely with zero file-count or blast-radius caps while preserving `<= 600`-line file budgets and the Core Boundaries above:
 
-- [ ] Profile defined in `config/domain_contract/`
-- [ ] Schema updated if ingress changes
-- [ ] Field map updated for new fields
-- [ ] Package digest recalculated
-- [ ] Tests added to `tests/unit/apps_research/` or `tests/_apps_contract/`
-- [ ] Receipt updated if touching core boundaries
-- [ ] Boundary audit passes (see workflow `/core-boundary-audit`)
+- [ ] Profile defined in `config/domain_contract/` when adding new U0 customization surfaces
+- [ ] Schema and field map aligned if ingress changes
+- [ ] Impacted unit/contract tests (`tests/unit/apps_research/`, `tests/_apps_contract/`, `apps_research/tests/`) pass with `--timeout=60`
+- [ ] Boundary audit (`tools/ssot_boundary_auditor.py`) passes
 
 ## Related
 

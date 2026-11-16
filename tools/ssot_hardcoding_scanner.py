@@ -46,7 +46,7 @@ PRODUCTION_SCAN_DIRS: tuple[str, ...] = (
 )
 
 GUARDED_THRESHOLD_NAMES: dict[str, tuple[str, int]] = {
-    "MAX_PLAN_WORDS": ("config/governance/policy_registry.yaml", 1000),
+    "MAX_PLAN_WORDS": ("config/governance/policy_registry.yaml", 0),
     "EXEC_SUMMARY_MAX_WORDS": (
         "resume_graph_engine/src/apps_rg/runtime/validators/executive_summary_x2.py",
         150,
@@ -101,7 +101,9 @@ def _matches_owner_or_package(rel: str, owners: Sequence[str] | set[str]) -> boo
                 return True
         elif norm_rel == norm_owner:
             return True
-        elif norm_owner.endswith(".py") and norm_rel.startswith(f"{norm_owner[:-3]}/"):
+        elif norm_owner.endswith(".py") and (
+            norm_rel.startswith(f"{norm_owner[:-3]}/") or norm_rel.startswith(f"{norm_owner[:-3]}_pkg/")
+        ):
             return True
     return False
 
@@ -115,8 +117,9 @@ def _path_or_package_exists(repo_root: Path, rel_path: str) -> bool:
     if target.is_file():
         return True
     if norm.endswith(".py"):
-        pkg_dir = repo_root / norm[:-3]
-        return pkg_dir.is_dir() and ((pkg_dir / "__init__.py").is_file() or any(pkg_dir.glob("*.py")))
+        for pkg_dir in (repo_root / norm[:-3], repo_root / f"{norm[:-3]}_pkg"):
+            if pkg_dir.is_dir() and ((pkg_dir / "__init__.py").is_file() or any(pkg_dir.glob("*.py"))):
+                return True
     return False
 
 
@@ -137,9 +140,9 @@ def _iter_target_py_files(repo_root: Path, *rel_paths: str) -> list[tuple[str, P
             if target.is_file():
                 candidates.append(target)
             if norm.endswith(".py"):
-                pkg_dir = repo_root / norm[:-3]
-                if pkg_dir.is_dir():
-                    candidates.extend(sorted(pkg_dir.rglob("*.py")))
+                for pkg_dir in (repo_root / norm[:-3], repo_root / f"{norm[:-3]}_pkg"):
+                    if pkg_dir.is_dir():
+                        candidates.extend(sorted(pkg_dir.rglob("*.py")))
         for py_path in candidates:
             if py_path not in seen and "tests" not in py_path.parts:
                 seen.add(py_path)
@@ -421,7 +424,9 @@ def _resolve_env_ratchet_bucket(rel: str, file_ratchet: Mapping[str, int], pkg_r
     if rel in file_ratchet:
         return f"file:{rel}", file_ratchet[rel]
     for owner_file, ceiling in sorted(file_ratchet.items()):
-        if owner_file.endswith(".py") and rel.startswith(f"{owner_file[:-3]}/"):
+        if owner_file.endswith(".py") and (
+            rel.startswith(f"{owner_file[:-3]}/") or rel.startswith(f"{owner_file[:-3]}_pkg/")
+        ):
             return f"file:{owner_file}", ceiling
     matches = [(prefix, ceiling) for prefix, ceiling in pkg_ratchet.items() if rel.startswith(prefix)]
     if matches:

@@ -53,6 +53,20 @@ if _BASELINE_PATH.is_file():
         pass
 
 
+def _resolve_model_baseline_count(rel: str) -> int:
+    """Resolve model literal baseline count, allowing submodules split from a ratcheted parent file."""
+    norm = rel.replace("\\", "/")
+    if norm in _MODEL_BASELINE_COUNTS:
+        return _MODEL_BASELINE_COUNTS[norm]
+    for owner_file, ceiling in _MODEL_BASELINE_COUNTS.items():
+        norm_owner = owner_file.replace("\\", "/")
+        if norm_owner.endswith(".py") and (
+            norm.startswith(f"{norm_owner[:-3]}/") or norm.startswith(f"{norm_owner[:-3]}_pkg/")
+        ):
+            return ceiling
+    return 0
+
+
 def get_staged_files(repo_root: Path) -> list[Path]:
     """Retrieve list of staged files from git."""
     try:
@@ -166,7 +180,7 @@ def _analyze_single_python_file(
 
     # 5. Model neutrality (shared AST)
     v_models = check_file_model_neutrality(f, repo_root, tree=tree, lines=lines)
-    base_count = _MODEL_BASELINE_COUNTS.get(rel, 0)
+    base_count = _resolve_model_baseline_count(rel)
     if len(v_models) > base_count:
         excess = len(v_models) - base_count
         for lineno, val, msg in v_models[:excess]:

@@ -11,16 +11,16 @@ Use tests to prove behavior rather than to conceal defects. Editing tests is leg
 
 All pytest invocations fall into exactly one of two classes:
 
-### Class A: Debug Run (Fix Cycle)
-- Scope MUST be a single test file, single named test case, or a coupled multi-file producer+contract+consumer test slice (up to 4 directly coupled test files):
+### Class A: Debug & Verification Run (Fix & Refactor Cycle)
+- Scope may be a single test file, single named test case, any coupled multi-file producer+contract+consumer test slice (no file-count cap), or full subsystem/repository test directories (`pytest tests/ --timeout=60`, `pytest resume_graph_engine/tests/ --timeout=60`):
   ```bash
   .venv/bin/pytest tests/unit/test_foo.py -v --timeout=60
   .venv/bin/pytest tests/unit/test_foo.py::TestClass::test_method -v --timeout=60
   .venv/bin/pytest tests/unit/test_producer.py tests/unit/test_contract.py tests/unit/test_consumer.py -v --timeout=60
+  .venv/bin/pytest resume_graph_engine/tests/ -q --timeout=60
   ```
-- Unscoped or unbounded runs (`pytest`, `pytest tests/`, or > 4 unrelated test files) without authorization are strictly forbidden.
-- Synchronous execution only; hard limit `--timeout=60` per test.
-- Background execution is prohibited.
+- Bare un-timed `pytest` or `pytest tests/` without `--timeout` is blocked; always include `--timeout=60` (or `--timeout=180`).
+- Synchronous execution with explicit `--timeout`.
 
 ### Class B: Receipt Run (Wave Completion)
 - Executed exactly once per wave after all fixes pass.

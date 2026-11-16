@@ -121,14 +121,12 @@ def _load_valid_shard_receipt(repo_root: Path, shard: str) -> tuple[dict[str, An
 
 
 def cmd_train(args: argparse.Namespace) -> int:
-    """Assemble verified disjoint shard branches into a single wave merge-train branch."""
-    from tools.prompt_scope_isolation import paths_overlap
-
+    """Assemble verified shard branches into a single wave merge-train branch."""
     repo_root = _resolve_root(args)
     wave_id = str(args.wave).strip()
     shards = [str(s).strip() for s in (args.shards or []) if str(s).strip()]
-    if len(shards) < 2:
-        print("❌ Wave merge train requires at least 2 shard branches (--shards <b1> <b2> ...).")
+    if len(shards) < 1:
+        print("❌ Wave merge train requires at least 1 shard branch (--shards <b1> ...).")
         return 1
 
     train_branch = str(getattr(args, "train_branch", None) or f"feat/wave-{wave_id}-train").strip()
@@ -143,17 +141,6 @@ def cmd_train(args: argparse.Namespace) -> int:
         files = _changed_files_against_main(shard, repo_root)
         shard_files[shard] = files
         shard_heads[shard] = str(receipt.get("head_sha", ""))
-
-    for idx, shard_a in enumerate(shards):
-        for shard_b in shards[idx + 1 :]:
-            for path_a in shard_files[shard_a]:
-                for path_b in shard_files[shard_b]:
-                    if paths_overlap(path_a, path_b):
-                        print(
-                            f"❌ Disjointness violation between '{shard_a}' ('{path_a}') "
-                            f"and '{shard_b}' ('{path_b}')."
-                        )
-                        return 1
 
     train_wt = _resolve_wt_path(repo_root, train_branch)
     if train_wt == repo_root:

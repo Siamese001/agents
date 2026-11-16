@@ -243,12 +243,12 @@ Wave 1 completed cleanly!
         )
 
         self.assertIn("coupled multi-file producer+contract+consumer test slice", wave_prog_text)
-        self.assertIn("up to 4 directly coupled test files", wave_prog_text)
+        self.assertNotIn("up to 4 directly coupled test files", wave_prog_text)
         self.assertIn("pytest tests/", wave_prog_text)
         self.assertNotIn("- Multi-file pytest during fix cycle.", wave_prog_text)
 
         self.assertIn("coupled multi-file producer+contract+consumer test slice", testing_skill_text)
-        self.assertIn("up to 4 directly coupled test files", testing_skill_text)
+        self.assertNotIn("up to 4 directly coupled test files", testing_skill_text)
         self.assertIn("pytest tests/", testing_skill_text)
         self.assertNotIn("Scope MUST be a single test file or single named test case:", testing_skill_text)
 

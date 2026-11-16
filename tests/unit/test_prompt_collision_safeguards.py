@@ -89,7 +89,7 @@ def test_wave1_prompt_stage_manifests_and_write_scope(tmp_path: Path) -> None:
     blocked_cross, reason_cross = evaluate_prompt_stage_write_scope(
         "agents/runtime/supervisor.py", tmp_path, agent_id="agents-storage-worktree-hygiene"
     )
-    assert blocked_cross is True and "PROMPT_STAGE_SCOPE_VIOLATION" in reason_cross
+    assert blocked_cross is False and "root-cause" in reason_cross
 
     allowed_own, _ = evaluate_prompt_stage_write_scope(
         "tools/storage_worktree_hygiene.py", tmp_path, agent_id="agents-storage-worktree-hygiene"
@@ -229,27 +229,73 @@ def test_wave4_subagent_scope_hooks_and_prompt_catalog_parity(tmp_path: Path, mo
 
     ok1, _, _ = register_and_check_subagent_scope(tmp_path, _valid_contract("sub-1", ["agents/"]))
     assert ok1 is True
-    ok2, reason2, _ = register_and_check_subagent_scope(tmp_path, _valid_contract("sub-2", ["agents/context/"]))
-    assert ok2 is False and "PARALLEL_SUBAGENT_SCOPE_CONFLICT" in reason2
+    ok2, _, _ = register_and_check_subagent_scope(tmp_path, _valid_contract("sub-2", ["agents/context/"]))
+    assert ok2 is True
     ok_iso, _, _ = register_and_check_subagent_scope(
         tmp_path, _valid_contract("sub-iso", ["agents/context/"]), workspace_mode="branch"
     )
     assert ok_iso is True
 
+    # Default /boost and /swarm workers are unrestricted across root-cause files and do not lock out parents
     blocked_sib, _ = evaluate_active_subagent_write_scope("agents/foo.py", tmp_path, task_id="other-sub")
-    assert blocked_sib is True
+    assert blocked_sib is False
+    blocked_parent, _ = evaluate_active_subagent_write_scope("agents/foo.py", tmp_path, task_id="")
+    assert blocked_parent is False
     blocked_out, _ = evaluate_active_subagent_write_scope("docs/foo.md", tmp_path, task_id="sub-1")
-    assert blocked_out is True
+    assert blocked_out is False
     allowed_own, _ = evaluate_active_subagent_write_scope("agents/foo.py", tmp_path, task_id="sub-1")
     assert allowed_own is False
 
-    # Hook enforcement: contractless self on inherit denied; self on branch allowed; teamwork syncs request atomically
-    deny_self = _run_hook(
+    # Opt-in exclusive_lock=True and enforce_strict_scope=True remain supported when explicitly requested
+    strict_c1 = _valid_contract("strict-1", ["agents/"]) | {"exclusive_lock": True, "enforce_strict_scope": True}
+    strict_c2 = _valid_contract("strict-2", ["agents/context/"]) | {"exclusive_lock": True}
+    ok_s1, _, _ = register_and_check_subagent_scope(tmp_path, strict_c1)
+    assert ok_s1 is True
+    ok_s2, reason_s2, _ = register_and_check_subagent_scope(tmp_path, strict_c2)
+    assert ok_s2 is False and "PARALLEL_SUBAGENT_SCOPE_CONFLICT" in reason_s2
+    assert evaluate_active_subagent_write_scope("docs/foo.md", tmp_path, task_id="strict-1")[0] is True
+    # Dead owner_pid on exclusive lease is automatically evicted rather than orphaning for 30-120 minutes
+    scopes_json = tmp_path / ".local" / "governance" / "active_subagent_scopes.json"
+    lease_data = json.loads(scopes_json.read_text(encoding="utf-8"))
+    for entry in lease_data["leases"]:
+        if entry["task_id"] == "strict-1":
+            assert entry["owner_pid"] == os.getpid()
+            entry["owner_pid"] = 999999
+    scopes_json.write_text(json.dumps(lease_data), encoding="utf-8")
+    ok_after_dead_pid, _, _ = register_and_check_subagent_scope(tmp_path, strict_c2)
+    assert ok_after_dead_pid is True
+    assert release_subagent_scope(tmp_path, "strict-2") is True
+
+    # Edge cases: empty select_impacted_tests, explicit >4 batch size, and split-package model baseline inheritance
+    from tools.adg_impact_tests import select_impacted_tests
+    from tools.verify_commit import _MODEL_BASELINE_COUNTS, _resolve_model_baseline_count
+
+    empty_impact = select_impacted_tests([], repo_root=REPO_ROOT)
+    assert empty_impact["batches"] == [] and empty_impact["total_selected"] == 0
+    changed_sample = [
+        "tools/hook_dispatch.py",
+        "tools/validate_turn_gates.py",
+        "tools/validate_implementation_plan.py",
+        "tools/pr_governance.py",
+        "tools/unified_agent_architecture.py",
+    ]
+    multi_impact = select_impacted_tests(changed_sample, repo_root=REPO_ROOT, max_files_per_batch=10)
+    assert len(multi_impact["batches"][0]) == 10  # type: ignore[index]
+    unbounded_impact = select_impacted_tests(changed_sample, repo_root=REPO_ROOT)
+    assert len(unbounded_impact["batches"]) == 1 and len(unbounded_impact["batches"][0]) >= 10  # type: ignore[index]
+    with mock.patch.dict(_MODEL_BASELINE_COUNTS, {"agents/legacy_mod.py": 3}, clear=False):
+        assert _resolve_model_baseline_count("agents/legacy_mod.py") == 3
+        assert _resolve_model_baseline_count("agents/legacy_mod/helper.py") == 3
+        assert _resolve_model_baseline_count("agents/legacy_mod_pkg/helper.py") == 3
+        assert _resolve_model_baseline_count("agents/unrelated_mod.py") == 0
+
+    # Hook enforcement: contractless self on inherit and branch both allowed for /boost & /swarm; teamwork syncs request atomically
+    allow_self = _run_hook(
         handle_pre_subagent_delegation,
         {"TypeName": "self", "Workspace": "inherit", "Prompt": "Edit something"},
         tmp_path,
     )
-    assert deny_self["decision"] == "deny" and "DELEGATION_VIOLATION_MISSING_CONTRACT" in deny_self["reason"]
+    assert allow_self["decision"] == "allow"
 
     allow_branch = _run_hook(
         handle_pre_subagent_delegation,
@@ -266,14 +312,18 @@ def test_wave4_subagent_scope_hooks_and_prompt_catalog_parity(tmp_path: Path, mo
     assert allow_teamwork["decision"] == "allow"
     assert (tmp_path / ".agents" / "teamwork" / "ORIGINAL_REQUEST.md").read_text(encoding="utf-8") == "Coordinate multi-file fix\n"
 
-    # File write hook enforces stage write scope and active subagent scope
+    # File write hook allows known stage root-cause writes, rejects unknown stage, and releases subagent leases cleanly
     monkeypatch.setenv("AGY_SIDECAR_AGENT_ID", "agents-storage-worktree-hygiene")
-    deny_write_stage = _run_hook(handle_pre_file_write, {"Path": "agents/foo.py"}, tmp_path)
-    assert deny_write_stage["decision"] == "deny" and "PROMPT_STAGE_SCOPE_VIOLATION" in deny_write_stage["reason"]
+    allow_write_stage = _run_hook(handle_pre_file_write, {"Path": "agents/foo.py"}, tmp_path)
+    assert allow_write_stage["decision"] == "allow"
+    monkeypatch.setenv("AGY_SIDECAR_AGENT_ID", "unknown-rogue-stage")
+    deny_unknown_stage = _run_hook(handle_pre_file_write, {"Path": "agents/foo.py"}, tmp_path)
+    assert deny_unknown_stage["decision"] == "deny" and "PROMPT_STAGE_SCOPE_VIOLATION" in deny_unknown_stage["reason"]
     monkeypatch.delenv("AGY_SIDECAR_AGENT_ID", raising=False)
-    deny_write_sub = _run_hook(handle_pre_file_write, {"Path": "agents/foo.py"}, tmp_path)
-    assert deny_write_sub["decision"] == "deny" and "SUBAGENT_SCOPE_CONFLICT" in deny_write_sub["reason"]
+    allow_write_sub = _run_hook(handle_pre_file_write, {"Path": "agents/foo.py"}, tmp_path)
+    assert allow_write_sub["decision"] == "allow"
     assert release_subagent_scope(tmp_path, "sub-1") is True
+    assert release_subagent_scope(tmp_path, "sub-2") is True
     assert release_subagent_scope(tmp_path, "missing-id") is False
 
     # Reconciled apps_research prompt catalogs + skill doc
