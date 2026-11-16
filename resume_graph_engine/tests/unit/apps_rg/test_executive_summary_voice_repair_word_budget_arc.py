@@ -415,3 +415,51 @@ def test_polish_rebuilds_canonical_arc_when_llm_returns_five_sentences() -> None
     assert len(sents) == 6
     assert "canonical_arc_rebuild" in (receipt.get("actions") or [])
     assert receipt.get("applied") is True
+
+
+def test_real_llm_finalize_coherence_preserves_custom_jd_tailored_sentences() -> None:
+    """When runtime_generation_status=='REAL_LLM', post-LLM mutators must not overwrite custom LLM prose with canned sentences."""
+    custom_sents = [
+        "Forward-deployed AI architecture executive who translates frontier model capabilities into production enterprise systems.",
+        "Architected multi-model agentic control planes at Unify Consulting with deterministic routing and runtime guardrails.",
+        "Guided cloud-native migration waves across core insurance estates while enforcing zero-trust telemetry.",
+        "Established automated DevSecOps release verification and vulnerability gating across distributed engineering pods.",
+        "Scaled the technical delivery organization from 8 to 28 engineers while generating $22M in IP-led platform revenue.",
+        "Combines deep systems engineering with field deployment leadership to accelerate customer-facing AI adoption.",
+    ]
+    parsed = {
+        "resume_display_text": " ".join(custom_sents),
+        "claim_ledger": [
+            {"claim_text": custom_sents[0], "source_fact_ids": ["reb_unify_agentic_platform_architecture"]},
+            {"claim_text": custom_sents[1], "source_fact_ids": ["reb_unify_agentic_platform_architecture"]},
+            {"claim_text": custom_sents[2], "source_fact_ids": ["reb_insurtech_aws_migration_execution"]},
+            {"claim_text": custom_sents[3], "source_fact_ids": ["reb_ibm_devsecops_release_resilience"]},
+            {"claim_text": custom_sents[4], "source_fact_ids": ["reb_unify_platform_commercialization_leadership"]},
+            {"claim_text": custom_sents[5], "source_fact_ids": ["reb_unify_distributed_ecosystem_engineering"]},
+        ],
+    }
+    facts = [
+        {"fact_id": "reb_unify_agentic_platform_architecture", "claim_text": "Agentic AI platform control plane"},
+        {"fact_id": "reb_insurtech_aws_migration_execution", "claim_text": "AWS migration execution"},
+        {"fact_id": "reb_ibm_devsecops_release_resilience", "claim_text": "DevSecOps release resilience"},
+        {"fact_id": "reb_unify_platform_commercialization_leadership", "claim_text": "Platform commercialization $22M"},
+        {"fact_id": "reb_unify_distributed_ecosystem_engineering", "claim_text": "Distributed ecosystem engineering"},
+        {"fact_id": "fact_governance_003", "claim_text": "Basel III lineage cut reporting errors by 40%"},
+    ]
+    out, receipt = finalize_executive_summary_coherence(
+        parsed,
+        selected_facts=facts,
+        allowed_fact_ids={f["fact_id"] for f in facts},
+        target_role="Head of Forward Deployed Engineering",
+        runtime_generation_status="REAL_LLM",
+    )
+    final_text = str(out.get("resume_display_text") or "")
+    assert "Forward-deployed AI architecture executive" in final_text
+    assert "Combines deep systems engineering with field deployment leadership" in final_text
+    assert "Basel III" not in final_text
+    cited = {
+        fid
+        for row in (out.get("claim_ledger") or [])
+        for fid in (row.get("source_fact_ids") or [])
+    }
+    assert "fact_governance_003" in cited

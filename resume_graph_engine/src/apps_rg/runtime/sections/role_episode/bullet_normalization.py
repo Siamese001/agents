@@ -108,23 +108,16 @@ def _repair_role_episode_bullet_evidence_density(
                 }
             )
         elif root_id == "reb_slalom_governed_runtime_scaling" and requires_100pct and not re.search(r"\b100(?:\s*%|\s+percent)\b", text, re.IGNORECASE):
-            out["bullet_text"] = _ROLE_EPISODE_EVIDENCE_DENSITY_REPAIRS["reb_slalom_governed_runtime_scaling"]
+            if density.passed and len(text.split()) >= 14:
+                base_txt = text.rstrip(".!?").strip()
+                out["bullet_text"] = f"{base_txt}, enforcing 100% conformance to enterprise governance controls."
+            else:
+                out["bullet_text"] = _ROLE_EPISODE_EVIDENCE_DENSITY_REPAIRS["reb_slalom_governed_runtime_scaling"]
             repairs.append(
                 {
                     "bullet_id": str(out.get("bullet_id") or ""),
                     "role_episode_bundle_id": root_id,
                     "reason": "allocated_metric_outcome_100pct_completion",
-                }
-            )
-        elif root_id == "reb_slalom_ecosystem_accelerators" and (
-            "Google Cloud" not in text or "Claude" not in text or "OpenAI" not in text
-        ):
-            out["bullet_text"] = _ROLE_EPISODE_EVIDENCE_DENSITY_REPAIRS["reb_slalom_ecosystem_accelerators"]
-            repairs.append(
-                {
-                    "bullet_id": str(out.get("bullet_id") or ""),
-                    "role_episode_bundle_id": root_id,
-                    "reason": "allocated_multi_partner_ecosystem_completion",
                 }
             )
         repaired.append(out)

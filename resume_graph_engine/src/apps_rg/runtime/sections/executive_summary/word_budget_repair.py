@@ -251,6 +251,7 @@ def apply_exec_summary_word_budget_repair(
                     selected_facts=plan_facts,
                     allowed_fact_ids=allowed_fact_ids,
                     target_role=target_role,
+                    runtime_generation_status=str(runtime_generation_status or ""),
                 )
                 receipt["polish_chain_reapplied"] = True
                 receipt["final_word_budget_trim_applied"] = bool(

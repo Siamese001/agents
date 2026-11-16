@@ -381,7 +381,10 @@ def repair_legacy_regulated_partnership_arc(
     has_partner_evidence: bool,
     has_devsecops_evidence: bool,
     has_platform_evidence: bool,
+    runtime_generation_status: str = "",
 ) -> list[str]:
+    if str(runtime_generation_status or "").strip() == "REAL_LLM":
+        return repair_exec_summary_bullet_echo_sentences(out)
     if (
         {
             "reb_insurtech_aws_migration_execution",

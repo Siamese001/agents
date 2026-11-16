@@ -62,19 +62,41 @@ def _repair_unify_archive_verbatim_overlap(
         text = str(bullet.get("bullet_text") or "")
         if not archive or max_consecutive_word_overlap(archive, text) < 8:
             continue
-        replacement = _UNIFY_ARCHIVE_PARAPHRASE_REPAIRS.get(bid)
-        if not replacement:
-            continue
-        repaired_overlap = max_consecutive_word_overlap(archive, replacement)
-        if repaired_overlap >= 8:
-            continue
-        bullet["bullet_text"] = replacement
+        prev_overlap = max_consecutive_word_overlap(archive, text)
+        chosen_replacement: str | None = None
+        if text.strip().lower() != archive.strip().lower():
+            surgical = text
+            for src_w, dst_w in (
+                ("across", "spanning"),
+                ("through", "via"),
+                ("enterprise", "institutional"),
+                ("modernization", "transformation"),
+                ("workflows", "pipelines"),
+                ("production", "operational"),
+                ("regulated", "compliance-bound"),
+                ("accelerating", "advancing"),
+            ):
+                cand = re.sub(rf"\b{re.escape(src_w)}\b", dst_w, surgical, flags=re.IGNORECASE)
+                if cand != surgical and max_consecutive_word_overlap(archive, cand) < max_consecutive_word_overlap(archive, surgical):
+                    surgical = cand
+                    if max_consecutive_word_overlap(archive, surgical) < 8:
+                        chosen_replacement = surgical
+                        break
+        if chosen_replacement is None:
+            replacement = _UNIFY_ARCHIVE_PARAPHRASE_REPAIRS.get(bid)
+            if not replacement:
+                continue
+            if max_consecutive_word_overlap(archive, replacement) >= 8:
+                continue
+            chosen_replacement = replacement
+        repaired_overlap = max_consecutive_word_overlap(archive, chosen_replacement)
+        bullet["bullet_text"] = chosen_replacement
         bullet["has_metric"] = bool(bullet.get("has_metric")) or bid in {"bul_unify_004", "bul_unify_006"}
         repairs.append(
             {
                 "operation": "repair_unify_archive_verbatim_overlap",
                 "target_bullet_id": bid,
-                "previous_max_overlap": max_consecutive_word_overlap(archive, text),
+                "previous_max_overlap": prev_overlap,
                 "repaired_max_overlap": repaired_overlap,
             }
         )
@@ -287,9 +309,10 @@ def _repair_unify_bullet_evidence_density(out: dict[str, Any]) -> bool:
     """Replace a vague graph-backed commercial slot with its approved mechanisms and outcome.
 
     This is intentionally narrow: it applies only when the provider has emitted the
-    duplicated ``CFO-aligned ... motions`` form for the Unify adoption slot. The
-    replacement names the approved consumption, renewal-signal, and subscription
-    forecasting mechanisms and retains the graph-supported commercial outcome.
+    duplicated ``CFO-aligned ... motions`` form for the Unify adoption slot without
+    a named revops mechanism. The replacement names the approved consumption,
+    renewal-signal, and subscription forecasting mechanisms and retains the
+    graph-supported commercial outcome.
     """
     repairs: list[dict[str, Any]] = []
     for bullet in out.get("bullets") or []:
@@ -297,7 +320,10 @@ def _repair_unify_bullet_evidence_density(out: dict[str, Any]) -> bool:
             continue
         bid = str(bullet.get("bullet_id") or "")
         text = str(bullet.get("bullet_text") or "")
-        if bid != "bul_unify_002" or text.lower().count("cfo-aligned") < 2:
+        low = text.lower()
+        if bid != "bul_unify_002" or low.count("cfo-aligned") < 2:
+            continue
+        if "renewal-signal telemetry" in low or "subscription forecasting" in low:
             continue
         bullet["bullet_text"] = _UNIFY_EVIDENCE_DENSITY_REPAIRS[bid]
         repairs.append(

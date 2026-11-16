@@ -178,174 +178,77 @@ def check_narrative_technical_specificity(
     )
 
 
-# ---------------------------------------------------------------------------
-# Gate: not bullet recap (n-gram overlap with companion bullets)
-# ---------------------------------------------------------------------------
-
-
 def check_narrative_not_bullet_recap(
-    narrative_text: str,
-    bullet_texts: list[str],
-    *,
-    max_shared_ngrams: int = BULLET_RECAP_MAX_SHARED_NGRAMS,
-    warn_only: bool = True,
+    narrative_text: str, bullet_texts: list[str], *, max_shared_ngrams: int = BULLET_RECAP_MAX_SHARED_NGRAMS, warn_only: bool = True,
 ) -> NarrativeQualityResult:
     """Fail if narrative shares > max_shared_ngrams 5-grams with any companion bullet."""
     if not bullet_texts:
         return NarrativeQualityResult(
-            gate_id="x2_narrative_not_bullet_recap",
-            passed=True,
-            observed_value=0.0,
-            threshold=f"<={max_shared_ngrams} shared 5-grams with bullets",
-            failure_reason=None,
-            signals=[],
+            gate_id="x2_narrative_not_bullet_recap", passed=True, observed_value=0.0,
+            threshold=f"<={max_shared_ngrams} shared 5-grams with bullets", failure_reason=None, signals=[],
         )
     overlap = compute_max_ngram_overlap_multi_reference(narrative_text, bullet_texts, n=5)
     n_narrative_ngrams = max(1, len(_tokenize(narrative_text)) - 4)
     shared_count = int(round(overlap * n_narrative_ngrams))
     passed_gate = shared_count <= max_shared_ngrams
-    passed = passed_gate or warn_only
     return NarrativeQualityResult(
-        gate_id="x2_narrative_not_bullet_recap",
-        passed=passed,
+        gate_id="x2_narrative_not_bullet_recap", passed=(passed_gate or warn_only),
         observed_value={"max_5gram_overlap": round(overlap, 4), "est_shared_ngrams": shared_count},
         threshold=f"<={max_shared_ngrams} shared 5-grams (WARN={'Y' if warn_only else 'N'})",
-        failure_reason=(
-            None
-            if passed_gate
-            else (
-                f"Narrative shares ~{shared_count} 5-grams with bullets "
-                f"(threshold: {max_shared_ngrams}). "
-                "Narrative must provide strategic mandate framing, not echo bullet content."
-            )
-        ),
+        failure_reason=None if passed_gate else f"Narrative shares ~{shared_count} 5-grams with bullets (threshold: {max_shared_ngrams}). Narrative must provide strategic mandate framing, not echo bullet content.",
         signals=["warn_mode"] if (warn_only and not passed_gate) else [],
     )
-
-
-# ---------------------------------------------------------------------------
-# Gate: upstream graph proof required
-# ---------------------------------------------------------------------------
 
 
 def check_narrative_upstream_graph_proof_bundle(
-    upstream_x2_results: list[dict[str, Any]],
-    *,
-    gate_id_to_check: str = "x2_bullet_graph_skill_node_ids_required",
-    warn_only: bool = True,
+    upstream_x2_results: list[dict[str, Any]], *, gate_id_to_check: str = "x2_bullet_graph_skill_node_ids_required", warn_only: bool = True,
 ) -> NarrativeQualityResult:
     """Narrative should only pass when upstream graph_skill_node_ids bullet gate passed."""
     relevant = [r for r in (upstream_x2_results or []) if r.get("gate_id") == gate_id_to_check]
-    if not relevant:
-        passed_gate = False
-        observed = "upstream_gate_not_found"
-    else:
-        passed_gate = all(bool(r.get("pass_")) for r in relevant)
-        observed = [{"gate_id": r.get("gate_id"), "pass": r.get("pass_")} for r in relevant]
-
-    passed = passed_gate or warn_only
+    passed_gate = bool(relevant) and all(bool(r.get("pass_")) for r in relevant)
+    observed = [{"gate_id": r.get("gate_id"), "pass": r.get("pass_")} for r in relevant] if relevant else "upstream_gate_not_found"
     return NarrativeQualityResult(
-        gate_id="x2_narrative_upstream_graph_proof_required",
-        passed=passed,
-        observed_value=observed,
-        threshold=f"upstream {gate_id_to_check} == PASS (WARN={'Y' if warn_only else 'N'})",
-        failure_reason=(
-            None
-            if passed_gate
-            else (
-                f"Upstream gate {gate_id_to_check!r} did not pass. "
-                "Narrative proof authority depends on bullet graph_skill_node_ids being validated. "
-                "Resolve bullet X2 gates before promoting narrative to HARD FAIL."
-            )
-        ),
+        gate_id="x2_narrative_upstream_graph_proof_required", passed=(passed_gate or warn_only),
+        observed_value=observed, threshold=f"upstream {gate_id_to_check} == PASS (WARN={'Y' if warn_only else 'N'})",
+        failure_reason=None if passed_gate else f"Upstream gate {gate_id_to_check!r} did not pass. Narrative proof authority depends on bullet graph_skill_node_ids being validated. Resolve bullet X2 gates before promoting narrative to HARD FAIL.",
         signals=["warn_mode"] if (warn_only and not passed_gate) else [],
     )
 
 
-# ---------------------------------------------------------------------------
-# Gate: base prose n-gram overlap (anti-hydration)
-# ---------------------------------------------------------------------------
-
-
 def check_narrative_base_prose_ngram_overlap(
-    narrative_text: str,
-    base_narrative_texts: list[str],
-    *,
-    threshold: float = BASE_NGRAM_THRESHOLD,
-    warn_only: bool = True,
+    narrative_text: str, base_narrative_texts: list[str], *, threshold: float = BASE_NGRAM_THRESHOLD, warn_only: bool = True,
 ) -> NarrativeQualityResult:
     """Fail if narrative has > threshold 4-gram overlap with base resume role_narrative."""
     if not base_narrative_texts:
         return NarrativeQualityResult(
-            gate_id="x2_narrative_base_prose_ngram_overlap",
-            passed=True,
-            observed_value=0.0,
-            threshold=f"<={threshold:.0%} 4-gram overlap with base role_narrative",
-            failure_reason=None,
-            signals=[],
+            gate_id="x2_narrative_base_prose_ngram_overlap", passed=True, observed_value=0.0,
+            threshold=f"<={threshold:.0%} 4-gram overlap with base role_narrative", failure_reason=None, signals=[],
         )
-    overlap = compute_max_ngram_overlap_multi_reference(
-        narrative_text, base_narrative_texts, n=NGRAM_SIZE_OVERLAP
-    )
+    overlap = compute_max_ngram_overlap_multi_reference(narrative_text, base_narrative_texts, n=NGRAM_SIZE_OVERLAP)
     passed_gate = overlap <= threshold
-    passed = passed_gate or warn_only
     return NarrativeQualityResult(
-        gate_id="x2_narrative_base_prose_ngram_overlap",
-        passed=passed,
-        observed_value=round(overlap, 4),
-        threshold=f"<={threshold:.0%} 4-gram overlap with base role_narrative (WARN={'Y' if warn_only else 'N'})",
-        failure_reason=(
-            None
-            if passed_gate
-            else (
-                f"Base narrative n-gram overlap {overlap:.1%} exceeds threshold {threshold:.0%}. "
-                "Narrative must be generated organically from C0 facts, not from base resume prose."
-            )
-        ),
+        gate_id="x2_narrative_base_prose_ngram_overlap", passed=(passed_gate or warn_only),
+        observed_value=round(overlap, 4), threshold=f"<={threshold:.0%} 4-gram overlap with base role_narrative (WARN={'Y' if warn_only else 'N'})",
+        failure_reason=None if passed_gate else f"Base narrative n-gram overlap {overlap:.1%} exceeds threshold {threshold:.0%}. Narrative must be generated organically from C0 facts, not from base resume prose.",
         signals=["warn_mode"] if (warn_only and not passed_gate) else [],
     )
 
 
-# ---------------------------------------------------------------------------
-# Gate: E0 n-gram overlap (anti-leakage)
-# ---------------------------------------------------------------------------
-
-
 def check_narrative_e0_ngram_overlap(
-    narrative_text: str,
-    e0_texts: list[str],
-    *,
-    threshold: float = E0_NGRAM_THRESHOLD,
-    warn_only: bool = True,
+    narrative_text: str, e0_texts: list[str], *, threshold: float = E0_NGRAM_THRESHOLD, warn_only: bool = True,
 ) -> NarrativeQualityResult:
     """Fail if narrative has > threshold 4-gram overlap with E0 example texts."""
     if not e0_texts:
         return NarrativeQualityResult(
-            gate_id="x2_narrative_e0_ngram_overlap",
-            passed=True,
-            observed_value=0.0,
-            threshold=f"<={threshold:.0%} 4-gram overlap with E0 examples",
-            failure_reason=None,
-            signals=[],
+            gate_id="x2_narrative_e0_ngram_overlap", passed=True, observed_value=0.0,
+            threshold=f"<={threshold:.0%} 4-gram overlap with E0 examples", failure_reason=None, signals=[],
         )
-    overlap = compute_max_ngram_overlap_multi_reference(
-        narrative_text, e0_texts, n=NGRAM_SIZE_OVERLAP
-    )
+    overlap = compute_max_ngram_overlap_multi_reference(narrative_text, e0_texts, n=NGRAM_SIZE_OVERLAP)
     passed_gate = overlap <= threshold
-    passed = passed_gate or warn_only
     return NarrativeQualityResult(
-        gate_id="x2_narrative_e0_ngram_overlap",
-        passed=passed,
-        observed_value=round(overlap, 4),
-        threshold=f"<={threshold:.0%} 4-gram overlap with E0 examples (WARN={'Y' if warn_only else 'N'})",
-        failure_reason=(
-            None
-            if passed_gate
-            else (
-                f"E0 n-gram overlap {overlap:.1%} exceeds threshold {threshold:.0%}. "
-                "Narrative appears to reuse E0 example phrasing."
-            )
-        ),
+        gate_id="x2_narrative_e0_ngram_overlap", passed=(passed_gate or warn_only),
+        observed_value=round(overlap, 4), threshold=f"<={threshold:.0%} 4-gram overlap with E0 examples (WARN={'Y' if warn_only else 'N'})",
+        failure_reason=None if passed_gate else f"E0 n-gram overlap {overlap:.1%} exceeds threshold {threshold:.0%}. Narrative appears to reuse E0 example phrasing.",
         signals=["warn_mode"] if (warn_only and not passed_gate) else [],
     )
 
@@ -492,10 +395,57 @@ def check_exec_summary_bullet_cosine_similarity(
     )
 
 
+_SURGICAL_STEM_SYNONYMS: tuple[tuple[str, str], ...] = (
+    ("workloads", "estates"), ("workload", "estate"), ("migrations", "transitions"), ("migration", "transition"),
+    ("modernization", "transformation"), ("modernizing", "transforming"), ("insurers", "carriers"), ("insurance", "carrier"),
+    ("regulated", "compliance-bound"), ("production", "operational"), ("deployments", "rollouts"), ("deployment", "rollout"),
+    ("deploying", "rolling out"), ("accelerators", "blueprints"), ("accelerator", "blueprint"), ("reusable", "modular"),
+    ("pipelines", "workflows"), ("pipeline", "workflow"), ("delivery", "execution"), ("delivering", "executing"),
+    ("programs", "initiatives"), ("program", "initiative"), ("clients", "stakeholders"), ("client", "stakeholder"),
+    ("commercial", "monetized"), ("revenue", "growth"), ("scaling", "expanding"), ("scaled", "expanded"),
+    ("scalable", "resilient"), ("automated", "systematized"), ("automating", "systematizing"), ("enterprise", "institutional"),
+    ("teams", "organizations"), ("global", "worldwide"), ("models", "paradigms"), ("systems", "environments"),
+    ("monolithic", "heritage"), ("administration", "core-system"), ("security", "protection"), ("controls", "guardrails"),
+    ("platforms", "substrates"), ("platform", "substrate"), ("engineering", "technical"), ("practice", "organization"),
+    ("cloud", "hyperscale"), ("financial", "banking"), ("services", "sector"), ("portfolios", "accounts"),
+    ("execution", "stewardship"), ("governed", "controlled"), ("agentic", "autonomous"),
+)
+
+
+def _surgically_de_echo_narrative_sentence(candidate_text: str, companion_bullet_texts: str) -> str | None:
+    """Lightly de-echo a live LLM narrative sentence in-place without replacing it with canned prose."""
+    bullets = _extract_bullet_lines(companion_bullet_texts)
+    bullet_openers = {_first_word(b) for b in bullets if _first_word(b)}
+    bullet_stems = {_content_stem(t) for b in bullets for t in _tokenize(b) if t not in _COSINE_STOPWORDS and len(t) > 2}
+    candidate_verbs = [v for v in ("Anchored", "Steered", "Orchestrated", "Championed", "Spearheaded", "Directed") if v.lower() not in bullet_openers] or ["Anchored", "Steered", "Orchestrated"]
+    de_echoed = candidate_text.strip()
+    for pat, repl in (
+        (r"\bpartner co-innovation\b", "ecosystem collaboration"), (r"\breusable accelerators\b", "modular solution blueprints"),
+        (r"\bproduction agent orchestration\b", "autonomous workflow coordination"), (r"\bregulated insurers\b", "carrier portfolios"),
+        (r"\bpolicy and platform workloads\b", "policy and core estates"),
+    ):
+        de_echoed = re.sub(pat, repl, de_echoed, flags=re.IGNORECASE)
+    for base in (candidate_text.strip(), de_echoed):
+        for verb in candidate_verbs:
+            swapped = re.sub(r"^[A-Za-z-]+(?=\s)", verb, base, count=1)
+            if check_narrative_bullet_cosine_similarity(swapped, companion_bullet_texts, max_pairwise_cosine=0.28, max_pool_cosine=0.38, forbid_shared_opener=True, forbid_repeated_metrics=True).passed:
+                return swapped
+    working = re.sub(r"^[A-Za-z-]+(?=\s)", candidate_verbs[0], de_echoed, count=1)
+    for src_word, repl_word in _SURGICAL_STEM_SYNONYMS:
+        if _content_stem(src_word.lower()) not in bullet_stems:
+            continue
+        updated = re.sub(rf"\b{re.escape(src_word)}\b", repl_word, working, flags=re.IGNORECASE)
+        if updated != working:
+            working = updated
+            if check_narrative_bullet_cosine_similarity(working, companion_bullet_texts, max_pairwise_cosine=0.28, max_pool_cosine=0.38, forbid_shared_opener=True, forbid_repeated_metrics=True).passed:
+                return working
+    return None
+
+
 def repair_narrative_bullet_echo_from_graph(
     candidate_text: str, *, facts: list[dict[str, Any]], companion_bullet_texts: str, section_id: str,
 ) -> str:
-    """When a role narrative echoes companion bullets, compose from bound graph skill nodes."""
+    """When a role narrative echoes companion bullets, de-echo surgically or compose from bound graph skill nodes."""
     if not candidate_text or section_id not in ("slalom_narrative", "insurtech_narrative", "unify_narrative", "ibm_narrative"):
         return candidate_text
     cos_gate = check_narrative_bullet_cosine_similarity(
@@ -504,21 +454,12 @@ def repair_narrative_bullet_echo_from_graph(
     )
     if cos_gate.passed and not candidate_text.lower().startswith("led ") and not re.search(r"\b105\b", candidate_text):
         return candidate_text
-    if not re.search(r"\b105\b", candidate_text):
-        de_echoed = candidate_text.strip()
-        for pat, repl in (
-            (r"\bpartner co-innovation\b", "ecosystem collaboration"),
-            (r"\breusable accelerators\b", "modular solution blueprints"),
-            (r"\bproduction agent orchestration\b", "autonomous workflow coordination"),
-            (r"\bregulated insurers\b", "carrier portfolios"),
-            (r"\bpolicy and platform workloads\b", "policy and core estates"),
-        ):
-            de_echoed = re.sub(pat, repl, de_echoed, flags=re.IGNORECASE)
-        for base in (candidate_text.strip(), de_echoed):
-            for verb in ("Anchored", "Steered", "Orchestrated"):
-                swapped = re.sub(r"^[A-Za-z-]+(?=\s)", verb, base, count=1)
-                if check_narrative_bullet_cosine_similarity(swapped, companion_bullet_texts, max_pairwise_cosine=0.28, max_pool_cosine=0.38, forbid_shared_opener=True, forbid_repeated_metrics=True).passed:
-                    return swapped
+    max_pair_cos = float((cos_gate.observed_value or {}).get("max_pairwise_content_cosine") or 0.0)
+    is_synthetic_verbatim_led_echo = candidate_text.lower().startswith("led ") and max_pair_cos > 0.60
+    if not re.search(r"\b105\b", candidate_text) and not is_synthetic_verbatim_led_echo:
+        surgical = _surgically_de_echo_narrative_sentence(candidate_text, companion_bullet_texts)
+        if surgical is not None:
+            return surgical
     if section_id == "insurtech_narrative":
         ins_fids = {str(f.get("fact_id") or f.get("role_episode_bundle_id") or "") for f in (facts or []) if isinstance(f, dict)}
         if "reb_insurtech_public_vs_private_cloud_strategy" in ins_fids or "reb_insurtech_lean_delivery_operating_model" in ins_fids:

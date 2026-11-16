@@ -139,6 +139,7 @@ def process_remediation_draft(ctx: dict[str, Any]) -> str | None:
         plan_facts=list(selected_fact_plan.get("facts") or []),
         artifact_dir=artifact_dir,
         target_company=str(getattr(args, "target_company", "") or ""),
+        runtime_generation_status=str(runtime_generation_status or ""),
     )
     parsed, _preserve_receipt = preserve_judge_regen_claim_ledger_from_baseline(
         parsed,
@@ -361,6 +362,7 @@ def process_remediation_draft(ctx: dict[str, Any]) -> str | None:
                 parsed,
                 selected_facts=list(selected_fact_plan.get("facts") or []),
                 allowed_fact_ids=allowed_fact_ids,
+                runtime_generation_status=str(runtime_generation_status or ""),
             )
             resume_display_text = str(
                 parsed.get("resume_display_text") or resume_display_text

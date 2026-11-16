@@ -254,6 +254,7 @@ def run_generation_stage(ctx: dict[str, Any]) -> None:
                 or getattr(args, "target_title", None)
                 or ""
             ),
+            runtime_generation_status=str(runtime_generation_status or ""),
         )
         if artifact_dir is not None:
             _lane_attr("write_json", write_json)(

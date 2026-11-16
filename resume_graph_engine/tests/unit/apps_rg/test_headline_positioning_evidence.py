@@ -24,6 +24,8 @@ def test_derive_headline_title_anchor_variants() -> None:
     assert derive_headline_title_anchor("Senior Vice President, IT Strategy") == "SVP IT Strategy"
     assert derive_headline_title_anchor("SVP Enterprise Architecture") == "SVP Enterprise Architecture"
     assert derive_headline_title_anchor("Senior Vice President") == "SVP Enterprise Architecture"
+    assert derive_headline_title_anchor("Head of Forward Deployed Engineering") == "SVP Deployed Engineering"
+    assert derive_headline_title_anchor("VP of AI Engineering") == "SVP AI Engineering"
 
 
 def test_allocation_authority_block_and_repairs_forbid_backoffice_labels() -> None:
