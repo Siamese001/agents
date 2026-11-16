@@ -92,6 +92,34 @@ def derive_headline_title_anchor(target_title: str | None) -> str:
     ):
         if t_clean.lower().startswith(pref.lower()):
             return pref
+
+    # Derive JD-aligned 2-3 word SVP specialization for non-SVP role titles
+    if "forward deployed" in t_low or "forward-deployed" in t_low or "deployed engineering" in t_low:
+        return "SVP Deployed Engineering"
+    if "field engineering" in t_low:
+        return "SVP Field Engineering"
+    if ("partner" in t_low or "alliance" in t_low) and "ai" in t_low:
+        return "SVP AI Partnerships"
+    if "applied ai" in t_low:
+        return "SVP Applied AI"
+    if "agentic ai" in t_low:
+        return "SVP Agentic AI"
+    if "ai engineering" in t_low:
+        return "SVP AI Engineering"
+    if "ai architecture" in t_low or "ai architect" in t_low:
+        return "SVP AI Architecture"
+    if "platform engineering" in t_low:
+        return "SVP Platform Engineering"
+    if "cloud architecture" in t_low:
+        return "SVP Cloud Architecture"
+    if "enterprise architecture" in t_low or "strategy & innovation" in t_low or "strategy and innovation" in t_low:
+        return "SVP Enterprise Architecture"
+    if "ai strategy" in t_low:
+        return "SVP AI Strategy"
+    if "it strategy" in t_low:
+        return "SVP IT Strategy"
+    if "technology strategy" in t_low:
+        return "SVP Technology Strategy"
     return HEADLINE_SENIORITY_FLOOR
 
 

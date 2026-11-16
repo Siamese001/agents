@@ -171,6 +171,7 @@ def _repair_ai_partnership_judge_findings(
     sentences: list[str],
     *,
     selected_facts: list[dict[str, Any]] | None,
+    runtime_generation_status: str = "",
 ) -> list[str]:
     """Repair live AI-partnership judge findings without relaxing the X1D panel.
 
@@ -179,8 +180,8 @@ def _repair_ai_partnership_judge_findings(
     meta narration ("This leadership profile can translate..."). Replace both with
     proof-shaped sentences from the selected graph-era facts.
     """
-    if len(sentences) != 6:
-        return sentences
+    if len(sentences) != 6 or str(runtime_generation_status or "").strip() == "REAL_LLM":
+        return list(sentences)
     allowed = {
         str(f.get("fact_id") or "").strip()
         for f in selected_facts or []

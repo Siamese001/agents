@@ -110,7 +110,22 @@ def _scrub_unsupported_industry_claims(
         pat = re.compile(rf"(?:regulated\s+)?{re.escape(phrase)}", re.IGNORECASE)
         out = [pat.sub("regulated enterprises", s) for s in out]
         out = [s.replace("regulated regulated", "regulated") for s in out]
-        out = [re.sub(r"regulated enterprises(\s+(?:institutions|industries|sectors|firms))", "regulated enterprises", s) for s in out]
+        out = [
+            re.sub(
+                r"regulated enterprises(\s+(?:institutions|industries|sectors|firms|enterprises|organizations))",
+                "regulated enterprises",
+                s,
+            )
+            for s in out
+        ]
+        out = [
+            re.sub(
+                r"regulated enterprises(\s+(?:regulatory|compliance|risk|cloud|operations|workflows|environments|modernization|programs|platforms|estates|mandates|delivery|controls|systems|governance))",
+                r"regulated enterprise\1",
+                s,
+            )
+            for s in out
+        ]
     return out
 
 
@@ -350,12 +365,26 @@ def _rebuild_canonical_six_sentence_arc(
     sentences: list[str],
     *,
     selected_facts: list[dict[str, Any]] | None,
+    runtime_generation_status: str = "",
 ) -> list[str]:
     """When LLM produces fewer than 6 sentences, rebuild arc from canonical fact sentences.
 
     S1 (identity thesis) is preserved; S2-S6 are canonical fact sentences in slot order.
     This handles the failure mode where synthesis regen falls back to a degenerate output.
     """
+    if str(runtime_generation_status or "").strip() == "REAL_LLM":
+        arc = [s.strip() for s in sentences if s and s.strip()]
+        for fact in selected_facts or []:
+            if len(arc) >= 6:
+                break
+            if not isinstance(fact, dict):
+                continue
+            claim = str(fact.get("claim_text") or "").strip()
+            if len(claim.split()) >= 6:
+                cand = claim if claim.endswith(".") else f"{claim}."
+                if cand not in arc:
+                    arc.append(cand)
+        return arc[:6]
     allowed = {
         str(f.get("fact_id") or "").strip()
         for f in selected_facts or []
@@ -403,6 +432,7 @@ def polish_executive_summary_judge_alignment(
     target_role: str = "",
     diagnostic: dict[str, Any] | None = None,
     artifact_dir: Path | None = None,
+    runtime_generation_status: str = "",
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     """Deterministic post-voice polish for judge findings (dedupe, metric weave, connectors)."""
     receipt: dict[str, Any] = {
@@ -420,10 +450,11 @@ def polish_executive_summary_judge_alignment(
     if len(sentences) < 1:
         return parsed, receipt
     cited_fact_ids = collect_cited_source_fact_ids(list(parsed.get("claim_ledger") or []))
+    _is_real_llm = str(runtime_generation_status or "").strip() == "REAL_LLM"
 
     # Clamp to 6 sentences; rebuild canonical arc when LLM produced a degenerate output
-    # or when legacy canonical slot IDs are active.
-    _has_legacy_slots = any(
+    # or when legacy canonical slot IDs are active (offline/mock mode only).
+    _has_legacy_slots = (not _is_real_llm) and any(
         str(f.get("fact_id") or "").strip() in _CANONICAL_FACT_SLOT
         for f in (selected_facts or [])
         if isinstance(f, dict)
@@ -431,53 +462,73 @@ def polish_executive_summary_judge_alignment(
     if len(sentences) > 6:
         sentences = sentences[:6]
     elif len(sentences) < 4 or (len(sentences) < 6 and _has_legacy_slots):
-        sentences = _p("_rebuild_canonical_six_sentence_arc", _rebuild_canonical_six_sentence_arc)(sentences, selected_facts=selected_facts)
+        sentences = _p("_rebuild_canonical_six_sentence_arc", _rebuild_canonical_six_sentence_arc)(
+            sentences,
+            selected_facts=selected_facts,
+            runtime_generation_status=runtime_generation_status,
+        )
         if len(sentences) < 6:
             return parsed, receipt
         receipt["actions"].append("canonical_arc_rebuild")
 
     _role_low = str(target_role or "").lower()
-    _skip_partnership_polish = any(
-        k in _role_low
-        for k in (
-            "forward deployed",
-            "forward-deployed",
-            "forward deployment",
-            "field engineering",
-            "deployment engineering",
+    _skip_partnership_polish = _is_real_llm or (
+        any(
+            k in _role_low
+            for k in (
+                "forward deployed",
+                "forward-deployed",
+                "forward deployment",
+                "field engineering",
+                "deployment engineering",
+            )
         )
-    ) and not any(
-        k in _role_low
-        for k in ("partner", "partnership", "alliance", "ecosystem", "channel", "co-sell", "cosell")
+        and not any(
+            k in _role_low
+            for k in ("partner", "partnership", "alliance", "ecosystem", "channel", "co-sell", "cosell")
+        )
     )
 
-    for name, fn in (
-        ("dedupe_dependency_graph", lambda s: _p("_dedupe_dependency_graph_sentences", _dedupe_dependency_graph_sentences)(s, selected_facts=selected_facts)),
-        ("ensure_dependency_graph_override", lambda s: _p("_ensure_dependency_graph_display_override", _ensure_dependency_graph_display_override)(s, selected_facts=selected_facts, cited_fact_ids=cited_fact_ids)),
-        ("weave_agentic_platform_body", lambda s: _p("_weave_agentic_platform_body_bridge", _weave_agentic_platform_body_bridge)(s, selected_facts=selected_facts)),
-        (
-            "repair_ai_partnership_judge_findings",
-            (lambda s: s)
-            if _skip_partnership_polish
-            else (lambda s: _p("_repair_ai_partnership_judge_findings", _repair_ai_partnership_judge_findings)(s, selected_facts=selected_facts)),
-        ),
-        ("reduce_formulaic_bridges", _reduce_formulaic_bridge_echo),
-        ("consulting_connective_prefix", _soften_consulting_fact_echo),
-        (
-            "enforce_required_fact_slots",
-            lambda s: _p("_enforce_required_fact_slots", _enforce_required_fact_slots)(s, selected_facts=selected_facts),
-        ),
-        (
-            "upgrade_thin_s6",
-            lambda s: _p("_upgrade_thin_s6", _upgrade_thin_s6)(s, selected_facts=selected_facts),
-        ),
-        (
-            "scrub_unsupported_industry_claims",
-            lambda s: _p("_scrub_unsupported_industry_claims", _scrub_unsupported_industry_claims)(s, selected_facts=selected_facts),
-        ),
-        ("scrub_graph_era_surface_anomalies", _scrub_graph_era_surface_anomalies),
-        ("trim_paragraph_word_budget", _trim_paragraph_word_budget),
-    ):
+    if _is_real_llm:
+        mutator_pipeline: tuple[tuple[str, Any], ...] = (
+            ("reduce_formulaic_bridges", _reduce_formulaic_bridge_echo),
+            (
+                "scrub_unsupported_industry_claims",
+                lambda s: _p("_scrub_unsupported_industry_claims", _scrub_unsupported_industry_claims)(s, selected_facts=selected_facts),
+            ),
+            ("scrub_graph_era_surface_anomalies", _scrub_graph_era_surface_anomalies),
+            ("trim_paragraph_word_budget", _trim_paragraph_word_budget),
+        )
+    else:
+        mutator_pipeline = (
+            ("dedupe_dependency_graph", lambda s: _p("_dedupe_dependency_graph_sentences", _dedupe_dependency_graph_sentences)(s, selected_facts=selected_facts)),
+            ("ensure_dependency_graph_override", lambda s: _p("_ensure_dependency_graph_display_override", _ensure_dependency_graph_display_override)(s, selected_facts=selected_facts, cited_fact_ids=cited_fact_ids)),
+            ("weave_agentic_platform_body", lambda s: _p("_weave_agentic_platform_body_bridge", _weave_agentic_platform_body_bridge)(s, selected_facts=selected_facts)),
+            (
+                "repair_ai_partnership_judge_findings",
+                (lambda s: s)
+                if _skip_partnership_polish
+                else (lambda s: _p("_repair_ai_partnership_judge_findings", _repair_ai_partnership_judge_findings)(s, selected_facts=selected_facts)),
+            ),
+            ("reduce_formulaic_bridges", _reduce_formulaic_bridge_echo),
+            ("consulting_connective_prefix", _soften_consulting_fact_echo),
+            (
+                "enforce_required_fact_slots",
+                lambda s: _p("_enforce_required_fact_slots", _enforce_required_fact_slots)(s, selected_facts=selected_facts),
+            ),
+            (
+                "upgrade_thin_s6",
+                lambda s: _p("_upgrade_thin_s6", _upgrade_thin_s6)(s, selected_facts=selected_facts),
+            ),
+            (
+                "scrub_unsupported_industry_claims",
+                lambda s: _p("_scrub_unsupported_industry_claims", _scrub_unsupported_industry_claims)(s, selected_facts=selected_facts),
+            ),
+            ("scrub_graph_era_surface_anomalies", _scrub_graph_era_surface_anomalies),
+            ("trim_paragraph_word_budget", _trim_paragraph_word_budget),
+        )
+
+    for name, fn in mutator_pipeline:
         updated = fn(sentences)
         if updated != sentences:
             receipt["actions"].append(name)

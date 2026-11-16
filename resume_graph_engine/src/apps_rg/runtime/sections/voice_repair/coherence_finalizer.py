@@ -31,6 +31,7 @@ def finalize_executive_summary_coherence(
     selected_facts: list[dict[str, Any]] | None = None,
     allowed_fact_ids: set[str] | None = None,
     target_role: str = "",
+    runtime_generation_status: str = "",
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     """Last post-LLM mutator: voice repair, ledger reconcile, gap excuse for display drift."""
     from apps_rg.runtime.validators.executive_summary_x2 import (
@@ -57,9 +58,12 @@ def finalize_executive_summary_coherence(
     receipt["voice_repair"] = voice_receipt
     receipt["ledger_reconciled"] = bool(voice_receipt.get("claim_ledger_reconciled"))
 
+    _util_kwargs: dict[str, Any] = {"selected_facts": selected_facts}
+    if runtime_generation_status:
+        _util_kwargs["runtime_generation_status"] = runtime_generation_status
     out, util_receipt = _p("ensure_required_allowed_fact_utilization", ensure_required_allowed_fact_utilization)(
         out,
-        selected_facts=selected_facts,
+        **_util_kwargs,
     )
     receipt["allowed_fact_utilization"] = util_receipt
     if util_receipt.get("patched_fact_ids"):
@@ -105,21 +109,26 @@ def finalize_executive_summary_coherence(
     )
     receipt["materialization_pass"] = mat_ok
     receipt["materialization_reason"] = mat_reason or ""
+    _polish_kwargs: dict[str, Any] = {
+        "selected_facts": selected_facts,
+        "target_role": target_role,
+    }
+    if runtime_generation_status:
+        _polish_kwargs["runtime_generation_status"] = runtime_generation_status
     out, polish_receipt = _p("polish_executive_summary_judge_alignment", polish_executive_summary_judge_alignment)(
         out,
-        selected_facts=selected_facts,
-        target_role=target_role,
+        **_polish_kwargs,
     )
     receipt["judge_polish"] = polish_receipt
     if polish_receipt.get("applied"):
         receipt["ledger_reconciled"] = True
         text = str(out.get("resume_display_text") or "")
         ledger = [dict(r) for r in (out.get("claim_ledger") or []) if isinstance(r, dict)]
-    out = _p("_align_display_override_anchors_in_resume", _align_display_override_anchors_in_resume)(out, selected_facts=selected_facts)
+    if str(runtime_generation_status or "").strip() != "REAL_LLM":
+        out = _p("_align_display_override_anchors_in_resume", _align_display_override_anchors_in_resume)(out, selected_facts=selected_facts)
     out, polish_after_align = _p("polish_executive_summary_judge_alignment", polish_executive_summary_judge_alignment)(
         out,
-        selected_facts=selected_facts,
-        target_role=target_role,
+        **_polish_kwargs,
     )
     if polish_after_align.get("applied"):
         receipt["judge_polish_after_align"] = polish_after_align
@@ -179,12 +188,13 @@ def finalize_executive_summary_coherence(
     # every required approved root, rather than merely an intermediate draft.
     out, final_util_receipt = _p("ensure_required_allowed_fact_utilization", ensure_required_allowed_fact_utilization)(
         out,
-        selected_facts=selected_facts,
+        **_util_kwargs,
     )
     receipt["final_allowed_fact_utilization"] = final_util_receipt
     if final_util_receipt.get("patched_fact_ids"):
         receipt["ledger_reconciled"] = True
-        out = _p("_rebuild_claim_ledger_from_display", _rebuild_claim_ledger_from_display)(out)
+        if str(runtime_generation_status or "").strip() != "REAL_LLM":
+            out = _p("_rebuild_claim_ledger_from_display", _rebuild_claim_ledger_from_display)(out)
         out, stripped = _p("_strip_claim_ledger_source_fact_ids_not_in_allowed_pool", _strip_claim_ledger_source_fact_ids_not_in_allowed_pool)(
             out,
             allowed_fact_ids=allowed_fact_ids,

@@ -35,6 +35,7 @@ def prepare_parsed_after_judge_regen(
     plan_facts: list[dict[str, Any]],
     artifact_dir: Path | None = None,
     target_company: str = "",
+    runtime_generation_status: str = "",
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     """Deterministic post-LLM prepare before X2 (voice, ledger, authority)."""
     from apps_rg.runtime.sections.section_authority_repairs import (
@@ -73,6 +74,7 @@ def prepare_parsed_after_judge_regen(
         out,
         selected_facts=plan_facts,
         allowed_fact_ids=allowed_fact_ids,
+        runtime_generation_status=runtime_generation_status,
     )
     receipt["finalize_coherence"] = fin_receipt
     return out, receipt
