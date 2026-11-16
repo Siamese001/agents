@@ -1,3 +1,3 @@
-# ADG Analysis Procedures — stub
+# ADG Analysis Procedures
 
-> On-demand during ADG/T2-T3 work (plan `always-on-rule-surface-cut-c7f3a1`); enforcement unchanged. Full procedures (hotspot analysis + wave ordering, graph-layer evidence, repair-loop `ADG_REPAIR_LITMUS`, test accelerator, the 5 surfaces, P7 artifacts): [`adg-sqlite`](../skills/adg-sqlite/SKILL.md) + [`graph-analysis`](../skills/graph-analysis/SKILL.md) skills; invariants in [`adg-canonical-invariants.md`](adg-canonical-invariants.md) + constitutional §5/§22/§23/§28. Enforced: `post_agent_adg_audit.py`, `check_graph_layer_evidence.py`, `pre_user_prompt_adg_ssot_gate.py`.
+> On-demand during structural dependency analysis. Full ripple inspection procedures live in [scope-containment](../skills/scope-containment/SKILL.md) and invariants live in [adg-canonical-invariants.md](adg-canonical-invariants.md) plus constitutional §5, §13, §22, §23, and §28. Prefer `adg_sqlite` MCP or `artifacts/adg/*.sqlite` when open, and combine freely with AST and `grep_search` without blocking bug fixes, `/boost`, or `/swarm`.

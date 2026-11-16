@@ -341,6 +341,13 @@ Wave 1 completed cleanly!
         self.assertEqual(res["status"], "PASS", f"Unexpected violations on sidecar:// link: {res['violations']}")
         self.assertEqual(res["violations"], [])
 
+    def test_pre_turn_gate_enforces_zero_bugfix_and_blast_radius_constraint_floor(self) -> None:
+        """Verify pre-turn gate validates INV-ZERO-BUGFIX-BLAST-RADIUS-CAP and ghost-hook elimination."""
+        pre = validate_pre_turn_gate(ROOT)
+        self.assertEqual(pre["status"], "PASS", f"Pre-turn issues: {pre['issues']}")
+        self.assertIn("zero_bugfix_constraints", pre["checks"])
+        self.assertEqual(pre["checks"]["zero_bugfix_constraints"]["status"], "PASS")
+
 
 if __name__ == "__main__":
     unittest.main()

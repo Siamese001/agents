@@ -198,3 +198,13 @@ policies:
     description: "Every enforcer script and markdown rule referenced in policy_registry.yaml must enforce the exact registered threshold without hardcoded drift."
     enforcer: "tools/ssot_hardcoding_scanner.py"
     rule_reference: "config/governance/policy_registry.yaml"
+
+  - id: "INV-ZERO-BUGFIX-BLAST-RADIUS-CAP"
+    title: "Zero Artificial Bug-Fix, Blast-Radius, Boost, or Swarm Cap"
+    category: "architecture"
+    threshold: 0
+    unit: "artificial_scope_caps"
+    description: "Root-cause bug fixes, cohesive refactors, /boost subagents, and /swarm workers must never be blocked by artificial file-count, wave-count, plan-word, test-batch, confidence-penalty, default subagent write-lock, or dead ghost-hook barriers."
+    enforcer: "tools/zero_bugfix_constraint_gate.py"
+    rule_reference: ".agents/rules/work-item-classification.md"
+

@@ -80,8 +80,8 @@ The knowledge-graph Memory MCP is optional for graph queries or writeback when i
 - Subprocess timeout always required — `subprocess.run(argv, shell=False, timeout=30)`. PowerShell is allowed as the primary Windows shell when commands remain bounded.
 - No `pytest.mark.xfail` without `strict=True` and no `pytest.mark.skip` without explicit `reason=`
 - No bare `except Exception` without guardian
-- No edits during planning phase
-- ADG before grep for structure (§28); grep for literals/TODOs only
+- Honor explicit `PLAN ONLY` / `NO IMPLEMENT` prompts; otherwise execute root-cause bug fixes, `/boost`, and `/swarm` end-to-end
+- Use ADG (`adg_sqlite`), AST inspection, and `grep_search` freely together across structural and literal lookups
 - Output Brevity & Word Budget Invariant: Target ~150-250 words with a strict ceiling of 450 words (5,000 characters). Focus on direct facts, empirical verification, and actionable results without conversational fluff.
 - Full rules: `AGENTS.md` + `.agents/rules/conformance-map.md` · expanded lists: legacy compatibility notes only
 

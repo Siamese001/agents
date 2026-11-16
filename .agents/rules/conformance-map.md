@@ -95,8 +95,9 @@ Traces every `AGENTS.md` section to enforceable rules, skills, hooks, tools, and
 | Policy Registry | `config/governance/policy_registry.yaml` | Machine-readable SSOT for quantitative, structural, and lifecycle invariants |
 | Rules | `.agents/rules/*.md` | Active governance rules |
 | Skills | `.agents/skills/*/SKILL.md` | Reusable procedural adapters (audited by pre-turn skills context budget gate) |
-| Hook | `.agents/hooks.json` | Native Antigravity lifecycle hook registry (9 active guards) |
+| Hook | `.agents/hooks.json` | Native Antigravity lifecycle hook registry (8 active guards) |
 | Tool | `tools/validate_turn_gates.py` | Mechanical pre-turn & post-turn turn gate validator |
+| Tool | `tools/zero_bugfix_constraint_gate.py` | Mechanical anti-regression gate ensuring zero artificial bug-fix, blast-radius, `/boost`, or `/swarm` caps and zero ghost `.codex` hook barriers |
 | Tool | `tools/verify_commit.py` | Tier 1 structural pre-commit gate |
 
 ### §"HITL Decisions & Ambiguity Gating"
