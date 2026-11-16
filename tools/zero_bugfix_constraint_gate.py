@@ -40,7 +40,10 @@ FORBIDDEN_DEFERRAL_ROWS: tuple[re.Pattern[str], ...] = (
     re.compile(r"^\|\s*`BUG_DEFERRED`\s*\|", re.MULTILINE),
     re.compile(r"^\|\s*`BUG_SYSTEMIC`\s*\|", re.MULTILINE),
     re.compile(r"grep_search`\s+permitted\s+only\s+to\s+confirm\s+literals", re.IGNORECASE),
+    re.compile(r"<=\s*6" + r"00(?:`?[- ]?line|`?\s+lines?)", re.IGNORECASE),
 )
+
+_RULE_SCRIPT_PATH_RE = re.compile(r"\b((?:tools|ops_scripts|scripts)/[A-Za-z0-9_/-]+\.py)\b")
 
 
 def validate_zero_bugfix_constraint_floor(repo_root: Path | None = None) -> dict[str, Any]:
@@ -80,24 +83,26 @@ def validate_zero_bugfix_constraint_floor(repo_root: Path | None = None) -> dict
         if "Zero Blast-Radius Ceiling" not in agents_txt and (root / ".agents" / "rules" / "work-item-classification.md").is_file():
             issues.append("AGENTS.md missing 'Zero Blast-Radius Ceiling' bug-fix guarantee.")
 
-    for rel_rule in AUDITED_RULE_FILES:
-        rpath = root / rel_rule
-        if not rpath.is_file():
-            continue
-        rtxt = rpath.read_text(encoding="utf-8")
-        for ghost in DEAD_GHOST_HOOK_TOKENS:
-            if ghost in rtxt:
-                issues.append(f"{rel_rule} cites nonexistent legacy ghost script '{ghost}'.")
-        for pat in FORBIDDEN_DEFERRAL_ROWS:
-            if pat.search(rtxt):
-                issues.append(f"{rel_rule} contains forbidden bug-deferral or grep-ban clause ('{pat.pattern}').")
-
     rules_dir = root / ".agents" / "rules"
+    has_live_tools_dir = (root / "tools").is_dir()
     if rules_dir.is_dir():
         for rule_md in sorted(rules_dir.glob("*.md")):
-            rlines = rule_md.read_text(encoding="utf-8").splitlines()
+            rel_rule = f".agents/rules/{rule_md.name}"
+            rtxt = rule_md.read_text(encoding="utf-8")
+            rlines = rtxt.splitlines()
             if len(rlines) < 3 or rlines[0].strip() != "---" or not rlines[1].startswith("trigger:"):
-                issues.append(f".agents/rules/{rule_md.name} missing YAML frontmatter 'trigger:' header.")
+                issues.append(f"{rel_rule} missing YAML frontmatter 'trigger:' header.")
+            for ghost in DEAD_GHOST_HOOK_TOKENS:
+                if ghost in rtxt:
+                    issues.append(f"{rel_rule} cites nonexistent legacy ghost script '{ghost}'.")
+            for pat in FORBIDDEN_DEFERRAL_ROWS:
+                if pat.search(rtxt):
+                    issues.append(f"{rel_rule} contains forbidden cap, bug-deferral, or grep-ban clause ('{pat.pattern}').")
+            if has_live_tools_dir:
+                for match in _RULE_SCRIPT_PATH_RE.finditer(rtxt):
+                    rel_script = match.group(1)
+                    if not (root / rel_script).is_file():
+                        issues.append(f"{rel_rule} cites nonexistent script path '{rel_script}'.")
 
     # 3. Runtime behavior invariants on primary repository workspace
     if (root / "tools" / "hitl_governance.py").is_file():

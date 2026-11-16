@@ -46,9 +46,14 @@ class TestZeroBugfixConstraintGate(unittest.TestCase):
                 encoding="utf-8",
             )
             (rules_dir / "constitutional.md").write_text(
-                "Audit: post_agent_adg_audit.py\n- `grep_search` permitted only to confirm literals\n",
+                "---\ntrigger: always_on\n---\nAudit: post_agent_adg_audit.py\n- `grep_search` permitted only to confirm literals\n",
                 encoding="utf-8",
             )
+            (rules_dir / "legacy-cap.md").write_text(
+                "---\ntrigger: model_decision\n---\nKeep production files <= 600 lines and run tools/adg/nonexistent_gate.py.\n",
+                encoding="utf-8",
+            )
+            (tmp_root / "tools").mkdir(parents=True)
 
             res = validate_zero_bugfix_constraint_floor(tmp_root)
             self.assertEqual(res["status"], "FAIL")
@@ -61,6 +66,8 @@ class TestZeroBugfixConstraintGate(unittest.TestCase):
             self.assertIn("post_agent_adg_audit.py", joined)
             self.assertIn("grep_search", joined)
             self.assertIn("missing YAML frontmatter", joined)
+            self.assertIn("legacy-cap.md", joined)
+            self.assertIn("tools/adg/nonexistent_gate.py", joined)
 
 
 if __name__ == "__main__":

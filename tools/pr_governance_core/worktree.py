@@ -171,7 +171,7 @@ def provision_isolated_worktree(
 ) -> Path:
     """
     Provisions a new git worktree with relative dependency symlinks.
-    Strictly enforces that worktree_dir resides inside <root>/.worktrees/.
+    Accepts <root>/.worktrees/<slug> and native Antigravity worktree roots.
     """
     from tools.prune_merged_chat_worktrees import is_antigravity_chat_worktree
 

@@ -183,6 +183,8 @@ def validate_pre_turn_gate(repo_root: Path | None = None) -> dict[str, Any]:
             checks["implementation_plan"] = {
                 "status": "PASS",
                 "active_plan": None,
+                "wave_count": 0,
+                "wave_summary": [],
                 "note": "No active implementation plan found.",
             }
     except Exception as exc:

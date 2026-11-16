@@ -393,6 +393,24 @@ def handle_post_ask_question(payload: Dict[str, Any], repo_root: Path) -> int:
     return 0
 
 
+def _extract_delegation_contract(args: Dict[str, Any], prompt_text: str) -> Optional[Dict[str, Any]]:
+    contract = args.get("delegation_contract") or args.get("contract")
+    if isinstance(contract, dict):
+        return contract
+    if any(k in args for k in ("task_id", "parent_task_id", "scope_in", "scope_out", "definition_of_done")):
+        return args
+    if "delegation_contract" in prompt_text:
+        try:
+            m = re.search(r"\{[\s\S]*\"delegation_contract\"[\s\S]*\}", prompt_text)
+            parsed = json.loads(m.group(0)) if m else None
+            inner = parsed.get("delegation_contract", parsed) if isinstance(parsed, dict) else None
+            if isinstance(inner, dict):
+                return inner
+        except (json.JSONDecodeError, TypeError, ValueError):  # guardian: allow-silent-swallow -- ignore non-JSON prose mentions
+            pass
+    return None
+
+
 def handle_pre_subagent_delegation(payload: Dict[str, Any], repo_root: Path) -> int:
     """PreToolUse guard on invoke_subagent / browser_subagent validating 10-field delegation contracts and scope leases."""
     from tools.prompt_scope_isolation import _sync_teamwork_request_atomic, register_and_check_subagent_scope, resolve_persistent_caller_pid
@@ -406,22 +424,7 @@ def handle_pre_subagent_delegation(payload: Dict[str, Any], repo_root: Path) -> 
     prompt_text = str(args.get("Prompt") or args.get("prompt") or args.get("Task") or "").strip()
     type_name = str(args.get("TypeName") or args.get("type_name") or "").strip().lower()
     workspace_mode = str(args.get("Workspace") or args.get("workspace") or "inherit").strip().lower()
-
-    resolved_contract: Optional[Dict[str, Any]] = None
-    contract = args.get("delegation_contract") or args.get("contract")
-    if isinstance(contract, dict):
-        resolved_contract = contract
-    elif any(k in args for k in ("task_id", "parent_task_id", "scope_in", "scope_out", "definition_of_done")):
-        resolved_contract = args
-    elif "delegation_contract" in prompt_text:
-        try:
-            m = re.search(r"\{[\s\S]*\"delegation_contract\"[\s\S]*\}", prompt_text)
-            parsed = json.loads(m.group(0)) if m else None
-            inner = parsed.get("delegation_contract", parsed) if isinstance(parsed, dict) else None
-            if isinstance(inner, dict):
-                resolved_contract = inner
-        except (json.JSONDecodeError, TypeError, ValueError):  # guardian: allow-silent-swallow -- ignore non-JSON prose mentions
-            pass
+    resolved_contract = _extract_delegation_contract(args, prompt_text)
 
     cli_owner = resolve_persistent_caller_pid() if payload.get("_cli_invocation") else None
     if resolved_contract is not None and bool(
@@ -445,6 +448,22 @@ def handle_pre_subagent_delegation(payload: Dict[str, Any], repo_root: Path) -> 
     if type_name == "teamwork" and prompt_text:
         _sync_teamwork_request_atomic(repo_root, prompt_text)
     return emit_decision("allow")
+
+
+def handle_post_subagent_delegation(payload: Dict[str, Any], repo_root: Path) -> int:
+    """PostToolUse hook automatically releasing completed subagent scope leases to prevent 30-minute lockouts."""
+    from tools.prompt_scope_isolation import release_subagent_scope
+
+    tool_call = payload.get("toolCall") if isinstance(payload.get("toolCall"), dict) else payload
+    args = tool_call.get("args") if isinstance(tool_call.get("args"), dict) else payload
+    if isinstance(args, dict):
+        prompt_text = str(args.get("Prompt") or args.get("prompt") or args.get("Task") or "").strip()
+        resolved = _extract_delegation_contract(args, prompt_text)
+        task_id = str(resolved.get("task_id", "")).strip() if isinstance(resolved, dict) else ""
+        if task_id:
+            release_subagent_scope(repo_root, task_id)
+    print(json.dumps({}))
+    return 0
 
 
 def _is_primary_root_on_main(repo_root: Path) -> bool:
@@ -509,12 +528,21 @@ def handle_pre_file_write(payload: Dict[str, Any], repo_root: Path) -> int:
         return emit_decision("deny", reason=reason)
 
     if target_file:
-        from tools.prompt_scope_isolation import evaluate_active_subagent_write_scope, evaluate_prompt_stage_write_scope
+        from tools.prompt_scope_isolation import (
+            evaluate_active_subagent_write_scope,
+            evaluate_prompt_stage_write_scope,
+            is_subagent_turn,
+        )
 
-        for scope_fn in (evaluate_prompt_stage_write_scope, evaluate_active_subagent_write_scope):
-            scope_blocked, scope_reason = scope_fn(target_file, repo_root)
-            if scope_blocked:
-                return emit_decision("deny", reason=scope_reason)
+        scope_blocked, scope_reason = evaluate_prompt_stage_write_scope(target_file, repo_root)
+        if scope_blocked:
+            return emit_decision("deny", reason=scope_reason)
+        sub_caller = is_subagent_turn(_load_raw_steps_from_payload(payload), payload)
+        sub_blocked, sub_reason = evaluate_active_subagent_write_scope(
+            target_file, repo_root, is_subagent_caller=sub_caller
+        )
+        if sub_blocked:
+            return emit_decision("deny", reason=sub_reason)
 
     return emit_decision("allow")
 
@@ -525,28 +553,32 @@ _POST_INVOCATION_INTERCEPT_MARKERS = (
 )
 
 
-def _load_turn_steps_from_payload(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
-    """Load current turn steps from inline 'steps' or 'transcriptPath' JSONL file."""
+def _load_raw_steps_from_payload(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Load all transcript steps from inline 'steps' or 'transcriptPath' JSONL file."""
     inline_steps = payload.get("steps")
     if isinstance(inline_steps, list):
-        raw_steps = [s for s in inline_steps if isinstance(s, dict)]
-    else:
-        raw_steps = []
-        transcript_path = payload.get("transcriptPath")
-        if isinstance(transcript_path, str) and transcript_path.strip() and os.path.exists(transcript_path):
-            try:
-                with open(transcript_path, "r", encoding="utf-8") as fh:
-                    for raw_line in fh:
-                        if raw_line.strip():
-                            try:
-                                parsed = json.loads(raw_line.strip())
-                                if isinstance(parsed, dict):
-                                    raw_steps.append(parsed)
-                            except (json.JSONDecodeError, TypeError, ValueError):  # guardian: allow-silent-swallow -- skip malformed transcript lines
-                                continue
-            except OSError:  # guardian: allow-silent-swallow -- fallback to empty steps if transcript unreadable
-                return []
+        return [s for s in inline_steps if isinstance(s, dict)]
+    raw_steps: List[Dict[str, Any]] = []
+    transcript_path = payload.get("transcriptPath")
+    if isinstance(transcript_path, str) and transcript_path.strip() and os.path.exists(transcript_path):
+        try:
+            with open(transcript_path, "r", encoding="utf-8") as fh:
+                for raw_line in fh:
+                    if raw_line.strip():
+                        try:
+                            parsed = json.loads(raw_line.strip())
+                            if isinstance(parsed, dict):
+                                raw_steps.append(parsed)
+                        except (json.JSONDecodeError, TypeError, ValueError):  # guardian: allow-silent-swallow -- skip malformed transcript lines
+                            continue
+        except OSError:  # guardian: allow-silent-swallow -- fallback to empty steps if transcript unreadable
+            return []
+    return raw_steps
 
+
+def _load_turn_steps_from_payload(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Load current turn steps from inline 'steps' or 'transcriptPath' JSONL file."""
+    raw_steps = _load_raw_steps_from_payload(payload)
     last_user_idx = -1
     for idx, step in enumerate(raw_steps):
         step_type, source = str(step.get("type") or "").upper(), str(step.get("source") or "").upper()
@@ -565,10 +597,11 @@ def handle_post_invocation(payload: Dict[str, Any], repo_root: Path) -> int:
         validate_word_budget_gate,
     )
 
-    steps = _load_turn_steps_from_payload(payload)
-    if is_subagent_turn(steps, payload):
+    raw_steps = _load_raw_steps_from_payload(payload)
+    if is_subagent_turn(raw_steps, payload):
         print(json.dumps({"injectSteps": []}))
         return 0
+    steps = _load_turn_steps_from_payload(payload)
     candidate_text = str(payload.get("candidate_response") or "")
     if not candidate_text and steps:
         last_step = steps[-1] if isinstance(steps[-1], dict) else {}
@@ -642,7 +675,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     parser = argparse.ArgumentParser(description="Antigravity Lifecycle Hook Dispatcher.")
     choices = [
         "pre_edit_plan", "stop_wave_summary", "pre_run_command", "pre_model_neutral", "pre_model_registry",
-        "pre_ask_question", "post_ask_question", "pre_subagent_delegation", "pre_file_write", "post_invocation",
+        "pre_ask_question", "post_ask_question", "pre_subagent_delegation", "post_subagent_delegation",
+        "pre_file_write", "post_invocation",
     ]
     parser.add_argument("--hook", required=True, choices=choices, help="Lifecycle hook handler to execute.")
     parser.add_argument("--repo-root", type=Path, default=ROOT, help="Repository root path.")
@@ -656,6 +690,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         "pre_model_neutral": handle_pre_model_neutral, "pre_model_registry": handle_pre_model_registry,
         "pre_ask_question": handle_pre_ask_question, "post_ask_question": handle_post_ask_question,
         "pre_subagent_delegation": handle_pre_subagent_delegation,
+        "post_subagent_delegation": handle_post_subagent_delegation,
         "pre_file_write": handle_pre_file_write, "post_invocation": handle_post_invocation,
     }
     handler = handlers.get(args.hook)
