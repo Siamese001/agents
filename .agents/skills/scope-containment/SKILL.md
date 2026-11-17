@@ -13,6 +13,7 @@ Separate touched files into three distinct categories based on call-graph and da
 
 - **Mandatory Full-Ripple Inspection (Read Everything Connected)**:
   - Reading and tracing connected files is **NEVER capped** when analyzing impact.
+  - Search across **all** file formats—including `.md`, `.mdc`, `.txt`, `.jinja`, `.j2`, `.csv`, `.jsonl`, `.toml`, `.ini`, `.yaml`, `.yml`, `.json`, and `.py`—when tracing prompts, rubrics, rules, configs, and deduplication/SSOT alignment; never restrict searches to `.json` or `.yaml` alone.
   - When changing any behavior, data structure, prompt, or threshold, you MUST inspect all connected upstream producers, sibling lanes, shared schemas/configs, and downstream validators/consumers across the spine.
 - **Cohesive Ripple Edit Scope (Change Everything Connected)**:
   - Any upstream producer, shared contract, sibling lane, or downstream validator whose assumptions, schemas, or thresholds are impacted by the change is part of the core change by definition and MUST be updated together in the same wave or plan (`INV-HOLISTIC-PIPELINE-PLANNING`).

@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Multi-Folder Configuration Sprawl, Shadow-Copy & Cross-Format Drift Scanner.
+"""Multi-Folder Configuration, Markdown, Prompt & Text Sprawl Scanner.
 
-Scans all 9 repository packages, declarative schemas, YAML profiles, MCP configs,
-and pytest configurations to detect:
-1. Shadow & duplicate configuration drift across directories (beyond root vs engine config/)
-2. Intra-file semantic contradictions (e.g. conflicting summary word caps inside one schema)
-3. Twin versioned profile sprawl (coexisting base and .v1/.company_brief.v1 profiles)
-4. Cross-format declarative bound drift against canonical SSOT owners
+Scans all repository packages, declarative schemas, YAML profiles, Markdown (.md),
+Jinja (.jinja/.j2), plain-text (.txt), CSV/JSONL, TOML/INI, and MCP configs to detect:
+1. Shadow & duplicate configuration/targeting/rubric drift across directories (all extensions)
+2. Intra-file semantic contradictions (JSON/YAML plus Markdown/text bound contradictions)
+3. Twin versioned profile/prompt/briefing sprawl across .md, .txt, .jinja, .csv, .jsonl, .yaml, .json
+4. Cross-format declarative & Markdown/Jinja bound and prompt body drift against canonical SSOT owners
 """
 
 from __future__ import annotations
@@ -33,6 +33,34 @@ except ImportError:  # guardian: allow-silent-swallow -- fallback if PyYAML unav
     yaml = None  # type: ignore
 
 KNOWN_DRIFT_ALLOWLIST: frozenset[str] = frozenset()
+
+FULL_SEARCH_EXTENSIONS: frozenset[str] = frozenset(
+    {
+        ".json",
+        ".yaml",
+        ".yml",
+        ".md",
+        ".mdc",
+        ".txt",
+        ".jinja",
+        ".j2",
+        ".csv",
+        ".jsonl",
+        ".toml",
+        ".ini",
+        ".sql",
+    }
+)
+
+_JINJA_COMMENT_RE = re.compile(r"\{#[\s\S]*?#\}")
+_MD_MIN_MAX_WORDS_RE = re.compile(
+    r"\bbetween\s+(\d+)\s+and\s+(\d+)\s+(?:words|characters|sentences)\b",
+    re.IGNORECASE,
+)
+
+
+def _strip_jinja_comments(text: str) -> str:
+    return _JINJA_COMMENT_RE.sub("", text).strip()
 
 
 def _load_structured(path: Path) -> dict[str, Any] | None:
@@ -77,6 +105,9 @@ def scan_shadow_config_drift(repo_root: Path) -> list[dict[str, Any]]:
     explicit_pairs = (
         ("config/provider_profiles.yaml", "resume_graph_engine/src/apps_rg/config/provider_profiles.yaml"),
         ("config/model_catalog.json", "resume_graph_engine/src/apps_rg/config/model_catalog.json"),
+        ("config/certification/llm_judge_rubric.md", "resume_graph_engine/config/certification/llm_judge_rubric.md"),
+        ("config/contracts/README.md", "resume_graph_engine/config/contracts/README.md"),
+        ("config/runtime_trace/README.md", "resume_graph_engine/config/runtime_trace/README.md"),
     )
     for canon_rel, shadow_rel in explicit_pairs:
         c_path = repo_root / canon_rel
@@ -89,6 +120,58 @@ def scan_shadow_config_drift(repo_root: Path) -> list[dict[str, Any]]:
                         "canonical": canon_rel,
                         "shadow": shadow_rel,
                         "detail": f"Package shadow copy '{shadow_rel}' diverges from '{canon_rel}'",
+                    }
+                )
+
+    lic_targeting = repo_root / "outreach_engine" / "config" / "targeting"
+    rg_targeting = repo_root / "resume_graph_engine" / "src" / "apps_rg" / "config" / "targeting"
+    if lic_targeting.is_dir() and rg_targeting.is_dir():
+        lic_files = {
+            p.relative_to(lic_targeting)
+            for p in lic_targeting.rglob("*")
+            if p.is_file() and p.suffix.lower() in FULL_SEARCH_EXTENSIONS and p.name != "README.md"
+        }
+        rg_files = {
+            p.relative_to(rg_targeting)
+            for p in rg_targeting.rglob("*")
+            if p.is_file() and p.suffix.lower() in FULL_SEARCH_EXTENSIONS and p.name != "README.md"
+        }
+        for rel in sorted(lic_files & rg_files):
+            rel_str = str(rel).replace("\\", "/")
+            if not filecmp.cmp(lic_targeting / rel, rg_targeting / rel, shallow=False):
+                findings.append(
+                    {
+                        "category": "SHADOW_TARGETING_DRIFT",
+                        "canonical": f"resume_graph_engine/src/apps_rg/config/targeting/{rel_str}",
+                        "shadow": f"outreach_engine/config/targeting/{rel_str}",
+                        "detail": f"Shared targeting file '{rel_str}' diverges between outreach_engine and resume_graph_engine",
+                    }
+                )
+
+    root_data = repo_root / "data"
+    engine_data = repo_root / "resume_graph_engine" / "data"
+    if root_data.is_dir() and engine_data.is_dir():
+        r_data = {
+            p.relative_to(root_data)
+            for p in root_data.rglob("*")
+            if p.is_file() and "cache" not in p.parts and p.suffix.lower() in FULL_SEARCH_EXTENSIONS
+        }
+        e_data = {
+            p.relative_to(engine_data)
+            for p in engine_data.rglob("*")
+            if p.is_file() and "cache" not in p.parts and p.suffix.lower() in FULL_SEARCH_EXTENSIONS
+        }
+        for rel in sorted(r_data & e_data):
+            rel_str = str(rel).replace("\\", "/")
+            if rel_str in KNOWN_DRIFT_ALLOWLIST:
+                continue
+            if not filecmp.cmp(root_data / rel, engine_data / rel, shallow=False):
+                findings.append(
+                    {
+                        "category": "SHADOW_DATA_DRIFT",
+                        "canonical": f"data/{rel_str}",
+                        "shadow": f"resume_graph_engine/data/{rel_str}",
+                        "detail": f"Shadow data/markdown/csv file 'resume_graph_engine/data/{rel_str}' diverges from 'data/{rel_str}'",
                     }
                 )
 
@@ -134,7 +217,7 @@ def scan_shadow_config_drift(repo_root: Path) -> list[dict[str, Any]]:
 
 
 def scan_intra_file_contradictions(repo_root: Path) -> list[dict[str, Any]]:
-    """Scan declarative JSON/YAML schemas and profiles for internal bound contradictions."""
+    """Scan JSON/YAML schemas plus .md/.txt/.jinja templates and rules for internal bound contradictions."""
     findings: list[dict[str, Any]] = []
     candidate_dirs = (
         repo_root / "config",
@@ -143,19 +226,47 @@ def scan_intra_file_contradictions(repo_root: Path) -> list[dict[str, Any]]:
         repo_root / "resume_graph_engine" / "config",
         repo_root / "resume_graph_engine" / "src" / "apps_rg",
         repo_root / "apps_research" / "config",
+        repo_root / "apps_research" / "prompts",
         repo_root / "apps_eval",
+        repo_root / ".agents" / "rules",
+        repo_root / "automations" / "prompts",
     )
 
     for base in candidate_dirs:
         if not base.is_dir():
             continue
         for path in sorted(base.rglob("*")):
-            if not path.is_file() or path.suffix.lower() not in (".json", ".yaml", ".yml"):
+            if not path.is_file() or path.is_symlink():
+                continue
+            ext = path.suffix.lower()
+            rel = str(path.relative_to(repo_root)).replace("\\", "/")
+
+            if ext in (".md", ".txt", ".jinja", ".j2"):
+                try:
+                    raw_text = path.read_text(encoding="utf-8", errors="replace")
+                except OSError:
+                    continue
+                for m_range in _MD_MIN_MAX_WORDS_RE.finditer(raw_text):
+                    lo_v, hi_v = int(m_range.group(1)), int(m_range.group(2))
+                    if lo_v > hi_v:
+                        findings.append(
+                            {
+                                "category": "INVERTED_BOUNDS",
+                                "file": rel,
+                                "key_a": "prose_min",
+                                "val_a": lo_v,
+                                "key_b": "prose_max",
+                                "val_b": hi_v,
+                                "detail": f"Inverted prose range '{m_range.group(0)}' in {rel}: {lo_v} > {hi_v}",
+                            }
+                        )
+                continue
+
+            if ext not in (".json", ".yaml", ".yml"):
                 continue
             data = _load_structured(path)
             if not data:
                 continue
-            rel = str(path.relative_to(repo_root)).replace("\\", "/")
 
             sec_summary_max = (
                 data.get("properties", {})
@@ -228,17 +339,25 @@ def scan_intra_file_contradictions(repo_root: Path) -> list[dict[str, Any]]:
 
 
 def scan_twin_profile_sprawl(repo_root: Path) -> list[dict[str, Any]]:
-    """Detect coexisting unversioned and versioned/variant twin configuration files."""
+    """Detect coexisting unversioned and versioned/variant twin files across YAML, JSON, MD, TXT, Jinja, CSV, JSONL."""
     findings: list[dict[str, Any]] = []
     scan_dirs = (
         repo_root / "apps_research" / "config",
+        repo_root / "apps_research" / "prompts",
         repo_root / "outreach_engine" / "config",
         repo_root / "outreach_engine" / "data",
         repo_root / "resume_graph_engine" / "config",
         repo_root / "resume_graph_engine" / "src" / "apps_rg",
         repo_root / "config",
+        repo_root / ".agents" / "rules",
+        repo_root / "automations" / "prompts",
     )
-    variant_re = re.compile(r"^([a-z0-9_]+?)(?:s)?\.(?:[a-z0-9_]+\.)?v\d+\.(?:yaml|yml|json)$")
+    variant_exts = ("yaml", "yml", "json", "md", "txt", "jinja", "j2", "csv", "jsonl")
+    ext_group = "|".join(variant_exts)
+    variant_re = re.compile(
+        rf"^([a-z0-9_\-]+?)(?:s)?(?:\.[a-z0-9_\-]+)?(?:\.|_)v\d+\.({ext_group})$",
+        re.IGNORECASE,
+    )
 
     for base in scan_dirs:
         if not base.is_dir():
@@ -249,13 +368,20 @@ def scan_twin_profile_sprawl(repo_root: Path) -> list[dict[str, Any]]:
                 m = variant_re.match(fname)
                 if not m:
                     continue
-                stem = m.group(1)
-                for candidate_base in (
-                    f"{stem}.yaml",
-                    f"{stem}s.yaml",
-                    f"{stem}.json",
-                    f"{stem}s.json",
-                ):
+                stem, matched_ext = m.group(1), m.group(2).lower()
+                candidate_exts = {matched_ext}
+                if matched_ext in ("yaml", "yml", "json"):
+                    candidate_exts.update({"yaml", "json"})
+                elif matched_ext in ("md", "txt", "jinja", "j2"):
+                    candidate_exts.update({"md", "txt", "jinja"})
+                candidate_bases = sorted(
+                    {
+                        f"{base_stem}.{cext}"
+                        for base_stem in (stem, f"{stem}s")
+                        for cext in candidate_exts
+                    }
+                )
+                for candidate_base in candidate_bases:
                     if candidate_base in files_by_name and candidate_base != fname:
                         base_path = files_by_name[candidate_base]
                         findings.append(
@@ -264,11 +390,40 @@ def scan_twin_profile_sprawl(repo_root: Path) -> list[dict[str, Any]]:
                                 "base_file": str(base_path.relative_to(repo_root)).replace("\\", "/"),
                                 "variant_file": str(fpath.relative_to(repo_root)).replace("\\", "/"),
                                 "detail": (
-                                    f"Coexisting base profile '{candidate_base}' and versioned twin '{fname}' "
+                                    f"Coexisting base file '{candidate_base}' and versioned twin '{fname}' "
                                     f"in '{dirpath.relative_to(repo_root)}'"
                                 ),
                             }
                         )
+    return findings
+
+
+def scan_markdown_jinja_prompt_drift(repo_root: Path) -> list[dict[str, Any]]:
+    """Verify .md prompt substrates and paired .jinja templates stay body-synchronized with zero drift."""
+    findings: list[dict[str, Any]] = []
+    md_prompts_dir = repo_root / "apps_research" / "config" / "prompts"
+    jinja_templates_dir = repo_root / "apps_research" / "prompts" / "templates"
+    if md_prompts_dir.is_dir() and jinja_templates_dir.is_dir():
+        for md_path in sorted(md_prompts_dir.glob("*.md")):
+            for j_ext in (".jinja", ".j2"):
+                jinja_path = jinja_templates_dir / f"{md_path.stem}{j_ext}"
+                if not jinja_path.is_file():
+                    continue
+                md_body = _strip_jinja_comments(md_path.read_text(encoding="utf-8", errors="replace"))
+                j2_body = _strip_jinja_comments(jinja_path.read_text(encoding="utf-8", errors="replace"))
+                if md_body != j2_body:
+                    md_rel = str(md_path.relative_to(repo_root)).replace("\\", "/")
+                    j2_rel = str(jinja_path.relative_to(repo_root)).replace("\\", "/")
+                    findings.append(
+                        {
+                            "category": "MARKDOWN_JINJA_PROMPT_DRIFT",
+                            "canonical": md_rel,
+                            "shadow": j2_rel,
+                            "detail": (
+                                f"Paired Jinja template '{j2_rel}' diverges from canonical Markdown prompt '{md_rel}'"
+                            ),
+                        }
+                    )
     return findings
 
 
@@ -362,20 +517,23 @@ def scan_cross_format_bound_drift(repo_root: Path) -> list[dict[str, Any]]:
 
 
 def run_sprawl_scan(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
-    """Run all 4 multi-folder configuration sprawl and cross-format drift scans."""
+    """Run all multi-folder configuration, markdown, jinja, and cross-format drift scans."""
     root = repo_root.resolve()
     shadow = scan_shadow_config_drift(root)
     intra = scan_intra_file_contradictions(root)
     twins = scan_twin_profile_sprawl(root)
-    cross_format = scan_cross_format_bound_drift(root)
+    md_jinja_drift = scan_markdown_jinja_prompt_drift(root)
+    cross_format = scan_cross_format_bound_drift(root) + md_jinja_drift
     total = len(shadow) + len(intra) + len(twins) + len(cross_format)
     return {
         "status": "PASS" if total == 0 else "FAIL",
         "is_clean": total == 0,
         "total_findings": total,
+        "extensions_searched": sorted(FULL_SEARCH_EXTENSIONS),
         "shadow_config_drift": shadow,
         "intra_file_contradictions": intra,
         "twin_profile_sprawl": twins,
+        "markdown_jinja_prompt_drift": md_jinja_drift,
         "cross_format_bound_drift": cross_format,
     }
 

@@ -30,8 +30,9 @@
 
 Every `agents_*_agent.md` specification inherits and enforces the 12 mandatory controls below:
 
-- **`C01` — Trusted Launch & Full-Repository Root-Cause Scope**:
+- **`C01` — Trusted Launch, Full Multi-Extension Search & Full-Repository Root-Cause Scope**:
   - `trust_level: workspace_trusted`, `sandbox_mode: workspace-write`, `network_access: disabled`.
+  - **Full Multi-Extension Search Mandate (`INV-FULL-EXTENSION-SSOT-SEARCH`)**: Every assurance, deduplication, redundancy, and SSOT centralization agent MUST search `.md`, `.mdc`, `.txt`, `.jinja`, `.j2`, `.csv`, `.jsonl`, `.toml`, `.ini`, `.cfg`, `.sql`, `.yaml`, `.yml`, `.json`, `.py`, `.sh`, and `.ps1` across the repository—never restricting scans to `.json`, `.yaml`, or `.py` alone.
   - Allowed write paths (inside isolated worktree on findings, with primary stage focus declared in `PROMPT_STAGE_ALLOWED_WRITE_PATHS` in `tools/prompt_scope_isolation.py` and full root-cause bug-fix access across `/Users/amitayer/Git/agents`): `agents/`, `apps_model_telemetry/`, `outreach_engine/`, `resume_engine/`, `resume_graph_engine/`, `apps_research/`, `apps_eval/`, `infrastructure/`, `data/`, `ops_scripts/`, `scripts/`, `tools/`, `tests/`, `config/`, `plans/`, `reports/`, `docs/`, `scratch/`, `automations/`, `.agents/`, `.antigravity/`, `.githooks/`, `AGENTS.md`, `pyproject.toml`, `.mcp.json`, `artifacts/`.
 - **`C02` — Preflight-First Ordering & Conditional Phase 0 Single-Worktree Provisioning (`Step 0.1`)**:
   - Every run executes Phase 1 & Phase 1.5 read-only behavioral preflight **first** against `${PRIMARY_REPO_ROOT}` using `PYTHONDONTWRITEBYTECODE=1` and pytest `-p no:cacheprovider` so zero-defect runs never churn branches, write `__pycache__`, or unlink active session directories. Each Phase 0 branch slug appends `${RUN_TS}-${HEX6}` for concurrent uniqueness and exports `AGY_SIDECAR_AGENT_ID`.

@@ -23,24 +23,38 @@ def _create_clean_sandbox(sandbox: Path) -> None:
         "ssot_boundary_auditor.py",
         "ssot_sprawl_scanner.py",
         "ssot_hardcoding_scanner.py",
+        "agent_runtime_auditor.py",
         "e2e_functionality_auditor.py",
         "retrieval_surface_auditor.py",
         "validate_eval_rubrics.py",
         "cost_token_budget_auditor.py",
         "testing_gaps_auditor.py",
         "validate_turn_gates.py",
+        "zero_bugfix_constraint_gate.py",
         "hook_dispatch.py",
     }:
         (tools_dir / ep).write_text("# validate_word_budget_gate\n", encoding="utf-8")
 
     (sandbox / "pytest.ini").write_text("[pytest]\naddopts = --timeout=180\n", encoding="utf-8")
-    (sandbox / "docs").mkdir(parents=True)
+    (sandbox / "docs" / "architecture").mkdir(parents=True)
     (sandbox / "docs" / "refactoring-wave-protocol.md").write_text("# Wave Protocol\n", encoding="utf-8")
+    (sandbox / "docs" / "architecture" / "skills_graph_asymmetric_granularity_adr.md").write_text(
+        "# ADR\n", encoding="utf-8"
+    )
 
     (sandbox / ".mcp.json").write_text(json.dumps({"mcpServers": {"filesystem": {"command": "npx"}}}), encoding="utf-8")
     (sandbox / ".agents" / "rules").mkdir(parents=True)
-    for rule_name in ("conformance-map.md", "output-brevity-governance.md", "pr-governance.md"):
-        (sandbox / ".agents" / "rules" / rule_name).write_text(f"# {rule_name}\n", encoding="utf-8")
+    for rule_name in (
+        "conformance-map.md",
+        "output-brevity-governance.md",
+        "pr-governance.md",
+        "hitl-decisions.md",
+        "work-item-classification.md",
+    ):
+        (sandbox / ".agents" / "rules" / rule_name).write_text(
+            f"---\ntrigger: model_decision\n---\n\n# {rule_name}\n",
+            encoding="utf-8",
+        )
 
     (sandbox / ".agents" / "skills" / "demo").mkdir(parents=True)
     (sandbox / ".agents" / "skills" / "demo" / "SKILL.md").write_text(
@@ -63,7 +77,10 @@ def _create_clean_sandbox(sandbox: Path) -> None:
             (sandbox / sub).mkdir(parents=True, exist_ok=True)
 
     headers_md = "\n\n".join(f"## {h}" for h in REQUIRED_AGENTS_HEADERS)
-    (sandbox / "AGENTS.md").write_text(f"# Agents\n\n{headers_md}\n", encoding="utf-8")
+    (sandbox / "AGENTS.md").write_text(
+        f"# Agents\n\nZero Blast-Radius Ceiling\n\n{headers_md}\n",
+        encoding="utf-8",
+    )
 
     gov_dir = sandbox / "config" / "governance"
     gov_dir.mkdir(parents=True, exist_ok=True)

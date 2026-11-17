@@ -23,22 +23,36 @@ _REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-from tools.ssot_sprawl_scanner import KNOWN_DRIFT_ALLOWLIST, run_sprawl_scan
+from tools.ssot_sprawl_scanner import FULL_SEARCH_EXTENSIONS, KNOWN_DRIFT_ALLOWLIST, run_sprawl_scan
+
+
+def _bump_ext_count(counts: dict[str, int], path: Path) -> None:
+    ext = path.suffix.lower() or "<no_ext>"
+    counts[ext] = counts.get(ext, 0) + 1
 
 
 def analyze_drift(repo_root: Path, *, include_sprawl: bool = False) -> dict[str, Any]:
     root_cfg = repo_root / "config"
     engine_cfg = repo_root / "resume_graph_engine" / "config"
+    rg_src_cfg = repo_root / "resume_graph_engine" / "src" / "apps_rg" / "config"
     outreach_cfg = repo_root / "outreach_engine" / "config"
+    research_cfg = repo_root / "apps_research" / "config"
     root_data = repo_root / "data"
     engine_data = repo_root / "resume_graph_engine" / "data"
     outreach_data = repo_root / "outreach_engine" / "data"
+
+    ext_counts: dict[str, int] = {}
+    identical_by_ext: dict[str, int] = {}
 
     result: dict[str, Any] = {
         "root_config_exists": root_cfg.is_dir(),
         "engine_config_exists": engine_cfg.is_dir(),
         "outreach_config_exists": outreach_cfg.is_dir(),
         "outreach_data_exists": outreach_data.is_dir(),
+        "research_config_exists": research_cfg.is_dir(),
+        "extensions_searched": sorted(FULL_SEARCH_EXTENSIONS),
+        "scanned_files_by_extension": ext_counts,
+        "identical_by_extension": identical_by_ext,
         "identical": [],
         "differing": [],
         "only_in_root": [],
@@ -46,9 +60,19 @@ def analyze_drift(repo_root: Path, *, include_sprawl: bool = False) -> dict[str,
         "unallowlisted_differing": [],
         "outreach_config_files_verified": 0,
         "outreach_data_files_verified": 0,
+        "research_config_files_verified": 0,
+        "targeting_identical_md_pairs": [],
+        "targeting_differing": [],
         "data_identical_count": 0,
         "data_differing": [],
     }
+
+    for scan_dir in (root_cfg, engine_cfg, rg_src_cfg, outreach_cfg, research_cfg, root_data, engine_data, outreach_data):
+        if not scan_dir.is_dir():
+            continue
+        for fp in scan_dir.rglob("*"):
+            if fp.is_file() and "__pycache__" not in fp.parts and "cache" not in fp.parts:
+                _bump_ext_count(ext_counts, fp)
 
     if outreach_cfg.is_dir():
         result["outreach_config_files_verified"] = sum(
@@ -57,6 +81,10 @@ def analyze_drift(repo_root: Path, *, include_sprawl: bool = False) -> dict[str,
     if outreach_data.is_dir():
         result["outreach_data_files_verified"] = sum(
             1 for p in outreach_data.rglob("*") if p.is_file() and "__pycache__" not in p.parts
+        )
+    if research_cfg.is_dir():
+        result["research_config_files_verified"] = sum(
+            1 for p in research_cfg.rglob("*") if p.is_file() and "__pycache__" not in p.parts
         )
 
     if root_cfg.is_dir() and engine_cfg.is_dir():
@@ -73,20 +101,39 @@ def analyze_drift(repo_root: Path, *, include_sprawl: bool = False) -> dict[str,
             rel_str = str(rel).replace("\\", "/")
             if filecmp.cmp(rf, ef, shallow=False):
                 result["identical"].append(rel_str)
+                _bump_ext_count(identical_by_ext, rf)
             else:
                 result["differing"].append(rel_str)
                 if rel_str not in KNOWN_DRIFT_ALLOWLIST:
                     result["unallowlisted_differing"].append(rel_str)
 
+    lic_targeting = outreach_cfg / "targeting"
+    rg_targeting = rg_src_cfg / "targeting"
+    if lic_targeting.is_dir() and rg_targeting.is_dir():
+        lic_t_files = {p.relative_to(lic_targeting) for p in lic_targeting.rglob("*") if p.is_file() and p.name != "README.md"}
+        rg_t_files = {p.relative_to(rg_targeting) for p in rg_targeting.rglob("*") if p.is_file() and p.name != "README.md"}
+        for rel in sorted(lic_t_files & rg_t_files):
+            lf = lic_targeting / rel
+            rf = rg_targeting / rel
+            rel_str = str(rel).replace("\\", "/")
+            if filecmp.cmp(lf, rf, shallow=False):
+                result["targeting_identical_md_pairs"].append(rel_str)
+                _bump_ext_count(identical_by_ext, lf)
+            else:
+                result["targeting_differing"].append(rel_str)
+                if f"targeting/{rel_str}" not in KNOWN_DRIFT_ALLOWLIST:
+                    result["unallowlisted_differing"].append(f"targeting/{rel_str}")
+
     if root_data.is_dir() and engine_data.is_dir():
-        r_data_files = {p.relative_to(root_data) for p in root_data.rglob("*") if p.is_file()}
-        e_data_files = {p.relative_to(engine_data) for p in engine_data.rglob("*") if p.is_file()}
+        r_data_files = {p.relative_to(root_data) for p in root_data.rglob("*") if p.is_file() and "cache" not in p.parts}
+        e_data_files = {p.relative_to(engine_data) for p in engine_data.rglob("*") if p.is_file() and "cache" not in p.parts}
         for rel in sorted(r_data_files & e_data_files):
             rf = root_data / rel
             ef = engine_data / rel
             rel_str = str(rel).replace("\\", "/")
             if filecmp.cmp(rf, ef, shallow=False):
                 result["data_identical_count"] += 1
+                _bump_ext_count(identical_by_ext, rf)
             else:
                 result["data_differing"].append(rel_str)
 

@@ -14,8 +14,8 @@ Canonical reference template for wave-based engineering implementation plans in 
 - **Wave Decomposition**: Deconstruct engineering work into sequential numbered waves (`## Wave 1: <Title>`, `## Wave 2: <Title>`) starting at Wave 0 or 1 with no gaps.
 - **Mandatory Subsections**: Each wave must contain exactly four subsections: `### Objective & Scope`, `### Milestones & Deliverables`, `### Acceptance Criteria`, and `### Runtime Receipt & Completion Gate`.
 - **Completion Gate Fields**: Every wave completion gate must explicitly specify all six runtime evidence fields without wrapping the field labels in backticks (`- **Run:**` or `- Run:`, `- **Input:**`, `- **Expected:**`, `- **Verify independently:**`, `- **Fail if:**`, and `- **Record:**`).
-- **Word Budget (`INV-WAVE-PLAN-MAX-WORDS`)**: The entire plan should normally target 500–800 words, with a hard maximum of 1,000 words. Keep descriptions bounded, precise, and free of conversational padding.
-- **Chat Reporting Separation**: Do not dump all-wave status tables into ordinary chat turns. Chat completion responses target ~120 words (hard max 300 words).
+- **Word Budget (`INV-WAVE-PLAN-MAX-WORDS`)**: Wave plans are unbounded (`INV-WAVE-PLAN-MAX-WORDS = 0`, no artificial word-count ceiling) so multi-wave architectural specifications and full-ripple refactors remain comprehensive while staying concise and free of conversational padding.
+- **Chat Reporting Separation**: Do not dump all-wave status tables into ordinary chat turns. Chat completion responses target ~150–250 words (hard max 450 words).
 
 ---
 

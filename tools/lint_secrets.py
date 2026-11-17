@@ -53,6 +53,26 @@ EXCLUDED_DIR_PARTS: tuple[str, ...] = (
     "fixtures",
 )
 
+SCANNABLE_TEXT_EXTENSIONS: tuple[str, ...] = (
+    ".py",
+    ".json",
+    ".yaml",
+    ".yml",
+    ".sh",
+    ".ps1",
+    ".toml",
+    ".ini",
+    ".cfg",
+    ".md",
+    ".mdc",
+    ".txt",
+    ".jinja",
+    ".j2",
+    ".csv",
+    ".jsonl",
+    ".sql",
+)
+
 DUMMY_SECRET_MARKERS: tuple[str, ...] = (
     "example",
     "dummy",
@@ -226,12 +246,20 @@ def main(argv: Sequence[str] | None = None) -> int:
         import os
 
         files_to_scan = []
-        excluded_parts_set = set(EXCLUDED_DIR_PARTS)
+        excluded_parts_set = set(EXCLUDED_DIR_PARTS) | {"__pycache__", ".pytest_cache", ".ruff_cache"}
         for root, dirs, files_in_dir in os.walk(repo_root):
-            dirs[:] = [d for d in dirs if d not in excluded_parts_set]
+            rel_root = os.path.relpath(root, repo_root).replace("\\", "/")
+            if rel_root == "docs/archive" or rel_root.startswith("docs/archive/"):
+                dirs.clear()
+                continue
+            dirs[:] = [
+                d
+                for d in dirs
+                if d not in excluded_parts_set and not (rel_root == "docs" and d == "archive")
+            ]
             for f in files_in_dir:
                 ext = Path(f).suffix.lower()
-                if ext in (".py", ".json", ".yaml", ".yml", ".sh", ".toml", ".md", ".jsonl"):
+                if ext in SCANNABLE_TEXT_EXTENSIONS:
                     files_to_scan.append(Path(root) / f)
 
     def scan_one(f: Path) -> list[tuple[str, int, str, str]]:

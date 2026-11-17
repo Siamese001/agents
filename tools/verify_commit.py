@@ -34,7 +34,7 @@ from tools.lint_layer_imports import check_file_layer_imports
 from tools.lint_model_neutral_naming import check_file_model_neutrality
 from tools.lint_production_purity import check_file_production_purity
 from tools.lint_contract_schemas import validate_file_against_schema
-from tools.lint_secrets import check_file_for_secrets
+from tools.lint_secrets import SCANNABLE_TEXT_EXTENSIONS, check_file_for_secrets
 from tools.lint_architecture_boundaries import run_architecture_linter
 from tools.lint_layer_boundaries import check_layer_boundaries
 from tools.lint_model_pins import audit_model_pins
@@ -171,7 +171,7 @@ def _collect_repository_files(repo_root: Path) -> tuple[list[Path], list[Path], 
                 secret_files.append(full_p)
                 if "config" in full_p.parts:
                     schema_files.append(full_p)
-            elif suffix == ".sh":
+            elif suffix in SCANNABLE_TEXT_EXTENSIONS:
                 secret_files.append(full_p)
 
     return py_files, schema_files, secret_files

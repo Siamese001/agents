@@ -36,7 +36,7 @@ Static (`adg_sqlite`): AST scan, structural deps. Runtime (`otel_mcp`): OTEL spa
 
 ## 6. ADG vs Hardcoded String
 
-Query ADG for paths/identifiers/layer-names — never grep, never hardcode. Detailed retrieval procedure: constitutional §5/§28 + the [`graph-analysis`](../skills/graph-analysis/SKILL.md) / [`adg-sqlite`](../skills/adg-sqlite/SKILL.md) skills.
+Query ADG for paths/identifiers/layer-names — never grep, never hardcode. Detailed retrieval procedure: constitutional §5/§28 + the [`scope-containment`](../skills/scope-containment/SKILL.md) skill.
 
 ## 7. Required Plan Sections (T2/T3)
 
