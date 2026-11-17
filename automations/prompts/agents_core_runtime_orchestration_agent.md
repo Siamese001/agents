@@ -33,7 +33,7 @@ Execute a deterministic, fail-closed **Core Agent Runtime, Supervisor State Mach
 ## 3. Phase 1 & Phase 1.5: 5-Pillar Read-Only Preflight Audit & Fast-Exit Gate
 
 ### Phase 1: 5-Pillar Core Runtime Audit
-1. **Pillar 1 — Delegation Contracts**: Verify explicit subagent `delegation_contract` payloads construct the mandatory 10 fields (`task_id`, `parent_task_id`, `objective`, `scope_in`, `scope_out`, `allowed_tools`, `deliverable`, `definition_of_done`, `budget`, `escalation_rule`), while interactive `/boost` and `/swarm` subagents launch freely without contract or scope lockouts.
+1. **Pillar 1 — Delegation Contracts Across Python & Markdown Specs**: Verify explicit subagent `delegation_contract` payloads in both `.py` AST dictionaries and fenced JSON blocks inside `.agents/skills/**/*.md` and `automations/prompts/*.md` construct the mandatory 10 fields (`task_id`, `parent_task_id`, `objective`, `scope_in`, `scope_out`, `allowed_tools`, `deliverable`, `definition_of_done`, `budget`, `escalation_rule`), while interactive `/boost` and `/swarm` subagents launch freely without contract or scope lockouts.
 2. **Pillar 2 — State Machine Invariants**: Verify `WorkflowStateMachine` initial states, valid transitions, and illegal transition rejection.
 3. **Pillar 3 — Context Budgeting**: Verify `TokenBudget` enforces maximum context token ceilings and raises `TokenBudgetExceededError` on overflow.
 4. **Pillar 4 — Session Persistence**: Verify `JsonlEventStore` serializes and retrieves monotonic event streams without tamper.

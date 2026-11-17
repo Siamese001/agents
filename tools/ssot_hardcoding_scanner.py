@@ -220,6 +220,39 @@ def scan_policy_registry_sync(repo_root: Path) -> list[dict[str, Any]]:
                         ),
                     }
                 )
+            for md_rel in ("AGENTS.md", ".agents/rules/output-brevity-governance.md"):
+                md_doc = repo_root / md_rel
+                if md_doc.is_file():
+                    md_txt = md_doc.read_text(encoding="utf-8", errors="replace")
+                    m_ceil = re.search(r"Hard\s+Word\s+Ceiling[^\n]*?(\d{2,4})\s+words", md_txt, re.IGNORECASE)
+                    if m_ceil and int(m_ceil.group(1)) != threshold:
+                        findings.append(
+                            {
+                                "category": "MARKDOWN_POLICY_THRESHOLD_DRIFT",
+                                "policy_id": pid,
+                                "file": md_rel,
+                                "observed": int(m_ceil.group(1)),
+                                "canonical_value": threshold,
+                                "detail": f"{md_rel} declares Hard Word Ceiling {m_ceil.group(1)} words != {pid} ({threshold})",
+                            }
+                        )
+
+        if pid == "INV-WAVE-PLAN-MAX-WORDS" and isinstance(threshold, int) and threshold == 0:
+            tpl_doc = repo_root / "docs" / "templates" / "wave_plan_template.md"
+            if tpl_doc.is_file():
+                tpl_txt = tpl_doc.read_text(encoding="utf-8", errors="replace")
+                if re.search(r"hard\s+maximum\s+of\s+1,?000\s+words", tpl_txt, re.IGNORECASE):
+                    findings.append(
+                        {
+                            "category": "MARKDOWN_POLICY_THRESHOLD_DRIFT",
+                            "policy_id": pid,
+                            "file": "docs/templates/wave_plan_template.md",
+                            "detail": (
+                                "docs/templates/wave_plan_template.md still states obsolete 'hard maximum of 1,000 words' "
+                                "instead of unbounded INV-WAVE-PLAN-MAX-WORDS = 0"
+                            ),
+                        }
+                    )
 
     return findings
 
@@ -391,6 +424,29 @@ def scan_prompt_code_parity(repo_root: Path) -> list[dict[str, Any]]:
                 "file": role_targets[0][0],
                 "detail": "role_episode_lane.py prompts for 'between 20 and NARRATIVE_MAX_WORDS words' but validates against 8/10/15 minimum word thresholds",
             })
+
+    # Scan .md, .txt, and .jinja consumer prompts and rubrics for placeholder/sentinel parity
+    md_prompt_checks = (
+        ("apps_research/config/prompts/apps_rg_targeting_brief_v1.md", "BLOCKED: COMPANY_NOT_IDENTIFIABLE"),
+        ("apps_research/config/prompts/downstream_research_substrate_v1.md", "BLOCKED: COMPANY_NOT_IDENTIFIABLE"),
+        ("apps_research/config/prompts/apps_lic_research_substrate_v1.md", "BLOCKED: COMPANY_NOT_IDENTIFIABLE"),
+        ("apps_research/config/prompts/apps_exec_executive_brief_v1.md", "BLOCKED: COMPANY_NOT_IDENTIFIABLE"),
+        ("apps_research/prompts/templates/downstream_research_substrate_v1.jinja", "BLOCKED: COMPANY_NOT_IDENTIFIABLE"),
+        ("apps_research/prompts/templates/apps_lic_research_substrate_v1.jinja", "BLOCKED: COMPANY_NOT_IDENTIFIABLE"),
+        ("apps_research/prompts/templates/apps_exec_executive_brief_v1.jinja", "BLOCKED: COMPANY_NOT_IDENTIFIABLE"),
+    )
+    for rel_md, req_token in md_prompt_checks:
+        md_p = repo_root / rel_md
+        if md_p.is_file():
+            md_txt = md_p.read_text(encoding="utf-8", errors="replace")
+            if req_token not in md_txt:
+                findings.append(
+                    {
+                        "category": "MARKDOWN_PROMPT_SENTINEL_DRIFT",
+                        "file": rel_md,
+                        "detail": f"{rel_md} missing required fail-closed sentinel '{req_token}'",
+                    }
+                )
     return findings
 
 

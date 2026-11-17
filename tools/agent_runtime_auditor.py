@@ -17,6 +17,7 @@ import contextlib
 import io
 import json
 import os
+import re
 import sys
 import tempfile
 from dataclasses import dataclass
@@ -78,10 +79,12 @@ def audit_pillar_1_delegation_contracts(repo_root: Path) -> dict[str, Any]:
 
     gaps: list[str] = []
     contracts_checked = 0
+    md_contracts_checked = 0
 
-    # Scan .agents/skills and prompt specs for delegation contracts
+    # Scan .agents/skills, automations/prompts, and agents/ across .py and .md files for delegation contracts
     search_dirs = [
         repo_root / ".agents" / "skills",
+        repo_root / "automations" / "prompts",
         repo_root / "agents",
     ]
 
@@ -102,6 +105,37 @@ def audit_pillar_1_delegation_contracts(repo_root: Path) -> dict[str, Any]:
                         if missing:
                             gaps.append(f"{p.relative_to(repo_root)}: Dict delegation contract missing mandatory fields {sorted(missing)}")
 
+        for md_p in sorted(d.rglob("*.md")):
+            try:
+                md_text = md_p.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                continue
+            for block_match in re.finditer(r"```json\s*([\s\S]*?)```", md_text):
+                raw_json = block_match.group(1).strip()
+                try:
+                    parsed = json.loads(raw_json)
+                except json.JSONDecodeError:
+                    continue
+                if not isinstance(parsed, dict):
+                    continue
+                candidate = (
+                    parsed["delegation_contract"]
+                    if isinstance(parsed.get("delegation_contract"), dict)
+                    else parsed
+                )
+                if "task_id" in candidate and (
+                    "parent_task_id" in candidate
+                    or "delegation_contract" in parsed
+                    or ("objective" in candidate and "scope_in" in candidate)
+                ):
+                    contracts_checked += 1
+                    md_contracts_checked += 1
+                    missing = set(MANDATORY_DELEGATION_FIELDS) - set(candidate.keys())
+                    if missing:
+                        gaps.append(
+                            f"{md_p.relative_to(repo_root)}: Markdown JSON delegation contract missing mandatory fields {sorted(missing)}"
+                        )
+
     # Hermetic synthetic contract verification
     valid_test_payload = {field: f"val_{field}" for field in MANDATORY_DELEGATION_FIELDS}
     valid_test_payload["scope_in"] = ["agents/orchestration/"]
@@ -120,6 +154,7 @@ def audit_pillar_1_delegation_contracts(repo_root: Path) -> dict[str, Any]:
         "passed": len(gaps) == 0,
         "gaps": gaps,
         "contracts_checked": contracts_checked,
+        "markdown_contracts_checked": md_contracts_checked,
         "mandatory_fields_count": len(MANDATORY_DELEGATION_FIELDS),
     }
 

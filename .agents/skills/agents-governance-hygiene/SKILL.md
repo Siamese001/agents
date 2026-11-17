@@ -9,6 +9,9 @@ Consolidates `agents-storage-worktree-hygiene`, `agents-ssot-boundary-governance
 
 ## Execution Protocol
 
+0. **Full Multi-Extension Search Mandate (`INV-FULL-EXTENSION-SSOT-SEARCH`)**:
+   Every deduplication, redundancy, sprawl, secret, and SSOT audit searches `.md`, `.mdc`, `.txt`, `.jinja`, `.j2`, `.csv`, `.jsonl`, `.toml`, `.ini`, `.cfg`, `.sql`, `.yaml`, `.yml`, `.json`, `.py`, `.sh`, and `.ps1` across the repository—never restricting scans to `.json`, `.yaml`, or `.py` alone.
+
 1. **Preflight Read-Only Behavioral Audits (`PREFLIGHT_ZERO_DEFECT_FAST_EXIT`)**:
    Always execute read-only behavioral auditors first before provisioning any branch or mutating repository state:
    ```bash

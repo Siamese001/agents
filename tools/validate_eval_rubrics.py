@@ -238,6 +238,56 @@ def _validate_judge_rubrics_and_profiles(repo_root: Path) -> list[str]:
     return violations
 
 
+def _validate_markdown_and_text_rubrics(repo_root: Path) -> tuple[int, list[str]]:
+    """Discover and validate .md and .txt judge rubrics and system prompts across all config roots."""
+    violations: list[str] = []
+    seen_files: set[Path] = set()
+    scan_roots = (*CONFIG_ROOTS, "resume_graph_engine/src/apps_rg/config")
+
+    for cfg_rel in scan_roots:
+        cfg_dir = repo_root / cfg_rel
+        if not cfg_dir.is_dir():
+            continue
+        for fp in sorted(cfg_dir.rglob("*")):
+            if not fp.is_file() or fp.suffix.lower() not in (".md", ".txt"):
+                continue
+            name_low = fp.name.lower()
+            if not any(tok in name_low for tok in ("rubric", "judge", "system_prompt")):
+                continue
+            resolved = fp.resolve()
+            if resolved in seen_files:
+                continue
+            seen_files.add(resolved)
+            rel = fp.relative_to(repo_root).as_posix()
+            try:
+                raw_text = fp.read_text(encoding="utf-8")
+            except (OSError, UnicodeDecodeError) as exc:
+                violations.append(f"{rel}: unreadable markdown/text rubric ({exc})")
+                continue
+            if not raw_text.strip():
+                violations.append(f"{rel}: empty markdown/text rubric")
+                continue
+            if "llm_judge_rubric" in name_low:
+                for req_verdict in ("SAFE", "UNSAFE_DIFFERENT_INTENT", "UNSAFE_POLICY_DRIFT", "UNCERTAIN"):
+                    if req_verdict not in raw_text:
+                        violations.append(f"{rel}: missing required judge verdict class '{req_verdict}'")
+                if "0.0" not in raw_text or "1.0" not in raw_text:
+                    violations.append(f"{rel}: missing [0.0, 1.0] confidence range specification")
+            elif name_low == "executive_positioning_rubric.txt":
+                if "Score 0.85" not in raw_text or "Score 0.00" not in raw_text:
+                    violations.append(f"{rel}: missing normalized [0.00, 1.00] score bands")
+
+    canon_md = repo_root / "config" / "certification" / "llm_judge_rubric.md"
+    mirror_md = repo_root / "resume_graph_engine" / "config" / "certification" / "llm_judge_rubric.md"
+    if canon_md.is_file() and mirror_md.is_file():
+        if canon_md.read_text(encoding="utf-8") != mirror_md.read_text(encoding="utf-8"):
+            violations.append(
+                "resume_graph_engine/config/certification/llm_judge_rubric.md: diverges from canonical config/certification/llm_judge_rubric.md"
+            )
+
+    return len(seen_files), violations
+
+
 _RUNTIME_CACHE_DIR_PARTS: frozenset[str] = frozenset({"cache", "__pycache__", ".pytest_cache", ".ruff_cache"})
 _RUNTIME_BINARY_SIDE_SUFFIXES: tuple[str, ...] = ("-wal", "-shm", "-journal", ".sqlite", ".sqlite3", ".db", ".bin", ".lock")
 
@@ -293,7 +343,11 @@ def _validate_data_holdout_surface(repo_root: Path) -> tuple[int, dict[str, int]
                         )
                 elif fp.suffix in (".yaml", ".yml"):
                     yaml.safe_load(fp.read_text(encoding="utf-8"))
-            except (OSError, json.JSONDecodeError, yaml.YAMLError, csv.Error) as exc:
+                elif fp.suffix.lower() in (".md", ".txt", ".jinja", ".j2"):
+                    txt_payload = fp.read_text(encoding="utf-8")
+                    if not txt_payload.strip():
+                        violations.append(f"{rel}: whitespace-only markdown/text dataset file")
+            except (OSError, UnicodeDecodeError, json.JSONDecodeError, yaml.YAMLError, csv.Error) as exc:
                 violations.append(f"{rel}: malformed dataset payload ({exc})")
         counts_by_root[d_rel] = root_count
     lic_holdout_dir = repo_root / "outreach_engine" / "data" / "evals" / "holdout"
@@ -371,6 +425,8 @@ def validate_eval_rubrics(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
     exit_rubric_count, rubric_errs = _validate_exit_and_domain_rubrics(root)
     violations.extend(rubric_errs)
     violations.extend(_validate_judge_rubrics_and_profiles(root))
+    md_txt_rubric_count, md_txt_errs = _validate_markdown_and_text_rubrics(root)
+    violations.extend(md_txt_errs)
 
     data_file_count, data_counts_by_root, data_errs = _validate_data_holdout_surface(root)
     violations.extend(data_errs)
@@ -389,7 +445,8 @@ def validate_eval_rubrics(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
         "status": "PASS" if is_clean else "FAIL", "is_clean": is_clean,
         "config_roots_audited": [r for r in CONFIG_ROOTS if (root / r).is_dir()],
         "eval_module_count": eval_mod_count, "validated_schema_count": schema_count,
-        "exit_rubric_count": exit_rubric_count, "data_file_count": data_file_count,
+        "exit_rubric_count": exit_rubric_count, "markdown_text_rubric_count": md_txt_rubric_count,
+        "data_file_count": data_file_count,
         "data_counts_by_root": data_counts_by_root, "purity_violation_count": len(purity_errs),
         "violations": violations,
     }
@@ -422,6 +479,7 @@ __all__ = [
     "_validate_eval_modules_ast_and_schemas",
     "_validate_exit_and_domain_rubrics",
     "_validate_judge_rubrics_and_profiles",
+    "_validate_markdown_and_text_rubrics",
     "main",
     "validate_eval_rubrics",
 ]

@@ -154,9 +154,12 @@ class ArchitectureAuditor:
 
 
 class ConfigSSOTAuditor:
-    """Audits configuration files against schema definitions and detects drift."""
+    """Audits configuration, markdown, prompt, and dataset files across all extensions for SSOT drift and sprawl."""
 
     def evaluate(self, repo_root: Path) -> list[CouncilFinding]:
+        from tools.check_config_ssot_drift import analyze_drift
+        from tools.ssot_sprawl_scanner import run_sprawl_scan
+
         findings: list[CouncilFinding] = []
         config_dir = repo_root / "config"
         if not config_dir.is_dir():
@@ -173,6 +176,72 @@ class ConfigSSOTAuditor:
                     description="config/provider_profiles.yaml is missing",
                     target_path="config/provider_profiles.yaml",
                     suggested_fix="Restore canonical provider profiles configuration.",
+                )
+            )
+
+        drift = analyze_drift(repo_root)
+        for rel_p in drift.get("unallowlisted_differing", []):
+            findings.append(
+                CouncilFinding(
+                    member=CouncilMember.CONFIG_SSOT_AUDITOR,
+                    category="config_ssot_drift",
+                    severity="CRITICAL",
+                    description=f"Unallowlisted config drift detected in {rel_p}",
+                    target_path=str(rel_p),
+                    suggested_fix="Synchronize or consolidate shadow configuration against canonical config/.",
+                )
+            )
+        for rel_p in drift.get("targeting_differing", []):
+            findings.append(
+                CouncilFinding(
+                    member=CouncilMember.CONFIG_SSOT_AUDITOR,
+                    category="targeting_markdown_drift",
+                    severity="WARNING",
+                    description=f"Targeting markdown/config file diverges across subsystems: {rel_p}",
+                    target_path=str(rel_p),
+                    suggested_fix="Align outreach_engine and resume_graph_engine targeting markdown files.",
+                )
+            )
+        for rel_p in drift.get("data_differing", []):
+            findings.append(
+                CouncilFinding(
+                    member=CouncilMember.CONFIG_SSOT_AUDITOR,
+                    category="data_ssot_drift",
+                    severity="CRITICAL",
+                    description=f"Dataset drift detected across data/ and resume_graph_engine/data/: {rel_p}",
+                    target_path=str(rel_p),
+                    suggested_fix="Synchronize dataset files across canonical data/ and subsystem mirror.",
+                )
+            )
+
+        sprawl = run_sprawl_scan(repo_root)
+        for bucket in (
+            "shadow_config_drift",
+            "intra_file_contradictions",
+            "twin_profile_sprawl",
+        ):
+            for item in sprawl.get(bucket, []):
+                target = str(item.get("shadow") or item.get("file") or item.get("canonical") or "")
+                findings.append(
+                    CouncilFinding(
+                        member=CouncilMember.CONFIG_SSOT_AUDITOR,
+                        category=str(item.get("category", bucket)).lower(),
+                        severity="WARNING",
+                        description=str(item.get("detail", f"Sprawl/drift finding in {target}")),
+                        target_path=target or None,
+                        suggested_fix="Consolidate duplicate or diverged text/markdown/template files into canonical SSOT.",
+                    )
+                )
+        for item in sprawl.get("cross_format_bound_drift", []):
+            target = str(item.get("shadow") or item.get("file") or item.get("canonical") or "")
+            findings.append(
+                CouncilFinding(
+                    member=CouncilMember.CONFIG_SSOT_AUDITOR,
+                    category=str(item.get("category", "cross_format_bound_drift")).lower(),
+                    severity="WARNING",
+                    description=str(item.get("detail", f"Cross-format/markdown prompt drift in {target}")),
+                    target_path=target or None,
+                    suggested_fix="Align paired .md, .jinja, .yaml, and .json templates and bounds.",
                 )
             )
 

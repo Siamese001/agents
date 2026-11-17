@@ -337,14 +337,30 @@ def audit_mcp_hooks_and_links(repo_root: Path) -> list[str]:
         if "C:\\Git\\" in raw:
             issues.append(f"{mcp_rel}: hardcoded Windows C:\\Git\\ path")
 
-    for md_rel in ("AGENTS.md", ".agents/rules/conformance-map.md"):
-        md_path = repo_root / md_rel
-        if not md_path.is_file():
-            issues.append(f"Missing governance document: {md_rel}")
-            continue
-        text = md_path.read_text(encoding="utf-8")
-        for m in re.finditer(r"\[[^\]]+\]\((?!https?://|file://|conversation://)([^)#]+)", text):
+    md_link_targets: list[Path] = []
+    for req_md in ("AGENTS.md", ".agents/rules/conformance-map.md"):
+        req_path = repo_root / req_md
+        if not req_path.is_file():
+            issues.append(f"Missing governance document: {req_md}")
+        else:
+            md_link_targets.append(req_path)
+
+    for extra_md_dir in (".agents/rules", "automations/prompts"):
+        d_md = repo_root / extra_md_dir
+        if d_md.is_dir():
+            for p_md in sorted(d_md.rglob("*.md")):
+                if p_md not in md_link_targets and "rollout_summaries" not in p_md.parts:
+                    md_link_targets.append(p_md)
+
+    for md_path in md_link_targets:
+        md_rel = str(md_path.relative_to(repo_root)).replace("\\", "/")
+        raw_md = md_path.read_text(encoding="utf-8", errors="replace")
+        no_fences = re.sub(r"```[\s\S]*?```", "", raw_md)
+        no_inline_code = re.sub(r"`[^`\n]+`", "", no_fences)
+        for m in re.finditer(r"\[[^\]]*\]\((?!https?://|file://|conversation://|mailto:|#)([^)#\s]+)", no_inline_code):
             target = m.group(1).strip()
+            if "${" in target or "<" in target or target in ("path", "forward/slash/path"):
+                continue
             resolved = (repo_root / target).resolve() if (repo_root / target).exists() else (md_path.parent / target).resolve()
             if not resolved.exists():
                 issues.append(f"{md_rel}: broken link target '{target}'")
@@ -357,7 +373,7 @@ def audit_mcp_hooks_and_links(repo_root: Path) -> list[str]:
 
 
 def _compute_ratchet_backlog(repo_root: Path, drift: dict[str, Any]) -> dict[str, int]:
-    """Quantify grandfathered ratchet debt and physical config/data duplication so backlog is never hidden."""
+    """Quantify grandfathered ratchet debt and physical config/data/markdown duplication so backlog is never hidden."""
     env_ratchet_files = 0
     env_ratchet_path = repo_root / "config" / "governance" / "env_lookup_ratchet.json"
     if env_ratchet_path.is_file():
@@ -383,14 +399,22 @@ def _compute_ratchet_backlog(repo_root: Path, drift: dict[str, Any]) -> dict[str
             pass
 
     dup_configs = len(drift.get("identical", []))
+    dup_targeting_md = len(drift.get("targeting_identical_md_pairs", []))
     dup_data = int(drift.get("data_identical_count", 0))
-    total = env_ratchet_files + budget_prod_files + dup_configs + dup_data
+    id_by_ext = drift.get("identical_by_extension", {})
+    dup_markdown_text = sum(
+        int(id_by_ext.get(ext, 0))
+        for ext in (".md", ".txt", ".csv", ".jsonl", ".jinja", ".j2")
+    )
+    total = env_ratchet_files + budget_prod_files + dup_configs + dup_targeting_md + dup_data
     return {
         "env_lookup_ratchet_files": env_ratchet_files,
         "file_budget_ratchet_prod_files": budget_prod_files,
         "file_budget_ratchet_total_files": budget_total_files,
         "duplicate_config_pairs": dup_configs,
+        "duplicate_targeting_md_pairs": dup_targeting_md,
         "duplicate_data_pairs": dup_data,
+        "duplicate_markdown_and_text_pairs": dup_markdown_text,
         "total_backlog_items": total,
     }
 
