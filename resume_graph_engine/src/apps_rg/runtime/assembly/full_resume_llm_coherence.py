@@ -661,7 +661,7 @@ def aggregate_full_resume_coherence(
         in ("1", "true", "yes", "on")
     )
     if not quorum_met and allow_mean_quorum and len(model_backed) >= 2:
-        div_keys = ("target mandate", "mandate divergence", "role mismatch", "target role mismatch", "wrong domain")
+        div_keys = ("target mandate divergence", "mandate divergence", "role mismatch", "target role mismatch", "wrong domain")
         has_mandate_divergence = any(
             any(k in str(f).lower() for k in div_keys)
             for o in model_backed for f in o.findings or []
@@ -703,7 +703,7 @@ def aggregate_full_resume_coherence(
                 blockers.append(f"unsupported_briefing_proof:{o.judge_id}")
             elif "certification" in low and "competenc" in low:
                 blockers.append(f"cert_duplication_judge:{o.judge_id}")
-            elif any(k in low for k in ("target mandate", "mandate divergence", "target role mismatch", "role mismatch", "no connection to jd", "wrong domain")):
+            elif any(k in low for k in ("target mandate divergence", "mandate divergence", "target role mismatch", "role mismatch", "no connection to jd", "wrong domain")):
                 blockers.append(f"target_mandate_divergence:{o.judge_id}")
             elif "jd" in low and any(k in low for k in ("resonance", "disconnect", "unaligned", "unresponsive", "fails to address")):
                 blockers.append(f"jd_resonance_failure:{o.judge_id}")

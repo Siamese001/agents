@@ -27,6 +27,11 @@ def compact_evidence_packet_for_prompt(evidence_packet: dict[str, Any]) -> dict[
     for sec in sections_in:
         if not isinstance(sec, dict):
             continue
+        visible_claim_set = {
+            str(vc.get("claim_text") or "").strip()
+            for vc in (sec.get("visible_claims") or [])
+            if isinstance(vc, dict) and str(vc.get("claim_text") or "").strip()
+        }
         facts_compact = []
         for f in sec.get("selected_candidate_facts") or []:
             if not isinstance(f, dict):
@@ -57,7 +62,11 @@ def compact_evidence_packet_for_prompt(evidence_packet: dict[str, Any]) -> dict[
                 "binding_status": b.get("binding_status"),
             }
             raw_visible_claim = b.get("visible_claim_text")
-            if isinstance(raw_visible_claim, str) and raw_visible_claim.strip():
+            if (
+                isinstance(raw_visible_claim, str)
+                and raw_visible_claim.strip()
+                and raw_visible_claim.strip() not in visible_claim_set
+            ):
                 b_entry["visible_claim_text"] = (
                     raw_visible_claim[:MAX_COMPACT_CLAIM_CHARS]
                     if len(raw_visible_claim) > MAX_COMPACT_CLAIM_CHARS
