@@ -35,8 +35,8 @@ def _judge(
     decisive_failure: bool | None = None,
     findings: list[str] | None = None,
 ) -> JudgeOutput:
-    sc = (0.9 if pass_ else 0.2) if score is None else score
-    nsc = (0.9 if pass_ else 0.2) if normalized_score is None else normalized_score
+    sc = (0.94 if pass_ else 0.2) if score is None else score
+    nsc = (0.94 if pass_ else 0.2) if normalized_score is None else normalized_score
     df = (not pass_) if decisive_failure is None else decisive_failure
     return JudgeOutput(
         judge_id=f"x1d_{key}_full_resume_coherence",
@@ -54,8 +54,8 @@ def _judge(
         score=sc,
         score_scale=score_scale,
         normalized_score=nsc,
-        threshold=4.0 if score_scale == "0_to_5" else 0.8,
-        normalized_threshold=0.8,
+        threshold=4.4 if score_scale == "0_to_5" else 0.88,
+        normalized_threshold=0.88,
         pass_=pass_,
         decisive_failure=df,
         findings=findings or [],
@@ -87,18 +87,18 @@ def test_quorum_pass_with_two_live_judges():
 
 def test_two_judge_split_with_passing_mean_and_no_decisive_failure_passes_quorum():
     judges = [
-        _judge(key="gemini_pro", pass_=True),  # score 0.9 >= 0.8
+        _judge(key="gemini_pro", pass_=True),  # score 0.94 >= 0.88
         _judge(
             key="openai_chatgpt",
             pass_=False,
-            score=3.7,
+            score=4.2,
             score_scale="0_to_5",
-            normalized_score=0.74,
+            normalized_score=0.84,
             decisive_failure=False,
             findings=["Dissenting commentary on role fit."],
         ),
     ]
-    # Mean normalized score is (0.9 + 0.74) / 2 = 0.82 >= 0.80
+    # Mean normalized score is (0.94 + 0.84) / 2 = 0.89 >= 0.88
     agg = aggregate_full_resume_coherence(judges, deterministic_blockers=[])
     assert agg["full_resume_coherence_pass"] is True
     assert agg["decisive_reason"] == "quorum_pass_no_blockers"
@@ -510,13 +510,13 @@ def test_finding_is_negative_assertion_classifications():
 
 def test_negative_assertion_praise_finding_does_not_block_and_allows_mean_quorum():
     judges = [
-        _judge(key="gemini_pro", pass_=True),  # score 0.9 >= 0.8
+        _judge(key="gemini_pro", pass_=True),  # score 0.94 >= 0.88
         _judge(
             key="openai_chatgpt",
             pass_=False,
-            score=3.8,
+            score=4.2,
             score_scale="0_to_5",
-            normalized_score=0.76,
+            normalized_score=0.84,
             decisive_failure=False,
             findings=[
                 "The summary is coherent but dense.",
@@ -525,7 +525,7 @@ def test_negative_assertion_praise_finding_does_not_block_and_allows_mean_quorum
             ],
         ),
     ]
-    # Mean normalized score: (0.9 + 0.76) / 2 = 0.83 >= 0.80
+    # Mean normalized score: (0.94 + 0.84) / 2 = 0.89 >= 0.88
     agg = aggregate_full_resume_coherence(judges, deterministic_blockers=[])
     assert agg["full_resume_coherence_pass"] is True
     assert agg["blockers"] == []

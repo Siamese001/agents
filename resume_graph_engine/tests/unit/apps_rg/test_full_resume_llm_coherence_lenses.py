@@ -140,6 +140,7 @@ def test_aggregate_full_resume_coherence_flags_lens_blocker_when_decisive():
             findings=["JD language used as primary proof without candidate evidence."],
         ),
     ]
+    judges[1].unsupported_claims = ["JD language used as primary proof"]
     agg = aggregate_full_resume_coherence(judges, deterministic_blockers=[])
     assert agg["full_resume_coherence_pass"] is False
     assert "unsupported_jd_proof:x1d_openai_chatgpt_full_resume_coherence" in agg["blockers"]

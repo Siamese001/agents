@@ -1003,7 +1003,7 @@ def test_employment_pool_x1d_is_single_claude_judge(tmp_path) -> None:
         json.dumps(
             {
                 "selections": [
-                    {"bullet_id": bid, "score": 0.85, "passes": True, "path_index": i}
+                    {"bullet_id": bid, "score": 0.90, "passes": True, "path_index": i}
                     for i, bid in enumerate(UNIFY_BULLET_IDS)
                 ]
             }
@@ -1033,7 +1033,7 @@ def test_final_ey_materialization_reconciles_stale_duplicate_selector_gate(tmp_p
             {
                 "selections": [
                     {"bullet_id": bid, "score": score, "passes": True}
-                    for bid, score in zip(required, (0.84, 0.83, 0.82), strict=True)
+                    for bid, score in zip(required, (0.90, 0.89, 0.88), strict=True)
                 ]
             }
         ),

@@ -237,6 +237,7 @@ You are evaluating a COMPLETE assembled executive resume (all sections) for rele
 Deterministic X2 gates are authoritative for hard proof; your verdict informs full_resume_coherence_pass only when aggregated with quorum.
 
 Return JSON only with: score_scale, score, threshold, pass, decisive_failure, findings, cited_sentence_indexes, remediation_suggestions.
+Required pass floor on 0_to_5 scale is 4.4/5.0 (0.88 normalized on 0_to_1).
 
 EVALUATION LENSES & CORE DIMENSIONS:
 Evaluate the resume across these six distinct recruitment, screening, and strategic alignment lenses:

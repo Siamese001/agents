@@ -107,7 +107,7 @@ rewrite_rules:
     adaptive_expansion: "expand_to_4_only_if_slot_coverage_or_min_score_fails"
     final_bullet_count: 6
     selector: "claude_pool_top_n_pass"
-    min_selection_score: 0.72
+    min_selection_score: 0.86
   bullet_specific_guidance:
     bul_unify_001:
       content: "Agentic AI platform architecture — one outcome spine (regulated enterprise platform delivery)"

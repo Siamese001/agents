@@ -278,10 +278,10 @@ def test_aggregation_rejects_on_judge_decisive_failure() -> None:
 
 
 def test_aggregation_borderline_flags_adjudicate() -> None:
-    # Above pass floor (0.72) but within margin_threshold (0.05) of its own threshold.
+    # Above pass floor (0.86) and own threshold (0.86), but within margin_threshold (0.05) of threshold.
     a = aggregate_bullet_section(
         section_id="ibm_bullets",
-        composite_judges=[_judge(0.82, threshold=0.8)],
+        composite_judges=[_judge(0.88, threshold=0.86)],
         x2_failed_gate_ids=[],
     )
     assert a.decision == AGG_BORDERLINE

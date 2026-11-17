@@ -928,7 +928,11 @@ def _make_model_backed_output(
         result, deterministic_gate_summary=deterministic_gate_summary
     )
     raw_score = float(result.get("score", 0.0))
-    raw_threshold = float(result.get("threshold", 4.0))
+    default_raw_threshold = 4.4 if section_id == "full_resume_coherence" else 4.0
+    raw_threshold = float(result.get("threshold", default_raw_threshold))
+    if section_id == "full_resume_coherence" and str(result.get("score_scale") or "").strip() == "0_to_5":
+        raw_threshold = max(raw_threshold, 4.4)
+        result["threshold"] = raw_threshold
     from apps_rg.runtime.sections.executive_summary_repair_policy import judge_pass_floor_0_to_5
 
     operator_floor = judge_pass_floor_0_to_5()
