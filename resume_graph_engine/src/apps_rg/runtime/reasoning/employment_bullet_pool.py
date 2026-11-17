@@ -99,7 +99,7 @@ REQUIRED_BULLET_IDS: Final[dict[str, tuple[str, ...]]] = {
     "ey_bullets": (),
 }
 
-DEFAULT_MIN_SELECTION_SCORE: Final[float] = 0.72
+DEFAULT_MIN_SELECTION_SCORE: Final[float] = 0.86
 
 
 @dataclass(frozen=True)

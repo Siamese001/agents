@@ -46,7 +46,8 @@ from apps_rg.runtime.assembly.full_resume_llm_coherence_rubric import (
 # generator). Sourced from the SSOT — NOT a separate hardcoded roster that can silently diverge.
 DEFAULT_JUDGE_ROSTER: tuple[str, ...] = REQUIRED_JUDGE_PROVIDER_KEYS
 DEFAULT_QUORUM = int(os.environ.get("APPS_RG_FULL_RESUME_COHERENCE_QUORUM", "2"))
-DEFAULT_PASS_THRESHOLD = DEFAULT_THRESHOLD
+DEFAULT_PASS_THRESHOLD_0_TO_5 = 4.4
+DEFAULT_PASS_THRESHOLD = 0.88
 
 
 def full_resume_coherence_review_enabled() -> bool:
@@ -378,8 +379,9 @@ def _build_prompt(
             )
             + "\n"
         )
+    coherence_compact_output = JUDGE_COMPACT_OUTPUT.replace('"threshold":4.0', '"threshold":4.4')
     return (
-        f"{FULL_RESUME_COHERENCE_RUBRIC}\n\n{JUDGE_COMPACT_OUTPUT}\n\n"
+        f"{FULL_RESUME_COHERENCE_RUBRIC}\n\n{coherence_compact_output}\n\n"
         f"ASSEMBLED_RESUME_TEXT:\n{full_resume_text}\n"
         f"{evidence_block}"
         f"{jd_block}"
@@ -413,7 +415,7 @@ def _mocked(provider_key: str, input_hash: str) -> JudgeOutput:
         score=0.0,
         score_scale="0_to_5",
         normalized_score=0.0,
-        threshold=4.0,
+        threshold=DEFAULT_PASS_THRESHOLD_0_TO_5,
         normalized_threshold=DEFAULT_PASS_THRESHOLD,
         pass_=False,
         decisive_failure=True,

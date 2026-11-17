@@ -120,7 +120,7 @@ slot_bodies:
             - experience.slalom.bullets:
                 allowed_fact_ids: array of strings (bul_slalom_* fact_ids)
                 required_count: 4
-                pool_selection: {path_count: 12, select_count: 4, min_selection_score: 0.72}
+                pool_selection: {path_count: 12, select_count: 4, min_selection_score: 0.86}
             - experience.slalom.position_narrative:
                 allowed_fact_ids: array of strings (bul_slalom_* fact_ids)
                 anti_repetition_context: ["finalized bullets as read-only"]
@@ -129,7 +129,7 @@ slot_bodies:
                 allowed_fact_ids: array of strings (bul_unify_* fact_ids)
                 required_count: 6
                 protected_bullets: array of strings (default: bul_unify_006)
-                pool_selection: {path_count: 15, select_count: 6, min_selection_score: 0.72}
+                pool_selection: {path_count: 15, select_count: 6, min_selection_score: 0.86}
             - experience.unify.position_narrative:
                 allowed_fact_ids: array of strings (bul_unify_* fact_ids)
                 anti_repetition_context: ["finalized bullets as read-only"]
@@ -137,7 +137,7 @@ slot_bodies:
             - experience.ibm.bullets:
                 allowed_fact_ids: array of strings (bul_ibm_* fact_ids)
                 required_count: 3
-                pool_selection: {path_count: 12, select_count: 3, min_selection_score: 0.72}
+                pool_selection: {path_count: 12, select_count: 3, min_selection_score: 0.86}
                 forbidden_terms: ["agentic AI", "GraphRAG", "multi-agent orchestration", "deterministic routing", "sandboxed execution", "governed AI runtime"]
             - experience.ibm.position_narrative:
                 allowed_fact_ids: array of strings (bul_ibm_* fact_ids)
@@ -294,7 +294,7 @@ slot_bodies:
         "allowed_fact_ids": ["bul_unify_001", "bul_unify_002", "bul_unify_003", "bul_unify_004", "bul_unify_005", "bul_unify_006"],
         "required_count": 6,
         "protected_bullets": ["bul_unify_006"],
-        "pool_selection": {"path_count": 15, "select_count": 6, "min_selection_score": 0.72}
+        "pool_selection": {"path_count": 15, "select_count": 6, "min_selection_score": 0.86}
       }
     }
     
