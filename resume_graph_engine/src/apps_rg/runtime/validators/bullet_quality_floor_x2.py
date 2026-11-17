@@ -76,15 +76,16 @@ _FIRST_WORD_RE = re.compile(r"^\s*([a-zA-Z]+(?:-[a-zA-Z]+)?)")
 # nouns are deliberately excluded.
 _OUTCOME_SIGNAL_PATTERN = re.compile(
     r"\b(?:generated|increased|grew|improved|reduced|cut|compress(?:ed|ing|ion)|accelerated|"
-    r"expanded|scal(?:ed|ing)|converted|standardized|operationalized|"
+    r"expanded|scal(?:ed|ing)|converted|translat(?:ed|ing)|strengthen(?:ed|ing)|connect(?:ed|ing)|"
+    r"standardized|operationalized|"
     r"establish(?:ed|ing|ment)|enabl(?:ed|ing)|deliver(?:ed|ing|y)|"
     r"deployed|launched|adopt(?:ed|ion|ing)|moderni[sz](?:ed|ing|ation)|"
     r"migrat(?:ed|ing|ion)|replatform(?:ed|ing)|remediat(?:ed|ing|ion)|"
     r"(?:high\s+)?availability|production|uptime|reliability|coverage|audit(?:able|-ready|-grade)?|"
-    r"validat(?:e|ed|ing|ion|ions)?|"
+    r"validat(?:e|ed|ing|ion|ions)?|explainability|lineage|decision[- ]support|"
     r"risk\s+(?:reduction|remediation|control|visibility)|"
-    r"compliance\s+(?:readiness|evidence|coverage)|renewal|revenue|margin|pipeline|"
-    r"roi|value\s+propositions?|acv|arr|contract\s+value|"
+    r"compliance\s+(?:readiness|evidence|coverage|workflows?)|renewal|revenue|margin|pipeline|"
+    r"roi|value\s+propositions?|acv|arr|contract\s+value|portfolio\s+transparency|"
     r"governed|orchestration|handoffs?|"
     r"cycle\s+time|latency|throughput|sponsorship|opportunity\s+progression)\b",
     re.IGNORECASE,

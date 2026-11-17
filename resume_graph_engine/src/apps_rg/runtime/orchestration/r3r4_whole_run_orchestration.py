@@ -2334,13 +2334,13 @@ def run_whole_run_with_route_governance(
             except Exception as exc:  # guardian: allow-broad-exception -- UWG authority remains immutable
                 product_authority_error = f"{type(exc).__name__}:{exc}"
                 product_close_candidate = False
+        effective_pipeline_complete = (
+            product_close_candidate
+            if product_stage_ledger is not None
+            else pipeline_complete
+        )
         observability_repair_required = bool(
-            product_authorized
-            and not (
-                product_close_candidate
-                if product_stage_ledger is not None
-                else pipeline_complete
-            )
+            product_authorized and not effective_pipeline_complete
         )
         if product_authorized and pipeline_complete:
             # Cache learning is future-run authority and cannot precede UWG.
@@ -2349,11 +2349,7 @@ def run_whole_run_with_route_governance(
                 artifact_dir=art,
                 runs_dir=art.parent,
             )
-        if not (
-            product_close_candidate
-            if product_stage_ledger is not None
-            else pipeline_complete
-        ):
+        if not effective_pipeline_complete:
             result_fault = (
                 "PRODUCT_E2E_RECEIPT_AUTHORITY_FAILED"
                 if product_authority_error
@@ -2370,6 +2366,11 @@ def run_whole_run_with_route_governance(
             if not _product_x3_authorizes(effective_x3)
             else "PRODUCT_NOT_ELIGIBLE_FOR_UWG"
         )
+    effective_pipeline_complete = (
+        product_close_candidate
+        if product_stage_ledger is not None
+        else pipeline_complete
+    )
     if final_resume_outputs_pre_emitted and product_stage_ledger is None:
         apps_eval_completion = (
             post_x3_completion.get("apps_eval")
@@ -2455,8 +2456,8 @@ def run_whole_run_with_route_governance(
                     },
                 )
     payload: dict[str, Any] = {
-        "exit_status": "success" if pipeline_complete else "error",
-        "execution_status": "completed" if pipeline_complete else "failed",
+        "exit_status": "success" if effective_pipeline_complete else "error",
+        "execution_status": "completed" if effective_pipeline_complete else "failed",
         # Legacy field remains a compatibility alias for immutable current-run
         # product authority, never for post-boundary pipeline completion.
         "outcome_authorized": product_authorized,
@@ -2469,7 +2470,7 @@ def run_whole_run_with_route_governance(
             "apps_rg_whole_run_exit_review_packet.json"
         ),
         "completion_disposition": effective_x3,
-        "completion_status": "PASS" if pipeline_complete else "BLOCKED",
+        "completion_status": "PASS" if effective_pipeline_complete else "BLOCKED",
         "fault": result_fault,
         "artifact_dir": str(art),
         "run_id": result.run_id,
@@ -2566,6 +2567,10 @@ def run_whole_run_with_route_governance(
             payload["observability_repair_required"] = True
             payload["completion_status"] = "BLOCKED"
             if not payload.get("fault"):
+                from apps_rg.runtime.mandatory_run_outputs import (
+                    MANDATORY_OUTPUT_HARD_STOP_GATE_ID,
+                )
+
                 payload["fault"] = MANDATORY_OUTPUT_HARD_STOP_GATE_ID
     # Raw prompts and provider transport output are diagnostics, not product
     # authority. Redact them before the optional review package and before the

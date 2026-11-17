@@ -33,7 +33,7 @@ def fact_supports_brushstroke_facet(
     if classify_fn(fid, claim) == role:
         return True
     if role == "B1_executive_identity":
-        return any(k in blob for k in ("leadership", "partner", "cosell", "co-sell", "alliance", "transformation", "advisory", "scaled", "head of", "svp", "director", "insurance", "insurtech", "carrier", "brokerage", "actuarial"))
+        return any(k in blob for k in ("leadership", "partner", "cosell", "co-sell", "alliance", "transformation", "advisory", "scaled", "head of", "svp", "director", "practice"))
     if role == "B2_governed_platform_system":
         return any(k in blob for k in ("platform", "architecture", "agentic", "rag", "graphrag", "solution", "reference architecture", "reusable", "modernization", "cloud", "policy administration", "underwriting", "claims", "billing"))
     if role == "B3_control_evidence_discipline":
@@ -53,9 +53,15 @@ def resolve_fallback_brushstroke_facts(
     if facet_facts:
         return facet_facts
     if role == "B1_executive_identity":
+        primary_b1 = [
+            f for f in facts
+            if isinstance(f, dict) and any(k in f"{str(f.get('fact_id') or '')} {str(f.get('role_episode_bundle_id') or '')}".lower() for k in ("slalom", "unify", "partner", "leadership", "transformation"))
+        ]
+        if primary_b1:
+            return [primary_b1[0]]
         preferred_b1 = [
             f for f in facts
-            if isinstance(f, dict) and any(k in f"{str(f.get('fact_id') or '')} {str(f.get('role_episode_bundle_id') or '')}".lower() for k in ("insurtech", "ey", "insurance", "slalom", "unify", "ibm", "partner", "leadership", "transformation"))
+            if isinstance(f, dict) and any(k in f"{str(f.get('fact_id') or '')} {str(f.get('role_episode_bundle_id') or '')}".lower() for k in ("ibm", "insurtech", "ey", "insurance"))
         ]
         return [preferred_b1[0]] if preferred_b1 else [facts[0]]
     return [facts[0]]

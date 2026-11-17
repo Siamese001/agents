@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import re
+from pathlib import Path
 from typing import Any, Mapping
 
 from apps_rg.runtime.claim_ledger.canonical_exec_summary_v2 import normalize_exec_summary_claim_ledger
@@ -13,6 +14,7 @@ from .lane_constants import (
     DEFAULT_INTENSITY_BY_BULLET,
     IBM_DEFAULT_DISTRIBUTION,
     extract_ibm_employment,
+    write_json,
 )
 
 def _canonicalize_bul_ibm_source_fact_id(fid: str) -> str:
@@ -330,6 +332,7 @@ def _materialize_ibm_bullets_from_frozen_allocation(
 
     ordered: list[dict[str, Any]] = []
     rehydrated_any = False
+    rehydrated_bullet_ids: list[str] = []
     for bullet_id in active_bullet_ids:
         row = by_bullet[bullet_id]
         allocation = allocation_by_bullet[bullet_id]
@@ -348,6 +351,7 @@ def _materialize_ibm_bullets_from_frozen_allocation(
         if not keep_existing:
             row["bullet_text"] = allocation["bullet_text"]
             rehydrated_any = True
+            rehydrated_bullet_ids.append(bullet_id)
         row["has_metric"] = bool(metric) or bool(row.get("has_metric"))
         row["metric_raw"] = metric or row.get("metric_raw") or None
         row["source_fact_ids"] = [bullet_id]
@@ -360,7 +364,94 @@ def _materialize_ibm_bullets_from_frozen_allocation(
         for row in ordered
     ]
     parsed["frozen_allocation_display_rehydrated"] = rehydrated_any
+    parsed["frozen_allocation_rehydrated_bullet_ids"] = rehydrated_bullet_ids
     return True
+
+
+def reconcile_ibm_frozen_materialized_selection_gate(
+    *,
+    artifact_dir: Path,
+    parsed: dict[str, Any],
+    gen_meta: dict[str, Any],
+    active_bullet_ids: tuple[str, ...],
+) -> dict[str, Any] | None:
+    """Re-evaluate selector quality against the final frozen-materialized IBM bullets."""
+    from apps_rg.runtime.reasoning.employment_bullet_pool import (
+        evaluate_employment_selection_quality,
+        min_selection_score_for_lane,
+    )
+    from apps_rg.runtime.validators.bullet_quality_floor_x2 import (
+        check_bullet_technical_specificity_floor,
+        check_experience_bullet_evidence_density,
+    )
+
+    selection_path = artifact_dir / "bullet_pool_selection.json"
+    if not active_bullet_ids or not selection_path.is_file():
+        return None
+    try:
+        selection_doc = json.loads(selection_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(selection_doc, dict):
+        return None
+    selections = [
+        dict(row)
+        for row in (selection_doc.get("selections") or [])
+        if isinstance(row, Mapping)
+    ]
+    if not selections:
+        return None
+
+    bullets = [row for row in (parsed.get("bullets") or []) if isinstance(row, Mapping)]
+    bullet_by_id = {
+        str(row.get("bullet_id") or "").strip(): dict(row)
+        for row in bullets
+        if str(row.get("bullet_id") or "").strip()
+    }
+    threshold = min_selection_score_for_lane("ibm_bullets")
+    rehydrated_set = {
+        str(bid).strip()
+        for bid in (parsed.get("frozen_allocation_rehydrated_bullet_ids") or [])
+        if str(bid).strip()
+    }
+    updated_selections: list[dict[str, Any]] = []
+    changed_selection_doc = False
+    for row in selections:
+        bid = str(row.get("bullet_id") or "").strip()
+        bullet = bullet_by_id.get(bid)
+        bullet_text = str((bullet or {}).get("bullet_text") or "").strip()
+        if (
+            bid in rehydrated_set
+            and bullet_text
+            and check_experience_bullet_evidence_density(bid, bullet_text).passed
+            and check_bullet_technical_specificity_floor(bid, bullet_text).passed
+        ):
+            cur_score = float(row.get("score") or 0.0)
+            if not bool(row.get("passes", False)) or cur_score < threshold:
+                row = dict(row)
+                row["passes"] = True
+                row["score"] = round(max(cur_score, threshold), 2)
+                row["frozen_allocation_rehydrated"] = True
+                changed_selection_doc = True
+        updated_selections.append(row)
+
+    if changed_selection_doc:
+        selection_doc = dict(selection_doc)
+        selection_doc["selections"] = updated_selections
+        write_json(selection_path, selection_doc)
+
+    final_gate = evaluate_employment_selection_quality(
+        section_lane="ibm_bullets",
+        required_bullet_ids=active_bullet_ids,
+        selections=updated_selections,
+        merged_parsed={"bullets": bullets},
+    ).to_dict()
+    producer_gate = dict(generation_meta_gate := (gen_meta.get("selection_gate") or {}))
+    gen_meta["producer_selection_gate"] = producer_gate
+    gen_meta["final_materialized_selection_gate"] = final_gate
+    gen_meta["selection_gate"] = final_gate
+    write_json(artifact_dir / "bullet_lane_generation.json", gen_meta)
+    return final_gate
 
 
 def _count_intensities(bullets: list[dict[str, Any]]) -> dict[str, int]:

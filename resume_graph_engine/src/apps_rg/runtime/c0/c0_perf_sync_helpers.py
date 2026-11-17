@@ -358,12 +358,19 @@ def compute_candidate_alignment_and_independence(
                 "reb_slalom_autonomous_agentic_sdlc_mcp": 2.8, "reb_slalom_bitemporal_graphrag_uwg": 2.6,
                 "reb_unify_regulated_enterprise_ai_governance": 3.0, "reb_unify_agentic_platform_architecture": 2.9,
                 "reb_unify_production_adoption_lifecycle": 2.7, "reb_unify_runtime_reliability_governance": 2.5,
-                "reb_ibm_aws_modernization_architecture": 2.4,
+                "reb_ibm_offering_accelerator_management": 2.6, "reb_ibm_aws_modernization_architecture": 2.4,
             }
             if root_id in fde_root_boosts:
                 raw_align += fde_root_boosts[root_id]
             fde_sec_roots = {
-                "executive_summary": {"reb_unify_regulated_enterprise_ai_governance", "reb_unify_agentic_platform_architecture", "reb_slalom_nextgen_ai_solutions"},
+                "executive_summary": {
+                    "reb_slalom_engineering_practice_leadership",
+                    "reb_slalom_governed_runtime_scaling",
+                    "reb_slalom_nextgen_ai_solutions",
+                    "reb_unify_regulated_enterprise_ai_governance",
+                    "reb_unify_agentic_platform_architecture",
+                    "reb_ibm_offering_accelerator_management",
+                },
                 "headline": {"reb_unify_regulated_enterprise_ai_governance", "reb_unify_runtime_reliability_governance", "reb_unify_production_adoption_lifecycle"},
                 "slalom_bullets": {"reb_slalom_engineering_practice_leadership", "reb_slalom_agentic_client_delivery", "reb_slalom_governed_runtime_scaling", "reb_slalom_autonomous_agentic_sdlc_mcp"},
             }

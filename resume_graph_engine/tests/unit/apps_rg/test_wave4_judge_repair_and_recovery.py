@@ -364,10 +364,11 @@ def test_wave4_compact_overlong_headline_and_ledger() -> None:
     assert trimmed is not None
     cand_line, fixed_parsed, new_clarity, _, _ = trimmed
     assert cand_line == (
-        "SVP Engineering | Partner Cloud Ecosystem | Governed Agentic Platform Architecture | "
+        "SVP Engineering | Partner Cloud Ecosystem | Governed Agentic Platform | "
         "Distributed Lakehouse Infrastructure"
     )
     assert new_clarity["pass"] is True
+    assert fixed_parsed["claim_ledger"][1]["claim_text"] == "Governed Agentic Platform"
     assert fixed_parsed["claim_ledger"][2]["claim_text"] == "Distributed Lakehouse Infrastructure"
 
 
