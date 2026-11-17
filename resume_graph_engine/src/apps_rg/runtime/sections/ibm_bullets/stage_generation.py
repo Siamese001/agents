@@ -47,6 +47,7 @@ from .frozen_allocation import (
     _bind_ibm_change_log_to_frozen_allocation,
     _materialize_ibm_bullets_from_frozen_allocation,
     normalize_parsed_output,
+    reconcile_ibm_frozen_materialized_selection_gate,
 )
 from .lane_constants import (
     IBM_MAX_OUTPUT_TOKENS,
@@ -187,6 +188,13 @@ def run_ibm_generation_and_x2_stage(
                 parsed,
                 selected_fact_plan=selected_fact_plan,
             )
+            if _frozen_ibm_materialized and gen_meta:
+                reconcile_ibm_frozen_materialized_selection_gate(
+                    artifact_dir=artifact_dir,
+                    parsed=parsed,
+                    gen_meta=gen_meta,
+                    active_bullet_ids=active_bullet_ids,
+                )
             parent_attr("_bind_ibm_change_log_to_frozen_allocation", _bind_ibm_change_log_to_frozen_allocation)(
                 parsed,
                 selected_fact_plan=selected_fact_plan,

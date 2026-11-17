@@ -150,6 +150,7 @@ def format_narrowing_it_labels_blocklist_block() -> str:
 
 _ALLOCATION_ROOT_COMPACT_PHRASES: dict[str, str] = {
     "reb_unify_agentic_platform_architecture": "Agentic AI Platforms",
+    "reb_slalom_autonomous_agentic_sdlc_mcp": "Agentic AI Platforms",
     "reb_slalom_agentic_client_delivery": "Agentic AI Systems",
     "reb_slalom_nextgen_ai_solutions": "Agentic AI Solutions",
     "reb_slalom_engineering_practice_leadership": "Client Delivery Leadership",

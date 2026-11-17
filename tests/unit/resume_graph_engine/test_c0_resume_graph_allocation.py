@@ -110,7 +110,7 @@ def test_whole_resume_allocation_attaches_fact_anchor_and_18_word_raw_chunk_to_a
     section_plans = bundle["section_plans"]
 
     assignments = plan["assignments"]
-    assert len(assignments) == 48
+    assert len(assignments) == 49
     for row in assignments:
         anchor = row.get("fact_anchor")
         assert isinstance(anchor, dict), f"Missing fact_anchor on {row.get('claim_unit_id')}"
