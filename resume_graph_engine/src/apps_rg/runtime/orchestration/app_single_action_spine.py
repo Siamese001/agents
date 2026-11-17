@@ -416,6 +416,13 @@ def run_apps_rg_single_action_spine(*args: Any, **kwargs: Any) -> AppsRgSingleAc
                             sealed_for_l1 = {**raw_l2, "execution_status": sec_res.get("execution_status")}
                         elif first_step.get("status") in ("ok", "success", "completed"):
                             sealed_for_l1 = {**raw_l2, "execution_status": "completed"}
+                            gen_res = first_step.get("generated_resume")
+                            if isinstance(gen_res, Mapping):
+                                sealed_for_l1["proposed_state_diff"] = dict(gen_res)
+                                sealed_for_l1["generated_content"] = (
+                                    json.dumps(gen_res, ensure_ascii=False)
+                                    + " [fact:bound_resume_graph]"
+                                )
                         elif first_step.get("execution_status"):
                             sealed_for_l1 = {**raw_l2, "execution_status": first_step.get("execution_status")}
             sealed_l2_file = root / "sealed_l2_artifact.json"

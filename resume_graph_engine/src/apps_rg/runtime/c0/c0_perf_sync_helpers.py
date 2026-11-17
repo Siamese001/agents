@@ -371,7 +371,7 @@ def compute_candidate_alignment_and_independence(
                     "reb_unify_agentic_platform_architecture",
                     "reb_ibm_offering_accelerator_management",
                 },
-                "headline": {"reb_unify_regulated_enterprise_ai_governance", "reb_unify_runtime_reliability_governance", "reb_unify_production_adoption_lifecycle"},
+                "headline": {"reb_slalom_agentic_client_delivery", "reb_unify_agentic_platform_architecture", "reb_unify_regulated_enterprise_ai_governance", "reb_unify_runtime_reliability_governance", "reb_unify_production_adoption_lifecycle"},
                 "slalom_bullets": {"reb_slalom_engineering_practice_leadership", "reb_slalom_agentic_client_delivery", "reb_slalom_governed_runtime_scaling", "reb_slalom_autonomous_agentic_sdlc_mcp"},
             }
             if root_id in fde_sec_roots.get(sec_id, ()):

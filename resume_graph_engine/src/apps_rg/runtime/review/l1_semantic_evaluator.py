@@ -80,6 +80,12 @@ _STAGE_NAME_SUBGOAL_TOKENS: Final[frozenset[str]] = frozenset(
         "x2_evaluate_apps_rg",
         "x3_decide_apps_rg",
         "r5_seal_apps_rg",
+        "validate_ingress",
+        "load_profiles",
+        "collect_evidence",
+        "generate_resume",
+        "assemble_output",
+        "exit_eval",
     }
 )
 

@@ -86,7 +86,8 @@ _OUTCOME_SIGNAL_PATTERN = re.compile(
     r"risk\s+(?:reduction|remediation|control|visibility)|"
     r"compliance\s+(?:readiness|evidence|coverage|workflows?)|renewal|revenue|margin|pipeline|"
     r"roi|value\s+propositions?|acv|arr|contract\s+value|portfolio\s+transparency|"
-    r"governed|orchestration|handoffs?|"
+    r"governed|orchestration|handoffs?|resilience|"
+    r"deployment\s+blueprints?|ci/cd\s+pipelines?|migration\s+sequences?|"
     r"cycle\s+time|latency|throughput|sponsorship|opportunity\s+progression)\b",
     re.IGNORECASE,
 )

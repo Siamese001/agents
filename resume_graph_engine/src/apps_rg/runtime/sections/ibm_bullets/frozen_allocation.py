@@ -439,6 +439,8 @@ def reconcile_ibm_frozen_materialized_selection_gate(
         selection_doc = dict(selection_doc)
         selection_doc["selections"] = updated_selections
         write_json(selection_path, selection_doc)
+        if isinstance(gen_meta.get("pool_selection"), dict):
+            gen_meta["pool_selection"]["selections"] = updated_selections
 
     final_gate = evaluate_employment_selection_quality(
         section_lane="ibm_bullets",
