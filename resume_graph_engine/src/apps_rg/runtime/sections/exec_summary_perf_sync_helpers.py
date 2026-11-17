@@ -119,12 +119,26 @@ _EXEC_COSINE_DEDUP_SUBS: tuple[tuple[str, str], ...] = (
     ("joint go-to-market execution", "co-marketed field execution"),
     ("partner-facing teams", "field engineering pods"),
     ("executive pre-sales", "C-suite technical discovery"),
+    ("across regulated financial and insurance institutions", "across tier-one banking and carrier portfolios"),
+    ("regulated financial and insurance institutions", "tier-one banking and carrier portfolios"),
+    ("regulated financial-services", "compliance-bound banking"),
+    ("scaling governed runtime architecture", "operationalizing controlled execution substrates"),
+    ("scaled repeatable cloud and AI blueprints", "expanded modular cloud and machine-learning templates"),
+    ("enterprise-owned", "institutionally stewarded"),
+    ("forward-deployed AI activation", "embedded field deployment"),
+    ("governed runtime discipline", "deterministic execution controls"),
 )
 
 
 def repair_exec_summary_bullet_echo_sentences(sentences: list[str]) -> list[str]:
     """Rewrite Executive Summary sentences that closely echo experience bullets or contain article anomalies."""
-    from apps_rg.runtime.validators.narrative_quality_x2 import compute_text_cosine_similarity
+    from apps_rg.runtime.validators.narrative_quality_x2 import (
+        _COSINE_STOPWORDS,
+        _SURGICAL_STEM_SYNONYMS,
+        _content_stem,
+        _tokenize,
+        compute_text_cosine_similarity,
+    )
 
     out: list[str] = []
     for sent in sentences:
@@ -166,6 +180,28 @@ def repair_exec_summary_bullet_echo_sentences(sentences: list[str]) -> list[str]
                     sim = new_sim
                     if sim <= 0.30:
                         break
+            if sim > 0.34:
+                stems_i = {
+                    _content_stem(t)
+                    for t in _tokenize(out[i])
+                    if t not in _COSINE_STOPWORDS and len(t) > 2
+                }
+                for src_word, repl_word in _SURGICAL_STEM_SYNONYMS:
+                    if _content_stem(src_word.lower()) not in stems_i:
+                        continue
+                    cand = re.sub(rf"\b{re.escape(src_word)}\b", repl_word, out[j], count=1, flags=re.IGNORECASE)
+                    if cand == out[j]:
+                        continue
+                    new_sim = compute_text_cosine_similarity(out[i], cand, content_only=True)
+                    other_max = max(
+                        (compute_text_cosine_similarity(out[k], cand, content_only=True) for k in range(len(out)) if k != j),
+                        default=0.0,
+                    )
+                    if new_sim < sim and other_max <= max(0.34, sim):
+                        out[j] = cand
+                        sim = new_sim
+                        if sim <= 0.30:
+                            break
     return out
 
 
@@ -181,9 +217,13 @@ def repair_exec_summary_bullet_echo_parsed(parsed: dict[str, Any]) -> dict[str, 
     repaired = repair_exec_summary_bullet_echo_sentences(sents)
     if repaired != sents:
         parsed["resume_display_text"] = " ".join(s.strip() for s in repaired if s.strip())
-        for old_s, new_s in zip(sents, repaired):
+        ledger = parsed.get("claim_ledger") or []
+        for idx, (old_s, new_s) in enumerate(zip(sents, repaired)):
             if old_s != new_s:
-                for row in parsed.get("claim_ledger") or []:
+                if idx < len(ledger) and isinstance(ledger[idx], dict):
+                    ledger[idx]["claim_text"] = new_s
+                    ledger[idx]["claim"] = new_s[:80]
+                for row in ledger:
                     if isinstance(row, dict) and old_s in str(row.get("claim_text") or ""):
                         row["claim_text"] = new_s
                         row["claim"] = new_s[:80]
