@@ -133,7 +133,7 @@ def api_key(provider: str, environ: Mapping[str, str] | None = None) -> str:
 
     aliases = {
         "openai": ("OPENAI_API_KEY",),
-        "anthropic": (),
+        "anthropic": ("ANTHROPIC_API_KEY",),
         "google": (),
         "gemini": (),
     }
