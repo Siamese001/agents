@@ -167,15 +167,27 @@ def _audit_pillar_1_provider_pinning_and_effort(
             rmodel = str(role_cfg.get("model") or "").strip()
             if not rmodel or (pricing_map and rmodel not in pricing_map):
                 gaps.append(f"outreach_engine.{role_name} pins unpriced or legacy model '{rmodel}'")
-            if role_name == "rubric_judge_panel" and rmodel not in ("claude-haiku-5-5", "claude-haiku-4-5-20251001"):
-                gaps.append(f"outreach_engine.rubric_judge_panel should be right-sized to 'claude-haiku-5-5', got '{rmodel}'")
+            if role_name == "rubric_judge_panel" and rmodel not in (
+                "claude-haiku-5-5",
+                "claude-haiku-4-5-20251001",
+                "claude-sonnet-5-5-medium",
+            ):
+                gaps.append(
+                    f"outreach_engine.rubric_judge_panel should be right-sized to 'claude-sonnet-5-5-medium' or 'claude-haiku-5-5', got '{rmodel}'"
+                )
 
     reg_data, reg_err = load_yaml_strict(repo_root / "resume_graph_engine" / "config" / "models" / "registry.yaml")
     if not reg_err and isinstance(reg_data, dict):
         roles_map = reg_data.get("roles") or {}
         voice_repair = roles_map.get("repair.executive_voice") or {}
-        if str(voice_repair.get("model") or "") not in ("claude-haiku-4-5-20251001", "claude-sonnet-5"):
-            gaps.append("roles.repair.executive_voice must be right-sized to claude-haiku-4-5-20251001 or claude-sonnet-5")
+        if str(voice_repair.get("model") or "") not in (
+            "claude-haiku-4-5-20251001",
+            "claude-sonnet-5",
+            "claude-sonnet-5-5-medium",
+        ):
+            gaps.append(
+                "roles.repair.executive_voice must be right-sized to claude-haiku-4-5-20251001, claude-sonnet-5, or claude-sonnet-5-5-medium"
+            )
         std_oa = ((roles_map.get("proof_judge.standard.openai_chatgpt") or {}).get("params") or {})
         if str(std_oa.get("reasoning_effort") or "") not in ("low", "medium", "high"):
             gaps.append("roles.proof_judge.standard.openai_chatgpt reasoning_effort must be right-sized to 'low' or 'medium'")

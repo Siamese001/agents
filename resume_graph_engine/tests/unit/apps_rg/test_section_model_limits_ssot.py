@@ -36,7 +36,7 @@ def test_explicit_section_effort_map() -> None:
         "ibm_bullets": "medium",
         "insurtech_bullets": "medium",
         "headline": "medium",
-        "executive_summary": "high",
+        "executive_summary": "medium",
         "slalom_narrative": "medium",
         "unify_narrative": "medium",
         "ibm_narrative": "medium",
@@ -55,19 +55,25 @@ def test_explicit_claude_section_pins() -> None:
         "unify_bullets",
         "ibm_bullets",
         "insurtech_bullets",
+    ):
+        assert (
+            sml.resolve_section_generation_model(section_id)
+            == _yaml_claude_section_model(section_id)
+            == "claude-sonnet-5-5-medium"
+        )
+    for section_id in (
         "headline",
         "executive_summary",
     ):
         assert (
             sml.resolve_section_generation_model(section_id)
             == _yaml_claude_section_model(section_id)
-            == "claude-sonnet-5"
+            == "claude-sonnet-5-5-high"
         )
 
 
 def test_explicit_openai_section_pins() -> None:
     for section_id in (
-        "slalom_bullets",
         "slalom_narrative",
         "unify_narrative",
         "ibm_narrative",
@@ -101,7 +107,7 @@ def test_missing_section_id_fails_closed() -> None:
 
 def test_env_override_is_ignored_for_explicit_section() -> None:
     env = {"APPS_RG_EXTERNAL_CLAUDE_MODEL": "claude-zzz-9"}
-    assert sml.resolve_section_generation_model("competencies", env) == "claude-sonnet-5"
+    assert sml.resolve_section_generation_model("competencies", env) == "claude-sonnet-5-5-medium"
 
 
 def test_openai_model_source_reports_only_configured_section() -> None:
@@ -138,7 +144,7 @@ def test_anthropic_limit_backup_is_explicit_and_preflight_gated() -> None:
 def test_selector_models_are_explicit_and_advisory() -> None:
     assert sml.resolve_selector_provider_model("competencies_graph_pool_selector") == (
         "anthropic_claude",
-        "claude-haiku-5-5",
+        "claude-sonnet-5-5-medium",
         "apps_rg/config/provider_profiles.yaml:selector_models.competencies_graph_pool_selector.model",
     )
     assert (
@@ -147,7 +153,7 @@ def test_selector_models_are_explicit_and_advisory() -> None:
     )
     assert sml.resolve_selector_provider_model("employment_bullet_pool_selector") == (
         "anthropic_claude",
-        "claude-haiku-5-5",
+        "claude-sonnet-5-5-medium",
         "apps_rg/config/provider_profiles.yaml:selector_models.employment_bullet_pool_selector.model",
     )
     assert sml.resolve_selector_reasoning_effort("employment_bullet_pool_selector") == "low"

@@ -25,7 +25,7 @@ def test_model_registry_role_lookups() -> None:
     pin = OutreachModelRegistry.get_model_pin("executive_outreach_generator")
     assert isinstance(pin, OutreachModelPin)
     assert pin.provider == "anthropic"
-    assert pin.model == "claude-sonnet-5"
+    assert pin.model == "claude-sonnet-5-5-high"
     assert pin.backup_provider == "openai"
     assert pin.backup_model == "gpt-5.6-luna"
     assert pin.reasoning_effort == "low"
@@ -33,7 +33,7 @@ def test_model_registry_role_lookups() -> None:
     assert pin.proof_eligible is False
 
     # Convenience accessors
-    assert OutreachModelRegistry.get_model_for_role("executive_outreach_generator") == "claude-sonnet-5"
+    assert OutreachModelRegistry.get_model_for_role("executive_outreach_generator") == "claude-sonnet-5-5-high"
     assert OutreachModelRegistry.get_provider_for_role("executive_outreach_generator") == "anthropic"
     assert OutreachModelRegistry.get_effort_for_role("executive_outreach_generator") == "low"
     assert OutreachModelRegistry.get_thinking_budget_for_role("executive_outreach_generator") == 2048
@@ -41,7 +41,7 @@ def test_model_registry_role_lookups() -> None:
     # Research, advisory selector, and dual X1D proof judge roles
     assert OutreachModelRegistry.get_model_for_role("company_brief_generation") == "gpt-5.6-terra"
     assert OutreachModelRegistry.get_model_for_role("handoff_judge") == "gemini-3.8-flash"
-    assert OutreachModelRegistry.get_model_for_role("rubric_judge_panel") == "claude-haiku-5-5"
+    assert OutreachModelRegistry.get_model_for_role("rubric_judge_panel") == "claude-sonnet-5-5-medium"
     assert OutreachModelRegistry.is_advisory_only_role("rubric_judge_panel") is True
     assert OutreachModelRegistry.is_proof_eligible_role("rubric_judge_panel") is False
 
@@ -80,6 +80,8 @@ def test_model_registry_cross_family_orthogonality_and_pricing() -> None:
         "rubric_judge_panel",
         "x1d_proof_judge_primary",
         "x1d_proof_judge_secondary",
+        "claude-sonnet-5-5-high",
+        "claude-sonnet-5-5-medium",
         "claude-sonnet-5",
         "gpt-5.6-luna",
         "claude-haiku-5-5",
@@ -110,9 +112,9 @@ def test_model_registry_validation_and_active_models() -> None:
     assert "x1d_proof_judge_primary" in active
     assert "x1d_proof_judge_secondary" in active
 
-    assert OutreachModelRegistry.validate_model("claude-sonnet-5") is True
+    assert OutreachModelRegistry.validate_model("claude-sonnet-5-5-high") is True
+    assert OutreachModelRegistry.validate_model("claude-sonnet-5-5-medium") is True
     assert OutreachModelRegistry.validate_model("gpt-5.6-luna") is True
-    assert OutreachModelRegistry.validate_model("claude-haiku-5-5") is True
     assert OutreachModelRegistry.validate_model("gemini-3.8-flash") is True
     assert OutreachModelRegistry.validate_model("unapproved_rogue_model_v9") is False
 

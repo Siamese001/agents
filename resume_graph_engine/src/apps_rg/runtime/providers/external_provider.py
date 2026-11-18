@@ -405,6 +405,14 @@ class ExternalProvider:
             self.environ,
             effort=request.get("reasoning_effort"),
         )
+        from apps_rg.runtime.providers.inprocess_ide_provider import (
+            evaluate_inprocess_ide_generation,
+            is_inprocess_ide_model,
+        )
+
+        if is_inprocess_ide_model(body.get("model")) and urllib.request.urlopen is _STDLIB_URLOPEN:
+            return evaluate_inprocess_ide_generation(request, model=str(body.get("model") or self.model))
+
         url = str(request.get("base_url") or self.base_url or DEFAULT_ANTHROPIC_MESSAGES_URL)
         headers = {
             "Content-Type": "application/json",

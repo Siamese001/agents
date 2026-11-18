@@ -70,7 +70,7 @@ def test_claude_selectors_remain_separate_from_proof_judges() -> None:
     ):
         selector = selectors[selector_role]
         assert selector["provider_key"] == "anthropic_claude"
-        assert selector["model"] == "claude-haiku-5-5"
+        assert selector["model"] == "claude-sonnet-5-5-medium"
         assert selector["role"] == "advisory_selector"
         assert selector["review_after"] == "2026-11-07"
         assert selector["proof_eligible"] is False
@@ -91,7 +91,7 @@ def test_active_manifest_includes_governed_selectors_and_apps_research() -> None
         ("apps_rg", "advisory_selector", "competencies_graph_pool_selector")
     ]
     assert competency_selector["provider_key"] == "anthropic_claude"
-    assert competency_selector["model"] == "claude-haiku-5-5"
+    assert competency_selector["model"] == "claude-sonnet-5-5-medium"
     assert competency_selector["effort"] == "low"
     assert competency_selector["owner"] == "apps_rg.competencies_graph_pool"
     assert competency_selector["proof_eligible"] is False
