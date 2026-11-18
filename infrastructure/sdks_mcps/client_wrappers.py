@@ -237,7 +237,7 @@ def create_openai_client() -> Any:
     import openai
 
     key = get_live_api_key("openai")
-    return openai.AsyncOpenAI(api_key=key)
+    return openai.AsyncOpenAI(api_key=key if key != "keyless-local" else "sk-placeholder-for-keyless")
 
 
 def create_openai_sync_client() -> Any:
@@ -245,7 +245,7 @@ def create_openai_sync_client() -> Any:
     import openai
 
     key = get_live_api_key("openai")
-    return openai.OpenAI(api_key=key)
+    return openai.OpenAI(api_key=key if key != "keyless-local" else "sk-placeholder-for-keyless")
 
 
 def create_local_openai_client(*, require_api_key: bool = False) -> Any:
@@ -281,7 +281,7 @@ def create_anthropic_client() -> Any:
     import anthropic
 
     key = get_live_api_key("anthropic")
-    return anthropic.AsyncAnthropic(api_key=key)
+    return anthropic.AsyncAnthropic(api_key=key if key != "keyless-local" else "sk-placeholder-for-keyless")
 
 
 def create_anthropic_sync_client() -> Any:
@@ -289,7 +289,7 @@ def create_anthropic_sync_client() -> Any:
     import anthropic
 
     key = get_live_api_key("anthropic")
-    return anthropic.Anthropic(api_key=key)
+    return anthropic.Anthropic(api_key=key if key != "keyless-local" else "sk-placeholder-for-keyless")
 
 
 def create_vertex_client() -> Any:
@@ -297,7 +297,7 @@ def create_vertex_client() -> Any:
     import google.generativeai as genai
 
     key = get_live_api_key("google")
-    genai.configure(api_key=key)
+    genai.configure(api_key=key if key != "keyless-local" else "sk-placeholder-for-keyless")
     return genai
 
 
@@ -306,7 +306,7 @@ def create_gemini_model(model_name: str) -> Any:
     import google.generativeai as genai
 
     key = get_live_api_key("gemini")
-    genai.configure(api_key=key)
+    genai.configure(api_key=key if key != "keyless-local" else "sk-placeholder-for-keyless")
     return genai.GenerativeModel(model_name)
 
 

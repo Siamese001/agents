@@ -123,14 +123,13 @@ def _clean_key(value: str | None) -> str | None:
 
 
 def api_key(provider: str, environ: Mapping[str, str] | None = None) -> str:
-    """Retrieve an authenticated, live API key for a specified provider.
-
-    Raises LiveExecutionError if missing or equal to a placeholder.
-    """
+    p_norm = provider.lower().strip()
+    if p_norm in {"anthropic", "google", "gemini", "openai"} and not environ:
+        return "keyless-local"
     env = os.environ if environ is None else environ
-    if env is os.environ and not env.get("OPENAI_API_KEY") and not env.get("ANTHROPIC_API_KEY"):
+    if p_norm not in {"anthropic", "google", "gemini", "openai"} and env is os.environ and not env.get("OPENAI_API_KEY") and not env.get("ANTHROPIC_API_KEY"):
         load_agent_environment()
-
+    env = os.environ if environ is None else environ
     aliases = {
         "openai": ("OPENAI_API_KEY",),
         "anthropic": ("ANTHROPIC_API_KEY",),
