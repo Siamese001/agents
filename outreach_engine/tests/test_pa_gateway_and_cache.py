@@ -194,17 +194,17 @@ def test_provider_gateway_model_pins_and_judge_orthogonality() -> None:
     """Verify primary drafter, fallback, advisory selector, and dual proof judge pins."""
     gateway = OutreachProviderGateway()
 
-    # Primary drafter: claude-sonnet-5 with gpt-5.6-luna backup
+    # Primary drafter: claude-sonnet-5-5-high with gpt-5.6-luna backup
     drafter_pin = gateway.resolve_lane_pin("executive_outreach_generator")
-    assert drafter_pin.model == "claude-sonnet-5"
+    assert drafter_pin.model == "claude-sonnet-5-5-high"
     assert drafter_pin.provider == "anthropic"
     assert drafter_pin.backup_model == "gpt-5.6-luna"
     assert drafter_pin.backup_provider == "openai"
     assert drafter_pin.thinking_budget_tokens == 2048
 
-    # Advisory rubric selector: claude-haiku-5-5 (advisory_only=True, proof_eligible=False)
+    # Advisory rubric selector: claude-sonnet-5-5-medium (advisory_only=True, proof_eligible=False)
     selector_pin = gateway.resolve_lane_pin("rubric_judge_panel")
-    assert selector_pin.model == "claude-haiku-5-5"
+    assert selector_pin.model == "claude-sonnet-5-5-medium"
     assert selector_pin.advisory_only is True
     assert selector_pin.proof_eligible is False
     assert selector_pin.reasoning_effort == "low"
@@ -234,7 +234,7 @@ def test_provider_gateway_model_pins_and_judge_orthogonality() -> None:
 def test_provider_gateway_primary_dispatch_and_fault_injected_failover(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Verify claude-sonnet-5 primary dispatch and automatic failover to gpt-5.6-luna on fault injection."""
+    """Verify claude-sonnet-5-5-high primary dispatch and automatic failover to gpt-5.6-luna on fault injection."""
     compiled = compile_outreach_prompt(
         candidate_claims=["[fact_id:fact_01] Scaled platform to $250M ARR."],
         untrusted_brief="Strategic priority: AI platform modernization.",
@@ -243,11 +243,11 @@ def test_provider_gateway_primary_dispatch_and_fault_injected_failover(
     )
     gateway = OutreachProviderGateway()
 
-    # 1. Healthy primary dispatch -> claude-sonnet-5
+    # 1. Healthy primary dispatch -> claude-sonnet-5-5-high
     monkeypatch.delenv("APPS_LIC_TEST_FAULT_INJECT", raising=False)
     resp_primary = gateway.dispatch(compiled, lane="executive_outreach_generator")
     assert isinstance(resp_primary, GatewayDispatchResponse)
-    assert resp_primary.model_id == "claude-sonnet-5"
+    assert resp_primary.model_id == "claude-sonnet-5-5-high"
     assert resp_primary.provider_id == "anthropic"
     assert resp_primary.used_fallback is False
     assert resp_primary.drafter_family == "anthropic"
@@ -260,7 +260,7 @@ def test_provider_gateway_primary_dispatch_and_fault_injected_failover(
     resp_fallback = gateway.dispatch(compiled, lane="executive_outreach_generator")
     assert resp_fallback.model_id == "gpt-5.6-luna"
     assert resp_fallback.provider_id == "openai"
-    assert resp_fallback.requested_model_id == "claude-sonnet-5"
+    assert resp_fallback.requested_model_id == "claude-sonnet-5-5-high"
     assert resp_fallback.used_fallback is True
     assert resp_fallback.drafter_family == "openai"
     assert resp_fallback.x1d_hitl_escalation_required is True

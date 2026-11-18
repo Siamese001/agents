@@ -60,21 +60,21 @@ def test_provider_profiles_config_uses_external_claude_default() -> None:
     assert profiles["external_claude_generator"]["default"] is True
     assert "default_model" not in profiles["external_claude_generator"]
     assert profiles["external_claude_generator"]["model_by_section"] == {
-        "competencies": "claude-sonnet-5",
-        "slalom_bullets": "claude-sonnet-5",
-        "unify_bullets": "claude-sonnet-5",
-        "ibm_bullets": "claude-sonnet-5",
-        "insurtech_bullets": "claude-sonnet-5",
-        "ey_bullets": "claude-sonnet-5",
-        "headline": "claude-sonnet-5",
-        "executive_summary": "claude-sonnet-5",
+        "competencies": "claude-sonnet-5-5-medium",
+        "slalom_bullets": "claude-sonnet-5-5-medium",
+        "unify_bullets": "claude-sonnet-5-5-medium",
+        "ibm_bullets": "claude-sonnet-5-5-medium",
+        "insurtech_bullets": "claude-sonnet-5-5-medium",
+        "ey_bullets": "claude-sonnet-5-5-medium",
+        "headline": "claude-sonnet-5-5-high",
+        "executive_summary": "claude-sonnet-5-5-high",
     }
     assert "local_retired_provider_generator" not in profiles
 
 
 def test_external_claude_competencies_pin_is_sonnet() -> None:
     assert external_claude_generation_model(section_id="competencies") == DEFAULT_EXTERNAL_CLAUDE_MODEL
-    assert DEFAULT_EXTERNAL_CLAUDE_MODEL == "claude-sonnet-5"
+    assert DEFAULT_EXTERNAL_CLAUDE_MODEL == "claude-sonnet-5-5-medium"
     assert "haiku" not in DEFAULT_EXTERNAL_CLAUDE_MODEL
 
 
@@ -84,7 +84,7 @@ def test_external_openai_narrative_pin_is_gpt_56_luna() -> None:
 
 
 def test_competencies_primary_and_backup_models(monkeypatch) -> None:
-    assert resolve_section_generation_model("competencies") == "claude-sonnet-5"
+    assert resolve_section_generation_model("competencies") == "claude-sonnet-5-5-medium"
     with pytest.raises(SectionModelSSOTError):
         external_openai_generation_model(section_id="competencies")
     monkeypatch.setenv(
@@ -243,7 +243,7 @@ def test_external_provider_uses_injected_transport(monkeypatch) -> None:
     def _transport(request):
         assert request["provider_profile"] == "external_openai"
         assert request["max_tokens"] == 100
-        assert request["timeout_seconds"] == 90.0
+        assert request["timeout_seconds"] == external_provider_module.DEFAULT_EXTERNAL_PROVIDER_TIMEOUT_SECONDS
         return {"text": "external output", "model": "external-test-model"}
 
     provider = ExternalProvider(

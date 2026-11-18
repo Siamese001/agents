@@ -149,7 +149,7 @@ models:
     status: active
     deprecated_on: null
     retire_after: null
-    replacement: null
+    replacement: claude-sonnet-5-5-medium
     capabilities:
       - text_generation
       - structured_json_generation
@@ -164,6 +164,54 @@ models:
       pricing_version: "2026-10-01"
       effective_date: "2026-10-01"
       source: anthropic_pricing_v2
+    hf_revision: null
+    artifact_sha256: null
+
+  claude-sonnet-5-5-medium:
+    provider: anthropic
+    snapshot_id: claude-sonnet-5-5-medium
+    status: active
+    deprecated_on: null
+    retire_after: null
+    replacement: null
+    capabilities:
+      - text_generation
+      - structured_json_generation
+      - advisory_selector
+    context_window: 200000
+    tokenizer_family: claude_bpe
+    pricing:
+      input_cost_per_mtok: 3.00
+      output_cost_per_mtok: 15.00
+      cached_input_cost_per_mtok: 0.30
+      cache_write_multiplier: 1.25
+      pricing_version: "2026-10-01"
+      effective_date: "2026-10-01"
+      source: ide_sonnet55_in_process
+    hf_revision: null
+    artifact_sha256: null
+
+  claude-sonnet-5-5-high:
+    provider: anthropic
+    snapshot_id: claude-sonnet-5-5-high
+    status: active
+    deprecated_on: null
+    retire_after: null
+    replacement: null
+    capabilities:
+      - text_generation
+      - structured_json_generation
+      - advisory_selector
+    context_window: 200000
+    tokenizer_family: claude_bpe
+    pricing:
+      input_cost_per_mtok: 3.00
+      output_cost_per_mtok: 15.00
+      cached_input_cost_per_mtok: 0.30
+      cache_write_multiplier: 1.25
+      pricing_version: "2026-10-01"
+      effective_date: "2026-10-01"
+      source: ide_sonnet55_in_process
     hf_revision: null
     artifact_sha256: null
 
@@ -461,7 +509,7 @@ roles:
       temperature: null
 
   generation.competencies:
-    model: claude-sonnet-5
+    model: claude-sonnet-5-5-medium
     provider: external_claude
     tier: frontier
     proof_eligible: true
@@ -473,7 +521,7 @@ roles:
       temperature: null
 
   generation.slalom_bullets:
-    model: claude-sonnet-5
+    model: claude-sonnet-5-5-medium
     provider: external_claude
     tier: frontier
     proof_eligible: true
@@ -485,7 +533,7 @@ roles:
       temperature: null
 
   generation.unify_bullets:
-    model: claude-sonnet-5
+    model: claude-sonnet-5-5-medium
     provider: external_claude
     tier: frontier
     proof_eligible: true
@@ -497,7 +545,7 @@ roles:
       temperature: null
 
   generation.ibm_bullets:
-    model: claude-sonnet-5
+    model: claude-sonnet-5-5-medium
     provider: external_claude
     tier: frontier
     proof_eligible: true
@@ -509,7 +557,7 @@ roles:
       temperature: null
 
   generation.insurtech_bullets:
-    model: claude-sonnet-5
+    model: claude-sonnet-5-5-medium
     provider: external_claude
     tier: frontier
     proof_eligible: true
@@ -521,7 +569,7 @@ roles:
       temperature: null
 
   generation.ey_bullets:
-    model: claude-sonnet-5
+    model: claude-sonnet-5-5-medium
     provider: external_claude
     tier: frontier
     proof_eligible: true
@@ -533,7 +581,7 @@ roles:
       temperature: null
 
   generation.headline:
-    model: claude-sonnet-5
+    model: claude-sonnet-5-5-high
     provider: external_claude
     tier: frontier
     proof_eligible: true
@@ -545,7 +593,7 @@ roles:
       temperature: null
 
   generation.executive_summary:
-    model: claude-sonnet-5
+    model: claude-sonnet-5-5-high
     provider: external_claude
     tier: frontier
     proof_eligible: true
@@ -704,7 +752,7 @@ roles:
 
   # Selectors
   selector.competencies_graph_pool_selector:
-    model: claude-haiku-5-5
+    model: claude-sonnet-5-5-medium
     provider: anthropic_claude
     tier: mid
     proof_eligible: false
@@ -726,7 +774,7 @@ roles:
       reasoning_effort: low
 
   selector.employment_bullet_pool_selector:
-    model: claude-haiku-5-5
+    model: claude-sonnet-5-5-medium
     provider: anthropic_claude
     tier: mid
     proof_eligible: false
@@ -760,7 +808,7 @@ roles:
 
   # Voice repair and thesis alignment
   repair.executive_voice:
-    model: claude-sonnet-5
+    model: claude-sonnet-5-5-medium
     provider: external_claude
     tier: frontier
     proof_eligible: false
@@ -773,7 +821,7 @@ roles:
       max_tokens: 1024
 
   reasoning.career_thesis_alignment:
-    model: claude-sonnet-5
+    model: claude-sonnet-5-5-high
     provider: external_claude
     tier: frontier
     proof_eligible: true
@@ -785,7 +833,7 @@ roles:
       temperature: null
 
   reasoning.l1_cognitive_planner:
-    model: claude-sonnet-5
+    model: claude-sonnet-5-5-high
     provider: external_claude
     tier: frontier
     proof_eligible: false
@@ -799,7 +847,7 @@ roles:
       temperature: null
 
   reasoning.l1_post_c0_strategist:
-    model: claude-sonnet-5
+    model: claude-sonnet-5-5-high
     provider: external_claude
     tier: frontier
     proof_eligible: true

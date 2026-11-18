@@ -29,7 +29,8 @@ def test_list_roles_and_models_non_empty() -> None:
     assert len(models) >= 5
     assert "generation.slalom_bullets" in roles
     assert "gpt-5.6-luna" in models
-    assert "claude-sonnet-5" in models
+    assert "claude-sonnet-5-5-medium" in models
+    assert "claude-sonnet-5-5-high" in models
     assert "gemini-3.8-flash" in models
     assert "BAAI/bge-m3" in models
 
@@ -38,9 +39,9 @@ def test_resolve_generation_roles() -> None:
     resolved = resolve("generation.slalom_bullets")
     assert isinstance(resolved, ResolvedModel)
     assert resolved.role == "generation.slalom_bullets"
-    assert resolved.model == "claude-sonnet-5"
+    assert resolved.model == "claude-sonnet-5-5-medium"
     assert resolved.provider == "external_claude"
-    assert resolved.snapshot_id == "claude-sonnet-5"
+    assert resolved.snapshot_id == "claude-sonnet-5-5-medium"
     assert resolved.tier == "frontier"
     assert resolved.proof_eligible is True
     assert resolved.params.get("effort") == "medium"
@@ -52,7 +53,7 @@ def test_resolve_generation_roles() -> None:
 def test_resolve_shorthand_role_lookup() -> None:
     resolved = resolve("slalom_bullets")
     assert resolved.role == "generation.slalom_bullets"
-    assert resolved.model == "claude-sonnet-5"
+    assert resolved.model == "claude-sonnet-5-5-medium"
 
     narrative = resolve("ibm_narrative")
     assert narrative.role == "generation.ibm_narrative"

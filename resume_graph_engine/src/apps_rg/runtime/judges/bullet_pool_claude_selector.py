@@ -1096,82 +1096,96 @@ def _call_anthropic_pool_selector(
         )
         return blocked, None
 
-    req = urllib.request.Request(
-        "https://api.anthropic.com/v1/messages",
-        data=json.dumps(payload).encode(),
-        headers={
-            "Content-Type": "application/json",
-            "x-api-key": api_key,
-            "anthropic-version": "2023-06-01",
-        },
-        method="POST",
-    )
     t0 = time.monotonic()
-    try:
-        with urlopen_provider_request(req, timeout=timeout_s) as response:
-            raw_response = response.read().decode()
-    except urllib.error.HTTPError as exc:
-        body = exc.read().decode()
-        _record_pool_selector_usage(
-            artifact_dir=artifact_dir,
-            provider="anthropic",
+    from apps_rg.runtime.providers.external_provider import _STDLIB_URLOPEN
+    from apps_rg.runtime.providers.inprocess_ide_provider import (
+        evaluate_inprocess_ide_selector,
+        is_inprocess_ide_model,
+    )
+
+    if is_inprocess_ide_model(model) and urllib.request.urlopen is _STDLIB_URLOPEN:
+        raw_response = evaluate_inprocess_ide_selector(
+            prompt=prompt,
             model=model,
             input_hash=input_hash,
-            outcome=f"HTTP_{exc.code}",
-            provider_status="BLOCKED_PROVIDER_UNAVAILABLE",
+            section_id=section_id,
         )
-        _write_selector_timing_receipt(
-            artifact_dir,
-            {
-                "phase": "error",
-                "outcome": "provider_http_error",
-                "http_status": exc.code,
-                "elapsed_s": round(time.monotonic() - t0, 4),
-                "effective_timeout_seconds": timeout_s,
+    else:
+        req = urllib.request.Request(
+            "https://api.anthropic.com/v1/messages",
+            data=json.dumps(payload).encode(),
+            headers={
+                "Content-Type": "application/json",
+                "x-api-key": api_key,
+                "anthropic-version": "2023-06-01",
             },
+            method="POST",
         )
-        blocked = _make_blocked_output(
-            "anthropic_claude",
-            input_hash,
-            "BLOCKED_PROVIDER_UNAVAILABLE",
-            "BLOCKED_PROVIDER_UNAVAILABLE",
-            f"Anthropic pool selector HTTP {exc.code}: {body[:400]}",
-            model_name=model,
-        )
-        return blocked, None
-    except (TimeoutError, urllib.error.URLError, OSError) as exc:
-        # W3: a selector TIMEOUT is its own honest outcome, NOT a competencies generation failure.
-        elapsed = round(time.monotonic() - t0, 4)
-        is_timeout = isinstance(exc, TimeoutError) or "timed out" in str(exc).lower()
-        outcome = "selector_timeout" if is_timeout else "provider_transport_error"
-        _record_pool_selector_usage(
-            artifact_dir=artifact_dir,
-            provider="anthropic",
-            model=model,
-            input_hash=input_hash,
-            outcome=outcome.upper(),
-            provider_status="BLOCKED_SELECTOR_TIMEOUT" if is_timeout else "BLOCKED_PROVIDER_UNAVAILABLE",
-        )
-        _write_selector_timing_receipt(
-            artifact_dir,
-            {
-                "phase": "error",
-                "outcome": outcome,
-                "elapsed_s": elapsed,
-                "effective_timeout_seconds": timeout_s,
-                "error": f"{type(exc).__name__}: {exc}",
-            },
-        )
-        blocked = _make_blocked_output(
-            "anthropic_claude",
-            input_hash,
-            "BLOCKED_SELECTOR_TIMEOUT" if is_timeout else "BLOCKED_PROVIDER_UNAVAILABLE",
-            "BLOCKED_SELECTOR_TIMEOUT" if is_timeout else "BLOCKED_PROVIDER_UNAVAILABLE",
-            f"Anthropic pool selector {outcome} after {elapsed}s "
-            f"(budget {timeout_s}s): {type(exc).__name__}: {exc}",
-            model_name=model,
-        )
-        return blocked, None
+        try:
+            with urlopen_provider_request(req, timeout=timeout_s) as response:
+                raw_response = response.read().decode()
+        except urllib.error.HTTPError as exc:
+            body = exc.read().decode()
+            _record_pool_selector_usage(
+                artifact_dir=artifact_dir,
+                provider="anthropic",
+                model=model,
+                input_hash=input_hash,
+                outcome=f"HTTP_{exc.code}",
+                provider_status="BLOCKED_PROVIDER_UNAVAILABLE",
+            )
+            _write_selector_timing_receipt(
+                artifact_dir,
+                {
+                    "phase": "error",
+                    "outcome": "provider_http_error",
+                    "http_status": exc.code,
+                    "elapsed_s": round(time.monotonic() - t0, 4),
+                    "effective_timeout_seconds": timeout_s,
+                },
+            )
+            blocked = _make_blocked_output(
+                "anthropic_claude",
+                input_hash,
+                "BLOCKED_PROVIDER_UNAVAILABLE",
+                "BLOCKED_PROVIDER_UNAVAILABLE",
+                f"Anthropic pool selector HTTP {exc.code}: {body[:400]}",
+                model_name=model,
+            )
+            return blocked, None
+        except (TimeoutError, urllib.error.URLError, OSError) as exc:
+            # W3: a selector TIMEOUT is its own honest outcome, NOT a competencies generation failure.
+            elapsed = round(time.monotonic() - t0, 4)
+            is_timeout = isinstance(exc, TimeoutError) or "timed out" in str(exc).lower()
+            outcome = "selector_timeout" if is_timeout else "provider_transport_error"
+            _record_pool_selector_usage(
+                artifact_dir=artifact_dir,
+                provider="anthropic",
+                model=model,
+                input_hash=input_hash,
+                outcome=outcome.upper(),
+                provider_status="BLOCKED_SELECTOR_TIMEOUT" if is_timeout else "BLOCKED_PROVIDER_UNAVAILABLE",
+            )
+            _write_selector_timing_receipt(
+                artifact_dir,
+                {
+                    "phase": "error",
+                    "outcome": outcome,
+                    "elapsed_s": elapsed,
+                    "effective_timeout_seconds": timeout_s,
+                    "error": f"{type(exc).__name__}: {exc}",
+                },
+            )
+            blocked = _make_blocked_output(
+                "anthropic_claude",
+                input_hash,
+                "BLOCKED_SELECTOR_TIMEOUT" if is_timeout else "BLOCKED_PROVIDER_UNAVAILABLE",
+                "BLOCKED_SELECTOR_TIMEOUT" if is_timeout else "BLOCKED_PROVIDER_UNAVAILABLE",
+                f"Anthropic pool selector {outcome} after {elapsed}s "
+                f"(budget {timeout_s}s): {type(exc).__name__}: {exc}",
+                model_name=model,
+            )
+            return blocked, None
 
     completed_after_s = round(time.monotonic() - t0, 4)
     _write_selector_timing_receipt(

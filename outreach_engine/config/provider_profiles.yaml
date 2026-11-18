@@ -38,7 +38,7 @@ profiles:
     profile_id: outreach_engine::provider::executive_outreach_generator::v2
     provider: anthropic
     provider_class: external_api
-    model: claude-sonnet-5
+    model: claude-sonnet-5-5-high
     backup_provider: openai
     backup_model: gpt-5.6-luna
     reasoning_effort: low
@@ -55,7 +55,7 @@ profiles:
     profile_id: outreach_engine::provider::recruiter_outreach_generator::v2
     provider: anthropic
     provider_class: external_api
-    model: claude-sonnet-5
+    model: claude-sonnet-5-5-high
     backup_provider: openai
     backup_model: gpt-5.6-luna
     reasoning_effort: low
@@ -72,7 +72,7 @@ profiles:
     profile_id: outreach_engine::provider::rubric_judge_panel::v1
     provider: anthropic
     provider_class: external_api
-    model: claude-haiku-5-5
+    model: claude-sonnet-5-5-medium
     backup_provider: google
     backup_model: gemini-3.8-flash
     reasoning_effort: low
@@ -83,7 +83,7 @@ profiles:
     ide_internal_tier: argon4_medium
     pin_owner: outreach_engine.judges.panel
     pin_review_after: "2026-11-07"
-    description: "Multi-lens executive outreach rubric evaluator right-sized to Haiku 5.5 at low effort"
+    description: "Multi-lens executive outreach rubric evaluator right-sized to Sonnet 5.5 (Medium)"
 
   x1d_proof_judge_primary:
     profile_id: outreach_engine::provider::x1d_proof_judge_primary::v1

@@ -114,7 +114,7 @@ profiles:
       insurtech_bullets: medium
       ey_bullets: medium
       headline: medium
-      executive_summary: medium
+      executive_summary: high
     endpoint_env_var: APPS_RG_EXTERNAL_OPENAI_BASE_URL
     api_key_env_var: OPENAI_API_KEY
     capabilities:
@@ -132,17 +132,17 @@ profiles:
     # Explicit Claude generation pins. No provider-level default model is allowed for
     # proof-bearing apps_rg lanes.
     model_by_section:
-      competencies: claude-sonnet-5
-      slalom_bullets: claude-sonnet-5
-      unify_bullets: claude-sonnet-5
-      ibm_bullets: claude-sonnet-5
-      insurtech_bullets: claude-sonnet-5
-      ey_bullets: claude-sonnet-5
-      headline: claude-sonnet-5
-      executive_summary: claude-sonnet-5
+      competencies: claude-sonnet-5-5-medium
+      slalom_bullets: claude-sonnet-5-5-medium
+      unify_bullets: claude-sonnet-5-5-medium
+      ibm_bullets: claude-sonnet-5-5-medium
+      insurtech_bullets: claude-sonnet-5-5-medium
+      ey_bullets: claude-sonnet-5-5-medium
+      headline: claude-sonnet-5-5-high
+      executive_summary: claude-sonnet-5-5-high
     effort_by_section:
       # With scratch_max_output_tokens raised to 8192 for executive_summary,
-      # Sonnet 5 adaptive reasoning runs at high effort for executive_summary
+      # Sonnet 5.5 adaptive reasoning runs at high effort for executive_summary
       # and medium effort for structured section lanes without starving JSON output.
       competencies: medium
       slalom_bullets: medium
@@ -223,7 +223,7 @@ judge_model_governance:
 selector_models:
   competencies_graph_pool_selector:
     provider_key: anthropic_claude
-    model: claude-haiku-5-5
+    model: claude-sonnet-5-5-medium
     # The selector has the same 4096-token governed output room and must leave
     # capacity for its compact JSON selection payload.
     reasoning_effort: low
@@ -237,7 +237,7 @@ selector_models:
     proof_eligible: false
   employment_bullet_pool_selector:
     provider_key: anthropic_claude
-    model: claude-haiku-5-5
+    model: claude-sonnet-5-5-medium
     reasoning_effort: low
     anthropic_limit_backup:
       provider_key: openai_chatgpt
@@ -251,7 +251,7 @@ selector_models:
 reasoning_models:
   reasoning.l1_cognitive_planner:
     provider_key: external_claude
-    model: claude-sonnet-5
+    model: claude-sonnet-5-5-high
     reasoning_effort: medium
     ide_dual_mode_role: high_reasoning_roles
     owner: apps_rg.l1_cognitive_planner
@@ -259,7 +259,7 @@ reasoning_models:
     proof_eligible: false
   reasoning.l1_post_c0_strategist:
     provider_key: external_claude
-    model: claude-sonnet-5
+    model: claude-sonnet-5-5-high
     reasoning_effort: medium
     ide_dual_mode_role: high_reasoning_roles
     owner: apps_rg.l1_post_c0_strategist

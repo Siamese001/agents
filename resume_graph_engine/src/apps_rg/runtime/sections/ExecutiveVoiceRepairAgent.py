@@ -300,7 +300,11 @@ def _call_llm_repair(
     model: str = DEFAULT_REPAIR_MODEL,
 ) -> dict[str, Any] | None:
     """Call Claude (drafter) or cross-family OpenAI (auditor) model for repair pass via standard transport."""
+    from apps_rg.runtime.providers.inprocess_ide_provider import is_inprocess_ide_model
+
     is_openai_auditor = str(model).startswith("gpt-") or model == DEFAULT_AUDITOR_MODEL
+    if not is_openai_auditor and is_inprocess_ide_model(model):
+        return None
     api_key = (
         (os.environ.get("OPENAI_API_KEY") or os.environ.get("ANTHROPIC_API_KEY"))
         if is_openai_auditor
