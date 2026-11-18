@@ -40,6 +40,7 @@ providers:
     provider_profile: gemini_pro
     provider_class: external_api
     endpoint_env_var: APPS_RG_GEMINI_BASE_URL
+    api_key_env_var: GEMINI_API_KEY
     capabilities:
       - text_generation
       - structured_json_generation

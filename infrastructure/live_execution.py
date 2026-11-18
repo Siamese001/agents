@@ -128,14 +128,14 @@ def api_key(provider: str, environ: Mapping[str, str] | None = None) -> str:
     Raises LiveExecutionError if missing or equal to a placeholder.
     """
     env = os.environ if environ is None else environ
-    if env is os.environ and not env.get("OPENAI_API_KEY"):
+    if env is os.environ and not env.get("OPENAI_API_KEY") and not env.get("ANTHROPIC_API_KEY"):
         load_agent_environment()
 
     aliases = {
         "openai": ("OPENAI_API_KEY",),
         "anthropic": ("ANTHROPIC_API_KEY",),
-        "google": (),
-        "gemini": (),
+        "google": ("GEMINI_API_KEY", "GOOGLE_API_KEY"),
+        "gemini": ("GEMINI_API_KEY", "GOOGLE_API_KEY"),
     }
 
     p_norm = provider.lower().strip()
