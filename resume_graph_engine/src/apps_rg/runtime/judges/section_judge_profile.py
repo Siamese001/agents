@@ -159,10 +159,15 @@ def resolve_section_proof_judge_model(
 
     reasoning_effort: str | None = None
     if provider_key == "gemini_pro":
-        reasoning_effort = (
-            runtime_limit_str("judge.gemini_proof_thinking_level")
-            or policy.judge_runtime_profile.gemini_thinking_level
-        )
+        if "argon-medium" in model_id:
+            reasoning_effort = "medium"
+        elif "argon-high" in model_id:
+            reasoning_effort = "high"
+        else:
+            reasoning_effort = (
+                runtime_limit_str("judge.gemini_proof_thinking_level")
+                or policy.judge_runtime_profile.gemini_thinking_level
+            )
     elif provider_key == "openai_chatgpt":
         reasoning_effort = (
             runtime_limit_str("judge.openai_proof_reasoning_effort")

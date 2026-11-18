@@ -407,7 +407,7 @@ class JudgeOutput:
 # Provider configuration
 PROVIDERS = {
     "gemini_pro": {
-        "provider_name": "Google Gemini 3.6 Flash",
+        "provider_name": "Gemini 4 Argon",
         "env": "GOOGLE_API_KEY",
         # GEMINI_API_KEY is a deprecated legacy alias (same credential as Google AI Gemini).
         "env_fallbacks": ("GEMINI_API_KEY",),
@@ -1563,24 +1563,77 @@ def _call_gemini(
             service_label="Gemini",
         )
 
-    for transport_attempt in range(retries + 1):
-        try:
-            with _GEMINI_CONCURRENCY_SEMAPHORE:
-                with urlopen_provider_request(req, timeout=_judge_http_timeout()) as response:
-                    raw_response = response.read().decode()
-            break
-        except urllib.error.HTTPError as e:
-            body = e.read().decode(errors="replace")
-            hard_quota = any(
-                marker in body.lower()
-                for marker in (
-                    "exceeded its monthly spending cap",
-                    "monthly spending cap",
-                    "project spend cap",
-                    "billing account",
+    from apps_rg.runtime.judges.inprocess_proof_judge import (
+        evaluate_argon_x1d_judge,
+        is_argon_model,
+    )
+
+    if is_argon_model(model):
+        argon_doc = evaluate_argon_x1d_judge(
+            prompt=prompt,
+            model=model,
+            input_hash=input_hash,
+            section_id=section_id,
+            thinking_level=resolved_thinking_level,
+            judge_receipt=judge_receipt,
+            response_schema=response_schema,
+        )
+        raw_response = json.dumps(argon_doc, separators=(",", ":"), ensure_ascii=False)
+        transport_attempt = 0
+    else:
+        for transport_attempt in range(retries + 1):
+            try:
+                with _GEMINI_CONCURRENCY_SEMAPHORE:
+                    with urlopen_provider_request(req, timeout=_judge_http_timeout()) as response:
+                        raw_response = response.read().decode()
+                break
+            except urllib.error.HTTPError as e:
+                body = e.read().decode(errors="replace")
+                hard_quota = any(
+                    marker in body.lower()
+                    for marker in (
+                        "exceeded its monthly spending cap",
+                        "monthly spending cap",
+                        "project spend cap",
+                        "billing account",
+                    )
                 )
-            )
-            if transport_attempt < retries and e.code == 429 and not hard_quota:
+                if transport_attempt < retries and e.code == 429 and not hard_quota:
+                    _record_x1d_external_usage(
+                        artifact_base=artifact_base,
+                        provider="gemini",
+                        model=model,
+                        input_hash=input_hash,
+                        section_id=section_id,
+                        logical_attempt=logical_attempt,
+                        transport_attempt=transport_attempt + 1,
+                        outcome="HTTP_429",
+                        provider_status="RETRYING",
+                        retry_reason="provider_rate_limit",
+                    )
+                    if is_lane_cancelled():
+                        raise TimeoutError("Gemini judge cancelled during rate-limit backoff")
+                    wait_s = _parse_gemini_retry_delay_seconds(body)
+                    if wait_s is None:
+                        wait_s = min(15.0, (2.0**transport_attempt) + random.uniform(0.25, 1.25))
+                    else:
+                        wait_s = float(wait_s) + random.uniform(0.15, 0.75)
+                    time.sleep(min(15.0, max(1.0, float(wait_s))))
+                    continue
+
+                eval_mode, prov_status, msg = _classify_gemini_http_block(e.code, body)
+                err_path = _artifact_path(provider_key, "provider_response_raw", artifact_base=artifact_base)
+                _write_artifact(
+                    err_path,
+                    {
+                        "error": True,
+                        "status_code": e.code,
+                        "body": body,
+                        "input_hash": input_hash,
+                        "attempt": transport_attempt,
+                        "retries_configured": retries,
+                    },
+                )
                 _record_x1d_external_usage(
                     artifact_base=artifact_base,
                     provider="gemini",
@@ -1589,54 +1642,19 @@ def _call_gemini(
                     section_id=section_id,
                     logical_attempt=logical_attempt,
                     transport_attempt=transport_attempt + 1,
-                    outcome="HTTP_429",
-                    provider_status="RETRYING",
-                    retry_reason="provider_rate_limit",
+                    outcome=f"HTTP_{e.code}",
+                    provider_status=prov_status,
+                    raw_response_ref=str(err_path),
                 )
-                if is_lane_cancelled():
-                    raise TimeoutError("Gemini judge cancelled during rate-limit backoff")
-                wait_s = _parse_gemini_retry_delay_seconds(body)
-                if wait_s is None:
-                    wait_s = min(15.0, (2.0**transport_attempt) + random.uniform(0.25, 1.25))
-                else:
-                    wait_s = float(wait_s) + random.uniform(0.15, 0.75)
-                time.sleep(min(15.0, max(1.0, float(wait_s))))
-                continue
-
-            eval_mode, prov_status, msg = _classify_gemini_http_block(e.code, body)
-            err_path = _artifact_path(provider_key, "provider_response_raw", artifact_base=artifact_base)
-            _write_artifact(
-                err_path,
-                {
-                    "error": True,
-                    "status_code": e.code,
-                    "body": body,
-                    "input_hash": input_hash,
-                    "attempt": transport_attempt,
-                    "retries_configured": retries,
-                },
-            )
-            _record_x1d_external_usage(
-                artifact_base=artifact_base,
-                provider="gemini",
-                model=model,
-                input_hash=input_hash,
-                section_id=section_id,
-                logical_attempt=logical_attempt,
-                transport_attempt=transport_attempt + 1,
-                outcome=f"HTTP_{e.code}",
-                provider_status=prov_status,
-                raw_response_ref=str(err_path),
-            )
-            return _make_blocked_output(
-                provider_key,
-                input_hash,
-                eval_mode,
-                prov_status,
-                msg,
-                raw_response_ref=str(err_path),
-                model_name=model,
-            )
+                return _make_blocked_output(
+                    provider_key,
+                    input_hash,
+                    eval_mode,
+                    prov_status,
+                    msg,
+                    raw_response_ref=str(err_path),
+                    model_name=model,
+                )
 
     # Write raw response artifact
     raw_path = _artifact_path(provider_key, "provider_response_raw", artifact_base=artifact_base)

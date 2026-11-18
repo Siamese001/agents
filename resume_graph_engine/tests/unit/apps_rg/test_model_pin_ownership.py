@@ -132,7 +132,10 @@ def test_active_manifest_includes_governed_selectors_and_apps_research() -> None
         "standard.gemini_pro",
         "apps_rg_handoff_judge",
     }
-    assert all(row["model"] == "gemini-3.8-flash" for row in gemini_rows)
+    by_gem_role = {row["role_id"]: row["model"] for row in gemini_rows}
+    assert by_gem_role["enhanced.gemini_pro"] == "gemini-4-argon-high"
+    assert by_gem_role["standard.gemini_pro"] == "gemini-4-argon-medium"
+    assert by_gem_role["apps_rg_handoff_judge"] == "gemini-4-argon-high"
     assert all(row["effort"] == "high" for row in gemini_rows)
 
 

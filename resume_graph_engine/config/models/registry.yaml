@@ -173,7 +173,7 @@ models:
     status: active
     deprecated_on: null
     retire_after: null
-    replacement: null
+    replacement: gemini-4-argon-medium
     capabilities:
       - text_generation
       - structured_json_generation
@@ -188,6 +188,54 @@ models:
       pricing_version: "2026-10-01"
       effective_date: "2026-10-01"
       source: google_gemini_pricing_v2
+    hf_revision: null
+    artifact_sha256: null
+
+  gemini-4-argon-medium:
+    provider: google_gemini
+    snapshot_id: gemini-4-argon-medium
+    status: active
+    deprecated_on: null
+    retire_after: null
+    replacement: null
+    capabilities:
+      - text_generation
+      - structured_json_generation
+      - judge_grade_only
+    context_window: 1048576
+    tokenizer_family: gemini_tokenizer
+    pricing:
+      input_cost_per_mtok: 0.15
+      output_cost_per_mtok: 0.60
+      cached_input_cost_per_mtok: 0.0375
+      cache_write_multiplier: 1.00
+      pricing_version: "2026-10-01"
+      effective_date: "2026-10-01"
+      source: ide_argon4_in_process
+    hf_revision: null
+    artifact_sha256: null
+
+  gemini-4-argon-high:
+    provider: google_gemini
+    snapshot_id: gemini-4-argon-high
+    status: active
+    deprecated_on: null
+    retire_after: null
+    replacement: null
+    capabilities:
+      - text_generation
+      - structured_json_generation
+      - judge_grade_only
+    context_window: 1048576
+    tokenizer_family: gemini_tokenizer
+    pricing:
+      input_cost_per_mtok: 0.15
+      output_cost_per_mtok: 0.60
+      cached_input_cost_per_mtok: 0.0375
+      cache_write_multiplier: 1.00
+      pricing_version: "2026-10-01"
+      effective_date: "2026-10-01"
+      source: ide_argon4_in_process
     hf_revision: null
     artifact_sha256: null
 
@@ -607,9 +655,9 @@ roles:
 
   # Proof judges
   proof_judge.enhanced.gemini_pro:
-    model: gemini-3.8-flash
+    model: gemini-4-argon-high
     provider: gemini_pro
-    tier: mid
+    tier: frontier
     proof_eligible: true
     owner: apps_rg.section_proof_judges
     review_after: "2026-11-07"
@@ -631,7 +679,7 @@ roles:
       max_output_tokens: 8192
 
   proof_judge.standard.gemini_pro:
-    model: gemini-3.8-flash
+    model: gemini-4-argon-medium
     provider: gemini_pro
     tier: mid
     proof_eligible: true
@@ -803,15 +851,15 @@ roles:
       reasoning_effort: medium
 
   apps_research.apps_rg_handoff_judge:
-    model: gemini-3.8-flash
+    model: gemini-4-argon-high
     provider: google_gemini
-    tier: mid
+    tier: frontier
     proof_eligible: false
     owner: apps_research.apps_rg_handoff
     review_after: "2026-11-07"
     backup_role: null
     params:
-      reasoning_effort: medium
+      reasoning_effort: high
 
 runtime_limits:
   section_context_window: 131072
