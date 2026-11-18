@@ -1,0 +1,40 @@
+{
+  "pack_id": "anthropic_applied_ai_partnerships_v1",
+  "schema_version": "apps_rg.deterministic_source_pack.v1",
+  "sources": [
+    {
+      "family": "company",
+      "id": "anthropic-mission",
+      "query": "Anthropic mission reliable interpretable steerable AI",
+      "snippet": "Anthropic describes its work as building reliable, interpretable, and steerable AI systems that are safe and beneficial.",
+      "title": "Anthropic — About",
+      "url": "https://www.anthropic.com/company"
+    },
+    {
+      "family": "product",
+      "id": "anthropic-claude-enterprise",
+      "query": "Anthropic Claude for Enterprise API Claude Code",
+      "snippet": "Anthropic offers enterprise products and an API for organizations building and deploying Claude-powered workflows.",
+      "title": "Anthropic — Claude for Enterprise",
+      "url": "https://www.anthropic.com/enterprise"
+    },
+    {
+      "family": "role",
+      "id": "anthropic-partnership-role",
+      "query": "Anthropic Applied AI Architecture Partnerships role",
+      "snippet": "The target role leads partner solutions architecture, technical enablement, joint solution development, and partner-led enterprise adoption.",
+      "title": "Anthropic Applied AI Architecture Partnerships JD",
+      "url": "https://www.anthropic.com/careers"
+    },
+    {
+      "family": "strategy",
+      "id": "anthropic-safety",
+      "query": "Anthropic responsible scaling policy safety enterprise adoption",
+      "snippet": "Anthropic publishes its approach to evaluating and managing safety as capabilities and deployment contexts evolve.",
+      "title": "Anthropic — Responsible Scaling Policy",
+      "url": "https://www.anthropic.com/rsp"
+    }
+  ],
+  "target_company": "Anthropic",
+  "target_role": "Manager of Applied AI Architecture, Partnerships"
+}

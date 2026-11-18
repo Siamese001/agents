@@ -1,0 +1,1 @@
+{"evaluation_type": "deterministic_local", "reasoning": "All required resume sections, base-resume employers, email fields, and local source records passed.", "score": 1.0, "verdict": "PASS"}

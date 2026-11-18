@@ -92,7 +92,7 @@ DEFAULT_OWNERS: dict[ConfigDomain, DomainOwner] = {
 }
 
 KNOWN_MODEL_PATTERN: Pattern[str] = re.compile(
-    r"^(?:gpt-[456]\.[0-9](?:-[a-z0-9]+)?|claude-[a-z0-9-]+|gemini-[0-9]\.[0-9](?:-[a-z0-9]+)?|o[13](?:-[a-z0-9]+)?)$",
+    r"^(?:gpt-[456]\.[0-9](?:-[a-z0-9]+)?|claude-[a-z0-9-]+|gemini-(?:[0-9]\.[0-9]|4-argon)(?:-[a-z0-9]+)?|o[13](?:-[a-z0-9]+)?)$",
     re.IGNORECASE,
 )
 
@@ -103,6 +103,8 @@ CORE_KNOWN_MODELS: tuple[str, ...] = (
     "claude-sonnet-5",
     "claude-sonnet-4-5",
     "claude-3-7-sonnet",
+    "gemini-4-argon-high",
+    "gemini-4-argon-medium",
     "gemini-3.8-flash",
     "gemini-3.6-flash",
     "gemini-2.5-flash",

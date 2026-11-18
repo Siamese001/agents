@@ -68,12 +68,12 @@ def test_resolve_backup_generation_role() -> None:
 
 def test_resolve_proof_judge_roles() -> None:
     enhanced_gemini = resolve("proof_judge.enhanced.gemini_pro")
-    assert enhanced_gemini.model == "gemini-3.8-flash"
+    assert enhanced_gemini.model == "gemini-4-argon-high"
     assert enhanced_gemini.params.get("thinking_level") == "high"
     assert enhanced_gemini.proof_eligible is True
 
     standard_gemini = resolve("proof_judge.standard.gemini_pro")
-    assert standard_gemini.model == "gemini-3.8-flash"
+    assert standard_gemini.model == "gemini-4-argon-medium"
     assert standard_gemini.params.get("thinking_level") == "medium"
     assert standard_gemini.proof_eligible is True
 

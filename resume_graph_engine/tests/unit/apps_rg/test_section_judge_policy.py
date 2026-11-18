@@ -303,15 +303,15 @@ def test_google_judge_tier_yaml_ssot_ignores_env() -> None:
     enhanced = resolve_section_proof_judge_model("executive_summary", "gemini_pro", env)
     assert enhanced.model_actual == _yaml_judge_model("enhanced", "gemini_pro")
     assert enhanced.model_source == "yaml_judge_models"
-    assert enhanced.reasoning_effort == _yaml_runtime_limit("judge.gemini_proof_thinking_level")
+    assert enhanced.reasoning_effort == "high"
     standard = resolve_section_proof_judge_model("headline", "gemini_pro", env)
     assert standard.model_actual == _yaml_judge_model("standard", "gemini_pro")
     assert standard.model_source == "yaml_judge_models"
-    assert standard.reasoning_effort == _yaml_runtime_limit("judge.gemini_proof_thinking_level")
+    assert standard.reasoning_effort == "medium"
     bullet = resolve_section_proof_judge_model("ibm_bullets", "gemini_pro", env)
     assert bullet.model_actual == _yaml_judge_model("standard", "gemini_pro")
     assert bullet.model_source == "yaml_judge_models"
-    assert bullet.reasoning_effort == _yaml_runtime_limit("judge.gemini_proof_thinking_level")
+    assert bullet.reasoning_effort == "medium"
 
 
 def test_grade_only_judge_packet_shape() -> None:
@@ -364,7 +364,7 @@ def test_competencies_policy_requires_llm_judge_for_proof() -> None:
     assert "anthropic_claude" not in p.required_judge_providers
     gemini = resolve_section_proof_judge_model("competencies", "gemini_pro", {})
     assert gemini.model_actual == _yaml_judge_model("standard", "gemini_pro")
-    assert gemini.reasoning_effort == _yaml_runtime_limit("judge.gemini_proof_thinking_level")
+    assert gemini.reasoning_effort == "medium"
     assert gemini.proof_eligible_judge is True
     openai = resolve_section_proof_judge_model("competencies", "openai_chatgpt", {})
     assert openai.model_actual == _yaml_judge_model("standard", "openai_chatgpt")

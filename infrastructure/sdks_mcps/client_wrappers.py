@@ -62,7 +62,7 @@ class GeminiAPIEndpoint:
 
 @dataclass
 class LocalAgentConfig:
-    model: str = "gemini-3.8-flash"  # guardian: allow-model-id -- SDK default aligned with provider_profiles.yaml
+    model: str = "gemini-4-argon-medium"  # guardian: allow-model-id -- SDK default aligned with provider_profiles.yaml
     api_key: str | None = None
     vertex: bool = False
     project: str | None = None
@@ -109,7 +109,7 @@ class LocalOpenAIAgentConfig:
 
 
 def create_antigravity_agent_config(
-    model: str = "gemini-3.8-flash",  # guardian: allow-model-id -- SDK default aligned with provider_profiles.yaml
+    model: str = "gemini-4-argon-medium",  # guardian: allow-model-id -- SDK default aligned with provider_profiles.yaml
     *,
     vertex: bool = False,
     project: str | None = None,
@@ -211,7 +211,7 @@ def load_agent_config_from_profile(
     """Translate config/provider_profiles.yaml entry into a LocalAgentConfig."""
     root = (repo_root or Path(__file__).resolve().parents[2]).resolve()
     prof_path = root / "config" / "provider_profiles.yaml"
-    model = "gemini-3.8-flash"  # guardian: allow-model-id -- fallback pin from provider_profiles.yaml
+    model = "gemini-4-argon-medium"  # guardian: allow-model-id -- fallback pin from provider_profiles.yaml
     if prof_path.is_file():
         try:
             import yaml  # type: ignore

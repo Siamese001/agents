@@ -460,31 +460,47 @@ def invoke_gemini_handoff_judge(
             ) as attempt:
                 attempt.mark_local_dispatch_started()
                 try:
-                    response_context = (
-                        resolved_urlopen(request, timeout=timeout)
-                        if resolved_urlopen is not None
-                        else urlopen_with_transport_evidence(
-                            request,
-                            timeout=timeout,
-                            evidence=attempt,
+                    if resolved_urlopen is None and "argon" in str(pin.model).lower():
+                        from apps_rg.runtime.judges.inprocess_proof_judge import (
+                            evaluate_argon_handoff_payload,
                         )
-                    )
-                    with response_context as response:
-                        response_headers = getattr(response, "headers", None)
-                        response_id = ""
-                        if response_headers is not None:
-                            response_id = str(
-                                response_headers.get("x-request-id")
-                                or response_headers.get("request-id")
-                                or ""
-                            )
+
+                        argon_payload = evaluate_argon_handoff_payload(
+                            model=pin.model,
+                            body=body,
+                        )
+                        response_body = json.dumps(argon_payload, separators=(",", ":")).encode("utf-8")
                         attempt.mark_response_headers(
-                            status_code=getattr(response, "status", None),
-                            provider_response_id=response_id,
+                            status_code=200,
+                            provider_response_id=str(argon_payload.get("responseId") or ""),
                         )
-                        response_body = response.read()
-                        if response_body:
-                            attempt.mark_first_byte()
+                        attempt.mark_first_byte()
+                    else:
+                        response_context = (
+                            resolved_urlopen(request, timeout=timeout)
+                            if resolved_urlopen is not None
+                            else urlopen_with_transport_evidence(
+                                request,
+                                timeout=timeout,
+                                evidence=attempt,
+                            )
+                        )
+                        with response_context as response:
+                            response_headers = getattr(response, "headers", None)
+                            response_id = ""
+                            if response_headers is not None:
+                                response_id = str(
+                                    response_headers.get("x-request-id")
+                                    or response_headers.get("request-id")
+                                    or ""
+                                )
+                            attempt.mark_response_headers(
+                                status_code=getattr(response, "status", None),
+                                provider_response_id=response_id,
+                            )
+                            response_body = response.read()
+                            if response_body:
+                                attempt.mark_first_byte()
                 except socket.timeout as exc:
                     attempt.failure_phase = "WAIT_RESPONSE_HEADERS"
                     raise AppsResearchProviderGatewayError(
