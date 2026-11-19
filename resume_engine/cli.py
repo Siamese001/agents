@@ -327,18 +327,26 @@ def main(argv: list[str] | None = None, prog: str | None = None) -> int:
         return patch_main(call_args)
 
     if action == "preflight":
+        from apps_rg.__main__ import _LAST_IDE_CLI_PREFLIGHT_RECEIPT
+
+        ide_receipt = _LAST_IDE_CLI_PREFLIGHT_RECEIPT or {}
         if getattr(args, "json", False):
-            print(
-                json.dumps(
-                    {
-                        "status": "PASS",
-                        "message": "Preflight credentials and live readiness validated.",
-                    },
-                    indent=2,
-                )
-            )
+            payload: dict[str, object] = {
+                "status": "PASS",
+                "message": "Preflight credentials and live readiness validated.",
+            }
+            if ide_receipt:
+                payload["ide_cli"] = ide_receipt
+            print(json.dumps(payload, indent=2))
         else:
-            print(f"[{prog}] Preflight check PASSED.")
+            verified = ide_receipt.get("verified_models") or []
+            if verified:
+                print(
+                    f"[{prog}] Preflight check PASSED. "
+                    f"IDE CLI pinned models verified in `agy models`: {', '.join(str(m) for m in verified)}"
+                )
+            else:
+                print(f"[{prog}] Preflight check PASSED.")
         return 0
 
     if action == "models":

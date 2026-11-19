@@ -1,0 +1,59 @@
+{
+  "result": {
+    "cited_sentence_indexes": [],
+    "decisive_failure": false,
+    "dimension_verdicts": {
+      "anti_overfit": {
+        "codes": [],
+        "pass": true,
+        "severity": "none"
+      },
+      "ats_alignment_without_keyword_stuffing": {
+        "codes": [],
+        "pass": true,
+        "severity": "none"
+      },
+      "deterministic_alignment": {
+        "codes": [],
+        "pass": true,
+        "severity": "none"
+      },
+      "evidence_utilization": {
+        "codes": [],
+        "pass": true,
+        "severity": "none"
+      },
+      "executive_signal": {
+        "codes": [],
+        "pass": true,
+        "severity": "none"
+      },
+      "factual_support": {
+        "codes": [],
+        "pass": true,
+        "severity": "none"
+      },
+      "resume_voice": {
+        "codes": [],
+        "pass": true,
+        "severity": "none"
+      },
+      "synthesis_quality": {
+        "codes": [],
+        "pass": true,
+        "severity": "none"
+      }
+    },
+    "findings": [
+      "Cohesive six-sentence executive summary fully supported by the allowed fact packet and well aligned to the Head of Forward Deployed Engineering mandate."
+    ],
+    "pass": true,
+    "remediation_suggestions": [],
+    "score": 4.8,
+    "score_scale": "0_to_5",
+    "threshold": 4
+  },
+  "raw_response_ref": "/Users/amitayer/Git/agents/.worktrees/claude-apps-rg-ide-subagent-exec-summary/resume_graph_engine/artifacts/apps_rg/judge_parity/w4/median_judges/executive_summary/x1d_gemini_provider_response_raw_20261119_114151_966.json",
+  "original_model": null,
+  "fallback_model": null
+}

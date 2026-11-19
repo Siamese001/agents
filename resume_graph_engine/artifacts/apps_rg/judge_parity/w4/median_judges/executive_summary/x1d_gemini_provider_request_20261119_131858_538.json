@@ -1,0 +1,13 @@
+{
+  "transport": "ide_cli",
+  "provider_key": "gemini_pro",
+  "section_id": "executive_summary",
+  "resolved_model": "gemini-4-argon-high",
+  "model_requested": "gemini-4-argon-high",
+  "attempt": 1,
+  "input_hash": "1b060519c31e9fbb",
+  "prompt_chars": 70188,
+  "prompt_sha256": "57bd6cf961b4c7ed13a221ce25852b3ba28644249522a2609b4143e2f1ec15f0",
+  "schema_sha256": "2d3f3d956b3252170f3e04f7465e9fcc3ca673655c39844550c588cc90fe88e4",
+  "api_key_used": false
+}

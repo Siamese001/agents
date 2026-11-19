@@ -355,12 +355,17 @@ def run_competencies_judges(
             meta = PROVIDERS[key]
             api_key, env_checked = resolve_x1d_provider_credentials(key, os.environ)
             if not api_key:
-                detail = (
-                    f"No non-empty API credential in {env_checked}; "
-                    f"(Gemini: GOOGLE_API_KEY, then deprecated GEMINI_API_KEY alias)."
-                    if key == "gemini_pro"
-                    else f"{meta['env']} environment variable not set"
-                )
+                from apps_rg.runtime.judges.x1d_ide_cli import ide_cli_unavailable_reason, uses_ide_cli_judges
+
+                if uses_ide_cli_judges(os.environ):
+                    detail = f"IDE CLI judge session unavailable: {ide_cli_unavailable_reason(os.environ)}"
+                elif key == "gemini_pro":
+                    detail = (
+                        f"No non-empty API credential in {env_checked}; "
+                        f"(Gemini: GOOGLE_API_KEY, then deprecated GEMINI_API_KEY alias)."
+                    )
+                else:
+                    detail = f"{meta['env']} environment variable not set"
                 out = _make_blocked_output(
                     key,
                     input_hash,

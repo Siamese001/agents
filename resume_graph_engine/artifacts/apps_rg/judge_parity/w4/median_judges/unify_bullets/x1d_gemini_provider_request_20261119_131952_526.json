@@ -1,0 +1,13 @@
+{
+  "transport": "ide_cli",
+  "provider_key": "gemini_pro",
+  "section_id": "unify_bullets",
+  "resolved_model": "gemini-4-argon-medium",
+  "model_requested": "gemini-4-argon-medium",
+  "attempt": 1,
+  "input_hash": "5235299839f3eb8b",
+  "prompt_chars": 37455,
+  "prompt_sha256": "a1fce253407e64ab9ba5b2aaf08a110488dcb16e424e0fa1a83bde24341c51e8",
+  "schema_sha256": "2d3f3d956b3252170f3e04f7465e9fcc3ca673655c39844550c588cc90fe88e4",
+  "api_key_used": false
+}

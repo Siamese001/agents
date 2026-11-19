@@ -1249,6 +1249,23 @@ def run_unify_narrative_execution(
 
     judge_keys = [j.strip() for j in str(getattr(args, "x1d_judges", "") or "").split(",") if j.strip()]
     judge_mode = "mocked" if getattr(args, "mock_judges", False) else "blocked_if_unavailable"
+    plan_facts_raw = list((runtime_payload.get("selected_fact_plan") or {}).get("facts") or [])
+    compact_allowed_facts = [
+        {
+            "fact_id": f.get("fact_id"),
+            "role_episode_bundle_id": f.get("role_episode_bundle_id"),
+            "claim_text": f.get("claim_text"),
+            "domain": f.get("domain"),
+            "allowed_graph_evidence_ids": f.get("allowed_graph_evidence_ids"),
+            "raw_chunk": str(f.get("raw_chunk") or "")[:1500],
+        }
+        for f in plan_facts_raw
+        if isinstance(f, dict)
+    ]
+    unify_allowed_fact_packet = {
+        "allowed_fact_ids": sorted(str(x) for x in allowed_fact_ids),
+        "facts": compact_allowed_facts,
+    }
     x1d = [
         j.to_dict()
         for j in run_unify_narrative_judges(
@@ -1258,6 +1275,7 @@ def run_unify_narrative_execution(
             companion_bullets_context=companion_text,
             mode=judge_mode,
             artifact_base=artifact_dir,
+            allowed_fact_packet=unify_allowed_fact_packet,
         )
     ]
     write_json(artifact_dir / "x1d_llm_judge_outputs.json", {"judges": x1d})

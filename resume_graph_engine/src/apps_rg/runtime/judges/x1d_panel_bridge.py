@@ -181,18 +181,24 @@ def run_grade_only_judges_via_core_panel(
 
         api_key, env_checked = resolve_x1d_provider_credentials(key, os.environ)
         if not api_key:
+            from apps_rg.runtime.judges.x1d_ide_cli import uses_ide_cli_judges
+
+            if uses_ide_cli_judges():
+                block_message = f"IDE CLI judge transport unavailable: {env_checked[0] if env_checked else 'unknown'}"
+            elif key == "gemini_pro":
+                block_message = (
+                    f"No non-empty API credential in {env_checked}; "
+                    f"Gemini resolves GOOGLE_API_KEY then deprecated GEMINI_API_KEY alias."
+                )
+            else:
+                block_message = f"{PROVIDERS[key]['env']} environment variable not set"
             outputs.append(
                 _make_blocked_output(
                     key,
                     input_hash,
                     "BLOCKED_PROVIDER_UNAVAILABLE",
                     "BLOCKED_PROVIDER_UNAVAILABLE",
-                    (
-                        f"No non-empty API credential in {env_checked}; "
-                        f"Gemini resolves GOOGLE_API_KEY then deprecated GEMINI_API_KEY alias."
-                        if key == "gemini_pro"
-                        else f"{PROVIDERS[key]['env']} environment variable not set"
-                    ),
+                    block_message,
                 )
             )
             continue

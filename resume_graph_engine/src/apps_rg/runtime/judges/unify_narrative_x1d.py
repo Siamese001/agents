@@ -22,8 +22,11 @@ Score contract:
 Rubric dimensions (must score each):
 1. north_star_alignment: role-level capstone emphasizing platform roadmap, core systems architecture,
    commercialization, reusable IP / platform economics, and enterprise deployment within consulting-firm context.
-2. fact_ledger_grounding: every material claim in the narrative maps to claim_ledger and bul_unify_* and/or
-   unify_narrative_base_* resume facts (no JD/briefing/target-company-as-experience).
+2. fact_ledger_grounding: every material claim in the narrative is supported by companion_bullets_context and/or
+   allowed_fact_packet and maps to claim_ledger source_fact_ids. Treat every ID explicitly present in allowed_fact_packet
+   (including graph-era reb_unify_* role-episode bundles, skill_* nodes, fact_* rows, metric_* IDs, and bul_unify_* or
+   unify_narrative_base_* resume facts) as eligible proof; never reject a citation solely because of its ID prefix when
+   allowed_fact_packet supplies it (no JD/briefing/target-company-as-experience).
 3. jd_briefing_targeting: JD and briefing themes shape emphasis without becoming proof (belongs in jd_alignment object,
    not the sentence as invented experience).
 4. complementarity_vs_bullets: states the executive thesis the bullets prove without recap, checklist, or six-bullet walk.

@@ -1078,7 +1078,7 @@ def _call_anthropic_pool_selector(
             "input_hash": input_hash,
         },
     )
-    if not _judge_live_https_allowed_under_pytest():
+    if not _judge_live_https_allowed_under_pytest() and api_key != "ide-cli-session":
         _write_selector_timing_receipt(
             artifact_dir,
             {
@@ -1097,18 +1097,78 @@ def _call_anthropic_pool_selector(
         return blocked, None
 
     t0 = time.monotonic()
-    from apps_rg.runtime.providers.external_provider import _STDLIB_URLOPEN
-    from apps_rg.runtime.providers.inprocess_ide_provider import (
-        evaluate_inprocess_ide_selector,
-        is_inprocess_ide_model,
-    )
+    if api_key == "ide-cli-session":
+        from apps_rg.runtime.providers.agy_cli_transport import AgyTransportError, run_agy
+        from apps_rg.runtime.providers.ide_cli_generation import (
+            build_ide_cli_generation_prompt,
+            resolve_ide_cli_generation_slug,
+        )
 
-    if is_inprocess_ide_model(model) and urllib.request.urlopen is _STDLIB_URLOPEN:
-        raw_response = evaluate_inprocess_ide_selector(
-            prompt=prompt,
-            model=model,
-            input_hash=input_hash,
-            section_id=section_id,
+        cli_prompt = build_ide_cli_generation_prompt(
+            system=selector_system_prompt,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        effort = reasoning_effort if reasoning_effort in {"low", "medium", "high", "xhigh"} else None
+        cli_slug = resolve_ide_cli_generation_slug(model)
+        try:
+            cli_res = run_agy(
+                cli_prompt,
+                model=cli_slug,
+                effort=effort,
+                timeout_s=max(15, int(timeout_s)),
+            )
+        except AgyTransportError as exc:
+            elapsed = round(time.monotonic() - t0, 4)
+            is_timeout = "timed out" in str(exc).lower()
+            outcome = "selector_timeout" if is_timeout else "provider_transport_error"
+            _record_pool_selector_usage(
+                artifact_dir=artifact_dir,
+                provider="anthropic",
+                model=model,
+                input_hash=input_hash,
+                outcome=outcome.upper(),
+                provider_status="BLOCKED_SELECTOR_TIMEOUT" if is_timeout else "BLOCKED_PROVIDER_UNAVAILABLE",
+            )
+            _write_selector_timing_receipt(
+                artifact_dir,
+                {
+                    "phase": "error",
+                    "outcome": outcome,
+                    "elapsed_s": elapsed,
+                    "effective_timeout_seconds": timeout_s,
+                    "transport": "ide_cli",
+                    "error": f"AgyTransportError: {exc}",
+                },
+            )
+            blocked = _make_blocked_output(
+                "anthropic_claude",
+                input_hash,
+                "BLOCKED_SELECTOR_TIMEOUT" if is_timeout else "BLOCKED_PROVIDER_UNAVAILABLE",
+                "BLOCKED_SELECTOR_TIMEOUT" if is_timeout else "BLOCKED_PROVIDER_UNAVAILABLE",
+                f"IDE CLI pool selector {outcome} after {elapsed}s: {exc}",
+                model_name=model,
+            )
+            return blocked, None
+        raw_response = json.dumps(
+            {
+                "id": cli_res.conversation_id,
+                "conversation_id": cli_res.conversation_id,
+                "transport": "ide_cli",
+                "model": cli_res.model_reported,
+                "type": "message",
+                "role": "assistant",
+                "content": [{"type": "text", "text": cli_res.response}],
+                "stop_reason": "end_turn",
+                "stop_sequence": None,
+                "usage": {
+                    "input_tokens": int(cli_res.usage.get("input_tokens") or 0),
+                    "output_tokens": int(cli_res.usage.get("output_tokens") or 0),
+                    "total_tokens": int(cli_res.usage.get("total_tokens") or 0),
+                    "cache_creation_input_tokens": 0,
+                    "cache_read_input_tokens": int(cli_res.usage.get("cache_read_tokens") or 0),
+                },
+            },
+            ensure_ascii=False,
         )
     else:
         req = urllib.request.Request(
@@ -2157,7 +2217,17 @@ def run_claude_bullet_pool_selection(
 
     meta = _SELECTOR_PROVIDERS.get(provider_key) or {}
     bootstrap_apps_rg_env()
-    api_key = os.environ.get(str(meta.get("env") or ""), "").strip()
+    from apps_rg.runtime.providers.ide_cli_generation import (
+        IDE_CLI_GENERATION_MARKER,
+        ide_cli_generation_unavailable_reason,
+        uses_ide_cli_generation,
+    )
+
+    if provider_key == "anthropic_claude" and uses_ide_cli_generation(os.environ, model=model):
+        cli_reason = ide_cli_generation_unavailable_reason(os.environ)
+        api_key = "" if cli_reason else IDE_CLI_GENERATION_MARKER
+    else:
+        api_key = os.environ.get(str(meta.get("env") or ""), "").strip()
     if not api_key:
         if competencies_selector:
             provider_label = (

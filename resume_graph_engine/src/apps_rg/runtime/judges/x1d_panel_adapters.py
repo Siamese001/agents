@@ -6,6 +6,7 @@ from apps_rg.runtime.judges.executive_summary_x1d import (
     PROVIDERS,
     _resolved_section_x1d_judge_max_output_tokens,
 )
+from apps_rg.runtime.judges.x1d_ide_cli import IDE_CLI_SESSION_MARKER
 from apps_rg.runtime.judges.x1d_panel_context import X1dPanelProviderContext
 from apps_rg.runtime.judges.x1d_panel_harness import (
     AdapterInvokeError,
@@ -14,6 +15,13 @@ from apps_rg.runtime.judges.x1d_panel_harness import (
     PanelJudgeOutcome,
     TransportReceipt,
 )
+
+
+def _json_output_lock(provider_key: str, api_key: str) -> str:
+    """Declared JSON lock; identical for declared policy and observed receipt (the parity audit compares them)."""
+    if api_key == IDE_CLI_SESSION_MARKER:
+        return "json_schema_cli"
+    return "responseSchema" if provider_key == "gemini_pro" else "json_object"
 
 
 def _transport_receipt(
@@ -25,10 +33,7 @@ def _transport_receipt(
     parse_status: str = "ok",
 ) -> TransportReceipt:
     max_tokens = _resolved_section_x1d_judge_max_output_tokens(ctx.section_id, attempt=attempt)
-    if ctx.provider_key == "gemini_pro":
-        json_lock = "responseSchema"
-    else:
-        json_lock = "json_object"
+    json_lock = _json_output_lock(ctx.provider_key, ctx.api_key)
     return TransportReceipt(
         provider_key=ctx.provider_key,
         contract_hash=contract.contract_hash(),
@@ -88,7 +93,7 @@ class AppsRgX1dPanelAdapter:
         return self._ctx.provider_key
 
     def declared_policy(self, *, attempt: int = 1) -> DeclaredTransportPolicy:
-        json_lock = "responseSchema" if self.provider_key == "gemini_pro" else "json_object"
+        json_lock = _json_output_lock(self.provider_key, self._ctx.api_key)
         return DeclaredTransportPolicy(
             max_output_tokens=_resolved_section_x1d_judge_max_output_tokens(
                 self._ctx.section_id, attempt=attempt

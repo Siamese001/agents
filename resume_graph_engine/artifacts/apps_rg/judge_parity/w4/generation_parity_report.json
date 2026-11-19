@@ -1,0 +1,557 @@
+{
+  "generated_at_utc": "2026-11-19T13:21:01.166784+00:00",
+  "lanes": [
+    "executive_summary",
+    "unify_bullets",
+    "headline"
+  ],
+  "runs_per_lane": 3,
+  "generation_calls_made": 9,
+  "max_calls": 9,
+  "judge_calls_made": 3,
+  "max_judge_calls": 3,
+  "total_generation_tokens": 408821,
+  "total_judge_tokens": 89146,
+  "any_matches_canned_stub": false,
+  "all_lanes_x2_3_of_3": true,
+  "zero_unsupported_claims_on_judged_medians": true,
+  "per_lane": {
+    "executive_summary": {
+      "writer_model": "claude-sonnet-5-5-high",
+      "runs_completed": 3,
+      "x2_pass_count": 3,
+      "x2_pass_rate": 1.0,
+      "word_counts": [
+        121,
+        117,
+        114
+      ],
+      "median_word_count": 117,
+      "word_band": [
+        110,
+        150
+      ],
+      "max_possible_band_margin": 20.0,
+      "median_run_word_band_margin": 7,
+      "meets_word_band_margin_check": true,
+      "meets_literal_5w_margin": true,
+      "distinct_output_sha256_count": 3,
+      "mean_pairwise_word_jaccard": 0.4989,
+      "matches_any_canned_stub": false,
+      "median_run_ide_judge": {
+        "run_no": 2,
+        "model": "gemini-4-argon-high",
+        "evaluator_mode": "MODEL_BACKED",
+        "score": 4.8,
+        "pass": true,
+        "unsupported_claims": [],
+        "findings": [
+          "All six sentences are grounded in the allowed fact packet and role episode bundles with zero unsupported extensions.",
+          "Quantitative proof points (100% gate conformance, 35% regulatory findings reduction, 40% submission acceleration) are woven cleanly across S2, S4, and S5 without duplication.",
+          "Narrative aligns governed runtime architecture, repeatable deployment blueprints, and banking AI governance with the Head of Forward Deployed Engineering mandate without using JD or briefing context as proof."
+        ],
+        "conversation_id": "7160f778-6edc-428b-866f-e151919e10d3",
+        "usage": {
+          "input_tokens": 35337,
+          "output_tokens": 2884,
+          "thinking_tokens": 2580,
+          "cache_read_tokens": 0,
+          "total_tokens": 38221
+        }
+      },
+      "historical_keyed_comparison": {
+        "historical_keyed_runs": 4,
+        "historical_word_counts": [
+          141,
+          131,
+          131,
+          124
+        ],
+        "historical_median_words": 131.0,
+        "historical_shape_pass_count": 4
+      },
+      "runs": [
+        {
+          "lane": "executive_summary",
+          "run_no": 1,
+          "model": "gemini-4-neon-high",
+          "status": "REAL_LLM",
+          "conversation_id": "1ebfc173-c3e1-42c7-a5c8-98457d750486",
+          "usage": {
+            "input_tokens": 29251,
+            "output_tokens": 16353,
+            "total_tokens": 45604,
+            "thinking_tokens": 14897,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0
+          },
+          "tokens": 45604,
+          "output_sha256": "08a68b113f70b8f96ba5e744e798cbb466045723a256428cc41f2e8e6e373380",
+          "matches_canned_stub": false,
+          "artifact_file": "/Users/amitayer/Git/agents/.worktrees/claude-apps-rg-ide-subagent-exec-summary/resume_graph_engine/artifacts/apps_rg/judge_parity/w4/generation_runs/executive_summary_run1.json",
+          "x2": {
+            "all_x2_pass": true,
+            "gates": {
+              "x2_schema_fields_present": true,
+              "x2_sentence_count_6": true,
+              "x2_word_band_110_to_150": true,
+              "x2_claim_ledger_6_rows": true,
+              "x2_all_cited_facts_allowed": true,
+              "x2_first_person_zero": true,
+              "x2_no_em_dash": true,
+              "x2_no_target_company_in_prose": true
+            },
+            "failed_gates": [],
+            "word_count": 121,
+            "word_band": [
+              110,
+              150
+            ],
+            "word_band_margin": 11,
+            "max_possible_band_margin": 20.0,
+            "primary_text": "Engineering executive aligning governed AI platforms, repeatable deployment accelerators, and financial regulatory rigor to activate production systems for complex institutions. Architects governed runtime systems combining deterministic proof lineage with a safety validation mesh that enforces 100% gate conformance on critical agent decisions. Building on that foundation, offering accelerator management scaled repeatable cloud and AI solution blueprints, client-facing modernization playbooks, and regulated shared-responsibility cloud guardrails. In parallel, financial-services AI governance and model-risk oversight reduced banking regulatory findings by 35% through structured validation controls. Across enterprise programs, compliance automation paired with evidence contracts and confidence-based human escalation accelerated regulatory submissions by 40%. That governed operating model enables disciplined forward-deployed AI execution, connecting runtime reliability, repeatable playbooks, and regulatory rigor to scale business-line adoption."
+          }
+        },
+        {
+          "lane": "executive_summary",
+          "run_no": 2,
+          "model": "gemini-4-neon-high",
+          "status": "REAL_LLM",
+          "conversation_id": "5d0d9703-5d2b-486d-b9a1-8a84ffb03aa8",
+          "usage": {
+            "input_tokens": 28534,
+            "output_tokens": 21914,
+            "total_tokens": 50448,
+            "thinking_tokens": 20569,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0
+          },
+          "tokens": 50448,
+          "output_sha256": "a7af8a06fd611e3ec2dd9f7760295882f4bfae797396fe03ed175ac4e3107c62",
+          "matches_canned_stub": false,
+          "artifact_file": "/Users/amitayer/Git/agents/.worktrees/claude-apps-rg-ide-subagent-exec-summary/resume_graph_engine/artifacts/apps_rg/judge_parity/w4/generation_runs/executive_summary_run2.json",
+          "x2": {
+            "all_x2_pass": true,
+            "gates": {
+              "x2_schema_fields_present": true,
+              "x2_sentence_count_6": true,
+              "x2_word_band_110_to_150": true,
+              "x2_claim_ledger_6_rows": true,
+              "x2_all_cited_facts_allowed": true,
+              "x2_first_person_zero": true,
+              "x2_no_em_dash": true,
+              "x2_no_target_company_in_prose": true
+            },
+            "failed_gates": [],
+            "word_count": 117,
+            "word_band": [
+              110,
+              150
+            ],
+            "word_band_margin": 7,
+            "max_possible_band_margin": 20.0,
+            "primary_text": "Engineering executive who aligns governed AI platforms and repeatable activation models to deliver compliant production outcomes across financial and insurance institutions. Designs governed runtime architectures with deterministic proof lineage and a safety validation mesh enforcing 100% gate conformance for safety-critical agent decisions. Across enterprise programs, offering accelerator management scales repeatable AI and cloud solution blueprints, modernization playbooks, and shared-responsibility deployment guardrails. In parallel, financial-services AI governance and model-risk controls cut banking regulatory findings by 35% while maintaining certification rigor. Automated evidence contracts paired with confidence-based human escalation accelerate compliance submissions by 40% without sacrificing operational oversight. That architectural and governance foundation enables forward-deployed teams to advance prototype-to-production AI activation across operating divisions while preserving strict control integrity."
+          }
+        },
+        {
+          "lane": "executive_summary",
+          "run_no": 3,
+          "model": "gemini-4-neon-high",
+          "status": "REAL_LLM",
+          "conversation_id": "c624666f-4d32-4c98-92f1-b15b1690a7d3",
+          "usage": {
+            "input_tokens": 28535,
+            "output_tokens": 20205,
+            "total_tokens": 48740,
+            "thinking_tokens": 18819,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0
+          },
+          "tokens": 48740,
+          "output_sha256": "ba95178654142aeb4e6f3c8a2710961841b542518472e5dcd2e2ce8bde90b531",
+          "matches_canned_stub": false,
+          "artifact_file": "/Users/amitayer/Git/agents/.worktrees/claude-apps-rg-ide-subagent-exec-summary/resume_graph_engine/artifacts/apps_rg/judge_parity/w4/generation_runs/executive_summary_run3.json",
+          "x2": {
+            "all_x2_pass": true,
+            "gates": {
+              "x2_schema_fields_present": true,
+              "x2_sentence_count_6": true,
+              "x2_word_band_110_to_150": true,
+              "x2_claim_ledger_6_rows": true,
+              "x2_all_cited_facts_allowed": true,
+              "x2_first_person_zero": true,
+              "x2_no_em_dash": true,
+              "x2_no_target_company_in_prose": true
+            },
+            "failed_gates": [],
+            "word_count": 114,
+            "word_band": [
+              110,
+              150
+            ],
+            "word_band_margin": 4,
+            "max_possible_band_margin": 20.0,
+            "primary_text": "Enterprise technology executive who aligns governed AI runtime platforms, reusable modernization blueprints, and regulated risk oversight into one scalable delivery model. Architects resilient agentic runtimes with deterministic proof lineage and a validation mesh enforcing 100% gate conformance across safety-critical decisions. From that platform base, offering accelerator management scales repeatable cloud and AI blueprints and client playbooks alongside regulated deployment guardrails. In parallel, financial-services AI governance, model-risk controls, and evidence contracts cut banking regulatory findings by 35%. Automated compliance workflows and confidence-based human escalation accelerate regulatory submissions by 40% while sustaining disciplined oversight. That governed delivery foundation enables rapid activation of production AI systems, sustained deployment velocity, and verifiable risk controls across complex banking organizations."
+          }
+        }
+      ]
+    },
+    "unify_bullets": {
+      "writer_model": "claude-sonnet-5-5-medium",
+      "runs_completed": 3,
+      "x2_pass_count": 3,
+      "x2_pass_rate": 1.0,
+      "word_counts": [
+        157,
+        144,
+        148
+      ],
+      "median_word_count": 148,
+      "word_band": [
+        110,
+        240
+      ],
+      "max_possible_band_margin": 65.0,
+      "median_run_word_band_margin": 38,
+      "meets_word_band_margin_check": true,
+      "meets_literal_5w_margin": true,
+      "distinct_output_sha256_count": 3,
+      "mean_pairwise_word_jaccard": 0.6073,
+      "matches_any_canned_stub": false,
+      "median_run_ide_judge": {
+        "run_no": 3,
+        "model": "gemini-4-argon-medium",
+        "evaluator_mode": "MODEL_BACKED",
+        "score": 4.8,
+        "pass": true,
+        "unsupported_claims": [],
+        "findings": [],
+        "conversation_id": "d7d6d3f3-f00f-42e0-bcaf-40a95ed68f84",
+        "usage": {
+          "input_tokens": 26091,
+          "output_tokens": 203,
+          "thinking_tokens": 0,
+          "cache_read_tokens": 0,
+          "total_tokens": 26294
+        }
+      },
+      "historical_keyed_comparison": {
+        "historical_keyed_runs": 3,
+        "historical_word_counts": [
+          164,
+          137,
+          146
+        ],
+        "historical_median_words": 146,
+        "historical_shape_pass_count": 3
+      },
+      "runs": [
+        {
+          "lane": "unify_bullets",
+          "run_no": 1,
+          "model": "gemini-4-neon-medium",
+          "status": "REAL_LLM",
+          "conversation_id": "bacedaff-ea8e-42ee-a8ce-b1af19cda72c",
+          "usage": {
+            "input_tokens": 30092,
+            "output_tokens": 13799,
+            "total_tokens": 43891,
+            "thinking_tokens": 9317,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0
+          },
+          "tokens": 43891,
+          "output_sha256": "b7cee982418357e098232e83bb974575651691eee90d197b8fad0d51b91a927d",
+          "matches_canned_stub": false,
+          "artifact_file": "/Users/amitayer/Git/agents/.worktrees/claude-apps-rg-ide-subagent-exec-summary/resume_graph_engine/artifacts/apps_rg/judge_parity/w4/generation_runs/unify_bullets_run1.json",
+          "x2": {
+            "all_x2_pass": true,
+            "gates": {
+              "x2_unify_bullet_count_6": true,
+              "x2_unify_bullet_ids_1_to_6": true,
+              "x2_bullet_no_paragraph_block_320c": true,
+              "x2_bullet_no_embedded_newline": true,
+              "x2_total_word_band_110_to_240": true,
+              "x2_all_cited_facts_allowed": true,
+              "x2_first_person_zero": true,
+              "x2_no_em_dash": true,
+              "x2_no_target_company_in_prose": true
+            },
+            "failed_gates": [],
+            "word_count": 157,
+            "word_band": [
+              110,
+              240
+            ],
+            "word_band_margin": 47,
+            "max_possible_band_margin": 65.0,
+            "primary_text": "Established runtime proof-bundle lineage tying agent outputs to graph evidence for regulated financial institutions by architecting governed agentic systems with multi-agent orchestration contracts and human override escalation paths.\nAchieved audit-grade runtime observability coverage for regulated AI workflows through evaluation gates, telemetry, and rollback controls that enforce runtime resilience across live context engineering pipelines.\nCompressed the lab-to-production AI systems lifecycle from six months to three weeks with standardized managed workflow orchestration and exit disposition governance to guarantee deterministic auditability across client deployments.\nDelivered cloud data/runtime integration patterns across Databricks, vector services, and API gateways on AWS, which enabled high-availability parallel decision workflows with provider and egress governance.\nDrove 20% gross margin expansion across enterprise lines of business by converting bespoke delivery into reusable platform services under a commercial operating model for agentic AI productization.\nUnlocked $5M ACV from CFO-aligned enterprise AI workflow adoption through executive deal support and consumption-based licensing to shorten sales cycles and sustain commercial renewals."
+          }
+        },
+        {
+          "lane": "unify_bullets",
+          "run_no": 2,
+          "model": "gemini-4-neon-medium",
+          "status": "REAL_LLM",
+          "conversation_id": "2613b029-1611-4386-b1c0-8a36fde5e712",
+          "usage": {
+            "input_tokens": 30114,
+            "output_tokens": 13822,
+            "total_tokens": 43936,
+            "thinking_tokens": 8210,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0
+          },
+          "tokens": 43936,
+          "output_sha256": "3a201e67511543a324d1e17172d5b5fc930252d38fadba454ebde7f343796ce9",
+          "matches_canned_stub": false,
+          "artifact_file": "/Users/amitayer/Git/agents/.worktrees/claude-apps-rg-ide-subagent-exec-summary/resume_graph_engine/artifacts/apps_rg/judge_parity/w4/generation_runs/unify_bullets_run2.json",
+          "x2": {
+            "all_x2_pass": true,
+            "gates": {
+              "x2_unify_bullet_count_6": true,
+              "x2_unify_bullet_ids_1_to_6": true,
+              "x2_bullet_no_paragraph_block_320c": true,
+              "x2_bullet_no_embedded_newline": true,
+              "x2_total_word_band_110_to_240": true,
+              "x2_all_cited_facts_allowed": true,
+              "x2_first_person_zero": true,
+              "x2_no_em_dash": true,
+              "x2_no_target_company_in_prose": true
+            },
+            "failed_gates": [],
+            "word_count": 144,
+            "word_band": [
+              110,
+              240
+            ],
+            "word_band_margin": 34,
+            "max_possible_band_margin": 65.0,
+            "primary_text": "Delivered runtime proof-bundle lineage and claim-safe output binding for regulated financial institutions by architecting a governed agentic AI control plane with GraphRAG context-pack grounding and multi-agent orchestration contracts.\nEstablished audit-grade runtime observability coverage for regulated AI workflows through standardized evaluation gates, telemetry instrumentation, and rollback controls across production agentic deployments.\nCompressed lab-to-production AI delivery cycles from six months to three weeks with a standardized lifecycle spanning intake, validation, execution, and production monitoring under deterministic auditability.\nArchitected cloud data/runtime integration patterns across AWS, Databricks Lakehouse, vector services, and API gateways to sustain high-availability execution for parallel decision workflows.\nAchieved 20% gross margin expansion under a productized agentic AI operating model that converted bespoke client delivery into reusable platform services across enterprise lines of business.\nUnlocked $5M ACV from CFO-aligned enterprise AI workflow adoption alongside consumption-based SaaS licensing that supported shorter sales cycles and sustained renewals."
+          }
+        },
+        {
+          "lane": "unify_bullets",
+          "run_no": 3,
+          "model": "gemini-4-neon-medium",
+          "status": "REAL_LLM",
+          "conversation_id": "64b3c077-9d3b-4d79-a1d3-7237912608d6",
+          "usage": {
+            "input_tokens": 30116,
+            "output_tokens": 10275,
+            "total_tokens": 40391,
+            "thinking_tokens": 6183,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0
+          },
+          "tokens": 40391,
+          "output_sha256": "9f8fffcd9085962879c668eed28886e3ba26aaeb5472c01365f2b17b6fdcb5ae",
+          "matches_canned_stub": false,
+          "artifact_file": "/Users/amitayer/Git/agents/.worktrees/claude-apps-rg-ide-subagent-exec-summary/resume_graph_engine/artifacts/apps_rg/judge_parity/w4/generation_runs/unify_bullets_run3.json",
+          "x2": {
+            "all_x2_pass": true,
+            "gates": {
+              "x2_unify_bullet_count_6": true,
+              "x2_unify_bullet_ids_1_to_6": true,
+              "x2_bullet_no_paragraph_block_320c": true,
+              "x2_bullet_no_embedded_newline": true,
+              "x2_total_word_band_110_to_240": true,
+              "x2_all_cited_facts_allowed": true,
+              "x2_first_person_zero": true,
+              "x2_no_em_dash": true,
+              "x2_no_target_company_in_prose": true
+            },
+            "failed_gates": [],
+            "word_count": 148,
+            "word_band": [
+              110,
+              240
+            ],
+            "word_band_margin": 38,
+            "max_possible_band_margin": 65.0,
+            "primary_text": "Delivered runtime proof bundles and graph evidence lineage for regulated financial clients by architecting a governed agentic control plane that enforced multi-agent orchestration contracts, GraphRAG grounding, and human override escalation paths.\nSecured audit-grade runtime observability coverage for regulated AI workflows through evaluation gates and rollback controls that governed context engineering and live release stability.\nCompressed lab-to-production cycle time from six months to three weeks for client AI deployments by standardizing managed workflow orchestration and deterministic auditability from intake through production monitoring.\nArchitected cloud data/runtime integration patterns across Databricks, vector services, and API gateways to power high-availability parallel decision workflows on AWS.\nDrove 20% gross margin expansion across enterprise lines of business with a commercial platform operating model that converted bespoke consulting delivery into reusable platform services.\nUnlocked $5M ACV from CFO-aligned enterprise AI workflow adoption by pairing executive value realization with consumption-based SaaS licensing to accelerate commercial renewals."
+          }
+        }
+      ]
+    },
+    "headline": {
+      "writer_model": "claude-sonnet-5-5-high",
+      "runs_completed": 3,
+      "x2_pass_count": 3,
+      "x2_pass_rate": 1.0,
+      "word_counts": [
+        11,
+        11,
+        11
+      ],
+      "median_word_count": 11,
+      "word_band": [
+        10,
+        13
+      ],
+      "max_possible_band_margin": 1.5,
+      "median_run_word_band_margin": 1,
+      "meets_word_band_margin_check": true,
+      "meets_literal_5w_margin": false,
+      "distinct_output_sha256_count": 3,
+      "mean_pairwise_word_jaccard": 0.7927,
+      "matches_any_canned_stub": false,
+      "median_run_ide_judge": {
+        "run_no": 3,
+        "model": "gemini-4-argon-medium",
+        "evaluator_mode": "MODEL_BACKED",
+        "score": 4.8,
+        "pass": true,
+        "unsupported_claims": [],
+        "findings": [],
+        "conversation_id": "a1b9438a-ec73-46c0-97e0-5b470d96d3d1",
+        "usage": {
+          "input_tokens": 24430,
+          "output_tokens": 201,
+          "thinking_tokens": 0,
+          "cache_read_tokens": 0,
+          "total_tokens": 24631
+        }
+      },
+      "historical_keyed_comparison": {
+        "historical_keyed_runs": 4,
+        "historical_word_counts": [
+          11,
+          11,
+          11,
+          11
+        ],
+        "historical_median_words": 11.0,
+        "historical_shape_pass_count": 4
+      },
+      "runs": [
+        {
+          "lane": "headline",
+          "run_no": 1,
+          "model": "gemini-4-neon-high",
+          "status": "REAL_LLM",
+          "conversation_id": "a9901e72-6b5e-4e9f-9cef-3e60b0c0ab78",
+          "usage": {
+            "input_tokens": 26610,
+            "output_tokens": 19081,
+            "total_tokens": 45691,
+            "thinking_tokens": 18282,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0
+          },
+          "tokens": 45691,
+          "output_sha256": "05a4a3b707c1f399698c98e68872f1b3dc15009e1d0f8dcc42aab8b4421fff2e",
+          "matches_canned_stub": false,
+          "artifact_file": "/Users/amitayer/Git/agents/.worktrees/claude-apps-rg-ide-subagent-exec-summary/resume_graph_engine/artifacts/apps_rg/judge_parity/w4/generation_runs/headline_run1.json",
+          "x2": {
+            "all_x2_pass": true,
+            "gates": {
+              "x2_headline_single_line": true,
+              "x2_headline_four_pipe_segments": true,
+              "x2_headline_valid_exec_prefix": true,
+              "x2_headline_word_band_10_to_13": true,
+              "x2_headline_no_digits_or_metrics": true,
+              "x2_all_cited_facts_allowed": true,
+              "x2_first_person_zero": true,
+              "x2_no_em_dash": true,
+              "x2_no_target_company_in_prose": true
+            },
+            "failed_gates": [],
+            "word_count": 11,
+            "word_band": [
+              10,
+              13
+            ],
+            "word_band_margin": 1,
+            "max_possible_band_margin": 1.5,
+            "primary_text": "SVP Engineering | AI Orchestration Platform | Agentic SDLC Systems | Regulated AI Governance"
+          }
+        },
+        {
+          "lane": "headline",
+          "run_no": 2,
+          "model": "gemini-4-neon-medium",
+          "status": "REAL_LLM",
+          "conversation_id": "15ad457a-9c62-4369-a98b-288343204d81",
+          "usage": {
+            "input_tokens": 26614,
+            "output_tokens": 11530,
+            "total_tokens": 38144,
+            "thinking_tokens": 10978,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0
+          },
+          "tokens": 38144,
+          "output_sha256": "35bf26bfd3e85ebced47107344bbb699c6ab315392ed3f97223c88352e601389",
+          "matches_canned_stub": false,
+          "artifact_file": "/Users/amitayer/Git/agents/.worktrees/claude-apps-rg-ide-subagent-exec-summary/resume_graph_engine/artifacts/apps_rg/judge_parity/w4/generation_runs/headline_run2.json",
+          "x2": {
+            "all_x2_pass": true,
+            "gates": {
+              "x2_headline_single_line": true,
+              "x2_headline_four_pipe_segments": true,
+              "x2_headline_valid_exec_prefix": true,
+              "x2_headline_word_band_10_to_13": true,
+              "x2_headline_no_digits_or_metrics": true,
+              "x2_all_cited_facts_allowed": true,
+              "x2_first_person_zero": true,
+              "x2_no_em_dash": true,
+              "x2_no_target_company_in_prose": true
+            },
+            "failed_gates": [],
+            "word_count": 11,
+            "word_band": [
+              10,
+              13
+            ],
+            "word_band_margin": 1,
+            "max_possible_band_margin": 1.5,
+            "primary_text": "SVP Engineering | AI Orchestration Platform | SDLC Operating Model | Regulated AI Governance"
+          }
+        },
+        {
+          "lane": "headline",
+          "run_no": 3,
+          "model": "gemini-4-neon-high",
+          "status": "REAL_LLM",
+          "conversation_id": "ac854c65-942d-4e9a-8c93-8d9425aba9cb",
+          "usage": {
+            "input_tokens": 26607,
+            "output_tokens": 25369,
+            "total_tokens": 51976,
+            "thinking_tokens": 24414,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0
+          },
+          "tokens": 51976,
+          "output_sha256": "6013e54eaa04a2391cf1b3b422a6019299de969fd04bfad31acdc344f77e9132",
+          "matches_canned_stub": false,
+          "artifact_file": "/Users/amitayer/Git/agents/.worktrees/claude-apps-rg-ide-subagent-exec-summary/resume_graph_engine/artifacts/apps_rg/judge_parity/w4/generation_runs/headline_run3.json",
+          "x2": {
+            "all_x2_pass": true,
+            "gates": {
+              "x2_headline_single_line": true,
+              "x2_headline_four_pipe_segments": true,
+              "x2_headline_valid_exec_prefix": true,
+              "x2_headline_word_band_10_to_13": true,
+              "x2_headline_no_digits_or_metrics": true,
+              "x2_all_cited_facts_allowed": true,
+              "x2_first_person_zero": true,
+              "x2_no_em_dash": true,
+              "x2_no_target_company_in_prose": true
+            },
+            "failed_gates": [],
+            "word_count": 11,
+            "word_band": [
+              10,
+              13
+            ],
+            "word_band_margin": 1,
+            "max_possible_band_margin": 1.5,
+            "primary_text": "SVP Engineering | AI Orchestration Systems | Agentic SDLC Platform | Regulated Model Governance"
+          }
+        }
+      ]
+    }
+  }
+}

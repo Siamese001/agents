@@ -1,0 +1,371 @@
+{
+  "outputs_classified": 34,
+  "by_classification": {
+    "not_stub_origin": 18,
+    "no_stub_path_for_lane": 9,
+    "stub_origin": 7
+  },
+  "runs_with_stub_origin_outputs": [
+    "full_resume_26dc33992c37",
+    "truist_judge_verify_20261118"
+  ],
+  "stub_origin_by_lane": {
+    "ibm_bullets": 2,
+    "competencies": 1,
+    "executive_summary": 1,
+    "headline": 1,
+    "unify_bullets": 2
+  },
+  "real_generation_corpus_by_lane": {
+    "competencies": 3,
+    "executive_summary": 4,
+    "headline": 4,
+    "ibm_bullets": 4,
+    "unify_bullets": 3
+  },
+  "real_generation_corpus_models": {
+    "claude-sonnet-5": 18
+  },
+  "rows": [
+    {
+      "run": "full_resume_0acb8e1555de",
+      "lane": "competencies",
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_0acb8e1555de/lanes/competencies/raw_model_output.txt",
+      "file_sha256": "fa82f0248cbd4abea7ffa320df8d07b04076280b34e7d7362d21a15dee8a39e1",
+      "classification": "not_stub_origin",
+      "reason": "no tag, primary text differs",
+      "provider_model": "claude-sonnet-5",
+      "provider_status": "REAL_LLM"
+    },
+    {
+      "run": "full_resume_0acb8e1555de",
+      "lane": "executive_summary",
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_0acb8e1555de/lanes/executive_summary/raw_model_output.txt",
+      "file_sha256": "0149071b83b876ae679c925cba9c589b885c777682e50856bbcfff2a5d4812ab",
+      "classification": "not_stub_origin",
+      "reason": "no tag, primary text differs",
+      "provider_model": "claude-sonnet-5",
+      "provider_status": "REAL_LLM"
+    },
+    {
+      "run": "full_resume_0acb8e1555de",
+      "lane": "headline",
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_0acb8e1555de/lanes/headline/raw_model_output.txt",
+      "file_sha256": "64f0650e32a71f1a2021e07987c7fc3eab9bf78c40ce34729cc6ecff4c984cb3",
+      "classification": "not_stub_origin",
+      "reason": "no tag, primary text differs",
+      "provider_model": "claude-sonnet-5",
+      "provider_status": "REAL_LLM"
+    },
+    {
+      "run": "full_resume_0acb8e1555de",
+      "lane": "ibm_bullets",
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_0acb8e1555de/lanes/ibm_bullets/raw_model_output.txt",
+      "file_sha256": "e7a7bab3234fb63fcc34640220fb2641f9dc54589f60b1ddc7582852d9c477b1",
+      "classification": "not_stub_origin",
+      "reason": "no tag, primary text differs",
+      "provider_model": "claude-sonnet-5",
+      "provider_status": "REAL_LLM"
+    },
+    {
+      "run": "full_resume_0acb8e1555de",
+      "lane": "ibm_narrative",
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_0acb8e1555de/lanes/ibm_narrative/raw_model_output.txt",
+      "file_sha256": "f966cd32fd6cf96c0a54823f35c9c9e702a51f8665ca101dfef4e5e5172f96b3",
+      "classification": "no_stub_path_for_lane",
+      "reason": "the canned generator has no function for this lane",
+      "provider_model": "gpt-5.6-luna",
+      "provider_status": "REAL_LLM"
+    },
+    {
+      "run": "full_resume_0acb8e1555de",
+      "lane": "unify_bullets",
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_0acb8e1555de/lanes/unify_bullets/raw_model_output.txt",
+      "file_sha256": "3e64f6a4cc0f3b67dcd1632126d1371db19ac088218af7a5f19b563de908783a",
+      "classification": "not_stub_origin",
+      "reason": "no tag, primary text differs",
+      "provider_model": "claude-sonnet-5",
+      "provider_status": "REAL_LLM"
+    },
+    {
+      "run": "full_resume_0acb8e1555de",
+      "lane": "unify_narrative",
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_0acb8e1555de/lanes/unify_narrative/raw_model_output.txt",
+      "file_sha256": "152f4771c288fdca0586fe726bb119dd45cf608e866605a1a2ddc2a165433a5e",
+      "classification": "no_stub_path_for_lane",
+      "reason": "the canned generator has no function for this lane",
+      "provider_model": "gpt-5.6-luna",
+      "provider_status": "REAL_LLM"
+    },
+    {
+      "run": "full_resume_0acb8e1555de",
+      "lane": "ibm_bullets",
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_0acb8e1555de/modular_r4/sections/ibm_bullets/real/p_d72886/raw_model_output.txt",
+      "file_sha256": "e7a7bab3234fb63fcc34640220fb2641f9dc54589f60b1ddc7582852d9c477b1",
+      "classification": "not_stub_origin",
+      "reason": "no tag, primary text differs",
+      "provider_model": "claude-sonnet-5",
+      "provider_status": "REAL_LLM"
+    },
+    {
+      "run": "full_resume_26dc33992c37",
+      "lane": "competencies",
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_26dc33992c37/lanes/competencies/raw_model_output.txt",
+      "file_sha256": "7945ecc92462d5d0c3e3016db03482fe3f949b9bb5816f981293171119b396c1",
+      "classification": "not_stub_origin",
+      "reason": "no tag, primary text differs",
+      "provider_model": "claude-sonnet-5",
+      "provider_status": "REAL_LLM"
+    },
+    {
+      "run": "full_resume_26dc33992c37",
+      "lane": "executive_summary",
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_26dc33992c37/lanes/executive_summary/raw_model_output.txt",
+      "file_sha256": "73f78cc46eb5b80559f6f6d4fa52912c5410bd494d0857025af6814d919096f5",
+      "classification": "not_stub_origin",
+      "reason": "no tag, primary text differs",
+      "provider_model": "claude-sonnet-5",
+      "provider_status": "REAL_LLM"
+    },
+    {
+      "run": "full_resume_26dc33992c37",
+      "lane": "headline",
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_26dc33992c37/lanes/headline/raw_model_output.txt",
+      "file_sha256": "c862625cbc3217a23b7057285de94a2af1cd96cb9a27d4d478c8c4f8be39794b",
+      "classification": "not_stub_origin",
+      "reason": "no tag, primary text differs",
+      "provider_model": "claude-sonnet-5",
+      "provider_status": "REAL_LLM"
+    },
+    {
+      "run": "full_resume_26dc33992c37",
+      "lane": "ibm_bullets",
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_26dc33992c37/lanes/ibm_bullets/raw_model_output.txt",
+      "file_sha256": "1ce453566829a97472989aee5fa954a47134bfaa64b574e102f10616330f09c6",
+      "classification": "stub_origin",
+      "reason": "primary text equals the canned text",
+      "provider_model": "claude-sonnet-5",
+      "provider_status": "REAL_LLM"
+    },
+    {
+      "run": "full_resume_26dc33992c37",
+      "lane": "ibm_narrative",
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_26dc33992c37/lanes/ibm_narrative/raw_model_output.txt",
+      "file_sha256": "dddfbd016606405db3b43a8c89921c1ad8b76eb955b47ff8cc0001cca048301d",
+      "classification": "no_stub_path_for_lane",
+      "reason": "the canned generator has no function for this lane",
+      "provider_model": "gpt-5.6-luna",
+      "provider_status": "REAL_LLM"
+    },
+    {
+      "run": "full_resume_26dc33992c37",
+      "lane": "unify_bullets",
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_26dc33992c37/lanes/unify_bullets/raw_model_output.txt",
+      "file_sha256": "1acb8927ac0c32d93b9cb88efbbe472909a13890a2b289db7b7a6c03bea6e6bc",
+      "classification": "not_stub_origin",
+      "reason": "no tag, primary text differs",
+      "provider_model": "claude-sonnet-5",
+      "provider_status": "REAL_LLM"
+    },
+    {
+      "run": "full_resume_26dc33992c37",
+      "lane": "unify_narrative",
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_26dc33992c37/lanes/unify_narrative/raw_model_output.txt",
+      "file_sha256": "f3360dd3ebc9ce1c96186fb49fa332b6903a3a215b685a863c6690a49d1bbc07",
+      "classification": "no_stub_path_for_lane",
+      "reason": "the canned generator has no function for this lane",
+      "provider_model": "gpt-5.6-luna",
+      "provider_status": "REAL_LLM"
+    },
+    {
+      "run": "full_resume_26dc33992c37",
+      "lane": "executive_summary",
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_26dc33992c37/modular_r4/sections/executive_summary/real/p_a4adbe/raw_model_output.txt",
+      "file_sha256": "73f78cc46eb5b80559f6f6d4fa52912c5410bd494d0857025af6814d919096f5",
+      "classification": "not_stub_origin",
+      "reason": "no tag, primary text differs",
+      "provider_model": "claude-sonnet-5",
+      "provider_status": "REAL_LLM"
+    },
+    {
+      "run": "full_resume_26dc33992c37",
+      "lane": "headline",
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_26dc33992c37/modular_r4/sections/headline/real/p_8a8b3d/raw_model_output.txt",
+      "file_sha256": "c862625cbc3217a23b7057285de94a2af1cd96cb9a27d4d478c8c4f8be39794b",
+      "classification": "not_stub_origin",
+      "reason": "no tag, primary text differs",
+      "provider_model": "claude-sonnet-5",
+      "provider_status": "REAL_LLM"
+    },
+    {
+      "run": "full_resume_26dc33992c37",
+      "lane": "ibm_narrative",
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_26dc33992c37/modular_r4/sections/ibm_narrative/real/p_379c3b/raw_model_output.txt",
+      "file_sha256": "dddfbd016606405db3b43a8c89921c1ad8b76eb955b47ff8cc0001cca048301d",
+      "classification": "no_stub_path_for_lane",
+      "reason": "the canned generator has no function for this lane",
+      "provider_model": "gpt-5.6-luna",
+      "provider_status": "REAL_LLM"
+    },
+    {
+      "run": "full_resume_27ed9cd4890b",
+      "lane": "unknown",
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_27ed9cd4890b/raw_model_output.txt",
+      "file_sha256": "4e1d7c45c4e50b2a0d6928f941a28c77c444d76bfe90413fcb3bdaccc22d8e9d",
+      "classification": "no_stub_path_for_lane",
+      "reason": "the canned generator has no function for this lane",
+      "provider_model": "claude-sonnet-5",
+      "provider_status": "REAL_LLM"
+    },
+    {
+      "run": "full_resume_cd648714e53e",
+      "lane": "competencies",
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_cd648714e53e/lanes/competencies/raw_model_output.txt",
+      "file_sha256": "7ac790da4caae81f1baa00f6ec1bfd613b85ffdf8d139da011f3c6aba22f26cf",
+      "classification": "not_stub_origin",
+      "reason": "no tag, primary text differs",
+      "provider_model": "claude-sonnet-5",
+      "provider_status": "REAL_LLM"
+    },
+    {
+      "run": "full_resume_cd648714e53e",
+      "lane": "executive_summary",
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_cd648714e53e/lanes/executive_summary/raw_model_output.txt",
+      "file_sha256": "661829c83cb1fa46f78fdf224f61db659a177bbcd1a96852f209e9bd3f3a59ff",
+      "classification": "not_stub_origin",
+      "reason": "no tag, primary text differs",
+      "provider_model": "claude-sonnet-5",
+      "provider_status": "REAL_LLM"
+    },
+    {
+      "run": "full_resume_cd648714e53e",
+      "lane": "headline",
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_cd648714e53e/lanes/headline/raw_model_output.txt",
+      "file_sha256": "14ac3ba085bf0a289c191418d833f1a643d2ed67ce7d36c379dc3a63fdb194e3",
+      "classification": "not_stub_origin",
+      "reason": "no tag, primary text differs",
+      "provider_model": "claude-sonnet-5",
+      "provider_status": "REAL_LLM"
+    },
+    {
+      "run": "full_resume_cd648714e53e",
+      "lane": "ibm_bullets",
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_cd648714e53e/lanes/ibm_bullets/raw_model_output.txt",
+      "file_sha256": "2aa48c0c85c5a6428caaa7602674503c75dd007b2726118983bd58a63f99f14f",
+      "classification": "not_stub_origin",
+      "reason": "no tag, primary text differs",
+      "provider_model": "claude-sonnet-5",
+      "provider_status": "REAL_LLM"
+    },
+    {
+      "run": "full_resume_cd648714e53e",
+      "lane": "ibm_narrative",
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_cd648714e53e/lanes/ibm_narrative/raw_model_output.txt",
+      "file_sha256": "94c609c62341d0c33a94bce07b971f0fbe71dac5cb8c7512bcde3d2942bea703",
+      "classification": "no_stub_path_for_lane",
+      "reason": "the canned generator has no function for this lane",
+      "provider_model": "gpt-5.6-luna",
+      "provider_status": "REAL_LLM"
+    },
+    {
+      "run": "full_resume_cd648714e53e",
+      "lane": "unify_bullets",
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_cd648714e53e/lanes/unify_bullets/raw_model_output.txt",
+      "file_sha256": "3e2bcd7bd8a5733bddedc6ecc683af4df0f1ff7a31b6b2dc8848ed1ed9a8dc9f",
+      "classification": "not_stub_origin",
+      "reason": "no tag, primary text differs",
+      "provider_model": "claude-sonnet-5",
+      "provider_status": "REAL_LLM"
+    },
+    {
+      "run": "full_resume_cd648714e53e",
+      "lane": "unify_narrative",
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_cd648714e53e/lanes/unify_narrative/raw_model_output.txt",
+      "file_sha256": "cfa4e6e9686391fef9ed4b249151c54d0da1929018470e17c29b6474bdb1ed75",
+      "classification": "no_stub_path_for_lane",
+      "reason": "the canned generator has no function for this lane",
+      "provider_model": "gpt-5.6-luna",
+      "provider_status": "REAL_LLM"
+    },
+    {
+      "run": "full_resume_cd648714e53e",
+      "lane": "ibm_bullets",
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_cd648714e53e/modular_r4/sections/ibm_bullets/real/p_06614b/raw_model_output.txt",
+      "file_sha256": "2aa48c0c85c5a6428caaa7602674503c75dd007b2726118983bd58a63f99f14f",
+      "classification": "not_stub_origin",
+      "reason": "no tag, primary text differs",
+      "provider_model": "claude-sonnet-5",
+      "provider_status": "REAL_LLM"
+    },
+    {
+      "run": "truist_judge_verify_20261118",
+      "lane": "competencies",
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/truist_judge_verify_20261118/modular_r4/sections/competencies/raw_model_output.txt",
+      "file_sha256": "8b6767737fed5a01d66b53936ae31e20d8ffe865de45506d8ad3d228079fdbe4",
+      "classification": "stub_origin",
+      "reason": "change_log carries the stub's inprocess_ide tag",
+      "provider_model": "claude-sonnet-5-5-medium",
+      "provider_status": "REAL_LLM"
+    },
+    {
+      "run": "truist_judge_verify_20261118",
+      "lane": "executive_summary",
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/truist_judge_verify_20261118/modular_r4/sections/executive_summary/real/p_50cbfd/raw_model_output.txt",
+      "file_sha256": "8dbe8f2a624c53500967bb5d166c5f77b894455fd0f20ca92cb086cb383cfa16",
+      "classification": "stub_origin",
+      "reason": "change_log carries the stub's inprocess_ide tag",
+      "provider_model": "claude-sonnet-5-5-high",
+      "provider_status": "REAL_LLM"
+    },
+    {
+      "run": "truist_judge_verify_20261118",
+      "lane": "headline",
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/truist_judge_verify_20261118/modular_r4/sections/headline/real/p_4f49ff/raw_model_output.txt",
+      "file_sha256": "1c3d3bc09b61fcdaeb037e581b55321efc739d9edd0f7c97ef7f59850036f188",
+      "classification": "stub_origin",
+      "reason": "primary text equals the canned text",
+      "provider_model": "claude-sonnet-5-5-high",
+      "provider_status": "REAL_LLM"
+    },
+    {
+      "run": "truist_judge_verify_20261118",
+      "lane": "ibm_bullets",
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/truist_judge_verify_20261118/modular_r4/sections/ibm_bullets/raw_model_output.txt",
+      "file_sha256": "e1a3cf23e6aecdb02c2e7e898d5e3838cb8b960660d439c39e853f3b38893a0c",
+      "classification": "stub_origin",
+      "reason": "primary text equals the canned text",
+      "provider_model": "claude-sonnet-5-5-medium",
+      "provider_status": "REAL_LLM"
+    },
+    {
+      "run": "truist_judge_verify_20261118",
+      "lane": "ibm_narrative",
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/truist_judge_verify_20261118/modular_r4/sections/ibm_narrative/raw_model_output.txt",
+      "file_sha256": "8c5cef62a415c50e66418896a870300ae22dab543501618159bd6784d26406b2",
+      "classification": "no_stub_path_for_lane",
+      "reason": "the canned generator has no function for this lane",
+      "provider_model": "gpt-5.6-luna",
+      "provider_status": "REAL_LLM"
+    },
+    {
+      "run": "truist_judge_verify_20261118",
+      "lane": "unify_bullets",
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/truist_judge_verify_20261118/modular_r4/sections/unify_bullets/raw_model_output.txt",
+      "file_sha256": "e87f0489cca3c63baf04884af1ffc9dc2d670bdc4a47ac59b2c4ea41e8ee0361",
+      "classification": "stub_origin",
+      "reason": "primary text equals the canned text",
+      "provider_model": "claude-sonnet-5-5-medium",
+      "provider_status": "REAL_LLM"
+    },
+    {
+      "run": "truist_judge_verify_20261118",
+      "lane": "unify_bullets",
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/truist_judge_verify_20261118/modular_r4/sections/unify_bullets/real/p_75891d/raw_model_output.txt",
+      "file_sha256": "e87f0489cca3c63baf04884af1ffc9dc2d670bdc4a47ac59b2c4ea41e8ee0361",
+      "classification": "stub_origin",
+      "reason": "primary text equals the canned text",
+      "provider_model": "claude-sonnet-5-5-medium",
+      "provider_status": "REAL_LLM"
+    }
+  ]
+}

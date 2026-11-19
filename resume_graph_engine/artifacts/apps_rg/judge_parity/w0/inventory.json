@@ -1,0 +1,212 @@
+{
+  "artifacts_root": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs",
+  "judge_output_files_scanned": 148,
+  "unreadable_files": [],
+  "stub_rows": 13,
+  "stub_by_model": {
+    "gemini-4-argon-medium": 12,
+    "gemini-4-argon-high": 1
+  },
+  "stub_detected_by": {
+    "raw_response": 13
+  },
+  "stub_score_values": [
+    4.8,
+    4.85
+  ],
+  "rows": [
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/truist_judge_verify_20261118/modular_r4/sections/competencies/x1d_llm_judge_outputs.json",
+      "file_sha256": "fe42e28d49e41996b18874770b140294015eb1d12bfb691ec3b3be1f524ad517",
+      "run": "truist_judge_verify_20261118",
+      "lane": "competencies",
+      "judge_id": "x1d_gemini_pro_competencies",
+      "model": "gemini-4-argon-medium",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": []
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/truist_judge_verify_20261118/modular_r4/sections/executive_summary/real/p_50cbfd/x1d_llm_judge_outputs.json",
+      "file_sha256": "2fcf76ea803b24d1498fa68577953d2d4cf39d70958db3b36c3e4d6a56001394",
+      "run": "truist_judge_verify_20261118",
+      "lane": "executive_summary",
+      "judge_id": "x1d_gemini_pro_exec_summary",
+      "model": "gemini-4-argon-high",
+      "score": 4.85,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "executive_summary_judge_packet_post_x2.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/truist_judge_verify_20261118/modular_r4/sections/headline/real/p_4f49ff/x1d_llm_judge_outputs.json",
+      "file_sha256": "3d76559ccabdc03393076dbbd8ab6501d6766d5f26ac9d4b3a66ba683474d980",
+      "run": "truist_judge_verify_20261118",
+      "lane": "headline",
+      "judge_id": "x1d_gemini_pro_headline",
+      "model": "gemini-4-argon-medium",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "headline_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/truist_judge_verify_20261118/modular_r4/sections/ibm_bullets/x1d_llm_judge_outputs.json",
+      "file_sha256": "b5743a1c066bc4c23294d8d8d5f957ab1b3f7722a13c710817c5363549f23962",
+      "run": "truist_judge_verify_20261118",
+      "lane": "ibm_bullets",
+      "judge_id": "x1d_gemini_pro_ibm_bullets",
+      "model": "gemini-4-argon-medium",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "ibm_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/truist_judge_verify_20261118/modular_r4/sections/ibm_narrative/x1d_llm_judge_outputs.json",
+      "file_sha256": "367511e8e5b53e672a04df5e7afbcb678d9fb55f6fb56f5ff263f06cc5f4c4d6",
+      "run": "truist_judge_verify_20261118",
+      "lane": "ibm_narrative",
+      "judge_id": "x1d_gemini_pro_ibm_narrative",
+      "model": "gemini-4-argon-medium",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "ibm_narrative_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/truist_judge_verify_20261118/modular_r4/sections/insurtech_bullets/x1d_llm_judge_outputs.json",
+      "file_sha256": "7dbaa523573522fc1271ea58aa9633a43adad8cad6152832ffdfed80e9a143a3",
+      "run": "truist_judge_verify_20261118",
+      "lane": "insurtech_bullets",
+      "judge_id": "x1d_gemini_pro_insurtech_bullets",
+      "model": "gemini-4-argon-medium",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "insurtech_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/truist_judge_verify_20261118/modular_r4/sections/insurtech_narrative/x1d_llm_judge_outputs.json",
+      "file_sha256": "d950a4c5a108e1f46f38febe1ad3806c30472eb0874f9b23a8850894cc511cf8",
+      "run": "truist_judge_verify_20261118",
+      "lane": "insurtech_narrative",
+      "judge_id": "x1d_gemini_pro_insurtech_narrative",
+      "model": "gemini-4-argon-medium",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "insurtech_narrative_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/truist_judge_verify_20261118/modular_r4/sections/slalom_bullets/x1d_llm_judge_outputs.json",
+      "file_sha256": "531306092ba87cf8a6baca94619b2b81b797d2cb538003fa97283e94437f546b",
+      "run": "truist_judge_verify_20261118",
+      "lane": "slalom_bullets",
+      "judge_id": "x1d_gemini_pro_slalom_bullets",
+      "model": "gemini-4-argon-medium",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "slalom_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/truist_judge_verify_20261118/modular_r4/sections/slalom_narrative/x1d_llm_judge_outputs.json",
+      "file_sha256": "1cc4ec76b0f170909587245559e5351416be397889ea4cd82e09739f01073b1d",
+      "run": "truist_judge_verify_20261118",
+      "lane": "slalom_narrative",
+      "judge_id": "x1d_gemini_pro_slalom_narrative",
+      "model": "gemini-4-argon-medium",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "slalom_narrative_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/truist_judge_verify_20261118/modular_r4/sections/unify_bullets/real/p_75891d/x1d_llm_judge_outputs.json",
+      "file_sha256": "fdda1485fcb4ba4d4345692232b4bb45f503044f9a7bf7d8cdb159dc0899645e",
+      "run": "truist_judge_verify_20261118",
+      "lane": "unify_bullets",
+      "judge_id": "x1d_gemini_pro_unify_bullets",
+      "model": "gemini-4-argon-medium",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "unify_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/truist_judge_verify_20261118/modular_r4/sections/unify_bullets/real/p_75891d/x1d_llm_judge_outputs.json",
+      "file_sha256": "fdda1485fcb4ba4d4345692232b4bb45f503044f9a7bf7d8cdb159dc0899645e",
+      "run": "truist_judge_verify_20261118",
+      "lane": "unify_bullets",
+      "judge_id": "x1d_gemini_pro_unify_bullets",
+      "model": "gemini-4-argon-medium",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "unify_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/truist_judge_verify_20261118/modular_r4/sections/unify_bullets/x1d_llm_judge_outputs.json",
+      "file_sha256": "25a1993844a240969df815f67d108ec426d0000d2f007465d9457b9fdadb8579",
+      "run": "truist_judge_verify_20261118",
+      "lane": "unify_bullets",
+      "judge_id": "x1d_gemini_pro_unify_bullets",
+      "model": "gemini-4-argon-medium",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "unify_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/truist_judge_verify_20261118/modular_r4/sections/unify_bullets/x1d_llm_judge_outputs.json",
+      "file_sha256": "25a1993844a240969df815f67d108ec426d0000d2f007465d9457b9fdadb8579",
+      "run": "truist_judge_verify_20261118",
+      "lane": "unify_bullets",
+      "judge_id": "x1d_gemini_pro_unify_bullets",
+      "model": "gemini-4-argon-medium",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "unify_bullets_judge_packet.json"
+      ]
+    }
+  ]
+}

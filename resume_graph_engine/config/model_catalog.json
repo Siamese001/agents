@@ -40,7 +40,8 @@
       "provider": "anthropic",
       "capability_class": "text_generation",
       "endpoints": [
-        "anthropic_messages"
+        "anthropic_messages",
+        "ide_cli"
       ],
       "reasoning_efforts": [
         "low",
@@ -60,7 +61,8 @@
       "provider": "anthropic",
       "capability_class": "text_generation",
       "endpoints": [
-        "anthropic_messages"
+        "anthropic_messages",
+        "ide_cli"
       ],
       "reasoning_efforts": [
         "low",
@@ -158,7 +160,8 @@
       "provider": "google_gemini",
       "capability_class": "text_generation_and_judging",
       "endpoints": [
-        "gemini_generate_content_v1beta"
+        "gemini_generate_content_v1beta",
+        "ide_cli"
       ],
       "reasoning_efforts": [
         "low",
@@ -177,7 +180,8 @@
       "provider": "google_gemini",
       "capability_class": "text_generation_and_judging",
       "endpoints": [
-        "gemini_generate_content_v1beta"
+        "gemini_generate_content_v1beta",
+        "ide_cli"
       ],
       "reasoning_efforts": [
         "low",
@@ -259,6 +263,96 @@
       "max_output_tokens_parameters": {
         "responses": "max_output_tokens",
         "chat_completions": "max_completion_tokens"
+      }
+    },
+    "gpt-oss-120b-medium": {
+      "provider": "openai_open_weights",
+      "capability_class": "text_generation_and_judging",
+      "endpoints": [
+        "ide_cli"
+      ],
+      "reasoning_efforts": [
+        "medium"
+      ],
+      "temperature_parameter": "omit",
+      "structured_output": true,
+      "proof_eligible": true,
+      "max_output_tokens_parameters": {}
+    },
+    "claude-opus-5-5-high": {
+      "provider": "anthropic",
+      "capability_class": "text_generation_and_judging",
+      "endpoints": [
+        "ide_cli"
+      ],
+      "reasoning_efforts": [
+        "high"
+      ],
+      "temperature_parameter": "omit",
+      "structured_output": true,
+      "proof_eligible": true,
+      "max_output_tokens_parameters": {}
+    },
+    "gemini-4-neon-high": {
+      "provider": "google_gemini",
+      "capability_class": "text_generation_and_judging",
+      "endpoints": [
+        "gemini_generate_content_v1beta",
+        "ide_cli"
+      ],
+      "reasoning_efforts": [
+        "low",
+        "medium",
+        "high",
+        "xhigh"
+      ],
+      "temperature_parameter": "omit",
+      "structured_output": true,
+      "proof_eligible": true,
+      "thinking_mode": "thinking_level",
+      "max_output_tokens_parameters": {
+        "gemini_generate_content_v1beta": "maxOutputTokens"
+      }
+    },
+    "gemini-4-neon-medium": {
+      "provider": "google_gemini",
+      "capability_class": "text_generation_and_judging",
+      "endpoints": [
+        "gemini_generate_content_v1beta",
+        "ide_cli"
+      ],
+      "reasoning_efforts": [
+        "low",
+        "medium",
+        "high",
+        "xhigh"
+      ],
+      "temperature_parameter": "omit",
+      "structured_output": true,
+      "proof_eligible": true,
+      "thinking_mode": "thinking_level",
+      "max_output_tokens_parameters": {
+        "gemini_generate_content_v1beta": "maxOutputTokens"
+      }
+    },
+    "gemini-3.8-flash-high": {
+      "provider": "google_gemini",
+      "capability_class": "text_generation_and_judging",
+      "endpoints": [
+        "gemini_generate_content_v1beta",
+        "ide_cli"
+      ],
+      "reasoning_efforts": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "temperature_parameter": "omit",
+      "structured_output": true,
+      "proof_eligible": true,
+      "thinking_mode": "thinking_level",
+      "max_output_tokens_parameters": {
+        "gemini_generate_content_v1beta": "maxOutputTokens"
       }
     }
   },

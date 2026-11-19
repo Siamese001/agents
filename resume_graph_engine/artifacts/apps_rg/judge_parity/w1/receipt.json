@@ -1,0 +1,22 @@
+{
+  "wave": 1,
+  "live_calls": {
+    "claude-sonnet-5-5-medium": {
+      "model_reported": "claude-sonnet-5-5-medium",
+      "response": "OK",
+      "total_tokens": 14839,
+      "conversation_id": "7ad1221f-6185-4c13-8d73-6b01dae48d9a",
+      "duration_s": 1.6,
+      "api_key_vars_in_child_env": []
+    },
+    "gemini-4-argon-high": {
+      "model_reported": "gemini-4-argon-high",
+      "response": "OK",
+      "total_tokens": 14347,
+      "conversation_id": "141773a8-da26-4f6d-b13d-7b2a721c2a34",
+      "duration_s": 6.5,
+      "api_key_vars_in_child_env": []
+    }
+  },
+  "note": "call made through apps_rg.runtime.providers.agy_cli_transport; key vars are stripped from the child env by the transport regardless of the parent env"
+}

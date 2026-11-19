@@ -99,6 +99,81 @@ def _model_tier_label(tier: JudgeTier, model_id: str) -> str:
     return "advisory_taxonomy"
 
 
+def _resolve_ide_cli_judge(
+    sid: str,
+    provider_key: str,
+    policy,
+    tier: JudgeTier,
+    tier_label: str,
+) -> "SectionJudgeModelResolution":
+    """Resolve a proof judge for the IDE CLI transport (slot one: judge_models pin; slot two: by writer maker)."""
+    from apps_rg.runtime.judges.x1d_ide_cli import IdeCliJudgeConfigError, second_judge_model
+
+    def _blocked(model_id: str, source: str, reason: str, effort: str | None = None) -> "SectionJudgeModelResolution":
+        return SectionJudgeModelResolution(
+            provider_key=provider_key,
+            section_id=sid,
+            judge_tier=tier.value,
+            model_requested=model_id,
+            model_actual="",
+            model_source=source,
+            model_tier="blocked",
+            reasoning_effort=effort,
+            blocked=True,
+            block_reason=reason,
+            proof_eligible_judge=False,
+        )
+
+    if provider_key == "gemini_pro":
+        yaml_tier = _yaml_judge_models().get(tier_label) or {}
+        model_id = str(yaml_tier.get("gemini_pro") or "") if isinstance(yaml_tier, dict) else ""
+        source = "yaml_judge_models"
+        if not model_id:
+            raise SectionJudgeProfileSSOTError(
+                f"Missing judge_models.{tier_label}.gemini_pro in {_PROVIDER_PROFILES_PATH}"
+            )
+    else:
+        try:
+            model_id, maker = second_judge_model(sid)
+        except IdeCliJudgeConfigError as exc:
+            return _blocked("", "yaml_ide_cli_judging", str(exc))
+        source = f"yaml_ide_cli_judging:writer_maker={maker}"
+
+    effort: str | None = None
+    if provider_key == "gemini_pro":
+        if "argon-medium" in model_id:
+            effort = "medium"
+        elif "argon-high" in model_id:
+            effort = "high"
+    try:
+        caps = try_model_capabilities(model_id)
+        if caps is None:
+            raise ModelCapabilityError(f"MODEL_CAPABILITY_NOT_REGISTERED: {model_id}")
+        assert_model_request_capabilities(
+            model_id,
+            provider=caps.provider,
+            endpoint="ide_cli",
+            reasoning_effort=effort,
+            structured_output_required=True,
+            proof_required=policy.judge_required_for_proof,
+        )
+    except ModelCapabilityError as exc:
+        return _blocked(model_id, source, str(exc), effort)
+    return SectionJudgeModelResolution(
+        provider_key=provider_key,
+        section_id=sid,
+        judge_tier=tier.value,
+        model_requested=model_id,
+        model_actual=model_id,
+        model_source=source,
+        model_tier=_model_tier_label(tier, model_id),
+        reasoning_effort=effort,
+        blocked=False,
+        advisory_only=not policy.judge_required_for_proof,
+        proof_eligible_judge=policy.judge_required_for_proof,
+    )
+
+
 def resolve_section_proof_judge_model(
     section_id: str,
     provider_key: str,
@@ -141,6 +216,10 @@ def resolve_section_proof_judge_model(
         )
 
     tier_label = _tier_yaml_label(tier)
+    from apps_rg.runtime.judges.x1d_ide_cli import uses_ide_cli_judges
+
+    if uses_ide_cli_judges():
+        return _resolve_ide_cli_judge(sid, provider_key, policy, tier, tier_label)
     yaml_tier = _yaml_judge_models().get(tier_label) or {}
     yaml_model = yaml_tier.get(provider_key) if isinstance(yaml_tier, dict) else None
     if not yaml_model:

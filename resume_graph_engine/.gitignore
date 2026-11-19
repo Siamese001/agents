@@ -18,3 +18,6 @@ artifacts/apps_rg/runs/*
 !artifacts/apps_rg/runs/anthropic_partnership_fresh_s2e_20260630_094000/*
 artifacts/**/runtime_proofs/
 artifacts/**/l1_cognitive_w4/
+artifacts/apps_rg/judge_parity/*/judge_calls/
+artifacts/apps_rg/judge_parity/*/generation_runs/
+artifacts/apps_rg/judge_parity/*/smoke_*/

@@ -1,0 +1,69 @@
+{
+  "transport": "ide_cli",
+  "model_requested": "gemini-4-argon-high",
+  "model_reported": "gemini-4-argon-high",
+  "conversation_id": "dc509737-e4d9-44b1-a544-0dd64cb82107",
+  "usage": {
+    "input_tokens": 34998,
+    "output_tokens": 2545,
+    "thinking_tokens": 2313,
+    "cache_read_tokens": 0,
+    "total_tokens": 37543
+  },
+  "duration_seconds": 39.27385,
+  "response": "{\"cited_sentence_indexes\":[],\"decisive_failure\":false,\"dimension_verdicts\":{\"anti_overfit\":{\"codes\":[],\"pass\":true,\"severity\":\"none\"},\"ats_alignment_without_keyword_stuffing\":{\"codes\":[],\"pass\":true,\"severity\":\"none\"},\"deterministic_alignment\":{\"codes\":[],\"pass\":true,\"severity\":\"none\"},\"evidence_utilization\":{\"codes\":[],\"pass\":true,\"severity\":\"none\"},\"executive_signal\":{\"codes\":[],\"pass\":true,\"severity\":\"none\"},\"factual_support\":{\"codes\":[],\"pass\":true,\"severity\":\"none\"},\"resume_voice\":{\"codes\":[],\"pass\":true,\"severity\":\"none\"},\"synthesis_quality\":{\"codes\":[],\"pass\":true,\"severity\":\"none\"}},\"findings\":[\"Cohesive six-sentence executive summary fully supported by the allowed fact packet and well aligned to the Head of Forward Deployed Engineering mandate.\"],\"pass\":true,\"remediation_suggestions\":[],\"score\":4.8,\"score_scale\":\"0_to_5\",\"threshold\":4}\n",
+  "structured_output": {
+    "cited_sentence_indexes": [],
+    "decisive_failure": false,
+    "dimension_verdicts": {
+      "anti_overfit": {
+        "codes": [],
+        "pass": true,
+        "severity": "none"
+      },
+      "ats_alignment_without_keyword_stuffing": {
+        "codes": [],
+        "pass": true,
+        "severity": "none"
+      },
+      "deterministic_alignment": {
+        "codes": [],
+        "pass": true,
+        "severity": "none"
+      },
+      "evidence_utilization": {
+        "codes": [],
+        "pass": true,
+        "severity": "none"
+      },
+      "executive_signal": {
+        "codes": [],
+        "pass": true,
+        "severity": "none"
+      },
+      "factual_support": {
+        "codes": [],
+        "pass": true,
+        "severity": "none"
+      },
+      "resume_voice": {
+        "codes": [],
+        "pass": true,
+        "severity": "none"
+      },
+      "synthesis_quality": {
+        "codes": [],
+        "pass": true,
+        "severity": "none"
+      }
+    },
+    "findings": [
+      "Cohesive six-sentence executive summary fully supported by the allowed fact packet and well aligned to the Head of Forward Deployed Engineering mandate."
+    ],
+    "pass": true,
+    "remediation_suggestions": [],
+    "score": 4.8,
+    "score_scale": "0_to_5",
+    "threshold": 4
+  }
+}

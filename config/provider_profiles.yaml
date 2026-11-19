@@ -213,6 +213,34 @@ judge_models:
     gemini_pro: gemini-4-argon-medium
     openai_chatgpt: gpt-5.6-luna
 
+# IDE CLI transport: the headless Antigravity CLI (`agy -p`), signed-in session, no API keys.
+# The CLI binary path comes from the environment variable named by cli_env_var (PATH `agy` can be the IDE
+# launcher). Every call is deny-all-tools and fails closed to BLOCKED; there is no canned or synthetic fallback.
+# transport: external_api (keyed HTTP) | ide_cli. Env overrides: APPS_RG_JUDGE_TRANSPORT / APPS_RG_GENERATION_TRANSPORT.
+ide_cli_judging:
+  transport: ide_cli
+  cli_env_var: AGY_CLI_BIN
+  # Slot one keeps the judge_models Argon pin for provider key gemini_pro. Slot two (provider key openai_chatgpt)
+  # resolves to a distinct IDE model pin that never equals the lane's writer or Slot one's Argon pin.
+  second_judge_by_writer_maker:
+    anthropic: gemini-3.8-flash-high
+    openai: gemini-4-neon-high
+    google: gemini-3.8-flash-high
+
+ide_cli_generation:
+  transport: ide_cli
+  cli_env_var: AGY_CLI_BIN
+  # Generation pins routed through the headless Antigravity CLI, with optional pin-to-IDE-slug mapping when
+  # non-Google IDE subscription tiers hit rolling quota windows.
+  ide_models:
+    - claude-sonnet-5-5-high
+    - claude-sonnet-5-5-medium
+    - gemini-4-neon-high
+    - gemini-4-neon-medium
+  model_map:
+    claude-sonnet-5-5-high: gemini-4-neon-high
+    claude-sonnet-5-5-medium: gemini-4-neon-medium
+
 judge_model_governance:
   owner: apps_rg.section_proof_judges
   review_after: "2026-11-07"

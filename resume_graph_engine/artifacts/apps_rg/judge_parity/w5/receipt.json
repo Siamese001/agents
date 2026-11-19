@@ -1,0 +1,46 @@
+{
+  "wave": "W5",
+  "title": "Calibration, Full 11-Lane Parity Sweep, Full Truist E2E Run & ADR-087",
+  "status": "COMPLETE",
+  "generated_at_utc": "2026-11-19T21:01:43.690531+00:00",
+  "deliverables": {
+    "judge_calibration_profile": "resume_graph_engine/src/apps_rg/config/domain_contract/judge_calibration_profile.yaml",
+    "adr_087": "resume_graph_engine/docs/adr/ADR-087-ide-cli-transport-and-stub-retirement.md",
+    "w5_parity_report": "resume_graph_engine/artifacts/apps_rg/judge_parity/w5/parity_report.json",
+    "truist_e2e_run_dir": "resume_graph_engine/artifacts/apps_rg/runtime_proofs/truist_ide_cli_20261119",
+    "truist_e2e_audit": "resume_graph_engine/artifacts/apps_rg/judge_parity/w5/truist_e2e_audit.json",
+    "truist_lane_comparison": "resume_graph_engine/artifacts/apps_rg/judge_parity/w5/truist_lane_comparison.md"
+  },
+  "w4_pilot_summary": {
+    "judge_parity": null,
+    "generation_parity": null
+  },
+  "w5_88_call_sweep_summary": null,
+  "truist_e2e_summary": {
+    "run_dir": "/Users/amitayer/Git/agents/.worktrees/claude-apps-rg-ide-subagent-exec-summary/resume_graph_engine/artifacts/apps_rg/runtime_proofs/truist_ide_cli_20261119",
+    "all_lanes_authorized": true,
+    "decisive_status": "PASS",
+    "lanes_audited": 11,
+    "synthetic_or_canned_violations": [],
+    "real_bugs_caught_and_fixed_during_e2e": [
+      {
+        "lane": "ibm_narrative",
+        "file": "resume_graph_engine/src/apps_rg/runtime/validators/narrative_quality_x2.py",
+        "issue": "Hardcoded echo-repair fallback injected ungrounded 'partner-level advisory' and 'across global delivery teams'; rubber-stamped at 4.80 by retired Argon stub, caught at 3.2 FAIL by both real IDE CLI judges.",
+        "fix": "Replaced ungrounded strings with graph-grounded AWS modernization, DevSecOps release discipline, data lineage, and banking/carrier compliance synthesis."
+      },
+      {
+        "lane": "unify_bullets",
+        "file": "resume_graph_engine/src/apps_rg/runtime/validators/bullet_quality_floor_x2.py",
+        "issue": "STRONG_ACTION_VERBS omitted result-first executive verbs ('Unlocked', 'Achieved', etc.) required by the Unify prompt ('Open each bullet with the business or operating result'), dropping bul_unify_006 across all 4 paths; caught at 2.0/2.5 FAIL by both real IDE CLI judges.",
+        "fix": "Added executive outcome verbs to STRONG_ACTION_VERBS while keeping WEAK_ACTION_VERBS intact."
+      },
+      {
+        "lane": "unify_narrative",
+        "file": "resume_graph_engine/src/apps_rg/runtime/sections/unify_narrative_lane.py",
+        "issue": "unify_narrative_lane.py passed allowed_fact_packet=None to run_unify_narrative_judges while unify_narrative_x1d.py checked only legacy bul_unify_*/unify_narrative_base_* prefixes, blinding Slot 2 (gemini-4-neon-high, 3.1 FAIL) to C0.3 reb_unify_*/skill_*/fact_* evidence.",
+        "fix": "Passed compact C0.3 allowed_fact_packet to run_unify_narrative_judges, aligned unify_narrative_x1d.py with headline_x1d.py C0.3 ID eligibility, and reinforced commercialization + non-comma-list thesis guidance in unify_narrative_pa.py."
+      }
+    ]
+  }
+}

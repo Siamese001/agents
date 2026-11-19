@@ -1,0 +1,95 @@
+{
+  "executive_strategy_thesis": "Engineering executive uniting governed agentic AI runtime architecture, repeatable client activation, and regulatory control discipline to scale enterprise AI adoption in financial services.",
+  "resume_display_text": "Engineering executive who unites governed agentic AI runtime architecture with client activation at enterprise scale for regulated financial and insurance institutions. Governed runtime architectures with deterministic proof lineage give safety-critical agent decisions a validation mesh that holds to 100% gate conformance. From that runtime base, directed offering accelerator management scaled repeatable cloud and AI solution blueprints across financial and insurance institutions, with AWS shared-responsibility guardrails keeping insurer-owned controls explicit. In parallel, AI governance and model-risk discipline reduced banking regulatory findings by 35%. That control foundation also accelerated compliance submissions by 40%, with confidence-based escalation keeping model-risk decisions reviewable. Governed platform architecture and regulatory rigor will enable enterprise AI adoption at pace, preserving lineage and control as deployment volume grows.",
+  "claim_ledger": [
+    {
+      "claim": "Engineering executive who unites governed agentic AI runtime architecture with client activation at enterprise scale for regulated financial and insurance institutions.",
+      "claim_text": "Executive identity combining governed agent runtime architecture with scaled cloud and AI solution delivery for regulated financial and insurance institutions.",
+      "source_fact_ids": [
+        "reb_slalom_governed_runtime_scaling",
+        "reb_ibm_offering_accelerator_management",
+        "skill_sr_regulated_financial_institutions_fluency"
+      ]
+    },
+    {
+      "claim": "Governed runtime architectures with deterministic proof lineage give safety-critical agent decisions a validation mesh that holds to 100% gate conformance.",
+      "claim_text": "Engineered governed runtime architectures, deterministic proof lineage, and a safety validation mesh enforcing 100% gate conformance for safety-critical agent decisions.",
+      "source_fact_ids": [
+        "reb_slalom_governed_runtime_scaling",
+        "fact_slalom_003",
+        "skill_runtime_resilience_controls",
+        "metric_slalom_validation_gate_mesh_conformance_pct"
+      ]
+    },
+    {
+      "claim": "From that runtime base, directed offering accelerator management scaled repeatable cloud and AI solution blueprints across financial and insurance institutions, with AWS shared-responsibility guardrails keeping insurer-owned controls explicit.",
+      "claim_text": "Directed offering accelerator management scaling repeatable cloud and AI solution blueprints across regulated financial and insurance institutions, with safety operating-model framing around AWS shared responsibility and insurer-owned controls.",
+      "source_fact_ids": [
+        "reb_ibm_offering_accelerator_management",
+        "reb_insurtech_aws_shared_responsibility_operating_model",
+        "fact_insurtech_aws_001",
+        "skill_regulated_cloud_adoption_guardrails",
+        "skill_p2_tech_demoable_accelerator",
+        "skill_p2_tech_ibm_cloud_portfolio_anchor",
+        "skill_sr_w12_industry_reference_architecture"
+      ]
+    },
+    {
+      "claim": "In parallel, AI governance and model-risk discipline reduced banking regulatory findings by 35%.",
+      "claim_text": "Regulated financial-services AI governance and model-risk work reduced banking regulatory findings by 35%.",
+      "source_fact_ids": [
+        "reb_unify_regulated_enterprise_ai_governance",
+        "metric_unify_banking_regulatory_findings_reduction_35pct",
+        "skill_risk_model_risk",
+        "skill_ai_governance_certification",
+        "fact_governance_001"
+      ]
+    },
+    {
+      "claim": "That control foundation also accelerated compliance submissions by 40%, with confidence-based escalation keeping model-risk decisions reviewable.",
+      "claim_text": "Compliance automation accelerated compliance submissions by 40%, supported by confidence-based and human-in-the-loop escalation architecture and evidence contract design.",
+      "source_fact_ids": [
+        "metric_unify_compliance_submission_acceleration_40pct",
+        "skill_confidence_based_escalation",
+        "skill_hitl_escalation_architecture",
+        "skill_evidence_contract_design",
+        "reb_unify_regulated_enterprise_ai_governance"
+      ]
+    },
+    {
+      "claim": "Governed platform architecture and regulatory rigor will enable enterprise AI adoption at pace, preserving lineage and control as deployment volume grows.",
+      "claim_text": "Governed runtime architecture with deterministic proof lineage, repeatable solution blueprints, and regulated AI governance evidence support scaling AI adoption within control requirements.",
+      "source_fact_ids": [
+        "reb_slalom_governed_runtime_scaling",
+        "reb_ibm_offering_accelerator_management",
+        "reb_unify_regulated_enterprise_ai_governance",
+        "metric_ibm_offering_accelerator_package_reuse",
+        "metric_ibm_client_facing_modernization_playbooks",
+        "fact_partnerships_gtm_002"
+      ]
+    }
+  ],
+  "jd_alignment": {
+    "targeting_only": true,
+    "jd_used_as_proof": false,
+    "briefing_used_as_proof": false,
+    "companion_context_used_as_proof": false,
+    "companion_used_as_proof": false
+  },
+  "gap_notes": [
+    "Allowed IBM reuse and playbook metric facts carry no numeric values in the supplied evidence, so no figures were surfaced for them.",
+    "Target-role vocabulary was used for emphasis only and not as proof."
+  ],
+  "change_log": [
+    "Drafted thesis first, then six sentences advancing it.",
+    "Surfaced the 100%, 35%, and 40% values from allowed facts in S2, S4, and S5.",
+    "S4 uses a non-stock opener; only one stock bridge is used in S2-S5."
+  ],
+  "self_check": {
+    "executive_strategy_thesis_present": true,
+    "jd_used_as_proof_false": true,
+    "s6_forward_synthesis_not_recap": true,
+    "material_metrics_surfaced_in_display_rows_3_4_5": true,
+    "every_material_claim_in_claim_ledger": true
+  }
+}

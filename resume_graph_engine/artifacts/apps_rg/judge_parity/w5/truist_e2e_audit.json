@@ -1,0 +1,964 @@
+{
+  "generated_at_utc": "2026-11-19T21:01:43.612553+00:00",
+  "lanes_audited": 11,
+  "violations": [],
+  "all_checks_pass": true,
+  "rows": [
+    {
+      "lane": "headline",
+      "ide_dir": "/Users/amitayer/Git/agents/.worktrees/claude-apps-rg-ide-subagent-exec-summary/resume_graph_engine/artifacts/apps_rg/runtime_proofs/truist_ide_cli_20261119/modular_r4/sections/headline/real/p_cf1a8d",
+      "keyed_dir": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_0acb8e1555de/lanes/headline",
+      "keyed_writer_model": "claude-sonnet-5",
+      "keyed_text": "SVP Engineering | Regulated Financial Governance | SDLC Automation Platforms | Runtime Telemetry Controls",
+      "keyed_word_count": 11,
+      "keyed_judges": [
+        {
+          "provider_key": "gemini_pro",
+          "model_name": "gemini-3.8-flash",
+          "score": 4.8,
+          "score_scale": "0_to_5",
+          "pass": true,
+          "findings": [
+            "Headline strictly complies with the approved executive prefix and three-pipe separator format.",
+            "Word count of 11 is well within the required 10-13 word range.",
+            "Substantive segments are fully grounded in allowed fact packet role episodes and claim ledger.",
+            "Presents non-redundant, distinct signals spanning governance, SDLC automation, and runtime telemetry."
+          ]
+        },
+        {
+          "provider_key": "openai_chatgpt",
+          "model_name": "gpt-5.6-luna",
+          "score": 4.5,
+          "score_scale": "0_to_5",
+          "pass": true,
+          "findings": []
+        }
+      ],
+      "ide_writer_requested": "gemini-4-neon-high",
+      "ide_writer_actual": "gemini-4-neon-high",
+      "ide_writer_transport": "ide_cli",
+      "ide_writer_usage": {
+        "prompt_tokens": 27910,
+        "output_tokens": 16925,
+        "thought_tokens": 16330,
+        "total_tokens": 44835,
+        "cumulative_lane_tokens": 95653
+      },
+      "ide_writer_conversation_id": "ed36bfb2-9363-4fc1-b478-bd8070c53407",
+      "ide_text": "SVP Engineering | Sandboxed AI Systems | SDLC Automation Platform | Regulated AI Governance",
+      "ide_word_count": 11,
+      "ide_judges": [
+        {
+          "provider_key": "gemini_pro",
+          "model_name": "gemini-4-argon-medium",
+          "score": 4.8,
+          "score_scale": "0_to_5",
+          "pass": true,
+          "usage": {
+            "input_tokens": 24393,
+            "output_tokens": 201,
+            "thinking_tokens": 0,
+            "cache_read_tokens": 0,
+            "total_tokens": 24594
+          },
+          "conversation_id": "23d1abcf-ed2d-4cf9-9321-b8e92d8dff66",
+          "findings": []
+        },
+        {
+          "provider_key": "openai_chatgpt",
+          "model_name": "gemini-3.8-flash-high",
+          "score": 5.0,
+          "score_scale": "0_to_5",
+          "pass": true,
+          "usage": {
+            "input_tokens": 25348,
+            "output_tokens": 24487,
+            "thinking_tokens": 24259,
+            "cache_read_tokens": 0,
+            "total_tokens": 49835
+          },
+          "conversation_id": "4be02621-2ae1-4816-8a28-77db1e02a6ed",
+          "findings": [
+            "Candidate headline meets all rubric criteria with verified factual support, approved executive prefix, and proper segment structure."
+          ]
+        }
+      ]
+    },
+    {
+      "lane": "executive_summary",
+      "ide_dir": "/Users/amitayer/Git/agents/.worktrees/claude-apps-rg-ide-subagent-exec-summary/resume_graph_engine/artifacts/apps_rg/runtime_proofs/truist_ide_cli_20261119/modular_r4/sections/executive_summary/real/p_e95df7",
+      "keyed_dir": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_0acb8e1555de/lanes/executive_summary",
+      "keyed_writer_model": "claude-sonnet-5",
+      "keyed_text": "Engineering executive directing governed runtime architecture and platform delivery, enforcing deterministic proof lineage and a safety validation mesh with one hundred percent gate conformance for safety-critical agent decisions across regulated enterprises. That platform discipline scales through offering accelerator management, standardizing repeatable cloud and AI blueprints across regulated financial-services and insurance institutions. Against that foundation, AWS shared-responsibility operating-model framing and insurer-owned control design anchor regulated cloud adoption guardrails for highly regulated deployment environments. In parallel, regulated financial-services AI governance, compliance automation, and model-risk discipline reduced banking regulatory findings while accelerating compliance submission cycles. That operating foundation built demoable accelerator packages and client-facing modernization playbooks that deepened fluency across regulated financial institutions and drove reuse of packaged offerings. This governed platform foundation, forward-deployed delivery discipline, and regulatory-grade evidence control will scale AI capability activation across business lines with measurable adoption and compliance confidence.",
+      "keyed_word_count": 141,
+      "keyed_judges": [
+        {
+          "provider_key": "gemini_pro",
+          "model_name": "gemini-3.8-flash",
+          "score": 4.8,
+          "score_scale": "0_to_5",
+          "pass": true,
+          "findings": [
+            "All six sentences are fully grounded in the allowed fact packet and graph proof refs.",
+            "Direct alignment to Truist Head of Forward Deployed Engineering targeting brief and JD.",
+            "Zero unverified metrics, internal repo plumbing, or disallowed off-domain clutter."
+          ]
+        },
+        {
+          "provider_key": "openai_chatgpt",
+          "model_name": "gpt-5.6-luna",
+          "score": 4.2,
+          "score_scale": "0_to_5",
+          "pass": true,
+          "findings": [
+            "The summary is fact-grounded and clears all authoritative X2 gates.",
+            "The narrative is architecture- and governance-heavy for a forward-deployed engineering mandate, with limited explicit emphasis on deployment execution, business-line enablement, operational support, or team leadership.",
+            "Repeated foundation, platform, and discipline language makes the progression somewhat abstract rather than sharply deployment-to-adoption oriented."
+          ]
+        }
+      ],
+      "ide_writer_requested": "gemini-4-neon-high",
+      "ide_writer_actual": "gemini-4-neon-high",
+      "ide_writer_transport": "ide_cli",
+      "ide_writer_usage": {
+        "prompt_tokens": 30121,
+        "output_tokens": 20326,
+        "thought_tokens": 18946,
+        "total_tokens": 50447,
+        "cumulative_lane_tokens": 50447
+      },
+      "ide_writer_conversation_id": "e28a6398-74d4-46d7-ba36-8ebe40ff2479",
+      "ide_text": "Engineering executive aligning governed AI platforms, enterprise deployment blueprints, and financial-services compliance controls to scale production AI adoption reliably. Architects governed runtime platforms combining deterministic proof lineage and resilience controls so production agent workflows remain traceable under enterprise oversight. Within that ecosystem model, offering accelerator management scaled reusable AI solution packages and client-facing modernization playbooks alongside regulated cloud shared-responsibility guardrails. In parallel, banking AI governance, evidence-contract design, and model-risk automation cut regulatory findings while accelerating compliance submissions. Across critical agent decisions, a safety validation mesh enforced 100% gate conformance, sustaining verifiable reliability across high-stakes financial workflows. That platform and governance foundation enables disciplined prototype-to-production activation and sustained business-unit alignment, preserving control rigor as enterprise AI portfolios expand.",
+      "ide_word_count": 117,
+      "ide_judges": [
+        {
+          "provider_key": "gemini_pro",
+          "model_name": "gemini-4-argon-high",
+          "score": 4.8,
+          "score_scale": "0_to_5",
+          "pass": true,
+          "usage": {
+            "input_tokens": 34691,
+            "output_tokens": 2887,
+            "thinking_tokens": 2612,
+            "cache_read_tokens": 0,
+            "total_tokens": 37578
+          },
+          "conversation_id": "5f155c71-1750-4c0a-8481-eb457ea20ee2",
+          "findings": [
+            "All six sentences are grounded in the authorized graph fact bundles and skill references.",
+            "Executive thesis and body sentences align with the Head of Forward Deployed Engineering mandate at Truist without using JD or briefing text as proof.",
+            "Quantitative gate-conformance outcome (100%) and regulated banking governance controls are woven cohesively without inventory stacking."
+          ]
+        },
+        {
+          "provider_key": "openai_chatgpt",
+          "model_name": "gemini-3.8-flash-high",
+          "score": 4.8,
+          "score_scale": "0_to_5",
+          "pass": true,
+          "usage": {
+            "input_tokens": 96666,
+            "output_tokens": 22017,
+            "thinking_tokens": 21350,
+            "cache_read_tokens": 0,
+            "total_tokens": 118683
+          },
+          "conversation_id": "4dae525f-1083-465c-9f67-5919a168cc8d",
+          "findings": [
+            "Strong executive alignment with the Head of Forward Deployed Engineering mandate at Truist.",
+            "All claims are strictly grounded in allocated graph facts and role episode bundles.",
+            "Effectively integrates platform governance, reusable accelerator playbooks, and 100% validation gate conformance.",
+            "Zero internal repo plumbing, buzzwords, em dashes, or robotic phrasing detected.",
+            "Strictly adheres to the 6-sentence executive paragraph constraint with natural narrative progression."
+          ]
+        }
+      ]
+    },
+    {
+      "lane": "competencies",
+      "ide_dir": "/Users/amitayer/Git/agents/.worktrees/claude-apps-rg-ide-subagent-exec-summary/resume_graph_engine/artifacts/apps_rg/runtime_proofs/truist_ide_cli_20261119/modular_r4/sections/competencies",
+      "keyed_dir": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_0acb8e1555de/lanes/competencies",
+      "keyed_writer_model": "claude-sonnet-5",
+      "keyed_text": "- Governed Agentic AI Platform Architecture: governed multi-agent orchestration control planes, agentic workflow routing across enterprise systems, reusable accelerator assets for autonomous platforms\n- Model Risk Governance & AI Runtime Control Gates: fail-closed policy authorization gates for runtime execution, policy enforcement across agent execution paths, governed write-boundary controls for runtime execution\n- Retrieval & Context Engineering: relationship-grounded context retrieval for enterprise workflows, dense-sparse retrieval with relationship-aware ranking, authority-ordered prompt context assembly delivery\n- LLMOps, Evaluation & Reliability: audit-ready agent reliability evidence for enterprise systems, model behavior evaluation and schema validation pipelines, deterministic multi-step quality loop design for pipelines\n- Distributed Systems & Cloud Data Engineering: regulated cloud-native data architecture reference patterns, event-driven microservices architecture for distributed ecosystems, enterprise lakehouse platform modernization for decision intelligence\n- Engineering Leadership & Operating Model: enterprise operating model for governed agentic delivery, executive investment decision governance for portfolio scale, runtime proof-bundle lineage for platforms\n- Platform Productization & Commercialization: demoable AI platform prototypes for executive buyers, agentic platform productization for asset intelligence pipelines, enterprise pursuit execution across portfolio expansion motions\n- Applied AI Reference Architecture & Enablement: enterprise applied AI reference architectures, reusable AI solution accelerators for business lines, production AI deployment enablement and assurance patterns, cloud portfolio architecture for reusable AI offerings",
+      "keyed_word_count": 200,
+      "keyed_judges": [
+        {
+          "provider_key": "gemini_pro",
+          "model_name": "gemini-3.8-flash",
+          "score": 4.8,
+          "score_scale": "0_to_5",
+          "pass": true,
+          "findings": [
+            "All 8 competency categories are graph-backed with valid claim ledger bindings.",
+            "Category structure and ordering strongly align with Truist Forward Deployed Engineering scope.",
+            "Deep agentic mechanisms and governed runtime control gates are consistently demonstrated.",
+            "Partner and cloud terms bind strictly to Unify, IBM, and Slalom roots with zero legacy leakage."
+          ]
+        },
+        {
+          "provider_key": "openai_chatgpt",
+          "model_name": "gpt-5.6-luna",
+          "score": 4.25,
+          "score_scale": "0_to_5",
+          "pass": true,
+          "findings": [
+            "Eight distinct, graph-backed categories cover agentic architecture, controls, retrieval, reliability, data, leadership, commercialization, and applied-AI architecture.",
+            "The taxonomy underweights forward deployment: API and system integration, deployment readiness, go-live pipelines, adoption enablement, and sustained production support are not explicit capability clusters.",
+            "Ordering leads with platform internals and retrieval rather than deployment operating model and enterprise activation, weakening alignment to the Truist forward-deployed engineering mandate.",
+            "Several labels are broad or mismatched to their displayed capability, especially Technology Strategy & Innovation versus Retrieval & Context Engineering and Data & Analytics Modernization versus Distributed Systems & Cloud Data Engineering.",
+            "Engineering leadership terms emphasize investment governance and runtime lineage more than team building, field delivery leadership, or organizational accountability.",
+            "Partner architecture wording is concrete, graph-backed, and correctly bound to IBM and enterprise roots without chronology laundering."
+          ]
+        }
+      ],
+      "ide_writer_requested": "gemini-4-neon-medium",
+      "ide_writer_actual": "gemini-4-neon-medium",
+      "ide_writer_transport": "ide_cli",
+      "ide_writer_usage": {
+        "prompt_tokens": 18347,
+        "output_tokens": 2474,
+        "thought_tokens": null,
+        "total_tokens": 20821,
+        "cumulative_lane_tokens": 47100
+      },
+      "ide_writer_conversation_id": "bf36f800-5752-4e75-acd2-2751f3060287",
+      "ide_text": "- Governed Agentic AI Platform Architecture: governed multi-agent orchestration control planes, agentic workflow routing across enterprise systems, dependency graph intelligence and join control architecture\n- Model Risk Governance & AI Runtime Control Gates: fail-closed policy authorization gates for runtime execution, policy enforcement across agent execution paths, sandboxed decision workflows with audit trails\n- Retrieval & Context Engineering: relationship-grounded context retrieval for enterprise workflows, dense-sparse retrieval with relationship-aware ranking, authority-ordered prompt context assembly delivery\n- LLMOps, Evaluation & Reliability: audit-ready agent reliability evidence for enterprise systems, model behavior evaluation and schema validation pipelines, deterministic multi-step quality loop design for pipelines\n- Distributed Systems & Cloud Data Engineering: regulated cloud-native data blueprint reference patterns, event-driven microservices architecture for distributed ecosystems, side-effect bounded action controls for runtime execution\n- Engineering Leadership & Operating Model: enterprise operating model for governed agentic delivery, executive investment decision governance for portfolio scale, enterprise deal support and solution execution\n- Platform Productization & Commercialization: demoable AI platform prototypes for executive buyers, agentic platform productization for asset intelligence pipelines, enterprise pursuit execution across portfolio expansion motions\n- Applied AI Reference Architecture & Enablement: enterprise applied AI reference architectures, reusable AI solution accelerators for business lines, production AI deployment enablement and assurance patterns, cloud portfolio architecture for reusable AI offerings",
+      "ide_word_count": 202,
+      "ide_judges": [
+        {
+          "provider_key": "gemini_pro",
+          "model_name": "gemini-4-argon-medium",
+          "score": 4.8,
+          "score_scale": "0_to_5",
+          "pass": true,
+          "usage": {
+            "input_tokens": 28319,
+            "output_tokens": 344,
+            "thinking_tokens": 16,
+            "cache_read_tokens": 0,
+            "total_tokens": 28663
+          },
+          "conversation_id": "c15419bf-4d56-4571-af3b-16acb49c62bf",
+          "findings": [
+            "All seven competency categories are well-differentiated, graph-backed, and directly aligned with the Head of Forward Deployed Engineering role at Truist.",
+            "Terms combine concrete SVP-level agentic platform and runtime governance mechanisms with source-bound enterprise deployment and commercialization proof.",
+            "Partner and reference architecture terms bind cleanly to valid IBM and Unify roots without chronology leakage or off-domain clutter."
+          ]
+        },
+        {
+          "provider_key": "openai_chatgpt",
+          "model_name": "gemini-3.8-flash-high",
+          "score": 4.8,
+          "score_scale": "0_to_5",
+          "pass": true,
+          "usage": {
+            "input_tokens": 28732,
+            "output_tokens": 16884,
+            "thinking_tokens": 16535,
+            "cache_read_tokens": 0,
+            "total_tokens": 45616
+          },
+          "conversation_id": "42791ef5-8074-4bb0-aeb4-f179cf75874b",
+          "findings": [
+            "All eight competency categories are strictly grounded in claim ledger facts with zero unsupported claims.",
+            "Category structure directly addresses forward deployed AI engineering needs for enterprise deployment and governance.",
+            "Deep agentic mechanisms are demonstrated across multi-agent orchestration, runtime policy gates, and context retrieval.",
+            "Applied AI reference architecture and enablement terms bind accurately to valid IBM and Slalom roots.",
+            "Distinct capability clusters maintain executive altitude without bullet restatement or keyword stuffing."
+          ]
+        }
+      ]
+    },
+    {
+      "lane": "slalom_narrative",
+      "ide_dir": "/Users/amitayer/Git/agents/.worktrees/claude-apps-rg-ide-subagent-exec-summary/resume_graph_engine/artifacts/apps_rg/runtime_proofs/truist_ide_cli_20261119/modular_r4/sections/slalom_narrative/real/p_6fa434",
+      "keyed_dir": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_0acb8e1555de/lanes/slalom_narrative",
+      "keyed_writer_model": "gpt-5.6-luna",
+      "keyed_text": "Operationalized enterprise AI delivery by pairing governed agentic orchestration with auditable knowledge foundations and calibrated human oversight, translating complex client environments into repeatable production activation through executive relationship ownership and disciplined delivery governance.",
+      "keyed_word_count": 33,
+      "keyed_judges": [
+        {
+          "provider_key": "gemini_pro",
+          "model_name": "gemini-3.8-flash",
+          "score": 4.8,
+          "score_scale": "0_to_5",
+          "pass": true,
+          "findings": []
+        }
+      ],
+      "ide_writer_requested": "gpt-5.6-luna",
+      "ide_writer_actual": "gpt-5.6-luna",
+      "ide_writer_transport": "external_openai",
+      "ide_writer_usage": {
+        "prompt_tokens": 5242,
+        "output_tokens": 354,
+        "thought_tokens": 201,
+        "total_tokens": 5596,
+        "cumulative_lane_tokens": 5596
+      },
+      "ide_writer_conversation_id": "resp_03d05fc47eaad326006aff2c29e69487d19f99a30957e4eac9",
+      "ide_text": "Operationalized enterprise AI delivery by converting governed retrieval, model-risk controls, and repeatable solution architecture into an executive operating rhythm that connected complex stakeholder needs to deployable, auditable outcomes at scale.",
+      "ide_word_count": 30,
+      "ide_judges": [
+        {
+          "provider_key": "gemini_pro",
+          "model_name": "gemini-4-argon-medium",
+          "score": 4.8,
+          "score_scale": "0_to_5",
+          "pass": true,
+          "usage": {
+            "input_tokens": 21899,
+            "output_tokens": 673,
+            "thinking_tokens": 420,
+            "cache_read_tokens": 0,
+            "total_tokens": 22572
+          },
+          "conversation_id": "1feb94e7-64ae-4336-bbdc-f43eee8a2412",
+          "findings": [
+            "Single-sentence narrative is grounded in four allowed reb_slalom_* role episode bundles and passes all deterministic X2 gates.",
+            "Executive framing cleanly complements companion bullets without metric collision, opener repetition, or internal micro-plumbing specs."
+          ]
+        },
+        {
+          "provider_key": "openai_chatgpt",
+          "model_name": "gemini-4-neon-high",
+          "score": 4.6,
+          "score_scale": "0_to_5",
+          "pass": true,
+          "usage": {
+            "input_tokens": 21899,
+            "output_tokens": 4646,
+            "thinking_tokens": 4448,
+            "cache_read_tokens": 0,
+            "total_tokens": 26545
+          },
+          "conversation_id": "ed0a1dbb-e7d3-4d0f-84bf-dcebb2781ec3",
+          "findings": []
+        }
+      ]
+    },
+    {
+      "lane": "slalom_bullets",
+      "ide_dir": "/Users/amitayer/Git/agents/.worktrees/claude-apps-rg-ide-subagent-exec-summary/resume_graph_engine/artifacts/apps_rg/runtime_proofs/truist_ide_cli_20261119/modular_r4/sections/slalom_bullets",
+      "keyed_dir": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_0acb8e1555de/lanes/slalom_bullets",
+      "keyed_writer_model": "claude-sonnet-5",
+      "keyed_text": "- bul_slalom_001: Architected production agentic AI delivery programs and A2A multi-agent orchestration for Fortune 500 enterprise transformations by establishing the architecture standards that governed how autonomous systems were integrated and activated within client environments.\n- bul_slalom_002: Led a 105-person engineering and data organization across a leading energy and utility enterprise by owning executive client relationships, multi-workstream delivery governance, and commercial pipeline growth to sustain advanced technology activation at scale.\n- bul_slalom_003: Built regulated data governance and model-risk evaluation frameworks with confidence-calibrated human-in-the-loop escalation controls that delivered 99% policy-gate auditability across HITL escalation workflows, ensuring regulated AI deployments remained compliant and operationally sound.\n- bul_slalom_004: Designed enterprise bitemporal GraphRAG knowledge-graph retrieval platforms with governed data lineage controls to make regulated client AI analytics auditable and enterprise-grade before activation into production workflows.",
+      "keyed_word_count": 126,
+      "keyed_judges": [
+        {
+          "provider_key": "gemini_pro",
+          "model_name": "gemini-3.8-flash",
+          "score": 4.8,
+          "score_scale": "0_to_5",
+          "pass": true,
+          "findings": []
+        },
+        {
+          "provider_key": "anthropic_claude",
+          "model_name": "claude-haiku-5-5",
+          "score": 0.9,
+          "score_scale": "0_to_1",
+          "pass": true,
+          "findings": [
+            "Employment pool selector: 4 slots, min_score=0.87, threshold=0.86, gate_ok=True"
+          ]
+        }
+      ],
+      "ide_writer_requested": "gemini-4-neon-medium",
+      "ide_writer_actual": "gemini-4-neon-medium",
+      "ide_writer_transport": "ide_cli",
+      "ide_writer_usage": {
+        "prompt_tokens": 18121,
+        "output_tokens": 2571,
+        "thought_tokens": null,
+        "total_tokens": 20692,
+        "cumulative_lane_tokens": 69146
+      },
+      "ide_writer_conversation_id": "dd8cb94c-1e65-4635-a7a0-0ca387443c37",
+      "ide_text": "- bul_slalom_001: Architected enterprise bitemporal GraphRAG knowledge-graph retrieval platforms with governed data lineage controls, which equipped regulated client analytics and AI transformation programs with audit-ready retrieval fidelity.\n- bul_slalom_002: Directed 105 software engineers and data leaders across a leading energy and utility enterprise to align executive client relationships, multi-workstream delivery governance, and commercial pipeline growth across active client programs.\n- bul_slalom_003: Established regulated data governance frameworks, multi-model evaluation panels, and multi-stage quality reviews that delivered 99% policy-gate auditability across confidence-calibrated human-in-the-loop (HITL) escalation workflows.\n- bul_slalom_004: Commercialized frontier model research and next-generation AI practice architecture into repeatable client offerings by establishing capability roadmaps and practice delivery standards for enterprise deployment.",
+      "ide_word_count": 106,
+      "ide_judges": [
+        {
+          "provider_key": "gemini_pro",
+          "model_name": "gemini-4-argon-medium",
+          "score": 4.85,
+          "score_scale": "0_to_5",
+          "pass": true,
+          "usage": {
+            "input_tokens": 28414,
+            "output_tokens": 368,
+            "thinking_tokens": 97,
+            "cache_read_tokens": 0,
+            "total_tokens": 28782
+          },
+          "conversation_id": "7362d8ea-b78a-4d9a-800a-63f25cbd4de3",
+          "findings": [
+            "All 4 Slalom bullets map cleanly to authorized bul_slalom_001 through bul_slalom_004 proof facts and graph-bound claim ledger entries.",
+            "Executive action verbs, concrete mechanisms, and audit-ready or commercial outcomes satisfy role episode rubric requirements without micro-plumbing clutter."
+          ]
+        },
+        {
+          "provider_key": "openai_chatgpt",
+          "model_name": "gemini-3.8-flash-high",
+          "score": 4.8,
+          "score_scale": "0_to_5",
+          "pass": true,
+          "usage": {
+            "input_tokens": 29575,
+            "output_tokens": 25817,
+            "thinking_tokens": 25609,
+            "cache_read_tokens": 0,
+            "total_tokens": 55392
+          },
+          "conversation_id": "33091f18-973f-4013-b306-ad8a22022f1f",
+          "findings": []
+        },
+        {
+          "provider_key": "anthropic_claude",
+          "model_name": "claude-sonnet-5-5-medium",
+          "score": 0.95,
+          "score_scale": "0_to_1",
+          "pass": true,
+          "usage": {
+            "input_tokens": 18121,
+            "output_tokens": 2571,
+            "total_tokens": 20692,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0
+          },
+          "conversation_id": "dd8cb94c-1e65-4635-a7a0-0ca387443c37",
+          "findings": [
+            "Employment pool selector: 4 slots, min_score=0.94, threshold=0.86, gate_ok=True"
+          ]
+        }
+      ]
+    },
+    {
+      "lane": "unify_narrative",
+      "ide_dir": "/Users/amitayer/Git/agents/.worktrees/claude-apps-rg-ide-subagent-exec-summary/resume_graph_engine/artifacts/apps_rg/runtime_proofs/truist_ide_cli_20261119/modular_r4/sections/unify_narrative/real/p_0c771d",
+      "keyed_dir": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_0acb8e1555de/lanes/unify_narrative",
+      "keyed_writer_model": "gpt-5.6-luna",
+      "keyed_text": "Owned Unify Consulting’s mandate to turn governed agentic architecture into an industrialized platform capability, pairing GraphRAG control-plane design with runtime resilience and audit-grade observability to support repeatable enterprise delivery and a credible path from bespoke engagements to scalable IP-led services.",
+      "keyed_word_count": 40,
+      "keyed_judges": [
+        {
+          "provider_key": "gemini_pro",
+          "model_name": "gemini-3.8-flash",
+          "score": 4.8,
+          "score_scale": "0_to_5",
+          "pass": true,
+          "findings": [
+            "Executive thesis establishes platform mandate and IP commercialization without metric rehash."
+          ]
+        }
+      ],
+      "ide_writer_requested": "gpt-5.6-luna",
+      "ide_writer_actual": "gpt-5.6-luna",
+      "ide_writer_transport": "external_openai",
+      "ide_writer_usage": {
+        "prompt_tokens": 10700,
+        "output_tokens": 2442,
+        "thought_tokens": 1980,
+        "total_tokens": 13142,
+        "cumulative_lane_tokens": 13142
+      },
+      "ide_writer_conversation_id": "resp_0fd6d21ac97d7900006aff5ea8639087d1a8cb46c4f473def9",
+      "ide_text": "Anchored Unify Consulting’s agentic platform mandate, connecting control-plane architecture and GraphRAG grounding to a productized commercial engine that converted governed delivery into modular infrastructure for compliance-bound-enterprise adoption at scale across complex financial environments.",
+      "ide_word_count": 33,
+      "ide_judges": [
+        {
+          "provider_key": "gemini_pro",
+          "model_name": "gemini-4-argon-medium",
+          "score": 4.8,
+          "score_scale": "0_to_5",
+          "pass": true,
+          "usage": {
+            "input_tokens": 18147,
+            "output_tokens": 624,
+            "thinking_tokens": 0,
+            "cache_read_tokens": 0,
+            "total_tokens": 18771
+          },
+          "conversation_id": "f2efccd5-e741-4a58-9fd6-c1c5f31909eb",
+          "findings": [
+            "Strong role-level executive thesis anchoring the Unify Consulting agentic platform mandate, control-plane architecture, GraphRAG grounding, and commercial engine.",
+            "Fully grounded in allowed_fact_packet (reb_unify_dependency_graph_accelerator) and companion_bullets_context (bul_unify_001 through bul_unify_006) without repeating bullet metrics.",
+            "Single sentence at 37 words and 297 characters, well within the 58-word and 360-character executive brevity ceiling."
+          ]
+        },
+        {
+          "provider_key": "openai_chatgpt",
+          "model_name": "gemini-4-neon-high",
+          "score": 4.4,
+          "score_scale": "0_to_5",
+          "pass": true,
+          "usage": {
+            "input_tokens": 18151,
+            "output_tokens": 5279,
+            "thinking_tokens": 4977,
+            "cache_read_tokens": 0,
+            "total_tokens": 23430
+          },
+          "conversation_id": "048bca90-716a-476e-b16d-45b2d8cee17e",
+          "findings": [
+            "Minor hyphenation defect in 'compliance-bound-enterprise adoption' (extra hyphen before 'enterprise').",
+            "Opening verb 'Anchored' is slightly softer than direct SVP ownership language and the closing phrase is mildly dense."
+          ]
+        }
+      ]
+    },
+    {
+      "lane": "unify_bullets",
+      "ide_dir": "/Users/amitayer/Git/agents/.worktrees/claude-apps-rg-ide-subagent-exec-summary/resume_graph_engine/artifacts/apps_rg/runtime_proofs/truist_ide_cli_20261119/modular_r4/sections/unify_bullets/real/p_65e6f0",
+      "keyed_dir": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_0acb8e1555de/lanes/unify_bullets",
+      "keyed_writer_model": "claude-sonnet-5",
+      "keyed_text": "- bul_unify_001: Directed governed agentic systems architecture for a multi-agent production platform, binding agent outputs to a runtime proof-bundle lineage surface that ties every output to graph evidence for claim-safe decisioning.\n- bul_unify_002: Standardized the AI systems lifecycle with managed workflow orchestration and replayable runtime design, compressing lab-to-production cycle time from six months to three weeks while preserving deterministic auditability.\n- bul_unify_003: Architected distributed cloud and data execution infrastructure spanning Databricks Lakehouse, vector services, and API gateways, establishing cloud data and runtime integration patterns that kept agentic workloads highly available.\n- bul_unify_004: Directed a dependency graph accelerator that mapped architecture visibility across legacy systems, applying static governance drift detection to deliver semantic-edge governance controls for refactor safety ahead of agentic modernization.\n- bul_unify_005: Converted bespoke client delivery into reusable platform IP through agentic platform productization and an operating model for agentic AI, expanding gross margin by 20% while scaling the engineering organization.\n- bul_unify_006: Drove enterprise AI adoption by aligning generative-AI workflows to CFO priorities, which unlocked $5M in annual contract value from CFO-aligned enterprise adoption.",
+      "keyed_word_count": 170,
+      "keyed_judges": [
+        {
+          "provider_key": "gemini_pro",
+          "model_name": "gemini-3.8-flash",
+          "score": 4.85,
+          "score_scale": "0_to_5",
+          "pass": true,
+          "findings": []
+        },
+        {
+          "provider_key": "anthropic_claude",
+          "model_name": "claude-haiku-5-5",
+          "score": 0.9,
+          "score_scale": "0_to_1",
+          "pass": true,
+          "findings": [
+            "Employment pool selector: 6 slots, min_score=0.88, threshold=0.86, gate_ok=True"
+          ]
+        },
+        {
+          "provider_key": "gemini_pro",
+          "model_name": "gemini-3.8-flash",
+          "score": 4.8,
+          "score_scale": "0_to_5",
+          "pass": true,
+          "findings": [
+            "All six bullets map directly to verified claim ledger facts with preserved metrics and no cross-employer leakage.",
+            "Excellent bullet discipline and outcome diversity spanning runtime governance, cycle time acceleration, and commercial scaling."
+          ]
+        }
+      ],
+      "ide_writer_requested": "gemini-4-neon-medium",
+      "ide_writer_actual": "gemini-4-neon-medium",
+      "ide_writer_transport": "ide_cli",
+      "ide_writer_usage": {
+        "prompt_tokens": 18933,
+        "output_tokens": 3258,
+        "thought_tokens": null,
+        "total_tokens": 22191,
+        "cumulative_lane_tokens": 116558
+      },
+      "ide_writer_conversation_id": "1a314df5-7e6b-4b91-8c3a-eaa6f6d6afc3",
+      "ide_text": "- bul_unify_001: Established runtime proof-bundle lineage tying agent outputs to graph evidence for regulated financial institutions by architecting a governed multi-agent control plane with GraphRAG grounding and human override escalation paths.\n- bul_unify_002: Delivered audit-grade runtime observability coverage for regulated AI workflows through runtime reliability governance and AI CI/CD standards that enforce evaluation gates, telemetry instrumentation, and rollback controls.\n- bul_unify_003: Accelerated lab-to-production AI systems lifecycle from six months to three weeks with standardized managed workflow orchestration from intake through monitoring to embed deterministic auditability and exit disposition governance.\n- bul_unify_004: Operationalized cloud data/runtime integration patterns across Databricks, vector services, and API gateways on AWS and Databricks Lakehouse pipelines that sustained parallel decision workflows under egress governance.\n- bul_unify_005: Drove 20% gross margin expansion across enterprise lines of business by converting bespoke client delivery into reusable platform services under a commercial operating model for agentic AI.\n- bul_unify_006: Generated $5M ACV from CFO-aligned enterprise AI workflow adoption through consumption-based licensing and executive deal support that shortened commercial cycles and sustained renewals.",
+      "ide_word_count": 165,
+      "ide_judges": [
+        {
+          "provider_key": "gemini_pro",
+          "model_name": "gemini-4-argon-medium",
+          "score": 4.7,
+          "score_scale": "0_to_5",
+          "pass": true,
+          "usage": {
+            "input_tokens": 27058,
+            "output_tokens": 554,
+            "thinking_tokens": 229,
+            "cache_read_tokens": 0,
+            "total_tokens": 27612
+          },
+          "conversation_id": "d81d62f4-d799-4cc3-adbe-2a9a898acc16",
+          "findings": [
+            "All six Unify bullets align verbatim with the claim ledger and preserve assigned metrics including the six-months-to-three-weeks cycle reduction, 20% gross margin expansion, and $5M ACV anchor in bul_unify_006.",
+            "Bullet 4 repeats 'Databricks' twice ('across Databricks, vector services, and API gateways on AWS and Databricks Lakehouse pipelines'), which is a minor stylistic redundancy."
+          ]
+        },
+        {
+          "provider_key": "openai_chatgpt",
+          "model_name": "gemini-3.8-flash-high",
+          "score": 4.9,
+          "score_scale": "0_to_5",
+          "pass": true,
+          "usage": {
+            "input_tokens": 24521,
+            "output_tokens": 36799,
+            "thinking_tokens": 36536,
+            "cache_read_tokens": 0,
+            "total_tokens": 61320
+          },
+          "conversation_id": "f35a0ac1-9bff-4961-b86e-152476264f6b",
+          "findings": [
+            "All 6 bullets map to verified claim ledger source facts with exact metric alignment.",
+            "Crisp single-sentence bullet lines demonstrating clear cross-bullet outcome diversity.",
+            "Strong executive signal and platform proof for Unify with zero cross-employer leakage."
+          ]
+        },
+        {
+          "provider_key": "anthropic_claude",
+          "model_name": "claude-sonnet-5-5-medium",
+          "score": 0.94,
+          "score_scale": "0_to_1",
+          "pass": true,
+          "usage": {
+            "input_tokens": 18933,
+            "output_tokens": 3258,
+            "total_tokens": 22191,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0
+          },
+          "conversation_id": "1a314df5-7e6b-4b91-8c3a-eaa6f6d6afc3",
+          "findings": [
+            "Employment pool selector: 6 slots, min_score=0.92, threshold=0.86, gate_ok=True"
+          ]
+        }
+      ]
+    },
+    {
+      "lane": "ibm_narrative",
+      "ide_dir": "/Users/amitayer/Git/agents/.worktrees/claude-apps-rg-ide-subagent-exec-summary/resume_graph_engine/artifacts/apps_rg/runtime_proofs/truist_ide_cli_20261119/modular_r4/sections/ibm_narrative/real/p_92334e",
+      "keyed_dir": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_0acb8e1555de/lanes/ibm_narrative",
+      "keyed_writer_model": "gpt-5.6-luna",
+      "keyed_text": "Anchored BI-enabled decision support and compliance-bound deployment architecture across banking and carrier portfolios at IBM, establishing repeatable governance and stakeholder operating disciplines that translated complex enterprise requirements into production-ready workflows and clearer executive action for transformation leaders and delivery teams.",
+      "keyed_word_count": 40,
+      "keyed_judges": [
+        {
+          "provider_key": "gemini_pro",
+          "model_name": "gemini-3.8-flash",
+          "score": 4.8,
+          "score_scale": "0_to_5",
+          "pass": true,
+          "findings": [
+            "Executive thesis clearly frames IBM enterprise platform scope without overclaiming modern agentic runtime ownership.",
+            "Leaves technical implementation metrics to companion bullets while establishing governing architectural context."
+          ]
+        }
+      ],
+      "ide_writer_requested": "gpt-5.6-luna",
+      "ide_writer_actual": "gpt-5.6-luna",
+      "ide_writer_transport": "external_openai",
+      "ide_writer_usage": {
+        "prompt_tokens": 13303,
+        "output_tokens": 1907,
+        "thought_tokens": 1444,
+        "total_tokens": 15210,
+        "cumulative_lane_tokens": 15210
+      },
+      "ide_writer_conversation_id": "resp_05a30e6f49d46d26006aff57072b3887d18b224798596b0456",
+      "ide_text": "Anchored AWS modernization architecture and DevSecOps release discipline at IBM, establishing traceable lineage and compliance foundations across banking and carrier accounts.",
+      "ide_word_count": 21,
+      "ide_judges": [
+        {
+          "provider_key": "gemini_pro",
+          "model_name": "gemini-4-argon-medium",
+          "score": 4.8,
+          "score_scale": "0_to_5",
+          "pass": true,
+          "usage": {
+            "input_tokens": 17439,
+            "output_tokens": 487,
+            "thinking_tokens": 225,
+            "cache_read_tokens": 0,
+            "total_tokens": 17926
+          },
+          "conversation_id": "0fae383f-c487-4fd3-9235-29ac63435e6c",
+          "findings": [
+            "Narrative sentence accurately synthesizes IBM AWS modernization, DevSecOps release discipline, and compliance lineage from bul_ibm_001, bul_ibm_002, and bul_ibm_005 without Unify-era inflation or mechanical five-bullet recap."
+          ]
+        },
+        {
+          "provider_key": "openai_chatgpt",
+          "model_name": "gemini-4-neon-high",
+          "score": 4.6,
+          "score_scale": "0_to_5",
+          "pass": true,
+          "usage": {
+            "input_tokens": 17444,
+            "output_tokens": 5046,
+            "thinking_tokens": 4772,
+            "cache_read_tokens": 0,
+            "total_tokens": 22490
+          },
+          "conversation_id": "06518e4d-92a9-4012-8b5c-13f74f93ce1b",
+          "findings": [
+            "Minor terminology note: 'carrier accounts' is slightly less explicit than the source phrasing 'insurance institutions' (bul_ibm_002) and could read ambiguously outside insurance."
+          ]
+        }
+      ]
+    },
+    {
+      "lane": "ibm_bullets",
+      "ide_dir": "/Users/amitayer/Git/agents/.worktrees/claude-apps-rg-ide-subagent-exec-summary/resume_graph_engine/artifacts/apps_rg/runtime_proofs/truist_ide_cli_20261119/modular_r4/sections/ibm_bullets",
+      "keyed_dir": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_0acb8e1555de/modular_r4/sections/ibm_bullets/real/p_d72886",
+      "keyed_writer_model": "claude-sonnet-5",
+      "keyed_text": "- bul_ibm_001: Architected repeatable DevSecOps pipeline blueprints and release validation gates, establishing governed delivery automation for enterprise cloud modernization initiatives.\n- bul_ibm_002: Architected NLP and ML decision-support pipelines across enterprise banking and insurance portfolios, translating unstructured regulatory and risk signals into actionable compliance workflows with embedded data lineage governance.\n- bul_ibm_003: Directed decision-support data modeling and executive BI views across regulated financial-services modernization portfolios, converting fragmented delivery and budget data into governed dashboards for executive operating decisions.\n- bul_ibm_004: Led technical discovery and solution-mapping engagements across enterprise banking and insurance pursuits, translating buyer pain points into architecture-backed pre-sales narratives and delivery-ready handoff packages.\n- bul_ibm_005: Led AWS modernization architecture for regulated banking and insurance workloads moving from on-prem constraints to cloud-native delivery patterns, delivering 9 BCBS 239 and OCC-compliant cloud reference architectures reused across 14 banking pursuits (sustaining 99.9% production uptime).",
+      "keyed_word_count": 136,
+      "keyed_judges": [
+        {
+          "provider_key": "gemini_pro",
+          "model_name": "gemini-3.8-flash",
+          "score": 4.8,
+          "score_scale": "0_to_5",
+          "pass": true,
+          "findings": [
+            "All 5 bullets map accurately to bul_ibm_001 through bul_ibm_005 with no cross-employer fact leakage.",
+            "Approved metric in bul_ibm_005 matches the allowed fact packet verbatim.",
+            "Excellent outcome diversity across DevSecOps, NLP/ML compliance, BI modeling, pre-sales discovery, and AWS architecture."
+          ]
+        },
+        {
+          "provider_key": "anthropic_claude",
+          "model_name": "claude-haiku-5-5",
+          "score": 0.89,
+          "score_scale": "0_to_1",
+          "pass": true,
+          "findings": [
+            "Employment pool selector: 5 slots, min_score=0.86, threshold=0.86, gate_ok=True"
+          ]
+        }
+      ],
+      "ide_writer_requested": "gemini-4-neon-medium",
+      "ide_writer_actual": "gemini-4-neon-medium",
+      "ide_writer_transport": "ide_cli",
+      "ide_writer_usage": {
+        "prompt_tokens": 17808,
+        "output_tokens": 2073,
+        "thought_tokens": null,
+        "total_tokens": 19881,
+        "cumulative_lane_tokens": 62738
+      },
+      "ide_writer_conversation_id": "2b3a023e-4b48-46be-b704-d845d7cae101",
+      "ide_text": "- bul_ibm_001: Architected repeatable DevSecOps pipeline blueprints and release validation gates, establishing governed delivery automation for enterprise cloud modernization initiatives.\n- bul_ibm_002: Architected NLP and ML decision-support pipelines translating unstructured regulatory and risk signals into governed compliance workflows, establishing data lineage and risk visibility across banking and insurance institutions.\n- bul_ibm_003: Architected industry-specific AI, analytics, and cloud modernization reference architectures, establishing governed portfolio views and executive operating cadence for financial-services decision support.\n- bul_ibm_004: Led technical discovery and solution mapping for enterprise financial-services pursuits, aligning architecture choices with buyer criteria and delivery-ready solution handoffs.\n- bul_ibm_005: Drove enterprise AWS modernization architecture and containerized microservices decomposition for regulated banking and insurance workloads, reusing 9 BCBS 239 and OCC-compliant cloud reference architectures across 14 banking pursuits to sustain 99.9% production uptime.",
+      "ide_word_count": 124,
+      "ide_judges": [
+        {
+          "provider_key": "gemini_pro",
+          "model_name": "gemini-4-argon-medium",
+          "score": 4.3,
+          "score_scale": "0_to_5",
+          "pass": true,
+          "usage": {
+            "input_tokens": 33270,
+            "output_tokens": 451,
+            "thinking_tokens": 0,
+            "cache_read_tokens": 0,
+            "total_tokens": 33721
+          },
+          "conversation_id": "c48b0948-24e1-4406-9105-cbc4edcd4ef1",
+          "findings": [
+            "Bullets 1, 2, and 3 all open with the same verb ('Architected'), reducing executive action-verb variety across the 5-bullet IBM block.",
+            "Bullet 3 substitutes 'AI, analytics, and cloud modernization reference architectures' for the more specific data modeling, delivery-cost analytics, and executive BI dashboard focus in bul_ibm_003.",
+            "Approved bundle metrics in the fact packet for bul_ibm_001 through bul_ibm_004 remain unused while only bul_ibm_005 carries a quantified outcome."
+          ]
+        },
+        {
+          "provider_key": "openai_chatgpt",
+          "model_name": "gemini-3.8-flash-high",
+          "score": 4.6,
+          "score_scale": "0_to_5",
+          "pass": true,
+          "usage": {
+            "input_tokens": 75979,
+            "output_tokens": 10182,
+            "thinking_tokens": 9277,
+            "cache_read_tokens": 0,
+            "total_tokens": 86161
+          },
+          "conversation_id": "73cf3204-f335-4633-8a86-54cbb5ce213c",
+          "findings": [
+            "All five bullets strictly ground to allowed IBM facts bul_ibm_001 through bul_ibm_005 with no unapproved metrics.",
+            "Bul_ibm_005 incorporates approved BCBS 239 and OCC reference architecture metrics verbatim.",
+            "Bullets 1, 2, and 3 repeat the identical opening verb Architected, reducing lead-in variety.",
+            "Employer scope purity is maintained with zero Unify runtime vocabulary or cross-employer leakage."
+          ]
+        },
+        {
+          "provider_key": "anthropic_claude",
+          "model_name": "claude-sonnet-5-5-medium",
+          "score": 0.88,
+          "score_scale": "0_to_1",
+          "pass": true,
+          "usage": {
+            "input_tokens": 17808,
+            "output_tokens": 2073,
+            "total_tokens": 19881,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0
+          },
+          "conversation_id": "2b3a023e-4b48-46be-b704-d845d7cae101",
+          "findings": [
+            "Employment pool selector: 5 slots, min_score=0.86, threshold=0.86, gate_ok=True"
+          ]
+        }
+      ]
+    },
+    {
+      "lane": "insurtech_narrative",
+      "ide_dir": "/Users/amitayer/Git/agents/.worktrees/claude-apps-rg-ide-subagent-exec-summary/resume_graph_engine/artifacts/apps_rg/runtime_proofs/truist_ide_cli_20261119/modular_r4/sections/insurtech_narrative/real/p_e02b34",
+      "keyed_dir": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_0acb8e1555de/lanes/insurtech_narrative",
+      "keyed_writer_model": "gpt-5.6-luna",
+      "keyed_text": "Operationalized cloud modernization as a governed bridge from emerging analytics to insurer decision workflows, aligning control ownership and core-system integration so regulated organizations could move from platform strategy to dependable, business-ready execution.",
+      "keyed_word_count": 32,
+      "keyed_judges": [
+        {
+          "provider_key": "gemini_pro",
+          "model_name": "gemini-3.8-flash",
+          "score": 4.8,
+          "score_scale": "0_to_5",
+          "pass": true,
+          "findings": []
+        }
+      ],
+      "ide_writer_requested": "gpt-5.6-luna",
+      "ide_writer_actual": "gpt-5.6-luna",
+      "ide_writer_transport": "external_openai",
+      "ide_writer_usage": {
+        "prompt_tokens": 4918,
+        "output_tokens": 424,
+        "thought_tokens": 298,
+        "total_tokens": 5342,
+        "cumulative_lane_tokens": 5342
+      },
+      "ide_writer_conversation_id": "resp_0bdeb04dc7131f10006aff2c2ada2887d1a457fdf9f072aa6f",
+      "ide_text": "Anchored enterprise technology adoption in executable architecture and control ownership, making advanced decisioning usable across insurer operating environments while balancing integration complexity, governance expectations, and dependable production outcomes.",
+      "ide_word_count": 28,
+      "ide_judges": [
+        {
+          "provider_key": "gemini_pro",
+          "model_name": "gemini-4-argon-medium",
+          "score": 4.8,
+          "score_scale": "0_to_5",
+          "pass": true,
+          "usage": {
+            "input_tokens": 41395,
+            "output_tokens": 543,
+            "thinking_tokens": 0,
+            "cache_read_tokens": 0,
+            "total_tokens": 41938
+          },
+          "conversation_id": "139975f0-0349-4152-94f8-3f168aab867d",
+          "findings": [
+            "InsurTech narrative sentence is concise (28 words, 263 chars), well-grounded in reb_insurtech_* bundles, and clearly differentiated from the companion bullets."
+          ]
+        },
+        {
+          "provider_key": "openai_chatgpt",
+          "model_name": "gemini-4-neon-high",
+          "score": 4.6,
+          "score_scale": "0_to_5",
+          "pass": true,
+          "usage": {
+            "input_tokens": 44996,
+            "output_tokens": 4577,
+            "thinking_tokens": 3987,
+            "cache_read_tokens": 0,
+            "total_tokens": 49573
+          },
+          "conversation_id": "f2efcb8f-abfa-42c8-97cb-98f0b3daa8ca",
+          "findings": [
+            "All 13 deterministic gates pass with proof-bound reb_insurtech_* citations and low overlap against companion bullets.",
+            "Phrasing is slightly abstract in places but remains clear, executive-appropriate, and grounded in allowed role episode bundles."
+          ]
+        }
+      ]
+    },
+    {
+      "lane": "insurtech_bullets",
+      "ide_dir": "/Users/amitayer/Git/agents/.worktrees/claude-apps-rg-ide-subagent-exec-summary/resume_graph_engine/artifacts/apps_rg/runtime_proofs/truist_ide_cli_20261119/modular_r4/sections/insurtech_bullets/real/p_a38e61",
+      "keyed_dir": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_0acb8e1555de/lanes/insurtech_bullets",
+      "keyed_writer_model": "claude-sonnet-5",
+      "keyed_text": "- bul_insurtech_001: Implemented SOC 2-aligned AWS control frameworks for regulated insurers adopting analytics and ML capabilities, reducing compliance risk and enabling auditable production deployment of data-driven underwriting tools.\n- bul_insurtech_002: Directed AWS modernization efforts to integrate directly with policy administration, Guidewire-adjacent workflows, and core insurance data models, translating platform capabilities into business-line-ready operational systems.",
+      "keyed_word_count": 52,
+      "keyed_judges": [
+        {
+          "provider_key": "gemini_pro",
+          "model_name": "gemini-3.8-flash",
+          "score": 4.8,
+          "score_scale": "0_to_5",
+          "pass": true,
+          "findings": []
+        },
+        {
+          "provider_key": "anthropic_claude",
+          "model_name": "claude-haiku-5-5",
+          "score": 0.9,
+          "score_scale": "0_to_1",
+          "pass": true,
+          "findings": [
+            "Employment pool selector: 2 slots, min_score=0.88, threshold=0.86, gate_ok=True"
+          ]
+        }
+      ],
+      "ide_writer_requested": "gemini-4-neon-medium",
+      "ide_writer_actual": "gemini-4-neon-medium",
+      "ide_writer_transport": "ide_cli",
+      "ide_writer_usage": {
+        "prompt_tokens": 17807,
+        "output_tokens": 1686,
+        "thought_tokens": null,
+        "total_tokens": 19493,
+        "cumulative_lane_tokens": 66377
+      },
+      "ide_writer_conversation_id": "f67ca27d-5f78-45c5-8e96-b83473bec3c8",
+      "ide_text": "- bul_insurtech_001: Implemented SOC 2-aligned AWS controls that enabled regulated insurers to adopt analytics and ML capabilities with auditable governance.\n- bul_insurtech_002: Unified AWS modernization with core insurance operations by connecting cloud architecture directly to policy administration, Guidewire-adjacent workflows, and core insurance data models.",
+      "ide_word_count": 42,
+      "ide_judges": [
+        {
+          "provider_key": "gemini_pro",
+          "model_name": "gemini-4-argon-medium",
+          "score": 4.8,
+          "score_scale": "0_to_5",
+          "pass": true,
+          "usage": {
+            "input_tokens": 27305,
+            "output_tokens": 219,
+            "thinking_tokens": 16,
+            "cache_read_tokens": 0,
+            "total_tokens": 27524
+          },
+          "conversation_id": "5a703046-4536-4057-88aa-4dbced2ca911",
+          "findings": []
+        },
+        {
+          "provider_key": "openai_chatgpt",
+          "model_name": "gemini-3.8-flash-high",
+          "score": 4.8,
+          "score_scale": "0_to_5",
+          "pass": true,
+          "usage": {
+            "input_tokens": 27360,
+            "output_tokens": 21204,
+            "thinking_tokens": 20996,
+            "cache_read_tokens": 0,
+            "total_tokens": 48564
+          },
+          "conversation_id": "4b28cf34-9288-4121-8d25-3fd72db5f7b3",
+          "findings": []
+        },
+        {
+          "provider_key": "anthropic_claude",
+          "model_name": "claude-sonnet-5-5-medium",
+          "score": 0.94,
+          "score_scale": "0_to_1",
+          "pass": true,
+          "usage": {
+            "input_tokens": 17807,
+            "output_tokens": 1686,
+            "total_tokens": 19493,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0
+          },
+          "conversation_id": "f67ca27d-5f78-45c5-8e96-b83473bec3c8",
+          "findings": [
+            "Employment pool selector: 2 slots, min_score=0.93, threshold=0.86, gate_ok=True"
+          ]
+        }
+      ]
+    }
+  ]
+}

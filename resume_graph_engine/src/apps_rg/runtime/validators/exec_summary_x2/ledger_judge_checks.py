@@ -56,10 +56,16 @@ from apps_rg.runtime.validators.exec_summary_x2.constants import (
 )
 
 def model_name_matches_allowed(observed_model: str | None, allowed_models: list[str]) -> bool:
-    """Accept exact model pins plus provider-returned dated OpenAI aliases."""
+    """Accept exact model pins, provider-returned dated OpenAI aliases, and configured IDE CLI model_map slugs."""
     observed = str(observed_model or "").strip()
     if not observed:
         return False
+    from apps_rg.runtime.providers.ide_cli_generation import (
+        resolve_ide_cli_generation_slug,
+        uses_ide_cli_generation,
+    )
+
+    ide_active = uses_ide_cli_generation()
     for allowed in allowed_models:
         model = str(allowed or "").strip()
         if not model:
@@ -68,6 +74,12 @@ def model_name_matches_allowed(observed_model: str | None, allowed_models: list[
             return True
         if model.startswith("gpt-") and observed.startswith(f"{model}-"):
             return True
+        if ide_active:
+            mapped = resolve_ide_cli_generation_slug(model)
+            if observed == mapped:
+                return True
+            if mapped.endswith("-high") and observed == mapped[:-5] + "-medium":
+                return True
     return False
 
 
