@@ -1,0 +1,67 @@
+{
+  "transport": "ide_cli",
+  "model_requested": "gemini-4-argon-medium",
+  "model_reported": "gemini-4-argon-medium",
+  "conversation_id": "a1b9438a-ec73-46c0-97e0-5b470d96d3d1",
+  "usage": {
+    "input_tokens": 24430,
+    "output_tokens": 201,
+    "thinking_tokens": 0,
+    "cache_read_tokens": 0,
+    "total_tokens": 24631
+  },
+  "duration_seconds": 28.486843,
+  "response": "{\"cited_sentence_indexes\":[],\"decisive_failure\":false,\"dimension_verdicts\":{\"anti_overfit\":{\"codes\":[],\"pass\":true,\"severity\":\"none\"},\"ats_alignment_without_keyword_stuffing\":{\"codes\":[],\"pass\":true,\"severity\":\"none\"},\"deterministic_alignment\":{\"codes\":[],\"pass\":true,\"severity\":\"none\"},\"evidence_utilization\":{\"codes\":[],\"pass\":true,\"severity\":\"none\"},\"executive_signal\":{\"codes\":[],\"pass\":true,\"severity\":\"none\"},\"factual_support\":{\"codes\":[],\"pass\":true,\"severity\":\"none\"},\"resume_voice\":{\"codes\":[],\"pass\":true,\"severity\":\"none\"},\"synthesis_quality\":{\"codes\":[],\"pass\":true,\"severity\":\"none\"}},\"findings\":[],\"pass\":true,\"remediation_suggestions\":[],\"score\":4.8,\"score_scale\":\"0_to_5\",\"threshold\":4}\n",
+  "structured_output": {
+    "cited_sentence_indexes": [],
+    "decisive_failure": false,
+    "dimension_verdicts": {
+      "anti_overfit": {
+        "codes": [],
+        "pass": true,
+        "severity": "none"
+      },
+      "ats_alignment_without_keyword_stuffing": {
+        "codes": [],
+        "pass": true,
+        "severity": "none"
+      },
+      "deterministic_alignment": {
+        "codes": [],
+        "pass": true,
+        "severity": "none"
+      },
+      "evidence_utilization": {
+        "codes": [],
+        "pass": true,
+        "severity": "none"
+      },
+      "executive_signal": {
+        "codes": [],
+        "pass": true,
+        "severity": "none"
+      },
+      "factual_support": {
+        "codes": [],
+        "pass": true,
+        "severity": "none"
+      },
+      "resume_voice": {
+        "codes": [],
+        "pass": true,
+        "severity": "none"
+      },
+      "synthesis_quality": {
+        "codes": [],
+        "pass": true,
+        "severity": "none"
+      }
+    },
+    "findings": [],
+    "pass": true,
+    "remediation_suggestions": [],
+    "score": 4.8,
+    "score_scale": "0_to_5",
+    "threshold": 4
+  }
+}

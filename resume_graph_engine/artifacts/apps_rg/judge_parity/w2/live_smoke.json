@@ -1,0 +1,96 @@
+{
+  "wave": "W2",
+  "preflight": {
+    "ide_cli_active": true,
+    "cli_env_var": "AGY_CLI_BIN",
+    "pinned_models": {
+      "judges": [
+        "gemini-4-argon-high",
+        "gemini-4-argon-medium",
+        "gpt-oss-120b-medium",
+        "claude-opus-5-5-high"
+      ],
+      "generation": [
+        "claude-sonnet-5-5-high",
+        "claude-sonnet-5-5-medium"
+      ]
+    },
+    "verified_models": [
+      "gemini-4-argon-high",
+      "gemini-4-argon-medium",
+      "gpt-oss-120b-medium",
+      "claude-opus-5-5-high",
+      "claude-sonnet-5-5-high",
+      "claude-sonnet-5-5-medium"
+    ],
+    "available_count": 27
+  },
+  "live_judge_smoke": [
+    {
+      "provider_key": "gemini_pro",
+      "model_requested": "gemini-4-argon-high",
+      "model_name": "gemini-4-argon-high",
+      "transport": "ide_cli",
+      "evaluator_mode": "MODEL_BACKED",
+      "provider_blocked": false,
+      "score": 5.0,
+      "pass": true,
+      "conversation_id": "9e78e310-99f2-4c2e-b952-3c25857f2d8c",
+      "usage": {
+        "input_tokens": 16125,
+        "output_tokens": 1451,
+        "thinking_tokens": 1020,
+        "cache_read_tokens": 0,
+        "total_tokens": 17576
+      },
+      "findings": [
+        "Candidate sentence 1 accurately reflects allowed fact bul_1 with exact metric fidelity and strong executive phrasing."
+      ],
+      "exact_provider_error": null
+    },
+    {
+      "provider_key": "openai_chatgpt",
+      "model_requested": "gpt-oss-120b-medium",
+      "model_name": "gpt-oss-120b-medium",
+      "transport": "ide_cli",
+      "evaluator_mode": "MODEL_BACKED",
+      "provider_blocked": false,
+      "score": 4.8,
+      "pass": true,
+      "conversation_id": "74ada1bb-14e3-4c52-8aa1-2c1c6f4171b9",
+      "usage": {
+        "input_tokens": 23950,
+        "output_tokens": 9473,
+        "thinking_tokens": 0,
+        "cache_read_tokens": 210816,
+        "total_tokens": 33423
+      },
+      "findings": [],
+      "exact_provider_error": null
+    },
+    {
+      "provider_key": "openai_chatgpt",
+      "model_requested": "claude-opus-5-5-high",
+      "model_name": "claude-opus-5-5-high",
+      "transport": "ide_cli",
+      "evaluator_mode": "MODEL_BACKED",
+      "provider_blocked": false,
+      "score": 4.7,
+      "pass": true,
+      "conversation_id": "e9ba09b0-9e43-4e62-be3e-89f25c9b35c0",
+      "usage": {
+        "input_tokens": 27516,
+        "output_tokens": 1275,
+        "thinking_tokens": 0,
+        "cache_read_tokens": 24205,
+        "total_tokens": 28791
+      },
+      "findings": [
+        "S1 is fully supported by bul_1: 45 engineers, 3 programs, and 35% cycle-time reduction are preserved exactly.",
+        "Writing '3' as 'three' and 'cutting' as 'reducing' keeps the meaning and adds no unsupported claims.",
+        "Opens with a strong leadership verb, includes scale and a measurable outcome, and contains no filler or keyword stuffing."
+      ],
+      "exact_provider_error": null
+    }
+  ]
+}

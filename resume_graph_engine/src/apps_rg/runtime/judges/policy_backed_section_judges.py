@@ -52,9 +52,14 @@ def run_policy_section_judges(
 
     keys = list(judge_keys)
     if policy.required_judge_providers:
-        keys = [k for k in keys if k in policy.required_judge_providers] or list(
-            policy.required_judge_providers
-        )
+        from apps_rg.runtime.judges.x1d_ide_cli import uses_ide_cli_judges
+
+        if uses_ide_cli_judges():
+            keys = list(policy.required_judge_providers)
+        else:
+            keys = [k for k in keys if k in policy.required_judge_providers] or list(
+                policy.required_judge_providers
+            )
 
     display = resume_display_text or str(candidate_output.get("resume_display_text") or "")
     if not display and "headline_line" in candidate_output:

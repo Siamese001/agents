@@ -1,0 +1,796 @@
+{
+  "generated_at_utc": "2026-11-19T11:37:48.255212+00:00",
+  "lanes": [
+    "executive_summary",
+    "unify_bullets",
+    "headline"
+  ],
+  "calls_made": 24,
+  "max_calls": 24,
+  "total_tokens": 331816,
+  "thresholds": {
+    "negative_control_catch_rate_min": 1.0,
+    "historical_verdict_agreement_min": 0.95,
+    "spearman_rho_min": 0.6,
+    "mean_abs_score_gap_historical_max": 0.3
+  },
+  "threshold_checks": {
+    "negative_control_catch_rate_pass": true,
+    "historical_verdict_agreement_pass": false,
+    "spearman_rho_pass": true,
+    "mean_abs_score_gap_historical_pass": true
+  },
+  "all_proposed_thresholds_met": false,
+  "overall_metrics": {
+    "negative_control_catch_rate_panel": 1.0,
+    "negative_control_catch_rate_slot1_argon": 1.0,
+    "negative_control_catch_rate_slot2_cross_maker": 0.0,
+    "historical_verdict_agreement_panel": 0.1667,
+    "historical_verdict_agreement_slot1_argon": 1.0,
+    "historical_verdict_agreement_slot2_cross_maker": 0.1667,
+    "spearman_rho_pooled_panel": 0.9177,
+    "spearman_rho_pooled_slot1_argon": 0.9177,
+    "mean_abs_score_gap_historical_panel": 0.175,
+    "mean_abs_score_gap_historical_slot1_argon": 0.175,
+    "inter_judge_mean_abs_gap": null,
+    "inter_judge_verdict_agreement": 0.5833
+  },
+  "per_lane_metrics": {
+    "executive_summary": {
+      "candidates_evaluated": 4,
+      "negative_control_catch_rate_panel": 1.0,
+      "historical_verdict_agreement_panel": 0.0,
+      "spearman_rho_panel": 0.8944,
+      "mean_abs_score_gap_historical_panel": 0.175
+    },
+    "unify_bullets": {
+      "candidates_evaluated": 4,
+      "negative_control_catch_rate_panel": 1.0,
+      "historical_verdict_agreement_panel": 0.5,
+      "spearman_rho_panel": 0.9487,
+      "mean_abs_score_gap_historical_panel": 0.15
+    },
+    "headline": {
+      "candidates_evaluated": 4,
+      "negative_control_catch_rate_panel": 1.0,
+      "historical_verdict_agreement_panel": 0.0,
+      "spearman_rho_panel": 0.9487,
+      "mean_abs_score_gap_historical_panel": 0.2
+    }
+  },
+  "records": [
+    {
+      "candidate_id": "executive_summary::hist_high::full_resume_35a7d3b57dd1",
+      "lane": "executive_summary",
+      "kind": "historical",
+      "source_run": "full_resume_35a7d3b57dd1",
+      "source_request_file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/executive_summary/real/p_8aea44/x1d_gemini_provider_request_20261116_111028_633.json",
+      "expected_pass": true,
+      "reference_score": 4.75,
+      "keyed_rows": [
+        {
+          "model": "gemini-3.8-flash",
+          "score": 4.8,
+          "pass": true
+        },
+        {
+          "model": "gpt-5.6-luna",
+          "score": 4.7,
+          "pass": true
+        }
+      ],
+      "injected_defect": null,
+      "ide_judges": {
+        "openai_chatgpt": {
+          "model": "gpt-oss-120b-medium",
+          "transport": "external_api",
+          "evaluator_mode": "BLOCKED_PROVIDER_UNAVAILABLE",
+          "provider_blocked": true,
+          "score": null,
+          "pass": false,
+          "decisive_failure": false,
+          "conversation_id": null,
+          "usage": null,
+          "findings": [
+            "Judge blocked - see exact_provider_error and raw_response_ref for details."
+          ],
+          "unsupported_claims": [],
+          "exact_provider_error": "IDE CLI judge call failed: agy exit=3, result=ERROR: error: Individual quota reached. Please upgrade your subscription to increase your limits. Resets in 2h36m37s.\nAGY_ERROR: {\"short_error\":\"RESOURCE_EXHAUSTED (code 429): Individual quota reached. Please upgrade your subscription to increase your limits. Resets in 2h36m37s.\",\"status\":\"RESOURCE_EXHAUST"
+        },
+        "gemini_pro": {
+          "model": "gemini-4-argon-high",
+          "transport": "ide_cli",
+          "evaluator_mode": "MODEL_BACKED",
+          "provider_blocked": false,
+          "score": 4.8,
+          "pass": true,
+          "decisive_failure": false,
+          "conversation_id": "c29decad-88df-48da-9154-d3ba12050db0",
+          "usage": {
+            "input_tokens": 33859,
+            "output_tokens": 2383,
+            "thinking_tokens": 2116,
+            "cache_read_tokens": 0,
+            "total_tokens": 36242
+          },
+          "findings": [
+            "All six sentences are grounded in the authorized graph proof pool and align with the Head of Forward Deployed Engineering mandate.",
+            "Control-plane architecture, forward-deployed multi-agent SDLC delivery, and regulated financial-services AI governance are synthesized cohesively with the verified 35 percent regulatory findings reduction metric."
+          ],
+          "unsupported_claims": [],
+          "exact_provider_error": null
+        }
+      },
+      "ide_panel_mean_score": 4.8,
+      "ide_panel_pass": false,
+      "inter_judge_abs_gap": null
+    },
+    {
+      "candidate_id": "executive_summary::hist_low::full_resume_0acb8e1555de",
+      "lane": "executive_summary",
+      "kind": "historical",
+      "source_run": "full_resume_0acb8e1555de",
+      "source_request_file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_0acb8e1555de/lanes/executive_summary/x1d_gemini_provider_request_20261117_223752_924.json",
+      "expected_pass": true,
+      "reference_score": 4.5,
+      "keyed_rows": [
+        {
+          "model": "gemini-3.8-flash",
+          "score": 4.8,
+          "pass": true
+        },
+        {
+          "model": "gpt-5.6-luna",
+          "score": 4.2,
+          "pass": true
+        }
+      ],
+      "injected_defect": null,
+      "ide_judges": {
+        "openai_chatgpt": {
+          "model": "gpt-oss-120b-medium",
+          "transport": "external_api",
+          "evaluator_mode": "BLOCKED_PROVIDER_UNAVAILABLE",
+          "provider_blocked": true,
+          "score": null,
+          "pass": false,
+          "decisive_failure": false,
+          "conversation_id": null,
+          "usage": null,
+          "findings": [
+            "Judge blocked - see exact_provider_error and raw_response_ref for details."
+          ],
+          "unsupported_claims": [],
+          "exact_provider_error": "IDE CLI judge call failed: agy exit=3, result=ERROR: error: Individual quota reached. Please upgrade your subscription to increase your limits. Resets in 2h36m34s.\nAGY_ERROR: {\"short_error\":\"RESOURCE_EXHAUSTED (code 429): Individual quota reached. Please upgrade your subscription to increase your limits. Resets in 2h36m34s.\",\"status\":\"RESOURCE_EXHAUST"
+        },
+        "gemini_pro": {
+          "model": "gemini-4-argon-high",
+          "transport": "ide_cli",
+          "evaluator_mode": "MODEL_BACKED",
+          "provider_blocked": false,
+          "score": 4.8,
+          "pass": true,
+          "decisive_failure": false,
+          "conversation_id": "336011e7-da02-47e4-8a1e-820bb3c3b854",
+          "usage": {
+            "input_tokens": 34624,
+            "output_tokens": 2611,
+            "thinking_tokens": 2380,
+            "cache_read_tokens": 0,
+            "total_tokens": 37235
+          },
+          "findings": [
+            "Cohesive six-sentence executive summary grounded in authorized graph facts and aligned with the target regulated financial-services forward-deployed engineering mandate."
+          ],
+          "unsupported_claims": [],
+          "exact_provider_error": null
+        }
+      },
+      "ide_panel_mean_score": 4.8,
+      "ide_panel_pass": false,
+      "inter_judge_abs_gap": null
+    },
+    {
+      "candidate_id": "executive_summary::neg_fabricated",
+      "lane": "executive_summary",
+      "kind": "negative_fabricated",
+      "source_run": "full_resume_35a7d3b57dd1",
+      "source_request_file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/executive_summary/real/p_8aea44/x1d_gemini_provider_request_20261116_111028_633.json",
+      "expected_pass": false,
+      "reference_score": 1.0,
+      "keyed_rows": [],
+      "injected_defect": "Injected ungrounded '$940M Goldman Sachs sovereign trading P&L across 1,400 quant engineers' not in allowed facts",
+      "ide_judges": {
+        "openai_chatgpt": {
+          "model": "gpt-oss-120b-medium",
+          "transport": "external_api",
+          "evaluator_mode": "BLOCKED_PROVIDER_UNAVAILABLE",
+          "provider_blocked": true,
+          "score": null,
+          "pass": false,
+          "decisive_failure": false,
+          "conversation_id": null,
+          "usage": null,
+          "findings": [
+            "Judge blocked - see exact_provider_error and raw_response_ref for details."
+          ],
+          "unsupported_claims": [],
+          "exact_provider_error": "IDE CLI judge call failed: agy exit=3, result=ERROR: error: Individual quota reached. Please upgrade your subscription to increase your limits. Resets in 2h36m7s.\nAGY_ERROR: {\"short_error\":\"RESOURCE_EXHAUSTED (code 429): Individual quota reached. Please upgrade your subscription to increase your limits. Resets in 2h36m7s.\",\"status\":\"RESOURCE_EXHAUSTED"
+        },
+        "gemini_pro": {
+          "model": "gemini-4-argon-high",
+          "transport": "ide_cli",
+          "evaluator_mode": "MODEL_BACKED",
+          "provider_blocked": false,
+          "score": 0.5,
+          "pass": false,
+          "decisive_failure": true,
+          "conversation_id": "ec1a0898-20a8-4dd2-950b-ca84c036e5b6",
+          "usage": {
+            "input_tokens": 33811,
+            "output_tokens": 3441,
+            "thinking_tokens": 2898,
+            "cache_read_tokens": 0,
+            "total_tokens": 37252
+          },
+          "findings": [
+            "S1 through S6 in resume_display_text are completely fabricated and absent from allowed_fact_packet.",
+            "S1 through S3 invent unverified employers (Goldman Sachs, Citadel, JPMorgan) and fabricated trading or satellite metrics.",
+            "S4 falsely claims prior employment and $610M mortgage originations inside target company Truist Financial Corporation.",
+            "S5 fabricates three CERN nuclear astrophysics PhDs not present in the allowed fact pool.",
+            "S6 explicitly states the track record is fabricated and makes an unsubstantiated $5B revenue guarantee.",
+            "Display text completely diverges from the candidate claim_ledger sentences and allocated Slalom and Unify facts."
+          ],
+          "unsupported_claims": [],
+          "exact_provider_error": null
+        }
+      },
+      "ide_panel_mean_score": 0.5,
+      "ide_panel_pass": false,
+      "inter_judge_abs_gap": null
+    },
+    {
+      "candidate_id": "executive_summary::neg_failed_gate",
+      "lane": "executive_summary",
+      "kind": "negative_failed_gate",
+      "source_run": "full_resume_35a7d3b57dd1",
+      "source_request_file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/executive_summary/real/p_8aea44/x1d_gemini_provider_request_20261116_111028_633.json",
+      "expected_pass": false,
+      "reference_score": 1.5,
+      "keyed_rows": [],
+      "injected_defect": "Truncated executive_summary candidate below mandatory structural/word/count floor and marked deterministic X2 gates failed",
+      "ide_judges": {
+        "openai_chatgpt": {
+          "model": "gpt-oss-120b-medium",
+          "transport": "external_api",
+          "evaluator_mode": "BLOCKED_PROVIDER_UNAVAILABLE",
+          "provider_blocked": true,
+          "score": null,
+          "pass": false,
+          "decisive_failure": false,
+          "conversation_id": null,
+          "usage": null,
+          "findings": [
+            "Judge blocked - see exact_provider_error and raw_response_ref for details."
+          ],
+          "unsupported_claims": [],
+          "exact_provider_error": "IDE CLI judge call failed: agy exit=3, result=ERROR: error: Individual quota reached. Please upgrade your subscription to increase your limits. Resets in 2h35m59s.\nAGY_ERROR: {\"short_error\":\"RESOURCE_EXHAUSTED (code 429): Individual quota reached. Please upgrade your subscription to increase your limits. Resets in 2h35m59s.\",\"status\":\"RESOURCE_EXHAUST"
+        },
+        "gemini_pro": {
+          "model": "gemini-4-argon-high",
+          "transport": "ide_cli",
+          "evaluator_mode": "MODEL_BACKED",
+          "provider_blocked": false,
+          "score": 0.5,
+          "pass": false,
+          "decisive_failure": true,
+          "conversation_id": "157e0700-56d2-4380-bd51-c1c41537796e",
+          "usage": {
+            "input_tokens": 33217,
+            "output_tokens": 3449,
+            "thinking_tokens": 2846,
+            "cache_read_tokens": 0,
+            "total_tokens": 36666
+          },
+          "findings": [
+            "S1 uses forbidden first-person voice ('I am') and double-hyphen em-dash substitute.",
+            "S1 and S2 consist of generic buzzwords and recruiter cliches ('holistic synergies', 'Proven track record').",
+            "Candidate contains only 2 sentences including a fragment in S2, violating the 6-sentence structure and length floor.",
+            "claim_ledger is empty with zero sentence-to-fact mappings to the allowed fact packet.",
+            "Prose fails to synthesize allocated forward-deployed agentic SDLC, control-plane, or regulated AI governance facts."
+          ],
+          "unsupported_claims": [],
+          "exact_provider_error": null
+        }
+      },
+      "ide_panel_mean_score": 0.5,
+      "ide_panel_pass": false,
+      "inter_judge_abs_gap": null
+    },
+    {
+      "candidate_id": "unify_bullets::hist_high::full_resume_cd648714e53e",
+      "lane": "unify_bullets",
+      "kind": "historical",
+      "source_run": "full_resume_cd648714e53e",
+      "source_request_file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_cd648714e53e/lanes/unify_bullets/x1d_gemini_provider_request_20261117_214614_419.json",
+      "expected_pass": true,
+      "reference_score": 4.85,
+      "keyed_rows": [
+        {
+          "model": "gemini-3.8-flash",
+          "score": 4.8,
+          "pass": true
+        },
+        {
+          "model": "gemini-3.8-flash",
+          "score": 4.9,
+          "pass": true
+        }
+      ],
+      "injected_defect": null,
+      "ide_judges": {
+        "openai_chatgpt": {
+          "model": "gpt-oss-120b-medium",
+          "transport": "external_api",
+          "evaluator_mode": "BLOCKED_PROVIDER_UNAVAILABLE",
+          "provider_blocked": true,
+          "score": null,
+          "pass": false,
+          "decisive_failure": false,
+          "conversation_id": null,
+          "usage": null,
+          "findings": [
+            "Judge blocked - see exact_provider_error and raw_response_ref for details."
+          ],
+          "unsupported_claims": [],
+          "exact_provider_error": "IDE CLI judge call failed: agy exit=3, result=ERROR: error: Individual quota reached. Please upgrade your subscription to increase your limits. Resets in 2h35m47s.\nAGY_ERROR: {\"short_error\":\"RESOURCE_EXHAUSTED (code 429): Individual quota reached. Please upgrade your subscription to increase your limits. Resets in 2h35m47s.\",\"status\":\"RESOURCE_EXHAUST"
+        },
+        "gemini_pro": {
+          "model": "gemini-4-argon-medium",
+          "transport": "ide_cli",
+          "evaluator_mode": "MODEL_BACKED",
+          "provider_blocked": false,
+          "score": 4.8,
+          "pass": true,
+          "decisive_failure": false,
+          "conversation_id": "f28fc29f-b01f-43c0-94b6-a7c26d4efdd8",
+          "usage": {
+            "input_tokens": 22182,
+            "output_tokens": 201,
+            "thinking_tokens": 0,
+            "cache_read_tokens": 0,
+            "total_tokens": 22383
+          },
+          "findings": [],
+          "unsupported_claims": [],
+          "exact_provider_error": null
+        }
+      },
+      "ide_panel_mean_score": 4.8,
+      "ide_panel_pass": false,
+      "inter_judge_abs_gap": null
+    },
+    {
+      "candidate_id": "unify_bullets::hist_low::full_resume_35a7d3b57dd1",
+      "lane": "unify_bullets",
+      "kind": "historical",
+      "source_run": "full_resume_35a7d3b57dd1",
+      "source_request_file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/unify_bullets/real/p_255977/x1d_gemini_provider_request_20261115_185854_174.json",
+      "expected_pass": false,
+      "reference_score": 2.25,
+      "keyed_rows": [
+        {
+          "model": "gemini-3.8-flash",
+          "score": 2.5,
+          "pass": false
+        },
+        {
+          "model": "gemini-3.8-flash",
+          "score": 2.0,
+          "pass": false
+        }
+      ],
+      "injected_defect": null,
+      "ide_judges": {
+        "gemini_pro": {
+          "model": "gemini-4-argon-medium",
+          "transport": "ide_cli",
+          "evaluator_mode": "MODEL_BACKED",
+          "provider_blocked": false,
+          "score": 2.5,
+          "pass": false,
+          "decisive_failure": true,
+          "conversation_id": "a7116da6-9998-4e50-ac5c-973f3f380a98",
+          "usage": {
+            "input_tokens": 21834,
+            "output_tokens": 329,
+            "thinking_tokens": 0,
+            "cache_read_tokens": 0,
+            "total_tokens": 22163
+          },
+          "findings": [
+            "Candidate output contains only 5 bullets instead of the required 6 bullets (bul_unify_003 is missing).",
+            "Wrong bullet count triggers a decisive failure under the unify_bullets rubric."
+          ],
+          "unsupported_claims": [],
+          "exact_provider_error": null
+        },
+        "openai_chatgpt": {
+          "model": "gpt-oss-120b-medium",
+          "transport": "external_api",
+          "evaluator_mode": "BLOCKED_PROVIDER_UNAVAILABLE",
+          "provider_blocked": true,
+          "score": null,
+          "pass": false,
+          "decisive_failure": false,
+          "conversation_id": null,
+          "usage": null,
+          "findings": [
+            "Judge blocked - see exact_provider_error and raw_response_ref for details."
+          ],
+          "unsupported_claims": [],
+          "exact_provider_error": "IDE CLI judge call failed: agy exit=3, result=ERROR: error: Individual quota reached. Please upgrade your subscription to increase your limits. Resets in 2h34m27s. (response may be truncated)\nAGY_ERROR: {\"short_error\":\"RESOURCE_EXHAUSTED (code 429): Individual quota reached. Please upgrade your subscription to increase your limits. Resets in 2h34m27s."
+        }
+      },
+      "ide_panel_mean_score": 2.5,
+      "ide_panel_pass": false,
+      "inter_judge_abs_gap": null
+    },
+    {
+      "candidate_id": "unify_bullets::neg_fabricated",
+      "lane": "unify_bullets",
+      "kind": "negative_fabricated",
+      "source_run": "full_resume_cd648714e53e",
+      "source_request_file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_cd648714e53e/lanes/unify_bullets/x1d_gemini_provider_request_20261117_214614_419.json",
+      "expected_pass": false,
+      "reference_score": 1.0,
+      "keyed_rows": [],
+      "injected_defect": "Injected ungrounded '$940M Goldman Sachs sovereign trading P&L across 1,400 quant engineers' not in allowed facts",
+      "ide_judges": {
+        "gemini_pro": {
+          "model": "gemini-4-argon-medium",
+          "transport": "ide_cli",
+          "evaluator_mode": "MODEL_BACKED",
+          "provider_blocked": false,
+          "score": 0.5,
+          "pass": false,
+          "decisive_failure": true,
+          "conversation_id": "a179ba68-706d-41a0-83a2-aae243ef4a10",
+          "usage": {
+            "input_tokens": 22169,
+            "output_tokens": 498,
+            "thinking_tokens": 0,
+            "cache_read_tokens": 0,
+            "total_tokens": 22667
+          },
+          "findings": [
+            "bul_unify_001 fabricates Goldman Sachs sovereign hedge-fund and $940M crypto alpha claims citing nonexistent fact_fabricated_nonexistent_999.",
+            "bul_unify_002 fabricates a $2.7B Citadel derivatives market-making desk and 99.999% win rate not present in the claim ledger.",
+            "bullets[0] and bullets[1] contradict resume_display_text and violate employer_scope_purity and claim_ledger_grounding."
+          ],
+          "unsupported_claims": [],
+          "exact_provider_error": null
+        },
+        "openai_chatgpt": {
+          "model": "gpt-oss-120b-medium",
+          "transport": "external_api",
+          "evaluator_mode": "BLOCKED_PROVIDER_UNAVAILABLE",
+          "provider_blocked": true,
+          "score": null,
+          "pass": false,
+          "decisive_failure": false,
+          "conversation_id": null,
+          "usage": null,
+          "findings": [
+            "Judge blocked - see exact_provider_error and raw_response_ref for details."
+          ],
+          "unsupported_claims": [],
+          "exact_provider_error": "IDE CLI judge call failed: agy exit=3, result=ERROR: error: Individual quota reached. Please upgrade your subscription to increase your limits. Resets in 2h34m49s.\nAGY_ERROR: {\"short_error\":\"RESOURCE_EXHAUSTED (code 429): Individual quota reached. Please upgrade your subscription to increase your limits. Resets in 2h34m49s.\",\"status\":\"RESOURCE_EXHAUST"
+        }
+      },
+      "ide_panel_mean_score": 0.5,
+      "ide_panel_pass": false,
+      "inter_judge_abs_gap": null
+    },
+    {
+      "candidate_id": "unify_bullets::neg_failed_gate",
+      "lane": "unify_bullets",
+      "kind": "negative_failed_gate",
+      "source_run": "full_resume_cd648714e53e",
+      "source_request_file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_cd648714e53e/lanes/unify_bullets/x1d_gemini_provider_request_20261117_214614_419.json",
+      "expected_pass": false,
+      "reference_score": 1.5,
+      "keyed_rows": [],
+      "injected_defect": "Truncated unify_bullets candidate below mandatory structural/word/count floor and marked deterministic X2 gates failed",
+      "ide_judges": {
+        "openai_chatgpt": {
+          "model": "gpt-oss-120b-medium",
+          "transport": "external_api",
+          "evaluator_mode": "BLOCKED_PROVIDER_UNAVAILABLE",
+          "provider_blocked": true,
+          "score": null,
+          "pass": false,
+          "decisive_failure": false,
+          "conversation_id": null,
+          "usage": null,
+          "findings": [
+            "Judge blocked - see exact_provider_error and raw_response_ref for details."
+          ],
+          "unsupported_claims": [],
+          "exact_provider_error": "IDE CLI judge call failed: agy exit=3, result=ERROR: error: Individual quota reached. Please upgrade your subscription to increase your limits. Resets in 2h34m31s.\nAGY_ERROR: {\"short_error\":\"RESOURCE_EXHAUSTED (code 429): Individual quota reached. Please upgrade your subscription to increase your limits. Resets in 2h34m31s.\",\"status\":\"RESOURCE_EXHAUST"
+        },
+        "gemini_pro": {
+          "model": "gemini-4-argon-medium",
+          "transport": "ide_cli",
+          "evaluator_mode": "MODEL_BACKED",
+          "provider_blocked": false,
+          "score": 0.5,
+          "pass": false,
+          "decisive_failure": true,
+          "conversation_id": "78814f13-c874-4a11-8aa6-931ff1efbb21",
+          "usage": {
+            "input_tokens": 21393,
+            "output_tokens": 717,
+            "thinking_tokens": 0,
+            "cache_read_tokens": 0,
+            "total_tokens": 22110
+          },
+          "findings": [
+            "Structured bullets array contains only 1 bullet instead of the required 6 bullets (bul_unify_001..006).",
+            "Bullet 1 uses prohibited first-person language ('I helped') and double-hyphen spacer (' -- ').",
+            "Bullet 1 contains generic AI filler ('holistic synergy') with no specific action, delivery detail, or evidence-backed result.",
+            "Bullet 1 has empty source_fact_ids and fails 100% claim ledger coverage.",
+            "Protected metric outcome on bul_unify_006 ($5M ACV) is missing from the structured bullets array.",
+            "ALLOWED_FACT_PACKET is null, leaving structured bullet claims unverified against allowed facts."
+          ],
+          "unsupported_claims": [],
+          "exact_provider_error": null
+        }
+      },
+      "ide_panel_mean_score": 0.5,
+      "ide_panel_pass": false,
+      "inter_judge_abs_gap": null
+    },
+    {
+      "candidate_id": "headline::hist_high::full_resume_35a7d3b57dd1",
+      "lane": "headline",
+      "kind": "historical",
+      "source_run": "full_resume_35a7d3b57dd1",
+      "source_request_file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/headline/real/p_478613/x1d_gemini_provider_request_20261115_192442_763.json",
+      "expected_pass": true,
+      "reference_score": 5.0,
+      "keyed_rows": [
+        {
+          "model": "gemini-3.8-flash",
+          "score": 5.0,
+          "pass": true
+        },
+        {
+          "model": "gpt-5.6-luna",
+          "score": 5.0,
+          "pass": true
+        }
+      ],
+      "injected_defect": null,
+      "ide_judges": {
+        "openai_chatgpt": {
+          "model": "gpt-oss-120b-medium",
+          "transport": "external_api",
+          "evaluator_mode": "BLOCKED_PROVIDER_UNAVAILABLE",
+          "provider_blocked": true,
+          "score": null,
+          "pass": false,
+          "decisive_failure": false,
+          "conversation_id": null,
+          "usage": null,
+          "findings": [
+            "Judge blocked - see exact_provider_error and raw_response_ref for details."
+          ],
+          "unsupported_claims": [],
+          "exact_provider_error": "IDE CLI judge call failed: agy exit=3, result=ERROR: error: Individual quota reached. Please upgrade your subscription to increase your limits. Resets in 2h34m14s.\nAGY_ERROR: {\"short_error\":\"RESOURCE_EXHAUSTED (code 429): Individual quota reached. Please upgrade your subscription to increase your limits. Resets in 2h34m14s.\",\"status\":\"RESOURCE_EXHAUST"
+        },
+        "gemini_pro": {
+          "model": "gemini-4-argon-medium",
+          "transport": "ide_cli",
+          "evaluator_mode": "MODEL_BACKED",
+          "provider_blocked": false,
+          "score": 4.8,
+          "pass": true,
+          "decisive_failure": false,
+          "conversation_id": "85c5831c-2d0e-4ae4-9461-102b45eebd92",
+          "usage": {
+            "input_tokens": 23512,
+            "output_tokens": 203,
+            "thinking_tokens": 0,
+            "cache_read_tokens": 0,
+            "total_tokens": 23715
+          },
+          "findings": [],
+          "unsupported_claims": [],
+          "exact_provider_error": null
+        }
+      },
+      "ide_panel_mean_score": 4.8,
+      "ide_panel_pass": false,
+      "inter_judge_abs_gap": null
+    },
+    {
+      "candidate_id": "headline::hist_low::full_resume_35a7d3b57dd1",
+      "lane": "headline",
+      "kind": "historical",
+      "source_run": "full_resume_35a7d3b57dd1",
+      "source_request_file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/lanes/headline/x1d_gemini_provider_request_20261116_103418_671.json",
+      "expected_pass": true,
+      "reference_score": 4.6,
+      "keyed_rows": [
+        {
+          "model": "gemini-3.8-flash",
+          "score": 4.9,
+          "pass": true
+        },
+        {
+          "model": "gpt-5.6-luna",
+          "score": 4.3,
+          "pass": true
+        }
+      ],
+      "injected_defect": null,
+      "ide_judges": {
+        "gemini_pro": {
+          "model": "gemini-4-argon-medium",
+          "transport": "ide_cli",
+          "evaluator_mode": "MODEL_BACKED",
+          "provider_blocked": false,
+          "score": 4.8,
+          "pass": true,
+          "decisive_failure": false,
+          "conversation_id": "c08d4403-f3b0-46a1-bef9-017fc5ce6c1e",
+          "usage": {
+            "input_tokens": 23521,
+            "output_tokens": 203,
+            "thinking_tokens": 0,
+            "cache_read_tokens": 0,
+            "total_tokens": 23724
+          },
+          "findings": [],
+          "unsupported_claims": [],
+          "exact_provider_error": null
+        },
+        "openai_chatgpt": {
+          "model": "gpt-oss-120b-medium",
+          "transport": "external_api",
+          "evaluator_mode": "BLOCKED_PROVIDER_UNAVAILABLE",
+          "provider_blocked": true,
+          "score": null,
+          "pass": false,
+          "decisive_failure": false,
+          "conversation_id": null,
+          "usage": null,
+          "findings": [
+            "Judge blocked - see exact_provider_error and raw_response_ref for details."
+          ],
+          "unsupported_claims": [],
+          "exact_provider_error": "IDE CLI judge call failed: agy exit=3, result=ERROR: error: Individual quota reached. Please upgrade your subscription to increase your limits. Resets in 2h34m4s.\nAGY_ERROR: {\"short_error\":\"RESOURCE_EXHAUSTED (code 429): Individual quota reached. Please upgrade your subscription to increase your limits. Resets in 2h34m4s.\",\"status\":\"RESOURCE_EXHAUSTED"
+        }
+      },
+      "ide_panel_mean_score": 4.8,
+      "ide_panel_pass": false,
+      "inter_judge_abs_gap": null
+    },
+    {
+      "candidate_id": "headline::neg_fabricated",
+      "lane": "headline",
+      "kind": "negative_fabricated",
+      "source_run": "full_resume_35a7d3b57dd1",
+      "source_request_file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/headline/real/p_478613/x1d_gemini_provider_request_20261115_192442_763.json",
+      "expected_pass": false,
+      "reference_score": 1.0,
+      "keyed_rows": [],
+      "injected_defect": "Injected ungrounded '$940M Goldman Sachs sovereign trading P&L across 1,400 quant engineers' not in allowed facts",
+      "ide_judges": {
+        "openai_chatgpt": {
+          "model": "gpt-oss-120b-medium",
+          "transport": "external_api",
+          "evaluator_mode": "BLOCKED_PROVIDER_UNAVAILABLE",
+          "provider_blocked": true,
+          "score": null,
+          "pass": false,
+          "decisive_failure": false,
+          "conversation_id": null,
+          "usage": null,
+          "findings": [
+            "Judge blocked - see exact_provider_error and raw_response_ref for details."
+          ],
+          "unsupported_claims": [],
+          "exact_provider_error": "IDE CLI judge call failed: agy exit=3, result=ERROR: error: Individual quota reached. Please upgrade your subscription to increase your limits. Resets in 2h33m55s.\nAGY_ERROR: {\"short_error\":\"RESOURCE_EXHAUSTED (code 429): Individual quota reached. Please upgrade your subscription to increase your limits. Resets in 2h33m55s.\",\"status\":\"RESOURCE_EXHAUST"
+        },
+        "gemini_pro": {
+          "model": "gemini-4-argon-medium",
+          "transport": "ide_cli",
+          "evaluator_mode": "MODEL_BACKED",
+          "provider_blocked": false,
+          "score": 0.0,
+          "pass": false,
+          "decisive_failure": true,
+          "conversation_id": "a2ea0059-c0ce-4868-a5b7-b6ed8bebb95f",
+          "usage": {
+            "input_tokens": 23541,
+            "output_tokens": 606,
+            "thinking_tokens": 0,
+            "cache_read_tokens": 0,
+            "total_tokens": 24147
+          },
+          "findings": [
+            "Candidate headline_line completely diverges from claim_ledger and deterministic_gate_summary headline_line.",
+            "Contains fabricated claims (Quantum Trading, $940M Goldman Sachs P&L, 1,400 Quant Engineers, 99.99% Alpha) absent from allowed_fact_packet.",
+            "Violates decisive failure triggers by including numeric metrics ($940M, 1,400, 99.99%) and an employer/company name (Goldman Sachs) in headline_line.",
+            "Segment 1 uses an unapproved prefix (SVP Quantum Trading) unrelated to base identity and allowed facts."
+          ],
+          "unsupported_claims": [],
+          "exact_provider_error": null
+        }
+      },
+      "ide_panel_mean_score": 0.0,
+      "ide_panel_pass": false,
+      "inter_judge_abs_gap": null
+    },
+    {
+      "candidate_id": "headline::neg_failed_gate",
+      "lane": "headline",
+      "kind": "negative_failed_gate",
+      "source_run": "full_resume_35a7d3b57dd1",
+      "source_request_file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/headline/real/p_478613/x1d_gemini_provider_request_20261115_192442_763.json",
+      "expected_pass": false,
+      "reference_score": 1.5,
+      "keyed_rows": [],
+      "injected_defect": "Truncated headline candidate below mandatory structural/word/count floor and marked deterministic X2 gates failed",
+      "ide_judges": {
+        "openai_chatgpt": {
+          "model": "gpt-oss-120b-medium",
+          "transport": "external_api",
+          "evaluator_mode": "BLOCKED_PROVIDER_UNAVAILABLE",
+          "provider_blocked": true,
+          "score": null,
+          "pass": false,
+          "decisive_failure": false,
+          "conversation_id": null,
+          "usage": null,
+          "findings": [
+            "Judge blocked - see exact_provider_error and raw_response_ref for details."
+          ],
+          "unsupported_claims": [],
+          "exact_provider_error": "IDE CLI judge call failed: agy exit=3, result=ERROR: error: Individual quota reached. Please upgrade your subscription to increase your limits. Resets in 2h33m45s.\nAGY_ERROR: {\"short_error\":\"RESOURCE_EXHAUSTED (code 429): Individual quota reached. Please upgrade your subscription to increase your limits. Resets in 2h33m45s.\",\"status\":\"RESOURCE_EXHAUST"
+        },
+        "gemini_pro": {
+          "model": "gemini-4-argon-medium",
+          "transport": "ide_cli",
+          "evaluator_mode": "MODEL_BACKED",
+          "provider_blocked": false,
+          "score": 0.5,
+          "pass": false,
+          "decisive_failure": true,
+          "conversation_id": "ae99d458-6157-4cf4-9c6c-cc4fed781a27",
+          "usage": {
+            "input_tokens": 22824,
+            "output_tokens": 688,
+            "thinking_tokens": 138,
+            "cache_read_tokens": 0,
+            "total_tokens": 23512
+          },
+          "findings": [
+            "Missing approved executive seniority prefix and uses demoting 'Junior IT Manager' title.",
+            "Lacks the mandatory four-segment 'Prefix | X | Y | Z' structure with three ' | ' separators.",
+            "Word count is 4 words (5 tokens with em dash), violating the 10-13 word requirement.",
+            "Contains an em dash and the generic buzzword 'Synergies', triggering AI-authenticity and deterministic gate failures.",
+            "Fails to incorporate any of the three claim_ledger and allowed_fact_packet pillars."
+          ],
+          "unsupported_claims": [],
+          "exact_provider_error": null
+        }
+      },
+      "ide_panel_mean_score": 0.5,
+      "ide_panel_pass": false,
+      "inter_judge_abs_gap": null
+    }
+  ]
+}

@@ -1,0 +1,293 @@
+{
+  "generated_at_utc": "2026-11-19T11:41:52.393604+00:00",
+  "lanes": [
+    "executive_summary",
+    "unify_bullets",
+    "headline"
+  ],
+  "runs_per_lane": 3,
+  "generation_calls_made": 9,
+  "max_calls": 9,
+  "judge_calls_made": 1,
+  "max_judge_calls": 3,
+  "total_generation_tokens": 43214,
+  "total_judge_tokens": 37543,
+  "any_matches_canned_stub": false,
+  "all_lanes_x2_3_of_3": false,
+  "zero_unsupported_claims_on_judged_medians": true,
+  "per_lane": {
+    "executive_summary": {
+      "writer_model": "claude-sonnet-5-5-high",
+      "runs_completed": 3,
+      "x2_pass_count": 1,
+      "x2_pass_rate": 0.3333,
+      "word_counts": [
+        112
+      ],
+      "median_word_count": 112,
+      "word_band": [
+        110,
+        150
+      ],
+      "max_possible_band_margin": 20.0,
+      "median_run_word_band_margin": 2,
+      "meets_word_band_margin_check": false,
+      "meets_literal_5w_margin": false,
+      "distinct_output_sha256_count": 1,
+      "mean_pairwise_word_jaccard": null,
+      "matches_any_canned_stub": false,
+      "median_run_ide_judge": {
+        "run_no": 1,
+        "model": "gemini-4-argon-high",
+        "evaluator_mode": "MODEL_BACKED",
+        "score": 4.8,
+        "pass": true,
+        "unsupported_claims": [],
+        "findings": [
+          "Cohesive six-sentence executive summary fully supported by the allowed fact packet and well aligned to the Head of Forward Deployed Engineering mandate."
+        ],
+        "conversation_id": "dc509737-e4d9-44b1-a544-0dd64cb82107",
+        "usage": {
+          "input_tokens": 34998,
+          "output_tokens": 2545,
+          "thinking_tokens": 2313,
+          "cache_read_tokens": 0,
+          "total_tokens": 37543
+        }
+      },
+      "historical_keyed_comparison": {
+        "historical_keyed_runs": 4,
+        "historical_word_counts": [
+          141,
+          131,
+          131,
+          124
+        ],
+        "historical_median_words": 131.0,
+        "historical_shape_pass_count": 4
+      },
+      "runs": [
+        {
+          "lane": "executive_summary",
+          "run_no": 1,
+          "model": "claude-sonnet-5-5-high",
+          "status": "REAL_LLM",
+          "conversation_id": "90dbcc1c-f74b-4bc4-bf16-87b0a1264820",
+          "usage": {
+            "input_tokens": 38497,
+            "output_tokens": 4717,
+            "total_tokens": 43214,
+            "thinking_tokens": 0,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 7875
+          },
+          "tokens": 43214,
+          "output_sha256": "8ebfc5a838882ecc1e20b38fd11e03aabe3b24fab7f51493f4ad4a07c54466bb",
+          "matches_canned_stub": false,
+          "artifact_file": "/Users/amitayer/Git/agents/.worktrees/claude-apps-rg-ide-subagent-exec-summary/resume_graph_engine/artifacts/apps_rg/judge_parity/w4/generation_runs/executive_summary_run1.json",
+          "x2": {
+            "all_x2_pass": true,
+            "gates": {
+              "x2_schema_fields_present": true,
+              "x2_sentence_count_6": true,
+              "x2_word_band_110_to_150": true,
+              "x2_claim_ledger_6_rows": true,
+              "x2_all_cited_facts_allowed": true,
+              "x2_first_person_zero": true,
+              "x2_no_em_dash": true,
+              "x2_no_target_company_in_prose": true
+            },
+            "failed_gates": [],
+            "word_count": 112,
+            "word_band": [
+              110,
+              150
+            ],
+            "word_band_margin": 2,
+            "max_possible_band_margin": 20.0,
+            "primary_text": "Engineering executive leading governed AI platform delivery and regulated cloud activation for enterprise clients. Engineered governed runtime architectures with deterministic proof lineage for safety-critical agent decisions. From that runtime base, directed offering accelerator management that scaled repeatable cloud and AI solution blueprints across regulated financial and insurance institutions. In parallel, regulated enterprise AI governance work reduced banking regulatory findings by 35% and accelerated compliance submissions by 40%. That operating foundation also sustains 100% gate conformance through a safety validation mesh, with AWS shared responsibility framing keeping insurer-owned controls explicit. Governed runtime architecture, repeatable deployment blueprints, and regulatory control rigor will scale production AI activation across business lines while keeping control evidence intact."
+          }
+        },
+        {
+          "lane": "executive_summary",
+          "run_no": 2,
+          "model": "claude-sonnet-5-5-high",
+          "status": "BLOCKED",
+          "error": "External provider call failed: ProviderGatewayError: ProviderGatewayError: IDE CLI generation failed: agy exit=3, result=ERROR: error: Individual quota reached. Please upgrade your subscription to increase your limits. Resets in 2h31m19s.\nAGY_ERROR: {\"short_error\":\"RESOURCE_EXHAUSTED (code 429): Individual quota reached. Please upgrade your subscription to increase your limits. Resets in 2h31m19s.\",\"status\":\"RESOURCE_EXHAUST [last_progress_after_s=None, chars_received=0, chunk_count=0]",
+          "tokens": 0,
+          "matches_canned_stub": false,
+          "x2": {
+            "all_x2_pass": false,
+            "failed_gates": [
+              "provider_blocked"
+            ]
+          }
+        },
+        {
+          "lane": "executive_summary",
+          "run_no": 3,
+          "model": "claude-sonnet-5-5-high",
+          "status": "BLOCKED",
+          "error": "External provider call failed: ProviderGatewayError: ProviderGatewayError: IDE CLI generation failed: agy exit=3, result=ERROR: error: Individual quota reached. Please upgrade your subscription to increase your limits. Resets in 2h31m19s.\nAGY_ERROR: {\"short_error\":\"RESOURCE_EXHAUSTED (code 429): Individual quota reached. Please upgrade your subscription to increase your limits. Resets in 2h31m19s.\",\"status\":\"RESOURCE_EXHAUST [last_progress_after_s=None, chars_received=0, chunk_count=0]",
+          "tokens": 0,
+          "matches_canned_stub": false,
+          "x2": {
+            "all_x2_pass": false,
+            "failed_gates": [
+              "provider_blocked"
+            ]
+          }
+        }
+      ]
+    },
+    "unify_bullets": {
+      "writer_model": "claude-sonnet-5-5-medium",
+      "runs_completed": 3,
+      "x2_pass_count": 0,
+      "x2_pass_rate": 0.0,
+      "word_counts": [],
+      "median_word_count": null,
+      "word_band": null,
+      "max_possible_band_margin": null,
+      "median_run_word_band_margin": null,
+      "meets_word_band_margin_check": false,
+      "meets_literal_5w_margin": false,
+      "distinct_output_sha256_count": 0,
+      "mean_pairwise_word_jaccard": null,
+      "matches_any_canned_stub": false,
+      "median_run_ide_judge": null,
+      "historical_keyed_comparison": {
+        "historical_keyed_runs": 3,
+        "historical_word_counts": [
+          164,
+          137,
+          146
+        ],
+        "historical_median_words": 146,
+        "historical_shape_pass_count": 3
+      },
+      "runs": [
+        {
+          "lane": "unify_bullets",
+          "run_no": 1,
+          "model": "claude-sonnet-5-5-medium",
+          "status": "BLOCKED",
+          "error": "External provider call failed: ProviderGatewayError: ProviderGatewayError: IDE CLI generation failed: agy exit=3, result=ERROR: error: Individual quota reached. Please upgrade your subscription to increase your limits. Resets in 2h30m56s.\nAGY_ERROR: {\"short_error\":\"RESOURCE_EXHAUSTED (code 429): Individual quota reached. Please upgrade your subscription to increase your limits. Resets in 2h30m56s.\",\"status\":\"RESOURCE_EXHAUST [last_progress_after_s=None, chars_received=0, chunk_count=0]",
+          "tokens": 0,
+          "matches_canned_stub": false,
+          "x2": {
+            "all_x2_pass": false,
+            "failed_gates": [
+              "provider_blocked"
+            ]
+          }
+        },
+        {
+          "lane": "unify_bullets",
+          "run_no": 2,
+          "model": "claude-sonnet-5-5-medium",
+          "status": "BLOCKED",
+          "error": "External provider call failed: ProviderGatewayError: ProviderGatewayError: IDE CLI generation failed: agy exit=3, result=ERROR: error: Individual quota reached. Please upgrade your subscription to increase your limits. Resets in 2h30m56s.\nAGY_ERROR: {\"short_error\":\"RESOURCE_EXHAUSTED (code 429): Individual quota reached. Please upgrade your subscription to increase your limits. Resets in 2h30m56s.\",\"status\":\"RESOURCE_EXHAUST [last_progress_after_s=None, chars_received=0, chunk_count=0]",
+          "tokens": 0,
+          "matches_canned_stub": false,
+          "x2": {
+            "all_x2_pass": false,
+            "failed_gates": [
+              "provider_blocked"
+            ]
+          }
+        },
+        {
+          "lane": "unify_bullets",
+          "run_no": 3,
+          "model": "claude-sonnet-5-5-medium",
+          "status": "BLOCKED",
+          "error": "External provider call failed: ProviderGatewayError: ProviderGatewayError: IDE CLI generation failed: agy exit=3, result=ERROR: error: Individual quota reached. Please upgrade your subscription to increase your limits. Resets in 2h30m35s.\nAGY_ERROR: {\"short_error\":\"RESOURCE_EXHAUSTED (code 429): Individual quota reached. Please upgrade your subscription to increase your limits. Resets in 2h30m35s.\",\"status\":\"RESOURCE_EXHAUST [last_progress_after_s=None, chars_received=0, chunk_count=0]",
+          "tokens": 0,
+          "matches_canned_stub": false,
+          "x2": {
+            "all_x2_pass": false,
+            "failed_gates": [
+              "provider_blocked"
+            ]
+          }
+        }
+      ]
+    },
+    "headline": {
+      "writer_model": "claude-sonnet-5-5-high",
+      "runs_completed": 3,
+      "x2_pass_count": 0,
+      "x2_pass_rate": 0.0,
+      "word_counts": [],
+      "median_word_count": null,
+      "word_band": null,
+      "max_possible_band_margin": null,
+      "median_run_word_band_margin": null,
+      "meets_word_band_margin_check": false,
+      "meets_literal_5w_margin": false,
+      "distinct_output_sha256_count": 0,
+      "mean_pairwise_word_jaccard": null,
+      "matches_any_canned_stub": false,
+      "median_run_ide_judge": null,
+      "historical_keyed_comparison": {
+        "historical_keyed_runs": 4,
+        "historical_word_counts": [
+          14,
+          14,
+          14,
+          14
+        ],
+        "historical_median_words": 14.0,
+        "historical_shape_pass_count": 0
+      },
+      "runs": [
+        {
+          "lane": "headline",
+          "run_no": 1,
+          "model": "claude-sonnet-5-5-high",
+          "status": "BLOCKED",
+          "error": "External provider call failed: ProviderGatewayError: ProviderGatewayError: IDE CLI generation failed: agy exit=3, result=ERROR: error: Individual quota reached. Please upgrade your subscription to increase your limits. Resets in 2h30m35s.\nAGY_ERROR: {\"short_error\":\"RESOURCE_EXHAUSTED (code 429): Individual quota reached. Please upgrade your subscription to increase your limits. Resets in 2h30m35s.\",\"status\":\"RESOURCE_EXHAUST [last_progress_after_s=None, chars_received=0, chunk_count=0]",
+          "tokens": 0,
+          "matches_canned_stub": false,
+          "x2": {
+            "all_x2_pass": false,
+            "failed_gates": [
+              "provider_blocked"
+            ]
+          }
+        },
+        {
+          "lane": "headline",
+          "run_no": 2,
+          "model": "claude-sonnet-5-5-high",
+          "status": "BLOCKED",
+          "error": "External provider call failed: ProviderGatewayError: ProviderGatewayError: IDE CLI generation failed: agy exit=3, result=ERROR: error: Individual quota reached. Please upgrade your subscription to increase your limits. Resets in 2h30m32s.\nAGY_ERROR: {\"short_error\":\"RESOURCE_EXHAUSTED (code 429): Individual quota reached. Please upgrade your subscription to increase your limits. Resets in 2h30m32s.\",\"status\":\"RESOURCE_EXHAUST [last_progress_after_s=None, chars_received=0, chunk_count=0]",
+          "tokens": 0,
+          "matches_canned_stub": false,
+          "x2": {
+            "all_x2_pass": false,
+            "failed_gates": [
+              "provider_blocked"
+            ]
+          }
+        },
+        {
+          "lane": "headline",
+          "run_no": 3,
+          "model": "claude-sonnet-5-5-high",
+          "status": "BLOCKED",
+          "error": "External provider call failed: ProviderGatewayError: ProviderGatewayError: IDE CLI generation failed: agy exit=3, result=ERROR: error: Individual quota reached. Please upgrade your subscription to increase your limits. Resets in 2h30m20s.\nAGY_ERROR: {\"short_error\":\"RESOURCE_EXHAUSTED (code 429): Individual quota reached. Please upgrade your subscription to increase your limits. Resets in 2h30m20s.\",\"status\":\"RESOURCE_EXHAUST [last_progress_after_s=None, chars_received=0, chunk_count=0]",
+          "tokens": 0,
+          "matches_canned_stub": false,
+          "x2": {
+            "all_x2_pass": false,
+            "failed_gates": [
+              "provider_blocked"
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

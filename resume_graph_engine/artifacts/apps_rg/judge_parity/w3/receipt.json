@@ -1,0 +1,38 @@
+{
+  "wave": "W3",
+  "status": "COMPLETE",
+  "completed_at_utc": "2026-11-19T11:29:18.929671+00:00",
+  "inprocess_ide_provider_deleted": true,
+  "unit_tests": {
+    "new_wave3_files": [
+      "resume_graph_engine/tests/unit/apps_rg/test_generator_no_canned_content.py",
+      "resume_graph_engine/tests/unit/apps_rg/test_ide_cli_generation_provider.py"
+    ],
+    "new_wave3_passed": 14,
+    "new_wave3_failed": 0,
+    "provider_or_generation_slice_passed": 357,
+    "provider_or_generation_new_failures_vs_w1_baseline": 0
+  },
+  "live_generation_smoke": {
+    "lane": "executive_summary",
+    "model": "claude-sonnet-5-5-high",
+    "runtime_generation_status": "REAL_LLM",
+    "transport": "ide_cli",
+    "conversation_id": "a8b8e848-1ce5-451d-8f3d-aaa29dd13afc",
+    "usage": {
+      "input_tokens": 38498,
+      "output_tokens": 4219,
+      "total_tokens": 42717,
+      "thinking_tokens": 0,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 7875
+    },
+    "word_count": 119,
+    "claim_ledger_rows": 6,
+    "output_sha256": "3ba311090c956bfaf4117cd3a3b4ac7551884f491e041107cdcc42925c27e131",
+    "retired_canned_sha256": "3fff7305ff069ec7dfd16a48577310df2b82940b39ebdfbb557cb6c03efe1f2c",
+    "matches_canned_stub": false,
+    "executive_strategy_thesis": "Engineering executive uniting governed agentic AI runtime architecture, repeatable client activation, and regulatory control discipline to scale enterprise AI adoption in financial services.",
+    "resume_display_text": "Engineering executive who unites governed agentic AI runtime architecture with client activation at enterprise scale for regulated financial and insurance institutions. Governed runtime architectures with deterministic proof lineage give safety-critical agent decisions a validation mesh that holds to 100% gate conformance. From that runtime base, directed offering accelerator management scaled repeatable cloud and AI solution blueprints across financial and insurance institutions, with AWS shared-responsibility guardrails keeping insurer-owned controls explicit. In parallel, AI governance and model-risk discipline reduced banking regulatory findings by 35%. That control foundation also accelerated compliance submissions by 40%, with confidence-based escalation keeping model-risk decisions reviewable. Governed platform architecture and regulatory rigor will enable enterprise AI adoption at pace, preserving lineage and control as deployment volume grows."
+  }
+}

@@ -35,6 +35,11 @@ STRONG_ACTION_VERBS: frozenset[str] = frozenset({
     "embedded", "embed", "ran", "run", "set",
     "aligned", "align", "advised", "advise", "translated", "translate",
     "partnered", "partner", "served", "serve",
+    "achieved", "achieve", "unlocked", "unlock", "secured", "secure",
+    "captured", "capture", "realized", "realize", "expanded", "expand",
+    "grew", "grow", "increased", "increase", "reduced", "reduce",
+    "compressed", "compress", "sustained", "sustain", "orchestrated", "orchestrate",
+    "anchored", "anchor", "strengthened", "strengthen",
     "re-architected", "rearchitected", "re-engineered", "reengineered",
     "re-platformed", "replatformed",
 })

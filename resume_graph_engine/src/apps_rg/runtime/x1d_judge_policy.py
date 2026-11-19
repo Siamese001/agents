@@ -95,6 +95,10 @@ def preflight_x1d_judge_policy(
         if pk not in configured:
             continue
         pt = _PROVIDER_TYPES.get(pk, "unknown")
+        from apps_rg.runtime.judges.x1d_ide_cli import uses_ide_cli_judges
+
+        if uses_ide_cli_judges(env):
+            pt = "ide_cli_llm_judge"
         provider_types[pk] = pt
         primary = _primary_env_for_runtime(pk)
         _val, consulted = resolve_x1d_provider_credentials(pk, env)

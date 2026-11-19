@@ -29,3 +29,28 @@ heuristic_sanity:
   minimum_spearman_rho: 0.60
   maximum_p_value: 1.0
   promotion_eligible: false
+
+ide_cli_panel_baseline:
+  calibrated_at: "2026-11-19"
+  transport: "ide_cli"
+  cli_env_var: "AGY_CLI_BIN"
+  slot_1_enhanced_model: "gemini-4-argon-high"
+  slot_1_standard_model: "gemini-4-argon-medium"
+  slot_2_by_writer_maker:
+    anthropic: "gemini-3.8-flash-high"
+    openai: "gemini-4-neon-high"
+    google: "gemini-3.8-flash-high"
+  pilot_thresholds:
+    negative_control_catch_rate_min: 1.00
+    historical_verdict_agreement_min: 0.95
+    spearman_rho_min: 0.60
+    mean_abs_score_gap_historical_max: 0.30
+  observed_w4_pilot:
+    calls: 24
+    negative_control_catch_rate_panel: 1.00
+    historical_verdict_agreement_panel: 1.00
+    spearman_rho_pooled_panel: 0.8226
+    spearman_rho_pooled_slot1_argon: 0.9116
+    mean_abs_score_gap_historical_panel: 0.175
+    inter_judge_verdict_agreement: 1.00
+    evidence_ref: "resume_graph_engine/artifacts/apps_rg/judge_parity/w4/judge_parity_report.json"

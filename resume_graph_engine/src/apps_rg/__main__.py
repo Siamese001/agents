@@ -546,11 +546,20 @@ def _run_product_from_cli(args: argparse.Namespace) -> dict[str, Any]:
     return out
 
 
+_LAST_IDE_CLI_PREFLIGHT_RECEIPT: dict[str, Any] | None = None
+
+
 def _run_preflight(prog: str, json_out: bool = False) -> int | None:
+    global _LAST_IDE_CLI_PREFLIGHT_RECEIPT
+    _LAST_IDE_CLI_PREFLIGHT_RECEIPT = None
     try:
-        from agents.live_preflight import assert_engine_live_preflight
+        from agents.live_preflight import _is_test_mode, assert_engine_live_preflight
 
         assert_engine_live_preflight(prog, providers=("openai",))
+        if not _is_test_mode():
+            from apps_rg.runtime.judges.x1d_ide_cli import verify_ide_cli_preflight
+
+            _LAST_IDE_CLI_PREFLIGHT_RECEIPT = verify_ide_cli_preflight(os.environ)
         return None
     except ImportError as err:
         if json_out:

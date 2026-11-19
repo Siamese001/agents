@@ -1,0 +1,875 @@
+............FF......................................................F... [  8%]
+...................................................FF.F................. [ 16%]
+........................................................................ [ 24%]
+..............................................F......................... [ 33%]
+...F....ss...........s........................................s......... [ 41%]
+..s..............................................................F...... [ 49%]
+.......s....................................FFFFF..FF................... [ 57%]
+....................................................F................... [ 66%]
+...F.................................................................... [ 74%]
+....................F................................................... [ 82%]
+........................................................................ [ 90%]
+.......F..........................................s....ss............... [ 99%]
+........                                                                 [100%]
+=================================== FAILURES ===================================
+____________ test_hardening_verifies_copy_for_every_promised_table _____________
+
+tmp_path = PosixPath('/private/var/folders/zm/qvkyv08x6yq7fn9yzmb46c7h0000gn/T/pytest-of-amitayer/pytest-9/test_hardening_verifies_copy_f0')
+
+    def test_hardening_verifies_copy_for_every_promised_table(tmp_path: Path) -> None:
+        db_path = tmp_path / "graph.sqlite"
+        _seed_source(db_path, complete_schema=True)
+    
+        receipt = apply_graphdb_capability_sqlite_hardening(
+            repo_root=tmp_path,
+            db_path=db_path,
+        )
+    
+        preservation = receipt["preservation"]
+        assert preservation["status"] == "PRESERVED_TABLES_VERIFIED"
+>       assert set(preservation["verified_tables"]) == PRESERVED_TABLES | {"graph_metadata"}
+E       AssertionError: assert {'c03_role_fa...h_edges', ...} == {'c03_role_fa...ections', ...}
+E         
+E         Extra items in the left set:
+E         'graph_build_inputs'
+E         'edge_evidence'
+E         'graph_build_runs'
+E         Use -v to get more diff
+
+resume_graph_engine/tests/unit/apps_rg/fact_inventory/test_apply_graphdb_capability_sqlite_hardening.py:363: AssertionError
+___ test_fresh_and_atomic_hardening_share_exact_direct_only_index_capability ___
+
+tmp_path = PosixPath('/private/var/folders/zm/qvkyv08x6yq7fn9yzmb46c7h0000gn/T/pytest-of-amitayer/pytest-9/test_fresh_and_atomic_hardenin0')
+
+    def test_fresh_and_atomic_hardening_share_exact_direct_only_index_capability(
+        tmp_path: Path,
+    ) -> None:
+        fresh_path = tmp_path / "fresh.sqlite"
+        hardened_path = tmp_path / "hardened.sqlite"
+        materialize_augmented_skills_graph_sqlite(repo_root=REPO, db_path=fresh_path)
+        shutil.copy2(fresh_path, hardened_path)
+        fresh_rows = _logical_derived_rows(fresh_path)
+    
+>       receipt = apply_graphdb_capability_sqlite_hardening(
+            repo_root=REPO,
+            db_path=hardened_path,
+        )
+
+resume_graph_engine/tests/unit/apps_rg/fact_inventory/test_apply_graphdb_capability_sqlite_hardening.py:407: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+resume_graph_engine/src/apps_rg/fact_inventory/apply_graphdb_capability_sqlite_hardening.py:735: in apply_graphdb_capability_sqlite_hardening
+    source_authority = _validate_source_projection_authority(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+source = <sqlite3.Connection object at 0x109386890>
+repo_root = PosixPath('/Users/amitayer/Git/agents/.worktrees/claude-apps-rg-ide-subagent-exec-summary/resume_graph_engine')
+source_path = PosixPath('/private/var/folders/zm/qvkyv08x6yq7fn9yzmb46c7h0000gn/T/pytest-of-amitayer/pytest-9/test_fresh_and_atomic_hardenin0/hardened.sqlite')
+
+    def _validate_source_projection_authority(
+        source: Any,
+        *,
+        repo_root: Path,
+        source_path: Path,
+    ) -> dict[str, Any]:
+        metadata = _source_metadata_row(source)
+        if metadata is None:
+            source_tables = {
+                name
+                for name, (object_type, _sql) in _user_schema_inventory(source).items()
+                if object_type == "table"
+            }
+            if source_tables == _LEGACY_AUTHORITY_TABLES:
+                return {
+                    "status": "LEGACY_SCHEMA_AUTHORITY_WHITELISTED",
+                    "authority_kind": "exact_legacy_schema",
+                }
+            raise ValueError("graphDB capability source authority unavailable: trusted metadata is missing")
+    
+        _graph_version, materialized_from, ledger_hash, raw_summary = metadata
+        try:
+            summary = json.loads(raw_summary or "{}")
+        except (TypeError, json.JSONDecodeError) as exc:
+            raise ValueError(
+                "graphDB capability source authority invalid: metadata summary is invalid JSON"
+            ) from exc
+        if not isinstance(summary, dict):
+            raise ValueError("graphDB capability source authority invalid: metadata summary is not an object")
+    
+        canonical_source = Path(str(materialized_from or ""))
+        if not canonical_source.is_absolute():
+            canonical_source = repo_root / canonical_source
+        if canonical_source.is_file() and canonical_source.suffix.lower() == ".json":
+            try:
+                canonical_payload = json.loads(canonical_source.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError) as exc:
+                raise ValueError(
+                    "graphDB capability source authority invalid: canonical source is unreadable"
+                ) from exc
+            if not isinstance(canonical_payload, dict):
+                raise ValueError("graphDB capability source authority invalid: canonical source is not an object")
+            if _canonical_payload_digest(canonical_payload) != str(ledger_hash or ""):
+                raise ValueError("graphDB capability source authority invalid: canonical source digest mismatch")
+    
+            authority_path = _new_sibling_temp_db_path(source_path)
+            authority_conn = None
+            try:
+                materialize_augmented_skills_graph_sqlite(
+                    graph=canonical_payload,
+                    repo_root=repo_root,
+                    db_path=authority_path,
+                    json_source_path=canonical_source,
+                )
+                authority_conn = open_graph_sqlite(
+                    repo_root=repo_root,
+                    db_path=authority_path,
+                    read_only=True,
+                )
+                authority_conn.execute("BEGIN")
+                source_profile = _immutable_authority_profile(source)
+                authority_profile = _immutable_authority_profile(
+                    authority_conn,
+                    columns_from={
+                        table_name: tuple(row["columns"]) for table_name, row in source_profile.items()
+                    },
+                )
+                if source_profile != authority_profile:
+                    mismatched = sorted(
+                        table_name
+                        for table_name in source_profile
+                        if source_profile[table_name] != authority_profile[table_name]
+                    )
+>                   raise ValueError(
+                        "graphDB capability source authority mismatch against canonical rebuild: "
+                        f"tables={mismatched}"
+                    )
+E                   ValueError: graphDB capability source authority mismatch against canonical rebuild: tables=['graph_build_inputs', 'graph_build_runs', 'graph_edges', 'graph_nodes']
+
+resume_graph_engine/src/apps_rg/fact_inventory/apply_graphdb_capability_sqlite_hardening.py:502: ValueError
+_____________ test_cache_flag_off_preserves_section_payload_shape ______________
+
+    def test_cache_flag_off_preserves_section_payload_shape() -> None:
+        _request, payload = build_section_request(
+            messages=[{"role": "user", "content": "Write JSON."}],
+            prompt_hash="prompt-hash",
+            input_payload_hash="input-hash",
+            model=pins.CLAUDE_GENERATOR_MODEL,
+        )
+    
+>       assert payload == {
+            "model": pins.CLAUDE_GENERATOR_MODEL,
+            "messages": [{"role": "user", "content": "Write JSON."}],
+            "temperature": 0.45,
+            "max_tokens": 700,
+            "timeout_seconds": 90,
+            "response_format": {"type": "json_object"},
+            "_provider_profile": "external_claude",
+        }
+E       AssertionError: assert {'model': 'cl...ns': 700, ...} == {'model': 'cl...ns': 700, ...}
+E         
+E         Omitting 6 identical items, use -vv to show
+E         Differing items:
+E         {'timeout_seconds': 180} != {'timeout_seconds': 90}
+E         Use -v to get more diff
+
+resume_graph_engine/tests/unit/apps_rg/runtime/providers/test_anthropic_prompt_cache_wave0.py:104: AssertionError
+_______ test_call_section_model_provider_threads_messages_and_overrides ________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x116a1ce90>
+
+    def test_call_section_model_provider_threads_messages_and_overrides(monkeypatch) -> None:
+        gateway = _CapturingGateway()
+        monkeypatch.setattr(
+            subject,
+            "build_section_provider_gateway",
+            lambda claude_model=None, openai_model=None: gateway,
+        )
+    
+        result = subject.call_section_model_provider(
+            "claude",
+            {
+                "messages": [
+                    {"role": "system", "content": "System guard."},
+                    {"role": "user", "content": "Write one bullet."},
+                    {"role": "assistant", "content": ""},
+                    "invalid",
+                ],
+                "prompt_hash": "prompt-hash",
+                "request_id": "request-1",
+                "run_id": "payload-run",
+                "_reasoning_section_lane": "competencies",
+                "max_tokens": 44,
+                "temperature": 0.91,
+                "timeout_seconds": 7,
+            },
+            run_id="explicit-run",
+            temperature_override=0.33,
+        )
+    
+        assert result.runtime_generation_status == "REAL_LLM"
+        call = gateway.calls[0]
+        compiled = call["compiled_prompt"]
+        assert call["profile"] == ProviderProfile.EXTERNAL_CLAUDE
+        assert call["token_budget"] == 44
+        assert call["temperature"] == 0.33
+        assert call["timeout_seconds"] == 7
+        assert compiled.compilation_hash == "prompt-hash"
+        assert compiled.request_id == "request-1"
+        assert compiled.run_id == "explicit-run"
+>       assert compiled.reasoning_effort == "low"
+E       AssertionError: assert 'medium' == 'low'
+E         
+E         - low
+E         + medium
+
+resume_graph_engine/tests/unit/apps_rg/runtime/providers/test_section_provider_call.py:131: AssertionError
+_ test_call_section_model_provider_falls_back_to_prompt_and_max_output_tokens __
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x109443ad0>
+
+    def test_call_section_model_provider_falls_back_to_prompt_and_max_output_tokens(
+        monkeypatch,
+    ) -> None:
+        gateway = _CapturingGateway()
+        monkeypatch.setattr(
+            subject,
+            "build_section_provider_gateway",
+            lambda claude_model=None, openai_model=None: gateway,
+        )
+    
+        subject.call_section_model_provider(
+            ProviderProfile.EXTERNAL_OPENAI,
+            {
+                "messages": [{"role": "user", "content": ""}],
+                "prompt": "Fallback prompt body.",
+                "run_id": "payload-run",
+                "_reasoning_section_lane": "unify_narrative",
+                "max_output_tokens": 123,
+            },
+        )
+    
+        call = gateway.calls[0]
+        compiled = call["compiled_prompt"]
+        assert call["profile"] == ProviderProfile.EXTERNAL_OPENAI
+        assert call["token_budget"] == 123
+        assert call["temperature"] == 0.45
+        assert call["timeout_seconds"] is None
+        assert compiled.run_id == "payload-run"
+>       assert compiled.reasoning_effort == "low"
+E       AssertionError: assert 'medium' == 'low'
+E         
+E         - low
+E         + medium
+
+resume_graph_engine/tests/unit/apps_rg/runtime/providers/test_section_provider_call.py:166: AssertionError
+______ test_call_section_model_provider_pins_openai_unify_narrative_model ______
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10ff13e90>
+
+    def test_call_section_model_provider_pins_openai_unify_narrative_model(monkeypatch) -> None:
+        gateway = _CapturingGateway()
+        captured: dict[str, object] = {}
+    
+        def fake_build(claude_model=None, openai_model=None):
+            captured["claude_model"] = claude_model
+            captured["openai_model"] = openai_model
+            return gateway
+    
+        monkeypatch.setattr(subject, "build_section_provider_gateway", fake_build)
+    
+        subject.call_section_model_provider(
+            ProviderProfile.EXTERNAL_OPENAI,
+            {
+                "_reasoning_section_lane": "unify_narrative",
+                "prompt": "Use unify narrative override.",
+                "max_tokens": 10,
+            },
+        )
+    
+        assert captured["claude_model"] is None
+        assert captured["openai_model"] == pins.OPENAI_GENERATOR_MODEL
+        assert gateway.calls[0]["profile"] == ProviderProfile.EXTERNAL_OPENAI
+>       assert gateway.calls[0]["compiled_prompt"].reasoning_effort == "low"
+E       AssertionError: assert 'medium' == 'low'
+E         
+E         - low
+E         + medium
+
+resume_graph_engine/tests/unit/apps_rg/runtime/providers/test_section_provider_call.py:219: AssertionError
+_____ test_bundle_graph_hydration_repairs_anthropic_default_fact_collapse ______
+
+    def test_bundle_graph_hydration_repairs_anthropic_default_fact_collapse():
+        """apps-test-model: APP CONTRACT
+    
+        Regression: taxonomy projection assigned one default fact to most Anthropic
+        partnership categories after self-consistency paths had distinct graph facts.
+        """
+        jd_text = ANTHROPIC_JD.read_text(encoding="utf-8")
+        brief_text = ANTHROPIC_BRIEF.read_text(encoding="utf-8")
+        plan, _, _ = build_selected_graph_evidence_plan_for_section(
+            repo_root=_REPO_ROOT,
+            section_id="competencies",
+            target_role=jd_text.split("\n", 1)[0],
+            jd_text=jd_text,
+            briefing_text=brief_text,
+        )
+        meta = attach_competency_bundles_to_proof_pool_metadata(
+            {
+                "proof_pool_type": "augmented_skills_graph",
+                "selected_graph_evidence_plan": plan,
+            },
+            section_id="competencies",
+        )
+        packet = meta["competency_capability_section_packet"]
+        fallback_fact = "metric_ey_core_workflow_maps_count"
+        allowed = {
+            str(fid)
+            for fid in (plan.get("allowed_graph_evidence_ids") or [])
+            if str(fid).strip()
+        } | {fallback_fact}
+        categories: list[dict] = []
+        for idx, rec in enumerate(packet["competency_bundles"][:8]):
+            label = str(rec.get("display_label_candidate") or f"Category {idx}")
+            categories.append(
+                {
+                    "category_id": str((rec.get("target_taxonomy_category_ids") or [f"cat_{idx}"])[0]),
+                    "category_label": label,
+                    "competency_bundle_id": rec["competency_bundle_id"],
+                    "capability_family": rec["capability_family"],
+                    "graph_skill_node_ids": list(rec.get("graph_skill_node_ids") or [])[:2],
+                    "source_fact_ids": [fallback_fact],
+                    "terms": [
+                        {
+                            "term": f"{label} graph execution",
+                            "text": f"{label} graph execution",
+                            "source_fact_id": fallback_fact,
+                            "source_fact_ids": [fallback_fact],
+                            "proof_source": "default_fid_backfill",
+                        }
+                    ],
+                }
+            )
+    
+        hydrate_competency_bundle_graph_evidence(
+            categories,
+            packet=packet,
+            allowed_fact_ids=allowed,
+            selected_graph_evidence_plan=plan,
+        )
+        parsed = {
+            "competencies_rejected_neighbor_audit": {
+                "schema_version": "competencies_rejected_neighbor_audit_v1",
+                "audit_status": "present",
+                "candidate_label_count": 12,
+                "candidate_variant_count": 48,
+                "selected_count": len(categories),
+                "rejected_neighbor_count": 40,
+            }
+        }
+    
+>       assert all(cat.get("selection_score") is not None for cat in categories)
+E       assert False
+E        +  where False = all(<generator object test_bundle_graph_hydration_repairs_anthropic_default_fact_collapse.<locals>.<genexpr> at 0x12f9f8e10>)
+
+resume_graph_engine/tests/unit/apps_rg/test_competencies_capability_bundle_wiring.py:578: AssertionError
+__________ test_run_competencies_judges_uses_pinned_gemini_high_model __________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x117affcb0>
+
+    def test_run_competencies_judges_uses_pinned_gemini_high_model(monkeypatch) -> None:
+        captured: dict[str, str] = {}
+    
+        def fake_credentials(provider_key: str, environ):
+            del provider_key, environ
+            return "fake-google-key", ["GOOGLE_API_KEY"]
+    
+        def fake_call_gemini(api_key: str, prompt: str, model: str, input_hash: str, provider_key: str, **kwargs):
+            del api_key, prompt, input_hash
+            captured["provider_key"] = provider_key
+            captured["model"] = model
+            captured["thinking_level"] = kwargs["thinking_level"]
+            out = competencies_x1d._mocked(provider_key, "input-hash")
+            out.evaluator_mode = "MODEL_BACKED"
+            out.provider_status = "MODEL_BACKED_PASS"
+            out.provider_available = True
+            out.pass_ = True
+            return out
+    
+        monkeypatch.setattr(competencies_x1d, "resolve_x1d_provider_credentials", fake_credentials)
+        monkeypatch.setattr(competencies_x1d, "_call_gemini", fake_call_gemini)
+    
+        outputs = competencies_x1d.run_competencies_judges(
+            competencies=[{"category_label": "Cloud", "terms": [{"text": "AWS", "source_fact_id": "bul_001", "source_fact_ids": ["bul_001"]}]}],
+            claim_ledger=[{"claim_text": "Scaled cloud controls.", "source_fact_ids": ["bul_001"]}],
+            judge_keys=["gemini_pro"],
+            companion_context="",
+            mode="blocked_if_unavailable",
+        )
+    
+        assert captured["provider_key"] == "gemini_pro"
+>       assert captured["model"] == pins.GEMINI_PROOF_JUDGE_MODEL
+E       AssertionError: assert 'gemini-4-argon-medium' == 'gemini-4-argon-high'
+E         
+E         - gemini-4-argon-high
+E         ?                ^ ^^
+E         + gemini-4-argon-medium
+E         ?                ^^^ ^^
+
+resume_graph_engine/tests/unit/apps_rg/test_competencies_x1d.py:98: AssertionError
+__________ test_ai_partnership_judge_findings_are_repaired_before_x1d __________
+
+    def test_ai_partnership_judge_findings_are_repaired_before_x1d() -> None:
+        """Regression for live Anthropic Partnership run full_resume_b5d3aafa9567."""
+        display = (
+            "Executive leader who unifies governed AI platform architecture, partner-led GTM, "
+            "and measurable platform outcomes for regulated enterprise adoption. "
+            "Through that operating scope, led AWS modernization architecture for regulated "
+            "financial-services workloads and built decision-support models that tied "
+            "modernization programs to executive decisions. "
+            "Building on that platform base, shaped reusable solution accelerators and alliance "
+            "co-sell motions for repeatable client pursuits. "
+            "In parallel, regulated cloud modernization architecture for financial-services "
+            "workloads established reference architecture reuse across migration waves, grounding "
+            "partner-led AI solutions in validated delivery patterns while addressing insurance "
+            "regulatory cloud adoption standards. "
+            "That foundation also supported platform productization, IP-led revenue, 20% gross "
+            "margin expansion, and team growth from 8 to 28. "
+            "This leadership profile can translate into partner-led applied AI architecture that "
+            "scales safely across enterprise ecosystems."
+        )
+        ledger = [
+            {
+                "claim_text": "Executive leader unifies governed AI platform architecture and partner-led GTM.",
+                "source_fact_ids": ["reb_unify_platform_commercialization_leadership"],
+            },
+            {
+                "claim_text": "AWS modernization architecture and BI models tied programs to decisions.",
+                "source_fact_ids": [
+                    "reb_ibm_aws_modernization_architecture",
+                    "reb_ibm_data_modeling_bi_decision_support",
+                    "reb_insurtech_aws_migration_execution",
+                ],
+            },
+            {
+                "claim_text": "Reusable solution accelerators and alliance co-sell motions enabled client pursuits.",
+                "source_fact_ids": [
+                    "reb_ibm_offering_accelerator_management",
+                    "reb_ibm_aws_alliance_partner_cosell_gtm",
+                ],
+            },
+            {
+                "claim_text": "Agentic platform architecture and distributed ecosystem engineering supported delivery patterns.",
+                "source_fact_ids": [
+                    "reb_unify_agentic_platform_architecture",
+                    "reb_unify_distributed_ecosystem_engineering",
+                    "reb_insurtech_insurance_regulatory_cloud_adoption_standards",
+                ],
+            },
+            {
+                "claim_text": "Platform productization drove revenue, margin, and team growth.",
+                "source_fact_ids": [
+                    "reb_unify_platform_commercialization_leadership",
+                    "metric_unify_22m_ip_led_revenue",
+                    "metric_unify_20pct_gross_margin_expansion",
+                    "metric_unify_team_scaled_8_to_28",
+                ],
+            },
+            {
+                "claim_text": "Partner channel co-sell supports applied AI architecture adoption.",
+                "source_fact_ids": ["reb_unify_partner_channel_cosell"],
+            },
+        ]
+        allowed = {sid for row in ledger for sid in row["source_fact_ids"]}
+    
+        out, receipt = finalize_executive_summary_coherence(
+            {"resume_display_text": display, "claim_ledger": ledger, "gap_notes": []},
+            selected_facts=[{"fact_id": fid} for fid in sorted(allowed)],
+            allowed_fact_ids=allowed,
+            target_role="Manager of Applied AI Architecture, Partnerships",
+        )
+    
+        text = str(out.get("resume_display_text") or "")
+        repaired_ledger = list(out.get("claim_ledger") or [])
+        coverage = build_sentence_claim_coverage(text, repaired_ledger, allowed)
+        orphan_ok, orphan_reason = check_claim_ledger_orphan_source_ids(repaired_ledger, allowed)
+        mechanism_ok, mechanism_reason = check_exec_summary_no_mechanism_inventory(text)
+    
+        assert receipt["judge_polish"]["applied"] is True
+        assert "repair_ai_partnership_judge_findings" in receipt["judge_polish"]["actions"]
+        assert "this leadership profile" not in text.lower()
+        assert "can translate into" not in text.lower()
+        assert "regulated cloud modernization architecture for financial-services workloads" not in text.lower()
+>       assert "regulated ai delivery patterns" in text.lower()
+E       AssertionError: assert 'regulated ai delivery patterns' in 'executive leader who unifies governed ai platform architecture, partner-led gtm, and measurable platform outcomes for...ectures and alliance co-sell execution into repeatable adoption across cloud-vendor and enterprise partner ecosystems.'
+E        +  where 'executive leader who unifies governed ai platform architecture, partner-led gtm, and measurable platform outcomes for...ectures and alliance co-sell execution into repeatable adoption across cloud-vendor and enterprise partner ecosystems.' = <built-in method lower of str object at 0xb02c56000>()
+E        +    where <built-in method lower of str object at 0xb02c56000> = 'Executive leader who unifies governed AI platform architecture, partner-led GTM, and measurable platform outcomes for...ectures and alliance co-sell execution into repeatable adoption across cloud-vendor and enterprise partner ecosystems.'.lower
+
+resume_graph_engine/tests/unit/apps_rg/test_executive_summary_voice_repair_synthesis.py:671: AssertionError
+______________ test_adversarial_lane_audit_clean[slalom_bullets] _______________
+
+lane = 'slalom_bullets'
+
+    @pytest.mark.parametrize("lane", list(GENERATED_LANES))
+    def test_adversarial_lane_audit_clean(lane: str) -> None:
+        violations = audit_lane_x2_x1d_drift(lane)
+>       assert violations == [], "\n".join(f"{v.kind}: {v.detail}" for v in violations)
+E       AssertionError: lane_missing_x2_invocation: lane must call run_role_episode_x2_gates(
+E         lane_missing_x1d_wiring: lane must pass x1d_judges= into run_slalom_bullets_x2_gates
+E       assert [X2X1dDriftVi...ode_lane.py')] == []
+E         
+E         Left contains 2 more items, first extra item: X2X1dDriftViolation(section_id='slalom_bullets', kind='lane_missing_x2_invocation', detail='lane must call run_role_episode_x2_gates(', path='apps_rg/runtime/sections/role_episode_lane.py')
+E         Use -v to get more diff
+
+resume_graph_engine/tests/unit/apps_rg/test_executive_summary_x2_x1d_adversarial.py:185: AssertionError
+_______________ test_adversarial_lane_audit_clean[unify_bullets] _______________
+
+lane = 'unify_bullets'
+
+    @pytest.mark.parametrize("lane", list(GENERATED_LANES))
+    def test_adversarial_lane_audit_clean(lane: str) -> None:
+        violations = audit_lane_x2_x1d_drift(lane)
+>       assert violations == [], "\n".join(f"{v.kind}: {v.detail}" for v in violations)
+E       AssertionError: lane_missing_x2_invocation: lane must call for g in run_unify_bullets_x2_gates(
+E         lane_missing_x1d_wiring: lane must pass x1d_judges= into run_unify_bullets_x2_gates
+E       assert [X2X1dDriftVi...ets_lane.py')] == []
+E         
+E         Left contains 2 more items, first extra item: X2X1dDriftViolation(section_id='unify_bullets', kind='lane_missing_x2_invocation', detail='lane must call for g in run_unify_bullets_x2_gates(', path='apps_rg/runtime/sections/unify_bullets_lane.py')
+E         Use -v to get more diff
+
+resume_graph_engine/tests/unit/apps_rg/test_executive_summary_x2_x1d_adversarial.py:185: AssertionError
+________________ test_adversarial_lane_audit_clean[ibm_bullets] ________________
+
+lane = 'ibm_bullets'
+
+    @pytest.mark.parametrize("lane", list(GENERATED_LANES))
+    def test_adversarial_lane_audit_clean(lane: str) -> None:
+        violations = audit_lane_x2_x1d_drift(lane)
+>       assert violations == [], "\n".join(f"{v.kind}: {v.detail}" for v in violations)
+E       AssertionError: lane_missing_x2_invocation: lane must call for g in run_ibm_bullets_x2_gates(
+E         lane_missing_x1d_wiring: lane must pass x1d_judges= into run_ibm_bullets_x2_gates
+E       assert [X2X1dDriftVi...ets_lane.py')] == []
+E         
+E         Left contains 2 more items, first extra item: X2X1dDriftViolation(section_id='ibm_bullets', kind='lane_missing_x2_invocation', detail='lane must call for g in run_ibm_bullets_x2_gates(', path='apps_rg/runtime/sections/ibm_bullets_lane.py')
+E         Use -v to get more diff
+
+resume_graph_engine/tests/unit/apps_rg/test_executive_summary_x2_x1d_adversarial.py:185: AssertionError
+_____________ test_adversarial_lane_audit_clean[insurtech_bullets] _____________
+
+lane = 'insurtech_bullets'
+
+    @pytest.mark.parametrize("lane", list(GENERATED_LANES))
+    def test_adversarial_lane_audit_clean(lane: str) -> None:
+        violations = audit_lane_x2_x1d_drift(lane)
+>       assert violations == [], "\n".join(f"{v.kind}: {v.detail}" for v in violations)
+E       AssertionError: lane_missing_x2_invocation: lane must call run_role_episode_x2_gates(
+E         lane_missing_x1d_wiring: lane must pass x1d_judges= into run_insurtech_bullets_x2_gates
+E       assert [X2X1dDriftVi...ode_lane.py')] == []
+E         
+E         Left contains 2 more items, first extra item: X2X1dDriftViolation(section_id='insurtech_bullets', kind='lane_missing_x2_invocation', detail='lane must call run_role_episode_x2_gates(', path='apps_rg/runtime/sections/role_episode_lane.py')
+E         Use -v to get more diff
+
+resume_graph_engine/tests/unit/apps_rg/test_executive_summary_x2_x1d_adversarial.py:185: AssertionError
+_____________ test_adversarial_lane_audit_clean[slalom_narrative] ______________
+
+lane = 'slalom_narrative'
+
+    @pytest.mark.parametrize("lane", list(GENERATED_LANES))
+    def test_adversarial_lane_audit_clean(lane: str) -> None:
+        violations = audit_lane_x2_x1d_drift(lane)
+>       assert violations == [], "\n".join(f"{v.kind}: {v.detail}" for v in violations)
+E       AssertionError: lane_missing_x2_invocation: lane must call run_role_episode_x2_gates(
+E         lane_missing_x1d_wiring: lane must pass x1d_judges= into run_slalom_narrative_x2_gates
+E       assert [X2X1dDriftVi...ode_lane.py')] == []
+E         
+E         Left contains 2 more items, first extra item: X2X1dDriftViolation(section_id='slalom_narrative', kind='lane_missing_x2_invocation', detail='lane must call run_role_episode_x2_gates(', path='apps_rg/runtime/sections/role_episode_lane.py')
+E         Use -v to get more diff
+
+resume_graph_engine/tests/unit/apps_rg/test_executive_summary_x2_x1d_adversarial.py:185: AssertionError
+____________ test_adversarial_lane_audit_clean[insurtech_narrative] ____________
+
+lane = 'insurtech_narrative'
+
+    @pytest.mark.parametrize("lane", list(GENERATED_LANES))
+    def test_adversarial_lane_audit_clean(lane: str) -> None:
+        violations = audit_lane_x2_x1d_drift(lane)
+>       assert violations == [], "\n".join(f"{v.kind}: {v.detail}" for v in violations)
+E       AssertionError: lane_missing_x2_invocation: lane must call run_role_episode_x2_gates(
+E         lane_missing_x1d_wiring: lane must pass x1d_judges= into run_insurtech_narrative_x2_gates
+E       assert [X2X1dDriftVi...ode_lane.py')] == []
+E         
+E         Left contains 2 more items, first extra item: X2X1dDriftViolation(section_id='insurtech_narrative', kind='lane_missing_x2_invocation', detail='lane must call run_role_episode_x2_gates(', path='apps_rg/runtime/sections/role_episode_lane.py')
+E         Use -v to get more diff
+
+resume_graph_engine/tests/unit/apps_rg/test_executive_summary_x2_x1d_adversarial.py:185: AssertionError
+_____________ test_adversarial_lane_audit_clean[executive_summary] _____________
+
+lane = 'executive_summary'
+
+    @pytest.mark.parametrize("lane", list(GENERATED_LANES))
+    def test_adversarial_lane_audit_clean(lane: str) -> None:
+        violations = audit_lane_x2_x1d_drift(lane)
+>       assert violations == [], "\n".join(f"{v.kind}: {v.detail}" for v in violations)
+E       AssertionError: lane_missing_x2_invocation: lane must call for g in run_x2_gates(
+E         lane_missing_x1d_wiring: lane must pass x1d_judges= into run_x2_gates
+E         synthesis_missing_critical_gate: pre-X2 shape should mirror X2 checks for: ['x2_exec_summary_evidence_utilization', 'x2_exec_summary_mechanical_opener_stack_zero', 'x2_exec_summary_meta_filler_zero', 'x2_exec_summary_no_credential_dump', 'x2_exec_summary_no_mechanism_inventory', 'x2_exec_summary_paragraph_max_words', 'x2_exec_summary_robotic_transition_stack_zero', 'x2_exec_summary_sentence_count_6', 'x2_executive_summary_synthesis_quality']
+E         lane_missing_x2_repair: lane must call repair_judge_regen_after_x2_fail before revert
+E         repair_loop_marker_missing: lane missing execution marker for phase synthesis_regen_pre_x2: 'write_json(artifact_dir / "synthesis_regen_receipt.json"'
+E         repair_loop_marker_missing: lane missing execution marker for phase run_x2: 'for g in run_x2_gates('
+E         repair_loop_marker_missing: lane missing execution marker for phase post_x2_x1d_refresh: 'write_json(artifact_dir / "post_x2_x1d_refresh_receipt.json"'
+E         repair_loop_marker_missing: lane missing execution marker for phase judge_regen_cycle: 'repair_judge_regen_after_x2_fail('
+E       assert [X2X1dDriftVi...ane.py'), ...] == []
+E         
+E         Left contains 8 more items, first extra item: X2X1dDriftViolation(section_id='executive_summary', kind='lane_missing_x2_invocation', detail='lane must call for g in run_x2_gates(', path='apps_rg/runtime/sections/executive_summary_lane.py')
+E         Use -v to get more diff
+
+resume_graph_engine/tests/unit/apps_rg/test_executive_summary_x2_x1d_adversarial.py:185: AssertionError
+________ test_active_model_literals_are_confined_to_ssot_contract_tests ________
+
+    def test_active_model_literals_are_confined_to_ssot_contract_tests() -> None:
+        catalog = json.loads(MODEL_CATALOG_PATH.read_text(encoding="utf-8"))
+        active_literals = {
+            str(row["model"])
+            for row in build_active_model_manifest()
+            if str(row.get("model") or "") in catalog["models"]
+        }
+        violations: list[str] = []
+        for path in (_REPO_ROOT / "tests").rglob("*.py"):
+            rel = path.relative_to(_REPO_ROOT).as_posix()
+            if rel in _MODEL_LITERAL_CONTRACT_TESTS:
+                continue
+            tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+            for node in ast.walk(tree):
+                if not isinstance(node, ast.Constant) or not isinstance(node.value, str):
+                    continue
+                matches = sorted(model for model in active_literals if model in node.value)
+                if matches:
+                    violations.append(f"{rel}:{node.lineno}:{','.join(matches)}")
+>       assert violations == []
+E       AssertionError: assert ['tests/unit/...-medium', ...] == []
+E         
+E         Left contains 14 more items, first extra item: 'tests/unit/apps_rg/test_agy_cli_transport.py:12:claude-sonnet-5-5-medium'
+E         Use -v to get more diff
+
+resume_graph_engine/tests/unit/apps_rg/test_model_pin_ownership.py:214: AssertionError
+______ test_role_episode_dispatch_module_fans_out_to_generated_role_lanes ______
+
+    def test_role_episode_dispatch_module_fans_out_to_generated_role_lanes() -> None:
+        def _lane_tail(mod: str) -> str:
+            tail = mod.rsplit(".", 1)[-1]
+            if tail.endswith("_lane"):
+                return tail[: -len("_lane")]
+            return tail.replace("_dispatch", "")
+    
+        tails = tuple(_lane_tail(m) for m in LANE_DISPATCH_MODULES)
+        role_episode_lanes = {
+            lane for lane in GENERATED_LANES if lane.startswith(("insurtech_", "ey_"))
+        }
+        assert "role_episode" in tails
+>       assert role_episode_lanes == {
+            "insurtech_bullets",
+            "insurtech_narrative",
+            "ey_bullets",
+            "ey_narrative",
+        }
+E       AssertionError: assert {'insurtech_b...ch_narrative'} == {'ey_bullets'...ch_narrative'}
+E         
+E         Extra items in the right set:
+E         'ey_narrative'
+E         'ey_bullets'
+E         Use -v to get more diff
+
+resume_graph_engine/tests/unit/apps_rg/test_modular_resume_generation_phase0.py:133: AssertionError
+__________ test_whole_run_fails_when_exec_summary_judge_not_certified __________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x132891250>
+tmp_path = PosixPath('/private/var/folders/zm/qvkyv08x6yq7fn9yzmb46c7h0000gn/T/pytest-of-amitayer/pytest-9/test_whole_run_fails_when_exec0')
+
+    def test_whole_run_fails_when_exec_summary_judge_not_certified(
+        monkeypatch: pytest.MonkeyPatch,
+        tmp_path: Path,
+    ) -> None:
+        monkeypatch.setenv("APPS_RG_MOCK_RESEARCH", "1")
+        monkeypatch.setenv("APPS_RG_L1_ALLOW_EMPTY_PROFILE_DIGEST", "1")
+    
+        from apps_rg.runtime.orchestration import r3r4_whole_run_orchestration as orch
+    
+        class _FakeResult:
+            run_id = "draft-run-certified-looking"
+            request_id = "req-certified-looking"
+            x3_disposition = "X3D"
+            fault = ""
+            terminal_r5 = False
+    
+        from apps_rg.cache.whole_run_entrypoint_preflight import WholeRunCachePreflightOutcome
+    
+        def _fake_spine(**kwargs: object) -> _FakeResult:
+            art = Path(kwargs["artifact_dir"])
+            es_dir = art / "lanes" / "executive_summary"
+            es_dir.mkdir(parents=True, exist_ok=True)
+            (art / "r4_run_manifest.json").write_text(
+                json.dumps({"chain_kind": "R4_SINGLE_ACTION", "route_family": "R4_SINGLE_ACTION"}),
+                encoding="utf-8",
+            )
+            (es_dir / "x3_disposition.json").write_text(
+                json.dumps(
+                    {
+                        "x3_code": "X3_REVIEW_JUDGE_SOFT_FAIL",
+                        "pass": False,
+                        "publish_disposition": "judge_certification_required",
+                        "x1d_certified": False,
+                        "blocking_judge_ids": ["gemini_pro"],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            (es_dir / "publish_disposition.json").write_text(
+                json.dumps(
+                    {
+                        "publish_disposition": "judge_certification_required",
+                        "x1d_certified": False,
+                        "blocking_judge_ids": ["gemini_pro"],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            return _FakeResult()
+    
+        monkeypatch.setattr(orch, "run_integrated_single_action_spine", _fake_spine)
+        monkeypatch.setattr(
+            "apps_rg.cache.whole_run_entrypoint_preflight.run_whole_run_cache_preflight",
+            lambda **kwargs: WholeRunCachePreflightOutcome(
+                entrypoint="canonical_dispatch",
+                generation_required=True,
+            ),
+        )
+        monkeypatch.setattr(orch, "emit_integrated_run_bundle_index", lambda *a, **k: None)
+        monkeypatch.setattr(
+            "apps_rg.cache.whole_run_entrypoint_preflight.maybe_ingest_r1b_post_exit",
+            lambda **k: None,
+        )
+        monkeypatch.setattr(
+            "apps_rg.runtime.full_resume_review_bundle.emit_full_resume_review_bundle",
+            lambda run_root: run_root / "review_bundle.zip",
+        )
+        monkeypatch.setattr(
+            "apps_rg.cache.cache_preflight_evidence.write_whole_run_cache_preflight_artifact",
+            lambda *a, **k: None,
+        )
+        monkeypatch.setattr(
+            "apps_rg.cache.cache_preflight_evidence.write_cache_miss_receipt",
+            lambda *a, **k: None,
+        )
+    
+        brief, jd = _write_authorized_apps_research_handoff(tmp_path)
+    
+>       result = orch.run_whole_run_with_route_governance(
+            target_company="Anthropic",
+            target_role="Manager of Applied AI Architecture, Partnerships",
+            jd=str(jd),
+            job_description_text=_JD_TEXT,
+            manual_brief=str(brief),
+            source_resume_text="Experienced applied AI architecture and partnerships leader.",
+            generation_mode="strategic_tailor",
+            auto_research_internal=True,
+            artifact_dir=str(tmp_path / "full_resume_test02"),
+            require_fresh_preflight=False,
+        )
+
+resume_graph_engine/tests/unit/apps_rg/test_r3r4_whole_run_reachability.py:1331: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+resume_graph_engine/src/apps_rg/runtime/orchestration/r3r4_whole_run_orchestration.py:1280: in run_whole_run_with_route_governance
+    boundary = configure_apps_rg_runtime_boundary(repo_root=repo)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+repo_root = PosixPath('/Users/amitayer/Git/agents/.worktrees/claude-apps-rg-ide-subagent-exec-summary/resume_graph_engine')
+environ = None, policy_path = None
+
+    def configure_apps_rg_runtime_boundary(
+        *,
+        repo_root: Path | None = None,
+        environ: MutableMapping[str, str] | None = None,
+        policy_path: Path | None = None,
+    ) -> AppsRgRuntimeBoundary:
+        """Reject foreign path inheritance and materialize the checked-in local paths.
+    
+        No directory is created here.  It is a path-authority assertion, not a
+        bootstrap action; a missing local model/cache remains a downstream
+        fail-closed readiness result instead of falling back to a user cache.
+        """
+    
+        root = (repo_root or find_repo_root()).resolve()
+        env = os.environ if environ is None else environ
+        path, raw, policy_sha = _load_policy(repo_root=root, policy_path=policy_path)
+        paths = raw.get("environmentPaths")
+        if not isinstance(paths, dict) or not paths:
+            raise RuntimeBoundaryViolation(f"PATH_AUTHORITY_POLICY_INVALID:environmentPaths:{path}")
+    
+        effective: dict[str, Path] = {}
+        for name, relative in paths.items():
+            if not isinstance(name, str) or not isinstance(relative, str) or not name or not relative:
+                raise RuntimeBoundaryViolation(f"PATH_AUTHORITY_POLICY_INVALID:path:{path}")
+            effective[name] = _resolve_expected_boundary_path(name, relative, root)
+    
+        # Validate all inherited values first.  This gives a direct, deterministic
+        # error rather than silently using a stale process variable from a prior
+        # checkout.
+        normalized_pythonpath: str | None = None
+        for name, expected in effective.items():
+            inherited = str(env.get(name) or "").strip()
+            if name == "PYTHONPATH" and inherited:
+                normalized_pythonpath = _normalize_trusted_pythonpath(inherited, expected, root)
+                if normalized_pythonpath is None:
+                    raise RuntimeBoundaryViolation(
+                        f"PATH_AUTHORITY_VIOLATION:{name}:inherited={inherited};expected={expected}"
+                    )
+            elif inherited and _canonical(inherited) != expected:
+>               raise RuntimeBoundaryViolation(
+                    f"PATH_AUTHORITY_VIOLATION:{name}:inherited={_canonical(inherited)};expected={expected}"
+                )
+E               apps_rg.runtime.runtime_boundary.RuntimeBoundaryViolation: PATH_AUTHORITY_VIOLATION:CHROMA_PERSIST_DIR:inherited=/Users/amitayer/Git/agents/.worktrees/claude-apps-rg-ide-subagent-exec-summary/resume_graph_engine/data/cache/chromadb;expected=/Users/amitayer/Git/agents/resume_graph_engine/data/cache/chromadb
+
+resume_graph_engine/src/apps_rg/runtime/runtime_boundary.py:169: RuntimeBoundaryViolation
+__________ test_w3_gemini_thinking_uses_source_controlled_tier_levels __________
+
+    def test_w3_gemini_thinking_uses_source_controlled_tier_levels() -> None:
+        standard = subject._gemini_generation_config(
+            thinking_level="low",
+            section_id="headline",
+        )
+        enhanced = subject._gemini_generation_config(
+            thinking_level="medium",
+            section_id="executive_summary",
+        )
+    
+        assert standard["thinkingConfig"] == {"thinkingLevel": "low"}
+        assert enhanced["thinkingConfig"] == {"thinkingLevel": "medium"}
+        matrix = policy_matrix_export()
+>       assert matrix["headline"]["judge_runtime_profile"]["gemini_thinking_level"] == "low"
+E       AssertionError: assert 'medium' == 'low'
+E         
+E         - low
+E         + medium
+
+resume_graph_engine/tests/unit/apps_rg/test_x1d_gemini_thinking_w3.py:33: AssertionError
+=========================== short test summary info ============================
+FAILED resume_graph_engine/tests/unit/apps_rg/fact_inventory/test_apply_graphdb_capability_sqlite_hardening.py::test_hardening_verifies_copy_for_every_promised_table
+FAILED resume_graph_engine/tests/unit/apps_rg/fact_inventory/test_apply_graphdb_capability_sqlite_hardening.py::test_fresh_and_atomic_hardening_share_exact_direct_only_index_capability
+FAILED resume_graph_engine/tests/unit/apps_rg/runtime/providers/test_anthropic_prompt_cache_wave0.py::test_cache_flag_off_preserves_section_payload_shape
+FAILED resume_graph_engine/tests/unit/apps_rg/runtime/providers/test_section_provider_call.py::test_call_section_model_provider_threads_messages_and_overrides
+FAILED resume_graph_engine/tests/unit/apps_rg/runtime/providers/test_section_provider_call.py::test_call_section_model_provider_falls_back_to_prompt_and_max_output_tokens
+FAILED resume_graph_engine/tests/unit/apps_rg/runtime/providers/test_section_provider_call.py::test_call_section_model_provider_pins_openai_unify_narrative_model
+FAILED resume_graph_engine/tests/unit/apps_rg/test_competencies_capability_bundle_wiring.py::test_bundle_graph_hydration_repairs_anthropic_default_fact_collapse
+FAILED resume_graph_engine/tests/unit/apps_rg/test_competencies_x1d.py::test_run_competencies_judges_uses_pinned_gemini_high_model
+FAILED resume_graph_engine/tests/unit/apps_rg/test_executive_summary_voice_repair_synthesis.py::test_ai_partnership_judge_findings_are_repaired_before_x1d
+FAILED resume_graph_engine/tests/unit/apps_rg/test_executive_summary_x2_x1d_adversarial.py::test_adversarial_lane_audit_clean[slalom_bullets]
+FAILED resume_graph_engine/tests/unit/apps_rg/test_executive_summary_x2_x1d_adversarial.py::test_adversarial_lane_audit_clean[unify_bullets]
+FAILED resume_graph_engine/tests/unit/apps_rg/test_executive_summary_x2_x1d_adversarial.py::test_adversarial_lane_audit_clean[ibm_bullets]
+FAILED resume_graph_engine/tests/unit/apps_rg/test_executive_summary_x2_x1d_adversarial.py::test_adversarial_lane_audit_clean[insurtech_bullets]
+FAILED resume_graph_engine/tests/unit/apps_rg/test_executive_summary_x2_x1d_adversarial.py::test_adversarial_lane_audit_clean[slalom_narrative]
+FAILED resume_graph_engine/tests/unit/apps_rg/test_executive_summary_x2_x1d_adversarial.py::test_adversarial_lane_audit_clean[insurtech_narrative]
+FAILED resume_graph_engine/tests/unit/apps_rg/test_executive_summary_x2_x1d_adversarial.py::test_adversarial_lane_audit_clean[executive_summary]
+FAILED resume_graph_engine/tests/unit/apps_rg/test_model_pin_ownership.py::test_active_model_literals_are_confined_to_ssot_contract_tests
+FAILED resume_graph_engine/tests/unit/apps_rg/test_modular_resume_generation_phase0.py::test_role_episode_dispatch_module_fans_out_to_generated_role_lanes
+FAILED resume_graph_engine/tests/unit/apps_rg/test_r3r4_whole_run_reachability.py::test_whole_run_fails_when_exec_summary_judge_not_certified
+FAILED resume_graph_engine/tests/unit/apps_rg/test_x1d_gemini_thinking_w3.py::test_w3_gemini_thinking_uses_source_controlled_tier_levels
+20 failed, 843 passed, 14 skipped, 5276 deselected in 98.55s (0:01:38)

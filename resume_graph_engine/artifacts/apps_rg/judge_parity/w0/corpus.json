@@ -1,0 +1,2362 @@
+{
+  "real_rows": 153,
+  "by_model": {
+    "gemini-3.8-flash": 131,
+    "gpt-5.6-luna": 22
+  },
+  "failing_rows": 3,
+  "per_lane": {
+    "executive_summary": {
+      "n": 17,
+      "min": 4.2,
+      "max": 4.8
+    },
+    "headline": {
+      "n": 23,
+      "min": 4.3,
+      "max": 5.0
+    },
+    "ibm_bullets": {
+      "n": 14,
+      "min": 4.8,
+      "max": 4.9
+    },
+    "ibm_narrative": {
+      "n": 14,
+      "min": 4.8,
+      "max": 4.8
+    },
+    "insurtech_bullets": {
+      "n": 12,
+      "min": 4.8,
+      "max": 5.0
+    },
+    "insurtech_narrative": {
+      "n": 11,
+      "min": 3.3,
+      "max": 5.0
+    },
+    "slalom_bullets": {
+      "n": 11,
+      "min": 4.6,
+      "max": 4.9
+    },
+    "slalom_narrative": {
+      "n": 11,
+      "min": 4.8,
+      "max": 5.0
+    },
+    "unify_bullets": {
+      "n": 28,
+      "min": 2.0,
+      "max": 4.9
+    },
+    "unify_narrative": {
+      "n": 10,
+      "min": 4.2,
+      "max": 4.9
+    },
+    "unknown": {
+      "n": 2,
+      "min": 4.8,
+      "max": 5.0
+    }
+  },
+  "rows": [
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_0acb8e1555de/lanes/executive_summary/x1d_llm_judge_outputs.json",
+      "file_sha256": "95e031e2cfb56b7bec5770e8bfd394dc125725c0f40ef7117be796c39ccc0e97",
+      "run": "full_resume_0acb8e1555de",
+      "lane": "executive_summary",
+      "judge_id": "x1d_gemini_pro_exec_summary",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "executive_summary_judge_packet_post_x2.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_0acb8e1555de/lanes/executive_summary/x1d_llm_judge_outputs.json",
+      "file_sha256": "95e031e2cfb56b7bec5770e8bfd394dc125725c0f40ef7117be796c39ccc0e97",
+      "run": "full_resume_0acb8e1555de",
+      "lane": "executive_summary",
+      "judge_id": "x1d_openai_chatgpt_exec_summary",
+      "model": "gpt-5.6-luna",
+      "score": 4.2,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "executive_summary_judge_packet_post_x2.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_0acb8e1555de/lanes/headline/x1d_llm_judge_outputs.json",
+      "file_sha256": "62e0f500de6959dc1bf524119c824436f1856e29787c7b5207478b75023335e3",
+      "run": "full_resume_0acb8e1555de",
+      "lane": "headline",
+      "judge_id": "x1d_gemini_pro_headline",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "headline_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_0acb8e1555de/lanes/headline/x1d_llm_judge_outputs.json",
+      "file_sha256": "62e0f500de6959dc1bf524119c824436f1856e29787c7b5207478b75023335e3",
+      "run": "full_resume_0acb8e1555de",
+      "lane": "headline",
+      "judge_id": "x1d_openai_chatgpt_headline",
+      "model": "gpt-5.6-luna",
+      "score": 4.5,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "headline_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_0acb8e1555de/lanes/ibm_bullets/x1d_llm_judge_outputs.json",
+      "file_sha256": "58a5ea447f45ac563f30537e7bc7f3999457e082ee7779639ce51a155de20986",
+      "run": "full_resume_0acb8e1555de",
+      "lane": "ibm_bullets",
+      "judge_id": "x1d_gemini_pro_ibm_bullets",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "ibm_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_0acb8e1555de/lanes/ibm_narrative/x1d_llm_judge_outputs.json",
+      "file_sha256": "5570873a58228551a2fde82abf6128b451e9f6b9d163f3fdce1b067a16bf720c",
+      "run": "full_resume_0acb8e1555de",
+      "lane": "ibm_narrative",
+      "judge_id": "x1d_gemini_pro_ibm_narrative",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "ibm_narrative_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_0acb8e1555de/lanes/insurtech_bullets/x1d_llm_judge_outputs.json",
+      "file_sha256": "1feddb06e8d6ef56e27b7ac9046ed763abc4d402807f61fd9ba8c62fa50894c4",
+      "run": "full_resume_0acb8e1555de",
+      "lane": "insurtech_bullets",
+      "judge_id": "x1d_gemini_pro_insurtech_bullets",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "insurtech_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_0acb8e1555de/lanes/insurtech_narrative/x1d_llm_judge_outputs.json",
+      "file_sha256": "058b14ee3af02402db20aabe528830d18e667f344b215e129def4d7b810abe9b",
+      "run": "full_resume_0acb8e1555de",
+      "lane": "insurtech_narrative",
+      "judge_id": "x1d_gemini_pro_insurtech_narrative",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "insurtech_narrative_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_0acb8e1555de/lanes/slalom_bullets/x1d_llm_judge_outputs.json",
+      "file_sha256": "fabc8abd9a8967de0935a509357c7d0e4070608dd88f44b74ca9a79f2f95eee1",
+      "run": "full_resume_0acb8e1555de",
+      "lane": "slalom_bullets",
+      "judge_id": "x1d_gemini_pro_slalom_bullets",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "slalom_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_0acb8e1555de/lanes/slalom_narrative/x1d_llm_judge_outputs.json",
+      "file_sha256": "2aa51ad4201b2543f0095f01e2f9235b8bd649fea94e038a31535bad251fd009",
+      "run": "full_resume_0acb8e1555de",
+      "lane": "slalom_narrative",
+      "judge_id": "x1d_gemini_pro_slalom_narrative",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "slalom_narrative_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_0acb8e1555de/lanes/unify_bullets/x1d_llm_judge_outputs.json",
+      "file_sha256": "30c3e23de3bdf0bd39048c125b59f05c0fa83b48eb8a5e35712e54546109a5f5",
+      "run": "full_resume_0acb8e1555de",
+      "lane": "unify_bullets",
+      "judge_id": "x1d_gemini_pro_unify_bullets",
+      "model": "gemini-3.8-flash",
+      "score": 4.85,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "unify_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_0acb8e1555de/lanes/unify_bullets/x1d_llm_judge_outputs.json",
+      "file_sha256": "30c3e23de3bdf0bd39048c125b59f05c0fa83b48eb8a5e35712e54546109a5f5",
+      "run": "full_resume_0acb8e1555de",
+      "lane": "unify_bullets",
+      "judge_id": "x1d_gemini_pro_unify_bullets",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "unify_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_0acb8e1555de/lanes/unify_narrative/x1d_llm_judge_outputs.json",
+      "file_sha256": "a8bd54bd92750b0d7efdb0c01d97d8436920c83c5bd13dad8f7750f4bdc01691",
+      "run": "full_resume_0acb8e1555de",
+      "lane": "unify_narrative",
+      "judge_id": "x1d_gemini_pro_unify_narrative",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "unify_narrative_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_0acb8e1555de/modular_r4/sections/ibm_bullets/real/p_d72886/x1d_llm_judge_outputs.json",
+      "file_sha256": "58a5ea447f45ac563f30537e7bc7f3999457e082ee7779639ce51a155de20986",
+      "run": "full_resume_0acb8e1555de",
+      "lane": "ibm_bullets",
+      "judge_id": "x1d_gemini_pro_ibm_bullets",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "ibm_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_26dc33992c37/lanes/headline/x1d_llm_judge_outputs.json",
+      "file_sha256": "06a34ae374b57880cf78a7f5fa54c0fa3f8f41791bfe71e6f2c47a6f74f03490",
+      "run": "full_resume_26dc33992c37",
+      "lane": "headline",
+      "judge_id": "x1d_gemini_pro_headline",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "headline_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_26dc33992c37/lanes/headline/x1d_llm_judge_outputs.json",
+      "file_sha256": "06a34ae374b57880cf78a7f5fa54c0fa3f8f41791bfe71e6f2c47a6f74f03490",
+      "run": "full_resume_26dc33992c37",
+      "lane": "headline",
+      "judge_id": "x1d_openai_chatgpt_headline",
+      "model": "gpt-5.6-luna",
+      "score": 4.6,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "headline_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_26dc33992c37/lanes/ibm_bullets/x1d_llm_judge_outputs.json",
+      "file_sha256": "9643a65ecc0876e43432cae1d3743912448a13251510bf3ee0d4556f84037ad4",
+      "run": "full_resume_26dc33992c37",
+      "lane": "ibm_bullets",
+      "judge_id": "x1d_gemini_pro_ibm_bullets",
+      "model": "gemini-3.8-flash",
+      "score": 4.9,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "ibm_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_26dc33992c37/lanes/ibm_narrative/x1d_llm_judge_outputs.json",
+      "file_sha256": "03452a75ab656ed39aa68034c11fed805fe80124abdaf8bfc60cbb12982c9bc4",
+      "run": "full_resume_26dc33992c37",
+      "lane": "ibm_narrative",
+      "judge_id": "x1d_gemini_pro_ibm_narrative",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "ibm_narrative_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_26dc33992c37/lanes/insurtech_bullets/x1d_llm_judge_outputs.json",
+      "file_sha256": "a0169916ff73eea2219fb8479c5fd0dbb06477e6ef8edb4e6a0a09d7531e8963",
+      "run": "full_resume_26dc33992c37",
+      "lane": "insurtech_bullets",
+      "judge_id": "x1d_gemini_pro_insurtech_bullets",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "insurtech_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_26dc33992c37/lanes/insurtech_narrative/x1d_llm_judge_outputs.json",
+      "file_sha256": "75a0bd62d383eb0ad41f30ea4d6d7c3b78f3258205576afc1cf939e7fec05d68",
+      "run": "full_resume_26dc33992c37",
+      "lane": "insurtech_narrative",
+      "judge_id": "x1d_gemini_pro_insurtech_narrative",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "insurtech_narrative_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_26dc33992c37/lanes/slalom_bullets/x1d_llm_judge_outputs.json",
+      "file_sha256": "fa7034cea374e9d7495b0c41727e699ef2233edcac71659bdef5e58d513a5a62",
+      "run": "full_resume_26dc33992c37",
+      "lane": "slalom_bullets",
+      "judge_id": "x1d_gemini_pro_slalom_bullets",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "slalom_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_26dc33992c37/lanes/slalom_narrative/x1d_llm_judge_outputs.json",
+      "file_sha256": "5dbba826d0088b7e602c828323b9daaa48453c461d2dde7359cc5350d67e722b",
+      "run": "full_resume_26dc33992c37",
+      "lane": "slalom_narrative",
+      "judge_id": "x1d_gemini_pro_slalom_narrative",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "slalom_narrative_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_26dc33992c37/lanes/unify_bullets/x1d_llm_judge_outputs.json",
+      "file_sha256": "667c03081189c92435d6bc36744283a274783acd980d68fd6420a5f8f79d7680",
+      "run": "full_resume_26dc33992c37",
+      "lane": "unify_bullets",
+      "judge_id": "x1d_gemini_pro_unify_bullets",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "unify_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_26dc33992c37/lanes/unify_bullets/x1d_llm_judge_outputs.json",
+      "file_sha256": "667c03081189c92435d6bc36744283a274783acd980d68fd6420a5f8f79d7680",
+      "run": "full_resume_26dc33992c37",
+      "lane": "unify_bullets",
+      "judge_id": "x1d_gemini_pro_unify_bullets",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "unify_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_26dc33992c37/lanes/unify_narrative/x1d_llm_judge_outputs.json",
+      "file_sha256": "33324b7a0fd86ed66022388481fa4e3c11392203072673ac080ee531af70031c",
+      "run": "full_resume_26dc33992c37",
+      "lane": "unify_narrative",
+      "judge_id": "x1d_gemini_pro_unify_narrative",
+      "model": "gemini-3.8-flash",
+      "score": 4.5,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "unify_narrative_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_26dc33992c37/modular_r4/sections/headline/real/p_8a8b3d/x1d_llm_judge_outputs.json",
+      "file_sha256": "06a34ae374b57880cf78a7f5fa54c0fa3f8f41791bfe71e6f2c47a6f74f03490",
+      "run": "full_resume_26dc33992c37",
+      "lane": "headline",
+      "judge_id": "x1d_gemini_pro_headline",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "headline_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_26dc33992c37/modular_r4/sections/headline/real/p_8a8b3d/x1d_llm_judge_outputs.json",
+      "file_sha256": "06a34ae374b57880cf78a7f5fa54c0fa3f8f41791bfe71e6f2c47a6f74f03490",
+      "run": "full_resume_26dc33992c37",
+      "lane": "headline",
+      "judge_id": "x1d_openai_chatgpt_headline",
+      "model": "gpt-5.6-luna",
+      "score": 4.6,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "headline_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_26dc33992c37/modular_r4/sections/ibm_narrative/real/p_379c3b/x1d_llm_judge_outputs.json",
+      "file_sha256": "03452a75ab656ed39aa68034c11fed805fe80124abdaf8bfc60cbb12982c9bc4",
+      "run": "full_resume_26dc33992c37",
+      "lane": "ibm_narrative",
+      "judge_id": "x1d_gemini_pro_ibm_narrative",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "ibm_narrative_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_27ed9cd4890b/x1d_llm_judge_outputs.json",
+      "file_sha256": "a079aa4f4c205a12e1132e9b5cd44b4aa54883262365b5729dce45f9465d80b5",
+      "run": "full_resume_27ed9cd4890b",
+      "lane": "unknown",
+      "judge_id": "x1d_gemini_pro_headline",
+      "model": "gemini-3.8-flash",
+      "score": 5.0,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "headline_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_27ed9cd4890b/x1d_llm_judge_outputs.json",
+      "file_sha256": "a079aa4f4c205a12e1132e9b5cd44b4aa54883262365b5729dce45f9465d80b5",
+      "run": "full_resume_27ed9cd4890b",
+      "lane": "unknown",
+      "judge_id": "x1d_openai_chatgpt_headline",
+      "model": "gpt-5.6-luna",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "headline_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/lanes/executive_summary/x1d_llm_judge_outputs.json",
+      "file_sha256": "566fcc902c296c90aab1a61dbd630584981fa52f396a8774942252616a20db30",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "executive_summary",
+      "judge_id": "x1d_gemini_pro_exec_summary",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "executive_summary_judge_packet_post_x2.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/lanes/executive_summary/x1d_llm_judge_outputs.json",
+      "file_sha256": "566fcc902c296c90aab1a61dbd630584981fa52f396a8774942252616a20db30",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "executive_summary",
+      "judge_id": "x1d_openai_chatgpt_exec_summary",
+      "model": "gpt-5.6-luna",
+      "score": 4.7,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "executive_summary_judge_packet_post_x2.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/lanes/headline/x1d_llm_judge_outputs.json",
+      "file_sha256": "e440083d0587cab0e6e3a92186fccf6bb143b052f257d08e19e0472499dbcc17",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "headline",
+      "judge_id": "x1d_gemini_pro_headline",
+      "model": "gemini-3.8-flash",
+      "score": 4.9,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "headline_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/lanes/headline/x1d_llm_judge_outputs.json",
+      "file_sha256": "e440083d0587cab0e6e3a92186fccf6bb143b052f257d08e19e0472499dbcc17",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "headline",
+      "judge_id": "x1d_openai_chatgpt_headline",
+      "model": "gpt-5.6-luna",
+      "score": 4.3,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "headline_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/lanes/ibm_bullets/x1d_llm_judge_outputs.json",
+      "file_sha256": "7c383dcda956afc0207f07900c6135f221568bdc30ed6fe5f63d36ea52cab7d6",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "ibm_bullets",
+      "judge_id": "x1d_gemini_pro_ibm_bullets",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "ibm_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/lanes/ibm_narrative/x1d_llm_judge_outputs.json",
+      "file_sha256": "20c0097e9a7a010a431548cb00bc8f3d07db73393a04f3b3626b6eefdc711547",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "ibm_narrative",
+      "judge_id": "x1d_gemini_pro_ibm_narrative",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "ibm_narrative_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/lanes/insurtech_bullets/x1d_llm_judge_outputs.json",
+      "file_sha256": "b74299e85d2e160f9ef44c90bc943969af729eb4a06d6a2800eda7882e42ca39",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "insurtech_bullets",
+      "judge_id": "x1d_gemini_pro_insurtech_bullets",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "insurtech_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/lanes/insurtech_narrative/x1d_llm_judge_outputs.json",
+      "file_sha256": "eae5be24a41d0bd3be8b344fb70dce799713b0fbf9362f73f21e2b6f34f6e895",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "insurtech_narrative",
+      "judge_id": "x1d_gemini_pro_insurtech_narrative",
+      "model": "gemini-3.8-flash",
+      "score": 5.0,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "insurtech_narrative_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/lanes/slalom_bullets/x1d_llm_judge_outputs.json",
+      "file_sha256": "bdb3e0ded3e5747d9d47d2b8480c17a48e23745c08baa50e8e6ed8796e517cc3",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "slalom_bullets",
+      "judge_id": "x1d_gemini_pro_slalom_bullets",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "slalom_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/lanes/slalom_narrative/x1d_llm_judge_outputs.json",
+      "file_sha256": "720bf8af8b11ff3e068b40ceb616aedd5701fe92d424874bb3d0bc549dff9c62",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "slalom_narrative",
+      "judge_id": "x1d_gemini_pro_slalom_narrative",
+      "model": "gemini-3.8-flash",
+      "score": 4.9,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "slalom_narrative_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/lanes/unify_bullets/x1d_llm_judge_outputs.json",
+      "file_sha256": "2403ba204af57d2e904e5824e9cae458f1f6053b3a3f94b716e9c5c6fcbb7f61",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "unify_bullets",
+      "judge_id": "x1d_gemini_pro_unify_bullets",
+      "model": "gemini-3.8-flash",
+      "score": 4.85,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "unify_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/lanes/unify_bullets/x1d_llm_judge_outputs.json",
+      "file_sha256": "2403ba204af57d2e904e5824e9cae458f1f6053b3a3f94b716e9c5c6fcbb7f61",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "unify_bullets",
+      "judge_id": "x1d_gemini_pro_unify_bullets",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "unify_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/lanes/unify_narrative/x1d_llm_judge_outputs.json",
+      "file_sha256": "39004de91074a8c351b9aed1cb93268efed39b33c2d8cc91b5d040a6e7540a72",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "unify_narrative",
+      "judge_id": "x1d_gemini_pro_unify_narrative",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "unify_narrative_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/executive_summary/real/p_0be918/x1d_llm_judge_outputs.json",
+      "file_sha256": "305c821f2433f8aa3a717025a5b5be69c74664f74ed9e78746aea59120ce3ea0",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "executive_summary",
+      "judge_id": "x1d_gemini_pro_exec_summary",
+      "model": "gemini-3.8-flash",
+      "score": 4.75,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "executive_summary_judge_packet_post_x2.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/executive_summary/real/p_0be918/x1d_llm_judge_outputs.json",
+      "file_sha256": "305c821f2433f8aa3a717025a5b5be69c74664f74ed9e78746aea59120ce3ea0",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "executive_summary",
+      "judge_id": "x1d_openai_chatgpt_exec_summary",
+      "model": "gpt-5.6-luna",
+      "score": 4.6,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "executive_summary_judge_packet_post_x2.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/executive_summary/real/p_8789f9/x1d_llm_judge_outputs.json",
+      "file_sha256": "7c325ce81e113b2407f67668e970c4a79706e159dfe87b92da79f8d219081920",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "executive_summary",
+      "judge_id": "x1d_gemini_pro_exec_summary",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "executive_summary_judge_packet_post_x2.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/executive_summary/real/p_8789f9/x1d_llm_judge_outputs.json",
+      "file_sha256": "7c325ce81e113b2407f67668e970c4a79706e159dfe87b92da79f8d219081920",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "executive_summary",
+      "judge_id": "x1d_openai_chatgpt_exec_summary",
+      "model": "gpt-5.6-luna",
+      "score": 4.6,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "executive_summary_judge_packet_post_x2.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/executive_summary/real/p_8aea44/x1d_llm_judge_outputs.json",
+      "file_sha256": "566fcc902c296c90aab1a61dbd630584981fa52f396a8774942252616a20db30",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "executive_summary",
+      "judge_id": "x1d_gemini_pro_exec_summary",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "executive_summary_judge_packet_post_x2.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/executive_summary/real/p_8aea44/x1d_llm_judge_outputs.json",
+      "file_sha256": "566fcc902c296c90aab1a61dbd630584981fa52f396a8774942252616a20db30",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "executive_summary",
+      "judge_id": "x1d_openai_chatgpt_exec_summary",
+      "model": "gpt-5.6-luna",
+      "score": 4.7,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "executive_summary_judge_packet_post_x2.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/executive_summary/real/p_af0c4d/x1d_llm_judge_outputs.json",
+      "file_sha256": "010ea8d2ee4f27232a0927d4a0fa571b9226a04ce3e7801f661361d031a356d9",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "executive_summary",
+      "judge_id": "x1d_gemini_pro_exec_summary",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "executive_summary_judge_packet_post_x2.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/executive_summary/real/p_af0c4d/x1d_llm_judge_outputs.json",
+      "file_sha256": "010ea8d2ee4f27232a0927d4a0fa571b9226a04ce3e7801f661361d031a356d9",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "executive_summary",
+      "judge_id": "x1d_openai_chatgpt_exec_summary",
+      "model": "gpt-5.6-luna",
+      "score": 4.6,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "executive_summary_judge_packet_post_x2.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/headline/real/p_1cd411/x1d_llm_judge_outputs.json",
+      "file_sha256": "e440083d0587cab0e6e3a92186fccf6bb143b052f257d08e19e0472499dbcc17",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "headline",
+      "judge_id": "x1d_gemini_pro_headline",
+      "model": "gemini-3.8-flash",
+      "score": 4.9,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "headline_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/headline/real/p_1cd411/x1d_llm_judge_outputs.json",
+      "file_sha256": "e440083d0587cab0e6e3a92186fccf6bb143b052f257d08e19e0472499dbcc17",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "headline",
+      "judge_id": "x1d_openai_chatgpt_headline",
+      "model": "gpt-5.6-luna",
+      "score": 4.3,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "headline_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/headline/real/p_478613/x1d_llm_judge_outputs.json",
+      "file_sha256": "61561987fa75e1857476387b0988d8d0daa5ac183678ae9b03ce8d09ebb0508d",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "headline",
+      "judge_id": "x1d_gemini_pro_headline",
+      "model": "gemini-3.8-flash",
+      "score": 5.0,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "headline_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/headline/real/p_478613/x1d_llm_judge_outputs.json",
+      "file_sha256": "61561987fa75e1857476387b0988d8d0daa5ac183678ae9b03ce8d09ebb0508d",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "headline",
+      "judge_id": "x1d_openai_chatgpt_headline",
+      "model": "gpt-5.6-luna",
+      "score": 5.0,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "headline_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/headline/real/p_ce8913/x1d_llm_judge_outputs.json",
+      "file_sha256": "1c9b3258523d1597ef54eec63ebb97185d85d3b6e0394cfba00f8c62f377c97a",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "headline",
+      "judge_id": "x1d_gemini_pro_headline",
+      "model": "gemini-3.8-flash",
+      "score": 5.0,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "headline_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/headline/real/p_ce8913/x1d_llm_judge_outputs.json",
+      "file_sha256": "1c9b3258523d1597ef54eec63ebb97185d85d3b6e0394cfba00f8c62f377c97a",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "headline",
+      "judge_id": "x1d_openai_chatgpt_headline",
+      "model": "gpt-5.6-luna",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "headline_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/headline/real/p_de16a1/x1d_llm_judge_outputs.json",
+      "file_sha256": "46bcebe6060e821c7d40097508992df9b7b51214c188fd00e7e6cf8561965096",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "headline",
+      "judge_id": "x1d_gemini_pro_headline",
+      "model": "gemini-3.8-flash",
+      "score": 5.0,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "headline_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/headline/real/p_de16a1/x1d_llm_judge_outputs.json",
+      "file_sha256": "46bcebe6060e821c7d40097508992df9b7b51214c188fd00e7e6cf8561965096",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "headline",
+      "judge_id": "x1d_openai_chatgpt_headline",
+      "model": "gpt-5.6-luna",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "headline_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/ibm_bullets/real/p_266755/x1d_llm_judge_outputs.json",
+      "file_sha256": "a792a7f53dbf3f5e1f2cfb68c2137c19844a1223cca5d89f815580e3f9196f0c",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "ibm_bullets",
+      "judge_id": "x1d_gemini_pro_ibm_bullets",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "ibm_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/ibm_bullets/real/p_266755/x1d_llm_judge_outputs.json",
+      "file_sha256": "a792a7f53dbf3f5e1f2cfb68c2137c19844a1223cca5d89f815580e3f9196f0c",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "ibm_bullets",
+      "judge_id": "x1d_gemini_pro_ibm_bullets",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "ibm_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/ibm_bullets/real/p_4e9e77/x1d_llm_judge_outputs.json",
+      "file_sha256": "cf4a8e43a6a4bf0a5d7182db8b9651716b9f0b29c29f58fb634971c6367e8fd1",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "ibm_bullets",
+      "judge_id": "x1d_gemini_pro_ibm_bullets",
+      "model": "gemini-3.8-flash",
+      "score": 4.85,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "ibm_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/ibm_bullets/real/p_940af2/x1d_llm_judge_outputs.json",
+      "file_sha256": "7c383dcda956afc0207f07900c6135f221568bdc30ed6fe5f63d36ea52cab7d6",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "ibm_bullets",
+      "judge_id": "x1d_gemini_pro_ibm_bullets",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "ibm_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/ibm_bullets/real/p_9c8cfb/x1d_llm_judge_outputs.json",
+      "file_sha256": "a70978ad0609d979c4e48a62d9e3e126cfd75c28203a45f6ff8457dfc0ce6a2d",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "ibm_bullets",
+      "judge_id": "x1d_gemini_pro_ibm_bullets",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "ibm_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/ibm_narrative/real/p_0e7198/x1d_llm_judge_outputs.json",
+      "file_sha256": "8c3e5015cf426ea5d4c6264c0748fba57c4967a4299162d7aaf70f037a277745",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "ibm_narrative",
+      "judge_id": "x1d_gemini_pro_ibm_narrative",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "ibm_narrative_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/ibm_narrative/real/p_613517/x1d_llm_judge_outputs.json",
+      "file_sha256": "f705f78af93d816b850d14bbdf1c7e07ee46a3db642978f8de21ae41e07d845d",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "ibm_narrative",
+      "judge_id": "x1d_gemini_pro_ibm_narrative",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "ibm_narrative_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/ibm_narrative/real/p_6a1124/x1d_llm_judge_outputs.json",
+      "file_sha256": "c24e88f21b3eff9764edd13766b2717e593665a75e77931490e199c59bf26738",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "ibm_narrative",
+      "judge_id": "x1d_gemini_pro_ibm_narrative",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "ibm_narrative_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/ibm_narrative/real/p_a24a5c/x1d_llm_judge_outputs.json",
+      "file_sha256": "0fc2a40e93726c453c196ebdb57eb94f7d1b744d8bfc9147f309aa41819bc1d7",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "ibm_narrative",
+      "judge_id": "x1d_gemini_pro_ibm_narrative",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "ibm_narrative_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/ibm_narrative/real/p_a30f29/x1d_llm_judge_outputs.json",
+      "file_sha256": "5bf77d66c062bdcc5a66fec4df89fc251156977c4c12af564309b186931eca48",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "ibm_narrative",
+      "judge_id": "x1d_gemini_pro_ibm_narrative",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "ibm_narrative_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/ibm_narrative/real/p_b9f5da/x1d_llm_judge_outputs.json",
+      "file_sha256": "b81241d120984c168f9ff370f2785f64422e29a30f374614982a1f5588675ac3",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "ibm_narrative",
+      "judge_id": "x1d_gemini_pro_ibm_narrative",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "ibm_narrative_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/ibm_narrative/real/p_c1dfb0/x1d_llm_judge_outputs.json",
+      "file_sha256": "20c0097e9a7a010a431548cb00bc8f3d07db73393a04f3b3626b6eefdc711547",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "ibm_narrative",
+      "judge_id": "x1d_gemini_pro_ibm_narrative",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "ibm_narrative_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/insurtech_bullets/real/p_16a9dd/x1d_llm_judge_outputs.json",
+      "file_sha256": "2d2e2bb58a20aef25de91aa45391a9c2c53723a96542d855e80d21fe12ec2617",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "insurtech_bullets",
+      "judge_id": "x1d_gemini_pro_insurtech_bullets",
+      "model": "gemini-3.8-flash",
+      "score": 5.0,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "insurtech_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/insurtech_bullets/real/p_3457ce/x1d_llm_judge_outputs.json",
+      "file_sha256": "375aeea7bd4ad34e0014840ec6746f2325f142f4f627a523507ce1bcfd86f166",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "insurtech_bullets",
+      "judge_id": "x1d_gemini_pro_insurtech_bullets",
+      "model": "gemini-3.8-flash",
+      "score": 5.0,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "insurtech_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/insurtech_bullets/real/p_41304a/x1d_llm_judge_outputs.json",
+      "file_sha256": "edd2235f25619fd9c15b575711b2f0b46da0330247df49fe5b1174d89f14ff73",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "insurtech_bullets",
+      "judge_id": "x1d_gemini_pro_insurtech_bullets",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "insurtech_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/insurtech_bullets/real/p_749cfd/x1d_llm_judge_outputs.json",
+      "file_sha256": "98abacfb18534cf7fb98de139289c6c9c0285a576ae51439dc0ec331c7c21999",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "insurtech_bullets",
+      "judge_id": "x1d_gemini_pro_insurtech_bullets",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "insurtech_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/insurtech_bullets/real/p_d73086/x1d_llm_judge_outputs.json",
+      "file_sha256": "b74299e85d2e160f9ef44c90bc943969af729eb4a06d6a2800eda7882e42ca39",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "insurtech_bullets",
+      "judge_id": "x1d_gemini_pro_insurtech_bullets",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "insurtech_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/insurtech_narrative/real/p_3b9821/x1d_llm_judge_outputs.json",
+      "file_sha256": "7814187c74fe738f08174f50915f2bc05760a70ffaf4fb629f6055cabc76d7ee",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "insurtech_narrative",
+      "judge_id": "x1d_gemini_pro_insurtech_narrative",
+      "model": "gemini-3.8-flash",
+      "score": 4.9,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "insurtech_narrative_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/insurtech_narrative/real/p_651e2a/x1d_llm_judge_outputs.json",
+      "file_sha256": "94b93d0cde7a9ab0fa40a524c740ee18bad8333ea8b54541fa22ea5525290760",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "insurtech_narrative",
+      "judge_id": "x1d_gemini_pro_insurtech_narrative",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "insurtech_narrative_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/insurtech_narrative/real/p_8daf12/x1d_llm_judge_outputs.json",
+      "file_sha256": "966dabd7e32c950c92a885ad30e961ec640b6336057fc29c9672f77f58cd4d05",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "insurtech_narrative",
+      "judge_id": "x1d_gemini_pro_insurtech_narrative",
+      "model": "gemini-3.8-flash",
+      "score": 5.0,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "insurtech_narrative_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/insurtech_narrative/real/p_ae9746/x1d_llm_judge_outputs.json",
+      "file_sha256": "eae5be24a41d0bd3be8b344fb70dce799713b0fbf9362f73f21e2b6f34f6e895",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "insurtech_narrative",
+      "judge_id": "x1d_gemini_pro_insurtech_narrative",
+      "model": "gemini-3.8-flash",
+      "score": 5.0,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "insurtech_narrative_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/insurtech_narrative/real/p_d24b8c/x1d_llm_judge_outputs.json",
+      "file_sha256": "1e8e1de2e620a260d3ff52a4ee5d7cddacff7f02dfb40adc9c03fc710b9f3891",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "insurtech_narrative",
+      "judge_id": "x1d_gemini_pro_insurtech_narrative",
+      "model": "gemini-3.8-flash",
+      "score": 3.3,
+      "scale": "0_to_5",
+      "pass": false,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "insurtech_narrative_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/slalom_bullets/real/p_0441fe/x1d_llm_judge_outputs.json",
+      "file_sha256": "f7bd01968ab1f6290e34898cf87ea68dd09aaffb3f64ec68faa2049e9243ecff",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "slalom_bullets",
+      "judge_id": "x1d_gemini_pro_slalom_bullets",
+      "model": "gemini-3.8-flash",
+      "score": 4.85,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "slalom_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/slalom_bullets/real/p_072916/x1d_llm_judge_outputs.json",
+      "file_sha256": "bdb3e0ded3e5747d9d47d2b8480c17a48e23745c08baa50e8e6ed8796e517cc3",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "slalom_bullets",
+      "judge_id": "x1d_gemini_pro_slalom_bullets",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "slalom_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/slalom_bullets/real/p_3c43aa/x1d_llm_judge_outputs.json",
+      "file_sha256": "184d5d20f5a428539ce509a338b040df96e68db506e1623f4bfba1d606f2a064",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "slalom_bullets",
+      "judge_id": "x1d_gemini_pro_slalom_bullets",
+      "model": "gemini-3.8-flash",
+      "score": 4.9,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "slalom_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/slalom_bullets/real/p_5fee1b/x1d_llm_judge_outputs.json",
+      "file_sha256": "035e5d452cf874f3e24f63a4f2c22e7a54f2fe3f87dcd3e4981944029778ea0a",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "slalom_bullets",
+      "judge_id": "x1d_gemini_pro_slalom_bullets",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "slalom_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/slalom_bullets/real/p_de61e1/x1d_llm_judge_outputs.json",
+      "file_sha256": "2135fd7eee78bf336ef2dd021d84aa82e821904abb87d8388f9eb4f0bf526d14",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "slalom_bullets",
+      "judge_id": "x1d_gemini_pro_slalom_bullets",
+      "model": "gemini-3.8-flash",
+      "score": 4.6,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "slalom_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/slalom_narrative/real/p_408246/x1d_llm_judge_outputs.json",
+      "file_sha256": "6d4f902544a46334755c5d064aeebbcef9b8b7d55f1ebfb01c9f26d26976710f",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "slalom_narrative",
+      "judge_id": "x1d_gemini_pro_slalom_narrative",
+      "model": "gemini-3.8-flash",
+      "score": 5.0,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "slalom_narrative_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/slalom_narrative/real/p_4f7110/x1d_llm_judge_outputs.json",
+      "file_sha256": "720bf8af8b11ff3e068b40ceb616aedd5701fe92d424874bb3d0bc549dff9c62",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "slalom_narrative",
+      "judge_id": "x1d_gemini_pro_slalom_narrative",
+      "model": "gemini-3.8-flash",
+      "score": 4.9,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "slalom_narrative_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/slalom_narrative/real/p_77a0f2/x1d_llm_judge_outputs.json",
+      "file_sha256": "8879d8c67ac1329c840ebaba784e8fc5427b3a4b7dc775e6e8969105763ae5c8",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "slalom_narrative",
+      "judge_id": "x1d_gemini_pro_slalom_narrative",
+      "model": "gemini-3.8-flash",
+      "score": 5.0,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "slalom_narrative_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/slalom_narrative/real/p_bf6c09/x1d_llm_judge_outputs.json",
+      "file_sha256": "7cf1493eb5188e92cb1adcd1645c62c904da638531653916c4f2d017b5e4fe5d",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "slalom_narrative",
+      "judge_id": "x1d_gemini_pro_slalom_narrative",
+      "model": "gemini-3.8-flash",
+      "score": 5.0,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "slalom_narrative_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/unify_bullets/real/p_0c41e8/x1d_llm_judge_outputs.json",
+      "file_sha256": "5204e97c5abc1df016dc28ee4ee3d73a5b6fd3c937cab711e03645329a3d053a",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "unify_bullets",
+      "judge_id": "x1d_gemini_pro_unify_bullets",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "unify_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/unify_bullets/real/p_255977/x1d_llm_judge_outputs.json",
+      "file_sha256": "d69b5f17545f11ca74f6c54649ccda3a8d7be964961ebcb0041bffca1c308b52",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "unify_bullets",
+      "judge_id": "x1d_gemini_pro_unify_bullets",
+      "model": "gemini-3.8-flash",
+      "score": 2.5,
+      "scale": "0_to_5",
+      "pass": false,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "unify_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/unify_bullets/real/p_255977/x1d_llm_judge_outputs.json",
+      "file_sha256": "d69b5f17545f11ca74f6c54649ccda3a8d7be964961ebcb0041bffca1c308b52",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "unify_bullets",
+      "judge_id": "x1d_gemini_pro_unify_bullets",
+      "model": "gemini-3.8-flash",
+      "score": 2.0,
+      "scale": "0_to_5",
+      "pass": false,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "unify_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/unify_bullets/real/p_42a0b7/x1d_llm_judge_outputs.json",
+      "file_sha256": "2ea71216bbdcae4d2634ce4a1a54d0fac7cba9786aab0f42aed8336920ae7ec8",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "unify_bullets",
+      "judge_id": "x1d_gemini_pro_unify_bullets",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "unify_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/unify_bullets/real/p_42a0b7/x1d_llm_judge_outputs.json",
+      "file_sha256": "2ea71216bbdcae4d2634ce4a1a54d0fac7cba9786aab0f42aed8336920ae7ec8",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "unify_bullets",
+      "judge_id": "x1d_gemini_pro_unify_bullets",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "unify_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/unify_bullets/real/p_4abf5d/x1d_llm_judge_outputs.json",
+      "file_sha256": "6f2255679bbb8d21871335a216ead721acd06b0210b22b39761b8b473569b693",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "unify_bullets",
+      "judge_id": "x1d_gemini_pro_unify_bullets",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "unify_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/unify_bullets/real/p_4abf5d/x1d_llm_judge_outputs.json",
+      "file_sha256": "6f2255679bbb8d21871335a216ead721acd06b0210b22b39761b8b473569b693",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "unify_bullets",
+      "judge_id": "x1d_gemini_pro_unify_bullets",
+      "model": "gemini-3.8-flash",
+      "score": 4.85,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "unify_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/unify_bullets/real/p_7e0407/x1d_llm_judge_outputs.json",
+      "file_sha256": "9b81341c989ee9c9a89417c5eb82d1e1209fe1367cc0247a149b5a184d09add9",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "unify_bullets",
+      "judge_id": "x1d_gemini_pro_unify_bullets",
+      "model": "gemini-3.8-flash",
+      "score": 4.7,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "unify_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/unify_bullets/real/p_7e0407/x1d_llm_judge_outputs.json",
+      "file_sha256": "9b81341c989ee9c9a89417c5eb82d1e1209fe1367cc0247a149b5a184d09add9",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "unify_bullets",
+      "judge_id": "x1d_gemini_pro_unify_bullets",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "unify_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/unify_bullets/real/p_93f950/x1d_llm_judge_outputs.json",
+      "file_sha256": "38f5d40b804ad958aae1484fafe7aa3e7ba0cf742f1e6ff27418ae49e381641b",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "unify_bullets",
+      "judge_id": "x1d_gemini_pro_unify_bullets",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "unify_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/unify_bullets/real/p_df8601/x1d_llm_judge_outputs.json",
+      "file_sha256": "2403ba204af57d2e904e5824e9cae458f1f6053b3a3f94b716e9c5c6fcbb7f61",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "unify_bullets",
+      "judge_id": "x1d_gemini_pro_unify_bullets",
+      "model": "gemini-3.8-flash",
+      "score": 4.85,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "unify_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/unify_bullets/real/p_df8601/x1d_llm_judge_outputs.json",
+      "file_sha256": "2403ba204af57d2e904e5824e9cae458f1f6053b3a3f94b716e9c5c6fcbb7f61",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "unify_bullets",
+      "judge_id": "x1d_gemini_pro_unify_bullets",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "unify_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/unify_bullets/real/p_f4f509/x1d_llm_judge_outputs.json",
+      "file_sha256": "96f109f89c1fe1af2bba0087d3401c011fb18617390f425adc423a2f99bd83ef",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "unify_bullets",
+      "judge_id": "x1d_gemini_pro_unify_bullets",
+      "model": "gemini-3.8-flash",
+      "score": 4.4,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "unify_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/unify_bullets/real/p_f4f509/x1d_llm_judge_outputs.json",
+      "file_sha256": "96f109f89c1fe1af2bba0087d3401c011fb18617390f425adc423a2f99bd83ef",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "unify_bullets",
+      "judge_id": "x1d_gemini_pro_unify_bullets",
+      "model": "gemini-3.8-flash",
+      "score": 4.6,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "unify_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/unify_narrative/real/p_1c99a4/x1d_llm_judge_outputs.json",
+      "file_sha256": "c8e586cf2f369d713bb2854b31064a6eebe6da6f6113f0740d0090f3a90d2457",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "unify_narrative",
+      "judge_id": "x1d_gemini_pro_unify_narrative",
+      "model": "gemini-3.8-flash",
+      "score": 4.2,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "unify_narrative_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/unify_narrative/real/p_5b8732/x1d_llm_judge_outputs.json",
+      "file_sha256": "938e609f94c4be12bac332ed53e61dc09950902b611debc52672d1448c1ac9fb",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "unify_narrative",
+      "judge_id": "x1d_gemini_pro_unify_narrative",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "unify_narrative_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/unify_narrative/real/p_ae4b99/x1d_llm_judge_outputs.json",
+      "file_sha256": "39004de91074a8c351b9aed1cb93268efed39b33c2d8cc91b5d040a6e7540a72",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "unify_narrative",
+      "judge_id": "x1d_gemini_pro_unify_narrative",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "unify_narrative_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/unify_narrative/real/p_e24c9c/x1d_llm_judge_outputs.json",
+      "file_sha256": "fe51d2f20df502b22aa8a01cb0c3bf16eb60f3b086a6a2ad84af49d9610b20ef",
+      "run": "full_resume_35a7d3b57dd1",
+      "lane": "unify_narrative",
+      "judge_id": "x1d_gemini_pro_unify_narrative",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "unify_narrative_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_9ec2cf600e68/lanes/executive_summary/x1d_llm_judge_outputs.json",
+      "file_sha256": "cf436cc0df8116c357e63ce5afe56072ea7ced0b19944706f9f40b20d047818a",
+      "run": "full_resume_9ec2cf600e68",
+      "lane": "executive_summary",
+      "judge_id": "x1d_gemini_pro_exec_summary",
+      "model": "gemini-3.8-flash",
+      "score": 4.7,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "model_name_fallback",
+      "packets_in_dir": [
+        "executive_summary_judge_packet_post_x2.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_9ec2cf600e68/lanes/executive_summary/x1d_llm_judge_outputs.json",
+      "file_sha256": "cf436cc0df8116c357e63ce5afe56072ea7ced0b19944706f9f40b20d047818a",
+      "run": "full_resume_9ec2cf600e68",
+      "lane": "executive_summary",
+      "judge_id": "x1d_openai_chatgpt_exec_summary",
+      "model": "gpt-5.6-luna",
+      "score": 4.7,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "model_name_fallback",
+      "packets_in_dir": [
+        "executive_summary_judge_packet_post_x2.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_9ec2cf600e68/lanes/headline/x1d_llm_judge_outputs.json",
+      "file_sha256": "801b64af0519605c8c4ae464e4dc9a69ddba605d94c0113d0d3eeca72159baaa",
+      "run": "full_resume_9ec2cf600e68",
+      "lane": "headline",
+      "judge_id": "x1d_gemini_pro_headline",
+      "model": "gemini-3.8-flash",
+      "score": 4.9,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "model_name_fallback",
+      "packets_in_dir": [
+        "headline_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_9ec2cf600e68/lanes/headline/x1d_llm_judge_outputs.json",
+      "file_sha256": "801b64af0519605c8c4ae464e4dc9a69ddba605d94c0113d0d3eeca72159baaa",
+      "run": "full_resume_9ec2cf600e68",
+      "lane": "headline",
+      "judge_id": "x1d_openai_chatgpt_headline",
+      "model": "gpt-5.6-luna",
+      "score": 4.6,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "model_name_fallback",
+      "packets_in_dir": [
+        "headline_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_9ec2cf600e68/lanes/ibm_bullets/x1d_llm_judge_outputs.json",
+      "file_sha256": "ac99dbfb8b4b75c39d5a5fd068e0533746447a69fc1023f3f5dcebcd653023e0",
+      "run": "full_resume_9ec2cf600e68",
+      "lane": "ibm_bullets",
+      "judge_id": "x1d_gemini_pro_ibm_bullets",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "model_name_fallback",
+      "packets_in_dir": [
+        "ibm_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_9ec2cf600e68/lanes/ibm_narrative/x1d_llm_judge_outputs.json",
+      "file_sha256": "3146f308f202a947b186834dd96abbf1d6fb81971d4759897073233ce733cb37",
+      "run": "full_resume_9ec2cf600e68",
+      "lane": "ibm_narrative",
+      "judge_id": "x1d_gemini_pro_ibm_narrative",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "model_name_fallback",
+      "packets_in_dir": [
+        "ibm_narrative_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_9ec2cf600e68/lanes/insurtech_bullets/x1d_llm_judge_outputs.json",
+      "file_sha256": "da75944f7867c47fcb48a32aa336ee2eba7ac2a3a3af57afa4373ab6f35f5b41",
+      "run": "full_resume_9ec2cf600e68",
+      "lane": "insurtech_bullets",
+      "judge_id": "x1d_gemini_pro_insurtech_bullets",
+      "model": "gemini-3.8-flash",
+      "score": 4.9,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "model_name_fallback",
+      "packets_in_dir": [
+        "insurtech_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_9ec2cf600e68/lanes/insurtech_narrative/x1d_llm_judge_outputs.json",
+      "file_sha256": "f0843383ce6f4007f0dee8f54f9d661efb5c5e1baef2797fa1848ce8e175482c",
+      "run": "full_resume_9ec2cf600e68",
+      "lane": "insurtech_narrative",
+      "judge_id": "x1d_gemini_pro_insurtech_narrative",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "model_name_fallback",
+      "packets_in_dir": [
+        "insurtech_narrative_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_9ec2cf600e68/lanes/slalom_bullets/x1d_llm_judge_outputs.json",
+      "file_sha256": "a3f0edf2d472e8035663be335226d70ba2a73c542f554338d3dc602df2d7a945",
+      "run": "full_resume_9ec2cf600e68",
+      "lane": "slalom_bullets",
+      "judge_id": "x1d_gemini_pro_slalom_bullets",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "model_name_fallback",
+      "packets_in_dir": [
+        "slalom_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_9ec2cf600e68/lanes/slalom_narrative/x1d_llm_judge_outputs.json",
+      "file_sha256": "7b4bbbf88d6f7b1a0ef12b4705516b765d7f54e371aa229b95007f133bf5f5a5",
+      "run": "full_resume_9ec2cf600e68",
+      "lane": "slalom_narrative",
+      "judge_id": "x1d_gemini_pro_slalom_narrative",
+      "model": "gemini-3.8-flash",
+      "score": 4.9,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "model_name_fallback",
+      "packets_in_dir": [
+        "slalom_narrative_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_9ec2cf600e68/lanes/unify_bullets/x1d_llm_judge_outputs.json",
+      "file_sha256": "be41b9feccab31c4f857f71ac0947fce9411d29b0e22c19360a225b110f171f5",
+      "run": "full_resume_9ec2cf600e68",
+      "lane": "unify_bullets",
+      "judge_id": "x1d_gemini_pro_unify_bullets",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "model_name_fallback",
+      "packets_in_dir": [
+        "unify_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_9ec2cf600e68/lanes/unify_bullets/x1d_llm_judge_outputs.json",
+      "file_sha256": "be41b9feccab31c4f857f71ac0947fce9411d29b0e22c19360a225b110f171f5",
+      "run": "full_resume_9ec2cf600e68",
+      "lane": "unify_bullets",
+      "judge_id": "x1d_gemini_pro_unify_bullets",
+      "model": "gemini-3.8-flash",
+      "score": 4.85,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "model_name_fallback",
+      "packets_in_dir": [
+        "unify_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_9ec2cf600e68/lanes/unify_narrative/x1d_llm_judge_outputs.json",
+      "file_sha256": "30f9530d3e45d985b9913e611512a7da8623f726fc8b6f7a2033c758570f0500",
+      "run": "full_resume_9ec2cf600e68",
+      "lane": "unify_narrative",
+      "judge_id": "x1d_gemini_pro_unify_narrative",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "model_name_fallback",
+      "packets_in_dir": [
+        "unify_narrative_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_9ec2cf600e68/modular_r4/sections/ibm_bullets/real/p_ef742b/x1d_llm_judge_outputs.json",
+      "file_sha256": "ac99dbfb8b4b75c39d5a5fd068e0533746447a69fc1023f3f5dcebcd653023e0",
+      "run": "full_resume_9ec2cf600e68",
+      "lane": "ibm_bullets",
+      "judge_id": "x1d_gemini_pro_ibm_bullets",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "model_name_fallback",
+      "packets_in_dir": [
+        "ibm_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_9ec2cf600e68/modular_r4/sections/slalom_narrative/real/p_392571/x1d_llm_judge_outputs.json",
+      "file_sha256": "7b4bbbf88d6f7b1a0ef12b4705516b765d7f54e371aa229b95007f133bf5f5a5",
+      "run": "full_resume_9ec2cf600e68",
+      "lane": "slalom_narrative",
+      "judge_id": "x1d_gemini_pro_slalom_narrative",
+      "model": "gemini-3.8-flash",
+      "score": 4.9,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "model_name_fallback",
+      "packets_in_dir": [
+        "slalom_narrative_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_9ec2cf600e68/modular_r4/sections/unify_bullets/real/p_60dff5/x1d_llm_judge_outputs.json",
+      "file_sha256": "be41b9feccab31c4f857f71ac0947fce9411d29b0e22c19360a225b110f171f5",
+      "run": "full_resume_9ec2cf600e68",
+      "lane": "unify_bullets",
+      "judge_id": "x1d_gemini_pro_unify_bullets",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "model_name_fallback",
+      "packets_in_dir": [
+        "unify_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_9ec2cf600e68/modular_r4/sections/unify_bullets/real/p_60dff5/x1d_llm_judge_outputs.json",
+      "file_sha256": "be41b9feccab31c4f857f71ac0947fce9411d29b0e22c19360a225b110f171f5",
+      "run": "full_resume_9ec2cf600e68",
+      "lane": "unify_bullets",
+      "judge_id": "x1d_gemini_pro_unify_bullets",
+      "model": "gemini-3.8-flash",
+      "score": 4.85,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "model_name_fallback",
+      "packets_in_dir": [
+        "unify_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_b73d94c0f350/lanes/headline/x1d_llm_judge_outputs.json",
+      "file_sha256": "fc39067f912349ed691c9236ff7da37a3b55b3534abbde0ed672267d016ceddb",
+      "run": "full_resume_b73d94c0f350",
+      "lane": "headline",
+      "judge_id": "x1d_gemini_pro_headline",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "headline_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_b73d94c0f350/lanes/headline/x1d_llm_judge_outputs.json",
+      "file_sha256": "fc39067f912349ed691c9236ff7da37a3b55b3534abbde0ed672267d016ceddb",
+      "run": "full_resume_b73d94c0f350",
+      "lane": "headline",
+      "judge_id": "x1d_openai_chatgpt_headline",
+      "model": "gpt-5.6-luna",
+      "score": 4.6,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "headline_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_b73d94c0f350/lanes/ibm_bullets/x1d_llm_judge_outputs.json",
+      "file_sha256": "cf863d317de95ab4835b0920777ca21a8ee0476d08bf7f78d165fa035e8efb11",
+      "run": "full_resume_b73d94c0f350",
+      "lane": "ibm_bullets",
+      "judge_id": "x1d_gemini_pro_ibm_bullets",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "ibm_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_b73d94c0f350/lanes/ibm_narrative/x1d_llm_judge_outputs.json",
+      "file_sha256": "36a25a1390e0dca2ecb979e493b31bb30f32d22a243a534c3168d30233925560",
+      "run": "full_resume_b73d94c0f350",
+      "lane": "ibm_narrative",
+      "judge_id": "x1d_gemini_pro_ibm_narrative",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "ibm_narrative_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_b73d94c0f350/lanes/insurtech_bullets/x1d_llm_judge_outputs.json",
+      "file_sha256": "db1fda9bf6933807e8ef5c6edc76ac97e969644a3d615fb11a4f5bc23951c5c2",
+      "run": "full_resume_b73d94c0f350",
+      "lane": "insurtech_bullets",
+      "judge_id": "x1d_gemini_pro_insurtech_bullets",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "insurtech_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_b73d94c0f350/lanes/insurtech_narrative/x1d_llm_judge_outputs.json",
+      "file_sha256": "416d3544a7c45ee2d6d54a578c6a63011eac9c3023c7112e426d614db407aa30",
+      "run": "full_resume_b73d94c0f350",
+      "lane": "insurtech_narrative",
+      "judge_id": "x1d_gemini_pro_insurtech_narrative",
+      "model": "gemini-3.8-flash",
+      "score": 5.0,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "insurtech_narrative_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_b73d94c0f350/lanes/slalom_bullets/x1d_llm_judge_outputs.json",
+      "file_sha256": "cd68a8d0dc6105cc4bf7ac5d009c98bb19f0016fe509996a5c4a2ba92d286b6f",
+      "run": "full_resume_b73d94c0f350",
+      "lane": "slalom_bullets",
+      "judge_id": "x1d_gemini_pro_slalom_bullets",
+      "model": "gemini-3.8-flash",
+      "score": 4.9,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "slalom_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_b73d94c0f350/lanes/slalom_narrative/x1d_llm_judge_outputs.json",
+      "file_sha256": "f9d46ca45b565211826d6fdd176ba1c2cce2d69f8e07924e3c28f973f0d6ce89",
+      "run": "full_resume_b73d94c0f350",
+      "lane": "slalom_narrative",
+      "judge_id": "x1d_gemini_pro_slalom_narrative",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "slalom_narrative_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_b73d94c0f350/lanes/unify_bullets/x1d_llm_judge_outputs.json",
+      "file_sha256": "d06fc35cb02ff51549f8ac7db70138aaee299054c7fb0387eec28dc7252a7edb",
+      "run": "full_resume_b73d94c0f350",
+      "lane": "unify_bullets",
+      "judge_id": "x1d_gemini_pro_unify_bullets",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "unify_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_b73d94c0f350/lanes/unify_bullets/x1d_llm_judge_outputs.json",
+      "file_sha256": "d06fc35cb02ff51549f8ac7db70138aaee299054c7fb0387eec28dc7252a7edb",
+      "run": "full_resume_b73d94c0f350",
+      "lane": "unify_bullets",
+      "judge_id": "x1d_gemini_pro_unify_bullets",
+      "model": "gemini-3.8-flash",
+      "score": 4.85,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "unify_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_b73d94c0f350/lanes/unify_narrative/x1d_llm_judge_outputs.json",
+      "file_sha256": "023033913c794daa2a40e0bbc52a3d93407d0ec8fcbd4f53182de0c807c8e992",
+      "run": "full_resume_b73d94c0f350",
+      "lane": "unify_narrative",
+      "judge_id": "x1d_gemini_pro_unify_narrative",
+      "model": "gemini-3.8-flash",
+      "score": 4.9,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "unify_narrative_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_cd648714e53e/lanes/executive_summary/x1d_llm_judge_outputs.json",
+      "file_sha256": "e3f95e044eac38664fb396f4f1e7df6b22fd11cfcfaffdacb702eca5e1d6de7a",
+      "run": "full_resume_cd648714e53e",
+      "lane": "executive_summary",
+      "judge_id": "x1d_gemini_pro_exec_summary",
+      "model": "gemini-3.8-flash",
+      "score": 4.7,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "executive_summary_judge_packet_post_x2.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_cd648714e53e/lanes/executive_summary/x1d_llm_judge_outputs.json",
+      "file_sha256": "e3f95e044eac38664fb396f4f1e7df6b22fd11cfcfaffdacb702eca5e1d6de7a",
+      "run": "full_resume_cd648714e53e",
+      "lane": "executive_summary",
+      "judge_id": "x1d_openai_chatgpt_exec_summary",
+      "model": "gpt-5.6-luna",
+      "score": 4.7,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "executive_summary_judge_packet_post_x2.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_cd648714e53e/lanes/headline/x1d_llm_judge_outputs.json",
+      "file_sha256": "c64cc01fc42e7d6e7e6f5a9818753fd9d26d5c60bd97b5ee9e3f0eb2066f6333",
+      "run": "full_resume_cd648714e53e",
+      "lane": "headline",
+      "judge_id": "x1d_gemini_pro_headline",
+      "model": "gemini-3.8-flash",
+      "score": 5.0,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "headline_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_cd648714e53e/lanes/headline/x1d_llm_judge_outputs.json",
+      "file_sha256": "c64cc01fc42e7d6e7e6f5a9818753fd9d26d5c60bd97b5ee9e3f0eb2066f6333",
+      "run": "full_resume_cd648714e53e",
+      "lane": "headline",
+      "judge_id": "x1d_openai_chatgpt_headline",
+      "model": "gpt-5.6-luna",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "headline_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_cd648714e53e/lanes/ibm_bullets/x1d_llm_judge_outputs.json",
+      "file_sha256": "809a08afeff5f74c7d9fea6fc4dc77f2d66c56a34c1583cdfa9595e1dd509df8",
+      "run": "full_resume_cd648714e53e",
+      "lane": "ibm_bullets",
+      "judge_id": "x1d_gemini_pro_ibm_bullets",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "ibm_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_cd648714e53e/lanes/ibm_narrative/x1d_llm_judge_outputs.json",
+      "file_sha256": "5fb2d01205282b0db53256182cce875a7a2b6e56f99ef99ed938c9920f6e25f5",
+      "run": "full_resume_cd648714e53e",
+      "lane": "ibm_narrative",
+      "judge_id": "x1d_gemini_pro_ibm_narrative",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "ibm_narrative_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_cd648714e53e/lanes/insurtech_bullets/x1d_llm_judge_outputs.json",
+      "file_sha256": "05193ad3b772d147be606baf11bdbb15d5aaa94c5fee78a5ce2ba22e4450fc22",
+      "run": "full_resume_cd648714e53e",
+      "lane": "insurtech_bullets",
+      "judge_id": "x1d_gemini_pro_insurtech_bullets",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "insurtech_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_cd648714e53e/lanes/insurtech_narrative/x1d_llm_judge_outputs.json",
+      "file_sha256": "58be9b710a3a44ea62f3ae5a993b5088bb10d47aab05e81384e92a3f47cba360",
+      "run": "full_resume_cd648714e53e",
+      "lane": "insurtech_narrative",
+      "judge_id": "x1d_gemini_pro_insurtech_narrative",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "insurtech_narrative_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_cd648714e53e/lanes/slalom_bullets/x1d_llm_judge_outputs.json",
+      "file_sha256": "4d4f69086f42667b374b61ec7f8a37e3c039287ecdec80989cc55e9ca61834ed",
+      "run": "full_resume_cd648714e53e",
+      "lane": "slalom_bullets",
+      "judge_id": "x1d_gemini_pro_slalom_bullets",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "slalom_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_cd648714e53e/lanes/slalom_narrative/x1d_llm_judge_outputs.json",
+      "file_sha256": "8f3159488a15ebf7e26770ac7f9ccd178f4b0d47d14ee8e8d60a62df7c01914b",
+      "run": "full_resume_cd648714e53e",
+      "lane": "slalom_narrative",
+      "judge_id": "x1d_gemini_pro_slalom_narrative",
+      "model": "gemini-3.8-flash",
+      "score": 5.0,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "slalom_narrative_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_cd648714e53e/lanes/unify_bullets/x1d_llm_judge_outputs.json",
+      "file_sha256": "9858c78a6a24a93378c784c40bc133ffb373ca3391d380dfc531077fbc5fed27",
+      "run": "full_resume_cd648714e53e",
+      "lane": "unify_bullets",
+      "judge_id": "x1d_gemini_pro_unify_bullets",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "unify_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_cd648714e53e/lanes/unify_bullets/x1d_llm_judge_outputs.json",
+      "file_sha256": "9858c78a6a24a93378c784c40bc133ffb373ca3391d380dfc531077fbc5fed27",
+      "run": "full_resume_cd648714e53e",
+      "lane": "unify_bullets",
+      "judge_id": "x1d_gemini_pro_unify_bullets",
+      "model": "gemini-3.8-flash",
+      "score": 4.9,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "unify_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_cd648714e53e/lanes/unify_narrative/x1d_llm_judge_outputs.json",
+      "file_sha256": "4ebce97be62f33533bef92dccc43f68fffd6cf93dd09c7e72df2ed973c2e9f09",
+      "run": "full_resume_cd648714e53e",
+      "lane": "unify_narrative",
+      "judge_id": "x1d_gemini_pro_unify_narrative",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "unify_narrative_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_cd648714e53e/modular_r4/sections/ibm_bullets/real/p_06614b/x1d_llm_judge_outputs.json",
+      "file_sha256": "809a08afeff5f74c7d9fea6fc4dc77f2d66c56a34c1583cdfa9595e1dd509df8",
+      "run": "full_resume_cd648714e53e",
+      "lane": "ibm_bullets",
+      "judge_id": "x1d_gemini_pro_ibm_bullets",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "ibm_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_cd648714e53e/modular_r4/sections/insurtech_bullets/real/p_140a21/x1d_llm_judge_outputs.json",
+      "file_sha256": "05193ad3b772d147be606baf11bdbb15d5aaa94c5fee78a5ce2ba22e4450fc22",
+      "run": "full_resume_cd648714e53e",
+      "lane": "insurtech_bullets",
+      "judge_id": "x1d_gemini_pro_insurtech_bullets",
+      "model": "gemini-3.8-flash",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "insurtech_bullets_judge_packet.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/truist_judge_verify_20261118/modular_r4/sections/executive_summary/real/p_50cbfd/x1d_llm_judge_outputs.json",
+      "file_sha256": "2fcf76ea803b24d1498fa68577953d2d4cf39d70958db3b36c3e4d6a56001394",
+      "run": "truist_judge_verify_20261118",
+      "lane": "executive_summary",
+      "judge_id": "x1d_openai_chatgpt_exec_summary",
+      "model": "gpt-5.6-luna",
+      "score": 4.7,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "executive_summary_judge_packet_post_x2.json"
+      ]
+    },
+    {
+      "file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/truist_judge_verify_20261118/modular_r4/sections/headline/real/p_4f49ff/x1d_llm_judge_outputs.json",
+      "file_sha256": "3d76559ccabdc03393076dbbd8ab6501d6766d5f26ac9d4b3a66ba683474d980",
+      "run": "truist_judge_verify_20261118",
+      "lane": "headline",
+      "judge_id": "x1d_openai_chatgpt_headline",
+      "model": "gpt-5.6-luna",
+      "score": 4.8,
+      "scale": "0_to_5",
+      "pass": true,
+      "detected_by": "raw_response",
+      "packets_in_dir": [
+        "headline_judge_packet.json"
+      ]
+    }
+  ]
+}

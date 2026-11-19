@@ -300,11 +300,31 @@ def _call_llm_repair(
     model: str = DEFAULT_REPAIR_MODEL,
 ) -> dict[str, Any] | None:
     """Call Claude (drafter) or cross-family OpenAI (auditor) model for repair pass via standard transport."""
-    from apps_rg.runtime.providers.inprocess_ide_provider import is_inprocess_ide_model
+    from apps_rg.runtime.providers.ide_cli_generation import (
+        ide_cli_generation_unavailable_reason,
+        uses_ide_cli_generation,
+    )
 
     is_openai_auditor = str(model).startswith("gpt-") or model == DEFAULT_AUDITOR_MODEL
-    if not is_openai_auditor and is_inprocess_ide_model(model):
-        return None
+    if not is_openai_auditor and uses_ide_cli_generation(os.environ, model=model):
+        if ide_cli_generation_unavailable_reason(os.environ):
+            return None
+        try:
+            from apps_rg.runtime.providers.agy_cli_transport import run_agy
+            from apps_rg.runtime.providers.ide_cli_generation import resolve_ide_cli_generation_slug
+
+            cli_res = run_agy(
+                f"{prompt}\n\nReturn ONLY valid JSON with no markdown fences and no tool calls.",
+                model=resolve_ide_cli_generation_slug(model),
+                timeout_s=120,
+            )
+            clean = str(cli_res.response or "").strip()
+            if clean.startswith("```"):
+                clean = re.sub(r"^```(?:json)?\s*", "", clean)
+                clean = re.sub(r"\s*```$", "", clean)
+            return json.loads(clean)
+        except Exception:  # guardian: allow-broad-exception -- optional voice repair returns None on CLI or parse failure
+            return None
     api_key = (
         (os.environ.get("OPENAI_API_KEY") or os.environ.get("ANTHROPIC_API_KEY"))
         if is_openai_auditor

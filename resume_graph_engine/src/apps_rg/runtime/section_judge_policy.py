@@ -318,17 +318,36 @@ def normalize_section_id(section_id: str) -> str:
     return _SECTION_ID_NORMALIZATION_MAP.get(sid, sid)
 
 
+def _apply_transport_panel_override(policy: SectionJudgePolicy) -> SectionJudgePolicy:
+    if not policy.judge_required_for_proof:
+        return policy
+    from apps_rg.runtime.judges.x1d_ide_cli import uses_ide_cli_judges
+
+    if uses_ide_cli_judges() and policy.required_judge_providers != _DUAL_JUDGE_PANEL:
+        return SectionJudgePolicy(
+            section_name=policy.section_name,
+            generator_model_class=policy.generator_model_class,
+            judge_required_for_proof=policy.judge_required_for_proof,
+            judge_tier=policy.judge_tier,
+            required_judge_providers=_DUAL_JUDGE_PANEL,
+            judge_packet_required=policy.judge_packet_required,
+            grade_only_required=policy.grade_only_required,
+            fallback_policy=policy.fallback_policy,
+        )
+    return policy
+
+
 def get_section_judge_policy(section_id: str) -> SectionJudgePolicy:
     sid = normalize_section_id(section_id)
     policy = _SECTION_POLICIES.get(sid)
     if policy is None:
         raise KeyError(f"Unknown apps_rg section for judge policy: {section_id!r}")
-    return policy
+    return _apply_transport_panel_override(policy)
 
 
 def all_canonical_section_policies() -> dict[str, SectionJudgePolicy]:
     """Return the canonical section policy matrix."""
-    return dict(_SECTION_POLICIES)
+    return {sid: _apply_transport_panel_override(p) for sid, p in _SECTION_POLICIES.items()}
 
 
 def policy_matrix_export() -> dict[str, dict[str, Any]]:

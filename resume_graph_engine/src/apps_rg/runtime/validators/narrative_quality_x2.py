@@ -487,12 +487,12 @@ def repair_narrative_bullet_echo_from_graph(
             or (not facts and "alliance" in comp_low and "modernization" not in comp_low)
         )
         if has_ibm_cosell:
-            return "Anchored partner-level advisory for enterprise cloud transformation at IBM, establishing AWS alliance co-sell and BI governance discipline across global delivery teams."
+            return "Anchored AWS transformation architecture at IBM, establishing alliance co-sell and BI governance discipline across industry accounts."
         if "aws modernization" in comp_low and not re.search(r"\bbi\b", comp_low):
-            return "Anchored partner-level advisory for AWS modernization at IBM, establishing cloud governance discipline across global delivery teams."
+            return "Anchored AWS modernization architecture and DevSecOps release discipline at IBM, establishing traceable lineage and compliance foundations across banking and carrier accounts."
         if not comp_low or "modernization" in comp_low:
-            return "Anchored partner-level advisory for enterprise cloud modernization at IBM, establishing AWS architecture and BI governance discipline across global delivery teams."
-        return "Anchored partner-level advisory for enterprise cloud transformation at IBM, establishing AWS architecture and BI governance discipline across global delivery teams."
+            return "Anchored AWS modernization architecture at IBM, establishing BI governance discipline and compliance foundations across industry accounts."
+        return "Anchored AWS transformation architecture at IBM, establishing BI governance discipline and compliance foundations across industry accounts."
     def _phrase(tid: str, fallback: str) -> str:
         return tid.removeprefix("skill_").removeprefix("partner_").replace("_", " ").replace("cosell", "co-sell") if tid in skill_ids else fallback
     has_slalom_cosell = (

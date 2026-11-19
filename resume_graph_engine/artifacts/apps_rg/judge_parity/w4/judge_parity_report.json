@@ -1,0 +1,896 @@
+{
+  "generated_at_utc": "2026-11-19T13:24:07.592328+00:00",
+  "lanes": [
+    "executive_summary",
+    "unify_bullets",
+    "headline"
+  ],
+  "calls_made": 24,
+  "max_calls": 24,
+  "total_tokens": 959268,
+  "thresholds": {
+    "negative_control_catch_rate_min": 1.0,
+    "historical_verdict_agreement_min": 0.95,
+    "spearman_rho_min": 0.6,
+    "mean_abs_score_gap_historical_max": 0.3
+  },
+  "threshold_checks": {
+    "negative_control_catch_rate_pass": true,
+    "historical_verdict_agreement_pass": true,
+    "spearman_rho_pass": true,
+    "mean_abs_score_gap_historical_pass": true
+  },
+  "all_proposed_thresholds_met": true,
+  "overall_metrics": {
+    "negative_control_catch_rate_panel": 1.0,
+    "negative_control_catch_rate_slot1_argon": 1.0,
+    "negative_control_catch_rate_slot2_cross_maker": 0.8333,
+    "historical_verdict_agreement_panel": 1.0,
+    "historical_verdict_agreement_slot1_argon": 1.0,
+    "historical_verdict_agreement_slot2_cross_maker": 1.0,
+    "spearman_rho_pooled_panel": 0.8226,
+    "spearman_rho_pooled_slot1_argon": 0.9116,
+    "mean_abs_score_gap_historical_panel": 0.175,
+    "mean_abs_score_gap_historical_slot1_argon": 0.175,
+    "inter_judge_mean_abs_gap": 0.3182,
+    "inter_judge_verdict_agreement": 1.0
+  },
+  "per_lane_metrics": {
+    "executive_summary": {
+      "candidates_evaluated": 4,
+      "negative_control_catch_rate_panel": 1.0,
+      "historical_verdict_agreement_panel": 1.0,
+      "spearman_rho_panel": 0.9487,
+      "mean_abs_score_gap_historical_panel": 0.175
+    },
+    "unify_bullets": {
+      "candidates_evaluated": 4,
+      "negative_control_catch_rate_panel": 1.0,
+      "historical_verdict_agreement_panel": 1.0,
+      "spearman_rho_panel": 0.8,
+      "mean_abs_score_gap_historical_panel": 0.15
+    },
+    "headline": {
+      "candidates_evaluated": 4,
+      "negative_control_catch_rate_panel": 1.0,
+      "historical_verdict_agreement_panel": 1.0,
+      "spearman_rho_panel": 0.8944,
+      "mean_abs_score_gap_historical_panel": 0.2
+    }
+  },
+  "records": [
+    {
+      "candidate_id": "executive_summary::hist_high::full_resume_35a7d3b57dd1",
+      "lane": "executive_summary",
+      "kind": "historical",
+      "source_run": "full_resume_35a7d3b57dd1",
+      "source_request_file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/executive_summary/real/p_8aea44/x1d_gemini_provider_request_20261116_111028_633.json",
+      "expected_pass": true,
+      "reference_score": 4.75,
+      "keyed_rows": [
+        {
+          "model": "gemini-3.8-flash",
+          "score": 4.8,
+          "pass": true
+        },
+        {
+          "model": "gpt-5.6-luna",
+          "score": 4.7,
+          "pass": true
+        }
+      ],
+      "injected_defect": null,
+      "ide_judges": {
+        "gemini_pro": {
+          "model": "gemini-4-argon-high",
+          "transport": "ide_cli",
+          "evaluator_mode": "MODEL_BACKED",
+          "provider_blocked": false,
+          "score": 4.8,
+          "pass": true,
+          "decisive_failure": false,
+          "conversation_id": "96057a5f-2d96-4deb-bac7-cf73fcc103d9",
+          "usage": {
+            "input_tokens": 35612,
+            "output_tokens": 2965,
+            "thinking_tokens": 2764,
+            "cache_read_tokens": 0,
+            "total_tokens": 38577
+          },
+          "findings": [],
+          "unsupported_claims": [],
+          "exact_provider_error": null
+        },
+        "openai_chatgpt": {
+          "model": "gemini-3.8-flash-high",
+          "transport": "ide_cli",
+          "evaluator_mode": "MODEL_BACKED",
+          "provider_blocked": false,
+          "score": 4.8,
+          "pass": true,
+          "decisive_failure": false,
+          "conversation_id": "543141ba-f7ad-4d08-acc6-fc495947bc4b",
+          "usage": {
+            "input_tokens": 34293,
+            "output_tokens": 21600,
+            "thinking_tokens": 21392,
+            "cache_read_tokens": 0,
+            "total_tokens": 55893
+          },
+          "findings": [],
+          "unsupported_claims": [],
+          "exact_provider_error": null
+        }
+      },
+      "ide_panel_mean_score": 4.8,
+      "ide_panel_pass": true,
+      "inter_judge_abs_gap": 0.0
+    },
+    {
+      "candidate_id": "executive_summary::hist_low::full_resume_0acb8e1555de",
+      "lane": "executive_summary",
+      "kind": "historical",
+      "source_run": "full_resume_0acb8e1555de",
+      "source_request_file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_0acb8e1555de/lanes/executive_summary/x1d_gemini_provider_request_20261117_223752_924.json",
+      "expected_pass": true,
+      "reference_score": 4.5,
+      "keyed_rows": [
+        {
+          "model": "gemini-3.8-flash",
+          "score": 4.8,
+          "pass": true
+        },
+        {
+          "model": "gpt-5.6-luna",
+          "score": 4.2,
+          "pass": true
+        }
+      ],
+      "injected_defect": null,
+      "ide_judges": {
+        "gemini_pro": {
+          "model": "gemini-4-argon-high",
+          "transport": "ide_cli",
+          "evaluator_mode": "MODEL_BACKED",
+          "provider_blocked": false,
+          "score": 4.8,
+          "pass": true,
+          "decisive_failure": false,
+          "conversation_id": "cd702dfc-2143-49d3-a294-c921d8521eb2",
+          "usage": {
+            "input_tokens": 34620,
+            "output_tokens": 3345,
+            "thinking_tokens": 3087,
+            "cache_read_tokens": 0,
+            "total_tokens": 37965
+          },
+          "findings": [
+            "Cohesive six-sentence executive summary grounded in the allowed fact packet and aligned to the Head of Forward Deployed Engineering mandate at Truist Financial Corporation.",
+            "All deterministic X2 gates and rubric dimensions pass with full claim-ledger support and zero unsupported claims."
+          ],
+          "unsupported_claims": [],
+          "exact_provider_error": null
+        },
+        "openai_chatgpt": {
+          "model": "gemini-3.8-flash-high",
+          "transport": "ide_cli",
+          "evaluator_mode": "MODEL_BACKED",
+          "provider_blocked": false,
+          "score": 4.8,
+          "pass": true,
+          "decisive_failure": false,
+          "conversation_id": "0b9eeeee-2c97-4ba4-aef7-4b88d5230916",
+          "usage": {
+            "input_tokens": 35915,
+            "output_tokens": 23988,
+            "thinking_tokens": 23730,
+            "cache_read_tokens": 0,
+            "total_tokens": 59903
+          },
+          "findings": [
+            "All eight rubric dimensions pass with authoritative deterministic gate alignment.",
+            "Grounded six-sentence narrative effectively connects governed runtime architecture to forward-deployed banking enablement.",
+            "Zero unsupported claims, em dashes, or internal plumbing clutter detected."
+          ],
+          "unsupported_claims": [],
+          "exact_provider_error": null
+        }
+      },
+      "ide_panel_mean_score": 4.8,
+      "ide_panel_pass": true,
+      "inter_judge_abs_gap": 0.0
+    },
+    {
+      "candidate_id": "executive_summary::neg_fabricated",
+      "lane": "executive_summary",
+      "kind": "negative_fabricated",
+      "source_run": "full_resume_35a7d3b57dd1",
+      "source_request_file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/executive_summary/real/p_8aea44/x1d_gemini_provider_request_20261116_111028_633.json",
+      "expected_pass": false,
+      "reference_score": 1.0,
+      "keyed_rows": [],
+      "injected_defect": "Injected ungrounded '$940M Goldman Sachs sovereign trading P&L across 1,400 quant engineers' not in allowed facts",
+      "ide_judges": {
+        "gemini_pro": {
+          "model": "gemini-4-argon-high",
+          "transport": "ide_cli",
+          "evaluator_mode": "MODEL_BACKED",
+          "provider_blocked": false,
+          "score": 0.5,
+          "pass": false,
+          "decisive_failure": true,
+          "conversation_id": "9be591e2-7655-4979-94fa-4a9f1781d203",
+          "usage": {
+            "input_tokens": 33816,
+            "output_tokens": 3193,
+            "thinking_tokens": 2538,
+            "cache_read_tokens": 0,
+            "total_tokens": 37009
+          },
+          "findings": [
+            "S1-S6 in resume_display_text contain fabricated employers, metrics, and credentials absent from allowed_fact_packet and disconnected from claim_ledger.",
+            "S1-S3 assert unsupported Goldman Sachs, Citadel, and JPMorgan claims with unverified metrics ($940M, $2.7B, 99.999%).",
+            "S4 falsely claims prior consumer mortgage origination experience inside target company Truist Financial Corporation ($610M).",
+            "S5 asserts an unsupported credential (three PhDs in nuclear astrophysics from CERN) not present in the graph proof pool.",
+            "S6 explicitly refers to a fabricated track record and makes an unsupported $5B first-year revenue guarantee.",
+            "The display text diverges from the target Head of Forward Deployed Engineering mandate and omits the authorized Slalom and Unify facts in the ledger."
+          ],
+          "unsupported_claims": [],
+          "exact_provider_error": null
+        },
+        "openai_chatgpt": {
+          "model": "gemini-3.8-flash-high",
+          "transport": "ide_cli",
+          "evaluator_mode": "BLOCKED_PROVIDER_UNAVAILABLE",
+          "provider_blocked": true,
+          "score": null,
+          "pass": false,
+          "decisive_failure": false,
+          "conversation_id": null,
+          "usage": null,
+          "findings": [
+            "Judge blocked - see exact_provider_error and raw_response_ref for details."
+          ],
+          "unsupported_claims": [],
+          "exact_provider_error": "IDE CLI judge call failed: agy timed out after 300s"
+        }
+      },
+      "ide_panel_mean_score": 0.5,
+      "ide_panel_pass": false,
+      "inter_judge_abs_gap": null
+    },
+    {
+      "candidate_id": "executive_summary::neg_failed_gate",
+      "lane": "executive_summary",
+      "kind": "negative_failed_gate",
+      "source_run": "full_resume_35a7d3b57dd1",
+      "source_request_file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/executive_summary/real/p_8aea44/x1d_gemini_provider_request_20261116_111028_633.json",
+      "expected_pass": false,
+      "reference_score": 1.5,
+      "keyed_rows": [],
+      "injected_defect": "Truncated executive_summary candidate below mandatory structural/word/count floor and marked deterministic X2 gates failed",
+      "ide_judges": {
+        "gemini_pro": {
+          "model": "gemini-4-argon-high",
+          "transport": "ide_cli",
+          "evaluator_mode": "MODEL_BACKED",
+          "provider_blocked": false,
+          "score": 0.5,
+          "pass": false,
+          "decisive_failure": true,
+          "conversation_id": "3e0d372c-8e13-4464-9c50-47367e33b0a7",
+          "usage": {
+            "input_tokens": 33218,
+            "output_tokens": 4120,
+            "thinking_tokens": 3493,
+            "cache_read_tokens": 0,
+            "total_tokens": 37338
+          },
+          "findings": [
+            "S1 uses prohibited first-person voice (I am passionate) and double-hyphen punctuation (--), failing x2_first_person_zero and x2_no_em_dash_or_double_hyphen.",
+            "S1 and S2 consist of generic AI buzzwords and recruiter filler fragments (holistic synergies, Proven track record) rather than credible SVP executive prose.",
+            "Candidate output has an empty claim_ledger, failing x2_claim_ledger_coverage_100 and leaving display claims unmapped to allowed_fact_packet proof.",
+            "Summary contains only two short sentences, failing x2_executive_summary_structural_count_and_length_floor and omitting six-sentence synthesis.",
+            "Prose fails to weave allocated Slalom and Unify graph facts or quantitative outcomes (35% regulatory findings reduction) for the target role."
+          ],
+          "unsupported_claims": [],
+          "exact_provider_error": null
+        },
+        "openai_chatgpt": {
+          "model": "gemini-3.8-flash-high",
+          "transport": "ide_cli",
+          "evaluator_mode": "MODEL_BACKED",
+          "provider_blocked": false,
+          "score": 1.0,
+          "pass": false,
+          "decisive_failure": true,
+          "conversation_id": "b61b56ac-c531-44ad-b0a3-92614b64d38c",
+          "usage": {
+            "input_tokens": 33640,
+            "output_tokens": 20471,
+            "thinking_tokens": 19993,
+            "cache_read_tokens": 0,
+            "total_tokens": 54111
+          },
+          "findings": [
+            "First-person narrative violates executive resume voice.",
+            "Double-hyphen em-dash substitute violates typography standards.",
+            "Executive summary is only two sentences, violating 4-6 sentence floor.",
+            "Empty claim ledger with zero evidence utilization from proof pool.",
+            "Unsubstantiated buzzwords lack executive signal.",
+            "Deterministic X2 gates failed across structure, voice, punctuation, and ledger coverage."
+          ],
+          "unsupported_claims": [],
+          "exact_provider_error": null
+        }
+      },
+      "ide_panel_mean_score": 0.75,
+      "ide_panel_pass": false,
+      "inter_judge_abs_gap": 0.5
+    },
+    {
+      "candidate_id": "unify_bullets::hist_high::full_resume_cd648714e53e",
+      "lane": "unify_bullets",
+      "kind": "historical",
+      "source_run": "full_resume_cd648714e53e",
+      "source_request_file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_cd648714e53e/lanes/unify_bullets/x1d_gemini_provider_request_20261117_214614_419.json",
+      "expected_pass": true,
+      "reference_score": 4.85,
+      "keyed_rows": [
+        {
+          "model": "gemini-3.8-flash",
+          "score": 4.8,
+          "pass": true
+        },
+        {
+          "model": "gemini-3.8-flash",
+          "score": 4.9,
+          "pass": true
+        }
+      ],
+      "injected_defect": null,
+      "ide_judges": {
+        "gemini_pro": {
+          "model": "gemini-4-argon-medium",
+          "transport": "ide_cli",
+          "evaluator_mode": "MODEL_BACKED",
+          "provider_blocked": false,
+          "score": 4.8,
+          "pass": true,
+          "decisive_failure": false,
+          "conversation_id": "2bd5845f-b43d-4df6-a138-3b80514fc7ab",
+          "usage": {
+            "input_tokens": 22183,
+            "output_tokens": 365,
+            "thinking_tokens": 88,
+            "cache_read_tokens": 0,
+            "total_tokens": 22548
+          },
+          "findings": [
+            "All six Unify bullets map directly to claim ledger source facts and preserve assigned commercial and operational metrics verbatim.",
+            "Bullet lines maintain strict single-sentence conciseness, clear action-mechanism-outcome density, and distinct outcome spines across governance, cycle-time compression, data infrastructure, refactor safety, gross margin expansion, and enterprise ACV growth."
+          ],
+          "unsupported_claims": [],
+          "exact_provider_error": null
+        },
+        "openai_chatgpt": {
+          "model": "gemini-3.8-flash-high",
+          "transport": "ide_cli",
+          "evaluator_mode": "MODEL_BACKED",
+          "provider_blocked": false,
+          "score": 4.8,
+          "pass": true,
+          "decisive_failure": false,
+          "conversation_id": "e17ff4a3-70f4-4554-b1f6-a64f9eac618c",
+          "usage": {
+            "input_tokens": 22431,
+            "output_tokens": 29178,
+            "thinking_tokens": 28948,
+            "cache_read_tokens": 0,
+            "total_tokens": 51609
+          },
+          "findings": [
+            "All 6 Unify bullets demonstrate strong executive signal, verifiable metric grounding, and diverse outcome spines."
+          ],
+          "unsupported_claims": [],
+          "exact_provider_error": null
+        }
+      },
+      "ide_panel_mean_score": 4.8,
+      "ide_panel_pass": true,
+      "inter_judge_abs_gap": 0.0
+    },
+    {
+      "candidate_id": "unify_bullets::hist_low::full_resume_35a7d3b57dd1",
+      "lane": "unify_bullets",
+      "kind": "historical",
+      "source_run": "full_resume_35a7d3b57dd1",
+      "source_request_file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/unify_bullets/real/p_255977/x1d_gemini_provider_request_20261115_185854_174.json",
+      "expected_pass": false,
+      "reference_score": 2.25,
+      "keyed_rows": [
+        {
+          "model": "gemini-3.8-flash",
+          "score": 2.5,
+          "pass": false
+        },
+        {
+          "model": "gemini-3.8-flash",
+          "score": 2.0,
+          "pass": false
+        }
+      ],
+      "injected_defect": null,
+      "ide_judges": {
+        "gemini_pro": {
+          "model": "gemini-4-argon-medium",
+          "transport": "ide_cli",
+          "evaluator_mode": "MODEL_BACKED",
+          "provider_blocked": false,
+          "score": 2.5,
+          "pass": false,
+          "decisive_failure": true,
+          "conversation_id": "afe6ad32-ac49-4edc-8471-13943c0b51f8",
+          "usage": {
+            "input_tokens": 21826,
+            "output_tokens": 456,
+            "thinking_tokens": 0,
+            "cache_read_tokens": 0,
+            "total_tokens": 22282
+          },
+          "findings": [
+            "Candidate output provides only 5 bullets (bul_unify_001, 002, 004, 005, 006) instead of the required 6 bullets (bul_unify_003 is missing), triggering decisive failure for wrong bullet count.",
+            "Bullet 4 (bul_unify_005) states 'to sustain high-availability agentic workloads' without a concrete source-backed adoption, delivery, or reliability metric outcome."
+          ],
+          "unsupported_claims": [],
+          "exact_provider_error": null
+        },
+        "openai_chatgpt": {
+          "model": "gemini-3.8-flash-high",
+          "transport": "ide_cli",
+          "evaluator_mode": "MODEL_BACKED",
+          "provider_blocked": false,
+          "score": 2.5,
+          "pass": false,
+          "decisive_failure": true,
+          "conversation_id": "43725b9e-ffa6-420c-8de9-a0cad1e69f37",
+          "usage": {
+            "input_tokens": 22057,
+            "output_tokens": 27731,
+            "thinking_tokens": 27421,
+            "cache_read_tokens": 0,
+            "total_tokens": 49788
+          },
+          "findings": [
+            "Candidate output contains only 5 bullets instead of the required 6 (bul_unify_003 is missing).",
+            "Wrong bullet count triggers decisive failure under employment bullet rubric."
+          ],
+          "unsupported_claims": [],
+          "exact_provider_error": null
+        }
+      },
+      "ide_panel_mean_score": 2.5,
+      "ide_panel_pass": false,
+      "inter_judge_abs_gap": 0.0
+    },
+    {
+      "candidate_id": "unify_bullets::neg_fabricated",
+      "lane": "unify_bullets",
+      "kind": "negative_fabricated",
+      "source_run": "full_resume_cd648714e53e",
+      "source_request_file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_cd648714e53e/lanes/unify_bullets/x1d_gemini_provider_request_20261117_214614_419.json",
+      "expected_pass": false,
+      "reference_score": 1.0,
+      "keyed_rows": [],
+      "injected_defect": "Injected ungrounded '$940M Goldman Sachs sovereign trading P&L across 1,400 quant engineers' not in allowed facts",
+      "ide_judges": {
+        "gemini_pro": {
+          "model": "gemini-4-argon-medium",
+          "transport": "ide_cli",
+          "evaluator_mode": "MODEL_BACKED",
+          "provider_blocked": false,
+          "score": 0.5,
+          "pass": false,
+          "decisive_failure": true,
+          "conversation_id": "8b88e8b2-68b7-4a5d-a396-c19cf353afc0",
+          "usage": {
+            "input_tokens": 22170,
+            "output_tokens": 451,
+            "thinking_tokens": 0,
+            "cache_read_tokens": 0,
+            "total_tokens": 22621
+          },
+          "findings": [
+            "Bullet 1 fabricates Goldman Sachs hedge-fund claims, $940M crypto alpha, 1,400 engineers, and cites nonexistent fact_fab_999.",
+            "Bullet 2 fabricates a $2.7B Citadel derivatives market-making desk and 99.999% win rate not in the claim ledger.",
+            "Bullets 1 and 2 contradict the claim ledger and diverge from resume_display_text."
+          ],
+          "unsupported_claims": [],
+          "exact_provider_error": null
+        },
+        "openai_chatgpt": {
+          "model": "gemini-3.8-flash-high",
+          "transport": "ide_cli",
+          "evaluator_mode": "MODEL_BACKED",
+          "provider_blocked": false,
+          "score": 2.0,
+          "pass": false,
+          "decisive_failure": true,
+          "conversation_id": "caefde55-85d3-43d8-b625-3ca38a992627",
+          "usage": {
+            "input_tokens": 22413,
+            "output_tokens": 29161,
+            "thinking_tokens": 28696,
+            "cache_read_tokens": 0,
+            "total_tokens": 51574
+          },
+          "findings": [
+            "Bullet 1 cites nonexistent fact_fabricated_nonexistent_999 with unsupported metrics ($940M, 1,400 engineers).",
+            "Bullet 1 introduces fabricated Goldman Sachs and crypto trading claims ungrounded in claim ledger.",
+            "Bullet 2 fabricates a $2.7B Citadel desk and 99.999% win rate unsupported by source facts.",
+            "Bullets 1 and 2 violate employer scope purity and claim ledger grounding, triggering decisive failure."
+          ],
+          "unsupported_claims": [],
+          "exact_provider_error": null
+        }
+      },
+      "ide_panel_mean_score": 1.25,
+      "ide_panel_pass": false,
+      "inter_judge_abs_gap": 1.5
+    },
+    {
+      "candidate_id": "unify_bullets::neg_failed_gate",
+      "lane": "unify_bullets",
+      "kind": "negative_failed_gate",
+      "source_run": "full_resume_cd648714e53e",
+      "source_request_file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_cd648714e53e/lanes/unify_bullets/x1d_gemini_provider_request_20261117_214614_419.json",
+      "expected_pass": false,
+      "reference_score": 1.5,
+      "keyed_rows": [],
+      "injected_defect": "Truncated unify_bullets candidate below mandatory structural/word/count floor and marked deterministic X2 gates failed",
+      "ide_judges": {
+        "gemini_pro": {
+          "model": "gemini-4-argon-medium",
+          "transport": "ide_cli",
+          "evaluator_mode": "MODEL_BACKED",
+          "provider_blocked": false,
+          "score": 0.5,
+          "pass": false,
+          "decisive_failure": true,
+          "conversation_id": "329c0d11-0313-47e4-809f-db366f63c0f8",
+          "usage": {
+            "input_tokens": 21396,
+            "output_tokens": 604,
+            "thinking_tokens": 0,
+            "cache_read_tokens": 0,
+            "total_tokens": 22000
+          },
+          "findings": [
+            "Candidate bullets array contains only 1 bullet (bul_1) instead of the required 6 Unify bullets (bul_unify_001..006).",
+            "Bullet 1 uses first-person language ('I helped') and a forbidden double-hyphen spacer (' -- ').",
+            "Bullet 1 has empty source_fact_ids and fails claim ledger coverage against the 6 required Unify claims.",
+            "Bullet 1 is generic filler lacking specific action, named delivery detail, protected metrics ($5M ACV, 20% gross margin, 6 months to 3 weeks), and evidence-backed results."
+          ],
+          "unsupported_claims": [],
+          "exact_provider_error": null
+        },
+        "openai_chatgpt": {
+          "model": "gemini-3.8-flash-high",
+          "transport": "ide_cli",
+          "evaluator_mode": "MODEL_BACKED",
+          "provider_blocked": false,
+          "score": 0.0,
+          "pass": false,
+          "decisive_failure": true,
+          "conversation_id": "7501b8b9-bbda-4918-a9f8-36a06ae85c90",
+          "usage": {
+            "input_tokens": 63537,
+            "output_tokens": 18378,
+            "thinking_tokens": 17429,
+            "cache_read_tokens": 0,
+            "total_tokens": 81915
+          },
+          "findings": [
+            "Deterministic gate failure: violated count floor, first-person voice, double-hyphen, and claim ledger coverage.",
+            "Bullet count mismatch: expected 6 employment bullets, received 1 bullet.",
+            "First-person pronoun 'I helped' violates resume voice standards.",
+            "Double-hyphen spacer and AI buzzwords 'holistic synergy' violate formatting rules.",
+            "Source fact IDs are empty; bullet is completely ungrounded in the claim ledger.",
+            "Lacks specific actions, delivery details, and verified business or technical metrics."
+          ],
+          "unsupported_claims": [],
+          "exact_provider_error": null
+        }
+      },
+      "ide_panel_mean_score": 0.25,
+      "ide_panel_pass": false,
+      "inter_judge_abs_gap": 0.5
+    },
+    {
+      "candidate_id": "headline::hist_high::full_resume_35a7d3b57dd1",
+      "lane": "headline",
+      "kind": "historical",
+      "source_run": "full_resume_35a7d3b57dd1",
+      "source_request_file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/headline/real/p_478613/x1d_gemini_provider_request_20261115_192442_763.json",
+      "expected_pass": true,
+      "reference_score": 5.0,
+      "keyed_rows": [
+        {
+          "model": "gemini-3.8-flash",
+          "score": 5.0,
+          "pass": true
+        },
+        {
+          "model": "gpt-5.6-luna",
+          "score": 5.0,
+          "pass": true
+        }
+      ],
+      "injected_defect": null,
+      "ide_judges": {
+        "gemini_pro": {
+          "model": "gemini-4-argon-medium",
+          "transport": "ide_cli",
+          "evaluator_mode": "MODEL_BACKED",
+          "provider_blocked": false,
+          "score": 4.8,
+          "pass": true,
+          "decisive_failure": false,
+          "conversation_id": "0ab8a740-434a-485d-96f1-e34ac6b7d082",
+          "usage": {
+            "input_tokens": 23513,
+            "output_tokens": 281,
+            "thinking_tokens": 0,
+            "cache_read_tokens": 0,
+            "total_tokens": 23794
+          },
+          "findings": [
+            "All three value segments are explicitly grounded in the allowed fact packet across Slalom, Unify, and IBM role episode bundles.",
+            "Headline complies with the four-segment format, approved SVP Engineering prefix, three pipe separators, and 11-word count.",
+            "Each segment adds distinct executive positioning across partner commercialization, cloud infrastructure, and regulated release governance without keyword stuffing."
+          ],
+          "unsupported_claims": [],
+          "exact_provider_error": null
+        },
+        "openai_chatgpt": {
+          "model": "gemini-3.8-flash-high",
+          "transport": "ide_cli",
+          "evaluator_mode": "MODEL_BACKED",
+          "provider_blocked": false,
+          "score": 4.8,
+          "pass": true,
+          "decisive_failure": false,
+          "conversation_id": "200b265e-08a7-4cc4-9718-76107fcb714e",
+          "usage": {
+            "input_tokens": 53666,
+            "output_tokens": 7184,
+            "thinking_tokens": 6597,
+            "cache_read_tokens": 0,
+            "total_tokens": 60850
+          },
+          "findings": [
+            "SVP Engineering prefix is approved and properly positioned as segment 1.",
+            "Exactly four segments separated by space-pipe-space with an 11-word count in range.",
+            "All substantive segments are fully supported by allowed role-episode bundles.",
+            "Pillars are semantically distinct across AI accelerators, cloud infra, and governance."
+          ],
+          "unsupported_claims": [],
+          "exact_provider_error": null
+        }
+      },
+      "ide_panel_mean_score": 4.8,
+      "ide_panel_pass": true,
+      "inter_judge_abs_gap": 0.0
+    },
+    {
+      "candidate_id": "headline::hist_low::full_resume_35a7d3b57dd1",
+      "lane": "headline",
+      "kind": "historical",
+      "source_run": "full_resume_35a7d3b57dd1",
+      "source_request_file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/lanes/headline/x1d_gemini_provider_request_20261116_103418_671.json",
+      "expected_pass": true,
+      "reference_score": 4.6,
+      "keyed_rows": [
+        {
+          "model": "gemini-3.8-flash",
+          "score": 4.9,
+          "pass": true
+        },
+        {
+          "model": "gpt-5.6-luna",
+          "score": 4.3,
+          "pass": true
+        }
+      ],
+      "injected_defect": null,
+      "ide_judges": {
+        "gemini_pro": {
+          "model": "gemini-4-argon-medium",
+          "transport": "ide_cli",
+          "evaluator_mode": "MODEL_BACKED",
+          "provider_blocked": false,
+          "score": 4.8,
+          "pass": true,
+          "decisive_failure": false,
+          "conversation_id": "962b1521-b5e4-402e-9f7b-034e310849e8",
+          "usage": {
+            "input_tokens": 23533,
+            "output_tokens": 273,
+            "thinking_tokens": 0,
+            "cache_read_tokens": 0,
+            "total_tokens": 23806
+          },
+          "findings": [
+            "All four headline segments satisfy executive prefix, word count (12 words), and pipe formatting requirements.",
+            "Every substantive claim in segments X, Y, and Z is directly grounded in the allowed fact packet and claim ledger.",
+            "Strong executive positioning across regulated AI governance, runtime reliability architecture, and production client systems without keyword stuffing."
+          ],
+          "unsupported_claims": [],
+          "exact_provider_error": null
+        },
+        "openai_chatgpt": {
+          "model": "gemini-3.8-flash-high",
+          "transport": "ide_cli",
+          "evaluator_mode": "MODEL_BACKED",
+          "provider_blocked": false,
+          "score": 4.8,
+          "pass": true,
+          "decisive_failure": false,
+          "conversation_id": "57e152ff-864c-4f9a-aa3a-a98489b1088c",
+          "usage": {
+            "input_tokens": 23805,
+            "output_tokens": 21366,
+            "thinking_tokens": 21109,
+            "cache_read_tokens": 0,
+            "total_tokens": 45171
+          },
+          "findings": [
+            "Approved executive prefix with compliant 12-word count and four distinct segments.",
+            "All positioning claims are grounded in allowed role-episode bundles.",
+            "Strong executive signal with no off-domain clutter or AI tells."
+          ],
+          "unsupported_claims": [],
+          "exact_provider_error": null
+        }
+      },
+      "ide_panel_mean_score": 4.8,
+      "ide_panel_pass": true,
+      "inter_judge_abs_gap": 0.0
+    },
+    {
+      "candidate_id": "headline::neg_fabricated",
+      "lane": "headline",
+      "kind": "negative_fabricated",
+      "source_run": "full_resume_35a7d3b57dd1",
+      "source_request_file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/headline/real/p_478613/x1d_gemini_provider_request_20261115_192442_763.json",
+      "expected_pass": false,
+      "reference_score": 1.0,
+      "keyed_rows": [],
+      "injected_defect": "Injected ungrounded '$940M Goldman Sachs sovereign trading P&L across 1,400 quant engineers' not in allowed facts",
+      "ide_judges": {
+        "gemini_pro": {
+          "model": "gemini-4-argon-medium",
+          "transport": "ide_cli",
+          "evaluator_mode": "MODEL_BACKED",
+          "provider_blocked": false,
+          "score": 0.5,
+          "pass": false,
+          "decisive_failure": true,
+          "conversation_id": "636968bc-b4b3-4599-b48b-b1cc324ccb73",
+          "usage": {
+            "input_tokens": 23544,
+            "output_tokens": 1352,
+            "thinking_tokens": 833,
+            "cache_read_tokens": 0,
+            "total_tokens": 24896
+          },
+          "findings": [
+            "Candidate headline contains completely fabricated claims ($940M Goldman Sachs P&L, 1,400 Quant Engineers, 99.99% Alpha) absent from allowed_fact_packet and claim_ledger.",
+            "Includes prohibited numeric metrics ($940M, 1,400, 99.99%) and an ungrounded employer name (Goldman Sachs) in headline_line.",
+            "Uses an unapproved seniority and domain prefix (SVP Quantum Trading) unrelated to the candidate's engineering and AI partnership facts.",
+            "Candidate headline_line diverges completely from the grounded claim_ledger and deterministic_gate_summary headline."
+          ],
+          "unsupported_claims": [],
+          "exact_provider_error": null
+        },
+        "openai_chatgpt": {
+          "model": "gemini-3.8-flash-high",
+          "transport": "ide_cli",
+          "evaluator_mode": "MODEL_BACKED",
+          "provider_blocked": false,
+          "score": 1.0,
+          "pass": false,
+          "decisive_failure": true,
+          "conversation_id": "a9248c0c-53ce-40bb-a4e2-cf79caaab87d",
+          "usage": {
+            "input_tokens": 23807,
+            "output_tokens": 33189,
+            "thinking_tokens": 32756,
+            "cache_read_tokens": 0,
+            "total_tokens": 56996
+          },
+          "findings": [
+            "Candidate includes employer name Goldman Sachs violating headline rules",
+            "Candidate includes metrics $940M, 1,400, and 99.99% in headline line",
+            "Unapproved executive seniority prefix SVP Quantum Trading used as segment 1",
+            "Unsupported claims with zero backing in allowed fact packet or resume facts",
+            "Extreme hallucination of quant trading persona that fails recruiter screening"
+          ],
+          "unsupported_claims": [],
+          "exact_provider_error": null
+        }
+      },
+      "ide_panel_mean_score": 0.75,
+      "ide_panel_pass": false,
+      "inter_judge_abs_gap": 0.5
+    },
+    {
+      "candidate_id": "headline::neg_failed_gate",
+      "lane": "headline",
+      "kind": "negative_failed_gate",
+      "source_run": "full_resume_35a7d3b57dd1",
+      "source_request_file": "/Users/amitayer/Git/agents/resume_graph_engine/artifacts/apps_rg/runtime_proofs/full_resume_35a7d3b57dd1/modular_r4/sections/headline/real/p_478613/x1d_gemini_provider_request_20261115_192442_763.json",
+      "expected_pass": false,
+      "reference_score": 1.5,
+      "keyed_rows": [],
+      "injected_defect": "Truncated headline candidate below mandatory structural/word/count floor and marked deterministic X2 gates failed",
+      "ide_judges": {
+        "gemini_pro": {
+          "model": "gemini-4-argon-medium",
+          "transport": "ide_cli",
+          "evaluator_mode": "MODEL_BACKED",
+          "provider_blocked": false,
+          "score": 0.5,
+          "pass": false,
+          "decisive_failure": true,
+          "conversation_id": "399e59af-9177-4a1f-b25e-fd808981f2cd",
+          "usage": {
+            "input_tokens": 22827,
+            "output_tokens": 517,
+            "thinking_tokens": 0,
+            "cache_read_tokens": 0,
+            "total_tokens": 23344
+          },
+          "findings": [
+            "Headline lacks an approved executive seniority prefix and uses a juniorized IT label (Junior IT Manager).",
+            "Fails the four-segment pipe-delimited structure (requires three ' | ' separators) and 10-13 word floor (only 4 words).",
+            "Contains a forbidden em-dash and generic buzzword ('Synergies') that fails AI authenticity and TA screens.",
+            "Fails to incorporate any of the three claim_ledger pillars from the allowed_fact_packet."
+          ],
+          "unsupported_claims": [],
+          "exact_provider_error": null
+        },
+        "openai_chatgpt": {
+          "model": "gemini-3.8-flash-high",
+          "transport": "ide_cli",
+          "evaluator_mode": "MODEL_BACKED",
+          "provider_blocked": false,
+          "score": 1.0,
+          "pass": false,
+          "decisive_failure": true,
+          "conversation_id": "5aa7a7bb-945d-4a93-a0d8-e24eca449049",
+          "usage": {
+            "input_tokens": 23083,
+            "output_tokens": 32195,
+            "thinking_tokens": 31688,
+            "cache_read_tokens": 0,
+            "total_tokens": 55278
+          },
+          "findings": [
+            "Missing approved executive seniority prefix; demotes role to Junior IT Manager.",
+            "Fails four-segment structure; uses em dash instead of three pipe separators.",
+            "Word count of 4 is well below the required 10-13 word range.",
+            "Contains em dash and buzzword soup (Synergies), violating executive voice.",
+            "Fails deterministic gates: count floor, em dash check, and claim coverage.",
+            "Lacks factual support from allowed fact packet and claim ledger."
+          ],
+          "unsupported_claims": [],
+          "exact_provider_error": null
+        }
+      },
+      "ide_panel_mean_score": 0.75,
+      "ide_panel_pass": false,
+      "inter_judge_abs_gap": 0.5
+    }
+  ]
+}

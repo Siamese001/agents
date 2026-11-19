@@ -353,6 +353,10 @@ class ExternalProvider:
             )
         if self.transport is not None:
             return False, "custom_transport_not_confirmed"
+        from apps_rg.runtime.providers.ide_cli_generation import uses_ide_cli_generation
+
+        if uses_ide_cli_generation(self.environ, model=str(request.get("model") or self.model)):
+            return False, "ide_cli_transport"
         endpoint = str(
             request.get("base_url") or self.base_url or DEFAULT_ANTHROPIC_MESSAGES_URL
         )
@@ -405,13 +409,44 @@ class ExternalProvider:
             self.environ,
             effort=request.get("reasoning_effort"),
         )
-        from apps_rg.runtime.providers.inprocess_ide_provider import (
-            evaluate_inprocess_ide_generation,
-            is_inprocess_ide_model,
+        from apps_rg.runtime.providers.ide_cli_generation import (
+            call_ide_cli_generation,
+            uses_ide_cli_generation,
         )
 
-        if is_inprocess_ide_model(body.get("model")) and urllib.request.urlopen is _STDLIB_URLOPEN:
-            return evaluate_inprocess_ide_generation(request, model=str(body.get("model") or self.model))
+        target_model = str(body.get("model") or self.model)
+        if uses_ide_cli_generation(self.environ, model=target_model):
+            wall_budget = resolve_external_section_timeout_s(request.get("timeout_seconds"))
+            internal_budget = max(10.0, wall_budget - min(5.0, wall_budget * 0.1))
+            attempt_state = request.get("_provider_attempt_state")
+            attempt_state = attempt_state if isinstance(attempt_state, dict) else {}
+            t_start = time.monotonic()
+            max_cli_attempts = 2
+            last_exc: ProviderGatewayError | None = None
+            for cli_attempt in range(1, max_cli_attempts + 1):
+                remaining_s = (t_start + internal_budget) - time.monotonic()
+                per_call_budget = min(140.0, remaining_s) if (internal_budget >= 220.0 and cli_attempt == 1) else max(30.0, remaining_s)
+                try:
+                    with self._transport_attempt_evidence(request, transport_attempt=cli_attempt) as evidence:
+                        attempt_state["last_transport_attempt"] = cli_attempt
+                        attempt_state.setdefault("attempt_ids", []).append(evidence.attempt_id)
+                        evidence.mark_local_dispatch_started()
+                        return call_ide_cli_generation(
+                            request=request,
+                            body=body,
+                            environ=self.environ,
+                            timeout_s=per_call_budget,
+                            evidence=evidence,
+                            downgrade_high_effort=(cli_attempt > 1),
+                        )
+                except ProviderGatewayError as exc:
+                    last_exc = exc
+                    rem_after = (t_start + internal_budget) - time.monotonic()
+                    if cli_attempt < max_cli_attempts and "timed out" in str(exc).lower() and rem_after >= 35.0:
+                        continue
+                    raise
+            assert last_exc is not None
+            raise last_exc
 
         url = str(request.get("base_url") or self.base_url or DEFAULT_ANTHROPIC_MESSAGES_URL)
         headers = {
@@ -921,7 +956,39 @@ class ExternalProvider:
                 native_cache_seed = dict(candidate_cache_seed)
         if self._uses_process_environ:
             bootstrap_process_env_if_needed(self.environ)
-        if not str(self.environ.get(self.api_key_env_var) or "").strip():
+        from apps_rg.runtime.providers.ide_cli_generation import (
+            ide_cli_generation_unavailable_reason,
+            uses_ide_cli_generation,
+        )
+
+        use_ide_cli = self.transport is None and uses_ide_cli_generation(
+            self.environ, model=self.model
+        )
+        if use_ide_cli:
+            cli_reason = ide_cli_generation_unavailable_reason(self.environ)
+            if cli_reason:
+                error = f"IDE CLI generation session unavailable: {cli_reason}"
+                return ProviderResult(
+                    provider_requested=self.provider_profile.value,
+                    provider_attempted=False,
+                    provider_available=False,
+                    exact_provider_error=error,
+                    runtime_generation_status="BLOCKED",
+                    model=self.model,
+                    raw_model_output="",
+                    provider_response=_provider_response_with_attempt(
+                        {
+                            "provider_profile": self.provider_profile.value,
+                            "transport": "ide_cli",
+                            "anthropic_cache_receipt_seed": native_cache_seed,
+                        },
+                        provider_attempted=False,
+                        provider_available=False,
+                        runtime_generation_status="BLOCKED",
+                        exact_provider_error=error,
+                    ),
+                )
+        elif not str(self.environ.get(self.api_key_env_var) or "").strip():
             error = f"External provider credential unavailable: {self.api_key_env_var}"
             return ProviderResult(
                 provider_requested=self.provider_profile.value,

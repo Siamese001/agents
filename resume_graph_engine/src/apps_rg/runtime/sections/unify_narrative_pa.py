@@ -150,6 +150,8 @@ def _u0(companion_nonempty: bool, dependency_status: str) -> str:
     closing = (
         "Write one narrative_sentence only: synthesize the finalized Unify bullets into a north-star role thesis "
         "for Unify Consulting (roadmap + architecture + commercialization + reusable IP + enterprise deployment), "
+        "explicitly pairing governed agentic platform architecture with reusable IP commercialization / platform economics "
+        "proven in ACCEPTED_UNIFY_BULLETS while avoiding any 3+ item mechanism comma-list, "
         "third person, one period, one clean executive through-line, "
         f"preferred 34–48 words, hard max {NARRATIVE_MAX_WORDS} words and {NARRATIVE_MAX_CHARS} characters, no while also stack."
     )

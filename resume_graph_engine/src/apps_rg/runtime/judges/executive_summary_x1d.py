@@ -26,6 +26,7 @@ from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 from apps_rg.runtime.providers.external_provider import urlopen_provider_request
 from apps_rg.runtime.env_bootstrap import bootstrap_process_env_if_needed
+from apps_rg.runtime.judges.x1d_ide_cli import IDE_CLI_SESSION_MARKER
 from apps_rg.runtime.judges.executive_summary_x1d_dimension_verdicts import (
     dimension_verdicts_json_schema_fragment,
     ensure_dimension_verdicts,
@@ -388,6 +389,9 @@ class JudgeOutput:
     proof_eligible_judge: bool = False
     fallback_used: bool = False
     section_id: str | None = None
+    transport: str = "external_api"  # external_api | ide_cli
+    usage: dict[str, Any] | None = None  # real token usage from the transport (ide_cli)
+    conversation_id: str | None = None  # transport receipt id (ide_cli)
 
     def to_dict(self) -> dict[str, Any]:
         data = asdict(self)
@@ -460,6 +464,15 @@ def resolve_x1d_provider_credentials(provider_key: str, environ: Mapping[str, st
     meta = PROVIDERS.get(provider_key)
     if not meta:
         return "", []
+    from apps_rg.runtime.judges.x1d_ide_cli import (
+        IDE_CLI_SESSION_MARKER,
+        ide_cli_unavailable_reason,
+        uses_ide_cli_judges,
+    )
+
+    if uses_ide_cli_judges(environ):
+        reason = ide_cli_unavailable_reason(environ)
+        return ("" if reason else IDE_CLI_SESSION_MARKER), [reason or "ide_cli"]
     primary = str(meta.get("env") or "")
     consulted: list[str] = []
 
@@ -1085,7 +1098,16 @@ def _call_openai(
     section_id: str | None = None,
     response_schema: dict[str, Any] | None = None,
 ) -> JudgeOutput:
-    """Call OpenAI API with full artifact preservation."""
+    """Call OpenAI API with full artifact preservation (or the IDE CLI when given the session marker)."""
+    if api_key == IDE_CLI_SESSION_MARKER:
+        from apps_rg.runtime.judges.x1d_ide_cli import call_ide_cli_judge
+
+        return call_ide_cli_judge(
+            prompt=prompt, model=model, input_hash=input_hash, provider_key=provider_key,
+            artifact_base=artifact_base, model_requested=model_requested, judge_receipt=judge_receipt,
+            reasoning_effort=reasoning_effort, attempt=attempt, section_id=section_id,
+            response_schema=response_schema,
+        )
     system_content = build_x1d_judge_system_prompt(compact=True)
     max_tokens = (
         _resolved_section_x1d_judge_max_output_tokens(section_id, attempt=attempt)
@@ -1466,7 +1488,16 @@ def _call_gemini(
     section_id: str | None = None,
     response_schema: dict[str, Any] | None = None,
 ) -> JudgeOutput:
-    """Call Gemini API with full artifact preservation."""
+    """Call Gemini API with full artifact preservation (or the IDE CLI when given the session marker)."""
+    if api_key == IDE_CLI_SESSION_MARKER:
+        from apps_rg.runtime.judges.x1d_ide_cli import call_ide_cli_judge
+
+        return call_ide_cli_judge(
+            prompt=prompt, model=model, input_hash=input_hash, provider_key=provider_key,
+            artifact_base=artifact_base, model_requested=model_requested, judge_receipt=judge_receipt,
+            reasoning_effort=thinking_level, attempt=attempt, section_id=section_id,
+            response_schema=response_schema,
+        )
     logical_attempt = attempt
     judge_max_attempts = (
         _section_x1d_judge_max_attempts(section_id) if section_id else _x1d_judge_max_attempts()
@@ -1563,77 +1594,24 @@ def _call_gemini(
             service_label="Gemini",
         )
 
-    from apps_rg.runtime.judges.inprocess_proof_judge import (
-        evaluate_argon_x1d_judge,
-        is_argon_model,
-    )
-
-    if is_argon_model(model):
-        argon_doc = evaluate_argon_x1d_judge(
-            prompt=prompt,
-            model=model,
-            input_hash=input_hash,
-            section_id=section_id,
-            thinking_level=resolved_thinking_level,
-            judge_receipt=judge_receipt,
-            response_schema=response_schema,
-        )
-        raw_response = json.dumps(argon_doc, separators=(",", ":"), ensure_ascii=False)
-        transport_attempt = 0
-    else:
-        for transport_attempt in range(retries + 1):
-            try:
-                with _GEMINI_CONCURRENCY_SEMAPHORE:
-                    with urlopen_provider_request(req, timeout=_judge_http_timeout()) as response:
-                        raw_response = response.read().decode()
-                break
-            except urllib.error.HTTPError as e:
-                body = e.read().decode(errors="replace")
-                hard_quota = any(
-                    marker in body.lower()
-                    for marker in (
-                        "exceeded its monthly spending cap",
-                        "monthly spending cap",
-                        "project spend cap",
-                        "billing account",
-                    )
+    for transport_attempt in range(retries + 1):
+        try:
+            with _GEMINI_CONCURRENCY_SEMAPHORE:
+                with urlopen_provider_request(req, timeout=_judge_http_timeout()) as response:
+                    raw_response = response.read().decode()
+            break
+        except urllib.error.HTTPError as e:
+            body = e.read().decode(errors="replace")
+            hard_quota = any(
+                marker in body.lower()
+                for marker in (
+                    "exceeded its monthly spending cap",
+                    "monthly spending cap",
+                    "project spend cap",
+                    "billing account",
                 )
-                if transport_attempt < retries and e.code == 429 and not hard_quota:
-                    _record_x1d_external_usage(
-                        artifact_base=artifact_base,
-                        provider="gemini",
-                        model=model,
-                        input_hash=input_hash,
-                        section_id=section_id,
-                        logical_attempt=logical_attempt,
-                        transport_attempt=transport_attempt + 1,
-                        outcome="HTTP_429",
-                        provider_status="RETRYING",
-                        retry_reason="provider_rate_limit",
-                    )
-                    if is_lane_cancelled():
-                        raise TimeoutError("Gemini judge cancelled during rate-limit backoff")
-                    wait_s = _parse_gemini_retry_delay_seconds(body)
-                    if wait_s is None:
-                        wait_s = min(15.0, (2.0**transport_attempt) + random.uniform(0.25, 1.25))
-                    else:
-                        wait_s = float(wait_s) + random.uniform(0.15, 0.75)
-                    time.sleep(min(15.0, max(1.0, float(wait_s))))
-                    continue
-
-                eval_mode, prov_status, msg = _classify_gemini_http_block(e.code, body)
-                err_path = _artifact_path(provider_key, "provider_response_raw", artifact_base=artifact_base)
-                _write_artifact(
-                    err_path,
-                    {
-                        "error": True,
-                        "status_code": e.code,
-                        "body": body,
-                        "input_hash": input_hash,
-                        "attempt": transport_attempt,
-                        "retries_configured": retries,
-                    },
-                )
+            )
+            if transport_attempt < retries and e.code == 429 and not hard_quota:
                 _record_x1d_external_usage(
                     artifact_base=artifact_base,
                     provider="gemini",
@@ -1642,19 +1620,54 @@ def _call_gemini(
                     section_id=section_id,
                     logical_attempt=logical_attempt,
                     transport_attempt=transport_attempt + 1,
-                    outcome=f"HTTP_{e.code}",
-                    provider_status=prov_status,
-                    raw_response_ref=str(err_path),
+                    outcome="HTTP_429",
+                    provider_status="RETRYING",
+                    retry_reason="provider_rate_limit",
                 )
-                return _make_blocked_output(
-                    provider_key,
-                    input_hash,
-                    eval_mode,
-                    prov_status,
-                    msg,
-                    raw_response_ref=str(err_path),
-                    model_name=model,
-                )
+                if is_lane_cancelled():
+                    raise TimeoutError("Gemini judge cancelled during rate-limit backoff")
+                wait_s = _parse_gemini_retry_delay_seconds(body)
+                if wait_s is None:
+                    wait_s = min(15.0, (2.0**transport_attempt) + random.uniform(0.25, 1.25))
+                else:
+                    wait_s = float(wait_s) + random.uniform(0.15, 0.75)
+                time.sleep(min(15.0, max(1.0, float(wait_s))))
+                continue
+
+            eval_mode, prov_status, msg = _classify_gemini_http_block(e.code, body)
+            err_path = _artifact_path(provider_key, "provider_response_raw", artifact_base=artifact_base)
+            _write_artifact(
+                err_path,
+                {
+                    "error": True,
+                    "status_code": e.code,
+                    "body": body,
+                    "input_hash": input_hash,
+                    "attempt": transport_attempt,
+                    "retries_configured": retries,
+                },
+            )
+            _record_x1d_external_usage(
+                artifact_base=artifact_base,
+                provider="gemini",
+                model=model,
+                input_hash=input_hash,
+                section_id=section_id,
+                logical_attempt=logical_attempt,
+                transport_attempt=transport_attempt + 1,
+                outcome=f"HTTP_{e.code}",
+                provider_status=prov_status,
+                raw_response_ref=str(err_path),
+            )
+            return _make_blocked_output(
+                provider_key,
+                input_hash,
+                eval_mode,
+                prov_status,
+                msg,
+                raw_response_ref=str(err_path),
+                model_name=model,
+            )
 
     # Write raw response artifact
     raw_path = _artifact_path(provider_key, "provider_response_raw", artifact_base=artifact_base)
@@ -1872,17 +1885,23 @@ def run_llm_judges(
         meta = PROVIDERS[key]
         api_key, env_checked = resolve_x1d_provider_credentials(key, os.environ)
         if not api_key:
+            from apps_rg.runtime.judges.x1d_ide_cli import uses_ide_cli_judges
+
+            if uses_ide_cli_judges():
+                block_message = f"IDE CLI judge transport unavailable: {env_checked[0] if env_checked else 'unknown'}"
+            elif key == "gemini_pro":
+                block_message = (
+                    f"No non-empty API credential in {env_checked}; "
+                    f"Gemini resolves GOOGLE_API_KEY then deprecated GEMINI_API_KEY alias."
+                )
+            else:
+                block_message = f"{meta['env']} environment variable not set"
             return _make_blocked_output(
                 key,
                 input_hash,
                 "BLOCKED_PROVIDER_UNAVAILABLE",
                 "BLOCKED_PROVIDER_UNAVAILABLE",
-                (
-                    f"No non-empty API credential in {env_checked}; "
-                    f"Gemini resolves GOOGLE_API_KEY then deprecated GEMINI_API_KEY alias."
-                    if key == "gemini_pro"
-                    else f"{meta['env']} environment variable not set"
-                ),
+                block_message,
             )
 
         reasoning_effort: str | None = None

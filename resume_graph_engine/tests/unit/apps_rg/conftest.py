@@ -18,6 +18,8 @@ if _REPO_ROOT not in sys.path:
 _RG_SRC = str(Path(__file__).resolve().parents[3] / "src")
 if _RG_SRC not in sys.path:
     sys.path.insert(0, _RG_SRC)
+os.environ.setdefault("APPS_RG_JUDGE_TRANSPORT", "external_api")
+os.environ.setdefault("APPS_RG_GENERATION_TRANSPORT", "external_api")
 
 # Purge any apps_rg shadow registered from tests/unit/apps_rg/__init__.py
 # so imports like `from apps_rg.config.X import Y` resolve to the real package
@@ -104,6 +106,10 @@ def _apps_rg_unit_test_harness(
 ) -> None:
     """Unit tests are not ``python -m apps_rg`` product runs — relax fail-closed shortcuts."""
     monkeypatch.setenv("APPS_RG_TEST_HARNESS", "1")
+    # Product config selects the IDE CLI transport; the existing unit tests exercise the keyed HTTP paths with
+    # fakes. IDE-transport tests opt in explicitly with monkeypatch.setenv (a test-body setenv wins over this one).
+    monkeypatch.setenv("APPS_RG_JUDGE_TRANSPORT", "external_api")
+    monkeypatch.setenv("APPS_RG_GENERATION_TRANSPORT", "external_api")
     monkeypatch.setenv(
         "APPS_RG_C03_GRAPH_SQLITE_CONTEXT_RECEIPT_DIR",
         str(tmp_path / "c03_context_receipts"),
