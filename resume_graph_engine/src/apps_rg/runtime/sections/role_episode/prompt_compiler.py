@@ -44,7 +44,10 @@ def _role_episode_evidence_block(runtime_payload: dict[str, Any]) -> str:
         rid = str(bundle.get("role_episode_bundle_id") or "").strip()
         seen_roots.add(rid)
         intent = str(bundle.get("bullet_intent") or "").strip()
+        outcome = str(bundle.get("claim_outcome") or "").strip()
         lines.append(f"- role_episode_bundle_id: {rid}" + (f" | intent: {intent}" if intent else ""))
+        if outcome:
+            lines.append(f"  graph_business_outcome: {outcome}")
         if rid in alloc_by_root:
             lines.append(f"  allocated_metric_outcome_id: {alloc_by_root[rid]['metric_outcome_id']} | metric_text: {alloc_by_root[rid]['metric_text']} (MANDATORY: include this exact numeric metric proof in the bullet for this bundle)")
         primary, optional = [], []
@@ -97,10 +100,11 @@ def _compiled_prompt(cfg: RoleEpisodeLaneConfig, runtime_payload: dict[str, Any]
         else "Return JSON with narrative_sentence, claim_ledger:[{claim_text, source_fact_ids}], "
         "jd_alignment:{targeting_only:true,jd_used_as_proof:false}. The narrative is exactly one complete, inspiring executive sentence "
         f"of between 15 and {NARRATIVE_MAX_WORDS} words (at most {NARRATIVE_MAX_CHARS} characters), "
-        "in first-person-implied resume voice: MUST start with an executive mandate verb (e.g. Owned, Steered, Championed, Anchored, Drove, Established, Operationalized) and NEVER start with 'Led' or a title fragment ('Senior Director ...') or third-person subject. "
+        "in first-person-implied resume voice: MUST start with an executive action verb (e.g. Built, Commercialized, Delivered, Operationalized, Drove, Transformed, Architected) and NEVER start with 'Led' or a title fragment ('Senior Director ...') or third-person subject. "
+        "VALUE-OUTCOME MANDATE: State concretely what was built, commercialized, or delivered and what business, commercial, or operational outcome it drove (drawing on graph_business_outcome); NEVER write practice-leadership-only filler ('led this practice', 'oversaw consulting delivery') without concrete delivered capabilities and business impact. "
         "Do NOT repeat numeric metrics from the companion bullets (e.g. 105, 100%) and do NOT list bullet phrases in a comma-packed inventory. "
         "Do NOT use targeting buzzwords like 'frontier AI' as an experience claim (use 'enterprise AI' or 'next-generation AI'). "
-        "Synthesize why the role mattered by connecting the candidate's bound graph skill capabilities to the target JD's strategic priorities, "
+        "Synthesize the delivered value and business outcome by connecting the candidate's bound graph capabilities to the target JD's strategic priorities, "
         "keeping pairwise cosine similarity against every companion bullet low (<= 0.28)."
     )
 
@@ -124,7 +128,8 @@ def _compiled_prompt(cfg: RoleEpisodeLaneConfig, runtime_payload: dict[str, Any]
             "Use JD_TEXT and BRIEFING only to choose emphasis, ordering, and allowed source_fact_ids "
             "for the target role — NOT to create display claim wording, employers, tools, or metrics. "
             "Compose each bullet as a complete, single-sentence executive achievement starting with a strong past-tense action verb, "
-            "incorporating the bundle's concrete mechanisms and any allocated metric_text from GRAPH_SKILL_EVIDENCE. "
+            "pairing the bundle's concrete delivered capability directly with its graph_business_outcome and any allocated metric_text from GRAPH_SKILL_EVIDENCE. "
+            "OUTCOME TIE-BACK: Every bullet must prove what was concretely built or delivered AND what measurable business, commercial, accuracy, adoption, or risk-reduction outcome it produced; practice-leadership-only or capability-only bullets are invalid. "
             "SENTENCE CADENCE VARIETY: Vary clause structures across the bullet set (mix 'by <gerund>', 'to <verb>', and 'that/which <verb>' clauses; "
             "do not end every bullet with an identical ', <gerund>ing ...' participial tail). "
             "EXECUTIVE REGISTER: Frame every bullet at C-suite/SVP engineering and client-delivery level; never list internal codebase package counts, "
@@ -133,7 +138,7 @@ def _compiled_prompt(cfg: RoleEpisodeLaneConfig, runtime_payload: dict[str, Any]
             "Every claim MUST cite only allowed source_fact_ids. targeting_only=true; jd_used_as_proof=false."
             if cfg.is_bullet_lane
             else "Use JD_TEXT, BRIEFING, GRAPH_SKILL_EVIDENCE, and ACCEPTED_COMPANION_BULLETS to synthesize "
-            "one executive role thesis grounded in the candidate's allowed graph bundles. Do NOT copy verbatim "
+            "one value-outcome-oriented executive sentence grounded in the candidate's allowed graph bundles: state concretely what was built, commercialized, or delivered and what business or operational outcome it drove (never generic practice-leadership-only phrasing). Do NOT copy verbatim "
             "fact claim_text lists or companion bullet metrics; retain graph anchor vocabulary across cited "
             "source_fact_ids while keeping pairwise cosine similarity against each companion bullet <= 0.28. "
             "targeting_only=true; jd_used_as_proof=false."

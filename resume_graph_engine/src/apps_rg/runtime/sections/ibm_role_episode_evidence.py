@@ -258,6 +258,9 @@ def build_ibm_role_episode_section_packet(
                 "architecture_scope_signals": list(bundle.get("architecture_scope_signals") or []),
                 "operating_context": bundle.get("operating_context"),
                 "bullet_intent": bundle.get("bullet_intent"),
+                "claim_action": bundle.get("claim_action"),
+                "claim_scope": bundle.get("claim_scope"),
+                "claim_outcome": bundle.get("claim_outcome"),
                 "graph_bundle_story": {
                     "claim_action": bundle.get("claim_action"),
                     "claim_scope": bundle.get("claim_scope"),
@@ -373,12 +376,33 @@ def format_ibm_role_episode_evidence_pack(
         for fid in ordered:
             header_lines.append(f"- {fid}")
 
-    header_lines.append(
-        "\nPROMOTABLE_METRIC_OUTCOME_IDS "
-        "(metric claims allowed only when bound to these IDs):"
-    )
-    for mid in PROMOTABLE_METRIC_OUTCOME_IDS:
-        header_lines.append(f"- {_metric_label(mid)}")
+    _plan_fact_by_slot: dict[str, dict[str, Any]] = {}
+    for _pf in (plan.get("facts") or []):
+        if isinstance(_pf, dict):
+            _plan_fact_by_slot[str(_pf.get("fact_id") or "").strip()] = _pf
+
+    _allocated_metric_ids: list[str] = []
+    if _plan_fact_by_slot and section_id == "ibm_bullets":
+        for _sf in _plan_fact_by_slot.values():
+            _smid = str(_sf.get("metric_outcome_id") or _sf.get("selected_metric_outcome_id") or "").strip()
+            if _smid and _smid not in _allocated_metric_ids:
+                _allocated_metric_ids.append(_smid)
+        header_lines.append(
+            "\nPROMOTABLE_METRIC_OUTCOME_IDS "
+            "(metric claims allowed ONLY on slots explicitly assigned that metric):"
+        )
+        if _allocated_metric_ids:
+            for mid in _allocated_metric_ids:
+                header_lines.append(f"- {_metric_label(mid)}")
+        else:
+            header_lines.append("- (none - all active slots are qualitative; do NOT emit numeric metrics)")
+    else:
+        header_lines.append(
+            "\nPROMOTABLE_METRIC_OUTCOME_IDS "
+            "(metric claims allowed only when bound to these IDs):"
+        )
+        for mid in PROMOTABLE_METRIC_OUTCOME_IDS:
+            header_lines.append(f"- {_metric_label(mid)}")
 
     header = "\n".join(header_lines)
 
@@ -390,15 +414,6 @@ def format_ibm_role_episode_evidence_pack(
 
     # ibm_bullets: one block per bul_ibm_* slot bound to primary bundle.
     skill_index = _skill_rows_by_id()
-    # Per-slot PLAN FACT stories (W4-residual, plan apps-rg-aig-remaining-lanes-closeout-d4e1f7):
-    # the X1D judge grades each bullet against its selected_fact_plan fact's claim_text, but the
-    # pack only carried bundle intent + skills vocabulary — the generator literally never saw the
-    # story it was graded on (gemini decisive-failed "bullet describes X; source fact says Y" on
-    # every run). Surface each slot's plan fact so composition can restate its activity.
-    _plan_fact_by_slot: dict[str, dict[str, Any]] = {}
-    for _pf in (plan.get("facts") or []):
-        if isinstance(_pf, dict):
-            _plan_fact_by_slot[str(_pf.get("fact_id") or "").strip()] = _pf
     active_slots = [s for s in IBM_BULLET_SLOT_IDS if s in _plan_fact_by_slot] if _plan_fact_by_slot else list(IBM_BULLET_SLOT_IDS)
     slot_blocks: list[str] = []
     for slot_id in active_slots:
@@ -412,6 +427,22 @@ def format_ibm_role_episode_evidence_pack(
         allowed_metrics = _bundle_allowed_metric_outcome_ids(bundle)
         slot_allowed: list[str] = [slot_id]
         vocab = _mechanism_vocab_from_bundle(bundle)
+        _mr = str(_slot_fact.get("metric_raw") or "").strip()
+        _smid = str(_slot_fact.get("metric_outcome_id") or _slot_fact.get("selected_metric_outcome_id") or "").strip()
+        is_qualitative_slot = bool(_plan_fact_by_slot) and not (_mr or _smid)
+        if _plan_fact_by_slot:
+            if not is_qualitative_slot:
+                slot_metric_display = [_metric_label(_smid)] if _smid else [_mr]
+            else:
+                slot_metric_display = "(none - qualitative slot; do NOT emit any numeric metric)"
+        else:
+            slot_metric_display = [_metric_label(mid) for mid in allowed_metrics] or "(none)"
+
+        _raw_outcome = str(bundle.get("claim_outcome") or "").strip()
+        if is_qualitative_slot:
+            _slot_outcome = "Qualitative business outcome only (do NOT emit any numeric metric from bundle metadata)."
+        else:
+            _slot_outcome = _raw_outcome
 
         lines = [
             f"{slot_id} | compose_one_bullet_from:",
@@ -419,7 +450,8 @@ def format_ibm_role_episode_evidence_pack(
             f"  employer: {bundle.get('employer')} | time_window: {IBM_TIME_WINDOW}",
             f"  title: {bundle.get('title')}",
             f"  allowed_source_fact_ids: {list(bundle.get('linked_source_fact_ids') or []) + [slot_id]}",
-            f"  allowed_metric_outcome_ids: {[_metric_label(mid) for mid in allowed_metrics] or '(none)'}",
+            f"  allowed_metric_outcome_ids: {slot_metric_display}",
+            f"  graph_business_outcome: {_slot_outcome}",
             "  executive_scope_signals:",
         ]
         for sig in bundle.get("executive_scope_signals") or []:
@@ -428,11 +460,15 @@ def format_ibm_role_episode_evidence_pack(
         for sig in bundle.get("architecture_scope_signals") or []:
             lines.append(f"    - {sig}")
         lines.append(f"  operating_context: {bundle.get('operating_context')}")
-        lines.append(f"  bullet_intent: {bundle.get('bullet_intent')}")
+        lines.append(
+            "  bullet_intent: Compose a qualitative, outcome-oriented bullet grounded in slot_fact_story with NO numeric metric."
+            if is_qualitative_slot
+            else f"  bullet_intent: {bundle.get('bullet_intent')}"
+        )
         lines.append("  graph_bundle_story:")
         lines.append(f"    claim_action: {bundle.get('claim_action')}")
         lines.append(f"    claim_scope: {bundle.get('claim_scope')}")
-        lines.append(f"    claim_outcome: {bundle.get('claim_outcome')}")
+        lines.append(f"    claim_outcome: {_slot_outcome}")
         _slot_fact = _plan_fact_by_slot.get(slot_id) or {}
         _story = str(_slot_fact.get("claim_text") or "").strip()
         if _story:

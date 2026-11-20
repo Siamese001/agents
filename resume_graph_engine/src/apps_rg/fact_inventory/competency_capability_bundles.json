@@ -45,9 +45,9 @@
         "skill_governed_agentic_systems_architecture",
         "skill_reusable_agentic_platform_architecture",
         "skill_agentic_control_plane_design",
-        "skill_dual_artery_compute_topology",
-        "skill_multimodal_intake_dag_and_roster_gating",
-        "skill_contract_bound_subagent_delegation"
+        "skill_layered_runtime_spine_design",
+        "skill_managed_workflow_orchestration",
+        "skill_bounded_agent_execution"
       ],
       "linked_source_fact_ids": [
         "fact_engineering_platform_001",
@@ -58,9 +58,14 @@
         "fact_slalom_011",
         "fact_slalom_012"
       ],
-      "employer_bindings": [],
+      "employer_bindings": [
+        "Slalom"
+      ],
       "role_episode_bindings": [
-        "reb_unify_agentic_platform_architecture"
+        "reb_unify_agentic_platform_architecture",
+        "reb_slalom_agentic_client_delivery",
+        "reb_slalom_autonomous_agentic_sdlc_mcp",
+        "reb_slalom_nextgen_ai_solutions"
       ],
       "allowed_sections": [
         "competencies"
@@ -91,10 +96,8 @@
         "skill_fail_closed_gate_semantics",
         "skill_x1_x2_x3_exit_control",
         "skill_policy_bound_runtime_design",
-        "skill_calibrated_hitl_ambiguity_gating",
-        "skill_synthetic_approval_origin_firewall",
-        "skill_policy_before_retrieval_isolation",
-        "skill_adversarial_pipeline_red_teaming"
+        "skill_confidence_based_escalation",
+        "skill_approval_gated_workflow_design"
       ],
       "linked_source_fact_ids": [
         "fact_engineering_platform_001",
@@ -105,8 +108,13 @@
         "fact_slalom_011",
         "fact_slalom_012"
       ],
-      "employer_bindings": [],
-      "role_episode_bindings": [],
+      "employer_bindings": [
+        "Slalom"
+      ],
+      "role_episode_bindings": [
+        "reb_slalom_governed_runtime_scaling",
+        "reb_slalom_dialectical_decision_bayesian_hitl"
+      ],
       "allowed_sections": [
         "competencies"
       ],
@@ -137,8 +145,7 @@
         "skill_dense_sparse_exact_retrieval_design",
         "skill_graph_aware_relationship_grounding",
         "skill_prompt_assembly_architecture",
-        "skill_quad_engine_hybrid_retrieval",
-        "skill_multi_gate_retrieval_release_qualification"
+        "skill:c03:retrieval_quality_guardrails"
       ],
       "linked_source_fact_ids": [
         "fact_engineering_platform_003",
@@ -149,8 +156,13 @@
         "fact_slalom_011",
         "fact_slalom_012"
       ],
-      "employer_bindings": [],
-      "role_episode_bindings": [],
+      "employer_bindings": [
+        "Slalom"
+      ],
+      "role_episode_bindings": [
+        "reb_slalom_bitemporal_graphrag_uwg",
+        "reb_slalom_visual_asset_intelligence"
+      ],
       "allowed_sections": [
         "competencies"
       ],
@@ -182,8 +194,8 @@
         "skill_output_quality_and_schema_gates",
         "skill_fail_closed_gate_semantics",
         "skill_runtime_resilience_controls",
-        "skill_multi_provider_judge_panels",
-        "skill_local_streaming_acoustic_pipeline"
+        "skill_llm_judge_packet_design",
+        "skill_external_egress_control"
       ],
       "linked_source_fact_ids": [
         "fact_engineering_platform_003",
@@ -195,8 +207,13 @@
         "fact_slalom_011",
         "fact_slalom_012"
       ],
-      "employer_bindings": [],
-      "role_episode_bindings": [],
+      "employer_bindings": [
+        "Slalom"
+      ],
+      "role_episode_bindings": [
+        "reb_slalom_live_copilot_acoustic_airgap",
+        "reb_slalom_governed_runtime_scaling"
+      ],
       "allowed_sections": [
         "competencies"
       ],
@@ -240,7 +257,7 @@
         "employment_exp_ibm_001"
       ],
       "role_episode_bindings": [
-        "reb_ibm_cloud_modernization",
+        "reb_ibm_aws_modernization_architecture",
         "reb_ibm_data_modeling_bi_decision_support"
       ],
       "allowed_sections": [
@@ -325,11 +342,13 @@
       ],
       "employer_bindings": [
         "employment_exp_unify_001",
-        "employment_exp_ibm_001"
+        "employment_exp_ibm_001",
+        "Slalom"
       ],
       "role_episode_bindings": [
         "reb_unify_partner_channel_cosell",
-        "reb_ibm_aws_alliance_partner_cosell_gtm"
+        "reb_ibm_aws_alliance_partner_cosell_gtm",
+        "reb_slalom_ecosystem_accelerators"
       ],
       "allowed_sections": [
         "competencies"
@@ -386,10 +405,12 @@
         "fact_partnerships_gtm_002"
       ],
       "employer_bindings": [
-        "employment_exp_ibm_001"
+        "employment_exp_ibm_001",
+        "Slalom"
       ],
       "role_episode_bindings": [
-        "reb_ibm_aws_alliance_partner_cosell_gtm"
+        "reb_ibm_aws_alliance_partner_cosell_gtm",
+        "reb_slalom_ecosystem_accelerators"
       ],
       "allowed_sections": [
         "competencies"
@@ -435,8 +456,12 @@
       "linked_source_fact_ids": [
         "fact_exec_001"
       ],
-      "employer_bindings": [],
-      "role_episode_bindings": [],
+      "employer_bindings": [
+        "Slalom"
+      ],
+      "role_episode_bindings": [
+        "reb_slalom_engineering_practice_leadership"
+      ],
       "allowed_sections": [
         "competencies"
       ],
@@ -513,11 +538,12 @@
         "fact_slalom_012"
       ],
       "employer_bindings": [
-        "employment_exp_ibm_001"
+        "employment_exp_ibm_001",
+        "Slalom"
       ],
       "role_episode_bindings": [
-        "reb_ibm_devsecops_reliability",
-        "reb_ibm_devsecops_release_resilience"
+        "reb_ibm_devsecops_release_resilience",
+        "reb_slalom_engineering_practice_leadership"
       ],
       "allowed_sections": [
         "competencies"
@@ -561,7 +587,7 @@
       ],
       "role_episode_bindings": [
         "reb_ey_capital_optimization_solvency",
-        "reb_insurtech_cloud_governance_security"
+        "reb_insurtech_regulated_aws_control_implementation"
       ],
       "allowed_sections": [
         "competencies"
@@ -593,8 +619,8 @@
         "data_analytics_modernization"
       ],
       "graph_skill_node_ids": [
-        "skill_universal_write_gateway_design",
-        "skill_decoupled_wal_streaming_memory"
+        "skill_no_direct_write_runtime_design",
+        "skill_side_effect_bounded_action_design"
       ],
       "linked_source_fact_ids": [
         "fact_engineering_platform_001",
@@ -605,9 +631,12 @@
         "fact_slalom_011",
         "fact_slalom_012"
       ],
-      "employer_bindings": [],
+      "employer_bindings": [
+        "Slalom"
+      ],
       "role_episode_bindings": [
-        "reb_unify_agentic_platform_architecture"
+        "reb_unify_agentic_platform_architecture",
+        "reb_slalom_bitemporal_graphrag_uwg"
       ],
       "allowed_sections": [
         "competencies"
@@ -635,8 +664,8 @@
         "tech_strategy_innovation"
       ],
       "graph_skill_node_ids": [
-        "skill_dialectical_strategic_decision_reasoning",
-        "skill_executive_briefing_and_action_registry_synthesis"
+        "skill_risk_and_hitl_route_posture",
+        "skill_evidence_contract_design"
       ],
       "linked_source_fact_ids": [
         "fact_engineering_platform_001",
@@ -647,9 +676,13 @@
         "fact_slalom_011",
         "fact_slalom_012"
       ],
-      "employer_bindings": [],
+      "employer_bindings": [
+        "Slalom"
+      ],
       "role_episode_bindings": [
-        "reb_unify_agentic_platform_architecture"
+        "reb_unify_agentic_platform_architecture",
+        "reb_slalom_dialectical_decision_bayesian_hitl",
+        "reb_slalom_live_copilot_acoustic_airgap"
       ],
       "allowed_sections": [
         "competencies"

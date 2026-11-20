@@ -22,15 +22,53 @@ import re
 import subprocess
 import tempfile
 import threading
+import time
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from functools import lru_cache
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterator
 
 AGY_CLI_ENV_VAR = "AGY_CLI_BIN"
-_CLI_CONCURRENCY_SEMAPHORE = threading.BoundedSemaphore(
-    max(1, int(os.environ.get("AGY_CLI_MAX_CONCURRENCY") or "3"))
-)
+AGY_MAX_CONCURRENCY_ENV_VAR = "AGY_CLI_MAX_CONCURRENCY"
+DEFAULT_AGY_MAX_CONCURRENCY = 2
+_CONCURRENCY_LOCK = threading.Lock()
+_CONCURRENCY_LIMIT = DEFAULT_AGY_MAX_CONCURRENCY
+_CLI_CONCURRENCY_SEMAPHORE = threading.BoundedSemaphore(DEFAULT_AGY_MAX_CONCURRENCY)
+
+
+def resolve_agy_max_concurrency(explicit: int | None = None) -> int:
+    """Resolve active concurrency cap for headless `agy -p` calls (env > explicit > default=2)."""
+    if explicit is not None:
+        return max(1, int(explicit))
+    raw = str(os.environ.get(AGY_MAX_CONCURRENCY_ENV_VAR) or "").strip()
+    if raw:
+        try:
+            return max(1, int(raw))
+        except ValueError:
+            return DEFAULT_AGY_MAX_CONCURRENCY
+    return DEFAULT_AGY_MAX_CONCURRENCY
+
+
+@contextmanager
+def _acquire_cli_slot(max_concurrency: int | None = None) -> Iterator[float]:
+    """Acquire a concurrency slot dynamically honoring AGY_CLI_MAX_CONCURRENCY; yields queue_wait_seconds."""
+    global _CONCURRENCY_LIMIT, _CLI_CONCURRENCY_SEMAPHORE
+    target = resolve_agy_max_concurrency(max_concurrency)
+    with _CONCURRENCY_LOCK:
+        if target != _CONCURRENCY_LIMIT:
+            _CONCURRENCY_LIMIT = target
+            _CLI_CONCURRENCY_SEMAPHORE = threading.BoundedSemaphore(target)
+        sem = _CLI_CONCURRENCY_SEMAPHORE
+    t0 = time.monotonic()
+    sem.acquire()
+    wait_s = round(time.monotonic() - t0, 4)
+    try:
+        yield wait_s
+    finally:
+        sem.release()
+
+
 KEY_ENV_VARS = ("GEMINI_API_KEY", "GOOGLE_API_KEY", "ANTHROPIC_API_KEY", "OPENAI_API_KEY")
 MAX_PROMPT_CHARS = 400_000  # well under macOS ARG_MAX (1 MiB); the prompt is passed as an argv element
 NO_TOOLS_SETTINGS: dict[str, Any] = {
@@ -60,6 +98,7 @@ class AgyResult:
     usage: dict[str, Any] = field(default_factory=dict)
     duration_seconds: float | None = None
     conversation_id: str | None = None
+    queue_wait_seconds: float = 0.0
 
 
 def _verify_banner(path: str) -> None:
@@ -199,7 +238,7 @@ def run_agy(
         if json_schema is not None:
             argv += ["--json-schema", json.dumps(json_schema)]
         try:
-            with _CLI_CONCURRENCY_SEMAPHORE:
+            with _acquire_cli_slot() as queue_wait_s:
                 proc = subprocess.run(
                     argv, cwd=tmp, env=env, capture_output=True, text=True, encoding="utf-8",
                     timeout=timeout_s, check=False, shell=False,
@@ -235,4 +274,5 @@ def run_agy(
         usage=usage,
         duration_seconds=res.get("duration_seconds"),
         conversation_id=str(res.get("conversation_id")),
+        queue_wait_seconds=queue_wait_s,
     )

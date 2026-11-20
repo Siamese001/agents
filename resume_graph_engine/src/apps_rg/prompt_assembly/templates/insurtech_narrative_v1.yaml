@@ -1,20 +1,24 @@
 template_id: insurtech_narrative_v1
 section_id: insurtech_narrative
 purpose: >
-  Generate exactly one sentence for the InsurTech role episode after finalized
-  bul_insurtech bullets exist. Keep the sentence within 58 words and 360
-  characters. Use only source_fact_ids from the active proof pool; targeting
-  context is targeting_only and jd_used_as_proof must remain false. The
-  sentence is a lightweight role-thesis synthesis above accepted bullets, not a
-  recap of the bullet list.
+  Generate exactly one complete, value-outcome-oriented executive sentence for
+  the InsurTech role episode after finalized bul_insurtech bullets exist. Keep
+  the sentence between 15 and 58 words and within 360 characters. MUST start
+  with a strong executive action verb (e.g. Built, Steered, Delivered,
+  Modernized, Operationalized, Drove) and NEVER start with a title fragment or
+  'Led'. Use only source_fact_ids from the active proof pool; targeting context
+  is targeting_only and jd_used_as_proof must remain false. State concretely
+  what was built or modernized and what business or carrier outcome it drove.
 methodology_contract:
   role: ROLE_THESIS_NARRATIVE
   finalized_bullets_are_primary_synthesis_context: true
   proof_authority: active_proof_pool_and_claim_ledger_only
   thesis_rule: >
-    State why the InsurTech role mattered at a higher level of abstraction; the
-    companion bullets prove what was delivered.
+    State concretely what was built or modernized in the InsurTech role and what
+    carrier, cost, regulatory, or operational outcome it drove; never settle for
+    practice-leadership-only filler without delivered capabilities and business impact.
   anti_patterns:
+    - "practice-leadership-only filler without concrete delivered capability and business outcome"
     - "three-bullet recap"
     - "comma-packed list of bullet topics"
     - "new first-principles graph traversal in narrative"

@@ -1,23 +1,29 @@
 template_id: slalom_narrative_v1
 section_id: slalom_narrative
 purpose: >
-  Generate exactly one complete, inspiring executive sentence for the Slalom role episode
-  after finalized bul_slalom bullets exist. Keep the sentence between 20 and 58 words and
-  within 360 characters. MUST start with a strong past-tense action verb (e.g. Led, Directed,
-  Architected, Spearheaded, Championed). NEVER start with a title fragment ('Senior Director ...')
-  or uninspiring headless phrase. Use only source_fact_ids from the active proof pool; targeting
-  context is targeting_only and jd_used_as_proof must remain false. The sentence is an inspiring
-  executive role thesis conveying senior consulting leadership, C-suite advisory, and A2A orchestration.
+  Generate exactly one complete, value-outcome-oriented executive sentence for the Slalom
+  role episode after finalized bul_slalom bullets exist. Keep the sentence between 20 and 58
+  words and within 360 characters. MUST start with a strong executive action verb (e.g.
+  Built, Commercialized, Delivered, Architected, Operationalized, Drove, Transformed). NEVER
+  start with a title fragment ('Senior Director ...'), 'Led', or practice-leadership-only
+  filler. Use only source_fact_ids from the active proof pool; targeting context is
+  targeting_only and jd_used_as_proof must remain false. The sentence must state concretely
+  what was built, commercialized, or delivered and what measurable business, commercial, or
+  operational outcome it drove.
 methodology_contract:
   role: ROLE_THESIS_NARRATIVE
   finalized_bullets_are_primary_synthesis_context: true
   proof_authority: active_proof_pool_and_claim_ledger_only
   thesis_rule: >
-    State why the Slalom executive consulting role mattered at a strategic level: leading
-    enterprise transformation advisory, client executive engagement, and enterprise agentic
-    delivery; the companion bullets prove what was delivered.
+    State concretely what was built, commercialized, or delivered in the Slalom role and what
+    measurable business, commercial, or operational value it created (e.g. commercializing
+    governed enterprise AI platforms, accelerating production adoption, expanding multi-SOW
+    charter portfolios, or cutting operational risk and handoffs); never settle for generic
+    practice-leadership phrasing ('led this practice', 'oversaw consulting delivery') without
+    concrete delivered capabilities tied to business outcomes.
   anti_patterns:
     - "headless title fragment (e.g. starting with 'Senior Director ...' without an action verb)"
+    - "practice-leadership-only filler ('led the practice', 'oversaw client advisory') without stating what was concretely built/delivered and what business outcome it drove"
     - "short uninspiring fragment under 15 words"
     - "four-bullet recap"
     - "comma-packed list of bullet topics"

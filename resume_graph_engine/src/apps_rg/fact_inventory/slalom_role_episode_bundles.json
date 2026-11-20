@@ -26,32 +26,32 @@
     "csuite_five_section_flagship_absorbed": true
   },
   "approved_metric_outcome_ids": {
-    "metric_slalom_production_agentic_client_engagements": "production agentic AI client engagements delivered across enterprise accounts",
-    "metric_slalom_a2a_orchestration_contract_surface": "agent-to-agent orchestration contract surface across multi-agent coordination workflows",
-    "metric_slalom_delivery_cycle_compression_pct": "client delivery cycle time compressed through repeatable agentic patterns",
-    "metric_slalom_nextgen_ai_practice_pipeline_expansion": "next-generation AI practice pipeline and commercial solution expansion",
-    "metric_slalom_frontier_model_solution_patterns": "frontier model and advanced reasoning solution patterns productized for enterprise clients",
-    "metric_slalom_enterprise_ai_adoption_rate": "enterprise client AI adoption rate across strategic lines of business",
-    "metric_slalom_governed_runtime_telemetry_coverage": "governed runtime telemetry and verification mesh coverage for deployed agents",
-    "metric_slalom_validation_gate_mesh_conformance_pct": "100% deterministic gate mesh conformance for safety-critical agent decisions",
-    "metric_slalom_audit_grade_lineage_assurance": "audit-grade execution lineage assurance across multi-agent traces",
+    "metric_slalom_production_agentic_client_engagements": "production agentic AI client engagements and multi-million-dollar utility modernization charters delivered with zero red escalations",
+    "metric_slalom_a2a_orchestration_contract_surface": "typed agent-to-agent (A2A) orchestration contracts powering SCADA grid-restoration intelligence and customer outage self-service call-center deflection",
+    "metric_slalom_delivery_cycle_compression_pct": "client delivery cycle time compressed through repeatable agentic patterns and feature-velocity benchmarks with zero red escalations",
+    "metric_slalom_nextgen_ai_practice_pipeline_expansion": "multi-million-dollar quarterly AI engineering delivery SOW expansion commercialized from reusable AI-PDLC charter blueprints",
+    "metric_slalom_frontier_model_solution_patterns": "reusable multi-workflow agentic charter patterns backed by Volume-x-Price labor efficiency and NAV break-even business cases",
+    "metric_slalom_enterprise_ai_adoption_rate": "enterprise client AI adoption scaled across power generation, grid operations, regulatory compliance, and customer service lines of business",
+    "metric_slalom_governed_runtime_telemetry_coverage": "full citation accuracy, provenance coverage, and abstention precision across governed enterprise agent traces and knowledge-graph outputs",
+    "metric_slalom_validation_gate_mesh_conformance_pct": "100% deterministic gate mesh conformance across safety-critical agentic workflows and fail-closed release-readiness gates",
+    "metric_slalom_audit_grade_lineage_assurance": "audit-grade execution lineage assurance with zero silent signal loss and zero orphan-node drift across regulated enterprise AI deployments",
     "metric_slalom_accelerator_adoption_acceleration_months_to_weeks": "client adoption compressed from months to weeks via Google Cloud Gemini Enterprise, Claude Code, and OpenAI Codex accelerators",
     "metric_slalom_cloud_partner_cosell_initiatives": "joint AI partner co-sell and licensing expansion across Google Cloud (scaling Gemini Enterprise from 750 to 5,750+ seats toward 10,000+), Anthropic Claude ($2.4M enablement workstream and 45-day Claude Code pods), and OpenAI Codex (15 percentage point handoff reduction in 10 days)",
     "metric_slalom_reusable_ip_asset_library_count": "reusable multi-model agentic IP asset library spanning Google Cloud Vertex AI, Claude Managed Agents, and OpenAI Frontier driving high-margin delivery motions",
-    "metric_slalom_visual_asset_intelligence_sow_delivery": "six-figure multi-modal visual asset intelligence platform delivered across utility generation sites",
-    "metric_slalom_consulting_engineering_footprint_scale": "105 software engineers and data leaders directed across a leading energy and utility company, managing all client relationships, delivery execution, and sales pipeline",
-    "metric_slalom_acoustic_airgap_pcm_spooler_200ms": "privacy-isolated multimodal ingestion and low-latency speech processing for regulated enterprise advisory",
-    "metric_slalom_dual_track_copilot_flash_snap_250ms": "low-latency context prefetching and policy-gated streaming advisory responses for executive decision support",
-    "metric_slalom_multimodal_3stage_self_healing_zero_loss": "multi-stage multimodal synthesis pipeline and automated reconciliation controls preserving end-to-end signal fidelity",
-    "metric_slalom_hybrid_bgem3_fts5_11gate_retrieval": "hybrid semantic vector and lexical retrieval pipelines governed by production release qualification gates",
-    "metric_slalom_merkle_subgraph_cache_kv_alignment": "deterministic subgraph context caching and prompt-prefix alignment across enterprise lakehouse and knowledge-graph workloads",
-    "metric_slalom_uwg_5check_physical_disk_proof": "governed write-custody gateway enforcing automated data integrity verification and atomic dataset promotion",
-    "metric_slalom_decision_engine_18roles_6modalities_w1w7": "multi-stage enterprise decision evaluation workflows across specialized domain review lanes",
-    "metric_slalom_bayesian_hitl_20pct_ambiguity_margin": "99% policy-gate auditability across confidence-calibrated human-in-the-loop (HITL) escalation workflows",
-    "metric_slalom_dialectical_judge_rubric_calibration": "independent multi-model evaluation adjudication with closed-loop rubric calibration",
-    "metric_slalom_7layer_119package_dag_architecture": "modular multi-layer cloud and agentic platform architecture enforcing strict service boundary contracts across enterprise engineering teams",
-    "metric_slalom_18agent_6stage_32gate_autonomous_sdlc": "automated multi-stage SDLC release readiness gates and governed enterprise tool integration workflows",
-    "metric_slalom_8surface_closed_loop_system_learning": "closed-loop production telemetry and continuous evaluation feedback across enterprise AI deployments"
+    "metric_slalom_visual_asset_intelligence_sow_delivery": "six-figure multi-modal visual asset intelligence SOW achieving 90% primary-field accuracy, 92% OCR accuracy, and 100% full-plate high-confidence auto-acceptance into enterprise asset management (IBM Maximo)",
+    "metric_slalom_consulting_engineering_footprint_scale": "105 software engineers and data leaders directed across multi-charter enterprise AI delivery and multi-SOW utility portfolio with zero red escalations",
+    "metric_slalom_acoustic_airgap_pcm_spooler_200ms": "local privacy-isolated acoustic capture eliminating cloud audio egress for regulated executive advisory",
+    "metric_slalom_dual_track_copilot_flash_snap_250ms": "sub-second live executive advisory copilot and enterprise intelligence portal eliminating post-meeting decision evaporation across active consulting accounts",
+    "metric_slalom_multimodal_3stage_self_healing_zero_loss": "multi-stage multimodal synthesis pipeline with automated self-healing and pre-egress PII sanitization preserving end-to-end signal fidelity",
+    "metric_slalom_hybrid_bgem3_fts5_11gate_retrieval": "hybrid semantic-lexical GraphRAG retrieval across governed enterprise workstreams validated by production release qualification gates with verified citation accuracy",
+    "metric_slalom_merkle_subgraph_cache_kv_alignment": "cryptographic subgraph caching and prompt-prefix alignment delivering sub-second multi-hop GraphRAG retrieval and lower inference cost across enterprise workloads",
+    "metric_slalom_uwg_5check_physical_disk_proof": "fail-closed write-custody gateway enforcing automated physical integrity verification and atomic dataset promotion with zero silent data corruption",
+    "metric_slalom_decision_engine_18roles_6modalities_w1w7": "multi-role strategic decision intelligence engine producing audit-backed executive recommendations across complex enterprise portfolios",
+    "metric_slalom_bayesian_hitl_20pct_ambiguity_margin": "99% policy-gate auditability and full abstention precision via confidence-calibrated Bayesian human-in-the-loop (HITL) escalation",
+    "metric_slalom_dialectical_judge_rubric_calibration": "independent cross-provider LLM judge panels with closed-loop rubric calibration eliminating ungrounded claims before executive release",
+    "metric_slalom_7layer_119package_dag_architecture": "modular multi-layer agentic platform architecture and enterprise intelligence portal enforcing strict service boundary contracts with zero architecture drift",
+    "metric_slalom_18agent_6stage_32gate_autonomous_sdlc": "autonomous governance sidecar agents, fail-closed release gates, and warm in-process MCP tool servers compressing engineering turnaround across live delivery",
+    "metric_slalom_8surface_closed_loop_system_learning": "closed-loop system learning across production telemetry surfaces continuously improving retrieval precision, HITL calibration, and cost-latency routing"
   },
   "bundles": [
     {
@@ -60,20 +60,20 @@
       "title": "Senior Director",
       "employer_node_id": "employment_exp_slalom_001",
       "root_capability_node_id": "agentic_client_delivery",
-      "bundle_theme": "Senior Director agentic AI client delivery and A2A multi-agent orchestration",
-      "claim_text": "Architected and led production agentic AI client delivery and A2A multi-agent orchestration across enterprise transformations",
-      "claim_action": "Architected and led production agentic AI client delivery engagements",
-      "claim_scope": "Enterprise client engagements across Fortune 500 accounts; ownership of A2A orchestration, deterministic routing, and delivery excellence.",
-      "claim_outcome": "Scaled production client deployments, compressed delivery cycles, and established enterprise-grade execution auditability.",
+      "bundle_theme": "Senior Director agentic AI client delivery, A2A multi-agent orchestration, and utility operations outcomes",
+      "claim_text": "Architected and led production agentic AI client delivery and A2A multi-agent orchestration across enterprise transformations, advancing a $3.5M modernization program, SCADA grid-restoration intelligence, and customer outage self-service targeting 20% call-center deflection",
+      "claim_action": "Architected and led production agentic AI client delivery and typed A2A multi-agent orchestration engagements",
+      "claim_scope": "Enterprise AI delivery spanning a $3.5M multi-agent modernization program, dynamic fault-code grid restoration correlating SCADA and IBM Maximo history, and customer outage self-service with Salesforce escalation workflows.",
+      "claim_outcome": "Moved fragmented AI pilots into governed production across 11 core workstreams with zero red escalations, enabled 20% target call-center deflection in outage self-service cohorts, and compressed prototype-to-production delivery cycles.",
       "support_level": "approved_by_graph_presence",
       "executive_scope_signals": [
-        "Led Senior Director-level client delivery and A2A orchestration engagements for Fortune 500 enterprises",
-        "Established architecture standards for autonomous agent coordination, policy enforcement, and client delivery governance"
+        "Architected and delivered production multi-agent orchestration across a $3.5M enterprise modernization program, dynamic SCADA/Maximo grid-restoration engine, and customer outage self-service MVP targeting 20% call-center deflection",
+        "Replaced ad-hoc agent prototypes with typed A2A orchestration contracts, deterministic route policies, and feature-velocity benchmarks across 11 core delivery workstreams with zero red escalations"
       ],
       "architecture_scope_signals": [
-        "Agent-to-agent (A2A) protocol design and multi-agent coordination contracts",
-        "Deterministic route-policy dispatch and side-effect bounded tool execution",
-        "Audit-grade execution trace logging and client verification frameworks"
+        "LangGraph and AWS Bedrock/AgentCore multi-agent orchestration with typed A2A handoff contracts and side-effect bounded tool execution",
+        "Dynamic fault-code restoration decision engine correlating SCADA telemetry and IBM Maximo history under SSO/RBAC SME rule governance",
+        "Customer outage self-service and production care assistant integrating Salesforce write-back, escalation routing, and audit-grade execution traces"
       ],
       "graph_skill_node_ids": [
         "skill_governed_agentic_systems_architecture",
@@ -114,20 +114,20 @@
       "title": "Senior Director",
       "employer_node_id": "employment_exp_slalom_001",
       "root_capability_node_id": "nextgen_ai_solutions",
-      "bundle_theme": "Next-generation AI practice architecture, commercialization, and frontier solution scaling",
-      "claim_text": "Commercialized next-generation AI practice architecture and frontier model capabilities into repeatable enterprise solutions",
-      "claim_action": "Commercialized next-gen AI practices and frontier model capabilities into enterprise solutions",
-      "claim_scope": "Firm-wide practice leadership, translating frontier reasoning models and multimodal architectures into repeatable client offerings.",
-      "claim_outcome": "Drove high-margin advisory and implementation pipeline, establishing firm leadership in enterprise agentic AI.",
+      "bundle_theme": "Next-generation AI-PDLC commercialization, value-modeled charter blueprints, and enterprise compliance and document AI",
+      "claim_text": "Commercialized an enterprise AI Product Delivery Lifecycle (AI-PDLC) operating model and value-modeled 7-workflow agentic charter framework, expanding a $6.77M quarterly AI engineering delivery SOW and shipping production regulatory compliance and automated document classification workflows",
+      "claim_action": "Commercialized enterprise AI-PDLC standards and value-modeled agentic charter blueprints into repeatable production offerings",
+      "claim_scope": "Enterprise AI-PDLC operating model, $6.77M quarterly AI engineering delivery SOW, Volume-x-Price labor efficiency and NAV break-even charter valuation, regulatory compliance automation, and production Documentum classification.",
+      "claim_outcome": "Expanded quarterly AI engineering delivery SOW to $6.77M, converted fragmented pilots into value-modeled product charters, and shipped production regulatory compliance and Documentum classification under human-in-the-loop cost controls.",
       "support_level": "approved_by_graph_presence",
       "executive_scope_signals": [
-        "Directed next-generation AI practice strategy, capability roadmaps, and client solution offerings",
-        "Transformed advanced frontier model research and reasoning architectures into commercial enterprise client assets"
+        "Commercialized an enterprise AI-PDLC operating model and Volume-x-Price / NAV charter valuation framework across 33 AI and analytics charters, driving $25M+ in cumulative SOW portfolio value ($6.77M quarterly AI engineering SOW)",
+        "Delivered production GCP regulatory compliance intelligence and automated document classification writing directly to enterprise content management (Documentum) under human-in-the-loop cost and confidence controls"
       ],
       "architecture_scope_signals": [
-        "Frontier model capability evaluation and reasoning architecture design",
-        "Structured prompt compilation and context-window optimization standards",
-        "Multimodal integration patterns and enterprise decision engine design"
+        "Enterprise AI-PDLC specification-driven delivery standards, continuous context hydration, and reusable cross-charter agentic blueprints",
+        "GCP regulatory compliance and Document AI extraction pipelines comparing regulatory mandates against IBM Maximo and Documentum operational records",
+        "7-workflow agentic charter architecture backed by Volume-x-Price labor efficiency, CapEx/O&M, and NAV break-even financial modeling"
       ],
       "graph_skill_node_ids": [
         "skill_graph_aware_relationship_grounding",
@@ -167,20 +167,20 @@
       "title": "Senior Director",
       "employer_node_id": "employment_exp_slalom_001",
       "root_capability_node_id": "governed_runtime_scaling",
-      "bundle_theme": "Governed runtime scaling, deterministic proof lineage, and safety validation mesh",
-      "claim_text": "Engineered governed runtime architectures, deterministic proof lineage, and a safety validation mesh enforcing 100% gate conformance for safety-critical agent decisions",
-      "claim_action": "Engineered runtime governance harnesses and deterministic validation mesh for enterprise agent deployments",
-      "claim_scope": "Enterprise-wide runtime safety, sandbox boundaries, telemetry instrumentation, and forensic audit controls.",
-      "claim_outcome": "Ensured zero-leakage compliance, repeatable execution traces, and production reliability for mission-critical client workflows.",
+      "bundle_theme": "Outcome-based agentic evaluation mesh, fail-closed validation gates, and 100% citation and provenance assurance",
+      "claim_text": "Engineered outcome-based agentic evaluation harnesses, fail-closed validation meshes, and audit-grade OpenTelemetry lineage enforcing 100% deterministic gate conformance, 100% citation accuracy, 100% abstention precision, and 100% provenance coverage across regulated enterprise AI workloads",
+      "claim_action": "Engineered outcome-based agentic evaluation harnesses, deterministic validation meshes, and audit-grade execution lineage",
+      "claim_scope": "Enterprise runtime safety, sandboxed egress controls, ground-truth evaluation harnesses, and distributed telemetry across regulated energy and consulting AI platforms.",
+      "claim_outcome": "Achieved 100% deterministic gate conformance, 100% citation accuracy, 100% abstention precision, and 100% provenance coverage with zero leakage across regulated production workflows.",
       "support_level": "approved_by_graph_presence",
       "executive_scope_signals": [
-        "Established enterprise governance boundaries, validation gates, and safety standards for client agentic systems",
-        "Architected proof-carrying execution frameworks ensuring forensic auditability in regulated environments"
+        "Built outcome-based agentic evaluation harnesses and fail-closed validation meshes delivering 100% deterministic gate conformance, 100% citation accuracy, and 100% abstention precision in regulated enterprise environments",
+        "Replaced manual turn-by-turn spot checks with automated ground-truth verification, sandboxed egress controls, and replayable OpenTelemetry audit lineage"
       ],
       "architecture_scope_signals": [
-        "Deterministic gate verification mesh (X1, X2, X3) for agentic outputs",
-        "Sandboxed tool execution and egress policy enforcement",
-        "OpenTelemetry distributed tracing and replayable audit-log lineage"
+        "Deterministic fail-closed exit-control gate mesh (X1, X2, X3) and automated ground-truth evaluation harnesses for multi-agent outputs",
+        "Sandboxed tool execution, pre-egress PII/credential sanitization, and zero-bypass policy enforcement",
+        "OpenTelemetry distributed tracing and replayable proof-carrying execution receipts"
       ],
       "graph_skill_node_ids": [
         "skill_audit_grade_observability",
@@ -279,19 +279,20 @@
       "title": "Senior Director",
       "employer_node_id": "employment_exp_slalom_001",
       "root_capability_node_id": "visual_asset_intelligence",
-      "bundle_theme": "Multi-modal visual asset intelligence pipeline and automated power generation asset extraction",
-      "claim_text": "Directed technical architecture and commercial delivery of a multi-modal visual asset intelligence pipeline and automated power generation asset extraction",
-      "claim_action": "Directed technical architecture and commercial delivery of multi-modal visual asset intelligence platform",
-      "claim_scope": "Power generation infrastructure, automated feature extraction, and scalable cloud ingestion under T&M NTE model.",
-      "claim_outcome": "Delivered six-figure commercial platform SOW on-time with automated image processing and cloud telemetry.",
+      "bundle_theme": "Multi-modal visual asset intelligence delivering 90% field accuracy, 92% OCR accuracy, and 100% high-confidence Maximo auto-acceptance",
+      "claim_text": "Directed technical architecture and functional remediation of a six-figure multi-modal visual asset intelligence SOW for power generation equipment nameplates, decoupling optical confidence from business rules with vision-LLM extraction and deterministic Python adjudication to achieve 90% primary-field accuracy, 92% OCR accuracy, and 100% full-plate high-confidence auto-acceptance into IBM Maximo",
+      "claim_action": "Architected and remediated a production multi-modal visual asset intelligence platform for power generation equipment nameplates",
+      "claim_scope": "Six-figure commercial SOW automating field-to-office turbine nameplate extraction across generation sites using single-call vision-LLM reading, deterministic Python business-rule adjudication, vendor allowlists, and IBM Maximo integration.",
+      "claim_outcome": "Achieved 90% primary-field extraction accuracy and 92% OCR accuracy on golden validation datasets while enforcing a 100% full-plate accuracy high-confidence auto-acceptance standard into IBM Maximo, cutting manual technician review while preventing serial-number misreads.",
       "support_level": "approved_by_graph_presence",
       "executive_scope_signals": [
-        "Directed commercial SOW delivery for enterprise visual asset intelligence across generation sites",
-        "Established technical architecture standards for multi-modal computer vision and cloud ingestion"
+        "Directed architecture and functional remediation of a six-figure visual asset intelligence SOW, reaching 90% primary-field accuracy and 92% OCR accuracy across power generation field imagery",
+        "Established a 100% full-plate accuracy high-confidence auto-acceptance gate into IBM Maximo while routing medium/low-confidence items to human review, preventing costly asset-data corruption"
       ],
       "architecture_scope_signals": [
-        "Multi-modal image extraction and feature processing pipeline",
-        "Scalable cloud ingestion and visual telemetry infrastructure"
+        "Single-call vision-LLM Read paired with deterministic Python Decide adjudication, 3-field serial gating, strict vendor allowlists, and no fuzzy tie-snapping",
+        "Rules-agnostic optical confidence scoring decoupled from business rules to prevent non-deterministic regression on rule edits",
+        "Statistical validation protocol (+/-5.7% error bound) and IBM Maximo automated write-back with out-of-scope asset exclusion controls"
       ],
       "graph_skill_node_ids": [
         "skill_ai_platform_commercialization",
@@ -329,19 +330,19 @@
       "title": "Senior Director",
       "employer_node_id": "employment_exp_slalom_001",
       "root_capability_node_id": "engineering_practice_leadership",
-      "bundle_theme": "Leadership of 105 software engineers and data leaders across a leading energy and utility company, managing all client relationships, delivery execution, and sales pipeline",
-      "claim_text": "Led 105 software engineers and data leaders across a leading energy and utility company, managing all client relationships, delivery execution, and sales pipeline",
-      "claim_action": "Led 105 software engineers and data leaders across a leading energy and utility company, managing all client relationships, delivery execution, and sales pipeline",
-      "claim_scope": "105 software engineers and data leaders across a leading energy and utility company; end-to-end management of all client relationships, delivery execution, and sales pipeline.",
-      "claim_outcome": "Managed all executive client relationships, multi-workstream delivery execution, and commercial sales pipeline expansion across advanced analytics and enterprise digital operations.",
+      "bundle_theme": "Leadership of 105 software engineers and data leaders across 33 enterprise AI charters, $25M+ SOW portfolio, and outcome-governed delivery execution",
+      "claim_text": "Led 105 software engineers and data leaders across 33 enterprise AI and analytics charters (29 active across 6 outcome-led pods and 26 embedded co-delivery charters) for a Fortune 200 energy and utility company, stewarding $25M+ in cumulative SOW portfolio value and sustaining 11 core workstreams with zero red escalations",
+      "claim_action": "Led 105 software engineers and data leaders across 33 enterprise AI charters, converting fixed-capacity staffing into outcome-governed delivery",
+      "claim_scope": "105 software engineers and data leaders spanning 33 AI and analytics charters (power generation, renewables/nuclear, power delivery, regulatory compliance, customer operations, corporate services) and $25M+ in cumulative multi-SOW value.",
+      "claim_outcome": "Stewarded $25M+ in cumulative SOW portfolio value ($6.77M quarterly AI engineering SOW), sustained 11 core outcome-led workstreams with zero red escalations across quarterly transitions, and elevated client positioning from staff augmentation to strategic AI engineering transformation partner.",
       "support_level": "approved_by_graph_presence",
       "executive_scope_signals": [
-        "Led 105 software engineers and data leaders across a leading energy and utility company, managing all client relationships, delivery execution, and sales pipeline",
-        "Owned executive client relationships, multi-workstream delivery governance, and commercial sales pipeline across advanced analytics and digital operations"
+        "Directed 105 software engineers and data leaders across 33 enterprise AI and analytics charters (29 active across 6 outcome-led pods and 26 co-delivery charters) and $25M+ in cumulative SOW portfolio value for a Fortune 200 utility client",
+        "Sustained 11 core outcome-led engineering workstreams with zero red escalations while shifting client commercial posture from fixed-capacity hours to outcome-governed AI product engineering"
       ],
       "architecture_scope_signals": [
-        "Cross-discipline engineering and data leadership governance across 105 software engineers and data leaders",
-        "Integrated account relationship management, delivery execution governance, and commercial sales pipeline orchestration"
+        "Co-hydrated Product and Engineering operating model with explicit workstream-to-charter engineering lead accountability across 33 charters",
+        "Outcome-based delivery metrics replacing raw PR counts with planned-versus-completed production features, benchmark proofs, and business value realization"
       ],
       "graph_skill_node_ids": [
         "skill_enterprise_workflow_adoption",
@@ -379,20 +380,20 @@
       "title": "Senior Director",
       "employer_node_id": "employment_exp_slalom_001",
       "root_capability_node_id": "live_copilot_acoustic_airgap",
-      "bundle_theme": "Enterprise multimodal AI advisory workflows, low-latency executive decision support, and resilient synthesis pipelines",
-      "claim_text": "Architected enterprise multimodal AI advisory workflows and resilient synthesis pipelines with pre-egress privacy controls for executive decision support",
-      "claim_action": "Architected low-latency multimodal AI advisory workflows and multi-stage synthesis pipelines with pre-egress PII controls",
-      "claim_scope": "Privacy-preserving enterprise audio and document ingestion, low-latency context prefetching, pre-egress PII sanitization, and automated signal reconciliation.",
-      "claim_outcome": "Delivered responsive real-time executive decision-support workflows with automated quality validation and end-to-end signal fidelity.",
+      "bundle_theme": "Privacy-isolated live executive advisory copilot and self-healing multimodal synthesis eliminating decision evaporation",
+      "claim_text": "Built and deployed a production privacy-isolated local acoustic capture and sub-250ms live executive advisory copilot paired with a 3-stage self-healing multimodal synthesis pipeline and pre-egress PII sanitization, eliminating post-meeting decision evaporation across a 50-user enterprise account team with 0% silent signal loss",
+      "claim_action": "Built and deployed a privacy-isolated live executive advisory copilot and self-healing multimodal synthesis pipeline",
+      "claim_scope": "Production decision-intelligence platform serving a 50-user enterprise consulting account team with 100% local speech capture, sub-250ms speculative context prefetching, pre-egress PII/credential sanitization, and 3-stage forensic synthesis.",
+      "claim_outcome": "Eliminated post-meeting commitment and risk evaporation across a 50-user enterprise account team, delivering sub-250ms real-time executive guidance and 0% silent signal loss under strict acoustic airgap privacy.",
       "support_level": "approved_by_graph_presence",
       "executive_scope_signals": [
-        "Architected privacy-preserving multimodal AI advisory workflows and low-latency decision support for enterprise leadership teams",
-        "Delivered multi-stage synthesis pipelines with pre-egress PII sanitization and automated quality reconciliation across client programs"
+        "Built and deployed a production local-first multimodal AI advisory copilot delivering sub-250ms real-time executive guidance under 100% local acoustic privacy for a 50-user enterprise consulting team",
+        "Automated post-meeting synthesis into forensic transcripts, executive briefs, and structured knowledge-graph signals with automated self-healing and 0% silent signal loss"
       ],
       "architecture_scope_signals": [
-        "Privacy-isolated multimodal ingestion and domain-primed speech and document processing with speaker attribution",
-        "Low-latency context prefetching and policy-gated streaming response synthesis for real-time advisory workflows",
-        "Multi-stage synthesis pipeline (verbatim transcript, executive summary, structured signal projection) with automated self-healing"
+        "100% local acoustic airgap capture (<200ms zero-drop audio spooling and domain-primed local speech recognition with speaker attribution)",
+        "Dual-track real-time advisory architecture pairing sub-250ms speculative graph-prefetched guidance with policy-gated streaming responses and shadow-graph isolation",
+        "3-stage multimodal synthesis pipeline with pre-egress PII/credential sanitization and 3-tier deterministic self-healing reconciliation"
       ],
       "graph_skill_node_ids": [
         "skill_governed_agentic_systems_architecture",
@@ -441,20 +442,20 @@
       "title": "Senior Director",
       "employer_node_id": "employment_exp_slalom_001",
       "root_capability_node_id": "bitemporal_graphrag_uwg",
-      "bundle_theme": "Enterprise bitemporal GraphRAG knowledge-graph retrieval, hybrid semantic-lexical search, and end-to-end data lineage architecture",
-      "claim_text": "Architected enterprise bitemporal GraphRAG knowledge-graph retrieval pipelines and governed data lineage controls for regulated client workloads",
-      "claim_action": "Architected enterprise bitemporal GraphRAG knowledge-graph storage, hybrid semantic-lexical retrieval pipelines, and governed data persistence controls",
-      "claim_scope": "Enterprise bitemporal knowledge-graph context grounding, multi-hop GraphRAG hybrid vector and lexical retrieval, and auditable write-custody controls.",
-      "claim_outcome": "Delivered high-trust enterprise knowledge-graph foundations and low-latency GraphRAG retrieval with verifiable audit lineage across regulated business lines.",
+      "bundle_theme": "Bi-temporal Knowledge Graph, hybrid GraphRAG retrieval, and fail-closed write custody with 100% provenance",
+      "claim_text": "Architected a production bi-temporal enterprise knowledge graph (3,500+ governed entities, 576 workstreams) with hybrid semantic-lexical GraphRAG retrieval, cryptographic subgraph caching, and a fail-closed write-custody gateway enforcing 5-check physical integrity proofs, achieving 100% provenance coverage, 100% currentness accuracy, and zero silent data corruption",
+      "claim_action": "Architected a production bi-temporal enterprise knowledge graph, hybrid GraphRAG retrieval engine, and fail-closed write-custody gateway",
+      "claim_scope": "Bi-temporal knowledge-graph context grounding across 3,500+ governed entities and 576 workstreams, multi-hop hybrid vector-lexical GraphRAG retrieval, cryptographic caching, and auditable write-custody controls.",
+      "claim_outcome": "Delivered 100% provenance coverage, 100% citation accuracy, 100% currentness accuracy, 0% orphan-node drift, and zero silent data corruption for high-stakes executive decision briefings.",
       "support_level": "approved_by_graph_presence",
       "executive_scope_signals": [
-        "Architected enterprise bitemporal GraphRAG knowledge-graph retrieval platforms for regulated client analytics and AI transformation programs",
-        "Enforced governed data persistence, write-custody controls, and end-to-end lineage verification across mission-critical data estates"
+        "Architected a production bi-temporal enterprise knowledge graph (3,500+ governed entities, 576 workstreams) powering hybrid GraphRAG executive briefings with 100% provenance coverage and 100% currentness accuracy",
+        "Enforced zero-bypass write custody with 5-check physical integrity verification and atomic generational promotion, eliminating silent data corruption across regulated knowledge stores"
       ],
       "architecture_scope_signals": [
-        "Enterprise bitemporal knowledge-graph storage combining dense semantic embeddings with lexical search across release qualification gates",
-        "Deterministic context-caching and schema-validated GraphRAG retrieval pipelines for low-latency enterprise AI workloads",
-        "Governed data write-custody gateway enforcing cryptographic integrity checks and atomic dataset promotion"
+        "Bi-temporal knowledge graph with canonical digests, hybrid dense-vector and lexical retrieval fused across 11 release qualification gates",
+        "Cryptographic subgraph caching and prompt-prefix alignment reducing multi-hop GraphRAG latency and token cost",
+        "Fail-closed write-custody gateway enforcing 5-check integrity proofs and atomic generational swap with automated rollback"
       ],
       "graph_skill_node_ids": [
         "skill_dense_sparse_exact_retrieval_design",
@@ -504,20 +505,20 @@
       "title": "Senior Director",
       "employer_node_id": "employment_exp_slalom_001",
       "root_capability_node_id": "dialectical_decision_bayesian_hitl",
-      "bundle_theme": "Regulated data governance quality, model-risk evaluation panels, and confidence-calibrated human-in-the-loop (HITL) controls",
-      "claim_text": "Established regulated data governance quality frameworks, multi-model evaluation panels, and confidence-calibrated human-in-the-loop (HITL) escalation controls",
-      "claim_action": "Built enterprise AI model-risk evaluation frameworks, data quality guardrails, and calibrated human-in-the-loop (HITL) escalation gates",
-      "claim_scope": "Regulated enterprise data quality governance, cross-provider LLM evaluation panels, and confidence-based human review routing for high-risk decisions.",
-      "claim_outcome": "Strengthened model-risk compliance readiness and auditable human-in-the-loop decision governance across regulated enterprise workflows.",
+      "bundle_theme": "Multi-role strategic decision engine, cross-provider LLM judge panels, and Bayesian HITL escalation with 99% auditability",
+      "claim_text": "Engineered a multi-stage strategic decision intelligence engine orchestrating 18 specialized reasoning roles across 6 analytical modalities with independent cross-provider LLM judge panels and confidence-calibrated Bayesian human-in-the-loop (HITL) escalation, cutting executive review bottlenecks while achieving 99% policy-gate auditability and 100% abstention precision",
+      "claim_action": "Engineered a multi-role strategic decision engine, cross-provider LLM judge panels, and confidence-calibrated Bayesian HITL escalation gates",
+      "claim_scope": "Regulated enterprise decision synthesis and model-risk governance pairing 18 specialized reasoning roles, orthogonal cross-provider evaluation judges, and Bayesian posterior ambiguity gating (20% margin, 65% floor).",
+      "claim_outcome": "Cut executive review bottlenecks by auto-resolving high-conviction decisions while escalating genuine ambiguities, achieving 99% policy-gate auditability, 100% abstention precision, and zero ungrounded claim releases.",
       "support_level": "approved_by_graph_presence",
       "executive_scope_signals": [
-        "Established regulated data governance, model-risk evaluation frameworks, and multi-stage quality review across enterprise AI programs",
-        "Implemented confidence-calibrated human-in-the-loop (HITL) ambiguity escalation gates protecting high-risk business decisions"
+        "Built a 7-wave, 18-role strategic decision intelligence engine with independent cross-provider LLM judge panels that eliminated ungrounded executive recommendations",
+        "Operationalized confidence-calibrated Bayesian HITL escalation (20% ambiguity margin, 65% confidence floor), cutting manual review bottlenecks while maintaining 99% policy-gate auditability and 100% abstention precision"
       ],
       "architecture_scope_signals": [
-        "Multi-stage enterprise decision evaluation workflows coordinating specialized domain review across analytical modalities",
-        "Cross-family LLM evaluation panel with independent rubric calibration and audit-ready decision logs",
-        "Confidence-calibrated human-in-the-loop (HITL) escalation routing for ambiguous or high-risk operational outputs"
+        "7-wave, 18-role reasoning orchestration across 6 cognitive modalities with structured JSON disposition contracts",
+        "Cross-family provider-orthogonal LLM judge panels with closed-loop rubric calibration preventing self-preference bias",
+        "Confidence-calibrated Bayesian conjugate-prior HITL ambiguity gating routing high-conviction paths autonomously and surfacing atomic executive decisions when margin <= 20%"
       ],
       "graph_skill_node_ids": [
         "skill_hitl_escalation_architecture",
@@ -567,19 +568,19 @@
       "employer_node_id": "employment_exp_slalom_001",
       "root_capability_node_id": "autonomous_agentic_sdlc_mcp",
       "bundle_theme": "Agentic control-plane operating model transformation, forward-deployed multi-agent SDLC engineering, and governed MCP tool delivery automation",
-      "claim_text": "Led agentic control-plane operating model transformation and forward-deployed multi-agent SDLC automation across enterprise engineering organizations",
-      "claim_action": "Directed agentic control-plane operating model transformation and forward-deployed multi-agent engineering workflows across enterprise client programs",
-      "claim_scope": "Cross-functional engineering operating models, modular multi-agent control-plane architecture, automated release-readiness gates, and governed MCP tool integration standards.",
-      "claim_outcome": "Accelerated prototype-to-production deployment velocity and standardized governed agentic software delivery across enterprise technology estates.",
+      "claim_text": "Built a production 7-layer modular agentic software delivery platform with 26 autonomous governance sidecar agents, 38 fail-closed release-readiness gates, warm in-process Model Context Protocol (MCP) tool servers, closed-loop learning across 8 telemetry surfaces, and a 50-user executive intelligence portal, compressing engineering turnaround and enforcing zero-drift governance",
+      "claim_action": "Built a production 7-layer agentic software delivery platform, autonomous governance agent mesh, MCP tool servers, and 50-user intelligence portal",
+      "claim_scope": "End-to-end autonomous engineering control plane spanning 26 governance sidecar agents, 38 fail-closed release gates, custom MCP servers, worktree-isolated merge pipelines, memory-governed test orchestration, and a 50-user enterprise portal.",
+      "claim_outcome": "Compressed engineering turnaround and eliminated silent governance drift across live consulting operations, delivering a 50-user executive intelligence portal and continuous closed-loop improvement across 8 production telemetry surfaces.",
       "support_level": "approved_by_graph_presence",
       "executive_scope_signals": [
-        "Led agentic control-plane operating model transformation and forward-deployed multi-agent engineering governance across enterprise client organizations",
-        "Established automated release-readiness gates and modular agentic platform standards that accelerated prototype-to-production delivery"
+        "Built a production autonomous engineering control plane with 26 governance sidecar agents, 38 fail-closed release gates, and warm in-process MCP servers that compressed delivery turnaround and eliminated silent drift",
+        "Deployed a 50-user enterprise decision-intelligence portal backed by closed-loop system learning across 8 production telemetry surfaces (retrieval precision, HITL priors, judge rubrics, and cost-latency routing)"
       ],
       "architecture_scope_signals": [
-        "Layered agentic control-plane architecture enforcing service boundary contracts and automated release qualification",
-        "Forward-deployed multi-agent SDLC workflows integrating enterprise MCP tool registries, CI/CD release gates, and automated verification",
-        "Closed-loop telemetry and operational feedback pipelines optimizing deployment reliability, cost governance, and model routing"
+        "7-layer unidirectional DAG platform architecture with AST-enforced boundary linters, worktree-isolated FIFO merge locks, and memory-governed parallel test orchestration",
+        "26 autonomous governance sidecar agents and 38 fail-closed main readiness gates spanning security, hygiene, SSOT drift remediation, and PR promotion",
+        "Custom Model Context Protocol (MCP) servers with warm in-process graph daemons and 8 closed-loop system learning surfaces"
       ],
       "graph_skill_node_ids": [
         "skill_agentic_control_plane_design",
@@ -637,7 +638,7 @@
   "metric_outcome_nodes": {
     "metric_slalom_production_agentic_client_engagements": {
       "metric_outcome_id": "metric_slalom_production_agentic_client_engagements",
-      "metric": "production agentic AI client engagements delivered across enterprise accounts",
+      "metric": "production agentic AI client engagements and multi-million-dollar utility modernization charters delivered with zero red escalations",
       "metric_type": "client_delivery_metric",
       "employer": "Slalom",
       "approved": true,
@@ -646,7 +647,7 @@
       "bundle_bindings": [
         "reb_slalom_agentic_client_delivery"
       ],
-      "claim_text": "Graph evidence supports production agentic AI client engagements delivered across enterprise accounts.",
+      "claim_text": "Graph evidence supports production agentic AI client engagements and multi-million-dollar utility modernization charters delivered with zero red escalations.",
       "surface_tokens": [
         "production agentic AI",
         "client engagements",
@@ -663,7 +664,7 @@
     },
     "metric_slalom_a2a_orchestration_contract_surface": {
       "metric_outcome_id": "metric_slalom_a2a_orchestration_contract_surface",
-      "metric": "agent-to-agent orchestration contract surface across multi-agent coordination workflows",
+      "metric": "typed agent-to-agent (A2A) orchestration contracts powering SCADA grid-restoration intelligence and customer outage self-service call-center deflection",
       "metric_type": "orchestration_metric",
       "employer": "Slalom",
       "approved": true,
@@ -672,7 +673,7 @@
       "bundle_bindings": [
         "reb_slalom_agentic_client_delivery"
       ],
-      "claim_text": "Graph evidence supports agent-to-agent orchestration contract surface across multi-agent coordination workflows.",
+      "claim_text": "Graph evidence supports typed agent-to-agent (A2A) orchestration contracts powering SCADA grid-restoration intelligence and customer outage self-service call-center deflection.",
       "surface_tokens": [
         "A2A orchestration",
         "multi-agent coordination",
@@ -689,7 +690,7 @@
     },
     "metric_slalom_delivery_cycle_compression_pct": {
       "metric_outcome_id": "metric_slalom_delivery_cycle_compression_pct",
-      "metric": "client delivery cycle time compressed through repeatable agentic patterns",
+      "metric": "client delivery cycle time compressed through repeatable agentic patterns and feature-velocity benchmarks with zero red escalations",
       "metric_type": "cycle_time_metric",
       "employer": "Slalom",
       "approved": true,
@@ -698,7 +699,7 @@
       "bundle_bindings": [
         "reb_slalom_agentic_client_delivery"
       ],
-      "claim_text": "Graph evidence supports client delivery cycle time compressed through repeatable agentic patterns.",
+      "claim_text": "Graph evidence supports client delivery cycle time compressed through repeatable agentic patterns and feature-velocity benchmarks with zero red escalations.",
       "surface_tokens": [
         "delivery cycle compression",
         "repeatable agentic patterns"
@@ -714,7 +715,7 @@
     },
     "metric_slalom_nextgen_ai_practice_pipeline_expansion": {
       "metric_outcome_id": "metric_slalom_nextgen_ai_practice_pipeline_expansion",
-      "metric": "next-generation AI practice pipeline and commercial solution expansion",
+      "metric": "multi-million-dollar quarterly AI engineering delivery SOW expansion commercialized from reusable AI-PDLC charter blueprints",
       "metric_type": "pipeline_expansion_metric",
       "employer": "Slalom",
       "approved": true,
@@ -723,7 +724,7 @@
       "bundle_bindings": [
         "reb_slalom_nextgen_ai_solutions"
       ],
-      "claim_text": "Graph evidence supports next-generation AI practice pipeline and commercial solution expansion.",
+      "claim_text": "Graph evidence supports multi-million-dollar quarterly AI engineering delivery SOW expansion commercialized from reusable AI-PDLC charter blueprints.",
       "surface_tokens": [
         "AI practice pipeline",
         "commercial solution expansion"
@@ -739,7 +740,7 @@
     },
     "metric_slalom_frontier_model_solution_patterns": {
       "metric_outcome_id": "metric_slalom_frontier_model_solution_patterns",
-      "metric": "frontier model and advanced reasoning solution patterns productized for enterprise clients",
+      "metric": "reusable multi-workflow agentic charter patterns backed by Volume-x-Price labor efficiency and NAV break-even business cases",
       "metric_type": "frontier_model_metric",
       "employer": "Slalom",
       "approved": true,
@@ -748,7 +749,7 @@
       "bundle_bindings": [
         "reb_slalom_nextgen_ai_solutions"
       ],
-      "claim_text": "Graph evidence supports frontier model and advanced reasoning solution patterns productized for enterprise clients.",
+      "claim_text": "Graph evidence supports reusable multi-workflow agentic charter patterns backed by Volume-x-Price labor efficiency and NAV break-even business cases.",
       "surface_tokens": [
         "frontier model patterns",
         "advanced reasoning",
@@ -765,7 +766,7 @@
     },
     "metric_slalom_enterprise_ai_adoption_rate": {
       "metric_outcome_id": "metric_slalom_enterprise_ai_adoption_rate",
-      "metric": "enterprise client AI adoption rate across strategic lines of business",
+      "metric": "enterprise client AI adoption scaled across power generation, grid operations, regulatory compliance, and customer service lines of business",
       "metric_type": "adoption_metric",
       "employer": "Slalom",
       "approved": true,
@@ -774,7 +775,7 @@
       "bundle_bindings": [
         "reb_slalom_nextgen_ai_solutions"
       ],
-      "claim_text": "Graph evidence supports enterprise client AI adoption rate across strategic lines of business.",
+      "claim_text": "Graph evidence supports enterprise client AI adoption scaled across power generation, grid operations, regulatory compliance, and customer service lines of business.",
       "surface_tokens": [
         "enterprise AI adoption",
         "strategic lines of business"
@@ -790,7 +791,7 @@
     },
     "metric_slalom_governed_runtime_telemetry_coverage": {
       "metric_outcome_id": "metric_slalom_governed_runtime_telemetry_coverage",
-      "metric": "governed runtime telemetry and verification mesh coverage for deployed agents",
+      "metric": "full citation accuracy, provenance coverage, and abstention precision across governed enterprise agent traces and knowledge-graph outputs",
       "metric_type": "runtime_telemetry_metric",
       "employer": "Slalom",
       "approved": true,
@@ -799,7 +800,7 @@
       "bundle_bindings": [
         "reb_slalom_governed_runtime_scaling"
       ],
-      "claim_text": "Graph evidence supports governed runtime telemetry and verification mesh coverage for deployed agents.",
+      "claim_text": "Graph evidence supports full citation accuracy, provenance coverage, and abstention precision across governed enterprise agent traces and knowledge-graph outputs.",
       "surface_tokens": [
         "governed runtime telemetry",
         "verification mesh coverage"
@@ -815,7 +816,7 @@
     },
     "metric_slalom_validation_gate_mesh_conformance_pct": {
       "metric_outcome_id": "metric_slalom_validation_gate_mesh_conformance_pct",
-      "metric": "100% deterministic gate mesh conformance for safety-critical agent decisions",
+      "metric": "100% deterministic gate mesh conformance across safety-critical agentic workflows and fail-closed release-readiness gates",
       "metric_type": "gate_conformance_metric",
       "employer": "Slalom",
       "approved": true,
@@ -824,7 +825,7 @@
       "bundle_bindings": [
         "reb_slalom_governed_runtime_scaling"
       ],
-      "claim_text": "Graph evidence supports 100% deterministic gate mesh conformance for safety-critical agent decisions.",
+      "claim_text": "Graph evidence supports 100% deterministic gate mesh conformance across safety-critical agentic workflows and fail-closed release-readiness gates.",
       "surface_tokens": [
         "gate mesh conformance",
         "safety-critical agent decisions"
@@ -840,7 +841,7 @@
     },
     "metric_slalom_audit_grade_lineage_assurance": {
       "metric_outcome_id": "metric_slalom_audit_grade_lineage_assurance",
-      "metric": "audit-grade execution lineage assurance across multi-agent traces",
+      "metric": "audit-grade execution lineage assurance with zero silent signal loss and zero orphan-node drift across regulated enterprise AI deployments",
       "metric_type": "lineage_assurance_metric",
       "employer": "Slalom",
       "approved": true,
@@ -849,7 +850,7 @@
       "bundle_bindings": [
         "reb_slalom_governed_runtime_scaling"
       ],
-      "claim_text": "Graph evidence supports audit-grade execution lineage assurance across multi-agent traces.",
+      "claim_text": "Graph evidence supports audit-grade execution lineage assurance with zero silent signal loss and zero orphan-node drift across regulated enterprise AI deployments.",
       "surface_tokens": [
         "audit-grade execution lineage",
         "multi-agent traces"
@@ -954,7 +955,7 @@
     },
     "metric_slalom_visual_asset_intelligence_sow_delivery": {
       "metric_outcome_id": "metric_slalom_visual_asset_intelligence_sow_delivery",
-      "metric": "six-figure multi-modal visual asset intelligence platform delivered across utility generation sites",
+      "metric": "six-figure multi-modal visual asset intelligence SOW achieving 90% primary-field accuracy, 92% OCR accuracy, and 100% full-plate high-confidence auto-acceptance into enterprise asset management (IBM Maximo)",
       "metric_type": "commercial_delivery_metric",
       "employer": "Slalom",
       "approved": true,
@@ -963,7 +964,7 @@
       "bundle_bindings": [
         "reb_slalom_visual_asset_intelligence"
       ],
-      "claim_text": "commercial SOW delivering automated image extraction, feature processing, and cloud ingestion for visual asset intelligence",
+      "claim_text": "Graph evidence supports six-figure multi-modal visual asset intelligence SOW achieving 90% primary-field accuracy, 92% OCR accuracy, and 100% full-plate high-confidence auto-acceptance into enterprise asset management (IBM Maximo).",
       "surface_tokens": [
         "visual asset intelligence",
         "Project Lens",
@@ -981,7 +982,7 @@
     },
     "metric_slalom_consulting_engineering_footprint_scale": {
       "metric_outcome_id": "metric_slalom_consulting_engineering_footprint_scale",
-      "metric": "105 software engineers and data leaders directed across a leading energy and utility company, managing all client relationships, delivery execution, and sales pipeline",
+      "metric": "105 software engineers and data leaders directed across multi-charter enterprise AI delivery and multi-SOW utility portfolio with zero red escalations",
       "metric_type": "practice_scale_metric",
       "employer": "Slalom",
       "approved": true,
@@ -990,7 +991,7 @@
       "bundle_bindings": [
         "reb_slalom_engineering_practice_leadership"
       ],
-      "claim_text": "Leadership of 105 software engineers and data leaders across a leading energy and utility company, managing all client relationships, delivery execution, and sales pipeline",
+      "claim_text": "Graph evidence supports 105 software engineers and data leaders directed across multi-charter enterprise AI delivery and multi-SOW utility portfolio with zero red escalations.",
       "surface_tokens": [
         "105 software engineers and data leaders",
         "leading energy and utility company",
@@ -1009,7 +1010,7 @@
     },
     "metric_slalom_acoustic_airgap_pcm_spooler_200ms": {
       "metric_outcome_id": "metric_slalom_acoustic_airgap_pcm_spooler_200ms",
-      "metric": "privacy-isolated multimodal ingestion and low-latency speech processing for regulated enterprise advisory",
+      "metric": "local privacy-isolated acoustic capture eliminating cloud audio egress for regulated executive advisory",
       "metric_type": "latency_airgap_metric",
       "employer": "Slalom",
       "employer_node_id": "employment_exp_slalom_001",
@@ -1019,7 +1020,7 @@
       "bundle_bindings": [
         "reb_slalom_live_copilot_acoustic_airgap"
       ],
-      "claim_text": "Graph evidence supports privacy-isolated multimodal ingestion and low-latency speech processing for regulated enterprise advisory workflows.",
+      "claim_text": "Graph evidence supports local privacy-isolated acoustic capture eliminating cloud audio egress for regulated executive advisory.",
       "surface_tokens": [
         "multimodal ingestion",
         "privacy-isolated",
@@ -1036,7 +1037,7 @@
     },
     "metric_slalom_dual_track_copilot_flash_snap_250ms": {
       "metric_outcome_id": "metric_slalom_dual_track_copilot_flash_snap_250ms",
-      "metric": "low-latency context prefetching and policy-gated streaming advisory responses for executive decision support",
+      "metric": "sub-second live executive advisory copilot and enterprise intelligence portal eliminating post-meeting decision evaporation across active consulting accounts",
       "metric_type": "copilot_latency_metric",
       "employer": "Slalom",
       "employer_node_id": "employment_exp_slalom_001",
@@ -1046,7 +1047,7 @@
       "bundle_bindings": [
         "reb_slalom_live_copilot_acoustic_airgap"
       ],
-      "claim_text": "Graph evidence supports low-latency context prefetching and policy-gated streaming advisory responses for executive decision support.",
+      "claim_text": "Graph evidence supports sub-second live executive advisory copilot and enterprise intelligence portal eliminating post-meeting decision evaporation across active consulting accounts.",
       "surface_tokens": [
         "context prefetching",
         "streaming advisory",
@@ -1063,7 +1064,7 @@
     },
     "metric_slalom_multimodal_3stage_self_healing_zero_loss": {
       "metric_outcome_id": "metric_slalom_multimodal_3stage_self_healing_zero_loss",
-      "metric": "multi-stage multimodal synthesis pipeline and automated reconciliation controls preserving end-to-end signal fidelity",
+      "metric": "multi-stage multimodal synthesis pipeline with automated self-healing and pre-egress PII sanitization preserving end-to-end signal fidelity",
       "metric_type": "synthesis_resilience_metric",
       "employer": "Slalom",
       "employer_node_id": "employment_exp_slalom_001",
@@ -1073,7 +1074,7 @@
       "bundle_bindings": [
         "reb_slalom_live_copilot_acoustic_airgap"
       ],
-      "claim_text": "Graph evidence supports multi-stage multimodal synthesis pipelines and automated reconciliation controls preserving end-to-end signal fidelity.",
+      "claim_text": "Graph evidence supports multi-stage multimodal synthesis pipeline with automated self-healing and pre-egress PII sanitization preserving end-to-end signal fidelity.",
       "surface_tokens": [
         "multimodal synthesis",
         "automated reconciliation",
@@ -1090,7 +1091,7 @@
     },
     "metric_slalom_hybrid_bgem3_fts5_11gate_retrieval": {
       "metric_outcome_id": "metric_slalom_hybrid_bgem3_fts5_11gate_retrieval",
-      "metric": "hybrid semantic vector and lexical retrieval pipelines governed by production release qualification gates",
+      "metric": "hybrid semantic-lexical GraphRAG retrieval across governed enterprise workstreams validated by production release qualification gates with verified citation accuracy",
       "metric_type": "hybrid_retrieval_metric",
       "employer": "Slalom",
       "employer_node_id": "employment_exp_slalom_001",
@@ -1100,7 +1101,7 @@
       "bundle_bindings": [
         "reb_slalom_bitemporal_graphrag_uwg"
       ],
-      "claim_text": "Graph evidence supports hybrid semantic vector and lexical retrieval pipelines governed by production release qualification gates.",
+      "claim_text": "Graph evidence supports hybrid semantic-lexical GraphRAG retrieval across governed enterprise workstreams validated by production release qualification gates with verified citation accuracy.",
       "surface_tokens": [
         "hybrid semantic retrieval",
         "lexical fusion",
@@ -1117,7 +1118,7 @@
     },
     "metric_slalom_merkle_subgraph_cache_kv_alignment": {
       "metric_outcome_id": "metric_slalom_merkle_subgraph_cache_kv_alignment",
-      "metric": "deterministic subgraph context caching and prompt-prefix alignment across enterprise lakehouse and knowledge-graph workloads",
+      "metric": "cryptographic subgraph caching and prompt-prefix alignment delivering sub-second multi-hop GraphRAG retrieval and lower inference cost across enterprise workloads",
       "metric_type": "cache_efficiency_metric",
       "employer": "Slalom",
       "employer_node_id": "employment_exp_slalom_001",
@@ -1127,7 +1128,7 @@
       "bundle_bindings": [
         "reb_slalom_bitemporal_graphrag_uwg"
       ],
-      "claim_text": "Graph evidence supports deterministic subgraph context caching and prompt-prefix alignment across enterprise lakehouse and knowledge-graph workloads.",
+      "claim_text": "Graph evidence supports cryptographic subgraph caching and prompt-prefix alignment delivering sub-second multi-hop GraphRAG retrieval and lower inference cost across enterprise workloads.",
       "surface_tokens": [
         "subgraph context caching",
         "prompt-prefix alignment",
@@ -1144,7 +1145,7 @@
     },
     "metric_slalom_uwg_5check_physical_disk_proof": {
       "metric_outcome_id": "metric_slalom_uwg_5check_physical_disk_proof",
-      "metric": "governed write-custody gateway enforcing automated data integrity verification and atomic dataset promotion",
+      "metric": "fail-closed write-custody gateway enforcing automated physical integrity verification and atomic dataset promotion with zero silent data corruption",
       "metric_type": "persistence_integrity_metric",
       "employer": "Slalom",
       "employer_node_id": "employment_exp_slalom_001",
@@ -1154,7 +1155,7 @@
       "bundle_bindings": [
         "reb_slalom_bitemporal_graphrag_uwg"
       ],
-      "claim_text": "Graph evidence supports governed write-custody controls enforcing automated data integrity verification before atomic dataset promotion.",
+      "claim_text": "Graph evidence supports fail-closed write-custody gateway enforcing automated physical integrity verification and atomic dataset promotion with zero silent data corruption.",
       "surface_tokens": [
         "governed write-custody",
         "data integrity verification",
@@ -1171,7 +1172,7 @@
     },
     "metric_slalom_decision_engine_18roles_6modalities_w1w7": {
       "metric_outcome_id": "metric_slalom_decision_engine_18roles_6modalities_w1w7",
-      "metric": "multi-stage enterprise decision evaluation workflows across specialized domain review lanes",
+      "metric": "multi-role strategic decision intelligence engine producing audit-backed executive recommendations across complex enterprise portfolios",
       "metric_type": "decision_intelligence_metric",
       "employer": "Slalom",
       "employer_node_id": "employment_exp_slalom_001",
@@ -1181,7 +1182,7 @@
       "bundle_bindings": [
         "reb_slalom_dialectical_decision_bayesian_hitl"
       ],
-      "claim_text": "Graph evidence supports multi-stage enterprise decision evaluation workflows across specialized domain review lanes.",
+      "claim_text": "Graph evidence supports multi-role strategic decision intelligence engine producing audit-backed executive recommendations across complex enterprise portfolios.",
       "surface_tokens": [
         "multi-stage decision evaluation",
         "domain review lanes",
@@ -1198,7 +1199,7 @@
     },
     "metric_slalom_bayesian_hitl_20pct_ambiguity_margin": {
       "metric_outcome_id": "metric_slalom_bayesian_hitl_20pct_ambiguity_margin",
-      "metric": "99% policy-gate auditability across confidence-calibrated human-in-the-loop (HITL) escalation workflows",
+      "metric": "99% policy-gate auditability and full abstention precision via confidence-calibrated Bayesian human-in-the-loop (HITL) escalation",
       "metric_type": "hitl_governance_metric",
       "employer": "Slalom",
       "employer_node_id": "employment_exp_slalom_001",
@@ -1208,7 +1209,7 @@
       "bundle_bindings": [
         "reb_slalom_dialectical_decision_bayesian_hitl"
       ],
-      "claim_text": "Graph evidence supports 99% policy-gate auditability across confidence-calibrated human-in-the-loop (HITL) escalation workflows.",
+      "claim_text": "Graph evidence supports 99% policy-gate auditability and full abstention precision via confidence-calibrated Bayesian human-in-the-loop (HITL) escalation.",
       "surface_tokens": [
         "confidence-calibrated HITL",
         "escalation gates",
@@ -1225,7 +1226,7 @@
     },
     "metric_slalom_dialectical_judge_rubric_calibration": {
       "metric_outcome_id": "metric_slalom_dialectical_judge_rubric_calibration",
-      "metric": "independent multi-model evaluation adjudication with closed-loop rubric calibration",
+      "metric": "independent cross-provider LLM judge panels with closed-loop rubric calibration eliminating ungrounded claims before executive release",
       "metric_type": "judge_calibration_metric",
       "employer": "Slalom",
       "employer_node_id": "employment_exp_slalom_001",
@@ -1235,7 +1236,7 @@
       "bundle_bindings": [
         "reb_slalom_dialectical_decision_bayesian_hitl"
       ],
-      "claim_text": "Graph evidence supports independent multi-model evaluation adjudication with closed-loop rubric calibration.",
+      "claim_text": "Graph evidence supports independent cross-provider LLM judge panels with closed-loop rubric calibration eliminating ungrounded claims before executive release.",
       "surface_tokens": [
         "multi-model evaluation",
         "rubric calibration",
@@ -1252,7 +1253,7 @@
     },
     "metric_slalom_7layer_119package_dag_architecture": {
       "metric_outcome_id": "metric_slalom_7layer_119package_dag_architecture",
-      "metric": "modular multi-layer cloud and agentic platform architecture enforcing strict service boundary contracts across enterprise engineering teams",
+      "metric": "modular multi-layer agentic platform architecture and enterprise intelligence portal enforcing strict service boundary contracts with zero architecture drift",
       "metric_type": "architecture_scale_metric",
       "employer": "Slalom",
       "employer_node_id": "employment_exp_slalom_001",
@@ -1262,7 +1263,7 @@
       "bundle_bindings": [
         "reb_slalom_autonomous_agentic_sdlc_mcp"
       ],
-      "claim_text": "Graph evidence supports modular multi-layer cloud and agentic platform architecture enforcing strict service boundary contracts across enterprise engineering teams.",
+      "claim_text": "Graph evidence supports modular multi-layer agentic platform architecture and enterprise intelligence portal enforcing strict service boundary contracts with zero architecture drift.",
       "surface_tokens": [
         "modular cloud architecture",
         "service boundary contracts",
@@ -1279,7 +1280,7 @@
     },
     "metric_slalom_18agent_6stage_32gate_autonomous_sdlc": {
       "metric_outcome_id": "metric_slalom_18agent_6stage_32gate_autonomous_sdlc",
-      "metric": "automated multi-stage SDLC release readiness gates and governed enterprise tool integration workflows",
+      "metric": "autonomous governance sidecar agents, fail-closed release gates, and warm in-process MCP tool servers compressing engineering turnaround across live delivery",
       "metric_type": "autonomous_sdlc_metric",
       "employer": "Slalom",
       "employer_node_id": "employment_exp_slalom_001",
@@ -1289,7 +1290,7 @@
       "bundle_bindings": [
         "reb_slalom_autonomous_agentic_sdlc_mcp"
       ],
-      "claim_text": "Graph evidence supports automated multi-stage SDLC release readiness gates and governed enterprise tool integration workflows.",
+      "claim_text": "Graph evidence supports autonomous governance sidecar agents, fail-closed release gates, and warm in-process MCP tool servers compressing engineering turnaround across live delivery.",
       "surface_tokens": [
         "SDLC release readiness gates",
         "forward-deployed engineering",
@@ -1306,7 +1307,7 @@
     },
     "metric_slalom_8surface_closed_loop_system_learning": {
       "metric_outcome_id": "metric_slalom_8surface_closed_loop_system_learning",
-      "metric": "closed-loop production telemetry and continuous evaluation feedback across enterprise AI deployments",
+      "metric": "closed-loop system learning across production telemetry surfaces continuously improving retrieval precision, HITL calibration, and cost-latency routing",
       "metric_type": "system_learning_metric",
       "employer": "Slalom",
       "employer_node_id": "employment_exp_slalom_001",
@@ -1316,7 +1317,7 @@
       "bundle_bindings": [
         "reb_slalom_autonomous_agentic_sdlc_mcp"
       ],
-      "claim_text": "Graph evidence supports closed-loop production telemetry and continuous evaluation feedback calibrating runtime reliability and cost-latency routing across enterprise AI deployments.",
+      "claim_text": "Graph evidence supports closed-loop system learning across production telemetry surfaces continuously improving retrieval precision, HITL calibration, and cost-latency routing.",
       "surface_tokens": [
         "closed-loop telemetry",
         "continuous evaluation feedback",

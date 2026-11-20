@@ -136,3 +136,32 @@ def test_slalom_proposal_schema_and_dryrun_integrity(tmp_path: Path) -> None:
         ).fetchone()[0]
         assert slalom_skills >= 40, f"Expected >=40 Slalom-backed skills, got {slalom_skills}"
     conn_live.close()
+
+
+@pytest.mark.unit
+def test_slalom_graph_outcomes_flow_into_evidence_packet_and_prompt() -> None:
+    """Verify Slalom graph business outcomes flow into section packets, compiled prompts, templates, and X1D rubric."""
+    from apps_rg.runtime.judges.role_episode_x1d import ROLE_EPISODE_RUBRIC
+    from apps_rg.runtime.sections.role_episode.prompt_compiler import _role_episode_evidence_block
+    from apps_rg.runtime.sections.slalom_role_episode_evidence import build_slalom_role_episode_section_packet
+
+    for section_id in ("slalom_bullets", "slalom_narrative"):
+        pkt = build_slalom_role_episode_section_packet(section_id)
+        bundles = pkt["role_episode_bundles"]
+        assert len(bundles) == 10
+        for b in bundles:
+            assert str(b.get("claim_outcome") or "").strip(), f"Missing claim_outcome for {b['role_episode_bundle_id']}"
+            assert str(b.get("claim_action") or "").strip(), f"Missing claim_action for {b['role_episode_bundle_id']}"
+
+        block = _role_episode_evidence_block({"proof_pool_metadata": pkt, "selected_fact_plan": {}})
+        assert "graph_business_outcome:" in block
+        assert "90% primary-field" in block
+        assert "$25M+" in block
+        assert "50-user" in block
+
+    nar_tpl = (REPO_ROOT / "resume_graph_engine/src/apps_rg/prompt_assembly/templates/slalom_narrative_v1.yaml").read_text(encoding="utf-8")
+    bul_tpl = (REPO_ROOT / "resume_graph_engine/src/apps_rg/prompt_assembly/templates/slalom_bullets_tailor_v1.yaml").read_text(encoding="utf-8")
+    assert "value-outcome-oriented" in nar_tpl
+    assert "practice-leadership-only" in nar_tpl
+    assert "graph_business_outcome" in bul_tpl
+    assert "practice-leadership-only" in ROLE_EPISODE_RUBRIC

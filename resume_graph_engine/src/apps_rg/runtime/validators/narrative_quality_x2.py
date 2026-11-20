@@ -463,8 +463,8 @@ def repair_narrative_bullet_echo_from_graph(
     if section_id == "insurtech_narrative":
         ins_fids = {str(f.get("fact_id") or f.get("role_episode_bundle_id") or "") for f in (facts or []) if isinstance(f, dict)}
         if "reb_insurtech_public_vs_private_cloud_strategy" in ins_fids or "reb_insurtech_lean_delivery_operating_model" in ins_fids:
-            return "Steered public-cloud versus private on-prem architecture strategy and lean delivery execution with audit-ready control discipline across carrier technology programs."
-        return "Steered the engineering mandate for legacy transformation, pairing application dependency mapping and migration wave cutover planning with zero-trust security and PII data encryption."
+            return "Steered public-cloud versus private on-prem architecture strategy and lean delivery execution, retiring legacy technical debt and accelerating audit-ready carrier cloud adoption."
+        return "Steered legacy insurance platform modernization, pairing dependency-mapped migration cutover with SOC 2-aligned AWS controls to cut reporting latency and speed compliant carrier onboarding."
     if section_id == "unify_narrative":
         return next((f"{v} the multi-year platform mandate at Unify Consulting to industrialize governed agentic runtime systems, turning proprietary engineering architecture into commercialized assets and repeatable deployment discipline for regulated institutions." for v in ("Steered", "Anchored", "Spearheaded", "Orchestrated", "Championed") if check_narrative_bullet_cosine_similarity(f"{v} the multi-year platform mandate at Unify Consulting to industrialize governed agentic runtime systems, turning proprietary engineering architecture into commercialized assets and repeatable deployment discipline for regulated institutions.", companion_bullet_texts, max_pairwise_cosine=0.28, max_pool_cosine=0.38, forbid_shared_opener=True, forbid_repeated_metrics=True).passed), "Anchored the multi-year platform mandate at Unify Consulting to industrialize governed agentic runtime systems, turning proprietary engineering architecture into commercialized assets and repeatable deployment discipline for regulated institutions.")
     skill_ids = {
@@ -487,12 +487,12 @@ def repair_narrative_bullet_echo_from_graph(
             or (not facts and "alliance" in comp_low and "modernization" not in comp_low)
         )
         if has_ibm_cosell:
-            return "Anchored AWS transformation architecture at IBM, establishing alliance co-sell and BI governance discipline across industry accounts."
+            return "Anchored AWS transformation architecture at IBM, scaling alliance co-sell and BI governance discipline to accelerate commercial expansion across regulated industry accounts."
         if "aws modernization" in comp_low and not re.search(r"\bbi\b", comp_low):
-            return "Anchored AWS modernization architecture and DevSecOps release discipline at IBM, establishing traceable lineage and compliance foundations across banking and carrier accounts."
+            return "Anchored AWS modernization architecture and DevSecOps release discipline at IBM, strengthening traceable compliance and deployment reliability across banking and carrier accounts."
         if not comp_low or "modernization" in comp_low:
-            return "Anchored AWS modernization architecture at IBM, establishing BI governance discipline and compliance foundations across industry accounts."
-        return "Anchored AWS transformation architecture at IBM, establishing BI governance discipline and compliance foundations across industry accounts."
+            return "Anchored AWS modernization architecture at IBM, establishing BI governance and compliance foundations that accelerated enterprise cloud adoption across regulated accounts."
+        return "Anchored AWS transformation architecture at IBM, establishing BI governance and compliance foundations that improved portfolio visibility across regulated industry accounts."
     def _phrase(tid: str, fallback: str) -> str:
         return tid.removeprefix("skill_").removeprefix("partner_").replace("_", " ").replace("cosell", "co-sell") if tid in skill_ids else fallback
     has_slalom_cosell = (

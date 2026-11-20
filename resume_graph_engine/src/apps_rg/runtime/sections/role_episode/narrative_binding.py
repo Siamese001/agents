@@ -118,6 +118,36 @@ _NARRATIVE_SOURCE_BINDING_PATTERNS: dict[str, tuple[re.Pattern[str], ...]] = {
         re.compile(r"\bcontrol\s+design\b", re.IGNORECASE),
         re.compile(r"\bsafety[-\s]first\s+control\b", re.IGNORECASE),
     ),
+    "reb_insurtech_founder_led_market_creation": (
+        re.compile(r"\bfounder[-\s]led\b", re.IGNORECASE),
+        re.compile(r"\bmarket\s+creation\b", re.IGNORECASE),
+        re.compile(r"\bcarrier\s+traction\b", re.IGNORECASE),
+    ),
+    "reb_insurtech_public_vs_private_cloud_strategy": (
+        re.compile(r"\bpublic[-\s]cloud\b", re.IGNORECASE),
+        re.compile(r"\bprivate\s+on[-\s]?prem\b", re.IGNORECASE),
+        re.compile(r"\bcloud\s+fit\b", re.IGNORECASE),
+    ),
+    "reb_insurtech_insurance_regulatory_cloud_adoption_standards": (
+        re.compile(r"\bregulatory\s+cloud\b", re.IGNORECASE),
+        re.compile(r"\binsurance\s+regulatory\b", re.IGNORECASE),
+        re.compile(r"\bcompliance\s+artifacts?\b", re.IGNORECASE),
+    ),
+    "reb_insurtech_aws_guidewire_core_modernization": (
+        re.compile(r"\bguidewire\b", re.IGNORECASE),
+        re.compile(r"\bpolicy\s+administration\b", re.IGNORECASE),
+        re.compile(r"\bcore\s+insurance\b", re.IGNORECASE),
+    ),
+    "reb_insurtech_insurance_data_bi_decisioning": (
+        re.compile(r"\breporting\s+latency\b", re.IGNORECASE),
+        re.compile(r"\bunderwriting\s+analytics\b", re.IGNORECASE),
+        re.compile(r"\bpricing\s+decisions?\b", re.IGNORECASE),
+    ),
+    "reb_insurtech_resilient_core_operations": (
+        re.compile(r"\bhigh\s+availability\b", re.IGNORECASE),
+        re.compile(r"\brto/rpo\b", re.IGNORECASE),
+        re.compile(r"\bincident\s+runbooks?\b", re.IGNORECASE),
+    ),
 }
 
 

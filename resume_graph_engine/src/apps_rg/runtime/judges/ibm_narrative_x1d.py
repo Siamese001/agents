@@ -38,6 +38,7 @@ Decisive failure triggers:
 - multiple sentences or obvious five-bullet recap
 - spins a different role story not entailed by the finalized bullets or claim_ledger
 - meta-disclaimer phrasing in narrative_sentence ("without claiming", "without asserting", etc.)
+- practice-leadership-only filler ("led this practice / oversaw advisory") that omits concrete delivered capabilities and their graph-backed business or operational outcome
 - career-bridge phrasing ("supported later", "subsequent roles") without explicit allowed career-bridge fact
 """.strip()
 
