@@ -1,0 +1,17 @@
+{
+  "description": "Holdout: canonical C-suite tailoring preserves contract keys, required sections, and byte-stable deterministic hash.",
+  "graders": [
+    "schema",
+    "artifact_presence",
+    "x3_disposition",
+    "forbidden_content",
+    "grounded_claim",
+    "provenance",
+    "section_structure",
+    "length_bounds",
+    "side_effect",
+    "escalation",
+    "determinism"
+  ],
+  "scenario_id": "rg_holdout_csuite_determinism"
+}

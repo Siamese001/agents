@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import os
 import re
 import sys
 from pathlib import Path
@@ -129,6 +130,24 @@ def _handle_eval(args: argparse.Namespace) -> int:
         "warnings": verdict.warnings, "failure_reasons": verdict.failure_reasons, "scores": verdict.scores,
     }
     overall_passed = verdict.passed
+    if (
+        getattr(args, "record_flywheel", True)
+        and "pytest" not in sys.modules
+        and not os.environ.get("PYTEST_CURRENT_TEST")
+    ):
+        try:
+            from agents.observability.eval_flywheel import EvalFlywheelEngine
+
+            EvalFlywheelEngine().ingest_product_run(
+                app_id="apps_lic",
+                run_id=run_dir.name,
+                x3_disposition="X3D_ALLOW_FINISH" if overall_passed else "X3B_ESCALATE_HITL",
+                passed=overall_passed,
+                failure_reasons=[str(r) for r in (verdict.failure_reasons or verdict.violations or ())],
+                score=float(getattr(eval_report, "composite_score", 1.0 if overall_passed else 0.0)),
+            )
+        except (ImportError, OSError, ValueError, RuntimeError):  # guardian: allow-silent-swallow -- observer-only flywheel hook must never fail outreach eval
+            pass
 
     if args.json:
         print(json.dumps({

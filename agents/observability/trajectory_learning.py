@@ -16,7 +16,12 @@ import time
 from typing import Any, Mapping, Sequence
 
 from agents.observability.events import AgentEventEnvelope, AgentEventType
+from agents.orchestration.learning_store import resolve_primary_repo_root
 from agents.persistence.ports import EventStore
+
+DEFAULT_TRAJECTORY_STORE_PATH = (
+    resolve_primary_repo_root() / "artifacts" / "learning" / "trajectory_exemplars.json"
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -51,9 +56,80 @@ class TrajectoryExemplar:
 class TrajectoryLearningEngine:
     """Mines execution event logs to extract efficiency patterns and golden exemplars."""
 
-    def __init__(self, min_efficiency: float = 0.80) -> None:
+    def __init__(
+        self,
+        min_efficiency: float = 0.80,
+        store_path: str | Path | None = None,
+    ) -> None:
         self.min_efficiency = min_efficiency
+        self.store_path: Path | None = Path(store_path).resolve() if store_path is not None else None
         self._indexed_exemplars: dict[str, list[TrajectoryExemplar]] = {}
+        if self.store_path is not None and self.store_path.is_file():
+            self.load_from_disk(self.store_path)
+
+    def load_from_disk(self, path: str | Path) -> int:
+        """Load persisted trajectory exemplars from JSON."""
+        src = Path(path).resolve()
+        if not src.is_file():
+            return 0
+        try:
+            raw = json.loads(src.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            return 0
+        items = raw.get("exemplars", []) if isinstance(raw, dict) else []
+        loaded = 0
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            ex = TrajectoryExemplar(
+                exemplar_id=str(item.get("exemplar_id", "")),
+                run_id=str(item.get("run_id", "")),
+                task_type=str(item.get("task_type", "general")),
+                efficiency_score=float(item.get("efficiency_score", 0.0)),
+                step_sequence=tuple(str(s) for s in (item.get("step_sequence") or ())),
+                key_decisions=tuple(str(d) for d in (item.get("key_decisions") or ())),
+                summary_text=str(item.get("summary_text", "")),
+                metadata=dict(item.get("metadata") or {}),
+                created_at=float(item.get("created_at", time.time())),
+            )
+            if not ex.exemplar_id:
+                continue
+            bucket = self._indexed_exemplars.setdefault(ex.task_type, [])
+            if all(existing.exemplar_id != ex.exemplar_id for existing in bucket):
+                bucket.append(ex)
+                loaded += 1
+        return loaded
+
+    def save_to_disk(self, path: str | Path | None = None) -> Path | None:
+        """Persist indexed trajectory exemplars to JSON."""
+        target = Path(path).resolve() if path is not None else self.store_path
+        if target is None:
+            return None
+        target.parent.mkdir(parents=True, exist_ok=True)
+        flat = [
+            ex.to_dict()
+            for bucket in self._indexed_exemplars.values()
+            for ex in bucket
+        ]
+        payload = {
+            "schema_version": "agents.trajectory_exemplars.v1",
+            "total_exemplars": len(flat),
+            "exemplars": flat,
+        }
+        target.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        return target
+
+    def record_exemplar(self, exemplar: TrajectoryExemplar) -> bool:
+        """Record an exemplar idempotently (deduplicated by exemplar_id) and persist if configured."""
+        if exemplar.efficiency_score < self.min_efficiency:
+            return False
+        bucket = self._indexed_exemplars.setdefault(exemplar.task_type, [])
+        if any(existing.exemplar_id == exemplar.exemplar_id for existing in bucket):
+            return False
+        bucket.append(exemplar)
+        if self.store_path is not None:
+            self.save_to_disk(self.store_path)
+        return True
 
     def score_run_events(
         self,
@@ -193,6 +269,7 @@ class TrajectoryLearningEngine:
 
 
 __all__ = [
+    "DEFAULT_TRAJECTORY_STORE_PATH",
     "TrajectoryExemplar",
     "TrajectoryLearningEngine",
 ]

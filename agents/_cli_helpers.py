@@ -63,6 +63,9 @@ def build_cli_parser() -> argparse.ArgumentParser:
     from agents.learning_cli import register_learning_subparser
     register_learning_subparser(subparsers)
 
+    from agents.eval_flywheel_cli import register_eval_flywheel_subparser
+    register_eval_flywheel_subparser(subparsers)
+
     health_p = subparsers.add_parser(
         "check",
         aliases=["health"],

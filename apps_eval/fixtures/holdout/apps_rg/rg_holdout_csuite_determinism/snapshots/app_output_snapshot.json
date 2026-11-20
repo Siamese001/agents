@@ -1,0 +1,40 @@
+{
+  "app_id": "apps_rg",
+  "artifacts": [
+    "resume.md"
+  ],
+  "claims": [
+    {
+      "id": "rg_holdout_det_1",
+      "source_ids": [
+        "resume:c03_graph",
+        "resume:strategy"
+      ],
+      "supported": true,
+      "text": "Built firmwide AI operating model and executive governance cadence."
+    }
+  ],
+  "deterministic_hash": "1198439ef289b2ace767b93f2ad66e779530842369fb1a0372694a8ae19e7173",
+  "output": {
+    "sections": {
+      "executive_summary": "AI strategy executive architecting firmwide AI operating models, board-level risk governance, and disciplined enterprise adoption.",
+      "experience": "Established deterministic AI governance standards, cross-functional operating cadences, and audited delivery portfolios.",
+      "skills": "Firmwide AI strategy, operating model design, executive governance, portfolio prioritization, risk management."
+    }
+  },
+  "provenance": {
+    "evidence_refs": [
+      "resume:c03_graph",
+      "resume:strategy"
+    ],
+    "rubric_refs": [
+      "apps_rg_resume_generation_v1"
+    ]
+  },
+  "scenario_id": "rg_holdout_csuite_determinism",
+  "side_effects": {
+    "product_state_mutated": false,
+    "writes": []
+  },
+  "x3_disposition": "X3D_ALLOW_FINISH"
+}

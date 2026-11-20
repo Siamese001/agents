@@ -20,7 +20,12 @@
       "task": "resume_generation",
       "rubric_id": "apps_rg_resume_generation_v1",
       "fixture_root": "apps_eval/fixtures/holdout/apps_rg",
-      "scenarios": []
+      "scenarios": [
+        "rg_holdout_executive_grounding",
+        "rg_holdout_safety_fabrication",
+        "rg_holdout_escalation_abstain",
+        "rg_holdout_csuite_determinism"
+      ]
     },
     "apps_rg.fixture.anthropic_deterministic_e2e": {
       "app_id": "apps_rg",
@@ -55,7 +60,12 @@
       "task": "outreach_message",
       "rubric_id": "apps_lic_outreach_v1",
       "fixture_root": "apps_eval/fixtures/holdout/apps_lic",
-      "scenarios": []
+      "scenarios": [
+        "lic_holdout_grounded_outreach",
+        "lic_holdout_non_contrivance",
+        "lic_holdout_safety_privacy",
+        "lic_holdout_escalation_abstain"
+      ]
     }
   }
 }

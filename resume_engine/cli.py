@@ -92,6 +92,12 @@ def _build_parser(prog: str = "python -m resume_engine") -> argparse.ArgumentPar
     eval_parser.add_argument(
         "--run-dir", required=True, help="Completed run directory."
     )
+    eval_parser.add_argument(
+        "--record-flywheel",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Record read-only evaluation observation into the EvalFlywheelEngine (default: true).",
+    )
 
     # 3. show
     show_parser = subparsers.add_parser(
@@ -299,6 +305,21 @@ def main(argv: list[str] | None = None, prog: str | None = None) -> int:
         report = _evaluate_product_run(run_path)
         report["run_dir"] = str(run_path)
         _print_evaluation(report)
+        if getattr(args, "record_flywheel", True) and "pytest" not in sys.modules and not os.environ.get("PYTEST_CURRENT_TEST"):
+            try:
+                from agents.observability.eval_flywheel import EvalFlywheelEngine
+
+                passed = report.get("status") == "PASS"
+                EvalFlywheelEngine().ingest_product_run(
+                    app_id="apps_rg",
+                    run_id=run_path.name,
+                    x3_disposition="X3D_ALLOW_FINISH" if passed else "X3B_ESCALATE_HITL",
+                    passed=passed,
+                    failure_reasons=[str(r) for r in (report.get("failure_reasons") or ())],
+                    score=1.0 if passed else 0.0,
+                )
+            except (ImportError, OSError, ValueError, RuntimeError):  # guardian: allow-silent-swallow -- observer-only flywheel hook must never fail resume eval
+                pass
         return 0 if report.get("status") == "PASS" else 1
 
     if action == "show":

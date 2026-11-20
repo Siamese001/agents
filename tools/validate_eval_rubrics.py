@@ -410,6 +410,59 @@ def _check_git_ignored_holdout_files(repo_root: Path) -> list[str]:
         return []
 
 
+def _validate_eval_harness_flywheel_health(repo_root: Path) -> list[str]:
+    """Pillar 7: verify apps_eval named baselines, non-empty holdouts, triage packets, and calibration health."""
+    violations: list[str] = []
+    suites_path = repo_root / "apps_eval" / "registry" / "suites.yaml"
+    if suites_path.is_file():
+        try:
+            suites_doc = json.loads(suites_path.read_text(encoding="utf-8"))
+            suites = suites_doc.get("suites") or {}
+            for holdout_id in ("apps_rg.holdout.resume_generation", "apps_lic.holdout.outreach_message"):
+                sc = (suites.get(holdout_id) or {}).get("scenarios") or []
+                if not sc:
+                    violations.append(f"apps_eval/registry/suites.yaml: {holdout_id} has 0 holdout scenarios")
+        except (OSError, json.JSONDecodeError) as exc:
+            violations.append(f"apps_eval/registry/suites.yaml: parse error: {exc}")
+
+    baselines_dir = repo_root / "apps_eval" / "baselines"
+    try:
+        from apps_eval.bootstrap_baselines import verify_named_baselines
+
+        bres = verify_named_baselines(baseline_dir=baselines_dir)
+        for missing_s in bres.get("missing") or []:
+            violations.append(f"apps_eval/baselines: missing named baseline for {missing_s}")
+        for inv in bres.get("invalid") or []:
+            violations.append(f"apps_eval/baselines: invalid baseline {inv}")
+    except (ImportError, OSError, ValueError) as exc:
+        violations.append(f"apps_eval/baselines: verification error: {exc}")
+
+    triage_dir = repo_root / "data" / "eval" / "triage"
+    if triage_dir.is_dir():
+        for pkt_path in sorted(triage_dir.rglob("*.json")):
+            try:
+                pkt = json.loads(pkt_path.read_text(encoding="utf-8"))
+                if not isinstance(pkt, dict) or not pkt.get("candidate_id") or not pkt.get("app_id"):
+                    violations.append(f"{pkt_path.relative_to(repo_root)}: malformed triage packet")
+            except (OSError, json.JSONDecodeError) as exc:
+                violations.append(f"{pkt_path.relative_to(repo_root)}: invalid triage JSON: {exc}")
+
+    cal_path = repo_root / "artifacts" / "learning" / "judge_calibration_history.json"
+    if cal_path.is_file():
+        try:
+            cal = json.loads(cal_path.read_text(encoding="utf-8"))
+            dsum = cal.get("drift_summary") or {}
+            for crit in ("g6_cohens_kappa", "g6_spearman_rho", "g6_clean_fpr", "g6_defect_tpr"):
+                if isinstance(dsum.get(crit), dict) and dsum[crit].get("hard_floor_breach"):
+                    violations.append(
+                        f"artifacts/learning/judge_calibration_history.json: unresolved hard calibration breach on {crit}"
+                    )
+        except (OSError, json.JSONDecodeError) as exc:
+            violations.append(f"artifacts/learning/judge_calibration_history.json: invalid JSON: {exc}")
+
+    return violations
+
+
 def validate_eval_rubrics(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
     """Audits evaluation modules, schemas, live graders, rubrics, judge profiles, holdouts, and purity."""
     root = repo_root.resolve()
@@ -430,6 +483,7 @@ def validate_eval_rubrics(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
 
     data_file_count, data_counts_by_root, data_errs = _validate_data_holdout_surface(root)
     violations.extend(data_errs)
+    violations.extend(_validate_eval_harness_flywheel_health(root))
 
     purity_errs: list[str] = []
     for prod_dir in PRODUCTION_DIRECTORIES:

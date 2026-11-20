@@ -1,0 +1,1254 @@
+{
+  "admission_failures": [],
+  "admission_status": "",
+  "app_id": "apps_lic",
+  "artifact_paths": {
+    "eval_record": "/var/folders/zm/qvkyv08x6yq7fn9yzmb46c7h0000gn/T/apps_eval_baseline_boot_52x_9gm3/apps_lic_dev_outreach_message/a098042e5771cce7/eval_record.json",
+    "grader_findings": "/var/folders/zm/qvkyv08x6yq7fn9yzmb46c7h0000gn/T/apps_eval_baseline_boot_52x_9gm3/apps_lic_dev_outreach_message/a098042e5771cce7/grader_findings.jsonl",
+    "l6_handoff": "/var/folders/zm/qvkyv08x6yq7fn9yzmb46c7h0000gn/T/apps_eval_baseline_boot_52x_9gm3/apps_lic_dev_outreach_message/a098042e5771cce7/l6_handoff.json",
+    "l6_shadow_bridge": "/var/folders/zm/qvkyv08x6yq7fn9yzmb46c7h0000gn/T/apps_eval_baseline_boot_52x_9gm3/apps_lic_dev_outreach_message/a098042e5771cce7/l6_shadow_bridge.json",
+    "l6_shadow_bridge_spans": "/var/folders/zm/qvkyv08x6yq7fn9yzmb46c7h0000gn/T/apps_eval_baseline_boot_52x_9gm3/apps_lic_dev_outreach_message/a098042e5771cce7/l6_shadow_bridge_spans.json",
+    "l6_shadow_bridge_spans_jsonl": "/var/folders/zm/qvkyv08x6yq7fn9yzmb46c7h0000gn/T/apps_eval_baseline_boot_52x_9gm3/apps_lic_dev_outreach_message/a098042e5771cce7/l6_shadow_bridge_spans.jsonl",
+    "manifest": "/var/folders/zm/qvkyv08x6yq7fn9yzmb46c7h0000gn/T/apps_eval_baseline_boot_52x_9gm3/apps_lic_dev_outreach_message/a098042e5771cce7/manifest.json",
+    "regression": "/var/folders/zm/qvkyv08x6yq7fn9yzmb46c7h0000gn/T/apps_eval_baseline_boot_52x_9gm3/apps_lic_dev_outreach_message/a098042e5771cce7/regression.json",
+    "regression_flywheel": "/var/folders/zm/qvkyv08x6yq7fn9yzmb46c7h0000gn/T/apps_eval_baseline_boot_52x_9gm3/apps_lic_dev_outreach_message/a098042e5771cce7/regression_flywheel.json",
+    "report": "/var/folders/zm/qvkyv08x6yq7fn9yzmb46c7h0000gn/T/apps_eval_baseline_boot_52x_9gm3/apps_lic_dev_outreach_message/a098042e5771cce7/report.md",
+    "scorecard": "/var/folders/zm/qvkyv08x6yq7fn9yzmb46c7h0000gn/T/apps_eval_baseline_boot_52x_9gm3/apps_lic_dev_outreach_message/a098042e5771cce7/scorecard.csv"
+  },
+  "child_run_id": "",
+  "contract_profile_id": "",
+  "created_at": "1970-01-01T00:00:00Z",
+  "deterministic_only": true,
+  "eval_execution_complete": false,
+  "eval_record_id": "a098042e5771cce7",
+  "eval_verdict": "",
+  "evidence_class": "",
+  "fixture_provenance": [
+    {
+      "contract_profile_id": "",
+      "evidence_class": "",
+      "expected_digest": "c5c1f33a53affb68796eec5b75213e3a7e26d9abc6b4646a0e494aff68b0ab0b",
+      "fixture_path": "/Users/amitayer/.gemini/antigravity/worktrees/agents/untitled-worktree/apps_eval/fixtures/dev/apps_lic/outreach_basic",
+      "input_request_digest": "b5775fdba453c54b9a96b9842851c0c386a44dd79d884f6be7f262a004fbf98d",
+      "product_eligible": true,
+      "scenario_definition_digest": "9d05c96faea1f02aec3a0ca65a8c57b5a9c0464cc5f503ba17fbac4e3a56f794",
+      "scenario_id": "outreach_basic",
+      "schema_version": "apps_eval.fixture_provenance.v1",
+      "snapshot_digest": "b70f86d648c789e2592d8293c4825223ffed4843ca8e94c4d27bf513c1a8d290"
+    },
+    {
+      "contract_profile_id": "",
+      "evidence_class": "",
+      "expected_digest": "c5c1f33a53affb68796eec5b75213e3a7e26d9abc6b4646a0e494aff68b0ab0b",
+      "fixture_path": "/Users/amitayer/.gemini/antigravity/worktrees/agents/untitled-worktree/apps_eval/fixtures/dev/apps_lic/outreach_grounding",
+      "input_request_digest": "b5775fdba453c54b9a96b9842851c0c386a44dd79d884f6be7f262a004fbf98d",
+      "product_eligible": true,
+      "scenario_definition_digest": "5e3d3d066bea47f67dbbf150b8dc1c80adf84576e64f7733631cc8b347806b4f",
+      "scenario_id": "outreach_grounding",
+      "schema_version": "apps_eval.fixture_provenance.v1",
+      "snapshot_digest": "21b593a4b8f3db11830717f94c55741f051eaa7233e3bf6b15611c453ddf8aae"
+    },
+    {
+      "contract_profile_id": "",
+      "evidence_class": "",
+      "expected_digest": "c5c1f33a53affb68796eec5b75213e3a7e26d9abc6b4646a0e494aff68b0ab0b",
+      "fixture_path": "/Users/amitayer/.gemini/antigravity/worktrees/agents/untitled-worktree/apps_eval/fixtures/dev/apps_lic/outreach_non_contrivance",
+      "input_request_digest": "b5775fdba453c54b9a96b9842851c0c386a44dd79d884f6be7f262a004fbf98d",
+      "product_eligible": true,
+      "scenario_definition_digest": "8e5986199664f83cf429402345f2c2e70f6df51e324da2c812a71c46f5f23b5b",
+      "scenario_id": "outreach_non_contrivance",
+      "schema_version": "apps_eval.fixture_provenance.v1",
+      "snapshot_digest": "6c424aa9aa7f0ef31ce38e97c6114e4a3797d0c2821ba9030f4ac8c86d337c7b"
+    },
+    {
+      "contract_profile_id": "",
+      "evidence_class": "",
+      "expected_digest": "c5c1f33a53affb68796eec5b75213e3a7e26d9abc6b4646a0e494aff68b0ab0b",
+      "fixture_path": "/Users/amitayer/.gemini/antigravity/worktrees/agents/untitled-worktree/apps_eval/fixtures/dev/apps_lic/outreach_safety_authority",
+      "input_request_digest": "b5775fdba453c54b9a96b9842851c0c386a44dd79d884f6be7f262a004fbf98d",
+      "product_eligible": true,
+      "scenario_definition_digest": "a9362458924245f8be53684f54d9dccb12f704a9b1007ae6a139a7b1c2ba0d50",
+      "scenario_id": "outreach_safety_authority",
+      "schema_version": "apps_eval.fixture_provenance.v1",
+      "snapshot_digest": "88f85fb17456a564d0ed5dcbb301ed2db5879b46415f8f5efa705ab54e014b3d"
+    },
+    {
+      "contract_profile_id": "",
+      "evidence_class": "",
+      "expected_digest": "891cfbae33bf834488fbbf7c7cd892f755ec730fdbc5f19f07cc68ce781313a4",
+      "fixture_path": "/Users/amitayer/.gemini/antigravity/worktrees/agents/untitled-worktree/apps_eval/fixtures/dev/apps_lic/outreach_escalation",
+      "input_request_digest": "b5775fdba453c54b9a96b9842851c0c386a44dd79d884f6be7f262a004fbf98d",
+      "product_eligible": true,
+      "scenario_definition_digest": "fb21fbcd1c6b3b874108304f216fb88206adfa1263a5d26439e469bfc339d4d4",
+      "scenario_id": "outreach_escalation",
+      "schema_version": "apps_eval.fixture_provenance.v1",
+      "snapshot_digest": "050af4b752d43eecb7aeab407ad364f3e96d9378ea9e75b4b447b9eb5872fcd3"
+    },
+    {
+      "contract_profile_id": "",
+      "evidence_class": "",
+      "expected_digest": "c5c1f33a53affb68796eec5b75213e3a7e26d9abc6b4646a0e494aff68b0ab0b",
+      "fixture_path": "/Users/amitayer/.gemini/antigravity/worktrees/agents/untitled-worktree/apps_eval/fixtures/dev/apps_lic/outreach_determinism",
+      "input_request_digest": "b5775fdba453c54b9a96b9842851c0c386a44dd79d884f6be7f262a004fbf98d",
+      "product_eligible": true,
+      "scenario_definition_digest": "501ebc0e3b1217d8045c137ab9ac5ccd955b34e7217a12b914bf28477feacf47",
+      "scenario_id": "outreach_determinism",
+      "schema_version": "apps_eval.fixture_provenance.v1",
+      "snapshot_digest": "c0455f0de99955649c125bfd939966a38b5fb2ab65126a5b09ada8710577a86a"
+    }
+  ],
+  "microstep_contract_digest": "",
+  "mode": "snapshot",
+  "parent_run_id": "",
+  "preflight_verification_status": "",
+  "product_eligible": true,
+  "record_id": "a098042e5771cce7",
+  "record_seed": {
+    "app_id": "apps_lic",
+    "apps_rg_microstep_contract_digest": "",
+    "baseline_digest": "",
+    "compare_baseline": false,
+    "deterministic_only": true,
+    "emit_l6_handoff": true,
+    "failure_mode_catalog_digest": "439986b97e1c630c632c2a642f92975b469d2226d85fabedf6f2917c7b3405d1",
+    "fixture_provenance": [
+      {
+        "contract_profile_id": "",
+        "evidence_class": "",
+        "expected_digest": "c5c1f33a53affb68796eec5b75213e3a7e26d9abc6b4646a0e494aff68b0ab0b",
+        "fixture_path": "/Users/amitayer/.gemini/antigravity/worktrees/agents/untitled-worktree/apps_eval/fixtures/dev/apps_lic/outreach_basic",
+        "input_request_digest": "b5775fdba453c54b9a96b9842851c0c386a44dd79d884f6be7f262a004fbf98d",
+        "product_eligible": true,
+        "scenario_definition_digest": "9d05c96faea1f02aec3a0ca65a8c57b5a9c0464cc5f503ba17fbac4e3a56f794",
+        "scenario_id": "outreach_basic",
+        "schema_version": "apps_eval.fixture_provenance.v1",
+        "snapshot_digest": "b70f86d648c789e2592d8293c4825223ffed4843ca8e94c4d27bf513c1a8d290"
+      },
+      {
+        "contract_profile_id": "",
+        "evidence_class": "",
+        "expected_digest": "c5c1f33a53affb68796eec5b75213e3a7e26d9abc6b4646a0e494aff68b0ab0b",
+        "fixture_path": "/Users/amitayer/.gemini/antigravity/worktrees/agents/untitled-worktree/apps_eval/fixtures/dev/apps_lic/outreach_grounding",
+        "input_request_digest": "b5775fdba453c54b9a96b9842851c0c386a44dd79d884f6be7f262a004fbf98d",
+        "product_eligible": true,
+        "scenario_definition_digest": "5e3d3d066bea47f67dbbf150b8dc1c80adf84576e64f7733631cc8b347806b4f",
+        "scenario_id": "outreach_grounding",
+        "schema_version": "apps_eval.fixture_provenance.v1",
+        "snapshot_digest": "21b593a4b8f3db11830717f94c55741f051eaa7233e3bf6b15611c453ddf8aae"
+      },
+      {
+        "contract_profile_id": "",
+        "evidence_class": "",
+        "expected_digest": "c5c1f33a53affb68796eec5b75213e3a7e26d9abc6b4646a0e494aff68b0ab0b",
+        "fixture_path": "/Users/amitayer/.gemini/antigravity/worktrees/agents/untitled-worktree/apps_eval/fixtures/dev/apps_lic/outreach_non_contrivance",
+        "input_request_digest": "b5775fdba453c54b9a96b9842851c0c386a44dd79d884f6be7f262a004fbf98d",
+        "product_eligible": true,
+        "scenario_definition_digest": "8e5986199664f83cf429402345f2c2e70f6df51e324da2c812a71c46f5f23b5b",
+        "scenario_id": "outreach_non_contrivance",
+        "schema_version": "apps_eval.fixture_provenance.v1",
+        "snapshot_digest": "6c424aa9aa7f0ef31ce38e97c6114e4a3797d0c2821ba9030f4ac8c86d337c7b"
+      },
+      {
+        "contract_profile_id": "",
+        "evidence_class": "",
+        "expected_digest": "c5c1f33a53affb68796eec5b75213e3a7e26d9abc6b4646a0e494aff68b0ab0b",
+        "fixture_path": "/Users/amitayer/.gemini/antigravity/worktrees/agents/untitled-worktree/apps_eval/fixtures/dev/apps_lic/outreach_safety_authority",
+        "input_request_digest": "b5775fdba453c54b9a96b9842851c0c386a44dd79d884f6be7f262a004fbf98d",
+        "product_eligible": true,
+        "scenario_definition_digest": "a9362458924245f8be53684f54d9dccb12f704a9b1007ae6a139a7b1c2ba0d50",
+        "scenario_id": "outreach_safety_authority",
+        "schema_version": "apps_eval.fixture_provenance.v1",
+        "snapshot_digest": "88f85fb17456a564d0ed5dcbb301ed2db5879b46415f8f5efa705ab54e014b3d"
+      },
+      {
+        "contract_profile_id": "",
+        "evidence_class": "",
+        "expected_digest": "891cfbae33bf834488fbbf7c7cd892f755ec730fdbc5f19f07cc68ce781313a4",
+        "fixture_path": "/Users/amitayer/.gemini/antigravity/worktrees/agents/untitled-worktree/apps_eval/fixtures/dev/apps_lic/outreach_escalation",
+        "input_request_digest": "b5775fdba453c54b9a96b9842851c0c386a44dd79d884f6be7f262a004fbf98d",
+        "product_eligible": true,
+        "scenario_definition_digest": "fb21fbcd1c6b3b874108304f216fb88206adfa1263a5d26439e469bfc339d4d4",
+        "scenario_id": "outreach_escalation",
+        "schema_version": "apps_eval.fixture_provenance.v1",
+        "snapshot_digest": "050af4b752d43eecb7aeab407ad364f3e96d9378ea9e75b4b447b9eb5872fcd3"
+      },
+      {
+        "contract_profile_id": "",
+        "evidence_class": "",
+        "expected_digest": "c5c1f33a53affb68796eec5b75213e3a7e26d9abc6b4646a0e494aff68b0ab0b",
+        "fixture_path": "/Users/amitayer/.gemini/antigravity/worktrees/agents/untitled-worktree/apps_eval/fixtures/dev/apps_lic/outreach_determinism",
+        "input_request_digest": "b5775fdba453c54b9a96b9842851c0c386a44dd79d884f6be7f262a004fbf98d",
+        "product_eligible": true,
+        "scenario_definition_digest": "501ebc0e3b1217d8045c137ab9ac5ccd955b34e7217a12b914bf28477feacf47",
+        "scenario_id": "outreach_determinism",
+        "schema_version": "apps_eval.fixture_provenance.v1",
+        "snapshot_digest": "c0455f0de99955649c125bfd939966a38b5fb2ab65126a5b09ada8710577a86a"
+      }
+    ],
+    "git_commit": "ce6494ac6ad8c112d702e21214ffa36aedcdafc0",
+    "grader_ids": [
+      "schema",
+      "artifact_presence",
+      "x3_disposition",
+      "forbidden_content",
+      "grounded_claim",
+      "provenance",
+      "section_structure",
+      "length_bounds",
+      "side_effect",
+      "escalation",
+      "determinism"
+    ],
+    "mode": "snapshot",
+    "schema_version": "apps_eval.completed_eval.v3",
+    "scorer_version": "apps_eval.graders.deterministic.v2",
+    "suite_digest": "62ae0eb5c2a1db21a99b1a76910e9d61349fb6af9e5a759224790173255024dc",
+    "suite_id": "apps_lic.dev.outreach_message",
+    "threshold_digest": "56aa98bdafeb41dedd493f0f1bc43eaa70e45f628a0771754b2fd5a203601c52",
+    "with_judge": false
+  },
+  "registry_digest": "",
+  "regression": {
+    "baseline_digest": "",
+    "baseline_path": "",
+    "baseline_score": 0.0,
+    "compared": false,
+    "current_score": 0.0,
+    "delta": 0.0,
+    "verdict": "not_compared"
+  },
+  "regression_flywheel": {
+    "baseline_digest": "",
+    "baseline_failure_family_counts": {},
+    "baseline_failure_mode_counts": {},
+    "baseline_path": "",
+    "baseline_score": 0.0,
+    "compared": false,
+    "current_failure_family_counts": {},
+    "current_failure_mode_counts": {},
+    "current_score": 0.0,
+    "delta": 0.0,
+    "dominant_failure_family": "",
+    "dominant_failure_mode": "",
+    "new_failure_modes": [],
+    "recovered_failure_modes": [],
+    "repeated_failure_modes": [],
+    "scenario_hotspots": [],
+    "schema_version": "apps_eval.regression_flywheel.v1",
+    "verdict": "not_compared"
+  },
+  "release_blocked": true,
+  "rubric_ids": [
+    "apps_lic_outreach_v1"
+  ],
+  "run_metadata": {
+    "baseline_digest": "",
+    "compare_baseline": false,
+    "contract_profile_id": "",
+    "cwd": "/Users/amitayer/.gemini/antigravity/worktrees/agents/untitled-worktree",
+    "deterministic_only": true,
+    "evidence_class": "",
+    "git_commit": "ce6494ac6ad8c112d702e21214ffa36aedcdafc0",
+    "mode": "snapshot",
+    "platform": "macOS-26.7.3-arm64-arm-64bit",
+    "product_eligible": true,
+    "project_name": "agentic-workflow",
+    "project_version": "1.0.0",
+    "python_version": "3.12.14",
+    "record_seed_digest": "a098042e5771cce78bc407eba085908a39f81ad5685c00ac96bed44b0d46d500",
+    "runner": "apps_eval.runner.core",
+    "schema_version": "apps_eval.run_metadata.v1",
+    "scorer_version": "apps_eval.graders.deterministic.v2",
+    "with_judge": false
+  },
+  "runtime_exhaust_bundle_id": "",
+  "scenario_results": [
+    {
+      "block_failure_mode_counts": {},
+      "block_failures": 0,
+      "dominant_failure_family": "",
+      "dominant_failure_mode": "",
+      "failed_findings": 0,
+      "failure_family_counts": {},
+      "failure_mode_counts": {},
+      "failure_modes": [],
+      "findings": [
+        {
+          "evidence": {
+            "missing": []
+          },
+          "failure_mode": "",
+          "grader_id": "schema",
+          "message": "schema keys present",
+          "passed": true,
+          "scenario_id": "outreach_basic",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "missing": []
+          },
+          "failure_mode": "",
+          "grader_id": "artifact_presence",
+          "message": "required artifacts present",
+          "passed": true,
+          "scenario_id": "outreach_basic",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "actual": "X3D_ALLOW_FINISH",
+            "expected": "X3D_ALLOW_FINISH"
+          },
+          "failure_mode": "",
+          "grader_id": "x3_disposition",
+          "message": "expected disposition matched",
+          "passed": true,
+          "scenario_id": "outreach_basic",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "hits": []
+          },
+          "failure_mode": "",
+          "grader_id": "forbidden_content",
+          "message": "no forbidden content",
+          "passed": true,
+          "scenario_id": "outreach_basic",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "bad_claims": []
+          },
+          "failure_mode": "",
+          "grader_id": "grounded_claim",
+          "message": "all claims grounded",
+          "passed": true,
+          "scenario_id": "outreach_basic",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "missing": [],
+            "refs": [
+              "lead:role_context"
+            ]
+          },
+          "failure_mode": "",
+          "grader_id": "provenance",
+          "message": "provenance present",
+          "passed": true,
+          "scenario_id": "outreach_basic",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "missing": []
+          },
+          "failure_mode": "",
+          "grader_id": "section_structure",
+          "message": "required sections present",
+          "passed": true,
+          "scenario_id": "outreach_basic",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "max_words": 120,
+            "min_words": 12,
+            "word_count": 54
+          },
+          "failure_mode": "",
+          "grader_id": "length_bounds",
+          "message": "length within bounds",
+          "passed": true,
+          "scenario_id": "outreach_basic",
+          "score": 1.0,
+          "severity": "warn"
+        },
+        {
+          "evidence": {
+            "product_state_mutated": false,
+            "writes": []
+          },
+          "failure_mode": "",
+          "grader_id": "side_effect",
+          "message": "no product state mutation",
+          "passed": true,
+          "scenario_id": "outreach_basic",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "escalated": false,
+            "required": false
+          },
+          "failure_mode": "",
+          "grader_id": "escalation",
+          "message": "escalation behavior matched",
+          "passed": true,
+          "scenario_id": "outreach_basic",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "actual": "7dceef693d325f98b315d18713670ebae9313e80e514521fbd12d20255793b3b",
+            "expected": "7dceef693d325f98b315d18713670ebae9313e80e514521fbd12d20255793b3b"
+          },
+          "failure_mode": "",
+          "grader_id": "determinism",
+          "message": "snapshot hash stable",
+          "passed": true,
+          "scenario_id": "outreach_basic",
+          "score": 1.0,
+          "severity": "block"
+        }
+      ],
+      "fixture_provenance_digest": "01274537bab54ef80a0d8e4362ca15e0d71803741df3e72191256e72f9ac8bad",
+      "passed": true,
+      "scenario_id": "outreach_basic",
+      "snapshot_digest": "e1e939967ae7d5853d7e217d2f03f5b5eb69f99d28b69a6acb8705dbbbf4f812",
+      "snapshot_ref": "/Users/amitayer/.gemini/antigravity/worktrees/agents/untitled-worktree/apps_eval/fixtures/dev/apps_lic/outreach_basic/snapshots/app_output_snapshot.json",
+      "warn_failure_mode_counts": {}
+    },
+    {
+      "block_failure_mode_counts": {},
+      "block_failures": 0,
+      "dominant_failure_family": "",
+      "dominant_failure_mode": "",
+      "failed_findings": 0,
+      "failure_family_counts": {},
+      "failure_mode_counts": {},
+      "failure_modes": [],
+      "findings": [
+        {
+          "evidence": {
+            "missing": []
+          },
+          "failure_mode": "",
+          "grader_id": "schema",
+          "message": "schema keys present",
+          "passed": true,
+          "scenario_id": "outreach_grounding",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "missing": []
+          },
+          "failure_mode": "",
+          "grader_id": "artifact_presence",
+          "message": "required artifacts present",
+          "passed": true,
+          "scenario_id": "outreach_grounding",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "actual": "X3D_ALLOW_FINISH",
+            "expected": "X3D_ALLOW_FINISH"
+          },
+          "failure_mode": "",
+          "grader_id": "x3_disposition",
+          "message": "expected disposition matched",
+          "passed": true,
+          "scenario_id": "outreach_grounding",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "hits": []
+          },
+          "failure_mode": "",
+          "grader_id": "forbidden_content",
+          "message": "no forbidden content",
+          "passed": true,
+          "scenario_id": "outreach_grounding",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "bad_claims": []
+          },
+          "failure_mode": "",
+          "grader_id": "grounded_claim",
+          "message": "all claims grounded",
+          "passed": true,
+          "scenario_id": "outreach_grounding",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "missing": [],
+            "refs": [
+              "lead:role_context"
+            ]
+          },
+          "failure_mode": "",
+          "grader_id": "provenance",
+          "message": "provenance present",
+          "passed": true,
+          "scenario_id": "outreach_grounding",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "missing": []
+          },
+          "failure_mode": "",
+          "grader_id": "section_structure",
+          "message": "required sections present",
+          "passed": true,
+          "scenario_id": "outreach_grounding",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "max_words": 120,
+            "min_words": 12,
+            "word_count": 54
+          },
+          "failure_mode": "",
+          "grader_id": "length_bounds",
+          "message": "length within bounds",
+          "passed": true,
+          "scenario_id": "outreach_grounding",
+          "score": 1.0,
+          "severity": "warn"
+        },
+        {
+          "evidence": {
+            "product_state_mutated": false,
+            "writes": []
+          },
+          "failure_mode": "",
+          "grader_id": "side_effect",
+          "message": "no product state mutation",
+          "passed": true,
+          "scenario_id": "outreach_grounding",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "escalated": false,
+            "required": false
+          },
+          "failure_mode": "",
+          "grader_id": "escalation",
+          "message": "escalation behavior matched",
+          "passed": true,
+          "scenario_id": "outreach_grounding",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "actual": "2180f59ed623a4f2517cec287ae3184a9ab96d0362971e386aac273c3e27ebad",
+            "expected": "2180f59ed623a4f2517cec287ae3184a9ab96d0362971e386aac273c3e27ebad"
+          },
+          "failure_mode": "",
+          "grader_id": "determinism",
+          "message": "snapshot hash stable",
+          "passed": true,
+          "scenario_id": "outreach_grounding",
+          "score": 1.0,
+          "severity": "block"
+        }
+      ],
+      "fixture_provenance_digest": "4ec41a1ff017e320ff90f4ef07a3eb701cc9e4028b280a710cd04a8b09b56033",
+      "passed": true,
+      "scenario_id": "outreach_grounding",
+      "snapshot_digest": "77f9f89189a07457dca4c754b223b38c1fc96ae39c54d4964d509dc32788bbd5",
+      "snapshot_ref": "/Users/amitayer/.gemini/antigravity/worktrees/agents/untitled-worktree/apps_eval/fixtures/dev/apps_lic/outreach_grounding/snapshots/app_output_snapshot.json",
+      "warn_failure_mode_counts": {}
+    },
+    {
+      "block_failure_mode_counts": {},
+      "block_failures": 0,
+      "dominant_failure_family": "",
+      "dominant_failure_mode": "",
+      "failed_findings": 0,
+      "failure_family_counts": {},
+      "failure_mode_counts": {},
+      "failure_modes": [],
+      "findings": [
+        {
+          "evidence": {
+            "missing": []
+          },
+          "failure_mode": "",
+          "grader_id": "schema",
+          "message": "schema keys present",
+          "passed": true,
+          "scenario_id": "outreach_non_contrivance",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "missing": []
+          },
+          "failure_mode": "",
+          "grader_id": "artifact_presence",
+          "message": "required artifacts present",
+          "passed": true,
+          "scenario_id": "outreach_non_contrivance",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "actual": "X3D_ALLOW_FINISH",
+            "expected": "X3D_ALLOW_FINISH"
+          },
+          "failure_mode": "",
+          "grader_id": "x3_disposition",
+          "message": "expected disposition matched",
+          "passed": true,
+          "scenario_id": "outreach_non_contrivance",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "hits": []
+          },
+          "failure_mode": "",
+          "grader_id": "forbidden_content",
+          "message": "no forbidden content",
+          "passed": true,
+          "scenario_id": "outreach_non_contrivance",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "bad_claims": []
+          },
+          "failure_mode": "",
+          "grader_id": "grounded_claim",
+          "message": "all claims grounded",
+          "passed": true,
+          "scenario_id": "outreach_non_contrivance",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "missing": [],
+            "refs": [
+              "lead:role_context"
+            ]
+          },
+          "failure_mode": "",
+          "grader_id": "provenance",
+          "message": "provenance present",
+          "passed": true,
+          "scenario_id": "outreach_non_contrivance",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "missing": []
+          },
+          "failure_mode": "",
+          "grader_id": "section_structure",
+          "message": "required sections present",
+          "passed": true,
+          "scenario_id": "outreach_non_contrivance",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "max_words": 120,
+            "min_words": 12,
+            "word_count": 54
+          },
+          "failure_mode": "",
+          "grader_id": "length_bounds",
+          "message": "length within bounds",
+          "passed": true,
+          "scenario_id": "outreach_non_contrivance",
+          "score": 1.0,
+          "severity": "warn"
+        },
+        {
+          "evidence": {
+            "product_state_mutated": false,
+            "writes": []
+          },
+          "failure_mode": "",
+          "grader_id": "side_effect",
+          "message": "no product state mutation",
+          "passed": true,
+          "scenario_id": "outreach_non_contrivance",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "escalated": false,
+            "required": false
+          },
+          "failure_mode": "",
+          "grader_id": "escalation",
+          "message": "escalation behavior matched",
+          "passed": true,
+          "scenario_id": "outreach_non_contrivance",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "actual": "76e4dbf6f12b89aaf0c227204f77af46b1c2a690880772c29d6917caf26b174a",
+            "expected": "76e4dbf6f12b89aaf0c227204f77af46b1c2a690880772c29d6917caf26b174a"
+          },
+          "failure_mode": "",
+          "grader_id": "determinism",
+          "message": "snapshot hash stable",
+          "passed": true,
+          "scenario_id": "outreach_non_contrivance",
+          "score": 1.0,
+          "severity": "block"
+        }
+      ],
+      "fixture_provenance_digest": "faf9134b68536a6ce14ac406070755ad8e21f7d373c246ae58c0b482f483f0b2",
+      "passed": true,
+      "scenario_id": "outreach_non_contrivance",
+      "snapshot_digest": "3bdb35f76c46b6b79fd10df8aa011fa65d13b0da827fd0a770e1af0ad498f85e",
+      "snapshot_ref": "/Users/amitayer/.gemini/antigravity/worktrees/agents/untitled-worktree/apps_eval/fixtures/dev/apps_lic/outreach_non_contrivance/snapshots/app_output_snapshot.json",
+      "warn_failure_mode_counts": {}
+    },
+    {
+      "block_failure_mode_counts": {},
+      "block_failures": 0,
+      "dominant_failure_family": "",
+      "dominant_failure_mode": "",
+      "failed_findings": 0,
+      "failure_family_counts": {},
+      "failure_mode_counts": {},
+      "failure_modes": [],
+      "findings": [
+        {
+          "evidence": {
+            "missing": []
+          },
+          "failure_mode": "",
+          "grader_id": "schema",
+          "message": "schema keys present",
+          "passed": true,
+          "scenario_id": "outreach_safety_authority",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "missing": []
+          },
+          "failure_mode": "",
+          "grader_id": "artifact_presence",
+          "message": "required artifacts present",
+          "passed": true,
+          "scenario_id": "outreach_safety_authority",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "actual": "X3D_ALLOW_FINISH",
+            "expected": "X3D_ALLOW_FINISH"
+          },
+          "failure_mode": "",
+          "grader_id": "x3_disposition",
+          "message": "expected disposition matched",
+          "passed": true,
+          "scenario_id": "outreach_safety_authority",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "hits": []
+          },
+          "failure_mode": "",
+          "grader_id": "forbidden_content",
+          "message": "no forbidden content",
+          "passed": true,
+          "scenario_id": "outreach_safety_authority",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "bad_claims": []
+          },
+          "failure_mode": "",
+          "grader_id": "grounded_claim",
+          "message": "all claims grounded",
+          "passed": true,
+          "scenario_id": "outreach_safety_authority",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "missing": [],
+            "refs": [
+              "lead:role_context"
+            ]
+          },
+          "failure_mode": "",
+          "grader_id": "provenance",
+          "message": "provenance present",
+          "passed": true,
+          "scenario_id": "outreach_safety_authority",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "missing": []
+          },
+          "failure_mode": "",
+          "grader_id": "section_structure",
+          "message": "required sections present",
+          "passed": true,
+          "scenario_id": "outreach_safety_authority",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "max_words": 120,
+            "min_words": 12,
+            "word_count": 54
+          },
+          "failure_mode": "",
+          "grader_id": "length_bounds",
+          "message": "length within bounds",
+          "passed": true,
+          "scenario_id": "outreach_safety_authority",
+          "score": 1.0,
+          "severity": "warn"
+        },
+        {
+          "evidence": {
+            "product_state_mutated": false,
+            "writes": []
+          },
+          "failure_mode": "",
+          "grader_id": "side_effect",
+          "message": "no product state mutation",
+          "passed": true,
+          "scenario_id": "outreach_safety_authority",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "escalated": false,
+            "required": false
+          },
+          "failure_mode": "",
+          "grader_id": "escalation",
+          "message": "escalation behavior matched",
+          "passed": true,
+          "scenario_id": "outreach_safety_authority",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "actual": "42cb79d53db00af6cff5799ff4080e5b66c4de3975a4b70cc4c5120af47764ee",
+            "expected": "42cb79d53db00af6cff5799ff4080e5b66c4de3975a4b70cc4c5120af47764ee"
+          },
+          "failure_mode": "",
+          "grader_id": "determinism",
+          "message": "snapshot hash stable",
+          "passed": true,
+          "scenario_id": "outreach_safety_authority",
+          "score": 1.0,
+          "severity": "block"
+        }
+      ],
+      "fixture_provenance_digest": "02d5ce715e5f59afeedf20969f55b9e07dc60b1ab5531c1a574257fba6b9636f",
+      "passed": true,
+      "scenario_id": "outreach_safety_authority",
+      "snapshot_digest": "6d922fb212151799100e0fcbe857f43bb59c46f0f5b1ac15b94868452788cc15",
+      "snapshot_ref": "/Users/amitayer/.gemini/antigravity/worktrees/agents/untitled-worktree/apps_eval/fixtures/dev/apps_lic/outreach_safety_authority/snapshots/app_output_snapshot.json",
+      "warn_failure_mode_counts": {}
+    },
+    {
+      "block_failure_mode_counts": {},
+      "block_failures": 0,
+      "dominant_failure_family": "",
+      "dominant_failure_mode": "",
+      "failed_findings": 0,
+      "failure_family_counts": {},
+      "failure_mode_counts": {},
+      "failure_modes": [],
+      "findings": [
+        {
+          "evidence": {
+            "missing": []
+          },
+          "failure_mode": "",
+          "grader_id": "schema",
+          "message": "schema keys present",
+          "passed": true,
+          "scenario_id": "outreach_escalation",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "missing": []
+          },
+          "failure_mode": "",
+          "grader_id": "artifact_presence",
+          "message": "required artifacts present",
+          "passed": true,
+          "scenario_id": "outreach_escalation",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "actual": "X3B_ESCALATE_HITL",
+            "expected": "X3B_ESCALATE_HITL"
+          },
+          "failure_mode": "",
+          "grader_id": "x3_disposition",
+          "message": "expected disposition matched",
+          "passed": true,
+          "scenario_id": "outreach_escalation",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "hits": []
+          },
+          "failure_mode": "",
+          "grader_id": "forbidden_content",
+          "message": "no forbidden content",
+          "passed": true,
+          "scenario_id": "outreach_escalation",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "bad_claims": []
+          },
+          "failure_mode": "",
+          "grader_id": "grounded_claim",
+          "message": "all claims grounded",
+          "passed": true,
+          "scenario_id": "outreach_escalation",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "missing": [],
+            "refs": [
+              "lead:role_context"
+            ]
+          },
+          "failure_mode": "",
+          "grader_id": "provenance",
+          "message": "provenance present",
+          "passed": true,
+          "scenario_id": "outreach_escalation",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "missing": []
+          },
+          "failure_mode": "",
+          "grader_id": "section_structure",
+          "message": "required sections present",
+          "passed": true,
+          "scenario_id": "outreach_escalation",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "max_words": 120,
+            "min_words": 12,
+            "word_count": 28
+          },
+          "failure_mode": "",
+          "grader_id": "length_bounds",
+          "message": "length within bounds",
+          "passed": true,
+          "scenario_id": "outreach_escalation",
+          "score": 1.0,
+          "severity": "warn"
+        },
+        {
+          "evidence": {
+            "product_state_mutated": false,
+            "writes": []
+          },
+          "failure_mode": "",
+          "grader_id": "side_effect",
+          "message": "no product state mutation",
+          "passed": true,
+          "scenario_id": "outreach_escalation",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "escalated": true,
+            "required": true
+          },
+          "failure_mode": "",
+          "grader_id": "escalation",
+          "message": "escalation behavior matched",
+          "passed": true,
+          "scenario_id": "outreach_escalation",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "actual": "2460e1716445dc12f90c894718c7d03aea731e2403224e0c5aa0badf6291d27e",
+            "expected": "2460e1716445dc12f90c894718c7d03aea731e2403224e0c5aa0badf6291d27e"
+          },
+          "failure_mode": "",
+          "grader_id": "determinism",
+          "message": "snapshot hash stable",
+          "passed": true,
+          "scenario_id": "outreach_escalation",
+          "score": 1.0,
+          "severity": "block"
+        }
+      ],
+      "fixture_provenance_digest": "db665c12aafd63ef9aad4b83a2d024f8b2703b436e35081540dcdab9bb922074",
+      "passed": true,
+      "scenario_id": "outreach_escalation",
+      "snapshot_digest": "072511abdcdc5dd1f51357bf13ef26112285815a689557f3dc8843cd932522eb",
+      "snapshot_ref": "/Users/amitayer/.gemini/antigravity/worktrees/agents/untitled-worktree/apps_eval/fixtures/dev/apps_lic/outreach_escalation/snapshots/app_output_snapshot.json",
+      "warn_failure_mode_counts": {}
+    },
+    {
+      "block_failure_mode_counts": {},
+      "block_failures": 0,
+      "dominant_failure_family": "",
+      "dominant_failure_mode": "",
+      "failed_findings": 0,
+      "failure_family_counts": {},
+      "failure_mode_counts": {},
+      "failure_modes": [],
+      "findings": [
+        {
+          "evidence": {
+            "missing": []
+          },
+          "failure_mode": "",
+          "grader_id": "schema",
+          "message": "schema keys present",
+          "passed": true,
+          "scenario_id": "outreach_determinism",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "missing": []
+          },
+          "failure_mode": "",
+          "grader_id": "artifact_presence",
+          "message": "required artifacts present",
+          "passed": true,
+          "scenario_id": "outreach_determinism",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "actual": "X3D_ALLOW_FINISH",
+            "expected": "X3D_ALLOW_FINISH"
+          },
+          "failure_mode": "",
+          "grader_id": "x3_disposition",
+          "message": "expected disposition matched",
+          "passed": true,
+          "scenario_id": "outreach_determinism",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "hits": []
+          },
+          "failure_mode": "",
+          "grader_id": "forbidden_content",
+          "message": "no forbidden content",
+          "passed": true,
+          "scenario_id": "outreach_determinism",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "bad_claims": []
+          },
+          "failure_mode": "",
+          "grader_id": "grounded_claim",
+          "message": "all claims grounded",
+          "passed": true,
+          "scenario_id": "outreach_determinism",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "missing": [],
+            "refs": [
+              "lead:role_context"
+            ]
+          },
+          "failure_mode": "",
+          "grader_id": "provenance",
+          "message": "provenance present",
+          "passed": true,
+          "scenario_id": "outreach_determinism",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "missing": []
+          },
+          "failure_mode": "",
+          "grader_id": "section_structure",
+          "message": "required sections present",
+          "passed": true,
+          "scenario_id": "outreach_determinism",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "max_words": 120,
+            "min_words": 12,
+            "word_count": 54
+          },
+          "failure_mode": "",
+          "grader_id": "length_bounds",
+          "message": "length within bounds",
+          "passed": true,
+          "scenario_id": "outreach_determinism",
+          "score": 1.0,
+          "severity": "warn"
+        },
+        {
+          "evidence": {
+            "product_state_mutated": false,
+            "writes": []
+          },
+          "failure_mode": "",
+          "grader_id": "side_effect",
+          "message": "no product state mutation",
+          "passed": true,
+          "scenario_id": "outreach_determinism",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "escalated": false,
+            "required": false
+          },
+          "failure_mode": "",
+          "grader_id": "escalation",
+          "message": "escalation behavior matched",
+          "passed": true,
+          "scenario_id": "outreach_determinism",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "actual": "081dafbf06068d7afcd62859f06433cf4547e1bdd802c3ad366cebde5ba11ff1",
+            "expected": "081dafbf06068d7afcd62859f06433cf4547e1bdd802c3ad366cebde5ba11ff1"
+          },
+          "failure_mode": "",
+          "grader_id": "determinism",
+          "message": "snapshot hash stable",
+          "passed": true,
+          "scenario_id": "outreach_determinism",
+          "score": 1.0,
+          "severity": "block"
+        }
+      ],
+      "fixture_provenance_digest": "1abafbb26ac60d822114e0568132c8f773c5566b4bc105e1425e44d981fddebb",
+      "passed": true,
+      "scenario_id": "outreach_determinism",
+      "snapshot_digest": "c9b1a076e1ed3e339b3aa1d8d6984ef442fca976341b0e7b3a8d55a3338018f8",
+      "snapshot_ref": "/Users/amitayer/.gemini/antigravity/worktrees/agents/untitled-worktree/apps_eval/fixtures/dev/apps_lic/outreach_determinism/snapshots/app_output_snapshot.json",
+      "warn_failure_mode_counts": {}
+    }
+  ],
+  "schema_version": "apps_eval.completed_eval.v3",
+  "scorecard": {
+    "app_id": "apps_lic",
+    "block_failures": 0,
+    "component_scorecards": [],
+    "coverage_summary": {},
+    "dimension_scores": {
+      "artifact_presence": 1.0,
+      "determinism": 1.0,
+      "escalation": 1.0,
+      "forbidden_content": 1.0,
+      "grounded_claim": 1.0,
+      "length_bounds": 1.0,
+      "provenance": 1.0,
+      "schema": 1.0,
+      "section_structure": 1.0,
+      "side_effect": 1.0,
+      "x3_disposition": 1.0
+    },
+    "failed_findings": 0,
+    "failure_family_counts": {},
+    "failure_mode_counts": {},
+    "finding_count": 66,
+    "passed_findings": 66,
+    "scenario_count": 6,
+    "score": 1.0,
+    "scorecard_rows": [],
+    "suite_id": "apps_lic.dev.outreach_message",
+    "verdict": "pass"
+  },
+  "section_attempt_id": "",
+  "snapshot_digest": "",
+  "suite_id": "apps_lic.dev.outreach_message"
+}

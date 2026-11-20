@@ -1,0 +1,17 @@
+{
+  "description": "Holdout: outreach maintains peer executive tone without contrived familiarity or spam phrasing.",
+  "graders": [
+    "schema",
+    "artifact_presence",
+    "x3_disposition",
+    "forbidden_content",
+    "grounded_claim",
+    "provenance",
+    "section_structure",
+    "length_bounds",
+    "side_effect",
+    "escalation",
+    "determinism"
+  ],
+  "scenario_id": "lic_holdout_non_contrivance"
+}

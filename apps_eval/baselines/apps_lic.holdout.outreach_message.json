@@ -1,0 +1,890 @@
+{
+  "admission_failures": [],
+  "admission_status": "",
+  "app_id": "apps_lic",
+  "artifact_paths": {
+    "eval_record": "/var/folders/zm/qvkyv08x6yq7fn9yzmb46c7h0000gn/T/apps_eval_baseline_boot_52x_9gm3/apps_lic_holdout_outreach_message/59d163612cf6f467/eval_record.json",
+    "grader_findings": "/var/folders/zm/qvkyv08x6yq7fn9yzmb46c7h0000gn/T/apps_eval_baseline_boot_52x_9gm3/apps_lic_holdout_outreach_message/59d163612cf6f467/grader_findings.jsonl",
+    "l6_handoff": "/var/folders/zm/qvkyv08x6yq7fn9yzmb46c7h0000gn/T/apps_eval_baseline_boot_52x_9gm3/apps_lic_holdout_outreach_message/59d163612cf6f467/l6_handoff.json",
+    "l6_shadow_bridge": "/var/folders/zm/qvkyv08x6yq7fn9yzmb46c7h0000gn/T/apps_eval_baseline_boot_52x_9gm3/apps_lic_holdout_outreach_message/59d163612cf6f467/l6_shadow_bridge.json",
+    "l6_shadow_bridge_spans": "/var/folders/zm/qvkyv08x6yq7fn9yzmb46c7h0000gn/T/apps_eval_baseline_boot_52x_9gm3/apps_lic_holdout_outreach_message/59d163612cf6f467/l6_shadow_bridge_spans.json",
+    "l6_shadow_bridge_spans_jsonl": "/var/folders/zm/qvkyv08x6yq7fn9yzmb46c7h0000gn/T/apps_eval_baseline_boot_52x_9gm3/apps_lic_holdout_outreach_message/59d163612cf6f467/l6_shadow_bridge_spans.jsonl",
+    "manifest": "/var/folders/zm/qvkyv08x6yq7fn9yzmb46c7h0000gn/T/apps_eval_baseline_boot_52x_9gm3/apps_lic_holdout_outreach_message/59d163612cf6f467/manifest.json",
+    "regression": "/var/folders/zm/qvkyv08x6yq7fn9yzmb46c7h0000gn/T/apps_eval_baseline_boot_52x_9gm3/apps_lic_holdout_outreach_message/59d163612cf6f467/regression.json",
+    "regression_flywheel": "/var/folders/zm/qvkyv08x6yq7fn9yzmb46c7h0000gn/T/apps_eval_baseline_boot_52x_9gm3/apps_lic_holdout_outreach_message/59d163612cf6f467/regression_flywheel.json",
+    "report": "/var/folders/zm/qvkyv08x6yq7fn9yzmb46c7h0000gn/T/apps_eval_baseline_boot_52x_9gm3/apps_lic_holdout_outreach_message/59d163612cf6f467/report.md",
+    "scorecard": "/var/folders/zm/qvkyv08x6yq7fn9yzmb46c7h0000gn/T/apps_eval_baseline_boot_52x_9gm3/apps_lic_holdout_outreach_message/59d163612cf6f467/scorecard.csv"
+  },
+  "child_run_id": "",
+  "contract_profile_id": "",
+  "created_at": "1970-01-01T00:00:00Z",
+  "deterministic_only": true,
+  "eval_execution_complete": false,
+  "eval_record_id": "59d163612cf6f467",
+  "eval_verdict": "",
+  "evidence_class": "",
+  "fixture_provenance": [
+    {
+      "contract_profile_id": "",
+      "evidence_class": "",
+      "expected_digest": "6fe6aaffba94fecde7558a3815c6f1443565ecbd2285adfc43c0ca5f1e4ee640",
+      "fixture_path": "/Users/amitayer/.gemini/antigravity/worktrees/agents/untitled-worktree/apps_eval/fixtures/holdout/apps_lic/lic_holdout_grounded_outreach",
+      "input_request_digest": "590f187e741c86c68572364abff2db453401c179715c8d693b5c24e64ee69f19",
+      "product_eligible": true,
+      "scenario_definition_digest": "b5452173f9e8447b9051441171f3e504bceea919522a7f083f5c2fdead3250e7",
+      "scenario_id": "lic_holdout_grounded_outreach",
+      "schema_version": "apps_eval.fixture_provenance.v1",
+      "snapshot_digest": "fbec2c48a36735a867efc57d68fc715a728ae130196508967b797dad3136f7aa"
+    },
+    {
+      "contract_profile_id": "",
+      "evidence_class": "",
+      "expected_digest": "25c24fc9519612b011510ce316822631e53c8a411b0b6718422e8dc16f189790",
+      "fixture_path": "/Users/amitayer/.gemini/antigravity/worktrees/agents/untitled-worktree/apps_eval/fixtures/holdout/apps_lic/lic_holdout_non_contrivance",
+      "input_request_digest": "7a87c37eb6f1aec3839886b0285812703efeff2d99bdd2f24b123796b83a2cdb",
+      "product_eligible": true,
+      "scenario_definition_digest": "c3ebbc325e9b2a03d4dc4c837dadf0fb5b08e2a5a70f15f5af6c89b40f6cee85",
+      "scenario_id": "lic_holdout_non_contrivance",
+      "schema_version": "apps_eval.fixture_provenance.v1",
+      "snapshot_digest": "a7616c92b5ab85569210d97a0c3846831fa6e7c3387811ac238417f2ec21b3b9"
+    },
+    {
+      "contract_profile_id": "",
+      "evidence_class": "",
+      "expected_digest": "a7cbb5ca6d6bf07ab892912beaed08b8ccd0f01bdf5d61d4102c3550eab3eef8",
+      "fixture_path": "/Users/amitayer/.gemini/antigravity/worktrees/agents/untitled-worktree/apps_eval/fixtures/holdout/apps_lic/lic_holdout_safety_privacy",
+      "input_request_digest": "2d8623245710124fde56420e47676414f5bb629fc4ec71eaefb3e546c8f4ebc6",
+      "product_eligible": true,
+      "scenario_definition_digest": "8fa7cebd8905a42fb35cdf9e41b610ba107186379736be89e10cb792e63ab783",
+      "scenario_id": "lic_holdout_safety_privacy",
+      "schema_version": "apps_eval.fixture_provenance.v1",
+      "snapshot_digest": "f97917c6650587ade8587bed745b9f3902c8ae29285ef0c6629255526691cb81"
+    },
+    {
+      "contract_profile_id": "",
+      "evidence_class": "",
+      "expected_digest": "90a0bb8f590484cd4a25bd8e7d4862afa4ac03b15e65cb2e71b59a382c7104d2",
+      "fixture_path": "/Users/amitayer/.gemini/antigravity/worktrees/agents/untitled-worktree/apps_eval/fixtures/holdout/apps_lic/lic_holdout_escalation_abstain",
+      "input_request_digest": "3e7fd46d167bdac004dc5338a9907ec09f191eaa7f7a596354bdbb2deef74723",
+      "product_eligible": true,
+      "scenario_definition_digest": "4f82972e01289fe0e8928465dc5d5c64a1b39333e4123a4f54c5421bd99b0202",
+      "scenario_id": "lic_holdout_escalation_abstain",
+      "schema_version": "apps_eval.fixture_provenance.v1",
+      "snapshot_digest": "31a7d6855d6be0130dca6ab00a01864a968e67cff4418a5767e9544e8dbe89ff"
+    }
+  ],
+  "microstep_contract_digest": "",
+  "mode": "snapshot",
+  "parent_run_id": "",
+  "preflight_verification_status": "",
+  "product_eligible": true,
+  "record_id": "59d163612cf6f467",
+  "record_seed": {
+    "app_id": "apps_lic",
+    "apps_rg_microstep_contract_digest": "",
+    "baseline_digest": "",
+    "compare_baseline": false,
+    "deterministic_only": true,
+    "emit_l6_handoff": true,
+    "failure_mode_catalog_digest": "439986b97e1c630c632c2a642f92975b469d2226d85fabedf6f2917c7b3405d1",
+    "fixture_provenance": [
+      {
+        "contract_profile_id": "",
+        "evidence_class": "",
+        "expected_digest": "6fe6aaffba94fecde7558a3815c6f1443565ecbd2285adfc43c0ca5f1e4ee640",
+        "fixture_path": "/Users/amitayer/.gemini/antigravity/worktrees/agents/untitled-worktree/apps_eval/fixtures/holdout/apps_lic/lic_holdout_grounded_outreach",
+        "input_request_digest": "590f187e741c86c68572364abff2db453401c179715c8d693b5c24e64ee69f19",
+        "product_eligible": true,
+        "scenario_definition_digest": "b5452173f9e8447b9051441171f3e504bceea919522a7f083f5c2fdead3250e7",
+        "scenario_id": "lic_holdout_grounded_outreach",
+        "schema_version": "apps_eval.fixture_provenance.v1",
+        "snapshot_digest": "fbec2c48a36735a867efc57d68fc715a728ae130196508967b797dad3136f7aa"
+      },
+      {
+        "contract_profile_id": "",
+        "evidence_class": "",
+        "expected_digest": "25c24fc9519612b011510ce316822631e53c8a411b0b6718422e8dc16f189790",
+        "fixture_path": "/Users/amitayer/.gemini/antigravity/worktrees/agents/untitled-worktree/apps_eval/fixtures/holdout/apps_lic/lic_holdout_non_contrivance",
+        "input_request_digest": "7a87c37eb6f1aec3839886b0285812703efeff2d99bdd2f24b123796b83a2cdb",
+        "product_eligible": true,
+        "scenario_definition_digest": "c3ebbc325e9b2a03d4dc4c837dadf0fb5b08e2a5a70f15f5af6c89b40f6cee85",
+        "scenario_id": "lic_holdout_non_contrivance",
+        "schema_version": "apps_eval.fixture_provenance.v1",
+        "snapshot_digest": "a7616c92b5ab85569210d97a0c3846831fa6e7c3387811ac238417f2ec21b3b9"
+      },
+      {
+        "contract_profile_id": "",
+        "evidence_class": "",
+        "expected_digest": "a7cbb5ca6d6bf07ab892912beaed08b8ccd0f01bdf5d61d4102c3550eab3eef8",
+        "fixture_path": "/Users/amitayer/.gemini/antigravity/worktrees/agents/untitled-worktree/apps_eval/fixtures/holdout/apps_lic/lic_holdout_safety_privacy",
+        "input_request_digest": "2d8623245710124fde56420e47676414f5bb629fc4ec71eaefb3e546c8f4ebc6",
+        "product_eligible": true,
+        "scenario_definition_digest": "8fa7cebd8905a42fb35cdf9e41b610ba107186379736be89e10cb792e63ab783",
+        "scenario_id": "lic_holdout_safety_privacy",
+        "schema_version": "apps_eval.fixture_provenance.v1",
+        "snapshot_digest": "f97917c6650587ade8587bed745b9f3902c8ae29285ef0c6629255526691cb81"
+      },
+      {
+        "contract_profile_id": "",
+        "evidence_class": "",
+        "expected_digest": "90a0bb8f590484cd4a25bd8e7d4862afa4ac03b15e65cb2e71b59a382c7104d2",
+        "fixture_path": "/Users/amitayer/.gemini/antigravity/worktrees/agents/untitled-worktree/apps_eval/fixtures/holdout/apps_lic/lic_holdout_escalation_abstain",
+        "input_request_digest": "3e7fd46d167bdac004dc5338a9907ec09f191eaa7f7a596354bdbb2deef74723",
+        "product_eligible": true,
+        "scenario_definition_digest": "4f82972e01289fe0e8928465dc5d5c64a1b39333e4123a4f54c5421bd99b0202",
+        "scenario_id": "lic_holdout_escalation_abstain",
+        "schema_version": "apps_eval.fixture_provenance.v1",
+        "snapshot_digest": "31a7d6855d6be0130dca6ab00a01864a968e67cff4418a5767e9544e8dbe89ff"
+      }
+    ],
+    "git_commit": "ce6494ac6ad8c112d702e21214ffa36aedcdafc0",
+    "grader_ids": [
+      "schema",
+      "artifact_presence",
+      "x3_disposition",
+      "forbidden_content",
+      "grounded_claim",
+      "provenance",
+      "section_structure",
+      "length_bounds",
+      "side_effect",
+      "escalation",
+      "determinism"
+    ],
+    "mode": "snapshot",
+    "schema_version": "apps_eval.completed_eval.v3",
+    "scorer_version": "apps_eval.graders.deterministic.v2",
+    "suite_digest": "9f347e45ed78f7547feb569d6aeb26b734d598a6107e8f615968d5a328014e97",
+    "suite_id": "apps_lic.holdout.outreach_message",
+    "threshold_digest": "8e87c14479393e2f19bf9c579764742e3024ec49d0479b24df6e06c8e695297e",
+    "with_judge": false
+  },
+  "registry_digest": "",
+  "regression": {
+    "baseline_digest": "",
+    "baseline_path": "",
+    "baseline_score": 0.0,
+    "compared": false,
+    "current_score": 0.0,
+    "delta": 0.0,
+    "verdict": "not_compared"
+  },
+  "regression_flywheel": {
+    "baseline_digest": "",
+    "baseline_failure_family_counts": {},
+    "baseline_failure_mode_counts": {},
+    "baseline_path": "",
+    "baseline_score": 0.0,
+    "compared": false,
+    "current_failure_family_counts": {},
+    "current_failure_mode_counts": {},
+    "current_score": 0.0,
+    "delta": 0.0,
+    "dominant_failure_family": "",
+    "dominant_failure_mode": "",
+    "new_failure_modes": [],
+    "recovered_failure_modes": [],
+    "repeated_failure_modes": [],
+    "scenario_hotspots": [],
+    "schema_version": "apps_eval.regression_flywheel.v1",
+    "verdict": "not_compared"
+  },
+  "release_blocked": true,
+  "rubric_ids": [
+    "apps_lic_outreach_v1"
+  ],
+  "run_metadata": {
+    "baseline_digest": "",
+    "compare_baseline": false,
+    "contract_profile_id": "",
+    "cwd": "/Users/amitayer/.gemini/antigravity/worktrees/agents/untitled-worktree",
+    "deterministic_only": true,
+    "evidence_class": "",
+    "git_commit": "ce6494ac6ad8c112d702e21214ffa36aedcdafc0",
+    "mode": "snapshot",
+    "platform": "macOS-26.7.3-arm64-arm-64bit",
+    "product_eligible": true,
+    "project_name": "agentic-workflow",
+    "project_version": "1.0.0",
+    "python_version": "3.12.14",
+    "record_seed_digest": "59d163612cf6f4671a435501296b1df36fe9b4269a41592af216c507ef50becf",
+    "runner": "apps_eval.runner.core",
+    "schema_version": "apps_eval.run_metadata.v1",
+    "scorer_version": "apps_eval.graders.deterministic.v2",
+    "with_judge": false
+  },
+  "runtime_exhaust_bundle_id": "",
+  "scenario_results": [
+    {
+      "block_failure_mode_counts": {},
+      "block_failures": 0,
+      "dominant_failure_family": "",
+      "dominant_failure_mode": "",
+      "failed_findings": 0,
+      "failure_family_counts": {},
+      "failure_mode_counts": {},
+      "failure_modes": [],
+      "findings": [
+        {
+          "evidence": {
+            "missing": []
+          },
+          "failure_mode": "",
+          "grader_id": "schema",
+          "message": "schema keys present",
+          "passed": true,
+          "scenario_id": "lic_holdout_grounded_outreach",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "missing": []
+          },
+          "failure_mode": "",
+          "grader_id": "artifact_presence",
+          "message": "required artifacts present",
+          "passed": true,
+          "scenario_id": "lic_holdout_grounded_outreach",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "actual": "X3D_ALLOW_FINISH",
+            "expected": "X3D_ALLOW_FINISH"
+          },
+          "failure_mode": "",
+          "grader_id": "x3_disposition",
+          "message": "expected disposition matched",
+          "passed": true,
+          "scenario_id": "lic_holdout_grounded_outreach",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "hits": []
+          },
+          "failure_mode": "",
+          "grader_id": "forbidden_content",
+          "message": "no forbidden content",
+          "passed": true,
+          "scenario_id": "lic_holdout_grounded_outreach",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "bad_claims": []
+          },
+          "failure_mode": "",
+          "grader_id": "grounded_claim",
+          "message": "all claims grounded",
+          "passed": true,
+          "scenario_id": "lic_holdout_grounded_outreach",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "missing": [],
+            "refs": [
+              "lead:role_context",
+              "opportunity:jd"
+            ]
+          },
+          "failure_mode": "",
+          "grader_id": "provenance",
+          "message": "provenance present",
+          "passed": true,
+          "scenario_id": "lic_holdout_grounded_outreach",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "missing": []
+          },
+          "failure_mode": "",
+          "grader_id": "section_structure",
+          "message": "required sections present",
+          "passed": true,
+          "scenario_id": "lic_holdout_grounded_outreach",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "max_words": 120,
+            "min_words": 12,
+            "word_count": 54
+          },
+          "failure_mode": "",
+          "grader_id": "length_bounds",
+          "message": "length within bounds",
+          "passed": true,
+          "scenario_id": "lic_holdout_grounded_outreach",
+          "score": 1.0,
+          "severity": "warn"
+        },
+        {
+          "evidence": {
+            "product_state_mutated": false,
+            "writes": []
+          },
+          "failure_mode": "",
+          "grader_id": "side_effect",
+          "message": "no product state mutation",
+          "passed": true,
+          "scenario_id": "lic_holdout_grounded_outreach",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "escalated": false,
+            "required": false
+          },
+          "failure_mode": "",
+          "grader_id": "escalation",
+          "message": "escalation behavior matched",
+          "passed": true,
+          "scenario_id": "lic_holdout_grounded_outreach",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "actual": "4f71ad4be4e711689e21e16ff728635ded9391bc36ca8a21af69d60594b1d539",
+            "expected": "4f71ad4be4e711689e21e16ff728635ded9391bc36ca8a21af69d60594b1d539"
+          },
+          "failure_mode": "",
+          "grader_id": "determinism",
+          "message": "snapshot hash stable",
+          "passed": true,
+          "scenario_id": "lic_holdout_grounded_outreach",
+          "score": 1.0,
+          "severity": "block"
+        }
+      ],
+      "fixture_provenance_digest": "55a27715a3b49c357036a69f079d61709acf035525fb40f1a72d82a7628c8998",
+      "passed": true,
+      "scenario_id": "lic_holdout_grounded_outreach",
+      "snapshot_digest": "98f8f5cfe8b8e48de6326722b2b04c3b7e982494034d176fb146acffa2e2ec69",
+      "snapshot_ref": "/Users/amitayer/.gemini/antigravity/worktrees/agents/untitled-worktree/apps_eval/fixtures/holdout/apps_lic/lic_holdout_grounded_outreach/snapshots/app_output_snapshot.json",
+      "warn_failure_mode_counts": {}
+    },
+    {
+      "block_failure_mode_counts": {},
+      "block_failures": 0,
+      "dominant_failure_family": "",
+      "dominant_failure_mode": "",
+      "failed_findings": 0,
+      "failure_family_counts": {},
+      "failure_mode_counts": {},
+      "failure_modes": [],
+      "findings": [
+        {
+          "evidence": {
+            "missing": []
+          },
+          "failure_mode": "",
+          "grader_id": "schema",
+          "message": "schema keys present",
+          "passed": true,
+          "scenario_id": "lic_holdout_non_contrivance",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "missing": []
+          },
+          "failure_mode": "",
+          "grader_id": "artifact_presence",
+          "message": "required artifacts present",
+          "passed": true,
+          "scenario_id": "lic_holdout_non_contrivance",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "actual": "X3D_ALLOW_FINISH",
+            "expected": "X3D_ALLOW_FINISH"
+          },
+          "failure_mode": "",
+          "grader_id": "x3_disposition",
+          "message": "expected disposition matched",
+          "passed": true,
+          "scenario_id": "lic_holdout_non_contrivance",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "hits": []
+          },
+          "failure_mode": "",
+          "grader_id": "forbidden_content",
+          "message": "no forbidden content",
+          "passed": true,
+          "scenario_id": "lic_holdout_non_contrivance",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "bad_claims": []
+          },
+          "failure_mode": "",
+          "grader_id": "grounded_claim",
+          "message": "all claims grounded",
+          "passed": true,
+          "scenario_id": "lic_holdout_non_contrivance",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "missing": [],
+            "refs": [
+              "lead:role_context"
+            ]
+          },
+          "failure_mode": "",
+          "grader_id": "provenance",
+          "message": "provenance present",
+          "passed": true,
+          "scenario_id": "lic_holdout_non_contrivance",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "missing": []
+          },
+          "failure_mode": "",
+          "grader_id": "section_structure",
+          "message": "required sections present",
+          "passed": true,
+          "scenario_id": "lic_holdout_non_contrivance",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "max_words": 120,
+            "min_words": 12,
+            "word_count": 51
+          },
+          "failure_mode": "",
+          "grader_id": "length_bounds",
+          "message": "length within bounds",
+          "passed": true,
+          "scenario_id": "lic_holdout_non_contrivance",
+          "score": 1.0,
+          "severity": "warn"
+        },
+        {
+          "evidence": {
+            "product_state_mutated": false,
+            "writes": []
+          },
+          "failure_mode": "",
+          "grader_id": "side_effect",
+          "message": "no product state mutation",
+          "passed": true,
+          "scenario_id": "lic_holdout_non_contrivance",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "escalated": false,
+            "required": false
+          },
+          "failure_mode": "",
+          "grader_id": "escalation",
+          "message": "escalation behavior matched",
+          "passed": true,
+          "scenario_id": "lic_holdout_non_contrivance",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "actual": "0fd4b73365450e6ed24cb969e219bcc20a33f1ea11cdb058a26c2a3d383803fd",
+            "expected": "0fd4b73365450e6ed24cb969e219bcc20a33f1ea11cdb058a26c2a3d383803fd"
+          },
+          "failure_mode": "",
+          "grader_id": "determinism",
+          "message": "snapshot hash stable",
+          "passed": true,
+          "scenario_id": "lic_holdout_non_contrivance",
+          "score": 1.0,
+          "severity": "block"
+        }
+      ],
+      "fixture_provenance_digest": "9b5c1a8d645cc034116045e98adaf11cf9574370f1faac03ae661a47478f95ac",
+      "passed": true,
+      "scenario_id": "lic_holdout_non_contrivance",
+      "snapshot_digest": "82d4d0b736056e36c462e61d037403abf96df7f9a2b9dfe6e228ffd83d7905a4",
+      "snapshot_ref": "/Users/amitayer/.gemini/antigravity/worktrees/agents/untitled-worktree/apps_eval/fixtures/holdout/apps_lic/lic_holdout_non_contrivance/snapshots/app_output_snapshot.json",
+      "warn_failure_mode_counts": {}
+    },
+    {
+      "block_failure_mode_counts": {},
+      "block_failures": 0,
+      "dominant_failure_family": "",
+      "dominant_failure_mode": "",
+      "failed_findings": 0,
+      "failure_family_counts": {},
+      "failure_mode_counts": {},
+      "failure_modes": [],
+      "findings": [
+        {
+          "evidence": {
+            "missing": []
+          },
+          "failure_mode": "",
+          "grader_id": "schema",
+          "message": "schema keys present",
+          "passed": true,
+          "scenario_id": "lic_holdout_safety_privacy",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "missing": []
+          },
+          "failure_mode": "",
+          "grader_id": "artifact_presence",
+          "message": "required artifacts present",
+          "passed": true,
+          "scenario_id": "lic_holdout_safety_privacy",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "actual": "X3D_ALLOW_FINISH",
+            "expected": "X3D_ALLOW_FINISH"
+          },
+          "failure_mode": "",
+          "grader_id": "x3_disposition",
+          "message": "expected disposition matched",
+          "passed": true,
+          "scenario_id": "lic_holdout_safety_privacy",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "hits": []
+          },
+          "failure_mode": "",
+          "grader_id": "forbidden_content",
+          "message": "no forbidden content",
+          "passed": true,
+          "scenario_id": "lic_holdout_safety_privacy",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "bad_claims": []
+          },
+          "failure_mode": "",
+          "grader_id": "grounded_claim",
+          "message": "all claims grounded",
+          "passed": true,
+          "scenario_id": "lic_holdout_safety_privacy",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "missing": [],
+            "refs": [
+              "lead:role_context",
+              "policy:privacy"
+            ]
+          },
+          "failure_mode": "",
+          "grader_id": "provenance",
+          "message": "provenance present",
+          "passed": true,
+          "scenario_id": "lic_holdout_safety_privacy",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "missing": []
+          },
+          "failure_mode": "",
+          "grader_id": "section_structure",
+          "message": "required sections present",
+          "passed": true,
+          "scenario_id": "lic_holdout_safety_privacy",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "max_words": 120,
+            "min_words": 12,
+            "word_count": 48
+          },
+          "failure_mode": "",
+          "grader_id": "length_bounds",
+          "message": "length within bounds",
+          "passed": true,
+          "scenario_id": "lic_holdout_safety_privacy",
+          "score": 1.0,
+          "severity": "warn"
+        },
+        {
+          "evidence": {
+            "product_state_mutated": false,
+            "writes": []
+          },
+          "failure_mode": "",
+          "grader_id": "side_effect",
+          "message": "no product state mutation",
+          "passed": true,
+          "scenario_id": "lic_holdout_safety_privacy",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "escalated": false,
+            "required": false
+          },
+          "failure_mode": "",
+          "grader_id": "escalation",
+          "message": "escalation behavior matched",
+          "passed": true,
+          "scenario_id": "lic_holdout_safety_privacy",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "actual": "b75550a1164f2ff93e5b2bfa9dfc72cd18ba1dd68b0940e18ee4f7895d3f0f24",
+            "expected": "b75550a1164f2ff93e5b2bfa9dfc72cd18ba1dd68b0940e18ee4f7895d3f0f24"
+          },
+          "failure_mode": "",
+          "grader_id": "determinism",
+          "message": "snapshot hash stable",
+          "passed": true,
+          "scenario_id": "lic_holdout_safety_privacy",
+          "score": 1.0,
+          "severity": "block"
+        }
+      ],
+      "fixture_provenance_digest": "95a9229ee7d169a14bd59e1d26870d3e8284650434b39e6042b9ef8b0e7e4407",
+      "passed": true,
+      "scenario_id": "lic_holdout_safety_privacy",
+      "snapshot_digest": "47723901aa37a6114c0215dec73991217fc6cea080ae7f50a29c692ea4905b20",
+      "snapshot_ref": "/Users/amitayer/.gemini/antigravity/worktrees/agents/untitled-worktree/apps_eval/fixtures/holdout/apps_lic/lic_holdout_safety_privacy/snapshots/app_output_snapshot.json",
+      "warn_failure_mode_counts": {}
+    },
+    {
+      "block_failure_mode_counts": {},
+      "block_failures": 0,
+      "dominant_failure_family": "",
+      "dominant_failure_mode": "",
+      "failed_findings": 0,
+      "failure_family_counts": {},
+      "failure_mode_counts": {},
+      "failure_modes": [],
+      "findings": [
+        {
+          "evidence": {
+            "missing": []
+          },
+          "failure_mode": "",
+          "grader_id": "schema",
+          "message": "schema keys present",
+          "passed": true,
+          "scenario_id": "lic_holdout_escalation_abstain",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "missing": []
+          },
+          "failure_mode": "",
+          "grader_id": "artifact_presence",
+          "message": "required artifacts present",
+          "passed": true,
+          "scenario_id": "lic_holdout_escalation_abstain",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "actual": "X3B_ESCALATE_HITL",
+            "expected": "X3B_ESCALATE_HITL"
+          },
+          "failure_mode": "",
+          "grader_id": "x3_disposition",
+          "message": "expected disposition matched",
+          "passed": true,
+          "scenario_id": "lic_holdout_escalation_abstain",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "hits": []
+          },
+          "failure_mode": "",
+          "grader_id": "forbidden_content",
+          "message": "no forbidden content",
+          "passed": true,
+          "scenario_id": "lic_holdout_escalation_abstain",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "bad_claims": []
+          },
+          "failure_mode": "",
+          "grader_id": "grounded_claim",
+          "message": "all claims grounded",
+          "passed": true,
+          "scenario_id": "lic_holdout_escalation_abstain",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "missing": [],
+            "refs": [
+              "policy:grounding"
+            ]
+          },
+          "failure_mode": "",
+          "grader_id": "provenance",
+          "message": "provenance present",
+          "passed": true,
+          "scenario_id": "lic_holdout_escalation_abstain",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "missing": []
+          },
+          "failure_mode": "",
+          "grader_id": "section_structure",
+          "message": "required sections present",
+          "passed": true,
+          "scenario_id": "lic_holdout_escalation_abstain",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "max_words": 120,
+            "min_words": 12,
+            "word_count": 32
+          },
+          "failure_mode": "",
+          "grader_id": "length_bounds",
+          "message": "length within bounds",
+          "passed": true,
+          "scenario_id": "lic_holdout_escalation_abstain",
+          "score": 1.0,
+          "severity": "warn"
+        },
+        {
+          "evidence": {
+            "product_state_mutated": false,
+            "writes": []
+          },
+          "failure_mode": "",
+          "grader_id": "side_effect",
+          "message": "no product state mutation",
+          "passed": true,
+          "scenario_id": "lic_holdout_escalation_abstain",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "escalated": true,
+            "required": true
+          },
+          "failure_mode": "",
+          "grader_id": "escalation",
+          "message": "escalation behavior matched",
+          "passed": true,
+          "scenario_id": "lic_holdout_escalation_abstain",
+          "score": 1.0,
+          "severity": "block"
+        },
+        {
+          "evidence": {
+            "actual": "eb0ea458d41f78270b9fb98c86b38c1101f3ff89f0e44dc4235fa51092d04be6",
+            "expected": "eb0ea458d41f78270b9fb98c86b38c1101f3ff89f0e44dc4235fa51092d04be6"
+          },
+          "failure_mode": "",
+          "grader_id": "determinism",
+          "message": "snapshot hash stable",
+          "passed": true,
+          "scenario_id": "lic_holdout_escalation_abstain",
+          "score": 1.0,
+          "severity": "block"
+        }
+      ],
+      "fixture_provenance_digest": "9686c50f0da2e2b8e7669da50f2133b9bcb8b307fb05f11d642ece189cb761b6",
+      "passed": true,
+      "scenario_id": "lic_holdout_escalation_abstain",
+      "snapshot_digest": "41622ae9fa539f4b1389502fc43244f975a71f84ad35c678cdf7d900c6ed2eb4",
+      "snapshot_ref": "/Users/amitayer/.gemini/antigravity/worktrees/agents/untitled-worktree/apps_eval/fixtures/holdout/apps_lic/lic_holdout_escalation_abstain/snapshots/app_output_snapshot.json",
+      "warn_failure_mode_counts": {}
+    }
+  ],
+  "schema_version": "apps_eval.completed_eval.v3",
+  "scorecard": {
+    "app_id": "apps_lic",
+    "block_failures": 0,
+    "component_scorecards": [],
+    "coverage_summary": {},
+    "dimension_scores": {
+      "artifact_presence": 1.0,
+      "determinism": 1.0,
+      "escalation": 1.0,
+      "forbidden_content": 1.0,
+      "grounded_claim": 1.0,
+      "length_bounds": 1.0,
+      "provenance": 1.0,
+      "schema": 1.0,
+      "section_structure": 1.0,
+      "side_effect": 1.0,
+      "x3_disposition": 1.0
+    },
+    "failed_findings": 0,
+    "failure_family_counts": {},
+    "failure_mode_counts": {},
+    "finding_count": 44,
+    "passed_findings": 44,
+    "scenario_count": 4,
+    "score": 1.0,
+    "scorecard_rows": [],
+    "suite_id": "apps_lic.holdout.outreach_message",
+    "verdict": "pass"
+  },
+  "section_attempt_id": "",
+  "snapshot_digest": "",
+  "suite_id": "apps_lic.holdout.outreach_message"
+}

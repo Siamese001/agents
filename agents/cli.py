@@ -247,7 +247,7 @@ def run_e2e(args: argparse.Namespace) -> int:
 
     from agents.e2e_artifacts import seal_lifecycle_manifest
 
-    return seal_lifecycle_manifest(
+    rc = seal_lifecycle_manifest(
         base_dir=base_dir,
         summary_payload=summary_payload,
         report=report,
@@ -255,12 +255,39 @@ def run_e2e(args: argparse.Namespace) -> int:
         research_enabled=research_enabled,
         overall_start_tick=overall_start_tick,
     )
+    if "pytest" not in sys.modules and not os.environ.get("PYTEST_CURRENT_TEST"):
+        try:
+            from agents.observability.eval_flywheel import EvalFlywheelEngine
+
+            fw = EvalFlywheelEngine()
+            stages = summary_payload.get("stages") or {}
+            for stage_key, app_id in (("resume_tailoring", "apps_rg"), ("executive_outreach", "apps_lic")):
+                st = stages.get(stage_key)
+                if isinstance(st, dict) and st.get("status") not in (None, "SKIPPED"):
+                    ok = str(st.get("status", "")).upper() in ("SUCCESS", "PASS", "PASSED", "COMPLETED")
+                    fw.ingest_product_run(
+                        app_id=app_id,
+                        run_id=run_id,
+                        x3_disposition="X3D_ALLOW_FINISH" if ok else "X3B_ESCALATE_HITL",
+                        passed=ok,
+                        failure_reasons=list(st.get("failure_reasons") or ()),
+                        score=1.0 if ok else 0.0,
+                    )
+        except (ImportError, OSError, ValueError, RuntimeError):  # guardian: allow-silent-swallow -- observer-only flywheel hook must never mutate or fail e2e product runs
+            pass
+    return rc
 
 
 def run_learning(args: argparse.Namespace) -> int:
     """Execute system learning inspection, calibration audit, and trajectory mining commands."""
     from agents.learning_cli import run_learning as _exec_learning
     return _exec_learning(args)
+
+
+def run_eval_flywheel(args: argparse.Namespace) -> int:
+    """Execute Resume & Outreach eval harness and closed-loop flywheel commands."""
+    from agents.eval_flywheel_cli import run_eval_flywheel as _exec_eval_flywheel
+    return _exec_eval_flywheel(args)
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -338,12 +365,17 @@ def main(argv: Sequence[str] | None = None) -> int:
         args = parser.parse_args(values)
         return run_learning(args)
 
+    if engine in {"eval-flywheel", "eval_flywheel"}:
+        parser = _build_parser()
+        args = parser.parse_args(values)
+        return run_eval_flywheel(args)
+
     if engine.startswith("-"):
         parser = _build_parser()
         parser.print_help()
         return 1
 
-    sys.stderr.write(f"Error: Unknown engine '{engine}'. Choices: resume, outreach, e2e, learning, check\n")
+    sys.stderr.write(f"Error: Unknown engine '{engine}'. Choices: resume, outreach, e2e, learning, eval-flywheel, check\n")
     _build_parser().print_help()
     return 1
 
