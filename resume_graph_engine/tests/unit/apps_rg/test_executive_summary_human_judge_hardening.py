@@ -432,3 +432,41 @@ class TestWave3BlindHumanJudgeAndThreshold47:
     def test_contract_coherence_and_ssot_parity_pass(self) -> None:
         assert_ssot_seam_parity()
         assert_executive_summary_x1d_judge_coherence()
+
+    def test_g5_v2_regen_sentence_count_invariant_accepts_3_to_4_and_rejects_6(self) -> None:
+        from apps_rg.runtime.sections.executive_summary_regen_delta_policy import (
+            DELTA_CLASS_RESUME_VOICE_HUMANIZE,
+            evaluate_g5_delta_scope_v2,
+        )
+
+        g5_4 = evaluate_g5_delta_scope_v2(
+            _CLEAN_4_SENTENCE_SUMMARY,
+            _CLEAN_4_SENTENCE_SUMMARY,
+            DELTA_CLASS_RESUME_VOICE_HUMANIZE,
+        )
+        assert g5_4["passed"] is True
+        assert g5_4["reject_gate"] is None
+
+        three_sent = "One. Two. Three."
+        g5_3 = evaluate_g5_delta_scope_v2(
+            _CLEAN_4_SENTENCE_SUMMARY,
+            three_sent,
+            DELTA_CLASS_RESUME_VOICE_HUMANIZE,
+        )
+        assert g5_3["passed"] is True
+
+        six_sent = "One. Two. Three. Four. Five. Six."
+        g5_6 = evaluate_g5_delta_scope_v2(
+            _CLEAN_4_SENTENCE_SUMMARY,
+            six_sent,
+            DELTA_CLASS_RESUME_VOICE_HUMANIZE,
+        )
+        assert g5_6["passed"] is False
+        assert g5_6["reject_gate"] == "regen_sentence_count_invariant"
+
+    def test_non_exec_summary_system_prompt_keeps_4_0_threshold_not_4_7(self) -> None:
+        sys_comp = build_x1d_judge_system_prompt(compact=True, section_id="competencies")
+        assert '"threshold":4.0' in sys_comp
+        assert '"threshold":4.7' not in sys_comp
+        sys_exec = build_x1d_judge_system_prompt(compact=True, section_id="executive_summary")
+        assert '"threshold":4.7' in sys_exec

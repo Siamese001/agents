@@ -231,11 +231,20 @@ def _invoke_judge_with_bounded_retries(
 
 JUDGE_COMPACT_OUTPUT = """
 Return ONLY one compact JSON object. No markdown fences, no prose before or after, no nested objects.
+Required shape (findings and remediation_suggestions must be arrays of short strings only):
+{"rationale":"concise reasoning first","score_scale":"0_to_5","score":0.0,"threshold":4.0,"pass":true,"decisive_failure":false,"findings":["..."],"cited_sentence_indexes":[1],"remediation_suggestions":[],"dimension_verdicts":{...rubric keys...}}
+At most 6 short strings in findings and 4 in remediation_suggestions.
+cited_sentence_indexes: 1-based indexes for every item/sentence your findings ask to change.
+Include dimension_verdicts with all rubric dimension ids (pass/severity/codes per dimension).
+""".strip()
+
+JUDGE_COMPACT_OUTPUT_EXEC_SUMMARY = """
+Return ONLY one compact JSON object. No markdown fences, no prose before or after, no nested objects.
 Required shape (write rationale FIRST before deciding score; findings and remediation_suggestions must be arrays of short strings only):
 {"rationale":"concise hiring-committee reasoning first","score_scale":"0_to_5","score":0.0,"threshold":4.7,"pass":true,"decisive_failure":false,"findings":["..."],"cited_sentence_indexes":[1],"remediation_suggestions":[],"dimension_verdicts":{...6 human rubric keys...}}
 At most 6 short strings in findings and 4 in remediation_suggestions.
 cited_sentence_indexes: 1-based indexes (S1=1 ... S4=4) for every sentence your findings ask to change.
-Include dimension_verdicts with all rubric dimension ids (pass/severity/codes per dimension).
+Include dimension_verdicts with all six human rubric dimension ids (pass/severity/codes per dimension).
 """.strip()
 
 JUDGE_COMPACT_SYSTEM = (
@@ -285,10 +294,11 @@ def build_x1d_judge_system_prompt(*, compact: bool = True, section_id: str | Non
     """
     is_exec_summary = section_id in (None, "", "executive_summary")
     authority = JUDGE_EXEC_SUMMARY_BLIND_AUTHORITY if is_exec_summary else JUDGE_GRADE_ONLY_AUTHORITY
+    compact_out = JUDGE_COMPACT_OUTPUT_EXEC_SUMMARY if is_exec_summary else JUDGE_COMPACT_OUTPUT
     if compact:
         return (
             f"{JUDGE_COMPACT_SYSTEM}\n\n{authority}\n\n"
-            f"{JUDGE_COMPACT_OUTPUT}\n\n{JUDGE_SCORE_SCHEMA}"
+            f"{compact_out}\n\n{JUDGE_SCORE_SCHEMA}"
         )
     return f"You are a strict executive resume judge. Return JSON only.\n\n{JUDGE_SCORE_SCHEMA}"
 

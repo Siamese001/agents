@@ -212,15 +212,15 @@ def _mock_repair(
         flagged = diagnostic.get("cited_sentence_indexes") or []
         findings_str = " ".join(diagnostic.get("findings") or []).lower()
 
-        while len(sentences) < 6:
+        while len(sentences) < 3:
             sentences.append(
                 "Delivered measurable engineering leverage and operational velocity across enterprise platforms."
             )
-        sentences = sentences[:6]
+        sentences = sentences[:4]
 
-        if 4 in flagged or 5 in flagged or "credential dump" in findings_str or "sentence 5" in findings_str:
-            sentences[4] = (
-                "Orchestrated cross-functional operational improvements delivering $4.2M in recurring savings and portfolio resilience across enterprise platforms."
+        if (3 in flagged or 4 in flagged or "credential dump" in findings_str) and len(sentences) >= 3:
+            sentences[-1] = (
+                "Orchestrated cross-functional operational improvements delivering measurable savings and resilience across enterprise platforms."
             )
         if 0 in flagged or 1 in flagged or "dynamic" in sentences[0].lower() or "generic" in findings_str:
             sentences[0] = (
@@ -535,7 +535,7 @@ def repair_section_with_executive_voice_agent(
             )
             audit_resp = _call_llm_repair(sec, auditor_prompt, model=DEFAULT_AUDITOR_MODEL)
             if isinstance(audit_resp, dict) and str(audit_resp.get("disposition", "")).upper() == "PASS" and not audit_resp.get("violated_facts"):
-                if len(_split_into_sentences(proposed_text)) == 6:
+                if 3 <= len(_split_into_sentences(proposed_text)) <= 4:
                     updated_data["resume_display_text"] = proposed_text
                     ok = True
                     mech = "a2a_socratic_repair_loop"
