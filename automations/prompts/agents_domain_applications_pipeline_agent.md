@@ -8,15 +8,15 @@
 Execute a deterministic, fail-closed **Domain Business Pipelines (`outreach_engine/`, `resume_engine/`, `resume_graph_engine/`, `apps_research/`) Critical Functionality Audit & Remediation** exclusively within `/Users/amitayer/Git/agents` (On-Demand, Order `4/8`). This agent verifies that end-to-end business application pipelines across research intelligence packets, outreach campaign generation, and resume graph role tailoring execute without silent drops, schema breaks, or ungrounded synthesis.
 
 ### Cross-Agent MECE De-Overlap Boundary
-- **Owned exclusively by this agent**: Customer-facing business workflows across `apps_research` -> `outreach_engine` (`apps_lic`) and `apps_research` -> `resume_engine` / `resume_graph_engine` (`apps_rg`), authoritative smoke verification (`ops_scripts/run_e2e_authoritative_smoke.py`), live multi-hop graph traversal (`python3 tools/run_resume_graph_traversal_probe.py`, `direct_graph_traversal`), state transition integrity, and output schema completeness.
-- **Delegated to peer agents**:
+- **Owned exclusively by this agent (Single-Writer)**: Customer-facing business workflows across `outreach_engine/src/`, `resume_engine/`, and `resume_graph_engine/src/apps_rg/` (`engines/`, `resume/`, `prompt_assembly/`, `l2_recipe/`, `integrations/`, `bare_pipeline.py`), authoritative smoke verification (`ops_scripts/run_e2e_authoritative_smoke.py`), `tools/e2e_functionality_auditor.py`, and `tests/test_sidecar_resume_graph_traversal.py`.
+- **Delegated to peer agents (Read-Only here; never mutate during parallel runs)**:
   - Worktree/SQLite hygiene (`agents-storage-worktree-hygiene`),
   - Static layer imports & boundary encapsulation (`agents-ssot-boundary-governance`),
   - Core agent runtime mechanics & delegation contracts (`agents-core-runtime-orchestration`),
-  - Retrieval ranking/chunking internals (`agents-research-retrieval-surface`),
-  - Judge rubric calibration (`agents-evals-judge-assurance`),
-  - Token economics, caching & local model acceleration (`agents-cost-token-budget`),
-  - Test coverage floors & credential isolation (`agents-testing-gaps-assurance`).
+  - Research engine (`apps_research/`), chunking/fact_inventory, `quad_graph_retriever.py` & `run_resume_graph_traversal_probe.py` (`agents-research-retrieval-surface`),
+  - Judge rubrics, evaluation bounds & production purity (`lint_production_purity.py`, `agents-evals-judge-assurance`),
+  - Token economics, caching (`resume_graph_engine/src/apps_rg/cache/`) & local model acceleration (`agents-cost-token-budget`),
+  - Test coverage floors (`outreach_engine/tests/`, `resume_graph_engine/tests/`) & credential isolation (`agents-testing-gaps-assurance`).
 
 ---
 
@@ -68,10 +68,9 @@ export BRANCH_SLUG="agents-domain-pipeline-${RUN_TS}-${HEX6}"
 export BRANCH_NAME="chore/${BRANCH_SLUG}"
 export WORKTREE_SLUG="$(echo "${BRANCH_NAME}" | tr '/-' '__')"
 export WORKTREE_DIR="${PRIMARY_REPO_ROOT}/.worktrees/${WORKTREE_SLUG}"
-export RUN_DIR="${WORKTREE_DIR}/artifacts/sidecar_runs/agents_domain_pipeline/${RUN_TS}"
+export RUN_DIR="${WORKTREE_DIR}/artifacts/sidecar_runs/agents_domain_pipeline/${RUN_TS}-${HEX6}"
 export PLAN_REL="plans/domain-applications-pipeline-${HEX6}.md"
 
-git -C "${PRIMARY_REPO_ROOT}" worktree prune
 PYTHONDONTWRITEBYTECODE=1 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/prune_merged_chat_worktrees.py" \
   --repo-root "${PRIMARY_REPO_ROOT}" \
   --consolidate-sidecar \
@@ -118,7 +117,7 @@ Compute multi-factor calibrated confidence via `tools/hitl_governance.py` (`calc
 For each wave (`Wave 1 -> Wave N`):
 1. **5-Point Counterfactual Runtime Proof (`INV-RUNTIME-PROOF-5POINT`)**:
    - Capture `PRE_MUTATION_RUN` domain pipeline metric before edit (`"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/e2e_functionality_auditor.py" --repo-root "${WORKTREE_DIR}" --json`).
-   - Apply bounded fixes in `outreach_engine/`, `resume_engine/`, `resume_graph_engine/`, or `apps_research/`.
+   - Apply bounded fixes in `outreach_engine/src/`, `resume_engine/`, or `resume_graph_engine/src/apps_rg/` (`engines/`, `resume/`, `prompt_assembly/`, `l2_recipe/`, `integrations/`, `bare_pipeline.py`).
    - Run `POST_MUTATION_RUN` `"${PRIMARY_REPO_ROOT}/.venv/bin/python" "${WORKTREE_DIR}/tools/e2e_functionality_auditor.py" --repo-root "${WORKTREE_DIR}" --json`, `python3 tools/run_resume_graph_traversal_probe.py`, and scoped pytest (`--timeout=60`, `WaitMsBeforeAsync >= 15000`).
    - Verify state independently and record the 5-column proof table in `${RUN_DIR}/wave_receipts.md`.
 2. **Closed-Loop System Learning (`C07`)**: Record wave outcome in `HITLDecisionStore`.

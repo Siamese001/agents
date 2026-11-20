@@ -8,8 +8,8 @@
 Execute a deterministic, fail-closed **Research, Embedding & Retrieval Surface Audit & Remediation** exclusively within `/Users/amitayer/Git/agents` (On-Demand, Order `5/8`). This agent audits and remediates evidence chunking, hybrid retrieval ranking (lexical BM25 + BGE-M3 dense vector + 3-hop SQLite graph traversal), source provenance binding, and prompt/retrieval cache parity across `apps_research/`, `resume_graph_engine/`, and `agents/context/` so downstream `outreach_engine` and `resume_engine` synthesis operate on citation-grounded evidence.
 
 ### Cross-Agent MECE De-Overlap Boundary
-- **Owned exclusively by this agent**: `apps_research/` query expansion, chunking boundaries, ranking/reranking pipelines, `resume_graph_engine/` graph node/edge/BGE-M3 embedding verification (`verify_graph_integrity_and_embeddings.py`), prompt/pipeline cache slot alignment (`verify_pipeline_latency_caching.py`), and retrieval cache invalidation parity.
-- **Delegated to peer agents**: Worktree/SQLite hygiene (`agents-storage-worktree-hygiene`), static layer imports (`agents-ssot-boundary-governance`), core agent runtime mechanics (`agents-core-runtime-orchestration`), downstream outreach/resume synthesis orchestration (`agents-domain-applications-pipeline`), judge rubrics (`agents-evals-judge-assurance`), token economics & local hardware (`agents-cost-token-budget`), and pytest suite gaps & credential security (`agents-testing-gaps-assurance`).
+- **Owned exclusively by this agent (Single-Writer)**: `apps_research/` query expansion, chunking, ranking/reranking pipelines, `agents/context/precedent_bridge.py` & `agents/context/provenance.py`, `resume_graph_engine/src/apps_rg/` (`chunking/`, `fact_inventory/`, `runtime/quad_graph_retriever.py`), `tools/retrieval_surface_auditor.py`, `tools/verify_graph_integrity_and_embeddings.py`, `tools/run_resume_graph_traversal_probe.py`, `tools/verify_pipeline_latency_caching.py`, and `tests/unit/test_e2e_and_retrieval_full_parity.py`.
+- **Delegated to peer agents (Read-Only here; never mutate during parallel runs)**: Worktree/SQLite hygiene (`agents-storage-worktree-hygiene`), static layer imports (`agents-ssot-boundary-governance`), core agent runtime mechanics & `agents/context/budgeting.py` (`agents-core-runtime-orchestration`), downstream outreach/resume synthesis orchestration (`outreach_engine/src/`, `resume_engine/`, `agents-domain-applications-pipeline`), judge rubrics (`agents-evals-judge-assurance`), token economics & cache modules (`agents-cost-token-budget`), and pytest suite gaps & credential security (`agents-testing-gaps-assurance`).
 
 ---
 
@@ -68,10 +68,9 @@ export BRANCH_SLUG="agents-research-retrieval-${RUN_TS}-${HEX6}"
 export BRANCH_NAME="chore/${BRANCH_SLUG}"
 export WORKTREE_SLUG="$(echo "${BRANCH_NAME}" | tr '/-' '__')"
 export WORKTREE_DIR="${PRIMARY_REPO_ROOT}/.worktrees/${WORKTREE_SLUG}"
-export RUN_DIR="${WORKTREE_DIR}/artifacts/sidecar_runs/agents_research_retrieval_surface/${RUN_TS}"
+export RUN_DIR="${WORKTREE_DIR}/artifacts/sidecar_runs/agents_research_retrieval_surface/${RUN_TS}-${HEX6}"
 export PLAN_REL="plans/research-retrieval-surface-${HEX6}.md"
 
-git -C "${PRIMARY_REPO_ROOT}" worktree prune
 PYTHONDONTWRITEBYTECODE=1 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/prune_merged_chat_worktrees.py" \
   --repo-root "${PRIMARY_REPO_ROOT}" \
   --consolidate-sidecar \
@@ -119,7 +118,7 @@ Compute multi-factor calibrated confidence via `tools/hitl_governance.py` (`calc
 For each wave (`Wave 1 -> Wave N`):
 1. **5-Point Counterfactual Runtime Proof (`INV-RUNTIME-PROOF-5POINT`)**:
    - Capture `PRE_MUTATION_RUN` retrieval/provenance metric before edit.
-   - Apply bounded fixes in `apps_research/`, `agents/context/`, or `resume_graph_engine/`.
+   - Apply bounded fixes in `apps_research/`, `agents/context/precedent_bridge.py`, `agents/context/provenance.py`, or `resume_graph_engine/src/apps_rg/` (`chunking/`, `fact_inventory/`, `runtime/quad_graph_retriever.py`).
    - Run `POST_MUTATION_RUN` entrypoint verification and scoped pytest (`--timeout=60`, `WaitMsBeforeAsync >= 15000`).
    - Verify state independently and record the 5-column proof table in `${RUN_DIR}/wave_receipts.md`.
 2. **Closed-Loop System Learning (`C07`)**: Record wave outcome in `HITLDecisionStore`.

@@ -46,7 +46,14 @@ def _pid_is_alive(pid: int) -> bool:
 
 
 def has_active_sidecar_lease(wt_path: Path, now_ts: float | None = None) -> bool:
-    """Return True if worktree holds a live, non-expired sidecar run lease."""
+    """Return True if worktree holds a live, non-expired sidecar run lease or active stage lease."""
+    try:
+        from tools.prompt_scope_isolation import has_active_stage_lease_for_worktree
+
+        if has_active_stage_lease_for_worktree(wt_path, wt_path, now_ts=now_ts):
+            return True
+    except (ImportError, OSError, ValueError):  # guardian: allow-silent-swallow -- fallback to local worktree lease file
+        pass
     lease_file = wt_path / SIDECAR_ACTIVE_LEASE_FILENAME
     if not lease_file.is_file():
         return False
@@ -394,6 +401,7 @@ def consolidate_single_sidecar_worktree(
     branch_name: str,
     target_ref: str = "main",
     caller_cwd: Path | None = None,
+    agent_id: str | None = None,
 ) -> dict[str, Any]:
     """Deduplicate clean external platform worktrees and provision a single canonical in-repo worktree."""
     main_root = get_main_repo_root(repo_root)
@@ -490,6 +498,19 @@ def consolidate_single_sidecar_worktree(
         if link_worktree_dependencies is not None:
             link_worktree_dependencies(main_root, resolved_target)
         write_sidecar_lease(resolved_target, branch_name)
+        effective_agent_id = (agent_id or os.environ.get("AGY_SIDECAR_AGENT_ID", "")).strip()
+        if effective_agent_id:
+            try:
+                from tools.prompt_scope_isolation import register_active_stage_lease
+
+                register_active_stage_lease(
+                    main_root,
+                    effective_agent_id,
+                    branch_name,
+                    resolved_target,
+                )
+            except (ImportError, OSError, ValueError):  # guardian: allow-silent-swallow -- best-effort stage lease registration
+                pass
 
     return {
         "status": "CONSOLIDATED",
@@ -552,6 +573,7 @@ def main(argv: list[str] | None = None) -> int:
         cons_res = consolidate_single_sidecar_worktree(
             repo_root=repo_root, worktree_dir=args.worktree_dir.resolve(),
             branch_name=args.branch, target_ref=args.target_ref, caller_cwd=caller_cwd,
+            agent_id=args.agent_id,
         )
         if args.write_manifest:
             write_sidecar_manifest(

@@ -8,12 +8,12 @@
 Execute a deterministic, fail-closed **Core Agent Runtime, Supervisor State Machine, Context Window Budgeting, Session Persistence & Delegation Contract Audit & Remediation** exclusively within `/Users/amitayer/Git/agents` (On-Demand, Order `3/8`). This agent verifies that the foundational agentic engine across `agents/` (`orchestration/`, `context/`, `persistence/`, `observability/`, `telemetry/`) executes with fail-closed state invariants, sliding token compaction, tamper-evident event streaming, and strict adherence to the mandatory 10-field delegation contract.
 
 ### Cross-Agent MECE De-Overlap Boundary
-- **Owned exclusively by this agent**: Core agent lifecycle states, `WorkflowStateMachine` transitions (`agents/orchestration/state_machine.py`), supervisor turn timeouts, `TokenBudget` limits and sliding window compaction (`agents/context/budgeting.py`), session persistence round-trip (`agents/persistence/jsonl/event_store.py`), mandatory 10-field delegation contract compliance (`tools/unified_agent_architecture.py`), and AST exception hygiene across `agents/`.
-- **Delegated to peer agents**:
+- **Owned exclusively by this agent (Single-Writer)**: Core agent lifecycle states (`agents/orchestration/`, `agents/persistence/`, `agents/observability/`, `agents/telemetry/`, `agents/gateway/`, `agents/cli.py`, `agents/_cli_helpers.py`, `agents/health.py`, `agents/e2e_artifacts.py`, `agents/e2e_output.py`, `agents/learning_cli.py`, `agents/live_preflight.py`), `TokenBudget` limits and sliding window compaction (`agents/context/budgeting.py`), mandatory 10-field delegation contract compliance (`tools/unified_agent_architecture.py`), hook dispatch & HITL governance (`tools/hook_dispatch.py`, `tools/hitl_governance.py`), and `tools/agent_runtime_auditor.py`.
+- **Delegated to peer agents (Read-Only here; never mutate during parallel runs)**:
   - Worktree/SQLite hygiene (`agents-storage-worktree-hygiene`),
   - Static layer imports & boundary encapsulation (`agents-ssot-boundary-governance`),
   - Domain business pipelines — outreach campaigns and resume graph tailoring (`agents-domain-applications-pipeline`),
-  - Retrieval ranking & citation bindings (`agents-research-retrieval-surface`),
+  - Retrieval ranking, citation provenance (`agents/context/precedent_bridge.py`, `agents/context/provenance.py`, `apps_research/`) (`agents-research-retrieval-surface`),
   - Judge rubrics & evaluation bounds (`agents-evals-judge-assurance`),
   - Token economics, caching & local model acceleration (`agents-cost-token-budget`),
   - Test entrypoint coverage & secret hygiene (`agents-testing-gaps-assurance`).
@@ -66,10 +66,9 @@ export BRANCH_SLUG="agents-core-runtime-${RUN_TS}-${HEX6}"
 export BRANCH_NAME="chore/${BRANCH_SLUG}"
 export WORKTREE_SLUG="$(echo "${BRANCH_NAME}" | tr '/-' '__')"
 export WORKTREE_DIR="${PRIMARY_REPO_ROOT}/.worktrees/${WORKTREE_SLUG}"
-export RUN_DIR="${WORKTREE_DIR}/artifacts/sidecar_runs/agents_core_runtime/${RUN_TS}"
+export RUN_DIR="${WORKTREE_DIR}/artifacts/sidecar_runs/agents_core_runtime/${RUN_TS}-${HEX6}"
 export PLAN_REL="plans/core-runtime-orchestration-${HEX6}.md"
 
-git -C "${PRIMARY_REPO_ROOT}" worktree prune
 PYTHONDONTWRITEBYTECODE=1 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/prune_merged_chat_worktrees.py" \
   --repo-root "${PRIMARY_REPO_ROOT}" \
   --consolidate-sidecar \

@@ -8,15 +8,15 @@
 Execute a deterministic, fail-closed **8-Pillar Cost, Multi-Tier Caching, Token Budget, Provider Routing & Local Hardware Economics Audit & Remediation** exclusively within `/Users/amitayer/Git/agents` (On-Demand, Order `7/8`). This agent audits, benchmarks, and eliminates token waste, redundant external API spend, and optimizes local offline execution across `outreach_engine/` (`apps_lic`), `resume_engine/` + `resume_graph_engine/` (`apps_rg`), `apps_research/`, `apps_model_telemetry/`, `agents/`, `infrastructure/`, `scripts/local_llm/`, `pyproject.toml`, and `config/provider_profiles.yaml` without degrading retrieval recall, proof-carrying evidence contracts, or synthesis quality.
 
 ### Cross-Agent MECE De-Overlap Boundary
-- **Owned exclusively by this agent**: Provider profile pinning, reasoning effort right-sizing, multi-provider prompt prefix caching, semantic caching, exact response reuse, surgical repair budgets, closed-loop spend governors, local model serving (`scripts/local_llm/serve_qwen_m5.py`), Apple Silicon hardware acceleration benchmarks (`tools/benchmark_macbook_runtime.py`), and dynamic Pareto cost optimization.
-- **Delegated to peer agents**:
+- **Owned exclusively by this agent (Single-Writer)**: Provider profile pinning (`config/provider_profiles.yaml`, `config/model_catalog.json`, `config/token_budget.yaml`, `config/runtime_budget_policy.yaml`, `outreach_engine/config/provider_profiles.yaml`, `resume_graph_engine/config/models/`, `tools/lint_model_pins.py`), telemetry & cache modules (`apps_model_telemetry/`, `resume_graph_engine/src/apps_rg/cache/`), local model serving (`scripts/local_llm/`), Apple Silicon hardware benchmarks (`tools/benchmark_macbook_runtime.py`), and `tools/cost_token_budget_auditor.py` / `tools/cost_token_budget_governor_probes.py`.
+- **Delegated to peer agents (Read-Only here; never mutate during parallel runs)**:
   - Worktree/SQLite hygiene (`agents-storage-worktree-hygiene`),
-  - Static layer imports & boundary encapsulation (`agents-ssot-boundary-governance`),
+  - Static layer imports, model-neutral naming (`tools/lint_model_neutral_naming.py`) & boundary encapsulation (`agents-ssot-boundary-governance`),
   - Core agent runtime mechanics & delegation contracts (`agents-core-runtime-orchestration`),
   - Domain business pipelines (`agents-domain-applications-pipeline`),
   - Retrieval recall & citation provenance (`agents-research-retrieval-surface`),
-  - Judge rubrics & evaluation bounds (`agents-evals-judge-assurance`),
-  - Test coverage floors & credential/secret hygiene (`agents-testing-gaps-assurance`).
+  - Judge rubrics & evaluation bounds (`tests/unit/test_evals_and_budget_full_parity.py`, `agents-evals-judge-assurance`),
+  - Test coverage floors (`outreach_engine/tests/`) & credential/secret hygiene (`tools/lint_secrets.py`, `agents-testing-gaps-assurance`).
 
 ---
 
@@ -85,10 +85,9 @@ export BRANCH_SLUG="agents-cost-token-budget-${RUN_TS}-${HEX6}"
 export BRANCH_NAME="chore/${BRANCH_SLUG}"
 export WORKTREE_SLUG="$(echo "${BRANCH_NAME}" | tr '/-' '__')"
 export WORKTREE_DIR="${PRIMARY_REPO_ROOT}/.worktrees/${WORKTREE_SLUG}"
-export RUN_DIR="${WORKTREE_DIR}/artifacts/sidecar_runs/agents_cost_token_budget/${RUN_TS}"
+export RUN_DIR="${WORKTREE_DIR}/artifacts/sidecar_runs/agents_cost_token_budget/${RUN_TS}-${HEX6}"
 export PLAN_REL="plans/cost-token-budget-${HEX6}.md"
 
-git -C "${PRIMARY_REPO_ROOT}" worktree prune
 PYTHONDONTWRITEBYTECODE=1 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/prune_merged_chat_worktrees.py" \
   --repo-root "${PRIMARY_REPO_ROOT}" \
   --consolidate-sidecar \

@@ -121,6 +121,7 @@ REQUIRED_SHARED_CONTRACT_MARKERS: tuple[str, ...] = (
     "INV-DEFECT-ACCOUNTING-TABLE-GATE",
     "INV-RUNTIME-PROOF-5POINT",
     "INV-AUTOMATION-PERSISTENT-LEARNING-LOOP",
+    "INV-PARALLEL-AGENT-MECE-ISOLATION",
     "validate_implementation_plan.py",
     "--consolidate-sidecar",
     "--write-manifest",
@@ -330,6 +331,14 @@ def validate_sidecar_separation(
                 violations.append(
                     f"{spec['prompt_file']}: invokes --consolidate-sidecar before Phase 1.5 read-only preflight"
                 )
+            if 'git -C "${PRIMARY_REPO_ROOT}" worktree prune' in p_text:
+                violations.append(
+                    f"{spec['prompt_file']}: invokes unlocked 'git worktree prune' outside --consolidate-sidecar lock"
+                )
+            if "${RUN_TS}-${HEX6}" not in p_text:
+                violations.append(
+                    f"{spec['prompt_file']}: RUN_DIR must append '${{RUN_TS}}-${{HEX6}}' to avoid same-second collisions"
+                )
             if spec["prompt_file"] == "agents_testing_gaps_assurance_agent.md":
                 for req_testing_token in (
                     "resume_graph_engine/tests",
@@ -366,6 +375,15 @@ def validate_sidecar_separation(
             violations.append(
                 ".agents/skills/agents-governance-hygiene/SKILL.md: missing PREFLIGHT_ZERO_DEFECT_FAST_EXIT read-only gate"
             )
+
+    # 2b. Verify 100% pairwise MECE disjointness & path existence across all 8 stage ownership scopes
+    if (repo_root / "tools" / "prompt_scope_isolation.py").is_file():
+        try:
+            from tools.prompt_scope_isolation import validate_stage_ownership_disjointness
+
+            violations.extend(validate_stage_ownership_disjointness(repo_root))
+        except ImportError as exc:
+            violations.append(f"Failed to import validate_stage_ownership_disjointness: {exc}")
 
     # 3. Validate sidecars_root and config.json:
     #    - Approved EXPECTED_AGENTS_SIDECARS may exist as disabled manual launchers pointing to AGENTS_CANONICAL_ROOT

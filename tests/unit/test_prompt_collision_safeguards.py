@@ -376,3 +376,134 @@ def test_wave4_subagent_scope_hooks_and_prompt_catalog_parity(tmp_path: Path, mo
     assert "BLOCKED: COMPANY_NOT_IDENTIFIABLE" in md_prompt
     skill_text = (REPO_ROOT / ".agents/skills/agent-subagent-orchestration/SKILL.md").read_text(encoding="utf-8")
     assert '"status": "SUCCESS"' in skill_text
+
+
+def test_all_28_agent_pairs_strictly_mece_disjoint_and_paths_exist() -> None:
+    """All 8 Agents Repo prompt stages declare 100% pairwise-disjoint existing write paths."""
+    from tools.prompt_scope_isolation import validate_stage_ownership_disjointness
+
+    violations = validate_stage_ownership_disjointness(REPO_ROOT)
+    assert violations == [], f"Expected 0 MECE overlaps/missing paths, got: {violations}"
+
+    # Counterfactual: injecting a synthetic overlap must fail closed
+    synthetic = dict(PROMPT_STAGE_ALLOWED_WRITE_PATHS)
+    synthetic["agents-cost-token-budget"] = synthetic["agents-cost-token-budget"] + ("tools/lint_secrets.py",)
+    overlap_errs = validate_stage_ownership_disjointness(None, stage_paths=synthetic)
+    assert any("STAGE_WRITE_PATH_OVERLAP" in err and "lint_secrets.py" in err for err in overlap_errs)
+
+
+def test_parallel_active_stage_leases_block_peer_code_stepping_while_solo_allows_root_cause(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Concurrent stage leases block cross-stage code stepping while solo runs preserve root-cause fixes."""
+    from tools.prompt_scope_isolation import (
+        list_active_stage_leases,
+        register_active_stage_lease,
+        release_active_stage_lease,
+    )
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _git(repo, "init", "-b", "main")
+    _git(repo, "config", "user.email", "test@example.com")
+    _git(repo, "config", "user.name", "Test User")
+    (repo / "README.md").write_text("root\n", encoding="utf-8")
+    _git(repo, "add", "README.md")
+    _git(repo, "commit", "-m", "init")
+
+    wt_a = repo / ".worktrees" / "chore__agents__cost"
+    wt_b = repo / ".worktrees" / "chore__agents__testing"
+    wt_a.parent.mkdir(parents=True, exist_ok=True)
+    _git(repo, "worktree", "add", "-b", "chore/agents-cost-1", str(wt_a), "main")
+    _git(repo, "worktree", "add", "-b", "chore/agents-testing-1", str(wt_b), "main")
+
+    # 1. Solo run: only agents-cost-token-budget leased -> cross-stage root-cause write allowed
+    register_active_stage_lease(repo, "agents-cost-token-budget", "chore/agents-cost-1", wt_a)
+    blocked_solo, reason_solo = evaluate_prompt_stage_write_scope(
+        "tools/lint_secrets.py", wt_a, agent_id="agents-cost-token-budget"
+    )
+    assert blocked_solo is False and "root-cause" in reason_solo
+
+    # 2. Parallel run: agents-testing-gaps-assurance also leased -> stepping on peer's file fails closed
+    register_active_stage_lease(repo, "agents-testing-gaps-assurance", "chore/agents-testing-1", wt_b)
+    assert len(list_active_stage_leases(repo)) == 2
+
+    blocked_peer, reason_peer = evaluate_prompt_stage_write_scope(
+        "tools/lint_secrets.py", wt_a, agent_id="agents-cost-token-budget"
+    )
+    assert blocked_peer is True and "PARALLEL_STAGE_OWNERSHIP_CONFLICT" in reason_peer
+
+    # Own path remains allowed during parallel execution
+    allowed_own, _ = evaluate_prompt_stage_write_scope(
+        "config/provider_profiles.yaml", wt_a, agent_id="agents-cost-token-budget"
+    )
+    assert allowed_own is False
+
+    # PreToolUse hook inside wt_a enforces the parallel conflict fail-closed across worktrees
+    monkeypatch.setenv("AGY_SIDECAR_AGENT_ID", "agents-cost-token-budget")
+    hook_deny = _run_hook(handle_pre_file_write, {"Path": str(wt_a / "tools/lint_secrets.py")}, wt_a)
+    assert hook_deny["decision"] == "deny" and "PARALLEL_STAGE_OWNERSHIP_CONFLICT" in hook_deny["reason"]
+    monkeypatch.delenv("AGY_SIDECAR_AGENT_ID", raising=False)
+
+    # 3. Release peer lease -> solo mode restored cleanly
+    assert release_active_stage_lease(repo, branch_name="chore/agents-testing-1") == 1
+    assert len(list_active_stage_leases(repo)) == 1
+    blocked_after, _ = evaluate_prompt_stage_write_scope(
+        "tools/lint_secrets.py", repo, agent_id="agents-cost-token-budget"
+    )
+    assert blocked_after is False
+    assert release_active_stage_lease(repo, worktree_dir=wt_a) == 1
+    assert list_active_stage_leases(repo) == []
+
+
+def test_concurrent_worktree_provisioning_and_stage_lease_lifecycle(tmp_path: Path) -> None:
+    """Concurrent --consolidate-sidecar provisioning registers distinct stage leases without racing."""
+    from tools.prompt_scope_isolation import (
+        has_active_stage_lease_for_worktree,
+        list_active_stage_leases,
+        release_active_stage_lease,
+    )
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _git(repo, "init", "-b", "main")
+    _git(repo, "config", "user.email", "test@example.com")
+    _git(repo, "config", "user.name", "Test User")
+    (repo / ".gitignore").write_text("plans/\nartifacts/\n.sidecar_active_run.lock\n", encoding="utf-8")
+    _git(repo, "add", ".gitignore")
+    _git(repo, "commit", "-m", "init")
+
+    stages = [
+        ("agents-core-runtime-orchestration", "chore/agents-core-20261120T060000Z-aaa111"),
+        ("agents-evals-judge-assurance", "chore/agents-evals-20261120T060000Z-bbb222"),
+        ("agents-cost-token-budget", "chore/agents-cost-20261120T060000Z-ccc333"),
+    ]
+
+    def _provision(item: tuple[str, str]) -> dict[str, object]:
+        aid, br = item
+        wt = repo / ".worktrees" / br.replace("/", "__").replace("-", "__")
+        return consolidate_single_sidecar_worktree(
+            repo_root=repo, worktree_dir=wt, branch_name=br, agent_id=aid
+        )
+
+    with ThreadPoolExecutor(max_workers=3) as pool:
+        results = list(pool.map(_provision, stages))
+
+    assert len(results) == 3
+    leases = list_active_stage_leases(repo)
+    assert {entry["agent_id"] for entry in leases} == {s[0] for s in stages}
+    for res in results:
+        wt_path = Path(str(res["worktree_dir"]))
+        assert has_active_stage_lease_for_worktree(repo, wt_path) is True
+        assert has_active_sidecar_lease(wt_path) is True
+        assert release_active_stage_lease(repo, worktree_dir=wt_path) == 1
+    assert list_active_stage_leases(repo) == []
+
+
+def test_validate_sidecar_separation_enforces_mece_and_locked_provisioning() -> None:
+    """validate_sidecar_separation passes cleanly and confirms zero unlocked prune or overlap drift."""
+    from tools.validate_sidecar_separation import validate_sidecar_separation
+
+    result = validate_sidecar_separation(repo_root=REPO_ROOT)
+    assert result["is_clean"] is True, result["violations"]
+    assert result["collision_count"] == 0

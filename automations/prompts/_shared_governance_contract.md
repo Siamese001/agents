@@ -1,6 +1,6 @@
 # Agents Repository — On-Demand Assurance Agents Shared Governance Contract (`C01–C12`)
 <!-- GOVERNED COMMON CONTRACT: urn:agents:on-demand-assurance-control-matrix:2.0.0 -->
-<!-- INVARIANT: INV-REPO-SEPARATION-AGENTS-ONLY | PREFLIGHT_ZERO_DEFECT_FAST_EXIT | UNCONDITIONAL_WAVE_PLAN_MANDATE | INV-RUNTIME-PROOF-5POINT | INV-AUTOMATION-PERSISTENT-LEARNING-LOOP -->
+<!-- INVARIANT: INV-REPO-SEPARATION-AGENTS-ONLY | PREFLIGHT_ZERO_DEFECT_FAST_EXIT | UNCONDITIONAL_WAVE_PLAN_MANDATE | INV-RUNTIME-PROOF-5POINT | INV-AUTOMATION-PERSISTENT-LEARNING-LOOP | INV-PARALLEL-AGENT-MECE-ISOLATION -->
 
 ## 1. Repository Isolation & On-Demand Execution Invariant (`INV-REPO-SEPARATION-AGENTS-ONLY`)
 
@@ -61,3 +61,8 @@ Every `agents_*_agent.md` specification inherits and enforces the 12 mandatory c
   - Bind `PYTHON_BIN="/Users/amitayer/Git/agents/.venv/bin/python"` and `PYTEST_BIN="/Users/amitayer/Git/agents/.venv/bin/pytest"`.
 - **`C12` — Output Brevity & Plain-Language Reporting**:
   - User-facing summaries must use plain layman English with zero technical jargon, zero `snake_case` identifiers, zero raw filenames in prose, zero em-dashes, `MM/DD/YYYY` dates, and `<= 300` words.
+- **`C13` — Parallel Execution & Single-Writer MECE Isolation (`INV-PARALLEL-AGENT-MECE-ISOLATION`)**:
+  - All 8 `agents-*` workflows are designed to execute **concurrently in parallel** inside isolated `.worktrees/<slug>` branches (`BRANCH_SLUG` and `RUN_DIR` both append `${RUN_TS}-${HEX6}`).
+  - Never invoke unlocked `git -C "${PRIMARY_REPO_ROOT}" worktree prune` prior to `prune_merged_chat_worktrees.py --consolidate-sidecar`; provisioning acquires `worktree_provisioning_lock` and atomically registers an active stage lease in `<common_git_root>/.local/governance/active_stage_leases.json`.
+  - Every agent owns a strictly pairwise-disjoint single-writer path set in `PROMPT_STAGE_ALLOWED_WRITE_PATHS` (`0 / 28` overlapping pairs, enforced fail-closed by `tools/validate_sidecar_separation.py`). Peers may run read-only verification on another agent's domain, but during concurrent runs `tools/hook_dispatch.py` (`evaluate_prompt_stage_write_scope`) blocks writes to any path owned by an actively leased peer stage (`PARALLEL_STAGE_OWNERSHIP_CONFLICT`).
+  - Promotion to local `main` serializes through `tools/pr_governance.py submit` (FIFO merge queue lock) and automatically releases the finished stage's lease upon merge/teardown.
