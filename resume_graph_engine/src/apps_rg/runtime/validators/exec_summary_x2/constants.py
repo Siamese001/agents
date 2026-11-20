@@ -117,6 +117,9 @@ EXEC_SUMMARY_AI_BRIDGE_CRUTCHES: tuple[str, ...] = (
     "this platform foundation",
     "backed by that",
     "built on that",
+    "that combined",
+    "that unified",
+    "that platform foundation",
 )
 
 # Hollow executive abstractions that weaken spoken boardroom authenticity.

@@ -156,11 +156,14 @@ def allocate_candidate_sets(
 
         exec_roots = used_section_roots.get("executive_summary", set())
         is_bullet_section = slot.section_id.endswith("_bullets")
+        is_metric_preferred_section = is_bullet_section or (
+            slot.section_id == "executive_summary" and slot.employer_lane != "unify"
+        )
         prefer_non_exec = is_bullet_section and not slot.required_root_id and any(str(r.get("root_id") or "") not in exec_roots for r in rows)
         rows.sort(
             key=lambda row: (
                 1 if (slot.section_id == "headline" and str(row.get("skill_id") or "") in {"skill_risk_three_lines_of_defense", "skill_p2_tech_adoption_derisking"}) else 0,
-                0 if (not is_bullet_section or (bool(row.get("metric_outcome_id")) and is_quantified_metric_outcome_text(str(row.get("metric_text") or "")))) else 1,
+                0 if (not is_metric_preferred_section or (bool(row.get("metric_outcome_id")) and is_quantified_metric_outcome_text(str(row.get("metric_text") or "")))) else 1,
                 1 if (prefer_non_exec and str(row.get("root_id") or "") in exec_roots) else 0,
                 fact_counts[_fact_reuse_key(row)],
                 *_candidate_sort_key(row),
