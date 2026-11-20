@@ -1225,3 +1225,43 @@ def test_run_ibm_narrative_x2_includes_meta_disclaimer_gate():
     present = {g.gate_id for g in gates}
     assert "x2_ibm_narrative_no_meta_disclaimer_in_display" in present
     assert "x2_ibm_narrative_claim_ledger_clause_decomposition" in present
+
+
+def test_repair_exec_summary_mechanism_inventory_handles_route_policy_and_sandboxed_tool_execution() -> None:
+    live_sentence = (
+        "Architects and owns a multi-layer agentic AI control plane uniting deterministic route policy "
+        "with sandboxed tool execution for reliable operation."
+    )
+    first = "Engineering executive who integrates governed agentic AI platforms with scalable cloud frameworks."
+    third = "Complementing that architecture, offering accelerator management scaled repeatable cloud blueprints."
+    text = f"{first} {live_sentence} {third}"
+    parsed = {
+        "resume_display_text": text,
+        "claim_ledger": [
+            {"claim": "s1", "claim_text": first, "source_fact_ids": ["reb_unify_agentic_platform_architecture"]},
+            {"claim": "s2", "claim_text": live_sentence, "source_fact_ids": ["reb_unify_agentic_platform_architecture"]},
+            {"claim": "s3", "claim_text": third, "source_fact_ids": ["reb_ibm_offering_accelerator_management"]},
+        ],
+        "change_log": [],
+    }
+    ok_before, reason_before = check_exec_summary_no_mechanism_inventory(text, parsed)
+    assert ok_before is False
+    assert reason_before is not None and "mechanism_inventory:3_terms" in reason_before
+
+    repairs = repair_exec_summary_mechanism_inventory_sentences(parsed)
+    assert repairs
+    repaired_text = str(parsed["resume_display_text"])
+    ok_after, reason_after = check_exec_summary_no_mechanism_inventory(repaired_text, parsed)
+    assert ok_after is True, reason_after
+    assert "governed route selection" in repaired_text
+    assert "isolated tool execution" in repaired_text
+
+
+def test_patch_log_stream_resolves_without_name_error(monkeypatch) -> None:
+    import sys as _sys
+    from apps_rg.runtime.orchestration.patch_run import _patch_log_stream
+
+    monkeypatch.setenv("APPS_RG_WHOLE_RUN_ENVELOPE", "1")
+    assert _patch_log_stream() is _sys.stderr
+    monkeypatch.delenv("APPS_RG_WHOLE_RUN_ENVELOPE", raising=False)
+    assert _patch_log_stream() is _sys.stdout
