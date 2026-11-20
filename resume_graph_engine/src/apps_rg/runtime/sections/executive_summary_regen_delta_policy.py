@@ -606,10 +606,14 @@ def evaluate_g5_delta_scope_v2(
     from apps_rg.runtime.sections.executive_summary_repair_policy import (
         regen_artificial_caps_enabled,
     )
+    from apps_rg.runtime.validators.executive_summary_x2 import (
+        EXEC_SUMMARY_MAX_SENTENCES,
+        EXEC_SUMMARY_MIN_SENTENCES,
+    )
 
     edited_count, detail = count_sentence_edits(prior_resume, after_resume)
     after_count = int(detail.get("after_sentence_count") or 0)
-    sentence_count_ok = after_count == _EXEC_SUMMARY_SENTENCE_COUNT
+    sentence_count_ok = EXEC_SUMMARY_MIN_SENTENCES <= after_count <= EXEC_SUMMARY_MAX_SENTENCES
     if not regen_artificial_caps_enabled():
         passed = sentence_count_ok
         receipt_disabled: dict[str, Any] = {
@@ -619,11 +623,11 @@ def evaluate_g5_delta_scope_v2(
             "reject_gate": None if passed else "regen_sentence_count_invariant",
             "verdict": "regen_caps_disabled" if passed else "regen_sentence_count_violation",
             "delta_class": delta_class,
-            "allowlist": list(range(1, _EXEC_SUMMARY_SENTENCE_COUNT + 1)),
+            "allowlist": list(range(1, EXEC_SUMMARY_MAX_SENTENCES + 1)),
             "allowlist_passed": True,
             "out_of_allowlist_indices": [],
             "edited_sentence_count": edited_count,
-            "sentence_count_invariant_required": _EXEC_SUMMARY_SENTENCE_COUNT,
+            "sentence_count_invariant_required": [EXEC_SUMMARY_MIN_SENTENCES, EXEC_SUMMARY_MAX_SENTENCES],
             "sentence_count_invariant_passed": sentence_count_ok,
             **detail,
             "allowlist_sources": ["regen_caps_disabled"],
@@ -635,7 +639,7 @@ def evaluate_g5_delta_scope_v2(
         }
         if not passed:
             receipt_disabled["failure_reason"] = (
-                f"after_sentence_count={after_count} required={_EXEC_SUMMARY_SENTENCE_COUNT}"
+                f"after_sentence_count={after_count} required={EXEC_SUMMARY_MIN_SENTENCES}..{EXEC_SUMMARY_MAX_SENTENCES}"
             )
         return receipt_disabled
 
