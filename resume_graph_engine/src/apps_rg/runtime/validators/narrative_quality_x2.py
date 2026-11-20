@@ -404,7 +404,7 @@ _SURGICAL_STEM_SYNONYMS: tuple[tuple[str, str], ...] = (
     ("programs", "initiatives"), ("program", "initiative"), ("clients", "stakeholders"), ("client", "stakeholder"),
     ("commercial", "monetized"), ("revenue", "growth"), ("scaling", "expanding"), ("scaled", "expanded"),
     ("scalable", "resilient"), ("automated", "systematized"), ("automating", "systematizing"), ("enterprise", "institutional"),
-    ("teams", "organizations"), ("global", "worldwide"), ("models", "paradigms"), ("systems", "environments"),
+    ("teams", "organizations"), ("global", "worldwide"), ("models", "frameworks"), ("systems", "environments"),
     ("monolithic", "heritage"), ("administration", "core-system"), ("security", "protection"), ("controls", "guardrails"),
     ("platforms", "substrates"), ("platform", "substrate"), ("engineering", "technical"), ("practice", "organization"),
     ("cloud", "hyperscale"), ("financial", "banking"), ("services", "sector"), ("portfolios", "accounts"),
@@ -434,7 +434,21 @@ def _surgically_de_echo_narrative_sentence(candidate_text: str, companion_bullet
     for src_word, repl_word in _SURGICAL_STEM_SYNONYMS:
         if _content_stem(src_word.lower()) not in bullet_stems:
             continue
-        updated = re.sub(rf"\b{re.escape(src_word)}\b", repl_word, working, flags=re.IGNORECASE)
+        if src_word == "production":
+            updated = re.sub(
+                r"\b(into|in|to|for)\s+production\b(?!\s+[A-Za-z0-9-]+(?:\s+(?:workflows|systems|environments|rollouts|deployments|workloads|pipelines|platforms))?\b)",
+                r"\1 live operation",
+                working,
+                flags=re.IGNORECASE,
+            )
+            updated = re.sub(
+                r"(?<!\binto )(?<!\bin )(?<!\bto )(?<!\bfor )\bproduction\b",
+                repl_word,
+                updated,
+                flags=re.IGNORECASE,
+            )
+        else:
+            updated = re.sub(rf"\b{re.escape(src_word)}\b", repl_word, working, flags=re.IGNORECASE)
         if updated != working:
             working = updated
             if check_narrative_bullet_cosine_similarity(working, companion_bullet_texts, max_pairwise_cosine=0.28, max_pool_cosine=0.38, forbid_shared_opener=True, forbid_repeated_metrics=True).passed:
