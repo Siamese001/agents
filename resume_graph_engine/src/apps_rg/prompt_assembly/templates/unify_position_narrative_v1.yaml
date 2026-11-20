@@ -121,7 +121,7 @@ prompt_engineering_hardening:
     - "Concrete enough to feel real, broad enough not to duplicate bullet detail."
     - "Strong current-role signal for SVP Engineering hiring screens."
     - "No first person, no candidate name, no em dash, no source tags."
-    - "Do not reuse companion four-grams such as 'partner co-sell motions'; prefer partner-channel enablement or alliance distribution."
+    - "Do not reuse companion four-grams such as 'partner co-sell motions'; when partner co-sell is explicitly present in ACCEPTED_UNIFY_BULLETS, prefer partner-channel enablement or alliance distribution, and NEVER introduce partner or alliance claims when absent from ACCEPTED_UNIFY_BULLETS."
     - "Zero generic consulting delivery language: do not use 'consulting delivery', 'consulting engagements', 'professional services delivery', or 'stakeholder management'; use platform engineering language such as 'bespoke enterprise delivery', 'client solution delivery', or 'reusable platform services'."
 
 few_shot_patterns:

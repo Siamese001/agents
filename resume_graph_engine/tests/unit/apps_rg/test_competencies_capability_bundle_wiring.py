@@ -889,6 +889,7 @@ def test_partner_applied_ai_architecture_bundle_is_root_bound_for_anthropic():
     assert bundle["allowed_partner_roots"] == [
         "reb_unify_partner_channel_cosell",
         "reb_ibm_aws_alliance_partner_cosell_gtm",
+        "reb_slalom_ecosystem_accelerators",
     ]
     assert "employment_exp_insurtech_001" in bundle["forbidden_partner_roots"]
     assert "employment_exp_ey_001" in bundle["forbidden_partner_roots"]

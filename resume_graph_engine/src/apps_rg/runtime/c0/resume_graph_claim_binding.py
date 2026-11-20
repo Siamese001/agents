@@ -403,29 +403,77 @@ def _binding_for_claim(
         s
         for a in assignments
         for s in _VISIBLE_METRIC_RE.findall(
-            f"{a.get('skill_label') or ''} {a.get('metric_text') or ''}"
+            " ".join(
+                str(part or "")
+                for part in (
+                    a.get("skill_label"),
+                    a.get("metric_text"),
+                    a.get("root_claim_text"),
+                    a.get("root_claim_outcome"),
+                    a.get("root_claim_scope"),
+                    (a.get("fact_anchor") or {}).get("resolved_raw_chunk")
+                    if isinstance(a.get("fact_anchor"), Mapping)
+                    else "",
+                )
+            )
         )
     ]
-    if len(metric_surfaces) > max(1, len(allocated_surfaces)):
+    distinct_rendered_pairs = {
+        pair
+        for s in metric_surfaces
+        if any(pair := extract_exact_metric_value_unit(s))
+    }
+    allocated_pairs = {
+        pair
+        for s in allocated_surfaces
+        if any(pair := extract_exact_metric_value_unit(s))
+    } | {
+        (str(a.get("metric_value") or ""), str(a.get("metric_unit") or ""))
+        for a in assignments
+        if str(a.get("metric_value") or "").strip()
+        or str(a.get("metric_unit") or "").strip()
+    }
+    if distinct_rendered_pairs:
+        if len(distinct_rendered_pairs) > max(1, len(allocated_pairs)):
+            failures.append("multiple_rendered_metrics_in_one_claim")
+    elif len(metric_surfaces) > max(1, len(allocated_surfaces)):
         failures.append("multiple_rendered_metrics_in_one_claim")
     metric_value, metric_unit = extract_exact_metric_value_unit(text)
+    if metric_value or metric_unit:
+        distinct_rendered_pairs.add((metric_value, metric_unit))
     metric_assignments = [
         assignment
         for assignment in assignments
         if str(assignment.get("metric_outcome_id") or "").strip()
     ]
     bound_metric: Mapping[str, Any] | None = None
-    if metric_value or metric_unit:
+    if distinct_rendered_pairs:
         exact = [
             assignment
             for assignment in metric_assignments
-            if str(assignment.get("metric_value") or "") == metric_value
-            and str(assignment.get("metric_unit") or "") == metric_unit
+            if (
+                str(assignment.get("metric_value") or ""),
+                str(assignment.get("metric_unit") or ""),
+            )
+            in distinct_rendered_pairs
         ]
-        if len(exact) != 1:
+        if not distinct_rendered_pairs.issubset(allocated_pairs):
             failures.append("rendered_metric_exact_value_unit_binding_failed")
-        else:
+        elif len(exact) == 1:
             bound_metric = exact[0]
+        elif len(exact) > 1:
+            primary_exact = [
+                assignment
+                for assignment in exact
+                if str(assignment.get("metric_value") or "") == metric_value
+                and str(assignment.get("metric_unit") or "") == metric_unit
+            ]
+            if len(primary_exact) == 1:
+                bound_metric = primary_exact[0]
+            else:
+                failures.append("rendered_metric_exact_value_unit_binding_failed")
+        else:
+            bound_metric = None
     elif any(str(row.get("metric_outcome_id") or "").strip() for row in assignments):
         # A reserved metric may support the claim, but it is not counted as rendered.
         bound_metric = None

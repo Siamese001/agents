@@ -677,3 +677,117 @@ def test_slot_rooted_metric_derivative_binds_to_exact_frozen_bullet_unit() -> No
     )
 
     assert failures == []
+
+
+def test_three_node_root_claim_metrics_bind_exact_and_reject_unallocated() -> None:
+    plan = {
+        "allocation_plan_digest": "slalom-root-metrics-plan",
+        "facts": [
+            {
+                "fact_id": "reb_slalom_engineering_practice_leadership",
+                "role_episode_bundle_id": "reb_slalom_engineering_practice_leadership",
+                "linked_source_fact_ids": ["fact_slalom_006"],
+            },
+            {
+                "fact_id": "reb_slalom_bitemporal_graphrag_uwg",
+                "role_episode_bundle_id": "reb_slalom_bitemporal_graphrag_uwg",
+                "linked_source_fact_ids": ["fact_slalom_009"],
+            },
+        ],
+        "allocation_assignments": [
+            {
+                "section_id": "slalom_bullets",
+                "claim_unit_id": "slalom_bullets:bul_slalom_001",
+                "root_id": "reb_slalom_engineering_practice_leadership",
+                "skill_id": "skill_enterprise_workflow_adoption",
+                "fact_id": "fact_slalom_006",
+                "metric_outcome_id": "",
+                "metric_value": "",
+                "metric_unit": "",
+                "root_claim_text": (
+                    "Led 105 software engineers across 33 charters, stewarding $25M+ "
+                    "in cumulative SOW portfolio value with zero red escalations"
+                ),
+                "counts_toward_global_uniqueness": True,
+            },
+            {
+                "section_id": "slalom_bullets",
+                "claim_unit_id": "slalom_bullets:bul_slalom_004",
+                "root_id": "reb_slalom_bitemporal_graphrag_uwg",
+                "skill_id": "skill_no_direct_write_runtime_design",
+                "fact_id": "fact_slalom_009",
+                "metric_outcome_id": "",
+                "metric_value": "",
+                "metric_unit": "",
+                "root_claim_text": (
+                    "Architected a bi-temporal enterprise knowledge graph achieving "
+                    "100% provenance coverage, 100% currentness accuracy, and zero silent corruption"
+                ),
+                "counts_toward_global_uniqueness": True,
+            },
+        ],
+    }
+    ok_failures = validate_claim_rows_against_resume_graph_allocation(
+        section_id="slalom_bullets",
+        claim_rows=[
+            {
+                "claim_text": "Led 105 software engineers, stewarding $25M+ in cumulative SOW portfolio value.",
+                "source_fact_ids": ["bul_slalom_001"],
+            },
+            {
+                "claim_text": "Delivered 100% provenance coverage, 100% citation accuracy, and 100% currentness accuracy.",
+                "source_fact_ids": ["bul_slalom_004"],
+            },
+        ],
+        selected_fact_plan=plan,
+    )
+    assert ok_failures == []
+
+    bad_failures = validate_claim_rows_against_resume_graph_allocation(
+        section_id="slalom_bullets",
+        claim_rows=[
+            {
+                "claim_text": "Led 105 software engineers, stewarding $50M in cumulative SOW portfolio value.",
+                "source_fact_ids": ["bul_slalom_001"],
+            },
+            {
+                "claim_text": "Delivered 100% provenance coverage and 100% currentness accuracy.",
+                "source_fact_ids": ["bul_slalom_004"],
+            },
+        ],
+        selected_fact_plan=plan,
+    )
+    assert "claim_1:rendered_metric_exact_value_unit_binding_failed" in bad_failures
+
+
+def test_ibm_change_log_frozen_allocation_binds_canonical_metric_outcome_id() -> None:
+    from apps_rg.runtime.sections.ibm_bullets.frozen_allocation import (
+        _bind_ibm_change_log_to_frozen_allocation,
+    )
+
+    parsed = {
+        "change_log": [
+            {
+                "bullet_id": "bul_ibm_005",
+                "metric_outcome_ids": [
+                    "bul_ibm_005_metric_2d997c50",
+                    "metric_ibm_regulated_reference_architecture_reuse",
+                ],
+            }
+        ]
+    }
+    plan = {
+        "allocation_assignments": [
+            {
+                "section_id": "ibm_bullets",
+                "claim_unit_id": "ibm_bullets:bul_ibm_005",
+                "root_id": "reb_ibm_aws_modernization_architecture",
+                "skill_id": "skill_sr_microservices_integration_platform",
+                "metric_outcome_id": "metric_ibm_regulated_reference_architecture_reuse",
+            }
+        ]
+    }
+    _bind_ibm_change_log_to_frozen_allocation(parsed, selected_fact_plan=plan)
+    assert parsed["change_log"][0]["metric_outcome_ids"] == [
+        "metric_ibm_regulated_reference_architecture_reuse"
+    ]
