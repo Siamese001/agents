@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Mapping, Sequence
 
+from apps_rg.runtime.contracts.metric_lexical_primitives import HOLD_METRIC_TEXT_RE
 from apps_rg.runtime.c0.allocation.candidate_normalization import _candidate_sort_key
 from apps_rg.runtime.c0.allocation.contracts_and_validation import (
     ALL_CLAIM_BEARING_SECTIONS,
@@ -200,12 +201,27 @@ def _candidate_sets_from_section_plans(
             if slot.metric_required or slot.metric_outcome_required:
                 metric_options = []
                 for metric in metrics:
-                    value, unit = extract_exact_metric_value_unit(str(metric.get("metric") or ""))
+                    metric_raw_text = str(metric.get("metric") or "")
+                    if slot.section_id == "ibm_bullets" and HOLD_METRIC_TEXT_RE.search(metric_raw_text):
+                        continue
+                    value, unit = extract_exact_metric_value_unit(metric_raw_text)
                     if slot.metric_required and not (value and unit):
                         continue
                     metric_options.append({**metric, "metric_value": value, "metric_unit": unit})
                 if not metric_options:
                     continue
+            elif slot.section_id.endswith("_bullets") and metrics:
+                populated: list[dict[str, Any] | None] = []
+                for metric in metrics:
+                    metric_raw_text = str(metric.get("metric") or "")
+                    if slot.section_id == "ibm_bullets" and HOLD_METRIC_TEXT_RE.search(metric_raw_text):
+                        continue
+                    value, unit = extract_exact_metric_value_unit(metric_raw_text)
+                    populated.append({**metric, "metric_value": value, "metric_unit": unit})
+                if populated:
+                    # Prefer bound graph metrics while preserving a low-scoring None fallback
+                    # for minimal synthetic fixtures whose single metric is already claimed.
+                    metric_options = [*populated, None]
             for skill in skills:
                 for fact in facts:
                     for metric in metric_options:

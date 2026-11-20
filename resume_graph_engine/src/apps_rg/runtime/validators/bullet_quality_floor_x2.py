@@ -75,25 +75,28 @@ _NUMERIC_SIGNAL_PATTERN = re.compile(
 )
 _FIRST_WORD_RE = re.compile(r"^\s*([a-zA-Z]+(?:-[a-zA-Z]+)?)")
 
-# A result does not have to be a number.  Production, adoption, control,
-# reliability, and delivery results are legitimate résumé outcomes when the
-# graph-backed source does not contain a numeric metric.  Generic capability
-# nouns are deliberately excluded.
+# A result does not have to be a number.  Adoption, efficiency, reliability,
+# risk-reduction, auditability, and business results are legitimate resume
+# outcomes when the graph-backed source does not contain a numeric metric.
+# Bare activity/feature verbs and nouns (e.g. delivered, standardized,
+# governed, orchestration, production, coverage, blueprints) are excluded so
+# capability-only bullets cannot pass without stating why the work mattered.
 _OUTCOME_SIGNAL_PATTERN = re.compile(
     r"\b(?:generated|increased|grew|improved|reduced|cut|compress(?:ed|ing|ion)|accelerated|"
-    r"expanded|scal(?:ed|ing)|converted|translat(?:ed|ing)|strengthen(?:ed|ing)|connect(?:ed|ing)|"
-    r"standardized|operationalized|"
-    r"establish(?:ed|ing|ment)|enabl(?:ed|ing)|deliver(?:ed|ing|y)|"
-    r"deployed|launched|adopt(?:ed|ion|ing)|moderni[sz](?:ed|ing|ation)|"
-    r"migrat(?:ed|ing|ion)|replatform(?:ed|ing)|remediat(?:ed|ing|ion)|"
-    r"(?:high\s+)?availability|production|uptime|reliability|coverage|audit(?:able|-ready|-grade)?|"
-    r"validat(?:e|ed|ing|ion|ions)?|explainability|lineage|decision[- ]support|"
+    r"expanded|scal(?:ed|ing)|converted|strengthen(?:ed|ing)|operationalized|"
+    r"enabl(?:ed|ing)|adopt(?:ed|ion|ing)|remediat(?:ed|ing|ion)|"
+    r"eliminat(?:ed|ing)|prevent(?:ed|ing)|mitigat(?:ed|ing)|protect(?:ed|ing)|"
+    r"sustain(?:ed|ing)|unlock(?:ed|ing)|achiev(?:ed|ing)|secur(?:ed|ing)|"
+    r"lower(?:ed|ing)|de-risk(?:ed|ing)|"
+    r"high\s+availability|uptime|reliability|resilience|audit(?:able|-ready|-grade)|"
+    r"validat(?:e|ed|ing|ion|ions)?|explainability|traceab(?:le|ility)|"
     r"risk\s+(?:reduction|remediation|control|visibility)|"
-    r"compliance\s+(?:readiness|evidence|coverage|workflows?)|renewal|revenue|margin|pipeline|"
+    r"compliance\s+(?:readiness|evidence|coverage|workflows?)|renewal|revenue|margin|"
     r"roi|value\s+propositions?|acv|arr|contract\s+value|portfolio\s+transparency|"
-    r"governed|orchestration|handoffs?|resilience|"
-    r"deployment\s+blueprints?|ci/cd\s+pipelines?|migration\s+sequences?|"
-    r"cycle\s+time|latency|throughput|sponsorship|opportunity\s+progression)\b",
+    r"retention|expansion|downtime|false[- ]positives?|"
+    r"cost\s+(?:reduction|savings|optimization)|time[- ]to[- ](?:market|production|value)|"
+    r"(?:that|which)\s+standardiz(?:ed|ing)|"
+    r"cycle\s+time|latency|throughput|opportunity\s+progression)\b",
     re.IGNORECASE,
 )
 _CONCRETE_DELIVERY_PATTERN = re.compile(

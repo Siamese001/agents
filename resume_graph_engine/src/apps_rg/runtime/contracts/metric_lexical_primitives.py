@@ -180,6 +180,37 @@ def extract_exact_metric_value_unit(value: str) -> tuple[str, str]:
     return "", ""
 
 
+QUANTIFIED_METRIC_OUTCOME_RE: Final[re.Pattern[str]] = re.compile(
+    r"(?:\$|\busd\s*)\d[\d,]*(?:\.\d+)?\s*(?:k|m|mm|million|b|bn|billion)?\b|"
+    r"\b\d[\d,]*(?:\.\d+)?\s*(?:%|percent\b|percentage\b|x\b|times\b)|"
+    r"\b(?:six|6)\s+months?\s+to\s+(?:just\s+)?(?:three|3)\s+weeks?\b|"
+    r"\bweeks?\s+to\s+hours?\b|"
+    r"\b\d+(?:\.\d+)?\s*(?:days?|weeks?|months?|hours?|minutes?)\s+to\s+\d+(?:\.\d+)?\s*(?:days?|weeks?|months?|hours?|minutes?)\b|"
+    r"(?:<\s*)?\b\d+(?:\.\d+)?[-\s]+(?:hour|day|week|month|year|yr)s?\b|"
+    r"\b\d+\s+to\s+\d+\b|"
+    r"\b(?:zero|0)\s+(?:rollbacks?|red\s+escalations?|manual\s+gates?|defects?|outages?|breaches?|incidents?|downtime)\b|"
+    r"(?<!bcbs\s)(?<!soc\s)(?<!iso\s)\b\d[\d,]*(?:\.\d+)?[kmb]?\+?\s+(?:[a-z0-9/&()-]+\s+){0,6}"
+    r"(?:records?|signals?|workloads?|databases?|waves?|controls?|patterns?|blueprints?|"
+    r"packages?|reviews?|pursuits?|architectures?|environments?|engineers?|entities?|"
+    r"dependencies|violations?|accounts?|institutions?|rollbacks?|escalations?|defects?|"
+    r"incidents?|findings?|views?|dashboards?|models?|pipelines?|services?|deployments?|"
+    r"migrations?|members?|programs?|platforms?|products?|teams?|clients?|customers?|"
+    r"partners?|countries|markets|regions|applications?|systems?|workflows?|standards?|"
+    r"feeds?|sessions?|briefings?|objections?|runbooks?|tb|gb)\b",
+    re.IGNORECASE,
+)
+
+
+def is_quantified_metric_outcome_text(value: str) -> bool:
+    """True when ``value`` expresses a concrete quantified outcome rather than a qualitative surface."""
+    text = str(value or "").strip()
+    if not text:
+        return False
+    if extract_exact_metric_value_unit(text)[0]:
+        return True
+    return bool(QUANTIFIED_METRIC_OUTCOME_RE.search(text))
+
+
 def canonicalize_unify_gate_metric_text(text: str) -> str:
     """Canonicalize Unify cycle-time compression phrasings to the gate-canonical string."""
     if not text:
@@ -401,12 +432,14 @@ __all__ = [
     "IBM_FOREIGN_METRIC_SCRUB_RE", "MATERIAL_METRIC_RE", "METRIC_DOLLAR_PAT",
     "METRIC_EQUIVALENTS", "METRIC_PATTERN", "METRIC_PERCENT_PAT", "METRIC_SCALE_PAT",
     "METRIC_STEM_STOPWORDS", "MODEL_SURFACE_NON_ANCHOR_TOKENS", "NARRATIVE_LEDGER_STOPWORDS",
-    "NUMERIC_TOKEN_RE", "PROOF_FACT_COMPOSITION_CONNECTIVES", "SEMANTIC_OVERLAP_STOPWORDS",
+    "NUMERIC_TOKEN_RE", "PROOF_FACT_COMPOSITION_CONNECTIVES", "QUANTIFIED_METRIC_OUTCOME_RE",
+    "SEMANTIC_OVERLAP_STOPWORDS",
     "SOURCE_FACT_TOKEN_STOPWORDS", "STOPWORDS", "SURFACE_NORM_RE", "TOKEN_RE",
     "VISIBLE_METRIC_RE", "WORD_RE", "WORD_TOKEN_RE",
     "build_fact_anchor_lexical_tokens", "canonicalize_unify_gate_metric_text",
     "citation_repair_tokens", "extract_content_word_stems", "extract_entailment_numeric_tokens",
     "extract_exact_metric_value_unit", "extract_normalized_dollars", "extract_numeric_tokens",
+    "is_quantified_metric_outcome_text",
     "metric_surface_tokens", "metric_token_visible_in_text", "narrative_ledger_tokens",
     "normalize_dollar_token", "normalize_metric_signature", "normalize_numeric_token",
     "proof_fact_surface_tokens", "semantic_overlap_tokens", "stem_token", "surface_norm",

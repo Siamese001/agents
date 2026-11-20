@@ -145,7 +145,7 @@ _IBM_FROZEN_ALLOCATION_DISPLAY_COMPOSITIONS: dict[tuple[str, str], str] = {
     ),
     ("reb_ibm_data_modeling_bi_decision_support", "skill_p2_tech_reference_architecture"): (
         "Architected industry-specific AI, analytics, and cloud modernization reference architectures, "
-        "establishing governed portfolio views and executive operating cadence for financial-services decision support."
+        "establishing governed portfolio transparency and executive operating cadence for financial-services decision support."
     ),
     ("reb_ibm_data_modeling_bi_decision_support", "skill_sr_cloud_data_platform_engineering"): (
         "Built decision-support data models and BI views, establishing governed portfolio transparency "
@@ -157,7 +157,7 @@ _IBM_FROZEN_ALLOCATION_DISPLAY_COMPOSITIONS: dict[tuple[str, str], str] = {
     ),
     ("reb_ibm_presales_solution_engineering", "skill_p2_gtm_solution_mapping"): (
         "Led technical discovery and solution mapping for enterprise financial-services pursuits, "
-        "creating delivery-ready solution handoffs through buyer-specific architecture decisions."
+        "accelerating opportunity progression and delivery-ready solution handoffs through buyer-specific architecture decisions."
     ),
     ("reb_ibm_presales_solution_engineering", "skill_p2_gtm_executive_buyer_alignment"): (
         "Led technical discovery and solution mapping for enterprise financial-services pursuits, "
@@ -417,7 +417,15 @@ def _materialize_ibm_bullets_from_frozen_allocation(
                 )
                 cand_display = f"{display.rstrip('.')} , delivering {compact_metric}.".replace(" ,", ",")
                 if len(cand_display) > 315:
-                    cand_display = f"Led IBM-AWS alliance co-sell across financial-services pursuits, delivering {compact_metric}."
+                    base_clause = display.rsplit(",", 1)[0].strip() if "," in display else display.rstrip(".")
+                    cand_display = f"{base_clause}, delivering {compact_metric}."
+                if len(cand_display) > 315:
+                    action_stem = str(row.get("root_claim_action") or text).strip().rstrip(".")
+                    cand_display = f"{action_stem}, delivering {compact_metric}."
+                if len(cand_display) > 315:
+                    max_stem = max(40, 315 - len(f", delivering {compact_metric}."))
+                    trimmed = action_stem[:max_stem].rsplit(" ", 1)[0].rstrip(" ,;:")
+                    cand_display = f"{trimmed}, delivering {compact_metric}."
                 display = cand_display
             display = display.strip().rstrip(".") + "."
             allocation_by_bullet[bullet_id] = {

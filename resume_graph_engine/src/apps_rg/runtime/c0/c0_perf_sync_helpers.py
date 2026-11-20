@@ -323,6 +323,8 @@ def compute_candidate_alignment_and_independence(
     skill_sources: list[str],
     sec_plan: Mapping[str, Any] | None = None,
 ) -> tuple[float, float, float]:
+    from apps_rg.runtime.contracts.metric_lexical_primitives import is_quantified_metric_outcome_text
+
     raw_proof = float(skill.get("proof_strength_raw") or 0.0)
     raw_align = (
         float(root.get("target_alignment_score") or 0.0)
@@ -330,6 +332,10 @@ def compute_candidate_alignment_and_independence(
         + float((metric or {}).get("target_alignment_score") or 0.0)
     ) / (3 if metric is not None else 2)
     root_id = str(root.get("root_id") or root.get("candidate_id") or "")
+    sec_id = str((sec_plan or {}).get("section_id") or "")
+    if sec_id.endswith("_bullets") and metric is not None:
+        metric_text = str(metric.get("metric") or "").strip()
+        raw_align += 1.2 if is_quantified_metric_outcome_text(metric_text) else 0.15
     profile = str((sec_plan or {}).get("target_role_profile") or "")
     if profile:
         selected_root_set = {str(r) for r in ((sec_plan or {}).get("selected_nodes") or []) if str(r).strip()}
@@ -367,7 +373,6 @@ def compute_candidate_alignment_and_independence(
                     "reb_slalom_engineering_practice_leadership",
                     "reb_slalom_governed_runtime_scaling",
                     "reb_slalom_nextgen_ai_solutions",
-                    "reb_unify_regulated_enterprise_ai_governance",
                     "reb_unify_agentic_platform_architecture",
                     "reb_ibm_offering_accelerator_management",
                 },
@@ -407,18 +412,41 @@ def diversify_slot_candidates(rows: list[dict[str, Any]], *, required_root_id: s
     if required_root_id or len(rows) <= 32:
         return rows
     cap = 2 if section_id == "competencies" else 3
-    kept: list[dict[str, Any]] = []
-    overflow: list[dict[str, Any]] = []
-    seen_by_root: dict[str, set[str]] = {}
-    for r in rows:
-        rid, sid = str(r.get("root_id") or ""), str(r.get("skill_id") or "")
-        s_set = seen_by_root.setdefault(rid, set())
+    kept_indices: list[int] = []
+    seen_skills_by_root: dict[str, set[str]] = {}
+    seen_metrics_by_root: dict[str, set[str]] = {}
+    # Pass 1: preserve distinct non-empty metric outcomes per root on distinct skills so
+    # executive_summary claiming one metric on a multi-metric root never starves *_bullets.
+    for idx, r in enumerate(rows):
+        rid = str(r.get("root_id") or "")
+        sid = str(r.get("skill_id") or "")
+        mid = str(r.get("metric_outcome_id") or "")
+        if not mid:
+            continue
+        s_set = seen_skills_by_root.setdefault(rid, set())
+        m_set = seen_metrics_by_root.setdefault(rid, set())
+        if len(s_set) < cap and sid not in s_set and mid not in m_set:
+            s_set.add(sid)
+            m_set.add(mid)
+            kept_indices.append(idx)
+    kept_set = set(kept_indices)
+    # Pass 2: fill remaining per-root skill slots up to cap in original sorted order.
+    for idx, r in enumerate(rows):
+        if idx in kept_set:
+            continue
+        rid = str(r.get("root_id") or "")
+        sid = str(r.get("skill_id") or "")
+        s_set = seen_skills_by_root.setdefault(rid, set())
         if len(s_set) < cap and sid not in s_set:
             s_set.add(sid)
-            kept.append(r)
-        else:
-            overflow.append(r)
-    return kept if len(kept) >= 12 else (kept + overflow)
+            kept_indices.append(idx)
+            kept_set.add(idx)
+    kept_indices.sort()
+    kept = [rows[idx] for idx in kept_indices]
+    if len(kept) >= 12:
+        return kept
+    overflow = [r for idx, r in enumerate(rows) if idx not in kept_set]
+    return kept + overflow
 
 
 def build_targeting_provenance(

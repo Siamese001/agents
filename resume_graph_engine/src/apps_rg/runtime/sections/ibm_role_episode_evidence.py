@@ -381,10 +381,27 @@ def format_ibm_role_episode_evidence_pack(
         if isinstance(_pf, dict):
             _plan_fact_by_slot[str(_pf.get("fact_id") or "").strip()] = _pf
 
+    def _slot_allocated_metric_id(slot_fact: dict[str, Any]) -> str:
+        direct = str(
+            slot_fact.get("metric_outcome_id")
+            or slot_fact.get("selected_metric_outcome_id")
+            or ""
+        ).strip()
+        if direct:
+            return direct
+        for key in ("metric_outcome_ids", "selected_metric_ids"):
+            vals = slot_fact.get(key)
+            if isinstance(vals, (list, tuple)):
+                for item in vals:
+                    s = str(item or "").strip()
+                    if s:
+                        return s
+        return ""
+
     _allocated_metric_ids: list[str] = []
     if _plan_fact_by_slot and section_id == "ibm_bullets":
         for _sf in _plan_fact_by_slot.values():
-            _smid = str(_sf.get("metric_outcome_id") or _sf.get("selected_metric_outcome_id") or "").strip()
+            _smid = _slot_allocated_metric_id(_sf)
             if _smid and _smid not in _allocated_metric_ids:
                 _allocated_metric_ids.append(_smid)
         header_lines.append(
@@ -428,7 +445,7 @@ def format_ibm_role_episode_evidence_pack(
         slot_allowed: list[str] = [slot_id]
         vocab = _mechanism_vocab_from_bundle(bundle)
         _mr = str(_slot_fact.get("metric_raw") or "").strip()
-        _smid = str(_slot_fact.get("metric_outcome_id") or _slot_fact.get("selected_metric_outcome_id") or "").strip()
+        _smid = _slot_allocated_metric_id(_slot_fact)
         is_qualitative_slot = bool(_plan_fact_by_slot) and not (_mr or _smid)
         if _plan_fact_by_slot:
             if not is_qualitative_slot:
@@ -484,7 +501,12 @@ def format_ibm_role_episode_evidence_pack(
             )
             lines.append(f"    activity: {_story[:400]}")
             _mr = str(_slot_fact.get("metric_raw") or "").strip()
-            lines.append(f"    approved_metric: {_mr or '(none — qualitative bullet)'}")
+            if _mr:
+                lines.append(
+                    f"    approved_metric: {_mr} (MANDATORY: include this exact quantified metric proof in bullet_text within the single sentence)"
+                )
+            else:
+                lines.append("    approved_metric: (none — qualitative bullet)")
 
         skill_ids = list(bundle.get("graph_skill_node_ids") or [])
         if skill_ids:

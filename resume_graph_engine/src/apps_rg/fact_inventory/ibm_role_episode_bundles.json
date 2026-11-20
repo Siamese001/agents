@@ -585,7 +585,7 @@
       "claim_text": "Led AWS modernization architecture for regulated banking and insurance workloads moving from on-prem constraints to cloud-native delivery patterns",
       "claim_action": "Led AWS modernization architecture for regulated banking and insurance workloads moving from on-prem constraints to cloud-native delivery patterns",
       "claim_scope": "IBM financial-services modernization portfolio; regulated banking and insurance client workloads moving from legacy on-prem platforms into AWS-centered architecture patterns.",
-      "claim_outcome": "Frame as architecture leadership: migration design, workload decomposition, and regulated cloud delivery without unapproved savings claims.",
+      "claim_outcome": "Surface the slot's allocated graph metric_outcome_id (e.g., 28% infrastructure cost optimization across 8 banking modernization programs or 9 BCBS 239-compliant architectures across 14 pursuits at 99.9% uptime) paired with AWS migration architecture leadership.",
       "support_level": "approved_by_graph_presence",
       "executive_scope_signals": [
         "Led AWS modernization architecture for regulated banking and insurance workloads moving from on-prem constraints to cloud-native delivery patterns",
@@ -620,7 +620,7 @@
       "excluded_metrics": [],
       "metric_candidates": [],
       "operating_context": "IBM financial-services modernization portfolio; regulated banking and insurance client workloads moving from legacy on-prem platforms into AWS-centered architecture patterns.",
-      "bullet_intent": "Frame as architecture leadership: migration design, workload decomposition, and regulated cloud delivery without unapproved savings claims.",
+      "bullet_intent": "Lead with AWS modernization architecture for regulated financial institutions and include the slot's allocated graph metric_outcome_id.",
       "section_eligibility": [
         "ibm_bullets",
         "ibm_narrative",
@@ -694,7 +694,7 @@
       "claim_text": "Led technical discovery and solution mapping for enterprise financial-services pursuits",
       "claim_action": "Led technical discovery and solution mapping for enterprise financial-services pursuits",
       "claim_scope": "IBM pre-sales solution engineering and technical discovery engagements across banking and insurance enterprise accounts.",
-      "claim_outcome": "Frame as commercial-technical leadership: buyer discovery, architecture mapping, and delivery-ready solution handoff with no unsupported dollar claims.",
+      "claim_outcome": "Surface the slot's allocated graph metric_outcome_id (e.g., 45+ delivery-ready architecture handoff packages across a 20-member solution engineering team or executive buyer alignment metrics) paired with commercial-technical discovery leadership.",
       "support_level": "approved_by_graph_presence",
       "executive_scope_signals": [
         "Led technical discovery and solution mapping for enterprise financial-services pursuits",
@@ -725,7 +725,7 @@
       "excluded_metrics": [],
       "metric_candidates": [],
       "operating_context": "IBM pre-sales solution engineering and technical discovery engagements across banking and insurance enterprise accounts.",
-      "bullet_intent": "Frame as commercial-technical leadership: buyer discovery, architecture mapping, and delivery-ready solution handoff with no unsupported dollar claims.",
+      "bullet_intent": "Lead with buyer discovery, architecture mapping, and delivery-ready solution handoffs and include the slot's allocated graph metric_outcome_id.",
       "section_eligibility": [
         "ibm_bullets",
         "ibm_narrative",
@@ -800,7 +800,7 @@
       "claim_text": "Owned quota-aligned solution leadership across enterprise pursuits and client portfolio expansion motions",
       "claim_action": "Owned quota-aligned solution leadership across enterprise pursuits and client portfolio expansion motions",
       "claim_scope": "IBM enterprise sales execution and quota governance across priority banking and insurance accounts.",
-      "claim_outcome": "Frame as quota-aware technical leadership: pipeline discipline and executive deal support without inventing revenue figures.",
+      "claim_outcome": "Surface the slot's allocated graph metric_outcome_id (quota-aligned solution cadence or revenue-target validation figures) paired with executive deal leadership.",
       "support_level": "approved_by_graph_presence",
       "executive_scope_signals": [
         "Owned quota-aligned solution leadership across enterprise pursuits and client portfolio expansion motions",
@@ -832,7 +832,7 @@
       "excluded_metrics": [],
       "metric_candidates": [],
       "operating_context": "IBM enterprise sales execution and quota governance across priority banking and insurance accounts.",
-      "bullet_intent": "Frame as quota-aware technical leadership: pipeline discipline and executive deal support without inventing revenue figures.",
+      "bullet_intent": "Lead with quota-aligned technical leadership and enterprise deal validation and include the slot's allocated graph metric_outcome_id.",
       "section_eligibility": [
         "ibm_bullets",
         "ibm_narrative",
@@ -853,7 +853,7 @@
       "claim_text": "Architected NLP and ML decision-support pipelines translating unstructured regulatory and risk signals into actionable compliance workflows for banking and insurance institutions",
       "claim_action": "Architected NLP and ML decision-support pipelines translating unstructured regulatory and risk signals into actionable compliance workflows for banking and insurance institutions",
       "claim_scope": "IBM ML and NLP decision-support systems for regulatory compliance, risk governance, and portfolio analytics across banking and insurance institutions.",
-      "claim_outcome": "Frame as applied ML decision support and workflow design, avoiding unsupported product/tool claims and unapproved metrics.",
+      "claim_outcome": "Surface the slot's allocated graph metric_outcome_id (e.g., 250K+ daily unstructured signals routed into compliance review queues with ~22% capacity lift or 20% fewer false-positive escalations and 24% lower pipeline downtime) paired with applied NLP/ML workflow design.",
       "support_level": "approved_by_graph_presence",
       "executive_scope_signals": [
         "Architected NLP and ML decision-support pipelines translating unstructured regulatory and risk signals into actionable compliance workflows for banking and insurance institutions",
@@ -884,7 +884,7 @@
       "excluded_metrics": [],
       "metric_candidates": [],
       "operating_context": "IBM ML and NLP decision-support systems for regulatory compliance, risk governance, and portfolio analytics across banking and insurance institutions.",
-      "bullet_intent": "Frame as applied ML decision support and workflow design, avoiding unsupported product/tool claims and unapproved metrics.",
+      "bullet_intent": "Lead with applied NLP/ML decision-support workflows for regulated financial operations and include the slot's allocated graph metric_outcome_id.",
       "section_eligibility": [
         "ibm_bullets",
         "ibm_narrative"
@@ -1075,7 +1075,7 @@
       "claim_text": "Engineered DevSecOps release resilience frameworks, establishing automated security scanning and deployment blueprints across regulated hybrid-cloud workloads",
       "claim_action": "Engineered DevSecOps release resilience frameworks, establishing automated security scanning and deployment blueprints across regulated hybrid-cloud workloads",
       "claim_scope": "IBM DevSecOps pipeline blueprints and release automation frameworks for regulated banking and insurance platforms.",
-      "claim_outcome": "Frame as delivery resilience: pipeline automation and security controls, qualitative unless future graph metrics are linked.",
+      "claim_outcome": "Surface the slot's allocated graph metric_outcome_id (e.g., 60% faster release cycles across 14 repeatable DevSecOps blueprints or 100% automated SAST/DAST/container scanning at 99.9% uptime) paired with governed delivery automation.",
       "support_level": "approved_by_graph_presence",
       "executive_scope_signals": [
         "Engineered DevSecOps release resilience frameworks, establishing automated security scanning and deployment blueprints across regulated hybrid-cloud workloads",
@@ -1108,7 +1108,7 @@
       "excluded_metrics": [],
       "metric_candidates": [],
       "operating_context": "IBM DevSecOps pipeline blueprints and release automation frameworks for regulated banking and insurance platforms.",
-      "bullet_intent": "Frame as delivery resilience: pipeline automation and security controls, qualitative unless future graph metrics are linked.",
+      "bullet_intent": "Lead with DevSecOps pipeline automation and security controls for regulated hybrid-cloud workloads and include the slot's allocated graph metric_outcome_id.",
       "section_eligibility": [
         "ibm_bullets",
         "ibm_narrative",
