@@ -53,6 +53,7 @@ EXEMPT_LOCK_NAMES: frozenset[str] = frozenset(
     {"uv.lock", "poetry.lock", "Cargo.lock", "package-lock.json", ".sidecar_active_run.lock", ".provisioning.lock"}
 )
 ATOMIC_PROJECTION_SQLITE_NAMES: frozenset[str] = frozenset({"augmented_skills_graph.sqlite"})
+CANONICAL_SKILLS_GRAPH_REL_PATH: str = "resume_graph_engine/artifacts/apps_rg/fact_inventory/augmented_skills_graph.sqlite"
 EXEMPT_PATH_PARTS: frozenset[str] = frozenset(
     {".git", ".worktrees", ".venv", "venv", "node_modules", "__pycache__"}
 )
@@ -155,12 +156,40 @@ def inspect_sqlite_databases(repo_root: Path, *, include_primary_root: bool = Fa
         except Exception as exc:  # guardian: allow-broad-exception -- database corruption or lock diagnostic fallback
             integrity, jmode = f"ERROR: {exc}", "unknown"
 
+        rel_db = _format_rel_path(db_path, roots)
+        is_shadow_skills_graph = (
+            db_path.name in ATOMIC_PROJECTION_SQLITE_NAMES
+            and Path(rel_db).as_posix() != CANONICAL_SKILLS_GRAPH_REL_PATH
+        )
         reports.append({
-            "db": _format_rel_path(db_path, roots), "size_mb": size_mb, "integrity": integrity,
+            "db": rel_db, "size_mb": size_mb, "integrity": integrity,
             "journal_mode": jmode, "wal_mb": wal_mb, "shm_mb": shm_mb,
-            "wal_bloat": wal_mb > WAL_BLOAT_THRESHOLD_MB or shm_mb > WAL_BLOAT_THRESHOLD_MB, "sha256": sha256_before,
+            "wal_bloat": wal_mb > WAL_BLOAT_THRESHOLD_MB or shm_mb > WAL_BLOAT_THRESHOLD_MB,
+            "shadow_skills_graph_db": is_shadow_skills_graph,
+            "sha256": sha256_before,
         })
     return reports
+
+
+def prune_shadow_skills_graph_dbs(repo_root: Path, *, include_primary_root: bool = False) -> list[str]:
+    """Remove non-canonical shadow copies of augmented_skills_graph.sqlite outside resume_graph_engine."""
+    roots = _storage_roots(repo_root, include_primary_root=include_primary_root)
+    removed: list[str] = []
+    for db_path in _discover_sqlite_dbs(repo_root, include_primary_root=include_primary_root):
+        if db_path.name not in ATOMIC_PROJECTION_SQLITE_NAMES:
+            continue
+        rel_db = _format_rel_path(db_path, roots)
+        if Path(rel_db).as_posix() == CANONICAL_SKILLS_GRAPH_REL_PATH:
+            continue
+        for target in (db_path, Path(str(db_path) + "-wal"), Path(str(db_path) + "-shm")):
+            if target.is_file() and not target.is_symlink():
+                try:
+                    target.unlink()
+                except OSError:  # guardian: allow-silent-swallow -- best-effort shadow db unlink
+                    pass
+        if not db_path.exists():
+            removed.append(rel_db)
+    return removed
 
 
 def remediate_sqlite_wal(repo_root: Path, *, include_primary_root: bool = False) -> list[dict[str, Any]]:
@@ -491,8 +520,10 @@ def run_six_pillar_hygiene_audit(
     active_worktree_branches = sorted(protected_active_branches)
     prunable_worktrees = [str(wt["path"]) for wt in worktrees if wt.get("prunable")]
 
+    removed_shadow_skills_graph_dbs = prune_shadow_skills_graph_dbs(root, include_primary_root=include_primary_root) if remediate else []
     sqlite_remediation = remediate_sqlite_wal(root, include_primary_root=include_primary_root) if remediate else []
     db_reports = inspect_sqlite_databases(root, include_primary_root=include_primary_root)
+    shadow_skills_graph_dbs = [d["db"] for d in db_reports if d.get("shadow_skills_graph_db")]
     ephemeral_bloat = inspect_and_remediate_ephemeral_bloat(bloat_root, remediate=remediate)
 
     sidecar_runs_mb = _dir_size_mb(bloat_root / "artifacts" / "sidecar_runs")
@@ -533,10 +564,13 @@ def run_six_pillar_hygiene_audit(
 
     pillar_status = {
         "pillar_1_worktree_branch_drift": "PASS" if (not prunable_worktrees and not merged_branches and not orphaned_chat_shells) else "FINDINGS",
-        "pillar_2_sqlite_integrity_wal": "PASS" if all(
-            d["integrity"] == "ok"
-            and d["journal_mode"] == ("delete" if Path(d["db"]).name in ATOMIC_PROJECTION_SQLITE_NAMES else "wal")
-            for d in db_reports
+        "pillar_2_sqlite_integrity_wal": "PASS" if (
+            not shadow_skills_graph_dbs
+            and all(
+                d["integrity"] == "ok"
+                and d["journal_mode"] == ("delete" if Path(d["db"]).name in ATOMIC_PROJECTION_SQLITE_NAMES else "wal")
+                for d in db_reports
+            )
         ) else "FINDINGS",
         "pillar_3_wal_shm_bloat": "PASS" if not any(d["wal_bloat"] for d in db_reports) else "FINDINGS",
         "pillar_4_artifact_sprawl": "PASS" if not has_bloat_findings else "FINDINGS",
@@ -550,7 +584,10 @@ def run_six_pillar_hygiene_audit(
         "repo_root": str(root), "remediated": remediate, "pillar_status": pillar_status,
         "worktree_prunable_count": len(prunable_worktrees), "orphaned_chat_shells": orphaned_chat_shells,
         "merged_branches": merged_branches, "active_worktree_branches": active_worktree_branches,
-        "db_count": len(db_reports), "dbs": db_reports, "sqlite_remediation": sqlite_remediation,
+        "db_count": len(db_reports), "dbs": db_reports,
+        "shadow_skills_graph_dbs": shadow_skills_graph_dbs,
+        "removed_shadow_skills_graph_dbs": removed_shadow_skills_graph_dbs,
+        "sqlite_remediation": sqlite_remediation,
         "sprawl": {
             "sidecar_runs_mb": sidecar_runs_mb, "playwright_mb": playwright_mb, "pytest_cache_mb": pytest_cache_mb,
             **ephemeral_bloat, "total_mb": total_sprawl_mb, "threshold_mb": ARTIFACT_SPRAWL_THRESHOLD_MB,

@@ -19,10 +19,25 @@ from apps_rg.fact_inventory.master_skills_arsenal_ledger import (
 from apps_rg.fact_inventory.metric_outcome_materializer import (
     discover_role_episode_bundle_files,
 )
-from apps_rg.repository_layout import repository_root, resolve_repository_path
+from apps_rg.repository_layout import (
+    repository_root,
+    resolve_apps_rg_path,
+    resolve_repository_path,
+)
 from .constants import (
     C03_SQLITE_MATERIALIZER_CODE_VERSION,
     CANDIDATE_LEDGER_REL_PATH,
+)
+
+SCORING_CODE_REL_PATHS: tuple[tuple[str, ...], ...] = (
+    ("fact_inventory", "metric_outcome_materializer.py"),
+    ("fact_inventory", "semantic_units.py"),
+    ("fact_inventory", "skills_graph", "constants.py"),
+    ("fact_inventory", "skills_graph", "edge_evidence.py"),
+    ("fact_inventory", "skills_graph", "materializer.py"),
+    ("fact_inventory", "skills_graph", "materializer_indexing.py"),
+    ("fact_inventory", "skills_graph", "materializer_ingress.py"),
+    ("fact_inventory", "skills_graph", "promotions.py"),
 )
 
 ALLOWLISTED_SOURCE_AUTHORITIES: frozenset[str] = frozenset(
@@ -101,18 +116,39 @@ def compute_input_manifest(repo_root: Path | None = None) -> dict[str, Any]:
             "sha256": _file_sha256(contract_path),
         })
 
+    # 5. Canonical confidence scoring & materializer Python modules
+    scoring_code_inputs: list[dict[str, str]] = []
+    for rel_parts in SCORING_CODE_REL_PATHS:
+        mod_path = resolve_apps_rg_path(root, *rel_parts)
+        if mod_path.is_file():
+            rel_str = (
+                mod_path.relative_to(root).as_posix()
+                if mod_path.is_relative_to(root)
+                else mod_path.as_posix()
+            )
+            scoring_code_inputs.append({
+                "path": rel_str,
+                "role": "scoring_code",
+                "sha256": _file_sha256(mod_path),
+            })
+
     # Sort inputs deterministically by path
     inputs.sort(key=lambda x: x["path"])
+    scoring_code_inputs.sort(key=lambda x: x["path"])
+    scoring_code_digest = _canonical_json_sha256(scoring_code_inputs)
 
     manifest_body = {
         "materializer_code_version": C03_SQLITE_MATERIALIZER_CODE_VERSION,
         "inputs": inputs,
+        "scoring_code_inputs": scoring_code_inputs,
     }
     input_manifest_digest = _canonical_json_sha256(manifest_body)
 
     return {
         "input_manifest_digest": input_manifest_digest,
         "materializer_code_version": C03_SQLITE_MATERIALIZER_CODE_VERSION,
+        "scoring_code_digest": scoring_code_digest,
+        "scoring_code_inputs": scoring_code_inputs,
         "input_count": len(inputs),
         "inputs": inputs,
     }
@@ -204,6 +240,7 @@ def build_inputs_from_manifest(
 
 __all__ = [
     "ALLOWLISTED_SOURCE_AUTHORITIES",
+    "SCORING_CODE_REL_PATHS",
     "build_inputs_from_manifest",
     "compute_input_manifest",
     "compute_input_manifest_digest",

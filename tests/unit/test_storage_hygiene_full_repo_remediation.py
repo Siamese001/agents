@@ -118,3 +118,32 @@ def test_storage_hygiene_flags_pycache_bloat_even_when_total_sprawl_below_500mb(
     assert post["status"] == "PASS"
     assert not pycache.exists()
 
+
+def test_storage_hygiene_flags_and_removes_shadow_skills_graph_db(tmp_path: Path) -> None:
+    """Verify Pillar 2 flags and removes shadow copies of augmented_skills_graph.sqlite outside resume_graph_engine."""
+    import sqlite3
+
+    sandbox = _init_sandbox(tmp_path)
+    canon_db = sandbox / "resume_graph_engine" / "artifacts" / "apps_rg" / "fact_inventory" / "augmented_skills_graph.sqlite"
+    shadow_db = sandbox / "artifacts" / "apps_rg" / "fact_inventory" / "augmented_skills_graph.sqlite"
+    for db_path in (canon_db, shadow_db):
+        db_path.parent.mkdir(parents=True, exist_ok=True)
+        conn = sqlite3.connect(str(db_path))
+        conn.execute("PRAGMA journal_mode=DELETE;")
+        conn.execute("CREATE TABLE t (id INTEGER PRIMARY KEY);")
+        conn.commit()
+        conn.close()
+
+    pre = run_six_pillar_hygiene_audit(repo_root=sandbox, sidecars_root=DEFAULT_SIDECARS_ROOT, remediate=False)
+    assert pre["shadow_skills_graph_dbs"] == ["artifacts/apps_rg/fact_inventory/augmented_skills_graph.sqlite"]
+    assert pre["pillar_status"]["pillar_2_sqlite_integrity_wal"] == "FINDINGS"
+    assert pre["status"] == "FINDINGS"
+
+    post = run_six_pillar_hygiene_audit(repo_root=sandbox, sidecars_root=DEFAULT_SIDECARS_ROOT, remediate=True)
+    assert post["shadow_skills_graph_dbs"] == []
+    assert post["removed_shadow_skills_graph_dbs"] == ["artifacts/apps_rg/fact_inventory/augmented_skills_graph.sqlite"]
+    assert post["pillar_status"]["pillar_2_sqlite_integrity_wal"] == "PASS"
+    assert post["status"] == "PASS"
+    assert canon_db.is_file()
+    assert not shadow_db.exists()
+

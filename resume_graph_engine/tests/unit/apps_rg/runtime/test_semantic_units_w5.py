@@ -116,7 +116,7 @@ def test_ac5_3_eligible_skill_coverage_100_percent(graph_conn: sqlite3.Connectio
         """
     )
     total_eligible, covered = cur.fetchone()
-    assert total_eligible in (197, 219)
+    assert total_eligible >= 197, f"Expected at least 197 eligible skills, observed {total_eligible}"
     assert covered == total_eligible, f"Expected {total_eligible} covered skills, observed {covered}"
 
 

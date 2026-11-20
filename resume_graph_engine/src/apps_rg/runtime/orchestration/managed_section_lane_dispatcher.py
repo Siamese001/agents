@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import logging
 import os
+import sqlite3
 import sys
 import threading
 import time
@@ -180,17 +181,36 @@ def _quarantine_timed_out_lane(ctx: LaneExecutionContext, lane: str) -> None:
         mark_artifact_dir_cancelled(Path(root_text) / lane)
 
 
-def _prewarm_parallel_graph_sqlite() -> None:
-    """Materialize C0.3 graph SQLite once before spawning parallel Phase-1 worker threads."""
-    if os.environ.get("PYTEST_CURRENT_TEST"):
-        return
-    try:
-        from apps_rg.repository_layout import repository_root
-        from apps_rg.runtime.c03_graph_sqlite_context import ensure_c03_graph_sqlite
+def _prewarm_parallel_graph_sqlite(*, bypass_pytest_guard: bool = False) -> None:
+    """Materialize and verify C0.3 graph SQLite once before spawning Phase-1 lane workers.
 
+    Fails fast with structured logging on projection, schema, or authority errors instead
+    of deferring opaque failures to downstream worker threads.
+    """
+    if not bypass_pytest_guard and os.environ.get("PYTEST_CURRENT_TEST"):
+        return
+    from apps_rg.repository_layout import repository_root
+    from apps_rg.runtime.c0.c03_errors import (
+        C03GraphProjectionUnavailableError,
+        C03UnauthorizedSourceAuthorityError,
+    )
+    from apps_rg.runtime.c03_graph_sqlite_context import ensure_c03_graph_sqlite
+
+    try:
         ensure_c03_graph_sqlite(repository_root(Path(__file__)))
-    except Exception:  # guardian: allow-broad-exception -- prewarm is advisory; lane-level C0 enforces fail-closed contracts
-        pass
+    except (
+        C03GraphProjectionUnavailableError,
+        C03UnauthorizedSourceAuthorityError,
+        OSError,
+        RuntimeError,
+        ValueError,
+        sqlite3.Error,
+    ) as exc:
+        logging.getLogger(__name__).error(
+            "Pre-run C0.3 skills graph SQLite verification/rebuild failed: %s",
+            exc,
+        )
+        raise
 
 
 def _lane_timeout_outcome(lane: str, budget_s: float, *, kind: str = "LANE_TIMEOUT") -> LaneDispatchOutcome:
@@ -234,6 +254,9 @@ def dispatch_phase1_lanes_managed(
     def _record(lane: str, outcome: LaneDispatchOutcome) -> None:
         outcomes[lane] = outcome
         reporter.update(label=f"{lane} [{str(getattr(outcome, 'exec_status', '') or 'done')}]")
+
+    if lanes_in_order:
+        _prewarm_parallel_graph_sqlite()
 
     if not parallel:
         with DaemonWorkerPool(max_workers=1, thread_name_prefix="apps-rg-serial-lane") as pool:
@@ -279,8 +302,6 @@ def dispatch_phase1_lanes_managed(
         return outcomes
 
     selected = tuple(dict.fromkeys(lanes_in_order))
-    if len(selected) > 1:
-        _prewarm_parallel_graph_sqlite()
     dependencies = section_dag_dependencies(lanes=selected)
     pending = set(selected)
     running: dict[Future[Any], tuple[str, float, threading.Event]] = {}

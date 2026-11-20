@@ -208,3 +208,42 @@ def test_ac05_j3_journey_reaches_slalom_employment():
         assert "skill_agentic_control_plane_design" in skills
     finally:
         conn.close()
+
+
+def test_scoring_code_edit_changes_manifest_digest_and_rejects_stale_projection(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Editing any confidence scoring/materializer Python file changes input_manifest_digest."""
+    from apps_rg.fact_inventory.skills_graph import lineage as lineage_mod
+
+    base_manifest = compute_input_manifest(REPO_ROOT)
+    scoring_inputs = base_manifest["scoring_code_inputs"]
+    assert len(scoring_inputs) == len(lineage_mod.SCORING_CODE_REL_PATHS) == 8
+    assert len(base_manifest["scoring_code_digest"]) == 64
+    for entry in scoring_inputs:
+        assert entry["role"] == "scoring_code"
+        assert len(entry["sha256"]) == 64
+
+    prod_db = default_graph_sqlite_path(REPO_ROOT)
+    test_db = tmp_path / "scoring_freshness.sqlite"
+    test_db.write_bytes(prod_db.read_bytes())
+
+    # Fresh projection passes before scoring code changes
+    assert require_c03_graph_sqlite(REPO_ROOT, test_db) == test_db
+
+    # Simulate an edit to edge_evidence.py without bumping C03_SQLITE_MATERIALIZER_CODE_VERSION
+    orig_file_sha256 = lineage_mod._file_sha256
+
+    def _patched_file_sha256(path: Path) -> str:
+        if path.name == "edge_evidence.py":
+            return "a" * 64
+        return orig_file_sha256(path)
+
+    monkeypatch.setattr(lineage_mod, "_file_sha256", _patched_file_sha256)
+    mutated_manifest = compute_input_manifest(REPO_ROOT)
+    assert mutated_manifest["scoring_code_digest"] != base_manifest["scoring_code_digest"]
+    assert mutated_manifest["input_manifest_digest"] != base_manifest["input_manifest_digest"]
+
+    with pytest.raises(C03GraphProjectionUnavailableError, match="input manifest digest mismatch"):
+        require_c03_graph_sqlite(REPO_ROOT, test_db)

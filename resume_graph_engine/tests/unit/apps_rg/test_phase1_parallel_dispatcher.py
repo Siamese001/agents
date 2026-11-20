@@ -426,3 +426,57 @@ def test_progress_reporter_respects_disable_env(capsys, monkeypatch) -> None:
     captured = capsys.readouterr()
     assert captured.out == ""
     assert "disabled_progress:" not in captured.err  # No tqdm bar drawn
+
+
+def test_prewarm_graph_sqlite_fails_fast_instead_of_swallowing_errors(monkeypatch, caplog) -> None:
+    """Verify _prewarm_parallel_graph_sqlite logs and re-raises projection/authority errors."""
+    import logging
+    from apps_rg.runtime.c0.c03_errors import (
+        C03GraphProjectionUnavailableError,
+        C03UnauthorizedSourceAuthorityError,
+    )
+    from apps_rg.runtime import c03_graph_sqlite_context
+    from apps_rg.runtime.orchestration.managed_section_lane_dispatcher import (
+        _prewarm_parallel_graph_sqlite,
+    )
+
+    for exc_cls, msg in (
+        (C03GraphProjectionUnavailableError, "simulated stale projection failure"),
+        (C03UnauthorizedSourceAuthorityError, "simulated unauthorized authority"),
+    ):
+        def _boom(_repo_root, _cls=exc_cls, _msg=msg):
+            raise _cls(_msg)
+
+        monkeypatch.setattr(c03_graph_sqlite_context, "ensure_c03_graph_sqlite", _boom)
+        caplog.clear()
+        with caplog.at_level(logging.ERROR):
+            with pytest.raises(exc_cls, match=msg):
+                _prewarm_parallel_graph_sqlite(bypass_pytest_guard=True)
+        assert any("Pre-run C0.3 skills graph SQLite verification/rebuild failed" in rec.message for rec in caplog.records)
+
+
+def test_dispatcher_invokes_prewarm_for_serial_and_parallel_single_and_multi_lanes(monkeypatch, tmp_path) -> None:
+    """Verify dispatch_phase1_lanes_managed triggers pre-run graph verification for both serial and parallel modes."""
+    from apps_rg.runtime.orchestration import managed_section_lane_dispatcher as dispatcher_mod
+
+    prewarm_calls: list[int] = []
+    monkeypatch.setattr(dispatcher_mod, "_prewarm_parallel_graph_sqlite", lambda: prewarm_calls.append(1))
+
+    def _fn(**kwargs: object) -> dict[str, str]:
+        return {"section": str(kwargs.get("section") or ""), "exit_status": "success"}
+
+    ctx = LaneExecutionContext(
+        sections_root=str(tmp_path / "sections"),
+        target_company="Acme",
+        target_role="VP",
+        job_description_ref="",
+        job_description_text="",
+        manual_brief="",
+        lane_provider="mock",
+        lane_x1d_judges=(),
+        lane_mock_judges=True,
+    )
+    dispatch_phase1_lanes_managed(("headline",), ctx, dispatch_fn=_fn, parallel=False)
+    dispatch_phase1_lanes_managed(("headline",), ctx, dispatch_fn=_fn, parallel=True, max_parallel=2)
+    dispatch_phase1_lanes_managed(("unify_bullets", "ibm_bullets"), ctx, dispatch_fn=_fn, parallel=True, max_parallel=2)
+    assert len(prewarm_calls) == 3

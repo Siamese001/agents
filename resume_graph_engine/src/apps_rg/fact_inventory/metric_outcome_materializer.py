@@ -355,6 +355,7 @@ def metric_outcome_node_and_edge_rows(
     ts: str,
     known_node_ids: set[str],
     build_run_id: str = "",
+    blocked_skill_ids: set[str] | frozenset[str] | None = None,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     """Return ``(node_rows, edge_rows)`` for all metric_outcome materialization.
 
@@ -377,7 +378,7 @@ def metric_outcome_node_and_edge_rows(
     if not ledger_path.is_file():
         ledger_path = repo_root / "resume_graph_engine/src/apps_rg/fact_inventory/master_skills_arsenal_ledger.json"
     skill_fact_pairs: set[tuple[str, str]] = set()
-    blocked_skill_ids: set[str] = set()
+    effective_blocked_skill_ids: set[str] = set(blocked_skill_ids or ())
     if ledger_path.is_file():
         try:
             ledger_data = json.loads(ledger_path.read_text(encoding="utf-8"))
@@ -392,8 +393,10 @@ def metric_outcome_node_and_edge_rows(
                 + ledger_data.get("graph_nodes", [])
             ):
                 sid = item.get("skill_id") or item.get("node_id")
-                if sid and any(
-                    str(item.get(k, "")).upper() == "BLOCKED"
+                if not sid:
+                    continue
+                is_blocked_val = any(
+                    str(item.get(k, "")).upper() in ("BLOCKED", "DO_NOT_PROMOTE")
                     for k in (
                         "confidence",
                         "activation_status",
@@ -401,8 +404,13 @@ def metric_outcome_node_and_edge_rows(
                         "confidence_grade_derived",
                         "support_level",
                     )
-                ):
-                    blocked_skill_ids.add(str(sid))
+                )
+                is_internal_only = (
+                    str(item.get("visibility_rule") or "").strip().lower() == "never_external"
+                    or str(item.get("support_level") or "").strip().upper() in ("INTERNAL_ONLY", "REPO_EVIDENCE_PORTFOLIO")
+                )
+                if is_blocked_val or is_internal_only:
+                    effective_blocked_skill_ids.add(str(sid))
         except (OSError, json.JSONDecodeError, TypeError, ValueError):
             pass
 
@@ -477,7 +485,7 @@ def metric_outcome_node_and_edge_rows(
                     )
                 for sid in sids:
                     sid_s = str(sid).strip()
-                    if not sid_s or sid_s in blocked_skill_ids:
+                    if not sid_s or sid_s in effective_blocked_skill_ids:
                         continue
                     # Proof chain verification: find connecting facts in bundle that sid supports
                     connecting_facts = [
