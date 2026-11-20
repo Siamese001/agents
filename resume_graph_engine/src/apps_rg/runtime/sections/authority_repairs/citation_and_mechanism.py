@@ -212,6 +212,8 @@ _MECHANISM_INVENTORY_REWRITES: tuple[tuple[re.Pattern[str], str], ...] = (
         "route selection",
     ),
     (re.compile(r"\bdeterministic\s+route\s+selection\b", re.IGNORECASE), "route selection"),
+    (re.compile(r"\bdeterministic\s+route\s+policy\b", re.IGNORECASE), "governed route selection"),
+    (re.compile(r"\broute\s+policy\b", re.IGNORECASE), "route selection"),
     (
         re.compile(r"\bgraph-aware\s+relationship\s+grounding\b", re.IGNORECASE),
         "relationship-aware grounding",
@@ -223,7 +225,14 @@ _MECHANISM_INVENTORY_REWRITES: tuple[tuple[re.Pattern[str], str], ...] = (
     (re.compile(r"\bGraphRAG\s+retrieval\b", re.IGNORECASE), "graph-grounded evidence use"),
     (re.compile(r"\bretrieval\b", re.IGNORECASE), "evidence search"),
     (re.compile(r"\bvector\s+services\b", re.IGNORECASE), "embedding-backed services"),
+    (
+        re.compile(r"\bsandboxed\s+((?:tool|agent|runtime)\s+)execution\b", re.IGNORECASE),
+        r"isolated \1execution",
+    ),
     (re.compile(r"\bsandboxed\s+execution\b", re.IGNORECASE), "isolated execution"),
+    (re.compile(r"\bsandboxed\b", re.IGNORECASE), "isolated"),
+    (re.compile(r"\bopentelemetry\s+lineage\b", re.IGNORECASE), "audit lineage"),
+    (re.compile(r"\btelemetry\s+lineage\b", re.IGNORECASE), "execution lineage"),
     (re.compile(r"\breplayable\s+runtime\s+traceability\b", re.IGNORECASE), "auditable runtime traceability"),
     (re.compile(r"\breplayable\b", re.IGNORECASE), "auditable"),
 )

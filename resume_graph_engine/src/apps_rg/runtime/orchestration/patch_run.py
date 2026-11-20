@@ -26,7 +26,7 @@ clear error (exit 2) when inputs cannot be derived.
 """
 from __future__ import annotations
 
-import concurrent.futures, contextlib, hashlib, json, os, time, uuid
+import concurrent.futures, contextlib, hashlib, json, os, sys, time, uuid
 from collections import Counter
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
