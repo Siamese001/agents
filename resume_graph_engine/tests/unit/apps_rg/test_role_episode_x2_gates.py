@@ -957,3 +957,27 @@ def test_narrative_sentence_truncation_snaps_to_word_boundary() -> None:
     assert clamped.endswith(".")
     assert not clamped.endswith(" es.")
 
+
+def test_surgical_narrative_de_echo_preserves_prepositional_production_grammar() -> None:
+    from apps_rg.runtime.validators.narrative_quality_x2 import repair_narrative_bullet_echo_from_graph
+
+    companion_bullets = (
+        "- Commercialized governed enterprise AI delivery and agentic workflows into production regulatory compliance.\n"
+        "- Architected a production bi-temporal enterprise knowledge graph with traceable retrieval and policy controls."
+    )
+    candidate = (
+        "Commercialized governed enterprise AI delivery by binding agentic workflows "
+        "to traceable retrieval and policy controls, moving complex client use cases "
+        "into production while accelerating engineering turnaround and expanding "
+        "repeatable commercial adoption."
+    )
+    repaired = repair_narrative_bullet_echo_from_graph(
+        candidate,
+        facts=[],
+        companion_bullet_texts=companion_bullets,
+        section_id="slalom_narrative",
+    )
+    assert "into operational while" not in repaired.lower()
+    assert "into live operation while" in repaired.lower() or "into production while" in repaired.lower()
+
+
