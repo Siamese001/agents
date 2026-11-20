@@ -28,71 +28,111 @@ PROMPT_STAGE_ALLOWED_WRITE_PATHS: dict[str, tuple[str, ...]] = {
         ".gitignore",
         "automations/prompts/agents_storage_worktree_hygiene_agent.md",
         "tests/unit/test_storage_hygiene_full_repo_remediation.py",
-        "tests/unit/test_sidecar_separation_governance.py",
         "tests/test_post_merge_cleanup.py",
-        "tests/test_prune_merged_chat_worktrees_stub_and_manifest.py",
         "tests/test_pr_merge_queue_governance.py",
     ),
     "agents-ssot-boundary-governance": (
-        "config/",
+        "config/governance/",
+        "config/schemas/",
+        "config/structure_blueprint/",
         "infrastructure/",
-        "data/",
         ".mcp.json",
-        "pytest.ini",
         "pyproject.toml",
         "AGENTS.md",
         ".agents/",
         ".antigravity/",
-        "automations/",
-        "tools/",
-        "outreach_engine/config/",
-        "resume_engine/config/",
-        "resume_graph_engine/config/",
-        "apps_research/config/",
+        "automations/prompts/_shared_governance_contract.md",
+        "automations/prompts/agents_ssot_boundary_agent.md",
+        "tools/ssot_boundary_auditor.py",
+        "tools/ssot_sprawl_scanner.py",
+        "tools/ssot_hardcoding_scanner.py",
+        "tools/check_config_ssot_drift.py",
+        "tools/lint_architecture_boundaries.py",
+        "tools/lint_layer_imports.py",
+        "tools/lint_contract_schemas.py",
+        "tools/lint_file_budgets.py",
+        "tools/lint_model_neutral_naming.py",
+        "tools/validate_sidecar_separation.py",
+        "tools/prompt_scope_isolation.py",
+        "tests/unit/test_ssot_centralization_auditor.py",
         "tests/unit/test_sidecar_separation_governance.py",
-        "tests/unit/test_ssot_boundary_governance.py",
+        "tests/unit/test_prompt_collision_safeguards.py",
         "tests/test_turn_gates.py",
+        "tests/test_model_neutral_naming.py",
     ),
     "agents-core-runtime-orchestration": (
-        "agents/",
+        "agents/orchestration/",
+        "agents/persistence/",
+        "agents/observability/",
+        "agents/telemetry/",
+        "agents/gateway/",
+        "agents/context/budgeting.py",
+        "agents/cli.py",
+        "agents/_cli_helpers.py",
+        "agents/health.py",
+        "agents/e2e_artifacts.py",
+        "agents/e2e_output.py",
+        "agents/learning_cli.py",
+        "agents/live_preflight.py",
         "tools/agent_runtime_auditor.py",
         "tools/unified_agent_architecture.py",
         "tools/hook_dispatch.py",
         "tools/hitl_governance.py",
         "automations/prompts/agents_core_runtime_orchestration_agent.md",
-        "tests/unit/test_agent_runtime_orchestration.py",
         "tests/test_unified_agent_architecture.py",
         "tests/test_hook_dispatch.py",
         "tests/test_hitl_governance_enforcement.py",
     ),
     "agents-domain-applications-pipeline": (
-        "outreach_engine/",
+        "outreach_engine/src/",
         "resume_engine/",
-        "resume_graph_engine/src/",
+        "resume_graph_engine/src/apps_rg/engines/",
+        "resume_graph_engine/src/apps_rg/resume/",
+        "resume_graph_engine/src/apps_rg/prompt_assembly/",
+        "resume_graph_engine/src/apps_rg/l2_recipe/",
+        "resume_graph_engine/src/apps_rg/integrations/",
+        "resume_graph_engine/src/apps_rg/bare_pipeline.py",
         "ops_scripts/",
-        "scripts/",
         "tools/e2e_functionality_auditor.py",
         "automations/prompts/agents_domain_applications_pipeline_agent.md",
-        "tests/e2e/",
-        "resume_graph_engine/tests/",
+        "tests/test_sidecar_resume_graph_traversal.py",
     ),
     "agents-research-retrieval-surface": (
         "apps_research/",
-        "agents/context/",
+        "agents/context/precedent_bridge.py",
+        "agents/context/provenance.py",
+        "resume_graph_engine/src/apps_rg/chunking/",
+        "resume_graph_engine/src/apps_rg/fact_inventory/",
+        "resume_graph_engine/src/apps_rg/runtime/quad_graph_retriever.py",
         "tools/retrieval_surface_auditor.py",
         "tools/verify_graph_integrity_and_embeddings.py",
+        "tools/run_resume_graph_traversal_probe.py",
+        "tools/verify_pipeline_latency_caching.py",
         "automations/prompts/agents_research_retrieval_surface_agent.md",
-        "resume_graph_engine/src/apps_rg/runtime/quad_graph_retriever.py",
-        "resume_graph_engine/tests/apps_research/",
-        "tests/unit/test_retrieval_surface_governance.py",
+        "tests/unit/test_e2e_and_retrieval_full_parity.py",
     ),
     "agents-evals-judge-assurance": (
-        "apps_eval/",
-        "config/eval_rubrics/",
-        "resume_graph_engine/config/eval_rubrics/",
-        "outreach_engine/config/eval_rubrics/",
-        "resume_engine/config/eval_rubrics/",
-        "apps_research/config/eval_rubrics/",
+        "apps_eval/graders/",
+        "apps_eval/rubrics/",
+        "apps_eval/adapters/",
+        "apps_eval/contracts/",
+        "apps_eval/outputs/",
+        "apps_eval/runner/",
+        "apps_eval/registry/",
+        "apps_eval/registries/",
+        "apps_eval/l6_shadow_bridge.py",
+        "apps_eval/trends.py",
+        "resume_graph_engine/src/apps_rg/evals/",
+        "config/exit_eval_rubrics/",
+        "config/judges/",
+        "config/certification/",
+        "resume_graph_engine/config/certification/",
+        "data/holdout/",
+        "data/eval/",
+        "data/certification/",
+        "data/judge_calibration/",
+        "outreach_engine/data/",
+        "resume_graph_engine/data/",
         "tools/validate_eval_rubrics.py",
         "tools/lint_production_purity.py",
         "automations/prompts/agents_evals_judge_assurance_agent.md",
@@ -101,24 +141,34 @@ PROMPT_STAGE_ALLOWED_WRITE_PATHS: dict[str, tuple[str, ...]] = {
     "agents-cost-token-budget": (
         "apps_model_telemetry/",
         "config/provider_profiles.yaml",
+        "config/model_catalog.json",
+        "config/token_budget.yaml",
+        "config/runtime_budget_policy.yaml",
+        "outreach_engine/config/provider_profiles.yaml",
+        "resume_graph_engine/config/models/",
+        "resume_graph_engine/src/apps_rg/cache/",
+        "scripts/local_llm/",
         "tools/cost_token_budget_auditor.py",
-        "tools/model_routing.py",
+        "tools/cost_token_budget_governor_probes.py",
+        "tools/lint_model_pins.py",
+        "tools/benchmark_macbook_runtime.py",
         "automations/prompts/agents_cost_token_budget_agent.md",
-        "tests/unit/test_evals_and_budget_full_parity.py",
-        "tests/unit/test_model_neutral_naming.py",
     ),
     "agents-testing-gaps-assurance": (
-        "tests/",
-        "resume_graph_engine/tests/",
         "outreach_engine/tests/",
-        "resume_engine/tests/",
+        "resume_graph_engine/tests/",
         "apps_eval/tests/",
-        "apps_research/tests/",
         ".githooks/",
+        "pytest.ini",
+        "outreach_engine/pytest.ini",
+        "resume_graph_engine/pytest.ini",
         "tools/testing_gaps_auditor.py",
         "tools/audit_mock_reachability.py",
-        "tools/lint_pytest_integrity.py",
+        "tools/lint_secrets.py",
         "automations/prompts/agents_testing_gaps_assurance_agent.md",
+        "tests/unit/test_testing_gaps_full_parity.py",
+        "tests/unit/test_all_seven_agents_coverage_elevation.py",
+        "tests/unit/test_resume_graph_and_core_coverage_elevation.py",
     ),
 }
 
@@ -170,12 +220,182 @@ def _resolve_common_git_root(repo_root: Path) -> Path:
     return resolved
 
 
+ACTIVE_STAGE_LEASES_FILENAME = "active_stage_leases.json"
+ACTIVE_STAGE_LEASES_LOCK_FILENAME = "active_stage_leases.lock"
+DEFAULT_STAGE_LEASE_TTL_SECONDS = 7200.0
+
+
+def validate_stage_ownership_disjointness(
+    repo_root: Path | None = None,
+    stage_paths: dict[str, tuple[str, ...]] | None = None,
+) -> list[str]:
+    """Return violations if any two stages overlap in write paths or declare missing repo paths."""
+    mapping = stage_paths if stage_paths is not None else PROMPT_STAGE_ALLOWED_WRITE_PATHS
+    violations: list[str] = []
+    agents = list(mapping.keys())
+    for i in range(len(agents)):
+        for j in range(i + 1, len(agents)):
+            a, b = agents[i], agents[j]
+            for pa in mapping[a]:
+                for pb in mapping[b]:
+                    if paths_overlap(pa, pb):
+                        violations.append(
+                            f"STAGE_WRITE_PATH_OVERLAP: '{a}' ('{pa}') overlaps '{b}' ('{pb}')"
+                        )
+    if repo_root is not None:
+        resolved_root = repo_root.resolve()
+        if (resolved_root / "tools").is_dir():
+            for agent_id, paths in mapping.items():
+                for raw_path in paths:
+                    if not (resolved_root / raw_path).exists():
+                        violations.append(
+                            f"STAGE_WRITE_PATH_MISSING: '{agent_id}' declares nonexistent path '{raw_path}'"
+                        )
+    return violations
+
+
+@contextmanager
+def _stage_lease_registry_lock(gov_dir: Path) -> Iterator[Path]:
+    gov_dir.mkdir(parents=True, exist_ok=True)
+    lock_path = gov_dir / ACTIVE_STAGE_LEASES_LOCK_FILENAME
+    registry_path = gov_dir / ACTIVE_STAGE_LEASES_FILENAME
+    with open(lock_path, "a+", encoding="utf-8") as handle:
+        fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+        try:
+            yield registry_path
+        finally:
+            fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+
+
+def _load_active_stage_leases(registry_path: Path, now_ts: float) -> list[dict[str, Any]]:
+    if not registry_path.is_file():
+        return []
+    try:
+        raw = json.loads(registry_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):  # guardian: allow-silent-swallow -- treat corrupt stage lease JSON as empty
+        return []
+    leases = raw.get("leases", []) if isinstance(raw, dict) else []
+    active: list[dict[str, Any]] = []
+    for entry in leases:
+        if not isinstance(entry, dict) or float(entry.get("expires_at", 0.0)) <= now_ts:
+            continue
+        owner_pid = int(entry.get("owner_pid", 0) or 0)
+        if owner_pid > 0 and not _is_pid_alive(owner_pid):
+            # Keep newly created subprocess leases alive only while worktree still exists on disk
+            wt_str = str(entry.get("worktree_dir") or "").strip()
+            if not wt_str or not Path(wt_str).is_dir():
+                continue
+        active.append(entry)
+    return active
+
+
+def register_active_stage_lease(
+    repo_root: Path,
+    agent_id: str,
+    branch_name: str,
+    worktree_dir: Path | str,
+    *,
+    owner_pid: int | None = None,
+    ttl_seconds: float = DEFAULT_STAGE_LEASE_TTL_SECONDS,
+    now_ts: float | None = None,
+) -> dict[str, Any]:
+    """Atomically register an active automation stage lease for parallel collision prevention."""
+    clean_agent = agent_id.strip()
+    clean_branch = branch_name.strip()
+    if not clean_agent:
+        raise ValueError("agent_id must be non-empty")
+    ts = float(now_ts if now_ts is not None else time.time())
+    ttl = max(60.0, min(float(ttl_seconds), 28800.0))
+    wt_resolved = str(Path(worktree_dir).resolve())
+    gov_dir = _resolve_common_git_root(repo_root) / ".local" / "governance"
+    pid = int(owner_pid) if isinstance(owner_pid, int) and owner_pid > 0 else os.getpid()
+    record = {
+        "agent_id": clean_agent,
+        "branch": clean_branch,
+        "worktree_dir": wt_resolved,
+        "owner_pid": pid,
+        "started_at": ts,
+        "expires_at": ts + ttl,
+    }
+    with _stage_lease_registry_lock(gov_dir) as registry_path:
+        active = _load_active_stage_leases(registry_path, ts)
+        updated = [
+            e
+            for e in active
+            if not (
+                e.get("agent_id") == clean_agent
+                and (e.get("branch") == clean_branch or e.get("worktree_dir") == wt_resolved)
+            )
+        ]
+        updated.append(record)
+        _write_leases_atomic(registry_path, updated)
+    return record
+
+
+def release_active_stage_lease(
+    repo_root: Path,
+    *,
+    agent_id: str | None = None,
+    branch_name: str | None = None,
+    worktree_dir: Path | str | None = None,
+) -> int:
+    """Release matching active automation stage lease(s); returns number removed."""
+    clean_agent = (agent_id or "").strip()
+    clean_branch = (branch_name or "").strip()
+    clean_wt = str(Path(worktree_dir).resolve()) if worktree_dir else ""
+    if not any((clean_agent, clean_branch, clean_wt)):
+        return 0
+    gov_dir = _resolve_common_git_root(repo_root) / ".local" / "governance"
+    with _stage_lease_registry_lock(gov_dir) as registry_path:
+        active = _load_active_stage_leases(registry_path, time.time())
+        remaining: list[dict[str, Any]] = []
+        removed = 0
+        for entry in active:
+            match_branch = bool(clean_branch and entry.get("branch") == clean_branch)
+            match_wt = bool(clean_wt and entry.get("worktree_dir") == clean_wt)
+            match_agent_only = bool(clean_agent and not clean_branch and not clean_wt and entry.get("agent_id") == clean_agent)
+            if match_branch or match_wt or match_agent_only:
+                removed += 1
+            else:
+                remaining.append(entry)
+        if removed:
+            _write_leases_atomic(registry_path, remaining)
+    return removed
+
+
+def list_active_stage_leases(repo_root: Path, *, now_ts: float | None = None) -> list[dict[str, Any]]:
+    """Return currently active automation stage leases across all worktrees of the repository."""
+    gov_dir = _resolve_common_git_root(repo_root) / ".local" / "governance"
+    registry_path = gov_dir / ACTIVE_STAGE_LEASES_FILENAME
+    if not registry_path.is_file():
+        return []
+    ts = float(now_ts if now_ts is not None else time.time())
+    with _stage_lease_registry_lock(gov_dir) as locked_path:
+        return _load_active_stage_leases(locked_path, ts)
+
+
+def has_active_stage_lease_for_worktree(
+    repo_root: Path,
+    wt_path: Path | str,
+    *,
+    now_ts: float | None = None,
+) -> bool:
+    """Return True if wt_path currently holds a live entry in active_stage_leases.json."""
+    target = str(Path(wt_path).resolve())
+    for entry in list_active_stage_leases(repo_root, now_ts=now_ts):
+        if str(entry.get("worktree_dir") or "") == target:
+            return True
+    return False
+
+
 def evaluate_prompt_stage_write_scope(
     target_file: Path | str,
     repo_root: Path,
     agent_id: str | None = None,
+    *,
+    now_ts: float | None = None,
 ) -> tuple[bool, str]:
-    """Return (blocked, reason) if an active agents-* stage writes outside its declared scope."""
+    """Return (blocked, reason) if an active agents-* stage collides with a running peer stage's owned paths."""
     effective_id = (agent_id if agent_id is not None else os.environ.get("AGY_SIDECAR_AGENT_ID", "")).strip()
     if not effective_id:
         return False, "no active sidecar agent stage"
@@ -193,6 +413,27 @@ def evaluate_prompt_stage_write_scope(
         for prefix in allowed:
             if paths_overlap(rel, prefix):
                 return False, f"allowed within stage scope '{effective_id}'"
+
+    strict_parallel = os.environ.get("AGY_PARALLEL_STAGE_STRICT", "").strip() == "1"
+    active_peers: set[str] = set()
+    if strict_parallel:
+        active_peers = {peer for peer in PROMPT_STAGE_ALLOWED_WRITE_PATHS if peer != effective_id}
+    else:
+        for lease in list_active_stage_leases(repo_root, now_ts=now_ts):
+            peer_id = str(lease.get("agent_id") or "").strip()
+            if peer_id and peer_id != effective_id:
+                active_peers.add(peer_id)
+
+    for peer_id in sorted(active_peers):
+        for peer_prefix in PROMPT_STAGE_ALLOWED_WRITE_PATHS.get(peer_id, ()):
+            if paths_overlap(rel, peer_prefix):
+                return (
+                    True,
+                    (
+                        f"PARALLEL_STAGE_OWNERSHIP_CONFLICT: stage '{effective_id}' cannot modify '{rel}' "
+                        f"because active peer stage '{peer_id}' owns '{peer_prefix}'"
+                    ),
+                )
 
     return False, f"allowed root-cause cross-repo write for stage '{effective_id}' on '{rel}'"
 

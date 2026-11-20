@@ -8,15 +8,15 @@
 Execute a deterministic, fail-closed **Testing Gaps, Edge-Case Regression, Mock Reachability, Git Hook, Pytest & Security Isolation Assurance Audit & Remediation** exclusively within `/Users/amitayer/Git/agents` (On-Demand, Order `8/8`). This agent audits per-module and per-package public entrypoint coverage, separate cross-subsystem handoff contracts for both `outreach_engine` and `resume_graph_engine`, synchronous and async test assertions, skip/xfail hygiene, production mock reachability (`tools/audit_mock_reachability.py`), credential & secret hygiene (`tools/lint_secrets.py`), `pytest.ini` `--timeout=` and `--ignore=` quarantine limits, and `.githooks/` integrity across all 11 executable repository roots (`agents/`, `apps_eval/`, `apps_model_telemetry/`, `apps_research/`, `infrastructure/`, `ops_scripts/`, `outreach_engine/`, `resume_engine/`, `resume_graph_engine/`, `scripts/`, `tools/`) and all 6 test surfaces (`tests/`, `resume_graph_engine/tests/`, `outreach_engine/tests/`, `apps_eval/tests/`, `scripts/local_llm/`, `resume_graph_engine/src/apps_rg/evals/` — 945+ test files).
 
 ### Cross-Agent MECE De-Overlap Boundary
-- **Owned exclusively by this agent**: Unit and integration test coverage gaps across all 6 test surfaces, per-module and per-package symbol/module coverage ratios across all 11 executable roots, synchronous and `async def test_*` strict assertion strength (rejecting bare re-raise and unasserted `validate*()` calls), `pytest.mark.skip(reason=...)` and `pytest.mark.xfail(strict=True)` hygiene, 11-root production mock reachability (`audit_mock_reachability.py`), full-extension credential & secret leakage prevention (`lint_secrets.py` across `.py`, `.json`, `.yaml`, `.yml`, `.md`, `.mdc`, `.txt`, `.jinja`, `.j2`, `.csv`, `.jsonl`, `.toml`, `.ini`, `.cfg`, `.sql`, `.sh`, `.ps1`), multi-`pytest.ini` `--timeout=` & `--ignore=` quarantine enforcement, misplaced `src/` test detection, and `.githooks/` executable enforcement.
-- **Delegated to peer agents**:
-  - Worktree/SQLite hygiene (`agents-storage-worktree-hygiene`),
-  - Static layer imports & boundary encapsulation (`agents-ssot-boundary-governance`),
-  - Core agent runtime mechanics & delegation contracts (`agents-core-runtime-orchestration`),
+- **Owned exclusively by this agent (Single-Writer)**: Subsystem test suites (`outreach_engine/tests/`, `resume_graph_engine/tests/`, `apps_eval/tests/`), coverage elevation suites (`tests/unit/test_testing_gaps_full_parity.py`, `tests/unit/test_all_seven_agents_coverage_elevation.py`, `tests/unit/test_resume_graph_and_core_coverage_elevation.py`), multi-`pytest.ini` (`pytest.ini`, `outreach_engine/pytest.ini`, `resume_graph_engine/pytest.ini`), `.githooks/`, and `tools/testing_gaps_auditor.py`, `tools/audit_mock_reachability.py`, `tools/lint_secrets.py`.
+- **Delegated to peer agents (Read-Only here; never mutate during parallel runs)**:
+  - Worktree/SQLite hygiene & hygiene unit tests (`agents-storage-worktree-hygiene`),
+  - Static layer imports, SSOT & boundary unit tests (`agents-ssot-boundary-governance`),
+  - Core agent runtime mechanics & runtime unit tests (`agents-core-runtime-orchestration`),
   - Production domain business code fixes (`agents-domain-applications-pipeline`),
-  - Retrieval ranking logic (`agents-research-retrieval-surface`),
-  - Judge rubrics & evaluation bounds (`agents-evals-judge-assurance`),
-  - Token economics & local hardware acceleration (`agents-cost-token-budget`).
+  - Retrieval ranking logic & retrieval unit tests (`agents-research-retrieval-surface`),
+  - Judge rubrics, evaluation bounds & eval parity tests (`agents-evals-judge-assurance`),
+  - Token economics, provider profiles & local hardware acceleration (`agents-cost-token-budget`).
 
 ---
 
@@ -86,10 +86,9 @@ export BRANCH_SLUG="agents-testing-gaps-${RUN_TS}-${HEX6}"
 export BRANCH_NAME="chore/${BRANCH_SLUG}"
 export WORKTREE_SLUG="$(echo "${BRANCH_NAME}" | tr '/-' '__')"
 export WORKTREE_DIR="${PRIMARY_REPO_ROOT}/.worktrees/${WORKTREE_SLUG}"
-export RUN_DIR="${WORKTREE_DIR}/artifacts/sidecar_runs/agents_testing_gaps_assurance/${RUN_TS}"
+export RUN_DIR="${WORKTREE_DIR}/artifacts/sidecar_runs/agents_testing_gaps_assurance/${RUN_TS}-${HEX6}"
 export PLAN_REL="plans/testing-gaps-assurance-${HEX6}.md"
 
-git -C "${PRIMARY_REPO_ROOT}" worktree prune
 PYTHONDONTWRITEBYTECODE=1 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/prune_merged_chat_worktrees.py" \
   --repo-root "${PRIMARY_REPO_ROOT}" \
   --consolidate-sidecar \

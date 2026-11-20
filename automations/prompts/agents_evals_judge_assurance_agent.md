@@ -8,8 +8,8 @@
 Execute a deterministic, fail-closed **Evals, Judge Validity, Holdout Dataset, and Production Derivation Purity Audit & Remediation** exclusively within `/Users/amitayer/Git/agents` (On-Demand, Order `6/8`). This agent audits evaluation rubrics, JSON schemas, `[0.0, 1.0]` score bounds, and judge model bindings across all 5 configuration roots (`config/`, `outreach_engine/config/`, `apps_eval/`, `apps_research/config/`, `resume_graph_engine/config/`), benchmark/holdout dataset integrity across all holdout, certification, and calibration files in `data/`, `outreach_engine/data/`, and `resume_graph_engine/data/` (excluding runtime `data/cache/` vector/SQLite WAL sidecars), live grader/adapter execution for both `apps_lic` and `apps_rg`, and production derivation purity (`tools/lint_production_purity.py`) across all 11 executable repository roots.
 
 ### Cross-Agent MECE De-Overlap Boundary
-- **Owned exclusively by this agent**: Judge scoring rubrics and `[0.0, 1.0]` bounds (`validate_eval_rubrics.py`), evaluation harnesses, graders, judges, and live adapters (`apps_eval/`, `outreach_engine/src/`, `resume_graph_engine/src/`, `apps_research/`), holdout/certification/calibration dataset integrity (`data/`, `outreach_engine/data/`, `resume_graph_engine/data/` excluding runtime `data/cache/`), golden fixture isolation (`lint_production_purity.py`), and grounding evaluation gates.
-- **Delegated to peer agents**: Worktree/SQLite/cache WAL hygiene (`agents-storage-worktree-hygiene`), static layer imports (`agents-ssot-boundary-governance`), core agent runtime mechanics (`agents-core-runtime-orchestration`), domain business pipelines (`agents-domain-applications-pipeline`), retrieval ranking (`agents-research-retrieval-surface`), token economics & local hardware (`agents-cost-token-budget`), and unit test coverage & credential security (`agents-testing-gaps-assurance`).
+- **Owned exclusively by this agent (Single-Writer)**: Judge scoring rubrics & `[0.0, 1.0]` bounds (`config/exit_eval_rubrics/`, `config/judges/`, `config/certification/`, `resume_graph_engine/config/certification/`, `tools/validate_eval_rubrics.py`), evaluation harnesses/graders/adapters (`apps_eval/` excluding `apps_eval/tests/`, `resume_graph_engine/src/apps_rg/evals/`), holdout/certification/calibration dataset integrity (`data/holdout/`, `data/eval/`, `data/certification/`, `data/judge_calibration/`, `outreach_engine/data/`, `resume_graph_engine/data/`), golden fixture isolation (`tools/lint_production_purity.py`), and `tests/unit/test_evals_and_budget_full_parity.py`.
+- **Delegated to peer agents (Read-Only here; never mutate during parallel runs)**: Worktree/SQLite/cache WAL hygiene (`agents-storage-worktree-hygiene`), static layer imports (`agents-ssot-boundary-governance`), core agent runtime mechanics (`agents-core-runtime-orchestration`), domain business pipelines (`agents-domain-applications-pipeline`), retrieval ranking (`apps_research/`, `agents-research-retrieval-surface`), provider profiles & model pins (`config/provider_profiles.yaml`, `outreach_engine/config/provider_profiles.yaml`, `agents-cost-token-budget`), and `apps_eval/tests/` / unit test coverage & credential security (`agents-testing-gaps-assurance`).
 
 ---
 
@@ -64,10 +64,9 @@ export BRANCH_SLUG="agents-evals-judge-${RUN_TS}-${HEX6}"
 export BRANCH_NAME="chore/${BRANCH_SLUG}"
 export WORKTREE_SLUG="$(echo "${BRANCH_NAME}" | tr '/-' '__')"
 export WORKTREE_DIR="${PRIMARY_REPO_ROOT}/.worktrees/${WORKTREE_SLUG}"
-export RUN_DIR="${WORKTREE_DIR}/artifacts/sidecar_runs/agents_evals_judge_assurance/${RUN_TS}"
+export RUN_DIR="${WORKTREE_DIR}/artifacts/sidecar_runs/agents_evals_judge_assurance/${RUN_TS}-${HEX6}"
 export PLAN_REL="plans/evals-judge-assurance-${HEX6}.md"
 
-git -C "${PRIMARY_REPO_ROOT}" worktree prune
 PYTHONDONTWRITEBYTECODE=1 "${PRIMARY_REPO_ROOT}/.venv/bin/python" "${PRIMARY_REPO_ROOT}/tools/prune_merged_chat_worktrees.py" \
   --repo-root "${PRIMARY_REPO_ROOT}" \
   --consolidate-sidecar \

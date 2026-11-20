@@ -108,6 +108,12 @@ def safely_unlink_worktree_dependencies(worktree_dir: Path) -> list[str]:
             with contextlib.suppress(OSError):
                 item.unlink()
                 unlinked.append(item.name)
+    try:
+        from tools.prompt_scope_isolation import release_active_stage_lease
+
+        release_active_stage_lease(worktree_dir, worktree_dir=worktree_dir)
+    except (ImportError, OSError, ValueError):  # guardian: allow-silent-swallow -- best-effort stage lease teardown
+        pass
     return unlinked
 
 
@@ -607,6 +613,13 @@ def cmd_finish(args: argparse.Namespace) -> int:
             except Exception as e:
                 print(f"⚠️ Failed to delete branch ref: {e}")
                 return 1
+
+        try:
+            from tools.prompt_scope_isolation import release_active_stage_lease
+
+            release_active_stage_lease(ROOT, branch_name=branch, worktree_dir=worktree_dir)
+        except (ImportError, OSError, ValueError):  # guardian: allow-silent-swallow -- best-effort stage lease release
+            pass
 
         print("✅ Worktree teardown complete.")
         return 0
