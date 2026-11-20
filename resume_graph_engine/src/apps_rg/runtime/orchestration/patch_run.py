@@ -50,31 +50,37 @@ DEFAULT_PATCH_LANE_TIMEOUT_SECONDS = 360.0
 DEFAULT_PATCH_RUN_TIMEOUT_SECONDS = 1200.0
 
 
+def _patch_log_stream() -> Any:
+    return sys.stderr if os.environ.get(_WHOLE_RUN_ENVELOPE_ENV) == "1" else sys.stdout
+
+
 def resolve_patch_lane_timeout_s(override: float | None = None) -> float:
     if override is not None and override > 0:
         return float(override)
-    raw = os.environ.get("APPS_RG_PATCH_LANE_TIMEOUT_SECONDS", "").strip()
-    if raw:
-        try:
-            val = float(raw)
-            if val > 0:
-                return val
-        except ValueError:
-            pass
+    for env_key in ("APPS_RG_PATCH_LANE_TIMEOUT_SECONDS", "APPS_RG_SECTION_LANE_TIMEOUT_SECONDS"):
+        raw = os.environ.get(env_key, "").strip()
+        if raw:
+            try:
+                val = float(raw)
+                if val > 0:
+                    return val
+            except ValueError:
+                pass
     return DEFAULT_PATCH_LANE_TIMEOUT_SECONDS
 
 
 def resolve_patch_run_timeout_s(override: float | None = None) -> float:
     if override is not None and override > 0:
         return float(override)
-    raw = os.environ.get("APPS_RG_PATCH_RUN_TIMEOUT_SECONDS", "").strip()
-    if raw:
-        try:
-            val = float(raw)
-            if val > 0:
-                return val
-        except ValueError:
-            pass
+    for env_key in ("APPS_RG_PATCH_RUN_TIMEOUT_SECONDS", "APPS_RG_SECTION_RUN_TIMEOUT_SECONDS"):
+        raw = os.environ.get(env_key, "").strip()
+        if raw:
+            try:
+                val = float(raw)
+                if val > 0:
+                    return val
+            except ValueError:
+                pass
     return DEFAULT_PATCH_RUN_TIMEOUT_SECONDS
 
 
@@ -1657,7 +1663,7 @@ def execute_patch_run(
                 run_timeout_s=run_timeout,
                 start_time=run_start_time,
             )
-        print("[patch_run] Lane dispatch complete; beginning aggregation...", flush=True)
+        print("[patch_run] Lane dispatch complete; beginning aggregation...", file=_patch_log_stream(), flush=True)
         aggregate = aggregate_fn or aggregate_patched_run
         agg = aggregate(
             plan,
@@ -1731,12 +1737,18 @@ def execute_patch_run(
             run_patch_post_receipt_closeout(run_dir=plan.run_dir, repo=plan.repo, patch_identity=patch_identity, target_company=plan.targeting.target_company, target_role=plan.targeting.target_role, close_product_run=close_product_run)
 
     total_elapsed = time.monotonic() - run_start_time
+    log_stream = _patch_log_stream()
     print(
         f"[patch_run] Completed in {total_elapsed:.1f}s: decisive_status={decisive} "
         f"all_lanes_authorized={all_authorized} exit_code={exit_code}",
+        file=log_stream,
         flush=True,
     )
-    print(f"patch_run_receipt={(plan.run_dir / PATCH_RUN_RECEIPT_ARTIFACT).as_posix()}", flush=True)
+    print(
+        f"patch_run_receipt={(plan.run_dir / PATCH_RUN_RECEIPT_ARTIFACT).as_posix()}",
+        file=log_stream,
+        flush=True,
+    )
 
     return {
         "exit_code": exit_code,

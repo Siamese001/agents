@@ -371,17 +371,17 @@
       ],
       "allowed_partner_roots": [
         "reb_unify_partner_channel_cosell",
-        "reb_ibm_aws_alliance_partner_cosell_gtm"
+        "reb_ibm_aws_alliance_partner_cosell_gtm",
+        "reb_slalom_ecosystem_accelerators"
       ],
       "forbidden_partner_roots": [
         "employment_exp_insurtech_001",
         "employment_exp_ey_001",
         "reb_insurtech_cloud_modernization",
         "reb_ey_data_governance",
-        "reb_slalom_agentic_client_delivery",
-        "reb_slalom_ecosystem_accelerators"
+        "reb_slalom_agentic_client_delivery"
       ],
-      "root_binding_policy": "Partner architecture wording may bind only to Unify and IBM source facts or role episodes. Slalom, InsurTech, and EY roots are forbidden for partner-scaling claims.",
+      "root_binding_policy": "Partner architecture wording may bind only to Unify, IBM, and Slalom partner ecosystem source facts or role episodes (reb_unify_partner_channel_cosell, reb_ibm_aws_alliance_partner_cosell_gtm, reb_slalom_ecosystem_accelerators). InsurTech, EY, and non-partner Slalom delivery roots are forbidden for partner-scaling claims.",
       "vocabulary_anchors": [
         "partner-ready applied AI reference architectures",
         "co-developed AI solution patterns for partners",
@@ -429,13 +429,14 @@
         "partner_commercialization"
       ],
       "allowed_partner_roots": [
-        "reb_ibm_aws_alliance_partner_cosell_gtm"
+        "reb_ibm_aws_alliance_partner_cosell_gtm",
+        "reb_slalom_ecosystem_accelerators"
       ],
       "forbidden_partner_roots": [
         "employment_exp_insurtech_001",
         "employment_exp_ey_001"
       ],
-      "root_binding_policy": "Partnership ecosystem execution is IBM alliance GTM evidence. Do not bind it to InsurTech or EY roots.",
+      "root_binding_policy": "Partnership ecosystem execution binds to IBM alliance GTM and Slalom partner ecosystem evidence. Do not bind it to InsurTech or EY roots.",
       "vocabulary_anchors": [
         "IBM-AWS alliance commercialization with partners",
         "hyperscaler co-sell operating cadences for modernization",

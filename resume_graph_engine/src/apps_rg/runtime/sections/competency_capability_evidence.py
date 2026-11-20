@@ -329,18 +329,24 @@ COMPETENCY_BUNDLE_FAMILY_ROOT_HINTS: dict[str, tuple[str, ...]] = {
     ),
     "runtime_governance": (
         "reb_slalom_governed_runtime_scaling",
+        "reb_slalom_dialectical_decision_bayesian_hitl",
         "reb_slalom_agentic_client_delivery",
         "reb_unify_agentic_platform_architecture",
         "reb_unify_production_adoption_lifecycle",
         "reb_unify_distributed_ecosystem_engineering",
     ),
     "retrieval_context_engineering": (
+        "reb_slalom_bitemporal_graphrag_uwg",
+        "reb_slalom_visual_asset_intelligence",
+        "reb_slalom_dialectical_decision_bayesian_hitl",
+        "reb_slalom_autonomous_agentic_sdlc_mcp",
         "reb_slalom_agentic_client_delivery",
         "reb_unify_agentic_platform_architecture",
         "reb_unify_distributed_ecosystem_engineering",
     ),
     "llmops_reliability": (
         "reb_slalom_governed_runtime_scaling",
+        "reb_slalom_live_copilot_acoustic_airgap",
         "reb_unify_agentic_platform_architecture",
         "reb_slalom_agentic_client_delivery",
         "reb_unify_distributed_ecosystem_engineering",
@@ -361,13 +367,19 @@ COMPETENCY_BUNDLE_FAMILY_ROOT_HINTS: dict[str, tuple[str, ...]] = {
     "partner_applied_ai_architecture": (
         "reb_unify_partner_channel_cosell",
         "reb_ibm_aws_alliance_partner_cosell_gtm",
+        "reb_slalom_ecosystem_accelerators",
         "reb_ibm_presales_solution_engineering",
     ),
     "partnerships_ecosystem_execution": (
         "reb_unify_partner_channel_cosell",
         "reb_ibm_aws_alliance_partner_cosell_gtm",
+        "reb_slalom_ecosystem_accelerators",
     ),
     "engineering_leadership": (
+        "reb_slalom_engineering_practice_leadership",
+        "reb_slalom_autonomous_agentic_sdlc_mcp",
+        "reb_slalom_ecosystem_accelerators",
+        "reb_ibm_aws_modernization_architecture",
         "reb_ibm_customer_success_value_realization",
         "reb_unify_production_adoption_lifecycle",
         "reb_slalom_agentic_client_delivery",
@@ -878,8 +890,11 @@ def _bundle_allowed_linked_facts(
         if skill_ids and fact_skills and not skill_ids.intersection(fact_skills):
             continue
         root_id = str(fact.get("fact_id") or fact.get("role_episode_bundle_id") or "").strip()
-        if rec.get("capability_family") == "partner_applied_ai_architecture" and not root_id.startswith(
-            ("reb_unify_", "reb_ibm_", "fact_partnerships_gtm_", "fact_solutions_", "exp_unify_", "exp_ibm_")
+        if rec.get("capability_family") == "partner_applied_ai_architecture" and not (
+            root_id == "reb_slalom_ecosystem_accelerators"
+            or root_id.startswith(
+                ("reb_unify_", "reb_ibm_", "fact_partnerships_gtm_", "fact_solutions_", "exp_unify_", "exp_ibm_")
+            )
         ):
             continue
         if rec.get("capability_family") in {
@@ -898,7 +913,11 @@ def _bundle_allowed_linked_facts(
     if out:
         return out
 
-    for root_id in COMPETENCY_BUNDLE_FAMILY_ROOT_HINTS.get(str(rec.get("capability_family") or ""), ()):
+    candidate_roots = [
+        *[str(r).strip() for r in (rec.get("role_episode_bindings") or []) if str(r).strip()],
+        *COMPETENCY_BUNDLE_FAMILY_ROOT_HINTS.get(str(rec.get("capability_family") or ""), ()),
+    ]
+    for root_id in dict.fromkeys(candidate_roots):
         for fact in plan_facts:
             if root_id not in {
                 str(fact.get("fact_id") or ""),
@@ -910,6 +929,7 @@ def _bundle_allowed_linked_facts(
                 _append_allowed_source_fact(out, fid, allowed=allowed)
             for mid in fact.get("metric_outcome_ids") or []:
                 _append_allowed_source_fact(out, mid, allowed=allowed)
+        _append_allowed_source_fact(out, root_id, allowed=allowed)
     return out
 
 

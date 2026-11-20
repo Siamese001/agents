@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import concurrent.futures
 import json
+import os
+import sys
 import threading
 import time
 from pathlib import Path
@@ -165,6 +167,7 @@ def dispatch_patch_lanes_wave_parallel(
     )
 
     repo = plan.repo
+    log_stream = sys.stderr if os.environ.get("APPS_RG_WHOLE_RUN_ENVELOPE") == "1" else sys.stdout
     results: dict[str, dict[str, Any]] = {}
     aborted = False
     abort_reason = ""
@@ -180,6 +183,7 @@ def dispatch_patch_lanes_wave_parallel(
                 results[lane] = {"prior_abort": abort_reason, "exit_status": "error"}
                 print(
                     f"[patch_run] [{idx}/{total_lanes}] Skipping lane '{lane}' (prior abort: {abort_reason})",
+                    file=log_stream,
                     flush=True,
                 )
                 emit_integrated_lane_pre_run_failure(
@@ -204,6 +208,7 @@ def dispatch_patch_lanes_wave_parallel(
                 print(
                     f"[patch_run] [{idx}/{total_lanes}] Aborting lane '{lane}': "
                     f"total patch-run timeout exceeded ({run_timeout:.1f}s)",
+                    file=log_stream,
                     flush=True,
                 )
                 emit_integrated_lane_pre_run_failure(
@@ -234,6 +239,7 @@ def dispatch_patch_lanes_wave_parallel(
                     print(
                         f"[patch_run] [{idx}/{total_lanes}] Lane '{lane}' blocked: "
                         f"upstream '{upstream}' not finalized",
+                        file=log_stream,
                         flush=True,
                     )
                     emit_integrated_lane_pre_run_failure(
@@ -261,6 +267,7 @@ def dispatch_patch_lanes_wave_parallel(
                 print(
                     f"[patch_run] [{idx}/{total_lanes}] Dispatching lane '{lane}' "
                     f"(lane_timeout={lane_timeout:.0f}s)...",
+                    file=log_stream,
                     flush=True,
                 )
                 l_start = time.monotonic()
@@ -299,6 +306,7 @@ def dispatch_patch_lanes_wave_parallel(
                     }
                     print(
                         f"[patch_run] [{idx}/{total_lanes}] ERROR: Lane '{lane}' TIMED OUT after {lane_timeout:.1f}s",
+                        file=log_stream,
                         flush=True,
                     )
                     emit_integrated_lane_pre_run_failure(
@@ -330,6 +338,7 @@ def dispatch_patch_lanes_wave_parallel(
                     }
                     print(
                         f"[patch_run] [{idx}/{total_lanes}] ERROR: Lane '{lane}' exception: {exc}",
+                        file=log_stream,
                         flush=True,
                     )
 
@@ -342,6 +351,7 @@ def dispatch_patch_lanes_wave_parallel(
                     print(
                         f"[patch_run] [{idx}/{total_lanes}] Lane '{lane}' finished in {lane_elapsed:.1f}s "
                         f"(exit_status={exit_status}, x3={x3_code})",
+                        file=log_stream,
                         flush=True,
                     )
 

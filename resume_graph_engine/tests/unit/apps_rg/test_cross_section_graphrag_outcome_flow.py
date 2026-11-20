@@ -14,6 +14,18 @@ RGE_ROOT = Path(__file__).resolve().parents[3]
 DB_PATH = RGE_ROOT / "artifacts/apps_rg/fact_inventory/augmented_skills_graph.sqlite"
 
 
+def _ensure_skills_graph_db() -> Path:
+    if not DB_PATH.exists() or DB_PATH.stat().st_size == 0:
+        if DB_PATH.exists():
+            DB_PATH.unlink()
+        from apps_rg.fact_inventory.skills_graph.materializer import (
+            materialize_augmented_skills_graph_sqlite,
+        )
+
+        materialize_augmented_skills_graph_sqlite(repo_root=RGE_ROOT, db_path=DB_PATH)
+    return DB_PATH
+
+
 @pytest.mark.unit
 def test_ibm_qualitative_slot_never_advertises_unassigned_numeric_metrics() -> None:
     """Wave 1: qualitative ibm_bullets slots must not list unassigned numeric bundle metrics."""
@@ -124,7 +136,7 @@ def test_unify_and_insurtech_bundles_emit_concrete_graph_business_outcomes() -> 
 def test_competencies_zero_phantom_ids_and_slalom_bound() -> None:
     """Wave 3: competency_capability_bundles.json has 0 phantom skill/REB IDs and binds all 10 Slalom REBs."""
     ccb = json.loads((RGE_ROOT / "src/apps_rg/fact_inventory/competency_capability_bundles.json").read_text(encoding="utf-8"))
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(_ensure_skills_graph_db())
     live_nodes = {r[0] for r in conn.execute("SELECT node_id FROM graph_nodes").fetchall()}
     conn.close()
 
@@ -154,7 +166,7 @@ def test_competencies_zero_phantom_ids_and_slalom_bound() -> None:
 @pytest.mark.unit
 def test_metric_outcome_story_semantic_units_expose_exec_summary_and_competencies() -> None:
     """Wave 4: metric_outcome_story semantic units derive section eligibility from graph edges."""
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(_ensure_skills_graph_db())
     rows = conn.execute(
         "SELECT allowed_sections_json FROM semantic_unit WHERE unit_type = 'metric_outcome_story'"
     ).fetchall()

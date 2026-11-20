@@ -78,6 +78,11 @@ def _bind_ibm_change_log_to_frozen_allocation(
     root and leaf-skill identifiers may reach the final change log.
     """
 
+    from apps_rg.runtime.sections.ibm_role_episode_evidence import (
+        PROMOTABLE_METRIC_OUTCOME_IDS,
+    )
+
+    allowed_outcomes = set(PROMOTABLE_METRIC_OUTCOME_IDS)
     allocation_by_bullet: dict[str, dict[str, str]] = {}
     for row in selected_fact_plan.get("allocation_assignments") or []:
         if not isinstance(row, dict) or str(row.get("section_id") or "") != "ibm_bullets":
@@ -86,11 +91,13 @@ def _bind_ibm_change_log_to_frozen_allocation(
         bullet_id = claim_unit_id.rsplit(":", 1)[-1]
         root_id = str(row.get("root_id") or "").strip()
         skill_id = str(row.get("skill_id") or "").strip()
+        metric_outcome_id = str(row.get("metric_outcome_id") or "").strip()
         if bullet_id in IBM_BULLET_IDS and root_id and skill_id:
             allocation_by_bullet[bullet_id] = {
                 "claim_unit_id": claim_unit_id,
                 "root_id": root_id,
                 "skill_id": skill_id,
+                "metric_outcome_id": metric_outcome_id,
             }
     if not allocation_by_bullet:
         return
@@ -113,6 +120,18 @@ def _bind_ibm_change_log_to_frozen_allocation(
         entry["role_episode_bundle_id"] = allocation["root_id"]
         entry["graph_skill_node_ids"] = [allocation["skill_id"]]
         entry["allocation_claim_unit_id"] = allocation["claim_unit_id"]
+        if allocation["metric_outcome_id"]:
+            entry["metric_outcome_ids"] = [allocation["metric_outcome_id"]]
+        elif "metric_outcome_ids" in entry:
+            filtered_outcomes = [
+                str(mid).strip()
+                for mid in (entry.get("metric_outcome_ids") or [])
+                if str(mid).strip() in allowed_outcomes
+            ]
+            if filtered_outcomes:
+                entry["metric_outcome_ids"] = filtered_outcomes
+            else:
+                entry.pop("metric_outcome_ids", None)
     parsed["change_log"] = change_log
 
 
