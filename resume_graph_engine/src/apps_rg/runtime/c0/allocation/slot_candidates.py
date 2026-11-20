@@ -110,7 +110,21 @@ def _default_slot_specs(
                     "employer_lane": EMPLOYER_LANE_BY_SECTION[section_id],
                 }
             )
-    exec_employer_lanes = ("slalom", "unify", "ibm", "insurtech")
+    exec_plan = section_plans.get("executive_summary") or {}
+    exec_profile = str(exec_plan.get("target_role_profile") or "").strip()
+    exec_emp_weights = (
+        (exec_plan.get("graph_weight_profile") or {}).get("employer_weights")
+        or {}
+    )
+    include_insurtech_in_exec = (
+        exec_profile == "insurance_it_strategy"
+        or float(exec_emp_weights.get("insurtech") or 0.0) > 0.55
+    )
+    exec_employer_lanes = (
+        ("slalom", "unify", "ibm", "insurtech")
+        if include_insurtech_in_exec
+        else ("slalom", "unify", "ibm")
+    )
     for index, employer_lane in enumerate(exec_employer_lanes, start=1):
         slots.append(
             {
@@ -210,11 +224,11 @@ def _candidate_sets_from_section_plans(
                     metric_options.append({**metric, "metric_value": value, "metric_unit": unit})
                 if not metric_options:
                     continue
-            elif slot.section_id.endswith("_bullets") and metrics:
+            elif (slot.section_id.endswith("_bullets") or slot.section_id == "executive_summary") and metrics:
                 populated: list[dict[str, Any] | None] = []
                 for metric in metrics:
                     metric_raw_text = str(metric.get("metric") or "")
-                    if slot.section_id == "ibm_bullets" and HOLD_METRIC_TEXT_RE.search(metric_raw_text):
+                    if slot.section_id in {"ibm_bullets", "executive_summary"} and HOLD_METRIC_TEXT_RE.search(metric_raw_text):
                         continue
                     value, unit = extract_exact_metric_value_unit(metric_raw_text)
                     populated.append({**metric, "metric_value": value, "metric_unit": unit})
