@@ -915,3 +915,45 @@ def test_strip_targeting_only_experience_claims_sanitizes_buzzwords() -> None:
     assert "frontier AI" not in cleaned
     assert "enterprise AI" in cleaned
     assert hits == []
+
+
+def test_slalom_bullets_preserve_long_sentences_without_narrative_360_truncation() -> None:
+    cfg = role_episode_lane._ROLE_LANES["slalom_bullets"]
+    long_bullet = (
+        "Engineered a multi-stage strategic decision intelligence engine that orchestrated "
+        "18 specialized reasoning roles across 6 analytical modalities with independent "
+        "cross-provider LLM judge panels to cut executive review bottlenecks, achieve 99% "
+        "policy-gate auditability and 100% abstention precision via confidence-calibrated "
+        "Bayesian human-in-the-loop (HITL) escalation, and prevent ungrounded claim releases."
+    )
+    assert len(long_bullet) > 360
+    normalized = role_episode_lane._normalize_bullets(
+        {
+            "bullets": [
+                {"bullet_text": long_bullet, "source_fact_ids": ["bul_slalom_003"]},
+                {"bullet_text": "Expanded quarterly AI engineering SOW.", "source_fact_ids": ["bul_slalom_002"]},
+                {"bullet_text": "Architected bi-temporal enterprise knowledge graph.", "source_fact_ids": ["bul_slalom_004"]},
+                {"bullet_text": "Led 105 software engineers and data leaders across 33 charters.", "source_fact_ids": ["bul_slalom_001"]},
+            ]
+        },
+        cfg=cfg,
+        allowed=["bul_slalom_001", "bul_slalom_002", "bul_slalom_003", "bul_slalom_004"],
+    )
+    assert normalized[0]["bullet_text"] == long_bullet
+    assert not normalized[0]["bullet_text"].endswith("(HITL) es.")
+
+
+def test_narrative_sentence_truncation_snaps_to_word_boundary() -> None:
+    overlong_narrative = (
+        "Operationalized governed enterprise AI delivery across regulated utility and financial "
+        "accounts by pairing multi-stage orchestration control planes, cryptographic GraphRAG "
+        "retrieval lineage, and calibrated human-in-the-loop escalation gates to convert "
+        "fragmented pilots into auditable production systems while accelerating executive "
+        "commercialization escalation across priority enterprise accounts."
+    )
+    assert len(overlong_narrative) > 360
+    clamped = role_episode_lane._sentence(overlong_narrative)
+    assert len(clamped) <= 360
+    assert clamped.endswith(".")
+    assert not clamped.endswith(" es.")
+

@@ -20,6 +20,7 @@ from .lane_config import (
     ROLE_EPISODE_FINAL_MATERIALIZED_SELECTION_CONTRACT,
     ROLE_EPISODE_PROOF_TEXT_RENDERER_VERSION,
     RoleEpisodeLaneConfig,
+    _bullet_sentence,
     _compact_text,
     _facts_from_plan,
     _normalize_source_ids,
@@ -86,10 +87,10 @@ def _proof_fact_text(fact: dict[str, Any]) -> str:
     if len(skill_ids) == 1:
         composition = _PROOF_FACT_SURFACE_COMPOSITIONS.get((fact_id, skill_ids[0]))
         if composition and _proof_fact_composition_is_bound(composition, fact):
-            return _sentence(composition)
+            return _bullet_sentence(composition)
     anchor = fact.get("fact_anchor") if isinstance(fact.get("fact_anchor"), Mapping) else {}
     base = str(fact.get("claim_text") or fact.get("text") or anchor.get("resolved_raw_chunk") or fact.get("raw_chunk") or "")
-    return _sentence(base)
+    return _bullet_sentence(base)
 
 
 def _proof_fact_by_id(facts: list[dict[str, Any]], allowed: list[str]) -> dict[str, dict[str, Any]]:
@@ -240,7 +241,7 @@ def _proof_authorized_bullets_from_selection_with_contract(
 
     model_surface_by_fact_id: dict[str, dict[str, Any]] = {}
     for row in model_bullets:
-        text = _sentence(str(row.get("bullet_text") or ""))
+        text = _bullet_sentence(str(row.get("bullet_text") or ""))
         if not text:
             continue
         for raw_source_id in row.get("source_fact_ids") or []:
@@ -257,7 +258,7 @@ def _proof_authorized_bullets_from_selection_with_contract(
         if not fact:
             continue
         candidate = model_surface_by_fact_id.get(fid)
-        candidate_text = _sentence(str((candidate or {}).get("bullet_text") or ""))
+        candidate_text = _bullet_sentence(str((candidate or {}).get("bullet_text") or ""))
         candidate_bound, anchors = _model_bullet_surface_binding(candidate_text, fact)
         model_surface_binding_rows.append(
             {
@@ -384,7 +385,7 @@ def _proof_authorized_narrative_from_selection(
     for fid in source_ids:
         fact = proof_by_id.get(fid)
         if fact:
-            text = _proof_fact_text(fact)
+            text = _sentence(_proof_fact_text(fact))
             if text:
                 text = repair_narrative_bullet_echo_from_graph(
                     text, facts=facts, companion_bullet_texts=companion_bullet_texts, section_id=section_id,

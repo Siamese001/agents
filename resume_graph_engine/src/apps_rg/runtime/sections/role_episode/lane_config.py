@@ -179,28 +179,43 @@ def _json_hash(value: Any) -> str:
     )
 
 
-def _compact_text(text: str, *, max_chars: int = 240) -> str:
+def _compact_text(text: str, *, max_chars: int | None = 240) -> str:
     cleaned = re.sub(r"\s+", " ", str(text or "")).strip()
-    return cleaned[:max_chars].rstrip()
+    if max_chars is None or len(cleaned) <= max_chars:
+        return cleaned
+    head = cleaned[:max_chars]
+    if " " in head and cleaned[max_chars : max_chars + 1] not in ("", " "):
+        head = head.rsplit(" ", 1)[0]
+    return head.rstrip(" ,;:-")
 
 
-def _sentence(text: str) -> str:
+def _sentence(
+    text: str,
+    *,
+    max_chars: int | None = NARRATIVE_MAX_CHARS,
+    max_words: int | None = NARRATIVE_MAX_WORDS,
+) -> str:
     # Em dashes are banned by x2_no_em_dash — normalize to a comma clause before budgeting.
     normalized = str(text or "").replace("—", ", ").replace(" ,", ",")
-    cleaned = _compact_text(normalized, max_chars=NARRATIVE_MAX_CHARS)
+    cleaned = _compact_text(normalized, max_chars=max_chars)
     if not cleaned:
         return ""
     cleaned = cleaned.replace("\n", " ").strip()
     words = cleaned.split()
-    if len(words) > NARRATIVE_MAX_WORDS:
-        cleaned = " ".join(words[:NARRATIVE_MAX_WORDS])
+    if max_words is not None and len(words) > max_words:
+        cleaned = " ".join(words[:max_words]).rstrip(" ,;:-")
     if cleaned.endswith((".", "!", "?")):
         return cleaned
     # Reserve room for the appended terminator — truncating to exactly NARRATIVE_MAX_CHARS and
     # then adding "." produced a 361-char narrative vs the 360 budget (off-by-one X2 fail).
-    if len(cleaned) >= NARRATIVE_MAX_CHARS:
-        cleaned = cleaned[: NARRATIVE_MAX_CHARS - 1].rstrip().rstrip(",;")
+    if max_chars is not None and len(cleaned) >= max_chars:
+        cleaned = _compact_text(cleaned, max_chars=max_chars - 1)
     return f"{cleaned}."
+
+
+def _bullet_sentence(text: str) -> str:
+    """Normalize single-bullet punctuation and whitespace without narrative char/word caps."""
+    return _sentence(text, max_chars=None, max_words=None)
 
 
 def _role_header(base: dict[str, Any], cfg: RoleEpisodeLaneConfig, args: Any) -> dict[str, Any]:

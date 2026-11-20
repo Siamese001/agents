@@ -8,7 +8,13 @@ from apps_rg.runtime.contracts.metric_lexical_primitives import (
     NARRATIVE_LEDGER_STOPWORDS,
     narrative_ledger_tokens,
 )
-from .lane_config import _compact_text, _facts_from_plan, _normalize_source_ids, _sentence
+from .lane_config import (
+    _bullet_sentence,
+    _compact_text,
+    _facts_from_plan,
+    _normalize_source_ids,
+    _sentence,
+)
 
 _NARRATIVE_LEDGER_STOPWORDS = NARRATIVE_LEDGER_STOPWORDS
 _narrative_ledger_tokens = narrative_ledger_tokens
@@ -232,7 +238,7 @@ def _strip_targeting_only_experience_claims(text: str) -> tuple[str, list[str]]:
     cleaned = re.sub(r"\s{2,}", " ", cleaned)
     cleaned = re.sub(r"\s+([.,;:])", r"\1", cleaned).strip(" ,;:")
     if cleaned != original and cleaned:
-        cleaned = _sentence(cleaned)
+        cleaned = _bullet_sentence(cleaned)
     return (cleaned or original), _targeting_only_experience_hits(cleaned or original)
 
 
