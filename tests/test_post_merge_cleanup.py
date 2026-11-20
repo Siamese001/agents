@@ -296,6 +296,45 @@ class PostMergeCleanupTests(unittest.TestCase):
             self.assertNotIn("implement_token_budget_agent", all_branches)
             self.assertIn(branch_name, all_branches)
 
+    def test_refresh_skills_graph_sqlite_if_changed_triggers_on_ssot_and_skips_unrelated(self) -> None:
+        """Verify _refresh_skills_graph_sqlite_if_changed triggers only when fact_inventory SSOTs change."""
+        from unittest import mock
+
+        from tools.pr_governance_core.lifecycle import _refresh_skills_graph_sqlite_if_changed
+
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp).resolve()
+            mat = repo / "resume_graph_engine" / "src" / "apps_rg" / "fact_inventory" / "skills_graph" / "materializer.py"
+            mat.parent.mkdir(parents=True, exist_ok=True)
+            mat.write_text("# stub\n", encoding="utf-8")
+
+            # 1. Unrelated file diff -> no-op
+            with (
+                mock.patch("tools.pr_governance_core.lifecycle.run_git", return_value="README.md\ntools/foo.py\n"),
+                mock.patch("tools.pr_governance_core.lifecycle.subprocess.run") as mock_run,
+            ):
+                refreshed = _refresh_skills_graph_sqlite_if_changed(repo, "abc123")
+                self.assertFalse(refreshed)
+                mock_run.assert_not_called()
+
+            # 2. Graph SSOT file diff -> triggers materializer
+            fake_proc = subprocess.CompletedProcess(
+                args=["python"],
+                returncode=0,
+                stdout="Refreshed augmented_skills_graph.sqlite (digest=0123456789abcdef)\n",
+                stderr="",
+            )
+            with (
+                mock.patch(
+                    "tools.pr_governance_core.lifecycle.run_git",
+                    return_value="resume_graph_engine/artifacts/apps_rg/fact_inventory/slalom_role_episode_bundles.json\n",
+                ),
+                mock.patch("tools.pr_governance_core.lifecycle.subprocess.run", return_value=fake_proc) as mock_run,
+            ):
+                refreshed = _refresh_skills_graph_sqlite_if_changed(repo, "abc123")
+                self.assertTrue(refreshed)
+                mock_run.assert_called_once()
+
 
 if __name__ == "__main__":
     unittest.main()

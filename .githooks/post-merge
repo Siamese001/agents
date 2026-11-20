@@ -31,4 +31,11 @@ if [ -f "$REPO_ROOT/tools/prune_merged_chat_worktrees.py" ]; then
 elif [ -f "$MAIN_REPO/tools/prune_merged_chat_worktrees.py" ]; then
     "$PYTHON_BIN" "$MAIN_REPO/tools/prune_merged_chat_worktrees.py" --repo-root "$MAIN_REPO" --active-cwd "$MAIN_REPO" --target-ref "$CURRENT_BRANCH" --delete-merged
 fi
+
+if [ -f "$REPO_ROOT/tools/pr_governance_core/lifecycle.py" ] && git rev-parse --verify ORIG_HEAD >/dev/null 2>&1; then
+    ORIG_SHA="$(git rev-parse ORIG_HEAD 2>/dev/null || echo "")"
+    if [ -n "$ORIG_SHA" ]; then
+        "$PYTHON_BIN" -B -c "from pathlib import Path; from tools.pr_governance_core.lifecycle import _refresh_skills_graph_sqlite_if_changed; _refresh_skills_graph_sqlite_if_changed(Path(r'$REPO_ROOT'), '$ORIG_SHA')"
+    fi
+fi
 echo "=== [Git Hook] Post-Merge Cleanup Complete ==="
