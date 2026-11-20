@@ -1,0 +1,10 @@
+{
+  "channel": "email",
+  "lead_profile": {
+    "name": "Priya",
+    "role_context": "CISO evaluating AI security leadership"
+  },
+  "manual_brief": "AI security governance outreach",
+  "outreach_mode": "cold",
+  "recipient_class": "executive_contact"
+}

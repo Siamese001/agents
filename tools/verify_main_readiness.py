@@ -178,6 +178,20 @@ def verify_main_readiness(
             "Governed PR Merge Queue & Trunk Lock Suite",
             120,
         ),
+        (
+            "6. Resume & Outreach Eval Harness & Promotion Gate",
+            [
+                str(python_bin),
+                "ops_scripts/ci/check_eval_harness_promotion_evidence.py",
+                "--run-offline",
+                "--out",
+                "artifacts/eval_harness/readiness/final_gate_report.json",
+            ]
+            if (repo_root / "ops_scripts" / "ci" / "check_eval_harness_promotion_evidence.py").exists()
+            else None,
+            "Resume & Outreach Eval Harness & Promotion Gate",
+            180,
+        ),
     ]
 
     for stage_name, argv, desc, timeout_s in stage_defs:

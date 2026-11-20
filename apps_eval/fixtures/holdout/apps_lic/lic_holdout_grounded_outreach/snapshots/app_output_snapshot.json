@@ -1,0 +1,38 @@
+{
+  "app_id": "apps_lic",
+  "artifacts": [
+    "outreach.md"
+  ],
+  "claims": [
+    {
+      "id": "lic_holdout_claim_1",
+      "source_ids": [
+        "lead:role_context",
+        "opportunity:jd"
+      ],
+      "supported": true,
+      "text": "AI platform governance modernization"
+    }
+  ],
+  "deterministic_hash": "4f71ad4be4e711689e21e16ff728635ded9391bc36ca8a21af69d60594b1d539",
+  "output": {
+    "compliance_notes": "Grounded strictly in supplied role context and opportunity facts with peer tone.",
+    "message": "Hi Elena, I noticed your engineering group is hiring an AI platform architect focused on governed modernization. My background centers on enterprise AI architecture and risk controls; happy to compare notes if relevant.",
+    "rationale": "Direct peer outreach tied strictly to verified opportunity context."
+  },
+  "provenance": {
+    "evidence_refs": [
+      "lead:role_context",
+      "opportunity:jd"
+    ],
+    "rubric_refs": [
+      "apps_lic_outreach_v1"
+    ]
+  },
+  "scenario_id": "lic_holdout_grounded_outreach",
+  "side_effects": {
+    "product_state_mutated": false,
+    "writes": []
+  },
+  "x3_disposition": "X3D_ALLOW_FINISH"
+}

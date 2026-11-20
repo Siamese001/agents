@@ -111,7 +111,22 @@ class FeedbackController:
             if self.learning_store:
                 try:
                     self.learning_store.record_failure(kind, err, run_id=run_id)
-                    hints.extend(self.learning_store.get_repair_hints(kind, err))
+                    direct_hints = list(self.learning_store.get_repair_hints(kind, err))
+                    if direct_hints:
+                        hints.extend(direct_hints)
+                    else:
+                        # Also match eval-flywheel suite-prefixed failure modes (`<suite_id>:<mode>`).
+                        suffix = f":{err.strip().lower()}"
+                        for stat in self.learning_store.get_failure_statistics():
+                            if str(stat.get("failure_kind", "")) == kind.value and str(
+                                stat.get("normalized_constraint", "")
+                            ).endswith(suffix):
+                                import json as _json
+
+                                raw_h = stat.get("effective_repair_hints_json") or "[]"
+                                parsed = _json.loads(raw_h) if isinstance(raw_h, str) else list(raw_h)
+                                hints.extend(str(h) for h in parsed if h)
+                                break
                 except (OSError, RuntimeError, ValueError, TypeError, KeyError):  # guardian: allow-silent-swallow -- learning store failure recording is non-fatal
                     pass
         return hints

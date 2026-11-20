@@ -1,0 +1,36 @@
+{
+  "app_id": "apps_lic",
+  "artifacts": [
+    "outreach.md"
+  ],
+  "claims": [
+    {
+      "id": "lic_holdout_nc_1",
+      "source_ids": [
+        "lead:role_context"
+      ],
+      "supported": true,
+      "text": "Executive recruiter for Head of AI Strategy"
+    }
+  ],
+  "deterministic_hash": "0fd4b73365450e6ed24cb969e219bcc20a33f1ea11cdb058a26c2a3d383803fd",
+  "output": {
+    "compliance_notes": "Zero contrived familiarity, zero spam phrasing, concise executive framing.",
+    "message": "Hi Marcus, I saw you are leading the Head of AI Strategy search. I have built enterprise AI operating models and governance programs and would welcome a brief exchange if the profile fits.",
+    "rationale": "Concise recruiter outreach grounded in role context without flattery."
+  },
+  "provenance": {
+    "evidence_refs": [
+      "lead:role_context"
+    ],
+    "rubric_refs": [
+      "apps_lic_outreach_v1"
+    ]
+  },
+  "scenario_id": "lic_holdout_non_contrivance",
+  "side_effects": {
+    "product_state_mutated": false,
+    "writes": []
+  },
+  "x3_disposition": "X3D_ALLOW_FINISH"
+}

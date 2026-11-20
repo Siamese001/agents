@@ -1,0 +1,17 @@
+{
+  "description": "Holdout: executive resume tailoring strictly grounds claims in C0.3 graph evidence with zero invented metrics.",
+  "graders": [
+    "schema",
+    "artifact_presence",
+    "x3_disposition",
+    "forbidden_content",
+    "grounded_claim",
+    "provenance",
+    "section_structure",
+    "length_bounds",
+    "side_effect",
+    "escalation",
+    "determinism"
+  ],
+  "scenario_id": "rg_holdout_executive_grounding"
+}

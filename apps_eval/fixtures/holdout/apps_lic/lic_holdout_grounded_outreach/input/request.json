@@ -1,0 +1,17 @@
+{
+  "c0_required_namespaces": [
+    "lead:role_context",
+    "opportunity:jd"
+  ],
+  "channel": "linkedin",
+  "governed_opportunity_facts": [
+    "AI platform governance modernization"
+  ],
+  "lead_profile": {
+    "name": "Elena",
+    "role_context": "VP Engineering hiring AI platform architect"
+  },
+  "manual_brief": "Governed AI delivery alignment for Meridian Financial",
+  "outreach_mode": "cold",
+  "recipient_class": "executive_contact"
+}

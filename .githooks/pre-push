@@ -42,4 +42,8 @@ echo "-> 4. Running governance test suite..."
   tests/test_post_merge_cleanup.py \
   --timeout=60
 
+# 5. Fast deterministic Resume & Outreach eval harness & baseline gate
+echo "-> 5. Running Resume & Outreach eval harness gate..."
+"$PYTHON_BIN" ops_scripts/ci/check_eval_harness_promotion_evidence.py --run-offline --fast-dev
+
 echo "=== [Git Hook] All Pre-Push Checks PASSED ==="

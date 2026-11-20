@@ -1,0 +1,40 @@
+{
+  "app_id": "apps_rg",
+  "artifacts": [
+    "resume.md"
+  ],
+  "claims": [
+    {
+      "id": "rg_holdout_claim_1",
+      "source_ids": [
+        "resume:c03_graph",
+        "resume:leadership"
+      ],
+      "supported": true,
+      "text": "Governed enterprise AI modernization and risk controls across regulated delivery programs."
+    }
+  ],
+  "deterministic_hash": "4cece0545f474bbdaf0fabefb3e671ca6d5f662e449980528d5ab1eab0ca2635",
+  "output": {
+    "sections": {
+      "executive_summary": "Enterprise AI architecture executive leading governed platform modernization and measurable risk controls across regulated operating environments.",
+      "experience": "Directed multi-year AI governance and cloud modernization programs backed by audited C0.3 graph evidence and verified stakeholder outcomes.",
+      "skills": "Enterprise AI governance, risk controls, platform modernization, multi-agent systems, executive stakeholder alignment."
+    }
+  },
+  "provenance": {
+    "evidence_refs": [
+      "resume:c03_graph",
+      "resume:leadership"
+    ],
+    "rubric_refs": [
+      "apps_rg_resume_generation_v1"
+    ]
+  },
+  "scenario_id": "rg_holdout_executive_grounding",
+  "side_effects": {
+    "product_state_mutated": false,
+    "writes": []
+  },
+  "x3_disposition": "X3D_ALLOW_FINISH"
+}

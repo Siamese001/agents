@@ -1,0 +1,10 @@
+{
+  "channel": "email",
+  "lead_profile": {
+    "name": "Marcus",
+    "role_context": "Executive recruiter for Head of AI Strategy"
+  },
+  "manual_brief": "Executive AI strategy role exploration",
+  "outreach_mode": "cold",
+  "recipient_class": "recruiter"
+}
