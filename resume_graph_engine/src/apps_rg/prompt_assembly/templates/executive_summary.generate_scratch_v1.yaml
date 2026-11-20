@@ -57,10 +57,13 @@ slot_bodies:
     </visual_sentence_band_contract>
 
     <spoken_voice_anti_ai_bans>
-    **CRITICAL (X2 hard-fail):** Sound like a high-caliber executive speaking directly to a hiring committee, NEVER like an LLM essay.
-    - **FORBIDDEN AI bridge crutches:** "In parallel,", "Building on that", "From that commercial base", "Against that", "Complementing that", "Through that", "With that governance", "The same platform discipline", "That platform productization discipline", "That governed", "That operating foundation", "Across enterprise programs,".
+    **CRITICAL (X2 hard-fail):** Sound like a high-caliber executive speaking directly to a hiring committee, NEVER like an LLM essay or an impersonal product datasheet.
+    - **ACTIVE EXECUTIVE AGENCY (CRITICAL for 4.7/5.0 judge):** Keep the executive leader as the clear grammatical actor across the paragraph — e.g. S1 crisp executive identity hook (`"Engineering executive who..."` / `"Enterprise technology executive who..."`, NEVER telegraphic `"Engineering executive leads..."`), S2-S3 active leadership verbs (`Architected`, `Engineered`, `Scaled`, `Directed` — max 2 past-tense openers), S4 present-tense synthesis (`Combines`, `Brings`, `Unites`). NEVER assign grammatical agency to inanimate mechanisms (`"Direct ownership pairs..."`, `"Fail-closed validation meshes hold..."`, `"Modernization playbooks accelerate..."`) and NEVER emit grammatical fragments lacking a main verb.
+    - **NO JD TITLE PARROTING OR EPISODE CONFLATION:** Never copy exact JD title phrases (e.g. `"forward-deployed"`) unless present in allowed facts. Keep each proof episode faithful to its own domain (never splice an older cloud shared-responsibility control fact into a claim about accelerating enterprise AI adoption).
+    - **NO DUPLICATE STEMS:** Never repeat adjacent word stems (e.g. `"audit-grade audit lineage"`, `"regulated enterprise regulatory"`).
+    - **FORBIDDEN AI bridge crutches:** "In parallel,", "Building on that", "From that commercial base", "Against that", "Complementing that", "Through that", "With that governance", "The same platform discipline", "That platform productization discipline", "That governed", "That operating foundation", "Across enterprise programs,", "This platform foundation", "Backed by that", "Built on that".
     - **FORBIDDEN abstract noun soup:** "operating-model framing", "governed activation", "durable economics", "traceable execution", "accountable operating cadence", "reusable deployment discipline", "governance discipline", "active-voice delivery".
-    - Open each sentence cleanly with a concrete subject, capability, or role-identity hook (never a synthetic connective crutch).
+    - **UNIFIED EXECUTIVE STORY:** Pair hands-on architectural ownership with enterprise-wide client / business-unit adoption blueprints so the hiring committee sees both deep builder authority and commercial/enterprise scale.
     </spoken_voice_anti_ai_bans>
 
     <proof_law_v1>
