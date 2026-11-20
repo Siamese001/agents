@@ -545,8 +545,13 @@ def normalize_exec_summary_recruiter_openers(resume_display_text: str) -> str:
     rebuilt: list[str] = []
     for sent in split_sentences(text):
         words = sent.split()
-        while words and words[0].lower().strip(",.;:") in EXEC_SUMMARY_MECHANICAL_OPENERS:
+        stripped_any = False
+        while words and (
+            words[0].lower().strip(",.;:") in EXEC_SUMMARY_MECHANICAL_OPENERS
+            or (stripped_any and words[0].lower().strip(",.;:") in {"and", "or", "also", "then"})
+        ):
             words = words[1:]
+            stripped_any = True
         if not words:
             continue
         clause = " ".join(words).strip()

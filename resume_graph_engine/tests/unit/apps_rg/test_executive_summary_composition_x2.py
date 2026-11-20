@@ -331,3 +331,34 @@ def test_competencies_visible_graph_surface_svp_agentic_engineering_avoids_partn
     assert "enablement" in terms_blob
 
 
+def test_normalize_exec_summary_recruiter_openers_preserves_valid_verb_and_avoids_and_fragment() -> None:
+    from apps_rg.runtime.sections.executive_summary_composition import (
+        normalize_exec_summary_recruiter_openers,
+    )
+    from apps_rg.runtime.validators.executive_summary_x2 import (
+        check_exec_summary_mechanical_opener_stack,
+    )
+
+    single_verb = (
+        "Engineering executive uniting governed agentic AI architecture with repeatable cloud delivery. "
+        "Architected and owned a multi-layer agentic AI platform control plane combining governed route selection with isolated tool execution. "
+        "In parallel, fail-closed validation meshes enforced 100% deterministic gate conformance."
+    )
+    normalized = normalize_exec_summary_recruiter_openers(single_verb)
+    assert "Owned a multi-layer" in normalized
+    assert "And owned" not in normalized
+    assert check_exec_summary_mechanical_opener_stack(normalized)[0] is True
+
+    stacked = (
+        "Led enterprise AI transformation across regulated institutions. "
+        "Built reusable orchestration services for multi-agent workflows. "
+        "Architected and owned a multi-layer control plane for production execution. "
+        "Delivered deterministic evaluation gates with full lineage."
+    )
+    repaired = normalize_exec_summary_recruiter_openers(stacked)
+    assert "And owned" not in repaired
+    assert "Owned a multi-layer control plane" in repaired
+    assert check_exec_summary_mechanical_opener_stack(repaired)[0] is True
+
+
+
