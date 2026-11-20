@@ -346,6 +346,10 @@ def build_unify_role_episode_section_packet(
                 "time_window": UNIFY_TIME_WINDOW,
                 "root_capability_node_id": bundle.get("root_capability_node_id"),
                 "bundle_theme": bundle.get("bundle_theme"),
+                "claim_text": bundle.get("claim_text"),
+                "claim_action": bundle.get("claim_action"),
+                "claim_scope": bundle.get("claim_scope"),
+                "claim_outcome": bundle.get("claim_outcome"),
                 "graph_skill_node_ids": list(bundle.get("graph_skill_node_ids") or []),
                 "linked_source_fact_ids": list(bundle.get("linked_source_fact_ids") or []),
                 "linked_metric_outcome_ids": list(bundle.get("linked_metric_outcome_ids") or []),
@@ -564,6 +568,7 @@ def format_unify_role_episode_evidence_pack(
             ),
             "  metric_outcome_options:",
             *[f"    - {_metric_option_label(mid)}" for mid in allowed_metrics],
+            f"  graph_business_outcome: {bundle.get('claim_outcome')}",
             "  executive_scope_signals:",
         ]
         for sig in bundle.get("executive_scope_signals") or []:
@@ -597,10 +602,11 @@ def _format_narrative_bundle_block(bundle_record: dict[str, Any]) -> str:
         f"  employer: {bundle_record.get('employer')} | time_window: {bundle_record.get('time_window') or UNIFY_TIME_WINDOW}",
         f"  graph_skill_node_ids: {bundle_record.get('graph_skill_node_ids')}",
         f"  linked_source_fact_ids: {bundle_record.get('linked_source_fact_ids')}",
-        f"  allowed_metric_outcome_ids: {bundle_record.get('linked_metric_outcome_ids')}",
+        f"  allowed_metric_outcome_ids: {[_metric_option_label(mid) for mid in (bundle_record.get('linked_metric_outcome_ids') or [])]}",
+        f"  graph_business_outcome: {bundle_record.get('claim_outcome')}",
         f"  operating_context: {bundle_record.get('operating_context')}",
         f"  bullet_intent: {bundle_record.get('bullet_intent')}",
-        "  Synthesize the Unify role arc from these bundles — do not recap each bullet line.",
+        "  Synthesize a value-outcome executive thesis from these bundles (what was built/commercialized and what business outcome it drove) — do not recap each bullet line.",
     ]
     bound = bundle_record.get("bound_skills") or []
     if bound:

@@ -111,12 +111,14 @@ def _theme_budget_block(companion_text: str = "") -> str:
         "vocabulary into the opening clause makes that family impossible to ledger-cover. "
         "Each clause names AT MOST TWO families - move the third family's vocabulary into "
         "the ', establishing' clause or drop it entirely.",
-        "- THESIS SHAPE (follow this intent, not a fixed string): choose ONE executive "
-        "through-line and let the bullets carry the detailed proof. Do not enumerate four "
-        "program families in the opening clause. Strong pattern: 'Led governed <mechanism> "
-        "work for enterprise clients at IBM, establishing <operating discipline> that made "
-        "<plain outcome> more repeatable.' Keep each clause to at most two theme families, "
-        "and prefer two or three material families total over the full four-family budget.",
+        "- THESIS SHAPE (follow this intent, not a fixed string): choose ONE value-outcome "
+        "executive through-line stating concretely what was built or modernized at IBM and what "
+        "business, operational, or compliance outcome it produced (grounded in graph_business_outcome); "
+        "never write practice-leadership-only filler. Do not enumerate four program families in the "
+        "opening clause. Strong pattern: 'Anchored governed <mechanism> transformation at IBM, "
+        "establishing <operating discipline> that accelerated <plain business outcome> across "
+        "regulated accounts.' Keep each clause to at most two theme families, and prefer two or "
+        "three material families total over the full four-family budget.",
         "- GRAPH-ROOT CAUSALITY LAW: a claim_ledger row that cites two bul_ibm_* roots must use "
         "descriptive leadership wording such as 'Led' or 'Owned', never causal/result verbs such as "
         "drove, driving, yielded, resulted, increased, reduced, generated, or delivered. If a causal "

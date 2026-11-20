@@ -438,6 +438,11 @@ def build_metric_outcome_stories(
             evidence=[f[3] or f[2] for f in facts],
             confidence_tier=conf_tier or "HIGH",
         )
+        sec_rows = conn.execute(
+            "SELECT target_node_id FROM graph_edges WHERE source_node_id = ? AND edge_type = 'metric_outcome_section_eligible'",
+            (m_id,),
+        ).fetchall()
+        sec_list = sorted({"metrics", "experience_bullets"} | {str(r[0]).removeprefix("section_") for r in sec_rows if r and r[0]})
         units.append(
             SemanticUnit(
                 unit_id=unit_id,
@@ -451,7 +456,7 @@ def build_metric_outcome_stories(
                 input_manifest_digest=input_manifest_digest,
                 confidence_tier=conf_tier or "HIGH",
                 min_confidence=conf_score if conf_score is not None else 0.90,
-                allowed_sections_json=json.dumps(["metrics", "experience_bullets"]),
+                allowed_sections_json=json.dumps(sec_list),
                 external_eligible=1,
                 members=tuple(members),
             )

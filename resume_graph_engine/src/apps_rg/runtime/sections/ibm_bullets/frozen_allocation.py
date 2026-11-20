@@ -212,6 +212,110 @@ _IBM_FROZEN_ALLOCATION_DISPLAY_COMPOSITIONS: dict[tuple[str, str], str] = {
         "Directed offering accelerator management, packaging repeatable Confluent Kafka and AI data platform blueprints "
         "into market-facing delivery assets deployed across financial and carrier client engagements."
     ),
+    ("reb_ibm_aws_modernization_architecture", "skill_sr_microservices_integration_platform"): (
+        "Architected AWS cloud modernization and microservices integration platforms for regulated financial institutions, "
+        "accelerating legacy workload migration while enforcing enterprise security and resilience standards."
+    ),
+    ("reb_ibm_aws_modernization_architecture", "skill_sr_cloud_data_platform_engineering"): (
+        "Architected AWS cloud data platform modernization for regulated banking and insurance accounts, "
+        "standardizing governed ingestion pipelines and reference architectures across core enterprise portfolios."
+    ),
+    ("reb_ibm_aws_modernization_architecture", "skill_sr_regulated_financial_institutions_fluency"): (
+        "Directed AWS cloud modernization architecture for regulated financial institutions, "
+        "aligning landing-zone controls and platform blueprints with banking and carrier audit requirements."
+    ),
+    ("reb_ibm_cognitive_business_decision_support", "skill_risk_greek_stress_testing"): (
+        "Delivered ML-enabled cognitive decision support and risk stress-testing analytics for financial institutions, "
+        "translating complex scenario outputs into governed executive portfolio decisions."
+    ),
+    ("reb_ibm_cognitive_business_decision_support", "skill_sr_cloud_data_platform_engineering"): (
+        "Engineered cloud data platform foundations for cognitive business decision support, "
+        "connecting analytical models to governed executive reporting across regulated client programs."
+    ),
+    ("reb_ibm_cognitive_business_decision_support", "skill_sr_regulated_financial_institutions_fluency"): (
+        "Operationalized cognitive decision-support analytics for regulated financial institutions, "
+        "embedding traceable risk and scenario reporting into executive steering cadences."
+    ),
+    ("reb_ibm_presales_solution_engineering", "skill_p2_gtm_discovery_qualification"): (
+        "Led technical pre-sales discovery and architecture qualification across enterprise financial-services pursuits, "
+        "converting complex client requirements into delivery-ready cloud modernization proposals."
+    ),
+    ("reb_ibm_presales_solution_engineering", "skill_sr_regulated_financial_institutions_fluency"): (
+        "Directed technical pre-sales solution engineering for regulated banking and insurance pursuits, "
+        "tailoring cloud architecture blueprints to compliance criteria to accelerate enterprise deal progression."
+    ),
+    ("reb_ibm_offering_accelerator_management", "skill_p2_tech_demoable_accelerator"): (
+        "Built and packaged demoable cloud and AI offering accelerators across financial-services accounts, "
+        "shortening client proof-of-value cycles and standardizing repeatable delivery patterns."
+    ),
+    ("reb_ibm_offering_accelerator_management", "skill_p2_tech_reusable_accelerators"): (
+        "Scaled reusable cloud, analytics, and Confluent Kafka offering accelerators across enterprise accounts, "
+        "reducing repeated engineering setup and accelerating client modernization launches."
+    ),
+    ("reb_ibm_offering_accelerator_management", "skill_p2_tech_ibm_cloud_portfolio_anchor"): (
+        "Anchored IBM cloud and AI offering portfolio packaging across enterprise financial-services accounts, "
+        "aligning repeatable reference architectures with commercial go-to-market execution."
+    ),
+    ("reb_ibm_offering_accelerator_management", "skill_sr_w12_industry_reference_architecture"): (
+        "Established industry reference architectures for financial-services cloud and AI offerings, "
+        "turning one-off client engagements into repeatable multi-account delivery assets."
+    ),
+    ("reb_ibm_offering_accelerator_management", "skill_sr_regulated_financial_institutions_fluency"): (
+        "Productized regulated financial-services offering accelerators for cloud and analytics transformations, "
+        "enabling compliant enterprise deployments with reduced delivery friction."
+    ),
+    ("reb_ibm_revenue_sales_target_execution", "skill_partner_sales_revenue_targets"): (
+        "Owned quota-aligned technical solution leadership across enterprise cloud pursuits, "
+        "driving pipeline discipline and commercial expansion across regulated financial-services accounts."
+    ),
+    ("reb_ibm_revenue_sales_target_execution", "skill_sr_regulated_financial_institutions_fluency"): (
+        "Directed quota-aligned cloud solution leadership for regulated financial institutions, "
+        "connecting compliance-ready architectures to sustained multi-year account expansion."
+    ),
+    ("reb_ibm_data_modeling_bi_decision_support", "skill_sr_enterprise_portfolio_data_governance"): (
+        "Established enterprise portfolio data governance and BI decision-support models across modernization programs, "
+        "delivering transparent executive KPIs and audit-ready metric lineage."
+    ),
+    ("reb_ibm_data_modeling_bi_decision_support", "skill_sr_regulated_financial_institutions_fluency"): (
+        "Built governed BI and decision-support data models for regulated financial institutions, "
+        "aligning modernization telemetry with executive risk and portfolio oversight."
+    ),
+    ("reb_ibm_customer_success_value_realization", "skill_partner_customer_deal_support"): (
+        "Directed post-sale client value-realization and deal-support motions across cloud modernization accounts, "
+        "aligning platform adoption milestones with executive expansion opportunities."
+    ),
+    ("reb_ibm_customer_success_value_realization", "skill_partner_product_feedback_loops"): (
+        "Established structured client product feedback loops across enterprise cloud deployments, "
+        "translating field adoption friction into accelerator upgrades and higher client retention."
+    ),
+    ("reb_ibm_customer_success_value_realization", "skill_p2_gtm_presales_delivery_handoff"): (
+        "Standardized pre-sales-to-delivery handoffs and value-realization checkpoints across enterprise accounts, "
+        "protecting architecture fidelity and compressing time to production adoption."
+    ),
+    ("reb_ibm_customer_success_value_realization", "skill_sr_regulated_financial_institutions_fluency"): (
+        "Led client value-realization governance across regulated banking and insurance cloud programs, "
+        "sustaining executive trust and measurable post-cutover platform adoption."
+    ),
+    ("reb_ibm_aws_alliance_partner_cosell_gtm", "skill_partner_ibm_aws_alliance_joint_revenue"): (
+        "Directed IBM-AWS alliance co-sell execution across regulated financial-services pursuits, "
+        "aligning joint cloud architectures with partner account teams to expand co-sell pipeline."
+    ),
+    ("reb_ibm_aws_alliance_partner_cosell_gtm", "skill_partner_hyperscaler_cosell"): (
+        "Orchestrated hyperscaler co-sell motions pairing IBM consulting with AWS cloud architectures, "
+        "accelerating enterprise modernization wins across banking and insurance accounts."
+    ),
+    ("reb_ibm_aws_alliance_partner_cosell_gtm", "skill_partner_joint_solution_development"): (
+        "Co-developed joint IBM-AWS cloud modernization solutions for regulated financial-services clients, "
+        "converting partner reference architectures into repeatable commercial co-sell plays."
+    ),
+    ("reb_ibm_aws_alliance_partner_cosell_gtm", "skill_sr_regulated_financial_institutions_fluency"): (
+        "Led IBM-AWS alliance go-to-market execution for regulated financial institutions, "
+        "positioning compliant cloud modernization architectures to unlock joint account growth."
+    ),
+    ("reb_ibm_devsecops_release_resilience", "skill_sr_regulated_financial_institutions_fluency"): (
+        "Engineered DevSecOps release resilience and automated security guardrails for regulated financial institutions, "
+        "strengthening continuous deployment governance and audit readiness across cloud workloads."
+    ),
 }
 
 

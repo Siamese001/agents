@@ -283,7 +283,7 @@ def _x2_gates(
         first_word = words[0].rstrip(",.:;") if words else ""
         _FORBIDDEN_OPENERS = {"senior", "director", "vp", "svp", "the", "he", "she", "amit", "candidate", "in", "as"}
         action_verb_ok = (not sent) or bool(first_word and first_word.lower() not in _FORBIDDEN_OPENERS)
-        min_words_ok = (len(words) == 0) if is_ey_narrative else (len(words) >= 15 if cfg.section_id == "slalom_narrative" else len(words) >= 10)
+        min_words_ok = (len(words) == 0) if is_ey_narrative else (len(words) >= 15 if cfg.section_id in ("slalom_narrative", "insurtech_narrative") else len(words) >= 10)
         word_budget_ok = (
             (len(words) == 0 or (8 <= len(words) <= NARRATIVE_MAX_WORDS))
             if is_ey_narrative

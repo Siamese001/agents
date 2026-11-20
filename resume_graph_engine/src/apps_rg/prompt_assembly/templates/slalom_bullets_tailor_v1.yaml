@@ -5,8 +5,11 @@ purpose: >
   proof pool. Use only bul_slalom source_fact_ids supplied by the section
   runtime. JD and briefing material are targeting_only and may never become
   claim evidence. These bullets do the hard proof work for the Slalom role:
-  each bullet must carry one evidence-bound achievement that the companion
-  narrative can later synthesize without copying.
+  each bullet must pair one concrete delivered engineering, charter, or
+  agentic capability directly with its graph-backed business, commercial,
+  accuracy, adoption, or risk-reduction outcome (drawn from graph_business_outcome
+  and allocated metric_text) that the companion narrative can later synthesize
+  without copying.
 methodology_contract:
   role: PROOF_HEAVY_BULLETS
   bullets_prove_what_was_delivered: true
@@ -15,7 +18,8 @@ methodology_contract:
     The later Slalom narrative may use accepted bullets as primary synthesis
     context after finalization, but not as copy text or independent proof.
   anti_patterns:
-    - "generic role summary instead of evidence-bound bullets"
+    - "generic role summary or practice-leadership-only bullet with no delivered capability and business outcome"
+    - "capability-only technical bullet that omits the graph-backed business, commercial, accuracy, or operational result"
     - "JD or briefing used as claim evidence"
     - "unsupported target-company claims"
 output_contract:

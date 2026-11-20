@@ -1478,10 +1478,11 @@
         "multi_agent_orchestration",
         "runtime_architecture"
       ],
-      "claim_text": "Architected enterprise multi-agent runtime and Agent-to-Agent (A2A) orchestration protocols for a Fortune 200 utility client, migrating legacy wrappers to LangGraph and AWS Bedrock/AgentCore with typed inter-agent handoff contracts.",
+      "claim_text": "Architected and delivered enterprise multi-agent runtime and typed Agent-to-Agent (A2A) orchestration protocols (LangGraph, AWS Bedrock/AgentCore) across utility AI charters, advancing a $3.5M multi-agent modernization program, SCADA/Maximo grid-restoration intelligence, and customer outage self-service targeting 20% call-center deflection.",
       "metric_values": [
-        "Production LangGraph/AWS Bedrock runtime architecture",
-        "Typed context passing across agent boundaries"
+        "$3.5M multi-agent modernization program",
+        "20% target call-center deflection",
+        "11 core workstreams with zero red escalations"
       ],
       "company": "Slalom",
       "source_resume_variants": [
@@ -1495,7 +1496,7 @@
         "ENGINEERING_PLATFORM",
         "AI_SOLUTIONS_ARCHITECTURE"
       ],
-      "proof_text": "Architected enterprise multi-agent runtime and Agent-to-Agent (A2A) orchestration protocols, transitioning execution from legacy Python wrappers to LangGraph and AWS Bedrock/AgentCore with typed contracts for inter-agent communication, context handoffs, and workflow boundary validation.",
+      "proof_text": "Architected and delivered enterprise multi-agent runtime and typed Agent-to-Agent (A2A) orchestration protocols (LangGraph, AWS Bedrock/AgentCore) across utility AI charters, advancing a $3.5M multi-agent modernization program, SCADA/Maximo grid-restoration intelligence, and customer outage self-service targeting 20% call-center deflection.",
       "claim_proof_split_version": "master_skills_arsenal_claim_proof_v2",
       "label": "Enterprise Multi-Agent Runtime & A2A Orchestration"
     },
@@ -1508,10 +1509,11 @@
         "standards_leadership",
         "enterprise_delivery"
       ],
-      "claim_text": "Spearheaded AI Product Delivery Lifecycle (AI-PDLC) framework and agentic architecture standards across utility lines of business, bridging divergent development cultures and establishing shared design patterns.",
+      "claim_text": "Commercialized an enterprise AI Product Delivery Lifecycle (AI-PDLC) operating model and value-modeled charter framework (Volume-x-Price labor efficiency and NAV break-even modeling) across 33 AI and analytics charters, expanding a $25M+ multi-SOW portfolio ($6.77M quarterly AI engineering SOW) and shipping production GCP regulatory compliance and Documentum classification workflows.",
       "metric_values": [
-        "Cross-business-unit architecture governance",
-        "Standardized AI delivery lifecycle"
+        "33 enterprise AI charters",
+        "$25M+ cumulative SOW portfolio value",
+        "$6.77M quarterly AI engineering SOW"
       ],
       "company": "Slalom",
       "source_resume_variants": [
@@ -1526,7 +1528,7 @@
         "ENGINEERING_PLATFORM",
         "CONSULTING_DELIVERY_LEADERSHIP"
       ],
-      "proof_text": "Spearheaded AI-PDLC governance framework and agentic architecture patterns across utility enterprise lines of business, unifying disparate team practices into standardized, verifiable delivery lifecycles.",
+      "proof_text": "Commercialized an enterprise AI Product Delivery Lifecycle (AI-PDLC) operating model and value-modeled charter framework (Volume-x-Price labor efficiency and NAV break-even modeling) across 33 AI and analytics charters, expanding a $25M+ multi-SOW portfolio ($6.77M quarterly AI engineering SOW) and shipping production GCP regulatory compliance and Documentum classification workflows.",
       "claim_proof_split_version": "master_skills_arsenal_claim_proof_v2",
       "label": "Enterprise AI-PDLC Framework & Standards Leadership"
     },
@@ -1539,10 +1541,12 @@
         "validation_mesh",
         "observability_backplane"
       ],
-      "claim_text": "Designed and implemented an outcome-based evaluation harness for enterprise agentic systems, moving beyond turn-by-turn checks toward holistic ground-truth verification and deterministic gate mesh validation with fine-grained execution lineage.",
+      "claim_text": "Designed and implemented outcome-based agentic evaluation harnesses, deterministic fail-closed validation meshes, and OpenTelemetry execution lineage achieving 100% deterministic gate conformance, 100% citation accuracy, 100% abstention precision, and 100% provenance coverage across regulated enterprise workflows.",
       "metric_values": [
-        "100% deterministic gate mesh conformance for critical workflows",
-        "Holistic outcome-based evaluation"
+        "100% deterministic gate conformance",
+        "100% citation accuracy",
+        "100% abstention precision",
+        "100% provenance coverage"
       ],
       "company": "Slalom",
       "source_resume_variants": [
@@ -1557,7 +1561,7 @@
         "AI_GOVERNANCE_RISK",
         "AI_SOLUTIONS_ARCHITECTURE"
       ],
-      "proof_text": "Designed and implemented outcome-based evaluation framework moving beyond turn-by-turn testing to holistic ground-truth trustworthiness, deterministic gate mesh conformance, and end-to-end execution lineage across autonomous agent pipelines.",
+      "proof_text": "Designed and implemented outcome-based agentic evaluation harnesses, deterministic fail-closed validation meshes, and OpenTelemetry execution lineage achieving 100% deterministic gate conformance, 100% citation accuracy, 100% abstention precision, and 100% provenance coverage across regulated enterprise workflows.",
       "claim_proof_split_version": "master_skills_arsenal_claim_proof_v2",
       "label": "Outcome-Based Agentic Evaluation Mesh & Observability Backplane"
     },
@@ -1601,10 +1605,12 @@
         "visual_asset_intelligence",
         "cloud_ingestion"
       ],
-      "claim_text": "Directed the technical architecture and delivery of Project Lens, a visual asset intelligence platform productizing multi-modal image processing, automated asset extraction, and scalable cloud ingestion for power generation infrastructure.",
+      "claim_text": "Directed technical architecture and functional remediation of a six-figure multi-modal visual asset intelligence SOW for power generation equipment nameplates, pairing single-call vision-LLM extraction with deterministic Python adjudication and rules-agnostic optical confidence to achieve 90% primary-field accuracy, 92% OCR accuracy, and 100% full-plate high-confidence auto-acceptance into IBM Maximo.",
       "metric_values": [
-        "Six-figure visual asset intelligence platform SOW delivered",
-        "Multi-modal automated image processing pipeline"
+        "six-figure commercial SOW",
+        "90% primary-field extraction accuracy",
+        "92% OCR accuracy",
+        "100% full-plate high-confidence Maximo auto-acceptance"
       ],
       "company": "Slalom",
       "source_resume_variants": [
@@ -1619,7 +1625,7 @@
         "ENGINEERING_PLATFORM",
         "CONSULTING_DELIVERY_LEADERSHIP"
       ],
-      "proof_text": "Directed technical architecture and commercial SOW delivery for a six-figure multi-modal visual asset intelligence platform productizing computer vision, automated feature extraction, and cloud ingestion across power generation infrastructure.",
+      "proof_text": "Directed technical architecture and functional remediation of a six-figure multi-modal visual asset intelligence SOW for power generation equipment nameplates, pairing single-call vision-LLM extraction with deterministic Python adjudication and rules-agnostic optical confidence to achieve 90% primary-field accuracy, 92% OCR accuracy, and 100% full-plate high-confidence auto-acceptance into IBM Maximo.",
       "claim_proof_split_version": "master_skills_arsenal_claim_proof_v2",
       "label": "Multi-Modal Visual Asset Intelligence Pipeline (Project Lens)"
     },
@@ -1633,10 +1639,12 @@
         "delivery_execution",
         "sales_pipeline_ownership"
       ],
-      "claim_text": "Led 105 software engineers and data leaders across a leading energy and utility company, managing all client relationships, delivery execution, and sales pipeline across advanced analytics and digital operations.",
+      "claim_text": "Directed 105 software engineers and data leaders across 33 enterprise AI and analytics charters (29 active across 6 outcome-led pods and 26 embedded co-delivery charters) for a Fortune 200 energy and utility enterprise, stewarding $25M+ in cumulative SOW portfolio value and sustaining 11 core outcome-led workstreams with zero red escalations.",
       "metric_values": [
-        "105 software engineers and data leaders directed across a leading energy and utility company",
-        "End-to-end ownership of client relationships, delivery execution, and sales pipeline"
+        "105 software engineers and data leaders",
+        "33 enterprise AI charters (29 active)",
+        "$25M+ cumulative SOW portfolio value",
+        "zero red escalations across 11 core workstreams"
       ],
       "company": "Slalom",
       "source_resume_variants": [
@@ -1652,7 +1660,7 @@
         "ENGINEERING_PLATFORM",
         "SALES_STRATEGIC_ACCOUNTS"
       ],
-      "proof_text": "Directed 105 software engineers and data leaders across a leading energy and utility company, managing all executive client relationships, multi-workstream delivery execution, and commercial sales pipeline growth across advanced analytics and enterprise digital operations.",
+      "proof_text": "Directed 105 software engineers and data leaders across 33 enterprise AI and analytics charters (29 active across 6 outcome-led pods and 26 embedded co-delivery charters) for a Fortune 200 energy and utility enterprise, stewarding $25M+ in cumulative SOW portfolio value and sustaining 11 core outcome-led workstreams with zero red escalations.",
       "claim_proof_split_version": "master_skills_arsenal_claim_proof_v2",
       "label": "Large-Scale Engineering & Data Leadership (105 SWE & Data Leaders)"
     },
@@ -1667,12 +1675,12 @@
         "voiceprint_attribution",
         "shadow_graph_firewall"
       ],
-      "claim_text": "Architected a 100% local acoustic airgap (<200ms zero-drop PCM audio spooler and Apple Silicon Metal MLX Whisper STT with Knowledge-Graph lexical priming and voiceprint speaker attribution) paired with a Dual-Track Live Executive Copilot delivering <250ms Track 1 Flash-Snap responses over speculative 2-hop RAM subgraphs and <1200ms Track 2 streaming gated by Speak Gate and a shadow-graph isolation firewall.",
+      "claim_text": "Architected and deployed a 100% local privacy-isolated acoustic airgap (<200ms zero-drop audio capture and local Metal speech recognition with knowledge-graph lexical priming and speaker attribution) paired with a sub-250ms live executive advisory copilot eliminating post-meeting decision evaporation across a 50-user enterprise account team.",
       "metric_values": [
-        "<200ms zero-drop PCM audio spooler startup",
-        "<250ms Track 1 Flash-Snap copilot latency",
-        "<1200ms Track 2 streaming copilot latency",
-        "100% local acoustic airgap"
+        "<200ms zero-drop acoustic capture",
+        "<250ms live executive advisory latency",
+        "50-user enterprise account team",
+        "100% local acoustic privacy"
       ],
       "company": "Slalom",
       "source_resume_variants": [
@@ -1687,7 +1695,7 @@
         "AI_SOLUTIONS_ARCHITECTURE",
         "PRODUCT_TECHNICAL_STRATEGY"
       ],
-      "proof_text": "Engineered a zero-cloud-audio acoustic airgap with <200ms PCM audio spooler startup, local Metal MLX Whisper speech-to-text, Knowledge-Graph lexical priming, and multi-speaker voiceprint disambiguation, driving a Dual-Track Live Executive Copilot (<250ms Flash-Snap over speculative 2-hop RAM graph prefetches and <1200ms deep streaming behind a shadow-graph isolation firewall).",
+      "proof_text": "Architected and deployed a 100% local privacy-isolated acoustic airgap (<200ms zero-drop audio capture and local Metal speech recognition with knowledge-graph lexical priming and speaker attribution) paired with a sub-250ms live executive advisory copilot eliminating post-meeting decision evaporation across a 50-user enterprise account team.",
       "claim_proof_split_version": "master_skills_arsenal_claim_proof_v2",
       "label": "Local Metal MLX Whisper Acoustic Airgap & <250ms Dual-Track Live Copilot"
     },
@@ -1701,11 +1709,11 @@
         "canonical_signal_projection",
         "pii_sanitization"
       ],
-      "claim_text": "Engineered a decomposed 3-stage multimodal synthesis pipeline (Stage 01 Forensic Speaker-Attributed Transcript, Stage 02 Executive Recap, and Stage 03 Canonical Signal Projection) fortified by pre-egress credential/PII sanitization and a deterministic 3-tier self-healing mesh (quote pointer healer, graph healer, and reconciliation coverage healer) achieving 0% silent signal loss.",
+      "claim_text": "Engineered a production 3-stage multimodal synthesis pipeline (forensic speaker-attributed transcript, executive brief, canonical signal projection) with pre-egress PII/credential sanitization and a 3-tier deterministic self-healing mesh achieving 0% silent signal loss across executive decision briefings.",
       "metric_values": [
-        "3-stage decomposed multimodal synthesis pipeline",
-        "3-tier deterministic self-healing mesh",
-        "0% silent signal loss across executive artifacts"
+        "0% silent signal loss",
+        "3-stage multimodal synthesis",
+        "3-tier deterministic self-healing"
       ],
       "company": "Slalom",
       "source_resume_variants": [
@@ -1720,7 +1728,7 @@
         "ENGINEERING_PLATFORM",
         "AI_GOVERNANCE_RISK"
       ],
-      "proof_text": "Built a decomposed 3-stage multimodal synthesis pipeline separating verbatim forensic speaker-attributed transcription, executive synthesis, and canonical knowledge-graph signal projection, backed by pre-egress PII/credential redaction and a 3-tier self-healing mesh (quote pointer, graph link, and reconciliation coverage healers).",
+      "proof_text": "Engineered a production 3-stage multimodal synthesis pipeline (forensic speaker-attributed transcript, executive brief, canonical signal projection) with pre-egress PII/credential sanitization and a 3-tier deterministic self-healing mesh achieving 0% silent signal loss across executive decision briefings.",
       "claim_proof_split_version": "master_skills_arsenal_claim_proof_v2",
       "label": "3-Stage Multimodal Synthesis Pipeline & 3-Tier Deterministic Self-Healing Mesh"
     },
@@ -1735,11 +1743,13 @@
         "merkle_subgraph_cache",
         "kv_prefix_alignment"
       ],
-      "claim_text": "Designed a bi-temporal SQLite WAL Knowledge Graph with RFC-8785 JCS canonical digests, coupling a 1024-d BGE-M3 dense vector sidecar and SQLite FTS5 BM25 lexical fusion across 11 release qualification gates with a cryptographic Merkle subgraph cache and KV-prefix prompt alignment for sub-second multi-hop GraphRAG retrieval.",
+      "claim_text": "Designed a production bi-temporal enterprise knowledge graph (3,500+ governed entities, 576 workstreams) coupling hybrid dense-vector and lexical GraphRAG retrieval across 11 release qualification gates with cryptographic subgraph caching and prompt-prefix alignment, achieving 100% provenance coverage, 100% citation accuracy, and 100% currentness accuracy.",
       "metric_values": [
-        "1024-d BGE-M3 dense + FTS5 BM25 hybrid retrieval",
-        "11 release qualification gates (Recall@10, nDCG@10, MRR)",
-        "Cryptographic Merkle subgraph cache + KV-prefix alignment"
+        "3,500+ governed entities",
+        "576 workstreams",
+        "100% provenance coverage",
+        "100% citation accuracy",
+        "100% currentness accuracy"
       ],
       "company": "Slalom",
       "source_resume_variants": [
@@ -1754,7 +1764,7 @@
         "ENGINEERING_PLATFORM",
         "AI_SOLUTIONS_ARCHITECTURE"
       ],
-      "proof_text": "Architected a bi-temporal SQLite WAL Knowledge Graph with RFC-8785 canonical hashing, fusing 1024-d BGE-M3 vector embeddings and FTS5 BM25 lexical search under 11 release qualification gates, accelerated by a Merkle tree subgraph cache and deterministic KV-prefix prompt alignment.",
+      "proof_text": "Designed a production bi-temporal enterprise knowledge graph (3,500+ governed entities, 576 workstreams) coupling hybrid dense-vector and lexical GraphRAG retrieval across 11 release qualification gates with cryptographic subgraph caching and prompt-prefix alignment, achieving 100% provenance coverage, 100% citation accuracy, and 100% currentness accuracy.",
       "claim_proof_split_version": "master_skills_arsenal_claim_proof_v2",
       "label": "Bi-Temporal SQLite WAL Knowledge Graph, 1024-d BGE-M3 + FTS5 Hybrid Retrieval & Merkle Cache"
     },
@@ -1768,11 +1778,12 @@
         "dirichlet_laplace_priors",
         "llm_judge_panel"
       ],
-      "claim_text": "Built a 7-wave (W1-W7) Strategic Decision Intelligence Engine orchestrating 18 specialized reasoning roles across 6 cognitive modalities, paired with a Dialectical Judge and Bayesian Dirichlet-Laplace conjugate-prior Human-in-the-Loop (HITL) ambiguity gate enforcing a 20% calibrated confidence margin and 65% floor.",
+      "claim_text": "Built a 7-wave, 18-role strategic decision intelligence engine across 6 cognitive modalities with independent cross-provider LLM judge panels and confidence-calibrated Bayesian human-in-the-loop (HITL) escalation (20% ambiguity margin, 65% floor), cutting executive review bottlenecks while maintaining 99% policy-gate auditability and 100% abstention precision.",
       "metric_values": [
-        "18 specialized reasoning roles across 6 cognitive modalities",
-        "7-wave (W1-W7) dialectical decision deliberation",
-        "20% calibrated Bayesian HITL ambiguity margin & 65% floor"
+        "18 specialized reasoning roles",
+        "99% policy-gate auditability",
+        "100% abstention precision",
+        "20% Bayesian HITL ambiguity margin"
       ],
       "company": "Slalom",
       "source_resume_variants": [
@@ -1788,7 +1799,7 @@
         "EXECUTIVE_LEADERSHIP",
         "PRODUCT_TECHNICAL_STRATEGY"
       ],
-      "proof_text": "Engineered a 7-wave Strategic Decision Intelligence Engine coordinating 18 specialized reasoning roles across 6 cognitive modalities with dialectical thesis-antithesis-synthesis adjudication and Bayesian Dirichlet-Laplace conjugate-prior HITL ambiguity gating (20% margin trigger, 65% confidence floor).",
+      "proof_text": "Built a 7-wave, 18-role strategic decision intelligence engine across 6 cognitive modalities with independent cross-provider LLM judge panels and confidence-calibrated Bayesian human-in-the-loop (HITL) escalation (20% ambiguity margin, 65% floor), cutting executive review bottlenecks while maintaining 99% policy-gate auditability and 100% abstention precision.",
       "claim_proof_split_version": "master_skills_arsenal_claim_proof_v2",
       "label": "18-Role 6-Modality W1-W7 Decision Engine, Dialectical Judge & Bayesian Conjugate-Prior HITL"
     },
@@ -1802,11 +1813,11 @@
         "zero_trust_persistence",
         "sqlite_wal_concurrency"
       ],
-      "claim_text": "Architected a zero-raw-SQL Universal Write Gateway (UWG) enforcing 5-check physical disk proofs (SHA-256 file delta, raw disk page byte scan, PRAGMA integrity_check, isolated read-only connection readback, and per-table row deltas) before generational active-pair atomic promotion with automated rollback.",
+      "claim_text": "Architected a zero-raw-SQL fail-closed write-custody gateway enforcing 5-check physical disk integrity verification before atomic generational promotion with automated rollback, achieving zero silent data corruption and 0% orphan-node drift across regulated enterprise knowledge stores.",
       "metric_values": [
-        "5-check physical disk proof before graph promotion",
-        "100% write custody via Universal Write Gateway (0 raw SQL writes)",
-        "Generational active-pair atomic swap with instant rollback"
+        "5-check physical integrity verification",
+        "zero silent data corruption",
+        "0% orphan-node drift"
       ],
       "company": "Slalom",
       "source_resume_variants": [
@@ -1821,7 +1832,7 @@
         "AI_GOVERNANCE_RISK",
         "DATA_ANALYTICS_LEADERSHIP"
       ],
-      "proof_text": "Implemented a Universal Write Gateway eliminating raw SQL graph mutations outside the custodian core and enforcing a 5-check physical disk proof gate (byte-size/SHA-256 delta, raw disk page scan, PRAGMA integrity_check, isolated read-only readback, and row-count delta) prior to generational active-pair atomic swap.",
+      "proof_text": "Architected a zero-raw-SQL fail-closed write-custody gateway enforcing 5-check physical disk integrity verification before atomic generational promotion with automated rollback, achieving zero silent data corruption and 0% orphan-node drift across regulated enterprise knowledge stores.",
       "claim_proof_split_version": "master_skills_arsenal_claim_proof_v2",
       "label": "Zero-Raw-SQL Universal Write Gateway (UWG), 5-Check Disk Proof & Generational Atomic Swap"
     },
@@ -1835,12 +1846,12 @@
         "closed_loop_system_learning",
         "fail_closed_readiness_gates"
       ],
-      "claim_text": "Engineered a 7-layer (L0-L6), 119-package agentic platform governed by 32 fail-closed main readiness gates, an 18-agent 6-stage autonomous engineering pipeline with worktree-isolated FIFO merge locks, 6 custom Model Context Protocol (MCP) servers, and 8 closed-loop System Learning surfaces.",
+      "claim_text": "Engineered a 7-layer modular agentic software delivery platform governed by 38 fail-closed release-readiness gates, 26 autonomous governance sidecar agents, warm in-process Model Context Protocol (MCP) tool servers, closed-loop system learning across 8 production telemetry surfaces, and a 50-user executive intelligence portal compressing delivery turnaround with zero governance drift.",
       "metric_values": [
-        "7-layer (L0-L6) architecture across 119 modular subpackages",
-        "18 autonomous engineering agents across 6 pipeline stages",
-        "32 fail-closed main readiness gates & 6 custom MCP servers",
-        "8 closed-loop System Learning calibration surfaces"
+        "38 fail-closed release gates",
+        "26 autonomous governance agents",
+        "50-user executive intelligence portal",
+        "8 closed-loop learning surfaces"
       ],
       "company": "Slalom",
       "source_resume_variants": [
@@ -1856,7 +1867,7 @@
         "EXECUTIVE_LEADERSHIP",
         "CONSULTING_DELIVERY_LEADERSHIP"
       ],
-      "proof_text": "Architected a 7-layer (L0-L6), 119-package agentic engineering platform enforcing AST unidirectional imports, <=400-line file budgets, 32 fail-closed readiness gates, an 18-agent 6-stage autonomous SDLC with FIFO merge locks, 6 custom MCP servers, and 8 closed-loop System Learning calibration surfaces.",
+      "proof_text": "Engineered a 7-layer modular agentic software delivery platform governed by 38 fail-closed release-readiness gates, 26 autonomous governance sidecar agents, warm in-process Model Context Protocol (MCP) tool servers, closed-loop system learning across 8 production telemetry surfaces, and a 50-user executive intelligence portal compressing delivery turnaround with zero governance drift.",
       "claim_proof_split_version": "master_skills_arsenal_claim_proof_v2",
       "label": "7-Layer 119-Package Architecture, 6-Stage 18-Agent Governance Pipeline, 6 MCP Servers & 8-Surface Learning"
     }
