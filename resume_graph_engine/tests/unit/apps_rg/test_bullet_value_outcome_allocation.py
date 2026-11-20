@@ -158,6 +158,12 @@ def test_evidence_density_rejects_feature_only_unify_bullets_and_accepts_outcome
             "Delivered resilient, high-availability enterprise AI execution across regulated data "
             "estates using cloud data/runtime integration patterns across Databricks and API gateways.",
         ),
+        (
+            "bul_ibm_003",
+            "Led technical discovery and solution mapping for enterprise financial-services pursuits, "
+            "delivering 45+ technical discovery-to-architecture handoff packages directed across a "
+            "20-member global team across 8 enterprise banking programs.",
+        ),
     ]
     for bid, text in outcome_bullets:
         res_ok = check_experience_bullet_evidence_density(bid, text)

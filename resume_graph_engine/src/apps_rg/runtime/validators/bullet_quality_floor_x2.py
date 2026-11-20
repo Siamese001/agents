@@ -16,6 +16,10 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
+from apps_rg.runtime.contracts.metric_lexical_primitives import (
+    is_quantified_metric_outcome_text,
+)
+
 # ---------------------------------------------------------------------------
 # Seniority floor: strong action verbs and organizational scale signals
 # ---------------------------------------------------------------------------
@@ -399,7 +403,11 @@ def check_experience_bullet_evidence_density(
         text,
         mechanism_vocab=mechanism_vocab,
     )
-    has_outcome = bool(_NUMERIC_SIGNAL_PATTERN.search(text) or _OUTCOME_SIGNAL_PATTERN.search(text))
+    has_outcome = bool(
+        _NUMERIC_SIGNAL_PATTERN.search(text)
+        or is_quantified_metric_outcome_text(text)
+        or _OUTCOME_SIGNAL_PATTERN.search(text)
+    )
     capability_only = bool(_CAPABILITY_ONLY_PATTERN.search(text)) and not has_outcome
     plumbing_hits = _has_internal_plumbing_or_stutter(text)
     signals = [
