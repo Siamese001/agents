@@ -40,6 +40,12 @@ STRONG_ACTION_VERBS: frozenset[str] = frozenset({
     "grew", "grow", "increased", "increase", "reduced", "reduce",
     "compressed", "compress", "sustained", "sustain", "orchestrated", "orchestrate",
     "anchored", "anchor", "strengthened", "strengthen",
+    "eliminated", "eliminate", "enabled", "enable", "prevented", "prevent",
+    "mitigated", "mitigate", "protected", "protect", "safeguarded", "safeguard",
+    "enforced", "enforce", "remediated", "remediate", "hardened", "harden",
+    "improved", "improve", "lowered", "lower", "de-risked", "derisked",
+    "automated", "automate", "streamlined", "streamline", "consolidated", "consolidate",
+    "resolved", "resolve", "closed", "close",
     "re-architected", "rearchitected", "re-engineered", "reengineered",
     "re-platformed", "replatformed",
 })
@@ -87,8 +93,8 @@ _OUTCOME_SIGNAL_PATTERN = re.compile(
     r"enabl(?:ed|ing)|adopt(?:ed|ion|ing)|remediat(?:ed|ing|ion)|"
     r"eliminat(?:ed|ing)|prevent(?:ed|ing)|mitigat(?:ed|ing)|protect(?:ed|ing)|"
     r"sustain(?:ed|ing)|unlock(?:ed|ing)|achiev(?:ed|ing)|secur(?:ed|ing)|"
-    r"lower(?:ed|ing)|de-risk(?:ed|ing)|"
-    r"high\s+availability|uptime|reliability|resilience|audit(?:able|-ready|-grade)|"
+    r"lower(?:ed|ing)|de-risk(?:ed|ing)|safeguard(?:ed|ing)|"
+    r"high[-\s]+availability|uptime|reliab(?:ility|le)|resilien(?:ce|t)|audit(?:able|-ready|-grade)|"
     r"validat(?:e|ed|ing|ion|ions)?|explainability|traceab(?:le|ility)|"
     r"risk\s+(?:reduction|remediation|control|visibility)|"
     r"compliance\s+(?:readiness|evidence|coverage|workflows?)|renewal|revenue|margin|"

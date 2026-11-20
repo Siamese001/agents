@@ -141,9 +141,24 @@ def test_evidence_density_rejects_feature_only_unify_bullets_and_accepts_outcome
         assert not res.passed, f"Expected feature-only bullet to fail outcome floor: {bid}"
         assert "business_or_delivery_outcome" in (res.failure_reason or "")
 
-    outcome_bullet = (
-        "Engineered distributed cloud and Databricks Lakehouse execution infrastructure across AWS "
-        "and API gateways, enabling high availability and resilient enterprise AI workloads."
-    )
-    res_ok = check_experience_bullet_evidence_density("bul_unify_004", outcome_bullet)
-    assert res_ok.passed, res_ok.failure_reason
+    outcome_bullets = [
+        (
+            "bul_unify_003",
+            "Eliminated silent runtime regressions and established audit-grade runtime observability "
+            "coverage for regulated AI workflows to protect production reliability through governed "
+            "context engineering and automated rollback controls.",
+        ),
+        (
+            "bul_unify_004",
+            "Enabled resilient, high-availability enterprise AI execution for regulated data estates "
+            "via cloud data/runtime integration patterns across Databricks, vector services, and API gateways.",
+        ),
+        (
+            "bul_unify_004",
+            "Delivered resilient, high-availability enterprise AI execution across regulated data "
+            "estates using cloud data/runtime integration patterns across Databricks and API gateways.",
+        ),
+    ]
+    for bid, text in outcome_bullets:
+        res_ok = check_experience_bullet_evidence_density(bid, text)
+        assert res_ok.passed, f"{bid}: {res_ok.failure_reason}"
