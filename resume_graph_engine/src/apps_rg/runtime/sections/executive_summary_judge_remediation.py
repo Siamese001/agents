@@ -498,18 +498,12 @@ def snapshot_model_backed_judge_scores(x1d_judges: list[dict[str, Any]]) -> dict
         if j.get("evaluator_mode") != "MODEL_BACKED":
             continue
         pk = str(j.get("provider_key") or j.get("judge_id") or "unknown")
+        from apps_rg.runtime.judges.executive_summary_x1d_dimension_verdicts import (
+            EXEC_SUMMARY_RUBRIC_DIMENSION_IDS,
+        )
         major_failed = [
             dim
-            for dim in (
-                "factual_support",
-                "executive_signal",
-                "resume_voice",
-                "ats_alignment_without_keyword_stuffing",
-                "anti_overfit",
-                "synthesis_quality",
-                "evidence_utilization",
-                "deterministic_alignment",
-            )
+            for dim in EXEC_SUMMARY_RUBRIC_DIMENSION_IDS
             if dimension_major_fail_on_judge(j, dim)
         ]
         providers.append(
@@ -739,7 +733,7 @@ def collect_judge_remediation_delta_lines(
 
     if allowed_fact_count >= 1:
         sections["guards"].append(
-            f"Shape: exactly 6 sentences (max {EXEC_SUMMARY_MAX_WORDS} words); same JSON schema as first turn.",
+            f"Shape: 3 to 4 crisp spoken sentences (420 to 680 chars, max 210 chars/sentence, max {EXEC_SUMMARY_MAX_WORDS} words overflow cap); zero AI bridge crutches or abstract noun soup; same JSON schema as first turn.",
         )
     sections["guards"].extend(
         [
@@ -806,17 +800,16 @@ def build_judge_remediation_legacy_user_message(
             f"Unused allowed facts ({len(unused_fact_ids)}): {preview}{suffix}. "
             "Weave supported substance from these ids into claim_ledger rows — do not invent claims.\n"
         )
-    prefer_five = ""
-    if allowed_fact_count >= 6:
-        prefer_five = f"Shape: exactly 6 sentences (max {EXEC_SUMMARY_MAX_WORDS} words); integrate additional allowed facts across the six-sentence arc.\n"
-    else:
-        prefer_five = f"Shape: exactly 6 sentences (max {EXEC_SUMMARY_MAX_WORDS} words); fit_to_evidence integrated narrative.\n"
+    prefer_five = (
+        f"Shape: 3 to 4 crisp spoken executive sentences (420 to 680 chars, max 210 chars/sentence, max {EXEC_SUMMARY_MAX_WORDS} words overflow cap); "
+        "zero AI bridge crutches or abstract noun soup; fit_to_evidence integrated narrative.\n"
+    )
     composition_note = ""
     plan = composition_plan or {}
     arc = plan.get("sentence_arc") or []
     if arc:
         arc_lines = []
-        for row in arc[:6]:
+        for row in arc[:4]:
             if isinstance(row, dict):
                 idx = int(row.get("sentence_index") or 0)
                 arc_lines.append(
@@ -824,7 +817,7 @@ def build_judge_remediation_legacy_user_message(
                 )
         if arc_lines:
             composition_note += (
-                "Follow six_sentence_arc (especially S3–S6 connective synthesis, no cert dump, no JD closer):\n"
+                "Follow the 3-to-4 sentence spoken executive arc (no AI bridge crutches, no cert dump, no JD closer):\n"
                 + "\n".join(f"- {ln}" for ln in arc_lines)
                 + "\n"
             )

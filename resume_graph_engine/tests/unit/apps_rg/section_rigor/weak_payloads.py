@@ -1019,7 +1019,7 @@ def all_weak_fail_cases() -> tuple[WeakFailCase, ...]:
         ),
         WeakFailCase(
             "executive_summary",
-            "x2_exec_summary_sentence_count_6",
+            "x2_exec_summary_sentence_band_3_to_4",
             _executive_summary_weak_legacy_two_sentences,
         ),
         WeakFailCase(

@@ -88,12 +88,13 @@ EXECUTIVE_SUMMARY_GATE_CLOSURE_MAP: tuple[GateClosureRecord, ...] = (
         ),
     ),
     GateClosureRecord(
-        gate_id="x2_exec_summary_sentence_count_6",
+        gate_id="x2_exec_summary_sentence_band_3_to_4",
         closed_axis="sentence_count",
         forbidden_finding_codes=("sentence_count_penalty_despite_gate_pass",),
         allowed_residual_finding_codes=(),
         fragment_shims=(
-            "fewer than six sentences",
+            "fewer than three sentences",
+            "more than four sentences",
             "sentence count",
         ),
     ),

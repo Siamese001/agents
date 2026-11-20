@@ -18,9 +18,12 @@ from apps_rg.runtime.sections.competencies_rigor import (
     MIN_ITEMS_PER_CATEGORY,
 )
 from apps_rg.runtime.validators.executive_summary_x2 import (
+    EXEC_SUMMARY_MAX_CHARS,
+    EXEC_SUMMARY_MAX_CHARS_PER_SENTENCE,
     EXEC_SUMMARY_MAX_SENTENCES,
     EXEC_SUMMARY_MAX_WORDS,
     EXEC_SUMMARY_MAX_WORDS_PER_SENTENCE,
+    EXEC_SUMMARY_MIN_CHARS,
     EXEC_SUMMARY_MIN_SENTENCES,
     EXPECTED_PROMPT_ID as EXEC_SUMMARY_PROMPT_ID,
 )
@@ -61,9 +64,12 @@ SECTION_CONSTRAINTS: dict[str, dict[str, int]] = {
     "executive_summary": {
         "min_sentences": EXEC_SUMMARY_MIN_SENTENCES,
         "max_sentences": EXEC_SUMMARY_MAX_SENTENCES,
+        "min_chars": EXEC_SUMMARY_MIN_CHARS,
+        "max_chars": EXEC_SUMMARY_MAX_CHARS,
+        "max_chars_per_sentence": EXEC_SUMMARY_MAX_CHARS_PER_SENTENCE,
         "max_words": EXEC_SUMMARY_MAX_WORDS,
         "max_words_per_sentence": EXEC_SUMMARY_MAX_WORDS_PER_SENTENCE,
-        # W0-C invariant: x2_claim_ledger_row_count_matches_sentence_count -> one row per sentence.
+        # W0-C invariant: x2_claim_ledger_row_count_matches_sentence_count -> one row per sentence (3-4).
         "claim_ledger_rows": EXEC_SUMMARY_MAX_SENTENCES,
     },
     "headline": {
@@ -229,13 +235,15 @@ def _exec_summary_shape() -> SectionProductShape:
         x2_module_ref="apps_rg/runtime/validators/executive_summary_x2.py",
         display_field="resume_display_text",
         shape_summary=(
-            f"exactly {EXEC_SUMMARY_MIN_SENTENCES} sentences; "
-            f"max {EXEC_SUMMARY_MAX_WORDS} words; "
-            f"max {EXEC_SUMMARY_MAX_WORDS_PER_SENTENCE} words/sentence; "
-            "fit_to_evidence; claim_ledger required (exactly 6 rows); no inline source tags in display text"
+            f"{EXEC_SUMMARY_MIN_SENTENCES}-{EXEC_SUMMARY_MAX_SENTENCES} sentences; "
+            f"{EXEC_SUMMARY_MIN_CHARS}-{EXEC_SUMMARY_MAX_CHARS} chars (3.5-5 wrapped lines); "
+            f"max {EXEC_SUMMARY_MAX_CHARS_PER_SENTENCE} chars/sentence; "
+            f"max {EXEC_SUMMARY_MAX_WORDS} words overflow cap; "
+            "fit_to_evidence; claim_ledger required (one row per sentence); no inline source tags in display text"
         ),
         bounds_gate_ids=(
-            "x2_exec_summary_sentence_count_6",
+            "x2_exec_summary_sentence_band_3_to_4",
+            "x2_exec_summary_visual_char_band",
             "x2_exec_summary_paragraph_max_words",
             "x2_exec_summary_evidence_utilization",
         ),
@@ -257,11 +265,13 @@ def _exec_summary_shape() -> SectionProductShape:
             "x2_em_dash_count_zero",
             "x2_exec_summary_no_mechanism_inventory",
             "x2_exec_summary_no_credential_dump",
+            "x2_exec_summary_no_ai_bridge_crutches",
+            "x2_exec_summary_no_abstract_noun_soup",
+            "x2_exec_summary_rhythm_and_cadence_variety",
         ),
         required_any_text_patterns=(
-            r"exactly\s+6\s+(?:period-delimited\s+)?sentences",
-            r"exactly\s+6",
-            r"\b6\s+sentences\b",
+            r"3\s*(?:to|-|–)\s*4\s+(?:crisp\s+|period-delimited\s+)?sentences",
+            r"420\s*(?:to|-|–)\s*680\s+char",
         ),
         required_all_text_patterns=(
             "fit_to_evidence",
@@ -269,15 +279,20 @@ def _exec_summary_shape() -> SectionProductShape:
             "targeting_only",
             EXEC_SUMMARY_PROMPT_ID,
         ),
-        forbidden_text_patterns=FORBIDDEN_LEGACY_EXEC_SUMMARY,
+        forbidden_text_patterns=FORBIDDEN_LEGACY_EXEC_SUMMARY + (
+            r"exactly\s+6\s+(?:period-delimited\s+)?sentences",
+            r"exactly\s+six\s+(?:period-delimited\s+)?sentences",
+        ),
         jd_alignment_proof_fields=JD_ALIGNMENT_PROOF_FIELDS,
         compile_hints=(
             f"template_id={EXEC_SUMMARY_PROMPT_ID}",
-            f"sentence_count={EXEC_SUMMARY_MIN_SENTENCES}",
+            f"sentence_band={EXEC_SUMMARY_MIN_SENTENCES}-{EXEC_SUMMARY_MAX_SENTENCES}",
+            f"char_band={EXEC_SUMMARY_MIN_CHARS}-{EXEC_SUMMARY_MAX_CHARS}",
             f"max_words={EXEC_SUMMARY_MAX_WORDS}",
+            "x2_exec_summary_visual_char_band",
             "x2_exec_summary_paragraph_max_words",
             "x2_exec_summary_evidence_utilization",
-            "legacy 2-3 sentence band retired",
+            "legacy 6-sentence wall-of-text retired",
         ),
     )
 

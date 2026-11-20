@@ -344,15 +344,19 @@ def _rebuild_canonical_six_sentence_arc(
     selected_facts: list[dict[str, Any]] | None,
     runtime_generation_status: str = "",
 ) -> list[str]:
-    """When LLM produces fewer than 6 sentences, rebuild arc from canonical fact sentences.
+    """When LLM produces fewer than EXEC_SUMMARY_MIN_SENTENCES (3), rebuild a 3-4 sentence arc from facts.
 
-    S1 (identity thesis) is preserved; S2-S6 are canonical fact sentences in slot order.
-    This handles the failure mode where synthesis regen falls back to a degenerate output.
+    Compat function name retained for callers; target band is strictly 3 to 4 sentences (never 6).
     """
+    from apps_rg.runtime.validators.executive_summary_x2 import (
+        EXEC_SUMMARY_MAX_SENTENCES,
+        EXEC_SUMMARY_MIN_SENTENCES,
+    )
+
     if str(runtime_generation_status or "").strip() == "REAL_LLM":
         arc = [s.strip() for s in sentences if s and s.strip()]
         for fact in selected_facts or []:
-            if len(arc) >= 6:
+            if len(arc) >= EXEC_SUMMARY_MAX_SENTENCES:
                 break
             if not isinstance(fact, dict):
                 continue
@@ -361,45 +365,40 @@ def _rebuild_canonical_six_sentence_arc(
                 cand = claim if claim.endswith(".") else f"{claim}."
                 if cand not in arc:
                     arc.append(cand)
-        return arc[:6]
+        return arc[:EXEC_SUMMARY_MAX_SENTENCES]
     allowed = {
         str(f.get("fact_id") or "").strip()
         for f in selected_facts or []
         if isinstance(f, dict) and str(f.get("fact_id") or "").strip()
     }
-    # Keep the LLM's identity thesis sentence as S1.
     s1 = sentences[0].strip() if sentences else ""
     arc = [s1] if s1 else []
     for fid in sorted(_CANONICAL_FACT_SLOT, key=lambda f: _CANONICAL_FACT_SLOT[f]):
+        if len(arc) >= EXEC_SUMMARY_MAX_SENTENCES:
+            break
         if fid not in allowed:
             continue
         canon = _CANONICAL_DISPLAY_SENTENCES.get(fid, "")
         if canon:
             arc.append(canon)
-    if len(arc) < 6:
+    if len(arc) < EXEC_SUMMARY_MIN_SENTENCES:
         fact_by_id = {str(f.get("fact_id") or "").strip(): f for f in selected_facts or [] if isinstance(f, dict)}
-        if "fact_engineering_platform_002" in allowed:
-            graph_sent = (
-                "Software dependency graph intelligence exposes architecture dependency chains "
-                "to accelerate modernization across complex distributed systems."
-            )
-            arc.insert(2, graph_sent) if len(arc) >= 2 else arc.append(graph_sent)
         for fid, fact in fact_by_id.items():
-            if len(arc) >= 6:
+            if len(arc) >= EXEC_SUMMARY_MAX_SENTENCES:
                 break
-            if fid in _CANONICAL_FACT_SLOT or fid == "fact_engineering_platform_002":
+            if fid in _CANONICAL_FACT_SLOT:
                 continue
             claim = str(fact.get("claim_text") or "").strip()
             if len(claim.split()) >= 6:
                 arc.append(claim if claim.endswith(".") else f"{claim}.")
-        if len(arc) < 6 and sentences:
+        if len(arc) < EXEC_SUMMARY_MIN_SENTENCES and sentences:
             for s in sentences:
                 s_clean = s.strip()
                 if s_clean and s_clean not in arc:
                     arc.append(s_clean)
-                if len(arc) >= 6:
+                if len(arc) >= EXEC_SUMMARY_MAX_SENTENCES:
                     break
-    return arc[:6] if len(arc) >= 6 else arc
+    return arc[:EXEC_SUMMARY_MAX_SENTENCES]
 
 
 _EXEC_SUMMARY_INTERNAL_DE_ECHO_SWAPS: tuple[tuple[str, str], ...] = ()
@@ -462,22 +461,26 @@ def polish_executive_summary_judge_alignment(
     cited_fact_ids = collect_cited_source_fact_ids(list(parsed.get("claim_ledger") or []))
     _is_real_llm = str(runtime_generation_status or "").strip() == "REAL_LLM"
 
-    # Clamp to 6 sentences; rebuild canonical arc when LLM produced a degenerate output
-    # or when legacy canonical slot IDs are active (offline/mock mode only).
+    from apps_rg.runtime.validators.executive_summary_x2 import (
+        EXEC_SUMMARY_MAX_SENTENCES,
+        EXEC_SUMMARY_MIN_SENTENCES,
+    )
+
+    # Clamp strictly to the 3-to-4 sentence visual band; only rebuild when degenerate (< 3 sentences).
     _has_legacy_slots = (not _is_real_llm) and any(
         str(f.get("fact_id") or "").strip() in _CANONICAL_FACT_SLOT
         for f in (selected_facts or [])
         if isinstance(f, dict)
     )
-    if len(sentences) > 6:
-        sentences = sentences[:6]
-    elif len(sentences) < 4 or (len(sentences) < 6 and _has_legacy_slots):
+    if len(sentences) > EXEC_SUMMARY_MAX_SENTENCES:
+        sentences = sentences[:EXEC_SUMMARY_MAX_SENTENCES]
+    elif len(sentences) < EXEC_SUMMARY_MIN_SENTENCES or (len(sentences) < EXEC_SUMMARY_MIN_SENTENCES and _has_legacy_slots):
         sentences = _p("_rebuild_canonical_six_sentence_arc", _rebuild_canonical_six_sentence_arc)(
             sentences,
             selected_facts=selected_facts,
             runtime_generation_status=runtime_generation_status,
         )
-        if len(sentences) < 6:
+        if len(sentences) < EXEC_SUMMARY_MIN_SENTENCES:
             return parsed, receipt
         receipt["actions"].append("canonical_arc_rebuild")
 

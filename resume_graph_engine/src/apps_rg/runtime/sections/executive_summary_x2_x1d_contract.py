@@ -42,7 +42,12 @@ SYNTHESIS_CHECK_TO_X2_GATE: dict[str, str] = {
     "check_cross_fact_display_conflation": "x2_exec_summary_cross_fact_conflation_zero",
     "check_exec_summary_meta_filler_patterns": "x2_exec_summary_meta_filler_zero",
     "check_resume_display_colon_space_discipline": "x2_exec_summary_colon_stitch_zero",
-    "check_exec_summary_sentence_count_6": "x2_exec_summary_sentence_count_6",
+    "check_exec_summary_sentence_band_3_to_4": "x2_exec_summary_sentence_band_3_to_4",
+    "check_exec_summary_visual_char_band": "x2_exec_summary_visual_char_band",
+    "check_exec_summary_no_ai_bridge_crutches": "x2_exec_summary_no_ai_bridge_crutches",
+    "check_exec_summary_no_abstract_noun_soup": "x2_exec_summary_no_abstract_noun_soup",
+    "check_exec_summary_rhythm_and_cadence_variety": "x2_exec_summary_rhythm_and_cadence_variety",
+    "check_exec_summary_sentence_count_6": "x2_exec_summary_sentence_band_3_to_4",
     "check_exec_summary_evidence_utilization": "x2_exec_summary_evidence_utilization",
     "check_exec_summary_paragraph_max_words": "x2_exec_summary_paragraph_max_words",
     "check_human_exec_voice": "x2_exec_summary_human_exec_voice",
@@ -73,7 +78,11 @@ SYNTHESIS_IMPLICIT_X2_GATES: frozenset[str] = frozenset(
 
 JUDGE_PACKET_REQUIRED_GATE_KEYS: frozenset[str] = frozenset(
     {
-        "x2_exec_summary_sentence_count_6",
+        "x2_exec_summary_sentence_band_3_to_4",
+        "x2_exec_summary_visual_char_band",
+        "x2_exec_summary_no_ai_bridge_crutches",
+        "x2_exec_summary_no_abstract_noun_soup",
+        "x2_exec_summary_rhythm_and_cadence_variety",
         "x2_exec_summary_paragraph_max_words",
         "x2_exec_summary_evidence_utilization",
         "x2_exec_summary_no_credential_dump",
@@ -102,7 +111,7 @@ JUDGE_REMEDIATION_SOFT_PRESERVATION_MARKERS: tuple[str, ...] = (
     "not a word-count floor",
     "Weave unused allowed facts",
     "claim_ledger",
-    "Exactly 6 sentences",
+    "3 to 4 sentences",
 )
 
 # Backward-compatible alias for drift audits.

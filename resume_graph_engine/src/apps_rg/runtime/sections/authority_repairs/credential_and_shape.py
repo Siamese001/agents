@@ -85,19 +85,35 @@ def strip_exec_summary_credential_dump_sentences(resume_display_text: str) -> tu
 def _exec_summary_shape_ok(resume_display_text: str, parsed: dict[str, Any]) -> tuple[bool, str]:
     from apps_rg.runtime.validators.executive_summary_x2 import (
         check_exec_summary_meta_filler_patterns,
+        check_exec_summary_no_abstract_noun_soup,
+        check_exec_summary_no_ai_bridge_crutches,
         check_exec_summary_no_credential_dump,
         check_exec_summary_no_mechanism_inventory,
         check_exec_summary_paragraph_max_words,
-        check_exec_summary_sentence_count_6,
+        check_exec_summary_rhythm_and_cadence_variety,
+        check_exec_summary_sentence_band_3_to_4,
+        check_exec_summary_visual_char_band,
     )
 
     failures: list[str] = []
     bounds_ok, bounds_reason = check_exec_summary_paragraph_max_words(resume_display_text, parsed)
     if not bounds_ok and bounds_reason:
         failures.append(bounds_reason)
+    char_ok, char_reason = check_exec_summary_visual_char_band(resume_display_text)
+    if not char_ok and char_reason:
+        failures.append(char_reason)
     meta_ok, meta_reason = check_exec_summary_meta_filler_patterns(resume_display_text)
     if not meta_ok and meta_reason:
         failures.append(meta_reason)
+    bridge_crutch_ok, bridge_crutch_reason = check_exec_summary_no_ai_bridge_crutches(resume_display_text)
+    if not bridge_crutch_ok and bridge_crutch_reason:
+        failures.append(bridge_crutch_reason)
+    noun_soup_ok, noun_soup_reason = check_exec_summary_no_abstract_noun_soup(resume_display_text)
+    if not noun_soup_ok and noun_soup_reason:
+        failures.append(noun_soup_reason)
+    rhythm_ok, rhythm_reason = check_exec_summary_rhythm_and_cadence_variety(resume_display_text)
+    if not rhythm_ok and rhythm_reason:
+        failures.append(rhythm_reason)
     cred_ok, cred_reason = check_exec_summary_no_credential_dump(resume_display_text)
     if not cred_ok and cred_reason:
         failures.append(cred_reason)
@@ -107,7 +123,7 @@ def _exec_summary_shape_ok(resume_display_text: str, parsed: dict[str, Any]) -> 
     )
     if not mech_ok and mech_reason:
         failures.append(mech_reason)
-    sent_ok, sent_reason = check_exec_summary_sentence_count_6(resume_display_text)
+    sent_ok, sent_reason = check_exec_summary_sentence_band_3_to_4(resume_display_text)
     if not sent_ok and sent_reason:
         failures.append(sent_reason)
     if failures:

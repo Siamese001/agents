@@ -123,6 +123,11 @@ def judge_regen_max_delta_tokens() -> int:
     return JUDGE_REGEN_CORE_DELTA_TOKEN_CEILING
 
 
+# Executive summary human hiring-committee LLM judge minimum pass bar (4.7 / 5.0 = 0.94).
+EXEC_SUMMARY_JUDGE_THRESHOLD_0_TO_5 = 4.7
+EXEC_SUMMARY_JUDGE_THRESHOLD_NORMALIZED = 0.94
+
+
 def judge_pass_floor_0_to_5() -> float | None:
     """Operator override for holistic pass floor on 0..5 scale (``APPS_RG_EXEC_SUMMARY_JUDGE_PASS_FLOOR``)."""
     raw = os.environ.get("APPS_RG_EXEC_SUMMARY_JUDGE_PASS_FLOOR", "").strip()

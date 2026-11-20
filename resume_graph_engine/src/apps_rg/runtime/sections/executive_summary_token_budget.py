@@ -68,7 +68,8 @@ _SRFS_SHAPE_MARKERS: tuple[str, ...] = (
     "SRFS_FIVE_PART_EXEC_ARCH_V1",
     "SRFS_SENTENCE_RESP_SEP_V1",
     "SELECTED_ROLE_FACT_SET_APPENDIX:",
-    "x2_exec_summary_sentence_count_6",
+    "x2_exec_summary_sentence_band_3_to_4",
+    "x2_exec_summary_visual_char_band",
     "x2_exec_summary_paragraph_max_words",
 )
 

@@ -12,27 +12,35 @@ from apps_rg.runtime.sections.executive_summary_generation_grade_contract import
     generation_law_digest_text,
 )
 from apps_rg.runtime.validators.executive_summary_x2 import (
+    EXEC_SUMMARY_MAX_CHARS,
+    EXEC_SUMMARY_MAX_SENTENCES,
     EXEC_SUMMARY_MAX_WORDS,
+    EXEC_SUMMARY_MIN_CHARS,
+    EXEC_SUMMARY_MIN_SENTENCES,
     check_claim_ledger_orphan_source_ids,
     check_exec_summary_evidence_utilization,
     check_exec_summary_mechanical_opener_stack,
     check_exec_summary_meta_filler_patterns,
+    check_exec_summary_no_abstract_noun_soup,
+    check_exec_summary_no_ai_bridge_crutches,
     check_exec_summary_no_credential_dump,
     check_exec_summary_no_mechanism_inventory,
     check_exec_summary_paragraph_max_words,
+    check_exec_summary_rhythm_and_cadence_variety,
     check_exec_summary_robotic_transition_stack,
-    check_exec_summary_sentence_count_6,
+    check_exec_summary_sentence_band_3_to_4,
+    check_exec_summary_visual_char_band,
     collect_unused_allowed_fact_ids,
 )
 
-JUDGE_PACKET_VERSION = "executive_summary_judge_packet_v1"
+JUDGE_PACKET_VERSION = "executive_summary_judge_packet_v2_blind_human"
 JUDGE_RUBRIC_REF = "apps_rg/runtime/judges/executive_summary_judge_packet.py#SRFS_GRADE_ONLY_RUBRIC"
 GRAPH_ONLY_JUDGE_RUBRIC_REF = (
     "apps_rg/runtime/judges/executive_summary_judge_packet.py#GRAPH_ONLY_GRADE_ONLY_RUBRIC"
 )
 
 GRADE_ONLY_INSTRUCTION = """
-You are grading a generated executive summary candidate produced by a separate generator.
+You are a skeptical executive hiring committee (CTO / SVP Engineering / Head of Talent Acquisition) grading one generated executive summary candidate produced by a separate generator.
 judge_task: GRADE_ONLY
 
 Mandatory rules:
@@ -40,65 +48,38 @@ Mandatory rules:
 - Do NOT rewrite or edit the candidate text.
 - Do NOT add claims, metrics, credentials, or facts.
 - JD_TEXT and BRIEFING are targeting context only — never proof.
-- Grade only against the rubric, allowed_fact_packet (graph proof pool), and candidate_output.
-- **deterministic_gate_summary is authoritative for X2 gates.** If a gate shows `"pass": true`, you MUST NOT
-  claim that gate failed or cite retired criteria (five-part S1–S5 arc, mandatory S5 credential sentence, etc.).
-- **DISPLAY_OVERRIDE PARITY (CRITICAL):** When an `allowed_fact_packet` row carries a non-empty
-  `display_override_text` field, treat the **UNION** of `claim_text` + `display_override_text` as the
-  authorized fact substrate for that fact_id. The generator (PROVIDER_MODEL) is contractually required by X2 gate
-  `x2_exec_summary_display_override_compliance` to emit the override text verbatim. Phrases drawn from
-  `display_override_text` are **NOT unsupported extensions** and MUST NOT be cited as "extending beyond
-  fact scope" or as inferential stretches. Grade fidelity to the union, not to `claim_text` alone.
-- **GRAPH_PROOF_REFS (CRITICAL):** When a row carries `graph_proof_refs.claim_support_graph_refs`, grade
-  `factual_support` against the UNION of `claim_text`, `display_override_text` (if any), and sentences that
-  demonstrate skills listed in `claim_support_graph_refs`. Treat `graph_proof_refs.source_resume_files` as
-  authoritative provenance for resume-backed skill claims — not as optional decoration.
-- **OFF_DOMAIN_CLUTTER_ENFORCEMENT (CRITICAL):** If a non-financial / non-insurance target role (such as AI Partnerships, Applied AI Architecture, or Agentic Engineering) contains banking regulatory or insurance policy administration clutter (e.g., `BCBS 239`, `monolithic policy administration`, `three-lines-of-defense`, `ERM operating models`, `CCAR`, `Guidewire`), you MUST set `decisive_failure: true`, `pass: false`, and `score <= 3.4` (`0.68`).
-- **INTERNAL_REPO_PLUMBING_AND_STUTTER_BAN (CRITICAL):** If the candidate executive summary contains internal codebase/repo micro-plumbing specs (e.g., `119-package`, `32 readiness gates`, `thirty-two readiness gates`, `six MCP servers`, `6 custom MCP servers`, `SQLite WAL`, `FTS5`, `1024-d BGE-M3`, `Dirichlet-Laplace`, `Merkle-cached`, `Universal Write Gateway`, `8-surface System Learning`, `Dual-Track Live Executive Copilot`), stuttered adjacent stems (`regulated enterprise regulatory findings`, `regulated enterprises regulatory findings`), or weak third-person S1 openers (`Executive leadership architects`, `The candidate `, `This leader `), you MUST set `decisive_failure: true`, `pass: false`, and `score <= 3.0`.
-- **SCORE CALIBRATION (0_to_5):** When all 8 dimensions have `pass=true`, `unsupported_claims` is empty, and all deterministic X2 gates pass, score between **4.5 and 4.9** (4.7+ when prose is cohesive, role-aligned, and grounded in every allocated fact).
+- Grade ONLY against the human hiring-committee rubric, allowed_fact_packet (graph proof pool), and candidate_output.
+- **STRICT GRADER SEPARATION (BLIND TO CODE GATES):** Deterministic code graders already verified formatting, character/word bounds, and schema syntax. Do NOT re-count characters or words and do NOT act as a mechanical rule-checker. Focus 100% on whether this candidate sounds like an unmistakable, authentic, high-caliber executive we must speak to immediately, and whether every claim is faithfully grounded.
+- **DISPLAY_OVERRIDE PARITY (CRITICAL):** When an `allowed_fact_packet` row carries a non-empty `display_override_text` field, treat the UNION of `claim_text` + `display_override_text` as the authorized fact substrate for that fact_id.
+- **GRAPH_PROOF_REFS (CRITICAL):** When a row carries `graph_proof_refs.claim_support_graph_refs`, grade `factual_truth_and_non_exaggeration` against the UNION of `claim_text`, `display_override_text` (if any), and sentences demonstrating skills listed in `claim_support_graph_refs`.
+- **OFF_DOMAIN_CLUTTER_ENFORCEMENT (CRITICAL):** If a non-financial / non-insurance target role (such as AI Partnerships, Applied AI Architecture, or Agentic Engineering) foregrounds legacy banking regulatory or insurance policy administration clutter (e.g., `BCBS 239`, `monolithic policy administration`, `three-lines-of-defense`, `ERM operating models`, `CCAR`, `Guidewire`), set `decisive_failure: true`, `pass: false`, and `score <= 3.4`.
+- **INTERNAL_REPO_PLUMBING_AND_STUTTER_BAN (CRITICAL):** If the executive summary contains internal codebase micro-plumbing specs (e.g., `119-package`, `32 readiness gates`, `six MCP servers`, `SQLite WAL`, `FTS5`, `1024-d BGE-M3`, `Dirichlet-Laplace`, `Universal Write Gateway`), stuttered duplicate stems, or weak robotic S1 openers (`Executive leadership architects`, `The candidate `, `This leader `), set `decisive_failure: true`, `pass: false`, and `score <= 3.0`.
+- **STRICT ANTI-INFLATION CALIBRATION (0_to_5, pass >= 4.7):** Write concise `rationale` reasoning BEFORE assigning `score`.
+  - <= 3.8: Generic, robotic, AI-cadence, cluttered, or factually inflated (FAIL).
+  - 3.9 to 4.3: Solid and professional, but ordinary / interchangeable with 50 peers (FAIL).
+  - 4.4 to 4.6: Strong summary, but not yet an immediate-call standout (FAIL).
+  - 4.7 to 5.0: Rare, human-voiced, high-caliber executive we must speak to immediately (PASS).
 - Return ONLY the required structured judge JSON schema (no markdown fences, no prose).
 """.strip()
 
 SRFS_GRADE_ONLY_RUBRIC = f"""
-Rubric dimensions (SRFS executive summary — product shape **exactly 6 sentences**, one paragraph, max {EXEC_SUMMARY_MAX_WORDS} words):
-1. factual_support: claims supported by allowed_fact_packet and candidate claim_ledger source_fact_ids.
-2. executive_signal: SVP-level platform/governance/partner-motion synthesis, not bullet stacks.
-3. resume_voice: credible third-person executive prose; penalize recruiter filler, backward-looking past-title stacks ("former CTO", "former SVP", "Big-4 Principal", "past principal", "past CTO"), "this individual", "Additionally/Furthermore" chains, generic AI-company prose, and anything that would fail a Head of Talent Acquisition screen.
-4. ats_alignment_without_keyword_stuffing: JD shapes strategic emphasis; no JD-as-proof. Evaluate whether the summary narrative
-   connects verified graph facts to target JD priorities (applied AI partnerships, agentic platform architecture, or consulting/PE transformation).
-   Penalize off-domain banking or insurance clutter (`BCBS 239`, `monolithic policy administration`, `ERM operating models`) on non-financial JDs with `decisive_failure: true` and `score <= 3.4`.
-5. anti_overfit: no unsupported metrics/credentials; no target company as candidate experience; no repeated metric inventory
-   or company-name mirroring; no AI-authenticity dead giveaways such as em dashes, buzzword soup, or template phrasing.
-6. synthesis_quality: **exactly 6** integrated sentences with optional composition themes (identity, platform/governance,
-   partner motion, adoption motion, outcomes, implied credibility). **Not** a fixed S1–S5 slot checklist. Not having exactly six sentences
-   is a decisive failure (aligned with x2_exec_summary_sentence_count_6). **Concise alone is insufficient** when
-   evidence_utilization lists unused high-confidence facts, repeated metric surfaces recur across sentences, or prose reads as stacked bullets.
-   Credential facts are **optional** — omit vendor cert inventories (AWS/Databricks/Associate-level labels); one FSA rigor weave is allowed
-   when X2 passes (C0.3 phase-1, not a cert dump). Penalize AWS+FSA stacks or certification laundry lists. For SVP IT strategy targets,
-   penalize metric-inventory S3–S5 and reward connective emphasis on enterprise architecture, partner ecosystems, adoption motion, and
-   multi-year IT strategy (JD targeting only — never JD-as-proof). The closing sentence must integrate the arc, not recap prior sentences thinly.
-   Keep the cadence human enough to pass a Head of Talent Acquisition screen without machine-generated tells.
-7. evidence_utilization: penalize under-use of allowed_fact_packet when unused_fact_ids is non-empty and synthesis is thin; reward
-   distinct evidence themes instead of reusing the same proof surface repeatedly.
-8. deterministic_alignment: **only** penalize gates that show `"pass": false` in deterministic_gate_summary.
+Rubric dimensions (Blind Human Hiring-Committee Bar — {EXEC_SUMMARY_MIN_SENTENCES} to {EXEC_SUMMARY_MAX_SENTENCES} sentences, {EXEC_SUMMARY_MIN_CHARS}-{EXEC_SUMMARY_MAX_CHARS} chars visual band, pass >= 4.7/5.0):
+1. immediate_call_conviction: Does this sound like a rare, high-caliber executive we MUST speak to immediately? Fail if safe, ordinary, or interchangeable with 50 senior peers.
+2. spoken_executive_authenticity: Does it sound like an articulate executive speaking plainly in a boardroom rather than LLM prose? Fail on AI bridge crutches ("In parallel,", "Building on that", "From that commercial base", "Across enterprise programs,", "That governed..."), abstract noun soup ("operating-model framing", "governed activation", "durable economics"), recruiter fluff, or stiff essay cadence.
+3. differentiated_edge: Does the summary spotlight an unmistakable, rare combination of scale, platform/commercial impact, and regulated rigor backed by concrete proof?
+4. six_second_scannability: Can a busy executive absorb the core value in a 6-second skim? Reward crisp visual rhythm, varied sentence lengths, concrete outcomes woven directly into prose, and zero comma-stacked inventories.
+5. strategic_mandate_resonance: Does the candidate's proven track record clearly solve the target role's mandate without JD phrase copying, keyword stuffing, or off-domain clutter?
+6. factual_truth_and_non_exaggeration: Is every displayed claim, metric, and scope faithfully backed by allowed_fact_packet without inflation, cross-fact conflation, or treating JD/briefing/target company as experience?
 
-Retired criteria (do NOT fail the candidate for these alone):
-- Mandatory five-sentence arc or missing "S5 credibility sentence"
-- S2 mechanism-only / S4 outcomes slot mandates from legacy SRFS shape gate
-- Requiring Fellow of the Society of Actuaries or cert list in the paragraph
-
-Decisive failure triggers (must be supported by allowed facts and deterministic_gate_summary failures when cited):
-- target mandate divergence (e.g. generating systems plumbing summary when JD specifies executive consulting/PE advisory)
-- unsupported business metric or credential in prose
-- JD or briefing used as proof
-- first-person narrative
-- credential/certification inventory block (x2_exec_summary_no_credential_dump alignment)
-- mechanism inventory in opening sentence or comma-chain architecture dump
-- internal repo/codebase micro-plumbing laundry lists ("119-package", "32 readiness gates", "six MCP servers", "SQLite WAL", "FTS5", "1024-d BGE-M3", "Dirichlet-Laplace", "Universal Write Gateway", "Dual-Track Live Executive Copilot"), stuttered duplicate stems ("regulated enterprise regulatory findings"), or robotic S1 opener ("Executive leadership architects", "The candidate ", "This leader ")
-- obvious rewrite recommendation that invents new claims
+Decisive failure triggers:
+- unsupported or exaggerated business metric, scope, or credential
+- target company presented as candidate experience or JD/briefing used as proof
+- obvious AI-generated cadence, stacked transition crutches, abstract noun soup, or recruiter fluff
+- target mandate divergence or off-domain clutter on non-financial JDs
+- internal codebase micro-plumbing laundry lists or robotic S1 opener
 """.strip()
 
-# Judge hallucination guard: legacy rubric phrases that must not drive decisive_failure when X2 snapshot all pass.
+# Judge hallucination guard: legacy rubric phrases (retained for non-exec-summary compat).
 _RETIRED_JUDGE_CRITERIA_FRAGMENTS = (
     "five-sentence arc",
     "five sentence arc",
@@ -115,46 +96,21 @@ _RETIRED_JUDGE_CRITERIA_FRAGMENTS = (
     "mechanism-only sentence",
 )
 
-GRAPH_ONLY_GRADE_ONLY_RUBRIC = """
-Rubric dimensions (graph-only C0.3 augmented skills graph authority, non-SRFS lane):
-1. factual_support: claims supported by allowed_fact_packet and candidate claim_ledger source_fact_ids only.
-   **For rows carrying `display_override_text`, the authorized substrate is the UNION of `claim_text` +
-   `display_override_text`. Phrases from `display_override_text` are deterministically authorized — do NOT
-   flag them as unsupported, inferential, or out-of-scope extensions; the generator was X2-required to emit
-   them verbatim. When `graph_proof_refs.claim_support_graph_refs` is non-empty, also authorize prose that
-   demonstrates those skill nodes; `graph_proof_refs.source_resume_files` is authoritative provenance.
-   Cite a `factual_support` failure only when prose deviates from the full authorized union (claim +
-   override + graph skill refs).**
-2. executive_signal: SVP-level platform/governance/partner-motion synthesis, not bullet stacks.
-3. resume_voice: credible executive prose; no recruiter filler, backward-looking past-title stacks ("former CTO", "former SVP", "Big-4 Principal", "past principal", "past CTO"), meta narration, or generic AI-company prose, and nothing that would fail a Head of Talent Acquisition screen.
-4. ats_alignment_without_keyword_stuffing: JD shapes strategic emphasis; no JD-as-proof. Evaluate whether the summary narrative
-   connects verified graph facts to target JD priorities (applied AI partnerships, agentic platform architecture, or consulting/PE transformation).
-   Penalize off-domain banking or insurance clutter (`BCBS 239`, `monolithic policy administration`, `ERM operating models`) on non-financial JDs with `decisive_failure: true` and `score <= 3.4`.
-5. anti_overfit: no unsupported metrics/credentials; no target company as candidate experience; no repeated metric inventory
-   or company-name mirroring; no AI-authenticity dead giveaways such as em dashes, buzzword soup, or template phrasing.
-   **`display_override_text` content is NOT an unsupported credential/metric — it is X2-authorized
-   substrate. Do not cite override phrases (e.g. "FSA-chartered", "informing data governance and AI
-   strategy at scale") as anti_overfit violations.**
-6. synthesis_quality: **exactly 6** integrated sentences (X2 band); reward connective SVP IT strategy emphasis when
-   ledger-backed; penalize thin recap closers, repeated metric surfaces, and bullet-stacked prose. **Do not** soft-penalize
-   credential/metric inventory, unused_fact_ids weave targets, or mechanism dumps when the mapped deterministic gate shows `"pass": true`.
-   Keep the cadence human enough to pass a Head of Talent Acquisition screen without machine-generated tells.
-7. evidence_utilization: when `x2_exec_summary_evidence_utilization` is `"pass": true`, unused_fact_ids are optional weave
-   targets — not proof gaps. Penalize under-use only when that gate is `"pass": false` or synthesis is decisively thin;
-   reward distinct evidence themes instead of the same metric repeated in multiple sentences.
-8. deterministic_alignment: **only** penalize gates that show `"pass": false` in deterministic_gate_summary. Never cite
-   retired five-part/S1–S5 arc mandates when gates passed.
+GRAPH_ONLY_GRADE_ONLY_RUBRIC = f"""
+Rubric dimensions (Blind Human Hiring-Committee Bar — graph-backed proof, pass >= 4.7/5.0):
+1. immediate_call_conviction: Does this sound like a rare, high-caliber executive we MUST speak to immediately? Fail if safe, ordinary, or interchangeable with 50 senior peers.
+2. spoken_executive_authenticity: Does it read like a sharp human executive speaking directly to a hiring committee rather than LLM prose? Fail on AI bridge crutches ("In parallel,", "Building on that", "From that commercial base", "Across enterprise programs,", "That governed..."), abstract noun soup ("operating-model framing", "governed activation", "durable economics"), recruiter fluff, or stiff essay cadence.
+3. differentiated_edge: Does the paragraph spotlight an unmistakable, rare combination of technical build, scale/commercial impact, and regulated rigor backed by concrete numbers?
+4. six_second_scannability: Can a busy executive absorb the core value in a 6-second skim? Reward varied sentence lengths, distinct concrete openers, crisp visual rhythm ({EXEC_SUMMARY_MIN_SENTENCES}-{EXEC_SUMMARY_MAX_SENTENCES} sentences), and zero comma-stacked inventories.
+5. strategic_mandate_resonance: Does the candidate's verified record clearly solve the target role's core mandate without keyword stuffing, JD mirroring, or off-domain clutter? Penalize off-domain banking/insurance clutter on non-financial JDs with `decisive_failure: true` and `score <= 3.4`.
+6. factual_truth_and_non_exaggeration: Is every displayed claim and metric faithfully backed by the UNION of `claim_text`, `display_override_text` (if present), and `graph_proof_refs.claim_support_graph_refs` without inflation, cross-fact conflation, or treating JD/briefing/target company as experience?
 
-Residual quality (always in scope — not closed by X2 alone):
-- executive clarity, narrative coherence, commercial fit, usefulness, unsupported phrasing outside ledger scope.
-
-Decisive failure triggers (must align with deterministic_gate_summary failures when cited):
-- target mandate divergence (e.g. generating systems plumbing summary when JD specifies executive consulting/PE advisory)
-- unsupported business metric or credential (when x2 gates failed or decisive unsupported claim)
-- JD or briefing used as proof
-- first-person narrative
-- internal repo/codebase micro-plumbing laundry lists ("119-package", "32 readiness gates", "six MCP servers", "SQLite WAL", "FTS5", "1024-d BGE-M3", "Dirichlet-Laplace", "Universal Write Gateway", "Dual-Track Live Executive Copilot"), stuttered duplicate stems ("regulated enterprise regulatory findings"), or robotic S1 opener ("Executive leadership architects", "The candidate ", "This leader ")
-- obvious rewrite recommendation that invents new claims
+Decisive failure triggers:
+- unsupported or exaggerated business metric, scope, or credential
+- target company presented as candidate experience or JD/briefing used as proof
+- obvious AI-generated cadence, stacked transition crutches, abstract noun soup, or recruiter fluff
+- target mandate divergence or off-domain clutter on non-financial JDs
+- internal codebase micro-plumbing laundry lists or robotic S1 opener
 """.strip()
 
 def _required_judge_output_schema_text() -> str:
@@ -163,13 +119,13 @@ def _required_judge_output_schema_text() -> str:
     )
 
     return f"""
-Return ONLY one compact JSON object:
-{{"score_scale":"0_to_5","score":0.0,"threshold":4.0,"pass":true,"decisive_failure":false,
+Return ONLY one compact JSON object (write `rationale` BEFORE deciding `score`):
+{{"rationale":"concise hiring-committee reasoning first","score_scale":"0_to_5","score":0.0,"threshold":4.7,"pass":true,"decisive_failure":false,
  "findings":["short strings"],"cited_sentence_indexes":[1],
- "remediation_suggestions":[],"rationale":"one short paragraph",
+ "remediation_suggestions":[],
  "fail_reasons":[],"unsupported_claims":[],"quality_flags":[],
  {required_judge_output_dimension_block()}}}
-score_scale must be 0_to_5 with in-range score/threshold (0.0 to 5.0, required pass >= 4.0).
+score_scale must be 0_to_5 with in-range score/threshold (0.0 to 5.0, required pass >= 4.7).
 """.strip()
 
 
@@ -337,8 +293,12 @@ def build_deterministic_gate_summary(
     claim_ledger: list[dict[str, Any]],
     allowed_fact_ids: set[str],
 ) -> dict[str, Any]:
-    """Pre-judge X2 gate snapshot aligned with live product-shape gates."""
-    sent_ok, sent_reason = check_exec_summary_sentence_count_6(resume_display_text)
+    """Pre-judge X2 gate snapshot aligned with live product-shape gates (audit-only; NOT sent to exec_summary LLM judge)."""
+    sent_ok, sent_reason = check_exec_summary_sentence_band_3_to_4(resume_display_text)
+    char_ok, char_reason = check_exec_summary_visual_char_band(resume_display_text)
+    bridge_crutch_ok, bridge_crutch_reason = check_exec_summary_no_ai_bridge_crutches(resume_display_text)
+    noun_soup_ok, noun_soup_reason = check_exec_summary_no_abstract_noun_soup(resume_display_text)
+    rhythm_ok, rhythm_reason = check_exec_summary_rhythm_and_cadence_variety(resume_display_text)
     cred_ok, cred_reason = check_exec_summary_no_credential_dump(resume_display_text)
     mechanism_ok, mechanism_reason = check_exec_summary_no_mechanism_inventory(resume_display_text)
     bounds_ok, bounds_reason = check_exec_summary_paragraph_max_words(
@@ -359,9 +319,25 @@ def build_deterministic_gate_summary(
         isinstance(r, dict) and str(r.get("claim_text") or "").strip() for r in claim_ledger
     )
     return {
-        "x2_exec_summary_sentence_count_6": {
+        "x2_exec_summary_sentence_band_3_to_4": {
             "pass": sent_ok,
             "detail": sent_reason or "ok",
+        },
+        "x2_exec_summary_visual_char_band": {
+            "pass": char_ok,
+            "detail": char_reason or "ok",
+        },
+        "x2_exec_summary_no_ai_bridge_crutches": {
+            "pass": bridge_crutch_ok,
+            "detail": bridge_crutch_reason or "ok",
+        },
+        "x2_exec_summary_no_abstract_noun_soup": {
+            "pass": noun_soup_ok,
+            "detail": noun_soup_reason or "ok",
+        },
+        "x2_exec_summary_rhythm_and_cadence_variety": {
+            "pass": rhythm_ok,
+            "detail": rhythm_reason or "ok",
         },
         "x2_exec_summary_paragraph_max_words": {
             "pass": bounds_ok,
@@ -407,7 +383,7 @@ def build_deterministic_gate_summary(
         },
         "product_shape_note": {
             "pass": True,
-            "detail": "exactly 6 sentences; composition heuristics; S1-S6 arc",
+            "detail": f"{EXEC_SUMMARY_MIN_SENTENCES}-{EXEC_SUMMARY_MAX_SENTENCES} sentences; {EXEC_SUMMARY_MIN_CHARS}-{EXEC_SUMMARY_MAX_CHARS} chars visual layout band",
         },
     }
 
@@ -455,8 +431,16 @@ def reconcile_judge_result_against_deterministic_gate_closures(
     deterministic_gate_summary: dict[str, Any] | None,
     section_id: str | None = None,
 ) -> dict[str, Any]:
-    """Suppress only findings mapped to passed deterministic gates; emit reconciliation receipt."""
-    if not isinstance(result, dict) or not isinstance(deterministic_gate_summary, dict):
+    """Suppress only findings mapped to passed deterministic gates for non-exec-summary sections.
+
+    For executive_summary (frontier-lab grader separation): strictly NO finding suppression
+    and NO score-upward coercion — the blind human hiring-committee score is authoritative.
+    """
+    if not isinstance(result, dict):
+        return result
+    if section_id in (None, "", "executive_summary"):
+        return dict(result)
+    if not isinstance(deterministic_gate_summary, dict):
         return result
 
     original_score = result.get("score")
@@ -543,9 +527,19 @@ def reconcile_grade_only_judge_result(
     deterministic_gate_summary: dict[str, Any] | None,
     section_id: str | None = None,
 ) -> dict[str, Any]:
-    """Retired-criteria reconcile, then deterministic gate-closure reconcile."""
+    """Retired-criteria reconcile + gate-closure reconcile.
+
+    For ``executive_summary`` (blind human judge): NEVER suppress findings and NEVER coerce
+    scores upward; only apply the strictly downward-only off-domain clutter cap when triggered.
+    """
     if not isinstance(result, dict):
         return result
+    if section_id in (None, "", "executive_summary"):
+        from apps_rg.runtime.validators.allocation_jd_alignment_gate import (
+            reconcile_allocation_jd_alignment_judge_result,
+        )
+
+        return reconcile_allocation_jd_alignment_judge_result(dict(result), deterministic_gate_summary)
     out = dict(result)
     original_findings = [str(f) for f in (out.get("findings") or []) if str(f).strip()]
     preserved, stripped_retired = _strip_retired_criteria_findings(original_findings)
@@ -791,47 +785,71 @@ def _evidence_utilization_prompt_block(packet: dict[str, Any]) -> str:
 
 
 def render_judge_prompt_from_packet(packet: dict[str, Any]) -> str:
-    """Render judge user message from JudgePacket — never the generator compiled_prompt."""
+    """Render judge user message from JudgePacket — never the generator compiled_prompt.
+
+    Frontier-lab grader separation: for ``executive_summary``, omit ``deterministic_gate_summary``
+    and deterministic pass-flag blocks so the LLM judge grades completely blind to X2 code gates.
+    """
+    section = str(packet.get("section") or "executive_summary").strip()
+    is_blind_exec_summary = section == "executive_summary"
     parts = [
         packet.get("grading_instruction") or GRADE_ONLY_INSTRUCTION,
         "",
         f"JUDGE_TASK: {packet.get('judge_task', 'GRADE_ONLY')}",
-        f"SECTION: {packet.get('section', 'executive_summary')}",
+        f"SECTION: {section}",
         f"JUDGE_CONTRACT_HASH: {judge_contract_hash(packet)}",
         "",
         "PROOF_BOUNDARY:",
         json.dumps(packet.get("proof_boundary") or {}, indent=2),
         "",
-        "GRAPH_BINDING_MATERIALITY_SUMMARY:",
-        json.dumps(packet.get("graph_binding_materiality_summary") or {}, indent=2),
-        "",
-        "DETERMINISTIC_GATE_SUMMARY (AUTHORITATIVE — do not contradict pass=true gates):",
-        json.dumps(packet.get("deterministic_gate_summary") or {}, indent=2),
-        "",
         "GENERATION_LAW_DIGEST (aligned with L2 I0 — judges do not receive full E0/I0):",
         packet.get("generation_law_digest") or generation_law_digest_text(),
         "",
-        "DIMENSION_GATE_MAP:",
-        json.dumps(packet.get("dimension_gate_map") or dimension_gate_map(), indent=2),
-        "",
-        packet.get("rubric") or SRFS_GRADE_ONLY_RUBRIC,
-        "",
-        packet.get("required_output_schema") or REQUIRED_JUDGE_OUTPUT_SCHEMA,
-        "",
-        "TARGETING_CONTEXT (NOT PROOF):",
-        json.dumps(packet.get("targeting_context") or {}, indent=2),
-        f"TARGET_TITLE: {packet.get('target_title', '')}",
-        f"TARGET_COMPANY: {packet.get('target_company', '')}",
-        "",
-        "ALLOWED_FACT_PACKET (graph proof pool):",
-        json.dumps(packet.get("allowed_fact_packet") or [], separators=(",", ":")),
-        "",
-        _evidence_utilization_prompt_block(packet),
-        json.dumps(eu if (eu := packet.get("evidence_utilization")) else {}, indent=2),
-        "",
-        "CANDIDATE_OUTPUT:",
-        json.dumps(packet.get("candidate_output") or {}, indent=2),
     ]
+    if not is_blind_exec_summary:
+        parts.extend(
+            [
+                "GRAPH_BINDING_MATERIALITY_SUMMARY:",
+                json.dumps(packet.get("graph_binding_materiality_summary") or {}, indent=2),
+                "",
+                "DETERMINISTIC_GATE_SUMMARY (AUTHORITATIVE — do not contradict pass=true gates):",
+                json.dumps(packet.get("deterministic_gate_summary") or {}, indent=2),
+                "",
+                "DIMENSION_GATE_MAP:",
+                json.dumps(packet.get("dimension_gate_map") or dimension_gate_map(), indent=2),
+                "",
+            ]
+        )
+    parts.extend(
+        [
+            packet.get("rubric") or SRFS_GRADE_ONLY_RUBRIC,
+            "",
+            packet.get("required_output_schema") or REQUIRED_JUDGE_OUTPUT_SCHEMA,
+            "",
+            "TARGETING_CONTEXT (NOT PROOF):",
+            json.dumps(packet.get("targeting_context") or {}, indent=2),
+            f"TARGET_TITLE: {packet.get('target_title', '')}",
+            f"TARGET_COMPANY: {packet.get('target_company', '')}",
+            "",
+            "ALLOWED_FACT_PACKET (graph proof pool):",
+            json.dumps(packet.get("allowed_fact_packet") or [], separators=(",", ":")),
+            "",
+        ]
+    )
+    if not is_blind_exec_summary:
+        parts.extend(
+            [
+                _evidence_utilization_prompt_block(packet),
+                json.dumps(eu if (eu := packet.get("evidence_utilization")) else {}, indent=2),
+                "",
+            ]
+        )
+    parts.extend(
+        [
+            "CANDIDATE_OUTPUT:",
+            json.dumps(packet.get("candidate_output") or {}, indent=2),
+        ]
+    )
     return "\n".join(parts)
 
 

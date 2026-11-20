@@ -100,6 +100,37 @@ EXEC_SUMMARY_WEAK_S1_SUBJECT_OPENERS: tuple[str, ...] = (
     "this individual ",
 )
 
+# Hardened anti-AI bridge crutches (forbidden anywhere as clause/sentence glue).
+EXEC_SUMMARY_AI_BRIDGE_CRUTCHES: tuple[str, ...] = (
+    "in parallel,",
+    "building on that architecture,",
+    "building on that foundation,",
+    "complementing that platform architecture,",
+    "complementing that architecture,",
+    "across enterprise programs,",
+    "the same platform discipline",
+    "that governed runtime",
+    "that integrated runtime",
+    "that operating foundation also",
+    "that platform productization discipline",
+    "from that commercial base,",
+)
+
+# Hollow executive abstractions that weaken spoken boardroom authenticity.
+EXEC_SUMMARY_ABSTRACT_NOUN_SOUP: tuple[str, ...] = (
+    "operating-model framing",
+    "governed activation",
+    "durable economics",
+    "durable substrate economics",
+    "repeatable activation model",
+    "strategic engineering demand",
+    "compliance-bound institutional stakeholders",
+    "accountable operating cadence",
+)
+
+EXEC_SUMMARY_MIN_LENGTH_SPREAD_WORDS = 4
+EXEC_SUMMARY_MAX_TRAILING_GERUNDS = 1
+
 
 # Finite-verb pattern: matches common present/past tense verbs and auxiliary constructions.
 # A sentence is a fragment if it has NO finite verb — it's a noun phrase or participial phrase.

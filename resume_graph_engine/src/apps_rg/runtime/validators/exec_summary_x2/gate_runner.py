@@ -68,17 +68,21 @@ from apps_rg.runtime.validators.exec_summary_x2.sentence_metric_checks import (
     check_exec_summary_cross_sentence_metric_dedup,
     check_exec_summary_display_roundtrip_integrity,
     check_exec_summary_jd_alignment_proof_flags,
-    check_exec_summary_sentence_count_6,
+    check_exec_summary_sentence_band_3_to_4,
     check_self_check_claim_ledger_consistent,
 )
 from apps_rg.runtime.validators.exec_summary_x2.shape_and_credential_checks import (
     _exec_summary_painting_mode_active,
+    check_exec_summary_no_abstract_noun_soup,
+    check_exec_summary_no_ai_bridge_crutches,
     check_exec_summary_no_bloated_sentence,
     check_exec_summary_no_certifications_section_duplication,
     check_exec_summary_no_competencies_duplication,
     check_exec_summary_no_credential_dump,
     check_exec_summary_no_mechanism_inventory,
     check_exec_summary_paragraph_max_words,
+    check_exec_summary_rhythm_and_cadence_variety,
+    check_exec_summary_visual_char_band,
     check_graph_evidence_sentence_responsibility_shape,
     check_prompt_template_authority,
 )
@@ -126,7 +130,14 @@ def _run_x2_gates_impl(
     proof_pool_ref: str = "",
     proof_pool_digest: str = "",
 ) -> list[X2GateResult]:
-    from apps_rg.runtime.validators.executive_summary_x2 import EXEC_SUMMARY_MAX_WORDS, EXEC_SUMMARY_MAX_WORDS_PER_SENTENCE, EXEC_SUMMARY_MIN_SENTENCES
+    from apps_rg.runtime.validators.executive_summary_x2 import (
+        EXEC_SUMMARY_MAX_CHARS,
+        EXEC_SUMMARY_MAX_SENTENCES,
+        EXEC_SUMMARY_MAX_WORDS,
+        EXEC_SUMMARY_MAX_WORDS_PER_SENTENCE,
+        EXEC_SUMMARY_MIN_CHARS,
+        EXEC_SUMMARY_MIN_SENTENCES,
+    )
     gates: list[X2GateResult] = []
     artifacts_dir = artifacts_dir or Path("artifacts/apps_rg/runtime_proofs/executive_summary")
 
@@ -275,6 +286,14 @@ def _run_x2_gates_impl(
         f"max_{EXEC_SUMMARY_MAX_WORDS}_words",
         para_max_reason,
     )
+    char_band_ok, char_band_reason = check_exec_summary_visual_char_band(resume_display_text)
+    add(
+        "x2_exec_summary_visual_char_band",
+        char_band_ok,
+        char_band_reason or "ok",
+        f"{EXEC_SUMMARY_MIN_CHARS}-{EXEC_SUMMARY_MAX_CHARS}_chars",
+        char_band_reason,
+    )
     bloated_ok, bloated_reason = check_exec_summary_no_bloated_sentence(resume_display_text)
     add(
         "x2_exec_summary_no_bloated_sentence",
@@ -282,6 +301,30 @@ def _run_x2_gates_impl(
         bloated_reason or "ok",
         f"max_{EXEC_SUMMARY_MAX_WORDS_PER_SENTENCE}_words_per_sentence",
         bloated_reason,
+    )
+    bridge_crutch_ok, bridge_crutch_reason = check_exec_summary_no_ai_bridge_crutches(resume_display_text)
+    add(
+        "x2_exec_summary_no_ai_bridge_crutches",
+        bridge_crutch_ok,
+        bridge_crutch_reason or "ok",
+        "zero_ai_bridge_crutches",
+        bridge_crutch_reason,
+    )
+    abstract_soup_ok, abstract_soup_reason = check_exec_summary_no_abstract_noun_soup(resume_display_text)
+    add(
+        "x2_exec_summary_no_abstract_noun_soup",
+        abstract_soup_ok,
+        abstract_soup_reason or "ok",
+        "zero_abstract_noun_soup",
+        abstract_soup_reason,
+    )
+    cadence_ok, cadence_reason = check_exec_summary_rhythm_and_cadence_variety(resume_display_text)
+    add(
+        "x2_exec_summary_rhythm_and_cadence_variety",
+        cadence_ok,
+        cadence_reason or "ok",
+        "varied_rhythm_and_openers",
+        cadence_reason,
     )
     add("x2_no_monolithic_prompt", not monolithic_prompt_invoked, monolithic_prompt_invoked, False, "Monolithic prompt invoked.")
     add("x2_temperature_in_profile", 0.35 <= temperature <= 0.55, temperature, "0.35-0.55", "Temperature outside executive_summary profile.")
@@ -318,13 +361,13 @@ def _run_x2_gates_impl(
         [],
         colon_stitch_reason,
     )
-    sent6_ok, sent6_reason = check_exec_summary_sentence_count_6(resume_display_text)
+    sent_band_ok, sent_band_reason = check_exec_summary_sentence_band_3_to_4(resume_display_text)
     add(
-        "x2_exec_summary_sentence_count_6",
-        sent6_ok,
-        sent6_reason or "ok",
-        f"exactly_{EXEC_SUMMARY_MIN_SENTENCES}",
-        sent6_reason,
+        "x2_exec_summary_sentence_band_3_to_4",
+        sent_band_ok,
+        sent_band_reason or "ok",
+        f"{EXEC_SUMMARY_MIN_SENTENCES}_to_{EXEC_SUMMARY_MAX_SENTENCES}_sentences",
+        sent_band_reason,
     )
     roundtrip_ok, roundtrip_reason = check_exec_summary_display_roundtrip_integrity(
         resume_display_text

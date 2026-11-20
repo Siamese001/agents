@@ -18,7 +18,13 @@ from apps_rg.runtime.targeting_context_authority import (
     evaluate_targeting_parity,
     sha256_hex64,
 )
-from apps_rg.runtime.validators.executive_summary_x2 import EXEC_SUMMARY_MAX_WORDS
+from apps_rg.runtime.validators.executive_summary_x2 import (
+    EXEC_SUMMARY_MAX_CHARS,
+    EXEC_SUMMARY_MAX_SENTENCES,
+    EXEC_SUMMARY_MAX_WORDS,
+    EXEC_SUMMARY_MIN_CHARS,
+    EXEC_SUMMARY_MIN_SENTENCES,
+)
 
 MANIFEST_SCHEMA = "generation_grade_contract_manifest_v1"
 MANIFEST_SCHEMA_PATH = (
@@ -36,37 +42,31 @@ JUDGE_EXCLUDED_BY_DESIGN: tuple[str, ...] = (
 
 
 def generation_law_digest_text() -> str:
-    """Compact generation laws mirrored for judges (not full I0/E0)."""
+    """Compact generation laws mirrored for judges (not full I0/E0; zero X2 pass flags)."""
     return (
         "GENERATION_LAW_DIGEST:\n"
         "- Proof: ALLOWED_SOURCE_FACT_IDS + C0 lines only; JD/briefing targeting-only.\n"
-        "- Required: executive_strategy_thesis (one sentence) then six-sentence display serving that "
-        "leadership-first thesis.\n"
-        "- Leadership first: regardless of JD or role family, open with leadership identity, scope, and "
-        "operating model before domain-specific keywords.\n"
-        "- Display metric weave: when claim_text for S3–S5 includes dollar/percent outcomes from allowed facts, "
-        "the matching display sentence must include at least one outcome (executive_signal; not ledger-only metrics).\n"
-        "- Anti-inventory: no comma-chain mechanism dumps; no sequential achievement bullet stack; no employer inventory line.\n"
-        "- Credential policy: omit AWS/Databricks/vendor cert inventories; at most one FSA rigor mention "
-        "(C0.3 phase-1) when woven into quantitative narrative — not equivalent to AWS Associate labels.\n"
-        "- SVP ATS: translate JD themes into executive concepts via allowed facts; document gap_notes when proof IDs absent.\n"
-        f"- Exactly 6 sentences, one paragraph, max {EXEC_SUMMARY_MAX_WORDS} words; S6 forward synthesis grounded in source_fact_ids, not thin recap.\n"
-        "- S1 thesis-body promise: only name capability threads (e.g. 'commercialization', 'innovation delivery') "
-        "that at least one of S2–S6 substantiates via source_fact_ids; a thesis thread with no body delivery is a "
-        "thesis-body gap that frontier-class judges penalise severely — resolve the gap before writing S1.\n"
+        f"- Visual layout band: {EXEC_SUMMARY_MIN_SENTENCES} to {EXEC_SUMMARY_MAX_SENTENCES} crisp sentences, "
+        f"{EXEC_SUMMARY_MIN_CHARS} to {EXEC_SUMMARY_MAX_CHARS} characters (max {EXEC_SUMMARY_MAX_WORDS} words overflow cap), "
+        "one spoken executive paragraph.\n"
+        "- Leadership first: open with sharp executive identity, scale, and rare differentiator before domain keywords.\n"
+        "- Display metric weave: concrete dollar/percent/headcount outcomes from allowed facts appear directly in display prose.\n"
+        "- Human spoken register: zero AI bridge crutches ('In parallel,', 'Building on that', 'Across enterprise programs,') "
+        "and zero abstract noun soup ('operating-model framing', 'governed activation', 'durable economics').\n"
+        "- Anti-inventory: no comma-chain mechanism dumps, no cert/employer inventories, no JD phrase copying.\n"
+        "- Truthfulness: every displayed claim must be faithfully supported by allowed facts without inflation or conflation.\n"
     )
 
 
 def dimension_gate_map() -> dict[str, str]:
+    """Human hiring-committee LLM judge dimensions (strictly decoupled from X2 deterministic pass flags)."""
     return {
-        "factual_support": "x2_claim_ledger_orphan_zero",
-        "executive_signal": "x2_executive_summary_synthesis_quality",
-        "resume_voice": "x2_exec_summary_meta_filler_zero",
-        "ats_alignment_without_keyword_stuffing": "x2_jd_phrase_copy_violation_zero",
-        "anti_overfit": "x2_unsupported_claim_zero",
-        "synthesis_quality": "x2_executive_summary_synthesis_quality",
-        "evidence_utilization": "x2_exec_summary_evidence_utilization",
-        "deterministic_alignment": "x2_gate_snapshot_authoritative",
+        "immediate_call_conviction": "human_judge_only",
+        "spoken_executive_authenticity": "x2_exec_summary_no_ai_bridge_crutches",
+        "differentiated_edge": "human_judge_only",
+        "six_second_scannability": "x2_exec_summary_visual_char_band",
+        "strategic_mandate_resonance": "x2_jd_phrase_copy_violation_zero",
+        "factual_truth_and_non_exaggeration": "x2_unsupported_claim_zero",
     }
 
 

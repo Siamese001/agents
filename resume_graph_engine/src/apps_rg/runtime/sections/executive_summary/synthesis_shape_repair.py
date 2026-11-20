@@ -31,9 +31,13 @@ def _synthesis_shape_reject_reason(
         check_exec_summary_no_mechanism_inventory,
         check_exec_summary_no_sentence_fragment,
         check_exec_summary_display_override_compliance,
+        check_exec_summary_no_abstract_noun_soup,
+        check_exec_summary_no_ai_bridge_crutches,
         check_exec_summary_paragraph_max_words,
+        check_exec_summary_rhythm_and_cadence_variety,
         check_exec_summary_robotic_transition_stack,
-        check_exec_summary_sentence_count_6,
+        check_exec_summary_sentence_band_3_to_4,
+        check_exec_summary_visual_char_band,
         check_inferred_bridge_claims,
         check_north_star_style_example_echo_unsupported,
         check_cross_fact_display_conflation,
@@ -117,9 +121,21 @@ def _synthesis_shape_reject_reason(
     colon_ok, colon_reason = check_resume_display_colon_space_discipline(text)
     if not colon_ok and colon_reason:
         failures.append(colon_reason)
-    sent_ok, sent_reason = check_exec_summary_sentence_count_6(text)
+    sent_ok, sent_reason = check_exec_summary_sentence_band_3_to_4(text)
     if not sent_ok and sent_reason:
         failures.append(sent_reason)
+    char_ok, char_reason = check_exec_summary_visual_char_band(text)
+    if not char_ok and char_reason:
+        failures.append(char_reason)
+    bridge_crutch_ok, bridge_crutch_reason = check_exec_summary_no_ai_bridge_crutches(text)
+    if not bridge_crutch_ok and bridge_crutch_reason:
+        failures.append(bridge_crutch_reason)
+    noun_soup_ok, noun_soup_reason = check_exec_summary_no_abstract_noun_soup(text)
+    if not noun_soup_ok and noun_soup_reason:
+        failures.append(noun_soup_reason)
+    rhythm_ok, rhythm_reason = check_exec_summary_rhythm_and_cadence_variety(text)
+    if not rhythm_ok and rhythm_reason:
+        failures.append(rhythm_reason)
     if sent_ok and isinstance(parsed, dict):
         from apps_rg.runtime.validators.executive_summary_x2 import (
             check_claim_ledger_row_count_matches_sentence_count,
@@ -243,35 +259,31 @@ def _build_synthesis_repair_user(
     elif attempt_index >= 2:
         attempt_note = "FINAL rewrite — prior drafts still failed shape gates. "
     length_note = ""
-    if "exceeds maximum" in blob:
+    if "exceeds maximum" in blob or "char_band" in blob or "characters" in blob:
         length_note = (
-            f"LENGTH: trim to one executive paragraph (exactly 6 sentences, max {EXEC_SUMMARY_MAX_WORDS} words) without dropping supported proof; "
-            "do not remove claim_ledger rows. "
+            f"LENGTH: tighten to one crisp executive paragraph (3 to 4 sentences, 420 to 680 characters, max 210 chars/sentence, max {EXEC_SUMMARY_MAX_WORDS} words overflow cap) "
+            "without dropping supported proof. "
         )
     else:
         length_note = (
-            f"LENGTH: keep at least {prior_word_count} words unless trimming only to fix max-word overflow; "
-            "do NOT compress or shorten to fix style — expand/restructure instead. "
+            "LENGTH: target the visual layout band (3 to 4 sentences, 420 to 680 characters, max 210 chars/sentence, zero word minimum); "
+            "prioritize crisp spoken executive impact over word count. "
         )
     if last_monotonicity_rejected:
         length_note += (
-            "PRIOR REGEN SHRANK OR DROPPED CLAIM ROWS — next draft must maintain or increase word count "
-            f"and claim_ledger rows (minimum {prior_ledger_rows} rows, prefer 5+ when pool has 6+ facts). "
+            f"PRESERVE PROOF: maintain grounded claim_ledger rows matching displayed sentences (3 to 4 rows, prior had {prior_ledger_rows}). "
         )
     sentence_count_note = ""
-    if "found 5" in blob or "found 4" in blob or "sentences; found" in blob or "sentence_count" in blob:
+    if "sentence_band" in blob or "sentences; found" in blob or "sentence_count" in blob or "found 5" in blob or "found 6" in blob or "found 2" in blob:
         sentence_count_note = (
-            "SENTENCE COUNT HARD FAIL: your previous draft had the wrong number of sentences. "
-            "The output MUST have EXACTLY 6 period-terminated sentences — no more, no fewer. "
-            "If the fact pool is tight, SPLIT a multi-beat sentence into two: e.g. S3 governance + S4 lineage outcome. "
-            "Do NOT compress to 5 to 'fit' facts — add an S6 forward synthesis that is NOT a recap. "
+            "SENTENCE BAND HARD FAIL: output MUST have 3 to 4 period-terminated sentences totaling 420 to 680 characters (max 210 chars/sentence). "
+            "Never pad to 5 or 6 sentences. "
         )
     utilization_note = ""
     if "claim_ledger_rows" in blob or "need_at_least" in blob or "sentences" in blob:
         utilization_note = (
-            "EVIDENCE_WEAVE: add claim_ledger OBJECT rows (one per major sentence) with distinct source_fact_ids "
-            "from selected_fact_plan; weave unused high-confidence facts into prose — no repeated sentence themes. "
-            "Always produce exactly 6 sentences regardless of pool size — split multi-beat sentences to reach 6. "
+            "EVIDENCE_WEAVE: keep 1 claim_ledger OBJECT row per displayed sentence (3 to 4 rows) with distinct source_fact_ids "
+            "from selected_fact_plan; weave the highest-impact allowed metrics directly into prose. "
         )
     mechanism_note = ""
     if (
@@ -369,13 +381,18 @@ def _build_synthesis_repair_user(
             f"another root's outcome. SAME-ROOT GROUPS: {root_groups}. "
         )
     stock_bridge_note = ""
-    if "stock_bridge_stack" in blob or "robotic_transition_stack" in blob:
+    if (
+        "stock_bridge_stack" in blob
+        or "robotic_transition_stack" in blob
+        or "ai_bridge_crutch" in blob
+        or "abstract_noun_soup" in blob
+        or "cadence" in blob
+    ):
         stock_bridge_note = (
-            "TRANSITIONS: At most TWO stock bridges in S2–S5 (From that / Against that / Complementing that / "
-            "Building on that / Through that / With that governance). Use approved non-stock openers "
-            "(From that commercial base / Against that lineage backdrop / In parallel). "
-            "Do not chain synthetic 'Through that...', 'That operating foundation...', and 'Building on that...' openers; "
-            "use concrete subjects and plain causal flow instead. "
+            "SPOKEN VOICE HARD FAIL: Remove ALL AI bridge crutches ('In parallel,', 'Building on that', 'From that commercial base', "
+            "'Against that', 'Across enterprise programs,', 'The same platform discipline', 'That governed...', 'That operating foundation') "
+            "and ALL abstract noun soup ('operating-model framing', 'governed activation', 'durable economics', 'traceable execution'). "
+            "Vary sentence lengths (>= 4 words spread), open each sentence with a distinct concrete subject, and keep <= 1 trailing -ing clause. "
         )
     s5_note = ""
     if "derivatives_inventory" in blob or "derivatives pricing" in blob:
@@ -395,9 +412,9 @@ def _build_synthesis_repair_user(
         f"SYNTHESIS REJECTED: {reject_reason}. {attempt_note}{sentence_count_note}{length_note}{utilization_note}"
         f"{mechanism_note}{meta_note}{jd_copy_note}{filler_note}{conflation_note}{graph_binding_note}{stock_bridge_note}{s5_note}{svp_note}"
         "Return a NEW complete JSON object (RAW JSON only; first char {, last char }). "
-        f"Rewrite resume_display_text as exactly 6 period-delimited sentences (one executive paragraph, max {EXEC_SUMMARY_MAX_WORDS} words), "
-        "fit_to_evidence integrated narrative — not 4 compressed sentences; do not pad with filler. "
-        "Sentence 1 must be grammatically complete; vary openers (avoid six Led/Built/Delivered chains). "
+        f"Rewrite resume_display_text as 3 to 4 crisp, spoken executive sentences (420 to 680 characters, max 210 chars/sentence, max {EXEC_SUMMARY_MAX_WORDS} words overflow cap), "
+        "fit_to_evidence integrated narrative — zero AI bridge crutches, zero abstract noun soup, zero filler. "
+        "Sentence 1 must be a sharp executive hook; vary sentence lengths (>= 4 words spread) and openers. "
         "No certification labels in display text. "
         "FORBIDDEN: \"this individual\", \"this executive\", \"the candidate\", "
         "\"this leadership profile\", \"can translate into\", "

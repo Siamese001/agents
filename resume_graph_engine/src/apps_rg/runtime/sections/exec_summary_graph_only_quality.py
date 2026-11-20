@@ -24,7 +24,7 @@ from apps_rg.runtime.validators.executive_summary_x2 import (
     check_exec_summary_no_mechanism_inventory,
     check_exec_summary_paragraph_max_words,
     check_exec_summary_robotic_transition_stack,
-    check_exec_summary_sentence_count_6,
+    check_exec_summary_sentence_band_3_to_4,
     check_synthesis_quality,
 )
 
@@ -730,7 +730,7 @@ def build_graph_only_executive_summary_from_facts(
             ledger = [_ledger_row(sentences[0], [fid])]
 
     resume = " ".join(sentences).strip()
-    sent_ok, _ = check_exec_summary_sentence_count_6(resume)
+    sent_ok, _ = check_exec_summary_sentence_band_3_to_4(resume)
     if not sent_ok and len(sentences) < EXEC_SUMMARY_MIN_SENTENCES:
         if composition_plan and str(target_role or "").strip():
             pad = _strategic_closer_sentence(target_role)
@@ -738,7 +738,7 @@ def build_graph_only_executive_summary_from_facts(
         else:
             pad = (
                 "Delivery outcomes and platform scale remain anchored in the allowed fact pool "
-                "when additional synthesis clauses are required for the six-sentence band."
+                "for concise executive coverage."
             )
             pad_ids = _pad_closer_source_fact_ids(allowed_fact_ids, facts)
         if pad not in sentences:

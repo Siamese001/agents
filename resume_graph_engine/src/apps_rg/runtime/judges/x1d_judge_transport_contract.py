@@ -46,7 +46,6 @@ GRADE_ONLY_OBJECTIVE_MARKERS: tuple[str, ...] = (
     "do not rewrite",
     "targeting context only",
     "never proof",
-    "deterministic_gate_summary",
 )
 
 PACKET_REQUIRED_TOP_LEVEL_KEYS: frozenset[str] = frozenset(
@@ -253,20 +252,37 @@ def audit_packet_grade_only_objectives(packet: dict[str, Any]) -> list[Transport
 
 
 def audit_rendered_user_prompt_objectives_and_schema(packet: dict[str, Any], prompt: str) -> list[TransportViolation]:
-    """Rendered user prompt must include gate authority, schema, and GRADE_ONLY objectives."""
+    """Rendered user prompt must enforce schema, GRADE_ONLY objectives, and blind exec-summary separation."""
     violations: list[TransportViolation] = []
     pl = prompt.lower()
-    if "deterministic_gate_summary" not in pl:
-        violations.append(
-            TransportViolation(code="prompt_missing_gate_summary", detail="no deterministic_gate_summary block")
-        )
-    if "authoritative" not in pl and "do not contradict" not in pl:
-        violations.append(
-            TransportViolation(
-                code="prompt_missing_gate_authority_language",
-                detail="prompt lacks authoritative gate instruction",
+    section = str(packet.get("section") or "executive_summary").strip()
+    if section == "executive_summary":
+        if "deterministic_gate_summary" in pl:
+            violations.append(
+                TransportViolation(
+                    code="prompt_leaks_deterministic_gate_summary",
+                    detail="executive_summary LLM judge prompt must be blind to deterministic_gate_summary (frontier-lab grader separation)",
+                )
             )
-        )
+        if "score between 4.5 and 4.9" in pl or "score between **4.5 and 4.9**" in pl:
+            violations.append(
+                TransportViolation(
+                    code="prompt_contains_score_inflation_anchor",
+                    detail="executive_summary judge prompt must not contain 4.5-4.9 score inflation anchor",
+                )
+            )
+    else:
+        if "deterministic_gate_summary" not in pl:
+            violations.append(
+                TransportViolation(code="prompt_missing_gate_summary", detail="no deterministic_gate_summary block")
+            )
+        if "authoritative" not in pl and "do not contradict" not in pl:
+            violations.append(
+                TransportViolation(
+                    code="prompt_missing_gate_authority_language",
+                    detail="prompt lacks authoritative gate instruction",
+                )
+            )
     if "0_to_5" not in prompt and "0_to_1" not in prompt:
         violations.append(
             TransportViolation(code="prompt_missing_score_scale", detail="no score_scale in rendered prompt")

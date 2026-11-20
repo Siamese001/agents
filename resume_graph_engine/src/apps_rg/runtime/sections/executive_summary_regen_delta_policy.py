@@ -149,12 +149,15 @@ def _judge_prose_blob(judge: dict[str, Any]) -> str:
 
 
 def _resume_voice_prose_signal(judge: dict[str, Any]) -> bool:
-    """True when judge prose targets voice/mechanical tone (even if only executive_signal dim failed)."""
+    """True when judge prose targets voice/mechanical tone."""
     dv = judge.get("dimension_verdicts")
     if isinstance(dv, dict):
-        voice = dv.get("resume_voice")
-        if isinstance(voice, dict) and voice.get("pass") is False:
-            return True
+        for key in ("spoken_executive_authenticity", "resume_voice"):
+            voice = dv.get(key)
+            if isinstance(voice, dict) and (
+                voice.get("pass") is False or str(voice.get("severity") or "none").lower() != "none"
+            ):
+                return True
     blob = _judge_prose_blob(judge)
     return any(marker in blob for marker in _RESUME_VOICE_PROSE_MARKERS)
 
@@ -167,20 +170,25 @@ def _executive_signal_and_voice_composite_eligible(
     soft: list[dict[str, Any]],
     failed_dims: list[str],
 ) -> bool:
-    """True when voice + substantive (exec signal or synthesis) fail together."""
+    """True when spoken voice + substantive conviction/edge/scannability fail together."""
     dims = set(failed_dims)
-    if "resume_voice" not in dims:
+    voice_keys = {"spoken_executive_authenticity", "resume_voice"}
+    substantive_keys = {
+        "immediate_call_conviction",
+        "differentiated_edge",
+        "six_second_scannability",
+        "executive_signal",
+        "synthesis_quality",
+    }
+    if not dims.intersection(voice_keys):
         return False
-    if not dims.intersection({"executive_signal", "synthesis_quality"}):
+    if not dims.intersection(substantive_keys):
         return False
     if len(_soft_failed_provider_keys(soft)) >= 2:
         return True
     return any(
-        dimension_major_fail_on_judge(j, "resume_voice")
-        and (
-            dimension_major_fail_on_judge(j, "executive_signal")
-            or dimension_major_fail_on_judge(j, "synthesis_quality")
-        )
+        any(dimension_major_fail_on_judge(j, vk) for vk in voice_keys)
+        and any(dimension_major_fail_on_judge(j, sk) for sk in substantive_keys)
         for j in soft
     )
 
@@ -245,13 +253,13 @@ def resolve_delta_class(
                 return DELTA_CLASS_S6_FORWARD_SYNTHESIS
         return DELTA_CLASS_CONNECTIVE_S2_S5
 
-    if failed_dims == ["resume_voice"]:
+    if failed_dims in (["spoken_executive_authenticity"], ["resume_voice"]):
         return DELTA_CLASS_RESUME_VOICE_HUMANIZE
 
     if failed_dims == ["evidence_utilization"]:
         return DELTA_CLASS_EVIDENCE_UTILIZATION_WEAVE
 
-    if failed_dims == ["ats_alignment_without_keyword_stuffing"]:
+    if failed_dims in (["strategic_mandate_resonance"], ["ats_alignment_without_keyword_stuffing"]):
         return DELTA_CLASS_ATS_TARGETING_WITHOUT_STUFFING
 
     if failed_dims == ["anti_overfit"] or (
@@ -267,13 +275,21 @@ def resolve_delta_class(
     if failed_dims == ["deterministic_alignment"]:
         return DELTA_CLASS_DETERMINISTIC_ALIGNMENT_STRUCTURE
 
-    if failed_dims == ["synthesis_quality"]:
+    if failed_dims in (["six_second_scannability"], ["synthesis_quality"]):
         if _regen_citations_exceed_s6_only(soft):
             return DELTA_CLASS_EXECUTIVE_SIGNAL_AND_VOICE
         return DELTA_CLASS_S6_FORWARD_SYNTHESIS
 
-    if "resume_voice" in failed_dims:
+    if "spoken_executive_authenticity" in failed_dims or "resume_voice" in failed_dims:
         return DELTA_CLASS_RESUME_VOICE_HUMANIZE
+
+    if (
+        "immediate_call_conviction" in failed_dims
+        or "differentiated_edge" in failed_dims
+    ):
+        if _soft_judges_have_resume_voice_prose(soft):
+            return DELTA_CLASS_EXECUTIVE_SIGNAL_AND_VOICE
+        return DELTA_CLASS_DIMENSION_EXECUTIVE_SIGNAL
 
     if "executive_signal" in failed_dims:
         if _soft_judges_have_resume_voice_prose(soft):
@@ -357,7 +373,7 @@ def format_delta_class_regen_instruction(
     )
 
 
-_EXEC_SUMMARY_SENTENCE_COUNT = 6
+_EXEC_SUMMARY_SENTENCE_COUNT = 6  # Upper citation index bound for S1..S6 parsing (product band 3-4)
 
 
 def max_sentence_edits_for_delta_class(delta_class: str) -> int:

@@ -56,8 +56,7 @@ def test_normalize_executive_summary_llm_output_coerces_resume_and_uses_runtime_
     assert split_sentences(normalized["resume_display_text"]) == [
         "First sentence establishes the context.",
         "Second sentence keeps the pace.",
-        "The operating model keeps release cadence steady.",
-        "That capability enables the team to prove policy controls without slowing delivery.",
+        "The operating model keeps release cadence steady, enabling the team to prove policy controls without slowing delivery.",
         "Fourth sentence closes the middle.",
         "Fifth sentence closes the arc.",
     ]
@@ -76,10 +75,8 @@ def test_normalize_executive_summary_llm_output_coerces_resume_and_uses_runtime_
 def test_normalize_repairs_retry28_speculative_capstone_and_syncs_ledger() -> None:
     sentences = [
         "Engineering leadership centers on governed agentic AI platform architecture.",
-        "The platform architecture sets a coherent control-plane direction for agentic AI.",
-        "Productization connects architecture to repeatable operating-model execution.",
+        "Productization connects architecture to repeatable execution and $22M in IP-led revenue.",
         "Release automation strengthens governance across regulated delivery paths.",
-        "Platform discipline generated measurable IP-led revenue.",
         (
             "That integrated foundation can guide future platform decisions toward controlled "
             "execution and sustained IP-led growth without separating responsible operation "
@@ -118,13 +115,11 @@ def test_coerce_resume_display_sentence_count_band_splits_one_compound_sentence(
     assert split_sentences(coerced) == [
         "First sentence establishes the context.",
         "Second sentence keeps the pace.",
-        "The operating model keeps release cadence steady.",
-        "That capability enables the team to prove policy controls without slowing delivery.",
+        "The operating model keeps release cadence steady, enabling the team to prove policy controls without slowing delivery.",
         "Fourth sentence closes the middle.",
         "Fifth sentence closes the arc.",
     ]
     assert ".." not in coerced
-    # Six sentences remain preserved without artificial splitting:
     assert split_sentences(coerce_resume_display_sentence_count_band(coerced)) == split_sentences(coerced)
 
 
@@ -243,4 +238,4 @@ def test_lane_fact_plan_and_repair_prompt_helpers() -> None:
     assert _first_sentence_from_prose("First sentence. Second sentence.", min_len=0) == "First sentence."
     assert "123 words" in prompt
     assert "120 words" in prompt
-    assert "six sentences" in prompt
+    assert "3 to 4" in prompt

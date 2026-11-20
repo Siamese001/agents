@@ -68,14 +68,14 @@
             "text": {
               "type": "string",
               "minLength": 10,
-              "maxLength": 1350,
-              "description": "Professional summary text (exactly six sentences; SSOT max 150 words)"
+              "maxLength": 680,
+              "description": "Professional summary text (3 to 4 sentences; SSOT visual band 420-680 chars, max 110 words)"
             },
             "word_count": {
               "type": "integer",
               "minimum": 10,
-              "maximum": 150,
-              "description": "Word count for validation (SSOT EXEC_SUMMARY_MAX_WORDS)"
+              "maximum": 110,
+              "description": "Word count overflow guard (SSOT EXEC_SUMMARY_MAX_WORDS)"
             }
           }
         },
@@ -440,9 +440,10 @@
       "type": "object",
       "properties": {
         "summary": {
-          "min_lines": 2,
-          "max_lines": 4,
-          "max_words": 150,
+          "min_lines": 3,
+          "max_lines": 5,
+          "max_chars": 680,
+          "max_words": 110,
           "required_elements": ["years_experience_or_level", "primary_domains", "key_achievement"]
         },
         "experience": {
