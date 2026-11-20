@@ -869,3 +869,69 @@ def test_w1_emits_additive_correction_and_parallel_replay_proof(
     assert result["parallel_replay"]["parallel_overlap_proven"] is True
     assert result["parallel_replay"]["max_active_workers_observed"] >= 2
     assert result["completion"]["scope_complete"] is True
+
+
+def test_section_l2_token_usage_subtracts_bundled_thinking_tokens() -> None:
+    from apps_rg.runtime.section_l2_authority import _token_usage
+
+    ide_cli_headline_payload = {
+        "provider_response": {
+            "transport_response": {
+                "usage": {
+                    "input_tokens": 34784,
+                    "output_tokens": 20262,
+                    "total_tokens": 55046,
+                    "thinking_tokens": 19326,
+                }
+            }
+        }
+    }
+    assert _token_usage(ide_cli_headline_payload) == (936, True)
+
+    ide_cli_ibm_payload = {
+        "provider_response": {
+            "transport_response": {
+                "usage": {
+                    "input_tokens": 34641,
+                    "output_tokens": 13098,
+                    "total_tokens": 47739,
+                    "thinking_tokens": 7805,
+                }
+            }
+        }
+    }
+    assert _token_usage(ide_cli_ibm_payload) == (5293, True)
+
+    openai_responses_payload = {
+        "provider_response": {
+            "transport_response": {
+                "raw_response": {
+                    "tool_usage": {
+                        "image_gen": {
+                            "input_tokens": 0,
+                            "output_tokens": 0,
+                            "total_tokens": 0,
+                        }
+                    },
+                    "usage": {
+                        "input_tokens": 6043,
+                        "output_tokens": 341,
+                        "output_tokens_details": {"reasoning_tokens": 184},
+                        "total_tokens": 6384,
+                    },
+                }
+            }
+        }
+    }
+    assert _token_usage(openai_responses_payload) == (157, True)
+
+    separate_thinking_payload = {
+        "usage": {
+            "input_tokens": 12400,
+            "output_tokens": 620,
+            "thinking_tokens": 310,
+            "total_tokens": 13330,
+        }
+    }
+    assert _token_usage(separate_thinking_payload) == (620, True)
+
