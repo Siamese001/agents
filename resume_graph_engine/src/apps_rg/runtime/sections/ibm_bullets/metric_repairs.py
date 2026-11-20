@@ -20,19 +20,25 @@ IBM_LOCKED_METRIC_CANONICAL: dict[str, str] = {
     "bul_ibm_005": "20%",
 }
 
-def _scrub_foreign_ibm_metric_tokens(text: str, own_root: str) -> str:
+def _scrub_foreign_ibm_metric_tokens(text: str, own_root: str, *, own_metric: str = "") -> str:
     """Remove locked IBM metric tokens owned by other bullets (granularity gate hygiene)."""
     from apps_rg.runtime.validators.ibm_bullets_x2 import IBM_METRIC_ANCHOR_RULES
 
     out = str(text or "")
+    own_metric_str = str(own_metric or "")
+    own_metric_low = own_metric_str.lower()
     for needles, root in IBM_METRIC_ANCHOR_RULES:
         if root == own_root:
             continue
         if {root, own_root} <= {"bul_ibm_004", "bul_ibm_005"} and any("20%" in n for n in needles):
             continue
+        if own_metric_low and any(n.lower() in own_metric_low for n in needles):
+            continue
         for needle in needles:
             out = re.sub(re.escape(needle), "", out, flags=re.IGNORECASE)
     for pat in _IBM_FOREIGN_METRIC_SCRUB_RE:
+        if own_metric_str and pat.search(own_metric_str):
+            continue
         out = pat.sub("", out)
     out = re.sub(r"\s{2,}", " ", out).strip()
     out = re.sub(r"\s+([,.])", r"\1", out)
@@ -115,7 +121,7 @@ def inject_ibm_locked_metric_anchors(
             plan_token = _plan_metric_display_token(plan_metric)
             already_has_plan_metric = bool(plan_token) and plan_token.lower() in tl
             if plan_has_metric and plan_token and not already_has_plan_metric:
-                cleaned = _scrub_foreign_ibm_metric_tokens(text, root)
+                cleaned = _scrub_foreign_ibm_metric_tokens(text, root, own_metric=plan_metric)
                 base_text = cleaned or text
                 bullet["bullet_text"] = _append_metric_clause(base_text, plan_token)
                 bullet["has_metric"] = True
@@ -181,7 +187,7 @@ def inject_ibm_locked_metric_anchors(
         tl = text.lower()
         if plan_token.lower() in tl:
             continue
-        cleaned = _scrub_foreign_ibm_metric_tokens(text, bid)
+        cleaned = _scrub_foreign_ibm_metric_tokens(text, bid, own_metric=plan_metric)
         base_text = cleaned or text
         bullet["bullet_text"] = _append_metric_clause(base_text, plan_token)
         bullet["has_metric"] = True

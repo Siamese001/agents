@@ -553,6 +553,22 @@ def format_unify_role_episode_evidence_pack(
                 f"{section_id}: {slot_id} selected metric {selected_metric} is not bound to {bundle_id}"
             )
         allowed_metrics = [selected_metric] if selected_metric else bundle_metrics
+        from apps_rg.runtime.contracts.metric_lexical_primitives import is_quantified_metric_outcome_text
+        _metric_nodes = _unify_metric_outcome_nodes()
+        _selected_metric_text = str((_metric_nodes.get(allowed_metrics[0]) or {}).get("metric") or "") if len(allowed_metrics) == 1 else ""
+        _selected_is_quantified = is_quantified_metric_outcome_text(_selected_metric_text)
+        _metric_usage_note = (
+            "  metric_outcome_usage_contract: use exactly the selected_metric_outcome_id for this "
+            "bullet; surface its quantified metric in bullet_text; record that one ID in "
+            "change_log.metric_outcome_ids; set metric_raw to that one ID; do not emit any "
+            "other metric/outcome from this bundle."
+            if _selected_is_quantified
+            else "  metric_outcome_usage_contract: use exactly the selected_metric_outcome_id for this "
+            "bullet; surface its surface_tokens AND explicitly state a concrete business, operational, "
+            "reliability, adoption, or risk-reduction result from graph_business_outcome (never stop "
+            "at a bare architecture/feature description); record that one ID in "
+            "change_log.metric_outcome_ids; set metric_raw to that one ID; do not invent numbers."
+        )
         lines = [
             f"{slot_id} | compose_one_bullet_from:",
             f"  role_episode_bundle_id: {bundle_id}",
@@ -560,12 +576,7 @@ def format_unify_role_episode_evidence_pack(
             f"  allowed_source_fact_ids: {list(bundle.get('linked_source_fact_ids') or []) + [slot_id]}",
             f"  selected_metric_outcome_id: {_metric_option_label(allowed_metrics[0]) if len(allowed_metrics) == 1 else ''}",
             f"  allowed_metric_outcome_ids: {[_metric_option_label(mid) for mid in allowed_metrics]}",
-            (
-                "  metric_outcome_usage_contract: use exactly the selected_metric_outcome_id for this "
-                "bullet; surface its metric/surface_tokens in bullet_text; record that one ID in "
-                "change_log.metric_outcome_ids; set metric_raw to that one ID; do not emit any "
-                "other metric/outcome from this bundle."
-            ),
+            _metric_usage_note,
             "  metric_outcome_options:",
             *[f"    - {_metric_option_label(mid)}" for mid in allowed_metrics],
             f"  graph_business_outcome: {bundle.get('claim_outcome')}",
