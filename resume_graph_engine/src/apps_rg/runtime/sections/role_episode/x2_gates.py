@@ -32,6 +32,7 @@ from .lane_config import (
     ROLE_EPISODE_FINAL_BULLET_COUNT,
     RoleEpisodeLaneConfig,
     _ROLE_LANES,
+    _bullet_sentence,
     _facts_from_plan,
     _normalize_source_ids,
     _sentence,
@@ -60,12 +61,15 @@ def _display_text_for_x2(l2: dict[str, Any], cfg: RoleEpisodeLaneConfig) -> str:
     return str(l2.get("narrative_sentence") or "")
 
 
-def _selected_fact_plan_authorized_texts(l2: dict[str, Any]) -> dict[str, str]:
+def _selected_fact_plan_authorized_texts(
+    l2: dict[str, Any], *, is_bullet_lane: bool = True
+) -> dict[str, str]:
     facts = _facts_from_plan(l2.get("selected_fact_plan") or {})
+    norm = _bullet_sentence if is_bullet_lane else _sentence
     return {
-        fid: _proof_fact_text(fact)
+        fid: norm(raw_text)
         for fact in facts
-        if (fid := _fact_id_from_row(fact)) and _proof_fact_text(fact)
+        if (fid := _fact_id_from_row(fact)) and (raw_text := _proof_fact_text(fact))
     }
 
 
@@ -76,7 +80,9 @@ def _display_text_is_proof_authorized(
     allowed: list[str],
 ) -> tuple[bool, dict[str, Any]]:
     authority = str(l2.get("display_text_authority") or "").strip()
-    authorized_by_id = _selected_fact_plan_authorized_texts(l2)
+    authorized_by_id = _selected_fact_plan_authorized_texts(
+        l2, is_bullet_lane=cfg.is_bullet_lane
+    )
     authorized_facts_by_id = {
         fid: fact
         for fact in _facts_from_plan(l2.get("selected_fact_plan") or {})
@@ -105,7 +111,7 @@ def _display_text_is_proof_authorized(
     graph_bound_model_surface = authority == "model_selected_graph_bound_surface"
     ok = authority == "selected_fact_plan_claim_text" or graph_bound_model_surface
     for row_id, text, source_ids in display_rows:
-        normalized_text = _sentence(text)
+        normalized_text = _bullet_sentence(text) if cfg.is_bullet_lane else _sentence(text)
         normalized_ids = [str(sid).strip() for sid in source_ids if str(sid).strip()]
         source_ok = bool(normalized_ids) and all(sid in allowed_set for sid in normalized_ids)
         binding_rows = []

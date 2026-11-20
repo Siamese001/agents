@@ -22,6 +22,7 @@ from .lane_config import (
     _ROLE_EPISODE_EVIDENCE_DENSITY_REPAIRS,
     _ROLE_LANES,
     _X1D_WIRING_GATE_IDS,
+    _bullet_sentence,
     _compact_text,
     _facts_from_plan,
     _json_hash,

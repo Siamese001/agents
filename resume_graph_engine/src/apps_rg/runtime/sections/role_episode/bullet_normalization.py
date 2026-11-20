@@ -11,6 +11,7 @@ from .lane_config import (
     ROLE_EPISODE_GRAPH_BULLET_RENDERER_VERSION,
     RoleEpisodeLaneConfig,
     _ROLE_EPISODE_EVIDENCE_DENSITY_REPAIRS,
+    _bullet_sentence,
     _compact_text,
     _facts_from_plan,
     _normalize_source_ids,
@@ -35,7 +36,7 @@ def _normalize_bullets(parsed: dict[str, Any], *, cfg: RoleEpisodeLaneConfig, al
             )
 
             text = rewrite_generic_consulting_phrases(text)
-            text = _sentence(text)
+            text = _bullet_sentence(text)
             if not text:
                 continue
             source_fact_ids = _normalize_source_ids(
@@ -163,7 +164,7 @@ def _deterministic_graph_bullet_render(
         fid = str(fact.get("fact_id") or fact.get("candidate_fact_id") or "")
         if fid not in allowed_set:
             continue
-        text = _sentence(str(fact.get("claim_text") or fact.get("text") or ""))
+        text = _bullet_sentence(str(fact.get("claim_text") or fact.get("text") or ""))
         if not text:
             continue
         idx = len(out)
