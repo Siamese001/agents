@@ -117,40 +117,92 @@ def _gate_receipts_from_payload(payload: Mapping[str, Any]) -> tuple[AuthorityGa
     return tuple(receipts)
 
 
-def _token_usage_for_keys(payload: Any, keys: tuple[str, ...]) -> tuple[int, bool]:
+def _is_nonneg_int(value: Any) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool) and value >= 0
+
+
+def _bundled_reasoning_tokens(usage_map: Mapping[str, Any], emitted: int) -> int:
+    """Return reasoning/thinking tokens bundled inside ``emitted`` output tokens."""
+    thinking: int | None = None
+    raw_thinking = usage_map.get("thinking_tokens")
+    if _is_nonneg_int(raw_thinking) and raw_thinking > 0:
+        thinking = raw_thinking
+    else:
+        for detail_key in ("output_tokens_details", "completion_tokens_details"):
+            details = usage_map.get(detail_key)
+            if isinstance(details, Mapping):
+                raw_reasoning = details.get("reasoning_tokens")
+                if _is_nonneg_int(raw_reasoning) and raw_reasoning > 0:
+                    thinking = raw_reasoning
+                    break
+    if thinking is None or thinking > emitted:
+        return 0
+    inp = usage_map.get("input_tokens", usage_map.get("prompt_tokens"))
+    tot = usage_map.get("total_tokens")
+    if _is_nonneg_int(inp) and _is_nonneg_int(tot):
+        if inp + emitted + thinking == tot:
+            return 0
+        if inp + emitted == tot:
+            return thinking
+    return thinking if thinking < emitted else 0
+
+
+def _token_usage_for_keys(
+    payload: Any,
+    keys: tuple[str, ...],
+    *,
+    subtract_bundled_reasoning: bool = False,
+) -> tuple[int, bool]:
     if isinstance(payload, Mapping):
         for key in keys:
             value = payload.get(key)
-            if isinstance(value, int) and not isinstance(value, bool) and value >= 0:
+            if _is_nonneg_int(value):
+                if subtract_bundled_reasoning:
+                    value -= _bundled_reasoning_tokens(payload, value)
                 return value, True
         for key in ("token_usage", "usage", "receipt", "provider_receipt", "meta"):
             if key in payload:
-                found, observed = _token_usage_for_keys(payload[key], keys)
+                found, observed = _token_usage_for_keys(
+                    payload[key],
+                    keys,
+                    subtract_bundled_reasoning=subtract_bundled_reasoning,
+                )
                 if observed:
                     return found, True
         for value in payload.values():
-            found, observed = _token_usage_for_keys(value, keys)
+            found, observed = _token_usage_for_keys(
+                value,
+                keys,
+                subtract_bundled_reasoning=subtract_bundled_reasoning,
+            )
             if observed:
                 return found, True
     elif isinstance(payload, Sequence) and not isinstance(payload, (str, bytes, bytearray)):
         for value in payload:
-            found, observed = _token_usage_for_keys(value, keys)
+            found, observed = _token_usage_for_keys(
+                value,
+                keys,
+                subtract_bundled_reasoning=subtract_bundled_reasoning,
+            )
             if observed:
                 return found, True
     return 0, False
 
 
 def _token_usage(payload: Any) -> tuple[int, bool]:
-    """Return emitted/output tokens, falling back to total only if unavailable.
+    """Return visible emitted/output tokens, falling back to total only if unavailable.
 
-    ``SignedAppsRgL2ExecutionPacket.budget.max_tokens`` is an output-token
-    ceiling.  Comparing a provider's input+output total to it falsely rejected
-    every historical lane even though each emitted output was within budget.
+    ``SignedAppsRgL2ExecutionPacket.budget.max_tokens`` is a visible output-token
+    ceiling.  Transports such as ``ide_cli`` and OpenAI Responses bundle internal
+    thinking/reasoning tokens inside ``output_tokens``; subtracting bundled
+    reasoning tokens prevents high-thinking lanes from falsely failing the
+    visible output ceiling.
     """
 
     emitted, observed = _token_usage_for_keys(
         payload,
         ("output_tokens", "completion_tokens"),
+        subtract_bundled_reasoning=True,
     )
     if observed:
         return emitted, True
