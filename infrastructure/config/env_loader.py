@@ -98,7 +98,6 @@ def get_outreach_candidate_graph_db_path(repo_root: Path | None = None) -> Path:
 
     rel_candidates = (
         "resume_graph_engine/artifacts/apps_rg/fact_inventory/augmented_skills_graph.sqlite",
-        "artifacts/apps_rg/fact_inventory/augmented_skills_graph.sqlite",
     )
     for base in roots:
         for rel in rel_candidates:

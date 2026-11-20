@@ -518,8 +518,18 @@ def run_materializer_ingress(
         metric_outcome_node_and_edge_rows,
     )
 
+    _blocked_skill_ids = {
+        nid
+        for nid, r in node_rows.items()
+        if str(r.get("activation_status") or "").upper() == "BLOCKED"
+        or str(r.get("confidence") or "").upper() == "BLOCKED"
+    }
     _mo_node_rows, _mo_edge_rows = metric_outcome_node_and_edge_rows(
-        root, ts=ts, known_node_ids=set(node_rows.keys()), build_run_id=build_run_id
+        root,
+        ts=ts,
+        known_node_ids=set(node_rows.keys()),
+        build_run_id=build_run_id,
+        blocked_skill_ids=_blocked_skill_ids,
     )
     for _row in _mo_node_rows:
         _nid = _row["node_id"]
