@@ -37,6 +37,39 @@ from .worktree import (
 )
 
 
+_SKILLS_GRAPH_SSOT_PREFIXES = (
+    "resume_graph_engine/src/apps_rg/fact_inventory/",
+    "resume_graph_engine/artifacts/apps_rg/fact_inventory/",
+)
+
+
+def _refresh_skills_graph_sqlite_if_changed(repo_root: Path, pre_merge_main_sha: str) -> bool:
+    """Auto-materialize main's gitignored augmented_skills_graph.sqlite when graph SSOT files change."""
+    if not pre_merge_main_sha:
+        return False
+    changed = run_git(["diff", "--name-only", pre_merge_main_sha, "HEAD"], cwd=repo_root, check=False).splitlines()
+    if not any(path.strip().startswith(_SKILLS_GRAPH_SSOT_PREFIXES) for path in changed):
+        return False
+    rge_root = repo_root / "resume_graph_engine"
+    if not (rge_root / "src" / "apps_rg" / "fact_inventory" / "skills_graph" / "materializer.py").exists():
+        return False
+    py = resolve_python()
+    env = dict(os.environ)
+    env["PYTHONPATH"] = str(rge_root / "src")
+    code = (
+        "from pathlib import Path; "
+        "from apps_rg.fact_inventory.skills_graph.materializer import materialize_augmented_skills_graph_sqlite; "
+        f"rge = Path({str(rge_root)!r}); "
+        "res = materialize_augmented_skills_graph_sqlite(repo_root=rge, db_path=rge / 'artifacts/apps_rg/fact_inventory/augmented_skills_graph.sqlite'); "
+        "print(f'Refreshed augmented_skills_graph.sqlite (digest={res.get(\"canonical_graph_digest\", \"\")[:16]})')"
+    )
+    proc = subprocess.run([py, "-B", "-c", code], cwd=repo_root, env=env, capture_output=True, text=True, timeout=180.0)
+    if proc.returncode != 0:
+        raise RuntimeError(f"Auto-refresh of augmented_skills_graph.sqlite failed:\n{proc.stdout}{proc.stderr}")
+    print(f"✅ {proc.stdout.strip()}")
+    return True
+
+
 def _is_disjoint_rebase_equivalent(
     repo_root: Path,
     branch: str,
@@ -645,6 +678,14 @@ def cmd_merge(args: argparse.Namespace) -> int:
                 print(f"⏪ Atomic auto-rollback of 'main' to {pre_merge_main_sha[:10]}: {'SUCCESS' if rolled_back else 'FAILED'}")
                 return 1
             print(f"✅ {post_verify.stdout.strip()}")
+
+        try:
+            _refresh_skills_graph_sqlite_if_changed(repo_root, pre_merge_main_sha)
+        except (RuntimeError, subprocess.TimeoutExpired) as exc:
+            print(f"❌ Post-merge skills graph refresh failed:\n{exc}")
+            rolled_back = atomic_rollback_main_to_sha(repo_root, pre_merge_main_sha)
+            print(f"⏪ Atomic auto-rollback of 'main' to {pre_merge_main_sha[:10]}: {'SUCCESS' if rolled_back else 'FAILED'}")
+            return 1
     finally:
         if q_lock.is_acquired():
             q_lock.release()
