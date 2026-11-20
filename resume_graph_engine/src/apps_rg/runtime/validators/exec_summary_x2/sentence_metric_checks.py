@@ -313,18 +313,26 @@ def check_raw_json_no_selected_fact_plan_echo(raw_output: str | None) -> tuple[b
     return True, None
 
 
-def check_exec_summary_sentence_count_6(resume_display_text: str) -> tuple[bool, str | None]:
-    """Single product shape: exactly six polished sentences."""
-    from apps_rg.runtime.validators.executive_summary_x2 import EXEC_SUMMARY_MAX_SENTENCES, EXEC_SUMMARY_MIN_SENTENCES, EXEC_SUMMARY_TARGET_SENTENCES
+def check_exec_summary_sentence_band_3_to_4(resume_display_text: str) -> tuple[bool, str | None]:
+    """Single visual product shape: 3 to 4 crisp, boardroom-ready sentences."""
+    from apps_rg.runtime.validators.executive_summary_x2 import (
+        EXEC_SUMMARY_MAX_SENTENCES,
+        EXEC_SUMMARY_MIN_SENTENCES,
+    )
     sentences = [s for s in split_sentences(resume_display_text) if str(s).strip()]
     n = len(sentences)
-    if n != EXEC_SUMMARY_MIN_SENTENCES:
+    if not (EXEC_SUMMARY_MIN_SENTENCES <= n <= EXEC_SUMMARY_MAX_SENTENCES):
         return (
             False,
-            f"resume_display_text must have exactly {EXEC_SUMMARY_MIN_SENTENCES} sentences; found {n} "
-            "(legacy 2–3 band retired)",
+            f"resume_display_text must have {EXEC_SUMMARY_MIN_SENTENCES} to {EXEC_SUMMARY_MAX_SENTENCES} sentences; "
+            f"found {n} (legacy 6-sentence wall-of-text retired)",
         )
-    return True, None
+    return True, f"sentences={n}"
+
+
+def check_exec_summary_sentence_count_6(resume_display_text: str) -> tuple[bool, str | None]:
+    """Backward-compatible alias delegating to the 3-to-4 sentence visual band."""
+    return check_exec_summary_sentence_band_3_to_4(resume_display_text)
 
 
 def _collapse_display_whitespace(text: str) -> str:

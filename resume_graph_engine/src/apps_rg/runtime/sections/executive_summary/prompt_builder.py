@@ -18,19 +18,9 @@ L2_PASSIVE_CYCLE_PATTERN = re.compile(
     r"\b(?:lab-to-production\s+)?cycle time was reduced\b",
     re.IGNORECASE,
 )
-_EXEC_SUMMARY_TARGET_SENTENCES = 6
+_EXEC_SUMMARY_TARGET_SENTENCES = 4
 
-_CLAUSE_SPLIT_PATTERNS: tuple[tuple[str, str], ...] = (
-    (", informing ", "That foundation informs "),
-    (", enabling ", "That capability enables "),
-    (", improving ", "That work improves "),
-    (", reducing ", "That discipline reduces "),
-    (", driving ", "That foundation drives "),
-    (", positioning ", "That foundation positions "),
-    ("; ", "Building on that, "),
-    (", and ", "In parallel, "),
-    (", which ", "That work "),
-)
+_CLAUSE_SPLIT_PATTERNS: tuple[tuple[str, str], ...] = ()
 
 __all__ = ['check_l2_resume_voice', 'check_executive_summary_narrative_shape', 'build_prompt_messages', 'salvage_truncated_executive_summary_json', 'parse_model_json', '_split_compound_sentence', 'coerce_resume_display_sentence_count_band', 'reconcile_claim_ledger_to_sentence_count', '_repair_speculative_exec_summary_capstone', 'normalize_executive_summary_llm_output', 'prune_exec_summary_claim_ledger_orphans', 'infer_product_quality', 'enrich_parsed_for_x2', 'L2_BRIDGE_PHRASE_PATTERN', 'L2_PASSIVE_CYCLE_PATTERN', '_EXEC_SUMMARY_TARGET_SENTENCES', '_CLAUSE_SPLIT_PATTERNS']
 
@@ -165,20 +155,9 @@ def _split_compound_sentence(sentence: str) -> tuple[str, str] | None:
 
 
 def coerce_resume_display_sentence_count_band(resume: str) -> str:
-    """Deterministically coerce executive_summary prose to exactly six sentences.
+    """Normalize terminal punctuation for the 3-to-4 sentence visual layout band without synthetic splitting.
 
-    The live model reliably emits five polished sentences (sometimes with a stray ``..`` artifact)
-    against the hard ``x2_exec_summary_sentence_count_6`` gate; prompt steering and the synthesis
-    regen loop do not reliably fix it. This guard:
-
-    1. Normalizes accidental double/triple terminal punctuation (``..`` -> ``.``).
-    2. When exactly five sentences are present, splits the longest compound sentence at its
-       strongest internal clause boundary into two grammatical sentences (the new one opens with
-       an approved thesis-referent bridge so it does not read as a bare achievement opener).
-
-    It is a no-op when the count is already six, when no safe split boundary exists, or when the
-    text is empty — so it never fabricates content (it only re-segments existing prose) and never
-    masks a genuinely missing beat.
+    Never injects synthetic AI bridge openers or expands a 3-4 sentence executive summary to 6 sentences.
     """
     from apps_rg.runtime.validators.executive_summary_sentence_utils import (
         join_executive_summary_sentences,
@@ -188,23 +167,10 @@ def coerce_resume_display_sentence_count_band(resume: str) -> str:
     text = str(resume or "").strip()
     if not text:
         return resume
-    # 1. Collapse accidental repeated terminal punctuation.
     text = re.sub(r"\.{2,}", ".", text)
     text = re.sub(r"([.!?])\1+", r"\1", text)
-
     sentences = [s for s in split_sentences(text) if str(s).strip()]
-    if len(sentences) != _EXEC_SUMMARY_TARGET_SENTENCES - 1:
-        # Only handle the dominant 5->6 case deterministically; leave others to X2.
-        return join_executive_summary_sentences(sentences) if sentences else text
-
-    # 2. Split the longest sentence that has a safe internal boundary.
-    order = sorted(range(len(sentences)), key=lambda i: len(sentences[i]), reverse=True)
-    for i in order:
-        split = _split_compound_sentence(sentences[i])
-        if split:
-            new_sentences = sentences[:i] + [split[0], split[1]] + sentences[i + 1:]
-            return join_executive_summary_sentences(new_sentences)
-    return join_executive_summary_sentences(sentences)
+    return join_executive_summary_sentences(sentences) if sentences else text
 
 
 def reconcile_claim_ledger_to_sentence_count(parsed: dict[str, Any]) -> None:
@@ -263,7 +229,7 @@ def _repair_speculative_exec_summary_capstone(
     )
 
     sentences = [str(value).strip() for value in split_sentences(resume)]
-    if len(sentences) != _EXEC_SUMMARY_TARGET_SENTENCES:
+    if not (3 <= len(sentences) <= _EXEC_SUMMARY_TARGET_SENTENCES):
         return resume
     repaired = re.sub(
         r"\bcan\s+guide\s+future\s+",

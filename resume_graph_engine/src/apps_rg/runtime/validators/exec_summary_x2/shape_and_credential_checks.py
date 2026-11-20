@@ -59,13 +59,130 @@ def check_exec_summary_paragraph_max_words(
     resume_display_text: str,
     parsed_output: dict[str, Any] | None = None,
 ) -> tuple[bool, str | None]:
-    """Overflow guard only — no paragraph word minimum (fit_to_evidence + exactly six sentences)."""
+    """Overflow safety guard only — no paragraph word minimum (visual char band is primary)."""
     from apps_rg.runtime.validators.executive_summary_x2 import EXEC_SUMMARY_MAX_WORDS
     _ = parsed_output
     wc = _resume_word_count(resume_display_text)
     if wc > EXEC_SUMMARY_MAX_WORDS:
         return False, f"executive summary word count {wc} exceeds maximum {EXEC_SUMMARY_MAX_WORDS}"
     return True, "ok"
+
+
+def check_exec_summary_visual_char_band(
+    resume_display_text: str,
+) -> tuple[bool, str | None]:
+    """Enforce visual page-1 height via character width band (420-680 chars, <=210/sentence)."""
+    from apps_rg.runtime.validators.executive_summary_x2 import (
+        EXEC_SUMMARY_MAX_CHARS,
+        EXEC_SUMMARY_MAX_CHARS_PER_SENTENCE,
+        EXEC_SUMMARY_MIN_CHARS,
+    )
+
+    text = " ".join(str(resume_display_text or "").split())
+    total_chars = len(text)
+    if total_chars < EXEC_SUMMARY_MIN_CHARS:
+        return (
+            False,
+            f"executive summary character count {total_chars} below visual minimum {EXEC_SUMMARY_MIN_CHARS}",
+        )
+    if total_chars > EXEC_SUMMARY_MAX_CHARS:
+        return (
+            False,
+            f"executive summary character count {total_chars} exceeds visual maximum {EXEC_SUMMARY_MAX_CHARS}",
+        )
+    for idx, sent in enumerate(split_sentences(text), start=1):
+        sc = len(sent.strip())
+        if sc > EXEC_SUMMARY_MAX_CHARS_PER_SENTENCE:
+            return (
+                False,
+                f"sentence S{idx} character count {sc} exceeds max {EXEC_SUMMARY_MAX_CHARS_PER_SENTENCE}",
+            )
+    return True, f"chars={total_chars}"
+
+
+def check_exec_summary_no_ai_bridge_crutches(
+    resume_display_text: str,
+) -> tuple[bool, str | None]:
+    """Reject robotic AI paragraph glue transitions."""
+    from apps_rg.runtime.validators.exec_summary_x2.constants import EXEC_SUMMARY_AI_BRIDGE_CRUTCHES
+
+    lowered = " ".join(str(resume_display_text or "").lower().split())
+    hits = [phrase for phrase in EXEC_SUMMARY_AI_BRIDGE_CRUTCHES if phrase in lowered]
+    if hits:
+        return False, f"ai_bridge_crutch: {hits}"
+    return True, "ok"
+
+
+def check_exec_summary_no_abstract_noun_soup(
+    resume_display_text: str,
+) -> tuple[bool, str | None]:
+    """Reject hollow executive abstraction phrases that fail boardroom spoken register."""
+    from apps_rg.runtime.validators.exec_summary_x2.constants import EXEC_SUMMARY_ABSTRACT_NOUN_SOUP
+
+    lowered = " ".join(str(resume_display_text or "").lower().split())
+    hits = [phrase for phrase in EXEC_SUMMARY_ABSTRACT_NOUN_SOUP if phrase in lowered]
+    if hits:
+        return False, f"abstract_noun_soup: {hits}"
+    return True, "ok"
+
+
+_TRAILING_GERUND_CLAUSE_RE = re.compile(r",\s+[a-z]{4,}ing\b", re.IGNORECASE)
+_NON_PARTICIPIAL_TRAILING_ING: frozenset[str] = frozenset(
+    {
+        "including", "using", "during", "following", "engineering", "banking",
+        "underwriting", "reporting", "modeling", "forecasting", "licensing",
+        "monitoring", "onboarding", "pricing", "routing", "planning", "consulting",
+    }
+)
+
+
+def check_exec_summary_rhythm_and_cadence_variety(
+    resume_display_text: str,
+) -> tuple[bool, str | None]:
+    """Enforce natural sentence-length variance, unique sentence openers, and <=1 trailing gerund clause."""
+    from apps_rg.runtime.validators.exec_summary_x2.constants import (
+        EXEC_SUMMARY_MAX_TRAILING_GERUNDS,
+        EXEC_SUMMARY_MIN_LENGTH_SPREAD_WORDS,
+    )
+
+    sentences = [s.strip() for s in split_sentences(resume_display_text) if str(s).strip()]
+    if len(sentences) < 2:
+        return True, "ok"
+
+    word_counts = [len(re.findall(r"\S+", s)) for s in sentences]
+    spread = max(word_counts) - min(word_counts)
+    reasons: list[str] = []
+    if spread < EXEC_SUMMARY_MIN_LENGTH_SPREAD_WORDS:
+        reasons.append(
+            f"monotonous_sentence_length_spread:{spread}<{EXEC_SUMMARY_MIN_LENGTH_SPREAD_WORDS} (counts={word_counts})"
+        )
+
+    openers: list[str] = []
+    for s in sentences:
+        toks = re.findall(r"[a-z]+", s.lower())
+        if toks:
+            openers.append(toks[0])
+    if len(openers) != len(set(openers)):
+        dup = sorted({w for w in openers if openers.count(w) > 1})
+        reasons.append(f"duplicate_sentence_openers:{dup}")
+
+    trailing_gerund_sentences = 0
+    for s in sentences:
+        matches = _TRAILING_GERUND_CLAUSE_RE.findall(s)
+        real_gerunds = [
+            m for m in matches
+            if m.split()[-1].lower() not in _NON_PARTICIPIAL_TRAILING_ING
+        ]
+        if real_gerunds:
+            trailing_gerund_sentences += 1
+    if trailing_gerund_sentences > EXEC_SUMMARY_MAX_TRAILING_GERUNDS:
+        reasons.append(
+            f"repetitive_trailing_gerund_clauses:{trailing_gerund_sentences}>{EXEC_SUMMARY_MAX_TRAILING_GERUNDS}"
+        )
+
+    if reasons:
+        return False, "; ".join(reasons)
+    return True, f"spread={spread}_words"
 
 
 def check_exec_summary_no_bloated_sentence(resume_display_text: str) -> tuple[bool, str | None]:

@@ -54,56 +54,34 @@ SENTENCE_ARC_AI_PARTNERSHIPS: tuple[dict[str, str], ...] = (
         "brushstroke_id": "B1_executive_identity",
         "arc_role": "partnerships_thesis",
         "guidance": (
-            "Leadership-first applied AI architecture and multi-ecosystem partnerships thesis; "
-            "lead with current and recent cloud/AI partner co-sell and commercial platform adoption "
-            "across Google Cloud (GCP Gemini Enterprise & Vertex AI), frontier AI coding/agent platforms, "
-            "and hyperscaler/GSI channel ecosystems before prior alliance programs (never open with IBM-AWS alone, "
-            "never name employer brands or TARGET_COMPANY)."
+            "S1: Sharp applied AI architecture and multi-ecosystem partnerships hook; "
+            "lead with current cloud/AI partner co-sell and commercial platform adoption "
+            "across hyperscaler and GSI channel ecosystems (never name employer brands or TARGET_COMPANY)."
         ),
     },
     {
         "brushstroke_id": "B2_governed_platform_system",
-        "arc_role": "platform_architecture",
+        "arc_role": "platform_and_partner_motion",
         "guidance": (
-            "S2: reusable multi-model agentic AI platform architecture, Google Cloud Vertex AI and Gemini Enterprise "
-            "reference architectures, and joint cloud/AI solution patterns from allowed facts; max two mechanism terms verbatim."
-        ),
-    },
-    {
-        "brushstroke_id": "B2_governed_platform_system",
-        "arc_role": "partner_cosell_motion",
-        "guidance": (
-            "S3: multi-cloud and AI partner co-sell execution, enterprise seat licensing expansion, joint GSI/ISV "
-            "solution bundling, and AWS/GCP/Azure/Databricks ecosystem enablement from allowed facts; weave reserved "
-            "partner revenue or seat-scaling metrics only when explicitly allocated to executive_summary."
+            "S2: Reusable multi-model agentic AI platform architecture and joint cloud/AI solution patterns "
+            "from allowed facts; max two mechanism terms verbatim."
         ),
     },
     {
         "brushstroke_id": "B3_control_evidence_discipline",
-        "arc_role": "governed_deployment_enablement",
+        "arc_role": "commercial_and_enablement_outcomes",
         "guidance": (
-            "S4: repeatable delivery governance, field solution playbooks, safety guardrails, and production "
-            "adoption discipline compressing enterprise onboarding from months to weeks; open directly with a "
-            "domain scope anchor or non-stock opener (e.g. 'Across enterprise programs,' or 'In parallel,') "
-            "rather than repeating a stock signpost."
-        ),
-    },
-    {
-        "brushstroke_id": "B4_business_role_fit",
-        "arc_role": "commercial_outcomes",
-        "guidance": (
-            "S5: weave reserved commercial and partner-derived outcomes from allowed facts (e.g. $3M partner-derived "
-            "co-sell revenue or $22M IP-led platform revenue, high-margin reusable IP, and enterprise seat scale) "
-            "into flowing display prose without quoting unreserved percentages."
+            "S3: Weave reserved partner co-sell, IP-led platform revenue, seat-scaling, and production "
+            "enablement outcomes from allowed facts into crisp prose; zero AI bridge crutches."
         ),
     },
     {
         "brushstroke_id": "B4_business_role_fit",
         "arc_role": "ecosystem_capstone",
         "guidance": (
-            "S6: forward-modal capstone grounded in cited source_fact_ids projecting how reusable AI platform "
-            "productization, multi-cloud licensing expansion, and partner co-sell architecture accelerate enterprise "
-            "AI deployment and ecosystem scale; never name TARGET_COMPANY."
+            "S4 (optional if 3 crisp sentences land cleanly in 420-680 chars): forward-modal capstone grounded in "
+            "cited source_fact_ids projecting how reusable AI platform productization and partner co-sell scale "
+            "enterprise AI adoption; never name TARGET_COMPANY."
         ),
     },
 )
@@ -160,56 +138,33 @@ SENTENCE_ARC_SVP_STRATEGY: tuple[dict[str, str], ...] = (
         "brushstroke_id": "B1_executive_identity",
         "arc_role": "strategy_thesis",
         "guidance": (
-            "Leadership-first technology strategy / enterprise technology executive thesis; avoid narrow engineering-manager label; "
-            "frame enterprise IT direction + innovation-program posture for decentralized regulated enterprises "
-            "(targeting vocabulary — not JD-as-proof); avoid generic 'regulated enterprise scale' filler."
+            "S1: Sharp technology strategy / enterprise technology executive thesis; frame enterprise IT direction "
+            "and innovation-program leadership for regulated enterprises (targeting vocabulary only — never JD-as-proof)."
         ),
     },
     {
         "brushstroke_id": "B2_governed_platform_system",
-        "arc_role": "platform_arc",
+        "arc_role": "platform_and_scale_proof",
         "guidance": (
-            "Connect governed AI platform and runtime architecture to enterprise IT direction; "
-            "one causal clause, max two mechanism terms verbatim from facts."
-        ),
-    },
-    {
-        "brushstroke_id": "B2_governed_platform_system",
-        "arc_role": "scale_operating_model",
-        "guidance": (
-            "S3: weave platform scale, operating model, and platform revenue outcomes as connective prose — when "
-            "fact_engineering_platform_006 is cited, surface only revenue and margin metrics present in that "
-            "fact's metric_raw (never echo E0 placeholder dollars); team scale may share the clause when "
-            "fact_exec_002 is cited; not a standalone achievement bullet; "
-            "avoid SRFS-forbidden phrases (reusable platform services adopted across enterprise programs, engineering scale-out)."
+            "S2: Flagship governed AI platform architecture, team scale, and IP-led revenue/margin outcomes from allowed "
+            "facts; max two mechanism terms verbatim; zero AI bridge crutches."
         ),
     },
     {
         "brushstroke_id": "B3_control_evidence_discipline",
-        "arc_role": "governance_innovation",
+        "arc_role": "governance_and_quant_proof",
         "guidance": (
-            "S4: governance, lineage, or regulatory discipline linked to IT strategy velocity — when fact_governance_003 "
-            "is cited, surface the allowed reporting-error reduction percent in display; not a control checklist; "
-            "use parallel thematic sequencing when lineage and HPC facts are separate threads (no forced 'extended to' bridges)."
-        ),
-    },
-    {
-        "brushstroke_id": "B4_business_role_fit",
-        "arc_role": "commercial_strategy",
-        "guidance": (
-            "S5: one strategic clause pairing FSA/quant foundation (fact_quant_hpc_003) with the allowed "
-            "stress-testing or HPC outcome percent from fact_quant_hpc_001 in display — cite both source_fact_ids "
-            "in the claim_ledger row; never list derivatives pricing, multi-Greek hedging, employer names, or cert-label stacks."
+            "S3: Distinct regulatory lineage, risk governance, or quantitative HPC stress-testing outcome with allowed "
+            "percentage metrics woven naturally into prose (never list derivatives or cert-label stacks)."
         ),
     },
     {
         "brushstroke_id": "B4_business_role_fit",
         "arc_role": "enterprise_capstone",
         "guidance": (
-            "S6: forward capstone grounded in the sentence's source_fact_ids (e.g. fact_quant_hpc_003 quant foundation); "
-            "may echo composition_plan s6_targeting_forward_anchor for decentralized units / innovation mandate "
-            "(targeting-only — jd_used_as_proof=false); must add a NEW forward idea (not 'extend that arc toward' recap); "
-            "no TARGET_COMPANY, no repetition of S2–S5 noun phrases; do not open with 'Looking ahead,'."
+            "S4 (optional if 3 crisp sentences land cleanly in 420-680 chars): forward-looking mandate fit grounded in "
+            "cited source_fact_ids projecting how this rare combination scales federated innovation; never recap S1-S3, "
+            "never name TARGET_COMPANY, never open with 'Looking ahead,'."
         ),
     },
 )
@@ -290,8 +245,8 @@ def format_leadership_first_exec_summary_block(*, target_title: str = "") -> str
         "phrase (e.g. 'Engineering executive...', 'Enterprise technology and AI platform executive...'), "
         "organizational leadership scope, decision-making, and operating model before domain-specific keywords; "
         "never open with robotic third-person subjects like 'Executive leadership architects...' or 'Executive leadership identity...'.\n"
-        "- Synthesize a cohesive 5-to-6 sentence executive arc across the allowed C0 facts without dumping internal "
-        "codebase package, readiness-gate, or MCP server counts.\n"
+        "- Synthesize a crisp 3-to-4 sentence spoken executive arc (420 to 680 characters, max 210 chars/sentence) across "
+        "the allowed C0 facts without AI bridge crutches or dumping internal codebase package, readiness-gate, or MCP server counts.\n"
         "- JD and briefing only tune emphasis among proven facts; they do not reorder the arc or replace "
         "graph-backed evidence.\n"
         f"- Write for {role} as a leadership story first, then weave role-specific evidence and graph skills.\n"
@@ -414,29 +369,13 @@ def format_strategy_executive_u0_block(*, target_title: str = "") -> str:
     return (
         "STRATEGY_EXECUTIVE_SYNTHESIS (targeting only — NOT PROOF):\n"
         "- Required JSON field `executive_strategy_thesis` before `resume_display_text` (one ledger-backed sentence).\n"
-        "- Open display S1 as a crisp, high-authority technology strategy executive thesis; "
-        "avoid generic 'aligns enterprise IT direction' openers and avoid repetitive 'That same...' / 'That governed...' / 'That combined...' sentence openers across S3–S6.\n"
-        "- At most two S2–S5 sentences may use stock bridges (Building on / Through that / Complementing / With that governance); "
-        "vary other transitions with clean, natural executive prose (e.g. 'Across enterprise programs,' / 'In parallel,') so the paragraph reads effortlessly on a six-second executive skim.\n"
-        "- Foreground measurable commercial and scale impact early (e.g. weaving $22M IP-led platform revenue, margin expansion, and team scale into S2 or S3 when in ALLOWED_SOURCE_FACT_IDS) rather than burying the strongest business proof at the end of the paragraph.\n"
-        "- Six concise sentences (target 110–130 words total, ~18–22 words per sentence) = one cohesive causal arc serving the thesis; **do not** write dense, multi-clause run-on sentences or paste canned catalog sentences.\n"
-        "- S3–S5: connective prose with material dollar/percent outcomes in display when allowed facts carry them "
-        "(judges read resume_display_text, not claim_text alone).\n"
-        "- S5: when fact_quant_hpc_003 (FSA/quant foundation) and fact_quant_hpc_001 are cited together, weave the "
-        "allowed stress-testing/HPC outcome percent into display (not ledger-only); forbidden: derivatives / "
-        "multi-Greek / employer inventory lists.\n"
-        "- S6: forward capstone grounded in source_fact_ids — MUST project what the candidate's proven capabilities "
-        f"enable in the {role} context (e.g. federate governed platforms, accelerate M&A integration, build "
-        "enterprise innovation programs at scale); may use composition_plan s6_targeting_forward_anchor "
-        "(briefing/JD emphasis only); forbidden: 'Looking ahead,' opener, 'extend that arc toward' recap, "
-        "'this leadership profile', 'can translate into', and closing on a backward-looking technical "
-        "tool description with no forward projection.\n"
-        "- S3–S4: honest connectors only; parallel governance and HPC threads need not be falsely causal.\n"
+        "- Open S1 with a sharp, boardroom-spoken executive hook; zero generic filler and zero repetitive 'That...' or AI transition crutches ('In parallel,', 'Building on that', 'Across enterprise programs,', 'From that commercial base').\n"
+        "- Visual layout band: 3 to 4 crisp sentences totaling 420 to 680 characters (max 210 chars/sentence, 110-word overflow safety cap, zero word minimum) with varied sentence lengths (spread >= 4 words) and distinct sentence openers.\n"
+        "- Foreground measurable commercial, scale, and regulated governance impact early in display prose (never hide metrics only in claim_ledger).\n"
+        "- Final sentence (when using 4 sentences): crisp forward-looking mandate fit grounded in source_fact_ids projecting how this rare combination advances the "
+        f"{role} mandate; forbidden: 'Looking ahead,', 'extend that arc toward', 'this leadership profile', 'can translate into'.\n"
         f"{format_svp_jd_emphasis_line()}"
-        "- S1 should still read as leadership-first synthesis, not a role-family mirror or bullet chain.\n"
-        f"- Target role framing: {role} (positioning only).\n"
-        "- NEVER name TARGET_COMPANY in resume_display_text.\n"
-        "- Weave team-scale facts (e.g. 8-to-28 engineering growth) into S2–S4 when in ALLOWED_SOURCE_FACT_IDS.\n"
+        f"- Target role framing: {role} (positioning only). NEVER name TARGET_COMPANY in resume_display_text.\n"
     )
 
 
@@ -445,11 +384,9 @@ def format_synthesis_repair_directive(*, strategy_executive: bool) -> str:
     if not strategy_executive:
         return ""
     return (
-        "SVP_SYNTHESIS_ARC: S3–S4 connect platform scale, innovation delivery, and operating model in causal prose; "
-        "S5 — one metric woven into strategy (no metric stack, no credential dump); "
-        "S6 — integrative enterprise IT direction capstone (not a recap list). "
-        "Shape JD emphasis toward enterprise architecture, innovation programs, and multi-year IT strategy "
-        "using allowed facts only (jd_used_as_proof=false). "
+        "SVP_SYNTHESIS_ARC: Write 3 to 4 crisp, spoken boardroom sentences (420 to 680 chars, zero AI bridge crutches): "
+        "S1 sharp executive hook; S2 flagship platform/scale proof with concrete metrics; S3 distinct commercial/governance "
+        "outcome; optional S4 forward mandate fit grounded in allowed facts only (jd_used_as_proof=false). "
     )
 
 
@@ -469,18 +406,18 @@ def format_judge_regen_soft_material_preservation(
     prior_word_count: int,
     prior_ledger_rows: int,
 ) -> str:
-    """Soft regen guidance — no hard word-count floor (W2.3)."""
+    """Soft regen guidance — visual layout band (3-4 sentences, 420-680 chars, zero word minimum)."""
     return (
         "MATERIAL_PRESERVATION (soft — not a word-count floor; hard X2 gates still apply):\n"
         "- Preserve material claims and ledger-backed support unless removal is required to satisfy "
         "X2 or judge feedback.\n"
-        "- Stay within the SSOT max word cap and exactly-six-sentence X2 gate; do not pad or bloat "
-        "to match prior length.\n"
+        "- Stay within the SSOT visual layout band (3 to 4 sentences, 420 to 680 characters, max 210 chars/sentence, "
+        "max 110 words overflow cap); do not pad or bloat to match prior length.\n"
         f"- Prior draft reference only: ~{max(0, prior_word_count)} words, "
-        f"{max(0, prior_ledger_rows)} claim_ledger rows (no minimum word count).\n"
-        "- Weave unused allowed facts into prose and claim_ledger when evidence_utilization failed; "
+        f"{max(0, prior_ledger_rows)} claim_ledger rows (zero minimum word count).\n"
+        "- Weave unused allowed facts into prose and claim_ledger when grounded proof is missing; "
         "do not drop cited source_fact_ids without cause.\n"
-        "- Exactly 6 sentences in resume_display_text; claim_ledger row minimums enforced by X2.\n"
+        "- 3 to 4 sentences in resume_display_text; claim_ledger row count matches sentence count (1-to-1).\n"
     )
 
 
@@ -532,11 +469,12 @@ def format_x2_gate_failures_reject_reason(failed_gates: list[dict[str, Any]]) ->
 def format_judge_remediation_synthesis_default() -> str:
     """Default synthesis line when judge feedback is sparse (post-X1D regen)."""
     return (
-        "improve integrated SVP narrative: S2–S5 must use connective tissue (each sentence "
-        "references the prior theme — not six standalone achievement bullets); "
-        "S3–S4 weave platform scale, operating model, and innovation delivery; "
-        "S5 single woven metric clause inside strategy context (no credential/employer dump); "
-        "S6 integrative enterprise IT direction capstone from allowed facts only (no vendor cert laundry list; "
+        "elevate hiring-committee conviction and spoken executive authenticity across 3 to 4 crisp sentences "
+        "(420 to 680 characters total, zero AI bridge crutches or abstract noun soup): "
+        "S1 sharp executive hook with scale and rare differentiator; "
+        "S2 flagship technical/platform proof with concrete metrics; "
+        "S3 distinct commercial or regulated governance outcome with allowed numbers; "
+        "optional S4 crisp forward mandate fit from allowed facts only (no vendor cert laundry list; "
         "no cover-letter meta phrasing such as 'this leadership profile' or 'can translate into'; "
         "optional single FSA rigor clause only when fact_quant_hpc supports it); "
         "tilt emphasis toward enterprise architecture, federated integration, innovation incubation, "

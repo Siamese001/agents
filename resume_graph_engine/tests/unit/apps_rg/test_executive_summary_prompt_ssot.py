@@ -34,8 +34,8 @@ def test_executive_summary_template_rejects_legacy_2_3_default_band():
     raw = TEMPLATE.read_text(encoding="utf-8")
     for pat in _LEGACY_DEFAULT_PATTERNS:
         assert pat.search(raw) is None, f"legacy 2-3 default still present: {pat.pattern}"
-    assert "4 to 6" in raw.lower() or "exactly 6" in raw.lower() or "6 period-delimited" in raw.lower()
-    assert "legacy" in raw.lower()
+    assert "3 to 4" in raw.lower() or "3-to-4" in raw.lower()
+    assert "420 to 680" in raw.lower() or "420-680" in raw.lower()
 
 
 def test_competency_pa_slots_category_band_matches_x2():
@@ -84,7 +84,8 @@ def test_lane_registry_exec_summary_critical_gates_include_proof_flags():
     from tests.unit.apps_rg.section_rigor.lane_registry import spec_for_lane
 
     spec = spec_for_lane("executive_summary")
-    assert "x2_exec_summary_sentence_count_6" in spec.critical_gates
+    assert "x2_exec_summary_sentence_band_3_to_4" in spec.critical_gates
+    assert "x2_exec_summary_visual_char_band" in spec.critical_gates
     assert "x2_exec_summary_jd_alignment_proof_flags" in spec.critical_gates
 
 
@@ -92,7 +93,11 @@ def test_lane_registry_exec_summary_critical_gates_include_proof_flags():
     "text,expect_pass",
     [
         (
-            "One. Two. Three. Four. Five. Six.",
+            "One. Two. Three. Four.",
+            True,
+        ),
+        (
+            "One. Two. Three.",
             True,
         ),
         (
@@ -100,7 +105,7 @@ def test_lane_registry_exec_summary_critical_gates_include_proof_flags():
             False,
         ),
         (
-            "One. Two. Three. Four.",
+            "One. Two. Three. Four. Five. Six.",
             False,
         ),
         (

@@ -141,7 +141,7 @@ def call_ide_cli_judge(
     from apps_rg.runtime.judges import executive_summary_x1d as x  # lazy: avoids an import cycle
 
     sid = section_id or "executive_summary"
-    system_prompt = x.build_x1d_judge_system_prompt(compact=True)
+    system_prompt = x.build_x1d_judge_system_prompt(compact=True, section_id=sid)
     full_prompt = (
         f"{system_prompt}\n\n{prompt}\n\n"
         "Return ONLY the JSON object that matches the required schema. Do not use any tools."
@@ -161,6 +161,8 @@ def call_ide_cli_judge(
             "prompt_chars": len(full_prompt),
             "prompt_sha256": hashlib.sha256(full_prompt.encode("utf-8")).hexdigest(),
             "schema_sha256": hashlib.sha256(json.dumps(schema, sort_keys=True).encode("utf-8")).hexdigest(),
+            "blind_to_deterministic_gates": sid == "executive_summary",
+            "prompt_has_deterministic_gate_summary": "deterministic_gate_summary" in full_prompt.lower(),
             "api_key_used": False,
         },
     )
@@ -202,6 +204,7 @@ def call_ide_cli_judge(
         artifact_base=artifact_base,
         judge_receipt=judge_receipt,
         model_requested=model_requested or model,
+        section_id=sid,
     )
     out.transport = "ide_cli"
     out.provider_name = f"Antigravity IDE CLI ({res.model_reported})"

@@ -97,18 +97,18 @@ def test_paragraph_max_words_fails_when_over_cap() -> None:
 
 
 def test_paragraph_max_words_uses_150_word_ssot_boundary() -> None:
-    assert EXEC_SUMMARY_MAX_WORDS == 150
-    for count in (143, 147, 150):
+    assert EXEC_SUMMARY_MAX_WORDS == 110
+    for count in (85, 100, 110):
         ok, reason = check_exec_summary_paragraph_max_words(
             " ".join(["word"] * count), parsed_output={}
         )
         assert ok is True, reason
 
     ok, reason = check_exec_summary_paragraph_max_words(
-        " ".join(["word"] * 151), parsed_output={}
+        " ".join(["word"] * 111), parsed_output={}
     )
     assert ok is False
-    assert reason == "executive summary word count 151 exceeds maximum 150"
+    assert reason == "executive summary word count 111 exceeds maximum 110"
 
 
 def test_paragraph_max_words_passes_for_short_four_sentence_paragraph() -> None:

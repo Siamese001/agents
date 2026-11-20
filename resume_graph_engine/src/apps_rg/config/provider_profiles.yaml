@@ -57,21 +57,25 @@ ide_argon4_routing_policy:
     prompt_assembler_ref: apps_rg/runtime/sections/executive_summary_pa.py#compile_executive_summary_prompt
     template_ref: apps_rg/prompt_assembly/templates/executive_summary.generate_scratch_v1.yaml
     thesis_first_generation: true
-    sentence_count_exact: 6
-    target_word_band: [110, 148]
-    hard_word_ceiling: 150
+    sentence_count_band: [3, 4]
+    visual_char_band: [420, 680]
+    max_chars_per_sentence: 210
+    hard_word_ceiling: 110
     max_mechanisms_s1: 1
     max_mechanisms_per_sentence: 2
-    max_stock_bridges_s2_s5: 2
+    max_stock_bridges_s2_s5: 0
     forbid_past_title_stacking: true
     forbid_target_company_mail_merge: true
     required_x2_gates:
-      - check_exec_summary_sentence_count_6
+      - check_exec_summary_sentence_band_3_to_4
+      - check_exec_summary_visual_char_band
       - check_exec_summary_paragraph_max_words
+      - check_exec_summary_no_ai_bridge_crutches
+      - check_exec_summary_no_abstract_noun_soup
+      - check_exec_summary_rhythm_and_cadence_variety
       - check_exec_summary_meta_filler_patterns
       - check_exec_summary_no_credential_dump
       - check_exec_summary_no_mechanism_inventory
-      - check_exec_summary_stock_bridge_count
       - check_synthesis_quality
 
 profiles:

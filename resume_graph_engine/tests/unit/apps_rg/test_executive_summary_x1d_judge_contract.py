@@ -54,8 +54,10 @@ def _violation_codes(violations: list) -> list[str]:
 
 
 def test_graph_rubric_includes_x2_supremacy_dim8_like_srfs() -> None:
-    """SRFS has dim 8; active GRAPH rubric used on lane must match."""
-    assert "penalize gates that show" in SRFS_GRADE_ONLY_RUBRIC.lower()
+    """Blind human hiring-committee rubric enforces 6 human dimensions and zero X2 pass anchoring."""
+    assert "immediate_call_conviction" in SRFS_GRADE_ONLY_RUBRIC.lower()
+    assert "spoken_executive_authenticity" in SRFS_GRADE_ONLY_RUBRIC.lower()
+    assert "deterministic_gate_summary" not in SRFS_GRADE_ONLY_RUBRIC.lower()
     violations = audit_active_graph_rubric_x2_supremacy()
     assert violations == [], _violation_codes(violations)
 
@@ -82,9 +84,9 @@ def test_graph_and_srfs_rubrics_include_adversarial_review_lens() -> None:
     srf = SRFS_GRADE_ONLY_RUBRIC.lower()
     graph = GRAPH_ONLY_GRADE_ONLY_RUBRIC.lower()
     for blob in (srf, graph):
-        assert "head of talent acquisition" in blob
-        assert "ai-authenticity" in blob
-        assert "buzzword soup" in blob
+        assert "immediate_call_conviction" in blob
+        assert "spoken_executive_authenticity" in blob
+        assert "abstract noun soup" in blob
 
 
 def test_brown_synthetic_packet_full_coherence_audit() -> None:
@@ -177,15 +179,15 @@ def test_make_model_backed_output_parity_explicit() -> None:
 
 
 def test_reconcile_strips_retired_criteria_findings_gemini_openai_class() -> None:
-    """Retired five-part/S1-S5 findings must not survive reconcile (all providers)."""
+    """Non-exec-summary sections retain retired-criteria stripping; exec_summary never coerces scores upward."""
     gate_summary = {
-        "x2_exec_summary_sentence_count_6": {"pass": True, "detail": "ok"},
+        "x2_exec_summary_sentence_band_3_to_4": {"pass": True, "detail": "ok"},
         "x2_exec_summary_evidence_utilization": {"pass": True, "detail": "ok"},
     }
     body = {
         "score_scale": "0_to_5",
         "score": 3.2,
-        "threshold": 4.0,
+        "threshold": 4.7,
         "pass": False,
         "decisive_failure": True,
         "findings": [
@@ -195,18 +197,26 @@ def test_reconcile_strips_retired_criteria_findings_gemini_openai_class() -> Non
         "cited_sentence_indexes": [1],
         "remediation_suggestions": [],
     }
-    reconciled = reconcile_grade_only_judge_result(body, gate_summary)
+    reconciled_exec = reconcile_grade_only_judge_result(body, gate_summary, section_id="executive_summary")
+    assert reconciled_exec["score"] == 3.2
+    assert reconciled_exec["pass"] is False
 
-    findings_blob = " ".join(reconciled.get("findings") or []).lower()
+    reconciled_other = reconcile_grade_only_judge_result(body, gate_summary, section_id="headline")
+    findings_blob = " ".join(reconciled_other.get("findings") or []).lower()
     assert "mandatory s5" not in findings_blob
     assert "weak synthesis" in findings_blob
 
 
 def test_build_x1d_judge_system_prompt_shared_by_gemini_openai_path() -> None:
-    system = build_x1d_judge_system_prompt(compact=True)
-    assert "GRADE_ONLY authority" in system
-    assert "deterministic_gate_summary" in system
-    assert "retired" in system.lower()
+    system_exec = build_x1d_judge_system_prompt(compact=True, section_id="executive_summary")
+    assert "GRADE_ONLY authority" in system_exec
+    assert "deterministic_gate_summary" not in system_exec
+    assert "4.7" in system_exec
+
+    system_other = build_x1d_judge_system_prompt(compact=True, section_id="headline")
+    assert "GRADE_ONLY authority" in system_other
+    assert "deterministic_gate_summary" in system_other
+    assert "retired" in system_other.lower()
 
 
 # --- CI-shaped aggregate (feeds drift gate when wired) -----------------------

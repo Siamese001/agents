@@ -30,6 +30,11 @@ from apps_rg.runtime.judges.x1d_ide_cli import IDE_CLI_SESSION_MARKER
 from apps_rg.runtime.judges.executive_summary_x1d_dimension_verdicts import (
     dimension_verdicts_json_schema_fragment,
     ensure_dimension_verdicts,
+    executive_summary_human_dimension_floor_passes,
+)
+from apps_rg.runtime.sections.executive_summary_repair_policy import (
+    EXEC_SUMMARY_JUDGE_THRESHOLD_0_TO_5,
+    EXEC_SUMMARY_JUDGE_THRESHOLD_NORMALIZED,
 )
 from apps_rg.runtime.section_judge_policy import get_section_judge_policy
 from apps_rg.runtime.model_capabilities import try_model_capabilities
@@ -226,17 +231,30 @@ def _invoke_judge_with_bounded_retries(
 
 JUDGE_COMPACT_OUTPUT = """
 Return ONLY one compact JSON object. No markdown fences, no prose before or after, no nested objects.
-Required shape (findings and remediation_suggestions must be arrays of short strings only):
-{"score_scale":"0_to_5","score":0.0,"threshold":4.0,"pass":true,"decisive_failure":false,"findings":["..."],"cited_sentence_indexes":[1],"remediation_suggestions":[],"dimension_verdicts":{...8 rubric keys...}}
+Required shape (write rationale FIRST before deciding score; findings and remediation_suggestions must be arrays of short strings only):
+{"rationale":"concise hiring-committee reasoning first","score_scale":"0_to_5","score":0.0,"threshold":4.7,"pass":true,"decisive_failure":false,"findings":["..."],"cited_sentence_indexes":[1],"remediation_suggestions":[],"dimension_verdicts":{...6 human rubric keys...}}
 At most 6 short strings in findings and 4 in remediation_suggestions.
-cited_sentence_indexes: 1-based indexes (S1=1 … S6=6) for every sentence your findings ask to change.
-Include dimension_verdicts with all eight rubric dimension ids (pass/severity/codes per dimension).
+cited_sentence_indexes: 1-based indexes (S1=1 ... S4=4) for every sentence your findings ask to change.
+Include dimension_verdicts with all rubric dimension ids (pass/severity/codes per dimension).
 """.strip()
 
 JUDGE_COMPACT_SYSTEM = (
-    "You are a strict executive resume judge. Output a single compact JSON object only. "
-    "No markdown fences, no explanatory prose, no nested finding objects."
+    "You are a skeptical executive hiring-committee resume judge. Output a single compact JSON object only. "
+    "Write concise rationale reasoning before assigning a score. No markdown fences, no explanatory prose, no nested finding objects."
 )
+
+JUDGE_EXEC_SUMMARY_BLIND_AUTHORITY = """
+GRADE_ONLY authority (executive_summary — blind human hiring-committee judge; strict frontier-lab grader separation):
+- Do NOT rewrite, replace, or edit candidate_output.resume_display_text.
+- Deterministic code graders already validated syntax and layout bounds. Do NOT re-count characters/words or audit code rules.
+- Evaluate strictly as a skeptical CTO / SVP Engineering / Head of Talent Acquisition hiring committee:
+  "Does this sound like a rare, high-caliber executive we must speak to immediately?"
+- Anti-inflation calibration (0_to_5, pass >= 4.7): <= 3.8 generic/robotic/inflated FAIL; 3.9-4.3 solid-but-ordinary FAIL;
+  4.4-4.6 strong-but-not-immediate-call FAIL; 4.7-5.0 rare, human-voiced immediate-call executive PASS.
+- OFF_DOMAIN_CLUTTER_ENFORCEMENT: If a non-financial / non-insurance target role foregrounds legacy banking regulatory or
+  insurance policy administration clutter (BCBS 239, monolithic policy administration, ERM operating models, CCAR, Guidewire),
+  set decisive_failure=true, pass=false, and score <= 3.4.
+""".strip()
 
 JUDGE_GRADE_ONLY_AUTHORITY = """
 GRADE_ONLY authority (all providers — Gemini, OpenAI, Anthropic):
@@ -259,11 +277,17 @@ GRADE_ONLY authority (all providers — Gemini, OpenAI, Anthropic):
 """.strip()
 
 
-def build_x1d_judge_system_prompt(*, compact: bool = True) -> str:
-    """Canonical system prompt shared by all proof judge providers."""
+def build_x1d_judge_system_prompt(*, compact: bool = True, section_id: str | None = None) -> str:
+    """Canonical system prompt shared by all proof judge providers.
+
+    Uses blind human hiring-committee authority (zero deterministic_gate_summary references)
+    for ``executive_summary``, and retains ``JUDGE_GRADE_ONLY_AUTHORITY`` for other sections.
+    """
+    is_exec_summary = section_id in (None, "", "executive_summary")
+    authority = JUDGE_EXEC_SUMMARY_BLIND_AUTHORITY if is_exec_summary else JUDGE_GRADE_ONLY_AUTHORITY
     if compact:
         return (
-            f"{JUDGE_COMPACT_SYSTEM}\n\n{JUDGE_GRADE_ONLY_AUTHORITY}\n\n"
+            f"{JUDGE_COMPACT_SYSTEM}\n\n{authority}\n\n"
             f"{JUDGE_COMPACT_OUTPUT}\n\n{JUDGE_SCORE_SCHEMA}"
         )
     return f"You are a strict executive resume judge. Return JSON only.\n\n{JUDGE_SCORE_SCHEMA}"
@@ -272,9 +296,10 @@ def build_x1d_judge_system_prompt(*, compact: bool = True) -> str:
 def build_judge_response_schema(
     dimension_ids: tuple[str, ...] | None = None,
 ) -> dict[str, Any]:
-    """Build the strict structured-output schema for one section's rubric."""
+    """Build the strict structured-output schema for one section's rubric (rationale before score)."""
 
     properties = {
+        "rationale": {"type": "string"},
         "score_scale": {"type": "string", "enum": ["0_to_1", "0_to_5"]},
         "score": {"type": "number"},
         "threshold": {"type": "number"},
@@ -931,19 +956,46 @@ def _make_model_backed_output(
 ) -> JudgeOutput:
     """Create a model-backed judge output from parsed result."""
     result = _normalize_judge_result(result)
+    is_exec_summary = section_id in (None, "", "executive_summary")
     if deterministic_gate_summary:
-        from apps_rg.runtime.judges.executive_summary_judge_packet import (
-            reconcile_grade_only_judge_result,
-        )
+        if is_exec_summary:
+            # Strictly downward-only off-domain clutter guard; ZERO finding suppression or upward score coercion.
+            from apps_rg.runtime.validators.allocation_jd_alignment_gate import (
+                reconcile_allocation_jd_alignment_judge_result,
+            )
 
-        result = reconcile_grade_only_judge_result(result, deterministic_gate_summary, section_id=section_id)
+            result = reconcile_allocation_jd_alignment_judge_result(result, deterministic_gate_summary)
+        else:
+            from apps_rg.runtime.judges.executive_summary_judge_packet import (
+                reconcile_grade_only_judge_result,
+            )
+
+            result = reconcile_grade_only_judge_result(result, deterministic_gate_summary, section_id=section_id)
     result, _dv_inferred = ensure_dimension_verdicts(
-        result, deterministic_gate_summary=deterministic_gate_summary
+        result, deterministic_gate_summary=None if is_exec_summary else deterministic_gate_summary
     )
     raw_score = float(result.get("score", 0.0))
-    default_raw_threshold = 4.4 if section_id == "full_resume_coherence" else 4.0
+    declared_scale_raw = str(result.get("score_scale") or "").strip()
+    if is_exec_summary:
+        default_raw_threshold = (
+            EXEC_SUMMARY_JUDGE_THRESHOLD_NORMALIZED
+            if declared_scale_raw == "0_to_1"
+            else EXEC_SUMMARY_JUDGE_THRESHOLD_0_TO_5
+        )
+    elif section_id == "full_resume_coherence":
+        default_raw_threshold = 4.4
+    else:
+        default_raw_threshold = 4.0
     raw_threshold = float(result.get("threshold", default_raw_threshold))
-    if section_id == "full_resume_coherence" and str(result.get("score_scale") or "").strip() == "0_to_5":
+    if is_exec_summary:
+        min_floor = (
+            EXEC_SUMMARY_JUDGE_THRESHOLD_NORMALIZED
+            if declared_scale_raw == "0_to_1"
+            else EXEC_SUMMARY_JUDGE_THRESHOLD_0_TO_5
+        )
+        raw_threshold = max(raw_threshold, min_floor)
+        result["threshold"] = raw_threshold
+    elif section_id == "full_resume_coherence" and declared_scale_raw == "0_to_5":
         raw_threshold = max(raw_threshold, 4.4)
         result["threshold"] = raw_threshold
     from apps_rg.runtime.sections.executive_summary_repair_policy import judge_pass_floor_0_to_5
@@ -985,7 +1037,18 @@ def _make_model_backed_output(
         )
 
     decisive = bool(result.get("decisive_failure", False))
-    passed = normalized_score >= normalized_threshold and not decisive
+    dim_floor_ok = True
+    if is_exec_summary:
+        dim_floor_ok, dim_floor_reasons = executive_summary_human_dimension_floor_passes(
+            result.get("dimension_verdicts")
+        )
+        if not dim_floor_ok:
+            existing_findings = list(result.get("findings") or [])
+            for reason in dim_floor_reasons:
+                if reason not in existing_findings:
+                    existing_findings.append(reason)
+            result["findings"] = existing_findings
+    passed = normalized_score >= normalized_threshold and not decisive and dim_floor_ok
     output_hash = hashlib.sha256(json.dumps(result, sort_keys=True).encode()).hexdigest()[:16]
     meta = PROVIDERS[provider_key]
 
@@ -1108,7 +1171,7 @@ def _call_openai(
             reasoning_effort=reasoning_effort, attempt=attempt, section_id=section_id,
             response_schema=response_schema,
         )
-    system_content = build_x1d_judge_system_prompt(compact=True)
+    system_content = build_x1d_judge_system_prompt(compact=True, section_id=section_id)
     max_tokens = (
         _resolved_section_x1d_judge_max_output_tokens(section_id, attempt=attempt)
         if section_id
@@ -1372,6 +1435,7 @@ def _finish_judge_text_parse(
     artifact_base: Path | None = None,
     judge_receipt: dict[str, Any] | None = None,
     model_requested: str | None = None,
+    section_id: str | None = None,
 ) -> JudgeOutput:
     """Parse extracted judge text into JudgeOutput or blocked status."""
     allowed_finish_reasons = {
@@ -1457,7 +1521,7 @@ def _finish_judge_text_parse(
     )
 
     gate_summary = (judge_receipt or {}).get("deterministic_gate_summary") if judge_receipt else None
-    section_id = (judge_receipt or {}).get("section_id") if judge_receipt else None
+    resolved_section_id = section_id or ((judge_receipt or {}).get("section_id") if judge_receipt else None)
     out = _make_model_backed_output(
         provider_key,
         input_hash,
@@ -1467,7 +1531,7 @@ def _finish_judge_text_parse(
         original_model=original_model,
         fallback_model=fallback_model,
         deterministic_gate_summary=gate_summary,
-        section_id=section_id,
+        section_id=resolved_section_id,
     )
     return _attach_judge_receipt_fields(out, judge_receipt, model_requested=model_requested or model_name)
 
@@ -1518,7 +1582,7 @@ def _call_gemini(
     )
     payload = {
         "contents": [{"parts": [{"text": prompt}]}],
-        "systemInstruction": {"parts": [{"text": build_x1d_judge_system_prompt(compact=True)}]},
+        "systemInstruction": {"parts": [{"text": build_x1d_judge_system_prompt(compact=True, section_id=section_id)}]},
         "generationConfig": generation_config,
     }
 

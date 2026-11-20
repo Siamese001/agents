@@ -121,7 +121,8 @@ def test_product_shape_block_format() -> None:
     assert "Bounds gates" in block
     assert "Proof gates" in block
     assert "Style gates" in block
-    assert "x2_exec_summary_sentence_count_6" in block
+    assert "x2_exec_summary_sentence_band_3_to_4" in block
+    assert "x2_exec_summary_visual_char_band" in block
     assert "x2_exec_summary_paragraph_max_words" in block
     assert "fit_to_evidence" in block
     assert f"max {EXEC_SUMMARY_MAX_WORDS} words" in block
@@ -183,5 +184,5 @@ def test_compiled_prompt_includes_product_shape_block() -> None:
     content = str(out.artifact.messages[-1]["content"])
     assert "PRODUCT_SHAPE" in content
     assert "INPUT_AUTHORITY" in content
-    assert re.search(r"4\s*[-–to]+\s*6|exactly\s+6|6\s+sentences", content, re.IGNORECASE)
+    assert re.search(r"3\s*[-–to]+\s*4|3\s+to\s+4|420", content, re.IGNORECASE)
     assert not re.search(r"2\s*[-–]\s*3\s+dense\s+sentences\s+by\s+default", content, re.IGNORECASE)

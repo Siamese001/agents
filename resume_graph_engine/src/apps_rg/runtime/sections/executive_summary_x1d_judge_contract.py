@@ -63,21 +63,34 @@ def _all_x2_gates_pass(deterministic_gate_summary: dict[str, Any]) -> bool:
 
 
 def audit_active_graph_rubric_x2_supremacy() -> list[JudgePacketCoherenceViolation]:
-    """Active GRAPH rubric must include SRFS-style X2 supremacy (dim 8)."""
+    """Active GRAPH rubric must enforce blind human hiring-committee separation (no X2 anchoring or inflation)."""
     rubric = GRAPH_ONLY_GRADE_ONLY_RUBRIC.lower()
-    if "penalize gates that show" in rubric and '"pass": false' in rubric:
-        return []
-    return [
-        JudgePacketCoherenceViolation(
-            code="graph_rubric_missing_x2_supremacy",
-            detail=(
-                "GRAPH_ONLY_GRADE_ONLY_RUBRIC lacks SRFS dim-8 clause "
-                f"(expected one of {X2_SUPREMACY_PHRASES!r}); "
-                "dim 6 still allows soft-fail on axes X2 may have passed."
-            ),
-            path=judge_packet_mod.__file__ or "",
+    violations: list[JudgePacketCoherenceViolation] = []
+    if "immediate_call_conviction" not in rubric or "spoken_executive_authenticity" not in rubric:
+        violations.append(
+            JudgePacketCoherenceViolation(
+                code="graph_rubric_missing_human_committee_dimensions",
+                detail="GRAPH_ONLY_GRADE_ONLY_RUBRIC missing immediate_call_conviction or spoken_executive_authenticity",
+                path=judge_packet_mod.__file__ or "",
+            )
         )
-    ]
+    if "deterministic_gate_summary" in rubric:
+        violations.append(
+            JudgePacketCoherenceViolation(
+                code="graph_rubric_leaks_deterministic_gate_summary",
+                detail="GRAPH_ONLY_GRADE_ONLY_RUBRIC must stay blind to deterministic_gate_summary",
+                path=judge_packet_mod.__file__ or "",
+            )
+        )
+    if "4.5 and 4.9" in rubric:
+        violations.append(
+            JudgePacketCoherenceViolation(
+                code="graph_rubric_contains_score_inflation_anchor",
+                detail="GRAPH_ONLY_GRADE_ONLY_RUBRIC must not contain 4.5-4.9 score inflation anchor",
+                path=judge_packet_mod.__file__ or "",
+            )
+        )
+    return violations
 
 
 def audit_rubric_soft_penalties_when_gates_pass(
@@ -208,17 +221,26 @@ def audit_provider_transport_parity() -> list[JudgePacketCoherenceViolation]:
 
 def audit_identical_judge_json_same_pass_all_providers() -> list[JudgePacketCoherenceViolation]:
     """Same parsed judge JSON must yield same MODEL_BACKED pass/fail for every provider key."""
+    from apps_rg.runtime.judges.executive_summary_x1d_dimension_verdicts import (
+        EXEC_SUMMARY_RUBRIC_DIMENSION_IDS,
+    )
+
     result = {
+        "rationale": "Clear executive hook, sharp scale proof, and authentic boardroom voice.",
         "score_scale": "0_to_5",
-        "score": 4.2,
-        "threshold": 4.0,
+        "score": 4.8,
+        "threshold": 4.7,
         "pass": True,
         "decisive_failure": False,
-        "findings": ["ok"],
-        "cited_sentence_indexes": [1],
+        "findings": [],
+        "cited_sentence_indexes": [],
         "remediation_suggestions": [],
+        "dimension_verdicts": {
+            dim: {"pass": True, "severity": "none", "codes": []}
+            for dim in EXEC_SUMMARY_RUBRIC_DIMENSION_IDS
+        },
     }
-    gate_summary = {"x2_exec_summary_sentence_count_6": {"pass": True, "detail": "ok"}}
+    gate_summary = {"x2_exec_summary_sentence_band_3_to_4": {"pass": True, "detail": "ok"}}
     statuses: dict[str, str] = {}
     for key in ("gemini_pro", "openai_chatgpt"):
         out = _make_model_backed_output(
@@ -227,10 +249,11 @@ def audit_identical_judge_json_same_pass_all_providers() -> list[JudgePacketCohe
             "test-model",
             dict(result),
             deterministic_gate_summary=gate_summary,
+            section_id="executive_summary",
         )
         statuses[key] = out.provider_status
     unique = set(statuses.values())
-    if len(unique) == 1:
+    if len(unique) == 1 and "MODEL_BACKED_PASS" in unique:
         return []
     return [
         JudgePacketCoherenceViolation(
@@ -259,26 +282,18 @@ def load_frozen_post_x2_packet(repo_root: Path) -> dict[str, Any] | None:
 
 
 def build_brown_brown_six_sentence_packet() -> dict[str, Any]:
-    """Synthetic packet mirroring 001344: all X2 pass, unused cert fact (fact_certs_001 class)."""
+    """Synthetic packet (compat name) matching the 3-to-4 sentence / 420-680 char visual band."""
     resume = (
-        "Technology strategy executive who operationalizes governed agentic AI platforms for regulated "
-        "enterprise workflows with traceable execution and enterprise scale. "
-        "Platform commercialization generated $22M in IP-led revenue and expanded gross margins by 20%, "
-        "while scaling the ML engineering organization from 8 to 28 specialists. "
-        "Implemented Basel III and CCAR data lineage, cataloging, and automated reconciliation across "
-        "risk and finance stakeholders. "
-        "Re-architected risk analytics with containerized microservices for faster calculations and "
-        "real-time stress testing for senior leadership. "
-        "Quantitative actuarial depth informs governance and delivery trade-offs across complex programs. "
-        "Governed runtime delivery stays audit-ready without weakening commercial velocity."
+        "Technology strategy executive who turns complex AI architectures into production platforms for regulated businesses. "
+        "Scaled an ML engineering organization from 8 to 28 specialists while generating $22M in IP-led revenue and lifting gross margins by 20%. "
+        "Basel III and CCAR data lineage cut regulatory reporting errors by 40% across core risk and finance workflows. "
+        "Pairs actuarial quantitative depth with hands-on platform execution to scale enterprise AI adoption across decentralized units."
     )
     allowed = {
         "fact_platform_001",
         "fact_revenue_001",
         "fact_basel_001",
-        "fact_risk_001",
         "fact_actuarial_001",
-        "fact_governance_001",
         "fact_certs_001",
     }
     ledger = [
@@ -287,7 +302,7 @@ def build_brown_brown_six_sentence_packet() -> dict[str, Any]:
             "source_fact_ids": [f"fact_{name}"],
         }
         for i, name in enumerate(
-            ["platform_001", "revenue_001", "basel_001", "risk_001", "actuarial_001", "governance_001"]
+            ["platform_001", "revenue_001", "basel_001", "actuarial_001"]
         )
     ]
     return build_executive_summary_judge_packet(

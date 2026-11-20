@@ -52,14 +52,12 @@ _FORMULAIC_OPENER_RE = re.compile(
 )
 
 _DIMENSION_ORDER = (
-    "executive_signal",
-    "synthesis_quality",
-    "resume_voice",
-    "evidence_utilization",
-    "factual_support",
-    "ats_alignment_without_keyword_stuffing",
-    "anti_overfit",
-    "deterministic_alignment",
+    "immediate_call_conviction",
+    "spoken_executive_authenticity",
+    "differentiated_edge",
+    "six_second_scannability",
+    "strategic_mandate_resonance",
+    "factual_truth_and_non_exaggeration",
 )
 
 

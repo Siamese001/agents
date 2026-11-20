@@ -20,7 +20,7 @@ NON_CLAIM_NO_MASKING = (
 # Appendix W4 — per lane-family marker groups (any alias in a group must match).
 FAMILY_MARKER_GROUPS: dict[str, tuple[tuple[str, ...], ...]] = {
     "executive_summary": (
-        ("factual_support",),
+        ("factual_truth_and_non_exaggeration", "factual_support"),
         ("claim_ledger", "claim ledger"),
         ("jd-as-proof", "jd/briefing", "jd as proof"),
         ("briefing-as-proof", "briefing"),

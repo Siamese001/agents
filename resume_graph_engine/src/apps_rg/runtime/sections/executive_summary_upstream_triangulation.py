@@ -20,83 +20,64 @@ TRIANGULATION_SCHEMA = "executive_summary_dimension_upstream_triangulation_v1"
 # Rubric dimensions that are primarily fixed by L2/PROVIDER_MODEL + composition (not a full re-panel).
 L2_UPSTREAM_DIMENSIONS: frozenset[str] = frozenset(
     {
-        "executive_signal",
-        "resume_voice",
-        "ats_alignment_without_keyword_stuffing",
-        "synthesis_quality",
-        "evidence_utilization",
-        "anti_overfit",
+        "immediate_call_conviction",
+        "spoken_executive_authenticity",
+        "differentiated_edge",
+        "six_second_scannability",
+        "strategic_mandate_resonance",
+        "factual_truth_and_non_exaggeration",
     }
 )
 
 DIMENSION_PROVIDER_MODEL_SURFACES: dict[str, tuple[str, ...]] = {
-    "factual_support": (
-        "claim_ledger.json",
-        "canonical_claim_ledger_v2.json",
-        "allowed_fact_packet in compiled_prompt.txt",
-    ),
-    "executive_signal": (
-        "compiled_prompt.txt (I0 opener + E0 examples order)",
+    "immediate_call_conviction": (
+        "compiled_prompt.txt (I0 spoken executive arc + E0 examples)",
         "executive_summary_composition_plan.json (sentence_arc)",
         "apps_rg/prompt_assembly/templates/executive_summary.generate_scratch_v1.yaml",
     ),
-    "resume_voice": (
-        "compiled_prompt.txt (Y0 / voice guards)",
+    "spoken_executive_authenticity": (
+        "compiled_prompt.txt (spoken_voice_anti_ai_bans / Y0)",
         "executive_summary_finalize_coherence.json",
     ),
-    "ats_alignment_without_keyword_stuffing": (
+    "differentiated_edge": (
+        "selected_fact_plan.json",
+        "compiled_prompt.txt (display_metric_weave_contract)",
+    ),
+    "six_second_scannability": (
+        "compiled_prompt.txt (visual_sentence_band_contract 3-4 sentences / 420-680 chars)",
+        "synthesis_regen_receipt.json",
+    ),
+    "strategic_mandate_resonance": (
         "compiled_prompt.txt (JD_TEXT + BRIEFING blocks)",
         "targeting_context_parity_receipt.json",
         "GRAPH_TARGETING_CAPSULE in executive_summary_pa.py",
     ),
-    "anti_overfit": (
-        "compiled_prompt.txt (proof law / jd_used_as_proof=false)",
-        "claim_ledger source_fact_ids",
-    ),
-    "synthesis_quality": (
-        "compiled_prompt.txt (six-sentence arc + synthesis guards)",
-        "executive_summary_composition_plan.json",
-        "synthesis_regen_receipt.json",
-        "provider_response.json (L2 raw)",
-    ),
-    "evidence_utilization": (
-        "selected_fact_plan.json",
-        "compiled_prompt.txt (ALLOWED_SOURCE_FACT_IDS)",
-        "text_claim_coverage.json",
-    ),
-    "deterministic_alignment": (
-        "x2_gate_outputs.json",
-        "executive_summary_judge_packet_post_x2.json (deterministic_gate_summary)",
+    "factual_truth_and_non_exaggeration": (
+        "claim_ledger.json",
+        "canonical_claim_ledger_v2.json",
+        "allowed_fact_packet in compiled_prompt.txt",
     ),
 }
 
 DIMENSION_UPSTREAM_ACTIONS: dict[str, tuple[str, ...]] = {
-    "executive_signal": (
-        "Lead with SVP strategy thesis in S1; avoid achievement-inventory S2–S5 stack.",
-        "Use active voice; connect platform + governance + commercial arcs.",
+    "immediate_call_conviction": (
+        "Lead with a sharp, non-generic executive hook in S1 backed by concrete scale and outcomes.",
+        "Eliminate safe, ordinary wording interchangeable with generic senior peers.",
     ),
-    "synthesis_quality": (
-        "Enforce connective tissue S3–S6 per composition_plan sentence_arc.",
-        "Avoid comma-chain mechanism dumps; one integrated paragraph.",
+    "spoken_executive_authenticity": (
+        "Write crisp spoken boardroom English; strip ALL AI bridge crutches and abstract noun soup.",
     ),
-    "ats_alignment_without_keyword_stuffing": (
-        "Weave EA/interoperability/innovation themes from briefing via allowed facts only.",
-        "Never name TARGET_COMPANY; no JD-as-proof in claim_ledger.",
+    "differentiated_edge": (
+        "Foreground rare combination of technical platform build, commercial/scale outcomes, and regulated rigor.",
     ),
-    "resume_voice": (
-        "Remove recruiter filler and passive stacks; third person only.",
+    "six_second_scannability": (
+        "Fit 3 to 4 crisp sentences (420 to 680 chars, max 210 chars/sentence) with varied sentence lengths and unique openers.",
     ),
-    "evidence_utilization": (
-        "Weave unused allowed_fact_ids from selected_fact_plan into claim_ledger rows.",
+    "strategic_mandate_resonance": (
+        "Frame verified facts directly toward target role priorities without JD copying or off-domain clutter.",
     ),
-    "factual_support": (
-        "Every sentence must cite allowed source_fact_ids; no orphan claims.",
-    ),
-    "anti_overfit": (
-        "Do not treat JD/briefing text as experience proof.",
-    ),
-    "deterministic_alignment": (
-        "Fix X2 failures before re-spending on judges; judges mirror gate snapshot.",
+    "factual_truth_and_non_exaggeration": (
+        "Bind every displayed claim and metric strictly to allowed source_fact_ids with zero inflation.",
     ),
 }
 

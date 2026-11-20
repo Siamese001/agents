@@ -261,7 +261,7 @@ def _causal_allocation(section: dict[str, Any]) -> dict[str, Any]:
                             "x2_exec_summary_paragraph_max_words",
                             "x2_exec_summary_no_mechanism_inventory",
                         ],
-                        required_work="Constrain the repair prompt and deterministic polish chain to produce six sentences under the word ceiling without mechanism inventories.",
+                        required_work="Constrain the repair prompt and deterministic polish chain to produce 3 to 4 crisp sentences within the 420-680 character visual band without AI bridge crutches or mechanism inventories.",
                     ),
                     _allocation_row(
                         domain="Claim attribution density",

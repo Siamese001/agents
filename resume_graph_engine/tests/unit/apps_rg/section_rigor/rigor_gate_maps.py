@@ -75,8 +75,8 @@ def _build_retired_gate_refs() -> dict[str, RetiredGateRef]:
     for gid in RETIRED_EXEC_SUMMARY_X2_GATE_IDS:
         out[gid] = _retired(
             gid,
-            retired_reason="Legacy exec summary shape bands superseded by x2_exec_summary_sentence_count_6",
-            replacement_gate_id="x2_exec_summary_sentence_count_6",
+            retired_reason="Legacy exec summary shape bands superseded by x2_exec_summary_sentence_band_3_to_4",
+            replacement_gate_id="x2_exec_summary_sentence_band_3_to_4",
         )
     from apps_rg.runtime.sections.section_product_shape_ssot import (
         RETIRED_IBM_BULLETS_X2_GATE_IDS,

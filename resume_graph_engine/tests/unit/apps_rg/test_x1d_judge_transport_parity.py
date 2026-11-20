@@ -135,7 +135,7 @@ def test_rendered_prompt_includes_schema_and_gate_authority() -> None:
     prompt = render_judge_prompt_from_packet(packet)
     violations = audit_rendered_user_prompt_objectives_and_schema(packet, prompt)
     assert violations == [], _codes(violations)
-    assert "DETERMINISTIC_GATE_SUMMARY" in prompt
+    assert "DETERMINISTIC_GATE_SUMMARY" not in prompt
     assert "0_to_5" in prompt or "score_scale" in prompt.lower()
     assert REQUIRED_JUDGE_OUTPUT_SCHEMA.split("0_to_5")[0][:20] in prompt or "0_to_5" in prompt
 
@@ -458,7 +458,7 @@ def test_pass_math_matrix_parametrized(
         "remediation_suggestions": [],
     }
     for key in PROOF_JUDGE_PROVIDER_KEYS:
-        out = _make_model_backed_output(key, "h", "m", dict(body))
+        out = _make_model_backed_output(key, "h", "m", dict(body), section_id="headline")
         assert out.pass_ is expected_pass, key
 
 
@@ -513,8 +513,10 @@ def test_shared_judge_contract_strings_defined() -> None:
     assert "0_to_5" in GENERIC_REQUIRED_SCHEMA
     assert JUDGE_COMPACT_SYSTEM
     assert "retired" in JUDGE_GRADE_ONLY_AUTHORITY.lower()
-    system = build_x1d_judge_system_prompt(compact=True)
-    assert JUDGE_GRADE_ONLY_AUTHORITY in system
+    system_other = build_x1d_judge_system_prompt(compact=True, section_id="headline")
+    assert JUDGE_GRADE_ONLY_AUTHORITY in system_other
+    system_exec = build_x1d_judge_system_prompt(compact=True, section_id="executive_summary")
+    assert "deterministic_gate_summary" not in system_exec.lower()
 
 
 def test_gemini_retry_attempt_token_budget_matches_openai() -> None:

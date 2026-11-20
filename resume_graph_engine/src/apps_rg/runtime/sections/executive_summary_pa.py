@@ -207,8 +207,8 @@ def format_graph_proof_pool_appendix(runtime_payload: dict[str, Any]) -> str:
         "source_fact_ids unless explicitly promoted after human confirmation.\n"
         "- Numeric evidence must still map to ledger metric-hash IDs when ALLOWED_SOURCE_FACT_IDS includes *_metric_* lines.\n"
         "- Credential facts (for example fact_certs_001) are optional supporting context, not mandatory paragraph filler "
-        "(waived from utilization). Prefer platform, governance, lifecycle, and commercial facts when the "
-        "six-sentence budget is tight. "
+        "(waived from utilization). Prefer platform, governance, lifecycle, and commercial facts within the "
+        "3-to-4 sentence visual layout band (420 to 680 characters). "
         "Cite every non-credential allowed fact_id across the claim_ledger / resume_display_text; "
         "enforced by x2_exec_summary_allowed_fact_utilization.\n"
         "- Section ownership: named certifications (AWS, Databricks, FSA, Basel, CCAR labels, "
@@ -418,7 +418,7 @@ def build_executive_summary_assembly_input(
 
     strategy_voice = ""
     if is_strategy_executive_target_title(t_title):
-        strategy_voice = " SVP lane: follow I0 judge_alignment_contract (thesis-first, six-sentence arc)."
+        strategy_voice = " SVP lane: follow I0 judge_alignment_contract (thesis-first, 3-to-4 sentence spoken executive arc)."
     leadership_voice = format_leadership_first_exec_summary_block(target_title=t_title)
     composition_block = ""
     _pp_for_plan = runtime_payload.get("proof_pool_metadata")

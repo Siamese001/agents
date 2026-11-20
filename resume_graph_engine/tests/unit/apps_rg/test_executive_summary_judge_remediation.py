@@ -338,17 +338,17 @@ def _claude_soft_fail_with_dimension_verdicts() -> dict:
         "Replace the bullet-stack pattern (S2-S5) with connective narrative tying platform and governance.",
     ]
     judge["dimension_verdicts"] = {
-        "executive_signal": {
+        "immediate_call_conviction": {
             "pass": False,
             "severity": "major",
             "codes": ["bullet_stack", "narrow_opener"],
         },
-        "synthesis_quality": {
+        "spoken_executive_authenticity": {
             "pass": False,
             "severity": "major",
-            "codes": ["sequential_achievement_stack", "thin_recap_s6"],
+            "codes": ["ai_bridge_crutch", "stiff_essay_cadence"],
         },
-        "ats_alignment_without_keyword_stuffing": {
+        "strategic_mandate_resonance": {
             "pass": True,
             "severity": "minor",
             "codes": ["weak_domain_targeting"],
@@ -364,7 +364,7 @@ def test_compact_regen_delta_includes_operator_judge_pass_floor(monkeypatch) -> 
         unused_fact_ids=[],
         allowed_fact_count=8,
         prior_word_count=120,
-        prior_ledger_rows=6,
+        prior_ledger_rows=4,
         compact=True,
     )
     joined = "\n".join(lines)
@@ -378,14 +378,14 @@ def test_compact_regen_delta_fits_core_token_budget() -> None:
         unused_fact_ids=[],
         allowed_fact_count=8,
         prior_word_count=120,
-        prior_ledger_rows=6,
+        prior_ledger_rows=4,
         compact=True,
     )
     joined = "\n".join(lines)
     assert estimate_token_count(joined) <= DEFAULT_MAX_DELTA_TOKENS
-    assert "executive_signal:" in joined
-    assert "synthesis_quality:" in joined
-    assert "ats_alignment_without_keyword_stuffing:" not in joined
+    assert "immediate_call_conviction:" in joined
+    assert "spoken_executive_authenticity:" in joined
+    assert "strategic_mandate_resonance:" not in joined
     assert "enterprise-wide IT strategy leader" in joined
     assert "bullet-stack pattern" in joined
 

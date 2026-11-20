@@ -99,16 +99,16 @@ def test_jd_alignment_proof_flags_require_briefing_false():
 
 
 def test_sentence_count_6_pass_and_legacy_bands_fail():
-    good = _six_good_sentences()
-    assert check_exec_summary_sentence_count_6(good)[0] is True
     legacy = "One sentence here. Two sentences here."
     assert check_exec_summary_sentence_count_6(legacy)[0] is False
+    three_sents = " ".join([f"Sentence {i} states executive platform value." for i in range(3)])
+    assert check_exec_summary_sentence_count_6(three_sents)[0] is True
+    four_sents = " ".join([f"Sentence {i} states executive platform value." for i in range(4)])
+    assert check_exec_summary_sentence_count_6(four_sents)[0] is True
     five_sents = _six_good_sentences().rsplit(". ", 1)[0] + "."
     assert check_exec_summary_sentence_count_6(five_sents)[0] is False
-    four_sents = " ".join([f"Sentence {i} states executive platform value." for i in range(4)])
-    assert check_exec_summary_sentence_count_6(four_sents)[0] is False
     six = " ".join([f"Sentence {i} states executive platform value." for i in range(6)])
-    assert check_exec_summary_sentence_count_6(six)[0] is True
+    assert check_exec_summary_sentence_count_6(six)[0] is False
     seven = " ".join([f"Sentence {i} states executive platform value." for i in range(7)])
     assert check_exec_summary_sentence_count_6(seven)[0] is False
 
@@ -249,7 +249,8 @@ def test_synthesis_quality_requires_six_sentences():
         "Additionally, their expertise provides leadership."
     )
     assert check_synthesis_quality(short)[0] is False
-    assert check_exec_summary_sentence_count_6(short)[0] is False
+    assert check_exec_summary_sentence_count_6(short)[0] is True
+    assert check_exec_summary_sentence_count_6("Only two sentences. Second sentence.")[0] is False
     assert check_exec_summary_meta_filler_patterns(short)[0] is False
     assert check_exec_summary_paragraph_max_words(short, {})[0] is True
 

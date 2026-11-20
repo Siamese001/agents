@@ -102,22 +102,22 @@ ALLOWED GROUNDED FACTS (Do NOT introduce external ungrounded metrics or facts):
 {chr(10).join(facts_summary) if facts_summary else "Preserve all facts already present in the draft."}
 
 CRITICAL RULES:
-1. PRESERVE THE 6-SENTENCE STRUCTURE EXACTLY: Output exactly 6 sentences in a single cohesive paragraph.
+1. PRESERVE THE VISUAL LAYOUT BAND: Output 3 to 4 crisp, spoken executive sentences totaling 420 to 680 characters (max 210 chars per sentence, max 110 words overflow cap) in a single cohesive paragraph.
 2. SURGICAL EDIT: Modify ONLY the sentences that were flagged or require alignment with the diagnostic. Keep unflagged sentences unchanged.
-3. ELIMINATE VOICE ISSUES:
-   - S1: Must be a distinctive, authoritative executive opener (not generic fluff like "Dynamic technology leader...").
-   - S2: Must articulate enterprise operational scope and scale with grounded numbers.
-   - S3-S4: Must highlight high-impact technical initiatives (e.g. AI/ML, cloud, architecture) grounded in allowed facts.
-   - S5: Must state strategic transformation impact; NEVER dump credentials/certifications or passive lists.
-   - S6: Must project forward-looking strategic value for the target role.
+3. ELIMINATE VOICE & AI-SLOP ISSUES:
+   - Remove ALL AI bridge crutches ("In parallel,", "Building on that", "From that commercial base", "Against that", "Across enterprise programs,", "The same platform discipline", "That governed...") and abstract noun soup ("operating-model framing", "governed activation", "durable economics").
+   - Vary sentence lengths (>= 4 words spread) and start each sentence with a distinct concrete opener; at most one trailing `-ing` clause.
+   - S1: Sharp, authoritative executive hook (zero generic fluff).
+   - S2-S3: Concrete technical/platform and commercial/governance proof with grounded numbers.
+   - Optional S4: Crisp forward-looking mandate fit grounded in allowed facts (never a recap or cert dump).
 4. ABSOLUTELY NO HALLUCINATIONS: Do not introduce company names, numbers, or technologies not present in the draft or allowed facts.
 
 OUTPUT FORMAT:
 Return a JSON object with this exact schema:
 {{
-  "repaired_text": "Complete 6-sentence paragraph here.",
+  "repaired_text": "Complete 3-to-4 sentence paragraph here (420 to 680 chars).",
   "changes_made": [
-    {{"sentence_number": 5, "rationale": "Replaced credential dump with strategic transformation impact"}}
+    {{"sentence_number": 3, "rationale": "Replaced AI bridge crutch and abstract noun soup with grounded executive outcome"}}
   ]
 }}
 """

@@ -36,6 +36,12 @@ _PA_CORE_LAW = _REPO_ROOT / "apps_rg" / "prompt_assembly" / "pa_core_law_v1.yaml
 
 # Judge dimension id → prompt corpus patterns (OR). Fallback tokenizes unknown ids.
 DIMENSION_PROMPT_PATTERNS: dict[str, tuple[str, ...]] = {
+    "immediate_call_conviction": (r"immediate", r"hiring committee", r"executive", r"scale", r"hook"),
+    "spoken_executive_authenticity": (r"spoken", r"boardroom", r"bridge crutch", r"noun soup", r"third.?person"),
+    "differentiated_edge": (r"differentiator", r"proof", r"metric", r"scale", r"platform"),
+    "six_second_scannability": (r"six.?second", r"420", r"680", r"3 to 4", r"varied sentence"),
+    "strategic_mandate_resonance": (r"mandate", r"targeting", r"JD", r"briefing", r"role"),
+    "factual_truth_and_non_exaggeration": (r"source_fact", r"claim_ledger", r"allowed", r"proof", r"NO FABRICATION"),
     "factual_support": (
         r"source_fact",
         r"claim_ledger",
@@ -157,6 +163,12 @@ CONTRACT_FIELD_JUDGE_ALIASES: dict[str, tuple[str, ...]] = {
 
 # Extra aliases when scanning generation prompts (rubrics use dimension ids).
 _PROMPT_MARKER_EXTRA: dict[str, tuple[str, ...]] = {
+    "immediate_call_conviction": (r"immediate", r"hiring committee", r"executive", r"scale", r"hook"),
+    "spoken_executive_authenticity": (r"spoken", r"boardroom", r"bridge crutch", r"noun soup", r"third.?person"),
+    "differentiated_edge": (r"differentiator", r"proof", r"metric", r"scale", r"platform"),
+    "six_second_scannability": (r"six.?second", r"420", r"680", r"3 to 4", r"varied sentence"),
+    "strategic_mandate_resonance": (r"mandate", r"targeting", r"JD", r"briefing", r"role"),
+    "factual_truth_and_non_exaggeration": (r"source_fact", r"claim_ledger", r"allowed", r"proof", r"NO FABRICATION"),
     "factual_support": ("claim_ledger", "proof", "ground truth", "NO FABRICATION", "source_fact"),
     "jd-as-proof": ("jd as proof", "jd-as-proof", "targeting only", "not proof", "JD"),
     "keyword": ("keyword", "stuffing", "ATS"),

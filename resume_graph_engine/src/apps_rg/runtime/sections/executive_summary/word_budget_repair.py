@@ -67,14 +67,13 @@ def _emit_dimension_upstream_triangulation(
 
 
 def _build_word_budget_repair_user(words_pre: int, *, word_ceiling: int) -> str:
-    """Assistant-echo + user revision message for the bounded word-budget regen."""
+    """Assistant-echo + user revision message for the bounded visual-band / word-overflow regen."""
     return (
-        f"Your paragraph is {words_pre} words; the hard ceiling is {word_ceiling} words "
-        "AFTER deterministic post-processing adds a bridge sentence. "
-        f"Rewrite the SAME evidence arc at {max(90, word_ceiling - 30)} to {max(95, word_ceiling - 15)} words, preserving the six-row claim_ledger "
-        "structure while keeping each row to at most three directly supporting source_fact_ids. "
-        "Do not preserve over-dense or indirect fact IDs just to keep the old ledger shape. "
-        "Keep exactly six sentences and the same narrative arc. "
+        f"Your paragraph is {words_pre} words; the hard overflow safety ceiling is {word_ceiling} words "
+        "(visual layout band: 3 to 4 sentences, 420 to 680 characters total, max 210 chars per sentence). "
+        "Tighten the SAME grounded evidence into 3 to 4 crisp spoken boardroom sentences inside 420 to 680 characters, "
+        "preserving a 1-to-1 claim_ledger (1 row per displayed sentence, <= 3 directly supporting source_fact_ids per row) "
+        "with zero AI bridge crutches or abstract noun soup. "
         "Return one NEW compact JSON object only — no markdown fences, no commentary. "
         "Keys: executive_strategy_thesis, resume_display_text, claim_ledger, jd_alignment, "
         "gap_notes, change_log, self_check."

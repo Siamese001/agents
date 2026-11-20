@@ -59,8 +59,8 @@ def test_consensus_failed_dimensions_two_judges() -> None:
             score=3.2,
             passed=False,
             dimension_verdicts={
-                "synthesis_quality": {"pass": False, "severity": "major", "codes": ["weak_synthesis"]},
-                "executive_signal": {"pass": False, "severity": "major", "codes": []},
+                "spoken_executive_authenticity": {"pass": False, "severity": "major", "codes": ["ai_bridge_crutch"]},
+                "immediate_call_conviction": {"pass": False, "severity": "major", "codes": []},
             },
         ),
         _judge(
@@ -68,15 +68,15 @@ def test_consensus_failed_dimensions_two_judges() -> None:
             score=3.4,
             passed=False,
             dimension_verdicts={
-                "synthesis_quality": {"pass": False, "severity": "major", "codes": []},
-                "executive_signal": {"pass": False, "severity": "major", "codes": []},
+                "spoken_executive_authenticity": {"pass": False, "severity": "major", "codes": []},
+                "immediate_call_conviction": {"pass": False, "severity": "major", "codes": []},
             },
         ),
-        _judge("gemini_pro", score=4.5, passed=True),
+        _judge("gemini_pro", score=4.8, passed=True),
     ]
     failed = consensus_failed_dimensions(judges, min_fail_count=2)
-    assert "synthesis_quality" in failed
-    assert "executive_signal" in failed
+    assert "spoken_executive_authenticity" in failed
+    assert "immediate_call_conviction" in failed
 
 
 def test_solitary_dimension_major_soft_fail() -> None:
@@ -85,12 +85,12 @@ def test_solitary_dimension_major_soft_fail() -> None:
         score=3.4,
         passed=False,
         dimension_verdicts={
-            "synthesis_quality": {"pass": False, "severity": "major", "codes": ["inventory"]},
+            "spoken_executive_authenticity": {"pass": False, "severity": "major", "codes": ["ai_bridge_crutch"]},
         },
     )
     ok, dims = solitary_dimension_severe_soft_fail(solo)
     assert ok is True
-    assert "synthesis_quality" in dims
+    assert "spoken_executive_authenticity" in dims
 
 
 def test_trigger_uses_dimension_consensus() -> None:
@@ -100,7 +100,7 @@ def test_trigger_uses_dimension_consensus() -> None:
             score=3.2,
             passed=False,
             dimension_verdicts={
-                "synthesis_quality": {"pass": False, "severity": "major", "codes": []},
+                "spoken_executive_authenticity": {"pass": False, "severity": "major", "codes": []},
             },
         ),
         _judge(
@@ -108,10 +108,10 @@ def test_trigger_uses_dimension_consensus() -> None:
             score=3.4,
             passed=False,
             dimension_verdicts={
-                "synthesis_quality": {"pass": False, "severity": "major", "codes": []},
+                "spoken_executive_authenticity": {"pass": False, "severity": "major", "codes": []},
             },
         ),
-        _judge("gemini_pro", score=4.5, passed=True),
+        _judge("gemini_pro", score=4.8, passed=True),
     ]
     ok, receipt = evaluate_judge_remediation_trigger(
         judges, runtime_generation_status="REAL_LLM", x2_passed=True
@@ -127,11 +127,11 @@ def test_triangulation_maps_retired_provider_surfaces() -> None:
             score=3.4,
             passed=False,
             dimension_verdicts={
-                "synthesis_quality": {"pass": False, "severity": "major", "codes": ["weak_synthesis"]},
+                "immediate_call_conviction": {"pass": False, "severity": "major", "codes": ["not_immediate_call"]},
             },
         ),
-        _judge("gemini_pro", score=4.5, passed=True),
-        _judge("openai_chatgpt", score=4.2, passed=True),
+        _judge("gemini_pro", score=4.8, passed=True),
+        _judge("openai_chatgpt", score=4.8, passed=True),
     ]
     doc = build_dimension_upstream_triangulation(
         x1d_judges=judges,
@@ -140,9 +140,9 @@ def test_triangulation_maps_retired_provider_surfaces() -> None:
     )
     assert doc["schema"] == "executive_summary_dimension_upstream_triangulation_v1"
     assert "compiled_prompt.txt" in doc["retired_provider_prompt_refs"]["compiled_prompt"]
-    synth_rows = [r for r in doc["per_dimension"] if r["dimension_id"] == "synthesis_quality"]
+    synth_rows = [r for r in doc["per_dimension"] if r["dimension_id"] == "immediate_call_conviction"]
     assert synth_rows
-    assert "executive_summary_composition_plan.json" in synth_rows[0]["retired_provider_prompt_surfaces"]
+    assert any("executive_summary_composition_plan.json" in s for s in synth_rows[0]["retired_provider_prompt_surfaces"])
 
 
 def test_triangulation_x2_block_recommends_retired_provider_first() -> None:

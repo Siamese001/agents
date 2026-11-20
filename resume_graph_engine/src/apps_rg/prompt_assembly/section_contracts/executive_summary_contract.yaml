@@ -25,18 +25,23 @@ proof_points:
 
 length:
   display_text_sentence_band:
-    min: 6
-    max: 6
-  paragraph_max_words: 150
-  max_words_per_sentence: 45
+    min: 3
+    max: 4
+  visual_char_band:
+    min: 420
+    max: 680
+    max_per_sentence: 210
+  paragraph_max_words: 110
+  max_words_per_sentence: 32
   length_policy: fit_to_evidence
   x2_bounds_gate_ids:
-    - x2_exec_summary_sentence_count_6
+    - x2_exec_summary_sentence_band_3_to_4
+    - x2_exec_summary_visual_char_band
     - x2_exec_summary_paragraph_max_words
   note: >
-    Product shape: **exactly six period-delimited sentences** forming one polished executive
-    paragraph (fit_to_evidence; max 150 words — ceiling only, no word minimum). Legacy
-    4–5 and 2–3 sentence modes are retired. SelectedRoleFactSet controls allowed facts only.
+    Product shape: 3 to 4 crisp period-delimited sentences (420 to 680 characters, 3.5 to 5 wrapped lines)
+    forming one scannable boardroom-register executive paragraph (fit_to_evidence; max 110 words overflow cap,
+    zero word minimum). Legacy 6-sentence wall-of-text mode is retired. SelectedRoleFactSet controls allowed facts only.
 
 naturalness_guidance_ref: "forbidden_ai_phrases.yaml#generic_openers"
 naturalness_note: >

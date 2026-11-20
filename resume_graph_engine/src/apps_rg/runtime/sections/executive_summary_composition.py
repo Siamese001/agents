@@ -25,14 +25,12 @@ BRUSHSTROKE_ROLES = (
     "B4_business_role_fit",
 )
 
-# Six-sentence product band: index 0..5 maps to brushstroke + arc role (runtime + PA injection).
+# 3-to-4 sentence visual layout band: index 0..3 maps to brushstroke + arc role (runtime + PA injection).
 SENTENCE_ARC_DEFAULT: tuple[dict[str, str], ...] = (
-    {"brushstroke_id": "B1_executive_identity", "arc_role": "thesis", "guidance": "Commanding SVP/Senior Director engineering executive thesis uniting 100+ person organization leadership or enterprise practice scale, forward-deployed AI & cloud transformation, and regulated enterprise delivery from allowed facts (open with 'Engineering executive...' or 'Enterprise technology executive...'; never open with 'Executive leadership architects...' or mechanism inventories)."},
-    {"brushstroke_id": "B2_governed_platform_system", "arc_role": "platform_system", "guidance": "One synthesized governed agentic platform/runtime clause from allowed facts; max two mechanism terms verbatim (never dump internal codebase package, gate, or MCP server counts)."},
-    {"brushstroke_id": "B2_governed_platform_system", "arc_role": "operating_model", "guidance": "Forward-deployed delivery operating model, reusable enterprise AI deployment blueprints, client activation velocity, and regulated cloud shared-responsibility guardrails from allowed facts (when citing cloud shared-responsibility facts on banking or AI roles, frame concisely as regulated cloud deployment guardrails supporting enterprise AI activation rather than foregrounding insurance-specific sub-clauses)."},
-    {"brushstroke_id": "B3_control_evidence_discipline", "arc_role": "governance_evidence", "guidance": "Regulated financial-services/banking or enterprise AI governance, lineage, model-risk, and validation discipline when facts support it (weave allowed percentage reductions cleanly into display prose)."},
-    {"brushstroke_id": "B4_business_role_fit", "arc_role": "commercial_outcomes", "guidance": "Metrics and commercial/adoption outcomes woven into narrative from allowed facts; not a bullet dump."},
-    {"brushstroke_id": "B4_business_role_fit", "arc_role": "integrated_capstone", "guidance": "Forward-looking credibility and enterprise-direction capstone from allowed facts only projecting how governed platform architecture, forward-deployed execution, and regulatory rigor scale business-line AI activation."},
+    {"brushstroke_id": "B1_executive_identity", "arc_role": "thesis", "guidance": "Sharp executive role-identity hook uniting 100+ person organization leadership or enterprise practice scale, forward-deployed AI & cloud transformation, and regulated enterprise delivery from allowed facts (open with 'Engineering executive...' or 'Enterprise technology executive...'; <= 1 mechanism term; zero AI bridges or generic fluff)."},
+    {"brushstroke_id": "B2_governed_platform_system", "arc_role": "platform_system", "guidance": "Flagship governed AI platform / forward-deployed cloud architecture proof with concrete metrics from allowed facts (max two mechanism terms verbatim; never dump internal codebase package, gate, or MCP server counts)."},
+    {"brushstroke_id": "B3_control_evidence_discipline", "arc_role": "commercial_and_governance_outcomes", "guidance": "Distinct commercial, scale, or regulated governance/lineage outcome with allowed dollar/percent/headcount metrics woven naturally into prose (no AI bridge crutches like 'In parallel,' or 'Building on that')."},
+    {"brushstroke_id": "B4_business_role_fit", "arc_role": "integrated_capstone", "guidance": "Optional crisp forward-looking mandate fit grounded in allowed facts only showing how this rare combination solves the target mandate (omit only if 3 crisp sentences already land cleanly in 420-680 chars; never recap S1-S3)."},
 )
 
 MECHANISM_TERMS = (
@@ -414,18 +412,13 @@ def format_composition_plan_for_pa(plan: dict[str, Any]) -> str:
             f"credential_fact_id={s5_binding.get('credential_fact_id')} "
             f"display_metric_required={s5_binding.get('display_metric_required')}"
         )
-    # S4 opener directive: when SVP strategy lane has ≥3 brushstrokes covering S2–S4,
-    # S2 and S3 will likely consume both stock-bridge slots — prescribe a non-stock
-    # opener for S4 to enforce the max-two contract (x2_exec_summary_stock_bridge_max_two).
-    strategy_lane = bool(plan.get("strategy_executive") or plan.get("dominant_arc") == "B2_governed_platform_system")
-    if strategy_lane and len(brushstrokes) >= 3:
-        lines.append(
-            "s4_opener_directive: S4 MUST use a non-stock opener "
-            '(e.g. "In parallel," / "Across enterprise programs," / "The same platform discipline") '
-            "— S2 and S3 are expected to consume both available stock-bridge slots "
-            "(from that / against that / complementing that / building on that / through that / with that governance); "
-            "a third stock bridge in S4 will fail x2_exec_summary_stock_bridge_max_two."
-        )
+    # Spoken boardroom voice directive: forbid synthetic AI transition crutches across all sentences.
+    lines.append(
+        "spoken_voice_directive: Write 3 to 4 crisp sentences (420 to 680 characters total, max 210 chars/sentence). "
+        "Open every sentence with a distinct concrete subject or role hook; NEVER use AI bridge crutches "
+        '("In parallel,", "Building on that", "From that commercial base", "Against that", "Across enterprise programs,", '
+        '"The same platform discipline", "That governed...", "That operating foundation").'
+    )
     s6_anchor = str(plan.get("s6_targeting_forward_anchor") or "").strip()
     if s6_anchor:
         lines.append(s6_anchor)
@@ -442,11 +435,10 @@ def format_composition_plan_for_pa(plan: dict[str, Any]) -> str:
             f"{row.get('guidance')}{req_note}{s6_note}"
         )
     lines.append(
-        "S1 must echo executive_strategy_thesis. You may weave multiple brushstroke facts across S2–S5; "
+        "S1 must echo executive_strategy_thesis. Weave the strongest platform, governance, and commercial proof across S2-S4; "
         "sentence order follows the thesis, not fact-pool or brushstroke index order. "
-        "Bind substantive claims to claim_ledger rows; prose is clean — no brushstroke labels in display text. "
-        "DISPLAY_LEDGER_PARITY: material dollar/percent outcomes in claim_text for S3–S5 must appear in the "
-        "matching resume_display_text sentence (judges grade display, not ledger-only metrics)."
+        "Bind substantive claims to claim_ledger rows (1 row per sentence, 3-4 rows total); prose is clean — no brushstroke labels in display text. "
+        "DISPLAY_LEDGER_PARITY: material dollar/percent outcomes in claim_text must appear directly in resume_display_text."
     )
     lines.append("</executive_summary_composition_plan>")
     return "\n".join(lines) + "\n"
@@ -679,10 +671,14 @@ def check_graph_painting_sentence_responsibility_shape(
 
     sentences = [s.strip() for s in split_sentences(resume_display_text) if str(s).strip()]
     n = len(sentences)
-    if n != 6:
+    from apps_rg.runtime.validators.executive_summary_x2 import (
+        EXEC_SUMMARY_MAX_SENTENCES,
+        EXEC_SUMMARY_MIN_SENTENCES,
+    )
+    if not (EXEC_SUMMARY_MIN_SENTENCES <= n <= EXEC_SUMMARY_MAX_SENTENCES):
         return (
             False,
-            f"x2_exec_summary_graph_evidence_sentence_responsibility_shape requires exactly 6 sentences; found {n}",
+            f"x2_exec_summary_graph_evidence_sentence_responsibility_shape requires {EXEC_SUMMARY_MIN_SENTENCES}-{EXEC_SUMMARY_MAX_SENTENCES} sentences; found {n}",
         )
     ok1, r1 = check_s1_dominant_brushstroke_thesis(sentences[0])
     if not ok1:
@@ -699,19 +695,10 @@ def check_graph_painting_sentence_responsibility_shape(
     ):
         return False, f"S2 platform brushstroke: {r2}"
 
-    bad3 = _graph_evidence_lane_no_commercial_org_cred(sentences[2], "S3 lifecycle bridge")
-    if bad3:
-        return False, bad3
-
-    bad4 = _graph_evidence_lane_no_commercial_org_cred(sentences[3], "S4 theme bridge")
-    if bad4:
-        return False, bad4
-    bad5 = _graph_evidence_outcomes_sentence_opener_ok(sentences[4])
-    if bad5:
-        return False, bad5
-    bad6 = _graph_evidence_credibility_sentence_opener_ok(sentences[5])
-    if bad6:
-        return False, bad6
+    if n >= 3:
+        bad_last = _graph_evidence_credibility_sentence_opener_ok(sentences[-1])
+        if bad_last:
+            return False, bad_last
     return True, "ok"
 
 

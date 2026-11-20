@@ -1,11 +1,14 @@
 """Deterministic X2 gates for executive summary runtime slice."""
 from __future__ import annotations
 
-EXEC_SUMMARY_MIN_SENTENCES = 6
-EXEC_SUMMARY_TARGET_SENTENCES = 6
-EXEC_SUMMARY_MAX_SENTENCES = 6
-EXEC_SUMMARY_MAX_WORDS = 150
-EXEC_SUMMARY_MAX_WORDS_PER_SENTENCE = 45
+EXEC_SUMMARY_MIN_SENTENCES = 3
+EXEC_SUMMARY_TARGET_SENTENCES = 4
+EXEC_SUMMARY_MAX_SENTENCES = 4
+EXEC_SUMMARY_MIN_CHARS = 420
+EXEC_SUMMARY_MAX_CHARS = 680
+EXEC_SUMMARY_MAX_CHARS_PER_SENTENCE = 210
+EXEC_SUMMARY_MAX_WORDS = 110
+EXEC_SUMMARY_MAX_WORDS_PER_SENTENCE = 32
 
 from apps_rg.runtime.validators.exec_summary_x2.constants import (
     ACTION_VERB_OPENERS,
@@ -18,10 +21,14 @@ from apps_rg.runtime.validators.exec_summary_x2.constants import (
     EVIDENCE_UTIL_MIN_POOL_FOR_THIN_SENTENCE,
     EVIDENCE_UTIL_MIN_WORDS_PER_SENTENCE_WHEN_FOUR,
     EXECUTIVE_SUMMARY_SECTION_ID,
+    EXEC_SUMMARY_ABSTRACT_NOUN_SOUP,
+    EXEC_SUMMARY_AI_BRIDGE_CRUTCHES,
     EXEC_SUMMARY_FORBIDDEN_META_PHRASES,
     EXEC_SUMMARY_FORBIDDEN_META_PHRASES_LOOSE,
     EXEC_SUMMARY_INTERNAL_PLUMBING_BANNED_SUBSTRINGS,
+    EXEC_SUMMARY_MAX_TRAILING_GERUNDS,
     EXEC_SUMMARY_MECHANICAL_OPENERS,
+    EXEC_SUMMARY_MIN_LENGTH_SPREAD_WORDS,
     EXEC_SUMMARY_ROBOTIC_TRANSITION_PREFIXES,
     EXEC_SUMMARY_STUTTERED_STEM_PATTERNS,
     EXEC_SUMMARY_WEAK_S1_SUBJECT_OPENERS,
@@ -128,6 +135,7 @@ from apps_rg.runtime.validators.exec_summary_x2.sentence_metric_checks import (
     check_exec_summary_cross_sentence_metric_dedup,
     check_exec_summary_display_roundtrip_integrity,
     check_exec_summary_jd_alignment_proof_flags,
+    check_exec_summary_sentence_band_3_to_4,
     check_exec_summary_sentence_count_4_5,
     check_exec_summary_sentence_count_5_6,
     check_exec_summary_sentence_count_6,
@@ -160,12 +168,16 @@ from apps_rg.runtime.validators.exec_summary_x2.shape_and_credential_checks impo
     _sentence_fsa_rigor_only,
     _sentence_has_fsa_rigor,
     _vendor_named_cert_hits,
+    check_exec_summary_no_abstract_noun_soup,
+    check_exec_summary_no_ai_bridge_crutches,
     check_exec_summary_no_bloated_sentence,
     check_exec_summary_no_certifications_section_duplication,
     check_exec_summary_no_competencies_duplication,
     check_exec_summary_no_credential_dump,
     check_exec_summary_no_mechanism_inventory,
     check_exec_summary_paragraph_max_words,
+    check_exec_summary_rhythm_and_cadence_variety,
+    check_exec_summary_visual_char_band,
     check_graph_evidence_sentence_responsibility_shape,
     check_prompt_template_authority,
 )
@@ -268,7 +280,11 @@ def run_x2_gates(
     add("x2_em_dash_count_zero")
     add("x2_inline_source_tags_absent")
     add("x2_exec_summary_paragraph_max_words")
+    add("x2_exec_summary_visual_char_band")
     add("x2_exec_summary_no_bloated_sentence")
+    add("x2_exec_summary_no_ai_bridge_crutches")
+    add("x2_exec_summary_no_abstract_noun_soup")
+    add("x2_exec_summary_rhythm_and_cadence_variety")
     add("x2_no_monolithic_prompt")
     add("x2_temperature_in_profile")
     add("x2_first_person_zero")
@@ -277,7 +293,7 @@ def run_x2_gates(
     add("x2_exec_summary_meta_filler_zero")
     add("x2_exec_summary_no_internal_plumbing_or_stutter")
     add("x2_exec_summary_colon_stitch_zero")
-    add("x2_exec_summary_sentence_count_6")
+    add("x2_exec_summary_sentence_band_3_to_4")
     add("x2_exec_summary_display_roundtrip_integrity")
     add("x2_exec_summary_cross_sentence_metric_dedup")
     add("x2_exec_summary_c03_selected_fact_ids_claimable_subset_allowed_fact_ids")
