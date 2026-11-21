@@ -491,3 +491,51 @@ def test_real_provider_result_and_run_llm_judges_keyword_contract(tmp_path: Path
     )
     assert len(rows) >= 2
     assert "rubric" in pkt
+
+
+def test_anti_chronology_employer_roll_call_and_unify_dependency_graph_mechanism() -> None:
+    from apps_rg.runtime.sections.unify_narrative_lane import _ensure_unify_narrative_mechanism
+    from apps_rg.runtime.validators.narrative_quality_x2 import check_narrative_technical_specificity
+
+    roll_call_draft = (
+        "Enterprise AI executive who takes agentic systems into production. "
+        "At IBM, led AWS modernization across regulated financial platforms. "
+        "Built deterministic evaluation harnesses at Slalom across enterprise accounts. "
+        "Owned Unify Consulting's agentic control plane with GraphRAG grounding."
+    )
+    gates = evaluate_executive_summary_v2_x2(
+        resume_display_text=roll_call_draft,
+        claim_ledger=[],
+        parsed_output={"resume_display_text": roll_call_draft},
+        allowed_fact_ids=ALLOWED_IDS,
+        verified_numbers=VERIFIED_NUMBERS,
+        verified_corpus_lower=VERIFIED_CORPUS,
+        target_company="Truist",
+        jd_text="banking fde",
+    )
+    vendor_gate = next(g for g in gates if g["gate_id"] == "x2_v2_zero_unverified_vendors_or_employers")
+    assert vendor_gate["pass"] is False
+    assert "chronological_employer_roll_call" in str(vendor_gate["failure_reason"])
+
+    partner_draft = (
+        "Applied AI and partnerships leader who scales frontier model adoption across enterprise accounts. "
+        "Packaged joint enablement workstreams for Anthropic Claude and cloud partner ecosystems. "
+        "Productized reusable multi-agent evaluation blueprints to accelerate customer deployment."
+    )
+    partner_gates = evaluate_executive_summary_v2_x2(
+        resume_display_text=partner_draft,
+        claim_ledger=[],
+        parsed_output={"resume_display_text": partner_draft},
+        allowed_fact_ids=ALLOWED_IDS,
+        verified_numbers=VERIFIED_NUMBERS,
+        verified_corpus_lower=VERIFIED_CORPUS + " anthropic claude",
+        target_company="Anthropic",
+        jd_text="partner solution architecture",
+    )
+    partner_vendor_gate = next(g for g in partner_gates if g["gate_id"] == "x2_v2_zero_unverified_vendors_or_employers")
+    assert partner_vendor_gate["pass"] is True
+
+    grounded_unify = _ensure_unify_narrative_mechanism(
+        "Owned Unify Consulting's platform mandate, applying dependency-graph intelligence to enterprise modernization."
+    )
+    assert check_narrative_technical_specificity(grounded_unify).passed is True
