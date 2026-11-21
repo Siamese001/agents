@@ -423,6 +423,10 @@ def test_contract_emitter_writes_all_15_required_lane_contract_artifacts(tmp_pat
     parity = json.loads((out_dir / "targeting_context_parity_receipt.json").read_text(encoding="utf-8"))
     assert parity["parity_match"] is True
     assert parity["targeting_parity_status"] == "match"
+    pool_rcpt = json.loads((out_dir / "x2_source_fact_pool_receipt.json").read_text(encoding="utf-8"))
+    assert pool_rcpt["x2_source_fact_pool_status"] == "PASS"
+    assert (out_dir / "real_l2_generation_result.json").is_file()
+    assert (out_dir / "raw_model_output.txt").is_file()
     assert res["product_quality_status"] == "PASS", res["product_quality_reason"]
     assert (out_dir / "heal_receipt.json").is_file()
     assert "Targeting context parity violation" not in str(res["x3"].get("decisive_reason") or "")
