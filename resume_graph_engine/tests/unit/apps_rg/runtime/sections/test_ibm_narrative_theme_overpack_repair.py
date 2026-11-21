@@ -733,3 +733,59 @@ def test_judge_feedback_rewrite_noop_when_all_judges_pass(tmp_path) -> None:
     assert out_raw == raw
     assert out_parsed == parsed
     assert out_x1d == x1d
+
+
+def test_judge_feedback_rewrite_executes_generate_section_and_adopts_passing_rewrite(
+    tmp_path, monkeypatch
+) -> None:
+    from types import SimpleNamespace
+    from apps_rg.runtime.section_repair_ledger import init_ledger, load_ledger
+    import apps_rg.runtime.sections.ibm_narrative_lane_runtime as lr
+
+    init_ledger(tmp_path, section_id="ibm_narrative", run_id="judge-rewrite-test")
+    companion = (
+        "- bul_ibm_001: Led IBM-AWS alliance co-sell motions across banking.\n"
+        "- bul_ibm_002: Built decision-support BI views across modernization programs.\n"
+    )
+    repaired_narrative = (
+        "Directed client-facing AWS alliance delivery at IBM, establishing BI views for modernization."
+    )
+    repaired_raw = json.dumps(
+        {
+            "narrative_sentence": repaired_narrative,
+            "claim_ledger": [
+                {"claim_text": "Directed client-facing AWS alliance delivery at IBM", "source_fact_ids": ["bul_ibm_001"]},
+                {"claim_text": "establishing BI views for modernization", "source_fact_ids": ["bul_ibm_002"]},
+            ],
+            "change_log": [],
+        }
+    )
+    provider = _RecordingProvider("REAL_LLM", repaired_raw)
+    monkeypatch.setattr(lr, "generate_section", provider)
+    monkeypatch.setattr(
+        lr,
+        "run_ibm_narrative_judges",
+        lambda **_kw: [SimpleNamespace(to_dict=lambda: {"provider_key": "openai_chatgpt", "score": 4.6, "pass": True})],
+    )
+    raw = '{"narrative_sentence": "Anchored IBM mandate, establishing cadence."}'
+    parsed = {"narrative_sentence": "Anchored IBM mandate, establishing cadence.", "claim_ledger": []}
+    x1d_fail = [{"provider_key": "openai_chatgpt", "score": 3.4, "pass": False, "findings": ["Internal mandate phrasing"]}]
+    out_raw, out_parsed, out_x1d, accepted = lr.apply_ibm_narrative_judge_feedback_rewrite(
+        messages=[{"role": "user", "content": "base"}],
+        provider_payload={"provider": "external_openai"},
+        raw_output=raw,
+        parsed=parsed,
+        x1d=x1d_fail,
+        runtime_payload={"run_id": "judge-rewrite-test", "allowed_fact_ids": ["bul_ibm_001", "bul_ibm_002"]},
+        artifact_dir=tmp_path,
+        runtime_generation_status="REAL_LLM",
+        companion_text=companion,
+        judge_keys=["openai_chatgpt"],
+        judge_mode="blocked_if_unavailable",
+    )
+    assert accepted is True
+    assert provider.calls == 1
+    assert out_raw == repaired_raw
+    assert out_parsed["narrative_sentence"] == repaired_narrative
+    assert out_x1d[0]["pass"] is True
+    assert (load_ledger(tmp_path) or {}).get("authoritative_attempt_number") == 2
