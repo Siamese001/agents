@@ -110,9 +110,7 @@ def judge_regen_max_delta_lines() -> int:
     """Same-authority regen ``max_delta_lines``."""
     if not regen_artificial_caps_enabled():
         return JUDGE_REGEN_MAX_DELTA_LINES
-    from apps_rg.runtime.sections.executive_summary_regen_support import DEFAULT_MAX_DELTA_LINES
-
-    return int(DEFAULT_MAX_DELTA_LINES)
+    return 32
 
 
 def judge_regen_max_delta_tokens() -> int:

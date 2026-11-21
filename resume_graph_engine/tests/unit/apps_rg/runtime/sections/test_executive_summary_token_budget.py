@@ -10,7 +10,7 @@ from apps_rg.runtime.spine.front_contracts import (
     activate_fixture_dev_bypass,
     deactivate_fixture_dev_bypass,
 )
-from apps_rg.runtime.dispatch.executive_summary_pa import compile_executive_summary_prompt
+from apps_rg.runtime.sections.executive_summary_pa import compile_executive_summary_prompt
 from apps_rg.runtime.sections.executive_summary_token_budget import (
     FAIL_CLOSED_REASON,
     FAIL_CLOSED_REASON_FIRST_PASS_95PCT,

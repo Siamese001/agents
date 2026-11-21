@@ -174,8 +174,12 @@ def test_metric_outcome_nodes_are_graph_ssot_and_bundle_linked() -> None:
         approved = doc.get("approved_metric_outcome_ids") or {}
         policy = doc.get("metric_surface_policy") or {}
         assert nodes, f"{c['file'].name} missing metric_outcome_nodes"
-        assert set(nodes) == set(approved)
-        assert policy.get("approval_model") == "presence_in_metric_outcome_nodes_is_approval"
+        approved_node_ids = {mid for mid, n in nodes.items() if n.get("approved") is True}
+        assert approved_node_ids == set(approved)
+        assert policy.get("approval_model") in {
+            "presence_in_metric_outcome_nodes_is_approval",
+            "verified_provenance_and_approved_flag_required",
+        }
         assert policy.get("approved_metric_outcome_ids_role") == "derived_review_index_not_claim_authority"
         assert policy.get("bundle_metric_surface") == (
             "linked_metric_outcome_ids only; metric_outcome_nodes is claim authority"
@@ -186,9 +190,12 @@ def test_metric_outcome_nodes_are_graph_ssot_and_bundle_linked() -> None:
             assert node["metric_outcome_id"] == mid
             assert node["employer"] == c["employer"]
             assert "time_window" not in node
-            assert node["approved"] is True
-            assert node["approval_status"] == "APPROVED_GRAPH_SSOT"
-            assert node["support_level"] == "approved_by_graph_presence"
+            if node["approved"] is True:
+                assert node["approval_status"] == "APPROVED_GRAPH_SSOT"
+                assert node["support_level"] in {"verified_base_resume", "verified_operator_confirmed"}
+            else:
+                assert node["approval_status"] == "QUARANTINED_UNVERIFIED_SYNTHETIC"
+                assert node["support_level"] == "quarantined_unverified_synthetic"
             assert node["bundle_bindings"], f"{mid} missing bundle_bindings"
             assert node["metric"].strip(), f"{mid} missing metric label"
 

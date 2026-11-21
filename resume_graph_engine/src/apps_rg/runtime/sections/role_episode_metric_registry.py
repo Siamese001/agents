@@ -32,8 +32,16 @@ def metric_outcome_nodes_from_path(path: Path) -> dict[str, dict[str, Any]]:
 
 
 def approved_metric_outcome_ids_from_doc(doc: dict[str, Any]) -> tuple[str, ...]:
-    """Return approved metric IDs from the graph-native metric node surface."""
-    return tuple(metric_outcome_nodes_from_doc(doc).keys())
+    """Return provenance-verified approved metric IDs from the graph-native metric node surface."""
+    out: list[str] = []
+    for mid, node in metric_outcome_nodes_from_doc(doc).items():
+        if node.get("approved", True) is not True:
+            continue
+        support = str(node.get("support_level") or "").strip().lower()
+        if support in {"quarantined_unverified_synthetic", "approved_by_graph_presence", "blocked"}:
+            continue
+        out.append(mid)
+    return tuple(out)
 
 
 def approved_metric_outcome_ids_from_path(path: Path) -> tuple[str, ...]:
@@ -76,7 +84,7 @@ def linked_metric_outcome_ids_from_doc(doc: dict[str, Any]) -> tuple[str, ...]:
 
 def linked_metric_ids_missing_from_metric_nodes(doc: dict[str, Any]) -> tuple[str, ...]:
     """Return bundle-linked metric IDs absent from graph-native metric nodes."""
-    node_ids = set(approved_metric_outcome_ids_from_doc(doc))
+    node_ids = set(metric_outcome_nodes_from_doc(doc).keys())
     return tuple(mid for mid in linked_metric_outcome_ids_from_doc(doc) if mid not in node_ids)
 
 

@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from apps_rg.runtime.judges import executive_summary_judge_packet as judge_packet_mod
-from apps_rg.runtime.sections import exec_summary_graph_only_quality as graph_only_mod
+from apps_rg.runtime.sections.executive_summary_v2 import x2_invariants as v2_x2_mod
 from apps_rg.runtime.sections.section_product_shape_export_bounds import (
     COMPETENCIES_EXPORT_MAX_CATEGORIES,
     EXEC_SUMMARY_EXPORT_MAX_WORDS,
@@ -41,16 +41,7 @@ class ParityMismatch:
 
 
 def _import_max_sentences_from_graph_only_source() -> int | None:
-    src = open(graph_only_mod.__file__, encoding="utf-8").read()
-    if "4–5" in src or "4-5" in src:
-        return None
-    m = re.search(r"len\(sentences\)\s*>=\s*(\d+)", src)
-    if m and int(m.group(1)) >= EXEC_SUMMARY_MIN_SENTENCES:
-        return int(m.group(1))
-    m2 = re.search(r"sentences\[:(\d+)\]", src)
-    if m2:
-        return int(m2.group(1))
-    return EXEC_SUMMARY_MAX_SENTENCES
+    return int(v2_x2_mod.MAX_SENTENCES)
 
 
 def _modular_builder_export_caps() -> tuple[int, int]:

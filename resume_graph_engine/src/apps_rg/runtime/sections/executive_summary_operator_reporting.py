@@ -7,9 +7,7 @@ import re
 from pathlib import Path
 from typing import Any
 
-from apps_rg.runtime.sections.executive_summary_regen_observability import (
-    REGEN_STOPPED_REASON_X2_STUCK,
-)
+REGEN_STOPPED_REASON_X2_STUCK = "regen_stopped_x2_stuck"
 from apps_rg.runtime.sections.executive_summary_synthesis_contract import (
     QUANT_METRIC_DISPLAY_FACT_ID,
     has_svp_targeting_proof_gap,

@@ -198,7 +198,7 @@ def scan_fact_inventory_graph_presence_ratchet(repo_root: Path) -> tuple[int, in
     from tools.validate_turn_gates import load_policy_registry
 
     policies = load_policy_registry(repo_root)
-    ceiling = int((policies.get("INV-FACT-GRAPH-NO-AGENT-SYNTHESIS") or {}).get("threshold", 193))
+    ceiling = int((policies.get("INV-FACT-GRAPH-NO-AGENT-SYNTHESIS") or {}).get("threshold", 0))
     inv_dir = repo_root / "resume_graph_engine" / "src" / "apps_rg" / "fact_inventory"
     total_count = 0
     if inv_dir.is_dir():

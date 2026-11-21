@@ -124,7 +124,20 @@ def allocate_candidate_sets(
     search_states = 0
     budget_exhausted = False
     from apps_rg.runtime.c0.c0_perf_sync_helpers import compute_distinct_root_sections, slot_priority_tier
+    from apps_rg.runtime.contracts.metric_lexical_primitives import is_quantified_metric_outcome_text
     distinct_root_sections = compute_distinct_root_sections(slots, eligible_by_slot)
+    bullet_slot_counts_by_lane: Counter[str] = Counter(
+        slot.employer_lane
+        for slot in slots
+        if slot.section_id.endswith("_bullets") and slot.employer_lane
+    )
+    quantified_roots_by_lane: dict[str, set[str]] = defaultdict(set)
+    for slot in slots:
+        if not slot.section_id.endswith("_bullets") or not slot.employer_lane:
+            continue
+        for row in eligible_by_slot[slot.slot_id]:
+            if row.get("metric_outcome_id") and is_quantified_metric_outcome_text(str(row.get("metric_text") or "")):
+                quantified_roots_by_lane[slot.employer_lane].add(str(row.get("root_id") or ""))
 
     _AWS_MIGRATION_EXEC_SUMMARY_ROOTS = frozenset({
         "reb_insurtech_aws_migration_execution", "reb_ibm_aws_modernization_architecture",
@@ -152,12 +165,17 @@ def allocate_candidate_sets(
             if (visible and fact_counts[fact_key] >= max_fact_reuse) or (visible and family_counts[family] >= max_family_uses):
                 continue
             rows.append(row)
-        from apps_rg.runtime.contracts.metric_lexical_primitives import is_quantified_metric_outcome_text
 
         exec_roots = used_section_roots.get("executive_summary", set())
         is_bullet_section = slot.section_id.endswith("_bullets")
+        has_lane_metric_headroom = (
+            not slot.employer_lane
+            or len(quantified_roots_by_lane.get(slot.employer_lane, set()))
+            > bullet_slot_counts_by_lane.get(slot.employer_lane, 0) + 1
+        )
         is_metric_preferred_section = is_bullet_section or (
-            slot.section_id == "executive_summary" and slot.employer_lane != "unify"
+            slot.section_id == "executive_summary"
+            and (slot.metric_required or has_lane_metric_headroom)
         )
         prefer_non_exec = is_bullet_section and not slot.required_root_id and any(str(r.get("root_id") or "") not in exec_roots for r in rows)
         rows.sort(

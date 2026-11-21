@@ -1,0 +1,15 @@
+{
+  "wave": 1,
+  "status": "PASS",
+  "graph_presence_count": 0,
+  "policy_registry_threshold": 0,
+  "verified_metrics_count": 102,
+  "quarantined_unverified_synthetic_metrics_count": 24,
+  "jd_overfitting_total_hits": 0,
+  "tests_passed": [
+    "test_fact_graph_truth_firewall.py",
+    "test_resume_graph_allocation_w4.py",
+    "test_bullet_value_outcome_allocation.py",
+    "test_insurtech_ey_role_episode_bundles.py"
+  ]
+}

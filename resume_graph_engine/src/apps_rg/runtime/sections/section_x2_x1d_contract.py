@@ -31,7 +31,7 @@ _ALIGNMENT_MATRIX = _REPO_ROOT / "artifacts" / "apps_rg" / "prompt_authority" / 
 # Lane Python modules that invoke run_*_x2_gates in the product path.
 _STATIC_LANE_MODULE_IMPORT: dict[str, str] = {
     "headline": "apps_rg.runtime.sections.headline_lane",
-    "executive_summary": "apps_rg.runtime.sections.executive_summary_lane",
+    "executive_summary": "apps_rg.runtime.sections.executive_summary_v2.contract_emitter",
     "competencies": "apps_rg.runtime.sections.competencies_lane_execution",
     "unify_bullets": "apps_rg.runtime.sections.unify_bullets_lane",
     "unify_narrative": "apps_rg.runtime.sections.unify_narrative_lane",
@@ -216,6 +216,8 @@ def extract_runtime_x2_gate_ids(
         role_gate_map = getattr(mod, "ROLE_EPISODE_X2_GATE_IDS_BY_RUN_FUNCTION", {})
         if run_fn in role_gate_map:
             return frozenset(role_gate_map[run_fn])
+    if getattr(mod, "__name__", "") == "apps_rg.runtime.sections.executive_summary_v2.x2_invariants":
+        return frozenset(getattr(mod, "EXEC_SUMMARY_V2_RUNTIME_GATE_IDS", ()))
     src = Path(mod.__file__).read_text(encoding="utf-8")
     tree = ast.parse(src)
     consts = _module_gate_id_constants(tree)

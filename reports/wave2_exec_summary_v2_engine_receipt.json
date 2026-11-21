@@ -1,0 +1,23 @@
+{
+  "wave": "Wave 2",
+  "title": "Greenfield executive_summary_v2 Engine & Blind Judge Inanimate-Subject Hardening",
+  "status": "PASS",
+  "total_engine_loc": 1057,
+  "loc_ceiling": 1100,
+  "module_loc": {
+    "__init__.py": 71,
+    "evidence_firewall.py": 191,
+    "x2_invariants.py": 189,
+    "prompt_and_generate.py": 155,
+    "blind_judge_and_loop.py": 161,
+    "contract_emitter.py": 290
+  },
+  "invariants_enforced": [
+    "INV-NO-POST-LLM-PROSE-MUTATORS",
+    "INV-FACT-GRAPH-NO-AGENT-SYNTHESIS",
+    "INANIMATE_SUBJECT_DATASHEET_BAN",
+    "BLIND_JUDGE_NO_X2_SUMMARY_LEAK"
+  ],
+  "unit_tests_passed": 38,
+  "canonical_lane_contract_artifacts_verified": 15
+}

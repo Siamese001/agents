@@ -29,9 +29,9 @@
       "metric": "16 enterprise on-prem-to-AWS migration waves across 5 Tier-1 banking clients (cutting legacy infrastructure overhead by 32%)",
       "metric_type": "modernization_scope",
       "employer": "IBM",
-      "approved": true,
-      "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "approved": false,
+      "approval_status": "QUARANTINED_UNVERIFIED_SYNTHETIC",
+      "support_level": "quarantined_unverified_synthetic",
       "bundle_bindings": [
         "reb_ibm_aws_modernization_architecture"
       ],
@@ -48,129 +48,151 @@
         "ibm_narrative",
         "competencies",
         "headline"
-      ]
+      ],
+      "quarantine_reason": "Unverified synthetic counts/percentages ('16 waves', '5 Tier-1 banking clients', '32%') absent from amit_ayer_base_resume_v1.json (bul_ibm_002 is 30%).",
+      "provenance_source_refs": []
     },
     "metric_ibm_regulated_reference_architecture_reuse": {
       "metric_outcome_id": "metric_ibm_regulated_reference_architecture_reuse",
-      "metric": "9 BCBS 239 and OCC-compliant cloud reference architectures reused across 14 banking pursuits (sustaining 99.9% production uptime)",
+      "metric": "BCBS 239-aligned cloud reference architectures sustaining 99.9% production uptime across regulated financial environments",
       "metric_type": "reuse_metric",
       "employer": "IBM",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_base_resume",
       "bundle_bindings": [
         "reb_ibm_aws_modernization_architecture"
       ],
-      "claim_text": "9 reusable BCBS 239, OCC, and insurance-compliant regulated reference architectures supported 14 repeatable financial pursuits with 99.9% production uptime.",
+      "claim_text": "BCBS 239-aligned regulated reference architectures sustained 99.9% production uptime across financial-services platforms.",
       "surface_tokens": [
-        "9 regulated reference architectures",
-        "14 banking pursuits",
-        "financial pursuits",
         "99.9% production uptime",
-        "reference architecture reuse"
+        "BCBS 239-aligned cloud reference architectures",
+        "regulated reference architectures"
       ],
       "section_eligibility": [
         "ibm_bullets",
         "ibm_narrative",
         "competencies",
-        "headline"
+        "headline",
+        "executive_summary"
+      ],
+      "provenance_source_refs": [
+        "exp_ibm_001",
+        "bul_ibm_001",
+        "fact_bcbs239_001"
       ]
     },
     "metric_ibm_stress_test_cycle_weeks_to_hours": {
       "metric_outcome_id": "metric_ibm_stress_test_cycle_weeks_to_hours",
-      "metric": "CCAR and Greek derivative stress-test cycles compressed from 14 days (2 weeks) to 3.5 hours (38% faster model validation)",
+      "metric": "CCAR and derivative stress-test cycles compressed from weeks to hours across containerized HPC risk workflows",
       "metric_type": "cycle_time_compression",
       "employer": "IBM",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_operator_confirmed",
       "bundle_bindings": [
         "reb_ibm_cognitive_business_decision_support"
       ],
-      "claim_text": "HPC stress-test modernization compressed CCAR and Greek derivative risk scenario cycles from weeks to hours (14 days to 3.5 hours, 38% faster validation).",
+      "claim_text": "Containerized HPC risk modernization compressed CCAR and derivative stress-test cycles from weeks to hours.",
       "surface_tokens": [
         "weeks to hours",
-        "14 days to 3.5 hours",
-        "stress-test cycle",
-        "38% faster validation"
+        "stress-test cycles compressed from weeks to hours",
+        "containerized HPC risk workflows"
       ],
       "section_eligibility": [
         "ibm_bullets",
         "ibm_narrative",
         "competencies",
         "executive_summary"
+      ],
+      "provenance_source_refs": [
+        "exp_ibm_001",
+        "fact_quant_hpc_001"
       ]
     },
     "metric_ibm_decision_support_scenario_traceability": {
       "metric_outcome_id": "metric_ibm_decision_support_scenario_traceability",
-      "metric": "100% audit lineage across 1,200+ CCAR, Basel III, and liquidity stress scenarios across 3 banking business units (cutting reporting errors by 38% and latency by 48%)",
+      "metric": "100% audit-traceable CCAR and Basel III risk-scenario lineage unified across 3 banking business units",
       "metric_type": "decision_traceability",
       "employer": "IBM",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_operator_confirmed",
       "bundle_bindings": [
         "reb_ibm_cognitive_business_decision_support"
       ],
-      "claim_text": "100% audit lineage across 1,200+ CCAR, Basel III, and liquidity stress scenarios across 3 banking and insurance business units (cutting reporting errors by 38% and latency by 48%).",
+      "claim_text": "Unified data latency and CCAR/Basel III lineage governance across 3 banking business units for audit-traceable risk reporting.",
       "surface_tokens": [
-        "1,200+ stress scenarios",
-        "100% scenario traceability",
-        "38% fewer reporting errors",
-        "decision support workflows"
+        "3 banking business units",
+        "CCAR and Basel III risk-scenario lineage",
+        "audit-traceable risk reporting"
       ],
       "section_eligibility": [
         "ibm_bullets",
         "ibm_narrative",
-        "competencies"
+        "competencies",
+        "executive_summary"
+      ],
+      "provenance_source_refs": [
+        "exp_ibm_001",
+        "fact_data_analytics_001",
+        "fact_bcbs239_001"
       ]
     },
     "metric_ibm_presales_discovery_to_solution_handoff": {
       "metric_outcome_id": "metric_ibm_presales_discovery_to_solution_handoff",
-      "metric": "45+ technical discovery-to-architecture handoff packages directed across a 20-member global team across 8 enterprise banking programs",
+      "metric": "technical discovery-to-architecture handoffs directed across a 20-member distributed global team spanning EMEA, APAC, and North America",
       "metric_type": "gtm_conversion_metric",
       "employer": "IBM",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_operator_confirmed",
       "bundle_bindings": [
         "reb_ibm_presales_solution_engineering"
       ],
-      "claim_text": "Technical pre-sales work directed 45+ buyer discovery-to-solution architecture and delivery handoff packages across a 20-member global team.",
+      "claim_text": "Directed technical discovery-to-solution architecture handoffs across a 20-member distributed global team serving top-tier financial institutions.",
       "surface_tokens": [
-        "45+ discovery-to-solution handoffs",
+        "20-member distributed global team",
         "20-member global team",
-        "target architecture",
-        "delivery handoff"
+        "discovery-to-architecture handoffs"
       ],
       "section_eligibility": [
         "ibm_bullets",
         "ibm_narrative",
-        "competencies"
+        "competencies",
+        "executive_summary"
+      ],
+      "provenance_source_refs": [
+        "exp_ibm_001",
+        "fact_sales_accounts_003"
       ]
     },
     "metric_ibm_executive_buyer_architecture_alignment": {
       "metric_outcome_id": "metric_ibm_executive_buyer_architecture_alignment",
-      "metric": "12 C-suite and CRO/CIO architecture alignments driving 48% multi-year account portfolio expansion and $10M in net-new ARR",
+      "metric": "C-suite architecture and ROI alignments driving $10M in net-new revenue",
       "metric_type": "buyer_alignment_metric",
       "employer": "IBM",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_operator_confirmed",
       "bundle_bindings": [
         "reb_ibm_presales_solution_engineering"
       ],
-      "claim_text": "12 C-suite executive buyer alignments connected architecture tradeoffs, adoption paths, and implementation assumptions to drive 48% portfolio expansion and $10M in net-new ARR.",
+      "claim_text": "Executive C-suite architecture alignments and Salesforce pipeline governance drove $10M in net-new revenue.",
       "surface_tokens": [
-        "12 executive buyer alignments",
-        "48% portfolio expansion",
-        "$10M net-new ARR",
-        "architecture tradeoffs"
+        "$10M in net-new revenue",
+        "$10M net-new revenue",
+        "C-suite architecture and ROI alignments"
       ],
       "section_eligibility": [
         "ibm_bullets",
         "ibm_narrative",
-        "competencies"
+        "competencies",
+        "executive_summary"
+      ],
+      "provenance_source_refs": [
+        "exp_ibm_001",
+        "fact_revenue_ops_002"
       ]
     },
     "metric_ibm_offering_accelerator_package_reuse": {
@@ -178,9 +200,9 @@
       "metric": "7 reusable cloud, Confluent Kafka, and AI solution accelerators deployed across 10+ global financial institutions (driving 24% renewal lift)",
       "metric_type": "offering_reuse_metric",
       "employer": "IBM",
-      "approved": true,
-      "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "approved": false,
+      "approval_status": "QUARANTINED_UNVERIFIED_SYNTHETIC",
+      "support_level": "quarantined_unverified_synthetic",
       "bundle_bindings": [
         "reb_ibm_offering_accelerator_management"
       ],
@@ -196,16 +218,18 @@
         "ibm_narrative",
         "competencies",
         "headline"
-      ]
+      ],
+      "quarantine_reason": "Unverified synthetic vendor/count/percentage ('7 reusable cloud, Confluent Kafka, and AI solution accelerators', '10+ institutions', '24% renewal lift') absent from base resume.",
+      "provenance_source_refs": []
     },
     "metric_ibm_client_facing_modernization_playbooks": {
       "metric_outcome_id": "metric_ibm_client_facing_modernization_playbooks",
       "metric": "12 standardized client-facing modernization playbooks compressing enterprise mobilization from 10 weeks to 3 weeks",
       "metric_type": "delivery_repeatability_metric",
       "employer": "IBM",
-      "approved": true,
-      "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "approved": false,
+      "approval_status": "QUARANTINED_UNVERIFIED_SYNTHETIC",
+      "support_level": "quarantined_unverified_synthetic",
       "bundle_bindings": [
         "reb_ibm_offering_accelerator_management"
       ],
@@ -219,30 +243,36 @@
         "ibm_bullets",
         "ibm_narrative",
         "competencies"
-      ]
+      ],
+      "quarantine_reason": "Unverified synthetic count/duration ('12 playbooks', '10 weeks to 3 weeks') absent from base resume and verified fact ledger.",
+      "provenance_source_refs": []
     },
     "metric_ibm_quota_aligned_solution_cadence": {
       "metric_outcome_id": "metric_ibm_quota_aligned_solution_cadence",
-      "metric": "$10M annual new-ARR quota and multi-account P&L governance cadence managed via Salesforce pipeline analytics across 25+ enterprise banking accounts",
+      "metric": "$10M in new annual recurring revenue (ARR) generated via Salesforce deal-prioritization analytics and multi-account P&L governance",
       "metric_type": "commercial_operating_metric",
       "employer": "IBM",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_operator_confirmed",
       "bundle_bindings": [
         "reb_ibm_revenue_sales_target_execution"
       ],
-      "claim_text": "Revenue target execution managed a $10M annual new-ARR quota and multi-account P&L cadence across 25+ enterprise banking accounts via pipeline review and executive sponsorship.",
+      "claim_text": "Salesforce deal-prioritization analytics and multi-account P&L governance generated $10M in new annual recurring revenue (ARR).",
       "surface_tokens": [
-        "$10M new-ARR quota cadence",
-        "25+ enterprise banking accounts",
-        "quota-aligned cadence",
-        "pipeline review"
+        "$10M in new annual recurring revenue",
+        "$10M new ARR",
+        "Salesforce deal-prioritization analytics"
       ],
       "section_eligibility": [
         "ibm_bullets",
         "ibm_narrative",
-        "competencies"
+        "competencies",
+        "executive_summary"
+      ],
+      "provenance_source_refs": [
+        "exp_ibm_001",
+        "fact_revenue_ops_001"
       ]
     },
     "metric_ibm_revenue_target_solution_validation": {
@@ -250,9 +280,9 @@
       "metric": "100% pre-commitment architecture and commercial ROI validation across 18 multi-million-dollar enterprise pursuits",
       "metric_type": "commercial_validation_metric",
       "employer": "IBM",
-      "approved": true,
-      "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "approved": false,
+      "approval_status": "QUARANTINED_UNVERIFIED_SYNTHETIC",
+      "support_level": "quarantined_unverified_synthetic",
       "bundle_bindings": [
         "reb_ibm_revenue_sales_target_execution"
       ],
@@ -267,16 +297,18 @@
         "ibm_bullets",
         "ibm_narrative",
         "competencies"
-      ]
+      ],
+      "quarantine_reason": "Unverified synthetic count ('18 multi-million-dollar enterprise pursuits') absent from base resume and verified fact ledger.",
+      "provenance_source_refs": []
     },
     "metric_ibm_text_signal_to_review_queue": {
       "metric_outcome_id": "metric_ibm_text_signal_to_review_queue",
       "metric": "250K+ daily unstructured regulatory and trade-surveillance signals triaged into human-reviewable compliance action queues (~22% decision capacity lift)",
       "metric_type": "workflow_metric",
       "employer": "IBM",
-      "approved": true,
-      "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "approved": false,
+      "approval_status": "QUARANTINED_UNVERIFIED_SYNTHETIC",
+      "support_level": "quarantined_unverified_synthetic",
       "bundle_bindings": [
         "reb_ibm_nlp_ml_decision_support"
       ],
@@ -290,30 +322,36 @@
         "ibm_bullets",
         "ibm_narrative",
         "competencies"
-      ]
+      ],
+      "quarantine_reason": "Unverified synthetic volume/percentage ('250K+ daily signals', '~22% decision capacity lift') absent from base resume.",
+      "provenance_source_refs": []
     },
     "metric_ibm_ml_output_business_action_packaging": {
       "metric_outcome_id": "metric_ibm_ml_output_business_action_packaging",
-      "metric": "explainable ML risk outputs packaged for compliance and operations officers (cutting false-positive escalations by 20% and Confluent pipeline downtime by 24%)",
+      "metric": "explainable AI/ML anomaly and risk models packaged for compliance officers (reducing false positives by 20%)",
       "metric_type": "ml_operationalization_metric",
       "employer": "IBM",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_operator_confirmed",
       "bundle_bindings": [
         "reb_ibm_nlp_ml_decision_support"
       ],
-      "claim_text": "Explainable ML outputs were packaged for business stakeholders as human-reviewable actions, cutting false-positive escalations by 20% and Confluent pipeline downtime by 24%.",
+      "claim_text": "Explainable AI/ML anomaly and risk models packaged for compliance teams reduced false positives by 20%.",
       "surface_tokens": [
-        "20% fewer false-positive escalations",
-        "24% less Confluent downtime",
-        "model outputs",
-        "human-reviewable business action"
+        "reducing false positives by 20%",
+        "20% false-positive reduction",
+        "explainable AI/ML anomaly and risk models"
       ],
       "section_eligibility": [
         "ibm_bullets",
         "ibm_narrative",
-        "competencies"
+        "competencies",
+        "executive_summary"
+      ],
+      "provenance_source_refs": [
+        "exp_ibm_001",
+        "fact_quant_hpc_004"
       ]
     },
     "metric_ibm_budget_portfolio_bi_views": {
@@ -321,9 +359,9 @@
       "metric": "executive FinOps and portfolio BI views tracking 8 multi-year banking cloud transformation programs (driving 28% infrastructure cost optimization)",
       "metric_type": "bi_operating_metric",
       "employer": "IBM",
-      "approved": true,
-      "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "approved": false,
+      "approval_status": "QUARANTINED_UNVERIFIED_SYNTHETIC",
+      "support_level": "quarantined_unverified_synthetic",
       "bundle_bindings": [
         "reb_ibm_data_modeling_bi_decision_support"
       ],
@@ -339,29 +377,37 @@
         "ibm_narrative",
         "competencies",
         "headline"
-      ]
+      ],
+      "quarantine_reason": "Unverified synthetic count/percentage ('8 programs', '28% cost optimization') mutated from verified 30% fact_revenue_ops_004.",
+      "provenance_source_refs": []
     },
     "metric_ibm_modeling_delivery_cost_assumption_traceability": {
       "metric_outcome_id": "metric_ibm_modeling_delivery_cost_assumption_traceability",
-      "metric": "traceable M&A IT synergy and delivery-cost data models across 6 multi-million-dollar banking integrations",
+      "metric": "traceable M&A technology-integration synergy and risk-model consolidation across a $1B regulated financial portfolio",
       "metric_type": "data_model_traceability_metric",
       "employer": "IBM",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_operator_confirmed",
       "bundle_bindings": [
         "reb_ibm_data_modeling_bi_decision_support"
       ],
-      "claim_text": "Governed data models made M&A IT synergy, delivery cost, and portfolio assumptions traceable across 6 regulated banking integrations.",
+      "claim_text": "Governed M&A technology-integration synergy and risk-model consolidation across a $1B regulated financial portfolio.",
       "surface_tokens": [
-        "6 banking integrations",
-        "traceable data models",
-        "portfolio assumptions"
+        "$1B regulated financial portfolio",
+        "$1B asset portfolio",
+        "M&A technology-integration synergy"
       ],
       "section_eligibility": [
         "ibm_bullets",
         "ibm_narrative",
-        "competencies"
+        "competencies",
+        "executive_summary"
+      ],
+      "provenance_source_refs": [
+        "exp_ibm_001",
+        "fact_revenue_ops_005",
+        "fact_consulting_002"
       ]
     },
     "metric_ibm_value_realization_account_reviews": {
@@ -369,9 +415,9 @@
       "metric": "quarterly executive value-realization account reviews across 12 regulated banking clients (lifting multi-year platform renewals by 24%)",
       "metric_type": "customer_success_metric",
       "employer": "IBM",
-      "approved": true,
-      "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "approved": false,
+      "approval_status": "QUARANTINED_UNVERIFIED_SYNTHETIC",
+      "support_level": "quarantined_unverified_synthetic",
       "bundle_bindings": [
         "reb_ibm_customer_success_value_realization"
       ],
@@ -386,16 +432,18 @@
         "ibm_bullets",
         "ibm_narrative",
         "competencies"
-      ]
+      ],
+      "quarantine_reason": "Unverified synthetic count/percentage ('12 clients', '24% renewals') mutated from verified 25% bul_ibm_003.",
+      "provenance_source_refs": []
     },
     "metric_ibm_adoption_risk_to_expansion_readiness": {
       "metric_outcome_id": "metric_ibm_adoption_risk_to_expansion_readiness",
       "metric": "proactive adoption-risk removal across 3 banking business units (cutting production incident downtime by 24% and unlocking 48% account expansion)",
       "metric_type": "customer_expansion_readiness_metric",
       "employer": "IBM",
-      "approved": true,
-      "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "approved": false,
+      "approval_status": "QUARANTINED_UNVERIFIED_SYNTHETIC",
+      "support_level": "quarantined_unverified_synthetic",
       "bundle_bindings": [
         "reb_ibm_customer_success_value_realization"
       ],
@@ -411,7 +459,9 @@
         "ibm_bullets",
         "ibm_narrative",
         "competencies"
-      ]
+      ],
+      "quarantine_reason": "Unverified synthetic percentages ('24% downtime', '48% expansion') mutated from verified 25%/50%.",
+      "provenance_source_refs": []
     },
     "metric_ibm_20pct_joint_revenue_growth": {
       "metric_outcome_id": "metric_ibm_20pct_joint_revenue_growth",
@@ -420,7 +470,7 @@
       "employer": "IBM",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_operator_confirmed",
       "bundle_bindings": [
         "reb_ibm_aws_alliance_partner_cosell_gtm"
       ],
@@ -436,6 +486,11 @@
         "competencies",
         "headline",
         "executive_summary"
+      ],
+      "provenance_source_refs": [
+        "exp_ibm_001",
+        "bul_ibm_005",
+        "fact_partnerships_gtm_002"
       ]
     },
     "metric_ibm_alliance_cosell_operating_cadence": {
@@ -443,9 +498,9 @@
       "metric": "joint IBM-AWS ACE account planning and executive co-sell cadence across 25+ global banking accounts (converting 14 joint cloud modernization deals)",
       "metric_type": "alliance_operating_metric",
       "employer": "IBM",
-      "approved": true,
-      "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "approved": false,
+      "approval_status": "QUARANTINED_UNVERIFIED_SYNTHETIC",
+      "support_level": "quarantined_unverified_synthetic",
       "bundle_bindings": [
         "reb_ibm_aws_alliance_partner_cosell_gtm"
       ],
@@ -461,55 +516,65 @@
         "ibm_narrative",
         "competencies",
         "headline"
-      ]
+      ],
+      "quarantine_reason": "Unverified synthetic counts ('25+ banking accounts', '14 joint deals') absent from base resume and verified fact ledger.",
+      "provenance_source_refs": []
     },
     "metric_ibm_ai_driven_sales_frameworks": {
       "metric_outcome_id": "metric_ibm_ai_driven_sales_frameworks",
-      "metric": "AI-driven Salesforce account-scoring and cloud GTM frameworks deployed across 25+ priority banking accounts (+20% joint alliance revenue and $10M net-new ARR)",
+      "metric": "AI-driven Salesforce account-scoring and cloud GTM frameworks driving 20% joint alliance revenue growth and $10M in new ARR",
       "metric_type": "partner_gtm_metric",
       "employer": "IBM",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_operator_confirmed",
       "bundle_bindings": [
         "reb_ibm_aws_alliance_partner_cosell_gtm"
       ],
-      "claim_text": "AI-driven Salesforce account-scoring and sales frameworks supported IBM-AWS cloud transformation pursuits across 25+ financial-services accounts, driving 20% joint revenue growth and $10M in net-new ARR.",
+      "claim_text": "AI-driven Salesforce account-scoring and cloud GTM frameworks drove 20% joint IBM-AWS alliance revenue growth and $10M in new ARR.",
       "surface_tokens": [
-        "AI-driven sales frameworks",
-        "25+ banking accounts",
-        "$10M net-new ARR",
-        "cloud transformation pursuits"
+        "20% joint alliance revenue growth",
+        "$10M in new ARR",
+        "AI-driven Salesforce account-scoring"
       ],
       "section_eligibility": [
         "ibm_bullets",
         "ibm_narrative",
         "competencies",
-        "headline"
+        "headline",
+        "executive_summary"
+      ],
+      "provenance_source_refs": [
+        "exp_ibm_001",
+        "fact_partnerships_gtm_002",
+        "fact_revenue_ops_001"
       ]
     },
     "metric_ibm_release_gate_security_scanning_coverage": {
       "metric_outcome_id": "metric_ibm_release_gate_security_scanning_coverage",
-      "metric": "100% automated SAST, DAST, and container security release-gate scanning across regulated banking CI/CD pipelines (sustaining 99.9% production uptime)",
+      "metric": "100% automated CI/CD security release-gate scanning across regulated banking pipelines (sustaining 99.9% production uptime)",
       "metric_type": "release_control_coverage_metric",
       "employer": "IBM",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_base_resume",
       "bundle_bindings": [
         "reb_ibm_devsecops_release_resilience"
       ],
-      "claim_text": "100% automated SAST, DAST, and container security release-gate scanning across regulated banking and insurance CI/CD pipelines (sustaining 99.9% production uptime)",
+      "claim_text": "Automated CI/CD security release-gate controls sustained 99.9% production uptime across regulated banking and insurance environments.",
       "surface_tokens": [
-        "100% automated security scanning",
         "99.9% production uptime",
-        "security scanning",
-        "release-gate coverage"
+        "automated CI/CD security release-gate scanning"
       ],
       "section_eligibility": [
         "ibm_bullets",
         "ibm_narrative",
-        "competencies"
+        "competencies",
+        "executive_summary"
+      ],
+      "provenance_source_refs": [
+        "exp_ibm_001",
+        "bul_ibm_001"
       ]
     },
     "metric_ibm_deployment_blueprint_repeatability": {
@@ -517,9 +582,9 @@
       "metric": "14 repeatable Terraform and OpenShift DevSecOps deployment blueprints across regulated workloads (accelerating release cycles by 60%)",
       "metric_type": "deployment_repeatability_metric",
       "employer": "IBM",
-      "approved": true,
-      "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "approved": false,
+      "approval_status": "QUARANTINED_UNVERIFIED_SYNTHETIC",
+      "support_level": "quarantined_unverified_synthetic",
       "bundle_bindings": [
         "reb_ibm_devsecops_release_resilience"
       ],
@@ -534,31 +599,23 @@
         "ibm_bullets",
         "ibm_narrative",
         "competencies"
-      ]
+      ],
+      "quarantine_reason": "Unverified synthetic count/percentage ('14 blueprints', '60% release cycle acceleration') absent from base resume and verified fact ledger.",
+      "provenance_source_refs": []
     }
   },
   "approved_metric_outcome_ids": {
-    "metric_ibm_onprem_to_aws_modernization_waves": "16 enterprise on-prem-to-AWS migration waves across 5 Tier-1 banking clients (cutting legacy infrastructure overhead by 32%)",
-    "metric_ibm_regulated_reference_architecture_reuse": "9 BCBS 239 and OCC-compliant cloud reference architectures reused across 14 banking pursuits (sustaining 99.9% production uptime)",
-    "metric_ibm_stress_test_cycle_weeks_to_hours": "CCAR and Greek derivative stress-test cycles compressed from 14 days (2 weeks) to 3.5 hours (38% faster model validation)",
-    "metric_ibm_decision_support_scenario_traceability": "100% audit lineage across 1,200+ CCAR, Basel III, and liquidity stress scenarios across 3 banking business units (cutting reporting errors by 38% and latency by 48%)",
-    "metric_ibm_presales_discovery_to_solution_handoff": "45+ technical discovery-to-architecture handoff packages directed across a 20-member global team across 8 enterprise banking programs",
-    "metric_ibm_executive_buyer_architecture_alignment": "12 C-suite and CRO/CIO architecture alignments driving 48% multi-year account portfolio expansion and $10M in net-new ARR",
-    "metric_ibm_offering_accelerator_package_reuse": "7 reusable cloud, Confluent Kafka, and AI solution accelerators deployed across 10+ global financial institutions (driving 24% renewal lift)",
-    "metric_ibm_client_facing_modernization_playbooks": "12 standardized client-facing modernization playbooks compressing enterprise mobilization from 10 weeks to 3 weeks",
-    "metric_ibm_quota_aligned_solution_cadence": "$10M annual new-ARR quota and multi-account P&L governance cadence managed via Salesforce pipeline analytics across 25+ enterprise banking accounts",
-    "metric_ibm_revenue_target_solution_validation": "100% pre-commitment architecture and commercial ROI validation across 18 multi-million-dollar enterprise pursuits",
-    "metric_ibm_text_signal_to_review_queue": "250K+ daily unstructured regulatory and trade-surveillance signals triaged into human-reviewable compliance action queues (~22% decision capacity lift)",
-    "metric_ibm_ml_output_business_action_packaging": "explainable ML risk outputs packaged for compliance and operations officers (cutting false-positive escalations by 20% and Confluent pipeline downtime by 24%)",
-    "metric_ibm_budget_portfolio_bi_views": "executive FinOps and portfolio BI views tracking 8 multi-year banking cloud transformation programs (driving 28% infrastructure cost optimization)",
-    "metric_ibm_modeling_delivery_cost_assumption_traceability": "traceable M&A IT synergy and delivery-cost data models across 6 multi-million-dollar banking integrations",
-    "metric_ibm_value_realization_account_reviews": "quarterly executive value-realization account reviews across 12 regulated banking clients (lifting multi-year platform renewals by 24%)",
-    "metric_ibm_adoption_risk_to_expansion_readiness": "proactive adoption-risk removal across 3 banking business units (cutting production incident downtime by 24% and unlocking 48% account expansion)",
+    "metric_ibm_regulated_reference_architecture_reuse": "BCBS 239-aligned cloud reference architectures sustaining 99.9% production uptime across regulated financial environments",
+    "metric_ibm_stress_test_cycle_weeks_to_hours": "CCAR and derivative stress-test cycles compressed from weeks to hours across containerized HPC risk workflows",
+    "metric_ibm_decision_support_scenario_traceability": "100% audit-traceable CCAR and Basel III risk-scenario lineage unified across 3 banking business units",
+    "metric_ibm_presales_discovery_to_solution_handoff": "technical discovery-to-architecture handoffs directed across a 20-member distributed global team spanning EMEA, APAC, and North America",
+    "metric_ibm_executive_buyer_architecture_alignment": "C-suite architecture and ROI alignments driving $10M in net-new revenue",
+    "metric_ibm_quota_aligned_solution_cadence": "$10M in new annual recurring revenue (ARR) generated via Salesforce deal-prioritization analytics and multi-account P&L governance",
+    "metric_ibm_ml_output_business_action_packaging": "explainable AI/ML anomaly and risk models packaged for compliance officers (reducing false positives by 20%)",
+    "metric_ibm_modeling_delivery_cost_assumption_traceability": "traceable M&A technology-integration synergy and risk-model consolidation across a $1B regulated financial portfolio",
     "metric_ibm_20pct_joint_revenue_growth": "20% joint revenue growth across the IBM-AWS regulated financial-services alliance portfolio",
-    "metric_ibm_alliance_cosell_operating_cadence": "joint IBM-AWS ACE account planning and executive co-sell cadence across 25+ global banking accounts (converting 14 joint cloud modernization deals)",
-    "metric_ibm_ai_driven_sales_frameworks": "AI-driven Salesforce account-scoring and cloud GTM frameworks deployed across 25+ priority banking accounts (+20% joint alliance revenue and $10M net-new ARR)",
-    "metric_ibm_release_gate_security_scanning_coverage": "100% automated SAST, DAST, and container security release-gate scanning across regulated banking CI/CD pipelines (sustaining 99.9% production uptime)",
-    "metric_ibm_deployment_blueprint_repeatability": "14 repeatable Terraform and OpenShift DevSecOps deployment blueprints across regulated workloads (accelerating release cycles by 60%)"
+    "metric_ibm_ai_driven_sales_frameworks": "AI-driven Salesforce account-scoring and cloud GTM frameworks driving 20% joint alliance revenue growth and $10M in new ARR",
+    "metric_ibm_release_gate_security_scanning_coverage": "100% automated CI/CD security release-gate scanning across regulated banking pipelines (sustaining 99.9% production uptime)"
   },
   "excluded_metrics_by_policy": [
     {
@@ -585,8 +642,8 @@
       "claim_text": "Led AWS modernization architecture for regulated banking and insurance workloads moving from on-prem constraints to cloud-native delivery patterns",
       "claim_action": "Led AWS modernization architecture for regulated banking and insurance workloads moving from on-prem constraints to cloud-native delivery patterns",
       "claim_scope": "IBM financial-services modernization portfolio; regulated banking and insurance client workloads moving from legacy on-prem platforms into AWS-centered architecture patterns.",
-      "claim_outcome": "Surface the slot's allocated graph metric_outcome_id (e.g., 28% infrastructure cost optimization across 8 banking modernization programs or 9 BCBS 239-compliant architectures across 14 pursuits at 99.9% uptime) paired with AWS migration architecture leadership.",
-      "support_level": "approved_by_graph_presence",
+      "claim_outcome": "Surface the slot's allocated verified graph metric_outcome_id (e.g., BCBS 239-aligned cloud reference architectures sustaining 99.9% production uptime) paired with AWS migration architecture leadership.",
+      "support_level": "verified_base_resume",
       "executive_scope_signals": [
         "Led AWS modernization architecture for regulated banking and insurance workloads moving from on-prem constraints to cloud-native delivery patterns",
         "Converted legacy platform constraints into migration-ready reference architectures and implementation sequences across regulated institutions"
@@ -627,10 +684,15 @@
         "competencies",
         "headline"
       ],
-      "external_claim_policy": "approved_by_graph_presence",
+      "external_claim_policy": "verified_provenance_required",
       "activation_status": "ACTIVE_CONFIRMED",
       "config_gate": "ENABLED_WITH_ROLE_EPISODE_BUNDLE_GUARDS",
-      "notes": "Graph-native metric outcome IDs are approved by presence in metric_outcome_nodes."
+      "notes": "Graph-native metric outcome IDs are approved by presence in metric_outcome_nodes.",
+      "provenance_source_refs": [
+        "fact_data_analytics_002",
+        "fact_data_analytics_003",
+        "fact_sales_accounts_002"
+      ]
     },
     {
       "role_episode_bundle_id": "reb_ibm_cognitive_business_decision_support",
@@ -642,8 +704,8 @@
       "claim_text": "Translated analytics and ML-enabled decision support into executive decision workflows for regulated banking and insurance clients",
       "claim_action": "Translated analytics and ML-enabled decision support into executive decision workflows for regulated banking and insurance clients",
       "claim_scope": "IBM cognitive decision-support engagements for banking and insurance risk, actuarial/finance, and portfolio operating decisions.",
-      "claim_outcome": "Frame as decision-support modernization: analytics-to-executive workflow, scenario acceleration, and governed decision visibility.",
-      "support_level": "approved_by_graph_presence",
+      "claim_outcome": "Surface the slot's allocated verified graph metric_outcome_id (e.g., CCAR stress-test cycles compressed from weeks to hours or lineage unified across 3 banking business units) paired with HPC risk modernization.",
+      "support_level": "verified_base_resume",
       "executive_scope_signals": [
         "Translated analytics and ML-enabled decision support into executive decision workflows for regulated banking and insurance clients",
         "Connected scenario analysis, risk signals, and business rules into decision-support operating models across financial institutions"
@@ -679,10 +741,14 @@
         "ibm_bullets",
         "ibm_narrative"
       ],
-      "external_claim_policy": "approved_by_graph_presence",
+      "external_claim_policy": "verified_provenance_required",
       "activation_status": "ACTIVE_CONFIRMED",
       "config_gate": "ENABLED_WITH_ROLE_EPISODE_BUNDLE_GUARDS",
-      "notes": "Graph-native metric outcome IDs are approved by presence in metric_outcome_nodes."
+      "notes": "Graph-native metric outcome IDs are approved by presence in metric_outcome_nodes.",
+      "provenance_source_refs": [
+        "fact_quant_hpc_001",
+        "fact_data_analytics_001"
+      ]
     },
     {
       "role_episode_bundle_id": "reb_ibm_presales_solution_engineering",
@@ -694,8 +760,8 @@
       "claim_text": "Led technical discovery and solution mapping for enterprise financial-services pursuits",
       "claim_action": "Led technical discovery and solution mapping for enterprise financial-services pursuits",
       "claim_scope": "IBM pre-sales solution engineering and technical discovery engagements across banking and insurance enterprise accounts.",
-      "claim_outcome": "Surface the slot's allocated graph metric_outcome_id (e.g., 45+ delivery-ready architecture handoff packages across a 20-member solution engineering team or executive buyer alignment metrics) paired with commercial-technical discovery leadership.",
-      "support_level": "approved_by_graph_presence",
+      "claim_outcome": "Surface the slot's allocated verified graph metric_outcome_id (e.g., discovery-to-architecture handoffs across a 20-member global team or C-suite alignments driving $10M net-new revenue) paired with commercial-technical leadership.",
+      "support_level": "verified_base_resume",
       "executive_scope_signals": [
         "Led technical discovery and solution mapping for enterprise financial-services pursuits",
         "Converted buyer pain points into architecture-backed solution narratives, demos, and delivery handoffs"
@@ -731,10 +797,14 @@
         "ibm_narrative",
         "competencies"
       ],
-      "external_claim_policy": "approved_by_graph_presence",
+      "external_claim_policy": "verified_provenance_required",
       "activation_status": "ACTIVE_CONFIRMED",
       "config_gate": "ENABLED_WITH_ROLE_EPISODE_BUNDLE_GUARDS",
-      "notes": "Graph-native metric outcome IDs are approved by presence in metric_outcome_nodes."
+      "notes": "Graph-native metric outcome IDs are approved by presence in metric_outcome_nodes.",
+      "provenance_source_refs": [
+        "fact_revenue_ops_001",
+        "fact_revenue_ops_004"
+      ]
     },
     {
       "role_episode_bundle_id": "reb_ibm_offering_accelerator_management",
@@ -745,9 +815,9 @@
       "bundle_theme": "Offering management and reusable accelerator packaging",
       "claim_text": "Directed offering accelerator management, scaling repeatable cloud and AI solution blueprints across regulated financial and insurance institutions",
       "claim_action": "Directed offering accelerator management, scaling repeatable cloud and AI solution blueprints across regulated financial and insurance institutions",
-      "claim_scope": "IBM offering accelerator portfolio anchored by repeatable cloud, Confluent Kafka, and AI assets deployed across banking and insurance client engagements.",
-      "claim_outcome": "Frame as offering discipline: packaged accelerators, reusable architecture assets, and adoption-risk reduction rather than one-off delivery.",
-      "support_level": "approved_by_graph_presence",
+      "claim_scope": "IBM offering accelerator portfolio anchored by repeatable cloud, data, and AI assets deployed across banking and insurance client engagements.",
+      "claim_outcome": "Frame as reusable cloud and AI solution accelerator packaging across regulated financial pursuits using verified facts only.",
+      "support_level": "verified_base_resume",
       "executive_scope_signals": [
         "Directed offering accelerator management, scaling repeatable cloud and AI solution blueprints across regulated banking and insurance institutions",
         "Packaged reusable reference architectures and migration assets into market-facing delivery accelerators"
@@ -777,7 +847,7 @@
       "held_metrics": [],
       "excluded_metrics": [],
       "metric_candidates": [],
-      "operating_context": "IBM offering accelerator portfolio anchored by repeatable cloud, Confluent Kafka, and AI assets deployed across banking and insurance client engagements.",
+      "operating_context": "IBM offering accelerator portfolio anchored by repeatable cloud, data, and AI assets deployed across banking and insurance client engagements.",
       "bullet_intent": "Frame as offering discipline: packaged accelerators, reusable architecture assets, and adoption-risk reduction rather than one-off delivery.",
       "section_eligibility": [
         "ibm_bullets",
@@ -785,10 +855,15 @@
         "competencies",
         "headline"
       ],
-      "external_claim_policy": "approved_by_graph_presence",
+      "external_claim_policy": "verified_provenance_required",
       "activation_status": "ACTIVE_CONFIRMED",
       "config_gate": "ENABLED_WITH_ROLE_EPISODE_BUNDLE_GUARDS",
-      "notes": "Graph-native metric outcome IDs are approved by presence in metric_outcome_nodes."
+      "notes": "Graph-native metric outcome IDs are approved by presence in metric_outcome_nodes.",
+      "provenance_source_refs": [
+        "fact_partnerships_gtm_002",
+        "fact_sales_accounts_003",
+        "fact_data_analytics_002"
+      ]
     },
     {
       "role_episode_bundle_id": "reb_ibm_revenue_sales_target_execution",
@@ -800,8 +875,8 @@
       "claim_text": "Owned quota-aligned solution leadership across enterprise pursuits and client portfolio expansion motions",
       "claim_action": "Owned quota-aligned solution leadership across enterprise pursuits and client portfolio expansion motions",
       "claim_scope": "IBM enterprise sales execution and quota governance across priority banking and insurance accounts.",
-      "claim_outcome": "Surface the slot's allocated graph metric_outcome_id (quota-aligned solution cadence or revenue-target validation figures) paired with executive deal leadership.",
-      "support_level": "approved_by_graph_presence",
+      "claim_outcome": "Surface the slot's allocated verified graph metric_outcome_id (e.g., $10M in new ARR via Salesforce deal-prioritization analytics) paired with commercial P&L governance.",
+      "support_level": "verified_base_resume",
       "executive_scope_signals": [
         "Owned quota-aligned solution leadership across enterprise pursuits and client portfolio expansion motions",
         "Connected sales target execution to technical solution quality, adoption confidence, and executive buying criteria"
@@ -838,10 +913,15 @@
         "ibm_narrative",
         "competencies"
       ],
-      "external_claim_policy": "approved_by_graph_presence",
+      "external_claim_policy": "verified_provenance_required",
       "activation_status": "ACTIVE_CONFIRMED",
       "config_gate": "ENABLED_WITH_ROLE_EPISODE_BUNDLE_GUARDS",
-      "notes": "Graph-native metric outcome IDs are approved by presence in metric_outcome_nodes."
+      "notes": "Graph-native metric outcome IDs are approved by presence in metric_outcome_nodes.",
+      "provenance_source_refs": [
+        "fact_revenue_ops_001",
+        "fact_revenue_ops_002",
+        "fact_sales_accounts_002"
+      ]
     },
     {
       "role_episode_bundle_id": "reb_ibm_nlp_ml_decision_support",
@@ -853,8 +933,8 @@
       "claim_text": "Architected NLP and ML decision-support pipelines translating unstructured regulatory and risk signals into actionable compliance workflows for banking and insurance institutions",
       "claim_action": "Architected NLP and ML decision-support pipelines translating unstructured regulatory and risk signals into actionable compliance workflows for banking and insurance institutions",
       "claim_scope": "IBM ML and NLP decision-support systems for regulatory compliance, risk governance, and portfolio analytics across banking and insurance institutions.",
-      "claim_outcome": "Surface the slot's allocated graph metric_outcome_id (e.g., 250K+ daily unstructured signals routed into compliance review queues with ~22% capacity lift or 20% fewer false-positive escalations and 24% lower pipeline downtime) paired with applied NLP/ML workflow design.",
-      "support_level": "approved_by_graph_presence",
+      "claim_outcome": "Surface the slot's allocated verified graph metric_outcome_id (e.g., explainable AI/ML risk models reducing false positives by 20%) paired with applied NLP/ML workflow design.",
+      "support_level": "verified_base_resume",
       "executive_scope_signals": [
         "Architected NLP and ML decision-support pipelines translating unstructured regulatory and risk signals into actionable compliance workflows for banking and insurance institutions",
         "Established data lineage and model explainability governance for high-stakes risk evaluation"
@@ -889,10 +969,15 @@
         "ibm_bullets",
         "ibm_narrative"
       ],
-      "external_claim_policy": "approved_by_graph_presence",
+      "external_claim_policy": "verified_provenance_required",
       "activation_status": "ACTIVE_CONFIRMED",
       "config_gate": "ENABLED_WITH_ROLE_EPISODE_BUNDLE_GUARDS",
-      "notes": "Graph-native metric outcome IDs are approved by presence in metric_outcome_nodes."
+      "notes": "Graph-native metric outcome IDs are approved by presence in metric_outcome_nodes.",
+      "provenance_source_refs": [
+        "fact_governance_003",
+        "fact_data_analytics_001",
+        "fact_quant_hpc_001"
+      ]
     },
     {
       "role_episode_bundle_id": "reb_ibm_data_modeling_bi_decision_support",
@@ -904,8 +989,8 @@
       "claim_text": "Built decision-support data models and BI views that connected modernization programs to executive operating decisions",
       "claim_action": "Built decision-support data models and BI views that connected modernization programs to executive operating decisions",
       "claim_scope": "IBM data modeling, delivery-cost analytics, and executive BI dashboards across regulated financial and insurance transformation programs.",
-      "claim_outcome": "Frame as decision-grade BI and data modeling: governed data views, portfolio transparency, and executive operating cadence.",
-      "support_level": "approved_by_graph_presence",
+      "claim_outcome": "Surface the slot's allocated verified graph metric_outcome_id (e.g., M&A technology-integration synergy and risk-model consolidation across a $1B regulated portfolio) paired with governed data modeling.",
+      "support_level": "verified_base_resume",
       "executive_scope_signals": [
         "Built decision-support data models and BI views that connected modernization programs to executive operating decisions",
         "Converted fragmented financial-services data into governed models for portfolio, budget, and delivery visibility"
@@ -942,10 +1027,15 @@
         "competencies",
         "headline"
       ],
-      "external_claim_policy": "approved_by_graph_presence",
+      "external_claim_policy": "verified_provenance_required",
       "activation_status": "ACTIVE_CONFIRMED",
       "config_gate": "ENABLED_WITH_ROLE_EPISODE_BUNDLE_GUARDS",
-      "notes": "Graph-native metric outcome IDs are approved by presence in metric_outcome_nodes."
+      "notes": "Graph-native metric outcome IDs are approved by presence in metric_outcome_nodes.",
+      "provenance_source_refs": [
+        "fact_revenue_ops_004",
+        "fact_revenue_ops_005",
+        "fact_governance_003"
+      ]
     },
     {
       "role_episode_bundle_id": "reb_ibm_customer_success_value_realization",
@@ -957,8 +1047,8 @@
       "claim_text": "Ran client value-realization motions that connected adoption progress, stakeholder alignment, and expansion readiness",
       "claim_action": "Ran client value-realization motions that connected adoption progress, stakeholder alignment, and expansion readiness",
       "claim_scope": "IBM customer success, post-sales value realization, and adoption-risk governance across regulated banking and insurance clients.",
-      "claim_outcome": "Frame as adoption and value-realization leadership: client success cadence, risk removal, and expansion readiness without unsupported NPS or savings figures.",
-      "support_level": "approved_by_graph_presence",
+      "claim_outcome": "Frame as executive adoption governance and value-realization alignment across regulated financial accounts.",
+      "support_level": "verified_base_resume",
       "executive_scope_signals": [
         "Ran client value-realization motions that connected adoption progress, stakeholder alignment, and expansion readiness",
         "Turned modernization delivery evidence into customer success narratives and executive account reviews"
@@ -994,10 +1084,14 @@
         "ibm_narrative",
         "competencies"
       ],
-      "external_claim_policy": "approved_by_graph_presence",
+      "external_claim_policy": "verified_provenance_required",
       "activation_status": "ACTIVE_CONFIRMED",
       "config_gate": "ENABLED_WITH_ROLE_EPISODE_BUNDLE_GUARDS",
-      "notes": "Graph-native metric outcome IDs are approved by presence in metric_outcome_nodes."
+      "notes": "Graph-native metric outcome IDs are approved by presence in metric_outcome_nodes.",
+      "provenance_source_refs": [
+        "fact_revenue_ops_004",
+        "fact_data_analytics_001"
+      ]
     },
     {
       "role_episode_bundle_id": "reb_ibm_aws_alliance_partner_cosell_gtm",
@@ -1009,8 +1103,8 @@
       "claim_text": "Led IBM-AWS alliance co-sell motions for financial-services modernization opportunities",
       "claim_action": "Led IBM-AWS alliance co-sell motions for financial-services modernization opportunities",
       "claim_scope": "IBM-AWS strategic alliance and joint co-sell GTM across regulated financial and insurance accounts.",
-      "claim_outcome": "Frame as alliance GTM leadership: joint planning, solution architecture, co-sell execution, and 20% joint revenue growth only when the metric outcome ID is selected.",
-      "support_level": "approved_by_graph_presence",
+      "claim_outcome": "Surface the slot's allocated verified graph metric_outcome_id (e.g., 20% joint IBM-AWS alliance revenue growth or $10M new ARR from AI-driven sales frameworks) paired with hyperscaler co-sell leadership.",
+      "support_level": "verified_base_resume",
       "executive_scope_signals": [
         "Led IBM-AWS alliance co-sell motions for financial-services modernization opportunities",
         "Aligned partner sales, solution architecture, and executive sponsors around joint cloud and AI modernization pursuits"
@@ -1060,10 +1154,14 @@
         "headline",
         "executive_summary"
       ],
-      "external_claim_policy": "approved_by_graph_presence",
+      "external_claim_policy": "verified_provenance_required",
       "activation_status": "ACTIVE_CONFIRMED",
       "config_gate": "ENABLED_WITH_ROLE_EPISODE_BUNDLE_GUARDS",
-      "notes": "Graph-native metric outcome IDs are approved by presence in metric_outcome_nodes."
+      "notes": "Graph-native metric outcome IDs are approved by presence in metric_outcome_nodes.",
+      "provenance_source_refs": [
+        "fact_partnerships_gtm_002",
+        "fact_sales_accounts_002"
+      ]
     },
     {
       "role_episode_bundle_id": "reb_ibm_devsecops_release_resilience",
@@ -1075,8 +1173,8 @@
       "claim_text": "Engineered DevSecOps release resilience frameworks, establishing automated security scanning and deployment blueprints across regulated hybrid-cloud workloads",
       "claim_action": "Engineered DevSecOps release resilience frameworks, establishing automated security scanning and deployment blueprints across regulated hybrid-cloud workloads",
       "claim_scope": "IBM DevSecOps pipeline blueprints and release automation frameworks for regulated banking and insurance platforms.",
-      "claim_outcome": "Surface the slot's allocated graph metric_outcome_id (e.g., 60% faster release cycles across 14 repeatable DevSecOps blueprints or 100% automated SAST/DAST/container scanning at 99.9% uptime) paired with governed delivery automation.",
-      "support_level": "approved_by_graph_presence",
+      "claim_outcome": "Surface the slot's allocated verified graph metric_outcome_id (e.g., automated CI/CD security release-gate scanning sustaining 99.9% production uptime) paired with governed delivery automation.",
+      "support_level": "verified_base_resume",
       "executive_scope_signals": [
         "Engineered DevSecOps release resilience frameworks, establishing automated security scanning and deployment blueprints across regulated hybrid-cloud workloads",
         "Integrated release-gate compliance policies and container governance across multi-tenant enterprise platforms"
@@ -1114,10 +1212,14 @@
         "ibm_narrative",
         "competencies"
       ],
-      "external_claim_policy": "approved_by_graph_presence",
+      "external_claim_policy": "verified_provenance_required",
       "activation_status": "ACTIVE_CONFIRMED",
       "config_gate": "ENABLED_WITH_ROLE_EPISODE_BUNDLE_GUARDS",
-      "notes": "Graph-native metric outcome IDs are approved by presence in metric_outcome_nodes."
+      "notes": "Graph-native metric outcome IDs are approved by presence in metric_outcome_nodes.",
+      "provenance_source_refs": [
+        "fact_data_analytics_003",
+        "fact_data_analytics_002"
+      ]
     }
   ],
   "metric_surface_policy": {
@@ -1134,5 +1236,17 @@
     "bundle_metric_surface": "linked_metric_outcome_ids only; metric_outcome_nodes is claim authority",
     "approved_metric_outcome_ids_role": "derived_review_index_not_claim_authority"
   },
-  "metric_candidates_for_approval": []
+  "metric_candidates_for_approval": [],
+  "quarantined_metric_outcome_ids": {
+    "metric_ibm_onprem_to_aws_modernization_waves": "Unverified synthetic counts/percentages ('16 waves', '5 Tier-1 banking clients', '32%') absent from amit_ayer_base_resume_v1.json (bul_ibm_002 is 30%).",
+    "metric_ibm_offering_accelerator_package_reuse": "Unverified synthetic vendor/count/percentage ('7 reusable cloud, Confluent Kafka, and AI solution accelerators', '10+ institutions', '24% renewal lift') absent from base resume.",
+    "metric_ibm_client_facing_modernization_playbooks": "Unverified synthetic count/duration ('12 playbooks', '10 weeks to 3 weeks') absent from base resume and verified fact ledger.",
+    "metric_ibm_revenue_target_solution_validation": "Unverified synthetic count ('18 multi-million-dollar enterprise pursuits') absent from base resume and verified fact ledger.",
+    "metric_ibm_text_signal_to_review_queue": "Unverified synthetic volume/percentage ('250K+ daily signals', '~22% decision capacity lift') absent from base resume.",
+    "metric_ibm_budget_portfolio_bi_views": "Unverified synthetic count/percentage ('8 programs', '28% cost optimization') mutated from verified 30% fact_revenue_ops_004.",
+    "metric_ibm_value_realization_account_reviews": "Unverified synthetic count/percentage ('12 clients', '24% renewals') mutated from verified 25% bul_ibm_003.",
+    "metric_ibm_adoption_risk_to_expansion_readiness": "Unverified synthetic percentages ('24% downtime', '48% expansion') mutated from verified 25%/50%.",
+    "metric_ibm_alliance_cosell_operating_cadence": "Unverified synthetic counts ('25+ banking accounts', '14 joint deals') absent from base resume and verified fact ledger.",
+    "metric_ibm_deployment_blueprint_repeatability": "Unverified synthetic count/percentage ('14 blueprints', '60% release cycle acceleration') absent from base resume and verified fact ledger."
+  }
 }

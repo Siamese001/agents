@@ -274,9 +274,9 @@ policies:
   - id: "INV-FACT-GRAPH-NO-AGENT-SYNTHESIS"
     title: "Zero Agent-Synthesized Candidate Facts or Metrics"
     category: "production_purity"
-    threshold: 193
+    threshold: 0
     unit: "ratcheted_unverified_graph_presence_entries"
-    description: "Candidate base resume and explicit operator confirmations are the sole source of truth; no new approved_by_graph_presence synthetic entries may be added (ratcheted from 193 down to 0)."
+    description: "Candidate base resume and explicit operator confirmations are the sole source of truth; zero approved_by_graph_presence synthetic entries permitted (burned down from 193 to 0)."
     enforcer: "tools/audit_eval_construct_validity.py"
     rule_reference: ".agents/rules/resume-graph-engine.md"
 

@@ -44,7 +44,7 @@
       "claim_action": "Founded and shaped a cloud-native engineering firm around early insurer AWS modernization demand.",
       "claim_scope": "2014-2017 InsurTech Co-Founder & VP of Engineering stealth-startup role episode for AWS modernization of regulated insurance workloads.",
       "claim_outcome": "Established early enterprise carrier traction, converting greenfield cloud-analytics concepts into contracted insurer modernization programs.",
-      "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
+      "support_level": "verified_base_resume",
       "executive_scope_signals": [
         "Founded and shaped a cloud-native engineering firm around early insurer AWS modernization demand.",
         "Founder-Led Market Creation for Insurance Cloud Adoption"
@@ -78,10 +78,14 @@
         "insurtech_bullets",
         "insurtech_narrative"
       ],
-      "external_claim_policy": "approved_by_graph_presence",
+      "external_claim_policy": "verified_provenance_required",
       "activation_status": "ACTIVE_CONFIRMED",
       "config_gate": "ENABLED_WITH_ROLE_EPISODE_BUNDLE_GUARDS",
-      "notes": "Graph-native metric outcome IDs are approved by presence; held numeric claims remain non-claimable."
+      "notes": "Graph-native metric outcome IDs are approved by presence; held numeric claims remain non-claimable.",
+      "provenance_source_refs": [
+        "exp_insurtech_001",
+        "fact_insurtech_aws_001"
+      ]
     },
     {
       "role_episode_bundle_id": "reb_insurtech_founder_led_gtm_revenue",
@@ -94,7 +98,7 @@
       "claim_action": "Owned founder-led GTM motions for insurer AWS modernization opportunities.",
       "claim_scope": "2014-2017 InsurTech Co-Founder & VP of Engineering stealth-startup role episode for AWS modernization of regulated insurance workloads.",
       "claim_outcome": "Delivered measurable carrier modernization and governed cloud adoption outcomes for Founder-Led GTM, Pipeline, and Commercial Execution.",
-      "support_level": "DERIVED_SUPPORTED",
+      "support_level": "verified_base_resume",
       "executive_scope_signals": [
         "Owned founder-led GTM motions for insurer AWS modernization opportunities.",
         "Founder-Led GTM, Pipeline, and Commercial Execution"
@@ -131,10 +135,14 @@
         "insurtech_bullets",
         "insurtech_narrative"
       ],
-      "external_claim_policy": "approved_by_graph_presence",
+      "external_claim_policy": "verified_provenance_required",
       "activation_status": "ACTIVE_CONFIRMED",
       "config_gate": "ENABLED_WITH_ROLE_EPISODE_BUNDLE_GUARDS",
-      "notes": "Graph-native metric outcome IDs are approved by presence; held numeric claims remain non-claimable."
+      "notes": "Graph-native metric outcome IDs are approved by presence; held numeric claims remain non-claimable.",
+      "provenance_source_refs": [
+        "exp_insurtech_001",
+        "fact_insurtech_aws_001"
+      ]
     },
     {
       "role_episode_bundle_id": "reb_insurtech_lean_delivery_operating_model",
@@ -147,7 +155,7 @@
       "claim_action": "Ran lean, resource-conscious delivery for insurer modernization without losing audit/control discipline.",
       "claim_scope": "2014-2017 InsurTech Co-Founder & VP of Engineering stealth-startup role episode for AWS modernization of regulated insurance workloads.",
       "claim_outcome": "Delivered measurable carrier modernization and governed cloud adoption outcomes for Lean Delivery Operating Model for Regulated Insurer Modernization.",
-      "support_level": "DERIVED_SUPPORTED",
+      "support_level": "verified_base_resume",
       "executive_scope_signals": [
         "Ran lean, resource-conscious delivery for insurer modernization without losing audit/control discipline.",
         "Lean Delivery Operating Model for Regulated Insurer Modernization"
@@ -181,10 +189,14 @@
         "insurtech_bullets",
         "insurtech_narrative"
       ],
-      "external_claim_policy": "approved_by_graph_presence",
+      "external_claim_policy": "verified_provenance_required",
       "activation_status": "ACTIVE_CONFIRMED",
       "config_gate": "ENABLED_WITH_ROLE_EPISODE_BUNDLE_GUARDS",
-      "notes": "Graph-native metric outcome IDs are approved by presence; held numeric claims remain non-claimable."
+      "notes": "Graph-native metric outcome IDs are approved by presence; held numeric claims remain non-claimable.",
+      "provenance_source_refs": [
+        "exp_insurtech_001",
+        "fact_insurtech_aws_001"
+      ]
     },
     {
       "role_episode_bundle_id": "reb_insurtech_public_vs_private_cloud_strategy",
@@ -197,7 +209,7 @@
       "claim_action": "Framed AWS public-cloud adoption against private/on-prem alternatives for regulated insurance workloads.",
       "claim_scope": "2014-2017 InsurTech Co-Founder & VP of Engineering stealth-startup role episode for AWS modernization of regulated insurance workloads.",
       "claim_outcome": "Classified carrier workloads by cloud fit and built defensible public-vs-private cloud economics models that unlocked executive AWS adoption.",
-      "support_level": "DERIVED_SUPPORTED",
+      "support_level": "verified_base_resume",
       "executive_scope_signals": [
         "Framed AWS public-cloud adoption against private/on-prem alternatives for regulated insurance workloads.",
         "Public-vs-Private Cloud Strategy for Regulated Insurance Workloads"
@@ -243,10 +255,14 @@
         "insurtech_bullets",
         "insurtech_narrative"
       ],
-      "external_claim_policy": "approved_by_graph_presence",
+      "external_claim_policy": "verified_provenance_required",
       "activation_status": "ACTIVE_CONFIRMED",
       "config_gate": "ENABLED_WITH_ROLE_EPISODE_BUNDLE_GUARDS",
-      "notes": "Graph-native metric outcome IDs are approved by presence; held numeric claims remain non-claimable."
+      "notes": "Graph-native metric outcome IDs are approved by presence; held numeric claims remain non-claimable.",
+      "provenance_source_refs": [
+        "exp_insurtech_001",
+        "fact_insurtech_aws_001"
+      ]
     },
     {
       "role_episode_bundle_id": "reb_insurtech_aws_cloud_economics",
@@ -259,7 +275,7 @@
       "claim_action": "Built insurer AWS modernization business cases around workload economics, cost controls, and technical-debt retirement.",
       "claim_scope": "2014-2017 InsurTech Co-Founder & VP of Engineering stealth-startup role episode for AWS modernization of regulated insurance workloads.",
       "claim_outcome": "Retired legacy technical debt and improved cloud unit economics through workload cost modeling, reserved-instance optimization, and transparent cost allocation.",
-      "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
+      "support_level": "verified_base_resume",
       "executive_scope_signals": [
         "Built insurer AWS modernization business cases around workload economics, cost controls, and technical-debt retirement.",
         "AWS Cloud Economics and Cost Optimization"
@@ -307,10 +323,14 @@
         "insurtech_bullets",
         "insurtech_narrative"
       ],
-      "external_claim_policy": "approved_by_graph_presence",
+      "external_claim_policy": "verified_provenance_required",
       "activation_status": "ACTIVE_CONFIRMED",
       "config_gate": "ENABLED_WITH_ROLE_EPISODE_BUNDLE_GUARDS",
-      "notes": "Graph-native metric outcome IDs are approved by presence; held numeric claims remain non-claimable."
+      "notes": "Graph-native metric outcome IDs are approved by presence; held numeric claims remain non-claimable.",
+      "provenance_source_refs": [
+        "exp_insurtech_001",
+        "fact_insurtech_aws_001"
+      ]
     },
     {
       "role_episode_bundle_id": "reb_insurtech_aws_migration_execution",
@@ -323,7 +343,7 @@
       "claim_action": "Led AWS modernization execution for monolithic policy administration and insurance platform workloads.",
       "claim_scope": "2014-2017 InsurTech Co-Founder & VP of Engineering stealth-startup role episode for AWS modernization of regulated insurance workloads.",
       "claim_outcome": "Migrated core monolithic policy-administration workloads to AWS across structured waves with minimized cutover downtime.",
-      "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
+      "support_level": "verified_base_resume",
       "executive_scope_signals": [
         "Led AWS modernization execution for monolithic policy administration and insurance platform workloads.",
         "AWS Migration Execution for Legacy Insurance Platforms"
@@ -364,10 +384,14 @@
         "insurtech_bullets",
         "insurtech_narrative"
       ],
-      "external_claim_policy": "approved_by_graph_presence",
+      "external_claim_policy": "verified_provenance_required",
       "activation_status": "ACTIVE_CONFIRMED",
       "config_gate": "ENABLED_WITH_ROLE_EPISODE_BUNDLE_GUARDS",
-      "notes": "Graph-native metric outcome IDs are approved by presence; held numeric claims remain non-claimable."
+      "notes": "Graph-native metric outcome IDs are approved by presence; held numeric claims remain non-claimable.",
+      "provenance_source_refs": [
+        "exp_insurtech_001",
+        "fact_insurtech_aws_001"
+      ]
     },
     {
       "role_episode_bundle_id": "reb_insurtech_aws_shared_responsibility_operating_model",
@@ -380,7 +404,7 @@
       "claim_action": "Built safety operating-model framing around AWS shared responsibility and insurer-owned controls.",
       "claim_scope": "2014-2017 InsurTech Co-Founder & VP of Engineering stealth-startup role episode for AWS modernization of regulated insurance workloads.",
       "claim_outcome": "Clarified AWS-versus-insurer control ownership matrices and safety operating artifacts, accelerating carrier security sign-off.",
-      "support_level": "DERIVED_SUPPORTED",
+      "support_level": "verified_base_resume",
       "executive_scope_signals": [
         "Built safety operating-model framing around AWS shared responsibility and insurer-owned controls.",
         "AWS Shared-Responsibility Safety Operating Model"
@@ -415,10 +439,14 @@
         "insurtech_bullets",
         "insurtech_narrative"
       ],
-      "external_claim_policy": "approved_by_graph_presence",
+      "external_claim_policy": "verified_provenance_required",
       "activation_status": "ACTIVE_CONFIRMED",
       "config_gate": "ENABLED_WITH_ROLE_EPISODE_BUNDLE_GUARDS",
-      "notes": "Graph-native metric outcome IDs are approved by presence; held numeric claims remain non-claimable."
+      "notes": "Graph-native metric outcome IDs are approved by presence; held numeric claims remain non-claimable.",
+      "provenance_source_refs": [
+        "exp_insurtech_001",
+        "fact_insurtech_aws_001"
+      ]
     },
     {
       "role_episode_bundle_id": "reb_insurtech_insurance_regulatory_cloud_adoption_standards",
@@ -431,7 +459,7 @@
       "claim_action": "Worked through insurer/regulatory adoption concerns around cloud controls, data security, and standards readiness.",
       "claim_scope": "2014-2017 InsurTech Co-Founder & VP of Engineering stealth-startup role episode for AWS modernization of regulated insurance workloads.",
       "claim_outcome": "Resolved state insurance regulatory cloud objections and standardized security compliance artifacts to clear production cloud adoption.",
-      "support_level": "DERIVED_SUPPORTED",
+      "support_level": "verified_base_resume",
       "executive_scope_signals": [
         "Worked through insurer/regulatory adoption concerns around cloud controls, data security, and standards readiness.",
         "Insurance Regulatory Cloud Adoption Standards"
@@ -467,10 +495,14 @@
         "insurtech_bullets",
         "insurtech_narrative"
       ],
-      "external_claim_policy": "approved_by_graph_presence",
+      "external_claim_policy": "verified_provenance_required",
       "activation_status": "ACTIVE_CONFIRMED",
       "config_gate": "ENABLED_WITH_ROLE_EPISODE_BUNDLE_GUARDS",
-      "notes": "Graph-native metric outcome IDs are approved by presence; held numeric claims remain non-claimable."
+      "notes": "Graph-native metric outcome IDs are approved by presence; held numeric claims remain non-claimable.",
+      "provenance_source_refs": [
+        "exp_insurtech_001",
+        "fact_insurtech_aws_001"
+      ]
     },
     {
       "role_episode_bundle_id": "reb_insurtech_regulated_aws_control_implementation",
@@ -483,7 +515,7 @@
       "claim_action": "Implemented SOC 2-aligned AWS controls for regulated insurers adopting analytics and ML.",
       "claim_scope": "2014-2017 InsurTech Co-Founder & VP of Engineering stealth-startup role episode for AWS modernization of regulated insurance workloads.",
       "claim_outcome": "Mapped SOC 2-aligned AWS controls, audit logging coverage, and sensitive-data protections enabling compliant insurer analytics and ML workloads.",
-      "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
+      "support_level": "verified_base_resume",
       "executive_scope_signals": [
         "Implemented SOC 2-aligned AWS controls for regulated insurers adopting analytics and ML.",
         "Regulated AWS Control Implementation"
@@ -521,10 +553,14 @@
         "insurtech_bullets",
         "insurtech_narrative"
       ],
-      "external_claim_policy": "approved_by_graph_presence",
+      "external_claim_policy": "verified_provenance_required",
       "activation_status": "ACTIVE_CONFIRMED",
       "config_gate": "ENABLED_WITH_ROLE_EPISODE_BUNDLE_GUARDS",
-      "notes": "Graph-native metric outcome IDs are approved by presence; held numeric claims remain non-claimable."
+      "notes": "Graph-native metric outcome IDs are approved by presence; held numeric claims remain non-claimable.",
+      "provenance_source_refs": [
+        "exp_insurtech_001",
+        "fact_insurtech_aws_001"
+      ]
     },
     {
       "role_episode_bundle_id": "reb_insurtech_aws_guidewire_core_modernization",
@@ -537,7 +573,7 @@
       "claim_action": "Connected AWS modernization to policy administration, Guidewire-adjacent workflows, and core insurance data models.",
       "claim_scope": "2014-2017 InsurTech Co-Founder & VP of Engineering stealth-startup role episode for AWS modernization of regulated insurance workloads.",
       "claim_outcome": "Aligned AWS cloud modernization with Guidewire-adjacent policy workflows and core insurance data models to streamline carrier operations.",
-      "support_level": "DERIVED_SUPPORTED",
+      "support_level": "verified_base_resume",
       "executive_scope_signals": [
         "Connected AWS modernization to policy administration, Guidewire-adjacent workflows, and core insurance data models.",
         "AWS and Guidewire/Core Insurance Modernization"
@@ -572,10 +608,14 @@
         "insurtech_bullets",
         "insurtech_narrative"
       ],
-      "external_claim_policy": "approved_by_graph_presence",
+      "external_claim_policy": "verified_provenance_required",
       "activation_status": "ACTIVE_CONFIRMED",
       "config_gate": "ENABLED_WITH_ROLE_EPISODE_BUNDLE_GUARDS",
-      "notes": "Graph-native metric outcome IDs are approved by presence; held numeric claims remain non-claimable."
+      "notes": "Graph-native metric outcome IDs are approved by presence; held numeric claims remain non-claimable.",
+      "provenance_source_refs": [
+        "exp_insurtech_001",
+        "fact_insurtech_aws_001"
+      ]
     },
     {
       "role_episode_bundle_id": "reb_insurtech_insurance_data_bi_decisioning",
@@ -588,7 +628,7 @@
       "claim_action": "Enabled real-time ingestion, BI, underwriting analytics, and pricing decision support for insurer operations.",
       "claim_scope": "2014-2017 InsurTech Co-Founder & VP of Engineering stealth-startup role episode for AWS modernization of regulated insurance workloads.",
       "claim_outcome": "Enabled real-time ingestion feeds and governed BI/underwriting analytics that cut reporting latency and accelerated pricing decisions.",
-      "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
+      "support_level": "verified_base_resume",
       "executive_scope_signals": [
         "Enabled real-time ingestion, BI, underwriting analytics, and pricing decision support for insurer operations.",
         "Insurance Data, BI, and Decision Support"
@@ -625,10 +665,14 @@
         "insurtech_bullets",
         "insurtech_narrative"
       ],
-      "external_claim_policy": "approved_by_graph_presence",
+      "external_claim_policy": "verified_provenance_required",
       "activation_status": "ACTIVE_CONFIRMED",
       "config_gate": "ENABLED_WITH_ROLE_EPISODE_BUNDLE_GUARDS",
-      "notes": "Graph-native metric outcome IDs are approved by presence; held numeric claims remain non-claimable."
+      "notes": "Graph-native metric outcome IDs are approved by presence; held numeric claims remain non-claimable.",
+      "provenance_source_refs": [
+        "exp_insurtech_001",
+        "fact_insurtech_aws_001"
+      ]
     },
     {
       "role_episode_bundle_id": "reb_insurtech_resilient_core_operations",
@@ -641,7 +685,7 @@
       "claim_action": "Re-architected insurer underwriting and operational systems for high availability and real-time operations.",
       "claim_scope": "2014-2017 InsurTech Co-Founder & VP of Engineering stealth-startup role episode for AWS modernization of regulated insurance workloads.",
       "claim_outcome": "Met core carrier RTO/RPO resilience targets and standardized incident runbooks across high-availability AWS underwriting operations.",
-      "support_level": "DIRECT_FROM_RESUME_ARCHIVE",
+      "support_level": "verified_base_resume",
       "executive_scope_signals": [
         "Re-architected insurer underwriting and operational systems for high availability and real-time operations.",
         "Resilient Core Insurance Operations on AWS"
@@ -689,10 +733,14 @@
         "insurtech_bullets",
         "insurtech_narrative"
       ],
-      "external_claim_policy": "approved_by_graph_presence",
+      "external_claim_policy": "verified_provenance_required",
       "activation_status": "ACTIVE_CONFIRMED",
       "config_gate": "ENABLED_WITH_ROLE_EPISODE_BUNDLE_GUARDS",
-      "notes": "Graph-native metric outcome IDs are approved by presence; held numeric claims remain non-claimable."
+      "notes": "Graph-native metric outcome IDs are approved by presence; held numeric claims remain non-claimable.",
+      "provenance_source_refs": [
+        "exp_insurtech_001",
+        "fact_insurtech_aws_001"
+      ]
     }
   ],
   "metric_candidates_for_approval": [
@@ -734,9 +782,9 @@
       "metric": "24 C-suite and VP-level insurer discovery sessions across 3 regional P&C carrier design partners",
       "metric_type": "market_discovery_count",
       "employer": "InsurTech Cloud Solutions",
-      "approved": true,
-      "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "approved": false,
+      "approval_status": "QUARANTINED_UNVERIFIED_SYNTHETIC",
+      "support_level": "quarantined_unverified_synthetic",
       "bundle_bindings": [
         "reb_insurtech_founder_led_market_creation",
         "reb_insurtech_founder_led_gtm_revenue"
@@ -751,16 +799,18 @@
         "insurtech_bullets",
         "insurtech_narrative"
       ],
-      "proof_shape": "CRM export, dated call notes, or signed discovery summaries."
+      "proof_shape": "CRM export, dated call notes, or signed discovery summaries.",
+      "quarantine_reason": "Unverified synthetic session count ('24 discovery sessions') absent from exp_insurtech_001.",
+      "provenance_source_refs": []
     },
     "metric_insurtech_qualified_pipeline_stage_count": {
       "metric_outcome_id": "metric_insurtech_qualified_pipeline_stage_count",
       "metric": "$3.2M qualified modernization pipeline across 8 carrier pursuits segmented by stage and buyer persona",
       "metric_type": "pipeline_stage_metric",
       "employer": "InsurTech Cloud Solutions",
-      "approved": true,
-      "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "approved": false,
+      "approval_status": "QUARANTINED_UNVERIFIED_SYNTHETIC",
+      "support_level": "quarantined_unverified_synthetic",
       "bundle_bindings": [
         "reb_insurtech_founder_led_gtm_revenue",
         "reb_insurtech_founder_led_market_creation"
@@ -775,7 +825,9 @@
         "insurtech_bullets",
         "insurtech_narrative"
       ],
-      "proof_shape": "Pipeline export with stage, account type, and date window."
+      "proof_shape": "Pipeline export with stage, account type, and date window.",
+      "quarantine_reason": "Unverified synthetic dollar pipeline ('$3.2M') absent from exp_insurtech_001 (verified backlog is $2.4M).",
+      "provenance_source_refs": []
     },
     "metric_insurtech_poc_to_paid_conversion_pct": {
       "metric_outcome_id": "metric_insurtech_poc_to_paid_conversion_pct",
@@ -784,7 +836,7 @@
       "employer": "InsurTech Cloud Solutions",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_base_resume",
       "bundle_bindings": [
         "reb_insurtech_founder_led_gtm_revenue",
         "reb_insurtech_founder_led_market_creation"
@@ -797,42 +849,51 @@
       ],
       "section_eligibility": [
         "insurtech_bullets",
-        "insurtech_narrative"
+        "insurtech_narrative",
+        "competencies",
+        "executive_summary"
       ],
-      "proof_shape": "Proposal/SOW trail tying pilot or assessment to signed work."
+      "proof_shape": "Proposal/SOW trail tying pilot or assessment to signed work.",
+      "provenance_source_refs": [
+        "exp_insurtech_001"
+      ]
     },
     "metric_insurtech_proposals_sows_count": {
       "metric_outcome_id": "metric_insurtech_proposals_sows_count",
-      "metric": "5 signed multi-phase modernization SOWs ($2.4M contracted backlog) and 11 commercial proposals",
+      "metric": "5 signed multi-phase modernization SOWs ($2.4M contracted backlog) across 3 regional P&C carriers",
       "metric_type": "commercial_delivery_count",
       "employer": "InsurTech Cloud Solutions",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_base_resume",
       "bundle_bindings": [
         "reb_insurtech_founder_led_gtm_revenue"
       ],
-      "claim_text": "InsurTech graph evidence supports 5 signed multi-phase insurer modernization SOWs ($2.4M contracted backlog) and 11 proposals spanning AWS migration, controls, and delivery scope.",
+      "claim_text": "Converted 5 of 8 regional P&C carrier architecture pilots into $2.4M in signed multi-phase modernization SOWs.",
       "surface_tokens": [
-        "5 signed SOWs",
         "$2.4M contracted backlog",
-        "11 commercial proposals",
-        "AWS migration scope"
+        "5 signed multi-phase modernization SOWs",
+        "$2.4M in signed SOWs"
       ],
       "section_eligibility": [
         "insurtech_bullets",
-        "insurtech_narrative"
+        "insurtech_narrative",
+        "competencies",
+        "executive_summary"
       ],
-      "proof_shape": "Versioned SOW/proposal archive."
+      "proof_shape": "Versioned SOW/proposal archive.",
+      "provenance_source_refs": [
+        "exp_insurtech_001"
+      ]
     },
     "metric_insurtech_mvp_to_production_cycle_time": {
       "metric_outcome_id": "metric_insurtech_mvp_to_production_cycle_time",
       "metric": "10-week assessment-to-production MVP cycle delivered by an 8-person cross-functional engineering pod",
       "metric_type": "cycle_time_metric",
       "employer": "InsurTech Cloud Solutions",
-      "approved": true,
-      "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "approved": false,
+      "approval_status": "QUARANTINED_UNVERIFIED_SYNTHETIC",
+      "support_level": "quarantined_unverified_synthetic",
       "bundle_bindings": [
         "reb_insurtech_lean_delivery_operating_model"
       ],
@@ -846,16 +907,18 @@
         "insurtech_bullets",
         "insurtech_narrative"
       ],
-      "proof_shape": "Project plan or release trail with start/end dates."
+      "proof_shape": "Project plan or release trail with start/end dates.",
+      "quarantine_reason": "Unverified synthetic cycle duration ('10-week MVP cycle') absent from exp_insurtech_001.",
+      "provenance_source_refs": []
     },
     "metric_insurtech_cloud_economics_comparison_models": {
       "metric_outcome_id": "metric_insurtech_cloud_economics_comparison_models",
       "metric": "8 five-year CapEx-to-OpEx public-versus-private cloud economics models projecting 42% five-year infrastructure cost reduction",
       "metric_type": "cloud_economics_scope",
       "employer": "InsurTech Cloud Solutions",
-      "approved": true,
-      "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "approved": false,
+      "approval_status": "QUARANTINED_UNVERIFIED_SYNTHETIC",
+      "support_level": "quarantined_unverified_synthetic",
       "bundle_bindings": [
         "reb_insurtech_public_vs_private_cloud_strategy",
         "reb_insurtech_aws_cloud_economics"
@@ -870,16 +933,18 @@
         "insurtech_bullets",
         "insurtech_narrative"
       ],
-      "proof_shape": "Architecture assessment, economics model, or workload disposition artifact comparing public cloud and private/on-prem alternatives."
+      "proof_shape": "Architecture assessment, economics model, or workload disposition artifact comparing public cloud and private/on-prem alternatives.",
+      "quarantine_reason": "Unverified synthetic percentage ('42% cost reduction') mutated from verified 40% TCO reduction in exp_insurtech_001.",
+      "provenance_source_refs": []
     },
     "metric_insurtech_workloads_classified_by_cloud_fit_count": {
       "metric_outcome_id": "metric_insurtech_workloads_classified_by_cloud_fit_count",
       "metric": "26 legacy policy, billing, claims, and rating workloads classified by cloud fit, sensitivity, and migration priority",
       "metric_type": "portfolio_classification_count",
       "employer": "InsurTech Cloud Solutions",
-      "approved": true,
-      "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "approved": false,
+      "approval_status": "QUARANTINED_UNVERIFIED_SYNTHETIC",
+      "support_level": "quarantined_unverified_synthetic",
       "bundle_bindings": [
         "reb_insurtech_public_vs_private_cloud_strategy",
         "reb_insurtech_aws_migration_execution"
@@ -895,16 +960,18 @@
         "insurtech_bullets",
         "insurtech_narrative"
       ],
-      "proof_shape": "Workload inventory and decision matrix."
+      "proof_shape": "Workload inventory and decision matrix.",
+      "quarantine_reason": "Unverified synthetic workload count ('26 legacy workloads') absent from exp_insurtech_001 (verified count is 9 core workloads).",
+      "provenance_source_refs": []
     },
     "metric_insurtech_reserved_instance_coverage_pct": {
       "metric_outcome_id": "metric_insurtech_reserved_instance_coverage_pct",
       "metric": "72% AWS Reserved Instance capacity coverage across steady-state carrier workloads (34% compute spend savings)",
       "metric_type": "coverage_metric",
       "employer": "InsurTech Cloud Solutions",
-      "approved": true,
-      "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "approved": false,
+      "approval_status": "QUARANTINED_UNVERIFIED_SYNTHETIC",
+      "support_level": "quarantined_unverified_synthetic",
       "bundle_bindings": [
         "reb_insurtech_aws_cloud_economics"
       ],
@@ -918,16 +985,18 @@
         "insurtech_bullets",
         "insurtech_narrative"
       ],
-      "proof_shape": "AWS billing export or optimization report."
+      "proof_shape": "AWS billing export or optimization report.",
+      "quarantine_reason": "Unverified synthetic percentages ('72% Reserved Instance coverage', '34% compute savings') absent from exp_insurtech_001.",
+      "provenance_source_refs": []
     },
     "metric_insurtech_cost_allocation_coverage_pct": {
       "metric_outcome_id": "metric_insurtech_cost_allocation_coverage_pct",
       "metric": "98% automated AWS cost-allocation tag coverage across customer tenant, environment, and carrier line of business",
       "metric_type": "coverage_metric",
       "employer": "InsurTech Cloud Solutions",
-      "approved": true,
-      "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "approved": false,
+      "approval_status": "QUARANTINED_UNVERIFIED_SYNTHETIC",
+      "support_level": "quarantined_unverified_synthetic",
       "bundle_bindings": [
         "reb_insurtech_aws_cloud_economics"
       ],
@@ -940,7 +1009,9 @@
         "insurtech_bullets",
         "insurtech_narrative"
       ],
-      "proof_shape": "AWS cost-allocation/tagging report."
+      "proof_shape": "AWS cost-allocation/tagging report.",
+      "quarantine_reason": "Unverified synthetic percentage ('98% tag coverage') absent from exp_insurtech_001.",
+      "provenance_source_refs": []
     },
     "metric_insurtech_migration_waves_completed_count": {
       "metric_outcome_id": "metric_insurtech_migration_waves_completed_count",
@@ -949,7 +1020,7 @@
       "employer": "InsurTech Cloud Solutions",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_base_resume",
       "bundle_bindings": [
         "reb_insurtech_aws_migration_execution"
       ],
@@ -961,9 +1032,14 @@
       ],
       "section_eligibility": [
         "insurtech_bullets",
-        "insurtech_narrative"
+        "insurtech_narrative",
+        "competencies",
+        "executive_summary"
       ],
-      "proof_shape": "Migration plan and cutover records."
+      "proof_shape": "Migration plan and cutover records.",
+      "provenance_source_refs": [
+        "exp_insurtech_001"
+      ]
     },
     "metric_insurtech_core_workloads_migrated_count": {
       "metric_outcome_id": "metric_insurtech_core_workloads_migrated_count",
@@ -972,7 +1048,7 @@
       "employer": "InsurTech Cloud Solutions",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_base_resume",
       "bundle_bindings": [
         "reb_insurtech_aws_migration_execution"
       ],
@@ -984,18 +1060,23 @@
       ],
       "section_eligibility": [
         "insurtech_bullets",
-        "insurtech_narrative"
+        "insurtech_narrative",
+        "competencies",
+        "executive_summary"
       ],
-      "proof_shape": "Application inventory and production cutover evidence."
+      "proof_shape": "Application inventory and production cutover evidence.",
+      "provenance_source_refs": [
+        "exp_insurtech_001"
+      ]
     },
     "metric_insurtech_cutover_downtime_hours": {
       "metric_outcome_id": "metric_insurtech_cutover_downtime_hours",
       "metric": "<2.5-hour maintenance-window cutover downtime with 0 rollbacks across 7 production workload migrations",
       "metric_type": "cutover_resilience_metric",
       "employer": "InsurTech Cloud Solutions",
-      "approved": true,
-      "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "approved": false,
+      "approval_status": "QUARANTINED_UNVERIFIED_SYNTHETIC",
+      "support_level": "quarantined_unverified_synthetic",
       "bundle_bindings": [
         "reb_insurtech_aws_migration_execution"
       ],
@@ -1008,16 +1089,18 @@
         "insurtech_bullets",
         "insurtech_narrative"
       ],
-      "proof_shape": "Cutover log, incident log, and release record."
+      "proof_shape": "Cutover log, incident log, and release record.",
+      "quarantine_reason": "Unverified synthetic duration ('<2.5-hour cutover downtime') absent from exp_insurtech_001.",
+      "provenance_source_refs": []
     },
     "metric_insurtech_control_ownership_matrix_count": {
       "metric_outcome_id": "metric_insurtech_control_ownership_matrix_count",
       "metric": "3 multi-tenant AWS Shared Responsibility RACI matrices covering 95+ cloud security controls",
       "metric_type": "control_matrix_count",
       "employer": "InsurTech Cloud Solutions",
-      "approved": true,
-      "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "approved": false,
+      "approval_status": "QUARANTINED_UNVERIFIED_SYNTHETIC",
+      "support_level": "quarantined_unverified_synthetic",
       "bundle_bindings": [
         "reb_insurtech_aws_shared_responsibility_operating_model",
         "reb_insurtech_lean_delivery_operating_model"
@@ -1032,16 +1115,18 @@
         "insurtech_bullets",
         "insurtech_narrative"
       ],
-      "proof_shape": "Control matrix artifacts mapping insurer, AWS, and delivery-team responsibilities."
+      "proof_shape": "Control matrix artifacts mapping insurer, AWS, and delivery-team responsibilities.",
+      "quarantine_reason": "Unverified synthetic control count ('95+ cloud security controls') absent from exp_insurtech_001 (verified count is 78 controls).",
+      "provenance_source_refs": []
     },
     "metric_insurtech_safety_operating_model_artifacts_count": {
       "metric_outcome_id": "metric_insurtech_safety_operating_model_artifacts_count",
       "metric": "16 cloud safety operating-model runbooks and guardrails for IAM identity, KMS encryption, logging, backup, and incident response",
       "metric_type": "operating_model_artifact_count",
       "employer": "InsurTech Cloud Solutions",
-      "approved": true,
-      "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "approved": false,
+      "approval_status": "QUARANTINED_UNVERIFIED_SYNTHETIC",
+      "support_level": "quarantined_unverified_synthetic",
       "bundle_bindings": [
         "reb_insurtech_aws_shared_responsibility_operating_model",
         "reb_insurtech_lean_delivery_operating_model"
@@ -1055,7 +1140,9 @@
         "insurtech_bullets",
         "insurtech_narrative"
       ],
-      "proof_shape": "Operating-model docs and control runbooks."
+      "proof_shape": "Operating-model docs and control runbooks.",
+      "quarantine_reason": "Unverified synthetic runbook count ('16 cloud safety runbooks') absent from exp_insurtech_001.",
+      "provenance_source_refs": []
     },
     "metric_insurtech_regulatory_bodies_engaged_count": {
       "metric_outcome_id": "metric_insurtech_regulatory_bodies_engaged_count",
@@ -1064,7 +1151,7 @@
       "employer": "InsurTech Cloud Solutions",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_base_resume",
       "bundle_bindings": [
         "reb_insurtech_insurance_regulatory_cloud_adoption_standards"
       ],
@@ -1075,18 +1162,23 @@
       ],
       "section_eligibility": [
         "insurtech_bullets",
-        "insurtech_narrative"
+        "insurtech_narrative",
+        "competencies",
+        "executive_summary"
       ],
-      "proof_shape": "Meeting notes, correspondence, or regulator-facing materials."
+      "proof_shape": "Meeting notes, correspondence, or regulator-facing materials.",
+      "provenance_source_refs": [
+        "exp_insurtech_001"
+      ]
     },
     "metric_insurtech_cloud_standards_artifacts_count": {
       "metric_outcome_id": "metric_insurtech_cloud_standards_artifacts_count",
       "metric": "12 NAIC and NYDFS 23 NYCRR 500 cloud security standards and regulator-readiness evidence packages",
       "metric_type": "standards_artifact_count",
       "employer": "InsurTech Cloud Solutions",
-      "approved": true,
-      "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "approved": false,
+      "approval_status": "QUARANTINED_UNVERIFIED_SYNTHETIC",
+      "support_level": "quarantined_unverified_synthetic",
       "bundle_bindings": [
         "reb_insurtech_insurance_regulatory_cloud_adoption_standards"
       ],
@@ -1099,7 +1191,9 @@
         "insurtech_bullets",
         "insurtech_narrative"
       ],
-      "proof_shape": "Versioned standards or policy docs."
+      "proof_shape": "Versioned standards or policy docs.",
+      "quarantine_reason": "Unverified synthetic package count ('12 NAIC/NYDFS packages') absent from exp_insurtech_001.",
+      "provenance_source_refs": []
     },
     "metric_insurtech_regulatory_objections_resolved_count": {
       "metric_outcome_id": "metric_insurtech_regulatory_objections_resolved_count",
@@ -1108,7 +1202,7 @@
       "employer": "InsurTech Cloud Solutions",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_base_resume",
       "bundle_bindings": [
         "reb_insurtech_insurance_regulatory_cloud_adoption_standards"
       ],
@@ -1120,9 +1214,14 @@
       ],
       "section_eligibility": [
         "insurtech_bullets",
-        "insurtech_narrative"
+        "insurtech_narrative",
+        "competencies",
+        "executive_summary"
       ],
-      "proof_shape": "Objection register or approval memo."
+      "proof_shape": "Objection register or approval memo.",
+      "provenance_source_refs": [
+        "exp_insurtech_001"
+      ]
     },
     "metric_insurtech_controls_mapped_count": {
       "metric_outcome_id": "metric_insurtech_controls_mapped_count",
@@ -1131,7 +1230,7 @@
       "employer": "InsurTech Cloud Solutions",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_base_resume",
       "bundle_bindings": [
         "reb_insurtech_regulated_aws_control_implementation"
       ],
@@ -1143,9 +1242,14 @@
       ],
       "section_eligibility": [
         "insurtech_bullets",
-        "insurtech_narrative"
+        "insurtech_narrative",
+        "competencies",
+        "executive_summary"
       ],
-      "proof_shape": "Control crosswalk or audit evidence package."
+      "proof_shape": "Control crosswalk or audit evidence package.",
+      "provenance_source_refs": [
+        "exp_insurtech_001"
+      ]
     },
     "metric_insurtech_audit_logging_coverage_pct": {
       "metric_outcome_id": "metric_insurtech_audit_logging_coverage_pct",
@@ -1154,7 +1258,7 @@
       "employer": "InsurTech Cloud Solutions",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_base_resume",
       "bundle_bindings": [
         "reb_insurtech_regulated_aws_control_implementation"
       ],
@@ -1166,31 +1270,41 @@
       ],
       "section_eligibility": [
         "insurtech_bullets",
-        "insurtech_narrative"
+        "insurtech_narrative",
+        "competencies",
+        "executive_summary"
       ],
-      "proof_shape": "Logging coverage report and workload inventory."
+      "proof_shape": "Logging coverage report and workload inventory.",
+      "provenance_source_refs": [
+        "exp_insurtech_001"
+      ]
     },
     "metric_insurtech_sensitive_data_controls_count": {
       "metric_outcome_id": "metric_insurtech_sensitive_data_controls_count",
-      "metric": "12 field-level KMS encryption and PII/PHI tokenization control patterns protecting 2.8M+ policyholder and claim records",
+      "metric": "field-level KMS encryption and PII tokenization controls protecting 2.8M+ policyholder records",
       "metric_type": "control_pattern_count",
       "employer": "InsurTech Cloud Solutions",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_base_resume",
       "bundle_bindings": [
         "reb_insurtech_regulated_aws_control_implementation"
       ],
-      "claim_text": "InsurTech graph evidence supports 12 field-level KMS encryption and tokenization sensitive-data control patterns protecting 2.8M+ policyholder and claims records.",
+      "claim_text": "Implemented field-level KMS encryption and PII tokenization controls protecting 2.8M+ policyholder records.",
       "surface_tokens": [
-        "12 sensitive-data control patterns",
-        "2.8M+ policyholder and claims records"
+        "2.8M+ policyholder records",
+        "field-level PII tokenization"
       ],
       "section_eligibility": [
         "insurtech_bullets",
-        "insurtech_narrative"
+        "insurtech_narrative",
+        "competencies",
+        "executive_summary"
       ],
-      "proof_shape": "Architecture decision records and security control evidence."
+      "proof_shape": "Architecture decision records and security control evidence.",
+      "provenance_source_refs": [
+        "exp_insurtech_001"
+      ]
     },
     "metric_insurtech_guidewire_workflows_mapped_count": {
       "metric_outcome_id": "metric_insurtech_guidewire_workflows_mapped_count",
@@ -1199,7 +1313,7 @@
       "employer": "InsurTech Cloud Solutions",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_base_resume",
       "bundle_bindings": [
         "reb_insurtech_aws_guidewire_core_modernization"
       ],
@@ -1211,18 +1325,23 @@
       ],
       "section_eligibility": [
         "insurtech_bullets",
-        "insurtech_narrative"
+        "insurtech_narrative",
+        "competencies",
+        "executive_summary"
       ],
-      "proof_shape": "Workflow mapping and target architecture artifacts."
+      "proof_shape": "Workflow mapping and target architecture artifacts.",
+      "provenance_source_refs": [
+        "exp_insurtech_001"
+      ]
     },
     "metric_insurtech_core_data_entities_mapped_count": {
       "metric_outcome_id": "metric_insurtech_core_data_entities_mapped_count",
       "metric": "48 canonical P&C data entities mapped across policy, billing, claims, underwriting, and actuarial loss triangles into Amazon Redshift",
       "metric_type": "data_entity_mapping_count",
       "employer": "InsurTech Cloud Solutions",
-      "approved": true,
-      "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "approved": false,
+      "approval_status": "QUARANTINED_UNVERIFIED_SYNTHETIC",
+      "support_level": "quarantined_unverified_synthetic",
       "bundle_bindings": [
         "reb_insurtech_aws_guidewire_core_modernization",
         "reb_insurtech_insurance_data_bi_decisioning"
@@ -1237,7 +1356,9 @@
         "insurtech_bullets",
         "insurtech_narrative"
       ],
-      "proof_shape": "Canonical model or data-mapping workbook."
+      "proof_shape": "Canonical model or data-mapping workbook.",
+      "quarantine_reason": "Unverified synthetic entity count ('48 canonical P&C data entities') absent from exp_insurtech_001.",
+      "provenance_source_refs": []
     },
     "metric_insurtech_reporting_latency_reduction": {
       "metric_outcome_id": "metric_insurtech_reporting_latency_reduction",
@@ -1246,7 +1367,7 @@
       "employer": "InsurTech Cloud Solutions",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_base_resume",
       "bundle_bindings": [
         "reb_insurtech_insurance_data_bi_decisioning"
       ],
@@ -1258,9 +1379,14 @@
       ],
       "section_eligibility": [
         "insurtech_bullets",
-        "insurtech_narrative"
+        "insurtech_narrative",
+        "competencies",
+        "executive_summary"
       ],
-      "proof_shape": "BI/reporting benchmark before and after."
+      "proof_shape": "BI/reporting benchmark before and after.",
+      "provenance_source_refs": [
+        "exp_insurtech_001"
+      ]
     },
     "metric_insurtech_real_time_ingestion_feeds_count": {
       "metric_outcome_id": "metric_insurtech_real_time_ingestion_feeds_count",
@@ -1269,7 +1395,7 @@
       "employer": "InsurTech Cloud Solutions",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_base_resume",
       "bundle_bindings": [
         "reb_insurtech_insurance_data_bi_decisioning"
       ],
@@ -1281,42 +1407,50 @@
       ],
       "section_eligibility": [
         "insurtech_bullets",
-        "insurtech_narrative"
+        "insurtech_narrative",
+        "competencies",
+        "executive_summary"
       ],
-      "proof_shape": "Data-flow inventory and production feed evidence."
+      "proof_shape": "Data-flow inventory and production feed evidence.",
+      "provenance_source_refs": [
+        "exp_insurtech_001"
+      ]
     },
     "metric_insurtech_decision_cycle_time_reduction": {
       "metric_outcome_id": "metric_insurtech_decision_cycle_time_reduction",
-      "metric": "52% commercial underwriting and pricing decision-cycle compression (from 4 business days to <48 hours)",
+      "metric": "52% commercial underwriting turnaround compression across Multi-AZ AWS architectures",
       "metric_type": "decision_cycle_metric",
       "employer": "InsurTech Cloud Solutions",
       "approved": true,
       "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "support_level": "verified_base_resume",
       "bundle_bindings": [
         "reb_insurtech_insurance_data_bi_decisioning"
       ],
-      "claim_text": "InsurTech graph evidence supports a 52% underwriting and pricing decision-cycle compression (4 business days to <48 hours) through real-time ingestion and cloud data architecture.",
+      "claim_text": "Compressed commercial underwriting turnaround by 52% through decoupled Guidewire workflows and real-time ingestion feeds on Multi-AZ AWS.",
       "surface_tokens": [
-        "52% decision-cycle compression",
-        "4 days to <48 hours",
-        "real-time ingestion",
-        "cloud data architecture"
+        "52% commercial underwriting turnaround compression",
+        "52%"
       ],
       "section_eligibility": [
         "insurtech_bullets",
-        "insurtech_narrative"
+        "insurtech_narrative",
+        "competencies",
+        "executive_summary"
       ],
-      "proof_shape": "Operational metric extract or workflow timestamp analysis."
+      "proof_shape": "Operational metric extract or workflow timestamp analysis.",
+      "provenance_source_refs": [
+        "exp_insurtech_001"
+      ]
     },
     "metric_insurtech_rto_rpo_targets_met_count": {
       "metric_outcome_id": "metric_insurtech_rto_rpo_targets_met_count",
       "metric": "100% DR drill pass rate across 9 priority workloads (<45-minute RTO and <15-minute RPO across Multi-AZ AWS architectures)",
       "metric_type": "resilience_target_count",
       "employer": "InsurTech Cloud Solutions",
-      "approved": true,
-      "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "approved": false,
+      "approval_status": "QUARANTINED_UNVERIFIED_SYNTHETIC",
+      "support_level": "quarantined_unverified_synthetic",
       "bundle_bindings": [
         "reb_insurtech_resilient_core_operations"
       ],
@@ -1330,16 +1464,18 @@
         "insurtech_bullets",
         "insurtech_narrative"
       ],
-      "proof_shape": "DR test reports and recovery objective matrix."
+      "proof_shape": "DR test reports and recovery objective matrix.",
+      "quarantine_reason": "Unverified synthetic RPO target ('<15-minute RPO') absent from exp_insurtech_001.",
+      "provenance_source_refs": []
     },
     "metric_insurtech_incident_runbooks_count": {
       "metric_outcome_id": "metric_insurtech_incident_runbooks_count",
       "metric": "16 automated CloudWatch alerting, failover, and recovery runbooks cutting mean-time-to-recovery (MTTR) by 54%",
       "metric_type": "runbook_count",
       "employer": "InsurTech Cloud Solutions",
-      "approved": true,
-      "approval_status": "APPROVED_GRAPH_SSOT",
-      "support_level": "approved_by_graph_presence",
+      "approved": false,
+      "approval_status": "QUARANTINED_UNVERIFIED_SYNTHETIC",
+      "support_level": "quarantined_unverified_synthetic",
       "bundle_bindings": [
         "reb_insurtech_resilient_core_operations"
       ],
@@ -1353,37 +1489,25 @@
         "insurtech_bullets",
         "insurtech_narrative"
       ],
-      "proof_shape": "Runbook repository or operating manual."
+      "proof_shape": "Runbook repository or operating manual.",
+      "quarantine_reason": "Unverified synthetic count/percentage ('16 runbooks', '54% MTTR reduction') absent from exp_insurtech_001.",
+      "provenance_source_refs": []
     }
   },
   "approved_metric_outcome_ids": {
-    "metric_insurtech_founder_buyer_discovery_count": "24 C-suite and VP-level insurer discovery sessions across 3 regional P&C carrier design partners",
-    "metric_insurtech_qualified_pipeline_stage_count": "$3.2M qualified modernization pipeline across 8 carrier pursuits segmented by stage and buyer persona",
     "metric_insurtech_poc_to_paid_conversion_pct": "62% pilot-to-paid conversion rate (5 of 8 regional P&C carrier architecture assessments converted)",
-    "metric_insurtech_proposals_sows_count": "5 signed multi-phase modernization SOWs ($2.4M contracted backlog) and 11 commercial proposals",
-    "metric_insurtech_mvp_to_production_cycle_time": "10-week assessment-to-production MVP cycle delivered by an 8-person cross-functional engineering pod",
-    "metric_insurtech_cloud_economics_comparison_models": "8 five-year CapEx-to-OpEx public-versus-private cloud economics models projecting 42% five-year infrastructure cost reduction",
-    "metric_insurtech_workloads_classified_by_cloud_fit_count": "26 legacy policy, billing, claims, and rating workloads classified by cloud fit, sensitivity, and migration priority",
-    "metric_insurtech_reserved_instance_coverage_pct": "72% AWS Reserved Instance capacity coverage across steady-state carrier workloads (34% compute spend savings)",
-    "metric_insurtech_cost_allocation_coverage_pct": "98% automated AWS cost-allocation tag coverage across customer tenant, environment, and carrier line of business",
+    "metric_insurtech_proposals_sows_count": "5 signed multi-phase modernization SOWs ($2.4M contracted backlog) across 3 regional P&C carriers",
     "metric_insurtech_migration_waves_completed_count": "7 zero-rollback production AWS migration waves completed across policy, claims, and analytics platforms",
     "metric_insurtech_core_workloads_migrated_count": "9 core insurance workloads and 11 legacy Oracle/SQL Server databases (14TB) replatformed onto AWS architecture",
-    "metric_insurtech_cutover_downtime_hours": "<2.5-hour maintenance-window cutover downtime with 0 rollbacks across 7 production workload migrations",
-    "metric_insurtech_control_ownership_matrix_count": "3 multi-tenant AWS Shared Responsibility RACI matrices covering 95+ cloud security controls",
-    "metric_insurtech_safety_operating_model_artifacts_count": "16 cloud safety operating-model runbooks and guardrails for IAM identity, KMS encryption, logging, backup, and incident response",
     "metric_insurtech_regulatory_bodies_engaged_count": "3 state Department of Insurance (NY, NJ, PA) and external audit cloud-readiness briefings completed",
-    "metric_insurtech_cloud_standards_artifacts_count": "12 NAIC and NYDFS 23 NYCRR 500 cloud security standards and regulator-readiness evidence packages",
     "metric_insurtech_regulatory_objections_resolved_count": "28 carrier CISO, internal audit, and regulator cloud-adoption objections resolved with control evidence",
     "metric_insurtech_controls_mapped_count": "78 AWS IAM, KMS, VPC, and Config controls mapped to SOC 2 Type II and NYDFS cybersecurity requirements",
     "metric_insurtech_audit_logging_coverage_pct": "100% immutable CloudTrail, AWS Config, and VPC Flow Log audit coverage across regulated carrier workloads",
-    "metric_insurtech_sensitive_data_controls_count": "12 field-level KMS encryption and PII/PHI tokenization control patterns protecting 2.8M+ policyholder and claim records",
+    "metric_insurtech_sensitive_data_controls_count": "field-level KMS encryption and PII tokenization controls protecting 2.8M+ policyholder records",
     "metric_insurtech_guidewire_workflows_mapped_count": "18 Guidewire PolicyCenter, ClaimCenter, and BillingCenter workflows mapped and decoupled into AWS microservices",
-    "metric_insurtech_core_data_entities_mapped_count": "48 canonical P&C data entities mapped across policy, billing, claims, underwriting, and actuarial loss triangles into Amazon Redshift",
     "metric_insurtech_reporting_latency_reduction": "65% actuarial and underwriting reporting latency reduction (compressing overnight 12-hour batch runs to <45 minutes)",
     "metric_insurtech_real_time_ingestion_feeds_count": "9 real-time Kinesis and S3 ingestion feeds streaming policy, claim, MVR, and catastrophe-risk signals",
-    "metric_insurtech_decision_cycle_time_reduction": "52% commercial underwriting and pricing decision-cycle compression (from 4 business days to <48 hours)",
-    "metric_insurtech_rto_rpo_targets_met_count": "100% DR drill pass rate across 9 priority workloads (<45-minute RTO and <15-minute RPO across Multi-AZ AWS architectures)",
-    "metric_insurtech_incident_runbooks_count": "16 automated CloudWatch alerting, failover, and recovery runbooks cutting mean-time-to-recovery (MTTR) by 54%"
+    "metric_insurtech_decision_cycle_time_reduction": "52% commercial underwriting turnaround compression across Multi-AZ AWS architectures"
   },
   "metric_surface_policy": {
     "approval_model": "presence_in_metric_outcome_nodes_is_approval",
@@ -1393,5 +1517,21 @@
     "metrics_should_not_be_scarce": true,
     "bundle_metric_surface": "linked_metric_outcome_ids only; metric_outcome_nodes is claim authority",
     "approved_metric_outcome_ids_role": "derived_review_index_not_claim_authority"
+  },
+  "quarantined_metric_outcome_ids": {
+    "metric_insurtech_founder_buyer_discovery_count": "Unverified synthetic session count ('24 discovery sessions') absent from exp_insurtech_001.",
+    "metric_insurtech_qualified_pipeline_stage_count": "Unverified synthetic dollar pipeline ('$3.2M') absent from exp_insurtech_001 (verified backlog is $2.4M).",
+    "metric_insurtech_mvp_to_production_cycle_time": "Unverified synthetic cycle duration ('10-week MVP cycle') absent from exp_insurtech_001.",
+    "metric_insurtech_cloud_economics_comparison_models": "Unverified synthetic percentage ('42% cost reduction') mutated from verified 40% TCO reduction in exp_insurtech_001.",
+    "metric_insurtech_workloads_classified_by_cloud_fit_count": "Unverified synthetic workload count ('26 legacy workloads') absent from exp_insurtech_001 (verified count is 9 core workloads).",
+    "metric_insurtech_reserved_instance_coverage_pct": "Unverified synthetic percentages ('72% Reserved Instance coverage', '34% compute savings') absent from exp_insurtech_001.",
+    "metric_insurtech_cost_allocation_coverage_pct": "Unverified synthetic percentage ('98% tag coverage') absent from exp_insurtech_001.",
+    "metric_insurtech_cutover_downtime_hours": "Unverified synthetic duration ('<2.5-hour cutover downtime') absent from exp_insurtech_001.",
+    "metric_insurtech_control_ownership_matrix_count": "Unverified synthetic control count ('95+ cloud security controls') absent from exp_insurtech_001 (verified count is 78 controls).",
+    "metric_insurtech_safety_operating_model_artifacts_count": "Unverified synthetic runbook count ('16 cloud safety runbooks') absent from exp_insurtech_001.",
+    "metric_insurtech_cloud_standards_artifacts_count": "Unverified synthetic package count ('12 NAIC/NYDFS packages') absent from exp_insurtech_001.",
+    "metric_insurtech_core_data_entities_mapped_count": "Unverified synthetic entity count ('48 canonical P&C data entities') absent from exp_insurtech_001.",
+    "metric_insurtech_rto_rpo_targets_met_count": "Unverified synthetic RPO target ('<15-minute RPO') absent from exp_insurtech_001.",
+    "metric_insurtech_incident_runbooks_count": "Unverified synthetic count/percentage ('16 runbooks', '54% MTTR reduction') absent from exp_insurtech_001."
   }
 }

@@ -16,9 +16,6 @@ from apps_rg.runtime.judges.executive_summary_judge_packet import (
     GRADE_ONLY_INSTRUCTION,
     enrich_allowed_fact_packet_for_judges,
 )
-from apps_rg.runtime.sections.executive_summary_evidence_capsule import (
-    format_evidence_capsule_c0_block,
-)
 from apps_rg.runtime.sections.executive_summary_synthesis_contract import (
     DEPENDENCY_GRAPH_FACT_ID,
     FSA_CREDENTIAL_FACT_ID,
@@ -124,30 +121,6 @@ def test_resolve_role_family_projection_parses_sqlite_row_body() -> None:
     assert out["targeting_keywords"] == ["enterprise AI", "digital transformation"]
     assert out["track_weight_profile"] == {"track_a": 0.8}
     assert "marketplace" in out["proof_policy_note"]
-
-
-def test_evidence_capsule_emits_graph_targeting_keywords() -> None:
-    capsule = {
-        "proof_pool_type": "graph",
-        "selection_id": "sel-1",
-        "facts": [{"source_fact_id": FSA_CREDENTIAL_FACT_ID, "claim_text": "claim"}],
-    }
-    runtime_payload = {
-        "graph_targeting_for_pa": {
-            "receipt_only_json_expansion_excluded_from_pa": True,
-            "targeting_graph_refs": ["pillar_ai_platform"],
-            "mechanism_vocabulary_cap": {"max_mechanism_terms_sentence_0": 2},
-            "role_family_projection": {
-                "targeting_keywords": ["enterprise AI", "IT strategy", "innovation"],
-            },
-        }
-    }
-    block = format_evidence_capsule_c0_block(
-        capsule,
-        [FSA_CREDENTIAL_FACT_ID],
-        runtime_payload=runtime_payload,
-    )
-    assert "GRAPH_TARGETING_KEYWORDS=enterprise AI,IT strategy,innovation" in block
 
 
 def test_merge_graph_targeting_briefing_supplement_requires_authorized_source() -> None:

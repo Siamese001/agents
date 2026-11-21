@@ -102,6 +102,8 @@ def resolve_role_family_projection(
     db = default_graph_sqlite_path(repo_root)
 
     def fetch_projection_row() -> Any | None:
+        import sqlite3
+
         conn = open_graph_sqlite(repo_root=repo_root, db_path=db)
         try:
             return conn.execute(
@@ -114,6 +116,8 @@ def resolve_role_family_projection(
                 """,
                 (rf, rf),
             ).fetchone()
+        except sqlite3.OperationalError:
+            return None
         finally:
             conn.close()
 

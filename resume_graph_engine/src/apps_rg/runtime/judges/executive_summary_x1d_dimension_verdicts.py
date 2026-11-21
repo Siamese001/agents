@@ -44,7 +44,7 @@ DIMENSION_VERDICT_CODES: frozenset[str] = frozenset(
         "generic_ai_prose", "head_of_talent_acquisition_screen", "ai_authenticity_failure",
         "buzzword_soup", "em_dash_usage", "template_phrasing", "thin_closing_sentence",
         "metric_inventory", "repeated_metric_surface", "residual_executive_clarity",
-        "residual_narrative_coherence", "residual_commercial_fit",
+        "residual_narrative_coherence", "residual_commercial_fit", "inanimate_subject_opener",
     }
 )
 
@@ -57,6 +57,7 @@ _FLAG_TO_DIMENSIONS: dict[str, tuple[str, ...]] = {
     "metric_inventory": ("six_second_scannability", "spoken_executive_authenticity"),
     "ai_bridge_crutch": ("spoken_executive_authenticity",),
     "abstract_noun_soup": ("spoken_executive_authenticity", "six_second_scannability"),
+    "inanimate_subject_opener": ("spoken_executive_authenticity", "immediate_call_conviction"),
 }
 
 _TEXT_HINTS: tuple[tuple[str, tuple[str, ...]], ...] = (
@@ -88,6 +89,12 @@ _TEXT_HINTS: tuple[tuple[str, tuple[str, ...]], ...] = (
             "buzzword soup",
             "stiff",
             "em dash",
+            "inanimate",
+            "datasheet",
+            "platform ownership",
+            "field delivery",
+            "validation meshes",
+            "human actor",
         ),
     ),
     (
@@ -150,8 +157,10 @@ _EXEC_SUMMARY_RUBRIC_DIMENSION_PROSE: dict[str, str] = {
     ),
     "spoken_executive_authenticity": (
         "Does this read like a confident, articulate human executive speaking plainly to a hiring committee, "
-        "rather than LLM prose? Fail on AI transition crutches ('In parallel,', 'Building on that', 'That governed...'), "
-        "abstract noun soup ('operating-model framing', 'governed activation', 'durable economics'), recruiter cliches, or stiff essay cadence."
+        "rather than LLM datasheet prose? Fail hard (score <= 3.8, severity='major', code='inanimate_subject_opener') "
+        "if any sentence opens with an inanimate system/concept noun as the grammatical actor ('Platform ownership covered...', "
+        "'Field delivery scaled...', 'Fail-closed validation meshes enforced...', 'Direct ownership pairs...'), or uses AI "
+        "transition crutches ('In parallel,', 'Building on that', 'That governed...'), abstract noun soup, or stiff essay cadence."
     ),
     "differentiated_edge": (
         "Does the summary foreground a sharp, unmistakable combination of proof (scale, commercial/platform outcomes, "
@@ -208,6 +217,7 @@ def build_executive_summary_x1d_rubric_text(*, include_score_schema: str = "") -
             "- unsupported or exaggerated business metric, scope, or credential",
             "- target company presented as candidate experience or JD/briefing used as proof",
             "- obvious AI-generated cadence, stacked transition crutches, abstract noun soup, or recruiter fluff",
+            "- inanimate-subject datasheet sentence openers ('Platform ownership covered...', 'Field delivery scaled...', 'Fail-closed validation meshes enforced...') where things act instead of the human executive (score <= 3.8, severity='major')",
             "- off-domain clutter that diverges sharply from the target role mandate",
             "- internal codebase micro-plumbing laundry lists or mechanical bullet-stack prose",
         ]
@@ -396,9 +406,7 @@ def ensure_dimension_verdicts(
 
 def build_x1d_dimension_matrix(judges: list[Any]) -> dict[str, Any]:
     """Operator matrix: dimension × judge pass/fail + 2/3 consensus."""
-    from apps_rg.runtime.sections.executive_summary_judge_remediation import _coerce_judge_dict
-
-    norm = [_coerce_judge_dict(j) for j in judges]
+    norm = [dict(j) if isinstance(j, dict) else (j.to_dict() if hasattr(j, "to_dict") else {}) for j in judges]
     provider_rows: list[dict[str, Any]] = []
     by_dimension: dict[str, dict[str, Any]] = {}
 

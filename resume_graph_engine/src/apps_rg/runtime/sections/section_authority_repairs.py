@@ -1,52 +1,16 @@
-"""Deterministic display repairs aligned with rigor-critical X2 gates (apps_rg only)."""
-
+"""Sibling-lane display sanitizers re-export (competencies & ibm_narrative only)."""
 from __future__ import annotations
 
 from apps_rg.runtime.sections.authority_repairs import (
-    _CITATION_REPAIR_STOPWORDS,
     _IBM_CAREER_BRIDGE_RE,
     _IBM_META_TAIL_RE,
-    _MECHANISM_INVENTORY_REWRITES,
-    _SOURCE_FACT_TOKEN_STOPWORDS,
-    _TOKEN_RE,
-    _brushstroke_required_groups,
-    _citation_repair_tokens,
-    _compact_source_fact_ids_for_sentence,
-    _exec_summary_shape_ok,
-    _expand_short_exec_summary_sentence,
-    _fact_support_text,
-    _first_sentence_of_claim,
-    _normalize_mechanism_repair_text,
-    _repair_mechanism_inventory_sentence,
-    _sentence_fails_credential_dump,
-    _source_fact_relevance_score,
-    apply_exec_summary_display_authority_repairs,
     prune_competencies_rigor_failing_terms,
-    repair_exec_summary_causal_multi_metric_rows,
-    repair_exec_summary_causal_multi_root_allocation_rows,
-    repair_exec_summary_cross_fact_conflation_rows,
-    repair_exec_summary_mechanism_inventory_sentences,
-    repair_exec_summary_orphan_rows_with_unused_required_facts,
-    repair_exec_summary_thin_sentence_weave,
-    repair_exec_summary_unallocated_metric_rows,
-    repair_required_brushstroke_citations_from_materialized_sentences,
     sanitize_ibm_narrative_display_text,
-    strip_exec_summary_credential_dump_sentences,
-    strip_target_company_tailoring_sentences,
 )
 
 __all__ = [
-    "apply_exec_summary_display_authority_repairs",
+    "_IBM_CAREER_BRIDGE_RE",
+    "_IBM_META_TAIL_RE",
     "prune_competencies_rigor_failing_terms",
-    "repair_exec_summary_causal_multi_metric_rows",
-    "repair_exec_summary_causal_multi_root_allocation_rows",
-    "repair_exec_summary_cross_fact_conflation_rows",
-    "repair_exec_summary_mechanism_inventory_sentences",
-    "repair_exec_summary_orphan_rows_with_unused_required_facts",
-    "repair_exec_summary_thin_sentence_weave",
-    "repair_exec_summary_unallocated_metric_rows",
-    "repair_required_brushstroke_citations_from_materialized_sentences",
     "sanitize_ibm_narrative_display_text",
-    "strip_exec_summary_credential_dump_sentences",
-    "strip_target_company_tailoring_sentences",
 ]

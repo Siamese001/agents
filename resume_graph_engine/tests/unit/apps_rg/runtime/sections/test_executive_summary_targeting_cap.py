@@ -10,10 +10,7 @@ from apps_rg.runtime.spine.front_contracts import (
     activate_fixture_dev_bypass,
     deactivate_fixture_dev_bypass,
 )
-from apps_rg.runtime.dispatch.executive_summary_pa import compile_executive_summary_prompt
-from apps_rg.runtime.sections.executive_summary_evidence_capsule import (
-    compile_executive_summary_evidence_capsule,
-)
+from apps_rg.runtime.sections.executive_summary_pa import compile_executive_summary_prompt
 from apps_rg.runtime.sections.executive_summary_context_limits import (
     TARGETING_NO_GAP_MAX_CHARS,
 )
@@ -86,7 +83,6 @@ def _brown_payload() -> dict:
 
 
 def _compiled_with_capsule(payload: dict) -> str:
-    compile_executive_summary_evidence_capsule(payload)
     compiled = compile_executive_summary_prompt(payload, run_id=payload["run_id"])
     return compiled.artifact.messages[0]["content"]
 

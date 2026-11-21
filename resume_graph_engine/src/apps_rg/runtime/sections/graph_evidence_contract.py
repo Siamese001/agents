@@ -70,7 +70,7 @@ def slice_row_to_plan_fact(
         slice_row.get("verification_status")
         or slice_row.get("approval_status")
         or slice_row.get("support_level")
-        or "approved_by_graph_presence"
+        or "verified_base_resume"
     ).strip()
     mr = _metric_raw_from_row(slice_row)
     technologies = slice_row.get("technologies")
