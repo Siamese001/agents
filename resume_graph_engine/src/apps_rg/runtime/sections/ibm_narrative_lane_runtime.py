@@ -351,7 +351,7 @@ def normalize_parsed_output(
         narrative = mech_grounded
     out["narrative_sentence"] = narrative
     if not isinstance(out.get("selected_fact_plan"), dict):
-        out["selected_fact_plan"] = runtime_payload["selected_fact_plan"]
+        out["selected_fact_plan"] = runtime_payload.get("selected_fact_plan") or {"section_id": "ibm_narrative", "facts": []}
     ledger = out.get("claim_ledger")
     if isinstance(ledger, list):
         for entry in ledger:
@@ -1129,8 +1129,12 @@ def apply_ibm_narrative_judge_feedback_rewrite(
         },
     ]
     res = generate_section(
-        {**provider_payload, "messages": rewrite_msgs, "max_tokens": _theme_repair_regen_max_tokens(raw_output)},
-        lane_key=LANE_KEY,
+        tag_reasoning_lane(
+            {**provider_payload, "messages": rewrite_msgs, "max_tokens": _theme_repair_regen_max_tokens(raw_output)},
+            LANE_KEY,
+        ),
+        artifact_dir=artifact_dir,
+        run_id=str(runtime_payload.get("run_id") or ""),
     )
     if res.runtime_generation_status != "REAL_LLM":
         return raw_output, parsed, x1d, False
